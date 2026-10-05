@@ -1,0 +1,135 @@
+[
+  {
+    "id": "T01",
+    "agent": "devops-ci",
+    "wave": 1,
+    "depends_on": [],
+    "max_turns": 30,
+    "prompt": "Scaffold the repo per CLAUDE.md 'Repo layout' and 'CI/CD': pyproject + lockfile, Makefile (setup test lint backtest smoke report), ruff+mypy config, pre-commit (ruff, mypy, gitleaks, large-file block), Dockerfile (CPU), .gitignore, and a GitHub Actions workflow with lint-type and unit jobs that pass on the empty package."
+  },
+  {
+    "id": "T02",
+    "agent": "data-engineer",
+    "wave": 1,
+    "depends_on": [],
+    "max_turns": 35,
+    "prompt": "Create nba/db/schema.sql from CLAUDE.md 'Data schema' and a resumable, cached, rate-limited nba_api ingestor for games, box scores, and play-by-play into DuckDB. Add a script that builds a tiny committed fixture dataset (3-5 games). Tests must not use the network."
+  },
+  {
+    "id": "T03",
+    "agent": "data-engineer",
+    "wave": 2,
+    "depends_on": [
+      "T01",
+      "T02"
+    ],
+    "max_turns": 40,
+    "prompt": "Implement the play-by-play to possessions/stints parser with reconciliation tests (mean possession error <= 1 per team-game on the fixture). Document known edge cases."
+  },
+  {
+    "id": "T04",
+    "agent": "devops-ci",
+    "wave": 2,
+    "depends_on": [
+      "T01"
+    ],
+    "max_turns": 30,
+    "prompt": "Implement the local RegistryAdapter (CLAUDE.md 'Registry retrofit'): next_version, log_model, set_alias, promote (old production -> deprecated), load_model, backed by the DuckDB experiments table plus ./registry_store. Add tests, including promotion and deprecation behavior."
+  },
+  {
+    "id": "T05",
+    "agent": "ml-engineer",
+    "wave": 2,
+    "depends_on": [
+      "T02"
+    ],
+    "max_turns": 40,
+    "prompt": "Implement as-of feature builders (SQL-first), rungs 0-2 (baselines, logistic, LightGBM) with the predict/get_metrics/get_config contract, a walk-forward backtest harness with paired bootstrap comparisons, and a frozen final holdout season. Emit report.md with log loss, Brier, calibration, and CIs."
+  },
+  {
+    "id": "T06",
+    "agent": "ml-engineer",
+    "wave": 3,
+    "depends_on": [
+      "T05"
+    ],
+    "max_turns": 35,
+    "prompt": "Implement cold-start methods 1-4 from CLAUDE.md (shrinkage, archetype priors, rookie priors, carryover) behind flags, with property tests for shrinkage limits, and report metrics split by cold-start bucket."
+  },
+  {
+    "id": "T07",
+    "agent": "qa-reviewer",
+    "wave": 3,
+    "depends_on": [
+      "T03",
+      "T05"
+    ],
+    "max_turns": 25,
+    "prompt": "Review branches agent/data-engineer and agent/ml-engineer against the 'Risks and guardrails' section. Write docs/reviews/T07.md with severity-ranked findings."
+  },
+  {
+    "id": "T08",
+    "agent": "devops-ci",
+    "wave": 3,
+    "depends_on": [
+      "T04",
+      "T05"
+    ],
+    "max_turns": 35,
+    "prompt": "Extend CI: data-contract job (schema + no-leakage + possession reconciliation on fixtures), smoke-backtest job (<3 min), model-gate job comparing candidate vs production in the registry, Docker build, release on tag, nightly workflow."
+  },
+  {
+    "id": "T09",
+    "agent": "markets-engineer",
+    "wave": 3,
+    "depends_on": [
+      "T01",
+      "T02"
+    ],
+    "max_turns": 35,
+    "prompt": "Build the READ-ONLY Kalshi ingestor (live + historical tiers, cutoff handling, NBA prop series, 'N+' threshold parsing, reviewed player-name alias table) with recorded-fixture tests. No auth, no order endpoints."
+  },
+  {
+    "id": "T10",
+    "agent": "props-modeler",
+    "wave": 4,
+    "depends_on": [
+      "T05",
+      "T06"
+    ],
+    "max_turns": 40,
+    "prompt": "Implement the minutes model and stat distributions for points, rebounds, assists, threes (CLAUDE.md Phase 2) with calibration reporting, mean-bias CIs, and baselines."
+  },
+  {
+    "id": "T11",
+    "agent": "props-modeler",
+    "wave": 5,
+    "depends_on": [
+      "T10"
+    ],
+    "max_turns": 35,
+    "prompt": "Add combos (PRA etc.), hierarchical coherence with team totals, role-change detection, and split-conformal intervals; report coverage of the 80% interval."
+  },
+  {
+    "id": "T12",
+    "agent": "markets-engineer",
+    "wave": 5,
+    "depends_on": [
+      "T09",
+      "T10"
+    ],
+    "max_turns": 40,
+    "prompt": "Implement the joint-probability engine (independence baseline, then Gaussian copula), the EV calculator with configurable fee model and bid/ask spread, probability intervals, the no_positive_ev_found verdict, and the paper_trades log with auto-settlement."
+  },
+  {
+    "id": "T13",
+    "agent": "qa-reviewer",
+    "wave": 5,
+    "depends_on": [
+      "T11",
+      "T12"
+    ],
+    "max_turns": 25,
+    "prompt": "Review props-modeler and markets-engineer branches: calibration method, copula validity, fee math, sample-size claims, read-only guarantees. Write docs/reviews/T13.md."
+  }
+]
