@@ -120,7 +120,7 @@ COMMON_RULES = """\
 
 AGENTS = {
     "lead": {
-        "model": "sonnet",
+        "model": "opus",
         "tools": "Read, Write, Edit, Bash, Glob, Grep, Task",
         "desc": ("Tech lead and chief of staff. Use for planning, prioritising, delegating to "
                  "specialist agents, reviewing their branches, and reporting to the manager."),
@@ -143,7 +143,7 @@ Responsibilities
 """,
     },
     "devops-ci": {
-        "model": "sonnet",
+        "model": "opus",
         "tools": BUILDER_TOOLS,
         "desc": ("Builds repo scaffolding, CI/CD, Docker, Makefile, pre-commit, and the local "
                  "model registry adapter. Use for anything about pipelines, tests infra, releases."),
@@ -159,7 +159,7 @@ Keep CI fast and free-tier friendly. Pin dependencies with a lockfile.
 """,
     },
     "data-engineer": {
-        "model": "sonnet",
+        "model": "opus",
         "tools": BUILDER_TOOLS,
         "desc": ("Owns data ingestion, DuckDB schema, play-by-play parsing into possessions and "
                  "stints, and fixture datasets. Use for nba_api pulls and data-quality work."),
@@ -174,7 +174,7 @@ Never refetch cached data. Treat the parser as the highest-risk component: valid
 """,
     },
     "ml-engineer": {
-        "model": "sonnet",
+        "model": "opus",
         "tools": BUILDER_TOOLS,
         "desc": ("Builds as-of features, baseline and GBM models, the walk-forward backtest "
                  "harness, and cold-start methods. Use for model training and evaluation."),
@@ -192,7 +192,7 @@ until rungs 0-2 are logged and the manager has approved.
 """,
     },
     "props-modeler": {
-        "model": "sonnet",
+        "model": "opus",
         "tools": BUILDER_TOOLS,
         "desc": ("Builds minutes models and per-player stat distributions for points, rebounds, "
                  "assists, threes and combos, with calibration and conformal intervals."),
@@ -208,7 +208,7 @@ loss. Never claim single-game accuracy within 0.5; it is not achievable.
 """,
     },
     "markets-engineer": {
-        "model": "sonnet",
+        "model": "opus",
         "tools": "Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch",
         "desc": ("Builds the READ-ONLY Kalshi ingestor, joint-probability (copula) engine, EV "
                  "calculator with configurable fees, and the paper-trade log."),
@@ -226,7 +226,7 @@ Phase 3 of CLAUDE.md. Web access is for reading public API documentation only (d
 """,
     },
     "qa-reviewer": {
-        "model": "sonnet",
+        "model": "opus",
         "tools": REVIEW_TOOLS,
         "desc": ("Independent reviewer: audits leakage, statistical validity, test quality, and "
                  "scope creep. Reviews only; does not modify source code."),
