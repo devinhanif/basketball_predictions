@@ -1,5 +1,6 @@
 # data & databases — never committed (CI uses the tiny fixture dataset instead)
-data/
+# anchored to repo root so it doesn't also swallow tests/data/ (owned by data-engineer)
+/data/
 *.duckdb
 *.parquet
 registry_store/

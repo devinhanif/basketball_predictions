@@ -1,0 +1,11 @@
+[
+  {"game_id": "0022300001", "eventnum": 1, "eventmsgtype": 12, "eventmsgactiontype": 0, "period": 1, "pctimestring": "12:00", "homedescription": null, "visitordescription": null, "score": null, "player1_id": 0, "player1_team_id": null},
+  {"game_id": "0022300001", "eventnum": 2, "eventmsgtype": 1, "eventmsgactiontype": 1, "period": 1, "pctimestring": "11:42", "homedescription": "101 Jump Shot (2 PTS)", "visitordescription": null, "score": "2 - 0", "player1_id": 101, "player1_team_id": 1610612738},
+  {"game_id": "0022300001", "eventnum": 3, "eventmsgtype": 2, "eventmsgactiontype": 1, "period": 1, "pctimestring": "11:20", "homedescription": null, "visitordescription": "104 Jump Shot MISS", "score": "2 - 0", "player1_id": 104, "player1_team_id": 1610612755},
+  {"game_id": "0022300001", "eventnum": 4, "eventmsgtype": 4, "eventmsgactiontype": 0, "period": 1, "pctimestring": "11:18", "homedescription": "102 REBOUND (Off:1 Def:0)", "visitordescription": null, "score": "2 - 0", "player1_id": 102, "player1_team_id": 1610612738},
+  {"game_id": "0022300001", "eventnum": 5, "eventmsgtype": 5, "eventmsgactiontype": 1, "period": 1, "pctimestring": "10:55", "homedescription": "102 Turnover", "visitordescription": null, "score": "2 - 0", "player1_id": 102, "player1_team_id": 1610612738},
+  {"game_id": "0022300001", "eventnum": 6, "eventmsgtype": 1, "eventmsgactiontype": 1, "period": 1, "pctimestring": "10:30", "homedescription": null, "visitordescription": "105 Jump Shot (2 PTS)", "score": "2 - 2", "player1_id": 105, "player1_team_id": 1610612755},
+  {"game_id": "0022300001", "eventnum": 7, "eventmsgtype": 6, "eventmsgactiontype": 1, "period": 1, "pctimestring": "10:05", "homedescription": "103 Foul", "visitordescription": null, "score": "2 - 2", "player1_id": 103, "player1_team_id": 1610612738},
+  {"game_id": "0022300001", "eventnum": 8, "eventmsgtype": 3, "eventmsgactiontype": 10, "period": 1, "pctimestring": "10:05", "homedescription": null, "visitordescription": "106 Free Throw 1 of 2 (1 PTS)", "score": "2 - 3", "player1_id": 106, "player1_team_id": 1610612755},
+  {"game_id": "0022300001", "eventnum": 9, "eventmsgtype": 13, "eventmsgactiontype": 0, "period": 1, "pctimestring": "0:00", "homedescription": null, "visitordescription": null, "score": "28 - 26", "player1_id": 0, "player1_team_id": null}
+]

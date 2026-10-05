@@ -1,0 +1,178 @@
+"""Schema tests: apply schema.sql to a fresh in-memory DuckDB and assert
+every table from CLAUDE.md's "Data schema (DuckDB)" section exists with
+its expected columns.
+"""
+
+from __future__ import annotations
+
+import duckdb
+import pytest
+
+from nba.db.connect import connect
+
+EXPECTED_COLUMNS: dict[str, set[str]] = {
+    "games": {
+        "game_id",
+        "game_date",
+        "season",
+        "home_team",
+        "away_team",
+        "home_pts",
+        "away_pts",
+    },
+    "possessions": {
+        "game_id",
+        "poss_idx",
+        "period",
+        "clock_start",
+        "clock_end",
+        "off_team",
+        "def_team",
+        "off_players",
+        "def_players",
+        "score_diff",
+        "outcome",
+        "shooter_id",
+        "shot_zone",
+        "assister_id",
+        "oreb",
+        "fta",
+        "pts",
+    },
+    "stints": {"game_id", "team_id", "period", "start_clock", "end_clock", "players"},
+    "player_rates": {
+        "player_id",
+        "as_of",
+        "usage",
+        "tov_rate",
+        "ft_pct",
+        "foul_draw",
+        "zone_mix",
+        "zone_fg",
+        "orb_rate",
+        "drb_rate",
+        "min_per_g",
+        "n_poss",
+        "source",
+    },
+    "team_context": {"game_id", "team_id", "rest_days", "b2b", "travel_miles", "injured_out"},
+    "players_static": {
+        "player_id",
+        "position",
+        "height_in",
+        "weight_lb",
+        "birth_date",
+        "draft_year",
+        "draft_pick",
+        "college",
+        "college_stats",
+    },
+    "player_game_stats": {
+        "game_id",
+        "player_id",
+        "team_id",
+        "minutes",
+        "pts",
+        "reb",
+        "ast",
+        "fg3m",
+        "stl",
+        "blk",
+        "tov",
+        "starter",
+    },
+    "prop_predictions": {
+        "run_id",
+        "game_id",
+        "player_id",
+        "stat",
+        "mean",
+        "dist_family",
+        "dist_params",
+        "p_ge",
+        "q10",
+        "q50",
+        "q90",
+        "made_at",
+    },
+    "kalshi_markets": {
+        "ticker",
+        "series_ticker",
+        "event_ticker",
+        "title",
+        "player_id",
+        "stat",
+        "threshold",
+        "open_time",
+        "close_time",
+        "settled_ts",
+        "result",
+    },
+    "kalshi_prices": {
+        "ticker",
+        "ts",
+        "yes_bid",
+        "yes_ask",
+        "last",
+        "volume",
+        "open_interest",
+        "source",
+    },
+    "paper_trades": {
+        "trade_id",
+        "created_at",
+        "legs",
+        "model_prob",
+        "model_prob_lo",
+        "model_prob_hi",
+        "price",
+        "fee_model",
+        "expected_value",
+        "settled",
+        "outcome",
+        "realized_pnl",
+    },
+    "experiments": {
+        "run_id",
+        "created_at",
+        "rung",
+        "model_name",
+        "config",
+        "metrics",
+        "artifact_path",
+        "stage",
+        "version",
+        "alias",
+        "tags",
+        "metadata",
+    },
+}
+
+
+@pytest.fixture
+def con() -> duckdb.DuckDBPyConnection:
+    con = connect(":memory:")
+    yield con
+    con.close()
+
+
+def _columns(con: duckdb.DuckDBPyConnection, table: str) -> set[str]:
+    rows = con.execute(f"PRAGMA table_info('{table}')").fetchall()
+    return {row[1] for row in rows}
+
+
+@pytest.mark.parametrize("table", sorted(EXPECTED_COLUMNS))
+def test_table_has_expected_columns(con: duckdb.DuckDBPyConnection, table: str) -> None:
+    actual = _columns(con, table)
+    expected = EXPECTED_COLUMNS[table]
+    missing = expected - actual
+    assert not missing, f"{table} missing columns: {missing}"
+
+
+def test_schema_apply_is_idempotent(con: duckdb.DuckDBPyConnection) -> None:
+    from nba.db.connect import apply_schema
+
+    apply_schema(con)
+    apply_schema(con)
+    tables = {row[0] for row in con.execute("SHOW TABLES").fetchall()}
+    assert set(EXPECTED_COLUMNS).issubset(tables)

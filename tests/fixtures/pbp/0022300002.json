@@ -1,0 +1,9 @@
+[
+  {"game_id": "0022300002", "eventnum": 1, "eventmsgtype": 12, "eventmsgactiontype": 0, "period": 1, "pctimestring": "12:00", "homedescription": null, "visitordescription": null, "score": null, "player1_id": 0, "player1_team_id": null},
+  {"game_id": "0022300002", "eventnum": 2, "eventmsgtype": 1, "eventmsgactiontype": 1, "period": 1, "pctimestring": "11:50", "homedescription": "201 Jump Shot (2 PTS)", "visitordescription": null, "score": "2 - 0", "player1_id": 201, "player1_team_id": 1610612747},
+  {"game_id": "0022300002", "eventnum": 3, "eventmsgtype": 2, "eventmsgactiontype": 1, "period": 1, "pctimestring": "11:30", "homedescription": null, "visitordescription": "204 Jump Shot MISS", "score": "2 - 0", "player1_id": 204, "player1_team_id": 1610612744},
+  {"game_id": "0022300002", "eventnum": 4, "eventmsgtype": 4, "eventmsgactiontype": 0, "period": 1, "pctimestring": "11:28", "homedescription": null, "visitordescription": "205 REBOUND (Off:0 Def:1)", "score": "2 - 0", "player1_id": 205, "player1_team_id": 1610612744},
+  {"game_id": "0022300002", "eventnum": 5, "eventmsgtype": 1, "eventmsgactiontype": 1, "period": 1, "pctimestring": "11:05", "homedescription": null, "visitordescription": "206 3PT Jump Shot (3 PTS)", "score": "2 - 3", "player1_id": 206, "player1_team_id": 1610612744},
+  {"game_id": "0022300002", "eventnum": 6, "eventmsgtype": 5, "eventmsgactiontype": 1, "period": 1, "pctimestring": "10:40", "homedescription": "202 Turnover", "visitordescription": null, "score": "2 - 3", "player1_id": 202, "player1_team_id": 1610612747},
+  {"game_id": "0022300002", "eventnum": 7, "eventmsgtype": 13, "eventmsgactiontype": 0, "period": 1, "pctimestring": "0:00", "homedescription": null, "visitordescription": null, "score": "30 - 27", "player1_id": 0, "player1_team_id": null}
+]

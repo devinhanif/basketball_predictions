@@ -1,0 +1,20 @@
+[
+  {"game_id": "0022300001", "player_id": 101, "team_id": 1610612738, "minutes": 36.5, "pts": 30, "reb": 6, "ast": 7, "fg3m": 3, "stl": 1, "blk": 0, "tov": 2, "starter": true},
+  {"game_id": "0022300001", "player_id": 102, "team_id": 1610612738, "minutes": 34.0, "pts": 40, "reb": 8, "ast": 4, "fg3m": 5, "stl": 2, "blk": 1, "tov": 3, "starter": true},
+  {"game_id": "0022300001", "player_id": 103, "team_id": 1610612738, "minutes": 33.2, "pts": 38, "reb": 5, "ast": 3, "fg3m": 2, "stl": 0, "blk": 2, "tov": 1, "starter": true},
+  {"game_id": "0022300001", "player_id": 104, "team_id": 1610612755, "minutes": 35.0, "pts": 35, "reb": 7, "ast": 5, "fg3m": 4, "stl": 1, "blk": 0, "tov": 2, "starter": true},
+  {"game_id": "0022300001", "player_id": 105, "team_id": 1610612755, "minutes": 32.0, "pts": 33, "reb": 4, "ast": 6, "fg3m": 1, "stl": 2, "blk": 0, "tov": 3, "starter": true},
+  {"game_id": "0022300001", "player_id": 106, "team_id": 1610612755, "minutes": 31.5, "pts": 36, "reb": 9, "ast": 2, "fg3m": 3, "stl": 0, "blk": 1, "tov": 1, "starter": true},
+  {"game_id": "0022300002", "player_id": 201, "team_id": 1610612747, "minutes": 37.0, "pts": 40, "reb": 8, "ast": 9, "fg3m": 4, "stl": 1, "blk": 0, "tov": 2, "starter": true},
+  {"game_id": "0022300002", "player_id": 202, "team_id": 1610612747, "minutes": 35.5, "pts": 39, "reb": 10, "ast": 3, "fg3m": 2, "stl": 1, "blk": 2, "tov": 2, "starter": true},
+  {"game_id": "0022300002", "player_id": 203, "team_id": 1610612747, "minutes": 33.0, "pts": 40, "reb": 6, "ast": 5, "fg3m": 5, "stl": 0, "blk": 0, "tov": 1, "starter": true},
+  {"game_id": "0022300002", "player_id": 204, "team_id": 1610612744, "minutes": 34.0, "pts": 36, "reb": 5, "ast": 6, "fg3m": 3, "stl": 2, "blk": 0, "tov": 2, "starter": true},
+  {"game_id": "0022300002", "player_id": 205, "team_id": 1610612744, "minutes": 32.5, "pts": 35, "reb": 4, "ast": 8, "fg3m": 2, "stl": 1, "blk": 0, "tov": 3, "starter": true},
+  {"game_id": "0022300002", "player_id": 206, "team_id": 1610612744, "minutes": 30.0, "pts": 36, "reb": 7, "ast": 2, "fg3m": 4, "stl": 0, "blk": 1, "tov": 1, "starter": true},
+  {"game_id": "0022300003", "player_id": 301, "team_id": 1610612748, "minutes": 36.0, "pts": 35, "reb": 7, "ast": 4, "fg3m": 2, "stl": 1, "blk": 1, "tov": 2, "starter": true},
+  {"game_id": "0022300003", "player_id": 302, "team_id": 1610612748, "minutes": 33.5, "pts": 35, "reb": 6, "ast": 5, "fg3m": 3, "stl": 0, "blk": 0, "tov": 3, "starter": true},
+  {"game_id": "0022300003", "player_id": 303, "team_id": 1610612748, "minutes": 31.0, "pts": 35, "reb": 8, "ast": 2, "fg3m": 1, "stl": 2, "blk": 1, "tov": 1, "starter": true},
+  {"game_id": "0022300003", "player_id": 304, "team_id": 1610612749, "minutes": 35.0, "pts": 37, "reb": 9, "ast": 6, "fg3m": 4, "stl": 1, "blk": 0, "tov": 2, "starter": true},
+  {"game_id": "0022300003", "player_id": 305, "team_id": 1610612749, "minutes": 34.0, "pts": 36, "reb": 5, "ast": 7, "fg3m": 2, "stl": 0, "blk": 2, "tov": 1, "starter": true},
+  {"game_id": "0022300003", "player_id": 306, "team_id": 1610612749, "minutes": 32.0, "pts": 37, "reb": 6, "ast": 3, "fg3m": 3, "stl": 1, "blk": 0, "tov": 2, "starter": true}
+]

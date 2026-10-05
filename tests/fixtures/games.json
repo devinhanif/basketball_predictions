@@ -1,0 +1,29 @@
+[
+  {
+    "game_id": "0022300001",
+    "game_date": "2023-10-24",
+    "season": 2023,
+    "home_team": 1610612738,
+    "away_team": 1610612755,
+    "home_pts": 108,
+    "away_pts": 104
+  },
+  {
+    "game_id": "0022300002",
+    "game_date": "2023-10-24",
+    "season": 2023,
+    "home_team": 1610612747,
+    "away_team": 1610612744,
+    "home_pts": 119,
+    "away_pts": 107
+  },
+  {
+    "game_id": "0022300003",
+    "game_date": "2023-10-25",
+    "season": 2023,
+    "home_team": 1610612748,
+    "away_team": 1610612749,
+    "home_pts": 105,
+    "away_pts": 110
+  }
+]
