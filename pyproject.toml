@@ -59,7 +59,9 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = "3.11"
+# Match the interpreter mypy runs under (3.12). Required so third-party stubs
+# (e.g. numpy>=2.5) that use 3.12 `type` syntax parse. Runtime floor stays 3.11+.
+python_version = "3.12"
 files = ["nba"]
 ignore_missing_imports = true
 warn_unused_ignores = true
