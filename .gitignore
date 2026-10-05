@@ -15,9 +15,13 @@ venv/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
 *.egg-info/
 dist/
 build/
+uv.lock.tmp
 
 # env / secrets
 .env

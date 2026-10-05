@@ -1,0 +1,41 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        files: ^nba/
+        additional_dependencies: []
+        pass_filenames: false
+        args: [nba/]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.19.3
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      - id: block-duckdb-parquet
+        name: block committing DuckDB/parquet/data files
+        entry: >-
+          bash -c 'if echo "$@" | tr " " "\n" | grep -E "\.(duckdb|parquet)$|^data/"; then
+          echo "Refusing to commit DuckDB/parquet/data files (see CLAUDE.md hard constraints)."; exit 1; fi'
+        language: system
+        pass_filenames: true
