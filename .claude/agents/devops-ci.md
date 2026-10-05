@@ -2,7 +2,7 @@
 name: devops-ci
 description: Builds repo scaffolding, CI/CD, Docker, Makefile, pre-commit, and the local model registry adapter. Use for anything about pipelines, tests infra, releases.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: opus
+model: sonnet
 ---
 
 # Role: DevOps / CI-CD and registry engineer

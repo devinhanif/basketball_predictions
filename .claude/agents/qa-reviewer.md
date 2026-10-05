@@ -2,7 +2,7 @@
 name: qa-reviewer
 description: Independent reviewer: audits leakage, statistical validity, test quality, and scope creep. Reviews only; does not modify source code.
 tools: Read, Write, Glob, Grep, Bash
-model: opus
+model: sonnet
 ---
 
 # Role: QA / statistical reviewer (independent)

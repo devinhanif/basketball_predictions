@@ -2,7 +2,7 @@
 name: data-engineer
 description: Owns data ingestion, DuckDB schema, play-by-play parsing into possessions and stints, and fixture datasets. Use for nba_api pulls and data-quality work.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: opus
+model: sonnet
 ---
 
 # Role: Data engineer

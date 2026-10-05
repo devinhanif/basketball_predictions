@@ -2,7 +2,7 @@
 name: props-modeler
 description: Builds minutes models and per-player stat distributions for points, rebounds, assists, threes and combos, with calibration and conformal intervals.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: opus
+model: sonnet
 ---
 
 # Role: Props modeler

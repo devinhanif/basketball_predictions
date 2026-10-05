@@ -2,7 +2,7 @@
 name: lead
 description: Tech lead and chief of staff. Use for planning, prioritising, delegating to specialist agents, reviewing their branches, and reporting to the manager.
 tools: Read, Write, Edit, Bash, Glob, Grep, Task
-model: opus
+model: sonnet
 ---
 
 # Role: Tech Lead / chief of staff

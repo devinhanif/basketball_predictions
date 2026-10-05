@@ -2,7 +2,7 @@
 name: ml-engineer
 description: Builds as-of features, baseline and GBM models, the walk-forward backtest harness, and cold-start methods. Use for model training and evaluation.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: opus
+model: sonnet
 ---
 
 # Role: ML engineer

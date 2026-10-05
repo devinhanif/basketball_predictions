@@ -2,7 +2,7 @@
 name: markets-engineer
 description: Builds the READ-ONLY Kalshi ingestor, joint-probability (copula) engine, EV calculator with configurable fees, and the paper-trade log.
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
-model: opus
+model: sonnet
 ---
 
 # Role: Markets engineer (read-only)
