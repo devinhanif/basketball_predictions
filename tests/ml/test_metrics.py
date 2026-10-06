@@ -86,3 +86,120 @@ def test_paired_bootstrap_does_not_claim_a_win_on_tiny_n() -> None:
     cmp = paired_bootstrap_compare(y, p_a, p_b, log_loss, "a_vs_b", n_boot=200, seed=0)
     assert cmp.kept_a_over_b is False
     assert "insufficient" in cmp.delta.note
+
+
+# ---------------------------------------------------------------------------
+# Performance-fix correctness guard: the vectorized bootstrap in
+# nba/eval/metrics.py must produce *exactly* the same numbers as a plain
+# Python ``for`` loop over replicates, for the same seed -- proof the speedup
+# changed runtime, not results (see nba.eval.metrics._batched_resample_stat
+# / _batched_paired_delta docstrings for why the per-replicate `rng.integers`
+# draws line up one-for-one with a loop's).
+# ---------------------------------------------------------------------------
+
+
+def _reference_bootstrap_ci(values: np.ndarray, n_boot: int, seed: int, alpha: float = 0.05):
+    """Plain Python loop over replicates -- the pre-vectorization behavior."""
+    values = np.asarray(values, dtype=float)
+    n = len(values)
+    rng = np.random.default_rng(seed)
+    boot_stats = np.empty(n_boot)
+    for i in range(n_boot):
+        idx = rng.integers(0, n, size=n)
+        boot_stats[i] = np.mean(values[idx])
+    point = float(np.mean(values))
+    lo = float(np.quantile(boot_stats, alpha / 2))
+    hi = float(np.quantile(boot_stats, 1 - alpha / 2))
+    return point, lo, hi
+
+
+def _reference_paired_delta(y, p_a, p_b, metric_fn, n_boot: int, seed: int, alpha: float = 0.05):
+    """Plain Python loop over paired replicates -- the pre-vectorization behavior."""
+    y = np.asarray(y, dtype=float)
+    p_a = np.asarray(p_a, dtype=float)
+    p_b = np.asarray(p_b, dtype=float)
+    n = len(y)
+    rng = np.random.default_rng(seed)
+    deltas = np.empty(n_boot)
+    for i in range(n_boot):
+        idx = rng.integers(0, n, size=n)
+        deltas[i] = metric_fn(y[idx], p_a[idx]) - metric_fn(y[idx], p_b[idx])
+    lo = float(np.quantile(deltas, alpha / 2))
+    hi = float(np.quantile(deltas, 1 - alpha / 2))
+    return lo, hi
+
+
+def test_vectorized_bootstrap_ci_matches_reference_loop_exactly() -> None:
+    rng = np.random.default_rng(7)
+    values = rng.normal(size=83)
+    ci = bootstrap_ci(values, stat_fn=np.mean, n_boot=500, seed=42)
+    ref_point, ref_lo, ref_hi = _reference_bootstrap_ci(values, n_boot=500, seed=42)
+    assert ci.point == ref_point
+    assert abs(ci.lo - ref_lo) < 1e-12
+    assert abs(ci.hi - ref_hi) < 1e-12
+
+
+def test_vectorized_bootstrap_ci_matches_reference_loop_with_batching() -> None:
+    """Forces multiple internal batches (small ``_MAX_BOOTSTRAP_CELLS``
+    relative to n * n_boot) to prove chunking doesn't change the result."""
+    import nba.eval.metrics as metrics_mod
+
+    rng = np.random.default_rng(3)
+    values = rng.normal(size=1000)
+    old_cap = metrics_mod._MAX_BOOTSTRAP_CELLS
+    try:
+        metrics_mod._MAX_BOOTSTRAP_CELLS = 5_000  # force many small batches
+        ci = bootstrap_ci(values, stat_fn=np.mean, n_boot=300, seed=11)
+    finally:
+        metrics_mod._MAX_BOOTSTRAP_CELLS = old_cap
+    ref_point, ref_lo, ref_hi = _reference_bootstrap_ci(values, n_boot=300, seed=11)
+    assert ci.point == ref_point
+    assert abs(ci.lo - ref_lo) < 1e-12
+    assert abs(ci.hi - ref_hi) < 1e-12
+
+
+def test_vectorized_paired_bootstrap_matches_reference_loop_exactly() -> None:
+    rng = np.random.default_rng(9)
+    n = 97
+    y = rng.integers(0, 2, size=n).astype(float)
+    p_a = np.clip(rng.uniform(size=n), 0.01, 0.99)
+    p_b = np.clip(rng.uniform(size=n), 0.01, 0.99)
+    cmp = paired_bootstrap_compare(y, p_a, p_b, log_loss, "a_vs_b", n_boot=400, seed=5)
+    ref_lo, ref_hi = _reference_paired_delta(y, p_a, p_b, log_loss, n_boot=400, seed=5)
+    assert abs(cmp.delta.lo - ref_lo) < 1e-9
+    assert abs(cmp.delta.hi - ref_hi) < 1e-9
+
+
+def test_bootstrap_ci_is_deterministic_given_same_seed() -> None:
+    rng = np.random.default_rng(1)
+    values = rng.normal(size=250)
+    ci_a = bootstrap_ci(values, stat_fn=np.mean, n_boot=500, seed=123)
+    ci_b = bootstrap_ci(values, stat_fn=np.mean, n_boot=500, seed=123)
+    assert ci_a.lo == ci_b.lo
+    assert ci_a.hi == ci_b.hi
+
+
+def test_paired_bootstrap_is_deterministic_given_same_seed() -> None:
+    rng = np.random.default_rng(2)
+    n = 60
+    y = rng.integers(0, 2, size=n).astype(float)
+    p_a = np.clip(rng.uniform(size=n), 0.01, 0.99)
+    p_b = np.clip(rng.uniform(size=n), 0.01, 0.99)
+    cmp_a = paired_bootstrap_compare(y, p_a, p_b, log_loss, "a_vs_b", n_boot=300, seed=77)
+    cmp_b = paired_bootstrap_compare(y, p_a, p_b, log_loss, "a_vs_b", n_boot=300, seed=77)
+    assert cmp_a.delta.lo == cmp_b.delta.lo
+    assert cmp_a.delta.hi == cmp_b.delta.hi
+
+
+def test_log_loss_and_brier_axis_matches_scalar_per_row() -> None:
+    """``axis=1`` reduction (used internally by the vectorized paired
+    bootstrap) must agree with calling the scalar (``axis=None``) form
+    row-by-row."""
+    rng = np.random.default_rng(4)
+    y = rng.integers(0, 2, size=(5, 11)).astype(float)
+    p = np.clip(rng.uniform(size=(5, 11)), 0.01, 0.99)
+    ll_batched = log_loss(y, p, axis=1)
+    brier_batched = brier_score(y, p, axis=1)
+    for i in range(5):
+        assert abs(ll_batched[i] - log_loss(y[i], p[i])) < 1e-12
+        assert abs(brier_batched[i] - brier_score(y[i], p[i])) < 1e-12

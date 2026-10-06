@@ -26,6 +26,7 @@ CI/CD section requires: CDF monotone non-decreasing, probabilities in
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -125,6 +126,152 @@ class GammaDist:
 
     def params(self) -> dict[str, float]:
         return {"shape": self.shape, "scale": self.scale}
+
+
+def batch_ppf(dists: Sequence[Distribution], taus: np.ndarray) -> np.ndarray | None:
+    """Vectorized quantile function over a homogeneous list of distributions.
+
+    Evaluates ``ppf`` for every ``(distribution, tau)`` pair with a
+    handful of vectorized ``scipy.stats`` calls (one per quantile grid,
+    broadcasting over every distribution's parameters as an array) instead
+    of ``len(dists) * len(taus)`` individual Python-level ``ppf()`` calls.
+    That per-call overhead -- not the arithmetic itself -- is what makes
+    CRPS scoring over a large player-game sample slow; this is the fix.
+
+    Returns ``None`` (never raises) when the list is empty or not
+    uniformly one of the families handled below, so callers can safely
+    fall back to the per-element ``ppf()`` loop for any family added later
+    or any (should-not-happen) mixed-family list -- a correctness
+    safety net, not a performance path.
+
+    Shape of a non-``None`` result: ``(len(dists), len(taus))``.
+    """
+    n = len(dists)
+    if n == 0:
+        return None
+    family = dists[0].family
+    if any(d.family != family for d in dists):
+        return None
+    taus_row = np.asarray(taus, dtype=float)[None, :]
+    if family == "normal":
+        means = np.array([d.mean_ for d in dists])[:, None]  # type: ignore[attr-defined]
+        stds = np.array([d.std for d in dists])[:, None]  # type: ignore[attr-defined]
+        return np.asarray(stats.norm.ppf(taus_row, loc=means, scale=stds))
+    if family == "gamma":
+        shapes = np.array([d.shape for d in dists])[:, None]  # type: ignore[attr-defined]
+        scales = np.array([d.scale for d in dists])[:, None]  # type: ignore[attr-defined]
+        return np.asarray(stats.gamma.ppf(taus_row, a=shapes, scale=scales))
+    if family == "negbin":
+        mus = np.array([d.mu for d in dists])  # type: ignore[attr-defined]
+        alphas = np.array([d.alpha for d in dists])  # type: ignore[attr-defined]
+        n_param = (1.0 / alphas)[:, None]
+        p_param = (1.0 / (1.0 + alphas * mus))[:, None]
+        return np.asarray(stats.nbinom.ppf(taus_row, n_param, p_param))
+    if family == "zinb":
+        pis = np.array([d.pi for d in dists])[:, None]  # type: ignore[attr-defined]
+        mus = np.array([d.base.mu for d in dists])  # type: ignore[attr-defined]
+        alphas = np.array([d.base.alpha for d in dists])  # type: ignore[attr-defined]
+        n_param = (1.0 / alphas)[:, None]
+        p_param = (1.0 / (1.0 + alphas * mus))[:, None]
+        inner_q = np.clip((taus_row - pis) / (1.0 - pis), 0.0, 1.0)
+        base_q = stats.nbinom.ppf(inner_q, n_param, p_param)
+        return np.asarray(np.where(taus_row <= pis, 0.0, base_q))
+    return None
+
+
+def batch_p_ge(dists: Sequence[Distribution], n_thresh: float) -> np.ndarray | None:
+    """Vectorized ``P(X >= n_thresh)`` over a homogeneous list of distributions.
+
+    Same rationale and fallback contract as :func:`batch_ppf` (per-element
+    ``p_ge()`` calls -- one scipy call per *row* instead of per
+    ``(row, quantile)`` pair, but still ``O(n)`` individual Python-level
+    scipy calls without this) for the threshold-event metrics (CLAUDE.md
+    ``p_ge`` / threshold log loss) instead of CRPS quantiles.
+
+    Shape of a non-``None`` result: ``(len(dists),)``.
+    """
+    n = len(dists)
+    if n == 0:
+        return None
+    family = dists[0].family
+    if any(d.family != family for d in dists):
+        return None
+    # NB: the n_thresh<=0 short-circuit only applies to the discrete count
+    # families below (NegBinDist/ZeroInflatedNegBinDist special-case it in
+    # their own scalar p_ge() -- P(non-negative integer >= 0) == 1).
+    # NormalDist/GammaDist have no such special case in their scalar
+    # p_ge() (continuity-corrected sf can be < 1 even at n_thresh<=0), so
+    # applying a blanket early return here for every family would silently
+    # diverge from the scalar implementation -- see
+    # tests/props/test_distributions.py::test_batch_p_ge_matches_scalar_loop_every_family.
+    if family == "normal":
+        means = np.array([d.mean_ for d in dists])  # type: ignore[attr-defined]
+        stds = np.array([d.std for d in dists])  # type: ignore[attr-defined]
+        return np.asarray(stats.norm.sf(n_thresh - 0.5, loc=means, scale=stds))
+    if family == "gamma":
+        shapes = np.array([d.shape for d in dists])  # type: ignore[attr-defined]
+        scales = np.array([d.scale for d in dists])  # type: ignore[attr-defined]
+        return np.asarray(stats.gamma.sf(max(n_thresh - 0.5, 0.0), a=shapes, scale=scales))
+    if n_thresh <= 0:
+        return np.ones(n)
+    if family == "negbin":
+        mus = np.array([d.mu for d in dists])  # type: ignore[attr-defined]
+        alphas = np.array([d.alpha for d in dists])  # type: ignore[attr-defined]
+        n_param = 1.0 / alphas
+        p_param = 1.0 / (1.0 + alphas * mus)
+        return np.asarray(stats.nbinom.sf(np.ceil(n_thresh) - 1, n_param, p_param))
+    if family == "zinb":
+        pis = np.array([d.pi for d in dists])  # type: ignore[attr-defined]
+        mus = np.array([d.base.mu for d in dists])  # type: ignore[attr-defined]
+        alphas = np.array([d.base.alpha for d in dists])  # type: ignore[attr-defined]
+        n_param = 1.0 / alphas
+        p_param = 1.0 / (1.0 + alphas * mus)
+        return np.asarray((1.0 - pis) * stats.nbinom.sf(np.ceil(n_thresh) - 1, n_param, p_param))
+    return None
+
+
+def batch_minutes_mean_var(dists: Sequence[Distribution]) -> tuple[np.ndarray, np.ndarray] | None:
+    """Vectorized mixture mean/variance for a homogeneous list of
+    ``MinutesHurdleDist``.
+
+    Uses the closed-form truncated-normal mean/variance formula (Normal
+    pdf/cdf evaluated at the standardized truncation bounds -- see e.g.
+    Johnson, Kotz & Balakrishnan, *Continuous Univariate Distributions*,
+    ch. 13.10.2) instead of ``scipy.stats.truncnorm.mean()``/``.var()``.
+    That choice matters here, not just style: profiling showed
+    ``truncnorm.mean``/``.var`` fall back to an internal per-element
+    Python loop (``_truncnorm_stats_scalar``) even when given array
+    parameters, so calling them -- vectorized call signature or not --
+    was still ``O(n)`` scipy-internal Python calls. ``scipy.stats.norm``'s
+    ``pdf``/``cdf`` are genuinely vectorized (no such fallback), so
+    computing the formula directly here is both exact (not an
+    approximation -- the formula *is* the truncated-normal moment
+    definition) and avoids that internal loop entirely.
+
+    Returns ``None`` (fall back to the per-element ``mean()``/``var()``
+    loop) for any other family.
+    """
+    n = len(dists)
+    if n == 0:
+        return None
+    if any(d.family != "minutes_hurdle" for d in dists):
+        return None
+    p_play = np.array([d.p_play for d in dists])  # type: ignore[attr-defined]
+    mu = np.array([d.mu for d in dists])  # type: ignore[attr-defined]
+    sigma = np.array([d.sigma for d in dists])  # type: ignore[attr-defined]
+    max_minutes = np.array([d.max_minutes for d in dists])  # type: ignore[attr-defined]
+    a = (0.0 - mu) / sigma
+    b = (max_minutes - mu) / sigma
+    pdf_a, pdf_b = stats.norm.pdf(a), stats.norm.pdf(b)
+    cdf_a, cdf_b = stats.norm.cdf(a), stats.norm.cdf(b)
+    z = np.clip(cdf_b - cdf_a, 1e-300, None)  # guard: a==b or extreme bounds -> ~0 mass
+    ratio = (pdf_a - pdf_b) / z
+    trunc_mean = mu + sigma * ratio
+    trunc_var = (sigma**2) * (1.0 + (a * pdf_a - b * pdf_b) / z - ratio**2)
+    trunc_var = np.clip(trunc_var, 0.0, None)  # numerically guard against ~0 negative
+    mean = p_play * trunc_mean
+    var = p_play * trunc_var + p_play * (1.0 - p_play) * trunc_mean**2
+    return mean, var
 
 
 def gamma_from_moments(mean: float, var: float) -> GammaDist:

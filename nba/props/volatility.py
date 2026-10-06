@@ -114,7 +114,7 @@ def build_volatility_features(
     cvs = np.empty(len(prior_lists), dtype=float)
     n_prior = np.empty(len(prior_lists), dtype=np.int64)
     for i, vals in enumerate(prior_lists):
-        arr = [float(v) for v in vals] if vals else []
+        arr = [float(v) for v in vals if v is not None] if vals else []
         cv, n = _cv_from_prior_values(arr, min_games_for_cv)
         cvs[i] = cv
         n_prior[i] = n

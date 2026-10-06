@@ -9,28 +9,58 @@ printing a misleadingly precise figure.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any, overload
 
 import numpy as np
 
 EPS = 1e-15
 
 
-def log_loss(y_true: np.ndarray, p: np.ndarray) -> float:
-    """Binary log loss, clipped to avoid -inf on a perfect-looking fold."""
-    if len(y_true) == 0:
-        return float("nan")
-    p_clipped = np.clip(p, EPS, 1 - EPS)
+@overload
+def log_loss(y_true: np.ndarray, p: np.ndarray, axis: None = None) -> float: ...
+@overload
+def log_loss(y_true: np.ndarray, p: np.ndarray, axis: int) -> np.ndarray: ...
+
+
+def log_loss(y_true: np.ndarray, p: np.ndarray, axis: int | None = None) -> float | np.ndarray:
+    """Binary log loss, clipped to avoid -inf on a perfect-looking fold.
+
+    ``axis=None`` (default, every existing call site) reduces over the
+    whole array and returns a ``float`` -- unchanged behavior. Passing an
+    ``axis`` reduces only along that axis and returns an ``ndarray``; this
+    is what lets the bootstrap below evaluate the metric for a whole batch
+    of resampled replicates (shape ``(n_boot, n)``) in one vectorized call
+    instead of ``n_boot`` individual Python-level calls.
+    """
     y = np.asarray(y_true, dtype=float)
+    pr = np.asarray(p, dtype=float)
+    if axis is None and y.size == 0:
+        return float("nan")
+    p_clipped = np.clip(pr, EPS, 1 - EPS)
     losses = -(y * np.log(p_clipped) + (1 - y) * np.log(1 - p_clipped))
-    return float(np.mean(losses))
+    if axis is None:
+        return float(np.mean(losses))
+    return np.mean(losses, axis=axis)
 
 
-def brier_score(y_true: np.ndarray, p: np.ndarray) -> float:
-    if len(y_true) == 0:
-        return float("nan")
+@overload
+def brier_score(y_true: np.ndarray, p: np.ndarray, axis: None = None) -> float: ...
+@overload
+def brier_score(y_true: np.ndarray, p: np.ndarray, axis: int) -> np.ndarray: ...
+
+
+def brier_score(y_true: np.ndarray, p: np.ndarray, axis: int | None = None) -> float | np.ndarray:
+    """Brier score; see :func:`log_loss` for the ``axis`` contract."""
     y = np.asarray(y_true, dtype=float)
-    return float(np.mean((p - y) ** 2))
+    pr = np.asarray(p, dtype=float)
+    if axis is None and y.size == 0:
+        return float("nan")
+    sq = (pr - y) ** 2
+    if axis is None:
+        return float(np.mean(sq))
+    return np.mean(sq, axis=axis)
 
 
 def accuracy(y_true: np.ndarray, p: np.ndarray) -> float:
@@ -104,10 +134,71 @@ class ConfidenceInterval:
 #: data for CI" notes referenced in CLAUDE.md milestone 4).
 MIN_RELIABLE_N = 30
 
+#: Caps the size (in float64 elements) of a single resample-index /
+#: resampled-values matrix built per bootstrap batch. A full ``(n_boot, n)``
+#: matrix for ``n_boot=1000, n=138_000`` is ~1.4e8 elements (~1.1GB as
+#: float64) -- too much to hold at once alongside the DB connection and the
+#: rest of the props pipeline's arrays. Replicates are instead processed in
+#: batches of ``max(1, _MAX_BOOTSTRAP_CELLS // n)`` rows at a time, each
+#: batch still fully vectorized (no per-replicate Python loop); only the
+#: *number of batches* scales with n_boot, not the per-replicate cost.
+#: 20M elements is ~160MB per batch -- small enough to not pressure memory
+#: even with several bootstrap calls alive at once, large enough that most
+#: real calls (n_boot<=2000, n<=138_000) finish in 1-7 batches.
+_MAX_BOOTSTRAP_CELLS = 20_000_000
+
+
+def _batched_resample_stat(
+    values: np.ndarray,
+    stat_fn: Callable[..., Any],
+    n_boot: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Vectorized percentile-bootstrap replicates of ``stat_fn(values)``.
+
+    Draws the full ``(batch, n)`` resample-index matrix for each batch in
+    one call (``rng.integers``), gathers it in one vectorized indexing op,
+    and evaluates ``stat_fn`` once per batch along ``axis=1`` -- no Python
+    ``for`` loop over individual bootstrap replicates. Falls back to a
+    per-row Python loop *within a batch* only if ``stat_fn`` does not
+    support an ``axis`` keyword (every call site in this codebase uses
+    ``np.mean``, which does; the fallback exists purely so a future caller
+    passing an exotic ``stat_fn`` degrades to "slow but correct" instead of
+    raising).
+
+    Batching into chunks of at most ``_MAX_BOOTSTRAP_CELLS // n`` rows is
+    numerically identical to drawing the whole ``(n_boot, n)`` matrix in a
+    single ``rng.integers`` call: a ``Generator``'s output is a
+    deterministic function of its consumed-so-far state, independent of
+    how a given number of draws is chunked across calls.
+    """
+    n = len(values)
+    out = np.empty(n_boot, dtype=float)
+    if n_boot == 0:
+        return out
+    chunk = max(1, min(n_boot, _MAX_BOOTSTRAP_CELLS // max(n, 1)))
+    start = 0
+    while start < n_boot:
+        b = min(chunk, n_boot - start)
+        idx = rng.integers(0, n, size=(b, n))
+        resampled = values[idx]
+        try:
+            chunk_stats = np.asarray(stat_fn(resampled, axis=1), dtype=float)
+            if chunk_stats.shape != (b,):
+                raise TypeError("stat_fn did not reduce along axis=1 to one value per row")
+        except TypeError:
+            chunk_stats = np.array(
+                [float(stat_fn(resampled[i])) for i in range(b)],
+                dtype=float,
+            )
+        out[start : start + b] = chunk_stats
+        start += b
+    return out
+
 
 def bootstrap_ci(
     values: np.ndarray,
-    stat_fn: object = np.mean,
+    stat_fn: Callable[..., Any] = np.mean,
     n_boot: int = 2000,
     alpha: float = 0.05,
     seed: int = 0,
@@ -119,7 +210,7 @@ def bootstrap_ci(
         return ConfidenceInterval(
             point=float("nan"), lo=float("nan"), hi=float("nan"), n=0, note="no data"
         )
-    point = float(stat_fn(values))  # type: ignore[operator]
+    point = float(stat_fn(values))
     if n == 1:
         return ConfidenceInterval(
             point=point,
@@ -129,10 +220,7 @@ def bootstrap_ci(
             note="insufficient data for CI (n=1): point estimate only",
         )
     rng = np.random.default_rng(seed)
-    boot_stats = np.empty(n_boot)
-    for i in range(n_boot):
-        sample = rng.choice(values, size=n, replace=True)
-        boot_stats[i] = stat_fn(sample)  # type: ignore[operator]
+    boot_stats = _batched_resample_stat(values, stat_fn, n_boot, rng)
     lo = float(np.quantile(boot_stats, alpha / 2))
     hi = float(np.quantile(boot_stats, 1 - alpha / 2))
     note = "" if n >= MIN_RELIABLE_N else f"insufficient data for a reliable CI (n={n})"
@@ -156,11 +244,55 @@ class PairedBootstrapComparison:
     kept_a_over_b: bool = field(default=False)
 
 
+def _batched_paired_delta(
+    y: np.ndarray,
+    p_a: np.ndarray,
+    p_b: np.ndarray,
+    metric_fn: Callable[..., Any],
+    n_boot: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Vectorized paired bootstrap of ``metric_fn(y, p_a) - metric_fn(y, p_b)``.
+
+    Same batching/determinism contract as :func:`_batched_resample_stat`,
+    specialized to the *paired* case: one shared ``(batch, n)`` index
+    matrix resamples ``y``, ``p_a``, and ``p_b`` together per batch
+    (preserving the game-level pairing every replicate), and ``metric_fn``
+    is evaluated once per batch via its ``axis`` keyword if it has one
+    (``log_loss`` and ``brier_score`` both do). Falls back to a per-row
+    Python loop within a batch for a ``metric_fn`` that doesn't support
+    ``axis`` -- correct but slow, and not hit by any current call site.
+    """
+    n = len(y)
+    out = np.empty(n_boot, dtype=float)
+    if n_boot == 0:
+        return out
+    chunk = max(1, min(n_boot, _MAX_BOOTSTRAP_CELLS // max(n, 1)))
+    start = 0
+    while start < n_boot:
+        b = min(chunk, n_boot - start)
+        idx = rng.integers(0, n, size=(b, n))
+        y_m, pa_m, pb_m = y[idx], p_a[idx], p_b[idx]
+        try:
+            a_vals = np.asarray(metric_fn(y_m, pa_m, axis=1), dtype=float)
+            b_vals = np.asarray(metric_fn(y_m, pb_m, axis=1), dtype=float)
+            if a_vals.shape != (b,) or b_vals.shape != (b,):
+                raise TypeError("metric_fn did not reduce along axis=1 to one value per row")
+            out[start : start + b] = a_vals - b_vals
+        except TypeError:
+            for i in range(b):
+                out[start + i] = float(metric_fn(y_m[i], pa_m[i])) - float(
+                    metric_fn(y_m[i], pb_m[i])
+                )
+        start += b
+    return out
+
+
 def paired_bootstrap_compare(
     y_true: np.ndarray,
     p_a: np.ndarray,
     p_b: np.ndarray,
-    metric_fn: object,
+    metric_fn: Callable[..., Any],
     metric_name: str,
     n_boot: int = 2000,
     alpha: float = 0.05,
@@ -177,8 +309,8 @@ def paired_bootstrap_compare(
     p_a = np.asarray(p_a, dtype=float)
     p_b = np.asarray(p_b, dtype=float)
     n = len(y)
-    a_point = float(metric_fn(y, p_a))  # type: ignore[operator]
-    b_point = float(metric_fn(y, p_b))  # type: ignore[operator]
+    a_point = float(metric_fn(y, p_a))
+    b_point = float(metric_fn(y, p_b))
     if n == 0:
         delta = ConfidenceInterval(
             point=float("nan"), lo=float("nan"), hi=float("nan"), n=0, note="no data"
@@ -186,12 +318,7 @@ def paired_bootstrap_compare(
         return PairedBootstrapComparison(metric_name, delta, a_point, b_point, False)
 
     rng = np.random.default_rng(seed)
-    deltas = np.empty(n_boot)
-    for i in range(n_boot):
-        idx = rng.integers(0, n, size=n)
-        d_a = float(metric_fn(y[idx], p_a[idx]))  # type: ignore[operator]
-        d_b = float(metric_fn(y[idx], p_b[idx]))  # type: ignore[operator]
-        deltas[i] = d_a - d_b
+    deltas = _batched_paired_delta(y, p_a, p_b, metric_fn, n_boot, rng)
     point_delta = a_point - b_point
     if n == 1:
         lo = hi = point_delta

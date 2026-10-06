@@ -49,7 +49,7 @@ from nba.props.combos import (
 )
 from nba.props.config import TARGET_STATS, THRESHOLDS, PropsConfig
 from nba.props.conformal import ConformalResult, evaluate_conformal
-from nba.props.distributions import Distribution
+from nba.props.distributions import Distribution, batch_minutes_mean_var, batch_p_ge, batch_ppf
 from nba.props.metrics import (
     ConfidenceInterval,
     ThresholdCalibration,
@@ -204,8 +204,15 @@ def run_props_experiment(
     minutes_key = minutes_features.select(["game_id", "player_id"]).with_columns(
         _minutes_row_idx=pl.int_range(pl.len())
     )
-    minutes_mean_all = np.array([d.mean() for d in minutes_dists])
-    minutes_var_all = np.array([d.var() for d in minutes_dists])
+    # `batch_minutes_mean_var` replaces one scipy.stats.truncnorm call *per
+    # player-game* (via `.mean()`/`.var()`) with two vectorized calls over
+    # every row's parameters at once -- a measurable cost at 100k+ rows.
+    batch_mv = batch_minutes_mean_var(minutes_dists)
+    if batch_mv is not None:
+        minutes_mean_all, minutes_var_all = batch_mv
+    else:
+        minutes_mean_all = np.array([d.mean() for d in minutes_dists])
+        minutes_var_all = np.array([d.var() for d in minutes_dists])
 
     # Align minutes moments onto `target`'s row order by (game_id, player_id).
     joined = target.join(minutes_key, on=["game_id", "player_id"], how="left")
@@ -276,9 +283,7 @@ def run_props_experiment(
             coherence_checks.append(coherence_check)
 
         pred_mean = np.array([d.mean() for d in dists])
-        q10 = np.array([d.ppf(0.10) for d in dists])
-        q50 = np.array([d.ppf(0.50) for d in dists])
-        q90 = np.array([d.ppf(0.90) for d in dists])
+        q10, q50, q90 = _quantiles(dists)
 
         n = len(y)
         note = (
@@ -391,8 +396,20 @@ def run_props_experiment(
             )
         )
 
+        # Precompute each threshold's P(stat >= th) for every row in one
+        # vectorized call (`threshold_log_loss_and_calibration` above
+        # already paid this cost once; reusing it here avoids a *second*
+        # pass of one scipy call per (row, threshold) pair just to build
+        # the `prop_predictions.p_ge` JSON blob).
+        p_ge_by_threshold: dict[int, np.ndarray] = {}
+        for th in thresholds:
+            arr = batch_p_ge(dists, float(th))
+            p_ge_by_threshold[th] = (
+                arr if arr is not None else np.array([d.p_ge(float(th)) for d in dists])
+            )
+
         for i in range(n):
-            p_ge = {str(th): float(dists[i].p_ge(float(th))) for th in thresholds}
+            p_ge = {str(th): float(p_ge_by_threshold[th][i]) for th in thresholds}
             pred_rows.append(
                 {
                     "game_id": target[i, "game_id"],
@@ -442,6 +459,22 @@ def run_props_experiment(
         coherence_checks=coherence_checks,
         role_change_summary=role_change_summary,
     )
+
+
+_Q_TAUS = np.array([0.10, 0.50, 0.90])
+
+
+def _quantiles(dists: list[Distribution]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """q10/q50/q90 for every distribution -- one vectorized ``batch_ppf``
+    call instead of three ``ppf()`` calls per row (falls back to the
+    per-element loop for any family ``batch_ppf`` doesn't recognize)."""
+    qs = batch_ppf(dists, _Q_TAUS)
+    if qs is not None:
+        return qs[:, 0], qs[:, 1], qs[:, 2]
+    q10 = np.array([d.ppf(0.10) for d in dists])
+    q50 = np.array([d.ppf(0.50) for d in dists])
+    q90 = np.array([d.ppf(0.90) for d in dists])
+    return q10, q50, q90
 
 
 def _align_team(target: pl.DataFrame, feats: pl.DataFrame) -> pl.DataFrame:
@@ -500,9 +533,7 @@ def _build_combo_results(
         thresholds_combo = COMBO_THRESHOLDS[combo_name]
 
         pred_mean_c = np.array([d.mean() for d in combo_dists])
-        q10_c = np.array([d.ppf(0.10) for d in combo_dists])
-        q50_c = np.array([d.ppf(0.50) for d in combo_dists])
-        q90_c = np.array([d.ppf(0.90) for d in combo_dists])
+        q10_c, q50_c, q90_c = _quantiles(combo_dists)
 
         n_c = len(y_combo)
         bias_ci_c = mean_bias_ci(pred_mean_c, y_combo, n_boot=n_boot, seed=seed)
@@ -533,8 +564,15 @@ def _build_combo_results(
                 note=note_c,
             )
         )
+        p_ge_by_threshold_c: dict[int, np.ndarray] = {}
+        for th in thresholds_combo:
+            arr = batch_p_ge(combo_dists, float(th))
+            p_ge_by_threshold_c[th] = (
+                arr if arr is not None else np.array([d.p_ge(float(th)) for d in combo_dists])
+            )
+
         for i in range(n_c):
-            p_ge = {str(th): float(combo_dists[i].p_ge(float(th))) for th in thresholds_combo}
+            p_ge = {str(th): float(p_ge_by_threshold_c[th][i]) for th in thresholds_combo}
             pred_rows.append(
                 {
                     "game_id": target[i, "game_id"],

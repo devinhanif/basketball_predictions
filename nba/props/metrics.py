@@ -19,7 +19,7 @@ from nba.eval.metrics import (
     calibration_curve,
     log_loss,
 )
-from nba.props.distributions import Distribution
+from nba.props.distributions import Distribution, batch_p_ge, batch_ppf
 
 __all__ = [
     "CalibrationCurve",
@@ -62,7 +62,33 @@ def crps_from_dist(dist: Distribution, y: float) -> float:
 
 
 def crps_array(dists: list[Distribution], y: np.ndarray) -> np.ndarray:
-    return np.array([crps_from_dist(d, float(yi)) for d, yi in zip(dists, y, strict=True)])
+    """CRPS for every (distribution, outcome) pair -- vectorized.
+
+    Uses :func:`nba.props.distributions.batch_ppf` to get every
+    distribution's quantiles at every ``_TAUS`` tau in a handful of
+    vectorized scipy calls (instead of ``crps_from_dist``'s
+    one-``ppf()``-call-per-``(row, quantile)`` Python loop, which is the
+    dominant cost of the whole props pipeline at 100k+ player-games).
+    Falls back to the per-row loop for any family ``batch_ppf`` doesn't
+    recognize (safety net; not expected to trigger on the stat/combo/
+    baseline distributions this is called with today).
+    """
+    n = len(dists)
+    if n == 0:
+        return np.array([])
+    qs = batch_ppf(dists, _TAUS)
+    if qs is None:
+        return np.array([crps_from_dist(d, float(yi)) for d, yi in zip(dists, y, strict=True)])
+    y_arr = np.asarray(y, dtype=float)
+    finite = np.isfinite(qs)
+    taus_row = np.broadcast_to(_TAUS[None, :], qs.shape)
+    y_col = y_arr[:, None]
+    pinball = np.where(y_col >= qs, taus_row * (y_col - qs), (1 - taus_row) * (qs - y_col))
+    pinball_masked = np.where(finite, pinball, 0.0)
+    counts = finite.sum(axis=1)
+    row_mean = np.full(n, np.nan)
+    np.divide(pinball_masked.sum(axis=1), counts, out=row_mean, where=counts > 0)
+    return 2.0 * row_mean
 
 
 def avg_threshold_log_loss_per_game(
@@ -78,7 +104,10 @@ def avg_threshold_log_loss_per_game(
     eps = 1e-15
     losses = np.zeros(n)
     for thresh in thresholds:
-        p = np.clip(np.array([d.p_ge(float(thresh)) for d in dists]), eps, 1 - eps)
+        p_arr = batch_p_ge(dists, float(thresh))
+        if p_arr is None:
+            p_arr = np.array([d.p_ge(float(thresh)) for d in dists])
+        p = np.clip(p_arr, eps, 1 - eps)
         indicator = (y_arr >= thresh).astype(float)
         losses += -(indicator * np.log(p) + (1 - indicator) * np.log(1 - p))
     return losses / len(thresholds)
@@ -99,7 +128,9 @@ def threshold_log_loss_and_calibration(
     out = []
     y_arr = np.asarray(y, dtype=float)
     for n in thresholds:
-        p = np.array([d.p_ge(float(n)) for d in dists])
+        p = batch_p_ge(dists, float(n))
+        if p is None:
+            p = np.array([d.p_ge(float(n)) for d in dists])
         indicator = (y_arr >= n).astype(float)
         out.append(
             ThresholdCalibration(
