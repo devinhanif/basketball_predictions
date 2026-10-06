@@ -6,7 +6,7 @@
 seed: 42
 use_fixture: false
 db_path: nba.duckdb
-holdout_season: 2024    # EXAMPLE: pick the most recent full season, freeze it
+holdout_season: 2025    # 2025-26 = most recent full season; frozen, never tuned on
 min_train_games: 200    # require a real minimum training sample before testing
 n_boot: 2000
 report_path: registry_store/reports/rung_ladder_full_report.md
