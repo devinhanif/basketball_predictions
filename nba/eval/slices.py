@@ -13,14 +13,10 @@ from __future__ import annotations
 import numpy as np
 import polars as pl
 
-#: Games where either team enters with fewer than this many *games* of
-#: history. A real cold-start bucket (CLAUDE.md: ">=1 starter has <500
-#: career possessions") needs ``player_rates.n_poss``, which belongs to the
-#: next milestone (cold-start methods 1-4). This games-count threshold is a
-#: clearly-labeled placeholder hook so the walk-forward report already has
-#: a cold-start column to fill in once that table is populated.
+#: Season-phase slice only (first 15 games vs rest) -- unrelated to the
+#: cold-start bucket below, kept as its own threshold per CLAUDE.md
+#: "Evaluation": "season phase (first 15 games vs. rest)".
 EARLY_SEASON_GAMES_THRESHOLD = 15
-COLD_START_GAMES_THRESHOLD = 15
 
 
 def rest_slices(df: pl.DataFrame) -> dict[str, np.ndarray]:
@@ -50,14 +46,20 @@ def favorite_underdog_slices(p_home: np.ndarray) -> dict[str, np.ndarray]:
 
 
 def cold_start_bucket_slice(df: pl.DataFrame) -> dict[str, np.ndarray]:
-    """Placeholder cold-start bucket -- see module docstring.
+    """Real cold-start bucket per CLAUDE.md: ">=1 starter has <500 career possessions".
 
-    TODO(next milestone): replace ``games_played_prior_min`` with a true
-    possession-count threshold from ``player_rates.n_poss`` once cold-start
-    methods 1-4 are implemented and that table is populated per-player.
+    ``df`` must carry an ``any_starter_cold_start`` boolean column -- see
+    ``nba.features.player_features.build_game_cold_start_flags``, which
+    computes it from a documented minutes-based *proxy* for career
+    possessions (the possessions table is empty pending the PBP parser).
+    Games with no player-level data at all (``any_starter_cold_start`` is
+    null, e.g. ``player_game_stats`` not joined) are conservatively treated
+    as cold-start: there is no positive evidence any starter is warmed up.
     """
-    min_games = df.select(pl.col("games_played_prior_min")).to_series().to_numpy()
+    flag = (
+        df.select(pl.col("any_starter_cold_start").fill_null(True)).to_series().to_numpy()
+    ).astype(bool)
     return {
-        "cold_start_bucket_placeholder_low_history": min_games < COLD_START_GAMES_THRESHOLD,
-        "cold_start_bucket_placeholder_warm": min_games >= COLD_START_GAMES_THRESHOLD,
+        "cold_start_bucket_low_career_poss": flag,
+        "cold_start_bucket_warm": ~flag,
     }

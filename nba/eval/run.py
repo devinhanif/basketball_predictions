@@ -38,6 +38,7 @@ from nba.eval.walkforward import (
     split_frozen_holdout,
     walk_forward_data_sufficiency_note,
 )
+from nba.features.player_features import build_game_cold_start_flags
 from nba.features.team_features import build_matchup_features
 from nba.models.base import RungModel
 from nba.models.rung0_baselines import EloBaseline, HomeCourtBaseline
@@ -194,6 +195,7 @@ def _build_metric_bundle(
                     "home_b2b",
                     "away_b2b",
                     "games_played_prior_min",
+                    "any_starter_cold_start",
                 ]
             ),
             on="game_id",
@@ -293,6 +295,11 @@ def run_experiment(
 ) -> ExperimentResult:
     start = time.monotonic()
     matchup_df = build_matchup_features(con)
+    cold_start_flags = build_game_cold_start_flags(con)
+    if cold_start_flags.height:
+        matchup_df = matchup_df.join(cold_start_flags, on="game_id", how="left")
+    else:
+        matchup_df = matchup_df.with_columns(any_starter_cold_start=pl.lit(None, dtype=pl.Boolean))
     holdout_split = split_frozen_holdout(matchup_df, holdout_season)
 
     folds = make_walk_forward_folds(holdout_split.tunable_df, min_train_games=min_train_games)

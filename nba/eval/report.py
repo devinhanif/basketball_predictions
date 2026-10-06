@@ -143,9 +143,11 @@ def render_report(result: ExperimentResult) -> str:
         "true per-100-possession ratings. See `nba/features/team_features.py`.",
         "- Closing-line implied probability is a stub (`ClosingLineStub`): no "
         "market-odds source is wired in yet (Phase 3).",
-        "- Cold-start bucket slice is a placeholder keyed on games-played, not "
-        "possession count; real cold-start buckets ship in the next milestone "
-        "(`player_rates.n_poss`).",
+        "- Cold-start bucket slice (`cold_start_bucket_low_career_poss` / "
+        "`..._warm`) is keyed on a *proxy* for career possessions "
+        "(minutes-based, since the possessions table is empty pending the "
+        "PBP parser) -- see `nba/features/player_features.py`. Not a true "
+        "possession count yet.",
         "",
     ]
     return "\n".join(parts)

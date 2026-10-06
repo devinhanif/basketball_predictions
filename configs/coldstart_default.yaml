@@ -1,0 +1,24 @@
+# Default cold-start method flags/params (CLAUDE.md "Cold start modeling").
+# Loaded via nba.coldstart.config.load_coldstart_config. Method 1
+# (shrinkage) ships enabled; methods 2-4 are evaluated behind their own
+# flags per CLAUDE.md "Scope control": "ship shrinkage + draft/archetype
+# priors first; add others only if cold-start slices show a measurable
+# gain."
+shrinkage_enabled: true
+archetypes_enabled: false
+rookie_priors_enabled: false
+carryover_enabled: false
+
+pseudo_counts:
+  usage: 150.0
+  tov_rate: 150.0
+  ft_pct: 100.0
+  foul_draw: 150.0
+  orb_rate: 150.0
+  drb_rate: 150.0
+
+n_clusters: 4
+carryover_decay_weight: 0.3
+peak_age: 27.0
+age_curve_width: 9.0
+seed: 0
