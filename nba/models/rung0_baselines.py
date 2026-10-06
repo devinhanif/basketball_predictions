@@ -9,7 +9,8 @@ audit-metadata contract):
   prior if the fold is empty).
 - ``EloBaseline``: a classic sequential Elo rating, updated strictly in
   game order using only *prior* games' actual outcomes -- i.e. the rating
-  used to predict a game never includes that game's own result.
+  used to predict a game never includes that game's own result. Ratings
+  regress toward the mean at each season boundary (``season_carryover``).
 
 Closing-line implied probability (CLAUDE.md's third rung-0 baseline) is
 explicitly a stub: no market-odds source is wired into the pipeline yet
@@ -64,6 +65,16 @@ class EloBaseline(RungModelBase):
     learned from the training fold; ``predict`` on a held-out slice uses
     *that* frozen snapshot -- it is never updated with the test games'
     actual results, so test-fold predictions cannot leak future outcomes.
+
+    At every season boundary encountered during ``fit`` (a row whose
+    ``season`` differs from the previous row's), every rated team's
+    rating is regressed toward ``initial_rating`` by
+    ``1 - season_carryover`` -- the common NBA Elo practice of a partial
+    reset between seasons (aging, roster turnover, offseason change; see
+    CLAUDE.md cold-start case 4, "new season"). The default keeps 75% of
+    a team's rating and regresses 25% toward the mean. If ``train_df`` has
+    no ``season`` column (e.g. small unit-test fixtures), no regression is
+    applied -- behavior is unchanged from before this was added.
     """
 
     def __init__(
@@ -72,11 +83,13 @@ class EloBaseline(RungModelBase):
         k_factor: float = 20.0,
         home_advantage_elo: float = 65.0,
         initial_rating: float = 1500.0,
+        season_carryover: float = 0.75,
     ) -> None:
         super().__init__(seed=seed)
         self.k_factor = k_factor
         self.home_advantage_elo = home_advantage_elo
         self.initial_rating = initial_rating
+        self.season_carryover = season_carryover
         self.ratings_: dict[int, float] = {}
 
     def _win_prob(self, home_team: int, away_team: int) -> float:
@@ -85,12 +98,26 @@ class EloBaseline(RungModelBase):
         diff = (home_rating + self.home_advantage_elo) - away_rating
         return float(1.0 / (1.0 + 10.0 ** (-diff / 400.0)))
 
+    def _regress_ratings_to_mean(self) -> None:
+        """Season-boundary regression-to-the-mean (standard NBA Elo practice)."""
+        for team, rating in self.ratings_.items():
+            self.ratings_[team] = (
+                self.season_carryover * rating + (1.0 - self.season_carryover) * self.initial_rating
+            )
+
     def fit(self, train_df: pl.DataFrame, y: np.ndarray) -> None:
         self.ratings_ = {}
+        has_season = "season" in train_df.columns
         ordered = train_df.sort(["game_date", "game_id"])
-        for row, outcome in zip(
-            ordered.select(["home_team", "away_team"]).iter_rows(), y, strict=True
-        ):
+        seasons = ordered.select("season").to_series().to_list() if has_season else None
+        current_season: object = None
+        rows = ordered.select(["home_team", "away_team"]).iter_rows()
+        for i, (row, outcome) in enumerate(zip(rows, y, strict=True)):
+            if seasons is not None:
+                season = seasons[i]
+                if current_season is not None and season != current_season:
+                    self._regress_ratings_to_mean()
+                current_season = season
             home_team, away_team = row
             p_home = self._win_prob(home_team, away_team)
             home_rating = self.ratings_.get(home_team, self.initial_rating)
@@ -115,6 +142,7 @@ class EloBaseline(RungModelBase):
             "k_factor": self.k_factor,
             "home_advantage_elo": self.home_advantage_elo,
             "initial_rating": self.initial_rating,
+            "season_carryover": self.season_carryover,
             "n_teams_rated": len(self.ratings_),
         }
 

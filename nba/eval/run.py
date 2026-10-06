@@ -264,24 +264,73 @@ def _ladder_comparisons(
 def _evaluate_holdout(
     holdout_df: pl.DataFrame, tunable_df: pl.DataFrame, seed: int
 ) -> dict[str, dict[str, object]]:
-    """Confirmatory-only: fit each rung on *all* tunable data, score once on the frozen holdout.
+    """Confirmatory-only, but sequentially-updated: roll walk-forward through the holdout season.
 
-    Never used to pick hyperparameters or compare rungs for the "kept"
-    decision -- that happens entirely on the walk-forward folds above.
+    This fixes a bug where a *single* static ``model.predict(holdout_df)``
+    call, fit once on all tunable data, left sequential models (Elo) stuck
+    on stale end-of-tunable-season ratings for the entire holdout season
+    -- never updated as holdout games were observed, and never regressed
+    at the season boundary. That made Elo's holdout score an artifact of
+    staleness, not of the model.
+
+    Fix: reuse :func:`make_walk_forward_folds` -- the exact same,
+    already-tested no-leakage machinery used for the tunable-data
+    walk-forward -- over ``tunable_df`` concatenated with ``holdout_df``,
+    keeping only the folds whose test date falls in the holdout season.
+    Each such fold's training set is "all tunable data plus every
+    holdout-season game strictly before this test date", so:
+
+    - Sequential models (``EloBaseline.fit`` replays ratings from scratch
+      each fold) see their ratings warm-started on the full tunable
+      history and then updated through every earlier holdout game,
+      exactly as a live walk-forward run would -- including the
+      season-boundary regression-to-the-mean at the tunable -> holdout
+      transition (see ``rung0_baselines.EloBaseline``).
+    - Stateless models (logistic/GBM) are refit on the same
+      ever-growing training set, so their as-of features may include
+      holdout-season history up to (not including) each test date --
+      still zero leakage, by the same guarantee ``make_walk_forward_folds``
+      already provides and tests for.
+
+    This stays **confirmatory**: hyperparameters are not tuned or
+    selected here -- ``factory(seed)`` builds each model with the exact
+    same fixed defaults used in ``_run_walk_forward``, and nothing about
+    this loop picks a "best" rung or hyperparameter from holdout
+    performance. The holdout is only ever *scored*, never used to choose.
     """
     if holdout_df.height == 0:
         return {}
-    y_train = tunable_df.select("y").to_series().to_numpy()
-    y_holdout = holdout_df.select("y").to_series().to_numpy().astype(float)
+    combined = pl.concat([tunable_df, holdout_df], how="vertical")
+    holdout_dates = set(holdout_df.select("game_date").unique().to_series().to_list())
+    all_folds = make_walk_forward_folds(combined, min_train_games=1)
+    folds = [f for f in all_folds if f.test_date in holdout_dates]
+
     out: dict[str, dict[str, object]] = {}
     for name, _rung, _method, factory in RUNG_SPECS:
-        model = factory(seed)
-        model.fit(tunable_df, y_train)
-        p = model.predict(holdout_df)
+        game_order: list[str] = []
+        p_by_game: dict[str, float] = {}
+        for fold in folds:
+            model = factory(seed)
+            y_train = fold.train_df.select("y").to_series().to_numpy()
+            model.fit(fold.train_df, y_train)
+            preds = model.predict(fold.test_df)
+            for game_id, p in zip(
+                fold.test_df.select("game_id").to_series().to_list(), preds, strict=True
+            ):
+                p_by_game[game_id] = float(p)
+                game_order.append(game_id)
+
+        ordered_holdout = holdout_df.sort(["game_date", "game_id"])
+        ids = ordered_holdout.select("game_id").to_series().to_list()
+        y = ordered_holdout.select("y").to_series().to_numpy().astype(float)
+        p = np.array([p_by_game[g] for g in ids], dtype=float)
         out[name] = {
-            "n": len(y_holdout),
-            "log_loss": log_loss(y_holdout, p),
-            "brier": brier_score(y_holdout, p),
+            "n": len(y),
+            "log_loss": log_loss(y, p),
+            "brier": brier_score(y, p),
+            "game_ids": ids,
+            "p": p.tolist(),
+            "y": y.tolist(),
         }
     return out
 

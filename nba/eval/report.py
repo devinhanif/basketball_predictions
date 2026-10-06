@@ -143,6 +143,13 @@ def render_report(result: ExperimentResult) -> str:
         "true per-100-possession ratings. See `nba/features/team_features.py`.",
         "- Closing-line implied probability is a stub (`ClosingLineStub`): no "
         "market-odds source is wired in yet (Phase 3).",
+        "- Frozen holdout predictions are produced by rolling walk-forward "
+        "through the holdout season (warm-started on all tunable data, "
+        "hyperparameters fixed) so sequential models (Elo) update their "
+        "state through the holdout exactly as a live run would, instead of "
+        "predicting the whole season from one stale snapshot -- see "
+        "`nba/eval/run.py::_evaluate_holdout`. The holdout is still never "
+        "used to tune or select a rung.",
         "- Cold-start bucket slice (`cold_start_bucket_low_career_poss` / "
         "`..._warm`) is keyed on a *proxy* for career possessions "
         "(minutes-based, since the possessions table is empty pending the "
