@@ -89,11 +89,13 @@ def test_future_extreme_minutes_do_not_change_earlier_prediction(
 
 
 def test_predict_minutes_is_pure_function_of_features(con: duckdb.DuckDBPyConnection) -> None:
-    """predict_minutes() takes only the as-of feature frame -- it has no
-    other way to reach into player_game_stats, so this also serves as a
-    type-level leakage guard: its signature has nowhere to pass raw
-    minutes even if a future refactor wanted to."""
+    """predict_minutes() takes only the as-of feature frame (plus config and
+    an optional per-row cold-start multiplier, both config-like, neither a
+    way to reach raw minutes) -- it has no other way to reach into
+    player_game_stats, so this also serves as a type-level leakage guard:
+    its signature has nowhere to pass raw minutes even if a future
+    refactor wanted to."""
     import inspect
 
     sig = inspect.signature(predict_minutes)
-    assert list(sig.parameters) == ["features", "config"]
+    assert list(sig.parameters) == ["features", "config", "k_multiplier"]

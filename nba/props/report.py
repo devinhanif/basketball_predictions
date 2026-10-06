@@ -6,7 +6,7 @@ no DuckDB/network access, trivially unit-testable.
 
 from __future__ import annotations
 
-from nba.props.run import MIN_RELIABLE_N, PropsExperimentResult, StatResult
+from nba.props.run import MIN_RELIABLE_N, ComboStatResult, PropsExperimentResult, StatResult
 
 
 def _fmt(x: float, nd: int = 4) -> str:
@@ -46,6 +46,79 @@ def _baseline_table(stats: list[StatResult]) -> str:
         lines.append(
             f"| {s.stat} | {_ci_str(s.crps_vs_season_avg)} | {_ci_str(s.crps_vs_last10_avg)} | "
             f"{_ci_str(s.log_loss_vs_season_avg)} | {_ci_str(s.log_loss_vs_last10_avg)} |"
+        )
+    return "\n".join(lines)
+
+
+def _combo_table(stats: list[ComboStatResult]) -> str:
+    lines = [
+        "| combo | n | family | mean bias (95% CI) | 80% coverage | pooled ECE | CRPS | "
+        "corr(pts,reb)/(pts,ast)/(reb,ast) used |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for s in stats:
+        corr = s.correlation_used
+        corr_str = (
+            f"{corr.get('pts_reb', float('nan')):.2f} / "
+            f"{corr.get('pts_ast', float('nan')):.2f} / "
+            f"{corr.get('reb_ast', float('nan')):.2f}"
+        )
+        lines.append(
+            f"| {s.stat} | {s.n} | {s.dist_family} | {_ci_str(s.mean_bias)} | "
+            f"{_fmt(s.coverage, 3)} | {_fmt(s.pooled_ece)} | {_fmt(s.crps_point)} | {corr_str} |"
+        )
+    return "\n".join(lines)
+
+
+def _coherence_table(result: PropsExperimentResult) -> str:
+    if not result.coherence_checks:
+        return "_Coherence reconciliation disabled or no data._"
+    lines = [
+        "| stat | (game,team) groups | max |sum(player) - team_total| | mean |gap| |",
+        "|---|---|---|---|",
+    ]
+    for c in result.coherence_checks:
+        lines.append(
+            f"| {c.stat} | {c.n_groups} | {_fmt(c.max_abs_gap)} | {_fmt(c.mean_abs_gap)} |"
+        )
+    return "\n".join(lines)
+
+
+def _conformal_table(stats: list[StatResult]) -> str:
+    rows = [s for s in stats if s.conformal is not None]
+    if not rows:
+        return "_Conformal wrapper disabled._"
+    lines = [
+        "| stat | n_cal | n_test | adjustment | 80% coverage (parametric) | "
+        "80% coverage (conformal) |",
+        "|---|---|---|---|---|---|",
+    ]
+    for s in rows:
+        c = s.conformal
+        assert c is not None
+        lines.append(
+            f"| {s.stat} | {c.n_cal} | {c.n_test} | {_fmt(c.adjustment)} | "
+            f"{_fmt(c.coverage_parametric, 3)} | {_fmt(c.coverage_conformal, 3)} |"
+        )
+    return "\n".join(lines)
+
+
+def _role_change_section(result: PropsExperimentResult) -> str:
+    rc = result.role_change_summary
+    if rc is None:
+        return "_Role-change detection disabled._"
+    lines = [
+        f"- CUSUM-flagged rows: {rc.n_flagged} / {rc.n_rows} player-games "
+        "(a flagged row's cold-start pseudo-count k is temporarily multiplied up, "
+        "per nba.props.role_change).",
+    ]
+    if rc.flagged_examples:
+        lines.append(
+            "- Examples (up to 5): "
+            + "; ".join(
+                f"game={ex['game_id']} player={ex['player_id']} k_mult={ex['k_multiplier']:.2f}"
+                for ex in rc.flagged_examples
+            )
         )
     return "\n".join(lines)
 
@@ -103,6 +176,32 @@ def render_props_report(result: PropsExperimentResult) -> str:
         "## Threshold calibration (P(stat >= N))",
         _threshold_table(result.stats) if result.stats else "_No stats evaluated._",
         "",
+        "## Combo stats (PRA, P+R, P+A, R+A)",
+        "Moment-matched sum of pts/reb/ast marginals under a within-player pairwise "
+        "correlation (estimated from as-of history, falling back to a documented default "
+        "below the sample-size floor) -- NOT an independence assumption. See "
+        "nba/props/combos.py module docstring for the exact method and its stated limits.",
+        "",
+        _combo_table(result.combo_stats) if result.combo_stats else "_Combos disabled or no data._",
+        "",
+        "## Hierarchical coherence (team-total reconciliation)",
+        "Forecast-proportions (MinT special case) reconciliation: each (game, team) group's "
+        "player means are rescaled so they sum exactly to that team's own as-of trailing-average "
+        "total. Gap should be ~0 (floating point) for every stat below.",
+        "",
+        _coherence_table(result),
+        "",
+        "## Role-change detection (CUSUM on minutes)",
+        _role_change_section(result),
+        "",
+        "## Split-conformal interval coverage (80%, parametric vs. conformal)",
+        "Chronological calibration/test split (never random); conformal intervals should land "
+        "closer to the nominal 80% than the raw parametric quantiles when the parametric "
+        "assumption is wrong -- **see the sample-size caveat below before reading these numbers "
+        "as evidence of anything**.",
+        "",
+        _conformal_table(result.stats),
+        "",
         "## Notes",
         "- Points use a frequency-severity (insurance-style) decomposition: "
         "implied scoring-event count x value-per-event, since player_game_stats has no "
@@ -113,8 +212,12 @@ def render_props_report(result: PropsExperimentResult) -> str:
         "- Minutes model is a hurdle (DNP point mass + truncated-Normal minutes|plays); "
         "see nba/props/minutes.py. It never reads the target game's own minutes -- see "
         "tests/props/test_minutes_no_leakage.py.",
-        "- Combos (PRA etc.), hierarchical team-total coherence, role-change detection, "
-        "and conformal intervals are explicitly out of scope for this milestone.",
+        "- SAMPLE SIZE CAVEAT: this report's data is the 3-game / 18-player-game fixture "
+        "(or whatever tiny slice was passed in) -- every coverage number, correlation "
+        "estimate, and CUSUM flag above is a smoke test of the mechanism, not a claim that "
+        "coverage is actually ~80%, that the combo correlations are the real ones, or that "
+        "any role change here is real signal. CLAUDE.md's own reliability floor is >=500 "
+        "player-games per stat; treat every number on a smaller sample as unverified.",
         "",
     ]
     return "\n".join(parts)

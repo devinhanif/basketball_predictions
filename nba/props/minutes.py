@@ -125,7 +125,9 @@ def build_minutes_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
 
 
 def predict_minutes(
-    features: pl.DataFrame, config: MinutesModelConfig | None = None
+    features: pl.DataFrame,
+    config: MinutesModelConfig | None = None,
+    k_multiplier: np.ndarray | None = None,
 ) -> list[MinutesHurdleDist]:
     """Build one :class:`MinutesHurdleDist` per row of ``features``.
 
@@ -133,6 +135,13 @@ def predict_minutes(
     blends each player's as-of observed rate toward the league default as
     ``n -> 0`` and toward the observed rate as ``n -> infinity`` -- the
     same discipline CLAUDE.md requires for every ``player_rates`` column.
+
+    ``k_multiplier`` (optional, one per row, default all-ones) scales every
+    pseudo-count up for rows flagged by role-change detection
+    (``nba.props.role_change``), temporarily raising how much weight the
+    shrinkage posterior gives to the prior right after a detected trade,
+    injury return, or starter change -- CLAUDE.md: "On a flagged change,
+    cold-start logic temporarily raises prior weight."
     """
     cfg = config or MinutesModelConfig()
     n_games = features.select("games_played_prior").to_series().fill_null(0).to_numpy()
@@ -142,10 +151,13 @@ def predict_minutes(
     sigma_obs = (
         features.select("std_minutes_given_played_prior").to_series().fill_null(0.0).to_numpy()
     )
+    k_mult = (
+        np.ones(features.height) if k_multiplier is None else np.asarray(k_multiplier, dtype=float)
+    )
 
-    p_play = shrink_rate(play_rate_obs, n_games, cfg.default_p_play, cfg.k_play)
-    mu = shrink_rate(mu_obs, n_played, cfg.default_mu, cfg.k_mu)
-    sigma = shrink_rate(sigma_obs, n_played, cfg.default_sigma, cfg.k_sigma)
+    p_play = shrink_rate(play_rate_obs, n_games, cfg.default_p_play, cfg.k_play * k_mult)
+    mu = shrink_rate(mu_obs, n_played, cfg.default_mu, cfg.k_mu * k_mult)
+    sigma = shrink_rate(sigma_obs, n_played, cfg.default_sigma, cfg.k_sigma * k_mult)
     sigma = np.clip(sigma, cfg.min_sigma, None)
     p_play = np.clip(p_play, 0.02, 0.99)
     mu = np.clip(mu, 0.0, cfg.max_minutes)

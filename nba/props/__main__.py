@@ -66,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         run_id = str(uuid.uuid4())
         if not args.scenario:
             write_prop_predictions(con, result.predictions, run_id)
+            write_prop_predictions(con, result.combo_predictions, run_id)
 
         report_md = render_props_report(result)
         report_path = Path(args.report_path)
@@ -85,8 +86,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             tags = build_tags(
                 rung=2,
-                model_method="minutes_hurdle+freq_severity",
-                cold_start_flags=["shrinkage"],
+                model_method="minutes_hurdle+freq_severity+combos+coherence+conformal",
+                cold_start_flags=["shrinkage", "role_change_cusum"],
                 source_config="cli_flags",
             )
             with tempfile.TemporaryDirectory() as tmp:

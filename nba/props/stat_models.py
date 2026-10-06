@@ -170,6 +170,7 @@ def count_stat_moments(
     minutes_mean: np.ndarray,
     minutes_var: np.ndarray,
     config: CountStatConfig,
+    k_multiplier: np.ndarray | None = None,
 ) -> CountStatMoments:
     """Mean/variance of a direct-count stat (reb/ast/fg3m) given projected minutes.
 
@@ -185,11 +186,20 @@ def count_stat_moments(
 
     (the small alpha*rate^2*Var[minutes] cross-term is dropped -- second
     order relative to the other terms at realistic minutes variances).
+
+    ``k_multiplier`` (optional, one per row, default all-ones): role-change
+    boost from ``nba.props.role_change`` -- multiplies both pseudo-counts
+    so a flagged change pulls the rate/dispersion harder toward the prior.
     """
     n_minutes = features.select("minutes_prior").to_series().fill_null(0.0).to_numpy()
     stat_sum = features.select("stat_sum_prior").to_series().fill_null(0.0).to_numpy()
+    k_mult = (
+        np.ones(features.height) if k_multiplier is None else np.asarray(k_multiplier, dtype=float)
+    )
     rate_obs = np.divide(stat_sum, n_minutes, out=np.zeros_like(stat_sum), where=n_minutes > 0)
-    rate = shrink_rate(rate_obs, n_minutes, config.default_rate_per_min, config.k_rate_minutes)
+    rate = shrink_rate(
+        rate_obs, n_minutes, config.default_rate_per_min, config.k_rate_minutes * k_mult
+    )
 
     n_games = features.select("games_played_prior").to_series().fill_null(0).to_numpy()
     # Per-player dispersion method-of-moments estimate needs per-game
@@ -200,7 +210,7 @@ def count_stat_moments(
         np.full_like(rate, config.default_alpha),
         np.zeros_like(n_games, dtype=float),
         config.default_alpha,
-        config.k_alpha_games,
+        config.k_alpha_games * k_mult,
     )
 
     mean = rate * minutes_mean
@@ -265,6 +275,7 @@ def points_moments(
     minutes_mean: np.ndarray,
     minutes_var: np.ndarray,
     config: PointsConfig,
+    k_multiplier: np.ndarray | None = None,
 ) -> PointsMoments:
     """Compound frequency-severity moments for points -- see module docstring.
 
@@ -279,21 +290,27 @@ def points_moments(
     with ``E[N]``/``Var[N]`` themselves propagating the minutes model's
     own mean/variance via the law of total variance (see
     :func:`count_stat_moments` for the same pattern).
+
+    ``k_multiplier`` (optional, one per row, default all-ones): role-change
+    boost from ``nba.props.role_change``, same wiring as :func:`count_stat_moments`.
     """
     n_minutes = features.select("minutes_prior").to_series().fill_null(0.0).to_numpy()
     pts_sum = features.select("pts_sum_prior").to_series().fill_null(0.0).to_numpy()
     events_sum = features.select("events_sum_prior").to_series().fill_null(0.0).to_numpy()
+    k_mult = (
+        np.ones(features.height) if k_multiplier is None else np.asarray(k_multiplier, dtype=float)
+    )
 
     events_rate_obs = np.divide(
         events_sum, n_minutes, out=np.zeros_like(events_sum), where=n_minutes > 0
     )
     events_rate = shrink_rate(
-        events_rate_obs, n_minutes, config.default_events_per_min, config.k_events_minutes
+        events_rate_obs, n_minutes, config.default_events_per_min, config.k_events_minutes * k_mult
     )
 
     value_obs = np.divide(pts_sum, events_sum, out=np.zeros_like(pts_sum), where=events_sum > 0)
     value_mean = shrink_rate(
-        value_obs, events_sum, config.default_value_per_event, config.k_value_events
+        value_obs, events_sum, config.default_value_per_event, config.k_value_events * k_mult
     )
     # Per-event value variance: shrunk straight to the documented default
     # (per-player variance of value-per-event needs raw per-game samples,

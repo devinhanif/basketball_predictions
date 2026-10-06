@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-#: Stats modeled this milestone. PRA/combos are explicitly out of scope
-#: (next milestone, per CLAUDE.md build order).
+from nba.props.role_change import RoleChangeConfig
+
+#: Stats modeled this milestone.
 TARGET_STATS: list[str] = ["pts", "reb", "ast", "fg3m"]
 
 #: P(stat >= N) thresholds reported in ``prop_predictions.p_ge`` and used
@@ -81,6 +82,31 @@ class ZeroInflationConfig:
 
 
 @dataclass
+class CombosConfig:
+    """PRA / P+R / P+A / R+A combo distributions (CLAUDE.md milestone 8)."""
+
+    enabled: bool = True
+    min_pairs_for_corr: int = 30
+
+
+@dataclass
+class CoherenceConfig:
+    """Hierarchical (MinT forecast-proportions) team-total reconciliation."""
+
+    enabled: bool = True
+    k_team_games: float = 10.0  # pseudo-count (team-games) for the team-total shrinkage prior
+
+
+@dataclass
+class ConformalConfig:
+    """Split-conformal interval wrapper (CLAUDE.md milestone 8)."""
+
+    enabled: bool = True
+    alpha: float = 0.2  # 1 - alpha = 80%, matching CLAUDE.md's 80%-coverage target
+    cal_frac: float = 0.5  # fraction of (chronologically earliest) rows used for calibration
+
+
+@dataclass
 class PropsConfig:
     minutes: MinutesModelConfig = field(default_factory=MinutesModelConfig)
     points: PointsConfig = field(default_factory=PointsConfig)
@@ -92,6 +118,10 @@ class PropsConfig:
         }
     )
     zero_inflation: ZeroInflationConfig = field(default_factory=ZeroInflationConfig)
+    combos: CombosConfig = field(default_factory=CombosConfig)
+    coherence: CoherenceConfig = field(default_factory=CoherenceConfig)
+    role_change: RoleChangeConfig = field(default_factory=RoleChangeConfig)
+    conformal: ConformalConfig = field(default_factory=ConformalConfig)
     seed: int = 0
     n_boot: int = 500
 
