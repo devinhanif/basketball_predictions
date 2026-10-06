@@ -9,7 +9,11 @@ from __future__ import annotations
 import polars as pl
 
 from nba.ingest.boxscores import _normalize_boxscore_frame, _parse_minutes
-from nba.ingest.games import _normalize_games_frame, season_to_int
+from nba.ingest.games import (
+    _filter_competitive_games,
+    _normalize_games_frame,
+    season_to_int,
+)
 
 
 def test_season_to_int() -> None:
@@ -35,6 +39,39 @@ def test_normalize_games_frame_collapses_to_one_row_per_game() -> None:
     assert row["away_team"] == 1610612755
     assert row["home_pts"] == 108
     assert row["away_pts"] == 104
+
+
+def test_filter_competitive_games_drops_preseason_allstar_and_exhibitions() -> None:
+    raw = pl.DataFrame(
+        {
+            "game_id": [
+                "0012300001",  # preseason -- dropped
+                "0032300001",  # all-star -- dropped
+                "0022300002",  # regular season vs non-NBA team -- dropped
+                "0022300003",  # regular season, valid -- kept
+                "0042300001",  # playoffs, valid -- kept
+                "0052300001",  # play-in, valid -- kept
+            ],
+            "home_team": [
+                1610612738,
+                1610612738,
+                1610612738,
+                1610612738,
+                1610612738,
+                1610612738,
+            ],
+            "away_team": [
+                1610612755,
+                1610612755,
+                15020,  # non-NBA exhibition opponent
+                1610612755,
+                1610612755,
+                1610612755,
+            ],
+        }
+    )
+    out = _filter_competitive_games(raw)
+    assert out["game_id"].to_list() == ["0022300003", "0042300001", "0052300001"]
 
 
 def test_parse_minutes_handles_mm_ss_and_empty() -> None:
