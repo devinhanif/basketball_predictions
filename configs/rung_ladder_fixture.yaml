@@ -1,0 +1,10 @@
+# Experiment config for the rung 0-2 walk-forward smoke run on the
+# committed tests/fixtures/ dataset. Not a real backtest -- see
+# report.md's "Data-sufficiency warnings" section every run emits.
+seed: 42
+use_fixture: true
+db_path: null          # ignored when use_fixture is true
+holdout_season: null   # fixture has a single season; no frozen holdout possible
+min_train_games: 1     # fixture-scale: don't require a real minimum fold size
+n_boot: 500             # bootstrap draws; kept small so the fixture run stays fast
+report_path: registry_store/reports/rung_ladder_fixture_report.md

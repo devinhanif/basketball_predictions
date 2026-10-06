@@ -30,28 +30,29 @@ else
 	. .venv/bin/activate && ruff check nba/ tests/ && ruff format --check nba/ tests/ && mypy nba/
 endif
 
-## Full walk-forward backtest entrypoint. Placeholder until nba/eval ships
-## the backtest harness (Phase 1, Milestone 4 in CLAUDE.md).
+## Walk-forward backtest + report + registry logging. Override the config to
+## run against real multi-season data: `make backtest CONFIG=configs/rung_ladder_full.yaml`.
+CONFIG ?= configs/rung_ladder_fixture.yaml
 backtest:
 ifdef UV
-	uv run python -m nba.eval.backtest 2>/dev/null || echo "backtest: not implemented yet (see nba/eval/)"
+	uv run python -m nba.eval --config $(CONFIG) --register
 else
-	echo "backtest: not implemented yet (see nba/eval/)"
+	python -m nba.eval --config $(CONFIG) --register
 endif
 
-## Fast end-to-end smoke run on the tiny fixture dataset (<3 minutes).
-## Placeholder until the fixture dataset and eval harness land.
+## Fast end-to-end smoke run on the tiny committed fixture (<3 minutes):
+## full train -> backtest -> report -> register path. Used by CI smoke-backtest.
 smoke:
 ifdef UV
-	uv run python -m nba.eval.smoke 2>/dev/null || echo "smoke: not implemented yet (see nba/eval/ and the fixture dataset)"
+	uv run python -m nba.eval --config configs/rung_ladder_fixture.yaml --register
 else
-	echo "smoke: not implemented yet (see nba/eval/ and the fixture dataset)"
+	python -m nba.eval --config configs/rung_ladder_fixture.yaml --register
 endif
 
-## Regenerate the per-experiment report.md.
+## Regenerate the per-experiment report.md (re-runs the fixture ladder).
 report:
 ifdef UV
-	uv run python -m nba.eval.report 2>/dev/null || echo "report: not implemented yet (see nba/eval/)"
+	uv run python -m nba.eval --config configs/rung_ladder_fixture.yaml
 else
-	echo "report: not implemented yet (see nba/eval/)"
+	python -m nba.eval --config configs/rung_ladder_fixture.yaml
 endif
