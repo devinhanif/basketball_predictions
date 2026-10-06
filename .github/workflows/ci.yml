@@ -18,11 +18,11 @@ jobs:
     name: lint-type
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
@@ -38,14 +38,80 @@ jobs:
     name: unit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
         run: uv sync --extra dev
       - name: pytest with coverage gate (70% ratchet floor)
         run: uv run pytest
+
+  data-contract:
+    name: data-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Schema + fixture-coverage + no-leakage + possession-reconciliation tests
+        run: make data-contract
+
+  smoke-backtest:
+    name: smoke-backtest
+    runs-on: ubuntu-latest
+    needs: [lint-type, unit, data-contract]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: uv sync --extra dev
+      # <3-minute wall-clock budget on the run itself (CLAUDE.md
+      # "smoke-backtest"), not on dependency installation above.
+      - name: Full train -> backtest -> report -> register path on the fixture
+        timeout-minutes: 3
+        run: make smoke-check
+
+  model-gate:
+    name: model-gate
+    runs-on: ubuntu-latest
+    needs: [lint-type, unit, data-contract]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          filters: |
+            gated:
+              - 'nba/models/**'
+              - 'nba/props/**'
+              - 'nba/parlay/**'
+      - uses: astral-sh/setup-uv@v7
+        if: steps.changes.outputs.gated == 'true'
+        with:
+          version: ${{ env.UV_VERSION }}
+      - uses: actions/setup-python@v7
+        if: steps.changes.outputs.gated == 'true'
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        if: steps.changes.outputs.gated == 'true'
+        run: uv sync --extra dev
+      - name: Compare candidate fixture metrics vs. committed production baseline
+        if: steps.changes.outputs.gated == 'true'
+        run: make gate

@@ -1,0 +1,26 @@
+{
+  "rung0_elo": {
+    "brier": 0.3510162343828066,
+    "crps": null,
+    "ece": 0.5924662305843318,
+    "log_loss": 0.8976314800030251
+  },
+  "rung0_home_court": {
+    "brier": 0.9603999999999999,
+    "crps": null,
+    "ece": 0.98,
+    "log_loss": 3.912023005428145
+  },
+  "rung1_logistic": {
+    "brier": 0.9603999999999999,
+    "crps": null,
+    "ece": 0.98,
+    "log_loss": 3.912023005428145
+  },
+  "rung2_lightgbm": {
+    "brier": 0.9603999999999999,
+    "crps": null,
+    "ece": 0.98,
+    "log_loss": 3.912023005428145
+  }
+}

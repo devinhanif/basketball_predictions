@@ -1,0 +1,17 @@
+# Tolerances for the `model-gate` CI job (CLAUDE.md "CI/CD" -> model-gate).
+#
+# Each `<metric>_tolerance` is the amount a gated metric is allowed to get
+# *worse* (log loss / Brier / ECE / CRPS are all lower-is-better) relative to
+# the committed baseline (tests/registry/baselines/fixture_metrics.json)
+# before the gate fails a candidate run. Keep these here -- not hardcoded in
+# nba/registry/model_gate.py -- so tuning the gate never requires touching
+# the gate's logic.
+#
+# These are fixture-scale tolerances (the fixture has only a handful of
+# games, so metrics are noisy); real multi-season model-gate runs should use
+# a tighter config once enough walk-forward data exists to make tolerances
+# meaningful at that scale.
+log_loss_tolerance: 0.05
+brier_tolerance: 0.03
+ece_tolerance: 0.08
+crps_tolerance: 0.05
