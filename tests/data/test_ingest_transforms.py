@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import polars as pl
 
-from nba.ingest.boxscores import _normalize_boxscore_frame, _parse_minutes
+from nba.ingest.boxscores import _normalize_boxscore_v3_frame, _parse_minutes
 from nba.ingest.games import (
     _filter_competitive_games,
     _normalize_games_frame,
@@ -81,24 +81,62 @@ def test_parse_minutes_handles_mm_ss_and_empty() -> None:
     assert _parse_minutes("12") == 12.0
 
 
-def test_normalize_boxscore_frame() -> None:
+def test_parse_minutes_handles_iso8601_duration() -> None:
+    assert _parse_minutes("PT34M12.00S") == 34.2
+    assert _parse_minutes("PT0M00.00S") == 0.0
+    assert _parse_minutes("PT5M0S") == 5.0
+
+
+def test_normalize_boxscore_v3_frame() -> None:
+    # Column names/shapes as observed live from BoxScoreTraditionalV3's
+    # player-level dataframe (get_data_frames()[0]).
     raw = pl.DataFrame(
         {
-            "PLAYER_ID": [101, 104],
-            "TEAM_ID": [1610612738, 1610612755],
-            "MIN": ["36:30", "0:00"],
-            "START_POSITION": ["G", ""],
-            "PTS": [30, 0],
-            "REB": [6, 0],
-            "AST": [7, 0],
-            "FG3M": [3, 0],
-            "STL": [1, 0],
-            "BLK": [0, 0],
-            "TO": [2, 0],
+            "gameId": ["0022300001"] * 3,
+            "teamId": [1610612738, 1610612738, 1610612755],
+            "personId": [101, 102, 104],
+            "position": ["G", "", ""],
+            "comment": ["", "", "DNP - Coach's Decision"],
+            "minutes": ["PT36M30.00S", "0:00", ""],
+            "fieldGoalsMade": [12, 0, 0],
+            "points": [30, 0, 0],
+            "reboundsTotal": [6, 1, 0],
+            "assists": [7, 0, 0],
+            "threePointersMade": [3, 0, 0],
+            "steals": [1, 0, 0],
+            "blocks": [0, 0, 0],
+            "turnovers": [2, 1, 0],
         }
     )
-    out = _normalize_boxscore_frame(raw, "0022300001")
-    assert out.height == 2
-    assert out["game_id"].to_list() == ["0022300001", "0022300001"]
-    assert out["starter"].to_list() == [True, False]
-    assert out["minutes"].to_list() == [36.5, 0.0]
+    out = _normalize_boxscore_v3_frame(raw, "0022300001")
+    assert out.height == 3
+    assert out["game_id"].to_list() == ["0022300001"] * 3
+    assert out["player_id"].to_list() == [101, 102, 104]
+    assert out["team_id"].to_list() == [1610612738, 1610612738, 1610612755]
+    assert out["starter"].to_list() == [True, False, False]
+    assert out["minutes"].to_list() == [36.5, 0.0, None]
+    assert out["pts"].to_list() == [30, 0, 0]
+    assert out["reb"].to_list() == [6, 1, 0]
+    assert out["fg3m"].to_list() == [3, 0, 0]
+    assert out["tov"].to_list() == [2, 1, 0]
+
+
+def test_normalize_boxscore_v3_frame_empty_returns_empty_frame() -> None:
+    raw = pl.DataFrame(
+        schema={
+            "gameId": pl.Utf8,
+            "teamId": pl.Int64,
+            "personId": pl.Int64,
+            "position": pl.Utf8,
+            "minutes": pl.Utf8,
+            "points": pl.Int64,
+            "reboundsTotal": pl.Int64,
+            "assists": pl.Int64,
+            "threePointersMade": pl.Int64,
+            "steals": pl.Int64,
+            "blocks": pl.Int64,
+            "turnovers": pl.Int64,
+        }
+    )
+    out = _normalize_boxscore_v3_frame(raw, "0022300001")
+    assert out.is_empty()

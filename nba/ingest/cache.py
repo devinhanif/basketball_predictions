@@ -79,6 +79,16 @@ def mark_failed(con: duckdb.DuckDBPyConnection, source: str, key: str) -> None:
     )
 
 
+class EmptyFetchError(RuntimeError):
+    """Raised when ``fetch_fn`` returns an empty frame and ``allow_empty=False``.
+
+    A played game's box score (or similar per-entity fetch) is never
+    legitimately empty; an empty frame usually means the endpoint was
+    throttled, stale, or hit for a game that hasn't posted data yet. Such
+    responses must never be silently cached as 'done'.
+    """
+
+
 def fetch_cached(
     con: duckdb.DuckDBPyConnection,
     source: str,
@@ -87,6 +97,7 @@ def fetch_cached(
     *,
     data_dir: Path = DEFAULT_DATA_DIR,
     rate_limiter: RateLimiter | None = None,
+    allow_empty: bool = True,
 ) -> pl.DataFrame:
     """Return cached parquet for (source, key) if present; otherwise fetch, cache, log.
 
@@ -94,6 +105,13 @@ def fetch_cached(
     call and return a polars DataFrame. Never called if the cache already
     has a 'done' row pointing at an existing file -- i.e. we never refetch
     cached data.
+
+    If ``allow_empty`` is False and ``fetch_fn`` returns an empty frame, the
+    (source, key) pair is marked 'failed' (not 'done'), no parquet is
+    written, and ``EmptyFetchError`` is raised -- callers that know an empty
+    response can never be legitimate (e.g. a played game's box score) should
+    pass ``allow_empty=False`` so throttled/stale responses are never
+    silently cached as success.
     """
     path = cache_path_for(source, key, data_dir)
     if is_cached(con, source, key):
@@ -107,6 +125,10 @@ def fetch_cached(
     except Exception:
         mark_failed(con, source, key)
         raise
+
+    if df.is_empty() and not allow_empty:
+        mark_failed(con, source, key)
+        raise EmptyFetchError(f"empty fetch result for source={source!r} key={key!r}")
 
     path.parent.mkdir(parents=True, exist_ok=True)
     df.write_parquet(path)
