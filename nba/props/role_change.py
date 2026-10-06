@@ -99,11 +99,17 @@ def k_multiplier(games_since_change: float | None, config: RoleChangeConfig | No
 
 
 _ROLE_CHANGE_SQL = """
-SELECT pgs.game_id, pgs.player_id, g.game_date, pgs.minutes
+SELECT pgs.game_id, pgs.player_id, g.game_date, COALESCE(pgs.minutes, 0.0) AS minutes
 FROM player_game_stats pgs
 JOIN games g USING (game_id)
 ORDER BY pgs.player_id, g.game_date, pgs.game_id
 """
+# COALESCE: DNP rows store NULL minutes (see nba/props/run.py::_target_frame
+# docstring). A NaN in `minutes` would propagate through np.std/np.mean in
+# `cusum_detect` and silently zero out CUSUM's ability to detect *any*
+# later changepoint for that player (comparisons against NaN are always
+# False) -- 0.0 is also the correct semantic value (DNP = 0 minutes
+# played), consistent with every other query in this package.
 
 
 def build_role_change_features(

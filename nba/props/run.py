@@ -104,6 +104,8 @@ class StatResult:
     zero_inflation_detected: bool
     data_sufficiency_note: str
     baseline_note: str
+    n_valid: int = 0  # defaults kept for ComboStatResult-adjacent callers; always set below
+    exclusion_note: str = ""
     conformal: ConformalResult | None = None
     volatility_buckets: list[VolatilityBucketResult] = field(default_factory=list)
 
@@ -119,6 +121,8 @@ class ComboStatResult:
     crps_point: float
     correlation_used: dict[str, float]
     note: str
+    n_valid: int = 0
+    exclusion_note: str = ""
 
 
 @dataclass
@@ -143,10 +147,23 @@ class PropsExperimentResult:
 
 
 def _target_frame(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    # ROOT CAUSE (see tests/props/test_dnp_nan_fix.py): `player_game_stats` stores DNP
+    # (did-not-play) rows with NULL `pts`/`reb`/`ast`/`fg3m` rather than 0 --
+    # confirmed on the real 4-season DuckDB (20,354 / 138,409 rows, ~14.7%).
+    # A DNP game's true stat production is 0, not "unknown" -- the minutes
+    # model already predicts P(DNP) via its hurdle branch, so the ground
+    # truth these predictions are scored against must also be 0, not NULL.
+    # Polars/numpy silently turn a NULL Int64 into NaN on `.to_numpy()`,
+    # which then poisons every pooled aggregate downstream (CRPS, mean-bias
+    # bootstrap, coverage) via plain `np.mean`/`np.isfinite` propagation --
+    # that was the reported "pooled CRPS/mean-bias come out NaN" bug.
+    # COALESCE here, once, at the source, is the fix: every stat column is
+    # a real finite number for every row from this point on.
     con.execute(
         """
         SELECT pgs.game_id, pgs.player_id, pgs.team_id, g.game_date, g.season,
-               pgs.pts, pgs.reb, pgs.ast, pgs.fg3m
+               COALESCE(pgs.pts, 0) AS pts, COALESCE(pgs.reb, 0) AS reb,
+               COALESCE(pgs.ast, 0) AS ast, COALESCE(pgs.fg3m, 0) AS fg3m
         FROM player_game_stats pgs
         JOIN games g USING (game_id)
         ORDER BY g.game_date, pgs.game_id, pgs.player_id
@@ -294,19 +311,56 @@ def run_props_experiment(
             else ""
         )
 
-        bias_ci = mean_bias_ci(pred_mean, y, n_boot=n_boot, seed=seed)
-        coverage = interval_coverage(q10, q90, y)
-        threshold_cal = threshold_log_loss_and_calibration(dists, y, thresholds)
+        # Transparency/safety net (CLAUDE.md "never silently drop rows or
+        # print NaN as if it were a result"): after the _target_frame
+        # DNP-coalesce fix this should exclude 0 rows on real data -- a
+        # non-finite y or predicted mean here means a genuinely new data
+        # problem, not DNP, and every pooled metric below is computed only
+        # over the ``_m`` ("metrics") subset so one bad row can never
+        # silently turn an entire stat's pooled CRPS/mean-bias into NaN.
+        valid_mask = np.isfinite(y) & np.isfinite(pred_mean)
+        n_valid = int(valid_mask.sum())
+        n_excluded = n - n_valid
+        exclusion_note = (
+            f"{n_excluded}/{n} rows excluded from every pooled metric below: non-finite "
+            "target or predicted mean. This should not happen after the DNP-coalesce fix in "
+            "_target_frame -- investigate as a data-quality bug, do not report these metrics "
+            "as the headline number without fixing the upstream cause."
+            if n_excluded > 0
+            else ""
+        )
+        y_m = y[valid_mask]
+        pred_mean_m = pred_mean[valid_mask]
+        q10_m, q90_m = q10[valid_mask], q90[valid_mask]
+        dists_m = [d for d, keep in zip(dists, valid_mask, strict=True) if keep]
+
+        bias_ci = mean_bias_ci(pred_mean_m, y_m, n_boot=n_boot, seed=seed)
+        coverage = interval_coverage(q10_m, q90_m, y_m)
+        threshold_cal = threshold_log_loss_and_calibration(dists_m, y_m, thresholds)
         pooled_ece = pooled_threshold_ece(threshold_cal)
-        crps_model = crps_array(dists, y)
+        crps_model = crps_array(dists_m, y_m)
+        # Belt-and-suspenders: crps_array can in principle return a NaN row
+        # (e.g. every quantile non-finite for one distribution -- see its
+        # docstring); nanmean keeps that one row from zeroing out the whole
+        # stat's pooled CRPS instead of hiding behind a plain np.mean.
+        crps_finite = int(np.sum(np.isfinite(crps_model)))
+        crps_point = (
+            float(np.nanmean(crps_model)) if len(crps_model) and crps_finite > 0 else float("nan")
+        )
+        if crps_finite < len(crps_model):
+            exclusion_note = (
+                exclusion_note
+                + f" ({len(crps_model) - crps_finite} additional row(s) dropped from pooled "
+                "CRPS only: non-finite per-row CRPS.)"
+            ).strip()
 
         conformal_result: ConformalResult | None = None
         if cfg.conformal.enabled:
-            dates_arr = target.select("game_date").to_series().to_numpy()
+            dates_arr = target.select("game_date").to_series().to_numpy()[valid_mask]
             conformal_result = evaluate_conformal(
-                q10,
-                q90,
-                y,
+                q10_m,
+                q90_m,
+                y_m,
                 dates_arr,
                 stat,
                 alpha=cfg.conformal.alpha,
@@ -314,8 +368,10 @@ def run_props_experiment(
             )
 
         baseline_feats_season = _align(target, build_baseline_features(con, stat))
-        season_dists = season_average_baseline(baseline_feats_season, stat)
-        last10_dists = last10_average_baseline(baseline_feats_season, stat)
+        season_dists_full = season_average_baseline(baseline_feats_season, stat)
+        last10_dists_full = last10_average_baseline(baseline_feats_season, stat)
+        season_dists = [d for d, keep in zip(season_dists_full, valid_mask, strict=True) if keep]
+        last10_dists = [d for d, keep in zip(last10_dists_full, valid_mask, strict=True) if keep]
         games_played_prior = baseline_feats_season.select("games_played_prior").to_series()
         no_history_frac = float(cast("float", (games_played_prior.fill_null(0) == 0).mean()))
         baseline_note = (
@@ -327,11 +383,11 @@ def run_props_experiment(
             if no_history_frac > 0.5
             else ""
         )
-        crps_season = crps_array(list(season_dists), y)
-        crps_last10 = crps_array(list(last10_dists), y)
-        ll_model = avg_threshold_log_loss_per_game(dists, y, thresholds)
-        ll_season = avg_threshold_log_loss_per_game(list(season_dists), y, thresholds)
-        ll_last10 = avg_threshold_log_loss_per_game(list(last10_dists), y, thresholds)
+        crps_season = crps_array(list(season_dists), y_m)
+        crps_last10 = crps_array(list(last10_dists), y_m)
+        ll_model = avg_threshold_log_loss_per_game(dists_m, y_m, thresholds)
+        ll_season = avg_threshold_log_loss_per_game(list(season_dists), y_m, thresholds)
+        ll_last10 = avg_threshold_log_loss_per_game(list(last10_dists), y_m, thresholds)
 
         crps_vs_season = paired_score_delta_ci(crps_model, crps_season, n_boot=n_boot, seed=seed)
         crps_vs_last10 = paired_score_delta_ci(crps_model, crps_last10, n_boot=n_boot, seed=seed)
@@ -342,12 +398,14 @@ def run_props_experiment(
         if cfg.volatility.enabled:
             if cfg.volatility.cv_variant == "minutes":
                 assert minutes_cv_aligned is not None
-                cv_arr = minutes_cv_aligned
+                cv_arr = minutes_cv_aligned[valid_mask]
             else:
                 stat_vol_feats = build_volatility_features(
                     con, stat, cfg.volatility.lookback_games, cfg.volatility.min_games_for_cv
                 )
-                cv_arr = _align(target, stat_vol_feats).select("cv").to_series().to_numpy()
+                cv_arr = (
+                    _align(target, stat_vol_feats).select("cv").to_series().to_numpy()[valid_mask]
+                )
             bucket_specs = (
                 quantile_buckets(cv_arr)
                 if cfg.volatility.use_quantile_cutoffs
@@ -358,10 +416,10 @@ def run_props_experiment(
                 stat=stat,
                 cv_variant=cfg.volatility.cv_variant,
                 bucket_labels=bucket_labels,
-                pred_mean=pred_mean,
-                q10=q10,
-                q90=q90,
-                y=y,
+                pred_mean=pred_mean_m,
+                q10=q10_m,
+                q90=q90_m,
+                y=y_m,
                 crps_model=crps_model,
                 crps_season=crps_season,
                 crps_last10=crps_last10,
@@ -378,12 +436,13 @@ def run_props_experiment(
             StatResult(
                 stat=stat,
                 n=n,
+                n_valid=n_valid,
                 dist_family=dists[0].family if dists else "none",
                 mean_bias=bias_ci,
                 coverage=coverage,
                 threshold_calibration=threshold_cal,
                 pooled_ece=pooled_ece,
-                crps_point=float(np.mean(crps_model)) if len(crps_model) else float("nan"),
+                crps_point=crps_point,
                 crps_vs_season_avg=crps_vs_season,
                 crps_vs_last10_avg=crps_vs_last10,
                 log_loss_vs_season_avg=ll_vs_season,
@@ -391,6 +450,7 @@ def run_props_experiment(
                 zero_inflation_detected=zero_inflated,
                 data_sufficiency_note=note,
                 baseline_note=baseline_note,
+                exclusion_note=exclusion_note,
                 conformal=conformal_result,
                 volatility_buckets=volatility_buckets,
             )
@@ -536,11 +596,32 @@ def _build_combo_results(
         q10_c, q50_c, q90_c = _quantiles(combo_dists)
 
         n_c = len(y_combo)
-        bias_ci_c = mean_bias_ci(pred_mean_c, y_combo, n_boot=n_boot, seed=seed)
-        coverage_c = interval_coverage(q10_c, q90_c, y_combo)
-        threshold_cal_c = threshold_log_loss_and_calibration(combo_dists, y_combo, thresholds_combo)
+        # Same transparency/safety net as the base-stat loop above.
+        valid_mask_c = np.isfinite(y_combo) & np.isfinite(pred_mean_c)
+        n_valid_c = int(valid_mask_c.sum())
+        n_excluded_c = n_c - n_valid_c
+        exclusion_note_c = (
+            f"{n_excluded_c}/{n_c} rows excluded from every pooled metric below: non-finite "
+            "target or predicted mean."
+            if n_excluded_c > 0
+            else ""
+        )
+        y_combo_m = y_combo[valid_mask_c]
+        pred_mean_c_m = pred_mean_c[valid_mask_c]
+        q10_c_m, q90_c_m = q10_c[valid_mask_c], q90_c[valid_mask_c]
+        combo_dists_m = [d for d, keep in zip(combo_dists, valid_mask_c, strict=True) if keep]
+
+        bias_ci_c = mean_bias_ci(pred_mean_c_m, y_combo_m, n_boot=n_boot, seed=seed)
+        coverage_c = interval_coverage(q10_c_m, q90_c_m, y_combo_m)
+        threshold_cal_c = threshold_log_loss_and_calibration(
+            combo_dists_m, y_combo_m, thresholds_combo
+        )
         pooled_ece_c = pooled_threshold_ece(threshold_cal_c)
-        crps_c = crps_array(combo_dists, y_combo)
+        crps_c = crps_array(combo_dists_m, y_combo_m)
+        crps_c_finite = int(np.sum(np.isfinite(crps_c)))
+        crps_point_c = (
+            float(np.nanmean(crps_c)) if len(crps_c) and crps_c_finite > 0 else float("nan")
+        )
         note_c = (
             f"only {n_c} player-games (<{MIN_RELIABLE_N}); NOT statistically meaningful at this "
             "sample size -- same caveat as every base-stat metric in this report."
@@ -559,9 +640,11 @@ def _build_combo_results(
                 mean_bias=bias_ci_c,
                 coverage=coverage_c,
                 pooled_ece=pooled_ece_c,
-                crps_point=float(np.mean(crps_c)) if len(crps_c) else float("nan"),
+                crps_point=crps_point_c,
                 correlation_used=corr_used,
                 note=note_c,
+                n_valid=n_valid_c,
+                exclusion_note=exclusion_note_c,
             )
         )
         p_ge_by_threshold_c: dict[int, np.ndarray] = {}

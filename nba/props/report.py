@@ -25,12 +25,12 @@ def _ci_str(ci: object) -> str:
 
 def _stat_table(stats: list[StatResult]) -> str:
     lines = [
-        "| stat | n | family | mean bias (95% CI) | 80% coverage | pooled ECE | CRPS |",
+        "| stat | n_valid/n | family | mean bias (95% CI) | 80% coverage | pooled ECE | CRPS |",
         "|---|---|---|---|---|---|---|",
     ]
     for s in stats:
         lines.append(
-            f"| {s.stat} | {s.n} | {s.dist_family} | {_ci_str(s.mean_bias)} | "
+            f"| {s.stat} | {s.n_valid}/{s.n} | {s.dist_family} | {_ci_str(s.mean_bias)} | "
             f"{_fmt(s.coverage, 3)} | {_fmt(s.pooled_ece)} | {_fmt(s.crps_point)} |"
         )
     return "\n".join(lines)
@@ -52,7 +52,7 @@ def _baseline_table(stats: list[StatResult]) -> str:
 
 def _combo_table(stats: list[ComboStatResult]) -> str:
     lines = [
-        "| combo | n | family | mean bias (95% CI) | 80% coverage | pooled ECE | CRPS | "
+        "| combo | n_valid/n | family | mean bias (95% CI) | 80% coverage | pooled ECE | CRPS | "
         "corr(pts,reb)/(pts,ast)/(reb,ast) used |",
         "|---|---|---|---|---|---|---|---|",
     ]
@@ -64,7 +64,7 @@ def _combo_table(stats: list[ComboStatResult]) -> str:
             f"{corr.get('reb_ast', float('nan')):.2f}"
         )
         lines.append(
-            f"| {s.stat} | {s.n} | {s.dist_family} | {_ci_str(s.mean_bias)} | "
+            f"| {s.stat} | {s.n_valid}/{s.n} | {s.dist_family} | {_ci_str(s.mean_bias)} | "
             f"{_fmt(s.coverage, 3)} | {_fmt(s.pooled_ece)} | {_fmt(s.crps_point)} | {corr_str} |"
         )
     return "\n".join(lines)
@@ -175,12 +175,17 @@ def render_props_report(result: PropsExperimentResult) -> str:
     )
     warnings = []
     for s in result.stats:
+        if s.exclusion_note:
+            warnings.append(f"- {s.stat} (data-quality): {s.exclusion_note}")
         if s.data_sufficiency_note:
             warnings.append(f"- {s.stat}: {s.data_sufficiency_note}")
         if s.zero_inflation_detected:
             warnings.append(f"- {s.stat}: zero-inflation detected and modeled (ZINB).")
         if s.baseline_note:
             warnings.append(f"- {s.stat} (baseline comparison): {s.baseline_note}")
+    for c in result.combo_stats:
+        if c.exclusion_note:
+            warnings.append(f"- {c.stat} (data-quality): {c.exclusion_note}")
     if not warnings:
         warnings.append("- None.")
 
@@ -251,6 +256,11 @@ def render_props_report(result: PropsExperimentResult) -> str:
         "- Minutes model is a hurdle (DNP point mass + truncated-Normal minutes|plays); "
         "see nba/props/minutes.py. It never reads the target game's own minutes -- see "
         "tests/props/test_minutes_no_leakage.py.",
+        "- DNP rows: `player_game_stats` stores NULL pts/reb/ast/fg3m/minutes for games a "
+        "player did not play. These are coalesced to 0 at the source (nba/props/run.py::"
+        "_target_frame) -- DNP really is 0 production, not a missing value -- so every "
+        "pooled metric below is computed against the real stat, not a NaN-poisoned one. "
+        "The n_valid/n column reports any row still excluded for a genuinely new reason.",
         "- SAMPLE SIZE CAVEAT: this report's data is the 3-game / 18-player-game fixture "
         "(or whatever tiny slice was passed in) -- every coverage number, correlation "
         "estimate, and CUSUM flag above is a smoke test of the mechanism, not a claim that "
