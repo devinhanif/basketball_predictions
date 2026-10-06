@@ -107,6 +107,52 @@ class ConformalConfig:
 
 
 @dataclass
+class VolatilityBucketSpec:
+    """One bucket's half-open coefficient-of-variation interval ``[lo, hi)``."""
+
+    name: str
+    lo: float
+    hi: float
+
+
+@dataclass
+class VolatilityConfig:
+    """Volatility-bucket slicing (tests the hypothesis that the model's
+    edge concentrates in high-volatility players -- see
+    ``nba.props.volatility`` module docstring for the as-of CV metric and
+    the bucketing/CI-honesty rules).
+    """
+
+    enabled: bool = True
+    #: Number of strictly-prior games the CV is computed over.
+    lookback_games: int = 10
+    #: Minimum strictly-prior games required before a CV is trusted at
+    #: all; below this the row falls in the ``insufficient_history``
+    #: bucket rather than being forced into low/high on noise.
+    min_games_for_cv: int = 5
+    #: Which history drives the bucket assignment: the target stat's own
+    #: CV ("stat") or the shared minutes-CV ("minutes") -- CLAUDE.md:
+    #: "a minutes-CV variant available too."
+    cv_variant: str = "stat"
+    #: If True, recompute buckets each run as a median split of this
+    #: sample's own (finite) CV distribution instead of the fixed cutoffs
+    #: below.
+    use_quantile_cutoffs: bool = False
+    #: Fixed CV cutoffs (chosen as a documented, round-number default --
+    #: not tuned on any backtest). Easy to extend to 3+ buckets.
+    buckets: list[VolatilityBucketSpec] = field(
+        default_factory=lambda: [
+            VolatilityBucketSpec(name="low", lo=0.0, hi=0.35),
+            VolatilityBucketSpec(name="high", lo=0.35, hi=float("inf")),
+        ]
+    )
+    #: Below this many player-games, a bucket's CI is reported as an
+    #: explicit "insufficient data" note instead of a numeric point
+    #: estimate (CLAUDE.md milestone 7, point 4's honesty guard).
+    min_bucket_n: int = 100
+
+
+@dataclass
 class PropsConfig:
     minutes: MinutesModelConfig = field(default_factory=MinutesModelConfig)
     points: PointsConfig = field(default_factory=PointsConfig)
@@ -122,6 +168,7 @@ class PropsConfig:
     coherence: CoherenceConfig = field(default_factory=CoherenceConfig)
     role_change: RoleChangeConfig = field(default_factory=RoleChangeConfig)
     conformal: ConformalConfig = field(default_factory=ConformalConfig)
+    volatility: VolatilityConfig = field(default_factory=VolatilityConfig)
     seed: int = 0
     n_boot: int = 500
 

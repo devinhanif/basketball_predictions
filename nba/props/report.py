@@ -103,6 +103,34 @@ def _conformal_table(stats: list[StatResult]) -> str:
     return "\n".join(lines)
 
 
+def _volatility_table(stats: list[StatResult]) -> str:
+    rows = [(s.stat, b) for s in stats for b in s.volatility_buckets]
+    if not rows:
+        return "_Volatility-bucket slicing disabled or no data._"
+    lines = [
+        "| stat | cv variant | bucket | n | mean bias (95% CI) | 80% coverage | "
+        "CRPS vs season-avg (delta CI) | CRPS vs last-10 (delta CI) | "
+        "log loss vs season-avg (delta CI) | log loss vs last-10 (delta CI) |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for stat, b in rows:
+        if not b.sufficient:
+            insufficient = f"insufficient data for a trustworthy CI (n={b.n})"
+            lines.append(
+                f"| {stat} | {b.cv_variant} | {b.bucket} | {b.n} | {insufficient} | "
+                f"{insufficient} | {insufficient} | {insufficient} | {insufficient} | "
+                f"{insufficient} |"
+            )
+            continue
+        lines.append(
+            f"| {stat} | {b.cv_variant} | {b.bucket} | {b.n} | {_ci_str(b.mean_bias)} | "
+            f"{_fmt(b.coverage, 3)} | {_ci_str(b.crps_vs_season_avg)} | "
+            f"{_ci_str(b.crps_vs_last10_avg)} | {_ci_str(b.log_loss_vs_season_avg)} | "
+            f"{_ci_str(b.log_loss_vs_last10_avg)} |"
+        )
+    return "\n".join(lines)
+
+
 def _role_change_section(result: PropsExperimentResult) -> str:
     rc = result.role_change_summary
     if rc is None:
@@ -193,6 +221,17 @@ def render_props_report(result: PropsExperimentResult) -> str:
         "",
         "## Role-change detection (CUSUM on minutes)",
         _role_change_section(result),
+        "",
+        "## Volatility buckets",
+        "Tests the hypothesis that the model's edge over season-avg/last-10 baselines "
+        "concentrates in high-volatility players. Bucket = coefficient of variation "
+        "(SD/mean) of the stat (or minutes, per `VolatilityConfig.cv_variant`) over each "
+        "player's strictly-prior games (as-of; see nba/props/volatility.py). Deltas use the "
+        "same paired per-game bootstrap as the baseline-comparison table above, scoped to "
+        "each bucket; buckets below `min_bucket_n` player-games show an explicit "
+        "insufficient-data note instead of a point estimate.",
+        "",
+        _volatility_table(result.stats),
         "",
         "## Split-conformal interval coverage (80%, parametric vs. conformal)",
         "Chronological calibration/test split (never random); conformal intervals should land "

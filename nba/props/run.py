@@ -73,6 +73,13 @@ from nba.props.stat_models import (
     fit_zero_inflation,
     points_moments,
 )
+from nba.props.volatility import (
+    VolatilityBucketResult,
+    assign_buckets,
+    build_volatility_features,
+    evaluate_volatility_buckets,
+    quantile_buckets,
+)
 
 #: Below this many player-games, bias/coverage CIs are reported but
 #: flagged as not statistically meaningful (CLAUDE.md milestone 7, point
@@ -98,6 +105,7 @@ class StatResult:
     data_sufficiency_note: str
     baseline_note: str
     conformal: ConformalResult | None = None
+    volatility_buckets: list[VolatilityBucketResult] = field(default_factory=list)
 
 
 @dataclass
@@ -211,6 +219,17 @@ def run_props_experiment(
     role_aligned = _align(target, role_change_feats)
     role_k_multiplier = role_aligned.select("k_multiplier").to_series().fill_null(1.0).to_numpy()
 
+    # Volatility-bucket slicing (CLAUDE.md's "model's edge concentrates in
+    # high-volatility players" hypothesis). When ``cv_variant == "minutes"``
+    # every stat shares one as-of minutes-CV frame -- computed once here,
+    # not re-queried per stat -- per nba.props.volatility module docstring.
+    minutes_cv_aligned: np.ndarray | None = None
+    if cfg.volatility.enabled and cfg.volatility.cv_variant == "minutes":
+        minutes_vol_feats = build_volatility_features(
+            con, "minutes", cfg.volatility.lookback_games, cfg.volatility.min_games_for_cv
+        )
+        minutes_cv_aligned = _align(target, minutes_vol_feats).select("cv").to_series().to_numpy()
+
     pred_rows: list[dict[str, object]] = []
     stat_results: list[StatResult] = []
     coherence_checks: list[CoherenceCheck] = []
@@ -314,6 +333,42 @@ def run_props_experiment(
         ll_vs_season = paired_score_delta_ci(ll_model, ll_season, n_boot=n_boot, seed=seed)
         ll_vs_last10 = paired_score_delta_ci(ll_model, ll_last10, n_boot=n_boot, seed=seed)
 
+        volatility_buckets: list[VolatilityBucketResult] = []
+        if cfg.volatility.enabled:
+            if cfg.volatility.cv_variant == "minutes":
+                assert minutes_cv_aligned is not None
+                cv_arr = minutes_cv_aligned
+            else:
+                stat_vol_feats = build_volatility_features(
+                    con, stat, cfg.volatility.lookback_games, cfg.volatility.min_games_for_cv
+                )
+                cv_arr = _align(target, stat_vol_feats).select("cv").to_series().to_numpy()
+            bucket_specs = (
+                quantile_buckets(cv_arr)
+                if cfg.volatility.use_quantile_cutoffs
+                else cfg.volatility.buckets
+            )
+            bucket_labels = assign_buckets(cv_arr, bucket_specs)
+            volatility_buckets = evaluate_volatility_buckets(
+                stat=stat,
+                cv_variant=cfg.volatility.cv_variant,
+                bucket_labels=bucket_labels,
+                pred_mean=pred_mean,
+                q10=q10,
+                q90=q90,
+                y=y,
+                crps_model=crps_model,
+                crps_season=crps_season,
+                crps_last10=crps_last10,
+                ll_model=ll_model,
+                ll_season=ll_season,
+                ll_last10=ll_last10,
+                buckets=bucket_specs,
+                min_bucket_n=cfg.volatility.min_bucket_n,
+                n_boot=n_boot,
+                seed=seed,
+            )
+
         stat_results.append(
             StatResult(
                 stat=stat,
@@ -332,6 +387,7 @@ def run_props_experiment(
                 data_sufficiency_note=note,
                 baseline_note=baseline_note,
                 conformal=conformal_result,
+                volatility_buckets=volatility_buckets,
             )
         )
 
