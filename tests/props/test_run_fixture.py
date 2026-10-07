@@ -90,6 +90,104 @@ def test_write_prop_predictions_round_trips_through_duckdb() -> None:
         con.close()
 
 
+def test_opponent_adjustment_flag_changes_predictions_end_to_end() -> None:
+    """Pipeline-level flag check (CLAUDE.md task): toggling
+    ``use_opponent_adjustment`` (``PropsConfig.opponent_adjustment.enabled``)
+    changes the predicted means through the full ``run_props_experiment``
+    path.
+
+    The committed fixture (3 games, 6 teams, no repeat matchups) has zero
+    strictly-prior opponent history for every row by construction, so the
+    adjustment is correctly a no-op there -- this test instead builds a
+    small synthetic DB (same pattern as ``tests/props/test_opponent.py``)
+    with real repeated matchups so the mechanism is actually exercised
+    end to end, not just unit-tested on ``nba.props.opponent`` in
+    isolation."""
+    import duckdb as _duckdb
+
+    from nba.db.connect import apply_schema
+
+    con = _duckdb.connect(":memory:")
+    apply_schema(con)
+    try:
+        # Prior history: team 1 allows a lot (weak defense), fast pace.
+        for i in range(8):
+            gid = f"hist_{i}"
+            con.execute(
+                "INSERT INTO games (game_id, game_date, season, home_team, away_team, "
+                "home_pts, away_pts) VALUES (?, ?, 2023, 1, 900, 100, 130)",
+                [gid, f"2023-10-{i + 1:02d}"],
+            )
+            con.execute(
+                "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, "
+                "reb, ast, fg3m, stl, blk, tov, starter) VALUES (?, 1001, 1, 30.0, 100, 40, "
+                "22, 10, 1, 0, 1, true)",
+                [gid],
+            )
+            con.execute(
+                "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, "
+                "reb, ast, fg3m, stl, blk, tov, starter) VALUES (?, 2001, 900, 30.0, 130, 48, "
+                "30, 16, 1, 0, 1, true)",
+                [gid],
+            )
+        # Target game: player 7777 on team 10 facing team 1 (the weak/fast opponent).
+        con.execute(
+            "INSERT INTO games (game_id, game_date, season, home_team, away_team, "
+            "home_pts, away_pts) VALUES ('target', '2023-11-01', 2023, 10, 1, 110, 120)"
+        )
+        con.execute(
+            "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, "
+            "reb, ast, fg3m, stl, blk, tov, starter) VALUES ('target', 7777, 10, 30.0, 20, "
+            "8, 5, 2, 1, 0, 1, true)"
+        )
+        con.execute(
+            "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, "
+            "reb, ast, fg3m, stl, blk, tov, starter) VALUES ('target', 8888, 1, 30.0, 20, "
+            "8, 5, 2, 1, 0, 1, true)"
+        )
+
+        # Hierarchical coherence reconciliation (nba.props.coherence) would
+        # otherwise rescale each team's lone player back onto the
+        # team-total forecast, masking the opponent signal this test wants
+        # to isolate -- disabled here so the comparison below is a clean
+        # read of the opponent-adjustment wiring, not a coherence/opponent
+        # interaction effect.
+        cfg_on = PropsConfig()
+        cfg_on.opponent_adjustment.enabled = True
+        cfg_on.opponent_adjustment.min_games_for_factor = 3
+        cfg_on.coherence.enabled = False
+        cfg_off = PropsConfig()
+        cfg_off.opponent_adjustment.enabled = False
+        cfg_off.coherence.enabled = False
+
+        result_on = run_props_experiment(con, config=cfg_on, seed=7, n_boot=50)
+        result_off = run_props_experiment(con, config=cfg_off, seed=7, n_boot=50)
+
+        target_mean_on = (
+            result_on.predictions.filter(
+                (result_on.predictions["game_id"] == "target")
+                & (result_on.predictions["player_id"] == 7777)
+                & (result_on.predictions["stat"] == "pts")
+            )
+            .select("mean")
+            .item()
+        )
+        target_mean_off = (
+            result_off.predictions.filter(
+                (result_off.predictions["game_id"] == "target")
+                & (result_off.predictions["player_id"] == 7777)
+                & (result_off.predictions["stat"] == "pts")
+            )
+            .select("mean")
+            .item()
+        )
+        # Facing a weak-defense, fast-pace opponent -> the ON prediction
+        # must be strictly higher than the flag-OFF (unadjusted) one.
+        assert target_mean_on > target_mean_off
+    finally:
+        con.close()
+
+
 def test_empty_db_degrades_gracefully() -> None:
     import duckdb
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from nba.props.opponent import OpponentAdjustmentConfig
 from nba.props.role_change import RoleChangeConfig
 
 #: Stats modeled this milestone.
@@ -255,6 +256,7 @@ class PropsConfig:
     combos: CombosConfig = field(default_factory=CombosConfig)
     coherence: CoherenceConfig = field(default_factory=CoherenceConfig)
     role_change: RoleChangeConfig = field(default_factory=RoleChangeConfig)
+    opponent_adjustment: OpponentAdjustmentConfig = field(default_factory=OpponentAdjustmentConfig)
     conformal: ConformalConfig = field(default_factory=ConformalConfig)
     volatility: VolatilityConfig = field(default_factory=VolatilityConfig)
     dispersion: DispersionConfig = field(default_factory=DispersionConfig)

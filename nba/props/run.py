@@ -73,6 +73,12 @@ from nba.props.minutes import (
     fetch_actual_minutes,
     predict_minutes,
 )
+from nba.props.opponent import (
+    OpponentFactors,
+    apply_opponent_adjustment,
+    build_opponent_pace_features,
+    compute_opponent_factors,
+)
 from nba.props.role_change import build_role_change_features
 from nba.props.stat_models import (
     build_count_stat_features,
@@ -286,6 +292,23 @@ def run_props_experiment(
         )
         minutes_cv_aligned = _align(target, minutes_vol_feats).select("cv").to_series().to_numpy()
 
+    # Opponent defense + pace adjustment (CLAUDE.md: "a raw season-average
+    # ignores the opponent"). Computed once (one as-of SQL query, same
+    # frame for every stat) and aligned by (game_id, team_id) -- see
+    # ``nba.props.opponent`` module docstring. Behind
+    # ``cfg.opponent_adjustment.enabled``; a neutral all-ones factor when
+    # disabled keeps the A/B a single-flag toggle with no other code path.
+    opponent_factors_by_stat: dict[str, OpponentFactors] = {}
+    if cfg.opponent_adjustment.enabled:
+        opp_feats = build_opponent_pace_features(
+            con, lookback_games=cfg.opponent_adjustment.lookback_games
+        )
+        opp_aligned = _align_team(target, opp_feats)
+        for _stat in TARGET_STATS:
+            opponent_factors_by_stat[_stat] = compute_opponent_factors(
+                opp_aligned, _stat, cfg.opponent_adjustment
+            )
+
     pred_rows: list[dict[str, object]] = []
     stat_results: list[StatResult] = []
     coherence_checks: list[CoherenceCheck] = []
@@ -303,6 +326,10 @@ def run_props_experiment(
             moments = points_moments(
                 feats_aligned, minutes_mean, minutes_var, cfg.points, k_multiplier=role_k_multiplier
             )
+            if cfg.opponent_adjustment.enabled:
+                moments.mean, moments.var = apply_opponent_adjustment(
+                    moments.mean, moments.var, opponent_factors_by_stat[stat]
+                )
             dispersion_result = _calibrate_dispersion(
                 "gamma", moments.mean, moments.var, y, dates_full, stat, cfg
             )
@@ -319,6 +346,10 @@ def run_props_experiment(
             moments_c = count_stat_moments(
                 feats_aligned, minutes_mean, minutes_var, count_cfg, k_multiplier=role_k_multiplier
             )
+            if cfg.opponent_adjustment.enabled:
+                moments_c.mean, moments_c.var = apply_opponent_adjustment(
+                    moments_c.mean, moments_c.var, opponent_factors_by_stat[stat]
+                )
             dispersion_result = _calibrate_dispersion(
                 "negbin", moments_c.mean, moments_c.var, y, dates_full, stat, cfg
             )
