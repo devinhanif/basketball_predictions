@@ -1,0 +1,28 @@
+# Default knobs for the as-of game-context features (CLAUDE.md "Architecture
+# ladder" rungs 1-2: travel, national TV, playoff positioning, tanking
+# incentive). Loaded via nba.features.game_context.load_game_context_config.
+# Unknown keys are rejected so a typo fails loudly rather than silently
+# using a default.
+
+# Rank (1 = best record in conference) at/below which a team is in a top-6
+# playoff position.
+playoff_seed_cutoff: 6
+
+# Ranks strictly above playoff_seed_cutoff and at/below this are "play-in"
+# (7-10 under the current NBA format).
+playin_seed_cutoff: 10
+
+# A team is only a tanking candidate once this many games are in the books
+# for them (as-of, strictly prior). ~60 games leaves ~20 remaining, the
+# window where effort/rest decisions are visibly affected by draft lottery
+# incentives.
+tanking_games_into_season_threshold: 60
+
+# As-of win_pct strictly below this is "a bad team" for tanking purposes.
+tanking_bad_win_pct_threshold: 0.40
+
+# Default travel distance (miles) for a team's first game of a season (no
+# previous-game host to measure from).
+travel_default_miles: 0.0
+
+seed: 0

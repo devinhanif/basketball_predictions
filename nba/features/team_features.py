@@ -28,6 +28,8 @@ from __future__ import annotations
 import duckdb
 import polars as pl
 
+from nba.ingest.arenas import ARENA_COORDS, haversine_miles
+
 #: League-average fill values used for a team's first game (no prior
 #: history at all). Config-driven so walk-forward CV can tune them later;
 #: for now a single documented default per column.
@@ -38,16 +40,22 @@ FEATURE_DEFAULTS: dict[str, float] = {
     "avg_tov_prior": 13.0,
     "pace_proxy_prior": 220.0,
     "rest_days": 7.0,
+    # A team's first game of a season has no previous-game host to measure
+    # travel from (CLAUDE.md "Travel" feature: "First game of a season ->
+    # 0 or a documented default"). Documented default: 0 miles.
+    "travel_miles_asof": 0.0,
 }
 
 _TEAM_GAME_FEATURES_SQL = """
 WITH team_games AS (
     SELECT game_id, game_date, season, home_team AS team_id, away_team AS opp_team_id,
-           home_pts AS team_pts, away_pts AS opp_pts, TRUE AS is_home
+           home_pts AS team_pts, away_pts AS opp_pts, TRUE AS is_home,
+           home_team AS host_team_id
     FROM games
     UNION ALL
     SELECT game_id, game_date, season, away_team AS team_id, home_team AS opp_team_id,
-           away_pts AS team_pts, home_pts AS opp_pts, FALSE AS is_home
+           away_pts AS team_pts, home_pts AS opp_pts, FALSE AS is_home,
+           home_team AS host_team_id
     FROM games
 ),
 team_tov AS (
@@ -98,7 +106,11 @@ SELECT
     ) AS pace_proxy_prior,
     LAG(game_date) OVER (
         PARTITION BY team_id ORDER BY game_date, game_id
-    ) AS prev_game_date
+    ) AS prev_game_date,
+    host_team_id,
+    LAG(host_team_id) OVER (
+        PARTITION BY team_id ORDER BY game_date, game_id
+    ) AS prev_game_host_team_id
 FROM team_games_full
 ORDER BY game_date, game_id, team_id
 """
@@ -149,6 +161,37 @@ def _query_to_polars(con: duckdb.DuckDBPyConnection, sql: str) -> pl.DataFrame:
     return pl.DataFrame(rows, schema=schema, orient="row")
 
 
+def _travel_miles_asof(
+    host_team_ids: pl.Series, prev_host_team_ids: pl.Series, default_miles: float
+) -> pl.Series:
+    """Great-circle miles from a team's *previous* game's host arena to its
+    *current* game's host arena (CLAUDE.md "Travel" feature).
+
+    ``host_team_ids``/``prev_host_team_ids`` are both ``home_team`` ids
+    (the physical city a game is played in, regardless of which side of
+    ``host_team_ids`` the team itself was on) -- a team's first game of a
+    season has no previous host (``prev_host_team_ids`` is null) and gets
+    ``default_miles`` instead, per the documented default.
+    """
+    hosts = host_team_ids.to_list()
+    prev_hosts = prev_host_team_ids.to_list()
+    out = []
+    for host, prev_host in zip(hosts, prev_hosts, strict=True):
+        # Also falls back to the default for synthetic/test team_ids not in
+        # ARENA_COORDS (the 30 real NBA franchise ids) rather than raising,
+        # so unit tests can use small integer team_ids without real arenas.
+        if prev_host is None or host is None:
+            out.append(default_miles)
+            continue
+        if int(prev_host) not in ARENA_COORDS or int(host) not in ARENA_COORDS:
+            out.append(default_miles)
+            continue
+        lat1, lon1 = ARENA_COORDS[int(prev_host)]
+        lat2, lon2 = ARENA_COORDS[int(host)]
+        out.append(haversine_miles(lat1, lon1, lat2, lon2))
+    return pl.Series(out, dtype=pl.Float64)
+
+
 def build_team_game_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     """One row per (game, team): strictly as-of rolling features.
 
@@ -172,6 +215,13 @@ def build_team_game_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         ]
     )
     df = df.with_columns(b2b=(pl.col("rest_days") <= 1.0))
+    df = df.with_columns(
+        travel_miles_asof=_travel_miles_asof(
+            df.get_column("host_team_id"),
+            df.get_column("prev_game_host_team_id"),
+            FEATURE_DEFAULTS["travel_miles_asof"],
+        )
+    )
 
     if _has_rows(con, "team_context"):
         tc = _query_to_polars(
@@ -194,7 +244,7 @@ def build_team_game_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
             n_injured_out=pl.lit(0),
         )
 
-    return df.drop("prev_game_date")
+    return df.drop(["prev_game_date", "host_team_id", "prev_game_host_team_id"])
 
 
 def build_matchup_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
@@ -228,15 +278,32 @@ def build_matchup_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         tov_diff=pl.col("home_avg_tov_prior") - pl.col("away_avg_tov_prior"),
         pace_diff=pl.col("home_pace_proxy_prior") - pl.col("away_pace_proxy_prior"),
         rest_diff=pl.col("home_rest_days") - pl.col("away_rest_days"),
+        travel_diff=pl.col("home_travel_miles_asof") - pl.col("away_travel_miles_asof"),
         games_played_prior_min=pl.min_horizontal(
             "home_games_played_prior", "away_games_played_prior"
         ),
         y=(pl.col("home_team_pts") > pl.col("away_team_pts")).cast(pl.Int8),
     )
+
+    # Local import: nba.features.game_context imports build_team_game_features
+    # from this module, so importing it at module scope here would be
+    # circular. See that module for the national-TV/standings/tanking
+    # definitions merged in below.
+    from nba.features.game_context import build_game_context_matchup_features
+
+    context = build_game_context_matchup_features(con)
+    merged = merged.join(context, on="game_id", how="left")
+
     return merged.sort("game_date", "game_id")
 
 
 #: Feature columns handed to rungs 1-2 (team-level, as-of, no leakage).
+#: The tail of this list (from "is_national_tv" on) is the game-context
+#: ladder addition -- travel, national TV, playoff positioning, and
+#: tanking incentive -- documented and built in
+#: ``nba.features.game_context`` (duplicated here, not imported, to avoid
+#: a circular import between the two modules; keep in sync with that
+#: module's ``GAME_CONTEXT_FEATURE_COLUMNS``).
 MATCHUP_FEATURE_COLUMNS: list[str] = [
     "win_pct_diff",
     "pts_for_diff",
@@ -244,6 +311,15 @@ MATCHUP_FEATURE_COLUMNS: list[str] = [
     "tov_diff",
     "pace_diff",
     "rest_diff",
+    "travel_diff",
     "home_b2b",
     "away_b2b",
+    "is_national_tv",
+    "conf_rank_diff",
+    "win_pct_asof_diff",
+    "home_in_playoff_pos",
+    "away_in_playoff_pos",
+    "home_in_playin",
+    "away_in_playin",
+    "tanking_incentive_diff",
 ]

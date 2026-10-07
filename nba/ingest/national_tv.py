@@ -116,8 +116,11 @@ def pull_national_tv_for_date(
         date,
         lambda: _fetch_scoreboard_with_retry(date),
         data_dir=data_dir,
-        rate_limiter=rate_limiter,
-        allow_empty=False,
+        # An empty scoreboard for a date is a legitimate "no national-TV info"
+        # outcome (stale/missing recent data, or no nationally-televised games)
+        # -> leave those games' national_tv NULL. Not a failure, unlike a box
+        # score. (A date with games but a stale ScoreboardV2 just stays NULL.)
+        allow_empty=True,
     )
     update_national_tv(con, df)
     return df
