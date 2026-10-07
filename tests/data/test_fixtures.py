@@ -77,4 +77,4 @@ def test_pbp_fixture_loads_and_covers_every_game(fixture_con: duckdb.DuckDBPyCon
     assert set(pbp.keys()) == game_ids
     for game_id, df in pbp.items():
         assert len(df) > 0, f"{game_id} pbp fixture is empty"
-        assert "eventmsgtype" in df.columns
+        assert "action_type" in df.columns

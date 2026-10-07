@@ -1,41 +1,42 @@
-"""Possession-count reconciliation scaffold.
+"""Possession-count reconciliation on the committed fixture dataset.
 
 CLAUDE.md requires validating possession counts against the box-score
 estimate ``FGA + 0.44*FTA + TOV - OREB`` per team-game (mean error <= 1).
-That needs a `possessions` table built by the play-by-play parser
-(nba/parse/, not yet built -- see Milestone "possession/stint parser")
-plus team-level FGA/FTA/OREB box score fields that are not present on the
-`player_game_stats` schema in CLAUDE.md. This test is a placeholder that
-documents the contract the parser milestone must satisfy; it is skipped
-until both the parser and the box-score fields exist.
+The parser (nba/parse/possessions.py) and reconciliation helper
+(nba/parse/reconcile.py) now exist; this test proves the gate on the tiny
+committed fixture (no network, no nba.duckdb). The *real* multi-season
+gate (against the live box-score backfill) is the maintainer's to run
+once that backfill lands -- see nba/parse/possessions.py and
+nba/parse/reconcile.py docstrings.
 """
 
 from __future__ import annotations
 
-import duckdb
-import pytest
+import polars as pl
 
-from tests.fixtures.loader import build_fixture_db
-
-
-def _possessions_table_is_populated(con: duckdb.DuckDBPyConnection) -> bool:
-    count = con.execute("SELECT COUNT(*) FROM possessions").fetchone()[0]
-    return bool(count)
-
-
-@pytest.mark.skip(
-    reason=(
-        "Deferred to the possession/stint parser milestone (nba/parse/): "
-        "requires the `possessions` table to be populated from play-by-play "
-        "and team-level FGA/FTA/OREB box score aggregates not yet carried "
-        "by player_game_stats. See CLAUDE.md possession-count reconciliation."
-    )
+from nba.parse.possessions import parse_possessions
+from nba.parse.reconcile import (
+    mean_abs_error,
+    reconcile_possessions,
+    team_box_from_player_game_stats,
 )
+from tests.fixtures.loader import build_fixture_db, load_pbp
+
+
 def test_possession_count_reconciliation_mean_error_within_one() -> None:
     con = build_fixture_db(":memory:")
-    assert _possessions_table_is_populated(con), (
-        "remove this skip once the parser populates `possessions`"
-    )
-    # Full reconciliation (team-game mean |possessions - est| <= 1) belongs
-    # to the parser milestone's own test suite.
-    con.close()
+    try:
+        pbp_map = load_pbp()
+        possessions = pl.concat([parse_possessions(df) for df in pbp_map.values()])
+        assert possessions.height > 0, "parser produced no possessions from the fixture"
+
+        player_game_stats = con.execute("SELECT * FROM player_game_stats").pl()
+        team_box = team_box_from_player_game_stats(player_game_stats)
+        rec = reconcile_possessions(possessions, team_box)
+
+        mae = mean_abs_error(rec)
+        assert mae <= 1.0, (
+            f"mean abs error {mae} exceeds the CLAUDE.md reconciliation gate of 1 possession"
+        )
+    finally:
+        con.close()
