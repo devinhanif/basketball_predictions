@@ -15,6 +15,16 @@ to correct. The nonconformity score is the CQR (conformalized quantile
 regression) score ``max(q10 - y, y - q90)``, and the correction uses the
 finite-sample-exact quantile level from Lei et al. (2018),
 ``ceil((n+1)(1-alpha)) / n``, not the naive ``(1-alpha)`` quantile.
+
+**Two-sided.** The learned ``adjustment`` is the raw CQR-score quantile,
+*not* floored at zero: real 4-season validation found rebounds/assists/3PM
+native intervals badly **over**-covered (~96% vs. the 80% target), which a
+widen-only ("floor the adjustment at 0") conformal wrapper can never fix --
+a negative ``adjustment`` is exactly the standard split-conformal update
+when the calibration scores are mostly negative (``y`` usually falls well
+*inside* the raw interval), and it correctly **tightens** both bounds
+in :func:`apply_conformal`. The only guard is that a tightening adjustment
+can never cross an interval's own midpoint (see :func:`apply_conformal`).
 """
 
 from __future__ import annotations
@@ -50,11 +60,13 @@ def conformal_adjustment(
     """Split-conformal correction for interval ``[q10, q90]``.
 
     Nonconformity score ``max(q10 - y, y - q90)`` (>=0 iff y falls outside
-    the raw interval, the standard CQR score). Returns the
-    ``ceil((n+1)(1-alpha))/n``-quantile of the calibration scores, clipped
-    to the largest observed score at the top of the valid range and floored
-    at 0 (never *shrinks* a parametric interval below itself). Returns 0.0
-    (no-op) when there is no calibration data.
+    the raw interval, <0 iff y falls strictly inside it -- the standard CQR
+    score). Returns the ``ceil((n+1)(1-alpha))/n``-quantile of the
+    calibration scores, **not** floored at 0: a negative result is the
+    correct two-sided CQR correction when the raw interval is already
+    over-wide (mostly-negative calibration scores), and :func:`apply_conformal`
+    uses it to *tighten* both bounds rather than only ever widening them.
+    Returns 0.0 (no-op) when there is no calibration data.
     """
     q10_cal = np.asarray(q10_cal, dtype=float)
     q90_cal = np.asarray(q90_cal, dtype=float)
@@ -64,15 +76,24 @@ def conformal_adjustment(
         return 0.0
     scores = np.maximum(q10_cal - y_cal, y_cal - q90_cal)
     level = min(1.0, float(np.ceil((n + 1) * (1 - alpha))) / n)
-    return float(max(np.quantile(scores, level), 0.0))
+    return float(np.quantile(scores, level))
 
 
 def apply_conformal(
     q10: np.ndarray, q90: np.ndarray, adjustment: float
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Widen ``[q10, q90]`` by the conformal ``adjustment`` on each side."""
+    """Move ``[q10, q90]`` outward (``adjustment > 0``, widen) or inward
+    (``adjustment < 0``, tighten) by ``adjustment`` on each side.
+
+    A tightening adjustment is clamped so it can never cross a row's own
+    midpoint (collapsing to a point interval at worst, never inverting to
+    ``lo > hi``) -- the only guard two-sidedness needs.
+    """
     lo = np.asarray(q10, dtype=float) - adjustment
     hi = np.asarray(q90, dtype=float) + adjustment
+    mid = (lo + hi) / 2.0
+    lo = np.minimum(lo, mid)
+    hi = np.maximum(hi, mid)
     return lo, hi
 
 

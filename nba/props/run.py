@@ -49,6 +49,11 @@ from nba.props.combos import (
 )
 from nba.props.config import TARGET_STATS, THRESHOLDS, PropsConfig
 from nba.props.conformal import ConformalResult, evaluate_conformal
+from nba.props.dispersion import (
+    DispersionCalibration,
+    apply_dispersion_multiplier,
+    fit_dispersion_multiplier,
+)
 from nba.props.distributions import Distribution, batch_minutes_mean_var, batch_p_ge, batch_ppf
 from nba.props.metrics import (
     ConfidenceInterval,
@@ -108,6 +113,7 @@ class StatResult:
     exclusion_note: str = ""
     conformal: ConformalResult | None = None
     volatility_buckets: list[VolatilityBucketResult] = field(default_factory=list)
+    dispersion: DispersionCalibration | None = None
 
 
 @dataclass
@@ -208,7 +214,7 @@ def run_props_experiment(
     # shrinkage call -- minutes model included.
     role_change_feats = build_role_change_features(con, cfg.role_change)
 
-    minutes_features = build_minutes_features(con)
+    minutes_features = build_minutes_features(con, lookback_games=cfg.minutes.lookback_games)
     minutes_role_aligned = minutes_features.select(["game_id", "player_id"]).join(
         role_change_feats.select(["game_id", "player_id", "k_multiplier"]),
         on=["game_id", "player_id"],
@@ -259,28 +265,38 @@ def run_props_experiment(
     coherence_checks: list[CoherenceCheck] = []
     component_means: dict[str, np.ndarray] = {}
     component_vars: dict[str, np.ndarray] = {}
+    dates_full = target.select("game_date").to_series().to_numpy()
 
     for stat in TARGET_STATS:
         y = target.select(stat).to_series().to_numpy().astype(float)
         thresholds = THRESHOLDS[stat]
 
         if stat == "pts":
-            feats = build_points_features(con)
+            feats = build_points_features(con, lookback_games=cfg.points.lookback_games)
             feats_aligned = _align(target, feats)
             moments = points_moments(
                 feats_aligned, minutes_mean, minutes_var, cfg.points, k_multiplier=role_k_multiplier
             )
+            dispersion_result = _calibrate_dispersion(
+                "gamma", moments.mean, moments.var, y, dates_full, stat, cfg
+            )
+            moments.var = apply_dispersion_multiplier(moments.var, dispersion_result.multiplier)
             dists: list[Distribution] = list(build_points_distributions(moments))
             zero_inflated = False
             component_means[stat] = np.array(moments.mean, dtype=float)
             component_vars[stat] = np.array(moments.var, dtype=float)
+            reconcile_var = moments.var
         else:
-            feats = build_count_stat_features(con, stat)
-            feats_aligned = _align(target, feats)
             count_cfg = cfg.count_stats[stat]
+            feats = build_count_stat_features(con, stat, lookback_games=count_cfg.lookback_games)
+            feats_aligned = _align(target, feats)
             moments_c = count_stat_moments(
                 feats_aligned, minutes_mean, minutes_var, count_cfg, k_multiplier=role_k_multiplier
             )
+            dispersion_result = _calibrate_dispersion(
+                "negbin", moments_c.mean, moments_c.var, y, dates_full, stat, cfg
+            )
+            moments_c.var = apply_dispersion_multiplier(moments_c.var, dispersion_result.multiplier)
             base_dists = build_negbin_distributions(moments_c)
             pi = fit_zero_inflation(y, base_dists, cfg.zero_inflation)
             zero_inflated = bool(np.any(pi > 0))
@@ -291,12 +307,15 @@ def run_props_experiment(
             if stat in ("reb", "ast"):
                 component_means[stat] = np.array(moments_c.mean, dtype=float)
                 component_vars[stat] = np.array(moments_c.var, dtype=float)
+            reconcile_var = moments_c.var
 
         coherence_check: CoherenceCheck | None = None
         if cfg.coherence.enabled:
             team_feats = _align_team(target, build_team_total_features(con, stat))
             team_totals_arr = team_total_forecast(team_feats, stat, cfg.coherence.k_team_games)
-            dists, coherence_check = _reconcile_to_team_totals(target, dists, team_totals_arr, stat)
+            dists, coherence_check = _reconcile_to_team_totals(
+                target, dists, team_totals_arr, stat, variances=reconcile_var
+            )
             coherence_checks.append(coherence_check)
 
         pred_mean = np.array([d.mean() for d in dists])
@@ -453,6 +472,7 @@ def run_props_experiment(
                 exclusion_note=exclusion_note,
                 conformal=conformal_result,
                 volatility_buckets=volatility_buckets,
+                dispersion=dispersion_result,
             )
         )
 
@@ -521,6 +541,37 @@ def run_props_experiment(
     )
 
 
+def _calibrate_dispersion(
+    family: str,
+    mean: np.ndarray,
+    var: np.ndarray,
+    y: np.ndarray,
+    dates: np.ndarray,
+    stat: str,
+    cfg: PropsConfig,
+) -> DispersionCalibration:
+    """Fit (or no-op, if disabled/not enough calibration data) this stat's
+    native variance multiplier -- see ``nba.props.dispersion`` module
+    docstring. Centralizing the ``cfg.dispersion.enabled`` check here keeps
+    the per-stat loop above symmetric regardless of the flag."""
+    if not cfg.dispersion.enabled:
+        return DispersionCalibration(
+            stat, family, 1.0, 0, float("nan"), float("nan"), "disabled", 1.0, 0.0
+        )
+    return fit_dispersion_multiplier(
+        family,
+        mean,
+        var,
+        y,
+        dates,
+        stat,
+        target_coverage=cfg.dispersion.target_coverage,
+        cal_frac=cfg.dispersion.cal_frac,
+        min_cal_n=cfg.dispersion.min_cal_n,
+        strength=cfg.dispersion.dispersion_strength,
+    )
+
+
 _Q_TAUS = np.array([0.10, 0.50, 0.90])
 
 
@@ -544,10 +595,17 @@ def _align_team(target: pl.DataFrame, feats: pl.DataFrame) -> pl.DataFrame:
 
 
 def _reconcile_to_team_totals(
-    target: pl.DataFrame, dists: list[Distribution], team_totals: np.ndarray, stat: str
+    target: pl.DataFrame,
+    dists: list[Distribution],
+    team_totals: np.ndarray,
+    stat: str,
+    variances: np.ndarray | None = None,
 ) -> tuple[list[Distribution], CoherenceCheck]:
-    """Forecast-proportions reconciliation (``nba.props.coherence``) applied
-    group-by-group over (game_id, team_id) -- see that module's docstring."""
+    """Reconciliation (``nba.props.coherence``) applied group-by-group over
+    (game_id, team_id) -- see that module's docstring. ``variances`` (one
+    per row of ``dists``, same order) switches to the variance-weighted
+    additive method when given; ``None`` keeps the original uniform
+    multiplicative scaling."""
     df_idx = target.select(["game_id", "team_id"]).with_columns(_row_idx=pl.int_range(pl.len()))
     reconciled = list(dists)
     group_sums: list[np.ndarray] = []
@@ -555,8 +613,9 @@ def _reconcile_to_team_totals(
     for _, group in df_idx.group_by(["game_id", "team_id"], maintain_order=True):
         idx_arr = group.select("_row_idx").to_series().to_numpy().astype(int)
         group_dists = [dists[i] for i in idx_arr]
+        group_vars = None if variances is None else np.asarray(variances)[idx_arr]
         total = float(team_totals[idx_arr[0]])
-        rescaled, _scale = reconcile_group(group_dists, total)
+        rescaled, _scale = reconcile_group(group_dists, total, variances=group_vars)
         for local_i, global_i in enumerate(idx_arr):
             reconciled[global_i] = rescaled[local_i]
         group_sums.append(np.array([d.mean() for d in rescaled]))

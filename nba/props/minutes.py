@@ -20,6 +20,18 @@ predicted. ``tests/props/test_minutes_no_leakage.py`` proves this by
 planting a wild future box score and asserting the earlier prediction is
 byte-for-byte unchanged, plus a structural check that the feature frame
 has no raw ``minutes`` column at all.
+
+MIS-CENTERING FIX (real 4-season validation: steady, high-usage players
+under-predicted ~-4.35 pts): the rolling windows below are bounded to the
+trailing ``lookback_games`` games (default 150, see
+``MinutesModelConfig.lookback_games``), not the player's full career.
+Reproduced synthetically: a player whose role grows from bench minutes to
+a steady ~28ppg starter role is undershot by ~10 points per game on an
+*unbounded* career-to-date average, because years-old low-minute games
+never drop out of the window. A bounded trailing window tracks the
+current, durable role while still giving ample-history players (the
+common case once the window is near-full) essentially the same
+shrinkage-stabilized estimate as before.
 """
 
 from __future__ import annotations
@@ -42,6 +54,11 @@ MINUTES_FEATURE_COLUMNS: list[str] = [
     "std_minutes_given_played_prior",
     "starter_rate_prior",
 ]
+
+#: Default trailing-games window, mirrors ``MinutesModelConfig.lookback_games``
+#: (kept as a literal default here too so ``build_minutes_features(con)`` --
+#: used throughout the existing tests -- keeps working unchanged).
+DEFAULT_LOOKBACK_GAMES = 150
 
 _MINUTES_FEATURES_SQL = """
 WITH per_player AS (
@@ -66,45 +83,56 @@ SELECT
     season,
     COUNT(*) OVER (
         PARTITION BY player_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
     ) AS games_played_prior,
     COALESCE(
         SUM(played) OVER (
             PARTITION BY player_id ORDER BY game_date, game_id
-            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+            ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
         ),
         0.0
     ) AS n_played_prior,
     AVG(played) OVER (
         PARTITION BY player_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
     ) AS play_rate_prior,
     AVG(CASE WHEN played = 1.0 THEN minutes END) OVER (
         PARTITION BY player_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
     ) AS avg_minutes_given_played_prior,
     STDDEV_SAMP(CASE WHEN played = 1.0 THEN minutes END) OVER (
         PARTITION BY player_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
     ) AS std_minutes_given_played_prior,
     AVG(started) OVER (
         PARTITION BY player_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
     ) AS starter_rate_prior
 FROM per_player
 ORDER BY game_date, game_id, player_id
 """
 
 
-def build_minutes_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+def build_minutes_features(
+    con: duckdb.DuckDBPyConnection, lookback_games: int = DEFAULT_LOOKBACK_GAMES
+) -> pl.DataFrame:
     """One row per (game, player): strictly as-of minutes-history features.
 
     Deliberately excludes the target game's own ``minutes`` -- see module
     docstring. Every ``*_prior`` column is NULL on a player's first
     appearance (handled by :func:`predict_minutes` via shrinkage toward
     the league default, never by fabricating a non-null value here).
+
+    ``lookback_games`` bounds the rolling window to the trailing N games
+    (default 150, ``MinutesModelConfig.lookback_games``) rather than a
+    player's entire career-to-date. An unbounded window lets a durable
+    role change (bench -> starter, a jump in minutes) stay diluted by
+    years-old, no-longer-representative games indefinitely, which is the
+    documented mechanism behind the star-undershoot bias this fixes --
+    see the module docstring and ``nba.props.stat_models`` for the
+    points-side half of the same fix.
     """
-    con.execute(_MINUTES_FEATURES_SQL)
+    con.execute(_MINUTES_FEATURES_SQL.format(lookback=int(lookback_games)))
     columns = [d[0] for d in con.description]
     rows = con.fetchall()
     schema = {

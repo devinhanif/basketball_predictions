@@ -30,6 +30,12 @@ empirical-Bayes shrinkage toward one global default (CLAUDE.md asks for
 ``nba.coldstart.archetypes`` and out of scope for this milestone -- using
 one global per-stat default is a documented, explicitly-flagged scope cut,
 consistent with this codebase's existing proxy pattern).
+
+MIS-CENTERING FIX: see ``nba.props.minutes`` module docstring -- every
+rolling sum below is bounded to a trailing ``lookback_games`` window
+(default 150) rather than a player's full career, so a durable role
+change (more usage, more minutes) isn't permanently diluted by stale
+early-career games.
 """
 
 from __future__ import annotations
@@ -49,6 +55,12 @@ from nba.props.distributions import (
     gamma_from_moments,
 )
 
+#: Default trailing-games window, mirrors ``PointsConfig``/``CountStatConfig``
+#: ``lookback_games`` (kept as a literal default too so the existing
+#: ``build_points_features(con)`` / ``build_count_stat_features(con, stat)``
+#: call sites -- used throughout the tests -- keep working unchanged).
+DEFAULT_LOOKBACK_GAMES = 150
+
 _COUNT_FEATURES_SQL = """
 SELECT
     pgs.game_id,
@@ -56,19 +68,19 @@ SELECT
     g.game_date,
     COUNT(*) OVER (
         PARTITION BY pgs.player_id ORDER BY g.game_date, pgs.game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
     ) AS games_played_prior,
     COALESCE(
         SUM(pgs.minutes) OVER (
             PARTITION BY pgs.player_id ORDER BY g.game_date, pgs.game_id
-            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+            ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
         ),
         0.0
     ) AS minutes_prior,
     COALESCE(
         SUM(pgs.{stat}) OVER (
             PARTITION BY pgs.player_id ORDER BY g.game_date, pgs.game_id
-            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+            ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
         ),
         0.0
     ) AS stat_sum_prior
@@ -96,26 +108,26 @@ SELECT
     game_date,
     COUNT(*) OVER (
         PARTITION BY player_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
     ) AS games_played_prior,
     COALESCE(
         SUM(minutes) OVER (
             PARTITION BY player_id ORDER BY game_date, game_id
-            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+            ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
         ),
         0.0
     ) AS minutes_prior,
     COALESCE(
         SUM(pts) OVER (
             PARTITION BY player_id ORDER BY game_date, game_id
-            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+            ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
         ),
         0.0
     ) AS pts_sum_prior,
     COALESCE(
         SUM(fg3m + implied_2pt_or_ft_events) OVER (
             PARTITION BY player_id ORDER BY game_date, game_id
-            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+            ROWS BETWEEN {lookback} PRECEDING AND 1 PRECEDING
         ),
         0.0
     ) AS events_sum_prior
@@ -141,22 +153,36 @@ def _query_schema(con: duckdb.DuckDBPyConnection, sql: str) -> pl.DataFrame:
     return pl.DataFrame(rows, schema={c: types[c] for c in columns}, orient="row")
 
 
-def build_count_stat_features(con: duckdb.DuckDBPyConnection, stat: str) -> pl.DataFrame:
+def build_count_stat_features(
+    con: duckdb.DuckDBPyConnection, stat: str, lookback_games: int = DEFAULT_LOOKBACK_GAMES
+) -> pl.DataFrame:
     """As-of rolling (minutes, stat) sums for a direct-count stat (reb/ast/fg3m).
 
     Strictly-prior window, same discipline as ``nba.features.team_features``
     -- see module docstring for why rate = sum(stat)/sum(minutes) rather
     than an average of per-game rates (pools small-minute games correctly).
+
+    ``lookback_games`` bounds the window to the trailing N games (default
+    150, ``CountStatConfig.lookback_games``) instead of a player's entire
+    career -- see ``nba.props.minutes`` module docstring for the
+    mis-centering bug this avoids (a stale career-to-date average
+    permanently drags down a player's rate after a durable role change).
     """
     if stat not in {"reb", "ast", "fg3m"}:
         raise ValueError(f"build_count_stat_features only supports reb/ast/fg3m, got {stat!r}")
-    sql = _COUNT_FEATURES_SQL.format(stat=stat)
+    sql = _COUNT_FEATURES_SQL.format(stat=stat, lookback=int(lookback_games))
     return _query_schema(con, sql)
 
 
-def build_points_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
-    """As-of rolling points frequency-severity inputs -- see module docstring."""
-    return _query_schema(con, _POINTS_FEATURES_SQL)
+def build_points_features(
+    con: duckdb.DuckDBPyConnection, lookback_games: int = DEFAULT_LOOKBACK_GAMES
+) -> pl.DataFrame:
+    """As-of rolling points frequency-severity inputs -- see module docstring.
+
+    ``lookback_games`` -- see :func:`build_count_stat_features`.
+    """
+    sql = _POINTS_FEATURES_SQL.format(lookback=int(lookback_games))
+    return _query_schema(con, sql)
 
 
 @dataclass

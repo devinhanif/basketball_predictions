@@ -21,6 +21,36 @@ proportions still guarantees exact bottom-up-sums-to-top coherence, which is
 the property CLAUDE.md actually requires ("player and team forecasts do not
 contradict each other").
 
+**Root cause of the real-data star-undershoot (fixed here).** Pure
+forecast-proportions distributes the whole-team correction *proportionally
+to each player's own predicted mean*, i.e. a single multiplicative ``scale``
+applied uniformly across the group. On the real 4-season DuckDB, every
+team's *raw* bottom-up sum of per-player point projections overshoots the
+team-total forecast by ~22% on average (roster-wide: many bench/thin-sample
+players are individually only mildly over-projected, but there are a lot of
+them). A uniform multiplicative cut absorbs that overshoot *in absolute
+points* almost entirely out of whichever players happen to have the largest
+predicted mean -- the team's steady, high-usage stars (the volatility-bucket
+report's "low CV" bucket) -- even though their own per-player model was
+comparatively well-calibrated before reconciliation ever ran. Meanwhile
+genuinely-uncertain (cold-start / high-CV) players, whose raw means are the
+actual source of the roster-wide overshoot, are protected from correction
+in exact proportion to how large their own (already-inflated) prediction is.
+
+The fix is the single-level MinT "variance scaling" variant (Hyndman et al.):
+reconcile with an **additive** correction allocated in proportion to each
+player's own *relative* dispersion (``variance / mean^2``, i.e. squared
+coefficient of variation) rather than their absolute mean share, then refit
+each player's distribution at its new target mean while holding its
+originally-fitted variance fixed (:func:`shift_distribution`). High-relative-
+uncertainty rows (small mean, large variance -- exactly cold-start/high-CV
+players) absorb most of the correction; low-relative-uncertainty rows
+(stars) absorb almost none. The team-level sum is still forced to match the
+team-total forecast exactly (same ``check_coherence`` contract as before);
+only *which* players absorb the gap changes. Passing ``variances=None``
+(the default) keeps the original uniform-multiplicative behavior for any
+caller that does not have a variance array handy.
+
 The "independently produced top-level forecast" is each team's own trailing
 average of *actual* team totals for that stat (strictly prior games, same
 as-of discipline as every other feature here) -- a genuinely different
@@ -43,6 +73,7 @@ from nba.props.distributions import (
     NegBinDist,
     NormalDist,
     ZeroInflatedNegBinDist,
+    gamma_from_moments,
     negbin_from_moments,
 )
 
@@ -145,14 +176,121 @@ def rescale_distribution(dist: Distribution, factor: float) -> Distribution:
     raise TypeError(f"rescale_distribution: unsupported family {type(dist).__name__}")
 
 
+def shift_distribution(dist: Distribution, new_mean: float, variance: float) -> Distribution:
+    """Re-center ``dist`` at ``new_mean`` while holding ``variance`` fixed.
+
+    The additive-correction analogue of :func:`rescale_distribution`: used
+    by the variance-weighted reconciliation below, where the *target mean*
+    comes from an additive share of the team-level gap rather than a
+    uniform multiplicative scale. Refit by method of moments for every
+    family this package produces (same pattern as ``gamma_from_moments`` /
+    ``negbin_from_moments`` everywhere else in ``nba/props/``) -- this
+    never divides by a player's own (possibly near-zero) mean, unlike a
+    per-player multiplicative factor would, so it stays numerically safe
+    for thin-sample / near-zero-projection players.
+    """
+    new_mean = max(float(new_mean), 0.0)
+    variance = max(float(variance), 1e-9)
+    if isinstance(dist, GammaDist):
+        return gamma_from_moments(new_mean, variance)
+    if isinstance(dist, NormalDist):
+        return NormalDist(mean_=new_mean, std=float(np.sqrt(variance)))
+    if isinstance(dist, NegBinDist):
+        return negbin_from_moments(new_mean, variance)
+    if isinstance(dist, ZeroInflatedNegBinDist):
+        pi = dist.pi
+        denom = max(1.0 - pi, 1e-6)
+        base_mean = new_mean / denom
+        base_var = variance / denom
+        return ZeroInflatedNegBinDist(pi=pi, base=negbin_from_moments(base_mean, base_var))
+    raise TypeError(f"shift_distribution: unsupported family {type(dist).__name__}")
+
+
+def _variance_weighted_targets(
+    means: np.ndarray, variances: np.ndarray, team_total: float
+) -> np.ndarray:
+    """New per-player target means for one (game, team) group: the
+    team-level gap (``team_total - sum(means)``) allocated in proportion to
+    each player's *relative* dispersion (squared coefficient of variation,
+    ``variance / mean^2``), floored against a fraction of the group's own
+    mean scale so near-zero-mean players don't produce a divide-by-zero
+    blowup. Guarantees ``sum(result) == team_total`` (up to floating-point
+    tolerance) and every entry ``>= 0`` via iterative clip-and-redistribute:
+    any player whose naive allocation would go negative is pinned at 0 and
+    removed from the active set, and the remaining gap is reallocated among
+    the still-active players -- at most ``len(means)`` players can ever be
+    clipped, so the loop is bounded by that.
+    """
+    means = np.asarray(means, dtype=float)
+    variances = np.asarray(variances, dtype=float)
+    total_mean = float(np.sum(means))
+    if total_mean <= 1e-9 or team_total <= 1e-9:
+        return means.copy()
+
+    eps = max(1e-6, 0.1 * float(np.mean(means)))
+    weights = variances / (means**2 + eps**2)
+    active = np.ones(len(means), dtype=bool)
+    new_means = means.copy()
+
+    for _ in range(len(means) + 1):
+        remaining_gap = team_total - float(np.sum(new_means))
+        if abs(remaining_gap) < 1e-9:
+            break
+        w = np.where(active, weights, 0.0)
+        w_sum = float(np.sum(w))
+        n_active = int(np.sum(active))
+        if n_active == 0:
+            break
+        if w_sum <= 1e-12:
+            # Every still-active row has ~zero relative-dispersion weight
+            # (e.g. every remaining mean/variance pair is ~identical) --
+            # fall back to an equal split among them so the gap still
+            # closes exactly rather than silently stopping short.
+            new_means[active] += remaining_gap / n_active
+            break
+        alloc = np.zeros(len(means))
+        alloc[active] = w[active] / w_sum * remaining_gap
+        candidate = new_means + alloc
+        newly_negative = active & (candidate < 0.0)
+        if not np.any(newly_negative):
+            new_means = candidate
+            break
+        new_means = np.where(newly_negative, 0.0, candidate)
+        active = active & ~newly_negative
+    return new_means
+
+
 def reconcile_group(
-    dists: list[Distribution], team_total: float
+    dists: list[Distribution], team_total: float, variances: np.ndarray | None = None
 ) -> tuple[list[Distribution], float]:
-    """Rescale every distribution in one (game, team) group so their means
-    sum exactly to ``team_total``. Returns (rescaled distributions, scale)."""
+    """Reconcile one (game, team) group's distributions so their means sum
+    exactly to ``team_total``. Returns (reconciled distributions, scale)
+    where ``scale`` is the implied uniform-equivalent multiplicative factor
+    (``team_total / sum(raw means)``), reported for logging/backward
+    compatibility regardless of which method below actually produced the
+    reconciled distributions.
+
+    ``variances is None`` (default): the original uniform-multiplicative
+    forecast-proportions method (:func:`rescale_distribution`) -- used by
+    any caller without a variance array handy.
+
+    ``variances`` given: the variance-weighted additive method (see module
+    docstring's "root cause of the real-data star-undershoot" section) --
+    :func:`_variance_weighted_targets` picks each player's new target mean,
+    then :func:`shift_distribution` refits each one at that mean while
+    holding its own originally-fitted variance fixed.
+    """
     means = np.array([d.mean() for d in dists])
     scale = reconciliation_scale(means, team_total)
-    return [rescale_distribution(d, scale) for d in dists], scale
+    if variances is None:
+        return [rescale_distribution(d, scale) for d in dists], scale
+    variances_arr = np.asarray(variances, dtype=float)
+    new_means = _variance_weighted_targets(means, variances_arr, team_total)
+    reconciled = [
+        shift_distribution(d, nm, v)
+        for d, nm, v in zip(dists, new_means, variances_arr, strict=True)
+    ]
+    return reconciled, scale
 
 
 @dataclass

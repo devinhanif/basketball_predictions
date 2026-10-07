@@ -40,6 +40,15 @@ class MinutesModelConfig:
     k_sigma: float = 6.0  # pseudo-count (played games) for shrinking std minutes
     min_sigma: float = 2.0
     max_minutes: float = 48.0
+    #: Trailing-games window the as-of rolling features are computed over
+    #: (see ``nba.props.minutes`` module docstring "mis-centering fix" --
+    #: an *unbounded* career-to-date window lets a player's rookie/bench
+    #: seasons permanently drag down the rolling average after a real role
+    #: change (more minutes, more usage), which is exactly the "steady,
+    #: high-usage players under-predicted" bias this bounds against.
+    #: ~150 games is roughly two seasons -- long enough for stable
+    #: shrinkage denominators, short enough to track a durable role change.
+    lookback_games: int = 150
 
 
 @dataclass
@@ -50,6 +59,9 @@ class CountStatConfig:
     default_alpha: float  # NegBin dispersion default (NB2: Var = mu + alpha*mu^2)
     k_rate_minutes: float = 200.0  # pseudo-count in *minutes* for the rate
     k_alpha_games: float = 20.0  # pseudo-count in *games* for the dispersion
+    #: Trailing-games window for the as-of rolling sums -- see
+    #: ``MinutesModelConfig.lookback_games`` for why this isn't unbounded.
+    lookback_games: int = 150
 
 
 @dataclass
@@ -68,6 +80,9 @@ class PointsConfig:
     k_events_minutes: float = 200.0
     k_value_events: float = 30.0
     k_value_var_events: float = 30.0
+    #: Trailing-games window for the as-of rolling sums -- see
+    #: ``MinutesModelConfig.lookback_games`` for why this isn't unbounded.
+    lookback_games: int = 150
 
 
 @dataclass
@@ -99,7 +114,14 @@ class CoherenceConfig:
 
 @dataclass
 class ConformalConfig:
-    """Split-conformal interval wrapper (CLAUDE.md milestone 8)."""
+    """Split-conformal interval wrapper (CLAUDE.md milestone 8).
+
+    Two-sided: the learned ``adjustment`` (see ``nba.props.conformal``) may
+    be negative (tightens an over-wide parametric interval) as well as
+    positive (widens a too-narrow one) -- real 4-season validation showed
+    rebounds/assists/3PM intervals land badly *over*-covered, which a
+    widen-only wrapper could never correct.
+    """
 
     enabled: bool = True
     alpha: float = 0.2  # 1 - alpha = 80%, matching CLAUDE.md's 80%-coverage target
@@ -153,6 +175,40 @@ class VolatilityConfig:
 
 
 @dataclass
+class DispersionConfig:
+    """Native predictive-dispersion (variance) calibration (CLAUDE.md
+    Phase 2's "calibrated P(stat >= N)" + 80%-coverage asks -- see
+    ``nba.props.dispersion`` module docstring).
+
+    Fits one scalar multiplier per stat on each distribution family's
+    *fitted variance* so the native (pre-conformal) 80% interval lands
+    near ``target_coverage`` -- real 4-season validation showed points
+    badly under-dispersed (54% native coverage, needs widening) and
+    rebounds/assists/3PM badly over-dispersed (~96%, needs tightening).
+    Fit on a strictly chronologically-earlier calibration split, same
+    never-random discipline as ``nba.props.conformal``.
+    """
+
+    enabled: bool = True
+    target_coverage: float = 0.8
+    cal_frac: float = 0.5
+    #: Below this many calibration-split rows, calibration is skipped
+    #: (multiplier left at the documented no-op 1.0) rather than fitting a
+    #: multiplier to noise -- same honesty-guard pattern as
+    #: ``ZeroInflationConfig.min_games`` / ``conformal.MIN_RELIABLE_TEST_N``.
+    min_cal_n: int = 50
+    #: Tunable blend, in ``[0.0, 1.0]``, between the original fitted
+    #: dispersion (``0.0``) and the fully-recalibrated dispersion
+    #: (``1.0``) -- see ``nba.props.dispersion`` module docstring for why
+    #: full recalibration (the old, implicit default of ``1.0``) wins on
+    #: native 80% coverage but costs too much CRPS. Defaulted to a gentler
+    #: ``0.5`` middle ground; override here (or construct a custom
+    #: ``PropsConfig`` for a sweep over e.g. ``{0.0, 0.25, 0.5, 0.75, 1.0}``)
+    #: with no code changes required.
+    dispersion_strength: float = 0.5
+
+
+@dataclass
 class PropsConfig:
     minutes: MinutesModelConfig = field(default_factory=MinutesModelConfig)
     points: PointsConfig = field(default_factory=PointsConfig)
@@ -169,6 +225,7 @@ class PropsConfig:
     role_change: RoleChangeConfig = field(default_factory=RoleChangeConfig)
     conformal: ConformalConfig = field(default_factory=ConformalConfig)
     volatility: VolatilityConfig = field(default_factory=VolatilityConfig)
+    dispersion: DispersionConfig = field(default_factory=DispersionConfig)
     seed: int = 0
     n_boot: int = 500
 
