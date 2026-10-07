@@ -96,7 +96,10 @@ class EloBaseline(RungModelBase):
         home_rating = self.ratings_.get(home_team, self.initial_rating)
         away_rating = self.ratings_.get(away_team, self.initial_rating)
         diff = (home_rating + self.home_advantage_elo) - away_rating
-        return float(1.0 / (1.0 + 10.0 ** (-diff / 400.0)))
+        # Clamp the exponent so extreme rating gaps (e.g. during GA search over
+        # large K-factors) can't overflow 10**x; prob is ~0/1 past ~200 Elo.
+        exponent = min(max(-diff / 400.0, -200.0), 200.0)
+        return float(1.0 / (1.0 + 10.0**exponent))
 
     def _regress_ratings_to_mean(self) -> None:
         """Season-boundary regression-to-the-mean (standard NBA Elo practice)."""
@@ -200,7 +203,10 @@ class MovEloBaseline(RungModelBase):
         home_rating = self.ratings_.get(home_team, self.initial_rating)
         away_rating = self.ratings_.get(away_team, self.initial_rating)
         diff = (home_rating + self.home_advantage_elo) - away_rating
-        return float(1.0 / (1.0 + 10.0 ** (-diff / 400.0)))
+        # Clamp the exponent so extreme rating gaps (e.g. during GA search over
+        # large K-factors) can't overflow 10**x; prob is ~0/1 past ~200 Elo.
+        exponent = min(max(-diff / 400.0, -200.0), 200.0)
+        return float(1.0 / (1.0 + 10.0**exponent))
 
     def _regress_ratings_to_mean(self) -> None:
         for team, rating in self.ratings_.items():
