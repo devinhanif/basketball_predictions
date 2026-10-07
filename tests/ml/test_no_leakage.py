@@ -47,7 +47,7 @@ def _insert_game(
     season: int = 2023,
 ) -> None:
     con.execute(
-        "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) VALUES (?, ?, ?, ?, ?, ?, ?)",  # noqa: E501
         [game_id, game_date, season, home, away, home_pts, away_pts],
     )
 

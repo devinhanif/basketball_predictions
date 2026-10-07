@@ -32,7 +32,7 @@ def con() -> duckdb.DuckDBPyConnection:
 
 def _insert_game(con: duckdb.DuckDBPyConnection, game_id: str, game_date: str) -> None:
     con.execute(
-        "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) VALUES (?, ?, 2023, 1, 2, 100, 90)",
+        "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) VALUES (?, ?, 2023, 1, 2, 100, 90)",  # noqa: E501
         [game_id, game_date],
     )
 

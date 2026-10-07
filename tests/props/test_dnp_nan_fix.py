@@ -38,7 +38,7 @@ def _build_db() -> duckdb.DuckDBPyConnection:
         ("G4", "2024-01-07", 2024, 1, 2, 108, 100),
     ]
     con.executemany(
-        "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) VALUES (?, ?::DATE, ?, ?, ?, ?, ?)",
+        "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) VALUES (?, ?::DATE, ?, ?, ?, ?, ?)",  # noqa: E501
         games,
     )
     # Player 1: plays G1/G2/G4, a true DNP (NULL everything) in G3 --
