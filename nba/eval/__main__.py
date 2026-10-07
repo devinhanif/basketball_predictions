@@ -85,10 +85,12 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.register and not args.scenario:
             registry = get_registry(con)
+            possession_row = con.execute("SELECT COUNT(*) FROM possessions").fetchone()
+            possession_count = int(possession_row[0]) if possession_row else 0
             metadata = build_run_metadata(
                 game_date_min=result.game_date_min,
                 game_date_max=result.game_date_max,
-                possession_count=0,  # no possessions table yet (parser not built)
+                possession_count=possession_count,
                 seed=seed,
                 runtime_seconds=runtime_s,
             )

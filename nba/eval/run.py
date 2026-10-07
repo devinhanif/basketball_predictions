@@ -39,17 +39,21 @@ from nba.eval.walkforward import (
     walk_forward_data_sufficiency_note,
 )
 from nba.features.player_features import build_game_cold_start_flags
+from nba.features.possession_features import build_possession_matchup_features
 from nba.features.team_features import build_matchup_features
 from nba.models.base import RungModel
 from nba.models.rung0_baselines import EloBaseline, HomeCourtBaseline
 from nba.models.rung1_logistic import LogisticRung
 from nba.models.rung2_gbm import LightGBMRung
+from nba.models.rung3_sim import PossessionSimRung
 
 #: Ladder order: each entry is compared against the *previous* entry (per
 #: CLAUDE.md "a rung is kept only if it beats the previous on walk-forward
 #: log loss"). The two rung-0 baselines are compared against each other
 #: first; rung 1 is compared against whichever rung-0 baseline had the
-#: lower walk-forward log loss; rung 2 against rung 1.
+#: lower walk-forward log loss; rung 2 against rung 1; rung 3 (possession
+#: sim) against rung 2, per the risk-guardrail "the sim must beat rung-2
+#: win-prob calibration or be justified purely by player/joint outputs".
 RungFactory = Callable[[int], RungModel]
 
 RUNG_SPECS: list[tuple[str, int, str, RungFactory]] = [
@@ -57,6 +61,7 @@ RUNG_SPECS: list[tuple[str, int, str, RungFactory]] = [
     ("rung0_elo", 0, "elo_baseline", lambda seed: EloBaseline(seed=seed)),
     ("rung1_logistic", 1, "logistic_regression", lambda seed: LogisticRung(seed=seed)),
     ("rung2_lightgbm", 2, "lightgbm", lambda seed: LightGBMRung(seed=seed)),
+    ("rung3_sim", 3, "possession_monte_carlo", lambda seed: PossessionSimRung(seed=seed)),
 ]
 
 
@@ -243,6 +248,7 @@ def _ladder_comparisons(
         ("rung0_elo", "rung0_home_court"),
         ("rung1_logistic", "rung0_elo"),
         ("rung2_lightgbm", "rung1_logistic"),
+        ("rung3_sim", "rung2_lightgbm"),
     ]
     for a_name, b_name in pairs:
         if a_name not in oof_wide.columns or b_name not in oof_wide.columns:
@@ -349,6 +355,14 @@ def run_experiment(
         matchup_df = matchup_df.join(cold_start_flags, on="game_id", how="left")
     else:
         matchup_df = matchup_df.with_columns(any_starter_cold_start=pl.lit(None, dtype=pl.Boolean))
+
+    # Rung 3 (possession sim) needs true as-of per-possession team ratings,
+    # not the box-score proxies ``build_matchup_features`` carries for
+    # rungs 0-2 -- see nba/features/possession_features.py. Left-joined so
+    # rungs 0-2's feature set/behavior is completely unchanged by this.
+    poss_feats = build_possession_matchup_features(con)
+    matchup_df = matchup_df.join(poss_feats, on="game_id", how="left")
+
     holdout_split = split_frozen_holdout(matchup_df, holdout_season)
 
     folds = make_walk_forward_folds(holdout_split.tunable_df, min_train_games=min_train_games)

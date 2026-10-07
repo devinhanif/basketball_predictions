@@ -27,7 +27,7 @@ def test_fixture_run_completes_quickly_and_produces_a_report() -> None:
         assert len(report_md) > 0
         assert "NaN" not in report_md or "insufficient" in report_md.lower()
 
-        assert len(result.rungs) == 4
+        assert len(result.rungs) == 5
         for bundle in result.rungs:
             # Every finite-sample metric must be a real finite float, never NaN,
             # even on a 3-game fixture -- NaN here would mean a silent crash

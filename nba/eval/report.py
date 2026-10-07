@@ -116,7 +116,7 @@ def render_report(result: ExperimentResult) -> str:
             )
 
     parts = [
-        "# Architecture-ladder backtest report (rungs 0-2)",
+        "# Architecture-ladder backtest report (rungs 0-3)",
         "",
         f"- Seed: {result.seed}",
         f"- Game date range: {date_range}",
@@ -138,9 +138,14 @@ def render_report(result: ExperimentResult) -> str:
         _holdout_table(result.rungs, result.holdout_note),
         "",
         "## Notes",
-        "- Rolling efficiency features (ORtg/DRtg/pace) are box-score proxies; "
-        "there is no possessions table yet (parser not built), so these are not "
-        "true per-100-possession ratings. See `nba/features/team_features.py`.",
+        "- Rolling efficiency features (ORtg/DRtg/pace) feeding rungs 0-2 are "
+        "box-score proxies, unchanged by rung 3 -- see `nba/features/team_features.py`. "
+        "Rung 3 (`rung3_sim`) instead uses true as-of per-possession ratings built "
+        "directly from the `possessions` table, shrunk toward a league-average prior "
+        "(empirical-Bayes method 1) -- see `nba/features/possession_features.py` and "
+        "`nba/sim/engine.py`. Per CLAUDE.md risk #1, rung 3 is only worth keeping if it "
+        "beats rung 2 on win-prob calibration (see the ladder-comparison table above) "
+        "or is justified later by player/joint outputs (not built in this milestone).",
         "- Closing-line implied probability is a stub (`ClosingLineStub`): no "
         "market-odds source is wired in yet (Phase 3).",
         "- Frozen holdout predictions are produced by rolling walk-forward "
