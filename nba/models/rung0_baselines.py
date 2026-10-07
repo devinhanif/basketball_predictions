@@ -147,6 +147,155 @@ class EloBaseline(RungModelBase):
         }
 
 
+class MovEloBaseline(RungModelBase):
+    """Margin-of-victory-adjusted Elo (538-style MOV multiplier).
+
+    Standard plain Elo (``EloBaseline`` above) treats a 1-point win and a
+    40-point blowout identically for the rating update. This rung instead
+    scales the update by how surprising *and* how lopsided the result was,
+    using the multiplier FiveThirtyEight popularized for NBA/NFL Elo
+    (https://fivethirtyeight.com methodology notes, re-derived here from
+    the public formula -- no third-party code copied):
+
+        mov_mult = ln(|margin| + 1) * (mov_c / (elo_diff_winner * mov_div + mov_c))
+        update   = k_factor * mov_mult * (actual_home - p_home)
+
+    where ``margin`` is the game's final point differential and
+    ``elo_diff_winner`` is the *winner's* pregame rating minus the
+    *loser's* pregame rating, including home-court edge -- i.e. the same
+    quantity that drove the win-probability calculation for this game.
+    The ``elo_diff_winner`` term is the autocorrelation-correction FiveThirtyEight
+    added: a big favorite that blows out a big underdog gets a smaller
+    ratings bump than the raw log-margin would otherwise give it (it was
+    "supposed to" win big), which keeps the margin term from doubling up
+    with the surprise term already carried by ``(actual - expected)``.
+
+    The margin only ever enters the *update* step (comparing two already-
+    observed final scores from past games); the win-probability used to
+    *predict* a game is a function of pregame ratings alone, exactly as in
+    ``EloBaseline`` -- see the no-leakage test in
+    ``tests/ml/test_mov_elo.py`` for a planted-future-blowout proof.
+    """
+
+    def __init__(
+        self,
+        seed: int = 0,
+        k_factor: float = 20.0,
+        home_advantage_elo: float = 65.0,
+        initial_rating: float = 1500.0,
+        season_carryover: float = 0.75,
+        mov_c: float = 2.2,
+        mov_div: float = 0.001,
+    ) -> None:
+        super().__init__(seed=seed)
+        self.k_factor = k_factor
+        self.home_advantage_elo = home_advantage_elo
+        self.initial_rating = initial_rating
+        self.season_carryover = season_carryover
+        self.mov_c = mov_c
+        self.mov_div = mov_div
+        self.ratings_: dict[int, float] = {}
+
+    def _win_prob(self, home_team: int, away_team: int) -> float:
+        home_rating = self.ratings_.get(home_team, self.initial_rating)
+        away_rating = self.ratings_.get(away_team, self.initial_rating)
+        diff = (home_rating + self.home_advantage_elo) - away_rating
+        return float(1.0 / (1.0 + 10.0 ** (-diff / 400.0)))
+
+    def _regress_ratings_to_mean(self) -> None:
+        for team, rating in self.ratings_.items():
+            self.ratings_[team] = (
+                self.season_carryover * rating + (1.0 - self.season_carryover) * self.initial_rating
+            )
+
+    def _mov_multiplier(self, margin: float, elo_diff_winner: float) -> float:
+        """538-style MOV multiplier; ``margin`` is the |final point diff|."""
+        margin_term = np.log(abs(margin) + 1.0)
+        damping = self.mov_c / (elo_diff_winner * self.mov_div + self.mov_c)
+        return float(margin_term * damping)
+
+    #: Column name pairs tried in order to find final-score columns for the
+    #: margin term. ``home_pts``/``away_pts`` matches the raw ``games``
+    #: table and small test fixtures; ``home_team_pts``/``away_team_pts``
+    #: matches ``build_matchup_features``'s joined/renamed output (see
+    #: ``nba/features/team_features.py``).
+    _MARGIN_COLUMN_CANDIDATES: tuple[tuple[str, str], ...] = (
+        ("home_pts", "away_pts"),
+        ("home_team_pts", "away_team_pts"),
+    )
+
+    def fit(self, train_df: pl.DataFrame, y: np.ndarray) -> None:
+        self.ratings_ = {}
+        has_season = "season" in train_df.columns
+        margin_cols = next(
+            (
+                (h, a)
+                for h, a in self._MARGIN_COLUMN_CANDIDATES
+                if h in train_df.columns and a in train_df.columns
+            ),
+            None,
+        )
+        ordered = train_df.sort(["game_date", "game_id"])
+        seasons = ordered.select("season").to_series().to_list() if has_season else None
+        margins: list[float] | None = None
+        if margin_cols is not None:
+            home_col, away_col = margin_cols
+            margins = (
+                ordered.select(home_col).to_series() - ordered.select(away_col).to_series()
+            ).to_list()
+        current_season: object = None
+        rows = ordered.select(["home_team", "away_team"]).iter_rows()
+        for i, (row, outcome) in enumerate(zip(rows, y, strict=True)):
+            if seasons is not None:
+                season = seasons[i]
+                if current_season is not None and season != current_season:
+                    self._regress_ratings_to_mean()
+                current_season = season
+            home_team, away_team = row
+            p_home = self._win_prob(home_team, away_team)
+            home_rating = self.ratings_.get(home_team, self.initial_rating)
+            away_rating = self.ratings_.get(away_team, self.initial_rating)
+            actual_home = float(outcome)
+
+            if margins is not None:
+                margin = float(margins[i])
+                # elo_diff_winner: pregame rating gap (incl. home edge) in
+                # favor of whichever side actually won this game.
+                home_pregame = home_rating + self.home_advantage_elo
+                elo_diff_winner = (
+                    (home_pregame - away_rating)
+                    if actual_home >= 0.5
+                    else (away_rating - home_pregame)
+                )
+                mov_mult = self._mov_multiplier(margin, elo_diff_winner)
+            else:
+                mov_mult = 1.0
+
+            update = self.k_factor * mov_mult * (actual_home - p_home)
+            self.ratings_[home_team] = home_rating + update
+            self.ratings_[away_team] = away_rating - update
+
+    def predict(self, df: pl.DataFrame) -> np.ndarray:
+        return np.array(
+            [self._win_prob(h, a) for h, a in df.select(["home_team", "away_team"]).iter_rows()],
+            dtype=float,
+        )
+
+    def get_config(self) -> dict[str, object]:
+        return {
+            "model_name": "rung0_mov_elo",
+            "rung": 0,
+            "seed": self.seed,
+            "k_factor": self.k_factor,
+            "home_advantage_elo": self.home_advantage_elo,
+            "initial_rating": self.initial_rating,
+            "season_carryover": self.season_carryover,
+            "mov_c": self.mov_c,
+            "mov_div": self.mov_div,
+            "n_teams_rated": len(self.ratings_),
+        }
+
+
 class ClosingLineStub(RungModelBase):
     """Placeholder for the closing-line-implied-probability baseline.
 
