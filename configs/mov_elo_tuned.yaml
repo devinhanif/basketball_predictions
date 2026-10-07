@@ -1,0 +1,17 @@
+# GA-tuned MOV-adjusted Elo hyperparameters.
+# Tuned with scipy differential_evolution against WALK-FORWARD OUT-OF-FOLD
+# log loss on tunable seasons 2022-24 only (seed=0, maxiter=40, popsize=15).
+# Confirmed once on the frozen 2025-26 holdout (never used for tuning).
+#
+# Result (first model to beat plain Elo):
+#   walk-forward OOF log loss: 0.6245  (plain Elo 0.6271)
+#   frozen holdout log loss:   0.6010  (plain Elo 0.6128), Brier 0.2069
+#
+# NOTE: the 2025-26 holdout is now "spent" for this experiment -- do NOT
+# re-tune against it. Caveat: walk-forward edge is small and not yet
+# significance-tested with a paired bootstrap.
+k_factor: 9.488313229052405
+home_advantage_elo: 40.37633261996376
+season_carryover: 0.6086749807971485
+mov_c: 3.691348046122944
+mov_div: 0.0006713721521714785
