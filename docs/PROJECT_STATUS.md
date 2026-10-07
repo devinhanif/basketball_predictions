@@ -5,6 +5,13 @@ _Living document. Last updated: 2026-10-07._
 ## What we're building
 A system that predicts NBA games two ways: **who wins** (and by how much), and **individual player stat lines** (points, rebounds, assists, threes). The guiding principle isn't "be right more often" — it's **be honestly calibrated**: when the model says 70%, it should happen ~70% of the time. At every step we check against real history and against dead-simple benchmarks, so we don't fool ourselves.
 
+## North-star goal (set 2026-10-07)
+The project's **primary objective is now the possession-level simulation engine** — a *generative model of the game* (CLAUDE.md's original mission), replacing feature-ML as the center of gravity. Its step-models are to be learned with **neural / attention methods** (transformers over possession/event sequences; permutation-invariant set-attention over 5-man lineups for cold-start), producing calibrated full-game **and** player-line distributions, finished with an **ensemble + isotonic/Platt calibration** layer (ladder rungs 3→4→5→6).
+
+**Why the pivot is earned:** feature-ML has demonstrably plateaued — nothing (fancier models, game-context, minutes context) beats Elo / season-average; even the one win (GA-tuned MOV-Elo) is tiny. The sim is the only structurally different path, and the only place deep models + real information (availability, matchup, lineups) get *used* rather than re-approximating Elo.
+
+**Critical path:** PBP pull → possession/stint parser (time-boxed, reconciliation-gated per risk #5) → possession-outcome step-models → Monte Carlo sim → neural step-heads + lineup set-attention (GPU/Colab enters here) → ensemble + calibrate. GPU training (Colab) was deferred to exactly these rungs.
+
 ## One-sentence headline
 We have a clean, working, honest system on 4 real seasons — and what it's telling us is that NBA games and player stats are **hard to predict better than simple methods already do.** That's a real finding, not a failure.
 
