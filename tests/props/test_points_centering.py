@@ -42,7 +42,7 @@ def _insert_games(con: duckdb.DuckDBPyConnection, game_ids: list[str], start: dt
     rows = [
         (gid, start + dt.timedelta(days=i), 2023, 1, 2, 100, 90) for i, gid in enumerate(game_ids)
     ]
-    con.executemany("INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
+    con.executemany("INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
 
 
 def _insert_player_games(

@@ -19,6 +19,7 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "away_team",
         "home_pts",
         "away_pts",
+        "national_tv",
     },
     "possessions": {
         "game_id",

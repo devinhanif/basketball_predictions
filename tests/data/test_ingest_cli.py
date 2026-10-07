@@ -86,3 +86,45 @@ def test_pbp_command_dispatches(
     assert rc == 0
     assert calls == ["0022300001"]
     assert "pbp[0022300001]: 1 rows" in capsys.readouterr().out
+
+
+def test_national_tv_command_dispatches_by_date(
+    no_network_db: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch, capsys: Any
+) -> None:
+    calls: list[str] = []
+
+    def fake_pull(con: Any, date: str, **kwargs: Any) -> pl.DataFrame:
+        calls.append(date)
+        return pl.DataFrame({"game_id": ["0022300401", "0022300402"]})
+
+    monkeypatch.setattr(cli, "pull_national_tv_for_date", fake_pull)
+    rc = cli.main(["national-tv", "--date", "2023-12-25"])
+    assert rc == 0
+    assert calls == ["2023-12-25"]
+    assert "national-tv[2023-12-25]: 2 rows" in capsys.readouterr().out
+
+
+def test_national_tv_command_dispatches_by_season(
+    no_network_db: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch, capsys: Any
+) -> None:
+    pull_calls: list[str] = []
+
+    monkeypatch.setattr(cli, "game_dates_for_season", lambda con, season: ["2023-12-25"])
+
+    def fake_pull(con: Any, date: str, **kwargs: Any) -> pl.DataFrame:
+        pull_calls.append(date)
+        return pl.DataFrame({"game_id": ["0022300401"]})
+
+    monkeypatch.setattr(cli, "pull_national_tv_for_date", fake_pull)
+    rc = cli.main(["national-tv", "--season", "2023-24"])
+    assert rc == 0
+    assert pull_calls == ["2023-12-25"]
+    out = capsys.readouterr().out
+    assert "national-tv[season 2023-24]: 1 dates" in out
+
+
+def test_national_tv_command_requires_date_or_season(
+    no_network_db: duckdb.DuckDBPyConnection,
+) -> None:
+    with pytest.raises(SystemExit):
+        cli.main(["national-tv"])

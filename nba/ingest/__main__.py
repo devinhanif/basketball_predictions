@@ -10,6 +10,13 @@ Commands:
   pbp            same two forms as boxscore.
   team-advanced  same two forms as boxscore (per-team advanced box score:
                  offensive/defensive rating, pace, four factors).
+  national-tv    --date YYYY-MM-DD [--date ...]
+                 --season 2023-24 [--season ...]   (resolves to every
+                                                     distinct game_date for
+                                                     the season already in
+                                                     the games table)
+                 Both forms may be combined; one nba_api call per date
+                 covers every game played that day.
 
 All commands are resumable and idempotent: already-cached (source, key)
 pairs are skipped (never refetched). Network calls are rate-limited via
@@ -25,6 +32,7 @@ from collections.abc import Sequence
 from nba.ingest.boxscores import pull_game_boxscore
 from nba.ingest.cache import RateLimiter, is_cached, open_db
 from nba.ingest.games import game_ids_for_season, pull_season_games
+from nba.ingest.national_tv import game_dates_for_season, pull_national_tv_for_date
 from nba.ingest.pbp import pull_game_pbp
 from nba.ingest.team_advanced import pull_game_team_advanced
 
@@ -71,6 +79,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="pull every game_id for this season from the games table",
     )
 
+    tv_p = sub.add_parser("national-tv", help="pull per-date national-TV broadcaster info")
+    tv_p.add_argument("--date", action="append", dest="dates", help="YYYY-MM-DD")
+    tv_p.add_argument(
+        "--season",
+        action="append",
+        dest="seasons",
+        help="pull every distinct game_date for this season from the games table",
+    )
+
     return parser
 
 
@@ -110,6 +127,29 @@ def main(argv: Sequence[str] | None = None) -> int:
                     fetched_count += 1
             print(
                 f"{args.command}[season {season}]: {len(season_ids)} games, "
+                f"{cached_count} cached, {fetched_count} fetched"
+            )
+    elif args.command == "national-tv":
+        dates = getattr(args, "dates", None) or []
+        seasons = getattr(args, "seasons", None) or []
+        if not dates and not seasons:
+            build_parser().error("national-tv: provide --date and/or --season")
+
+        for date in dates:
+            df = pull_national_tv_for_date(con, date, rate_limiter=limiter)
+            print(f"national-tv[{date}]: {len(df)} rows")
+
+        for season in seasons:
+            season_dates = game_dates_for_season(con, season)
+            cached_count = sum(1 for d in season_dates if is_cached(con, "national-tv", d))
+            fetched_count = 0
+            for d in season_dates:
+                was_cached = is_cached(con, "national-tv", d)
+                pull_national_tv_for_date(con, d, rate_limiter=limiter)
+                if not was_cached:
+                    fetched_count += 1
+            print(
+                f"national-tv[season {season}]: {len(season_dates)} dates, "
                 f"{cached_count} cached, {fetched_count} fetched"
             )
 

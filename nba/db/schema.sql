@@ -9,8 +9,16 @@ CREATE TABLE IF NOT EXISTS games (
     home_team INT,
     away_team INT,
     home_pts INT,
-    away_pts INT
+    away_pts INT,
+    national_tv VARCHAR  -- national broadcaster abbrev (e.g. 'TNT'); NULL = unknown/not national
 );
+
+-- Idempotent migration for DBs created before national_tv existed; CREATE
+-- TABLE IF NOT EXISTS above is a no-op on an existing table, so the column
+-- addition is spelled out explicitly here too (see also
+-- nba/ingest/national_tv.py:ensure_national_tv_column, called defensively
+-- on every national-tv pull).
+ALTER TABLE games ADD COLUMN IF NOT EXISTS national_tv VARCHAR;
 
 CREATE TABLE IF NOT EXISTS possessions (
     game_id VARCHAR,
@@ -187,7 +195,7 @@ CREATE TABLE IF NOT EXISTS experiments (
 -- resumable pullers never refetch cached data. Not part of the modeling
 -- schema in CLAUDE.md; owned entirely by nba/ingest/.
 CREATE TABLE IF NOT EXISTS ingest_log (
-    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp' | 'team-advanced'
+    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp' | 'team-advanced' | 'national-tv'
     key VARCHAR,                 -- season string, game_id, etc.
     status VARCHAR,              -- 'done' | 'failed'
     cache_path VARCHAR,
