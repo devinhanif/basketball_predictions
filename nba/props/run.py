@@ -66,7 +66,13 @@ from nba.props.metrics import (
     pooled_threshold_ece,
     threshold_log_loss_and_calibration,
 )
-from nba.props.minutes import build_minutes_features, predict_minutes
+from nba.props.minutes import (
+    MinutesEval,
+    build_minutes_features,
+    evaluate_minutes_model,
+    fetch_actual_minutes,
+    predict_minutes,
+)
 from nba.props.role_change import build_role_change_features
 from nba.props.stat_models import (
     build_count_stat_features,
@@ -150,6 +156,7 @@ class PropsExperimentResult:
     combo_predictions: pl.DataFrame = field(default_factory=pl.DataFrame)
     coherence_checks: list[CoherenceCheck] = field(default_factory=list)
     role_change_summary: RoleChangeSummary | None = None
+    minutes_eval: MinutesEval | None = None
 
 
 def _target_frame(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
@@ -214,7 +221,11 @@ def run_props_experiment(
     # shrinkage call -- minutes model included.
     role_change_feats = build_role_change_features(con, cfg.role_change)
 
-    minutes_features = build_minutes_features(con, lookback_games=cfg.minutes.lookback_games)
+    minutes_features = build_minutes_features(
+        con,
+        lookback_games=cfg.minutes.lookback_games,
+        use_game_context=cfg.minutes.use_game_context,
+    )
     minutes_role_aligned = minutes_features.select(["game_id", "player_id"]).join(
         role_change_feats.select(["game_id", "player_id", "k_multiplier"]),
         on=["game_id", "player_id"],
@@ -224,6 +235,21 @@ def run_props_experiment(
         minutes_role_aligned.select("k_multiplier").to_series().fill_null(1.0).to_numpy()
     )
     minutes_dists = predict_minutes(minutes_features, cfg.minutes, k_multiplier=minutes_k_mult)
+
+    # Direct minutes-model evaluation (independent of the downstream stat
+    # distributions) -- see nba.props.minutes.MinutesEval docstring. Actual
+    # minutes are fetched purely for scoring here, aligned to
+    # minutes_features's own row order; never used as a model input.
+    actual_minutes_aligned = minutes_features.select(["game_id", "player_id"]).join(
+        fetch_actual_minutes(con), on=["game_id", "player_id"], how="left"
+    )
+    actual_minutes_arr = (
+        actual_minutes_aligned.select("minutes").to_series().fill_null(0.0).to_numpy()
+    )
+    minutes_eval = evaluate_minutes_model(
+        minutes_dists, actual_minutes_arr, used_game_context=cfg.minutes.use_game_context
+    )
+
     minutes_key = minutes_features.select(["game_id", "player_id"]).with_columns(
         _minutes_row_idx=pl.int_range(pl.len())
     )
@@ -538,6 +564,7 @@ def run_props_experiment(
         combo_predictions=combo_predictions,
         coherence_checks=coherence_checks,
         role_change_summary=role_change_summary,
+        minutes_eval=minutes_eval,
     )
 
 

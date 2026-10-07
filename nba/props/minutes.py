@@ -32,15 +32,46 @@ never drop out of the window. A bounded trailing window tracks the
 current, durable role while still giving ample-history players (the
 common case once the window is near-full) essentially the same
 shrinkage-stabilized estimate as before.
+
+GAME-CONTEXT WIRING (``MinutesModelConfig.use_game_context``, motivation:
+rest/travel/tanking plausibly affect WHO PLAYS and HOW MUCH more than they
+affect game win probability, which is where the win-prob rungs found no
+edge over Elo from the same signals): when the flag is on,
+:func:`build_minutes_features` left-joins the as-of team/game-context
+columns (``GAME_CONTEXT_FEATURE_COLUMNS`` below -- rest/b2b/travel from
+``nba.features.team_features``, tanking incentive/standings/national TV
+from ``nba.features.game_context``) onto the per-player-game frame by
+``(game_id, team_id)``. Those builders already guarantee their own
+as-of-ness (see their module docstrings); joining by the *same* game's
+``team_id`` introduces no new leakage path, since nothing about the
+target game's own outcome is read.
+
+:func:`predict_minutes` then applies a small, fixed-effect additive
+adjustment (``MinutesModelConfig.*_adjust`` knobs) to ``p_play``/``mu``
+built only from the three signals CLAUDE.md's motivation calls out as
+mechanistically plausible here: back-to-backs, travel miles, and tanking
+incentive. The adjustment is a pure per-row function of that row's own
+(already as-of) context columns -- never fit from, or dependent on, any
+other row -- so it cannot reintroduce the kind of future-row leakage a
+global regression fit would risk; see
+``tests/props/test_minutes_game_context.py`` for the planted-future-game
+no-leakage proof (same pattern as
+``tests/props/test_minutes_no_leakage.py``). The maintainer runs the real
+4-season A/B on whether this helps; nothing here is tuned on a backtest.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 import duckdb
 import numpy as np
 import polars as pl
 
 from nba.coldstart.shrinkage import shrink_rate
+from nba.eval.metrics import log_loss
+from nba.features.game_context import build_national_tv_features, build_standings_features
+from nba.features.team_features import build_team_game_features
 from nba.props.config import MinutesModelConfig
 from nba.props.distributions import MinutesHurdleDist
 
@@ -59,6 +90,35 @@ MINUTES_FEATURE_COLUMNS: list[str] = [
 #: (kept as a literal default here too so ``build_minutes_features(con)`` --
 #: used throughout the existing tests -- keeps working unchanged).
 DEFAULT_LOOKBACK_GAMES = 150
+
+#: As-of team/game-context columns joined onto the minutes feature frame
+#: when ``use_game_context`` is True -- see module docstring. Documented
+#: fill-in defaults (used only if a (game_id, team_id) somehow has no
+#: context row, which should not happen on real data since every one of
+#: these builders is derived from the same ``games`` table) mirror
+#: ``nba.features.team_features.FEATURE_DEFAULTS`` /
+#: ``nba.features.game_context``'s own no-history fallbacks.
+GAME_CONTEXT_FEATURE_COLUMNS: list[str] = [
+    "rest_days",
+    "b2b",
+    "travel_miles_asof",
+    "tanking_incentive",
+    "is_national_tv",
+    "games_into_season",
+    "in_playoff_pos",
+    "in_playin",
+]
+
+_GAME_CONTEXT_FILL_DEFAULTS: dict[str, object] = {
+    "rest_days": 7.0,
+    "b2b": False,
+    "travel_miles_asof": 0.0,
+    "tanking_incentive": 0.0,
+    "is_national_tv": False,
+    "games_into_season": 0,
+    "in_playoff_pos": False,
+    "in_playin": False,
+}
 
 _MINUTES_FEATURES_SQL = """
 WITH per_player AS (
@@ -113,8 +173,40 @@ ORDER BY game_date, game_id, player_id
 """
 
 
+def _build_minutes_game_context(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """One row per (game_id, team_id): the as-of context columns joined
+    onto the minutes feature frame -- see module docstring.
+
+    Reuses ``nba.features.team_features``/``nba.features.game_context``
+    unchanged (this module owns no feature-building logic of its own for
+    these columns, just the join). Both source builders key on
+    ``(game_id, team_id)``, matching the minutes frame's own key.
+    """
+    team_feats = build_team_game_features(con).select(
+        ["game_id", "team_id", "rest_days", "b2b", "travel_miles_asof"]
+    )
+    standings = build_standings_features(con).select(
+        [
+            "game_id",
+            "team_id",
+            "games_into_season",
+            "in_playoff_pos",
+            "in_playin",
+            "tanking_incentive",
+        ]
+    )
+    national_tv = build_national_tv_features(con)
+    merged = team_feats.join(standings, on=["game_id", "team_id"], how="left")
+    merged = merged.join(national_tv, on="game_id", how="left")
+    return merged.with_columns(
+        [pl.col(c).fill_null(v) for c, v in _GAME_CONTEXT_FILL_DEFAULTS.items()]
+    )
+
+
 def build_minutes_features(
-    con: duckdb.DuckDBPyConnection, lookback_games: int = DEFAULT_LOOKBACK_GAMES
+    con: duckdb.DuckDBPyConnection,
+    lookback_games: int = DEFAULT_LOOKBACK_GAMES,
+    use_game_context: bool = True,
 ) -> pl.DataFrame:
     """One row per (game, player): strictly as-of minutes-history features.
 
@@ -131,6 +223,12 @@ def build_minutes_features(
     documented mechanism behind the star-undershoot bias this fixes --
     see the module docstring and ``nba.props.stat_models`` for the
     points-side half of the same fix.
+
+    ``use_game_context`` (mirrors ``MinutesModelConfig.use_game_context``)
+    left-joins ``GAME_CONTEXT_FEATURE_COLUMNS`` onto the result by
+    ``(game_id, team_id)`` when True; those columns are simply absent from
+    the returned frame when False, so a caller can tell at a glance which
+    mode produced a given frame.
     """
     con.execute(_MINUTES_FEATURES_SQL.format(lookback=int(lookback_games)))
     columns = [d[0] for d in con.description]
@@ -149,7 +247,13 @@ def build_minutes_features(
         "std_minutes_given_played_prior": pl.Float64,
         "starter_rate_prior": pl.Float64,
     }
-    return pl.DataFrame(rows, schema={c: schema[c] for c in columns}, orient="row")
+    df = pl.DataFrame(rows, schema={c: schema[c] for c in columns}, orient="row")
+    if not use_game_context:
+        return df
+    context = _build_minutes_game_context(con)
+    return df.join(context, on=["game_id", "team_id"], how="left").with_columns(
+        [pl.col(c).fill_null(v) for c, v in _GAME_CONTEXT_FILL_DEFAULTS.items()]
+    )
 
 
 def predict_minutes(
@@ -187,6 +291,25 @@ def predict_minutes(
     mu = shrink_rate(mu_obs, n_played, cfg.default_mu, cfg.k_mu * k_mult)
     sigma = shrink_rate(sigma_obs, n_played, cfg.default_sigma, cfg.k_sigma * k_mult)
     sigma = np.clip(sigma, cfg.min_sigma, None)
+
+    context_cols = ("b2b", "tanking_incentive", "travel_miles_asof")
+    if cfg.use_game_context and all(c in features.columns for c in context_cols):
+        b2b = features.select("b2b").to_series().fill_null(False).cast(pl.Float64).to_numpy()
+        tanking = features.select("tanking_incentive").to_series().fill_null(0.0).to_numpy()
+        travel_1000mi = (
+            features.select("travel_miles_asof").to_series().fill_null(0.0).to_numpy() / 1000.0
+        )
+        p_play = p_play + (
+            b2b * cfg.b2b_p_play_adjust
+            + tanking * cfg.tanking_p_play_adjust
+            + travel_1000mi * cfg.travel_p_play_adjust_per_1000mi
+        )
+        mu = mu + (
+            b2b * cfg.b2b_mu_adjust
+            + tanking * cfg.tanking_mu_adjust
+            + travel_1000mi * cfg.travel_mu_adjust_per_1000mi
+        )
+
     p_play = np.clip(p_play, 0.02, 0.99)
     mu = np.clip(mu, 0.0, cfg.max_minutes)
 
@@ -199,3 +322,102 @@ def predict_minutes(
         )
         for i in range(features.height)
     ]
+
+
+def fetch_actual_minutes(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Actual box-score minutes keyed by ``(game_id, player_id)`` --
+    **evaluation only**. Never fed into :func:`build_minutes_features` /
+    :func:`predict_minutes` (those deliberately never read this column --
+    see module docstring and ``tests/props/test_minutes_no_leakage.py``);
+    used solely by :func:`evaluate_minutes_model` to score the model's own
+    predictions against the true outcome, the same role ``_target_frame``
+    plays for the stat distributions in ``nba.props.run``.
+
+    DNP rows store NULL ``minutes``; coalesced to ``0.0`` here -- a DNP
+    really is 0 minutes played, not a missing value (same discipline as
+    ``nba.props.run._target_frame``'s identical DNP-coalesce note).
+    """
+    con.execute(
+        "SELECT game_id, player_id, COALESCE(minutes, 0.0) AS minutes FROM player_game_stats"
+    )
+    columns = [d[0] for d in con.description]
+    rows = con.fetchall()
+    schema = {"game_id": pl.Utf8, "player_id": pl.Int64, "minutes": pl.Float64}
+    return pl.DataFrame(rows, schema={c: schema[c] for c in columns}, orient="row")
+
+
+@dataclass
+class MinutesEval:
+    """Direct minutes-model evaluation (independent of the downstream stat
+    distributions), so the game-context A/B (``MinutesModelConfig.
+    use_game_context``) can be measured where CLAUDE.md's motivation
+    actually expects it to show up.
+
+    ``dnp_log_loss``: binary log loss of predicted ``P(plays)`` against
+    actual played/DNP, over every row (``dnp_n``).
+    ``minutes_mae`` / ``minutes_bias``: mean absolute error / mean
+    (predicted - actual) of predicted ``E[minutes | plays]`` (the hurdle's
+    ``mu``), scored only over rows where the player actually played
+    (``minutes_n``) -- a DNP row has no "minutes given played" outcome to
+    score against, so it is scored on the DNP head only, never here.
+    """
+
+    n: int
+    dnp_log_loss: float
+    dnp_n: int
+    minutes_mae: float
+    minutes_bias: float
+    minutes_n: int
+    used_game_context: bool
+
+
+def evaluate_minutes_model(
+    dists: list[MinutesHurdleDist],
+    actual_minutes: np.ndarray,
+    used_game_context: bool = True,
+) -> MinutesEval:
+    """Score ``dists`` (one ``MinutesHurdleDist`` per row, same order as
+    ``actual_minutes``) against the true box-score outcome.
+
+    A row with ``actual_minutes > 0`` is "played"; its ``minutes`` value
+    is scored on the minutes-MAE/bias head. A row with ``actual_minutes
+    == 0`` (DNP) is scored only on the DNP log loss head -- see class
+    docstring.
+    """
+    actual = np.asarray(actual_minutes, dtype=float)
+    n = len(actual)
+    if n == 0:
+        return MinutesEval(
+            n=0,
+            dnp_log_loss=float("nan"),
+            dnp_n=0,
+            minutes_mae=float("nan"),
+            minutes_bias=float("nan"),
+            minutes_n=0,
+            used_game_context=used_game_context,
+        )
+
+    played = actual > 0.0
+    played_indicator = played.astype(float)
+    p_play_pred = np.array([d.p_play for d in dists], dtype=float)
+    dnp_ll = float(log_loss(played_indicator, p_play_pred))
+
+    mu_pred = np.array([d.mu for d in dists], dtype=float)
+    minutes_n = int(played.sum())
+    if minutes_n > 0:
+        err = mu_pred[played] - actual[played]
+        minutes_mae = float(np.mean(np.abs(err)))
+        minutes_bias = float(np.mean(err))
+    else:
+        minutes_mae = float("nan")
+        minutes_bias = float("nan")
+
+    return MinutesEval(
+        n=n,
+        dnp_log_loss=dnp_ll,
+        dnp_n=n,
+        minutes_mae=minutes_mae,
+        minutes_bias=minutes_bias,
+        minutes_n=minutes_n,
+        used_game_context=used_game_context,
+    )

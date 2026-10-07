@@ -131,6 +131,21 @@ def _volatility_table(stats: list[StatResult]) -> str:
     return "\n".join(lines)
 
 
+def _minutes_eval_section(result: PropsExperimentResult) -> str:
+    me = result.minutes_eval
+    if me is None:
+        return "_No data._"
+    lines = [
+        f"- Game-context features used in the minutes model "
+        f"(`MinutesModelConfig.use_game_context`): **{me.used_game_context}**",
+        f"- DNP/play classification log loss: {_fmt(me.dnp_log_loss)} (n={me.dnp_n})",
+        f"- Minutes MAE among players who played: {_fmt(me.minutes_mae)} (n={me.minutes_n})",
+        f"- Minutes bias (predicted - actual) among players who played: "
+        f"{_fmt(me.minutes_bias)} (n={me.minutes_n})",
+    ]
+    return "\n".join(lines)
+
+
 def _role_change_section(result: PropsExperimentResult) -> str:
     rc = result.role_change_summary
     if rc is None:
@@ -223,6 +238,16 @@ def render_props_report(result: PropsExperimentResult) -> str:
         "total. Gap should be ~0 (floating point) for every stat below.",
         "",
         _coherence_table(result),
+        "",
+        "## Minutes model evaluation (DNP classification + minutes MAE/bias)",
+        "Scored directly against the minutes model's own output (independent of the "
+        "downstream stat distributions), so the as-of game-context A/B "
+        "(`MinutesModelConfig.use_game_context`) is measurable at its most direct point -- "
+        "CLAUDE.md motivation: rest/travel/tanking plausibly move WHO plays and HOW MUCH "
+        "more than they move game win probability. Toggle the flag and re-run to compare "
+        "these numbers; this report only shows one side of that A/B.",
+        "",
+        _minutes_eval_section(result),
         "",
         "## Role-change detection (CUSUM on minutes)",
         _role_change_section(result),

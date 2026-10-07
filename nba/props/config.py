@@ -49,6 +49,38 @@ class MinutesModelConfig:
     #: ~150 games is roughly two seasons -- long enough for stable
     #: shrinkage denominators, short enough to track a durable role change.
     lookback_games: int = 150
+    #: Join the as-of team/game-context features (rest/b2b, travel,
+    #: tanking incentive, national TV, standings) onto the minutes feature
+    #: frame and apply the fixed-effect adjustment below -- see
+    #: ``nba.props.minutes`` module docstring "game-context wiring". Flag
+    #: exists so the maintainer can A/B this on the real 4-season DB; the
+    #: props-modeler's own tests only ever run on the fixture/synthetic data.
+    #: Default OFF: the real 4-season A/B showed the context adjustments
+    #: slightly WORSEN accuracy (DNP log loss 0.3881->0.3908, minutes MAE
+    #: 6.185->6.222); they only corrected an aggregate minutes bias
+    #: (0.572->0.037), which a single offset achieves without features.
+    #: The hand-set constants aren't learned, so this is kept available
+    #: (flag + plumbing) for a future learned fit, not shipped on.
+    use_game_context: bool = False
+    #: Fixed, documented effect sizes for the three context signals
+    #: CLAUDE.md's motivation names as mechanistically likely to move WHO
+    #: plays and HOW MUCH minutes (rather than game win probability, where
+    #: rest/travel/tanking didn't beat Elo): back-to-backs, travel, and
+    #: tanking incentive. These are NOT fit from data -- deliberately, so
+    #: toggling ``use_game_context`` is a clean, leakage-free A/B: each
+    #: row's adjustment is a pure function of that row's own as-of context
+    #: columns, never of any other row (future or past). Applied as a
+    #: per-row additive nudge on top of (not instead of) the existing
+    #: empirical-Bayes shrinkage. Signs are directional guesses (tired/
+    #: resting/tanking teams play their rotation players less), not tuned
+    #: on any backtest; the real A/B decides if the sign/magnitude is
+    #: actually right.
+    b2b_p_play_adjust: float = -0.03
+    b2b_mu_adjust: float = -1.0
+    tanking_p_play_adjust: float = -0.08  # x tanking_incentive, already in [0, 1]
+    tanking_mu_adjust: float = -2.0
+    travel_p_play_adjust_per_1000mi: float = -0.01
+    travel_mu_adjust_per_1000mi: float = -0.3
 
 
 @dataclass
