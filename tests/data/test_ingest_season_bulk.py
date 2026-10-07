@@ -98,3 +98,33 @@ def test_boxscore_requires_game_id_or_season(
 ) -> None:
     with pytest.raises(SystemExit):
         cli.main(["boxscore"])
+
+
+def test_team_advanced_season_bulk_resolves_and_skips_cached(
+    no_network_db: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    con = no_network_db
+    _insert_game(con, "0022300001", 2023)
+    _insert_game(con, "0022300002", 2023)
+
+    cached_path = tmp_path / "already_cached.parquet"
+    cached_path.write_bytes(b"not a real parquet file but existence is all that matters")
+    mark_done(con, "team-advanced", "0022300001", cached_path)
+
+    calls: list[str] = []
+
+    import polars as pl
+
+    def fake_pull(con: Any, game_id: str, **kwargs: Any) -> pl.DataFrame:
+        calls.append(game_id)
+        return pl.DataFrame({"team_id": [1, 2]})
+
+    monkeypatch.setattr(cli, "pull_game_team_advanced", fake_pull)
+    rc = cli.main(["team-advanced", "--season", "2023-24"])
+    assert rc == 0
+    assert calls == ["0022300001", "0022300002"]
+    out = capsys.readouterr().out
+    assert "team-advanced[season 2023-24]: 2 games, 1 cached, 1 fetched" in out

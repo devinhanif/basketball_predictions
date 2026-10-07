@@ -56,6 +56,22 @@ def test_boxscore_command_dispatches(
     assert "boxscore[0022300001]: 2 rows" in capsys.readouterr().out
 
 
+def test_team_advanced_command_dispatches(
+    no_network_db: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch, capsys: Any
+) -> None:
+    calls: list[str] = []
+
+    def fake_pull(con: Any, game_id: str, **kwargs: Any) -> pl.DataFrame:
+        calls.append(game_id)
+        return pl.DataFrame({"team_id": [1, 2]})
+
+    monkeypatch.setattr(cli, "pull_game_team_advanced", fake_pull)
+    rc = cli.main(["team-advanced", "--game-id", "0022300001"])
+    assert rc == 0
+    assert calls == ["0022300001"]
+    assert "team-advanced[0022300001]: 2 rows" in capsys.readouterr().out
+
+
 def test_pbp_command_dispatches(
     no_network_db: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch, capsys: Any
 ) -> None:

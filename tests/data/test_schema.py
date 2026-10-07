@@ -81,6 +81,18 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "tov",
         "starter",
     },
+    "team_game_advanced": {
+        "game_id",
+        "team_id",
+        "off_rating",
+        "def_rating",
+        "net_rating",
+        "pace",
+        "efg_pct",
+        "tov_pct",
+        "oreb_pct",
+        "ft_rate",
+    },
     "prop_predictions": {
         "run_id",
         "game_id",

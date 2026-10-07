@@ -6,14 +6,21 @@ logic that turns a raw nba_api-shaped frame into our target schema.
 
 from __future__ import annotations
 
-import polars as pl
+from pathlib import Path
 
+import duckdb
+import polars as pl
+import pytest
+
+from nba.db.connect import connect
 from nba.ingest.boxscores import _normalize_boxscore_v3_frame, _parse_minutes
+from nba.ingest.cache import EmptyFetchError, is_cached
 from nba.ingest.games import (
     _filter_competitive_games,
     _normalize_games_frame,
     season_to_int,
 )
+from nba.ingest.team_advanced import _normalize_team_advanced_frames, pull_game_team_advanced
 
 
 def test_season_to_int() -> None:
@@ -119,6 +126,94 @@ def test_normalize_boxscore_v3_frame() -> None:
     assert out["reb"].to_list() == [6, 1, 0]
     assert out["fg3m"].to_list() == [3, 0, 0]
     assert out["tov"].to_list() == [2, 1, 0]
+
+
+def test_normalize_team_advanced_frames() -> None:
+    # Column names/shapes as observed live from BoxScoreAdvancedV3 and
+    # BoxScoreFourFactorsV3's team-level dataframes (get_data_frames()[1]).
+    adv_team = pl.DataFrame(
+        {
+            "gameId": ["0022200001", "0022200001"],
+            "teamId": [1610612738, 1610612755],
+            "offensiveRating": [129.9, 119.4],
+            "defensiveRating": [119.4, 129.9],
+            "netRating": [10.5, -10.5],
+            "pace": [97.5, 97.5],
+            "effectiveFieldGoalPercentage": [0.634, 0.581],
+            "offensiveReboundPercentage": [0.256, 0.190],
+        }
+    )
+    ff_team = pl.DataFrame(
+        {
+            "gameId": ["0022200001", "0022200001"],
+            "teamId": [1610612738, 1610612755],
+            "freeThrowAttemptRate": [0.341, 0.350],
+            "teamTurnoverPercentage": [0.113, 0.143],
+        }
+    )
+    out = _normalize_team_advanced_frames(adv_team, ff_team, "0022200001")
+    assert out.height == 2
+    assert out["game_id"].to_list() == ["0022200001", "0022200001"]
+    assert out["team_id"].to_list() == [1610612738, 1610612755]
+    assert out["off_rating"].to_list() == [129.9, 119.4]
+    assert out["def_rating"].to_list() == [119.4, 129.9]
+    assert out["net_rating"].to_list() == [10.5, -10.5]
+    assert out["pace"].to_list() == [97.5, 97.5]
+    assert out["efg_pct"].to_list() == [0.634, 0.581]
+    assert out["tov_pct"].to_list() == [0.113, 0.143]
+    assert out["oreb_pct"].to_list() == [0.256, 0.190]
+    assert out["ft_rate"].to_list() == [0.341, 0.350]
+
+
+def test_normalize_team_advanced_frames_empty_returns_empty_frame() -> None:
+    empty_adv = pl.DataFrame(
+        schema={
+            "gameId": pl.Utf8,
+            "teamId": pl.Int64,
+            "offensiveRating": pl.Float64,
+            "defensiveRating": pl.Float64,
+            "netRating": pl.Float64,
+            "pace": pl.Float64,
+            "effectiveFieldGoalPercentage": pl.Float64,
+            "offensiveReboundPercentage": pl.Float64,
+        }
+    )
+    empty_ff = pl.DataFrame(
+        schema={
+            "gameId": pl.Utf8,
+            "teamId": pl.Int64,
+            "freeThrowAttemptRate": pl.Float64,
+            "teamTurnoverPercentage": pl.Float64,
+        }
+    )
+    out = _normalize_team_advanced_frames(empty_adv, empty_ff, "0022200001")
+    assert out.is_empty()
+
+
+def test_pull_game_team_advanced_treats_empty_fetch_as_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An empty/throttled response must be marked failed, never cached as done."""
+    con: duckdb.DuckDBPyConnection = connect(":memory:")
+    try:
+        import nba.ingest.team_advanced as team_advanced_mod
+
+        monkeypatch.setattr(
+            team_advanced_mod,
+            "_fetch_team_advanced_with_retry",
+            lambda game_id, rate_limiter: pl.DataFrame({"a": []}),
+        )
+        with pytest.raises(EmptyFetchError):
+            pull_game_team_advanced(con, "0022300001", data_dir=tmp_path)
+        assert not is_cached(con, "team-advanced", "0022300001")
+        row = con.execute(
+            "SELECT status FROM ingest_log WHERE source='team-advanced' AND key='0022300001'"
+        ).fetchone()
+        assert row == ("failed",)
+        count = con.execute("SELECT count(*) FROM team_game_advanced").fetchone()
+        assert count == (0,)
+    finally:
+        con.close()
 
 
 def test_normalize_boxscore_v3_frame_empty_returns_empty_frame() -> None:

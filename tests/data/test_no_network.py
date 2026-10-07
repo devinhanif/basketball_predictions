@@ -37,5 +37,6 @@ def test_importing_ingest_package_does_not_load_nba_api() -> None:
     import nba.ingest.cache  # noqa: F401
     import nba.ingest.games  # noqa: F401
     import nba.ingest.pbp  # noqa: F401
+    import nba.ingest.team_advanced  # noqa: F401
 
     assert "nba_api" not in sys.modules

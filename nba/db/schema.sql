@@ -94,6 +94,24 @@ CREATE TABLE IF NOT EXISTS player_game_stats (
     starter BOOLEAN
 );
 
+-- Real per-team-per-game advanced box score stats (nba_api BoxScoreAdvancedV3
+-- + BoxScoreFourFactorsV3), so team efficiency features can use actual
+-- offensive/defensive rating and pace instead of the FGA/FTA/OREB box-score
+-- proxy (player_game_stats has no FGA/FTA/OREB). See nba/ingest/team_advanced.py.
+CREATE TABLE IF NOT EXISTS team_game_advanced (
+    game_id VARCHAR,
+    team_id INT,
+    off_rating FLOAT,          -- offensiveRating (points per 100 poss)
+    def_rating FLOAT,          -- defensiveRating
+    net_rating FLOAT,          -- netRating
+    pace FLOAT,                -- possessions per 48 min
+    efg_pct FLOAT,             -- effectiveFieldGoalPercentage, fraction 0-1
+    tov_pct FLOAT,             -- teamTurnoverPercentage, fraction 0-1
+    oreb_pct FLOAT,            -- offensiveReboundPercentage, fraction 0-1
+    ft_rate FLOAT,             -- freeThrowAttemptRate, fraction 0-1
+    PRIMARY KEY (game_id, team_id)
+);
+
 CREATE TABLE IF NOT EXISTS prop_predictions (
     run_id VARCHAR,
     game_id VARCHAR,
@@ -169,7 +187,7 @@ CREATE TABLE IF NOT EXISTS experiments (
 -- resumable pullers never refetch cached data. Not part of the modeling
 -- schema in CLAUDE.md; owned entirely by nba/ingest/.
 CREATE TABLE IF NOT EXISTS ingest_log (
-    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp'
+    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp' | 'team-advanced'
     key VARCHAR,                 -- season string, game_id, etc.
     status VARCHAR,              -- 'done' | 'failed'
     cache_path VARCHAR,
