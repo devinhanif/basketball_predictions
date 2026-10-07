@@ -202,15 +202,16 @@ def build_opponent_pace_features(
 class OpponentAdjustmentConfig:
     """``use_opponent_adjustment`` flag + tuning knobs (CLAUDE.md task ask).
 
-    Defaulted ON (``enabled=True``) so the maintainer's real 4-season A/B
-    exercises it out of the box; set ``enabled=False`` to reproduce the
-    pre-adjustment projections exactly (every factor becomes a no-op
-    ``1.0``). Nothing here is tuned on any backtest -- the clip bounds are
-    a documented, conservative guardrail against a thin-history team's
-    noisy ratio blowing up a projection, not a fitted parameter.
+    Defaulted OFF: the real 4-season A/B showed opponent adjustment slightly
+    WORSENS CRPS for every stat (pts 3.670->3.676, reb 1.539->1.541, ast
+    1.297->1.300, fg3m 0.743->0.745) and does not help beat the season-avg
+    baseline -- the box-score-derived defense/pace factors add noise without
+    improving central tendency. Kept available (flag + plumbing) for a future
+    version using real defensive ratings. Set ``enabled=True`` to exercise it.
+    Nothing here is tuned on any backtest.
     """
 
-    enabled: bool = True
+    enabled: bool = False
     lookback_games: int = DEFAULT_LOOKBACK_GAMES
     #: Below this many strictly-prior games for the OPPONENT, the defense
     #: and pace factors are forced to the neutral 1.0 (not enough history
