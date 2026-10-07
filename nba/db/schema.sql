@@ -99,8 +99,29 @@ CREATE TABLE IF NOT EXISTS player_game_stats (
     stl INT,
     blk INT,
     tov INT,
-    starter BOOLEAN
+    starter BOOLEAN,
+    fgm INT,
+    fga INT,
+    fg3a INT,
+    ftm INT,
+    fta INT,
+    oreb INT,
+    dreb INT,
+    pf INT
 );
+
+-- Idempotent migration for DBs created before the full traditional box
+-- score (FGA/FTA/OREB etc.) was captured; needed for the possession-count
+-- reconciliation gate (FGA + 0.44*FTA + TOV - OREB) and a real points model
+-- (attempts x make-rate). See nba/ingest/boxscores.py.
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS fgm INT;
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS fga INT;
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS fg3a INT;
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS ftm INT;
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS fta INT;
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS oreb INT;
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS dreb INT;
+ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS pf INT;
 
 -- Real per-team-per-game advanced box score stats (nba_api BoxScoreAdvancedV3
 -- + BoxScoreFourFactorsV3), so team efficiency features can use actual

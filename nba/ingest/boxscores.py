@@ -40,7 +40,34 @@ _STATS_SCHEMA = [
     "blk",
     "tov",
     "starter",
+    "fgm",
+    "fga",
+    "fg3a",
+    "ftm",
+    "fta",
+    "oreb",
+    "dreb",
+    "pf",
 ]
+
+#: Columns added after the initial player_game_stats rollout (full
+#: traditional box score: FGA/FTA/OREB etc., needed for the possession-count
+#: reconciliation gate and a real points model). Migrated in on every
+#: connection via ``ensure_player_game_stats_columns`` -- see
+#: nba/ingest/national_tv.py's ``ensure_national_tv_column`` for the same
+#: pattern.
+_MIGRATED_INT_COLUMNS = ["fgm", "fga", "fg3a", "ftm", "fta", "oreb", "dreb", "pf"]
+
+
+def ensure_player_game_stats_columns(con: duckdb.DuckDBPyConnection) -> None:
+    """Idempotent migration: add the extended box-score columns if missing.
+
+    Safe to call on every connection open (DuckDB's ``ADD COLUMN IF NOT
+    EXISTS`` is a no-op when the column is already present), so existing
+    on-disk DBs created before these columns existed migrate automatically.
+    """
+    for col in _MIGRATED_INT_COLUMNS:
+        con.execute(f"ALTER TABLE player_game_stats ADD COLUMN IF NOT EXISTS {col} INT")
 
 
 def _parse_minutes(raw: str | None) -> float | None:
@@ -101,8 +128,13 @@ def _normalize_boxscore_v3_frame(raw: pl.DataFrame, game_id: str) -> pl.DataFram
     ``personId``, ``teamId``, ``position``, ``minutes`` ('MM:SS' or, on some
     responses, ISO-8601 'PTxxMyy.yyS'; '' for DNP), ``points``,
     ``reboundsTotal``, ``assists``, ``threePointersMade``, ``steals``,
-    ``blocks``, ``turnovers``. ``starter`` is derived the same way as the old
-    V2 logic: non-empty ``position`` means the player started.
+    ``blocks``, ``turnovers``, ``fieldGoalsMade``, ``fieldGoalsAttempted``,
+    ``threePointersAttempted``, ``freeThrowsMade``, ``freeThrowsAttempted``,
+    ``reboundsOffensive``, ``reboundsDefensive``, ``foulsPersonal`` (verified
+    live against game 0022500500: fga=13, fta=0, oreb=0, dreb=3 for one
+    player row -- sane ranges, no FGA/FTA/OREB column renames since the
+    original V2->V3 migration). ``starter`` is derived the same way as the
+    old V2 logic: non-empty ``position`` means the player started.
     """
     if raw.is_empty():
         return pl.DataFrame(schema={c: pl.Null for c in _STATS_SCHEMA})
@@ -122,6 +154,14 @@ def _normalize_boxscore_v3_frame(raw: pl.DataFrame, game_id: str) -> pl.DataFram
             "blk": raw["blocks"].to_list(),
             "tov": raw["turnovers"].to_list(),
             "starter": starters,
+            "fgm": raw["fieldGoalsMade"].to_list(),
+            "fga": raw["fieldGoalsAttempted"].to_list(),
+            "fg3a": raw["threePointersAttempted"].to_list(),
+            "ftm": raw["freeThrowsMade"].to_list(),
+            "fta": raw["freeThrowsAttempted"].to_list(),
+            "oreb": raw["reboundsOffensive"].to_list(),
+            "dreb": raw["reboundsDefensive"].to_list(),
+            "pf": raw["foulsPersonal"].to_list(),
         }
     )
     return out
@@ -140,6 +180,7 @@ def pull_game_boxscore(
     retried a few times on an empty response and, failing that, marked
     'failed' rather than silently cached as 'done' (``allow_empty=False``).
     """
+    ensure_player_game_stats_columns(con)
     df = fetch_cached(
         con,
         SOURCE,

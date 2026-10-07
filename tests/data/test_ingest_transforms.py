@@ -20,6 +20,7 @@ from nba.ingest.games import (
     _normalize_games_frame,
     season_to_int,
 )
+from nba.ingest.pbp import _normalize_pbp_v3_frame, pull_game_pbp
 from nba.ingest.team_advanced import _normalize_team_advanced_frames, pull_game_team_advanced
 
 
@@ -106,10 +107,17 @@ def test_normalize_boxscore_v3_frame() -> None:
             "comment": ["", "", "DNP - Coach's Decision"],
             "minutes": ["PT36M30.00S", "0:00", ""],
             "fieldGoalsMade": [12, 0, 0],
+            "fieldGoalsAttempted": [20, 3, 0],
             "points": [30, 0, 0],
             "reboundsTotal": [6, 1, 0],
             "assists": [7, 0, 0],
             "threePointersMade": [3, 0, 0],
+            "threePointersAttempted": [5, 1, 0],
+            "freeThrowsMade": [3, 0, 0],
+            "freeThrowsAttempted": [4, 0, 0],
+            "reboundsOffensive": [1, 0, 0],
+            "reboundsDefensive": [5, 1, 0],
+            "foulsPersonal": [2, 1, 0],
             "steals": [1, 0, 0],
             "blocks": [0, 0, 0],
             "turnovers": [2, 1, 0],
@@ -126,6 +134,14 @@ def test_normalize_boxscore_v3_frame() -> None:
     assert out["reb"].to_list() == [6, 1, 0]
     assert out["fg3m"].to_list() == [3, 0, 0]
     assert out["tov"].to_list() == [2, 1, 0]
+    assert out["fgm"].to_list() == [12, 0, 0]
+    assert out["fga"].to_list() == [20, 3, 0]
+    assert out["fg3a"].to_list() == [5, 1, 0]
+    assert out["ftm"].to_list() == [3, 0, 0]
+    assert out["fta"].to_list() == [4, 0, 0]
+    assert out["oreb"].to_list() == [1, 0, 0]
+    assert out["dreb"].to_list() == [5, 1, 0]
+    assert out["pf"].to_list() == [2, 1, 0]
 
 
 def test_normalize_team_advanced_frames() -> None:
@@ -212,6 +228,114 @@ def test_pull_game_team_advanced_treats_empty_fetch_as_failure(
         assert row == ("failed",)
         count = con.execute("SELECT count(*) FROM team_game_advanced").fetchone()
         assert count == (0,)
+    finally:
+        con.close()
+
+
+def test_normalize_pbp_v3_frame() -> None:
+    # Column names/shapes as observed live from PlayByPlayV3's player-level
+    # dataframe (get_data_frames()[0]), game 0022500500.
+    raw = pl.DataFrame(
+        {
+            "gameId": ["0022500500"] * 2,
+            "actionNumber": [4, 9],
+            "clock": ["PT11M39.00S", "PT11M32.00S"],
+            "period": [1, 1],
+            "teamId": [1610612749, 1610612749],
+            "teamTricode": ["MIL", "MIL"],
+            "personId": [1631260, 1629645],
+            "playerName": ["Green", "Porter Jr."],
+            "playerNameI": ["A. Green", "K. Porter Jr."],
+            "xLegacy": [0, -61],
+            "yLegacy": [0, 50],
+            "shotDistance": [0, 8],
+            "shotResult": ["", "Made"],
+            "isFieldGoal": [0, 1],
+            "scoreHome": ["", "0"],
+            "scoreAway": ["", "2"],
+            "pointsTotal": [0, 2],
+            "location": ["v", "v"],
+            "description": ["Green STEAL (1 STL)", "Porter Jr. 8' Layup (2 PTS)"],
+            "actionType": ["", "Made Shot"],
+            "subType": ["", "Driving Finger Roll Layup Shot"],
+            "videoAvailable": [1, 1],
+            "shotValue": [0, 2],
+            "actionId": [4, 5],
+        }
+    )
+    out = _normalize_pbp_v3_frame(raw, "0022500500")
+    assert out.height == 2
+    assert out["game_id"].to_list() == ["0022500500"] * 2
+    assert out["period"].to_list() == [1, 1]
+    assert out["clock"].to_list() == ["PT11M39.00S", "PT11M32.00S"]
+    assert out["team_id"].to_list() == [1610612749, 1610612749]
+    assert out["player_id"].to_list() == [1631260, 1629645]
+    assert out["action_type"].to_list() == ["", "Made Shot"]
+    assert out["shot_result"].to_list() == ["", "Made"]
+    assert out["score_home"].to_list() == ["", "0"]
+    assert out["score_away"].to_list() == ["", "2"]
+    assert out["points_total"].to_list() == [0, 2]
+
+
+def test_normalize_pbp_v3_frame_empty_returns_empty_frame() -> None:
+    empty = pl.DataFrame(
+        schema={
+            "gameId": pl.Utf8,
+            "actionNumber": pl.Int64,
+            "clock": pl.Utf8,
+            "period": pl.Int64,
+            "teamId": pl.Int64,
+            "personId": pl.Int64,
+            "playerName": pl.Utf8,
+            "actionType": pl.Utf8,
+            "subType": pl.Utf8,
+            "description": pl.Utf8,
+            "scoreHome": pl.Utf8,
+            "scoreAway": pl.Utf8,
+            "pointsTotal": pl.Int64,
+            "shotResult": pl.Utf8,
+            "shotValue": pl.Int64,
+            "shotDistance": pl.Int64,
+            "isFieldGoal": pl.Int64,
+            "location": pl.Utf8,
+        }
+    )
+    out = _normalize_pbp_v3_frame(empty, "0022500500")
+    assert out.is_empty()
+
+
+def test_pull_game_pbp_treats_empty_fetch_as_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An empty/throttled PBP response must be marked failed, never cached as done."""
+    con: duckdb.DuckDBPyConnection = connect(":memory:")
+    try:
+        import nba.ingest.pbp as pbp_mod
+
+        monkeypatch.setattr(
+            pbp_mod,
+            "_fetch_pbp_with_retry",
+            lambda game_id: pl.DataFrame({"a": []}),
+        )
+        with pytest.raises(EmptyFetchError):
+            pull_game_pbp(con, "0022300001", data_dir=tmp_path)
+        assert not is_cached(con, "pbp", "0022300001")
+        row = con.execute(
+            "SELECT status FROM ingest_log WHERE source='pbp' AND key='0022300001'"
+        ).fetchone()
+        assert row == ("failed",)
+    finally:
+        con.close()
+
+
+def test_ensure_player_game_stats_columns_migrates_fresh_db() -> None:
+    from nba.ingest.boxscores import ensure_player_game_stats_columns
+
+    con = connect(":memory:")
+    try:
+        ensure_player_game_stats_columns(con)  # no-op, columns already in schema.sql
+        cols = {row[1] for row in con.execute("PRAGMA table_info('player_game_stats')").fetchall()}
+        assert {"fgm", "fga", "fg3a", "ftm", "fta", "oreb", "dreb", "pf"} <= cols
     finally:
         con.close()
 

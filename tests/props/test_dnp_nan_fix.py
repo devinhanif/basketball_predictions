@@ -53,7 +53,9 @@ def _build_db() -> duckdb.DuckDBPyConnection:
         ("G4", 2, 2, 15.0, 8, 2, 1, 1, 0, 0, 0, False),
     ]
     con.executemany(
-        "INSERT INTO player_game_stats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO player_game_stats "
+        "(game_id, player_id, team_id, minutes, pts, reb, ast, fg3m, stl, blk, tov, starter) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         rows,
     )
     return con
