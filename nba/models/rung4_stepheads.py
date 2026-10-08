@@ -40,7 +40,9 @@ in ``nba.features.possession_step_features.POSSESSION_STEP_FEATURE_COLUMNS``
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -249,6 +251,77 @@ def compute_losses(net: StepHeadsNet, batch: StepHeadsBatch) -> dict[str, torch.
     }
 
 
+def frequency_priors(batch: StepHeadsBatch) -> dict[str, object]:
+    """Class priors / base rates from a (training-window) batch: the no-skill baseline."""
+    k = len(OUTCOME_CLASSES)
+    oc = torch.bincount(batch.outcome_idx, minlength=k).double().clamp_min(0.5)
+    zc = torch.bincount(batch.zone_idx[batch.is_shot], minlength=len(ZONE_CLASSES)).double()
+    zc = zc.clamp_min(0.5)
+    make = float(batch.made[batch.is_shot].double().mean()) if batch.is_shot.any() else 0.5
+    reb = float(batch.oreb[batch.is_miss].double().mean()) if batch.is_miss.any() else 0.5
+    return {
+        "outcome": (oc / oc.sum()),
+        "zone": (zc / zc.sum()),
+        "make": min(max(make, 1e-6), 1 - 1e-6),
+        "rebound": min(max(reb, 1e-6), 1 - 1e-6),
+        "duration": float(batch.duration.double().mean()),
+    }
+
+
+def _bernoulli_ll(y: torch.Tensor, p: float) -> float:
+    y = y.double()
+    return float(-(y * np.log(p) + (1 - y) * np.log(1 - p)).mean())
+
+
+def evaluate_heads(
+    net: StepHeadsNet, batch: StepHeadsBatch, priors: dict[str, object]
+) -> dict[str, dict[str, float]]:
+    """Per-head loss of the net vs. the frequency baseline on ``batch``.
+
+    Log loss for outcome/zone/make/rebound (zone/make on shot attempts,
+    rebound on misses only), MSE for duration. ``skill`` = 1 - net/baseline
+    (positive means the net beats the class-prior baseline).
+    """
+    net.eval()
+    with torch.no_grad():
+        out = net(batch.x)
+        ll = nn.functional.cross_entropy
+        bce = nn.functional.binary_cross_entropy_with_logits
+        o_prior = priors["outcome"]
+        z_prior = priors["zone"]
+        assert isinstance(o_prior, torch.Tensor) and isinstance(z_prior, torch.Tensor)
+        res: dict[str, tuple[float, float]] = {
+            "outcome": (
+                float(ll(out["outcome_logits"], batch.outcome_idx)),
+                float(-o_prior.log()[batch.outcome_idx].mean()),
+            )
+        }
+        sh, ms = batch.is_shot, batch.is_miss
+        if sh.any():
+            res["zone"] = (
+                float(ll(out["zone_logits"][sh], batch.zone_idx[sh])),
+                float(-z_prior.log()[batch.zone_idx[sh]].mean()),
+            )
+            res["make"] = (
+                float(bce(out["make_logit"][sh], batch.made[sh])),
+                _bernoulli_ll(batch.made[sh], float(priors["make"])),  # type: ignore[arg-type]
+            )
+        if ms.any():
+            res["rebound"] = (
+                float(bce(out["rebound_logit"][ms], batch.oreb[ms])),
+                _bernoulli_ll(batch.oreb[ms], float(priors["rebound"])),  # type: ignore[arg-type]
+            )
+        dur_mean = float(priors["duration"])  # type: ignore[arg-type]
+        res["duration"] = (
+            float(nn.functional.mse_loss(out["duration"], batch.duration)),
+            float(((batch.duration - dur_mean) ** 2).mean()),
+        )
+    return {
+        h: {"net": n, "baseline": b, "skill": 1.0 - n / b if b > 0 else float("nan")}
+        for h, (n, b) in res.items()
+    }
+
+
 def seed_everything(seed: int) -> None:
     """Seeds numpy + torch (CPU and CUDA) -- CLAUDE.md "deterministic: seed everything"."""
     np.random.seed(seed)
@@ -311,6 +384,28 @@ class StepHeadsRung(RungModelBase):
             optimizer.step()
         self.net = net
         self.last_losses_ = {k: float(v.detach()) for k, v in losses.items()}
+
+    @classmethod
+    def load_weights(cls, artifact_dir: str | Path) -> StepHeadsRung:
+        """Rebuild a trained rung from a notebook artifact dir.
+
+        Reads ``config.json`` (hyperparameters, feature order, feature
+        mean/std) and ``weights.pt`` (``state_dict``) as written by the Colab
+        notebook; the feature column order must match this repo's.
+        """
+        d = Path(artifact_dir)
+        cfg = json.loads((d / "config.json").read_text())
+        if list(cfg["feature_columns"]) != POSSESSION_STEP_FEATURE_COLUMNS:
+            raise ValueError("artifact feature_columns differ from POSSESSION_STEP_FEATURE_COLUMNS")
+        model = cls(seed=int(cfg["seed"]), hidden=int(cfg["hidden"]), lr=float(cfg["lr"]))
+        net = StepHeadsNet(n_features=len(POSSESSION_STEP_FEATURE_COLUMNS), hidden=model.hidden)
+        net.load_state_dict(torch.load(d / "weights.pt", map_location="cpu"))
+        net.eval()
+        model.net = net
+        model.feature_mean_ = np.asarray(cfg["feature_mean"], dtype=np.float64)
+        model.feature_std_ = np.asarray(cfg["feature_std"], dtype=np.float64)
+        model.n_train_possessions_ = int(cfg.get("n_train_rows", 0))
+        return model
 
     def _predicted_ppp(self, off_rtg: np.ndarray, def_rtg: np.ndarray) -> np.ndarray:
         """Expected points-per-possession for one side, from the learned outcome head.

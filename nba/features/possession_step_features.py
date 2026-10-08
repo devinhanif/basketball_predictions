@@ -162,21 +162,32 @@ def build_possession_step_training_frame(con: duckdb.DuckDBPyConnection) -> pl.D
     if raw.height == 0:
         return _empty_frame()
 
-    # Drop any row whose outcome isn't one of the six documented classes --
-    # a defensive guard (CLAUDE.md "if a result looks too good, assume
-    # leakage and audit"; here the analogous discipline is "never silently
-    # train on an unrecognized label").
-    raw = raw.filter(pl.col("outcome").is_in(OUTCOME_CLASSES))
+    return derive_step_labels(raw)
 
+
+#: Upper clamp (seconds) on the duration target -- the parser occasionally
+#: emits multi-minute "possessions" across dead-ball/period boundaries.
+DURATION_MAX_S = 60.0
+
+
+def derive_step_labels(raw: pl.DataFrame) -> pl.DataFrame:
+    """Turn the raw ``possession_step_join_sql`` output into the training frame.
+
+    ``raw`` is exactly what the SQL join (or the exported parquet) holds:
+    ``outcome``, ``shot_zone``, ``oreb``, ``clock_start``, ``clock_end`` and
+    the feature columns. This adds the derived labels ``made_shot`` and
+    ``duration_s``, masks ``shot_zone`` to shot attempts, casts
+    ``off_is_home`` to int, and drops rows with an unrecognized outcome or a
+    shot attempt with no zone (never silently train on a bad label). The
+    Colab notebook carries an inline copy of this function; a test keeps
+    the two in sync.
+    """
+    raw = raw.filter(pl.col("outcome").is_in(OUTCOME_CLASSES))
     is_shot = pl.col("outcome").is_in(SHOT_ATTEMPT_OUTCOMES)
     made = pl.col("outcome").is_in(MADE_OUTCOMES)
-    # Possession duration in seconds elapsed (clock counts down within a
-    # period); clamp negatives (rare period-boundary trips the time-boxed
-    # parser doesn't perfectly segment -- see nba/parse/possessions.py
-    # "Known limitations") to 0 rather than feeding the duration head a
-    # nonsensical negative target.
-    duration = (pl.col("clock_start") - pl.col("clock_end")).clip(lower_bound=0.0)
-
+    # Seconds elapsed (clock counts down within a period), clamped to
+    # [0, DURATION_MAX_S] -- see nba/parse/possessions.py "Known limitations".
+    duration = (pl.col("clock_start") - pl.col("clock_end")).clip(0.0, DURATION_MAX_S)
     out = raw.with_columns(
         [
             pl.col("off_is_home").cast(pl.Int64),
@@ -185,7 +196,7 @@ def build_possession_step_training_frame(con: duckdb.DuckDBPyConnection) -> pl.D
             pl.col("oreb").fill_null(False),
             duration.alias("duration_s"),
         ]
-    )
+    ).filter(~is_shot | pl.col("shot_zone").is_in(ZONE_CLASSES))
     keep = [
         "game_id",
         "poss_idx",
