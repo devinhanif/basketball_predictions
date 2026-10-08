@@ -1,4 +1,22 @@
 # Human-reviewed Kalshi display name -> nba_api player_id.
 # Generate candidates with:  uv run python -m nba.kalshi alias-candidates
 # then copy only rows you have personally confirmed. Never auto-filled.
-aliases: {}
+# Reviewed 2026-10-08: each name has exactly one nba_api match and box-score history through the 2026 Finals.
+aliases:
+  "De'Aaron Fox": 1628368
+  "Devin Vassell": 1630170
+  "Dylan Harper": 1642844
+  "Jalen Brunson": 1628973
+  "Jaylen Brown": 1627759
+  "Jose Alvarado": 1630631
+  "Josh Hart": 1628404
+  "Julian Champagnie": 1630577
+  "Karl-Anthony Towns": 1626157
+  "Keldon Johnson": 1629640
+  "Landry Shamet": 1629013
+  "Mikal Bridges": 1628969
+  "Miles McBride": 1630540
+  "Mitchell Robinson": 1629011
+  "OG Anunoby": 1628384
+  "Stephon Castle": 1642264
+  "Victor Wembanyama": 1641705
