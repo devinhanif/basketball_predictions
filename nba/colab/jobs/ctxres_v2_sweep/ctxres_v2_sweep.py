@@ -30,7 +30,9 @@ PRE-REGISTERED PROTOCOL (full text: docs/CTXRES_V2.md; rule applied by nba/eval/
       threshold probabilities: platt (pooled, logit p + ln N) | iso (per-threshold, monotone in N after)
       distributions: conf (standardized-score recalibration) | pit (PIT-ECDF recalibration) | none
   * Threshold events: P(stat >= N), N in THR below (the common prop lines).
-BUDGET (env NBA_BUDGET): fast (default, ~15-20 min on a T4, estimate) | full | smoke (local CPU).
+BUDGET (env NBA_BUDGET): full (default; every arm must complete, strict) | fast (~30-35 min measured;
+optional arms may be skipped) | smoke (local CPU).
+Experiment tag: EXPERIMENT_TAG below (experiment 2 = full-breadth pre-registration in docs/CTXRES_V2.md).
 Seeds are logged in config; GPU XGBoost is not bit-reproducible.
 """
 
@@ -62,6 +64,7 @@ TAUS19 = np.arange(1, 20) / 20.0
 SEED = 20261008
 SELECT_SEASON, REPORT_SEASON, FROZEN_SEASON = 2023, 2024, 2025
 PLOGMIN = 1e-4
+EXPERIMENT_TAG = "ctxres_v2_exp2_full_breadth"
 
 BUDGETS = {
     "fast": dict(
@@ -82,11 +85,11 @@ BUDGETS = {
         est="~30-35 min on a T4 (MEASURED in run 20261008_131747: arms through xgb_v12_quantile took ~23 min; optional arms are skipped once 80% of 35 min is used and are then missing)",
     ),
     "full": dict(
-        trials=40,
-        arm_s=900,
-        total_s=4000,
-        search_s=600,
-        search_stride=2,
+        trials=60,
+        arm_s=3600,
+        total_s=14400,
+        search_s=1500,
+        search_stride=3,
         search_sub=1,
         rounds=600,
         prod_rounds=200,
@@ -96,7 +99,7 @@ BUDGETS = {
         abl_stride=1,
         min_train=1500,
         min_cal=2000,
-        est="~45-60 min on a T4 (estimate, unmeasured)",
+        est="~65-85 min on a T4: every arm must complete (strict, fails loudly); ~30 min of it is measured, the rest estimated",
     ),
     "smoke": dict(
         trials=2,
@@ -116,7 +119,7 @@ BUDGETS = {
         est="~1-2 min on a CPU (2% sample)",
     ),
 }
-ARM_ESTIMATES = {  # minutes on a T4, fast budget; "M" = measured in run 20261008_131747, "?" = not measured
+ARM_ESTIMATES = {  # minutes on a T4, FAST budget; "M" = measured in run 20261008_131747, "?" = not measured
     "v1_prod (CPU lightgbm) M": 4.3,
     "xgb_v1_prodcfg M": 1.3,
     "xgb_v12_prodcfg M": 2.2,
@@ -131,6 +134,22 @@ ARM_ESTIMATES = {  # minutes on a T4, fast budget; "M" = measured in run 2026100
     "mlp_quantile ?": 2.0,
     "calibrators (CPU) ?": 1.5,
     "ablation (10 groups) ?": 2.0,
+}
+FULL_ESTIMATES = {  # minutes on a T4, FULL budget (60 trials/set, 600 rounds); M = scaled from measured
+    "v1_prod (CPU lightgbm) M": 4.3,
+    "xgb_v1_prodcfg + xgb_v12_prodcfg M": 3.5,
+    "optuna search v1 + v12, 60 trials each, full rows (~9 s/trial from measured 4.7 s) ~": 14.0,
+    "xgb_v1_tuned + xgb_v12_tuned M (x1.5 rounds)": 4.7,
+    "leak audit + xgb_v12_pruned M": 1.5,
+    "xgb_v12_rel + xgb_v12_both M (x1.5)": 6.5,
+    "xgb_v12_quantile, both seasons M": 8.7,
+    "catboost_v12 (GPU, if it installs) ?": 6.0,
+    "xgb_v12_poisson_nb ?": 2.5,
+    "glm_poisson_nb (CPU) ?": 4.0,
+    "logit_thr (CPU) ?": 4.0,
+    "mlp_quantile ?": 3.0,
+    "calibrators, 4 kinds x all arms (CPU) ?": 3.0,
+    "ablation, 10 groups, all 2024 blocks M-scaled": 10.0,
 }
 COMPLETE_ESTIMATES = {  # NBA_MODE=complete, minutes on a T4 (from the measured per-arm times above)
     "xgb_v12_quantile 2024 blocks": 4.4,
@@ -163,11 +182,22 @@ def log(*a):
 
 def setup():
     C.t0 = time.monotonic()
-    C.budget_name = os.environ.get("NBA_BUDGET", "fast")
+    C.budget_name = os.environ.get("NBA_BUDGET", "full")
     C.smoke = C.budget_name == "smoke"
+    C.strict = (
+        C.budget_name == "full" or os.environ.get("NBA_STRICT") == "1"
+    )  # full: no arm may be skipped or dropped
     C.B = BUDGETS[C.budget_name]
     for p in ("optuna", "xgboost"):
         pip_install(p)
+    C.has_cat = False
+    try:  # CatBoost-GPU arm only if it installs; the outcome is recorded in metrics.json
+        pip_install("catboost")
+        import catboost  # noqa: F401
+
+        C.has_cat = True
+    except Exception as _e:  # noqa: BLE001
+        print("catboost unavailable, arm skipped (recorded):", _e)
     import torch
     import xgboost  # noqa: F401
 
@@ -185,9 +215,11 @@ def setup():
         for k, v in COMPLETE_ESTIMATES.items():
             print(f"   {k:<70} ~{v:.1f} min")
     else:
+        est = FULL_ESTIMATES if C.budget_name == "full" else ARM_ESTIMATES
         print(f"expected runtime: {C.B['est']}")
-        for k, v in ARM_ESTIMATES.items():
-            print(f"   {k:<50} ~{v:.1f} min")
+        for k, v in est.items():
+            print(f"   {k:<80} ~{v:.1f} min")
+        print(f"   TOTAL ESTIMATE ~{sum(est.values()):.0f} min (M = measured/scaled, ? = guess)")
     print(
         "   (per-arm wall times are printed as the run proceeds and stored in metrics.json timings_s)"
     )
@@ -509,6 +541,22 @@ def make_head(engine, params, rounds, es, objective="reg:squarederror", extra=No
             deterministic=True,
             force_row_wise=True,
         )
+    if engine == "cat":
+        from catboost import CatBoostRegressor
+
+        return CatBoostRegressor(
+            iterations=rounds,
+            learning_rate=params["learning_rate"],
+            depth=int(params["max_depth"]) + 1,
+            l2_leaf_reg=params["reg_lambda"],
+            bootstrap_type="Bernoulli",
+            subsample=params["subsample"],
+            random_seed=SEED,
+            verbose=0,
+            task_type="GPU" if C.device == "cuda" else "CPU",
+            early_stopping_rounds=20,
+            allow_writing_files=False,
+        )
     import xgboost as xgb
 
     kw = dict(
@@ -530,6 +578,9 @@ def fit_head(h, X, y, engine, es, w=None):
     if engine == "xgb" and es:
         nv = max(int(len(y) * 0.12), 40)
         h.fit(X[:-nv], y[:-nv], eval_set=[(X[-nv:], y[-nv:])], verbose=False)
+    elif engine == "cat":
+        nv = max(int(len(y) * 0.12), 40)
+        h.fit(X[:-nv], y[:-nv], eval_set=(X[-nv:], y[-nv:]))
     else:
         h.fit(X, y)
     return h
@@ -789,6 +840,8 @@ def mlp_block(blk, state):
 
 
 def over_budget(frac=0.8):
+    if C.strict:
+        return False
     return time.monotonic() - C.t0 > frac * C.B["total_s"]
 
 
@@ -807,6 +860,10 @@ def run_arm(
     done = 0
     for blk in todo:
         if time.monotonic() - t > budget_s:
+            if C.strict:
+                raise RuntimeError(
+                    f"{name}: hard cap hit after {done}/{len(todo)} blocks (strict full budget)"
+                )
             log(f"  {name}: hard cap hit after {done}/{len(todo)} blocks: arm DROPPED (incomplete)")
             timings[name + "_dropped_incomplete"] = time.monotonic() - t
             return None
@@ -1265,6 +1322,22 @@ def main():
     run_opt("glm_poisson_nb", lambda b: count_block(b, "glm", None, 0), results, timings)
     run_opt("logit_thr", logit_block, results, timings)
     run_opt("mlp_quantile", lambda b: mlp_block(b, None), results, timings)
+    if C.has_cat:
+        run_opt(
+            "catboost_v12",
+            lambda b: resid_block(b, "v12", "cat", p12, B["rounds"], True),
+            results,
+            timings,
+        )
+    expected = [
+        "v1_prod", "xgb_v1_prodcfg", "xgb_v12_prodcfg", "xgb_v1_tuned", "xgb_v12_tuned",
+        "xgb_v12_pruned", "xgb_v12_rel", "xgb_v12_both", "xgb_v12_quantile",
+        "xgb_v12_poisson_nb", "glm_poisson_nb", "logit_thr", "mlp_quantile",
+        *(["catboost_v12"] if C.has_cat else []),
+    ]  # fmt: skip
+    missing = [a for a in expected if a not in results]
+    if C.strict and missing:
+        raise RuntimeError(f"strict full budget: arms missing from the run: {missing}")
 
     # ---- selection on 2023 ONLY
     dist_arms = [
@@ -1317,6 +1390,8 @@ def main():
     # ---- metrics
     ref = results["v1_prod"]
     metrics = dict(
+        experiment_tag=EXPERIMENT_TAG,
+        catboost_available=C.has_cat,
         budget=C.budget_name,
         seeds=dict(seed=SEED, optuna=SEED, torch=SEED),
         device=C.device,
@@ -1395,6 +1470,7 @@ def main():
     (out / "best_config.json").write_text(
         json.dumps(
             dict(
+                experiment_tag=EXPERIMENT_TAG,
                 search_v1=s1,
                 search_v12=s12,
                 best_arm_2023=best,
@@ -1429,6 +1505,7 @@ def arm_block_fn(name, p1, p12):
         "xgb_v12_rel": lambda b: resid_block(b, "rel", "xgb", p12, B["rounds"], True),
         "xgb_v12_both": lambda b: resid_block(b, "both", "xgb", p12, B["rounds"], True),
         "xgb_v12_quantile": lambda b: quantile_block(b, p12, B["rounds"]),
+        "catboost_v12": lambda b: resid_block(b, "v12", "cat", p12, B["rounds"], True),
         "xgb_v12_poisson_nb": lambda b: count_block(b, "xgb", p12, B["rounds"]),
         "glm_poisson_nb": lambda b: count_block(b, "glm", None, 0),
         "logit_thr": logit_block,
@@ -1449,6 +1526,11 @@ def main_complete(plan):
     setup()
     load()
     cfg = plan["best_config"]
+    bp = cfg.get("budget_params", {})  # use the first run's rounds so the refit matches its configs
+    C.B = {
+        **C.B,
+        **{k: bp[k] for k in ("rounds", "prod_rounds", "min_train", "min_cal") if k in bp},
+    }
     p1, p12 = cfg["search_v1"]["params"], cfg["search_v12"]["params"]
     cand, top3, cal_params = cfg["best_arm_2023"], cfg["top3_2023"], cfg["calibrators"]
     arms = list(plan["arms"])

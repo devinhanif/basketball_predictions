@@ -1,7 +1,7 @@
 name: ctxres_v2_sweep
 description: >
-  Context-residual v2 model-family sweep on a Colab T4 (single NBA_BUDGET knob: fast default
-  ~30-35 min measured; full longer; a staged completion_prev.json switches the notebook to the
+  Context-residual v2 model-family sweep on a Colab T4 (single NBA_BUDGET knob: full is the default,
+  EXPERIMENT 2, strict, every arm must finish, about 65-85 min; fast ~30-35 min measured; a staged completion_prev.json switches the notebook to the
   ~9 min COMPLETION step). Arms: production-config LightGBM (v1_prod),
   XGBoost residual (v1 / v1+v2 features, production config vs Optuna-tuned), season-relative and
   pruned feature variants, multi-quantile XGBoost, Poisson/NegBin (GLM and XGBoost), logistic
@@ -30,6 +30,6 @@ inputs:
 artifacts: [best_config.json, metrics.json, oof_2024.parquet, feature_importance.json]
 registry:
   model_name: ctxres_v2_sweep
-  tags: {rung: 2, model_method: ctxres_v2_family_sweep, holdout_scored: false}
+  tags: {rung: 2, model_method: ctxres_v2_family_sweep, holdout_scored: false, experiment: 2, family: ctxres_v2_exp2_full_breadth}
 touches_holdout: false
 preregistration_id: null

@@ -81,7 +81,7 @@ used); DNP rows do not enter possession rates; allow-list rejects same-game name
   isotonic min-bin, Platt C, minimum history rows.
 * Reported but not used for decisions: ablation (drop-one group a-j, 2024), per-block CRPS,
   drift table (pace/3PA/FTA/usage proxies and target shifts by season), normalization arms.
-* Budget: single `NBA_BUDGET` knob. `fast` (default) measured ~30-35 min on a T4 (per-arm estimates
+* Budget: single `NBA_BUDGET` knob. `full` is the default from experiment 2; `fast` measured ~30-35 min on a T4 (per-arm estimates
   printed at the top of the run; optional arms are skipped once 80% of a 35 min budget is spent and
   are then missing from the report); `full` is longer.
   GPU XGBoost is not bit-reproducible; seeds are logged.
@@ -133,6 +133,39 @@ results of OTHER arms (v1_prod, xgb_v12_prodcfg, xgb_v12_tuned, ...) from the fi
 viewed before this step was written; they did not and cannot influence the candidate, the
 configs or the rule. The eval merges the runs by variant (the completion run supersedes the first
 run's lighter copy of the same variant; the first run's `best_config.json` supplies the candidate).
+
+## EXPERIMENT 2 -- full-breadth sweep (pre-registered 2026-10-08, BEFORE its run)
+
+Family tag `ctxres_v2_exp2_full_breadth` (job tag `experiment: 2`; stored in `metrics.json` and
+`best_config.json`). It re-runs the whole model-family sweep with a broader, strict budget. It is
+a SECOND experiment, not a re-selection of experiment 1.
+
+* Protocol unchanged: select on 2023 blocks only (Optuna, best arm, top-3 blend, pruned set,
+  calibrator settings), report on 2024 blocks, season 2025 never loaded, same keep rule vs
+  `v1_prod`, same calibrator rule, same BH over the 4 stats (see PRE-REGISTERED KEEP RULE above).
+* Changes vs experiment 1 (breadth, not rule): `NBA_BUDGET=full` is now the default and is STRICT:
+  no optional arm is skipped and no arm may be dropped; a hard cap or a missing arm raises. 60 Optuna
+  trials per tuned feature set (v1, v1+v2) searched on every 3rd 2023 block with all training rows and
+  600-round cap; a CatBoost-GPU residual arm (`catboost_v12`, same chosen tree settings mapped to
+  CatBoost: depth = max_depth + 1, L2 = reg_lambda, Bernoulli subsample) is added if `catboost`
+  installs (recorded in `catboost_available`; absence is reported, not hidden); every arm of the plan
+  (xgb v1/v12 prodcfg + tuned, rel/both/pruned, multi-quantile, xgb count:poisson + NegBin, Poisson GLM
+  + NegBin, threshold logistic, monotone-quantile MLP, CatBoost, blend of the 2023 top-3), all four
+  calibrators on every arm, and the drop-one ablation on ALL 2024 blocks (no stride).
+* GPU: XGBoost `device='cuda'`, CatBoost `task_type='GPU'`, torch AMP for the MLP. The Poisson GLM and
+  logistic arms stay on CPU (cheap).
+* Expected runtime ~65-85 min on a T4 (the per-arm estimates and a total are printed at the top of
+  the run; v1_prod, XGBoost arms and the quantile arm are scaled from the measured fast run, the
+  count/GLM/logit/MLP/CatBoost arms and calibrators are guesses).
+* Honest disclosure: 2024 results of experiment-1 arms (v1_prod, xgb_v12_prodcfg, xgb_v12_tuned,
+  xgb_v1_tuned, rel, both, pruned, and the experiment-1 completion step) were ALREADY viewed before
+  this experiment was written. Experiment 2 therefore is not a clean out-of-sample test of the v2
+  feature groups' value (that is already visible); what it adds is the broader model-family and
+  calibration comparison under the same rule, and any new keep decision is computed only from its own
+  2023-selected candidate. The clean tests remain one confirmatory 2025 touch (separate
+  pre-registration) and forward 2026-27.
+* Staging: the plan file must be `{}` for a normal sweep: `uv run python -m nba.eval.ctxres_v2_eval --clear`
+  (the job's producer also creates `{}` if the file is missing).
 
 ## Commands
 

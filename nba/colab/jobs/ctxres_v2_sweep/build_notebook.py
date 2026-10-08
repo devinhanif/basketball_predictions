@@ -13,21 +13,27 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-INTRO = """# ctxres_v2_sweep -- context-residual v2 model-family sweep
+INTRO = """# ctxres_v2_sweep -- context-residual v2 model-family sweep (experiment 2, full breadth)
 
-Runtime > Change runtime type > **T4 GPU**, then Run all. `NBA_BUDGET=fast` (default) targets
-about 30-35 min (measured; optional arms are skipped once 80% of a 35 min budget is used);
-`NBA_BUDGET=full` is the long variant. If `completion_prev.json` is staged (see docs/CTXRES_V2.md) the notebook runs the COMPLETION step instead: no search or selection, only the listed arms are refit with the configs already chosen on 2023 (about 9 min core). The expected per-arm runtimes are printed at the top of the
-run. Selection uses season 2023 only; season 2024 is report-only; season 2025 is refused.
-The leak detector aborts the run if a same-game or non-allow-listed feature appears in the
-top-10 importance. Artifacts (`best_config.json`, `metrics.json`, `oof_2024.parquet`,
-`feature_importance.json`) land in `artifacts/<timestamp>/`.
+Runtime > Change runtime type > **T4 GPU**, then Run all.
+
+* `NBA_BUDGET=full` (default): STRICT, every arm must finish (it raises instead of skipping), 60 Optuna
+  trials per tuned arm, CatBoost-GPU arm if it installs, all calibrators, ablation on all 2024 blocks.
+  Expected about 65-85 min; the per-arm estimates and the total are printed at the top of the run.
+* `NBA_BUDGET=fast`: about 30-35 min (measured); optional arms may be skipped.
+* If `completion_prev.json` is staged (docs/CTXRES_V2.md) the notebook runs the COMPLETION step instead
+  (no search or selection; refits only the listed arms with already-chosen configs).
+
+Selection uses season 2023 only; season 2024 is report-only; season 2025 is refused.
+The leak detector aborts the run if a same-game or non-allow-listed feature appears in the top-10
+importance. Artifacts (`best_config.json`, `metrics.json`, `oof_2024.parquet`, `feature_importance.json`)
+land in `artifacts/<timestamp>/`.
 Score locally: `uv run python -m nba.eval.ctxres_v2_eval --run <pulled run dir>` after
 `make colab-pull JOB=ctxres_v2_sweep`. Rule: docs/CTXRES_V2.md."""
 
 SETUP = """import os  # noqa: F811 (standalone setup cell; may run first)
 
-os.environ.setdefault("NBA_BUDGET", "fast")  # "fast" (default) or "full"
+os.environ.setdefault("NBA_BUDGET", "full")  # "full" (default, strict: every arm must finish) or "fast"
 print("BUDGET:", os.environ["NBA_BUDGET"])"""
 
 

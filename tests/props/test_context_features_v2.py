@@ -290,3 +290,24 @@ def test_merge_oof_prefers_later_run_and_completion_plan(tmp_path):
     assert json.loads((out / "completion_prev.json").read_text())["arms"] == ["q"]
     assert main(["--clear", "--plan-dir", str(out)]) == 0
     assert json.loads((out / "completion_prev.json").read_text()) == {}
+
+
+def test_entry_routes_on_staged_plan_and_full_is_strict(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location(
+        "ctxres_sweep_mod", JOB_DIR / "ctxres_v2_sweep.py"
+    )
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    calls: list[str] = []
+    monkeypatch.setattr(mod, "main", lambda: calls.append("sweep"))
+    monkeypatch.setattr(mod, "main_complete", lambda plan: calls.append("complete"))
+    monkeypatch.setenv("NBA_PARQUET", str(tmp_path / "x.parquet"))
+    monkeypatch.delenv("NBA_MODE", raising=False)
+    (tmp_path / "completion_prev.json").write_text("{}")  # after --clear: normal sweep
+    mod.entry()
+    (tmp_path / "completion_prev.json").write_text(json.dumps({"mode": "complete"}))
+    mod.entry()
+    assert calls == ["sweep", "complete"]
+    assert mod.BUDGETS["full"]["trials"] >= 60 and mod.EXPERIMENT_TAG.endswith("full_breadth")
+    assert "full" in (JOB_DIR / "ctxres_v2_sweep.py").read_text().split('NBA_BUDGET", "')[1][:6]
