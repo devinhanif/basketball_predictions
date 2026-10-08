@@ -88,3 +88,30 @@ def test_project_points_pure() -> None:
         }
     )
     assert t.project_points(df)["pred_pts"][0] == pytest.approx(0.2 * 87 * 1.0, rel=1e-5)
+
+
+def test_current_season_only_equivalence() -> None:
+    """carryover weight 1 => prior seasons contribute nothing => decay-mode
+    counts equal a pure current-season (partition player, season) cumulative."""
+    from nba.features.player_possession_features import build_player_shot_rates
+
+    con = _db()
+    cfg = TimeDecayConfig(half_life_seasons=1e-3, carryover_decay_weight=1.0)
+    on = build_player_shot_rates(con, use_time_decay=True, time_decay_config=cfg)
+    # Season openers (first game of each season) must see exactly zero history.
+    openers = on.filter(pl.col("game_id").str.ends_with("-0"))
+    assert (openers["n_fga_prior"] == 0).all()
+    # Later games see only same-season shots (4 per earlier game).
+    g2 = on.filter(pl.col("game_id") == "2024-2").row(0, named=True)
+    assert g2["n_fga_prior"] == 8
+
+
+def test_prior_totals_only_from_earlier_seasons() -> None:
+    from nba.features.player_possession_features import build_player_shot_rates
+
+    con = _db()
+    cfg = TimeDecayConfig(half_life_seasons=1e6, carryover_decay_weight=0.0)
+    on = build_player_shot_rates(con, use_time_decay=True, time_decay_config=cfg)
+    # No age info -> multiplier 1, huge half-life -> weight 1: 2023 opener = 12 shots from 2022.
+    assert on.filter(pl.col("game_id") == "2023-0")["n_fga_prior"][0] == 12
+    assert on.filter(pl.col("game_id") == "2022-0")["n_fga_prior"][0] == 0

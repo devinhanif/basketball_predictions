@@ -52,6 +52,7 @@ import polars as pl
 
 from nba.features.player_possession_features import build_player_shot_rates
 from nba.features.possession_features import build_team_possession_rates
+from nba.features.time_decay import TimeDecayConfig
 from nba.props.baselines import build_baseline_features, season_average_baseline
 from nba.props.distributions import Distribution
 from nba.props.metrics import ConfidenceInterval, crps_array, mean_bias_ci, paired_score_delta_ci
@@ -103,6 +104,9 @@ def run_sim_vs_baseline_eval(
     max_games: int | None = None,
     use_oncourt_usage: bool = False,
     return_raw: bool = False,
+    use_time_decay: bool = False,
+    time_decay_config: TimeDecayConfig | None = None,
+    max_season: int | None = None,
 ) -> SimPlayerPointsEvalResult:
     """Run the possession sim's per-player points predictions for every game
     with a box score and score them against actuals + the season-average
@@ -112,7 +116,15 @@ def run_sim_vs_baseline_eval(
     pass on the real DB without committing to the full run.
     """
     team_rates = build_team_possession_rates(con)
-    shot_rates = build_player_shot_rates(con, use_oncourt_usage=use_oncourt_usage)
+    if use_time_decay:
+        shot_rates = build_player_shot_rates(
+            con,
+            use_oncourt_usage=use_oncourt_usage,
+            use_time_decay=True,
+            time_decay_config=time_decay_config,
+        )
+    else:
+        shot_rates = build_player_shot_rates(con, use_oncourt_usage=use_oncourt_usage)
     minutes_feats = build_minutes_features(con)
     minutes_dists = predict_minutes(minutes_feats)
     minutes_proj = minutes_feats.select(["game_id", "player_id"]).with_columns(
@@ -133,6 +145,15 @@ def run_sim_vs_baseline_eval(
         ]
     )
     game_ids = games.select("game_id").unique().to_series().sort().to_list()
+    if max_season is not None:
+        # Restrict to seasons <= max_season (use 2024 to keep the 2025 holdout untouched).
+        ok = {
+            r[0]
+            for r in con.execute(
+                "SELECT game_id FROM games WHERE season <= ?", [max_season]
+            ).fetchall()
+        }
+        game_ids = [g for g in game_ids if g in ok]
     if max_games is not None:
         game_ids = game_ids[:max_games]
 

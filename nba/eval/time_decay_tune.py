@@ -73,10 +73,10 @@ LEAGUE_TEAM_FGA = 87.0
 ZONE_POINTS = {"rim": 2.0, "mid": 2.0, "above3": 3.0}
 REST_NONINFERIORITY_MARGIN = 0.02
 
-HALF_LIVES = (0.75, 1.5, 3.0)
-CARRYOVER_WEIGHTS = (0.0, 0.3, 0.6)
+HALF_LIVES = (0.25, 0.5, 0.75, 1.5, 3.0)
+CARRYOVER_WEIGHTS = (0.0, 0.3, 0.6, 0.75, 0.9)
 PEAK_AGES = (25.0, 27.0, 29.0)
-AGE_WIDTHS = (6.0, 9.0, 15.0)
+AGE_WIDTHS = (3.0, 4.5, 6.0, 9.0, 15.0)
 
 _RATE_COLS = [
     "game_id",
@@ -199,6 +199,10 @@ class TimeDecayTuneResult:
     report_slices: list[SliceDelta] = field(default_factory=list)
     select_slices: list[SliceDelta] = field(default_factory=list)
     keep_flag_on: bool = False
+    #: Trivial "drop old seasons" variant (carryover weight 1 => prior seasons
+    #: contribute nothing): slices vs flag-off, and per-season MAE for audit.
+    current_only_report: list[SliceDelta] = field(default_factory=list)
+    per_season_mae: dict[int, tuple[float, float, float]] = field(default_factory=dict)
 
     def summary(self) -> str:
         lines = [f"best={asdict(self.best)}  keep_flag_on={self.keep_flag_on}"]
@@ -208,6 +212,14 @@ class TimeDecayTuneResult:
                     f"[{tag}] {s.name}: n={s.n} MAE off={s.mae_off:.3f} decay={s.mae_decay:.3f} "
                     f"delta={s.delta.point:+.4f} CI[{s.delta.lo:+.4f},{s.delta.hi:+.4f}]"
                 )
+        for co in self.current_only_report:
+            lines.append(
+                f"[REPORT current-season-only] {co.name}: n={co.n} MAE off={co.mae_off:.3f} "
+                f"cur_only={co.mae_decay:.3f} delta={co.delta.point:+.4f} "
+                f"CI[{co.delta.lo:+.4f},{co.delta.hi:+.4f}]"
+            )
+        for yr, (a, b, c) in sorted(self.per_season_mae.items()):
+            lines.append(f"[per-season MAE] {yr}: off={a:.3f} best={b:.3f} cur_only={c:.3f}")
         return "\n".join(lines)
 
 
@@ -298,7 +310,75 @@ def run_time_decay_tune(
     res.select_slices = slice_deltas(err_off, best_err, actuals, select_seasons, n_boot, seed)
     res.report_slices = slice_deltas(err_off, best_err, actuals, report_seasons, n_boot, seed)
     res.keep_flag_on = decide_keep(res.report_slices)
+    err_cur = score_config(
+        con, actuals, use_time_decay=True, config=TimeDecayConfig(carryover_decay_weight=1.0)
+    )
+    res.current_only_report = slice_deltas(err_off, err_cur, actuals, report_seasons, n_boot, seed)
+    season_arr = actuals["season"].to_numpy()
+    for yr in seasons:
+        m = season_arr == yr
+        res.per_season_mae[yr] = (_mean(err_off, m), _mean(best_err, m), _mean(err_cur, m))
     return res
+
+
+def run_sim_ab(
+    con: duckdb.DuckDBPyConnection,
+    config: TimeDecayConfig,
+    n_sims: int = 2000,
+    max_season: int = MAX_TUNE_SEASON,
+    max_games: int | None = None,
+    n_boot: int = 1000,
+    seed: int = 0,
+) -> list[SliceDelta]:
+    """Sim-level A/B: sim(decay on, ``config``) vs sim(decay off), points CRPS.
+
+    Same seed, same games (season <= ``max_season``), clustered-by-game
+    bootstrap, sliced first_15 / rest / all. Delta = on - off (negative is
+    better). SLOW on the real DB (two full sim passes): run it yourself.
+    """
+    from nba.eval.player_points_sim_eval import run_sim_vs_baseline_eval
+
+    if max_season > MAX_TUNE_SEASON:
+        raise ValueError(f"season {max_season} is the frozen holdout; max is {MAX_TUNE_SEASON}")
+    kw = {"n_sims": n_sims, "seed": seed, "max_games": max_games, "max_season": max_season}
+    off = run_sim_vs_baseline_eval(con, return_raw=True, **kw)  # type: ignore[arg-type]
+    on = run_sim_vs_baseline_eval(
+        con,
+        return_raw=True,
+        use_time_decay=True,
+        time_decay_config=config,
+        **kw,  # type: ignore[arg-type]
+    )
+    assert off.raw is not None and on.raw is not None
+    actuals = _load_actuals(con, max_season).select(
+        "game_id", "player_id", "season", "appearance_idx"
+    )
+    j = (
+        off.raw.select("game_id", "player_id", pl.col("crps_sim").alias("off"))
+        .join(
+            on.raw.select("game_id", "player_id", pl.col("crps_sim").alias("on")),
+            on=["game_id", "player_id"],
+        )
+        .join(actuals, on=["game_id", "player_id"])
+    )
+    a_off = j["off"].to_numpy()
+    a_on = j["on"].to_numpy()
+    idx = j["appearance_idx"].to_numpy()
+    gid = j["game_id"].to_numpy()
+    ok = np.isfinite(a_off) & np.isfinite(a_on)
+    out: list[SliceDelta] = []
+    for name, m in (
+        ("first_15", ok & (idx <= FIRST_N_GAMES)),
+        ("rest", ok & (idx > FIRST_N_GAMES)),
+        ("all", ok),
+    ):
+        if m.sum() == 0:
+            continue
+        ci = paired_score_delta_ci(a_on[m], a_off[m], n_boot=n_boot, seed=seed, cluster_ids=gid[m])
+        out.append(
+            SliceDelta(name, int(m.sum()), float(a_off[m].mean()), float(a_on[m].mean()), ci)
+        )
+    return out
 
 
 def main() -> None:
