@@ -31,6 +31,8 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument("--skip-ingest", action="store_true")
     r.add_argument("--skip-injury", action="store_true")
     r.add_argument("--no-props", action="store_true")
+    r.add_argument("--props-model", choices=["routed", "rolling"], default="routed")
+    r.add_argument("--n-sims", type=int, default=1000)
     r.add_argument("--rate-limit-s", type=float, default=0.6)
     sub.add_parser("settle", help="score completed predictions only")
     rep = sub.add_parser("report", help="rolling forward metrics + rollover flag")
@@ -63,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
             skip_ingest=args.skip_ingest,
             skip_injury=args.skip_injury,
             with_props=not args.no_props,
+            props_model=args.props_model,
+            n_sims=args.n_sims,
             rate_limiter=RateLimiter(args.rate_limit_s),
         )
         _print_summary(s)

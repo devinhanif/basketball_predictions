@@ -12,6 +12,7 @@ import polars as pl
 import yaml
 
 from nba.models.rung0_baselines import MovEloBaseline
+from nba.props.forward import predict_slate
 from nba.registry.protocol import RegistryAdapter
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +21,9 @@ ELO_MODEL_NAME = "rung0_mov_elo"
 PROPS_MODEL_NAME = "props_rolling_avg_baseline"
 PROPS_VERSION = "baseline-v1"
 PROP_STATS = ("pts", "reb", "ast", "fg3m")
+ROUTED_PROPS_MODEL_NAME = "props_routed_sim"
+ROUTED_PROPS_VERSION = "routed-v1"
+ROUTED_N_SIMS = 1000
 PROP_LOOKBACK_GAMES = 82
 PROP_MIN_GAMES = 5
 PROP_ROSTER_WINDOW = 10  # team games used to find who is currently on the roster
@@ -140,3 +144,26 @@ def rolling_prop_baseline(
     if exclude_players and not df.is_empty():
         df = df.filter(~pl.col("player_id").is_in(sorted(exclude_players)))
     return df
+
+
+def routed_prop_predictions(
+    con: duckdb.DuckDBPyConnection,
+    slate: date,
+    games: list[tuple[str, int, int]],
+    exclude_players: set[int],
+    *,
+    n_sims: int = ROUTED_N_SIMS,
+    seed: int = 0,
+) -> pl.DataFrame:
+    """Routed sim / season-average distributions (``nba.props.forward``) for
+    ``games`` = ``[(game_id, home_team, away_team), ...]``. As-of: only rows with
+    ``game_date < slate`` are read; ``exclude_players`` never appear."""
+    frame = pl.DataFrame(
+        {
+            "game_id": [g[0] for g in games],
+            "home_team": [g[1] for g in games],
+            "away_team": [g[2] for g in games],
+        },
+        schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
+    )
+    return predict_slate(con, slate, frame, exclude_players, n_sims=n_sims, seed=seed)

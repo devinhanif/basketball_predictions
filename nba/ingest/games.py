@@ -110,6 +110,17 @@ def pull_season_games(
     return df
 
 
+def refresh_season_games(season: str) -> pl.DataFrame:
+    """Uncached pull of one season's completed games (e.g. '2026-27').
+
+    ``pull_season_games`` caches by season key forever, which would freeze an
+    in-progress season at its first pull. The daily loop calls this instead and
+    upserts the result itself (``upsert_games``). Network call; nothing is
+    written to disk or to the database here.
+    """
+    return _fetch_games_for_season(season)
+
+
 def upsert_games(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -> None:
     """Idempotently load a games DataFrame into the ``games`` table."""
     upsert_rows(con, "games", _GAMES_SCHEMA, ["game_id"], df)

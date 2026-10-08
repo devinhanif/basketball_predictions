@@ -267,3 +267,35 @@ CREATE TABLE IF NOT EXISTS ingest_log (
     fetched_at TIMESTAMP,
     PRIMARY KEY (source, key)
 );
+
+-- Forward (pre-tip) prediction log and its scores; written by nba/daily/.
+-- Same DDL as nba/daily/store.py (idempotent). Timestamps are naive UTC;
+-- player_id is -1 for game-level targets so the natural key is never NULL.
+CREATE TABLE IF NOT EXISTS forward_predictions (
+    run_id VARCHAR,
+    made_at TIMESTAMP,
+    game_id VARCHAR,
+    tipoff TIMESTAMP,
+    model_name VARCHAR,
+    version VARCHAR,
+    target VARCHAR,          -- win_prob_home | pts | reb | ast | fg3m
+    player_id INT,           -- -1 for game-level targets
+    prediction JSON
+);
+CREATE TABLE IF NOT EXISTS forward_scores (
+    scored_at TIMESTAMP,
+    game_id VARCHAR,
+    game_date DATE,
+    season INT,
+    model_name VARCHAR,
+    version VARCHAR,
+    target VARCHAR,
+    player_id INT,
+    made_at TIMESTAMP,
+    y DOUBLE,
+    pred DOUBLE,             -- p(home win) or predictive mean
+    log_loss DOUBLE,
+    brier DOUBLE,
+    crps DOUBLE,
+    status VARCHAR           -- 'scored' | 'dnp'
+);

@@ -10,7 +10,7 @@ import polars as pl
 
 from nba.ingest.boxscores import pull_game_boxscore
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
-from nba.ingest.games import _fetch_games_for_season, upsert_games
+from nba.ingest.games import refresh_season_games, upsert_games
 
 FetchGames = Callable[[str], pl.DataFrame]
 PullBox = Callable[[duckdb.DuckDBPyConnection, str], object]
@@ -47,7 +47,7 @@ def incremental_ingest(
     Box-score pulls reuse ``pull_game_boxscore`` (per-game cache, resumable);
     a failure on one game is counted and skipped, never fatal.
     """
-    fetch = fetch_games or _fetch_games_for_season
+    fetch = fetch_games or refresh_season_games
     if rate_limiter is not None:
         rate_limiter.wait()
     games = fetch(season_str)

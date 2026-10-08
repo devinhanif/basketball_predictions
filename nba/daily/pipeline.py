@@ -3,6 +3,7 @@ so the fixture tests never touch the network or the real database."""
 
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
@@ -17,11 +18,15 @@ from nba.daily.predict import (
     PROP_STATS,
     PROPS_MODEL_NAME,
     PROPS_VERSION,
+    ROUTED_N_SIMS,
+    ROUTED_PROPS_MODEL_NAME,
+    ROUTED_PROPS_VERSION,
     fit_mov_elo,
     load_elo_params,
     predict_win_probs,
     resolve_production,
     rolling_prop_baseline,
+    routed_prop_predictions,
 )
 from nba.daily.schedule import ScheduledGame, ScheduleFn, slate_for_date
 from nba.daily.season import season_int_for_date, season_str_for_date
@@ -70,6 +75,8 @@ def run_daily(
     pull_report: PullFn | None = None,
     name_index: dict[str, int] | None = None,
     elo_config: Path | None = None,
+    props_model: str = "routed",
+    n_sims: int = ROUTED_N_SIMS,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC."""
     made_at = now if now is not None else utcnow()
@@ -111,8 +118,10 @@ def run_daily(
             summary.injury_status = f"failed: {type(exc).__name__}: {exc}"[:200]
 
     if upcoming:
-        preds = _build_predictions(con, run_date, season_i, upcoming, made_at, registry,
-                                   with_props, elo_config, summary)  # fmt: skip
+        preds = _build_predictions(
+            con, run_date, season_i, upcoming, made_at, registry,
+            with_props, elo_config, summary, props_model, n_sims,
+        )  # fmt: skip
         try:
             summary.n_rows_written = append_predictions(con, summary.run_id, made_at, preds)
         except LeakageError:
@@ -134,6 +143,8 @@ def _build_predictions(
     with_props: bool,
     elo_config: Path | None,
     summary: RunSummary,
+    props_model: str = "routed",
+    n_sims: int = ROUTED_N_SIMS,
 ) -> list[ForwardPrediction]:
     out: list[ForwardPrediction] = []
     params = load_elo_params(elo_config) if elo_config else load_elo_params()
@@ -163,11 +174,20 @@ def _build_predictions(
     if not with_props:
         return out
 
-    summary.model_status[PROPS_MODEL_NAME] = f"{PROPS_VERSION} (rolling-average baseline)"
     out_set = out_players(con, min(made_at, min(g.tipoff for g in upcoming)))
+    summary.n_out_excluded = len(out_set)
+    if props_model == "routed":
+        try:
+            out.extend(_routed_props(con, run_date, upcoming, out_set, n_sims, summary))
+            return out
+        except Exception as exc:  # loud, recorded fallback; never blocks the Elo forecast
+            summary.n_props_rows = 0
+            summary.model_status[ROUTED_PROPS_MODEL_NAME] = (
+                f"FAILED ({type(exc).__name__}: {exc})"[:200] + " -> rolling baseline"
+            )
+    summary.model_status[PROPS_MODEL_NAME] = f"{PROPS_VERSION} (rolling-average baseline)"
     teams = sorted({t for g in upcoming for t in (g.home_team, g.away_team)})
     base = rolling_prop_baseline(con, run_date, teams, out_set)
-    summary.n_out_excluded = len(out_set)
     team_game = {t: g for g in upcoming for t in (g.home_team, g.away_team)}
     for r in base.iter_rows(named=True):
         tg = team_game.get(int(r["team_id"]))
@@ -194,3 +214,55 @@ def _build_predictions(
             )
             summary.n_props_rows += 1
     return out
+
+
+def _routed_props(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    out_set: set[int],
+    n_sims: int,
+    summary: RunSummary,
+) -> list[ForwardPrediction]:
+    df = routed_prop_predictions(
+        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming], out_set,
+        n_sims=n_sims,
+    )  # fmt: skip
+    by_game = {g.game_id: g for g in upcoming}
+    summary.model_status[ROUTED_PROPS_MODEL_NAME] = (
+        f"{ROUTED_PROPS_VERSION} (n_sims={n_sims}; sim for cold/intermittent/erratic, "
+        "else season average)"
+    )
+    rows: list[ForwardPrediction] = []
+    for r in df.iter_rows(named=True):
+        g = by_game[str(r["game_id"])]
+        rows.append(
+            ForwardPrediction(
+                g.game_id,
+                g.tipoff,
+                ROUTED_PROPS_MODEL_NAME,
+                ROUTED_PROPS_VERSION,
+                str(r["stat"]),
+                {
+                    "mean": float(r["mean"]),
+                    "std": float(r["std"]),
+                    "family": str(r["dist_family"]),
+                    "dist_params": json.loads(r["dist_params"]),
+                    "p_ge": json.loads(r["p_ge"]),
+                    "q10": float(r["q10"]),
+                    "q50": float(r["q50"]),
+                    "q90": float(r["q90"]),
+                    "routed_to": str(r["model"]),
+                    "bucket": str(r["bucket"]),
+                    "mean_sim": r["mean_sim"],
+                    "mean_season_avg": float(r["mean_season_avg"]),
+                    "proj_minutes": float(r["proj_minutes"]),
+                    "n_games": int(r["n_games_prior"]),
+                    "n_sims": n_sims,
+                    "features_as_of_before": run_date.isoformat(),
+                },
+                player_id=int(r["player_id"]),
+            )
+        )
+        summary.n_props_rows += 1
+    return rows
