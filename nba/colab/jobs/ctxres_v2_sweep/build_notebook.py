@@ -33,7 +33,8 @@ Score locally: `uv run python -m nba.eval.ctxres_v2_eval --run <pulled run dir>`
 
 SETUP = """import os  # noqa: F811 (standalone setup cell; may run first)
 
-os.environ.setdefault("NBA_BUDGET", "full")  # "full" (default, strict: every arm must finish) or "fast"
+# "full" (default, strict: every arm must finish) or "fast"
+os.environ.setdefault("NBA_BUDGET", "full")
 print("BUDGET:", os.environ["NBA_BUDGET"])"""
 
 
