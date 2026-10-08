@@ -8,8 +8,13 @@ possession Monte Carlo as ``nba.sim.engine.simulate_game`` (same support/
 tilt machinery from ``nba.sim.possession_model``, same deterministic-given-
 seed contract) and additionally attributes every scoring possession's
 points to one on-court player via a shooter -> zone -> make/miss -> FT
-chain. Scope this milestone is **points only** (CLAUDE.md: rebounds/
-assists are a later milestone).
+chain, and additionally attributes **rebounds** (on every missed field
+goal, split between the shooting team's offensive-rebound propensity and
+the defending team's defensive-rebound propensity) and **assists** (on
+every made field goal, whether it was assisted at all via a team-level
+as-of rate, and if so, which on-court teammate gets credit, weighted by
+their as-of assist rate) to on-court players. See "Rebound attribution"
+and "Assist attribution" below for the exact design of each.
 
 ## Design: how player attribution stays consistent with the team-level sim
 
@@ -65,12 +70,55 @@ read a game's own outcome even by accident; the leakage boundary is
 entirely upstream, in the as-of feature builders
 (``nba.features.player_possession_features``) and ``nba.props.minutes``.
 See ``tests/ml/test_player_attribution.py::test_no_leakage_profiles_from_features``
-for the planted-future-game proof at the feature-assembly boundary.
+for the planted-future-game proof at the feature-assembly boundary. The
+rebound/assist rates (``PlayerSimProfile.orb_rate``/``drb_rate``/
+``ast_rate``) carry the identical as-of guarantee -- see
+``nba.features.player_rebound_assist_features`` module docstring and
+``tests/ml/test_player_rebound_assist_features.py`` for that boundary's
+own planted-future proof.
+
+## Rebound attribution
+
+On every simulated zero-point possession (outcome ``k == 0`` in the team-
+level support), some documented share (:data:`MISSED_FG_SHARE_OF_ZERO_OUTCOME`)
+is treated as a missed field-goal attempt (as opposed to a turnover, which
+also scores 0 points but creates no rebound chance) -- drawn via
+``rng.binomial`` per simulated game, not a fixed rounded fraction, so the
+missed-FGA count itself carries Monte Carlo noise like everything else in
+this module. Every one of those missed-FGA events is then assigned to
+exactly one of the 10 on-court players (the 5 shooting-team players,
+eligible for the offensive rebound via their ``orb_rate``, and the 5
+defending-team players, eligible for the defensive rebound via their
+``drb_rate``) via a single multinomial draw over all 10 -- see
+:func:`_attribute_rebounds`. Because every miss is assigned to exactly one
+of the 10 players, a team's total simulated rebounds equal (own misses'
+OREB share) + (opponent misses' DREB share), which is exactly how a real
+box score's team total-rebound count decomposes.
+
+## Assist attribution
+
+Reuses the exact same per-``k``, per-player multinomial draw the points
+head already performs (now returned alongside points by
+:func:`_attribute_points_and_makes`) to also get each simulated game's
+"how many field goals did player ``i`` make" count, restricted to
+``k >= 2`` (``k == 1`` is a lone free throw, not a field goal, and cannot
+be assisted). For each player's made-FG count, an independent
+``rng.binomial`` draw (weighted by the game's team-level
+``assisted_fg_rate``, see :func:`PlayerSimProfile`/``profiles_from_features``
+and ``nba.features.player_rebound_assist_features.LEAGUE_ASSISTED_FG_RATE_DEFAULT``)
+decides how many of those makes were assisted at all; the assisted ones are
+then distributed among that player's on-court **teammates only** -- the
+scorer's own weight is hard-zeroed before normalizing (see
+:func:`_normalized_weights_excluding_self`), not merely made unlikely --
+via a multinomial weighted by each teammate's ``ast_rate``. See
+``tests/ml/test_player_attribution.py::test_assists_never_go_to_the_scorer``
+for the resulting invariant.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import polars as pl
@@ -98,6 +146,29 @@ TEAM_MINUTES_PER_GAME = 240.0
 #: divide-by-zero.
 _WEIGHT_EPS = 1e-9
 
+#: Documented share of zero-point possessions (outcome ``k == 0`` in
+#: ``BASE_OUTCOME_SUPPORT``) treated as a missed field-goal attempt rather
+#: than a turnover, for the purpose of generating rebound chances. This
+#: schema's possessions table has no event-type split within the
+#: "0 points scored" bucket at the team-outcome-support granularity this
+#: engine samples from (see ``nba.sim.possession_model`` module docstring:
+#: the 0.4866 zero-point probability was computed by grouping on ``pts``
+#: only). 0.85 is a documented estimate, not fit to this project's own
+#: possession-level turnover/missed-FGA split -- a team's turnover rate is
+#: typically a smaller share of its possessions than its missed-FGA rate,
+#: so the bulk of the zero-point bucket is treated as misses. Replace with
+#: a value fit from ``possessions.outcome`` once that reconciliation pass
+#: is run (same documented-estimate spirit as every other hardcoded
+#: constant in this module/``nba.sim.possession_model``).
+MISSED_FG_SHARE_OF_ZERO_OUTCOME = 0.85
+
+#: Duplicated (not imported, same convention as ``_expected_ppp`` below)
+#: from ``nba.features.player_rebound_assist_features.
+#: LEAGUE_ASSISTED_FG_RATE_DEFAULT`` -- the fallback "fraction of made
+#: field goals that are assisted" when a caller doesn't pass a team's own
+#: as-of value.
+DEFAULT_ASSISTED_FG_RATE = 0.60
+
 
 @dataclass(frozen=True)
 class PlayerSimProfile:
@@ -118,6 +189,14 @@ class PlayerSimProfile:
     ft_trip_rate: float
     ft_pct: float
     projected_minutes: float  # NEVER this game's actual minutes -- see module docstring
+    # Rebound/assist rates (``nba.features.player_rebound_assist_features``).
+    # Defaulted (not required) so every existing points-only call site keeps
+    # working unchanged; a profile with the defaults simply contributes no
+    # rebounds/assists weight (falls back to the roster's uniform share via
+    # :func:`_normalized_weights` if every profile on a side is left at 0).
+    orb_rate: float = 0.0
+    drb_rate: float = 0.0
+    ast_rate: float = 0.0
 
 
 @dataclass
@@ -174,6 +253,10 @@ class PlayerGameSimResult:
     away: GameSimResult
     home_player_points: dict[int, EmpiricalPointsDist]
     away_player_points: dict[int, EmpiricalPointsDist]
+    home_player_rebounds: dict[int, EmpiricalPointsDist]
+    away_player_rebounds: dict[int, EmpiricalPointsDist]
+    home_player_assists: dict[int, EmpiricalPointsDist]
+    away_player_assists: dict[int, EmpiricalPointsDist]
     n_sims: int
     seed: int
 
@@ -266,23 +349,32 @@ def _sample_outcome_counts(
     return counts
 
 
-def _attribute_points(
+def _attribute_points_and_makes(
     outcome_counts: np.ndarray,
     support: np.ndarray,
     weights_by_k: dict[int, np.ndarray],
     n_players: int,
     rng: np.random.Generator,
-) -> np.ndarray:
-    """Per-sim, per-player point totals (shape ``(n_sims, n_players)``).
+) -> tuple[np.ndarray, np.ndarray]:
+    """Per-sim, per-player point totals AND made-field-goal counts (each
+    shape ``(n_sims, n_players)``).
 
     For every outcome value ``k`` with ``count > 0`` in some sims, draws a
     nested multinomial distributing those ``count`` k-point possessions
     across the roster, grouped by unique count value (same vectorization
-    pattern as :func:`_sample_outcome_counts`). The sum over players always
-    equals ``outcome_counts @ support`` exactly -- see module docstring.
+    pattern as :func:`_sample_outcome_counts`). The sum of the points
+    matrix over players always equals ``outcome_counts @ support`` exactly
+    -- see module docstring. The makes matrix accumulates the identical
+    per-event scorer draw for every ``k >= 2`` bucket (a made field goal;
+    ``k == 1`` is a lone free throw, not a field goal, and is excluded) --
+    reusing the SAME multinomial draw as the points matrix, not a second
+    independent one, so "who scored this bucket's points" and "who made
+    this field goal" are the same event, as they must be for assist
+    attribution (:func:`_attribute_assists`) to be a sane downstream step.
     """
     n_sims = outcome_counts.shape[0]
     player_points = np.zeros((n_sims, n_players), dtype=float)
+    player_makes = np.zeros((n_sims, n_players), dtype=float)
     for j, k in enumerate(support):
         k_int = int(k)
         if k_int <= 0:
@@ -299,7 +391,109 @@ def _attribute_points(
             group_size = int(mask.sum())
             assigned = rng.multinomial(int(c), probs_k, size=group_size)
             player_points[mask, :] += k_int * assigned
-    return player_points
+            if k_int >= 2:
+                player_makes[mask, :] += assigned
+    return player_points, player_makes
+
+
+def _normalized_weights_excluding_self(values: np.ndarray, exclude_idx: int) -> np.ndarray:
+    """Like :func:`_normalized_weights`, but player ``exclude_idx`` always
+    gets exactly 0 weight -- hard-zeroed before normalizing, not merely
+    made unlikely -- and the all-zero fallback is uniform across every
+    OTHER player, never including ``exclude_idx``. Used for assist
+    attribution so a player can never be drawn as their own assister
+    (CLAUDE.md risk-of-leakage-adjacent sanity: a model artifact that
+    "self-assists" would be an obvious correctness bug, not a leakage one,
+    but the test suite checks it with the same rigor).
+    """
+    values = np.clip(np.asarray(values, dtype=float), 0.0, None)
+    n = len(values)
+    values = values.copy()
+    values[exclude_idx] = 0.0
+    total = values.sum()
+    if total <= _WEIGHT_EPS:
+        if n <= 1:
+            return np.zeros(n)
+        fallback = np.full(n, 1.0 / (n - 1))
+        fallback[exclude_idx] = 0.0
+        return fallback
+    return np.asarray(values / total, dtype=float)
+
+
+def _attribute_rebounds(
+    missed_fga: np.ndarray,
+    off_profiles: list[PlayerSimProfile],
+    def_profiles: list[PlayerSimProfile],
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Distribute each sim's missed-FGA count between the shooting team's
+    offensive rebounders and the defending team's defensive rebounders.
+
+    Returns ``(off_rebounds, def_rebounds)``, shapes ``(n_sims, n_off)``
+    and ``(n_sims, n_def)``. Every missed-FGA event is assigned to exactly
+    one of the ``n_off + n_def`` on-court players via a single multinomial
+    draw over the concatenated ``[orb_rate_i for i in off] + [drb_rate_i
+    for i in def]`` weight vector (grouped by unique missed-FGA count,
+    same vectorization pattern as :func:`_sample_outcome_counts`) -- see
+    module docstring's "Rebound attribution" section.
+    """
+    n_sims = len(missed_fga)
+    n_off = len(off_profiles)
+    n_def = len(def_profiles)
+    off_reb = np.zeros((n_sims, n_off), dtype=float)
+    def_reb = np.zeros((n_sims, n_def), dtype=float)
+    off_w = np.array([max(p.orb_rate, 0.0) for p in off_profiles], dtype=float)
+    def_w = np.array([max(p.drb_rate, 0.0) for p in def_profiles], dtype=float)
+    probs = _normalized_weights(np.concatenate([off_w, def_w]))
+
+    missed_fga_int = np.asarray(missed_fga, dtype=np.int64)
+    unique_c, inverse = np.unique(missed_fga_int, return_inverse=True)
+    for i, c in enumerate(unique_c):
+        if c == 0:
+            continue
+        mask = inverse == i
+        group_size = int(mask.sum())
+        assigned = rng.multinomial(int(c), probs, size=group_size)
+        off_reb[mask, :] += assigned[:, :n_off]
+        def_reb[mask, :] += assigned[:, n_off:]
+    return off_reb, def_reb
+
+
+def _attribute_assists(
+    made_by_player: np.ndarray,
+    profiles: list[PlayerSimProfile],
+    assisted_fg_rate: float,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Per-sim, per-player assist totals (shape ``(n_sims, n_players)``),
+    given each player's made-field-goal counts for the same sims.
+
+    For every player ``i``'s made-FG count, an independent
+    ``rng.binomial(made_i, assisted_fg_rate)`` draw decides how many of
+    those makes were assisted at all; the assisted ones are distributed
+    among ``i``'s teammates (never ``i`` itself --
+    :func:`_normalized_weights_excluding_self`) weighted by ``ast_rate``.
+    See module docstring's "Assist attribution" section.
+    """
+    n_sims, n_players = made_by_player.shape
+    assists_received = np.zeros((n_sims, n_players), dtype=float)
+    ast_w = np.array([max(p.ast_rate, 0.0) for p in profiles], dtype=float)
+    rate = float(np.clip(assisted_fg_rate, 0.0, 1.0))
+    for i in range(n_players):
+        made_i = np.asarray(made_by_player[:, i], dtype=np.int64)
+        if made_i.sum() == 0:
+            continue
+        n_assisted_i = rng.binomial(made_i, rate)
+        probs = _normalized_weights_excluding_self(ast_w, i)
+        unique_c, inverse = np.unique(n_assisted_i, return_inverse=True)
+        for u, c in enumerate(unique_c):
+            if c == 0:
+                continue
+            mask = inverse == u
+            group_size = int(mask.sum())
+            assigned = rng.multinomial(int(c), probs, size=group_size)
+            assists_received[mask, :] += assigned
+    return assists_received
 
 
 def _expected_ppp(off_rtg: float, def_rtg: float, league_avg_ppp: float) -> float:
@@ -325,9 +519,16 @@ def simulate_game_with_players(
     seed: int = 0,
     pace_sd: float = DEFAULT_PACE_SD,
     home_ppp_bonus: float = DEFAULT_HOME_PPP_BONUS,
+    home_assisted_fg_rate: float = DEFAULT_ASSISTED_FG_RATE,
+    away_assisted_fg_rate: float = DEFAULT_ASSISTED_FG_RATE,
 ) -> PlayerGameSimResult:
     """Team possession sim (identical shape to ``nba.sim.engine.simulate_game``)
-    plus per-player points attribution. Deterministic given ``seed``.
+    plus per-player points, rebounds, and assists attribution. Deterministic
+    given ``seed``. ``home_assisted_fg_rate``/``away_assisted_fg_rate`` are
+    each team's as-of "fraction of made FG that are assisted" (see
+    ``nba.features.player_rebound_assist_features.assisted_fg_rate_prior``);
+    default to the documented league constant when a caller doesn't have a
+    team-specific as-of value yet (e.g. a brand-new team-season).
     """
     support = BASE_OUTCOME_SUPPORT
     rng = np.random.default_rng(seed)
@@ -381,55 +582,108 @@ def simulate_game_with_players(
 
     home_weights_by_k = _roster_weights_by_outcome(home_profiles, support)
     away_weights_by_k = _roster_weights_by_outcome(away_profiles, support)
-    home_player_points = _attribute_points(
+    home_player_points, home_player_makes = _attribute_points_and_makes(
         home_counts, support, home_weights_by_k, len(home_profiles), rng
     )
-    away_player_points = _attribute_points(
+    away_player_points, away_player_makes = _attribute_points_and_makes(
         away_counts, support, away_weights_by_k, len(away_profiles), rng
     )
 
-    home_dists = {
+    # Rebounds: split the documented share of each team's zero-point
+    # possessions (missed FGAs) between that team's offensive rebounders
+    # and the opponent's defensive rebounders -- see module docstring.
+    zero_idx = int(np.where(support == 0)[0][0])
+    home_missed_fga = rng.binomial(
+        home_counts[:, zero_idx].astype(np.int64), MISSED_FG_SHARE_OF_ZERO_OUTCOME
+    )
+    away_missed_fga = rng.binomial(
+        away_counts[:, zero_idx].astype(np.int64), MISSED_FG_SHARE_OF_ZERO_OUTCOME
+    )
+    home_oreb_from_own_miss, away_dreb_from_home_miss = _attribute_rebounds(
+        home_missed_fga, home_profiles, away_profiles, rng
+    )
+    away_oreb_from_own_miss, home_dreb_from_away_miss = _attribute_rebounds(
+        away_missed_fga, away_profiles, home_profiles, rng
+    )
+    home_player_rebounds = home_oreb_from_own_miss + home_dreb_from_away_miss
+    away_player_rebounds = away_oreb_from_own_miss + away_dreb_from_home_miss
+
+    # Assists: each team's own made-FG counts, assisted-or-not + assigned
+    # to a teammate per team's own as-of assisted-FG rate -- see module
+    # docstring.
+    home_player_assists = _attribute_assists(
+        home_player_makes, home_profiles, home_assisted_fg_rate, rng
+    )
+    away_player_assists = _attribute_assists(
+        away_player_makes, away_profiles, away_assisted_fg_rate, rng
+    )
+
+    home_point_dists = {
         p.player_id: EmpiricalPointsDist(home_player_points[:, i])
         for i, p in enumerate(home_profiles)
     }
-    away_dists = {
+    away_point_dists = {
         p.player_id: EmpiricalPointsDist(away_player_points[:, i])
+        for i, p in enumerate(away_profiles)
+    }
+    home_reb_dists = {
+        p.player_id: EmpiricalPointsDist(home_player_rebounds[:, i])
+        for i, p in enumerate(home_profiles)
+    }
+    away_reb_dists = {
+        p.player_id: EmpiricalPointsDist(away_player_rebounds[:, i])
+        for i, p in enumerate(away_profiles)
+    }
+    home_ast_dists = {
+        p.player_id: EmpiricalPointsDist(home_player_assists[:, i])
+        for i, p in enumerate(home_profiles)
+    }
+    away_ast_dists = {
+        p.player_id: EmpiricalPointsDist(away_player_assists[:, i])
         for i, p in enumerate(away_profiles)
     }
 
     return PlayerGameSimResult(
         home=home_result,
         away=away_result,
-        home_player_points=home_dists,
-        away_player_points=away_dists,
+        home_player_points=home_point_dists,
+        away_player_points=away_point_dists,
+        home_player_rebounds=home_reb_dists,
+        away_player_rebounds=away_reb_dists,
+        home_player_assists=home_ast_dists,
+        away_player_assists=away_ast_dists,
         n_sims=n_sims,
         seed=seed,
     )
 
 
-#: Points thresholds reported in the prop_predictions-shaped output below --
-#: mirrors ``nba.props.config.THRESHOLDS["pts"]`` (duplicated as a literal,
-#: not imported, to keep this module free of a hard dependency on
-#: ``nba/props`` beyond what callers choose to wire in themselves).
+#: Per-stat thresholds reported in the prop_predictions-shaped output below
+#: -- mirror ``nba.props.config.THRESHOLDS`` (duplicated as literals, not
+#: imported, to keep this module free of a hard dependency on ``nba/props``
+#: beyond what callers choose to wire in themselves).
 POINTS_THRESHOLDS: list[int] = [10, 15, 20, 25, 30]
+REBOUNDS_THRESHOLDS: list[int] = [2, 4, 6, 8, 10]
+ASSISTS_THRESHOLDS: list[int] = [2, 4, 6, 8]
 
 
-def player_points_prediction_rows(
+def _prediction_rows_for_stat(
     game_id: str,
-    result: PlayerGameSimResult,
-    thresholds: list[int] = POINTS_THRESHOLDS,
+    stat: str,
+    home_dists: dict[int, EmpiricalPointsDist],
+    away_dists: dict[int, EmpiricalPointsDist],
+    thresholds: list[int],
 ) -> list[dict[str, object]]:
-    """Per-player sim points summary in the ``prop_predictions`` shape
-    (CLAUDE.md data schema) -- the sim's version of a points prop. Plain
-    dicts (no DB write); callers that want rows in the actual
-    ``prop_predictions`` table should pass this through
+    """Shared row-builder behind every ``player_*_prediction_rows`` function
+    below -- one ``prop_predictions``-shaped (CLAUDE.md data schema) dict
+    per (side, player). Plain dicts (no DB write); callers that want rows in
+    the actual ``prop_predictions`` table should pass this through
     ``nba.props.run.write_prop_predictions``-style insertion themselves
     (this module stays DB-free, consistent with its no-leakage design).
     """
     import json
 
     rows: list[dict[str, object]] = []
-    for side, dists in (("home", result.home_player_points), ("away", result.away_player_points)):
+    for side, dists in (("home", home_dists), ("away", away_dists)):
         for player_id, dist in dists.items():
             p_ge = {str(th): dist.p_ge(float(th)) for th in thresholds}
             rows.append(
@@ -437,7 +691,7 @@ def player_points_prediction_rows(
                     "game_id": game_id,
                     "player_id": player_id,
                     "side": side,
-                    "stat": "pts",
+                    "stat": stat,
                     "mean": dist.mean(),
                     "dist_family": dist.family,
                     "dist_params": json.dumps(dist.params()),
@@ -450,10 +704,50 @@ def player_points_prediction_rows(
     return rows
 
 
+def player_points_prediction_rows(
+    game_id: str,
+    result: PlayerGameSimResult,
+    thresholds: list[int] = POINTS_THRESHOLDS,
+) -> list[dict[str, object]]:
+    """Per-player sim points summary in the ``prop_predictions`` shape --
+    the sim's version of a points prop. See :func:`_prediction_rows_for_stat`.
+    """
+    return _prediction_rows_for_stat(
+        game_id, "pts", result.home_player_points, result.away_player_points, thresholds
+    )
+
+
+def player_rebounds_prediction_rows(
+    game_id: str,
+    result: PlayerGameSimResult,
+    thresholds: list[int] = REBOUNDS_THRESHOLDS,
+) -> list[dict[str, object]]:
+    """Per-player sim rebounds summary in the ``prop_predictions`` shape --
+    the sim's version of a rebounds prop. See :func:`_prediction_rows_for_stat`.
+    """
+    return _prediction_rows_for_stat(
+        game_id, "reb", result.home_player_rebounds, result.away_player_rebounds, thresholds
+    )
+
+
+def player_assists_prediction_rows(
+    game_id: str,
+    result: PlayerGameSimResult,
+    thresholds: list[int] = ASSISTS_THRESHOLDS,
+) -> list[dict[str, object]]:
+    """Per-player sim assists summary in the ``prop_predictions`` shape --
+    the sim's version of an assists prop. See :func:`_prediction_rows_for_stat`.
+    """
+    return _prediction_rows_for_stat(
+        game_id, "ast", result.home_player_assists, result.away_player_assists, thresholds
+    )
+
+
 def profiles_from_features(
     shot_rates: pl.DataFrame,
     projected_minutes: dict[int, float],
     player_ids: list[int],
+    reb_ast_rates: pl.DataFrame | None = None,
 ) -> list[PlayerSimProfile]:
     """Assemble :class:`PlayerSimProfile` rows for one game from already-
     computed as-of feature frames.
@@ -463,10 +757,17 @@ def profiles_from_features(
     output (already as-of by construction -- see that module); keyed by
     ``player_id``. ``projected_minutes`` maps ``player_id -> projected
     (never actual) minutes`` for this game, typically
-    ``nba.props.minutes.predict_minutes(...)[i].mean()``. Any
-    ``player_id`` in ``player_ids`` missing from ``shot_rates`` gets the
-    league-wide default rates (brand-new player, zero as-of history) rather
-    than being silently dropped.
+    ``nba.props.minutes.predict_minutes(...)[i].mean()``. ``reb_ast_rates``
+    is optionally one game's slice of
+    ``nba.features.player_rebound_assist_features.build_player_reb_ast_rates``'s
+    output (same as-of guarantee); when omitted (the default), every
+    profile's ``orb_rate``/``drb_rate``/``ast_rate`` stay at the dataclass
+    default of 0.0 (no rebound/assist weight -- callers who only care about
+    points, e.g. existing call sites predating this feature, are
+    unaffected). Any ``player_id`` in ``player_ids`` missing from
+    ``shot_rates`` (or, if given, ``reb_ast_rates``) gets the league-wide
+    default rates (brand-new player, zero as-of history) rather than being
+    silently dropped.
     """
     from nba.features.player_possession_features import (
         LEAGUE_FT_PCT_DEFAULT,
@@ -475,12 +776,36 @@ def profiles_from_features(
         LEAGUE_ZONE_FG_PCT_DEFAULT,
         LEAGUE_ZONE_MIX_DEFAULT,
     )
+    from nba.features.player_rebound_assist_features import (
+        LEAGUE_AST_RATE_DEFAULT,
+        LEAGUE_DRB_RATE_DEFAULT,
+        LEAGUE_ORB_RATE_DEFAULT,
+    )
 
     by_player = {int(row["player_id"]): row for row in shot_rates.iter_rows(named=True)}
+    reb_ast_by_player: dict[int, dict[str, Any]] = {}
+    if reb_ast_rates is not None:
+        reb_ast_by_player = {
+            int(row["player_id"]): row for row in reb_ast_rates.iter_rows(named=True)
+        }
+
+    def _reb_ast_rates(pid: int) -> tuple[float, float, float]:
+        row = reb_ast_by_player.get(int(pid))
+        if row is None:
+            return (LEAGUE_ORB_RATE_DEFAULT, LEAGUE_DRB_RATE_DEFAULT, LEAGUE_AST_RATE_DEFAULT)
+        return (
+            float(row["orb_rate_prior"]),
+            float(row["drb_rate_prior"]),
+            float(row["ast_rate_prior"]),
+        )
+
     profiles = []
     for pid in player_ids:
         row = by_player.get(int(pid))
         mins = float(projected_minutes.get(pid, 0.0))
+        orb_rate, drb_rate, ast_rate = (
+            _reb_ast_rates(pid) if reb_ast_rates is not None else (0.0, 0.0, 0.0)
+        )
         if row is None:
             profiles.append(
                 PlayerSimProfile(
@@ -499,6 +824,9 @@ def profiles_from_features(
                     ft_trip_rate=LEAGUE_FT_TRIP_RATE_DEFAULT,
                     ft_pct=LEAGUE_FT_PCT_DEFAULT,
                     projected_minutes=mins,
+                    orb_rate=orb_rate,
+                    drb_rate=drb_rate,
+                    ast_rate=ast_rate,
                 )
             )
             continue
@@ -519,18 +847,27 @@ def profiles_from_features(
                 ft_trip_rate=float(row["ft_trip_rate_prior"]),
                 ft_pct=float(row["ft_pct_prior"]),
                 projected_minutes=mins,
+                orb_rate=orb_rate,
+                drb_rate=drb_rate,
+                ast_rate=ast_rate,
             )
         )
     return profiles
 
 
 __all__ = [
+    "ASSISTS_THRESHOLDS",
+    "DEFAULT_ASSISTED_FG_RATE",
+    "MISSED_FG_SHARE_OF_ZERO_OUTCOME",
     "POINTS_THRESHOLDS",
+    "REBOUNDS_THRESHOLDS",
     "TEAM_MINUTES_PER_GAME",
     "EmpiricalPointsDist",
     "PlayerGameSimResult",
     "PlayerSimProfile",
+    "player_assists_prediction_rows",
     "player_points_prediction_rows",
+    "player_rebounds_prediction_rows",
     "profiles_from_features",
     "simulate_game_with_players",
 ]
