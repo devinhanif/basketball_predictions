@@ -17,20 +17,26 @@ current game's own shots/minutes never contribute to its own feature row.
 See ``tests/ml/test_player_possession_features_no_leakage.py`` for the
 planted-future-game proof.
 
-DATA REALITY CHECK (both documented limitations, not bugs):
+SHOT-SHARE DENOMINATOR (``use_oncourt_usage``, A/B-decided, defaults OFF):
 
-1. ``possessions.off_players``/``def_players`` (the actual 5-man lineup on
-   court) is **always NULL** in the real ingested DB today (the lineup
-   parser is a separate, not-yet-built milestone) -- confirmed by directly
-   querying ``nba.duckdb`` read-only. "Fraction of team shot attempts while
-   on court" therefore cannot be computed possession-by-possession; this
-   module uses the documented proxy CLAUDE.md allows elsewhere for the same
-   reason (see ``nba.features.player_features`` module docstring): a
-   player's shot-share denominator is their *team's* total field-goal
-   attempts in every game that player actually appeared in (per
-   ``player_game_stats``), not a true on-court-only possession count.
-   Replace with a true on-court denominator once the lineup parser lands.
-2. ``players_static.position`` is **empty** in the real ingested DB today
+The lineup parser has since landed -- ``possessions.off_players`` is now
+populated for ~100% of possessions -- so a TRUE on-court shot-share
+denominator (team FGA taken while the player was on the floor) is now
+computable and is wired in behind ``use_oncourt_usage``. It was A/B'd head-
+to-head against the original whole-game proxy (player FGA / team's total FGA
+over games the player appeared in) on the real sim points eval (15,350
+player-games): the proxy TIES season-average (CRPS delta +0.008, CI
+includes 0) while on-court usage is markedly WORSE (CRPS delta +0.398, CI
+excludes 0). The proxy already captures usage well; the cleaner
+usage x availability decomposition over-concentrates the shot distribution
+once renormalized across the on-court five. So the flag defaults OFF and the
+proxy is the shipped path; the on-court machinery is retained for the
+lineup-mix / usage-redistribution experiments that need per-possession
+on-court data for a different reason. DOCUMENTED, not a bug.
+
+DATA REALITY CHECK (documented limitation, not a bug):
+
+1. ``players_static.position`` is **empty** in the real ingested DB today
    (that ingest hasn't run yet). The position-level prior below degrades
    gracefully to a single ``"UNK"`` bucket -- i.e. a league-wide prior --
    when no position data exists, which is mathematically identical to a
@@ -140,12 +146,29 @@ shot_agg AS (
     GROUP BY 1, 2, 3
 ),
 team_fga AS (
-    -- Team's total FGA for the game -- the shot-share denominator proxy
-    -- (see module docstring point 1: no real on-court lineup data yet).
+    -- Team's total FGA for the game -- the whole-game shot-share denominator
+    -- proxy (see module docstring "SHOT-SHARE DENOMINATOR"). Used when
+    -- ``use_oncourt_usage`` is off (the A/B-selected default).
     SELECT game_id, off_team AS team_id, COUNT(*) AS team_n_fga
     FROM possessions
     WHERE outcome IN ('FGM2', 'FGM3', 'FGA_miss')
     GROUP BY 1, 2
+),
+oncourt_fga AS (
+    -- Team FGA taken while this player was ON THE FLOOR on offense -- the
+    -- TRUE on-court usage denominator, now that possessions.off_players is
+    -- populated (lineup parser landed). Unnests the offensive 5-man lineup
+    -- per FG-attempt possession and counts attempts per on-court player, so
+    -- shot_share becomes "share of team shots while I'm on court" rather
+    -- than "share of the whole game's team shots". Used when
+    -- ``use_oncourt_usage`` is on. Null-lineup possessions are skipped.
+    SELECT game_id, off_team AS team_id, oc.player_id AS player_id,
+           COUNT(*) AS oncourt_team_fga
+    FROM possessions,
+         UNNEST(off_players::INTEGER[]) AS oc(player_id)
+    WHERE outcome IN ('FGM2', 'FGM3', 'FGA_miss')
+      AND off_players IS NOT NULL
+    GROUP BY 1, 2, 3
 ),
 per_game AS (
     SELECT
@@ -163,6 +186,7 @@ per_game AS (
         COALESCE(sa.n_above3_fga, 0) AS n_above3_fga,
         COALESCE(sa.n_above3_made, 0) AS n_above3_made,
         COALESCE(tf.team_n_fga, 0) AS team_n_fga,
+        COALESCE(oc.oncourt_team_fga, 0) AS oncourt_team_fga,
         COALESCE(pgs.fta, 0) AS fta,
         COALESCE(pgs.ftm, 0) AS ftm
     FROM player_game_stats pgs
@@ -170,6 +194,7 @@ per_game AS (
     LEFT JOIN players_static ps ON ps.player_id = pgs.player_id
     LEFT JOIN shot_agg sa ON sa.game_id = pgs.game_id AND sa.player_id = pgs.player_id
     LEFT JOIN team_fga tf ON tf.game_id = pgs.game_id AND tf.team_id = pgs.team_id
+    LEFT JOIN oncourt_fga oc ON oc.game_id = pgs.game_id AND oc.player_id = pgs.player_id
 ),
 player_prior AS (
     SELECT
@@ -190,6 +215,8 @@ player_prior AS (
             AS n_above3_made_prior,
         SUM(team_n_fga) OVER (PARTITION BY player_id ORDER BY game_date, game_id {_WINDOW})
             AS team_n_fga_prior,
+        SUM(oncourt_team_fga) OVER (PARTITION BY player_id ORDER BY game_date, game_id {_WINDOW})
+            AS oncourt_team_fga_prior,
         SUM(fta) OVER (PARTITION BY player_id ORDER BY game_date, game_id {_WINDOW})
             AS fta_prior,
         SUM(ftm) OVER (PARTITION BY player_id ORDER BY game_date, game_id {_WINDOW})
@@ -199,7 +226,7 @@ player_prior AS (
 position_prior AS (
     -- Pooled as-of prior across every player sharing a position (degrades
     -- to one league-wide "UNK" bucket when no position data exists -- see
-    -- module docstring point 2). Ordered by (game_date, game_id, player_id)
+    -- module docstring point 1). Ordered by (game_date, game_id, player_id)
     -- for a deterministic total order within the position partition, same
     -- convention as nba.features.possession_features's league prior.
     SELECT
@@ -227,6 +254,9 @@ position_prior AS (
         SUM(team_n_fga) OVER (
             PARTITION BY position ORDER BY game_date, game_id, player_id {_WINDOW}
         ) AS pos_team_n_fga_prior,
+        SUM(oncourt_team_fga) OVER (
+            PARTITION BY position ORDER BY game_date, game_id, player_id {_WINDOW}
+        ) AS pos_oncourt_team_fga_prior,
         SUM(fta) OVER (PARTITION BY position ORDER BY game_date, game_id, player_id {_WINDOW})
             AS pos_fta_prior,
         SUM(ftm) OVER (PARTITION BY position ORDER BY game_date, game_id, player_id {_WINDOW})
@@ -238,11 +268,11 @@ SELECT
     pp.n_fga_prior, pp.n_rim_fga_prior, pp.n_rim_made_prior,
     pp.n_mid_fga_prior, pp.n_mid_made_prior,
     pp.n_above3_fga_prior, pp.n_above3_made_prior,
-    pp.team_n_fga_prior, pp.fta_prior, pp.ftm_prior,
+    pp.team_n_fga_prior, pp.oncourt_team_fga_prior, pp.fta_prior, pp.ftm_prior,
     pos.pos_n_fga_prior, pos.pos_n_rim_fga_prior, pos.pos_n_rim_made_prior,
     pos.pos_n_mid_fga_prior, pos.pos_n_mid_made_prior,
     pos.pos_n_above3_fga_prior, pos.pos_n_above3_made_prior,
-    pos.pos_team_n_fga_prior, pos.pos_fta_prior, pos.pos_ftm_prior
+    pos.pos_team_n_fga_prior, pos.pos_oncourt_team_fga_prior, pos.pos_fta_prior, pos.pos_ftm_prior
 FROM player_prior pp
 JOIN position_prior pos USING (game_id, player_id)
 ORDER BY pp.game_date, pp.game_id, pp.player_id
@@ -253,14 +283,24 @@ def _safe_ratio(num: pl.Expr, den: pl.Expr, default: float) -> pl.Expr:
     return pl.when(den > 0).then(num / den).otherwise(pl.lit(default))
 
 
-def build_player_shot_rates(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+def build_player_shot_rates(
+    con: duckdb.DuckDBPyConnection, use_oncourt_usage: bool = False
+) -> pl.DataFrame:
     """One row per (game, player): strictly as-of, shrinkage-blended shot rates.
 
     See module docstring for the exact no-leakage window discipline, the
-    two documented data-reality proxies (no on-court lineup data, no
-    position data yet), and the shrinkage design (player rate -> position
+    position-data proxy, and the shrinkage design (player rate -> position
     prior -> hardcoded league constant, via
     ``nba.coldstart.shrinkage.shrink_rate`` at each stage).
+
+    ``use_oncourt_usage``: when True, the shot-share denominator is the
+    team's FGA *while the player was on the floor* (from the now-populated
+    ``possessions.off_players`` lineups) rather than the whole-game team FGA
+    proxy. This cleanly separates on-court usage intensity from availability
+    (the attribution step already multiplies by projected-minutes
+    availability), the usage x minutes decomposition CLAUDE.md calls for.
+    Defaults to False (the original proxy) so the choice is made by the A/B
+    backtest, not by assumption.
     """
     con.execute(_PLAYER_SHOT_RATES_SQL)
     columns = [d[0] for d in con.description]
@@ -274,6 +314,7 @@ def build_player_shot_rates(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         "n_above3_fga_prior",
         "n_above3_made_prior",
         "team_n_fga_prior",
+        "oncourt_team_fga_prior",
         "fta_prior",
         "ftm_prior",
         "pos_n_fga_prior",
@@ -284,6 +325,7 @@ def build_player_shot_rates(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         "pos_n_above3_fga_prior",
         "pos_n_above3_made_prior",
         "pos_team_n_fga_prior",
+        "pos_oncourt_team_fga_prior",
         "pos_fta_prior",
         "pos_ftm_prior",
     }
@@ -303,10 +345,18 @@ def build_player_shot_rates(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         )
     df = df.with_columns([pl.col(c).fill_null(0.0) for c in int_cols])
 
+    # Shot-share denominator: whole-game team FGA (proxy) or on-court team
+    # FGA (true usage), chosen by the flag. Everything else is identical so
+    # the A/B isolates exactly this one modeling choice.
+    share_den_col = "oncourt_team_fga_prior" if use_oncourt_usage else "team_n_fga_prior"
+    pos_share_den_col = (
+        "pos_oncourt_team_fga_prior" if use_oncourt_usage else "pos_team_n_fga_prior"
+    )
+
     # Stage 1: position-level prior rates (fall back to the hardcoded
     # league constant when the position bucket itself has 0 observations).
     pos_shot_share = _safe_ratio(
-        pl.col("pos_n_fga_prior"), pl.col("pos_team_n_fga_prior"), LEAGUE_SHOT_SHARE_DEFAULT
+        pl.col("pos_n_fga_prior"), pl.col(pos_share_den_col), LEAGUE_SHOT_SHARE_DEFAULT
     )
     pos_zone_mix = {
         z: _safe_ratio(
@@ -340,7 +390,7 @@ def build_player_shot_rates(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     )
 
     # Stage 2: player's own observed rate, shrunk toward the position prior.
-    shot_share_obs = _safe_ratio(pl.col("n_fga_prior"), pl.col("team_n_fga_prior"), 0.0)
+    shot_share_obs = _safe_ratio(pl.col("n_fga_prior"), pl.col(share_den_col), 0.0)
     ft_trip_rate_obs = _safe_ratio(pl.col("fta_prior"), pl.col("n_fga_prior"), 0.0)
     ft_pct_obs = _safe_ratio(pl.col("ftm_prior"), pl.col("fta_prior"), 0.0)
     zone_mix_obs = {
@@ -360,13 +410,16 @@ def build_player_shot_rates(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         ]
     )
 
-    team_n_fga_prior = df.get_column("team_n_fga_prior").to_numpy()
     n_fga_prior = df.get_column("n_fga_prior").to_numpy()
     fta_prior = df.get_column("fta_prior").to_numpy()
+    # Sample-size weight for the shot-share shrinkage matches its denominator:
+    # observed on-court (or whole-game) team FGA the player's share is drawn
+    # from -- more observed attempts -> trust the observed share more.
+    share_weight = df.get_column(share_den_col).to_numpy()
 
     shot_share_shrunk = shrink_rate(
         df.get_column("_shot_share_obs").to_numpy(),
-        team_n_fga_prior,
+        share_weight,
         df.get_column("_pos_shot_share").to_numpy(),
         SHOT_SHARE_PSEUDO_COUNT,
     )

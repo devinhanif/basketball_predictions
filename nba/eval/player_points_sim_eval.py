@@ -96,6 +96,7 @@ def run_sim_vs_baseline_eval(
     seed: int = 0,
     n_boot: int = 500,
     max_games: int | None = None,
+    use_oncourt_usage: bool = False,
 ) -> SimPlayerPointsEvalResult:
     """Run the possession sim's per-player points predictions for every game
     with a box score and score them against actuals + the season-average
@@ -105,7 +106,7 @@ def run_sim_vs_baseline_eval(
     pass on the real DB without committing to the full run.
     """
     team_rates = build_team_possession_rates(con)
-    shot_rates = build_player_shot_rates(con)
+    shot_rates = build_player_shot_rates(con, use_oncourt_usage=use_oncourt_usage)
     minutes_feats = build_minutes_features(con)
     minutes_dists = predict_minutes(minutes_feats)
     minutes_proj = minutes_feats.select(["game_id", "player_id"]).with_columns(
