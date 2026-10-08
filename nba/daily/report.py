@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import duckdb
 import numpy as np
@@ -60,6 +61,37 @@ def _fmt(ci: ClusterCI, d: int = 4) -> str:
     return f"{ci.point:.{d}f} [{ci.lo:.{d}f}, {ci.hi:.{d}f}] (n={ci.n}, dates={ci.n_clusters})"
 
 
+INJURY_MODEL = "rung0_injury_elo"
+BASE_MODEL = "rung0_mov_elo"
+
+
+def _paired_win_section(win: list[tuple[Any, ...]]) -> list[str]:
+    """Paired injury-Elo minus MOV-Elo log loss / Brier on games scored by BOTH
+    (games that fell back to MOV-Elo have no injury row and are excluded;
+    the exclusion count is reported). Negative = injury-Elo better."""
+    inj = {r[0]: r for r in win if r[4] == INJURY_MODEL}
+    base = {r[0]: r for r in win if r[4] == BASE_MODEL}
+    both = sorted(set(inj) & set(base), key=str)
+    lines = ["", f"### Paired: {INJURY_MODEL} minus {BASE_MODEL} (negative = injury better)"]
+    lines.append(
+        f"- games scored by both: {len(both)}; mov_elo-only (no usable report -> fallback): "
+        f"{len(set(base) - set(inj))}"
+    )
+    if not both:
+        lines.append("- no paired games yet.")
+        return lines
+    d = np.array([str(base[g][1]) for g in both])
+    dll = np.array([inj[g][2] - base[g][2] for g in both], dtype=float)
+    dbr = np.array([inj[g][3] - base[g][3] for g in both], dtype=float)
+    lines += [
+        f"- delta log loss: {_fmt(cluster_bootstrap_mean(dll, d), 5)}",
+        f"- delta Brier: {_fmt(cluster_bootstrap_mean(dbr, d), 5)}",
+    ]
+    if len(both) < 100:
+        lines.append(f"- CAUTION: only {len(both)} paired games; no claim either way yet.")
+    return lines
+
+
 def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -> str:
     ensure_tables(con)
     n_games, trigger = rollover_status(con)
@@ -76,7 +108,7 @@ def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -
         )
     lines.append("")
     win = con.execute(
-        "SELECT game_date, log_loss, brier, model_name, version FROM forward_scores "
+        "SELECT game_id, game_date, log_loss, brier, model_name, version FROM forward_scores "
         "WHERE season = ? AND target = 'win_prob_home' AND status = 'scored'",
         [season],
     ).fetchall()
@@ -84,18 +116,23 @@ def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -
     if not win:
         lines.append("No settled forward win predictions yet.")
     else:
-        d = np.array([str(r[0]) for r in win])
-        ll = np.array([r[1] for r in win], dtype=float)
-        br = np.array([r[2] for r in win], dtype=float)
-        lines += [
-            f"- models: {sorted({(r[3], r[4]) for r in win})}",
-            f"- log loss: {_fmt(cluster_bootstrap_mean(ll, d))}",
-            f"- Brier: {_fmt(cluster_bootstrap_mean(br, d))}",
-            f"- log loss minus naive p=0.5 ({NAIVE_LOG_LOSS:.4f}): "
-            f"{_fmt(cluster_bootstrap_mean(ll - NAIVE_LOG_LOSS, d))}",
-        ]
-        if len(win) < 100:
-            lines.append(f"- CAUTION: only {len(win)} settled games; CIs are very wide.")
+        for name in sorted({r[4] for r in win}):
+            sub = [r for r in win if r[4] == name]
+            d = np.array([str(r[1]) for r in sub])
+            ll = np.array([r[2] for r in sub], dtype=float)
+            br = np.array([r[3] for r in sub], dtype=float)
+            lines += [
+                f"### {name} {sorted({r[5] for r in sub})}",
+                f"- log loss: {_fmt(cluster_bootstrap_mean(ll, d))}",
+                f"- Brier: {_fmt(cluster_bootstrap_mean(br, d))}",
+                f"- log loss minus naive p=0.5 ({NAIVE_LOG_LOSS:.4f}): "
+                f"{_fmt(cluster_bootstrap_mean(ll - NAIVE_LOG_LOSS, d))}",
+            ]
+        lines += _paired_win_section(win)
+        if len({r[0] for r in win}) < 100:
+            lines.append(
+                f"- CAUTION: only {len({r[0] for r in win})} settled games; CIs are very wide."
+            )
     lines += ["", "## Props (normal CRPS, lower is better)"]
     props = con.execute(
         "SELECT target, game_date, crps, y, pred FROM forward_scores "

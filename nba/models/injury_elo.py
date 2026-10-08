@@ -48,8 +48,9 @@ from __future__ import annotations
 
 import datetime as dt
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import duckdb
 import numpy as np
@@ -265,6 +266,9 @@ def build_injury_features(
     games: pl.DataFrame,
     stats: pl.DataFrame,
     cfg: InjuryFeatureConfig,
+    *,
+    report_rows: pl.DataFrame | None = None,
+    with_oracle: bool = True,
 ) -> pl.DataFrame:
     """One row per game: official-report and oracle injury-value differentials.
 
@@ -272,6 +276,8 @@ def build_injury_features(
     home), n_rot_out (rotation players flagged OUT, both teams), has_report,
     report_as_of (snapshot used), d_oracle (ORACLE, post-hoc box-score DNPs).
     ``con`` must expose ``cfg.report_table`` (e.g. an ATTACHed backfill).
+    ``report_rows`` (optional) replaces the table read; ``with_oracle=False``
+    skips the post-hoc oracle (d_oracle = 0). Defaults keep old behavior.
     """
     state = build_value_state(stats, cfg.value)
     league = league_rate_by_date(stats)
@@ -289,7 +295,7 @@ def build_injury_features(
         lead_minutes=cfg.lead_minutes,
         table=cfg.report_table,
     )
-    rows = load_report_rows(con, base, game_ids=gids)
+    rows = load_report_rows(con, base, game_ids=gids) if report_rows is None else report_rows
     out_flag, used = latest_pretip_flagged(rows, base)
     dbt_cfg = ReportTriggerConfig(
         statuses=("doubtful",),
@@ -340,7 +346,7 @@ def build_injury_features(
     for (gid, _team), pids in rot.items():
         n_rot[gid] = n_rot.get(gid, 0) + len(pids)
 
-    oracle = _oracle_diff(stats, state, league, games, cfg.value)
+    oracle = _oracle_diff(stats, state, league, games, cfg.value) if with_oracle else {}
 
     out_rows = []
     for gid in gids:
@@ -527,3 +533,133 @@ class InjuryEloModel(RungModelBase):
             "feature_cols": list(self.feature_cols),
             "coef": [float(c) for c in self.coef_],
         }
+
+
+# --------------------------------------------------------------------------
+# Forward (live) prediction
+# --------------------------------------------------------------------------
+
+_ET = ZoneInfo("America/New_York")
+_NO_CUTOFF_HOURS = 72.0  # disables the proxy-tip filter (real tip filter applied first)
+
+
+def _utc_to_et_naive(ts: dt.datetime) -> dt.datetime:
+    return ts.replace(tzinfo=dt.UTC).astimezone(_ET).replace(tzinfo=None)
+
+
+def predict_games(
+    con: duckdb.DuckDBPyConnection,
+    as_of_ts: dt.datetime,
+    games: pl.DataFrame,
+    report_rows: pl.DataFrame,
+    *,
+    elo_params: dict[str, float],
+    cfg: InjuryFeatureConfig | None = None,
+    ridge_lambda: float = 5.0,
+    min_signal_games: int = 150,
+) -> pl.DataFrame:
+    """Forward win probabilities for upcoming ``games`` (leak-free, stateless).
+
+    ``as_of_ts``: naive UTC "now". ``games``: game_id, game_date (Date),
+    home_team, away_team, tipoff (naive UTC; null = unknown). ``report_rows``:
+    game_id, player_id, status, as_of (naive US-Eastern, the report clock),
+    as in :func:`nba.sim.usage_redistribution.load_report_rows`.
+
+    Leakage rules: (1) a report row counts for a game only if
+    ``as_of <= real tip-off - lead_minutes`` and ``as_of <= now``; (2) Elo
+    ratings, player values and the ridge coefficients ``(b, g)`` use only
+    games with ``game_date < min(games.game_date)``; the coefficients are
+    refit from scratch on that history on every call (month-block walk-forward
+    would use the same data), so nothing stale or future can be carried.
+    Games with no usable report fall back to MOV-Elo (``primary_model``).
+    """
+    cfg = cfg or InjuryFeatureConfig()
+    cutoff = games["game_date"].min()
+    hist = con.execute(
+        "SELECT game_id, game_date, season, home_team, away_team, home_pts, away_pts "
+        "FROM games WHERE game_date < ? AND home_pts > 0 AND away_pts > 0 "
+        "ORDER BY game_date, game_id",
+        [cutoff],
+    ).pl()
+    stats = con.execute(
+        "SELECT s.player_id, s.team_id, g.game_id, g.game_date, COALESCE(s.minutes,0) AS minutes, "
+        "COALESCE(s.pts,0)+COALESCE(s.reb,0)+COALESCE(s.ast,0)+COALESCE(s.stl,0)"
+        "+COALESCE(s.blk,0)-COALESCE(s.tov,0) AS comp "
+        "FROM player_game_stats s JOIN games g ON g.game_id = s.game_id WHERE g.game_date < ?",
+        [cutoff],
+    ).pl()
+
+    # coefficients: history only (proxy-tip features, same as the walk-forward eval)
+    coef = np.zeros(len(FEATURE_COLS))
+    n_signal = 0
+    if hist.height:
+        hist = hist.with_columns(
+            (pl.col("home_pts") > pl.col("away_pts")).cast(pl.Int64).alias("y")
+        )
+        feats = build_injury_features(con, hist, stats, cfg, with_oracle=False)
+        fr = hist.join(feats, on="game_id", how="left").sort(["game_date", "game_id"])
+        x = fr.select(list(FEATURE_COLS)).fill_null(0.0).to_numpy()
+        n_signal = int((np.abs(x).sum(axis=1) > 0).sum())
+        if n_signal >= min_signal_games:
+            offset = sequential_elo_logits(fr, elo_params)
+            coef = fit_injury_coefs(x, offset, fr["y"].to_numpy().astype(float), ridge_lambda)
+
+    # Elo state for the forward games (season-boundary regression if needed)
+    elo = MovEloBaseline(seed=0, **elo_params)
+    if hist.height:
+        elo.fit(hist, hist["y"].to_numpy())
+        if int(hist["season"].max()) < int(games["season"].max()):  # type: ignore[arg-type]
+            elo._regress_ratings_to_mean()
+    p_mov = np.asarray(elo.predict(games.select(["home_team", "away_team"])), dtype=float)
+
+    # report rows: real tip-off cutoff per game
+    now_et = _utc_to_et_naive(as_of_ts)
+    tips = {
+        str(g): (_utc_to_et_naive(t) if t is not None else None)
+        for g, t in games.select(["game_id", "tipoff"]).iter_rows()
+    }
+    lead = dt.timedelta(minutes=cfg.lead_minutes)
+    keep: list[bool] = []
+    for gid, asof in report_rows.select(["game_id", "as_of"]).iter_rows():
+        tip = tips.get(str(gid))
+        keep.append(tip is not None and asof <= tip - lead and asof <= now_et)
+    usable = (
+        report_rows.filter(pl.Series(keep, dtype=pl.Boolean)) if report_rows.height else report_rows
+    )
+    fcfg = replace(cfg, tipoff_hour_et=_NO_CUTOFF_HOURS, lead_minutes=0)
+    fgames = games.select(["game_id", "game_date", "home_team", "away_team"])
+    ff = build_injury_features(
+        con, fgames, stats, fcfg, report_rows=usable.select(
+            ["game_id", "player_id", "status", "as_of", "game_date"]
+        ) if usable.height else usable, with_oracle=False,
+    )  # fmt: skip
+    fdf = (
+        games.select(["game_id"])
+        .with_columns(pl.Series("p_mov_elo", p_mov))
+        .join(
+            ff.select(["game_id", "d_out", "d_doubt", "has_report", "report_as_of"]),
+            on="game_id",
+            how="left",
+        )
+    )
+    xf = fdf.select(list(FEATURE_COLS)).to_numpy()
+    logit = np.log(p_mov / (1.0 - p_mov))
+    p_inj = clip_prob(sigmoid(logit + xf @ coef))
+    has = fdf["has_report"].to_list()
+    reasons: list[str | None] = []
+    for gid, h in zip(fdf["game_id"].to_list(), has, strict=True):
+        if h:
+            reasons.append(None)
+        elif tips.get(str(gid)) is None:
+            reasons.append("unknown_tipoff")
+        else:
+            reasons.append("no_report_published_by_tipoff_minus_lead")
+    return fdf.with_columns(
+        pl.Series("p_injury_elo", p_inj),
+        pl.Series("primary_model", ["rung0_injury_elo" if h else "rung0_mov_elo" for h in has]),
+        pl.Series("fallback_reason", reasons, dtype=pl.Utf8),
+        pl.lit(float(coef[0])).alias("coef_out"),
+        pl.lit(float(coef[1])).alias("coef_doubt"),
+        pl.lit(hist.height).alias("n_train_games"),
+        pl.lit(n_signal).alias("n_signal_games"),
+    )

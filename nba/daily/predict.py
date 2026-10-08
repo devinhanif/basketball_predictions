@@ -11,13 +11,18 @@ import numpy as np
 import polars as pl
 import yaml
 
+from nba.eval.injury_elo_eval import feature_config_from
+from nba.models.injury_elo import InjuryFeatureConfig
 from nba.models.rung0_baselines import MovEloBaseline
 from nba.props.forward import predict_slate
 from nba.registry.protocol import RegistryAdapter
+from nba.sim.usage_redistribution import ReportTriggerConfig, load_report_rows
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ELO_CONFIG = REPO_ROOT / "configs" / "mov_elo_tuned.yaml"
 ELO_MODEL_NAME = "rung0_mov_elo"
+INJURY_ELO_MODEL_NAME = "rung0_injury_elo"
+INJURY_CONFIG = REPO_ROOT / "configs" / "injury_elo.yaml"
 PROPS_MODEL_NAME = "props_rolling_avg_baseline"
 PROPS_VERSION = "baseline-v1"
 PROP_STATS = ("pts", "reb", "ast", "fg3m")
@@ -54,6 +59,50 @@ def load_elo_params(path: Path = ELO_CONFIG) -> dict[str, float]:
     raw = yaml.safe_load(path.read_text())
     keys = ("k_factor", "home_advantage_elo", "season_carryover", "mov_c", "mov_div")
     return {k: float(raw[k]) for k in keys}
+
+
+def load_injury_settings(
+    artifact_path: str | None = None,
+) -> tuple[InjuryFeatureConfig, float, int]:
+    """Feature config, ridge lambda and min signal games for the injury model.
+
+    Prefers the ``injury_elo.yaml`` stored with the registered production
+    version (so a promoted version is reproduced exactly); else the repo copy.
+    """
+    path = INJURY_CONFIG
+    if artifact_path:
+        cand = Path(artifact_path) / "injury_elo.yaml"
+        if cand.exists():
+            path = cand
+    raw = yaml.safe_load(path.read_text())
+    return (
+        feature_config_from(raw),
+        float(raw["fit"]["ridge_lambda"]),
+        int(raw["fit"]["min_signal_games"]),
+    )
+
+
+def injury_report_rows(
+    con: duckdb.DuckDBPyConnection, game_ids: list[str], table: str = "player_availability"
+) -> pl.DataFrame:
+    """Official-report rows (any time; the real-tip leakage filter is applied
+    inside ``predict_games``) for ``game_ids``. Empty frame if no table."""
+    try:
+        return load_report_rows(
+            con,
+            ReportTriggerConfig(statuses=("out", "doubtful"), table=table),
+            game_ids=game_ids,
+        )
+    except duckdb.CatalogException:
+        return pl.DataFrame(
+            schema={
+                "game_id": pl.Utf8,
+                "player_id": pl.Int64,
+                "status": pl.Utf8,
+                "as_of": pl.Datetime("us"),
+                "game_date": pl.Date,
+            }
+        )
 
 
 def completed_games_before(con: duckdb.DuckDBPyConnection, slate: date) -> pl.DataFrame:

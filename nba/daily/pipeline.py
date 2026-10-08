@@ -8,21 +8,27 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 import duckdb
+import polars as pl
 
 from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
 from nba.daily.injury import ProbeFn, PullFn, out_players, pull_latest_report
 from nba.daily.predict import (
     ELO_MODEL_NAME,
+    INJURY_ELO_MODEL_NAME,
     PROP_STATS,
     PROPS_MODEL_NAME,
     PROPS_VERSION,
     ROUTED_N_SIMS,
     ROUTED_PROPS_MODEL_NAME,
     ROUTED_PROPS_VERSION,
+    ResolvedModel,
     fit_mov_elo,
+    injury_report_rows,
     load_elo_params,
+    load_injury_settings,
     predict_win_probs,
     resolve_production,
     rolling_prop_baseline,
@@ -33,6 +39,7 @@ from nba.daily.season import season_int_for_date, season_str_for_date
 from nba.daily.settle import settle_pending
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
+from nba.models.injury_elo import predict_games
 from nba.registry.protocol import RegistryAdapter
 
 
@@ -152,7 +159,11 @@ def _build_predictions(
     summary.model_status[ELO_MODEL_NAME] = f"{elo_model.version} ({elo_model.status})"
     elo, n_train = fit_mov_elo(con, run_date, season_i, params)
     probs = predict_win_probs(elo, [(g.home_team, g.away_team) for g in upcoming])
+    inj_model = resolve_production(registry, INJURY_ELO_MODEL_NAME)
+    inj = _injury_frame(con, run_date, season_i, upcoming, made_at, params, inj_model, summary)
     for g, p in zip(upcoming, probs, strict=True):
+        row = inj.get(g.game_id) if inj is not None else None
+        reason = "injury model unavailable" if row is None else row["fallback_reason"]
         out.append(
             ForwardPrediction(
                 g.game_id,
@@ -168,9 +179,38 @@ def _build_predictions(
                     "features_as_of_before": run_date.isoformat(),
                     "artifact_path": elo_model.artifact_path,
                     "params": params,
+                    "primary": reason is not None,
+                    "fallback_reason": reason,
                 },
             )
         )
+        if row is not None and reason is None:
+            out.append(
+                ForwardPrediction(
+                    g.game_id,
+                    g.tipoff,
+                    INJURY_ELO_MODEL_NAME,
+                    inj_model.version,
+                    "win_prob_home",
+                    {
+                        "p_home": float(row["p_injury_elo"]),
+                        "p_mov_elo": float(row["p_mov_elo"]),
+                        "home_team": g.home_team,
+                        "away_team": g.away_team,
+                        "d_out": float(row["d_out"]),
+                        "d_doubt": float(row["d_doubt"]),
+                        "report_as_of_et": str(row["report_as_of"]),
+                        "coef_out": float(row["coef_out"]),
+                        "coef_doubt": float(row["coef_doubt"]),
+                        "n_train_games": int(row["n_train_games"]),
+                        "n_signal_games": int(row["n_signal_games"]),
+                        "features_as_of_before": run_date.isoformat(),
+                        "artifact_path": inj_model.artifact_path,
+                        "primary": True,
+                        "fallback_reason": None,
+                    },
+                )
+            )
     if not with_props:
         return out
 
@@ -214,6 +254,50 @@ def _build_predictions(
             )
             summary.n_props_rows += 1
     return out
+
+
+def _injury_frame(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    season_i: int,
+    upcoming: list[ScheduledGame],
+    made_at: datetime,
+    params: dict[str, float],
+    model: ResolvedModel,
+    summary: RunSummary,
+) -> dict[str, dict[str, Any]] | None:
+    """Injury-Elo forward frame keyed by game_id, or None (loud) on failure.
+    Real tip-off times drive the report leakage filter inside ``predict_games``."""
+    try:
+        cfg, ridge, min_sig = load_injury_settings(model.artifact_path)
+        games = pl.DataFrame(
+            {
+                "game_id": [g.game_id for g in upcoming],
+                "game_date": [run_date] * len(upcoming),
+                "season": [season_i] * len(upcoming),
+                "home_team": [g.home_team for g in upcoming],
+                "away_team": [g.away_team for g in upcoming],
+                "tipoff": [g.tipoff for g in upcoming],
+            }
+        )
+        rows = injury_report_rows(con, games["game_id"].to_list(), cfg.report_table)
+        frame = predict_games(
+            con, made_at, games, rows,
+            elo_params=params, cfg=cfg, ridge_lambda=ridge, min_signal_games=min_sig,
+        )  # fmt: skip
+    except Exception as exc:  # never block the MOV-Elo forecast
+        summary.model_status[INJURY_ELO_MODEL_NAME] = (
+            f"FAILED ({type(exc).__name__}: {exc})"[:200] + " -> rung0_mov_elo"
+        )
+        return None
+    recs = {str(r["game_id"]): r for r in frame.iter_rows(named=True)}
+    n_fb = sum(1 for r in recs.values() if r["fallback_reason"] is not None)
+    summary.model_status[INJURY_ELO_MODEL_NAME] = (
+        f"{model.version} ({model.status}); {len(recs) - n_fb} games with a report "
+        f">={cfg.lead_minutes} min before tip, {n_fb} fell back to rung0_mov_elo "
+        "(no usable report)"
+    )
+    return recs
 
 
 def _routed_props(

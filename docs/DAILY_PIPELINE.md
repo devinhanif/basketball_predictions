@@ -34,10 +34,28 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
 4. **Models**: `resolve_production` calls `registry.load_model(name, 'production')`; if
    nothing is promoted the run records version `unregistered` (config fallback) rather than
    failing.
-   - Win prob: `MovEloBaseline` with `configs/mov_elo_tuned.yaml`, refit on every completed
+   - Win prob, primary: `rung0_injury_elo` (production alias; its `injury_elo.yaml` is read
+     from the registered version dir, else `configs/injury_elo.yaml`). Computed by
+     `nba.models.injury_elo.predict_games(con, as_of_ts, games, report_rows)`:
+     frozen MOV-Elo logit + `b*(V_out_away - V_out_home)/10 + g*(V_doubt_away - V_doubt_home)/10`.
+     **Leak-free coefficient choice:** `(b, g)` are refit from scratch on EVERY run by the same
+     ridge logistic (lambda 5, MOV-Elo logit as offset, `min_signal_games=150` else 0) on
+     completed games with `game_date <` the slate date only. No stored coefficients, so nothing
+     stale or future can be carried (cost: one history feature build per run, seconds).
+     Training features use the backfill's 19:00 ET tip proxy exactly as the walk-forward eval
+     did; only the forward games use the real tip.
+     **Real tip-off rule:** a report row counts for a game only if
+     `as_of <= real tipoff (ET) - 60 min` and `as_of <= now`. A game with no usable report (or
+     unknown tip) falls back to `rung0_mov_elo` with the reason stored as
+     `prediction.fallback_reason`; an injury-model exception falls back for the whole slate and
+     is recorded in the run summary. Games without a usable report are exactly MOV-Elo anyway
+     (all injury features are 0).
+   - Win prob, comparison: `MovEloBaseline` with `configs/mov_elo_tuned.yaml`, refit on every completed
      game with `game_date < slate date` (cheap, deterministic). On the first day of a new
      season the season-boundary carryover regression is applied explicitly, because `fit`
-     only regresses between seasons it sees.
+     only regresses between seasons it sees. BOTH models are stored in `forward_predictions`
+     each day (`prediction.primary` marks the one to use; the injury row also stores
+     `p_mov_elo`, `d_out`, `d_doubt`, the snapshot used and the coefficients).
    - Props (pts/reb/ast/fg3m): `nba.props.forward.predict_slate` (model `props_routed_sim`,
      version `routed-v1`; `--props-model rolling` restores the old 82-game baseline, and a
      routed failure falls back to it loudly in the run summary). Everything is built from a
@@ -64,7 +82,8 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
    props scored by empirical CRPS from the stored `q_grid` (2 x mean pinball over the
    grid; closed-form normal only for old rows without a grid). A player with no minutes is logged `dnp` and excluded
    from metrics (props are conditional on playing; the count is reported).
-7. **Report**: log loss / Brier (and log loss minus the naive p=0.5 reference) and prop
+7. **Report** (win prob is shown per model, then a PAIRED injury-minus-MOV-Elo log loss/Brier
+   delta on games scored by both, with n, dates, and the count of fallback-only games): log loss / Brier (and log loss minus the naive p=0.5 reference) and prop
    CRPS / bias, each with a percentile bootstrap that resamples **game dates** (2000 draws,
    seed 0), plus n and number of dates. Warns when n < 100 settled games.
    **Rollover trigger:** when >=20 completed `season=2026` games are in `games`, the report
@@ -120,7 +139,7 @@ recalibration; rookies and offseason moves are invisible until a first box score
 
 ## Hooks (status)
 
-1. `nba.registry`: a promoted `rung0_mov_elo` version is still wanted so
-   `resolve_production` returns a real version.
+1. `nba.registry`: `rung0_injury_elo` v1 is production; `resolve_production` returns its
+   version. Both it and `rung0_mov_elo` fall back to config (status `unregistered`) if absent.
 2. Done: `nba.props.forward.predict_slate`. 3. Done: `nba.ingest.games.refresh_season_games`.
 4. Done: forward tables are in `nba/db/schema.sql`.
