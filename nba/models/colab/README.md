@@ -11,8 +11,8 @@ section 3.
 1. **Pre-register** the one confirmatory `season=2025` evaluation in
    `docs/HOLDOUT_ACCESS_LOG.md` (before running; it is scored once, at the end).
 2. In Google Drive create `My Drive/nba_colab/` and upload
-   `data/colab/possession_steps.parquet` (about 7.5 MB, ~1.05M rows, seasons
-   2022-2025) into it. (Re-export: `uv run python -m nba.models.colab.export_training_data
+   `data/colab/possession_steps.parquet` (about 126 MB since the player/lineup
+   columns were added, ~1.05M rows, 98 columns, seasons 2022-2025) into it. (Re-export: `uv run python -m nba.models.colab.export_training_data
    --db nba/db/nba.duckdb --out data/colab/possession_steps.parquet`.)
 3. Upload `nba/models/colab/rung4_stepheads.ipynb` to Colab (File > Upload) or
    open it from Drive.
@@ -25,6 +25,14 @@ No GPU still works (tiny model) but the first cell prints a loud warning.
 
 ## What it does
 
+- Inputs: 10 team/game-state columns plus 78 as-of player-lineup columns
+  (`off_pa_*`/`def_pa_*`: mean/max/min over the 5 on-court players of strictly-prior
+  shrunk per-player stats; see `nba/features/possession_step_features.py`). Env
+  `NBA_FEATURE_SET=team` trains the team-only ablation. Old 10-column parquets/artifacts
+  must be re-exported / still load via `StepHeadsRung.load_weights`.
+- Local CPU is enough: ~50 s for ~25-35 epochs on 700k rows (hidden 128). Colab is only
+  worth it if the model grows past ~10 min of CPU training.
+
 - Reads the raw parquet and derives labels inline (`made_shot`, `duration_s`
   clamped to [0, 60]s, zone masked to shot attempts) -- the same code as
   `possession_step_features.derive_step_labels`; a test keeps them in sync.
@@ -35,9 +43,8 @@ No GPU still works (tiny model) but the first cell prints a loud warning.
   from TRAIN-window class priors (log loss for outcome/zone/make/rebound, MSE
   for duration; `skill = 1 - net/baseline`, positive means the net learned
   something), for both validation (`val_heads`) and the holdout
-  (`holdout_heads`). Expect small skill: a local 1-epoch dry run on 2022-2024
-  gave about +0.2% outcome, +0.4% make, ~0 zone/rebound, duration worse than
-  mean until trained longer.
+  (`holdout_heads`). Expect small skill (about 1% on outcome/make, 0.4-0.8% zone,
+  6-9% rebound, 2% duration on validation); `delta` is net minus baseline in nats.
 
 ## Back on this machine
 

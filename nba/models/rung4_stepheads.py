@@ -53,6 +53,8 @@ from torch import nn
 from nba.features.possession_step_features import (
     OUTCOME_CLASSES,
     POSSESSION_STEP_FEATURE_COLUMNS,
+    POSSESSION_STEP_NEUTRAL,
+    POSSESSION_STEP_TEAM_FEATURE_COLUMNS,
     SHOT_ATTEMPT_OUTCOMES,
     ZONE_CLASSES,
 )
@@ -152,7 +154,10 @@ class StepHeadsNet(nn.Module):
 
 
 def feature_matrix(
-    df: pl.DataFrame, feature_mean: np.ndarray | None = None, feature_std: np.ndarray | None = None
+    df: pl.DataFrame,
+    feature_mean: np.ndarray | None = None,
+    feature_std: np.ndarray | None = None,
+    columns: list[str] | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Standardize ``POSSESSION_STEP_FEATURE_COLUMNS`` into a numpy matrix.
 
@@ -161,7 +166,8 @@ def feature_matrix(
     statistics, not the (possibly tiny/different-distribution) predict-time
     set -- the usual train/serve standardization discipline.
     """
-    raw = df.select(POSSESSION_STEP_FEATURE_COLUMNS).to_numpy().astype(np.float64)
+    cols = POSSESSION_STEP_FEATURE_COLUMNS if columns is None else columns
+    raw = df.select(cols).to_numpy().astype(np.float64)
     mean = raw.mean(axis=0) if feature_mean is None else feature_mean
     std = raw.std(axis=0) if feature_std is None else feature_std
     std = np.where(std < 1e-8, 1.0, std)
@@ -169,14 +175,17 @@ def feature_matrix(
 
 
 def frame_to_tensors(
-    df: pl.DataFrame, feature_mean: np.ndarray | None = None, feature_std: np.ndarray | None = None
+    df: pl.DataFrame,
+    feature_mean: np.ndarray | None = None,
+    feature_std: np.ndarray | None = None,
+    columns: list[str] | None = None,
 ) -> tuple[StepHeadsBatch, np.ndarray, np.ndarray]:
     """Build one :class:`StepHeadsBatch` from a possession-step training frame.
 
     ``df`` must have the columns produced by
     ``nba.features.possession_step_features.build_possession_step_training_frame``.
     """
-    x, mean, std = feature_matrix(df, feature_mean, feature_std)
+    x, mean, std = feature_matrix(df, feature_mean, feature_std, columns)
 
     outcome_to_idx = {c: i for i, c in enumerate(OUTCOME_CLASSES)}
     zone_to_idx = {c: i for i, c in enumerate(ZONE_CLASSES)}
@@ -317,9 +326,92 @@ def evaluate_heads(
             float(((batch.duration - dur_mean) ** 2).mean()),
         )
     return {
-        h: {"net": n, "baseline": b, "skill": 1.0 - n / b if b > 0 else float("nan")}
+        h: {
+            "net": n,
+            "baseline": b,
+            "skill": 1.0 - n / b if b > 0 else float("nan"),
+            "delta": n - b,  # nats (duration: MSE); negative = net better than baseline
+        }
         for h, (n, b) in res.items()
     }
+
+
+def per_possession_head_losses(
+    net: StepHeadsNet, batch: StepHeadsBatch, priors: dict[str, object]
+) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Per-row ``(net_loss, baseline_loss, row_index)`` for each head, on its own mask.
+
+    Row-level paired deltas (``net - baseline``) for the clustered-by-game
+    bootstrap CI (:func:`clustered_delta_ci`); ``row_index`` indexes back into
+    ``batch`` so callers can map rows to ``game_id``. Duration uses squared error.
+    """
+    net.eval()
+    o_prior, z_prior = priors["outcome"], priors["zone"]
+    assert isinstance(o_prior, torch.Tensor) and isinstance(z_prior, torch.Tensor)
+    ce = nn.functional.cross_entropy
+    bce = nn.functional.binary_cross_entropy_with_logits
+    with torch.no_grad():
+        out = net(batch.x)
+        res: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+        allrows = torch.arange(batch.x.shape[0])
+        res["outcome"] = (
+            ce(out["outcome_logits"], batch.outcome_idx, reduction="none").numpy(),
+            (-o_prior.log()[batch.outcome_idx]).numpy(),
+            allrows.numpy(),
+        )
+        sh, ms = batch.is_shot, batch.is_miss
+        pm, pr = float(priors["make"]), float(priors["rebound"])  # type: ignore[arg-type]
+        if sh.any():
+            res["zone"] = (
+                ce(out["zone_logits"][sh], batch.zone_idx[sh], reduction="none").numpy(),
+                (-z_prior.log()[batch.zone_idx[sh]]).numpy(),
+                allrows[sh].numpy(),
+            )
+            y = batch.made[sh].double()
+            res["make"] = (
+                bce(out["make_logit"][sh], batch.made[sh], reduction="none").numpy(),
+                (-(y * np.log(pm) + (1 - y) * np.log(1 - pm))).numpy(),
+                allrows[sh].numpy(),
+            )
+        if ms.any():
+            y = batch.oreb[ms].double()
+            res["rebound"] = (
+                bce(out["rebound_logit"][ms], batch.oreb[ms], reduction="none").numpy(),
+                (-(y * np.log(pr) + (1 - y) * np.log(1 - pr))).numpy(),
+                allrows[ms].numpy(),
+            )
+        dm = float(priors["duration"])  # type: ignore[arg-type]
+        res["duration"] = (
+            ((out["duration"] - batch.duration) ** 2).numpy(),
+            ((batch.duration - dm) ** 2).numpy(),
+            allrows.numpy(),
+        )
+    return res
+
+
+def clustered_delta_ci(
+    net_loss: np.ndarray,
+    base_loss: np.ndarray,
+    cluster: np.ndarray,
+    n_boot: int = 1000,
+    seed: int = 0,
+) -> tuple[float, float, float]:
+    """Mean paired ``net - baseline`` loss with a game-clustered percentile bootstrap CI.
+
+    Sufficient-statistics bootstrap: per-cluster (sum delta, count) are
+    resampled with replacement, so cost is O(n_clusters * n_boot), not O(rows).
+    Returns ``(mean, lo, hi)`` (95%).
+    """
+    d = np.asarray(net_loss, dtype=np.float64) - np.asarray(base_loss, dtype=np.float64)
+    _, inv = np.unique(cluster, return_inverse=True)
+    k = int(inv.max()) + 1
+    sums = np.bincount(inv, weights=d, minlength=k)
+    cnts = np.bincount(inv, minlength=k).astype(np.float64)
+    rng = np.random.default_rng(seed)
+    draw = rng.integers(0, k, size=(n_boot, k))
+    boot = sums[draw].sum(axis=1) / cnts[draw].sum(axis=1)
+    lo, hi = np.percentile(boot, [2.5, 97.5])
+    return float(d.mean()), float(lo), float(hi)
 
 
 def seed_everything(seed: int) -> None:
@@ -354,8 +446,12 @@ class StepHeadsRung(RungModelBase):
         lr: float = 1e-3,
         n_epochs: int = 1,
         margin_sd: float = _MARGIN_SD_DEFAULT,
+        feature_columns: list[str] | None = None,
     ) -> None:
         super().__init__(seed=seed)
+        self.feature_columns: list[str] = list(
+            POSSESSION_STEP_FEATURE_COLUMNS if feature_columns is None else feature_columns
+        )
         self.hidden = hidden
         self.lr = lr
         self.n_epochs = n_epochs
@@ -372,9 +468,9 @@ class StepHeadsRung(RungModelBase):
         if train_df.height == 0:
             self.net = None
             return
-        batch, mean, std = frame_to_tensors(train_df)
+        batch, mean, std = frame_to_tensors(train_df, columns=self.feature_columns)
         self.feature_mean_, self.feature_std_ = mean, std
-        net = StepHeadsNet(n_features=len(POSSESSION_STEP_FEATURE_COLUMNS), hidden=self.hidden)
+        net = StepHeadsNet(n_features=len(self.feature_columns), hidden=self.hidden)
         optimizer = torch.optim.Adam(net.parameters(), lr=self.lr)
         losses: dict[str, torch.Tensor] = {}
         for _ in range(self.n_epochs):
@@ -395,10 +491,16 @@ class StepHeadsRung(RungModelBase):
         """
         d = Path(artifact_dir)
         cfg = json.loads((d / "config.json").read_text())
-        if list(cfg["feature_columns"]) != POSSESSION_STEP_FEATURE_COLUMNS:
-            raise ValueError("artifact feature_columns differ from POSSESSION_STEP_FEATURE_COLUMNS")
-        model = cls(seed=int(cfg["seed"]), hidden=int(cfg["hidden"]), lr=float(cfg["lr"]))
-        net = StepHeadsNet(n_features=len(POSSESSION_STEP_FEATURE_COLUMNS), hidden=model.hidden)
+        cols = list(cfg["feature_columns"])
+        if cols not in (POSSESSION_STEP_FEATURE_COLUMNS, POSSESSION_STEP_TEAM_FEATURE_COLUMNS):
+            raise ValueError("artifact feature_columns match no known feature set")
+        model = cls(
+            seed=int(cfg["seed"]),
+            hidden=int(cfg["hidden"]),
+            lr=float(cfg["lr"]),
+            feature_columns=cols,
+        )
+        net = StepHeadsNet(n_features=len(cols), hidden=model.hidden)
         net.load_state_dict(torch.load(d / "weights.pt", map_location="cpu"))
         net.eval()
         model.net = net
@@ -419,18 +521,25 @@ class StepHeadsRung(RungModelBase):
         if self.net is None or self.feature_mean_ is None or self.feature_std_ is None:
             return np.full(off_rtg.shape, BASE_MEAN_PPP)
         n = off_rtg.shape[0]
+        # Column-name keyed neutral row; player-pooled columns (when the net
+        # was trained with them) sit at the league constant = "average lineup".
+        by_name: dict[str, np.ndarray | float] = {
+            "period": _NEUTRAL_PERIOD,
+            "clock_start": _NEUTRAL_CLOCK_START,
+            "score_diff": _NEUTRAL_SCORE_DIFF,
+            "off_is_home": 1.0,  # irrelevant to the offense's own PPP read here
+            "off_off_rtg_prior": off_rtg,
+            "off_def_rtg_prior": def_rtg,
+            "off_pace_prior": 99.6,  # not used by the outcome head's point value
+            "def_off_rtg_prior": def_rtg,
+            "def_def_rtg_prior": off_rtg,
+            "league_avg_ppp_asof": BASE_MEAN_PPP,
+            **POSSESSION_STEP_NEUTRAL,
+        }
         raw = np.column_stack(
             [
-                np.full(n, _NEUTRAL_PERIOD),
-                np.full(n, _NEUTRAL_CLOCK_START),
-                np.full(n, _NEUTRAL_SCORE_DIFF),
-                np.ones(n),  # off_is_home -- irrelevant to the offense's own PPP read here
-                off_rtg,
-                def_rtg,
-                np.full(n, 99.6),  # off_pace_prior -- not used by the outcome head's point value
-                def_rtg,
-                off_rtg,
-                np.full(n, BASE_MEAN_PPP),
+                np.broadcast_to(np.asarray(by_name[c], dtype=float), (n,))
+                for c in self.feature_columns
             ]
         )
         x = (raw - self.feature_mean_) / self.feature_std_
@@ -470,7 +579,7 @@ class StepHeadsRung(RungModelBase):
             "n_train_possessions": self.n_train_possessions_,
             "outcome_classes": OUTCOME_CLASSES,
             "zone_classes": ZONE_CLASSES,
-            "feature_columns": POSSESSION_STEP_FEATURE_COLUMNS,
+            "feature_columns": self.feature_columns,
             "last_losses": self.last_losses_,
             "scope_note": (
                 "shooter head deferred (needs DeepSets lineup encoder, found negligible "

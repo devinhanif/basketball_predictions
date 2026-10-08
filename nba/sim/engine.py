@@ -124,11 +124,21 @@ def simulate_game(
     home_ppp_bonus: float = DEFAULT_HOME_PPP_BONUS,
     outcome_support: np.ndarray | None = None,
     outcome_probs: np.ndarray | None = None,
+    home_probs_override: np.ndarray | None = None,
+    away_probs_override: np.ndarray | None = None,
 ) -> GameSimResult:
     """Run ``n_sims`` possession-by-possession simulations of one game.
 
     Deterministic given ``seed`` (a fresh ``np.random.default_rng(seed)``
     is created per call -- no shared global RNG state).
+
+    ``home_probs_override`` / ``away_probs_override`` (default ``None`` =
+    off, behaviour unchanged): per-team outcome probability vectors over
+    ``outcome_support`` that REPLACE the log5 expected-PPP + exponential-tilt
+    step for that side (used by ``nba.sim.learned_heads`` to inject learned
+    step-head outcome distributions). Home-court is then whatever the
+    override already encodes; ``home_ppp_bonus`` is ignored for an
+    overridden side.
     """
     support = BASE_OUTCOME_SUPPORT if outcome_support is None else np.asarray(outcome_support)
     base_probs = BASE_OUTCOME_PROBS if outcome_probs is None else np.asarray(outcome_probs)
@@ -136,8 +146,16 @@ def simulate_game(
 
     home_target = _expected_ppp(home_off_rtg, away_def_rtg, league_avg_ppp) + home_ppp_bonus
     away_target = _expected_ppp(away_off_rtg, home_def_rtg, league_avg_ppp)
-    home_probs = tilt_outcome_probs(home_target, support, base_probs)
-    away_probs = tilt_outcome_probs(away_target, support, base_probs)
+    home_probs = (
+        tilt_outcome_probs(home_target, support, base_probs)
+        if home_probs_override is None
+        else np.asarray(home_probs_override, dtype=float)
+    )
+    away_probs = (
+        tilt_outcome_probs(away_target, support, base_probs)
+        if away_probs_override is None
+        else np.asarray(away_probs_override, dtype=float)
+    )
 
     mean_pace = (home_pace + away_pace) / 2.0
     n_poss = rng.normal(mean_pace, pace_sd, size=n_sims)

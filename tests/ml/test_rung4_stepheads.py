@@ -14,6 +14,9 @@ import torch
 
 from nba.features.possession_step_features import (
     POSSESSION_STEP_FEATURE_COLUMNS,
+    POSSESSION_STEP_NEUTRAL,
+    POSSESSION_STEP_PLAYER_FEATURE_COLUMNS,
+    POSSESSION_STEP_TEAM_FEATURE_COLUMNS,
     build_possession_step_training_frame,
 )
 from nba.ingest.cache import insert_rows
@@ -148,6 +151,10 @@ def _synthetic_raw(n: int = 400) -> pl.DataFrame:
             "def_off_rtg_prior": rng.normal(1.14, 0.02, n),
             "def_def_rtg_prior": rng.normal(1.14, 0.02, n),
             "league_avg_ppp_asof": np.full(n, 1.14),
+            **{
+                c: rng.normal(POSSESSION_STEP_NEUTRAL[c], 0.01 + 0.0 * i, n)
+                for i, c in enumerate(POSSESSION_STEP_PLAYER_FEATURE_COLUMNS)
+            },
             "outcome": outcomes,
             "shot_zone": zones,
             "oreb": rng.integers(0, 2, size=n).astype(bool),
@@ -238,3 +245,71 @@ def test_load_weights_round_trip(tmp_path) -> None:  # type: ignore[no-untyped-d
     )
     assert np.allclose(model.predict(predict_df), loaded.predict(predict_df))
     assert loaded.hidden == 8 and loaded.seed == 3
+
+
+def test_notebook_feature_columns_match_module() -> None:
+    ns = _notebook_defs_namespace()
+    assert ns["POSSESSION_STEP_TEAM_FEATURE_COLUMNS"] == POSSESSION_STEP_TEAM_FEATURE_COLUMNS
+    assert ns["POSSESSION_STEP_PLAYER_FEATURE_COLUMNS"] == POSSESSION_STEP_PLAYER_FEATURE_COLUMNS
+    assert ns["POSSESSION_STEP_FEATURE_COLUMNS"] == POSSESSION_STEP_FEATURE_COLUMNS
+    assert ns["FEATURE_COLUMNS"] == POSSESSION_STEP_FEATURE_COLUMNS  # default feature set
+    assert len(POSSESSION_STEP_FEATURE_COLUMNS) == len(set(POSSESSION_STEP_FEATURE_COLUMNS))
+
+
+def test_evaluate_heads_reports_delta_and_clustered_ci() -> None:
+    from nba.features.possession_step_features import derive_step_labels
+    from nba.models.rung4_stepheads import (
+        clustered_delta_ci,
+        evaluate_heads,
+        frequency_priors,
+        per_possession_head_losses,
+    )
+
+    frame = derive_step_labels(_synthetic_raw())
+    batch, _, _ = frame_to_tensors(frame)
+    seed_everything(0)
+    net = StepHeadsNet(len(POSSESSION_STEP_FEATURE_COLUMNS), hidden=8)
+    pri = frequency_priors(batch)
+    ev = evaluate_heads(net, batch, pri)
+    rows = per_possession_head_losses(net, batch, pri)
+    clusters = np.arange(frame.height) // 20
+    for head, (nl, bl, _idx) in rows.items():
+        assert np.isclose(ev[head]["delta"], nl.mean() - bl.mean(), rtol=1e-5, atol=1e-6)
+        mean, lo, hi = clustered_delta_ci(nl, bl, clusters[_idx], n_boot=200)
+        assert lo <= mean <= hi
+
+
+def test_team_only_artifact_round_trip_and_neutral_predict(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Team-only (10-col) artifacts still load; player-column nets predict at a neutral lineup."""
+    import json
+
+    from nba.features.possession_step_features import derive_step_labels
+
+    frame = derive_step_labels(_synthetic_raw())
+    pred_df = pl.DataFrame(
+        {
+            "home_off_rtg_prior": [1.15],
+            "home_def_rtg_prior": [1.10],
+            "home_pace_prior": [99.0],
+            "away_off_rtg_prior": [1.12],
+            "away_def_rtg_prior": [1.14],
+            "away_pace_prior": [100.0],
+            "league_avg_ppp_asof": [1.146],
+        }
+    )
+    for cols in (POSSESSION_STEP_TEAM_FEATURE_COLUMNS, POSSESSION_STEP_FEATURE_COLUMNS):
+        model = StepHeadsRung(seed=1, hidden=8, n_epochs=2, feature_columns=list(cols))
+        model.fit(frame, np.zeros(frame.height))
+        assert model.net is not None and model.feature_std_ is not None
+        d = tmp_path / str(len(cols))
+        d.mkdir()
+        torch.save(model.net.state_dict(), d / "weights.pt")
+        cfg = {
+            **model.get_config(),
+            "feature_mean": model.feature_mean_.tolist(),  # type: ignore[union-attr]
+            "feature_std": model.feature_std_.tolist(),
+        }
+        (d / "config.json").write_text(json.dumps(cfg))
+        loaded = StepHeadsRung.load_weights(d)
+        assert loaded.feature_columns == list(cols)
+        assert np.allclose(model.predict(pred_df), loaded.predict(pred_df))
