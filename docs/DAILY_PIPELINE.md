@@ -56,22 +56,34 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
      only regresses between seasons it sees. BOTH models are stored in `forward_predictions`
      each day (`prediction.primary` marks the one to use; the injury row also stores
      `p_mov_elo`, `d_out`, `d_doubt`, the snapshot used and the coefficients).
-   - Props (pts/reb/ast/fg3m): `nba.props.forward.predict_slate` (model `props_routed_sim`,
-     version `routed-v1`; `--props-model rolling` restores the old 82-game baseline, and a
-     routed failure falls back to it loudly in the run summary). Everything is built from a
-     scratch DB holding only `game_date < slate date`; rosters are players who played in
-     their team's last 10 games minus injury-report outs. **Contract per player-stat**
+   - Props (pts/reb/ast/fg3m), default `--props-model context`: **primary
+     `props_context_residual` (`ctxres-v1`)** = `nba.props.context_residual` (LightGBM
+     mean-residual + |residual| scale heads over the recency average, split-conformal
+     quantiles; features include pre-tip injury-report vacated stats, minutes/role gaps,
+     Elo margin, opponent, rest, CUSUM). It is fit on all PLAYED rows with
+     `game_date < slate date` and cached in `data/models/context_residual/<date>/`
+     (`models.pkl` + `meta.json` fingerprint of the training rows): a same-day re-run loads
+     the cache, a new date (or newly ingested prior-day games) refits (~8 s fit, ~10 s per
+     slate in the 2024-25 replay). The comparison **`props_recency_v1`**
+     (recency-weighted played-games average, half-life 10) is logged for every player, like
+     MOV-Elo is for win prob. Report rule: a game's OUT list is the latest official report
+     stamped <= min(now, real tip-off - 60 min) and <= 36 h old; a game with no usable report
+     has `has_report=0` (never "nobody out"). If the context model cannot run (too little
+     history, error), the slate falls back to recency, written under both names, with
+     `routed_to=recency_fallback` and the reason in `fallback_reason` and in the run summary.
+     Players with < 5 prior played games get `recency_fallback` rows inside a normal slate.
+     Other modes: `--props-model routed` (sim routing per `SIM_STATS`, currently empty so it
+     is recency only) and `--props-model rolling` (old 82-game baseline).
+     Rosters come from who played in each team's last 10 games minus outs; a rookie debut or
+     an offseason move is invisible until a first box score. **Contract per player-stat**
      (all stored in the prediction JSON):
      - `mean`, `std`, `p_ge`, `q10/q50/q90`, `q_grid` (19 quantiles, tau 0.05..0.95): the
        distribution of the stat GIVEN the player plays (minutes > 0).
      - `p_play` (Platt-recalibrated minutes-model P(play); `p_play_raw` in the frame) and the
        unconditional mixture `mean_uncond = p_play * mean`, `p_ge_uncond = p_play * p_ge`
        (valid for thresholds >= 1; a DNP is a 0).
-     - `routed_to` (`sim` | `season_avg`), `bucket` (Syntetos-Boylan class), `mean_sim`,
-       `mean_season_avg`, `proj_minutes`.
-     Routing: the sim for `insufficient_history` / `intermittent` / `erratic` players on
-     the stats in `SIM_STATS`, otherwise the "season_avg" model. That model is a
-     recency-weighted (half-life 10 games) average of PLAYED games.
+     - `routed_to` (`context_residual` | `recency_fallback` | `recency`), `bucket`
+       (Syntetos-Boylan class), `mean_recency`, `proj_minutes`.
      How a prop market settles a DNP is not documented in the Kalshi notes (`result=scalar`
      is unexplained); until confirmed, the parlay tool must choose between the conditional
      and unconditional columns explicitly and treat DNP-sensitive legs as uncertain.

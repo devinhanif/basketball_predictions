@@ -26,6 +26,7 @@ distributional assumption).
 
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass, field
 
 import lightgbm as lgb
@@ -669,3 +670,41 @@ class ContextResidualModel:
         zq = np.quantile(self.z_base_sorted, taus)
         q = np.maximum.accumulate(np.clip(m[:, None] + s[:, None] * zq[None, :], 0.0, None), axis=1)
         return np.clip(m + s * float(self.z_base_sorted.mean()), 0.0, None), q
+
+
+# --------------------------------------------------------------------------- forward API
+
+
+def fit_for_date(
+    feats: pl.DataFrame,
+    as_of: dt.date,
+    cfg: ContextResidualConfig | None = None,
+    stats: tuple[str, ...] = PROP_STATS,
+) -> dict[str, ContextResidualModel]:
+    """Fit one model per stat on PLAYED rows with ``game_date`` strictly before
+    ``as_of`` (a ``datetime.date``). ``feats`` is :func:`build_features` output;
+    rows on/after ``as_of`` are never used for fitting, even if present."""
+    cfg = cfg or ContextResidualConfig()
+    hist = feats.filter(pl.col("game_date") < as_of)
+    models: dict[str, ContextResidualModel] = {}
+    for stat in stats:
+        train = stat_frame(hist, stat).sort(["game_date", "game_id", "player_id"])
+        models[stat] = ContextResidualModel(stat, cfg, stat_feature_names(stat)).fit(train)
+    return models
+
+
+def predict_rows(
+    models: dict[str, ContextResidualModel],
+    feats: pl.DataFrame,
+    stat: str,
+    taus: np.ndarray,
+) -> tuple[pl.DataFrame, np.ndarray, np.ndarray]:
+    """Predict the rows of ``feats`` (as-of feature rows, e.g. tonight's players)
+    that have >= ``MIN_PRIOR_PLAYED`` prior played games. Returns the eligible
+    rows (``stat_frame`` output, in order), the clipped means, and the
+    quantiles ``[n, len(taus)]``."""
+    rows = stat_frame(feats, stat)
+    if rows.is_empty():
+        return rows, np.empty(0), np.empty((0, len(taus)))
+    mean, q = models[stat].predict(rows, taus)
+    return rows, mean, q

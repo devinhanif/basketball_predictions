@@ -16,23 +16,30 @@ import polars as pl
 from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
 from nba.daily.injury import ProbeFn, PullFn, out_players, pull_latest_report
 from nba.daily.predict import (
+    CONTEXT_PROPS_MODEL_NAME,
+    CONTEXT_PROPS_VERSION,
     ELO_MODEL_NAME,
     INJURY_ELO_MODEL_NAME,
     PROP_STATS,
     PROPS_MODEL_NAME,
     PROPS_VERSION,
+    RECENCY_PROPS_MODEL_NAME,
+    RECENCY_PROPS_VERSION,
     ROUTED_N_SIMS,
     ROUTED_PROPS_MODEL_NAME,
     ROUTED_PROPS_VERSION,
     ResolvedModel,
+    context_prop_predictions,
     fit_mov_elo,
     injury_report_rows,
     load_elo_params,
     load_injury_settings,
     predict_win_probs,
+    recency_prop_predictions,
     resolve_production,
     rolling_prop_baseline,
     routed_prop_predictions,
+    slate_report_outs,
 )
 from nba.daily.schedule import ScheduledGame, ScheduleFn, slate_for_date
 from nba.daily.season import season_int_for_date, season_str_for_date
@@ -40,6 +47,7 @@ from nba.daily.settle import settle_pending
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.models.injury_elo import predict_games
+from nba.props.forward import SIM_STATS
 from nba.registry.protocol import RegistryAdapter
 
 
@@ -82,8 +90,9 @@ def run_daily(
     pull_report: PullFn | None = None,
     name_index: dict[str, int] | None = None,
     elo_config: Path | None = None,
-    props_model: str = "routed",
+    props_model: str = "context",
     n_sims: int = ROUTED_N_SIMS,
+    model_cache: Path | None = None,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC."""
     made_at = now if now is not None else utcnow()
@@ -127,7 +136,7 @@ def run_daily(
     if upcoming:
         preds = _build_predictions(
             con, run_date, season_i, upcoming, made_at, registry,
-            with_props, elo_config, summary, props_model, n_sims,
+            with_props, elo_config, summary, props_model, n_sims, model_cache,
         )  # fmt: skip
         try:
             summary.n_rows_written = append_predictions(con, summary.run_id, made_at, preds)
@@ -150,8 +159,9 @@ def _build_predictions(
     with_props: bool,
     elo_config: Path | None,
     summary: RunSummary,
-    props_model: str = "routed",
+    props_model: str = "context",
     n_sims: int = ROUTED_N_SIMS,
+    model_cache: Path | None = None,
 ) -> list[ForwardPrediction]:
     out: list[ForwardPrediction] = []
     params = load_elo_params(elo_config) if elo_config else load_elo_params()
@@ -216,6 +226,24 @@ def _build_predictions(
 
     out_set = out_players(con, min(made_at, min(g.tipoff for g in upcoming)))
     summary.n_out_excluded = len(out_set)
+    if props_model == "context":
+        try:
+            out.extend(
+                _context_props(con, run_date, upcoming, made_at, params, model_cache, summary)
+            )
+            return out
+        except Exception as exc:  # recency model is the loud fallback
+            summary.n_props_rows = 0
+            reason = f"{type(exc).__name__}: {exc}"[:200]
+            summary.model_status[CONTEXT_PROPS_MODEL_NAME] = f"FAILED ({reason}) -> recency"
+            try:
+                out.extend(_recency_only_props(con, run_date, upcoming, out_set, reason, summary))
+                return out
+            except Exception as exc2:
+                summary.n_props_rows = 0
+                summary.model_status[RECENCY_PROPS_MODEL_NAME] = (
+                    f"FAILED ({type(exc2).__name__}: {exc2})"[:200] + " -> rolling baseline"
+                )
     if props_model == "routed":
         try:
             out.extend(_routed_props(con, run_date, upcoming, out_set, n_sims, summary))
@@ -300,23 +328,16 @@ def _injury_frame(
     return recs
 
 
-def _routed_props(
-    con: duckdb.DuckDBPyConnection,
-    run_date: date,
+def _frame_preds(
+    df: pl.DataFrame,
     upcoming: list[ScheduledGame],
-    out_set: set[int],
-    n_sims: int,
-    summary: RunSummary,
+    model_name: str,
+    version: str,
+    run_date: date,
+    extra: dict[str, Any],
 ) -> list[ForwardPrediction]:
-    df = routed_prop_predictions(
-        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming], out_set,
-        n_sims=n_sims,
-    )  # fmt: skip
+    """One ForwardPrediction per (player, stat) row of a ``forward`` output frame."""
     by_game = {g.game_id: g for g in upcoming}
-    summary.model_status[ROUTED_PROPS_MODEL_NAME] = (
-        f"{ROUTED_PROPS_VERSION} (n_sims={n_sims}; sim for cold/intermittent/erratic, "
-        "else season average)"
-    )
     rows: list[ForwardPrediction] = []
     for r in df.iter_rows(named=True):
         g = by_game[str(r["game_id"])]
@@ -324,8 +345,8 @@ def _routed_props(
             ForwardPrediction(
                 g.game_id,
                 g.tipoff,
-                ROUTED_PROPS_MODEL_NAME,
-                ROUTED_PROPS_VERSION,
+                model_name,
+                version,
                 str(r["stat"]),
                 {
                     "mean": float(r["mean"]),
@@ -343,14 +364,116 @@ def _routed_props(
                     "routed_to": str(r["model"]),
                     "bucket": str(r["bucket"]),
                     "mean_sim": r["mean_sim"],
-                    "mean_season_avg": float(r["mean_season_avg"]),
+                    "mean_recency": float(r["mean_season_avg"]),
                     "proj_minutes": float(r["proj_minutes"]),
                     "n_games": int(r["n_games_prior"]),
-                    "n_sims": n_sims,
                     "features_as_of_before": run_date.isoformat(),
+                    **extra,
                 },
                 player_id=int(r["player_id"]),
             )
         )
-        summary.n_props_rows += 1
+    return rows
+
+
+def _context_props(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    made_at: datetime,
+    elo_params: dict[str, float],
+    model_cache: Path | None,
+    summary: RunSummary,
+) -> list[ForwardPrediction]:
+    """Context-residual primary + recency comparison. Report rule: the latest
+    official report stamped <= min(now, real tip-off - 60 min) per game."""
+    report_out = slate_report_outs(con, [(g.game_id, g.tipoff) for g in upcoming], made_at)
+    summary.n_out_excluded = len(set().union(*report_out.values())) if report_out else 0
+    res = context_prop_predictions(
+        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming],
+        report_out, elo_params, cache_root=model_cache,
+    )  # fmt: skip
+    info = res.info
+    n_rep = len(report_out)
+    common = {"n_games_with_report": n_rep, "n_slate_games": len(upcoming)}
+    primary = _frame_preds(
+        res.primary, upcoming, CONTEXT_PROPS_MODEL_NAME, CONTEXT_PROPS_VERSION, run_date,
+        {**common, "fallback_reason": None, "train_through": info.get("train_through")},
+    )  # fmt: skip
+    for p in primary:
+        if p.prediction["routed_to"] == "recency_fallback":
+            p.prediction["fallback_reason"] = "fewer than 5 prior played games"
+    recency = _frame_preds(
+        res.recency, upcoming, RECENCY_PROPS_MODEL_NAME, RECENCY_PROPS_VERSION, run_date, common
+    )
+    summary.n_props_rows += len(primary)
+    cache = "cached" if info.get("cache_hit") else f"fit {info.get('fit_seconds', 0.0):.0f}s"
+    summary.model_status[CONTEXT_PROPS_MODEL_NAME] = (
+        f"{CONTEXT_PROPS_VERSION} (LightGBM residual over recency average; trained through "
+        f"{info.get('train_through')}, n={info.get('n_train_rows')}, {cache}; "
+        f"{info.get('n_context_rows', 0)} model rows, {info.get('n_fallback_rows', 0)} recency "
+        f"fallback rows; {n_rep}/{len(upcoming)} games had a report >=60 min before tip)"
+    )
+    summary.model_status[RECENCY_PROPS_MODEL_NAME] = (
+        f"{RECENCY_PROPS_VERSION} (comparison: recency-weighted played-games average)"
+    )
+    return primary + recency
+
+
+def _recency_only_props(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    out_set: set[int],
+    reason: str,
+    summary: RunSummary,
+) -> list[ForwardPrediction]:
+    """Context model failed: the recency model is written under BOTH the primary
+    and the comparison names, the primary rows carrying the failure reason."""
+    df = recency_prop_predictions(
+        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming], out_set
+    )
+    common = {"n_slate_games": len(upcoming)}
+    primary = _frame_preds(
+        df, upcoming, CONTEXT_PROPS_MODEL_NAME, CONTEXT_PROPS_VERSION, run_date,
+        {**common, "fallback_reason": f"context model failed: {reason}"},
+    )  # fmt: skip
+    for p in primary:
+        p.prediction["routed_to"] = "recency_fallback"
+    summary.n_props_rows += len(primary)
+    summary.model_status[RECENCY_PROPS_MODEL_NAME] = (
+        f"{RECENCY_PROPS_VERSION} (used as primary for this slate)"
+    )
+    return primary + _frame_preds(
+        df, upcoming, RECENCY_PROPS_MODEL_NAME, RECENCY_PROPS_VERSION, run_date, common
+    )
+
+
+def _routed_props(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    out_set: set[int],
+    n_sims: int,
+    summary: RunSummary,
+) -> list[ForwardPrediction]:
+    df = routed_prop_predictions(
+        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming], out_set,
+        n_sims=n_sims,
+    )  # fmt: skip
+    if SIM_STATS:
+        routing = (
+            f"sim for {'/'.join(SIM_STATS)} of cold-start/intermittent/erratic players, "
+            "else recency-weighted played-games average"
+        )
+    else:
+        routing = "sim routing disabled (SIM_STATS empty): recency-weighted played-games average"
+    summary.model_status[ROUTED_PROPS_MODEL_NAME] = (
+        f"{ROUTED_PROPS_VERSION} (n_sims={n_sims}; {routing})"
+    )
+    rows = _frame_preds(
+        df, upcoming, ROUTED_PROPS_MODEL_NAME, ROUTED_PROPS_VERSION, run_date,
+        {"n_sims": n_sims},
+    )  # fmt: skip
+    summary.n_props_rows += len(rows)
     return rows

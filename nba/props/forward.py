@@ -43,9 +43,13 @@ Known limitations (documented, not hidden):
 from __future__ import annotations
 
 import json
+import pickle
+import time
 import zlib
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import date
+from pathlib import Path
+from typing import Any
 
 import duckdb
 import numpy as np
@@ -61,6 +65,15 @@ from nba.features.player_rebound_assist_features import build_player_reb_ast_rat
 from nba.features.possession_features import build_team_possession_rates
 from nba.props.baselines import _DEFAULT_STD
 from nba.props.config import THRESHOLDS
+from nba.props.context_residual import (
+    CRPS_TAUS,
+    ContextResidualConfig,
+    ContextResidualModel,
+    build_features,
+    fit_for_date,
+    flagged_from_availability,
+    predict_rows,
+)
 from nba.props.distributions import Distribution, NormalDist
 from nba.props.minutes import build_minutes_features, predict_minutes
 from nba.sim.player_attribution import (
@@ -364,6 +377,7 @@ def predict_slate(
                 raise ValueError(f"team {t} appears twice on the slate")
             team_game[t] = str(r["game_id"])
     exclude = set(out_players or ())
+    use_sim = bool(cfg.sim_stats)
 
     sc = _build_history_scratch(con, as_of)
     try:
@@ -379,16 +393,19 @@ def predict_slate(
         minutes_feats = build_minutes_features(sc, use_game_context=False).filter(
             pl.col("game_id").is_in(slate_ids)
         )
-        if cfg.rates_played_only:
+        empty_df = pl.DataFrame()
+        if cfg.rates_played_only and use_sim:
             sc.register("_slate", pl.DataFrame({"game_id": slate_ids}))
             sc.execute(
                 "DELETE FROM player_game_stats WHERE (minutes IS NULL OR minutes = 0) "
                 "AND game_id NOT IN (SELECT game_id FROM _slate)"
             )
             sc.unregister("_slate")
-        team_rates = build_team_possession_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
-        shot_rates = build_player_shot_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
-        reb_ast = build_player_reb_ast_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
+        team_rates, shot_rates, reb_ast = empty_df, empty_df, empty_df
+        if use_sim:
+            team_rates = build_team_possession_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
+            shot_rates = build_player_shot_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
+            reb_ast = build_player_reb_ast_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
     finally:
         sc.close()
 
@@ -437,41 +454,45 @@ def predict_slate(
     rows: list[dict[str, object]] = []
     for grow in games.iter_rows(named=True):
         gid, home, away = str(grow["game_id"]), int(grow["home_team"]), int(grow["away_team"])
-        g_rates = team_rates.filter(pl.col("game_id") == gid)
-        h = g_rates.filter(pl.col("is_home"))
-        a = g_rates.filter(~pl.col("is_home"))
+        g_rates = team_rates.filter(pl.col("game_id") == gid) if use_sim else empty_df
+        h = g_rates.filter(pl.col("is_home")) if use_sim else empty_df
+        a = g_rates.filter(~pl.col("is_home")) if use_sim else empty_df
         gm = mins.filter(pl.col("game_id") == gid)
         home_ids = gm.filter(pl.col("team_id") == home)["player_id"].to_list()
         away_ids = gm.filter(pl.col("team_id") == away)["player_id"].to_list()
-        if h.height == 0 or a.height == 0 or not home_ids or not away_ids:
+        if use_sim and (h.height == 0 or a.height == 0 or not home_ids or not away_ids):
             continue
-        g_shot = shot_rates.filter(pl.col("game_id") == gid)
-        g_ra = reb_ast.filter(pl.col("game_id") == gid)
+        if not (home_ids or away_ids):
+            continue
+        g_shot = shot_rates.filter(pl.col("game_id") == gid) if use_sim else empty_df
+        g_ra = reb_ast.filter(pl.col("game_id") == gid) if use_sim else empty_df
 
         def _afr(team_id: int, _ra: pl.DataFrame = g_ra) -> float:
             t = _ra.filter(pl.col("team_id") == team_id)
             return float(t[0, "assisted_fg_rate_prior"]) if t.height else DEFAULT_ASSISTED_FG_RATE
 
-        sim = simulate_game_with_players(
-            profiles_from_features(g_shot, proj, home_ids, reb_ast_rates=g_ra),
-            profiles_from_features(g_shot, proj, away_ids, reb_ast_rates=g_ra),
-            home_off_rtg=float(h[0, "off_rtg_prior"]),
-            home_def_rtg=float(h[0, "def_rtg_prior"]),
-            home_pace=float(h[0, "pace_prior"]),
-            away_off_rtg=float(a[0, "off_rtg_prior"]),
-            away_def_rtg=float(a[0, "def_rtg_prior"]),
-            away_pace=float(a[0, "pace_prior"]),
-            league_avg_ppp=float(h[0, "league_avg_ppp_asof"]),
-            n_sims=n_sims,
-            seed=game_seed(seed, gid),
-            home_assisted_fg_rate=_afr(home),
-            away_assisted_fg_rate=_afr(away),
-        )
-        sim_by_stat: dict[str, dict[int, Distribution]] = {
-            "pts": {**sim.home_player_points, **sim.away_player_points},
-            "reb": {**sim.home_player_rebounds, **sim.away_player_rebounds},
-            "ast": {**sim.home_player_assists, **sim.away_player_assists},
-        }
+        sim_by_stat: dict[str, dict[int, Distribution]] = {}
+        if use_sim:
+            sim = simulate_game_with_players(
+                profiles_from_features(g_shot, proj, home_ids, reb_ast_rates=g_ra),
+                profiles_from_features(g_shot, proj, away_ids, reb_ast_rates=g_ra),
+                home_off_rtg=float(h[0, "off_rtg_prior"]),
+                home_def_rtg=float(h[0, "def_rtg_prior"]),
+                home_pace=float(h[0, "pace_prior"]),
+                away_off_rtg=float(a[0, "off_rtg_prior"]),
+                away_def_rtg=float(a[0, "def_rtg_prior"]),
+                away_pace=float(a[0, "pace_prior"]),
+                league_avg_ppp=float(h[0, "league_avg_ppp_asof"]),
+                n_sims=n_sims,
+                seed=game_seed(seed, gid),
+                home_assisted_fg_rate=_afr(home),
+                away_assisted_fg_rate=_afr(away),
+            )
+            sim_by_stat = {
+                "pts": {**sim.home_player_points, **sim.away_player_points},
+                "reb": {**sim.home_player_rebounds, **sim.away_player_rebounds},
+                "ast": {**sim.home_player_assists, **sim.away_player_assists},
+            }
         for side_home, ids in ((True, home_ids), (False, away_ids)):
             team_id = home if side_home else away
             for pid in ids:
@@ -518,3 +539,244 @@ def predict_slate(
     return (
         pl.DataFrame(rows).select(OUTPUT_COLUMNS).sort(["game_id", "team_id", "player_id", "stat"])
     )
+
+
+# --------------------------------------------------------------------------- context-residual
+
+MODEL_CONTEXT = "context_residual"
+MODEL_RECENCY = "recency"
+MODEL_RECENCY_FALLBACK = "recency_fallback"
+DEFAULT_MODEL_CACHE = Path("data/models/context_residual")
+
+
+@dataclass
+class ContextSlateResult:
+    """``primary``: context-residual rows (recency rows, labelled
+    ``recency_fallback``, for players with too little history); ``recency``:
+    the comparison model for every rostered player; ``info``: fit/cache facts."""
+
+    primary: pl.DataFrame
+    recency: pl.DataFrame
+    info: dict[str, Any]
+
+
+_AVAIL_SCHEMA: dict[str, Any] = {
+    "game_id": pl.Utf8,
+    "player_id": pl.Int64,
+    "status": pl.Utf8,
+    "as_of": pl.Datetime("us"),
+    "source": pl.Utf8,
+}
+
+
+def _history_frames(
+    con: duckdb.DuckDBPyConnection, as_of: date
+) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    """(games, pgs, static, availability) with every row dated before ``as_of``."""
+    games = con.execute(
+        "SELECT game_id, game_date, season, home_team, away_team, home_pts, away_pts "
+        "FROM games WHERE game_date < ?",
+        [as_of],
+    ).pl()
+    pgs = con.execute(
+        "SELECT s.game_id, s.player_id, s.team_id, s.minutes, s.pts, s.reb, s.ast, s.fg3m, "
+        "s.starter FROM player_game_stats s JOIN games g USING (game_id) WHERE g.game_date < ?",
+        [as_of],
+    ).pl()
+    static = con.execute("SELECT player_id, position FROM players_static").pl()
+    try:
+        avail = con.execute(
+            "SELECT a.game_id, a.player_id, a.status, a.as_of, a.source FROM player_availability a "
+            "JOIN games g ON g.game_id = a.game_id WHERE g.game_date < ? AND a.game_id IS NOT NULL",
+            [as_of],
+        ).pl()
+    except duckdb.CatalogException:
+        avail = pl.DataFrame(schema=_AVAIL_SCHEMA)
+    return games, pgs, static, avail
+
+
+def _with_slate_placeholders(
+    games: pl.DataFrame,
+    pgs: pl.DataFrame,
+    as_of: date,
+    slate: pl.DataFrame,
+    roster: pl.DataFrame,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Append the slate games (no scores) and one 'played' placeholder row per
+    projected player (minutes 1, stats 0). Features are strictly pre-row, so the
+    placeholder values never reach their own row."""
+    season = _season_for(as_of)
+    g = pl.DataFrame(
+        {
+            "game_id": slate["game_id"].cast(pl.Utf8),
+            "game_date": [as_of] * slate.height,
+            "season": [season] * slate.height,
+            "home_team": slate["home_team"].cast(pl.Int64),
+            "away_team": slate["away_team"].cast(pl.Int64),
+            "home_pts": [None] * slate.height,
+            "away_pts": [None] * slate.height,
+        }
+    )
+    r = (
+        roster.select("game_id", "player_id", "team_id")
+        .unique()
+        .with_columns(
+            pl.lit(1.0).alias("minutes"),
+            pl.lit(0).alias("pts"),
+            pl.lit(0).alias("reb"),
+            pl.lit(0).alias("ast"),
+            pl.lit(0).alias("fg3m"),
+            pl.lit(False).alias("starter"),
+        )
+    )
+    return (
+        pl.concat([games, g], how="diagonal_relaxed"),
+        pl.concat([pgs, r], how="diagonal_relaxed"),
+    )
+
+
+def _load_or_fit_models(
+    feats: pl.DataFrame,
+    as_of: date,
+    cfg: ContextResidualConfig,
+    cache_dir: Path | None,
+) -> tuple[dict[str, ContextResidualModel], dict[str, Any]]:
+    """Fit on played rows strictly before ``as_of`` or reuse a same-date cache.
+
+    The cache key is the date directory plus a fingerprint of the training rows
+    (count and newest date), so a re-run the same day does not refit but late
+    ingested prior-day games do trigger one."""
+    hist = feats.filter(pl.col("game_date") < as_of)
+    fp: dict[str, Any] = {
+        "n_rows": hist.height,
+        "max_date": str(hist["game_date"].max()),
+        "cfg": asdict(cfg),
+    }
+    fp["cfg"].pop("report", None)
+    if cache_dir is not None:
+        meta_p, model_p = cache_dir / "meta.json", cache_dir / "models.pkl"
+        if meta_p.exists() and model_p.exists():
+            meta = json.loads(meta_p.read_text())
+            if meta.get("fingerprint") == fp:
+                with model_p.open("rb") as f:
+                    models = pickle.load(f)  # noqa: S301  (local cache we wrote)
+                return models, {"cache_hit": True, "fit_seconds": 0.0, **meta["info"]}
+    t0 = time.perf_counter()
+    models = fit_for_date(feats, as_of, cfg)
+    secs = time.perf_counter() - t0
+    info = {"n_train_rows": hist.height, "train_through": fp["max_date"]}
+    if cache_dir is not None:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        with (cache_dir / "models.pkl").open("wb") as f:
+            pickle.dump(models, f)
+        (cache_dir / "meta.json").write_text(
+            json.dumps({"fingerprint": fp, "info": {**info, "fit_seconds": secs}}, sort_keys=True)
+        )
+    return models, {"cache_hit": False, "fit_seconds": secs, **info}
+
+
+def _ctx_row(
+    base: dict[str, Any], mean: float, q19: np.ndarray, q199: np.ndarray, thresholds: list[int]
+) -> dict[str, Any]:
+    p_ge = {str(t): float(np.mean(q199 > t - 0.5)) for t in thresholds}
+    std = float(np.std(q199))
+    pp = float(base["p_play"])
+    return {
+        **base,
+        "model": MODEL_CONTEXT,
+        "mean": mean,
+        "std": std,
+        "dist_family": MODEL_CONTEXT,
+        "dist_params": json.dumps({"mean": mean, "std": std}, sort_keys=True),
+        "p_ge": json.dumps(p_ge, sort_keys=True),
+        "q10": float(q19[1]),
+        "q50": float(q19[9]),
+        "q90": float(q19[17]),
+        "q_grid": json.dumps([round(float(v), 4) for v in q19]),
+        "mean_uncond": pp * mean,
+        "p_ge_uncond": json.dumps({k: pp * v for k, v in p_ge.items()}, sort_keys=True),
+    }
+
+
+def predict_slate_context(
+    con: duckdb.DuckDBPyConnection,
+    as_of: date,
+    games: pl.DataFrame,
+    report_out: dict[str, set[int]],
+    elo_params: dict[str, float],
+    *,
+    out_players: set[int] | None = None,
+    cache_root: Path | None = DEFAULT_MODEL_CACHE,
+    cfg: ContextResidualConfig | None = None,
+    config: ForwardConfig | None = None,
+) -> ContextSlateResult:
+    """Context-residual props for a slate (primary) plus the recency comparison.
+
+    ``report_out`` maps slate ``game_id`` -> players OUT on the latest official
+    report usable for that game (stamped before its real tip-off minus 60 min);
+    games absent from it have no report (``has_report=0``, never imputed as
+    "nobody out"). Models are fit on played rows with ``game_date < as_of`` and
+    cached under ``cache_root/<as_of>/``. Raises on fit failure; the caller
+    decides the fallback."""
+    cfg = cfg or ContextResidualConfig()
+    exclude = set(out_players or ())
+    for s in report_out.values():
+        exclude |= s
+    rec_cfg = ForwardConfig(sim_stats=()) if config is None else config
+    recency = predict_slate(con, as_of, games, exclude, config=rec_cfg)
+    if recency.is_empty():
+        return ContextSlateResult(recency, recency, {"cache_hit": False, "fit_seconds": 0.0})
+    recency = recency.with_columns(pl.lit(MODEL_RECENCY).alias("model"))
+
+    t0 = time.perf_counter()
+    h_games, h_pgs, static, avail = _history_frames(con, as_of)
+    flagged, _ = flagged_from_availability(avail, h_games, cfg.report)
+    flagged = {**flagged, **{str(g): set(v) for g, v in report_out.items()}}
+    roster = recency.select("game_id", "player_id", "team_id").unique()
+    (
+        a_games,
+        a_pgs,
+    ) = _with_slate_placeholders(h_games, h_pgs, as_of, games, roster)
+    feats = build_features(a_games, a_pgs, static, flagged, elo_params)
+    build_s = time.perf_counter() - t0
+    cache_dir = None if cache_root is None else cache_root / as_of.isoformat()
+    models, info = _load_or_fit_models(feats, as_of, cfg, cache_dir)
+    info["feature_build_seconds"] = build_s
+
+    slate_ids = [str(g) for g in games["game_id"].to_list()]
+    slate_feats = feats.filter(pl.col("game_id").is_in(slate_ids))
+    taus19 = np.array(QUANTILE_TAUS)
+    out_rows: list[dict[str, Any]] = []
+    n_ctx = 0
+    by_key = {(r["game_id"], r["player_id"], r["stat"]): r for r in recency.iter_rows(named=True)}
+    done: set[tuple[str, int, str]] = set()
+    for stat in PROP_STATS:
+        rows, mean, q199 = predict_rows(models, slate_feats, stat, CRPS_TAUS)
+        if rows.is_empty():
+            continue
+        _, _, q19 = predict_rows(models, slate_feats, stat, taus19)
+        for i, r in enumerate(rows.iter_rows(named=True)):
+            key = (str(r["game_id"]), int(r["player_id"]), stat)
+            base = by_key.get(key)
+            if base is None:  # not a projected rostered player
+                continue
+            out_rows.append(
+                _ctx_row(base, float(mean[i]), q19[i], q199[i], cfg_thresholds(config, stat))
+            )
+            done.add(key)
+            n_ctx += 1
+    for key, base in by_key.items():
+        if key not in done:
+            out_rows.append({**base, "model": MODEL_RECENCY_FALLBACK})
+    info["n_context_rows"] = n_ctx
+    info["n_fallback_rows"] = len(out_rows) - n_ctx
+    primary = (
+        pl.DataFrame(out_rows, infer_schema_length=None)
+        .select(OUTPUT_COLUMNS)
+        .sort(["game_id", "team_id", "player_id", "stat"])
+    )
+    return ContextSlateResult(primary, recency, info)
+
+
+def cfg_thresholds(config: ForwardConfig | None, stat: str) -> list[int]:
+    return (config or ForwardConfig()).thresholds[stat]

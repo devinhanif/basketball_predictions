@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import duckdb
@@ -11,10 +11,16 @@ import numpy as np
 import polars as pl
 import yaml
 
+from nba.daily.injury import MAX_REPORT_AGE_HOURS, to_report_dt
 from nba.eval.injury_elo_eval import feature_config_from
 from nba.models.injury_elo import InjuryFeatureConfig
 from nba.models.rung0_baselines import MovEloBaseline
-from nba.props.forward import predict_slate
+from nba.props.forward import (
+    ContextSlateResult,
+    ForwardConfig,
+    predict_slate,
+    predict_slate_context,
+)
 from nba.registry.protocol import RegistryAdapter
 from nba.sim.usage_redistribution import ReportTriggerConfig, load_report_rows
 
@@ -28,6 +34,12 @@ PROPS_VERSION = "baseline-v1"
 PROP_STATS = ("pts", "reb", "ast", "fg3m")
 ROUTED_PROPS_MODEL_NAME = "props_routed_sim"
 ROUTED_PROPS_VERSION = "routed-v1"
+CONTEXT_PROPS_MODEL_NAME = "props_context_residual"
+CONTEXT_PROPS_VERSION = "ctxres-v1"
+RECENCY_PROPS_MODEL_NAME = "props_recency_v1"
+RECENCY_PROPS_VERSION = "recency-v1"
+DEFAULT_CONTEXT_CACHE = REPO_ROOT / "data" / "models" / "context_residual"
+REPORT_LEAD_MINUTES = 60  # same pre-tip rule as injury Elo: real tip-off minus 60 min
 ROUTED_N_SIMS = 1000
 PROP_LOOKBACK_GAMES = 82
 PROP_MIN_GAMES = 5
@@ -216,3 +228,80 @@ def routed_prop_predictions(
         schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
     )
     return predict_slate(con, slate, frame, exclude_players, n_sims=n_sims, seed=seed)
+
+
+def slate_report_outs(
+    con: duckdb.DuckDBPyConnection,
+    games: list[tuple[str, datetime]],
+    made_at: datetime,
+    lead_minutes: int = REPORT_LEAD_MINUTES,
+) -> dict[str, set[int]]:
+    """``game_id -> players OUT`` on the latest official report usable for that
+    game: stamped (US-Eastern clock) at or before ``min(now, tip-off - lead)`` and
+    <= 36 h old. ``games`` = ``[(game_id, tipoff_naive_utc)]``. A game with no
+    usable report is ABSENT (never imputed as "nobody out"). The report is
+    league-wide per snapshot; consumers filter to the game's two teams."""
+    out: dict[str, set[int]] = {}
+    for gid, tip in games:
+        cutoff = to_report_dt(min(made_at, tip - timedelta(minutes=lead_minutes)))
+        try:
+            row = con.execute(
+                "SELECT max(as_of) FROM player_availability "
+                "WHERE source = 'nba_official_report' AND as_of <= ?",
+                [cutoff],
+            ).fetchone()
+            latest = row[0] if row else None
+            if latest is None or latest < cutoff - timedelta(hours=MAX_REPORT_AGE_HOURS):
+                continue
+            rows = con.execute(
+                "SELECT DISTINCT player_id FROM player_availability "
+                "WHERE source = 'nba_official_report' AND as_of = ? AND status = 'out' "
+                "AND player_id IS NOT NULL",
+                [latest],
+            ).fetchall()
+        except duckdb.CatalogException:
+            return {}
+        out[gid] = {int(r[0]) for r in rows}
+    return out
+
+
+def context_prop_predictions(
+    con: duckdb.DuckDBPyConnection,
+    slate: date,
+    games: list[tuple[str, int, int]],
+    report_out: dict[str, set[int]],
+    elo_params: dict[str, float],
+    *,
+    cache_root: Path | None = None,
+) -> ContextSlateResult:
+    """Context-residual props (primary) + recency comparison for ``games`` =
+    ``[(game_id, home_team, away_team)]``; fit on rows strictly before ``slate``."""
+    frame = pl.DataFrame(
+        {
+            "game_id": [g[0] for g in games],
+            "home_team": [g[1] for g in games],
+            "away_team": [g[2] for g in games],
+        },
+        schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
+    )
+    return predict_slate_context(
+        con, slate, frame, report_out, elo_params, cache_root=cache_root or DEFAULT_CONTEXT_CACHE
+    )
+
+
+def recency_prop_predictions(
+    con: duckdb.DuckDBPyConnection,
+    slate: date,
+    games: list[tuple[str, int, int]],
+    exclude_players: set[int],
+) -> pl.DataFrame:
+    """Recency-weighted played-games average only (no sim, no model fit)."""
+    frame = pl.DataFrame(
+        {
+            "game_id": [g[0] for g in games],
+            "home_team": [g[1] for g in games],
+            "away_team": [g[2] for g in games],
+        },
+        schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
+    )
+    return predict_slate(con, slate, frame, exclude_players, config=ForwardConfig(sim_stats=()))

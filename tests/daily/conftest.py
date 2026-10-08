@@ -72,3 +72,13 @@ def before_tip(minutes: int = 120) -> datetime:
 
 def utc(*a: int) -> datetime:
     return datetime(*a, tzinfo=UTC)  # type: ignore[arg-type]
+
+
+@pytest.fixture(autouse=True)
+def _isolated_model_cache(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Never write fitted models into the repo's data/ directory from tests."""
+    from nba.daily import predict
+
+    monkeypatch.setattr(predict, "DEFAULT_CONTEXT_CACHE", tmp_path_factory.mktemp("ctxcache"))

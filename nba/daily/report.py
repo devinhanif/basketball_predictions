@@ -92,6 +92,43 @@ def _paired_win_section(win: list[tuple[Any, ...]]) -> list[str]:
     return lines
 
 
+PROPS_PRIMARY = "props_context_residual"
+PROPS_COMPARISON = "props_recency_v1"
+
+
+def _paired_props_section(props: list[tuple[Any, ...]]) -> list[str]:
+    """Paired context-residual minus recency CRPS per stat on player-games scored
+    by BOTH (the recency model is the comparison; rows where the primary fell
+    back to recency are identical by construction and counted separately).
+    Negative = context model better. Bootstrap resamples game dates."""
+    lines = [
+        "",
+        f"### Paired: {PROPS_PRIMARY} minus {PROPS_COMPARISON} (negative = primary better)",
+    ]
+    prim = {(r[0], r[6], r[7]): r for r in props if r[5] == PROPS_PRIMARY}
+    comp = {(r[0], r[6], r[7]): r for r in props if r[5] == PROPS_COMPARISON}
+    if not prim or not comp:
+        lines.append("- no paired player-games yet.")
+        return lines
+    for stat in sorted({k[0] for k in prim}):
+        keys = sorted((k for k in prim if k[0] == stat and k in comp), key=str)
+        if not keys:
+            continue
+        d = np.array([str(prim[k][1]) for k in keys])
+        dc = np.array([prim[k][2] - comp[k][2] for k in keys], dtype=float)
+        db = np.array(
+            [abs(prim[k][4] - prim[k][3]) - abs(comp[k][4] - comp[k][3]) for k in keys],
+            dtype=float,
+        )
+        lines.append(
+            f"- {stat}: delta CRPS {_fmt(cluster_bootstrap_mean(dc, d))}; "
+            f"delta |error of mean| {_fmt(cluster_bootstrap_mean(db, d), 3)}"
+        )
+        if len(keys) < 300:
+            lines.append(f"  - CAUTION: only {len(keys)} paired player-games for {stat}.")
+    return lines
+
+
 def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -> str:
     ensure_tables(con)
     n_games, trigger = rollover_status(con)
@@ -133,10 +170,11 @@ def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -
             lines.append(
                 f"- CAUTION: only {len({r[0] for r in win})} settled games; CIs are very wide."
             )
-    lines += ["", "## Props (normal CRPS, lower is better)"]
+    lines += ["", "## Props (CRPS from the stored quantile grid, lower is better)"]
     props = con.execute(
-        "SELECT target, game_date, crps, y, pred FROM forward_scores "
-        "WHERE season = ? AND target <> 'win_prob_home' AND status = 'scored'",
+        "SELECT target, game_date, crps, y, pred, model_name, game_id, player_id "
+        "FROM forward_scores WHERE season = ? AND target <> 'win_prob_home' "
+        "AND status = 'scored'",
         [season],
     ).fetchall()
     dnp = con.execute(
@@ -144,15 +182,18 @@ def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -
     ).fetchone()
     if not props:
         lines.append("No settled forward prop predictions yet.")
-    for stat in sorted({r[0] for r in props}):
-        sub = [r for r in props if r[0] == stat]
-        d = np.array([str(r[1]) for r in sub])
-        crps = np.array([r[2] for r in sub], dtype=float)
-        bias = np.array([r[4] - r[3] for r in sub], dtype=float)
-        lines.append(
-            f"- {stat}: CRPS {_fmt(cluster_bootstrap_mean(crps, d))}; "
-            f"mean bias (pred-actual) {_fmt(cluster_bootstrap_mean(bias, d), 3)}"
-        )
+    for name in sorted({r[5] for r in props}):
+        lines.append(f"### {name}")
+        for stat in sorted({r[0] for r in props if r[5] == name}):
+            sub = [r for r in props if r[0] == stat and r[5] == name]
+            d = np.array([str(r[1]) for r in sub])
+            crps = np.array([r[2] for r in sub], dtype=float)
+            bias = np.array([r[4] - r[3] for r in sub], dtype=float)
+            lines.append(
+                f"- {stat}: CRPS {_fmt(cluster_bootstrap_mean(crps, d))}; "
+                f"mean bias (pred-actual) {_fmt(cluster_bootstrap_mean(bias, d), 3)}"
+            )
+    lines += _paired_props_section(props)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
     lines += [
         "",
