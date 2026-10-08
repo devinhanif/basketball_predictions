@@ -77,8 +77,10 @@ def test_rolling_features_use_only_strictly_earlier_games(con: duckdb.DuckDBPyCo
     assert before.height == 1
     row_before = before.row(0, named=True)
     assert row_before["games_played_prior"] == 2
-    assert row_before["win_pct_prior"] == pytest.approx(1.0)  # team 1 won g1 and g2
-    assert row_before["avg_pts_for_prior"] == pytest.approx((100 + 105) / 2)
+    # team 1 won g1 and g2: shrunk (2 + k*0.5)/(2 + k), k=10
+    assert row_before["win_pct_prior"] == pytest.approx(7 / 12)
+    assert row_before["season_win_pct_prior"] == pytest.approx(1.0)
+    assert row_before["avg_pts_for_prior"] == pytest.approx((100 + 105 + 10 * 110.0) / 12)
 
     # Plant a future blowout for team 1, dated strictly after g3. If the
     # window frame ever leaked same-or-later rows, team 1's g3 features

@@ -6,6 +6,14 @@ no play-by-play / possessions dependency (the parser is not built yet) and
 this module works today and gets richer for free once the data engineer
 populates ``team_context``.
 
+Season scoping: ``games_played_prior`` and every ``*_prior`` mean are
+partitioned by ``(team_id, season)`` -- they reset each season.
+``games_played_prior`` is the raw count of this season's earlier games;
+the means are shrunk, ``(sum + k*prior)/(n + k)`` with ``k = SHRINK_K``,
+toward the team's previous available season's final value (win% regressed
+1/3 toward 0.5), falling back to ``FEATURE_DEFAULTS`` for a team's first
+season. Nothing is cumulative across seasons any more.
+
 No-leakage guarantee: every rolling/"prior" column is a window aggregate
 with frame ``ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING`` ordered by
 ``(game_date, game_id)`` -- i.e. it can only see rows strictly before the
@@ -46,7 +54,7 @@ FEATURE_DEFAULTS: dict[str, float] = {
     "travel_miles_asof": 0.0,
 }
 
-_TEAM_GAME_FEATURES_SQL = """
+_TEAM_GAME_FEATURES_SQL_TEMPLATE = """
 WITH team_games AS (
     SELECT game_id, game_date, season, home_team AS team_id, away_team AS opp_team_id,
            home_pts AS team_pts, away_pts AS opp_pts, TRUE AS is_home,
@@ -67,6 +75,27 @@ team_games_full AS (
     SELECT tg.*, COALESCE(tt.team_tov, 0) AS team_tov
     FROM team_games tg
     LEFT JOIN team_tov tt USING (game_id, team_id)
+),
+season_final AS (
+    -- one row per (team, season): full-season means, used ONLY as the NEXT
+    -- season's shrinkage prior (a completed season is strictly in the past).
+    SELECT team_id, season,
+           AVG(CASE WHEN team_pts > opp_pts THEN 1.0 ELSE 0.0 END) AS win_pct_final,
+           AVG(team_pts) AS pts_for_final, AVG(opp_pts) AS pts_allowed_final,
+           AVG(team_tov) AS tov_final, AVG(team_pts + opp_pts) AS pace_final
+    FROM team_games_full
+    GROUP BY team_id, season
+),
+prev_season AS (
+    -- previous *available* season per team; win% regressed toward 0.5
+    SELECT team_id, season,
+           0.5 + {reg} * (LAG(win_pct_final) OVER w - 0.5) AS win_pct_final_reg,
+           LAG(pts_for_final) OVER w AS pts_for_final,
+           LAG(pts_allowed_final) OVER w AS pts_allowed_final,
+           LAG(tov_final) OVER w AS tov_final,
+           LAG(pace_final) OVER w AS pace_final
+    FROM season_final
+    WINDOW w AS (PARTITION BY team_id ORDER BY season)
 )
 SELECT
     game_id,
@@ -79,31 +108,27 @@ SELECT
     team_pts,
     opp_pts,
     team_tov,
-    -- strictly-prior sample size: drives shrinkage weight downstream
-    COUNT(*) OVER (
-        PARTITION BY team_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
-    ) AS games_played_prior,
-    AVG(CASE WHEN team_pts > opp_pts THEN 1.0 ELSE 0.0 END) OVER (
-        PARTITION BY team_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
-    ) AS win_pct_prior,
-    AVG(team_pts) OVER (
-        PARTITION BY team_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
-    ) AS avg_pts_for_prior,
-    AVG(opp_pts) OVER (
-        PARTITION BY team_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
-    ) AS avg_pts_allowed_prior,
-    AVG(team_tov) OVER (
-        PARTITION BY team_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
-    ) AS avg_tov_prior,
-    AVG(team_pts + opp_pts) OVER (
-        PARTITION BY team_id ORDER BY game_date, game_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
-    ) AS pace_proxy_prior,
+    -- strictly-prior, SEASON-SCOPED sample size (resets to 0 each season)
+    COUNT(*) OVER w_season AS games_played_prior,
+    -- season-scoped means shrunk toward last season's final value:
+    -- (sum_prior + k*prior) / (n_prior + k). n_prior = 0 gives the prior
+    -- itself, so there is no jump on 1-2 games.
+    -- raw in-season record (NULL on a team's first game of a season); used
+    -- by game_context for standings/tanking, where a true record is wanted.
+    AVG(CASE WHEN team_pts > opp_pts THEN 1.0 ELSE 0.0 END) OVER w_season
+        AS season_win_pct_prior,
+    (COALESCE(SUM(CASE WHEN team_pts > opp_pts THEN 1.0 ELSE 0.0 END) OVER w_season, 0)
+        + {k} * COALESCE(pv.win_pct_final_reg, {d_win}))
+        / (COUNT(*) OVER w_season + {k}) AS win_pct_prior,
+    (COALESCE(SUM(team_pts) OVER w_season, 0) + {k} * COALESCE(pv.pts_for_final, {d_pf}))
+        / (COUNT(*) OVER w_season + {k}) AS avg_pts_for_prior,
+    (COALESCE(SUM(opp_pts) OVER w_season, 0) + {k} * COALESCE(pv.pts_allowed_final, {d_pa}))
+        / (COUNT(*) OVER w_season + {k}) AS avg_pts_allowed_prior,
+    (COALESCE(SUM(team_tov) OVER w_season, 0) + {k} * COALESCE(pv.tov_final, {d_tov}))
+        / (COUNT(*) OVER w_season + {k}) AS avg_tov_prior,
+    (COALESCE(SUM(team_pts + opp_pts) OVER w_season, 0)
+        + {k} * COALESCE(pv.pace_final, {d_pace}))
+        / (COUNT(*) OVER w_season + {k}) AS pace_proxy_prior,
     LAG(game_date) OVER (
         PARTITION BY team_id ORDER BY game_date, game_id
     ) AS prev_game_date,
@@ -112,8 +137,31 @@ SELECT
         PARTITION BY team_id ORDER BY game_date, game_id
     ) AS prev_game_host_team_id
 FROM team_games_full
+LEFT JOIN prev_season pv USING (team_id, season)
+WINDOW w_season AS (
+    PARTITION BY team_id, season ORDER BY game_date, game_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+)
 ORDER BY game_date, game_id, team_id
 """
+
+#: Pseudo-game count for the early-season shrinkage toward last season.
+SHRINK_K: int = 10
+#: Fraction of last season's (final win% - 0.5) kept as the new-season prior
+#: (2/3 kept == regressed 1/3 to 0.5).
+PRIOR_KEEP: float = 2.0 / 3.0
+
+
+def _team_game_features_sql() -> str:
+    return _TEAM_GAME_FEATURES_SQL_TEMPLATE.format(
+        k=SHRINK_K,
+        reg=PRIOR_KEEP,
+        d_win=FEATURE_DEFAULTS["win_pct_prior"],
+        d_pf=FEATURE_DEFAULTS["avg_pts_for_prior"],
+        d_pa=FEATURE_DEFAULTS["avg_pts_allowed_prior"],
+        d_tov=FEATURE_DEFAULTS["avg_tov_prior"],
+        d_pace=FEATURE_DEFAULTS["pace_proxy_prior"],
+    )
 
 
 def _has_rows(con: duckdb.DuckDBPyConnection, table: str) -> bool:
@@ -199,7 +247,7 @@ def build_team_game_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     of this game"); every ``*_prior`` column is computed from games with an
     earlier ``(game_date, game_id)`` ordering only -- see module docstring.
     """
-    df = _query_to_polars(con, _TEAM_GAME_FEATURES_SQL)
+    df = _query_to_polars(con, _team_game_features_sql())
 
     df = df.with_columns(
         rest_days=(pl.col("game_date") - pl.col("prev_game_date")).dt.total_days().cast(pl.Float64)
@@ -207,6 +255,7 @@ def build_team_game_features(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     df = df.with_columns(
         [
             pl.col("win_pct_prior").fill_null(FEATURE_DEFAULTS["win_pct_prior"]),
+            pl.col("season_win_pct_prior").fill_null(FEATURE_DEFAULTS["win_pct_prior"]),
             pl.col("avg_pts_for_prior").fill_null(FEATURE_DEFAULTS["avg_pts_for_prior"]),
             pl.col("avg_pts_allowed_prior").fill_null(FEATURE_DEFAULTS["avg_pts_allowed_prior"]),
             pl.col("avg_tov_prior").fill_null(FEATURE_DEFAULTS["avg_tov_prior"]),

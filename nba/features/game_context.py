@@ -306,10 +306,12 @@ def build_standings_features(
 ) -> pl.DataFrame:
     """One row per (game, team): as-of conference seed + tanking incentive.
 
-    ``games_into_season`` and ``win_pct_asof`` are strictly-prior by
-    construction (``team_feats``'s own ``games_played_prior``/
-    ``win_pct_prior`` columns -- see ``team_features.py``'s module
-    docstring); ``conf_rank_asof`` is strictly-prior via the ``join_asof``
+    ``games_into_season`` and ``win_pct_asof`` are strictly-prior and
+    SEASON-SCOPED (``team_feats``'s ``games_played_prior`` and raw
+    ``season_win_pct_prior``; both reset to 0 games / 0.5 at each team's
+    first game of a season -- see ``team_features.py``'s module docstring),
+    so the tanking threshold counts games in the current season only;
+    ``conf_rank_asof`` is strictly-prior via the ``join_asof``
     boundary described in :func:`_standings_asof_for_targets`.
     """
     cfg = config or GameContextConfig()
@@ -324,7 +326,7 @@ def build_standings_features(
             "season",
             "is_home",
             "games_played_prior",
-            "win_pct_prior",
+            "season_win_pct_prior",
         ]
     ).join(
         standings.select(["team_id", "game_id", "conf_rank_asof"]),
@@ -334,7 +336,7 @@ def build_standings_features(
 
     df = df.with_columns(
         games_into_season=pl.col("games_played_prior"),
-        win_pct_asof=pl.col("win_pct_prior"),
+        win_pct_asof=pl.col("season_win_pct_prior"),
         conf_rank_asof=pl.col("conf_rank_asof").fill_null(999),
     )
     df = df.with_columns(
