@@ -1,0 +1,24 @@
+{
+  "game_summary": [
+    {
+      "GAME_ID": "0022300001",
+      "GAME_DATE_EST": "2023-10-24T00:00:00",
+      "GAME_STATUS_TEXT": "Final",
+      "HOME_TEAM_ID": 1610612738,
+      "VISITOR_TEAM_ID": 1610612755
+    }
+  ],
+  "inactive_players": [
+    {
+      "GAME_ID": "0022300001",
+      "PLAYER_ID": 106,
+      "FIRST_NAME": "P",
+      "LAST_NAME": "106",
+      "JERSEY_NUM": "6",
+      "TEAM_ID": 1610612755,
+      "TEAM_CITY": "Boston",
+      "TEAM_NAME": "Celtics",
+      "TEAM_ABBREVIATION": "BOS"
+    }
+  ]
+}

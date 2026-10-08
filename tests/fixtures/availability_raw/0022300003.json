@@ -1,0 +1,24 @@
+{
+  "game_summary": [
+    {
+      "GAME_ID": "0022300003",
+      "GAME_DATE_EST": "2023-10-25T00:00:00",
+      "GAME_STATUS_TEXT": "Final",
+      "HOME_TEAM_ID": 1610612748,
+      "VISITOR_TEAM_ID": 1610612749
+    }
+  ],
+  "inactive_players": [
+    {
+      "GAME_ID": "0022300003",
+      "PLAYER_ID": 301,
+      "FIRST_NAME": "P",
+      "LAST_NAME": "301",
+      "JERSEY_NUM": "1",
+      "TEAM_ID": 1610612748,
+      "TEAM_CITY": "Dallas",
+      "TEAM_NAME": "Mavericks",
+      "TEAM_ABBREVIATION": "DAL"
+    }
+  ]
+}

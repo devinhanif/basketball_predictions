@@ -141,6 +141,50 @@ CREATE TABLE IF NOT EXISTS team_game_advanced (
     PRIMARY KEY (game_id, team_id)
 );
 
+-- As-of player availability / injury status feed (CLAUDE.md "Known data
+-- gaps": the #1 blocker for usage-redistribution and the single
+-- highest-leverage new input for points, since minutes is the top
+-- prop-error driver -- see docs/INJURY_FEED_2026-10-08.md).
+--
+-- LEAKAGE CONTRACT (read before using this table in any feature/model):
+--   `as_of` is the timestamp this status became KNOWN to the world, NOT
+--   the game date. A row is valid evidence for a prediction made at time T
+--   only if `as_of <= T` -- same discipline as every other as-of table in
+--   this schema (player_rates, team_context), but at per-status-change
+--   granularity instead of one snapshot per game.
+--   - source = 'nba_inactive_list': populated from nba_api's
+--     BoxScoreSummaryV2 InactivePlayers result set. This list is only
+--     fetchable once the game exists in the NBA Stats API, i.e. AT OR
+--     AFTER that game's own tip-off -- it is NOT a forward-looking feed.
+--     `as_of` is set to that game's tip-off (approximated at game_date
+--     granularity; see docs/INJURY_FEED_2026-10-08.md). Safe to use as a
+--     feature for games strictly AFTER this one in a walk-forward
+--     backtest (e.g. cold-start / role-change detection on a teammate who
+--     is now getting more usage); NEVER safe to use as a predictor of
+--     *this* game, and never usable to predict a game that has not yet
+--     been played, since the row cannot exist until after the fact.
+--   - source = 'manual_announced': human-curated from externally published
+--     injury reports (no genuine forward-looking source exists in
+--     nba_api -- see docs/INJURY_FEED_2026-10-08.md). Carries whatever
+--     `as_of` the curator supplies (the announcement time); callers must
+--     still enforce `as_of <= T` themselves.
+--   `game_id` is nullable: a status snapshot (e.g. "questionable for
+--   Thursday's game") may be recorded before this pipeline has resolved
+--   the specific game_id, or may describe a multi-game absence.
+-- No PRIMARY KEY (same convention as stints/kalshi_prices/player_game_stats
+-- in this schema): loaders upsert idempotently via DELETE+INSERT keyed on
+-- (source, game_id) or (source, player_id, as_of) -- see
+-- nba/ingest/availability.py.
+CREATE TABLE IF NOT EXISTS player_availability (
+    player_id INT,
+    as_of TIMESTAMP,              -- when this status became known (NOT the game date)
+    game_id VARCHAR,               -- nullable: may predate game_id resolution
+    status VARCHAR,                -- 'out' | 'questionable' | 'probable' | 'available' | 'inactive'
+    reason VARCHAR,                 -- nullable free text, e.g. 'Left Knee; Soreness'
+    source VARCHAR,                 -- 'nba_inactive_list' | 'manual_announced'
+    pulled_at TIMESTAMP             -- when this pipeline recorded the row
+);
+
 CREATE TABLE IF NOT EXISTS prop_predictions (
     run_id VARCHAR,
     game_id VARCHAR,
@@ -216,7 +260,7 @@ CREATE TABLE IF NOT EXISTS experiments (
 -- resumable pullers never refetch cached data. Not part of the modeling
 -- schema in CLAUDE.md; owned entirely by nba/ingest/.
 CREATE TABLE IF NOT EXISTS ingest_log (
-    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp' | 'team-advanced' | 'national-tv'
+    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp' | 'team-advanced' | 'national-tv' | 'availability' | 'availability-manual'
     key VARCHAR,                 -- season string, game_id, etc.
     status VARCHAR,              -- 'done' | 'failed'
     cache_path VARCHAR,

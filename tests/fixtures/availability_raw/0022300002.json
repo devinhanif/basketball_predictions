@@ -1,0 +1,12 @@
+{
+  "game_summary": [
+    {
+      "GAME_ID": "0022300002",
+      "GAME_DATE_EST": "2023-10-24T00:00:00",
+      "GAME_STATUS_TEXT": "Final",
+      "HOME_TEAM_ID": 1610612747,
+      "VISITOR_TEAM_ID": 1610612744
+    }
+  ],
+  "inactive_players": []
+}

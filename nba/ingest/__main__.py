@@ -17,6 +17,15 @@ Commands:
                                                      the games table)
                  Both forms may be combined; one nba_api call per date
                  covers every game played that day.
+  availability   --game-id 0022300001 [--game-id ...]
+                 --season 2023-24 [--season ...]   (bulk: every game_id for
+                                                     the season already in
+                                                     the games table)
+                 Pulls nba_api's per-game InactivePlayers list into
+                 player_availability (source='nba_inactive_list'). NOT a
+                 forward-looking injury feed -- see
+                 docs/INJURY_FEED_2026-10-08.md and the leakage-contract
+                 comment on player_availability in nba/db/schema.sql.
 
 All commands are resumable and idempotent: already-cached (source, key)
 pairs are skipped (never refetched). Network calls are rate-limited via
@@ -29,6 +38,7 @@ import argparse
 import sys
 from collections.abc import Sequence
 
+from nba.ingest.availability import pull_game_availability
 from nba.ingest.boxscores import pull_game_boxscore
 from nba.ingest.cache import RateLimiter, is_cached, open_db
 from nba.ingest.games import game_ids_for_season, pull_season_games
@@ -88,6 +98,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="pull every distinct game_date for this season from the games table",
     )
 
+    avail_p = sub.add_parser(
+        "availability", help="pull per-game inactive-player list (NOT forward-looking)"
+    )
+    avail_p.add_argument("--game-id", action="append", dest="game_ids")
+    avail_p.add_argument(
+        "--season",
+        action="append",
+        dest="seasons",
+        help="pull every game_id for this season from the games table",
+    )
+
     return parser
 
 
@@ -100,7 +121,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         for season in args.seasons:
             df = pull_season_games(con, season, rate_limiter=limiter)
             print(f"games[{season}]: {len(df)} rows")
-    elif args.command in ("boxscore", "pbp", "team-advanced"):
+    elif args.command in ("boxscore", "pbp", "team-advanced", "availability"):
         game_ids = getattr(args, "game_ids", None) or []
         seasons = getattr(args, "seasons", None) or []
         if not game_ids and not seasons:
@@ -109,6 +130,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "boxscore": pull_game_boxscore,
             "pbp": pull_game_pbp,
             "team-advanced": pull_game_team_advanced,
+            "availability": pull_game_availability,
         }
         pull_fn = pull_fns[args.command]
 
