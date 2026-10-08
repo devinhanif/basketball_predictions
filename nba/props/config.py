@@ -82,6 +82,63 @@ class MinutesModelConfig:
     tanking_mu_adjust: float = -2.0
     travel_p_play_adjust_per_1000mi: float = -0.01
     travel_mu_adjust_per_1000mi: float = -0.3
+    #: Option A (``docs/NEXT_OPTIONS.md`` §1): replace the hand-set
+    #: constants above with coefficients fit by a small ridge regression of
+    #: minutes/DNP residuals on ``GAME_CONTEXT_FEATURE_COLUMNS`` (plus any
+    #: ``extra_features`` columns supplied to
+    #: ``nba.props.minutes.fit_learned_game_context``), fit only on a
+    #: chronologically-earlier calibration split -- same ``cal_frac``
+    #: discipline as ``DispersionConfig``/``ConformalConfig``. Mutually
+    #: exclusive in effect with ``use_game_context``'s hand-set adjustment:
+    #: when both are True and a fitted ``LearnedGameContextParams`` is
+    #: passed to ``predict_minutes``, the learned adjustment is applied
+    #: instead of the fixed-effect one (see ``nba.props.minutes`` module
+    #: docstring). Default OFF -- this re-tries a documented failure
+    #: (the hand-set version regressed DNP log loss/MAE) with a learned
+    #: fit instead of a guess; the maintainer A/Bs it on the real 4-season
+    #: DB per this module's docstring, nothing here is tuned on a backtest.
+    use_learned_game_context: bool = False
+    learned_context_cal_frac: float = 0.5
+    learned_context_ridge_alpha: float = 1.0
+    #: Below this many calibration-split rows (overall, for p_play; the mu
+    #: fit additionally requires this many *played* calibration rows), the
+    #: learned fit is skipped and left at the documented no-op (all-zero
+    #: coefficients) rather than fit to noise -- same honesty-guard pattern
+    #: as ``DispersionConfig.min_cal_n``.
+    learned_context_min_cal_n: int = 200
+    #: Cold-start gate for the learned game-context adjustment. The real-DB
+    #: A/B (2026-10-08) showed the learned fit + depth-chart feature IMPROVES
+    #: cold-start players (n_played_prior<20: minutes MAE -1.47, DNP log loss
+    #: -0.021, CIs exclude 0) but slightly REGRESSES established players. So
+    #: when set, the learned adjustment is applied only to rows with
+    #: ``n_played_prior < learned_context_max_n_played`` (established rows keep
+    #: the base shrinkage model). None = apply to all rows (ungated). Defaults
+    #: to 20 (the A/B-proven gate): gated, the fit improves overall minutes MAE
+    #: (-0.096) and DNP log loss (-0.0017) with ZERO change to established
+    #: players, vs. a regression on established players when ungated.
+    learned_context_max_n_played: float | None = 20.0
+    #: Option B (``docs/NEXT_OPTIONS.md`` §1): explicit blowout/garbage-time
+    #: branch. ``projected_margin`` (an OPTIONAL as-of pre-game absolute
+    #: point-spread input, NOT computed by this module -- see
+    #: ``nba.props.minutes`` module docstring) shrinks ``mu`` toward a
+    #: learned garbage-time mean and widens ``sigma`` once
+    #: ``|projected_margin|`` exceeds ``garbage_time_margin_threshold``,
+    #: ramping linearly to full effect over the next
+    #: ``garbage_time_margin_scale`` points. Default OFF; no real-data A/B
+    #: has been run yet (see this module's docstring for the exact
+    #: maintainer command).
+    use_garbage_time: bool = False
+    garbage_time_margin_threshold: float = 20.0
+    garbage_time_margin_scale: float = 10.0
+    garbage_time_cal_frac: float = 0.5
+    garbage_time_min_cal_n: int = 100
+    #: Pseudo-count (blowout calibration rows) shrinking the observed
+    #: blowout-minutes mean toward ``default_mu`` -- same empirical-Bayes
+    #: discipline as every other rate in this module.
+    garbage_time_k: float = 20.0
+    #: Multiplicative widening of ``sigma`` at full garbage-time weight
+    #: (``w=1``); ``sigma_applied = sigma * (1 + w * (garbage_time_sigma_inflate - 1))``.
+    garbage_time_sigma_inflate: float = 1.5
 
 
 @dataclass

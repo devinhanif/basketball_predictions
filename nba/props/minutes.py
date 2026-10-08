@@ -58,6 +58,54 @@ global regression fit would risk; see
 no-leakage proof (same pattern as
 ``tests/props/test_minutes_no_leakage.py``). The maintainer runs the real
 4-season A/B on whether this helps; nothing here is tuned on a backtest.
+
+LEARNED GAME-CONTEXT FIT (``MinutesModelConfig.use_learned_game_context``,
+``docs/NEXT_OPTIONS.md`` §1 Option A): the hand-set adjustment above
+regressed on the real 4-season backtest (DNP log loss 0.3881 -> 0.3908,
+minutes MAE 6.185 -> 6.222) -- it fixed an aggregate bias but with the
+wrong per-signal sign/magnitude, because the constants were guessed, not
+fit. :func:`fit_learned_game_context` replaces them with a small ridge
+regression of the *same* hurdle's own residuals
+(``actual_played - p_play_base`` for the DNP head, ``actual_minutes -
+mu_base`` for played rows) on ``GAME_CONTEXT_FEATURE_COLUMNS`` (plus any
+``extra_features`` columns joined on ``(game_id, player_id)`` -- e.g. a
+sibling depth-chart-hazard feature; this module never imports that
+producer, it only accepts whatever frame is handed to it), fit **only** on
+the chronologically-earlier ``learned_context_cal_frac`` split of the rows
+passed in (:func:`nba.props.conformal.chronological_split`, the same
+never-random discipline as ``DispersionConfig``/``ConformalConfig``). The
+fitted :class:`LearnedGameContextParams` is a plain data object (coefficient
+dict + intercept per head); :func:`predict_minutes` only ever *applies* it
+as a pure per-row linear function of that row's own as-of columns -- same
+no-cross-row-dependence argument as the hand-set adjustment, so the
+planted-future-game no-leakage test still applies verbatim to this path
+(see ``tests/props/test_minutes_learned_game_context.py``). Below
+``learned_context_min_cal_n`` calibration rows the fit is explicitly
+skipped (all-zero coefficients, noted) rather than fit to noise. Honest
+framing per CLAUDE.md risk #6: this is **retrying an already-documented
+failure** with a learned fit instead of a guess; if it still can't beat
+the ``use_game_context=False`` null on the real 4-season A/B, that is
+itself useful evidence the rest/b2b/travel/tanking signals carry no
+*minutes* signal beyond the shrinkage baseline (mirrors the win-prob
+rungs' identical finding for the same raw signals vs. Elo).
+
+GARBAGE-TIME BRANCH (``MinutesModelConfig.use_garbage_time``,
+``docs/NEXT_OPTIONS.md`` §1 Option B): a 35-point blowout and a 2-point
+nail-biter currently get the same ``mu``/``sigma`` from history alone.
+:func:`fit_garbage_time_params` learns a single "garbage time" mean minutes
+(shrunk toward ``default_mu`` by the usual empirical-Bayes pseudo-count,
+``garbage_time_k``) from calibration-split rows where a caller-supplied,
+OPTIONAL pre-game ``projected_margin`` (absolute point-spread -- this
+module never computes it; CLAUDE.md risk #3 means it must come from the
+team-level sim/Elo, as-of, never the game's own final score) exceeds
+``garbage_time_margin_threshold``. :func:`predict_minutes` then blends
+``mu`` toward that learned mean and inflates ``sigma`` by a weight that
+ramps linearly from 0 (at the threshold) to 1 (``garbage_time_margin_scale``
+points past it) as ``|projected_margin|`` grows -- never from the target
+game's own outcome, only from the caller-supplied pre-game projection, so
+the same no-leakage argument holds as long as the caller's own
+``projected_margin`` is itself as-of (not this module's responsibility to
+verify, but tested here with a synthetic input per the task).
 """
 
 from __future__ import annotations
@@ -67,12 +115,14 @@ from dataclasses import dataclass
 import duckdb
 import numpy as np
 import polars as pl
+from sklearn.linear_model import Ridge
 
 from nba.coldstart.shrinkage import shrink_rate
 from nba.eval.metrics import log_loss
 from nba.features.game_context import build_national_tv_features, build_standings_features
 from nba.features.team_features import build_team_game_features
 from nba.props.config import MinutesModelConfig
+from nba.props.conformal import chronological_split
 from nba.props.distributions import MinutesHurdleDist
 
 #: Identifier / as-of columns always present; everything else is a
@@ -256,10 +306,233 @@ def build_minutes_features(
     )
 
 
+@dataclass
+class LearnedGameContextParams:
+    """Fitted output of :func:`fit_learned_game_context` -- a plain data
+    object (no behavior beyond what's applied in :func:`predict_minutes`),
+    same "params object produced by an offline fit, applied as a pure
+    per-row function" pattern as ``nba.props.dispersion.DispersionCalibration``.
+
+    ``feature_columns`` is the exact candidate-predictor list used at fit
+    time (``GAME_CONTEXT_FEATURE_COLUMNS`` plus any ``extra_features``
+    columns that were present) -- :func:`predict_minutes` looks up each by
+    name in the features frame it's given and treats a missing column as
+    0 (documented fallback; see module docstring).
+    """
+
+    feature_columns: list[str]
+    p_play_coef: dict[str, float]
+    p_play_intercept: float
+    mu_coef: dict[str, float]
+    mu_intercept: float
+    n_cal: int
+    n_cal_played: int
+    note: str = ""
+
+
+def _design_matrix(df: pl.DataFrame, cols: list[str]) -> np.ndarray:
+    """Float, null-filled design matrix for ``cols`` (booleans cast to
+    0.0/1.0) -- shared by fit and apply so both see identical encodings."""
+    if not cols:
+        return np.zeros((df.height, 0))
+    arrs = []
+    for c in cols:
+        s = df.select(c).to_series()
+        s = s.cast(pl.Float64) if s.dtype == pl.Boolean else s.cast(pl.Float64, strict=False)
+        arrs.append(s.fill_null(0.0).to_numpy())
+    return np.column_stack(arrs)
+
+
+def fit_learned_game_context(
+    features: pl.DataFrame,
+    actual_played: np.ndarray,
+    actual_minutes: np.ndarray,
+    config: MinutesModelConfig | None = None,
+    extra_features: pl.DataFrame | None = None,
+) -> LearnedGameContextParams:
+    """Fit :class:`LearnedGameContextParams` by ridge regression of this
+    hurdle's own residuals on ``GAME_CONTEXT_FEATURE_COLUMNS`` -- see module
+    docstring "LEARNED GAME-CONTEXT FIT". ``features`` must be the frame
+    returned by :func:`build_minutes_features(..., use_game_context=True)`
+    (needs both the context columns and ``game_date``/the base shrinkage
+    inputs); ``actual_played``/``actual_minutes`` are the same-order target
+    arrays (see :func:`fetch_actual_minutes`).
+
+    ``extra_features`` (OPTIONAL) is left-joined onto ``features`` on
+    ``(game_id, player_id)`` before the fit; any of its non-key columns are
+    added as additional candidate predictors alongside
+    ``GAME_CONTEXT_FEATURE_COLUMNS``. This module never imports the
+    producer of such a frame (e.g. a depth-chart/hazard feature module) --
+    it only accepts whatever is handed to it, so a caller can feed any
+    additional as-of columns without a code change here.
+
+    Fit is restricted to the chronologically-earlier
+    ``learned_context_cal_frac`` split of the ROWS PASSED IN
+    (:func:`chronological_split`, never random) -- the caller is
+    responsible for passing an as-of-safe frame; this function adds no new
+    leakage path on top of that because the fitted coefficients are a
+    single global object applied identically (and additively) to every row
+    at predict time, never looking at any other row's target.
+    """
+    cfg = config or MinutesModelConfig()
+    df = features
+    if extra_features is not None:
+        extra_cols = [c for c in extra_features.columns if c not in ("game_id", "player_id")]
+        df = df.join(extra_features, on=["game_id", "player_id"], how="left")
+    else:
+        extra_cols = []
+
+    candidate_cols = [c for c in GAME_CONTEXT_FEATURE_COLUMNS if c in df.columns] + [
+        c for c in extra_cols if c in df.columns
+    ]
+
+    dates = df.select("game_date").to_series().to_numpy()
+    cal_mask, _test_mask = chronological_split(dates, cfg.learned_context_cal_frac)
+    n_cal = int(cal_mask.sum())
+    if n_cal < cfg.learned_context_min_cal_n:
+        note = (
+            f"only {n_cal} calibration-split player-games "
+            f"(<{cfg.learned_context_min_cal_n}); learned game-context fit "
+            "left as a no-op (all-zero coefficients) rather than fit to noise."
+        )
+        zeros = {c: 0.0 for c in candidate_cols}
+        return LearnedGameContextParams(
+            candidate_cols, zeros, 0.0, dict(zeros), 0.0, n_cal, 0, note
+        )
+
+    played = np.asarray(actual_played, dtype=float)
+    minutes = np.asarray(actual_minutes, dtype=float)
+
+    n_games = df.select("games_played_prior").to_series().fill_null(0).to_numpy()
+    n_played = df.select("n_played_prior").to_series().fill_null(0.0).to_numpy()
+    play_rate_obs = df.select("play_rate_prior").to_series().fill_null(0.0).to_numpy()
+    mu_obs = df.select("avg_minutes_given_played_prior").to_series().fill_null(0.0).to_numpy()
+    p_play_base = shrink_rate(play_rate_obs, n_games, cfg.default_p_play, cfg.k_play)
+    mu_base = shrink_rate(mu_obs, n_played, cfg.default_mu, cfg.k_mu)
+
+    x_full = _design_matrix(df, candidate_cols)
+    x_cal = x_full[cal_mask]
+
+    ridge_p = Ridge(alpha=cfg.learned_context_ridge_alpha)
+    ridge_p.fit(x_cal, (played - p_play_base)[cal_mask])
+    p_play_coef = dict(zip(candidate_cols, ridge_p.coef_.tolist(), strict=True))
+    p_play_intercept = float(ridge_p.intercept_)
+
+    played_cal_mask = cal_mask & (played > 0.0)
+    n_cal_played = int(played_cal_mask.sum())
+    if n_cal_played >= cfg.learned_context_min_cal_n:
+        ridge_mu = Ridge(alpha=cfg.learned_context_ridge_alpha)
+        ridge_mu.fit(x_full[played_cal_mask], (minutes - mu_base)[played_cal_mask])
+        mu_coef = dict(zip(candidate_cols, ridge_mu.coef_.tolist(), strict=True))
+        mu_intercept = float(ridge_mu.intercept_)
+        note = ""
+    else:
+        mu_coef = {c: 0.0 for c in candidate_cols}
+        mu_intercept = 0.0
+        note = (
+            f"only {n_cal_played} played calibration rows "
+            f"(<{cfg.learned_context_min_cal_n}); mu head left as a no-op."
+        )
+
+    return LearnedGameContextParams(
+        candidate_cols,
+        p_play_coef,
+        p_play_intercept,
+        mu_coef,
+        mu_intercept,
+        n_cal,
+        n_cal_played,
+        note,
+    )
+
+
+def _apply_learned_context(
+    features: pl.DataFrame, params: LearnedGameContextParams
+) -> tuple[np.ndarray, np.ndarray]:
+    """Pure per-row application of a fitted :class:`LearnedGameContextParams`
+    -- never reads any other row, so it cannot reintroduce leakage (same
+    argument as the hand-set adjustment; see module docstring)."""
+    n = features.height
+    p_adj = np.full(n, params.p_play_intercept, dtype=float)
+    mu_adj = np.full(n, params.mu_intercept, dtype=float)
+    if not params.feature_columns:
+        return p_adj, mu_adj
+    present = [c for c in params.feature_columns if c in features.columns]
+    missing = [c for c in params.feature_columns if c not in features.columns]
+    if present:
+        x = _design_matrix(features, present)
+        p_coef = np.array([params.p_play_coef.get(c, 0.0) for c in present])
+        mu_coef = np.array([params.mu_coef.get(c, 0.0) for c in present])
+        p_adj += x @ p_coef
+        mu_adj += x @ mu_coef
+    # ``missing`` columns (e.g. an extra_features column fit on but not
+    # joined onto this particular predict-time frame) contribute 0 --
+    # documented fallback, see LearnedGameContextParams docstring.
+    del missing
+    return p_adj, mu_adj
+
+
+@dataclass
+class GarbageTimeParams:
+    """Fitted output of :func:`fit_garbage_time_params` -- the learned
+    "garbage time" mean minutes blended into :func:`predict_minutes`'s
+    ``mu`` once ``|projected_margin|`` is large; see module docstring
+    "GARBAGE-TIME BRANCH"."""
+
+    garbage_time_mu: float
+    n_cal: int
+    note: str = ""
+
+
+def fit_garbage_time_params(
+    features: pl.DataFrame,
+    actual_played: np.ndarray,
+    actual_minutes: np.ndarray,
+    projected_margin: np.ndarray,
+    config: MinutesModelConfig | None = None,
+) -> GarbageTimeParams:
+    """Learn a single garbage-time mean minutes (empirical-Bayes-shrunk
+    toward ``default_mu``) from the chronologically-earlier
+    ``garbage_time_cal_frac`` split of rows where the caller-supplied,
+    OPTIONAL ``projected_margin`` (same order as ``features``) exceeds
+    ``garbage_time_margin_threshold`` and the player actually played.
+
+    ``projected_margin`` is NOT computed here -- CLAUDE.md risk #3 means it
+    must be an as-of pre-game projection (team-level sim/Elo output) from
+    the caller; this function only consumes it.
+    """
+    cfg = config or MinutesModelConfig()
+    dates = features.select("game_date").to_series().to_numpy()
+    cal_mask, _test_mask = chronological_split(dates, cfg.garbage_time_cal_frac)
+    margin = np.abs(np.asarray(projected_margin, dtype=float))
+    played = np.asarray(actual_played, dtype=float) > 0.0
+    blowout_cal = cal_mask & played & (margin >= cfg.garbage_time_margin_threshold)
+    n_cal = int(blowout_cal.sum())
+    if n_cal < cfg.garbage_time_min_cal_n:
+        note = (
+            f"only {n_cal} blowout calibration player-games "
+            f"(<{cfg.garbage_time_min_cal_n}); garbage_time_mu left at the "
+            "no-op default_mu rather than fit to noise."
+        )
+        return GarbageTimeParams(cfg.default_mu, n_cal, note)
+
+    minutes = np.asarray(actual_minutes, dtype=float)
+    obs_mean = float(minutes[blowout_cal].mean())
+    gt_mu = float(
+        shrink_rate(
+            np.array([obs_mean]), np.array([n_cal]), cfg.default_mu, cfg.garbage_time_k
+        )[0]
+    )
+    return GarbageTimeParams(gt_mu, n_cal, "")
+
+
 def predict_minutes(
     features: pl.DataFrame,
     config: MinutesModelConfig | None = None,
     k_multiplier: np.ndarray | None = None,
+    learned_context: LearnedGameContextParams | None = None,
+    projected_margin: np.ndarray | None = None,
+    garbage_time: GarbageTimeParams | None = None,
 ) -> list[MinutesHurdleDist]:
     """Build one :class:`MinutesHurdleDist` per row of ``features``.
 
@@ -274,6 +547,18 @@ def predict_minutes(
     shrinkage posterior gives to the prior right after a detected trade,
     injury return, or starter change -- CLAUDE.md: "On a flagged change,
     cold-start logic temporarily raises prior weight."
+
+    ``learned_context`` (optional :class:`LearnedGameContextParams`, from
+    :func:`fit_learned_game_context`) is applied instead of the hand-set
+    ``use_game_context`` adjustment when ``cfg.use_learned_game_context``
+    is True -- see module docstring "LEARNED GAME-CONTEXT FIT". Silently a
+    no-op if the flag is on but no fitted params are supplied (so a caller
+    can toggle the flag without crashing an already-running pipeline).
+
+    ``projected_margin``/``garbage_time`` (both optional, the latter from
+    :func:`fit_garbage_time_params`) are applied when
+    ``cfg.use_garbage_time`` is True -- see module docstring "GARBAGE-TIME
+    BRANCH". Also a no-op if the flag is on but either argument is missing.
     """
     cfg = config or MinutesModelConfig()
     n_games = features.select("games_played_prior").to_series().fill_null(0).to_numpy()
@@ -293,7 +578,18 @@ def predict_minutes(
     sigma = np.clip(sigma, cfg.min_sigma, None)
 
     context_cols = ("b2b", "tanking_incentive", "travel_miles_asof")
-    if cfg.use_game_context and all(c in features.columns for c in context_cols):
+    if cfg.use_learned_game_context and learned_context is not None:
+        p_adj, mu_adj = _apply_learned_context(features, learned_context)
+        if cfg.learned_context_max_n_played is not None:
+            # Cold-start gate: the learned fit helps thin-history players and
+            # slightly hurts established ones (real-DB A/B 2026-10-08), so apply
+            # the adjustment only where n_played_prior is below the threshold.
+            gate = (n_played < cfg.learned_context_max_n_played).astype(float)
+            p_adj = p_adj * gate
+            mu_adj = mu_adj * gate
+        p_play = p_play + p_adj
+        mu = mu + mu_adj
+    elif cfg.use_game_context and all(c in features.columns for c in context_cols):
         b2b = features.select("b2b").to_series().fill_null(False).cast(pl.Float64).to_numpy()
         tanking = features.select("tanking_incentive").to_series().fill_null(0.0).to_numpy()
         travel_1000mi = (
@@ -309,6 +605,13 @@ def predict_minutes(
             + tanking * cfg.tanking_mu_adjust
             + travel_1000mi * cfg.travel_mu_adjust_per_1000mi
         )
+
+    if cfg.use_garbage_time and garbage_time is not None and projected_margin is not None:
+        margin = np.abs(np.asarray(projected_margin, dtype=float))
+        scale = max(cfg.garbage_time_margin_scale, 1e-6)
+        w = np.clip((margin - cfg.garbage_time_margin_threshold) / scale, 0.0, 1.0)
+        mu = (1.0 - w) * mu + w * garbage_time.garbage_time_mu
+        sigma = sigma * (1.0 + w * (cfg.garbage_time_sigma_inflate - 1.0))
 
     p_play = np.clip(p_play, 0.02, 0.99)
     mu = np.clip(mu, 0.0, cfg.max_minutes)
