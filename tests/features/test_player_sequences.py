@@ -252,7 +252,14 @@ for arm in ("transformer", "gru"):
     assert (q[:, :, 1:] >= q[:, :, :-1]).all() and q.shape == (6, 4, 19)
 print("ok")
 """
-    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+    # Keep pytest-cov out of the child: its auto-started, differently-configured coverage
+    # data cannot be combined with the parent's branch data (CI "DataError").
+    import os
+
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("COV_CORE_", "COVERAGE_"))}
+    r = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, timeout=120, env=env
+    )
     assert r.returncode == 0 and "ok" in r.stdout, r.stderr[-500:]
 
 
