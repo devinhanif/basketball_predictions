@@ -1,0 +1,170 @@
+# Hand-built college -> group mapping for players_static.college (NOT sourced
+# from an external conference database; judgement calls, reviewable).
+# Groups: power_conf | mid_major | international_pro | pathway (G League Ignite,
+# Overtime Elite, NBA Global Academy) | high_school | unknown.
+# Rule: a name in an explicit list below takes that group; any other non-empty
+# string is treated as a US college mid_major (documented default).
+# "power_conf" = program in ACC / Big 12 / Big East / Big Ten / Pac-12 / SEC
+# (current-era affiliation, ignoring realignment timing; Gonzaga, Houston,
+# Memphis, Cincinnati, UCF, SMU, San Diego State, UNLV treated as mid_major).
+power_conf:
+  - Kentucky
+  - Duke
+  - Arizona
+  - Kansas
+  - UCLA
+  - North Carolina
+  - Michigan
+  - Texas
+  - Texas-Austin
+  - Baylor
+  - Alabama
+  - Connecticut
+  - Arkansas
+  - Virginia
+  - Tennessee
+  - Florida
+  - Villanova
+  - Florida State
+  - Auburn
+  - Southern California
+  - USC
+  - Washington
+  - Oregon
+  - Indiana
+  - Iowa State
+  - Ohio State
+  - Marquette
+  - Louisiana State
+  - Louisville
+  - Vanderbilt
+  - Texas A&M
+  - Colorado
+  - Wake Forest
+  - Maryland
+  - Michigan State
+  - Miami
+  - Missouri
+  - Stanford
+  - West Virginia
+  - Providence
+  - Syracuse
+  - Washington State
+  - Wisconsin
+  - Penn State
+  - Iowa
+  - Kansas State
+  - Pittsburgh
+  - Utah
+  - Oklahoma
+  - South Carolina
+  - Xavier
+  - Texas Tech
+  - Arizona State
+  - Northwestern
+  - Georgetown
+  - Georgia
+  - Georgia Tech
+  - Illinois
+  - Illinois-Urbana-Champaign
+  - Oregon State
+  - North Carolina State
+  - Creighton
+  - Boston College
+  - Rutgers
+  - TCU
+  - Texas Christian
+  - Oklahoma State
+  - Nebraska
+  - Nebraska-Lincoln
+  - St. John's
+  - DePaul
+  - Seton Hall
+  - Minnesota
+  - Mississippi
+  - California
+  - Purdue
+  - Notre Dame
+  - Clemson
+  - Virginia Tech
+  - Butler
+  - Mississippi State
+international_pro:
+  - Mega Basket
+  - Anadolu Efes
+  - Real Madrid
+  - Illawarra
+  - Ratiopharm Ulm
+  - Ratiopharm Ulm (Germany)
+  - FC Barcelona
+  - Cholet
+  - Fenerbahce
+  - Baskonia
+  - New Zealand Breakers
+  - Maccabi Tel Aviv
+  - Crvena zvezda
+  - Cajasol Sevilla
+  - Metropolitans 92
+  - Murcia
+  - Union Olimpija
+  - Olympiacos
+  - Paris Basketball
+  - Zibo
+  - Cedevita Olimpija (Slovenia)
+  - Panathinaikos
+  - Australian Institute of Sport
+  - Cedevita
+  - Victoria Libertas
+  - San Pablo Burgos
+  - Brose Bamberg
+  - Guangzhou Loong Lions
+  - Minas
+  - Estudiantes
+  - Sydney Kings
+  - ADA Blois
+  - Japan
+  - Saint-Quentin
+  - Spain
+  - Riesen Ludwigsburg
+  - Strasbourg IG
+  - Bayern Munich
+  - ASVEL
+  - Rouen, France
+  - Serbia
+  - Filathlitikos
+  - Zaragoza
+  - Le Mans Sarthe
+  - Le Mans
+  - Besiktas
+  - SK Cherkasy Monkey
+  - JL Bourg-en-Bresse
+  - Cairns, Australia
+  - Baloncesto Fuenlabrada
+  - Elan Chalon
+  - Ricoh Manresa
+  - Zalgiris
+  - Winnipeg Sea Bears
+  - Barcelona, Spain
+  - Bursaspor
+  - Adelaide
+  - Brisbane Bullets (Australia)
+  - Olimpia Milano
+  - Lietuvos rytas Vilnius
+  - Poitiers Basket 86
+  - Braunschweig
+  - Rockingham Flames (Aus.)
+  - Capital City Go-Go
+pathway:
+  - NBA G League Ignite
+  - G League Ignite
+  - Overtime Elite
+  - NBA Global Academy
+high_school:
+  - Princeton HS (OH)
+  - St. Vincent-St. Mary HS (OH)
+  - Edgewater HS (FL)
+  - IMG Academy (FL)
+  - Ranney School (HS)
+unknown:
+  - ""
+  - Washington Wizards
