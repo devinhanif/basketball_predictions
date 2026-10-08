@@ -118,3 +118,15 @@ ifdef UV
 else
 	$(PY) -m nba.registry list
 endif
+
+## Colab GPU hand-off (see docs/COLAB_WORKFLOW.md). Usage: make colab-push JOB=rung4_stepheads
+JOB ?=
+RUN ?=
+colab-push:
+	uv run python -m nba.colab push $(JOB)
+
+colab-pull:
+	uv run python -m nba.colab pull $(JOB) $(RUN) $(COLAB_ARGS)
+
+colab-status:
+	uv run python -m nba.colab status $(JOB)
