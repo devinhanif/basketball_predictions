@@ -107,6 +107,8 @@ def run_sim_vs_baseline_eval(
     use_time_decay: bool = False,
     time_decay_config: TimeDecayConfig | None = None,
     max_season: int | None = None,
+    min_season: int | None = None,
+    sample_games: int | None = None,
 ) -> SimPlayerPointsEvalResult:
     """Run the possession sim's per-player points predictions for every game
     with a box score and score them against actuals + the season-average
@@ -145,15 +147,21 @@ def run_sim_vs_baseline_eval(
         ]
     )
     game_ids = games.select("game_id").unique().to_series().sort().to_list()
-    if max_season is not None:
-        # Restrict to seasons <= max_season (use 2024 to keep the 2025 holdout untouched).
+    if max_season is not None or min_season is not None:
+        # Season window on the SCORED games only (rates still use full history).
+        lo = -(10**9) if min_season is None else min_season
+        hi = 10**9 if max_season is None else max_season
         ok = {
             r[0]
             for r in con.execute(
-                "SELECT game_id FROM games WHERE season <= ?", [max_season]
+                "SELECT game_id FROM games WHERE season BETWEEN ? AND ?", [lo, hi]
             ).fetchall()
         }
         game_ids = [g for g in game_ids if g in ok]
+    if sample_games is not None and len(game_ids) > sample_games:
+        # Evenly spaced across the (sorted) window, deterministic.
+        pick = np.linspace(0, len(game_ids) - 1, sample_games).round().astype(int)
+        game_ids = [game_ids[i] for i in sorted(set(pick.tolist()))]
     if max_games is not None:
         game_ids = game_ids[:max_games]
 

@@ -329,6 +329,8 @@ def run_sim_ab(
     max_games: int | None = None,
     n_boot: int = 1000,
     seed: int = 0,
+    min_season: int | None = None,
+    sample_games: int | None = None,
 ) -> list[SliceDelta]:
     """Sim-level A/B: sim(decay on, ``config``) vs sim(decay off), points CRPS.
 
@@ -340,7 +342,14 @@ def run_sim_ab(
 
     if max_season > MAX_TUNE_SEASON:
         raise ValueError(f"season {max_season} is the frozen holdout; max is {MAX_TUNE_SEASON}")
-    kw = {"n_sims": n_sims, "seed": seed, "max_games": max_games, "max_season": max_season}
+    kw = {
+        "n_sims": n_sims,
+        "seed": seed,
+        "max_games": max_games,
+        "max_season": max_season,
+        "min_season": min_season,
+        "sample_games": sample_games,
+    }
     off = run_sim_vs_baseline_eval(con, return_raw=True, **kw)  # type: ignore[arg-type]
     on = run_sim_vs_baseline_eval(
         con,
@@ -350,6 +359,9 @@ def run_sim_ab(
         **kw,  # type: ignore[arg-type]
     )
     assert off.raw is not None and on.raw is not None
+    assert on.raw.height > 0 and off.raw.height == on.raw.height
+    if np.array_equal(off.raw["pred"].to_numpy(), on.raw["pred"].to_numpy()):
+        raise RuntimeError("decay flag had no effect on sim predictions (check sampled seasons)")
     actuals = _load_actuals(con, max_season).select(
         "game_id", "player_id", "season", "appearance_idx"
     )

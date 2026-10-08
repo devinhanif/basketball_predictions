@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 import numpy as np
 import polars as pl
 import pytest
@@ -115,3 +117,37 @@ def test_prior_totals_only_from_earlier_seasons() -> None:
     # No age info -> multiplier 1, huge half-life -> weight 1: 2023 opener = 12 shots from 2022.
     assert on.filter(pl.col("game_id") == "2023-0")["n_fga_prior"][0] == 12
     assert on.filter(pl.col("game_id") == "2022-0")["n_fga_prior"][0] == 0
+
+
+def test_flag_reaches_sim_rate_builder(monkeypatch: pytest.MonkeyPatch) -> None:
+    import nba.eval.player_points_sim_eval as ev
+
+    seen: list[dict[str, object]] = []
+    real = ev.build_player_shot_rates
+
+    def spy(con, **kw):  # type: ignore[no-untyped-def]
+        seen.append(kw)
+        return real(con, **kw)
+
+    monkeypatch.setattr(ev, "build_player_shot_rates", spy)
+    con = _db()
+    cfg = TimeDecayConfig(half_life_seasons=0.5)
+    for flag in (False, True):
+        with contextlib.suppress(Exception):  # tiny fixture lacks team data
+            ev.run_sim_vs_baseline_eval(
+                con,
+                n_sims=10,
+                use_time_decay=flag,
+                time_decay_config=cfg,
+                min_season=2024,
+                max_season=2024,
+                sample_games=2,
+            )
+    assert "use_time_decay" not in seen[0]
+    assert seen[1]["use_time_decay"] is True and seen[1]["time_decay_config"] == cfg
+    # And rates for a 2024 game genuinely differ on vs off.
+    from nba.features.player_possession_features import build_player_shot_rates as b
+
+    off = b(con).filter(pl.col("game_id") == "2024-0")
+    on = b(con, use_time_decay=True, time_decay_config=cfg).filter(pl.col("game_id") == "2024-0")
+    assert off["n_fga_prior"][0] != on["n_fga_prior"][0]
