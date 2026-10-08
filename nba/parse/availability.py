@@ -23,6 +23,7 @@ import difflib
 import re
 import unicodedata
 import warnings
+from collections.abc import Iterable
 from datetime import date, datetime
 from typing import cast
 
@@ -252,6 +253,132 @@ def resolve_player_id(raw_name: str, name_index: dict[str, int]) -> int:
     )
 
 
+# --------------------------------------------------------------------------
+# Team-aware resolver (historical backfill)
+# --------------------------------------------------------------------------
+
+#: Report team column (e.g. ``"BostonCeltics"`` -- spacing varies by era) ->
+#: abbreviation, keyed on the lowercase alphanumeric nickname suffix.
+_TEAM_NICKNAME_TO_ABBREV: dict[str, str] = {
+    "hawks": "ATL", "celtics": "BOS", "cavaliers": "CLE", "pelicans": "NOP",
+    "bulls": "CHI", "mavericks": "DAL", "nuggets": "DEN", "warriors": "GSW",
+    "rockets": "HOU", "clippers": "LAC", "lakers": "LAL", "heat": "MIA",
+    "bucks": "MIL", "timberwolves": "MIN", "nets": "BKN", "knicks": "NYK",
+    "magic": "ORL", "pacers": "IND", "76ers": "PHI", "suns": "PHX",
+    "trailblazers": "POR", "kings": "SAC", "spurs": "SAS", "thunder": "OKC",
+    "raptors": "TOR", "jazz": "UTA", "grizzlies": "MEM", "wizards": "WAS",
+    "pistons": "DET", "hornets": "CHA",
+}  # fmt: skip
+
+
+def team_id_from_report_team(raw: str | None) -> int | None:
+    """Team id from the report's team column text, ``None`` if unrecognised."""
+    if not raw:
+        return None
+    key = re.sub(r"[^a-z0-9]", "", raw.lower())
+    for nick, abbrev in _TEAM_NICKNAME_TO_ABBREV.items():
+        if key.endswith(nick):
+            return TEAM_ABBREV_TO_ID.get(abbrev)
+    return None
+
+
+def _normalize_keep_suffix(raw: str) -> str:
+    s = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
+    s = _NON_ALNUM_RE.sub(" ", s.lower().replace(",", " "))
+    return " ".join(s.split())
+
+
+class NameResolver:
+    """Full-name + team-as-of-date player resolver. Never raises on build.
+
+    ``names``: (full name, player_id) pairs for the candidate pool (callers
+    restrict this to players seen in our data around the date range).
+    ``team_history``: player_id -> [(game_date, team_id)] from box scores.
+    ``aliases``: reviewed normalized-name -> player_id overrides.
+
+    ``resolve`` order: alias; exact suffix-preserving name when the report
+    name carries a suffix (``Jr.``/``III``); suffix-stripped name. Several
+    candidates are broken by which one played for the report's team within
+    ``window_days`` of ``as_of`` (strictly one must match). Anything still
+    ambiguous or unknown returns ``None`` and is appended to ``unmatched``.
+    """
+
+    def __init__(
+        self,
+        names: Iterable[tuple[str, int]],
+        team_history: dict[int, list[tuple[date, int]]] | None = None,
+        aliases: dict[str, int] | None = None,
+        window_days: int = 45,
+        known_unseen: Iterable[str] = (),
+    ) -> None:
+        self.exact: dict[str, set[int]] = {}
+        self.stripped: dict[str, set[int]] = {}
+        for raw, pid in names:
+            k1 = _normalize_keep_suffix(raw)
+            k2 = normalize_name(raw)
+            if k1:
+                self.exact.setdefault(k1, set()).add(pid)
+            if k2:
+                self.stripped.setdefault(k2, set()).add(pid)
+        self.team_history = team_history or {}
+        self.aliases = {normalize_name(k): v for k, v in (aliases or {}).items()}
+        self.window_days = window_days
+        #: Real players (full static list) with no games in our data window:
+        #: skipped + logged, but excluded from the unmatched-rate check.
+        self.known_unseen = {normalize_name(n) for n in known_unseen}
+        self.unmatched: list[tuple[str, str, str, str]] = []  # name, team, date, reason
+
+    def _teams_near(self, pid: int, as_of: date | None) -> set[int]:
+        hist = self.team_history.get(pid, [])
+        if as_of is None:
+            return {t for _, t in hist}
+        return {t for d, t in hist if abs((d - as_of).days) <= self.window_days}
+
+    def lookup(self, display_name: str, team_id: int | None, as_of: date | None) -> int | None:
+        key = normalize_name(display_name)
+        if key in self.aliases:
+            return self.aliases[key]
+        keep = _normalize_keep_suffix(display_name)
+        cands = self.exact.get(keep, set())  # suffix-preserving match wins
+        if not cands:
+            cands = self.stripped.get(key, set())
+        if not cands:
+            close = difflib.get_close_matches(
+                key, self.stripped.keys(), n=2, cutoff=_FUZZY_MATCH_CUTOFF
+            )
+            if len(close) == 1:
+                cands = self.stripped[close[0]]
+        if len(cands) == 1:
+            return next(iter(cands))
+        if len(cands) > 1 and team_id is not None:
+            hit = [p for p in cands if team_id in self._teams_near(p, as_of)]
+            if len(hit) == 1:
+                return hit[0]
+        return None
+
+    def resolve(
+        self, display_name: str, team_id: int | None, as_of: date | None, team_raw: str = ""
+    ) -> int | None:
+        pid = self.lookup(display_name, team_id, as_of)
+        if pid is None:
+            reason = "not_in_pool" if self.is_known_unseen(display_name) else "unresolved"
+            if reason == "unresolved" and not self._has_candidates(display_name):
+                reason = "no_candidate"  # name matches nobody in the pool (not ambiguous)
+            self.unmatched.append((display_name, team_raw, str(as_of or ""), reason))
+        return pid
+
+    def _has_candidates(self, display_name: str) -> bool:
+        key = normalize_name(display_name)
+        if key in self.aliases or self.exact.get(_normalize_keep_suffix(display_name)):
+            return True
+        return bool(self.stripped.get(key)) or bool(
+            difflib.get_close_matches(key, self.stripped.keys(), n=1, cutoff=_FUZZY_MATCH_CUTOFF)
+        )
+
+    def is_known_unseen(self, display_name: str) -> bool:
+        return normalize_name(display_name) in self.known_unseen
+
+
 def _as_timestamp(value: str | date | datetime) -> datetime:
     if isinstance(value, datetime):
         return value
@@ -390,9 +517,54 @@ _STATUS_MAP = {
 }
 
 
-def _column_for_x0(x0: float) -> str:
-    best = _COLUMN_BOUNDARIES[0][1]
-    for boundary, name in _COLUMN_BOUNDARIES:
+def _page_boundaries(
+    words: list[dict[str, object]], prev: list[tuple[float, str]] | None = None
+) -> list[tuple[float, str]]:
+    """Column boundaries for one page, derived from its header row.
+
+    The report layout shifted between eras (older PDFs have the player column
+    at x0~370 and spaced header words like ``Game Date``/``Current Status``),
+    so boundaries are read from the header words (x0 - 2pt margin) and fall
+    back to the committed-fixture defaults if no header is found.
+    """
+    mt = [w for w in words if w["text"] == "Matchup"]
+    fallback = prev if prev is not None else _COLUMN_BOUNDARIES
+    if not mt:
+        return fallback
+    top = cast(float, mt[0]["top"])
+    hdr = sorted(
+        (w for w in words if abs(cast(float, w["top"]) - top) < 3),
+        key=lambda w: cast(float, w["x0"]),
+    )
+    first: dict[str, float] = {}
+    games: list[float] = []
+    for w in hdr:
+        text, x0 = str(w["text"]), cast(float, w["x0"])
+        if text == "GameTime":
+            first.setdefault("gametime", x0)
+        elif text == "Game":
+            games.append(x0)
+        elif text == "Matchup":
+            first.setdefault("matchup", x0)
+        elif text == "Team":
+            first.setdefault("team", x0)
+        elif text in ("PlayerName", "Player"):
+            first.setdefault("player", x0)
+        elif text in ("CurrentStatus", "Current"):
+            first.setdefault("status", x0)
+        elif text == "Reason":
+            first.setdefault("reason", x0)
+    if "gametime" not in first and len(games) >= 2:
+        first["gametime"] = games[1]
+    needed = ("gametime", "matchup", "team", "player", "status", "reason")
+    if any(k not in first for k in needed):
+        return fallback
+    return [(0.0, "gamedate")] + [(first[k] - 2.0, k) for k in needed]
+
+
+def _column_for_x0(x0: float, boundaries: list[tuple[float, str]] = _COLUMN_BOUNDARIES) -> str:
+    best = boundaries[0][1]
+    for boundary, name in boundaries:
         if x0 >= boundary:
             best = name
     return best
@@ -401,6 +573,7 @@ def _column_for_x0(x0: float) -> str:
 def _is_header_or_footer(row_text: str) -> bool:
     return (
         "GameDate" in row_text
+        or "Game Date" in row_text
         or row_text.startswith("Injury Report")
         or row_text.startswith("Page")
     )
@@ -462,8 +635,10 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
         "team": None,
     }
 
+    bounds = _COLUMN_BOUNDARIES
     for page in pdf.pages:  # type: ignore[attr-defined]
         words = page.extract_words()
+        bounds = _page_boundaries(words, bounds)
         rows: dict[float, list[dict[str, object]]] = {}
         for w in words:
             top = cast(float, w["top"])
@@ -481,7 +656,7 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
 
             cols: dict[str, str] = {}
             for w in ws:
-                col = _column_for_x0(cast(float, w["x0"]))
+                col = _column_for_x0(cast(float, w["x0"]), bounds)
                 text = str(w["text"])
                 cols[col] = f"{cols[col]} {text}" if col in cols else text
 
@@ -505,7 +680,7 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
                 )
             else:
                 reason = cols.get("reason")
-                if reason:
+                if reason and reason.replace(" ", "").lower() != _PLACEHOLDER_STATUS:
                     floating_fragments.append((y, reason))
 
         page_records = records[page_start:]
@@ -531,6 +706,8 @@ def parse_official_injury_report(
     *,
     report_dt: datetime,
     con: duckdb.DuckDBPyConnection | None = None,
+    resolver: NameResolver | None = None,
+    max_unmatched_rate: float = 0.05,
 ) -> pl.DataFrame:
     """Parse the NBA's official injury-report PDF into ``AVAILABILITY_SCHEMA`` rows.
 
@@ -558,6 +735,12 @@ def parse_official_injury_report(
     function's original no-DB-required contract for callers that only need
     the parsed names/statuses.
 
+    ``resolver`` (a ``NameResolver``) replaces ``name_index`` when given:
+    names are resolved by full name then team/date; unresolvable names are
+    skipped and logged on ``resolver.unmatched`` instead of raising, unless
+    the report's unmatched rate exceeds ``max_unmatched_rate`` (then
+    ``UnmatchedPlayerNameError``).
+
     Rows whose status is the "Not Yet Submitted" placeholder (no real report
     filed for that slot yet) are skipped, not written as a row.
     """
@@ -570,6 +753,7 @@ def parse_official_injury_report(
         pdf.close()
 
     unmatched: list[str] = []
+    n_seen = 0
     rows: list[dict[str, object]] = []
     for rec in records:
         status_raw = (rec.status or "").strip()
@@ -583,11 +767,30 @@ def parse_official_injury_report(
             raise ValueError(f"unrecognized injury-report status {status_raw!r} for {rec.player!r}")
 
         display_name = _reorder_last_first(rec.player)
-        try:
-            player_id = resolve_player_id(display_name, name_index)
-        except UnmatchedPlayerNameError:
-            unmatched.append(display_name)
-            continue
+        if resolver is not None:
+            parsed = _parse_report_gamedate(rec.gamedate)
+            resolved = resolver.resolve(
+                display_name,
+                team_id_from_report_team(rec.team),
+                parsed or report_dt.date(),
+                rec.team or "",
+            )
+            n_seen += 1
+            if resolved is None:
+                # Counts toward the failure rate only if the name HAD candidates
+                # we could not disambiguate; names matching nobody in the pool
+                # (players with no games in our data, or absent from the
+                # installed nba_api static list) are logged but not counted.
+                if resolver.unmatched[-1][3] == "unresolved":
+                    unmatched.append(display_name)
+                continue
+            player_id = resolved
+        else:
+            try:
+                player_id = resolve_player_id(display_name, name_index)
+            except UnmatchedPlayerNameError:
+                unmatched.append(display_name)
+                continue
 
         game_id: str | None = None
         if con is not None:
@@ -609,7 +812,7 @@ def parse_official_injury_report(
             }
         )
 
-    if unmatched:
+    if unmatched and (resolver is None or len(unmatched) / max(n_seen, 1) > max_unmatched_rate):
         raise UnmatchedPlayerNameError(
             "could not resolve the following official-injury-report player "
             f"names to a player_id: {unmatched}"
