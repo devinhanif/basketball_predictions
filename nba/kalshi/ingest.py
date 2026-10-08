@@ -98,6 +98,7 @@ def pull_candlesticks_for_market(
     cutoff: CutoffInfo,
     period_interval: int = 60,
     data_dir: Path = DEFAULT_DATA_DIR,
+    tier: str | None = None,
 ) -> int:
     """Pull one market's candlesticks (tier chosen via ``as_of``/``cutoff``),
     parse into ``kalshi_prices`` rows tagged with the tier used, and
@@ -108,7 +109,7 @@ def pull_candlesticks_for_market(
     ``(ticker, source)`` pair's rows before inserting the fresh pull,
     exactly like ``nba.ingest.availability._replace_rows``.
     """
-    tier = select_tier(as_of, cutoff)
+    tier = tier or select_tier(as_of, cutoff)
     key = f"{tier}:{ticker}:{start_ts}:{end_ts}:{period_interval}"
     raw = fetch_cached_json(
         con,

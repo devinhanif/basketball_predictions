@@ -1,0 +1,4 @@
+# Human-reviewed Kalshi display name -> nba_api player_id.
+# Generate candidates with:  uv run python -m nba.kalshi alias-candidates
+# then copy only rows you have personally confirmed. Never auto-filled.
+aliases: {}

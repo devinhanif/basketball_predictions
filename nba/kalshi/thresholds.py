@@ -75,3 +75,34 @@ def parse_threshold_title(title: str) -> tuple[str, str, float]:
     stat = _STAT_ALIASES[stat_raw]
     threshold = float(match.group("threshold"))
     return name, stat, threshold
+
+
+#: Series-ticker -> project stat vocabulary for the live player-prop series
+#: (verified against the public /series listing on 2026-10-08).
+SERIES_STAT: dict[str, str] = {
+    "KXNBAPTS": "pts",
+    "KXNBAREB": "reb",
+    "KXNBAAST": "ast",
+    "KXNBA3PT": "fg3m",
+    "KXNBAPRA": "pra",
+    "KXNBAPR": "pr",
+    "KXNBAPA": "pa",
+    "KXNBARA": "ra",
+    "KXNBASTL": "stl",
+    "KXNBABLK": "blk",
+}
+
+_PROP_TITLE_RE = re.compile(r"^(?P<name>[^:]+?):\s*(?P<threshold>\d+(?:\.\d+)?)\s*\+")
+
+
+def parse_prop_title(title: str) -> tuple[str, float]:
+    """Parse the live-API player-prop shape ``"Victor Wembanyama: 40+ points"``.
+
+    Returns ``(player_name, threshold)``; the stat comes from the series
+    ticker (``SERIES_STAT``), not the free text. Raises
+    ``UnparseableTitleError`` for any other shape.
+    """
+    match = _PROP_TITLE_RE.match(title.strip())
+    if match is None:
+        raise UnparseableTitleError(f"title {title!r} is not a '<player>: <N>+ ...' prop title")
+    return " ".join(match.group("name").split()), float(match.group("threshold"))

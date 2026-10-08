@@ -14,7 +14,7 @@ unit-testable with no network access.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True)
@@ -42,13 +42,19 @@ def parse_cutoff_response(raw: dict[str, object]) -> CutoffInfo:
     mode: "past the boundary the live endpoints hand back HTTP 200 and an
     empty array rather than an error").
     """
-    value = raw.get("settled_markets_cutoff", raw.get("cutoff"))
+    # ``market_settled_ts`` is the field name the live API returns (verified
+    # 2026-10-08); the other two are older/synthetic-fixture spellings.
+    value = raw.get("market_settled_ts", raw.get("settled_markets_cutoff", raw.get("cutoff")))
     if value is None:
         raise KeyError(
-            f"cutoff response missing 'settled_markets_cutoff' (or 'cutoff') field: {raw!r}"
+            "cutoff response missing 'market_settled_ts' (or 'settled_markets_cutoff'/"
+            f"'cutoff') field: {raw!r}"
         )
     assert isinstance(value, str)
-    return CutoffInfo(settled_markets_cutoff=datetime.fromisoformat(value))
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is not None:  # "...Z" -> naive UTC, matching the DB's TIMESTAMP columns
+        parsed = parsed.astimezone(UTC).replace(tzinfo=None)
+    return CutoffInfo(settled_markets_cutoff=parsed)
 
 
 def select_tier(target_ts: datetime, cutoff: CutoffInfo) -> str:

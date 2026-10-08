@@ -24,7 +24,7 @@ public and require no authentication.
 
 Caching/resumability mirrors ``nba.ingest.cache.fetch_cached`` exactly (the
 exemplar CLAUDE.md names explicitly): raw JSON is written once per
-``(source, key)`` under ``data/kalshi_raw/`` and logged 'done' in the
+``(source, key)`` under ``data/kalshi/raw/`` and logged 'done' in the
 shared ``ingest_log`` table, so a crashed/interrupted pull picks up where
 it left off and never re-hits the network for a key it already has.
 """
@@ -52,7 +52,11 @@ SOURCE_CUTOFF = "kalshi-cutoff"
 SOURCE_MARKETS = "kalshi-markets"
 SOURCE_CANDLES = "kalshi-candles"
 
-_RAW_DIR_NAME = "kalshi_raw"
+_RAW_DIR_NAME = "raw"
+
+#: Kalshi-specific data root (gitignored via /data/): raw JSON + the dedicated DuckDB file.
+KALSHI_DATA_DIR = DEFAULT_DATA_DIR / "kalshi"
+DEFAULT_KALSHI_DB = KALSHI_DATA_DIR / "kalshi.duckdb"
 
 
 def _raw_path(source: str, key: str, data_dir: Path) -> Path:
@@ -82,10 +86,18 @@ class KalshiClient:
 
     def _get(self, url: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Plain unauthenticated GET. No headers besides httpx's defaults."""
+        import time
+
         import httpx  # lazy: keep this module network-import-free otherwise
 
-        self.rate_limiter.wait()
-        response = httpx.get(url, params=params, timeout=self.timeout_s)
+        response = None
+        for attempt in range(4):  # polite retry on 429/5xx only
+            self.rate_limiter.wait()
+            response = httpx.get(url, params=params, timeout=self.timeout_s)
+            if response.status_code != 429 and response.status_code < 500:
+                break
+            time.sleep(2.0 * (attempt + 1))
+        assert response is not None
         response.raise_for_status()
         result = response.json()
         assert isinstance(result, dict)
@@ -96,7 +108,14 @@ class KalshiClient:
         return self._get(f"{self.historical_base_url}/cutoff")
 
     def fetch_markets_page(
-        self, *, tier: str, series_ticker: str | None = None, cursor: str | None = None
+        self,
+        *,
+        tier: str,
+        series_ticker: str | None = None,
+        cursor: str | None = None,
+        status: str | None = None,
+        limit: int | None = None,
+        min_settled_ts: int | None = None,
     ) -> dict[str, Any]:
         """One page of ``GET /markets`` (live) or ``GET /historical/markets``.
 
@@ -110,9 +129,19 @@ class KalshiClient:
         params: dict[str, Any] = {}
         if series_ticker is not None:
             params["series_ticker"] = series_ticker
-        if cursor is not None:
+        if cursor:
             params["cursor"] = cursor
+        if status is not None:
+            params["status"] = status
+        if limit is not None:
+            params["limit"] = limit
+        if min_settled_ts is not None:
+            params["min_settled_ts"] = min_settled_ts
         return self._get(f"{base}/markets", params=params)
+
+    def fetch_series_list(self, category: str = "Sports") -> dict[str, Any]:
+        """``GET /series?category=...`` (public) -- used for ticker discovery."""
+        return self._get(f"{self.live_base_url}/series", params={"category": category})
 
     def fetch_candlesticks(
         self,
@@ -127,8 +156,12 @@ class KalshiClient:
         """``GET /markets/{ticker}/candlesticks`` (live) or the historical
         equivalent. ``period_interval`` is minutes per candle (1, 60, or
         1440 per Kalshi's documented valid values)."""
-        base = self.live_base_url if tier == "live" else self.historical_base_url
-        url = f"{base}/series/{series_ticker}/markets/{ticker}/candlesticks"
+        # Verified live 2026-10-08: the live tier nests under /series/{s}/markets/{t};
+        # the historical tier is /historical/markets/{t}/candlesticks (no series).
+        if tier == "live":
+            url = f"{self.live_base_url}/series/{series_ticker}/markets/{ticker}/candlesticks"
+        else:
+            url = f"{self.historical_base_url}/markets/{ticker}/candlesticks"
         params = {
             "start_ts": start_ts,
             "end_ts": end_ts,

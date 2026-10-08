@@ -1,0 +1,9 @@
+# Kalshi read-only ingest config (public market data only; no credentials).
+base_url: https://api.elections.kalshi.com/trade-api/v2
+rate_limit_s: 0.25          # min seconds between GETs (well under the public read limit)
+page_limit: 1000            # max page size for /markets
+settle_lookback_days: 3     # live-tier status=settled sweep to pick up results
+game_series: [KXNBAGAME, KXNBASPREAD, KXNBATOTAL, KXNBATEAMTOTAL]
+prop_series:
+  [KXNBAPTS, KXNBAREB, KXNBAAST, KXNBA3PT, KXNBAPRA, KXNBAPR, KXNBAPA, KXNBARA, KXNBASTL, KXNBABLK]
+min_settled_markets: 30     # sample-size floor before any superiority claim

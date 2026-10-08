@@ -1,0 +1,59 @@
+{
+ "candlesticks": [
+  {
+   "end_period_ts": 1791435600,
+   "open_interest_fp": "0.00",
+   "price": {},
+   "volume_fp": "0.00",
+   "yes_ask": {
+    "close_dollars": "0.8800",
+    "high_dollars": "0.9900",
+    "low_dollars": "0.3000",
+    "open_dollars": "0.9900"
+   },
+   "yes_bid": {
+    "close_dollars": "0.1100",
+    "high_dollars": "0.1100",
+    "low_dollars": "0.0000",
+    "open_dollars": "0.0000"
+   }
+  },
+  {
+   "end_period_ts": 1791439200,
+   "open_interest_fp": "0.00",
+   "price": {},
+   "volume_fp": "0.00",
+   "yes_ask": {
+    "close_dollars": "0.8700",
+    "high_dollars": "0.8900",
+    "low_dollars": "0.2900",
+    "open_dollars": "0.8800"
+   },
+   "yes_bid": {
+    "close_dollars": "0.1200",
+    "high_dollars": "0.1200",
+    "low_dollars": "0.1100",
+    "open_dollars": "0.1100"
+   }
+  },
+  {
+   "end_period_ts": 1791442800,
+   "open_interest_fp": "0.00",
+   "price": {},
+   "volume_fp": "0.00",
+   "yes_ask": {
+    "close_dollars": "0.1300",
+    "high_dollars": "0.8800",
+    "low_dollars": "0.1300",
+    "open_dollars": "0.8700"
+   },
+   "yes_bid": {
+    "close_dollars": "0.1200",
+    "high_dollars": "0.1500",
+    "low_dollars": "0.1200",
+    "open_dollars": "0.1200"
+   }
+  }
+ ],
+ "ticker": "KXNBASPREAD-26OCT08SACLAL-SAC8"
+}

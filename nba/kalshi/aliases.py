@@ -19,8 +19,11 @@ in isolation.
 from __future__ import annotations
 
 import difflib
+from pathlib import Path
 
 from nba.parse.availability import normalize_name
+
+DEFAULT_ALIAS_FILE = Path(__file__).resolve().parents[2] / "configs" / "kalshi_aliases.yaml"
 
 #: Reviewed display-name -> player_id aliases. Keyed on the *normalized*
 #: name (see ``normalize_name``) so punctuation/accents/suffix variants in
@@ -76,3 +79,33 @@ def resolve_kalshi_player_name(raw_name: str, aliases: dict[str, int] | None = N
         f"to a player_id via the reviewed alias table.{suggestion} "
         "Add a reviewed entry to nba/kalshi/aliases.py before ingesting this market."
     )
+
+
+def load_reviewed_aliases(path: Path | None = None) -> dict[str, int]:
+    """Built-in aliases merged with the human-edited ``configs/kalshi_aliases.yaml``.
+
+    The YAML is ``aliases: {"display name": player_id}``; keys are normalized
+    here. Entries are assertions made by a human reviewer -- nothing in this
+    package writes to that file.
+    """
+    import yaml
+
+    merged = dict(_ALIASES)
+    p = path or DEFAULT_ALIAS_FILE
+    if p.exists():
+        loaded = yaml.safe_load(p.read_text()) or {}
+        for name, pid in (loaded.get("aliases") or {}).items():
+            merged[normalize_name(str(name))] = int(pid)
+    return merged
+
+
+def propose_alias_candidates(names: list[str]) -> dict[str, list[int]]:
+    """For REVIEW only: unique exact-normalized matches against nba_api's
+    bundled static player list (a local file, no network). Never applied
+    automatically; a human copies confirmed rows into the aliases YAML."""
+    from nba_api.stats.static import players
+
+    index: dict[str, list[int]] = {}
+    for p in players.get_players():
+        index.setdefault(normalize_name(p["full_name"]), []).append(int(p["id"]))
+    return {n: index.get(normalize_name(n), []) for n in sorted(set(names))}
