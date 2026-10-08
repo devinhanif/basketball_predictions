@@ -288,3 +288,24 @@ def test_decision_rule() -> None:
     small = {"a": {"n": 50, "log_loss": {"delta": 0.02}}}
     assert decide(ov, small)["verdict"] == "KEEP"
     assert decide({"log_loss": {"hi": 0.001}}, ok)["verdict"] == "REJECT"
+
+
+def test_holdout_requires_flag_and_default_rejects_it(tmp_path: Path) -> None:
+    c = _make_db(seed=3, days=100)
+    cfg = load_config(CFG_PATH)
+    cfg["bootstrap"]["n_boot"] = 50
+    cfg["fit"]["min_signal_games"] = 10
+    cfg["report"]["backfill_table"] = "player_availability"
+    # default path: holdout season in oof_seasons is rejected
+    with pytest.raises(ValueError):
+        run_injury_elo_eval(c, dict(cfg, oof_seasons=[2023, int(cfg["holdout_season"])]))
+    # confirmatory without the preregistration flag is rejected
+    cfg2 = dict(cfg, holdout_season=2023, oof_seasons=[2022])
+    with pytest.raises(ValueError):
+        run_injury_elo_eval(c, cfg2, confirmatory_holdout=2023)
+    # wrong season is rejected even with the flag
+    with pytest.raises(ValueError):
+        run_injury_elo_eval(c, cfg2, confirmatory_holdout=2024, preregistered=True)
+    res = run_injury_elo_eval(c, cfg2, confirmatory_holdout=2023, preregistered=True)
+    assert res["seasons"] == [2023] and res["n_scored"] == 100 * 3 - 3
+    assert "confirmed" in res["variants"]["injury_elo"]

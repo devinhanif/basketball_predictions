@@ -185,21 +185,40 @@ def run_injury_elo_eval(
     con: duckdb.DuckDBPyConnection,
     cfg: dict[str, Any],
     out_dir: str | Path | None = None,
+    confirmatory_holdout: int | None = None,
+    preregistered: bool = False,
 ) -> dict[str, Any]:
-    """Run the full OOF comparison on ``con`` (needs the report table attached)."""
+    """Run the full OOF comparison on ``con`` (needs the report table attached).
+
+    ``confirmatory_holdout=<season>`` (with ``preregistered=True``) is the ONLY
+    way to touch the holdout season: same frozen procedure, but history is
+    loaded through that season and ONLY that season is scored (each monthly
+    refit still uses all games strictly before the month). Default path
+    rejects the holdout season.
+    """
     holdout = int(cfg["holdout_season"])
     seasons = [int(s) for s in cfg["oof_seasons"]]
     if holdout in seasons or max(seasons) >= holdout:
         raise ValueError("oof_seasons must all be strictly before the burned holdout season")
+    if confirmatory_holdout is not None:
+        if not preregistered:
+            raise ValueError("confirmatory holdout requires --i-have-preregistered")
+        if int(confirmatory_holdout) != holdout:
+            raise ValueError("confirmatory holdout must equal the configured holdout_season")
+        load_through = holdout
+        seasons = [holdout]
+    else:
+        load_through = max(seasons)
     fcfg = feature_config_from(cfg)
     elo_params = {
         k: float(v)
         for k, v in load_config(cfg["mov_elo_config"]).items()
         if k in ("k_factor", "home_advantage_elo", "season_carryover", "mov_c", "mov_div")
     }
-    games = load_games_frame(con, max(seasons))
-    stats = load_stats_frame(con, max(seasons))
-    assert int(games["season"].max()) < holdout  # type: ignore[arg-type]
+    games = load_games_frame(con, load_through)
+    stats = load_stats_frame(con, load_through)
+    if confirmatory_holdout is None:
+        assert int(games["season"].max()) < holdout  # type: ignore[arg-type]
     feats = build_injury_features(con, games, stats, fcfg)
     elo_logit = sequential_elo_logits(games, elo_params)
     frame = games.with_columns(pl.Series("elo_logit", elo_logit)).join(
@@ -264,6 +283,8 @@ def run_injury_elo_eval(
         }
         if not name.startswith("ORACLE"):
             res["decision"] = decide(res["overall"], res["slices"])
+            if confirmatory_holdout is not None:
+                res["confirmed"] = bool(res["overall"]["log_loss"]["hi"] < 0.0)
         results["variants"][name] = res
 
     results["oof_frame_rows"] = int(keep.sum())
@@ -330,11 +351,28 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--config", default="configs/injury_elo.yaml")
     ap.add_argument("--out-dir", default="data/injury_elo")
+    ap.add_argument("--confirmatory-holdout", type=int, default=None)
+    ap.add_argument("--i-have-preregistered", action="store_true")
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
     con = duckdb.connect(args.db, read_only=True)
     if args.backfill_db:
         con.execute(f"ATTACH '{args.backfill_db}' AS bf (READ_ONLY)")
+    if args.confirmatory_holdout is not None:
+        res = run_injury_elo_eval(
+            con,
+            cfg,
+            None,
+            confirmatory_holdout=args.confirmatory_holdout,
+            preregistered=args.i_have_preregistered,
+        )
+        out = Path(args.out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"holdout_{args.confirmatory_holdout}.json").write_text(
+            json.dumps(res, indent=2, default=str)
+        )
+        print(json.dumps(res, indent=2, default=str))
+        return 0
     res = run_injury_elo_eval(con, cfg, args.out_dir)
     print(json.dumps(res, indent=2, default=str))
     return 0
