@@ -84,6 +84,7 @@ import numpy as np
 import polars as pl
 
 from nba.coldstart.shrinkage import shrink_rate
+from nba.features.time_decay import TimeDecayConfig
 
 #: League-wide empirical zone-mix / zone-efficiency constants -- see module
 #: docstring for provenance. Used as the last-resort fallback prior when a
@@ -279,12 +280,103 @@ ORDER BY pp.game_date, pp.game_id, pp.player_id
 """
 
 
+_PLAYER_COUNT_COLS = [
+    "n_fga",
+    "n_rim_fga",
+    "n_rim_made",
+    "n_mid_fga",
+    "n_mid_made",
+    "n_above3_fga",
+    "n_above3_made",
+    "team_n_fga",
+    "oncourt_team_fga",
+    "fta",
+    "ftm",
+]
+
+
+def _decayed_player_prior_cte(cfg: TimeDecayConfig) -> str:
+    """SQL for a ``player_prior`` CTE (same output columns as the default one)
+    with season-decayed pooling.
+
+    Per count column: ``current-season cumulative strictly before this game``
+    (partition ``(player_id, season)``, the same ``1 PRECEDING`` window) plus
+    ``sum_{s < season} w(s) * full_season_total(s)`` where
+    ``w = 0.5 ** ((gap - 1) / half_life) * (1 - carryover_decay_weight) * age``
+    and ``age`` is ``carryover.age_curve_multiplier`` evaluated at the player's
+    age on the first league game date of the current season (NULL birth_date
+    -> 1.0). Earlier-season totals are complete, and seasons increase with
+    calendar time, so no current-or-future game ever contributes.
+    """
+    hl = max(float(cfg.half_life_seasons), 1e-6)
+    keep = 1.0 - float(cfg.carryover_decay_weight)
+    age_yrs = "date_diff('day', ps.birth_date, ss.start_date) / 365.25"
+    z = f"(({age_yrs} - {float(cfg.peak_age)!r}) / {float(cfg.age_curve_width)!r})"
+    age_mult = f"COALESCE(GREATEST(0.5, LEAST(1.0, 1.0 - 0.5 * {z} * {z})), 1.0)"
+    tot_cols = ",\n        ".join(f"SUM({c}) AS t_{c}" for c in _PLAYER_COUNT_COLS)
+    dec_cols = ",\n        ".join(f"SUM(w.wt * st.t_{c}) AS d_{c}" for c in _PLAYER_COUNT_COLS)
+    cur_cols = ",\n        ".join(
+        f"SUM({c}) OVER (PARTITION BY player_id, season ORDER BY game_date, game_id {_WINDOW}) "
+        f"AS c_{c}"
+        for c in _PLAYER_COUNT_COLS
+    )
+    out_cols = ",\n        ".join(
+        f"COALESCE(cu.c_{c}, 0) + COALESCE(d.d_{c}, 0) AS {c}_prior" for c in _PLAYER_COUNT_COLS
+    )
+    return f"""player_prior AS (
+    WITH season_start AS (
+        SELECT season, MIN(game_date) AS start_date FROM games GROUP BY 1
+    ),
+    season_tot AS (
+        SELECT player_id, season,
+        {tot_cols}
+        FROM per_game GROUP BY 1, 2
+    ),
+    cur_cum AS (
+        SELECT game_id, player_id, team_id, game_date, season, position,
+        {cur_cols}
+        FROM per_game
+    ),
+    decayed AS (
+        SELECT cp.player_id, cp.season,
+        {dec_cols}
+        FROM (SELECT DISTINCT player_id, season FROM per_game) cp
+        JOIN season_tot st ON st.player_id = cp.player_id AND st.season < cp.season
+        JOIN season_start ss ON ss.season = cp.season
+        LEFT JOIN players_static ps ON ps.player_id = cp.player_id
+        CROSS JOIN LATERAL (
+            SELECT POWER(0.5, (cp.season - st.season - 1) / {hl!r}) * {keep!r} * {age_mult} AS wt
+        ) w
+        GROUP BY 1, 2
+    )
+    SELECT cu.game_id, cu.player_id, cu.team_id, cu.game_date, cu.season, cu.position,
+        {out_cols}
+    FROM cur_cum cu
+    LEFT JOIN decayed d ON d.player_id = cu.player_id AND d.season = cu.season
+),
+"""
+
+
+def _time_decay_sql(cfg: TimeDecayConfig) -> str:
+    """Default SQL with its ``player_prior`` CTE swapped for the decayed one."""
+    start = _PLAYER_SHOT_RATES_SQL.index("player_prior AS (")
+    end = _PLAYER_SHOT_RATES_SQL.index("position_prior AS (")
+    return (
+        _PLAYER_SHOT_RATES_SQL[:start]
+        + _decayed_player_prior_cte(cfg)
+        + _PLAYER_SHOT_RATES_SQL[end:]
+    )
+
+
 def _safe_ratio(num: pl.Expr, den: pl.Expr, default: float) -> pl.Expr:
     return pl.when(den > 0).then(num / den).otherwise(pl.lit(default))
 
 
 def build_player_shot_rates(
-    con: duckdb.DuckDBPyConnection, use_oncourt_usage: bool = False
+    con: duckdb.DuckDBPyConnection,
+    use_oncourt_usage: bool = False,
+    use_time_decay: bool = False,
+    time_decay_config: TimeDecayConfig | None = None,
 ) -> pl.DataFrame:
     """One row per (game, player): strictly as-of, shrinkage-blended shot rates.
 
@@ -301,8 +393,19 @@ def build_player_shot_rates(
     availability), the usage x minutes decomposition CLAUDE.md calls for.
     Defaults to False (the original proxy) so the choice is made by the A/B
     backtest, not by assumption.
+
+    ``use_time_decay`` (cold-start method 4, defaults OFF so default output
+    is byte-identical): replaces the equal-weight pooling of ALL prior
+    seasons in the player's own counts with ``current-season-to-date counts
+    + sum over strictly earlier seasons of (decay-weighted full-season
+    totals)``; see :func:`_decayed_player_prior_cte` for the weights.
+    ``time_decay_config`` supplies the knobs (``TimeDecayConfig()`` defaults
+    if None). The position-level prior is deliberately NOT decayed.
     """
-    con.execute(_PLAYER_SHOT_RATES_SQL)
+    sql = _PLAYER_SHOT_RATES_SQL
+    if use_time_decay:
+        sql = _time_decay_sql(time_decay_config or TimeDecayConfig())
+    con.execute(sql)
     columns = [d[0] for d in con.description]
     rows = con.fetchall()
     int_cols = {
