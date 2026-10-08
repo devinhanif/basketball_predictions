@@ -224,6 +224,7 @@ def run_sim_vs_baseline_eval(
                 "game_id": [k[0] for k in row_keys],
                 "player_id": [k[1] for k in row_keys],
                 "y": y_arr,
+                "pred": pred_arr,
                 "crps_sim": crps_sim_arr,
                 "crps_season_avg": crps_season_arr,
             }
