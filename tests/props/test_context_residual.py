@@ -222,3 +222,22 @@ def test_walk_forward_end_to_end_small_and_season_2025_guard() -> None:
         assert "holdout" in str(e)
     else:
         raise AssertionError("season 2025 must be rejected")
+
+
+def test_cli_rejects_2025_without_both_flags() -> None:
+    import pytest
+
+    from nba.eval.context_residual_eval import main
+
+    for argv in (["--confirmatory-holdout", "2025"], ["--i-have-preregistered"]):
+        with pytest.raises(SystemExit):
+            main(argv)
+
+
+def test_load_inputs_default_excludes_2025() -> None:
+    import inspect
+
+    from nba.eval.context_residual_eval import MAX_SEASON, load_inputs
+
+    assert MAX_SEASON == 2024
+    assert inspect.signature(load_inputs).parameters["max_season"].default == 2024

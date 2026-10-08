@@ -61,6 +61,7 @@ from nba.props.metrics import (
 )
 
 MODEL_NAME = "context_residual"
+HOLDOUT_SEASON = 2025
 MAX_SEASON = 2024  # season 2025 is the frozen holdout: never loaded
 TEST_SEASONS: tuple[int, ...] = (2023, 2024)
 CRPS_FLOOR = 0.005
@@ -109,19 +110,19 @@ def boot_p_value(
 
 
 def load_inputs(
-    db_path: str, injury_db: str | None
+    db_path: str, injury_db: str | None, max_season: int = MAX_SEASON
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """(games, player_game_stats, players_static, availability); read-only; season <= 2024."""
     con = duckdb.connect(db_path, read_only=True)
     try:
         games = con.execute(
             "SELECT game_id, game_date, season, home_team, away_team, home_pts, away_pts "
-            f"FROM games WHERE season <= {MAX_SEASON}"
+            f"FROM games WHERE season <= {max_season}"
         ).pl()
         pgs = con.execute(
             "SELECT s.game_id, s.player_id, s.team_id, s.minutes, s.pts, s.reb, "
             "s.ast, s.fg3m, s.starter "
-            f"FROM player_game_stats s JOIN games g USING (game_id) WHERE g.season <= {MAX_SEASON}"
+            f"FROM player_game_stats s JOIN games g USING (game_id) WHERE g.season <= {max_season}"
         ).pl()
         static = con.execute("SELECT player_id, position FROM players_static").pl()
     finally:
@@ -267,6 +268,7 @@ def summarize_stat(res: pl.DataFrame, n_boot: int = N_BOOT) -> dict[str, Any]:
         "crps_delta": [ci.point, ci.lo, ci.hi],
         "crps_delta_vs_recency_conformal": [ci_cal.point, ci_cal.lo, ci_cal.hi],
         "p_value": boot_p_value(d, gid, n_boot),
+        "p_value_vs_recency_conformal": boot_p_value(crps - cal, gid, n_boot),
         "mae_cand": float(np.abs(res["mean"].to_numpy() - y).mean()),
         "mae_base": float(np.abs(res["m"].to_numpy() - y).mean()),
         "bias_cand": [bias_c.point, bias_c.lo, bias_c.hi],
@@ -332,10 +334,11 @@ def run_eval_frames(
     test_seasons: tuple[int, ...] = TEST_SEASONS,
     stats: tuple[str, ...] = PROP_STATS,
     n_boot: int = N_BOOT,
+    max_season: int = MAX_SEASON,
 ) -> dict[str, Any]:
     cfg = cfg or ContextResidualConfig()
-    max_season = games["season"].max()
-    if max_season is not None and int(max_season) > MAX_SEASON:  # type: ignore[arg-type]
+    max_season_seen = games["season"].max()
+    if max_season_seen is not None and int(max_season_seen) > max_season:  # type: ignore[arg-type]
         raise ValueError("season > 2024 present: frozen holdout must not be loaded")
     flagged, _info = flagged_from_availability(avail, games, cfg.report)
     feats = build_features(games, pgs, static, flagged, elo_params)
@@ -437,6 +440,45 @@ def run(
     return result
 
 
+def run_holdout(
+    db_path: str = "nba.duckdb",
+    injury_db: str | None = None,
+    elo_config: str = "configs/mov_elo_tuned.yaml",
+    config_path: str = "configs/context_residual.yaml",
+    out_path: str = "reports/context_residual/holdout_2025.json",
+) -> dict[str, Any]:
+    """Confirmatory season-2025 touch (docs/HOLDOUT_ACCESS_LOG.md; run ONCE).
+
+    Frozen procedure: same config/features; month blocks over 2025 only are
+    scored, each trained on all played rows strictly before the block. Primary:
+    paired CRPS delta vs recency_conformal, game-clustered, BH over the 4 stats.
+    """
+    elo_params = {k: float(v) for k, v in yaml.safe_load(Path(elo_config).read_text()).items()}
+    cfg = ContextResidualConfig(**yaml.safe_load(Path(config_path).read_text()).get("model", {}))
+    games, pgs, static, avail = load_inputs(db_path, injury_db, max_season=HOLDOUT_SEASON)
+    res = run_eval_frames(
+        games, pgs, static, avail, elo_params, cfg, test_seasons=(HOLDOUT_SEASON,),
+        max_season=HOLDOUT_SEASON,
+    )  # fmt: skip
+    res.pop("oof")
+    sm = res["summaries"]
+    stats = list(sm)
+    adj = bh_adjust(np.array([float(sm[s]["p_value_vs_recency_conformal"]) for s in stats]))
+    res["holdout_verdict"] = {
+        s: {
+            "bh_adj_p": float(q),
+            "delta_vs_recency_conformal": sm[s]["crps_delta_vs_recency_conformal"],
+            "confirmed": bool(sm[s]["crps_delta_vs_recency_conformal"][2] < 0 and q <= 0.05),
+        }
+        for s, q in zip(stats, adj, strict=True)
+    }
+    res.pop("verdict", None)
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(res, indent=2, default=str))
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0] if __doc__ else "")
     ap.add_argument("--db-path", default="nba.duckdb")
@@ -444,7 +486,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--write-oof", action="store_true", help="also write nba.stack.oof store")
     ap.add_argument("--config", default="configs/context_residual.yaml")
     ap.add_argument("--out-dir", default="reports/context_residual")
+    ap.add_argument("--confirmatory-holdout", type=int, default=None)
+    ap.add_argument("--i-have-preregistered", action="store_true")
     a = ap.parse_args(argv)
+    if a.confirmatory_holdout is not None or a.i_have_preregistered:
+        if a.confirmatory_holdout != HOLDOUT_SEASON or not a.i_have_preregistered:
+            ap.error("holdout needs BOTH --confirmatory-holdout 2025 and --i-have-preregistered")
+        res = run_holdout(a.db_path, a.injury_db, config_path=a.config)
+        print(
+            json.dumps(
+                {"summaries": res["summaries"], "verdict": res["holdout_verdict"]}, default=str
+            )
+        )
+        return 0
     run(a.db_path, a.injury_db, config_path=a.config, out_dir=a.out_dir, write_store=a.write_oof)
     return 0
 
