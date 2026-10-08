@@ -96,6 +96,9 @@ def test_end_to_end_plumbing_on_synthetic_db() -> None:
         assert any(c.n_rows > 0 for c in res.cells)
         # mechanism really fired from the report signal (post-cutoff 'available' ignored)
         assert any(c.n_fired_rows > 0 for c in res.cells)
+        for mech in ("2A", "2B"):  # each mechanism fires on its own, not just one of them
+            assert any(c.n_fired_rows > 0 for c in res.cells if c.mechanism == mech)
+        assert max(v[0] for v in res.boost_by_month.values()) > 0  # 2A raw boost positive
         assert "SHIP: none" in res.summary()
     finally:
         con.close()
@@ -123,3 +126,18 @@ def test_cli_attaches_availability_db_read_only(tmp_path) -> None:  # type: igno
     assert rc == 0 and out.exists()
     # both files remain openable for write afterwards (no lingering lock)
     duckdb.connect(str(avail_path)).close()
+
+
+def test_negative_historical_boost_makes_mechanism_inert_by_design() -> None:
+    """Real-data 2A/2B finding: when history shows teammates did NOT absorb
+    extra share (raw boost < 0), the one-sided clip yields a true no-op."""
+    from nba.sim.player_attribution import PlayerSimProfile
+    from nba.sim.usage_redistribution import UsageRedistributionConfig, apply_usage_redistribution
+
+    def prof(pid: int, share: float) -> PlayerSimProfile:
+        return PlayerSimProfile(pid, share, (0.4, 0.3, 0.3), (0.6, 0.4, 0.35), 0.2, 0.75, 30.0)
+
+    profiles = [prof(1, 0.4), prof(2, 0.3), prof(3, 0.2)]
+    cfg = UsageRedistributionConfig(enabled=True, method="player")
+    assert apply_usage_redistribution(profiles, {1}, cfg, -0.007) is profiles
+    assert apply_usage_redistribution(profiles, {1}, cfg, 0.05) is not profiles

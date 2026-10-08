@@ -413,8 +413,11 @@ def run_usage_redistribution_eval(
     if min_season is not None:
         games_df = games_df.filter(pl.col("season") >= min_season)
     games_df = games_df.sort(["game_date", "game_id"])
-    if max_games is not None:
-        games_df = games_df.head(max_games)
+    if max_games is not None and games_df.height > max_games:
+        # Evenly spaced over the date-sorted window (not first-N, which would sit
+        # entirely in the opening weeks with no history for the boost references).
+        pick = np.linspace(0, games_df.height - 1, max_games).round().astype(int)
+        games_df = games_df[np.unique(pick).tolist()]
     window_ids = games_df["game_id"].to_list()
     game_dates = dict(zip(window_ids, games_df["game_date"].to_list(), strict=True))
     game_info = {
