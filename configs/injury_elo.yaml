@@ -1,0 +1,30 @@
+# Injury-adjusted MOV-Elo (candidate). MOV-Elo params are FROZEN from
+# configs/mov_elo_tuned.yaml; only the injury coefficients are fitted
+# (walk-forward, season < holdout only).
+mov_elo_config: configs/mov_elo_tuned.yaml
+holdout_season: 2025          # burned; never loaded, tuned or evaluated here
+oof_seasons: [2022, 2023, 2024]
+
+value:                        # as-of player value (box-based, shrunk)
+  decay_per_game: 0.97        # exponential forgetting per game played
+  rate_pseudo_minutes: 400.0  # shrink per-minute production toward league rate
+  minutes_pseudo_games: 8.0   # shrink minutes/game toward prior_minutes
+  prior_minutes: 8.0
+  replacement_frac: 0.80      # replacement rate = frac * as-of league rate
+
+report:                       # official injury report usage
+  tipoff_hour_et: 19.0
+  lead_minutes: 60
+  doubtful_weight: 0.5
+  backfill_table: player_availability
+
+fit:
+  ridge_lambda: 5.0           # penalty on standardized coefs (value/10 units)
+  refit_block: month
+  min_signal_games: 150       # games with nonzero injury signal before coefs unfreeze
+  rotation_min_avg: 20.0
+  rotation_min_games: 5
+
+bootstrap:
+  n_boot: 2000
+  seed: 0
