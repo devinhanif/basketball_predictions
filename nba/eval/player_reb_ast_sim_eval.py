@@ -90,6 +90,10 @@ class SimPlayerStatEvalResult:
     crps_season_avg: float
     crps_sim_vs_season_avg: ConfidenceInterval
     mean_bias_sim: ConfidenceInterval
+    #: Per-player-game raw rows (game_id, player_id, y, crps_sim,
+    #: crps_season_avg), populated only when ``return_raw=True`` -- feeds the
+    #: per-bucket model-routing analysis (nba.eval.model_routing).
+    raw: pl.DataFrame | None = None
 
     def summary(self) -> str:
         return (
@@ -119,6 +123,7 @@ def run_reb_ast_sim_vs_baseline_eval(
     seed: int = 0,
     n_boot: int = 500,
     max_games: int | None = None,
+    return_raw: bool = False,
 ) -> tuple[SimPlayerStatEvalResult, SimPlayerStatEvalResult]:
     """Run the possession sim's per-player rebounds + assists predictions
     for every game with a box score and score both against actuals + the
@@ -263,6 +268,13 @@ def run_reb_ast_sim_vs_baseline_eval(
         season_aligned = keys_df.join(season_feats, on=["game_id", "player_id"], how="left")
         season_dists = season_average_baseline(season_aligned, stat)
         crps_season_arr = crps_array(list(season_dists), y_arr)
+        raw = None
+        if return_raw:
+            raw = keys_df.with_columns(
+                y=pl.Series(y_arr),
+                crps_sim=pl.Series(crps_sim_arr),
+                crps_season_avg=pl.Series(crps_season_arr),
+            )
         return SimPlayerStatEvalResult(
             stat=stat,
             n_player_games=n,
@@ -272,6 +284,7 @@ def run_reb_ast_sim_vs_baseline_eval(
                 crps_sim_arr, crps_season_arr, n_boot=n_boot, seed=seed
             ),
             mean_bias_sim=mean_bias_ci(pred_arr, y_arr, n_boot=n_boot, seed=seed),
+            raw=raw,
         )
 
     reb_result = _score("reb", actual_reb_vals, reb_pred_means, reb_dists, season_feats_reb)

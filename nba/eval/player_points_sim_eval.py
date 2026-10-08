@@ -79,6 +79,11 @@ class SimPlayerPointsEvalResult:
     crps_season_avg: float
     crps_sim_vs_season_avg: ConfidenceInterval
     mean_bias_sim: ConfidenceInterval
+    #: Per-player-game raw rows (game_id, player_id, y, crps_sim,
+    #: crps_season_avg), populated only when ``return_raw=True``. Feeds the
+    #: per-bucket model-routing analysis (nba.eval.model_routing), which
+    #: needs index-aligned per-row CRPS joined to archetype/SB bucket labels.
+    raw: pl.DataFrame | None = None
 
     def summary(self) -> str:
         return (
@@ -97,6 +102,7 @@ def run_sim_vs_baseline_eval(
     n_boot: int = 500,
     max_games: int | None = None,
     use_oncourt_usage: bool = False,
+    return_raw: bool = False,
 ) -> SimPlayerPointsEvalResult:
     """Run the possession sim's per-player points predictions for every game
     with a box score and score them against actuals + the season-average
@@ -211,6 +217,18 @@ def run_sim_vs_baseline_eval(
     season_dists = season_average_baseline(season_aligned, "pts")
     crps_season_arr = crps_array(list(season_dists), y_arr)
 
+    raw = None
+    if return_raw:
+        raw = pl.DataFrame(
+            {
+                "game_id": [k[0] for k in row_keys],
+                "player_id": [k[1] for k in row_keys],
+                "y": y_arr,
+                "crps_sim": crps_sim_arr,
+                "crps_season_avg": crps_season_arr,
+            }
+        )
+
     return SimPlayerPointsEvalResult(
         n_player_games=n,
         crps_sim=float(np.nanmean(crps_sim_arr)),
@@ -219,4 +237,5 @@ def run_sim_vs_baseline_eval(
             crps_sim_arr, crps_season_arr, n_boot=n_boot, seed=seed
         ),
         mean_bias_sim=mean_bias_ci(pred_arr, y_arr, n_boot=n_boot, seed=seed),
+        raw=raw,
     )
