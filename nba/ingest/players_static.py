@@ -1,0 +1,216 @@
+"""Pull cold-start inputs into ``players_static`` (position/height/weight/draft/age).
+
+CLAUDE.md cold-start modeling: rookie priors need ``draft_pick`` (the single
+strongest input), archetype priors need ``position``/``height_in``/
+``weight_lb``, and age curves need ``birth_date``. The feature builders that
+consume this (``nba.features.player_possession_features`` position prior,
+``nba.coldstart``) degrade gracefully to league buckets when it's empty, so
+filling it is a strict improvement, never a correctness dependency.
+
+nba_api's ``CommonPlayerInfo`` is one call per player (~0.6s rate-limited x
+~900 players ~= 10-15 min). Each player's raw frame is cached to
+``data/players_static/<player_id>.parquet`` and the pull is resumable by
+file existence alone -- deliberately NOT routed through the ``ingest_log``/
+``fetch_cached`` bookkeeping, so the long network pull holds no write lock on
+``nba.duckdb`` and can run alongside concurrent read-only evals. The parsed
+rows load into ``players_static`` in a single short upsert at the end.
+
+nba_api is imported lazily so this module is safe to import without network.
+"""
+
+from __future__ import annotations
+
+import time
+from pathlib import Path
+
+import duckdb
+import polars as pl
+
+from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
+
+SOURCE = "players-static"
+
+#: Columns of the ``players_static`` table this puller populates. ``college_stats``
+#: (per-100 college numbers) has no free nba_api source, left NULL for now.
+_SCHEMA = [
+    "player_id",
+    "position",
+    "height_in",
+    "weight_lb",
+    "birth_date",
+    "draft_year",
+    "draft_pick",
+    "college",
+]
+
+_MAX_FETCH_ATTEMPTS = 3
+_RETRY_BACKOFF_S = 1.0
+
+
+def parse_height_to_inches(height: str | None) -> float | None:
+    """'6-7' -> 79.0 inches. None/''/malformed -> None."""
+    if not height or "-" not in height:
+        return None
+    feet_s, _, inches_s = height.partition("-")
+    try:
+        return float(int(feet_s) * 12 + int(inches_s))
+    except ValueError:
+        return None
+
+
+def _parse_int(value: object) -> int | None:
+    """nba_api draft fields are strings like '11' or 'Undrafted'/''. -> int|None."""
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s or not s.lstrip("-").isdigit():
+        return None
+    return int(s)
+
+
+def _parse_float(value: object) -> float | None:
+    if value is None:
+        return None
+    s = str(value).strip()
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
+    """Map a raw ``CommonPlayerInfo`` frame to ``_SCHEMA`` (one row)."""
+    empty = pl.DataFrame(
+        {
+            "player_id": [player_id],
+            "position": [None],
+            "height_in": [None],
+            "weight_lb": [None],
+            "birth_date": [None],
+            "draft_year": [None],
+            "draft_pick": [None],
+            "college": [None],
+        },
+        schema={
+            "player_id": pl.Int64,
+            "position": pl.Utf8,
+            "height_in": pl.Float64,
+            "weight_lb": pl.Float64,
+            "birth_date": pl.Date,
+            "draft_year": pl.Int64,
+            "draft_pick": pl.Int64,
+            "college": pl.Utf8,
+        },
+    )
+    if frame.is_empty():
+        return empty
+    row = frame.to_dicts()[0]
+
+    def _get(key: str) -> object:
+        # CommonPlayerInfo column names are upper-case; be tolerant of case.
+        return row.get(key, row.get(key.lower()))
+
+    position = _get("POSITION")
+    position = str(position).strip() if position not in (None, "") else None
+    birthdate_raw = _get("BIRTHDATE")
+    birth_date = None
+    if birthdate_raw:
+        # e.g. '1998-02-28T00:00:00'
+        birth_date = str(birthdate_raw).split("T", 1)[0] or None
+    college_raw = _get("SCHOOL")
+    college = str(college_raw).strip() if college_raw not in (None, "") else None
+
+    return pl.DataFrame(
+        {
+            "player_id": [player_id],
+            "position": [position],
+            "height_in": [parse_height_to_inches(_get("HEIGHT"))],  # type: ignore[arg-type]
+            "weight_lb": [_parse_float(_get("WEIGHT"))],
+            "birth_date": [birth_date],
+            "draft_year": [_parse_int(_get("DRAFT_YEAR"))],
+            "draft_pick": [_parse_int(_get("DRAFT_NUMBER"))],
+            "college": [college],
+        },
+        schema=empty.schema,
+    )
+
+
+def _fetch_player_info(player_id: int) -> pl.DataFrame:
+    """Hit nba_api's CommonPlayerInfo for one player; normalize to ``_SCHEMA``."""
+    from nba_api.stats.endpoints import commonplayerinfo  # lazy import
+
+    info = commonplayerinfo.CommonPlayerInfo(player_id=player_id)
+    raw = pl.from_pandas(info.get_data_frames()[0])
+    return _normalize_player_info(raw, player_id)
+
+
+def _fetch_with_retry(player_id: int) -> pl.DataFrame:
+    last: pl.DataFrame | None = None
+    for attempt in range(_MAX_FETCH_ATTEMPTS):
+        try:
+            last = _fetch_player_info(player_id)
+            if not last.is_empty():
+                return last
+        except Exception:
+            if attempt == _MAX_FETCH_ATTEMPTS - 1:
+                raise
+        if attempt < _MAX_FETCH_ATTEMPTS - 1:
+            time.sleep(_RETRY_BACKOFF_S)
+    assert last is not None
+    return last
+
+
+def player_ids_needing_pull(con: duckdb.DuckDBPyConnection) -> list[int]:
+    """Distinct player_ids seen in box scores but not yet in ``players_static``."""
+    rows = con.execute(
+        "SELECT DISTINCT pgs.player_id FROM player_game_stats pgs "
+        "LEFT JOIN players_static ps ON ps.player_id = pgs.player_id "
+        "WHERE ps.player_id IS NULL ORDER BY 1"
+    ).fetchall()
+    return [int(r[0]) for r in rows]
+
+
+def pull_players_static(
+    player_ids: list[int],
+    *,
+    data_dir: Path = DEFAULT_DATA_DIR,
+    rate_limiter: RateLimiter | None = None,
+    progress_every: int = 100,
+) -> pl.DataFrame:
+    """Fetch (or load cached) ``CommonPlayerInfo`` for each id; return parsed rows.
+
+    Resumable by file existence: a player whose
+    ``data/players_static/<id>.parquet`` already exists is loaded from disk,
+    never refetched. Does NOT touch ``nba.duckdb`` -- caller loads the
+    returned frame via :func:`load_players_static` in one short write.
+    """
+    out_dir = data_dir / "players_static"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    frames: list[pl.DataFrame] = []
+    for i, pid in enumerate(player_ids, 1):
+        path = out_dir / f"{pid}.parquet"
+        if path.exists():
+            frames.append(pl.read_parquet(path))
+        else:
+            if rate_limiter is not None:
+                rate_limiter.wait()
+            frame = _fetch_with_retry(pid)
+            frame.write_parquet(path)
+            frames.append(frame)
+        if progress_every and i % progress_every == 0:
+            print(f"...players_static {i}/{len(player_ids)}", flush=True)
+    if not frames:
+        return pl.DataFrame(schema={c: pl.Utf8 for c in _SCHEMA})
+    return pl.concat(frames, how="vertical_relaxed")
+
+
+def load_players_static(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -> int:
+    """Upsert parsed rows into ``players_static`` (keyed on player_id). Returns count."""
+    if df.is_empty():
+        return 0
+    con.register("ps_new", df.select(_SCHEMA))
+    con.execute("DELETE FROM players_static WHERE player_id IN (SELECT player_id FROM ps_new)")
+    cols = ", ".join(_SCHEMA)
+    con.execute(f"INSERT INTO players_static ({cols}) SELECT {cols} FROM ps_new")
+    con.unregister("ps_new")
+    return df.height
