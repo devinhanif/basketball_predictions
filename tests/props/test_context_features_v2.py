@@ -268,3 +268,25 @@ def test_job_yaml_and_notebook_in_sync():
     assert nb == mod.build()  # regenerate with build_notebook.py after editing the script
     src = (JOB_DIR / "ctxres_v2_sweep.py").read_text()
     assert "FROZEN_SEASON" in src and "season 2025 present" in src
+
+
+def test_merge_oof_prefers_later_run_and_completion_plan(tmp_path):
+    from nba.eval.ctxres_v2_eval import build_completion_plan, main, merge_oof
+
+    a = pl.DataFrame({"variant": ["v1_prod", "x"], "crps": [1.0, 2.0]})
+    b = pl.DataFrame({"variant": ["v1_prod"], "crps": [9.0], "extra": [1]})
+    m = merge_oof([a, b])
+    assert m.filter(pl.col("variant") == "v1_prod")["crps"].to_list() == [9.0]
+    assert m.filter(pl.col("variant") == "x").height == 1
+    run = tmp_path / "run1"
+    run.mkdir()
+    (run / "best_config.json").write_text(json.dumps({"best_arm_2023": "q", "top3_2023": ["q"]}))
+    (run / "metrics.json").write_text(json.dumps({"leak_audit": {"pts": {}}}))
+    plan = build_completion_plan(str(run), ["q", "blend_top3"])
+    assert plan["mode"] == "complete" and plan["best_config"]["best_arm_2023"] == "q"
+    assert plan["prev_run"] == "run1" and plan["leak_audit"] == {"pts": {}}
+    out = tmp_path / "plans"
+    assert main(["--stage-completion", str(run), "--plan-dir", str(out), "--arms", "q"]) == 0
+    assert json.loads((out / "completion_prev.json").read_text())["arms"] == ["q"]
+    assert main(["--clear", "--plan-dir", str(out)]) == 0
+    assert json.loads((out / "completion_prev.json").read_text()) == {}

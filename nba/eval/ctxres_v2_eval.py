@@ -183,15 +183,27 @@ def calibrator_rule(
     return out
 
 
-def run(run_dir: str, export_path: str, out_path: str | None = None) -> dict[str, Any]:
-    d = Path(run_dir)
-    metrics = json.loads((d / "metrics.json").read_text())
-    cfg = json.loads((d / "best_config.json").read_text())
-    if "leak_audit" not in metrics:
-        raise ValueError(
-            "metrics.json has no leak_audit: run is invalid under the pre-registration"
-        )
-    oof = pl.read_parquet(d / "oof_2024.parquet")
+def merge_oof(frames: list[pl.DataFrame]) -> pl.DataFrame:
+    """Merge OOF frames by ``variant``; a variant present in several runs is taken from the LAST
+    run (the completion run supersedes the first run's lighter copy)."""
+    by_variant: dict[str, pl.DataFrame] = {}
+    for f in frames:
+        for v in f["variant"].unique().to_list():
+            by_variant[v] = f.filter(pl.col("variant") == v)
+    return pl.concat(list(by_variant.values()), how="diagonal_relaxed")
+
+
+def run(run_dirs: str | list[str], export_path: str, out_path: str | None = None) -> dict[str, Any]:
+    """Apply the rule to one run dir, or to several (first run + completion run) merged by variant.
+
+    The candidate / top-3 / thresholds come from the FIRST dir's ``best_config.json`` (selection
+    was done there, on 2023); the leak audit may come from any dir."""
+    dirs = [Path(x) for x in ([run_dirs] if isinstance(run_dirs, str) else run_dirs)]
+    metrics = [json.loads((d / "metrics.json").read_text()) for d in dirs]
+    cfg = json.loads((dirs[0] / "best_config.json").read_text())
+    if not any(m.get("leak_audit") for m in metrics):
+        raise ValueError("no run has a leak_audit: run is invalid under the pre-registration")
+    oof = merge_oof([pl.read_parquet(d / "oof_2024.parquet") for d in dirs])
     export = pl.read_parquet(export_path)
     if int(export["season"].max()) > 2024:  # type: ignore[arg-type]
         raise ValueError("export contains season > 2024")
@@ -207,10 +219,29 @@ def run(run_dir: str, export_path: str, out_path: str | None = None) -> dict[str
         "calibrators": cal,
         "top3_2023": cfg["top3_2023"],
         "budget": cfg["budget"],
+        "runs": [str(d) for d in dirs],
     }
     if out_path:
         Path(out_path).write_text(json.dumps(result, indent=2, default=float))
     return result
+
+
+def build_completion_plan(run_dir: str, arms: list[str]) -> dict[str, Any]:
+    """Plan file for the notebook's COMPLETION mode, built from a finished first run."""
+    d = Path(run_dir)
+    cfg = json.loads((d / "best_config.json").read_text())
+    m = json.loads((d / "metrics.json").read_text())
+    return {
+        "mode": "complete",
+        "arms": arms,
+        "prev_run": d.name,
+        "best_config": cfg,
+        "selection_scores_2023": m.get("selection_scores_2023"),
+        "leak_audit": m.get("leak_audit"),
+    }
+
+
+DEFAULT_COMPLETE_ARMS = "xgb_v12_quantile,blend_top3,v1_prod"
 
 
 def format_report(r: dict[str, Any]) -> str:
@@ -232,13 +263,42 @@ def format_report(r: dict[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    import os
+
     ap = argparse.ArgumentParser(description="Apply the pre-registered ctxres_v2 keep rule")
-    ap.add_argument(
-        "--run", required=True, help="pulled run dir (data/colab/runs/ctxres_v2_sweep/<id>)"
-    )
+    ap.add_argument("--run", nargs="+", help="pulled run dir(s): first run, then completion run")
     ap.add_argument("--export", default="data/colab/ctxres_v2/ctxres_v2.parquet")
     ap.add_argument("--out", default=None)
+    ap.add_argument(
+        "--stage-completion",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="FIRST_RUN_DIR",
+        help="write data/colab/ctxres_v2/completion_prev.json from a finished run (or env "
+        "CTXRES_COMPLETE_FROM); with no source writes an empty plan if none exists",
+    )
+    ap.add_argument("--arms", default=os.environ.get("NBA_COMPLETE_ARMS", DEFAULT_COMPLETE_ARMS))
+    ap.add_argument("--plan-dir", default="data/colab/ctxres_v2")
+    ap.add_argument(
+        "--clear", action="store_true", help="reset the staged plan to {} (normal sweep)"
+    )
     a = ap.parse_args(argv)
+    if a.stage_completion is not None or a.clear:
+        plan_path = Path(a.plan_dir) / "completion_prev.json"
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        src = a.stage_completion or os.environ.get("CTXRES_COMPLETE_FROM", "")
+        if a.clear:
+            plan_path.write_text("{}")
+        elif src:
+            plan = build_completion_plan(src, [x for x in a.arms.split(",") if x])
+            plan_path.write_text(json.dumps(plan))
+            print(f"staged completion plan from {src}: arms={plan['arms']}")
+        elif not plan_path.exists():
+            plan_path.write_text("{}")
+        return 0
+    if not a.run:
+        ap.error("--run is required")
     print(format_report(run(a.run, a.export, a.out)))
     return 0
 

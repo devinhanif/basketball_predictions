@@ -66,8 +66,8 @@ PLOGMIN = 1e-4
 BUDGETS = {
     "fast": dict(
         trials=12,
-        arm_s=240,
-        total_s=1500,
+        arm_s=900,
+        total_s=2100,
         search_s=150,
         search_stride=4,
         search_sub=2,
@@ -79,7 +79,7 @@ BUDGETS = {
         abl_stride=3,
         min_train=1500,
         min_cal=2000,
-        est="target 15-20 min on a T4 (UNMEASURED; optional arms skip once 80% of 25 min is used)",
+        est="~30-35 min on a T4 (MEASURED in run 20261008_131747: arms through xgb_v12_quantile took ~23 min; optional arms are skipped once 80% of 35 min is used and are then missing)",
     ),
     "full": dict(
         trials=40,
@@ -116,20 +116,27 @@ BUDGETS = {
         est="~1-2 min on a CPU (2% sample)",
     ),
 }
-ARM_ESTIMATES = {  # printed up front; rough T4 guesses for the fast budget, minutes
-    "v1_prod": 1.5,
-    "xgb_v1_prodcfg + xgb_v12_prodcfg": 3.0,
-    "optuna search (v1, v12)": 5.0,
-    "xgb_v1_tuned + xgb_v12_tuned": 2.2,
-    "leak audit + xgb_v12_pruned": 1.5,
-    "xgb_v12_rel + xgb_v12_both": 2.5,
-    "xgb_v12_quantile": 1.5,
-    "xgb_v12_poisson_nb": 1.0,
-    "glm_poisson_nb (CPU)": 2.0,
-    "logit_thr (CPU)": 2.0,
-    "mlp_quantile": 2.0,
-    "calibrators (CPU)": 1.5,
-    "ablation (10 groups)": 1.5,
+ARM_ESTIMATES = {  # minutes on a T4, fast budget; "M" = measured in run 20261008_131747, "?" = not measured
+    "v1_prod (CPU lightgbm) M": 4.3,
+    "xgb_v1_prodcfg M": 1.3,
+    "xgb_v12_prodcfg M": 2.2,
+    "optuna search v1 + v12 M": 2.3,
+    "xgb_v1_tuned + xgb_v12_tuned M": 3.1,
+    "leak audit + xgb_v12_pruned M": 1.2,
+    "xgb_v12_rel + xgb_v12_both M": 4.3,
+    "xgb_v12_quantile M (2023 only; both seasons ~8.7)": 8.7,
+    "xgb_v12_poisson_nb ?": 1.5,
+    "glm_poisson_nb (CPU) ?": 2.0,
+    "logit_thr (CPU) ?": 2.0,
+    "mlp_quantile ?": 2.0,
+    "calibrators (CPU) ?": 1.5,
+    "ablation (10 groups) ?": 2.0,
+}
+COMPLETE_ESTIMATES = {  # NBA_MODE=complete, minutes on a T4 (from the measured per-arm times above)
+    "xgb_v12_quantile 2024 blocks": 4.4,
+    "xgb_v12_prodcfg + xgb_v12_rel 2024 (blend members)": 2.1,
+    "v1_prod 2024 (CPU lightgbm)": 2.2,
+    "optional tail: xgb_v12_quantile 2023 (calibrator history) + calibrators": 5.5,
 }
 
 
@@ -169,10 +176,21 @@ def setup():
     if C.device == "cpu":  # avoid OpenMP clashes between torch and lightgbm/xgboost on CPU hosts
         torch.set_num_threads(1)
     C.rng = np.random.default_rng(SEED)
-    print(f"BUDGET={C.budget_name} device={C.device} expected runtime: {C.B['est']}")
-    for k, v in ARM_ESTIMATES.items():
-        print(f"   {k:<26} ~{v:.1f} min")
-    print("   (estimates; per-arm wall times are printed as the run proceeds)")
+    C.mode = os.environ.get("NBA_MODE", "sweep")
+    print(f"BUDGET={C.budget_name} MODE={C.mode} device={C.device}")
+    if C.mode == "complete":
+        print(
+            "expected runtime: core ~9 min, +5.5 min optional calibrator tail (NBA_COMPLETE_CAL=0 skips)"
+        )
+        for k, v in COMPLETE_ESTIMATES.items():
+            print(f"   {k:<70} ~{v:.1f} min")
+    else:
+        print(f"expected runtime: {C.B['est']}")
+        for k, v in ARM_ESTIMATES.items():
+            print(f"   {k:<50} ~{v:.1f} min")
+    print(
+        "   (per-arm wall times are printed as the run proceeds and stored in metrics.json timings_s)"
+    )
 
 
 def load():
@@ -774,27 +792,31 @@ def over_budget(frac=0.8):
     return time.monotonic() - C.t0 > frac * C.B["total_s"]
 
 
-def run_arm(name, block_fn, results, timings, budget_s=None, optional=False):
+def run_arm(
+    name, block_fn, results, timings, budget_s=None, optional=False, seasons=None, into=None
+):
+    """Walk-forward one arm. An arm that cannot finish all requested blocks inside the hard cap is
+    DROPPED (never stored), so a partially-computed arm can never win the 2023 selection."""
     if optional and over_budget():
         log(f"arm {name}: SKIPPED (budget); reported as missing")
         return None
     budget_s = budget_s or C.B["arm_s"]
     t = time.monotonic()
-    res = new_res()
+    res = into if into is not None else new_res()
+    todo = [b for b in C.blocks if b["ok"] and (seasons is None or b["season"] in seasons)]
     done = 0
-    for blk in C.blocks:
-        if not blk["ok"]:
-            continue
+    for blk in todo:
         if time.monotonic() - t > budget_s:
-            log(f"  {name}: arm time guard hit after {done} blocks (remaining blocks left empty)")
-            break
+            log(f"  {name}: hard cap hit after {done}/{len(todo)} blocks: arm DROPPED (incomplete)")
+            timings[name + "_dropped_incomplete"] = time.monotonic() - t
+            return None
         for st, pred in block_fn(blk).items():
             store(res, blk, st, pred)
         done += 1
     results[name] = res
-    timings[name] = time.monotonic() - t
-    sc = selection_score(res) if name != "logit_thr" else float("nan")
-    log(f"arm {name}: {done} blocks in {timings[name]:.0f}s | 2023 sel ratio {sc:.4f}")
+    timings[name] = timings.get(name, 0.0) + time.monotonic() - t
+    sc = selection_score(res) if (name != "logit_thr" and seasons is None) else float("nan")
+    log(f"arm {name}: {done} blocks in {time.monotonic() - t:.0f}s | 2023 sel ratio {sc:.4f}")
     return res
 
 
@@ -1393,5 +1415,135 @@ def main():
     return metrics
 
 
+def arm_block_fn(name, p1, p12):
+    """Block function for an arm by name, using already-chosen configs (completion mode)."""
+    B = C.B
+    table = {
+        "v1_prod": lambda b: resid_block(b, "v1", "lgb", {}, B["prod_rounds"], False),
+        "xgb_v1_prodcfg": lambda b: resid_block(b, "v1", "xgb", PROD_XGB, B["prod_rounds"], False),
+        "xgb_v12_prodcfg": lambda b: resid_block(
+            b, "v12", "xgb", PROD_XGB, B["prod_rounds"], False
+        ),
+        "xgb_v1_tuned": lambda b: resid_block(b, "v1", "xgb", p1, B["rounds"], True),
+        "xgb_v12_tuned": lambda b: resid_block(b, "v12", "xgb", p12, B["rounds"], True),
+        "xgb_v12_rel": lambda b: resid_block(b, "rel", "xgb", p12, B["rounds"], True),
+        "xgb_v12_both": lambda b: resid_block(b, "both", "xgb", p12, B["rounds"], True),
+        "xgb_v12_quantile": lambda b: quantile_block(b, p12, B["rounds"]),
+        "xgb_v12_poisson_nb": lambda b: count_block(b, "xgb", p12, B["rounds"]),
+        "glm_poisson_nb": lambda b: count_block(b, "glm", None, 0),
+        "logit_thr": logit_block,
+        "mlp_quantile": lambda b: mlp_block(b, None),
+    }
+    if name not in table:
+        raise ValueError(
+            f"completion mode cannot refit arm {name!r} (needs state from the first run)"
+        )
+    return table[name]
+
+
+def main_complete(plan):
+    """NBA_MODE=complete: NO search and NO selection. Refit only the listed arms with the configs the
+    first run chose on 2023, on the 2024 walk-forward blocks (plus 2023 blocks of the candidate as
+    nested-calibrator history), then calibrators with the first run's settings and the fixed
+    top-3 blend. Same artifact formats as the sweep."""
+    setup()
+    load()
+    cfg = plan["best_config"]
+    p1, p12 = cfg["search_v1"]["params"], cfg["search_v12"]["params"]
+    cand, top3, cal_params = cfg["best_arm_2023"], cfg["top3_2023"], cfg["calibrators"]
+    arms = list(plan["arms"])
+    want = [cand]
+    if "blend_top3" in arms:
+        want += [a for a in top3 if a not in want]
+    want += [a for a in arms if a != "blend_top3" and a not in want]
+    if "v1_prod" not in want:
+        want.append("v1_prod")  # the pre-registered reference must share rows
+    log(
+        f"COMPLETE mode: candidate={cand} (chosen on 2023 in {plan['prev_run']}), fixed top3={top3}"
+    )
+    results, timings = {}, {}
+    for a in want:
+        run_arm(a, arm_block_fn(a, p1, p12), results, timings, seasons={REPORT_SEASON})
+    missing = [a for a in want if a not in results]
+    if missing:
+        raise RuntimeError(f"completion arms did not finish: {missing}")
+    if "blend_top3" in arms:
+        blend = new_res()
+        for st in STATS:
+            for key in ("q", "mean", "p"):
+                blend[st][key] = np.mean([results[a][st][key] for a in top3], axis=0)
+        results["blend_top3"] = blend
+    variants = dict(results)
+    cal_done = False
+    if os.environ.get("NBA_COMPLETE_CAL", "1") == "1" and cand in results:
+        run_arm(
+            cand,
+            arm_block_fn(cand, p1, p12),
+            {},
+            timings,
+            seasons={SELECT_SEASON},
+            into=results[cand],
+        )  # fills the 2023 rows (nested-calibrator history only)
+        for kind in ("platt", "iso", "conf", "pit"):
+            v = make_variant(results[cand], kind, cal_params[kind])
+            if v is not None:
+                variants[f"{cand}|{kind}"] = v
+        cal_done = True
+        log("calibrator variants built on the candidate (settings from the first run)")
+    ref = results["v1_prod"]
+    metrics = dict(
+        mode="complete", budget=C.budget_name, seeds=dict(seed=SEED), device=C.device,
+        select_season=SELECT_SEASON, report_season=REPORT_SEASON, best_arm_2023=cand,
+        top3_2023=top3, selection_scores_2023=plan.get("selection_scores_2023"),
+        leak_audit=plan.get("leak_audit"), timings_s=timings, n_test_rows=int(C.nt),
+        completion=dict(prev_run=plan["prev_run"], arms=arms, calibrators_run=cal_done,
+                        note="no search/selection in this run; configs and arm choice fixed on 2023"),
+    )  # fmt: skip
+    metrics["leaderboard_2024"] = {
+        a: {st: summarize(r, st, REPORT_SEASON, ref if a != "v1_prod" else None) for st in STATS}
+        for a, r in results.items()
+    }
+    metrics["calibration_2024"] = {
+        v: {st: summarize(r, st, REPORT_SEASON, results[v.split("|")[0]]) for st in STATS}
+        for v, r in variants.items() if "|" in v
+    }  # fmt: skip
+    if "blend_top3" in results:
+        metrics["blend_vs_best_single_2024"] = {
+            st: {k: v for k, v in summarize(results["blend_top3"], st, REPORT_SEASON, results[cand]).items()
+                 if k.startswith("d_")}
+            for st in STATS
+        }  # fmt: skip
+    out = Path(os.environ.get("NBA_ARTIFACT_ROOT", "artifacts")) / datetime.now().strftime(
+        "%Y%m%d_%H%M%S"
+    )
+    out.mkdir(parents=True, exist_ok=True)
+    full_v = {
+        "v1_prod",
+        cand,
+        "blend_top3",
+        *[f"{cand}|{k}" for k in ("platt", "iso", "conf", "pit")],
+    }
+    oof_frame(variants, full_v).to_parquet(out / "oof_2024.parquet", index=False)
+    (out / "best_config.json").write_text(
+        json.dumps(jsonable({**cfg, "completion_of": plan["prev_run"]}), indent=1)
+    )
+    (out / "feature_importance.json").write_text("{}")
+    (out / "metrics.json").write_text(json.dumps(jsonable(metrics), indent=1))
+    log(f"ARTIFACTS WRITTEN TO {out}")
+    return metrics
+
+
+def entry():
+    """Run the sweep, or the completion step if ``completion_prev.json`` was staged / NBA_MODE=complete."""
+    plan_path = Path(os.environ["NBA_PARQUET"]).parent / "completion_prev.json"
+    plan = json.loads(plan_path.read_text()) if plan_path.exists() else {}
+    if plan.get("mode") == "complete" or os.environ.get("NBA_MODE") == "complete":
+        if not plan:
+            raise FileNotFoundError("NBA_MODE=complete needs the staged completion_prev.json")
+        os.environ["NBA_MODE"] = "complete"
+        return main_complete(plan)
+    return main()
+
+
 if __name__ == "__main__":
-    main()
+    entry()

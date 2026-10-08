@@ -81,9 +81,9 @@ used); DNP rows do not enter possession rates; allow-list rejects same-game name
   isotonic min-bin, Platt C, minimum history rows.
 * Reported but not used for decisions: ablation (drop-one group a-j, 2024), per-block CRPS,
   drift table (pace/3PA/FTA/usage proxies and target shifts by season), normalization arms.
-* Budget: single `NBA_BUDGET` knob. `fast` (default) targets 15-20 min on a T4 (an UNMEASURED
-  estimate; per-arm estimates are printed at the top of the run; optional arms are skipped once 80%
-  of a 25 min budget is spent and are then missing from the report); `full` is about 45-60 min.
+* Budget: single `NBA_BUDGET` knob. `fast` (default) measured ~30-35 min on a T4 (per-arm estimates
+  printed at the top of the run; optional arms are skipped once 80% of a 35 min budget is spent and
+  are then missing from the report); `full` is longer.
   GPU XGBoost is not bit-reproducible; seeds are logged.
 
 ## PRE-REGISTERED KEEP RULE
@@ -109,13 +109,46 @@ Contrasts that are descriptive only (no keep decision): features vs tuning vs en
 (`xgb_v1_prodcfg` / `xgb_v12_prodcfg` / `*_tuned`), raw vs season-relative vs both, full vs pruned,
 blend vs best single arm, family leaderboard on threshold log loss.
 
+## Completion step (procedural fix, added after the first fast run)
+
+The first fast run (20261008_131747) finished all arms except that the per-arm time guard (240 s)
+cut `xgb_v12_quantile` after its 2023 blocks: it had the best 2023 selection ratio (0.9396) and was
+therefore the pre-registered candidate, but it has no 2024 rows (nor does `blend_top3`), so the
+rule could not be applied. The sweep's real runtime was ~30+ min, not 15-20 (the per-arm timings
+are in `metrics.json` `timings_s`; estimates in the notebook are now the measured ones).
+
+Fix, procedural only: `NBA_MODE=complete` (auto-selected when a plan `completion_prev.json` is
+staged next to the parquet) runs NO search and NO selection. It refits only the listed arms
+(`NBA_COMPLETE_ARMS`, default `xgb_v12_quantile,blend_top3,v1_prod`) with the configs the first run
+chose on 2023, on the 2024 walk-forward blocks, plus the fixed 2023 top-3 members for the blend
+(`xgb_v12_prodcfg`, `xgb_v12_rel`), plus an optional tail (`NBA_COMPLETE_CAL=0` skips it) that refits
+the candidate on 2023 blocks as nested-calibrator history and builds the four calibrator variants
+with the first run's tuned settings. Core ~9 min, tail ~5.5 min on a T4 (from measured arm times).
+The hard per-arm cap is now 900 s and an arm that cannot finish is dropped, never stored half-done,
+so an incomplete arm can no longer win a selection.
+
+Honesty note: the candidate (`xgb_v12_quantile`) and the top-3 were fixed from 2023 results before
+any 2024 result of those arms existed, and the pre-registered rule is unchanged. However, 2024
+results of OTHER arms (v1_prod, xgb_v12_prodcfg, xgb_v12_tuned, ...) from the first run HAD been
+viewed before this step was written; they did not and cannot influence the candidate, the
+configs or the rule. The eval merges the runs by variant (the completion run supersedes the first
+run's lighter copy of the same variant; the first run's `best_config.json` supplies the candidate).
+
 ## Commands
 
 ```
-make colab-push JOB=ctxres_v2_sweep        # produces the parquet + spec, stages the notebook
+make colab-push JOB=ctxres_v2_sweep        # produces the parquet + spec + empty plan, stages the notebook
 # open the printed notebook link on Colab, Runtime > T4 GPU, Run all (NBA_BUDGET=fast)
 make colab-status JOB=ctxres_v2_sweep
 make colab-pull JOB=ctxres_v2_sweep
 uv run python -m nba.eval.ctxres_v2_eval --run data/colab/runs/ctxres_v2_sweep/<run_id> \
     --out reports/ctxres_v2_verdict.json
+
+# completion step (after a first run whose candidate lacks 2024 rows)
+uv run python -m nba.eval.ctxres_v2_eval --stage-completion data/colab/runs/ctxres_v2_sweep/<first_run>
+make colab-push JOB=ctxres_v2_sweep   # notebook auto-switches to the completion step
+make colab-pull JOB=ctxres_v2_sweep
+uv run python -m nba.eval.ctxres_v2_eval --run data/colab/runs/ctxres_v2_sweep/<first_run> \
+    data/colab/runs/ctxres_v2_sweep/<completion_run> --out reports/ctxres_v2_verdict.json
+uv run python -m nba.eval.ctxres_v2_eval --clear   # back to a normal sweep for the next push
 ```

@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 # mypy: ignore-errors
 # Colab-executed job script helper; kept out of strict type checking.
 """Regenerate ``ctxres_v2_sweep.ipynb`` from ``ctxres_v2_sweep.py`` (single source of truth).
@@ -15,8 +16,8 @@ HERE = Path(__file__).resolve().parent
 INTRO = """# ctxres_v2_sweep -- context-residual v2 model-family sweep
 
 Runtime > Change runtime type > **T4 GPU**, then Run all. `NBA_BUDGET=fast` (default) targets
-15-20 min (unmeasured estimate; optional arms are skipped once 80% of a 25 min budget is used);
-`NBA_BUDGET=full` is the long variant. The expected per-arm runtimes are printed at the top of the
+about 30-35 min (measured; optional arms are skipped once 80% of a 35 min budget is used);
+`NBA_BUDGET=full` is the long variant. If `completion_prev.json` is staged (see docs/CTXRES_V2.md) the notebook runs the COMPLETION step instead: no search or selection, only the listed arms are refit with the configs already chosen on 2023 (about 9 min core). The expected per-arm runtimes are printed at the top of the
 run. Selection uses season 2023 only; season 2024 is report-only; season 2025 is refused.
 The leak detector aborts the run if a same-game or non-allow-listed feature appears in the
 top-10 importance. Artifacts (`best_config.json`, `metrics.json`, `oof_2024.parquet`,
@@ -39,13 +40,13 @@ def cell(kind: str, src: str) -> dict:
 
 def build() -> dict:
     code = (HERE / "ctxres_v2_sweep.py").read_text()
-    code = code.replace('if __name__ == "__main__":\n    main()\n', "").rstrip("\n")
+    code = code.replace('if __name__ == "__main__":\n    entry()\n', "").rstrip("\n")
     return {
         "cells": [
             cell("markdown", INTRO),
             cell("code", code),
             cell("code", SETUP),
-            cell("code", "metrics = main()"),
+            cell("code", "metrics = entry()"),
         ],
         "metadata": {
             "accelerator": "GPU",

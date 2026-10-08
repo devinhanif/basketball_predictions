@@ -1,7 +1,8 @@
 name: ctxres_v2_sweep
 description: >
   Context-residual v2 model-family sweep on a Colab T4 (single NBA_BUDGET knob: fast default
-  targets 15-20 min, unmeasured; full ~45-60 min). Arms: production-config LightGBM (v1_prod),
+  ~30-35 min measured; full longer; a staged completion_prev.json switches the notebook to the
+  ~9 min COMPLETION step). Arms: production-config LightGBM (v1_prod),
   XGBoost residual (v1 / v1+v2 features, production config vs Optuna-tuned), season-relative and
   pruned feature variants, multi-quantile XGBoost, Poisson/NegBin (GLM and XGBoost), logistic
   threshold models, tabular MLP, equal-weight top-3 blend, plus Platt/isotonic and conformal/PIT
@@ -20,6 +21,12 @@ inputs:
       uv run python -m nba.props.context_features_v2 --db nba.duckdb
       --out-dir data/colab/ctxres_v2
     depends_on: [nba.duckdb]
+  - path: data/colab/ctxres_v2/completion_prev.json
+    # `{}` for a normal sweep. To run the COMPLETION step (no search/selection; refit only the
+    # listed arms with the configs chosen on 2023) stage the plan first, then push:
+    #   uv run python -m nba.eval.ctxres_v2_eval --stage-completion <first run dir>
+    produce: >
+      uv run python -m nba.eval.ctxres_v2_eval --stage-completion
 artifacts: [best_config.json, metrics.json, oof_2024.parquet, feature_importance.json]
 registry:
   model_name: ctxres_v2_sweep
