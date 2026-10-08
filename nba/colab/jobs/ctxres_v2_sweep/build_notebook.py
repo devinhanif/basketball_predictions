@@ -24,7 +24,7 @@ top-10 importance. Artifacts (`best_config.json`, `metrics.json`, `oof_2024.parq
 Score locally: `uv run python -m nba.eval.ctxres_v2_eval --run <pulled run dir>` after
 `make colab-pull JOB=ctxres_v2_sweep`. Rule: docs/CTXRES_V2.md."""
 
-SETUP = """import os
+SETUP = """import os  # noqa: F811 (standalone setup cell; may run first)
 
 os.environ.setdefault("NBA_BUDGET", "fast")  # "fast" (default) or "full"
 print("BUDGET:", os.environ["NBA_BUDGET"])"""
