@@ -1,0 +1,45 @@
+{
+  "markets": [
+    {
+      "ticker": "KXNBAPTS-26OCT08LALBOS-LEBJAM-25",
+      "series_ticker": "KXNBAPTS",
+      "event_ticker": "KXNBAPTS-26OCT08LALBOS",
+      "title": "LeBron James Points 25+",
+      "open_time": "2026-10-08T00:00:00",
+      "close_time": "2026-10-08T22:00:00",
+      "settlement_ts": null,
+      "result": ""
+    },
+    {
+      "ticker": "KXNBA3PM-26OCT08LALBOS-CURSTE-4",
+      "series_ticker": "KXNBA3PM",
+      "event_ticker": "KXNBA3PM-26OCT08LALBOS",
+      "title": "Stephen Curry 3PM 4+",
+      "open_time": "2026-10-08T00:00:00",
+      "close_time": "2026-10-08T22:00:00",
+      "settlement_ts": "2026-10-09T01:30:00",
+      "result": "yes"
+    },
+    {
+      "ticker": "KXNBAGAME-26OCT08LALBOS-LAL",
+      "series_ticker": "KXNBAGAME",
+      "event_ticker": "KXNBAGAME-26OCT08LALBOS",
+      "title": "Lakers to win",
+      "open_time": "2026-10-08T00:00:00",
+      "close_time": "2026-10-08T22:00:00",
+      "settlement_ts": null,
+      "result": ""
+    },
+    {
+      "ticker": "KXNBAPTS-26OCT08LALBOS-NOBODY-10",
+      "series_ticker": "KXNBAPTS",
+      "event_ticker": "KXNBAPTS-26OCT08LALBOS",
+      "title": "Not A Real Player Points 10+",
+      "open_time": "2026-10-08T00:00:00",
+      "close_time": "2026-10-08T22:00:00",
+      "settlement_ts": null,
+      "result": ""
+    }
+  ],
+  "cursor": ""
+}
