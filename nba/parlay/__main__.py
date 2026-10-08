@@ -113,6 +113,16 @@ def cmd_eval_joint(a: argparse.Namespace) -> int:
         seed=cfg.seed,
     )
     print(f"wrote {a.out_dir}/joint_calibration.md; n_parlays={res['n_parlays']}")
+    # Cross-game section: do legs from DIFFERENT games on one date behave independently?
+    from nba.parlay.independence_check import load_independence_cfg, run_historical
+
+    ic = run_historical(
+        a.nba_db, a.ctx_oof, a.elo_oof, a.out_dir, load_independence_cfg(a.config), seed=cfg.seed
+    )
+    md = Path(a.out_dir) / "joint_calibration.md"
+    md.write_text(md.read_text() + "\n# Cross-game legs (independence assumption)\n\n" + ic["md"])
+    for label, r in ic["seasons"].items():
+        print(f"cross-game {label}: flagged={r['flagged'] or 'none'}")
     return 0
 
 

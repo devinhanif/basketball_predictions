@@ -56,3 +56,11 @@ for flagged positives, a deadlock would follow, so every evaluated contract is a
 - Eval is conditional on the player playing (OOF has no p_play) and on parlays whose lines sit near the middle of each distribution.
 - Correlations are pooled, not per player; blowout nonlinearity and DNP-teammate usage shifts are not modelled.
 - `forward_predictions` in `nba.duckdb` is empty right now, so `evaluate` has not been run against live Kalshi prices; it is exercised end to end on synthetic DBs in the tests.
+
+## Cross-game independence check (`nba/parlay/independence_check.py`)
+The engine prices legs from DIFFERENT games as independent (copulas are same-game only). This module tests that assumption.
+- (a) props / (b) game results: correlation of different games' residuals on the same date (props: game-mean randomized-PIT normal score per stat; wins: standardized `(y-p)/sqrt(p(1-p))`, plus probit-PIT). Pair-weighted estimator, 95% CI by bootstrapping whole DATES.
+- (c) synthetic cross-game parlays (2-4 legs, distinct games, one date, moneyline side random + prop N+ ladder lines): independence product vs observed hit rate, log loss / Brier, reliability, date-clustered CIs. Random ML sides cancel a home-win shock by construction, so (b) is the sensitive test for results; (c) is the end-to-end sanity check.
+- `uv run python -m nba.parlay eval-joint` appends this as the "Cross-game legs" section and writes `reports/parlay/independence_check.{md,json}`.
+- Forward monitor: `nba.daily.report` runs (a)/(b) on `forward_scores` once `independence_check.min_forward_dates` (30) scored dates exist, and flags when a CI excludes 0 AND |r| > `flag_abs_r` (0.05) (configs/parlay.yaml). Props check uses model `props_context_residual`, wins `rung0_injury_elo`.
+- Caveats: 4 prop stats + 2 win measures are tested without multiplicity correction; the |r| floor guards against flagging statistically detectable but economically trivial correlation.

@@ -29,3 +29,11 @@ sizing:
   kelly_fraction: 0.25
   kelly_cap: 0.02                 # informational stake cap as bankroll fraction
 min_settled_for_claims: 30
+independence_check:
+  # Cross-game same-date residual correlation (props + game results). The engine treats legs from
+  # DIFFERENT games as independent; this monitors whether that assumption is being violated.
+  min_forward_dates: 30           # forward dates with scored data before the forward check runs
+  flag_abs_r: 0.05                # flag if the CI excludes 0 AND |r| exceeds this
+  n_boot: 2000                    # date-cluster bootstrap resamples
+  ci_level: 0.95
+  parlays_per_date: 25            # synthetic cross-game parlays sampled per date (historical check)

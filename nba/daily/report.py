@@ -129,6 +129,16 @@ def _paired_props_section(props: list[tuple[Any, ...]]) -> list[str]:
     return lines
 
 
+def _independence_section(con: duckdb.DuckDBPyConnection) -> list[str]:
+    """Cross-game independence monitor for parlay legs (nba.parlay.independence_check)."""
+    try:
+        from nba.parlay.independence_check import forward_section
+
+        return forward_section(con)
+    except Exception as exc:  # report must never fail because of an auxiliary monitor
+        return ["", "## Cross-game independence check (forward)", f"- unavailable: {exc!r}"]
+
+
 def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -> str:
     ensure_tables(con)
     n_games, trigger = rollover_status(con)
@@ -195,6 +205,7 @@ def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -
             )
     lines += _paired_props_section(props)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
+    lines += _independence_section(con)
     lines += [
         "",
         "CIs: percentile bootstrap resampling game dates (2000 draws, seed 0). "
