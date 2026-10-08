@@ -50,7 +50,7 @@ def _make_repo(tmp_path: Path, touches: bool = False) -> tuple[Path, Path]:
         "inputs": [
             {
                 "path": "in.parquet",
-                "produce": "python3 -c \"open('in.parquet','w').write('x')\"",
+                "produce": "touch in.parquet",  # non-Python (avoids a stray pytest-cov child)
             }
         ],
         "artifacts": ["weights.pt", "config.json", "metrics.json"],
