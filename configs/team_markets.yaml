@@ -1,0 +1,47 @@
+# Static franchise context for the game-location screen (docs/CONTEXT_SCREEN_GAMES_2026-10-08.md).
+#
+# Sources (values transcribed from the analyst's recollection of the published tables; NO network
+# lookup was possible in this build, so every number below should be re-verified before any
+# production use):
+#   population : US Census Bureau 2020 Decennial Census, Metropolitan Statistical Area (MSA)
+#                resident population (OMB 2018 delineations). Toronto: Statistics Canada 2021
+#                Census, Toronto CMA. Both Los Angeles teams share one MSA, both New York teams
+#                share one MSA (no per-team split is attempted).
+#   altitude_m : approximate elevation of the arena site above mean sea level (public geographic
+#                knowledge; +/- ~10 m; only Denver 1609 and Utah 1288 are large enough to matter).
+#   tz         : IANA zone of the arena. Phoenix does not observe DST (America/Phoenix).
+#   lat/lon    : copied from nba/ingest/arenas.py ARENA_COORDS (single source of truth for travel).
+# pop_confidence: "high" = figure remembered with good confidence (+/-1%); "check" = remembered
+#   approximately, could be off by a few percent -- the screen uses log(pop) so small errors are
+#   immaterial, but do verify.
+teams:
+  1610612737: {abbr: ATL, name: "Atlanta Hawks", metro: "Atlanta-Sandy Springs-Roswell MSA", metro_pop: 6089815, pop_confidence: high, altitude_m: 320, tz: America/New_York, lat: 33.7573, lon: -84.3963}
+  1610612738: {abbr: BOS, name: "Boston Celtics", metro: "Boston-Cambridge-Newton MSA", metro_pop: 4899932, pop_confidence: high, altitude_m: 5, tz: America/New_York, lat: 42.3663, lon: -71.0622}
+  1610612739: {abbr: CLE, name: "Cleveland Cavaliers", metro: "Cleveland-Elyria MSA", metro_pop: 2088251, pop_confidence: check, altitude_m: 199, tz: America/New_York, lat: 41.4965, lon: -81.6882}
+  1610612740: {abbr: NOP, name: "New Orleans Pelicans", metro: "New Orleans-Metairie MSA", metro_pop: 1271845, pop_confidence: check, altitude_m: 1, tz: America/Chicago, lat: 29.949, lon: -90.0821}
+  1610612741: {abbr: CHI, name: "Chicago Bulls", metro: "Chicago-Naperville-Elgin MSA", metro_pop: 9618502, pop_confidence: high, altitude_m: 181, tz: America/Chicago, lat: 41.8807, lon: -87.6742}
+  1610612742: {abbr: DAL, name: "Dallas Mavericks", metro: "Dallas-Fort Worth-Arlington MSA", metro_pop: 7637387, pop_confidence: high, altitude_m: 131, tz: America/Chicago, lat: 32.7905, lon: -96.8103}
+  1610612743: {abbr: DEN, name: "Denver Nuggets", metro: "Denver-Aurora-Lakewood MSA", metro_pop: 2963821, pop_confidence: high, altitude_m: 1609, tz: America/Denver, lat: 39.7487, lon: -105.0077}
+  1610612744: {abbr: GSW, name: "Golden State Warriors", metro: "San Francisco-Oakland-Berkeley MSA", metro_pop: 4749008, pop_confidence: check, altitude_m: 5, tz: America/Los_Angeles, lat: 37.768, lon: -122.3877}
+  1610612745: {abbr: HOU, name: "Houston Rockets", metro: "Houston-The Woodlands-Sugar Land MSA", metro_pop: 7122240, pop_confidence: high, altitude_m: 15, tz: America/Chicago, lat: 29.7508, lon: -95.3621}
+  1610612746: {abbr: LAC, name: "LA Clippers", metro: "Los Angeles-Long Beach-Anaheim MSA", metro_pop: 13200998, pop_confidence: high, altitude_m: 90, tz: America/Los_Angeles, lat: 34.043, lon: -118.2673}
+  1610612747: {abbr: LAL, name: "Los Angeles Lakers", metro: "Los Angeles-Long Beach-Anaheim MSA", metro_pop: 13200998, pop_confidence: high, altitude_m: 90, tz: America/Los_Angeles, lat: 34.043, lon: -118.2673}
+  1610612748: {abbr: MIA, name: "Miami Heat", metro: "Miami-Fort Lauderdale-Pompano Beach MSA", metro_pop: 6138333, pop_confidence: high, altitude_m: 2, tz: America/New_York, lat: 25.7814, lon: -80.187}
+  1610612749: {abbr: MIL, name: "Milwaukee Bucks", metro: "Milwaukee-Waukesha MSA", metro_pop: 1574731, pop_confidence: check, altitude_m: 188, tz: America/Chicago, lat: 43.0451, lon: -87.9172}
+  1610612750: {abbr: MIN, name: "Minnesota Timberwolves", metro: "Minneapolis-St. Paul-Bloomington MSA", metro_pop: 3690261, pop_confidence: check, altitude_m: 253, tz: America/Chicago, lat: 44.9795, lon: -93.276}
+  1610612751: {abbr: BKN, name: "Brooklyn Nets", metro: "New York-Newark-Jersey City MSA", metro_pop: 20140470, pop_confidence: high, altitude_m: 10, tz: America/New_York, lat: 40.6826, lon: -73.9754}
+  1610612752: {abbr: NYK, name: "New York Knicks", metro: "New York-Newark-Jersey City MSA", metro_pop: 20140470, pop_confidence: high, altitude_m: 10, tz: America/New_York, lat: 40.7505, lon: -73.9934}
+  1610612753: {abbr: ORL, name: "Orlando Magic", metro: "Orlando-Kissimmee-Sanford MSA", metro_pop: 2673376, pop_confidence: check, altitude_m: 29, tz: America/New_York, lat: 28.5392, lon: -81.3839}
+  1610612754: {abbr: IND, name: "Indiana Pacers", metro: "Indianapolis-Carmel-Anderson MSA", metro_pop: 2111040, pop_confidence: check, altitude_m: 218, tz: America/New_York, lat: 39.764, lon: -86.1555}
+  1610612755: {abbr: PHI, name: "Philadelphia 76ers", metro: "Philadelphia-Camden-Wilmington MSA", metro_pop: 6245051, pop_confidence: high, altitude_m: 12, tz: America/New_York, lat: 39.9012, lon: -75.172}
+  1610612756: {abbr: PHX, name: "Phoenix Suns", metro: "Phoenix-Mesa-Chandler MSA", metro_pop: 4845832, pop_confidence: high, altitude_m: 331, tz: America/Phoenix, lat: 33.4457, lon: -112.0712}
+  1610612757: {abbr: POR, name: "Portland Trail Blazers", metro: "Portland-Vancouver-Hillsboro MSA", metro_pop: 2512859, pop_confidence: check, altitude_m: 15, tz: America/Los_Angeles, lat: 45.5316, lon: -122.6668}
+  1610612758: {abbr: SAC, name: "Sacramento Kings", metro: "Sacramento-Roseville-Folsom MSA", metro_pop: 2397382, pop_confidence: check, altitude_m: 9, tz: America/Los_Angeles, lat: 38.6494, lon: -121.5181}
+  1610612759: {abbr: SAS, name: "San Antonio Spurs", metro: "San Antonio-New Braunfels MSA", metro_pop: 2558143, pop_confidence: check, altitude_m: 198, tz: America/Chicago, lat: 29.4269, lon: -98.4375}
+  1610612760: {abbr: OKC, name: "Oklahoma City Thunder", metro: "Oklahoma City MSA", metro_pop: 1425695, pop_confidence: check, altitude_m: 365, tz: America/Chicago, lat: 35.4634, lon: -97.5151}
+  1610612761: {abbr: TOR, name: "Toronto Raptors", metro: "Toronto CMA (StatCan 2021)", metro_pop: 6202225, pop_confidence: high, altitude_m: 76, tz: America/Toronto, lat: 43.6435, lon: -79.3791}
+  1610612762: {abbr: UTA, name: "Utah Jazz", metro: "Salt Lake City MSA", metro_pop: 1257936, pop_confidence: high, altitude_m: 1288, tz: America/Denver, lat: 40.7683, lon: -111.9011}
+  1610612763: {abbr: MEM, name: "Memphis Grizzlies", metro: "Memphis MSA", metro_pop: 1337779, pop_confidence: check, altitude_m: 85, tz: America/Chicago, lat: 35.1382, lon: -90.0506}
+  1610612764: {abbr: WAS, name: "Washington Wizards", metro: "Washington-Arlington-Alexandria MSA", metro_pop: 6385162, pop_confidence: high, altitude_m: 7, tz: America/New_York, lat: 38.8981, lon: -77.0209}
+  1610612765: {abbr: DET, name: "Detroit Pistons", metro: "Detroit-Warren-Dearborn MSA", metro_pop: 4392041, pop_confidence: check, altitude_m: 183, tz: America/New_York, lat: 42.341, lon: -83.0552}
+  1610612766: {abbr: CHA, name: "Charlotte Hornets", metro: "Charlotte-Concord-Gastonia MSA", metro_pop: 2660329, pop_confidence: check, altitude_m: 229, tz: America/New_York, lat: 35.2251, lon: -80.8392}
