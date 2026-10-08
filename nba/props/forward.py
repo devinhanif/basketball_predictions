@@ -59,9 +59,9 @@ from nba.coldstart.sb_classification import (
 from nba.features.player_possession_features import build_player_shot_rates
 from nba.features.player_rebound_assist_features import build_player_reb_ast_rates
 from nba.features.possession_features import build_team_possession_rates
-from nba.props.baselines import season_average_baseline
+from nba.props.baselines import _DEFAULT_STD
 from nba.props.config import THRESHOLDS
-from nba.props.distributions import Distribution
+from nba.props.distributions import Distribution, NormalDist
 from nba.props.minutes import build_minutes_features, predict_minutes
 from nba.sim.player_attribution import (
     DEFAULT_ASSISTED_FG_RATE,
@@ -69,10 +69,24 @@ from nba.sim.player_attribution import (
     simulate_game_with_players,
 )
 
+#: Quantile grid stored per prediction so settlement can compute an empirical CRPS
+#: (CRPS = 2 * integral of pinball loss over tau) without assuming a family.
+QUANTILE_TAUS: tuple[float, ...] = tuple(round(0.05 * i, 2) for i in range(1, 20))
+
+#: Platt recalibration of the minutes model's P(play) for rostered players:
+#: p_cal = sigmoid(a + b * logit(p_raw)). Fit on 14 sampled 2023-24 slates
+#: (n=2405 players, Brier 0.195 -> 0.176) and checked on 28 held-out 2024-25 slates
+#: (Brier 0.209 -> 0.187; mean 0.725 vs realized 0.718). Raw p overshoots because
+#: rostered players are selected for having just played.
+P_PLAY_PLATT: tuple[float, float] = (-0.327, 0.581)
+
 PROP_STATS: tuple[str, ...] = ("pts", "reb", "ast", "fg3m")
 # Points routes to season-avg: no out-of-sample sim win, and forward sim-routed points
 # bias was -3.25 [-3.77,-2.78] on 14 2024-25 slates (projected rosters). 2026-10-08.
-SIM_STATS: tuple[str, ...] = ("reb", "ast")
+# Forward replay (56 slates, 2024-25): sim loses MAE to the recency average on reb/ast too
+# (backtest wins relied on actual box-score rosters). Everything routes to season-avg;
+# mean_sim is still logged for later scoring. 2026-10-08.
+SIM_STATS: tuple[str, ...] = ()
 #: SB classes routed to the sim (2026-10-08 routing result); the rest -> season average.
 SIM_BUCKETS: frozenset[str] = frozenset({INSUFFICIENT_HISTORY_BUCKET, "intermittent", "erratic"})
 SB_MIN_GAMES = 10
@@ -100,6 +114,12 @@ OUTPUT_COLUMNS: list[str] = [
     "mean_season_avg",
     "n_games_prior",
     "proj_minutes",
+    "p_play",
+    "p_play_raw",
+    "starter_rate",
+    "mean_uncond",
+    "p_ge_uncond",
+    "q_grid",
 ]
 
 
@@ -116,6 +136,13 @@ class ForwardConfig:
     #: roster was known).
     sim_minutes: str = "conditional"
     min_p_play: float = 0.5
+    #: Recency half-life (games) of the played-games average. Chosen on 2023-24
+    #: slates by MAE (plateau 6-14); evaluated on 2024-25.
+    halflife_games: float = 10.0
+    #: Drop DNP rows (minutes NULL, stats 0) before the sim's rate builders so
+    #: shot/rebound/assist rates are per game PLAYED, matching the conditional
+    #: contract. Minutes/P(play) still see DNP rows.
+    rates_played_only: bool = True
     thresholds: dict[str, list[int]] = field(default_factory=lambda: dict(THRESHOLDS))
 
 
@@ -252,31 +279,42 @@ def _insert_placeholders(
 
 
 def _stat_series(
-    sc: duckdb.DuckDBPyConnection, player_ids: list[int], stat: str
+    sc: duckdb.DuckDBPyConnection, player_ids: list[int], stat: str, *, played_only: bool = False
 ) -> dict[int, np.ndarray]:
-    """Per-player prior non-null series of ``stat`` in (game_date, game_id) order."""
+    """Per-player prior series of ``stat`` in (game_date, game_id) order.
+
+    DNP rows in ``player_game_stats`` have ``minutes`` NULL but stats of 0 (not
+    NULL), so the default series (kept for the SB routing bucket, as evaluated)
+    contains DNP zeros. ``played_only`` keeps only ``minutes > 0`` games: the
+    distribution of the stat GIVEN the player plays."""
     if stat not in PROP_STATS:
         raise ValueError(f"unsupported stat {stat!r}")
     ids = ",".join(str(int(p)) for p in player_ids)
+    played_sql = " AND s.minutes > 0" if played_only else ""
     rows = sc.execute(
         f"""
         SELECT s.player_id, list({stat} ORDER BY g.game_date, g.game_id)
         FROM player_game_stats s JOIN games g USING (game_id)
-        WHERE s.player_id IN ({ids}) AND s.{stat} IS NOT NULL
+        WHERE s.player_id IN ({ids}) AND s.{stat} IS NOT NULL{played_sql}
         GROUP BY s.player_id
         """
     ).fetchall()
     return {int(pid): np.asarray(vals, dtype=float) for pid, vals in rows}
 
 
-def _season_avg_dists(series: list[np.ndarray], stat: str) -> list[Distribution]:
-    means = [float(v.mean()) if len(v) else None for v in series]
-    stds = [float(v.std(ddof=1)) if len(v) > 1 else None for v in series]
-    feats = pl.DataFrame(
-        {"season_avg_prior": means, "season_std_prior": stds},
-        schema={"season_avg_prior": pl.Float64, "season_std_prior": pl.Float64},
-    )
-    return list(season_average_baseline(feats, stat))
+def recency_weighted_dist(vals: np.ndarray, stat: str, halflife_games: float) -> NormalDist:
+    """Normal with an exponentially recency-weighted mean/std of played games
+    (weight 0.5 ** (games_ago / halflife)); league default std when < 2 games."""
+    n = len(vals)
+    if n == 0:
+        return NormalDist(0.0, _DEFAULT_STD[stat])
+    w = 0.5 ** (np.arange(n)[::-1] / halflife_games)
+    mean = float((w * vals).sum() / w.sum())
+    if n < 2:
+        return NormalDist(mean, _DEFAULT_STD[stat])
+    var = float((w * (vals - mean) ** 2).sum() / w.sum()) * n / (n - 1)
+    std = var**0.5
+    return NormalDist(mean, std if std > 0 else _DEFAULT_STD[stat])
 
 
 def _row_from_dist(dist: Distribution, thresholds: list[int]) -> dict[str, object]:
@@ -289,6 +327,7 @@ def _row_from_dist(dist: Distribution, thresholds: list[int]) -> dict[str, objec
         "q10": dist.ppf(0.10),
         "q50": dist.ppf(0.50),
         "q90": dist.ppf(0.90),
+        "q_grid": json.dumps([round(dist.ppf(t), 4) for t in QUANTILE_TAUS]),
     }
 
 
@@ -331,16 +370,25 @@ def predict_slate(
         cand = _candidate_roster(sc, sorted(team_game), exclude, cfg.roster_window_games)
         if cand.is_empty():
             return empty
-        series = {s: _stat_series(sc, cand["player_id"].to_list(), s) for s in PROP_STATS}
+        ids = cand["player_id"].to_list()
+        series = {s: _stat_series(sc, ids, s) for s in PROP_STATS}  # incl. DNP zeros (SB bucket)
+        played = {s: _stat_series(sc, ids, s, played_only=True) for s in PROP_STATS}
         _insert_placeholders(sc, as_of, games, cand, team_game)
         slate_ids = [str(g) for g in games["game_id"].to_list()]
 
-        team_rates = build_team_possession_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
-        shot_rates = build_player_shot_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
-        reb_ast = build_player_reb_ast_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
         minutes_feats = build_minutes_features(sc, use_game_context=False).filter(
             pl.col("game_id").is_in(slate_ids)
         )
+        if cfg.rates_played_only:
+            sc.register("_slate", pl.DataFrame({"game_id": slate_ids}))
+            sc.execute(
+                "DELETE FROM player_game_stats WHERE (minutes IS NULL OR minutes = 0) "
+                "AND game_id NOT IN (SELECT game_id FROM _slate)"
+            )
+            sc.unregister("_slate")
+        team_rates = build_team_possession_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
+        shot_rates = build_player_shot_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
+        reb_ast = build_player_reb_ast_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
     finally:
         sc.close()
 
@@ -348,7 +396,7 @@ def predict_slate(
     if cfg.sim_minutes not in {"conditional", "hurdle_mean"}:
         raise ValueError(f"unknown sim_minutes {cfg.sim_minutes!r}")
     mins = minutes_feats.select(
-        ["game_id", "player_id", "team_id", "games_played_prior"]
+        ["game_id", "player_id", "team_id", "games_played_prior", "starter_rate_prior"]
     ).with_columns(
         p_play=pl.Series([d.p_play for d in dists], dtype=pl.Float64),
         proj_minutes=pl.Series(
@@ -356,9 +404,18 @@ def predict_slate(
             dtype=pl.Float64,
         ),
     )
+    raw_p = mins["p_play"].clip(1e-3, 1 - 1e-3).to_numpy()
+    platt_a, platt_b = P_PLAY_PLATT
+    mins = mins.with_columns(
+        p_play_raw=pl.col("p_play"),
+        p_play=pl.Series(
+            1.0 / (1.0 + np.exp(-(platt_a + platt_b * np.log(raw_p / (1.0 - raw_p))))),
+            dtype=pl.Float64,
+        ),
+    )
     mins = mins.filter(pl.col("proj_minutes") >= cfg.min_proj_minutes)
     if cfg.sim_minutes == "conditional":
-        mins = mins.filter(pl.col("p_play") >= cfg.min_p_play)
+        mins = mins.filter(pl.col("p_play_raw") >= cfg.min_p_play)
     mins = (
         mins.sort(
             ["game_id", "team_id", "proj_minutes", "player_id"],
@@ -370,6 +427,12 @@ def predict_slate(
     if mins.is_empty():
         return empty
     proj = {int(r["player_id"]): float(r["proj_minutes"]) for r in mins.iter_rows(named=True)}
+    pplay = {int(r["player_id"]): float(r["p_play"]) for r in mins.iter_rows(named=True)}
+    pplay_raw = {int(r["player_id"]): float(r["p_play_raw"]) for r in mins.iter_rows(named=True)}
+    srate = {
+        int(r["player_id"]): float(r["starter_rate_prior"] or 0.0)
+        for r in mins.iter_rows(named=True)
+    }
 
     rows: list[dict[str, object]] = []
     for grow in games.iter_rows(named=True):
@@ -418,13 +481,21 @@ def predict_slate(
                     vals = series[stat].get(pid, np.empty(0))
                     adi, cv2, _ = compute_adi_cv2(vals.tolist(), SB_MIN_GAMES)
                     bucket = classify_sb(adi, cv2)
-                    savg = _season_avg_dists([vals], stat)[0]
+                    savg = recency_weighted_dist(
+                        played[stat].get(pid, np.empty(0)), stat, cfg.halflife_games
+                    )
                     sim_d = sim_by_stat.get(stat, {}).get(pid)
                     model = route_model(stat, bucket, cfg)
                     if model == MODEL_SIM and sim_d is None:
                         model = MODEL_SEASON_AVG
                     chosen = sim_d if model == MODEL_SIM and sim_d is not None else savg
                     row = _row_from_dist(chosen, cfg.thresholds[stat])
+                    pp = pplay[pid]
+                    pj = json.loads(str(row["p_ge"]))
+                    row["mean_uncond"] = pp * float(row["mean"])  # type: ignore[arg-type]
+                    row["p_ge_uncond"] = json.dumps(
+                        {k: pp * v for k, v in pj.items()}, sort_keys=True
+                    )
                     row.update(
                         game_id=gid,
                         team_id=team_id,
@@ -437,6 +508,9 @@ def predict_slate(
                         mean_season_avg=savg.mean(),
                         n_games_prior=n_prior,
                         proj_minutes=proj[pid],
+                        p_play=pplay[pid],
+                        p_play_raw=pplay_raw[pid],
+                        starter_rate=srate[pid],
                     )
                     rows.append(row)
     if not rows:

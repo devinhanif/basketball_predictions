@@ -13,6 +13,7 @@ from scipy.stats import norm
 from nba.daily.predict import MIN_STD
 from nba.daily.store import NO_PLAYER, ensure_tables
 from nba.eval.metrics import brier_score, log_loss
+from nba.props.forward import QUANTILE_TAUS
 
 WIN_TARGET = "win_prob_home"
 
@@ -22,6 +23,25 @@ def normal_crps(mean: float, std: float, y: float) -> float:
     s = max(std, MIN_STD)
     z = (y - mean) / s
     return float(s * (z * (2 * norm.cdf(z) - 1) + 2 * norm.pdf(z) - 1 / math.sqrt(math.pi)))
+
+
+def quantile_crps(taus: list[float], quantiles: list[float], y: float) -> float:
+    """Empirical CRPS from a stored quantile grid: ``2 * mean_tau pinball_tau``
+    (CRPS = 2 * integral of pinball loss over tau; the grid truncates tails
+    below/above its end taus, a small downward bias for wide misses)."""
+    t = np.asarray(taus, dtype=float)
+    q = np.asarray(quantiles, dtype=float)
+    d = y - q
+    return float(2.0 * np.mean(np.maximum(t * d, (t - 1.0) * d)))
+
+
+def prediction_crps(pred: dict[str, object], y: float) -> float:
+    """CRPS of a stored prop prediction: empirical from ``q_grid`` when present
+    (routed sim / recency model), else the closed-form normal from mean/std."""
+    grid = pred.get("q_grid")
+    if isinstance(grid, list) and len(grid) == len(QUANTILE_TAUS):
+        return quantile_crps(list(QUANTILE_TAUS), [float(v) for v in grid], y)
+    return normal_crps(float(pred["mean"]), float(pred["std"]), y)  # type: ignore[arg-type]
 
 
 def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[str, int]:
@@ -67,7 +87,7 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
         ).fetchone()
         if box is None or box[0] == 0:
             continue  # box score not ingested yet: stay unsettled
-        mean, std = float(pred["mean"]), float(pred["std"])
+        mean = float(pred["mean"])
         if box[1] is None:
             rows.append((scored_at, gid, gdate, season, mname, ver, tgt, pid, made_at,
                          None, mean, None, None, None, "dnp"))  # fmt: skip
@@ -75,7 +95,7 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
         else:
             y = float(box[1])
             rows.append((scored_at, gid, gdate, season, mname, ver, tgt, pid, made_at,
-                         y, mean, None, None, normal_crps(mean, std, y), "scored"))  # fmt: skip
+                         y, mean, None, None, prediction_crps(pred, y), "scored"))  # fmt: skip
             n_prop += 1
     if rows:
         con.executemany("INSERT INTO forward_scores VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)

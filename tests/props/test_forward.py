@@ -28,7 +28,8 @@ SLATE = pl.DataFrame(
         "away_team": [T2, T4],
     }
 )
-ALL_SIM = ForwardConfig(sim_buckets=frozenset({"smooth", "lumpy", "erratic", "intermittent",
+ALL_SIM = ForwardConfig(sim_stats=("reb", "ast"),
+                        sim_buckets=frozenset({"smooth", "lumpy", "erratic", "intermittent",
                                                "insufficient_history"}))  # fmt: skip
 
 
@@ -56,8 +57,14 @@ def _plant(con: duckdb.DuckDBPyConnection, game_id: str, d: date, pts: int) -> N
         )
 
 
-def test_route_model_rule() -> None:
+def test_route_model_default_is_season_avg_only() -> None:
     cfg = ForwardConfig()
+    for stat in ("pts", "reb", "ast", "fg3m"):
+        assert route_model(stat, "insufficient_history", cfg) == MODEL_SEASON_AVG
+
+
+def test_route_model_rule() -> None:
+    cfg = ForwardConfig(sim_stats=("reb", "ast"))
     assert route_model("pts", "intermittent", cfg) == MODEL_SEASON_AVG  # pts not sim-routed
     assert route_model("reb", "insufficient_history", cfg) == MODEL_SIM
     assert route_model("ast", "erratic", cfg) == MODEL_SIM
@@ -138,3 +145,48 @@ def test_empty_and_invalid_inputs(con: duckdb.DuckDBPyConnection) -> None:
         predict_slate(con, RUN_DATE, dup, None)
     # a date before any history projects nobody
     assert predict_slate(con, date(2020, 1, 1), SLATE, None, n_sims=50).height == 0
+
+
+def test_stat_mean_is_conditional_on_playing_and_uncond_scaled_by_p_play(
+    con: duckdb.DuckDBPyConnection,
+) -> None:
+    """DNP rows carry minutes NULL and stats 0; they must not pull the played-game mean."""
+    pid = 7777
+    cols = ",".join(STAT_COLS)
+    ph = ",".join("?" * len(STAT_COLS))
+    for i in range(10):
+        gid = f"00225DN{i:03d}"
+        d = date(2026, 2, 1) + timedelta(days=i)
+        con.execute(
+            "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts,"
+            " away_pts) VALUES (?, ?, 2025, ?, ?, 100, 90)",
+            [gid, d, T1, T2],
+        )
+        played = i % 3 != 0  # ~30% DNP
+        vals = {c: None for c in STAT_COLS}
+        vals.update(game_id=gid, player_id=pid, team_id=T1, pts=20 if played else 0,
+                    reb=6 if played else 0, ast=4 if played else 0, fg3m=0)  # fmt: skip
+        if played:
+            vals.update(minutes=30.0, starter=True)
+        con.execute(
+            f"INSERT INTO player_game_stats ({cols}) VALUES ({ph})", [vals[c] for c in STAT_COLS]
+        )
+        # the rest of the team plays every night so the roster window stays meaningful
+        for k in range(1000, 1005):
+            v = {c: 0 for c in STAT_COLS}
+            v.update(game_id=gid, player_id=k, team_id=T1, minutes=30.0, pts=10, reb=4, ast=3)
+            con.execute(
+                f"INSERT INTO player_game_stats ({cols}) VALUES ({ph})", [v[c] for c in STAT_COLS]
+            )
+    out = predict_slate(con, RUN_DATE, SLATE, None, n_sims=50)
+    r = out.filter((pl.col("player_id") == pid) & (pl.col("stat") == "pts"))
+    assert r.height == 1
+    row = r.row(0, named=True)
+    assert row["mean_season_avg"] == pytest.approx(20.0, abs=1e-6)  # DNP zeros excluded
+    assert 0.0 < row["p_play"] <= 1.0
+    assert row["mean_uncond"] == pytest.approx(row["p_play"] * row["mean"])
+    pg = json.loads(row["p_ge"])
+    pu = json.loads(row["p_ge_uncond"])
+    assert all(pu[k] == pytest.approx(row["p_play"] * pg[k]) for k in pg)
+    grid = json.loads(row["q_grid"])
+    assert len(grid) == 19 and grid == sorted(grid)

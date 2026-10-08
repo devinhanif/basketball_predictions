@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import duckdb
+import numpy as np
 import polars as pl
 import pytest
 
@@ -109,3 +110,23 @@ def test_schema_sql_has_forward_tables_matching_store_ddl() -> None:
     for t in ("forward_predictions", "forward_scores"):
         assert a.execute(f"DESCRIBE {t}").fetchall() == b.execute(f"DESCRIBE {t}").fetchall()
     a.execute(schema)  # idempotent
+
+
+def test_quantile_crps_matches_normal_closed_form() -> None:
+    from scipy.stats import norm
+
+    from nba.daily.settle import normal_crps, prediction_crps, quantile_crps
+    from nba.props.forward import QUANTILE_TAUS
+
+    taus = list(QUANTILE_TAUS)
+    qs = [float(norm.ppf(t, loc=12.0, scale=5.0)) for t in taus]
+    for y in (3.0, 12.0, 20.0):
+        assert quantile_crps(taus, qs, y) == pytest.approx(normal_crps(12.0, 5.0, y), rel=0.06)
+    pred = {"mean": 12.0, "std": 5.0, "q_grid": qs}
+    assert prediction_crps(pred, 20.0) == quantile_crps(taus, qs, 20.0)
+    assert prediction_crps({"mean": 12.0, "std": 5.0}, 20.0) == normal_crps(12.0, 5.0, 20.0)
+    # an asymmetric (skewed) distribution is scored by its quantiles, not its mean/std
+    skew = [float(x) for x in np.exp(np.linspace(0, 3, 19))]
+    assert prediction_crps({"mean": 5.0, "std": 3.0, "q_grid": skew}, 1.0) != normal_crps(
+        5.0, 3.0, 1.0
+    )

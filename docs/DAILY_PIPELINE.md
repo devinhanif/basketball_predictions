@@ -38,14 +38,31 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
      game with `game_date < slate date` (cheap, deterministic). On the first day of a new
      season the season-boundary carryover regression is applied explicitly, because `fit`
      only regresses between seasons it sees.
-   - Props (pts/reb/ast/fg3m): **rolling 82-game average baseline** (normal), for players
-     in a slate team's last 10 games with >=5 games, conditional on playing. This is a
-     placeholder, not the routed sim (see Hooks).
+   - Props (pts/reb/ast/fg3m): `nba.props.forward.predict_slate` (model `props_routed_sim`,
+     version `routed-v1`; `--props-model rolling` restores the old 82-game baseline, and a
+     routed failure falls back to it loudly in the run summary). Everything is built from a
+     scratch DB holding only `game_date < slate date`; rosters are players who played in
+     their team's last 10 games minus injury-report outs. **Contract per player-stat**
+     (all stored in the prediction JSON):
+     - `mean`, `std`, `p_ge`, `q10/q50/q90`, `q_grid` (19 quantiles, tau 0.05..0.95): the
+       distribution of the stat GIVEN the player plays (minutes > 0).
+     - `p_play` (Platt-recalibrated minutes-model P(play); `p_play_raw` in the frame) and the
+       unconditional mixture `mean_uncond = p_play * mean`, `p_ge_uncond = p_play * p_ge`
+       (valid for thresholds >= 1; a DNP is a 0).
+     - `routed_to` (`sim` | `season_avg`), `bucket` (Syntetos-Boylan class), `mean_sim`,
+       `mean_season_avg`, `proj_minutes`.
+     Routing: the sim for `insufficient_history` / `intermittent` / `erratic` players on
+     the stats in `SIM_STATS`, otherwise the "season_avg" model. That model is a
+     recency-weighted (half-life 10 games) average of PLAYED games.
+     How a prop market settles a DNP is not documented in the Kalshi notes (`result=scalar`
+     is unexplained); until confirmed, the parlay tool must choose between the conditional
+     and unconditional columns explicitly and treat DNP-sensitive legs as uncertain.
 5. **Write** (`store.py`): append-only `forward_predictions`. Any `made_at >= tipoff`
    raises `LeakageError` and the whole batch is refused. Reruns add rows; settlement scores
    the latest prediction per key, all of which are pre-tip.
 6. **Settle**: for completed games, appends `forward_scores`: log loss and Brier (win),
-   closed-form normal CRPS (props). A player with no minutes is logged `dnp` and excluded
+   props scored by empirical CRPS from the stored `q_grid` (2 x mean pinball over the
+   grid; closed-form normal only for old rows without a grid). A player with no minutes is logged `dnp` and excluded
    from metrics (props are conditional on playing; the count is reported).
 7. **Report**: log loss / Brier (and log loss minus the naive p=0.5 reference) and prop
    CRPS / bias, each with a percentile bootstrap that resamples **game dates** (2000 draws,
@@ -57,8 +74,7 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
 
 ## Tables (created by `ensure_tables`, `CREATE TABLE IF NOT EXISTS`)
 
-NOT added to `nba/db/schema.sql` (not owned here). Fold the DDL in `nba/daily/store.py`
-into schema.sql when convenient (idempotent, safe to apply twice).
+The same DDL is in `nba/db/schema.sql` (idempotent, safe to apply twice).
 
 - `forward_predictions(run_id, made_at, game_id, tipoff, model_name, version, target,
   player_id, prediction JSON)`; `player_id = -1` for game-level targets (spec columns plus
@@ -92,13 +108,19 @@ removal commands are in the template header. Keep the Mac plugged in; the job is
 - Win-prob and props models are the existing baselines; early-season samples are tiny.
   Expect CIs spanning zero for weeks; report n with every number.
 
-## Hooks wanted from other modules (not edited here)
+## Forward bias audit (2024-25 replay, 28 slates, as-of scratch DB)
 
-1. `nba.registry`: a registered, promoted `rung0_mov_elo` version whose artifact dir holds
-   the config yaml, so `resolve_production` returns a real version (today: `unregistered`).
-2. `nba.props` / `nba.sim`: a forward `predict_slate(con, as_of, games, out_players)` that
-   returns per-player distributions without needing actuals (the current entrypoints are
-   backtest-shaped). Until then props use the rolling-average baseline.
-3. `nba.ingest.games`: a public `refresh_season_games(con, season)` (uncached) replacing
-   the private `_fetch_games_for_season` import used here.
-4. `nba/db/schema.sql`: optionally absorb the two forward tables.
+Found: `player_game_stats` DNP rows have `minutes` NULL but stats of 0, so the old career
+average (and the backtest baselines) silently averaged DNP games as zeros. Scored forward on
+players who played that is a bench-concentrated negative bias. Fix: the mean/std use played
+games only, recency-weighted. See the status report for the before/after table. Remaining
+open items: the sim path still under-predicts bench rebounds and loses to the average on MAE
+in the forward shape (projected, not actual, rosters); the minutes-model P(play) needed
+recalibration; rookies and offseason moves are invisible until a first box score.
+
+## Hooks (status)
+
+1. `nba.registry`: a promoted `rung0_mov_elo` version is still wanted so
+   `resolve_production` returns a real version.
+2. Done: `nba.props.forward.predict_slate`. 3. Done: `nba.ingest.games.refresh_season_games`.
+4. Done: forward tables are in `nba/db/schema.sql`.
