@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- TEMPLATE ONLY, NOT INSTALLED. User-level LaunchAgent on your own Mac (free;
+     not always-on infra). Mac's local clock is assumed to be US-Eastern; the
+     --date is the Eastern game date. Install (manually, when ready):
+       cp nba/daily/com.nba-prediction.daily.plist.template \
+          ~/Library/LaunchAgents/com.nba-prediction.daily.plist
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nba-prediction.daily.plist
+     Remove: launchctl bootout gui/$(id -u)/com.nba-prediction.daily
+     Replace /Users/devin/Downloads/nba-prediction and the uv path if they differ. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.nba-prediction.daily</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>uv run python -m nba.daily run --date "$(date +%F)"</string>
+  </array>
+  <!-- Two runs: late morning (before early tips) and late afternoon (fresher
+       injury report, before 7pm tips). Runs are append-only and safe to repeat;
+       a game that has already tipped is refused, never back-filled. -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>30</integer></dict>
+  </array>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/registry_store/daily.log</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/registry_store/daily.err.log</string>
+  <key>LowPriorityIO</key><true/>
+  <key>Nice</key><integer>10</integer>
+</dict>
+</plist>
