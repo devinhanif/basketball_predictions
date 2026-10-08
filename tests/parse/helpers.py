@@ -69,3 +69,29 @@ class PbpBuilder:
 
     def df(self) -> pl.DataFrame:
         return pl.DataFrame(self.rows)
+
+
+def infer_approx_starters(pbp: pl.DataFrame) -> dict[int, list[int]]:
+    """Approximate each team's period-1 starting five from real play-by-play.
+
+    Test-only heuristic (NOT used in production -- real starters come
+    from ``player_game_stats.starter``, in the DB this agent does not
+    touch): the first 5 distinct players to appear in any event
+    (action or the "out" side of a Substitution) for a team, in event
+    order. Starters play significant minutes before the first sub in
+    the overwhelming majority of games, so this reliably recovers 5
+    distinct players per team -- verified against 200 real games in
+    ``data/pbp/`` (see test_lineups.py). Good enough to exercise
+    ``track_lineups`` end-to-end on real data without DB access; not a
+    claim that these are the *actual* starters.
+    """
+    pbp = pbp.sort(["period", "action_number"])
+    out: dict[int, list[int]] = {}
+    for row in pbp.filter(pl.col("team_id") != 0).iter_rows(named=True):
+        team_id, player_id = row["team_id"], row["player_id"]
+        if not player_id:
+            continue
+        bucket = out.setdefault(team_id, [])
+        if player_id not in bucket and len(bucket) < 5:
+            bucket.append(player_id)
+    return out
