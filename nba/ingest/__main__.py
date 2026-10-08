@@ -26,6 +26,18 @@ Commands:
                  forward-looking injury feed -- see
                  docs/INJURY_FEED_2026-10-08.md and the leakage-contract
                  comment on player_availability in nba/db/schema.sql.
+  official-injury-report
+                 --date YYYY-MM-DD --time HH:MM{AM,PM}  (e.g. --time 09:45AM)
+                 Downloads/parses one official NBA injury-report PDF
+                 snapshot into player_availability
+                 (source='nba_official_report') -- the genuine
+                 forward-looking source. Name resolution uses a merged
+                 index: nba_api's static active-player list (precedence)
+                 UNION whatever play-by-play has already been pulled (see
+                 build_merged_name_index); fails loudly on any unmatched
+                 player name. game_id is resolved from the report's own
+                 team abbreviations against the games table (best-effort;
+                 None if the game isn't loaded yet).
 
 All commands are resumable and idempotent: already-cached (source, key)
 pairs are skipped (never refetched). Network calls are rate-limited via
@@ -37,8 +49,13 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from datetime import datetime
 
-from nba.ingest.availability import pull_game_availability
+from nba.ingest.availability import (
+    build_merged_name_index,
+    pull_game_availability,
+    pull_official_injury_report,
+)
 from nba.ingest.boxscores import pull_game_boxscore
 from nba.ingest.cache import RateLimiter, is_cached, open_db
 from nba.ingest.games import game_ids_for_season, pull_season_games
@@ -109,7 +126,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="pull every game_id for this season from the games table",
     )
 
+    official_p = sub.add_parser(
+        "official-injury-report",
+        help="download/parse one official NBA injury-report PDF (forward-looking)",
+    )
+    official_p.add_argument("--date", required=True, help="report date, YYYY-MM-DD")
+    official_p.add_argument("--time", required=True, help="report time, HH:MMAM/PM e.g. 09:45AM")
+
     return parser
+
+
+def _parse_report_dt(date_str: str, time_str: str) -> datetime:
+    return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %I:%M%p")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -151,6 +179,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 f"{args.command}[season {season}]: {len(season_ids)} games, "
                 f"{cached_count} cached, {fetched_count} fetched"
             )
+    elif args.command == "official-injury-report":
+        report_dt = _parse_report_dt(args.date, args.time)
+        name_index = build_merged_name_index()
+        df = pull_official_injury_report(
+            con, report_dt, name_index=name_index, rate_limiter=limiter
+        )
+        print(f"official-injury-report[{report_dt.isoformat()}]: {len(df)} rows")
     elif args.command == "national-tv":
         dates = getattr(args, "dates", None) or []
         seasons = getattr(args, "seasons", None) or []

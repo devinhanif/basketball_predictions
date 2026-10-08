@@ -37,10 +37,10 @@ see "What I could not verify live" below)
 injury signal. The real pregame injury report the NBA publishes (out /
 doubtful / questionable / probable, with reasons, ~5 times per game day
 starting the afternoon before) is a PDF published outside nba_api
-entirely. Closing this gap for real requires an external source (a PDF
-scraper/parser for the official injury report, or a paid feed) -- out of
-scope for this session, but the table/parser below is designed so that
-source can be added later with zero schema change.
+entirely. The table/parser below was designed so that source could be
+added later with zero schema change -- **it has now been added** (see
+"Official injury-report PDF source (added)" below); this section is kept
+as-is for the historical record of what nba_api alone provides.
 
 ## What landed this session
 
@@ -133,10 +133,91 @@ via `BoxScoreSummaryV2(game_id=...).get_data_frames()[3].columns`), update
 `nba/ingest/availability.py` accordingly -- the parser/schema/tests do not
 need to change, only the raw-frame extraction.
 
-## Honest recommendation for closing the real gap
-Ship a small external scraper for the NBA's official injury report (PDF,
-published ~5x/gameday from the afternoon before) into the
-`manual_announced` path already built here -- parse rows into
-`{player_name, status, reason, as_of, game_id}` and feed
-`load_manual_availability_file`. That is the only way to get a genuinely
-forward-looking signal; nba_api alone cannot provide one.
+## Official injury-report PDF source (added)
+The real forward-looking source is now wired in, as its own
+`source='nba_official_report'` path (not `manual_announced` -- kept
+distinct so the two can be told apart in `player_availability`):
+
+- **URL pattern** (verified against a real published report):
+  `https://ak-static.cms.nba.com/referee/injury/Injury-Report_YYYY-MM-DD_HH_MMAM.pdf`,
+  12-hour zero-padded time (`09_45AM`, `03_00PM`), built by
+  `nba.ingest.availability.official_report_url(report_dt)`
+  (`strftime("%Y-%m-%d_%I_%M%p")`). Reports publish on a cadence (roughly
+  :30/:45/:00 past the hour leading to tip) -- the caller supplies the
+  exact published timestamp, this function does not snap to the cadence.
+- **Parser**: `nba.parse.availability.parse_official_injury_report(path,
+  name_index, report_dt=...)`. Table columns identified by stable `x0` left
+  boundaries (gamedate/gametime/matchup/team/player/status/reason);
+  `gamedate`/`gametime`/`matchup`/`team` are forward-filled across rows
+  (and across pages -- they only print on the first player row of each
+  game/team block). The one real parsing hazard: wrapped `reason` text can
+  span multiple visual rows and sit above *or* below the player's own row;
+  each stray reason fragment is assigned to the nearest player row by `y`,
+  **scoped to the same page** (pooling this across pages was the one bug
+  found during validation -- `y` resets per page, so a page-2 fragment can
+  look "nearest" to a page-1 player compared globally). "Last,First" is
+  reordered to "First Last" before `resolve_player_id`. ALL unmatched names
+  in a report are accumulated and raised together in one
+  `UnmatchedPlayerNameError` (not fail-on-first), so a single run tells the
+  caller everything that needs fixing.
+- **Puller**: `nba.ingest.availability.pull_official_injury_report(con,
+  report_dt, name_index=..., data_dir=..., rate_limiter=...)`. Plain
+  unauthenticated `httpx.get`, retried like every other puller's
+  `_fetch_*_with_retry`. Resumable/idempotent by filename (never
+  re-downloads an already-fetched report, tracked in `ingest_log` under
+  `availability-official-report`); loading into DuckDB is an idempotent
+  delete-then-insert keyed on `(source='nba_official_report',
+  as_of=report_dt)`. Raw PDF bytes snapshotted under
+  `data/availability_official/` for replay. Wired into the CLI:
+  `python -m nba.ingest official-injury-report --date YYYY-MM-DD --time
+  HH:MMAM/PM`.
+- **Fixture + tests**: `tests/fixtures/injury_report/Injury-Report_2026-10-07_09_45AM.pdf`
+  (2 pages, 19 players, BOS@DET + GSW@OKC) and
+  `tests/ingest/test_official_injury_report.py` -- no network, parses the
+  fixture directly. Proves: all 19 players parsed; the wrapped-reason case
+  (Garza's reason spans a fragment above and below his row); the
+  per-page-scoping fix (Ducas, page 2, gets his own reason and not
+  Carter's, page 1, same visual-row `y`); name resolution via a hand-built
+  index; `UnmatchedPlayerNameError` lists the missing name; status enum;
+  `as_of == report_dt`; `game_id is None`; and the URL-format helper for
+  both AM and PM times.
+
+### Follow-ups (2026-10-08, later same day): both DONE
+- **`game_id` resolution -- DONE.** `nba.ingest.teams.TEAM_ABBREV_TO_ID` is a
+  committed, verified nba_api-static team-abbrev -> `team_id` literal (no
+  network, no nba_api import -- cross-checked against this project's own
+  `games` table, e.g. `ATL == 1610612737`). `nba.parse.availability.
+  resolve_game_id(con, game_date, away_abbrev, home_abbrev)` looks up
+  `games` for that exact `(game_date, home_team, away_team)`, with a
+  swapped-orientation fallback query, and returns `None` (never raises) on
+  an unknown abbreviation or no match. `parse_official_injury_report` now
+  takes an optional `con` kwarg -- when supplied, each row's own
+  (forward-filled) `GameDate`/`Matchup` columns are resolved into a
+  `game_id`; `pull_official_injury_report` always passes its own `con`
+  through. **`game_id` is best-effort**: it stays `None` whenever the game
+  isn't in `games` yet (e.g. a report published for a game not yet
+  ingested) or the matchup/date can't be parsed -- this is expected, not a
+  bug, and is never an error. Omitting `con` (the old call signature)
+  still works and still always returns `None`, so existing callers are
+  unaffected.
+- **Name-index coverage -- DONE.** `nba.parse.availability.
+  build_name_index_from_static_players(active_only=True)` builds the name
+  index from `nba_api.stats.static.players` -- a **bundled, offline**
+  player list shipped inside the `nba_api` package itself (not a network
+  call), scoped to active players (~530) so it stays small and
+  near-collision-free. Any normalized-name collision is resolved
+  deterministically (first-seen `player_id` kept, a `UserWarning` lists
+  every collided key) rather than crashing the whole index build.
+  `nba.ingest.availability.build_merged_name_index(data_dir=...)` unions
+  this with `build_name_index_from_cached_pbp` (static takes precedence on
+  overlap); the CLI's `official-injury-report` command now builds its name
+  index this way, so a currently-active player who simply hasn't shown up
+  in any cached play-by-play file yet still resolves, while unknown/bogus
+  names still fail loudly via `UnmatchedPlayerNameError`.
+- New tests: `tests/ingest/test_game_id_resolution.py` (resolve_game_id
+  happy path, unknown date, unknown abbrev, swapped-orientation fallback,
+  static-player index non-triviality, static-only player resolving via the
+  merged index, graceful degrade to pbp-only if the static import fails)
+  plus two additions to `tests/ingest/test_official_injury_report.py`
+  (`con` supplied + games loaded -> both fixture games resolve; `con`
+  supplied + empty `games` -> stays `None`, never raises).
