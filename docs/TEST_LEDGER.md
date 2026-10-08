@@ -114,3 +114,11 @@ bounds), not because any effect is believed false.
 | T064 | 2026-10-08 | E (fair rematch, TEST_PLAN §e) | ast: sim(played_only, cur-season pts rates) - played-only recency avg, played rows, 600 games of 2024 | +0.0143 | +0.0052 | +0.0229 | clus | <0.01 | SEASON-AVG WINS (CI excludes 0, wrong direction for sim); BH m=3 | not holdout (2024) |
 
 **2026-10-08 note:** the fair rematch (T062-T064) overturns T001 ("sim beats season-avg on rebounds"): with DNP rows excluded from both sides, the played-only recency average beats the sim on pts, reb and ast. T001 is retracted as a DNP-zero artifact (see docs/DNP_AUDIT_2026-10-08.md). Production props = context_residual.
+| T065 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | A seq alone pts: CRPS vs production context_residual, 2024 | +0.0247 | +0.0164 | +0.0331 | clus | — | LOSES | not holdout (2024) |
+| T066 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | A seq alone reb: CRPS vs production context_residual, 2024 | +0.0158 | +0.0122 | +0.0191 | clus | — | LOSES | not holdout (2024) |
+| T067 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | A seq alone ast: CRPS vs production context_residual, 2024 | +0.0117 | +0.0091 | +0.0143 | clus | — | LOSES | not holdout (2024) |
+| T068 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | A seq alone fg3m: CRPS vs production context_residual, 2024 | -0.0010 | -0.0027 | +0.0006 | clus | — | tie | not holdout (2024) |
+| T069 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | B 50/50 blend pts: CRPS vs production context_residual, 2024 | -0.0058 | -0.0100 | -0.0016 | clus | — | KEPT (passes floor 0.005, BH) | not holdout (2024) |
+| T070 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | B 50/50 blend fg3m: CRPS vs production context_residual, 2024 | -0.0031 | -0.0040 | -0.0023 | clus | — | below floor | not holdout (2024) |
+| T071 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | C learned blend pts: CRPS vs production context_residual, 2024 | -0.0058 | -0.0091 | -0.0025 | clus | — | KEPT | not holdout (2024) |
+| T072 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | C learned blend fg3m: CRPS vs production context_residual, 2024 | -0.0029 | -0.0039 | -0.0019 | clus | — | below floor | not holdout (2024) |
