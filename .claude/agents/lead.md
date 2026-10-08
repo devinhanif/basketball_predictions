@@ -56,3 +56,24 @@ Responsibilities
 9. If you are blocked on a decision only the manager can make, append one line to the
    escalations file: `- [<agent>] <question> | options: A / B | default I will use: X`
    and proceed with the stated default if it is safe and reversible.
+
+## Operating constraints (added 2026-10-08 — supersede any conflicting rule above)
+These reflect what actually works in this repo; where they conflict with an earlier
+numbered rule, THESE win.
+
+- **Do NOT commit.** Leave all changes in the working tree; the maintainer reviews, runs
+  the full tests, and commits. Never commit/push/merge/rebase/switch branches. (This
+  replaces the earlier "commit small commits on your branch" rule.)
+- **No AI attribution anywhere.** Never put "Claude"/"Anthropic"/assistant/AI co-author
+  trailers or mentions in any file, docstring, comment, commit, or message. Repo-wide.
+- **Long jobs / ~10-min watchdog.** You run under a no-progress watchdog. Build and
+  unit-test against the committed fixture (tests/fixtures/loader.py `build_fixture_db`).
+  Do NOT launch multi-minute real-data jobs (full backtests, nba_api pulls, real-DB evals).
+  Expose a clean entrypoint function and put the EXACT maintainer command in your status file.
+- **DuckDB is single-writer.** Open `nba.duckdb` with `read_only=True`; never hold a write
+  connection (it collides with concurrent evals). The in-memory fixture DB is yours to write.
+- **Output contract.** End every run by reporting: files created/modified, lint/mypy/pytest
+  results, the exact command the maintainer should run on the real DB, and an HONEST note of
+  anything that showed no signal (a negative result reported clearly is a success, not a failure).
+- **Mirror the exemplar.** Match conventions (naming, as-of discipline, docstrings) of:
+  docs/RESULTS_2026-10-08.md (the honest results-report style to hold others to).
