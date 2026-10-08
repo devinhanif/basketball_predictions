@@ -1,6 +1,17 @@
 # NBA Prediction — Plain-English Project Status
 
-_Living document. Last updated: 2026-10-07._
+_Living document. Last updated: 2026-10-08. Latest full results: [RESULTS_2026-10-08.md](RESULTS_2026-10-08.md)._
+
+## Newest results (2026-10-08) — the sim earned its first player-prop wins
+Gave the possession sim **real 5-man lineups** (parsed for 100% of 1.05M possessions) and **real
+player attributes** (position/height/weight/draft/age, all 891 players). Result: the sim now
+**beats the season-average baseline on rebounds** (CRPS −0.014, CI excludes 0 — first prop stat to
+do so), **ties** on points/assists, all biases within ±0.5. A **routing analysis** shows the sim's
+edge is **concentrated in cold-start / intermittent / erratic players** (it wins those buckets with
+CI excluding 0; season-average only wins "smooth" high-volume regulars) — a concrete registry
+routing rule and direct confirmation of the cold-start thesis. Two ideas tested and honestly set
+aside: on-court usage denominator (regressed → off) and lineup archetype-MIX (real but negligible,
+R²≈0.016 → no rung-4 encoder yet). Full tables + caveats in RESULTS_2026-10-08.md.
 
 ## What we're building
 A system that predicts NBA games two ways: **who wins** (and by how much), and **individual player stat lines** (points, rebounds, assists, threes). The guiding principle isn't "be right more often" — it's **be honestly calibrated**: when the model says 70%, it should happen ~70% of the time. At every step we check against real history and against dead-simple benchmarks, so we don't fool ourselves.
@@ -28,7 +39,7 @@ Why it matters that Elo is our **best** model: we built fancier models (logistic
 |---|---|---|
 | Data / ingestion | ✅ solid | 4 seasons, ~5,300 games, ~138k player-games, all free NBA API, local. 3 real data bugs found & fixed. Trustworthy. |
 | Win probability | ✅ done | Elo wins (~64%, calibrated); fancier models don't beat it. |
-| Player props | ✅ working | Predictions unbiased on average, but **don't beat a season average** (except 3PM and brand-new players). No edge yet. |
+| Player props | ✅ working | Unbiased; sim **beats season-avg on rebounds** and **ties** pts/ast. Edge is **concentrated in cold-start/volatile players** (routing analysis) — route those to the sim, regulars to season-avg. |
 | Game-context features | ✅ tested | Travel / national TV / playoff race / tanking did **not** beat Elo for wins (Elo already encodes team quality). Being tested on player **minutes** next. |
 | Markets / parlays | ⬜ not started | No odds data yet → the "is there money here?" question is **unanswered**. |
 | Infrastructure | ✅ pro-grade | Tests, CI (green), model registry, reproducible runs. |
@@ -42,7 +53,7 @@ Why it matters that Elo is our **best** model: we built fancier models (logistic
 ## What you DON'T know yet
 - **Whether any of this beats the betting market** — the real test of edge. Needs odds data (Phase 3, not built).
 - Whether context features help player **minutes** (test in progress).
-- Whether a **possession-by-possession simulation** (needs play-by-play + a parser not yet built) beats these simple models.
+- ~~Whether a possession-by-possession simulation beats these simple models.~~ **Answered (2026-10-08):** it beats season-avg on rebounds and in cold-start/volatile player slices; ties elsewhere; does not beat Elo on win prob. See RESULTS_2026-10-08.md.
 - Real parlay expected value — the honest-EV tool isn't built.
 
 ## The honest bottom line
