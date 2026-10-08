@@ -122,3 +122,9 @@ bounds), not because any effect is believed false.
 | T070 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | B 50/50 blend fg3m: CRPS vs production context_residual, 2024 | -0.0031 | -0.0040 | -0.0023 | clus | — | below floor | not holdout (2024) |
 | T071 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | C learned blend pts: CRPS vs production context_residual, 2024 | -0.0058 | -0.0091 | -0.0025 | clus | — | KEPT | not holdout (2024) |
 | T072 | 2026-10-08 | SEQ (seq_props Colab, docs/SEQ_PROPS.md) | C learned blend fg3m: CRPS vs production context_residual, 2024 | -0.0029 | -0.0039 | -0.0019 | clus | — | below floor | not holdout (2024) |
+| T073 | 2026-10-08 | CTXRES_V2 exp1 (docs/CTXRES_V2.md) | pts: xgb_v12_quantile (2023-selected) - v1_prod CRPS, 2024 | -0.0744 | -0.0815 | -0.0668 | clus | 0.0005 | pass | not holdout (2024) |
+| T074 | 2026-10-08 | CTXRES_V2 exp1 (docs/CTXRES_V2.md) | reb: xgb_v12_quantile (2023-selected) - v1_prod CRPS, 2024 | -0.0376 | -0.0411 | -0.0340 | clus | 0.0005 | pass | not holdout (2024) |
+| T075 | 2026-10-08 | CTXRES_V2 exp1 (docs/CTXRES_V2.md) | ast: xgb_v12_quantile (2023-selected) - v1_prod CRPS, 2024 | -0.0154 | -0.0173 | -0.0135 | clus | 0.0005 | pass | not holdout (2024) |
+| T076 | 2026-10-08 | CTXRES_V2 exp1 (docs/CTXRES_V2.md) | fg3m: xgb_v12_quantile (2023-selected) - v1_prod CRPS, 2024 | -0.0205 | -0.0218 | -0.0191 | clus | 0.0005 | FAIL cov80 0.867 (>0.85) | not holdout (2024) |
+
+**CTXRES_V2 exp1 verdict (T073-T076):** NOT KEPT overall (rule requires all 4 stats; fg3m 80% coverage 0.867 outside 0.75-0.85). Isotonic threshold calibration passes all 4 stats. Completion run 20261008_140126 supplied the candidate's 2024 rows (procedural fix, documented).
