@@ -185,3 +185,17 @@ uv run python -m nba.eval.ctxres_v2_eval --run data/colab/runs/ctxres_v2_sweep/<
     data/colab/runs/ctxres_v2_sweep/<completion_run> --out reports/ctxres_v2_verdict.json
 uv run python -m nba.eval.ctxres_v2_eval --clear   # back to a normal sweep for the next push
 ```
+
+## Amendment A1 — coverage check for discrete stats (registered 2026-10-08, BEFORE any experiment-2 result exists)
+
+Diagnosis from experiment 1 (fg3m): the central-interval check `y in [q10, q90]` is biased upward for
+integer outcomes with a point mass at zero (42% of fg3m rows are 0). The candidate's upper tail was
+on target (9.3% above q90) while only 4.0% fell below q10, because y cannot be below 0 when q10 = 0.
+Interval width was not larger than v1 (2.67 vs 2.58).
+
+For **experiment 2 and later**, the coverage check in the keep rule uses the **randomized PIT**:
+for each row, u ~ Uniform(F(y-1), F(y)) from the candidate's predictive CDF (linear interpolation of
+the 19-quantile grid, F(-1) = 0, fixed seed); coverage80 = mean(0.1 <= u <= 0.9); pass window
+unchanged at 0.75-0.85. Applied to all four stats (all are integer-valued). The naive
+`y in [q10, q90]` coverage is still reported alongside, descriptively. All other checks unchanged.
+Experiment 1's verdict is NOT revisited under this amendment.
