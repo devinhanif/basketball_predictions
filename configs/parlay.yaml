@@ -3,7 +3,10 @@ fee_model:
   name: kalshi_taker_formula
   # fee = ceil_to_cent(coefficient * contracts * P * (1 - P)), P = price in dollars.
   # VERIFY against Kalshi's current published fee schedule before trusting any EV;
-  # this value is a placeholder copied from memory of the schedule, not confirmed.
+  # 2026-10-08: matches third-party summaries of the taker formula and reproduces Kalshi's
+  # published example (100 @ $0.55 -> $1.74). Unresolved: whether sports has a lower rate
+  # and maker = 25% of taker. Taker is the conservative choice (we price at the ask).
+  # Flip verified: true only after checking Kalshi's official fee schedule page.
   formula: p_one_minus_p
   coefficient: 0.07
   verified: false
