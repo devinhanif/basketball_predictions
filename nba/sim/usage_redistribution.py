@@ -289,6 +289,7 @@ def _qualifying_rows(
     con: duckdb.DuckDBPyConnection,
     as_of_date: dt.date,
     top_n_usage: int,
+    shot_rates: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """One row per (game_id, team_id, player_id) for every historical (as-of
     ``as_of_date``) team-game, carrying: ``shot_share_prior`` (that
@@ -318,7 +319,8 @@ def _qualifying_rows(
             ]
         )
 
-    shot_rates = build_player_shot_rates(con)
+    if shot_rates is None:
+        shot_rates = build_player_shot_rates(con)
     shot_hist = (
         shot_rates.filter(pl.col("game_date") < as_of_date)
         .select(["player_id", "game_date", "shot_share_prior"])
@@ -370,6 +372,8 @@ def historical_player_boost_reference(
     as_of_date: dt.date,
     top_n_usage: int = 2,
     pseudo_count: float = 20.0,
+    rows: pl.DataFrame | None = None,
+    shot_rates: pl.DataFrame | None = None,
 ) -> tuple[float, int]:
     """Option A reference scalar: as-of (strictly before ``as_of_date``)
     average excess shot-share present teammates absorbed, beyond the
@@ -378,9 +382,30 @@ def historical_player_boost_reference(
     :func:`nba.coldstart.shrinkage.shrink_rate`. Returns
     ``(boost_fraction, n_qualifying_player_game_rows)`` so callers can
     report the sample size honestly (CLAUDE.md "state sample sizes in every
-    comparison").
+    comparison"). ``rows`` / ``shot_rates`` let a caller that evaluates many
+    as-of dates reuse one precomputed frame (see
+    :func:`qualifying_rows_for_reference`) instead of rebuilding the
+    full-history SQL for every call; results are identical.
     """
-    df = _qualifying_rows(con, as_of_date, top_n_usage)
+    df = rows if rows is not None else _qualifying_rows(con, as_of_date, top_n_usage, shot_rates)
+    return player_boost_from_rows(df, pseudo_count)
+
+
+def qualifying_rows_for_reference(
+    con: duckdb.DuckDBPyConnection,
+    as_of_date: dt.date,
+    top_n_usage: int = 2,
+    shot_rates: pl.DataFrame | None = None,
+) -> pl.DataFrame:
+    """Public handle on the historical roster frame (all games strictly
+    before ``as_of_date``). Filtering it to ``game_date < d`` for any
+    ``d <= as_of_date`` is identical to recomputing at ``d``, because every
+    column is itself as-of per row."""
+    return _qualifying_rows(con, as_of_date, top_n_usage, shot_rates)
+
+
+def player_boost_from_rows(df: pl.DataFrame, pseudo_count: float = 20.0) -> tuple[float, int]:
+    """Option A scalar from a :func:`qualifying_rows_for_reference` frame."""
     if df.height == 0:
         return 0.0, 0
 
@@ -440,15 +465,22 @@ def historical_team_boost_reference(
     as_of_date: dt.date,
     top_n_usage: int = 2,
     pseudo_count: float = 20.0,
+    rows: pl.DataFrame | None = None,
+    shot_rates: pl.DataFrame | None = None,
 ) -> tuple[float, int]:
     """Option B reference scalar: the same question as
     :func:`historical_player_boost_reference`, answered at the team-game
     level via a Gini-concentration delta instead of a per-player excess --
     coarser, fewer observations per cell, per ``docs/NEXT_OPTIONS.md`` §2
     Option B's stated rationale. Returns ``(boost_fraction,
-    n_absent_team_games)``.
+    n_absent_team_games)``. ``rows``/``shot_rates``: see Option A.
     """
-    df = _qualifying_rows(con, as_of_date, top_n_usage)
+    df = rows if rows is not None else _qualifying_rows(con, as_of_date, top_n_usage, shot_rates)
+    return team_boost_from_rows(df, pseudo_count)
+
+
+def team_boost_from_rows(df: pl.DataFrame, pseudo_count: float = 20.0) -> tuple[float, int]:
+    """Option B scalar from a :func:`qualifying_rows_for_reference` frame."""
     if df.height == 0:
         return 0.0, 0
 
@@ -477,7 +509,176 @@ def historical_team_boost_reference(
     return boost, n_absent
 
 
+# ---------------------------------------------------------------------------
+# Availability trigger: official pre-game injury report (as-of, pre-tip only)
+# ---------------------------------------------------------------------------
+
+#: ``player_availability.source`` of every official-report row (the live puller
+#: and the historical backfill both write this value; the backfill's own
+#: ``ingest_log`` key is a different string and never lands in this column).
+OFFICIAL_REPORT_SOURCE = "nba_official_report"
+
+
+@dataclass(frozen=True)
+class ReportTriggerConfig:
+    """Which official-report rows may trigger 2A/2B, and by when.
+
+    ``games`` carries a DATE only (no tip-off time), so tip-off is a PROXY:
+    ``game_date`` at ``tipoff_hour_et`` (naive, same clock as the report
+    ``as_of``). A report row is usable for a game iff
+    ``as_of <= proxy_tip - lead_minutes`` (hence strictly before tip). Rows
+    stamped later are ignored, never used. Default 19:00 ET puts the cutoff
+    at 18:00, which admits the 17:45 backfill anchor and excludes anything
+    after; matinee tips are a documented limitation (lower ``tipoff_hour_et``
+    for a conservative sensitivity run).
+    """
+
+    statuses: tuple[str, ...] = ("out",)
+    tipoff_hour_et: float = 19.0
+    lead_minutes: int = 60
+    sources: tuple[str, ...] = (OFFICIAL_REPORT_SOURCE,)
+    table: str = "player_availability"
+
+    @property
+    def cutoff_minutes_after_midnight(self) -> float:
+        return self.tipoff_hour_et * 60.0 - float(self.lead_minutes)
+
+
+def load_report_rows(
+    con: duckdb.DuckDBPyConnection,
+    config: ReportTriggerConfig,
+    game_ids: list[str] | None = None,
+) -> pl.DataFrame:
+    """All official-report rows attached to a ``games`` row, with its date.
+
+    Columns: ``game_id, player_id, status (lower-cased), as_of, game_date``.
+    Rows with NULL ``game_id`` (unresolved matchup) are excluded here and
+    counted by the caller's coverage diagnostics. Applies NO time filter;
+    that is :func:`latest_pretip_flagged`'s job so the leakage rule lives in
+    exactly one place.
+    """
+    placeholders = ", ".join("?" for _ in config.sources)
+    sql = (
+        "SELECT a.game_id, a.player_id, lower(a.status) AS status, "
+        "CAST(a.as_of AS TIMESTAMP) AS as_of, g.game_date "
+        f"FROM {config.table} a JOIN games g ON g.game_id = a.game_id "
+        f"WHERE a.source IN ({placeholders}) AND a.player_id IS NOT NULL"
+    )
+    df = _query_to_polars(con, sql, list(config.sources))
+    df = df.with_columns(pl.col("as_of").cast(pl.Datetime("us")))
+    if game_ids is not None:
+        df = df.filter(pl.col("game_id").is_in(game_ids))
+    return df
+
+
+def usable_report_rows(rows: pl.DataFrame, config: ReportTriggerConfig) -> pl.DataFrame:
+    """Rows with ``as_of <= game_date + tipoff proxy - lead`` (the leakage rule)."""
+    if rows.height == 0:
+        return rows
+    cutoff = pl.col("game_date").cast(pl.Datetime("us")) + pl.duration(
+        minutes=int(config.cutoff_minutes_after_midnight)
+    )
+    return rows.filter(pl.col("as_of") <= cutoff)
+
+
+def latest_pretip_flagged(
+    rows: pl.DataFrame, config: ReportTriggerConfig
+) -> tuple[dict[str, set[int]], dict[str, dt.datetime]]:
+    """Per game: players whose status in the LATEST usable report is flagged.
+
+    "Latest usable report" = the greatest ``as_of`` among that game's rows that
+    pass :func:`usable_report_rows`; only rows of THAT snapshot count, so a
+    player flagged OUT in an earlier report but absent/upgraded in the latest
+    one is not out. Games with no usable row are absent from both returned
+    dicts (no report, no trigger; never imputed). The second dict maps game
+    to the snapshot ``as_of`` actually used.
+    """
+    usable = usable_report_rows(rows, config)
+    if usable.height == 0:
+        return {}, {}
+    latest = usable.group_by("game_id").agg(pl.col("as_of").max().alias("_latest"))
+    snap = usable.join(latest, on="game_id").filter(pl.col("as_of") == pl.col("_latest"))
+    flagged: dict[str, set[int]] = {gid: set() for gid in latest["game_id"].to_list()}
+    wanted = {s.lower() for s in config.statuses}
+    for gid, pid, status in snap.select(["game_id", "player_id", "status"]).iter_rows():
+        if status in wanted:
+            flagged[str(gid)].add(int(pid))
+    used = {str(g): t for g, t in latest.select(["game_id", "_latest"]).iter_rows()}
+    return flagged, used
+
+
+def prior_minutes_state(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Per (player, game played): cumulative mean minutes and games INCLUDING
+    that game, plus the team, for as-of lookups (query with a date strictly
+    after the game). Only games with ``minutes > 0`` count as played."""
+    df = _query_to_polars(
+        con,
+        "SELECT s.player_id, s.team_id, g.game_date, s.minutes FROM player_game_stats s "
+        "JOIN games g ON g.game_id = s.game_id WHERE COALESCE(s.minutes, 0) > 0",
+    )
+    df = df.sort(["player_id", "game_date"]).with_columns(
+        (
+            pl.col("minutes").cum_sum().over("player_id")
+            / pl.col("minutes").cum_count().over("player_id")
+        ).alias("avg_min_after"),
+        pl.col("minutes").cum_count().over("player_id").alias("n_after"),
+    )
+    return df.select(["player_id", "team_id", "game_date", "avg_min_after", "n_after"])
+
+
+def rotation_flagged_by_team(
+    flagged: dict[str, set[int]],
+    game_info: dict[str, tuple[dt.date, int, int]],
+    state: pl.DataFrame,
+    rotation_min_avg: float = 20.0,
+    rotation_min_games: int = 5,
+) -> dict[tuple[str, int], set[int]]:
+    """Keep flagged players who are rotation players AS OF the game, keyed
+    by ``(game_id, team_id)``.
+
+    Rotation = mean minutes over games played STRICTLY BEFORE the game date
+    >= ``rotation_min_avg`` with >= ``rotation_min_games`` such games (so a
+    return-from-injury player keeps his pre-injury average). The player's
+    team is his team in that last prior game; players whose team is not one
+    of the game's two teams are dropped.
+    """
+    recs = [
+        (gid, pid, game_info[gid][0])
+        for gid, pids in flagged.items()
+        if gid in game_info
+        for pid in pids
+    ]
+    if not recs or state.height == 0:
+        return {}
+    left = pl.DataFrame(
+        recs, schema={"game_id": pl.Utf8, "player_id": pl.Int64, "game_date": pl.Date}, orient="row"
+    ).with_columns((pl.col("game_date") - pl.duration(days=1)).alias("_key"))
+    right = state.rename({"game_date": "_prior_date"}).sort("_prior_date")
+    joined = left.sort("_key").join_asof(
+        right, left_on="_key", right_on="_prior_date", by="player_id", strategy="backward"
+    )
+    joined = joined.filter(
+        (pl.col("avg_min_after") >= rotation_min_avg) & (pl.col("n_after") >= rotation_min_games)
+    )
+    out: dict[tuple[str, int], set[int]] = {}
+    for gid, pid, team in joined.select(["game_id", "player_id", "team_id"]).iter_rows():
+        _d, home, away = game_info[str(gid)]
+        if int(team) in (home, away):
+            out.setdefault((str(gid), int(team)), set()).add(int(pid))
+    return out
+
+
 __all__ = [
+    "OFFICIAL_REPORT_SOURCE",
+    "ReportTriggerConfig",
+    "latest_pretip_flagged",
+    "load_report_rows",
+    "player_boost_from_rows",
+    "prior_minutes_state",
+    "qualifying_rows_for_reference",
+    "rotation_flagged_by_team",
+    "team_boost_from_rows",
+    "usable_report_rows",
     "UsageRedistributionConfig",
     "adjust_profiles_for_absence",
     "apply_usage_redistribution",
