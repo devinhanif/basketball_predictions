@@ -109,3 +109,8 @@ bounds), not because any effect is believed false.
 - IDs T005-T019, T028-T033 each stand for several tests; expand to individual rows when the
   per-cell JSON is first committed (standing plan #4).
 - New rows start at T062.
+| T062 | 2026-10-08 | E (fair rematch, TEST_PLAN §e) | pts: sim(played_only, cur-season pts rates) - played-only recency avg, played rows, 600 games of 2024 | +0.2680 | +0.2246 | +0.3122 | clus | <0.01 | SEASON-AVG WINS (CI excludes 0, wrong direction for sim); BH m=3 | not holdout (2024) |
+| T063 | 2026-10-08 | E (fair rematch, TEST_PLAN §e) | reb: sim(played_only, cur-season pts rates) - played-only recency avg, played rows, 600 games of 2024 | +0.1225 | +0.1062 | +0.1391 | clus | <0.01 | SEASON-AVG WINS (CI excludes 0, wrong direction for sim); BH m=3 | not holdout (2024) |
+| T064 | 2026-10-08 | E (fair rematch, TEST_PLAN §e) | ast: sim(played_only, cur-season pts rates) - played-only recency avg, played rows, 600 games of 2024 | +0.0143 | +0.0052 | +0.0229 | clus | <0.01 | SEASON-AVG WINS (CI excludes 0, wrong direction for sim); BH m=3 | not holdout (2024) |
+
+**2026-10-08 note:** the fair rematch (T062-T064) overturns T001 ("sim beats season-avg on rebounds"): with DNP rows excluded from both sides, the played-only recency average beats the sim on pts, reb and ast. T001 is retracted as a DNP-zero artifact (see docs/DNP_AUDIT_2026-10-08.md). Production props = context_residual.
