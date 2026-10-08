@@ -86,7 +86,7 @@ Conventions
 | T058 | 2026-10-08 | M3A | ast: archetype - baseline | +0.0005 | n/r | n/r | none | n/r | not evaluated (gate failed) | burned |
 | T059 | 2026-10-08 | M3A | fg3m: archetype - baseline | +0.0004 | n/r | n/r | none | n/r | not evaluated (gate failed) | burned |
 | T060 | 2026-10-08 | M3A | team_level - baseline pooled (pts/reb/ast/fg3m) | -0.0001/-0.0004/-0.0004/-0.0001 | n/r | n/r | none | n/r | informational; negligible; contradicts earlier partial read per briefing | burned |
-| T061 | 2026-10-08 | R | pts: sim - savg CRPS @ n_sims=2000 (comparison key = pts sim-vs-savg, joins Family A) | not recorded | n/r | n/r | clus (scripted) | n/r | NOT COMPLETED (see below); must be re-ranked with T001-T003 when it lands | burned (same rows; exploratory) |
+| T061 | 2026-10-08 | R | pts: sim - savg CRPS @ n_sims=2000 (comparison key = pts sim-vs-savg, joins Family A) | +0.1899 | +0.1747 | +0.2062 | clus | <1e-6 | SIM WORSE (CI excludes 0, wrong direction); ran on all 138,409 player-games / 5,269 games, not the 600-game Family-A sample; re-ranked with T001-T003 it is not an improving survivor. See docs/POINTS_RETEST_2026-10-08.md | burned (same rows; exploratory) |
 
 Counts: 61 ledger rows, covering ~100 underlying tests once the grouped rows are
 expanded (C=15, E=6, T027 hides >=10 more). Rows with a numeric CI: 11 (T001-T003, T048-T055).
