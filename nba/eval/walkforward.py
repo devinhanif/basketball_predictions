@@ -62,6 +62,43 @@ def split_frozen_holdout(df: pl.DataFrame, holdout_season: int | None) -> Holdou
     return HoldoutSplit(tunable_df, holdout_df, holdout_season, note)
 
 
+#: Valid ``mode`` values for :func:`filter_by_holdout_mode`.
+HOLDOUT_MODES = ("all", "exclude_holdout", "holdout_only")
+
+
+def filter_by_holdout_mode(
+    df: pl.DataFrame, holdout_season: int | None, mode: str = "all"
+) -> pl.DataFrame:
+    """Optional season-based filter shared by every props/routing eval entry
+    point that wants an opt-in frozen-holdout split, without reimplementing
+    ad hoc season filtering per module.
+
+    Thin wrapper around :func:`split_frozen_holdout` so callers get the
+    exact same season-column semantics the Elo rungs already use
+    (``nba/eval/ga_tune.py --holdout-season``, default ``2025`` per
+    ``docs/ACCEPTANCE_CRITERIA_2026-10-08.md``'s "canonical frozen holdout
+    for props/routing").
+
+    ``mode``:
+      - ``"all"`` (default): no filtering -- identical to every caller's
+        pre-existing behavior. Also the result whenever ``holdout_season``
+        is ``None``, regardless of ``mode``.
+      - ``"exclude_holdout"``: tunable/training pool only (``season !=
+        holdout_season``) -- what tuning/backtesting should use.
+      - ``"holdout_only"``: the frozen holdout season only (``season ==
+        holdout_season``) -- confirmatory evaluation only, at most once,
+        logged per the acceptance-criteria doc's ledger discipline.
+    """
+    if holdout_season is None or mode == "all":
+        return df
+    split = split_frozen_holdout(df, holdout_season)
+    if mode == "exclude_holdout":
+        return split.tunable_df
+    if mode == "holdout_only":
+        return split.holdout_df
+    raise ValueError(f"unknown holdout mode {mode!r}; expected one of {HOLDOUT_MODES}")
+
+
 def make_walk_forward_folds(df: pl.DataFrame, min_train_games: int = 1) -> list[Fold]:
     """One fold per distinct test date: train on strictly earlier dates.
 

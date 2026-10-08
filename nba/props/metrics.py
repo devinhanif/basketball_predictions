@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from nba.eval.metrics import (
+    MIN_RELIABLE_N,
     CalibrationCurve,
     ConfidenceInterval,
     bootstrap_ci,
@@ -153,12 +154,135 @@ def pooled_threshold_ece(threshold_results: list[ThresholdCalibration]) -> float
     return float(weighted / total_n)
 
 
-def mean_bias_ci(
-    pred_mean: np.ndarray, y: np.ndarray, n_boot: int = 2000, seed: int = 0
+#: Mirrors ``nba.eval.metrics._MAX_BOOTSTRAP_CELLS`` (not imported -- that
+#: name is private to the win-probability bootstrap module, which this
+#: clustered path deliberately does not touch). Same batching rationale:
+#: caps the size of a single resample-index matrix per bootstrap batch so
+#: large props runs (100k+ rows) don't build one giant ``(n_boot, G)``
+#: array in memory at once.
+_MAX_BOOTSTRAP_CELLS = 20_000_000
+
+
+def _clustered_boot_means(
+    values: np.ndarray,
+    cluster_ids: np.ndarray,
+    n_boot: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Vectorized cluster (block) bootstrap replicates of ``mean(values)``.
+
+    Resamples whole clusters (e.g. ``game_id``) with replacement instead of
+    individual rows, so every row of a drawn cluster is included together --
+    this is what makes same-game teammate correlation show up as wider CIs
+    instead of being averaged away as if each player-game were an
+    independent draw (see docs/FDR_AUDIT_2026-10-08.md section 0).
+
+    Implemented via per-cluster sufficient statistics (sum, count) rather
+    than materializing resampled row arrays: for the mean statistic,
+    ``mean(resampled rows) == sum(drawn cluster sums) / sum(drawn cluster
+    counts)``, which is exact and lets the whole resample be a handful of
+    vectorized gather/sum calls instead of a per-replicate concatenation
+    loop. When every cluster is a singleton (one row per cluster, cluster
+    ids sorted in the same order as the rows), this reduces to exactly the
+    same arithmetic as :func:`nba.eval.metrics._batched_resample_stat` with
+    ``stat_fn=np.mean`` -- see the degenerate-case unit test.
+    """
+    values = np.asarray(values, dtype=float)
+    unique_clusters, inverse = np.unique(np.asarray(cluster_ids), return_inverse=True)
+    g = len(unique_clusters)
+    group_sums = np.zeros(g, dtype=float)
+    group_counts = np.zeros(g, dtype=float)
+    np.add.at(group_sums, inverse, values)
+    np.add.at(group_counts, inverse, 1.0)
+
+    out = np.empty(n_boot, dtype=float)
+    if n_boot == 0:
+        return out
+    chunk = max(1, min(n_boot, _MAX_BOOTSTRAP_CELLS // max(g, 1)))
+    start = 0
+    while start < n_boot:
+        b = min(chunk, n_boot - start)
+        idx = rng.integers(0, g, size=(b, g))
+        sums = group_sums[idx].sum(axis=1)
+        counts = group_counts[idx].sum(axis=1)
+        out[start : start + b] = sums / counts
+        start += b
+    return out
+
+
+def _bootstrap_ci_clustered(
+    values: np.ndarray,
+    cluster_ids: np.ndarray,
+    n_boot: int = 2000,
+    alpha: float = 0.05,
+    seed: int = 0,
 ) -> ConfidenceInterval:
-    """Bootstrap CI on mean(pred_mean - y) -- CLAUDE.md's +/-0.5 target metric."""
+    """Percentile cluster-bootstrap CI on ``mean(values)``, resampling whole
+    ``cluster_ids`` groups (e.g. games) with replacement. Mirrors
+    :func:`nba.eval.metrics.bootstrap_ci`'s contract exactly (same
+    percentile behavior); only the resampling unit differs -- and,
+    crucially, so does the "reliable CI" gate: a cluster bootstrap's
+    effective sample size is the number of distinct *clusters* (``g``,
+    e.g. distinct games), not the number of rows (``n``, e.g.
+    player-games). A 5-game slate with 10 players each has ``n=50`` (which
+    would clear a row-count gate with no warning) but only ``g=5``
+    independent resampling units -- too few for the bootstrap distribution
+    to approximate the true sampling distribution reliably. See
+    docs/QA_AUDIT_2026-10-08.md item 2c; this gates on ``g``, not ``n``."""
+    values = np.asarray(values, dtype=float)
+    cluster_ids = np.asarray(cluster_ids)
+    n = len(values)
+    if n == 0:
+        return ConfidenceInterval(
+            point=float("nan"), lo=float("nan"), hi=float("nan"), n=0, note="no data"
+        )
+    if len(cluster_ids) != n:
+        raise ValueError(f"cluster_ids length ({len(cluster_ids)}) must match values length ({n})")
+    point = float(np.mean(values))
+    if n == 1:
+        return ConfidenceInterval(
+            point=point,
+            lo=point,
+            hi=point,
+            n=1,
+            note="insufficient data for CI (n=1): point estimate only",
+        )
+    rng = np.random.default_rng(seed)
+    boot_stats = _clustered_boot_means(values, cluster_ids, n_boot, rng)
+    lo = float(np.quantile(boot_stats, alpha / 2))
+    hi = float(np.quantile(boot_stats, 1 - alpha / 2))
+    g = int(len(np.unique(cluster_ids)))
+    note = (
+        ""
+        if g >= MIN_RELIABLE_N
+        else f"insufficient data for a reliable CI (g={g} distinct clusters < "
+        f"{MIN_RELIABLE_N}, despite n={n} rows -- cluster bootstrap reliability "
+        "depends on cluster count, not row count)"
+    )
+    return ConfidenceInterval(point=point, lo=lo, hi=hi, n=n, note=note)
+
+
+def mean_bias_ci(
+    pred_mean: np.ndarray,
+    y: np.ndarray,
+    n_boot: int = 2000,
+    seed: int = 0,
+    cluster_ids: np.ndarray | None = None,
+) -> ConfidenceInterval:
+    """Bootstrap CI on mean(pred_mean - y) -- CLAUDE.md's +/-0.5 target metric.
+
+    ``cluster_ids`` (optional, one id per row aligned with ``pred_mean``/
+    ``y``, typically ``game_id``) switches to a cluster/block bootstrap that
+    resamples whole games instead of individual player-games -- teammates in
+    the same game are correlated (pace, blowouts, foul trouble), so
+    resampling player-games independently understates the true standard
+    error (docs/FDR_AUDIT_2026-10-08.md section 0). ``None`` (default)
+    preserves the exact prior row-level behavior for backward compatibility.
+    """
     bias = np.asarray(pred_mean, dtype=float) - np.asarray(y, dtype=float)
-    return bootstrap_ci(bias, stat_fn=np.mean, n_boot=n_boot, seed=seed)
+    if cluster_ids is None:
+        return bootstrap_ci(bias, stat_fn=np.mean, n_boot=n_boot, seed=seed)
+    return _bootstrap_ci_clustered(bias, cluster_ids, n_boot=n_boot, seed=seed)
 
 
 def interval_coverage(q10: np.ndarray, q90: np.ndarray, y: np.ndarray) -> float:
@@ -171,13 +295,28 @@ def interval_coverage(q10: np.ndarray, q90: np.ndarray, y: np.ndarray) -> float:
 
 
 def paired_score_delta_ci(
-    score_a: np.ndarray, score_b: np.ndarray, n_boot: int = 2000, seed: int = 0
+    score_a: np.ndarray,
+    score_b: np.ndarray,
+    n_boot: int = 2000,
+    seed: int = 0,
+    cluster_ids: np.ndarray | None = None,
 ) -> ConfidenceInterval:
     """Bootstrap CI on mean(score_a - score_b) for two arrays of *already computed*
-    per-game scores (e.g. CRPS_model vs CRPS_baseline) that are paired by game.
+    per-player-game scores (e.g. CRPS_model vs CRPS_baseline) that are paired row
+    for row (not necessarily paired by *game* -- several rows can share a game
+    when there are multiple players).
 
     Lower-is-better convention (CRPS, log loss): a negative CI entirely
     below 0 means ``a`` beats ``b`` at this sample size.
+
+    ``cluster_ids`` (optional, one id per row aligned with ``score_a``/
+    ``score_b``, typically ``game_id``) switches to a cluster/block
+    bootstrap that resamples whole games instead of individual rows --
+    see :func:`mean_bias_ci` docstring for why this matters.  ``None``
+    (default) preserves the exact prior row-level behavior for backward
+    compatibility.
     """
     delta = np.asarray(score_a, dtype=float) - np.asarray(score_b, dtype=float)
-    return bootstrap_ci(delta, stat_fn=np.mean, n_boot=n_boot, seed=seed)
+    if cluster_ids is None:
+        return bootstrap_ci(delta, stat_fn=np.mean, n_boot=n_boot, seed=seed)
+    return _bootstrap_ci_clustered(delta, cluster_ids, n_boot=n_boot, seed=seed)

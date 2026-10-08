@@ -92,6 +92,7 @@ def evaluate_routing(
     train_mask: np.ndarray,
     n_boot: int = 2000,
     seed: int = 0,
+    cluster_ids: np.ndarray | None = None,
 ) -> RoutedEvalResult:
     """Learn the routing map on ``train_mask`` rows, apply to the rest, and
     compare the routed predictor's CRPS to every candidate model on the TEST
@@ -101,6 +102,13 @@ def evaluate_routing(
     (row i = same player-game). ``train_mask`` is a boolean array; test = ~mask.
     ``default_model`` is the globally-best model on the training rows (used for
     buckets unseen in training).
+
+    ``cluster_ids`` (optional, one id per row aligned with ``buckets``/
+    ``crps_by_model``, typically ``game_id``) switches the routed-vs-model
+    comparison on the TEST rows to a cluster/block bootstrap -- same
+    rationale and contract as ``nba.eval.model_routing.route_by_bucket`` and
+    ``nba.props.run`` (docs/ACCEPTANCE_CRITERIA_2026-10-08.md). ``None``
+    (default) preserves the exact prior row-level bootstrap behavior.
     """
     models = list(crps_by_model)
     test_mask = ~train_mask
@@ -112,9 +120,13 @@ def evaluate_routing(
     test_buckets = buckets[test_mask]
     test_crps = {m: crps_by_model[m][test_mask] for m in models}
     routed = apply_routed_crps(test_buckets, test_crps, route_map, default_model)
+    test_cluster_ids = None if cluster_ids is None else np.asarray(cluster_ids)[test_mask]
 
     routed_vs_model = {
-        m: paired_score_delta_ci(routed, test_crps[m], n_boot=n_boot, seed=seed) for m in models
+        m: paired_score_delta_ci(
+            routed, test_crps[m], n_boot=n_boot, seed=seed, cluster_ids=test_cluster_ids
+        )
+        for m in models
     }
     return RoutedEvalResult(
         stat=stat,

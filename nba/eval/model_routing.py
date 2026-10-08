@@ -57,6 +57,7 @@ def route_by_bucket(
     min_bucket_n: int = 30,
     n_boot: int = 2000,
     seed: int = 0,
+    cluster_ids: np.ndarray | None = None,
 ) -> list[RouteBucketResult]:
     """Per-bucket CRPS comparison across every model in ``crps_by_model``.
 
@@ -64,6 +65,16 @@ def route_by_bucket(
     length and index-aligned (row ``i`` is the same player-game
     everywhere) -- the same "paired by game" contract every other
     bootstrap comparison in this project relies on.
+
+    ``cluster_ids`` (optional, one id per row aligned with
+    ``bucket_labels``/``crps_by_model``, typically ``game_id``) threads a
+    cluster/block bootstrap into the per-bucket delta CIs below, the same
+    way ``nba.props.run`` already does for the base-stat CRPS/log-loss
+    CIs -- teammates sharing a game are correlated, so resampling
+    individual player-games independently understates the true standard
+    error (docs/FDR_AUDIT_2026-10-08.md section 0,
+    docs/ACCEPTANCE_CRITERIA_2026-10-08.md). ``None`` (default) preserves
+    the exact prior row-level bootstrap behavior.
 
     Buckets with fewer than ``min_bucket_n`` rows get ``sufficient=False``
     and an explanatory note instead of a numeric best-model claim that
@@ -77,6 +88,9 @@ def route_by_bucket(
     for name, arr in crps_by_model.items():
         if len(arr) != n_total:
             raise ValueError(f"crps_by_model[{name!r}] length {len(arr)} != n={n_total}")
+    if cluster_ids is not None and len(cluster_ids) != n_total:
+        raise ValueError(f"cluster_ids length {len(cluster_ids)} != n={n_total}")
+    cluster_arr = None if cluster_ids is None else np.asarray(cluster_ids)
 
     results: list[RouteBucketResult] = []
     for bucket in sorted(set(labels_arr.tolist()), key=str):
@@ -105,6 +119,7 @@ def route_by_bucket(
                 np.asarray(crps_by_model[best], dtype=float)[mask],
                 n_boot=n_boot,
                 seed=seed,
+                cluster_ids=None if cluster_arr is None else cluster_arr[mask],
             )
             for name, arr in crps_by_model.items()
             if name != best

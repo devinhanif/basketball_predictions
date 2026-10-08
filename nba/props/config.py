@@ -319,6 +319,17 @@ class PropsConfig:
     dispersion: DispersionConfig = field(default_factory=DispersionConfig)
     seed: int = 0
     n_boot: int = 500
+    #: Optional frozen-holdout season filter (CLAUDE.md "no leakage" /
+    #: docs/ACCEPTANCE_CRITERIA_2026-10-08.md "canonical frozen holdout for
+    #: props/routing"). ``None`` (default) preserves the exact prior
+    #: behavior -- every row, no filter. Set ``holdout_season=2025`` with
+    #: ``holdout_mode="exclude_holdout"`` to tune/backtest on the tunable
+    #: pool only, or ``holdout_mode="holdout_only"`` for the single
+    #: permitted confirmatory touch (log it to
+    #: docs/HOLDOUT_ACCESS_LOG.md before running). See
+    #: ``nba.eval.walkforward.filter_by_holdout_mode``.
+    holdout_season: int | None = None
+    holdout_mode: str = "all"
 
 
 DEFAULT_CONFIG = PropsConfig()

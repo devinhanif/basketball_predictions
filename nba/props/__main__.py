@@ -47,6 +47,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db-path", default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--n-boot", type=int, default=500)
+    parser.add_argument(
+        "--holdout-season",
+        type=int,
+        default=None,
+        help="frozen holdout season (CLAUDE.md canonical value: 2025); "
+        "default None disables the filter entirely (prior behavior)",
+    )
+    parser.add_argument(
+        "--holdout-mode",
+        choices=["all", "exclude_holdout", "holdout_only"],
+        default="all",
+        help="'all' (default, no filter), 'exclude_holdout' (tunable pool only), "
+        "'holdout_only' (the single permitted confirmatory touch -- log it to "
+        "docs/HOLDOUT_ACCESS_LOG.md before running)",
+    )
     parser.add_argument("--report-path", default="registry_store/reports/props_report.md")
     parser.add_argument("--register", action="store_true", help="log this run as a candidate")
     parser.add_argument("--promote", action="store_true", help="promote this version to production")
@@ -59,7 +74,12 @@ def main(argv: list[str] | None = None) -> int:
     start = time.monotonic()
     con = _open_connection(args.use_fixture, args.db_path)
     try:
-        config = PropsConfig(seed=args.seed, n_boot=args.n_boot)
+        config = PropsConfig(
+            seed=args.seed,
+            n_boot=args.n_boot,
+            holdout_season=args.holdout_season,
+            holdout_mode=args.holdout_mode,
+        )
         result = run_props_experiment(con, config=config, seed=args.seed, n_boot=args.n_boot)
         runtime_s = time.monotonic() - start
 

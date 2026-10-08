@@ -188,6 +188,47 @@ def test_opponent_adjustment_flag_changes_predictions_end_to_end() -> None:
         con.close()
 
 
+def test_holdout_filter_default_is_unchanged_behavior() -> None:
+    """PropsConfig's default holdout_season=None/holdout_mode='all' must be
+    byte-identical to the pre-existing (no-filter) behavior."""
+    con = build_fixture_db(":memory:")
+    try:
+        result = run_props_experiment(con, config=PropsConfig(), seed=3, n_boot=50)
+        assert result.stats and result.stats[0].n == 18  # every fixture row still present
+    finally:
+        con.close()
+
+
+def test_holdout_filter_exclude_holdout_drops_the_configured_season() -> None:
+    """The fixture's only season is 2023 -- excluding it as the 'holdout'
+    must empty the experiment, same as every other season=2023 row being
+    the frozen holdout (docs/ACCEPTANCE_CRITERIA_2026-10-08.md canonical
+    holdout mechanism, exercised here with a stand-in season since the
+    fixture doesn't have 2025 data)."""
+    con = build_fixture_db(":memory:")
+    try:
+        cfg = PropsConfig(holdout_season=2023, holdout_mode="exclude_holdout")
+        result = run_props_experiment(con, config=cfg, seed=3, n_boot=50)
+        assert result.stats == []
+        assert result.predictions.height == 0
+    finally:
+        con.close()
+
+
+def test_holdout_filter_holdout_only_keeps_only_the_configured_season() -> None:
+    con = build_fixture_db(":memory:")
+    try:
+        cfg = PropsConfig(holdout_season=2023, holdout_mode="holdout_only")
+        result = run_props_experiment(con, config=cfg, seed=3, n_boot=50)
+        assert result.stats and result.stats[0].n == 18  # every fixture row IS season 2023
+
+        cfg_absent = PropsConfig(holdout_season=2025, holdout_mode="holdout_only")
+        result_absent = run_props_experiment(con, config=cfg_absent, seed=3, n_boot=50)
+        assert result_absent.stats == []  # no season=2025 rows on the fixture
+    finally:
+        con.close()
+
+
 def test_empty_db_degrades_gracefully() -> None:
     import duckdb
 

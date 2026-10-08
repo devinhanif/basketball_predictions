@@ -49,6 +49,56 @@ def test_evaluate_routing_beats_both_when_buckets_are_separable() -> None:
     assert res.routed_vs_model["savg"].hi < 0
 
 
+def test_evaluate_routing_clustered_ci_wider_than_row_level() -> None:
+    """docs/ACCEPTANCE_CRITERIA_2026-10-08.md prerequisite: ``evaluate_routing``
+    must support ``cluster_ids`` and widen the routed-vs-model CI under
+    within-game correlation, same as ``nba.props.run`` and
+    ``nba.eval.model_routing.route_by_bucket``."""
+    rng = np.random.default_rng(6)
+    n_games, players_per_game = 60, 5
+    n = n_games * players_per_game
+    buckets = np.array(["only"] * n)
+    game_ids = np.repeat(np.arange(n_games), players_per_game)
+    game_effects = np.repeat(rng.normal(0.0, 0.6, size=n_games), players_per_game)
+    sim = rng.normal(1.0, 0.1, size=n)
+    # savg's delta vs sim shares a per-game shock -- the within-game
+    # correlation structure the clustered bootstrap exists to capture (see
+    # tests/props/test_clustered_bootstrap.py's _make_correlated_games).
+    savg = sim + 0.05 + game_effects + rng.normal(0.0, 0.02, size=n)
+    crps = {"sim": sim, "savg": savg}
+    train_mask = np.zeros(n, dtype=bool)
+    train_mask[::2] = True  # every other row trains the (trivial, one-bucket) route map
+
+    row_level = evaluate_routing("pts", buckets, crps, train_mask, n_boot=2000, seed=0)
+    clustered = evaluate_routing(
+        "pts", buckets, crps, train_mask, n_boot=2000, seed=0, cluster_ids=game_ids
+    )
+    row_ci = row_level.routed_vs_model["savg"]
+    clustered_ci = clustered.routed_vs_model["savg"]
+    row_half_width = (row_ci.hi - row_ci.lo) / 2.0
+    clustered_half_width = (clustered_ci.hi - clustered_ci.lo) / 2.0
+    assert clustered_half_width > row_half_width
+    assert abs(row_ci.point - clustered_ci.point) < 1e-9
+
+
+def test_evaluate_routing_cluster_ids_none_is_backward_compatible() -> None:
+    rng = np.random.default_rng(7)
+    n = 100
+    buckets = np.array(["a"] * n)
+    sim = rng.normal(size=n)
+    savg = rng.normal(size=n)
+    train_mask = np.arange(n) % 2 == 0
+    explicit_none = evaluate_routing(
+        "pts", buckets, {"sim": sim, "savg": savg}, train_mask, n_boot=300, seed=0, cluster_ids=None
+    )
+    default = evaluate_routing(
+        "pts", buckets, {"sim": sim, "savg": savg}, train_mask, n_boot=300, seed=0
+    )
+    for m in explicit_none.routed_vs_model:
+        assert explicit_none.routed_vs_model[m].lo == default.routed_vs_model[m].lo
+        assert explicit_none.routed_vs_model[m].hi == default.routed_vs_model[m].hi
+
+
 def test_evaluate_routing_no_free_lunch_when_one_model_dominates() -> None:
     # If one model is uniformly better, routing should just pick it and NOT
     # claim to beat it (CI straddles 0).

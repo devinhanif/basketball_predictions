@@ -6,7 +6,11 @@ from __future__ import annotations
 
 import polars as pl
 
-from nba.eval.walkforward import make_walk_forward_folds, split_frozen_holdout
+from nba.eval.walkforward import (
+    filter_by_holdout_mode,
+    make_walk_forward_folds,
+    split_frozen_holdout,
+)
 
 
 def _toy_matchups() -> pl.DataFrame:
@@ -74,3 +78,50 @@ def test_holdout_split_noop_when_not_configured() -> None:
     split = split_frozen_holdout(df, holdout_season=None)
     assert split.holdout_df.height == 0
     assert split.tunable_df.height == df.height
+
+
+def _toy_season_2025() -> pl.DataFrame:
+    """Same shape as ``_toy_matchups`` but with a 2025 (the project's
+    canonical frozen holdout, docs/ACCEPTANCE_CRITERIA_2026-10-08.md) row
+    mixed in with earlier seasons -- the holdout-filter tests below."""
+    return pl.DataFrame(
+        {
+            "game_id": ["g0", "g1", "g2", "g3"],
+            "game_date": ["2023-10-24", "2023-10-25", "2024-01-05", "2025-11-01"],
+            "season": [2023, 2023, 2024, 2025],
+            "y": [1, 0, 1, 0],
+        }
+    ).with_columns(pl.col("game_date").str.to_date())
+
+
+def test_filter_by_holdout_mode_default_all_is_noop() -> None:
+    df = _toy_season_2025()
+    assert filter_by_holdout_mode(df, holdout_season=2025, mode="all").height == df.height
+    # Also a no-op when holdout_season is None, regardless of mode.
+    assert filter_by_holdout_mode(df, holdout_season=None, mode="exclude_holdout").height == (
+        df.height
+    )
+
+
+def test_filter_by_holdout_mode_exclude_holdout_drops_season_2025() -> None:
+    df = _toy_season_2025()
+    out = filter_by_holdout_mode(df, holdout_season=2025, mode="exclude_holdout")
+    assert out.height == 3
+    assert out.filter(pl.col("season") == 2025).height == 0
+
+
+def test_filter_by_holdout_mode_holdout_only_keeps_only_season_2025() -> None:
+    df = _toy_season_2025()
+    out = filter_by_holdout_mode(df, holdout_season=2025, mode="holdout_only")
+    assert out.height == 1
+    assert out["season"].to_list() == [2025]
+
+
+def test_filter_by_holdout_mode_rejects_unknown_mode() -> None:
+    df = _toy_season_2025()
+    try:
+        filter_by_holdout_mode(df, holdout_season=2025, mode="bogus")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("expected ValueError for unknown holdout mode")

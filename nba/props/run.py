@@ -28,6 +28,7 @@ import duckdb
 import numpy as np
 import polars as pl
 
+from nba.eval.walkforward import filter_by_holdout_mode
 from nba.props.baselines import (
     build_baseline_features,
     last10_average_baseline,
@@ -76,7 +77,9 @@ from nba.props.minutes import (
 from nba.props.opponent import (
     OpponentFactors,
     apply_opponent_adjustment,
+    build_archetype_opponent_features,
     build_opponent_pace_features,
+    compute_archetype_opponent_factors,
     compute_opponent_factors,
 )
 from nba.props.role_change import build_role_change_features
@@ -212,6 +215,11 @@ def run_props_experiment(
 ) -> PropsExperimentResult:
     cfg = config or PropsConfig()
     target = _target_frame(con)
+    # Optional frozen-holdout filter -- see PropsConfig.holdout_season/
+    # holdout_mode docstring and nba.eval.walkforward.filter_by_holdout_mode.
+    # Default (holdout_season=None, mode="all") is a no-op: identical rows,
+    # identical behavior to every pre-existing caller.
+    target = filter_by_holdout_mode(target, cfg.holdout_season, cfg.holdout_mode)
     if target.height == 0:
         return PropsExperimentResult(
             stats=[],
@@ -298,8 +306,26 @@ def run_props_experiment(
     # ``nba.props.opponent`` module docstring. Behind
     # ``cfg.opponent_adjustment.enabled``; a neutral all-ones factor when
     # disabled keeps the A/B a single-flag toggle with no other code path.
+    # docs/NEXT_OPTIONS.md §3 Option A: archetype-vs-opponent factor,
+    # INSTEAD OF (never stacked with) the team-level factor above -- see
+    # ``OpponentAdjustmentConfig.use_archetype_factor`` docstring. Both are
+    # neutral (all-ones) when their flag is off, so this is a single-flag
+    # A/B against either the no-adjustment baseline or the already-failed
+    # team-level version on the same eval window.
     opponent_factors_by_stat: dict[str, OpponentFactors] = {}
-    if cfg.opponent_adjustment.enabled:
+    if cfg.opponent_adjustment.use_archetype_factor:
+        arch_feats = build_archetype_opponent_features(
+            con,
+            target,
+            k=cfg.opponent_adjustment.archetype_k,
+            seed=cfg.seed,
+            lookback_games=cfg.opponent_adjustment.lookback_games,
+        )
+        for _stat in TARGET_STATS:
+            opponent_factors_by_stat[_stat] = compute_archetype_opponent_factors(
+                arch_feats, _stat, cfg.opponent_adjustment
+            )
+    elif cfg.opponent_adjustment.enabled:
         opp_feats = build_opponent_pace_features(
             con, lookback_games=cfg.opponent_adjustment.lookback_games
         )
@@ -315,6 +341,12 @@ def run_props_experiment(
     component_means: dict[str, np.ndarray] = {}
     component_vars: dict[str, np.ndarray] = {}
     dates_full = target.select("game_date").to_series().to_numpy()
+    # Cluster id for the clustered (per-game, not per-player-game) bootstrap
+    # below -- see docs/FDR_AUDIT_2026-10-08.md section 0: teammates sharing
+    # a game are correlated (pace, blowouts, foul trouble), so resampling
+    # whole games rather than individual player-games is what makes the CI
+    # honest instead of anti-conservative.
+    game_ids_full = target.select("game_id").to_series().to_numpy()
 
     for stat in TARGET_STATS:
         y = target.select(stat).to_series().to_numpy().astype(float)
@@ -326,7 +358,7 @@ def run_props_experiment(
             moments = points_moments(
                 feats_aligned, minutes_mean, minutes_var, cfg.points, k_multiplier=role_k_multiplier
             )
-            if cfg.opponent_adjustment.enabled:
+            if cfg.opponent_adjustment.enabled or cfg.opponent_adjustment.use_archetype_factor:
                 moments.mean, moments.var = apply_opponent_adjustment(
                     moments.mean, moments.var, opponent_factors_by_stat[stat]
                 )
@@ -346,7 +378,7 @@ def run_props_experiment(
             moments_c = count_stat_moments(
                 feats_aligned, minutes_mean, minutes_var, count_cfg, k_multiplier=role_k_multiplier
             )
-            if cfg.opponent_adjustment.enabled:
+            if cfg.opponent_adjustment.enabled or cfg.opponent_adjustment.use_archetype_factor:
                 moments_c.mean, moments_c.var = apply_opponent_adjustment(
                     moments_c.mean, moments_c.var, opponent_factors_by_stat[stat]
                 )
@@ -409,8 +441,9 @@ def run_props_experiment(
         pred_mean_m = pred_mean[valid_mask]
         q10_m, q90_m = q10[valid_mask], q90[valid_mask]
         dists_m = [d for d, keep in zip(dists, valid_mask, strict=True) if keep]
+        game_ids_m = game_ids_full[valid_mask]
 
-        bias_ci = mean_bias_ci(pred_mean_m, y_m, n_boot=n_boot, seed=seed)
+        bias_ci = mean_bias_ci(pred_mean_m, y_m, n_boot=n_boot, seed=seed, cluster_ids=game_ids_m)
         coverage = interval_coverage(q10_m, q90_m, y_m)
         threshold_cal = threshold_log_loss_and_calibration(dists_m, y_m, thresholds)
         pooled_ece = pooled_threshold_ece(threshold_cal)
@@ -465,10 +498,18 @@ def run_props_experiment(
         ll_season = avg_threshold_log_loss_per_game(list(season_dists), y_m, thresholds)
         ll_last10 = avg_threshold_log_loss_per_game(list(last10_dists), y_m, thresholds)
 
-        crps_vs_season = paired_score_delta_ci(crps_model, crps_season, n_boot=n_boot, seed=seed)
-        crps_vs_last10 = paired_score_delta_ci(crps_model, crps_last10, n_boot=n_boot, seed=seed)
-        ll_vs_season = paired_score_delta_ci(ll_model, ll_season, n_boot=n_boot, seed=seed)
-        ll_vs_last10 = paired_score_delta_ci(ll_model, ll_last10, n_boot=n_boot, seed=seed)
+        crps_vs_season = paired_score_delta_ci(
+            crps_model, crps_season, n_boot=n_boot, seed=seed, cluster_ids=game_ids_m
+        )
+        crps_vs_last10 = paired_score_delta_ci(
+            crps_model, crps_last10, n_boot=n_boot, seed=seed, cluster_ids=game_ids_m
+        )
+        ll_vs_season = paired_score_delta_ci(
+            ll_model, ll_season, n_boot=n_boot, seed=seed, cluster_ids=game_ids_m
+        )
+        ll_vs_last10 = paired_score_delta_ci(
+            ll_model, ll_last10, n_boot=n_boot, seed=seed, cluster_ids=game_ids_m
+        )
 
         volatility_buckets: list[VolatilityBucketResult] = []
         if cfg.volatility.enabled:
@@ -727,8 +768,11 @@ def _build_combo_results(
         pred_mean_c_m = pred_mean_c[valid_mask_c]
         q10_c_m, q90_c_m = q10_c[valid_mask_c], q90_c[valid_mask_c]
         combo_dists_m = [d for d, keep in zip(combo_dists, valid_mask_c, strict=True) if keep]
+        game_ids_c_m = target.select("game_id").to_series().to_numpy()[valid_mask_c]
 
-        bias_ci_c = mean_bias_ci(pred_mean_c_m, y_combo_m, n_boot=n_boot, seed=seed)
+        bias_ci_c = mean_bias_ci(
+            pred_mean_c_m, y_combo_m, n_boot=n_boot, seed=seed, cluster_ids=game_ids_c_m
+        )
         coverage_c = interval_coverage(q10_c_m, q90_c_m, y_combo_m)
         threshold_cal_c = threshold_log_loss_and_calibration(
             combo_dists_m, y_combo_m, thresholds_combo
