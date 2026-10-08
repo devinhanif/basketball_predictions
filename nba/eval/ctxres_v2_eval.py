@@ -16,7 +16,8 @@ docs/CTXRES_V2.md; not changed after seeing results; a negative result is report
     4. no slice (teammate-out report status, minutes-change bucket, first-15 vs rest team games,
        starter vs bench; n >= 300) has a CRPS delta > +0.01;
     5. mean bias within +/-0.5 of the actual stat;
-    6. 80% interval (q10-q90) coverage within 0.75-0.85;
+    6. 80% interval coverage within 0.75-0.85 (experiment 1: y in [q10, q90]; experiment 2+:
+       PIT coverage, Amendment A1.1 in docs/CTXRES_V2.md);
   and the run's leak audit passed (``metrics.json`` carries ``leak_audit``).
 * v2 is KEPT overall only if every one of the 4 stats is kept; otherwise report per stat.
 * CALIBRATOR rule (applied to the candidate arm, per calibrator, per stat, on 2024 threshold
@@ -57,6 +58,50 @@ N_BOOT = 2000
 
 def _mat(col: pl.Series) -> np.ndarray:
     return np.array(col.to_list(), dtype=float)
+
+
+GRID19 = np.arange(1, 20) / 20.0
+
+
+def cdf_from_q19(q19: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """Interpolated predictive CDF from the 19-quantile grid (levels 0.05..0.95).
+
+    Interior: linear interpolation between knots (tied knots resolve to the largest level).
+    Tails: linear extrapolation from the two outer knots (slope 0.05 / knot gap; flat when the
+    two outer knots tie), clipped to [0, 1]. F(x) = 0 for x < 0 (support floor)."""
+    q = np.asarray(q19, dtype=float)
+    x = np.asarray(x, dtype=float)
+    ar = np.arange(len(x))
+    c = (q <= x[:, None]).sum(axis=1)
+    lo, hi = np.clip(c - 1, 0, 18), np.clip(c, 0, 18)
+    ql, qh = q[ar, lo], q[ar, hi]
+    frac = np.where(qh > ql, (x - ql) / np.where(qh > ql, qh - ql, 1.0), 0.0)
+    f_int = GRID19[lo] + np.clip(frac, 0.0, 1.0) * (GRID19[hi] - GRID19[lo])
+    g_lo, g_hi = q[:, 1] - q[:, 0], q[:, 18] - q[:, 17]
+    s_lo = np.where(g_lo > 0, 0.05 / np.where(g_lo > 0, g_lo, 1.0), 0.0)
+    s_hi = np.where(g_hi > 0, 0.05 / np.where(g_hi > 0, g_hi, 1.0), 0.0)
+    f_lo = np.clip(GRID19[0] - s_lo * (q[:, 0] - x), 0.0, 1.0)
+    f_hi = np.clip(GRID19[18] + s_hi * (x - q[:, 18]), 0.0, 1.0)
+    f_hi = np.where((x > q[:, 18]) & (s_hi == 0), 1.0, f_hi)
+    f = np.where(c == 0, f_lo, np.where(c >= 19, f_hi, f_int))
+    return np.where(x < 0, 0.0, f)
+
+
+def pit_coverage80(q19: np.ndarray, y: np.ndarray) -> float:
+    """Central-80% PIT coverage for integer outcomes (Amendment A1.1).
+
+    Continuity-corrected CDF F_cc(y) = F(y + 0.5), F_cc(y - 1) = F(y - 0.5) with the interpolated
+    ``cdf_from_q19``; coverage = mean over rows of the Czado-Gneiting-Held NON-randomized PIT mass
+    in [0.1, 0.9] (deterministic, no seed): E[1(0.1 <= u <= 0.9)], u ~ U(F_cc(y-1), F_cc(y))."""
+    y = np.asarray(y, dtype=float)
+    hi = cdf_from_q19(q19, y + 0.5)
+    lo = cdf_from_q19(q19, y - 0.5)
+    w = np.maximum(hi - lo, 1e-12)
+
+    def fbar(u: float) -> np.ndarray:
+        return np.asarray(np.clip((u - lo) / w, 0.0, 1.0))
+
+    return float((fbar(0.9) - fbar(0.1)).mean())
 
 
 def _pair(oof: pl.DataFrame, a: str, b: str, stat: str) -> pl.DataFrame:
@@ -105,8 +150,12 @@ def keep_rule(
     candidate: str,
     ref: str = "v1_prod",
     n_boot: int = N_BOOT,
+    coverage: str = "naive",
 ) -> dict[str, Any]:
-    """Per-stat verdict for ``candidate`` vs ``ref`` (see module docstring)."""
+    """Per-stat verdict for ``candidate`` vs ``ref`` (see module docstring).
+
+    ``coverage``: ``naive`` (y in [q10, q90]; experiment 1) or ``pit`` (Amendment A1.1,
+    experiments 2+). Both numbers are always reported; only the named one is checked."""
     res: dict[str, dict[str, Any]] = {}
     pvals: list[float] = []
     for st in STATS:
@@ -122,12 +171,15 @@ def keep_rule(
         bias = float((pr["mean"].to_numpy() - y).mean())
         q19 = _mat(pr["q19"])
         cov = float(((y >= q19[:, 1]) & (y <= q19[:, 17])).mean())
+        cov_pit = pit_coverage80(q19, y)
         sl = _slices(pr, export, n_boot)
         res[st] = {
             "n": pr.height,
             "crps_delta": [ci.point, ci.lo, ci.hi],
             "bias": bias,
             "cov80": cov,
+            "cov80_pit": cov_pit,
+            "coverage_check": coverage,
             "slices": sl,
             "slice_regressions": [
                 s["slice"]
@@ -145,7 +197,9 @@ def keep_rule(
             "bh_q": bool(q <= 0.05),
             "no_slice_regression": not r["slice_regressions"],
             "bias_within_0.5": abs(r["bias"]) <= BIAS_MAX,
-            "cov80_in_0.75_0.85": COV_LO <= r["cov80"] <= COV_HI,
+            "cov80_in_0.75_0.85": COV_LO
+            <= (r["cov80_pit"] if coverage == "pit" else r["cov80"])
+            <= COV_HI,
         }
         r.update(bh_adj_p=float(q), checks=checks, keep=all(checks.values()))
     return res
@@ -193,7 +247,20 @@ def merge_oof(frames: list[pl.DataFrame]) -> pl.DataFrame:
     return pl.concat(list(by_variant.values()), how="diagonal_relaxed")
 
 
-def run(run_dirs: str | list[str], export_path: str, out_path: str | None = None) -> dict[str, Any]:
+def experiment_number(metrics: dict[str, Any]) -> int:
+    """2 for experiment-2+ runs (``experiment_tag`` like ``..._exp2_...`` or ``experiment`` = 2)."""
+    tag = str(metrics.get("experiment_tag") or "")
+    if metrics.get("experiment") == 2 or "exp2" in tag:
+        return 2
+    return 1
+
+
+def run(
+    run_dirs: str | list[str],
+    export_path: str,
+    out_path: str | None = None,
+    coverage: str = "auto",
+) -> dict[str, Any]:
     """Apply the rule to one run dir, or to several (first run + completion run) merged by variant.
 
     The candidate / top-3 / thresholds come from the FIRST dir's ``best_config.json`` (selection
@@ -208,7 +275,9 @@ def run(run_dirs: str | list[str], export_path: str, out_path: str | None = None
     if int(export["season"].max()) > 2024:  # type: ignore[arg-type]
         raise ValueError("export contains season > 2024")
     cand = cfg["best_arm_2023"]
-    verdict = keep_rule(oof, export, cand)
+    if coverage == "auto":
+        coverage = "pit" if experiment_number(metrics[0]) >= 2 else "naive"
+    verdict = keep_rule(oof, export, cand, coverage=coverage)
     cal = {
         k: calibrator_rule(oof, cand, k, cfg["thresholds"]) for k in ("platt", "iso", "conf", "pit")
     }
@@ -220,6 +289,7 @@ def run(run_dirs: str | list[str], export_path: str, out_path: str | None = None
         "top3_2023": cfg["top3_2023"],
         "budget": cfg["budget"],
         "runs": [str(d) for d in dirs],
+        "coverage_check": coverage,
     }
     if out_path:
         Path(out_path).write_text(json.dumps(result, indent=2, default=float))
@@ -246,13 +316,15 @@ DEFAULT_COMPLETE_ARMS = "xgb_v12_quantile,blend_top3,v1_prod"
 
 def format_report(r: dict[str, Any]) -> str:
     lines = [f"candidate (2023-selected): {r['candidate']}   top3: {r['top3_2023']}"]
-    lines.append("stat | n | dCRPS [95% CI] | bias | cov80 | BH q | keep | failed checks")
+    lines.append(f"coverage check: {r.get('coverage_check', 'naive')}")
+    lines.append("stat | n | dCRPS [95% CI] | bias | cov80 naive/PIT | BH q | keep | failed checks")
     for st, v in r["verdict_per_stat"].items():
         c = v["crps_delta"]
         failed = [k for k, ok in v["checks"].items() if not ok]
         lines.append(
             f"{st} | {v['n']} | {c[0]:+.4f} [{c[1]:+.4f},{c[2]:+.4f}] | {v['bias']:+.3f} | "
-            f"{v['cov80']:.3f} | {v['bh_adj_p']:.3g} | {v['keep']} | {failed}"
+            f"{v['cov80']:.3f}/{v.get('cov80_pit', float('nan')):.3f} | "
+            f"{v['bh_adj_p']:.3g} | {v['keep']} | {failed}"
         )
     lines.append(f"v2 kept overall: {r['v2_kept_overall']}")
     for k, per in r["calibrators"].items():
@@ -269,6 +341,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--run", nargs="+", help="pulled run dir(s): first run, then completion run")
     ap.add_argument("--export", default="data/colab/ctxres_v2/ctxres_v2.parquet")
     ap.add_argument("--out", default=None)
+    ap.add_argument(
+        "--coverage",
+        choices=["auto", "naive", "pit"],
+        default="auto",
+        help="coverage check of the keep rule; auto = pit (Amendment A1.1) for experiment 2+ runs",
+    )
     ap.add_argument(
         "--stage-completion",
         nargs="?",
@@ -299,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not a.run:
         ap.error("--run is required")
-    print(format_report(run(a.run, a.export, a.out)))
+    print(format_report(run(a.run, a.export, a.out, a.coverage)))
     return 0
 
 

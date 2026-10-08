@@ -199,3 +199,70 @@ the 19-quantile grid, F(-1) = 0, fixed seed); coverage80 = mean(0.1 <= u <= 0.9)
 unchanged at 0.75-0.85. Applied to all four stats (all are integer-valued). The naive
 `y in [q10, q90]` coverage is still reported alongside, descriptively. All other checks unchanged.
 Experiment 1's verdict is NOT revisited under this amendment.
+
+Implementation (`nba/eval/ctxres_v2_eval.py`, `cdf_from_q19`, `randomized_pit_coverage80`): F is the
+right-continuous linear interpolation of the 19 knots (tied knots resolve to the largest level).
+Tail handling: F = 0 below the 0.05 quantile (that 0.05 mass sits AT the knot) and F = 1 above the
+0.95 quantile (F at the knot = 0.95); F(-1) = 0 (quantiles are clipped at 0); seed 20261008. Experiment
+number is read from `metrics.json` (`experiment_tag` containing `exp2`); `--coverage
+{auto,naive,randomized_pit}` overrides. Both coverages are always printed (`naive/rPIT`). On the
+experiment-1 runs this check would give rPIT coverage 0.77/0.75/0.73/0.73 (pts/reb/ast/fg3m) vs naive
+0.80/0.80/0.84/0.87, i.e. the naive numbers were inflated for every integer stat, not only fg3m;
+experiment 1's verdict is not revisited and the original check is still what it reports.
+
+## Amendment A1.1 -- coverage construction chosen by simulation (registered 2026-10-08 14:44, BEFORE any experiment-2 result exists; supersedes the CDF construction of A1)
+
+Why: A1's randomized-PIT with flat tails and an atom at the knots moved NEAR-CONTINUOUS points coverage
+down by ~3 points on experiment 1 (0.799 naive vs 0.772), a signature of a biased estimator rather than
+of the models. The simulation below confirms it: A1's construction under-covers by 0.035 on average
+for continuous-latent grids (up to 0.12-0.68 at some means). The construction is therefore chosen ONLY
+by simulation with known truth (`nba/eval/ctxres_v2_coverage_sim.py`, seed fixed, n = 50,000 per case);
+no experiment-1 or experiment-2 model output was used to choose it.
+
+Harness: truths = Poisson and NegBin (var = mu + alpha mu^2) with mu in {0.3, 0.7, 1.5, 3, 6, 12, 25, 60}
+and alpha in {0, 0.15, 0.4} (24 cases per grid type), plus a rounded-Gamma truth (near-continuous at
+large mu). The "model" is correctly specified and emits its true 19-quantile grid in three forms:
+`exact` (integer quantiles of the integer law), `smooth` (quantiles of the continuous latent Y + U(-.5,.5),
+clipped at 0: what the residual / multi-quantile / MLP arms emit), `gamma_round` (moment-matched Gamma
+grid, truth rounded). Criterion: |coverage - 0.80| <= 0.01; plus detection of a deliberately too-wide
+(spread x1.4 about the median, coverage must exceed 0.84) and too-narrow (x0.7, below 0.76) model.
+Estimator for all candidates: Czado-Gneiting-Held non-randomized PIT mass in [0.1, 0.9].
+
+Candidates: (a) A1 (flat tails, atom at knots); (b) linear interpolation + linear tail extrapolation from
+the two outer knots, clipped to [0,1], F = 0 below 0; (c1) continuity correction F_cc(y) = F(y+0.5),
+F_cc(y-1) = F(y-0.5) with flat tails; (c2) continuity correction with (b)'s linear tails; (d) per-row
+parametric NegBin/Poisson matched to the grid by lattice least squares.
+
+| grid | statistic | a flat | b lin | c1 cc+flat | **c2 cc+lin** | d param |
+|---|---|---|---|---|---|---|
+| smooth | max abs error (24 cases) | 0.119 | 0.119 | 0.026 | **0.012** | 0.033 |
+| smooth | mean error | -0.035 | -0.034 | -0.001 | **+0.005** | -0.003 |
+| smooth | cases within 0.01 | 7 | 7 | 17 | **22** | 21 |
+| gamma_round | max abs error | 0.678 | 0.671 | 0.021 | **0.005** | 0.035 |
+| gamma_round | cases within 0.01 | 6 | 6 | 18 | **24** | 12 |
+| exact (integer grid) | max abs error | 0.041 | 0.041 | 0.045 | 0.032 | 0.041 |
+| exact | cases within 0.01 | 11 | 12 | 11 | 12 | 16 |
+| smooth + gamma_round | too-wide > 0.84 (48 cases) | 32 | 32 | 44 | **44** | 41 |
+| smooth + gamma_round | too-narrow < 0.76 (48 cases) | 48 | 48 | 44 | **44** | 37 |
+
+c2 by mean (min-max coverage over the three alphas): smooth 0.800-0.812 at every mean; gamma_round
+0.796-0.805; exact 0.768-0.779 at mu 0.3, 0.791-0.818 at 0.7, 0.780-0.803 at 3, 0.800-0.815 for mu >= 1.5
+otherwise. The 4 missed detections (of 48 each side) are all at mu = 0.3-0.7 where the law is nearly all
+mass at 0/1.
+
+Choice: **c2** (continuity-corrected linear interpolation with linear tail extrapolation, floored at 0).
+It passes the criterion on gamma_round (24/24) and smooth (22/24; the two misses are 0.812, i.e. 0.002
+over) and detects mis-widths in 44/48 each way; the flat-tail constructions fail badly and (d) is more
+complex and worse. Simpler (c1) fails more cases. A documented limit: for grids that are exactly integer
+(Poisson/NegBin arms' `ppf` quantiles) NO candidate reaches +/-0.01 -- 19 integer knots with ties cannot
+reveal the pmf -- so c2's error there is up to 0.032 (mean about 0). If the 2023-selected candidate is such
+an arm the coverage verdict is reported with that +/-0.035 uncertainty and cannot by itself decide a
+borderline case (the other checks are unaffected).
+
+Implementation (experiment 2+; `metrics.json` `experiment_tag` containing `exp2`, or `--coverage pit`):
+`nba/eval/ctxres_v2_eval.py::pit_coverage80` / `cdf_from_q19`; check 6 of the keep rule is
+`0.75 <= cov80_pit <= 0.85`; naive `y in [q10, q90]` coverage is still reported (`naive/PIT` column).
+`--coverage naive` restores the original check; experiment-1 runs keep the original check and its
+verdict is not revisited. The A1 implementation note above and its experiment-1 rPIT numbers are
+superseded (they came from the flawed construction).
+

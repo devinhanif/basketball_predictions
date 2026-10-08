@@ -311,3 +311,53 @@ def test_entry_routes_on_staged_plan_and_full_is_strict(tmp_path, monkeypatch):
     assert calls == ["sweep", "complete"]
     assert mod.BUDGETS["full"]["trials"] >= 60 and mod.EXPERIMENT_TAG.endswith("full_breadth")
     assert "full" in (JOB_DIR / "ctxres_v2_sweep.py").read_text().split('NBA_BUDGET", "')[1][:6]
+
+
+def test_pit_coverage_simulation_known_truth():
+    """Amendment A1.1: the chosen estimator recovers 0.80 for correctly specified continuous-latent
+    grids and detects over-wide / over-narrow models; the naive y-in-[q10,q90] check is inflated."""
+    from nba.eval import ctxres_v2_coverage_sim as sim
+    from nba.eval.ctxres_v2_eval import cdf_from_q19, pit_coverage80
+
+    sim.N = 20000
+    sim.RNG = np.random.default_rng(3)
+    for mu, al in [(0.7, 0.15), (3.0, 0.4), (12.0, 0.15), (25.0, 0.0)]:
+        y = sim.draw(mu, al, sim.N)
+        g = sim.grid_smooth(mu, al)
+        q = np.tile(g, (sim.N, 1))
+        assert abs(pit_coverage80(q, y) - 0.80) < 0.02
+        med = g[9]
+        wide = np.tile(np.clip(med + 1.4 * (g - med), 0, None), (sim.N, 1))
+        narrow = np.tile(np.clip(med + 0.7 * (g - med), 0, None), (sim.N, 1))
+        assert pit_coverage80(wide, y) > 0.84 and pit_coverage80(narrow, y) < 0.76
+        # same construction as the harness candidate c2
+        assert pit_coverage80(q, y) == pytest.approx(sim.cov_cgh(sim.make_F("c2_cc_lin"), q, y))
+    mu, al = 0.7, 0.0  # discrete point mass: naive coverage is inflated
+    y = sim.draw(mu, al, sim.N)
+    qe = np.tile(sim.grid_exact(mu, al), (sim.N, 1))
+    assert float(((y >= qe[:, 1]) & (y <= qe[:, 17])).mean()) > 0.88
+    f = cdf_from_q19(
+        np.tile(np.array([0.0] * 5 + list(range(1, 15))), (3, 1)), np.array([-1.0, 0.0, 99.0])
+    )
+    assert f[0] == 0.0 and f[2] == 1.0 and 0.0 < f[1] <= 0.3
+
+
+def test_experiment_detection_and_real_experiment1_verdict_unchanged():
+    from nba.eval.ctxres_v2_eval import experiment_number, run
+
+    assert experiment_number({"experiment_tag": "ctxres_v2_exp2_full_breadth"}) == 2
+    assert experiment_number({}) == 1
+    root = Path(__file__).resolve().parents[2]
+    d1 = root / "data/colab/runs/ctxres_v2_sweep/20261008_131747"
+    d2 = root / "data/colab/runs/ctxres_v2_sweep/20261008_140126"
+    exp = root / "data/colab/ctxres_v2/ctxres_v2.parquet"
+    if not (d1.exists() and d2.exists() and exp.exists()):
+        pytest.skip("pulled experiment-1 runs not available")
+    res = (
+        run([str(d1), str(d2)], str(exp), n_boot=300)
+        if False
+        else run([str(d1), str(d2)], str(exp))
+    )
+    assert res["coverage_check"] == "naive"  # experiment 1 keeps the original check
+    assert res["verdict_per_stat"]["fg3m"]["keep"] is False
+    assert res["verdict_per_stat"]["fg3m"]["checks"]["cov80_in_0.75_0.85"] is False
