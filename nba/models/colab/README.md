@@ -43,6 +43,7 @@ No GPU still works (tiny model) but the first cell prints a loud warning.
 
 ```python
 from nba.models.rung4_stepheads import StepHeadsRung
+
 model = StepHeadsRung.load_weights("path/to/artifacts/<timestamp>")
 ```
 
@@ -58,7 +59,9 @@ art = Path("path/to/artifacts/<timestamp>")
 registry = get_registry(connect("nba/db/nba.duckdb"))  # writes `experiments`
 version = registry.next_version("rung4_stepheads")
 registry.log_model(
-    model_name="rung4_stepheads", version=version, model_path=str(art),
+    model_name="rung4_stepheads",
+    version=version,
+    model_path=str(art),
     metrics=json.loads((art / "metrics.json").read_text()),
     metadata={"trained_on": "colab", "config": json.loads((art / "config.json").read_text())},
     tags={"rung": 4, "model_method": "pytorch_stepheads", "cold_start_flags": []},
