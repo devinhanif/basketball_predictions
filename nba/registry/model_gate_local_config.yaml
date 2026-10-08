@@ -1,0 +1,8 @@
+# Tolerances for `make gate-local` (candidate vs the REAL production version in
+# the local registry). Tighter than the fixture-scale CI config because these
+# metrics come from full multi-season backtests. Lower-is-better metrics; each
+# value is how much WORSE a candidate may be before the gate fails.
+log_loss_tolerance: 0.002
+brier_tolerance: 0.001
+ece_tolerance: 0.01
+crps_tolerance: 0.05

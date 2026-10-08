@@ -1,7 +1,7 @@
 UV := $(shell command -v uv 2>/dev/null)
 PY := python3
 
-.PHONY: setup test lint backtest smoke smoke-check report data-contract gate
+.PHONY: setup test lint backtest smoke smoke-check report data-contract gate gate-local registry
 
 ## Install all dependencies (prefers uv, falls back to pip + venv).
 setup:
@@ -97,4 +97,24 @@ ifdef UV
 	uv run python -m nba.registry.model_gate
 else
 	$(PY) -m nba.registry.model_gate
+endif
+
+## Local model-gate: compare the newest candidate of each model against the REAL
+## production version in the local registry (nba.duckdb, opened read-only).
+## CI keeps using the committed fixture baseline via `make gate`.
+## Narrow with: make gate-local GATE_ARGS="--model rung0_mov_elo --candidate v2"
+GATE_ARGS ?=
+gate-local:
+ifdef UV
+	uv run python -m nba.registry gate $(GATE_ARGS)
+else
+	$(PY) -m nba.registry gate $(GATE_ARGS)
+endif
+
+## List registered models x versions x stage x key metrics (read-only).
+registry:
+ifdef UV
+	uv run python -m nba.registry list
+else
+	$(PY) -m nba.registry list
 endif

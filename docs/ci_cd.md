@@ -103,3 +103,10 @@ Per CLAUDE.md's "CI/CD" section, the remaining pipeline stages are:
 These are out of scope for this milestone to keep it reviewable and keep CI
 fast; a `Dockerfile` already exists in the repo root (owned by this same
 role) but is not yet wired into a CI `build` job.
+
+## Local registry gate
+
+`make gate-local` is the local counterpart of `make gate`: it compares the
+newest candidate of each model against the real production version in the
+local registry (read-only), instead of the committed fixture baseline. CI
+continues to use the fixture baseline. See `docs/REGISTRY.md`.
