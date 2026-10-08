@@ -259,7 +259,7 @@ def test_ece_equal_mass_perfect_and_biased():
 def test_job_yaml_and_notebook_in_sync():
     job = load_job("ctxres_v2_sweep")
     assert job.touches_holdout is False and job.preregistration_id is None
-    assert {"best_config.json", "metrics.json", "oof_2024.parquet"} <= set(job.artifacts)
+    assert {"best_config.json", "metrics.json", "oof"} <= set(job.artifacts)
     spec = importlib.util.spec_from_file_location("ctxres_build_nb", JOB_DIR / "build_notebook.py")
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
@@ -361,3 +361,55 @@ def test_experiment_detection_and_real_experiment1_verdict_unchanged():
     assert res["coverage_check"] == "naive"  # experiment 1 keeps the original check
     assert res["verdict_per_stat"]["fg3m"]["keep"] is False
     assert res["verdict_per_stat"]["fg3m"]["checks"]["cov80_in_0.75_0.85"] is False
+
+
+def _sweep_mod():
+    spec = importlib.util.spec_from_file_location(
+        "ctxres_sweep_mod2", JOB_DIR / "ctxres_v2_sweep.py"
+    )
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_arm_store_roundtrip_and_completeness_marker(tmp_path):
+    mod = _sweep_mod()
+    mod.C.nt = 6
+    store = mod.ArmStore(tmp_path / "ck")
+    res = mod.new_res()
+    for st in mod.STATS:
+        res[st]["q"][:] = np.arange(199, dtype=np.float32)[None, :] + 1.0
+        res[st]["mean"][:] = 2.0
+        res[st]["p"][:] = 0.25
+    assert not store.exists("a")
+    store.put("a", res, {"timing": 1.5, "sel": 0.95})
+    assert store.exists("a") and store.meta("a")["sel"] == 0.95
+    back = store.get("a")
+    assert back["pts"]["q"].shape == (6, 199) and back["fg3m"]["p"].dtype == np.float32
+    assert float(back["reb"]["q"][0, 3]) == 4.0
+    (tmp_path / "ck" / "arm_a.json").unlink()  # meta is written last: no meta -> arm not complete
+    assert not store.exists("a")
+
+
+def test_load_oof_dir_and_recorded_candidate(tmp_path):
+    from nba.eval.ctxres_v2_eval import PREREG_CANDIDATES, load_oof, merge_oof
+
+    d = tmp_path / "oof"
+    d.mkdir()
+    pl.DataFrame({"variant": ["a"], "crps": [1.0], "q19": [[0.0] * 19]}).write_parquet(
+        d / "a.parquet"
+    )
+    pl.DataFrame(
+        {"variant": ["b"], "crps": [2.0], "q19": [None]},
+        schema_overrides={"q19": pl.List(pl.Float64)},
+    ).write_parquet(d / "b.parquet")
+    both = load_oof(tmp_path)
+    assert sorted(both["variant"].to_list()) == ["a", "b"]
+    pl.DataFrame({"variant": ["z"], "crps": [3.0]}).write_parquet(tmp_path / "oof_2024.parquet")
+    (d / "a.parquet").unlink()
+    (d / "b.parquet").unlink()
+    d.rmdir()
+    assert load_oof(tmp_path)["variant"].to_list() == ["z"]  # experiment-1 single-file format
+    assert merge_oof([load_oof(tmp_path)]).height == 1
+    assert PREREG_CANDIDATES["ctxres_v2_exp2_full_breadth"] == "xgb_v12_poisson_nb"

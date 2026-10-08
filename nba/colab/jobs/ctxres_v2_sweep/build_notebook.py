@@ -26,8 +26,12 @@ Runtime > Change runtime type > **T4 GPU**, then Run all.
 
 Selection uses season 2023 only; season 2024 is report-only; season 2025 is refused.
 The leak detector aborts the run if a same-game or non-allow-listed feature appears in the top-10
-importance. Artifacts (`best_config.json`, `metrics.json`, `oof_2024.parquet`, `feature_importance.json`)
+importance. Artifacts (`best_config.json`, `metrics.json`, `oof/` = one parquet per variant, `feature_importance.json`)
 land in `artifacts/<timestamp>/`.
+CRASH-SAFE: each finished arm, Optuna study, calibrator tuning and ablation group is checkpointed to
+`<run folder>/checkpoints/<hash>/`; if the kernel dies, re-run the same notebook and it resumes (log lines
+`RESUMED`). Small artifacts are written before the big files; `metrics.json` has `complete: false` until the
+end and the `oof/` folder appears only when everything is written.
 Score locally: `uv run python -m nba.eval.ctxres_v2_eval --run <pulled run dir>` after
 `make colab-pull JOB=ctxres_v2_sweep`. Rule: docs/CTXRES_V2.md."""
 

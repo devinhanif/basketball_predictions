@@ -27,7 +27,7 @@ inputs:
     #   uv run python -m nba.eval.ctxres_v2_eval --stage-completion <first run dir>
     produce: >
       uv run python -m nba.eval.ctxres_v2_eval --stage-completion
-artifacts: [best_config.json, metrics.json, oof_2024.parquet, feature_importance.json]
+artifacts: [best_config.json, metrics.json, oof, feature_importance.json]
 registry:
   model_name: ctxres_v2_sweep
   tags: {rung: 2, model_method: ctxres_v2_family_sweep, holdout_scored: false, experiment: 2, family: ctxres_v2_exp2_full_breadth}

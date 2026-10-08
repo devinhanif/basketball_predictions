@@ -135,21 +135,21 @@ ARM_ESTIMATES = {  # minutes on a T4, FAST budget; "M" = measured in run 2026100
     "calibrators (CPU) ?": 1.5,
     "ablation (10 groups) ?": 2.0,
 }
-FULL_ESTIMATES = {  # minutes on a T4, FULL budget (60 trials/set, 600 rounds); M = scaled from measured
-    "v1_prod (CPU lightgbm) M": 4.3,
-    "xgb_v1_prodcfg + xgb_v12_prodcfg M": 3.5,
-    "optuna search v1 + v12, 60 trials each, full rows (~9 s/trial from measured 4.7 s) ~": 14.0,
-    "xgb_v1_tuned + xgb_v12_tuned M (x1.5 rounds)": 4.7,
-    "leak audit + xgb_v12_pruned M": 1.5,
-    "xgb_v12_rel + xgb_v12_both M (x1.5)": 6.5,
-    "xgb_v12_quantile, both seasons M": 8.7,
-    "catboost_v12 (GPU, if it installs) ?": 6.0,
-    "xgb_v12_poisson_nb ?": 2.5,
-    "glm_poisson_nb (CPU) ?": 4.0,
-    "logit_thr (CPU) ?": 4.0,
-    "mlp_quantile ?": 3.0,
-    "calibrators, 4 kinds x all arms (CPU) ?": 3.0,
-    "ablation, 10 groups, all 2024 blocks M-scaled": 10.0,
+FULL_ESTIMATES = {  # minutes on a T4, FULL budget: MEASURED in the crashed exp-2 run 20261008_140943
+    "v1_prod (CPU lightgbm)": 4.7,
+    "xgb_v1_prodcfg + xgb_v12_prodcfg": 3.8,
+    "optuna search v1 + v12 (60 trials each)": 10.1,
+    "xgb_v1_tuned + xgb_v12_tuned": 3.0,
+    "leak audit + xgb_v12_pruned": 1.1,
+    "xgb_v12_rel + xgb_v12_both": 4.3,
+    "xgb_v12_quantile (19 trees/round; stat threads may cut this)": 20.1,
+    "xgb_v12_poisson_nb": 5.6,
+    "glm_poisson_nb (CPU)": 9.4,
+    "logit_thr (CPU)": 5.7,
+    "mlp_quantile": 0.6,
+    "catboost_v12 (GPU)": 6.5,
+    "calibrator tuning + all variants (CPU)": 6.8,
+    "ablation, 10 groups, all 2024 blocks": 11.7,
 }
 COMPLETE_ESTIMATES = {  # NBA_MODE=complete, minutes on a T4 (from the measured per-arm times above)
     "xgb_v12_quantile 2024 blocks": 4.4,
@@ -184,6 +184,7 @@ def setup():
     C.t0 = time.monotonic()
     C.budget_name = os.environ.get("NBA_BUDGET", "full")
     C.smoke = C.budget_name == "smoke"
+    C.store = None  # checkpoint ArmStore (sweep mode only)
     C.strict = (
         C.budget_name == "full" or os.environ.get("NBA_STRICT") == "1"
     )  # full: no arm may be skipped or dropped
@@ -650,17 +651,25 @@ def ext_tails(q19):
 
 
 def quantile_block(blk, params, rounds):
-    out = {}
+    """19-quantile XGBoost per stat. Cost is inherent (19 trees per boosting round); on a GPU the four
+    stat fits are independent and tiny, so they run in parallel threads (identical numbers to serial)."""
     n = blk["n"]
-    for st in STATS:
+    ia, ib = blk["a"], blk["b"]
+
+    def one(st):
         ci = cols_for(st, "v12")
         r = C.y[st][:n] - C.m[st][:n]
         h = make_head("xgb", params, rounds, True, "reg:quantileerror", {"quantile_alpha": TAUS19})
         fit_head(h, C.X[:n][:, ci], r, "xgb", True)
-        ia, ib = blk["a"], blk["b"]
         q19 = h.predict(C.X[ia:ib][:, ci]).reshape(ib - ia, 19) + C.m[st][ia:ib][:, None]
-        out[st] = dict(q=ext_tails(q19))
-    return out
+        return st, dict(q=ext_tails(q19))
+
+    if C.device == "cuda" and os.environ.get("NBA_STAT_THREADS", "4") != "1":
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=len(STATS)) as ex:
+            return dict(ex.map(one, STATS))
+    return dict(one(st) for st in STATS)
 
 
 def nb_pred(mu, alpha):
@@ -846,10 +855,29 @@ def over_budget(frac=0.8):
 
 
 def run_arm(
-    name, block_fn, results, timings, budget_s=None, optional=False, seasons=None, into=None
+    name,
+    block_fn,
+    results,
+    timings,
+    budget_s=None,
+    optional=False,
+    seasons=None,
+    into=None,
+    force=False,
 ):
     """Walk-forward one arm. An arm that cannot finish all requested blocks inside the hard cap is
-    DROPPED (never stored), so a partially-computed arm can never win the 2023 selection."""
+    DROPPED (never stored), so a partially-computed arm can never win the 2023 selection.
+
+    Sweep mode (``C.store`` set, no ``seasons``/``into``): a finished arm is persisted to the
+    checkpoint store and only its 2023 selection score is kept in ``results`` (arrays are freed);
+    an arm already in the store is RESUMED instead of recomputed."""
+    persist = C.store is not None and into is None and seasons is None
+    if persist and not force and C.store.exists(name):
+        meta = C.store.meta(name)
+        timings[name] = meta.get("timing", 0.0)
+        results[name] = meta.get("sel", float("nan"))
+        log(f"arm {name}: RESUMED from checkpoint (2023 sel ratio {results[name]:.4f})")
+        return results[name]
     if optional and over_budget():
         log(f"arm {name}: SKIPPED (budget); reported as missing")
         return None
@@ -870,10 +898,22 @@ def run_arm(
         for st, pred in block_fn(blk).items():
             store(res, blk, st, pred)
         done += 1
-    results[name] = res
     timings[name] = timings.get(name, 0.0) + time.monotonic() - t
     sc = selection_score(res) if (name != "logit_thr" and seasons is None) else float("nan")
     log(f"arm {name}: {done} blocks in {time.monotonic() - t:.0f}s | 2023 sel ratio {sc:.4f}")
+    if persist:
+        C.store.put(name, res, dict(timing=timings[name], sel=sc, blocks=done))
+        results[name] = sc
+        del res
+        import gc
+
+        gc.collect()
+        log_mem(name)
+        if os.environ.get("NBA_CRASH_AFTER_ARM") == name:  # test hook: simulate a kernel death
+            log(f"NBA_CRASH_AFTER_ARM={name}: exiting hard")
+            os._exit(137)
+        return sc
+    results[name] = res
     return res
 
 
@@ -926,6 +966,7 @@ def search(label, kind, timings):
     timings["search_" + label] = time.monotonic() - t
     log(f"search {label}: {len(study.trials)} trials, best selection ratio {study.best_value:.4f}")
     return dict(
+        seconds=time.monotonic() - t,
         params=study.best_params,
         value=float(study.best_value),
         n_trials=len(study.trials),
@@ -1114,6 +1155,163 @@ def tune_calibrators(best_res):
     return chosen, trace
 
 
+# ------------------------------------------------------------------------------ checkpoints, memory, streamed OOF
+
+CODE_VERSION = "exp2-ckpt-1"
+RECORDED_CANDIDATES = {
+    "ctxres_v2_exp2_full_breadth": "xgb_v12_poisson_nb"
+}  # fixed in docs before the rerun
+
+
+def log_mem(tag):
+    """Process RSS (and GPU memory) after a stage, to see memory growth before a crash."""
+    rss = None
+    try:
+        with open("/proc/self/status") as fh:
+            for line in fh:
+                if line.startswith("VmRSS"):
+                    rss = int(line.split()[1]) / 1024.0
+    except OSError:
+        import resource
+
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6  # macOS: bytes
+    gpu = ""
+    if C.device == "cuda":
+        gpu = f" gpu_alloc={C.torch.cuda.memory_allocated() / 1e6:.0f}MB"
+        gpu += f" gpu_reserved={C.torch.cuda.memory_reserved() / 1e6:.0f}MB"
+    log(f"mem[{tag}] rss={rss:.0f}MB{gpu}")
+
+
+def data_hash():
+    import hashlib
+
+    df = C.df
+    blob = json.dumps(
+        [
+            len(df),
+            list(C.names),
+            str(df["game_date"].iloc[0]),
+            str(df["game_date"].iloc[-1]),
+            float(C.y["pts"].sum()),
+            C.spec.get("built_at"),
+            C.budget_name,
+            EXPERIMENT_TAG,
+            CODE_VERSION,
+            SEED,
+            sorted((k, str(v)) for k, v in C.B.items()),
+        ],
+        default=str,
+    )
+    return hashlib.sha1(blob.encode()).hexdigest()
+
+
+class ArmStore:
+    """One npz (float32 predictions for the whole test range) + one json (timing, 2023 score) per arm."""
+
+    def __init__(self, root):
+        self.dir = Path(root)
+        self.dir.mkdir(parents=True, exist_ok=True)
+
+    def _npz(self, name):
+        return self.dir / f"arm_{name}.npz"
+
+    def _meta(self, name):
+        return self.dir / f"arm_{name}.json"
+
+    def exists(self, name):
+        return self._npz(name).exists() and self._meta(name).exists()
+
+    def meta(self, name):
+        return json.loads(self._meta(name).read_text())
+
+    def put(self, name, res, meta):
+        flat = {
+            f"{st}__{k}": np.asarray(res[st][k], dtype=np.float32)
+            for st in STATS
+            for k in ("q", "mean", "p")
+        }
+        tmp = self.dir / f"arm_{name}.tmp.npz"
+        np.savez(tmp, **flat)
+        os.replace(tmp, self._npz(name))
+        self._meta(name).write_text(
+            json.dumps(jsonable(meta))
+        )  # written last: marks the arm complete
+
+    def get(self, name):
+        with np.load(self._npz(name)) as z:
+            return {st: {k: z[f"{st}__{k}"] for k in ("q", "mean", "p")} for st in STATS}
+
+
+def cached_json(name, fn):
+    """Compute-once JSON checkpoint (Optuna studies, calibrator tuning, leak audit, ablation groups)."""
+    p = C.store.dir / f"{name}.json"
+    if p.exists():
+        log(f"resumed {name} from checkpoint")
+        return json.loads(p.read_text())
+    v = fn()
+    p.write_text(json.dumps(jsonable(v)))
+    return v
+
+
+def write_oof_variant(out_dir, name, res, full):
+    """Stream one variant's 2024 rows to its own parquet file (no giant frame, no python lists).
+
+    ``q19`` / ``p_ge`` are list<float32> columns built from flat numpy buffers (only when ``full``)."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    df = C.df
+    sel = C.test_season == REPORT_SEASON
+    idx19 = [int(round(t * 199 - 0.5)) for t in TAUS19]
+    tabs = []
+    for st in STATS:
+        m = sel & ok_mask(res, st)
+        n = int(m.sum())
+        if n == 0:
+            continue
+        y = C.y[st][C.t0i :][m]
+        q = res[st]["q"][m]
+        has_q = not np.isnan(q[:, 0]).any()
+        cols = {
+            "variant": pa.array(np.full(n, name)),
+            "stat": pa.array(np.full(n, st)),
+            "game_id": pa.array(C.gid[C.t0i :][m]),
+            "player_id": pa.array(df["player_id"].to_numpy()[C.t0i :][m]),
+            "fold_id": pa.array(df["fold_id"].to_numpy()[C.t0i :][m]),
+            "y": pa.array(y.astype(np.float32)),
+            "mean": pa.array(res[st]["mean"][m].astype(np.float32)),
+            "crps": pa.array(
+                crps_rows(q.astype(float), y).astype(np.float32)
+                if has_q
+                else np.full(n, np.nan, np.float32)
+            ),
+            "tll": pa.array(tll_rows(res[st]["p"][m].astype(float), y, THR[st]).astype(np.float32)),
+        }
+        ltype = pa.list_(pa.float32())
+        if full and has_q:
+            flat = np.ascontiguousarray(q[:, idx19], dtype=np.float32).ravel()
+            cols["q19"] = pa.ListArray.from_arrays(
+                pa.array(np.arange(0, n * 19 + 1, 19, dtype=np.int32)), pa.array(flat)
+            )
+        else:
+            cols["q19"] = pa.array([None] * n, type=ltype)
+        if full:
+            k = len(THR[st])
+            flatp = np.ascontiguousarray(res[st]["p"][m], dtype=np.float32).ravel()
+            cols["p_ge"] = pa.ListArray.from_arrays(
+                pa.array(np.arange(0, n * k + 1, k, dtype=np.int32)), pa.array(flatp)
+            )
+        else:
+            cols["p_ge"] = pa.array([None] * n, type=ltype)
+        tabs.append(pa.table(cols))
+    pq.write_table(
+        pa.concat_tables(tabs),
+        Path(out_dir) / (name.replace("|", "__") + ".parquet"),
+        compression="zstd",
+    )
+
+
 # ------------------------------------------------------------------------------ reporting
 
 
@@ -1215,52 +1413,17 @@ def drift_table():
     return rows
 
 
-def oof_frame(variants, full_variants):
-    df = C.df
-    sel = C.test_season == REPORT_SEASON
-    recs = []
-    for name, res in variants.items():
-        for st in STATS:
-            m = sel & ok_mask(res, st)
-            if m.sum() == 0:
-                continue
-            y = C.y[st][C.t0i :][m]
-            has_q = not np.isnan(res[st]["q"][m][:, 0]).any()
-            d = pd.DataFrame(
-                {
-                    "variant": name,
-                    "stat": st,
-                    "game_id": C.gid[C.t0i :][m],
-                    "player_id": df["player_id"].to_numpy()[C.t0i :][m],
-                    "fold_id": df["fold_id"].to_numpy()[C.t0i :][m],
-                    "y": y.astype(np.float32),
-                    "mean": res[st]["mean"][m].astype(np.float32),
-                    "crps": (
-                        crps_rows(res[st]["q"][m].astype(float), y).astype(np.float32)
-                        if has_q
-                        else np.float32("nan")
-                    ),
-                    "tll": tll_rows(res[st]["p"][m].astype(float), y, THR[st]).astype(np.float32),
-                }
-            )
-            if name in full_variants:
-                q = res[st]["q"][m].astype(float)
-                if has_q:
-                    d["q19"] = list(
-                        q[:, [int(round(t * 199 - 0.5)) for t in TAUS19]].astype(np.float32)
-                    )
-                d["p_ge"] = list(res[st]["p"][m].astype(np.float32))
-            recs.append(d)
-    return pd.concat(recs, ignore_index=True)
-
-
-# ------------------------------------------------------------------------------ main
-
-
 def main():
+    import gc
+    import shutil
+
     setup()
     load()
-    results, timings, rec_imp = {}, {}, {}
+    run_root = Path(os.environ.get("NBA_ARTIFACT_ROOT", "artifacts"))
+    ck = run_root.parent / "checkpoints" / data_hash()[:12]
+    C.store = ArmStore(ck)
+    log(f"checkpoint dir {ck} ({len(list(ck.glob('arm_*.json')))} arms already complete)")
+    results, timings = {}, {}
     B = C.B
     run_arm(
         "v1_prod",
@@ -1275,8 +1438,10 @@ def main():
             results,
             timings,
         )
-    s1 = search("v1", "v1", timings)
-    s12 = search("v12", "v12", timings)
+    s1 = cached_json("search_v1", lambda: search("v1", "v1", timings))
+    timings["search_v1"] = s1.get("seconds", timings.get("search_v1", 0.0))
+    s12 = cached_json("search_v12", lambda: search("v12", "v12", timings))
+    timings["search_v12"] = s12.get("seconds", timings.get("search_v12", 0.0))
     p1, p12 = s1["params"], s12["params"]
     run_arm(
         "xgb_v1_tuned",
@@ -1284,12 +1449,20 @@ def main():
         results,
         timings,
     )
+    rec_path = ck / "rec_imp.json"
+    rec_imp = {}
+    tuned_ok = C.store.exists("xgb_v12_tuned") and rec_path.exists()
+    if tuned_ok:
+        rec_imp = json.loads(rec_path.read_text())
     run_arm(
         "xgb_v12_tuned",
         lambda b: resid_block(b, "v12", "xgb", p12, B["rounds"], True, rec_imp),
         results,
         timings,
+        force=not tuned_ok,
     )
+    if not tuned_ok:
+        rec_path.write_text(json.dumps(jsonable(rec_imp)))
     imp23 = {}
     for st, lst in rec_imp.items():
         agg = {}
@@ -1298,9 +1471,8 @@ def main():
                 for k, v in d.items():
                     agg[k] = agg.get(k, 0.0) + v
         imp23[st] = [k for k, _ in sorted(agg.items(), key=lambda kv: -kv[1])]
-    k_keep = 30 if not C.smoke else 15
-    C.pruned = {st: imp23[st][:k_keep] for st in STATS}
-    leak = leak_audit(p12, rec_imp)
+    C.pruned = {st: imp23[st][: (30 if not C.smoke else 15)] for st in STATS}
+    leak = cached_json("leak", lambda: leak_audit(p12, rec_imp))
     run_opt = functools.partial(run_arm, optional=True)
     run_opt(
         "xgb_v12_pruned",
@@ -1339,124 +1511,30 @@ def main():
     if C.strict and missing:
         raise RuntimeError(f"strict full budget: arms missing from the run: {missing}")
 
-    # ---- selection on 2023 ONLY
-    dist_arms = [
-        a for a in results if a not in ("logit_thr", "v1_prod")
-    ]  # includes pruned/rel/both
-    scores = {a: selection_score(results[a]) for a in results if a != "logit_thr"}
+    # ---- selection on 2023 ONLY (scores were stored with each arm)
+    dist_arms = [a for a in results if a not in ("logit_thr", "v1_prod")]
+    scores = {a: results[a] for a in results if a != "logit_thr"}
     ranked = sorted(dist_arms, key=lambda a: scores[a])
     best, top3 = ranked[0], ranked[:3]
-    log(f"2023 selection: best={best} top3={top3}")
-    blend = new_res()
-    for st in STATS:
-        for key in ("q", "mean", "p"):
-            blend[st][key] = np.mean([results[a][st][key] for a in top3], axis=0)
-    results["blend_top3"] = blend
-    cal_params, cal_trace = tune_calibrators(results[best])
-
-    # ---- variants (calibrators) for every arm; full detail only for the key ones
-    variants = dict(results)
-    for a in list(results):
-        for kind in ("platt", "iso", "conf", "pit"):
-            if kind in ("conf", "pit") and a == "logit_thr":
-                continue
-            v = make_variant(results[a], kind, cal_params[kind])
-            if v is not None:
-                variants[f"{a}|{kind}"] = v
-    log("calibrator variants built")
-
-    # ---- ablation on the report season blocks (descriptive; no decisions)
-    ablation = {}
-    ab_blocks = [b for b in C.blocks if b["season"] == REPORT_SEASON and b["ok"]][
-        :: B["abl_stride"]
-    ]
-    for g in ("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"):
-        t = time.monotonic()
-        res = new_res()
-        for blk in ab_blocks:
-            for st, pred in resid_block(blk, "v12", "xgb", p12, B["rounds"], True, drop=g).items():
-                store(res, blk, st, pred)
-        d = {}
+    recorded = RECORDED_CANDIDATES.get(EXPERIMENT_TAG)
+    log(f"2023 selection: best={best} top3={top3} recorded candidate={recorded}")
+    if not C.store.exists("blend_top3"):
+        blend = new_res()
+        arrs = [C.store.get(a) for a in top3]
         for st in STATS:
-            m = ok_mask(res, st) & (C.test_season == REPORT_SEASON)
-            full = results["xgb_v12_tuned"]
-            y = C.y[st][C.t0i :][m]
-            c_drop = crps_rows(res[st]["q"][m].astype(float), y)
-            c_full = crps_rows(full[st]["q"][m].astype(float), y)
-            d[st] = boot_ci(c_drop - c_full, C.gid[C.t0i :][m], 200)  # >0: group helps
-        ablation[g] = d
-        log(f"ablation drop {g}: {time.monotonic() - t:.0f}s")
+            for key in ("q", "mean", "p"):
+                blend[st][key] = np.mean([r[st][key] for r in arrs], axis=0).astype(np.float32)
+        del arrs
+        C.store.put("blend_top3", blend, dict(timing=0.0, sel=selection_score(blend), top3=top3))
+        del blend
+        gc.collect()
+    results["blend_top3"] = C.store.meta("blend_top3")["sel"]
+    calib = cached_json("calib", lambda: list(tune_calibrators(C.store.get(best))))
+    cal_params, cal_trace = calib
 
-    # ---- metrics
-    ref = results["v1_prod"]
-    metrics = dict(
-        experiment_tag=EXPERIMENT_TAG,
-        catboost_available=C.has_cat,
-        budget=C.budget_name,
-        seeds=dict(seed=SEED, optuna=SEED, torch=SEED),
-        device=C.device,
-        select_season=SELECT_SEASON,
-        report_season=REPORT_SEASON,
-        selection_scores_2023=scores,
-        best_arm_2023=best,
-        top3_2023=top3,
-        timings_s=timings,
-        n_test_rows=int(C.nt),
-    )
-    metrics["leaderboard_2024"] = {
-        a: {st: summarize(r, st, REPORT_SEASON, ref if a != "v1_prod" else None) for st in STATS}
-        for a, r in results.items()
-    }
-    metrics["selection_2023"] = {
-        a: {st: summarize(r, st, SELECT_SEASON) for st in STATS} for a, r in results.items()
-    }
-    metrics["calibration_2024"] = {
-        v: {st: summarize(r, st, REPORT_SEASON, results[v.split("|")[0]]) for st in STATS}
-        for v, r in variants.items()
-        if "|" in v
-    }
-    metrics["blocks_crps"] = {a: per_block_crps(r) for a, r in results.items() if a != "logit_thr"}
-    metrics["ablation_drop_group_2024"] = ablation
-    metrics["blend_vs_best_single_2024"] = {
-        st: {
-            k: v
-            for k, v in summarize(results["blend_top3"], st, REPORT_SEASON, results[best]).items()
-            if k.startswith("d_")
-        }
-        for st in STATS
-    }
-    metrics["zero_inflation_fg3m_2024"] = {
-        a: dict(
-            obs_p0=float(1 - (C.y["fg3m"][C.t0i :][C.test_season == REPORT_SEASON] >= 1).mean()),
-            pred_p0=float(
-                1 - np.nanmean(results[a]["fg3m"]["p"][C.test_season == REPORT_SEASON][:, 0])
-            ),
-        )
-        for a in ("xgb_v12_poisson_nb", "glm_poisson_nb", "xgb_v12_tuned")
-        if a in results
-    }
-    metrics["normalization_2024"] = {
-        a: {st: metrics["leaderboard_2024"][a][st].get("crps") for st in STATS}
-        for a in ("xgb_v12_tuned", "xgb_v12_rel", "xgb_v12_both", "xgb_v12_pruned")
-        if a in results
-    }
-    metrics["drift"] = drift_table()
-    metrics["leak_audit"] = leak
-    metrics["pruned_features"] = C.pruned
-    out_root = Path(os.environ.get("NBA_ARTIFACT_ROOT", "artifacts"))
-    out = out_root / datetime.now().strftime("%Y%m%d_%H%M%S")
+    # ---- small artifacts FIRST (a crash while writing the big files must not lose these)
+    out = run_root / datetime.now().strftime("%Y%m%d_%H%M%S")
     out.mkdir(parents=True, exist_ok=True)
-    full_v = {
-        "v1_prod",
-        best,
-        "blend_top3",
-        *[f"{best}|{k}" for k in ("platt", "iso", "conf", "pit")],
-        *[f"v1_prod|{k}" for k in ("platt", "iso", "conf", "pit")],
-    }
-    keep_v = {v for v in variants if "|" not in v or v.split("|")[0] in ("v1_prod", best)}
-    oof_frame({v: variants[v] for v in keep_v}, full_v).to_parquet(
-        out / "oof_2024.parquet", index=False
-    )
     imp = {}
     for st, lst in rec_imp.items():
         keys = lst[0][1].keys()
@@ -1469,24 +1547,156 @@ def main():
     (out / "feature_importance.json").write_text(json.dumps(imp, indent=1))
     (out / "best_config.json").write_text(
         json.dumps(
-            dict(
-                experiment_tag=EXPERIMENT_TAG,
-                search_v1=s1,
-                search_v12=s12,
-                best_arm_2023=best,
-                top3_2023=top3,
-                calibrators=cal_params,
-                calibrator_trace=cal_trace,
-                budget=C.budget_name,
-                budget_params=B,
-                seed=SEED,
-                thresholds={k: v.tolist() for k, v in THR.items()},
+            jsonable(
+                dict(
+                    experiment_tag=EXPERIMENT_TAG,
+                    search_v1=s1,
+                    search_v12=s12,
+                    best_arm_2023=best,
+                    recorded_candidate=recorded,
+                    top3_2023=top3,
+                    calibrators=cal_params,
+                    calibrator_trace=cal_trace,
+                    budget=C.budget_name,
+                    budget_params=B,
+                    seed=SEED,
+                    thresholds={k: v.tolist() for k, v in THR.items()},
+                )
             ),
             indent=1,
-            default=float,
         )
     )
+    metrics = dict(
+        experiment_tag=EXPERIMENT_TAG,
+        complete=False,
+        catboost_available=C.has_cat,
+        budget=C.budget_name,
+        seeds=dict(seed=SEED, optuna=SEED, torch=SEED),
+        device=C.device,
+        select_season=SELECT_SEASON,
+        report_season=REPORT_SEASON,
+        selection_scores_2023=scores,
+        best_arm_2023=best,
+        recorded_candidate=recorded,
+        top3_2023=top3,
+        timings_s=timings,
+        n_test_rows=int(C.nt),
+        leak_audit=leak,
+        pruned_features=C.pruned,
+        drift=drift_table(),
+    )
     (out / "metrics.json").write_text(json.dumps(jsonable(metrics), indent=1))
+    log_mem("small artifacts written")
+
+    # ---- ablation on the report season blocks (descriptive; one checkpoint per group)
+    full_holder = {"full": C.store.get("xgb_v12_tuned")}
+    ab_blocks = [b for b in C.blocks if b["season"] == REPORT_SEASON and b["ok"]][
+        :: B["abl_stride"]
+    ]
+
+    def ablate(g):
+        t = time.monotonic()
+        res = new_res()
+        for blk in ab_blocks:
+            for st, pred in resid_block(blk, "v12", "xgb", p12, B["rounds"], True, drop=g).items():
+                store(res, blk, st, pred)
+        d = {}
+        for st in STATS:
+            m = ok_mask(res, st) & (C.test_season == REPORT_SEASON)
+            y = C.y[st][C.t0i :][m]
+            c_drop = crps_rows(res[st]["q"][m].astype(float), y)
+            c_full = crps_rows(full_holder["full"][st]["q"][m].astype(float), y)
+            d[st] = boot_ci(c_drop - c_full, C.gid[C.t0i :][m], 200)  # >0: group helps
+        log(f"ablation drop {g}: {time.monotonic() - t:.0f}s")
+        return d
+
+    ablation = {g: cached_json(f"ablation_{g}", lambda g=g: ablate(g)) for g in "abcdefghij"}
+    full_holder.clear()
+    gc.collect()
+
+    # ---- stream arm by arm: summaries + calibrator variants + per-variant OOF files
+    parts = ck / "oof_parts"
+    parts.mkdir(exist_ok=True)
+    ref = C.store.get("v1_prod")
+    full_arms = {"v1_prod", best, "blend_top3", *([recorded] if recorded else [])}
+    acc = dict(
+        leaderboard_2024={},
+        selection_2023={},
+        calibration_2024={},
+        blocks_crps={},
+        zero_inflation_fg3m_2024={},
+    )
+    for a in list(results):
+        fin = ck / f"final_{a}.json"
+        if fin.exists() and (parts / f"{a}.parquet").exists():
+            rec = json.loads(fin.read_text())
+            log(f"final {a}: resumed")
+        else:
+            base = C.store.get(a)
+            rec = dict(
+                leaderboard={
+                    st: summarize(base, st, REPORT_SEASON, ref if a != "v1_prod" else None)
+                    for st in STATS
+                },
+                selection={st: summarize(base, st, SELECT_SEASON) for st in STATS},
+                calibration={},
+            )
+            if a != "logit_thr":
+                rec["blocks_crps"] = per_block_crps(base)
+            if a in ("xgb_v12_poisson_nb", "glm_poisson_nb", "xgb_v12_tuned"):
+                m24 = C.test_season == REPORT_SEASON
+                rec["zero_infl"] = dict(
+                    obs_p0=float(1 - (C.y["fg3m"][C.t0i :][m24] >= 1).mean()),
+                    pred_p0=float(1 - np.nanmean(base["fg3m"]["p"][m24][:, 0])),
+                )
+            write_oof_variant(parts, a, base, a in full_arms)
+            for kind in ("platt", "iso", "conf", "pit"):
+                if kind in ("conf", "pit") and a == "logit_thr":
+                    continue
+                v = make_variant(base, kind, cal_params[kind])
+                if v is None:
+                    continue
+                rec["calibration"][f"{a}|{kind}"] = {
+                    st: summarize(v, st, REPORT_SEASON, base) for st in STATS
+                }
+                write_oof_variant(parts, f"{a}|{kind}", v, a in full_arms)
+                del v
+            fin.write_text(json.dumps(jsonable(rec)))
+            del base
+            gc.collect()
+            log_mem(f"final {a}")
+        acc["leaderboard_2024"][a] = rec["leaderboard"]
+        acc["selection_2023"][a] = rec["selection"]
+        acc["calibration_2024"].update(rec["calibration"])
+        if "blocks_crps" in rec:
+            acc["blocks_crps"][a] = rec["blocks_crps"]
+        if "zero_infl" in rec:
+            acc["zero_inflation_fg3m_2024"][a] = rec["zero_infl"]
+    del ref
+    gc.collect()
+    blend_arr, best_arr = C.store.get("blend_top3"), C.store.get(best)
+    acc["blend_vs_best_single_2024"] = {
+        st: {
+            k: v
+            for k, v in summarize(blend_arr, st, REPORT_SEASON, best_arr).items()
+            if k.startswith("d_")
+        }
+        for st in STATS
+    }
+    del blend_arr, best_arr
+    acc["normalization_2024"] = {
+        a: {st: acc["leaderboard_2024"][a][st].get("crps") for st in STATS}
+        for a in ("xgb_v12_tuned", "xgb_v12_rel", "xgb_v12_both", "xgb_v12_pruned")
+        if a in results
+    }
+    metrics.update(acc)
+    metrics["ablation_drop_group_2024"] = ablation
+    metrics["complete"] = True
+    shutil.copytree(
+        parts, out / "oof", dirs_exist_ok=True
+    )  # appears only when everything is written
+    (out / "metrics.json").write_text(json.dumps(jsonable(metrics), indent=1))
+    log_mem("done")
     log(f"ARTIFACTS WRITTEN TO {out}")
     return metrics
 
@@ -1605,7 +1815,9 @@ def main_complete(plan):
         "blend_top3",
         *[f"{cand}|{k}" for k in ("platt", "iso", "conf", "pit")],
     }
-    oof_frame(variants, full_v).to_parquet(out / "oof_2024.parquet", index=False)
+    for v_name, v_res in variants.items():
+        write_oof_variant(out / "oof_tmp", v_name, v_res, v_name in full_v)
+    os.replace(out / "oof_tmp", out / "oof")
     (out / "best_config.json").write_text(
         json.dumps(jsonable({**cfg, "completion_of": plan["prev_run"]}), indent=1)
     )

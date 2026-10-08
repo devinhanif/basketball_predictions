@@ -237,6 +237,22 @@ def calibrator_rule(
     return out
 
 
+#: candidates recorded in docs/CTXRES_V2.md from the 2023 selection BEFORE the 2024 OOF existed
+PREREG_CANDIDATES = {"ctxres_v2_exp2_full_breadth": "xgb_v12_poisson_nb"}
+
+
+def load_oof(run_dir: Path) -> pl.DataFrame:
+    """OOF of one run: a directory ``oof/`` of per-variant parquet files (experiment 2+) or the
+    single ``oof_2024.parquet`` (experiment 1)."""
+    d = run_dir / "oof"
+    if d.is_dir():
+        files = sorted(d.glob("*.parquet"))
+        if not files:
+            raise FileNotFoundError(f"{d} has no parquet files")
+        return pl.concat([pl.read_parquet(f) for f in files], how="diagonal_relaxed")
+    return pl.read_parquet(run_dir / "oof_2024.parquet")
+
+
 def merge_oof(frames: list[pl.DataFrame]) -> pl.DataFrame:
     """Merge OOF frames by ``variant``; a variant present in several runs is taken from the LAST
     run (the completion run supersedes the first run's lighter copy)."""
@@ -270,11 +286,13 @@ def run(
     cfg = json.loads((dirs[0] / "best_config.json").read_text())
     if not any(m.get("leak_audit") for m in metrics):
         raise ValueError("no run has a leak_audit: run is invalid under the pre-registration")
-    oof = merge_oof([pl.read_parquet(d / "oof_2024.parquet") for d in dirs])
+    oof = merge_oof([load_oof(d) for d in dirs])
     export = pl.read_parquet(export_path)
     if int(export["season"].max()) > 2024:  # type: ignore[arg-type]
         raise ValueError("export contains season > 2024")
-    cand = cfg["best_arm_2023"]
+    rerun_best = cfg["best_arm_2023"]
+    tag = str(metrics[0].get("experiment_tag") or "")
+    cand = PREREG_CANDIDATES.get(tag) or rerun_best
     if coverage == "auto":
         coverage = "pit" if experiment_number(metrics[0]) >= 2 else "naive"
     verdict = keep_rule(oof, export, cand, coverage=coverage)
@@ -289,8 +307,17 @@ def run(
         "top3_2023": cfg["top3_2023"],
         "budget": cfg["budget"],
         "runs": [str(d) for d in dirs],
+        "rerun_best_arm_2023": rerun_best,
+        "candidate_source": "recorded" if cand != rerun_best or tag in PREREG_CANDIDATES else "run",
         "coverage_check": coverage,
     }
+    if cand != rerun_best and (oof["variant"] == rerun_best).any():
+        alt = keep_rule(oof, export, rerun_best, coverage=coverage)
+        result["verdict_rerun_best_arm"] = {
+            "arm": rerun_best,
+            "per_stat": alt,
+            "kept_overall": all(v["keep"] for v in alt.values()),
+        }
     if out_path:
         Path(out_path).write_text(json.dumps(result, indent=2, default=float))
     return result
@@ -327,6 +354,14 @@ def format_report(r: dict[str, Any]) -> str:
             f"{v['bh_adj_p']:.3g} | {v['keep']} | {failed}"
         )
     lines.append(f"v2 kept overall: {r['v2_kept_overall']}")
+    if r.get("rerun_best_arm_2023") != r["candidate"]:
+        lines.append(
+            f"NOTE: recorded candidate {r['candidate']} differs from this run's own 2023 best "
+            f"{r.get('rerun_best_arm_2023')}; rule applied to the recorded one"
+        )
+        alt = r.get("verdict_rerun_best_arm")
+        if alt:
+            lines.append(f"  rerun-best {alt['arm']}: kept overall {alt['kept_overall']}")
     for k, per in r["calibrators"].items():
         lines.append(
             f"calibrator {k}: " + ", ".join(f"{s}={v.get('keep')}" for s, v in per.items())
