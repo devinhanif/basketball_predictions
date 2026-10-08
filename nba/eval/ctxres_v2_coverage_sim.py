@@ -43,7 +43,9 @@ def pmf_true(k, mu, alpha):
 
 
 def grid_exact(mu, alpha):
-    return (poisson.ppf(G, mu) if alpha <= 0 else nbinom.ppf(G, *nb_params(mu, alpha))).astype(float)
+    return (poisson.ppf(G, mu) if alpha <= 0 else nbinom.ppf(G, *nb_params(mu, alpha))).astype(
+        float
+    )
 
 
 def grid_smooth(mu, alpha):
@@ -87,8 +89,12 @@ def f_interp(q, x, tails):
         f_top = np.where(x > q[:, 18], 1.0, G[18])
         return np.where(c == 0, 0.0, np.where(c >= 19, f_top, f_int))
     # linear extrapolation from the two outer knots, clipped to [0,1]
-    s_lo = np.where(q[:, 1] > q[:, 0], 0.05 / np.where(q[:, 1] > q[:, 0], q[:, 1] - q[:, 0], 1.0), 0.0)
-    s_hi = np.where(q[:, 18] > q[:, 17], 0.05 / np.where(q[:, 18] > q[:, 17], q[:, 18] - q[:, 17], 1.0), 0.0)
+    s_lo = np.where(
+        q[:, 1] > q[:, 0], 0.05 / np.where(q[:, 1] > q[:, 0], q[:, 1] - q[:, 0], 1.0), 0.0
+    )
+    s_hi = np.where(
+        q[:, 18] > q[:, 17], 0.05 / np.where(q[:, 18] > q[:, 17], q[:, 18] - q[:, 17], 1.0), 0.0
+    )
     f_lo = np.clip(G[0] - s_lo * (q[:, 0] - x), 0.0, 1.0)
     f_hi = np.clip(G[18] + s_hi * (x - q[:, 18]), 0.0, 1.0)
     f_hi = np.where((x > q[:, 18]) & (s_hi == 0), 1.0, f_hi)  # tied top knots: all mass reached
@@ -188,7 +194,13 @@ def run():
                         rec[k + "_wide"] = cov_cgh(F, np.clip(med + 1.4 * (q - med), 0, None), y)
                         rec[k + "_narrow"] = cov_cgh(F, np.clip(med + 0.7 * (q - med), 0, None), y)
                 rows.append(rec)
-                print(rec["mu"], rec["alpha"], rec["grid"], {k: round(rec[k], 3) for k in KINDS}, flush=True)
+                print(
+                    rec["mu"],
+                    rec["alpha"],
+                    rec["grid"],
+                    {k: round(rec[k], 3) for k in KINDS},
+                    flush=True,
+                )
     return rows
 
 
