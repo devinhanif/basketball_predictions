@@ -13,11 +13,22 @@ else
 endif
 
 ## Run the test suite with the coverage ratchet gate.
+## Split into two pytest invocations: torch (rung-4 step-heads) and lightgbm
+## (rung-2) each bundle their own OpenMP runtime and DEADLOCK when both run real
+## training in a single process on macOS/Homebrew (a plain `pytest` hangs ~halfway).
+## Isolating tests/ml/test_rung4_stepheads.py in its own process avoids it. Coverage
+## accumulates across both runs (--cov-append) and the 70% ratchet is enforced once
+## on the combined result.
+RUNG4_TEST := tests/ml/test_rung4_stepheads.py
 test:
 ifdef UV
-	uv run pytest
+	uv run pytest --ignore=$(RUNG4_TEST) --cov-fail-under=0
+	uv run pytest $(RUNG4_TEST) --cov-append --cov-fail-under=0
+	uv run coverage report --fail-under=70
 else
-	. .venv/bin/activate && pytest
+	. .venv/bin/activate && pytest --ignore=$(RUNG4_TEST) --cov-fail-under=0
+	. .venv/bin/activate && pytest $(RUNG4_TEST) --cov-append --cov-fail-under=0
+	. .venv/bin/activate && coverage report --fail-under=70
 endif
 
 ## Lint + format-check + type-check nba/.

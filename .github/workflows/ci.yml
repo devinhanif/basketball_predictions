@@ -48,7 +48,14 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
       - name: pytest with coverage gate (70% ratchet floor)
-        run: uv run pytest
+        # torch (rung-4 step-heads) and lightgbm (rung-2) each bundle their own
+        # OpenMP runtime and DEADLOCK when both run real training in one process.
+        # Isolate the rung-4 torch tests in a second invocation; accumulate
+        # coverage across both (--cov-append) and enforce the 70% gate once.
+        run: |
+          uv run pytest --ignore=tests/ml/test_rung4_stepheads.py --cov-fail-under=0
+          uv run pytest tests/ml/test_rung4_stepheads.py --cov-append --cov-fail-under=0
+          uv run coverage report --fail-under=70
 
   data-contract:
     name: data-contract
