@@ -53,9 +53,11 @@ import duckdb
 import numpy as np
 import polars as pl
 
+from nba.features.played_baseline import build_played_baseline_features
 from nba.features.player_possession_features import build_player_shot_rates
 from nba.features.player_rebound_assist_features import build_player_reb_ast_rates
 from nba.features.possession_features import build_team_possession_rates
+from nba.features.time_decay import TimeDecayConfig
 from nba.props.baselines import build_baseline_features, season_average_baseline
 from nba.props.distributions import Distribution
 from nba.props.metrics import ConfidenceInterval, crps_array, mean_bias_ci, paired_score_delta_ci
@@ -94,6 +96,9 @@ class SimPlayerStatEvalResult:
     #: crps_season_avg), populated only when ``return_raw=True`` -- feeds the
     #: per-bucket model-routing analysis (nba.eval.model_routing).
     raw: pl.DataFrame | None = None
+    #: Per-row sim distributions aligned with ``raw`` (only when
+    #: ``return_dists=True``); used by nba.eval.fair_rematch.
+    dists: list[Distribution] | None = None
 
     def summary(self) -> str:
         return (
@@ -124,6 +129,16 @@ def run_reb_ast_sim_vs_baseline_eval(
     n_boot: int = 500,
     max_games: int | None = None,
     return_raw: bool = False,
+    played_only: bool = False,
+    only_game_ids: list[str] | None = None,
+    return_dists: bool = False,
+    team_rates: pl.DataFrame | None = None,
+    minutes_proj: pl.DataFrame | None = None,
+    min_season: int | None = None,
+    max_season: int | None = None,
+    sample_games: int | None = None,
+    use_time_decay: bool = False,
+    time_decay_config: TimeDecayConfig | None = None,
 ) -> tuple[SimPlayerStatEvalResult, SimPlayerStatEvalResult]:
     """Run the possession sim's per-player rebounds + assists predictions
     for every game with a box score and score both against actuals + the
@@ -132,19 +147,44 @@ def run_reb_ast_sim_vs_baseline_eval(
     docstring for the exact command the maintainer runs for the real,
     multi-season version; ``max_games`` exists for an incremental first
     pass on the real DB without committing to the full run.
+
+    ``played_only`` (default OFF, byte-identical when off): shot AND
+    rebound/assist rates are built from played games only (numerators and
+    denominators), and the season-average baseline is the played-only
+    expanding mean/std. ``use_time_decay``/``time_decay_config`` apply to the
+    SHOT rates only (the reb/ast builder has no time-decay path). The
+    season/sample/``only_game_ids`` selectors mirror
+    :func:`nba.eval.player_points_sim_eval.run_sim_vs_baseline_eval`.
     """
-    team_rates = build_team_possession_rates(con)
-    shot_rates = build_player_shot_rates(con)
-    reb_ast_rates = build_player_reb_ast_rates(con)
-    minutes_feats = build_minutes_features(con)
-    minutes_dists = predict_minutes(minutes_feats)
-    minutes_proj = minutes_feats.select(["game_id", "player_id"]).with_columns(
-        pl.Series("projected_minutes", [d.mean() for d in minutes_dists])
+    if team_rates is None:
+        team_rates = build_team_possession_rates(con)
+    if use_time_decay:
+        shot_rates = build_player_shot_rates(
+            con, use_time_decay=True, time_decay_config=time_decay_config, played_only=played_only
+        )
+    elif played_only:
+        shot_rates = build_player_shot_rates(con, played_only=True)
+    else:
+        shot_rates = build_player_shot_rates(con)
+    reb_ast_rates = (
+        build_player_reb_ast_rates(con, played_only=True)
+        if played_only
+        else build_player_reb_ast_rates(con)
     )
+    if minutes_proj is None:
+        minutes_feats = build_minutes_features(con)
+        minutes_dists = predict_minutes(minutes_feats)
+        minutes_proj = minutes_feats.select(["game_id", "player_id"]).with_columns(
+            pl.Series("projected_minutes", [d.mean() for d in minutes_dists])
+        )
     actual_reb = _actual_stat(con, "reb")
     actual_ast = _actual_stat(con, "ast")
-    season_feats_reb = build_baseline_features(con, "reb")
-    season_feats_ast = build_baseline_features(con, "ast")
+    if played_only:
+        season_feats_reb = build_played_baseline_features(con, "reb")
+        season_feats_ast = build_played_baseline_features(con, "ast")
+    else:
+        season_feats_reb = build_baseline_features(con, "reb")
+        season_feats_ast = build_baseline_features(con, "ast")
 
     games = team_rates.select(
         [
@@ -158,6 +198,22 @@ def run_reb_ast_sim_vs_baseline_eval(
         ]
     )
     game_ids = games.select("game_id").unique().to_series().sort().to_list()
+    if min_season is not None or max_season is not None:
+        lo = -(10**9) if min_season is None else min_season
+        hi = 10**9 if max_season is None else max_season
+        ok = {
+            r[0]
+            for r in con.execute(
+                "SELECT game_id FROM games WHERE season BETWEEN ? AND ?", [lo, hi]
+            ).fetchall()
+        }
+        game_ids = [g for g in game_ids if g in ok]
+    if only_game_ids is not None:
+        keep = set(only_game_ids)
+        game_ids = [g for g in game_ids if g in keep]
+    if sample_games is not None and len(game_ids) > sample_games:
+        pick = np.linspace(0, len(game_ids) - 1, sample_games).round().astype(int)
+        game_ids = [game_ids[i] for i in sorted(set(pick.tolist()))]
     if max_games is not None:
         game_ids = game_ids[:max_games]
 
@@ -285,6 +341,7 @@ def run_reb_ast_sim_vs_baseline_eval(
             ),
             mean_bias_sim=mean_bias_ci(pred_arr, y_arr, n_boot=n_boot, seed=seed),
             raw=raw,
+            dists=sim_dists if return_dists else None,
         )
 
     reb_result = _score("reb", actual_reb_vals, reb_pred_means, reb_dists, season_feats_reb)

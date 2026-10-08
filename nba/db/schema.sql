@@ -299,3 +299,11 @@ CREATE TABLE IF NOT EXISTS forward_scores (
     crps DOUBLE,
     status VARCHAR           -- 'scored' | 'dnp'
 );
+
+-- Rows where the player actually played. DNP rows are stored with minutes NULL
+-- and all-zero stats (docs/DNP_AUDIT_2026-10-08.md); played-only rate builders
+-- and baselines use this definition (nba.features.player_possession_features.
+-- PLAYED_PREDICATE). Read-only connections get an identical TEMP twin from
+-- ensure_played_view().
+CREATE OR REPLACE VIEW player_game_stats_played AS
+SELECT * FROM player_game_stats WHERE minutes IS NOT NULL AND minutes > 0;

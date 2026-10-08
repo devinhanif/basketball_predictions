@@ -127,7 +127,45 @@ PLAYER_SHOT_RATE_COLUMNS: list[str] = [
 
 _WINDOW = "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING"
 
-_PLAYER_SHOT_RATES_SQL = f"""
+#: ``player_game_stats`` row counts as "played" iff minutes is NOT NULL and > 0
+#: (DNP rows are stored with minutes NULL and all-zero stats; see
+#: docs/DNP_AUDIT_2026-10-08.md). Single definition shared by the view below,
+#: the rate builders, the SB classifier and the fair season-average baseline.
+PLAYED_PREDICATE = "minutes IS NOT NULL AND minutes > 0"
+
+PLAYED_VIEW_NAME = "player_game_stats_played"
+
+_PLAYED_VIEW_SQL = (
+    f"CREATE OR REPLACE TEMP VIEW {PLAYED_VIEW_NAME} AS "
+    f"SELECT * FROM player_game_stats WHERE {PLAYED_PREDICATE}"
+)
+
+
+def ensure_played_view(con: duckdb.DuckDBPyConnection) -> None:
+    """Create the ``player_game_stats_played`` view idempotently.
+
+    Created as a TEMP view so it also works on ``read_only=True`` connections
+    (a persistent twin is declared in ``nba/db/schema.sql`` for writable DBs;
+    the temp one shadows it harmlessly and is identical by construction).
+    """
+    con.execute(_PLAYED_VIEW_SQL)
+
+
+def _gate(expr: str, played_only: bool, played_sql: str = "pgs.minutes > 0") -> str:
+    """``expr`` unchanged when ``played_only`` is off (byte-identical SQL);
+    otherwise zero on DNP rows so they add nothing to numerators OR
+    denominators of any as-of window sum."""
+    if not played_only:
+        return expr
+    return f"CASE WHEN {played_sql} THEN {expr} ELSE 0 END"
+
+
+def _shot_rates_sql(played_only: bool = False) -> str:
+
+    def g(expr: str) -> str:
+        return _gate(expr, played_only)
+
+    return f"""
 WITH shots AS (
     SELECT game_id, off_team AS team_id, shooter_id AS player_id, shot_zone, outcome
     FROM possessions
@@ -179,17 +217,17 @@ per_game AS (
         g.game_date,
         g.season,
         COALESCE(ps.position, 'UNK') AS position,
-        COALESCE(sa.n_fga, 0) AS n_fga,
-        COALESCE(sa.n_rim_fga, 0) AS n_rim_fga,
-        COALESCE(sa.n_rim_made, 0) AS n_rim_made,
-        COALESCE(sa.n_mid_fga, 0) AS n_mid_fga,
-        COALESCE(sa.n_mid_made, 0) AS n_mid_made,
-        COALESCE(sa.n_above3_fga, 0) AS n_above3_fga,
-        COALESCE(sa.n_above3_made, 0) AS n_above3_made,
-        COALESCE(tf.team_n_fga, 0) AS team_n_fga,
-        COALESCE(oc.oncourt_team_fga, 0) AS oncourt_team_fga,
-        COALESCE(pgs.fta, 0) AS fta,
-        COALESCE(pgs.ftm, 0) AS ftm
+        {g("COALESCE(sa.n_fga, 0)")} AS n_fga,
+        {g("COALESCE(sa.n_rim_fga, 0)")} AS n_rim_fga,
+        {g("COALESCE(sa.n_rim_made, 0)")} AS n_rim_made,
+        {g("COALESCE(sa.n_mid_fga, 0)")} AS n_mid_fga,
+        {g("COALESCE(sa.n_mid_made, 0)")} AS n_mid_made,
+        {g("COALESCE(sa.n_above3_fga, 0)")} AS n_above3_fga,
+        {g("COALESCE(sa.n_above3_made, 0)")} AS n_above3_made,
+        {g("COALESCE(tf.team_n_fga, 0)")} AS team_n_fga,
+        {g("COALESCE(oc.oncourt_team_fga, 0)")} AS oncourt_team_fga,
+        {g("COALESCE(pgs.fta, 0)")} AS fta,
+        {g("COALESCE(pgs.ftm, 0)")} AS ftm
     FROM player_game_stats pgs
     JOIN games g USING (game_id)
     LEFT JOIN players_static ps ON ps.player_id = pgs.player_id
@@ -280,6 +318,8 @@ ORDER BY pp.game_date, pp.game_id, pp.player_id
 """
 
 
+_PLAYER_SHOT_RATES_SQL = _shot_rates_sql(False)
+
 _PLAYER_COUNT_COLS = [
     "n_fga",
     "n_rim_fga",
@@ -357,15 +397,12 @@ def _decayed_player_prior_cte(cfg: TimeDecayConfig) -> str:
 """
 
 
-def _time_decay_sql(cfg: TimeDecayConfig) -> str:
+def _time_decay_sql(cfg: TimeDecayConfig, played_only: bool = False) -> str:
     """Default SQL with its ``player_prior`` CTE swapped for the decayed one."""
-    start = _PLAYER_SHOT_RATES_SQL.index("player_prior AS (")
-    end = _PLAYER_SHOT_RATES_SQL.index("position_prior AS (")
-    return (
-        _PLAYER_SHOT_RATES_SQL[:start]
-        + _decayed_player_prior_cte(cfg)
-        + _PLAYER_SHOT_RATES_SQL[end:]
-    )
+    base = _shot_rates_sql(played_only)
+    start = base.index("player_prior AS (")
+    end = base.index("position_prior AS (")
+    return base[:start] + _decayed_player_prior_cte(cfg) + base[end:]
 
 
 def _safe_ratio(num: pl.Expr, den: pl.Expr, default: float) -> pl.Expr:
@@ -377,6 +414,7 @@ def build_player_shot_rates(
     use_oncourt_usage: bool = False,
     use_time_decay: bool = False,
     time_decay_config: TimeDecayConfig | None = None,
+    played_only: bool = False,
 ) -> pl.DataFrame:
     """One row per (game, player): strictly as-of, shrinkage-blended shot rates.
 
@@ -401,10 +439,20 @@ def build_player_shot_rates(
     totals)``; see :func:`_decayed_player_prior_cte` for the weights.
     ``time_decay_config`` supplies the knobs (``TimeDecayConfig()`` defaults
     if None). The position-level prior is deliberately NOT decayed.
+
+    ``played_only`` (defaults OFF so historical results reproduce exactly):
+    games where the player did not play (``minutes`` NULL/0 -- DNP rows carry
+    all-zero stats AND the whole team game's FGA) are zeroed in numerators
+    AND denominators of every as-of window sum, so shot-share/zone/FT rates
+    are rates GIVEN the player plays. Availability is then handled once, by
+    the minutes model. The target game's own row is still emitted (rosters
+    need it). See docs/DNP_AUDIT_2026-10-08.md section 2.
     """
     sql = _PLAYER_SHOT_RATES_SQL
     if use_time_decay:
-        sql = _time_decay_sql(time_decay_config or TimeDecayConfig())
+        sql = _time_decay_sql(time_decay_config or TimeDecayConfig(), played_only)
+    elif played_only:
+        sql = _shot_rates_sql(True)
     con.execute(sql)
     columns = [d[0] for d in con.description]
     rows = con.fetchall()

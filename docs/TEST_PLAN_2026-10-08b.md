@@ -137,3 +137,39 @@ Check at start of every session.
 Verdict mapping: CONFIRMED only if BH-survives in FWD with clustered CI, floor 0.005 CRPS,
 and the direction matches the earlier claim. Failure to replicate T001 downgrades reb from
 PROVISIONAL to REJECTED for routing purposes.
+
+---
+
+## (e) Fair rematch: DNP-aware sim vs DNP-aware season average — Family FR, m=3
+
+Written BEFORE the first run; module `nba/eval/fair_rematch.py` carries the same text in its
+docstring (this section wins on disagreement). Motivation: `DNP_AUDIT_2026-10-08.md` — DNP rows
+(minutes NULL, stats 0, 18.6%) bias the historical season-avg baseline low on played rows and
+deflate the sim's shot-share / reb / ast rates, so earlier sim-vs-savg verdicts compared two
+differently contaminated estimands. This is a re-test of T001-T003-type questions, not a new
+tuning exercise. Both sides get their DNP-aware form; nothing is tuned.
+
+Setup (fixed): scored season 2024 only (2025 is never scored; code refuses it); ~600 games
+sampled evenly (linspace over date-sorted game ids), identical set for all arms; rates use full
+prior history; `n_sims=1000`, seed 0; minutes = the sims' projected minutes (no actual minutes).
+Rosters = box-score row membership, as in the existing evals (identical across arms).
+Arms: A = old sim as shipped; B = sim `played_only=True` + current-season-only shot rates
+(`TimeDecayConfig(carryover_decay_weight=1.0)`; the reb/ast builder has no time-decay path, so
+for reb/ast B is played_only with full-history rates — a stated asymmetry); S = fair season
+average: played-only, recency-weighted, half-life 10 played games, career-to-date, via the same
+`recency_weighted_dist` as `nba/props/forward.py`.
+
+Primary family (m=3): B vs S, played rows only, CRPS delta (B - S), cells {pts, reb, ast};
+clustered by `game_id` (n_boot 2000, seed logged); p from normal approx to the CI; BH q=0.05.
+Decision: "B beats S" iff CI upper < 0, BH-survives, delta <= -0.005; "S beats B" iff CI lower
+> 0, BH-survives, delta >= +0.005; else no verdict (labelled "underpowered, cannot conclude" if
+MDE = 2.8 SE > 0.010). Player-clustered CI reported per primary cell; a verdict that flips under
+it is PROVISIONAL (outside the family). Any result is PROVISIONAL until FWD replicates.
+
+Descriptive, outside the family (no verdicts, no BH): B vs A and A vs S on played rows; all-rows
+results with the unconditional mixture (B and S conditional dists mixed with a point mass at 0 of
+weight 1 - p_play, p_play = shrunk as-of played share of the prior 20 rows; A as shipped); B vs S
+sliced by the played-only SB bucket (min_games=10, buckets with < 30 played rows omitted).
+Min n: per cell, report n and n_games; raw cells saved to `docs/fair_rematch_2024.json`.
+Ledger: log as next free T-ids, including a null/loss.
+Command: `uv run python -m nba.eval.fair_rematch --db nba.duckdb --n-sims 1000 --sample-games 600`.

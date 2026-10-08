@@ -34,12 +34,17 @@ scoreless than not. This is the intended, documented behavior: ADI here
 measures "how often does this player produce *at all* when they appear",
 not minutes availability (that is ``nba.props.minutes``'s job).
 
-**DATA REALITY**: ``player_game_stats`` rows only exist for games the
-ingest recorded a box-score line for (same limitation
-``player_possession_features`` documents for ``players_static.position``).
-True DNPs where a player isn't in the box score at all are invisible to
-this series, not counted as a zero -- a documented approximation, not a
-bug.
+**DATA REALITY (corrected 2026-10-08)**: DNPs are NOT invisible. The ingest
+stores a DNP as a ``player_game_stats`` row with ``minutes`` NULL and
+pts/reb/ast = 0 (not NULL), ~18.6% of all rows (docs/DNP_AUDIT_2026-10-08.md).
+In the default (historical) series these rows are ordinary zero-demand
+periods, so ADI largely measures DNP frequency, not stat sparsity: the
+"intermittent"/"lumpy" buckets run a 25-36% target-game DNP rate vs 5-7% for
+"smooth". ``played_only=True`` (default OFF so historical results reproduce)
+restricts the prior series to games the player played (``minutes > 0``), so
+ADI/CV^2 describe the stat GIVEN the player plays (availability belongs to
+the minutes model); ``min_games`` and ``n_prior`` then count played games.
+Target rows (including DNP target rows) still receive a bucket.
 
 Standard SB cutoffs (unchanged from the inventory literature, not re-tuned
 here): ``ADI_CUTOFF = 1.32``, ``CV2_CUTOFF = 0.49``.
@@ -79,17 +84,26 @@ _ALLOWED_COLUMNS = {"pts", "reb", "ast"}
 _WINDOW = "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING"
 
 
-def _raw_prior_series(con: duckdb.DuckDBPyConnection, column: str) -> pl.DataFrame:
+def _raw_prior_series(
+    con: duckdb.DuckDBPyConnection, column: str, played_only: bool = False
+) -> pl.DataFrame:
     """``(game_id, player_id, prior_vals)``: the player's full,
     strictly-prior game-by-game ``column`` series, ordered by
     ``(game_date, game_id)`` -- as-of by construction (the target row's own
     value is excluded via the window frame)."""
     if column not in _ALLOWED_COLUMNS:
         raise ValueError(f"column must be one of {_ALLOWED_COLUMNS}, got {column!r}")
+    # played_only: non-played games become NULL in the series (dropped by the
+    # caller), so they never count as zero demand; rows themselves are kept.
+    val_sql = (
+        f"CASE WHEN pgs.minutes IS NOT NULL AND pgs.minutes > 0 THEN pgs.{column} END"
+        if played_only
+        else f"pgs.{column}"
+    )
 
     query = f"""
         WITH ordered AS (
-            SELECT pgs.game_id, pgs.player_id, g.game_date, pgs.{column} AS val
+            SELECT pgs.game_id, pgs.player_id, g.game_date, {val_sql} AS val
             FROM player_game_stats pgs
             JOIN games g USING (game_id)
         )
@@ -146,7 +160,7 @@ def classify_sb(adi: float, cv2: float) -> str:
 
 
 def build_sb_classification(
-    con: duckdb.DuckDBPyConnection, stat: str, min_games: int = 10
+    con: duckdb.DuckDBPyConnection, stat: str, min_games: int = 10, played_only: bool = False
 ) -> pl.DataFrame:
     """One row per (game, player): as-of ADI, CV^2, SB quadrant, and
     ``n_prior`` games for ``stat`` in ``{"pts", "reb", "ast"}``.
@@ -154,8 +168,9 @@ def build_sb_classification(
     This is the per-row builder; for routing analysis the caller typically
     wants only each player's *current* (most recent) bucket -- see
     ``nba.eval.model_routing`` for how buckets are consumed downstream.
+    ``played_only``: see the module docstring (ADI over games played).
     """
-    raw = _raw_prior_series(con, stat)
+    raw = _raw_prior_series(con, stat, played_only)
     prior_lists = raw.get_column("prior_vals").to_list()
     adis = np.empty(len(prior_lists), dtype=float)
     cv2s = np.empty(len(prior_lists), dtype=float)

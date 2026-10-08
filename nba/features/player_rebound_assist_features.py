@@ -70,6 +70,7 @@ import numpy as np
 import polars as pl
 
 from nba.coldstart.shrinkage import shrink_rate
+from nba.features.player_possession_features import _gate
 
 LEAGUE_ORB_RATE_DEFAULT = 0.05
 LEAGUE_DRB_RATE_DEFAULT = 0.15
@@ -100,7 +101,16 @@ PLAYER_REB_AST_RATE_COLUMNS: list[str] = [
 
 _WINDOW = "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING"
 
-_PLAYER_REB_AST_SQL = f"""
+
+def _reb_ast_sql(played_only: bool = False) -> str:
+    """Build the as-of SQL. ``played_only`` zeroes every per-game numerator
+    and chance-denominator on rows where the player did not play (minutes
+    NULL/0); OFF returns the original text unchanged."""
+
+    def g(expr: str) -> str:
+        return _gate(expr, played_only)
+
+    return f"""
 WITH team_box AS (
     SELECT game_id, team_id,
            SUM(COALESCE(fgm, 0)) AS team_fgm,
@@ -135,9 +145,9 @@ per_game AS (
         COALESCE(tb.team_ast, 0) AS team_ast,
         COALESCE(ob.opp_fgm, 0) AS opp_fgm,
         COALESCE(ob.opp_fga, 0) AS opp_fga,
-        GREATEST(COALESCE(tb.team_fga, 0) - COALESCE(tb.team_fgm, 0), 0) AS team_missed_fga,
-        GREATEST(COALESCE(ob.opp_fga, 0) - COALESCE(ob.opp_fgm, 0), 0) AS opp_missed_fga,
-        GREATEST(COALESCE(tb.team_fgm, 0) - COALESCE(pgs.fgm, 0), 0) AS teammate_fgm
+        {g("GREATEST(COALESCE(tb.team_fga, 0) - COALESCE(tb.team_fgm, 0), 0)")} AS team_missed_fga,
+        {g("GREATEST(COALESCE(ob.opp_fga, 0) - COALESCE(ob.opp_fgm, 0), 0)")} AS opp_missed_fga,
+        {g("GREATEST(COALESCE(tb.team_fgm, 0) - COALESCE(pgs.fgm, 0), 0)")} AS teammate_fgm
     FROM player_game_stats pgs
     JOIN games g USING (game_id)
     LEFT JOIN players_static ps ON ps.player_id = pgs.player_id
@@ -207,16 +217,27 @@ ORDER BY pp.game_date, pp.game_id, pp.player_id
 """
 
 
+_PLAYER_REB_AST_SQL = _reb_ast_sql(False)
+
+
 def _safe_ratio(num: pl.Expr, den: pl.Expr, default: float) -> pl.Expr:
     return pl.when(den > 0).then(num / den).otherwise(pl.lit(default))
 
 
-def build_player_reb_ast_rates(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+def build_player_reb_ast_rates(
+    con: duckdb.DuckDBPyConnection, played_only: bool = False
+) -> pl.DataFrame:
     """One row per (game, player): strictly as-of, shrinkage-blended
     rebound + assist rates. See module docstring for rate definitions, the
     documented box-score proxies, and the shrinkage design.
+
+    ``played_only`` (default OFF, byte-identical when off): rebound/assist
+    chances (team/opp missed FGA, teammate FGM) of games the player did not
+    play are zeroed, so rates are GIVEN the player plays (DNP rows have zero
+    stats but carry the full team-game chance denominators otherwise). The
+    team-level assisted-FG rate is unaffected. See docs/DNP_AUDIT_2026-10-08.md.
     """
-    con.execute(_PLAYER_REB_AST_SQL)
+    con.execute(_reb_ast_sql(True) if played_only else _PLAYER_REB_AST_SQL)
     columns = [d[0] for d in con.description]
     rows = con.fetchall()
     int_cols = {

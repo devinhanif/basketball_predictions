@@ -50,6 +50,7 @@ import duckdb
 import numpy as np
 import polars as pl
 
+from nba.features.played_baseline import build_played_baseline_features
 from nba.features.player_possession_features import build_player_shot_rates
 from nba.features.possession_features import build_team_possession_rates
 from nba.features.time_decay import TimeDecayConfig
@@ -85,6 +86,9 @@ class SimPlayerPointsEvalResult:
     #: per-bucket model-routing analysis (nba.eval.model_routing), which
     #: needs index-aligned per-row CRPS joined to archetype/SB bucket labels.
     raw: pl.DataFrame | None = None
+    #: Per-row sim distributions aligned with ``raw`` (only when
+    #: ``return_dists=True``); used by nba.eval.fair_rematch.
+    dists: list[Distribution] | None = None
 
     def summary(self) -> str:
         return (
@@ -109,6 +113,11 @@ def run_sim_vs_baseline_eval(
     max_season: int | None = None,
     min_season: int | None = None,
     sample_games: int | None = None,
+    played_only: bool = False,
+    only_game_ids: list[str] | None = None,
+    return_dists: bool = False,
+    team_rates: pl.DataFrame | None = None,
+    minutes_proj: pl.DataFrame | None = None,
 ) -> SimPlayerPointsEvalResult:
     """Run the possession sim's per-player points predictions for every game
     with a box score and score them against actuals + the season-average
@@ -116,24 +125,44 @@ def run_sim_vs_baseline_eval(
     docstring for the exact command the maintainer runs for the real,
     multi-season version; ``max_games`` exists for an incremental first
     pass on the real DB without committing to the full run.
+
+    ``played_only`` (default OFF, byte-identical when off): rates are built
+    from played games only (numerators AND denominators) and the
+    season-average baseline is the played-only expanding mean/std, so
+    availability is handled once (by the minutes model). ``only_game_ids``
+    restricts scoring to an explicit game list (intersected with games that
+    have rates); ``team_rates``/``minutes_proj`` accept precomputed frames so
+    a multi-arm driver builds them once; ``return_dists`` keeps the per-row
+    sim distributions on the result.
     """
-    team_rates = build_team_possession_rates(con)
+    if team_rates is None:
+        team_rates = build_team_possession_rates(con)
     if use_time_decay:
         shot_rates = build_player_shot_rates(
             con,
             use_oncourt_usage=use_oncourt_usage,
             use_time_decay=True,
             time_decay_config=time_decay_config,
+            played_only=played_only,
+        )
+    elif played_only:
+        shot_rates = build_player_shot_rates(
+            con, use_oncourt_usage=use_oncourt_usage, played_only=True
         )
     else:
         shot_rates = build_player_shot_rates(con, use_oncourt_usage=use_oncourt_usage)
-    minutes_feats = build_minutes_features(con)
-    minutes_dists = predict_minutes(minutes_feats)
-    minutes_proj = minutes_feats.select(["game_id", "player_id"]).with_columns(
-        pl.Series("projected_minutes", [d.mean() for d in minutes_dists])
-    )
+    if minutes_proj is None:
+        minutes_feats = build_minutes_features(con)
+        minutes_dists = predict_minutes(minutes_feats)
+        minutes_proj = minutes_feats.select(["game_id", "player_id"]).with_columns(
+            pl.Series("projected_minutes", [d.mean() for d in minutes_dists])
+        )
     actual = _actual_points(con)
-    season_feats = build_baseline_features(con, "pts")
+    season_feats = (
+        build_played_baseline_features(con, "pts")
+        if played_only
+        else build_baseline_features(con, "pts")
+    )
 
     games = team_rates.select(
         [
@@ -158,6 +187,9 @@ def run_sim_vs_baseline_eval(
             ).fetchall()
         }
         game_ids = [g for g in game_ids if g in ok]
+    if only_game_ids is not None:
+        keep = set(only_game_ids)
+        game_ids = [g for g in game_ids if g in keep]
     if sample_games is not None and len(game_ids) > sample_games:
         # Evenly spaced across the (sorted) window, deterministic.
         pick = np.linspace(0, len(game_ids) - 1, sample_games).round().astype(int)
@@ -268,4 +300,5 @@ def run_sim_vs_baseline_eval(
         ),
         mean_bias_sim=mean_bias_ci(pred_arr, y_arr, n_boot=n_boot, seed=seed),
         raw=raw,
+        dists=sim_dists if return_dists else None,
     )
