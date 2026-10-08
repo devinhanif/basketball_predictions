@@ -1,0 +1,111 @@
+# Test ledger — append-only
+
+Required by the "Standing multiplicity / FDR plan" in
+[`ACCEPTANCE_CRITERIA_2026-10-08.md`](ACCEPTANCE_CRITERIA_2026-10-08.md). One row per
+test ever run. Never edit or delete a row; corrections are new rows that cite the old
+row id. A rerun of the same comparison is corrected against ALL prior rows with the
+same `comparison key` (re-rank the union), not a fresh small family.
+
+Backfilled 2026-10-08 from `FDR_AUDIT`, `RESULTS`, `MATCHUP_3A_RESULT`,
+`MORNING_BRIEFING`, `ACCEPTANCE_CRITERIA`, `HOLDOUT_ACCESS_LOG`, `NEXT_SESSION.md`. No
+number below was re-run; "not recorded" means the source doc never committed it.
+
+Conventions
+- Effect sign: delta = candidate - baseline CRPS (or MAE / log loss); negative = candidate better.
+- p-approx: two-sided normal approx from the 95% CI, `se=(hi-lo)/3.92`, `z=|pt|/se`.
+  "perm" = permutation p. "n/r" = not recorded.
+- Boot: `row` = per-player-game resampling (anti-conservative, pre-fix); `clus` = per-`game_id`
+  clustered; `none` = no bootstrap; `perm` = permutation test.
+- Cap rules (standing plan #4, #5): no committed numeric CI => PROVISIONAL permanently;
+  row-level bootstrap => PROVISIONAL (cannot be CONFIRMED until re-run clustered).
+- Holdout: `burned` = touched `season=2025` directly or via pooled/ad hoc splits (no virgin
+  holdout exists, see `HOLDOUT_ACCESS_LOG.md`); `n/a` = not a holdout-style test.
+- BH verdict is WITHIN the family as originally declared (or, for families never
+  pre-registered, as reconstructed; flagged "post-hoc family"). The FDR audit's pooled m=5
+  (A+G) is NOT used here: standing plan #3 bans pooling unrelated families after the fact.
+
+## Family summary (BH within family, q=0.05)
+
+| family | description | m (tests) | tests with usable p | BH survivors | cap |
+|---|---|---|---|---|---|
+| A | props: sim vs season-avg, overall | 3 | 3 | reb (p=.0117 <= .0167) | row-level => PROVISIONAL |
+| B | on-court usage denominator (feature reject) | 1 | 0 | n/a | no CI => PROVISIONAL (decision robust on effect size) |
+| C | volatility-bucket routing grid | 15 | 0 | not computable | no numbers => PROVISIONAL |
+| D | archetype-cluster routing | 18 (8 shown) | 0 | not computable | selective reporting => REJECTED as evidence |
+| E | walk-forward vs holdout routing | 6 (up to 12) | 0 | not computable | PROVISIONAL |
+| F | matchup/opponent adjust, original + 3A rerun | 8 | 0 (point only) | not computable | never bootstrapped => REJECTED as tested result |
+| G | lineup archetype-mix non-additivity | 1 | 1 | yes (perm p=.004) | permutation, no cap |
+| H | minutes 1A | 4 | 0 (bounds not given) | not computable | no bounds => PROVISIONAL |
+| I | usage redistribution 2A/2B | 1 | n/a | n/a | inert null (n=0) |
+| M3A | matchup-3A archetype, clustered (aux CIs + gate) | 4 pre-reg (+8 aux) | aux only | pre-reg paired CI never run | PROVISIONAL / deferred |
+| R | points n_sims=2000 retest | 1 | 0 | pending | NOT COMPLETED |
+
+## Ledger
+
+| id | date | family | stat / cell | point | CI lo | CI hi | boot | p-approx | BH verdict (within family) | holdout status |
+|---|---|---|---|---|---|---|---|---|---|---|
+| T001 | <=2026-10-08 | A | reb: sim - savg CRPS | -0.014 | -0.024 | -0.003 | row | 0.0117 | SURVIVES (rank1, thr .0167); PROVISIONAL pending clustered rerun | burned (pooled 4 seasons) |
+| T002 | <=2026-10-08 | A | ast: sim - savg CRPS | -0.006 | -0.014 | +0.002 | row | 0.142 | fails (thr .0333); near-null, MDE adequate | burned |
+| T003 | <=2026-10-08 | A | pts: sim - savg CRPS (n_sims=500) | +0.011 | -0.019 | +0.043 | row | 0.448 | fails (thr .05); UNDERPOWERED (MDE ~0.044), not a null | burned |
+| T004 | <=2026-10-08 | B | pts: on-court usage vs season-share proxy CRPS | +0.398 | n/r | n/r | row (unspecified) | n/r ("excludes 0") | n/a; feature kept OFF; PROVISIONAL by cap, decision robust on effect size | n/a (burned pooled) |
+| T005-T019 | <=2026-10-08 | C | 15 cells = {pts,reb,ast} x {insufficient_history, intermittent, erratic, lumpy, smooth}; sim vs savg | n/r | n/r | n/r | row | n/r | not computable; PROVISIONAL. Reported labels: pts: IH sim, INT sim, ERR tie, LUM tie, SMO savg; reb: IH sim, INT sim, ERR sim, LUM tie, SMO tie; ast: IH tie, INT sim, ERR sim, LUM tie, SMO tie (8 of 15 "CI excludes 0") | burned |
+| T020 | <=2026-10-08 | D | reb cluster 0 sim wins | n/r | n/r | n/r | row | n/r | REJECTED (curated subset) | burned |
+| T021 | <=2026-10-08 | D | reb cluster 5 sim wins | n/r | n/r | n/r | row | n/r | REJECTED | burned |
+| T022 | <=2026-10-08 | D | reb cluster 3 sim loses | n/r | n/r | n/r | row | n/r | REJECTED | burned |
+| T023 | <=2026-10-08 | D | ast cluster 0 sim wins | n/r | n/r | n/r | row | n/r | REJECTED | burned |
+| T024 | <=2026-10-08 | D | ast cluster 1 sim wins | n/r | n/r | n/r | row | n/r | REJECTED | burned |
+| T025 | <=2026-10-08 | D | ast cluster 3 sim wins | n/r | n/r | n/r | row | n/r | REJECTED | burned |
+| T026 | <=2026-10-08 | D | ast cluster 5 sim loses | n/r | n/r | n/r | row | n/r | REJECTED | burned |
+| T027 | <=2026-10-08 | D | UNREPORTED remainder of 18-cell grid (6 clusters x 3 stats minus the 7 above; all of pts) | n/r | n/r | n/r | row | n/r | tested, never reported; counts toward m | burned |
+| T028-T030 | <=2026-10-08 | E | {pts,reb,ast}, walk-forward split, routed vs savg/sim | n/r | n/r | n/r | row | n/r | PROVISIONAL. Labels: ast win, reb win, pts no win | burned (ad hoc split, unrecorded) |
+| T031-T033 | <=2026-10-08 | E | {pts,reb,ast}, "holdout" split (ad hoc, not split_frozen_holdout) | n/r | n/r | n/r | row | n/r | PROVISIONAL. Labels: ast win, reb tie, pts no win | burned; reuse risk |
+| T034 | 2026-10-08 | F | pts original 330f036: team-level adj - base | +0.006 | n/r | n/r | none | n/r | REJECTED as tested result (point only); flag stays OFF | burned |
+| T035 | 2026-10-08 | F | reb original | +0.002 | n/r | n/r | none | n/r | same | burned |
+| T036 | 2026-10-08 | F | ast original | +0.003 | n/r | n/r | none | n/r | same | burned |
+| T037 | 2026-10-08 | F | fg3m original | +0.002 | n/r | n/r | none | n/r | same | burned |
+| T038 | 2026-10-08 | F | pts 3A rerun f150583 | +0.0065 | n/r | n/r | none | n/r | same | burned |
+| T039 | 2026-10-08 | F | reb 3A rerun | +0.0018 | n/r | n/r | none | n/r | same | burned |
+| T040 | 2026-10-08 | F | ast 3A rerun | +0.0034 | n/r | n/r | none | n/r | same | burned |
+| T041 | 2026-10-08 | F | fg3m 3A rerun | +0.0019 | n/r | n/r | none | n/r | same | burned |
+| T042 | 2026-10-08 | G | lineup archetype-mix R2 (1,154 units >=100 poss) | R2=0.016 | n/a | n/a | perm | 0.004 (perm; null R2 0.005) | SURVIVES (m=1); real but practically tiny | burned (all seasons, explanatory) |
+| T043 | 2026-10-08 | H | minutes gated: overall MAE (n=69,205) | -0.096 | n/r | n/r | n/r | n/r ("excludes 0") | PROVISIONAL (no bounds); large n, trusted directionally | burned (cal split likely incl. 2025) |
+| T044 | 2026-10-08 | H | minutes gated: overall DNP log loss | -0.0017 | n/r | n/r | n/r | n/r | same | burned |
+| T045 | 2026-10-08 | H | minutes ungated: cold-start MAE (n_played_prior<20) | -1.47 | n/r | n/r | n/r | n/r | same; ungated regressed established players, so shipped gated | burned |
+| T046 | 2026-10-08 | H | minutes ungated: cold-start DNP log loss | -0.021 | n/r | n/r | n/r | n/r | same | burned |
+| T047 | prior session | I | usage redistribution 2A/2B, restricted sample | n=0 | n/a | n/a | none | n/a | inert null; not a test | n/a |
+| T048 | 2026-10-08 | M3A-aux | pts: baseline config CRPS - season-avg | +0.2730 | +0.2618 | +0.2845 | clus | <1e-6 | aux, not a decision test. Positive = props pipeline WORSE than season-avg point baseline in this pipeline (differs from Family A, which is sim); comparison definition unreconciled | burned (full 2022-10..2026-06) |
+| T049 | 2026-10-08 | M3A-aux | pts: archetype config - season-avg | +0.3054 | +0.2943 | +0.3165 | clus | <1e-6 | aux | burned |
+| T050 | 2026-10-08 | M3A-aux | reb: baseline - season-avg | +0.0811 | +0.0770 | +0.0856 | clus | <1e-6 | aux | burned |
+| T051 | 2026-10-08 | M3A-aux | reb: archetype - season-avg | +0.0852 | +0.0812 | +0.0898 | clus | <1e-6 | aux | burned |
+| T052 | 2026-10-08 | M3A-aux | ast: baseline - season-avg | +0.3467 | +0.3422 | +0.3517 | clus | <1e-6 | aux | burned |
+| T053 | 2026-10-08 | M3A-aux | ast: archetype - season-avg | +0.3472 | +0.3427 | +0.3523 | clus | <1e-6 | aux | burned |
+| T054 | 2026-10-08 | M3A-aux | fg3m: baseline - season-avg | +0.1291 | +0.1257 | +0.1321 | clus | <1e-6 | aux | burned |
+| T055 | 2026-10-08 | M3A-aux | fg3m: archetype - season-avg | +0.1295 | +0.1262 | +0.1324 | clus | <1e-6 | aux | burned |
+| T056 | 2026-10-08 | M3A | pts: archetype - baseline pooled CRPS | +0.0324 | n/r | n/r | none (paired CI deferred) | n/r | pre-reg m=4 test never completed; point-only | burned |
+| T057 | 2026-10-08 | M3A | reb: archetype - baseline (HARD GATE) | +0.0041 | n/r | n/r | none | n/r | gate FAIL on point estimate (needs CI upper <=0); REJECT per pre-reg rule 1, stays PROVISIONAL (no CI) | burned |
+| T058 | 2026-10-08 | M3A | ast: archetype - baseline | +0.0005 | n/r | n/r | none | n/r | not evaluated (gate failed) | burned |
+| T059 | 2026-10-08 | M3A | fg3m: archetype - baseline | +0.0004 | n/r | n/r | none | n/r | not evaluated (gate failed) | burned |
+| T060 | 2026-10-08 | M3A | team_level - baseline pooled (pts/reb/ast/fg3m) | -0.0001/-0.0004/-0.0004/-0.0001 | n/r | n/r | none | n/r | informational; negligible; contradicts earlier partial read per briefing | burned |
+| T061 | 2026-10-08 | R | pts: sim - savg CRPS @ n_sims=2000 (comparison key = pts sim-vs-savg, joins Family A) | not recorded | n/r | n/r | clus (scripted) | n/r | NOT COMPLETED (see below); must be re-ranked with T001-T003 when it lands | burned (same rows; exploratory) |
+
+Counts: 61 ledger rows, covering ~100 underlying tests once the grouped rows are
+expanded (C=15, E=6, T027 hides >=10 more). Rows with a numeric CI: 11 (T001-T003, T048-T055).
+Rows with a usable p: 12 (those 11 + T042).
+
+## Survivors (BH within family, q=0.05)
+
+| result | strict status under standing plan |
+|---|---|
+| Rebounds sim beats savg (T001) | BH-survivor within A (m=3) but row-level bootstrap => PROVISIONAL until re-run clustered. Expect to survive with margin only if clustered SE inflates < ~1.2x (p=.0117 vs thr .0167). |
+| Lineup archetype-mix (T042) | CONFIRMED (permutation, m=1); effect R2=0.016, practically negligible |
+| Everything else | PROVISIONAL, REJECTED-as-evidence, or inert; none BH-correctable |
+
+Net: 2 survivors, 1 strictly confirmed (G) and 1 provisional-survivor (reb). The FDR
+audit's "CONFIRMED" for rebounds, B, and H predate the strict standing-plan caps and are
+downgraded here to PROVISIONAL on procedural grounds (no clustered CI / no committed
+bounds), not because any effect is believed false.
+
+## Run-order / ID notes
+- IDs T005-T019, T028-T033 each stand for several tests; expand to individual rows when the
+  per-cell JSON is first committed (standing plan #4).
+- New rows start at T062.
