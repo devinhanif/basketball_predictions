@@ -311,10 +311,14 @@ class ArchetypeAssignmentResult:
     feature_columns: list[str]
 
 
-def _players_static_asof(con: duckdb.DuckDBPyConnection, as_of_date: str) -> pl.DataFrame:
-    """Physical/demographic features as of ``as_of_date``. Position/
-    height/weight are static attributes (no leakage risk); age is
-    deliberately computed relative to ``as_of_date``, never "today"."""
+def _players_static_raw(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Physical/demographic attributes, date-independent part only (no
+    age -- that is computed per ``as_of_date`` by the caller). Position
+    fractions are precomputed here too since they never depend on
+    ``as_of_date`` either. Split out of the old ``_players_static_asof``
+    so it can be queried ONCE and reused across many ``as_of_date``
+    snapshots instead of re-querying ``players_static`` per date (see
+    :class:`PlayerFeatureSource` / perf history)."""
     con.execute(
         """
         SELECT player_id, position, height_in, weight_lb, birth_date
@@ -336,13 +340,6 @@ def _players_static_asof(con: duckdb.DuckDBPyConnection, as_of_date: str) -> pl.
     )
     if df.height == 0:
         return df
-    as_of = pl.lit(as_of_date).str.to_date()
-    df = df.with_columns(
-        pl.when(pl.col("birth_date").is_not_null())
-        .then((as_of - pl.col("birth_date")).dt.total_days() / 365.25)
-        .otherwise(pl.lit(_DEFAULT_AGE))
-        .alias("age")
-    )
     fractions = [encode_position_fractions(p) for p in df.get_column("position").to_list()]
     return df.with_columns(
         pl.Series("is_guard", [f[0] for f in fractions]),
@@ -351,11 +348,39 @@ def _players_static_asof(con: duckdb.DuckDBPyConnection, as_of_date: str) -> pl.
     )
 
 
-def _latest_prior_tendencies(con: duckdb.DuckDBPyConnection, as_of_date: str) -> pl.DataFrame:
+def _players_static_asof(con: duckdb.DuckDBPyConnection, as_of_date: str) -> pl.DataFrame:
+    """Physical/demographic features as of ``as_of_date``. Position/
+    height/weight are static attributes (no leakage risk); age is
+    deliberately computed relative to ``as_of_date``, never "today"."""
+    return _apply_asof_age(_players_static_raw(con), as_of_date)
+
+
+def _apply_asof_age(df: pl.DataFrame, as_of_date: str) -> pl.DataFrame:
+    """Add the ``age`` column to the date-independent static frame
+    (``_players_static_raw``'s output) for one ``as_of_date``. Pulled out
+    of ``_players_static_asof`` so a cached/precomputed static frame can
+    be reused across many dates without re-querying DuckDB each time."""
+    if df.height == 0:
+        return df
+    as_of = pl.lit(as_of_date).str.to_date()
+    return df.with_columns(
+        pl.when(pl.col("birth_date").is_not_null())
+        .then((as_of - pl.col("birth_date")).dt.total_days() / 365.25)
+        .otherwise(pl.lit(_DEFAULT_AGE))
+        .alias("age")
+    )
+
+
+def _latest_tendencies_as_of(
+    shot: pl.DataFrame, reb_ast: pl.DataFrame, as_of_date: str
+) -> pl.DataFrame:
     """Each player's latest as-of tendency row with ``game_date <
-    as_of_date`` -- see module docstring for why this is leakage-free."""
-    shot = build_player_shot_rates(con)
-    reb_ast = build_player_reb_ast_rates(con)
+    as_of_date``, given ALREADY-FETCHED full-history ``shot``/``reb_ast``
+    frames (see module docstring for why this filter is leakage-free).
+    Pulled out of the old ``_latest_prior_tendencies`` so the two
+    expensive full-history SQL builds (``build_player_shot_rates`` /
+    ``build_player_reb_ast_rates``) can be run ONCE and reused across many
+    ``as_of_date`` snapshots -- see :class:`PlayerFeatureSource`."""
 
     def _latest(df: pl.DataFrame, cols: list[str]) -> pl.DataFrame:
         empty_schema = {"player_id": pl.Int64, **{c: pl.Float64 for c in cols}}
@@ -370,6 +395,121 @@ def _latest_prior_tendencies(con: duckdb.DuckDBPyConnection, as_of_date: str) ->
     shot_latest = _latest(shot, ["shot_share_prior", "zone_mix_above3_prior"])
     reb_ast_latest = _latest(reb_ast, ["orb_rate_prior", "drb_rate_prior", "ast_rate_prior"])
     return shot_latest.join(reb_ast_latest, on="player_id", how="full", coalesce=True)
+
+
+def _latest_prior_tendencies(con: duckdb.DuckDBPyConnection, as_of_date: str) -> pl.DataFrame:
+    """Each player's latest as-of tendency row with ``game_date <
+    as_of_date`` -- see module docstring for why this is leakage-free.
+    Single-date convenience wrapper; see :class:`PlayerFeatureSource` for
+    the batch/cached path used when scoring many dates."""
+    shot = build_player_shot_rates(con)
+    reb_ast = build_player_reb_ast_rates(con)
+    return _latest_tendencies_as_of(shot, reb_ast, as_of_date)
+
+
+@dataclass
+class PlayerFeatureSource:
+    """Cached, date-independent inputs for :func:`build_player_feature_frame`
+    (``static`` attributes/position fractions, full-history shot rates,
+    full-history reb/ast rates) -- each is the output of one SQL query
+    over the WHOLE DB, so building this once and reusing it across many
+    ``as_of_date`` snapshots turns an O(n_dates) set of full-history
+    re-scans into O(1). See :func:`build_player_feature_source` /
+    :func:`build_player_feature_frame_cached`, and the perf history doc
+    for the profiled before/after this replaced (the old per-date path
+    called ``build_player_shot_rates``/``build_player_reb_ast_rates``
+    fresh inside a loop over every distinct ``as_of_date``)."""
+
+    static_raw: pl.DataFrame
+    shot_rates: pl.DataFrame
+    reb_ast_rates: pl.DataFrame
+
+
+def build_player_feature_source(con: duckdb.DuckDBPyConnection) -> PlayerFeatureSource:
+    """Run the three date-independent full-history queries ONCE. Pass the
+    result to :func:`build_player_feature_frame_cached` for every
+    ``as_of_date`` snapshot needed -- see :class:`PlayerFeatureSource`."""
+    return PlayerFeatureSource(
+        static_raw=_players_static_raw(con),
+        shot_rates=build_player_shot_rates(con),
+        reb_ast_rates=build_player_reb_ast_rates(con),
+    )
+
+
+def build_player_feature_frame_cached(source: PlayerFeatureSource, as_of_date: str) -> pl.DataFrame:
+    """Identical output to ``build_player_feature_frame(con, as_of_date)``,
+    but scored against an already-built :class:`PlayerFeatureSource`
+    instead of re-querying DuckDB -- the fast path for scoring many dates.
+    See module docstring / :func:`build_player_feature_frame`."""
+    static = _apply_asof_age(source.static_raw, as_of_date)
+    if static.height == 0:
+        return pl.DataFrame(
+            schema={"player_id": pl.Int64, **{c: pl.Float64 for c in _NUMERIC_FEATURE_COLUMNS}}
+        )
+    tendencies = _latest_tendencies_as_of(source.shot_rates, source.reb_ast_rates, as_of_date)
+    merged = static.join(tendencies, on="player_id", how="left")
+    merged = merged.with_columns(
+        pl.col("shot_share_prior").fill_null(LEAGUE_SHOT_SHARE_DEFAULT).alias("shot_share"),
+        pl.col("zone_mix_above3_prior")
+        .fill_null(LEAGUE_ZONE_MIX_DEFAULT["above3"])
+        .alias("zone_mix_above3"),
+        pl.col("orb_rate_prior").fill_null(LEAGUE_ORB_RATE_DEFAULT).alias("orb_rate"),
+        pl.col("drb_rate_prior").fill_null(LEAGUE_DRB_RATE_DEFAULT).alias("drb_rate"),
+        pl.col("ast_rate_prior").fill_null(LEAGUE_AST_RATE_DEFAULT).alias("ast_rate"),
+    )
+    return merged.select(["player_id", *_NUMERIC_FEATURE_COLUMNS])
+
+
+def build_player_feature_frame(con: duckdb.DuckDBPyConnection, as_of_date: str) -> pl.DataFrame:
+    """One row per player with a ``players_static`` row: ``player_id`` plus
+    every column in :data:`_NUMERIC_FEATURE_COLUMNS`, computed strictly as
+    of ``as_of_date`` (see module docstring). Pulled out of
+    :func:`build_player_archetypes` so other callers (e.g.
+    ``nba.props.opponent``'s archetype-vs-archetype opponent factor) can
+    score a FROZEN, already-fit clustering model (:func:`assign_archetypes`)
+    against a different ``as_of_date``'s feature vectors without refitting
+    KMeans each time -- the frozen model gives temporally-stable cluster
+    *label integers* while each row's own features stay strictly as-of its
+    own date (never a later one), which is what keeps this leakage-free.
+    Empty frame (``player_id`` + feature columns, zero rows) when no player
+    has a ``players_static`` row as of this date.
+
+    Single-date convenience wrapper around :func:`build_player_feature_source`
+    + :func:`build_player_feature_frame_cached`; callers scoring MANY dates
+    against the same DB (e.g. ``nba.props.opponent``) should build the
+    source once and call :func:`build_player_feature_frame_cached` in a
+    loop instead -- see that module's perf history for why.
+    """
+    source = build_player_feature_source(con)
+    return build_player_feature_frame_cached(source, as_of_date)
+
+
+def assign_archetypes(
+    model: ArchetypeAssignmentResult, feature_frame: pl.DataFrame
+) -> pl.DataFrame:
+    """Score ``feature_frame`` (as built by :func:`build_player_feature_frame`,
+    any ``as_of_date``) against the already-fit ``model.scaler``/
+    ``model.kmeans`` -- i.e. *predict*, never refit. Returns
+    ``(player_id, archetype)``, empty when ``feature_frame`` has zero rows
+    or ``model.k == 0`` (the "no players_static rows" degenerate case).
+
+    Using one frozen model across many ``as_of_date`` snapshots is what
+    makes cluster label integers comparable over time (the per-snapshot
+    refit in :func:`build_player_archetypes`/:func:`build_archetype_history`
+    does NOT have this property on its own -- see that function's
+    docstring on why raw labels aren't comparable across independent fits).
+    """
+    if feature_frame.height == 0 or model.k == 0:
+        return pl.DataFrame(
+            {"player_id": [], "archetype": []},
+            schema={"player_id": pl.Int64, "archetype": pl.Int64},
+        )
+    X_raw = feature_frame.select(model.feature_columns).to_numpy()
+    X = model.scaler.transform(X_raw)
+    labels = model.kmeans.predict(X)
+    return feature_frame.select("player_id").with_columns(
+        pl.Series("archetype", labels.astype(np.int64))
+    )
 
 
 def build_player_archetypes(
@@ -389,8 +529,8 @@ def build_player_archetypes(
     archetype-history time series, where every snapshot should use the
     same k so cluster counts are comparable across dates).
     """
-    static = _players_static_asof(con, as_of_date)
-    if static.height == 0:
+    merged = build_player_feature_frame(con, as_of_date)
+    if merged.height == 0:
         empty = pl.DataFrame(
             {"player_id": [], "as_of_date": [], "archetype": []},
             schema={"player_id": pl.Int64, "as_of_date": pl.Utf8, "archetype": pl.Int64},
@@ -408,18 +548,6 @@ def build_player_archetypes(
             kmeans=kmeans,
             feature_columns=_NUMERIC_FEATURE_COLUMNS,
         )
-
-    tendencies = _latest_prior_tendencies(con, as_of_date)
-    merged = static.join(tendencies, on="player_id", how="left")
-    merged = merged.with_columns(
-        pl.col("shot_share_prior").fill_null(LEAGUE_SHOT_SHARE_DEFAULT).alias("shot_share"),
-        pl.col("zone_mix_above3_prior")
-        .fill_null(LEAGUE_ZONE_MIX_DEFAULT["above3"])
-        .alias("zone_mix_above3"),
-        pl.col("orb_rate_prior").fill_null(LEAGUE_ORB_RATE_DEFAULT).alias("orb_rate"),
-        pl.col("drb_rate_prior").fill_null(LEAGUE_DRB_RATE_DEFAULT).alias("drb_rate"),
-        pl.col("ast_rate_prior").fill_null(LEAGUE_AST_RATE_DEFAULT).alias("ast_rate"),
-    )
 
     X_raw = merged.select(_NUMERIC_FEATURE_COLUMNS).to_numpy()
     scaler = StandardScaler()
