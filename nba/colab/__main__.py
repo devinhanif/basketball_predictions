@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from nba.colab.drive import DriveNotFoundError, drive_root
+from nba.colab.drive import DriveNotFoundError, drive_root, sync_down, sync_up
 from nba.colab.jobs import JobError, list_jobs, load_job
 from nba.colab.pull import pull
 from nba.colab.push import push
@@ -40,11 +40,16 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         root = drive_root()
         if args.cmd == "push":
-            print(push(load_job(args.job), root, produce=not args.no_produce).instructions)
+            pushed = push(load_job(args.job), root, produce=not args.no_produce)
+            sync_up(pushed.run_dir, f"{args.job}/{pushed.run_id}")
+            print(pushed.instructions)
         elif args.cmd == "status":
             jobs = [args.job] if args.job else list_jobs()
+            for j in jobs:
+                sync_down(j)
             print(format_status([r for j in jobs for r in status(root, j)]))
         else:
+            sync_down(args.job)
             res = pull(
                 load_job(args.job),
                 root,
