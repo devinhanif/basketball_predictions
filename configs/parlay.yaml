@@ -1,0 +1,25 @@
+# Parlay / EV engine config. No rate is hardcoded in nba/parlay; everything below is read from here.
+fee_model:
+  name: kalshi_taker_formula
+  # fee = ceil_to_cent(coefficient * contracts * P * (1 - P)), P = price in dollars.
+  # VERIFY against Kalshi's current published fee schedule before trusting any EV;
+  # this value is a placeholder copied from memory of the schedule, not confirmed.
+  formula: p_one_minus_p
+  coefficient: 0.07
+  verified: false
+engine:
+  default: gaussian_copula        # independence | gaussian_copula | t_copula | possession_sim
+  n_sims: 20000
+  t_df: 6.0
+  seed: 20261008
+  corr_shrink_k: 200.0            # pseudo-count shrinking pairwise rho toward 0
+interval:
+  alpha: 0.20                     # 80% interval
+  calibration_logit_sd: 0.15      # extra marginal uncertainty on the logit scale
+  n_draws: 4000
+market_prior:
+  k: 100.0                        # weight = n_settled / (n_settled + k), gated by skill
+sizing:
+  kelly_fraction: 0.25
+  kelly_cap: 0.02                 # informational stake cap as bankroll fraction
+min_settled_for_claims: 30
