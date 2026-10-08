@@ -11,6 +11,8 @@ from nba.colab.jobs import Job
 from nba.colab.status import latest_artifact_dir, status
 
 RUNS_SUBDIR = Path("data/colab/runs")
+#: Data files kept out of the registry store (CLAUDE.md: never store raw data there).
+DATA_PATTERNS = ("*.parquet", "*.csv", "*.duckdb", "*.npz", "*.feather")
 
 
 @dataclass(frozen=True)
@@ -72,7 +74,14 @@ def pull(
         argv += ["--store-dir", str(store_dir)] if store_dir else []
         tags = [f"{k}={json.dumps(v)}" for k, v in job.tags.items()]
         tags += [f"source_run={run_id}"]
-        rc = registry_main([*argv, "import-artifacts", job.model_name, str(dest), "--tags", *tags])
+        # The registry refuses data files (OOF parquets etc.); register model files only.
+        model_dir = dest.parent / f"{run_id}__model"
+        if model_dir.exists():
+            shutil.rmtree(model_dir)
+        shutil.copytree(art, model_dir, ignore=shutil.ignore_patterns(*DATA_PATTERNS))
+        rc = registry_main(
+            [*argv, "import-artifacts", job.model_name, str(model_dir), "--tags", *tags]
+        )
         if rc != 0:
             raise ValueError("registry import-artifacts failed")
         registered = True
