@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+# Colab-executed job script (untyped torch on the Colab VM); kept out of strict type checking.
 """Regenerate ``seq_props.ipynb`` from ``seq_props_train.py`` (single source of truth).
 
 uv run python nba/colab/jobs/seq_props/build_notebook.py

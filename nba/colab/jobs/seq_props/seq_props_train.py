@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+# Colab-executed job script (untyped torch on the Colab VM); kept out of strict type checking.
 """Sequence props model (self-contained: numpy + pandas + torch only; runs on Colab).
 
 Input: ``seq_props.npz`` from ``nba.features.player_sequences`` (NBA_PARQUET points to it).
