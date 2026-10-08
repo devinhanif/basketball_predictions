@@ -266,3 +266,18 @@ Implementation (experiment 2+; `metrics.json` `experiment_tag` containing `exp2`
 verdict is not revisited. The A1 implementation note above and its experiment-1 rPIT numbers are
 superseded (they came from the flawed construction).
 
+
+## Experiment 2 — selection record from crashed run 20261008_140943 (recorded 2026-10-08, before any 2024 result exists)
+
+The full-budget run completed every arm and the 2023 selection, then the kernel died while writing
+artifacts (likely OOM assembling the combined OOF frame); the artifacts folder is empty, so NO 2024
+result from this run was ever seen. 2023 selection ratios (CRPS / recency-Normal CRPS, mean of 4 stats):
+xgb_v12_poisson_nb 0.9331 (best), xgb_v12_quantile 0.9384, xgb_v12_prodcfg 0.9472, catboost_v12 0.9482,
+xgb_v12_tuned 0.9490, xgb_v12_both 0.9493, xgb_v12_rel 0.9494, xgb_v12_pruned 0.9498, mlp_quantile 0.9519,
+xgb_v1_prodcfg 0.9611, v1_prod 0.9622, xgb_v1_tuned 0.9626, glm_poisson_nb 0.9676 (logit_thr: threshold
+metric only). Top-3: xgb_v12_poisson_nb, xgb_v12_quantile, xgb_v12_prodcfg.
+
+**The experiment-2 candidate is fixed as `xgb_v12_poisson_nb`** (selected on 2023 only). The rerun exists
+to produce 2024 OOF; if its own 2023 selection differs (GPU nondeterminism), both are reported and this
+recorded candidate is the one the keep rule is applied to. Note for the coverage check: this arm emits
+NegBin ppf (integer) quantiles, so amendment A1.1's documented ~±0.035 coverage uncertainty applies.
