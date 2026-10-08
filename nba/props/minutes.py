@@ -519,9 +519,7 @@ def fit_garbage_time_params(
     minutes = np.asarray(actual_minutes, dtype=float)
     obs_mean = float(minutes[blowout_cal].mean())
     gt_mu = float(
-        shrink_rate(
-            np.array([obs_mean]), np.array([n_cal]), cfg.default_mu, cfg.garbage_time_k
-        )[0]
+        shrink_rate(np.array([obs_mean]), np.array([n_cal]), cfg.default_mu, cfg.garbage_time_k)[0]
     )
     return GarbageTimeParams(gt_mu, n_cal, "")
 

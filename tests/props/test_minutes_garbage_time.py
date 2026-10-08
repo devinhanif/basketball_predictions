@@ -164,9 +164,7 @@ def test_predict_minutes_shrinks_mu_and_widens_sigma_for_blowouts(
     blowout_margin = np.full(feats.height, 35.0)  # >= threshold + scale -> w = 1.0
 
     baseline = predict_minutes(feats, MinutesModelConfig(use_garbage_time=False))
-    dists_close = predict_minutes(
-        feats, cfg, projected_margin=close_margin, garbage_time=gt_params
-    )
+    dists_close = predict_minutes(feats, cfg, projected_margin=close_margin, garbage_time=gt_params)
     dists_blowout = predict_minutes(
         feats, cfg, projected_margin=blowout_margin, garbage_time=gt_params
     )

@@ -73,9 +73,14 @@ def test_fit_is_noop_below_min_cal_n(con: duckdb.DuckDBPyConnection) -> None:
     _seed_games(con, n=5)
     feats = build_minutes_features(con, use_game_context=True)
     actual_played = np.ones(feats.height)
-    actual_minutes = feats.select("game_id", "player_id").join(
-        _actual_minutes_frame(con), on=["game_id", "player_id"], how="left"
-    ).select("minutes").to_series().fill_null(0.0).to_numpy()
+    actual_minutes = (
+        feats.select("game_id", "player_id")
+        .join(_actual_minutes_frame(con), on=["game_id", "player_id"], how="left")
+        .select("minutes")
+        .to_series()
+        .fill_null(0.0)
+        .to_numpy()
+    )
 
     cfg = MinutesModelConfig(use_learned_game_context=True, learned_context_min_cal_n=200)
     params = fit_learned_game_context(feats, actual_played, actual_minutes, cfg)
@@ -114,9 +119,14 @@ def test_fit_produces_coefficients_for_every_candidate_column(
         _insert_player_row(con, gid, 101, max(minutes, 0.0))
 
     feats = build_minutes_features(con, use_game_context=True)
-    actual = feats.select("game_id", "player_id").join(
-        _actual_minutes_frame(con), on=["game_id", "player_id"], how="left"
-    ).select("minutes").to_series().fill_null(0.0).to_numpy()
+    actual = (
+        feats.select("game_id", "player_id")
+        .join(_actual_minutes_frame(con), on=["game_id", "player_id"], how="left")
+        .select("minutes")
+        .to_series()
+        .fill_null(0.0)
+        .to_numpy()
+    )
     actual_played = (actual > 0.0).astype(float)
 
     cfg = MinutesModelConfig(use_learned_game_context=True, learned_context_min_cal_n=50)
@@ -212,9 +222,14 @@ def test_fit_uses_only_chronologically_earlier_rows(con: duckdb.DuckDBPyConnecti
         _insert_player_row(con, gid, 101, max(20.0 + rng.normal(0, 3), 0.0))
 
     feats_before = build_minutes_features(con, use_game_context=True)
-    actual_before = feats_before.select("game_id", "player_id").join(
-        _actual_minutes_frame(con), on=["game_id", "player_id"], how="left"
-    ).select("minutes").to_series().fill_null(0.0).to_numpy()
+    actual_before = (
+        feats_before.select("game_id", "player_id")
+        .join(_actual_minutes_frame(con), on=["game_id", "player_id"], how="left")
+        .select("minutes")
+        .to_series()
+        .fill_null(0.0)
+        .to_numpy()
+    )
     played_before = (actual_before > 0.0).astype(float)
     cfg = MinutesModelConfig(use_learned_game_context=True, learned_context_cal_frac=0.3)
     params_before = fit_learned_game_context(feats_before, played_before, actual_before, cfg)
@@ -227,9 +242,14 @@ def test_fit_uses_only_chronologically_earlier_rows(con: duckdb.DuckDBPyConnecti
     feats_after = build_minutes_features(con, use_game_context=True).filter(
         pl.col("game_id") != "g_future"
     )
-    actual_after = feats_after.select("game_id", "player_id").join(
-        _actual_minutes_frame(con), on=["game_id", "player_id"], how="left"
-    ).select("minutes").to_series().fill_null(0.0).to_numpy()
+    actual_after = (
+        feats_after.select("game_id", "player_id")
+        .join(_actual_minutes_frame(con), on=["game_id", "player_id"], how="left")
+        .select("minutes")
+        .to_series()
+        .fill_null(0.0)
+        .to_numpy()
+    )
     played_after = (actual_after > 0.0).astype(float)
     # cal_frac=0.3 of 300 rows (90) is unchanged by appending one row at
     # the very end, so the fit over the *same first 90 rows* must be
