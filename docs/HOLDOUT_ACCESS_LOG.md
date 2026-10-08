@@ -41,6 +41,7 @@ currently **no genuinely virgin confirmatory holdout.** Treat every
 |---|---|---|---|---|---|
 | 2026-10-08 | _(pre-session, unlogged)_ | props / routing / matchup / minutes (all prior work) | all | repeated-use | **Burned.** Retroactively marks `season=2025` as non-virgin; see FDR audit §3. |
 | 2026-10-08 | `scratchpad/run_3a.py` (matchup 3A A/B) | props opponent-adjust (baseline/team/archetype) | pts,reb,ast,fg3m | repeated-use (full 2022-10-18..2026-06-13, no `split_frozen_holdout`) | Exploratory. Archetype factor regressed all stats; rebounds gate FAIL → no signal, flag off. Not a clean-holdout confirmation. |
+| 2026-10-08 | `scratchpad/run_points_retest.py` (points sim vs season-avg @ n_sims=2000) | points sim router candidate | pts | repeated-use (same rows as the n_sims=500 tie; full data) | PRE-REGISTERED exploratory diagnostic. Pooled against Family-A (m=3); ~3x underpowered; NOT confirmatory. Result appended on completion. |
 
 _Append new confirmatory touches above this line. Points n_sims=2000 retest and
 rung-4 `season=2025` confirmatory eval must each pre-register a row here before
