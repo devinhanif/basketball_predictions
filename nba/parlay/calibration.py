@@ -102,3 +102,40 @@ def comparison_table(rows: Sequence[PairedComparison]) -> str:
             f"[{r.ci_lo:+.5f}, {r.ci_hi:+.5f}] | {'yes' if r.a_better_significant else 'no'} |"
         )
     return "\n".join(lines)
+
+
+def clustered_paired_bootstrap(
+    loss_a: NDArray[np.float64],
+    loss_b: NDArray[np.float64],
+    groups: Sequence[str] | NDArray[np.str_],
+    *,
+    metric: str,
+    names: tuple[str, str],
+    n_boot: int = 2000,
+    alpha: float = 0.05,
+    seed: int = 0,
+) -> PairedComparison:
+    """Paired bootstrap resampling whole groups (games); statistic = mean per-parlay diff.
+
+    Parlays from one game share outcomes, so they are NOT independent; resampling games with
+    replacement keeps that dependence. ``n`` in the result is the number of parlays.
+    """
+    d = np.asarray(loss_a, dtype=float) - np.asarray(loss_b, dtype=float)
+    _, inv = np.unique(np.asarray(groups), return_inverse=True)
+    ng = int(inv.max()) + 1
+    gsum = np.bincount(inv, weights=d, minlength=ng)
+    gcnt = np.bincount(inv, minlength=ng).astype(float)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, ng, size=(n_boot, ng))
+    means = gsum[idx].sum(axis=1) / gcnt[idx].sum(axis=1)
+    lo, hi = np.quantile(means, [alpha / 2, 1 - alpha / 2])
+    return PairedComparison(
+        metric=metric,
+        engine_a=names[0],
+        engine_b=names[1],
+        n=len(d),
+        mean_diff=float(d.mean()),
+        ci_lo=float(lo),
+        ci_hi=float(hi),
+        a_better_significant=bool(hi < 0.0),
+    )

@@ -1,15 +1,18 @@
 # Parlay / EV engine config. No rate is hardcoded in nba/parlay; everything below is read from here.
 fee_model:
-  name: kalshi_taker_formula
-  # fee = ceil_to_cent(coefficient * contracts * P * (1 - P)), P = price in dollars.
-  # VERIFY against Kalshi's current published fee schedule before trusting any EV;
-  # 2026-10-08: matches third-party summaries of the taker formula and reproduces Kalshi's
-  # published example (100 @ $0.55 -> $1.74). Unresolved: whether sports has a lower rate
-  # and maker = 25% of taker. Taker is the conservative choice (we price at the ask).
-  # Flip verified: true only after checking Kalshi's official fee schedule page.
+  name: kalshi_fee_schedule
+  # fee = ceil_to_cent(M * coefficient * contracts * P * (1 - P)), P = price in dollars,
+  # rounded UP once per ORDER (not per contract). M = per-market fee multiplier (below).
   formula: p_one_minus_p
-  coefficient: 0.07
-  verified: false
+  coefficient: 0.07           # taker
+  maker_coefficient: 0.0175   # maker (25% of taker); informational alternative only
+  verified: true
+  source: "user-provided from Kalshi published fee schedule, 2026-10-08"
+  default_multiplier: 1.0
+  # Longest matching series-ticker prefix wins; unlisted series use default_multiplier.
+  fee_multiplier: {}
+  # e.g. fee_multiplier: {KXNBAGAME: 0.5}
+  default_order_type: taker   # we price at the ask; maker would rest at a better price w/ fill risk
 engine:
   default: gaussian_copula        # independence | gaussian_copula | t_copula | possession_sim
   n_sims: 20000

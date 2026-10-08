@@ -19,22 +19,42 @@ NO_POSITIVE_EV = "no_positive_ev_found"
 POSITIVE_EV = "positive_ev_at_conservative_bound"
 
 
-def fee_per_contract(price: float, fee: FeeModel, contracts: int = 1) -> float:
-    """Total fee in dollars for ``contracts`` bought at ``price`` (dollars, 0..1).
+def order_fee(
+    price: float,
+    fee: FeeModel,
+    contracts: int = 1,
+    *,
+    order_type: str = "taker",
+    series: str = "",
+) -> float:
+    """Total fee in dollars for one order: ceil_to_cent(M * rate * C * P * (1 - P)).
 
-    Rounded UP to the cent on the whole order, as in the published formula shape.
+    Rounded UP once per order (not per contract).
     """
     if not 0.0 <= price <= 1.0:
         raise ValueError("price must be in [0, 1]")
     if contracts <= 0:
         raise ValueError("contracts must be positive")
+    rate = fee.rate(order_type)
     if fee.formula == "p_one_minus_p":
-        raw = fee.coefficient * contracts * price * (1.0 - price)
+        raw = fee.multiplier(series) * rate * contracts * price * (1.0 - price)
     elif fee.formula == "flat":
-        raw = fee.coefficient * contracts
+        raw = fee.multiplier(series) * rate * contracts
     else:
         raise ValueError(f"unknown fee formula {fee.formula!r}")
-    return math.ceil(round(raw * 100.0, 9)) / 100.0 / contracts if raw > 0 else 0.0
+    return math.ceil(round(raw * 100.0, 9)) / 100.0 if raw > 0 else 0.0
+
+
+def fee_per_contract(
+    price: float,
+    fee: FeeModel,
+    contracts: int = 1,
+    *,
+    order_type: str = "taker",
+    series: str = "",
+) -> float:
+    """Per-contract share of the per-order fee (``order_fee / contracts``)."""
+    return order_fee(price, fee, contracts, order_type=order_type, series=series) / contracts
 
 
 def ev_per_contract(prob: float, ask: float, fee: FeeModel) -> float:
@@ -90,6 +110,9 @@ class Recommendation:
     spread: float | None = None
     kelly: float = 0.0
     n_settled_track: int = 0
+    raw_ev: float = 0.0  # unshrunk model EV: a hypothesis to test, not a signal
+    raw_ev_low: float = 0.0
+    order_type: str = "taker"
     note: str = "Informational only; not financial advice. Estimated edges are noisy."
 
     def to_dict(self) -> dict[str, Any]:
@@ -108,6 +131,9 @@ class Recommendation:
             "spread": self.spread,
             "kelly": self.kelly,
             "n_settled_track": self.n_settled_track,
+            "raw_ev": self.raw_ev,
+            "raw_ev_low": self.raw_ev_low,
+            "order_type": self.order_type,
             "note": self.note,
         }
 
@@ -125,6 +151,8 @@ def evaluate(
     n_settled: int = 0,
     skill: float = 0.0,
     seed: int = 0,
+    order_type: str | None = None,
+    series: str = "",
 ) -> Recommendation:
     """Full contract. Cost uses the ASK (never the mid); spread reported if bid given.
 
@@ -132,7 +160,10 @@ def evaluate(
     model is shrunk toward it; with no track record (n_settled=0 or skill<=0) the
     market wins entirely, which makes a positive-EV verdict unreachable by construction.
     """
-    fee = fee_per_contract(ask, cfg.fee)
+    ot = order_type or cfg.order_type
+    fee = fee_per_contract(ask, cfg.fee, order_type=ot, series=series)
+    if n_settled < cfg.min_settled:  # too little track record to trust any model weight
+        skill = 0.0
     market = ask if bid is None else (ask + bid) / 2.0
     p_use, w = shrink_to_market(joint_prob, market, n_settled, cfg.prior_k, skill)
     lo, hi = prob_interval(
@@ -152,6 +183,8 @@ def evaluate(
     hi_s = w * hi + (1 - w) * market
     ev = p_use - ask - fee
     ev_low = lo_s - ask - fee
+    raw_ev = joint_prob - ask - fee
+    raw_ev_low = lo - ask - fee
     verdict = POSITIVE_EV if ev_low > 0.0 else NO_POSITIVE_EV
     return Recommendation(
         legs=[leg.to_dict() for leg in legs],
@@ -168,4 +201,7 @@ def evaluate(
         spread=None if bid is None else ask - bid,
         kelly=kelly_fraction(lo_s, ask + fee, cfg.kelly_fraction, cfg.kelly_cap),
         n_settled_track=n_settled,
+        raw_ev=raw_ev,
+        raw_ev_low=raw_ev_low,
+        order_type=ot,
     )
