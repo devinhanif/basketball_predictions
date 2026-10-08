@@ -27,6 +27,14 @@ from pathlib import Path as _P
 
 _JOB, _RUN = {job!r}, {run!r}
 _FORCED_ENV = {env!r}
+# Mount Drive here: this cell runs before the notebook's own mount cell.
+if not _P("/content/drive/MyDrive").exists():
+    try:
+        from google.colab import drive as _drive
+
+        _drive.mount("/content/drive")
+    except Exception as _e:  # not in Colab, or mount unsupported: fall back below
+        print("drive.mount skipped:", _e)
 _CANDS = [
     _P("/content/drive/MyDrive/nba_colab") / _JOB / _RUN,  # Drive mounted
     _P.cwd(),  # opened from the Drive folder (e.g. VS Code), or files uploaded next to it
