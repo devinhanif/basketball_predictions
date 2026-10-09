@@ -161,9 +161,17 @@ def test_run_writes_only_pre_tipoff_rows_with_asof_marker(con: duckdb.DuckDBPyCo
 
 
 def test_second_run_is_append_only(con: duckdb.DuckDBPyConnection) -> None:
-    _run(con, before_tip(120), with_props=False)
-    _run(con, before_tip(60), with_props=False)
+    _run(con, before_tip(120), with_props=False, dedup=False)
+    _run(con, before_tip(60), with_props=False, dedup=False)
     assert con.execute("SELECT count(*) FROM forward_predictions").fetchone() == (4,)
+
+
+def test_second_identical_run_is_deduped_and_reported(con: duckdb.DuckDBPyConnection) -> None:
+    s1 = _run(con, before_tip(120), with_props=False)
+    s2 = _run(con, before_tip(60), with_props=False)
+    assert (s1.n_rows_written, s1.n_rows_deduped) == (2, 0)  # type: ignore[attr-defined]
+    assert (s2.n_rows_written, s2.n_rows_deduped) == (0, 2)  # type: ignore[attr-defined]
+    assert con.execute("SELECT count(*) FROM forward_predictions").fetchone() == (2,)
 
 
 # -- injury ------------------------------------------------------------------

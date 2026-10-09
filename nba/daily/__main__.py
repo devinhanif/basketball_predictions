@@ -139,6 +139,7 @@ def _print_summary(s: RunSummary) -> None:
     print(
         f"run {s.run_id} date={s.run_date} slate={s.n_slate} predicted={s.n_predicted_games} "
         f"refused_after_tipoff={s.n_refused_after_tipoff} rows={s.n_rows_written} "
+        f"deduped={s.n_rows_deduped} "
         f"props={s.n_props_rows} injury={s.injury_status} ({s.injury_report_et}) "
         f"out_excluded={s.n_out_excluded}"
     )

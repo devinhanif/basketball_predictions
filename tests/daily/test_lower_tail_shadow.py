@@ -45,7 +45,9 @@ def test_shadow_rows_primary_byte_identical_settle_and_live_rule() -> None:
         ScheduledGame("0022600901", tip, T1, T2),
         ScheduledGame("0022600902", tip + timedelta(hours=3), T3, T4),
     ]
-    kw = dict(schedule_fn=lambda s: games, skip_ingest=True, skip_injury=True, n_sims=50)
+    kw = dict(
+        schedule_fn=lambda s: games, skip_ingest=True, skip_injury=True, n_sims=50, dedup=False
+    )
     s0 = run_daily(c, AS_OF, now=tip - timedelta(hours=4), **kw)  # type: ignore[arg-type]
     s1 = run_daily(c, AS_OF, now=tip - timedelta(hours=3), log_lower_tail_variant=True, **kw)  # type: ignore[arg-type]
     assert LT not in s0.model_status and "SHADOW" in s1.model_status[LT]

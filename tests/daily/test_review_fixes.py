@@ -79,7 +79,9 @@ def test_shadow_failures_leave_primary_rows_unchanged(monkeypatch: pytest.Monkey
         ScheduledGame("0022600901", tip, T1, T2),
         ScheduledGame("0022600902", tip + timedelta(hours=3), T3, T4),
     ]
-    kw = dict(schedule_fn=lambda s: games, skip_ingest=True, skip_injury=True, n_sims=50)
+    kw = dict(
+        schedule_fn=lambda s: games, skip_ingest=True, skip_injury=True, n_sims=50, dedup=False
+    )
     base = run_daily(c, AS_OF, now=tip - timedelta(hours=5), **kw)  # type: ignore[arg-type]
     base_rows = _primary(c, base.run_id)
     assert base_rows and not base.shadow_errors

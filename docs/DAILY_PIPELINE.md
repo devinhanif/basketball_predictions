@@ -323,3 +323,67 @@ are ignored (re-probed once).
   good fetch) is refused; the original fetch error is raised (rc nonzero, alert).
 - Shadow-arm failures (`RunSummary.shadow_errors`) append one `[daily-run]` line to
   `data/ops/ALERTS.md`; rc stays 0 because primary rows are unaffected.
+
+## Forward-prediction storage: write-on-change (replay finding, 2026-10-09)
+
+The 2025-26 systems replay (`data/rehearsal/replay2025/summary.json`: 210 dates, 877 runs) stored
+1,403,829 `forward_predictions` rows, 1.49 GB of JSON (work DB 1.05 GB), because each run re-wrote the
+whole slate. Live pretip runs every 30 min (about 26 runs a day), so the same table would grow
+roughly 6x faster (about 9 GB of JSON a season).
+
+**Rule** (`nba.daily.store.append_predictions_ex(..., dedup=True)`, used by `run_daily` and on by
+default; `run_daily(dedup=False)` restores the old behaviour):
+
+* The `LeakageError` tip-off check runs first, on the whole batch, exactly as before.
+* A row's content hash is `sha256(tipoff, sorted-key prediction JSON)`. `made_at`/`run_id` are not
+  part of it. Two slate-level diagnostics that change every run without changing the forecast
+  (`n_games_with_report`, `n_slate_games`; read by no scorer) are excluded from the hash but still
+  stored on every row that is written.
+* Rows are grouped by `(game_id, player_id, target)` (all arms/models of one forecast). A group is
+  skipped only if EVERY member equals the latest stored row for its key
+  `(model_name, version, target, game_id, player_id)` and that row's `made_at <= this made_at`.
+  Otherwise the whole group is written. Writing groups together keeps the arms of a forecast on one
+  `run_id`, so the checkpoint's `same_run` pairing (`_int`, `_lt` arms) is unchanged.
+* Nothing is updated or deleted; append-only still holds.
+
+**Why selection is unchanged.** `settle_eligible_pending` / `checkpoint` pick, per key, the row with
+the greatest `made_at <= tipoff - lead` (T-30 arm: also the snapshot cutoff). A skipped row is by
+construction content-identical (including `tipoff`) to the latest stored row before it, so the
+latest stored row at any cutoff has exactly the content the full log would have had there. Only
+`run_id`/`made_at` of the eligible row (earlier run, same content) and the two diagnostic counters
+can differ. `tests/daily/test_store_dedup.py` runs a seven-run synthetic day with and without dedup
+and asserts identical `forward_scores_elig` (all columns except run_id/made_at/scored_at), identical
+`forward_scores`, and identical `paired_deltas(same_run=True)` with 0 run mismatches.
+
+**Run summary.** Each run reports `rows` (written) and `deduped` (skipped) in the CLI line and
+`RunSummary.n_rows_written` / `n_rows_deduped` (replay: `rows_deduped` in the per-run record). The
+T-30 arm is not deduped (one decision per game, snapshot-dependent content).
+
+**Estimate** (measured on the replay's own table, applying the same change rule): 410,368 of
+1,403,829 rows (29%) and 436 MB of 1,493 MB JSON (29%) are new or changed; group-level writing costs
+only 2% more than per-key. That is about 1.2 writes per key per day against 4.2 runs. Live per-season
+estimate: about 1.2 to 3 writes per key per day, i.e. roughly 0.4 to 1.1 GB of JSON (about 0.3 to 0.8
+GB in DuckDB) instead of about 9 GB; the high end assumes injury/lineup information changes about
+twice as often live as in the replay. A run that finds nothing new writes 0 rows. Measure the real
+figure from `deduped` in the daily logs after a week. `p_ge_full` is already a compact integer-count
+form (`{"n","c"}`, cut at the 99.9% tail); recompressing it would change stored output, so it is left.
+
+**Consumer note.** `nba.markets capture` records market state per stored row, so it now captures at
+change times rather than at every run; the as-of rule is unaffected.
+
+## Kalshi DB safety (replay finding, 2026-10-09)
+
+During the replay a process held a write lock on `data/kalshi/kalshi.duckdb`, so the 15-minute
+snapshot failed ("Could not set lock", 13:22 CDT). Cause: `python -m nba.kalshi` opens
+`--db` (default: the live file) WRITABLE for every command, including `backfill-historical`
+(`data/rehearsal/kalshi_candles_backfill.log` is one at 13:22), `cutoff`, `markets`, `candles` and
+even `alias-candidates` (which only writes JSON files). `nba.daily.replay_season`, `nba.parlay`
+(evaluate, `--settle`, analyze, assistant) and `nba.markets` were already READ_ONLY (or used the
+copied working file).
+
+Fixes: `nba.kalshi` now refuses `backfill-historical`, `cutoff`, `markets`, `candles` when `--db`
+resolves to the live file (pass a separate `--db`, then merge); `alias-candidates` opens no DB; only
+`snapshot` may write the live file; `make_hidden_kalshi` refuses the live path as its working copy.
+`tests/kalshi/test_db_safety.py` checks the guard, that consumer openers are read-only (writable
+open of a 0444 file fails, theirs succeeds), and a static scan that every `ATTACH` in `nba/` is
+`READ_ONLY`.

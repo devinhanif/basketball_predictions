@@ -77,8 +77,31 @@ def _load_config(path: str) -> dict[str, Any]:
     return loaded
 
 
+WRITER_COMMANDS = frozenset({"cutoff", "backfill-historical", "markets", "candles"})
+
+
+def is_real_kalshi_db(path: str | Path) -> bool:
+    """True when ``path`` resolves to the live snapshot database (``DEFAULT_KALSHI_DB``)."""
+    if str(path) == ":memory:":
+        return False
+    return Path(path).resolve() == Path(DEFAULT_KALSHI_DB).resolve()
+
+
+def guard_real_db(command: str, db: str | Path) -> None:
+    """Only the 15-minute ``snapshot`` job may hold a write lock on the real Kalshi DB.
+
+    Backfills and the other pull commands must be pointed at a separate file with ``--db`` (merge
+    afterwards); this is what keeps the snapshot job from failing with "Could not set lock"."""
+    if command in WRITER_COMMANDS and is_real_kalshi_db(db):
+        raise SystemExit(
+            f"refusing: `{command}` would open the live Kalshi DB {db} writable; only `snapshot` "
+            "may. Pass --db <separate file> (see docs/KALSHI_LIVE_2026-10-08.md for the merge)."
+        )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    guard_real_db(args.command, args.db)
     cfg = _load_config(args.config)
     series: list[str] = list(cfg["game_series"]) + list(cfg["prop_series"])
     limiter = RateLimiter(min_interval_s=args.rate_limit_s or float(cfg["rate_limit_s"]))
@@ -92,6 +115,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         for s in sorted(listing.get("series", []), key=lambda x: x["ticker"]):
             if s["ticker"].startswith(("KXNBA", "KXNBL")) or "NBA" in s.get("title", "").upper():
                 print(f"{s['ticker']}\t{s['title']}\t{s.get('frequency')}")
+        return 0
+
+    if args.command == "alias-candidates":  # file-only: never opens any DuckDB
+        path = data_dir / "unmatched_names.json"
+        names = sorted(json.loads(path.read_text())) if path.exists() else []
+        cands = propose_alias_candidates(names)
+        out = data_dir / "alias_candidates.json"
+        out.write_text(json.dumps(cands, indent=1))
+        unique = sum(1 for v in cands.values() if len(v) == 1)
+        print(f"{len(names)} unmatched names; {unique} have exactly one candidate -> {out}")
         return 0
 
     con = connect(args.db)
@@ -166,14 +199,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 prior[name] = max(prior.get(name, 0), n)
             path.write_text(json.dumps(prior, indent=1, sort_keys=True))
         rc = 1 if brep.failures else 0
-    elif args.command == "alias-candidates":
-        path = data_dir / "unmatched_names.json"
-        names = sorted(json.loads(path.read_text())) if path.exists() else []
-        cands = propose_alias_candidates(names)
-        out = data_dir / "alias_candidates.json"
-        out.write_text(json.dumps(cands, indent=1))
-        unique = sum(1 for v in cands.values() if len(v) == 1)
-        print(f"{len(names)} unmatched names; {unique} have exactly one candidate -> {out}")
     elif args.command == "markets":
         cutoff = get_cutoff(con, client, data_dir=data_dir)
         n = pull_markets_for_series(

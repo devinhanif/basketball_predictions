@@ -56,7 +56,12 @@ from nba.daily.schedule import (
 )
 from nba.daily.season import season_int_for_date, season_str_for_date
 from nba.daily.settle import settle_pending
-from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
+from nba.daily.store import (
+    ForwardPrediction,
+    LeakageError,
+    append_predictions_ex,
+    ensure_tables,
+)
 from nba.features.game_tipoff import persist_live_tips
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.ingest.games import MAX_VALID_TEAM_ID, MIN_VALID_TEAM_ID
@@ -85,6 +90,8 @@ class RunSummary:
     n_predicted_games: int = 0
     n_refused_after_tipoff: int = 0
     n_rows_written: int = 0
+    #: rows identical to the latest stored row of their key (write-on-change): not re-inserted
+    n_rows_deduped: int = 0
     n_props_rows: int = 0
     injury_report_et: str | None = None
     injury_status: str = "skipped"
@@ -128,13 +135,18 @@ def run_daily(
     tips_dir: Path | None = None,
     static_fetch: Callable[[int], pl.DataFrame] | None = None,
     schedule_cache_dir: Path | None = None,
+    dedup: bool = True,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC.
 
     A failed ingest or schedule fetch degrades instead of aborting: ingest is skipped (features
     are strictly pre-slate) and the schedule falls back to the last good copy in
     ``schedule_cache_dir``; both are recorded in ``summary.errors``. With no cached schedule the
-    schedule error is re-raised."""
+    schedule error is re-raised.
+
+    ``dedup`` (default on) is write-on-change for ``forward_predictions``: rows identical to the
+    latest stored row of their key are not re-inserted (``summary.n_rows_deduped``); see
+    docs/DAILY_PIPELINE.md."""
     made_at = now if now is not None else utcnow()
     ensure_tables(con)
     summary = RunSummary(run_id=uuid.uuid4().hex[:12], run_date=run_date)
@@ -200,7 +212,9 @@ def run_daily(
             log_int_variant, log_lower_tail_variant,
         )  # fmt: skip
         try:
-            summary.n_rows_written = append_predictions(con, summary.run_id, made_at, preds)
+            summary.n_rows_written, summary.n_rows_deduped = append_predictions_ex(
+                con, summary.run_id, made_at, preds, dedup=dedup
+            )
         except LeakageError:
             summary.n_refused_after_tipoff += len(upcoming)
             raise
