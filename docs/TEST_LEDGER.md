@@ -128,3 +128,9 @@ bounds), not because any effect is believed false.
 | T076 | 2026-10-08 | CTXRES_V2 exp1 (docs/CTXRES_V2.md) | fg3m: xgb_v12_quantile (2023-selected) - v1_prod CRPS, 2024 | -0.0205 | -0.0218 | -0.0191 | clus | 0.0005 | FAIL cov80 0.867 (>0.85) | not holdout (2024) |
 
 **CTXRES_V2 exp1 verdict (T073-T076):** NOT KEPT overall (rule requires all 4 stats; fg3m 80% coverage 0.867 outside 0.75-0.85). Isotonic threshold calibration passes all 4 stats. Completion run 20261008_140126 supplied the candidate's 2024 rows (procedural fix, documented).
+| T077 | 2026-10-08 | CTXRES_V2 exp2 (docs/CTXRES_V2.md) | pts: xgb_v12_poisson_nb (recorded candidate) - v1_prod CRPS, 2024 | -0.0299 | -0.0388 | -0.0209 | clus | 0.0005 | FAIL (slice regression; PIT cov 0.716; bias +0.172) | not holdout (2024) |
+| T078 | 2026-10-08 | CTXRES_V2 exp2 (docs/CTXRES_V2.md) | reb: xgb_v12_poisson_nb (recorded candidate) - v1_prod CRPS, 2024 | -0.0505 | -0.0541 | -0.0466 | clus | 0.0005 | pass | not holdout (2024) |
+| T079 | 2026-10-08 | CTXRES_V2 exp2 (docs/CTXRES_V2.md) | ast: xgb_v12_poisson_nb (recorded candidate) - v1_prod CRPS, 2024 | -0.0303 | -0.0324 | -0.0281 | clus | 0.0005 | pass | not holdout (2024) |
+| T080 | 2026-10-08 | CTXRES_V2 exp2 (docs/CTXRES_V2.md) | fg3m: xgb_v12_poisson_nb (recorded candidate) - v1_prod CRPS, 2024 | -0.0321 | -0.0336 | -0.0306 | clus | 0.0005 | pass | not holdout (2024) |
+
+**CTXRES_V2 exp2 verdict (T077-T080):** NOT KEPT overall (pts fails). Rerun's own 2023 selection matched the recorded candidate. Descriptive (docs/CTXRES_V2_EXP2_RESULTS.md): best pts arm = xgb_v12_quantile (-0.0758); Poisson/NB best for reb/ast/fg3m; drop-one ablation: opponent-adjusted ridge (group i) carries nearly all of v2's gain (pts +0.066, reb +0.035 when dropped); other groups individually ~0.
