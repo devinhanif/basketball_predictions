@@ -33,6 +33,7 @@ import polars as pl
 from nba.ingest.boxscores import _parse_minutes
 from nba.ingest.cache import (
     DEFAULT_DATA_DIR,
+    CircuitBreaker,
     RateLimiter,
     cache_path_for,
     fetch_cached,
@@ -424,6 +425,7 @@ class FetchSummary:
     cached: int = 0
     fetched: int = 0
     failed: list[str] = field(default_factory=list)
+    stopped_early: bool = False
 
 
 def scope_game_ids(nba_db: str | Path) -> list[str]:
@@ -505,6 +507,29 @@ def build_keys(source: str, nba_db: str | Path) -> list[Work]:
     return out
 
 
+def filter_seasons(source: str, keys: list[Work], seasons: list[int]) -> list[Work]:
+    """Keep game-id keyed work whose season (``00TYYxxxxx``) is in ``seasons``.
+
+    Team-season keyed sources (shots, coaches) are returned unfiltered.
+    """
+    if source in ("shots", "coaches"):
+        return keys
+    yy = {f"{s % 100:02d}" for s in seasons}
+    return [w for w in keys if w[0][3:5] in yy]
+
+
+def order_newest_first(source: str, keys: list[Work]) -> list[Work]:
+    """Newest season first for game-id keyed sources (``00TYYxxxxx``: YY = season start).
+
+    Sorting on the 2-digit season then the id keeps playoffs (``004...``) inside their
+    own season instead of ahead of every regular season. Team-season keyed sources
+    (shots, coaches) are left in scope order.
+    """
+    if source in ("shots", "coaches"):
+        return keys
+    return sorted(keys, key=lambda w: (w[0][3:5], w[0]), reverse=True)
+
+
 def fetch_source(
     source: str,
     nba_db: str | Path,
@@ -512,11 +537,14 @@ def fetch_source(
     data_dir: Path = DEFAULT_DATA_DIR,
     rate_limiter: RateLimiter | None = None,
     limit: int | None = None,
+    newest_first: bool = False,
     log_every: int = 100,
     sleep: Callable[[float], None] = time.sleep,
     breaker_failures: int = 3,
     breaker_cooldown_s: float = 600.0,
     breaker_max_trips: int = 6,
+    breaker_cooldown_cap_s: float | None = None,
+    seasons: list[int] | None = None,
 ) -> FetchSummary:
     """Fetch every in-scope key for ``source`` into the parquet cache. Resumable.
 
@@ -525,6 +553,10 @@ def fetch_source(
     ``breaker_max_trips`` pauses, stop early (failed keys stay un-done, so a rerun resumes).
     """
     keys = build_keys(source, nba_db)
+    if seasons is not None:
+        keys = filter_seasons(source, keys, seasons)
+    if newest_first:
+        keys = order_newest_first(source, keys)
     if limit is not None:
         keys = keys[:limit]
     summary = FetchSummary(source=source, total=len(keys))
@@ -532,8 +564,13 @@ def fetch_source(
     log = open_db(sidecar_path(source, data_dir))
     try:
         t0 = time.monotonic()
-        streak = 0
-        trips = 0
+        brk = CircuitBreaker(
+            failures=breaker_failures,
+            cooldown_s=breaker_cooldown_s,
+            max_trips=breaker_max_trips,
+            sleep=sleep,
+            cooldown_cap_s=breaker_cooldown_cap_s,
+        )
         for i, (key, fn, allow_empty) in enumerate(keys, 1):
             done = log.execute(
                 "SELECT 1 FROM ingest_log WHERE source=? AND key=? AND status='done'",
@@ -553,23 +590,13 @@ def fetch_source(
                     allow_empty=allow_empty,
                 )
                 summary.fetched += 1
-                streak = 0
+                brk.success()
             except Exception as exc:  # logged failed; continue
                 summary.failed.append(key)
                 print(f"FAILED {source}[{key}]: {type(exc).__name__}: {str(exc)[:120]}", flush=True)
-                streak += 1
-                if streak >= breaker_failures:
-                    trips += 1
-                    if trips > breaker_max_trips:
-                        print(f"{source}: breaker tripped {trips - 1}x; stopping (rerun resumes)")
-                        break
-                    print(
-                        f"{source}: {streak} consecutive failures; cooling down "
-                        f"{breaker_cooldown_s:.0f}s (trip {trips}/{breaker_max_trips})",
-                        flush=True,
-                    )
-                    sleep(breaker_cooldown_s)
-                    streak = 0
+                if brk.failure():
+                    summary.stopped_early = True
+                    break
             if i % log_every == 0:
                 rate = summary.fetched / max(time.monotonic() - t0, 1e-9)
                 print(

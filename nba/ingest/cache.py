@@ -8,7 +8,8 @@ being installed.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypeVar
 
@@ -189,3 +190,113 @@ def iter_skip_cached(
     for key in keys:
         if not is_cached(con, source, key):
             yield key
+
+
+class CircuitBreaker:
+    """Pause after consecutive failures; give up after too many pauses.
+
+    stats.nba.com throttles bursts by timing out every request. After
+    ``failures`` consecutive failures the breaker sleeps ``cooldown_s``
+    (one "trip"); after ``max_trips`` trips it tells the caller to stop so a
+    rerun (everything is resumable) can pick up later. Same policy as
+    ``nba.ingest.postgame.fetch_source``.
+    """
+
+    def __init__(
+        self,
+        failures: int = 3,
+        cooldown_s: float = 600.0,
+        max_trips: int = 6,
+        sleep: Callable[[float], None] = time.sleep,
+        cooldown_cap_s: float | None = None,
+    ) -> None:
+        self.failures = failures
+        self.cooldown_s = cooldown_s
+        self.cooldown_cap_s = cooldown_cap_s if cooldown_cap_s is not None else cooldown_s
+        self.max_trips = max_trips
+        self._sleep = sleep
+        self.streak = 0
+        self.trips = 0
+
+    def success(self) -> None:
+        self.streak = 0
+        self.trips = 0  # recovered: the next block starts the escalation over
+
+    def next_cooldown_s(self) -> float:
+        """Escalating cool-down: base * 2**(trips-1), capped (flat when cap == base)."""
+        return float(min(self.cooldown_s * 2 ** max(self.trips - 1, 0), self.cooldown_cap_s))
+
+    def failure(self) -> bool:
+        """Record a failure. Returns True when the caller must stop early."""
+        self.streak += 1
+        if self.streak < self.failures:
+            return False
+        self.trips += 1
+        if self.trips > self.max_trips:
+            print(f"breaker tripped {self.trips - 1}x; stopping (rerun resumes)", flush=True)
+            return True
+        wait = self.next_cooldown_s()
+        print(
+            f"{self.streak} consecutive failures; cooling down {wait:.0f}s "
+            f"(trip {self.trips}/{self.max_trips})",
+            flush=True,
+        )
+        self._sleep(wait)
+        self.streak = 0
+        return False
+
+
+@dataclass
+class LoopSummary:
+    total: int = 0
+    cached: int = 0
+    fetched: int = 0
+    failed: list[str] = field(default_factory=list)
+    stopped_early: bool = False
+
+
+def pull_ids_with_breaker(
+    con: duckdb.DuckDBPyConnection,
+    source: str,
+    ids: Sequence[str],
+    pull_fn: Callable[[str], object],
+    *,
+    breaker: CircuitBreaker | None = None,
+    label: str = "",
+    log_every: int = 100,
+) -> LoopSummary:
+    """Run ``pull_fn(id)`` for every id with failure isolation and a circuit breaker.
+
+    Already-cached ids are still passed to ``pull_fn`` (it re-upserts from the
+    parquet cache without a network call) so the target DB is always filled.
+    A failure is logged and skipped (``fetch_cached`` already marked it
+    'failed', so a rerun retries it); the breaker pauses/stops on streaks.
+    Prints ``PROGRESS`` lines every ``log_every`` ids for the queue runner.
+    """
+    brk = breaker or CircuitBreaker()
+    out = LoopSummary(total=len(ids))
+    t0 = time.monotonic()
+    for i, gid in enumerate(ids, 1):
+        was_cached = is_cached(con, source, gid)
+        try:
+            pull_fn(gid)
+        except Exception as exc:
+            out.failed.append(gid)
+            print(f"FAILED {source}[{gid}]: {type(exc).__name__}: {str(exc)[:120]}", flush=True)
+            if brk.failure():
+                out.stopped_early = True
+                break
+            continue
+        brk.success()
+        if was_cached:
+            out.cached += 1
+        else:
+            out.fetched += 1
+        if i % log_every == 0:
+            rate = out.fetched / max(time.monotonic() - t0, 1e-9)
+            print(
+                f"PROGRESS {source} {label} {i}/{len(ids)} cached={out.cached} "
+                f"fetched={out.fetched} failed={len(out.failed)} rate={rate:.3f}/s",
+                flush=True,
+            )
+    return out

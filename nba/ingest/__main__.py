@@ -48,6 +48,12 @@ Commands:
                  into nba.duckdb in short batched transactions, then print
                  coverage and the shot-vs-box-score FGA reconciliation.
 
+History mode (older seasons, kept OUT of nba.duckdb so production refits are
+unaffected): global options --db-path / --data-dir (or the shorthand --history,
+= data/history/nba_history.duckdb + data/history/ caches) retarget every command;
+defaults are unchanged. Per-game season loops have a circuit breaker
+(3 consecutive failures -> 600 s cool-down, stop after 6 trips; rerun resumes).
+
 All commands are resumable and idempotent: already-cached (source, key)
 pairs are skipped (never refetched). Network calls are rate-limited via
 RateLimiter.
@@ -59,6 +65,8 @@ import argparse
 import sys
 from collections.abc import Sequence
 from datetime import datetime
+from functools import partial
+from pathlib import Path
 
 from nba.ingest.availability import (
     build_merged_name_index,
@@ -66,7 +74,14 @@ from nba.ingest.availability import (
     pull_official_injury_report,
 )
 from nba.ingest.boxscores import pull_game_boxscore
-from nba.ingest.cache import RateLimiter, is_cached, open_db
+from nba.ingest.cache import (
+    DEFAULT_DATA_DIR,
+    CircuitBreaker,
+    RateLimiter,
+    is_cached,
+    open_db,
+    pull_ids_with_breaker,
+)
 from nba.ingest.games import game_ids_for_season, pull_season_games
 from nba.ingest.national_tv import game_dates_for_season, pull_national_tv_for_date
 from nba.ingest.pbp import pull_game_pbp
@@ -79,6 +94,19 @@ from nba.ingest.postgame import (
 )
 from nba.ingest.team_advanced import pull_game_team_advanced
 
+HISTORY_DIR = DEFAULT_DATA_DIR / "history"
+HISTORY_DB = HISTORY_DIR / "nba_history.duckdb"
+
+
+def resolve_paths(args: argparse.Namespace) -> tuple[Path | None, Path]:
+    """(db_path or None for the default nba.duckdb, data_dir). Defaults unchanged."""
+    db_path: Path | None = args.db_path
+    data_dir: Path = args.data_dir or DEFAULT_DATA_DIR
+    if args.history:
+        db_path = db_path or HISTORY_DB
+        data_dir = args.data_dir or HISTORY_DIR
+    return db_path, data_dir
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m nba.ingest")
@@ -88,6 +116,31 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.6,
         help="minimum seconds between network calls (default 0.6)",
     )
+    parser.add_argument(
+        "--db-path",
+        type=Path,
+        default=None,
+        help="target DuckDB (default: nba.duckdb). Use with --data-dir for older seasons.",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=None,
+        help="parquet cache root (default: data/). Keeps history caches apart.",
+    )
+    parser.add_argument(
+        "--history",
+        action="store_true",
+        help=f"shorthand for --db-path {HISTORY_DB} --data-dir {HISTORY_DIR}",
+    )
+    parser.add_argument("--breaker-cooldown-s", type=float, default=600.0)
+    parser.add_argument(
+        "--breaker-cooldown-cap-s",
+        type=float,
+        default=3600.0,
+        help="cool-downs escalate 600 -> 1200 -> 2400 -> cap (default 3600) per consecutive trip",
+    )
+    parser.add_argument("--breaker-max-trips", type=int, default=6)
     sub = parser.add_subparsers(dest="command", required=True)
 
     games_p = sub.add_parser("games", help="pull season game lists")
@@ -152,6 +205,18 @@ def build_parser() -> argparse.ArgumentParser:
     pf_p = sub.add_parser("postgame-fetch", help="fetch post-game sources into the parquet cache")
     pf_p.add_argument("--source", required=True, choices=SOURCES)
     pf_p.add_argument("--limit", type=int, default=None, help="only the first N keys (sampling)")
+    pf_p.add_argument(
+        "--seasons",
+        type=int,
+        action="append",
+        default=None,
+        help="restrict game-keyed sources to these season ints (e.g. 2022); default all",
+    )
+    pf_p.add_argument(
+        "--newest-first",
+        action="store_true",
+        help="fetch the newest season's games first (history backfills)",
+    )
 
     pl_p = sub.add_parser("postgame-load", help="load cached post-game parquet into nba.duckdb")
     pl_p.add_argument("--source", action="append", dest="sources", choices=SOURCES)
@@ -166,23 +231,30 @@ def _parse_report_dt(date_str: str, time_str: str) -> datetime:
 def _postgame_main(args: argparse.Namespace) -> int:
     from nba.db.connect import DEFAULT_DB_PATH
 
+    db_path, data_dir = resolve_paths(args)
     if args.command == "postgame-fetch":
-        # Fetch phase never opens nba.duckdb for writing (read-only scope query only).
+        # Fetch phase never opens the scope DB for writing (read-only scope query only).
         summary = fetch_source(
             args.source,
-            DEFAULT_DB_PATH,
+            db_path or DEFAULT_DB_PATH,
+            data_dir=data_dir,
             rate_limiter=RateLimiter(min_interval_s=args.rate_limit_s),
             limit=args.limit,
+            newest_first=args.newest_first,
+            seasons=args.seasons,
+            breaker_cooldown_s=args.breaker_cooldown_s,
+            breaker_cooldown_cap_s=args.breaker_cooldown_cap_s,
+            breaker_max_trips=args.breaker_max_trips,
         )
         print(
             f"postgame-fetch[{summary.source}]: {summary.total} keys, {summary.cached} cached, "
             f"{summary.fetched} fetched, {len(summary.failed)} failed"
         )
         return 1 if summary.failed else 0
-    con = open_db()  # short write window: load cached parquet only
+    con = open_db(db_path)  # short write window: load cached parquet only
     try:
         for source in args.sources or SOURCES:
-            print(f"postgame-load[{source}]: {load_source(con, source)} rows")
+            print(f"postgame-load[{source}]: {load_source(con, source, data_dir=data_dir)} rows")
         for table, season, games, rows in coverage(con):
             print(f"coverage {table} season={season} games={games} rows={rows}")
         print("shots_fga_reconciliation", shots_fga_reconciliation(con))
@@ -195,12 +267,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command in ("postgame-fetch", "postgame-load"):
         return _postgame_main(args)
-    con = open_db()
+    db_path, data_dir = resolve_paths(args)
+    con = open_db() if db_path is None else open_db(db_path)
     limiter = RateLimiter(min_interval_s=args.rate_limit_s)
+    failed_any = False
 
     if args.command == "games":
         for season in args.seasons:
-            df = pull_season_games(con, season, rate_limiter=limiter)
+            df = pull_season_games(con, season, data_dir=data_dir, rate_limiter=limiter)
             print(f"games[{season}]: {len(df)} rows")
     elif args.command in ("boxscore", "pbp", "team-advanced", "availability"):
         game_ids = getattr(args, "game_ids", None) or []
@@ -216,22 +290,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         pull_fn = pull_fns[args.command]
 
         for game_id in game_ids:
-            df = pull_fn(con, game_id, rate_limiter=limiter)
+            df = pull_fn(con, game_id, data_dir=data_dir, rate_limiter=limiter)
             print(f"{args.command}[{game_id}]: {len(df)} rows")
 
         for season in seasons:
             season_ids = game_ids_for_season(con, season)
-            cached_count = sum(1 for gid in season_ids if is_cached(con, args.command, gid))
-            fetched_count = 0
-            for gid in season_ids:
-                was_cached = is_cached(con, args.command, gid)
-                pull_fn(con, gid, rate_limiter=limiter)
-                if not was_cached:
-                    fetched_count += 1
-            print(
-                f"{args.command}[season {season}]: {len(season_ids)} games, "
-                f"{cached_count} cached, {fetched_count} fetched"
+            loop = pull_ids_with_breaker(
+                con,
+                args.command,
+                season_ids,
+                partial(pull_fn, con, data_dir=data_dir, rate_limiter=limiter),
+                breaker=CircuitBreaker(
+                    cooldown_s=args.breaker_cooldown_s,
+                    cooldown_cap_s=args.breaker_cooldown_cap_s,
+                    max_trips=args.breaker_max_trips,
+                ),
+                label=f"season={season}",
             )
+            print(
+                f"{args.command}[season {season}]: {loop.total} games, "
+                f"{loop.cached} cached, {loop.fetched} fetched, {len(loop.failed)} failed"
+                f"{' (stopped early: breaker)' if loop.stopped_early else ''}"
+            )
+            failed_any = failed_any or bool(loop.failed)
     elif args.command == "official-injury-report":
         report_dt = _parse_report_dt(args.date, args.time)
         name_index = build_merged_name_index()
@@ -246,7 +327,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             build_parser().error("national-tv: provide --date and/or --season")
 
         for date in dates:
-            df = pull_national_tv_for_date(con, date, rate_limiter=limiter)
+            df = pull_national_tv_for_date(con, date, data_dir=data_dir, rate_limiter=limiter)
             print(f"national-tv[{date}]: {len(df)} rows")
 
         for season in seasons:
@@ -255,7 +336,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             fetched_count = 0
             for d in season_dates:
                 was_cached = is_cached(con, "national-tv", d)
-                pull_national_tv_for_date(con, d, rate_limiter=limiter)
+                pull_national_tv_for_date(con, d, data_dir=data_dir, rate_limiter=limiter)
                 if not was_cached:
                     fetched_count += 1
             print(
@@ -264,7 +345,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
 
     con.close()
-    return 0
+    return 1 if failed_any else 0
 
 
 if __name__ == "__main__":
