@@ -259,3 +259,18 @@ than 0.002. Since exp-2's v2-vs-production margins (pts -0.030, reb -0.051, ast 
 than or comparable to the leak effect, **the v2 feature set's advantage over production is presumed to be mostly or
 entirely leak until re-measured** with `ref_fixed` against `v1_prod` on identical rows (next step for the leak-fixed
 experiment 3; needs its own pre-registration).
+
+**Follow-up (DESCRIPTIVE, not pre-registered; 2024 already seen, so it can only motivate a new pre-registration):**
+`ref_fixed` (leak-free v2) vs `v1_prod` (experiment-2 OOF, identical 27,583 rows per stat, identical labels),
+game-clustered bootstrap (2,000 draws, seed 0):
+
+| stat | leak-free v2 - production | leaky exp-2 ref - production |
+|---|---|---|
+| pts | -0.0074 [-0.0122, -0.0025] | -0.0759 [-0.0826, -0.0687] |
+| reb | -0.0081 [-0.0103, -0.0058] | -0.0504 [-0.0540, -0.0465] |
+| ast | -0.0164 [-0.0182, -0.0146] | -0.0306 [-0.0327, -0.0284] |
+| fg3m | -0.0251 [-0.0264, -0.0239] | -0.0322 [-0.0337, -0.0307] |
+
+Most of the pts/reb advantage was leak; ast and fg3m keep most of theirs. This motivates the leak-fixed experiment 3
+(per-stat hybrid on `ridge_v2.parquet` features), which needs a NEW pre-registration with selection on 2023 and the
+2024 result treated as already seen (i.e. any confirmation must come from a holdout touch or the 2026-27 forward log).
