@@ -57,8 +57,11 @@ HEAVY_LOCK = OPS / "heavy.lock"
 PROD_DB = ROOT / "nba.duckdb"
 #: Lock dirs of the daily job / lineups collector: children pause per key while either exists
 #: (plus a grace period) so the queue never competes for the ~600 requests/hour/IP quota.
-YIELD_PATHS = [OPS / "lock", OPS / "lineups_lock"]
-YIELD_GRACE_S = 300
+# Only the daily job's lock: the lineups job ticks every 5 min, so yielding to it (plus a grace)
+# starved the queue indefinitely; game-window pausing (nba/ingest/game_window.py) already keeps the
+# queue away from the T-30 period, and the lineups feed is a static file outside the API quota.
+YIELD_PATHS = [OPS / "lock"]
+YIELD_GRACE_S = 120
 PY = str(ROOT / ".venv" / "bin" / "python")
 #: Seconds per request. stats.nba.com enforces a rolling quota of ~600 requests then blocks
 #: for 30+ min, so pace below it (~600/h) rather than racing it. Never lower than 2.5.

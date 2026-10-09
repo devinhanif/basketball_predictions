@@ -87,4 +87,4 @@ def test_pull_loop_yields_only_before_network_fetches(
 def test_queue_children_get_yield_env() -> None:
     from nba.ingest import queue as q
 
-    assert [p.name for p in q.YIELD_PATHS] == ["lock", "lineups_lock"] and q.YIELD_GRACE_S == 300
+    assert [p.name for p in q.YIELD_PATHS] == ["lock"] and q.YIELD_GRACE_S == 120
