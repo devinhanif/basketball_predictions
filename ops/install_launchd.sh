@@ -2,6 +2,7 @@
 # Install (or reinstall) the daily pipeline launchd jobs. Times are the Mac's local time (US/Central).
 #   local.nba.daily-pretip   every hour at :30 from 09:30 to 21:30 (pre-tip predictions + parlay shadow)
 #   local.nba.daily-morning  08:00 (settle, report, post-game ingest, data snapshot/check, backup)
+#   local.nba.lineups        every 5 min (T-30 lineup collector + shadow run-t30; idle outside game windows)
 # Uninstall: ops/install_launchd.sh --uninstall
 set -eu
 ROOT=/Users/devin/Downloads/nba-prediction
@@ -11,11 +12,11 @@ mkdir -p "$AGENTS" "$ROOT/data/ops"
 unload() { launchctl bootout "gui/$(id -u)/$1" 2>/dev/null || true; }
 
 if [ "${1:-}" = "--uninstall" ]; then
-  for l in local.nba.daily-pretip local.nba.daily-morning; do unload $l; rm -f "$AGENTS/$l.plist"; done
+  for l in local.nba.daily-pretip local.nba.daily-morning local.nba.lineups; do unload $l; rm -f "$AGENTS/$l.plist"; done
   echo "uninstalled"; exit 0
 fi
 
-write_plist() {  # label mode calendar-xml
+write_plist() {  # label mode schedule-xml [script]
   cat > "$AGENTS/$1.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -24,8 +25,7 @@ write_plist() {  # label mode calendar-xml
   <key>Label</key><string>$1</string>
   <key>WorkingDirectory</key><string>$ROOT</string>
   <key>ProgramArguments</key>
-  <array><string>/bin/sh</string><string>$ROOT/ops/nba_daily.sh</string><string>$2</string></array>
-  <key>StartCalendarInterval</key>
+  <array><string>/bin/sh</string><string>$ROOT/${4:-ops/nba_daily.sh}</string><string>$2</string></array>
   $3
   <key>StandardOutPath</key><string>$ROOT/data/ops/launchd_$2.out</string>
   <key>StandardErrorPath</key><string>$ROOT/data/ops/launchd_$2.err</string>
@@ -45,6 +45,7 @@ while [ $h -le 21 ]; do
 done
 PRETIP="$PRETIP</array>"
 
-write_plist local.nba.daily-pretip pretip "$PRETIP"
-write_plist local.nba.daily-morning morning "<dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>"
+write_plist local.nba.daily-pretip pretip "<key>StartCalendarInterval</key>$PRETIP"
+write_plist local.nba.daily-morning morning "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>"
+write_plist local.nba.lineups lineups "<key>StartInterval</key><integer>300</integer>" ops/nba_lineups.sh
 launchctl list | grep local.nba

@@ -97,6 +97,7 @@ case "$MODE" in
     latest=$(ls -1t data/backups/nba_*.duckdb 2>/dev/null | head -n 1)
     step backup_registry_drive rclone copy registry_store gdrive:nba_backups/registry_store
     [ -n "$latest" ] && step backup_db_drive rclone copyto "$latest" gdrive:nba_backups/nba_latest.duckdb
+    [ -d data/lineups ] && step backup_lineups_drive rclone copy data/lineups gdrive:nba_backups/lineups
     du -sh nba.duckdb data/kalshi data/colab data/backups registry_store >> "$LOG" 2>&1
     ;;
   *)
