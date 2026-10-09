@@ -46,6 +46,7 @@ import json
 import pickle
 import time
 import zlib
+from collections import Counter
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date
 from pathlib import Path
@@ -148,6 +149,9 @@ OUTPUT_COLUMNS: list[str] = [
 ]
 
 
+OFFICIAL_ROSTER_FLOOR = 18  # 15 standard + 3 two-way: minimum cap with an official roster
+
+
 @dataclass(frozen=True)
 class ForwardConfig:
     sim_buckets: frozenset[str] = SIM_BUCKETS
@@ -183,7 +187,13 @@ class ForwardConfig:
     #: rosters list up to 15 standard + 3 two-way players, and with the sim off the cap exists
     #: only to bound output size. At 13 the low-minute rookies and the stale-roster extras
     #: compete for the last slots (coverage of debutants 60-73%); at 18 it is 93-98%.
-    official_max_roster: int = 18
+    #: ``None`` (default) = cover the FULL official roster: the cap becomes the largest
+    #: per-team candidate count on the slate (never below 18). Preseason/opening-night
+    #: official rosters list 19-21 players (camp and Exhibit-10 deals on top of 15 + 3
+    #: two-way), so a fixed 18 silently dropped ~20 of 125 players in the 2026-10-09 rehearsal.
+    #: Rows for players inside a fixed 18 are unchanged (the cap only truncates the tail
+    #: of the per-team projected-minutes ranking).
+    official_max_roster: int | None = None
 
 
 def route_model(stat: str, bucket: str, cfg: ForwardConfig) -> str:
@@ -429,6 +439,7 @@ def predict_slate(
             )
         if cand.is_empty():
             return empty
+        cand_team_max = max(Counter(cand["team_id"].to_list()).values(), default=0)
         ids = cand["player_id"].to_list()
         series = {s: _stat_series(sc, ids, s) for s in PROP_STATS}  # incl. DNP zeros (SB bucket)
         played = {s: _stat_series(sc, ids, s, played_only=True) for s in PROP_STATS}
@@ -491,13 +502,19 @@ def predict_slate(
     mins = mins.filter(pl.col("proj_minutes") >= cfg.min_proj_minutes)
     if cfg.sim_minutes == "conditional":
         mins = mins.filter(pl.col("p_play_raw") >= cfg.min_p_play)
+    if not use_official:
+        roster_cap = cfg.max_roster
+    elif cfg.official_max_roster is None:
+        roster_cap = max(OFFICIAL_ROSTER_FLOOR, cfg.max_roster, cand_team_max)
+    else:
+        roster_cap = max(cfg.max_roster, cfg.official_max_roster)
     mins = (
         mins.sort(
             ["game_id", "team_id", "proj_minutes", "player_id"],
             descending=[False, False, True, False],
         )
         .group_by(["game_id", "team_id"], maintain_order=True)
-        .head(max(cfg.max_roster, cfg.official_max_roster) if use_official else cfg.max_roster)
+        .head(roster_cap)
     )
     if mins.is_empty():
         return empty

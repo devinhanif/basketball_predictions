@@ -23,6 +23,7 @@ A game with no usable confirmed lineup is not predicted; the reason is recorded 
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -37,6 +38,7 @@ from nba.daily.predict import REPO_ROOT, load_elo_params, slate_report_outs
 from nba.daily.schedule import ScheduledGame, ScheduleFn, slate_for_date
 from nba.daily.season import season_str_for_date
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions
+from nba.ingest.cache import RateLimiter
 from nba.lineups.source import CONFIRMED
 from nba.lineups.store import T30_LEAD_MINUTES, games_with_tips, latest_snapshot_before
 from nba.props.context_residual import (
@@ -58,7 +60,10 @@ from nba.props.forward import (
     cfg_thresholds,
     predict_slate,
 )
+from nba.props.rosters import RosterFetcher
 
+#: floor on the gap between metered nba_api calls made from the 5-minute T-30 tick
+T30_MIN_INTERVAL_S = 2.5
 T30_MODEL_NAME = "props_context_residual_t30"
 T30_VERSION = "ctxres-v1-t30"
 DEFAULT_T30_CACHE = REPO_ROOT / "data" / "models" / "context_residual_t30"
@@ -315,6 +320,10 @@ def run_t30(
     model_cache: Path | None = None,
     roster_source: str = "recent",
     elo_config: Path | None = None,
+    rate_limiter: RateLimiter | None = None,
+    roster_dir: Path | None = None,
+    roster_fetch: RosterFetcher | None = None,
+    static_fetch: Callable[[int], pl.DataFrame] | None = None,
 ) -> T30Summary:
     """Log T-30 shadow props for slate games that are at/after their T-30 decision time and
     not yet tipped. Idempotent per game (``forward_t30_decisions``). ``now`` is naive UTC."""
@@ -357,9 +366,12 @@ def run_t30(
     report_out = slate_report_outs(con, [(g.game_id, g.tipoff) for g in ready_games], made_at)
     official = None
     if roster_source == "official":
+        # same limiter + per-date roster cache as `nba.daily run`: a tick after the pretip
+        # run is a pure cache hit; an uncached team is fetched through the limiter (>= 2.5 s)
         official = _official_roster(
-            con, run_date, season_str_for_date(run_date), roster_source, None, None, None,
-            RunSummary(run_id="t30", run_date=run_date),
+            con, run_date, season_str_for_date(run_date), roster_source, roster_dir,
+            roster_fetch, rate_limiter or RateLimiter(T30_MIN_INTERVAL_S),
+            RunSummary(run_id="t30", run_date=run_date), static_fetch=static_fetch,
         )  # fmt: skip
     df, info = t30_prop_predictions(
         con, run_date, ready_games, ready, report_out, params,

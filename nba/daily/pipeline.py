@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import math
 import uuid
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
@@ -54,7 +55,7 @@ from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.ingest.games import MAX_VALID_TEAM_ID, MIN_VALID_TEAM_ID
 from nba.ingest.players_static import autofill_players_static
 from nba.models.injury_elo import predict_games
-from nba.props.forward import SIM_STATS
+from nba.props.forward import OFFICIAL_ROSTER_FLOOR, SIM_STATS, ForwardConfig
 from nba.props.rosters import (
     DEFAULT_ROSTER_DIR,
     RosterFetcher,
@@ -222,6 +223,12 @@ def _official_roster(
     note = f"official rosters for {len(teams) - len(missing)}/{len(teams)} teams"
     if missing:
         note += f" (missing {missing} -> recent-games roster for those)"
+    biggest = max(Counter(frame["team_id"].to_list()).values(), default=0)
+    cap = ForwardConfig().official_max_roster
+    note += (
+        f"; roster cap {'full official roster' if cap is None else cap} "
+        f"(largest team lists {biggest}, floor {OFFICIAL_ROSTER_FLOOR})"
+    )
     no_static = missing_static_ids(con, frame)
     if no_static:  # debutants: pull pedigree now so the draft-slot minutes prior applies today
         try:

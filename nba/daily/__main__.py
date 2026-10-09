@@ -96,6 +96,13 @@ def _parser() -> argparse.ArgumentParser:
     t.add_argument("--lineups-db", default=None, help="default data/lineups/lineups.duckdb")
     t.add_argument("--roster-source", choices=["recent", "official"], default="recent")
     t.add_argument("--model-cache", type=Path, default=None)
+    t.add_argument(
+        "--rate-limit-s",
+        type=float,
+        default=2.5,
+        help="min gap between metered roster/pedigree calls (floored at 2.5 s)",
+    )
+    t.add_argument("--roster-dir", type=Path, default=None, help="official-roster cache root")
     t.add_argument("--schedule-from-db", action="store_true", help="rehearsals only")
     t.add_argument(
         "--schedule-nba-api",
@@ -201,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_summary(s)
         return 2 if s.n_refused_after_tipoff else 0
     if args.command == "run-t30":
-        from nba.daily.t30 import run_t30, schedule_from_lineups
+        from nba.daily.t30 import T30_MIN_INTERVAL_S, run_t30, schedule_from_lineups
         from nba.lineups.store import DEFAULT_LINEUPS_DB, connect_lineups
 
         lcon = connect_lineups(args.lineups_db or DEFAULT_LINEUPS_DB, read_only=True)
@@ -217,6 +224,8 @@ def main(argv: list[str] | None = None) -> int:
             now=args.now,
             model_cache=args.model_cache,
             roster_source=args.roster_source,
+            rate_limiter=RateLimiter(max(args.rate_limit_s, T30_MIN_INTERVAL_S)),
+            roster_dir=args.roster_dir,
         )
         print(t30)
         return 0

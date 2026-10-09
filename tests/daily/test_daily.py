@@ -177,7 +177,9 @@ def test_candidate_slots_strictly_before_limit() -> None:
     assert all(a > b for a, b in zip(slots, slots[1:], strict=False))
 
 
-def test_pull_latest_report_takes_newest_existing(con: duckdb.DuckDBPyConnection) -> None:
+def test_pull_latest_report_takes_newest_existing(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
     seen: list[datetime] = []
     newest_ok = datetime(2026, 10, 28, 17, 0)
 
@@ -187,9 +189,14 @@ def test_pull_latest_report_takes_newest_existing(con: duckdb.DuckDBPyConnection
     def pull(c: object, slot: datetime, **kw: object) -> None:
         seen.append(slot)
 
-    got = pull_latest_report(con, TIPOFF, probe=probe, pull=pull, name_index={})
+    got = pull_latest_report(con, TIPOFF, data_dir=tmp_path, probe=probe, pull=pull, name_index={})
     assert got == newest_ok and seen == [newest_ok]
-    assert pull_latest_report(con, TIPOFF, probe=lambda u: False, pull=pull, name_index={}) is None
+    assert (
+        pull_latest_report(
+            con, TIPOFF, data_dir=tmp_path, probe=lambda u: False, pull=pull, name_index={}
+        )
+        is None
+    )
 
 
 def test_out_players_uses_latest_prior_snapshot(con: duckdb.DuckDBPyConnection) -> None:

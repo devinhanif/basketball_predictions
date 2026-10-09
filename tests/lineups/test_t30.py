@@ -14,6 +14,7 @@ from nba.daily.report import build_report
 from nba.daily.schedule import ScheduledGame
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
 from nba.daily.t30 import T30_MODEL_NAME, T30Summary, run_t30
+from nba.ingest.cache import RateLimiter
 from nba.lineups.analysis import open_decisions, wilson
 from nba.lineups.source import CONFIRMED, EXPECTED
 from nba.lineups.store import connect_lineups, upsert_tip
@@ -347,3 +348,39 @@ def test_tip_known_game_with_no_snapshot_is_recorded_not_dropped(
     assert s.n_logged_games == 0 and s.n_rows_written == 0
     row = con.execute("SELECT outcome, reason FROM forward_t30_decisions WHERE game_id = ?", [G1])
     assert row.fetchone() == ("skipped", "no_snapshot_before_t30")
+
+
+def test_official_roster_call_is_rate_limited_and_cached(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    """The 5-minute tick must never fetch 30 rosters unthrottled: the roster call gets a
+    >= 2.5 s limiter and the per-date cache; a second tick is a pure cache hit."""
+    from nba.daily.t30 import T30_MIN_INTERVAL_S
+    from nba.props.rosters import parse_common_team_roster
+
+    lcon = connect_lineups(tmp_path / "l.duckdb")
+    _fill(lcon, TIP - timedelta(minutes=40))
+    calls: list[int] = []
+
+    def fetch(team: int, season: str) -> pl.DataFrame:
+        calls.append(team)
+        return parse_common_team_roster(
+            pl.DataFrame({"PLAYER_ID": [team % 100000], "EXP": ["5"]}), team
+        )
+
+    class Spy(RateLimiter):
+        waits = 0
+
+        def wait(self) -> None:
+            Spy.waits += 1
+
+    spy = Spy(T30_MIN_INTERVAL_S)
+    kw = dict(roster_source="official", roster_dir=tmp_path / "r", roster_fetch=fetch,
+              rate_limiter=spy, model_cache=tmp_path / "cache",
+              static_fetch=lambda pid: pl.DataFrame())  # fmt: skip
+    now = TIP - timedelta(minutes=25)
+    run_t30(con, lcon, AS_OF, schedule_fn=_sched, now=now, **kw)  # type: ignore[arg-type]
+    assert len(calls) == 30 and Spy.waits >= 30 and spy.min_interval_s >= 2.5
+    con.execute("DELETE FROM forward_t30_decisions")
+    run_t30(con, lcon, AS_OF, schedule_fn=_sched, now=now, **kw)  # type: ignore[arg-type]
+    assert len(calls) == 30  # second tick: per-date cache, no fetches

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -41,6 +42,31 @@ def candidate_slots(not_after_utc: datetime) -> list[datetime]:
     return [floored - timedelta(minutes=SLOT_MINUTES * i) for i in range(n)]
 
 
+#: A slot is cached as "no report" only once it is at least this old when probed: reports
+#: land at/just after their slot time, so a newer miss may simply be early.
+MISS_GRACE_MINUTES = 30
+
+
+def _miss_cache_path(data_dir: Path, not_after_utc: datetime) -> Path:
+    return (
+        data_dir / "injury_probe_cache" / f"{to_report_dt(not_after_utc).date().isoformat()}.json"
+    )
+
+
+def _load_misses(path: Path) -> set[str]:
+    try:
+        return {str(x) for x in json.loads(path.read_text())}
+    except (OSError, ValueError, TypeError):
+        return set()
+
+
+def _save_misses(path: Path, misses: set[str]) -> None:
+    if not misses:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(sorted(misses)))
+
+
 def pull_latest_report(
     con: duckdb.DuckDBPyConnection,
     not_after_utc: datetime,
@@ -72,30 +98,46 @@ def pull_latest_report(
 
         probe = probe_fn
     gid_kw: dict[str, object] = {"extra_games": extra_games} if extra_games else {}
+    # per run-day negative cache: slots already known to have no report are not re-probed by
+    # the next hourly run; newer slots (and slots too fresh to call missing) always are
+    miss_path = _miss_cache_path(data_dir, not_after_utc)
+    misses = _load_misses(miss_path)
+    now_et = to_report_dt(not_after_utc)
     for slot in candidate_slots(not_after_utc):
-        for url in official_report_url_candidates(slot):
+        if slot.isoformat() in misses:
+            continue
+        hit_url: str | None = None
+        for cand_url in official_report_url_candidates(slot):
             if rate_limiter is not None:
                 rate_limiter.wait()
-            if not probe(url):
-                continue
-            puller: PullFn = pull or pull_official_injury_report
-            if name_index is not None:
-                puller(
-                    con, slot, name_index=name_index, data_dir=data_dir,
-                    rate_limiter=rate_limiter, url=url, **gid_kw,
-                )  # fmt: skip
-                return slot
-            resolver = build_name_resolver(
-                con, data_dir, slot.date(), slot.date(), extra_names=extra_names
-            )
-            try:
-                puller(
-                    con, slot, resolver=resolver, data_dir=data_dir,
-                    rate_limiter=rate_limiter, url=url, **gid_kw,
-                )  # fmt: skip
-            finally:
-                _flush_unmatched(resolver, data_dir / "availability_backfill")
+            if probe(cand_url):
+                hit_url = cand_url
+                break
+        if hit_url is None:
+            if now_et - slot >= timedelta(minutes=MISS_GRACE_MINUTES):
+                misses.add(slot.isoformat())
+            continue
+        url = hit_url
+        _save_misses(miss_path, misses)
+        puller: PullFn = pull or pull_official_injury_report
+        if name_index is not None:
+            puller(
+                con, slot, name_index=name_index, data_dir=data_dir,
+                rate_limiter=rate_limiter, url=url, **gid_kw,
+            )  # fmt: skip
             return slot
+        resolver = build_name_resolver(
+            con, data_dir, slot.date(), slot.date(), extra_names=extra_names
+        )
+        try:
+            puller(
+                con, slot, resolver=resolver, data_dir=data_dir,
+                rate_limiter=rate_limiter, url=url, **gid_kw,
+            )  # fmt: skip
+        finally:
+            _flush_unmatched(resolver, data_dir / "availability_backfill")
+        return slot
+    _save_misses(miss_path, misses)
     return None
 
 
