@@ -104,6 +104,10 @@ trap 'exit 143' INT TERM
 
 # DuckDB is single-writer. The python entry points wait (bounded, NBA_DB_LOCK_WAIT_S) for a
 # concurrent writer when they open the file, so no check-then-act lsof gate is needed here.
+# Wait budget 300 s: the T-30 tick (lineups job) holds the file for ~1-2 min (fit + <=30 roster
+# calls at 2.5 s); the reverse wait is 600 s in nba_lineups.sh (> the 339 s cold pretip run).
+# Measured durations and the rationale: docs/DAILY_PIPELINE.md "Pretip vs T-30 overlap".
+export NBA_DB_LOCK_WAIT_S=${NBA_DB_LOCK_WAIT_S:-300}
 
 case "$MODE" in
   pretip)

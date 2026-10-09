@@ -36,7 +36,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not Path(a.kalshi_db).exists():
         print(f"kalshi db not found: {a.kalshi_db}", file=sys.stderr)
         return 1
-    nba_con = open_read_only(a.nba_db, retries=10, wait_s=3.0)
+    nba_con = open_read_only(
+        a.nba_db, retries=40, wait_s=15.0
+    )  # ~10 min: outlasts a pretip/T-30 write
     kal = open_read_only(a.kalshi_db, copy_fallback=True)
     out = open_out(a.out)
     try:

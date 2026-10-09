@@ -93,6 +93,12 @@ JOBS: tuple[JobSpec, ...] = (
 )
 
 
+#: skip-only records written by a sub-step of a job (``<name>.skip.json``, no heartbeat of its own):
+#: name -> consecutive skips that raise an alert. ``lineups_t30``: run-t30 gave up waiting for
+#: nba.duckdb (rc 75); one deferral is normal contention, two in a row means T-30 rows are missing.
+SKIP_ONLY: dict[str, int] = {"lineups_t30": 2}
+
+
 @dataclass(frozen=True)
 class Alert:
     key: str  # stable dedupe key, e.g. "lineups:stale"
@@ -211,6 +217,16 @@ def evaluate(
                     f"{spec.name} stale: last start {start:%Y-%m-%d %H:%M}, expected by {due:%H:%M}"
                 )
             alerts.append(Alert(f"{spec.name}:stale", msg))
+    for name, limit in SKIP_ONLY.items():
+        n_skips = read_skips(hb_dir, name)
+        if n_skips >= limit:
+            alerts.append(
+                Alert(
+                    f"{name}:skipped",
+                    f"{name} deferred {n_skips} consecutive times (nba.duckdb stayed busy past "
+                    "the bounded wait); T-30 rows are missing",
+                )
+            )
     status = parse_launchctl(launchctl_text)
     for label, code in sorted(status.items()):
         if code != 0 and label != "local.nba.watchdog":

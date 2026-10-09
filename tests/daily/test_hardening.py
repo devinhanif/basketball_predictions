@@ -8,7 +8,13 @@ from pathlib import Path
 import duckdb
 import polars as pl
 
-from nba.daily.injury import MISS_GRACE_MINUTES, SLOT_MINUTES, candidate_slots, pull_latest_report
+from nba.daily.injury import (
+    MISS_GRACE_MINUTES,
+    MISS_TTL_HOURS,
+    SLOT_MINUTES,
+    candidate_slots,
+    pull_latest_report,
+)
 from nba.daily.pipeline import run_daily
 from nba.ingest.cache import RateLimiter
 from nba.props.forward import ForwardConfig, predict_slate
@@ -116,3 +122,81 @@ def test_full_roster_cap_covers_21_and_leaves_existing_rows_unchanged(
     for c in ("mean", "q10", "q50", "q90"):
         if c in capped.columns:
             assert joined[c].to_list() == joined[f"{c}_f"].to_list()
+
+
+class _Tri:
+    """Fake tri-state prober: per-substring state, default 'absent'."""
+
+    def __init__(self, states: dict[str, str] | None = None) -> None:
+        self.states = states or {}
+        self.urls: list[str] = []
+
+    def __call__(self, url: str) -> str:
+        self.urls.append(url)
+        for sub, st in self.states.items():
+            if sub in url:
+                return st
+        return "absent"
+
+
+def test_timeout_is_not_cached_but_404_is(con: duckdb.DuckDBPyConnection, tmp_path: Path) -> None:
+    now = TIPOFF - timedelta(hours=3)
+    old_slot = candidate_slots(now)[5]
+    stamp = old_slot.strftime("%Y-%m-%d_%I_%M%p")
+    flaky = _Tri({stamp: "unknown"})
+    pull_latest_report(con, now, data_dir=tmp_path, probe=flaky, pull=_noop_pull, name_index={})
+    again = _Tri({stamp: "unknown"})
+    pull_latest_report(con, now, data_dir=tmp_path, probe=again, pull=_noop_pull, name_index={})
+    assert any(stamp in u for u in again.urls)  # unknown slot is re-probed
+    pull_latest_report(con, now, data_dir=tmp_path, probe=_Tri(), pull=_noop_pull, name_index={})
+    fourth = _Tri()
+    pull_latest_report(con, now, data_dir=tmp_path, probe=fourth, pull=_noop_pull, name_index={})
+    assert not any(stamp in u for u in fourth.urls)  # definite 404 is now cached
+
+
+def test_cached_miss_is_reprobed_after_ttl_for_late_posting(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    now = TIPOFF - timedelta(hours=6)
+    slot = candidate_slots(now)[4]
+    stamp = slot.strftime("%Y-%m-%d_%I_%M%p")
+    pull_latest_report(con, now, data_dir=tmp_path, probe=_Tri(), pull=_noop_pull, name_index={})
+    soon = _Tri()
+    pull_latest_report(
+        con, now + timedelta(minutes=30), data_dir=tmp_path, probe=soon, pull=_noop_pull,
+        name_index={},
+    )  # fmt: skip
+    assert not any(stamp in u for u in soon.urls)
+    late = now + timedelta(hours=MISS_TTL_HOURS, minutes=1)
+    got = pull_latest_report(
+        con, late, data_dir=tmp_path, probe=_Tri({stamp: "present"}), pull=_noop_pull,
+        name_index={},
+    )  # fmt: skip
+    assert got == slot or got is not None and got >= slot
+    assert not list((tmp_path / "injury_probe_cache").glob("*.tmp"))
+
+
+def test_probe_report_status_states() -> None:
+    from nba.ingest.availability import probe_report_status
+
+    class R:
+        def __init__(self, code: int, body: bytes = b"") -> None:
+            self.status_code, self.content = code, body
+
+    class C:
+        def __init__(self, r: object) -> None:
+            self.r = r
+
+        def get(self, url: str, **kw: object) -> object:
+            if isinstance(self.r, Exception):
+                raise self.r
+            return self.r
+
+    def st(r: object) -> str:
+        return probe_report_status("u", client=C(r))  # type: ignore[arg-type]
+
+    assert st(R(206, b"%PDF")) == "present"
+    assert st(R(200, b"<htm")) == "absent"
+    assert st(R(404)) == "absent" and st(R(403)) == "absent"
+    assert st(R(503)) == "unknown" and st(R(429)) == "unknown"
+    assert st(TimeoutError("t")) == "unknown"

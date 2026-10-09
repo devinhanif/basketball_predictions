@@ -306,6 +306,33 @@ def official_report_url_candidates(report_dt: datetime) -> list[str]:
     return [official_report_url(report_dt), official_report_url_hour_only(report_dt)]
 
 
+def probe_report_status(
+    url: str, *, client: httpx.Client | None = None, timeout: float = 10.0
+) -> str:
+    """Three-state existence check: ``"present"`` | ``"absent"`` | ``"unknown"``.
+
+    ``absent`` is DEFINITE: HTTP 403/404 (the object does not exist at a published-pattern URL)
+    or a 200/206 whose body is not a PDF. Timeouts, connection errors, 5xx, 429 and any other
+    status are ``unknown`` and must never be cached as a miss."""
+    import httpx  # lazy: keep this module import-safe with no network access
+
+    owns_client = client is None
+    c = client if client is not None else httpx.Client()
+    try:
+        try:
+            resp = c.get(url, headers={"Range": "bytes=0-3"}, timeout=timeout)
+        except Exception:
+            return "unknown"
+        if resp.status_code in (200, 206):
+            return "present" if resp.content[:4] == b"%PDF" else "absent"
+        if resp.status_code in (403, 404):
+            return "absent"
+        return "unknown"
+    finally:
+        if owns_client:
+            c.close()
+
+
 def probe_report_url(
     url: str, *, client: httpx.Client | None = None, timeout: float = 10.0
 ) -> bool:

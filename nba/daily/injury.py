@@ -14,11 +14,14 @@ from nba.ingest.availability import (
     _flush_unmatched,
     build_name_resolver,
     official_report_url_candidates,
+    probe_report_status,
     pull_official_injury_report,
 )
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 
-ProbeFn = Callable[[str], bool]
+#: A probe returns True/"present" (exists), False/"absent" (definitely not there) or
+#: "unknown" (timeout, 5xx, connection error). Only definite absence is ever cached.
+ProbeFn = Callable[[str], bool | str]
 PullFn = Callable[..., object]
 
 LOOKBACK_HOURS = 12
@@ -45,6 +48,8 @@ def candidate_slots(not_after_utc: datetime) -> list[datetime]:
 #: A slot is cached as "no report" only once it is at least this old when probed: reports
 #: land at/just after their slot time, so a newer miss may simply be early.
 MISS_GRACE_MINUTES = 30
+#: A cached definite miss is re-probed once it is this old (late-posted reports).
+MISS_TTL_HOURS = 2
 
 
 def _miss_cache_path(data_dir: Path, not_after_utc: datetime) -> Path:
@@ -53,18 +58,32 @@ def _miss_cache_path(data_dir: Path, not_after_utc: datetime) -> Path:
     )
 
 
-def _load_misses(path: Path) -> set[str]:
+def _load_misses(path: Path) -> dict[str, datetime]:
+    """slot ISO -> naive-UTC time the miss was recorded. Legacy list files carry no timestamp
+    and are dropped (re-probed once)."""
     try:
-        return {str(x) for x in json.loads(path.read_text())}
-    except (OSError, ValueError, TypeError):
-        return set()
+        raw = json.loads(path.read_text())
+        return {str(k): datetime.fromisoformat(str(v)) for k, v in raw.items()}
+    except (OSError, ValueError, TypeError, AttributeError):
+        return {}
 
 
-def _save_misses(path: Path, misses: set[str]) -> None:
+def _save_misses(path: Path, misses: dict[str, datetime]) -> None:
     if not misses:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(sorted(misses)))
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps({k: v.isoformat() for k, v in sorted(misses.items())}))
+    tmp.replace(path)
+
+
+def _probe_state(probe: ProbeFn, url: str) -> str:
+    r = probe(url)
+    if r is True:
+        return "present"
+    if r is False:
+        return "absent"
+    return r if r in ("present", "absent") else "unknown"
 
 
 def pull_latest_report(
@@ -94,9 +113,7 @@ def pull_latest_report(
     ``extra_names`` (official-roster ``(name, id)`` pairs) lets debutants resolve: the bundled
     nba_api list lags new draft classes, so without it a rookie on the report is dropped."""
     if probe is None:
-        from nba.ingest.availability import probe_report_url as probe_fn
-
-        probe = probe_fn
+        probe = probe_report_status
     gid_kw: dict[str, object] = {"extra_games": extra_games} if extra_games else {}
     # per run-day negative cache: slots already known to have no report are not re-probed by
     # the next hourly run; newer slots (and slots too fresh to call missing) always are
@@ -104,18 +121,26 @@ def pull_latest_report(
     misses = _load_misses(miss_path)
     now_et = to_report_dt(not_after_utc)
     for slot in candidate_slots(not_after_utc):
-        if slot.isoformat() in misses:
+        key = slot.isoformat()
+        recorded = misses.get(key)
+        if recorded is not None and not_after_utc - recorded < timedelta(hours=MISS_TTL_HOURS):
             continue
         hit_url: str | None = None
+        all_absent = True
         for cand_url in official_report_url_candidates(slot):
             if rate_limiter is not None:
                 rate_limiter.wait()
-            if probe(cand_url):
+            state = _probe_state(probe, cand_url)
+            if state == "present":
                 hit_url = cand_url
                 break
+            if state != "absent":
+                all_absent = False
         if hit_url is None:
-            if now_et - slot >= timedelta(minutes=MISS_GRACE_MINUTES):
-                misses.add(slot.isoformat())
+            if all_absent and now_et - slot >= timedelta(minutes=MISS_GRACE_MINUTES):
+                misses[key] = not_after_utc
+            elif not all_absent:
+                misses.pop(key, None)  # inconclusive probe: never trust an older miss either
             continue
         url = hit_url
         _save_misses(miss_path, misses)

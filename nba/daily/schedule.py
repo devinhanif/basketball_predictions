@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import time as _time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -104,10 +105,27 @@ def save_schedule_cache(games: list[ScheduledGame], season: str, cache_dir: Path
     return path
 
 
-def load_schedule_cache(season: str, cache_dir: Path) -> list[ScheduledGame] | None:
-    """The cached schedule, or ``None`` when missing/unreadable/empty."""
+#: A cached schedule older than this is refused: tip times are the leakage gate, and a
+#: postponed/retimed game in a stale copy would be predicted against the wrong cutoff.
+MAX_SCHEDULE_CACHE_AGE = timedelta(hours=36)
+
+
+def load_schedule_cache(
+    season: str,
+    cache_dir: Path,
+    *,
+    max_age: timedelta | None = None,
+    now_ts: float | None = None,
+) -> list[ScheduledGame] | None:
+    """The cached schedule, or ``None`` when missing/unreadable/empty -- or, if ``max_age`` is
+    given, when the file (mtime = last good fetch) is older than that."""
+    path = cache_dir / f"schedule_{season}.json"
     try:
-        rows = json.loads((cache_dir / f"schedule_{season}.json").read_text())
+        if max_age is not None:
+            age_s = (_time.time() if now_ts is None else now_ts) - path.stat().st_mtime
+            if age_s > max_age.total_seconds():
+                return None
+        rows = json.loads(path.read_text())
         out = [
             ScheduledGame(str(g), datetime.fromisoformat(t), int(h), int(a)) for g, t, h, a in rows
         ]

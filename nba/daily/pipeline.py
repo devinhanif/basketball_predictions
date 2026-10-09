@@ -47,6 +47,7 @@ from nba.daily.predict import (
     slate_report_outs,
 )
 from nba.daily.schedule import (
+    MAX_SCHEDULE_CACHE_AGE,
     ScheduledGame,
     ScheduleFn,
     load_schedule_cache,
@@ -216,7 +217,11 @@ def _schedule_with_fallback(
     try:
         schedule = schedule_fn(season_s)
     except Exception as exc:
-        cached = load_schedule_cache(season_s, cache_dir) if cache_dir is not None else None
+        cached = (
+            load_schedule_cache(season_s, cache_dir, max_age=MAX_SCHEDULE_CACHE_AGE)
+            if cache_dir is not None
+            else None
+        )
         if cached is None:
             raise
         summary.errors.append(

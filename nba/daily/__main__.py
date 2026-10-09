@@ -18,7 +18,7 @@ from nba.daily.pipeline import RunSummary, run_daily, utcnow
 from nba.daily.report import build_report
 from nba.daily.schedule import fetch_schedule_nba_api, schedule_from_db
 from nba.daily.settle import settle_pending
-from nba.db.connect import DEFAULT_DB_PATH, connect, connect_with_retry, is_lock_error
+from nba.db.connect import DEFAULT_DB_PATH, connect_with_retry, is_lock_error
 from nba.features.game_tipoff import SCHEDULE_DIR
 from nba.ingest.cache import RateLimiter
 from nba.ops.exitcodes import RC_DB_BUSY, RC_DEGRADED, RC_INFORMATIONAL
@@ -151,10 +151,29 @@ def _print_summary(s: RunSummary) -> None:
         print(f"shadow error (primary unaffected): {e}")
 
 
+OPS_DIR = DEFAULT_DB_PATH.parent / "data" / "ops"
+
+
+def alert_shadow_errors(s: RunSummary, ops_dir: Path = OPS_DIR) -> bool:
+    """One ``ALERTS.md`` line when any shadow arm / non-primary step failed. The run keeps rc 0
+    (primary rows are unaffected) but a daily-broken shadow arm must not stay silent."""
+    if not s.shadow_errors:
+        return False
+    ops_dir.mkdir(parents=True, exist_ok=True)
+    first = s.shadow_errors[0].replace("\n", " ")[:160]
+    line = (
+        f"- {datetime.now():%Y-%m-%d %H:%M} [daily-run] {len(s.shadow_errors)} shadow error(s) "
+        f"in run {s.run_id} (primary rows unaffected): {first}\n"
+    )
+    with (ops_dir / "ALERTS.md").open("a") as fh:
+        fh.write(line)
+    return True
+
+
 def _checkpoint(args: argparse.Namespace) -> int:
     from nba.daily.checkpoint import GateNotMet, due_looks, evaluate_checkpoint
 
-    con = connect(args.db_path, read_only=True)
+    con = connect_with_retry(args.db_path, read_only=True)
     try:
         has_elig = con.execute(
             "SELECT count(*) FROM information_schema.tables "
@@ -222,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
             schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,
         )
         _print_summary(s)
+        alert_shadow_errors(s)
         if s.errors:
             return RC_DEGRADED
         return RC_INFORMATIONAL if s.n_refused_after_tipoff else 0

@@ -15,7 +15,7 @@ uv run python -m nba.daily report                     # writes registry_store/re
 # comparison rows (default off): --log-int-variant, --log-lower-tail-variant
 ```
 
-`run` exits 2 if any slate game had already tipped (those games get no prediction;
+`run` exits 4 (informational) if any slate game had already tipped (those games get no prediction;
 nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval holds it.
 
 ## Run steps
@@ -264,3 +264,62 @@ Reinstall after any change: `sh ops/install_launchd.sh`.
   (10-30, 11-10, 11-20), mean |delta| of changed rows 0.17-0.25, max 3.6 (q90 max 6.2); 12-25 had no
   flips and 0 changes. Injury-Elo probabilities are unchanged by construction (code path untouched). Script:
   scratchpad `m4_counts.py` / `m4_props.py` (not committed).
+
+## Pretip vs T-30 overlap (hardening review 2026-10-09, M-B)
+
+Pretip (`:20`/`:50`) and the T-30 tick (`nba.daily run-t30`, inside the 5-minute lineups job) both
+write `nba.duckdb`, and for a slate with both `:00` and `:30` tips they overlap by construction.
+DuckDB is single-writer, so whichever opens second waits (`connect_with_retry`, bounded; the
+wait is now logged as `nba.duckdb lock: waited N s ...`) and exits 75 if the holder outlasts it.
+
+Measured 2026-10-09 (this Mac, scratch copy of the DB, live HTTP reads, nothing written to the
+real files):
+
+| Run | Wall (holds nba.duckdb) | Notes |
+|---|---|---|
+| `nba.daily run` as pretip does it (official rosters, int + lt arms), cold caches | **339 s** | ~240 s injury-report probing (96 probes at 2.5 s, no report in window), ~75 s official rosters, rest models |
+| same, warm (roster, probe-miss and model caches present) | **16.5 s** | the typical `:50` run after a `:20` run |
+| `run-t30`, fixture DB | 2.4-4.8 s | tests/lineups/test_t30.py (tiny fixture; no network) |
+| `run-t30`, real DB (estimate, NOT measured) | ~1-2 min | cold ctxres fit ~10 s + up to 30 roster calls at 2.5 s + start-up |
+
+Design (so neither job starves):
+
+- `ops/nba_lineups.sh` now takes the poll lock only for the poll and releases it before `run-t30`;
+  `run-t30` runs under its own `lineups_t30_lock`. Lineup polling therefore continues every
+  5 minutes while a T-30 run waits or runs (a second tick that finds the T-30 lock held still polls
+  and does not start a second run). The poll heartbeat is final at that point, so a long wait never
+  overwrites newer ticks' heartbeats.
+- Wait budgets: `run-t30` waits up to **600 s** (> the 339 s cold pretip + margin; was 240 s);
+  pretip steps wait up to **300 s** (> the estimated T-30 hold of 1-2 min x2; was 180 s).
+  Override with `NBA_DB_LOCK_WAIT_S`.
+- Visibility of an exit-75: pretip rc 75 goes through `step`, which sets the heartbeat rc (the
+  watchdog's `daily-pretip:rc` alert) and writes `ALERTS.md`. A `run-t30` rc 75 now writes a
+  `lineups_t30.skip.json` skip record (consecutive count, cleared by the next successful T-30
+  run); the watchdog alerts at 2 in a row (`SKIP_ONLY` in `nba/ops/watchdog.py`).
+- A lost `:50` pretip still leaves the `:20` run as the T-60 comparator (up to 100 min stale),
+  recorded as such; with the budgets above that now needs a holder longer than 5-10 minutes.
+- The injury-probe loop stops at the first report found, so the cold probing cost only recurs when
+  the newest slots have no report yet; expired (>2 h) cached misses are re-probed (M-A).
+- Read-only openers (`daily checkpoint`, `parlay evaluate`/`--settle`) use the same bounded
+  lock retry; `markets capture` waits up to ~10 min (was 30 s).
+
+Accepted residual risk (m-5/M5): a background queue load that opened `nba.duckdb` before its
+game-window gate can still hold the file past any of these waits. Operational rule: stop the
+queue before 2026-10-20.
+
+## Injury-report probe cache (hardening review 2026-10-09, M-A)
+
+`probe_report_status` is three-state: `present`, `absent` (HTTP 403/404, or a 200/206 that is not
+a PDF) and `unknown` (timeout, connection error, 5xx, 429). Only a definite `absent` for BOTH
+filename variants of a slot that is at least 30 minutes old is cached
+(`data/injury_probe_cache/<ET date>.json`, slot -> time recorded, written atomically). Unknown
+never caches and also drops an older cached miss for that slot. A cached miss is re-probed once it
+is 2 hours old (`MISS_TTL_HOURS`) in case the report posted late. Legacy list-format cache files
+are ignored (re-probed once).
+
+## Other hardening (review minors)
+
+- Schedule cache: a cached schedule older than 36 h (`MAX_SCHEDULE_CACHE_AGE`, file mtime = last
+  good fetch) is refused; the original fetch error is raised (rc nonzero, alert).
+- Shadow-arm failures (`RunSummary.shadow_errors`) append one `[daily-run]` line to
+  `data/ops/ALERTS.md`; rc stays 0 because primary rows are unaffected.
