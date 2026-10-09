@@ -80,6 +80,7 @@ def feature_config_from(cfg: dict[str, Any]) -> InjuryFeatureConfig:
         value=v,
         tipoff_hour_et=float(r["tipoff_hour_et"]),
         lead_minutes=int(r["lead_minutes"]),
+        tip_source=str(r.get("tip_source", "proxy19")),
         doubtful_weight=float(r["doubtful_weight"]),
         report_table=str(r["backfill_table"]),
         rotation_min_avg=float(f["rotation_min_avg"]),
@@ -353,8 +354,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out-dir", default="data/injury_elo")
     ap.add_argument("--confirmatory-holdout", type=int, default=None)
     ap.add_argument("--i-have-preregistered", action="store_true")
+    ap.add_argument("--tip-source", choices=("proxy19", "real"), default=None)
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
+    if args.tip_source is not None:
+        cfg["report"] = {**cfg["report"], "tip_source": args.tip_source}
     con = duckdb.connect(args.db, read_only=True)
     if args.backfill_db:
         con.execute(f"ATTACH '{args.backfill_db}' AS bf (READ_ONLY)")

@@ -86,6 +86,7 @@ class InjuryFeatureConfig:
     value: ValueConfig = field(default_factory=ValueConfig)
     tipoff_hour_et: float = 19.0
     lead_minutes: int = 60
+    tip_source: str = "proxy19"  # "real": gate on scheduled tip (proxy where missing)
     doubtful_weight: float = 0.5
     report_table: str = "player_availability"
     rotation_min_avg: float = 20.0
@@ -294,14 +295,20 @@ def build_injury_features(
         tipoff_hour_et=cfg.tipoff_hour_et,
         lead_minutes=cfg.lead_minutes,
         table=cfg.report_table,
+        tip_source=cfg.tip_source,
     )
     rows = load_report_rows(con, base, game_ids=gids) if report_rows is None else report_rows
+    if cfg.tip_source == "real":
+        from nba.features.game_tipoff import attach_real_tips
+
+        rows = attach_real_tips(rows)
     out_flag, used = latest_pretip_flagged(rows, base)
     dbt_cfg = ReportTriggerConfig(
         statuses=("doubtful",),
         tipoff_hour_et=cfg.tipoff_hour_et,
         lead_minutes=cfg.lead_minutes,
         table=cfg.report_table,
+        tip_source=cfg.tip_source,
     )
     dbt_flag, _ = latest_pretip_flagged(rows, dbt_cfg)
 

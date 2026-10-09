@@ -52,3 +52,5 @@ currently **no genuinely virgin confirmatory holdout.** Treat every
 _Append new confirmatory touches above this line. Points n_sims=2000 retest and
 rung-4 `season=2025` confirmatory eval must each pre-register a row here before
 running._
+
+**NOTICE 2026-10-09 (red team, docs/reviews/redteam_production_2026-10-09.md):** both 2025 confirmatory touches above (injury_elo and context_residual) were gated with the 19:00 ET tip PROXY, which admits the 17:00 ET report snapshot for games that tipped at or before 17:00 (about 7.7% of games). The Elo effect is nil (-0.00786 proxy vs -0.00812 real tip on 2022-24), but the props pts holdout figure is likely overstated by about 0.003-0.004 CRPS. No re-touch of 2025 has been performed or is planned. The label "CLEAN first touch" means clean for those models only, not for the research programme (some design inputs were chosen with 2025 visible elsewhere). Real-tip gating is now available behind `tip_source="real"` (production default unchanged); corrected 2022-24 OOF numbers are in docs/TEST_LEDGER.md.

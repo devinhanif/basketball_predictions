@@ -538,6 +538,11 @@ class ReportTriggerConfig:
     lead_minutes: int = 60
     sources: tuple[str, ...] = (OFFICIAL_REPORT_SOURCE,)
     table: str = "player_availability"
+    #: "proxy19" (default, production): tip = game_date at ``tipoff_hour_et``.
+    #: "real": tip = scheduled tip-off (``tip_et`` column on the rows, attached
+    #: via ``nba.features.game_tipoff.attach_real_tips``); games whose real tip
+    #: is missing fall back to the proxy.
+    tip_source: str = "proxy19"
 
     @property
     def cutoff_minutes_after_midnight(self) -> float:
@@ -572,9 +577,23 @@ def load_report_rows(
 
 
 def usable_report_rows(rows: pl.DataFrame, config: ReportTriggerConfig) -> pl.DataFrame:
-    """Rows with ``as_of <= game_date + tipoff proxy - lead`` (the leakage rule)."""
+    """Rows with ``as_of <= tip - lead`` (the leakage rule).
+
+    ``tip`` is the proxy (``game_date + tipoff_hour_et``) unless
+    ``config.tip_source == "real"``, in which case it is the row's ``tip_et``
+    (proxy where null)."""
+    if config.tip_source not in ("proxy19", "real"):
+        raise ValueError(f"unknown tip_source {config.tip_source!r}")
     if rows.height == 0:
         return rows
+    if config.tip_source == "real":
+        if "tip_et" not in rows.columns:
+            raise ValueError("tip_source='real' needs a tip_et column (attach_real_tips)")
+        proxy = pl.col("game_date").cast(pl.Datetime("us")) + pl.duration(
+            minutes=int(config.tipoff_hour_et * 60.0)
+        )
+        cut = pl.coalesce(pl.col("tip_et"), proxy) - pl.duration(minutes=int(config.lead_minutes))
+        return rows.filter(pl.col("as_of") <= cut)
     cutoff = pl.col("game_date").cast(pl.Datetime("us")) + pl.duration(
         minutes=int(config.cutoff_minutes_after_midnight)
     )

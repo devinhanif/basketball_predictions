@@ -20,6 +20,7 @@ incident or result that earned it. Agents and maintainers follow this; CLAUDE.md
 | Practice | Why |
 |---|---|
 | **Every feature is as-of the game:** strictly prior games; pre-tip information only, with a ≥60-minute report cutoff. | Core CLAUDE.md rule; every module ships a planted-future-row test. |
+| **Gate pre-tip information on the REAL tip time in backtests too, not a proxy.** | A 19:00 ET proxy tip admitted the 17:00 injury snapshot for ~306/3,953 games (7.7%) that tipped at or before 17:00, i.e. a report published after tip (red team 2026-10-09; inflated props pts CRPS gain by ~0.003). Use `nba.features.game_tipoff` and `tip_source="real"`. |
 | **Audit missingness, not just values.** A feature whose NULL pattern depends on the outcome is a leak even if its values are clean. | `opp_adjusted_ridge` was NULL iff tonight's minutes < 5. It passed the name allow-list, top-10 importance and label-correlation checks, and contaminated experiments 1–2. |
 | **Suspicious gains get audited before they're celebrated.** A single feature group carrying the whole gain is a red flag. | The ablation showing the ridge "carried everything" was the leak's fingerprint. |
 | **Use rosters you'd actually know.** At prediction time use projected minutes and the injury report, never box-score membership. | The sim's backtest "wins" vanished forward because the backtest saw real rosters. |

@@ -389,6 +389,10 @@ def flagged_from_availability(
             "game_date",
         )
     )
+    if cfg.tip_source == "real":
+        from nba.features.game_tipoff import attach_real_tips
+
+        rows = attach_real_tips(rows)
     flagged, _used = latest_pretip_flagged(rows, cfg)
     info = {
         str(g): (d, int(h), int(a))
