@@ -172,3 +172,23 @@ bounds), not because any effect is believed false.
 | T101 | 2026-10-09 | RIDGE_V2 exp4 | fg3m: L4 - ref_fixed CRPS, 2024 | -0.0001 | -0.0003 | +0.0002 | clus | 0.71 | NOT KEPT | not holdout (2024) |
 
 **RIDGE_V2 verdict (T098-T101):** NOT KEPT. Leak decomposition: the exp-2 ridge "gain" (pts +0.068, reb +0.043, ast +0.014, fg3m +0.007) was entirely the missingness leak; the leak-free ridge adds ~0. Exp-1/exp-2 v2-vs-production margins are presumed leak-driven until re-measured.
+
+
+### CTXRES_V3_LEAKFREE exp3 (T102-T113), appended 2026-10-09
+
+| id | date | family | comparison | delta | lo | hi | boot | p-approx | verdict | holdout |
+|---|---|---|---|---|---|---|---|---|---|---|
+| T102 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | pts: hybrid_lf - v1_prod CRPS, 2024 (REPLICATION; 2024 already seen) | -0.0072 | -0.0120 | -0.0021 | clus | 0.0043 | passes exp-2 rule (BH q 0.0070; PIT cov ok); replication, not confirmation | not holdout (2024) |
+| T103 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | reb: hybrid_lf - v1_prod CRPS, 2024 (REPLICATION; 2024 already seen) | -0.0086 | -0.0108 | -0.0064 | clus | <1e-9 | passes exp-2 rule (BH q 0.0007; PIT cov ok); replication, not confirmation | not holdout (2024) |
+| T104 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | ast: hybrid_lf - v1_prod CRPS, 2024 (REPLICATION; 2024 already seen) | -0.0173 | -0.0190 | -0.0155 | clus | <1e-9 | passes exp-2 rule (BH q 0.0007; PIT cov ok); replication, not confirmation | not holdout (2024) |
+| T105 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | fg3m: hybrid_lf - v1_prod CRPS, 2024 (REPLICATION; 2024 already seen) | -0.0249 | -0.0262 | -0.0237 | clus | <1e-9 | passes exp-2 rule (BH q 0.0007; PIT cov ok); replication, not confirmation | not holdout (2024) |
+| T106 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | pts: hybrid_lf - v1_prod CRPS, 2023 (selection-season consistency gate) | -0.0138 | -0.0196 | -0.0080 | clus | 3e-6 | CI upper < 0 (direction replicates) | not holdout (2023) |
+| T107 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | reb: hybrid_lf - v1_prod CRPS, 2023 (selection-season consistency gate) | -0.0072 | -0.0096 | -0.0047 | clus | 1e-8 | CI upper < 0 (direction replicates) | not holdout (2023) |
+| T108 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | ast: hybrid_lf - v1_prod CRPS, 2023 (selection-season consistency gate) | -0.0183 | -0.0202 | -0.0163 | clus | <1e-9 | CI upper < 0 (direction replicates) | not holdout (2023) |
+| T109 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | fg3m: hybrid_lf - v1_prod CRPS, 2023 (selection-season consistency gate) | -0.0274 | -0.0287 | -0.0262 | clus | <1e-9 | CI upper < 0 (direction replicates) | not holdout (2023) |
+| T110 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | pts: hybrid_lf - v1_prod threshold log loss, 2024 (descriptive, not in rule) | +0.0015 | +0.0007 | +0.0024 | clus | 0.0005 | hybrid WORSE on pts threshold log loss (descriptive, post-hoc) | not holdout (2024) |
+| T111 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | reb: hybrid_lf - v1_prod threshold log loss, 2024 (descriptive, not in rule) | +0.0011 | +0.0001 | +0.0021 | clus | 0.039 | hybrid worse on reb threshold log loss (descriptive, near-null) | not holdout (2024) |
+| T112 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | ast: hybrid_lf - v1_prod threshold log loss, 2024 (descriptive, not in rule) | -0.0007 | -0.0016 | +0.0002 | clus | 0.14 | no difference (descriptive) | not holdout (2024) |
+| T113 | 2026-10-09 | CTXRES_V3_LEAKFREE exp3 (docs/CTXRES_V3_LEAKFREE.md) | fg3m: hybrid_lf - v1_prod threshold log loss, 2024 (descriptive, not in rule) | -0.0028 | -0.0038 | -0.0019 | clus | <1e-9 | hybrid better (descriptive) | not holdout (2024) |
+
+**CTXRES_V3_LEAKFREE verdict:** all four stats REPLICATE the previously seen leak-free-v2-vs-production gain on 2024 and show the same direction on 2023 (CPU re-fit, local v1_prod bit-identical to the stored exp-2 v1_prod). This is a replication of a seen result, NOT a confirmation; no registration/promotion. Caveat: threshold log loss is worse than production for pts and reb in 2024.
