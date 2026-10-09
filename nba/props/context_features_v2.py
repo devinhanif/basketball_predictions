@@ -32,7 +32,9 @@ fit on all seasons <= 2024, which would leak forward inside a 2022-2024 export);
 feature needs no fit (an affine map is irrelevant to trees). Travel uses approximate home-arena
 coordinates (neutral-site games count as the home team's arena). The report cutoff is the same
 19:00 ET proxy as v1; matinee tips are a known limitation. ``next-day game`` uses the public
-schedule only. Season 2025 is never loaded (SQL filter ``season <= 2024``).
+schedule only. Season 2025 is never loaded by default (SQL filter ``season <= 2024``); the opt-in
+``include_holdout_2025`` path (experiment 3, docs/CTXRES_V3.md) writes a separate file and leaves
+the default output byte-identical.
 """
 
 from __future__ import annotations
@@ -67,6 +69,10 @@ from nba.sim.usage_redistribution import ReportTriggerConfig, usable_report_rows
 
 MAX_SEASON = 2024  # season 2025 is never loaded
 EXPORT_SEASONS: tuple[int, ...] = (2022, 2023, 2024)
+# Experiment 3 only (docs/CTXRES_V3.md): opt-in via ``include_holdout_2025``; default unchanged.
+MAX_SEASON_V3 = 2025
+EXPORT_SEASONS_V3: tuple[int, ...] = (2022, 2023, 2024, 2025)
+V3_PARQUET = "ctxres_v3_with2025.parquet"
 HALFLIFE = 10.0
 SEED = 20261008
 STATUS_ORD: dict[str, int] = {
@@ -981,18 +987,31 @@ def export_dataset(
     db_path: str = "nba.duckdb",
     out_dir: str = "data/colab/ctxres_v2",
     elo_config: str = "configs/mov_elo_tuned.yaml",
+    include_holdout_2025: bool = False,
 ) -> dict[str, Any]:
-    """Build v1+v2 features (read-only DB, seasons 2022-2024) and write one parquet + spec."""
-    games, pgs, static, avail, poss = load_inputs_v2(db_path)
-    if games["season"].max() > MAX_SEASON:  # type: ignore[operator]
-        raise ValueError("season > 2024 present: 2025 must not be loaded")
+    """Build v1+v2 features (read-only DB) and write one parquet + spec.
+
+    Default: seasons 2022-2024 to ``ctxres_v2.parquet`` (unchanged). ``include_holdout_2025``
+    (experiment 3 only; see docs/CTXRES_V3.md) also keeps season 2025 and writes the SEPARATE file
+    ``ctxres_v3_with2025.parquet``; it refuses an ``out_dir`` that holds the v2 export so the v2
+    parquet and spec can never be overwritten."""
+    max_season = MAX_SEASON_V3 if include_holdout_2025 else MAX_SEASON
+    seasons = EXPORT_SEASONS_V3 if include_holdout_2025 else EXPORT_SEASONS
+    out_name = V3_PARQUET if include_holdout_2025 else "ctxres_v2.parquet"
+    o = Path(out_dir)
+    if include_holdout_2025 and (o / "ctxres_v2.parquet").exists():
+        raise ValueError(f"{o} holds the v2 export; use a separate directory for the 2025 export")
+    games, pgs, static, avail, poss = load_inputs_v2(db_path, max_season)
+    if games["season"].max() > max_season:  # type: ignore[operator]
+        raise ValueError(f"season > {max_season} present: it must not be loaded")
     elo_params = {k: float(v) for k, v in yaml.safe_load(Path(elo_config).read_text()).items()}
     cfg = ContextResidualConfig()
     flagged, _ = flagged_from_availability(avail, games, cfg.report)
     v1 = build_features(games, pgs, static, flagged, elo_params)
     full = build_v2_features(v1, games, pgs, static, avail, poss, cfg.report)
+    del v1, games, pgs, static, avail, poss  # memory-light: only ``full`` is needed from here on
     full = full.filter(
-        (pl.col("n_prior") >= MIN_PRIOR_PLAYED) & pl.col("season").is_in(list(EXPORT_SEASONS))
+        (pl.col("n_prior") >= MIN_PRIOR_PLAYED) & pl.col("season").is_in(list(seasons))
     )
     keep_v1 = [c for c in all_v1_columns() if c in full.columns]
     base = [pl.col(f"m10_{s}").alias(f"base_m_{s}") for s in PROP_STATS] + [
@@ -1006,13 +1025,16 @@ def export_dataset(
         *[c for c in keep_v1 if c not in sel],
         *[c for c in all_v2_columns() if c not in keep_v1 and c not in sel],
     )
+    del full
     out = out.with_columns(
         [pl.col(c).cast(pl.Float32) for c, t in out.schema.items() if t in (pl.Float64,)]
     )
-    o = Path(out_dir)
     o.mkdir(parents=True, exist_ok=True)
-    out.write_parquet(o / "ctxres_v2.parquet", compression="zstd")
+    out.write_parquet(o / out_name, compression="zstd")
     spec = feature_spec(keep_v1)
+    if include_holdout_2025:
+        spec["seasons"] = list(seasons)
+        spec["includes_holdout_2025"] = True
     spec["n_rows"] = out.height
     spec["date_min"] = str(out["game_date"].min())
     spec["date_max"] = str(out["game_date"].max())
@@ -1025,10 +1047,19 @@ def export_dataset(
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Export the ctxres_v2 parquet for the Colab sweep")
     ap.add_argument("--db", default="nba.duckdb")
-    ap.add_argument("--out-dir", default="data/colab/ctxres_v2")
+    ap.add_argument("--out-dir", default=None)
     ap.add_argument("--elo-config", default="configs/mov_elo_tuned.yaml")
+    ap.add_argument(
+        "--include-holdout-2025",
+        action="store_true",
+        help="experiment 3 only: also export season 2025 to a separate "
+        f"{V3_PARQUET} (default out dir data/colab/ctxres_v3); see docs/CTXRES_V3.md",
+    )
     a = ap.parse_args(argv)
-    spec = export_dataset(a.db, a.out_dir, a.elo_config)
+    out_dir = a.out_dir or (
+        "data/colab/ctxres_v3" if a.include_holdout_2025 else "data/colab/ctxres_v2"
+    )
+    spec = export_dataset(a.db, out_dir, a.elo_config, a.include_holdout_2025)
     print(json.dumps({k: spec[k] for k in ("n_rows", "date_min", "date_max")}))
     return 0
 
