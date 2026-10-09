@@ -390,3 +390,17 @@ CREATE TABLE IF NOT EXISTS team_coaches (
     is_assistant INT,                     -- nba_api: 1 = head coach, 2 = assistant
     PRIMARY KEY (season, team_id, coach_id)
 );
+
+-- ---------------------------------------------------------------------------
+-- Game-level COVID / era tags (nba/ingest/era_flags.py). Rule-based from
+-- (game_date, season, home_team); see docs/NEW_DATA_SOURCES.md "COVID era tags".
+-- limited_fans is the conservative covariate: TRUE for every 2020-21 game
+-- (attendance below normal capacity or empty); no_fans is asserted only where
+-- certain (2019-20 bubble). Populated in the history DB (and a parquet copy
+-- covering current seasons); not auto-written to nba.duckdb.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS game_era_flags (
+    game_id VARCHAR PRIMARY KEY, season INT,
+    covid_bubble BOOLEAN, no_fans BOOLEAN, limited_fans BOOLEAN,
+    shortened_season BOOLEAN, notes VARCHAR
+);

@@ -5,16 +5,21 @@ before the next starts, at >= 2.5 s/request, each with the circuit breaker. Step
 idempotent (cached keys are never refetched), so the queue can be killed and restarted
 at any time; ``data/ops/ingest_queue_state.json`` just skips steps already finished OK.
 
-Priority (see docs/NEW_DATA_SOURCES.md, "History DB"):
+Priority (re-prioritised 2026-10-09, see docs/NEW_DATA_SOURCES.md, "History DB"):
 
   handover  stop the legacy chain (``run_postgame_backfill.sh``) immediately (resumable)
-  a         current tracking, hustle for 2022-2024 only (the screen's need; -> cache);
-            2025 (frozen holdout) is fetched LAST, after every older-season step
-  b         history games (2021..2013) -> box scores newest first   (-> history DB)
-  c         current-season officials, shots, coaches, matchups (-> cache); each is loaded
-            into nba.duckdb with ``postgame-load`` only when no other process holds it
-  d         history play-by-play newest first -> parse (possessions/stints, heavy lock)
-  e         history tracking, hustle (-> history DB)
+  a         current tracking, hustle for 2022-2024 only (the screen's need; -> cache)
+  b         current-season officials 2022-2024 (referee features) -> ``postgame-load`` when
+            nothing holds nba.duckdb
+  c         history games 2021, 2020, 2019 -> box scores 2021, 2020, 2019 (-> history DB)
+  d         history play-by-play 2021..2019, each parsed (heavy lock)
+  e         current officials 2025 (+ load), shots, coaches, matchups (-> cache, each loaded
+            only when no other process holds nba.duckdb)
+  f         history tracking, hustle (the history DB only holds 2019-2021) (+ load)
+  g         2025 (frozen holdout) tracking/hustle LAST
+
+Seasons 2013-2018 are deliberately NOT queued (maintainer decision 2026-10-09: the training
+history starts at 2019-20, the first season with official injury-report PDFs).
 
 Older seasons are written ONLY to ``data/history/nba_history.duckdb`` and
 ``data/history/<source>/`` so production refits never see them.
@@ -55,12 +60,13 @@ PY = str(ROOT / ".venv" / "bin" / "python")
 RATE = "6.0"
 
 
-HISTORY_SEASONS = list(range(2021, 2012, -1))  # newest first: 2021 .. 2013
+HISTORY_SEASONS = [2021, 2020, 2019]  # newest first; 2013-2018 dropped (decision 2026-10-09)
 STEP_RETRIES = 4
 CHAIN_SOURCES = ("tracking", "hustle")
 CURRENT_SCREEN_SEASONS = [2022, 2023, 2024]
 CURRENT_DEFERRED_SEASONS = [2025]
-CURRENT_AFTER = ("officials", "shots", "coaches", "matchups")
+CURRENT_OFFICIALS_SEASONS = [2022, 2023, 2024]
+CURRENT_AFTER = ("shots", "coaches", "matchups")
 
 
 def season_str(s: int) -> str:
@@ -102,6 +108,20 @@ def build_steps() -> list[Step]:
             )
         )
     steps += [
+        Step(
+            "cur:officials",
+            ingest(
+                "postgame-fetch", "--source", "officials", *seasons_args(CURRENT_OFFICIALS_SEASONS)
+            ),
+        ),
+        Step(
+            "load:officials",
+            ingest("postgame-load", "--source", "officials"),
+            "load",
+            load_source="officials",
+        ),
+    ]
+    steps += [
         Step(f"hist:games:{s}", ingest("games", "--season", season_str(s), history=True), season=s)
         for s in HISTORY_SEASONS
     ]
@@ -113,16 +133,6 @@ def build_steps() -> list[Step]:
         )
         for s in HISTORY_SEASONS
     ]
-    for src in CURRENT_AFTER:
-        steps.append(Step(f"cur:{src}", ingest("postgame-fetch", "--source", src)))
-        steps.append(
-            Step(
-                f"load:{src}",
-                ingest("postgame-load", "--source", src),
-                "load",
-                load_source=src,
-            )
-        )
     for s in HISTORY_SEASONS:
         steps.append(
             Step(f"hist:pbp:{s}", ingest("pbp", "--season", season_str(s), history=True), season=s)
@@ -133,6 +143,32 @@ def build_steps() -> list[Step]:
                 ["nba.parse.history", "--season", str(s)],
                 "parse",
                 season=s,
+            )
+        )
+    steps.append(
+        Step(
+            "cur:officials:2025",
+            ingest(
+                "postgame-fetch", "--source", "officials", *seasons_args(CURRENT_DEFERRED_SEASONS)
+            ),
+        )
+    )
+    steps.append(
+        Step(
+            "load:officials:2025",
+            ingest("postgame-load", "--source", "officials"),
+            "load",
+            load_source="officials",
+        )
+    )
+    for src in CURRENT_AFTER:
+        steps.append(Step(f"cur:{src}", ingest("postgame-fetch", "--source", src)))
+        steps.append(
+            Step(
+                f"load:{src}",
+                ingest("postgame-load", "--source", src),
+                "load",
+                load_source=src,
             )
         )
     for src in CHAIN_SOURCES:

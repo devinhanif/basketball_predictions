@@ -47,10 +47,10 @@ Known gaps by design:
   `failed` in `data/<source>/ingest_log.duckdb` and is retried on the next run.
 - Shot-chart attempts can differ slightly from box-score FGA (see reconciliation below).
 
-## History DB (older seasons 2013-14 .. 2021-22)
+## History DB (older seasons 2019-20 .. 2021-22)
 
 Purpose: make a pre-registered training-window experiment (4 vs 7 vs 12 seasons) possible. Season ints
-2013..2021 (the tracking era). **These seasons are deliberately NOT in `nba.duckdb`**: production models
+2019, 2020, 2021. **These seasons are deliberately NOT in `nba.duckdb`**: production models
 refit daily on everything in that file, so adding seasons would silently change production. They live in a
 separate DuckDB with the identical schema (`nba/db/schema.sql`):
 
@@ -74,24 +74,93 @@ possessions vs `FGA + 0.44 FTA + TOV - OREB`, parsed points vs final score, clea
 production parser itself measures mean |error| 1.9-2.2 (signed -1.3 to -1.7) on 2022-2025, so the literal
 "<= 1" gate is reported but the history flag is "within the production envelope" (MAE <= 3.0).
 
-### The queue (one stats.nba.com puller at a time, 2.5 s/request)
+### Scope decision (2026-10-09): history starts at 2019-20
 
-`sh ops/run_ingest_queue.sh` (nohup + caffeinate, no launchd) runs `nba/ingest/queue.py`:
-handover from the legacy `run_postgame_backfill.sh` chain after hustle (stopped between sources) ->
-current tracking/hustle top-up -> history games + box scores (2021 -> 2013) -> current officials, shots,
-coaches, matchups (each `postgame-load`ed into `nba.duckdb` only when `lsof` shows no holder) ->
-history play-by-play newest first, each season parsed under `data/ops/heavy.lock` -> history
-tracking and hustle (+ load). Steps are idempotent; a restart skips finished steps. Failed steps get up to
-two retry passes 30 min apart.
+Seasons 2013-14 .. 2018-19 were **removed from the queue** (maintainer decision): the training
+history starts at 2019-20 because official injury-report PDFs (the forward-looking availability feed)
+exist only from 2018-12-20, so every history season from 2019-20 has the same feature set as
+production. Do not re-add earlier seasons without a new decision. 2019-20 and 2020-21 are
+COVID-affected: see "COVID era tags" below.
 
-### Official injury-report PDFs for old seasons (probe, ak-static CDN, ranged GET)
+### The queue (one stats.nba.com puller at a time, >= 2.5 s/request, ~600 req/h)
 
-Present: 2018-12-20 onward (checked 2018-12-20, 12-28, 2019-01-02/08/15, 2019-02-15, 2019-04-01,
-2019-10-25, 2020-12-25, 2021-04-15, 2021-10-22 ... 2022-10-19). Absent: 2018-12-10 and earlier (checked
-2017-12-01, 2018-04-01, 2018-10-20, 2018-11-10, 2018-12-01, 2018-12-10). Early years (2018-19 to
-2020-21) publish two snapshots a day (`..._01PM`, `..._05PM`, hour-only filename); 2021-22 has `..._09AM`.
-So history seasons 2018-19 (from Dec) .. 2021-22 could get a forward-looking availability feed via the
-existing `official-injury-report` backfill; 2013-14 .. 2017-18 cannot (inactive-list only). Not bulk-pulled.
+`sh ops/run_ingest_queue.sh` (nohup + caffeinate, no launchd) runs `nba/ingest/queue.py`. Order
+(re-prioritised 2026-10-09; referee features are a priority):
+
+1. handover (stop legacy chain), `cur:tracking`, `cur:hustle` (2022-2024; hustle was running)
+2. `cur:officials` 2022-2024, then `load:officials` (only when `lsof` shows no `nba.duckdb` holder)
+3. `hist:games` 2021, 2020, 2019 -> `hist:boxscore` 2021, 2020, 2019
+4. `hist:pbp` + `hist:parse` 2021, 2020, 2019
+5. `cur:officials:2025` + `load:officials:2025`, then `cur:shots`, `cur:coaches`, `cur:matchups` (each + load)
+6. `hist:tracking`, `hist:hustle` (+ history-DB load; the history DB only holds 2019-2021)
+7. LAST: `cur:tracking:2025`, `cur:hustle:2025` (frozen holdout season)
+
+Every child yields per key to `data/ops/lock` and `data/ops/lineups_lock` (+300 s grace). Steps are
+idempotent (cached keys never refetched); a restart skips finished steps, and killing the queue
+(SIGTERM) terminates the child between keys. Restarted 2026-10-09 15:55Z mid `cur:hustle` with the
+2,135 cached files intact. Failed steps get up to two retry passes 30 min apart.
+
+### Official injury-report PDFs for history seasons (2019-20 .. 2021-22)
+
+Probe (ak-static CDN, not stats.nba.com): PDFs exist from 2018-12-20 (absent 2018-12-10 and earlier;
+checked 2017-12-01 .. 2018-12-10); always the hour-only filename
+(`Injury-Report_2021-11-15_09AM.pdf`). Cadence: 2019-20 / 2020-21 three snapshots a day (01PM, 05PM,
+08PM; bubble Aug 2020: 11AM, 02PM, 05PM); 2021-22 hourly 06AM-11PM.
+
+`nba/ingest/history_injury.py` (CLI `python -m nba.ingest.history_injury fetch|load`):
+
+* `fetch` is calendar-driven (no DB needed): per date it probes seed hours (11AM, 1PM, 2PM, 5PM, 8PM);
+  only if 11AM+1PM+2PM all exist (hourly regime) does it probe the remaining hours. ~1 req / 2 s.
+  Windows: 2019: 2019-10-20..2020-03-12 and 2020-07-20..2020-10-12 (stoppage skipped), 2020:
+  2020-12-10..2021-07-23, 2021: 2021-10-10..2022-06-17 (707 dates). Cache `data/history/availability_official/`;
+  one manifest per date in `data/history/availability_backfill/` makes it resumable (done dates are never
+  re-probed); a transient error (non-404/403, timeout) leaves the date unmarked and retried on rerun; 8
+  consecutive errors stop the run. Every snapshot is kept with `as_of` = its publish hour, so the
+  real-tip gate is the same as production (`as_of <= tip`).
+* `load` parses cached PDFs into the HISTORY DB `player_availability` (`source='nba_official_report'`,
+  delete-then-insert per `as_of`) with a history-aware `NameResolver` (team-as-of from history box scores;
+  unresolved names beyond `--max-unmatched-rate` fail loudly; unmatched names go to the resolver log). It
+  REFUSES to run until the history DB has `player_game_stats` (box scores): PDFs stay cached until then.
+  Run after `hist:boxscore:*` finish: `uv run python -m nba.ingest.history_injury load`.
+  The 2019-21 PDFs parse with the existing production parser (verified on 2019-12-10 and 2021-02-03).
+* Spot-audit after the fetch: probe a few dates exhaustively (all hours) and compare to the manifest
+  to confirm the seed-hour regime detection missed nothing.
+
+### COVID era tags (`game_era_flags`)
+
+`nba/ingest/era_flags.py`, table `game_era_flags(game_id, season, covid_bubble, no_fans, limited_fans,
+shortened_season, notes)` in `schema.sql`. Rule-based and conservative; written to the history DB and to
+`data/history/game_era_flags.parquet` (history + current seasons, current ones are all-False; `nba.duckdb`
+is only read). Command: `uv run python -m nba.ingest.era_flags` (after `hist:games`).
+
+| season | rule |
+|---|---|
+| 2019-20 | `shortened_season` for all games (suspended 2020-03-11). Games on/after 2020-07-30 (Orlando restart): `covid_bubble` and `no_fans` (neutral site, no home court) |
+| 2020-21 | `shortened_season` (72 games) and `limited_fans` for EVERY game, regular season and playoffs (attendance ranged from empty to partial capacity by arena/date; no per-arena calendar is encoded). `no_fans` is not asserted. TOR home games noted (played in Tampa) |
+| others | all False |
+
+Known unflagged edges: 2020-03-10/11 (some games played without fans), January 2022 capacity caps,
+COVID-protocol postponements. Use `limited_fans OR no_fans OR covid_bubble` as one "reduced home advantage"
+covariate or drop those games; do not treat `no_fans=False` in 2020-21 as "fans present".
+
+### Forward referee assignments (`nba/ingest/referees.py`)
+
+Read-only collector for `official.nba.com/referee-assignments` (posted ~9 am ET; NBA table only, the
+WNBA table on the same page is ignored). Writes `data/refs/refs.duckdb` (separate from `nba.duckdb`):
+`ref_snapshots` (fetched_at, page_date, sha256, raw HTML in `data/refs/raw/`) and `ref_assignments`
+(one row per snapshot x game: away/home team + id, crew_chief / referee / umpire / alternate with jersey
+and `official_id`). An identical page is not re-stored; a changed page adds a new snapshot, so use
+`fetched_at < tip` as-of. Names map to `official_id` through `game_officials` history (read-only; cached
+in `data/refs/official_ids.json`; same-name officials disambiguated by jersey). Unmapped officials are
+kept with NULL id and the CLI exits 2; `python -m nba.ingest.referees remap` fills late ids once
+`game_officials` is loaded (the table is empty in `nba.duckdb` until `load:officials`).
+
+One-line addition for the lead (not applied; calls are cheap and deduped, so hourly is fine), in
+`ops/nba_daily.sh`, `pretip)` branch right after the `predict` step:
+
+    step refs "$UV" run python -m nba.ingest.referees collect
+
+(rc 2 = some officials not yet mapped; harmless until `load:officials` has run, then it should stay 0.)
 
 ### Coverage (updated as steps finish)
 
