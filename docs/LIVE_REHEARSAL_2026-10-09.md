@@ -74,7 +74,8 @@ both released by a trap (`data/rehearsal/live.sh`). Calls made: ScheduleLeagueV2
    (`IndentationError`, line 434). The working tree (and every test run here) had the correct order; my pipeline commit contains the repair. If another branch or checkout was created from
    `f7a8c11`, it does not import `nba.daily`.
 
-Commits: see "Commits" at the end (SHAs filled in).
+Commits: bugs 1-3 and the pipeline.py repair (7) = `8ea12aa`; bugs 4-5 = `b4b8c8e`; this doc = `05b5528` (plus its SHA follow-up). Bug 6 (`--roster-dir`) was swept into another
+agent's commit `230958e` (watchdog) because they committed the same working tree; its content is as described here.
 
 ## Remaining risks (not fixed)
 

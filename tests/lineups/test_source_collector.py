@@ -176,3 +176,14 @@ def test_read_only_missing_file_is_empty_store(tmp_path: Path) -> None:
 
 
 _ = (UTC, json, duckdb)
+
+
+def test_poll_exit_status_treats_unpublished_day_redirect_as_benign() -> None:
+    from nba.lineups.__main__ import poll_ok
+    from nba.lineups.collector import PollResult
+
+    assert poll_ok(PollResult("fetched", "http_302", "s", 302))  # day's file not published yet
+    assert poll_ok(PollResult("fetched", "http_404", "s", 404))
+    assert poll_ok(PollResult("skipped", "no_game_in_window"))
+    assert not poll_ok(PollResult("fetched", "http_500", "s", 500))
+    assert not poll_ok(PollResult("fetched", "parse_error", "s", 200))
