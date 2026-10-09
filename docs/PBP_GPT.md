@@ -161,4 +161,25 @@ remaining pts / reb / ast per roster slot).
 
 ## Results
 
-Not run yet. This section is filled in after `nba.eval.pbp_gpt_eval` is applied, whatever the outcome.
+Run `20261008_191436` (A100, full budget, 6 trials, best `rand3` 6.3M params, val NLL 1.643 on the 2023 slice;
+2025 never loaded). Scored 2026-10-08 by `nba.eval.pbp_gpt_eval` exactly as pre-registered; full output in
+`reports/pbp_gpt_report.md` (local).
+
+* **G0 gate (next-token NLL vs trigram, 2024): PASS.** NLL 2.233 vs 4.005 (CI [-1.79, -1.75]). Note the
+  val -> report jump (1.64 -> 2.23) is almost all in player-identity tokens (actor 1.68 -> 3.34, sub_in
+  1.87 -> 3.93): the model learned *who* through 2023 and rosters moved in 2024. Event/timing tokens barely
+  moved (evt 1.66 -> 1.67, dt 1.57 -> 1.58).
+* **P1 live win probability (primary): NOT KEPT.** Significantly WORSE than the score+clock+injury-Elo
+  logistic at all four checkpoints (BH p_adj 0.018 each): q2 +0.038 [+0.006, +0.070], q3 +0.032, q4 +0.020,
+  q4_5min +0.028. GPT calibration was better at q2 (ECE 0.028 vs 0.078) but its probabilities were less sharp.
+* **P2 pregame: NOT KEPT** (expected). Win LL 0.643 vs injury-Elo 0.556 (+0.088 [+0.040, +0.134]); margin and
+  total CRPS also worse.
+* **P3 live player lines: 2/12 cells won**, both tiny and late: q4_5min pts -0.095 [-0.120, -0.072] and
+  q4_5min ast -0.012. 8 cells significantly worse (q2 pts +1.25). The GPT is nearly unbiased (pts bias
+  -0.06..-0.36) where the pro-rated baseline over-predicts (+0.17..+1.03), but its spread is too wide early.
+
+**Verdict: NOT KEPT** (T082-T084). Sequence modelling learned basketball grammar but not who wins: the score,
+the clock and team strength already carry the live signal, and per-player identity tokens do not transfer
+across seasons. Not registered as a candidate. A rerun is not planned; if revisited, the cheap ideas are
+season-agnostic player tokens (rate embeddings instead of ids) and conditioning on injury-Elo, each as a new
+pre-registration.
