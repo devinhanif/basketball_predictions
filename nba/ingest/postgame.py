@@ -39,6 +39,7 @@ from nba.ingest.cache import (
     fetch_cached,
     insert_rows,
     open_db,
+    yield_to,
 )
 
 SOURCES = ["tracking", "hustle", "officials", "shots", "matchups", "coaches"]
@@ -579,6 +580,7 @@ def fetch_source(
             if done is not None and cache_path_for(source, key, data_dir).exists():
                 summary.cached += 1
                 continue
+            yield_to()
             try:
                 fetch_cached(
                     log,

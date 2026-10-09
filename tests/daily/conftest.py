@@ -82,3 +82,14 @@ def _isolated_model_cache(
     from nba.daily import predict
 
     monkeypatch.setattr(predict, "DEFAULT_CONTEXT_CACHE", tmp_path_factory.mktemp("ctxcache"))
+
+
+@pytest.fixture(autouse=True)
+def _no_player_info_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Daily tests must never reach stats.nba.com for the rookie pedigree auto-fill."""
+
+    def blocked(pid: int) -> pl.DataFrame:
+        raise RuntimeError("network disabled in tests")
+
+    monkeypatch.setattr("nba.ingest.players_static._fetch_player_info", blocked)
+    monkeypatch.setattr("nba.ingest.players_static.time.sleep", lambda s: None)

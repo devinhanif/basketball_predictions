@@ -81,3 +81,67 @@ def test_failed_roster_fetch_falls_back_to_recent(
     assert "FAILED" in s.model_status["roster_source"]
     assert s.n_predicted_games == 2 and s.n_props_rows > 0
     assert ROOKIE not in _pred_players(con)
+
+
+def _static_fetch(calls: list[int]):  # type: ignore[no-untyped-def]
+    def fetch(pid: int) -> pl.DataFrame:
+        calls.append(pid)
+        return pl.DataFrame(
+            {
+                "player_id": [pid], "position": ["G"], "height_in": [76.0], "weight_lb": [200.0],
+                "birth_date": ["2005-01-01"], "draft_year": [2026], "draft_pick": [3],
+                "college": ["X"],
+            }
+        ).with_columns(pl.col("birth_date").str.to_date())  # fmt: skip
+
+    return fetch
+
+
+def _official(con, tmp_path, static_fetch, **kw):  # type: ignore[no-untyped-def]
+    return _run(
+        con, roster_source="official", roster_dir=tmp_path / "r", data_dir=tmp_path / "d",
+        roster_fetch=_fake_fetch([]), static_fetch=static_fetch, **kw,
+    )  # fmt: skip
+
+
+def test_autofill_pulls_missing_static_once_then_nothing(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    calls: list[int] = []
+    s = _official(con, tmp_path, _static_fetch(calls))
+    assert ROOKIE in calls and s.static_autofill["pulled"] == len(calls) >= 1
+    assert s.static_autofill["failed"] == 0
+    row = con.execute(
+        "SELECT draft_pick FROM players_static WHERE player_id=?", [ROOKIE]
+    ).fetchone()
+    assert row == (3,)
+    assert "lack players_static" not in s.model_status["roster_source"]
+    calls.clear()
+    s2 = _official(con, tmp_path, _static_fetch(calls))
+    assert calls == [] and s2.static_autofill == {}
+
+
+def test_autofill_failure_never_raises_and_retries_next_run(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    def down(pid: int) -> pl.DataFrame:
+        raise RuntimeError("blocked")
+
+    s = _official(con, tmp_path, down)
+    assert s.static_autofill["failed"] >= 1 and s.static_autofill["loaded"] == 0
+    assert "lack players_static" in s.model_status["roster_source"]
+    assert ROOKIE in _pred_players(con)  # league default still predicts
+    calls: list[int] = []
+    s2 = _official(con, tmp_path, _static_fetch(calls))
+    assert ROOKIE in calls and s2.static_autofill["failed"] == 0
+
+
+def test_autofill_cap_respected(con: duckdb.DuckDBPyConnection, tmp_path: Path) -> None:
+    from nba.ingest.players_static import autofill_players_static
+
+    calls: list[int] = []
+    out = autofill_players_static(
+        con, list(range(7000, 7010)), data_dir=tmp_path, cap=4, fetch=_static_fetch(calls)
+    )
+    assert len(calls) == 4 and out["pulled"] == 4 and out["over_cap"] == 6
+    assert out["loaded"] == 4

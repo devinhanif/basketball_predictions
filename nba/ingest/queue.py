@@ -36,6 +36,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
+from nba.ingest.cache import YIELD_ENV, YIELD_GRACE_ENV
+
 ROOT = Path(__file__).resolve().parents[2]
 OPS = ROOT / "data" / "ops"
 LOG = OPS / "ingest_queue.log"
@@ -43,6 +45,10 @@ STATUS = OPS / "ingest_queue_status.md"
 STATE = OPS / "ingest_queue_state.json"
 HEAVY_LOCK = OPS / "heavy.lock"
 PROD_DB = ROOT / "nba.duckdb"
+#: Lock dirs of the daily job / lineups collector: children pause per key while either exists
+#: (plus a grace period) so the queue never competes for the ~600 requests/hour/IP quota.
+YIELD_PATHS = [OPS / "lock", OPS / "lineups_lock"]
+YIELD_GRACE_S = 300
 PY = str(ROOT / ".venv" / "bin" / "python")
 #: Seconds per request. stats.nba.com enforces a rolling quota of ~600 requests then blocks
 #: for 30+ min, so pace below it (~600/h) rather than racing it. Never lower than 2.5.
@@ -272,7 +278,12 @@ class Queue:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            env={**os.environ, "PYTHONUNBUFFERED": "1"},
+            env={
+                **os.environ,
+                "PYTHONUNBUFFERED": "1",
+                YIELD_ENV: os.pathsep.join(str(p) for p in YIELD_PATHS),
+                YIELD_GRACE_ENV: str(YIELD_GRACE_S),
+            },
         )
         assert self.child.stdout is not None
         for line in self.child.stdout:

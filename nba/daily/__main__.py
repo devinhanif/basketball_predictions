@@ -104,6 +104,8 @@ def _print_summary(s: RunSummary) -> None:
         f"out_excluded={s.n_out_excluded}"
     )
     print(f"models: {s.model_status}\ningest: {s.ingest}\nsettle: {s.settle}")
+    if s.static_autofill:
+        print(f"players_static autofill: {s.static_autofill}")
 
 
 def main(argv: list[str] | None = None) -> int:

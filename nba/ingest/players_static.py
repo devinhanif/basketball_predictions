@@ -21,6 +21,7 @@ nba_api is imported lazily so this module is safe to import without network.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 import duckdb
@@ -214,3 +215,66 @@ def load_players_static(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -> int
     con.execute(f"INSERT INTO players_static ({cols}) SELECT {cols} FROM ps_new")
     con.unregister("ps_new")
     return df.height
+
+
+#: Max players pulled per daily run (stats.nba.com quota is ~600 requests/hour/IP).
+AUTOFILL_CAP = 120
+
+
+def autofill_players_static(
+    con: duckdb.DuckDBPyConnection,
+    player_ids: list[int],
+    *,
+    data_dir: Path = DEFAULT_DATA_DIR,
+    rate_limiter: RateLimiter | None = None,
+    cap: int = AUTOFILL_CAP,
+    fetch: Callable[[int], pl.DataFrame] | None = None,
+) -> dict[str, int]:
+    """Pull ``CommonPlayerInfo`` for rostered players lacking a row and upsert them.
+
+    Per-player parquet cache (``data/players_static/<id>.parquet``) means each player is
+    fetched at most once ever. At most ``cap`` ids per call. Never raises: a failed fetch
+    is logged and counted, and the player keeps the league-default prior. The upsert is one
+    short transaction after all network calls. Returns counts for the run summary.
+    """
+    ids = sorted({int(p) for p in player_ids})
+    todo, skipped = ids[:cap], max(len(ids) - cap, 0)
+    out_dir = data_dir / "players_static"
+    frames: list[pl.DataFrame] = []
+    pulled = failed = 0
+    for pid in todo:
+        path = out_dir / f"{pid}.parquet"
+        try:
+            if path.exists():
+                frames.append(pl.read_parquet(path))
+                continue
+            if rate_limiter is not None:
+                rate_limiter.wait()
+            frame = (fetch or _fetch_with_retry)(pid)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            frame.write_parquet(path)
+            frames.append(frame)
+            pulled += 1
+        except Exception as exc:
+            failed += 1
+            print(f"players_static autofill FAILED [{pid}]: {type(exc).__name__}: {exc}"[:200])
+    loaded = 0
+    if frames:
+        try:
+            con.execute("BEGIN")
+            try:
+                loaded = load_players_static(con, pl.concat(frames, how="vertical_relaxed"))
+                con.execute("COMMIT")
+            except Exception:
+                con.execute("ROLLBACK")
+                raise
+        except Exception as exc:
+            failed += len(frames)
+            print(f"players_static autofill load FAILED: {type(exc).__name__}: {exc}"[:200])
+    return {
+        "requested": len(ids),
+        "pulled": pulled,
+        "loaded": loaded,
+        "failed": failed,
+        "over_cap": skipped,
+    }

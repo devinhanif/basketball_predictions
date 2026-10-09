@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -49,6 +50,7 @@ from nba.daily.store import ForwardPrediction, LeakageError, append_predictions,
 from nba.features.game_tipoff import persist_live_tips
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.ingest.games import MAX_VALID_TEAM_ID, MIN_VALID_TEAM_ID
+from nba.ingest.players_static import autofill_players_static
 from nba.models.injury_elo import predict_games
 from nba.props.forward import SIM_STATS
 from nba.props.rosters import (
@@ -79,6 +81,7 @@ class RunSummary:
     model_status: dict[str, str] = field(default_factory=dict)
     ingest: dict[str, int] = field(default_factory=dict)
     settle: dict[str, int] = field(default_factory=dict)
+    static_autofill: dict[str, int] = field(default_factory=dict)
 
 
 def run_daily(
@@ -107,6 +110,7 @@ def run_daily(
     roster_fetch: RosterFetcher | None = None,
     log_int_variant: bool = False,
     tips_dir: Path | None = None,
+    static_fetch: Callable[[int], pl.DataFrame] | None = None,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC."""
     made_at = now if now is not None else utcnow()
@@ -156,7 +160,7 @@ def run_daily(
             con, run_date, season_i, upcoming, made_at, registry,
             with_props, elo_config, summary, props_model, n_sims, model_cache,
             _official_roster(con, run_date, season_s, roster_source, roster_dir, roster_fetch,
-                             rate_limiter, summary) if with_props else None,
+                             rate_limiter, summary, data_dir, static_fetch) if with_props else None,
             log_int_variant,
         )  # fmt: skip
         try:
@@ -179,6 +183,8 @@ def _official_roster(
     fetch: RosterFetcher | None,
     rate_limiter: RateLimiter | None,
     summary: RunSummary,
+    data_dir: Path = DEFAULT_DATA_DIR,
+    static_fetch: Callable[[int], pl.DataFrame] | None = None,
 ) -> pl.DataFrame | None:
     """Pre-tip official rosters (30 cached-per-date calls) when ``roster_source='official'``;
     None (recent-games roster) otherwise or when nothing could be fetched. Never raises."""
@@ -202,6 +208,15 @@ def _official_roster(
     if missing:
         note += f" (missing {missing} -> recent-games roster for those)"
     no_static = missing_static_ids(con, frame)
+    if no_static:  # debutants: pull pedigree now so the draft-slot minutes prior applies today
+        try:
+            summary.static_autofill = autofill_players_static(
+                con, no_static, data_dir=data_dir, rate_limiter=rate_limiter, fetch=static_fetch
+            )
+            no_static = missing_static_ids(con, frame)
+        except Exception as exc:  # never fail the run
+            summary.static_autofill = {"error": 1}
+            print(f"players_static autofill skipped: {type(exc).__name__}: {exc}"[:200])
     if no_static:
         note += f"; {len(no_static)} rostered players lack players_static (no rookie prior)"
     summary.model_status["roster_source"] = note

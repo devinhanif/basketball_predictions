@@ -7,6 +7,7 @@ being installed.
 
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
@@ -37,6 +38,77 @@ class RateLimiter:
             if remaining > 0:
                 time.sleep(remaining)
         self._last_call = time.monotonic()
+
+
+#: Env var (os.pathsep-separated paths) enabling :func:`yield_to`; unset/empty = off.
+YIELD_ENV = "NBA_INGEST_YIELD_TO"
+#: Env var overriding the grace period (seconds) after the last yield path disappears.
+YIELD_GRACE_ENV = "NBA_INGEST_YIELD_GRACE_S"
+DEFAULT_YIELD_GRACE_S = 300.0
+
+
+class YieldGate:
+    """Pause a background puller while another job's lock path exists, plus a grace period.
+
+    stats.nba.com allows ~600 requests/hour per IP, so a long backfill must not compete with
+    the daily job. ``wait()`` blocks while any of ``paths`` exists and for ``grace_s`` after the
+    last one disappeared; with no lock seen it returns immediately. Clock/sleep are injectable.
+    """
+
+    def __init__(
+        self,
+        paths: Sequence[Path],
+        grace_s: float = DEFAULT_YIELD_GRACE_S,
+        poll_s: float = 15.0,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self.paths = list(paths)
+        self.grace_s = grace_s
+        self.poll_s = poll_s
+        self._clock = clock
+        self._sleep = sleep
+        self._last_held: float | None = None
+
+    def wait(self) -> float:
+        """Block until clear of locks and grace; returns seconds spent waiting."""
+        start = self._clock()
+        announced = False
+        while True:
+            now = self._clock()
+            if any(p.exists() for p in self.paths):
+                self._last_held = now
+                pause = self.poll_s
+            elif self._last_held is not None and now - self._last_held < self.grace_s:
+                pause = min(self.poll_s, self.grace_s - (now - self._last_held))
+            else:
+                self._last_held = None
+                if announced:
+                    print(f"yield: resuming after {now - start:.0f}s", flush=True)
+                return now - start
+            if not announced:
+                print(f"yield: lock present/grace {self.grace_s:.0f}s; pausing fetches", flush=True)
+                announced = True
+            self._sleep(pause)
+
+
+_GATES: dict[tuple[str, float], YieldGate] = {}
+
+
+def yield_to() -> float:
+    """Env-enabled hook called before each network fetch; no-op unless ``YIELD_ENV`` is set."""
+    raw = os.environ.get(YIELD_ENV, "").strip()
+    if not raw:
+        return 0.0
+    try:
+        grace = float(os.environ.get(YIELD_GRACE_ENV, DEFAULT_YIELD_GRACE_S))
+    except ValueError:
+        grace = DEFAULT_YIELD_GRACE_S
+    key = (raw, grace)
+    gate = _GATES.get(key)
+    if gate is None:
+        gate = _GATES[key] = YieldGate([Path(x) for x in raw.split(os.pathsep) if x], grace)
+    return gate.wait()
 
 
 def cache_path_for(source: str, key: str, data_dir: Path = DEFAULT_DATA_DIR) -> Path:
@@ -278,6 +350,8 @@ def pull_ids_with_breaker(
     t0 = time.monotonic()
     for i, gid in enumerate(ids, 1):
         was_cached = is_cached(con, source, gid)
+        if not was_cached:
+            yield_to()
         try:
             pull_fn(gid)
         except Exception as exc:
