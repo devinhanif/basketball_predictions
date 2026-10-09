@@ -295,6 +295,10 @@ def pretip_status(
             pl.col("game_date").cast(pl.Date),
         )
     )
+    if cfg.tip_source == "real":
+        from nba.features.game_tipoff import attach_real_tips
+
+        rows = attach_real_tips(rows)
     usable = usable_report_rows(rows, cfg)
     if usable.height == 0:
         return pl.DataFrame(schema=schema), set()

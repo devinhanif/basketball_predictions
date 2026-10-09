@@ -19,9 +19,15 @@ and :func:`attach_real_tips` reports how many.
 
 from __future__ import annotations
 
+import logging
+from datetime import UTC
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import polars as pl
+
+log = logging.getLogger(__name__)
+_ET = ZoneInfo("America/New_York")
 
 SCHEDULE_DIR = Path("data/schedule")
 TIP_SOURCES = ("proxy19", "real")
@@ -38,14 +44,18 @@ def _parse(col: str) -> pl.Expr:
     return pl.col(col).str.replace("Z$", "").str.to_datetime("%Y-%m-%dT%H:%M:%S", strict=False)
 
 
-def build_game_tipoff(schedule_dir: str | Path = SCHEDULE_DIR) -> pl.DataFrame:
+def build_game_tipoff(schedule_dir: str | Path | None = None) -> pl.DataFrame:
     """One row per game_id from every ``raw_*.parquet`` in ``schedule_dir``.
 
     Rows with an unparseable/absent time are dropped (the caller falls back to
     the proxy and counts them). Duplicated game_ids keep the last file's row.
     """
+    schedule_dir = SCHEDULE_DIR if schedule_dir is None else schedule_dir
     frames = []
-    for f in sorted(Path(schedule_dir).glob("raw_*.parquet")):
+    files = sorted(Path(schedule_dir).glob("raw_*.parquet")) + sorted(
+        Path(schedule_dir).glob("live_tips_*.parquet")
+    )
+    for f in files:
         d = pl.read_parquet(f, columns=["gameId", "gameDateTimeUTC", "gameDateTimeEst"])
         frames.append(
             d.select(
@@ -65,7 +75,11 @@ def attach_real_tips(rows: pl.DataFrame, tips: pl.DataFrame | None = None) -> pl
     if "tip_et" in rows.columns:
         rows = rows.drop("tip_et")
     tips = build_game_tipoff() if tips is None else tips
-    return rows.join(tips.select(["game_id", "tip_et"]), on="game_id", how="left")
+    out = rows.join(tips.select(["game_id", "tip_et"]), on="game_id", how="left")
+    n_miss = out.filter(pl.col("tip_et").is_null()).select("game_id").unique().height
+    if n_miss:
+        log.warning("real tip missing for %d game(s); falling back to the 19:00 ET proxy", n_miss)
+    return out
 
 
 def tip_coverage(games: pl.DataFrame, tips: pl.DataFrame | None = None) -> dict[str, int]:
@@ -74,3 +88,31 @@ def tip_coverage(games: pl.DataFrame, tips: pl.DataFrame | None = None) -> dict[
     n = games.select("game_id").unique().height
     have = games.select("game_id").unique().join(tips, on="game_id").height
     return {"n_games": n, "with_real_tip": have, "proxy_fallback": n - have}
+
+
+def persist_live_tips(
+    games: list[tuple[str, object]], season: str, schedule_dir: str | Path | None = None
+) -> Path:
+    """Cache forward-schedule tips as ``live_tips_<season>.parquet`` (same columns
+    :func:`build_game_tipoff` reads), so games of a season with no ``raw_*`` file
+    still gate training on their real tip once completed. ``games`` =
+    ``[(game_id, tipoff_naive_utc)]``. Overwritten each call (the live schedule is
+    authoritative for postponements); a schedule published before the game, so
+    storing it is as-of safe."""
+    import datetime as dt
+
+    out = Path(SCHEDULE_DIR if schedule_dir is None else schedule_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    ids, utc, est = [], [], []
+    for gid, t in games:
+        assert isinstance(t, dt.datetime)
+        u = t.replace(tzinfo=UTC)
+        ids.append(str(gid))
+        utc.append(u.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        est.append(u.astimezone(_ET).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    p = out / f"live_tips_{season}.parquet"
+    pl.DataFrame(
+        {"gameId": ids, "gameDateTimeUTC": utc, "gameDateTimeEst": est},
+        schema={"gameId": pl.Utf8, "gameDateTimeUTC": pl.Utf8, "gameDateTimeEst": pl.Utf8},
+    ).write_parquet(p)
+    return p

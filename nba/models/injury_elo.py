@@ -86,7 +86,7 @@ class InjuryFeatureConfig:
     value: ValueConfig = field(default_factory=ValueConfig)
     tipoff_hour_et: float = 19.0
     lead_minutes: int = 60
-    tip_source: str = "proxy19"  # "real": gate on scheduled tip (proxy where missing)
+    tip_source: str = "real"  # "real" (production): scheduled tip; "proxy19": 19:00 ET proxy
     doubtful_weight: float = 0.5
     report_table: str = "player_availability"
     rotation_min_avg: float = 20.0
@@ -633,7 +633,8 @@ def predict_games(
     usable = (
         report_rows.filter(pl.Series(keep, dtype=pl.Boolean)) if report_rows.height else report_rows
     )
-    fcfg = replace(cfg, tipoff_hour_et=_NO_CUTOFF_HOURS, lead_minutes=0)
+    # forward rows were already gated on the live tip above: no second tip gate here
+    fcfg = replace(cfg, tipoff_hour_et=_NO_CUTOFF_HOURS, lead_minutes=0, tip_source="proxy19")
     fgames = games.select(["game_id", "game_date", "home_team", "away_team"])
     ff = build_injury_features(
         con, fgames, stats, fcfg, report_rows=usable.select(

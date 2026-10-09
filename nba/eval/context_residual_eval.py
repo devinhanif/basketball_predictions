@@ -417,19 +417,16 @@ def run(
     config_path: str = "configs/context_residual.yaml",
     out_dir: str = "reports/context_residual",
     write_store: bool = False,
-    tip_source: str = "proxy19",
+    tip_source: str = "real",
 ) -> dict[str, Any]:
     """Real-data entrypoint (read-only DBs; never writes them).
 
-    ``tip_source`` "proxy19" (default, production) or "real" (scheduled tip-off
-    gating of report snapshots; see ``nba.features.game_tipoff``)."""
+    ``tip_source`` "real" (default, production since 2026-10-09: scheduled tip-off
+    gating of report snapshots; see ``nba.features.game_tipoff``) or "proxy19"."""
     elo_params = {k: float(v) for k, v in yaml.safe_load(Path(elo_config).read_text()).items()}
     cfg_raw = yaml.safe_load(Path(config_path).read_text())
     cfg = ContextResidualConfig(**cfg_raw.get("model", {}))
-    if tip_source != "proxy19":
-        cfg = dataclasses.replace(
-            cfg, report=dataclasses.replace(cfg.report, tip_source=tip_source)
-        )
+    cfg = dataclasses.replace(cfg, report=dataclasses.replace(cfg.report, tip_source=tip_source))
     games, pgs, static, avail = load_inputs(db_path, injury_db)
     result = run_eval_frames(games, pgs, static, avail, elo_params, cfg)
     out = Path(out_dir)
@@ -497,7 +494,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out-dir", default="reports/context_residual")
     ap.add_argument("--confirmatory-holdout", type=int, default=None)
     ap.add_argument("--i-have-preregistered", action="store_true")
-    ap.add_argument("--tip-source", choices=("proxy19", "real"), default="proxy19")
+    ap.add_argument("--tip-source", choices=("proxy19", "real"), default="real")
     a = ap.parse_args(argv)
     if a.confirmatory_holdout is not None or a.i_have_preregistered:
         if a.confirmatory_holdout != HOLDOUT_SEASON or not a.i_have_preregistered:

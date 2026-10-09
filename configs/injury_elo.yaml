@@ -15,6 +15,7 @@ value:                        # as-of player value (box-based, shrunk)
 report:                       # official injury report usage
   tipoff_hour_et: 19.0
   lead_minutes: 60
+  tip_source: real            # gate on the scheduled tip-off (production since 2026-10-09); proxy19 = old 19:00 ET proxy
   doubtful_weight: 0.5
   backfill_table: player_availability
 

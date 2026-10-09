@@ -42,8 +42,9 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
      ridge logistic (lambda 5, MOV-Elo logit as offset, `min_signal_games=150` else 0) on
      completed games with `game_date <` the slate date only. No stored coefficients, so nothing
      stale or future can be carried (cost: one history feature build per run, seconds).
-     Training features use the backfill's 19:00 ET tip proxy exactly as the walk-forward eval
-     did; only the forward games use the real tip.
+     Training features gate report snapshots on each game's REAL scheduled tip-off
+     (`tip_source: real`, since 2026-10-09; see the changelog below), exactly as the
+     walk-forward eval does; forward games use the live tip.
      **Real tip-off rule:** a report row counts for a game only if
      `as_of <= real tipoff (ET) - 60 min` and `as_of <= now`. A game with no usable report (or
      unknown tip) falls back to `rung0_mov_elo` with the reason stored as
@@ -126,6 +127,21 @@ modified. `nba.daily.season` maps a date to the string (Aug-Dec -> that year, el
 on your own laptop is not always-on infra; launchd runs a missed job on wake. Install and
 removal commands are in the template header. Keep the Mac plugged in; the job is light
 (one schedule call, one games call, a handful of box scores).
+
+## Changelog
+
+- **2026-10-09, real-tip training gate (maintainer-approved).** Both production models now
+  build their TRAINING features by gating official-report snapshots on the scheduled tip-off
+  minus 60 min (`tip_source="real"`, `nba.features.game_tipoff`) instead of the 19:00 ET
+  proxy, which admitted post-tip snapshots for matinees. `rung0_injury_elo` v2 and
+  `props_context_residual` v2 (tags `tip_source=real`) are `production`; v1 is `deprecated`.
+  Tips come from `data/schedule/raw_<season>.parquet` (2022-23..2025-26, 100% of games in
+  `games`) plus `live_tips_<season>.parquet`, which each real `run`/`predict` call rewrites from
+  the live schedule it already fetches (no extra API call) so completed 2026-27 games keep
+  their real tip. A game with no real tip falls back to the proxy and logs a WARNING
+  ("real tip missing for N game(s)"); expect none. Rehearsals (`--schedule-from-db`) never
+  write tips. The context model cache fingerprint now includes `tip_source`. Numbers: T091-T095
+  reproduced; replacement entry in `docs/TEST_LEDGER.md`.
 
 ## Caveats (honest)
 

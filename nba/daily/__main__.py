@@ -17,6 +17,7 @@ from nba.daily.report import build_report
 from nba.daily.schedule import fetch_schedule_nba_api, schedule_from_db
 from nba.daily.settle import settle_pending
 from nba.db.connect import DEFAULT_DB_PATH, connect
+from nba.features.game_tipoff import SCHEDULE_DIR
 from nba.ingest.cache import RateLimiter
 
 DEFAULT_REPORT = Path("registry_store/reports/forward_report.md")
@@ -70,7 +71,6 @@ def _parser() -> argparse.ArgumentParser:
         "'official' = pre-tip CommonTeamRoster (cached per date) plus recent players, with "
         "rookie/new-team handling (docs/OPENING_WEEK_ROSTERS.md)",
     )
-    st = sub.add_parser("settle", help="score completed predictions only")
     t = sub.add_parser(
         "run-t30",
         help="SHADOW: log props_context_residual_t30 for games at/after T-30 whose confirmed "
@@ -88,6 +88,7 @@ def _parser() -> argparse.ArgumentParser:
         help="use the nba_api season schedule (1 stats.nba.com call) instead of the collector's "
         "own tip table",
     )
+    st = sub.add_parser("settle", help="score completed predictions only")
     st.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
     rep = sub.add_parser("report", help="rolling forward metrics + rollover flag")
     rep.add_argument("--out", default=str(DEFAULT_REPORT))
@@ -126,11 +127,10 @@ def main(argv: list[str] | None = None) -> int:
             log_int_variant=args.log_int_variant,
             n_sims=args.n_sims,
             rate_limiter=RateLimiter(args.rate_limit_s),
+            tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
         )
         _print_summary(s)
         return 2 if s.n_refused_after_tipoff else 0
-    if args.command == "settle":
-        print(settle_pending(con, args.now or utcnow()))
     if args.command == "run-t30":
         from nba.daily.t30 import run_t30, schedule_from_lineups
         from nba.lineups.store import DEFAULT_LINEUPS_DB, connect_lineups
@@ -151,6 +151,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(t30)
         return 0
+    if args.command == "settle":
+        print(settle_pending(con, args.now or utcnow()))
         return 0
     text = build_report(con, args.season)
     out = Path(args.out)

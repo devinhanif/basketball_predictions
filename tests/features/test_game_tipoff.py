@@ -91,3 +91,87 @@ def test_build_game_tipoff_parses_schedule(tmp_path: Path) -> None:
     r = t.row(0, named=True)
     assert r["tip_et"] == dt.datetime(2023, 10, 24, 19, 30)
     assert r["tipoff_utc"] == dt.datetime(2023, 10, 24, 23, 30)
+
+
+# --- production default is now the real tip (maintainer decision 2026-10-09) ---
+
+
+def test_production_defaults_are_real_tip_and_proxy19_still_available() -> None:
+    from nba.eval.injury_elo_eval import feature_config_from, load_config
+    from nba.models.injury_elo import InjuryFeatureConfig
+    from nba.props.context_residual import ContextResidualConfig
+
+    assert InjuryFeatureConfig().tip_source == "real"
+    assert feature_config_from(load_config("configs/injury_elo.yaml")).tip_source == "real"
+    assert ContextResidualConfig().report.tip_source == "real"
+    # the old gate stays selectable, and the raw trigger config keeps its research default
+    assert InjuryFeatureConfig(tip_source="proxy19").tip_source == "proxy19"
+    assert ContextResidualConfig(report=ReportTriggerConfig()).report.tip_source == "proxy19"
+
+
+def test_daily_context_training_path_never_uses_post_tip_report(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from nba.props.context_residual import ContextResidualConfig, flagged_from_availability
+
+    monkeypatch.setattr("nba.features.game_tipoff.build_game_tipoff", lambda *a, **k: _tips())
+    r = _rows()
+    cfg = ContextResidualConfig().report
+    avail = r.select("game_id", "player_id", "status", "as_of").with_columns(
+        pl.lit(cfg.sources[0]).alias("source")
+    )
+    games = (
+        r.select("game_id", "game_date")
+        .unique()
+        .with_columns(home_team=pl.lit(1), away_team=pl.lit(2))
+    )
+    flagged, _ = flagged_from_availability(avail, games, cfg)
+    assert flagged["g1"] == {1}  # 13:00 game: the 17:00 report is invisible
+    assert flagged["g2"] == {2}
+
+
+def test_daily_injury_training_path_never_uses_post_tip_report(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import duckdb
+
+    from nba.models.injury_elo import InjuryFeatureConfig, build_injury_features
+
+    monkeypatch.setattr("nba.features.game_tipoff.build_game_tipoff", lambda *a, **k: _tips())
+    con = duckdb.connect(":memory:")
+    games = pl.DataFrame(
+        {
+            "game_id": ["g1"],
+            "game_date": [dt.date(2024, 1, 15)],
+            "season": [2023],
+            "home_team": [1],
+            "away_team": [2],
+            "home_pts": [100],
+            "away_pts": [90],
+        }
+    )
+    stats = pl.DataFrame(
+        schema={
+            "player_id": pl.Int64,
+            "team_id": pl.Int64,
+            "game_id": pl.Utf8,
+            "game_date": pl.Date,
+            "minutes": pl.Float64,
+            "comp": pl.Float64,
+        }
+    )
+    rows = _rows().filter(pl.col("game_id") == "g1")
+    out = build_injury_features(
+        con, games, stats, InjuryFeatureConfig(), report_rows=rows, with_oracle=False
+    )
+    assert out["report_as_of"][0] == dt.datetime(2024, 1, 15, 11, 0)  # not the 17:00 snapshot
+
+
+def test_persist_live_tips_roundtrip_enters_build_game_tipoff(tmp_path: Path) -> None:
+    from nba.features.game_tipoff import persist_live_tips
+
+    persist_live_tips([("0022600001", dt.datetime(2026, 10, 22, 23, 30))], "2026-27", tmp_path)
+    t = build_game_tipoff(tmp_path)
+    assert t["game_id"].to_list() == ["0022600001"]
+    assert t["tipoff_utc"][0] == dt.datetime(2026, 10, 22, 23, 30)
+    assert t["tip_et"][0] == dt.datetime(2026, 10, 22, 19, 30)  # EDT

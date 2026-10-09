@@ -85,7 +85,11 @@ class ContextResidualConfig:
     #: Default False = byte-identical production output.
     integer_support: bool = False
     integer_support_stats: tuple[str, ...] = INTEGER_SUPPORT_STATS
-    report: ReportTriggerConfig = field(default_factory=ReportTriggerConfig)
+    #: Production gates official-report snapshots on the REAL scheduled tip-off
+    #: (maintainer decision 2026-10-09); ``tip_source="proxy19"`` reproduces the old runs.
+    report: ReportTriggerConfig = field(
+        default_factory=lambda: ReportTriggerConfig(tip_source="real")
+    )
 
 
 # --------------------------------------------------------------------------- Elo
@@ -732,13 +736,13 @@ def fit_for_date(
     as_of: dt.date,
     cfg: ContextResidualConfig | None = None,
     stats: tuple[str, ...] = PROP_STATS,
+    lineups_known: bool = False,
 ) -> dict[str, ContextResidualModel]:
     """Fit one model per stat on PLAYED rows with ``game_date`` strictly before
     ``as_of`` (a ``datetime.date``). ``feats`` is :func:`build_features` output;
     rows on/after ``as_of`` are never used for fitting, even if present.
     ``lineups_known=True`` (default False = production) fits on the T-30 feature set
     (``feats`` must come from ``build_features(..., lineups_known=True)``)."""
-    lineups_known: bool = False,
     cfg = cfg or ContextResidualConfig()
     hist = feats.filter(pl.col("game_date") < as_of)
     models: dict[str, ContextResidualModel] = {}

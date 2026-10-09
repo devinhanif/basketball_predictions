@@ -46,6 +46,7 @@ from nba.daily.schedule import ScheduledGame, ScheduleFn, slate_for_date
 from nba.daily.season import season_int_for_date, season_str_for_date
 from nba.daily.settle import settle_pending
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
+from nba.features.game_tipoff import persist_live_tips
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.ingest.games import MAX_VALID_TEAM_ID, MIN_VALID_TEAM_ID
 from nba.models.injury_elo import predict_games
@@ -105,6 +106,7 @@ def run_daily(
     roster_dir: Path | None = None,
     roster_fetch: RosterFetcher | None = None,
     log_int_variant: bool = False,
+    tips_dir: Path | None = None,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC."""
     made_at = now if now is not None else utcnow()
@@ -123,7 +125,11 @@ def run_daily(
             pull_box=pull_box,
         )
 
-    slate = slate_for_date(schedule_fn(season_s), run_date)
+    schedule = schedule_fn(season_s)
+    if tips_dir is not None and schedule:
+        # keep real tips for this season's games so later training gates on them
+        persist_live_tips([(g.game_id, g.tipoff) for g in schedule], season_s, tips_dir)
+    slate = slate_for_date(schedule, run_date)
     summary.n_slate = len(slate)
     upcoming: list[ScheduledGame] = [g for g in slate if made_at < g.tipoff]
     summary.n_refused_after_tipoff = len(slate) - len(upcoming)

@@ -80,7 +80,7 @@ def feature_config_from(cfg: dict[str, Any]) -> InjuryFeatureConfig:
         value=v,
         tipoff_hour_et=float(r["tipoff_hour_et"]),
         lead_minutes=int(r["lead_minutes"]),
-        tip_source=str(r.get("tip_source", "proxy19")),
+        tip_source=str(r.get("tip_source", "real")),
         doubtful_weight=float(r["doubtful_weight"]),
         report_table=str(r["backfill_table"]),
         rotation_min_avg=float(f["rotation_min_avg"]),
