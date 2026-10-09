@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass, field
+from typing import Any
 
 import lightgbm as lgb
 import numpy as np
@@ -89,6 +90,11 @@ class ContextResidualConfig:
     #: (production, byte-identical) | "sqrt" | "mondrian_up" | "gamma_tail".
     pts_tail: str = "off"
     pts_tail_stats: tuple[str, ...] = ("pts",)
+    #: Lower-tail construction (docs/LOWER_TAIL.md): "off" (production, byte-identical) |
+    #: "mixture" | "mondrian_centre" | "mondrian_minutes". Needs a ``minutes`` column in the
+    #: training frame; mutually exclusive with ``pts_tail``.
+    lower_tail: str = "off"
+    lower_tail_stats: tuple[str, ...] = PROP_STATS
     #: Production gates official-report snapshots on the REAL scheduled tip-off
     #: (maintainer decision 2026-10-09); ``tip_source="proxy19"`` reproduces the old runs.
     report: ReportTriggerConfig = field(
@@ -660,6 +666,21 @@ def _params(cfg: ContextResidualConfig, objective: str = "regression") -> dict[s
     }
 
 
+def split_calibration(
+    train: pl.DataFrame, cfg: ContextResidualConfig
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """(fit rows, calibration rows): the newest ``cal_frac`` of ``train`` (sorted by date),
+    cut on a date boundary. Shared by the model fit and the tail diagnostics."""
+    dates = train["game_date"].to_numpy()
+    cut_idx = int(len(train) * (1.0 - cfg.cal_frac))
+    cut_idx = min(cut_idx, max(len(train) - cfg.min_cal_rows, 1))
+    cut_date = dates[cut_idx]
+    return (
+        train.filter(pl.col("game_date") < cut_date),
+        train.filter(pl.col("game_date") >= cut_date),
+    )
+
+
 @dataclass
 class ContextResidualModel:
     """Mean-residual head + residual-scale head + conformal standardized quantiles."""
@@ -673,17 +694,14 @@ class ContextResidualModel:
     z_base_sorted: np.ndarray | None = None
     #: calibration-window arrays (y, centre m+mu, scale), kept only when ``pts_tail != "off"``.
     cal_tail_: dict[str, np.ndarray] | None = None
+    #: lower-tail state (cal arrays + short-minutes model); kept only when ``lower_tail != "off"``.
+    lt_: dict[str, Any] | None = None
     importance_: dict[str, float] = field(default_factory=dict)
 
     def fit(self, train: pl.DataFrame) -> ContextResidualModel:
         """``train`` is a stat_frame sorted by date; the newest ``cal_frac`` of
         rows (cut on a date boundary) is the held-out calibration window."""
-        dates = train["game_date"].to_numpy()
-        cut_idx = int(len(train) * (1.0 - self.cfg.cal_frac))
-        cut_idx = min(cut_idx, max(len(train) - self.cfg.min_cal_rows, 1))
-        cut_date = dates[cut_idx]
-        fit_df = train.filter(pl.col("game_date") < cut_date)
-        cal_df = train.filter(pl.col("game_date") >= cut_date)
+        fit_df, cal_df = split_calibration(train, self.cfg)
         if fit_df.height < 200 or cal_df.height < 50:
             raise ValueError("not enough rows to fit + calibrate")
         x_fit = _matrix(fit_df, self.names)
@@ -702,6 +720,8 @@ class ContextResidualModel:
                 "s": s,
                 "z": z,
             }
+        if self.cfg.lower_tail != "off" and self.stat in self.cfg.lower_tail_stats:
+            self.lt_ = self._fit_lower_tail(train, cal_df, np.asarray(mu), s, np.asarray(z))
         self.z_base_sorted = np.sort(
             (cal_df["y"].to_numpy() - cal_df["m"].to_numpy()) / cal_df["s"].to_numpy()
         )
@@ -709,6 +729,72 @@ class ContextResidualModel:
         tot = float(gain.sum()) or 1.0
         self.importance_ = {n: float(g) / tot for n, g in zip(self.names, gain, strict=True)}
         return self
+
+    def _fit_lower_tail(
+        self,
+        train: pl.DataFrame,
+        cal_df: pl.DataFrame,
+        mu: np.ndarray,
+        s: np.ndarray,
+        z: np.ndarray,
+    ) -> dict[str, Any]:
+        from nba.props.lower_tail import fit_short_state, short_flag
+
+        if self.cfg.pts_tail != "off":
+            raise ValueError("lower_tail and pts_tail are mutually exclusive")
+        if "minutes" not in train.columns:
+            raise ValueError("lower_tail needs a 'minutes' (realised) column in the training frame")
+        min10 = cal_df["min10"].to_numpy()
+        state: dict[str, Any] = {
+            "z": z,
+            "c": cal_df["m"].to_numpy() + mu,
+            "min10": min10,
+            "short": short_flag(cal_df["minutes"].to_numpy(), min10),
+            "pi_model": None,
+            "w_q": None,
+        }
+        if self.cfg.lower_tail == "mixture":
+            tr_short = short_flag(train["minutes"].to_numpy(), train["min10"].to_numpy())
+            state.update(
+                fit_short_state(
+                    _matrix(train, list(COMMON_FEATURES)),
+                    tr_short,
+                    train["y"].to_numpy(),
+                    train["m"].to_numpy(),
+                    CRPS_TAUS,
+                    _params(self.cfg, "binary"),
+                )
+            )
+        return state
+
+    def lower_tail_quantiles(
+        self, df: pl.DataFrame, c: np.ndarray, s: np.ndarray, taus: np.ndarray
+    ) -> np.ndarray:
+        """Quantiles of rows ``df`` (centre ``c``, scale ``s``) under ``cfg.lower_tail``."""
+        from nba.props.lower_tail import lower_quantiles, predict_pi
+
+        if self.lt_ is None:
+            raise ValueError("model was fitted with lower_tail='off'; no lower-tail state kept")
+        lt = self.lt_
+        pi = (
+            predict_pi(lt, _matrix(df, list(COMMON_FEATURES)))
+            if self.cfg.lower_tail == "mixture"
+            else None
+        )
+        return lower_quantiles(
+            self.cfg.lower_tail,
+            z_cal=lt["z"],
+            c_cal=lt["c"],
+            min10_cal=lt["min10"],
+            short_cal=lt["short"],
+            c=c,
+            s=s,
+            m_row=df["m"].to_numpy(),
+            min10_row=df["min10"].to_numpy(),
+            pi=pi,
+            w_q=lt["w_q"],
+            taus=taus,
+        )
 
     def _scale(self, x: np.ndarray) -> np.ndarray:
         assert self.scale_head is not None
@@ -723,6 +809,8 @@ class ContextResidualModel:
         m = df["m"].to_numpy()
         if self.cfg.pts_tail != "off" and self.stat in self.cfg.pts_tail_stats:
             q = self.tail_quantiles(self.cfg.pts_tail, m + mu, s, taus)
+        elif self.lt_ is not None:
+            q = self.lower_tail_quantiles(df, m + mu, s, taus)
         else:
             zq = np.asarray(np.quantile(self.z_sorted, taus))
             q = m[:, None] + mu[:, None] + s[:, None] * zq[None, :]

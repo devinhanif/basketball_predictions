@@ -724,6 +724,10 @@ def _load_or_fit_models(
     fp["cfg"].pop("pts_tail_stats", None)
     if fp["cfg"].get("pts_tail") == "off":
         fp["cfg"].pop("pts_tail", None)
+    # lower_tail (docs/LOWER_TAIL.md): same rule, so existing caches stay valid while it is off
+    fp["cfg"].pop("lower_tail_stats", None)
+    if fp["cfg"].get("lower_tail") == "off":
+        fp["cfg"].pop("lower_tail", None)
     if cache_dir is not None:
         meta_p, model_p = cache_dir / "meta.json", cache_dir / "models.pkl"
         if meta_p.exists() and model_p.exists():
