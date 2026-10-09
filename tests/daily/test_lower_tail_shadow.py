@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import duckdb
 import numpy as np
@@ -84,25 +84,24 @@ def test_shadow_rows_primary_byte_identical_settle_and_live_rule() -> None:
 
     # frozen live rule: too few rows / dates => no claim
     res = lt_live.evaluate(c, season=2025)
-    assert res["n_player_games"] > 0 and res["verdict"] == "insufficient_n_no_claim"
-    assert res["min_player_games"] == 500 and res["min_dates"] == 14
+    assert res["n_player_games"] > 0 and res["efficacy_look_eligible"] is False
+    assert res["status"] == "keep_shadowing_below_minimum_sample"
+    assert res["min_player_games"] == 10_000 and res["min_dates"] == 120
 
 
-def test_live_rule_verdicts() -> None:
+def test_live_monitor_eligibility_and_direction() -> None:
     grid_p = [float(x) for x in range(1, 20)]
-    row = lambda d, g: (d, g, 1, json.dumps(grid_p), json.dumps(grid_p), 10.0)  # noqa: E731
-    same = [row(f"2026-11-{1 + i % 20:02d}", f"g{i}") for i in range(600)]
-    r = lt_live.evaluate_pairs(same)
-    assert r["verdict"] == "no_claim" and r["delta_crps"] == 0.0 and r["n_dates"] == 20
-    assert lt_live.evaluate_pairs(same[:100])["verdict"] == "insufficient_n_no_claim"
-    assert lt_live.evaluate_pairs([row("2026-11-01", f"g{i}") for i in range(600)])["verdict"] == (
-        "insufficient_n_no_claim"
+
+    def row(d: str, g: str, lt: list[float]) -> tuple[object, ...]:
+        return (d, g, 1, json.dumps(grid_p), json.dumps(lt), 10.0)
+
+    def dates(n: int) -> list[str]:
+        return [(date(2026, 11, 1) + timedelta(days=i % 130)).isoformat() for i in range(n)]
+
+    same = lt_live.evaluate_pairs([row(d, f"g{i}", grid_p) for i, d in enumerate(dates(600))])
+    assert same["delta_crps"] == 0.0 and same["efficacy_look_eligible"] is False
+    big = lt_live.evaluate_pairs(
+        [row(d, f"g{i}", [10.0] * 19) for i, d in enumerate(dates(10_000))]
     )
-    # lt grid strictly closer to the outcome on every row => better, floor and CI satisfied
-    better = [
-        (d, g, p, json.dumps(grid_p), json.dumps([10.0] * 19), y) for d, g, p, _, _, y in same
-    ]
-    rb = lt_live.evaluate_pairs(better)
-    assert rb["verdict"] == "lt_better" and rb["ci95"][1] < 0
-    worse = [(d, g, p, json.dumps([10.0] * 19), json.dumps(grid_p), y) for d, g, p, _, _, y in same]
-    assert lt_live.evaluate_pairs(worse)["verdict"] == "lt_worse"
+    assert big["efficacy_look_eligible"] is True and big["n_dates"] == 130
+    assert big["delta_crps"] < 0 and big["ci95"][1] < 0  # lt grid sits on the outcome

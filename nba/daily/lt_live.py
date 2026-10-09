@@ -1,15 +1,18 @@
-"""Frozen live scoring rule for the pts lower-tail SHADOW (docs/LOWER_TAIL.md, "Live rule").
+"""Descriptive monitor for the pts lower-tail SHADOW (docs/LOWER_TAIL.md, "Live shadow").
 
-Paired CRPS, ``props_context_residual_lt`` minus ``props_context_residual`` (pts only), on
-integer support for BOTH arms: each stored 19-quantile grid is mapped with ``ceil(q - 0.5)``
-(docs/BEST_PRACTICES.md) and scored with the empirical CRPS ``2 * mean pinball``. Only rows
-where both arms were logged for the same game-player and the player actually played
-(minutes > 0) count; DNPs are excluded exactly as in the pre-registered conditional-on-playing
-design. The 95% interval is a percentile bootstrap resampling whole game DATES (same-night
-correlation), 2000 resamples, seed 0. Read-only; the constants below are frozen with the doc
-before opening night and must not be edited after the first lt row is logged.
+The BINDING scoring rule is section 4/5 of docs/FORWARD_PREREG_2026_27.md (frozen before any
+2026-27 row existed): paired integer-support pts CRPS vs production, comparator from the SAME
+``run_id``, floor -0.005, looks L30/L60/L120/END, no efficacy claim before 120 distinct dates and
+10,000 paired player-games, alpha spent over the looks. This module does NOT decide anything: it
+computes the paired delta with a date-clustered 95% interval so the shadow can be watched while it
+accumulates, and reports whether the minimum sample for an efficacy look has been reached.
 
-CLI: ``uv run python -m nba.daily.lt_live [--season 2026]`` (opens the DB read-only).
+Pairing: both arms' stored 19-quantile grids mapped with ``ceil(q - 0.5)`` (BEST_PRACTICES), scored
+with the empirical CRPS (``2 * mean pinball``); played rows only (minutes > 0); for each game-player
+the latest ``run_id`` that logged BOTH arms. Percentile bootstrap resampling whole game dates
+(2000 resamples, seed 0). Read-only.
+
+CLI: ``uv run python -m nba.daily.lt_live [--season 2026]``.
 """
 
 from __future__ import annotations
@@ -26,10 +29,10 @@ from nba.daily.report import cluster_bootstrap_mean
 from nba.props.context_residual import to_integer_support
 from nba.props.forward import QUANTILE_TAUS
 
-# ---- frozen live rule (docs/LOWER_TAIL.md) ----
-MIN_PLAYER_GAMES = 500
-MIN_DATES = 14
-EFFECT_FLOOR = -0.005  # absolute integer-support CRPS units; point estimate must be <= this
+# minimum sample for an efficacy look (docs/FORWARD_PREREG_2026_27.md section 5, "LT pts")
+MIN_PLAYER_GAMES = 10_000
+MIN_DATES = 120
+FLOOR = -0.005
 N_BOOT = 2000
 SEED = 0
 
@@ -44,37 +47,31 @@ def integer_crps(grid: list[float], y: float) -> float:
 
 def paired_rows(con: duckdb.DuckDBPyConnection, season: int = 2026) -> list[tuple[Any, ...]]:
     """(game_date, game_id, player_id, grid_primary, grid_lt, y) for settled, played pts rows;
-    latest prediction per (game, model, player)."""
+    both arms from the same run, the latest run that has both."""
     return con.execute(
         """
-        WITH latest AS (
-            SELECT *, row_number() OVER (
-                PARTITION BY game_id, model_name, target, player_id
-                ORDER BY made_at DESC, run_id DESC) rn
-            FROM forward_predictions
-            WHERE target = 'pts' AND player_id <> -1 AND model_name IN (?, ?))
-        SELECT g.game_date, a.game_id, a.player_id,
-               a.prediction ->> '$.q_grid', b.prediction ->> '$.q_grid', s.pts
-        FROM latest a JOIN latest b
-          ON a.game_id = b.game_id AND a.player_id = b.player_id AND b.rn = 1
-        JOIN games g ON g.game_id = a.game_id
-        JOIN player_game_stats s ON s.game_id = a.game_id AND s.player_id = a.player_id
-        WHERE a.rn = 1 AND a.model_name = ? AND b.model_name = ?
-          AND g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND s.minutes > 0
-        ORDER BY g.game_date, a.game_id, a.player_id
+        WITH pairs AS (
+            SELECT a.game_id, a.player_id, a.run_id, a.made_at,
+                   a.prediction ->> '$.q_grid' AS ga, b.prediction ->> '$.q_grid' AS gb,
+                   row_number() OVER (PARTITION BY a.game_id, a.player_id
+                                      ORDER BY a.made_at DESC, a.run_id DESC) rn
+            FROM forward_predictions a JOIN forward_predictions b
+              ON a.run_id = b.run_id AND a.game_id = b.game_id AND a.player_id = b.player_id
+                 AND a.target = b.target
+            WHERE a.target = 'pts' AND a.player_id <> -1
+              AND a.model_name = ? AND b.model_name = ? AND a.made_at < a.tipoff)
+        SELECT g.game_date, p.game_id, p.player_id, p.ga, p.gb, s.pts
+        FROM pairs p JOIN games g ON g.game_id = p.game_id
+        JOIN player_game_stats s ON s.game_id = p.game_id AND s.player_id = p.player_id
+        WHERE p.rn = 1 AND g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND s.minutes > 0
+        ORDER BY g.game_date, p.game_id, p.player_id
         """,
-        [
-            CONTEXT_PROPS_MODEL_NAME,
-            CONTEXT_LT_PROPS_MODEL_NAME,
-            CONTEXT_PROPS_MODEL_NAME,
-            CONTEXT_LT_PROPS_MODEL_NAME,
-            season,
-        ],
+        [CONTEXT_PROPS_MODEL_NAME, CONTEXT_LT_PROPS_MODEL_NAME, season],
     ).fetchall()
 
 
 def evaluate_pairs(rows: list[tuple[Any, ...]]) -> dict[str, Any]:
-    """Apply the frozen rule to :func:`paired_rows` output."""
+    """Paired delta (lt - production) on :func:`paired_rows` output; descriptive only."""
     d = np.array(
         [
             integer_crps(json.loads(r[4]), float(r[5]))
@@ -84,15 +81,7 @@ def evaluate_pairs(rows: list[tuple[Any, ...]]) -> dict[str, Any]:
     )
     dates = np.array([str(r[0]) for r in rows])
     ci = cluster_bootstrap_mean(d, dates, N_BOOT, SEED)
-    enough = ci.n >= MIN_PLAYER_GAMES and ci.n_clusters >= MIN_DATES
-    if not enough:
-        verdict = "insufficient_n_no_claim"
-    elif ci.point <= EFFECT_FLOOR and ci.hi < 0:
-        verdict = "lt_better"
-    elif ci.lo > 0:
-        verdict = "lt_worse"
-    else:
-        verdict = "no_claim"
+    eligible = ci.n >= MIN_PLAYER_GAMES and ci.n_clusters >= MIN_DATES
     return {
         "n_player_games": ci.n,
         "n_dates": ci.n_clusters,
@@ -100,8 +89,11 @@ def evaluate_pairs(rows: list[tuple[Any, ...]]) -> dict[str, Any]:
         "ci95": [ci.lo, ci.hi],
         "min_player_games": MIN_PLAYER_GAMES,
         "min_dates": MIN_DATES,
-        "effect_floor": EFFECT_FLOOR,
-        "verdict": verdict,
+        "floor": FLOOR,
+        "efficacy_look_eligible": eligible,
+        "status": "descriptive_monitor_see_FORWARD_PREREG_2026_27"
+        if eligible
+        else "keep_shadowing_below_minimum_sample",
     }
 
 

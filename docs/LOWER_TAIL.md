@@ -206,36 +206,26 @@ Wiring (`nba/props/forward.py::_lower_tail_rows`, `nba/daily/pipeline.py`):
   It now always discretises on the fitted grid and interpolates to the requested taus; at the 199
   grid the output is bit-identical to the screened version (existing tests unchanged).
 
-### Frozen live scoring rule (frozen BEFORE opening night; implemented in `nba/daily/lt_live.py`)
+### Frozen live scoring rule
 
-Do not edit this rule or the constants in `lt_live.py` after the first lt row is logged; a change
-needs a new dated pre-registration.
+The binding rule is already frozen, before any 2026-27 row exists, in
+`docs/FORWARD_PREREG_2026_27.md` (section 4 "Arm LT" and section 5; sha256 in that file's freeze
+record). Summary for this arm: pts only; paired integer-support CRPS delta vs production taken from
+the SAME `run_id`; players who played, DNPs excluded identically from both arms; effect floor
+-0.005; date-clustered inference with alpha spent over the looks L30/L60/L120/END at 0.0182; NO
+efficacy claim before 120 distinct dates AND 10,000 paired player-games (first look allowed: L120);
+PROMOTE-CANDIDATE needs point <= -0.005, 98.18% CI upper bound < 0, BH-adjusted p <= 0.0182 and the
+PIT window guard, and even then only means "red-team review plus a maintainer decision". This
+section adds no second rule. (A weaker draft, 500 pairs / 14 dates, was considered and discarded in
+favour of the frozen document before anything was committed.)
 
-* Question: does the pts mixture lower integer-support CRPS vs production on live 2026-27 games?
-* Units: settled pts player-games where BOTH `props_context_residual` (model rows, not
-  `recency_fallback`) and `props_context_residual_lt` were logged pre-tip for the same game and
-  player (latest prediction per key), and the player played (minutes > 0). DNP rows are excluded
-  (conditional on playing, as in the screen).
-* Score: both arms' stored 19-quantile grids mapped with `ceil(q - 0.5)`, then the empirical CRPS
-  (`2 x` mean pinball over the 19 taus) against actual pts. Per-row paired delta = lt - production
-  (negative favours lt). The 19-grid is coarser than the 199-grid used in the screen, so levels
-  differ from the screen; only the paired delta is compared.
-* Inference: percentile 95% CI of the mean delta, bootstrap resampling whole game DATES (2000
-  resamples, seed 0).
-* Minimum data before ANY claim: n >= 500 settled paired player-games AND >= 14 distinct game
-  dates. Below that the only permitted statement is the descriptive point estimate with n and
-  dates (verdict `insufficient_n_no_claim`).
-* Verdict (computed once n and dates are met): `lt_better` iff the point delta <= -0.005 (the
-  screen's absolute floor) AND the CI upper bound < 0; `lt_worse` iff the CI lower bound > 0;
-  otherwise `no_claim`. The expected effect from the screen is about -0.011 to -0.013 on the 199-grid.
-* No peeking-driven stopping: the rule is evaluated at fixed checkpoints only (after >= 14 dates and
-  >= 500 pairs, then at 30, 60 and 90 dates); the verdict at the last checkpoint reached in a
-  season stands. Report every checkpoint.
-* Descriptive only (cannot rescue a failure): short-vs-normal strata, PIT coverage at q0.10/q0.20,
-  threshold log loss at pts N in {10, 15}, mean bias (identical by construction).
-* Promotion is not decided here. A `lt_better` verdict at a checkpoint is a recommendation for the
-  maintainer to consider a separately pre-registered promotion (including the calibrated-pi
-  refinement), not a switch. Season 2025 stays untouched by this work.
+`nba/daily/lt_live.py` is a DESCRIPTIVE monitor only: it recomputes the paired delta (19-grid mapped
+with `ceil(q - 0.5)`, same-run pairing, 95% date-clustered bootstrap, 2000 resamples, seed 0) so the
+shadow can be watched while it accumulates, and reports `efficacy_look_eligible` (n >= 10,000 and
+dates >= 120). It issues no verdict. The 19-grid is coarser than the 199-grid of the screen, so
+levels differ; only the paired delta is meaningful. Expected size from the screen: about -0.011 to
+-0.013 (heavy-tailed: gain on short games, small loss on normal-minutes games). The shadow is
+the least powered of the live arms; a "keep shadowing" outcome before the END look is expected.
 
 Command: `uv run python -m nba.daily.lt_live --season 2026` (read-only; also callable as
 `nba.daily.lt_live.evaluate(con)`).
@@ -245,5 +235,5 @@ run; props_context_residual (784 rows), props_recency_v1 (784), rung0_mov_elo (8
 rung0_injury_elo (8) stored predictions are identical between the runs; the flag-on run adds
 190 pts-only lt rows (6 players without enough history are recency fallbacks in production and have
 no lt row). Settlement after restoring that day scored 168 lt rows; one date and 168 pairs
-=> `insufficient_n_no_claim` as intended (point delta -0.009, not interpretable).
+=> `keep_shadowing_below_minimum_sample` as intended (point delta -0.009 on the 19-grid, not interpretable).
 
