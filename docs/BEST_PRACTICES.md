@@ -37,6 +37,7 @@ incident or result that earned it. Agents and maintainers follow this; CLAUDE.md
 | **Correct for multiplicity** (BH within declared families); keep an append-only `TEST_LEDGER.md`. | Dozens of A/Bs; only a few survived correction. |
 | **Practical-significance floors** (e.g. CRPS ≤ −0.005), not just p-values. | Several "significant" effects were economically negligible. |
 | **Use proper scoring rules:** log loss and Brier for probabilities, CRPS for distributions, threshold log loss for P(≥ line). Report calibration (ECE, reliability). | Parlays multiply probabilities, so calibration errors compound. |
+| **Score count stats on integer support (CRPS = RPS on integers) for EVERY arm.** Comparing an integer-grid forecast (NB/Poisson) with a continuous-quantile one on integer outcomes rewards the integer grid for free. | Leak-free experiment 3's reb/ast/fg3m "wins" were 92-126% this artifact; rounding production's quantiles (`ceil(q-0.5)`) erased them (T114-T118). Likely also behind exp-2's "NB wins counts". |
 | **Validate the metric itself on known-truth simulations.** | Amendment A1's coverage estimator was biased; A1.1 was chosen by simulation, not by model results. |
 | **Test like a sceptic:** fair baselines (same DNP handling, same calibration), ablations, slices (cold start, starters/bench, season phase, teammate OUT). | The sim lost the fair rematch; context-residual still won against a calibrated baseline. |
 | **Report negatives.** | Sim props, rung-4, RAPM, the joint set transformer and usage redistribution were all rejected honestly. |
