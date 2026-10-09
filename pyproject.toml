@@ -87,3 +87,7 @@ strict = true
 [[tool.mypy.overrides]]
 module = "nba.kalshi.*"
 strict = true
+
+[[tool.mypy.overrides]]
+module = "nba.markets.*"
+strict = true
