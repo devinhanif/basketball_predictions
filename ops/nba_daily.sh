@@ -96,10 +96,14 @@ case "$MODE" in
     if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
     step predict "$UV" run python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --rate-limit-s 2.5
+    step market_capture "$UV" run python -m nba.markets capture --date "$TODAY_ET"
     step parlay_shadow "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET"
     ;;
   morning)
     step settle "$UV" run python -m nba.daily settle
+    # pre-registered look detection (docs/FORWARD_PREREG_2026_27.md section 8): writes an
+    # immutable snapshot only when an arm-stat first reaches a look's date count; rc 0 otherwise
+    step checkpoint "$UV" run python -m nba.daily checkpoint --look auto
     step report "$UV" run python -m nba.daily report
     step parlay_settle "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET" --settle --no-log
     # post-game stats for newly completed games (per-game sources only; shots/coaches are
