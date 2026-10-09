@@ -413,3 +413,28 @@ def test_load_oof_dir_and_recorded_candidate(tmp_path):
     assert load_oof(tmp_path)["variant"].to_list() == ["z"]  # experiment-1 single-file format
     assert merge_oof([load_oof(tmp_path)]).height == 1
     assert PREREG_CANDIDATES["ctxres_v2_exp2_full_breadth"] == "xgb_v12_poisson_nb"
+
+
+def test_schedule_days_to_next_has_no_postseason_lookahead() -> None:
+    import datetime as _dt
+
+    import polars as _pl
+
+    from nba.props.context_features_v2 import schedule_features
+
+    d = _dt.date(2025, 4, 10)
+    games = _pl.DataFrame(
+        {
+            "game_id": ["0022401229", "0042400101", "0042400102"],
+            "game_date": [d, d + _dt.timedelta(days=9), d + _dt.timedelta(days=10)],
+            "season": [2024, 2024, 2024],
+            "home_team": [1610612738, 1610612738, 1610612738],
+            "away_team": [1610612753, 1610612753, 1610612753],
+        }
+    )
+    out = schedule_features(games).filter(_pl.col("team_id") == 1610612738).sort("game_id")
+    nxt = dict(zip(out["game_id"].to_list(), out["sch_days_to_next"].to_list(), strict=True))
+    # whether game 2 follows game 1 of a series depends on results -> neutral 7, never 1
+    assert nxt["0042400101"] == 7.0
+    # last regular-season game: next game is postseason (depends on standings/play-in) -> neutral
+    assert nxt["0022401229"] == 7.0

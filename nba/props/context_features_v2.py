@@ -595,6 +595,14 @@ def schedule_features(games: pl.DataFrame) -> pl.DataFrame:
         nxt = np.full(n, 7.0)
         if n > 1:
             nxt[:-1] = np.minimum(d[1:] - d[:-1], 7)
+        # Look-ahead guard: whether a postseason game follows depends on tonight's result
+        # (series end / play-in elimination), so "days to next" is only pre-tip knowledge when
+        # neither this game nor the next is postseason (game_id prefixes 004 playoffs, 005 play-in,
+        # 006 cup final). Otherwise use the same neutral 7 as a team's last game.
+        gids = sub["game_id"].to_list()
+        regular = np.array([not str(g).startswith(("004", "005", "006")) for g in gids])
+        nxt_regular = np.append(regular[1:], False)
+        nxt[~(regular & nxt_regular)] = 7.0
         prev_gap = np.full(n, 7.0)
         if n > 1:
             prev_gap[1:] = np.minimum(d[1:] - d[:-1], 7)
