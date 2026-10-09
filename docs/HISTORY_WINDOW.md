@@ -178,3 +178,5 @@ flag-off byte identity, weight application, history DB opened read-only.
 === RESULTS BELOW ===
 
 (none yet)
+
+- 2026-10-09 (data gate G0.5): real tip times pulled for 2019-20, 2020-21, 2021-22 via ScheduleLeagueV2 into `data/history/schedule/raw_*.parquet` (kept separate from production `data/schedule/`); `build_game_tipoff(\"data/history/schedule\")` yields 3,759 games with real tips (19: 1,145, 20: 1,221, 21: 1,393 incl. non-regular ids). No experiment result computed.
