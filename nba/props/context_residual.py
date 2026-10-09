@@ -735,13 +735,18 @@ def fit_for_date(
 ) -> dict[str, ContextResidualModel]:
     """Fit one model per stat on PLAYED rows with ``game_date`` strictly before
     ``as_of`` (a ``datetime.date``). ``feats`` is :func:`build_features` output;
-    rows on/after ``as_of`` are never used for fitting, even if present."""
+    rows on/after ``as_of`` are never used for fitting, even if present.
+    ``lineups_known=True`` (default False = production) fits on the T-30 feature set
+    (``feats`` must come from ``build_features(..., lineups_known=True)``)."""
+    lineups_known: bool = False,
     cfg = cfg or ContextResidualConfig()
     hist = feats.filter(pl.col("game_date") < as_of)
     models: dict[str, ContextResidualModel] = {}
     for stat in stats:
         train = stat_frame(hist, stat).sort(["game_date", "game_id", "player_id"])
-        models[stat] = ContextResidualModel(stat, cfg, stat_feature_names(stat)).fit(train)
+        models[stat] = ContextResidualModel(
+            stat, cfg, stat_feature_names(stat, lineups_known=lineups_known)
+        ).fit(train)
     return models
 
 

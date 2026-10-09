@@ -71,6 +71,23 @@ def _parser() -> argparse.ArgumentParser:
         "rookie/new-team handling (docs/OPENING_WEEK_ROSTERS.md)",
     )
     st = sub.add_parser("settle", help="score completed predictions only")
+    t = sub.add_parser(
+        "run-t30",
+        help="SHADOW: log props_context_residual_t30 for games at/after T-30 whose confirmed "
+        "lineup was collected (docs/LINEUPS_T30_COLLECTOR.md); never primary",
+    )
+    t.add_argument("--date", required=True, type=date.fromisoformat)
+    t.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
+    t.add_argument("--lineups-db", default=None, help="default data/lineups/lineups.duckdb")
+    t.add_argument("--roster-source", choices=["recent", "official"], default="recent")
+    t.add_argument("--model-cache", type=Path, default=None)
+    t.add_argument("--schedule-from-db", action="store_true", help="rehearsals only")
+    t.add_argument(
+        "--schedule-nba-api",
+        action="store_true",
+        help="use the nba_api season schedule (1 stats.nba.com call) instead of the collector's "
+        "own tip table",
+    )
     st.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
     rep = sub.add_parser("report", help="rolling forward metrics + rollover flag")
     rep.add_argument("--out", default=str(DEFAULT_REPORT))
@@ -114,6 +131,26 @@ def main(argv: list[str] | None = None) -> int:
         return 2 if s.n_refused_after_tipoff else 0
     if args.command == "settle":
         print(settle_pending(con, args.now or utcnow()))
+    if args.command == "run-t30":
+        from nba.daily.t30 import run_t30, schedule_from_lineups
+        from nba.lineups.store import DEFAULT_LINEUPS_DB, connect_lineups
+
+        lcon = connect_lineups(args.lineups_db or DEFAULT_LINEUPS_DB, read_only=True)
+        t30 = run_t30(
+            con,
+            lcon,
+            args.date,
+            schedule_fn=schedule_from_db(con)
+            if args.schedule_from_db
+            else fetch_schedule_nba_api
+            if args.schedule_nba_api
+            else schedule_from_lineups(lcon),
+            now=args.now,
+            model_cache=args.model_cache,
+            roster_source=args.roster_source,
+        )
+        print(t30)
+        return 0
         return 0
     text = build_report(con, args.season)
     out = Path(args.out)

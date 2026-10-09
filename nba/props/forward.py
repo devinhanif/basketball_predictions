@@ -699,6 +699,7 @@ def _load_or_fit_models(
     as_of: date,
     cfg: ContextResidualConfig,
     cache_dir: Path | None,
+    lineups_known: bool = False,
 ) -> tuple[dict[str, ContextResidualModel], dict[str, Any]]:
     """Fit on played rows strictly before ``as_of`` or reuse a same-date cache.
 
@@ -712,6 +713,9 @@ def _load_or_fit_models(
         "cfg": asdict(cfg),
     }
     fp["cfg"].pop("report", None)
+    fp["tip_source"] = cfg.report.tip_source  # real vs proxy19 gate => different training features
+    if lineups_known:  # different feature set => never share a cache with the T-60 models
+        fp["lineups_known"] = True
     # output-only post-processing: does not change the fitted models, so no refit
     fp["cfg"].pop("integer_support", None)
     fp["cfg"].pop("integer_support_stats", None)
@@ -724,7 +728,7 @@ def _load_or_fit_models(
                     models = pickle.load(f)  # noqa: S301  (local cache we wrote)
                 return models, {"cache_hit": True, "fit_seconds": 0.0, **meta["info"]}
     t0 = time.perf_counter()
-    models = fit_for_date(feats, as_of, cfg)
+    models = fit_for_date(feats, as_of, cfg, lineups_known=lineups_known)
     secs = time.perf_counter() - t0
     info = {"n_train_rows": hist.height, "train_through": fp["max_date"]}
     if cache_dir is not None:

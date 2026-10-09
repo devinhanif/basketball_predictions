@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -10,6 +11,7 @@ import numpy as np
 
 from nba.daily.season import FORWARD_SEASON, ROLLOVER_MIN_GAMES
 from nba.daily.store import ensure_tables
+from nba.lineups.store import DEFAULT_LINEUPS_DB, connect_lineups
 
 #: Reference for win prob: an uninformative p=0.5 forecast.
 NAIVE_LOG_LOSS = float(np.log(2.0))
@@ -129,6 +131,65 @@ def _paired_props_section(props: list[tuple[Any, ...]]) -> list[str]:
     return lines
 
 
+T30_MODEL = "props_context_residual_t30"
+
+
+def _paired_t30_section(
+    con: duckdb.DuckDBPyConnection, props: list[tuple[Any, ...]], lineups_db: Path | None
+) -> list[str]:
+    """SHADOW comparison: props_context_residual_t30 (confirmed lineup known at T-30) minus
+    the production T-60 props_context_residual, paired per (stat, game, player) on
+    player-games scored by BOTH. Negative = T-30 better. The T-30 model is comparison-only;
+    pre-registered upward-biased expectation (docs/LINEUPS_KNOWN.md): about -1.0 to -1.4% CRPS."""
+    lines = ["", f"### Paired SHADOW: {T30_MODEL} minus {PROPS_PRIMARY} (negative = T-30 better)"]
+    try:
+        dec = con.execute(
+            "SELECT outcome, split_part(split_part(reason, ':', 1), ';', 1), count(*) "
+            "FROM forward_t30_decisions GROUP BY 1, 2 ORDER BY 1, 2"
+        ).fetchall()
+    except duckdb.CatalogException:
+        dec = []
+    if dec:
+        lines.append(
+            "- games decided: "
+            + "; ".join(f"{o}/{(r or 'ok').split(';')[0]}={n}" for o, r, n in dec)
+        )
+    else:
+        lines.append("- no T-30 decisions recorded yet.")
+    prim = {(r[0], r[6], r[7]): r for r in props if r[5] == PROPS_PRIMARY}
+    t30 = {(r[0], r[6], r[7]): r for r in props if r[5] == T30_MODEL}
+    for stat in sorted({k[0] for k in t30}):
+        keys = sorted((k for k in t30 if k[0] == stat and k in prim), key=str)
+        if not keys:
+            continue
+        d = np.array([str(t30[k][1]) for k in keys])
+        dc = np.array([t30[k][2] - prim[k][2] for k in keys], dtype=float)
+        n_games = len({k[1] for k in keys})
+        lines.append(
+            f"- {stat}: delta CRPS {_fmt(cluster_bootstrap_mean(dc, d))}; "
+            f"{len(keys)} paired player-games over {n_games} games"
+        )
+        if len(keys) < 300:
+            lines.append(f"  - CAUTION: only {len(keys)} paired player-games for {stat}.")
+    if not t30:
+        lines.append("- no settled T-30 prop rows yet.")
+    path = lineups_db or DEFAULT_LINEUPS_DB
+    if path.exists():
+        try:
+            from nba.lineups.analysis import render_collector_section
+
+            lcon = connect_lineups(path, read_only=True, retries=2)
+            try:
+                lines += render_collector_section(con, lcon)
+            finally:
+                lcon.close()
+        except Exception as exc:  # the report must never fail on an auxiliary monitor
+            lines.append(f"- lineup collector measurements unavailable: {exc!r}")
+    else:
+        lines.append("- no lineup collector database yet.")
+    return lines
+
+
 def _independence_section(con: duckdb.DuckDBPyConnection) -> list[str]:
     """Cross-game independence monitor for parlay legs (nba.parlay.independence_check)."""
     try:
@@ -139,7 +200,11 @@ def _independence_section(con: duckdb.DuckDBPyConnection) -> list[str]:
         return ["", "## Cross-game independence check (forward)", f"- unavailable: {exc!r}"]
 
 
-def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -> str:
+def build_report(
+    con: duckdb.DuckDBPyConnection,
+    season: int = FORWARD_SEASON,
+    lineups_db: Path | None = None,
+) -> str:
     ensure_tables(con)
     n_games, trigger = rollover_status(con)
     lines = [f"# Forward (out-of-sample) report, season={season}", ""]
@@ -204,6 +269,7 @@ def build_report(con: duckdb.DuckDBPyConnection, season: int = FORWARD_SEASON) -
                 f"mean bias (pred-actual) {_fmt(cluster_bootstrap_mean(bias, d), 3)}"
             )
     lines += _paired_props_section(props)
+    lines += _paired_t30_section(con, props, lineups_db)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
     lines += _independence_section(con)
     lines += [
