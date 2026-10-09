@@ -155,6 +155,12 @@ removal commands are in the template header. Keep the Mac plugged in; the job is
   scores the lt rows like any other model from the stored grid (already on integer support). The live
   comparison rule is frozen in docs/LOWER_TAIL.md and implemented in `nba/daily/lt_live.py`.
 
+- **2026-10-09, live-path rehearsal fixes** (docs/LIVE_REHEARSAL_2026-10-09.md): the injury pull uses the
+  team-aware name resolver (the pbp index raised on ambiguous names), report rows of not-yet-played games
+  get their `game_id` from the schedule, forward report rows are read without joining `games`, and
+  official-roster names let debutants resolve; lineups polls treat HTTP 302 (unpublished day) as benign and
+  `run-t30` records games that have a tip but no snapshot.
+
 ## Caveats (honest)
 
 - The nba_api `ScheduleLeagueV2` column names (`gameId`, `gameDateTimeUTC`,
