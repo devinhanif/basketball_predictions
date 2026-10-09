@@ -125,6 +125,32 @@ def test_fetch_never_caches_empty_and_resumes(
     assert set(calls) == {ids[0]}  # only the failed key is retried
 
 
+def test_fetch_circuit_breaker_cools_down_then_stops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = _scoped_db(tmp_path)
+    ids = pg.scope_game_ids(db)
+    assert len(ids) >= 3
+
+    def throttled(gid: str) -> pl.DataFrame:
+        raise TimeoutError("read timed out")
+
+    monkeypatch.setattr(pg, "_fetch_tracking", throttled)
+    sleeps: list[float] = []
+    s = pg.fetch_source(
+        "tracking",
+        db,
+        data_dir=tmp_path / "data",
+        sleep=sleeps.append,
+        breaker_failures=1,
+        breaker_cooldown_s=99.0,
+        breaker_max_trips=1,
+    )
+    assert sleeps.count(99.0) == 1  # one cooldown, then stop on the next streak
+    assert len(s.failed) == 2 < len(ids)  # stopped early instead of burning every key
+    assert s.fetched == 0
+
+
 def test_load_idempotent_no_duplicate_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     db = _scoped_db(tmp_path)
     data = tmp_path / "data"

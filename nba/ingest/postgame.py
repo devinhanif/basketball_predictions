@@ -514,8 +514,16 @@ def fetch_source(
     limit: int | None = None,
     log_every: int = 100,
     sleep: Callable[[float], None] = time.sleep,
+    breaker_failures: int = 3,
+    breaker_cooldown_s: float = 600.0,
+    breaker_max_trips: int = 6,
 ) -> FetchSummary:
-    """Fetch every in-scope key for ``source`` into the parquet cache. Resumable."""
+    """Fetch every in-scope key for ``source`` into the parquet cache. Resumable.
+
+    Circuit breaker: stats.nba.com throttles bursts by timing out every request. After
+    ``breaker_failures`` consecutive failures, pause ``breaker_cooldown_s``; after
+    ``breaker_max_trips`` pauses, stop early (failed keys stay un-done, so a rerun resumes).
+    """
     keys = build_keys(source, nba_db)
     if limit is not None:
         keys = keys[:limit]
@@ -524,6 +532,8 @@ def fetch_source(
     log = open_db(sidecar_path(source, data_dir))
     try:
         t0 = time.monotonic()
+        streak = 0
+        trips = 0
         for i, (key, fn, allow_empty) in enumerate(keys, 1):
             done = log.execute(
                 "SELECT 1 FROM ingest_log WHERE source=? AND key=? AND status='done'",
@@ -543,9 +553,23 @@ def fetch_source(
                     allow_empty=allow_empty,
                 )
                 summary.fetched += 1
+                streak = 0
             except Exception as exc:  # logged failed; continue
                 summary.failed.append(key)
                 print(f"FAILED {source}[{key}]: {type(exc).__name__}: {str(exc)[:120]}", flush=True)
+                streak += 1
+                if streak >= breaker_failures:
+                    trips += 1
+                    if trips > breaker_max_trips:
+                        print(f"{source}: breaker tripped {trips - 1}x; stopping (rerun resumes)")
+                        break
+                    print(
+                        f"{source}: {streak} consecutive failures; cooling down "
+                        f"{breaker_cooldown_s:.0f}s (trip {trips}/{breaker_max_trips})",
+                        flush=True,
+                    )
+                    sleep(breaker_cooldown_s)
+                    streak = 0
             if i % log_every == 0:
                 rate = summary.fetched / max(time.monotonic() - t0, 1e-9)
                 print(
