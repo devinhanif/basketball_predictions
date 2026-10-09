@@ -11,6 +11,27 @@ LOCK=$OPS/lineups_lock
 mkdir -p "$OPS"
 LOG=$OPS/lineups_$(date +%Y%m%d).log
 TODAY_ET=$(TZ=America/New_York date +%Y-%m-%d)
+
+# heartbeat for the independent watchdog (nba.ops.watchdog): written at START and END, so a job
+# that never launches (or dies) is visible from outside even though it cannot alert itself.
+HB_DIR=$OPS/heartbeat
+MODE=lineups
+HB_JOB=lineups
+HB_RC=0
+HB_START=$(date +%Y-%m-%dT%H:%M:%S%z)
+mkdir -p "$HB_DIR"
+hb_write() {  # hb_write <end_ts|null> <rc|null>
+  [ "$1" = null ] && e=null || e="\"$1\""
+  printf '{"job": "%s", "mode": "%s", "host": "%s", "start_ts": "%s", "end_ts": %s, "rc": %s}\n' \
+    "$HB_JOB" "${MODE:-}" "$(hostname -s)" "$HB_START" "$e" "$2" > "$HB_DIR/$HB_JOB.json.tmp" \
+    && mv "$HB_DIR/$HB_JOB.json.tmp" "$HB_DIR/$HB_JOB.json"
+}
+hb_end() {  # hb_end <exit status>
+  rc=$1; [ "$rc" -eq 0 ] && rc=$HB_RC
+  hb_write "$(date +%Y-%m-%dT%H:%M:%S%z)" "$rc"
+}
+hb_write null null
+trap 'hb_end $?' EXIT
 HOUR_ET=$(TZ=America/New_York date +%H)
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 
@@ -26,11 +47,12 @@ if ! mkdir "$LOCK" 2>/dev/null; then
     exit 0
   fi
 fi
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT INT TERM
+trap 'rc=$?; rmdir "$LOCK" 2>/dev/null; hb_end $rc' EXIT
+trap 'exit 143' INT TERM
 
 "$UV" run python -m nba.lineups poll --date "$TODAY_ET" >> "$LOG" 2>&1
 rc=$?
-[ "$rc" -ne 0 ] && { log "poll rc=$rc"; echo "- $(date '+%Y-%m-%d %H:%M') [lineups] poll failed rc=$rc, see $LOG" >> "$OPS/ALERTS.md"; }
+[ "$rc" -ne 0 ] && { HB_RC=$rc; log "poll rc=$rc"; echo "- $(date '+%Y-%m-%d %H:%M') [lineups] poll failed rc=$rc, see $LOG" >> "$OPS/ALERTS.md"; }
 
 # T-30 shadow run only when some game is inside [tip-30, tip)
 if "$UV" run python -m nba.lineups due >> "$LOG" 2>&1; then
@@ -42,6 +64,7 @@ if "$UV" run python -m nba.lineups due >> "$LOG" 2>&1; then
     "$UV" run python -m nba.daily run-t30 --date "$TODAY_ET" --roster-source "$ROSTER" >> "$LOG" 2>&1
     rc=$?
     log "run-t30 rc=$rc"
+    [ "$rc" -ne 0 ] && HB_RC=$rc
     [ "$rc" -ne 0 ] && echo "- $(date '+%Y-%m-%d %H:%M') [lineups] run-t30 failed rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
   fi
 fi

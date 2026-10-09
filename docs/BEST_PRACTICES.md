@@ -67,6 +67,7 @@ incident or result that earned it. Agents and maintainers follow this; CLAUDE.md
 | **Forward logging before tip-off** with comparison models alongside; settle afterwards. | The 2026-27 season is the only truly clean test left. |
 | **Read-only markets, verified fees, defer to market without a track record.** | The parlay engine reports `no_positive_ev_found` until shadow history proves skill. |
 | **Version the data, not just the code.** `make data-snapshot` before registering runs and after any load; `make data-check` flags row drops and played-vs-unplayed NULL asymmetry. | The `opp_adjusted_ridge` leak is exactly a NULL-vs-minutes asymmetry that this check surfaces mechanically (see docs/DATA_VERSIONING.md). |
+| **A job that cannot start cannot alert: monitor heartbeats from an independent watchdog.** On macOS, launchd jobs touching `~/Downloads` must launch via an executable TCC allows (we use `uv`), never `/bin/sh`. | TCC blocked every `/bin/sh` launchd job (exit 126, "Operation not permitted"); scripts never started, so no alert fired until noticed by hand. `nba.ops.watchdog` (label `local.nba.watchdog`, every 10 min) checks job heartbeats and `launchctl list` exit statuses. |
 
 ## 6. Checklist for any new model
 

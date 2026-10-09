@@ -22,6 +22,28 @@ mkdir -p "$OPS" data/backups
 LOG=$OPS/${MODE}_$(date +%Y%m%d).log
 TODAY_ET=$(TZ=America/New_York date +%Y-%m-%d)
 
+case "$MODE" in pretip|morning) ;; *) echo "usage: $0 pretip|morning" >&2; exit 64 ;; esac
+
+# heartbeat for the independent watchdog (nba.ops.watchdog): written at START and END, so a job
+# that never launches (or dies) is visible from outside even though it cannot alert itself.
+HB_DIR=$OPS/heartbeat
+HB_JOB=daily-$MODE
+HB_RC=0
+HB_START=$(date +%Y-%m-%dT%H:%M:%S%z)
+mkdir -p "$HB_DIR"
+hb_write() {  # hb_write <end_ts|null> <rc|null>
+  [ "$1" = null ] && e=null || e="\"$1\""
+  printf '{"job": "%s", "mode": "%s", "host": "%s", "start_ts": "%s", "end_ts": %s, "rc": %s}\n' \
+    "$HB_JOB" "${MODE:-}" "$(hostname -s)" "$HB_START" "$e" "$2" > "$HB_DIR/$HB_JOB.json.tmp" \
+    && mv "$HB_DIR/$HB_JOB.json.tmp" "$HB_DIR/$HB_JOB.json"
+}
+hb_end() {  # hb_end <exit status>
+  rc=$1; [ "$rc" -eq 0 ] && rc=$HB_RC
+  hb_write "$(date +%Y-%m-%dT%H:%M:%S%z)" "$rc"
+}
+hb_write null null
+trap 'hb_end $?' EXIT
+
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 alert() {
   log "ALERT: $*"
@@ -37,6 +59,7 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   rc=$?
   log "end $name rc=$rc"
   if [ "$rc" -ne 0 ] && ! { [ "$name" = predict ] && [ "$rc" -eq 2 ]; }; then
+    HB_RC=$rc
     alert "$name failed (rc=$rc), see $LOG"
   fi
   return $rc
@@ -52,7 +75,8 @@ if ! mkdir "$LOCK" 2>/dev/null; then
     exit 0
   fi
 fi
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT INT TERM
+trap 'rc=$?; rmdir "$LOCK" 2>/dev/null; hb_end $rc' EXIT
+trap 'exit 143' INT TERM
 
 # DuckDB is single-writer: wait up to 15 min for any other writer (eval, backfill load)
 i=0

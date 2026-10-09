@@ -19,6 +19,7 @@ from nba.daily.settle import settle_pending
 from nba.db.connect import DEFAULT_DB_PATH, connect
 from nba.features.game_tipoff import SCHEDULE_DIR
 from nba.ingest.cache import RateLimiter
+from nba.ops.watchdog import health_section
 
 DEFAULT_REPORT = Path("registry_store/reports/forward_report.md")
 
@@ -64,12 +65,26 @@ def _parser() -> argparse.ArgumentParser:
         "quantiles, docs/INTEGER_QUANTILES.md); the primary rows are unchanged",
     )
     r.add_argument(
+        "--log-lower-tail-variant",
+        action="store_true",
+        help="SHADOW: also log pts comparison rows 'props_context_residual_lt' (short-minutes "
+        "mixture, integer-support quantiles, docs/LOWER_TAIL.md); never primary, primary rows "
+        "unchanged",
+    )
+    r.add_argument(
         "--roster-source",
         choices=["recent", "official"],
         default="recent",
         help="forward roster: 'recent' = players in each team's last 10 games (default); "
         "'official' = pre-tip CommonTeamRoster (cached per date) plus recent players, with "
         "rookie/new-team handling (docs/OPENING_WEEK_ROSTERS.md)",
+    )
+    r.add_argument(
+        "--roster-dir",
+        type=Path,
+        default=None,
+        help="official-roster cache root (default data/rosters); rehearsals use a scratch dir so "
+        "a rehearsal day never seeds the real per-date cache",
     )
     t = sub.add_parser(
         "run-t30",
@@ -121,12 +136,14 @@ def main(argv: list[str] | None = None) -> int:
             now=args.now,
             model_cache=args.model_cache,
             roster_source=args.roster_source,
+            roster_dir=args.roster_dir,
             registry=get_registry(con),
             skip_ingest=args.skip_ingest,
             skip_injury=args.skip_injury,
             with_props=not args.no_props,
             props_model=args.props_model,
             log_int_variant=args.log_int_variant,
+            log_lower_tail_variant=args.log_lower_tail_variant,
             n_sims=args.n_sims,
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
@@ -161,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text)
     print(text)
+    print(health_section())
     return 0
 
 
