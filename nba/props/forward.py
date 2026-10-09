@@ -73,6 +73,7 @@ from nba.props.context_residual import (
     fit_for_date,
     flagged_from_availability,
     predict_rows,
+    to_integer_support,
 )
 from nba.props.distributions import Distribution, NormalDist
 from nba.props.minutes import build_minutes_features, predict_minutes
@@ -614,6 +615,8 @@ class ContextSlateResult:
     primary: pl.DataFrame
     recency: pl.DataFrame
     info: dict[str, Any]
+    #: optional comparison rows with integer-support quantiles (``int_variant=True``)
+    integer_variant: pl.DataFrame | None = None
 
 
 _AVAIL_SCHEMA: dict[str, Any] = {
@@ -709,6 +712,9 @@ def _load_or_fit_models(
         "cfg": asdict(cfg),
     }
     fp["cfg"].pop("report", None)
+    # output-only post-processing: does not change the fitted models, so no refit
+    fp["cfg"].pop("integer_support", None)
+    fp["cfg"].pop("integer_support_stats", None)
     if cache_dir is not None:
         meta_p, model_p = cache_dir / "meta.json", cache_dir / "models.pkl"
         if meta_p.exists() and model_p.exists():
@@ -766,6 +772,7 @@ def predict_slate_context(
     cfg: ContextResidualConfig | None = None,
     config: ForwardConfig | None = None,
     official_roster: pl.DataFrame | None = None,
+    int_variant: bool = False,
 ) -> ContextSlateResult:
     """Context-residual props for a slate (primary) plus the recency comparison.
 
@@ -774,7 +781,9 @@ def predict_slate_context(
     games absent from it have no report (``has_report=0``, never imputed as
     "nobody out"). Models are fit on played rows with ``game_date < as_of`` and
     cached under ``cache_root/<as_of>/``. Raises on fit failure; the caller
-    decides the fallback."""
+    decides the fallback. ``int_variant`` additionally returns, in
+    ``ContextSlateResult.integer_variant``, the same rows with integer-support quantiles
+    (docs/INTEGER_QUANTILES.md) for ``cfg.integer_support_stats``; the primary is unchanged."""
     cfg = cfg or ContextResidualConfig()
     exclude = set(out_players or ())
     for s in report_out.values():
@@ -806,6 +815,7 @@ def predict_slate_context(
     slate_feats = feats.filter(pl.col("game_id").is_in(slate_ids))
     taus19 = np.array(QUANTILE_TAUS)
     out_rows: list[dict[str, Any]] = []
+    int_rows: list[dict[str, Any]] = []
     n_ctx = 0
     by_key = {(r["game_id"], r["player_id"], r["stat"]): r for r in recency.iter_rows(named=True)}
     done: set[tuple[str, int, str]] = set()
@@ -822,6 +832,16 @@ def predict_slate_context(
             out_rows.append(
                 _ctx_row(base, float(mean[i]), q19[i], q199[i], cfg_thresholds(config, stat))
             )
+            if int_variant and stat in cfg.integer_support_stats and not cfg.integer_support:
+                int_rows.append(
+                    _ctx_row(
+                        base,
+                        float(mean[i]),
+                        to_integer_support(q19[i]),
+                        to_integer_support(q199[i]),
+                        cfg_thresholds(config, stat),
+                    )
+                )
             done.add(key)
             n_ctx += 1
     for key, base in by_key.items():
@@ -834,7 +854,14 @@ def predict_slate_context(
         .select(OUTPUT_COLUMNS)
         .sort(["game_id", "team_id", "player_id", "stat"])
     )
-    return ContextSlateResult(primary, recency, info)
+    variant = (
+        pl.DataFrame(int_rows, infer_schema_length=None)
+        .select(OUTPUT_COLUMNS)
+        .sort(["game_id", "team_id", "player_id", "stat"])
+        if int_rows
+        else None
+    )
+    return ContextSlateResult(primary, recency, info, variant)
 
 
 def cfg_thresholds(config: ForwardConfig | None, stat: str) -> list[int]:

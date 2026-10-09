@@ -38,6 +38,8 @@ ROUTED_PROPS_MODEL_NAME = "props_routed_sim"
 ROUTED_PROPS_VERSION = "routed-v1"
 CONTEXT_PROPS_MODEL_NAME = "props_context_residual"
 CONTEXT_PROPS_VERSION = "ctxres-v1"
+#: optional comparison rows: same model, integer-support quantiles (docs/INTEGER_QUANTILES.md)
+CONTEXT_INT_PROPS_MODEL_NAME = "props_context_residual_int"
 RECENCY_PROPS_MODEL_NAME = "props_recency_v1"
 RECENCY_PROPS_VERSION = "recency-v1"
 DEFAULT_CONTEXT_CACHE = REPO_ROOT / "data" / "models" / "context_residual"
@@ -276,6 +278,7 @@ def context_prop_predictions(
     *,
     cache_root: Path | None = None,
     official_roster: pl.DataFrame | None = None,
+    int_variant: bool = False,
 ) -> ContextSlateResult:
     """Context-residual props (primary) + recency comparison for ``games`` =
     ``[(game_id, home_team, away_team)]``; fit on rows strictly before ``slate``.
@@ -296,6 +299,7 @@ def context_prop_predictions(
         elo_params,
         cache_root=cache_root or DEFAULT_CONTEXT_CACHE,
         official_roster=official_roster,
+        int_variant=int_variant,
     )
 
 

@@ -57,6 +57,12 @@ def _parser() -> argparse.ArgumentParser:
         help="context-residual model cache root (default data/models/context_residual)",
     )
     r.add_argument(
+        "--log-int-variant",
+        action="store_true",
+        help="also log comparison rows 'props_context_residual_int' (integer-support "
+        "quantiles, docs/INTEGER_QUANTILES.md); the primary rows are unchanged",
+    )
+    r.add_argument(
         "--roster-source",
         choices=["recent", "official"],
         default="recent",
@@ -100,6 +106,7 @@ def main(argv: list[str] | None = None) -> int:
             skip_injury=args.skip_injury,
             with_props=not args.no_props,
             props_model=args.props_model,
+            log_int_variant=args.log_int_variant,
             n_sims=args.n_sims,
             rate_limiter=RateLimiter(args.rate_limit_s),
         )

@@ -57,6 +57,18 @@ CUSUM_THRESHOLD = 4.0
 CUSUM_DRIFT = 0.5
 
 
+#: Count stats whose quantiles the ``integer_support`` flag maps to the integers.
+INTEGER_SUPPORT_STATS: tuple[str, ...] = ("reb", "ast", "fg3m")
+
+
+def to_integer_support(q: np.ndarray) -> np.ndarray:
+    """Map non-negative quantiles to integer support: ``ceil(q - 0.5)`` (== round half
+    up), the same N-0.5 continuity convention P(stat >= N) uses. Monotone in ``q``, so a
+    non-decreasing grid stays non-decreasing; ``mean`` is never touched."""
+    out = np.maximum(np.ceil(np.asarray(q, dtype=float) - 0.5), 0.0)
+    return np.asarray(np.maximum.accumulate(out, axis=-1))
+
+
 @dataclass(frozen=True)
 class ContextResidualConfig:
     n_estimators: int = 200
@@ -69,6 +81,10 @@ class ContextResidualConfig:
     min_cal_rows: int = 2000
     seed: int = 0
     n_jobs: int = 4
+    #: Map predictive quantiles to integer support (docs/INTEGER_QUANTILES.md).
+    #: Default False = byte-identical production output.
+    integer_support: bool = False
+    integer_support_stats: tuple[str, ...] = INTEGER_SUPPORT_STATS
     report: ReportTriggerConfig = field(default_factory=ReportTriggerConfig)
 
 
@@ -691,6 +707,8 @@ class ContextResidualModel:
         zq = np.asarray(np.quantile(self.z_sorted, taus))
         q = m[:, None] + mu[:, None] + s[:, None] * zq[None, :]
         q = np.maximum.accumulate(np.clip(q, 0.0, None), axis=1)
+        if self.cfg.integer_support and self.stat in self.cfg.integer_support_stats:
+            q = to_integer_support(q)
         mean = np.clip(m + mu + s * float(self.z_sorted.mean()), 0.0, None)
         return mean, q
 

@@ -119,3 +119,58 @@ failure is logged. A gain that merely reproduces the red-team number is a scorin
 confirmation, not evidence of better forecasting.
 
 === RESULTS BELOW ===
+
+Frozen-part sha256 (text before the marker line, as committed in fce2e13): `ac87bd71424fd07336c30490b870c89b84f34ac4ba6e44cd320a6a5ee8e36973`
+
+## Results: 2023 production OOF, DESCRIPTIVE (SEEN data, not confirmatory, not independent)
+
+Run: `uv run python -m nba.eval.integer_quantiles_eval --season 2023 --out reports/integer_quantiles/oof2023.json`
+(CPU, seconds; `nba.duckdb` read-only for labels). n = 27,619 played player-games per stat,
+1,318 games; clustered (game) bootstrap, 2,000 resamples.
+
+Deviation D1 (disclosed): the stored OOF file holds only the 19-quantile grid (taus 0.05..0.95),
+not the 199-grid the pre-registration named for scoring. The 19-grid is exactly what the daily
+settler (`nba/daily/settle.py`) uses for forward CRPS, so these numbers are the forward-relevant
+ones, but levels are not comparable with the red team's 199-grid levels. The transform and the
+decision rule are unchanged. The 199-grid check remains for the 2025 touch.
+
+| stat | CRPS as-is | CRPS rounded | delta [95% CI] | max abs dP(>=N) | thr. log loss delta | pooled ECE delta | bias [95% CI] |
+|---|---|---|---|---|---|---|---|
+| reb | 1.3666 | 1.3551 | -0.0115 [-0.0119,-0.0111] | 0 | 0 | 0 | +0.010 [-0.020,+0.039] |
+| ast | 0.9654 | 0.9488 | -0.0166 [-0.0169,-0.0162] | 0 | 0 | 0 | +0.023 [+0.002,+0.044] |
+| fg3m | 0.6201 | 0.5958 | -0.0243 [-0.0248,-0.0239] | 0 | 0 | 0 | +0.007 [-0.008,+0.021] |
+| pts (descriptive) | 3.3069 | 3.3015 | -0.0053 [-0.0059,-0.0047] | 0 | 0 | 0 | +0.043 [-0.023,+0.106] |
+
+* The CRPS gains reproduce the red-team 2023 refit numbers (-0.0110, -0.0157, -0.0234) to within
+  0.001 on a different forecast object (stored OOF, 19-grid). That is a re-computation, not a
+  replication on new data.
+* P(>= N) is EXACTLY invariant (not merely <= 0.0025): `q > N-0.5` and `ceil(q-0.5) >= N` are the
+  same event for integer N, so threshold log loss and ECE cannot change by construction. Threshold
+  metrics are therefore blind to this transform (the red team noted the same); only CRPS and the
+  interval endpoints see it.
+* Bias is unchanged by construction (mean is not transformed). Nothing here tests the +/-0.5 target
+  differently from before.
+* pts: the gain (-0.0053) is real but ~2-5x smaller; stays descriptive and out of the default set.
+* OPEN CAVEAT, not hidden: naive 80% interval coverage `y in [q10, q90]` rises from
+  0.80 to 0.88 (reb), 0.90 (ast), 0.93 (fg3m), 0.84 (pts). Integer endpoints on a lattice make a
+  closed interval over-cover; discrete data cannot hit exactly 80%. The A1.1 PIT estimator was NOT
+  recomputed (its +/-0.035 integer-grid uncertainty cannot decide this). The consumer of
+  `q10`/`q90` should know the rounded interval is conservative. The 2025 touch must report a
+  continuity-corrected coverage so this is judged, not assumed.
+
+Verdict (descriptive): the transform reduces CRPS on integer support at no cost to any threshold
+metric, as the red team found. It is a scoring-convention gain. No production behaviour changed.
+
+## Implementation (default off)
+
+* `ContextResidualConfig.integer_support: bool = False` and `integer_support_stats = ("reb","ast","fg3m")`
+  (`nba/props/context_residual.py`, `to_integer_support`). Applied inside
+  `ContextResidualModel.predict` to the quantile matrix (so q_grid, q10, q50, q90 and the 199-grid
+  p_ge all follow); `mean` untouched. The model-cache fingerprint ignores both fields (no refit).
+* Daily pipeline, comparison row only: `python -m nba.daily run --log-int-variant ...` (parameter
+  `log_int_variant` on `run_daily`; `int_variant` on `predict_slate_context`). Writes extra rows
+  `props_context_residual_int` (same version, reb/ast/fg3m); the primary rows are asserted
+  byte-identical in tests. Default off; maintainer decides.
+* Tests: `tests/props/test_integer_support.py` (flag off byte-identical, on = integer/monotone,
+  hypothesis properties for monotone/integer/non-negative and P(>=N) invariance and non-increasing,
+  slate variant leaves primary unchanged, 2025 refused).
