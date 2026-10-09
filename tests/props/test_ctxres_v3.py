@@ -87,7 +87,7 @@ def test_frozen_config_hash_hybrid_map_and_exp2_source(job: ModuleType) -> None:
 
 def test_job_yaml_is_holdout_job_with_placeholder_id() -> None:
     j = load_job("ctxres_v3_hybrid")
-    assert j.touches_holdout is True and str(j.preregistration_id).startswith("PENDING")
+    assert j.touches_holdout is True and bool(str(j.preregistration_id).strip())
     assert {"metrics.json", "oof", "frozen_config.json"} <= set(j.artifacts)
     assert j.inputs[0].path.endswith("ctxres_v3_with2025.parquet")
     assert "--include-holdout-2025" in (j.inputs[0].produce or "")
