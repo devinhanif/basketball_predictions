@@ -131,4 +131,40 @@ run nothing further. Also reported: NULL-indicator vs label rank correlation per
   commits. The freeze is evidenced by the sha256 recorded below, taken before any load.
 
 === RESULTS BELOW ===
-(not yet filled)
+
+## Results (run 2026-10-09, data_version e2afd65697e7)
+
+Frozen-part sha256 (everything above the marker, verified unchanged at run time):
+`090e3a069da78992c849d00e0f192d23b69d4ce161f09aa697bea9343d0190ad`; pre-registration
+commit c88788a.
+
+**Amendment (made before any model result was seen, on the coordinator's instruction):**
+only the tracking-only families were run: `passing`, `shooting`, and the pre-declared
+T-only subset `rebounding_T` (rebound chances; box-outs need hustle). `activity` (full or
+`activity_T`) and the full `rebounding` definition are NOT RUN YET (hustle fetch still
+running). BH is therefore over the m = 5 cells that ran (the registered m = 9 applies when
+all cells are run). Same family definitions, rule and floors otherwise.
+
+Data: tracking loaded for 3953/3953 games of 2022-2024 (1320 / 1318 / 1315 per season; 103,785
+player-game rows), 100% of played rows have a tracking row, so coverage gaps are nil and
+both arms see identical rows. Datamanifest check: 0 flags.
+
+Missingness audit: max NULL-rate asymmetry 0.0000 (threshold 0.5): features are shrunk to
+the position prior and are never NULL after the first date; own-game row coverage is 100%
+for both minutes >= 5 and < 5. No leak signal.
+
+| cell | n (2024 played rows) | CRPS A (prod) | CRPS B (+family) | delta B-A [95% clustered CI] | raw p | BH p (m=5) | cov80 A/B | bias A/B | cold (<10 prior) n: delta [CI] | 2023 delta (descr.) | checks failed | PASS |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| passing|ast | 27583 | 0.9164 | 0.9162 | -0.0002 [-0.0011, +0.0009] | 0.774 | 0.774 | 0.796/0.794 | +0.037/+0.015 | 463: -0.0139 [-0.0210, -0.0071] | -0.0015 | floor, ci_excludes_0, bh_q | NO |
+| passing|pts | 27583 | 3.1890 | 3.1906 | +0.0016 [-0.0004, +0.0035] | 0.123 | 0.205 | 0.795/0.794 | +0.045/+0.044 | 463: -0.0023 [-0.0146, +0.0110] | +0.0007 | floor, ci_excludes_0, bh_q | NO |
+| shooting|pts | 27583 | 3.1890 | 3.1909 | +0.0018 [-0.0002, +0.0039] | 0.097 | 0.205 | 0.795/0.790 | +0.045/+0.031 | 463: -0.0018 [-0.0126, +0.0099] | +0.0003 | floor, ci_excludes_0, bh_q | NO |
+| shooting|fg3m | 27583 | 0.6150 | 0.6153 | +0.0003 [-0.0003, +0.0009] | 0.335 | 0.419 | 0.791/0.789 | -0.010/-0.011 | 463: -0.0039 [-0.0079, +0.0004] | +0.0002 | floor, ci_excludes_0, bh_q | NO |
+| rebounding_T|reb | 27583 | 1.3249 | 1.3237 | -0.0013 [-0.0022, -0.0004] | 0.009 | 0.045 | 0.800/0.799 | +0.032/+0.031 | 463: -0.0018 [-0.0081, +0.0045] | +0.0006 | floor | NO |
+
+Verdict: NO cell passes. Four of five cells have CIs spanning 0 (two point estimates are
+slightly worse: passing->pts +0.0016, shooting->pts +0.0018). rebounding_T->reb is the only
+BH-significant cell (-0.0013, BH 0.045) but is far above the -0.005 floor. The cold-start
+slice for passing->ast shows -0.0139 (CI excludes 0) on only n = 463 rows, but that is a
+slice of a null overall result, not a pass criterion. Guards (coverage, bias, cold start)
+were not violated by any cell. Honest reading: recency box-score means already contain
+what these as-of tracking rates carry; no signal. No holdout touch, nothing registered.
