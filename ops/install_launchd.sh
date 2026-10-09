@@ -6,6 +6,10 @@
 # Uninstall: ops/install_launchd.sh --uninstall
 set -eu
 ROOT=/Users/devin/Downloads/nba-prediction
+# Launch through uv, not /bin/sh: macOS privacy protection (TCC) blocks launchd jobs whose
+# executable is /bin/sh from reading ~/Downloads ("Operation not permitted", exit 126), while uv
+# already has access (the Kalshi snapshot job runs the same way).
+UV=/opt/homebrew/bin/uv
 AGENTS="$HOME/Library/LaunchAgents"
 mkdir -p "$AGENTS" "$ROOT/data/ops"
 
@@ -25,7 +29,7 @@ write_plist() {  # label mode schedule-xml [script]
   <key>Label</key><string>$1</string>
   <key>WorkingDirectory</key><string>$ROOT</string>
   <key>ProgramArguments</key>
-  <array><string>/bin/sh</string><string>$ROOT/${4:-ops/nba_daily.sh}</string><string>$2</string></array>
+  <array><string>$UV</string><string>run</string><string>--no-sync</string><string>sh</string><string>$ROOT/${4:-ops/nba_daily.sh}</string><string>$2</string></array>
   $3
   <key>StandardOutPath</key><string>$ROOT/data/ops/launchd_$2.out</string>
   <key>StandardErrorPath</key><string>$ROOT/data/ops/launchd_$2.err</string>
