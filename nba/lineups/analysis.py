@@ -87,6 +87,9 @@ class OpenDecisions:
     n_games_with_open: int = 0
     n_games_with_candidates: int = 0
     n_games_no_report: int = 0
+    #: per game with a candidate: (tip-off date ISO, n candidates, n open) -- for the
+    #: date-clustered CI of the player-level open share (docs/FORWARD_PREREG_2026_27.md 2.1)
+    per_game: list[tuple[str, int, int]] = field(default_factory=list)
 
     @property
     def n_open(self) -> int:
@@ -156,6 +159,7 @@ def open_decisions(
             status_by_team.setdefault(int(tid), set()).add(str(ls))
             roster[int(pid)] = str(rs).lower()
         any_open = False
+        n_open_game = 0
         for pid in cands:
             if not rows:
                 state = "no_snapshot_before_t30"
@@ -167,8 +171,11 @@ def open_decisions(
                 state = "resolved_" + roster[pid]
             out.by_state[state] = out.by_state.get(state, 0) + 1
             out.n_candidates += 1
-            any_open |= state in ("open_lineup_unconfirmed", "no_snapshot_before_t30")
+            is_open = state in ("open_lineup_unconfirmed", "no_snapshot_before_t30")
+            any_open |= is_open
+            n_open_game += int(is_open)
         out.n_games_with_open += int(any_open)
+        out.per_game.append((tip.date().isoformat(), len(cands), n_open_game))
     return out
 
 

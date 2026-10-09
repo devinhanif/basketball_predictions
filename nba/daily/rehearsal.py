@@ -19,7 +19,9 @@ import duckdb
 
 #: Tables never touched: they hold pre-game information whose own timestamps are filtered
 #: by the pipeline, or forward-pipeline outputs.
-KEEP_TABLES = frozenset({"player_availability", "forward_predictions", "forward_scores"})
+KEEP_TABLES = frozenset(
+    {"player_availability", "forward_predictions", "forward_scores", "forward_scores_elig"}
+)
 SNAPSHOT_TABLES = {"player_rates": "as_of"}
 
 

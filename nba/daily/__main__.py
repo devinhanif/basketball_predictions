@@ -105,6 +105,19 @@ def _parser() -> argparse.ArgumentParser:
     )
     st = sub.add_parser("settle", help="score completed predictions only")
     st.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
+    ck = sub.add_parser(
+        "checkpoint",
+        help="write the immutable pre-registered checkpoint snapshot "
+        "(docs/FORWARD_PREREG_2026_27.md section 8); read-only on the database",
+    )
+    ck.add_argument("--look", required=True, choices=["L14", "L30", "L60", "L120", "END", "auto"])
+    ck.add_argument(
+        "--descriptive",
+        action="store_true",
+        help="bypass the min-n gate; writes under <out-dir>/descriptive, never a decision input",
+    )
+    ck.add_argument("--out-dir", type=Path, default=Path("data/checkpoints"))
+    ck.add_argument("--lineups-db", type=Path, default=None)
     rep = sub.add_parser("report", help="rolling forward metrics + rollover flag")
     rep.add_argument("--out", default=str(DEFAULT_REPORT))
     rep.add_argument("--season", type=int, default=2026)
@@ -123,8 +136,45 @@ def _print_summary(s: RunSummary) -> None:
         print(f"players_static autofill: {s.static_autofill}")
 
 
+def _checkpoint(args: argparse.Namespace) -> int:
+    from nba.daily.checkpoint import GateNotMet, due_looks, evaluate_checkpoint
+
+    con = connect(args.db_path, read_only=True)
+    try:
+        has_elig = con.execute(
+            "SELECT count(*) FROM information_schema.tables "
+            "WHERE table_name = 'forward_scores_elig'"
+        ).fetchone()
+        if not has_elig or not has_elig[0]:
+            print("checkpoint: forward_scores_elig does not exist yet; run `settle` first")
+            return 0 if args.look == "auto" else 2
+        looks = due_looks(con, args.out_dir) if args.look == "auto" else [args.look]
+        if not looks:
+            print("checkpoint: no look is due")
+            return 0
+        for look in looks:
+            try:
+                snap = evaluate_checkpoint(
+                    con,
+                    look,
+                    out_dir=args.out_dir,
+                    lineups_db=args.lineups_db,
+                    descriptive=args.descriptive,
+                )
+            except GateNotMet as exc:
+                print(f"checkpoint {look}: REFUSED: {exc}")
+                return 2
+            print(f"checkpoint {look}: wrote {snap['paths']['json']}")
+            print({k: r["outcome"] for k, r in snap["results"].items()})
+    finally:
+        con.close()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    if args.command == "checkpoint":
+        return _checkpoint(args)
     con = connect(args.db_path)
     if args.command == "run":
         from nba.registry import get_registry

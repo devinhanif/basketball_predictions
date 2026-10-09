@@ -343,3 +343,20 @@ Required, as a new module `nba/daily/checkpoint.py` (and tests), reading `forwar
 <!-- FROZEN-END -->
 
 ## Amendments (append only, dated; none yet)
+
+- 2026-10-09 (engineering note, no rule changed): section 8 gaps implemented. (1) Every forward prop
+  row (primary, recency, `_int`, `_lt`, `_t30`) now stores the additive JSON field `p_ge_full`
+  `{"n": N, "c": [c_1..c_K]}` with `P(Y >= k) = c_k / N`, k = 1..K, cut after the first k with
+  `P(Y >= k) <= 1e-3` (cap pts 80, reb 35, ast 30, fg3m 18); N = 199 exact counts for the context
+  quantile samples, N = 10,000 for parametric rows. Existing fields are unchanged. Mass beyond the
+  cut (<= 0.1%) is treated as 0, so integer-support CRPS is exact to about 2e-3 only for outcomes
+  beyond K, identical for arm and comparator. (2) `nba.daily.settle` also writes
+  `forward_scores_elig` (latest row with `made_at` <= tip - 60 min; the T-30 arm tip - 30 min) with
+  the integer-support CRPS, pinball19, PIT bounds and, for the win models, log loss and Brier;
+  `forward_scores` is unchanged. (3) `nba.daily.checkpoint` writes `data/checkpoints/<look>_<date>.json`
+  (+ markdown, + a pair-table parquet per arm-stat, sha256 of each, one log line); a look is
+  recorded per arm-stat when that arm-stat first reaches the look's date count, and arm-stats not
+  yet at the count enter BH with p = 1.0. The `_int` decision metric is the pinball19 delta (section 3);
+  its integer-support delta and the deterministic fidelity check are reported beside it. The
+  teammate-out slice is approximated at game level (any `player_availability` row with status 'out'
+  for the game) and the starter slice uses the stored `starter_rate >= 0.5`.

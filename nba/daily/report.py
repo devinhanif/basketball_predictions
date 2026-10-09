@@ -190,6 +190,16 @@ def _paired_t30_section(
     return lines
 
 
+def _checkpoint_section() -> list[str]:
+    """Pre-registered immutable checkpoint snapshots (the only decision inputs, prereg rule 10)."""
+    try:
+        from nba.daily.checkpoint import latest_snapshots_section
+
+        return latest_snapshots_section()
+    except Exception as exc:  # the report must never fail on an auxiliary section
+        return ["", "## Pre-registered checkpoints", f"- unavailable: {exc!r}"]
+
+
 def _independence_section(con: duckdb.DuckDBPyConnection) -> list[str]:
     """Cross-game independence monitor for parlay legs (nba.parlay.independence_check)."""
     try:
@@ -271,10 +281,12 @@ def build_report(
     lines += _paired_props_section(props)
     lines += _paired_t30_section(con, props, lineups_db)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
+    lines += _checkpoint_section()
     lines += _independence_section(con)
     lines += [
         "",
-        "CIs: percentile bootstrap resampling game dates (2000 draws, seed 0). "
+        "CIs: percentile bootstrap resampling game dates (2000 draws, seed 0); running CIs are "
+        "descriptive, not decision-bearing (only checkpoint snapshots count). "
         "Props are conditional on the player playing.",
     ]
     return "\n".join(lines) + "\n"
