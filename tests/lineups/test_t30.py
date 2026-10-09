@@ -321,3 +321,29 @@ def test_schedule_from_lineups_and_due_cli(
         model_cache=tmp_path / "cache",
     )
     assert s.n_logged_games == 2
+
+
+def test_tip_known_game_with_no_snapshot_is_recorded_not_dropped(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    """The day's feed file can be unpublished (HTTP 302) so a game has a tip but no snapshot:
+    the T-30 run must RECORD it as skipped, and ``due`` must fire so the run happens."""
+    from nba.daily.t30 import schedule_from_lineups
+    from nba.lineups.__main__ import main
+
+    db = tmp_path / "l.duckdb"
+    lcon = connect_lineups(db)
+    upsert_tip(lcon, G1, date(2026, 2, 21), TIP, "schedule", TIP)
+    lcon.close()
+    assert (
+        main(["--db-path", str(db), "due", "--now", (TIP - timedelta(minutes=29)).isoformat()]) == 0
+    )
+    lcon = connect_lineups(db, read_only=True)
+    s = run_t30(
+        con, lcon, date(2026, 2, 21), schedule_fn=schedule_from_lineups(lcon),
+        now=TIP - timedelta(minutes=29), model_cache=tmp_path / "cache",
+    )  # fmt: skip
+    assert s.n_slate == 1 and s.skipped == {G1: "no_snapshot_before_t30"}
+    assert s.n_logged_games == 0 and s.n_rows_written == 0
+    row = con.execute("SELECT outcome, reason FROM forward_t30_decisions WHERE game_id = ?", [G1])
+    assert row.fetchone() == ("skipped", "no_snapshot_before_t30")

@@ -186,18 +186,28 @@ def latest_snapshot_before(
     return (str(row[0]), row[1]) if row else None
 
 
-def games_with_tips(con: duckdb.DuckDBPyConnection) -> list[tuple[str, datetime, int, int]]:
-    """``(game_id, tipoff, home_team, away_team)`` for every tipped-known game that has at
-    least one snapshot (teams come from the snapshots; the feed marks home/away)."""
+def games_with_tips(
+    con: duckdb.DuckDBPyConnection, *, include_unseen: bool = False
+) -> list[tuple[str, datetime, int, int]]:
+    """``(game_id, tipoff, home_team, away_team)`` for every tip-known game that has at
+    least one snapshot (teams come from the snapshots; the feed marks home/away).
+
+    ``include_unseen=True`` also returns tip-known games with NO snapshot at all (the day's
+    file was never published or never parsed), with team ids 0. The T-30 run needs them so a
+    game the feed never covered is RECORDED as skipped (``no_snapshot_before_t30``) instead of
+    vanishing from the shadow arm's denominator."""
+    join = "LEFT JOIN" if include_unseen else "JOIN"
     rows = con.execute(
-        """
+        f"""
         SELECT t.game_id, t.tipoff,
                max(CASE WHEN s.is_home THEN s.team_id END),
                max(CASE WHEN NOT s.is_home THEN s.team_id END)
-        FROM game_tips t JOIN lineup_snapshots s USING (game_id)
+        FROM game_tips t {join} lineup_snapshots s USING (game_id)
         GROUP BY t.game_id, t.tipoff ORDER BY t.tipoff, t.game_id
-        """
+        """  # noqa: S608
     ).fetchall()
+    if include_unseen:
+        return [(str(g), tip, int(h or 0), int(a or 0)) for g, tip, h, a in rows]
     return [
         (str(g), tip, int(h), int(a)) for g, tip, h, a in rows if h is not None and a is not None
     ]

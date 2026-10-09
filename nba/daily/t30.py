@@ -124,7 +124,10 @@ def schedule_from_lineups(lcon: duckdb.DuckDBPyConnection) -> ScheduleFn:
     stats.nba.com quota."""
 
     def fn(season: str) -> list[ScheduledGame]:
-        return [ScheduledGame(g, tip, h, a) for g, tip, h, a in games_with_tips(lcon)]
+        return [
+            ScheduledGame(g, tip, h, a)
+            for g, tip, h, a in games_with_tips(lcon, include_unseen=True)
+        ]
 
     return fn
 

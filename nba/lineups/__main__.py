@@ -15,7 +15,7 @@ from pathlib import Path
 
 from nba.daily.schedule import ET, ScheduleFn, fetch_schedule_nba_api, slate_for_date
 from nba.daily.season import season_str_for_date
-from nba.lineups.collector import poll_once
+from nba.lineups.collector import PollResult, poll_once
 from nba.lineups.source import fetch_daily_lineups, utc_now
 from nba.lineups.store import (
     DEFAULT_LINEUPS_DB,
@@ -56,6 +56,16 @@ def ensure_schedule_tips(
     return len(games)
 
 
+#: HTTP statuses that are not a collector failure. 404 = no file; 302 = the day's file is not
+#: published yet (stats.nba.com answers a future date with a redirect to /error/, observed
+#: 2026-10-09), which must not raise an alert on every morning/off-day tick.
+BENIGN_STATUSES = (None, 200, 302, 404)
+
+
+def poll_ok(res: PollResult) -> bool:
+    return res.reason != "parse_error" and res.http_status in BENIGN_STATUSES
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m nba.lineups")
     p.add_argument("--db-path", default=str(DEFAULT_LINEUPS_DB))
@@ -75,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
         now = args.now or utc_now()
         due = [
             g
-            for g, tip, _h, _a in games_with_tips(ro)
+            for g, tip, _h, _a in games_with_tips(ro, include_unseen=True)
             if tip - timedelta(minutes=T30_LEAD_MINUTES) <= now < tip
         ]
         print(f"due games: {len(due)}")
@@ -93,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.db_path).parent
     res = poll_once(lcon, gd, now=now, fetch=fetch_daily_lineups, force=args.force, root=root)
     print(res)
-    return 0 if res.reason not in ("parse_error",) and (res.http_status in (None, 200, 404)) else 1
+    return 0 if poll_ok(res) else 1
 
 
 if __name__ == "__main__":
