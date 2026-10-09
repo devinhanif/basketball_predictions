@@ -71,8 +71,8 @@ case "$MODE" in
     step parlay_settle "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET" --settle --no-log
     # post-game stats for newly completed games (per-game sources only; shots/coaches are
     # per team-season and cached once, so they are refreshed by hand). Skip while a backfill runs.
-    if pgrep -f run_postgame_backfill.sh >/dev/null 2>&1; then
-      log "postgame backfill running; skipping post-game ingest"
+    if pgrep -f run_postgame_backfill.sh >/dev/null 2>&1 || pgrep -f "nba.ingest.queue" >/dev/null 2>&1; then
+      log "backfill/ingest queue running (one stats.nba.com puller at a time); skipping post-game ingest"
     else
       for s in tracking hustle officials matchups; do
         step "fetch_$s" "$UV" run python -m nba.ingest --rate-limit-s 1.0 postgame-fetch --source "$s"

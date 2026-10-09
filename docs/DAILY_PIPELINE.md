@@ -160,12 +160,12 @@ recalibration; rookies and offseason moves are invisible until a first box score
 
 `ops/nba_daily.sh` wraps the commands above. `ops/install_launchd.sh` installs two user launchd jobs
 (Mac local time, US/Central). The maintainer runs the installer by hand; uninstall with
-`ops/install_launchd.sh --uninstall`. NOT installed as of 2026-10-08.
+`ops/install_launchd.sh --uninstall`. INSTALLED on the maintainer's Mac 2026-10-09 (bridge until a VM passes `ops/check_vm_reachability.sh`).
 
 | Job | When | Steps |
 |---|---|---|
 | `local.nba.daily-pretip` | every hour at :30, 09:30-21:30 | `nba.daily run --date <today ET>` (exit 2 = some games already tipped, not a failure), then the read-only `nba.parlay evaluate` shadow log |
-| `local.nba.daily-morning` | 08:00 | `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
+| `local.nba.daily-morning` | 08:00 | `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 Guards: one job at a time (`data/ops/lock`, stale after 3 h); waits up to 15 min for another
 `nba.duckdb` writer, then skips with an alert. Logs: `data/ops/<mode>_<YYYYMMDD>.log`. Failures append to
