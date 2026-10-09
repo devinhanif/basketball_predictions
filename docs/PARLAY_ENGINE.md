@@ -46,6 +46,8 @@ the verified fee schedule (taker, per-order round-up, per-series multiplier), an
 No combo contracts are ingested, so `--combo` prices a hypothetical same-game combo at the PRODUCT OF LEG ASKS (marked not tradable, never logged).
 PRA/PR/PA/RA and steals/blocks markets are skipped (no joint marginal for sums yet).
 
+`analyze --date D [--budget B [--target T]] [--narrate]` is the daily props analysis report; see docs/PROPS_ANALYSIS.md.
+
 ## Market-as-prior: what happens today
 The model weight is `n/(n+k)` only if `n >= min_settled` (30) and shrinkage skill vs the market is positive. With zero settled history the weight is 0:
 the engine **defers to the market and cannot emit a positive-EV verdict** (verified in `tests/parlay/test_joint.py`). Because paper trades are logged only

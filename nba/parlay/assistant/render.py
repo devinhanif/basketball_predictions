@@ -186,6 +186,12 @@ def _track(r: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _budget(r: dict[str, Any]) -> list[str]:
+    from nba.parlay.report import _budget_md
+
+    return [ln for ln in _budget_md(r) if ln] + [f"  {DISCLAIMER}"]
+
+
 def render_result(name: str, result: dict[str, Any]) -> str:
     if "error" in result:
         return f"[{name}] ERROR: {result['error']}"
@@ -202,6 +208,8 @@ def render_result(name: str, result: dict[str, Any]) -> str:
         body = _what_if(result)
     elif name == "track_record":
         body = _track(result)
+    elif name in ("best_for_budget", "best_for_target"):
+        body = _budget(result)
     elif name == "log_paper_trade":
         body = [
             f"  logged paper trade {result['trade_id']} (verdict {result['verdict']}); "

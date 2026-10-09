@@ -100,6 +100,7 @@ class Toolbox:
         self._abbr_of = {v: k for k, v in self._abbr.items()}
         self._slates: dict[date, _Slate] = {}
         self._joint: tuple[Any, Any] | None = None
+        self._analyses: dict[date, Any] = {}
 
     # ------------------------------------------------------------------ plumbing
     def tool_specs(self) -> list[dict[str, Any]]:
@@ -385,6 +386,45 @@ class Toolbox:
         if len(set(legs)) != len(legs):
             raise ToolError("duplicate legs")
         return legs
+
+    # ------------------------------------------------------------------ budget tools
+    def _analysis(self, d: date) -> Any:
+        from nba.parlay.analysis import build_analysis
+
+        if d not in self._analyses:
+            try:
+                self._analyses[d] = build_analysis(
+                    d,
+                    None,
+                    nba_db=self.paths.nba_db,
+                    kalshi_db=self.paths.kalshi_db,
+                    paper_db=self.paths.paper_db,
+                    model_path=self.paths.joint_model,
+                    engine=self.engine_name,
+                    dnp_policy=self.dnp_policy,
+                    names=self.resolver,
+                )
+            except SystemExit as e:
+                raise ToolError(str(e)) from e
+        return self._analyses[d]
+
+    def tool_best_for_budget(self, budget_usd: float, date: str | None = None) -> dict[str, Any]:
+        from nba.parlay.budget import best_for_budget_from
+
+        an = self._analysis(self._date(date))
+        if not an.info.ctxs:
+            raise ToolError(f"no forward predictions for {an.slate}")
+        return best_for_budget_from(an, budget_usd)
+
+    def tool_best_for_target(
+        self, budget_usd: float, target_profit_usd: float, date: str | None = None
+    ) -> dict[str, Any]:
+        from nba.parlay.budget import best_for_target_from
+
+        an = self._analysis(self._date(date))
+        if not an.info.ctxs:
+            raise ToolError(f"no forward predictions for {an.slate}")
+        return best_for_target_from(an, budget_usd, target_profit_usd)
 
     # ------------------------------------------------------------------ tools
     def tool_list_slate(self, date: str | None = None) -> dict[str, Any]:

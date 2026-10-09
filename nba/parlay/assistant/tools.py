@@ -103,6 +103,26 @@ TOOL_SPECS: dict[str, dict[str, Any]] = {
         },
         ["legs"],
     ),
+    "best_for_budget": _fn(
+        "best_for_budget",
+        "Best use of a dollar budget: singles and engine-priced parlays in whole contracts with "
+        "per-order fees, ranked by EV at the conservative low bound. Answers "
+        "'keep your money' when no bet is positive at that bound.",
+        {"budget_usd": {"type": "number", "minimum": 1, "maximum": 100000}, "date": _DATE},
+        ["budget_usd"],
+    ),
+    "best_for_target": _fn(
+        "best_for_target",
+        "Options (singles and parlays of at most 4 legs) that can win at least a target profit "
+        "within a budget after fees, ranked by EV at the low bound, plus the risk/EV frontier "
+        "across target levels.",
+        {
+            "budget_usd": {"type": "number", "minimum": 1, "maximum": 100000},
+            "target_profit_usd": {"type": "number", "minimum": 1, "maximum": 1000000},
+            "date": _DATE,
+        },
+        ["budget_usd", "target_profit_usd"],
+    ),
     "track_record": _fn(
         "track_record",
         "Shadow-log realized vs expected for a stat (or 'all'); says 'insufficient sample' "

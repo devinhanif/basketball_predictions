@@ -1,4 +1,4 @@
-"""CLI: ``python -m nba.parlay {fit,eval-joint,evaluate,assistant}``. Read-only; paper log only.
+"""CLI: ``python -m nba.parlay {fit,eval-joint,evaluate,analyze,assistant}`` (read-only).
 
 ``evaluate --date D`` reads forward predictions (nba.duckdb, READ_ONLY) and the latest Kalshi
 prices (kalshi.duckdb, READ_ONLY), prices every mapped single-leg contract (both sides) and any
@@ -20,6 +20,7 @@ from typing import Any
 
 import duckdb
 
+from nba.db.connect import attach_read_only_with_retry, connect_with_retry
 from nba.parlay.config import ParlayConfig, load_config
 from nba.parlay.ev import NO_POSITIVE_EV, Recommendation, evaluate, fee_per_contract
 from nba.parlay.game_model import GameModelParams
@@ -290,9 +291,9 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
     params, pc = _load_model(Path(a.model))
     slate = date.fromisoformat(a.date)
     con = duckdb.connect(":memory:")
-    con.execute(f"ATTACH '{a.nba_db}' AS nba (READ_ONLY)")
-    con.execute(f"ATTACH '{a.kalshi_db}' AS kal (READ_ONLY)")
-    info = load_slate(con, slate, params, prefix="nba.")
+    attach_read_only_with_retry(con, a.nba_db, "nba")
+    attach_read_only_with_retry(con, a.kalshi_db, "kal")
+    info = load_slate(con, slate, params, prefix="nba.", as_of=a.now)
     now = a.now or datetime.now(UTC).replace(tzinfo=None)
     markets = load_open_markets(con, before=now)
     paper = duckdb.connect(str(a.paper_db))
@@ -327,6 +328,7 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
                 market_mid=sc.mid,
                 price=sc.ask,
                 engine="marginal",
+                now=a.now,
             )
             if rec.verdict != NO_POSITIVE_EV:
                 log_trade(paper, rec, cfg.fee, trade_id=f"{a.date}|{tk}|{side}")
@@ -401,11 +403,55 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
             file=sys.stderr,
         )
     if a.settle:
-        res = duckdb.connect(str(a.nba_db), read_only=True)
+        res = connect_with_retry(a.nba_db, read_only=True)
         print(
             f"settled paper={settle_trades(paper, res, policy)} "
             f"shadow={settle_shadow(paper, res, policy)}"
         )
+    return 0
+
+
+def cmd_analyze(a: argparse.Namespace) -> int:
+    """Daily props analysis (read-only; writes only the report files)."""
+    from nba.parlay.analysis import build_analysis
+    from nba.parlay.narrate import narrate
+    from nba.parlay.report import build_report, write_report
+
+    slate = date.fromisoformat(a.date)
+    an = build_analysis(
+        slate,
+        a.now,
+        nba_db=a.nba_db,
+        kalshi_db=a.kalshi_db,
+        paper_db=a.paper_db,
+        model_path=a.model,
+        config=a.config,
+        engine=a.engine,
+        dnp_policy=a.dnp_policy,
+        shadow=not a.no_shadow,
+    )
+    if a.target is not None and a.budget is None:
+        raise SystemExit("--target needs --budget")
+    rep = build_report(an, top=a.top, budget=a.budget, target=a.target)
+    if a.narrate:
+        from nba.parlay.assistant.backend import OllamaBackend, OllamaUnavailable
+        from nba.parlay.assistant.config import load_assistant_config
+
+        ac = load_assistant_config(a.config)
+        ob = OllamaBackend(ac.model, ac.host, seed=ac.seed, timeout_s=ac.timeout_s)
+        try:
+            ob.ping()
+            rep["narration"], rep["narration_note"] = narrate(rep, ob)
+        except OllamaUnavailable as e:
+            rep["narration_note"] = f"narration skipped: {str(e).splitlines()[0]}"
+    md, js = write_report(rep, a.out)
+    print(
+        f"props analysis {a.date}: games={rep['n_games']} contracts={rep['n_contracts']} "
+        f"flagged_positive={rep['n_flagged_positive']} verdict={rep['headline_verdict']}\n"
+        f"track record: {rep['gate']['describe']}\nwrote {md} and {js}"
+    )
+    if rep.get("budget"):
+        print(f"budget answer: {rep['budget']['answer']}")
     return 0
 
 
@@ -440,6 +486,22 @@ def main(argv: list[str] | None = None) -> int:
                 help="override the clock (naive UTC ISO); tests/rehearsals only",
             )
             p.add_argument("--settle", action="store_true")
+    p = sub.add_parser("analyze", help="daily props analysis report (read-only)")
+    p.add_argument("--date", required=True)
+    p.add_argument("--now", type=lambda t: datetime.fromisoformat(t).replace(tzinfo=None))
+    p.add_argument("--out", default=str(ROOT / "reports" / "props_analysis"))
+    p.add_argument("--config", default=str(ROOT / "configs" / "parlay.yaml"))
+    p.add_argument("--nba-db", "--db", dest="nba_db", default=str(ROOT / "nba.duckdb"))
+    p.add_argument("--kalshi-db", default=str(ROOT / "data" / "kalshi" / "kalshi.duckdb"))
+    p.add_argument("--paper-db", default=str(ROOT / "data" / "parlay" / "paper_trades.duckdb"))
+    p.add_argument("--model", default=str(DEFAULT_MODEL))
+    p.add_argument("--engine", choices=list(ENGINE_KIND), default=None)
+    p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="void")
+    p.add_argument("--no-shadow", action="store_true", help="omit shadow-arm columns")
+    p.add_argument("--narrate", action="store_true", help="local-Ollama summary (numguarded)")
+    p.add_argument("--budget", type=float, help="also answer: best EV for this many dollars")
+    p.add_argument("--target", type=float, help="with --budget: profit target in dollars")
+    p.add_argument("--top", type=int, default=10)
     from nba.parlay.assistant.cli import add_arguments, run
 
     add_arguments(
@@ -450,7 +512,12 @@ def main(argv: list[str] | None = None) -> int:
         return run(a)
     if a.cmd == "evaluate":
         Path(a.paper_db).parent.mkdir(parents=True, exist_ok=True)
-    return {"fit": cmd_fit, "eval-joint": cmd_eval_joint, "evaluate": cmd_evaluate}[a.cmd](a)
+    return {
+        "fit": cmd_fit,
+        "eval-joint": cmd_eval_joint,
+        "evaluate": cmd_evaluate,
+        "analyze": cmd_analyze,
+    }[a.cmd](a)
 
 
 if __name__ == "__main__":

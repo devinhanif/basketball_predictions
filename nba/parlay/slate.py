@@ -36,8 +36,12 @@ def load_slate(
     slate: date,
     params: GameModelParams,
     prefix: str = "",
+    as_of: datetime | None = None,
 ) -> SlateInfo:
-    """``prefix`` is the attached-catalog prefix (e.g. ``'nba.'``) for the forward tables."""
+    """``prefix`` is the attached-catalog prefix (e.g. ``'nba.'``) for the forward tables.
+
+    ``as_of`` (naive UTC) drops forward rows made after it, so a replayed or back-dated run sees
+    only what existed at that clock (default: no filter, the live behaviour)."""
     rows = con.execute(
         f"SELECT game_id, tipoff, model_name, target, player_id, prediction, made_at "
         f"FROM {prefix}forward_predictions ORDER BY made_at"
@@ -46,6 +50,8 @@ def load_slate(
     props: dict[tuple[str, int, str], dict[str, object]] = {}
     tips: dict[str, datetime] = {}
     for gid, tipoff, model, target, pid, pred, _made in rows:
+        if as_of is not None and _made > as_of:
+            continue
         et = tipoff.replace(tzinfo=UTC).astimezone(ET).date()
         if et != slate:
             continue
