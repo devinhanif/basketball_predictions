@@ -85,6 +85,7 @@ class ParlayConfig:
     kelly_cap: float
     min_settled: int
     order_type: str = "taker"
+    min_settled_dates: int = 14
 
 
 def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
@@ -114,4 +115,5 @@ def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
         kelly_fraction=float(raw["sizing"]["kelly_fraction"]),
         kelly_cap=float(raw["sizing"]["kelly_cap"]),
         min_settled=int(raw["min_settled_for_claims"]),
+        min_settled_dates=int(raw.get("min_settled_dates_for_claims", 14)),
     )

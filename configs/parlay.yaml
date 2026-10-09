@@ -29,6 +29,7 @@ sizing:
   kelly_fraction: 0.25
   kelly_cap: 0.02                 # informational stake cap as bankroll fraction
 min_settled_for_claims: 30
+min_settled_dates_for_claims: 14   # AND >= this many distinct settled dates (one night's props share its luck)
 independence_check:
   # Cross-game same-date residual correlation (props + game results). The engine treats legs from
   # DIFFERENT games as independent; this monitors whether that assumption is being violated.

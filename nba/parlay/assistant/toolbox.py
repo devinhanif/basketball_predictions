@@ -373,7 +373,7 @@ class Toolbox:
             self.dnp_policy,
             series=series,
             n_settled=tr.n_settled,
-            skill=tr.skill,
+            skill=tr.gated_skill(self.cfg.min_settled_dates),
             engine_name="marginal" if len(legs) == 1 else self.engine_name,
         )
         d = rec.to_dict()

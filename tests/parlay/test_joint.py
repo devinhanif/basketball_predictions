@@ -514,6 +514,12 @@ def test_cli_positive_needs_track_record_and_logs(tmp_path: Path) -> None:
         )
     tr = track_record(paper)
     assert tr.n_settled == 400 and tr.skill > 0.5
+    assert tr.n_dates == 1 and tr.gated_skill(14) == 0.0  # one night's rows never open the gate
+    paper.execute(  # spread the same history over 20 settled dates
+        "UPDATE shadow_predictions SET created_at = created_at - "
+        "to_days(CAST(CAST(substr(shadow_id, 2) AS INTEGER) % 20 AS INTEGER))"
+    )
+    assert track_record(paper).n_dates == 20
     paper.close()
     out = _run(tmp_path, [])
     assert any(d["verdict"] != NO_POSITIVE_EV for d in out)
@@ -590,3 +596,12 @@ def test_track_record_counts_each_market_once_not_both_sides() -> None:
             )
     book.execute("UPDATE shadow_predictions SET settled=TRUE, outcome=TRUE")
     assert track_record(book).n_settled == 10
+
+
+def test_track_record_skill_gated_on_distinct_dates() -> None:
+    from nba.parlay.shadow import TrackRecord
+
+    one_night = TrackRecord(200, 0.20, 0.25, 0.2, n_dates=1)
+    assert one_night.gated_skill(14) == 0.0  # a single night's props never open the gate
+    season = TrackRecord(200, 0.20, 0.25, 0.2, n_dates=20)
+    assert season.gated_skill(14) == 0.2

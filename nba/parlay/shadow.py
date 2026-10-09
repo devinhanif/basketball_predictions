@@ -101,13 +101,23 @@ class TrackRecord:
     brier_model: float | None
     brier_market: float | None
     skill: float  # 1 - Brier_model / Brier_market; 0 if undefined
+    n_dates: int = 0  # distinct settled game dates (props on one night are correlated)
+
+    def gated_skill(self, min_dates: int) -> float:
+        """``skill`` only once the history spans ``min_dates`` distinct dates, else 0.
+
+        Thirty settled rows can arrive in a single night; they share that night's luck, so the
+        row count alone overstates the evidence. Below the date floor the engine defers to the
+        market entirely.
+        """
+        return self.skill if self.n_dates >= min_dates else 0.0
 
     def describe(self) -> str:
         if self.n_settled == 0:
             return "no settled shadow history (n=0)"
         return (
-            f"n={self.n_settled}, Brier model {self.brier_model:.4f} vs market "
-            f"{self.brier_market:.4f}, skill {self.skill:+.4f}"
+            f"n={self.n_settled} over {self.n_dates} date(s), Brier model {self.brier_model:.4f} "
+            f"vs market {self.brier_market:.4f}, skill {self.skill:+.4f}"
         )
 
 
@@ -120,10 +130,13 @@ def track_record(con: duckdb.DuckDBPyConnection) -> TrackRecord:
     """
     row = con.execute(
         "SELECT count(*), avg(pow(raw_model_prob - CAST(outcome AS DOUBLE), 2)), "
-        "avg(pow(market_mid - CAST(outcome AS DOUBLE), 2)) "
+        "avg(pow(market_mid - CAST(outcome AS DOUBLE), 2)), "
+        "count(DISTINCT CAST(created_at AS DATE)) "
         "FROM shadow_predictions WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
     ).fetchone()
     n = int(row[0]) if row else 0
+    n_dates = int(row[3]) if row else 0
     if n == 0 or row is None or row[2] is None or row[2] <= 0:
-        return TrackRecord(n, None, None, 0.0)
-    return TrackRecord(n, float(row[1]), float(row[2]), 1.0 - float(row[1]) / float(row[2]))
+        return TrackRecord(n, None, None, 0.0, n_dates)
+    skill = 1.0 - float(row[1]) / float(row[2])
+    return TrackRecord(n, float(row[1]), float(row[2]), skill, n_dates)

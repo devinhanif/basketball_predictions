@@ -149,7 +149,7 @@ def price_singles(
                 policy,
                 series=m.series,
                 n_settled=tr.n_settled,
-                skill=tr.skill,
+                skill=tr.gated_skill(cfg.min_settled_dates),
                 engine_name="marginal",
             )
             mid = ask if bid is None else (ask + bid) / 2
@@ -310,7 +310,7 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
             policy,
             series=mapped[tks[0]][0].series,
             n_settled=tr.n_settled,
-            skill=tr.skill,
+            skill=tr.gated_skill(cfg.min_settled_dates),
             engine_name=engine_name,
         )
         out.append(
