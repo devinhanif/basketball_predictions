@@ -96,10 +96,21 @@ _GATES: dict[tuple[str, float], YieldGate] = {}
 
 
 def yield_to() -> float:
-    """Env-enabled hook called before each network fetch; no-op unless ``YIELD_ENV`` is set."""
+    """Env-enabled hook called before each network fetch; no-op unless ``YIELD_ENV`` is set.
+
+    Also pauses during game windows (see ``nba.ingest.game_window``) unless disabled via
+    ``NBA_INGEST_GAME_WINDOW=0``; applies only when ``YIELD_ENV`` is set.
+    """
     raw = os.environ.get(YIELD_ENV, "").strip()
     if not raw:
         return 0.0
+    from nba.ingest.game_window import gate_from_env
+
+    waited = gate_from_env().wait()
+    return waited + _lock_wait(raw)
+
+
+def _lock_wait(raw: str) -> float:
     try:
         grace = float(os.environ.get(YIELD_GRACE_ENV, DEFAULT_YIELD_GRACE_S))
     except ValueError:

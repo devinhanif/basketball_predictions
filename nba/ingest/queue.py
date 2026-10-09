@@ -24,6 +24,10 @@ history starts at 2019-20, the first season with official injury-report PDFs).
 Older seasons are written ONLY to ``data/history/nba_history.duckdb`` and
 ``data/history/<source>/`` so production refits never see them.
 
+Game windows: fetches (per key, in the children) and nba.duckdb loads pause from first tip of an
+ET game day - 2.5 h to last tip + 30 min (``nba.ingest.game_window``; default on, disable with
+``NBA_INGEST_GAME_WINDOW=0`` or ``--no-game-window``; hours via ``NBA_INGEST_WINDOW_PRE_H/POST_H``).
+
 Run: ``sh ops/run_ingest_queue.sh`` (nohup + caffeinate). Progress: data/ops/ingest_queue.log;
 summary: data/ops/ingest_queue_status.md.
 """
@@ -41,6 +45,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
+from nba.ingest import game_window
 from nba.ingest.cache import YIELD_ENV, YIELD_GRACE_ENV
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -366,6 +371,9 @@ class Queue:
 
     def try_load(self, step: Step) -> bool:
         """nba.duckdb loads only when nobody else holds it; history loads always."""
+        if "--history" not in step.argv and game_window.gate_from_env().in_window():
+            step.state, step.note = "deferred", "game window; nba.duckdb load waits"
+            return False
         if "--history" not in step.argv and holders(PROD_DB):
             step.state, step.note = "deferred", "nba.duckdb busy; will retry"
             return False
@@ -440,6 +448,8 @@ class Queue:
 
 def main() -> int:
     OPS.mkdir(parents=True, exist_ok=True)
+    if "--no-game-window" in sys.argv[1:]:
+        os.environ[game_window.WINDOW_ENV] = "0"  # inherited by children
     q = Queue(build_steps())
 
     def _term(signum: int, _frame: object) -> None:
