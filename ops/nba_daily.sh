@@ -88,6 +88,10 @@ case "$MODE" in
     ls -1t data/backups/nba_*.duckdb 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | while read -r f; do
       rm -f "$f" && log "pruned old backup $f"
     done
+    # off-machine copy (own Google Drive via the configured rclone remote): registry + latest backup
+    latest=$(ls -1t data/backups/nba_*.duckdb 2>/dev/null | head -n 1)
+    step backup_registry_drive rclone copy registry_store gdrive:nba_backups/registry_store
+    [ -n "$latest" ] && step backup_db_drive rclone copyto "$latest" gdrive:nba_backups/nba_latest.duckdb
     du -sh nba.duckdb data/kalshi data/colab data/backups registry_store >> "$LOG" 2>&1
     ;;
   *)
