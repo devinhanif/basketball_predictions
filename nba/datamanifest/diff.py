@@ -39,6 +39,10 @@ def diff_manifests(old: dict[str, Any], new: dict[str, Any], cfg: dict[str, Any]
     for t in sorted(set(nt) - set(ot)):
         changes.append(f"table added: {t} ({nt[t]['row_count']} rows)")
     for t in sorted(set(ot) - set(nt)):
+        if t.startswith("parquet:"):
+            # parquet files are opt-in per snapshot (--parquet); absence = not scanned
+            changes.append(f"{t}: not scanned in the new snapshot")
+            continue
         changes.append(f"table removed: {t}")
         flags.append(_flag("TABLE_REMOVED", t, "table no longer present"))
     for t in sorted(set(ot) & set(nt)):

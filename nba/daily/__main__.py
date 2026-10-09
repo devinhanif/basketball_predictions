@@ -31,7 +31,7 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument("--skip-ingest", action="store_true")
     r.add_argument("--skip-injury", action="store_true")
     r.add_argument("--no-props", action="store_true")
-    r.add_argument("--props-model", choices=["routed", "rolling"], default="routed")
+    r.add_argument("--props-model", choices=["context", "routed", "rolling"], default="context")
     r.add_argument("--n-sims", type=int, default=1000)
     r.add_argument("--rate-limit-s", type=float, default=0.6)
     sub.add_parser("settle", help="score completed predictions only")

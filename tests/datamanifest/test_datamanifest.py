@@ -143,3 +143,15 @@ def test_latest_data_version_reads_newest(tmp_path: Path) -> None:
     (tmp_path / "20260102T000000Z_bbb.json").write_text(json.dumps({"data_version": "bbb"}))
     assert latest_data_version(tmp_path) == "bbb"
     assert latest_data_version(tmp_path / "none", tmp_path / "nope.json") is None
+
+
+def test_unscanned_parquet_is_not_a_removal_flag(cfg: dict[str, Any]) -> None:
+    from nba.datamanifest.diff import diff_manifests
+
+    t = {"row_count": 1, "columns": {}}
+    old = {"data_version": "a", "tables": {"games": t, "parquet:x.parquet": t}}
+    new = {"data_version": "b", "tables": {"games": t}}
+    out = diff_manifests(old, new, cfg)
+    assert not any(f["kind"] == "TABLE_REMOVED" for f in out["flags"])
+    out2 = diff_manifests(old, {"data_version": "c", "tables": {"parquet:x.parquet": t}}, cfg)
+    assert any(f["kind"] == "TABLE_REMOVED" for f in out2["flags"])
