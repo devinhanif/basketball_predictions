@@ -118,6 +118,7 @@ case "$MODE" in
     step refs "$UV" run --no-sync python -m nba.ingest.referees collect
     step market_capture "$UV" run --no-sync python -m nba.markets capture --date "$TODAY_ET"
     step parlay_shadow "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET"
+    step props_analysis "$UV" run --no-sync python -m nba.parlay analyze --date "$TODAY_ET"
     ;;
   morning)
     step settle "$UV" run --no-sync python -m nba.daily settle
