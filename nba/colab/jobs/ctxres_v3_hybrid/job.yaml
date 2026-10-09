@@ -27,4 +27,4 @@ registry:
   model_name: ctxres_v3_hybrid
   tags: {rung: 2, model_method: ctxres_v3_per_stat_hybrid, holdout_scored: true, experiment: 3, family: ctxres_v3_hybrid_2025_confirm}
 touches_holdout: true
-preregistration_id: PENDING_SET_AFTER_HOLDOUT_LOG_ROW
+preregistration_id: EXP3-2025-897ebde
