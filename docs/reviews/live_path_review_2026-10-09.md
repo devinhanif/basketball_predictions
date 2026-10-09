@@ -194,3 +194,12 @@ Follow-ups (not trivial or not safe to change before opening night):
 - A pretip skipped because the 08:00 morning job still runs (it can take about 100 min) now alerts after 3 consecutive
   skips; consider moving the post-game ingest out of the morning lock.
 - VM: re-run `sh ops/vm/install_cron.sh` there if the VM is ever the active host (cron block changed to `20,50 9-21`).
+
+### M4 resolution (2026-10-09, working tree)
+Fixed. Serving now applies the training rule per game via `serve_pretip_flagged` (wrapper of
+`latest_pretip_flagged`); the win model's live path already did. Backtest check (live_copy.duckdb read-only,
+2024-10-30/11-10/11-20/12-25, 35 games, 654 game-run pairs): has_report flipped 1->0 in 38 pairs (13 games),
+team-restricted OUT sets unchanged (0/616); agreement with the training rule at the same instant 654/654 new vs
+616/654 old; at the last pre-tip run 35/35 for both. Primary props at the worst run: mean changed in 50-84% of
+rows on the three dates with flips (mean abs 0.17-0.25, max 3.6); injury-Elo unchanged. Details in
+docs/DAILY_PIPELINE.md changelog; tests in tests/daily/test_report_serving_rule.py.

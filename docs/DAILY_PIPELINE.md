@@ -243,3 +243,24 @@ Reinstall after any change: `sh ops/install_launchd.sh`.
 * `made_at` is stamped at run start while rosters, report probes and box-score pulls happen later in the run.
   This is conservative for the injury report (bounded by `made_at`), but a roster fetched minutes after
   `made_at` is labelled with the earlier time. Accepted and documented (m5).
+
+- **2026-10-09, M4 fix: serving uses the training report rule (maintainer-approved correctness alignment,
+  no model selection).** `slate_report_outs` (primary props `report_out`, also T-30) used to take the
+  league-wide newest snapshot `<= min(now, tip-60)`, so a game absent from that snapshot got `has_report=1`
+  with nobody out. It now calls `nba.sim.usage_redistribution.serve_pretip_flagged`, a thin wrapper over the
+  training function `latest_pretip_flagged`: per game, the latest snapshot among THAT game's own report rows
+  with `as_of <= min(now, real tip - 60 min)` (and, serving-only guard, `<= 36 h` older than that cutoff);
+  a game with no qualifying snapshot is absent (`has_report=0`). The win model (`predict_games`) already
+  filtered per game_id on the real tip, so it is unchanged (its has_report now matches the props'). Tests:
+  `tests/daily/test_report_serving_rule.py` (early game never sees a snapshot after its tip-60; absent game is
+  not "nobody out"; late game sees the newest qualifying snapshot; identical to the old function when every
+  snapshot covers every game). Backtest check on `data/rehearsal/live_copy.duckdb` (read-only), real tips,
+  2024-10-30 / 11-10 / 11-20 / 12-25 (35 games), 654 (game, pretip run) pairs at :20/:50 ET:
+  has_report differs old vs new in 38 pairs (13 of 35 games at some run), always old=1 / new=0; OUT sets
+  restricted to the game's teams never differ where both have a report (0 of 616); only the league-wide raw
+  set shrinks. Agreement with the training rule evaluated at the same instant: new 654/654, old 616/654; at
+  the last run before tip: new 35/35, old 35/35 (the effect is confined to earlier runs). Stored primary
+  props at the run with the most flips (10:50 ET): mean changed in 401/1088, 488/1112, 669/796 rows
+  (10-30, 11-10, 11-20), mean |delta| of changed rows 0.17-0.25, max 3.6 (q90 max 6.2); 12-25 had no
+  flips and 0 changes. Injury-Elo probabilities are unchanged by construction (code path untouched). Script:
+  scratchpad `m4_counts.py` / `m4_props.py` (not committed).

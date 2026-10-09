@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,11 @@ from nba.props.forward import (
     predict_slate_context,
 )
 from nba.registry.protocol import RegistryAdapter
-from nba.sim.usage_redistribution import ReportTriggerConfig, load_report_rows
+from nba.sim.usage_redistribution import (
+    ReportTriggerConfig,
+    load_report_rows,
+    serve_pretip_flagged,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ELO_CONFIG = REPO_ROOT / "configs" / "mov_elo_tuned.yaml"
@@ -278,30 +282,22 @@ def slate_report_outs(
     """``game_id -> players OUT`` on the latest official report usable for that
     game: stamped (US-Eastern clock) at or before ``min(now, tip-off - lead)`` and
     <= 36 h old. ``games`` = ``[(game_id, tipoff_naive_utc)]``. A game with no
-    usable report is ABSENT (never imputed as "nobody out"). The report is
-    league-wide per snapshot; consumers filter to the game's two teams."""
-    out: dict[str, set[int]] = {}
-    for gid, tip in games:
-        cutoff = to_report_dt(min(made_at, tip - timedelta(minutes=lead_minutes)))
-        try:
-            row = con.execute(
-                "SELECT max(as_of) FROM player_availability "
-                "WHERE source = 'nba_official_report' AND as_of <= ?",
-                [cutoff],
-            ).fetchone()
-            latest = row[0] if row else None
-            if latest is None or latest < cutoff - timedelta(hours=MAX_REPORT_AGE_HOURS):
-                continue
-            rows = con.execute(
-                "SELECT DISTINCT player_id FROM player_availability "
-                "WHERE source = 'nba_official_report' AND as_of = ? AND status = 'out' "
-                "AND player_id IS NOT NULL",
-                [latest],
-            ).fetchall()
-        except duckdb.CatalogException:
-            return {}
-        out[gid] = {int(r[0]) for r in rows}
-    return out
+    usable report is ABSENT (never imputed as "nobody out"). Snapshots are chosen
+    PER game from that game's own report rows (``serve_pretip_flagged``, the training rule
+    ``latest_pretip_flagged``), so a snapshot that does not mention the game never counts."""
+    if not games:
+        return {}
+    tips_et = {gid: to_report_dt(tip) for gid, tip in games}
+    rows = injury_report_rows(
+        con,
+        list(tips_et),
+        game_dates={gid: t.date() for gid, t in tips_et.items()},
+    )
+    cfg = ReportTriggerConfig(statuses=("out",), lead_minutes=lead_minutes, tip_source="real")
+    flagged, _used = serve_pretip_flagged(
+        rows, tips_et, to_report_dt(made_at), cfg, max_age_hours=MAX_REPORT_AGE_HOURS
+    )
+    return flagged
 
 
 def context_prop_predictions(

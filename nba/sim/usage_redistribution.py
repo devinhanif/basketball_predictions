@@ -626,6 +626,42 @@ def latest_pretip_flagged(
     return flagged, used
 
 
+def serve_pretip_flagged(
+    rows: pl.DataFrame,
+    tips_et: dict[str, dt.datetime],
+    now_et: dt.datetime,
+    config: ReportTriggerConfig,
+    max_age_hours: float | None = None,
+) -> tuple[dict[str, set[int]], dict[str, dt.datetime]]:
+    """Serving-time twin of the training rule, built ON :func:`latest_pretip_flagged`.
+
+    Per game: the latest snapshot among THAT game's own rows with
+    ``as_of <= min(now, real tip - lead)`` (all naive US-Eastern), optionally
+    ``<= max_age_hours`` older than that cutoff. ``tips_et`` maps game_id to
+    its real tip (naive ET); a game without a tip is absent (never proxied).
+    A game with no qualifying snapshot is absent from both dicts (has_report=0,
+    never "nobody out"). Training uses the same function with ``tip_et``
+    attached by ``attach_real_tips``, ``now`` unbounded and no age cap."""
+    if rows.height == 0:
+        return {}, {}
+    cfg = replace(config, tip_source="real")
+    keyed = rows.filter(
+        pl.col("game_id").is_in(list(tips_et)) & (pl.col("as_of") <= pl.lit(now_et))
+    ).with_columns(
+        pl.col("game_id")
+        .replace_strict(tips_et, return_dtype=pl.Datetime("us"), default=None)
+        .alias("tip_et")
+    )
+    flagged, used = latest_pretip_flagged(keyed, cfg)
+    if max_age_hours is not None:
+        lead = dt.timedelta(minutes=int(cfg.lead_minutes))
+        age = dt.timedelta(hours=max_age_hours)
+        for gid in [g for g, t in used.items() if t < min(now_et, tips_et[g] - lead) - age]:
+            used.pop(gid)
+            flagged.pop(gid)
+    return flagged, used
+
+
 def prior_minutes_state(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     """Per (player, game played): cumulative mean minutes and games INCLUDING
     that game, plus the team, for as-of lookups (query with a date strictly
