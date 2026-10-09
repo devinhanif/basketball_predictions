@@ -39,6 +39,15 @@ Commands:
                  team abbreviations against the games table (best-effort;
                  None if the game isn't loaded yet).
 
+  postgame-fetch --source {tracking,hustle,officials,shots,matchups,coaches}
+                 [--limit N]   Backfill post-game nba_api data for exactly the
+                 games already in the games table into the parquet cache
+                 (data/<source>/); progress is kept in a per-source sidecar
+                 DuckDB so nba.duckdb is never write-locked during the pull.
+  postgame-load  --source ... (repeatable; default all)  Load cached parquet
+                 into nba.duckdb in short batched transactions, then print
+                 coverage and the shot-vs-box-score FGA reconciliation.
+
 All commands are resumable and idempotent: already-cached (source, key)
 pairs are skipped (never refetched). Network calls are rate-limited via
 RateLimiter.
@@ -61,6 +70,13 @@ from nba.ingest.cache import RateLimiter, is_cached, open_db
 from nba.ingest.games import game_ids_for_season, pull_season_games
 from nba.ingest.national_tv import game_dates_for_season, pull_national_tv_for_date
 from nba.ingest.pbp import pull_game_pbp
+from nba.ingest.postgame import (
+    SOURCES,
+    coverage,
+    fetch_source,
+    load_source,
+    shots_fga_reconciliation,
+)
 from nba.ingest.team_advanced import pull_game_team_advanced
 
 
@@ -133,6 +149,13 @@ def build_parser() -> argparse.ArgumentParser:
     official_p.add_argument("--date", required=True, help="report date, YYYY-MM-DD")
     official_p.add_argument("--time", required=True, help="report time, HH:MMAM/PM e.g. 09:45AM")
 
+    pf_p = sub.add_parser("postgame-fetch", help="fetch post-game sources into the parquet cache")
+    pf_p.add_argument("--source", required=True, choices=SOURCES)
+    pf_p.add_argument("--limit", type=int, default=None, help="only the first N keys (sampling)")
+
+    pl_p = sub.add_parser("postgame-load", help="load cached post-game parquet into nba.duckdb")
+    pl_p.add_argument("--source", action="append", dest="sources", choices=SOURCES)
+
     return parser
 
 
@@ -140,8 +163,38 @@ def _parse_report_dt(date_str: str, time_str: str) -> datetime:
     return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %I:%M%p")
 
 
+def _postgame_main(args: argparse.Namespace) -> int:
+    from nba.db.connect import DEFAULT_DB_PATH
+
+    if args.command == "postgame-fetch":
+        # Fetch phase never opens nba.duckdb for writing (read-only scope query only).
+        summary = fetch_source(
+            args.source,
+            DEFAULT_DB_PATH,
+            rate_limiter=RateLimiter(min_interval_s=args.rate_limit_s),
+            limit=args.limit,
+        )
+        print(
+            f"postgame-fetch[{summary.source}]: {summary.total} keys, {summary.cached} cached, "
+            f"{summary.fetched} fetched, {len(summary.failed)} failed"
+        )
+        return 1 if summary.failed else 0
+    con = open_db()  # short write window: load cached parquet only
+    try:
+        for source in args.sources or SOURCES:
+            print(f"postgame-load[{source}]: {load_source(con, source)} rows")
+        for table, season, games, rows in coverage(con):
+            print(f"coverage {table} season={season} games={games} rows={rows}")
+        print("shots_fga_reconciliation", shots_fga_reconciliation(con))
+    finally:
+        con.close()
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command in ("postgame-fetch", "postgame-load"):
+        return _postgame_main(args)
     con = open_db()
     limiter = RateLimiter(min_interval_s=args.rate_limit_s)
 

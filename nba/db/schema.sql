@@ -260,7 +260,7 @@ CREATE TABLE IF NOT EXISTS experiments (
 -- resumable pullers never refetch cached data. Not part of the modeling
 -- schema in CLAUDE.md; owned entirely by nba/ingest/.
 CREATE TABLE IF NOT EXISTS ingest_log (
-    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp' | 'team-advanced' | 'national-tv' | 'availability' | 'availability-manual'
+    source VARCHAR,              -- 'games' | 'boxscore' | 'pbp' | 'team-advanced' | 'national-tv' | 'availability' | 'availability-manual' | 'tracking' | 'hustle' | 'officials' | 'matchups' | 'shots' | 'coaches'
     key VARCHAR,                 -- season string, game_id, etc.
     status VARCHAR,              -- 'done' | 'failed'
     cache_path VARCHAR,
@@ -307,3 +307,86 @@ CREATE TABLE IF NOT EXISTS forward_scores (
 -- ensure_played_view().
 CREATE OR REPLACE VIEW player_game_stats_played AS
 SELECT * FROM player_game_stats WHERE minutes IS NOT NULL AND minutes > 0;
+
+-- ---------------------------------------------------------------------------
+-- Post-game data sources (nba_api): tracking, hustle, officials, matchups,
+-- shots, coaches. See nba/ingest/postgame.py and docs/NEW_DATA_SOURCES.md.
+--
+-- LEAKAGE CONTRACT: the per-game tables below (player_game_tracking,
+-- player_game_hustle, game_officials, player_game_matchups, shots) are
+-- POST-GAME stats -- same contract as player_game_stats. A feature for game G
+-- may only use rows from games strictly BEFORE G (as-of the game date); never
+-- G's own rows. game_officials is the one partial exception: assignments are
+-- published pre-tip, but nba_api only returns them post-hoc, so treat them as
+-- post-game here unless a pre-tip source is added. team_coaches is a
+-- season-end roster snapshot (mid-season coaching changes are NOT dated) and
+-- must not be used as-of an earlier date within the same season.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS player_game_tracking (
+    game_id VARCHAR, player_id INT, team_id INT,
+    position VARCHAR, comment VARCHAR, minutes FLOAT,
+    speed FLOAT, distance FLOAT,
+    rebound_chances_offensive INT, rebound_chances_defensive INT, rebound_chances_total INT,
+    touches INT, secondary_assists INT, free_throw_assists INT, passes INT, assists INT,
+    contested_field_goals_made INT, contested_field_goals_attempted INT,
+    contested_field_goal_percentage FLOAT,
+    uncontested_field_goals_made INT, uncontested_field_goals_attempted INT,
+    uncontested_field_goals_percentage FLOAT,
+    field_goal_percentage FLOAT,
+    defended_at_rim_field_goals_made INT, defended_at_rim_field_goals_attempted INT,
+    defended_at_rim_field_goal_percentage FLOAT,
+    PRIMARY KEY (game_id, player_id)
+);
+
+CREATE TABLE IF NOT EXISTS player_game_hustle (
+    game_id VARCHAR, player_id INT, team_id INT,
+    position VARCHAR, comment VARCHAR, minutes FLOAT, points INT,
+    contested_shots INT, contested_shots2pt INT, contested_shots3pt INT,
+    deflections INT, charges_drawn INT, screen_assists INT, screen_assist_points INT,
+    loose_balls_recovered_offensive INT, loose_balls_recovered_defensive INT,
+    loose_balls_recovered_total INT,
+    offensive_box_outs INT, defensive_box_outs INT,
+    box_out_player_team_rebounds INT, box_out_player_rebounds INT, box_outs INT,
+    PRIMARY KEY (game_id, player_id)
+);
+
+CREATE TABLE IF NOT EXISTS game_officials (
+    game_id VARCHAR, official_id INT, name VARCHAR, jersey VARCHAR,
+    PRIMARY KEY (game_id, official_id)
+);
+
+-- team_id = OFFENSIVE player's team; def_team_id = the other team (from games).
+CREATE TABLE IF NOT EXISTS player_game_matchups (
+    game_id VARCHAR, off_player_id INT, def_player_id INT,
+    team_id INT, def_team_id INT,
+    matchup_minutes FLOAT, partial_possessions FLOAT,
+    percentage_defender_total_time FLOAT, percentage_offensive_total_time FLOAT,
+    percentage_total_time_both_on FLOAT, switches_on INT,
+    player_points INT, team_points INT,
+    matchup_assists INT, matchup_potential_assists INT, matchup_turnovers INT,
+    matchup_blocks INT,
+    matchup_field_goals_made INT, matchup_field_goals_attempted INT,
+    matchup_field_goals_percentage FLOAT,
+    matchup_three_pointers_made INT, matchup_three_pointers_attempted INT,
+    matchup_three_pointers_percentage FLOAT,
+    help_blocks INT, help_field_goals_made INT, help_field_goals_attempted INT,
+    help_field_goals_percentage FLOAT,
+    matchup_free_throws_made INT, matchup_free_throws_attempted INT,
+    shooting_fouls INT,
+    PRIMARY KEY (game_id, off_player_id, def_player_id)
+);
+
+CREATE TABLE IF NOT EXISTS shots (
+    game_id VARCHAR, game_event_id INT, player_id INT, team_id INT,
+    period INT, clock_seconds INT,       -- seconds remaining in the period
+    loc_x INT, loc_y INT, shot_distance INT,
+    shot_zone_basic VARCHAR, shot_zone_area VARCHAR, shot_zone_range VARCHAR,
+    action_type VARCHAR, shot_type VARCHAR, made BOOLEAN,
+    PRIMARY KEY (game_id, game_event_id)
+);
+
+CREATE TABLE IF NOT EXISTS team_coaches (
+    season INT, team_id INT, coach_id INT, name VARCHAR, coach_type VARCHAR,
+    is_assistant INT,                     -- nba_api: 1 = head coach, 2 = assistant
+    PRIMARY KEY (season, team_id, coach_id)
+);
