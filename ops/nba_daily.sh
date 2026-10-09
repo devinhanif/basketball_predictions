@@ -62,7 +62,12 @@ done
 
 case "$MODE" in
   pretip)
-    step predict "$UV" run python -m nba.daily run --date "$TODAY_ET"
+    # maintainer decisions 2026-10-09: official rosters for the first two weeks of 2026-27
+    # (opening-week coverage 61% -> 96%), and log the integer-support quantile variant live
+    ROSTER=recent
+    if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
+    step predict "$UV" run python -m nba.daily run --date "$TODAY_ET" \
+      --roster-source "$ROSTER" --log-int-variant --rate-limit-s 2.5
     step parlay_shadow "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET"
     ;;
   morning)
