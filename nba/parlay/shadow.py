@@ -127,11 +127,17 @@ def track_record(con: duckdb.DuckDBPyConnection) -> TrackRecord:
     Only ``side = 'yes'`` rows count: ``evaluate`` logs BOTH sides of every market, and the NO
     row is the same event (same outcome, complementary probability), so counting it would double
     ``n`` and open the ``min_settled`` gate on half the real evidence.
+
+    ``n_dates`` counts distinct SLATE (game) dates, read from the ``<slate>|<ticker>|<side>``
+    shadow_id that ``evaluate`` writes. ``created_at`` is a UTC wall clock: one game night's
+    props posted before and after 00:00Z would count as two dates and open the 14-date gate
+    early. Rows with a free-form id fall back to the created_at date.
     """
     row = con.execute(
         "SELECT count(*), avg(pow(raw_model_prob - CAST(outcome AS DOUBLE), 2)), "
         "avg(pow(market_mid - CAST(outcome AS DOUBLE), 2)), "
-        "count(DISTINCT CAST(created_at AS DATE)) "
+        "count(DISTINCT CASE WHEN regexp_matches(shadow_id, '^[0-9]{4}-[0-9]{2}-[0-9]{2}[|]') "
+        "THEN split_part(shadow_id, '|', 1) ELSE CAST(CAST(created_at AS DATE) AS VARCHAR) END) "
         "FROM shadow_predictions WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
     ).fetchone()
     n = int(row[0]) if row else 0

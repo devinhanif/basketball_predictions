@@ -215,3 +215,75 @@ def test_client_urls_and_no_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     assert seen[2][1] == {"series_ticker": "S", "status": "open", "limit": 5}
     for _, _, kwargs in seen:
         assert "headers" not in kwargs and "auth" not in kwargs
+
+
+def test_client_retries_transient_transport_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ConnectError / RemoteProtocolError (seen in snapshot.err) are retried, then succeed;
+    a persistent failure is re-raised after the attempt budget (the series is then reported)."""
+    import httpx
+
+    calls: list[int] = []
+    errors: list[Exception] = [
+        httpx.ConnectError("dns"),
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+    ]
+
+    class _Resp:
+        status_code = 200
+
+        def raise_for_status(self) -> None: ...
+
+        def json(self) -> dict[str, Any]:
+            return {"markets": []}
+
+    def flaky(url: str, **kw: Any) -> Any:
+        calls.append(1)
+        if errors:
+            raise errors.pop(0)
+        return _Resp()
+
+    monkeypatch.setattr(httpx, "get", flaky)
+    monkeypatch.setattr(KalshiClient, "_sleep", staticmethod(lambda s: None))
+    client = KalshiClient(rate_limiter=_NoWait())  # type: ignore[arg-type]
+    assert client.fetch_markets_page(tier="live", series_ticker="KXNBABLK") == {"markets": []}
+    assert len(calls) == 3
+
+    calls.clear()
+
+    def down(url: str, **kw: Any) -> Any:
+        calls.append(1)
+        raise httpx.ConnectError("dns")
+
+    monkeypatch.setattr(httpx, "get", down)
+    with pytest.raises(httpx.ConnectError):
+        client.fetch_markets_page(tier="live", series_ticker="KXNBABLK")
+    assert len(calls) == 4
+
+
+class _NoWait:
+    def wait(self) -> None: ...
+
+
+def test_unparseable_prop_series_title_is_surfaced_not_dropped() -> None:
+    """A KXNBA* prop-series market whose title format drifts must show up in ``unparsed``;
+    spread/total/game markets that are simply not props must not."""
+    raw = [
+        {"ticker": "KXNBASTL-26OCT20OKCSAS-OKCSGA2-2", "title": "SGA 2 steals or more"},
+        {"ticker": "KXNBASTL-26OCT20OKCSAS-SASVW1-3", "title": "Victor Wembanyama: 3+ steals"},
+        {
+            "ticker": "KXNBASPREAD-26OCT20OKCSAS-OKC5",
+            "title": "Oklahoma City wins by over 4.5 points",
+        },
+    ]
+    unparsed: list[str] = []
+    unmatched: list[str] = []
+    df = parse_markets_frame(
+        raw, include_game_markets=True, unmatched=unmatched, unparsed=unparsed, aliases={}
+    )
+    assert unparsed == ["KXNBASTL-26OCT20OKCSAS-OKCSGA2-2"]
+    assert unmatched == ["Victor Wembanyama"]  # parsed, stored with player_id NULL, named loudly
+    assert sorted(df["ticker"].to_list()) == [
+        "KXNBASPREAD-26OCT20OKCSAS-OKC5",
+        "KXNBASTL-26OCT20OKCSAS-SASVW1-3",
+    ]
+    assert df.filter(df["ticker"].str.contains("STL"))["stat"].to_list() == ["stl"]

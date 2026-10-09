@@ -1,5 +1,5 @@
 review_only: REVIEW ONLY; promote rows by hand into configs/kalshi_aliases.yaml
-generated: '2026-10-09T04:36:01.513929'
+generated: '2026-10-09T15:45:36.733106'
 counts:
   distinct_names: 20
   matched: 20
@@ -690,11 +690,11 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Brandon Miller
-- player_id: 1585
+- player_id: 1630314
   matched_name: Brandon Williams
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
+  team: DAL
+  last_game_in_db: '2026-04-05'
+  career_games_in_db: 154
   method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
@@ -1671,21 +1671,21 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Gary Harris
-- player_id: 56
-  matched_name: Gary Payton
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 1627780
+  matched_name: Gary Payton II
+  team: GSW
+  last_game_in_db: '2026-04-17'
+  career_games_in_db: 255
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Gary Payton II
-- player_id: 718
-  matched_name: Gary Trent
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 1629018
+  matched_name: Gary Trent Jr.
+  team: MIL
+  last_game_in_db: '2026-04-08'
+  career_games_in_db: 303
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Gary Trent Jr.
@@ -1959,12 +1959,12 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Ja'Kobe Walter
-- player_id: 2074
-  matched_name: Jabari Smith
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 1631095
+  matched_name: Jabari Smith Jr.
+  team: HOU
+  last_game_in_db: '2026-05-01'
+  career_games_in_db: 327
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Jabari Smith Jr.
@@ -2229,12 +2229,12 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Jared McCain
-- player_id: 1114
-  matched_name: Jaren Jackson
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 1628991
+  matched_name: Jaren Jackson Jr.
+  team: UTA
+  last_game_in_db: '2026-02-11'
+  career_games_in_db: 263
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Jaren Jackson Jr.
@@ -2877,12 +2877,12 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Kevin McCullar Jr.
-- player_id: 77876
-  matched_name: Kevin Porter
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 1629645
+  matched_name: Kevin Porter Jr.
+  team: MIL
+  last_game_in_db: '2026-04-12'
+  career_games_in_db: 181
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Kevin Porter Jr.
@@ -3066,12 +3066,12 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Lachlan Olbrich
-- player_id: 77685
-  matched_name: Larry Nance
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 1626204
+  matched_name: Larry Nance Jr.
+  team: CLE
+  last_game_in_db: '2026-05-25'
+  career_games_in_db: 256
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Larry Nance Jr.
@@ -3921,12 +3921,12 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Rocco Zikarsky
-- player_id: 166
-  matched_name: Ron Harper
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 1631199
+  matched_name: Ron Harper Jr.
+  team: BOS
+  last_game_in_db: '2026-05-02'
+  career_games_in_db: 98
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Ron Harper Jr.
@@ -4263,12 +4263,12 @@ preseed_roster:
   confidence: high
   why: exact full name, unique in static list, played latest season
   kalshi_name: Tidjane Salaün
-- player_id: 896
-  matched_name: Tim Hardaway
-  team: null
-  last_game_in_db: null
-  career_games_in_db: 0
-  method: normalized_exact
+- player_id: 203501
+  matched_name: Tim Hardaway Jr.
+  team: DEN
+  last_game_in_db: '2026-04-30'
+  career_games_in_db: 340
+  method: exact_full_name
   confidence: low
   why: 2 players share this normalized name
   kalshi_name: Tim Hardaway Jr.

@@ -221,12 +221,16 @@ def parse_markets_frame(
     aliases: dict[str, int] | None = None,
     include_game_markets: bool = False,
     unmatched: list[str] | None = None,
+    unparsed: list[str] | None = None,
 ) -> pl.DataFrame:
     """Parse a list of raw ``Market`` JSON objects into a ``kalshi_markets`` frame.
 
     Non-player-prop markets (``SkippedMarket``) are silently excluded --
-    expected noise in the feed. Unmatched player names are NOT caught here
-    (propagate up) per the "fail loudly" requirement.
+    expected noise in the feed, EXCEPT a market in a player-prop series (``SERIES_STAT``)
+    whose title does not parse: that is a format change, not noise, so its ticker is appended
+    to ``unparsed`` (when given) for the caller to surface. Unmatched player names are NOT
+    caught here (propagate up, or are collected via ``unmatched``) per the "fail loudly"
+    requirement.
     """
     rows: list[dict[str, Any]] = []
     for raw in raw_markets:
@@ -238,8 +242,11 @@ def parse_markets_frame(
         if include_game_markets:
             try:
                 rows.append(parse_game_market(raw))
-            except SkippedMarket:
                 continue
+            except SkippedMarket:
+                pass
+        if unparsed is not None and _series_of(raw) in SERIES_STAT:
+            unparsed.append(str(raw.get("ticker")))
     if not rows:
         return pl.DataFrame(schema=dict.fromkeys(MARKETS_SCHEMA, pl.Null))
     return pl.DataFrame(rows, schema_overrides=_MARKET_DTYPES).select(MARKETS_SCHEMA)

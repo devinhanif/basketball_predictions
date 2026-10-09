@@ -121,13 +121,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print("per_series " + json.dumps({k: v for k, v in rep.markets_by_series.items() if v}))
         if rep.unmatched_names:
+            unmatched_csv = ", ".join(sorted(rep.unmatched_names))
             print(
-                f"UNMATCHED player names ({len(rep.unmatched_names)}): stored with player_id NULL; "
-                "review via `alias-candidates`",
+                f"{rep.snapshot_ts.isoformat()}Z UNMATCHED player names "
+                f"({len(rep.unmatched_names)}): {unmatched_csv}; stored with player_id NULL; "
+                "review via `alias-candidates` / `python -m nba.kalshi.alias_review`",
+                file=sys.stderr,
+            )
+        if rep.unparsed_props:
+            print(
+                f"{rep.snapshot_ts.isoformat()}Z UNPARSED prop-series markets "
+                f"({len(rep.unparsed_props)}, title format drift?): "
+                f"{', '.join(rep.unparsed_props[:10])}",
                 file=sys.stderr,
             )
         for s, err in rep.failures.items():
-            print(f"FAILED {s}: {err}", file=sys.stderr)
+            print(f"{rep.snapshot_ts.isoformat()}Z FAILED {s}: {err}", file=sys.stderr)
         rc = 0 if rep.ok else 1
     elif args.command == "backfill-historical":
         cutoff = get_cutoff(con, client, data_dir=data_dir)

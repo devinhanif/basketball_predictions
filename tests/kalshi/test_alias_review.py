@@ -13,6 +13,7 @@ from nba.kalshi.alias_review import (
     classify_name,
     collect_kalshi_names,
     open_read_only,
+    preseed_roster,
     propose,
     rookie_candidates,
 )
@@ -90,3 +91,16 @@ def test_open_read_only_cannot_write(tmp_path: Any) -> None:
         raise AssertionError("write succeeded")
     except duckdb.Error:
         pass
+
+
+def test_preseed_collision_proposes_the_active_player_not_the_namesake() -> None:
+    """Gary Payton / Gary Payton II style collision: the retired namesake sorts first in the
+    index, but the staged row for the active player must carry the ACTIVE player's id (low conf)."""
+    recs = [
+        PlayerRecord(56, "Gary Payton", False, None, None, 0),
+        PlayerRecord(1627780, "Gary Payton II", True, "GSW", "2026-06-01", 60),
+    ]
+    rows = preseed_roster(recs, build_name_index(recs), {})
+    assert [(r["kalshi_name"], r["player_id"], r["confidence"]) for r in rows] == [
+        ("Gary Payton II", 1627780, "low")
+    ]

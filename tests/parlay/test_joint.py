@@ -605,3 +605,52 @@ def test_track_record_skill_gated_on_distinct_dates() -> None:
     assert one_night.gated_skill(14) == 0.0  # a single night's props never open the gate
     season = TrackRecord(200, 0.20, 0.25, 0.2, n_dates=20)
     assert season.gated_skill(14) == 0.2
+
+
+def test_evaluate_surfaces_unmatched_player_instead_of_dropping(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A prop market whose player has no reviewed alias (player_id NULL) is not priced, but it
+    must be named on stderr and counted in the skip summary, never silently dropped."""
+    _, k, _, paper = _build_dbs(tmp_path)
+    kc = duckdb.connect(str(k))
+    kc.execute("UPDATE kalshi_markets SET player_id = NULL WHERE series_ticker = 'KXNBAPTS'")
+    kc.close()
+    out = _run(tmp_path, [])
+    cap = capsys.readouterr()
+    assert len(out) == 4  # game + spread, both sides; the prop is NOT priced
+    assert not any("KXNBAPTS" in str(d["ticker"]) for d in out)
+    assert "'unmatched_player': 1" in cap.out
+    assert "WARNING: 1 prop market(s)" in cap.err and "KXNBAPTS-26OCT08SACLAL-LALP1-20" in cap.err
+    p = duckdb.connect(str(paper))
+    assert p.execute("SELECT count(*) FROM shadow_predictions").fetchone() == (4,)
+
+
+def test_track_record_dates_are_slate_dates_not_utc_log_time() -> None:
+    """One game night's rows logged across 00:00Z (props post late) are ONE date, so the
+    14-date gate cannot open early; rows from two slates are two dates."""
+    book = duckdb.connect(":memory:")
+    ensure_schema(book)
+    leg = Leg("g", 0, "win", 0, "yes", HOME)
+    for i, (slate, ts) in enumerate(
+        [
+            ("2026-10-20", datetime(2026, 10, 20, 22, 0)),
+            ("2026-10-20", datetime(2026, 10, 21, 0, 30)),  # same slate, next UTC day
+            ("2026-10-21", datetime(2026, 10, 21, 22, 0)),
+        ]
+    ):
+        log_shadow(
+            book,
+            shadow_id=f"{slate}|t{i}|yes",
+            ticker=f"t{i}",
+            side="yes",
+            legs=[leg],
+            raw_model_prob=0.6,
+            market_mid=0.5,
+            price=0.5,
+            engine="x",
+            now=ts,
+        )
+    book.execute("UPDATE shadow_predictions SET settled=TRUE, outcome=TRUE")
+    tr = track_record(book)
+    assert tr.n_settled == 3 and tr.n_dates == 2

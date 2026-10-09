@@ -53,6 +53,7 @@ SOURCE_MARKETS = "kalshi-markets"
 SOURCE_CANDLES = "kalshi-candles"
 
 _RAW_DIR_NAME = "raw"
+_MAX_ATTEMPTS = 4
 
 #: Kalshi-specific data root (gitignored via /data/): raw JSON + the dedicated DuckDB file.
 KALSHI_DATA_DIR = DEFAULT_DATA_DIR / "kalshi"
@@ -78,25 +79,39 @@ class KalshiClient:
         historical_base_url: str = HISTORICAL_BASE_URL,
         rate_limiter: RateLimiter | None = None,
         timeout_s: float = 10.0,
+        retry_backoff_s: float = 1.0,
     ) -> None:
         self.live_base_url = live_base_url
         self.historical_base_url = historical_base_url
         self.rate_limiter = rate_limiter or RateLimiter(min_interval_s=0.2)
         self.timeout_s = timeout_s
+        self.retry_backoff_s = retry_backoff_s
+
+    @staticmethod
+    def _sleep(seconds: float) -> None:
+        import time
+
+        time.sleep(seconds)
 
     def _get(self, url: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Plain unauthenticated GET. No headers besides httpx's defaults."""
-        import time
-
         import httpx  # lazy: keep this module network-import-free otherwise
 
         response = None
-        for attempt in range(4):  # polite retry on 429/5xx only
+        for attempt in range(_MAX_ATTEMPTS):  # retry 429/5xx and transient transport errors
             self.rate_limiter.wait()
-            response = httpx.get(url, params=params, timeout=self.timeout_s)
+            try:
+                response = httpx.get(url, params=params, timeout=self.timeout_s)
+            except httpx.TransportError:
+                # ConnectError / RemoteProtocolError / timeouts: a dropped connection is not a
+                # reason to lose a series for 15 minutes. Re-raise after the last attempt.
+                if attempt == _MAX_ATTEMPTS - 1:
+                    raise
+                self._sleep(self.retry_backoff_s * (attempt + 1))
+                continue
             if response.status_code != 429 and response.status_code < 500:
                 break
-            time.sleep(2.0 * (attempt + 1))
+            self._sleep(2.0 * (attempt + 1))
         assert response is not None
         response.raise_for_status()
         result = response.json()

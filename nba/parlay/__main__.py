@@ -82,9 +82,15 @@ def load_open_markets(con: duckdb.DuckDBPyConnection) -> list[MarketRow]:
 
 
 def map_markets(
-    markets: list[MarketRow], info: SlateInfo
+    markets: list[MarketRow],
+    info: SlateInfo,
+    unmatched_tickers: list[str] | None = None,
 ) -> tuple[dict[str, tuple[MarketRow, Leg]], dict[str, int]]:
-    """Map markets to legs for the slate; returns (mapped by ticker, skip-reason counts)."""
+    """Map markets to legs for the slate; returns (mapped by ticker, skip-reason counts).
+
+    ``unmatched_tickers`` (when given) collects prop markets of THIS slate whose player has no
+    reviewed alias, so ``evaluate`` can name them instead of only counting them.
+    """
     abbr = load_team_abbr()
     team_of = {(g, p): t for g, c in info.ctxs.items() for p, t in c.team_of.items()}
     skipped: dict[str, int] = {}
@@ -93,6 +99,8 @@ def map_markets(
         leg, why = map_market(m, abbr, info.games_by_key, team_of)
         if leg is None:
             skipped[why or "?"] = skipped.get(why or "?", 0) + 1
+            if why == "unmatched_player" and unmatched_tickers is not None:
+                unmatched_tickers.append(m.ticker)
             continue
         mapped[m.ticker] = (m, leg)
     return mapped, skipped
@@ -258,7 +266,8 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
     ensure_schema(paper)
     tr = track_record(paper)
     model = JointModel(ENGINE_KIND[engine_name], pc, cfg.n_sims, cfg.seed, cfg.t_df)
-    mapped, skipped = map_markets(markets, info)
+    unmatched_tickers: list[str] = []
+    mapped, skipped = map_markets(markets, info, unmatched_tickers)
     out: list[dict[str, Any]] = []
     n_logged = 0
     for sc in price_singles(mapped, info, model, cfg, policy, tr, skipped):
@@ -350,6 +359,13 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
         )
     for note in info.notes:
         print("note:", note)
+    if unmatched_tickers:  # fail loudly: these props are NOT priced until an alias is reviewed
+        print(
+            f"WARNING: {len(unmatched_tickers)} prop market(s) on this slate have no reviewed "
+            f"player alias and were NOT priced (see docs/KALSHI_READINESS_2026-10-09.md): "
+            f"{', '.join(unmatched_tickers[:8])}{' ...' if len(unmatched_tickers) > 8 else ''}",
+            file=sys.stderr,
+        )
     if a.settle:
         res = duckdb.connect(str(a.nba_db), read_only=True)
         print(

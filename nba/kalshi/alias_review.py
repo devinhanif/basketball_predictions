@@ -234,7 +234,10 @@ def preseed_roster(
             continue
         top = propose(r.full_name, index)
         if top:
-            out.append(top[0] | {"kalshi_name": r.full_name})
+            # On a normalized-name collision (Jr./II, namesakes) the first hit can be the
+            # retired namesake; the row being staged is THIS active player, so lead with it.
+            own = [p for p in top if p["player_id"] == r.player_id]
+            out.append((own or top)[0] | {"kalshi_name": r.full_name})
     return out
 
 

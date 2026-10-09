@@ -50,6 +50,9 @@ offseason trades, so a `high` row still needs a glance at the team before openin
    Gary Payton II, and Brandon Williams. Each has two ids in the static list (father and son, or namesakes).
    Do not promote these blindly. The alias key is the normalized name, so one id will be chosen for both
    forms. Pick the active player's id and confirm.
+   (Correction 2026-10-09: the first version of the staged file proposed the retired namesake's id for
+   these nine rows; `preseed_roster` now leads with the active player's own id. See
+   `docs/KALSHI_READINESS_2026-10-09.md`.)
 2. **Rookies.** Four active static-list players have no NBA games and no `players_static` row:
    Alex Toohey (1642893), Eli John Ndiaye (1642947), Nikola Djurisic (1642365), Thomas Sorber (1642850).
    None is on Kalshi yet. The 2026 draft class is not in the bundled static list at all (its newest ids

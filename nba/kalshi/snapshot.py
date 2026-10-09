@@ -63,10 +63,12 @@ class SnapshotReport:
     unmatched_names: dict[str, int] = field(default_factory=dict)
     failures: dict[str, str] = field(default_factory=dict)
     raw_files: int = 0
+    #: prop-series tickers whose title did not parse (format drift); never dropped silently
+    unparsed_props: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
-        return not self.failures and not self.unmatched_names
+        return not self.failures and not self.unmatched_names and not self.unparsed_props
 
 
 def write_raw(raw_root: Path, now: datetime, name: str, payload: dict[str, Any]) -> Path:
@@ -122,6 +124,7 @@ def run_snapshot(
     now = (now or datetime.now(UTC).replace(tzinfo=None)).replace(microsecond=0)
     report = SnapshotReport(snapshot_ts=now)
     unmatched: list[str] = []
+    unparsed: list[str] = []
     min_settled = int((now - timedelta(days=settle_lookback_days)).replace(tzinfo=UTC).timestamp())
 
     for s in series:
@@ -134,7 +137,11 @@ def run_snapshot(
                 report.raw_files += 1
                 raw_markets = page.get("markets", [])
                 mdf = parse_markets_frame(
-                    raw_markets, aliases=aliases, include_game_markets=True, unmatched=unmatched
+                    raw_markets,
+                    aliases=aliases,
+                    include_game_markets=True,
+                    unmatched=unmatched,
+                    unparsed=unparsed,
                 )
                 if mdf.is_empty():
                     continue
@@ -163,6 +170,7 @@ def run_snapshot(
                     aliases=aliases,
                     include_game_markets=True,
                     unmatched=unmatched,
+                    unparsed=unparsed,
                 )
                 if not sdf.is_empty():
                     _upsert_markets(con, sdf)
@@ -171,6 +179,7 @@ def run_snapshot(
             report.failures[s] = f"{type(exc).__name__}: {exc}"
         report.markets_by_series[s] = n_markets
 
+    report.unparsed_props = sorted(set(unparsed))
     for name in unmatched:
         report.unmatched_names[name] = report.unmatched_names.get(name, 0) + 1
     if report.unmatched_names:
