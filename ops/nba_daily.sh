@@ -1,9 +1,11 @@
 #!/bin/sh
 # Daily forward pipeline + data maintenance, run by launchd (see ops/install_launchd.sh).
 #
-#   ops/nba_daily.sh pretip    hourly on the half hour: write pre-tip predictions for today's
+#   ops/nba_daily.sh pretip    twice an hour at :20 and :50: write pre-tip predictions for today's
 #                              ET slate (games already tipped are refused by the store, never
-#                              backfilled), then the read-only parlay shadow evaluation.
+#                              backfilled), then the read-only parlay shadow evaluation. :20/:50 so
+#                              that for any :00 or :30 tip the newest run starts >= 70 min before it
+#                              and is eligible for the T-60 comparator (made_at <= tip - 60 min).
 #   ops/nba_daily.sh morning   once a day: settle + report, post-game ingest for new games,
 #                              data snapshot/leak check, rotating DuckDB backup, disk summary.
 #
@@ -41,8 +43,6 @@ hb_end() {  # hb_end <exit status>
   rc=$1; [ "$rc" -eq 0 ] && rc=$HB_RC
   hb_write "$(date +%Y-%m-%dT%H:%M:%S%z)" "$rc"
 }
-hb_write null null
-trap 'hb_end $?' EXIT
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 alert() {
@@ -52,41 +52,58 @@ alert() {
     osascript -e "display notification \"$*\" with title \"NBA pipeline ($MODE)\"" >/dev/null 2>&1 || true
   fi
 }
-step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (exit 2 = tipped games refused, not a failure)
+note_skip() {  # note_skip <reason>: separate skip heartbeat; the real heartbeat is NOT touched
+  n=1
+  if [ -f "$HB_DIR/$HB_JOB.skip.json" ]; then
+    p=$(sed -n 's/.*"consecutive_skips": \([0-9][0-9]*\).*/\1/p' "$HB_DIR/$HB_JOB.skip.json")
+    [ -n "$p" ] && n=$((p + 1))
+  fi
+  printf '{"job": "%s", "status": "skipped", "host": "%s", "ts": "%s", "consecutive_skips": %s, "reason": "%s"}\n' \
+    "$HB_JOB" "$(hostname -s)" "$(date +%Y-%m-%dT%H:%M:%S%z)" "$n" "$1" > "$HB_DIR/$HB_JOB.skip.json.tmp" \
+    && mv "$HB_DIR/$HB_JOB.skip.json.tmp" "$HB_DIR/$HB_JOB.skip.json"
+  log "skipped ($n consecutive): $1"
+}
+step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (exit 4 = informational, not a failure)
   name=$1; shift
   log "start $name"
   "$@" >> "$LOG" 2>&1
   rc=$?
   log "end $name rc=$rc"
-  # exit 2 is informational for: predict (some games already tipped) and refs (officials not yet
-  # mapped to ids until game_officials is loaded); anything else non-zero alerts
-  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ]; } && [ "$rc" -eq 2 ]; }; then
+  # exit 4 is informational for: predict (some games already tipped) and refs (officials not yet
+  # mapped to ids until game_officials is loaded). 2 is argparse's usage-error code and must alert.
+  # predict exits 5 when it degraded (ingest/schedule failed, cached data used): that alerts too.
+  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ]; } && [ "$rc" -eq 4 ]; }; then
     HB_RC=$rc
     alert "$name failed (rc=$rc), see $LOG"
   fi
   return $rc
 }
 
-# one job at a time (mkdir is atomic); a stale lock older than 3 h is cleared
-if ! mkdir "$LOCK" 2>/dev/null; then
-  if [ -n "$(find "$LOCK" -maxdepth 0 -mmin +180 2>/dev/null)" ]; then
-    rmdir "$LOCK" && mkdir "$LOCK" || exit 0
-    log "cleared stale lock"
-  else
-    log "another job holds $LOCK; skipping"
-    exit 0
+# one job at a time (mkdir is atomic). The owner pid is stored in the lock dir: a dead owner
+# (SIGKILL, power loss) is cleared at once; a live-looking lock older than 3 h is cleared too.
+acquire_lock() {
+  if mkdir "$LOCK" 2>/dev/null; then echo $$ > "$LOCK/pid"; return 0; fi
+  owner=$(cat "$LOCK/pid" 2>/dev/null || true)
+  if [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null; then why="owner pid $owner is dead"
+  elif [ -n "$(find "$LOCK" -maxdepth 0 -mmin +180 2>/dev/null)" ]; then why="older than 3 h"
+  else return 1; fi
+  rm -f "$LOCK/pid"
+  if rmdir "$LOCK" 2>/dev/null && mkdir "$LOCK" 2>/dev/null; then
+    echo $$ > "$LOCK/pid"; log "cleared stale lock ($why)"; return 0
   fi
+  return 1
+}
+if ! acquire_lock; then
+  note_skip "another job holds $LOCK"   # exit 0, but the watchdog alerts on consecutive skips
+  exit 0
 fi
-trap 'rc=$?; rmdir "$LOCK" 2>/dev/null; hb_end $rc' EXIT
+rm -f "$HB_DIR/$HB_JOB.skip.json"
+hb_write null null
+trap 'rc=$?; rm -f "$LOCK/pid"; rmdir "$LOCK" 2>/dev/null; hb_end $rc' EXIT
 trap 'exit 143' INT TERM
 
-# DuckDB is single-writer: wait up to 15 min for any other writer (eval, backfill load)
-i=0
-while lsof nba.duckdb >/dev/null 2>&1; do
-  i=$((i + 1))
-  if [ $i -gt 30 ]; then alert "nba.duckdb held by another process for 15 min; skipped"; exit 1; fi
-  sleep 30
-done
+# DuckDB is single-writer. The python entry points wait (bounded, NBA_DB_LOCK_WAIT_S) for a
+# concurrent writer when they open the file, so no check-then-act lsof gate is needed here.
 
 case "$MODE" in
   pretip)
@@ -96,35 +113,43 @@ case "$MODE" in
     # primary; docs/LOWER_TAIL.md frozen live rule)
     ROSTER=recent
     if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
-    step predict "$UV" run python -m nba.daily run --date "$TODAY_ET" \
+    step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --rate-limit-s 2.5
-    step refs "$UV" run python -m nba.ingest.referees collect
-    step market_capture "$UV" run python -m nba.markets capture --date "$TODAY_ET"
-    step parlay_shadow "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET"
+    step refs "$UV" run --no-sync python -m nba.ingest.referees collect
+    step market_capture "$UV" run --no-sync python -m nba.markets capture --date "$TODAY_ET"
+    step parlay_shadow "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET"
     ;;
   morning)
-    step settle "$UV" run python -m nba.daily settle
+    step settle "$UV" run --no-sync python -m nba.daily settle
     # pre-registered look detection (docs/FORWARD_PREREG_2026_27.md section 8): writes an
     # immutable snapshot only when an arm-stat first reaches a look's date count; rc 0 otherwise
-    step checkpoint "$UV" run python -m nba.daily checkpoint --look auto
-    step report "$UV" run python -m nba.daily report
-    step parlay_settle "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET" --settle --no-log
+    step checkpoint "$UV" run --no-sync python -m nba.daily checkpoint --look auto
+    step report "$UV" run --no-sync python -m nba.daily report
+    step parlay_settle "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET" --settle --no-log
     # post-game stats for newly completed games (per-game sources only; shots/coaches are
     # per team-season and cached once, so they are refreshed by hand). Skip while a backfill runs.
     if pgrep -f run_postgame_backfill.sh >/dev/null 2>&1 || pgrep -f "nba.ingest.queue" >/dev/null 2>&1; then
       log "backfill/ingest queue running (one stats.nba.com puller at a time); skipping post-game ingest"
     else
       for s in tracking hustle officials matchups; do
-        step "fetch_$s" "$UV" run python -m nba.ingest --rate-limit-s 1.0 postgame-fetch --source "$s"
+        step "fetch_$s" "$UV" run --no-sync python -m nba.ingest --rate-limit-s 1.0 postgame-fetch --source "$s"
       done
-      step postgame_load "$UV" run python -m nba.ingest postgame-load \
+      step postgame_load "$UV" run --no-sync python -m nba.ingest postgame-load \
         --source tracking --source hustle --source officials --source matchups
     fi
-    step data_snapshot "$UV" run python -m nba.datamanifest snapshot
-    step data_diff "$UV" run python -m nba.datamanifest diff
-    step data_check "$UV" run python -m nba.datamanifest check
-    # rotating backup (no writer holds the file: we hold the job lock and checked lsof above)
-    cp nba.duckdb "data/backups/nba_$(date +%Y%m%d).duckdb" && log "backup written"
+    step data_snapshot "$UV" run --no-sync python -m nba.datamanifest snapshot
+    step data_diff "$UV" run --no-sync python -m nba.datamanifest diff
+    step data_check "$UV" run --no-sync python -m nba.datamanifest check
+    # rotating backup: needs a quiet file (no other writer, no leftover WAL), else skipped + alert
+    i=0
+    while lsof nba.duckdb >/dev/null 2>&1 && [ $i -le 30 ]; do i=$((i + 1)); sleep 30; done
+    if lsof nba.duckdb >/dev/null 2>&1; then
+      alert "nba.duckdb held by another process for 15 min; backup skipped"
+    elif [ -e nba.duckdb.wal ]; then
+      alert "nba.duckdb.wal present; backup skipped (a plain cp would miss committed rows)"
+    else
+      cp nba.duckdb "data/backups/nba_$(date +%Y%m%d).duckdb" && log "backup written"
+    fi
     ls -1t data/backups/nba_*.duckdb 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | while read -r f; do
       rm -f "$f" && log "pruned old backup $f"
     done

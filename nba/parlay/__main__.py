@@ -14,7 +14,7 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass, replace
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -69,14 +69,19 @@ MARKET_COLS = (
 )
 
 
-def load_open_markets(con: duckdb.DuckDBPyConnection) -> list[MarketRow]:
-    """Open (unsettled) Kalshi markets with their latest price. ``con`` has ``kal`` attached."""
+def load_open_markets(
+    con: duckdb.DuckDBPyConnection, before: datetime | None = None
+) -> list[MarketRow]:
+    """Open (unsettled) Kalshi markets with their latest price. ``con`` has ``kal`` attached.
+    ``before`` (naive UTC) keeps only prices stamped strictly earlier (as-of discipline)."""
+    cut = "WHERE ts < ? " if before is not None else ""
     rows = con.execute(
         "SELECT m.ticker, m.series_ticker, m.event_ticker, m.title, m.player_id, m.stat, "
         "m.threshold, p.yes_bid, p.yes_ask, p.ts FROM kal.kalshi_markets m "
         "LEFT JOIN (SELECT ticker, arg_max(yes_bid, ts) yes_bid, arg_max(yes_ask, ts) yes_ask, "
-        "max(ts) ts FROM kal.kalshi_prices GROUP BY ticker) p USING (ticker) "
-        "WHERE m.result IS NULL"
+        f"max(ts) ts FROM kal.kalshi_prices {cut}GROUP BY ticker) p USING (ticker) "
+        "WHERE m.result IS NULL",
+        [] if before is None else [before],
     ).fetchall()
     return [MarketRow.from_row(dict(zip(MARKET_COLS, r, strict=True))) for r in rows]
 
@@ -104,6 +109,33 @@ def map_markets(
             continue
         mapped[m.ticker] = (m, leg)
     return mapped, skipped
+
+
+def pretip_only(
+    mapped: dict[str, tuple[MarketRow, Leg]],
+    info: SlateInfo,
+    now: datetime,
+    skipped: dict[str, int],
+) -> dict[str, tuple[MarketRow, Leg]]:
+    """Keep markets whose game has not tipped (``now < tip``) and whose price is stamped before
+    the tip and before ``now``; an in-play price must never enter the shadow track record."""
+    kept: dict[str, tuple[MarketRow, Leg]] = {}
+    for tk, (m, leg) in mapped.items():
+        tip = info.tipoff.get(leg.game_id)
+        why = None
+        if tip is None:
+            why = "tip_unknown"
+        elif not now < tip:
+            why = "game_tipped"
+        elif m.price_ts is not None:
+            ts = datetime.fromisoformat(m.price_ts)
+            if not (ts < tip and ts < now):
+                why = "price_not_pretip"
+        if why is not None:
+            skipped[why] = skipped.get(why, 0) + 1
+        else:
+            kept[tk] = (m, leg)
+    return kept
 
 
 def side_quote(m: MarketRow, side: str) -> tuple[float | None, float | None]:
@@ -261,13 +293,15 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
     con.execute(f"ATTACH '{a.nba_db}' AS nba (READ_ONLY)")
     con.execute(f"ATTACH '{a.kalshi_db}' AS kal (READ_ONLY)")
     info = load_slate(con, slate, params, prefix="nba.")
-    markets = load_open_markets(con)
+    now = a.now or datetime.now(UTC).replace(tzinfo=None)
+    markets = load_open_markets(con, before=now)
     paper = duckdb.connect(str(a.paper_db))
     ensure_schema(paper)
     tr = track_record(paper)
     model = JointModel(ENGINE_KIND[engine_name], pc, cfg.n_sims, cfg.seed, cfg.t_df)
     unmatched_tickers: list[str] = []
     mapped, skipped = map_markets(markets, info, unmatched_tickers)
+    mapped = pretip_only(mapped, info, now, skipped)
     out: list[dict[str, Any]] = []
     n_logged = 0
     for sc in price_singles(mapped, info, model, cfg, policy, tr, skipped):
@@ -399,6 +433,12 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="void")
             p.add_argument("--combo", action="append", help="comma-separated same-game tickers")
             p.add_argument("--no-log", action="store_true")
+            p.add_argument(
+                "--now",
+                type=lambda t: datetime.fromisoformat(t).replace(tzinfo=None),
+                default=None,
+                help="override the clock (naive UTC ISO); tests/rehearsals only",
+            )
             p.add_argument("--settle", action="store_true")
     from nba.parlay.assistant.cli import add_arguments, run
 

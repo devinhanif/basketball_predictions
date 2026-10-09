@@ -2,7 +2,7 @@
 # Install the daily-pipeline cron jobs on the VM (equivalent of ops/install_launchd.sh + the kalshi plist).
 # Run ON the VM as the ubuntu user after bootstrap. The VM timezone must be America/Chicago (bootstrap sets it),
 # so these are the same local times as the Mac's launchd jobs:
-#   pretip   every hour at :30 from 09:30 to 21:30  -> ops/nba_daily.sh pretip
+#   pretip   at :20 and :50 of hours 09-21          -> ops/nba_daily.sh pretip
 #   morning  08:00                                  -> ops/nba_daily.sh morning
 #   lineups  every 5 min                            -> ops/nba_lineups.sh (idles itself outside game windows)
 #   kalshi   every 15 min (+ once at boot)          -> python -m nba.kalshi snapshot (flock: never overlaps itself)
@@ -35,7 +35,7 @@ block() {
   echo "PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
   echo "NBA_ROOT=$ROOT"
   echo "NBA_UV=$UV"
-  echo "30 9-21 * * * cd $ROOT && sh ops/nba_daily.sh pretip >> data/ops/cron_pretip.out 2>&1"
+  echo "20,50 9-21 * * * cd $ROOT && sh ops/nba_daily.sh pretip >> data/ops/cron_pretip.out 2>&1"
   echo "0 8 * * * cd $ROOT && sh ops/nba_daily.sh morning >> data/ops/cron_morning.out 2>&1"
   echo "*/5 * * * * cd $ROOT && sh ops/nba_lineups.sh >> data/ops/cron_lineups.out 2>&1"
   echo "*/15 * * * * cd $ROOT && flock -n data/ops/kalshi.flock $UV run python -m nba.kalshi snapshot >> data/kalshi/snapshot.log 2>> data/kalshi/snapshot.err"

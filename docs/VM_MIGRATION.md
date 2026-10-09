@@ -11,7 +11,7 @@ defaulting to the Mac paths, so Mac behaviour is unchanged.
 ## Decisions
 
 - **Timezone:** the VM is set to `America/Chicago`. The cron lines are then literally the Mac's launchd
-  times (pretip 09:30-21:30 at :30, morning 08:00, lineups every 5 min, kalshi every 15 min) and log
+  times (pretip at :20 and :50 of hours 09-21, morning 08:00, lineups every 5 min, kalshi every 15 min) and log
   timestamps are comparable. Scripts needing Eastern time already use `TZ=America/New_York` explicitly.
 - **Cron, not systemd:** a one-line-per-job equivalent of launchd, a managed block that install/uninstall
   can replace without touching other entries.

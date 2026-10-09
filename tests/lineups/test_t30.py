@@ -384,3 +384,25 @@ def test_official_roster_call_is_rate_limited_and_cached(
     con.execute("DELETE FROM forward_t30_decisions")
     run_t30(con, lcon, AS_OF, schedule_fn=_sched, now=now, **kw)  # type: ignore[arg-type]
     assert len(calls) == 30  # second tick: per-date cache, no fetches
+
+
+def test_schedule_marker_written_only_after_success(tmp_path: Path) -> None:
+    from nba.lineups.__main__ import MAX_SCHEDULE_ATTEMPTS, ensure_schedule_tips
+
+    lcon = connect_lineups(":memory:")
+    d = date(2026, 10, 28)
+    calls: list[str] = []
+
+    def down(season: str) -> list[ScheduledGame]:
+        calls.append(season)
+        raise TimeoutError("x")
+
+    now = datetime(2026, 10, 28, 15, 0)
+    for _ in range(MAX_SCHEDULE_ATTEMPTS + 2):
+        ensure_schedule_tips(lcon, d, now, down, tmp_path)
+    assert len(calls) == MAX_SCHEDULE_ATTEMPTS  # bounded retries, not one per tick forever
+    assert not (tmp_path / "schedule_checked_2026-10-28").exists()
+
+    tmp2 = tmp_path / "ok"
+    ensure_schedule_tips(lcon, d, now, lambda s: [], tmp2)
+    assert (tmp2 / "schedule_checked_2026-10-28").exists()

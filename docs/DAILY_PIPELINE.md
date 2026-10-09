@@ -198,11 +198,17 @@ recalibration; rookies and offseason moves are invisible until a first box score
 
 | Job | When | Steps |
 |---|---|---|
-| `local.nba.daily-pretip` | every hour at :30, 09:30-21:30 | `nba.daily run --date <today ET>` (exit 2 = some games already tipped, not a failure), then the read-only `nba.parlay evaluate` shadow log |
+| `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then the read-only `nba.parlay evaluate` shadow log |
 | `local.nba.daily-morning` | 08:00 | `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
-Guards: one job at a time (`data/ops/lock`, stale after 3 h); waits up to 15 min for another
-`nba.duckdb` writer, then skips with an alert. Logs: `data/ops/<mode>_<YYYYMMDD>.log`. Failures append to
+Guards: one job at a time (`data/ops/lock`; the owner pid is stored in it, a dead owner is cleared at once,
+otherwise a lock is stale after 3 h). A run that finds the lock held exits 0 WITHOUT touching its
+heartbeat and writes `data/ops/heartbeat/<job>.skip.json` (`status: skipped`, `consecutive_skips`); the
+watchdog alerts at 3 consecutive pretip skips (1 for morning, 6 for lineups). `nba.duckdb` is guarded by
+its own file lock: every `nba.daily` command waits with bounded backoff (`NBA_DB_LOCK_WAIT_S`, default 180 s,
+240 s for the lineups tick) for a concurrent writer and exits 75 if it is still busy (lineups: deferred to
+the next tick; pretip: alert). There is no `lsof` check-then-act any more except before the morning backup
+(skipped with an alert if the file is busy or a `.wal` is left). Logs: `data/ops/<mode>_<YYYYMMDD>.log`. Failures append to
 `data/ops/ALERTS.md` and post a macOS notification. Shots and coaches are per team-season and cached
 once, so they are refreshed by hand. The Mac must be awake: a job missed during sleep runs once on wake.
 
@@ -217,3 +223,23 @@ The VM move (bootstrap, cron equivalents, Mac-to-VM sync, shadow period, cutover
 pre-tip `CommonTeamRoster` (cached per date) plus recent players, with the rookie minutes prior for
 players with no history. Default is `recent`. Measurements and the recommendation are in
 docs/OPENING_WEEK_ROSTERS.md.
+
+## Timing: why :20 and :50 (review 2026-10-09, M1)
+
+The T-60 comparator takes, per game, the latest primary row with `made_at <= tip - 60 min`. With runs at
+:30 a `:00`/`:30` tip had no eligible run closer than T-90..T-120. Runs at :20 and :50 start at T-70 for
+every `:00` and `:30` tip (about 5.5 min runtime). The watchdog (`nba.ops.watchdog.JOBS`) and
+`ops/vm/install_cron.sh` use the same minutes. The injury-report rule (report stamped `<= tip - 60`) is unchanged.
+Reinstall after any change: `sh ops/install_launchd.sh`.
+
+## Degraded runs (review 2026-10-09, M2/M3, m5)
+
+* `nba.daily run` exits 5 when the incremental ingest or the schedule fetch failed: ingest is skipped (features
+  are strictly pre-slate) and the schedule falls back to the last good copy in `data/schedule_cache/`
+  (written on every successful fetch; with no cached copy the error still aborts). The reasons are in
+  `RunSummary.errors` and the run printout (`DEGRADED: ...`).
+* Shadow arms (`_int`, `_lt`, recency comparison, `p_ge_full`) are isolated: a failure drops only that arm and is
+  listed in `RunSummary.shadow_errors`; primary rows are never replaced by `recency_fallback` because of them.
+* `made_at` is stamped at run start while rosters, report probes and box-score pulls happen later in the run.
+  This is conservative for the injury report (bounded by `made_at`), but a roster fetched minutes after
+  `made_at` is labelled with the earlier time. Accepted and documented (m5).

@@ -184,9 +184,11 @@ def test_comparator_selection_latest_made_at_le_tip_minus_lead() -> None:
             tip - timedelta(minutes=lead),
             [ForwardPrediction("0022600001", tip, PROD, "v1", "pts", _pred(lam, "pts"), 7)],
         )
-    # T-30 arm: T-45 eligible (own lead 30), T-20 not
-    snap = (tip - timedelta(minutes=50)).isoformat()
-    for run, lead, lam in (("t1", 45, 11), ("t2", 20, 13)):
+    # T-30 arm: eligibility is on the lineup snapshot (fetched < tip - 30), not made_at, so a row
+    # made at T-20 from a T-50 snapshot is eligible and the latest; a T-10 row built from a T-25
+    # snapshot is not
+    for run, lead, snap_lead, lam in (("t1", 45, 50, 11), ("t2", 20, 50, 13), ("t3", 10, 25, 15)):
+        snap = (tip - timedelta(minutes=snap_lead)).isoformat()
         append_predictions(
             con,
             run,
@@ -209,7 +211,7 @@ def test_comparator_selection_latest_made_at_le_tip_minus_lead() -> None:
             "SELECT model_name, run_id FROM forward_scores_elig WHERE player_id = 7"
         ).fetchall()
     )
-    assert rows == {PROD: "b", T30: "t1"}
+    assert rows == {PROD: "b", T30: "t2"}
     # the legacy score table still scores the latest row overall (unchanged behaviour)
     legacy = con.execute(
         "SELECT pred FROM forward_scores WHERE model_name = ? AND player_id = 7", [PROD]

@@ -25,12 +25,18 @@ import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
+from nba.ops.exitcodes import RC_INFORMATIONAL
+
+#: the Mac's launchd calendar runs in local time; slots are rebuilt per local day so a DST change
+#: (2026-11-01 fall back) moves yesterday's slots with it
+SCHEDULE_TZ = ZoneInfo("America/Chicago")
 LABEL_PREFIX = "local.nba."
 REALERT_AFTER = timedelta(hours=6)
-OK_RC: dict[str, frozenset[int]] = {"daily-pretip": frozenset({0, 2})}
+OK_RC: dict[str, frozenset[int]] = {"daily-pretip": frozenset({0, RC_INFORMATIONAL})}
 
 
 @dataclass(frozen=True)
@@ -42,9 +48,11 @@ class JobSpec:
     kind: str
     grace: timedelta
     interval: timedelta | None = None
-    at_minute: int = 0
-    hours: tuple[int, ...] = ()  # local hours the job fires (daily / hourly_window)
+    minutes: tuple[int, ...] = (0,)  # local minutes past each hour the job fires (slots)
+    hours: tuple[int, ...] = ()  # local hours the job fires (slots)
     heartbeat: bool = True  # False: judged from ``log_path`` mtime instead
+    #: alert when the wrapper reports this many consecutive skipped runs (lock held)
+    max_skips: int | None = None
 
 
 JOBS: tuple[JobSpec, ...] = (
@@ -53,19 +61,26 @@ JOBS: tuple[JobSpec, ...] = (
         "local.nba.daily-pretip",
         "slots",
         timedelta(minutes=25),
-        at_minute=30,
+        minutes=(20, 50),  # keep in step with ops/install_launchd.sh and ops/vm/install_cron.sh
         hours=tuple(range(9, 22)),
+        max_skips=3,
     ),
     JobSpec(
         "daily-morning",
         "local.nba.daily-morning",
         "slots",
         timedelta(minutes=45),
-        at_minute=0,
+        minutes=(0,),
         hours=(8,),
+        max_skips=1,
     ),
     JobSpec(
-        "lineups", "local.nba.lineups", "interval", timedelta(minutes=10), timedelta(minutes=5)
+        "lineups",
+        "local.nba.lineups",
+        "interval",
+        timedelta(minutes=10),
+        timedelta(minutes=5),
+        max_skips=6,
     ),
     JobSpec(
         "kalshi-snapshot",
@@ -89,10 +104,12 @@ def last_due(spec: JobSpec, now: datetime) -> datetime:
     if spec.kind == "interval":
         assert spec.interval is not None
         return now - spec.interval - spec.grace  # latest acceptable start, grace included
+    local = now.astimezone(SCHEDULE_TZ)
     slots = [
-        now.replace(hour=h, minute=spec.at_minute, second=0, microsecond=0) + timedelta(days=d)
+        datetime.combine(local.date() + timedelta(days=d), time(h, m), tzinfo=SCHEDULE_TZ)
         for d in (0, -1)
         for h in spec.hours
+        for m in spec.minutes
     ]
     return max(s for s in slots if s <= now)
 
@@ -104,6 +121,16 @@ def _parse_ts(value: object) -> datetime | None:
         return datetime.fromisoformat(value)
     except ValueError:
         return None
+
+
+def read_skips(hb_dir: Path, job: str) -> int:
+    """Consecutive skipped runs reported by the wrapper (``<job>.skip.json``); 0 when none.
+    The skip record is separate from the run heartbeat so a skip never looks like a run."""
+    try:
+        data = json.loads((hb_dir / f"{job}.skip.json").read_text())
+        return int(data["consecutive_skips"]) if data.get("status") == "skipped" else 0
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return 0
 
 
 def read_heartbeat(hb_dir: Path, job: str) -> dict[str, object] | None:
@@ -165,6 +192,16 @@ def evaluate(
             if kalshi_log is not None and kalshi_log.exists():
                 mtime = datetime.fromtimestamp(kalshi_log.stat().st_mtime).astimezone()
             start = mtime
+        if spec.max_skips is not None and spec.heartbeat:
+            n_skips = read_skips(hb_dir, spec.name)
+            if n_skips >= spec.max_skips:
+                alerts.append(
+                    Alert(
+                        f"{spec.name}:skipped",
+                        f"{spec.name} skipped {n_skips} consecutive runs (lock held by another "
+                        "job or a stale lock); no predictions/ticks in that window",
+                    )
+                )
         reference = start if start is not None else first_seen
         if now > due + spec.grace and reference < due:
             if start is None:

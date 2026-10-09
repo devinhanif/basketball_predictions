@@ -6,6 +6,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from nba.ops.watchdog import JOBS, Alert, check, dedupe, evaluate, last_due, parse_launchctl
 
@@ -69,13 +70,15 @@ def test_missing_heartbeat_alerts_after_first_seen(tmp_path: Path) -> None:
     assert fresh == []
 
 
-def test_bad_rc_alerts_but_pretip_rc2_ok(tmp_path: Path) -> None:
+def test_bad_rc_alerts_but_pretip_rc4_ok(tmp_path: Path) -> None:
     hb = tmp_path / "hb"
     _all_fresh(hb)
     pretip = next(s for s in JOBS if s.name == "daily-pretip")
     start = last_due(pretip, NOW) + timedelta(seconds=30)
-    _hb(hb, "daily-pretip", start, 2)
+    _hb(hb, "daily-pretip", start, 4)  # informational: tipped games refused
     assert _eval(tmp_path) == []
+    _hb(hb, "daily-pretip", start, 2)  # argparse usage error must not be masked
+    assert [a.key for a in _eval(tmp_path)] == ["daily-pretip:rc"]
     _hb(hb, "daily-pretip", start, 1)
     assert [a.key for a in _eval(tmp_path)] == ["daily-pretip:rc"]
     _hb(hb, "lineups", NOW - timedelta(minutes=2), 2)
@@ -141,6 +144,64 @@ def test_check_writes_alerts_md_once(tmp_path: Path) -> None:
 
 def test_last_due_slots() -> None:
     pretip = next(s for s in JOBS if s.name == "daily-pretip")
-    assert last_due(pretip, NOW).isoformat() == "2026-10-09T14:30:00-05:00"
+    assert last_due(pretip, NOW).isoformat() == "2026-10-09T14:20:00-05:00"
     early = datetime.fromisoformat("2026-10-09T07:00:00-05:00")
-    assert last_due(pretip, early).isoformat() == "2026-10-08T21:30:00-05:00"
+    assert last_due(pretip, early).isoformat() == "2026-10-08T21:50:00-05:00"
+
+
+CT = ZoneInfo("America/Chicago")
+PRETIP = next(s for s in JOBS if s.name == "daily-pretip")
+
+
+def test_pretip_slots_are_20_and_50() -> None:
+    assert PRETIP.minutes == (20, 50)
+    assert last_due(PRETIP, datetime(2026, 10, 20, 14, 49, tzinfo=CT)) == datetime(
+        2026, 10, 20, 14, 20, tzinfo=CT
+    )
+    assert last_due(PRETIP, datetime(2026, 10, 20, 14, 50, 1, tzinfo=CT)).minute == 50
+    # before the first slot of the day: yesterday's last slot (21:50)
+    assert last_due(PRETIP, datetime(2026, 10, 20, 8, 0, tzinfo=CT)) == datetime(
+        2026, 10, 19, 21, 50, tzinfo=CT
+    )
+
+
+def test_last_due_is_dst_correct_across_fall_back() -> None:
+    # 2026-11-01 02:00 CDT -> 01:00 CST. Yesterday's 21:50 slot (Oct 31, CDT = UTC-5) is 1 h
+    # earlier in UTC than a fixed-offset guess built from today's CST offset (UTC-6).
+    now = datetime(2026, 11, 1, 8, 5, tzinfo=CT)  # CST
+    due = last_due(PRETIP, now)
+    assert due == datetime(2026, 10, 31, 21, 50, tzinfo=CT)
+    assert due.utcoffset() == timedelta(hours=-5)
+    morning = next(s for s in JOBS if s.name == "daily-morning")
+    assert last_due(morning, datetime(2026, 11, 1, 7, 59, tzinfo=CT)) == datetime(
+        2026, 10, 31, 8, 0, tzinfo=CT
+    )
+    # a job that ran at its Oct 31 21:50 CDT slot is NOT stale at 08:05 CST on Nov 1
+    hb = datetime(2026, 10, 31, 21, 50, 30, tzinfo=CT)
+    assert hb.utcoffset() == timedelta(hours=-5)
+    # spring forward mirror: Mar 8 2027 02:00 CST -> CDT
+    due2 = last_due(PRETIP, datetime(2027, 3, 8, 8, 5, tzinfo=CT))
+    assert due2 == datetime(2027, 3, 7, 21, 50, tzinfo=CT) and due2.utcoffset() == timedelta(
+        hours=-6
+    )
+
+
+def _skip(d: Path, job: str, n: int) -> None:
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{job}.skip.json").write_text(
+        json.dumps({"job": job, "status": "skipped", "consecutive_skips": n})
+    )
+
+
+def test_consecutive_skips_alert_without_touching_run_heartbeat(tmp_path: Path) -> None:
+    hb = tmp_path / "hb"
+    _all_fresh(hb)
+    before = (hb / "daily-pretip.json").read_text()
+    _skip(hb, "daily-pretip", 2)
+    assert _eval(tmp_path) == []  # below the threshold (3)
+    _skip(hb, "daily-pretip", 3)
+    out = _eval(tmp_path)
+    assert [a.key for a in out] == ["daily-pretip:skipped"] and "3 consecutive" in out[0].message
+    assert (hb / "daily-pretip.json").read_text() == before
+    (hb / "daily-pretip.skip.json").unlink()
+    assert _eval(tmp_path) == []

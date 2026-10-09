@@ -46,7 +46,13 @@ from nba.daily.predict import (
     routed_prop_predictions,
     slate_report_outs,
 )
-from nba.daily.schedule import ScheduledGame, ScheduleFn, slate_for_date
+from nba.daily.schedule import (
+    ScheduledGame,
+    ScheduleFn,
+    load_schedule_cache,
+    save_schedule_cache,
+    slate_for_date,
+)
 from nba.daily.season import season_int_for_date, season_str_for_date
 from nba.daily.settle import settle_pending
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
@@ -86,6 +92,10 @@ class RunSummary:
     ingest: dict[str, int] = field(default_factory=dict)
     settle: dict[str, int] = field(default_factory=dict)
     static_autofill: dict[str, int] = field(default_factory=dict)
+    #: non-primary dependency failures the run degraded around (ingest, schedule): alerting
+    errors: list[str] = field(default_factory=list)
+    #: shadow-arm (_int, _lt, recency extras) failures; primary rows are unaffected: informational
+    shadow_errors: list[str] = field(default_factory=list)
 
 
 def run_daily(
@@ -116,25 +126,34 @@ def run_daily(
     log_lower_tail_variant: bool = False,
     tips_dir: Path | None = None,
     static_fetch: Callable[[int], pl.DataFrame] | None = None,
+    schedule_cache_dir: Path | None = None,
 ) -> RunSummary:
-    """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC."""
+    """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC.
+
+    A failed ingest or schedule fetch degrades instead of aborting: ingest is skipped (features
+    are strictly pre-slate) and the schedule falls back to the last good copy in
+    ``schedule_cache_dir``; both are recorded in ``summary.errors``. With no cached schedule the
+    schedule error is re-raised."""
     made_at = now if now is not None else utcnow()
     ensure_tables(con)
     summary = RunSummary(run_id=uuid.uuid4().hex[:12], run_date=run_date)
     season_i, season_s = season_int_for_date(run_date), season_str_for_date(run_date)
 
     if not skip_ingest:
-        summary.ingest = incremental_ingest(
-            con,
-            season_s,
-            season_i,
-            data_dir=data_dir,
-            rate_limiter=rate_limiter,
-            fetch_games=fetch_games,
-            pull_box=pull_box,
-        )
+        try:
+            summary.ingest = incremental_ingest(
+                con,
+                season_s,
+                season_i,
+                data_dir=data_dir,
+                rate_limiter=rate_limiter,
+                fetch_games=fetch_games,
+                pull_box=pull_box,
+            )
+        except Exception as exc:  # ingest: failed -> predict from the DB as it is
+            summary.errors.append(f"ingest: failed ({type(exc).__name__}: {exc})"[:300])
 
-    schedule = schedule_fn(season_s)
+    schedule = _schedule_with_fallback(schedule_fn, season_s, schedule_cache_dir, summary)
     if tips_dir is not None and schedule:
         # keep real tips for this season's games so later training gates on them
         persist_live_tips([(g.game_id, g.tipoff) for g in schedule], season_s, tips_dir)
@@ -188,6 +207,28 @@ def run_daily(
 
     summary.settle = settle_pending(con, made_at)
     return summary
+
+
+def _schedule_with_fallback(
+    schedule_fn: ScheduleFn, season_s: str, cache_dir: Path | None, summary: RunSummary
+) -> list[ScheduledGame]:
+    """Fetch the schedule and cache it; on failure use the cached copy (error recorded)."""
+    try:
+        schedule = schedule_fn(season_s)
+    except Exception as exc:
+        cached = load_schedule_cache(season_s, cache_dir) if cache_dir is not None else None
+        if cached is None:
+            raise
+        summary.errors.append(
+            f"schedule: fetch failed ({type(exc).__name__}: {exc}); using cached schedule"[:300]
+        )
+        return cached
+    if cache_dir is not None and schedule:
+        try:
+            save_schedule_cache(schedule, season_s, cache_dir)
+        except OSError as exc:
+            summary.shadow_errors.append(f"schedule cache write failed: {exc}"[:200])
+    return schedule
 
 
 def _official_roster(
@@ -542,33 +583,53 @@ def _context_props(
     for p in primary:
         if p.prediction["routed_to"] == "recency_fallback":
             p.prediction["fallback_reason"] = "fewer than 5 prior played games"
-    recency = _frame_preds(
-        res.recency, upcoming, RECENCY_PROPS_MODEL_NAME, RECENCY_PROPS_VERSION, run_date, common
-    )
     summary.n_props_rows += len(primary)
+    # everything below is comparison/shadow: a failure drops only that arm (recorded), never
+    # the finished primary rows
+    recency: list[ForwardPrediction] = []
+    try:
+        recency = _frame_preds(
+            res.recency, upcoming, RECENCY_PROPS_MODEL_NAME, RECENCY_PROPS_VERSION, run_date,
+            common,
+        )  # fmt: skip
+    except Exception as exc:
+        summary.shadow_errors.append(f"recency comparison: {type(exc).__name__}: {exc}"[:200])
     variant: list[ForwardPrediction] = []
     if res.integer_variant is not None:
-        variant = _frame_preds(
-            res.integer_variant, upcoming, CONTEXT_INT_PROPS_MODEL_NAME,
-            CONTEXT_PROPS_VERSION, run_date, common,
-        )  # fmt: skip
-        summary.model_status[CONTEXT_INT_PROPS_MODEL_NAME] = (
-            f"{CONTEXT_PROPS_VERSION} (comparison: integer-support quantiles, {len(variant)} rows)"
-        )
+        try:
+            variant = _frame_preds(
+                res.integer_variant, upcoming, CONTEXT_INT_PROPS_MODEL_NAME,
+                CONTEXT_PROPS_VERSION, run_date, common,
+            )  # fmt: skip
+            summary.model_status[CONTEXT_INT_PROPS_MODEL_NAME] = (
+                f"{CONTEXT_PROPS_VERSION} (comparison: integer-support quantiles, "
+                f"{len(variant)} rows)"
+            )
+        except Exception as exc:
+            variant = []
+            summary.shadow_errors.append(f"_int arm: {type(exc).__name__}: {exc}"[:200])
+    elif info.get("int_variant_error"):
+        summary.shadow_errors.append(f"_int arm: {info['int_variant_error']}"[:200])
     lt_rows: list[ForwardPrediction] = []
     if res.lower_tail_variant is not None:
-        lt_rows = _frame_preds(
-            res.lower_tail_variant, upcoming, CONTEXT_LT_PROPS_MODEL_NAME,
-            CONTEXT_PROPS_VERSION, run_date, common,
-        )  # fmt: skip
-        summary.model_status[CONTEXT_LT_PROPS_MODEL_NAME] = (
-            f"{CONTEXT_PROPS_VERSION} (SHADOW comparison: pts short-minutes mixture, "
-            f"integer-support quantiles, {len(lt_rows)} rows)"
-        )
+        try:
+            lt_rows = _frame_preds(
+                res.lower_tail_variant, upcoming, CONTEXT_LT_PROPS_MODEL_NAME,
+                CONTEXT_PROPS_VERSION, run_date, common,
+            )  # fmt: skip
+            summary.model_status[CONTEXT_LT_PROPS_MODEL_NAME] = (
+                f"{CONTEXT_PROPS_VERSION} (SHADOW comparison: pts short-minutes mixture, "
+                f"integer-support quantiles, {len(lt_rows)} rows)"
+            )
+        except Exception as exc:
+            lt_rows = []
+            summary.shadow_errors.append(f"_lt arm: {type(exc).__name__}: {exc}"[:200])
     elif log_lower_tail_variant:
         summary.model_status[CONTEXT_LT_PROPS_MODEL_NAME] = (
             f"SHADOW wrote no rows ({info.get('lower_tail_error', 'no eligible pts rows')})"
         )
+        if info.get("lower_tail_error"):
+            summary.shadow_errors.append(f"_lt arm: {info['lower_tail_error']}"[:200])
     cache = "cached" if info.get("cache_hit") else f"fit {info.get('fit_seconds', 0.0):.0f}s"
     summary.model_status[CONTEXT_PROPS_MODEL_NAME] = (
         f"{CONTEXT_PROPS_VERSION} (LightGBM residual over recency average; trained through "

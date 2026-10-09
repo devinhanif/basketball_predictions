@@ -18,7 +18,7 @@ _Living document. Last updated: 2026-10-09 (HEAD b39aed0). Earlier narrative (20
 
 | Job | Schedule | Does |
 |---|---|---|
-| `local.nba.daily-pretip` | hourly at :30, 09:30-21:30 | `nba.daily run` (official rosters through 2026-11-03 then recent; logs the integer-quantile variant; 5026fb4, 64550e8), then read-only `nba.parlay evaluate` shadow log. Exit 2 = some games already tipped, not a failure |
+| `local.nba.daily-pretip` | at :20 and :50, 09:20-21:50 | `nba.daily run` (official rosters through 2026-11-03 then recent; logs the integer-quantile variant; 5026fb4, 64550e8), then read-only `nba.parlay evaluate` shadow log. Exit 4 = some games already tipped, not a failure (5 = degraded) |
 | `local.nba.daily-morning` | 08:00 | settle, report, parlay settle, post-game ingest (skipped while the ingest queue runs), data manifest snapshot/diff/leak check, DB copy to `data/backups/` (7 kept), Drive copy of registry, DB backup and lineup snapshots |
 | `local.nba.lineups` | every 5 min, idle outside game windows | T-30 lineup collector (static daily_lineups JSON, one GET per tick); shadow only (0877e89, 2b3cc84) |
 | `local.nba.kalshi-snapshot` | every 15 min | read-only Kalshi market/price snapshot to `data/kalshi/kalshi.duckdb` (plist is not created by `ops/install_launchd.sh`; documented in KALSHI_LIVE_2026-10-08.md) |

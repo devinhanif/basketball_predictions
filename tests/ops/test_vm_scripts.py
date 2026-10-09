@@ -66,8 +66,8 @@ def test_daily_pretip_uses_env_root_and_uv(tmp_path: Path) -> None:
     res, log = _run("nba_daily.sh", ["pretip"], tmp_path)
     assert res.returncode == 0, res.stderr
     calls = log.read_text()
-    assert "run python -m nba.daily run --date" in calls
-    assert "run python -m nba.parlay evaluate" in calls
+    assert "run --no-sync python -m nba.daily run --date" in calls
+    assert "run --no-sync python -m nba.parlay evaluate" in calls
     assert list((tmp_path / "root" / "data" / "ops").glob("pretip_*.log"))
 
 
@@ -96,7 +96,7 @@ def test_cron_block_matches_launchd_schedule() -> None:
         env={**os.environ, "NBA_ROOT": "/srv/r", "NBA_UV": "/srv/uv"},
     )
     out = res.stdout
-    assert "30 9-21 * * * cd /srv/r && sh ops/nba_daily.sh pretip" in out
+    assert "20,50 9-21 * * * cd /srv/r && sh ops/nba_daily.sh pretip" in out
     assert "0 8 * * * cd /srv/r && sh ops/nba_daily.sh morning" in out
     assert "*/5 * * * * cd /srv/r && sh ops/nba_lineups.sh" in out
     assert "*/15 * * * *" in out and "nba.kalshi snapshot" in out

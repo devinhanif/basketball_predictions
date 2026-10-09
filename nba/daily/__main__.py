@@ -12,16 +12,20 @@ import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import duckdb
+
 from nba.daily.pipeline import RunSummary, run_daily, utcnow
 from nba.daily.report import build_report
 from nba.daily.schedule import fetch_schedule_nba_api, schedule_from_db
 from nba.daily.settle import settle_pending
-from nba.db.connect import DEFAULT_DB_PATH, connect
+from nba.db.connect import DEFAULT_DB_PATH, connect, connect_with_retry, is_lock_error
 from nba.features.game_tipoff import SCHEDULE_DIR
 from nba.ingest.cache import RateLimiter
+from nba.ops.exitcodes import RC_DB_BUSY, RC_DEGRADED, RC_INFORMATIONAL
 from nba.ops.watchdog import health_section
 
 DEFAULT_REPORT = Path("registry_store/reports/forward_report.md")
+SCHEDULE_CACHE_DIR = Path("data/schedule_cache")
 
 
 _NOW_HELP = "override the clock (naive UTC ISO, e.g. 2024-10-22T21:50); rehearsals only"
@@ -141,6 +145,10 @@ def _print_summary(s: RunSummary) -> None:
     print(f"models: {s.model_status}\ningest: {s.ingest}\nsettle: {s.settle}")
     if s.static_autofill:
         print(f"players_static autofill: {s.static_autofill}")
+    for e in s.errors:
+        print(f"DEGRADED: {e}")
+    for e in s.shadow_errors:
+        print(f"shadow error (primary unaffected): {e}")
 
 
 def _checkpoint(args: argparse.Namespace) -> int:
@@ -182,7 +190,14 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "checkpoint":
         return _checkpoint(args)
-    con = connect(args.db_path)
+    # the file lock is taken on open: wait (bounded) for a concurrent writer instead of failing
+    try:
+        con = connect_with_retry(args.db_path)
+    except duckdb.IOException as exc:
+        if not is_lock_error(exc):
+            raise
+        print(f"nba.duckdb is write-locked by another process (bounded wait exhausted): {exc}")
+        return RC_DB_BUSY
     if args.command == "run":
         from nba.registry import get_registry
 
@@ -204,9 +219,12 @@ def main(argv: list[str] | None = None) -> int:
             n_sims=args.n_sims,
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
+            schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,
         )
         _print_summary(s)
-        return 2 if s.n_refused_after_tipoff else 0
+        if s.errors:
+            return RC_DEGRADED
+        return RC_INFORMATIONAL if s.n_refused_after_tipoff else 0
     if args.command == "run-t30":
         from nba.daily.t30 import T30_MIN_INTERVAL_S, run_t30, schedule_from_lineups
         from nba.lineups.store import DEFAULT_LINEUPS_DB, connect_lineups

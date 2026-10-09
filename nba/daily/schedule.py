@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import duckdb
@@ -89,3 +91,26 @@ def schedule_from_db(con: duckdb.DuckDBPyConnection) -> ScheduleFn:
         return out
 
     return fn
+
+
+def save_schedule_cache(games: list[ScheduledGame], season: str, cache_dir: Path) -> Path:
+    """Write the last good schedule (teams included) so a failed fetch can degrade to it."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    path = cache_dir / f"schedule_{season}.json"
+    rows = [[g.game_id, g.tipoff.isoformat(), g.home_team, g.away_team] for g in games]
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(rows))
+    tmp.replace(path)
+    return path
+
+
+def load_schedule_cache(season: str, cache_dir: Path) -> list[ScheduledGame] | None:
+    """The cached schedule, or ``None`` when missing/unreadable/empty."""
+    try:
+        rows = json.loads((cache_dir / f"schedule_{season}.json").read_text())
+        out = [
+            ScheduledGame(str(g), datetime.fromisoformat(t), int(h), int(a)) for g, t, h, a in rows
+        ]
+    except (OSError, ValueError, TypeError):
+        return None
+    return out or None

@@ -173,3 +173,24 @@ No source was modified and no real DB was written.
   unlike nba/markets).
 - Anything on the VM (cron) beyond reading install_cron.sh; the two hosts must never both write.
 - Probes used: scratchpad `t30elig.py` (fixture DB, in-memory) and the inline full_support equivalence check. No real DB opened for write.
+
+## Resolution status (2026-10-09, working tree; nothing committed by the fixer)
+
+Fixed with tests: B1 (settle.py eligibility on `snapshot_fetched_at`; prereg AMENDMENT appended, frozen sha256
+unchanged), M1 (pretip at :20/:50 in launchd, VM cron, watchdog), M2 (shadow isolation, `RunSummary.shadow_errors`),
+M3 (degrade + schedule cache, rc 5), M5 (`connect_with_retry`, rc 75 = busy), M6 (skip heartbeat, pid-aware lock,
+watchdog skip alert), M7 (`pretip_only`, `--now`), m1 (rc 4 informational), m2 (DST), m3 (schedule marker after success,
+3 attempts), m6 (`--no-sync`), m7 (backup only without a `.wal`), m5 (documented in docs/DAILY_PIPELINE.md).
+NOT fixed: M4 (awaiting the maintainer; changes production outputs).
+
+Follow-ups (not trivial or not safe to change before opening night):
+- M5 remainder: stop the history ingest queue before 2026-10-20 (it holds `nba.duckdb`; the bounded wait is 180 s, so
+  a long load step still makes pretip exit 75 and alert). The queue's own `try_load` TOCTOU is untouched.
+- m4 official-roster cache is per date (late signings do not reach later hourly runs): accept or key by hour.
+- m8 `run_t30` raising (not LeakageError) records no decision and retries each tick, one ALERTS line per tick.
+- m9 model-cache write is not atomic and the fingerprint is `n_rows + max_date` only.
+- m10 injury `pull_latest_report` reports "ok" for a PDF that parses to 0 rows.
+- m11 no T-60 row for tips before about 11:30 ET (first pretip is 09:20 CT = 10:20 ET, lineups idle 03:00-09:00 ET).
+- A pretip skipped because the 08:00 morning job still runs (it can take about 100 min) now alerts after 3 consecutive
+  skips; consider moving the post-game ingest out of the morning lock.
+- VM: re-run `sh ops/vm/install_cron.sh` there if the VM is ever the active host (cron block changed to `20,50 9-21`).

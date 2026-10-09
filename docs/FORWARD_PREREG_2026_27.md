@@ -342,7 +342,7 @@ Required, as a new module `nba/daily/checkpoint.py` (and tests), reading `forwar
    "marginal" and goes to the red team before any use.
 <!-- FROZEN-END -->
 
-## Amendments (append only, dated; none yet)
+## Amendments (append only, dated)
 
 - 2026-10-09 (engineering note, no rule changed): section 8 gaps implemented. (1) Every forward prop
   row (primary, recency, `_int`, `_lt`, `_t30`) now stores the additive JSON field `p_ge_full`
@@ -360,3 +360,15 @@ Required, as a new module `nba/daily/checkpoint.py` (and tests), reading `forwar
   its integer-support delta and the deterministic fidelity check are reported beside it. The
   teammate-out slice is approximated at game level (any `player_availability` row with status 'out'
   for the game) and the starter slice uses the stored `starter_rate >= 0.5`.
+
+- 2026-10-09 (AMENDMENT, implementation correction; no rule changed, no forward data exists yet):
+  section 2 and the eligibility rule above say the T-30 arm is scored on its latest row "made at or
+  before tip - 30 min". The first implementation tested `made_at <= tip - 30 min`, but a T-30 row is
+  by construction written at or after tip - 30 min (the run waits for the T-30 cutoff and then reads
+  the lineup snapshot), so no live row could qualify and `forward_scores_elig` would hold zero T30
+  pairs. The rule's intent (and guard (e): snapshot `fetched_at < tip - 30 min` for 100% of rows) is
+  that the INFORMATION used is at least 30 min old. Implemented now: a `_t30` row is eligible iff
+  `made_at < tip` AND its stored `snapshot_fetched_at < tip - 30 min`; every other arm is unchanged
+  (`made_at <= tip - 60 min`). The frozen section is unchanged (sha256 verified,
+  `e323aa4817589147598109424718913b7b881d289213dc2399dc655ac2bed10a`). Test:
+  `tests/daily/test_review_fixes.py`.

@@ -36,6 +36,8 @@ from pathlib import Path
 
 import duckdb
 
+from nba.ops.exitcodes import RC_INFORMATIONAL
+
 URL = "https://official.nba.com/referee-assignments/"
 REFS_DIR = Path(__file__).resolve().parents[2] / "data" / "refs"
 REFS_DB = REFS_DIR / "refs.duckdb"
@@ -419,7 +421,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"referees: page_date={res.page_date} games={res.n_games} stored={res.stored} "
         f"unmatched_officials={res.unmatched_officials} unmatched_teams={res.unmatched_teams}"
     )
-    return 2 if (res.unmatched_officials or res.unmatched_teams) else 0
+    return RC_INFORMATIONAL if (res.unmatched_officials or res.unmatched_teams) else 0
 
 
 if __name__ == "__main__":

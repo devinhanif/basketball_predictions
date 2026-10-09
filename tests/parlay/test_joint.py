@@ -472,6 +472,7 @@ def _run(tmp: Path, extra: list[str]) -> list[dict[str, object]]:
         str(paper),
         "--out-dir",
         str(tmp / "out"),
+        *([] if "--now" in extra else ["--now", "2026-10-08T20:00"]),  # before the 00:30Z tip
         *extra,
     ]
     assert main(argv) == 0
@@ -654,3 +655,8 @@ def test_track_record_dates_are_slate_dates_not_utc_log_time() -> None:
     book.execute("UPDATE shadow_predictions SET settled=TRUE, outcome=TRUE")
     tr = track_record(book)
     assert tr.n_settled == 3 and tr.n_dates == 2
+
+
+def test_cli_prices_nothing_once_the_game_has_tipped(tmp_path: Path) -> None:
+    out = _run(tmp_path, ["--now", "2026-10-09T01:00"])  # 30 min after tip-off (M7)
+    assert out == []

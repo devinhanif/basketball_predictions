@@ -47,6 +47,7 @@ import pickle
 import time
 import zlib
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date
 from pathlib import Path
@@ -367,6 +368,15 @@ def recency_weighted_dist(vals: np.ndarray, stat: str, halflife_games: float) ->
     return NormalDist(mean, std if std > 0 else _DEFAULT_STD[stat])
 
 
+def _safe_full(build: Callable[[], Any]) -> str | None:
+    """Additive ``p_ge_full`` JSON; ``None`` (settled as 'unscorable') if it cannot be built,
+    so this new field can never fail a primary row."""
+    try:
+        return full_support.dumps(build())
+    except Exception:
+        return None
+
+
 def _row_from_dist(dist: Distribution, thresholds: list[int], stat: str) -> dict[str, object]:
     return {
         "mean": dist.mean(),
@@ -378,7 +388,7 @@ def _row_from_dist(dist: Distribution, thresholds: list[int], stat: str) -> dict
         "q50": dist.ppf(0.50),
         "q90": dist.ppf(0.90),
         "q_grid": json.dumps([round(dist.ppf(t), 4) for t in QUANTILE_TAUS]),
-        "p_ge_full": full_support.dumps(full_support.from_dist(dist, stat)),
+        "p_ge_full": _safe_full(lambda: full_support.from_dist(dist, stat)),
     }
 
 
@@ -793,7 +803,7 @@ def _ctx_row(
         "q50": float(q19[9]),
         "q90": float(q19[17]),
         "q_grid": json.dumps([round(float(v), 4) for v in q19]),
-        "p_ge_full": full_support.dumps(full_support.from_samples(q199, str(base["stat"]))),
+        "p_ge_full": _safe_full(lambda: full_support.from_samples(q199, str(base["stat"]))),
         "mean_uncond": pp * mean,
         "p_ge_uncond": json.dumps({k: pp * v for k, v in p_ge.items()}, sort_keys=True),
     }
@@ -860,6 +870,7 @@ def predict_slate_context(
     taus19 = np.array(QUANTILE_TAUS)
     out_rows: list[dict[str, Any]] = []
     int_rows: list[dict[str, Any]] = []
+    int_error: str | None = None
     n_ctx = 0
     by_key = {(r["game_id"], r["player_id"], r["stat"]): r for r in recency.iter_rows(named=True)}
     done: set[tuple[str, int, str]] = set()
@@ -876,21 +887,32 @@ def predict_slate_context(
             out_rows.append(
                 _ctx_row(base, float(mean[i]), q19[i], q199[i], cfg_thresholds(config, stat))
             )
-            if int_variant and stat in cfg.integer_support_stats and not cfg.integer_support:
-                int_rows.append(
-                    _ctx_row(
-                        base,
-                        float(mean[i]),
-                        to_integer_support(q19[i]),
-                        to_integer_support(q199[i]),
-                        cfg_thresholds(config, stat),
+            if (
+                int_variant
+                and int_error is None
+                and stat in cfg.integer_support_stats
+                and not cfg.integer_support
+            ):
+                try:  # shadow only: a failure drops the _int rows, never the primary
+                    int_rows.append(
+                        _ctx_row(
+                            base,
+                            float(mean[i]),
+                            to_integer_support(q19[i]),
+                            to_integer_support(q199[i]),
+                            cfg_thresholds(config, stat),
+                        )
                     )
-                )
+                except Exception as exc:
+                    int_error = f"{type(exc).__name__}: {exc}"[:200]
+                    int_rows = []
             done.add(key)
             n_ctx += 1
     for key, base in by_key.items():
         if key not in done:
             out_rows.append({**base, "model": MODEL_RECENCY_FALLBACK})
+    if int_error is not None:
+        info["int_variant_error"] = int_error
     info["n_context_rows"] = n_ctx
     info["n_fallback_rows"] = len(out_rows) - n_ctx
     primary = (

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import UTC, date
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 import duckdb
@@ -27,6 +27,7 @@ class SlateInfo:
     ctxs: dict[str, GameCtx] = field(default_factory=dict)
     games_by_key: dict[tuple[date, int, int], str] = field(default_factory=dict)
     win_model: dict[str, str] = field(default_factory=dict)
+    tipoff: dict[str, datetime] = field(default_factory=dict)  # naive UTC, per slate game
     notes: list[str] = field(default_factory=list)
 
 
@@ -43,10 +44,12 @@ def load_slate(
     ).fetchall()
     win: dict[tuple[str, str], dict[str, object]] = {}
     props: dict[tuple[str, int, str], dict[str, object]] = {}
+    tips: dict[str, datetime] = {}
     for gid, tipoff, model, target, pid, pred, _made in rows:
         et = tipoff.replace(tzinfo=UTC).astimezone(ET).date()
         if et != slate:
             continue
+        tips[str(gid)] = tipoff
         d = json.loads(pred) if isinstance(pred, str) else pred
         if target == "win_prob_home" and model in WIN_MODELS:
             win[(str(gid), model)] = d  # later made_at overwrites earlier
@@ -108,4 +111,5 @@ def load_slate(
         )
         info.games_by_key[(slate, away, home)] = gid
         info.win_model[gid] = model
+        info.tipoff[gid] = tips[gid]
     return info

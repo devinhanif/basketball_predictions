@@ -36,21 +36,31 @@ def today_et(now: datetime) -> date:
     return now.replace(tzinfo=UTC).astimezone(ET).date()
 
 
+MAX_SCHEDULE_ATTEMPTS = 3
+
+
 def ensure_schedule_tips(
     lcon: object, game_date: date, now: datetime, schedule_fn: ScheduleFn, marker_dir: Path
 ) -> int:
-    """At most one schedule call per date (marker file, written even on failure so an
-    off-day or preseason date does not call every tick). Returns tips recorded."""
+    """One successful schedule call per date (marker file written after success, so an off-day or
+    preseason date does not call every tick). A failed call is retried on later ticks, at most
+    ``MAX_SCHEDULE_ATTEMPTS`` times per date, then the feed's status text is the only source.
+    Returns tips recorded."""
     marker = marker_dir / f"schedule_checked_{game_date.isoformat()}"
+    fails = marker_dir / f"schedule_failed_{game_date.isoformat()}"
     if marker.exists():
         return 0
+    n_failed = int(fails.read_text() or 0) if fails.exists() else 0
+    if n_failed >= MAX_SCHEDULE_ATTEMPTS:
+        return 0
     marker_dir.mkdir(parents=True, exist_ok=True)
-    marker.write_text(now.isoformat())
     try:
         games = slate_for_date(schedule_fn(season_str_for_date(game_date)), game_date)
     except Exception as exc:  # the feed's own status text is the fallback
+        fails.write_text(str(n_failed + 1))
         print(f"schedule unavailable ({type(exc).__name__}); using feed status text for tips")
         return 0
+    marker.write_text(now.isoformat())
     for g in games:
         upsert_tip(lcon, g.game_id, game_date, g.tipoff, "schedule", now)  # type: ignore[arg-type]
     return len(games)

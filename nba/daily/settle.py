@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS forward_scores_elig (
     run_id VARCHAR,
     made_at TIMESTAMP,
     tipoff TIMESTAMP,
-    lead_min INT,            -- eligibility lead used: made_at <= tipoff - lead_min
+    lead_min INT,            -- lead: made_at <= tipoff - lead (T-30 arm: snapshot < tipoff - lead)
     y DOUBLE,
     pred DOUBLE,
     q10 DOUBLE,
@@ -168,7 +168,12 @@ WITH elig AS (
         ORDER BY made_at DESC, run_id DESC) rn
     FROM forward_predictions
     WHERE model_name IN ({models})
-      AND made_at <= tipoff - (CASE WHEN model_name = ? THEN ? ELSE ? END) * INTERVAL 1 MINUTE
+      AND CASE WHEN model_name = ?
+               -- T-30 arm: the information cutoff is the lineup snapshot, not made_at
+               THEN made_at < tipoff AND TRY_CAST(
+                        json_extract_string(prediction, '$.snapshot_fetched_at') AS TIMESTAMP)
+                    < tipoff - ? * INTERVAL 1 MINUTE
+               ELSE made_at <= tipoff - ? * INTERVAL 1 MINUTE END
 ),
 box AS (
     SELECT game_id, player_id,
