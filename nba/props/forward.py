@@ -63,6 +63,7 @@ from nba.coldstart.sb_classification import (
 from nba.features.player_possession_features import build_player_shot_rates
 from nba.features.player_rebound_assist_features import build_player_reb_ast_rates
 from nba.features.possession_features import build_team_possession_rates
+from nba.props import full_support
 from nba.props.baselines import _DEFAULT_STD
 from nba.props.config import THRESHOLDS
 from nba.props.context_residual import (
@@ -143,6 +144,7 @@ OUTPUT_COLUMNS: list[str] = [
     "mean_uncond",
     "p_ge_uncond",
     "q_grid",
+    "p_ge_full",
 ]
 
 
@@ -355,7 +357,7 @@ def recency_weighted_dist(vals: np.ndarray, stat: str, halflife_games: float) ->
     return NormalDist(mean, std if std > 0 else _DEFAULT_STD[stat])
 
 
-def _row_from_dist(dist: Distribution, thresholds: list[int]) -> dict[str, object]:
+def _row_from_dist(dist: Distribution, thresholds: list[int], stat: str) -> dict[str, object]:
     return {
         "mean": dist.mean(),
         "std": float(dist.params().get("std", float("nan"))),
@@ -366,6 +368,7 @@ def _row_from_dist(dist: Distribution, thresholds: list[int]) -> dict[str, objec
         "q50": dist.ppf(0.50),
         "q90": dist.ppf(0.90),
         "q_grid": json.dumps([round(dist.ppf(t), 4) for t in QUANTILE_TAUS]),
+        "p_ge_full": full_support.dumps(full_support.from_dist(dist, stat)),
     }
 
 
@@ -567,7 +570,7 @@ def predict_slate(
                     if model == MODEL_SIM and sim_d is None:
                         model = MODEL_SEASON_AVG
                     chosen = sim_d if model == MODEL_SIM and sim_d is not None else savg
-                    row = _row_from_dist(chosen, cfg.thresholds[stat])
+                    row = _row_from_dist(chosen, cfg.thresholds[stat], stat)
                     pp = pplay[pid]
                     pj = json.loads(str(row["p_ge"]))
                     row["mean_uncond"] = pp * float(row["mean"])  # type: ignore[arg-type]
@@ -773,6 +776,7 @@ def _ctx_row(
         "q50": float(q19[9]),
         "q90": float(q19[17]),
         "q_grid": json.dumps([round(float(v), 4) for v in q19]),
+        "p_ge_full": full_support.dumps(full_support.from_samples(q199, str(base["stat"]))),
         "mean_uncond": pp * mean,
         "p_ge_uncond": json.dumps({k: pp * v for k, v in p_ge.items()}, sort_keys=True),
     }

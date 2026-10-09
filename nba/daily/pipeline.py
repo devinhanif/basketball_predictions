@@ -4,6 +4,7 @@ so the fixture tests never touch the network or the real database."""
 from __future__ import annotations
 
 import json
+import math
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -430,6 +431,19 @@ def _frame_preds(
     run_date: date,
     extra: dict[str, Any],
 ) -> list[ForwardPrediction]:
+def _additive_fields(r: dict[str, Any]) -> dict[str, object]:
+    """Additive prediction fields (never alter an existing one): ``p_ge_full`` = full-support
+    P(Y >= k) for integer-support re-scoring (nba.props.full_support), ``starter_rate`` for the
+    pre-registered starter/bench slice. Absent when the producing frame does not carry them."""
+    out: dict[str, object] = {}
+    if r.get("p_ge_full") is not None:
+        out["p_ge_full"] = json.loads(str(r["p_ge_full"]))
+    sr = r.get("starter_rate")
+    if sr is not None and math.isfinite(float(sr)):
+        out["starter_rate"] = float(sr)
+    return out
+
+
     """One ForwardPrediction per (player, stat) row of a ``forward`` output frame."""
     by_game = {g.game_id: g for g in upcoming}
     rows: list[ForwardPrediction] = []
@@ -469,6 +483,7 @@ def _frame_preds(
         )
     return rows
 
+                    **_additive_fields(r),
 
 def _context_props(
     con: duckdb.DuckDBPyConnection,
