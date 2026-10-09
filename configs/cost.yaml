@@ -4,5 +4,5 @@ colab_plan: pro
 colab_units_per_t4_hour: null
 colab_units_per_l4_hour: null
 colab_units_per_a100_hour: null
-colab_units_remaining: 93
-as_of: "2026-10-08 19:15"
+colab_units_remaining: 75
+as_of: "2026-10-09 09:30"  # previous reading 93 at 2026-10-08 19:15; ridge_v2 L4 run in between
