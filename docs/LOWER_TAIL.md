@@ -179,3 +179,71 @@ floor; fg3m mondrian_centre is flat, BH p 0.24 / 0.31); every one fails only the
 Reproduce: `uv run python -m nba.eval.lower_tail_eval collect && uv run python -m nba.eval.lower_tail_eval
 diagnose && uv run python -m nba.eval.lower_tail_eval collect_pi && uv run python -m nba.eval.lower_tail_eval
 candidates && uv run python -m nba.eval.lower_tail_eval report` (about 2 minutes CPU; read-only DuckDB).
+
+## Live shadow (maintainer-approved 2026-10-09; production unchanged)
+
+The pts `mixture` is logged live NEXT TO production as model_name `props_context_residual_lt`
+(`nba.daily run --log-lower-tail-variant`, default off; enabled for the pretip step in
+`ops/nba_daily.sh`). It is a comparison, never primary, never promoted by this document.
+
+Wiring (`nba/props/forward.py::_lower_tail_rows`, `nba/daily/pipeline.py`):
+* A second, pts-only model set is fitted with `lower_tail="mixture"` (own cache directory
+  `<cache>/<date>_lt`; the production cache directory and its fingerprint are untouched, and
+  with the flag off no second fit happens).
+* Realised `minutes` is attached to the TRAINING frame only, from box scores of games dated
+  strictly before the slate date (labels/history). The slate rows are predicted from a frame that
+  has no `minutes` column, and the pre-tip short-minutes probability pi uses `COMMON_FEATURES`
+  only. Tests (`tests/props/test_lower_tail_shadow.py`): tonight's box score (huge, tiny and DNP
+  lines) and later-dated games planted in the DB do not change the lt rows or the primary rows by
+  a byte; swapping a test frame's realised `minutes`/`pts`/`y`/`resid` for noise leaves pi and the
+  quantiles byte-identical.
+* Stored row = production's row layout: `mean` is the primary's (the mixture changes the
+  distribution only), `q_grid`/`q10`/`q50`/`q90`/`p_ge` come from the mixture mapped to integer
+  support with `ceil(q - 0.5)`. If the shadow fit raises, the failure is recorded in the run
+  summary and the primary rows are still written.
+* Code fix found while wiring: `mixture_quantiles` mis-sized the component weights when called with
+  a grid other than the 199-point grid it was fitted on (IndexError for the 19-quantile read-out).
+  It now always discretises on the fitted grid and interpolates to the requested taus; at the 199
+  grid the output is bit-identical to the screened version (existing tests unchanged).
+
+### Frozen live scoring rule (frozen BEFORE opening night; implemented in `nba/daily/lt_live.py`)
+
+Do not edit this rule or the constants in `lt_live.py` after the first lt row is logged; a change
+needs a new dated pre-registration.
+
+* Question: does the pts mixture lower integer-support CRPS vs production on live 2026-27 games?
+* Units: settled pts player-games where BOTH `props_context_residual` (model rows, not
+  `recency_fallback`) and `props_context_residual_lt` were logged pre-tip for the same game and
+  player (latest prediction per key), and the player played (minutes > 0). DNP rows are excluded
+  (conditional on playing, as in the screen).
+* Score: both arms' stored 19-quantile grids mapped with `ceil(q - 0.5)`, then the empirical CRPS
+  (`2 x` mean pinball over the 19 taus) against actual pts. Per-row paired delta = lt - production
+  (negative favours lt). The 19-grid is coarser than the 199-grid used in the screen, so levels
+  differ from the screen; only the paired delta is compared.
+* Inference: percentile 95% CI of the mean delta, bootstrap resampling whole game DATES (2000
+  resamples, seed 0).
+* Minimum data before ANY claim: n >= 500 settled paired player-games AND >= 14 distinct game
+  dates. Below that the only permitted statement is the descriptive point estimate with n and
+  dates (verdict `insufficient_n_no_claim`).
+* Verdict (computed once n and dates are met): `lt_better` iff the point delta <= -0.005 (the
+  screen's absolute floor) AND the CI upper bound < 0; `lt_worse` iff the CI lower bound > 0;
+  otherwise `no_claim`. The expected effect from the screen is about -0.011 to -0.013 on the 199-grid.
+* No peeking-driven stopping: the rule is evaluated at fixed checkpoints only (after >= 14 dates and
+  >= 500 pairs, then at 30, 60 and 90 dates); the verdict at the last checkpoint reached in a
+  season stands. Report every checkpoint.
+* Descriptive only (cannot rescue a failure): short-vs-normal strata, PIT coverage at q0.10/q0.20,
+  threshold log loss at pts N in {10, 15}, mean bias (identical by construction).
+* Promotion is not decided here. A `lt_better` verdict at a checkpoint is a recommendation for the
+  maintainer to consider a separately pre-registered promotion (including the calibrated-pi
+  refinement), not a switch. Season 2025 stays untouched by this work.
+
+Command: `uv run python -m nba.daily.lt_live --season 2026` (read-only; also callable as
+`nba.daily.lt_live.evaluate(con)`).
+
+Rehearsal smoke (DB copy, replay of 2024-11-20, `--schedule-from-db`): flag-off run then flag-on
+run; props_context_residual (784 rows), props_recency_v1 (784), rung0_mov_elo (8) and
+rung0_injury_elo (8) stored predictions are identical between the runs; the flag-on run adds
+190 pts-only lt rows (6 players without enough history are recency fallbacks in production and have
+no lt row). Settlement after restoring that day scored 168 lt rows; one date and 168 pairs
+=> `insufficient_n_no_claim` as intended (point delta -0.009, not interpretable).
+

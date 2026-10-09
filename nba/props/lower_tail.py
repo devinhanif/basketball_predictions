@@ -84,11 +84,16 @@ def mixture_quantiles(
     """Quantiles of ``(1 - pi) * Normal(c, s, z_norm) + pi * Short(m_row * w_q)``. The two
     components are equal-mass point sets on the tau grid; the mixture quantiles are read off the
     pooled, weighted, sorted points (midpoint cumulative weights, linear interpolation)."""
-    zq = np.asarray(np.quantile(z_norm, taus))
-    q_norm = np.clip(c[:, None] + s[:, None] * zq[None, :], 0.0, None)
     if w_q is None:
-        return _monotone(q_norm)
-    k = len(taus)
+        zq = np.asarray(np.quantile(z_norm, taus))
+        return _monotone(c[:, None] + s[:, None] * zq[None, :])
+    # Both components are discretised on the grid ``w_q`` was fitted on (the 199-point
+    # grid), whatever ``taus`` is requested, so a coarse read-out (e.g. the 19-quantile grid
+    # stored in the forward rows) comes from the same mixture as the 199-grid.
+    k = len(w_q)
+    grid = (np.arange(k) + 0.5) / k
+    zq = np.asarray(np.quantile(z_norm, grid))
+    q_norm = np.clip(c[:, None] + s[:, None] * zq[None, :], 0.0, None)
     q_short = np.clip(np.maximum(m_row, MIN_CENTRE)[:, None] * w_q[None, :], 0.0, None)
     vals = np.concatenate([q_norm, q_short], axis=1)
     wts = np.concatenate(

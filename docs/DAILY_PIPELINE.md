@@ -12,6 +12,7 @@ uv run python -m nba.daily run --date 2026-10-28      # ingest, injury report, p
 uv run python -m nba.daily settle                     # score completed predictions only
 uv run python -m nba.daily report                     # writes registry_store/reports/forward_report.md
 # flags: --skip-ingest --skip-injury --no-props --db-path PATH --rate-limit-s 0.6
+# comparison rows (default off): --log-int-variant, --log-lower-tail-variant
 ```
 
 `run` exits 2 if any slate game had already tipped (those games get no prediction;
@@ -142,6 +143,17 @@ removal commands are in the template header. Keep the Mac plugged in; the job is
   ("real tip missing for N game(s)"); expect none. Rehearsals (`--schedule-from-db`) never
   write tips. The context model cache fingerprint now includes `tip_source`. Numbers: T091-T095
   reproduced; replacement entry in `docs/TEST_LEDGER.md`.
+
+- **2026-10-09, pts lower-tail SHADOW (maintainer-approved).** `nba.daily run --log-lower-tail-variant`
+  (`log_lower_tail_variant` on `run_daily`) additionally logs pts rows as `props_context_residual_lt`:
+  the short-minutes mixture of docs/LOWER_TAIL.md with integer-support quantiles and the primary's mean.
+  Comparison only, never primary; default off; enabled for the pretip step in `ops/nba_daily.sh`. It
+  costs one extra pts-only fit per day (own cache dir `<model-cache>/<date>_lt`, about 1-3 s on the
+  rehearsal copy) and a failure there is reported in the run summary without touching the primary
+  rows. Primary, recency, Elo and injury-Elo stored predictions are byte-identical with the flag on or
+  off (tests: `tests/daily/test_lower_tail_shadow.py`, `tests/props/test_lower_tail_shadow.py`). Settle
+  scores the lt rows like any other model from the stored grid (already on integer support). The live
+  comparison rule is frozen in docs/LOWER_TAIL.md and implemented in `nba/daily/lt_live.py`.
 
 ## Caveats (honest)
 

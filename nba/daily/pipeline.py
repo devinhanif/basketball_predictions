@@ -18,6 +18,7 @@ from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
 from nba.daily.injury import ProbeFn, PullFn, out_players, pull_latest_report
 from nba.daily.predict import (
     CONTEXT_INT_PROPS_MODEL_NAME,
+    CONTEXT_LT_PROPS_MODEL_NAME,
     CONTEXT_PROPS_MODEL_NAME,
     CONTEXT_PROPS_VERSION,
     ELO_MODEL_NAME,
@@ -109,6 +110,7 @@ def run_daily(
     roster_dir: Path | None = None,
     roster_fetch: RosterFetcher | None = None,
     log_int_variant: bool = False,
+    log_lower_tail_variant: bool = False,
     tips_dir: Path | None = None,
     static_fetch: Callable[[int], pl.DataFrame] | None = None,
 ) -> RunSummary:
@@ -161,7 +163,7 @@ def run_daily(
             with_props, elo_config, summary, props_model, n_sims, model_cache,
             _official_roster(con, run_date, season_s, roster_source, roster_dir, roster_fetch,
                              rate_limiter, summary, data_dir, static_fetch) if with_props else None,
-            log_int_variant,
+            log_int_variant, log_lower_tail_variant,
         )  # fmt: skip
         try:
             summary.n_rows_written = append_predictions(con, summary.run_id, made_at, preds)
@@ -238,6 +240,7 @@ def _build_predictions(
     model_cache: Path | None = None,
     official_roster: pl.DataFrame | None = None,
     log_int_variant: bool = False,
+    log_lower_tail_variant: bool = False,
 ) -> list[ForwardPrediction]:
     out: list[ForwardPrediction] = []
     params = load_elo_params(elo_config) if elo_config else load_elo_params()
@@ -315,6 +318,7 @@ def _build_predictions(
                     summary,
                     official_roster,
                     log_int_variant,
+                    log_lower_tail_variant,
                 )
             )
             return out
@@ -476,6 +480,7 @@ def _context_props(
     summary: RunSummary,
     official_roster: pl.DataFrame | None = None,
     log_int_variant: bool = False,
+    log_lower_tail_variant: bool = False,
 ) -> list[ForwardPrediction]:
     """Context-residual primary + recency comparison. Report rule: the latest
     official report stamped <= min(now, real tip-off - 60 min) per game."""
@@ -484,7 +489,7 @@ def _context_props(
     res = context_prop_predictions(
         con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming],
         report_out, elo_params, cache_root=model_cache, official_roster=official_roster,
-        int_variant=log_int_variant,
+        int_variant=log_int_variant, lower_tail_variant=log_lower_tail_variant,
     )  # fmt: skip
     info = res.info
     n_rep = len(report_out)
@@ -509,6 +514,20 @@ def _context_props(
         summary.model_status[CONTEXT_INT_PROPS_MODEL_NAME] = (
             f"{CONTEXT_PROPS_VERSION} (comparison: integer-support quantiles, {len(variant)} rows)"
         )
+    lt_rows: list[ForwardPrediction] = []
+    if res.lower_tail_variant is not None:
+        lt_rows = _frame_preds(
+            res.lower_tail_variant, upcoming, CONTEXT_LT_PROPS_MODEL_NAME,
+            CONTEXT_PROPS_VERSION, run_date, common,
+        )  # fmt: skip
+        summary.model_status[CONTEXT_LT_PROPS_MODEL_NAME] = (
+            f"{CONTEXT_PROPS_VERSION} (SHADOW comparison: pts short-minutes mixture, "
+            f"integer-support quantiles, {len(lt_rows)} rows)"
+        )
+    elif log_lower_tail_variant:
+        summary.model_status[CONTEXT_LT_PROPS_MODEL_NAME] = (
+            f"SHADOW wrote no rows ({info.get('lower_tail_error', 'no eligible pts rows')})"
+        )
     cache = "cached" if info.get("cache_hit") else f"fit {info.get('fit_seconds', 0.0):.0f}s"
     summary.model_status[CONTEXT_PROPS_MODEL_NAME] = (
         f"{CONTEXT_PROPS_VERSION} (LightGBM residual over recency average; trained through "
@@ -519,7 +538,7 @@ def _context_props(
     summary.model_status[RECENCY_PROPS_MODEL_NAME] = (
         f"{RECENCY_PROPS_VERSION} (comparison: recency-weighted played-games average)"
     )
-    return primary + recency + variant
+    return primary + recency + variant + lt_rows
 
 
 def _recency_only_props(

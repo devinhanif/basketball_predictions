@@ -46,7 +46,7 @@ import json
 import pickle
 import time
 import zlib
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -617,6 +617,8 @@ class ContextSlateResult:
     info: dict[str, Any]
     #: optional comparison rows with integer-support quantiles (``int_variant=True``)
     integer_variant: pl.DataFrame | None = None
+    #: optional SHADOW rows: pts lower-tail short-minutes mixture (``lower_tail_variant=True``)
+    lower_tail_variant: pl.DataFrame | None = None
 
 
 _AVAIL_SCHEMA: dict[str, Any] = {
@@ -700,6 +702,7 @@ def _load_or_fit_models(
     cfg: ContextResidualConfig,
     cache_dir: Path | None,
     lineups_known: bool = False,
+    stats: tuple[str, ...] = PROP_STATS,
 ) -> tuple[dict[str, ContextResidualModel], dict[str, Any]]:
     """Fit on played rows strictly before ``as_of`` or reuse a same-date cache.
 
@@ -728,6 +731,8 @@ def _load_or_fit_models(
     fp["cfg"].pop("lower_tail_stats", None)
     if fp["cfg"].get("lower_tail") == "off":
         fp["cfg"].pop("lower_tail", None)
+    if stats != PROP_STATS:  # a stat subset never shares a cache with the full model set
+        fp["stats"] = list(stats)
     if cache_dir is not None:
         meta_p, model_p = cache_dir / "meta.json", cache_dir / "models.pkl"
         if meta_p.exists() and model_p.exists():
@@ -737,7 +742,7 @@ def _load_or_fit_models(
                     models = pickle.load(f)  # noqa: S301  (local cache we wrote)
                 return models, {"cache_hit": True, "fit_seconds": 0.0, **meta["info"]}
     t0 = time.perf_counter()
-    models = fit_for_date(feats, as_of, cfg, lineups_known=lineups_known)
+    models = fit_for_date(feats, as_of, cfg, stats=stats, lineups_known=lineups_known)
     secs = time.perf_counter() - t0
     info = {"n_train_rows": hist.height, "train_through": fp["max_date"]}
     if cache_dir is not None:
@@ -786,6 +791,7 @@ def predict_slate_context(
     config: ForwardConfig | None = None,
     official_roster: pl.DataFrame | None = None,
     int_variant: bool = False,
+    lower_tail_variant: bool = False,
 ) -> ContextSlateResult:
     """Context-residual props for a slate (primary) plus the recency comparison.
 
@@ -796,7 +802,11 @@ def predict_slate_context(
     cached under ``cache_root/<as_of>/``. Raises on fit failure; the caller
     decides the fallback. ``int_variant`` additionally returns, in
     ``ContextSlateResult.integer_variant``, the same rows with integer-support quantiles
-    (docs/INTEGER_QUANTILES.md) for ``cfg.integer_support_stats``; the primary is unchanged."""
+    (docs/INTEGER_QUANTILES.md) for ``cfg.integer_support_stats``; the primary is unchanged.
+    ``lower_tail_variant`` additionally returns, in ``ContextSlateResult.lower_tail_variant``,
+    pts rows from the short-minutes mixture (docs/LOWER_TAIL.md, integer-support quantiles, stored
+    ``mean`` = the primary's); a failure there is recorded in ``info["lower_tail_error"]`` and never
+    affects the primary."""
     cfg = cfg or ContextResidualConfig()
     exclude = set(out_players or ())
     for s in report_out.values():
@@ -874,7 +884,87 @@ def predict_slate_context(
         if int_rows
         else None
     )
-    return ContextSlateResult(primary, recency, info, variant)
+    lt_variant: pl.DataFrame | None = None
+    if lower_tail_variant:
+        try:
+            lt_variant = _lower_tail_rows(
+                feats,
+                h_pgs,
+                slate_feats,
+                as_of,
+                cfg,
+                cache_root,
+                by_key,
+                done,
+                primary,
+                config,
+                info,
+            )
+        except Exception as exc:  # shadow only: never block or alter the primary
+            info["lower_tail_error"] = f"{type(exc).__name__}: {exc}"[:200]
+    return ContextSlateResult(primary, recency, info, variant, lt_variant)
+
+
+def _lower_tail_rows(
+    feats: pl.DataFrame,
+    h_pgs: pl.DataFrame,
+    slate_feats: pl.DataFrame,
+    as_of: date,
+    cfg: ContextResidualConfig,
+    cache_root: Path | None,
+    by_key: dict[tuple[str, int, str], dict[str, Any]],
+    done: set[tuple[str, int, str]],
+    primary: pl.DataFrame,
+    config: ForwardConfig | None,
+    info: dict[str, Any],
+) -> pl.DataFrame | None:
+    """pts rows under ``lower_tail='mixture'`` (pts-only model set, own cache directory).
+
+    As-of discipline: realised ``minutes`` is attached to the TRAINING frame only, from
+    ``h_pgs`` (box scores of games dated strictly before ``as_of``, see ``_history_frames``);
+    the slate rows are predicted from ``slate_feats``, which has no ``minutes`` column, so
+    tonight's minutes, stats and DNP status cannot reach the pre-tip short-minutes probability
+    or the quantiles. The stored ``mean`` is the primary's (the mixture only changes the
+    distribution)."""
+    lt_cfg = replace(cfg, lower_tail="mixture", lower_tail_stats=("pts",))
+    minutes = h_pgs.select("game_id", "player_id", "minutes").unique(["game_id", "player_id"])
+    train = feats.drop("minutes", strict=False).join(
+        minutes, on=["game_id", "player_id"], how="left"
+    )
+    cache_dir = None if cache_root is None else cache_root / f"{as_of.isoformat()}_lt"
+    models, lt_info = _load_or_fit_models(train, as_of, lt_cfg, cache_dir, stats=("pts",))
+    info["lower_tail"] = {"cache_hit": lt_info["cache_hit"], "fit_seconds": lt_info["fit_seconds"]}
+    primary_mean = {
+        (str(r["game_id"]), int(r["player_id"]), str(r["stat"])): float(r["mean"])
+        for r in primary.filter(pl.col("model") == MODEL_CONTEXT).iter_rows(named=True)
+    }
+    taus19 = np.array(QUANTILE_TAUS)
+    rows, _, q199 = predict_rows(models, slate_feats, "pts", CRPS_TAUS)
+    if rows.is_empty():
+        return None
+    _, _, q19 = predict_rows(models, slate_feats, "pts", taus19)
+    out: list[dict[str, Any]] = []
+    for i, r in enumerate(rows.iter_rows(named=True)):
+        key = (str(r["game_id"]), int(r["player_id"]), "pts")
+        base = by_key.get(key)
+        if base is None or key not in done:
+            continue
+        out.append(
+            _ctx_row(
+                base,
+                primary_mean[key],
+                to_integer_support(q19[i]),
+                to_integer_support(q199[i]),
+                cfg_thresholds(config, "pts"),
+            )
+        )
+    if not out:
+        return None
+    return (
+        pl.DataFrame(out, infer_schema_length=None)
+        .select(OUTPUT_COLUMNS)
+        .sort(["game_id", "team_id", "player_id", "stat"])
+    )
 
 
 def cfg_thresholds(config: ForwardConfig | None, stat: str) -> list[int]:

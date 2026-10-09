@@ -89,11 +89,13 @@ done
 case "$MODE" in
   pretip)
     # maintainer decisions 2026-10-09: official rosters for the first two weeks of 2026-27
-    # (opening-week coverage 61% -> 96%), and log the integer-support quantile variant live
+    # (opening-week coverage 61% -> 96%), log the integer-support quantile variant live, and
+    # SHADOW-log the pts lower-tail mixture (props_context_residual_lt; comparison only, never
+    # primary; docs/LOWER_TAIL.md frozen live rule)
     ROSTER=recent
     if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
     step predict "$UV" run python -m nba.daily run --date "$TODAY_ET" \
-      --roster-source "$ROSTER" --log-int-variant --rate-limit-s 2.5
+      --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --rate-limit-s 2.5
     step parlay_shadow "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET"
     ;;
   morning)
