@@ -14,6 +14,8 @@ from pathlib import Path
 
 import torch
 
+from nba.datamanifest.manifest import latest_data_version
+
 
 def _git_sha(cwd: Path | None = None) -> str:
     """Return the current git SHA, or ``"unknown"`` outside a git checkout."""
@@ -40,6 +42,7 @@ def build_run_metadata(
     gpu: bool = False,
     runtime_seconds: float | None = None,
     repo_dir: Path | None = None,
+    data_version: str | None = None,
 ) -> dict[str, object]:
     """Build the audit-metadata blob logged alongside every registered version.
 
@@ -47,12 +50,19 @@ def build_run_metadata(
     as-of data lineage for the run; the caller computes these from its own
     walk-forward slice (this module does not query DuckDB itself, to stay
     decoupled from any one model's feature set).
+
+    ``data_version`` stamps which data the run trained on. When omitted it is read from
+    the newest manifest on disk (``python -m nba.datamanifest snapshot``); no hashing is
+    done here. ``None`` means no manifest has been taken yet.
     """
+    if data_version is None:
+        data_version = latest_data_version()
     return {
         "game_date_min": game_date_min.isoformat() if game_date_min else None,
         "game_date_max": game_date_max.isoformat() if game_date_max else None,
         "possession_count": possession_count,
         "git_sha": _git_sha(repo_dir),
+        "data_version": data_version,
         "seed": seed,
         "python_version": platform.python_version(),
         "torch_version": torch.__version__,

@@ -64,6 +64,7 @@ incident or result that earned it. Agents and maintainers follow this; CLAUDE.md
 | **Registry discipline:** candidates by default; promotion is explicit, evidence-gated and human-approved; data files never go in the registry. | Promotions of injury-Elo and context-residual followed confirmation. |
 | **Forward logging before tip-off** with comparison models alongside; settle afterwards. | The 2026-27 season is the only truly clean test left. |
 | **Read-only markets, verified fees, defer to market without a track record.** | The parlay engine reports `no_positive_ev_found` until shadow history proves skill. |
+| **Version the data, not just the code.** `make data-snapshot` before registering runs and after any load; `make data-check` flags row drops and played-vs-unplayed NULL asymmetry. | The `opp_adjusted_ridge` leak is exactly a NULL-vs-minutes asymmetry that this check surfaces mechanically (see docs/DATA_VERSIONING.md). |
 
 ## 6. Checklist for any new model
 

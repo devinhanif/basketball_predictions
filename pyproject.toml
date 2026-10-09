@@ -77,6 +77,10 @@ module = "nba.registry.*"
 strict = true
 
 [[tool.mypy.overrides]]
+module = "nba.datamanifest.*"
+strict = true
+
+[[tool.mypy.overrides]]
 module = "nba.parlay.*"
 strict = true
 

@@ -1,0 +1,7302 @@
+{
+ "created_at": "2026-10-09T02:47:55.490070+00:00",
+ "data_version": "92bb30586d64",
+ "db_path": "/Users/devin/Downloads/nba-prediction/nba.duckdb",
+ "dir_caches": {
+  "availability_backfill": {
+   "bytes": 243614,
+   "files": 842
+  },
+  "availability_official": {
+   "bytes": 109834987,
+   "files": 1681
+  },
+  "backfill_db": {
+   "bytes": 636263507,
+   "files": 4
+  },
+  "boxscore": {
+   "bytes": 39808141,
+   "files": 5269
+  },
+  "coaches": {
+   "bytes": 1592916,
+   "files": 4
+  },
+  "colab": {
+   "bytes": 7309582592,
+   "files": 590
+  },
+  "games": {
+   "bytes": 43649,
+   "files": 4
+  },
+  "hustle": {
+   "bytes": 7263335,
+   "files": 608
+  },
+  "injury_elo": {
+   "bytes": 168352,
+   "files": 4
+  },
+  "kalshi": {
+   "bytes": 7956863,
+   "files": 1302
+  },
+  "matchups": {
+   "bytes": 1636714,
+   "files": 4
+  },
+  "national-tv": {
+   "bytes": 744024,
+   "files": 825
+  },
+  "officials": {
+   "bytes": 1590128,
+   "files": 4
+  },
+  "parlay": {
+   "bytes": 276877,
+   "files": 2
+  },
+  "pbp": {
+   "bytes": 93690417,
+   "files": 5269
+  },
+  "players_static": {
+   "bytes": 2571980,
+   "files": 891
+  },
+  "rapm": {
+   "bytes": 188058,
+   "files": 2
+  },
+  "schedule": {
+   "bytes": 886936,
+   "files": 4
+  },
+  "shots": {
+   "bytes": 1675835,
+   "files": 4
+  },
+  "stack": {
+   "bytes": 82849792,
+   "files": 1
+  },
+  "tracking": {
+   "bytes": 8842819,
+   "files": 608
+  },
+  "winprob_family": {
+   "bytes": 6605914,
+   "files": 2
+  }
+ },
+ "manifest_version": 1,
+ "tables": {
+  "experiments": {
+   "columns": {
+    "alias": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "artifact_path": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "config": {
+     "null_rate": 0.0,
+     "type": "JSON"
+    },
+    "created_at": {
+     "null_rate": 0.0,
+     "type": "TIMESTAMP"
+    },
+    "metadata": {
+     "null_rate": 0.0,
+     "type": "JSON"
+    },
+    "metrics": {
+     "null_rate": 0.0,
+     "type": "JSON"
+    },
+    "model_name": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "run_id": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "rung": {
+     "null_rate": 0.0,
+     "type": "INTEGER"
+    },
+    "stage": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "tags": {
+     "null_rate": 0.0,
+     "type": "JSON"
+    },
+    "version": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "created_at": [
+     "2026-10-05 23:46:39.392491",
+     "2026-10-08 12:59:27.829101"
+    ]
+   },
+   "fingerprint": "8d7a86108c508b0f-0d73a82287ec0d79",
+   "pk_duplicates": 0,
+   "primary_key": [
+    "run_id"
+   ],
+   "row_count": 25,
+   "schema_hash": "a7bf9f987193df75"
+  },
+  "forward_predictions": {
+   "columns": {
+    "game_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "made_at": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "model_name": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "player_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "INTEGER"
+    },
+    "prediction": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "JSON"
+    },
+    "run_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "target": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "tipoff": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "version": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "made_at": [
+     null,
+     null
+    ],
+    "tipoff": [
+     null,
+     null
+    ]
+   },
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 0,
+    "n_unplayed": 0
+   },
+   "primary_key": null,
+   "row_count": 0,
+   "schema_hash": "f042ba552cc83b5d",
+   "seasons": {}
+  },
+  "forward_scores": {
+   "columns": {
+    "brier": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "crps": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "game_date": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DATE"
+    },
+    "game_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "log_loss": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "made_at": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "model_name": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "player_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "INTEGER"
+    },
+    "pred": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "scored_at": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "season": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "INTEGER"
+    },
+    "status": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "target": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "version": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "y": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    }
+   },
+   "date_range": {
+    "game_date": [
+     null,
+     null
+    ],
+    "made_at": [
+     null,
+     null
+    ],
+    "scored_at": [
+     null,
+     null
+    ]
+   },
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 0,
+    "n_unplayed": 0
+   },
+   "primary_key": null,
+   "row_count": 0,
+   "schema_hash": "920d34fc8c277db4",
+   "seasons": {}
+  },
+  "games": {
+   "columns": {
+    "away_pts": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "away_team": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "game_date": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "DATE"
+    },
+    "game_id": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "VARCHAR"
+    },
+    "home_pts": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "home_team": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "national_tv": {
+     "null_rate": 0.725565,
+     "null_rate_by_season": {
+      "2022": 0.725,
+      "2023": 0.722307,
+      "2024": 0.723954,
+      "2025": 0.731003
+     },
+     "type": "VARCHAR"
+    },
+    "season": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    }
+   },
+   "date_range": {
+    "game_date": [
+     "2022-10-18",
+     "2026-06-13"
+    ]
+   },
+   "fingerprint": "bf65c1c11a408dab-8239002c61c95ca3",
+   "pk_duplicates": 0,
+   "primary_key": [
+    "game_id"
+   ],
+   "row_count": 5269,
+   "schema_hash": "d2368d6c7720e55b",
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 1320
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 1318
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 1315
+    },
+    "2025": {
+     "coverage": 1.0,
+     "games": 1316,
+     "rows": 1316
+    }
+   }
+  },
+  "ingest_log": {
+   "columns": {
+    "cache_path": {
+     "null_rate": 8.8e-05,
+     "type": "VARCHAR"
+    },
+    "fetched_at": {
+     "null_rate": 0.0,
+     "type": "TIMESTAMP"
+    },
+    "key": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "source": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "status": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "fetched_at": [
+     "2026-10-05 21:54:25.430576",
+     "2026-10-07 15:38:37.060047"
+    ]
+   },
+   "fingerprint": "e3ab7b0fc0a1b55c-1e25a5f07ad153d2",
+   "pk_duplicates": 0,
+   "primary_key": [
+    "source",
+    "key"
+   ],
+   "row_count": 11368,
+   "schema_hash": "7cdd4bd0306b3894"
+  },
+  "kalshi_markets": {
+   "columns": {
+    "close_time": {
+     "null_rate": null,
+     "type": "TIMESTAMP"
+    },
+    "event_ticker": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "open_time": {
+     "null_rate": null,
+     "type": "TIMESTAMP"
+    },
+    "player_id": {
+     "null_rate": null,
+     "type": "INTEGER"
+    },
+    "result": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "series_ticker": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "settled_ts": {
+     "null_rate": null,
+     "type": "TIMESTAMP"
+    },
+    "stat": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "threshold": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "ticker": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "title": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "close_time": [
+     null,
+     null
+    ],
+    "open_time": [
+     null,
+     null
+    ],
+    "settled_ts": [
+     null,
+     null
+    ]
+   },
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "primary_key": [
+    "ticker"
+   ],
+   "row_count": 0,
+   "schema_hash": "497964c7f0188c82"
+  },
+  "kalshi_prices": {
+   "columns": {
+    "last": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "open_interest": {
+     "null_rate": null,
+     "type": "INTEGER"
+    },
+    "source": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "ticker": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "ts": {
+     "null_rate": null,
+     "type": "TIMESTAMP"
+    },
+    "volume": {
+     "null_rate": null,
+     "type": "INTEGER"
+    },
+    "yes_ask": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "yes_bid": {
+     "null_rate": null,
+     "type": "FLOAT"
+    }
+   },
+   "date_range": {
+    "ts": [
+     null,
+     null
+    ]
+   },
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "primary_key": null,
+   "row_count": 0,
+   "schema_hash": "93cb2d44055b19c8"
+  },
+  "paper_trades": {
+   "columns": {
+    "created_at": {
+     "null_rate": null,
+     "type": "TIMESTAMP"
+    },
+    "expected_value": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "fee_model": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "legs": {
+     "null_rate": null,
+     "type": "JSON"
+    },
+    "model_prob": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "model_prob_hi": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "model_prob_lo": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "outcome": {
+     "null_rate": null,
+     "type": "BOOLEAN"
+    },
+    "price": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "realized_pnl": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "settled": {
+     "null_rate": null,
+     "type": "BOOLEAN"
+    },
+    "trade_id": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "created_at": [
+     null,
+     null
+    ]
+   },
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "primary_key": [
+    "trade_id"
+   ],
+   "row_count": 0,
+   "schema_hash": "bba0741da4480c0b"
+  },
+  "parquet:ctxres_v2.parquet": {
+   "columns": {
+    "abs_margin": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "abs_streak_prev": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "absent_prev": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "b2b": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "base_m_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "base_m_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "base_m_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "base_m_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "base_s_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "base_s_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "base_s_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "base_s_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "draft_pick_f": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "exp_margin": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "flag_dir": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "fold_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "game_date": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "DATE"
+    },
+    "game_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "game_total_feat": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "gap_days": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "has_report": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "implied_opp_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "implied_team_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "is_home_f": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "is_rookie": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "last_abs_len": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "last_starter": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "ln_pick": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m100_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m100_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m100_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m100_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m10_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m10_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m10_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m10_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m40_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m40_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m40_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m40_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m5_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m5_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m5_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "m5_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "min10": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "min40": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "min5": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "min_gap": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "min_gap10": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "n48_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "n48_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "n48_min": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "n48_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "n48_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "n_out_rot": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "FLOAT"
+    },
+    "n_prior": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "n_season": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "nat_tv": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "nat_tv_major": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "opp_allow_ast": {
+     "asymmetry": 0.000657,
+     "null_rate": 0.00076,
+     "null_rate_by_season": {
+      "2022": 0.002429,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.000812,
+     "null_rate_unplayed": 0.000155,
+     "type": "FLOAT"
+    },
+    "opp_allow_fg3m": {
+     "asymmetry": 0.000657,
+     "null_rate": 0.00076,
+     "null_rate_by_season": {
+      "2022": 0.002429,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.000812,
+     "null_rate_unplayed": 0.000155,
+     "type": "FLOAT"
+    },
+    "opp_allow_pts": {
+     "asymmetry": 0.000657,
+     "null_rate": 0.00076,
+     "null_rate_by_season": {
+      "2022": 0.002429,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.000812,
+     "null_rate_unplayed": 0.000155,
+     "type": "FLOAT"
+    },
+    "opp_allow_reb": {
+     "asymmetry": 0.000657,
+     "null_rate": 0.00076,
+     "null_rate_by_season": {
+      "2022": 0.002429,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.000812,
+     "null_rate_unplayed": 0.000155,
+     "type": "FLOAT"
+    },
+    "opp_b2b": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "opp_pos_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "opp_pos_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "opp_pos_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "opp_pos_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "opp_r20_pts_against": {
+     "asymmetry": 0.000657,
+     "null_rate": 0.00076,
+     "null_rate_by_season": {
+      "2022": 0.002429,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.000812,
+     "null_rate_unplayed": 0.000155,
+     "type": "FLOAT"
+    },
+    "opp_r20_pts_for": {
+     "asymmetry": 0.000657,
+     "null_rate": 0.00076,
+     "null_rate_by_season": {
+      "2022": 0.002429,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.000812,
+     "null_rate_unplayed": 0.000155,
+     "type": "FLOAT"
+    },
+    "opp_rest_days": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "BIGINT"
+    },
+    "own_listed": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "TINYINT"
+    },
+    "own_out_prev": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "own_returning": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "TINYINT"
+    },
+    "own_status_ord": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "BIGINT"
+    },
+    "player_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "BIGINT"
+    },
+    "pos_code": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "BIGINT"
+    },
+    "pr_ast_share": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_dreb36": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_fta_rate": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_on_poss_w": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_oreb36": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_tov_rate": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_usage": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_zone_a3": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_zone_c3": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_zone_mid": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pr_zone_rim": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "r20_pts_against": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "r20_pts_for": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate48_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate48_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate48_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate48_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rate_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "rest_days": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "BIGINT"
+    },
+    "ret_ast": {
+     "asymmetry": 0.000195,
+     "null_rate": 0.008367,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.01079,
+      "2024": 0.011928
+     },
+     "null_rate_played": 0.008352,
+     "null_rate_unplayed": 0.008547,
+     "type": "FLOAT"
+    },
+    "ret_fg3m": {
+     "asymmetry": 0.000195,
+     "null_rate": 0.008367,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.01079,
+      "2024": 0.011928
+     },
+     "null_rate_played": 0.008352,
+     "null_rate_unplayed": 0.008547,
+     "type": "FLOAT"
+    },
+    "ret_min": {
+     "asymmetry": 0.000195,
+     "null_rate": 0.008367,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.01079,
+      "2024": 0.011928
+     },
+     "null_rate_played": 0.008352,
+     "null_rate_unplayed": 0.008547,
+     "type": "FLOAT"
+    },
+    "ret_n": {
+     "asymmetry": 0.000195,
+     "null_rate": 0.008367,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.01079,
+      "2024": 0.011928
+     },
+     "null_rate_played": 0.008352,
+     "null_rate_unplayed": 0.008547,
+     "type": "FLOAT"
+    },
+    "ret_pts": {
+     "asymmetry": 0.000195,
+     "null_rate": 0.008367,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.01079,
+      "2024": 0.011928
+     },
+     "null_rate_played": 0.008352,
+     "null_rate_unplayed": 0.008547,
+     "type": "FLOAT"
+    },
+    "ret_reb": {
+     "asymmetry": 0.000195,
+     "null_rate": 0.008367,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.01079,
+      "2024": 0.011928
+     },
+     "null_rate_played": 0.008352,
+     "null_rate_unplayed": 0.008547,
+     "type": "FLOAT"
+    },
+    "ret_usage": {
+     "asymmetry": 0.000195,
+     "null_rate": 0.008367,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.01079,
+      "2024": 0.011928
+     },
+     "null_rate_played": 0.008352,
+     "null_rate_unplayed": 0.008547,
+     "type": "FLOAT"
+    },
+    "ridge_opp_ast": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "ridge_opp_fg3m": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "ridge_opp_pts": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "ridge_opp_reb": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "ridge_player_ast": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "ridge_player_fg3m": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "ridge_player_pts": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "ridge_player_reb": {
+     "asymmetry": 1.0,
+     "null_rate": 0.080125,
+     "null_rate_by_season": {
+      "2022": 0.069614,
+      "2023": 0.086281,
+      "2024": 0.08353
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 1.0,
+     "type": "FLOAT"
+    },
+    "role_gap_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "role_gap_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "role_gap_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "role_gap_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "rookie_ln_pick": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sch_b2b_first": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "sch_b2b_second": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "sch_days_to_next": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sch_four_in_six": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "sch_n_prev4": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sch_n_prev7": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sch_opp_n_prev7": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sch_opp_three_in_four": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "sch_opp_travel7": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sch_three_in_four": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "sch_travel7": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sch_travel_leg": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sd10_ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sd10_fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sd10_pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "sd10_reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "season": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "since_flag": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "since_return": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "since_team": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "starter10": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "starter40": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "team_game_no": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "UINTEGER"
+    },
+    "team_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "tv_home": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "undrafted": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TINYINT"
+    },
+    "vac_ast": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "FLOAT"
+    },
+    "vac_fg3m": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "FLOAT"
+    },
+    "vac_min": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "FLOAT"
+    },
+    "vac_pts": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "FLOAT"
+    },
+    "vac_reb": {
+     "asymmetry": 0.000255,
+     "null_rate": 0.001009,
+     "null_rate_by_season": {
+      "2022": 0.001792,
+      "2023": 0.000652,
+      "2024": 0.000653
+     },
+     "null_rate_played": 0.000988,
+     "null_rate_unplayed": 0.001243,
+     "type": "FLOAT"
+    },
+    "yrs_since_draft": {
+     "asymmetry": 0.15719,
+     "null_rate": 0.160611,
+     "null_rate_by_season": {
+      "2022": 0.162883,
+      "2023": 0.159999,
+      "2024": 0.159156
+     },
+     "null_rate_played": 0.148016,
+     "null_rate_unplayed": 0.305206,
+     "type": "FLOAT"
+    }
+   },
+   "date_range": {
+    "game_date": [
+     "2022-10-27",
+     "2025-06-22"
+    ]
+   },
+   "fingerprint": "9e24065b2a3f62da-f21b782e473948f8",
+   "pk_duplicates": 0,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 73877,
+    "n_unplayed": 6435
+   },
+   "primary_key": [
+    "game_id",
+    "player_id"
+   ],
+   "row_count": 80312,
+   "schema_hash": "c39a1334d66a4bda",
+   "seasons": {
+    "2022": {
+     "coverage": 0.946212,
+     "games": 1249,
+     "rows": 25110
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 27619
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 27583
+    }
+   }
+  },
+  "parquet:ridge_v2.parquet": {
+   "columns": {
+    "game_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "player_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "BIGINT"
+    },
+    "rg_009335dd_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_009335dd_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_009335dd_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_009335dd_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_009335dd_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_01e24001_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_01e24001_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_01e24001_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_01e24001_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_01e24001_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_0420f85a_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_0420f85a_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_0420f85a_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_0420f85a_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_0420f85a_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_078d1da3_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_078d1da3_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_078d1da3_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_078d1da3_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_09b24141_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_09b24141_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_10f4e241_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_10f4e241_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_10f4e241_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_17db7d7a_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_17db7d7a_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_17db7d7a_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_17db7d7a_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_17db7d7a_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_18dd91dd_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_18dd91dd_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_18dd91dd_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_18dd91dd_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_18dd91dd_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1d0e7f83_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1d0e7f83_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1d0e7f83_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1e814f6f_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1e814f6f_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1f64ac7d_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1f64ac7d_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1f9249d1_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_1f9249d1_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_20338f57_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_20338f57_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_20338f57_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_20338f57_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_2879f771_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_2879f771_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_2ddda9f7_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_2ddda9f7_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_2ddda9f7_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_2ddda9f7_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_2ddda9f7_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_3029e709_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_3029e709_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_3029e709_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_3029e709_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_303f49f5_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_303f49f5_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_36143e15_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_36143e15_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_36143e15_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_38e1bde4_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_38e1bde4_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_38e1bde4_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_38e1bde4_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_38e1bde4_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_39f1031d_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_39f1031d_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_3bf090e7_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_3bf090e7_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_46c2095d_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_46c2095d_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_493833c8_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_493833c8_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4c0b48e2_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4c0b48e2_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4c0b48e2_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4c0b48e2_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e7c0703_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e7c0703_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e9360ea_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e9360ea_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e9360ea_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e9360ea_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e9360ea_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e97bb0a_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e97bb0a_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e97bb0a_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_4e97bb0a_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_53934478_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_53934478_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_53934478_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_53934478_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65408f84_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65408f84_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65408f84_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65408f84_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65408f84_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65df382d_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65df382d_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_65df382d_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_663ea230_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_663ea230_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_663ea230_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_663ea230_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_663ea230_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_68a2f7a4_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_68a2f7a4_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_68a2f7a4_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_68a2f7a4_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_6ae80110_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_6ae80110_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_6ae80110_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_6ae80110_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_6ae80110_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_6ae80110_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7227eed8_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7227eed8_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7227eed8_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7227eed8_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7227eed8_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7317f6b3_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7317f6b3_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7317f6b3_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7317f6b3_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_795ab7a1_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_795ab7a1_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_795ab7a1_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_795ab7a1_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_795ab7a1_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7a2ecaf6_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7a2ecaf6_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7a2ecaf6_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_7a2ecaf6_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_80562375_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_84f4a8ae_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_84f4a8ae_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_84f4a8ae_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_84f4a8ae_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_84f4a8ae_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_85548b99_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_85548b99_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_85548b99_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_85548b99_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_85548b99_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_89937e2a_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ed41138_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ed41138_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ed41138_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ed41138_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ed41138_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ef1b022_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ef1b022_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ef1b022_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ef1b022_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_8ef1b022_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_99d46bb7_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_99d46bb7_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_99d46bb7_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_99d46bb7_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_99d46bb7_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_99d46bb7_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_9e8b2c97_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_9e8b2c97_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a10fbaf7_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a10fbaf7_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a159f264_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a159f264_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a159f264_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a159f264_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a159f264_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8ccdf9b_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8ccdf9b_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8ccdf9b_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8ccdf9b_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8ccdf9b_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8e2b344_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8e2b344_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_a8e2b344_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ab3c7bca_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ab3c7bca_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ac821611_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ac821611_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ac821611_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ac821611_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ad02f21f_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ad02f21f_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ad02f21f_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_af0dab83_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_af0dab83_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_af0dab83_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_af0dab83_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_af0dab83_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_b3a10ab9_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_b3a10ab9_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_b3a10ab9_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_bcb5fd7c_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_bcb5fd7c_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_bcb5fd7c_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_bcb5fd7c_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_bd928bd0_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_bd928bd0_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_bd928bd0_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_be891a22_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_be891a22_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_c3b24f2b_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_c3b24f2b_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_c3b24f2b_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_c3b24f2b_px_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_c3b24f2b_tm_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_cd1b131c_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_cd1b131c_ox_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_cd1b131c_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_cd1b131c_px_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_cd1b131c_tm_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce5177b4_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce7aa585_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce7aa585_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_ce7aa585_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d157cc2a_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d157cc2a_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d157cc2a_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d157cc2a_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d157cc2a_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d2b5f967_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d2b5f967_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_d2b5f967_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e01fdc49_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e01fdc49_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e01fdc49_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e01fdc49_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e32712b0_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e32712b0_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e32712b0_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_e32712b0_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f20f0013_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f20f0013_ox_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f20f0013_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f20f0013_px_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f20f0013_tm_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_o_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_o_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_p_fg3m": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_p_pts": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f3b8321a_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f66b755b_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f66b755b_ox_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f66b755b_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f66b755b_px_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_f66b755b_tm_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_fa105c96_o_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_fa105c96_ox_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_fa105c96_p_ast": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_fbd00944_o_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    },
+    "rg_fbd00944_p_reb": {
+     "asymmetry": 0.026521,
+     "null_rate": 0.058895,
+     "null_rate_by_season": {
+      "2022": 0.188371,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.06102,
+     "null_rate_unplayed": 0.034499,
+     "type": "FLOAT"
+    }
+   },
+   "date_range": {},
+   "fingerprint": "c3aeabf37de48638-8f524c97ca0038b8",
+   "pk_duplicates": 0,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 73877,
+    "n_unplayed": 6435
+   },
+   "primary_key": [
+    "game_id",
+    "player_id"
+   ],
+   "row_count": 80312,
+   "schema_hash": "dad58efe1043a7e2",
+   "seasons": {
+    "2022": {
+     "coverage": 0.946212,
+     "games": 1249,
+     "rows": 25110
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 27619
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 27583
+    }
+   }
+  },
+  "player_availability": {
+   "columns": {
+    "as_of": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TIMESTAMP"
+    },
+    "game_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.002842,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "player_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "pulled_at": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TIMESTAMP"
+    },
+    "reason": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "source": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "status": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "as_of": [
+     "2022-10-18 11:00:00",
+     "2026-06-13 17:45:00"
+    ],
+    "pulled_at": [
+     "2022-10-18 11:00:00",
+     "2026-06-13 17:45:00"
+    ]
+   },
+   "fingerprint": "24cb5bd32a7501d1-574b6cc4a660b9e7",
+   "pk_duplicates": 0,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 19029,
+    "n_unplayed": 12439
+   },
+   "primary_key": [
+    "source",
+    "player_id",
+    "as_of",
+    "game_id"
+   ],
+   "row_count": 118238,
+   "schema_hash": "19fd114f86a5434a",
+   "seasons": {
+    "2022": {
+     "coverage": 0.998485,
+     "games": 1318,
+     "rows": 26757
+    },
+    "2023": {
+     "coverage": 0.999241,
+     "games": 1317,
+     "rows": 29378
+    },
+    "2024": {
+     "coverage": 0.99924,
+     "games": 1314,
+     "rows": 31395
+    },
+    "2025": {
+     "coverage": 0.99772,
+     "games": 1313,
+     "rows": 30372
+    }
+   }
+  },
+  "player_game_stats": {
+   "columns": {
+    "ast": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "blk": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "dreb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "fg3a": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "fg3m": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "fga": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "fgm": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "fta": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "ftm": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "game_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "minutes": {
+     "null_rate": 0.186014,
+     "null_rate_by_season": {
+      "2022": 0.184723,
+      "2023": 0.189832,
+      "2024": 0.195273,
+      "2025": 0.174099
+     },
+     "type": "FLOAT"
+    },
+    "oreb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "pf": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "player_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "pts": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "reb": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "starter": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "BOOLEAN"
+    },
+    "stl": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "team_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "tov": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    }
+   },
+   "date_range": {},
+   "fingerprint": "5281ed22d05330e0-cfa97283d661bd6a",
+   "pk_duplicates": 0,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 102788,
+    "n_unplayed": 35621
+   },
+   "primary_key": [
+    "game_id",
+    "player_id"
+   ],
+   "row_count": 138409,
+   "schema_hash": "458b31850717ec26",
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 34024
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 34815
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 34946
+    },
+    "2025": {
+     "coverage": 1.0,
+     "games": 1316,
+     "rows": 34624
+    }
+   }
+  },
+  "player_rates": {
+   "columns": {
+    "as_of": {
+     "null_rate": null,
+     "type": "DATE"
+    },
+    "drb_rate": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "foul_draw": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "ft_pct": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "min_per_g": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "n_poss": {
+     "null_rate": null,
+     "type": "INTEGER"
+    },
+    "orb_rate": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "player_id": {
+     "null_rate": null,
+     "type": "INTEGER"
+    },
+    "source": {
+     "null_rate": null,
+     "type": "VARCHAR"
+    },
+    "tov_rate": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "usage": {
+     "null_rate": null,
+     "type": "FLOAT"
+    },
+    "zone_fg": {
+     "null_rate": null,
+     "type": "FLOAT[4]"
+    },
+    "zone_mix": {
+     "null_rate": null,
+     "type": "FLOAT[4]"
+    }
+   },
+   "date_range": {
+    "as_of": [
+     null,
+     null
+    ]
+   },
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "primary_key": null,
+   "row_count": 0,
+   "schema_hash": "7d3899c7b5a029cc"
+  },
+  "players_static": {
+   "columns": {
+    "birth_date": {
+     "null_rate": 0.0,
+     "type": "DATE"
+    },
+    "college": {
+     "null_rate": 0.001122,
+     "type": "VARCHAR"
+    },
+    "college_stats": {
+     "null_rate": 1.0,
+     "type": "JSON"
+    },
+    "draft_pick": {
+     "null_rate": 0.332211,
+     "type": "INTEGER"
+    },
+    "draft_year": {
+     "null_rate": 0.325477,
+     "type": "INTEGER"
+    },
+    "height_in": {
+     "null_rate": 0.004489,
+     "type": "FLOAT"
+    },
+    "player_id": {
+     "null_rate": 0.0,
+     "type": "INTEGER"
+    },
+    "position": {
+     "null_rate": 0.004489,
+     "type": "VARCHAR"
+    },
+    "weight_lb": {
+     "null_rate": 0.010101,
+     "type": "FLOAT"
+    }
+   },
+   "date_range": {
+    "birth_date": [
+     "1980-06-09",
+     "2006-12-21"
+    ]
+   },
+   "fingerprint": "44b18cd8a66af8a6-c91071824335abfc",
+   "pk_duplicates": 0,
+   "primary_key": [
+    "player_id"
+   ],
+   "row_count": 891,
+   "schema_hash": "a72f3f51cc0dd333"
+  },
+  "possessions": {
+   "columns": {
+    "assister_id": {
+     "null_rate": 0.759721,
+     "null_rate_by_season": {
+      "2022": 0.770452,
+      "2023": 0.758814,
+      "2024": 0.757042,
+      "2025": 0.752518
+     },
+     "type": "INTEGER"
+    },
+    "clock_end": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "FLOAT"
+    },
+    "clock_start": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "FLOAT"
+    },
+    "def_players": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER[5]"
+    },
+    "def_team": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "fta": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "game_id": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "VARCHAR"
+    },
+    "off_players": {
+     "null_rate": 2e-06,
+     "null_rate_by_season": {
+      "2022": 4e-06,
+      "2023": 4e-06,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER[5]"
+    },
+    "off_team": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "oreb": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "BOOLEAN"
+    },
+    "outcome": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "VARCHAR"
+    },
+    "period": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "poss_idx": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "pts": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "score_diff": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "shooter_id": {
+     "null_rate": 0.214686,
+     "null_rate_by_season": {
+      "2022": 0.217825,
+      "2023": 0.207979,
+      "2024": 0.21258,
+      "2025": 0.220296
+     },
+     "type": "INTEGER"
+    },
+    "shot_zone": {
+     "null_rate": 0.214686,
+     "null_rate_by_season": {
+      "2022": 0.217825,
+      "2023": 0.207979,
+      "2024": 0.21258,
+      "2025": 0.220296
+     },
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {},
+   "fingerprint": "7dcc7525296bef51-04cf2f21be6fb22d",
+   "pk_duplicates": 0,
+   "primary_key": [
+    "game_id",
+    "poss_idx"
+   ],
+   "row_count": 1049740,
+   "schema_hash": "3b4cda84d1ed56f6",
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 263932
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 261180
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 261704
+    },
+    "2025": {
+     "coverage": 1.0,
+     "games": 1316,
+     "rows": 262924
+    }
+   }
+  },
+  "prop_predictions": {
+   "columns": {
+    "dist_family": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "dist_params": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "JSON"
+    },
+    "game_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "made_at": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "TIMESTAMP"
+    },
+    "mean": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "p_ge": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "JSON"
+    },
+    "player_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "INTEGER"
+    },
+    "q10": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "q50": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "q90": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "FLOAT"
+    },
+    "run_id": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    },
+    "stat": {
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "made_at": [
+     "2026-10-06 08:54:01.712385",
+     "2026-10-06 08:56:23.867104"
+    ]
+   },
+   "fingerprint": "9847f4934cab8256-1278cf1b89736c78",
+   "pk_duplicates": 0,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 822304,
+    "n_unplayed": 284968
+   },
+   "primary_key": [
+    "run_id",
+    "game_id",
+    "player_id",
+    "stat"
+   ],
+   "row_count": 1107272,
+   "schema_hash": "28dc307d0dd95f10",
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 272192
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 278520
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 279568
+    },
+    "2025": {
+     "coverage": 1.0,
+     "games": 1316,
+     "rows": 276992
+    }
+   }
+  },
+  "stints": {
+   "columns": {
+    "end_clock": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "FLOAT"
+    },
+    "game_id": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "VARCHAR"
+    },
+    "period": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "players": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER[5]"
+    },
+    "start_clock": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "FLOAT"
+    },
+    "team_id": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    }
+   },
+   "date_range": {},
+   "fingerprint": "7a3927c82484c959-c83f9d7228e18001",
+   "pk_duplicates": null,
+   "primary_key": null,
+   "row_count": 366338,
+   "schema_hash": "30835b63dc0093e7",
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 87661
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 88482
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 91942
+    },
+    "2025": {
+     "coverage": 1.0,
+     "games": 1316,
+     "rows": 98253
+    }
+   }
+  },
+  "team_context": {
+   "columns": {
+    "b2b": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "BOOLEAN"
+    },
+    "game_id": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "injured_out": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "INTEGER[]"
+    },
+    "rest_days": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "INTEGER"
+    },
+    "team_id": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "INTEGER"
+    },
+    "travel_miles": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    }
+   },
+   "date_range": {},
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "primary_key": null,
+   "row_count": 0,
+   "schema_hash": "6adefb0950d588d1",
+   "seasons": {}
+  },
+  "team_game_advanced": {
+   "columns": {
+    "def_rating": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    },
+    "efg_pct": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    },
+    "ft_rate": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    },
+    "game_id": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "net_rating": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    },
+    "off_rating": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    },
+    "oreb_pct": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    },
+    "pace": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    },
+    "team_id": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "INTEGER"
+    },
+    "tov_pct": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "FLOAT"
+    }
+   },
+   "date_range": {},
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "primary_key": [
+    "game_id",
+    "team_id"
+   ],
+   "row_count": 0,
+   "schema_hash": "d5dd505ab98da196",
+   "seasons": {}
+  }
+ }
+}

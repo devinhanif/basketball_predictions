@@ -1,7 +1,7 @@
 UV := $(shell command -v uv 2>/dev/null)
 PY := python3
 
-.PHONY: setup test lint backtest smoke smoke-check report data-contract gate gate-local registry
+.PHONY: setup test lint backtest smoke smoke-check report data-contract gate gate-local registry data-snapshot data-diff data-check
 
 ## Install all dependencies (prefers uv, falls back to pip + venv).
 setup:
@@ -130,3 +130,25 @@ colab-pull:
 
 colab-status:
 	uv run python -m nba.colab status $(JOB)
+
+## Data version control (docs/DATA_VERSIONING.md). Read-only on nba.duckdb.
+data-snapshot:
+ifdef UV
+	uv run python -m nba.datamanifest snapshot $(SNAPSHOT_ARGS)
+else
+	. .venv/bin/activate && python -m nba.datamanifest snapshot $(SNAPSHOT_ARGS)
+endif
+
+data-diff:
+ifdef UV
+	uv run python -m nba.datamanifest diff
+else
+	. .venv/bin/activate && python -m nba.datamanifest diff
+endif
+
+data-check:
+ifdef UV
+	uv run python -m nba.datamanifest check
+else
+	. .venv/bin/activate && python -m nba.datamanifest check
+endif

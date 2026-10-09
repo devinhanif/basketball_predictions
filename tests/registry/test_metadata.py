@@ -50,3 +50,12 @@ def test_build_tags_shape() -> None:
 def test_build_tags_defaults_cold_start_flags() -> None:
     tags = build_tags(rung=0, model_method="elo")
     assert tags["cold_start_flags"] == []
+
+
+def test_build_run_metadata_data_version_explicit_and_default() -> None:
+    explicit = build_run_metadata(
+        game_date_min=None, game_date_max=None, possession_count=0, seed=0, data_version="abc123"
+    )
+    assert explicit["data_version"] == "abc123"
+    auto = build_run_metadata(game_date_min=None, game_date_max=None, possession_count=0, seed=0)
+    assert "data_version" in auto

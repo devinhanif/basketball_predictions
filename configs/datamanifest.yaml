@@ -1,0 +1,41 @@
+# Thresholds and scan settings for nba.datamanifest (see docs/DATA_VERSIONING.md).
+db_path: nba.duckdb
+data_dir: data
+manifest_dir: data/manifests
+summary_path: docs/data_manifests/latest.json
+
+lock_retry:            # DB held by a writer: retry with backoff, never wait forever
+  max_wait_s: 30
+  first_delay_s: 1.0
+
+played_minutes: 5.0    # played = minutes >= this
+
+thresholds:
+  row_drop_frac: 0.001         # flag any row-count drop larger than this fraction
+  coverage_drop: 0.02          # flag drop in game coverage (distinct games / games table)
+  null_shift: 0.05             # flag |change| in overall column null rate
+  null_shift_season: 0.10      # flag |change| in a per-season null rate
+  asymmetry: 0.50              # |null_rate(unplayed) - null_rate(played)| => POSSIBLE LEAK
+  asymmetry_old_max: 0.25      # ... and it was below this before (or the column is new)
+  min_group_rows: 200          # ignore played/unplayed groups smaller than this
+
+# Natural keys for tables without a declared PRIMARY KEY (duplicate counting).
+natural_keys:
+  player_game_stats: [game_id, player_id]
+  player_availability: [source, player_id, as_of, game_id]
+  prop_predictions: [run_id, game_id, player_id, stat]
+parquet_key: [game_id, player_id]
+
+# Output / log tables: fingerprinted but excluded from data_version, since they change
+# on every model run (stamping them would make the version change on each registration).
+exclude_from_version:
+  - experiments
+  - ingest_log
+  - forward_predictions
+  - forward_scores
+  - paper_trades
+  - prop_predictions
+
+# Columns whose played/unplayed NULL asymmetry is structural (reviewed, not a leak),
+# as "table.column". Keep this list short and justified.
+known_asymmetry: []
