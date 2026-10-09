@@ -236,3 +236,26 @@ NBA_ARTIFACT_ROOT=<dir> NBA_MAX_ARMS=3`; `NBA_CRASH_AFTER_ARM=<arm>` forces a ke
   (<= 2.4%); the GBM already sees recency means (`m5/m10/m40/m100`), so a proxy gain may not carry over. A
   documented negative (no stat clears -0.005) is a perfectly acceptable outcome of this experiment.
 * Passing on 2024 -> 2025 confirmatory candidate (separate pre-registration, one touch). Not a production change.
+
+## 9. Results (run 20261008_194547, L4, scored 2026-10-09 by `nba.eval.ridge_v2_eval` as pre-registered)
+
+**Verdict: NOT KEPT for any stat** (T098-T101). Primary reference `ref_fixed` (the v2 feature set with the
+leak-free ridge). 2023-selected candidates on 2024 (n = 27,583 per stat): pts `drop_r5` -0.0004
+[-0.0014, +0.0007], reb `drop_r3a` -0.0001, ast `drop_r3a` +0.0002, fg3m `L4` -0.0001; all fail floor, CI and BH.
+
+**Leak decomposition (descriptive), CRPS, positive = first arm worse:**
+
+| stat | exp-2 "ridge gain" (no_ridge - exp2_ref) | honest ridge gain (no_ridge - ref_fixed) | leak effect (ref_fixed - exp2_ref) |
+|---|---|---|---|
+| pts | +0.0684 | -0.0001 [-0.0007, +0.0005] | +0.0685 [+0.0634, +0.0737] |
+| reb | +0.0430 | +0.0007 [+0.0001, +0.0014] | +0.0423 |
+| ast | +0.0143 | +0.0001 | +0.0142 |
+| fg3m | +0.0073 | +0.0002 | +0.0071 |
+
+The experiment-2 ablation's "ridge carries the gain" was **entirely the leak**: the honest, as-of opponent-adjusted
+ridge adds nothing measurable on top of the other v2 features (reb +0.0007 is the only CI excluding 0, below the
+floor). None of the ~20 new ridge variants (rolling windows, archetype, position, drop-one, L1-L4) moves CRPS by more
+than 0.002. Since exp-2's v2-vs-production margins (pts -0.030, reb -0.051, ast -0.030, fg3m -0.032) are smaller
+than or comparable to the leak effect, **the v2 feature set's advantage over production is presumed to be mostly or
+entirely leak until re-measured** with `ref_fixed` against `v1_prod` on identical rows (next step for the leak-fixed
+experiment 3; needs its own pre-registration).
