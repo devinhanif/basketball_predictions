@@ -155,3 +155,22 @@ recalibration; rookies and offseason moves are invisible until a first box score
    version. Both it and `rung0_mov_elo` fall back to config (status `unregistered`) if absent.
 2. Done: `nba.props.forward.predict_slate`. 3. Done: `nba.ingest.games.refresh_season_games`.
 4. Done: forward tables are in `nba/db/schema.sql`.
+
+## Scheduled runs (launchd, optional)
+
+`ops/nba_daily.sh` wraps the commands above. `ops/install_launchd.sh` installs two user launchd jobs
+(Mac local time, US/Central). The maintainer runs the installer by hand; uninstall with
+`ops/install_launchd.sh --uninstall`. NOT installed as of 2026-10-08.
+
+| Job | When | Steps |
+|---|---|---|
+| `local.nba.daily-pretip` | every hour at :30, 09:30-21:30 | `nba.daily run --date <today ET>` (exit 2 = some games already tipped, not a failure), then the read-only `nba.parlay evaluate` shadow log |
+| `local.nba.daily-morning` | 08:00 | `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
+
+Guards: one job at a time (`data/ops/lock`, stale after 3 h); waits up to 15 min for another
+`nba.duckdb` writer, then skips with an alert. Logs: `data/ops/<mode>_<YYYYMMDD>.log`. Failures append to
+`data/ops/ALERTS.md` and post a macOS notification. Shots and coaches are per team-season and cached
+once, so they are refreshed by hand. The Mac must be awake: a job missed during sleep runs once on wake.
+
+`ops/check_vm_reachability.sh` checks that a candidate host (e.g. a cloud VM) can reach stats.nba.com
+through nba_api, the injury-report host, Kalshi, GitHub and Drive before anything is moved there.
