@@ -594,7 +594,7 @@ class Toolbox:
             try:
                 rows = con.execute(
                     "SELECT legs, raw_model_prob, market_mid, outcome FROM shadow_predictions "
-                    "WHERE settled AND outcome IS NOT NULL"
+                    "WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
                 ).fetchall()
                 n_open = con.execute(
                     "SELECT count(*) FROM shadow_predictions WHERE NOT settled"

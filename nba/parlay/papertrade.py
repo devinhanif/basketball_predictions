@@ -82,7 +82,23 @@ def _leg_yes(con: duckdb.DuckDBPyConnection, leg: Leg) -> bool | None:
         "WHERE game_id=? AND player_id=?",
         [leg.game_id, leg.player_id],
     ).fetchone()
-    if row is None or row[0] is None:
+    if row is None:
+        # No row for this player. If the game is final and its box score is ingested (other
+        # players have rows), the player was inactive: same as a DNP row. Otherwise no result yet.
+        box = con.execute(
+            "SELECT count(*) FROM player_game_stats WHERE game_id=?", [leg.game_id]
+        ).fetchone()
+        try:
+            final = con.execute(
+                "SELECT count(*) FROM games WHERE game_id=? AND home_pts > 0 AND away_pts > 0",
+                [leg.game_id],
+            ).fetchone()
+        except duckdb.CatalogException:  # results store without a games table: cannot tell
+            final = None
+        if box and box[0] > 0 and final and final[0] > 0:
+            raise DnpLeg(leg)
+        return None
+    if row[0] is None:
         return None
     if row[1] is None or row[1] <= 0:
         raise DnpLeg(leg)

@@ -9,17 +9,26 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from nba.daily.pipeline import RunSummary, run_daily, utcnow
 from nba.daily.report import build_report
-from nba.daily.schedule import fetch_schedule_nba_api
+from nba.daily.schedule import fetch_schedule_nba_api, schedule_from_db
 from nba.daily.settle import settle_pending
 from nba.db.connect import DEFAULT_DB_PATH, connect
 from nba.ingest.cache import RateLimiter
 
 DEFAULT_REPORT = Path("registry_store/reports/forward_report.md")
+
+
+_NOW_HELP = "override the clock (naive UTC ISO, e.g. 2024-10-22T21:50); rehearsals only"
+
+
+def _naive_utc(text: str) -> datetime:
+    """Parse an ISO timestamp as naive UTC (an explicit offset is converted to UTC)."""
+    d = datetime.fromisoformat(text)
+    return d.astimezone(UTC).replace(tzinfo=None) if d.tzinfo else d
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -34,7 +43,21 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument("--props-model", choices=["context", "routed", "rolling"], default="context")
     r.add_argument("--n-sims", type=int, default=1000)
     r.add_argument("--rate-limit-s", type=float, default=0.6)
-    sub.add_parser("settle", help="score completed predictions only")
+    r.add_argument(
+        "--schedule-from-db",
+        action="store_true",
+        help="read the slate from the games table (19:00 ET tip proxy) instead of nba_api; "
+        "for rehearsals/replays on a database copy",
+    )
+    r.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
+    r.add_argument(
+        "--model-cache",
+        type=Path,
+        default=None,
+        help="context-residual model cache root (default data/models/context_residual)",
+    )
+    st = sub.add_parser("settle", help="score completed predictions only")
+    st.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
     rep = sub.add_parser("report", help="rolling forward metrics + rollover flag")
     rep.add_argument("--out", default=str(DEFAULT_REPORT))
     rep.add_argument("--season", type=int, default=2026)
@@ -60,7 +83,9 @@ def main(argv: list[str] | None = None) -> int:
         s = run_daily(
             con,
             args.date,
-            schedule_fn=fetch_schedule_nba_api,
+            schedule_fn=schedule_from_db(con) if args.schedule_from_db else fetch_schedule_nba_api,
+            now=args.now,
+            model_cache=args.model_cache,
             registry=get_registry(con),
             skip_ingest=args.skip_ingest,
             skip_injury=args.skip_injury,
@@ -72,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_summary(s)
         return 2 if s.n_refused_after_tipoff else 0
     if args.command == "settle":
-        print(settle_pending(con, utcnow()))
+        print(settle_pending(con, args.now or utcnow()))
         return 0
     text = build_report(con, args.season)
     out = Path(args.out)

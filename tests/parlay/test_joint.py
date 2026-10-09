@@ -33,7 +33,7 @@ from nba.parlay.joint import (
 )
 from nba.parlay.kalshi_map import MarketRow, map_market, parse_event
 from nba.parlay.legs import Leg
-from nba.parlay.papertrade import settle_trades
+from nba.parlay.papertrade import resolve_legs, settle_trades
 from nba.parlay.qdist import QuantileGridDist
 from nba.parlay.shadow import ensure_schema, log_shadow, settle_shadow, track_record
 
@@ -346,6 +346,20 @@ def test_settle_game_and_dnp_policies(
     assert b3.execute("SELECT outcome FROM paper_trades").fetchone() == (False,)
 
 
+def test_player_absent_from_final_box_score_is_dnp_not_open() -> None:
+    """Inactive players have no box row at all: with the game final and its box ingested they
+    must settle as DNP (void/loss), never stay open forever. Box not ingested -> still open."""
+    res = _results_db()  # player 9 has no row; the box has other rows; the game is final
+    leg = [Leg("g", 9, "pts", 5, "yes", HOME)]
+    assert resolve_legs(res, leg, "void") == ("void", False)
+    assert resolve_legs(res, leg, "loss") == ("done", False)
+    res.execute("DELETE FROM player_game_stats")  # box score not ingested yet
+    assert resolve_legs(res, leg, "void")[0] == "open"
+    res.execute("INSERT INTO player_game_stats VALUES ('g',1,?,30,25,5,6,2,0,0,1,TRUE)", [HOME])
+    res.execute("UPDATE games SET home_pts = NULL, away_pts = NULL")  # game not final
+    assert resolve_legs(res, leg, "void")[0] == "open"
+
+
 # ---------------------------------------------------------------- CLI end to end
 def _build_dbs(tmp: Path) -> tuple[Path, Path, Path, Path]:
     nba = tmp / "nba.duckdb"
@@ -553,3 +567,26 @@ def test_shadow_settles_and_track_record(tmp_path: Path) -> None:
     assert settle_shadow(book, res) == 1
     tr = track_record(book)
     assert tr.n_settled == 1 and tr.skill > 0
+
+
+def test_track_record_counts_each_market_once_not_both_sides() -> None:
+    """evaluate logs YES and NO of every market; the NO row is the same event, so only the YES
+    row counts toward n_settled (otherwise the min_settled gate opens on half the evidence)."""
+    book = duckdb.connect(":memory:")
+    ensure_schema(book)
+    leg = Leg("g", 0, "win", 0, "yes", HOME)
+    for i in range(10):
+        for side, p in (("yes", 0.7), ("no", 0.3)):
+            log_shadow(
+                book,
+                shadow_id=f"s{i}|{side}",
+                ticker=f"t{i}",
+                side=side,
+                legs=[leg],
+                raw_model_prob=p,
+                market_mid=0.5,
+                price=0.5,
+                engine="x",
+            )
+    book.execute("UPDATE shadow_predictions SET settled=TRUE, outcome=TRUE")
+    assert track_record(book).n_settled == 10

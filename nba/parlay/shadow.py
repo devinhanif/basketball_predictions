@@ -112,10 +112,16 @@ class TrackRecord:
 
 
 def track_record(con: duckdb.DuckDBPyConnection) -> TrackRecord:
+    """Skill of the raw model vs the market mid on settled shadow rows.
+
+    Only ``side = 'yes'`` rows count: ``evaluate`` logs BOTH sides of every market, and the NO
+    row is the same event (same outcome, complementary probability), so counting it would double
+    ``n`` and open the ``min_settled`` gate on half the real evidence.
+    """
     row = con.execute(
         "SELECT count(*), avg(pow(raw_model_prob - CAST(outcome AS DOUBLE), 2)), "
         "avg(pow(market_mid - CAST(outcome AS DOUBLE), 2)) "
-        "FROM shadow_predictions WHERE settled AND outcome IS NOT NULL"
+        "FROM shadow_predictions WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
     ).fetchone()
     n = int(row[0]) if row else 0
     if n == 0 or row is None or row[2] is None or row[2] <= 0:
