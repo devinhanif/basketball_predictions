@@ -133,6 +133,8 @@ case "$MODE" in
     step backup_registry_drive rclone copy registry_store gdrive:nba_backups/registry_store
     [ -n "$latest" ] && step backup_db_drive rclone copyto "$latest" gdrive:nba_backups/nba_latest.duckdb
     [ -d data/lineups ] && step backup_lineups_drive rclone copy data/lineups gdrive:nba_backups/lineups
+    # checkpoint snapshots are the immutable record of pre-registered looks: copy, never sync/delete
+    [ -d data/checkpoints ] && step backup_checkpoints_drive rclone copy --immutable data/checkpoints gdrive:nba_backups/checkpoints
     du -sh nba.duckdb data/kalshi data/colab data/backups registry_store >> "$LOG" 2>&1
     ;;
   *)
