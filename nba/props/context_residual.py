@@ -85,6 +85,10 @@ class ContextResidualConfig:
     #: Default False = byte-identical production output.
     integer_support: bool = False
     integer_support_stats: tuple[str, ...] = INTEGER_SUPPORT_STATS
+    #: Upper-tail construction for the points quantiles (docs/PTS_TAIL.md): "off"
+    #: (production, byte-identical) | "sqrt" | "mondrian_up" | "gamma_tail".
+    pts_tail: str = "off"
+    pts_tail_stats: tuple[str, ...] = ("pts",)
     #: Production gates official-report snapshots on the REAL scheduled tip-off
     #: (maintainer decision 2026-10-09); ``tip_source="proxy19"`` reproduces the old runs.
     report: ReportTriggerConfig = field(
@@ -667,6 +671,8 @@ class ContextResidualModel:
     scale_head: lgb.LGBMRegressor | None = None
     z_sorted: np.ndarray | None = None
     z_base_sorted: np.ndarray | None = None
+    #: calibration-window arrays (y, centre m+mu, scale), kept only when ``pts_tail != "off"``.
+    cal_tail_: dict[str, np.ndarray] | None = None
     importance_: dict[str, float] = field(default_factory=dict)
 
     def fit(self, train: pl.DataFrame) -> ContextResidualModel:
@@ -689,6 +695,13 @@ class ContextResidualModel:
         s = self._scale(x_cal)
         z = (cal_df["resid"].to_numpy() - mu) / s
         self.z_sorted = np.sort(z)
+        if self.cfg.pts_tail != "off" and self.stat in self.cfg.pts_tail_stats:
+            self.cal_tail_ = {
+                "y": cal_df["y"].to_numpy(),
+                "c": cal_df["m"].to_numpy() + mu,
+                "s": s,
+                "z": z,
+            }
         self.z_base_sorted = np.sort(
             (cal_df["y"].to_numpy() - cal_df["m"].to_numpy()) / cal_df["s"].to_numpy()
         )
@@ -708,13 +721,42 @@ class ContextResidualModel:
         mu = np.asarray(self.mean_head.predict(x))
         s = self._scale(x)
         m = df["m"].to_numpy()
-        zq = np.asarray(np.quantile(self.z_sorted, taus))
-        q = m[:, None] + mu[:, None] + s[:, None] * zq[None, :]
-        q = np.maximum.accumulate(np.clip(q, 0.0, None), axis=1)
+        if self.cfg.pts_tail != "off" and self.stat in self.cfg.pts_tail_stats:
+            q = self.tail_quantiles(self.cfg.pts_tail, m + mu, s, taus)
+        else:
+            zq = np.asarray(np.quantile(self.z_sorted, taus))
+            q = m[:, None] + mu[:, None] + s[:, None] * zq[None, :]
+            q = np.maximum.accumulate(np.clip(q, 0.0, None), axis=1)
         if self.cfg.integer_support and self.stat in self.cfg.integer_support_stats:
             q = to_integer_support(q)
         mean = np.clip(m + mu + s * float(self.z_sorted.mean()), 0.0, None)
         return mean, q
+
+    def tail_quantiles(
+        self, kind: str, c: np.ndarray, s: np.ndarray, taus: np.ndarray
+    ) -> np.ndarray:
+        """Quantiles of centre ``c`` / scale ``s`` rows under tail construction ``kind``."""
+        from nba.props.pts_tail import tail_quantiles
+
+        if self.cal_tail_ is None:
+            raise ValueError("model was fitted with pts_tail='off'; no calibration arrays kept")
+        cal = self.cal_tail_
+        return tail_quantiles(
+            kind,
+            y_cal=cal["y"],
+            c_cal=cal["c"],
+            s_cal=cal["s"],
+            z_cal=cal["z"],
+            c=c,
+            s=s,
+            taus=taus,
+        )
+
+    def predict_components(self, df: pl.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+        """(centre ``m + mu``, scale) rows; building block for tail diagnostics."""
+        assert self.mean_head is not None
+        x = _matrix(df, self.names)
+        return df["m"].to_numpy() + np.asarray(self.mean_head.predict(x)), self._scale(x)
 
     def predict_baseline_cal(
         self, df: pl.DataFrame, taus: np.ndarray

@@ -86,3 +86,46 @@ Quantiles are clipped at 0 and made non-decreasing exactly as in production. Imp
   only), reb/ast/fg3m, season 2025.
 
 === RESULTS BELOW ===
+
+
+## Results (run 2026-10-09; frozen-section sha256 prefix `c4d1161e`)
+
+Rows: 2023 n=27,619 (1,318 games), 2024 n=27,583 (1,315 games), pts only,
+CPU, one walk-forward pass (about 25 s). Candidate = candidate minus production, lower is better.
+
+| season | arm | dTLL vs production [95% game-clustered CI] | p (BH, 3) | dCRPS [CI] | pooled ECE | P(y<=q0.90/0.95/0.99) | pass |
+|---|---|---|---|---|---|---|---|
+| 2023 | production | (TLL 0.19960, CRPS 3.1571) | | | 0.00412 | 0.904 / 0.954 / 0.991 | |
+| 2023 | sqrt | +0.00045 [+0.00009,+0.00080] | 0.027 | +0.0101 [+0.0074,+0.0127] | 0.00751 | 0.904 / 0.954 / 0.991 | no |
+| 2023 | mondrian_up | +0.00006 [-0.00012,+0.00023] | 0.499 | -0.0023 [-0.0037,-0.0007] | 0.00228 | 0.903 / 0.953 / 0.990 | no |
+| 2023 | gamma_tail | +0.00004 [-0.00001,+0.00009] | 0.194 | -0.0000 [-0.0001,+0.0000] | 0.00418 | 0.902 / 0.953 / 0.992 | no |
+| 2024 | production | (TLL 0.20242, CRPS 3.1928) | | | 0.00384 | 0.897 / 0.949 / 0.989 | |
+| 2024 | sqrt | +0.00045 [+0.00011,+0.00079] | 0.042 | +0.0061 [+0.0034,+0.0086] | 0.00662 | 0.898 / 0.949 / 0.989 | no |
+| 2024 | mondrian_up | -0.00016 [-0.00034,+0.00002] | 0.140 | -0.0022 [-0.0037,-0.0007] | 0.00289 | 0.898 / 0.949 / 0.989 | no |
+| 2024 | gamma_tail | -0.00001 [-0.00006,+0.00004] | 0.708 | +0.0000 [-0.0000,+0.0000] | 0.00399 | 0.896 / 0.949 / 0.989 | no |
+
+**Verdict: no candidate passes; nothing is selected on 2023 and nothing is confirmed on 2024.
+Production's pts quantiles stay as they are.**
+
+* Premise check: the red team's thin tail (q0.99 coverage 0.973) was the hybrid arm. Production
+  covers 0.991 / 0.989 at q0.99 and 0.954 / 0.949 at q0.95; there is no upper-tail defect at the
+  quantile level. The remaining gap is a 3-5% relative under-prediction at 20+/25+/30+ (table in the
+  frozen section), small enough that the -0.002 floor looked unlikely to be reachable; the arms
+  moved threshold log loss by at most 0.0005. That is a negative result, reported as such.
+* sqrt: significantly WORSE on both seasons (dTLL +0.00045; dCRPS +0.006 to +0.010). It also
+  pushes P(>=20/25/30) below the base rate in 2024.
+* gamma_tail: indistinguishable from production (dTLL within +/-0.00004, dCRPS 0.0000).
+* mondrian_up: threshold log loss unchanged (2023 +0.00006, 2024 -0.00016, CI covers 0); CRPS
+  improves by -0.0023 / -0.0022 with CIs excluding 0 in both seasons, and pooled ECE halves
+  (0.0041 -> 0.0023, 0.0038 -> 0.0029). This is EXPLORATORY: CRPS was the secondary guard, not the
+  decision metric, the gain is 0.07% of CRPS, and threshold log loss (the upper-tail measure) did not move.
+  Not a pass; if the maintainer wants it, it needs its own pre-registration (CRPS primary, 2025
+  untouched).
+* Mean is untouched by construction (v2 report: bias +0.046 [-0.00,+0.09]).
+* Side observation (descriptive, out of scope): production lower-tail coverage is poor for pts,
+  P(y<=q0.01/0.05/0.10) = 0.128/0.154/0.183 (2023), PIT first decile 3,635 vs 2,762 expected.
+  Part is the point mass at 0 and the integer lattice; a lower-tail study would need its own prereg.
+* No holdout row drafted (nothing passed). Season 2025 never loaded.
+
+Reproduce: `uv run python -m nba.eval.pts_tail_eval collect && uv run python -m nba.eval.pts_tail_eval candidates`
+(about 25 s CPU; read-only DuckDB).
