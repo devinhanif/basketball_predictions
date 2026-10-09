@@ -58,7 +58,9 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   "$@" >> "$LOG" 2>&1
   rc=$?
   log "end $name rc=$rc"
-  if [ "$rc" -ne 0 ] && ! { [ "$name" = predict ] && [ "$rc" -eq 2 ]; }; then
+  # exit 2 is informational for: predict (some games already tipped) and refs (officials not yet
+  # mapped to ids until game_officials is loaded); anything else non-zero alerts
+  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ]; } && [ "$rc" -eq 2 ]; }; then
     HB_RC=$rc
     alert "$name failed (rc=$rc), see $LOG"
   fi
@@ -96,6 +98,7 @@ case "$MODE" in
     if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
     step predict "$UV" run python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --rate-limit-s 2.5
+    step refs "$UV" run python -m nba.ingest.referees collect
     step market_capture "$UV" run python -m nba.markets capture --date "$TODAY_ET"
     step parlay_shadow "$UV" run python -m nba.parlay evaluate --date "$TODAY_ET"
     ;;
