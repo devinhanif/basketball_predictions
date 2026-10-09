@@ -142,3 +142,11 @@ bounds), not because any effect is believed false.
 | T084 | 2026-10-08 | PBP_GPT P3 (docs/PBP_GPT.md) | live remaining pts/reb/ast CRPS, GPT - pro-rated recency NB, 12 cells, 2024 | 2/12 win (q4_5min pts -0.095, ast -0.012) | — | — | clus | BH 12 | 8 cells significantly worse | not holdout (2024) |
 
 **PBP_GPT verdict (T082-T084):** NOT KEPT. G0 perplexity gate passed (learned play grammar); live and pregame probabilities worse than simple baselines.
+| T085 | 2026-10-08 | LINEUPS_KNOWN (docs/LINEUPS_KNOWN.md; T-30 != T-60) | pts: T-30 (+starter features) - T-60 production context_residual CRPS, 2024 | -0.0412 | -0.0475 | -0.0346 | clus | 0.0005 | ADDS VALUE AT T-30 (all checks pass; proxy optimistic) | not holdout (2024) |
+| T086 | 2026-10-08 | LINEUPS_KNOWN | reb: T-30 - T-60 CRPS, 2024 | -0.0182 | -0.0210 | -0.0154 | clus | 0.0005 | ADDS VALUE AT T-30 | not holdout (2024) |
+| T087 | 2026-10-08 | LINEUPS_KNOWN | ast: T-30 - T-60 CRPS, 2024 | -0.0089 | -0.0106 | -0.0071 | clus | 0.0005 | ADDS VALUE AT T-30 | not holdout (2024) |
+| T088 | 2026-10-08 | LINEUPS_KNOWN | fg3m: T-30 - T-60 CRPS, 2024 | -0.0041 | -0.0051 | -0.0030 | clus | 0.0005 | BELOW FLOOR (-0.005); significant but small | not holdout (2024) |
+| T089 | 2026-10-08 | LINEUPS_KNOWN | P(play) log loss, T-30 logistic - T-60 recalibrated production P(play), 2024 (n=32,642) | -0.0538 | -0.0569 | -0.0509 | clus | 0.0005 | secondary; mostly mechanical (every box-score starter played) | not holdout (2024) |
+| T090 | 2026-10-08 | LINEUPS_KNOWN | P(play) log loss, bench-tonight rows only, 2024 (n=19,578) | -0.0358 | -0.0399 | -0.0318 | clus | 0.0005 | secondary; non-mechanical part; 'listed active' NOT measurable (no historical inactive list) | not holdout (2024) |
+
+**LINEUPS_KNOWN verdict (T085-T090):** at T-30, confirmed starters improve pts/reb/ast CRPS (and P(play)); fg3m is significant but below the practical floor. The gain is a PROXY-based, upward-biased estimate (box-score starter flag, not the announced five; a 5% synthetic scratch process attenuates it only ~3%). It is a different prediction time and says nothing about T-60. NOT wired into production; red-team review + maintainer decision needed. 2023 replication (descriptive): pts -0.0366, reb -0.0162, ast -0.0094, fg3m -0.0032.

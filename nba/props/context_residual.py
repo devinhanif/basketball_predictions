@@ -408,10 +408,23 @@ def build_features(
     static: pl.DataFrame,
     flagged: dict[str, set[int]],
     elo_params: dict[str, float],
+    tracking_feats: pl.DataFrame | None = None,
+    lineups_known: bool = False,
+    t30_scratch_prob: float = 0.0,
 ) -> pl.DataFrame:
     """One row per PLAYED player-game with as-of features and the four stat
     labels. ``flagged`` maps game_id -> OUT player ids (only games with a usable
-    pre-tip report are keys)."""
+    pre-tip report are keys).
+
+    ``tracking_feats`` is an OPT-IN screen hook (default ``None`` = production,
+    output unchanged): as-of rows from
+    ``nba.features.tracking_features.build_tracking_features``, left-joined on
+    (game_id, player_id). Production never passes it.
+
+    ``lineups_known=True`` (default False = production, output unchanged) attaches
+    the ``t30_*`` columns of :mod:`nba.props.lineup_features` (tonight's confirmed
+    starters). They are a LEAK at the production T-60 prediction time and exist only
+    for the T-30 experiment (docs/LINEUPS_KNOWN.md)."""
     games = games.with_columns(pl.col("game_date").cast(pl.Date))
     played = (
         pgs.join(games.select(["game_id", "game_date", "season", "home_team"]), on="game_id")
@@ -513,6 +526,13 @@ def build_features(
         (pl.col("_home") == pl.col("team_id")).cast(pl.Int8).alias("is_home_f"),
         pl.col("exp_margin").abs().alias("abs_margin"),
     ).drop("_home")
+    if tracking_feats is not None:
+        feats = feats.join(tracking_feats, on=["game_id", "player_id"], how="left")
+    if lineups_known:
+        from nba.props.lineup_features import build_lineup_features
+
+        t30 = build_lineup_features(games, pgs, scratch_prob=t30_scratch_prob).drop("team_id")
+        feats = feats.join(t30, on=["game_id", "player_id"], how="left")
     return feats.sort(["game_date", "game_id", "player_id"])
 
 
@@ -550,7 +570,16 @@ COMMON_FEATURES: tuple[str, ...] = (
 )
 
 
-def stat_feature_names(stat: str) -> list[str]:
+def stat_feature_names(
+    stat: str, extra: tuple[str, ...] = (), lineups_known: bool = False
+) -> list[str]:
+    """Production feature names for ``stat``; ``extra`` (default none) appends
+    opt-in screen columns after the production ones. ``lineups_known=True`` appends
+    the T-30 columns of :mod:`nba.props.lineup_features` (a leak at T-60)."""
+    if lineups_known:
+        from nba.props.lineup_features import T30_FEATURES
+
+        extra = (*extra, *T30_FEATURES)
     own = [f"{p}_{s}" for s in PROP_STATS for p in ("m10",)]
     return [
         *COMMON_FEATURES,
@@ -563,6 +592,7 @@ def stat_feature_names(stat: str) -> list[str]:
         f"rate_{stat}",
         f"opp_allow_{stat}",
         f"vac_{stat}",
+        *extra,
     ]
 
 
