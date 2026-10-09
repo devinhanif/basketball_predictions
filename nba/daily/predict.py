@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import duckdb
 import numpy as np
@@ -305,3 +307,207 @@ def recency_prop_predictions(
         schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
     )
     return predict_slate(con, slate, frame, exclude_players, config=ForwardConfig(sim_stats=()))
+
+
+# --------------------------------------------------------------------------------------
+# Active routes (nba.registry.routing). Default behavior is unchanged: nothing below is
+# called by the existing pipeline unless a route has been explicitly promoted AND the
+# caller opts in via ``context_prop_predictions_routed``.
+# --------------------------------------------------------------------------------------
+
+#: Candidate id -> how the daily pipeline can produce it today. Routes needing any other
+#: candidate are listed as not applicable (reason logged), never applied partially.
+ROUTE_FORWARD_CANDIDATES = ("context_residual", "recency")
+
+
+@dataclass(frozen=True)
+class ActiveRoute:
+    target: str
+    version: str
+    spec: dict[str, Any]
+    applicable: bool
+    reason: str
+
+
+def load_active_routes(registry: RegistryAdapter | None) -> dict[str, ActiveRoute]:
+    """Production ``route_<stat>`` specs, if any. Missing / invalid routes are simply absent
+    (the default models stay primary); an invalid-but-present route is reported with
+    ``applicable=False`` and a reason."""
+    from nba.registry.routing import ROUTE_FILE, read_spec, route_model_name, validate_spec
+
+    out: dict[str, ActiveRoute] = {}
+    if registry is None:
+        return out
+    for stat in PROP_STATS:
+        try:
+            path = registry.load_model(route_model_name(stat), alias="production")
+        except LookupError:
+            continue
+        try:
+            spec = read_spec(Path(path) / ROUTE_FILE)
+        except OSError as e:
+            out[stat] = ActiveRoute(stat, "unknown", {}, False, f"unreadable spec: {e}")
+            continue
+        version = Path(path).name
+        errs = validate_spec(spec)
+        ids = [c["id"] for c in spec.get("candidates", [])]
+        missing = [i for i in ids if i not in ROUTE_FORWARD_CANDIDATES]
+        if errs:
+            out[stat] = ActiveRoute(stat, version, spec, False, "invalid: " + "; ".join(errs))
+        elif spec["kind"] == "router" and missing:
+            out[stat] = ActiveRoute(
+                stat, version, spec, False, f"candidates not available forward: {missing}"
+            )
+        elif spec["kind"] == "champion" and spec["champion"] not in ROUTE_FORWARD_CANDIDATES:
+            out[stat] = ActiveRoute(
+                stat, version, spec, False, f"champion {spec['champion']} not available forward"
+            )
+        else:
+            out[stat] = ActiveRoute(stat, version, spec, True, "ok")
+    return out
+
+
+def _grids(frame: pl.DataFrame, keys: pl.DataFrame) -> np.ndarray:
+    j = keys.join(frame.select(["game_id", "player_id", "q_grid"]), on=["game_id", "player_id"])
+    return np.asarray([json.loads(v) for v in j["q_grid"].to_list()], dtype=float)
+
+
+def apply_active_route(
+    route: ActiveRoute,
+    stat: str,
+    frames: dict[str, pl.DataFrame],
+    con: duckdb.DuckDBPyConnection,
+    slate: date,
+    extra_context: Any = None,
+) -> pl.DataFrame:
+    """Routed primary rows for ``stat``. ``frames``: candidate id -> forward frame with
+    ``game_id, player_id, stat, mean, std, q_grid, p_ge`` (JSON strings), one row per
+    player-game of this stat. Only rows present in EVERY candidate frame are routed; the
+    caller keeps the default primary for the rest. Gate features are computed by the same
+    code as training (``nba.stack.populate``) from games strictly before ``slate``."""
+    if not route.applicable:
+        raise ValueError(f"route for {stat} not applicable: {route.reason}")
+    spec = route.spec
+    ids: list[str] = [c["id"] for c in spec["candidates"]]
+    absent = [i for i in ids if i not in frames]
+    if absent:
+        raise KeyError(f"missing candidate frames: {absent}")
+    sub = {i: frames[i].filter(pl.col("stat") == stat) for i in ids}
+    keys = sub[ids[0]].select(["game_id", "player_id"])
+    for i in ids[1:]:
+        keys = keys.join(sub[i].select(["game_id", "player_id"]), on=["game_id", "player_id"])
+    keys = keys.unique().sort(["game_id", "player_id"])
+    if keys.is_empty():
+        return keys
+    tpl = keys.join(sub[spec["champion"]], on=["game_id", "player_id"], how="left")
+    if spec["kind"] == "champion":
+        return tpl.with_columns(
+            pl.lit(f"route:{spec['route_model']}:{route.version}:champion").alias("model")
+        )
+
+    import pandas as pd
+
+    from nba.stack.frozen import FrozenGate
+    from nba.stack.populate import forward_context, history_from_con
+
+    gate = FrozenGate.from_dict(spec["gate"])
+    kp = keys.to_pandas()
+    season = slate.year if slate.month >= 9 else slate.year - 1
+    slate_rows = kp.assign(game_date=pd.Timestamp(slate), season=season)
+    ctx = forward_context(history_from_con(con, slate), slate_rows)
+    if extra_context is not None:
+        ctx = ctx.merge(extra_context, on=["game_id", "player_id"], how="left")
+    ctx = kp.merge(ctx, on=["game_id", "player_id"], how="left")
+    if len(ctx) != len(kp):
+        raise ValueError("slate game_ids already present in history (not as-of)")
+    cand = np.stack([_grids(sub[i], keys) for i in ids], axis=1)
+    w = gate.weights(ctx)
+    pooled = gate.apply(ctx, cand)
+    means = np.stack(
+        [
+            keys.join(sub[i].select(["game_id", "player_id", "mean"]), on=["game_id", "player_id"])[
+                "mean"
+            ].to_numpy()
+            for i in ids
+        ],
+        axis=1,
+    )
+    pge = [
+        keys.join(sub[i].select(["game_id", "player_id", "p_ge"]), on=["game_id", "player_id"])[
+            "p_ge"
+        ].to_list()
+        for i in ids
+    ]
+    pooled_pge = []
+    for r in range(len(keys)):
+        dicts = [json.loads(pge[j][r]) for j in range(len(ids))]
+        pooled_pge.append(
+            json.dumps(
+                {t: float(sum(w[r, j] * dicts[j][t] for j in range(len(ids)))) for t in dicts[0]}
+            )
+        )
+    q = pooled
+    return tpl.with_columns(
+        pl.Series("mean", (w * means).sum(axis=1)),
+        pl.Series("std", (q[:, 17] - q[:, 1]) / 2.563),
+        pl.Series("q10", q[:, 1]),
+        pl.Series("q50", q[:, 9]),
+        pl.Series("q90", q[:, 17]),
+        pl.Series("q_grid", [json.dumps([round(float(v), 4) for v in row]) for row in q]),
+        pl.Series("p_ge", pooled_pge),
+        pl.Series(
+            "route_weights",
+            [
+                json.dumps({i: round(float(w[r, j]), 4) for j, i in enumerate(ids)})
+                for r in range(len(keys))
+            ],
+        ),
+        pl.lit(f"route:{spec['route_model']}:{route.version}").alias("model"),
+    )
+
+
+def context_prop_predictions_routed(
+    con: duckdb.DuckDBPyConnection,
+    slate: date,
+    games: list[tuple[str, int, int]],
+    report_out: dict[str, set[int]],
+    elo_params: dict[str, float],
+    registry: RegistryAdapter | None,
+    *,
+    cache_root: Path | None = None,
+) -> tuple[ContextSlateResult, dict[str, str]]:
+    """Like :func:`context_prop_predictions`, but each stat with an applicable promoted
+    route has its primary rows replaced by the routed rows (recency / context rows stay
+    available as comparison rows in ``recency`` and the unrouted primary is kept in
+    ``info['unrouted_primary']``). Returns the result plus ``{stat: status}``. With no
+    promoted route the output equals :func:`context_prop_predictions` exactly."""
+    res = context_prop_predictions(con, slate, games, report_out, elo_params, cache_root=cache_root)
+    routes = load_active_routes(registry)
+    status: dict[str, str] = {}
+    if not routes:
+        return res, status
+    frames = {"context_residual": res.primary, "recency": res.recency}
+    routed_parts: list[pl.DataFrame] = []
+    keep = res.primary
+    for stat, route in routes.items():
+        if not route.applicable:
+            status[stat] = f"not applied: {route.reason}"
+            continue
+        try:
+            part = apply_active_route(route, stat, frames, con, slate)
+        except (KeyError, ValueError) as e:
+            status[stat] = f"not applied: {e}"
+            continue
+        status[stat] = f"applied {route.spec['route_model']} {route.version}: {part.height} rows"
+        routed_parts.append(part)
+        keep = keep.join(
+            part.select(["game_id", "player_id"]).with_columns(pl.lit(stat).alias("stat")),
+            on=["game_id", "player_id", "stat"],
+            how="anti",
+        )
+    if not routed_parts:
+        return res, status
+    cols = keep.columns
+    primary = pl.concat([keep, *[p.select(cols) for p in routed_parts]], how="vertical_relaxed")
+    info = {**res.info, "unrouted_primary": res.primary.height, "routes": status}
+    return ContextSlateResult(primary, res.recency, info), status

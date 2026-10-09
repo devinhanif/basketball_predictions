@@ -14,6 +14,11 @@ from nba.stack.oof import TAUS
 _EPS = 1e-6
 
 
+def is_binary(target: str) -> bool:
+    """``win`` and threshold-event targets (``thr_<stat>``) are binary probabilities."""
+    return target == "win" or target.startswith("thr_")
+
+
 def logit(p: np.ndarray) -> np.ndarray:
     p = np.clip(np.asarray(p, dtype=float), _EPS, 1 - _EPS)
     return np.asarray(np.log(p / (1 - p)))
@@ -36,7 +41,7 @@ def row_log_loss(p: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def score_rows(target: str, pred: np.ndarray, y: np.ndarray) -> np.ndarray:
-    return row_log_loss(pred, y) if target == "win" else grid_crps(pred, y)
+    return row_log_loss(pred, y) if is_binary(target) else grid_crps(pred, y)
 
 
 def pool(target: str, w: np.ndarray, cand: np.ndarray) -> np.ndarray:
@@ -45,6 +50,6 @@ def pool(target: str, w: np.ndarray, cand: np.ndarray) -> np.ndarray:
     Props: weighted average of quantile grids (Vincentization; keeps each grid
     monotone). Win: weighted average on the logit scale.
     """
-    if target == "win":
+    if is_binary(target):
         return sigmoid((w * logit(cand)).sum(axis=1))
     return np.asarray(np.einsum("nk,nkq->nq", w, cand))

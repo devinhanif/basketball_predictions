@@ -30,7 +30,7 @@ from sklearn.linear_model import LogisticRegression
 from nba.stack import FROZEN_SEASON
 from nba.stack.data import StackData
 from nba.stack.oof import TAUS
-from nba.stack.scoring import logit, pool, sigmoid
+from nba.stack.scoring import is_binary, logit, pool, sigmoid
 
 
 class ContextEncoder:
@@ -96,7 +96,7 @@ class SoftmaxGate:
         n = xa.shape[0]
         wmat = theta.reshape(xa.shape[1], k)
         w = _softmax(xa @ wmat)
-        if data.target == "win":
+        if is_binary(data.target):
             lg = logit(data.cand)  # (n, k)
             z = (w * lg).sum(axis=1)
             p = np.clip(sigmoid(z), 1e-6, 1 - 1e-6)
@@ -221,7 +221,7 @@ def iter_blocks(
 
 def _empty(data: StackData) -> tuple[np.ndarray, np.ndarray]:
     k = len(data.candidates)
-    shape = (data.n,) if data.target == "win" else (data.n, data.cand.shape[2])
+    shape = (data.n,) if is_binary(data.target) else (data.n, data.cand.shape[2])
     return np.full((data.n, k), np.nan), np.full(shape, np.nan)
 
 
@@ -240,7 +240,7 @@ def walk_forward(
     for block, train, start in iter_blocks(dates, cfg):
         fit_m = train
         cal_m: np.ndarray | None = None
-        if cfg.calibration != "none" and data.target == "win":
+        if cfg.calibration != "none" and is_binary(data.target):
             cut = start - np.timedelta64(cfg.calib_days, "D")
             f, c = train & (dates < cut), train & (dates >= cut)
             if f.sum() >= cfg.min_train_rows and c.sum() >= cfg.min_calib_rows:
