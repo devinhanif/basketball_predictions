@@ -191,3 +191,68 @@ Metrics: paired log loss delta (game-clustered), ECE (10 bins), Brier. No floor,
   cold-start extras.
 
 === RESULTS BELOW ===
+
+## Results (run 2026-10-09; frozen-section sha256 `4a7833c2` = committed blob 92e05cc; seasons <= 2024 only)
+
+CPU, about 9 minutes end to end (minutes stage about 5 min, props 4 stats x 4 arms about 6 min, P(play) 20 s).
+Full tables: `reports/minutes_v2.md`, `reports/minutes_v2/results.json`. Rows per season: 27,619 (2023, 1,318
+games) / 27,583 (2024, 1,315 games). Fidelity: arm A0 reproduces production (pts integer CRPS 3.1528 / 3.1884,
+identical to docs/LOWER_TAIL.md).
+
+**Verdict: MINUTES-ONLY.** H1a supported, H1b not confirmed.
+
+Minutes given plays (continuous CRPS, minutes; M2 minus comparator, game-clustered 95% CI, BH over {P, R}):
+
+| season | M2 CRPS | P (production) | R (recency) | M2-P | M2-R | M2-M1 (V2 features) | M2-S1 (mixture shape) |
+|---|---|---|---|---|---|---|---|
+| 2023 | 3.4674 | 4.2987 | 4.0477 | -0.831 [-0.870,-0.792] | -0.580 [-0.607,-0.554] | -0.021 [-0.027,-0.015] | -0.001 [-0.009,+0.006] |
+| 2024 | 3.4305 | 4.2809 | 4.0853 | -0.850 [-0.889,-0.812] | -0.655 [-0.690,-0.623] | -0.003 [-0.008,+0.003] | -0.008 [-0.015,-0.002] |
+
+The minutes gate passes in both seasons (floor, CI, BH, bias +0.46 / +0.17 min, 80% cover 0.810 / 0.800, PIT<=.10
+0.105 / 0.104, all slices incl. cold start, bench/starter, first 15 games, return from absence improve vs P and R).
+Honest decomposition: almost all of the gain comes from the production COMMON feature set run through a
+LightGBM distributional head (M1 already -0.81 / -0.85 vs P). The new V2 feature group adds -0.021 in 2023 and
+-0.003 (CI spans 0) in 2024; the short-component mixture adds nothing measurable over a single component for minutes
+CRPS (S1 vs M2: -0.001 / -0.008). pi AUC 0.857 / 0.855, mean pi 0.094 / 0.092 vs observed 0.106 / 0.102.
+The P comparator is a weak shrunk trailing-150 mean, so "beats production's minutes path" mostly says that the
+production props model's own minutes features are better than that path.
+
+Props (integer-support CRPS, A1 = production + six mv2 columns minus A0 production):
+
+| stat | 2023 dCRPS [CI] (BH p) | 2024 dCRPS [CI] (BH p) | A3 oracle-minutes (2023 / 2024) | gate |
+|---|---|---|---|---|
+| pts | -0.0053 [-0.0083,-0.0023] (0.002) | -0.0018 [-0.0044,+0.0008] (0.253) | -0.573 / -0.571 | 2023 pass, 2024 fail (floor, CI, BH) |
+| reb | -0.0023 [-0.0035,-0.0010] (0.004) | -0.0024 [-0.0035,-0.0012] (0.004) | -0.190 / -0.191 | below floor both seasons |
+| ast | -0.0006 [-0.0016,+0.0004] (0.205) | -0.0005 [-0.0014,+0.0004] (0.285) | -0.079 / -0.077 | fail |
+| fg3m | -0.0008 [-0.0014,-0.0001] (0.024) | -0.0004 [-0.0010,+0.0001] (0.228) | -0.049 / -0.050 | fail |
+
+* pts is selected on 2023 (barely at the -0.005 floor: -0.0053) and NOT confirmed on 2024 (-0.0018, CI spans 0). Under
+  the pre-registered rule that is not a pass. The permuted-feature control A2 is +0.0029 / +0.0026 for pts (worse
+  than A0), so the extra-columns noise cost is of similar magnitude to the A1 effect: the pts 2023 point estimate is
+  inside the noise band of the design.
+* reb is significant in both seasons (about -0.0023) but below the -0.005 floor. ast / fg3m: nothing.
+* Guards for A1: bias |+0.05| or less, 80% cover 0.76-0.79 (inside 0.75-0.85) for all stats.
+* Oracle ceiling (A3, leak by construction, diagnostic only): perfect realised minutes would lower CRPS by about
+  18% (pts 0.57), 15% (reb), 9% (ast), 8.5% (fg3m). This supports "minutes are the dominant source of prop error", but
+  a PRE-TIP minutes distribution recovers about 1% of it at best (pts 0.9%, reb 1.2%, ast 0.8%, fg3m 1.6% of the oracle gain, none beyond noise except reb) through this feature path: the pre-tip information in
+  the minutes distribution is already in the production features, so, as an interpretation (not tested here), what is left is mostly
+  in-game minutes variation rather than a modelling gap.
+
+Secondary P(play) (no pass/fail; rows = minutes-frame rows with >= 5 prior played games, pre-tip OUT players
+excluded; played rate 0.834 / 0.836; note this is a roster-wide population, not the live rostered-slate population
+the Platt was fit on): log loss raw 0.3419 / 0.3558, Platt 0.4147 / 0.4283 (miscalibrated on this population, mean p
+0.69 vs 0.83 observed), v2 LightGBM 0.2933 / 0.2981; v2 minus raw -0.049 [-0.053,-0.044] / -0.058 [-0.062,-0.053].
+The v2 head has recent-absence features (`dnp_last5`, `days_since_played`) that production p_play lacks; no ablation was run to attribute the gain.
+Not comparable to the live slate use; reported as descriptive only. (A first run of this stage mis-labelled DNP rows
+as NaN; fixed (`fill_null(False)`) and rerun before the numbers above; no other stage was rerun.)
+
+What was seen / process notes: the preregistration was committed (92e05cc, sha256 4a7833c2) before any real-data
+number existed; only synthetic unit tests ran before. No parameter, feature or threshold was changed after viewing
+results. Season 2025 never loaded. Reproduce: `uv run python -m nba.eval.minutes_v2_eval all` (about 9 min CPU; take
+`data/ops/heavy.lock`).
+
+Recommendation: no promotion and no shadow-logging of A1 for props (nothing passes on both seasons; the pts 2023
+gain did not replicate). The minutes distribution itself (M2, or simply M1/S1 with COMMON features) is a candidate
+for the minutes path used by the sim/Kalshi tooling in place of the shrunk trailing mean; that would need its own
+pre-registration and a red-team review. A red-team check of the pts 2023 selection is cheap but not recommended given
+the 2024 non-confirmation.
