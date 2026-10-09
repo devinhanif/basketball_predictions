@@ -59,10 +59,23 @@ def parse_common_team_roster(raw: pl.DataFrame, team_id: int) -> pl.DataFrame:
         out = out.with_columns(raw[cols["EXP"]].cast(pl.Utf8).alias("exp"))
     else:
         out = out.with_columns(pl.lit(None, dtype=pl.Utf8).alias("exp"))
+    if "PLAYER" in cols:  # display name; lets the injury-report resolver see debutants
+        out = out.with_columns(raw[cols["PLAYER"]].cast(pl.Utf8).alias("player_name"))
+    else:
+        out = out.with_columns(pl.lit(None, dtype=pl.Utf8).alias("player_name"))
     out = out.filter(pl.col("player_id").is_not_null()).unique(subset="player_id", keep="first")
     return out.with_columns(pl.lit(int(team_id), dtype=pl.Int64).alias("team_id")).select(
-        "team_id", "player_id", "exp"
+        "team_id", "player_id", "exp", "player_name"
     )
+
+
+def roster_names(roster: pl.DataFrame) -> list[tuple[str, int]]:
+    """``(display name, player_id)`` pairs from an official-roster frame (caches written before
+    ``player_name`` existed simply yield fewer pairs)."""
+    if "player_name" not in roster.columns:
+        return []
+    sub = roster.filter(pl.col("player_name").is_not_null()).select("player_name", "player_id")
+    return [(str(n), int(p)) for n, p in sub.unique().rows()]
 
 
 def fetch_team_roster_nba_api(team_id: int, season: str) -> pl.DataFrame:
@@ -129,7 +142,12 @@ def load_official_rosters(
         tmp.replace(path)
         frames.append(got)
     if not frames:
-        schema = {"team_id": pl.Int64, "player_id": pl.Int64, "exp": pl.Utf8}
+        schema = {
+            "team_id": pl.Int64,
+            "player_id": pl.Int64,
+            "exp": pl.Utf8,
+            "player_name": pl.Utf8,
+        }
         return pl.DataFrame(schema=schema), missing
     return pl.concat(frames, how="diagonal_relaxed"), missing
 

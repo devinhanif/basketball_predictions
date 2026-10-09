@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from collections.abc import Callable, Mapping, Sequence
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import duckdb
 
 from nba.daily.schedule import ET
 from nba.ingest.availability import (
-    build_merged_name_index,
+    _flush_unmatched,
+    build_name_resolver,
     official_report_url_candidates,
     pull_official_injury_report,
 )
@@ -49,22 +50,51 @@ def pull_latest_report(
     probe: ProbeFn | None = None,
     pull: PullFn | None = None,
     name_index: dict[str, int] | None = None,
+    extra_games: Mapping[tuple[date, int, int], str] | None = None,
+    extra_names: Sequence[tuple[str, int]] = (),
 ) -> datetime | None:
     """Probe slots newest-first; pull the first that exists. Returns its ET
-    timestamp, or None if none found in the lookback window."""
+    timestamp, or None if none found in the lookback window.
+
+    Names are resolved by the team-aware ``NameResolver`` (full name from nba_api's bundled
+    list, ties broken by team history) unless an explicit ``name_index`` is injected. The old
+    default, ``build_merged_name_index``, built a last-name-keyed index from cached play-by-play
+    that raises "ambiguous player names" on real data ('green', 'smith', ...), which made every
+    live injury pull fail. Unresolved/unknown names are appended to
+    ``<data_dir>/availability_backfill/unmatched.csv`` (an unmatched rate above 5% still raises).
+
+    ``extra_games`` maps ``(ET date, home_id, away_id) -> game_id`` for the slate: upcoming games
+    have no ``games`` row, so without it every pre-tip report row would carry a NULL game_id.
+    ``extra_names`` (official-roster ``(name, id)`` pairs) lets debutants resolve: the bundled
+    nba_api list lags new draft classes, so without it a rookie on the report is dropped."""
     if probe is None:
         from nba.ingest.availability import probe_report_url as probe_fn
 
         probe = probe_fn
+    gid_kw: dict[str, object] = {"extra_games": extra_games} if extra_games else {}
     for slot in candidate_slots(not_after_utc):
         for url in official_report_url_candidates(slot):
             if rate_limiter is not None:
                 rate_limiter.wait()
             if not probe(url):
                 continue
-            idx = name_index if name_index is not None else build_merged_name_index(data_dir)
-            puller = pull or pull_official_injury_report
-            puller(con, slot, name_index=idx, data_dir=data_dir, rate_limiter=rate_limiter, url=url)
+            puller: PullFn = pull or pull_official_injury_report
+            if name_index is not None:
+                puller(
+                    con, slot, name_index=name_index, data_dir=data_dir,
+                    rate_limiter=rate_limiter, url=url, **gid_kw,
+                )  # fmt: skip
+                return slot
+            resolver = build_name_resolver(
+                con, data_dir, slot.date(), slot.date(), extra_names=extra_names
+            )
+            try:
+                puller(
+                    con, slot, resolver=resolver, data_dir=data_dir,
+                    rate_limiter=rate_limiter, url=url, **gid_kw,
+                )  # fmt: skip
+            finally:
+                _flush_unmatched(resolver, data_dir / "availability_backfill")
             return slot
     return None
 

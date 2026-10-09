@@ -23,7 +23,7 @@ import difflib
 import re
 import unicodedata
 import warnings
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime
 from typing import cast
 
@@ -198,7 +198,11 @@ def parse_matchup(raw: str | None) -> tuple[str, str] | None:
 
 
 def resolve_game_id(
-    con: duckdb.DuckDBPyConnection, game_date: date, away_abbrev: str, home_abbrev: str
+    con: duckdb.DuckDBPyConnection,
+    game_date: date,
+    away_abbrev: str,
+    home_abbrev: str,
+    extra_games: Mapping[tuple[date, int, int], str] | None = None,
 ) -> str | None:
     """Resolve a (date, away team, home team) triple to a ``games.game_id``.
 
@@ -211,6 +215,11 @@ def resolve_game_id(
     abbreviation or no match in either orientation: an unresolved game_id
     is a legitimate, expected outcome (e.g. the game hasn't been ingested
     yet), not an error.
+
+    ``extra_games`` maps ``(game_date, home_team_id, away_team_id) -> game_id`` for games
+    that are not in ``games`` yet. The live pre-tip path passes the day's schedule here:
+    an upcoming game has no ``games`` row until it is played, so without it every row of a
+    pre-tip report would get a NULL ``game_id`` and be invisible to the injury model.
     """
     away_id = TEAM_ABBREV_TO_ID.get(away_abbrev)
     home_id = TEAM_ABBREV_TO_ID.get(home_abbrev)
@@ -226,7 +235,13 @@ def resolve_game_id(
             "SELECT game_id FROM games WHERE game_date = ? AND home_team = ? AND away_team = ?",
             [game_date, away_id, home_id],
         ).fetchone()
-    return cast(str, row[0]) if row is not None else None
+    if row is not None:
+        return cast(str, row[0])
+    if extra_games:
+        return extra_games.get((game_date, home_id, away_id)) or extra_games.get(
+            (game_date, away_id, home_id)
+        )
+    return None
 
 
 def resolve_player_id(raw_name: str, name_index: dict[str, int]) -> int:
@@ -708,6 +723,7 @@ def parse_official_injury_report(
     con: duckdb.DuckDBPyConnection | None = None,
     resolver: NameResolver | None = None,
     max_unmatched_rate: float = 0.05,
+    extra_games: Mapping[tuple[date, int, int], str] | None = None,
 ) -> pl.DataFrame:
     """Parse the NBA's official injury-report PDF into ``AVAILABILITY_SCHEMA`` rows.
 
@@ -798,7 +814,7 @@ def parse_official_injury_report(
             matchup = parse_matchup(rec.matchup)
             if parsed_date is not None and matchup is not None:
                 away_abbrev, home_abbrev = matchup
-                game_id = resolve_game_id(con, parsed_date, away_abbrev, home_abbrev)
+                game_id = resolve_game_id(con, parsed_date, away_abbrev, home_abbrev, extra_games)
 
         rows.append(
             {

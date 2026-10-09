@@ -45,7 +45,7 @@ import csv
 import json
 import sys
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -379,6 +379,7 @@ def pull_official_injury_report(
     max_unmatched_rate: float = 0.05,
     url: str | None = None,
     http_client: httpx.Client | None = None,
+    extra_games: Mapping[tuple[date, int, int], str] | None = None,
 ) -> pl.DataFrame:
     """Download (or load cached), parse, and load one official injury-report
     PDF snapshot into ``player_availability`` with
@@ -406,6 +407,9 @@ def pull_official_injury_report(
     satisfies trivially -- it has nothing to do with markets). Raises
     ``nba.parse.availability.UnmatchedPlayerNameError`` loudly (listing
     every unmatched name at once) rather than silently dropping a player.
+
+    ``extra_games`` (``(date, home_id, away_id) -> game_id``) resolves games that are not in
+    ``games`` yet (the live pre-tip path passes the schedule; see ``resolve_game_id``).
 
     ``con`` (this function's own connection, already required for loading)
     is forwarded to ``parse_official_injury_report`` so each row's
@@ -440,6 +444,7 @@ def pull_official_injury_report(
         con=con,
         resolver=resolver,
         max_unmatched_rate=max_unmatched_rate,
+        extra_games=extra_games,
     )
 
     con.execute(
@@ -606,13 +611,15 @@ def build_name_resolver(
     *,
     names: Sequence[tuple[str, int]] | None = None,
     pad_days: int = 400,
+    extra_names: Sequence[tuple[str, int]] = (),
 ) -> NameResolver:
     """Team-aware resolver restricted to players seen in ``player_game_stats``
     within [start, end] +- ``pad_days`` (~season +- 1). Never raises on
     ambiguity (that is a resolve-time matter). Full names come from nba_api's
     bundled static player list (local, no network) unless ``names`` is given.
     Reviewed aliases are read from ``data_dir/availability_backfill/aliases.csv``
-    (columns ``alias,player_id``) if present.
+    (columns ``alias,player_id``) if present. ``extra_names`` (``(name, player_id)``, e.g. from
+    the official rosters) joins the pool even without box-score history.
     """
     lo = (start or date(1900, 1, 1)) - timedelta(days=pad_days)
     hi = (end or date(2100, 1, 1)) + timedelta(days=pad_days)
@@ -629,12 +636,16 @@ def build_name_resolver(
 
         names = [(str(p["full_name"]), int(p["id"])) for p in static_players.get_players()]
     pool = [(n, i) for n, i in names if i in history]
+    # debutants: on an official roster but in neither the bundled static list (which lags new
+    # draft classes) nor any box score; without them a rookie on the injury report is skipped
+    pool += [(n, i) for n, i in extra_names if i not in history]
     aliases: dict[str, int] = {}
     af = _alias_file(data_dir)
     if af.exists():
         for rec in pl.read_csv(af).iter_rows(named=True):
             aliases[str(rec["alias"])] = int(rec["player_id"])
-    unseen = [n for n, i in names if i not in history]
+    extra_ids = {i for _, i in extra_names}
+    unseen = [n for n, i in names if i not in history and i not in extra_ids]
     return NameResolver(pool, history, aliases, known_unseen=unseen)
 
 

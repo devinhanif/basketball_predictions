@@ -34,7 +34,7 @@ def _no_sleep(_s: float) -> None:
 
 def test_parse_sample_dedupes_and_keeps_rookie_flag() -> None:
     out = parse_common_team_roster(_sample(), T1)
-    assert out.columns == ["team_id", "player_id", "exp"]
+    assert out.columns == ["team_id", "player_id", "exp", "player_name"]
     assert sorted(out["player_id"].to_list()) == [1000, 9001, 9002]  # duplicate row dropped
     assert set(out["team_id"].to_list()) == {T1}
     assert out.filter(pl.col("player_id") == 9001)["exp"][0] == "R"
@@ -147,3 +147,19 @@ def test_proxy_uses_first_two_weeks_regular_season_only() -> None:
     got = dict(zip(out["player_id"].to_list(), out["team_id"].to_list(), strict=True))
     # 50: preseason, 11: DNP, 13: after the window. 10 keeps the team of his first appearance.
     assert got == {10: 1, 12: 1}
+
+
+def test_roster_names_feed_the_injury_resolver_for_debutants() -> None:
+    """A debutant is in neither the (lagging) static list nor any box score; the official
+    roster's name makes him resolvable, and old caches without names are harmless."""
+    from nba.ingest.availability import build_name_resolver
+    from nba.props.rosters import roster_names
+    from tests.fixtures.loader import build_fixture_db
+
+    ro = pl.DataFrame({"team_id": [T1], "player_id": [9999999], "player_name": ["Zed Rookie-Name"]})
+    assert roster_names(ro) == [("Zed Rookie-Name", 9999999)]
+    assert roster_names(ro.drop("player_name")) == []
+    con = build_fixture_db(":memory:")
+    res = build_name_resolver(con, names=[], extra_names=roster_names(ro))
+    assert res.lookup("Zed Rookie-Name", T1, None) == 9999999
+    assert build_name_resolver(con, names=[]).lookup("Zed Rookie-Name", T1, None) is None

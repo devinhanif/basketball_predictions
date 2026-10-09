@@ -210,3 +210,44 @@ def test_pipeline_late_report_falls_back_to_mov_elo(con: duckdb.DuckDBPyConnecti
 
 
 _ = date
+
+
+def test_pipeline_live_slate_not_in_games_table_still_uses_injury_model(
+    con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Live shape: an upcoming game has NO ``games`` row (only played games are fetched), so a
+    report row's game_id can only come from the schedule. The injury model must still see it
+    (before the fix every live game silently fell back to MOV-Elo)."""
+    _seed_history_reports(con)
+    assert con.execute(
+        "SELECT count(*) FROM games WHERE game_id IN (?,?)", [G1, G2]
+    ).fetchone() == (0,)
+    _avail(con, [(STAR, datetime(2026, 10, 28, 15, 0), G1, "out")])
+    run_daily(
+        con, RUN_DATE, schedule_fn=lambda _s: slate_games(), now=before_tip(),
+        skip_ingest=True, skip_injury=True, with_props=False,
+    )  # fmt: skip
+    by = {
+        (g, m): json.loads(p)
+        for g, m, p in con.execute(
+            "SELECT game_id, model_name, prediction FROM forward_predictions "
+            "WHERE target='win_prob_home'"
+        ).fetchall()
+    }
+    inj = by[(G1, "rung0_injury_elo")]
+    assert inj["primary"] is True and inj["fallback_reason"] is None and inj["d_out"] < 0
+    assert by[(G1, "rung0_mov_elo")]["primary"] is False
+    assert by[(G2, "rung0_mov_elo")]["primary"] is True  # no report rows for G2 -> fallback
+    assert con.execute("SELECT count(*) FROM games WHERE game_id = ?", [G1]).fetchone() == (0,)
+
+
+def test_report_game_id_resolved_from_schedule_when_not_in_games(
+    con: duckdb.DuckDBPyConnection,
+) -> None:
+    from nba.parse.availability import resolve_game_id
+
+    assert resolve_game_id(con, RUN_DATE, "BOS", "LAL") is None
+    key = {(RUN_DATE, 1610612747, 1610612738): "G-X"}  # (date, LAL home, BOS away)
+    assert resolve_game_id(con, RUN_DATE, "BOS", "LAL", key) == "G-X"
+    assert resolve_game_id(con, RUN_DATE, "LAL", "BOS", key) == "G-X"  # swapped orientation
+    assert resolve_game_id(con, RUN_DATE, "BOS", "NYK", key) is None

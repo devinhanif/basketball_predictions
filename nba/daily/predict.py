@@ -102,26 +102,58 @@ def load_injury_settings(
 
 
 def injury_report_rows(
-    con: duckdb.DuckDBPyConnection, game_ids: list[str], table: str = "player_availability"
+    con: duckdb.DuckDBPyConnection,
+    game_ids: list[str],
+    table: str = "player_availability",
+    game_dates: dict[str, date] | None = None,
 ) -> pl.DataFrame:
     """Official-report rows (any time; the real-tip leakage filter is applied
-    inside ``predict_games``) for ``game_ids``. Empty frame if no table."""
+    inside ``predict_games``) for ``game_ids``. Empty frame if no table.
+
+    ``load_report_rows`` joins ``games`` for the game date, and an UPCOMING game has no
+    ``games`` row until it is played, so for the live path the rows of such games would
+    vanish and every slate game would silently fall back to MOV-Elo. ``game_dates``
+    (``game_id -> slate date``) lets those games be read straight from ``table`` (their
+    ``game_id`` was set at parse time from the schedule)."""
+    config = ReportTriggerConfig(statuses=("out", "doubtful"), table=table)
+    empty = pl.DataFrame(
+        schema={
+            "game_id": pl.Utf8,
+            "player_id": pl.Int64,
+            "status": pl.Utf8,
+            "as_of": pl.Datetime("us"),
+            "game_date": pl.Date,
+        }
+    )
     try:
-        return load_report_rows(
-            con,
-            ReportTriggerConfig(statuses=("out", "doubtful"), table=table),
-            game_ids=game_ids,
-        )
+        rows = load_report_rows(con, config, game_ids=game_ids)
+        if not game_dates:
+            return rows
+        known = set(rows["game_id"].to_list()) | {
+            str(r[0]) for r in con.execute("SELECT game_id FROM games").fetchall()
+        }
+        forward = [g for g in game_ids if g not in known and g in game_dates]
+        if not forward:
+            return rows
+        marks = ", ".join("?" for _ in config.sources)
+        extra = con.execute(
+            "SELECT game_id, player_id, lower(status) AS status, CAST(as_of AS TIMESTAMP) AS as_of "
+            f"FROM {table} WHERE source IN ({marks}) AND player_id IS NOT NULL "
+            f"AND game_id IN ({', '.join('?' for _ in forward)})",
+            [*config.sources, *forward],
+        ).pl()
     except duckdb.CatalogException:
-        return pl.DataFrame(
-            schema={
-                "game_id": pl.Utf8,
-                "player_id": pl.Int64,
-                "status": pl.Utf8,
-                "as_of": pl.Datetime("us"),
-                "game_date": pl.Date,
-            }
-        )
+        return empty
+    if extra.height == 0:
+        return rows
+    extra = extra.with_columns(
+        pl.col("player_id").cast(pl.Int64),
+        pl.col("as_of").cast(pl.Datetime("us")),
+        pl.col("game_id")
+        .replace_strict(game_dates, return_dtype=pl.Date, default=None)
+        .alias("game_date"),
+    ).select(rows.columns)
+    return pl.concat([rows, extra], how="vertical_relaxed")
 
 
 def completed_games_before(con: duckdb.DuckDBPyConnection, slate: date) -> pl.DataFrame:

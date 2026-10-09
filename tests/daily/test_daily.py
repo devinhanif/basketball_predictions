@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 import duckdb
 import numpy as np
@@ -326,3 +327,26 @@ def test_report_and_rollover_trigger(con: duckdb.DuckDBPyConnection) -> None:
             [f"R{i}", RUN_DATE + timedelta(days=i + 1), T1, T2],
         )
     assert "ROLLOVER TRIGGER FIRED" in build_report(con)
+
+
+def test_pull_latest_report_default_uses_team_aware_resolver(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    """Live default must NOT build the last-name-keyed pbp index (it raises on real data:
+    'ambiguous player names'); it hands the puller a NameResolver and flushes unmatched."""
+    from nba.parse.availability import NameResolver
+
+    got: dict[str, object] = {}
+
+    def pull(c: object, slot: datetime, **kw: object) -> None:
+        got.update(kw)
+        resolver = kw["resolver"]
+        assert isinstance(resolver, NameResolver)
+        resolver.unmatched.append(("Nobody Known", "Boston Celtics", "2026-10-28", "no_candidate"))
+
+    slot = pull_latest_report(
+        con, TIPOFF, data_dir=tmp_path, probe=lambda u: "2026-10-28_05_00PM" in u, pull=pull
+    )
+    assert slot == datetime(2026, 10, 28, 17, 0)
+    assert "name_index" not in got and isinstance(got["resolver"], NameResolver)
+    assert "Nobody Known" in (tmp_path / "availability_backfill" / "unmatched.csv").read_text()

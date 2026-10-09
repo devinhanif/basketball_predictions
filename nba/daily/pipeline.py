@@ -60,6 +60,7 @@ from nba.props.rosters import (
     RosterFetcher,
     load_official_rosters,
     missing_static_ids,
+    roster_names,
 )
 from nba.registry.protocol import RegistryAdapter
 
@@ -141,6 +142,16 @@ def run_daily(
     upcoming: list[ScheduledGame] = [g for g in slate if made_at < g.tipoff]
     summary.n_refused_after_tipoff = len(slate) - len(upcoming)
 
+    # official rosters first: their names let the injury-report resolver see debutants
+    official = (
+        _official_roster(
+            con, run_date, season_s, roster_source, roster_dir, roster_fetch,
+            rate_limiter, summary, data_dir, static_fetch,
+        )
+        if upcoming and with_props
+        else None
+    )  # fmt: skip
+
     if upcoming and not skip_injury:
         not_after = min(made_at, min(g.tipoff for g in upcoming))
         try:
@@ -152,6 +163,8 @@ def run_daily(
                 probe=probe,
                 pull=pull_report,
                 name_index=name_index,
+                extra_games={(g.game_date_et, g.home_team, g.away_team): g.game_id for g in slate},
+                extra_names=roster_names(official) if official is not None else (),
             )
             summary.injury_report_et = slot.isoformat() if slot else None
             summary.injury_status = "ok" if slot else "no_report_found"
@@ -162,8 +175,7 @@ def run_daily(
         preds = _build_predictions(
             con, run_date, season_i, upcoming, made_at, registry,
             with_props, elo_config, summary, props_model, n_sims, model_cache,
-            _official_roster(con, run_date, season_s, roster_source, roster_dir, roster_fetch,
-                             rate_limiter, summary, data_dir, static_fetch) if with_props else None,
+            official,
             log_int_variant, log_lower_tail_variant,
         )  # fmt: skip
         try:
@@ -403,7 +415,14 @@ def _injury_frame(
                 "tipoff": [g.tipoff for g in upcoming],
             }
         )
-        rows = injury_report_rows(con, games["game_id"].to_list(), cfg.report_table)
+        rows = injury_report_rows(
+            con,
+            games["game_id"].to_list(),
+            cfg.report_table,
+            game_dates=dict(
+                zip(games["game_id"].to_list(), games["game_date"].to_list(), strict=True)
+            ),
+        )
         frame = predict_games(
             con, made_at, games, rows,
             elo_params=params, cfg=cfg, ridge_lambda=ridge, min_signal_games=min_sig,
@@ -423,14 +442,6 @@ def _injury_frame(
     return recs
 
 
-def _frame_preds(
-    df: pl.DataFrame,
-    upcoming: list[ScheduledGame],
-    model_name: str,
-    version: str,
-    run_date: date,
-    extra: dict[str, Any],
-) -> list[ForwardPrediction]:
 def _additive_fields(r: dict[str, Any]) -> dict[str, object]:
     """Additive prediction fields (never alter an existing one): ``p_ge_full`` = full-support
     P(Y >= k) for integer-support re-scoring (nba.props.full_support), ``starter_rate`` for the
@@ -444,6 +455,14 @@ def _additive_fields(r: dict[str, Any]) -> dict[str, object]:
     return out
 
 
+def _frame_preds(
+    df: pl.DataFrame,
+    upcoming: list[ScheduledGame],
+    model_name: str,
+    version: str,
+    run_date: date,
+    extra: dict[str, Any],
+) -> list[ForwardPrediction]:
     """One ForwardPrediction per (player, stat) row of a ``forward`` output frame."""
     by_game = {g.game_id: g for g in upcoming}
     rows: list[ForwardPrediction] = []
@@ -475,6 +494,7 @@ def _additive_fields(r: dict[str, Any]) -> dict[str, object]:
                     "mean_recency": float(r["mean_season_avg"]),
                     "proj_minutes": float(r["proj_minutes"]),
                     "n_games": int(r["n_games_prior"]),
+                    **_additive_fields(r),
                     "features_as_of_before": run_date.isoformat(),
                     **extra,
                 },
@@ -483,7 +503,6 @@ def _additive_fields(r: dict[str, Any]) -> dict[str, object]:
         )
     return rows
 
-                    **_additive_fields(r),
 
 def _context_props(
     con: duckdb.DuckDBPyConnection,
