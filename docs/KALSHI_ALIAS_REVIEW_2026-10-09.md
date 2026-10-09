@@ -4,7 +4,7 @@ Read-only and offline. Inputs were `data/kalshi/kalshi.duckdb` and `nba.duckdb` 
 `read_only`) plus nba_api's bundled static player list. No stats.nba.com call and no Kalshi call.
 `configs/kalshi_aliases.yaml` was not touched.
 
-## Counts (n = 20 distinct player names, 1,514 markets in the DB, 261 are prop markets)
+## Counts (n = 20 distinct player names, 1,514 markets in the DB, 224 are prop markets)
 
 | Status under the reviewed table | Names |
 |---|---|
