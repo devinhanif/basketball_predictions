@@ -168,3 +168,8 @@ slice for passing->ast shows -0.0139 (CI excludes 0) on only n = 463 rows, but t
 slice of a null overall result, not a pass criterion. Guards (coverage, bias, cold start)
 were not violated by any cell. Honest reading: recency box-score means already contain
 what these as-of tracking rates carry; no signal. No holdout touch, nothing registered.
+
+
+## Results: hustle families (2026-10-09, run after hustle loaded for 2022-2024)
+
+All five hustle-dependent cells NOT KEPT (T174-T175; `reports/tracking_screen_h/`). Missingness audit max asymmetry 0.0. Only descriptive lead: rebounding features on the cold-start slice (n=463) -0.0126 [-0.0193,-0.0057]; would need its own pre-registration. Screen closed.
