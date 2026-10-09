@@ -1,6 +1,8 @@
 # Inputs for the cost-monitor agent (.claude/agents/cost-monitor.md). Fill from Colab ▸ Resources.
-# No prices are hardcoded anywhere; leave null until you read them from Colab.
-colab_plan: free            # free | pro | pro_plus
+# No prices are hardcoded anywhere; rates stay null until read from Colab's runtime picker.
+colab_plan: pro
 colab_units_per_t4_hour: null
-colab_units_remaining: null
-as_of: null                 # YYYY-MM-DD HH:MM
+colab_units_per_l4_hour: null
+colab_units_per_a100_hour: null
+colab_units_remaining: 93
+as_of: "2026-10-08 19:15"
