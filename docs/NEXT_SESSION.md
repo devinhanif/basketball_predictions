@@ -1,0 +1,38 @@
+# Next session
+
+_Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
+
+## Before opening night (by 2026-10-19)
+
+1. Confirm jobs are loaded: `launchctl list | grep local.nba` should show daily-pretip, daily-morning, lineups, kalshi-snapshot.
+2. One supervised live run of the pretip path (live schedule and injury-PDF fetch were not rehearsed): `uv run python -m nba.daily run --date <date> --roster-source official --log-int-variant`, then check `data/ops/ALERTS.md`.
+3. Check the ingest queue (`data/ops/ingest_queue_status.md`). The queue holds stats.nba.com quota; confirm the daily and lineup jobs still get through (they yield to it, b39aed0). Decide whether to pause the queue on game days.
+4. Disable Mac sleep on game days (a missed job runs once on wake only).
+5. Resolve maintainer decisions (PROJECT_STATUS section 6): VM, rclone client_id, checkpoint cleanup, integer-quantile route.
+6. Confirm the registry shows `rung0_injury_elo` v2 and `props_context_residual` v2 as production (`uv run python -m nba.registry list`).
+
+## Opening night, 2026-10-20
+
+- Morning (08:00 job): settle/report ran with no alerts; backup copy exists.
+- Day: pretip job runs hourly from 09:30; confirm a forward prediction row exists per slate game before tip, with official-roster source and no rows written after tip.
+- Confirm the injury report was fetched (feed failures are recorded, never block Elo).
+- Confirm the lineups collector wrote snapshots for the slate and the T-30 shadow rows exist.
+- Confirm the integer-variant rows are logged next to production rows; parlay shadow log has rows; Kalshi snapshot job is writing.
+- If Kalshi lists player props, run the alias review before any matching is trusted.
+- Next morning: settled predictions, forward report, DNP handling (absent players settle as DNP).
+
+## First two weeks
+
+- Official roster source stays on through 2026-11-03; then the script switches to `recent` automatically. Compare coverage and rookie minutes error.
+- Run the forward-monitor weekly: calibration, bias per stat, production versus comparison models.
+- Do not read win/loss on small n; report CIs with every comparison.
+
+## Roadmap after opening night
+
+1. Score the shadow arms forward (integer quantiles, T-30 lineups) with paired clustered bootstrap once enough games exist; decide promotion on live data.
+2. Hustle feature screen after the hustle download finishes (pre-registered in c88788a); expect no signal (T119-T123).
+3. History window experiment using 2013-2021 once the queue finishes; handle the missing injury feed before 2018-12-20 with an era flag.
+4. Fix the postseason schedule lookahead in the production feature path if it is shared (c9b00d1 fixed research features only).
+5. Platt P(play) forward check before trusting unconditional parlay probabilities.
+6. Parlay: stay shadow until the deferral gate (30 settled rows, 14 distinct dates) and a positive-EV-at-conservative-bound result; report "no positive EV found" when true.
+7. Optional, only if live results justify: pts-only regular-season hybrid variant with upper-tail fix; no 2025 touch.
