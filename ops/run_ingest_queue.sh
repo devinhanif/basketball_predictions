@@ -5,5 +5,8 @@
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p data/ops
 if pgrep -f "nba.ingest.queue" >/dev/null; then echo "queue already running"; exit 0; fi
-nohup caffeinate -i .venv/bin/python -m nba.ingest.queue >> data/ops/ingest_queue.out 2>&1 &
+AWAKE=""
+command -v caffeinate >/dev/null 2>&1 && AWAKE="caffeinate -i"   # macOS only
+# shellcheck disable=SC2086
+nohup $AWAKE .venv/bin/python -m nba.ingest.queue >> data/ops/ingest_queue.out 2>&1 &
 echo "started queue pid $!"

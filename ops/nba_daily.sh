@@ -11,9 +11,9 @@
 # except this script's own backups beyond KEEP_BACKUPS. Failures append to data/ops/ALERTS.md
 # and raise a macOS notification.
 set -u
-ROOT=/Users/devin/Downloads/nba-prediction
+ROOT=${NBA_ROOT:-/Users/devin/Downloads/nba-prediction}   # override on the VM (see ops/vm/)
 cd "$ROOT" || exit 1
-UV=/opt/homebrew/bin/uv
+UV=${NBA_UV:-/opt/homebrew/bin/uv}
 MODE=${1:-}
 OPS=data/ops
 LOCK=$OPS/lock
@@ -26,7 +26,9 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 alert() {
   log "ALERT: $*"
   echo "- $(date '+%Y-%m-%d %H:%M') [$MODE] $*" >> "$OPS/ALERTS.md"
-  osascript -e "display notification \"$*\" with title \"NBA pipeline ($MODE)\"" >/dev/null 2>&1 || true
+  if command -v osascript >/dev/null 2>&1; then   # macOS only; the VM relies on ALERTS.md
+    osascript -e "display notification \"$*\" with title \"NBA pipeline ($MODE)\"" >/dev/null 2>&1 || true
+  fi
 }
 step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (exit 2 = tipped games refused, not a failure)
   name=$1; shift

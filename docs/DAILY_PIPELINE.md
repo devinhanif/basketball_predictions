@@ -191,6 +191,8 @@ once, so they are refreshed by hand. The Mac must be awake: a job missed during 
 `ops/check_vm_reachability.sh` checks that a candidate host (e.g. a cloud VM) can reach stats.nba.com
 through nba_api, the injury-report host, Kalshi, GitHub and Drive before anything is moved there.
 
+The VM move (bootstrap, cron equivalents, Mac-to-VM sync, shadow period, cutover) is in docs/VM_MIGRATION.md.
+
 ## Opening-week roster source
 
 `nba.daily run --roster-source official` replaces the offseason-stale last-10-games roster with the

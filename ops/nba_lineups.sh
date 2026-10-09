@@ -3,9 +3,9 @@
 # Read-only w.r.t. markets, no credentials. Writes data/lineups/lineups.duckdb (poller) and, only when a
 # T-30 decision is due and nba.duckdb is free, forward_predictions via `nba.daily run-t30`.
 set -u
-ROOT=/Users/devin/Downloads/nba-prediction
+ROOT=${NBA_ROOT:-/Users/devin/Downloads/nba-prediction}   # override on the VM (see ops/vm/)
 cd "$ROOT" || exit 1
-UV=/opt/homebrew/bin/uv
+UV=${NBA_UV:-/opt/homebrew/bin/uv}
 OPS=data/ops
 LOCK=$OPS/lineups_lock
 mkdir -p "$OPS"
