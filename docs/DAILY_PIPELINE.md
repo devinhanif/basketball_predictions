@@ -174,3 +174,10 @@ once, so they are refreshed by hand. The Mac must be awake: a job missed during 
 
 `ops/check_vm_reachability.sh` checks that a candidate host (e.g. a cloud VM) can reach stats.nba.com
 through nba_api, the injury-report host, Kalshi, GitHub and Drive before anything is moved there.
+
+## Opening-week roster source
+
+`nba.daily run --roster-source official` replaces the offseason-stale last-10-games roster with the
+pre-tip `CommonTeamRoster` (cached per date) plus recent players, with the rookie minutes prior for
+players with no history. Default is `recent`. Measurements and the recommendation are in
+docs/OPENING_WEEK_ROSTERS.md.

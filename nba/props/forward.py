@@ -76,6 +76,15 @@ from nba.props.context_residual import (
 )
 from nba.props.distributions import Distribution, NormalDist
 from nba.props.minutes import build_minutes_features, predict_minutes
+from nba.props.roster_cold import (
+    BinPrior,
+    apply_rookie_prior,
+    cold_stat_dist,
+    minute_bin_priors,
+    new_team_k_multipliers,
+    rookie_minutes_mu,
+)
+from nba.props.rosters import merge_rosters
 from nba.sim.player_attribution import (
     DEFAULT_ASSISTED_FG_RATE,
     profiles_from_features,
@@ -157,6 +166,21 @@ class ForwardConfig:
     #: contract. Minutes/P(play) still see DNP rows.
     rates_played_only: bool = True
     thresholds: dict[str, list[int]] = field(default_factory=lambda: dict(THRESHOLDS))
+    #: Only consulted when an ``official_roster`` is passed (opening-week roster source; see
+    #: ``nba.props.rosters``). ``rookie_prior``: no-history players get the draft-slot minutes
+    #: prior and minutes-binned league stat priors (``nba.props.roster_cold``; measured gain).
+    #: ``new_team_shrinkage``: movers get the role-change pseudo-count boost; OFF by default
+    #: because the replays measured it as slightly worse than keeping the player's own history
+    #: (docs/OPENING_WEEK_ROSTERS.md). ``drop_unlisted_recent``: also drop recent-games players
+    #: that no official roster lists (cut / left); default keeps them (union).
+    new_team_shrinkage: bool = False
+    rookie_prior: bool = True
+    drop_unlisted_recent: bool = False
+    #: Roster cap used instead of ``max_roster`` when an official roster is passed: official
+    #: rosters list up to 15 standard + 3 two-way players, and with the sim off the cap exists
+    #: only to bound output size. At 13 the low-minute rookies and the stale-roster extras
+    #: compete for the last slots (coverage of debutants 60-73%); at 18 it is 93-98%.
+    official_max_roster: int = 18
 
 
 def route_model(stat: str, bucket: str, cfg: ForwardConfig) -> str:
@@ -356,6 +380,7 @@ def predict_slate(
     n_sims: int = DEFAULT_N_SIMS,
     seed: int = 0,
     config: ForwardConfig | None = None,
+    official_roster: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Routed pts/reb/ast/fg3m distributions for every projected player on a slate.
 
@@ -365,6 +390,12 @@ def predict_slate(
     the sim redistributes their share across teammates. Returns one row per
     (player, stat) with ``OUTPUT_COLUMNS``; empty (with those columns) when
     nothing can be projected. Deterministic for a given ``seed``/``n_sims``.
+
+    ``official_roster`` (``team_id``, ``player_id``; default None = the recent-games roster
+    only, the production behavior) switches on the pre-tip roster source: the forward roster
+    becomes official roster (slate teams) union recent-games players minus ``out_players``,
+    movers get boosted minutes pseudo-counts and no-history players get the cold-start
+    priors, see ``nba.props.roster_cold``.
     """
     cfg = config or ForwardConfig()
     empty = pl.DataFrame(schema={c: pl.Utf8 for c in OUTPUT_COLUMNS})
@@ -382,6 +413,16 @@ def predict_slate(
     sc = _build_history_scratch(con, as_of)
     try:
         cand = _candidate_roster(sc, sorted(team_game), exclude, cfg.roster_window_games)
+        use_official = official_roster is not None and not official_roster.is_empty()
+        if use_official:
+            assert official_roster is not None
+            cand = merge_rosters(
+                cand,
+                official_roster,
+                sorted(team_game),
+                exclude,
+                drop_unlisted_recent=cfg.drop_unlisted_recent,
+            )
         if cand.is_empty():
             return empty
         ids = cand["player_id"].to_list()
@@ -394,6 +435,17 @@ def predict_slate(
             pl.col("game_id").is_in(slate_ids)
         )
         empty_df = pl.DataFrame()
+        cold_bins: dict[str, list[BinPrior]] = {}
+        k_mult: np.ndarray | None = None
+        rookie_mu: tuple[np.ndarray, np.ndarray] | None = None
+        if use_official:
+            season_i = _season_for(as_of)
+            cold_bins = minute_bin_priors(sc, season_i)
+            if cfg.new_team_shrinkage:
+                k_mult = new_team_k_multipliers(sc, minutes_feats, season_i)
+            if cfg.rookie_prior:
+                static_raw = sc.execute("SELECT * FROM players_static").pl()
+                rookie_mu = rookie_minutes_mu(sc, minutes_feats, season_i, static_raw)
         if cfg.rates_played_only and use_sim:
             sc.register("_slate", pl.DataFrame({"game_id": slate_ids}))
             sc.execute(
@@ -409,7 +461,9 @@ def predict_slate(
     finally:
         sc.close()
 
-    dists = predict_minutes(minutes_feats)
+    dists = predict_minutes(minutes_feats, k_multiplier=k_mult)
+    if rookie_mu is not None:
+        dists = apply_rookie_prior(dists, minutes_feats, rookie_mu[0], rookie_mu[1])
     if cfg.sim_minutes not in {"conditional", "hurdle_mean"}:
         raise ValueError(f"unknown sim_minutes {cfg.sim_minutes!r}")
     mins = minutes_feats.select(
@@ -439,7 +493,7 @@ def predict_slate(
             descending=[False, False, True, False],
         )
         .group_by(["game_id", "team_id"], maintain_order=True)
-        .head(cfg.max_roster)
+        .head(max(cfg.max_roster, cfg.official_max_roster) if use_official else cfg.max_roster)
     )
     if mins.is_empty():
         return empty
@@ -502,9 +556,11 @@ def predict_slate(
                     vals = series[stat].get(pid, np.empty(0))
                     adi, cv2, _ = compute_adi_cv2(vals.tolist(), SB_MIN_GAMES)
                     bucket = classify_sb(adi, cv2)
-                    savg = recency_weighted_dist(
-                        played[stat].get(pid, np.empty(0)), stat, cfg.halflife_games
-                    )
+                    pvals = played[stat].get(pid, np.empty(0))
+                    savg = recency_weighted_dist(pvals, stat, cfg.halflife_games)
+                    if len(pvals) == 0:  # no NBA history: league stat level at his minutes
+                        cold = cold_stat_dist(cold_bins, stat, proj[pid])
+                        savg = cold if cold is not None else savg
                     sim_d = sim_by_stat.get(stat, {}).get(pid)
                     model = route_model(stat, bucket, cfg)
                     if model == MODEL_SIM and sim_d is None:
@@ -709,6 +765,7 @@ def predict_slate_context(
     cache_root: Path | None = DEFAULT_MODEL_CACHE,
     cfg: ContextResidualConfig | None = None,
     config: ForwardConfig | None = None,
+    official_roster: pl.DataFrame | None = None,
 ) -> ContextSlateResult:
     """Context-residual props for a slate (primary) plus the recency comparison.
 
@@ -723,7 +780,9 @@ def predict_slate_context(
     for s in report_out.values():
         exclude |= s
     rec_cfg = ForwardConfig(sim_stats=()) if config is None else config
-    recency = predict_slate(con, as_of, games, exclude, config=rec_cfg)
+    recency = predict_slate(
+        con, as_of, games, exclude, config=rec_cfg, official_roster=official_roster
+    )
     if recency.is_empty():
         return ContextSlateResult(recency, recency, {"cache_hit": False, "fit_seconds": 0.0})
     recency = recency.with_columns(pl.lit(MODEL_RECENCY).alias("model"))

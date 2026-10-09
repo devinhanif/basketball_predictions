@@ -56,6 +56,14 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="context-residual model cache root (default data/models/context_residual)",
     )
+    r.add_argument(
+        "--roster-source",
+        choices=["recent", "official"],
+        default="recent",
+        help="forward roster: 'recent' = players in each team's last 10 games (default); "
+        "'official' = pre-tip CommonTeamRoster (cached per date) plus recent players, with "
+        "rookie/new-team handling (docs/OPENING_WEEK_ROSTERS.md)",
+    )
     st = sub.add_parser("settle", help="score completed predictions only")
     st.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
     rep = sub.add_parser("report", help="rolling forward metrics + rollover flag")
@@ -86,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
             schedule_fn=schedule_from_db(con) if args.schedule_from_db else fetch_schedule_nba_api,
             now=args.now,
             model_cache=args.model_cache,
+            roster_source=args.roster_source,
             registry=get_registry(con),
             skip_ingest=args.skip_ingest,
             skip_injury=args.skip_injury,

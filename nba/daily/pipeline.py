@@ -46,8 +46,15 @@ from nba.daily.season import season_int_for_date, season_str_for_date
 from nba.daily.settle import settle_pending
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
+from nba.ingest.games import MAX_VALID_TEAM_ID, MIN_VALID_TEAM_ID
 from nba.models.injury_elo import predict_games
 from nba.props.forward import SIM_STATS
+from nba.props.rosters import (
+    DEFAULT_ROSTER_DIR,
+    RosterFetcher,
+    load_official_rosters,
+    missing_static_ids,
+)
 from nba.registry.protocol import RegistryAdapter
 
 
@@ -93,6 +100,9 @@ def run_daily(
     props_model: str = "context",
     n_sims: int = ROUTED_N_SIMS,
     model_cache: Path | None = None,
+    roster_source: str = "recent",
+    roster_dir: Path | None = None,
+    roster_fetch: RosterFetcher | None = None,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC."""
     made_at = now if now is not None else utcnow()
@@ -137,6 +147,8 @@ def run_daily(
         preds = _build_predictions(
             con, run_date, season_i, upcoming, made_at, registry,
             with_props, elo_config, summary, props_model, n_sims, model_cache,
+            _official_roster(con, run_date, season_s, roster_source, roster_dir, roster_fetch,
+                             rate_limiter, summary) if with_props else None,
         )  # fmt: skip
         try:
             summary.n_rows_written = append_predictions(con, summary.run_id, made_at, preds)
@@ -147,6 +159,44 @@ def run_daily(
 
     summary.settle = settle_pending(con, made_at)
     return summary
+
+
+def _official_roster(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    season_s: str,
+    roster_source: str,
+    roster_dir: Path | None,
+    fetch: RosterFetcher | None,
+    rate_limiter: RateLimiter | None,
+    summary: RunSummary,
+) -> pl.DataFrame | None:
+    """Pre-tip official rosters (30 cached-per-date calls) when ``roster_source='official'``;
+    None (recent-games roster) otherwise or when nothing could be fetched. Never raises."""
+    if roster_source == "recent":
+        return None
+    if roster_source != "official":
+        raise ValueError(f"unknown roster_source {roster_source!r}")
+    teams = list(range(MIN_VALID_TEAM_ID, MAX_VALID_TEAM_ID + 1))
+    frame, missing = load_official_rosters(
+        run_date,
+        season_s,
+        teams,
+        cache_root=roster_dir or DEFAULT_ROSTER_DIR,
+        fetch=fetch,
+        rate_limiter=rate_limiter,
+    )
+    if frame.is_empty():
+        summary.model_status["roster_source"] = "official FAILED (no roster fetched) -> recent"
+        return None
+    note = f"official rosters for {len(teams) - len(missing)}/{len(teams)} teams"
+    if missing:
+        note += f" (missing {missing} -> recent-games roster for those)"
+    no_static = missing_static_ids(con, frame)
+    if no_static:
+        note += f"; {len(no_static)} rostered players lack players_static (no rookie prior)"
+    summary.model_status["roster_source"] = note
+    return frame
 
 
 def _build_predictions(
@@ -162,6 +212,7 @@ def _build_predictions(
     props_model: str = "context",
     n_sims: int = ROUTED_N_SIMS,
     model_cache: Path | None = None,
+    official_roster: pl.DataFrame | None = None,
 ) -> list[ForwardPrediction]:
     out: list[ForwardPrediction] = []
     params = load_elo_params(elo_config) if elo_config else load_elo_params()
@@ -229,7 +280,16 @@ def _build_predictions(
     if props_model == "context":
         try:
             out.extend(
-                _context_props(con, run_date, upcoming, made_at, params, model_cache, summary)
+                _context_props(
+                    con,
+                    run_date,
+                    upcoming,
+                    made_at,
+                    params,
+                    model_cache,
+                    summary,
+                    official_roster,
+                )
             )
             return out
         except Exception as exc:  # recency model is the loud fallback
@@ -237,7 +297,11 @@ def _build_predictions(
             reason = f"{type(exc).__name__}: {exc}"[:200]
             summary.model_status[CONTEXT_PROPS_MODEL_NAME] = f"FAILED ({reason}) -> recency"
             try:
-                out.extend(_recency_only_props(con, run_date, upcoming, out_set, reason, summary))
+                out.extend(
+                    _recency_only_props(
+                        con, run_date, upcoming, out_set, reason, summary, official_roster
+                    )
+                )
                 return out
             except Exception as exc2:
                 summary.n_props_rows = 0
@@ -384,6 +448,7 @@ def _context_props(
     elo_params: dict[str, float],
     model_cache: Path | None,
     summary: RunSummary,
+    official_roster: pl.DataFrame | None = None,
 ) -> list[ForwardPrediction]:
     """Context-residual primary + recency comparison. Report rule: the latest
     official report stamped <= min(now, real tip-off - 60 min) per game."""
@@ -391,7 +456,7 @@ def _context_props(
     summary.n_out_excluded = len(set().union(*report_out.values())) if report_out else 0
     res = context_prop_predictions(
         con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming],
-        report_out, elo_params, cache_root=model_cache,
+        report_out, elo_params, cache_root=model_cache, official_roster=official_roster,
     )  # fmt: skip
     info = res.info
     n_rep = len(report_out)
@@ -427,12 +492,14 @@ def _recency_only_props(
     out_set: set[int],
     reason: str,
     summary: RunSummary,
+    official_roster: pl.DataFrame | None = None,
 ) -> list[ForwardPrediction]:
     """Context model failed: the recency model is written under BOTH the primary
     and the comparison names, the primary rows carrying the failure reason."""
     df = recency_prop_predictions(
-        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming], out_set
-    )
+        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming], out_set,
+        official_roster,
+    )  # fmt: skip
     common = {"n_slate_games": len(upcoming)}
     primary = _frame_preds(
         df, upcoming, CONTEXT_PROPS_MODEL_NAME, CONTEXT_PROPS_VERSION, run_date,

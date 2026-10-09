@@ -31,3 +31,15 @@ def test_cli_now_parses_as_naive_utc() -> None:
     assert _parser().parse_args(["settle", "--now", "2024-10-23T12:00"]).now == datetime(
         2024, 10, 23, 12, 0
     )
+
+
+def test_cli_roster_source_defaults_to_recent_and_matches_pipeline() -> None:
+    a = _parser().parse_args(["run", "--date", "2026-10-20"])
+    assert a.roster_source == "recent"
+    assert inspect.signature(run_daily).parameters["roster_source"].default == "recent"
+    assert (
+        _parser()
+        .parse_args(["run", "--date", "2026-10-20", "--roster-source", "official"])
+        .roster_source
+        == "official"
+    )

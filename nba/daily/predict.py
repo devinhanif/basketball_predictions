@@ -275,9 +275,11 @@ def context_prop_predictions(
     elo_params: dict[str, float],
     *,
     cache_root: Path | None = None,
+    official_roster: pl.DataFrame | None = None,
 ) -> ContextSlateResult:
     """Context-residual props (primary) + recency comparison for ``games`` =
-    ``[(game_id, home_team, away_team)]``; fit on rows strictly before ``slate``."""
+    ``[(game_id, home_team, away_team)]``; fit on rows strictly before ``slate``.
+    ``official_roster`` (default None = recent-games roster) enables the pre-tip roster source."""
     frame = pl.DataFrame(
         {
             "game_id": [g[0] for g in games],
@@ -287,7 +289,13 @@ def context_prop_predictions(
         schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
     )
     return predict_slate_context(
-        con, slate, frame, report_out, elo_params, cache_root=cache_root or DEFAULT_CONTEXT_CACHE
+        con,
+        slate,
+        frame,
+        report_out,
+        elo_params,
+        cache_root=cache_root or DEFAULT_CONTEXT_CACHE,
+        official_roster=official_roster,
     )
 
 
@@ -296,6 +304,7 @@ def recency_prop_predictions(
     slate: date,
     games: list[tuple[str, int, int]],
     exclude_players: set[int],
+    official_roster: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Recency-weighted played-games average only (no sim, no model fit)."""
     frame = pl.DataFrame(
@@ -306,7 +315,14 @@ def recency_prop_predictions(
         },
         schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
     )
-    return predict_slate(con, slate, frame, exclude_players, config=ForwardConfig(sim_stats=()))
+    return predict_slate(
+        con,
+        slate,
+        frame,
+        exclude_players,
+        config=ForwardConfig(sim_stats=()),
+        official_roster=official_roster,
+    )
 
 
 # --------------------------------------------------------------------------------------
