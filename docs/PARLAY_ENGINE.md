@@ -64,3 +64,53 @@ The engine prices legs from DIFFERENT games as independent (copulas are same-gam
 - `uv run python -m nba.parlay eval-joint` appends this as the "Cross-game legs" section and writes `reports/parlay/independence_check.{md,json}`.
 - Forward monitor: `nba.daily.report` runs (a)/(b) on `forward_scores` once `independence_check.min_forward_dates` (30) scored dates exist, and flags when a CI excludes 0 AND |r| > `flag_abs_r` (0.05) (configs/parlay.yaml). Props check uses model `props_context_residual`, wins `rung0_injury_elo`.
 - Caveats: 4 prop stats + 2 win measures are tested without multiplicity correction; the |r| floor guards against flagging statistically detectable but economically trivial correlation.
+
+## Local chat assistant (`nba/parlay/assistant/`, read-only)
+`uv run python -m nba.parlay assistant` (or `make parlay-chat`) is a chat front end to this engine. A local LLM
+(Ollama, default `qwen2.5:3b`, 3B-class for an 8 GB machine) may only call engine tools; it computes nothing.
+
+**Maintainer setup (nothing is installed by the repo):**
+```
+brew install ollama
+ollama serve                 # leave running in another terminal
+ollama pull qwen2.5:3b
+make parlay-chat             # REPL;  one-shot: uv run python -m nba.parlay assistant --ask "..." --date YYYY-MM-DD
+```
+Flags: `--date`, `--model` (env `PARLAY_ASSISTANT_MODEL`), `--transcript out.jsonl` (audit log of every tool call and output),
+`--dnp-policy`, `--allow-paper-log` (default off). Host from `OLLAMA_HOST` (default `http://localhost:11434`); settings under
+`assistant:` in `configs/parlay.yaml`. Temperature 0 and a fixed seed. If Ollama is down the command exits 2 with install steps.
+
+**Tools** (thin wrappers over `slate.py`, `joint.py`, `ev.py`, `shadow.py`): `list_slate`, `evaluate_slate` (what `evaluate` does, no logging),
+`price_parlay` (copula within a game, independence across games, fees from the verified config, `prob_interval`, `ev`, `ev_low`, verdict),
+`explain_leg` (stored quantiles, P(>=N), p_play, `routed_to`, `fallback_reason`, Kalshi price), `what_if` (add/remove a leg: delta in joint prob,
+EV and the correlation effect vs independence), `track_record` (shadow log; "insufficient sample" below `min_settled_for_claims`).
+Arguments are validated strictly; an unknown player is an error (reviewed aliases + nba_api static list, never a fuzzy guess).
+
+**Guarantees (enforced in code, tested in `tests/parlay/test_assistant.py`):**
+- Numbers: the answer is (a) a block rendered by Python from the tool results, plus (b) the LLM's prose. `numguard.py` strips any
+  number-looking token in the prose that no tool result (or the user's own question) reproduces at that precision, replacing it with
+  `[number removed: not from engine]`; sentences recommending a real-money bet are also removed. Dates, tickers, 0-10 counts and years are exempt.
+- `no_positive_ev_found`, `prob_interval`, `ev_low`, fees, model weight and sample sizes are printed from the result, never paraphrased.
+- Read-only: `nba.duckdb` and `kalshi.duckdb` are attached `READ_ONLY`; the paper DB is opened read-only except inside `log_paper_trade`,
+  which does not exist unless `--allow-paper-log` is passed and needs `confirm=true`. No order endpoints, no credentials.
+- Combos with no listed contract are priced at the product of leg asks and labelled `NOT_A_TRADABLE_PRICE`; legs with no market and no
+  user-supplied `ask` return `not_evaluable_no_price` instead of an invented price.
+- While the settled track record is below `min_settled`, the engine's model weight is 0: `model_prob` and its interval collapse onto the market
+  mid and the verdict is `no_positive_ev_found`; the unshrunk `raw_*` numbers are shown as a hypothesis only.
+
+**Example session (scripted fake LLM; the real one only changes the prose):**
+```
+you> Price LAL to win
+=== Engine results (rendered by Python from tool outputs) ===
+[price_parlay]
+  legs (1, 1 game(s)): LAL win
+  price (ask): $0.450   fees: $0.020   bid/ask spread: $0.050
+  EV: -$0.045   EV at low bound (ev_low): -$0.045
+  verdict: no_positive_ev_found
+  raw unshrunk model (hypothesis only): prob 77.5%, raw_ev +$0.305, raw_ev_low +$0.266
+=== Explanation (language-model prose; numbers checked against engine output) ===
+Uncertain: roughly a [number removed: not from engine] chance, verdict no_positive_ev_found.
+-- Analysis only, not financial advice. ...
+```
+Caveat: a 3B model will often pick wrong tools or arguments; the guardrails make that visible (errors are rendered) rather than silently wrong.
+No live Ollama session has been run in this repo's tests (all tests use a scripted backend and an HTTP mock).

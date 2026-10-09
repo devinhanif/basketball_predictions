@@ -1,7 +1,7 @@
 UV := $(shell command -v uv 2>/dev/null)
 PY := python3
 
-.PHONY: setup test lint backtest smoke smoke-check report data-contract gate gate-local registry data-snapshot data-diff data-check
+.PHONY: parlay-chat setup test lint backtest smoke smoke-check report data-contract gate gate-local registry data-snapshot data-diff data-check
 
 ## Install all dependencies (prefers uv, falls back to pip + venv).
 setup:
@@ -49,6 +49,14 @@ ifdef UV
 	uv run python -m nba.eval --config $(CONFIG) --register
 else
 	python -m nba.eval --config $(CONFIG) --register
+endif
+
+## Read-only local-LLM chat over the parlay engine (needs Ollama; see docs/PARLAY_ENGINE.md).
+parlay-chat:
+ifdef UV
+	uv run python -m nba.parlay assistant
+else
+	python -m nba.parlay assistant
 endif
 
 ## Fast end-to-end smoke run on the tiny committed fixture (<3 minutes):
