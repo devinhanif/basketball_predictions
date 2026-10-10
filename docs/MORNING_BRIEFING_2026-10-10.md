@@ -79,3 +79,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - Historical odds pull COMPLETE (1.44M of 5M credits; props + game lines for 2023-25; 4 unmatched games per phase). Reparse with the reviewed aliases running. You can cancel the-odds-api.com plan after the month, or keep the 3.5M remaining credits for line-movement snapshots.
 
 - REFEREES gate G0 FAILED (T202): four officials have two ids each in game_officials (feed defect), everything else passes. Decision: OK to merge the duplicate ids in the officials table (archivist, data correction; the frozen rule is untouched) and re-run the gate? If yes the experiment runs the same day.
+
+- Morning job ran at 07:00 CDT for an 08:00 plist = 08:00 Eastern: launchd is running the calendar an hour ahead (timezone cached at load). That is also why 21:20/21:50 never fired last night (they fired as 20:20/20:50). Both calendar jobs reloaded at 07:30; if the first pre-tip still lands at 08:20 CDT, launchd itself is stale (reboot) and the StartInterval change is the real fix. Drive backups failed (rclone not on launchd PATH): fixed in the wrapper, copies re-run by hand.
