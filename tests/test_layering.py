@@ -23,6 +23,7 @@ ENTRYPOINTS = (
     "nba.ingest.referees",
     "nba.lineups.__main__",
     "nba.markets.__main__",
+    "nba.odds.__main__",
     "nba.parlay.__main__",
     "nba.ops.watchdog",
 )

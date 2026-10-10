@@ -1,0 +1,40 @@
+# the-odds-api.com (api.the-odds-api.com/v4) HISTORICAL pull. NOT theoddsapi.com (configs/odds.yaml).
+# Read-only. No credentials here: the key is read from the THE_ODDS_API_KEY environment variable and
+# is sent as the `apiKey` query parameter; it is stripped from every stored param set, log line and
+# exception.
+base_url: https://api.the-odds-api.com/v4
+sport_key: basketball_nba
+regions: [us, eu, us_ex]        # Pinnacle is in eu; Novig / ProphetX are in us_ex (us2 skipped)
+prop_markets: [player_points, player_rebounds, player_assists, player_threes]
+game_markets: [h2h, spreads, totals]
+odds_format: american
+
+# Credit guards (the plan is 5,000,000 credits; this pull is capped well below it).
+max_credits: 2000000            # refuse when cumulative spend of this pull would exceed this
+min_server_remaining: 100000    # refuse when the server-reported remaining falls below this
+cost_per_market_region: 10      # historical event odds cost 10 x markets x regions
+cost_events_list: 1
+
+# Pacing / retries
+min_interval_s: 0.35            # minimum seconds between HTTP attempts
+timeout_s: 30.0
+max_attempts: 3                 # transport errors / 5xx, per request
+retry_backoff_s: 2.0
+max_429_waits: 6                # 429 backoff: 5s, 10s, 20s, ... capped at 120s, then abort the run
+backoff_429_s: 5.0
+
+# Snapshots: minutes before the real scheduled tip-off
+snapshots: {t60: 60, t5: 5}
+event_match_window_h: 12        # commence_time must be within +-this of our scheduled tip
+
+seasons: [2023, 2024, 2025]     # games.season (2025 is the frozen holdout: raw prices only)
+# Order the maintainer runs them in (documented; the CLI runs one season/phase per invocation).
+plan: [[2024, props], [2023, props], [2025, props], [2024, games], [2023, games], [2025, games]]
+
+# Paths (relative to the repo root)
+raw_dir: data/odds/raw/the_odds_api
+ledger_path: data/odds/budget/the_odds_api_ledger.json
+state_path: data/odds/history_pull_state.jsonl
+out_db: data/odds/odds_history.duckdb
+games_db: nba.duckdb
+schedule_dir: data/schedule
