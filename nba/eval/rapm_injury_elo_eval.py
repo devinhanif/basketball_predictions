@@ -44,7 +44,6 @@ from nba.eval.injury_elo_eval import (
     SLICE_VETO,
     _cmp,
     _ece,
-    feature_config_from,
     load_config,
     walk_forward_probs,
 )
@@ -65,6 +64,7 @@ from nba.models.injury_elo import (
     asof_values,
     build_injury_features,
     build_value_state,
+    feature_config_from,
     league_rate_by_date,
     load_games_frame,
     load_stats_frame,

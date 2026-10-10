@@ -97,8 +97,8 @@ def test_build_game_tipoff_parses_schedule(tmp_path: Path) -> None:
 
 
 def test_production_defaults_are_real_tip_and_proxy19_still_available() -> None:
-    from nba.eval.injury_elo_eval import feature_config_from, load_config
-    from nba.models.injury_elo import InjuryFeatureConfig
+    from nba.eval.injury_elo_eval import load_config
+    from nba.models.injury_elo import InjuryFeatureConfig, feature_config_from
     from nba.props.context_residual import ContextResidualConfig
 
     assert InjuryFeatureConfig().tip_source == "real"

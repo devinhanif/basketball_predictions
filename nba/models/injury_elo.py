@@ -98,6 +98,23 @@ class InjuryFeatureConfig:
 # --------------------------------------------------------------------------
 
 
+def feature_config_from(cfg: dict[str, Any]) -> InjuryFeatureConfig:
+    """Build the feature config from the parsed ``configs/injury_elo.yaml`` dict."""
+    v = ValueConfig(**cfg["value"])
+    r = cfg["report"]
+    f = cfg["fit"]
+    return InjuryFeatureConfig(
+        value=v,
+        tipoff_hour_et=float(r["tipoff_hour_et"]),
+        lead_minutes=int(r["lead_minutes"]),
+        tip_source=str(r.get("tip_source", "real")),
+        doubtful_weight=float(r["doubtful_weight"]),
+        report_table=str(r["backfill_table"]),
+        rotation_min_avg=float(f["rotation_min_avg"]),
+        rotation_min_games=int(f["rotation_min_games"]),
+    )
+
+
 def sequential_elo_logits(games: pl.DataFrame, params: dict[str, float]) -> np.ndarray:
     """Pre-game MOV-Elo logit of every game, in the row order of ``games``.
 

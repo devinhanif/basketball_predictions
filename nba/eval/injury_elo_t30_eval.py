@@ -25,7 +25,6 @@ from nba.eval.injury_elo_eval import (
     SLICE_MIN_N,
     _cmp,
     _ece,
-    feature_config_from,
     game_numbers,
     load_config,
     walk_forward_probs,
@@ -33,6 +32,7 @@ from nba.eval.injury_elo_eval import (
 from nba.eval.metrics import brier_score, log_loss
 from nba.models.injury_elo import (
     build_injury_features,
+    feature_config_from,
     load_games_frame,
     load_stats_frame,
     sequential_elo_logits,

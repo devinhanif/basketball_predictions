@@ -48,9 +48,8 @@ from nba.eval.metrics import (
     paired_bootstrap_compare,
 )
 from nba.models.injury_elo import (
-    InjuryFeatureConfig,
-    ValueConfig,
     build_injury_features,
+    feature_config_from,
     fit_injury_coefs,
     load_games_frame,
     load_stats_frame,
@@ -70,22 +69,6 @@ def _ece(y: np.ndarray, p: np.ndarray) -> float:
 def load_config(path: str | Path) -> dict[str, Any]:
     cfg: dict[str, Any] = yaml.safe_load(Path(path).read_text())
     return cfg
-
-
-def feature_config_from(cfg: dict[str, Any]) -> InjuryFeatureConfig:
-    v = ValueConfig(**cfg["value"])
-    r = cfg["report"]
-    f = cfg["fit"]
-    return InjuryFeatureConfig(
-        value=v,
-        tipoff_hour_et=float(r["tipoff_hour_et"]),
-        lead_minutes=int(r["lead_minutes"]),
-        tip_source=str(r.get("tip_source", "real")),
-        doubtful_weight=float(r["doubtful_weight"]),
-        report_table=str(r["backfill_table"]),
-        rotation_min_avg=float(f["rotation_min_avg"]),
-        rotation_min_games=int(f["rotation_min_games"]),
-    )
 
 
 def walk_forward_probs(

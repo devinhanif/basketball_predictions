@@ -76,14 +76,14 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.eval.injury_elo_eval import feature_config_from, game_numbers, load_config
+from nba.eval.injury_elo_eval import game_numbers, load_config
 from nba.features.game_location_context import (
     build_context_features,
     build_schedule_table,
     load_team_markets,
 )
 from nba.models.base import RungModel
-from nba.models.injury_elo import load_games_frame, load_stats_frame
+from nba.models.injury_elo import feature_config_from, load_games_frame, load_stats_frame
 from nba.models.winprob_family import (
     BASE_FEATURES,
     CAL_METHODS,
