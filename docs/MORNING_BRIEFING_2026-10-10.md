@@ -103,3 +103,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   shape, and the one place our information might add a sliver is rebounds (the lineup property you named first).
 
 - 14:30: adversary verdict on the rebounds cell: WOUNDED (half of it is a price-bias correction; the model share is below the floor). Final reading of the comparison: market better everywhere; nothing is promoted; "keep your money" stands.
+
+- 14:50: REFEREES ran under its frozen rule (gate passed after the id merge): NULL. Crew foul/FT/pace tendencies add nothing to pts, threes or the total at the floor (T238+). Closed.
