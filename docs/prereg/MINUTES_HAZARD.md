@@ -94,3 +94,5 @@ sha256. Code under `research/` only (`research/minutes/hazard.py`, `research/eva
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-10 18:05 CT, commit 571c2fc, sha256 of everything above the line: 65fced234352f2cbf1f154add6f5c25e7014401bf9295cd852af3973c15f4283 (first 8: 65fced23). Verify with the awk command in the header.
