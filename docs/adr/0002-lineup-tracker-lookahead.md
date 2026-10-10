@@ -34,5 +34,5 @@ on only 48.1% of 82,407 player-games and a wrong opening five in ~80% of Q2/Q3/Q
 - Bulk rebuild is in-memory and set-based with chunked short write connections (no per-game UPDATEs).
 - Residual error lives in games with unresolved or desynced subs (listed in
   `reports/lineups_rebuild/*.csv`); a first-name source would close most of it.
-- Any consumer of raw PBP that assumes `action_number` is game order has the same bug
-  (`nba/parse/possessions.py` should be checked before it is relied on for ordering).
+- Any consumer of raw PBP that assumes `action_number` is game order has the same bug; the
+  possession parser was fixed the same way on 2026-10-10 (shared helper `nba/parse/ordering.py`).

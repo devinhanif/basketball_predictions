@@ -43,3 +43,22 @@
   re-pull. Active players (>= 20 games in 2023-24, n = 498): first_season 100%, draft_status 100%
   (394 drafted, 104 undrafted). Three active players are 'drafted' with no stored pick.
 - Flags: none.
+
+## 2026-10-10 UTC - data_version 85d8a41277ce (possessions in game order)
+- `possessions` (1,049,740 -> 1,047,292 rows, -2,448) re-derived for all 5,269 games from the cached
+  play-by-play ordered by (period, clock, substitutions first, action number) instead of
+  `action_number` (ADR 0002 item 5, roadmap item 8; `python -m nba.parse.rebuild_possessions --write`).
+  `poss_idx` is renumbered in 4,374 games (360,765 rows change identity; 2,987 games change count);
+  `off_players`/`def_players` re-attached from the stored (clock-ordered) `stints`. `stints` unchanged
+  (298,394 rows). No other table changed.
+- Possessions ending after they start 5,789 -> 0; starting after the previous one ended 3,939 -> 0;
+  games with such a defect 4,258 -> 0. Two-team balance mean |A-B| 1.347 -> 1.145 (median 1, p95 3);
+  possessions per team-game 99.60 -> 99.36; formula `FGA+0.44FTA+TOV-OREB` mean abs error 2.007 -> 2.067
+  (signed -1.49 -> -1.72; the formula is the noisy side, ADR 0001); parsed points equal final score 99.25%
+  before and after; rows with a NULL lineup side 2 -> 2 (the same two team-level possessions).
+- Flags: `make data-check` ROW_DROP possessions 1,049,740 -> 1,047,292, intended (spurious trips cut by the
+  displaced events are gone); not allowlisted. The preceding snapshot d496326499e4 (2026-10-10 14:46Z)
+  differs from the previously logged ff1db81f173a by changes this entry does not describe.
+- Pre-write backup: `data/backups/possessions_pre_order_fix_20261010T145505Z_possessions.parquet`
+  (full table, 17 columns). Stale: `data/colab/possession_steps.parquet` (keyed on the old `poss_idx`) and
+  any research output joined on `(game_id, poss_idx)`. Details: docs/reviews/possession_order_2026-10-10.md.

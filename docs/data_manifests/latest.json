@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-10T01:50:08.810371+00:00",
- "data_version": "ff1db81f173a",
+ "created_at": "2026-10-10T14:55:55.996739+00:00",
+ "data_version": "85d8a41277ce",
  "db_path": "/Users/devin/Downloads/nba-prediction/nba.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -16,16 +16,16 @@
    "files": 4
   },
   "backups": {
-   "bytes": 231014376,
-   "files": 5
+   "bytes": 558399678,
+   "files": 7
   },
   "boxscore": {
    "bytes": 39808141,
    "files": 5269
   },
   "coaches": {
-   "bytes": 1592916,
-   "files": 4
+   "bytes": 3205334,
+   "files": 121
   },
   "colab": {
    "bytes": 13391994091,
@@ -36,8 +36,8 @@
    "files": 4
   },
   "history": {
-   "bytes": 151736108,
-   "files": 6213
+   "bytes": 165875438,
+   "files": 7530
   },
   "hustle": {
    "bytes": 38425808,
@@ -60,15 +60,15 @@
    "files": 3
   },
   "kalshi": {
-   "bytes": 16356475,
-   "files": 3625
+   "bytes": 20896319,
+   "files": 5053
   },
   "lineups": {
-   "bytes": 2594598,
-   "files": 16
+   "bytes": 3397348,
+   "files": 18
   },
   "markets": {
-   "bytes": 274432,
+   "bytes": 1060864,
    "files": 1
   },
   "matchups": {
@@ -87,13 +87,17 @@
    "bytes": 744024,
    "files": 825
   },
+  "odds": {
+   "bytes": 374590339,
+   "files": 23728
+  },
   "officials": {
-   "bytes": 3026647,
-   "files": 746
+   "bytes": 8955648,
+   "files": 3954
   },
   "ops": {
-   "bytes": 76042,
-   "files": 20
+   "bytes": 127938,
+   "files": 25
   },
   "parlay": {
    "bytes": 276877,
@@ -104,20 +108,20 @@
    "files": 5269
   },
   "players_static": {
-   "bytes": 3399846,
-   "files": 1032
+   "bytes": 3459890,
+   "files": 1033
   },
   "rapm": {
    "bytes": 188058,
    "files": 2
   },
   "refs": {
-   "bytes": 3599293,
-   "files": 20
+   "bytes": 5530745,
+   "files": 26
   },
   "rehearsal": {
-   "bytes": 4304341041,
-   "files": 4231
+   "bytes": 16555214210,
+   "files": 6082
   },
   "reviews": {
    "bytes": 3429244272,
@@ -129,6 +133,10 @@
   },
   "schedule_cache": {
    "bytes": 75600,
+   "files": 1
+  },
+  "scratch": {
+   "bytes": 8341,
    "files": 1
   },
   "shots": {
@@ -824,36 +832,68 @@
   "game_officials": {
    "columns": {
     "game_id": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
      "type": "VARCHAR"
     },
     "jersey": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
      "type": "VARCHAR"
     },
     "name": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
      "type": "VARCHAR"
     },
     "official_id": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
      "type": "INTEGER"
     }
    },
    "date_range": {},
-   "fingerprint": "empty",
-   "pk_duplicates": null,
+   "fingerprint": "c0b24a3b991b5e38-7653069269718f80",
+   "pk_duplicates": 0,
    "primary_key": [
     "game_id",
     "official_id"
    ],
-   "row_count": 0,
+   "row_count": 12031,
    "schema_hash": "c644a2d4e96b60e0",
-   "seasons": {}
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 3999
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 4016
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 4016
+    }
+   }
   },
   "games": {
    "columns": {
@@ -2568,12 +2608,12 @@
   "possessions": {
    "columns": {
     "assister_id": {
-     "null_rate": 0.759721,
+     "null_rate": 0.758819,
      "null_rate_by_season": {
-      "2022": 0.770452,
-      "2023": 0.758814,
-      "2024": 0.757042,
-      "2025": 0.752518
+      "2022": 0.769717,
+      "2023": 0.757785,
+      "2024": 0.756161,
+      "2025": 0.751545
      },
      "type": "INTEGER"
     },
@@ -2718,55 +2758,55 @@
      "type": "INTEGER"
     },
     "shooter_id": {
-     "null_rate": 0.214686,
+     "null_rate": 0.214877,
      "null_rate_by_season": {
-      "2022": 0.217825,
-      "2023": 0.207979,
-      "2024": 0.21258,
-      "2025": 0.220296
+      "2022": 0.217872,
+      "2023": 0.208155,
+      "2024": 0.212901,
+      "2025": 0.220512
      },
      "type": "INTEGER"
     },
     "shot_zone": {
-     "null_rate": 0.214686,
+     "null_rate": 0.214877,
      "null_rate_by_season": {
-      "2022": 0.217825,
-      "2023": 0.207979,
-      "2024": 0.21258,
-      "2025": 0.220296
+      "2022": 0.217872,
+      "2023": 0.208155,
+      "2024": 0.212901,
+      "2025": 0.220512
      },
      "type": "VARCHAR"
     }
    },
    "date_range": {},
-   "fingerprint": "90cda939e9d6cc1e-e1d75a1b0a26fbf6",
+   "fingerprint": "faea4d79c2fac8f7-87e8113d8b7105db",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id",
     "poss_idx"
    ],
-   "row_count": 1049740,
+   "row_count": 1047292,
    "schema_hash": "3b4cda84d1ed56f6",
    "seasons": {
     "2022": {
      "coverage": 1.0,
      "games": 1320,
-     "rows": 263932
+     "rows": 263458
     },
     "2023": {
      "coverage": 1.0,
      "games": 1318,
-     "rows": 261180
+     "rows": 260450
     },
     "2024": {
      "coverage": 1.0,
      "games": 1315,
-     "rows": 261704
+     "rows": 261131
     },
     "2025": {
      "coverage": 1.0,
      "games": 1316,
-     "rows": 262924
+     "rows": 262253
     }
    }
   },
@@ -3207,47 +3247,90 @@
   "team_coaches": {
    "columns": {
     "coach_id": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "INTEGER"
     },
     "coach_type": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "VARCHAR"
     },
     "is_assistant": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "INTEGER"
     },
     "name": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "VARCHAR"
     },
     "season": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "INTEGER"
     },
     "team_id": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "INTEGER"
     }
    },
    "date_range": {},
-   "fingerprint": "empty",
-   "pk_duplicates": null,
+   "fingerprint": "0e232ac9b90d2dd5-cee085dd4e2e65ab",
+   "pk_duplicates": 0,
    "primary_key": [
     "season",
     "team_id",
     "coach_id"
    ],
-   "row_count": 0,
+   "row_count": 1041,
    "schema_hash": "06b980b2ef8fb0f3",
-   "seasons": {}
+   "seasons": {
+    "2022": {
+     "rows": 257
+    },
+    "2023": {
+     "rows": 238
+    },
+    "2024": {
+     "rows": 263
+    },
+    "2025": {
+     "rows": 283
+    }
+   }
   },
   "team_context": {
    "columns": {

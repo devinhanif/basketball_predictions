@@ -54,7 +54,7 @@ credited the wrong player for the first 1.5-2 minutes. v2:
 - Sub whose *out* player is not on the tracked floor (desync from an earlier
   unresolved sub): skipped and logged in ``LineupReport.desync``.
 - Events are placed by (period, clock), not ``action_number``: the feed appends
-  post-hoc corrections at the end of the game (see ``_in_game_order``). A
+  post-hoc corrections at the end of the game (see ``nba.parse.ordering.in_game_order``). A
   correction with a wrong clock would still land in the wrong place.
 - Team-level events (``team_id == 0``) and the unresolved side of a jump
   ball carry no lineup signal.
@@ -69,6 +69,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import polars as pl
+
+from nba.parse.ordering import CLOCK_RE as _CLOCK_RE
+from nba.parse.ordering import in_game_order
 
 STINTS_COLUMNS = ["game_id", "team_id", "period", "start_clock", "end_clock", "players"]
 
@@ -85,7 +88,6 @@ _CONFIRM_ACTION_TYPES = {
     "Jump Ball",
 }
 
-_CLOCK_RE = re.compile(r"PT(\d+)M([\d.]+)S")
 _SUB_RE = re.compile(r"^SUB:\s*(.+?)\s+FOR\s+(.+)$")
 #: ``"A. Holiday"`` / ``"Jal. Green"``: 1-3 letter prefix (capital first) then a dot.
 _INITIAL_RE = re.compile(r"^([A-Z][A-Za-z]{0,2})\.\s+(.+)$")
@@ -279,32 +281,6 @@ def _look_ahead_openers(
     return openers[:5], seen
 
 
-def _in_game_order(pbp: pl.DataFrame) -> pl.DataFrame:
-    """Order events as they happened: period, then clock, substitutions first at a tie.
-
-    ``action_number`` is not game order. The feed appends post-hoc corrections
-    (a missed substitution, a rebound) at the end of the game with the right
-    period and clock but a late number: 4,512 rows in 1,651 games, 2022-25.
-    Sorting by action number put those at the end of the period and made
-    negative stints. At a clock tie a substitution goes first so the player
-    coming in is on the floor for an action stamped at the same instant.
-    """
-    clock_s = pl.col("clock").str.extract(_CLOCK_RE.pattern, 1).cast(pl.Float64) * 60.0 + pl.col(
-        "clock"
-    ).str.extract(_CLOCK_RE.pattern, 2).cast(pl.Float64)
-    return (
-        pbp.with_columns(
-            clock_s.fill_null(0.0).alias("_clock_s"),
-            (pl.col("action_type") != "Substitution").alias("_not_sub"),
-        )
-        .sort(
-            ["period", "_clock_s", "_not_sub", "action_number"],
-            descending=[False, True, False, False],
-        )
-        .drop("_clock_s", "_not_sub")
-    )
-
-
 def _empty_stints() -> pl.DataFrame:
     return pl.DataFrame(
         schema={
@@ -358,7 +334,7 @@ def track_lineups_with_report(
         if len(set(roster)) != 5:
             raise ValueError(f"starters_by_team[{team_id}] must have exactly 5 unique players")
 
-    pbp = _in_game_order(pbp)
+    pbp = in_game_order(pbp)
     book = _NameBook(pbp, roster_by_team)
     teams = sorted(starters_by_team.keys())
     rows = list(pbp.iter_rows(named=True))

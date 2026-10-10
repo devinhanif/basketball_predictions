@@ -13,6 +13,15 @@ NOT handled -- see "Known limitations" below -- because they move the
 per-team-game possession count by at most a fraction of a possession,
 well inside the <=1 mean-error tolerance.
 
+Event order: ``nba.parse.ordering.in_game_order`` (period, clock descending, substitutions
+first at a tie, then ``action_number``), NOT ``action_number``. The feed appends post-hoc
+corrections after the end of the game with the right period and clock but a late number
+(ADR 0002 item 5; docs/reviews/possession_order_2026-10-10.md). Sorted by action number, a
+correction landed at the end of its period and produced possessions that end after they
+start. Residual limitation: corrections that share a clock with the events around them are
+placed by ``action_number`` within that tie, so a late-numbered rebound stamped at the same
+second as a putback sorts after it.
+
 Segmentation rules (standard):
   - A possession/"trip" ends on: a made field goal that is NOT followed
     by bonus free throws (no and-one), a defensive rebound, a turnover,
@@ -63,6 +72,9 @@ from typing import Any
 
 import polars as pl
 
+from nba.parse.ordering import CLOCK_RE as _CLOCK_RE
+from nba.parse.ordering import in_game_order
+
 #: action_type values with no effect on possession state.
 _SKIP_ACTION_TYPES = {
     "Substitution",
@@ -96,7 +108,6 @@ POSSESSIONS_COLUMNS = [
     "pts",
 ]
 
-_CLOCK_RE = re.compile(r"PT(\d+)M([\d.]+)S")
 _AST_RE = re.compile(r"\(([A-Za-z.'\- ]+?) (\d+) AST\)\s*$")
 
 
@@ -208,7 +219,7 @@ def parse_possessions(pbp: pl.DataFrame) -> pl.DataFrame:
         raise ValueError(f"parse_possessions expects a single game_id, got {game_ids}")
     game_id = game_ids[0]
 
-    pbp = pbp.sort(["period", "action_number"])
+    pbp = in_game_order(pbp)
     home_team, away_team = _home_away_teams(pbp)
     name_lookup = _build_name_lookup(pbp)
 
