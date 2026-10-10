@@ -48,7 +48,6 @@ KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset(
         ("nba.props.forward", "nba.coldstart.sb_classification"),
         ("nba.props.forward", "nba.sim.player_attribution"),
         ("nba.props.minutes", "nba.coldstart.shrinkage"),
-        ("nba.props.opponent", "nba.coldstart.archetypes"),
     }
 )
 
