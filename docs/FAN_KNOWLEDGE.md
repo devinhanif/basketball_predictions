@@ -149,3 +149,30 @@ Devin is a Rockets fan.
   by −0.561 (n=1,300) vs −0.06 for other young players (n=5,358) and +0.094 for veterans (n=19,790);
   80% coverage 0.776 vs 0.813 / 0.795. The "Sheppard effect" is league-wide: the prior for a
   high-pick in a real role is too conservative in centre and spread. Pre-register on 2023–24.
+
+## "Everything is a lineup property" (2026-10-09, fourth round)
+
+- Good shooters create gravity → better spacing → teammates score more (Steph and Klay let KD and
+  Draymond score). Deployment changes against certain teams. Teams with many rebounds play
+  differently (half-court vs full-court).
+- *Data agrees:* Draymond make rate 0.540 with Curry on vs 0.501 off (984 vs 407 shooting
+  possessions, 2022-24); GSW offense 1.183 vs 1.117 ppp with Curry on/off. League-wide, offense is
+  +0.039 ppp with the team's top 3PM shooter on the floor (600k vs 450k possessions). Gravity is
+  measurable from stints + possessions we already have.
+- *Why it matters for the whole project:* every individual-feature idea went null (tracking, hustle,
+  RAPM, ridge); every win was about who is on the floor (injury report, lineups). The missing
+  abstraction is the LINEUP as the unit: a player's prop distribution conditional on the five around
+  him, not his own history alone. This is also the "structure of the game" the project wants to
+  show. Hypothesis F11: lineup-conditional features (on-court teammates' gravity/rebounding, as-of)
+  for props; the unseen-lineup problem is handled by composing player traits, which is what the
+  original spec's DeepSets idea was for — but as a feature of context_residual, not a new
+  architecture.
+- **Pedigree lasts 3–4 years**; after that teams move on to the next new guy. So the F9 young-pick
+  prior should decay over seasons 1–4.
+- **Youth volatility is about role, not shooting:** a young player shows potential AND clear
+  deficiencies (Sheppard can shoot but is undersized and gets targeted), so he may not play the
+  4th quarter of a tight game. → The spread comes from *closing-lineup risk* (minutes), which is
+  pre-tip predictable from game closeness (Elo margin) and the player's "closer share".
+- **Rivalries are less serious between players** than between organisations (Spurs, Thunder, Rockets
+  do have them). Rebounding identity is visible: two guys on the court with generally high OREB%
+  and DREB%. Devin is unsure rivalries matter much — F10 is low priority.
