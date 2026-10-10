@@ -124,3 +124,24 @@ Devin is a Rockets fan.
   having pride to back yourself on capitalism."
 - *Design implication:* after a win the tool shows the same odds in the same font and says "this one
   hit; it was still a −X% bet." The moment after a win is the moment honesty matters most.
+
+## Houston, specifically (2026-10-09, third round)
+
+- **Rebounding is a lineup property.** With Steven Adams and Clint Capela in double/triple-big
+  lineups, Houston led the league in offensive rebounding and second-chance points; opponents
+  game-planned for it. When Adams sat for surgery the rate dropped. *Data agrees:* HOU OREB%
+  25.1% (2023-24) → 31.6% (2024-25, Adams 64 gp) → 34.5% (2025-26, Adams 22.8 min). Our props model
+  attributes boards to individuals, so it over-predicted Rockets rebounds (+0.16) when the lineup
+  changed. *Hypothesis F8:* team OREB%/DREB% as a function of the on-court bigs (lineup-level
+  rebounding, from stints), as a feature for individual reb; Devin: think in usage, RB%, BLK%.
+- **Reed Sheppard** (id 1642263): top-3 pick who sat behind Fred VanVleet (undersized like him, a
+  leader, mentor/starter). When VanVleet tore his ACL, Sheppard got the role and was expected to do
+  his best; "he's young so he's volatile." *Data:* VanVleet has 0 games in 2025-26; Sheppard was
+  ~26 min / 15 ppg from November. The model under-predicted him 1.6 ppg all season at steady
+  minutes → the error is a too-conservative young-player prior (center AND spread), not a lag.
+  *Hypothesis F9:* for players ≤ 2 seasons with a top-10 draft slot, the recency prior should be
+  pulled toward the role (minutes, usage share) rather than the league average for size.
+- **Rivalries** are regional (within divisions) plus Finals history (Lakers–Celtics, Cavs–Warriors,
+  LeBron vs the Spurs, …) — Claude should compile a list and Devin verifies. Also: players who met
+  in FIBA/Olympics/college can "go off for an unforeseen reason" — see Anthony Edwards vs Luka
+  Doncic.

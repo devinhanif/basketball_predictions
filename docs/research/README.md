@@ -46,3 +46,6 @@ exploration, however good it looks.
 | F5 | Young/rising teams are over-rated on the road; role-growth slope for ≤3-season players | games, minutes, usage trends | win prob (HOU away 0.60 pred / 0.52 actual), props |
 | F6 | Coach rest propensity on back-to-backs; roster depth by youth/injury profile | coaches, rest days, minutes | minutes, P(play) |
 | F7 | Playoff rows differ (fouls, pace, series state) and should not be pooled naively | possessions, game ids | all |
+| F8 | Team rebounding is a lineup property (double-big lineups), not a sum of individuals | stints, box scores (OREB/DREB), players_static heights | reb |
+| F9 | Young top-10 picks in a starting role: prior pulled toward role, wider spread | draft slot, minutes/usage share, seasons played | pts, all |
+| F10 | Rivalry/FIBA-history matchups: questionable → sits; past-opponent → "goes off" | divisions, Finals history list (Devin verifies), international rosters | P(play), pts |
