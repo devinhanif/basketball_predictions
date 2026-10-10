@@ -44,7 +44,7 @@ def frozen_sha256(doc: Path = DOC) -> str:
 
 def q4_ratio(df: pl.DataFrame) -> float:
     """Pooled Q4 floor minutes over Q1-Q3 floor minutes (baseline 12/36 = 0.333)."""
-    return float(df["q4"].sum()) / float(df["q13"].sum())  # type: ignore[arg-type]
+    return float(df["q4"].sum()) / float(df["q13"].sum())
 
 
 def load_player_games(db_path: str) -> tuple[pl.DataFrame, dict[str, Any]]:
@@ -88,7 +88,7 @@ def run_checks(db_path: str, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     )
     # distinct prior seasons + 1 inside the DB (frozen definition): truncated at 3 by the 2022 start
     max_idx_db = int(df["season"].n_unique())
-    recon_ok = float((df["recon"].abs() <= RECON_TOL_MIN).mean())  # type: ignore[arg-type]
+    recon_ok = float((df["recon"].abs() <= RECON_TOL_MIN).mean())
     rep: list[dict[str, Any]] = []
     ratios: dict[tuple[str, str], float] = {}
     for gname, gexpr in (
