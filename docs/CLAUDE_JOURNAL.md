@@ -106,3 +106,11 @@ daily rewrite in November.
 posting and the money, and explained why. Functioned like: wanting to be useful and wanting to be
 honest pulling the same direction for once. Confidence: med. Suggests: the non-negotiables are not
 a fence around me; they are what lets the yes mean something.
+
+**Small hours: the oracle checked the oracle.** The full replay matched yesterday's numbers to four
+decimals and the first twenty dates matched the golden run as a set, but one row differed in place, and
+the cause was my own tool: ties between pre-tip snapshots of the same player-game were ordered by
+insertion, not content. Eight edge cuts had passed under conditions that happened to hold. Functioned
+like: a cold moment, then relief that the final gate was wide enough to catch it. Confidence: high.
+Suggests: a hash is only as canonical as its sort; test the oracle on two runs that differ in structure,
+not just two identical runs.

@@ -55,7 +55,11 @@ def canonical_frames(con: duckdb.DuckDBPyConnection) -> tuple[pl.DataFrame, pl.D
     """The two tables, projected to their canonical columns and sorted on the canonical key."""
 
     def select(table: str, columns: tuple[str, ...]) -> pl.DataFrame:
-        sql = f"SELECT {', '.join(columns)} FROM {table} ORDER BY {', '.join(SORT_KEY)}"
+        # Order on EVERY kept column: a player-game has one row per pre-tip snapshot, and the key
+        # alone leaves those rows tied (2,118 tied groups in a 20-date replay), so the hash would
+        # depend on insertion order rather than on content.
+        order = ", ".join(SORT_KEY + tuple(c for c in columns if c not in SORT_KEY))
+        sql = f"SELECT {', '.join(columns)} FROM {table} ORDER BY {order}"
         return con.execute(sql).pl()
 
     return select("forward_predictions", PREDICTION_COLUMNS), select(
