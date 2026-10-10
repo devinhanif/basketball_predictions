@@ -56,3 +56,14 @@ drafted for confirmation.
 Why: each was argued in chat on 2026-10-10 with the data behind it (FAN_KNOWLEDGE, same date).
 What would reverse it: F8 is frozen and cannot be edited (new question = new rule); (2) a credit cost above 0.4M stops the pull;
 (3) any injection path that reaches a model input without the review step blocks the feed.
+
+## 2026-10-10 ~19:10 CT — F8 lineup rebounding: CLOSED as a null
+What: F8 ran under its frozen rule (sha256 2a8e581e, commit e30b750; research/eval/f8_lineup_rebounding.py; reports/prereg_f8.md;
+ledger T252–T263). Rule 1 fails for reb (bigs −0.0009 [−0.0047, +0.0025], 2024) and pts (+0.0038 [−0.0005, +0.0080]); pooled pts
+is worse in 2023 (+0.0035 [+0.0008, +0.0063]); the additive control ties A0 and the placebo is at or above A0. The oracle on actual
+stints gains −0.0128 reb / −0.0292 pts in 2024 and the T-30 columns alone −0.0177 / −0.0434: the information is who actually shares
+the floor, as F11 found. Closed; no promotion, no holdout row.
+Why: the expected on-court rebounding environment built from the projected five adds nothing beyond production's teammate-OUT
+features; the projected five does not recover the real one.
+What would reverse it: a positive result in a lineup-aware T-30 model (the only lever seen). The one allowed follow-up is a
+pre-registered learned player-trait embedding rule; not queued unless Devin asks.

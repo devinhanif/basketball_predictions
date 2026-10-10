@@ -480,3 +480,8 @@ rotation-level young players in close games would be a new rule.
   player's recent pts/reb/ast/fg3m means but no 2-point, free-throw or attempt split). The possession-level categorical heads
   (rung 4) and the possession sim were tried and not kept for props. A compositional pts model (2s, 3s, FTs as separate
   count heads with a shared minutes/usage draw) has never been pre-registered → candidate PTS_COMPONENTS.
+- **F8 lineup rebounding (Devin's "rebounding is a lineup property"): CLOSED as a null, 2026-10-10 (T252–T263).** The expected
+  size and rebounding make-up of the projected five does not lower reb or pts CRPS for bigs or overall (reb bigs −0.0009
+  [−0.0047, +0.0025]). Devin's HOU observation still shows up as a bias shift (HOU 2024 reb bias −0.105 → +0.016) without a CRPS gain.
+  The actual five (oracle) is worth −0.013 reb / −0.029 pts, and the T-30 columns alone −0.018 / −0.043: the lineup matters, the
+  projection does not; the lever is the confirmed lineup at T-30, exactly as F11 said.

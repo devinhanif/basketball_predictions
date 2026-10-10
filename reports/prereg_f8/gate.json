@@ -1,0 +1,826 @@
+{
+  "audit": [
+    {
+      "bucket": "DNP",
+      "col": "lr_oreb_sum",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_oreb_sum",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_oreb_sum",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_oreb_sum",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_oreb_sum",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_oreb_sum",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_oreb_sum",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_oreb_sum",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_dreb_sum",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_dreb_sum",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_dreb_sum",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_dreb_sum",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_dreb_sum",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_dreb_sum",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_dreb_sum",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_dreb_sum",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_nbig",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_nbig",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_nbig",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_nbig",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_nbig",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_nbig",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_nbig",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_nbig",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_dbl",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_dbl",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_dbl",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_dbl",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_dbl",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_dbl",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_dbl",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_dbl",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_h5",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_h5",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_h5",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_h5",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_h5",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_h5",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_h5",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_h5",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_h2",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_h2",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_h2",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_h2",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_h2",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_h2",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_h2",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_h2",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_p_gap",
+      "n": 19733,
+      "null_rate": 0.005371712360006081
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_p_gap",
+      "n": 7394,
+      "null_rate": 0.004598322964565864
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_p_gap",
+      "n": 6206,
+      "null_rate": 0.003544956493715759
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_p_gap",
+      "n": 19485,
+      "null_rate": 0.0044649730561970745
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_p_gap",
+      "n": 50967,
+      "null_rate": 0.004061451527458944
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_p_gap",
+      "n": 32541,
+      "null_rate": 0.00414861251959067
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_p_gap",
+      "n": 20647,
+      "null_rate": 0.003923088099966097
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_p_gap",
+      "n": 30864,
+      "null_rate": 0.0043416277864178334
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_chg",
+      "n": 19733,
+      "null_rate": 0.009881923681143262
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_chg",
+      "n": 7394,
+      "null_rate": 0.008249932377603462
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_chg",
+      "n": 6206,
+      "null_rate": 0.0059619722848855946
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_chg",
+      "n": 19485,
+      "null_rate": 0.008929946112394149
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_chg",
+      "n": 50967,
+      "null_rate": 0.0074754252751780565
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_chg",
+      "n": 32541,
+      "null_rate": 0.007744076703235918
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_chg",
+      "n": 20647,
+      "null_rate": 0.007071245217222841
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_chg",
+      "n": 30864,
+      "null_rate": 0.008262052877138413
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_oreb_pct",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_oreb_pct",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_oreb_pct",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_oreb_pct",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_oreb_pct",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_oreb_pct",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_oreb_pct",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_oreb_pct",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_dreb_pct",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_dreb_pct",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_dreb_pct",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_dreb_pct",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_dreb_pct",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_dreb_pct",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_dreb_pct",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_dreb_pct",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr_cover",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr_cover",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr_cover",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr_cover",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr_cover",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr_cover",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr_cover",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr_cover",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr30_dbl",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr30_dbl",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr30_dbl",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr30_dbl",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr30_dbl",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr30_dbl",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr30_dbl",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr30_dbl",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr30_h5",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr30_h5",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr30_h5",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr30_h5",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr30_h5",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr30_h5",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr30_h5",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr30_h5",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "DNP",
+      "col": "lr30_h2",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lr30_h2",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lr30_h2",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lr30_h2",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lr30_h2",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lr30_h2",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lr30_h2",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lr30_h2",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    }
+  ],
+  "frozen_sha256": "2a8e581e7f03943da4ea7410c10d516d7adca27f58e9c892b5b07d8f0e682240",
+  "g1": {
+    "2022": {
+      "computable": 0.9320987654320988,
+      "n": 25110,
+      "nan_lr_nbig": 0.0
+    },
+    "2023": {
+      "computable": 0.9665809768637532,
+      "n": 27619,
+      "nan_lr_nbig": 0.0
+    },
+    "2024": {
+      "computable": 0.9714679331472283,
+      "n": 27583,
+      "nan_lr_nbig": 0.0
+    }
+  },
+  "g2": {
+    "bigs_rows": {
+      "2023": 6431,
+      "2024": 6499
+    },
+    "hou_or_bigs_rows_2024": 7157,
+    "team_games_big_out_2024": 562
+  },
+  "g3": {
+    "dreb_corr": 0.9999694618799116,
+    "dreb_ratio": 0.9999615916423413,
+    "n_team_games": 7906,
+    "oreb_corr": 0.9999017547534611,
+    "oreb_ratio": 0.9997396634558493
+  },
+  "g4_max_gap_pp": 0.29679738275085543,
+  "tests": [
+    {
+      "ok": true,
+      "test": "G3 oreb ratio",
+      "threshold": "0.95-1.05",
+      "value": 0.9997396634558493
+    },
+    {
+      "ok": true,
+      "test": "G3 dreb ratio",
+      "threshold": "0.95-1.05",
+      "value": 0.9999615916423413
+    },
+    {
+      "ok": true,
+      "test": "G3 oreb team-game corr",
+      "threshold": ">= 0.95",
+      "value": 0.9999017547534611
+    },
+    {
+      "ok": true,
+      "test": "G3 dreb team-game corr",
+      "threshold": ">= 0.95",
+      "value": 0.9999694618799116
+    },
+    {
+      "ok": true,
+      "test": "G1 computable share 2023",
+      "threshold": ">= 0.9",
+      "value": 0.9665809768637532
+    },
+    {
+      "ok": true,
+      "test": "G1 computable share 2024",
+      "threshold": ">= 0.9",
+      "value": 0.9714679331472283
+    },
+    {
+      "ok": true,
+      "test": "G2 team-games with projected big OUT (2024, not tip-gated)",
+      "threshold": ">= 300",
+      "value": 562
+    },
+    {
+      "ok": true,
+      "test": "G2 HOU-or-bigs rows (2024)",
+      "threshold": ">= 300",
+      "value": 7157
+    },
+    {
+      "ok": true,
+      "test": "R1 bigs rows 2023 (rule 1 power)",
+      "threshold": ">= 3000",
+      "value": 6431
+    },
+    {
+      "ok": true,
+      "test": "R1 bigs rows 2024 (rule 1 power)",
+      "threshold": ">= 3000",
+      "value": 6499
+    },
+    {
+      "ok": true,
+      "test": "G4 max NULL-rate gap across minutes buckets / reb terciles (pp)",
+      "threshold": "<= 2.0",
+      "value": 0.29679738275085543
+    },
+    {
+      "ok": true,
+      "test": "PLANT same-game box/stints/possessions/starters edited: lr_* identical through the day",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "PLANT same-game is not inert (later games change)",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "PLANT lr30_* identical for games before the day",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "CONTROL lr30_* (T-30) reacts to flipped starter flags on the day",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "PLANT teammate moved to OUT after the real tip: no change",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "CONTROL same teammate OUT before the tip does change lr_*",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "PLANT future (>= cutoff date) stints/box/possessions: earlier lr_* unchanged",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "PLANT future is not inert (later games change)",
+      "threshold": "== 1",
+      "value": 1
+    }
+  ]
+}
