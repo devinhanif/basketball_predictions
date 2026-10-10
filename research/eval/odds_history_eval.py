@@ -123,14 +123,17 @@ class RuleError(RuntimeError):
 def frozen_block(doc: Path = DOC) -> str:
     """The text between the FROZEN markers, byte for byte what the ``awk`` one-liner in the rule's
     header prints (lines strictly between BEGIN and END, each with a trailing newline)."""
+    # Markers match a WHOLE line only. The rule's own "Verify:" header quotes both marker strings
+    # on one line; a substring match started collecting there, so the hash covered the line that
+    # records the hash and changed when it was written (found at the freeze, 2026-10-10).
     out: list[str] = []
     flag = False
     for line in doc.read_text().splitlines():
-        if "<!-- FROZEN-END -->" in line:
+        if line.strip() == "<!-- FROZEN-END -->":
             flag = False
         if flag:
             out.append(line + "\n")
-        if "<!-- FROZEN-BEGIN -->" in line:
+        if line.strip() == "<!-- FROZEN-BEGIN -->":
             flag = True
     return "".join(out)
 

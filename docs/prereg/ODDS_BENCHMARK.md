@@ -2,7 +2,7 @@
 
 Status: DRAFT 2026-10-10, for Devin to confirm. To be frozen (hash recorded below, committed) before
 the first scored pair exists; captures may accumulate before the freeze, scoring may not.
-Verify: `awk '/<!-- FROZEN-END -->/{f=0} f{print} /<!-- FROZEN-BEGIN -->/{f=1}' docs/prereg/ODDS_BENCHMARK.md | shasum -a 256`
+Verify: `awk '$0=="<!-- FROZEN-END -->"{f=0} f{print} $0=="<!-- FROZEN-BEGIN -->"{f=1}' docs/prereg/ODDS_BENCHMARK.md | shasum -a 256`
 sha256 of the frozen section: (recorded at freeze)
 
 <!-- FROZEN-BEGIN -->

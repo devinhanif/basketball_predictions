@@ -3,7 +3,7 @@
 FREEZE RECORD (outside the frozen section):
 - Frozen on: 2026-10-09 (before any 2026-27 forward row exists or has been scored)
 - sha256 of the frozen section: `e323aa4817589147598109424718913b7b881d289213dc2399dc655ac2bed10a`
-- Verify: `awk '/<!-- FROZEN-END -->/{f=0} f{print} /<!-- FROZEN-BEGIN -->/{f=1}' docs/FORWARD_PREREG_2026_27.md | shasum -a 256`
+- Verify: `awk '$0=="<!-- FROZEN-END -->"{f=0} f{print} $0=="<!-- FROZEN-BEGIN -->"{f=1}' docs/FORWARD_PREREG_2026_27.md | shasum -a 256`
 - The frozen section is every line strictly between the two marker comments. Anything outside it
   (this record, the Amendments list at the bottom) is not part of the rule. Amendments may only be
   appended below the frozen section, must be dated, and may not change any rule retroactively
@@ -372,3 +372,8 @@ Required, as a new module `nba/daily/checkpoint.py` (and tests), reading `forwar
   (`made_at <= tip - 60 min`). The frozen section is unchanged (sha256 verified,
   `e323aa4817589147598109424718913b7b881d289213dc2399dc655ac2bed10a`). Test:
   `tests/daily/test_review_fixes.py`.
+- 2026-10-10: verification method clarified, frozen text unchanged. The recorded sha `e323aa48...` is the output of
+  the original substring-marker awk, which also covered header lines 7-11 above the BEGIN marker (and not the sha
+  line, which precedes the verify line here); it still reproduces on the current file. The exact-line form of the
+  verify command (now shown in the header) hashes the block strictly between the markers:
+  `d2c8183c885c1488...` (full value: run the command). Either value proves the rule is unchanged since 2026-10-09.

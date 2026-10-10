@@ -46,7 +46,7 @@ def test_frozen_block_hash_matches_awk_on_real_doc() -> None:
     if shutil.which("awk") is None or shutil.which("shasum") is None:
         pytest.skip("awk/shasum not available")
     cmd = (
-        "awk '/<!-- FROZEN-END -->/{f=0} f{print} /<!-- FROZEN-BEGIN -->/{f=1}' "
+        'awk \'$0=="<!-- FROZEN-END -->"{f=0} f{print} $0=="<!-- FROZEN-BEGIN -->"{f=1}\' '
         f"{oh.DOC} | shasum -a 256"
     )
     out = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True).stdout

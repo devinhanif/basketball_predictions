@@ -1,33 +1,11 @@
 # ODDS_HISTORY - did the props model beat the market on past seasons? (pre-registration)
 
-Status: FROZEN 2026-10-10 13:30 CT (Devin: "confirmed"). No model row had been joined to a price before this line was written.
-joined to any price. The raw pull (`python -m nba.odds history-pull`) may run before the freeze: it
-acquires prices only and never sees a prediction.
-Verify: `awk '/
-## 8. Choices fixed before the freeze (the scorer's `CHOICES`; settled 2026-10-10 after building, before any join)
-
-1. Model probabilities are clipped to [0.5/199, 1 - 0.5/199] before log loss (the 199-point integer grid can
-   emit exact 0 or 1); market probabilities are not clipped.
-2. Consensus line = the modal main line across books (ties to the lower line); consensus probability = the
-   median multiplicative de-vig over every book with a two-sided quote at that line; no minimum book count,
-   the number of books is reported per cell.
-3. The blend weight w is fit per (stat, book, snapshot kind) cell on 2023-24 and scored frozen on 2024-25.
-4. "Beats the market" = point <= -0.002 AND CI upper < 0 AND (for tested cells) Holm p < 0.05.
-5. A negative delta whose CI includes 0 is labelled "market better (negative delta, CI not below 0)"; the
-   literal label is kept, the qualifier is printed.
-6. Holm is applied on 2024-25 over the 16-test family per snapshot kind; on 2023-24 over H1 only (8 tests);
-   H2 is not scored on 2023-24 (it is fit there).
-7. Leak guard: the T-60 snapshot must be at or before tip - 60 min (stricter than gate check 4's 55 min);
-   applied to T-60 pairs only, since T-5 is later by design.
-8. EV is reported only for T-60 cells that pass; edge = p_model(side) - de-vigged market p(side) >= 0.03;
-   consensus has no own price and gets no EV; DraftKings/FanDuel are reported, never tested.
-9. Slices: volatility = recency std / max(recency mean, 1) in thirds of the stat's model-row universe;
-   tier = recency mean in thirds; line distance in thirds of the pooled pairs; side = the model's lean;
-   pushes are excluded from paired and EV sets alike.
-10. Gate check 1 is satisfied by "the game has prices in the table" (the exactly-one-event check ran in the
-    pull and is recorded there).
-<!-- FROZEN-END -->/{f=0} f{print} /<!-- FROZEN-BEGIN -->/{f=1}' docs/prereg/ODDS_HISTORY.md | shasum -a 256`
-sha256 of the frozen section: ecdcf2d29f448fcb76135c2fb4589fceab8e3c416becd442636b5a0eb26101d3
+Status: FROZEN 2026-10-10 13:40 CT (Devin: "confirmed" at 13:30). The 13:30 freeze (sha ecdcf2d2) was VOID: its
+hash was computed by a substring-marker scan that started at the header's own verify line, so it covered the
+line recording the hash and missed section 8, which a bad insertion had left in the header. No model row had
+been joined to a price under either freeze. Scoring may start only after the sha below is committed.
+Verify: `awk '$0=="<!-- FROZEN-END -->"{f=0} f{print} $0=="<!-- FROZEN-BEGIN -->"{f=1}' docs/prereg/ODDS_HISTORY.md | shasum -a 256`
+sha256 of the frozen section: d5b8b1626594bf482841633f29b73918da15cd045cd6f4d765fd778e1f4566b5
 
 <!-- FROZEN-BEGIN -->
 ## 0. Question
@@ -106,6 +84,28 @@ over vs under; home/away; first 15 team games vs rest; teammate-OUT games; book;
 Pass on 2024-25 for a stat and Pinnacle at T-5: strongest result; promote-candidate for the budget tool's
 market-as-prior weight and a DRAFTED holdout row. Pass at T-60 only: timing edge; report. Fail: the
 market is better; recorded as a finding; the budget tool keeps saying "keep your money" for that stat.
+## 8. Choices fixed before the freeze (the scorer's `CHOICES`; settled 2026-10-10 after building, before any join)
+
+1. Model probabilities are clipped to [0.5/199, 1 - 0.5/199] before log loss (the 199-point integer grid can
+   emit exact 0 or 1); market probabilities are not clipped.
+2. Consensus line = the modal main line across books (ties to the lower line); consensus probability = the
+   median multiplicative de-vig over every book with a two-sided quote at that line; no minimum book count,
+   the number of books is reported per cell.
+3. The blend weight w is fit per (stat, book, snapshot kind) cell on 2023-24 and scored frozen on 2024-25.
+4. "Beats the market" = point <= -0.002 AND CI upper < 0 AND (for tested cells) Holm p < 0.05.
+5. A negative delta whose CI includes 0 is labelled "market better (negative delta, CI not below 0)"; the
+   literal label is kept, the qualifier is printed.
+6. Holm is applied on 2024-25 over the 16-test family per snapshot kind; on 2023-24 over H1 only (8 tests);
+   H2 is not scored on 2023-24 (it is fit there).
+7. Leak guard: the T-60 snapshot must be at or before tip - 60 min (stricter than gate check 4's 55 min);
+   applied to T-60 pairs only, since T-5 is later by design.
+8. EV is reported only for T-60 cells that pass; edge = p_model(side) - de-vigged market p(side) >= 0.03;
+   consensus has no own price and gets no EV; DraftKings/FanDuel are reported, never tested.
+9. Slices: volatility = recency std / max(recency mean, 1) in thirds of the stat's model-row universe;
+   tier = recency mean in thirds; line distance in thirds of the pooled pairs; side = the model's lean;
+   pushes are excluded from paired and EV sets alike.
+10. Gate check 1 is satisfied by "the game has prices in the table" (the exactly-one-event check ran in the
+    pull and is recorded there).
 <!-- FROZEN-END -->
 
 ## Amendments (append only, dated)
