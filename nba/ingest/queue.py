@@ -74,7 +74,7 @@ CHAIN_SOURCES = ("tracking", "hustle")
 CURRENT_SCREEN_SEASONS = [2022, 2023, 2024]
 CURRENT_DEFERRED_SEASONS = [2025]
 CURRENT_OFFICIALS_SEASONS = [2022, 2023, 2024]
-CURRENT_AFTER = ("shots", "coaches", "matchups")
+CURRENT_AFTER = ("shots", "matchups")  # coaches moved up, after officials
 
 
 def season_str(s: int) -> str:
@@ -127,6 +127,14 @@ def build_steps() -> list[Step]:
             ingest("postgame-load", "--source", "officials"),
             "load",
             load_source="officials",
+        ),
+        # coaches is ~120 requests and unblocks the "coach's guy" hypothesis (F14); pulled early
+        Step("cur:coaches", ingest("postgame-fetch", "--source", "coaches")),
+        Step(
+            "load:coaches",
+            ingest("postgame-load", "--source", "coaches"),
+            "load",
+            load_source="coaches",
         ),
     ]
     steps += [
