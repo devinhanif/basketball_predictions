@@ -19,3 +19,6 @@ dated. Not for tests (ledger) or incidents (best practices).
 | 2026-10-09 | The tool shows true odds identically after wins and losses | Devin: growth in skill feels like justification but clouds judgment | never |
 
 | 2026-10-09 | F9/F11/F12 pre-registered from fan knowledge, frozen before any fit | the hypotheses came from Devin watching the game and all four descriptive checks agreed; the rule is committed first so creativity cannot reopen it | a new question gets a new rule; these are never edited after results |
+
+| 2026-10-09 | F11 (lineup context) HELD until stint durations reconcile with box minutes (currently 48% within 1 min) | four fan hypotheses rest on stints; running F11 on untrusted lineups would waste its one shot | stint reconciliation ≥ 95%, or proof that possession-level lineups are right even if durations are off |
+| 2026-10-09 | Coaches pulled right after officials, ahead of shots/matchups | ~120 requests; unblocks F14 ("coach's guy") | never |
