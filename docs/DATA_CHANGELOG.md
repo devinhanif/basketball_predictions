@@ -101,3 +101,6 @@
   14 of 87 team-seasons). known_at choices are in `docs/FACTS_STORE.md`.
 - 2026-10-11: configs/kalshi_aliases.yaml gains 61 reviewed vendor spellings from the steals pull (Devin: "paste AUTO"); both steals
   seasons reparsed from cache (0 credits). Unresolved player_steals rows 2,682 → 348 (the 11 REVIEW names, 2023 only).
+- 2026-10-11: 9 REVIEW vendor names added under Devin's team rule; 2023 steals reparsed (0 credits). Unresolved player_steals rows
+  348 → 92 (J. Green, 90 rows: Jalen and Jeff Green on the same HOU roster; bare "Thompson", 2 rows). Drive folder
+  gdrive:nba_colab/ridge_v2_sweep (4.397 GiB) deleted on Devin's instruction.
