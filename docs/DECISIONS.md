@@ -67,3 +67,11 @@ Why: the expected on-court rebounding environment built from the projected five 
 features; the projected five does not recover the real one.
 What would reverse it: a positive result in a lineup-aware T-30 model (the only lever seen). The one allowed follow-up is a
 pre-registered learned player-trait embedding rule; not queued unless Devin asks.
+
+## 2026-10-10 2026-10-10 16:58 CT — Devin: "do everything" → PTS_COMPONENTS, FOUR_FACTORS, ROUTER_TIME_WEIGHTED FROZEN
+What: the three drafts of 2026-10-10 are frozen on this message and run in sequence by the modeler (ledger rows drafted by the
+agents, appended by the main session). Hashes: PTS_COMPONENTS 7e6fd8f0;FOUR_FACTORS 0d87c2ce;ROUTER_TIME_WEIGHTED bb633f7a.
+Knowledge graph (asked the same message): adopted as the information backbone only (an as-of fact store for players, teams,
+coaches, injuries, lineups, reporter flags with known-at time), not as a model; design note to follow; no pre-registration.
+Why: Devin confirmed; each rule's gate was measured against real data before the freeze (non-negotiable 8).
+What would reverse it: nothing above a line changes; a new question gets a new rule.

@@ -1,6 +1,6 @@
 # ROUTER_TIME_WEIGHTED: which model does each kind of stat best, weighted by who has been winning lately (pre-registration)
 
-Status: DRAFT 2026-10-10 ~18:30 CT, NOT FROZEN; awaiting Devin's "confirmed". Committed by the maintainer's hand BEFORE any fit.
+Status: FROZEN 2026-10-10 16:58 CT on Devin's confirmation (message: "do everything", 2026-10-10 ~19:30 CT; docs/DECISIONS.md). Drafted 2026-10-10 ~18:30 CT, NOT FROZEN. Committed by the maintainer's hand BEFORE any fit.
 Everything above the line `=== RESULTS BELOW ===` is frozen at that time. Freeze evidence: commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/ROUTER_TIME_WEIGHTED.md | shasum -a 256` (first 8 hex chars into the
 results section and every ledger row). Season labels are the repo's `games.season`: 2023 = 2023-24, 2024 = 2024-25, 2025 =

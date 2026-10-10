@@ -1,6 +1,6 @@
 # PTS_COMPONENTS: points as 2s, 3s and free throws, each its own categorical count (pre-registration)
 
-Status: DRAFT 2026-10-10 ~18:50 CT, NOT FROZEN; awaiting Devin's "confirmed". Committed by the maintainer's hand BEFORE any fit.
+Status: FROZEN 2026-10-10 16:58 CT on Devin's confirmation (message: "do everything", 2026-10-10 ~19:30 CT; docs/DECISIONS.md). Drafted 2026-10-10 ~18:50 CT, NOT FROZEN. Committed by the maintainer's hand BEFORE any fit.
 Everything above the line `=== RESULTS BELOW ===` is frozen at that time. Freeze evidence: commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/PTS_COMPONENTS.md | shasum -a 256` (first 8 hex chars into the results
 section and every ledger row). Season labels: 2023 = 2023-24, 2024 = 2024-25, 2025 = 2025-26 (frozen holdout, never loaded).
