@@ -404,4 +404,5 @@ rotation-level young players in close games would be a new rule.
 - *Red team on the rebounds cell (T237):* WOUNDED. Half the 0.002 is Pinnacle pricing rebounds overs too high (shading to the
   under needs no model); the model's own share is 0.001, below the floor. Honest summary: the market is better everywhere, and
   the one sliver that survives is a price bias, not basketball knowledge. Nothing promoted.
+- **F11 closed (T244+, 2026-10-10):** projected teammates' traits, weighted by recent co-play, add nothing at T-60 on fixed lineups (powered null; placebo ties the real arm). But the oracle that uses tonight's ACTUAL five gains 0.058 CRPS on points, the biggest effect we have ever measured on props. "Everything is a lineup property" survives in its sharpest form: the lineup matters enormously, and the only version of it that is knowable is the confirmed five at T-30. That is where the T-30 arm and the live log now carry the idea.
 

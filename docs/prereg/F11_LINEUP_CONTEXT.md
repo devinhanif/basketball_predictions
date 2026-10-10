@@ -104,3 +104,16 @@ ci_lo, ci_hi]`; `[col, bucket, null_rate]` for the audit; `[test, ok]` for check
 === RESULTS BELOW ===
 
 (not run)
+
+Run 2026-10-10; frozen sha256 2e263279 (verified against b5a1dab). Ledger T244-T251.
+
+Frozen sha256 (first 8): 2e263279. Checks 1-6: all passed; seasons <= 2024 only, nba.duckdb read-only, CPU, seeds {'model': 0, 'bootstrap': 0, 'pit': 0, 'placebo': 0}.
+
+* pts: 2023: n=27619 dCRPS +0.0016 [-0.0012, +0.0045] p_BH 0.795 MDE 0.0029 | 2024: n=27583 dCRPS -0.0020 [-0.0040, +0.0002] p_BH 0.278 MDE 0.0021
+* reb: 2023: n=27619 dCRPS -0.0002 [-0.0015, +0.0011] p_BH 0.795 MDE 0.0013 | 2024: n=27583 dCRPS -0.0004 [-0.0015, +0.0006] p_BH 0.450 MDE 0.0010
+* ast: 2023: n=27619 dCRPS -0.0001 [-0.0010, +0.0008] p_BH 0.795 MDE 0.0009 | 2024: n=27583 dCRPS +0.0004 [-0.0003, +0.0011] p_BH 0.450 MDE 0.0007
+* fg3m: 2023: n=27619 dCRPS -0.0002 [-0.0008, +0.0005] p_BH 0.795 MDE 0.0007 | 2024: n=27583 dCRPS +0.0004 [-0.0001, +0.0010] p_BH 0.278 MDE 0.0006
+
+Verdict: confirmed on 2024 = []; passes on 2023 = []; kill criterion 'no stat passes 2023: close' = True. Nothing promoted.
+
+Implementation readings fixed before any arm was fitted (not rule changes): see the module docstring of research/eval/f11_lineup_context.py. The doc's `ContextResidualConfig.lineup_context` flag was not added (nba/ is out of scope); the columns enter through explicit feature-name lists, so production is untouched.
