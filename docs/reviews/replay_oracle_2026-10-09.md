@@ -26,3 +26,4 @@ A different hash reverts the cut.
 | 3. feature_config_from next to its config | be4b11d | oracle_e | yes (e5714332) |
 | 4. dead routed-props branches deleted | ed2b168 | oracle_f | yes (e5714332) |
 | 7. OpponentAdjustmentConfig into props/config | a9d7a69 | oracle_g | yes (e5714332) |
+| 6. dead pts_tail flag removed | 32e89f2 | oracle_h | yes (e5714332) |
