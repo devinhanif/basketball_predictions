@@ -107,3 +107,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - 14:50: REFEREES ran under its frozen rule (gate passed after the id merge): NULL. Crew foul/FT/pace tendencies add nothing to pts, threes or the total at the floor (T238+). Closed.
 
 - 14:20: F11 ran under its frozen rule: powered NULL at T-60 (T244+), but the oracle on the actual five gains 0.058 pts CRPS: the lineup matters, only the confirmed one is knowable (T-30). Closed; the T-30 arm carries it live.
+
+- 15:40: the five "where the model misses" questions were measured (2023-24 and 2024-25 OOF rows, no holdout). Report: reports/model_miss_questions_2026-10-10.md; summary in docs/FAN_KNOWLEDGE.md. Three pre-tip-knowable patterns (a teammate returning from 3+ games out costs the star ~1.2 pts; the same flag doubles a starter's short-night rate; a rotation teammate OUT lifts a deep-bench 15+ minute night from 22% to 37%) and two "not knowable before T-30" answers (who absorbs vacated minutes; the line's position, where we are over-confident everywhere). Six yes/no questions are waiting for you in chat; each answer becomes a rule. F8 still waits on your "confirmed".
