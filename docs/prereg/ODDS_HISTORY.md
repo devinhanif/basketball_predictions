@@ -87,3 +87,20 @@ market is better; recorded as a finding; the budget tool keeps saying "keep your
 
 ## Amendments (append only, dated)
 (none)
+
+## Pre-freeze gate check (2026-10-10 03:50 CT, prices only; no model row joined; outside the frozen text)
+
+Run on `data/odds/odds_history.duckdb` after the props pull completed for all three seasons
+(7,893 game-snapshots; 8.8M prop rows; Pinnacle rows 71k-80k per season-snapshot). Non-negotiable 8.
+
+| Check | 2023-24 | 2024-25 | 2025-26 | Threshold | |
+|---|---|---|---|---|---|
+| 1. Games matched to exactly one event | 1318/1318 | 1315/1315 | 1316/1316 | >= 99% | pass |
+| 2. Pinnacle two-sided player_points at T-60, players with >= 20 min | 66.2% | 68.1% | 74.4% | >= 60% | pass |
+| 2b. Any book, same | 81.3% | 85.3% | 87.8% | reported | |
+| 3. Prop rows with a resolved player id | 99.1% | 98.9% | 99.9% | >= 97% | pass (before the 2024 reparse that applies six reviewed aliases) |
+| 4. T-60 snapshot at or before the requested time | 100% | 100% | 100% | >= 99% | pass; 99.9% / 100% / 100% within 5 min |
+
+Unresolved names left (reviewed by hand, see configs/kalshi_aliases.yaml): vendor nicknames such as
+Cameron/Cam Thomas, Vincent/Vince Williams Jr, Joshua/Josh Giddey, "Jalen (2001) Johnson", Mohamed/Mo
+Bamba. The rule can be frozen; the model-row join starts only after Devin confirms it.

@@ -73,3 +73,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - Wave A archive landed: 98 research modules (40,780 lines) now under research/, tested in CI, layering test says nba/ never imports research/. Three small follow-up cuts listed in NEXT_SESSION.
 
 - Agents consolidated 18 → 6 (.claude/agents/; map in docs/reviews/agents_2026-10-10.md). Housekeeping for you: six stale git worktrees under .team/worktrees/ (branches agent/*) can be removed with `git worktree remove` + `git branch -D`; nothing references them.
+
+- ODDS_HISTORY gate check PASSED on the real prices (all four checks; table in the draft, outside the frozen text). Props for 2023-25 are fully pulled; game lines pulling. The rule is ready to freeze on your word.
