@@ -1,0 +1,20 @@
+# theoddsapi.com (api.theoddsapi.com) read-only odds adapter config. No credentials here:
+# the key is read from the ODDS_API_KEY environment variable and never written anywhere.
+base_url: https://api.theoddsapi.com
+sport_key: basketball_nba
+regions: us
+timeout_s: 20.0
+max_attempts: 3             # per request, including the first try (bounded retry)
+retry_backoff_s: 2.0
+min_interval_s: 0.5         # minimum seconds between GETs
+# Our own daily request ceiling (UTC day). The plan allows 6,667/day; we use at most this many.
+# Every HTTP attempt counts, including retries. The client also stops at X-RateLimit-Remaining.
+daily_budget: 2000
+reserve_remaining: 50       # refuse when the server reports fewer than this many requests left
+game_markets: [h2h, spreads, totals]
+prop_markets: [player_points, player_rebounds, player_assists, player_threes]
+# Reuse a raw response for the same (endpoint, params) fetched less than this many seconds ago.
+reuse_window_s: 60
+raw_dir: data/odds/raw/theoddsapi
+budget_dir: data/odds/budget
+out_db: data/markets/market_asof.duckdb

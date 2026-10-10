@@ -1,0 +1,104 @@
+{
+ "success": true,
+ "source": "cache",
+ "data": [
+  {
+   "event_id": "e1",
+   "sport": "basketball",
+   "league": "NBA",
+   "home_team": "San Antonio Spurs",
+   "away_team": "Oklahoma City Thunder",
+   "start_time": "2026-10-21T00:00:00+00:00",
+   "books": [
+    {
+     "book": "pinnacle",
+     "market": "h2h",
+     "updated_at": "2026-10-20T20:00:00+00:00",
+     "outcomes": [
+      {
+       "name": "San Antonio Spurs",
+       "price": -150
+      },
+      {
+       "name": "Oklahoma City Thunder",
+       "price": 130
+      }
+     ]
+    },
+    {
+     "book": "pinnacle",
+     "market": "spreads",
+     "updated_at": "2026-10-20T20:00:00+00:00",
+     "outcomes": [
+      {
+       "name": "San Antonio Spurs",
+       "price": -110,
+       "point": -3.5
+      },
+      {
+       "name": "Oklahoma City Thunder",
+       "price": -110,
+       "point": 3.5
+      }
+     ]
+    },
+    {
+     "book": "pinnacle",
+     "market": "totals",
+     "updated_at": "2026-10-20T20:00:00+00:00",
+     "outcomes": [
+      {
+       "name": "Over",
+       "price": -105,
+       "point": 228.5
+      },
+      {
+       "name": "Under",
+       "price": -115,
+       "point": 228.5
+      }
+     ]
+    },
+    {
+     "book": "draftkings",
+     "market": "h2h",
+     "updated_at": "2026-10-20T20:01:00+00:00",
+     "outcomes": [
+      {
+       "name": "San Antonio Spurs",
+       "price": -155
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "event_id": "e2",
+   "sport": "basketball",
+   "league": "NBA",
+   "home_team": "LA Clippers",
+   "away_team": "Brooklyn Nets Fictional",
+   "start_time": "2026-10-21T02:30:00+00:00",
+   "books": [
+    {
+     "book": "fanduel",
+     "market": "h2h",
+     "outcomes": [
+      {
+       "name": "LA Clippers",
+       "price": 1.8
+      },
+      {
+       "name": "Brooklyn Nets Fictional",
+       "price": 2.1
+      }
+     ]
+    }
+   ]
+  },
+  "not-an-event",
+  {
+   "foo": 1
+  }
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "success": true,
+ "source": "cache",
+ "data": [
+  {
+   "event_id": "e1",
+   "sport": "basketball",
+   "league": "NBA",
+   "home_team": "San Antonio Spurs",
+   "away_team": "Oklahoma City Thunder",
+   "start_time": "2026-10-21T00:00:00+00:00",
+   "books": [
+    {
+     "book": "pinnacle",
+     "market": "player_points",
+     "updated_at": "2026-10-20T20:00:00+00:00",
+     "outcomes": [
+      {
+       "name": "Miles McBride Over",
+       "price": -134,
+       "point": 2.5
+      },
+      {
+       "name": "Miles McBride Under",
+       "price": 111,
+       "point": 2.5
+      },
+      {
+       "name": "Nobody Known Over",
+       "price": -110,
+       "point": 10.5
+      },
+      {
+       "name": "Nobody Known Under",
+       "price": -110,
+       "point": 10.5
+      }
+     ]
+    },
+    {
+     "book": "fanduel",
+     "market": "player_rebounds",
+     "outcomes": [
+      {
+       "name": "Over",
+       "description": "Miles McBride",
+       "price": -120,
+       "point": 1.5
+      },
+      {
+       "name": "Under",
+       "description": "Miles McBride",
+       "price": 100,
+       "point": 1.5
+      }
+     ]
+    },
+    {
+     "book": "fanduel",
+     "market": "player_assists",
+     "outcomes": [
+      {
+       "name": "garbage",
+       "price": -120,
+       "point": 1.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "event_id": "e9",
+   "sport": "basketball",
+   "league": "NBA",
+   "home_team": "Boston Celtics",
+   "away_team": "New York Knicks",
+   "start_time": "2026-10-25T00:00:00+00:00",
+   "books": [
+    {
+     "book": "pinnacle",
+     "market": "player_points",
+     "outcomes": [
+      {
+       "name": "Josh Hart Over",
+       "price": 101,
+       "point": 9.5
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
