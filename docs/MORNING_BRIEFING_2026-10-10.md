@@ -136,3 +136,11 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - 23:55 (needs Devin): MINUTES_HAZARD stopped at its gate (T300): the `stints` table is missing very short appearances, so the
   on-court label is absent exactly where minutes are smallest. Recommend: approve a stints rebuild (with backup), then I
   re-register the hazard rule as MINUTES_HAZARD_2 unchanged. Say "rebuild stints" to go, or "close" to drop the direction.
+
+- 2026-10-11 00:40: data audit done (docs/reviews/data_audit_2026-10-11.md; 15 findings). Two LIVE-PATH items: (F1) the T-30
+  lineup snapshots list some players twice (Expected + Confirmed), and nba/daily/t30.py then skips the game: 4 of the 6 recorded
+  T-30 decisions were skipped for this reason; (F2) 10 neutral-site regular-season games (Mexico City, Paris, Berlin, London, Cup
+  semifinals; 5 in 2024-25, 5 in 2025-26) are missing from `games`, so 336 injury-report rows have no game and rest/Elo miss them.
+  Phase 2 fixes are running in the audit's order (games+availability, possession "Miss"-name bug, stint rebuild with a season-wide
+  name book, game-level coaches table, players_static re-pull, lineup dedupe view). NEEDS DEVIN: the t30.py reader fix is a
+  production change; the steward drafts it with a test and the replay check; say "ship t30 fix" to commit.
