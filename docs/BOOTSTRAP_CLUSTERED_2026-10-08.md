@@ -22,12 +22,12 @@ significant than really are.
     optional `cluster_ids` parameter (one id per row, same length/order as
     the metric arrays). `None` (the default) preserves the exact prior
     row-level behavior — no other caller changes.
-- `nba/props/run.py`: threaded `game_id` through as `cluster_ids` for every
+- `research/props/run.py`: threaded `game_id` through as `cluster_ids` for every
   `mean_bias_ci`/`paired_score_delta_ci` call in the base-stat loop
   (`bias_ci`, `crps_vs_season`, `crps_vs_last10`, `ll_vs_season`,
   `ll_vs_last10`) and the combo-stat loop (`bias_ci_c`), masked identically
   to `y_m`/`pred_mean_m` via the existing `valid_mask`/`valid_mask_c`.
-  `nba/props/volatility.py`'s internal `paired_score_delta_ci` calls and the
+  `research/props/volatility.py`'s internal `paired_score_delta_ci` calls and the
   other eval-module callers (`model_routing.py`, `routed_eval.py`,
   `player_points_sim_eval.py`, `player_reb_ast_sim_eval.py`,
   `usage_redistribution_eval.py`) are unchanged — out of scope for this
@@ -92,9 +92,9 @@ All 149 existing `tests/props` tests still pass unchanged.
 ## Verification run
 
 ```
-uv run ruff check nba/props/metrics.py nba/props/run.py tests/props/test_clustered_bootstrap.py   # clean
-uv run ruff format --check nba/props/metrics.py nba/props/run.py tests/props/test_clustered_bootstrap.py   # clean
-uv run mypy nba/props/metrics.py nba/props/run.py   # Success: no issues found in 2 source files
+uv run ruff check nba/props/metrics.py research/props/run.py tests/props/test_clustered_bootstrap.py   # clean
+uv run ruff format --check nba/props/metrics.py research/props/run.py tests/props/test_clustered_bootstrap.py   # clean
+uv run mypy nba/props/metrics.py research/props/run.py   # Success: no issues found in 2 source files
 uv run pytest tests/props -q --no-cov   # 149 passed
 ```
 
@@ -108,7 +108,7 @@ uv run pytest tests/props -q --no-cov   # 149 passed
 - Does not touch `nba/eval/metrics.py` (`bootstrap_ci`), so the Elo/
   win-probability frozen-holdout path is unaffected, per the task's
   explicit instruction.
-- Does not change `nba/props/volatility.py`'s or any other eval module's
+- Does not change `research/props/volatility.py`'s or any other eval module's
   bootstrap calls to use clustering yet — they still default to
   `cluster_ids=None` (row-level), unchanged behavior. Flagging this as a
   natural follow-up, not done here.

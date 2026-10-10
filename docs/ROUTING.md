@@ -11,14 +11,14 @@ see `HOLDOUT_ACCESS_LOG.md`), `2026` = 2026-27 (forward season).
 
 | piece | where |
 |---|---|
-| route spec (versioned JSON) + validation + registry I/O | `nba/registry/routing.py` |
-| `python -m nba.registry route show / build / validate / promote` | `nba/registry/__main__.py` |
-| OOF store loaders for existing artifacts | `nba/stack/artifacts.py`, `nba/stack/populate.py artifacts` |
-| frozen gate (JSON, no pickles) | `nba/stack/frozen.py` |
-| line-level (threshold) routing | `nba/stack/threshold.py` |
-| per-cell evidence + guardrails | `nba/stack/cells.py` |
-| build orchestration | `nba/stack/routebuild.py` |
-| one-shot holdout evaluator (NOT run) | `nba/stack/holdout.py` |
+| route spec (versioned JSON) + validation + registry I/O | `research/registry/routing.py` |
+| `python -m research.registry route show / build / validate / promote` | `research/registry/__main__.py` |
+| OOF store loaders for existing artifacts | `research/stack/artifacts.py`, `research/stack/populate.py artifacts` |
+| frozen gate (JSON, no pickles) | `research/stack/frozen.py` |
+| line-level (threshold) routing | `research/stack/threshold.py` |
+| per-cell evidence + guardrails | `research/stack/cells.py` |
+| build orchestration | `research/stack/routebuild.py` |
+| one-shot holdout evaluator (NOT run) | `research/stack/holdout.py` |
 | daily application (opt-in; default unchanged) | `nba/daily/predict.py` (`load_active_routes`, `apply_active_route`, `context_prop_predictions_routed`) |
 
 A route spec is stored at `registry_store/route_<target>/<version>/route.json` and as one
@@ -61,7 +61,7 @@ Holdout status per candidate (cross-checked against the ledger by `route validat
 
 ## Router and context features
 
-Gate: softmax-linear over candidates (`nba.stack.router.SoftmaxGate`, l2 = 0.01), trained on the
+Gate: softmax-linear over candidates (`research.stack.router.SoftmaxGate`, l2 = 0.01), trained on the
 pooled score (grid CRPS for props, log loss on the logit pool for binary targets). One gate per
 spec, fit once on ALL fit-window rows and frozen into JSON (`FrozenGate`). A LightGBM gate is run
 walk-forward on the props CRPS targets as a second opinion and is never the frozen route.
@@ -70,7 +70,7 @@ Smooth gates only; there are no hard cells in a route.
 Gate features (all as-of; computed by the same code for training rows and forward rows):
 `log_career`, `games_played_season`, `min_avg10`, `min_trend` (last-3 minus last-10 minutes),
 `start_rate10`, `cold_start_bucket`, plus `archetype` and `pos_group` when built with
-`--archetypes`. Archetype: `nba/coldstart/archetypes.py`, k = 5 (fixed, not tuned), KMeans fit
+`--archetypes`. Archetype: `research/coldstart/archetypes.py`, k = 5 (fixed, not tuned), KMeans fit
 ONCE on the feature frame as of 2023-10-01 and frozen; each season is scored by the frozen model on
 features as of its own `{season}-10-01`. Position group: argmax of the guard/forward/center
 fractions of `players_static.position`. Win: `abs_logit`, `logit_gap` (injury minus MOV logit),
@@ -154,7 +154,7 @@ Reading it honestly:
 * The registry champion for every target is still the registered production model. `ctxres_v2` is
   unregistered and untouched on 2025; nothing here promotes it.
 
-Reproduce: `uv run python -m nba.registry route build --archetypes` (about 7 minutes;
+Reproduce: `uv run python -m research.registry route build --archetypes` (about 7 minutes;
 `nba.duckdb` opened read-only, OOF store read-only after population) then `route show`.
 
 ## Pre-registration: 2025-26 (season 2025, frozen holdout)
@@ -170,7 +170,7 @@ Fixed before any 2025 routing number exists.
    touch does not happen, that spec is not evaluated; it is not re-fit without it.
 2. **Router fit.** On 2023 -> 2024 rows only (`pts_ext`: 2024 only), frozen as JSON, hash quoted in the
    ledger row before the run. No refit, no retune, no gate-type choice after viewing 2025.
-3. **Run once.** `python -m nba.stack.holdout <route.json>...` refuses without the quoted hash in the
+3. **Run once.** `python -m research.stack.holdout <route.json>...` refuses without the quoted hash in the
    ledger, writes a touch marker before scoring, refuses a second run (`--allow-repeat` relabels it
    repeated-use). The 2025 context uses the same as-of code with the frozen archetype model scored at
    `2025-10-01`.
@@ -190,7 +190,7 @@ Fixed before any 2025 routing number exists.
 
 Draft `HOLDOUT_ACCESS_LOG.md` row (to be appended by the maintainer; fill the hash at freeze time):
 
-> | _date_ | `python -m nba.stack.holdout registry_store/routes_draft/pts_ext/route.json` (hash `4b6df168ff9e9503`, procedure frozen at the commit that adds this row) | learned router (softmax gate over context_residual, recency, seq_props, ctxres_v2) vs best single candidate | pts | **CLEAN first touch of this router** (candidates enter with their own existing labels: context_residual clean-confirmed, recency repeated-use, seq_props and ctxres_v2 first touch only if their own rows precede this one) | PRE-REGISTERED in docs/ROUTING.md before running. Frozen: gate fit on 2024 only, l2 0.01, features log_career, games_played_season, min_avg10, min_trend, start_rate10, cold_start_bucket, archetype (k=5, frozen KMeans at 2023-10-01), pos_group. Metric: paired per-row grid CRPS delta vs the best single candidate on the 2025 rows, CI clustered by game (2000 resamples), BH q = 0.05 over routers in the run. KEEP only if delta <= -0.005 with CI upper < 0, BH q < 0.05, cov80 gap not worse by > 0.01, no slice (cold_start, season_phase, starter; n >= 200) worse by > 0.01. Run once; no re-runs or config changes after viewing. **Result:** _pending_. |
+> | _date_ | `python -m research.stack.holdout registry_store/routes_draft/pts_ext/route.json` (hash `4b6df168ff9e9503`, procedure frozen at the commit that adds this row) | learned router (softmax gate over context_residual, recency, seq_props, ctxres_v2) vs best single candidate | pts | **CLEAN first touch of this router** (candidates enter with their own existing labels: context_residual clean-confirmed, recency repeated-use, seq_props and ctxres_v2 first touch only if their own rows precede this one) | PRE-REGISTERED in docs/ROUTING.md before running. Frozen: gate fit on 2024 only, l2 0.01, features log_career, games_played_season, min_avg10, min_trend, start_rate10, cold_start_bucket, archetype (k=5, frozen KMeans at 2023-10-01), pos_group. Metric: paired per-row grid CRPS delta vs the best single candidate on the 2025 rows, CI clustered by game (2000 resamples), BH q = 0.05 over routers in the run. KEEP only if delta <= -0.005 with CI upper < 0, BH q < 0.05, cov80 gap not worse by > 0.01, no slice (cold_start, season_phase, starter; n >= 200) worse by > 0.01. Run once; no re-runs or config changes after viewing. **Result:** _pending_. |
 
 ## Plan: 2026-27 (forward season is the confirmatory test)
 
@@ -198,7 +198,7 @@ Preconditions (HOLDOUT_ACCESS_LOG rule 3): the 2026-27 season has >= 20 games in
 `route validate` checks this against the DB when a spec's `holdout_season` is 2026.
 
 1. **Rollover.** In one reviewed change: bump `FROZEN_SEASON` in `nba/stack/__init__.py` and
-   `nba/registry/routing.py` to 2026 and re-designate the holdout in the ledger. Fit windows and
+   `research/registry/routing.py` to 2026 and re-designate the holdout in the ledger. Fit windows and
    the `ext`/`full` sets follow `FROZEN_SEASON`; `season = 2025` rows then enter the OOF store as
    ordinary tuning rows (candidates' 2025 predictions written under their normal version names).
 2. **Refit and freeze.** `route build --archetypes --parent-dir registry_store/routes_draft
@@ -226,20 +226,20 @@ Preconditions (HOLDOUT_ACCESS_LOG rule 3): the 2026-27 season has >= 20 games in
 
 ```
 # populate the OOF store (reads parquet artifacts; recency from nba.duckdb read-only)
-uv run python -m nba.stack.populate artifacts
-uv run python -m nba.stack.populate season-avg
+uv run python -m research.stack.populate artifacts
+uv run python -m research.stack.populate season-avg
 # routing table
-uv run python -m nba.registry route build --archetypes      # drafts only
-uv run python -m nba.registry route validate --oof data/stack/oof.duckdb
-uv run python -m nba.registry route show
+uv run python -m research.registry route build --archetypes      # drafts only
+uv run python -m research.registry route validate --oof data/stack/oof.duckdb
+uv run python -m research.registry route show
 # maintainer-only WRITES (registry): after review
-uv run python -m nba.registry route build --archetypes --register
-uv run python -m nba.registry route promote pts <version> --verdict reports/routing/verdict_pts_<hash>.json
+uv run python -m research.registry route build --archetypes --register
+uv run python -m research.registry route promote pts <version> --verdict reports/routing/verdict_pts_<hash>.json
 ```
 
 ## 2026-10-08 19:35 — contamination notice
 The `ctxres_v2` OOF used by the draft routes (`*_ext` sets choosing `ctxres_v2` for reb/ast/fg3m, and the
 `pts_ext` router hash `4b6df168ff9e9503`) contains the leaking `opp_adjusted_ridge` column (NULL iff
 tonight's minutes < 5). Those drafts are INVALID and must not be pre-registered or promoted. Rebuild them
-from leak-fixed OOF (nba/features/opponent_ridge_v2.py `ref_fixed`) before any 2025 touch. The `full`
+from leak-fixed OOF (research/features/opponent_ridge_v2.py `ref_fixed`) before any 2025 touch. The `full`
 (2023-24) champion routes, which use context_residual v1 and injury_elo, are unaffected.

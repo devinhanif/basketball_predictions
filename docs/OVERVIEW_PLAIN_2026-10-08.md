@@ -38,7 +38,7 @@ Elo on win probability. That's a real, slightly disappointing finding, not a bug
 predictable signal in "who wins" is just "which team is better, adjusted for home court," and Elo
 already captures that about as well as anything we tried.
 
-Reproduce: `docs/RESULTS_2026-10-08.md` section 4; champion search in `nba/eval/ga_tune.py`.
+Reproduce: `docs/RESULTS_2026-10-08.md` section 4; champion search in `research/eval/ga_tune.py`.
 
 ---
 
@@ -76,7 +76,7 @@ Reproduce:
 ```
 uv run python -c "
 from nba.db.connect import connect
-from nba.eval.player_reb_ast_sim_eval import run_reb_ast_sim_vs_baseline_eval
+from research.eval.player_reb_ast_sim_eval import run_reb_ast_sim_vs_baseline_eval
 con = connect('nba.duckdb', read_only=True)
 reb, ast = run_reb_ast_sim_vs_baseline_eval(con, n_sims=300, seed=0, max_games=80, return_raw=True)
 print(reb.raw.sort('crps_sim'))"
@@ -104,7 +104,7 @@ Reproduce:
 ```
 uv run python -c "
 from nba.db.connect import connect
-from nba.eval.player_points_sim_eval import run_sim_vs_baseline_eval
+from research.eval.player_points_sim_eval import run_sim_vs_baseline_eval
 con = connect('nba.duckdb', read_only=True)
 r = run_sim_vs_baseline_eval(con, n_sims=300, seed=0, max_games=80, return_raw=True)
 print(r.raw.sort('crps_sim'))"
@@ -180,14 +180,14 @@ them flagged off rather than quietly dropping the negative result:
 ```
 uv run python -c "
 from nba.db.connect import connect
-from nba.eval.player_points_sim_eval import run_sim_vs_baseline_eval
+from research.eval.player_points_sim_eval import run_sim_vs_baseline_eval
 con = connect('nba.duckdb', read_only=True)
 r = run_sim_vs_baseline_eval(con, n_sims=300, seed=0, max_games=80, return_raw=True)
 print(r.summary())"
 
 uv run python -c "
 from nba.db.connect import connect
-from nba.eval.player_reb_ast_sim_eval import run_reb_ast_sim_vs_baseline_eval
+from research.eval.player_reb_ast_sim_eval import run_reb_ast_sim_vs_baseline_eval
 con = connect('nba.duckdb', read_only=True)
 reb, ast = run_reb_ast_sim_vs_baseline_eval(con, n_sims=300, seed=0, max_games=80, return_raw=True)
 print(reb.summary(), ast.summary())"

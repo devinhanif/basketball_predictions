@@ -130,7 +130,7 @@ season's rate," labeled "time-decay carryover."
 **Narration:** The sharpest kind of cold-start failure: at a season opener,
 there's no fresh in-season data for the minutes/rate model to lean on, and —
 until tonight — last season's production wasn't blended in with any
-time-decay at all. A new, isolated module (`nba/features/time_decay.py`) now
+time-decay at all. A new, isolated module (`research/features/time_decay.py`) now
 blends a player's current-season rate with a decayed version of last season's
 rate plus an age curve, so a returning star's season-opener prediction should
 sit between the generic position prior and "what they actually did last
@@ -274,14 +274,14 @@ bottom line.
 ```
 uv run python -c "
 from nba.db.connect import connect
-from nba.eval.player_points_sim_eval import run_sim_vs_baseline_eval
+from research.eval.player_points_sim_eval import run_sim_vs_baseline_eval
 con = connect('nba.duckdb', read_only=True)
 r = run_sim_vs_baseline_eval(con, n_sims=300, seed=0, max_games=80, return_raw=True)
 print(r.raw.sort('crps_sim'))"
 
 uv run python -c "
 from nba.db.connect import connect
-from nba.eval.player_reb_ast_sim_eval import run_reb_ast_sim_vs_baseline_eval
+from research.eval.player_reb_ast_sim_eval import run_reb_ast_sim_vs_baseline_eval
 con = connect('nba.duckdb', read_only=True)
 reb, ast = run_reb_ast_sim_vs_baseline_eval(con, n_sims=300, seed=0, max_games=80, return_raw=True)
 print(reb.raw.sort('crps_sim'))"

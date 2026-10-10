@@ -1,7 +1,7 @@
 # Joint game-set model (set transformer) -- design and PRE-REGISTRATION
 
 Status: written 2026-10-08 BEFORE any Colab run of `joint_game_set`. The keep rule below is applied
-by `nba/eval/joint_game_set_eval.py` (its module docstring repeats it) and is not changed after
+by `research/eval/joint_game_set_eval.py` (its module docstring repeats it) and is not changed after
 seeing results. A negative result is reported as a negative result. Season 2025 is never loaded
 (both the exporter and the job raise); this experiment never touches the frozen holdout.
 
@@ -16,7 +16,7 @@ log loss -0.00053 [-0.00106, -0.00003] (`docs/PARLAY_ENGINE.md`). Does a model t
 game at once (every rostered player of both teams plus the game context) capture more of that
 dependence, with calibrated marginals?
 
-## Data (`nba/features/game_sets.py`, ~8 s, read-only DB)
+## Data (`research/features/game_sets.py`, ~8 s, read-only DB)
 
 One set per game (seasons 2022-2024, 3,951 games):
 
@@ -53,7 +53,7 @@ Residual risk, stated plainly: the ROSTER ROW LIST of a game (including inactive
 taken from the realized box score. It is the game-day roster and nearly known pre-tip, but not
 point-in-time. Feature values do not depend on it.
 
-## Model (`nba/colab/jobs/joint_game_set/joint_game_set.py`)
+## Model (`research/colab/jobs/joint_game_set/joint_game_set.py`)
 
 * **Encoder**: pre-norm transformer over `[game token] + 32 player tokens` with key-padding mask;
   home/away and data-source embeddings; permutation equivariant (tested), padding invariant (tested).
@@ -118,14 +118,14 @@ does NOT clear it; the z-space NLL and the slices say where dependence is or is 
 
 ```
 # local, once (several minutes; read-only DB; produces data/colab/joint_game_set/*)
-uv run python -m nba.features.game_sets --db nba.duckdb --out-dir data/colab/joint_game_set
-uv run python -m nba.eval.joint_game_set_eval --stage --db nba.duckdb --stage-dir data/colab/joint_game_set
+uv run python -m research.features.game_sets --db nba.duckdb --out-dir data/colab/joint_game_set
+uv run python -m research.eval.joint_game_set_eval --stage --db nba.duckdb --stage-dir data/colab/joint_game_set
 # stage to Drive (runs the producers above if missing/stale), then press Run all on a GPU
 make colab-push JOB=joint_game_set
 # after the run
 make colab-status JOB=joint_game_set
 make colab-pull JOB=joint_game_set
-uv run python -m nba.eval.joint_game_set_eval --run data/colab/runs/joint_game_set/<run_id> --stage-dir data/colab/joint_game_set
+uv run python -m research.eval.joint_game_set_eval --run data/colab/runs/joint_game_set/<run_id> --stage-dir data/colab/joint_game_set
 ```
 
 `NBA_BUDGET`: `full` (default, thorough: 24 trials, 5 seeds, 100k draws, walk-forward; estimated 60-100

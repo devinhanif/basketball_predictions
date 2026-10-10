@@ -22,7 +22,7 @@ vs 0.57 observed.
 | Players new to a team | `ForwardConfig.new_team_shrinkage` | OFF (see "Movers") |
 | Strict variant (also drop recent players no official roster lists) | `ForwardConfig.drop_unlisted_recent` | off; no CLI flag |
 | CLI/pipeline | `python -m nba.daily run ... --roster-source {recent,official}`; `run_daily(roster_source=, roster_dir=, roster_fetch=)` | `recent` (a test pins CLI and function defaults) |
-| Replay harness | `nba/props/roster_replay.py` | refuses to open a file named `nba.duckdb` |
+| Replay harness | `research/props/roster_replay.py` | refuses to open a file named `nba.duckdb` |
 
 With `recent` nothing is read or computed differently (test: `official_roster=None` equals an
 empty frame, byte for byte).
@@ -154,7 +154,7 @@ Live (maintainer, opening day; supervised, as the dress-rehearsal checklist says
 
 Replay (on the copy; hold `data/ops/heavy.lock`; about 2 min per 14 dates once models are cached):
 
-    uv run python -m nba.props.roster_replay --db data/rehearsal/nba_full_copy.duckdb \
+    uv run python -m research.props.roster_replay --db data/rehearsal/nba_full_copy.duckdb \
         --start 2024-10-22 --end 2024-11-04 --out data/rehearsal/rr_14d.json
 
 ## Recommendation

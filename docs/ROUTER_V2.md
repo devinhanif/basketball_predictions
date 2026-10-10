@@ -62,12 +62,12 @@ not sufficient. Gate type is not selected on test data; both are reported.
 
 ## Commands
 ```
-uv run python -m nba.stack.populate season-avg --stats pts reb ast fg3m
-uv run python -m nba.stack.populate context --out data/stack/context.parquet
+uv run python -m research.stack.populate season-avg --stats pts reb ast fg3m
+uv run python -m research.stack.populate context --out data/stack/context.parquet
 ```
 Other candidates (sim, last-10, ...): produce a frame with game_id, player_id,
 game_date, season, mean, std (or q_grid), made_with_data_through and call
-`nba.stack.adapters.from_dist_frame(df, stat, family)` then
+`research.stack.adapters.from_dist_frame(df, stat, family)` then
 `nba.stack.oof.write_oof(frame, model, version)`. Then
 `read_oof` each candidate, `build_stack_data(target, frames, outcomes, context)`,
 `walk_forward(data, SoftmaxGate | LGBMGate)`, `hard_bucket_walk_forward`,

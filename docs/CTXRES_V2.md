@@ -1,7 +1,7 @@
 # Context-residual v2 (ctxres_v2) -- design and PRE-REGISTRATION
 
 Status: written 2026-10-08 BEFORE any Colab run. The rule below is applied by
-`nba/eval/ctxres_v2_eval.py` and is not changed after seeing results. A negative result is
+`research/eval/ctxres_v2_eval.py` and is not changed after seeing results. A negative result is
 reported as a negative result.
 
 ## What this is
@@ -14,9 +14,9 @@ or calibration help. The job `ctxres_v2_sweep` runs both on a Colab T4; all choi
 never touched 2025: one clean confirmatory 2025 touch is allowed later under a separate
 pre-registration; the forward 2026-27 season is the real test.
 
-## Data and features (`nba/props/context_features_v2.py`)
+## Data and features (`research/props/context_features_v2.py`)
 
-Export: `uv run python -m nba.props.context_features_v2 --db nba.duckdb --out-dir data/colab/ctxres_v2`
+Export: `uv run python -m research.props.context_features_v2 --db nba.duckdb --out-dir data/colab/ctxres_v2`
 (about 10 s, read-only DB). Seasons 2022-2024 (2022 = warm-up), PLAYED rows only (minutes > 0, DNP
 rows excluded, per docs/DNP_AUDIT_2026-10-08.md) with >= 5 prior played games: 80,312 rows. One
 parquet (keys, `game_date`, `season`, `fold_id` = year*100+month, labels pts/reb/ast/fg3m,
@@ -48,7 +48,7 @@ Tests (`tests/props/test_context_features_v2.py`): planted future rows change no
 the cut date; a report stamped after tip-60 is ignored (with a control showing an earlier report is
 used); DNP rows do not enter possession rates; allow-list rejects same-game names.
 
-## Protocol (`nba/colab/jobs/ctxres_v2_sweep/ctxres_v2_sweep.py`)
+## Protocol (`research/colab/jobs/ctxres_v2_sweep/ctxres_v2_sweep.py`)
 
 * Walk-forward: every calendar-month block is predicted by models fit on rows dated strictly
   before the block; the newest 15% of the training window is the held-out calibration window
@@ -164,7 +164,7 @@ a SECOND experiment, not a re-selection of experiment 1.
   calibration comparison under the same rule, and any new keep decision is computed only from its own
   2023-selected candidate. The clean tests remain one confirmatory 2025 touch (separate
   pre-registration) and forward 2026-27.
-* Staging: the plan file must be `{}` for a normal sweep: `uv run python -m nba.eval.ctxres_v2_eval --clear`
+* Staging: the plan file must be `{}` for a normal sweep: `uv run python -m research.eval.ctxres_v2_eval --clear`
   (the job's producer also creates `{}` if the file is missing).
 
 ## Commands
@@ -174,16 +174,16 @@ make colab-push JOB=ctxres_v2_sweep        # produces the parquet + spec + empty
 # open the printed notebook link on Colab, Runtime > T4 GPU, Run all (NBA_BUDGET=fast)
 make colab-status JOB=ctxres_v2_sweep
 make colab-pull JOB=ctxres_v2_sweep
-uv run python -m nba.eval.ctxres_v2_eval --run data/colab/runs/ctxres_v2_sweep/<run_id> \
+uv run python -m research.eval.ctxres_v2_eval --run data/colab/runs/ctxres_v2_sweep/<run_id> \
     --out reports/ctxres_v2_verdict.json
 
 # completion step (after a first run whose candidate lacks 2024 rows)
-uv run python -m nba.eval.ctxres_v2_eval --stage-completion data/colab/runs/ctxres_v2_sweep/<first_run>
+uv run python -m research.eval.ctxres_v2_eval --stage-completion data/colab/runs/ctxres_v2_sweep/<first_run>
 make colab-push JOB=ctxres_v2_sweep   # notebook auto-switches to the completion step
 make colab-pull JOB=ctxres_v2_sweep
-uv run python -m nba.eval.ctxres_v2_eval --run data/colab/runs/ctxres_v2_sweep/<first_run> \
+uv run python -m research.eval.ctxres_v2_eval --run data/colab/runs/ctxres_v2_sweep/<first_run> \
     data/colab/runs/ctxres_v2_sweep/<completion_run> --out reports/ctxres_v2_verdict.json
-uv run python -m nba.eval.ctxres_v2_eval --clear   # back to a normal sweep for the next push
+uv run python -m research.eval.ctxres_v2_eval --clear   # back to a normal sweep for the next push
 ```
 
 ## Amendment A1 — coverage check for discrete stats (registered 2026-10-08, BEFORE any experiment-2 result exists)
@@ -200,7 +200,7 @@ unchanged at 0.75-0.85. Applied to all four stats (all are integer-valued). The 
 `y in [q10, q90]` coverage is still reported alongside, descriptively. All other checks unchanged.
 Experiment 1's verdict is NOT revisited under this amendment.
 
-Implementation (`nba/eval/ctxres_v2_eval.py`, `cdf_from_q19`, `randomized_pit_coverage80`): F is the
+Implementation (`research/eval/ctxres_v2_eval.py`, `cdf_from_q19`, `randomized_pit_coverage80`): F is the
 right-continuous linear interpolation of the 19 knots (tied knots resolve to the largest level).
 Tail handling: F = 0 below the 0.05 quantile (that 0.05 mass sits AT the knot) and F = 1 above the
 0.95 quantile (F at the knot = 0.95); F(-1) = 0 (quantiles are clipped at 0); seed 20261008. Experiment
@@ -216,7 +216,7 @@ Why: A1's randomized-PIT with flat tails and an atom at the knots moved NEAR-CON
 down by ~3 points on experiment 1 (0.799 naive vs 0.772), a signature of a biased estimator rather than
 of the models. The simulation below confirms it: A1's construction under-covers by 0.035 on average
 for continuous-latent grids (up to 0.12-0.68 at some means). The construction is therefore chosen ONLY
-by simulation with known truth (`nba/eval/ctxres_v2_coverage_sim.py`, seed fixed, n = 50,000 per case);
+by simulation with known truth (`research/eval/ctxres_v2_coverage_sim.py`, seed fixed, n = 50,000 per case);
 no experiment-1 or experiment-2 model output was used to choose it.
 
 Harness: truths = Poisson and NegBin (var = mu + alpha mu^2) with mu in {0.3, 0.7, 1.5, 3, 6, 12, 25, 60}
@@ -260,7 +260,7 @@ an arm the coverage verdict is reported with that +/-0.035 uncertainty and canno
 borderline case (the other checks are unaffected).
 
 Implementation (experiment 2+; `metrics.json` `experiment_tag` containing `exp2`, or `--coverage pit`):
-`nba/eval/ctxres_v2_eval.py::pit_coverage80` / `cdf_from_q19`; check 6 of the keep rule is
+`research/eval/ctxres_v2_eval.py::pit_coverage80` / `cdf_from_q19`; check 6 of the keep rule is
 `0.75 <= cov80_pit <= 0.85`; naive `y in [q10, q90]` coverage is still reported (`naive/PIT` column).
 `--coverage naive` restores the original check; experiment-1 runs keep the original check and its
 verdict is not revisited. The A1 implementation note above and its experiment-1 rPIT numbers are

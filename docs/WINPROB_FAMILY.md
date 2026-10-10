@@ -5,7 +5,7 @@ production `rung0_injury_elo` (MOV-Elo logit + ridge on value OUT/DOUBTFUL)?
 Answer: **no arm or calibrator meets the pre-registered replacement rule.** One stack of
 offset-based arms is a real-looking but small improvement that fails the playoffs-slice veto.
 
-Code: `nba/models/winprob_family.py`, `nba/eval/winprob_family_eval.py`,
+Code: `research/models/winprob_family.py`, `research/eval/winprob_family_eval.py`,
 `tests/ml/test_winprob_family.py`. Scored universe: the 3951 out-of-fold games of 2022-24
 (season 2025 never loaded). Month-block walk-forward; every refit uses games strictly
 before the block; arms need >= 500 prior games, else they output the injury-Elo probability.
@@ -87,7 +87,7 @@ season-reset standings instead. Worth a check by the owner of that module.
 
 ## Commands
 
-    uv run python -W ignore -m nba.eval.winprob_family_eval --db nba.duckdb \
+    uv run python -W ignore -m research.eval.winprob_family_eval --db nba.duckdb \
         --oof data/injury_elo/oof_predictions.parquet --out-dir data/winprob_family
     uv run pytest --no-cov tests/ml/test_winprob_family.py
     uv run ruff check nba tests/ml/test_winprob_family.py && uv run ruff format --check nba && uv run mypy nba

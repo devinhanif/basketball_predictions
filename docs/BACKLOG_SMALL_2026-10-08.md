@@ -5,7 +5,7 @@ repeated verbatim in the module docstring. Seasons < 2025 only (season 2025 is n
 All CIs are 95% bootstraps (2000 resamples, seed 0) resampling whole games.
 The results sections are appended after the pre-registration sections; the rules are not edited.
 
-Entrypoint (all three): `uv run python -W ignore -m nba.eval.backlog_small_eval --db nba.duckdb --item all`
+Entrypoint (all three): `uv run python -W ignore -m research.eval.backlog_small_eval --db nba.duckdb --item all`
 
 ## PRE-REGISTRATION
 
@@ -31,7 +31,7 @@ Entrypoint (all three): `uv run python -W ignore -m nba.eval.backlog_small_eval 
   player-clustered CI, bias. Downstream props CRPS is NOT run (needs the full recency/context
   pipeline; judged not cheap): a KEEP here is a minutes-level result only.
 
-### Item 2: Poisson total head for parlay totals (`nba/parlay/totals_poisson.py`)
+### Item 2: Poisson total head for parlay totals (`research/parlay/totals_poisson.py`)
 
 * Head: total ~ k * (Poisson(l1 + l2) + 2 * Poisson(lam3)) from the bivariate-Poisson score model
   (`PoissonScoreArm`, arm `poisson_dc` = no win-prob offset, raw drift variant; the arm behind the documented -0.092), default OFF in
@@ -114,7 +114,7 @@ Normal head on the Poisson mean is the simpler vehicle; the Poisson head is kept
 pre-registered rule and also supplies an exact discrete CDF (P(total > x.5) with no continuity fudge).
 ECE rises slightly (0.013 -> 0.016) even as log loss improves.
 
-Integration: `nba/parlay/totals_poisson.py` (`TotalsHeadConfig(kind="normal")` default; `make_total_head`,
+Integration: `research/parlay/totals_poisson.py` (`TotalsHeadConfig(kind="normal")` default; `make_total_head`,
 `PoissonTotal.p_over/cdf/crps/z_of`). `nba/parlay/joint.py` (not mine) still builds `GameCtx` with
 Normal mu_t/sd_t; using the Poisson head there is a follow-up edit by its owner.
 

@@ -1,8 +1,8 @@
 # Decision Brief — Next Wave of Options (2026-10-07)
 
 Planning only. Grounded in the current code (`nba/props/minutes.py`,
-`nba/props/config.py`, `nba/sim/player_attribution.py`,
-`nba/features/player_possession_features.py`, `nba/props/opponent.py`) and
+`nba/props/config.py`, `research/sim/player_attribution.py`,
+`research/features/player_possession_features.py`, `research/props/opponent.py`) and
 the latest real-DB results (`docs/RESULTS_2026-10-08.md`). No implementation
 in this document.
 
@@ -133,7 +133,7 @@ projected-high-usage teammate (top-2 `shot_share_prior` on the roster) is
 projected absent (`predict_minutes(...).p_play` below a threshold, or
 excluded from the lineup input), redistribute a fraction of that teammate's
 usage to the remaining on-court players' `_usage_weight` in
-`nba.sim.player_attribution`, weighted by their own `shot_share_prior`
+`research.sim.player_attribution`, weighted by their own `shot_share_prior`
 (richer-get-richer, not uniform). This differs from the failed
 `use_oncourt_usage` in that it does not change the *denominator* of the
 proxy (which already works) — it only perturbs the weight vector
@@ -235,7 +235,7 @@ granularity (no play-by-play defender-assignment data exists, so true
 man-to-man is out of reach) — this is more specific than the team-level
 signal that already failed, on the theory that averaging across archetypes
 is what diluted the real signal into noise last time.
-**Effort:** M (reuses `nba.props.opponent`'s SQL pattern, adds a `GROUP BY
+**Effort:** M (reuses `research.props.opponent`'s SQL pattern, adds a `GROUP BY
 archetype_cluster`; needs the archetype assignment already computed for
 `model_routing.py` joined in as-of).
 **A/B test:** same paired bootstrap CRPS framework as the original

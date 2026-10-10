@@ -18,7 +18,7 @@ rules.
 - **Statistics (FDR audit + clustered bootstrap + acceptance criteria):** the
   project's bootstrap was resampling player-games instead of games, making every
   prior CI anti-conservative (too narrow). That's now fixed and threaded through
-  `nba/props/metrics.py`, `nba/eval/model_routing.py`, `nba/eval/routed_eval.py`.
+  `nba/props/metrics.py`, `research/eval/model_routing.py`, `research/eval/routed_eval.py`.
   Of everything claimed this session, only two results survive a real BH
   correction: rebounds beats season-average overall, and lineup archetype-mix
   non-additivity is real but practically tiny. Everything else is PROVISIONAL —
@@ -54,17 +54,17 @@ rules.
 | Deliverable | One-line outcome | Status |
 |---|---|---|
 | `docs/FDR_AUDIT_2026-10-08.md` | Re-derives every claimed p-value; flags row-level bootstrap as the session's biggest inference risk | safe-to-commit (docs only) |
-| `docs/BOOTSTRAP_CLUSTERED_2026-10-08.md` + `nba/props/metrics.py`, `nba/props/run.py` | Adds per-game cluster bootstrap, backward-compatible (`cluster_ids=None` unchanged) | safe-to-commit |
+| `docs/BOOTSTRAP_CLUSTERED_2026-10-08.md` + `nba/props/metrics.py`, `research/props/run.py` | Adds per-game cluster bootstrap, backward-compatible (`cluster_ids=None` unchanged) | safe-to-commit |
 | `docs/QA_AUDIT_2026-10-08.md` | Independent review of 3 items; found 1 major gap (reliability note gated on row count `n`, not cluster count `g`) | safe-to-commit (docs only); its finding was separately fixed, see next row |
-| `docs/PROVISIONAL_FIXES_2026-10-08.md` + `nba/eval/model_routing.py`, `nba/eval/routed_eval.py`, `nba/eval/walkforward.py`, `nba/props/config.py`, `nba/props/__main__.py`, `nba/props/metrics.py` | Threads `cluster_ids` into routing/routed-eval; wires `filter_by_holdout_mode` into props config; fixes the QA audit's `g`-vs-`n` gating bug | safe-to-commit (verified by its own new tests) |
+| `docs/PROVISIONAL_FIXES_2026-10-08.md` + `research/eval/model_routing.py`, `research/eval/routed_eval.py`, `nba/eval/walkforward.py`, `nba/props/config.py`, `research/props/__main__.py`, `nba/props/metrics.py` | Threads `cluster_ids` into routing/routed-eval; wires `filter_by_holdout_mode` into props config; fixes the QA audit's `g`-vs-`n` gating bug | safe-to-commit (verified by its own new tests) |
 | `docs/ACCEPTANCE_CRITERIA_2026-10-08.md` | Pre-registers decision rules for 3A, points retest, rung-4 grid, before any were (re)run | safe-to-commit (docs only) |
 | `docs/MATCHUP_3A_RESULT_2026-10-08.md` | Real 4-season rerun: hard gate fails (rebounds regressed) on both archetype and team-level configs — **flag OFF, no signal** | safe-to-commit (docs only); decision final per its own acceptance criteria |
-| `docs/PERF_ARCHETYPE_2026-10-08.md` + `nba/coldstart/archetypes.py`, `nba/props/opponent.py` + `tests/props/test_opponent.py` | Removes a redundant per-date full-history SQL re-scan (~25-28x on synthetic data); proven row-for-row equivalent | safe-to-commit (QA-reviewed independently, verdict: safe) |
+| `docs/PERF_ARCHETYPE_2026-10-08.md` + `research/coldstart/archetypes.py`, `research/props/opponent.py` + `tests/props/test_opponent.py` | Removes a redundant per-date full-history SQL re-scan (~25-28x on synthetic data); proven row-for-row equivalent | safe-to-commit (QA-reviewed independently, verdict: safe) |
 | `docs/OVERVIEW_PLAIN_2026-10-08.md` | Plain-English writeup of the full session's results with named player examples | safe-to-commit (docs only) |
 | `docs/INJURY_FEED_2026-10-08.md` + `nba/db/schema.sql` (+table), `nba/ingest/availability.py`, `nba/parse/availability.py`, fixtures/tests | Confirms no forward-looking nba_api injury source exists; ships schema + puller + fuzzy-match parser for a future external feed, 15 tests | safe-to-commit; the underlying data gap is **not** closed, by design |
-| `docs/TIME_DECAY_2026-10-08.md` + `nba/features/time_decay.py` | New, isolated season-carryover-with-decay module; 12 tests including limiting-behavior and leakage tests | safe-to-commit; **not wired into any caller yet** |
+| `docs/TIME_DECAY_2026-10-08.md` + `research/features/time_decay.py` | New, isolated season-carryover-with-decay module; 12 tests including limiting-behavior and leakage tests | safe-to-commit; **not wired into any caller yet** |
 | `docs/KALSHI_SCAFFOLD_2026-10-08.md` + `nba/kalshi/*` (client/cutoff/thresholds/aliases/parse/sampling/ingest/`__main__`), `nba/kalshi/__init__.py` | Read-only market-data ingestor scaffold, 37 fixture-only tests, no live network call made | safe-to-commit |
-| `nba/features/possession_step_features.py`, `nba/models/rung4_stepheads.py`, `nba/models/colab/*`, `tests/ml/test_rung4_stepheads.py` | Rung-4 possession step-heads + turnkey Colab training package | safe-to-commit (QA-reviewed, no leakage, chronological split confirmed); **surfaces the one integration risk in §4** |
+| `research/features/possession_step_features.py`, `research/models/rung4_stepheads.py`, `research/models/colab/*`, `tests/ml/test_rung4_stepheads.py` | Rung-4 possession step-heads + turnkey Colab training package | safe-to-commit (QA-reviewed, no leakage, chronological split confirmed); **surfaces the one integration risk in §4** |
 | `.claude/settings.json` | Allow-lists more read-only/profiling commands | safe-to-commit (tooling only, zero code risk) |
 | `docs/ci_cd.md` (pre-existing, re-verified) | Model-gate job already existed from a prior session; re-confirmed present and correctly scoped (PRs touching `nba/models/`, `nba/props/`, `nba/parlay/`) | no action needed |
 
@@ -110,7 +110,7 @@ files would be reformatted — **3 are pre-existing and untouched by tonight**
 (`nba/props/minutes.py`, `tests/props/test_minutes_garbage_time.py`,
 `tests/props/test_minutes_learned_game_context.py` — not in `git status`, not a
 regression), and **2 are cosmetic, in tonight's new Colab package**
-(`nba/models/colab/README.md`, `nba/models/colab/rung4_stepheads.ipynb` — ruff's
+(`research/models/colab/README.md`, `research/models/colab/rung4_stepheads.ipynb` — ruff's
 markdown/notebook embedded-code formatter, not a logic issue). Non-blocking either
 way; `make lint` would still need `ruff format` run once before this is fully
 clean, maintainer's call on timing.
@@ -165,20 +165,20 @@ File ownership was disjoint overnight (confirmed via `git diff --stat` — no tw
 agents touched the same file), so the order below is a recommendation, not a
 hard dependency chain, except where noted.
 
-1. **`nba/props/metrics.py` + `nba/props/run.py` (clustered bootstrap)** — ship
+1. **`nba/props/metrics.py` + `research/props/run.py` (clustered bootstrap)** — ship
    first. Nothing else depends on it, but it's the statistical foundation
-   (`cluster_ids`) that `nba/eval/model_routing.py`/`routed_eval.py` build on in
+   (`cluster_ids`) that `research/eval/model_routing.py`/`routed_eval.py` build on in
    step 2.
-2. **`nba/eval/model_routing.py` + `nba/eval/routed_eval.py` + `nba/eval/walkforward.py`
-   + `nba/props/config.py` + `nba/props/__main__.py`** — the PROVISIONAL_FIXES
+2. **`research/eval/model_routing.py` + `research/eval/routed_eval.py` + `nba/eval/walkforward.py`
+   + `nba/props/config.py` + `research/props/__main__.py`** — the PROVISIONAL_FIXES
    patch. Depends on step 1's `cluster_ids` contract already existing; also fixes
    the QA audit's `g`-vs-`n` reliability-note bug in the same metrics.py (so this
    and step 1 are the one place with a real ordering dependency — commit them
    together or step-1-then-step-2, not reversed).
-3. **`nba/coldstart/archetypes.py` + `nba/props/opponent.py` + `tests/props/test_opponent.py`**
+3. **`research/coldstart/archetypes.py` + `research/props/opponent.py` + `tests/props/test_opponent.py`**
    (perf fix) — independent of 1/2, safe any time; grouping here because it's the
    other props-adjacent change and keeps the props-module commits together.
-4. **`nba/features/time_decay.py` + its tests** — fully standalone, zero
+4. **`research/features/time_decay.py` + its tests** — fully standalone, zero
    dependents yet (not wired in). Safe to merge whenever; no interaction with
    anything above.
 5. **`nba/db/schema.sql` + `nba/ingest/availability.py` + `nba/parse/availability.py`
@@ -187,8 +187,8 @@ hard dependency chain, except where noted.
    first (nothing above did, confirmed by `git diff --stat`, but `schema.sql` is
    the one genuinely shared file in the whole night's diff, so it goes last among
    the "modifies existing shared files" group).
-6. **`nba/kalshi/*` (scaffold)** and **`nba/features/possession_step_features.py`
-   + `nba/models/rung4_stepheads.py` + `nba/models/colab/*`** — both fully new,
+6. **`nba/kalshi/*` (scaffold)** and **`research/features/possession_step_features.py`
+   + `research/models/rung4_stepheads.py` + `research/models/colab/*`** — both fully new,
    standalone module trees with no overlap with anything else. Order between
    these two doesn't matter; merge either last.
 7. **Docs** (`docs/FDR_AUDIT`, `docs/QA_AUDIT`, `docs/PROVISIONAL_FIXES`,
@@ -202,10 +202,10 @@ hard dependency chain, except where noted.
 **Cross-cutting risk to flag explicitly:** several agents edited the shared
 working tree overnight without rebasing on each other (there was nothing to
 rebase onto — none of them committed). `git diff --stat` shows zero file-level
-collisions, which is good luck as much as good scoping — `nba/props/run.py` and
-`nba/props/opponent.py`, for instance, are adjacent modules both touched tonight
+collisions, which is good luck as much as good scoping — `research/props/run.py` and
+`research/props/opponent.py`, for instance, are adjacent modules both touched tonight
 by different workstreams and easily could have collided. Before the maintainer
-commits, worth a final `git diff` skim of `nba/props/run.py` and
+commits, worth a final `git diff` skim of `research/props/run.py` and
 `nba/eval/walkforward.py` specifically (the two files with the most independent
 touches converging on them) to confirm nothing was silently overwritten rather
 than merged — the integration test run (§4) is strong evidence nothing was, but
@@ -229,7 +229,7 @@ schema/puller/parser are now waiting for? This is flagged as the single
 highest-leverage remaining data gap for points accuracy (minutes uncertainty).
 
 (d) **Rung-4 Colab training** — run the turnkey Colab package
-(`nba/models/colab/README.md`) to actually produce trained weights, register
+(`research/models/colab/README.md`) to actually produce trained weights, register
 them as a candidate, and run the model-gate comparison before considering it as
 a third router option for points? Nothing blocks this except GPU access and time.
 

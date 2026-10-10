@@ -9,7 +9,7 @@ is 0 and the existing shrinkage has nothing to fall back on but the generic
 archetype/position prior.
 
 ## Method (new module, no edits to shared code)
-`nba/features/time_decay.py`:
+`research/features/time_decay.py`:
 1. `season_decay_weights(gap, half_life_seasons)` — `0.5 ** ((gap-1)/half_life)`,
    gap=1 (last season) always weight 1.0.
 2. `decayed_prior_season_rate(...)` — collapses N prior **completed** seasons
@@ -17,7 +17,7 @@ archetype/position prior.
 3. `blend_as_of_rate(...)` — the full chain: current-season observed rate,
    **empirical-Bayes shrunk** (`nba.coldstart.shrinkage.shrink_rate`, reused
    unchanged) toward a **carryover component**. The carryover component is
-   `nba.coldstart.carryover.carryover_blend` (reused unchanged) applied to the
+   `research.coldstart.carryover.carryover_blend` (reused unchanged) applied to the
    decayed prior-season rate and the caller-supplied archetype/position prior,
    with the existing age-curve multiplier.
 4. `build_player_season_decayed_rates(con, numerator_col, denominator_col,
@@ -36,7 +36,7 @@ archetype/position prior.
 - `k = 150.0` — EB pseudo-count shrinking current-season observed toward the
   carryover component as current `n` grows.
 - `peak_age = 27.0`, `age_curve_width = 9.0` — reused from
-  `nba.coldstart.carryover.age_curve_multiplier`'s existing defaults.
+  `research.coldstart.carryover.age_curve_multiplier`'s existing defaults.
 
 All four should be tuned by walk-forward CV the same way
 `nba.coldstart.shrinkage.tune_pseudo_count` tunes `k`, once wired into a real
@@ -44,8 +44,8 @@ backtest. Not done here — this deliverable is the leakage-safe mechanism, not
 the tuned numbers.
 
 ## How this would wire in LATER (deliberately deferred tonight)
-Owned by other agents tonight: `nba/features/player_possession_features.py`,
-`nba/features/player_rebound_assist_features.py`, `nba/coldstart/archetypes.py`.
+Owned by other agents tonight: `research/features/player_possession_features.py`,
+`research/features/player_rebound_assist_features.py`, `research/coldstart/archetypes.py`.
 The wiring, when it happens, is a drop-in replacement of each module's
 "position prior" shrinkage target:
 
@@ -77,8 +77,8 @@ rookies (no prior season exists, so it still falls back to the archetype
 prior — correct behavior, not a gap).
 
 ## Verification
-- `uv run ruff check nba/features/time_decay.py tests/features/test_time_decay.py` — clean.
-- `uv run mypy nba/features/time_decay.py` — clean.
+- `uv run ruff check research/features/time_decay.py tests/features/test_time_decay.py` — clean.
+- `uv run mypy research/features/time_decay.py` — clean.
 - `uv run pytest tests/features/test_time_decay.py -q` — 12/12 passed, including
   the planted-future-game leakage test and the limiting-behavior tests
   (converges to observed as `n` grows; converges to carryover component, not

@@ -5,14 +5,14 @@ two code-gap prerequisites blocked any routing/holdout result from graduating pa
 PROVISIONAL. Both are closed now, plus the QA audit's major note on the clustered
 bootstrap's reliability gate.
 
-1. **Clustered bootstrap threaded into routing.** `nba/eval/model_routing.py::route_by_bucket`
-   and `nba/eval/routed_eval.py::evaluate_routing` both gained an optional `cluster_ids`
+1. **Clustered bootstrap threaded into routing.** `research/eval/model_routing.py::route_by_bucket`
+   and `research/eval/routed_eval.py::evaluate_routing` both gained an optional `cluster_ids`
    parameter, mirroring `nba.props.metrics.paired_score_delta_ci`'s existing contract
    exactly: `None` (default) is byte-identical to the prior row-level behavior; passing
    `game_id`-aligned ids switches to the cluster/block bootstrap. `route_by_bucket` slices
    `cluster_ids` by the same per-bucket boolean mask used for the CRPS arrays;
-   `evaluate_routing` slices it by `test_mask`, matching `nba/props/run.py`'s existing
-   mask-alignment pattern. Neither `nba/props/metrics.py` nor `nba/props/run.py` was
+   `evaluate_routing` slices it by `test_mask`, matching `research/props/run.py`'s existing
+   mask-alignment pattern. Neither `nba/props/metrics.py` nor `research/props/run.py` was
    touched (already done, out of scope per the task).
 
 2. **Frozen holdout wired into props/routing.** Added `filter_by_holdout_mode(df,
@@ -22,7 +22,7 @@ bootstrap's reliability gate.
    `holdout_season: int | None = None` and `holdout_mode: str = "all"`; `run_props_experiment`
    applies the filter to `target` right after building it (one line, no change to the core
    per-stat loop, no conflict with the existing `cluster_ids` wiring in that file). CLI flags
-   `--holdout-season` / `--holdout-mode` were added to `nba/props/__main__.py`. Default
+   `--holdout-season` / `--holdout-mode` were added to `research/props/__main__.py`. Default
    behavior (`holdout_season=None`) is unchanged for every existing caller.
 
 3. **QA audit major fix.** `nba/props/metrics.py::_bootstrap_ci_clustered`'s "insufficient

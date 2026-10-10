@@ -1,7 +1,7 @@
 # Basketball GPT (decoder-only transformer over play-by-play) - design and PRE-REGISTRATION
 
 Status: written 2026-10-08 BEFORE any Colab run of `pbp_gpt`. The keep rules below are applied by
-`nba/eval/pbp_gpt_eval.py` (its module docstring repeats them) and are not changed after seeing
+`research/eval/pbp_gpt_eval.py` (its module docstring repeats them) and are not changed after seeing
 results. A negative result is reported as a negative result. Season 2025 is never loaded (exporter,
 job and evaluator all raise); this experiment never touches the frozen holdout.
 
@@ -15,7 +15,7 @@ transformer trained to predict the next play-by-play event, sampled forward from
 beat a standard live baseline on win probability and on remaining-game player lines, and is it
 usable for pregame full-game sampling?
 
-## Data and tokenization (`nba/features/pbp_tokens.py`)
+## Data and tokenization (`research/features/pbp_tokens.py`)
 
 Seasons 2022-2024, regular season and playoffs, from `data/pbp/*.parquet` (V3 play-by-play) joined
 to the DB tables `games`, `player_game_stats` (starters flag, as-of history), `player_availability`
@@ -75,7 +75,7 @@ Residual risk, stated plainly: the starting lineups come from the box score `sta
 not time-stamped); the Elo OOF is trusted as walk-forward. 2022 games early in the window have thin
 as-of rosters (history starts with the export).
 
-## Model and training (`nba/colab/jobs/pbp_gpt/pbp_gpt.py`)
+## Model and training (`research/colab/jobs/pbp_gpt/pbp_gpt.py`)
 
 Pre-norm GPT, learned absolute positions (2,304), weight-tied output head, **grouped-query attention** (KV heads
 = heads/3, so sampling thousands of continuations fits in memory), dropout 0.1-0.3, AdamW (betas 0.9/0.95,
@@ -140,11 +140,11 @@ The honest prior is that the model ties or loses P1 and P2 and may win some P3 c
 
 ```
 # local, once (about 2-4 min, read-only DB, low memory; writes data/colab/pbp_gpt/*, gitignored)
-uv run python -m nba.features.pbp_tokens --db nba.duckdb --out-dir data/colab/pbp_gpt
+uv run python -m research.features.pbp_tokens --db nba.duckdb --out-dir data/colab/pbp_gpt
 # stage + run on Colab (maintainer): make colab-push JOB=pbp_gpt  -> open the printed notebook, GPU, Run all
 # pull, then score (applies the rules above):
 make colab-pull JOB=pbp_gpt
-uv run python -m nba.eval.pbp_gpt_eval --run data/colab/runs/pbp_gpt/<run_id>/artifacts/<ts> --data data/colab/pbp_gpt
+uv run python -m research.eval.pbp_gpt_eval --run data/colab/runs/pbp_gpt/<run_id>/artifacts/<ts> --data data/colab/pbp_gpt
 ```
 
 Runtime ESTIMATES (FLOP / memory-bandwidth arithmetic, not measured on GPU): `full` about 2-3 h on a T4/L4 and
@@ -162,7 +162,7 @@ remaining pts / reb / ast per roster slot).
 ## Results
 
 Run `20261008_191436` (A100, full budget, 6 trials, best `rand3` 6.3M params, val NLL 1.643 on the 2023 slice;
-2025 never loaded). Scored 2026-10-08 by `nba.eval.pbp_gpt_eval` exactly as pre-registered; full output in
+2025 never loaded). Scored 2026-10-08 by `research.eval.pbp_gpt_eval` exactly as pre-registered; full output in
 `reports/pbp_gpt_report.md` (local).
 
 * **G0 gate (next-token NLL vs trigram, 2024): PASS.** NLL 2.233 vs 4.005 (CI [-1.79, -1.75]). Note the

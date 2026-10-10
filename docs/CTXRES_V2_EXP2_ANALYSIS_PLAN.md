@@ -3,15 +3,15 @@
 Timestamp: 2026-10-08 17:20 CDT (local). Experiment 2 was running on Colab at this time; the run
 dir has not been pulled and no experiment-2 2024 number has been viewed by the author of this plan.
 Companion to `docs/CTXRES_V2.md` (pre-registration, amendments A1/A1.1, recorded selection).
-Nothing here changes `nba/eval/ctxres_v2_eval.py` or its decision logic. If this plan and the
+Nothing here changes `research/eval/ctxres_v2_eval.py` or its decision logic. If this plan and the
 pre-registration ever disagree, the pre-registration wins.
 
 ## 1. Two tiers, kept apart
 
 | tier | what | how produced | allowed language |
 |---|---|---|---|
-| CONFIRMATORY | the pre-registered keep rule on the RECORDED candidate `xgb_v12_poisson_nb` vs `v1_prod`, 2024 played rows, 6 checks per stat, BH m=4 across stats, A1.1 PIT coverage, leak audit; plus the calibrator rule on that candidate | `uv run python -m nba.eval.ctxres_v2_eval --run <run_dir> --out reports/ctxres_v2_exp2_verdict.json` | "KEPT / NOT KEPT per the pre-registered rule" |
-| DESCRIPTIVE | everything else: the 2024 leaderboard of every arm, arms vs candidate, blend vs best single, all calibrator variants, ablation, drift, zero-inflation, slices, coverage per arm | `uv run python -m nba.eval.ctxres_v2_descriptive --run <run_dir> --verdict reports/ctxres_v2_exp2_verdict.json --prev-metrics <exp1 metrics.json> --slice-arms xgb_v12_poisson_nb,blend_top3 --out reports/ctxres_v2_exp2_descriptive.md` | "would survive BH within family F*", "hypothesis for 2025 / forward", never "wins" or "kept" |
+| CONFIRMATORY | the pre-registered keep rule on the RECORDED candidate `xgb_v12_poisson_nb` vs `v1_prod`, 2024 played rows, 6 checks per stat, BH m=4 across stats, A1.1 PIT coverage, leak audit; plus the calibrator rule on that candidate | `uv run python -m research.eval.ctxres_v2_eval --run <run_dir> --out reports/ctxres_v2_exp2_verdict.json` | "KEPT / NOT KEPT per the pre-registered rule" |
+| DESCRIPTIVE | everything else: the 2024 leaderboard of every arm, arms vs candidate, blend vs best single, all calibrator variants, ablation, drift, zero-inflation, slices, coverage per arm | `uv run python -m research.eval.ctxres_v2_descriptive --run <run_dir> --verdict reports/ctxres_v2_exp2_verdict.json --prev-metrics <exp1 metrics.json> --slice-arms xgb_v12_poisson_nb,blend_top3 --out reports/ctxres_v2_exp2_descriptive.md` | "would survive BH within family F*", "hypothesis for 2025 / forward", never "wins" or "kept" |
 
 Rules of engagement:
 1. The confirmatory command is run FIRST and its output saved unaltered. The descriptive report
@@ -121,7 +121,7 @@ What was seen before this experiment existed: experiment-1 2024 results for `v1_
 * Ledger: after the run append the 4 confirmatory rows (exp2) to `TEST_LEDGER.md` with the family
   counts of F1-F6 (descriptive cells are logged as family counts, not as individual passes).
 
-## 5. Descriptive report contents (script `nba/eval/ctxres_v2_descriptive.py`)
+## 5. Descriptive report contents (script `research/eval/ctxres_v2_descriptive.py`)
 
 Section: 0 confirmatory copy; 1 leaderboard per stat (CRPS, delta vs v1 [clustered CI], q_family,
 q_stat, MDE80, gate, month folds, bias, PIT coverage with integer-grid asterisk); 2 threshold-LL

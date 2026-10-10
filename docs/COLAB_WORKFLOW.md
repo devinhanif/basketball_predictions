@@ -22,7 +22,7 @@ presses Run all; agents pull the artifacts back and register them as a candidate
 3. Drive sync can lag; `status` shows "waiting" until `metrics.json` lands.
 
 ## Commands
-- `uv run python -m nba.colab jobs` - list jobs.
+- `uv run python -m research.colab jobs` - list jobs.
 - `make colab-push JOB=rung4_stepheads` - run producer command if the input is missing or older
   than its `depends_on` (read-only DB), copy inputs, write a run-stamped notebook and `RUN.md`
   (exact clicks for browser and VS Code), print them.
@@ -45,13 +45,13 @@ without an id is rejected at load. When false the staged copy forces `NBA_SCORE_
 (for `rung4_stepheads`, whose notebook default is True; the 2025 holdout is already spent).
 
 ## Creating a job
-1. `nba/colab/jobs/<name>/job.yaml` (directory name == `name`):
+1. `research/colab/jobs/<name>/job.yaml` (directory name == `name`):
    `description`, `notebook` (repo-relative), `inputs` (`path`, `produce` command, optional
    `depends_on`), `artifacts` (must include `metrics.json`), `registry: {model_name, tags}`,
    `touches_holdout`, `preregistration_id`, optional `env`.
 2. The notebook must honor `NBA_PARQUET` (first input) and `NBA_ARTIFACT_ROOT`, and write
    `<root>/<timestamp>/` with the listed artifacts. Keep weights under ~100 MB.
-3. `uv run python -m nba.colab push <name>` against a temp `NBA_COLAB_DRIVE_DIR` to dry-run.
+3. `uv run python -m research.colab push <name>` against a temp `NBA_COLAB_DRIVE_DIR` to dry-run.
 
 ## Colab or local?
 Use Colab for neural training that exceeds ~10 min of CPU or needs more than the 8 GB Mac

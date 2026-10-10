@@ -1,7 +1,7 @@
 # Perf fix: archetype per-date assignment (matchup 3A blocker)
 
-**Scope:** `nba/coldstart/archetypes.py::build_player_feature_frame` and
-`nba/props/opponent.py::_assign_archetypes_over_dates` (consumed by
+**Scope:** `research/coldstart/archetypes.py::build_player_feature_frame` and
+`research/props/opponent.py::_assign_archetypes_over_dates` (consumed by
 `build_archetype_opponent_features`, the matchup 3A archetype-level
 opponent factor). No numerical/behavioral change; speed-only fix.
 
@@ -43,7 +43,7 @@ times, each one a fresh Python list -> polars DataFrame build).
 Hoisted the two date-independent full-history queries out of the
 per-date loop:
 
-- `nba/coldstart/archetypes.py`: split `_players_static_asof` into
+- `research/coldstart/archetypes.py`: split `_players_static_asof` into
   `_players_static_raw` (one DuckDB query, position fractions
   precomputed, no age) + `_apply_asof_age` (pure-polars, cheap, still run
   per date since age genuinely depends on `as_of_date`). Split
@@ -57,7 +57,7 @@ per-date loop:
   wrapper (`build_player_feature_source` + `build_player_feature_frame_cached`)
   so every existing single-shot caller (e.g. the one-time ref-date fit in
   `build_player_archetypes`) is untouched.
-- `nba/props/opponent.py::_assign_archetypes_over_dates`: builds one
+- `research/props/opponent.py::_assign_archetypes_over_dates`: builds one
   `PlayerFeatureSource` before the date loop, calls
   `build_player_feature_frame_cached` inside it instead of
   `build_player_feature_frame` -- no other logic changed.
@@ -94,7 +94,7 @@ instead of rebuilt-and-discarded hundreds of times).
 - `uv run pytest tests/props -q --no-cov`: **142 passed**.
 - `uv run pytest tests/ml/test_archetype_asof.py tests/ml/test_coldstart_archetypes.py -q --no-cov`: **passed** (part of the 34-test run reported above).
 - `uv run ruff check` + `uv run ruff format --check` on the touched files: clean (ran `ruff format` once to apply 2 pre-existing-style wraps; no logic change).
-- `uv run mypy nba/coldstart/archetypes.py nba/props/opponent.py`: `Success: no issues found in 2 source files`.
+- `uv run mypy research/coldstart/archetypes.py research/props/opponent.py`: `Success: no issues found in 2 source files`.
 - Unrelated: `tests/ml` as a whole hit a pre-existing LightGBM native segfault in `test_rung2_gbm.py` on this machine -- unrelated to this change (no archetype/opponent code in that path); not introduced by this fix.
 
 ## Is matchup 3A unblocked?
@@ -115,7 +115,7 @@ with date count the way the *broken* cost did). Suggested quick check
 ```
 time uv run python -c "
 from nba.db.connect import connect
-from nba.props.opponent import build_archetype_opponent_features
+from research.props.opponent import build_archetype_opponent_features
 con = connect('nba.duckdb', read_only=True)
 target = con.execute('SELECT game_id, player_id, team_id, game_date FROM player_game_stats pgs JOIN games g USING(game_id)').pl()
 out = build_archetype_opponent_features(con, target, k=6)

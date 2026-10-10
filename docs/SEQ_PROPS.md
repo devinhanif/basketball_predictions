@@ -17,7 +17,7 @@ evaluator each raise on it). 2022 rows have a truncated history (the DB starts t
 - early stopping: 2023-season rows with date >= 2024-02-01 (time-ordered slice inside 2023)
 - test: every played row of season 2024 (OOF, compared on the intersection with production)
 
-## Sequence spec (`nba/features/player_sequences.py`)
+## Sequence spec (`research/features/player_sequences.py`)
 
 Window: last K=20 tokens before the target date, oldest to newest, left-padded (mask 0).
 A token is a game strictly before the target game date. The player's timeline = his own box
@@ -50,7 +50,7 @@ later games; altering the target game's box score does not change its own inputs
 change the next game's; absent tokens for DNP rows and missing rows; arrival padding; report
 rule (post-cutoff snapshot ignored); 2025 refused.
 
-## Model (`nba/colab/jobs/seq_props/seq_props_train.py`)
+## Model (`research/colab/jobs/seq_props/seq_props_train.py`)
 
 Small transformer (2 layers, d=64, 4 heads, pre-norm; dropout 0.15 in attention/FF, 0.4 on the head, 15% player-id dropout, AdamW weight decay 5e-2 to avoid memorising season-specific sequences) over 20 step tokens + one target token
 built from context and player/team/opponent embeddings (GRU arm only in `full`). Heads:
@@ -64,14 +64,14 @@ min on a T4) or `full` (+GRU, 3 seeds, warm-start walk-forward refit before each
 
 ## Pre-registered evaluation rule (fixed before any Colab run)
 
-Implemented and documented in `nba/eval/seq_props_eval.py` (module docstring is canonical).
+Implemented and documented in `research/eval/seq_props_eval.py` (module docstring is canonical).
 Rows: 2024 played rows common to the seq OOF and production `context_residual` OOF (which
 requires >= 5 prior games, so "cold-start" here means 5-19 career games in the DB window).
 Score: 19-level grid CRPS, game-clustered paired bootstrap 95% CI, BH over the 4 stats,
 floor 0.005, and no slice (cold-start vs established, first-15 vs rest, starter vs bench,
 teammate-out vs none; n >= 300) worse by more than +0.01. Three families, each BH-corrected
 separately: A seq alone, B equal 50/50 blend, C learned softmax-gate blend
-(`nba/stack/router`, walk-forward 30-day blocks within 2024). B or C may be kept even when A
+(`research/stack/router`, walk-forward 30-day blocks within 2024). B or C may be kept even when A
 fails (router candidate). A null result is a valid outcome. MAE, bias and 80% coverage are
 descriptive.
 
@@ -80,7 +80,7 @@ descriptive.
     make colab-push JOB=seq_props          # exports the npz if missing/stale, stages notebook
     make colab-status JOB=seq_props
     make colab-pull JOB=seq_props
-    uv run python -m nba.eval.seq_props_eval --oof data/colab/runs/seq_props/<run_id>/oof_2024.parquet
+    uv run python -m research.eval.seq_props_eval --oof data/colab/runs/seq_props/<run_id>/oof_2024.parquet
     # add --write-store to put the 2024 grids in data/stack/oof.duckdb as model seq_props/v1
 
 Known caveats: usage from the possessions table is only as good as shooter attribution

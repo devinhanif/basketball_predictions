@@ -127,5 +127,5 @@ Production's pts quantiles stay as they are.**
   Part is the point mass at 0 and the integer lattice; a lower-tail study would need its own prereg.
 * No holdout row drafted (nothing passed). Season 2025 never loaded.
 
-Reproduce: `uv run python -m nba.eval.pts_tail_eval collect && uv run python -m nba.eval.pts_tail_eval candidates`
+Reproduce: `uv run python -m research.eval.pts_tail_eval collect && uv run python -m research.eval.pts_tail_eval candidates`
 (about 25 s CPU; read-only DuckDB).

@@ -1,7 +1,7 @@
 # As-of RAPM as the player value for injury-adjusted Elo
 
 Status: PRE-REGISTERED 2026-10-08, before any real-data run of
-`nba/eval/rapm_injury_elo_eval.py`.
+`research/eval/rapm_injury_elo_eval.py`.
 
 ## Question
 Does a regularized adjusted plus-minus (RAPM) value, built from real
@@ -51,7 +51,7 @@ One game = one row, so the per-game paired bootstrap is game-clustered.
 See the bottom of this file (filled in after the run).
 
 ### Run 2026-10-08 (single run, 3,951 scored games, 2022-2024; ~6 s wall clock)
-Command: `uv run python -m nba.eval.rapm_injury_elo_eval --db nba.duckdb --config configs/injury_elo.yaml --out-dir data/rapm`
+Command: `uv run python -m research.eval.rapm_injury_elo_eval --db nba.duckdb --config configs/injury_elo.yaml --out-dir data/rapm`
 (786,814 lineup-complete possessions; season 2025 not loaded; lambda CV on season
 2022 chose 4000 (MSE 13952.2 vs 13961.5 for the intercept+home null: very small
 gain); 26 monthly refits at ~0.03 s each.)

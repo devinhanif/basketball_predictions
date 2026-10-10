@@ -25,7 +25,7 @@ losses and exclusions.
 
 ## (a) Time-decay carryover tuning — Family TD, m=6
 
-Candidate: `nba/features/time_decay.py` (tuned) vs current production as-of features
+Candidate: `research/features/time_decay.py` (tuned) vs current production as-of features
 (equal-weight pooling). Metric: CRPS delta (tuned - current), paired per player-game.
 Cells: {pts, reb, ast} x {first-15 team games, games 16+}.
 
@@ -142,7 +142,7 @@ PROVISIONAL to REJECTED for routing purposes.
 
 ## (e) Fair rematch: DNP-aware sim vs DNP-aware season average — Family FR, m=3
 
-Written BEFORE the first run; module `nba/eval/fair_rematch.py` carries the same text in its
+Written BEFORE the first run; module `research/eval/fair_rematch.py` carries the same text in its
 docstring (this section wins on disagreement). Motivation: `DNP_AUDIT_2026-10-08.md` — DNP rows
 (minutes NULL, stats 0, 18.6%) bias the historical season-avg baseline low on played rows and
 deflate the sim's shot-share / reb / ast rates, so earlier sim-vs-savg verdicts compared two
@@ -172,4 +172,4 @@ weight 1 - p_play, p_play = shrunk as-of played share of the prior 20 rows; A as
 sliced by the played-only SB bucket (min_games=10, buckets with < 30 played rows omitted).
 Min n: per cell, report n and n_games; raw cells saved to `docs/fair_rematch_2024.json`.
 Ledger: log as next free T-ids, including a null/loss.
-Command: `uv run python -m nba.eval.fair_rematch --db nba.duckdb --n-sims 1000 --sample-games 600`.
+Command: `uv run python -m research.eval.fair_rematch --db nba.duckdb --n-sims 1000 --sample-games 600`.

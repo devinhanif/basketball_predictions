@@ -247,7 +247,7 @@ Reinstall after any change: `sh ops/install_launchd.sh`.
 - **2026-10-09, M4 fix: serving uses the training report rule (maintainer-approved correctness alignment,
   no model selection).** `slate_report_outs` (primary props `report_out`, also T-30) used to take the
   league-wide newest snapshot `<= min(now, tip-60)`, so a game absent from that snapshot got `has_report=1`
-  with nobody out. It now calls `nba.sim.usage_redistribution.serve_pretip_flagged`, a thin wrapper over the
+  with nobody out. It now calls `nba.features.injury_report.serve_pretip_flagged`, a thin wrapper over the
   training function `latest_pretip_flagged`: per game, the latest snapshot among THAT game's own report rows
   with `as_of <= min(now, real tip - 60 min)` (and, serving-only guard, `<= 36 h` older than that cutoff);
   a game with no qualifying snapshot is absent (`has_report=0`). The win model (`predict_games`) already

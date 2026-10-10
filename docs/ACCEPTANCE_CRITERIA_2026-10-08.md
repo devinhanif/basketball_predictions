@@ -10,8 +10,8 @@ All CIs below **must** use the clustered (per-`game_id`) bootstrap —
 `nba.props.metrics.paired_score_delta_ci(..., cluster_ids=game_id)` — not the
 row-level default. Per `docs/FDR_AUDIT_2026-10-08.md` §0 and
 `docs/BOOTSTRAP_CLUSTERED_2026-10-08.md`, the clustering support exists in
-`nba/props/metrics.py` and is already wired in `nba/props/run.py`, but
-**`nba/eval/model_routing.py` (line ~103) and `nba/eval/routed_eval.py` (line
+`nba/props/metrics.py` and is already wired in `research/props/run.py`, but
+**`research/eval/model_routing.py` (line ~103) and `research/eval/routed_eval.py` (line
 ~117) still call `paired_score_delta_ci` without `cluster_ids`** — row-level,
 anti-conservative. Any of the three tests below that routes through those two
 modules must have `cluster_ids=game_id` threaded in first, or its CI is
@@ -133,7 +133,7 @@ above; seed must still be logged.
 **Mechanism:** reuse `nba.eval.walkforward.split_frozen_holdout` verbatim,
 keyed on the existing `season` column, applied to the props/routing/matchup
 evaluation dataframes exactly as it's already applied to Elo via
-`nba/eval/ga_tune.py --holdout-season` (default `2025`).
+`research/eval/ga_tune.py --holdout-season` (default `2025`).
 
 **Definition:** `holdout_season = 2025` (the 2025-26 season) — **one
 project-wide holdout season**, not a separate one per domain. `season < 2025`
@@ -174,8 +174,8 @@ left for props. Rule going forward:
    holdout again — flag this as a standing TODO, re-check at the start of
    every session once 2026-27 games exist.
 3. **Code gap to close (modeler, not done here):**
-   `nba/props/run.py`'s props path, `nba/eval/model_routing.py`, and
-   `nba/eval/routed_eval.py` do not call `split_frozen_holdout` at all
+   `research/props/run.py`'s props path, `research/eval/model_routing.py`, and
+   `research/eval/routed_eval.py` do not call `split_frozen_holdout` at all
    (confirmed by grep, audit §3) — any "holdout" split they produce is ad hoc
    and unrecorded. Thread `holdout_season` through all three via the shared
    `nba.eval.walkforward` function before the next routing/matchup eval runs,
@@ -240,6 +240,6 @@ left for props. Rule going forward:
   before it happens.
 
 Relevant files read: `docs/FDR_AUDIT_2026-10-08.md`, `NEXT_SESSION.md`,
-`nba/eval/walkforward.py`, `nba/eval/ga_tune.py`, `nba/props/metrics.py`,
-`nba/props/run.py`, `nba/eval/model_routing.py`, `nba/eval/routed_eval.py`,
+`nba/eval/walkforward.py`, `research/eval/ga_tune.py`, `nba/props/metrics.py`,
+`research/props/run.py`, `research/eval/model_routing.py`, `research/eval/routed_eval.py`,
 `docs/BOOTSTRAP_CLUSTERED_2026-10-08.md`, `docs/RESULTS_2026-10-08.md`.

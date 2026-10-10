@@ -1,7 +1,7 @@
 # Context-residual v3 (ctxres_v3) -- experiment 3: per-stat hybrid, PRE-REGISTRATION of the 2025 confirmatory touch
 
 Status: written 2026-10-08 BEFORE any season-2025 row was scored by any arm of this experiment.
-The rule below is applied ONCE by `nba/eval/ctxres_v3_eval.py` and is not changed after seeing
+The rule below is applied ONCE by `research/eval/ctxres_v3_eval.py` and is not changed after seeing
 results. A negative result is reported as a negative result. Builds on `docs/CTXRES_V2.md`
 (exp-2 protocol, keep rule, amendments A1/A1.1) and `docs/CTXRES_V2_EXP2_RESULTS.md`.
 
@@ -46,7 +46,7 @@ hybrid vs `v1_prod`.
 Source: `data/colab/runs/ctxres_v2_sweep/20261008_171446/best_config.json`
 (sha256 `4ae729a111618993ba700a9d79ce8879c515df51aca2d71229eef4174a58dac8`) and `metrics.json`
 (sha256 `5c65faef64934ced77666d0d91ba54c36382905432de8be9296188edc11cc24c`). The values below are
-embedded as `FROZEN` in `nba/colab/jobs/ctxres_v3_hybrid/ctxres_v3_hybrid.py`; their canonical-JSON
+embedded as `FROZEN` in `research/colab/jobs/ctxres_v3_hybrid/ctxres_v3_hybrid.py`; their canonical-JSON
 sha256 is `a1c889e34067c9f4c3a72e92d7e4e59e784662a88623cb2ecf44f4a47c829b1e` and is pinned in the
 evaluator (a run made from any other config is rejected).
 
@@ -90,7 +90,7 @@ improves with game-clustered CI upper < 0, or ECE improves >= 0.005 without wors
 
 ## 3. Data and walk-forward procedure
 
-Export (flag-gated, additive): `uv run python -m nba.props.context_features_v2 --db nba.duckdb
+Export (flag-gated, additive): `uv run python -m research.props.context_features_v2 --db nba.duckdb
 --out-dir data/colab/ctxres_v3 --include-holdout-2025` writes the SEPARATE
 `data/colab/ctxres_v3/ctxres_v3_with2025.parquet` (+ `feature_spec.json`). The default export
 (`ctxres_v2.parquet`) is byte-identical (sha256 `6586f4af...a217d6` before and after the change;
@@ -160,7 +160,7 @@ threshold log loss / Brier / ECE (raw; pts also Platt) at the exp-2 thresholds (
 
 ## 6. Descriptive 2024 re-statement of the hybrid (from existing exp-2 OOF; no new information)
 
-`uv run python -m nba.eval.ctxres_v3_eval --restate-2024` assembles the hybrid from the stored
+`uv run python -m research.eval.ctxres_v3_eval --restate-2024` assembles the hybrid from the stored
 exp-2 2024 OOF and applies the same rule code. Season 2024, n = 27,583 played rows per stat,
 game-clustered CIs, BH over the 4 stats. **Optimistic by construction (section 1), not a confirmation.**
 
@@ -178,16 +178,16 @@ count arm's PIT coverage on 2024 sat at 0.79 for reb/ast/fg3m but its pts covera
 
 ## 7. Mechanics and guards
 
-* Job `ctxres_v3_hybrid` (`nba/colab/jobs/ctxres_v3_hybrid/`): full budget only, prints the GPU,
+* Job `ctxres_v3_hybrid` (`research/colab/jobs/ctxres_v3_hybrid/`): full budget only, prints the GPU,
   expected ~35 min on a T4 (v1_prod ~2-3 min on CPU, count arm ~3 min, quantile arm ~10-12 min,
   leak audit ~1 min, one seed replicate ~15 min; estimates, not measured on 2025 data),
   crash-safe arm checkpoints, small artifacts first, per-variant OOF parquet, `metrics.json`
   `complete: false` until the end.
 * **Refuses to run** unless env `NBA_PREREGISTERED_ID` equals the `preregistration_id` staged in
   `job_meta.json` (from `job.yaml`, currently the placeholder `PENDING_SET_AFTER_HOLDOUT_LOG_ROW`,
-  always refused) and `NBA_SCORE_HOLDOUT=True` (set by `nba.colab push` for a `touches_holdout`
+  always refused) and `NBA_SCORE_HOLDOUT=True` (set by `research.colab push` for a `touches_holdout`
   job). The check runs before any 2025 row is read.
-* Evaluator `nba/eval/ctxres_v3_eval.py`: validates the run (tag, complete, full budget, frozen-config
+* Evaluator `research/eval/ctxres_v3_eval.py`: validates the run (tag, complete, full budget, frozen-config
   and engine hashes, hybrid map, calibrator = platt_pts_only, pre-registration id not a placeholder, leak
   audit), checks hybrid rows equal the mapped component rows, then claims the run id in an
   append-only ledger (`data/colab/ctxres_v3/eval_ledger.jsonl`) and applies the rule. A second
@@ -197,20 +197,20 @@ count arm's PIT coverage on 2024 sat at 0.79 for reb/ast/fg3m but its pts covera
 
 ```
 # 1. (maintainer) append the pre-registered row to docs/HOLDOUT_ACCESS_LOG.md (text drafted in the
-#    hand-off), then set preregistration_id in nba/colab/jobs/ctxres_v3_hybrid/job.yaml to its id.
-uv run python -m nba.props.context_features_v2 --db nba.duckdb \
+#    hand-off), then set preregistration_id in research/colab/jobs/ctxres_v3_hybrid/job.yaml to its id.
+uv run python -m research.props.context_features_v2 --db nba.duckdb \
     --out-dir data/colab/ctxres_v3 --include-holdout-2025
-uv run python nba/colab/jobs/ctxres_v3_hybrid/build_notebook.py     # only if the job source changed
+uv run python research/colab/jobs/ctxres_v3_hybrid/build_notebook.py     # only if the job source changed
 make colab-push JOB=ctxres_v3_hybrid
 # open the printed notebook link; Runtime > T4 GPU; set NBA_PREREGISTERED_ID in the setup cell
 # (value from RUN.md); Run all.  Re-run the same notebook after a disconnect: it resumes.
 make colab-status JOB=ctxres_v3_hybrid
 make colab-pull JOB=ctxres_v3_hybrid
 # 2. score ONCE
-uv run python -m nba.eval.ctxres_v3_eval --run data/colab/runs/ctxres_v3_hybrid/<run_id> \
+uv run python -m research.eval.ctxres_v3_eval --run data/colab/runs/ctxres_v3_hybrid/<run_id> \
     --prereg-id <id> --out reports/ctxres_v3_verdict.json
 # descriptive 2024 re-statement (no 2025 data)
-uv run python -m nba.eval.ctxres_v3_eval --restate-2024
+uv run python -m research.eval.ctxres_v3_eval --restate-2024
 ```
 
 ## 9. What each outcome means

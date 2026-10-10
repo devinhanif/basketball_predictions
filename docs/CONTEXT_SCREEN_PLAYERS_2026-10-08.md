@@ -2,8 +2,8 @@
 
 Exploratory. Seasons 2022-24 only (2025 never read). Played rows only (minutes > 0, per the DNP audit).
 Baseline = played-only recency-weighted mean, half-life 10 games, strictly as-of. Pre-registered family
-(m = 36, BH q = 0.10, effect floors) is in the docstring of `nba/eval/context_screen_players.py`.
-Reproduce: `uv run python -m nba.eval.context_screen_players --out out.md` (about 5 seconds, seed 20261008).
+(m = 36, BH q = 0.10, effect floors) is in the docstring of `research/eval/context_screen_players.py`.
+Reproduce: `uv run python -m research.eval.context_screen_players --out out.md` (about 5 seconds, seed 20261008).
 
 ## Plain-English summary
 
@@ -71,7 +71,7 @@ Reproduce: `uv run python -m nba.eval.context_screen_players --out out.md` (abou
 
 - `/Users/devin/Downloads/nba-prediction/nba/features/player_pedigree.py` (as-of pedigree features)
 - `/Users/devin/Downloads/nba-prediction/configs/college_conferences.yaml` (hand-built mapping)
-- `/Users/devin/Downloads/nba-prediction/nba/eval/context_screen_players.py` (screen, pre-registration in docstring)
+- `/Users/devin/Downloads/nba-prediction/research/eval/context_screen_players.py` (screen, pre-registration in docstring)
 - `/Users/devin/Downloads/nba-prediction/tests/features/test_player_pedigree.py` (6 tests incl. planted-future-game)
 
 # Full output (verbatim from the run)

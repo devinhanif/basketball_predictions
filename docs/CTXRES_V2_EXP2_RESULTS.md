@@ -2,7 +2,7 @@
 
 generated 2026-10-08T19:00:28; run `20261008_171446`; tag `ctxres_v2_exp2_full_breadth`
 bootstrap: game-clustered, n_boot=2000, seed=0; season-2024 played rows.
-Only the recorded candidate `xgb_v12_poisson_nb` has a confirmatory verdict (`nba.eval.ctxres_v2_eval`); every p, q and CI below is exploratory.
+Only the recorded candidate `xgb_v12_poisson_nb` has a confirmatory verdict (`research.eval.ctxres_v2_eval`); every p, q and CI below is exploratory.
 Run's own 2023 best: `xgb_v12_poisson_nb`; recorded candidate in run: `xgb_v12_poisson_nb`; catboost_available=`True`; budget `full`.
 
 Family sizes: F1=52, F2=56, F3=48 (BH q=0.05).

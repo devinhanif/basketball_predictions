@@ -114,5 +114,5 @@ more volatile outcomes; this is not a residual bias (resid ~ 0).
 * `ruff format` was accidentally run on the whole `nba/` package once; it may have re-wrapped
   other in-flight files (formatting only). Review `git diff` before committing.
 * `nba/features/game_context.py` already exists (tracked: travel, national TV, standings), so
-  the new features live in `nba/features/game_location_context.py` instead; no existing file
+  the new features live in `research/features/game_location_context.py` instead; no existing file
   was edited.

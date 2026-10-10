@@ -248,7 +248,7 @@ as NaN; fixed (`fill_null(False)`) and rerun before the numbers above; no other 
 
 What was seen / process notes: the preregistration was committed (92e05cc, sha256 4a7833c2) before any real-data
 number existed; only synthetic unit tests ran before. No parameter, feature or threshold was changed after viewing
-results. Season 2025 never loaded. Reproduce: `uv run python -m nba.eval.minutes_v2_eval all` (about 9 min CPU; take
+results. Season 2025 never loaded. Reproduce: `uv run python -m research.eval.minutes_v2_eval all` (about 9 min CPU; take
 `data/ops/heavy.lock`).
 
 Recommendation: no promotion and no shadow-logging of A1 for props (nothing passes on both seasons; the pts 2023

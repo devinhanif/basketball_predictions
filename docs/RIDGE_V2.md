@@ -1,12 +1,12 @@
 # ridge_v2 (experiment 4) -- opponent-adjusted ridge variants: design and PRE-REGISTRATION
 
 Status: written 2026-10-08 BEFORE any ridge_v2 Colab run. The rule in "Pre-registered keep rule" is
-applied by `nba/eval/ridge_v2_eval.py` and is not changed after seeing results. A negative result is
+applied by `research/eval/ridge_v2_eval.py` and is not changed after seeing results. A negative result is
 reported as a negative result. Season 2025 is never loaded (not by the export, the job or the eval).
 
-Files: `nba/features/opponent_ridge_v2.py` (estimator, tuning, export), `nba/colab/jobs/ridge_v2_sweep/`
-(job, notebook, `job.yaml`), `nba/eval/ridge_v2_eval.py` (rule), `tests/features/test_opponent_ridge_v2.py`.
-Group (i) of `nba/props/context_features_v2.py` is imported, not edited.
+Files: `research/features/opponent_ridge_v2.py` (estimator, tuning, export), `research/colab/jobs/ridge_v2_sweep/`
+(job, notebook, `job.yaml`), `research/eval/ridge_v2_eval.py` (rule), `tests/features/test_opponent_ridge_v2.py`.
+Group (i) of `research/props/context_features_v2.py` is imported, not edited.
 
 ## 0. Finding that changes the question: the experiment-2 ridge column leaks
 
@@ -78,7 +78,7 @@ played row in that game (past box score). PREDICTION regressor = partner is on t
 than on-court overlap from the possessions table: at prediction time both reduce to the same report-based
 indicator, and on-court overlap would only change the training target noise (not tested; stated as a limitation).
 Archetypes (r2arch / r5arch): KMeans (k = 6, fixed, seed 20261008) per refit month on height, weight, position
-fractions (`nba.coldstart.archetypes.encode_position_fractions`) and window per-36 rates shrunk toward the league
+fractions (`research.coldstart.archetypes.encode_position_fractions`) and window per-36 rates shrunk toward the league
 (200 pseudo-minutes); players without static data get an "unknown" group. k was not tuned (no cheap proxy for it).
 
 Exported components per (stat, variant): `p` player effect (+ group effect under r5), `o` opponent effect, `ox`
@@ -209,7 +209,7 @@ the three count stats about 1.5 min each, run in parallel threads) x 24 arms = a
 
 ```
 # 1. export (CPU, about 2 min; read-only DB; add --device cuda on a GPU host)
-uv run python -m nba.features.opponent_ridge_v2 --db nba.duckdb --out-dir data/colab/ridge_v2
+uv run python -m research.features.opponent_ridge_v2 --db nba.duckdb --out-dir data/colab/ridge_v2
 # 2. stage on Drive (also refreshes ctxres_v2 inputs if stale), open the printed notebook, Runtime > GPU, Run all
 make colab-push JOB=ridge_v2_sweep
 #    concurrent sessions: push several times; in each notebook's setup cell add one line, e.g.
@@ -217,7 +217,7 @@ make colab-push JOB=ridge_v2_sweep
 make colab-status JOB=ridge_v2_sweep
 make colab-pull JOB=ridge_v2_sweep RUN=<run_id>        # once per pushed session
 # 3. apply the pre-registered rule (merges sharded runs by arm)
-uv run python -m nba.eval.ridge_v2_eval --run data/colab/runs/ridge_v2_sweep/<id1> [<id2> ...] \
+uv run python -m research.eval.ridge_v2_eval --run data/colab/runs/ridge_v2_sweep/<id1> [<id2> ...] \
     --out reports/ridge_v2_verdict.json --md reports/ridge_v2_report.md
 ```
 
@@ -237,7 +237,7 @@ NBA_ARTIFACT_ROOT=<dir> NBA_MAX_ARMS=3`; `NBA_CRASH_AFTER_ARM=<arm>` forces a ke
   documented negative (no stat clears -0.005) is a perfectly acceptable outcome of this experiment.
 * Passing on 2024 -> 2025 confirmatory candidate (separate pre-registration, one touch). Not a production change.
 
-## 9. Results (run 20261008_194547, L4, scored 2026-10-09 by `nba.eval.ridge_v2_eval` as pre-registered)
+## 9. Results (run 20261008_194547, L4, scored 2026-10-09 by `research.eval.ridge_v2_eval` as pre-registered)
 
 **Verdict: NOT KEPT for any stat** (T098-T101). Primary reference `ref_fixed` (the v2 feature set with the
 leak-free ridge). 2023-selected candidates on 2024 (n = 27,583 per stat): pts `drop_r5` -0.0004
