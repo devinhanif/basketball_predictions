@@ -401,3 +401,7 @@ rotation-level young players in close games would be a new rule.
   CIs clear of zero). That is the one place our information might add a sliver, and it is the stat Devin named first as a
   lineup property. It is with the adversary; nothing is claimed.
 - For the budget tool: "keep your money" stays the answer; the market's own number is the one to show.
+- *Red team on the rebounds cell (T237):* WOUNDED. Half the 0.002 is Pinnacle pricing rebounds overs too high (shading to the
+  under needs no model); the model's own share is 0.001, below the floor. Honest summary: the market is better everywhere, and
+  the one sliver that survives is a price bias, not basketball knowledge. Nothing promoted.
+

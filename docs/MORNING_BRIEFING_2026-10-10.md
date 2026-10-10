@@ -101,3 +101,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - What it means, plainly: for betting, the model's own numbers are not an edge; the market's line is the better forecast
   and the honest answer stays "keep your money". For the project, the market-as-prior design is confirmed as the right
   shape, and the one place our information might add a sliver is rebounds (the lineup property you named first).
+
+- 14:30: adversary verdict on the rebounds cell: WOUNDED (half of it is a price-bias correction; the model share is below the floor). Final reading of the comparison: market better everywhere; nothing is promoted; "keep your money" stands.

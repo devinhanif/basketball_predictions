@@ -1,6 +1,6 @@
 # ODDS_HISTORY - did the props model beat the market on past seasons? (pre-registration)
 
-Status: FROZEN 2026-10-10 13:40 CT (Devin: "confirmed" at 13:30). The 13:30 freeze (sha ecdcf2d2) was VOID: its
+Status: FROZEN 2026-10-10 13:26:43 CT, commit 2d4cda1 (Devin: "confirmed" at 13:30 CT by message; the prose time was first written as 13:40 and corrected by the red team). The 13:30 freeze (sha ecdcf2d2) was VOID: its
 hash was computed by a substring-marker scan that started at the header's own verify line, so it covered the
 line recording the hash and missed section 8, which a bad insertion had left in the header. No model row had
 been joined to a price under either freeze. Scoring may start only after the sha below is committed.
@@ -113,7 +113,8 @@ market is better; recorded as a finding; the budget tool keeps saying "keep your
 Fill from the tables above only; do not add a claim the tables do not carry. State n, the clustered CI and the family corrected over for every sentence; say plainly when the market was better.
 
 ## Amendments (append only, dated)
-(none)
+- 2026-10-10 (reporting note, after the red team T237): the scorer's expected-return figure for the reb/Pinnacle blend cell (+4.25% [-0.12%, +8.65%]) used the blend's edge; the rule text says the model's edge, which gives +0.84% [-1.65%, +3.38%]. Neither clears zero; no money claim either way. Under the voided 13:23 freeze the two `score` calls were REFUSED (the main session's log shows the refusal lines and no results file existed before the 13:26 freeze). Verdict on the one passing cell: WOUNDED (docs/reviews/redteam_odds_history_reb_blend_2026-10-10.md); the market-as-prior weight is NOT promote-candidate on this evidence.
+
 
 ## Pre-freeze gate check (2026-10-10 03:50 CT, prices only; no model row joined; outside the frozen text)
 
