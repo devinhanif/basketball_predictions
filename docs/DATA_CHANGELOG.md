@@ -99,3 +99,5 @@
   Entities 5,042 (players 1,008, games 3,962, coaches 42, teams 30).
 - Known gaps: 208 players_static rows lack first_season (no static facts); head_coach confidence 0.5 (table wrong in
   14 of 87 team-seasons). known_at choices are in `docs/FACTS_STORE.md`.
+- 2026-10-11: configs/kalshi_aliases.yaml gains 61 reviewed vendor spellings from the steals pull (Devin: "paste AUTO"); both steals
+  seasons reparsed from cache (0 credits). Unresolved player_steals rows 2,682 → 348 (the 11 REVIEW names, 2023 only).

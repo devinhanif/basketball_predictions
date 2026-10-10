@@ -35,3 +35,64 @@ aliases:
   "Joshua Giddey": 1630581        # Josh Giddey
   "Jalen (2001) Johnson": 1630552 # Jalen Johnson (vendor disambiguator)
   "Mohamed Bamba": 1628964        # Mo Bamba
+  # Reviewed 2026-10-10 (maintainer to confirm): vendor spellings in the player_steals 2023-24 / 2024-25 pulls,
+  # unique roster match by surname + first initial in every appearance game (docs/reviews/alias_review_steals_2026-10-10.md)
+  "Brook Robert Lopez": 201572  # Brook Lopez, n=53 games
+  "Caldwell Pope Kentavious": 203484  # Kentavious Caldwell-Pope, n=48 games
+  "Christian James McCollum": 203468  # CJ McCollum, n=40 games
+  "Obadiah Toppin": 1630167  # Obi Toppin, n=53 games
+  "Alfred Joel Horford Reynoso": 201143  # Al Horford, n=44 games
+  "Eric Ambrose Gordon Jr.": 201569  # Eric Gordon, n=43 games
+  "J. Isaac": 1628371  # Jonathan Isaac, n=35 games
+  "Cameron Reddish": 1629629  # Cam Reddish, n=31 games
+  "J. Tate": 1630256  # Jae'Sean Tate, n=30 games
+  "Cam Johnson": 1629661  # Cameron Johnson, n=24 games
+  "Nicholas Batum": 201587  # Nicolas Batum, n=27 games
+  "M. Flynn": 1630201  # Malachi Flynn, n=19 games
+  "D. Sharpe": 1630549  # Day'Ron Sharpe, n=15 games
+  "Gregory Jackson II": 1641713  # GG Jackson, n=16 games
+  "M. McBride": 1630540  # Miles McBride, n=13 games
+  "D. Jones Jr.": 1627884  # Derrick Jones Jr., n=12 games
+  "D. Wade": 1629731  # Dean Wade, n=13 games
+  "I. Jackson": 1630543  # Isaiah Jackson, n=14 games
+  "Kenyon Martin Jr.": 1630231  # KJ Martin, n=9 games
+  "P. Pritchard": 1630202  # Payton Pritchard, n=12 games
+  "A. Burks": 202692  # Alec Burks, n=9 games
+  "D. Robinson": 1629130  # Duncan Robinson, n=8 games
+  "G. Bitadze": 1629048  # Goga Bitadze, n=7 games
+  "Kevin Devon Knox II": 1628995  # Kevin Knox II, n=10 games
+  "R. Covington": 203496  # Robert Covington, n=10 games
+  "C. Okeke": 1629643  # Chuma Okeke, n=7 games
+  "Omer Faruk Yurtseven": 1630209  # Omer Yurtseven, n=3 games
+  "S. Dinwiddie": 203915  # Spencer Dinwiddie, n=9 games
+  "Daniel Theis (IND)": 1628464  # Daniel Theis, n=5 games
+  "Ishmael Larry Smith": 202397  # Ish Smith, n=6 games
+  "James Huff": 1630643  # Jay Huff, n=4 games
+  "Z. Nnaji": 1630192  # Zeke Nnaji, n=4 games
+  "A. Coffey": 1629599  # Amir Coffey, n=4 games
+  "B. Biyombo": 202687  # Bismack Biyombo, n=3 games
+  "B. Fernando": 1628981  # Bruno Fernando, n=4 games
+  "Immanuel Quickley (TOR)": 1630193  # Immanuel Quickley, n=3 games
+  "K. Caldwell-Pope": 203484  # Kentavious Caldwell-Pope, n=3 games
+  "G. Antetokounmpo": 203507  # Giannis Antetokounmpo, n=2 games thin
+  "M. Moody": 1630541  # Moses Moody, n=3 games
+  "S. Gilgeous-Alexander": 1628983  # Shai Gilgeous-Alexander, n=2 games thin
+  "T. Jackson-Davis": 1631218  # Trayce Jackson-Davis, n=3 games
+  "Martin Kenyon Jr.": 1630231  # KJ Martin, n=2 games thin
+  "N. Alexander-Walker": 1629638  # Nickeil Alexander-Walker, n=3 games
+  "Jevon Carter (Chi)": 1628975  # Jevon Carter, n=1 games thin
+  "P. J. Tucker": 200782  # P.J. Tucker, n=1 games thin
+  "Simone Fontecchio (Det)": 1631323  # Simone Fontecchio, n=1 games thin
+  "T. J. Warren": 203933  # T.J. Warren, n=2 games thin
+  "Z. Williams": 1630533  # Ziaire Williams, n=1 games thin
+  "Ausar Thompson (Det)": 1641709  # Ausar Thompson, n=1 games thin
+  "Drew Eubanks (Phx)": 1629234  # Drew Eubanks, n=1 games thin
+  "Evan Fournier (Det)": 203095  # Evan Fournier, n=1 games thin
+  "Green A J": 1631260  # AJ Green, n=1 games thin
+  "I. Smith": 202397  # Ish Smith, n=1 games thin
+  "Ibou Dianko Badji": 1630641  # Ibou Badji, n=1 games thin
+  "K. Lewis Jr.": 1630184  # Kira Lewis Jr., n=1 games thin
+  "Kyle Lowry (Phi)": 200768  # Kyle Lowry, n=1 games thin
+  "Malachi Flynn (Det)": 1630201  # Malachi Flynn, n=1 games thin
+  "Quentin Grimes (Det)": 1629656  # Quentin Grimes, n=1 games thin
+  "Trendon Watford (Por)": 1630570  # Trendon Watford, n=1 games thin
