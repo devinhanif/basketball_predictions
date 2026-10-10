@@ -57,15 +57,15 @@ import numpy as np
 import polars as pl
 from scipy.optimize import minimize
 
-from nba.models.base import RungModelBase
-from nba.models.common import clip_prob
-from nba.models.rung0_baselines import MovEloBaseline
-from nba.sim.usage_redistribution import (
+from nba.features.injury_report import (
     ReportTriggerConfig,
     latest_pretip_flagged,
     load_report_rows,
     rotation_flagged_by_team,
 )
+from nba.models.base import RungModelBase
+from nba.models.common import clip_prob
+from nba.models.rung0_baselines import MovEloBaseline
 
 ELO_TO_LOGIT = math.log(10.0) / 400.0
 VALUE_SCALE = 10.0  # features are value/VALUE_SCALE (value is points/game)

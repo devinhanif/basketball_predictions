@@ -34,12 +34,12 @@ import lightgbm as lgb
 import numpy as np
 import polars as pl
 
-from nba.models.rung0_baselines import MovEloBaseline
-from nba.props.baselines import _DEFAULT_STD
-from nba.sim.usage_redistribution import (
+from nba.features.injury_report import (
     ReportTriggerConfig,
     latest_pretip_flagged,
 )
+from nba.models.rung0_baselines import MovEloBaseline
+from nba.props.baselines import _DEFAULT_STD
 
 PROP_STATS: tuple[str, ...] = ("pts", "reb", "ast", "fg3m")
 QUANTILE_TAUS: tuple[float, ...] = tuple(round(0.05 * i, 2) for i in range(1, 20))

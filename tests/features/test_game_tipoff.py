@@ -9,7 +9,7 @@ import polars as pl
 import pytest
 
 from nba.features.game_tipoff import attach_real_tips, build_game_tipoff, tip_coverage
-from nba.sim.usage_redistribution import ReportTriggerConfig, latest_pretip_flagged
+from nba.features.injury_report import ReportTriggerConfig, latest_pretip_flagged
 
 
 def _rows() -> pl.DataFrame:

@@ -41,7 +41,6 @@ RESEARCH_PREFIXES = (
 KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset(
     {
         ("nba.daily.predict", "nba.eval.injury_elo_eval"),
-        ("nba.daily.predict", "nba.sim.usage_redistribution"),
         ("nba.daily.predict", "nba.stack.frozen"),
         ("nba.daily.predict", "nba.stack.populate"),
         ("nba.daily.settle", "nba.eval.metrics"),
@@ -50,8 +49,6 @@ KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset(
         ("nba.features.possession_features", "nba.coldstart.shrinkage"),
         ("nba.features.time_decay", "nba.coldstart.carryover"),
         ("nba.features.time_decay", "nba.coldstart.shrinkage"),
-        ("nba.models.injury_elo", "nba.sim.usage_redistribution"),
-        ("nba.props.context_residual", "nba.sim.usage_redistribution"),
         ("nba.props.forward", "nba.coldstart.sb_classification"),
         ("nba.props.forward", "nba.sim.player_attribution"),
         ("nba.props.metrics", "nba.eval.metrics"),

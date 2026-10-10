@@ -15,6 +15,11 @@ import yaml
 
 from nba.daily.injury import MAX_REPORT_AGE_HOURS, to_report_dt
 from nba.eval.injury_elo_eval import feature_config_from
+from nba.features.injury_report import (
+    ReportTriggerConfig,
+    load_report_rows,
+    serve_pretip_flagged,
+)
 from nba.models.injury_elo import InjuryFeatureConfig
 from nba.models.rung0_baselines import MovEloBaseline
 from nba.props.forward import (
@@ -24,11 +29,6 @@ from nba.props.forward import (
     predict_slate_context,
 )
 from nba.registry.protocol import RegistryAdapter
-from nba.sim.usage_redistribution import (
-    ReportTriggerConfig,
-    load_report_rows,
-    serve_pretip_flagged,
-)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ELO_CONFIG = REPO_ROOT / "configs" / "mov_elo_tuned.yaml"

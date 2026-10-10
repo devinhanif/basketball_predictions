@@ -11,12 +11,12 @@ import polars as pl
 
 from nba.daily.injury import to_report_dt
 from nba.daily.predict import slate_report_outs
-from nba.ingest.availability import ensure_player_availability_table
-from nba.sim.usage_redistribution import (
+from nba.features.injury_report import (
     ReportTriggerConfig,
     latest_pretip_flagged,
     serve_pretip_flagged,
 )
+from nba.ingest.availability import ensure_player_availability_table
 
 SRC = "nba_official_report"
 EARLY, LATE, OTHER = "0022600101", "0022600102", "0022600103"

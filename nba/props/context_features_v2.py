@@ -52,6 +52,7 @@ import numpy as np
 import polars as pl
 import yaml
 
+from nba.features.injury_report import ReportTriggerConfig, usable_report_rows
 from nba.parlay.game_model import asof_total_features
 from nba.props.baselines import _DEFAULT_STD
 from nba.props.context_residual import (
@@ -65,7 +66,6 @@ from nba.props.context_residual import (
     player_states,
     stat_feature_names,
 )
-from nba.sim.usage_redistribution import ReportTriggerConfig, usable_report_rows
 
 MAX_SEASON = 2024  # season 2025 is never loaded
 EXPORT_SEASONS: tuple[int, ...] = (2022, 2023, 2024)
