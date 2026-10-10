@@ -41,8 +41,12 @@ The ``oreb`` flag (corrected 2026-10-10; docs/prereg/F8_LINEUP_REBOUNDING.md gat
   outcome is still its final event, so a miss + offensive rebound + made putback is
   (``FGM2``, ``oreb`` True), and a make or a turnover with no earlier offensive rebound in its
   trip is always False. The flag marks "this trip was extended", not "how many times": a
-  trip with two offensive rebounds carries one flag (``n_oreb``, available with
-  ``parse_possessions(..., with_counts=True)``, counts them).
+  trip with two offensive rebounds carries one flag, so the trip also carries ``n_oreb``, the
+  number of such rebounds, and ``oreb`` is defined as ``n_oreb > 0`` (a boolean flag cannot
+  reconcile with box OREB: 0.88 of it; the count does, 0.9997). ``n_dreb`` is the defensive
+  counterpart: 1 if the trip was ended by a player-credited defensive rebound of the defending
+  team, else 0 (a trip ends at most once), so a team's DREB is ``sum(n_dreb)`` over the trips it
+  defended (``def_team``).
 
   Team rebounds (``team_id`` 0, the team parked in ``player_id``; "PACERS Rebound") are not
   flagged: they are not credited to a player, so the box-score ``OREB`` the flag is reconciled
@@ -126,6 +130,8 @@ POSSESSIONS_COLUMNS = [
     "oreb",
     "fta",
     "pts",
+    "n_oreb",
+    "n_dreb",
 ]
 
 _AST_RE = re.compile(r"\(([A-Za-z.'\- ]+?) (\d+) AST\)\s*$")
@@ -212,8 +218,8 @@ class _Trip:
     def_team: int
     clock_start: float
     had_fgm: bool = False
-    oreb: bool = False
     n_oreb: int = 0
+    n_dreb: int = 0
     fta: int = 0
     pts: int = 0
     shooter_id: int | None = None
@@ -225,18 +231,15 @@ class _Trip:
     events: list[dict[str, Any]] = field(default_factory=list)
 
 
-def parse_possessions(pbp: pl.DataFrame, *, with_counts: bool = False) -> pl.DataFrame:
+def parse_possessions(pbp: pl.DataFrame) -> pl.DataFrame:
     """Parse one game's raw play-by-play into ``possessions`` rows.
 
     ``pbp`` is a single game's frame in the V3 schema produced by
     ``nba/ingest/pbp.py`` (or an equivalent frame, e.g. a fixture). See
     the module docstring for segmentation rules and known limitations.
-    ``with_counts=True`` appends ``n_oreb`` (player-credited offensive rebounds in the trip);
-    the stored table does not carry it.
     """
-    schema = [*POSSESSIONS_COLUMNS, "n_oreb"] if with_counts else POSSESSIONS_COLUMNS
     if pbp.is_empty():
-        return pl.DataFrame(schema=schema)
+        return pl.DataFrame(schema=POSSESSIONS_COLUMNS)
 
     game_ids = pbp["game_id"].unique().to_list()
     if len(game_ids) != 1:
@@ -262,7 +265,7 @@ def parse_possessions(pbp: pl.DataFrame, *, with_counts: bool = False) -> pl.Dat
             return
         off_score = trip.score_home if trip.off_team == home_team else trip.score_away
         def_score = trip.score_away if trip.off_team == home_team else trip.score_home
-        row = {
+        row: dict[str, Any] = {
             "game_id": game_id,
             "poss_idx": poss_idx,
             "period": trip.period,
@@ -275,12 +278,12 @@ def parse_possessions(pbp: pl.DataFrame, *, with_counts: bool = False) -> pl.Dat
             "shooter_id": trip.shooter_id,
             "shot_zone": trip.shot_zone,
             "assister_id": trip.assister_id,
-            "oreb": trip.oreb,
+            "oreb": trip.n_oreb > 0,
             "fta": trip.fta,
             "pts": trip.pts,
+            "n_oreb": trip.n_oreb,
+            "n_dreb": trip.n_dreb,
         }
-        if with_counts:
-            row["n_oreb"] = trip.n_oreb
         rows.append(row)
         poss_idx += 1
         trip = None
@@ -376,14 +379,15 @@ def parse_possessions(pbp: pl.DataFrame, *, with_counts: bool = False) -> pl.Dat
                 # Player-credited only (module docstring, "The oreb flag"). A team rebound
                 # (team_id 0) leaves the trip open exactly as before but is not flagged.
                 if ev["team_id"]:
-                    trip.oreb = True
                     trip.n_oreb += 1
             else:
+                if ev["team_id"]:
+                    trip.n_dreb = 1
                 finalize(clock_s)
 
         # Anything else (shouldn't occur given _SKIP_ACTION_TYPES) is ignored.
 
     finalize(0.0)
     if not rows:
-        return pl.DataFrame(schema=schema)
+        return pl.DataFrame(schema=POSSESSIONS_COLUMNS)
     return pl.DataFrame(rows, schema_overrides={"outcome": pl.Utf8, "shot_zone": pl.Utf8})

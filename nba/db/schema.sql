@@ -35,11 +35,16 @@ CREATE TABLE IF NOT EXISTS possessions (
     shooter_id INT,
     shot_zone VARCHAR,        -- rim, mid, corner3, above3
     assister_id INT,
-    oreb BOOLEAN,
+    oreb BOOLEAN,             -- the trip was extended by a player-credited offensive rebound (= n_oreb > 0)
     fta INT,
     pts INT,
+    n_oreb INTEGER,           -- player-credited offensive rebounds of the offense in the trip (box OREB)
+    n_dreb INTEGER,           -- 1 if a player-credited defensive rebound by def_team ended the trip (box DREB)
     PRIMARY KEY (game_id, poss_idx)
 );
+-- Existing databases: the CREATE above is a no-op for them (2026-10-10, F8 gate G3).
+ALTER TABLE possessions ADD COLUMN IF NOT EXISTS n_oreb INTEGER;
+ALTER TABLE possessions ADD COLUMN IF NOT EXISTS n_dreb INTEGER;
 
 CREATE TABLE IF NOT EXISTS stints (
     game_id VARCHAR,

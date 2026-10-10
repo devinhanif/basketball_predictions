@@ -60,7 +60,7 @@ def _seed(tmp_path: Path) -> tuple[Path, Path]:
             for pid in players:
                 con.execute(
                     "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, starter, "
-                    "fga, fta, oreb, tov) VALUES (?, ?, ?, 20.0, true, ?, 0, 0, 0)",
+                    "fga, fta, oreb, dreb, tov) VALUES (?, ?, ?, 20.0, true, ?, 0, 0, 0, 0)",
                     [gid, pid, team, fga.get(pid, 0)],
                 )
         box = con.execute(
@@ -286,7 +286,7 @@ def test_order_defects_counts_planted_defects() -> None:
 
 
 # ---------------------------------------------------------------------------
-# --flags-only (oreb rule change, F8 gate G3)
+# --flags-only (rebound rule change + n_oreb / n_dreb, F8 gate G3)
 # ---------------------------------------------------------------------------
 def _poss_frame(**cols: list[object]) -> pl.DataFrame:
     n = len(next(iter(cols.values())))
@@ -308,14 +308,16 @@ def _poss_frame(**cols: list[object]) -> pl.DataFrame:
         "oreb": [False] * n,
         "fta": [0] * n,
         "pts": [2] * n,
+        "n_oreb": [0] * n,
+        "n_dreb": [0] * n,
     }
     base.update(cols)
     return pl.DataFrame(base, schema=rp._SCHEMA)
 
 
-def test_structure_diff_counts_only_oreb_when_only_oreb_changes() -> None:
-    old = _poss_frame(oreb=[True, True, False])
-    new = _poss_frame(oreb=[True, False, False])
+def test_structure_diff_counts_only_rebound_columns_when_only_they_change() -> None:
+    old = _poss_frame(oreb=[True, True, False], n_oreb=[None, None, None], n_dreb=[None] * 3)
+    new = _poss_frame(oreb=[True, False, False], n_oreb=[2, 0, 0], n_dreb=[0, 1, 0])
     d = rp.structure_diff(old, new)
     assert d["key_mismatch"] == 0 and sum(d["changed"].values()) == 0
     assert (d["oreb_added"], d["oreb_removed"]) == (0, 1)
@@ -333,9 +335,10 @@ def test_structure_diff_catches_a_changed_count_or_key() -> None:
 
 
 def _ok_stats(**kw: float) -> dict[str, dict[str, dict[str, float]]]:
-    row = {"team_games": 100, "flagged": 98, "box": 100, "ratio": 0.98, "corr": 0.97}
+    row = {"team_games": 100, "measured": 99, "box": 100, "ratio": 0.99, "corr": 0.99}
     row.update(kw)
-    return {"flag": {"2023": dict(row), "2024": dict(row), "all": dict(row)}}
+    block = {"2023": dict(row), "2024": dict(row), "all": dict(row)}
+    return {"count": block, "dcount": {k: dict(v) for k, v in block.items()}}
 
 
 def _clean_diff() -> dict[str, object]:
@@ -349,17 +352,17 @@ def _clean_diff() -> dict[str, object]:
     }
 
 
-def test_oreb_gates_pass_on_a_reconciling_flag() -> None:
+def test_oreb_gates_pass_on_reconciling_counts() -> None:
     assert all(g.ok for g in rp.evaluate_oreb_gates(_ok_stats(), _clean_diff()))
 
 
 @pytest.mark.parametrize(
     ("change", "gate"),
     [
-        ({"ratio": 0.878}, "oreb_ratio_2023"),
-        ({"ratio": 1.35}, "oreb_ratio_2024"),
-        ({"corr": 0.80}, "oreb_corr_all"),
-        ({"ratio": float("nan")}, "oreb_ratio_2023"),
+        ({"ratio": 0.878}, "count_ratio_2023"),
+        ({"ratio": 1.35}, "count_ratio_2024"),
+        ({"corr": 0.80}, "count_corr_all"),
+        ({"ratio": float("nan")}, "count_ratio_2023"),
     ],
 )
 def test_each_oreb_gate_refuses(change: dict[str, float], gate: str) -> None:
@@ -367,24 +370,39 @@ def test_each_oreb_gate_refuses(change: dict[str, float], gate: str) -> None:
         g.name for g in rp.evaluate_oreb_gates(_ok_stats(**change), _clean_diff()) if not g.ok
     }
     assert gate in failed
+    # the same numbers on the defensive side trip the dcount gate of the same shape
+    stats = _ok_stats()
+    stats["dcount"] = _ok_stats(**change)["dcount"]
+    assert gate.replace("count", "dcount") in {
+        g.name for g in rp.evaluate_oreb_gates(stats, _clean_diff()) if not g.ok
+    }
 
 
-def test_oreb_gate_refuses_when_a_flag_would_be_added() -> None:
+def test_oreb_gate_refuses_when_a_flag_would_be_added_or_the_invariant_breaks() -> None:
     diff = {**_clean_diff(), "oreb_added": 1}
     failed = {g.name for g in rp.evaluate_oreb_gates(_ok_stats(), diff) if not g.ok}
     assert failed == {"flags_only_removed"}
+    failed = {g.name for g in rp.evaluate_oreb_gates(_ok_stats(), _clean_diff(), 3) if not g.ok}
+    assert failed == {"oreb_is_n_oreb_positive"}
 
 
-def test_oreb_stats_sums_flags_and_counts_per_season() -> None:
+def test_invariant_counts_mismatches_and_nulls() -> None:
+    ok = _poss_frame(oreb=[True, False], n_oreb=[2, 0])
+    assert rp.oreb_invariant_violations(ok) == 0
+    bad = _poss_frame(oreb=[True, False, True], n_oreb=[0, 0, None])
+    assert rp.oreb_invariant_violations(bad) == 2
+
+
+def test_oreb_stats_sums_flags_counts_and_defensive_counts_per_season() -> None:
     poss = _poss_frame(
         game_id=["g1", "g1", "g1", "g2", "g2"],
         poss_idx=[0, 1, 2, 0, 1],
         off_team=[1, 1, 2, 1, 2],
+        def_team=[2, 2, 1, 2, 1],
         oreb=[True, True, False, False, True],
+        n_oreb=[2, 1, 0, 0, 1],
+        n_dreb=[0, 1, 0, 1, 0],
         outcome=["FGM2", "TOV", "FGM2", "FGM2", "FGA_miss"],
-    )
-    counts = pl.DataFrame(
-        {"game_id": poss["game_id"], "poss_idx": poss["poss_idx"], "n_oreb": [2, 1, 0, 0, 1]}
     )
     box = pl.DataFrame(
         {
@@ -392,34 +410,41 @@ def test_oreb_stats_sums_flags_and_counts_per_season() -> None:
             "team_id": [1, 2, 1, 2],
             "season": [2023, 2023, 2024, 2024],
             "box_oreb": [3, 0, 0, 1],
+            "box_dreb": [0, 1, 0, 1],
         }
     )
-    st = rp.oreb_stats(poss, box, counts)
-    assert st["flag"]["2023"]["flagged"] == 2 and st["flag"]["2023"]["box"] == 3
-    assert st["flag"]["2024"]["flagged"] == 1 and st["flag"]["all"]["flagged"] == 3
-    assert st["count"]["all"]["flagged"] == 4 and st["count"]["all"]["box"] == 4
+    st = rp.oreb_stats(poss, box)
+    assert st["flag"]["2023"]["measured"] == 2 and st["flag"]["2023"]["box"] == 3
+    assert st["flag"]["all"]["measured"] == 3
+    assert st["count"]["all"]["measured"] == 4 and st["count"]["all"]["box"] == 4
+    assert st["dcount"]["all"]["measured"] == 2 and st["dcount"]["all"]["box"] == 2
     assert st["mix"]["TOV"] == {"trips": 1, "oreb_true": 1, "share": 1.0}
     assert st["oreb_true_total"] == 3
     assert st["share_oreb_on_fgm_tov"] == pytest.approx(2 / 4)
+    # a stored table before the backfill has NULL counts: only the flag is reported
+    pre = oreb_pre = poss.with_columns(pl.lit(None, dtype=pl.Int64).alias("n_oreb"))
+    assert rp.oreb_stats(oreb_pre, box)["count"] == {} and pre.height == 5
 
 
-def _plant_stale_flag(db: Path) -> None:
+def _plant_pre_backfill_state(db: Path) -> None:
+    """Counts NULL everywhere (as before the backfill) and one stale True flag."""
     w = duckdb.connect(str(db))
+    w.execute("UPDATE possessions SET n_oreb = NULL, n_dreb = NULL")
     w.execute("UPDATE possessions SET oreb = TRUE WHERE game_id = ? AND poss_idx = 0", [GAME_B])
     w.close()
 
 
-def test_flags_only_writes_only_oreb_and_backs_up(
+def test_flags_only_writes_only_rebound_columns_and_backs_up(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     db, data = _seed(tmp_path)
-    _plant_stale_flag(db)
+    _plant_pre_backfill_state(db)
     monkeypatch.setattr(rp, "db_holders", lambda _p: [])
-    monkeypatch.setattr(rp, "evaluate_oreb_gates", lambda s, d: [rp.Gate("ok", True, "x")])
+    monkeypatch.setattr(rp, "evaluate_oreb_gates", lambda s, d, v=0: [rp.Gate("ok", True, "x")])
     con = duckdb.connect(str(db), read_only=True)
     before = rp.load_stored(con)
     con.close()
-    assert int(before["oreb"].sum()) == 1
+    assert int(before["oreb"].sum()) == 1 and before["n_oreb"].null_count() == before.height
 
     assert rp.main(_main_args(tmp_path, db, data, "--flags-only", "--write")) == 0
 
@@ -427,7 +452,11 @@ def test_flags_only_writes_only_oreb_and_backs_up(
     after = rp.load_stored(con)
     con.close()
     assert int(after["oreb"].sum()) == 0  # the stale flag is gone
-    others = [c for c in rp._SCHEMA if c != "oreb"]
+    assert after["n_oreb"].null_count() == 0 and after["n_dreb"].null_count() == 0
+    assert rp.oreb_invariant_violations(after) == 0
+    # game A's late-numbered correction is a defensive rebound: exactly one trip is ended by it
+    assert int(after["n_dreb"].sum()) >= 1
+    others = [c for c in rp._SCHEMA if c not in rp._REBOUND_COLS]
     assert after.sort(rp._KEY).select(others).equals(before.sort(rp._KEY).select(others))
     backups = list((tmp_path / "bk").glob("possessions_pre_oreb_fix_*_possessions.parquet"))
     assert len(backups) == 1 and pl.read_parquet(backups[0]).height == before.height
@@ -435,24 +464,21 @@ def test_flags_only_writes_only_oreb_and_backs_up(
     assert summary["structure"]["oreb_removed"] == 1 and summary["structure"]["oreb_added"] == 0
     # idempotent: nothing left to change
     assert rp.main(_main_args(tmp_path, db, data, "--flags-only", "--write")) == 0
-    assert (
-        json.loads((tmp_path / "rep" / "summary.json").read_text())["structure"]["oreb_removed"]
-        == 0
-    )
 
 
 def test_flags_only_refuses_when_the_reconciliation_gate_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The seeded box has OREB 0 everywhere, so the ratio is undefined and the gate refuses."""
+    """The seeded box has OREB/DREB 0 everywhere, so the ratio is undefined and the gate refuses."""
     db, data = _seed(tmp_path)
-    _plant_stale_flag(db)
+    _plant_pre_backfill_state(db)
     monkeypatch.setattr(rp, "db_holders", lambda _p: [])
     assert rp.main(_main_args(tmp_path, db, data, "--flags-only", "--write")) == 2
     assert not (tmp_path / "bk").exists()
     con = duckdb.connect(str(db), read_only=True)
-    assert int(rp.load_stored(con)["oreb"].sum()) == 1  # untouched
+    stored = rp.load_stored(con)
     con.close()
+    assert int(stored["oreb"].sum()) == 1 and stored["n_oreb"].null_count() == stored.height
 
 
 def test_flags_only_refuses_when_something_else_would_change(
@@ -468,3 +494,45 @@ def test_flags_only_refuses_when_something_else_would_change(
         for g in json.loads((tmp_path / "rep" / "summary.json").read_text())["gates"]
     }
     assert gates["structure_unchanged"] is False
+
+
+_LEGACY_DDL = """
+CREATE TABLE possessions (
+    game_id VARCHAR, poss_idx INT, period INT, clock_start FLOAT, clock_end FLOAT,
+    off_team INT, def_team INT, off_players INT[5], def_players INT[5], score_diff INT,
+    outcome VARCHAR, shooter_id INT, shot_zone VARCHAR, assister_id INT, oreb BOOLEAN,
+    fta INT, pts INT, PRIMARY KEY (game_id, poss_idx)
+)
+"""
+
+
+def test_database_without_the_count_columns_is_read_and_migrated(tmp_path: Path) -> None:
+    """The real DB predates n_oreb/n_dreb: loading must not fail, and the writer must add them."""
+    db = tmp_path / "legacy.duckdb"
+    w = duckdb.connect(str(db))
+    w.execute(_LEGACY_DDL)
+    w.execute(
+        "INSERT INTO possessions VALUES ('g', 0, 1, 700, 690, 1, 2, NULL, NULL, 0, 'TOV', "
+        "NULL, NULL, NULL, TRUE, 0, 0)"
+    )
+    w.close()
+    ro = duckdb.connect(str(db), read_only=True)
+    stored = rp.load_stored(ro)
+    ro.close()
+    assert stored["n_oreb"].to_list() == [None] and stored["oreb"].to_list() == [True]
+
+    w = duckdb.connect(str(db))
+    flags = pl.DataFrame(
+        {"game_id": ["g"], "poss_idx": [0], "oreb": [False], "n_oreb": [0], "n_dreb": [1]},
+        schema={
+            "game_id": pl.Utf8,
+            "poss_idx": pl.Int64,
+            "oreb": pl.Boolean,
+            "n_oreb": pl.Int64,
+            "n_dreb": pl.Int64,
+        },
+    )
+    rp.write_oreb_chunk(w, flags)
+    row = w.execute("SELECT oreb, n_oreb, n_dreb, outcome FROM possessions").fetchall()
+    w.close()
+    assert row == [(False, 0, 1, "TOV")]

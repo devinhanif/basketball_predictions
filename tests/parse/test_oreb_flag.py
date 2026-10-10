@@ -125,7 +125,7 @@ def test_two_offensive_rebounds_in_one_trip_are_one_flag_and_two_counts() -> Non
     _rebound(b, 1, "PT09M54.00S", HOME, 3)
     _shot(b, 1, "PT09M52.00S", HOME, 3, True, score_home="2", score_away="0")
     _opp_turnover(b, "PT09M40.00S")
-    out = _home(parse_possessions(b.df(), with_counts=True))
+    out = _home(parse_possessions(b.df()))
     assert out["oreb"].to_list() == [True]
     assert out["n_oreb"].to_list() == [2]
 
@@ -136,7 +136,7 @@ def test_team_rebound_after_a_miss_does_not_set_oreb_nor_split_the_trip() -> Non
     _team_rebound(b, 1, "PT09M58.00S", HOME)
     _shot(b, 1, "PT09M55.00S", HOME, 2, True, score_home="2", score_away="0")
     _opp_turnover(b, "PT09M40.00S")
-    home = _home(parse_possessions(b.df(), with_counts=True))
+    home = _home(parse_possessions(b.df()))
     assert home.height == 1  # still one trip, outcome the putback
     assert home["outcome"].to_list() == ["FGM2"]
     assert home["oreb"].to_list() == [False]
@@ -205,6 +205,6 @@ def test_flag_is_exactly_n_oreb_positive() -> None:
     _team_rebound(b, 1, "PT09M38.00S", AWAY)
     _shot(b, 1, "PT09M35.00S", AWAY, 12, True, score_home="0", score_away="2")
     _shot(b, 1, "PT09M20.00S", HOME, 1, True, score_home="2", score_away="2")
-    out = parse_possessions(b.df(), with_counts=True)
+    out = parse_possessions(b.df())
     assert out.height == 3
     assert out["oreb"].to_list() == (out["n_oreb"] > 0).to_list() == [True, False, False]

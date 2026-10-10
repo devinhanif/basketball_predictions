@@ -39,6 +39,8 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "oreb",
         "fta",
         "pts",
+        "n_oreb",
+        "n_dreb",
     },
     "stints": {"game_id", "team_id", "period", "start_clock", "end_clock", "players"},
     "player_rates": {
@@ -189,3 +191,30 @@ def test_schema_apply_is_idempotent(con: duckdb.DuckDBPyConnection) -> None:
     apply_schema(con)
     tables = {row[0] for row in con.execute("SHOW TABLES").fetchall()}
     assert set(EXPECTED_COLUMNS).issubset(tables)
+
+
+_LEGACY_POSSESSIONS = (
+    "CREATE TABLE possessions (game_id VARCHAR, poss_idx INT, period INT, clock_start FLOAT, "
+    "clock_end FLOAT, off_team INT, def_team INT, off_players INT[5], def_players INT[5], "
+    "score_diff INT, outcome VARCHAR, shooter_id INT, shot_zone VARCHAR, assister_id INT, "
+    "oreb BOOLEAN, fta INT, pts INT, PRIMARY KEY (game_id, poss_idx))"
+)
+
+
+def test_connect_adds_rebound_count_columns_to_a_legacy_possessions_table(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """An existing nba.duckdb predates n_oreb / n_dreb: connect() must add them, keep the rows."""
+    db = tmp_path / "legacy.duckdb"
+    raw = duckdb.connect(str(db))
+    raw.execute(_LEGACY_POSSESSIONS)
+    raw.execute(
+        "INSERT INTO possessions VALUES ('g', 0, 1, 700, 690, 1, 2, NULL, NULL, 0, 'TOV', "
+        "NULL, NULL, NULL, TRUE, 0, 0)"
+    )
+    raw.close()
+    con = connect(db)
+    cols = {r[0]: r[1] for r in con.execute("DESCRIBE possessions").fetchall()}
+    row = con.execute("SELECT game_id, oreb, n_oreb, n_dreb FROM possessions").fetchall()
+    con.close()
+    assert cols["n_oreb"] == "INTEGER" and cols["n_dreb"] == "INTEGER"
+    assert row == [("g", True, None, None)]  # old rows keep NULL until the backfill
+    connect(db).close()  # idempotent

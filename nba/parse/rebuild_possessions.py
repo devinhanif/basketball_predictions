@@ -23,14 +23,17 @@ What it does (same shape as ``nba.parse.rebuild_lineups``):
 (period, clock) and is unchanged; ``shots`` is keyed by the feed's ``game_event_id``. So the
 backup is one parquet file of the whole ``possessions`` table.
 
-``--flags-only`` (2026-10-10, F8 gate G3): the ``oreb`` flag rule changed (player-credited
-offensive rebounds only, see ``nba.parse.possessions``) and segmentation did not. This mode
-re-derives the same in-memory frame, **refuses unless every other column is identical**
-(same keys, same period/clocks/teams/score/outcome/shooter/zone/assister/fta/pts; lineups are
-reported, not gated, because they are not written), checks the oreb reconciliation gates
-(``evaluate_oreb_gates``) on seasons <= 2024 only, backs up the whole table, then updates
-only ``oreb`` for the rows whose flag changes, in chunks. Verification afterwards: stored
-``oreb`` equals the computed one and every other stored column equals its pre-write value.
+``--flags-only`` (2026-10-10, F8 gate G3): the rebound rule changed (player-credited rebounds
+only, see ``nba.parse.possessions``), ``possessions`` gained ``n_oreb`` and ``n_dreb``, and
+segmentation did not change. This mode re-derives the same in-memory frame, **refuses unless
+every other column is identical** (same keys, same period/clocks/teams/score/outcome/shooter/
+zone/assister/fta/pts; lineups are reported, not gated, because they are not written), checks
+the reconciliation gates (``evaluate_oreb_gates``: per-season ``sum(n_oreb)`` and
+``sum(n_dreb)`` within 10% of box OREB / DREB and team-game correlation >= 0.95, seasons <= 2024
+only; ``oreb == (n_oreb > 0)`` on every row), backs up the whole table, adds the two columns if
+the DB lacks them, then updates ``oreb``, ``n_oreb`` and ``n_dreb`` in chunks. Verification
+afterwards: those three stored columns equal the computed ones, every other stored column
+equals its pre-write value, and the invariant holds on every stored row.
 
 CLI (maintainer; holds ``data/ops/heavy.lock``, waits for it)::
 
@@ -86,9 +89,16 @@ _SCHEMA: dict[str, Any] = {
     "oreb": pl.Boolean,
     "fta": pl.Int64,
     "pts": pl.Int64,
+    "n_oreb": pl.Int64,
+    "n_dreb": pl.Int64,
 }
-#: Columns that identify "the same possession" when deciding whether a game was renumbered.
-_IDENTITY = [c for c in POSSESSIONS_COLUMNS if c not in ("game_id", "poss_idx")]
+#: Rebound-count columns added 2026-10-10 (``oreb`` is derived from ``n_oreb``).
+_COUNT_COLS = ["n_oreb", "n_dreb"]
+#: Columns that identify "the same possession" when deciding whether a game was renumbered
+#: (the rebound flag and counts are measurements about a trip, not part of its identity).
+_IDENTITY = [
+    c for c in POSSESSIONS_COLUMNS if c not in ("game_id", "poss_idx", "oreb", *_COUNT_COLS)
+]
 
 # ---------------------------------------------------------------------------
 # Pre-registered write gates (fixed before the first measurement on the full cache).
@@ -125,8 +135,6 @@ class Rebuilt:
     possessions: pl.DataFrame  # full stored column set, new values
     games: list[str]
     skipped: dict[str, list[str]] = field(default_factory=dict)  # reason -> game_ids
-    #: (game_id, poss_idx, n_oreb): player-credited offensive rebounds per trip (report only).
-    counts: pl.DataFrame | None = None
 
 
 @dataclass
@@ -155,7 +163,6 @@ def compute_all(
     stints_by_game = stints.partition_by("game_id", as_dict=True)
     skipped: dict[str, list[str]] = {"no_pbp": [], "empty_parse": []}
     out: list[pl.DataFrame] = []
-    counts: list[pl.DataFrame] = []
     games: list[str] = []
     t0 = time.monotonic()
     for i, gid in enumerate(stored, 1):
@@ -163,12 +170,10 @@ def compute_all(
         if not path.exists():
             skipped["no_pbp"].append(gid)
             continue
-        poss = parse_possessions(pl.read_parquet(path), with_counts=True)
+        poss = parse_possessions(pl.read_parquet(path))
         if poss.is_empty():
             skipped["empty_parse"].append(gid)
             continue
-        counts.append(poss.select("game_id", "poss_idx", "n_oreb"))
-        poss = poss.drop("n_oreb")
         s = stints_by_game.get((gid,))
         if s is not None:
             poss = attach_lineups_to_possessions(poss, s)
@@ -181,13 +186,29 @@ def compute_all(
         games.append(gid)
         if i % 500 == 0:
             print(f"PROGRESS parse {i}/{len(stored)} ({time.monotonic() - t0:.0f}s)", flush=True)
-    return Rebuilt(pl.concat(out), games, skipped, pl.concat(counts))
+    return Rebuilt(pl.concat(out), games, skipped)
 
 
 def load_stored(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     """The stored ``possessions`` table, in the shared column order and types."""
-    cols = ", ".join(f"{c}::BIGINT[] AS {c}" if c.endswith("_players") else c for c in _SCHEMA)
+    have = {r[0] for r in con.execute("DESCRIBE possessions").fetchall()}
+    cols = ", ".join(
+        f"{c}::BIGINT[] AS {c}"
+        if c.endswith("_players")
+        else (c if c in have else f"NULL::BIGINT AS {c}")  # column not added to this DB yet
+        for c in _SCHEMA
+    )
     return _normalise(con.execute(f"SELECT {cols} FROM possessions").pl())
+
+
+def ensure_count_columns(con: duckdb.DuckDBPyConnection) -> None:
+    """``ALTER TABLE possessions ADD COLUMN IF NOT EXISTS`` for the rebound counts.
+
+    ``nba.db.connect.connect`` applies the same DDL from ``schema.sql``; the rebuild opens
+    its writer with ``duckdb.connect`` directly, so it does it here, idempotently.
+    """
+    for c in _COUNT_COLS:
+        con.execute(f"ALTER TABLE possessions ADD COLUMN IF NOT EXISTS {c} INTEGER")
 
 
 # ---------------------------------------------------------------------------
@@ -400,6 +421,7 @@ def snapshot_pre_fix(
 
 def write_chunk(con: duckdb.DuckDBPyConnection, poss: pl.DataFrame) -> None:
     """Replace the rows of the games in ``poss`` (one transaction; DELETE then INSERT)."""
+    ensure_count_columns(con)
     gids = pl.DataFrame({"game_id": poss["game_id"].unique().to_list()})
     con.register("_chunk_games", gids.to_arrow())
     con.register("_chunk_poss", poss.to_arrow())
@@ -469,11 +491,11 @@ def verify_written(con: duckdb.DuckDBPyConnection, expected: pl.DataFrame) -> di
 
 
 # ---------------------------------------------------------------------------
-# --flags-only: update ``oreb`` in place (F8 gate G3)
+# --flags-only: update ``oreb``, ``n_oreb``, ``n_dreb`` in place (F8 gate G3)
 # ---------------------------------------------------------------------------
-#: Columns whose equality proves "nothing but the flag changed": the identity columns without
-#: ``oreb`` and without the lineups (lineups are not written by this mode).
-_STRUCTURE = [c for c in _IDENTITY if c != "oreb" and not c.endswith("_players")]
+#: Columns whose equality proves "nothing but the rebound columns changed": the identity
+#: columns without the lineups (lineups are not written by this mode).
+_STRUCTURE = [c for c in _IDENTITY if not c.endswith("_players")]
 
 
 def structure_diff(old: pl.DataFrame, new: pl.DataFrame) -> dict[str, Any]:
@@ -510,67 +532,67 @@ def structure_diff(old: pl.DataFrame, new: pl.DataFrame) -> dict[str, Any]:
 
 
 def oreb_inputs(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
-    """Box OREB per team-game, seasons <= ``OREB_MAX_SEASON`` only (the filter is in SQL)."""
+    """Box OREB and DREB per team-game, seasons <= ``OREB_MAX_SEASON`` only (filter in SQL)."""
     return con.execute(
-        "SELECT p.game_id, p.team_id, g.season, sum(p.oreb)::BIGINT AS box_oreb "
+        "SELECT p.game_id, p.team_id, g.season, sum(p.oreb)::BIGINT AS box_oreb, "
+        "sum(p.dreb)::BIGINT AS box_dreb "
         "FROM player_game_stats p JOIN games g ON g.game_id = p.game_id "
         f"WHERE g.season <= {OREB_MAX_SEASON} AND p.fga IS NOT NULL "
         "GROUP BY p.game_id, p.team_id, g.season"
     ).pl()
 
 
-def _agg_row(j: pl.DataFrame, col: str) -> dict[str, float | int]:
-    box = j["box_oreb"]
+def _agg_row(j: pl.DataFrame, col: str, box_col: str) -> dict[str, float | int]:
+    box = j[box_col]
     val = j[col]
+    if box.null_count() or val.null_count():
+        nan = float("nan")  # a NULL box or measured value is not reconciled, and fails the gate
+        return {"team_games": j.height, "measured": 0, "box": 0, "ratio": nan, "corr": nan}
     box_sum = int(box.sum())
-    corr = j.select(pl.corr(col, "box_oreb")).item()
+    corr = j.select(pl.corr(col, box_col)).item()
     return {
         "team_games": j.height,
-        "flagged": int(val.sum()),
+        "measured": int(val.sum()),
         "box": box_sum,
         "ratio": float(val.sum() / box_sum) if box_sum else float("nan"),
         "corr": float(corr) if corr is not None else float("nan"),
         "mean_abs_diff": float((val - box).abs().mean()),  # type: ignore[arg-type]
-        "mean_flagged": float(val.mean()),  # type: ignore[arg-type]
+        "mean_measured": float(val.mean()),  # type: ignore[arg-type]
         "mean_box": float(box.mean()),  # type: ignore[arg-type]
     }
 
 
-def oreb_stats(
-    poss: pl.DataFrame, box: pl.DataFrame, counts: pl.DataFrame | None = None
-) -> dict[str, Any]:
-    """How the ``oreb`` flag reconciles with box OREB, per season and overall (<= 2024).
+def oreb_stats(poss: pl.DataFrame, box: pl.DataFrame) -> dict[str, Any]:
+    """How the rebound columns reconcile with the box score, per season and overall (<= 2024).
 
-    ``flag``: team-game sum of ``oreb`` (trips extended by an offensive rebound) vs the sum of
-    ``player_game_stats.oreb``. ``count`` (when ``counts`` is given): team-game sum of
-    ``n_oreb`` (rebounds, not trips). ``mix``: share of oreb=True per outcome. Only games that
-    are in ``box`` (seasons <= 2024) are read.
+    Team-game sums versus ``sum(player_game_stats.oreb)`` / ``.dreb``:
+    ``flag`` = trips with ``oreb`` True (a trip count), ``count`` = ``sum(n_oreb)`` by
+    offense, ``dcount`` = ``sum(n_dreb)`` by defense. ``mix``: share of ``oreb`` True per
+    outcome. Only games that are in ``box`` (seasons <= 2024) are read. A frame whose count
+    columns are NULL (the stored table before the backfill) reports ``count``/``dcount`` as NaN.
     """
     have = box["game_id"].unique().to_list()
     p = poss.filter(pl.col("game_id").is_in(have))
-    flags = p.group_by(["game_id", "off_team"]).agg(pl.col("oreb").sum().alias("flag"))
-    if counts is not None:
-        c = p.select(_KEY).join(counts, on=_KEY, how="left")
-        flags = flags.join(
-            c.join(p.select(_KEY + ["off_team"]), on=_KEY)
-            .group_by(["game_id", "off_team"])
-            .agg(pl.col("n_oreb").sum().alias("count")),
-            on=["game_id", "off_team"],
-        )
-    games = set(p["game_id"].unique().to_list())
+    off = p.group_by("game_id", "off_team").agg(
+        pl.col("oreb").sum().alias("flag"), pl.col("n_oreb").sum().alias("count")
+    )
+    dfn = p.group_by("game_id", "def_team").agg(pl.col("n_dreb").sum().alias("dcount"))
     j = (
-        box.filter(pl.col("game_id").is_in(games))
-        .join(flags.rename({"off_team": "team_id"}), on=["game_id", "team_id"], how="left")
+        box.filter(pl.col("game_id").is_in(p["game_id"].unique().to_list()))
+        .join(off.rename({"off_team": "team_id"}), on=["game_id", "team_id"], how="left")
+        .join(dfn.rename({"def_team": "team_id"}), on=["game_id", "team_id"], how="left")
         .with_columns(pl.col("flag").fill_null(0))
     )
-    if counts is not None:
-        j = j.with_columns(pl.col("count").fill_null(0))
-    out: dict[str, Any] = {"flag": {}, "count": {}, "mix": {}}
+    counts_present = p["n_oreb"].null_count() == 0
+    if counts_present:
+        j = j.with_columns(pl.col("count").fill_null(0), pl.col("dcount").fill_null(0))
+    out: dict[str, Any] = {"flag": {}, "count": {}, "dcount": {}, "mix": {}}
     for season, g in [*sorted(j.partition_by("season", as_dict=True).items()), ((None,), j)]:
         key = "all" if season[0] is None else str(season[0])
-        out["flag"][key] = _agg_row(g, "flag")
-        if counts is not None:
-            out["count"][key] = _agg_row(g, "count")
+        out["flag"][key] = _agg_row(g, "flag", "box_oreb")
+        if counts_present:
+            out["count"][key] = _agg_row(g, "count", "box_oreb")
+            out["dcount"][key] = _agg_row(g, "dcount", "box_dreb")
     by_outcome = (
         p.group_by("outcome")
         .agg(pl.len().alias("trips"), pl.col("oreb").sum().alias("oreb_true"))
@@ -590,10 +612,23 @@ def oreb_stats(
     return out
 
 
+def oreb_invariant_violations(poss: pl.DataFrame) -> int:
+    """Rows where ``oreb`` differs from ``n_oreb > 0`` (NULL count counts as a violation)."""
+    return int(
+        poss.select(((pl.col("oreb") != (pl.col("n_oreb") > 0)).fill_null(True)).sum()).item()
+    )
+
+
 def evaluate_oreb_gates(
-    stats: dict[str, Any], diff: dict[str, Any], *, require_all_games: bool = True
+    stats: dict[str, Any], diff: dict[str, Any], violations: int = 0
 ) -> list[Gate]:
-    """The ``--flags-only`` write gates. ``stats`` is ``oreb_stats`` of the recomputed frame."""
+    """The ``--flags-only`` write gates. ``stats`` is ``oreb_stats`` of the recomputed frame.
+
+    Fixed 2026-10-10 (the F8 prerequisite, after the boolean flag's own gate had failed): per
+    season, ``sum(n_oreb)`` within 10% of box OREB and correlation >= 0.95 with it, the same
+    for ``sum(n_dreb)`` against box DREB, structure unchanged, no flag added, and
+    ``oreb == (n_oreb > 0)`` on every row.
+    """
     g: list[Gate] = []
 
     def add(name: str, ok: bool, detail: str) -> None:
@@ -603,7 +638,7 @@ def evaluate_oreb_gates(
         "structure_unchanged",
         diff["key_mismatch"] == 0 and sum(diff["changed"].values()) == 0,
         f"rows {diff['rows_old']} -> {diff['rows_new']}, key mismatches {diff['key_mismatch']}, "
-        f"changed non-oreb cells {sum(diff['changed'].values())} ({diff['changed']})",
+        f"changed non-rebound cells {sum(diff['changed'].values())} ({diff['changed']})",
     )
     add(
         "flags_only_removed",
@@ -611,31 +646,45 @@ def evaluate_oreb_gates(
         f"oreb False->True {diff['oreb_added']}, True->False {diff['oreb_removed']} "
         "(the new rule is a subset of the old one)",
     )
-    seasons = [k for k in stats["flag"] if k != "all"]
-    for k in seasons:
-        r = stats["flag"][k]
-        add(
-            f"oreb_ratio_{k}",
-            abs(r["ratio"] - 1.0) <= OREB_RATIO_TOL,
-            f"flagged {r['flagged']} / box {r['box']} = {r['ratio']:.4f} (tol +-{OREB_RATIO_TOL})",
-        )
-    for k in [*seasons, "all"]:
-        r = stats["flag"][k]
-        add(
-            f"oreb_corr_{k}",
-            r["corr"] >= OREB_CORR_MIN,
-            f"team-game corr {r['corr']:.4f} on {r['team_games']} (min {OREB_CORR_MIN})",
-        )
+    add("oreb_is_n_oreb_positive", violations == 0, f"rows with oreb != (n_oreb > 0): {violations}")
+    for kind, label in (("count", "n_oreb vs box OREB"), ("dcount", "n_dreb vs box DREB")):
+        seasons = [k for k in stats[kind] if k != "all"]
+        for k in seasons:
+            r = stats[kind][k]
+            add(
+                f"{kind}_ratio_{k}",
+                abs(r["ratio"] - 1.0) <= OREB_RATIO_TOL,
+                f"{label}: {r['measured']} / {r['box']} = {r['ratio']:.4f} "
+                f"(tol +-{OREB_RATIO_TOL})",
+            )
+        for k in [*seasons, "all"]:
+            r = stats[kind][k]
+            add(
+                f"{kind}_corr_{k}",
+                r["corr"] >= OREB_CORR_MIN,
+                f"{label}: team-game corr {r['corr']:.4f} on {r['team_games']} "
+                f"(min {OREB_CORR_MIN})",
+            )
+    if not stats["count"]:
+        add("counts_present", False, "no n_oreb values in the recomputed frame")
     return g
 
 
+_REBOUND_COLS = ["oreb", *_COUNT_COLS]
+
+
 def write_oreb_chunk(con: duckdb.DuckDBPyConnection, flags: pl.DataFrame) -> None:
-    """``UPDATE possessions SET oreb`` for ``(game_id, poss_idx, oreb)`` rows (one transaction)."""
-    con.register("_chunk_oreb", flags.select("game_id", "poss_idx", "oreb").to_arrow())
+    """``UPDATE possessions SET oreb, n_oreb, n_dreb`` for the frame's keys (one transaction).
+
+    Adds the count columns first when the DB does not have them yet.
+    """
+    ensure_count_columns(con)
+    con.register("_chunk_oreb", flags.select(*_KEY, *_REBOUND_COLS).to_arrow())
     try:
         con.execute("BEGIN")
         con.execute(
-            "UPDATE possessions SET oreb = c.oreb FROM _chunk_oreb c "
+            "UPDATE possessions SET oreb = c.oreb, n_oreb = c.n_oreb, n_dreb = c.n_dreb "
+            "FROM _chunk_oreb c "
             "WHERE possessions.game_id = c.game_id AND possessions.poss_idx = c.poss_idx"
         )
         con.execute("COMMIT")
@@ -649,18 +698,21 @@ def write_oreb_chunk(con: duckdb.DuckDBPyConnection, flags: pl.DataFrame) -> Non
 def verify_oreb_written(
     con: duckdb.DuckDBPyConnection, expected: pl.DataFrame, pre_write: pl.DataFrame
 ) -> dict[str, int]:
-    """After the write: stored ``oreb`` equals ``expected`` and no other column moved."""
+    """After the write: rebound columns equal ``expected``, no other column moved, the
+    invariant ``oreb == (n_oreb > 0)`` holds on every stored row."""
     got = load_stored(con).sort(_KEY)
     exp = expected.sort(_KEY)
     pre = pre_write.sort(_KEY)
-    others = [c for c in _SCHEMA if c != "oreb"]
+    others = [c for c in _SCHEMA if c not in _REBOUND_COLS]
     return {
         "rows_expected": exp.height,
         "rows_stored": got.height,
-        "oreb_equal": int(
-            got["oreb"].equals(exp["oreb"]) and got.select(_KEY).equals(exp.select(_KEY))
+        "rebound_equal": int(
+            got.select(_KEY).equals(exp.select(_KEY))
+            and got.select(_REBOUND_COLS).equals(exp.select(_REBOUND_COLS))
         ),
         "others_equal": int(got.select(others).equals(pre.select(others))),
+        "invariant_violations": oreb_invariant_violations(got),
     }
 
 
@@ -680,9 +732,9 @@ def _flags_only(args: argparse.Namespace) -> int:
             old = old.filter(pl.col("game_id").is_in(rebuilt.games))
             box = oreb_inputs(con)
             before = oreb_stats(old, box)
-            after = oreb_stats(rebuilt.possessions, box, rebuilt.counts)
+            after = oreb_stats(rebuilt.possessions, box)
             diff = structure_diff(old, rebuilt.possessions)
-            gates = evaluate_oreb_gates(after, diff)
+            gates = evaluate_oreb_gates(after, diff, oreb_invariant_violations(rebuilt.possessions))
             if args.every == 1:
                 gates.append(
                     Gate(
@@ -717,10 +769,15 @@ def _flags_only(args: argparse.Namespace) -> int:
             print("REFUSING --write: nothing written")
         return 2
     if args.write:
-        changed = old.join(
-            rebuilt.possessions.select(*_KEY, pl.col("oreb").alias("oreb_new")), on=_KEY
-        ).filter(pl.col("oreb") != pl.col("oreb_new"))
-        flags = changed.select(*_KEY, pl.col("oreb_new").alias("oreb"))
+        new = rebuilt.possessions.select(
+            *_KEY, *[pl.col(c).alias(f"{c}_new") for c in _REBOUND_COLS]
+        )
+        changed = old.join(new, on=_KEY).filter(
+            pl.any_horizontal(
+                [(pl.col(c) != pl.col(f"{c}_new")) | (pl.col(c).is_null()) for c in _REBOUND_COLS]
+            )
+        )
+        flags = changed.select(*_KEY, *[pl.col(f"{c}_new").alias(c) for c in _REBOUND_COLS])
         games = sorted(flags["game_id"].unique().to_list())
         n = write_chunked(
             args.db,
@@ -735,8 +792,10 @@ def _flags_only(args: argparse.Namespace) -> int:
         finally:
             con.close()
         print("VERIFY", json.dumps(check))
-        if not (check["oreb_equal"] and check["others_equal"]):
-            print("FAIL: stored table differs from the computed one after the oreb write")
+        if not (
+            check["rebound_equal"] and check["others_equal"] and not check["invariant_violations"]
+        ):
+            print("FAIL: stored table differs from the computed one after the rebound write")
             return 3
     return 0
 
