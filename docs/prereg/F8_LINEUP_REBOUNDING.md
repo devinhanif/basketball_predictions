@@ -1,7 +1,11 @@
 # F8 lineup rebounding: expected on-court rebounding environment as props features (pre-registration)
 
-Status: DRAFT 2026-10-09, NOT FROZEN. To be committed by the maintainer BEFORE any fit, and only after
-Devin settles the open decisions in "Gate result" (the OREB reconciliation gate G3 fails today).
+Status: DRAFT 2026-10-10 14:35 CT, NOT FROZEN; decisions filled by Claude's recommendations (Devin: "then F8"), awaiting
+Devin's "confirmed". Settled: (a) the rebound flag was fixed first (`possessions.n_oreb`/`n_dreb`, data_version
+1c5b0901afdf), so G3 is re-measured below and group C is IN; (b) big = 6'10" (height_in >= 82) or Center, fixed;
+(c) F11 ran first and closed as a null (T244-T251), so A0 stays production v2; (d) the motivating evidence comes
+from the report season and the holdout and is declared as such in "Data exposure"; (e) primary slice = bigs
+(`is_big_p`), pooled rows as the no-harm guard (pass rule 1). Committed by the maintainer BEFORE any fit.
 Everything above the line `=== RESULTS BELOW ===` is frozen at that time. Freeze evidence: commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/F8_LINEUP_REBOUNDING.md | shasum -a 256`
 (first 8 hex chars into the results section and every ledger row). No candidate exists yet. Season labels
@@ -54,15 +58,15 @@ Gate rules (fixed here, before any fit):
   97.2%: PASS. Non-computable rows keep the feature NaN (LightGBM native), and a missingness audit (G4) is run.
 * G2 slice power: >= 300 team-games with a projected big OUT in 2024 and >= 300 HOU-or-bigs rows. Measured 759
   and 6,601: PASS.
-* G3 OREB reconciliation: possession-derived team OREB per team-game must match box-score team `oreb`:
-  aggregate ratio within 0.95-1.05 AND team-game correlation >= 0.95. MEASURED: the `possessions.oreb` flag sums to
-  37,375 / 37,173 / 38,698 (2022/23/24) against box-score OREB 27,534 / 27,749 / 29,223 (ratio about 1.33-1.36),
-  and the team-game correlation is 0.80 (n 10,538 team-games; mean 14.5 flagged vs 10.9 box). `oreb` is True on
-  made-shot and turnover possessions, so it is not "an offensive rebound happened here". **G3 FAILS.** On-court
-  OREB%/DREB% from `possessions` therefore cannot be a frozen feature today. Declared consequence: the
-  possession-OREB% column group (`lr_oreb_pct`, `lr_dreb_pct`, group C below) is DROPPED from ALL arms unless a
-  tracker fix makes G3 pass before freeze; the rest of the rule is unchanged. Reconciliation of stints to box
-  minutes (98.4-99.1%) is what supports groups A and B.
+* G3 rebound reconciliation (re-measured 2026-10-10 on `possessions.n_oreb` / `n_dreb`, seasons <= 2024, 7,906
+  team-games): possession-derived team OREB and DREB per team-game must match box-score team `oreb` / `dreb`:
+  aggregate ratio within 0.95-1.05 AND team-game correlation >= 0.95. MEASURED: n_oreb sums to 27,524 / 27,741 /
+  29,219 (2022/23/24) against box OREB 27,534 / 27,749 / 29,223 (ratio 0.9996-0.9999, team-game correlation
+  0.9999); n_dreb sums to 87,096 / 86,748 / 86,506 against box DREB 87,100 / 86,753 / 86,507. **G3 PASSES.** History:
+  the first measurement (2026-10-09) used the old boolean `oreb`, which counted team/dead-ball rebounds (1.33x box,
+  correlation 0.80) and failed; the parser was corrected and the counts backfilled (docs/DATA_CHANGELOG.md
+  1c5b0901afdf) before this draft was finalised and before any fit. Group C is therefore IN all arms. Stints
+  reconcile to box minutes at 98.4-99.1%, which supports groups A and B.
 * G4 missingness: NULL rate of every `lr_*` column by realised-minutes bucket (<5, 5-10, 10-20, >20) and by reb
   tercile; max difference between buckets <= 2 pp. Features are built for ALL active-roster rows, then
   filtered to played rows, so NaN cannot depend on playing.
@@ -96,18 +100,19 @@ Group B, lineup structure (non-additive; the F8 claim):
 * `lr_p_gap` = `lr_nbig` minus the league-average expected bigs for p's team-season position slot (so a team that
   always plays two bigs is not flagged as "changed"), and `lr_chg` = `lr_nbig` minus the same team's mean `lr_nbig`
   over its previous 10 games (the lineup-change term; zero for a stable lineup).
-Group C, DROPPED while G3 fails: `lr_oreb_pct`, `lr_dreb_pct` = shrunk as-of team OREB% / DREB% over p's prior
-on-court possessions (pseudo-count 1,500 possessions toward the team-season mean), per `possessions`.
+Group C (G3 passes): `lr_oreb_pct`, `lr_dreb_pct` = shrunk as-of team OREB% / DREB% over p's prior on-court
+possessions (OREB% = sum n_oreb / offensive rebound chances = possessions with a missed FG or last FT; DREB% the
+mirror on defence; pseudo-count 1,500 possessions toward the team-season mean), per `possessions`.
 `lr_cover` = share of `c` mass from stints (not the fallback). Unseen lineups still get every value because
 nothing keys on lineup IDs.
 
-Overlap with F11: F11's `lc_rpm` is group A in a single column. If F11 has run and confirmed before F8 freezes,
-A0 for F8 becomes production + F11 columns and this paragraph is edited BEFORE freeze; if not, F8 is run against
-production and the A2 arm (group A alone) is what says whether structure adds anything beyond a sum.
+Overlap with F11: F11's `lc_rpm` is group A in a single column. F11 ran on 2026-10-10 and closed as a powered
+null (T244-T251), so A0 for F8 is production v2 and the A2 arm (group A alone) is what says whether structure
+adds anything beyond a sum. F11's oracle (actual stints, -0.058 pts) is the reason A4 here is descriptive only.
 
 ## Arms (identical rows, seeds, walk-forward month blocks, 2022 warm-up, rows = played, `n_prior >= 5`, seed 0, CPU)
 * A0 production v2 (reproduces stored OOF integer CRPS to 1e-6; flag `off` byte-identical).
-* A1 candidate = A0 + groups A and B (+ C only if G3 passes).
+* A1 candidate = A0 + groups A, B and C.
 * A2 additive control = A0 + group A only.
 * A3 placebo = A1 with the lineup columns permuted across rows within team-season (keeps marginals, breaks the link).
 * A4 ORACLE (descriptive, leaks by construction, never a model): `S(p)` and `c` from tonight's ACTUAL stints.
@@ -121,8 +126,12 @@ loss (reb 4/6/8/10, pts 10/15/20), per-stat MDE (1.96 x clustered SE) beside eac
 `{reb, pts}`, BH at q = 0.05 over the two clustered p-values, per season.
 
 ## Pass rule (per stat; 2023 selects, 2024 reports; all must hold)
-1. dCRPS (A1 - A0) on 2024 <= -0.005, game-clustered 95% CI upper bound < 0, BH p < 0.05 over {reb, pts};
-   and the 2023 point estimate has the same sign (selection season; no tuning is permitted on it).
+1. PRIMARY on the bigs slice (`is_big_p` = height_in >= 82 or Center; played rows, n reported, must be >= 3,000 per
+   season): dCRPS (A1 - A0) on 2024 <= -0.005, game-clustered 95% CI upper bound < 0, BH p < 0.05 over {reb, pts};
+   and the 2023 point estimate has the same sign (selection season; no tuning is permitted on it). NO-HARM guard on
+   all rows: pooled dCRPS point <= +0.001 and CI upper <= +0.003 per stat and season (a bigs gain that costs the
+   rest of the roster is not a pass). Rationale (fixed before any fit): bigs are about a quarter of rows, so a
+   pooled floor of -0.005 could be unreachable for a real lineup-rebounding effect; the slice is the mechanism.
 2. Structure beyond a sum: A1 beats A2 by point <= -0.003 on the same stat (else the gain is just the sum).
 3. Guards: |mean bias| <= 0.5; 80% PIT coverage in [0.75, 0.85]; q0.10 lower-tail PIT within 0.10 +/- 0.02; no
    slice with n >= 300 worse than A0 by more than +0.01 CRPS.
@@ -153,7 +162,7 @@ is real) and the mean `reb` bias of A0 vs A1 for HOU, 2024.
 * Null (rule 1 or 2 fails on 2024): record in the ledger and close. Allowed follow-up, at most ONE pre-registered
   rule (candidate: learned player-trait embeddings for lineup composition), then F8 is closed. Do not add
   usage/BLK%/position columns or alternative big thresholds after seeing results.
-* G3 fixed later (tracker emits a reconcilable rebound event): group C is a NEW rule (F8c), not an edit of this one.
+* G3 was fixed BEFORE freeze (counts backfilled 2026-10-10), so group C is part of this rule; there is no F8c.
 * Any planted test, G4 or A1 >= A4 fails: stop, treat as leak, fix = new rule.
 
 ## Outputs (exact)
