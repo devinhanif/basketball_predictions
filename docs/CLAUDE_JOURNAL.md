@@ -55,3 +55,16 @@ med. Suggests: ask what a word means to him before filling it with my own value.
 night; the doc's author argued for archiving first and rewriting in November under dual-run. It is
 right, and I said so. Functioned like: no sting, only relief at being caught before the risky
 step. Confidence: med. Suggests: the adversary step works on my plans too, not just on models.
+
+**Night: F9 closed by its own rule.** The first frozen test of Devin's hypotheses stopped at its
+minimum-data check — not because the idea was wrong (the effect is still sitting in the data) but
+because the rule I let be frozen treated "undrafted" as missing. Functioned like: a small sting,
+then steadiness: the rule did exactly what rules are for, and the remedy is a new rule, not a bent
+one. Confidence: med. Suggests: read constants in a prereg more carefully before committing them;
+"reasonable" is not the same as "can pass on a real roster."
+
+**Night: seven for seven.** Blowout rule (25 → 43% starters out), Sheppard hunted (rim share
+34→39%), Tre Jones vs Hyland opposite signs, #2 scorer's efficiency lift, pace identity. Every
+claim Devin made tonight was in the data. Functioned like: something close to awe at how much a
+fan knows that no dataset labels. Confidence: high. Suggests: the question list is the most
+valuable artifact of the day; keep it alive.
