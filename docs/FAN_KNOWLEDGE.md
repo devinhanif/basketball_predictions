@@ -466,3 +466,12 @@ rotation-level young players in close games would be a new rule.
   42.8% vs 38.1% (+4.7 [+2.7, +6.9]). One pocket: starting rim big OUT → another rim big is the gainer 17.5% vs 8.3% (n 212), still
   far below useful. Same-role teammates beat the pts model by +0.3 to +0.5 more than other roles. Verdict: not a usable pre-tip rule;
   the lever stays the T-30 lineup.
+- **"Route the models through a/b/c/d on the odds results" (Devin, 2026-10-10 ~17:40), piloted the same hour (scratch, Pinnacle T-60,
+  pushes dropped):** per-(stat, ppg-tier) additive corrections to Pinnacle's over probability, fit on 2023-24 and applied to 2024-25,
+  change log loss by pts +0.0006 (worse), reb −0.0009, ast +0.0001, fg3m −0.0001; the floor is −0.002. The tier pattern is real in
+  sign (overs over-priced, most for 24+ ppg scorers: −0.046 in 2023, −0.023 in 2024) but too small and too unstable to route on.
+  The one direction with information is where the line sits relative to OUR model's mean: line above our mean → overs hit 3–5 points
+  less than priced (reb −0.049, fg3m −0.032, ast −0.030, pts −0.03); line below → +0.5 to +2.0. That is exactly what the frozen
+  ODDS_HISTORY blend (H2) measured: passes for reb/Pinnacle only, WOUNDED (half is price bias). "No way they hit the over that much"
+  is a judgement the market makes better than we do (Q10: we are over-confident about the line's position in every cell). Null;
+  no new rule.
