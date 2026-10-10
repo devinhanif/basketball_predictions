@@ -32,14 +32,6 @@ import numpy as np
 import polars as pl
 import yaml
 
-from nba.eval.metrics import (
-    accuracy,
-    bootstrap_ci,
-    brier_score,
-    calibration_curve,
-    log_loss,
-)
-from nba.eval.walkforward import make_walk_forward_folds, split_frozen_holdout
 from nba.features.team_features import build_matchup_features
 from nba.models.rung0_baselines import MovEloBaseline
 from nba.registry.local import LocalRegistry
@@ -50,6 +42,14 @@ from nba.registry.ops import (
     open_readonly,
     promote_checked,
 )
+from nba.truth.metrics import (
+    accuracy,
+    bootstrap_ci,
+    brier_score,
+    calibration_curve,
+    log_loss,
+)
+from nba.truth.walkforward import make_walk_forward_folds, split_frozen_holdout
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MOV_ELO_MODEL = "rung0_mov_elo"

@@ -31,9 +31,9 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.eval.metrics import ConfidenceInterval, bootstrap_ci
 from nba.props.config import VolatilityBucketSpec, VolatilityConfig
 from nba.props.metrics import paired_score_delta_ci
+from nba.truth.metrics import ConfidenceInterval, bootstrap_ci
 
 #: Columns the volatility CV is allowed to be computed over (whitelisted so
 #: the stat name is never interpolated into SQL from an untrusted source).

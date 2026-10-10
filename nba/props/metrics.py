@@ -1,6 +1,6 @@
 """Props-specific scoring: CRPS, threshold log loss, bias, interval coverage.
 
-Reuses ``nba.eval.metrics`` for everything that's already generic there
+Reuses ``nba.truth.metrics`` for everything that's already generic there
 (``log_loss``, ``bootstrap_ci``, ``calibration_curve``) rather than
 re-implementing it. Only the genuinely prop-specific pieces (CRPS over a
 full distribution, 80% interval coverage) live here.
@@ -12,7 +12,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from nba.eval.metrics import (
+from nba.props.distributions import Distribution, batch_p_ge, batch_ppf
+from nba.truth.metrics import (
     MIN_RELIABLE_N,
     CalibrationCurve,
     ConfidenceInterval,
@@ -20,7 +21,6 @@ from nba.eval.metrics import (
     calibration_curve,
     log_loss,
 )
-from nba.props.distributions import Distribution, batch_p_ge, batch_ppf
 
 __all__ = [
     "CalibrationCurve",
@@ -154,7 +154,7 @@ def pooled_threshold_ece(threshold_results: list[ThresholdCalibration]) -> float
     return float(weighted / total_n)
 
 
-#: Mirrors ``nba.eval.metrics._MAX_BOOTSTRAP_CELLS`` (not imported -- that
+#: Mirrors ``nba.truth.metrics._MAX_BOOTSTRAP_CELLS`` (not imported -- that
 #: name is private to the win-probability bootstrap module, which this
 #: clustered path deliberately does not touch). Same batching rationale:
 #: caps the size of a single resample-index matrix per bootstrap batch so
@@ -184,7 +184,7 @@ def _clustered_boot_means(
     vectorized gather/sum calls instead of a per-replicate concatenation
     loop. When every cluster is a singleton (one row per cluster, cluster
     ids sorted in the same order as the rows), this reduces to exactly the
-    same arithmetic as :func:`nba.eval.metrics._batched_resample_stat` with
+    same arithmetic as :func:`nba.truth.metrics._batched_resample_stat` with
     ``stat_fn=np.mean`` -- see the degenerate-case unit test.
     """
     values = np.asarray(values, dtype=float)
@@ -219,7 +219,7 @@ def _bootstrap_ci_clustered(
 ) -> ConfidenceInterval:
     """Percentile cluster-bootstrap CI on ``mean(values)``, resampling whole
     ``cluster_ids`` groups (e.g. games) with replacement. Mirrors
-    :func:`nba.eval.metrics.bootstrap_ci`'s contract exactly (same
+    :func:`nba.truth.metrics.bootstrap_ci`'s contract exactly (same
     percentile behavior); only the resampling unit differs -- and,
     crucially, so does the "reliable CI" gate: a cluster bootstrap's
     effective sample size is the number of distinct *clusters* (``g``,

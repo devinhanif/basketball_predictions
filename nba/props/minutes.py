@@ -118,12 +118,12 @@ import polars as pl
 from sklearn.linear_model import Ridge
 
 from nba.coldstart.shrinkage import shrink_rate
-from nba.eval.metrics import log_loss
 from nba.features.game_context import build_national_tv_features, build_standings_features
 from nba.features.team_features import build_team_game_features
 from nba.props.config import MinutesModelConfig
 from nba.props.conformal import chronological_split
 from nba.props.distributions import MinutesHurdleDist
+from nba.truth.metrics import log_loss
 
 #: Identifier / as-of columns always present; everything else is a
 #: strictly-prior rolling aggregate. No raw ``minutes`` column on purpose.

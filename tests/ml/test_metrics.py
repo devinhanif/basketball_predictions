@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from nba.eval.metrics import (
+from nba.truth.metrics import (
     bootstrap_ci,
     brier_score,
     calibration_curve,
@@ -142,7 +142,7 @@ def test_vectorized_bootstrap_ci_matches_reference_loop_exactly() -> None:
 def test_vectorized_bootstrap_ci_matches_reference_loop_with_batching() -> None:
     """Forces multiple internal batches (small ``_MAX_BOOTSTRAP_CELLS``
     relative to n * n_boot) to prove chunking doesn't change the result."""
-    import nba.eval.metrics as metrics_mod
+    import nba.truth.metrics as metrics_mod
 
     rng = np.random.default_rng(3)
     values = rng.normal(size=1000)

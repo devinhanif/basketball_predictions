@@ -12,9 +12,9 @@ from scipy.stats import norm
 
 from nba.daily.predict import MIN_STD
 from nba.daily.store import NO_PLAYER, ensure_tables
-from nba.eval.metrics import brier_score, log_loss
 from nba.props import full_support as fsup
 from nba.props.forward import QUANTILE_TAUS
+from nba.truth.metrics import brier_score, log_loss
 
 WIN_TARGET = "win_prob_home"
 

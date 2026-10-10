@@ -21,3 +21,4 @@ A different hash reverts the cut.
 
 | Step | Commit | Replay | Hash matches golden |
 |---|---|---|---|
+| 1. injury-report triggers out of nba.sim | 9de4302 | oracle_c | yes (e5714332) |

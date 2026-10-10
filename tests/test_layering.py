@@ -43,7 +43,6 @@ KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset(
         ("nba.daily.predict", "nba.eval.injury_elo_eval"),
         ("nba.daily.predict", "nba.stack.frozen"),
         ("nba.daily.predict", "nba.stack.populate"),
-        ("nba.daily.settle", "nba.eval.metrics"),
         ("nba.features.player_possession_features", "nba.coldstart.shrinkage"),
         ("nba.features.player_rebound_assist_features", "nba.coldstart.shrinkage"),
         ("nba.features.possession_features", "nba.coldstart.shrinkage"),
@@ -51,9 +50,7 @@ KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset(
         ("nba.features.time_decay", "nba.coldstart.shrinkage"),
         ("nba.props.forward", "nba.coldstart.sb_classification"),
         ("nba.props.forward", "nba.sim.player_attribution"),
-        ("nba.props.metrics", "nba.eval.metrics"),
         ("nba.props.minutes", "nba.coldstart.shrinkage"),
-        ("nba.props.minutes", "nba.eval.metrics"),
         ("nba.props.opponent", "nba.coldstart.archetypes"),
     }
 )

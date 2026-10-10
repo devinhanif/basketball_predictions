@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import polars as pl
 
-from nba.eval.walkforward import (
+from nba.truth.walkforward import (
     filter_by_holdout_mode,
     make_walk_forward_folds,
     split_frozen_holdout,

@@ -327,7 +327,7 @@ class PropsConfig:
     #: pool only, or ``holdout_mode="holdout_only"`` for the single
     #: permitted confirmatory touch (log it to
     #: docs/HOLDOUT_ACCESS_LOG.md before running). See
-    #: ``nba.eval.walkforward.filter_by_holdout_mode``.
+    #: ``nba.truth.walkforward.filter_by_holdout_mode``.
     holdout_season: int | None = None
     holdout_mode: str = "all"
 
