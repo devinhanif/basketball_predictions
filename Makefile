@@ -46,9 +46,9 @@ endif
 CONFIG ?= configs/rung_ladder_fixture.yaml
 backtest:
 ifdef UV
-	uv run python -m nba.eval --config $(CONFIG) --register
+	uv run python -m research.eval --config $(CONFIG) --register
 else
-	python -m nba.eval --config $(CONFIG) --register
+	python -m research.eval --config $(CONFIG) --register
 endif
 
 ## Read-only local-LLM chat over the parlay engine (needs Ollama; see docs/PARLAY_ENGINE.md).
@@ -63,17 +63,17 @@ endif
 ## full train -> backtest -> report -> register path. Used by CI smoke-backtest.
 smoke:
 ifdef UV
-	uv run python -m nba.eval --config configs/rung_ladder_fixture.yaml --register
+	uv run python -m research.eval --config configs/rung_ladder_fixture.yaml --register
 else
-	python -m nba.eval --config configs/rung_ladder_fixture.yaml --register
+	python -m research.eval --config configs/rung_ladder_fixture.yaml --register
 endif
 
 ## Regenerate the per-experiment report.md (re-runs the fixture ladder).
 report:
 ifdef UV
-	uv run python -m nba.eval --config configs/rung_ladder_fixture.yaml
+	uv run python -m research.eval --config configs/rung_ladder_fixture.yaml
 else
-	python -m nba.eval --config configs/rung_ladder_fixture.yaml
+	python -m research.eval --config configs/rung_ladder_fixture.yaml
 endif
 
 ## Data-contract tests only (schema, fixture coverage, no-leakage,
@@ -102,9 +102,9 @@ endif
 ## docs/ci_cd.md). Used by CI's `model-gate` job.
 gate:
 ifdef UV
-	uv run python -m nba.registry.model_gate
+	uv run python -m research.registry.model_gate
 else
-	$(PY) -m nba.registry.model_gate
+	$(PY) -m research.registry.model_gate
 endif
 
 ## Local model-gate: compare the newest candidate of each model against the REAL

@@ -1,4 +1,4 @@
-"""As-of / no-leakage tests for ``nba.features.possession_features``.
+"""As-of / no-leakage tests for ``research.features.possession_features``.
 
 Builds a tiny synthetic DuckDB (3 games, one team playing better than the
 other) rather than touching the committed fixture loader (which doesn't
@@ -13,13 +13,13 @@ import datetime as dt
 import polars as pl
 
 from nba.db.connect import connect
-from nba.features.possession_features import (
+from nba.ingest.cache import insert_rows
+from research.features.possession_features import (
     LEAGUE_AVG_PPP_DEFAULT,
     PACE_DEFAULT,
     build_possession_matchup_features,
     build_team_possession_rates,
 )
-from nba.ingest.cache import insert_rows
 
 TEAM_A = 1
 TEAM_B = 2

@@ -3,7 +3,7 @@
 CLAUDE.md architecture ladder, rung 3: "given the offense's as-of
 off-rating and the defense's as-of def-rating (and home/away), produce a
 per-possession points distribution". This module supplies the pieces the
-Monte Carlo engine (``nba.sim.engine``) samples from:
+Monte Carlo engine (``research.sim.engine``) samples from:
 
 1. ``BASE_OUTCOME_SUPPORT``/``BASE_OUTCOME_PROBS``: a documented, fixed
    shape for "how many points does a single possession end in" --
@@ -15,7 +15,7 @@ Monte Carlo engine (``nba.sim.engine``) samples from:
    so it carries no game-level leakage risk -- the only team- and as-of-
    specific inputs to the sim are the shrunk ``off_rtg_prior``/
    ``def_rtg_prior``/``pace_prior`` features from
-   ``nba.features.possession_features``.
+   ``research.features.possession_features``.
 2. ``tilt_outcome_probs``: exponential tilting of that fixed shape so its
    *mean* matches a per-matchup target points-per-possession, while
    keeping (most of) the realistic variance/skew of real NBA possessions
@@ -56,7 +56,7 @@ _counts = np.array([_BASE_OUTCOME_COUNTS[int(x)] for x in BASE_OUTCOME_SUPPORT],
 BASE_OUTCOME_PROBS: np.ndarray = _counts / _counts.sum()
 
 #: Mean of the base (untilted) shape -- should equal
-#: ``nba.features.possession_features.LEAGUE_AVG_PPP_DEFAULT`` up to
+#: ``research.features.possession_features.LEAGUE_AVG_PPP_DEFAULT`` up to
 #: rounding; both are derived from the same historical possessions table.
 BASE_MEAN_PPP: float = float(np.sum(BASE_OUTCOME_SUPPORT * BASE_OUTCOME_PROBS))
 

@@ -1,4 +1,4 @@
-"""CLI-contract tests for ``python -m nba.eval`` (CLAUDE.md "Registry retrofit").
+"""CLI-contract tests for ``python -m research.eval`` (CLAUDE.md "Registry retrofit").
 
 ``--scenario`` and ``--promote`` must never be combinable; a normal
 ``--register`` run against the fixture config must produce a report file
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from nba.eval.__main__ import main
+from research.eval.__main__ import main
 
 FIXTURE_CONFIG = str(Path(__file__).resolve().parents[2] / "configs" / "rung_ladder_fixture.yaml")
 

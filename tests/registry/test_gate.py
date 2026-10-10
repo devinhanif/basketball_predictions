@@ -1,30 +1,15 @@
-"""Tests for the model-gate CI check (nba.registry.model_gate)."""
+"""Tests for the model gate's pure comparison (nba.registry.gate)."""
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
 import yaml
 
-from nba.registry.model_gate import (
-    DEFAULT_BASELINE_PATH,
+from nba.registry.gate import (
     DEFAULT_TOLERANCES_PATH,
     GateFailure,
-    candidate_metrics_from_fixture,
     evaluate_gate,
-    load_baseline,
     load_tolerances,
-    main,
 )
-
-
-def test_committed_baseline_file_exists_and_has_no_nan() -> None:
-    baseline = load_baseline(DEFAULT_BASELINE_PATH)
-    assert baseline, "committed baseline must not be empty"
-    for model_name, metrics in baseline.items():
-        for metric, value in metrics.items():
-            assert value == value, f"{model_name}.{metric} is NaN in the committed baseline"
 
 
 def test_tolerances_config_has_expected_keys() -> None:
@@ -32,15 +17,6 @@ def test_tolerances_config_has_expected_keys() -> None:
     for metric in ("log_loss", "brier", "ece", "crps"):
         assert f"{metric}_tolerance" in tolerances
         assert tolerances[f"{metric}_tolerance"] >= 0.0
-
-
-def test_candidate_metrics_from_fixture_matches_committed_baseline_within_tolerance() -> None:
-    """Regression guard on the gate itself: the real fixture run must currently pass."""
-    candidate = candidate_metrics_from_fixture()
-    baseline = load_baseline(DEFAULT_BASELINE_PATH)
-    tolerances = load_tolerances(DEFAULT_TOLERANCES_PATH)
-    failures = evaluate_gate(candidate, baseline, tolerances)
-    assert failures == []
 
 
 def test_evaluate_gate_passes_when_candidate_matches_baseline() -> None:
@@ -92,20 +68,6 @@ def test_evaluate_gate_skips_metric_missing_from_tolerances_config() -> None:
     baseline = {"m": {"log_loss": 0.5}}
     candidate = {"m": {"log_loss": 0.5000001}}
     assert evaluate_gate(candidate, baseline, {}) != []  # any positive delta fails tol=0.0
-
-
-def test_main_passes_against_the_committed_baseline(capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code = main([])
-    captured = capsys.readouterr()
-    assert exit_code == 0
-    assert "model-gate passed" in captured.out
-
-
-def test_main_fails_loudly_against_a_strict_fake_baseline(tmp_path: Path) -> None:
-    strict_baseline = tmp_path / "fixture_metrics.json"
-    strict_baseline.write_text('{"rung2_lightgbm": {"log_loss": -1.0}}')
-    exit_code = main(["--baseline", str(strict_baseline)])
-    assert exit_code == 1
 
 
 def test_gate_failure_str_mentions_both_values() -> None:

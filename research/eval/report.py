@@ -1,6 +1,6 @@
 """Render one ``report.md`` per experiment (CLAUDE.md "Evaluation").
 
-Pure string formatting over :class:`nba.eval.run.ExperimentResult` -- no
+Pure string formatting over :class:`research.eval.run.ExperimentResult` -- no
 DuckDB/network access here, so it's trivially unit-testable.
 """
 
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import cast
 
-from nba.eval.run import ExperimentResult, RungMetricBundle
+from research.eval.run import ExperimentResult, RungMetricBundle
 
 
 def _fmt(x: float, nd: int = 4) -> str:
@@ -142,8 +142,8 @@ def render_report(result: ExperimentResult) -> str:
         "box-score proxies, unchanged by rung 3 -- see `nba/features/team_features.py`. "
         "Rung 3 (`rung3_sim`) instead uses true as-of per-possession ratings built "
         "directly from the `possessions` table, shrunk toward a league-average prior "
-        "(empirical-Bayes method 1) -- see `nba/features/possession_features.py` and "
-        "`nba/sim/engine.py`. Per CLAUDE.md risk #1, rung 3 is only worth keeping if it "
+        "(empirical-Bayes method 1) -- see `research/features/possession_features.py` and "
+        "`research/sim/engine.py`. Per CLAUDE.md risk #1, rung 3 is only worth keeping if it "
         "beats rung 2 on win-prob calibration (see the ladder-comparison table above) "
         "or is justified later by player/joint outputs (not built in this milestone).",
         "- Closing-line implied probability is a stub (`ClosingLineStub`): no "
@@ -153,12 +153,12 @@ def render_report(result: ExperimentResult) -> str:
         "hyperparameters fixed) so sequential models (Elo) update their "
         "state through the holdout exactly as a live run would, instead of "
         "predicting the whole season from one stale snapshot -- see "
-        "`nba/eval/run.py::_evaluate_holdout`. The holdout is still never "
+        "`research/eval/run.py::_evaluate_holdout`. The holdout is still never "
         "used to tune or select a rung.",
         "- Cold-start bucket slice (`cold_start_bucket_low_career_poss` / "
         "`..._warm`) is keyed on a *proxy* for career possessions "
         "(minutes-based, since the possessions table is empty pending the "
-        "PBP parser) -- see `nba/features/player_features.py`. Not a true "
+        "PBP parser) -- see `research/features/player_features.py`. Not a true "
         "possession count yet.",
         "",
     ]

@@ -4,7 +4,7 @@
 # *worse* (log loss / Brier / ECE / CRPS are all lower-is-better) relative to
 # the committed baseline (tests/registry/baselines/fixture_metrics.json)
 # before the gate fails a candidate run. Keep these here -- not hardcoded in
-# nba/registry/model_gate.py -- so tuning the gate never requires touching
+# nba/registry/gate.py -- so tuning the gate never requires touching
 # the gate's logic.
 #
 # These are fixture-scale tolerances (the fixture has only a handful of

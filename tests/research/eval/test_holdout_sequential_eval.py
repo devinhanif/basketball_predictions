@@ -4,7 +4,7 @@ frozen holdout season, and the holdout evaluation must never peek.
 Covers the bug described in the task: a single static
 ``model.predict(holdout_df)`` call left a sequential model (Elo) stuck on
 stale end-of-tunable-season ratings for the whole holdout season. The fix
-in ``nba.eval.run._evaluate_holdout`` rolls walk-forward through the
+in ``research.eval.run._evaluate_holdout`` rolls walk-forward through the
 holdout, warm-started on the tunable data, hyperparameters fixed.
 """
 
@@ -13,10 +13,10 @@ from __future__ import annotations
 import numpy as np
 import polars as pl
 
-from nba.eval.run import RUNG_SPECS, _evaluate_holdout
 from nba.features.team_features import MATCHUP_FEATURE_COLUMNS
 from nba.models.rung0_baselines import EloBaseline
-from nba.models.rung2_gbm import GBM_EXTRA_COLUMNS
+from research.eval.run import RUNG_SPECS, _evaluate_holdout
+from research.models.rung2_gbm import GBM_EXTRA_COLUMNS
 
 _ALL_FEATURE_COLUMNS = list(MATCHUP_FEATURE_COLUMNS) + list(GBM_EXTRA_COLUMNS)
 

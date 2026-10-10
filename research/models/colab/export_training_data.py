@@ -35,7 +35,7 @@ from pathlib import Path
 import duckdb
 
 from nba.db.connect import connect
-from nba.features.possession_features import build_team_possession_rates
+from research.features.possession_features import build_team_possession_rates
 from research.features.possession_step_features import possession_step_join_sql
 
 

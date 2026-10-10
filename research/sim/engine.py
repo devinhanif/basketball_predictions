@@ -1,7 +1,7 @@
 """Rung-3 possession-by-possession Monte Carlo engine (CLAUDE.md architecture ladder).
 
 ``simulate_game`` takes two teams' as-of possession rates (shrunk
-off/def rating + pace, from ``nba.features.possession_features``) and
+off/def rating + pace, from ``research.features.possession_features``) and
 runs ``n_sims`` independent possession-by-possession simulations of the
 game, returning win probability, margin distribution, and total points
 distribution. Deterministic given ``seed``.
@@ -34,7 +34,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from nba.sim.possession_model import (
+from research.sim.possession_model import (
     BASE_OUTCOME_PROBS,
     BASE_OUTCOME_SUPPORT,
     tilt_outcome_probs,

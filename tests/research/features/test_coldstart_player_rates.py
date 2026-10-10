@@ -1,4 +1,4 @@
-"""No-leakage + cold-start bucket tests for ``nba.features.player_features``.
+"""No-leakage + cold-start bucket tests for ``research.features.player_features``.
 
 Mirrors the discipline in ``tests/ml/test_no_leakage.py`` (team features)
 but for the player-level career-possession proxy and the real cold-start
@@ -11,10 +11,10 @@ import duckdb
 import polars as pl
 import pytest
 
-from nba.coldstart.config import CAREER_POSS_COLD_START_THRESHOLD
 from nba.db.connect import connect
-from nba.eval.slices import cold_start_bucket_slice
-from nba.features.player_features import (
+from research.coldstart.config import CAREER_POSS_COLD_START_THRESHOLD
+from research.eval.slices import cold_start_bucket_slice
+from research.features.player_features import (
     POSSESSIONS_PER_MINUTE,
     build_game_cold_start_flags,
     build_player_career_poss_proxy,

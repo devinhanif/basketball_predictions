@@ -1,6 +1,6 @@
 """Adapter: draw rung-3 sim possession outcomes from the rung-4 learned step heads.
 
-``nba.sim.engine.simulate_game`` normally builds each team's outcome
+``research.sim.engine.simulate_game`` normally builds each team's outcome
 distribution from log5 expected PPP + an exponential tilt of the empirical
 league outcome shape. This module (default OFF -- nothing imports it unless
 asked) replaces that step with the learned ``outcome`` head of a trained
@@ -51,11 +51,10 @@ import numpy as np
 import polars as pl
 import torch
 
-from nba.features.possession_features import (
+from research.features.possession_features import (
     build_possession_matchup_features,
     build_team_possession_rates,
 )
-from nba.sim.engine import GameSimResult, simulate_game
 from research.features.possession_step_features import (
     OUTCOME_CLASSES,
     PLAYER_ASOF_STATS,
@@ -66,6 +65,7 @@ from research.features.possession_step_features import (
     player_asof_sql,
 )
 from research.models.rung4_stepheads import _OUTCOME_POINT_VALUE_VEC, StepHeadsRung
+from research.sim.engine import GameSimResult, simulate_game
 
 #: Point value per outcome class (class order = ``OUTCOME_CLASSES``); the
 #: ``outcome_support`` handed to the engine when overriding probabilities.
@@ -343,8 +343,8 @@ def compare_learned_vs_rung3(
     and as-of pace; CRPS uses a Normal(mean, sd) built from each arm's
     simulated margin/total (the engine returns summaries, not draws).
     """
-    from nba.models.rung3_sim import PossessionSimRung
     from nba.truth.metrics import bootstrap_ci
+    from research.models.rung3_sim import PossessionSimRung
 
     cutoffs = [
         json.loads((Path(a) / "config.json").read_text())["train_val_cutoff_date"]

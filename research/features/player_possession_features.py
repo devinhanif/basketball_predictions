@@ -12,7 +12,7 @@ No-leakage: every ``*_prior`` column is a cumulative window aggregate over
 strictly earlier ``(game_date, game_id)`` rows for that player (or, for the
 position-level prior, that position), ``ROWS BETWEEN UNBOUNDED PRECEDING
 AND 1 PRECEDING`` -- the identical discipline as
-``nba.features.team_features`` / ``nba.features.possession_features``. The
+``nba.features.team_features`` / ``research.features.possession_features``. The
 current game's own shots/minutes never contribute to its own feature row.
 See ``tests/ml/test_player_possession_features_no_leakage.py`` for the
 planted-future-game proof.
@@ -56,7 +56,7 @@ so the player's rate still shrinks to something reasonable rather than
 being NULL or a divide-by-zero.
 
 League-wide empirical constants below (documented, like
-``nba.sim.possession_model.BASE_OUTCOME_PROBS`` / ``nba.features.
+``research.sim.possession_model.BASE_OUTCOME_PROBS`` / ``nba.features.
 possession_features.LEAGUE_AVG_PPP_DEFAULT``), computed once from the full
 historical ``possessions``/``player_game_stats`` tables (2022-23 through
 2025-26 seasons, ~797k shot attempts with a non-null ``shooter_id``):
@@ -97,7 +97,7 @@ LEAGUE_FT_TRIP_RATE_DEFAULT = 0.2989  # FTA per FGA
 LEAGUE_FT_PCT_DEFAULT = 0.7822
 
 #: Pseudo-counts (empirical-Bayes shrinkage, method 1). Shot-share and
-#: ft-trip-rate mirror ``nba.coldstart.config.DEFAULT_PSEUDO_COUNTS``'s
+#: ft-trip-rate mirror ``research.coldstart.config.DEFAULT_PSEUDO_COUNTS``'s
 #: "usage"/"foul_draw" values (150) and ft_pct mirrors its "ft_pct" (100);
 #: duplicated here (rather than imported) because this module only needs
 #: the numeric defaults, not the shared mutable config dataclass, and

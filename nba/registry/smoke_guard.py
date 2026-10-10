@@ -1,6 +1,6 @@
 """Smoke-backtest CI guard (CLAUDE.md "CI/CD" -> smoke-backtest).
 
-``make smoke`` runs ``python -m nba.eval --config
+``make smoke`` runs ``python -m research.eval --config
 configs/rung_ladder_fixture.yaml --register``: the full
 train -> walk-forward backtest -> report -> registry-log path on the tiny
 committed fixture. This guard re-checks its two observable, build-breaking
@@ -10,11 +10,11 @@ failure modes after that run completes:
 2. No headline metric rendered into it is NaN.
 
 The fixture config sets ``use_fixture: true``, which opens an **in-memory**
-DuckDB connection (see ``nba/eval/__main__.py::_open_connection``) -- so the
+DuckDB connection (see ``research/eval/__main__.py::_open_connection``) -- so the
 ``experiments`` registry row written during that run only exists for the
 lifetime of that process and cannot be re-queried from a fresh connection
 afterwards. ``report.md`` is the durable, on-disk record of the run instead,
-and ``nba/eval/report.py``'s ``_fmt`` helper renders the literal string
+and ``research/eval/report.py``'s ``_fmt`` helper renders the literal string
 ``"NaN"`` for any NaN metric -- so grepping the rendered report for that
 string is an exact, no-false-negative check of the same headline metrics
 (log loss, Brier, accuracy, ECE, and the ladder-comparison deltas) without

@@ -19,8 +19,8 @@ from nba.db.connect import DEFAULT_DB_PATH
 from nba.registry.bootstrap import bootstrap_production
 from nba.registry.cli_guard import validate_cli_flags
 from nba.registry.factory import DEFAULT_STORE_DIR
+from nba.registry.gate import load_tolerances
 from nba.registry.local import LocalRegistry
-from nba.registry.model_gate import load_tolerances
 from nba.registry.ops import (
     check_promotable,
     compare_versions,

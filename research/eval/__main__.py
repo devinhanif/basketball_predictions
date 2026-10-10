@@ -1,4 +1,4 @@
-"""Entry point: ``python -m nba.eval --config configs/rung_ladder_fixture.yaml``.
+"""Entry point: ``python -m research.eval --config configs/rung_ladder_fixture.yaml``.
 
 Runs the full train -> walk-forward backtest -> report.md -> registry-log
 path for rungs 0-2. Standard CLI contract per CLAUDE.md "Registry
@@ -21,9 +21,9 @@ import duckdb
 import yaml
 
 from nba.db.connect import connect
-from nba.eval.report import render_report
-from nba.eval.run import run_experiment
 from nba.registry import build_run_metadata, build_tags, get_registry, validate_cli_flags
+from research.eval.report import render_report
+from research.eval.run import run_experiment
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -48,7 +48,7 @@ def _open_connection(config: dict[str, Any]) -> duckdb.DuckDBPyConnection:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m nba.eval")
+    parser = argparse.ArgumentParser(prog="python -m research.eval")
     parser.add_argument("--config", default="configs/rung_ladder_fixture.yaml")
     parser.add_argument("--register", action="store_true", help="log each rung as a candidate")
     parser.add_argument("--promote", action="store_true", help="promote rung2 to production")

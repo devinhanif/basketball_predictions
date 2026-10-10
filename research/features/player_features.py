@@ -4,7 +4,7 @@ Two things live here:
 
 1. A **career-possession proxy** (:func:`build_player_career_poss_proxy`),
    used to replace the games-played placeholder cold-start bucket in
-   ``nba/eval/slices.py`` with CLAUDE.md's real definition: "a game is in
+   ``research/eval/slices.py`` with CLAUDE.md's real definition: "a game is in
    the cold-start bucket if >=1 projected starter has <500 career
    possessions." The possessions table is empty (the play-by-play parser
    is a separate, not-yet-built milestone owned by the data engineer), so
@@ -35,7 +35,7 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.coldstart.config import CAREER_POSS_COLD_START_THRESHOLD
+from research.coldstart.config import CAREER_POSS_COLD_START_THRESHOLD
 
 #: League-average team possessions per minute of game clock (roughly 100
 #: possessions per team per 48 minutes). A player on the court the whole

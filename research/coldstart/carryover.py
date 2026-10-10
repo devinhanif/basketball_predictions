@@ -3,7 +3,7 @@
 Blend last season's observed rate with a regression-to-the-mean prior
 (e.g. the position/archetype mean) and an age curve. ``decay_weight`` and
 the age-curve shape are tunable by backtest; see
-``nba.coldstart.config.ColdStartConfig``.
+``research.coldstart.config.ColdStartConfig``.
 """
 
 from __future__ import annotations

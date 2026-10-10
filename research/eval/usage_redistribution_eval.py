@@ -77,11 +77,11 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.features.possession_features import build_team_possession_rates
 from nba.props.metrics import crps_array, paired_score_delta_ci
 from nba.props.minutes import build_minutes_features, predict_minutes
 from research.features.player_possession_features import build_player_shot_rates
 from research.features.player_rebound_assist_features import build_player_reb_ast_rates
+from research.features.possession_features import build_team_possession_rates
 from research.sim.player_attribution import (
     PlayerSimProfile,
     profiles_from_features,

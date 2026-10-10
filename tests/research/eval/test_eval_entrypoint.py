@@ -1,6 +1,6 @@
 """End-to-end smoke test: the fixture produces a valid, non-NaN report.
 
-Mirrors the ``python -m nba.eval`` entry point's acceptance criteria: run
+Mirrors the ``python -m research.eval`` entry point's acceptance criteria: run
 end to end on the fixture quickly and never crash or silently emit NaN
 metrics (CLAUDE.md milestone 4's "degrade gracefully" requirement).
 """
@@ -10,8 +10,8 @@ from __future__ import annotations
 import math
 import time
 
-from nba.eval.report import render_report
-from nba.eval.run import run_experiment
+from research.eval.report import render_report
+from research.eval.run import run_experiment
 from tests.fixtures.loader import build_fixture_db
 
 

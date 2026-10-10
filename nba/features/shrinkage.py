@@ -10,7 +10,7 @@ posterior converges to ``r_obs``; as ``n -> 0`` it converges to ``r_prior``.
 ``k`` is tunable by walk-forward CV (:func:`tune_pseudo_count`) -- on data
 too small to tune meaningfully (e.g. the committed fixture) this degrades
 gracefully to the documented default in
-``nba.coldstart.config.DEFAULT_PSEUDO_COUNTS`` with a note, rather than
+``research.coldstart.config.DEFAULT_PSEUDO_COUNTS`` with a note, rather than
 fabricating a tuned number.
 """
 

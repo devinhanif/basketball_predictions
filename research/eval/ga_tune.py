@@ -10,7 +10,7 @@ computed only over whatever ``tunable_df``/``tunable_seasons`` the caller
 passes in. This module never reads ``holdout_season`` games into the
 objective -- :func:`tune_mov_elo_ga` only ever touches the frozen holdout
 to *carve it out* (via ``nba.truth.walkforward.split_frozen_holdout``), the
-same no-leakage helper the rung-0..2 harness in ``nba/eval/run.py`` uses.
+same no-leakage helper the rung-0..2 harness in ``research/eval/run.py`` uses.
 If a future edit adds a holdout read inside :func:`objective` or
 :func:`walk_forward_oof_log_loss`, ``tests/ml/test_ga_tuner.py`` has a
 test that constructs a holdout row with a planted, out-of-range team id
@@ -200,7 +200,7 @@ def evaluate_mov_elo_on_holdout(
 ) -> dict[str, object]:
     """Strictly confirmatory: score tuned MOV-Elo on the frozen holdout once.
 
-    Mirrors ``nba.eval.run._evaluate_holdout``'s sequential-refit pattern
+    Mirrors ``research.eval.run._evaluate_holdout``'s sequential-refit pattern
     (ratings must be warm-started on tunable history and updated through
     each earlier holdout game, not predicted from a single stale fit) but
     specialized to one model with caller-supplied params, since the GA

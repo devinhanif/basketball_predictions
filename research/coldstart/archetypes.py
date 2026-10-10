@@ -5,7 +5,7 @@ a new/cold player's prior is their cluster's mean rate. Cluster count is
 picked by backtest (:func:`select_n_clusters_by_backtest`), not by eye, per
 CLAUDE.md -- though on data too small to compare candidates meaningfully
 this degrades to the documented default
-(``nba.coldstart.config.DEFAULT_N_CLUSTERS``) with a note.
+(``research.coldstart.config.DEFAULT_N_CLUSTERS``) with a note.
 
 ## As-of DB-driven archetype builder (:func:`build_player_archetypes`)
 
@@ -55,7 +55,7 @@ Gower-distance implementation.
 ``k`` is chosen by :func:`select_k_by_silhouette` (mean silhouette score
 over candidate k's, scored on the same standardized feature matrix used to
 fit), not picked by eye. Degrades to the documented default
-(``nba.coldstart.config.DEFAULT_N_CLUSTERS``) with a note when there are
+(``research.coldstart.config.DEFAULT_N_CLUSTERS``) with a note when there are
 too few players to compare candidates meaningfully (silhouette requires
 at least 2 clusters and more points than clusters) -- the committed fixture
 (2-3 players per game, no ``players_static`` rows at all) is exactly this
@@ -75,7 +75,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-from nba.coldstart.config import DEFAULT_N_CLUSTERS
+from research.coldstart.config import DEFAULT_N_CLUSTERS
 from research.features.player_possession_features import (
     LEAGUE_SHOT_SHARE_DEFAULT,
     LEAGUE_ZONE_MIX_DEFAULT,
@@ -90,7 +90,7 @@ from research.features.player_rebound_assist_features import (
 
 #: Fallback age (years) when ``players_static.birth_date`` is null -- a
 #: league-average-ish veteran age, reusing the same documented constant
-#: ``nba.coldstart.config.DEFAULT_PEAK_AGE`` already uses for the carryover
+#: ``research.coldstart.config.DEFAULT_PEAK_AGE`` already uses for the carryover
 #: age curve's peak, rather than inventing a new number.
 _DEFAULT_AGE = 27.0
 

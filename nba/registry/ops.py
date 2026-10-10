@@ -22,9 +22,9 @@ from typing import Any, cast
 
 import duckdb
 
+from nba.registry.gate import GateFailure, evaluate_gate
 from nba.registry.local import LocalRegistry
 from nba.registry.metadata import build_run_metadata
-from nba.registry.model_gate import GateFailure, evaluate_gate
 
 #: Minimum distinct seasons a backtest must span to count as "multi-season".
 MIN_BACKTEST_SEASONS = 3

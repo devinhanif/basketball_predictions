@@ -76,6 +76,6 @@ registry.log_model(
 ```
 
 `StepHeadsRung.predict()` is still the documented Normal-CDF approximation
-(not a possession-by-possession sim); wiring the heads into `nba.sim.engine`
+(not a possession-by-possession sim); wiring the heads into `research.sim.engine`
 and the points router is a separate follow-up gated by the usual paired
 bootstrap.

@@ -71,7 +71,6 @@ import numpy as np
 import polars as pl
 from scipy import stats
 
-from nba.features.possession_features import build_team_possession_rates
 from nba.features.sb_classification import build_sb_classification
 from nba.props.distributions import Distribution
 from nba.props.metrics import ConfidenceInterval, crps_array, paired_score_delta_ci
@@ -83,6 +82,7 @@ from research.features.played_baseline import (
     FORWARD_RECENCY_HALFLIFE_GAMES,
     recency_played_baseline,
 )
+from research.features.possession_features import build_team_possession_rates
 from research.features.time_decay import TimeDecayConfig
 
 STATS = ("pts", "reb", "ast")

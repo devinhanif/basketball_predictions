@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from nba.sim.possession_model import (
+from research.sim.possession_model import (
     BASE_MEAN_PPP,
     BASE_OUTCOME_PROBS,
     BASE_OUTCOME_SUPPORT,

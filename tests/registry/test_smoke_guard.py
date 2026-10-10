@@ -49,7 +49,7 @@ def test_main_passes_on_real_smoke_report(capsys: pytest.CaptureFixture[str]) ->
     """End-to-end: run the real fixture ladder, then guard its own report.md."""
     import yaml
 
-    from nba.eval.__main__ import main as eval_main
+    from research.eval.__main__ import main as eval_main
 
     config_path = "configs/rung_ladder_fixture.yaml"
     with open(config_path) as f:

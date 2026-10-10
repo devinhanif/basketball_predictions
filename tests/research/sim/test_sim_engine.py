@@ -1,4 +1,4 @@
-"""Tests for the Monte Carlo possession-sim engine (``nba/sim/engine.py``).
+"""Tests for the Monte Carlo possession-sim engine (``research/sim/engine.py``).
 
 All synthetic (no DB) -- fast, per the "no multi-minute jobs" operating
 rule. Checks determinism, win-prob monotonicity in rating gap, and
@@ -8,7 +8,7 @@ totals ~220+/-20, margin SD ~12-14).
 
 from __future__ import annotations
 
-from nba.sim.engine import simulate_game
+from research.sim.engine import simulate_game
 
 LEAGUE_AVG = 1.146
 

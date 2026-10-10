@@ -12,10 +12,10 @@ therefore supplies features/labels for the remaining five steps: outcome,
 zone, make, rebound, duration.
 
 No-leakage discipline (mirrors ``research.features.player_possession_features``
-and ``nba.features.possession_features``):
+and ``research.features.possession_features``):
 
 - The two as-of team-rating blocks (``off_*_prior``/``def_*_prior``) come
-  straight from ``nba.features.possession_features.build_team_possession_rates``,
+  straight from ``research.features.possession_features.build_team_possession_rates``,
   which is itself a strictly-prior cumulative window (``ROWS BETWEEN
   UNBOUNDED PRECEDING AND 1 PRECEDING``) over that team's own earlier
   games -- the current game's own possessions never contribute to its own
@@ -64,7 +64,7 @@ from __future__ import annotations
 import duckdb
 import polars as pl
 
-from nba.features.possession_features import build_team_possession_rates
+from research.features.possession_features import build_team_possession_rates
 
 #: Outcome classes the ``outcome`` head predicts. Order is the model's
 #: class index order everywhere (training frame, net, metrics) -- do not
@@ -360,7 +360,7 @@ ORDER BY poss.game_date, poss.game_id, poss.poss_idx
 def possession_step_join_sql() -> str:
     """The SQL this module runs, exposed so the export script can ``COPY`` it directly.
 
-    Callers must first register ``nba.features.possession_features.
+    Callers must first register ``research.features.possession_features.
     build_team_possession_rates(con)``'s output as a view named
     ``team_ratings`` on ``con`` (e.g. ``con.register("team_ratings", df)``)
     -- see :func:`build_possession_step_training_frame` for the reference

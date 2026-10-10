@@ -12,7 +12,7 @@ one stat the sim does not currently beat season-average on -- see
 
 This module ships the model + the 3-method ``RungModel`` contract
 (``nba/models/base.py``) today; it is NOT wired into
-``nba.eval.run.RUNG_SPECS`` yet (that happens once real Colab-trained
+``research.eval.run.RUNG_SPECS`` yet (that happens once real Colab-trained
 weights exist -- this box is memory-bound/GPU-less, see
 ``research/models/colab/README.md``). ``predict()`` below is therefore
 deliberately scoped as a best-effort, honestly-documented approximation
@@ -51,7 +51,6 @@ from scipy.stats import norm
 from torch import nn
 
 from nba.models.base import RungModelBase
-from nba.sim.possession_model import BASE_MEAN_PPP
 from research.features.possession_step_features import (
     OUTCOME_CLASSES,
     POSSESSION_STEP_FEATURE_COLUMNS,
@@ -60,6 +59,7 @@ from research.features.possession_step_features import (
     SHOT_ATTEMPT_OUTCOMES,
     ZONE_CLASSES,
 )
+from research.sim.possession_model import BASE_MEAN_PPP
 
 #: Points value assigned to each outcome class for the margin
 #: approximation in ``predict()`` -- FGM2=2, FGM3=3, a free-throw trip
@@ -96,9 +96,9 @@ _NEUTRAL_SCORE_DIFF = 0.0
 
 #: Columns ``predict()`` expects on its input ``df`` -- matchup-level as-of
 #: team ratings, same convention/names as
-#: ``nba.models.rung3_sim.POSSESSION_SIM_FEATURE_COLUMNS`` so this rung can
+#: ``research.models.rung3_sim.POSSESSION_SIM_FEATURE_COLUMNS`` so this rung can
 #: be dropped into the same eval-harness feature frame
-#: (``nba.features.possession_features.build_possession_matchup_features``)
+#: (``research.features.possession_features.build_possession_matchup_features``)
 #: without a separate feature-join step.
 PREDICT_FEATURE_COLUMNS: list[str] = [
     "home_off_rtg_prior",

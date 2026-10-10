@@ -5,12 +5,12 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from nba.sim.engine import simulate_game
 from research.features.possession_step_features import (
     POSSESSION_STEP_FEATURE_COLUMNS,
     POSSESSION_STEP_TEAM_FEATURE_COLUMNS,
 )
 from research.models.rung4_stepheads import StepHeadsNet, StepHeadsRung
+from research.sim.engine import simulate_game
 from research.sim.learned_heads import (
     OUTCOME_POINTS,
     LearnedHeads,

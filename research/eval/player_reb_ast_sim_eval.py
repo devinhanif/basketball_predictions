@@ -53,7 +53,6 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.features.possession_features import build_team_possession_rates
 from nba.props.baselines import build_baseline_features, season_average_baseline
 from nba.props.distributions import Distribution
 from nba.props.metrics import ConfidenceInterval, crps_array, mean_bias_ci, paired_score_delta_ci
@@ -61,6 +60,7 @@ from nba.props.minutes import build_minutes_features, predict_minutes
 from research.features.played_baseline import build_played_baseline_features
 from research.features.player_possession_features import build_player_shot_rates
 from research.features.player_rebound_assist_features import build_player_reb_ast_rates
+from research.features.possession_features import build_team_possession_rates
 from research.features.time_decay import TimeDecayConfig
 from research.sim.player_attribution import (
     DEFAULT_ASSISTED_FG_RATE,

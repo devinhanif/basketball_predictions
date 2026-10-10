@@ -26,8 +26,8 @@ from nba.features.team_features import (
     build_team_game_features,
 )
 from nba.ingest.arenas import arena_distance_miles
-from nba.models.rung1_logistic import LogisticRung
-from nba.models.rung2_gbm import LightGBMRung
+from research.models.rung1_logistic import LogisticRung
+from research.models.rung2_gbm import LightGBMRung
 
 # Real franchise ids (see nba.ingest.arenas.ARENA_COORDS / nba.features.
 # game_context.TEAM_CONFERENCE), all Eastern Conference so the mini-league

@@ -2,7 +2,7 @@
 
 Each function returns a boolean numpy-compatible polars Series mask over a
 matchup-feature DataFrame (see ``nba.features.team_features.
-build_matchup_features``). ``nba.eval.report`` applies these masks to
+build_matchup_features``). ``research.eval.report`` applies these masks to
 slice log loss / Brier / calibration per CLAUDE.md: "cold-start bucket,
 home/away, rest, season phase (first 15 games vs. rest), and
 favorite/underdog".
@@ -49,7 +49,7 @@ def cold_start_bucket_slice(df: pl.DataFrame) -> dict[str, np.ndarray]:
     """Real cold-start bucket per CLAUDE.md: ">=1 starter has <500 career possessions".
 
     ``df`` must carry an ``any_starter_cold_start`` boolean column -- see
-    ``nba.features.player_features.build_game_cold_start_flags``, which
+    ``research.features.player_features.build_game_cold_start_flags``, which
     computes it from a documented minutes-based *proxy* for career
     possessions (the possessions table is empty pending the PBP parser).
     Games with no player-level data at all (``any_starter_cold_start`` is

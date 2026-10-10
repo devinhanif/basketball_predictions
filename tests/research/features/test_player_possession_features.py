@@ -173,7 +173,7 @@ def test_zone_mix_sums_to_one(con: duckdb.DuckDBPyConnection) -> None:
 
 def test_empty_possessions_table_degrades_gracefully(con: duckdb.DuckDBPyConnection) -> None:
     """Works even when ``possessions`` is empty (mirrors
-    ``nba.features.possession_features``'s own fixture-compatibility test)."""
+    ``research.features.possession_features``'s own fixture-compatibility test)."""
     _insert_game(con, "g1", "2023-10-24")
     _insert_pgs(con, "g1", 505, 1)
     rates = build_player_shot_rates(con)

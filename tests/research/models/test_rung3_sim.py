@@ -1,4 +1,4 @@
-"""3-method contract + determinism tests for ``nba.models.rung3_sim.PossessionSimRung``."""
+"""3-method contract + determinism tests for ``research.models.rung3_sim.PossessionSimRung``."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import math
 import numpy as np
 import polars as pl
 
-from nba.models.rung3_sim import PossessionSimRung
+from research.models.rung3_sim import PossessionSimRung
 
 LEAGUE_AVG = 1.146
 

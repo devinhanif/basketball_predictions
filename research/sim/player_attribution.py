@@ -4,8 +4,8 @@ CLAUDE.md architecture ladder, rung 3: "one logistic/GBM head per step
 (duration, outcome, shooter, zone, make, rebound, FT) ... Full-game
 distributions, **player lines**." This module is the payoff of the sim
 pivot: :func:`simulate_game_with_players` runs the same team-level
-possession Monte Carlo as ``nba.sim.engine.simulate_game`` (same support/
-tilt machinery from ``nba.sim.possession_model``, same deterministic-given-
+possession Monte Carlo as ``research.sim.engine.simulate_game`` (same support/
+tilt machinery from ``research.sim.possession_model``, same deterministic-given-
 seed contract) and additionally attributes every scoring possession's
 points to one on-court player via a shooter -> zone -> make/miss -> FT
 chain, and additionally attributes **rebounds** (on every missed field
@@ -20,7 +20,7 @@ and "Assist attribution" below for the exact design of each.
 
 The team-level outcome distribution (how many 0/1/2/3/.../8-point
 possessions a team has in a simulated game) is drawn *exactly* the same way
-``nba.sim.engine._sample_points`` draws it: group simulated games by their
+``research.sim.engine._sample_points`` draws it: group simulated games by their
 drawn possession count, one vectorized ``rng.multinomial(n, probs, size=...)``
 call per group. The only difference here is this module keeps the **counts
 per outcome value** (how many 0-point, 1-point, ..., 8-point possessions a
@@ -51,8 +51,8 @@ equal the team total exactly, by construction, for every simulated game**
 the existing engine" requirement becomes operationally: the team-level
 margin/win-prob/total distribution a caller gets from this module (see
 ``PlayerGameSimResult.home``/``away``, both plain
-``nba.sim.engine.GameSimResult``) is the *same* possession-outcome draw
-``nba.sim.engine.simulate_game`` would produce for the same inputs (same
+``research.sim.engine.GameSimResult``) is the *same* possession-outcome draw
+``research.sim.engine.simulate_game`` would produce for the same inputs (same
 support, same tilt, same pace draw) -- just also broken out by player. See
 ``tests/ml/test_player_attribution.py::test_team_totals_match_engine_team_sim``
 for the statistical-equivalence check (same seed, same mean/engine draw
@@ -123,13 +123,13 @@ from typing import Any
 import numpy as np
 import polars as pl
 
-from nba.sim.engine import (
+from research.sim.engine import (
     DEFAULT_HOME_PPP_BONUS,
     DEFAULT_PACE_SD,
     MIN_POSSESSIONS,
     GameSimResult,
 )
-from nba.sim.possession_model import (
+from research.sim.possession_model import (
     BASE_OUTCOME_PROBS,
     BASE_OUTCOME_SUPPORT,
     tilt_outcome_probs,
@@ -151,7 +151,7 @@ _WEIGHT_EPS = 1e-9
 #: than a turnover, for the purpose of generating rebound chances. This
 #: schema's possessions table has no event-type split within the
 #: "0 points scored" bucket at the team-outcome-support granularity this
-#: engine samples from (see ``nba.sim.possession_model`` module docstring:
+#: engine samples from (see ``research.sim.possession_model`` module docstring:
 #: the 0.4866 zero-point probability was computed by grouping on ``pts``
 #: only). 0.85 is a documented estimate, not fit to this project's own
 #: possession-level turnover/missed-FGA split -- a team's turnover rate is
@@ -159,7 +159,7 @@ _WEIGHT_EPS = 1e-9
 #: so the bulk of the zero-point bucket is treated as misses. Replace with
 #: a value fit from ``possessions.outcome`` once that reconciliation pass
 #: is run (same documented-estimate spirit as every other hardcoded
-#: constant in this module/``nba.sim.possession_model``).
+#: constant in this module/``research.sim.possession_model``).
 MISSED_FG_SHARE_OF_ZERO_OUTCOME = 0.85
 
 #: Duplicated (not imported, same convention as ``_expected_ppp`` below)
@@ -276,7 +276,7 @@ def _zone_score(profile: PlayerSimProfile, k: int) -> float:
       docstring on why there is no separate corner/above-break split).
     - ``k >= 3``: a made 3-point field goal (``k in (3, 4)`` for a clean
       3 or a 3-and-1 FT bonus; ``k >= 5`` is empirically negligible per
-      ``nba.sim.possession_model``'s documented base shape but handled the
+      ``research.sim.possession_model``'s documented base shape but handled the
       same way rather than raising) -- weighted by the above3 zone-mix-
       times-make-probability.
     """
@@ -330,7 +330,7 @@ def _sample_outcome_counts(
     """Per-sim counts of every outcome value (shape ``(n_sims, len(probs))``).
 
     Same grouped-multinomial vectorization as
-    ``nba.sim.engine._sample_points``, kept as a separate, duplicated
+    ``research.sim.engine._sample_points``, kept as a separate, duplicated
     (small) function rather than importing that private helper: this one
     returns the full per-outcome counts matrix instead of immediately
     collapsing it to a point total, which is exactly what player
@@ -497,7 +497,7 @@ def _attribute_assists(
 
 
 def _expected_ppp(off_rtg: float, def_rtg: float, league_avg_ppp: float) -> float:
-    """Log5-style combination -- duplicated from ``nba.sim.engine`` (same
+    """Log5-style combination -- duplicated from ``research.sim.engine`` (same
     one-line formula; kept local so this module never imports a private
     helper from another module)."""
     if league_avg_ppp <= 0:
@@ -522,7 +522,7 @@ def simulate_game_with_players(
     home_assisted_fg_rate: float = DEFAULT_ASSISTED_FG_RATE,
     away_assisted_fg_rate: float = DEFAULT_ASSISTED_FG_RATE,
 ) -> PlayerGameSimResult:
-    """Team possession sim (identical shape to ``nba.sim.engine.simulate_game``)
+    """Team possession sim (identical shape to ``research.sim.engine.simulate_game``)
     plus per-player points, rebounds, and assists attribution. Deterministic
     given ``seed``. ``home_assisted_fg_rate``/``away_assisted_fg_rate`` are
     each team's as-of "fraction of made FG that are assisted" (see

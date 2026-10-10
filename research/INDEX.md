@@ -120,6 +120,41 @@ its own pytest process (torch/LightGBM OpenMP clash), as before.
 | `nba/stack/scoring.py` | `research/stack/scoring.py` | 55 | ROUTER_V2/stack: routes_draft only, none active; daily.predict imports frozen/populate lazily today | `tests/research/stack/test_router.py` |
 | `nba/stack/threshold.py` | `research/stack/threshold.py` | 114 | ROUTER_V2/stack: routes_draft only, none active; daily.predict imports frozen/populate lazily today | `tests/research/stack/test_routing_stack.py` |
 
+## Moved by the Wave A follow-ups (2026-10-10)
+
+The three cuts listed in `docs/NEXT_SESSION.md` ("Wave A follow-ups"), one change each, each gated by
+ruff / mypy / the layering test / the full suite / a 20-date replay (hash in `docs/DECISIONS.md`).
+Line counts are at the time of the move.
+
+### Cut 1: the rung ladder (win-probability rungs 0-3)
+
+`GateFailure`, `evaluate_gate`, `load_tolerances` and the tolerances path left `model_gate` for the new live
+module `nba/registry/gate.py` (`nba/registry/ops.py` and `nba/registry/__main__.py` import it from there;
+`research/registry/model_gate.py` re-exports the names). With that edge cut, the ladder that was anchored to
+it moved. The production win-probability model is injury-Elo; the ladder is kept as the CI `smoke-backtest`
+and `model-gate` fixture run (`make smoke`, `make gate`, now `python -m research.eval` /
+`python -m research.registry.model_gate`).
+
+| old path | new path | lines | verdict (ledger rows / docs) | tests in CI |
+|---|---|---|---|---|
+| `nba/registry/model_gate.py` | `research/registry/model_gate.py` | 201 (141 left; 60 moved to `nba/registry/gate.py`) | CI model-gate: fixture ladder vs. committed baseline | `tests/research/registry/test_model_gate.py` (the comparison itself: `tests/registry/test_gate.py`) |
+| `nba/eval/__main__.py` | `research/eval/__main__.py` | 134 | rung-ladder entrypoint; `make smoke`/`backtest`/`report` | `tests/research/eval/test_eval_cli.py`, `tests/registry/test_smoke_guard.py` |
+| `nba/eval/run.py` | `research/eval/run.py` | 397 | rung-ladder harness (rungs 0-3, walk-forward + frozen holdout) | `tests/research/eval/test_eval_entrypoint.py`, `tests/research/eval/test_holdout_sequential_eval.py` |
+| `nba/eval/report.py` | `research/eval/report.py` | 165 | rung-ladder report.md | `tests/research/eval/test_eval_entrypoint.py` |
+| `nba/eval/slices.py` | `research/eval/slices.py` | 65 | rung-ladder slice masks; not on the task list, moved because `run.py` was its only importer | `tests/research/features/test_coldstart_player_rates.py` |
+| `nba/models/rung1_logistic.py` | `research/models/rung1_logistic.py` | 63 | rung 1 | `tests/ml/test_models_contract.py`, `tests/ml/test_game_context_features.py` (mixed files, import rewritten) |
+| `nba/models/rung2_gbm.py` | `research/models/rung2_gbm.py` | 103 | rung 2 | same, plus `tests/research/eval/test_holdout_sequential_eval.py` |
+| `nba/models/rung3_sim.py` | `research/models/rung3_sim.py` | 140 | rung 3 (possession sim; no win-prob value, T061-T064) | `tests/research/models/test_rung3_sim.py` |
+| `nba/sim/engine.py` | `research/sim/engine.py` | 190 | possession Monte Carlo (T001-T033, T061-T064) | `tests/research/sim/test_sim_engine.py`, `tests/research/sim/test_rung4_learned_heads.py` |
+| `nba/sim/possession_model.py` | `research/sim/possession_model.py` | 120 | possession outcome model (same) | `tests/research/sim/test_sim_possession_model.py` |
+| `nba/features/possession_features.py` | `research/features/possession_features.py` | 310 | rung-3 / sim features | `tests/research/features/test_possession_features.py` |
+| `nba/features/player_features.py` | `research/features/player_features.py` | 130 | cold-start flags for the ladder's slices | `tests/research/features/test_coldstart_player_rates.py` |
+| `nba/coldstart/config.py` | `research/coldstart/config.py` | 85 | `ColdStartConfig` (cold-start threshold); `nba/coldstart/__init__.py` no longer re-exports it | `tests/research/features/test_coldstart_player_rates.py` |
+
+Left in `nba/` on purpose: `nba/registry/smoke_guard.py` (no import of the ladder; it only reads the report
+file `make smoke` writes; its test runs the ladder from `research.eval`) and the
+`nba/registry/model_gate_config.yaml` tolerances that `nba/registry/gate.py` reads.
+
 ## Deleted (the one DELETE)
 
 | path | lines | why |
@@ -135,12 +170,6 @@ code change on a live module. Each is one Wave-B-style edge cut away.
 
 | module (still in nba/) | lines | anchored by | the cut that frees it |
 |---|---|---|---|
-| `nba/registry/model_gate.py` | 201 | `nba/registry/ops.py` (KEEP) imports `GateFailure`, `evaluate_gate` at module top; `nba/registry/__main__.py` imports `load_tolerances`; CI `model-gate` job and `make gate` run it | move `GateFailure`/`evaluate_gate`/`load_tolerances` (pure comparison, ~60 lines) into `nba/registry/ops.py` or a new `nba/registry/gate.py`; then `model_gate` (the fixture-ladder runner) leaves with the ladder |
-| `nba/eval/__main__.py`, `nba/eval/run.py`, `nba/eval/report.py` | 696 | `model_gate` imports `load_config` and `run_experiment`; CI `smoke-backtest` (`make smoke-check`) runs `python -m nba.eval`; `tests/ml/test_eval_cli.py`, `test_eval_entrypoint.py`, `test_holdout_sequential_eval.py` | same cut; then re-point `make smoke`/`backtest`/`report` and CI to `python -m research.eval` |
-| `nba/models/rung1_logistic.py`, `rung2_gbm.py`, `rung3_sim.py` | 306 | `nba/eval/run.py` (the ladder) | leave with the ladder |
-| `nba/sim/engine.py`, `nba/sim/possession_model.py` | 310 | `nba/models/rung3_sim.py`; `research/sim/*` and `research/models/rung4_stepheads.py` import them (fine: research -> nba) | leave with the ladder |
-| `nba/features/possession_features.py`, `nba/features/player_features.py` | 440 | `nba/eval/run.py` | leave with the ladder |
-| `nba/coldstart/config.py` | 85 | `nba/features/player_features.py` and `nba/coldstart/__init__.py` | leave with the ladder |
 | `nba/props/pts_tail.py` | 121 | `nba/eval/lower_tail_eval.py` (KEEP, shadow arm lt) and `nba/eval/f9b_young_pick.py` (F9b, in flight) import `raw_quantiles` | `raw_quantiles` is a live utility: move it into `nba/props/lower_tail.py`, then archive the rest with `research/eval/pts_tail_eval.py` |
 | `nba/stack/oof.py`, `nba/stack/__init__.py` | 195 | `nba/eval/context_residual_eval.py` (KEEP, production backtest) imports `write_oof` lazily behind `--write-oof`; `FROZEN_SEASON` is re-exported by `research/stack/__init__.py` | drop the `--write-oof` flag from the production backtest (the OOF store only fed routing), then move both |
 | `nba/parlay/independence_check.py`, `nba/parlay/joint_eval.py` | 1,135 | in the live closure: `nba/parlay/__main__.py` and `nba/daily/report.py` import them | not Wave A material at all; Appendix A's RESEARCH mark is wrong while the parlay CLI exposes them |
@@ -208,5 +237,6 @@ first (a `tests/research/conftest.py` importing lightgbm segfaulted it, so there
 the 70% ratchet measured on the same code as before; ruff `src`/`known-first-party` and mypy `files` include
 `research`, with `research.registry.*` and `research.parlay.*` strict as their `nba` homes were.
 `Makefile`: `lint` covers `research/`; `colab-*` targets call `python -m research.colab`. `.pre-commit-config.yaml`
-mypy runs on both trees. `Dockerfile` copies `research/`. `python -m nba.eval` / `make smoke` / `make gate`
-are unchanged (the ladder has not moved; see above).
+mypy runs on both trees. `Dockerfile` copies `research/`. `make smoke`, `make backtest`, `make report` and `make gate` call
+`python -m research.eval` / `python -m research.registry.model_gate` since the Wave A follow-up cut 1; CI reaches
+them through those targets, so `.github/workflows/ci.yml` is unchanged.

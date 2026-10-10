@@ -6,7 +6,7 @@ paired-bootstrap comparison against season-average / last-10-average
 baselines -> ``prop_predictions`` rows + ``report.md``.
 
 Design note on "walk-forward": unlike the win-probability rungs in
-``nba/eval/run.py`` (which retrain model parameters per fold), nothing
+``research/eval/run.py`` (which retrain model parameters per fold), nothing
 here is fit from data in the ML sense -- every feature is already a
 strictly-prior SQL window aggregate (see ``nba.props.minutes``,
 ``research.props.stat_models``, ``nba.props.baselines``), and shrinkage

@@ -3,14 +3,14 @@
 CLAUDE.md architecture ladder, rung 3: "Possession Monte Carlo sim, one
 logistic/GBM head per step ... Full-game distributions, player lines."
 This first version is scoped to the team-level game head only (win prob /
-margin / total) -- see ``nba/sim/engine.py``'s module docstring for the
-possession-outcome model and ``nba/features/possession_features.py`` for
+margin / total) -- see ``research/sim/engine.py``'s module docstring for the
+possession-outcome model and ``research/features/possession_features.py`` for
 the as-of team ratings it consumes. Per-player shooter/zone/assist heads
 are a later milestone.
 
 Unlike rungs 1-2, this rung has no trainable parameters fit from
 ``(X, y)`` -- all the "fitting" already happened upstream, as-of, inside
-``nba.features.possession_features`` (the shrunk off/def ratings). ``fit``
+``research.features.possession_features`` (the shrunk off/def ratings). ``fit``
 here is therefore a light bookkeeping no-op (records how many training
 games were available, for ``get_config``), consistent with the
 3-method contract (every rung still implements ``fit``/``predict``/
@@ -24,13 +24,18 @@ import hashlib
 import numpy as np
 import polars as pl
 
-from nba.features.possession_features import PACE_DEFAULT
 from nba.models.base import RungModelBase
-from nba.sim.engine import DEFAULT_HOME_PPP_BONUS, DEFAULT_PACE_SD, GameSimResult, simulate_game
+from research.features.possession_features import PACE_DEFAULT
+from research.sim.engine import (
+    DEFAULT_HOME_PPP_BONUS,
+    DEFAULT_PACE_SD,
+    GameSimResult,
+    simulate_game,
+)
 
 #: Feature columns this rung expects on every row of ``df`` passed to
 #: ``predict``/``simulate_full`` -- see
-#: ``nba.features.possession_features.build_possession_matchup_features``.
+#: ``research.features.possession_features.build_possession_matchup_features``.
 POSSESSION_SIM_FEATURE_COLUMNS: list[str] = [
     "home_off_rtg_prior",
     "home_def_rtg_prior",
@@ -44,7 +49,7 @@ POSSESSION_SIM_FEATURE_COLUMNS: list[str] = [
 #: League-average PPP fallback if a row is somehow missing the column
 #: entirely (e.g. a caller passing a bare toy DataFrame in a unit test
 #: without joining ``build_possession_matchup_features``) -- matches
-#: ``nba.features.possession_features.LEAGUE_AVG_PPP_DEFAULT``.
+#: ``research.features.possession_features.LEAGUE_AVG_PPP_DEFAULT``.
 _LEAGUE_AVG_PPP_FALLBACK = 1.146
 
 
@@ -135,6 +140,6 @@ class PossessionSimRung(RungModelBase):
             "n_train_games": self.n_train_games_,
             "feature_columns": POSSESSION_SIM_FEATURE_COLUMNS,
             "outcome_model": "exponential-tilt of empirical league possession-outcome shape "
-            "(see nba.sim.possession_model); expected PPP combined log5-style from "
-            "as-of shrunk off/def ratings (nba.features.possession_features)",
+            "(see research.sim.possession_model); expected PPP combined log5-style from "
+            "as-of shrunk off/def ratings (research.features.possession_features)",
         }

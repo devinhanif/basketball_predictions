@@ -2,7 +2,7 @@
 
 train (per fold) -> predict (held-out date) -> aggregate out-of-fold
 predictions -> metrics + slices + paired bootstrap ladder comparisons ->
-report.md -> registry logging. Entry point: ``python -m nba.eval``.
+report.md -> registry logging. Entry point: ``python -m research.eval``.
 """
 
 from __future__ import annotations
@@ -27,25 +27,25 @@ from nba.eval.metrics import (
     log_loss,
     paired_bootstrap_compare,
 )
-from nba.eval.slices import (
-    cold_start_bucket_slice,
-    favorite_underdog_slices,
-    rest_slices,
-    season_phase_slices,
-)
 from nba.eval.walkforward import (
     make_walk_forward_folds,
     split_frozen_holdout,
     walk_forward_data_sufficiency_note,
 )
-from nba.features.player_features import build_game_cold_start_flags
-from nba.features.possession_features import build_possession_matchup_features
 from nba.features.team_features import build_matchup_features
 from nba.models.base import RungModel
 from nba.models.rung0_baselines import EloBaseline, HomeCourtBaseline
-from nba.models.rung1_logistic import LogisticRung
-from nba.models.rung2_gbm import LightGBMRung
-from nba.models.rung3_sim import PossessionSimRung
+from research.eval.slices import (
+    cold_start_bucket_slice,
+    favorite_underdog_slices,
+    rest_slices,
+    season_phase_slices,
+)
+from research.features.player_features import build_game_cold_start_flags
+from research.features.possession_features import build_possession_matchup_features
+from research.models.rung1_logistic import LogisticRung
+from research.models.rung2_gbm import LightGBMRung
+from research.models.rung3_sim import PossessionSimRung
 
 #: Ladder order: each entry is compared against the *previous* entry (per
 #: CLAUDE.md "a rung is kept only if it beats the previous on walk-forward
@@ -358,7 +358,7 @@ def run_experiment(
 
     # Rung 3 (possession sim) needs true as-of per-possession team ratings,
     # not the box-score proxies ``build_matchup_features`` carries for
-    # rungs 0-2 -- see nba/features/possession_features.py. Left-joined so
+    # rungs 0-2 -- see research/features/possession_features.py. Left-joined so
     # rungs 0-2's feature set/behavior is completely unchanged by this.
     poss_feats = build_possession_matchup_features(con)
     matchup_df = matchup_df.join(poss_feats, on="game_id", how="left")

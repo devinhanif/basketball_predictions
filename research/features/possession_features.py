@@ -27,7 +27,7 @@ from nba.coldstart.shrinkage import shrink_rate
 #: team's own observed rate dominates the league-average prior. Not tuned
 #: by walk-forward CV yet (CLAUDE.md flags ``k`` as "tunable by walk-forward
 #: CV"); a documented, round default, same spirit as
-#: ``nba.coldstart.config.DEFAULT_PSEUDO_COUNTS``.
+#: ``research.coldstart.config.DEFAULT_PSEUDO_COUNTS``.
 POSSESSION_RATING_PSEUDO_COUNT = 300.0
 
 #: Fallback league-average points-per-possession, used only when there is
@@ -291,7 +291,7 @@ def build_possession_matchup_features(con: duckdb.DuckDBPyConnection) -> pl.Data
 
     Meant to be left-joined onto ``nba.features.team_features.
     build_matchup_features``'s output by ``game_id`` -- see
-    ``nba.eval.run.run_experiment``. Carries only ``game_id`` plus the new
+    ``research.eval.run.run_experiment``. Carries only ``game_id`` plus the new
     columns (no ``game_date``/``season``/etc.) to avoid clobbering columns
     already present on the matchup frame it's joined into.
     """

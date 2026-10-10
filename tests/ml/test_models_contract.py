@@ -9,8 +9,8 @@ import polars as pl
 import pytest
 
 from nba.models.rung0_baselines import ClosingLineStub, EloBaseline, HomeCourtBaseline
-from nba.models.rung1_logistic import LogisticRung
-from nba.models.rung2_gbm import LightGBMRung
+from research.models.rung1_logistic import LogisticRung
+from research.models.rung2_gbm import LightGBMRung
 
 
 def _toy_train() -> tuple[pl.DataFrame, np.ndarray]:

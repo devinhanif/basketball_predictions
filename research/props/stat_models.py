@@ -7,7 +7,7 @@ Points = attempts (frequency) x make rate and value (severity)."
 Schema note / documented proxy: ``player_game_stats`` has no
 ``fga``/``fta`` (attempts) columns and the ``possessions`` table is empty
 (the play-by-play parser is a separate, not-yet-built milestone -- see
-``nba/features/player_features.py`` for the same constraint). "Attempts"
+``research/features/player_features.py`` for the same constraint). "Attempts"
 therefore can't be observed directly. Points are decomposed instead into
 an **implied scoring-event count** (frequency) and a **value per event**
 (severity), both derived from exactly-known box-score fields (``pts``,

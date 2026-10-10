@@ -3,7 +3,7 @@ Phase 2 ask: "let us test the hypothesis 'the model's edge concentrates in
 high-volatility players'").
 
 Mirrors the win-probability cold-start-bucket pattern in
-``nba.eval.slices.cold_start_bucket_slice`` / ``nba.eval.report``, but keyed
+``research.eval.slices.cold_start_bucket_slice`` / ``research.eval.report``, but keyed
 on a player's own recent **stat volatility** rather than career possession
 count, and scoped to ``nba/props/`` (this package does not import or modify
 ``nba.eval``).
