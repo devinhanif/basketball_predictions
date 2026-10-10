@@ -123,3 +123,6 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - 21:20: the "returning teammate" star effect is a T-30 fact, not a T-60 one (the T-60 flag identifies a player who then plays only
   16.5% of the time; star effect under it −0.16, CI spans 0). No rule frozen; candidate for the T-30 arm live. Day closed: every
   question of the day answered under a rule or a measured gate.
+- 21:40: Bluesky probe denied twice by the session's permission layer (outbound curl). Run it yourself when convenient:
+  `curl -s "https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=NBA%20reporter&limit=8"` and paste the handles, or
+  allow network calls for this session. Facts store (knowledge-graph backbone) is being built by the archivist.
