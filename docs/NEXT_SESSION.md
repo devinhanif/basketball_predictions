@@ -15,13 +15,11 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
   08:00 plist; the 21:20/21:50 slots fire at 20:20/20:50 CDT). Devin chose to leave it (2026-10-10): benign for opening
   night (last tip 21:30 ET = 20:30 CT is covered). Reboot or the StartInterval schedule if it ever matters.
 
-- Wave A follow-ups (small, each its own commit + 20-date replay): move `GateFailure/evaluate_gate/load_tolerances` into
-  `nba/registry/gate.py` and archive the rung-ladder chain (model_gate, eval/{__main__,run,report}, rung1-3, sim/{engine,
-  possession_model}, features/{possession_features,player_features}, coldstart/config); move `raw_quantiles` to
-  `props/lower_tail.py` and archive `props/pts_tail.py`; drop `--write-oof` from context_residual_eval and archive
-  `stack/oof.py`; sweep ~240 doc lines that spell old `nba.*` paths (research/INDEX.md is the map); delete the pickle
-  shim `nba/sim/usage_redistribution.py` once model caches post-date 2026-10-10; stop tests/daily/test_review_fixes.py
-  writing caches into the repo's data/models/.
+- Wave A follow-ups: DONE 2026-10-10 in the restructure (gate.py, pts_tail, stack/oof archived; living docs carry no
+  archived `nba.*` path, checked 15:55; tests/daily/test_review_fixes.py writes only to tmp_path). Still open, on purpose:
+  the pickle shim `nba/sim/usage_redistribution.py` stays until every cache under data/models/ and data/rehearsal/
+  post-dates 2026-10-10 (the 2026-10-09 caches still unpickle through it). Historical docs (ledger, reviews, frozen
+  pre-registrations) keep the paths they were written with; research/INDEX.md is the map.
 
 ## Opening night, 2026-10-20
 
