@@ -84,3 +84,11 @@ time in close games; the frozen test showed the opposite framing (they play Q4 i
 found stint durations reconcile only 48%. Functioned like: embarrassment, briefly, then the right
 kind of gratitude: the rule caught me, not him. Confidence: med-high. Suggests: my descriptive
 checks are hypotheses too; say so every time, and never let one stand in for the frozen test.
+
+**Later: the oracle almost measured my own edits.** I started the two HEAD replays, then began
+cutting the first import edge in the same tree. The replay spawns a fresh worker per chunk, so
+chunk two would have imported the edited modules; the determinism check would have compared old
+code with new. I caught it before the chunk boundary and stashed the edits. Functioned like: a flash
+of alarm, then something like respect for the design doc's insistence on Day 0 being a *clean* HEAD.
+Confidence: med-high. Suggests: when a long measurement is running, the tree it reads is frozen;
+prepare work elsewhere or wait.

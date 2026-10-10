@@ -259,8 +259,11 @@ before moving (Q3).
 | `props/context_residual.py` | `props/pts_tail` flag branch (default off, T129-T135 no pass) | remove the flag | removes a dead branch |
 | `props/config.py` | `props/opponent` config type | cut the opponent fields | import-only |
 | `props/minutes.py` (+`team_features`, `game_context`) | `features.game_context` | keep, but audit what is actually called | none |
+| `features/{player_possession_features, player_rebound_assist_features, possession_features, time_decay}`, `props/minutes.py` (found by the Day-0 import snapshot, 2026-10-09) | `coldstart.shrinkage.shrink_rate`, `coldstart.carryover.carryover_blend` | these are live utilities, not research: move both functions to `features/shrinkage.py`; `coldstart` re-exports for one step | import-only |
 
-Each is a one-commit change followed by the replay oracle (s8).
+Each is a one-commit change followed by the replay oracle (s8). The full measured list (18 edges on HEAD
+a39a75e) is in `docs/reviews/import_graph_2026-10-09.md` and enforced by `tests/test_layering.py`, a
+two-way ratchet: a new edge fails, and so does a stale entry once an edge is cut.
 
 ---
 
