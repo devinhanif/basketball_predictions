@@ -1,0 +1,641 @@
+{
+ "status": "STOPPED_AT_GATE",
+ "sha256": "65fced234352f2cbf1f154add6f5c25e7014401bf9295cd852af3973c15f4283",
+ "git_sha": "ca1379b52c936d8403608993d43fec99c6f29320",
+ "seeds": {
+  "sim": 0,
+  "bootstrap": 0,
+  "n_paths": 400,
+  "n_boot": 2000
+ },
+ "tests": [
+  {
+   "test": "1_stints_coverage",
+   "ok": true
+  },
+  {
+   "test": "2_pf_nonnull",
+   "ok": true
+  },
+  {
+   "test": "3_possessions_nonnull",
+   "ok": true
+  },
+  {
+   "test": "4_starter_games",
+   "ok": true
+  },
+  {
+   "test": "5a_missingness_gap",
+   "ok": false
+  },
+  {
+   "test": "5b_planted",
+   "ok": true
+  },
+  {
+   "test": "5c_m2_reproduces",
+   "ok": true
+  }
+ ],
+ "audit": [
+  {
+   "col": "vac_min",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.0013178486121406803
+  },
+  {
+   "col": "vac_min",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.0008637443316778234
+  },
+  {
+   "col": "vac_min",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0006582195162086556
+  },
+  {
+   "col": "vac_min",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.001302340265993133
+  },
+  {
+   "col": "min10",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.0
+  },
+  {
+   "col": "min10",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.0
+  },
+  {
+   "col": "min10",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0
+  },
+  {
+   "col": "min10",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0
+  },
+  {
+   "col": "starter10",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.0
+  },
+  {
+   "col": "starter10",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.0
+  },
+  {
+   "col": "starter10",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0
+  },
+  {
+   "col": "starter10",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0
+  },
+  {
+   "col": "pf",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.0
+  },
+  {
+   "col": "pf",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.0
+  },
+  {
+   "col": "pf",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0
+  },
+  {
+   "col": "pf",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0
+  },
+  {
+   "col": "habit_history(k=0)",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.015155259039617824
+  },
+  {
+   "col": "habit_history(k=0)",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.007125890736342043
+  },
+  {
+   "col": "habit_history(k=0)",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.004484120454171466
+  },
+  {
+   "col": "habit_history(k=0)",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0020127076838075695
+  },
+  {
+   "col": "foul_rate_history",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.0
+  },
+  {
+   "col": "foul_rate_history",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.0
+  },
+  {
+   "col": "foul_rate_history",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0
+  },
+  {
+   "col": "foul_rate_history",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0
+  },
+  {
+   "col": "stint_labels(sumY=0)",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.057902973395931145
+  },
+  {
+   "col": "stint_labels(sumY=0)",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 5.398402072986396e-05
+  },
+  {
+   "col": "stint_labels(sumY=0)",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0
+  },
+  {
+   "col": "stint_labels(sumY=0)",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0
+  },
+  {
+   "col": "foul_timing_pbp(fallback)",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.005518491063339099
+  },
+  {
+   "col": "foul_timing_pbp(fallback)",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.01608723817749946
+  },
+  {
+   "col": "foul_timing_pbp(fallback)",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.018882672371235806
+  },
+  {
+   "col": "foul_timing_pbp(fallback)",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.02213978452188326
+  },
+  {
+   "col": "pretip_margin_mu",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.0
+  },
+  {
+   "col": "pretip_margin_mu",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.0
+  },
+  {
+   "col": "pretip_margin_mu",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0
+  },
+  {
+   "col": "pretip_margin_mu",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0
+  },
+  {
+   "col": "actual_margin_path",
+   "bucket": "[0,10)",
+   "n": 12141,
+   "null_rate": 0.0
+  },
+  {
+   "col": "actual_margin_path",
+   "bucket": "[10,20)",
+   "n": 18524,
+   "null_rate": 0.0
+  },
+  {
+   "col": "actual_margin_path",
+   "bucket": "[20,30)",
+   "n": 24308,
+   "null_rate": 0.0
+  },
+  {
+   "col": "actual_margin_path",
+   "bucket": "[30,inf)",
+   "n": 25339,
+   "null_rate": 0.0
+  }
+ ],
+ "max_gap_pp_by_col": {
+  "vac_min": 0.06596290959320247,
+  "min10": 0.0,
+  "starter10": 0.0,
+  "pf": 0.0,
+  "habit_history(k=0)": 1.3142551355810255,
+  "foul_rate_history": 0.0,
+  "stint_labels(sumY=0)": 5.790297339593114,
+  "foul_timing_pbp(fallback)": 1.6621293458544164,
+  "pretip_margin_mu": 0.0,
+  "actual_margin_path": 0.0
+ },
+ "gate": {
+  "1_stints_coverage": {
+   "ok": true,
+   "detail": {
+    "2022": {
+     "games": 1320,
+     "with_stints": 1320,
+     "share": 1.0
+    },
+    "2023": {
+     "games": 1318,
+     "with_stints": 1318,
+     "share": 1.0
+    },
+    "2024": {
+     "games": 1315,
+     "with_stints": 1315,
+     "share": 1.0
+    }
+   }
+  },
+  "2_pf_nonnull": {
+   "ok": true,
+   "detail": {
+    "pf_nonnull_share": 1.0,
+    "pbp_timed_share": 0.9829034407271688,
+    "fallback_share": 0.017096559272831158
+   }
+  },
+  "3_possessions_nonnull": {
+   "ok": true,
+   "detail": {
+    "share": 1.0,
+    "n": 785039
+   }
+  },
+  "4_starter_games": {
+   "ok": true,
+   "detail": {
+    "starter_games": 39530
+   }
+  },
+  "5a_missingness_gap": {
+   "ok": false,
+   "detail": {
+    "max_gap_pp_by_col": {
+     "vac_min": 0.06596290959320247,
+     "min10": 0.0,
+     "starter10": 0.0,
+     "pf": 0.0,
+     "habit_history(k=0)": 1.3142551355810255,
+     "foul_rate_history": 0.0,
+     "stint_labels(sumY=0)": 5.790297339593114,
+     "foul_timing_pbp(fallback)": 1.6621293458544164,
+     "pretip_margin_mu": 0.0,
+     "actual_margin_path": 0.0
+    }
+   },
+   "audit": [
+    {
+     "col": "vac_min",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.0013178486121406803
+    },
+    {
+     "col": "vac_min",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.0008637443316778234
+    },
+    {
+     "col": "vac_min",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0006582195162086556
+    },
+    {
+     "col": "vac_min",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.001302340265993133
+    },
+    {
+     "col": "min10",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.0
+    },
+    {
+     "col": "min10",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.0
+    },
+    {
+     "col": "min10",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0
+    },
+    {
+     "col": "min10",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0
+    },
+    {
+     "col": "starter10",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.0
+    },
+    {
+     "col": "starter10",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.0
+    },
+    {
+     "col": "starter10",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0
+    },
+    {
+     "col": "starter10",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0
+    },
+    {
+     "col": "pf",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.0
+    },
+    {
+     "col": "pf",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.0
+    },
+    {
+     "col": "pf",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0
+    },
+    {
+     "col": "pf",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0
+    },
+    {
+     "col": "habit_history(k=0)",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.015155259039617824
+    },
+    {
+     "col": "habit_history(k=0)",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.007125890736342043
+    },
+    {
+     "col": "habit_history(k=0)",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.004484120454171466
+    },
+    {
+     "col": "habit_history(k=0)",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0020127076838075695
+    },
+    {
+     "col": "foul_rate_history",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.0
+    },
+    {
+     "col": "foul_rate_history",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.0
+    },
+    {
+     "col": "foul_rate_history",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0
+    },
+    {
+     "col": "foul_rate_history",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0
+    },
+    {
+     "col": "stint_labels(sumY=0)",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.057902973395931145
+    },
+    {
+     "col": "stint_labels(sumY=0)",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 5.398402072986396e-05
+    },
+    {
+     "col": "stint_labels(sumY=0)",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0
+    },
+    {
+     "col": "stint_labels(sumY=0)",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0
+    },
+    {
+     "col": "foul_timing_pbp(fallback)",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.005518491063339099
+    },
+    {
+     "col": "foul_timing_pbp(fallback)",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.01608723817749946
+    },
+    {
+     "col": "foul_timing_pbp(fallback)",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.018882672371235806
+    },
+    {
+     "col": "foul_timing_pbp(fallback)",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.02213978452188326
+    },
+    {
+     "col": "pretip_margin_mu",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.0
+    },
+    {
+     "col": "pretip_margin_mu",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.0
+    },
+    {
+     "col": "pretip_margin_mu",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0
+    },
+    {
+     "col": "pretip_margin_mu",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0
+    },
+    {
+     "col": "actual_margin_path",
+     "bucket": "[0,10)",
+     "n": 12141,
+     "null_rate": 0.0
+    },
+    {
+     "col": "actual_margin_path",
+     "bucket": "[10,20)",
+     "n": 18524,
+     "null_rate": 0.0
+    },
+    {
+     "col": "actual_margin_path",
+     "bucket": "[20,30)",
+     "n": 24308,
+     "null_rate": 0.0
+    },
+    {
+     "col": "actual_margin_path",
+     "bucket": "[30,inf)",
+     "n": 25339,
+     "null_rate": 0.0
+    }
+   ]
+  },
+  "5b_planted": {
+   "ok": true,
+   "detail": {
+    "planted_same_game_inputs": true,
+    "planted_future_inputs": true,
+    "planted_same_game_h1_minutes_byte_identical": true
+   }
+  },
+  "5c_m2_reproduces": {
+   "ok": true,
+   "detail": {
+    "n_matched": 55202,
+    "n_stored": 55202,
+    "max_abs_row_diff": 0.0,
+    "mean_new_2023": 3.467361509580211,
+    "mean_stored_2023": 3.467361509580211,
+    "abs_diff_2023": 0.0,
+    "mean_new_2024": 3.4304964838162335,
+    "mean_stored_2024": 3.4304964838162335,
+    "abs_diff_2024": 0.0,
+    "ok": true
+   }
+  },
+  "all_ok": false
+ },
+ "unstated_details": [
+  "Slot label Y_pt = fraction of the minute the player is on court (from stints); the simulation draws Bernoulli(P(on)) per slot. Training uses the fractional label.",
+  "Roles: starter = as-of starter10 >= 0.5; first bench = min10 >= 12 (production ROTATION_MIN40 value); deep bench = the rest or NaN.",
+  "Coach-season = (team_id, season) (team_coaches has no dates). The coach-season role profile is the plain mean of Y over prior player-games of that role in that team-season, falling back to the league-wide role profile over strictly earlier dates when the team-season has no prior row of the role, and to 0.5 if the league has none.",
+  "Habit window = last 10 played games with the same team; the habit and the profile are regulation-slot quantities. Overtime slot habit = mean of the habit over regulation slots 43-47. P(on) clipped to [1e-4, 1-1e-4] before the logit.",
+  "Foul rate: per-minute, last 40 played games (any team), shrunk toward the training-window league rate (pf / minutes over all played rows before the block) with pseudo-count 300 minutes. Fouls so far are capped at 6 (cell 6 = fouled out or about to).",
+  "Foul times: personal fouls (Foul events excluding technicals) from play-by-play, placed in the one-minute slot containing them; a player-game whose parsed count differs from pf (or with no pbp file) uses the declared fallback: pf spread over his on-court slots in proportion to Y; the fallback share is reported. Cell index = floor(fouls so far).",
+  "Score margin at a slot start (training labels and H2) = score_diff of the last possession starting at or before the slot start, oriented to the player's team; 0 before the first.",
+  "Pre-tip margin: Normal(mu, sd) with sd = sd of the final home margin over all games before the block, mu = sd * Phi^-1(p_home) from the OOF rung0 injury-Elo p (game_rows parquet); 2022 games (no OOF p, used only to build props-training features) use the as-of MOV-Elo expected margin of the home team instead.",
+  "Simulated margin = Brownian motion with drift mu/48 per slot and total variance sd^2 over the game (equivalent to a Brownian bridge to the final margin); margin used at a slot is its value at the slot start. Overtime occurs in a path iff |final margin| < 0.5; its margin is held at 0 (bucket < 10); a single overtime at most.",
+  "H0 (habit only) has no margin and no foul state, hence no overtime slots.",
+  "H2 (oracle) uses the actual margin path and the actual number of overtimes (<= 2).",
+  "vac_min NaN (no pre-tip report) is treated as 0 in the logistic; coefficient fit on vac_min / 10.",
+  "Fit = scipy L-BFGS-B, mean log loss over all valid training slots, zero start, maxiter 200, default tolerances, no regularisation (period intercepts of the foul and margin cells are not separately identified; only their sum is used).",
+  "mv2_pi analogue (props features) = share of the 400 paths with minutes < 0.5 * min10 (the MINUTES_V2 short-event definition).",
+  "Month blocks, MIN_TRAIN and the row set are exactly MINUTES_V2's (including 2022 warm-up blocks, simulated so the props model sees hazard features on its training rows).",
+  "Slice 'returning from 3+ games' = the player's previous played game was >= 4 team games ago in the same season (missed >= 3 team games).",
+  "PIT q10 / q90 = P(randomized PIT <= 0.10) and P(randomized PIT <= 0.90) (nominal 0.10 / 0.90); 80% coverage = P(0.10 < PIT <= 0.90), as in MINUTES_V2.",
+  "Missingness audit buckets of realised minutes: [0,10), [10,20), [20,30), [30,inf)."
+ ]
+}

@@ -133,3 +133,6 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   configs/kalshi_aliases.yaml; 11 REVIEW names (348 rows: J. Green = Jalen or Jeff on the same HOU roster; spelling variants
   Bogdanovic/Gallinari; legal first names for Bam Adebayo, Sasha Vezenkov, Bones Hyland). Say "paste AUTO" and I apply the block
   and reparse the two seasons; say which REVIEW names you accept.
+- 23:55 (needs Devin): MINUTES_HAZARD stopped at its gate (T300): the `stints` table is missing very short appearances, so the
+  on-court label is absent exactly where minutes are smallest. Recommend: approve a stints rebuild (with backup), then I
+  re-register the hazard rule as MINUTES_HAZARD_2 unchanged. Say "rebuild stints" to go, or "close" to drop the direction.

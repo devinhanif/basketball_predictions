@@ -1,0 +1,326 @@
+{
+ "1_stints_coverage": {
+  "ok": true,
+  "detail": {
+   "2022": {
+    "games": 1320,
+    "with_stints": 1320,
+    "share": 1.0
+   },
+   "2023": {
+    "games": 1318,
+    "with_stints": 1318,
+    "share": 1.0
+   },
+   "2024": {
+    "games": 1315,
+    "with_stints": 1315,
+    "share": 1.0
+   }
+  }
+ },
+ "2_pf_nonnull": {
+  "ok": true,
+  "detail": {
+   "pf_nonnull_share": 1.0,
+   "pbp_timed_share": 0.9829034407271688,
+   "fallback_share": 0.017096559272831158
+  }
+ },
+ "3_possessions_nonnull": {
+  "ok": true,
+  "detail": {
+   "share": 1.0,
+   "n": 785039
+  }
+ },
+ "4_starter_games": {
+  "ok": true,
+  "detail": {
+   "starter_games": 39530
+  }
+ },
+ "5a_missingness_gap": {
+  "ok": false,
+  "detail": {
+   "max_gap_pp_by_col": {
+    "vac_min": 0.06596290959320247,
+    "min10": 0.0,
+    "starter10": 0.0,
+    "pf": 0.0,
+    "habit_history(k=0)": 1.3142551355810255,
+    "foul_rate_history": 0.0,
+    "stint_labels(sumY=0)": 5.790297339593114,
+    "foul_timing_pbp(fallback)": 1.6621293458544164,
+    "pretip_margin_mu": 0.0,
+    "actual_margin_path": 0.0
+   }
+  },
+  "audit": [
+   {
+    "col": "vac_min",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.0013178486121406803
+   },
+   {
+    "col": "vac_min",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.0008637443316778234
+   },
+   {
+    "col": "vac_min",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0006582195162086556
+   },
+   {
+    "col": "vac_min",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.001302340265993133
+   },
+   {
+    "col": "min10",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.0
+   },
+   {
+    "col": "min10",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.0
+   },
+   {
+    "col": "min10",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0
+   },
+   {
+    "col": "min10",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0
+   },
+   {
+    "col": "starter10",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.0
+   },
+   {
+    "col": "starter10",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.0
+   },
+   {
+    "col": "starter10",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0
+   },
+   {
+    "col": "starter10",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0
+   },
+   {
+    "col": "pf",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.0
+   },
+   {
+    "col": "pf",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.0
+   },
+   {
+    "col": "pf",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0
+   },
+   {
+    "col": "pf",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0
+   },
+   {
+    "col": "habit_history(k=0)",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.015155259039617824
+   },
+   {
+    "col": "habit_history(k=0)",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.007125890736342043
+   },
+   {
+    "col": "habit_history(k=0)",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.004484120454171466
+   },
+   {
+    "col": "habit_history(k=0)",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0020127076838075695
+   },
+   {
+    "col": "foul_rate_history",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.0
+   },
+   {
+    "col": "foul_rate_history",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.0
+   },
+   {
+    "col": "foul_rate_history",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0
+   },
+   {
+    "col": "foul_rate_history",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0
+   },
+   {
+    "col": "stint_labels(sumY=0)",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.057902973395931145
+   },
+   {
+    "col": "stint_labels(sumY=0)",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 5.398402072986396e-05
+   },
+   {
+    "col": "stint_labels(sumY=0)",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0
+   },
+   {
+    "col": "stint_labels(sumY=0)",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0
+   },
+   {
+    "col": "foul_timing_pbp(fallback)",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.005518491063339099
+   },
+   {
+    "col": "foul_timing_pbp(fallback)",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.01608723817749946
+   },
+   {
+    "col": "foul_timing_pbp(fallback)",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.018882672371235806
+   },
+   {
+    "col": "foul_timing_pbp(fallback)",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.02213978452188326
+   },
+   {
+    "col": "pretip_margin_mu",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.0
+   },
+   {
+    "col": "pretip_margin_mu",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.0
+   },
+   {
+    "col": "pretip_margin_mu",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0
+   },
+   {
+    "col": "pretip_margin_mu",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0
+   },
+   {
+    "col": "actual_margin_path",
+    "bucket": "[0,10)",
+    "n": 12141,
+    "null_rate": 0.0
+   },
+   {
+    "col": "actual_margin_path",
+    "bucket": "[10,20)",
+    "n": 18524,
+    "null_rate": 0.0
+   },
+   {
+    "col": "actual_margin_path",
+    "bucket": "[20,30)",
+    "n": 24308,
+    "null_rate": 0.0
+   },
+   {
+    "col": "actual_margin_path",
+    "bucket": "[30,inf)",
+    "n": 25339,
+    "null_rate": 0.0
+   }
+  ]
+ },
+ "5b_planted": {
+  "ok": true,
+  "detail": {
+   "planted_same_game_inputs": true,
+   "planted_future_inputs": true,
+   "planted_same_game_h1_minutes_byte_identical": true
+  }
+ },
+ "5c_m2_reproduces": {
+  "ok": true,
+  "detail": {
+   "n_matched": 55202,
+   "n_stored": 55202,
+   "max_abs_row_diff": 0.0,
+   "mean_new_2023": 3.467361509580211,
+   "mean_stored_2023": 3.467361509580211,
+   "abs_diff_2023": 0.0,
+   "mean_new_2024": 3.4304964838162335,
+   "mean_stored_2024": 3.4304964838162335,
+   "abs_diff_2024": 0.0,
+   "ok": true
+  }
+ },
+ "all_ok": false
+}

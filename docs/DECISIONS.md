@@ -127,3 +127,13 @@ What: the minutes-as-hazard rule is frozen and run by the modeler (research-only
 downstream unchanged). Ledger rows drafted by the agent, appended by the main session.
 Why: Devin confirmed; gate measured on real data before the freeze; the honest prior (props gain expected small) is in the rule.
 What would reverse it: nothing above the line changes; a new question gets a new rule.
+
+## 2026-10-10 ~23:55 CT — MINUTES_HAZARD stopped at its gate; `stints` drops short appearances (needs Devin)
+What: the frozen rule (65fced23) failed its own missingness check: the on-court label from `stints` is missing for 5.8% of rows
+under 10 minutes and for none above 20 (limit 2 pp). Cause: the stints table has no row for 40% of players who played under a
+minute and 21% at 1-2 minutes. No fit was made (T300). The rule is not edited.
+Options for Devin: (a) rebuild `stints` to include short appearances (data fix with backup, like the possession-order and rebound
+flag rebuilds), then register MINUTES_HAZARD_2 with the same design; (b) register a new rule that imputes the label from box
+minutes; (c) close the direction. Claude recommends (a): a known gap in a core table should be fixed regardless of this
+experiment (F8 and F11 read stints; the T-30 arm does not).
+What would reverse it: n/a until Devin chooses.

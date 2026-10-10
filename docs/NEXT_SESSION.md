@@ -58,3 +58,8 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
   team-seasons 2022-24 (rows look shifted one season: Udoka/HOU and Griffin/MIL under 2022) and carries no mid-season changes.
   No production reader. Archivist: check the postgame "coaches" fetch's season parameter, add a game-by-game head-coach table
   (the analysis embedded a hand-built one in data/scratch/coach_allocation_2026-10-10.py), re-ingest. Not urgent.
+
+- Loose end (2026-10-10, found by the MINUTES_HAZARD gate): `stints` has no row for 40% of players who played under 1 minute and
+  21% at 1-2 minutes (0.19% at 5-10; players present reconcile to box minutes within 0.3). Archivist: find where the lineup
+  tracker or the stint builder drops end-of-game and brief substitutions, rebuild with a pre-fix backup under data/backups/,
+  re-run the lineups reconciliation, bump data_version. Devin to approve the rebuild (DECISIONS 2026-10-10 ~23:55).

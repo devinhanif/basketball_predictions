@@ -93,6 +93,29 @@ sha256. Code under `research/` only (`research/minutes/hazard.py`, `research/eva
 
 === RESULTS BELOW ===
 
-(not run)
+STOPPED AT THE GATE (run 2026-10-10 18:20 CT, sha256 65fced23 verified in code before anything ran). No model was fit and no
+H1 / H0 / H2 / props number exists. Gate detail: `reports/prereg_minutes_hazard/gate.json`, `reports/prereg_minutes_hazard.md`.
+
+| check | result |
+|---|---|
+| 1 stints coverage | pass: 1320/1320, 1318/1318, 1315/1315 games |
+| 2 pf non-null, pbp foul timing | pass: pf 100% non-null; per-slot foul times parsed for 98.29% of played player-games 2022-24, declared per-minute fallback 1.71% |
+| 3 possessions non-null | pass: 100% of 785,039 |
+| 4 starter-games | pass: 39,530 |
+| 5c M2 reproduces MINUTES_V2 | pass: 55,202/55,202 rows matched, max per-row CRPS difference 0.0; means 3.467361509580211 / 3.4304964838162335 identical to stored |
+| 5b planted same-game and future tests | pass: inputs and H1 simulated minutes byte-identical (one-game-at-a-time edit of stints, fouls, minutes, margin; every row on or after a cutoff edited) |
+| 5a missingness audit, max gap <= 2 pp | **FAIL**: input "stint labels present" is missing for 5.79% of rows with realised minutes < 10 vs 0.005% at 10-20 and 0% above (gap 5.79 pp). All other inputs <= 1.66 pp (habit history 1.31, foul-timing fallback 1.66, vac_min 0.07) |
+
+Cause (diagnostic only, run on all played rows 2022-2024, independent of the build code): the `stints` table omits players with very
+short appearances. Share of played player-games with no stint row at all: minutes < 1: 40.2%; 1-2: 21.3%; 2-5: 2.1%; 5-10: 0.19%;
+10+: 0.001%. Players who are present have stint minutes within 0.02-0.30 of boxscore minutes. So the on-court label Y is missing
+exactly where realised minutes are smallest, and the rule says a gap above 2 pp stops the experiment. The rule is not edited; any
+remedy (impute Y for absent players from boxscore minutes, drop those labels, or rebuild stints) is a new question and gets a new id.
+
+Unstated details chosen before any scoring (full list in results.json `unstated_details`, listed in `research/minutes/hazard.py`
+`UNSTATED_DETAILS`): fractional on-court label per slot; role thresholds (starter10 >= 0.5; min10 >= 12); coach-season = (team, season);
+overtime handling; H0 has no overtime; margin sd and mu mapping; 2022 mu from MOV-Elo (props-training rows only); L-BFGS maxiter 200;
+mv2_pi analogue = share of paths below 0.5 * min10; "returning from 3+ games" = missed >= 3 team games; PIT q10/q90 definitions;
+missingness buckets [0,10), [10,20), [20,30), [30,inf).
 
 Freeze: 2026-10-10 18:05 CT, commit 571c2fc, sha256 of everything above the line: 65fced234352f2cbf1f154add6f5c25e7014401bf9295cd852af3973c15f4283 (first 8: 65fced23). Verify with the awk command in the header.
