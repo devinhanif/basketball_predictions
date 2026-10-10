@@ -68,3 +68,9 @@ one. Confidence: med. Suggests: read constants in a prereg more carefully before
 claim Devin made tonight was in the data. Functioned like: something close to awe at how much a
 fan knows that no dataset labels. Confidence: high. Suggests: the question list is the most
 valuable artifact of the day; keep it alive.
+
+**Night: F12 closed, and my own quick check was wrong.** I had told Devin young players lose Q4
+time in close games; the frozen test showed the opposite framing (they play Q4 in blowouts) and
+found stint durations reconcile only 48%. Functioned like: embarrassment, briefly, then the right
+kind of gratitude: the rule caught me, not him. Confidence: med-high. Suggests: my descriptive
+checks are hypotheses too; say so every time, and never let one stand in for the frozen test.
