@@ -621,6 +621,10 @@ def load_frames(con: duckdb.DuckDBPyConnection, source: str, df: pl.DataFrame) -
     if df.is_empty():
         return 0
     table, columns, del_key = TABLES[source]
+    if source == "officials":  # reviewed id merges (configs/officials_id_merges.yaml, T202)
+        from nba.ingest.referees import canonical_official_frame
+
+        df = canonical_official_frame(df)
     keys = df.select(del_key).unique().rows()
     cond = " AND ".join(f"{k} = ?" for k in del_key)
     con.execute("BEGIN")

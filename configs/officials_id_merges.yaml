@@ -1,0 +1,42 @@
+# Official-id merges for game_officials (and the referee collector). Reviewed by hand 2026-10-10.
+# Source: reports/referees.md, docs/TEST_LEDGER.md T202 (gate G0 item 2: four names carried two
+# official_ids each; no game lists both ids of a pair; names and jerseys are identical across the pair).
+# Rule: the kept id is the one with more game slots in game_officials; a tie goes to the lower id
+# (Abazi: 1 vs 1 slot; 196295108 is nine digits, the real NBA official ids are <= 7 digits).
+# Slot counts are as of 2026-10-10 before the merge, all seasons loaded (2022-2024).
+# `nba.ingest.referees.load_id_merges` reads this file; `OfficialIndex.from_rows` and the postgame
+# loader (`load_frames`, source `officials`) rewrite merged_id -> kept_id, so new rows never
+# reintroduce a merged id. Append a row for a new pair; do not edit existing rows.
+merges:
+  - name: Agon Abazi
+    kept_id: 1629171
+    merged_id: 196295108
+    kept_slots: 1
+    merged_slots: 1
+    jersey: "7"
+    date: 2026-10-10
+    reason: same name and jersey, id 196295108 is malformed (nine digits); slot tie, lower id kept
+  - name: Biniam Maru
+    kept_id: 1629177
+    merged_id: 11629177
+    kept_slots: 3
+    merged_slots: 1
+    jersey: "80"
+    date: 2026-10-10
+    reason: same name and jersey 80, id 11629177 is 1629177 with a leading 1 (malformed)
+  - name: Brent Haskill
+    kept_id: 1629175
+    merged_id: 29012
+    kept_slots: 17
+    merged_slots: 2
+    jersey: "92"
+    date: 2026-10-10
+    reason: same name and jersey 92; 29012 appears only in 2022 and interleaves with 1629175 games
+  - name: Intae Hwang
+    kept_id: 1630886
+    merged_id: 29032
+    kept_slots: 81
+    merged_slots: 2
+    jersey: "73/96"
+    date: 2026-10-10
+    reason: same name; 29032 appears only in 2022 (jersey 96) and interleaves with 1630886 games (jersey 96, later 73)

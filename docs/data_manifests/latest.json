@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-10T14:55:55.996739+00:00",
- "data_version": "85d8a41277ce",
+ "created_at": "2026-10-10T18:32:04.642903+00:00",
+ "data_version": "d7dea7140c8f",
  "db_path": "/Users/devin/Downloads/nba-prediction/nba.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -16,8 +16,8 @@
    "files": 4
   },
   "backups": {
-   "bytes": 558399678,
-   "files": 7
+   "bytes": 603548463,
+   "files": 8
   },
   "boxscore": {
    "bytes": 39808141,
@@ -36,8 +36,8 @@
    "files": 4
   },
   "history": {
-   "bytes": 165875438,
-   "files": 7530
+   "bytes": 189450072,
+   "files": 8681
   },
   "hustle": {
    "bytes": 38425808,
@@ -60,8 +60,8 @@
    "files": 3
   },
   "kalshi": {
-   "bytes": 20896319,
-   "files": 5053
+   "bytes": 22173940,
+   "files": 5473
   },
   "lineups": {
    "bytes": 3397348,
@@ -96,8 +96,8 @@
    "files": 3954
   },
   "ops": {
-   "bytes": 127938,
-   "files": 25
+   "bytes": 161593,
+   "files": 26
   },
   "parlay": {
    "bytes": 276877,
@@ -116,12 +116,12 @@
    "files": 2
   },
   "refs": {
-   "bytes": 5530745,
-   "files": 26
+   "bytes": 6277127,
+   "files": 32
   },
   "rehearsal": {
-   "bytes": 16555214210,
-   "files": 6082
+   "bytes": 18240189650,
+   "files": 6248
   },
   "reviews": {
    "bytes": 3429244272,
@@ -869,7 +869,7 @@
     }
    },
    "date_range": {},
-   "fingerprint": "c0b24a3b991b5e38-7653069269718f80",
+   "fingerprint": "d2c4d102859e52db-9eb8445fee04c73b",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id",

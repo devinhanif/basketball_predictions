@@ -95,3 +95,63 @@ def test_remap_fills_late_ids(tmp_path: Path) -> None:
     assert con.execute(
         "SELECT crew_chief_id FROM ref_assignments ORDER BY crew_chief_id"
     ).fetchall() == [(1,), (4,)]
+
+
+# --- reviewed official-id merges (configs/officials_id_merges.yaml, T202)
+
+REAL_MERGES = {196295108: 1629171, 11629177: 1629177, 29012: 1629175, 29032: 1630886}
+
+
+def test_merge_config_is_the_four_reviewed_pairs() -> None:
+    assert r.load_id_merges() == REAL_MERGES
+
+
+def test_merge_config_rejects_chain_and_repeat(tmp_path: Path) -> None:
+    p = tmp_path / "m.yaml"
+    p.write_text("merges:\n  - {merged_id: 2, kept_id: 1}\n  - {merged_id: 3, kept_id: 2}\n")
+    try:
+        r.load_id_merges(p)
+    except ValueError as e:
+        assert "chain" in str(e)
+    else:  # pragma: no cover
+        raise AssertionError("chain not rejected")
+    p.write_text("merges:\n  - {merged_id: 2, kept_id: 1}\n  - {merged_id: 2, kept_id: 5}\n")
+    try:
+        r.load_id_merges(p)
+    except ValueError as e:
+        assert "bad" in str(e)
+    else:  # pragma: no cover
+        raise AssertionError("repeat not rejected")
+
+
+def test_index_never_returns_a_merged_id() -> None:
+    rows = [
+        (1630886, "Intae Hwang", "73  "),
+        (1630886, "Intae Hwang", "96  "),
+        (29032, "Intae Hwang", "96  "),  # minority id re-appears in a stale cache
+        (29012, "Brent Haskill", "92  "),
+        (1629175, "Brent Haskill", "92  "),
+    ]
+    idx = r.OfficialIndex.from_rows(rows)
+    assert idx.resolve("Intae Hwang", "") == 1630886  # one candidate now: no jersey needed
+    assert idx.resolve("Intae Hwang", "96") == 1630886
+    assert idx.resolve("Brent Haskill", "92") == 1629175
+    assert all(len(v) == 1 for v in idx.by_name.values())
+
+
+def test_canonical_frame_rewrites_and_keeps_other_rows() -> None:
+    import polars as pl
+
+    df = pl.DataFrame(
+        {
+            "game_id": ["a", "a", "b", "c", "c"],
+            "official_id": [29012, 5, 1629175, 29012, 1629175],  # c lists both ids (impossible)
+            "name": ["Brent Haskill", "X", "Brent Haskill", "Brent Haskill", "Brent Haskill"],
+            "jersey": ["92", "1", "92", "92", "92"],
+        }
+    )
+    out = r.canonical_official_frame(df)
+    assert out.filter(pl.col("game_id") == "a")["official_id"].to_list() == [1629175, 5]
+    assert out.filter(pl.col("game_id") == "c").height == 1  # PK-safe
+    assert out.height == 4
+    assert r.canonical_official_frame(df, {}).equals(df)  # no merges: identity

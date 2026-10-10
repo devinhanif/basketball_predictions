@@ -197,3 +197,23 @@ def test_reconciliation_runs_on_fixture() -> None:
     out = pg.shots_fga_reconciliation(con)
     assert out["team_games_compared"] == 0.0  # no shots in fixture
     assert pg.coverage(con) == []
+
+
+def test_officials_load_applies_id_merges() -> None:
+    con = build_fixture_db()
+    gid = con.execute("SELECT game_id FROM games LIMIT 1").fetchone()[0]  # type: ignore[index]
+    df = pl.DataFrame(
+        {
+            "game_id": [gid, gid],
+            "official_id": [29032, 77],
+            "name": ["Intae Hwang", "Someone Else"],
+            "jersey": ["96", "5"],
+        }
+    )
+    pg.load_frames(con, "officials", df)
+    got = con.execute(
+        "SELECT official_id FROM game_officials WHERE game_id = ? ORDER BY 1", [gid]
+    ).fetchall()
+    assert got == [(77,), (1630886,)]
+    pg.load_frames(con, "officials", df)  # idempotent
+    assert con.execute("SELECT count(*) FROM game_officials").fetchone() == (2,)

@@ -62,3 +62,20 @@
 - Pre-write backup: `data/backups/possessions_pre_order_fix_20261010T145505Z_possessions.parquet`
   (full table, 17 columns). Stale: `data/colab/possession_steps.parquet` (keyed on the old `poss_idx`) and
   any research output joined on `(game_id, poss_idx)`. Details: docs/reviews/possession_order_2026-10-10.md.
+
+## 2026-10-10 UTC - data_version d7dea7140c8f (game_officials: four duplicate official_ids merged)
+- DRAFT (committing is the main session's act). `game_officials`: 6 rows rewritten, nothing else. Four
+  officials carried two `official_id`s each (gate G0 item 2, ledger T202); the minority id of each pair
+  was replaced by the id with more game slots (tie: lower id). Agon Abazi 196295108 -> 1629171 (1 row),
+  Biniam Maru 11629177 -> 1629177 (1), Brent Haskill 29012 -> 1629175 (2), Intae Hwang 29032 -> 1630886 (2).
+  No game listed both ids of a pair. Mapping: `configs/officials_id_merges.yaml`; the collector
+  (`OfficialIndex.from_rows`) and the postgame loader (`load_frames`, source `officials`) apply it to new rows.
+- Rows 12,031 -> 12,031; games 3,953 -> 3,953; distinct ids 87 -> 83; distinct names 83 -> 83. Per-name slot counts
+  and the (game_id, name, jersey) multiset unchanged; 12,025 untouched rows hash identically before and after.
+  Every name now maps to one id and every id to one name. Update took 0.4 s under `data/ops/heavy.lock`.
+- Only `game_officials` differs in the table fingerprints between 85d8a41277ce and d7dea7140c8f.
+- Flags: none (`make data-check`: 0 flags).
+- Pre-write backup: `data/backups/game_officials_pre_id_merge_20261010T183149Z.parquet` (full table).
+  Stale: `data/refs/official_ids.json` (cache lists the old ids; canonicalised on read, refreshed on the next
+  successful `load_official_rows`) and any research output keyed on the old minority ids (only
+  `reports/referees/g0.json`, which recorded the failure).

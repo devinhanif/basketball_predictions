@@ -35,6 +35,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import duckdb
+import polars as pl
+import yaml
 
 from nba.ops.exitcodes import RC_INFORMATIONAL
 
@@ -43,6 +45,7 @@ REFS_DIR = Path(__file__).resolve().parents[2] / "data" / "refs"
 REFS_DB = REFS_DIR / "refs.duckdb"
 ID_CACHE = REFS_DIR / "official_ids.json"
 ROLES = ("crew_chief", "referee", "umpire", "alternate")
+MERGES_PATH = Path(__file__).resolve().parents[2] / "configs" / "officials_id_merges.yaml"
 
 #: City / short name as printed on the page -> NBA team_id. LA teams are split on the nickname.
 TEAM_IDS: dict[str, int] = {
@@ -200,18 +203,55 @@ def parse_assignments(html: str) -> tuple[date | None, list[Assignment]]:
 # --------------------------------------------------------------------------
 
 
+def load_id_merges(path: Path = MERGES_PATH) -> dict[int, int]:
+    """``{merged_id: kept_id}`` from ``configs/officials_id_merges.yaml``; raises if malformed.
+
+    One official had two ids in ``game_officials`` (T202). A chain (a kept id that is itself merged)
+    or a merged id listed twice is an error, not something to guess about.
+    """
+    raw = yaml.safe_load(path.read_text()) or {}
+    out: dict[int, int] = {}
+    for m in raw.get("merges", []):
+        merged, kept = int(m["merged_id"]), int(m["kept_id"])
+        if merged == kept or merged in out:
+            raise ValueError(f"bad official id merge {m!r}")
+        out[merged] = kept
+    chained = set(out) & set(out.values())
+    if chained:
+        raise ValueError(f"official id merges chain through {sorted(chained)}")
+    return out
+
+
+def canonical_official_frame(
+    df: pl.DataFrame, merges: dict[int, int] | None = None
+) -> pl.DataFrame:
+    """Rewrite merged ``official_id`` to the kept id; drop a (game_id, official_id) repeat."""
+    m = load_id_merges() if merges is None else merges
+    if not m or df.is_empty():
+        return df
+    out = df.with_columns(pl.col("official_id").replace(m))
+    return out.unique(subset=["game_id", "official_id"], keep="first", maintain_order=True)
+
+
 @dataclass
 class OfficialIndex:
     by_name: dict[str, set[int]] = field(default_factory=dict)
     by_jersey: dict[str, set[int]] = field(default_factory=dict)
 
     @classmethod
-    def from_rows(cls, rows: Sequence[tuple[int, str, str | None]]) -> OfficialIndex:
+    def from_rows(
+        cls,
+        rows: Sequence[tuple[int, str, str | None]],
+        merges: dict[int, int] | None = None,
+    ) -> OfficialIndex:
+        """Index (official_id, name, jersey); ids go through the merge table first."""
+        m = load_id_merges() if merges is None else merges
         idx = cls()
         for oid, name, jersey in rows:
-            idx.by_name.setdefault(_norm(name), set()).add(int(oid))
+            cid = m.get(int(oid), int(oid))
+            idx.by_name.setdefault(_norm(name), set()).add(cid)
             if jersey:
-                idx.by_jersey.setdefault(str(jersey).strip(), set()).add(int(oid))
+                idx.by_jersey.setdefault(str(jersey).strip(), set()).add(cid)
         return idx
 
     def resolve(self, name: str, jersey: str) -> int | None:
