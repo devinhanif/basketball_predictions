@@ -53,3 +53,5 @@ exploration, however good it looks.
 | F12 | Youth volatility = closing-lineup risk: young players with deficiencies sit in close 4th quarters | stints by period, Elo margin, seasons played | minutes spread, pts lower tail |
 | F13 | Momentum control: go-to scorer on floor bounds the score gap (blowout risk), beyond his points | possessions.score_diff, stints | win prob, minutes (blowout → short minutes) |
 | F14 | "Coach's guy": players who follow a coach/GM across teams get trusted minutes and closing time | team_coaches, rosters across seasons, stints | minutes stability, closer share |
+| F15 | Weakest-defender liability: lineup's hunted player (opp rim-share lift when he is on), decaying with development | possessions (def_players, shot_zone), seasons played | team defence, props of the hunted player's teammates |
+| F16 | Season stakes: seed-lock / play-in / tank zones from as-of standings change effort and rotations | games (standings as-of), schedule | win prob, minutes, P(play) late season |

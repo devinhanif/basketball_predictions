@@ -218,3 +218,29 @@ Devin is a Rockets fan.
   share) — and the defence's choice of "whom to let beat us" is itself predictable from the
   opponent's defensive scheme. Momentum control (F13) and defensive redistribution are the same
   idea seen from the two benches.
+
+## Defensive choices, blowouts, timeouts, bench, seeding (2026-10-09, seventh round)
+
+- **Whom the defence lets beat them:** the 2nd-highest scorer on the court, OR the opposite of the
+  team's philosophy (a three-heavy team → make them take layups), OR a volume shooter who isn't
+  Steph. In the modern NBA look at SIZING on the court: you can only switch everything with mobile
+  bigs and tall guards — but tall guards are usually deficient in half-court offence (exceptions:
+  Cade Cunningham, LaMelo Ball). *Model note:* lineup height/mobility is a pre-tip proxy for scheme.
+- **Fouling:** a bench player simply doesn't have to be as careful defensively.
+- **Last shot:** the star always takes it or makes the last pass.
+- **Hunting:** the star doesn't hunt, the TEAM does — they hunt the weakest defender in each lineup
+  (Reed Sheppard). *Data agrees:* opponents' rim-shot share vs HOU 34.3% → 38.8% with Sheppard on
+  (rookie year, 2024-25), 34.2% → 35.8% in 2025-26 (less huntable as he developed); opp ppp +0.02.
+  Hypothesis F15: a lineup's "weakest-defender" liability (opp rim share lift when he is on) as a
+  team-defence and props feature; it decays with the player's development.
+- **Timeouts** signify something: sometimes stopping momentum, sometimes a team break.
+- **Blowout rule (Devin):** "up by 25 before the end of the game, they put in the bench for good."
+  *Data:* after the gap first reaches 25 in Q4, all five starters are off on 42.9% of remaining
+  possessions (mean 1.17 starters on); at 20: 30.7% (1.68); at 15: 20.5% (2.19). The rule is real
+  and gradual. → F12 input: pre-tip P(Q4 gap ≥ 25) from Elo margin.
+- **The rest lineup / 6th man:** depends on whether the 6th man is a guard — compare Tre Jones vs
+  Bones Hyland; a guard 6th man "keeps it up".
+- **Season regime:** teams finalise the goal or coast: "if I won't win I'll be the worst; if I will,
+  where am I fighting for playoff advantage?" Seeds 1–4 get home court, 5–6 are locked in, 7–10
+  play for the 7th/8th spot. It gets less serious once the seed is locked. *Model note:* a pre-tip
+  "stakes" feature from standings: seed-lock status, play-in zone, tank zone. Hypothesis F16.
