@@ -226,3 +226,17 @@ the-odds-api.com for history, or cancel. Adapter to build either way if kept: `n
 read-only, key via `ODDS_API_KEY`, raw-first cache, pre-tip capture of `player_points/rebounds/assists/threes`
 plus `h2h/spreads/totals` for the slate, logged next to Kalshi in `nba.markets`. Never a dependency the
 daily job can fail on.
+
+## 2026-10-10 probe of the-odds-api.com (5M plan bought; 175 credits used)
+
+| Check | Result |
+|---|---|
+| Historical events, 2023-05-10 | snapshots every 5 min (22:50:40 → 22:55:40 → 23:00:40Z); 4 events |
+| Historical props, MIA@NYK 2023-05-10 (us) | 10 books (FanDuel, DraftKings, Caesars, BetOnline, BetMGM, Bovada, Barstool, BetRivers, …); 4 markets; 1,378 outcomes; cost 40 |
+| Historical game lines, same event (us) | 19 books; cost 30 |
+| Historical props, 2024-01-15 first event | 0 books: the event had already tipped at the snapshot time (not a coverage gap); game lines 10 books |
+| Historical props, NYK@PHI 2025-01-15 (us) | 7 books; 4 markets; 428 outcomes; cost 40 |
+| Live NBA h2h (us) | 46 events (preseason), 8 books; cost 1 |
+
+Credit rules confirmed: events list 1; props 10 × markets × regions (4 markets, us = 40); game lines 30.
+Props from May 2023 confirmed; 5-minute snapshots; "closest snapshot at or before the requested time".
