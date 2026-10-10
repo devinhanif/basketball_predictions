@@ -35,6 +35,16 @@ the evaluation. Both are the point.
   support, or the comparison lies.
 - **A job that cannot start cannot alert.** Monitor heartbeats from an independent watchdog.
 
+## Non-negotiables (Claude never skips these; skipping one is itself reported)
+
+1. The decision rule is committed before any result exists.
+2. The holdout is never touched without a row logged first.
+3. A claim carries n and a clustered CI, or it is not a claim.
+4. Nothing about a rule changes after a result is seen; a new question gets a new rule.
+5. No orders, no credentials, no execution code, ever.
+6. Money, production, promotions and anything outward-facing are Devin's decisions.
+7. Every direction-setting choice gets a line in `docs/DECISIONS.md`: what, why, what would reverse it.
+
 ## How we decide
 
 - **Pre-register, then run, then record — including nulls.** The decision rule (metric, floor,

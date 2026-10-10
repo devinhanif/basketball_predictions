@@ -1,0 +1,19 @@
+# Decision record
+
+Direction-setting choices, three lines each: what we chose, why, and what would reverse it. The
+ledger records what happened to each test; this records why we pointed where we pointed. Append-only;
+dated. Not for tests (ledger) or incidents (best practices).
+
+| Date | Decision | Why | What would reverse it |
+|---|---|---|---|
+| 2026-10-05 | Local DuckDB + Python, no cloud, read-only markets | cheapest possible; no employer infra; no execution risk | never on execution; cloud only if a VM passes the reachability test and saves real effort |
+| 2026-10-07 | Frozen holdout = season 2025; one logged touch per model | three test seasons cannot separate close models; need one clean confirmation | rollover to 2026 once ≥20 games are played |
+| 2026-10-08 | Injury report gated at tip − 60 min | the report is published on a schedule; 60 min is the latest we can rely on before every tip | evidence that a later cutoff is reliably available (T-30 lineups are a separate shadow arm) |
+| 2026-10-08 | Production = injury-Elo + context-residual; the sim is not used for props | the sim lost the fair rematch on every prop; information beat architecture | a sim variant that beats production under a frozen rule |
+| 2026-10-09 | Switch production training to real tip times | removes a train/serve mismatch found by the red team | never; proxy kept only as an option for comparisons |
+| 2026-10-09 | History starts 2019-20, not 2013 | official injury PDFs exist only from 2018-12; earlier eras would recreate the missingness leak | a leak-safe way to use earlier seasons without injury features |
+| 2026-10-09 | Score counts on integer support for every arm | continuous vs integer grids compared on integer outcomes rewards the grid for free | never |
+| 2026-10-09 | Shadow arms (int, lt, t30) logged live; 2026-27 forward log decides, under frozen rules | 2024 was seen by all of them; the live season is the only clean test | the frozen checkpoints at 30/60/120 dates |
+| 2026-10-09 | Agents in sequence (build → adversary → review → decide), one owner per directory | parallel fan-out produced swept commits and a broken pipeline | never; parallel only across non-overlapping areas |
+| 2026-10-09 | CLAUDE.md rewritten as a partnership agreement; original spec archived | the spec drove effort toward architectures the data rejected; goals are built together now | edited together whenever either of us learns something |
+| 2026-10-09 | The tool shows true odds identically after wins and losses | Devin: growth in skill feels like justification but clouds judgment | never |
