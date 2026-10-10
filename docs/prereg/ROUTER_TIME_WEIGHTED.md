@@ -77,3 +77,5 @@ Code under `research/` only (`research/eval/router_time_weighted.py`, reusing `r
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-10 16:58 CT, commit 918e03c, sha256 of everything above the line: bb633f7a3176f7cc3709a9c7e8581461eacd1b04f06e293dfbd8998138213c17 (first 8: bb633f7a). Verify with the awk command in the header.

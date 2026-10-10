@@ -81,3 +81,5 @@ ci_hi]`; `[col, bucket, null_rate]`; `[test, ok]` for checks 1-5; seeds, SHA, sh
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-10 16:58 CT, commit 918e03c, sha256 of everything above the line: 7e6fd8f019985032b712b71fb275f4bf6841862a09e8850dfd1c11913cbfafc8 (first 8: 7e6fd8f0). Verify with the awk command in the header.

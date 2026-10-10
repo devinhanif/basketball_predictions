@@ -102,3 +102,5 @@ no-op until a promotion decision, which is Devin's.
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-10 16:58 CT, commit 918e03c, sha256 of everything above the line: 0d87c2cea7ad257798918927b4065070ac8b6585d3fa67d5ec469f4d7a67f441 (first 8: 0d87c2ce). Verify with the awk command in the header.
