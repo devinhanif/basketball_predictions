@@ -57,3 +57,4 @@ exploration, however good it looks.
 | F16 | Season stakes: seed-lock / play-in / tank zones from as-of standings change effort and rotations | games (standings as-of), schedule | win prob, minutes, P(play) late season |
 | F17 | Rest-lineup quality: who runs the offence when the star sits (guard 6th man "keeps it up") | stints, possessions | bench props, team ppp by segment |
 | F9b | Young-pick prior, re-registered: undrafted as its own category; season index from draft year, not data start | players_static, box scores | pts, all (replaces the F9 rule, which failed its own data check: T184) |
+| F18 | Traded-player cold start by trade REASON (salary dump / new direction / push / fit / age-need), inferred from the acquiring team's pre-tip situation | transactions (to collect), standings as-of, age, roster | minutes and usage in the first month after a trade |

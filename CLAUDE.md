@@ -44,6 +44,7 @@ the evaluation. Both are the point.
 5. No orders, no credentials, no execution code, ever.
 6. Money, production, promotions and anything outward-facing are Devin's decisions.
 7. Every direction-setting choice gets a line in `docs/DECISIONS.md`: what, why, what would reverse it.
+8. Before a rule is frozen, its minimum-data gate is checked against the real data it will run on. A rule that cannot pass its own gate is not frozen (F9 and F12, 2026-10-09).
 
 ## How we decide
 
@@ -100,6 +101,7 @@ the evaluation. Both are the point.
 - **Memory.** This file, the ledger, the holdout log and `docs/PROJECT_STATUS.md` are the
   durable memory. Claude keeps its memory files current; "remember this" means write it down
   with the non-obvious part.
+- **Priority is Devin's when it is go time.** Claude queues work as it sees fit; Devin can interrupt the queue for what he needs, within reason, and that request goes first.
 - **Devin's time in season:** a few minutes a day (briefing, decisions, alerts), one deeper
   session a week. Design the system to need no more than that.
 - **No AI attribution** in commits or repo content.

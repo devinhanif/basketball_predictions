@@ -277,3 +277,19 @@ gravity, Sheppard hunted, Tre Jones vs Hyland, #2-scorer lift, momentum snapshot
 these lineups. Directions probably survive (one wrong slot early in a period is noise, not a
 systematic bias toward any player), but none should be quoted as a measurement until the tracker is
 fixed and the numbers are recomputed. F11, F13, F15, F17 wait for the fix.
+
+## Trades, blowouts, schemes (2026-10-09, eighth round)
+
+- **Everybody gives up after a point**: the losing team empties its bench too. So blowout bench time
+  is symmetric; both benches' props live in garbage time.
+- **Schemes are fluid**, flowing between drop / switch / blitz within a game. No stable team labels;
+  roster SIZING (mobile bigs, tall guards) is the right pre-tip proxy for what a team *can* run.
+- **Why a player gets traded (Devin's taxonomy):** (1) same output at lower financial value;
+  (2) the team doesn't believe in its direction and is going a new route; (3) a drastic push to the
+  next level; (4) he doesn't fit the style the team wants; also: age, or filling a need. Each story
+  predicts a different first month for the player (salary dump → role holds; rebuild → old player
+  plays less, young plays more; buyer's push → usage down, efficiency up; fit → the clearest
+  improvement). The acquiring team's situation (standings, age, cap) is public pre-tip, so the story
+  is partly inferable. *Hypothesis F18:* trade-reason classification as the cold-start prior for
+  traded players, instead of "reset to league average".
+- **Trusted vet, named:** Al Horford (twice). First name on the F14 list.
