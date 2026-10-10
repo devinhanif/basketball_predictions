@@ -92,3 +92,10 @@ factors (T264–T279; reports/prereg_four_factors.md). reb is slightly worse wit
 Why: production's rolling team points for/against and opponent-allowed columns already carry what pace and efficiency add;
 the mechanism check shows no gain even in the fast-pace or high-allowed-ORB terciles.
 What would reverse it: a new pre-registered idea, not a variant of this one.
+
+## 2026-10-10 ~20:45 CT — PTS_COMPONENTS: CLOSED, candidate worse than production
+What: ran under frozen sha256 7e6fd8f0 (commit 918e03c). The components model loses to production by +0.030 to +0.033 CRPS in
+both seasons (T280–T283); the attempt-feature arm ties production; a threes-only head ties production's threes. Closed.
+Why: production's single-number points model already carries the three-point information through the player's recent threes
+and attempt rates; decomposing the output adds variance faster than it adds structure.
+What would reverse it: nothing in this family; the one allowed follow-up is not queued.

@@ -1,0 +1,715 @@
+{
+  "audit": [
+    {
+      "bucket": "<5",
+      "col": "m10_fg2a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m10_fg2a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m10_fg2a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m10_fg2a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m5_fg2a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m5_fg2a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m5_fg2a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m5_fg2a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m40_fg2a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m40_fg2a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m40_fg2a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m40_fg2a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m100_fg2a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m100_fg2a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m100_fg2a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m100_fg2a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "sd10_fg2a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "sd10_fg2a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "sd10_fg2a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "sd10_fg2a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "rate_fg2a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "rate_fg2a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "rate_fg2a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "rate_fg2a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "opp_allow_fg2a",
+      "n": 6435,
+      "null_rate": 0.0001554001554001554
+    },
+    {
+      "bucket": "5-10",
+      "col": "opp_allow_fg2a",
+      "n": 5706,
+      "null_rate": 0.0001752541184717841
+    },
+    {
+      "bucket": "10-20",
+      "col": "opp_allow_fg2a",
+      "n": 18566,
+      "null_rate": 0.0008617903694926209
+    },
+    {
+      "bucket": ">20",
+      "col": "opp_allow_fg2a",
+      "n": 49605,
+      "null_rate": 0.0008668480999899203
+    },
+    {
+      "bucket": "<5",
+      "col": "vac_fg2a",
+      "n": 6435,
+      "null_rate": 0.0012432012432012432
+    },
+    {
+      "bucket": "5-10",
+      "col": "vac_fg2a",
+      "n": 5706,
+      "null_rate": 0.0014020329477742728
+    },
+    {
+      "bucket": "10-20",
+      "col": "vac_fg2a",
+      "n": 18566,
+      "null_rate": 0.0008617903694926209
+    },
+    {
+      "bucket": ">20",
+      "col": "vac_fg2a",
+      "n": 49605,
+      "null_rate": 0.0009878036488257232
+    },
+    {
+      "bucket": "<5",
+      "col": "m10_fg3a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m10_fg3a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m10_fg3a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m10_fg3a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m5_fg3a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m5_fg3a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m5_fg3a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m5_fg3a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m40_fg3a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m40_fg3a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m40_fg3a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m40_fg3a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m100_fg3a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m100_fg3a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m100_fg3a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m100_fg3a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "sd10_fg3a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "sd10_fg3a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "sd10_fg3a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "sd10_fg3a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "rate_fg3a",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "rate_fg3a",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "rate_fg3a",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "rate_fg3a",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "opp_allow_fg3a",
+      "n": 6435,
+      "null_rate": 0.0001554001554001554
+    },
+    {
+      "bucket": "5-10",
+      "col": "opp_allow_fg3a",
+      "n": 5706,
+      "null_rate": 0.0001752541184717841
+    },
+    {
+      "bucket": "10-20",
+      "col": "opp_allow_fg3a",
+      "n": 18566,
+      "null_rate": 0.0008617903694926209
+    },
+    {
+      "bucket": ">20",
+      "col": "opp_allow_fg3a",
+      "n": 49605,
+      "null_rate": 0.0008668480999899203
+    },
+    {
+      "bucket": "<5",
+      "col": "vac_fg3a",
+      "n": 6435,
+      "null_rate": 0.0012432012432012432
+    },
+    {
+      "bucket": "5-10",
+      "col": "vac_fg3a",
+      "n": 5706,
+      "null_rate": 0.0014020329477742728
+    },
+    {
+      "bucket": "10-20",
+      "col": "vac_fg3a",
+      "n": 18566,
+      "null_rate": 0.0008617903694926209
+    },
+    {
+      "bucket": ">20",
+      "col": "vac_fg3a",
+      "n": 49605,
+      "null_rate": 0.0009878036488257232
+    },
+    {
+      "bucket": "<5",
+      "col": "m10_fta",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m10_fta",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m10_fta",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m10_fta",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m5_fta",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m5_fta",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m5_fta",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m5_fta",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m40_fta",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m40_fta",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m40_fta",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m40_fta",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "m100_fta",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "m100_fta",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "m100_fta",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "m100_fta",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "sd10_fta",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "sd10_fta",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "sd10_fta",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "sd10_fta",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "rate_fta",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "rate_fta",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "rate_fta",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "rate_fta",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "opp_allow_fta",
+      "n": 6435,
+      "null_rate": 0.0001554001554001554
+    },
+    {
+      "bucket": "5-10",
+      "col": "opp_allow_fta",
+      "n": 5706,
+      "null_rate": 0.0001752541184717841
+    },
+    {
+      "bucket": "10-20",
+      "col": "opp_allow_fta",
+      "n": 18566,
+      "null_rate": 0.0008617903694926209
+    },
+    {
+      "bucket": ">20",
+      "col": "opp_allow_fta",
+      "n": 49605,
+      "null_rate": 0.0008668480999899203
+    },
+    {
+      "bucket": "<5",
+      "col": "vac_fta",
+      "n": 6435,
+      "null_rate": 0.0012432012432012432
+    },
+    {
+      "bucket": "5-10",
+      "col": "vac_fta",
+      "n": 5706,
+      "null_rate": 0.0014020329477742728
+    },
+    {
+      "bucket": "10-20",
+      "col": "vac_fta",
+      "n": 18566,
+      "null_rate": 0.0008617903694926209
+    },
+    {
+      "bucket": ">20",
+      "col": "vac_fta",
+      "n": 49605,
+      "null_rate": 0.0009878036488257232
+    },
+    {
+      "bucket": "<5",
+      "col": "pr_fg2",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "pr_fg2",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "pr_fg2",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "pr_fg2",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "pr_fg3",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "pr_fg3",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "pr_fg3",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "pr_fg3",
+      "n": 49605,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "pr_ft",
+      "n": 6435,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "pr_ft",
+      "n": 5706,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "pr_ft",
+      "n": 18566,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "pr_ft",
+      "n": 49605,
+      "null_rate": 0.0
+    }
+  ],
+  "frozen_sha256": "7e6fd8f019985032b712b71fb275f4bf6841862a09e8850dfd1c11913cbfafc8",
+  "tests": [
+    {
+      "ok": true,
+      "test": "C1 six box columns non-null (played 2022-2024)",
+      "threshold": ">= 0.999",
+      "value": 1.0
+    },
+    {
+      "ok": true,
+      "test": "C1 pts == 2 fg2m + 3 fg3m + ftm",
+      "threshold": ">= 0.999",
+      "value": 1.0
+    },
+    {
+      "ok": true,
+      "test": "C1 rows dropped from all arms (count)",
+      "threshold": "reported",
+      "value": 0
+    },
+    {
+      "ok": true,
+      "test": "C2 max NULL-rate gap across minutes buckets (pp)",
+      "threshold": "<= 2.0",
+      "value": 0.07114479445897649
+    },
+    {
+      "ok": true,
+      "test": "C3 PLANT same-game box edited: component features identical through the day",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "C3 PLANT same-game is not inert (later games change)",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "C3 PLANT future (>= 2024-01-15) box edited: earlier features unchanged",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "C3 PLANT future is not inert (later games change)",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "C4a nba/props/context_residual.py and lower_tail.py unchanged vs HEAD",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "C5 grid sums to 1 (max abs deviation, all scored rows, fixed params)",
+      "threshold": "<= 1e-09",
+      "value": 3.730349362740526e-14
+    }
+  ]
+}

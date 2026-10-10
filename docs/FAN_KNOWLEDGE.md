@@ -497,3 +497,8 @@ rotation-level young players in close games would be a new rule.
 - **Pace and the four factors (Devin's question): tested under a frozen rule the same day, NULL (T264–T279).** As-of pace and
   eFG%/TOV%/ORB%/FT-rate for the team and the opponent add nothing to any of the four props stats (best point −0.0004 vs floor
   −0.005); rebounds get slightly worse. Production's rolling points for/against already carry the pace-and-efficiency information.
+- **Points as categorical makes (Devin's "3 is different from 2"): tested under a frozen rule, FAIL (T280–T283).** Separate 2s, 3s
+  and FT heads with a shared activity draw are worse than production by 0.03 CRPS in both seasons, worst for 24+ ppg scorers
+  (+0.16) and worse in the upper tail at 20/25/30. The independent sum does as well as the shared draw; adding the attempt and
+  make-rate features to production ties it. The threes information is already in the model via the player's recent threes; the
+  decomposition adds noise faster than structure. Closed.
