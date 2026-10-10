@@ -42,12 +42,11 @@ Facts used below, with where they come from (so you can check me):
      `registry/routing.py` for a routed-props path that is not the default and has no active route.
    - `props/forward.py` (1,014 lines) imports the sim (`player_attribution`) and four sim-only feature
      builders to serve a branch that `SIM_STATS = ()` disables.
-2. **Seven archive groups (about a fifth of the archived lines) have no ledger row.** CLAUDE.md says research is "archived under the ledger".
-   For RAPM, rung-4 heads, the win-prob family, time-decay, the game-context screens and the GA tune,
-   the verdict lives in a `docs/*.md` file but no `T###` row exists (Appendix A marks them
-   `NO ledger row`). Non-negotiable 3 ("a claim carries n and a CI or it is not a claim") applies to
-   a verdict we use to justify deleting code. Proposal: back-fill rows labelled PROVISIONAL-ARCHIVAL
-   (verdict copied from the doc, no new numbers) before the move. ❓❓ (Q3)
+2. **Seven archive groups (about a fifth of the archived lines) had no ledger row; now back-filled.** CLAUDE.md says research is "archived under the ledger".
+   RAPM, rung-4 heads, the win-prob family, time-decay, the game-context and player-context screens, the GA tune
+   and the experiment-1/2 prop runners now have PROVISIONAL back-fill rows T176-T183 in `docs/TEST_LEDGER.md`
+   (2026-10-09 NOTICE; verdicts copied from the docs and registry, no new numbers, no CI where none was recorded).
+   Appendix A's `NO ledger row` marks for these groups are superseded by those rows. ❓❓ (Q3)
 3. **We already own the safety oracle.** `nba/daily/replay_season.py` (933 lines, currently classified
    "unreachable") is the single most valuable tool for this restructure: it replays 210 dates of
    2025-26 through the real daily process. A restructure that leaves its output unchanged cannot have
