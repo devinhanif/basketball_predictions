@@ -1,6 +1,6 @@
 # ODDS_HISTORY - did the props model beat the market on past seasons? (pre-registration)
 
-Status: DRAFT 2026-10-10, for Devin to confirm. Freeze (hash below, committed) BEFORE any model row is
+Status: FROZEN 2026-10-10 13:30 CT (Devin: "confirmed"). No model row had been joined to a price before this line was written.
 joined to any price. The raw pull (`python -m nba.odds history-pull`) may run before the freeze: it
 acquires prices only and never sees a prediction.
 Verify: `awk '/
@@ -27,7 +27,7 @@ Verify: `awk '/
 10. Gate check 1 is satisfied by "the game has prices in the table" (the exactly-one-event check ran in the
     pull and is recorded there).
 <!-- FROZEN-END -->/{f=0} f{print} /<!-- FROZEN-BEGIN -->/{f=1}' docs/prereg/ODDS_HISTORY.md | shasum -a 256`
-sha256 of the frozen section: (recorded at freeze)
+sha256 of the frozen section: ecdcf2d29f448fcb76135c2fb4589fceab8e3c416becd442636b5a0eb26101d3
 
 <!-- FROZEN-BEGIN -->
 ## 0. Question
