@@ -89,3 +89,38 @@ Devin is a Rockets fan.
 - *Design implication:* the tool should keep showing the true odds even when the user is winning;
   the moments after wins are when the display matters most. Record wins and losses in the same
   font.
+
+## Pace, roles, rosters, playoffs, deadline (2026-10-09, second round)
+
+- **Pace-setters:** the modern game cares about shot-clock utilisation and points per minute.
+  Fred VanVleet (last season he played) controlled the clock, spaced the floor, took hard shots,
+  never turned it over, and dictated the flow. *Measurable:* seconds-into-the-clock at shot, team
+  TOV rate and pace with him on vs off (we have possession clocks and stints).
+- **Favorites:** coaches' favorites and *management's* favorites differ. Players like Derrick White
+  or Al Horford keep minutes despite age because of presence and playing their role. *Measurable:*
+  minutes that do not fall when production falls (minutes-vs-production residual by player).
+- **Rotation depth** follows the roster: a stacked roster plays deeper; an injury-prone roster also
+  plays deeper, to prevent injuries, because a dense rotation causes them. Some teams practise harder
+  (the Heat). So depth is a roster trait more than a coach trait.
+- **Home games are the ones you must not lose**: teams do more of whatever they are best at, at
+  home. Beating someone away means something. *Model note:* HOU 2025-26 replay — home predicted
+  0.700 vs actual 0.705; away predicted 0.601 vs actual 0.523. The model over-rated a young team on
+  the road. Test league-wide: road over-rating by team age.
+- **Roster constraints and the deadline:** players get sat or cut by roster constraints; teams get
+  "financial" as soon as they realise they are out of the race (the Celtics, the Suns last season).
+  Load management depends on whether the player is an asset; teams get in trouble for it, so it is
+  under-reported. *Model note:* late-season tanking/financial behaviour is a regime change our
+  features do not see.
+- **Rockets blind spot (replay):** a 13.5-ppg young scorer under-predicted by 1.6 pts/game all
+  season; two more starters by ~0.8. Rebounds over-predicted by +0.16 (league -0.003). The model is
+  slow on a rising young team: recency averages look backward. Hypothesis for a prereg: role-growth
+  slope as a feature (trend in minutes/usage over the last N games), especially for players ≤ 3
+  seasons.
+
+## Gambling, from the inside (second round)
+
+- "When I win I just bet more in the way that I won. Once I bet $3, won $100, and bet $3 twenty
+  more times and lost. The one was what I was chasing. It's the satisfaction in being right and
+  having pride to back yourself on capitalism."
+- *Design implication:* after a win the tool shows the same odds in the same font and says "this one
+  hit; it was still a −X% bet." The moment after a win is the moment honesty matters most.

@@ -34,3 +34,15 @@ exploration, however good it looks.
 - Conformal prediction with per-player (per-group) coverage guarantees.
 - Betting-policy evaluation: stake sizing, correlated losses, risk of ruin at small stakes.
 - Honest accuracy ranges for pre-game NBA win models (to calibrate what "good" means).
+
+## Fan hypotheses queued for pre-registration (from docs/FAN_KNOWLEDGE.md)
+
+| # | Hypothesis (Devin) | Data we already have | Target |
+|---|---|---|---|
+| F1 | Foul-trouble rule (2/Q1, 3/Q2, 4/Q3, 5 before last 5 min) → predictable short-minutes games | PBP fouls + clock, coach per team-season | short-minutes P, pts lower tail |
+| F2 | Questionable + rivalry → sits; near the 65-game threshold → plays | injury report, games played to date, schedule | P(play) |
+| F3 | Star absence: effect depends on how long he has been out and team continuity | availability history, lineup continuity | vacated-stats feature |
+| F4 | FT% is a tell for shot diet (3PA share) beyond recent 3P% | box scores | fg3m, pts |
+| F5 | Young/rising teams are over-rated on the road; role-growth slope for ≤3-season players | games, minutes, usage trends | win prob (HOU away 0.60 pred / 0.52 actual), props |
+| F6 | Coach rest propensity on back-to-backs; roster depth by youth/injury profile | coaches, rest days, minutes | minutes, P(play) |
+| F7 | Playoff rows differ (fouls, pace, series state) and should not be pooled naively | possessions, game ids | all |
