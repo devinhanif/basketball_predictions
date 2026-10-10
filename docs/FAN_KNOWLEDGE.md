@@ -351,3 +351,15 @@ rotation-level young players in close games would be a new rule.
   under-bet). Measurable on the 2025-26 replay with Kalshi prices: all-four hit rate of the four
   highest-priced legs per night vs the product of their implied probabilities, clustered by date.
   Descriptive first; if there is anything, a frozen rule before it touches the budget tool.
+- *F19 descriptive (2025-26 replay, Kalshi game-winner prices, last two-sided candle before real tip,
+  de-vigged mid; 207 nights, 1,312 games; reports/f19_safest_legs.md):* the night's four highest-priced
+  sides all won on **40.5% of nights (62 of 153)**; the prices multiplied to 37.4% (gap +3.1 points,
+  night-clustered CI [−4.1, +10.5]). Two legs 64.4%, three 54.1%, five 28.6%. A rolled four-leg ticket
+  after Kalshi taker fees returned about −5% (CI −25% to +15%). Single legs priced ≥ 0.80 hit 85.7% vs
+  86.5% implied. Devin's "never 4 givens" is exactly the arithmetic: 91 of 153 nights broke, 63 of them
+  by one leg (e.g. 2026-03-21, PHX at 0.83 lost to MIL 108–105; 2025-11-21, BOS at 0.89 lost at home to
+  BKN). Sweeps: 2026-04-12 (TOR, POR, PHI, DET) and 2026-04-03 (BOS, HOU, ATL, CHA). The market's
+  "givens" are priced right; no favourite–longshot edge at ticket level. Our own model's top four hit
+  33.3% vs 35.4% predicted. Legs ≥ 0.90 hit 65 of 66, above price, but n is tiny and the threshold was
+  not declared; a curiosity, not a finding. Verdict: safe-leg parlays are a fair lottery ticket minus
+  fees; the structure to exploit, if any, is same-game correlation, not favourites.
