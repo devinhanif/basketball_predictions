@@ -1,0 +1,161 @@
+# Import graph of the live path, HEAD a39a75e (2026-10-09, Day 0 of the restructure)
+
+Static import closure of the scheduler entrypoints (lazy imports inside functions included).
+Enforced from here on by `tests/test_layering.py` (two-way ratchet on the edge list).
+
+## Live modules (130)
+
+- nba.coldstart.archetypes
+- nba.coldstart.carryover
+- nba.coldstart.config
+- nba.coldstart.sb_classification
+- nba.coldstart.shrinkage
+- nba.daily.__main__
+- nba.daily.checkpoint
+- nba.daily.ingest_step
+- nba.daily.injury
+- nba.daily.pipeline
+- nba.daily.predict
+- nba.daily.report
+- nba.daily.schedule
+- nba.daily.season
+- nba.daily.settle
+- nba.daily.store
+- nba.daily.t30
+- nba.datamanifest.__main__
+- nba.datamanifest.diff
+- nba.datamanifest.manifest
+- nba.db.connect
+- nba.eval.injury_elo_eval
+- nba.eval.metrics
+- nba.features.game_context
+- nba.features.game_tipoff
+- nba.features.player_pedigree
+- nba.features.player_possession_features
+- nba.features.player_rebound_assist_features
+- nba.features.possession_features
+- nba.features.team_features
+- nba.features.time_decay
+- nba.ingest
+- nba.ingest.__main__
+- nba.ingest.arenas
+- nba.ingest.availability
+- nba.ingest.boxscores
+- nba.ingest.cache
+- nba.ingest.game_window
+- nba.ingest.games
+- nba.ingest.national_tv
+- nba.ingest.pbp
+- nba.ingest.players_static
+- nba.ingest.postgame
+- nba.ingest.queue
+- nba.ingest.referees
+- nba.ingest.team_advanced
+- nba.ingest.teams
+- nba.kalshi.aliases
+- nba.lineups.__main__
+- nba.lineups.analysis
+- nba.lineups.collector
+- nba.lineups.source
+- nba.lineups.store
+- nba.markets.__main__
+- nba.markets.asof
+- nba.markets.capture
+- nba.markets.implied
+- nba.models.base
+- nba.models.common
+- nba.models.injury_elo
+- nba.models.rung0_baselines
+- nba.ops.exitcodes
+- nba.ops.watchdog
+- nba.parlay.__main__
+- nba.parlay.analysis
+- nba.parlay.assistant.agent
+- nba.parlay.assistant.backend
+- nba.parlay.assistant.cli
+- nba.parlay.assistant.config
+- nba.parlay.assistant.names
+- nba.parlay.assistant.numguard
+- nba.parlay.assistant.render
+- nba.parlay.assistant.toolbox
+- nba.parlay.assistant.tools
+- nba.parlay.budget
+- nba.parlay.calibration
+- nba.parlay.config
+- nba.parlay.copula
+- nba.parlay.ev
+- nba.parlay.game_model
+- nba.parlay.independence_check
+- nba.parlay.joint
+- nba.parlay.joint_eval
+- nba.parlay.kalshi_map
+- nba.parlay.legs
+- nba.parlay.narrate
+- nba.parlay.papertrade
+- nba.parlay.qdist
+- nba.parlay.report
+- nba.parlay.shadow
+- nba.parlay.slate
+- nba.parse.availability
+- nba.props
+- nba.props.baselines
+- nba.props.config
+- nba.props.conformal
+- nba.props.context_residual
+- nba.props.distributions
+- nba.props.forward
+- nba.props.full_support
+- nba.props.lineup_features
+- nba.props.lower_tail
+- nba.props.metrics
+- nba.props.minutes
+- nba.props.opponent
+- nba.props.pts_tail
+- nba.props.role_change
+- nba.props.rookie_minutes
+- nba.props.roster_cold
+- nba.props.rosters
+- nba.registry
+- nba.registry.cli_guard
+- nba.registry.factory
+- nba.registry.local
+- nba.registry.metadata
+- nba.registry.protocol
+- nba.registry.routing
+- nba.sim.engine
+- nba.sim.player_attribution
+- nba.sim.possession_model
+- nba.sim.usage_redistribution
+- nba.stack
+- nba.stack.adapters
+- nba.stack.artifacts
+- nba.stack.data
+- nba.stack.frozen
+- nba.stack.oof
+- nba.stack.populate
+- nba.stack.router
+- nba.stack.scoring
+
+## Edges from the live path into research packages (18)
+
+- nba.daily.predict -> nba.eval.injury_elo_eval
+- nba.daily.predict -> nba.sim.usage_redistribution
+- nba.daily.predict -> nba.stack.frozen
+- nba.daily.predict -> nba.stack.populate
+- nba.daily.settle -> nba.eval.metrics
+- nba.features.player_possession_features -> nba.coldstart.shrinkage
+- nba.features.player_rebound_assist_features -> nba.coldstart.shrinkage
+- nba.features.possession_features -> nba.coldstart.shrinkage
+- nba.features.time_decay -> nba.coldstart.carryover
+- nba.features.time_decay -> nba.coldstart.shrinkage
+- nba.models.injury_elo -> nba.sim.usage_redistribution
+- nba.props.context_residual -> nba.sim.usage_redistribution
+- nba.props.forward -> nba.coldstart.sb_classification
+- nba.props.forward -> nba.sim.player_attribution
+- nba.props.metrics -> nba.eval.metrics
+- nba.props.minutes -> nba.coldstart.shrinkage
+- nba.props.minutes -> nba.eval.metrics
+- nba.props.opponent -> nba.coldstart.archetypes
+
+Not in the design doc's s3.3 list: `nba.coldstart.shrinkage` and `nba.coldstart.carryover` (shrink_rate, carryover) are
+live utilities used by five feature modules; they move to a live home rather than being archived.
