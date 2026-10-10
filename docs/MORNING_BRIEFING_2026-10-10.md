@@ -61,3 +61,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 (3) cancel. Details: docs/research/historical_odds_2026-10-09.md, "2026-10-10 update".
 
 - 2026-10-10: ODDS_BENCHMARK rule drafted (docs/prereg/ODDS_BENCHMARK.md): confirm or edit before the first scored pair; captures may start before, scoring may not.
+
+- Odds capture is wired into the pre-tip job (2 requests per run). Regions us+eu; Pinnacle appears in the eu feed but posts no preseason NBA lines (0 rows on the 10-10 slate, 9 other books do). Verify Pinnacle rows on opening night before trusting the benchmark; props feed stays empty until the season.

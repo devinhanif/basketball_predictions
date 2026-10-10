@@ -2,7 +2,7 @@
 # the key is read from the ODDS_API_KEY environment variable and never written anywhere.
 base_url: https://api.theoddsapi.com
 sport_key: basketball_nba
-regions: us
+regions: us,eu            # Pinnacle is served under eu (verified 2026-10-10: us alone returns 6 books, no Pinnacle)
 timeout_s: 20.0
 max_attempts: 3             # per request, including the first try (bounded retry)
 retry_backoff_s: 2.0
