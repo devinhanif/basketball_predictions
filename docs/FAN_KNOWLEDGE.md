@@ -252,3 +252,17 @@ Devin is a Rockets fan.
   make rate 54.2% vs 53.0% and 1.286 vs 1.259 pts/shot. "Let someone else beat us" from the #2's
   side: fewer attempts, easier attempts → his points can stay flat while efficiency rises — a
   distribution-shape effect, not a mean effect.
+
+## Corrections from the frozen tests (2026-10-09, night)
+
+- **F12 closed (T185):** under the frozen rule (season index from draft year, OT excluded), the
+  premise did NOT replicate. Young players' Q4 share is .319 in close games vs .465 in blowouts;
+  veterans .336 vs .253. Claude's earlier quick check (.333 vs .341) was wrong — garbage time is
+  where young players play, which is a different claim from "young players sit in close games."
+  Devin's point about closing lineups may still be true for *rotation* young players in *close*
+  games, but that needs a garbage-time definition and better stint data. Honest null for now.
+- **Stint quality problem found:** stint minutes reconcile with box-score minutes within 1 minute
+  on only 48% of player-games. Every lineup-based hypothesis (F11, F13, F15, F17) depends on stints,
+  so fixing stint parsing is now the prerequisite. F11 is held until it is fixed.
+- **F9 closed (T184) → F9b frozen:** undrafted players (112 of 561 regulars) are a category, not
+  missing data; seasons must be indexed from the first NBA season, not from our 2022 data start.
