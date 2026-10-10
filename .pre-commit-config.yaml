@@ -10,10 +10,10 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
-        files: ^nba/
+        files: ^(nba|research)/
         additional_dependencies: []
         pass_filenames: false
-        args: [nba/]
+        args: [nba/, research/]
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.19.3

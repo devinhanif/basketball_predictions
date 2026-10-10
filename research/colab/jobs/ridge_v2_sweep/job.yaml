@@ -1,0 +1,43 @@
+name: ridge_v2_sweep
+description: >
+  Experiment 4 (ridge_v2): opponent-adjusted ridge variants (recency weights, opponent x position,
+  venue split + pace-adjusted targets, player x teammate-OUT, hierarchical shrinkage, per-stat
+  penalties, ladders, drop-one ablations) as replacements for ctxres_v2 group (i), inside the FIXED
+  experiment-2 per-stat models (pts multi-quantile XGBoost; reb/ast/fg3m Poisson + NegBin XGBoost,
+  tuned params from base_config.json). Includes the leak-fixed reference (ref_fixed) and the
+  leaky experiment-2 ridge (exp2_ref). Selection on season 2023 only; season 2024 report-only;
+  season 2025 never loaded. Crash-safe per-arm checkpoints; shard with NBA_SHARD=k/n or NBA_ARMS.
+  Rule: docs/RIDGE_V2.md, applied locally by research/eval/ridge_v2_eval.py.
+notebook: research/colab/jobs/ridge_v2_sweep/ridge_v2_sweep.ipynb
+inputs:
+  - path: data/colab/ctxres_v2/ctxres_v2.parquet
+    produce: >
+      uv run python -m research.props.context_features_v2 --db nba.duckdb
+      --out-dir data/colab/ctxres_v2
+    depends_on: [nba.duckdb]
+  - path: data/colab/ctxres_v2/feature_spec.json
+    produce: >
+      uv run python -m research.props.context_features_v2 --db nba.duckdb
+      --out-dir data/colab/ctxres_v2
+    depends_on: [nba.duckdb]
+  - path: data/colab/ridge_v2/ridge_v2.parquet
+    produce: >
+      uv run python -m research.features.opponent_ridge_v2 --db nba.duckdb
+      --out-dir data/colab/ridge_v2
+    depends_on: [nba.duckdb]
+  - path: data/colab/ridge_v2/ridge_v2_spec.json
+    produce: >
+      uv run python -m research.features.opponent_ridge_v2 --db nba.duckdb
+      --out-dir data/colab/ridge_v2
+    depends_on: [nba.duckdb]
+  - path: data/colab/ridge_v2/base_config.json
+    produce: >
+      uv run python -m research.features.opponent_ridge_v2 --db nba.duckdb
+      --out-dir data/colab/ridge_v2
+    depends_on: [nba.duckdb]
+artifacts: [best_config.json, metrics.json, oof]
+registry:
+  model_name: ridge_v2_sweep
+  tags: {rung: 2, model_method: ridge_v2_variants, holdout_scored: false, experiment: 4, family: ridge_v2_exp4}
+touches_holdout: false
+preregistration_id: null

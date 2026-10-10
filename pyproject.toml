@@ -36,27 +36,27 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["nba*"]
+include = ["nba*", "research*"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=nba --cov-report=term-missing --cov-fail-under=70"
+addopts = "--cov=nba --cov=research --cov-report=term-missing --cov-fail-under=70"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["nba"]
+source = ["nba", "research"]
 branch = true
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["nba", "tests"]
+src = ["nba", "research", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = []
 
 [tool.ruff.lint.isort]
-known-first-party = ["nba"]
+known-first-party = ["nba", "research"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -66,7 +66,7 @@ indent-style = "space"
 # Match the interpreter mypy runs under (3.12). Required so third-party stubs
 # (e.g. numpy>=2.5) that use 3.12 `type` syntax parse. Runtime floor stays 3.11+.
 python_version = "3.12"
-files = ["nba"]
+files = ["nba", "research"]
 ignore_missing_imports = true
 warn_unused_ignores = true
 warn_redundant_casts = true
@@ -74,6 +74,15 @@ no_implicit_optional = true
 
 [[tool.mypy.overrides]]
 module = "nba.registry.*"
+strict = true
+
+# research/ keeps the strictness its modules had under nba/ (registry.routing, parlay.totals_poisson)
+[[tool.mypy.overrides]]
+module = "research.registry.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "research.parlay.*"
 strict = true
 
 [[tool.mypy.overrides]]

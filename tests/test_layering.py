@@ -5,6 +5,11 @@ The live path is the static import closure of the scheduler entrypoints (``ops/*
 path can take at 7 pm. ``KNOWN_EDGES`` is the entanglement list of docs/DESIGN_RESTRUCTURE.md
 s3.3 as measured on 2026-10-09; each cut removes its rows. The test fails both ways: a new
 edge is a regression, a vanished edge means this list is stale.
+
+Since Wave A (2026-10-10) research lives in the top-level ``research/`` package, which may import
+``nba.*`` freely; nothing under ``nba/`` may import ``research.*``, live path or not
+(``test_nba_never_imports_research``). The ``nba.*`` prefixes below are what is still waiting to
+leave ``nba/`` (anchored by ``nba.registry.ops -> model_gate -> eval.run``; see research/INDEX.md).
 """
 
 from __future__ import annotations
@@ -30,6 +35,7 @@ ENTRYPOINTS = (
 
 #: Packages that hold research: experiments that reached a verdict, archived under the ledger.
 RESEARCH_PREFIXES = (
+    "research",
     "nba.sim",
     "nba.stack",
     "nba.coldstart",
@@ -37,6 +43,9 @@ RESEARCH_PREFIXES = (
     "nba.colab",
     "nba.preprocess",
 )
+
+#: Top-level packages whose imports the graph follows.
+FIRST_PARTY = ("nba", "research")
 
 #: (live module, research module) edges still present. Reached zero on 2026-10-09 after eight
 #: cuts (docs/reviews/replay_oracle_2026-10-09.md); it never grows again.
@@ -50,20 +59,26 @@ def module_path(mod: str) -> Path | None:
     return p.with_suffix(".py") if p.with_suffix(".py").exists() else None
 
 
-def imports_of(mod: str) -> set[str]:
-    """Every ``nba.*`` module ``mod`` imports, at any depth, including inside functions."""
-    path = module_path(mod)
+def _first_party(name: str) -> bool:
+    return any(name == fp or name.startswith(fp + ".") for fp in FIRST_PARTY)
+
+
+def imports_of(mod: str, path: Path | None = None) -> set[str]:
+    """Every first-party module ``mod`` imports, at any depth, including inside functions."""
+    path = path or module_path(mod)
     if path is None:
         return set()
     out: set[str] = set()
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Import):
-            out.update(a.name for a in node.names if a.name.startswith("nba."))
-        elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("nba"):
+            out.update(a.name for a in node.names if _first_party(a.name))
+        elif isinstance(node, ast.ImportFrom) and node.module:
             base = node.module
             if node.level:
                 pkg = mod.rsplit(".", node.level)[0]
                 base = f"{pkg}.{node.module}"
+            if not _first_party(base):
+                continue
             out.add(base)
             out.update(f"{base}.{a.name}" for a in node.names if module_path(f"{base}.{a.name}"))
     return out
@@ -91,6 +106,16 @@ def research_edges() -> set[tuple[str, str]]:
     }
 
 
+def nba_modules() -> dict[str, Path]:
+    out: dict[str, Path] = {}
+    for p in (ROOT / "nba").rglob("*.py"):
+        parts = list(p.relative_to(ROOT).with_suffix("").parts)
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+        out[".".join(parts)] = p
+    return out
+
+
 def test_entrypoints_exist() -> None:
     missing = [m for m in ENTRYPOINTS if module_path(m) is None]
     assert not missing, f"scheduler entrypoints not found: {missing}"
@@ -105,3 +130,19 @@ def test_live_path_imports_only_known_research_edges() -> None:
 def test_known_edges_list_is_current() -> None:
     gone = sorted(KNOWN_EDGES - research_edges())
     assert not gone, f"edges no longer present; remove them from KNOWN_EDGES: {gone}"
+
+
+def test_nba_never_imports_research() -> None:
+    """nba/ never imports research.*, not even lazily; research imports nba, never back."""
+    bad = sorted(
+        (mod, target)
+        for mod, path in nba_modules().items()
+        for target in imports_of(mod, path)
+        if target == "research" or target.startswith("research.")
+    )
+    assert not bad, f"nba/ imports research/: {bad}"
+
+
+def test_research_package_is_importable() -> None:
+    assert module_path("research") is not None
+    assert (ROOT / "research" / "INDEX.md").exists(), "research/INDEX.md maps every archived module"

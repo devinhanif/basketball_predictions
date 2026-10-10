@@ -9,12 +9,6 @@ import numpy as np
 import polars as pl
 import pytest
 
-from nba.eval.context_screen_players import (
-    add_recency_baseline,
-    bh_reject,
-    cluster_mean_ci,
-    ols_cluster_boot,
-)
 from nba.features.player_pedigree import (
     college_group,
     load_college_map,
@@ -22,6 +16,12 @@ from nba.features.player_pedigree import (
     static_pedigree,
 )
 from nba.props.forward import recency_weighted_dist
+from research.eval.context_screen_players import (
+    add_recency_baseline,
+    bh_reject,
+    cluster_mean_ci,
+    ols_cluster_boot,
+)
 
 
 def _players() -> pl.DataFrame:

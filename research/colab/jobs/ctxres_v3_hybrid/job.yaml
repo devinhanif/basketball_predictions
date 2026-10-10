@@ -1,0 +1,30 @@
+name: ctxres_v3_hybrid
+description: >
+  EXPERIMENT 3, CONFIRMATORY 2025 touch (docs/CTXRES_V3.md). Per-stat hybrid with FROZEN
+  experiment-2 configs: pts from the 19-quantile XGBoost arm, reb/ast/fg3m from the
+  count:poisson + NegBin XGBoost arm (same v1+v2 features, no search; Platt calibrator on pts thresholds only), walk-forward
+  by month over season 2025 only (each block fit on all played rows strictly before it, 2022-2024
+  plus earlier 2025 months), against production-recipe v1_prod refit identically and the recency
+  baseline. Verbatim copy of the experiment-2 engine (sha256 pinned). The run REFUSES to start unless
+  env NBA_PREREGISTERED_ID equals preregistration_id below, which the maintainer sets only AFTER the
+  HOLDOUT_ACCESS_LOG row is written (a PENDING placeholder is always refused). Runs the FULL budget
+  (about 35 min on a T4 with one descriptive seed replicate; GPU printed). Rule applied once locally by
+  research/eval/ctxres_v3_eval.py.
+notebook: research/colab/jobs/ctxres_v3_hybrid/ctxres_v3_hybrid.ipynb
+inputs:
+  - path: data/colab/ctxres_v3/ctxres_v3_with2025.parquet
+    produce: >
+      uv run python -m research.props.context_features_v2 --db nba.duckdb
+      --out-dir data/colab/ctxres_v3 --include-holdout-2025
+    depends_on: [nba.duckdb]
+  - path: data/colab/ctxres_v3/feature_spec.json
+    produce: >
+      uv run python -m research.props.context_features_v2 --db nba.duckdb
+      --out-dir data/colab/ctxres_v3 --include-holdout-2025
+    depends_on: [nba.duckdb]
+artifacts: [frozen_config.json, run_header.json, leak_audit.json, metrics.json, oof]
+registry:
+  model_name: ctxres_v3_hybrid
+  tags: {rung: 2, model_method: ctxres_v3_per_stat_hybrid, holdout_scored: true, experiment: 3, family: ctxres_v3_hybrid_2025_confirm}
+touches_holdout: true
+preregistration_id: EXP3-2025-897ebde

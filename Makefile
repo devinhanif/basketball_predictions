@@ -16,10 +16,10 @@ endif
 ## Split into two pytest invocations: torch (rung-4 step-heads) and lightgbm
 ## (rung-2) each bundle their own OpenMP runtime and DEADLOCK when both run real
 ## training in a single process on macOS/Homebrew (a plain `pytest` hangs ~halfway).
-## Isolating tests/ml/test_rung4_stepheads.py in its own process avoids it. Coverage
+## Isolating tests/research/models/test_rung4_stepheads.py in its own process avoids it. Coverage
 ## accumulates across both runs (--cov-append) and the 70% ratchet is enforced once
 ## on the combined result.
-RUNG4_TEST := tests/ml/test_rung4_stepheads.py
+RUNG4_TEST := tests/research/models/test_rung4_stepheads.py
 test:
 ifdef UV
 	uv run pytest --ignore=$(RUNG4_TEST) --cov-fail-under=0
@@ -31,14 +31,14 @@ else
 	. .venv/bin/activate && coverage report --fail-under=70
 endif
 
-## Lint + format-check + type-check nba/.
+## Lint + format-check + type-check nba/ and research/.
 lint:
 ifdef UV
-	uv run ruff check nba/ tests/
-	uv run ruff format --check nba/ tests/
-	uv run mypy nba/
+	uv run ruff check nba/ research/ tests/
+	uv run ruff format --check nba/ research/ tests/
+	uv run mypy nba/ research/
 else
-	. .venv/bin/activate && ruff check nba/ tests/ && ruff format --check nba/ tests/ && mypy nba/
+	. .venv/bin/activate && ruff check nba/ research/ tests/ && ruff format --check nba/ research/ tests/ && mypy nba/ research/
 endif
 
 ## Walk-forward backtest + report + registry logging. Override the config to
@@ -127,17 +127,18 @@ else
 	$(PY) -m nba.registry list
 endif
 
-## Colab GPU hand-off (see docs/COLAB_WORKFLOW.md). Usage: make colab-push JOB=rung4_stepheads
+## Colab GPU hand-off (see docs/COLAB_WORKFLOW.md; tooling archived under research/colab).
+## Usage: make colab-push JOB=rung4_stepheads
 JOB ?=
 RUN ?=
 colab-push:
-	uv run python -m nba.colab push $(JOB)
+	uv run python -m research.colab push $(JOB)
 
 colab-pull:
-	uv run python -m nba.colab pull $(JOB) $(RUN) $(COLAB_ARGS)
+	uv run python -m research.colab pull $(JOB) $(RUN) $(COLAB_ARGS)
 
 colab-status:
-	uv run python -m nba.colab status $(JOB)
+	uv run python -m research.colab status $(JOB)
 
 ## Data version control (docs/DATA_VERSIONING.md). Read-only on nba.duckdb.
 data-snapshot:

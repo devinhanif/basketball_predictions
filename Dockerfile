@@ -20,6 +20,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --extra dev --frozen --no-install-project
 
 COPY nba/ nba/
+COPY research/ research/
 COPY tests/ tests/
 COPY Makefile ./
 RUN uv sync --extra dev --frozen

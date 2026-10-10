@@ -1,12 +1,9 @@
-"""Cold-start modeling (CLAUDE.md "Cold start modeling").
+"""Cold-start modeling: what is left here after the 2026-10-10 restructure (Wave A).
 
-Methods 1-4, each independently flag-gated via
-:class:`nba.coldstart.config.ColdStartConfig`:
-
-1. :mod:`nba.coldstart.shrinkage` -- empirical-Bayes shrinkage (baseline).
-2. :mod:`nba.coldstart.archetypes` -- clustering-based archetype priors.
-3. :mod:`nba.coldstart.rookie_priors` -- draft/college -> first-season rate.
-4. :mod:`nba.coldstart.carryover` -- time-decay carryover + age curve.
+Live: :class:`nba.coldstart.config.ColdStartConfig` (the cold-start threshold the rung ladder's
+``nba.features.player_features`` reads). Shims for research importers: ``shrinkage`` and
+``sb_classification`` re-export from ``nba.features``. Archived to ``research/coldstart``:
+``archetypes`` (M3A, T048-T060), ``rookie_priors``, ``carryover`` (TIME_DECAY_2026-10-08).
 """
 
 from __future__ import annotations

@@ -28,11 +28,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
       - name: ruff check
-        run: uv run ruff check nba/ tests/
+        run: uv run ruff check nba/ research/ tests/
       - name: ruff format --check
-        run: uv run ruff format --check nba/ tests/
+        run: uv run ruff format --check nba/ research/ tests/
       - name: mypy
-        run: uv run mypy nba/
+        run: uv run mypy nba/ research/
 
   unit:
     name: unit
@@ -53,8 +53,8 @@ jobs:
         # Isolate the rung-4 torch tests in a second invocation; accumulate
         # coverage across both (--cov-append) and enforce the 70% gate once.
         run: |
-          uv run pytest --ignore=tests/ml/test_rung4_stepheads.py --cov-fail-under=0
-          uv run pytest tests/ml/test_rung4_stepheads.py --cov-append --cov-fail-under=0
+          uv run pytest --ignore=tests/research/models/test_rung4_stepheads.py --cov-fail-under=0
+          uv run pytest tests/research/models/test_rung4_stepheads.py --cov-append --cov-fail-under=0
           uv run coverage report --fail-under=70
 
   data-contract:

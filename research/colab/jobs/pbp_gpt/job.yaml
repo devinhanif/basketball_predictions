@@ -1,0 +1,50 @@
+name: pbp_gpt
+description: >
+  Basketball GPT: a decoder-only transformer (grouped-query attention, learned positions, weight-tied
+  head, mixed precision, cosine LR, early stopping) trained on tokenized play-by-play of seasons
+  2022-2024 to predict the NEXT EVENT, then sampled in batches on the GPU from the tip and from four
+  in-game checkpoints (start Q2, Q3, Q4, first boundary at <= 5:00 left) for live win probability,
+  margin / total and live player lines. Device-agnostic (T4/L4/A100; the GPU is printed). NBA_BUDGET:
+  full is the default (6 search trials, 300 live games x 256-1024 continuations per checkpoint,
+  150 pregame games; estimated 2-3 h on a T4/L4 and 1-1.5 h on an A100, ESTIMATES not measured on
+  GPU, a measured projection prints after epoch 1 and after the first sampled chunk); fast about
+  40-70 min; smoke is the local CPU test. Early stopping and trial selection use only the last 20%
+  of season 2023 (next-token loss); season 2024 is report-only; season 2025 is never in the input
+  (the job raises). Holdout scoring is OFF. The pre-registered keep rules (docs/PBP_GPT.md) are
+  applied locally by research/eval/pbp_gpt_eval.py after the pull.
+notebook: research/colab/jobs/pbp_gpt/pbp_gpt.ipynb
+inputs:
+  - path: data/colab/pbp_gpt/tokens.npz
+    produce: >
+      uv run python -m research.features.pbp_tokens --db nba.duckdb --out-dir data/colab/pbp_gpt
+    depends_on: [nba.duckdb]
+  - path: data/colab/pbp_gpt/games.parquet
+    produce: >
+      uv run python -m research.features.pbp_tokens --db nba.duckdb --out-dir data/colab/pbp_gpt
+    depends_on: [nba.duckdb]
+  - path: data/colab/pbp_gpt/ckpt.npz
+    produce: >
+      uv run python -m research.features.pbp_tokens --db nba.duckdb --out-dir data/colab/pbp_gpt
+    depends_on: [nba.duckdb]
+  - path: data/colab/pbp_gpt/vocab.json
+    produce: >
+      uv run python -m research.features.pbp_tokens --db nba.duckdb --out-dir data/colab/pbp_gpt
+    depends_on: [nba.duckdb]
+artifacts:
+  - metrics.json
+  - best_config.json
+  - search_log.json
+  - training_log.json
+  - data_summary.json
+  - weights.pt
+  - ppl_by_game.parquet
+  - samples_tip.npz
+  - samples_q2.npz
+  - samples_q3.npz
+  - samples_q4.npz
+  - samples_q4_5min.npz
+registry:
+  model_name: pbp_gpt
+  tags: {rung: 4, model_method: decoder_only_pbp_gpt, holdout_scored: false, experiment: pbp_gpt_v1, family: next_event_token_lm_sampling_sim}
+touches_holdout: false
+preregistration_id: null

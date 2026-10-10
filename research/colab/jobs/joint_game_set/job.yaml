@@ -1,0 +1,61 @@
+name: joint_game_set
+description: >
+  Joint game-set model: a set transformer over every rostered player of an NBA game (+ a game
+  token) with a mixture-of-low-rank-Gaussians joint head over the production-PIT normal scores of
+  pts/reb/ast/fg3m plus the game margin and total, an auxiliary p_play head, exact joint NLL
+  with missing dims marginalised, and joint sampling of all legs of the 2024 synthetic
+  same-game parlays. Device-agnostic (T4/L4/A100; the GPU is printed). NBA_BUDGET: full is the
+  default (24 search trials, 5-seed ensemble, 100k draws per game, monthly walk-forward refits;
+  estimated 60-100 min on a T4/L4, 40-60 on an A100, ESTIMATES not measured on GPU); fast about
+  25-40 min; smoke is the local CPU test. Selection uses a time-ordered slice of season 2023
+  only; season 2024 is report-only; season 2025 is never in the input. Holdout scoring is OFF. The
+  pre-registered keep rule (docs/JOINT_GAME_SET.md) is applied locally by
+  research/eval/joint_game_set_eval.py after the pull.
+notebook: research/colab/jobs/joint_game_set/joint_game_set.ipynb
+inputs:
+  - path: data/colab/joint_game_set/game_sets.npz
+    produce: >
+      uv run python -m research.features.game_sets --db nba.duckdb
+      --out-dir data/colab/joint_game_set
+    depends_on: [nba.duckdb]
+  - path: data/colab/joint_game_set/game_sets_meta.json
+    produce: >
+      uv run python -m research.features.game_sets --db nba.duckdb
+      --out-dir data/colab/joint_game_set
+    depends_on: [nba.duckdb]
+  - path: data/colab/joint_game_set/eval_parlays.parquet
+    produce: >
+      uv run python -m research.eval.joint_game_set_eval --stage --db nba.duckdb
+      --stage-dir data/colab/joint_game_set
+    depends_on: [data/colab/joint_game_set/game_sets.npz]
+  - path: data/colab/joint_game_set/eval_legs.parquet
+    produce: >
+      uv run python -m research.eval.joint_game_set_eval --stage --db nba.duckdb
+      --stage-dir data/colab/joint_game_set
+    depends_on: [data/colab/joint_game_set/game_sets.npz]
+  - path: data/colab/joint_game_set/eval_singles.parquet
+    produce: >
+      uv run python -m research.eval.joint_game_set_eval --stage --db nba.duckdb
+      --stage-dir data/colab/joint_game_set
+    depends_on: [data/colab/joint_game_set/game_sets.npz]
+  - path: data/colab/joint_game_set/eval_games.parquet
+    produce: >
+      uv run python -m research.eval.joint_game_set_eval --stage --db nba.duckdb
+      --stage-dir data/colab/joint_game_set
+    depends_on: [data/colab/joint_game_set/game_sets.npz]
+artifacts:
+  - metrics.json
+  - best_config.json
+  - search_log.json
+  - training_log.json
+  - data_summary.json
+  - weights.pt
+  - parlay_preds.parquet
+  - single_preds.parquet
+  - game_preds.parquet
+  - play_preds.parquet
+registry:
+  model_name: joint_game_set
+  tags: {rung: 4, model_method: set_transformer_joint_game, holdout_scored: false, experiment: joint_game_set_v1, family: mixture_lowrank_gaussian_pit_space}
+touches_holdout: false
+preregistration_id: null

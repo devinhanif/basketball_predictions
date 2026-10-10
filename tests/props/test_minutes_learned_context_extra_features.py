@@ -1,10 +1,10 @@
 """Tests that :func:`fit_learned_game_context` accepts an OPTIONAL
 ``extra_features`` frame joined on ``(game_id, player_id)``, with the exact
-shape ``nba.preprocess.depth_chart.build_depth_chart_features`` is expected
+shape ``research.preprocess.depth_chart.build_depth_chart_features`` is expected
 to produce (``[game_id, player_id, depth_chart_rank:int,
 minutes_ceiling_hazard:float]``) -- see task conferral note in
 ``nba.props.minutes`` module docstring. This module does NOT import
-``nba.preprocess.depth_chart`` (it may not exist yet); the frame below is
+``research.preprocess.depth_chart`` (it may not exist yet); the frame below is
 purely synthetic, matching only the documented column names/dtypes.
 """
 
