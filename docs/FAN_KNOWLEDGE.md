@@ -203,3 +203,18 @@ Devin is a Rockets fan.
   a consequence of a large gap (garbage time), not a cause. The frozen F13 rule must use gap
   *trajectories* (gap growth in the k possessions after a substitution, conditioned on the gap at the
   substitution) or an instrument such as forced absences (fouls, injury) — not on/off snapshots.
+
+## Gravity from the defence's side (2026-10-09, sixth round)
+
+- "It's more from a defensive perspective: *I want someone else to beat me; we can't stop him too
+  much.*" Gravity is the defence's decision to redistribute the opponent's shots away from the star.
+  So the measurable signature is not the star's points; it is his TEAMMATES' shot diet: more and
+  easier looks, and whether they can convert.
+- *Data agrees (2022-24, 820k shots):* with the team's top scorer on the floor, teammates make 53.8%
+  vs 52.2%, take more rim shots (35.3% vs 34.1%) and more threes (41.8% vs 40.9%), and score 1.30
+  vs 1.26 points per shot. Gravity = easier teammate shots.
+- *Model implication (F11 refinement):* a player's prop distribution should carry the gravity of the
+  stars he shares the floor with, as the *change in his own shot quality* (rim share, open-three
+  share) — and the defence's choice of "whom to let beat us" is itself predictable from the
+  opponent's defensive scheme. Momentum control (F13) and defensive redistribution are the same
+  idea seen from the two benches.
