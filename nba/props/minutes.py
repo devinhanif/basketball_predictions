@@ -117,8 +117,8 @@ import numpy as np
 import polars as pl
 from sklearn.linear_model import Ridge
 
-from nba.coldstart.shrinkage import shrink_rate
 from nba.features.game_context import build_national_tv_features, build_standings_features
+from nba.features.shrinkage import shrink_rate
 from nba.features.team_features import build_team_game_features
 from nba.props.config import MinutesModelConfig
 from nba.props.conformal import chronological_split
@@ -534,7 +534,7 @@ def predict_minutes(
 ) -> list[MinutesHurdleDist]:
     """Build one :class:`MinutesHurdleDist` per row of ``features``.
 
-    Empirical-Bayes shrinkage (``nba.coldstart.shrinkage.shrink_rate``)
+    Empirical-Bayes shrinkage (``nba.features.shrinkage.shrink_rate``)
     blends each player's as-of observed rate toward the league default as
     ``n -> 0`` and toward the observed rate as ``n -> infinity`` -- the
     same discipline CLAUDE.md requires for every ``player_rates`` column.

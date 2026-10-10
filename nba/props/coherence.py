@@ -66,7 +66,7 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.coldstart.shrinkage import shrink_rate
+from nba.features.shrinkage import shrink_rate
 from nba.props.distributions import (
     Distribution,
     GammaDist,

@@ -14,7 +14,7 @@ like every other feature in ``nba/props/``.
 
 The output ``k_multiplier`` is designed to be multiplied directly into a
 stat's base shrinkage pseudo-count ``k`` before calling
-``nba.coldstart.shrinkage.shrink_rate`` -- raising ``k`` pulls the posterior
+``nba.features.shrinkage.shrink_rate`` -- raising ``k`` pulls the posterior
 rate harder toward the prior, which is exactly "temporarily raise prior
 weight" from CLAUDE.md. The boost decays linearly back to 1.0 over
 ``decay_games`` games after the flagged change, modeling the idea that a

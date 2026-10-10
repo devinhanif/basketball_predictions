@@ -11,7 +11,7 @@ import numpy as np
 from hypothesis import given
 from hypothesis import strategies as st
 
-from nba.coldstart.shrinkage import classify_source, shrink_rate, tune_pseudo_count
+from nba.features.shrinkage import classify_source, shrink_rate, tune_pseudo_count
 
 rates = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
 pseudo_counts = st.floats(min_value=1e-6, max_value=1e6, allow_nan=False, allow_infinity=False)

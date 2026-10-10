@@ -37,12 +37,9 @@ RESEARCH_PREFIXES = (
     "nba.preprocess",
 )
 
-#: (live module, research module) edges still present. Shrinks with every cut; never grows.
-KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset(
-    {
-        ("nba.props.minutes", "nba.coldstart.shrinkage"),
-    }
-)
+#: (live module, research module) edges still present. Reached zero on 2026-10-09 after eight
+#: cuts (docs/reviews/replay_oracle_2026-10-09.md); it never grows again.
+KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset()
 
 
 def module_path(mod: str) -> Path | None:
