@@ -55,3 +55,5 @@ exploration, however good it looks.
 | F14 | "Coach's guy": players who follow a coach/GM across teams get trusted minutes and closing time | team_coaches, rosters across seasons, stints | minutes stability, closer share |
 | F15 | Weakest-defender liability: lineup's hunted player (opp rim-share lift when he is on), decaying with development | possessions (def_players, shot_zone), seasons played | team defence, props of the hunted player's teammates |
 | F16 | Season stakes: seed-lock / play-in / tank zones from as-of standings change effort and rotations | games (standings as-of), schedule | win prob, minutes, P(play) late season |
+| F17 | Rest-lineup quality: who runs the offence when the star sits (guard 6th man "keeps it up") | stints, possessions | bench props, team ppp by segment |
+| F9b | Young-pick prior, re-registered: undrafted as its own category; season index from draft year, not data start | players_static, box scores | pts, all (replaces the F9 rule, which failed its own data check: T184) |

@@ -244,3 +244,11 @@ Devin is a Rockets fan.
   where am I fighting for playoff advantage?" Seeds 1–4 get home court, 5–6 are locked in, 7–10
   play for the 7th/8th spot. It gets less serious once the seed is locked. *Model note:* a pre-tip
   "stakes" feature from standings: seed-lock status, play-in zone, tank zone. Hypothesis F16.
+- *6th man as a guard (data, 2022-24):* Tre Jones on → team 1.131 ppp vs 1.090 off, TOV 13.9% vs 14.8%;
+  Bones Hyland on → 1.123 vs 1.169 off, TOV 15.3% vs 14.4%. Opposite signs for the same role: the
+  "rest lineup" has its own measurable quality (who runs the offence when the star sits), and bench
+  players' props live there. Hypothesis F17: rest-lineup ppp as a pre-tip feature for bench props.
+- *#2 scorer next to the star (data, 2022-24):* shot share 23.4% with the star on vs 27.7% off, but
+  make rate 54.2% vs 53.0% and 1.286 vs 1.259 pts/shot. "Let someone else beat us" from the #2's
+  side: fewer attempts, easier attempts → his points can stay flat while efficiency rises — a
+  distribution-shape effect, not a mean effect.
