@@ -179,3 +179,21 @@ Devin is a Rockets fan.
 - *F12 descriptive (stints, 2022-24):* Q4 floor time relative to Q1-3 — veterans .335 in close games
   (final margin ≤5) vs .312 in blowouts (+7%); young players (≤2 seasons) .333 vs .341 (−2.5%).
   Coaches trust vets to close. The pattern Devin described is in the data.
+
+## Momentum, pace identity, trusted vets (2026-10-09, fifth round)
+
+- **Offensive gravity is momentum control.** "Basketball is a game of momentum." Players who make
+  tough shots and score on three levels keep the gap manageable — within 5–10 at any time — so
+  the game never gets away. Gravity-inducing ≠ high scorer; it is the player who stops runs.
+  *Hypothesis F13:* with the team's go-to scorer on the floor, |score gap| stays bounded (lower
+  share of possessions with gap > 10), beyond his points. Measurable from `possessions.score_diff`
+  with stints. If true, it is a *team win-prob* feature (blowout risk) and a *props* feature
+  (blowout → short minutes) at once.
+- **Pace identity:** the Rockets are a half-court team; teams without playmakers in a half-court
+  offence are full-court teams. *Data agrees:* 2024-25 share of fast possessions (≤7 s) — HOU 4th
+  slowest of 30 (0.457), with DEN, MEM, CLE; fastest: WAS, PHI, CHA, ORL, BKN. Possession length
+  from the clock is a usable pace-identity measure; opponent pace identity is a pre-tip feature.
+- **Trusted low-usage vets** can be identified because they *follow coaches or GMs around the
+  league*: same player, same coach/GM, different team. *Measurable:* player–coach co-tenure across
+  team-seasons (we have team_coaches and rosters) → a "coach's guy" flag → closer share, minutes
+  stability. F14.

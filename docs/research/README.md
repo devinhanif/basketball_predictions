@@ -51,3 +51,5 @@ exploration, however good it looks.
 | F10 | Rivalry/FIBA-history matchups: questionable → sits; past-opponent → "goes off" | divisions, Finals history list (Devin verifies), international rosters | P(play), pts |
 | F11 | Lineup-conditional props: teammates' gravity/rebounding on the floor (as-of, composed from player traits) | stints, possessions, players_static | all; the "unseen lineup" problem |
 | F12 | Youth volatility = closing-lineup risk: young players with deficiencies sit in close 4th quarters | stints by period, Elo margin, seasons played | minutes spread, pts lower tail |
+| F13 | Momentum control: go-to scorer on floor bounds the score gap (blowout risk), beyond his points | possessions.score_diff, stints | win prob, minutes (blowout → short minutes) |
+| F14 | "Coach's guy": players who follow a coach/GM across teams get trusted minutes and closing time | team_coaches, rosters across seasons, stints | minutes stability, closer share |
