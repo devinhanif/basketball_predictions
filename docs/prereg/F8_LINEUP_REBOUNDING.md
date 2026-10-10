@@ -1,11 +1,12 @@
 # F8 lineup rebounding: expected on-court rebounding environment as props features (pre-registration)
 
-Status: DRAFT 2026-10-10 14:35 CT, NOT FROZEN; decisions filled by Claude's recommendations (Devin: "then F8"), awaiting
-Devin's "confirmed". Settled: (a) the rebound flag was fixed first (`possessions.n_oreb`/`n_dreb`, data_version
+Status: FROZEN 2026-10-10 16:36 CT on Devin's confirmation (message: "confirm everyone!!!", covering F8 among four pending items;
+see docs/DECISIONS.md 2026-10-10). Draft history: DRAFT 2026-10-10 14:35 CT, decisions filled by Claude's recommendations
+(Devin: "then F8"). Settled: (a) the rebound flag was fixed first (`possessions.n_oreb`/`n_dreb`, data_version
 1c5b0901afdf), so G3 is re-measured below and group C is IN; (b) big = 6'10" (height_in >= 82) or Center, fixed;
 (c) F11 ran first and closed as a null (T244-T251), so A0 stays production v2; (d) the motivating evidence comes
 from the report season and the holdout and is declared as such in "Data exposure"; (e) primary slice = bigs
-(`is_big_p`), pooled rows as the no-harm guard (pass rule 1). Committed by the maintainer BEFORE any fit.
+(`is_big_p`), pooled rows as the no-harm guard (pass rule 1). Committed by the maintainer's hand BEFORE any fit.
 Everything above the line `=== RESULTS BELOW ===` is frozen at that time. Freeze evidence: commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/F8_LINEUP_REBOUNDING.md | shasum -a 256`
 (first 8 hex chars into the results section and every ledger row). No candidate exists yet. Season labels
