@@ -77,3 +77,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - ODDS_HISTORY gate check PASSED on the real prices (all four checks; table in the draft, outside the frozen text). Props for 2023-25 are fully pulled; game lines pulling. The rule is ready to freeze on your word.
 
 - Historical odds pull COMPLETE (1.44M of 5M credits; props + game lines for 2023-25; 4 unmatched games per phase). Reparse with the reviewed aliases running. You can cancel the-odds-api.com plan after the month, or keep the 3.5M remaining credits for line-movement snapshots.
+
+- REFEREES gate G0 FAILED (T202): four officials have two ids each in game_officials (feed defect), everything else passes. Decision: OK to merge the duplicate ids in the officials table (archivist, data correction; the frozen rule is untouched) and re-run the gate? If yes the experiment runs the same day.

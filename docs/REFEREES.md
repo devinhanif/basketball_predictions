@@ -197,3 +197,5 @@ league mean, permutation control keeps column marginals.
 === RESULTS BELOW ===
 
 (none yet)
+
+Gate G0 run 2026-10-10 (research/eval/referees_eval.py; frozen sha256 14613c3a verified against d4e3dad). FAILED on item 2: four official names carry two official_ids each (6 of ~12,000 official-game slots on the minority ids); all other items pass. No arm fitted. Ledger T202. Next step is a data correction to game_officials and a re-run of G0; the rule is unchanged.
