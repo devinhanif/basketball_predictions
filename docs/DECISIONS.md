@@ -121,3 +121,9 @@ honest known_at per predicate; first real build: 87,530 listed_status, 103,785 p
 Why: Devin's "knowledge graph" question (2026-10-10); the data's lesson that information wins; one as-of query for the explainer,
 the pretip job and the reporter feed (claimed edges with provenance = the prompt-injection defence).
 What would reverse it: no reader adopts it within the season.
+
+## 2026-10-10 2026-10-10 18:05 CT — Devin: "lets go" → MINUTES_HAZARD FROZEN (sha256 65fced23)
+What: the minutes-as-hazard rule is frozen and run by the modeler (research-only code; comparator M2 from MINUTES_V2; props
+downstream unchanged). Ledger rows drafted by the agent, appended by the main session.
+Why: Devin confirmed; gate measured on real data before the freeze; the honest prior (props gain expected small) is in the rule.
+What would reverse it: nothing above the line changes; a new question gets a new rule.
