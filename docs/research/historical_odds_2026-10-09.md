@@ -240,3 +240,18 @@ daily job can fail on.
 
 Credit rules confirmed: events list 1; props 10 × markets × regions (4 markets, us = 40); game lines 30.
 Props from May 2023 confirmed; 5-minute snapshots; "closest snapshot at or before the requested time".
+
+## 2026-10-10 05:15 CT: the pull is complete
+
+| Phase | Game-snapshots | Event-match failures | Notes |
+|---|---|---|---|
+| props 2023-24, 2024-25, 2025-26 | 7,893 (T-60 + T-5 per game) | 4 | 1 empty response |
+| game lines, same seasons | 7,894 | 4 | h2h, spreads, totals |
+
+Credits: 1,435,272 of the 5M plan (cap was 2M); 23,698 calls; server remaining 3,564,322. Regions us, eu
+(Pinnacle), us_ex from 2024-12-20. Everything raw-cached under data/odds/raw/the_odds_api/ (a rerun
+costs 0). Table: data/odds/odds_history.duckdb `odds_history` (8.8M prop rows + game lines). Gate check
+for ODDS_HISTORY passed on these prices (docs/prereg/ODDS_HISTORY.md). Eleven vendor nicknames reviewed
+into configs/kalshi_aliases.yaml; props reparsed from cache to apply them. The plan can be cancelled
+once the 2025-26 live capture (theoddsapi.com) is confirmed on opening night; keep it if line-movement
+snapshots are wanted later (about 3.5M credits remain this month).
