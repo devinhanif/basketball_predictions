@@ -120,6 +120,30 @@ def test_unresolved_sub_name_is_a_noop() -> None:
     assert sorted(home["players"].to_list()[0]) == sorted(HOME_STARTERS)
 
 
+def test_correction_appended_late_in_the_feed_is_placed_by_its_clock() -> None:
+    """The feed appends post-hoc corrections at the end with a late action
+    number but the right period and clock. Sorting by action number applied
+    this 10:15 sub after the 0:04.8 one: a negative stint and a wrong five.
+    It must be applied at 10:15."""
+    b = PbpBuilder()
+    _named(b, 1, "PT11M00.00S", HOME, 1, "A")
+    _sub(b, 1, "PT00M04.80S", HOME, 1, "A", "Bench")
+    _named(b, 1, "PT00M02.00S", HOME, 50, "Bench")
+    _named(b, 1, "PT00M01.00S", HOME, 51, "Late")
+    # Appended after everything else in action order, stamped 10:15.
+    _sub(b, 1, "PT10M15.00S", HOME, 2, "B", "Late")
+    stints, report = track_lineups_with_report(b.df(), STARTERS)
+    home = stints.filter(pl.col("team_id") == HOME).sort("start_clock", descending=True)
+    assert (home["start_clock"] >= home["end_clock"]).all()
+    assert home["start_clock"].to_list() == [720.0, 615.0, 4.8]
+    assert [sorted(p) for p in home["players"].to_list()] == [
+        [1, 2, 3, 4, 5],
+        [1, 3, 4, 5, 51],
+        [3, 4, 5, 50, 51],
+    ]
+    assert report.desync == [] and report.unresolved == []
+
+
 def _act(b: PbpBuilder, period: int, clock: str, team: int, player: int, name: str) -> None:
     _named(b, period, clock, team, player, name)
 

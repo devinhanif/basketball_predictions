@@ -279,7 +279,7 @@ def write_unresolved_csv(reports: list[LineupReport], out_dir: Path) -> tuple[Pa
         path = out_dir / name
         with path.open("w", newline="") as f:
             w = csv.writer(f)
-            w.writerow(["game_id", "team_id", "period", "clock", "in_name", "out_id"])
+            w.writerow(["game_id", "team_id", "period", "clock", "in_name", "out_id", "reason"])
             for r in reports:
                 for u in getattr(r, attr):
                     w.writerow(
@@ -290,6 +290,7 @@ def write_unresolved_csv(reports: list[LineupReport], out_dir: Path) -> tuple[Pa
                             u["clock"],
                             u["in_name"],
                             u["out_id"],
+                            u.get("reason", ""),
                         ]
                     )
         paths.append(path)

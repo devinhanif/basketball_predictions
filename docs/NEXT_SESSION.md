@@ -36,3 +36,8 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
 5. Platt P(play) forward check before trusting unconditional parlay probabilities.
 6. Parlay: stay shadow until the deferral gate (30 settled rows, 14 distinct dates) and a positive-EV-at-conservative-bound result; report "no positive EV found" when true.
 7. Optional, only if live results justify: pts-only regular-season hybrid variant with upper-tail fix; no 2025 touch.
+8. Possession parser time order (before F11, F13, F15, F17; not needed by F8). `nba/parse/possessions.py` sorts by
+   `action_number`, which is not game order (ADR 0002 item 5). Measured 2026-10-09 on the stored table:
+   5,789 of 1,049,740 possessions end after they start and 3,939 start after the previous one ended, in 4,258
+   games, so clock glitches beyond the appended corrections are involved. A re-parse renumbers `poss_idx` in
+   those games; shots, lineups and anything keyed on it must be rebuilt in the same step, with a pre-fix backup.

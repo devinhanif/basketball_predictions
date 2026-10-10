@@ -21,6 +21,12 @@ on only 48.1% of 82,407 player-games and a wrong opening five in ~80% of Q2/Q3/Q
    reported per season. Target >= 95%, floor 91% (`MINUTES_SHARE_TARGET`/`MINUTES_SHARE_FLOOR`);
    `python -m nba.parse.rebuild_lineups` exits 2 below the floor. `parse_games` accumulates the same
    metric plus unresolved/desync/open-filled/Q1-mismatch counts in `ParseSummary`.
+5. (2026-10-09, after review of the first rebuild) Events are processed in game order: period, then
+   clock, substitutions first at a tie. `action_number` is not game order: the feed appends post-hoc
+   corrections (a missed substitution, a rebound) after the end of the game with the right period and
+   clock but a late number, 4,512 rows in 1,651 games (2022-25). Sorting by action number put them at
+   the end of their period and produced 957 negative-duration stints. Skipping them instead was tried
+   and rejected: it lowered reconciliation by 1.5-2 points, because the corrections are real events.
 
 ## Consequences
 - Tests: Q2 opener differing from Q1 closing five, bench technical not an opener, same-surname subs,
@@ -28,3 +34,5 @@ on only 48.1% of 82,407 player-games and a wrong opening five in ~80% of Q2/Q3/Q
 - Bulk rebuild is in-memory and set-based with chunked short write connections (no per-game UPDATEs).
 - Residual error lives in games with unresolved or desynced subs (listed in
   `reports/lineups_rebuild/*.csv`); a first-name source would close most of it.
+- Any consumer of raw PBP that assumes `action_number` is game order has the same bug
+  (`nba/parse/possessions.py` should be checked before it is relied on for ordering).

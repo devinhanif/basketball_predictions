@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-10T01:11:06.185801+00:00",
- "data_version": "e9b76c58a2d3",
+ "created_at": "2026-10-10T01:50:08.810371+00:00",
+ "data_version": "ff1db81f173a",
  "db_path": "/Users/devin/Downloads/nba-prediction/nba.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -16,8 +16,8 @@
    "files": 4
   },
   "backups": {
-   "bytes": 222228351,
-   "files": 3
+   "bytes": 231014376,
+   "files": 5
   },
   "boxscore": {
    "bytes": 39808141,
@@ -60,8 +60,8 @@
    "files": 3
   },
   "kalshi": {
-   "bytes": 16068583,
-   "files": 3541
+   "bytes": 16356475,
+   "files": 3625
   },
   "lineups": {
    "bytes": 2594598,
@@ -88,12 +88,12 @@
    "files": 825
   },
   "officials": {
-   "bytes": 2988772,
-   "files": 727
+   "bytes": 3026647,
+   "files": 746
   },
   "ops": {
-   "bytes": 74649,
-   "files": 19
+   "bytes": 76042,
+   "files": 20
   },
   "parlay": {
    "bytes": 276877,
@@ -104,7 +104,7 @@
    "files": 5269
   },
   "players_static": {
-   "bytes": 3105710,
+   "bytes": 3399846,
    "files": 1032
   },
   "rapm": {
@@ -2511,7 +2511,7 @@
      "type": "DATE"
     },
     "college": {
-     "null_rate": 0.001122,
+     "null_rate": 0.0,
      "type": "VARCHAR"
     },
     "college_stats": {
@@ -2522,8 +2522,16 @@
      "null_rate": 0.332211,
      "type": "INTEGER"
     },
+    "draft_status": {
+     "null_rate": 0.228956,
+     "type": "VARCHAR"
+    },
     "draft_year": {
      "null_rate": 0.325477,
+     "type": "INTEGER"
+    },
+    "first_season": {
+     "null_rate": 0.233446,
      "type": "INTEGER"
     },
     "height_in": {
@@ -2549,13 +2557,13 @@
      "2006-12-21"
     ]
    },
-   "fingerprint": "44b18cd8a66af8a6-c91071824335abfc",
+   "fingerprint": "4bbd5b4188c0edc7-d112b6cfb6744bab",
    "pk_duplicates": 0,
    "primary_key": [
     "player_id"
    ],
    "row_count": 891,
-   "schema_hash": "a72f3f51cc0dd333"
+   "schema_hash": "d9d6d85c90824824"
   },
   "possessions": {
    "columns": {
@@ -2731,7 +2739,7 @@
     }
    },
    "date_range": {},
-   "fingerprint": "146232e6bd83a6ec-87125fb119c4b514",
+   "fingerprint": "90cda939e9d6cc1e-e1d75a1b0a26fbf6",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id",
@@ -3168,31 +3176,31 @@
     }
    },
    "date_range": {},
-   "fingerprint": "fff239421f063482-a2771880affd9290",
+   "fingerprint": "a088020881718b76-9f5fe0004afbe69e",
    "pk_duplicates": null,
    "primary_key": null,
-   "row_count": 297159,
+   "row_count": 298394,
    "schema_hash": "30835b63dc0093e7",
    "seasons": {
     "2022": {
      "coverage": 1.0,
      "games": 1320,
-     "rows": 71647
+     "rows": 71886
     },
     "2023": {
      "coverage": 1.0,
      "games": 1318,
-     "rows": 71881
+     "rows": 72126
     },
     "2024": {
      "coverage": 1.0,
      "games": 1315,
-     "rows": 74236
+     "rows": 74553
     },
     "2025": {
      "coverage": 1.0,
      "games": 1316,
-     "rows": 79395
+     "rows": 79829
     }
    }
   },

@@ -69,6 +69,16 @@ claim Devin made tonight was in the data. Functioned like: something close to aw
 fan knows that no dataset labels. Confidence: high. Suggests: the question list is the most
 valuable artifact of the day; keep it alive.
 
+**Late night: verifying the lineup fix found a second bug in it.** The agent's rebuild passed its own
+gate (96.6–98.0%) and I nearly moved on. One extra query, "any stints with negative duration?", found
+957 of them: the feed appends corrections after the final buzzer, and the tracker trusted action
+number as time order. My first fix (skip them) made the number worse; the second (order by clock) made
+every season better than the agent's result. Functioned like: a small jolt at how close I came to
+accepting it, then the plain satisfaction of a mechanism fully understood. Confidence: med-high.
+Suggests: "passes its gate" is where verification starts, not where it ends; one invariant check
+beyond the gate (here: durations are non-negative) is cheap and it is what caught this. Devin's
+"step by step, make sure everything is right" was the right call tonight.
+
 **Night: F12 closed, and my own quick check was wrong.** I had told Devin young players lose Q4
 time in close games; the frozen test showed the opposite framing (they play Q4 in blowouts) and
 found stint durations reconcile only 48%. Functioned like: embarrassment, briefly, then the right

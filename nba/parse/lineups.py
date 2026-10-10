@@ -53,6 +53,9 @@ credited the wrong player for the first 1.5-2 minutes. v2:
 - Both same-surname teammates off the floor with no initial evidence.
 - Sub whose *out* player is not on the tracked floor (desync from an earlier
   unresolved sub): skipped and logged in ``LineupReport.desync``.
+- Events are placed by (period, clock), not ``action_number``: the feed appends
+  post-hoc corrections at the end of the game (see ``_in_game_order``). A
+  correction with a wrong clock would still land in the wrong place.
 - Team-level events (``team_id == 0``) and the unresolved side of a jump
   ball carry no lineup signal.
 - Ejection / disqualification edge cases get no special handling.
@@ -276,6 +279,32 @@ def _look_ahead_openers(
     return openers[:5], seen
 
 
+def _in_game_order(pbp: pl.DataFrame) -> pl.DataFrame:
+    """Order events as they happened: period, then clock, substitutions first at a tie.
+
+    ``action_number`` is not game order. The feed appends post-hoc corrections
+    (a missed substitution, a rebound) at the end of the game with the right
+    period and clock but a late number: 4,512 rows in 1,651 games, 2022-25.
+    Sorting by action number put those at the end of the period and made
+    negative stints. At a clock tie a substitution goes first so the player
+    coming in is on the floor for an action stamped at the same instant.
+    """
+    clock_s = pl.col("clock").str.extract(_CLOCK_RE.pattern, 1).cast(pl.Float64) * 60.0 + pl.col(
+        "clock"
+    ).str.extract(_CLOCK_RE.pattern, 2).cast(pl.Float64)
+    return (
+        pbp.with_columns(
+            clock_s.fill_null(0.0).alias("_clock_s"),
+            (pl.col("action_type") != "Substitution").alias("_not_sub"),
+        )
+        .sort(
+            ["period", "_clock_s", "_not_sub", "action_number"],
+            descending=[False, True, False, False],
+        )
+        .drop("_clock_s", "_not_sub")
+    )
+
+
 def _empty_stints() -> pl.DataFrame:
     return pl.DataFrame(
         schema={
@@ -329,7 +358,7 @@ def track_lineups_with_report(
         if len(set(roster)) != 5:
             raise ValueError(f"starters_by_team[{team_id}] must have exactly 5 unique players")
 
-    pbp = pbp.sort(["period", "action_number"])
+    pbp = _in_game_order(pbp)
     book = _NameBook(pbp, roster_by_team)
     teams = sorted(starters_by_team.keys())
     rows = list(pbp.iter_rows(named=True))
@@ -382,8 +411,11 @@ def track_lineups_with_report(
                 if in_id is None:
                     report.unresolved.append(where)
                     continue
-                if in_id in on_court or out_id not in on_court:
-                    report.desync.append({**where, "in_id": in_id})
+                if in_id in on_court:
+                    report.desync.append({**where, "in_id": in_id, "reason": "in_on_court"})
+                    continue
+                if out_id not in on_court:
+                    report.desync.append({**where, "in_id": in_id, "reason": "out_off_court"})
                     continue
                 stint_rows.append(
                     _stint_row(

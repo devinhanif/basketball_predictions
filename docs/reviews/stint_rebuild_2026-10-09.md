@@ -43,8 +43,36 @@ no production path sets it (default False, rejected in the A/B). `context_featur
 research code. Research that does read lineups (rapm, possession_step_features, embeddings, sim heads,
 F11/F13/F15/F17) was computed on v1 lineups and should be rerun on v2.
 
+## Review of the first rebuild: 957 negative stints, and what they were
+
+Verification of the rebuild above found 957 stints whose end clock was later than their start clock
+(2,084 negative minutes in total). The tracker sorted events by `action_number`; the feed appends
+post-hoc corrections after "End of 4th Period" with the right period and clock but a late number
+(example: game 0022400353, action 763, period 2, 10:15, "SUB: Poole FOR Butler", after the period's
+last sub at 0:04.8). Applied at the end of Q2 this made a 10-minute negative stint and a wrong five.
+4,512 such rows sit in 1,651 games; 638 are substitutions, the rest rebounds, shots and turnovers.
+
+Two fixes were tried. Skipping a sub whose clock runs backwards lowered reconciliation to
+96.5 / 96.1 / 95.5 / 94.5% (the corrections are real; applied in the wrong place they still fixed
+game-total minutes by accident). Ordering events by (period, clock, substitution first at a tie) is the
+fix that was kept:
+
+| season | n player-games | v2 by action number | v2 by clock |
+|---|---|---|---|
+| 2022 | 27,737 | 98.0% | 99.1% |
+| 2023 | 28,197 | 97.6% | 98.7% |
+| 2024 | 28,118 | 97.3% | 98.6% |
+| 2025 | 28,593 | 96.6% | 98.4% |
+
+Desynced subs 1,336 -> 101 (59 in-player already on court, 42 out-player off court); Q1 look-ahead
+openers disagreeing with box starters 8 -> 0; unresolved in-names unchanged at 1,177; team-periods
+filled from the prior closing five 94 -> 93. About 1.0% of possession lineups change versus the first
+rebuild (offense 99.03% agreement, Q2-Q4 98.84%). About 1% of player-games with box minutes have no
+stint at all (never named in the PBP and not resolved); that is the main remaining gap.
+
 ## Reversibility and commands
-Pre-fix snapshot: `data/backups/lineups_pre_fix_20261010T011007Z_stints.parquet` and
-`..._possessions.parquet` (game_id, poss_idx, off_players, def_players).
+Snapshots: v1 lineups in `data/backups/lineups_pre_fix_20261010T011007Z_{stints,possessions}.parquet`;
+the first v2 rebuild (action-number order) in `..._20261010T014851Z_*`. Possession files carry
+(game_id, poss_idx, off_players, def_players).
 Rebuild: `uv run python -m nba.parse.rebuild_lineups --db nba.duckdb --write` (compute-only without
-`--write`). New `data_version`: e9b76c58a2d3.
+`--write`). `data_version`: e9b76c58a2d3 after the first rebuild, ff1db81f173a after the clock-ordered one.

@@ -30,3 +30,16 @@
   2024 46.9% -> 97.3%, 2025 44.8% -> 96.6%. Old-vs-new offense five equal on 80.2% of possessions.
 - Pre-fix backup: data/backups/lineups_pre_fix_20261010T011007Z_{stints,possessions}.parquet.
   Details: docs/reviews/stint_rebuild_2026-10-09.md. Lineup-based research (F11/F13/F15/F17, rapm) predates this.
+
+## 2026-10-10 UTC - data_version ff1db81f173a (lineup tracker v2 in game order; F9b player columns)
+- `stints` (297,159 -> 298,394 rows) and `possessions.off_players/def_players` rewritten again for all
+  5,269 games with events ordered by (period, clock) instead of `action_number` (ADR 0002 item 5): the
+  first v2 rebuild had 957 negative-duration stints from corrections the feed appends after the game.
+  Stint minutes within 1.0 min of box minutes: 2022 98.0% -> 99.1%, 2023 97.6% -> 98.7%,
+  2024 97.3% -> 98.6%, 2025 96.6% -> 98.4%. Negative-duration stints 957 -> 0. About 1% of possession
+  lineups changed versus e9b76c58a2d3. Pre-write snapshot: `data/backups/lineups_pre_fix_20261010T014851Z_*`.
+- `players_static`: columns `first_season` (CommonPlayerInfo FROM_YEAR) and `draft_status`
+  ('drafted' | 'undrafted' | 'unknown'; NULL = not re-pulled) added; 687 rows upserted from a 660-player
+  re-pull. Active players (>= 20 games in 2023-24, n = 498): first_season 100%, draft_status 100%
+  (394 drafted, 104 undrafted). Three active players are 'drafted' with no stored pick.
+- Flags: none.

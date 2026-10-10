@@ -60,10 +60,46 @@ from typing import Any
 import numpy as np
 import polars as pl
 
-from nba.parse.lineups import _build_name_lookup as _lineup_name_lookup
-from nba.parse.lineups import _clock_to_seconds, _resolve_name
+from nba.parse.lineups import _clock_to_seconds, _normalize_name
 from nba.parse.possessions import _build_name_lookup as _assist_name_lookup
 from nba.parse.possessions import _parse_assist, _shot_zone
+
+
+def _lineup_name_lookup(
+    pbp: pl.DataFrame,
+) -> tuple[dict[tuple[int, str], int | None], dict[tuple[int, str], int | None]]:
+    """(team_id, name) -> player_id, exact and diacritic/suffix-normalised; None if ambiguous.
+
+    This was the v1 tracker's substitution resolver. The v2 tracker
+    (``nba.parse.lineups._NameBook``) replaced it; the copy lives here so this
+    research module keeps its frozen behaviour without reaching into the parser.
+    """
+    pairs = (
+        pbp.filter((pl.col("player_id") != 0) & (pl.col("player_name") != ""))
+        .select(["team_id", "player_name", "player_id"])
+        .unique()
+    )
+    exact: dict[tuple[int, str], int | None] = {}
+    normalized: dict[tuple[int, str], int | None] = {}
+    for team_id, name, player_id in pairs.iter_rows():
+        key = (team_id, name)
+        exact[key] = None if key in exact else player_id
+        norm_key = (team_id, _normalize_name(name))
+        normalized[norm_key] = None if norm_key in normalized else player_id
+    return exact, normalized
+
+
+def _resolve_name(
+    team_id: int,
+    name: str,
+    exact: dict[tuple[int, str], int | None],
+    normalized: dict[tuple[int, str], int | None],
+) -> int | None:
+    resolved = exact.get((team_id, name))
+    if resolved is not None:
+        return resolved
+    return normalized.get((team_id, _normalize_name(name)))
+
 
 SEED = 20261008
 FROZEN_SEASON = 2025
