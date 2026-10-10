@@ -88,7 +88,7 @@ def run_checks(db_path: str, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     )
     # distinct prior seasons + 1 inside the DB (frozen definition): truncated at 3 by the 2022 start
     max_idx_db = int(df["season"].n_unique())
-    recon_ok = float((df["recon"].abs() <= RECON_TOL_MIN).mean())
+    recon_ok = int((df["recon"].abs() <= RECON_TOL_MIN).sum()) / df.height
     rep: list[dict[str, Any]] = []
     ratios: dict[tuple[str, str], float] = {}
     for gname, gexpr in (
