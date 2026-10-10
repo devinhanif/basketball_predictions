@@ -176,3 +176,6 @@ Devin is a Rockets fan.
 - **Rivalries are less serious between players** than between organisations (Spurs, Thunder, Rockets
   do have them). Rebounding identity is visible: two guys on the court with generally high OREB%
   and DREB%. Devin is unsure rivalries matter much — F10 is low priority.
+- *F12 descriptive (stints, 2022-24):* Q4 floor time relative to Q1-3 — veterans .335 in close games
+  (final margin ≤5) vs .312 in blowouts (+7%); young players (≤2 seasons) .333 vs .341 (−2.5%).
+  Coaches trust vets to close. The pattern Devin described is in the data.
