@@ -1,8 +1,10 @@
 # NBA Prediction — Project Status
 
-_Living document. Last updated: 2026-10-10 02:15 CT (HEAD d752f29; tags `pre-restructure-2026-10-10`, `live-candidate-2026-10-10`). Earlier narrative (2026-10-08) is kept below under "Background". Sources: git log, TEST_LEDGER (T001-T201), HOLDOUT_ACCESS_LOG, MORNING_BRIEFING_2026-10-10, DECISIONS.md, `nba.registry list`, launchctl, docs/reviews/._
+_Living document. Last updated: 2026-10-10 10:45 CT (HEAD c41084b; tags `pre-restructure-2026-10-10`, `live-candidate-2026-10-10`). Earlier narrative (2026-10-08) is kept below under "Background". Sources: git log, TEST_LEDGER (T001-T201), HOLDOUT_ACCESS_LOG, MORNING_BRIEFING_2026-10-10, DECISIONS.md, `nba.registry list`, launchctl, docs/reviews/._
 
 **Since 2026-10-09 evening (all byte-identical on the live path, proven by the replay oracle):** lineup tracker fixed twice (stint reconciliation 45% → 98-99%); eight research→production import edges cut; 98 research modules (40,780 lines) archived under `research/` and tested in CI; the layering test forbids `nba/` from importing `research/`; F9b closed as a null (T186-T201); two odds feeds wired (live Pinnacle benchmark; two-season historical props pull running); F19 "never four givens" measured (the market's safest legs are priced right)._
+
+**Since 02:15:** possession parser in game order and rebuilt (every ordering defect to zero, data_version 85d8a41277ce); the rung-ladder chain, pts_tail and stack/oof archived (nba/ is now only what runs at 7 pm plus its tests); first local game-explainer pages (`nba/explain`); the historical props-vs-market scorer built with production OOF rows reproduced exactly, awaiting the rule's confirmation; REFEREES stopped at its gate on duplicate official ids (T202); launchd found an hour ahead; live-odds key rejected since 08:20._
 
 ## 1. In production (registry alias `production`)
 
