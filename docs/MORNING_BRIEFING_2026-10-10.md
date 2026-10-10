@@ -88,3 +88,16 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 
 - Added 10:45: both lineup and possession fixes are in, so F11 (frozen 10-09, held for the tracker) can run under its rule now. The recorded order is F8 first, and F8 waits on your five answers. May F11 go first while F8 waits? (yes/no)
 - Done since the morning note: possession parser fixed and rebuilt (defects 4,258 games → 0); first explainer pages (reports/explain/, two games sent to you); three archive cuts landed; market-comparison scorer built, awaiting "confirmed"; CI green at c41084b.
+
+## 13:30 — the market comparison is in (ODDS_HISTORY, frozen sha d5b8b162; ledger T203+)
+
+- **Props model alone vs the market: the market is better everywhere.** All 32 cells (4 stats × Pinnacle/DK/FD/consensus ×
+  T-60/T-5), both seasons, by +0.007 to +0.024 log loss, every CI above zero. Our probabilities at the market's line are
+  over-confident (we say 26% over → happens 45%; we say 64% → 53%): what we add beyond the line is mostly noise.
+- **Game winners:** market better both seasons (+0.021 in 2023-24, +0.011 in 2024-25).
+- **Blend (market as prior, our model 10–35%):** indistinguishable from the market in 30 of 32 cells. One cell passes the
+  frozen rule: rebounds vs Pinnacle, w = 0.25/0.30, −0.0022 log loss at both timings, CIs clear of zero, Holm p < 0.05.
+  EV on it: +4.3% per unit, lower bound −0.1%, so no money claim. It is with the adversary now; nothing is promoted.
+- What it means, plainly: for betting, the model's own numbers are not an edge; the market's line is the better forecast
+  and the honest answer stays "keep your money". For the project, the market-as-prior design is confirmed as the right
+  shape, and the one place our information might add a sliver is rebounds (the lineup property you named first).
