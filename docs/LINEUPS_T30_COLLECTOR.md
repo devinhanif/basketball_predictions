@@ -3,7 +3,7 @@
 Status: BUILT 2026-10-09 (maintainer approved, SHADOW ONLY). Production stays at T-60
 (`props_context_residual`). The T-30 rows are logged as `props_context_residual_t30`, a
 comparison model; nothing reads them for parlays or promotion. Background and the offline
-estimate of the value: `docs/LINEUPS_KNOWN.md`, `reports/lineups_known.md`, and the red-team
+estimate of the value: `docs/LINEUPS_KNOWN.md`, `reports/lineups_known.md`, and the adversary review
 `docs/reviews/redteam_lineups_known_2026-10-09.md` (open question: how many game-time decisions are
 still open at the T-30 snapshot).
 
@@ -106,7 +106,7 @@ Settlement is unchanged (`settle_pending` scores every model_name). The forward 
      `resolved_absent_from_confirmed_list`; with a Wilson 95% interval and the number of games;
    * announced five versus box-score starters on logged games (train/serve skew: announced starters who did not play; box starters not announced).
 
-The red-team estimate was that about 45% of the headline pts and ast gain is look-ahead if late decisions resolve after the
+The adversary's estimate was that about 45% of the headline pts and ast gain is look-ahead if late decisions resolve after the
 snapshot; the open-decision share is the number that tests it. Do not read either number with fewer than a few hundred
 candidates; small n is printed next to every figure.
 

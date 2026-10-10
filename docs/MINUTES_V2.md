@@ -254,5 +254,5 @@ results. Season 2025 never loaded. Reproduce: `uv run python -m nba.eval.minutes
 Recommendation: no promotion and no shadow-logging of A1 for props (nothing passes on both seasons; the pts 2023
 gain did not replicate). The minutes distribution itself (M2, or simply M1/S1 with COMMON features) is a candidate
 for the minutes path used by the sim/Kalshi tooling in place of the shrunk trailing mean; that would need its own
-pre-registration and a red-team review. A red-team check of the pts 2023 selection is cheap but not recommended given
+pre-registration and an adversary review. An adversary check of the pts 2023 selection is cheap but not recommended given
 the 2024 non-confirmation.

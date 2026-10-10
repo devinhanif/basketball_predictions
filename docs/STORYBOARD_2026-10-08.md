@@ -170,7 +170,7 @@ season-avg" and "Lineup-mix effect is real (but tiny)"; red X's next to
 "Assists," "Points," and a note "13 more claims never even had numbers saved to
 check."
 
-**Narration:** A statistician pass this session found the project's bootstrap
+**Narration:** An inference-validity pass this session found the project's bootstrap
 (the method used to compute "is this difference real or noise") was resampling
 individual player-game rows instead of whole games — understating uncertainty
 and making every prior confidence interval too narrow, i.e. making more "wins"

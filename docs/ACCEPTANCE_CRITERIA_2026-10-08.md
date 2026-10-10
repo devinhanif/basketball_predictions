@@ -2,7 +2,7 @@
 
 Written **before** any of the three upcoming tests are run (or re-run), per the
 "re-derive, don't trust" / no-goalpost-moving discipline. Maintainer and
-implementing agents (ml-engineer, props-modeler) follow this spec; do not
+the implementing agent (the modeler) follow this spec; do not
 reinterpret the decision rule after seeing a result. Any deviation goes in
 `docs/ESCALATIONS.md` before the run, not after.
 
@@ -173,7 +173,7 @@ left for props. Rule going forward:
    into the training/tunable pool. This is the only way to get a truly clean
    holdout again — flag this as a standing TODO, re-check at the start of
    every session once 2026-27 games exist.
-3. **Code gap to close (ml-engineer/props-modeler, not done here):**
+3. **Code gap to close (modeler, not done here):**
    `nba/props/run.py`'s props path, `nba/eval/model_routing.py`, and
    `nba/eval/routed_eval.py` do not call `split_frozen_holdout` at all
    (confirmed by grep, audit §3) — any "holdout" split they produce is ad hoc

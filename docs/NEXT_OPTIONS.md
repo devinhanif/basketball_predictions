@@ -104,7 +104,7 @@ big misses the same regardless of cause).
 (`possessions` doesn't carry personal-foul counts per player; `fta`/`oreb`
 are the only per-possession player fields available), so this likely needs a
 new data/ingest column before it can be built, which crosses into
-data-engineer's territory and isn't a props-modeler-only change.
+the archivist's territory and isn't a modeler-only change.
 **A/B test:** same CRPS/MAE framework, but with an explicit slice on
 "low-outlier-minutes" games (bottom decile of `actual/mu`) to check whether
 the mixture model specifically improves the tail the single Normal was
@@ -120,7 +120,7 @@ games.
 plumbing (`use_game_context` flag, `MinutesEval`), and converts an already-
 diagnosed failure mode (right mechanism, wrong hand-tuned numbers) into a
 clean, fast A/B. Option B is the natural follow-up once A either ships or is
-rejected. Option C should wait for a data-engineer ingest decision.
+rejected. Option C should wait for an archivist ingest decision.
 
 ---
 
@@ -320,7 +320,7 @@ the highest-risk touch to the one subsystem (rebounds) that currently wins.
 
 ---
 
-## 4. data-innovator's first innovative preprocessing project
+## 4. The modeler's first innovative representation project
 
 ### Option A — Player co-occurrence / lineup embeddings (word2vec-style on possessions)
 **What:** Train a lightweight skip-gram-style embedding over
@@ -420,7 +420,7 @@ claiming credit for signal the shrinkage baseline already has.
 (minutes) with a genuinely new structural signal rather than retrying a
 failed family of features, and its test is cheap (piggybacks on §1's
 pipeline) so it can be evaluated in the same pass as the minutes work. Option
-B is the more ambitious, higher-payoff bet if the team wants data-innovator
+B is the more ambitious, higher-payoff bet if the team wants the modeler
 to tackle the shared "stationarity assumption" root cause behind three past
 failures, but it needs the manager's sign-off on spending effort to possibly
 reproduce a third negative result. Option A (embeddings) is the right

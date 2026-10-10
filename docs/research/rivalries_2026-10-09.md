@@ -258,7 +258,7 @@ flagged players, each seeing a flagged opponent 2-4 times a season, which gives 
 and a pts residual SD near 6-7. Its CI would span about ±1 point, so a "goes off" effect smaller
 than that cannot be seen. The 2026-27 forward log is the only clean confirmation.
 
-## Draft pre-registration (DRAFT — only the maintainer or lead logs it)
+## Draft pre-registration (DRAFT — only the main session logs it)
 
 - **Hypothesis F10a.** Among players listed questionable at T-60, P(play) is lower when the
   opponent is a verified rival, conditional on national TV, back-to-back, month, star status and

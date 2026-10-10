@@ -57,7 +57,7 @@ configs/parlay.yaml, no paid API). The prose goes through `numguard` against tho
 note. The assistant (`python -m nba.parlay assistant`) has the same budget/target as tools `best_for_budget` and
 `best_for_target`.
 
-## Ops wiring (the lead applies this; nothing under ops/ was edited)
+## Ops wiring (the steward applies this; nothing under ops/ was edited)
 In `ops/nba_daily.sh`, pretip case, directly after the `parlay_shadow` step (which follows `market_capture`):
 ```
     step props_analysis "$UV" run --no-sync python -m nba.parlay analyze --date "$TODAY_ET"

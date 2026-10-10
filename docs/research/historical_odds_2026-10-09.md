@@ -127,7 +127,7 @@ Unverified items to confirm on day 1 (before spending most of the credits). Pull
   comparison on 2025-26 is a confirmatory touch and must be logged before it runs. The
   Kalshi 2025-26 data is therefore holdout-only for confirmatory claims.
 
-## DRAFT pre-registration (not logged; maintainer or lead logs it)
+## DRAFT pre-registration (not logged; the main session logs it)
 
 **DRAFT: Model vs market, props and game win probability**
 

@@ -6,7 +6,7 @@ is the entry point; read it before any of the individual session docs.
 ## 1. Executive summary
 
 Eight agents worked in parallel overnight on disjoint files inside one shared
-working tree: a statistician audit, a perf fix, a plain-English results writeup, a
+working tree: an inference-validity audit, a perf fix, a plain-English results writeup, a
 clustered-bootstrap statistics fix, an independent QA review, pre-registered
 acceptance criteria + two code-gap closures, a real-data matchup-3A rerun, an
 injury/availability feed scaffold, a time-decay cold-start module, a Kalshi

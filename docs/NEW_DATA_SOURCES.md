@@ -155,7 +155,7 @@ in `data/refs/official_ids.json`; same-name officials disambiguated by jersey). 
 kept with NULL id and the CLI exits 2; `python -m nba.ingest.referees remap` fills late ids once
 `game_officials` is loaded (the table is empty in `nba.duckdb` until `load:officials`).
 
-One-line addition for the lead (not applied; calls are cheap and deduped, so hourly is fine), in
+One-line addition for the steward (not applied; calls are cheap and deduped, so hourly is fine), in
 `ops/nba_daily.sh`, `pretip)` branch right after the `predict` step:
 
     step refs "$UV" run python -m nba.ingest.referees collect

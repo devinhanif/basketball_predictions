@@ -2,7 +2,7 @@
 
 ## What changed
 
-Per the statistician's audit (`docs/FDR_AUDIT_2026-10-08.md`, section 0): the
+Per the adversary's methodology audit (`docs/FDR_AUDIT_2026-10-08.md`, section 0): the
 props bootstrap resampled individual player-games, treating teammates in the
 same game as independent draws even though they share pace, blowout/
 garbage-time effects, foul trouble, and minutes-redistribution shocks. That

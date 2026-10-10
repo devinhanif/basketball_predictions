@@ -1,7 +1,7 @@
 # Reading log
 
 Where papers, repos and outside ideas enter the project. One note per item, written by the
-research-scout agent or by hand. Ideas are welcome and plentiful; claims are rare and earned.
+modeler (reading-log intake) or by hand. Ideas are welcome and plentiful; claims are rare and earned.
 
 ## How an idea travels
 

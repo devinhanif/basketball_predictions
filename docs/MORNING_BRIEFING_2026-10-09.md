@@ -146,5 +146,5 @@ At ~600 per hour, the full wish list (current-season sources plus nine older sea
 ## Your decisions this morning
 1. Ridge v2: did it run? If "ARTIFACTS WRITTEN TO" printed, tell me and I'll evaluate.
 2. Install the scheduler on the Mac (`sh ops/install_launchd.sh`) before Oct 20, or decide on the VM.
-3. T-30 lineups: worth building a lineup collector and a second daily run? (Wait for the red-team verdict.)
+3. T-30 lineups: worth building a lineup collector and a second daily run? (Wait for the adversary verdict.)
 4. Approve deleting the ~3.15 GB of finished Colab checkpoints.

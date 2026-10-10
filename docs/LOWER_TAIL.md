@@ -215,7 +215,7 @@ the SAME `run_id`; players who played, DNPs excluded identically from both arms;
 -0.005; date-clustered inference with alpha spent over the looks L30/L60/L120/END at 0.0182; NO
 efficacy claim before 120 distinct dates AND 10,000 paired player-games (first look allowed: L120);
 PROMOTE-CANDIDATE needs point <= -0.005, 98.18% CI upper bound < 0, BH-adjusted p <= 0.0182 and the
-PIT window guard, and even then only means "red-team review plus a maintainer decision". This
+PIT window guard, and even then only means "adversary review plus a maintainer decision". This
 section adds no second rule. (A weaker draft, 500 pairs / 14 dates, was considered and discarded in
 favour of the frozen document before anything was committed.)
 

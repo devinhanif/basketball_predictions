@@ -1,4 +1,4 @@
-# Data changelog (append-only; written by the data-steward agent)
+# Data changelog (append-only; written by the archivist agent)
 
 ## 2026-10-09 UTC - data_version 92bb30586d64 (baseline, before post-game backfill load)
 - First snapshot. 19 tables in nba.duckdb; the post-game tables (tracking, hustle, officials,

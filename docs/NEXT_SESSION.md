@@ -36,7 +36,7 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
 ## First two weeks
 
 - Official roster source stays on through 2026-11-03; then the script switches to `recent` automatically. Compare coverage and rookie minutes error.
-- Run the forward-monitor weekly: calibration, bias per stat, production versus comparison models.
+- Run the steward's weekly forward health check: calibration, bias per stat, production versus comparison models.
 - Do not read win/loss on small n; report CIs with every comparison.
 
 ## Roadmap after opening night

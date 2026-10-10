@@ -141,7 +141,7 @@ decision rule are unchanged. The 199-grid check remains for the 2025 touch.
 | fg3m | 0.6201 | 0.5958 | -0.0243 [-0.0248,-0.0239] | 0 | 0 | 0 | +0.007 [-0.008,+0.021] |
 | pts (descriptive) | 3.3069 | 3.3015 | -0.0053 [-0.0059,-0.0047] | 0 | 0 | 0 | +0.043 [-0.023,+0.106] |
 
-* The CRPS gains reproduce the red-team 2023 refit numbers (-0.0110, -0.0157, -0.0234) to within
+* The CRPS gains reproduce the adversary's 2023 refit numbers (-0.0110, -0.0157, -0.0234) to within
   0.001 on a different forecast object (stored OOF, 19-grid). That is a re-computation, not a
   replication on new data.
 * P(>= N) is EXACTLY invariant (not merely <= 0.0025): `q > N-0.5` and `ceil(q-0.5) >= N` are the

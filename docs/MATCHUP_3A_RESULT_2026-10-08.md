@@ -2,7 +2,7 @@
 
 _Run 2026-10-08 · seed=0 · n_boot=500 · clustered-by-game CIs · dates 2022-10-18..2026-06-13._
 
-> Exploratory: no canonical props frozen-holdout yet (statistician designing one); combos/coherence/conformal/volatility disabled to isolate the opponent factor and protect the 8GB box; archetype-vs-baseline *paired* CI deferred (needs return_raw). crps_vs_season CIs ARE the new clustered (per-game) ones.
+> Exploratory: no canonical props frozen-holdout yet (adversary designing one); combos/coherence/conformal/volatility disabled to isolate the opponent factor and protect the 8GB box; archetype-vs-baseline *paired* CI deferred (needs return_raw). crps_vs_season CIs ARE the new clustered (per-game) ones.
 
 ## Pooled CRPS by config (lower is better)
 
@@ -32,5 +32,5 @@ _Run 2026-10-08 · seed=0 · n_boot=500 · clustered-by-game CIs · dates 2022-1
 - Stats where archetype improves pooled CRPS vs baseline: NONE
 - **Verdict (exploratory): NO SIGNAL — keep flag OFF, document**
 
-_Flag remains OFF regardless; this run does not change config. Confirmation requires the paired archetype-vs-baseline clustered CI on the statistician's frozen props holdout._
+_Flag remains OFF regardless; this run does not change config. Confirmation requires the paired archetype-vs-baseline clustered CI on the adversary's frozen props holdout._
 
