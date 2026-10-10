@@ -28,3 +28,4 @@ A different hash reverts the cut.
 | 7. OpponentAdjustmentConfig into props/config | a9d7a69 | oracle_g | yes (e5714332) |
 | 6. dead pts_tail flag removed | 32e89f2 | oracle_h | yes (e5714332) |
 | 5. possession-sim branch out of props/forward; SB buckets to features | b402035 | oracle_i | yes (e5714332) |
+| 8. shrink_rate to features/shrinkage; ratchet at zero | 2f88853 | oracle_j | yes (e5714332) |
