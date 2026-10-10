@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from nba.stack.oof import TAUS
+from research.stack.oof import TAUS
 
 _EPS = 1e-6
 

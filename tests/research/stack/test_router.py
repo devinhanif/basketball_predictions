@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nba.stack.oof import N_Q
 from research.stack.adapters import quantile_grid
 from research.stack.data import StackData
 from research.stack.evaluate import (
@@ -12,6 +11,7 @@ from research.stack.evaluate import (
     evaluate_stack,
     standard_slices,
 )
+from research.stack.oof import N_Q
 from research.stack.router import (
     LGBMGate,
     SoftmaxGate,

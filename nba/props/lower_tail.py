@@ -33,6 +33,17 @@ def _monotone(q: np.ndarray) -> np.ndarray:
     return np.asarray(np.maximum.accumulate(np.clip(q, 0.0, None), axis=1))
 
 
+def raw_quantiles(
+    c: np.ndarray, s: np.ndarray, z_sorted: np.ndarray, taus: np.ndarray
+) -> np.ndarray:
+    """Production construction: ``c + s * empirical_quantile(z, tau)``.
+
+    The shared baseline of every tail candidate (it lived in ``pts_tail`` until 2026-10-10, when
+    that module was archived to ``research/props``)."""
+    zq = np.asarray(np.quantile(z_sorted, taus))
+    return _monotone(c[:, None] + s[:, None] * zq[None, :])
+
+
 def short_flag(minutes: np.ndarray, min10: np.ndarray) -> np.ndarray:
     """1 where realised minutes < SHORT_RATIO x projected minutes."""
     return np.asarray(minutes < SHORT_RATIO * min10)

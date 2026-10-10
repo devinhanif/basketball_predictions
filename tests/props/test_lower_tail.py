@@ -30,6 +30,7 @@ from nba.props.lower_tail import (
     LOWER_TAIL_KINDS,
     lower_quantiles,
     mixture_quantiles,
+    raw_quantiles,
 )
 from tests.props.test_context_residual import ELO, _league
 
@@ -196,3 +197,20 @@ def test_screen_runs_and_checks_alignment() -> None:
     bad = dict(pic, row_pid=comp["row_pid"][::-1])
     with pytest.raises(ValueError, match="aligned"):
         screen_stat("pts", comp, bad, n_boot=10)
+
+
+def test_raw_quantiles_is_the_production_construction() -> None:
+    """``c + s * empirical_quantile(z, tau)``, non-decreasing in tau and floored at 0 (it moved here
+    from the archived ``pts_tail`` module; the formula must not change)."""
+    rng = np.random.default_rng(7)
+    z = np.sort(rng.normal(size=500))
+    c = np.array([0.2, 8.0, 25.0])
+    s = np.array([0.5, 3.0, 6.0])
+    taus = np.array([0.05, 0.25, 0.5, 0.75, 0.95])
+    q = raw_quantiles(c, s, z, taus)
+    expected = np.maximum.accumulate(
+        np.clip(c[:, None] + s[:, None] * np.quantile(z, taus)[None, :], 0.0, None), axis=1
+    )
+    np.testing.assert_array_equal(q, expected)
+    assert q.shape == (3, 5)
+    assert (np.diff(q, axis=1) >= 0).all() and (q >= 0).all()

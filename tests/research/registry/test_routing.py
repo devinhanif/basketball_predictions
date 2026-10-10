@@ -15,7 +15,6 @@ import pytest
 
 from nba.db.connect import connect
 from nba.registry.local import LocalRegistry
-from nba.stack.oof import write_oof
 from research.registry.routing import (
     CANDIDATES,
     RouteSpec,
@@ -28,6 +27,7 @@ from research.registry.routing import (
 )
 from research.stack.adapters import quantile_grid
 from research.stack.frozen import freeze_softmax
+from research.stack.oof import write_oof
 from research.stack.routebuild import BuildInputs, build_specs
 
 LEDGER_TEXT = "rung0_injury_elo rung0_mov_elo context_residual recency"

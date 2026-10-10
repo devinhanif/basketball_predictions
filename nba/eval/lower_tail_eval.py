@@ -47,9 +47,14 @@ from nba.props.context_residual import (
     stat_frame,
     to_integer_support,
 )
-from nba.props.lower_tail import fit_short_state, lower_quantiles, predict_pi, short_flag
+from nba.props.lower_tail import (
+    fit_short_state,
+    lower_quantiles,
+    predict_pi,
+    raw_quantiles,
+    short_flag,
+)
 from nba.props.metrics import paired_score_delta_ci
-from nba.props.pts_tail import raw_quantiles
 
 OUT_DIR = Path("reports/lower_tail")
 SELECT_SEASON, REPORT_SEASON = 2023, 2024

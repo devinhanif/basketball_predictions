@@ -24,7 +24,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from nba.stack.oof import read_oof
 from research.registry.routing import (
     CANDIDATES,
     EXTRA_FIT_SEASONS,
@@ -37,6 +36,7 @@ from research.stack.cells import cell_evidence
 from research.stack.data import StackData, build_stack_data
 from research.stack.evaluate import evaluate_stack, standard_slices
 from research.stack.frozen import freeze_softmax
+from research.stack.oof import read_oof
 from research.stack.populate import (
     PROPS_GATE_FEATURES,
     PROPS_GATE_FEATURES_ARCH,

@@ -16,9 +16,9 @@ import duckdb
 import numpy as np
 import pandas as pd
 
-from nba.stack.oof import write_oof
 from research.stack import FROZEN_SEASON
 from research.stack.adapters import season_avg_oof
+from research.stack.oof import write_oof
 
 SEASON_AVG_VERSION = "v1-hl10"
 CTXRES_MODEL = "props_context_residual"

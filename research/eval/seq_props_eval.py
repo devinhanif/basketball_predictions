@@ -280,7 +280,7 @@ def run(
     text = format_report(res)
     (out / "report.md").write_text(text)
     if write_store:
-        from nba.stack.oof import write_oof
+        from research.stack.oof import write_oof
 
         w = seq[seq["season"] == TEST_SEASON].copy()
         write_oof(w, "seq_props", "v1")

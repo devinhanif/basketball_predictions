@@ -62,7 +62,7 @@ its own pytest process (torch/LightGBM OpenMP clash), as before.
 | `nba/eval/pbp_gpt_eval.py` | `research/eval/pbp_gpt_eval.py` | 737 | T082-T084 | `tests/research/features/test_pbp_tokens.py` |
 | `nba/eval/player_points_sim_eval.py` | `research/eval/player_points_sim_eval.py` | 304 | T003, T061 (sim vs season avg) | `tests/research/eval/test_player_points_sim_eval.py`, `tests/research/features/test_time_decay_tune.py` |
 | `nba/eval/player_reb_ast_sim_eval.py` | `research/eval/player_reb_ast_sim_eval.py` | 349 | T001-T002 | `tests/research/eval/test_player_reb_ast_sim_eval.py` |
-| `nba/eval/pts_tail_eval.py` | `research/eval/pts_tail_eval.py` | 320 | T129-T135 (no candidate passes) | `tests/research/eval/test_pts_tail.py` |
+| `nba/eval/pts_tail_eval.py` | `research/eval/pts_tail_eval.py` | 320 | T129-T135 (no candidate passes) | `tests/research/props/test_pts_tail.py` |
 | `nba/eval/rapm_injury_elo_eval.py` | `research/eval/rapm_injury_elo_eval.py` | 377 | RAPM.md; NO ledger row | none (module has no test of its own) |
 | `nba/eval/ridge_v2_eval.py` | `research/eval/ridge_v2_eval.py` | 307 | T098-T101 | `tests/research/features/test_opponent_ridge_v2.py` |
 | `nba/eval/routed_eval.py` | `research/eval/routed_eval.py` | 148 | T028-T033 (routing, provisional) | `tests/research/eval/test_routed_eval.py` |
@@ -155,6 +155,33 @@ Left in `nba/` on purpose: `nba/registry/smoke_guard.py` (no import of the ladde
 file `make smoke` writes; its test runs the ladder from `research.eval`) and the
 `nba/registry/model_gate_config.yaml` tolerances that `nba/registry/gate.py` reads.
 
+### Cut 2: `props/pts_tail`
+
+`raw_quantiles` (the production construction `c + s * empirical_quantile(z, tau)`, 9 lines) moved into the
+live `nba/props/lower_tail.py`; `nba/eval/lower_tail_eval.py` and `nba/eval/f9b_young_pick.py` import it from
+there, as do `research/eval/referees_eval.py` and `research/eval/pts_tail_eval.py`.
+
+| old path | new path | lines | verdict (ledger rows / docs) | tests in CI |
+|---|---|---|---|---|
+| `nba/props/pts_tail.py` | `research/props/pts_tail.py` | 121 (118 now: `raw_quantiles` left, a docstring note and an import came in) | T129-T135 (no candidate passes; docs/PTS_TAIL.md) | `tests/research/props/test_pts_tail.py` (was `tests/research/eval/`; the live `raw_quantiles` has `tests/props/test_lower_tail.py`) |
+
+No shim: the in-flight `research/eval/odds_history_eval.py` accepts either home of `raw_quantiles`
+(`try: nba.props.lower_tail except ImportError: nba.props.pts_tail`), and its fallback branch is dead now.
+
+### Cut 3: the OOF store (`stack/oof`, `stack/__init__`)
+
+`--write-oof` (and the `write_store` parameter of `run()`) is gone from `nba/eval/context_residual_eval.py`,
+with its lazy `nba.stack.oof` import; the module docstring says where OOF writing lives. The backtest still
+writes `oof_context_residual.parquet` next to its report. `research/stack/__init__.py` now owns
+`FROZEN_SEASON` (it re-exported it from `nba.stack`); `nba/stack/` no longer exists.
+
+| old path | new path | lines | verdict (ledger rows / docs) | tests in CI |
+|---|---|---|---|---|
+| `nba/stack/oof.py` | `research/stack/oof.py` | 183 | ROUTER_V2/stack: the OOF store the routers read; only routing used it | `tests/research/stack/test_routing_stack.py`, `tests/research/stack/test_router.py`, `tests/research/registry/test_routing.py` |
+| `nba/stack/__init__.py` | `research/stack/__init__.py` (replaces the re-export) | 12 -> 16 | `FROZEN_SEASON`; package docstring | same |
+
+The live `tests/props/test_context_residual.py` gained a check that the flag is gone.
+
 ## Deleted (the one DELETE)
 
 | path | lines | why |
@@ -170,8 +197,6 @@ code change on a live module. Each is one Wave-B-style edge cut away.
 
 | module (still in nba/) | lines | anchored by | the cut that frees it |
 |---|---|---|---|
-| `nba/props/pts_tail.py` | 121 | `nba/eval/lower_tail_eval.py` (KEEP, shadow arm lt) and `nba/eval/f9b_young_pick.py` (F9b, in flight) import `raw_quantiles` | `raw_quantiles` is a live utility: move it into `nba/props/lower_tail.py`, then archive the rest with `research/eval/pts_tail_eval.py` |
-| `nba/stack/oof.py`, `nba/stack/__init__.py` | 195 | `nba/eval/context_residual_eval.py` (KEEP, production backtest) imports `write_oof` lazily behind `--write-oof`; `FROZEN_SEASON` is re-exported by `research/stack/__init__.py` | drop the `--write-oof` flag from the production backtest (the OOF store only fed routing), then move both |
 | `nba/parlay/independence_check.py`, `nba/parlay/joint_eval.py` | 1,135 | in the live closure: `nba/parlay/__main__.py` and `nba/daily/report.py` import them | not Wave A material at all; Appendix A's RESEARCH mark is wrong while the parlay CLI exposes them |
 
 Not in Appendix A (written after the design doc) and left where they are: `nba/eval/f9_young_pick.py`,

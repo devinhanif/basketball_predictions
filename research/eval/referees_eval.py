@@ -63,8 +63,8 @@ from nba.props.context_residual import (
     stat_frame,
     to_integer_support,
 )
+from nba.props.lower_tail import raw_quantiles
 from nba.props.metrics import paired_score_delta_ci
-from nba.props.pts_tail import raw_quantiles
 
 ROOT = Path(__file__).resolve().parents[2]
 DOC = ROOT / "docs" / "REFEREES.md"

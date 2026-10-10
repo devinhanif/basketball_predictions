@@ -27,9 +27,9 @@ from scipy.optimize import minimize
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
 
-from nba.stack.oof import TAUS
 from research.stack import FROZEN_SEASON
 from research.stack.data import StackData
+from research.stack.oof import TAUS
 from research.stack.scoring import is_binary, logit, pool, sigmoid
 
 

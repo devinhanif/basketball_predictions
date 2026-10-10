@@ -234,6 +234,21 @@ def test_cli_rejects_2025_without_both_flags() -> None:
             main(argv)
 
 
+def test_cli_has_no_write_oof_flag_and_run_has_no_store_param() -> None:
+    """OOF writing into the stacking store lives in research/stack; the production backtest only
+    writes its own parquet (flag dropped 2026-10-10)."""
+    import inspect
+
+    import pytest
+
+    from nba.eval.context_residual_eval import main, run
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--write-oof"])
+    assert exc.value.code == 2
+    assert "write_store" not in inspect.signature(run).parameters
+
+
 def test_load_inputs_default_excludes_2025() -> None:
     import inspect
 

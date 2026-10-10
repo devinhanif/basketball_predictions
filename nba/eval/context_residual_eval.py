@@ -26,6 +26,12 @@ PRE-REGISTERED DECISION RULE (written before the first real-data run, 2026-10-08
   shape) to separate calibration gains from context-feature gains.
 * The rule is not changed after seeing results; a negative result is reported
   as such.
+
+Out-of-fold predictions are written as ``oof_context_residual.parquet`` in the output directory.
+Writing them into the stacking store (``data/stack/oof.duckdb``) is not done here: the store, its
+``write_oof`` and the populate script that fills it live in ``research/stack`` (the routing and
+stacking work that used it reached its verdict, docs/ROUTER_V2.md). The ``--write-oof`` flag was
+dropped on 2026-10-10.
 """
 
 from __future__ import annotations
@@ -416,7 +422,6 @@ def run(
     elo_config: str = "configs/mov_elo_tuned.yaml",
     config_path: str = "configs/context_residual.yaml",
     out_dir: str = "reports/context_residual",
-    write_store: bool = False,
     tip_source: str = "real",
 ) -> dict[str, Any]:
     """Real-data entrypoint (read-only DBs; never writes them).
@@ -435,10 +440,6 @@ def run(
     assert isinstance(oof, pl.DataFrame)
     if not oof.is_empty():
         oof.write_parquet(out / "oof_context_residual.parquet")
-        if write_store:
-            from nba.stack.oof import write_oof
-
-            write_oof(oof.to_pandas(), MODEL_NAME, "v1")
     (out / "results.json").write_text(json.dumps(result, indent=2, default=str))
     text = format_report(result)
     (out / "report.txt").write_text(text)
@@ -489,7 +490,6 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0] if __doc__ else "")
     ap.add_argument("--db-path", default="nba.duckdb")
     ap.add_argument("--injury-db", default=None, help="default: player_availability in --db-path")
-    ap.add_argument("--write-oof", action="store_true", help="also write nba.stack.oof store")
     ap.add_argument("--config", default="configs/context_residual.yaml")
     ap.add_argument("--out-dir", default="reports/context_residual")
     ap.add_argument("--confirmatory-holdout", type=int, default=None)
@@ -511,7 +511,6 @@ def main(argv: list[str] | None = None) -> int:
         a.injury_db,
         config_path=a.config,
         out_dir=a.out_dir,
-        write_store=a.write_oof,
         tip_source=a.tip_source,
     )
     return 0

@@ -36,7 +36,6 @@ import numpy as np
 import pandas as pd
 
 from nba.props.metrics import _clustered_boot_means, paired_score_delta_ci
-from nba.stack.oof import read_oof
 from research.registry.routing import (
     CANDIDATES,
     DEFAULT_LEDGER,
@@ -46,6 +45,7 @@ from research.registry.routing import (
 from research.stack.data import StackData, build_stack_data
 from research.stack.evaluate import benjamini_hochberg
 from research.stack.frozen import FrozenGate
+from research.stack.oof import read_oof
 from research.stack.scoring import is_binary, score_rows
 
 EFFECT_FLOOR = 0.005

@@ -1,7 +1,7 @@
 """Normalise existing experiment artifacts into the OOF contract (read-only).
 
 Every loader reads a parquet that an earlier, separately-run job produced and
-returns a frame accepted by :func:`nba.stack.oof.validate_oof` (19-level
+returns a frame accepted by :func:`research.stack.oof.validate_oof` (19-level
 quantile grid at ``TAUS`` for props; ``p`` with ``player_id = -1`` for win).
 Nothing here touches ``nba.duckdb`` or season >= 2025; the loaders refuse any
 frozen-season row.
@@ -22,8 +22,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from nba.stack.oof import GAME_LEVEL_PLAYER, N_Q
 from research.stack import FROZEN_SEASON
+from research.stack.oof import GAME_LEVEL_PLAYER, N_Q
 
 PROP_STATS = ("pts", "reb", "ast", "fg3m")
 _ID = ["game_id", "player_id"]

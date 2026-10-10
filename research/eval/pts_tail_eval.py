@@ -43,7 +43,7 @@ from nba.props.context_residual import (
     stat_frame,
 )
 from nba.props.metrics import mean_bias_ci, paired_score_delta_ci
-from nba.props.pts_tail import tail_quantiles
+from research.props.pts_tail import tail_quantiles
 
 OUT_DIR = Path("reports/pts_tail")
 THRESHOLDS: tuple[int, ...] = (15, 20, 25, 30, 35)

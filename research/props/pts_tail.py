@@ -5,12 +5,17 @@ window untouched; they only change how the held-out standardized residuals are t
 predictive quantiles. Every function is pure: it sees the calibration rows (``y``, centre
 ``c = m + mu``, scale ``s``) and the rows to predict, never a label of the predicted rows.
 Parameters are frozen in the pre-registration; nothing here is tuned.
+
+Archived to ``research/props`` on 2026-10-10 (T129-T135: no candidate passes). ``raw_quantiles``,
+the production construction every candidate is compared with, lives in ``nba.props.lower_tail``.
 """
 
 from __future__ import annotations
 
 import numpy as np
 from scipy import stats
+
+from nba.props.lower_tail import raw_quantiles
 
 PTS_TAIL_KINDS: tuple[str, ...] = ("off", "sqrt", "mondrian_up", "gamma_tail")
 #: Fixed constants (pre-registered, not tuned).
@@ -22,14 +27,6 @@ MIN_CENTRE = 0.5  # floor on the predicted centre before the sqrt transform
 
 def _monotone(q: np.ndarray) -> np.ndarray:
     return np.asarray(np.maximum.accumulate(np.clip(q, 0.0, None), axis=1))
-
-
-def raw_quantiles(
-    c: np.ndarray, s: np.ndarray, z_sorted: np.ndarray, taus: np.ndarray
-) -> np.ndarray:
-    """Production construction: ``c + s * empirical_quantile(z, tau)``."""
-    zq = np.asarray(np.quantile(z_sorted, taus))
-    return _monotone(c[:, None] + s[:, None] * zq[None, :])
 
 
 def sqrt_quantiles(

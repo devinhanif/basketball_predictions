@@ -24,8 +24,8 @@ import numpy as np
 import pandas as pd
 
 from nba.props.config import THRESHOLDS
-from nba.stack.oof import TAUS
 from research.stack.data import StackData
+from research.stack.oof import TAUS
 
 CLAMP = 0.025
 P_LO, P_HI = 0.05, 0.95

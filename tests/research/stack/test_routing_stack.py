@@ -11,7 +11,6 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from nba.stack.oof import TAUS, validate_oof
 from research.stack.adapters import quantile_grid
 from research.stack.artifacts import context_residual_frame, elo_frames, exp2_arm_frame
 from research.stack.cells import cell_evidence
@@ -25,6 +24,7 @@ from research.stack.holdout import (
     score_route,
     touch,
 )
+from research.stack.oof import TAUS, validate_oof
 from research.stack.threshold import expand_thresholds, grid_exceed_prob
 
 

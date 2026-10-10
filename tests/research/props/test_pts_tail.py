@@ -18,7 +18,6 @@ from nba.props.context_residual import (
     stat_feature_names,
     stat_frame,
 )
-from nba.props.pts_tail import PTS_TAIL_KINDS, tail_quantiles
 from research.eval.pts_tail_eval import (
     CANDIDATES,
     arm_quantiles,
@@ -26,6 +25,7 @@ from research.eval.pts_tail_eval import (
     candidate_screen,
     p_ge,
 )
+from research.props.pts_tail import PTS_TAIL_KINDS, tail_quantiles
 from tests.props.test_context_residual import ELO, _league
 
 

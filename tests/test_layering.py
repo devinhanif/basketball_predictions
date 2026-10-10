@@ -8,8 +8,10 @@ edge is a regression, a vanished edge means this list is stale.
 
 Since Wave A (2026-10-10) research lives in the top-level ``research/`` package, which may import
 ``nba.*`` freely; nothing under ``nba/`` may import ``research.*``, live path or not
-(``test_nba_never_imports_research``). The ``nba.*`` prefixes below are what is still waiting to
-leave ``nba/`` (anchored by ``nba.registry.ops -> model_gate -> eval.run``; see research/INDEX.md).
+(``test_nba_never_imports_research``). The ``nba.*`` prefixes below name the packages that held
+research; after the Wave A follow-ups (the rung ladder, ``pts_tail`` and the OOF store moved,
+research/INDEX.md) they are empty or hold only live backtests and shims. They stay listed so that an
+import of anything left under them from the live path still counts as an edge.
 """
 
 from __future__ import annotations

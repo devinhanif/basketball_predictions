@@ -15,7 +15,7 @@ import pandas as pd
 from scipy import stats
 
 from nba.props.baselines import _DEFAULT_STD
-from nba.stack.oof import TAUS
+from research.stack.oof import TAUS
 
 FAMILIES = ("normal", "gamma", "nbinom")
 
