@@ -128,3 +128,8 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   allow network calls for this session. Facts store (knowledge-graph backbone) is being built by the archivist.
 - 23:10: facts store committed (nba/facts) and the explainer reads it ("What was known, and when"). CI green at 40e599c. Example:
   reports/explain/0022400061.html (BOS at NYK, 2024-10-22). Steals prices: books over-price the over there too (fan doc).
+- 23:40 (needs Devin, small): steals alias review at docs/reviews/alias_review_steals_2026-10-10.md. 61 AUTO names (2,334 of 2,682
+  unresolved rows; unique roster match on surname + first initial in every game; 20 marked thin) with a paste-ready YAML block for
+  configs/kalshi_aliases.yaml; 11 REVIEW names (348 rows: J. Green = Jalen or Jeff on the same HOU roster; spelling variants
+  Bogdanovic/Gallinari; legal first names for Bam Adebayo, Sasha Vezenkov, Bones Hyland). Say "paste AUTO" and I apply the block
+  and reparse the two seasons; say which REVIEW names you accept.
