@@ -332,3 +332,22 @@ rotation-level young players in close games would be a new rule.
   traded players, instead of "reset to league average".
 - **Trusted vet, named:** Al Horford (twice). First name on the F14 list.
 - *F18 feasibility:* ~70–90 in-season team changes per season are detectable from box scores alone (2022: 71, 2023: 85, 2024: 88, 2025: 79). Enough to test; waits its turn.
+
+## Parlays (2026-10-09, ninth round)
+
+- **Devin wants to hit crazy parlays too**, knowing they are a lottery ticket: "I'm willing to lose
+  everything." Claude's position: a long parlay is where the house margin compounds (each leg priced
+  as if independent, each carrying its fee), so it is not an edge play, but same-game legs are *not*
+  independent and the book prices them as if they were. Blowouts (starters out at 45% after a 25-point
+  gap), pace, and star-minutes correlations are where a long ticket can be priced wrong in the bettor's
+  favour. The copula engine already models leg correlation. *Build:* "lottery mode" in the budget tool
+  (dollars + target payout → the combination with the highest true P(hit), the honest number printed
+  on the ticket), then correlation-aware same-game legs from the lineup structure.
+- **"There's never a night where 4 givens happened."** Devin's observation from experience: even the
+  sure things don't all land. Math agrees: four 85% legs hit together 52% of nights; four 90% legs
+  66%. The feeling of a given is a single-leg feeling; the parlay multiplies the doubt four times.
+  *Hypothesis F19:* the safest legs of a night (highest-priced, say ≥ 80% implied) hit more or less
+  often than their price implies? The favourite–longshot bias predicts more often (favourites
+  under-bet). Measurable on the 2025-26 replay with Kalshi prices: all-four hit rate of the four
+  highest-priced legs per night vs the product of their implied probabilities, clustered by date.
+  Descriptive first; if there is anything, a frozen rule before it touches the budget tool.
