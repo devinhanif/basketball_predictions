@@ -379,3 +379,13 @@ rotation-level young players in close games would be a new rule.
   are the most knowable thing in the league; the bench's minutes are decided after tip.
 - *Individual biases to ask Devin about:* under on Dončić (−2.3), Leonard (−1.9), Brown (−1.3); over on
   LeBron (+1.4). Stars under, an ageing star over: an age-curve × usage-share hypothesis.
+- **F9b closed (T186–T201, 2026-10-10):** the re-registered young-pick prior passed every data check this
+  time (630/630 draft status, 100% first season, slice S 948 and 759 rows) and ran all four arms. No stat
+  reached the frozen floor: pts slice dCRPS −0.003 (2023) and −0.006 (2024) against a −0.02 bar, CIs
+  spanning zero. The prior did move the slice bias toward zero (+0.48 → +0.34; +0.42 → +0.30) and nudged
+  coverage up, but the placebo arm with permuted draft picks moved the bias nearly as much, so what moved
+  it was role (minutes share), not pedigree. Devin's observation stands as description: production
+  under-forecasts young top-10 picks in a real role by about 0.4 points in 2023–24 (and 0.56 in the
+  2025-26 replay; same sign, different convention). What did not hold is that draft slot adds information
+  beyond the role itself. Honest null; no F9c. The role piece is already what the lineup and minutes work
+  is chasing.

@@ -130,3 +130,16 @@ threshold, ok]` for checks 1-5; plus seeds, git SHA, frozen sha256. Ledger: one 
 A1 vs A0, slice S) and one overall; `not holdout (<=2024)`.
 
 === RESULTS BELOW ===
+
+Run 2026-10-10; frozen sha256 884afcdb (verified against a461f49 before the run). Ledger T186-T201.
+
+Frozen sha256 (first 8): 884afcdb. Checks 1-5: all passed; seasons <= 2024 only, nba.duckdb read-only, CPU, seeds {'model': 0, 'bootstrap': 0, 'pit': 0, 'placebo': 0}.
+
+* pts: 2023: slice S n=948 dCRPS -0.0029 [-0.0195, +0.0143] p_BH 0.780 MDE 0.0169; overall -0.0022 [-0.0049, +0.0006] | 2024: slice S n=759 dCRPS -0.0063 [-0.0197, +0.0071] p_BH 0.844 MDE 0.0134; overall -0.0015 [-0.0038, +0.0009]
+* reb: 2023: slice S n=948 dCRPS -0.0059 [-0.0123, +0.0010] p_BH 0.364 MDE 0.0066; overall +0.0007 [-0.0005, +0.0018] | 2024: slice S n=759 dCRPS +0.0028 [-0.0043, +0.0095] p_BH 0.844 MDE 0.0069; overall -0.0003 [-0.0012, +0.0006]
+* ast: 2023: slice S n=948 dCRPS -0.0025 [-0.0067, +0.0016] p_BH 0.413 MDE 0.0041; overall -0.0011 [-0.0020, -0.0002] | 2024: slice S n=759 dCRPS +0.0001 [-0.0034, +0.0037] p_BH 0.910 MDE 0.0035; overall -0.0001 [-0.0009, +0.0006]
+* fg3m: 2023: slice S n=948 dCRPS +0.0018 [-0.0018, +0.0051] p_BH 0.413 MDE 0.0034; overall -0.0002 [-0.0008, +0.0004] | 2024: slice S n=759 dCRPS -0.0003 [-0.0022, +0.0018] p_BH 0.910 MDE 0.0020; overall +0.0002 [-0.0003, +0.0007]
+
+Verdict: confirmed on 2024 = []; pts gate 1 failed on 2023 = True (kill criterion: close, no other cut-offs, no F9c). Nothing promoted.
+
+Implementation readings fixed before any arm was fitted (not rule changes): cov80 = central 80% interval coverage (0.10 < PIT <= 0.90) of the continuity-corrected randomized PIT on the integer-mapped grid; bias = y - mean of the integer-mapped quantile grid; MDE = half-width of the clustered 95% CI; gate 5 'role effect' = A3 alone has slice dCRPS <= -0.02 and A1 - A3 > -0.01 (such a stat is reported as role effect, not confirmed); fs_fallback rows (draft_year when FROM_YEAR is NULL) cannot be cross-checked against FROM_YEAR, and draft_year <= FROM_YEAR means a delayed debut would make the fallback index too OLD, not too young as the doc says.
