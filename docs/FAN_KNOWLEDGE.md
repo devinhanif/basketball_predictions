@@ -145,3 +145,7 @@ Devin is a Rockets fan.
   LeBron vs the Spurs, …) — Claude should compile a list and Devin verifies. Also: players who met
   in FIBA/Olympics/college can "go off for an unforeseen reason" — see Anthony Edwards vs Luka
   Doncic.
+- *F9 generalises (descriptive, 2025-26 replay, pts):* young top-10 picks (≤2 seasons) under-predicted
+  by −0.561 (n=1,300) vs −0.06 for other young players (n=5,358) and +0.094 for veterans (n=19,790);
+  80% coverage 0.776 vs 0.813 / 0.795. The "Sheppard effect" is league-wide: the prior for a
+  high-pick in a real role is too conservative in centre and spread. Pre-register on 2023–24.
