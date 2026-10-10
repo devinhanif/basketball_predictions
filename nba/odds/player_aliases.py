@@ -197,7 +197,17 @@ class HistoryResolver(NameResolver):
         key = normalize_player_name(name)
         if key in self.collisions:
             return None
-        return self.generated.get(key)
+        hit = self.generated.get(key)
+        if hit is not None:
+            return hit
+        # One 2023-24 book writes "Irving, Kyrie" or "Murray Dejounte" (surname first). Try the
+        # reversed word order; it counts only when the reversed form is itself a unique alias.
+        words = normalize_player_name(name.replace(",", " ")).split()
+        if len(words) >= 2:
+            swapped = " ".join(words[1:] + words[:1])
+            if swapped not in self.collisions:
+                return self.generated.get(swapped)
+        return None
 
 
 def history_resolver(base: NameResolver, alias_path: Path | None = None) -> HistoryResolver:

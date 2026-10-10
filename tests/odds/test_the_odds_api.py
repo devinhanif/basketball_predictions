@@ -766,6 +766,12 @@ def test_history_resolver_order_and_exact_only(tmp_path: Path) -> None:
     assert r.player_id("Luka Doncicc") is None  # no fuzzy matching
     assert r.player_id("Michael Porter Jr.") == 1
     assert r.player_id(None) is None and r.player_id("") is None
+    # surname-first spellings from one 2023-24 book resolve through the reversed order,
+    # only when the reversed form is itself a unique alias
+    assert r.player_id("Doncic Luka") == 1629029
+    assert r.player_id("Doncic, Luka") == 1629029
+    assert r.player_id("Williams Jaylin") is None  # reversed into a collision: still unresolved
+    assert r.player_id("Porter Michael Jr.") == 1
     path = tmp_path / "a.yaml"
     t = pa.AliasTable({"x y": 5}, {"a b": [1, 2]}, 7)
     pa.write_table(path, t, [("Nick Name", 3)], 2022)
