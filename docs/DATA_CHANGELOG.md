@@ -79,3 +79,11 @@
   Stale: `data/refs/official_ids.json` (cache lists the old ids; canonicalised on read, refreshed on the next
   successful `load_official_rows`) and any research output keyed on the old minority ids (only
   `reports/referees/g0.json`, which recorded the failure).
+
+## 2026-10-10 UTC - data_version 1c5b0901afdf (possessions: n_oreb, n_dreb counts; oreb flag corrected)
+- `possessions` gains `n_oreb` (player-credited offensive rebounds of the offense in the trip) and `n_dreb` (1 if a
+  player-credited defensive rebound by the defense ended the trip); `oreb` now equals `n_oreb > 0` (team/dead-ball
+  rebounds no longer count: the old flag was 1.33x box OREB). All 1,047,292 rows updated in place; no other column
+  changed (verified); backup `data/backups/possessions_pre_oreb_fix_20261010T191702Z_possessions.parquet`.
+- Reconciliation with box scores, seasons 2022-24: OREB 27,524 / 27,741 / 29,219 vs 27,534 / 27,749 / 29,223;
+  DREB 87,096 / 86,748 / 86,506 vs 87,100 / 86,753 / 86,507. Flags: COLUMN_ADDED x2 expected; nothing else.

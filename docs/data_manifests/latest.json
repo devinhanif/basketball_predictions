@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-10T18:32:04.642903+00:00",
- "data_version": "d7dea7140c8f",
+ "created_at": "2026-10-10T19:18:06.004333+00:00",
+ "data_version": "1c5b0901afdf",
  "db_path": "/Users/devin/Downloads/nba-prediction/nba.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -16,8 +16,8 @@
    "files": 4
   },
   "backups": {
-   "bytes": 603548463,
-   "files": 8
+   "bytes": 616583354,
+   "files": 9
   },
   "boxscore": {
    "bytes": 39808141,
@@ -36,8 +36,8 @@
    "files": 4
   },
   "history": {
-   "bytes": 189450072,
-   "files": 8681
+   "bytes": 178623808,
+   "files": 8841
   },
   "hustle": {
    "bytes": 38425808,
@@ -60,8 +60,8 @@
    "files": 3
   },
   "kalshi": {
-   "bytes": 22173940,
-   "files": 5473
+   "bytes": 22432576,
+   "files": 5557
   },
   "lineups": {
    "bytes": 3397348,
@@ -96,8 +96,8 @@
    "files": 3954
   },
   "ops": {
-   "bytes": 161593,
-   "files": 26
+   "bytes": 512036849,
+   "files": 69
   },
   "parlay": {
    "bytes": 276877,
@@ -116,8 +116,8 @@
    "files": 2
   },
   "refs": {
-   "bytes": 6277127,
-   "files": 32
+   "bytes": 6139244,
+   "files": 33
   },
   "rehearsal": {
    "bytes": 18240189650,
@@ -2677,6 +2677,26 @@
      },
      "type": "VARCHAR"
     },
+    "n_dreb": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
+    "n_oreb": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
+     "type": "INTEGER"
+    },
     "off_players": {
      "null_rate": 2e-06,
      "null_rate_by_season": {
@@ -2779,14 +2799,14 @@
     }
    },
    "date_range": {},
-   "fingerprint": "faea4d79c2fac8f7-87e8113d8b7105db",
+   "fingerprint": "11c30e0fe0c34822-a5dbc445b8c01b7a",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id",
     "poss_idx"
    ],
    "row_count": 1047292,
-   "schema_hash": "3b4cda84d1ed56f6",
+   "schema_hash": "e31b48dff4e4e34e",
    "seasons": {
     "2022": {
      "coverage": 1.0,
