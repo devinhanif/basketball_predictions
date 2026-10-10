@@ -95,6 +95,10 @@ class ContextResidualConfig:
     #: training frame; mutually exclusive with ``pts_tail``.
     lower_tail: str = "off"
     lower_tail_stats: tuple[str, ...] = PROP_STATS
+    #: F9 young-pick prior (docs/prereg/F9_YOUNG_PICK_PRIOR.md): "off" (production,
+    #: byte-identical) | "on" appends ``YP_FEATURES`` to every stat's feature list. Needs a
+    #: feature frame from ``build_features(..., young_pick=True)``.
+    young_pick: str = "off"
     #: Production gates official-report snapshots on the REAL scheduled tip-off
     #: (maintainer decision 2026-10-09); ``tip_source="proxy19"`` reproduces the old runs.
     report: ReportTriggerConfig = field(
@@ -445,6 +449,7 @@ def build_features(
     tracking_feats: pl.DataFrame | None = None,
     lineups_known: bool = False,
     t30_scratch_prob: float = 0.0,
+    young_pick: bool = False,
 ) -> pl.DataFrame:
     """One row per PLAYED player-game with as-of features and the four stat
     labels. ``flagged`` maps game_id -> OUT player ids (only games with a usable
@@ -458,7 +463,11 @@ def build_features(
     ``lineups_known=True`` (default False = production, output unchanged) attaches
     the ``t30_*`` columns of :mod:`nba.props.lineup_features` (tonight's confirmed
     starters). They are a LEAK at the production T-60 prediction time and exist only
-    for the T-30 experiment (docs/LINEUPS_KNOWN.md)."""
+    for the T-30 experiment (docs/LINEUPS_KNOWN.md).
+
+    ``young_pick=True`` (default False = production, output unchanged) appends the seven
+    ``yp_*`` columns of :func:`young_pick_features` (docs/prereg/F9_YOUNG_PICK_PRIOR.md);
+    ``static`` must then carry ``draft_pick``."""
     games = games.with_columns(pl.col("game_date").cast(pl.Date))
     played = (
         pgs.join(games.select(["game_id", "game_date", "season", "home_team"]), on="game_id")
@@ -562,12 +571,122 @@ def build_features(
     ).drop("_home")
     if tracking_feats is not None:
         feats = feats.join(tracking_feats, on=["game_id", "player_id"], how="left")
+    if young_pick:
+        feats = feats.join(
+            young_pick_features(games, played, static, st, feats), on=["game_id", "player_id"]
+        )
     if lineups_known:
         from nba.props.lineup_features import build_lineup_features
 
         t30 = build_lineup_features(games, pgs, scratch_prob=t30_scratch_prob).drop("team_id")
         feats = feats.join(t30, on=["game_id", "player_id"], how="left")
     return feats.sort(["game_date", "game_id", "player_id"])
+
+
+#: F9 young-pick columns (appended, in this order, when ``young_pick`` is on).
+YP_FEATURES: tuple[str, ...] = (
+    "yp_pick",
+    "yp_seasons",
+    "yp_w",
+    "yp_min_share",
+    "yp_min_trend",
+    "yp_pts_share",
+    "yp_w_x_role",
+)
+#: A3 (role-only) arm: the seven columns without the pedigree ones.
+YP_ROLE_ONLY: tuple[str, ...] = ("yp_seasons", "yp_min_share", "yp_min_trend", "yp_pts_share")
+YP_DECAY: dict[int, float] = {1: 1.00, 2: 0.75, 3: 0.50, 4: 0.25}
+YP_TOP_PICK = 10
+YP_T10_MIN_GAMES = 5
+
+
+def yp_weight(seasons: np.ndarray, pick: np.ndarray) -> np.ndarray:
+    """Pedigree weight ``{1:1, 2:.75, 3:.5, 4:.25, >=5:0} * 1[pick <= 10]`` (NaN pick -> 0)."""
+    w = np.zeros(len(seasons))
+    for k, v in YP_DECAY.items():
+        w[seasons == k] = v
+    return np.asarray(w * (np.nan_to_num(pick, nan=1e9) <= YP_TOP_PICK))
+
+
+def young_pick_features(
+    games: pl.DataFrame,
+    played: pl.DataFrame,
+    static: pl.DataFrame,
+    states: dict[str, np.ndarray],
+    feats: pl.DataFrame,
+) -> pl.DataFrame:
+    """The seven F9 columns per (game_id, player_id), all as-of the game date.
+
+    * ``yp_seasons``: distinct seasons with a played game STRICTLY BEFORE tonight's season,
+      plus 1. Counted from the loaded games only (the DB starts in 2022, so this is truncated
+      for veterans; the frozen definition is used as written).
+    * ``yp_pick``: static draft slot (known at the draft); NaN if undrafted/unknown.
+    * ``yp_min_share = min10/240``, ``yp_min_trend = (min5 - min100)/48``,
+      ``yp_pts_share = m10_pts / T10`` with ``T10`` the same team's points per game over its
+      prior 10 games (shifted: tonight excluded).
+    """
+    if "draft_pick" not in static.columns:
+        raise ValueError("young_pick needs static.draft_pick")
+    ps = (
+        played.select("player_id", "season")
+        .unique()
+        .sort(["player_id", "season"])
+        .with_columns(pl.col("season").cum_count().over("player_id").alias("_k"))
+    )  # 1-based rank of the season = prior distinct seasons + 1
+    pk = static.select("player_id", pl.col("draft_pick").cast(pl.Float64).alias("yp_pick")).unique(
+        "player_id"
+    )
+    min100 = pl.DataFrame(
+        {
+            "game_id": played["game_id"],
+            "player_id": played["player_id"],
+            "_min100": _sel(states["pre"], 100.0, "min"),
+        }
+    )
+    base = (
+        feats.select("game_id", "player_id", "team_id", "season", "min5", "min10", "m10_pts")
+        .join(ps, on=["player_id", "season"], how="left")
+        .join(pk, on="player_id", how="left")
+        .join(min100, on=["game_id", "player_id"], how="left")
+    )
+    g = games.select("game_id", "game_date", "home_team", "away_team", "home_pts", "away_pts")
+    tg = pl.concat(
+        [
+            g.select(
+                "game_id",
+                "game_date",
+                pl.col("home_team").alias("team_id"),
+                pl.col("home_pts").alias("pf"),
+            ),
+            g.select(
+                "game_id",
+                "game_date",
+                pl.col("away_team").alias("team_id"),
+                pl.col("away_pts").alias("pf"),
+            ),
+        ]
+    ).sort(["team_id", "game_date", "game_id"])
+    tg = tg.with_columns(
+        pl.col("pf")
+        .shift(1)
+        .rolling_mean(10, min_samples=YP_T10_MIN_GAMES)
+        .over("team_id")
+        .alias("t10")
+    ).select("game_id", "team_id", "t10")
+    base = base.join(tg, on=["game_id", "team_id"], how="left")
+    seasons = base["_k"].to_numpy().astype(float)
+    pick = base["yp_pick"].to_numpy()
+    w = yp_weight(seasons, pick)
+    share = base["min10"].to_numpy() / 240.0
+    return base.select("game_id", "player_id").with_columns(
+        pl.Series("yp_pick", pick),
+        pl.Series("yp_seasons", seasons),
+        pl.Series("yp_w", w),
+        pl.Series("yp_min_share", share),
+        pl.Series("yp_min_trend", (base["min5"].to_numpy() - base["_min100"].to_numpy()) / 48.0),
+        pl.Series("yp_pts_share", base["m10_pts"].to_numpy() / base["t10"].to_numpy()),
+        pl.Series("yp_w_x_role", w * share),
+    )
 
 
 COMMON_FEATURES: tuple[str, ...] = (
@@ -878,8 +997,9 @@ def fit_for_date(
     models: dict[str, ContextResidualModel] = {}
     for stat in stats:
         train = stat_frame(hist, stat).sort(["game_date", "game_id", "player_id"])
+        extra = YP_FEATURES if cfg.young_pick == "on" else ()
         models[stat] = ContextResidualModel(
-            stat, cfg, stat_feature_names(stat, lineups_known=lineups_known)
+            stat, cfg, stat_feature_names(stat, extra=extra, lineups_known=lineups_known)
         ).fit(train)
     return models
 

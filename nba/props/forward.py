@@ -761,6 +761,8 @@ def _load_or_fit_models(
     fp["cfg"].pop("lower_tail_stats", None)
     if fp["cfg"].get("lower_tail") == "off":
         fp["cfg"].pop("lower_tail", None)
+    if fp["cfg"].get("young_pick") == "off":  # F9: existing caches stay valid while it is off
+        fp["cfg"].pop("young_pick", None)
     if stats != PROP_STATS:  # a stat subset never shares a cache with the full model set
         fp["stats"] = list(stats)
     if cache_dir is not None:

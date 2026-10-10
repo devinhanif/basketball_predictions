@@ -103,4 +103,30 @@ sha256. Ledger: one row per (stat, season, A1 vs A0, slice S) and one per overal
 
 === RESULTS BELOW ===
 
-(not run)
+Run 2026-10-09. Frozen sha256 verified before any work: 7dfe62de45b083e7dedd98d6f4c105e7bfcd84634846579a4c12515e6cbc0f2e
+(matches commit b5a1dab). Only `season <= 2024` loaded, `nba.duckdb` read-only. Ledger: T184.
+
+**Verdict: STOPPED at the minimum data checks. No arm was fitted; there is no model result.**
+Per "Minimum data checks (fail = stop, report, no model result)" and the kill criteria
+("Check 1 or 2 fails: close as data/power insufficient; no follow-up with other cut-offs").
+
+| check | value | threshold | ok |
+|---|---|---|---|
+| 1a draft_pick non-null, players with >= 20 played games 2022-24 (n=630) | 0.779 (491/630; 12.7% of minutes missing) | >= 0.90 | NO |
+| 1b NaN rate of yp_pick, realised minutes < 10 vs rest (study rows, n=55,202) | 27.9% vs 14.5%, gap 13.4 pp | <= 2 pp | NO |
+| 2 slice S rows, 2023 | 6,022 (1,305 games, 100 players) | >= 300 | yes |
+| 2 slice S rows, 2024 | 912 (681 games, 19 players) | >= 300 | yes |
+| 3 planted future / same game leave yp_* unchanged | tests/props/test_young_pick.py | exact | yes (tests) |
+| 4 flag off byte-identical; A0 reproduces production to 1e-6 | identity test passes; A0 reproduction NOT run (stopped) | | partial |
+
+Notes for a possible re-registration (descriptive; not a rescue of this study):
+* The unmatched players are legitimately undrafted (only 2 of the 139 have a draft_year), so 1a
+  measures "undrafted share", not missing data; the missingness gap in 1b is the same thing
+  (undrafted players play fewer minutes). The 90% rule as worded cannot pass on this roster.
+* `nba.duckdb` begins in 2022, so the frozen `yp_seasons` (seasons counted from loaded games)
+  is truncated: in 2023 every player with a 2022 game has `yp_seasons = 2`. Slice S in 2023 is
+  6,022 rows but only 1,043 have `season - draft_year <= 1`; in 2024, 825 of 912. The
+  veterans slice (`yp_seasons >= 5`) is empty in both seasons. A draft_year based season index
+  would fix this but is a different definition (new question, new rule).
+* Outputs: reports/prereg_f9/results.json, reports/prereg_f9.md, reports/F9.md. Code:
+  nba/props/context_residual.py (flag `young_pick`), nba/eval/f9_young_pick.py (`checks`).
