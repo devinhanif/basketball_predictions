@@ -108,6 +108,10 @@ market is better; recorded as a finding; the budget tool keeps saying "keep your
     pull and is recorded there).
 <!-- FROZEN-END -->
 
+## Results (run 2026-10-10 13:27 CT under sha256 d5b8b162; ledger T203-T202; adversary pending on the reb/Pinnacle blend cell)
+
+Fill from the tables above only; do not add a claim the tables do not carry. State n, the clustered CI and the family corrected over for every sentence; say plainly when the market was better.
+
 ## Amendments (append only, dated)
 (none)
 
