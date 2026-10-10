@@ -197,3 +197,9 @@ Devin is a Rockets fan.
   league*: same player, same coach/GM, different team. *Measurable:* player–coach co-tenure across
   team-seasons (we have team_coaches and rosters) → a "coach's guy" flag → closer share, minutes
   stability. F14.
+- *F13 descriptive (2022-24, own-offence possessions):* |gap| > 10 on 28.6% of possessions with the
+  team's top scorer on vs 38.4% off; Q4: 36.9% vs 61.1%. Direction as Devin predicted, BUT the
+  snapshot is confounded by reverse causation: coaches sit stars in blowouts, so "star off" is partly
+  a consequence of a large gap (garbage time), not a cause. The frozen F13 rule must use gap
+  *trajectories* (gap growth in the k possessions after a substitution, conditioned on the gap at the
+  substitution) or an instrument such as forced absences (fouls, injury) — not on/off snapshots.
