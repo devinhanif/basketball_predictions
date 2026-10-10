@@ -120,3 +120,6 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - 20:20: FOUR_FACTORS ran under its frozen rule: NULL on all four stats (T264–T279). Closed. Router run started; PTS_COMPONENTS and the steals pull still running.
 - 20:45: PTS_COMPONENTS ran under its frozen rule: FAIL, worse than production by 0.03 CRPS (T280–T283). Closed. Router and steals pull still running.
 - 21:05: ROUTER_TIME_WEIGHTED ran under its frozen rule: NO PASS (T284–T299); the only gain is the T-30 arm itself. Closed. All three of today's frozen rules are done; steals pull still running.
+- 21:20: the "returning teammate" star effect is a T-30 fact, not a T-60 one (the T-60 flag identifies a player who then plays only
+  16.5% of the time; star effect under it −0.16, CI spans 0). No rule frozen; candidate for the T-30 arm live. Day closed: every
+  question of the day answered under a rule or a measured gate.

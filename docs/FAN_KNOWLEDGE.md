@@ -506,3 +506,10 @@ rotation-level young players in close games would be a new rule.
   only wins by sending 83–97% of rows to the T-30 lineups arm, and that single arm is as good as the router. Rolling-10 and
   rolling-5 are far worse than production (pts +0.17 / +0.32 CRPS). Nothing to route between; the lever stays the confirmed
   lineup. The live season, with real T-30 snapshots, is where that arm gets its honest test.
+- **Returning teammate costs the star ~1.2 pts (Devin: yes), pre-tip gate measured 2026-10-10 ~21:20: NOT KNOWABLE AT T-60.** The
+  post-hoc flag (teammate absent 3+ games AND played tonight) is where the −1.17 lived. The T-60 version (absent 3+ team games,
+  rotation player, not on tonight's OUT list) fires 4,345 times across 2023-24 and 2024-25 but the flagged player actually plays
+  only 16.5% of the time (not-with-team, G-League, unlisted absences are invisible to the report); the star residual under the
+  T-60 flag is −0.16 [−0.49, +0.15], n 3,022: null. The information arrives with the active list at T-30. No T-60 rule is frozen
+  (non-negotiable 8: a rule that cannot pass its gate is not frozen); the effect is a candidate column for the T-30 lineups arm in
+  the live season.
