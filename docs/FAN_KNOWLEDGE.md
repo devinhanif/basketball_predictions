@@ -267,16 +267,54 @@ Devin is a Rockets fan.
 - **F9 closed (T184) → F9b frozen:** undrafted players (112 of 561 regulars) are a category, not
   missing data; seasons must be indexed from the first NBA season, not from our 2022 data start.
 
-## Caveat on every lineup number above (2026-10-09, late)
+## Caveat on every lineup number above (2026-10-09, late) — resolved below
 
 The stint diagnosis (docs/reviews/stint_reconciliation_2026-10-09.md, d6a38ef) found that
 `possessions.off_players/def_players` carry the previous period's five into Q2–Q4 until someone acts:
 only ~78% of possessions have the exact correct five on both sides (Q1 93%, Q2–Q4 ~72–75%; mean
 overlap 4.72/5). Durations are exact; attribution is not. Every on/off number in this file (Curry
 gravity, Sheppard hunted, Tre Jones vs Hyland, #2-scorer lift, momentum snapshots) was computed on
-these lineups. Directions probably survive (one wrong slot early in a period is noise, not a
-systematic bias toward any player), but none should be quoted as a measurement until the tracker is
-fixed and the numbers are recomputed. F11, F13, F15, F17 wait for the fix.
+these lineups. The tracker was fixed the same night (ADR 0002; 43dba25 and 05527ea) and every
+number was recomputed; see the next section. F11, F13, F15, F17 can proceed on the new lineups.
+
+## Recomputed on the fixed lineups (2026-10-09, night)
+
+Tracker v2 (look-ahead openers, no eviction, events in clock order): stint minutes within 1 min of
+box minutes on 98.4–99.1% of player-games per season, up from 45–49%. The table runs the *same*
+definitions on the old lineups (v1 backup) and the new ones, so the change is the tracker alone.
+Definitions: per team-season, top scorer = most total points, #2 = second, top 3PM shooter = most
+threes made; "on" = in `off_players` (or `def_players` for the defence side); shooting possessions =
+FGM2/FGM3/FGA_miss. Descriptive, not frozen tests; the doc's earlier numbers used slightly different
+cuts, so compare within this table.
+
+| Claim | Measure (2022–24 unless stated) | old lineups | fixed lineups |
+|---|---|---|---|
+| Curry gravity | Draymond make rate, Curry on / off | .555 / .511 (n 957 / 399) | **.560 / .495** (n 986 / 370) |
+| | GSW ppp, Curry on / off | 1.183 / 1.117 | 1.185 / 1.113 |
+| | League ppp, team's top 3PM shooter on / off | 1.160 / 1.120 (457k / 330k) | 1.160 / 1.120 (462k / 325k) |
+| F13 momentum snapshot | own-offence possessions with gap > 10, top scorer on / off | 28.3% / 37.7%; Q4 36.4% / 60.1% | 28.3% / 37.9%; Q4 35.8% / 60.2% |
+| Gravity, defence side | teammates' make / rim share / three share / pts per shot, star on | 55.5% / 35.4% / 41.5% / 1.31 | 55.4% / 35.5% / 41.6% / 1.31 |
+| | same, star off | 53.9% / 34.1% / 40.3% / 1.27 | 53.9% / 34.0% / 40.3% / 1.27 |
+| #2 scorer | shot share / make / pts per shot, star on | 23.4% / 55.8% / 1.300 | 23.3% / 55.8% / 1.302 |
+| | same, star off | 27.7% / 54.7% / 1.276 | 28.0% / 54.7% / 1.275 |
+| Sheppard hunted, 2024-25 | opp rim share vs HOU, Sheppard on / off | 38.7% / 34.4% | **39.8% / 34.1%** (n 1,420 / 7,274) |
+| | opp ppp, on / off | 1.124 / 1.102 | 1.138 / 1.099 |
+| Sheppard, 2025-26 | opp rim share, on / off | 35.8% / 34.4% | 35.9% / 34.2% (n 4,690 / 3,866) |
+| Blowout rule (2022–25) | Q4 after gap first ≥ 25: all five starters off / mean starters on | 42.0% / 1.20 | **45.4% / 1.17** (n 40,308) |
+| | gap ≥ 20 | 30.2% / 1.69 | 33.6% / 1.67 |
+| | gap ≥ 15 | 20.7% / 2.17 | 23.3% / 2.16 |
+| 6th man as a guard | Tre Jones on / off: team ppp, TOV% | 1.130 / 1.113; 13.9% / 14.7% | 1.126 / 1.115; 13.9% / 14.7% |
+| | Bones Hyland on / off: team ppp, TOV% | 1.122 / 1.164; 15.3% / 14.3% | 1.116 / 1.165; 15.3% / 14.3% |
+
+What changed: every direction holds. The effects that live in individual players sharpened
+(Draymond's split widened from 4.4 to 6.5 points; Sheppard's rookie-year rim-share lift from 4.3 to
+5.7 points; the up-25 bench rule from 42% to 45%), because the old tracker credited the wrong
+player for the first stretch of each period and that noise diluted on/off contrasts. Team-level
+aggregates (ppp with the top shooter on, the defence-side gravity shares) barely moved; with 300k+
+possessions the attribution noise averaged out. The Tre Jones offensive lift is smaller here than
+first reported (1.1 vs 4.1 points of ppp) because this cut pools all his 2022–24 teams; the
+turnover split is unchanged. F12 (T185) is a frozen result and is not recomputed; a question about
+rotation-level young players in close games would be a new rule.
 
 ## Trades, blowouts, schemes (2026-10-09, eighth round)
 
