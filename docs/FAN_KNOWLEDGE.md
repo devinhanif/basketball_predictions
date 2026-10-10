@@ -436,3 +436,27 @@ rotation-level young players in close games would be a new rule.
 5. Absorption: asked for named examples (same report).
 6. Lines: Devin's view is that the book's line is usually wrong by **under-predicting something we are not looking at**.
    Open hypothesis; needs the "something" named before it can be a rule.
+
+### Devin, 2026-10-10 ~17:00, after the named examples
+- **Minutes restrictions are announced**, but on social media (beat reporters, Twitter), not in the official injury report.
+  That is the pre-tip source for the "returning player plays a short night" case. We do not ingest it (would need a feed; Devin's call).
+- **Games-played streaks**: some players (Mikal Bridges) suit up for token minutes to keep a consecutive-games streak alive. Explains
+  the 0.1-minute nights; tiny n, a note not a rule.
+- **Mid-game injuries**: when a man goes down, a smart coach reshapes the whole plan around what is left. Unforecastable pre-tip; it
+  is why absorption is not predictable from the roster.
+- **Position is the wrong unit**; cluster players into roles (usage, shot profile, rebounding, playmaking) and look at how roles affect
+  each other when one is missing. → descriptive clustering analysis queued (modeler, 2026-10-10).
+- **Books under-price threes and steals**, because players are priced by reputation (ppg, usage). Checked on Pinnacle T-60, 2023-24 and
+  2024-25, pushes dropped, game-clustered CIs (data/scratch; reports/model_miss_examples_2026-10-10.md companion):
+  realised over rate MINUS de-vigged over price is negative for every stat: fg3m −0.017 [−0.023, −0.010] (n 20,995), pts −0.013,
+  reb −0.023, ast −0.007 (CI spans 0). The over is OVER-priced, not under. By scorer tier it runs with reputation, as Devin says, but
+  the other way round: fg3m <10 ppg −0.005 (CI spans 0), 10–17 −0.016, 17–24 −0.027, 24+ −0.019; pts 24+ −0.036 [−0.054, −0.017] vs
+  <10 ppg −0.002. The respected names' overs are the mispriced side; the no-names are priced about right. 1–3 points of probability
+  is inside Pinnacle's overround (~4–5%), so this is a lean, not a profit. Threes at 2.5/3.5 lines: −0.031/−0.032. Steals: we hold
+  no steals prices and have no steals model; a pull would cost roughly 0.25M credits (Devin's call).
+- **Pace and the four factors**: the game-winner model carries a pace proxy (points total) and team turnovers; the props model carries
+  rolling-20 team points for/against, opponent allowed per stat, rest, b2b, Elo margin. No possession-based pace and no four factors
+  (eFG%, TOV%, ORB%, FT rate) in either, as-of or otherwise. A proxy opponent-defence/pace multiplier was tried early and never
+  bootstrapped (ledger group F, rejected as a tested result); the opponent ridge (ctxres_v2) was the leak. We now have parsed
+  possessions (n_oreb/n_dreb), so true pace and four factors are computable as-of. Not yet tested as a declared family → candidate
+  pre-registration FOUR_FACTORS (Devin to confirm).
