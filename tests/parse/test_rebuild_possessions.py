@@ -283,3 +283,188 @@ def test_order_defects_counts_planted_defects() -> None:
     assert d["start_after_prev_end"] == 1  # poss 1: 690 > 680
     assert d["start_before_prev_start"] == 0
     assert d["games_with_defect"] == 1
+
+
+# ---------------------------------------------------------------------------
+# --flags-only (oreb rule change, F8 gate G3)
+# ---------------------------------------------------------------------------
+def _poss_frame(**cols: list[object]) -> pl.DataFrame:
+    n = len(next(iter(cols.values())))
+    base: dict[str, list[object]] = {
+        "game_id": ["g"] * n,
+        "poss_idx": list(range(n)),
+        "period": [1] * n,
+        "clock_start": [700.0] * n,
+        "clock_end": [690.0] * n,
+        "off_team": [1] * n,
+        "def_team": [2] * n,
+        "off_players": [[1, 2, 3, 4, 5]] * n,
+        "def_players": [[6, 7, 8, 9, 10]] * n,
+        "score_diff": [0] * n,
+        "outcome": ["FGM2"] * n,
+        "shooter_id": [1] * n,
+        "shot_zone": ["mid"] * n,
+        "assister_id": [None] * n,
+        "oreb": [False] * n,
+        "fta": [0] * n,
+        "pts": [2] * n,
+    }
+    base.update(cols)
+    return pl.DataFrame(base, schema=rp._SCHEMA)
+
+
+def test_structure_diff_counts_only_oreb_when_only_oreb_changes() -> None:
+    old = _poss_frame(oreb=[True, True, False])
+    new = _poss_frame(oreb=[True, False, False])
+    d = rp.structure_diff(old, new)
+    assert d["key_mismatch"] == 0 and sum(d["changed"].values()) == 0
+    assert (d["oreb_added"], d["oreb_removed"]) == (0, 1)
+
+
+def test_structure_diff_catches_a_changed_count_or_key() -> None:
+    old = _poss_frame(oreb=[True, False, False])
+    moved = _poss_frame(oreb=[True, False, False], pts=[2, 3, 2], fta=[0, 0, 1])
+    d = rp.structure_diff(old, moved)
+    assert d["changed"]["pts"] == 1 and d["changed"]["fta"] == 1
+    fewer = _poss_frame(oreb=[True, False])
+    assert rp.structure_diff(old, fewer)["key_mismatch"] == 1
+    gates = {g.name: g for g in rp.evaluate_oreb_gates(_ok_stats(), d)}
+    assert not gates["structure_unchanged"].ok
+
+
+def _ok_stats(**kw: float) -> dict[str, dict[str, dict[str, float]]]:
+    row = {"team_games": 100, "flagged": 98, "box": 100, "ratio": 0.98, "corr": 0.97}
+    row.update(kw)
+    return {"flag": {"2023": dict(row), "2024": dict(row), "all": dict(row)}}
+
+
+def _clean_diff() -> dict[str, object]:
+    return {
+        "rows_old": 3,
+        "rows_new": 3,
+        "key_mismatch": 0,
+        "changed": {"pts": 0},
+        "oreb_added": 0,
+        "oreb_removed": 1,
+    }
+
+
+def test_oreb_gates_pass_on_a_reconciling_flag() -> None:
+    assert all(g.ok for g in rp.evaluate_oreb_gates(_ok_stats(), _clean_diff()))
+
+
+@pytest.mark.parametrize(
+    ("change", "gate"),
+    [
+        ({"ratio": 0.878}, "oreb_ratio_2023"),
+        ({"ratio": 1.35}, "oreb_ratio_2024"),
+        ({"corr": 0.80}, "oreb_corr_all"),
+        ({"ratio": float("nan")}, "oreb_ratio_2023"),
+    ],
+)
+def test_each_oreb_gate_refuses(change: dict[str, float], gate: str) -> None:
+    failed = {
+        g.name for g in rp.evaluate_oreb_gates(_ok_stats(**change), _clean_diff()) if not g.ok
+    }
+    assert gate in failed
+
+
+def test_oreb_gate_refuses_when_a_flag_would_be_added() -> None:
+    diff = {**_clean_diff(), "oreb_added": 1}
+    failed = {g.name for g in rp.evaluate_oreb_gates(_ok_stats(), diff) if not g.ok}
+    assert failed == {"flags_only_removed"}
+
+
+def test_oreb_stats_sums_flags_and_counts_per_season() -> None:
+    poss = _poss_frame(
+        game_id=["g1", "g1", "g1", "g2", "g2"],
+        poss_idx=[0, 1, 2, 0, 1],
+        off_team=[1, 1, 2, 1, 2],
+        oreb=[True, True, False, False, True],
+        outcome=["FGM2", "TOV", "FGM2", "FGM2", "FGA_miss"],
+    )
+    counts = pl.DataFrame(
+        {"game_id": poss["game_id"], "poss_idx": poss["poss_idx"], "n_oreb": [2, 1, 0, 0, 1]}
+    )
+    box = pl.DataFrame(
+        {
+            "game_id": ["g1", "g1", "g2", "g2"],
+            "team_id": [1, 2, 1, 2],
+            "season": [2023, 2023, 2024, 2024],
+            "box_oreb": [3, 0, 0, 1],
+        }
+    )
+    st = rp.oreb_stats(poss, box, counts)
+    assert st["flag"]["2023"]["flagged"] == 2 and st["flag"]["2023"]["box"] == 3
+    assert st["flag"]["2024"]["flagged"] == 1 and st["flag"]["all"]["flagged"] == 3
+    assert st["count"]["all"]["flagged"] == 4 and st["count"]["all"]["box"] == 4
+    assert st["mix"]["TOV"] == {"trips": 1, "oreb_true": 1, "share": 1.0}
+    assert st["oreb_true_total"] == 3
+    assert st["share_oreb_on_fgm_tov"] == pytest.approx(2 / 4)
+
+
+def _plant_stale_flag(db: Path) -> None:
+    w = duckdb.connect(str(db))
+    w.execute("UPDATE possessions SET oreb = TRUE WHERE game_id = ? AND poss_idx = 0", [GAME_B])
+    w.close()
+
+
+def test_flags_only_writes_only_oreb_and_backs_up(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db, data = _seed(tmp_path)
+    _plant_stale_flag(db)
+    monkeypatch.setattr(rp, "db_holders", lambda _p: [])
+    monkeypatch.setattr(rp, "evaluate_oreb_gates", lambda s, d: [rp.Gate("ok", True, "x")])
+    con = duckdb.connect(str(db), read_only=True)
+    before = rp.load_stored(con)
+    con.close()
+    assert int(before["oreb"].sum()) == 1
+
+    assert rp.main(_main_args(tmp_path, db, data, "--flags-only", "--write")) == 0
+
+    con = duckdb.connect(str(db), read_only=True)
+    after = rp.load_stored(con)
+    con.close()
+    assert int(after["oreb"].sum()) == 0  # the stale flag is gone
+    others = [c for c in rp._SCHEMA if c != "oreb"]
+    assert after.sort(rp._KEY).select(others).equals(before.sort(rp._KEY).select(others))
+    backups = list((tmp_path / "bk").glob("possessions_pre_oreb_fix_*_possessions.parquet"))
+    assert len(backups) == 1 and pl.read_parquet(backups[0]).height == before.height
+    summary = json.loads((tmp_path / "rep" / "summary.json").read_text())
+    assert summary["structure"]["oreb_removed"] == 1 and summary["structure"]["oreb_added"] == 0
+    # idempotent: nothing left to change
+    assert rp.main(_main_args(tmp_path, db, data, "--flags-only", "--write")) == 0
+    assert (
+        json.loads((tmp_path / "rep" / "summary.json").read_text())["structure"]["oreb_removed"]
+        == 0
+    )
+
+
+def test_flags_only_refuses_when_the_reconciliation_gate_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The seeded box has OREB 0 everywhere, so the ratio is undefined and the gate refuses."""
+    db, data = _seed(tmp_path)
+    _plant_stale_flag(db)
+    monkeypatch.setattr(rp, "db_holders", lambda _p: [])
+    assert rp.main(_main_args(tmp_path, db, data, "--flags-only", "--write")) == 2
+    assert not (tmp_path / "bk").exists()
+    con = duckdb.connect(str(db), read_only=True)
+    assert int(rp.load_stored(con)["oreb"].sum()) == 1  # untouched
+    con.close()
+
+
+def test_flags_only_refuses_when_something_else_would_change(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The _seed table holds the OLD ordering for game A: a re-segmentation, not a flag fix."""
+    db, data = _seed(tmp_path)
+    monkeypatch.setattr(rp, "db_holders", lambda _p: [])
+    rc = rp.main(_main_args(tmp_path, db, data, "--flags-only", "--write"))
+    assert rc == 2 and not (tmp_path / "bk").exists()
+    gates = {
+        g["name"]: g["ok"]
+        for g in json.loads((tmp_path / "rep" / "summary.json").read_text())["gates"]
+    }
+    assert gates["structure_unchanged"] is False

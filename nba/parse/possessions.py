@@ -27,12 +27,32 @@ Segmentation rules (standard):
     by bonus free throws (no and-one), a defensive rebound, a turnover,
     the made last free throw of a free-throw trip, or the end of a
     period.
-  - An OFFENSIVE rebound continues the current trip (does not flip
-    offense); the resulting row's ``oreb`` flag is set but the trip
-    keeps accumulating until a real possession-ending event occurs.
+  - A rebound by the offense continues the current trip (does not flip
+    offense); the trip keeps accumulating until a real possession-ending
+    event occurs. This segmentation is unchanged by the ``oreb`` rule below.
   - An and-one (made basket + continuation free throw(s)) stays in the
     same trip; the row's outcome is the made shot (FGM2/FGM3), not
     FT_trip, and ``pts``/``fta`` include the free throw(s).
+
+The ``oreb`` flag (corrected 2026-10-10; docs/prereg/F8_LINEUP_REBOUNDING.md gate G3):
+
+  ``oreb`` is True iff the trip was extended by at least one **player-credited** offensive
+  rebound, i.e. a ``Rebound`` event of the offensive team that carries a ``team_id``. A trip's
+  outcome is still its final event, so a miss + offensive rebound + made putback is
+  (``FGM2``, ``oreb`` True), and a make or a turnover with no earlier offensive rebound in its
+  trip is always False. The flag marks "this trip was extended", not "how many times": a
+  trip with two offensive rebounds carries one flag (``n_oreb``, available with
+  ``parse_possessions(..., with_counts=True)``, counts them).
+
+  Team rebounds (``team_id`` 0, the team parked in ``player_id``; "PACERS Rebound") are not
+  flagged: they are not credited to a player, so the box-score ``OREB`` the flag is reconciled
+  against does not include them, and 1,021 of 2,498 offense-side team rebounds in a 211-game
+  sample follow a non-final missed free throw, where they mark a dead ball between two free
+  throws and extend nothing (the second free throw is the same trip). The feed's
+  ``(Off:n Def:m)`` counter in player rebounds' descriptions reproduces box OREB exactly
+  (4,571 vs 4,571 in that sample), so the player-credited event is the reconcilable one. The
+  old rule (any rebound of the offense) flagged those team rebounds and summed to 1.35x box
+  OREB; it is why G3 failed.
 
 Scope exclusions for this milestone (see CLAUDE.md "stints" milestone):
   - ``off_players`` / ``def_players`` are left NULL. Lineup/stint
@@ -193,6 +213,7 @@ class _Trip:
     clock_start: float
     had_fgm: bool = False
     oreb: bool = False
+    n_oreb: int = 0
     fta: int = 0
     pts: int = 0
     shooter_id: int | None = None
@@ -204,15 +225,18 @@ class _Trip:
     events: list[dict[str, Any]] = field(default_factory=list)
 
 
-def parse_possessions(pbp: pl.DataFrame) -> pl.DataFrame:
+def parse_possessions(pbp: pl.DataFrame, *, with_counts: bool = False) -> pl.DataFrame:
     """Parse one game's raw play-by-play into ``possessions`` rows.
 
     ``pbp`` is a single game's frame in the V3 schema produced by
     ``nba/ingest/pbp.py`` (or an equivalent frame, e.g. a fixture). See
     the module docstring for segmentation rules and known limitations.
+    ``with_counts=True`` appends ``n_oreb`` (player-credited offensive rebounds in the trip);
+    the stored table does not carry it.
     """
+    schema = [*POSSESSIONS_COLUMNS, "n_oreb"] if with_counts else POSSESSIONS_COLUMNS
     if pbp.is_empty():
-        return pl.DataFrame(schema=POSSESSIONS_COLUMNS)
+        return pl.DataFrame(schema=schema)
 
     game_ids = pbp["game_id"].unique().to_list()
     if len(game_ids) != 1:
@@ -238,25 +262,26 @@ def parse_possessions(pbp: pl.DataFrame) -> pl.DataFrame:
             return
         off_score = trip.score_home if trip.off_team == home_team else trip.score_away
         def_score = trip.score_away if trip.off_team == home_team else trip.score_home
-        rows.append(
-            {
-                "game_id": game_id,
-                "poss_idx": poss_idx,
-                "period": trip.period,
-                "clock_start": trip.clock_start,
-                "clock_end": clock_end,
-                "off_team": trip.off_team,
-                "def_team": trip.def_team,
-                "score_diff": off_score - def_score,
-                "outcome": trip.outcome,
-                "shooter_id": trip.shooter_id,
-                "shot_zone": trip.shot_zone,
-                "assister_id": trip.assister_id,
-                "oreb": trip.oreb,
-                "fta": trip.fta,
-                "pts": trip.pts,
-            }
-        )
+        row = {
+            "game_id": game_id,
+            "poss_idx": poss_idx,
+            "period": trip.period,
+            "clock_start": trip.clock_start,
+            "clock_end": clock_end,
+            "off_team": trip.off_team,
+            "def_team": trip.def_team,
+            "score_diff": off_score - def_score,
+            "outcome": trip.outcome,
+            "shooter_id": trip.shooter_id,
+            "shot_zone": trip.shot_zone,
+            "assister_id": trip.assister_id,
+            "oreb": trip.oreb,
+            "fta": trip.fta,
+            "pts": trip.pts,
+        }
+        if with_counts:
+            row["n_oreb"] = trip.n_oreb
+        rows.append(row)
         poss_idx += 1
         trip = None
 
@@ -348,7 +373,11 @@ def parse_possessions(pbp: pl.DataFrame) -> pl.DataFrame:
             if trip is None:
                 continue
             if team == trip.off_team:
-                trip.oreb = True
+                # Player-credited only (module docstring, "The oreb flag"). A team rebound
+                # (team_id 0) leaves the trip open exactly as before but is not flagged.
+                if ev["team_id"]:
+                    trip.oreb = True
+                    trip.n_oreb += 1
             else:
                 finalize(clock_s)
 
@@ -356,5 +385,5 @@ def parse_possessions(pbp: pl.DataFrame) -> pl.DataFrame:
 
     finalize(0.0)
     if not rows:
-        return pl.DataFrame(schema=POSSESSIONS_COLUMNS)
+        return pl.DataFrame(schema=schema)
     return pl.DataFrame(rows, schema_overrides={"outcome": pl.Utf8, "shot_zone": pl.Utf8})
