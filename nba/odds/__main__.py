@@ -1,5 +1,5 @@
-"""CLI: ``python -m nba.odds {capture,status,history-pull,history-status} ...`` (read-only; never
-raises out of main).
+"""CLI: ``python -m nba.odds {capture,status,history-pull,history-status,build-aliases} ...``
+(read-only; never raises out of main).
 
 ``capture`` / ``status`` are the theoddsapi.com live feed. ``history-pull`` / ``history-status`` are
 the SEPARATE the-odds-api.com historical archive pull (``nba.odds.history_pull``).
@@ -62,6 +62,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     hp.add_argument("--dry-run", action="store_true", help="estimate credits only; no network")
     hp.add_argument("--max-games", type=int, default=None, help="stop after N pending games")
     hp.add_argument("--reparse", action="store_true", help="re-read cached raw into the table")
+    ba = sub.add_parser("build-aliases", help="generate configs/odds_player_aliases.yaml")
+    ba.add_argument("--refresh", action="store_true", help="re-fetch commonallplayers (1 request)")
     sub.add_parser("history-status", help="historical pull: ledger, state, rows, book coverage")
     try:
         a = ap.parse_args(argv)
@@ -76,6 +78,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             from nba.odds.history_pull import status_lines
 
             for line in status_lines():
+                print(line)
+            return 0
+        if a.cmd == "build-aliases":
+            from nba.odds.history_pull import build_aliases
+
+            for line in build_aliases(refresh=a.refresh):
                 print(line)
             return 0
         if a.cmd == "history-pull":

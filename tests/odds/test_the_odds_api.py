@@ -182,8 +182,9 @@ def test_props_devig_pairs_sum_to_one_and_unpaired_stay_null(resolver: NameResol
     assert (paired["implied_prob_raw"].sum()) > paired["implied_prob"].sum()
 
 
-def test_player_ids_exact_match_only_and_unresolved_counted(resolver: NameResolver) -> None:
-    res = parse("hist_props_2025-01-15", resolver)
+def test_player_ids_exact_match_only_and_unresolved_counted() -> None:
+    base = NameResolver.default()  # reviewed Kalshi aliases only: unknown names must stay NULL
+    res = parse("hist_props_2025-01-15", base)
     df = res.rows
     brunson = df.filter(pl.col("player_name") == "Jalen Brunson")
     assert brunson.height > 0 and brunson["player_id"].unique().to_list() == [1628973]
@@ -636,3 +637,170 @@ def test_cli_parses_history_commands(
     assert rc == 0 and seen["season"] == 2024 and seen["phase"] == "props"
     assert seen["dry_run"] is True and seen["max_games"] == 5
     assert "history-pull season=2024" in capsys.readouterr().out
+
+
+# ----------------------------------------------------------------------------------------------
+# us_ex date gating
+# ----------------------------------------------------------------------------------------------
+
+
+def test_us_ex_is_requested_only_from_the_gate_date(cfg: api.HistoryConfig) -> None:
+    from datetime import date
+
+    gated = replace(cfg, us_ex_from=date(2024, 12, 20))
+    assert gated.regions_at(datetime(2024, 12, 19, 23, 59)) == ("us", "eu")
+    assert gated.regions_at(datetime(2024, 12, 20, 0, 0)) == ("us", "eu", "us_ex")
+    assert gated.expected_odds_cost("props", datetime(2024, 10, 22)) == 80
+    assert gated.expected_odds_cost("props", datetime(2025, 1, 15)) == 120
+    assert gated.expected_odds_cost("games", datetime(2024, 10, 22)) == 60
+    assert cfg.regions_at(datetime(2023, 1, 1)) == cfg.regions  # no gate configured
+    assert api.load_config().us_ex_from == date(2024, 12, 20)  # the committed config
+
+
+def test_gated_request_params_cost_and_legacy_cache_reuse(cfg: api.HistoryConfig) -> None:
+    from datetime import date
+
+    gated = replace(cfg, us_ex_from=date(2024, 12, 20))
+    early = datetime(2024, 10, 22, 22, 30)
+    fake = FakeHttp(regions=2)
+    cli = make_client(gated, fake)
+    od = cli.event_odds(
+        season=2024, game_id="G", snapshot_kind="t60", at=early, event_id="E", markets=PROPS
+    )
+    assert od.cost == 80 and fake.calls[0]["params"]["regions"] == "us,eu"
+    assert "eu-us_" in od.path.name and "us_ex" not in od.path.name
+    late = datetime(2025, 1, 15, 23, 10)
+    fake2 = FakeHttp(regions=3)
+    od2 = make_client(gated, fake2).event_odds(
+        season=2024, game_id="G2", snapshot_kind="t60", at=late, event_id="E", markets=PROPS
+    )
+    assert od2.cost == 120 and fake2.calls[0]["params"]["regions"] == "us,eu,us_ex"
+    # a pre-gate file (all three regions, written by the first run) is found for an early snapshot
+    legacy = api.raw_path(cfg, 2024, "G3", "odds", "t60", cfg.regions, PROPS)
+    legacy.parent.mkdir(parents=True)
+    legacy.write_bytes(od2.path.read_bytes())
+    assert api.odds_path(gated, 2024, "G3", "t60", PROPS, early) == legacy
+    fake3 = FakeHttp()
+    got = make_client(gated, fake3).event_odds(
+        season=2024, game_id="G3", snapshot_kind="t60", at=early, event_id="E", markets=PROPS
+    )
+    assert got.from_cache and got.cost == 0 and fake3.calls == []
+
+
+# ----------------------------------------------------------------------------------------------
+# Generated player alias table
+# ----------------------------------------------------------------------------------------------
+
+from nba.odds import player_aliases as pa  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    ("raw", "norm"),
+    [
+        ("Luka Dončić", "luka doncic"),
+        ("Luka Doncic", "luka doncic"),
+        ("Nikola Jokić", "nikola jokic"),
+        ("Jaren Jackson Jr.", "jaren jackson"),
+        ("Jaren Jackson", "jaren jackson"),
+        ("Michael Porter Jr.", "michael porter"),
+        ("Michael Porter", "michael porter"),
+        ("O.G. Anunoby", "og anunoby"),
+        ("OG Anunoby", "og anunoby"),
+        ("De'Aaron Fox", "deaaron fox"),
+        ("Karl-Anthony Towns", "karl anthony towns"),
+        ("Gary Payton II", "gary payton"),
+        ("Kelly Oubre Jr", "kelly oubre"),
+        ("Wendell Carter Jr.", "wendell carter"),
+        ("  Trey   Murphy III ", "trey murphy"),
+        ("Jonas Valančiūnas", "jonas valanciunas"),
+        ("Bogdan Bogdanović", "bogdan bogdanovic"),
+    ],
+)
+def test_normalize_player_name(raw: str, norm: str) -> None:
+    assert pa.normalize_player_name(raw) == norm
+
+
+def players_frame(rows: list[tuple[int, str, int]]) -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "person_id": [r[0] for r in rows],
+            "display_first_last": [r[1] for r in rows],
+            "from_year": [2000] * len(rows),
+            "to_year": [r[2] for r in rows],
+        }
+    )
+
+
+def test_table_collisions_stay_unresolved_and_retired_namesakes_are_out_of_window() -> None:
+    df = players_frame(
+        [
+            (1, "Michael Porter Jr.", 2025),
+            (2, "Michael Porter", 1980),  # retired long ago: not in the odds window
+            (3, "Luka Dončić", 2025),
+            (4, "Jaylin Williams", 2025),
+            (5, "Jaylin Williams", 2025),  # two real namesakes
+            (6, "Jaren Jackson Jr.", 2025),
+            (7, "Jaren Jackson", 2002),
+        ]
+    )
+    t = pa.build_table(df, min_to_year=2022)
+    assert t.aliases["michael porter"] == 1 and t.aliases["luka doncic"] == 3
+    assert t.aliases["jaren jackson"] == 6
+    assert t.collisions == {"jaylin williams": [4, 5]}
+    assert t.all_time_collisions == 3  # michael porter, jaylin williams, jaren jackson
+    wide = pa.build_table(df, min_to_year=1900)
+    assert set(wide.collisions) == {"michael porter", "jaylin williams", "jaren jackson"}
+
+
+def test_history_resolver_order_and_exact_only(tmp_path: Path) -> None:
+    base = NameResolver.default()
+    r = pa.HistoryResolver(
+        teams=base.teams,
+        players=base.players,
+        generated={"luka doncic": 1629029, "jalen brunson": 999, "michael porter": 1},
+        collisions={"jaylin williams"},
+    )
+    assert r.player_id("Luka Dončić") == 1629029  # generated, accent folded
+    assert r.player_id("Jalen Brunson") == 1628973  # the reviewed Kalshi id wins
+    assert r.player_id("Jaylin Williams") is None  # collision never resolves
+    assert r.player_id("Luka Doncicc") is None  # no fuzzy matching
+    assert r.player_id("Michael Porter Jr.") == 1
+    assert r.player_id(None) is None and r.player_id("") is None
+    path = tmp_path / "a.yaml"
+    t = pa.AliasTable({"x y": 5}, {"a b": [1, 2]}, 7)
+    pa.write_table(path, t, [("Nick Name", 3)], 2022)
+    assert pa.load_generated(path) == ({"x y": 5}, {"a b"})
+
+
+def test_players_cache_makes_one_request_then_none(tmp_path: Path) -> None:
+    calls: list[int] = []
+    waits: list[float] = []
+
+    def fetch() -> pl.DataFrame:
+        calls.append(1)
+        return players_frame([(1, "A B", 2025)])
+
+    path = tmp_path / "players.parquet"
+    a = pa.load_players(path, fetch=fetch, sleep=waits.append)
+    b = pa.load_players(path, fetch=fetch, sleep=waits.append)
+    assert len(calls) == 1 and waits == [6.0] and a.equals(b)
+
+
+def test_reparse_is_cache_only_and_never_needs_a_key(
+    cfg: api.HistoryConfig, resolver: NameResolver, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv(api.KEY_ENV, raising=False)
+    kw: dict[str, Any] = {
+        "cfg": cfg,
+        "games": [GAME],
+        "all_season_games": empty_seasons(cfg, GAME),
+        "resolver": resolver,
+    }
+    hp.run_pull(2024, "props", client=make_client(cfg, FakeHttp()), **kw)
+    rep = hp.run_pull(2024, "props", reparse=True, **kw)  # no client, no key: cannot spend
+    assert rep.items_done == 2 and rep.requests == 0 and rep.aborted is None
+    other = replace(GAME, game_id="NEVER_PULLED")
+    kw["games"] = [other]
+    kw["all_season_games"] = empty_seasons(cfg, other)
+    rep2 = hp.run_pull(2024, "props", reparse=True, **kw)
+    assert rep2.items_done == 0 and rep2.items_no_raw == 2 and rep2.requests == 0

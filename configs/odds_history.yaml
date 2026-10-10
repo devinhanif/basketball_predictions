@@ -5,6 +5,9 @@
 base_url: https://api.the-odds-api.com/v4
 sport_key: basketball_nba
 regions: [us, eu, us_ex]        # Pinnacle is in eu; Novig / ProphetX are in us_ex (us2 skipped)
+# us_ex returns nothing before this date (probe 2026-10-10: empty 2023-12-15 and Oct 2024, books
+# from 2024-12-20) but is still charged, so it is requested only for snapshots on/after it.
+us_ex_from: 2024-12-20
 prop_markets: [player_points, player_rebounds, player_assists, player_threes]
 game_markets: [h2h, spreads, totals]
 odds_format: american

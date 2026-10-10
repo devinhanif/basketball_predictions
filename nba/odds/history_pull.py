@@ -49,6 +49,7 @@ from nba.odds.the_odds_api import (
     load_config,
     load_raw,
     match_event,
+    odds_path,
     parse_event_odds,
     parse_events,
     raw_path,
@@ -235,19 +236,13 @@ def estimate_credits(cfg: HistoryConfig, items: list[Item]) -> dict[str, int]:
     ev_cost = odds_cost = n_odds = 0
     for it in items:
         epath = raw_path(cfg, it.game.season, it.game.game_id, "events", it.kind)
-        opath = raw_path(
-            cfg,
-            it.game.season,
-            it.game.game_id,
-            "odds",
-            it.kind,
-            regions=cfg.regions,
-            markets=cfg.markets_for(it.phase),
+        opath = odds_path(
+            cfg, it.game.season, it.game.game_id, it.kind, cfg.markets_for(it.phase), it.at(cfg)
         )
         if opath.exists():
             continue
         n_odds += 1
-        odds_cost += cfg.expected_odds_cost(it.phase)
+        odds_cost += cfg.expected_odds_cost(it.phase, it.at(cfg))
         if not epath.exists() and epath not in events:
             events.add(epath)
             ev_cost += cfg.cost_events_list
@@ -281,6 +276,7 @@ class PullReport:
     items_done: int = 0
     items_empty: int = 0
     items_skipped_done: int = 0
+    items_no_raw: int = 0
     match_failures: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     credits_spent: int = 0
@@ -309,8 +305,8 @@ class PullReport:
             return out
         out += [
             f"done={self.items_done} (empty={self.items_empty}) skipped_already_done="
-            f"{self.items_skipped_done} match_failures={len(self.match_failures)} "
-            f"errors={len(self.errors)}",
+            f"{self.items_skipped_done} no_raw_skipped={self.items_no_raw} "
+            f"match_failures={len(self.match_failures)} errors={len(self.errors)}",
             f"credits_spent_this_run={self.credits_spent:,} requests={self.requests} "
             f"cache_hits={self.cache_hits} rows={self.rows:,}",
             "books (rows): " + ", ".join(f"{k}={v}" for k, v in self.books.most_common(12)),
@@ -393,13 +389,14 @@ def run_pull(
     if dry_run or rep.refused:
         return rep
 
-    cli = client or HistoricalClient(cfg)
+    # reparse is cache-only: a keyless client cannot spend, and items without raw are skipped
+    cli = client or HistoricalClient(cfg, need_key=not reparse)
     res = resolver or default_resolver()
     store = OddsStore(cfg.out_db)
     started = (cli.requests_made, cli.cache_hits, cli.credits_spent)
     try:
         for n, it in enumerate(pending, 1):
-            _process(it, cfg, cli, res, store, state, rep)
+            _process(it, cfg, cli, res, store, state, rep, cache_only=reparse)
             if n % 50 == 0:
                 log.info(
                     "progress %d/%d items, credits this run %d", n, len(pending), cli.credits_spent
@@ -421,13 +418,15 @@ def _process(
     store: OddsStore,
     state: PullState,
     rep: PullReport,
+    cache_only: bool = False,
 ) -> None:
     g, markets = it.game, list(cfg.markets_for(it.phase))
     at = it.at(cfg)
-    opath = raw_path(
-        cfg, g.season, g.game_id, "odds", it.kind, regions=cfg.regions, markets=markets
-    )
+    opath = odds_path(cfg, g.season, g.game_id, it.kind, markets, at)
     credits_before = cli.credits_spent
+    if cache_only and not opath.exists():
+        rep.items_no_raw += 1
+        return
     try:
         if opath.exists():
             fetched_body = load_raw(opath).get("body")
@@ -537,4 +536,68 @@ def status_lines(cfg: HistoryConfig | None = None) -> list[str]:
             )
     except (duckdb.Error, HistoryError) as exc:
         out.append(f"odds_history.duckdb: not readable now ({type(exc).__name__})")
+    return out
+
+
+# ----------------------------------------------------------------------------------------------
+# Player alias table
+# ----------------------------------------------------------------------------------------------
+
+
+def build_aliases(cfg: HistoryConfig | None = None, *, refresh: bool = False) -> list[str]:
+    """(Re)generate ``configs/odds_player_aliases.yaml`` and report name-match rates.
+
+    The rates are computed from the stored vendor ``player_name`` values, so they do not depend on
+    the ``player_id`` already in the table: Kalshi-only resolver (before) vs Kalshi + generated
+    (after). Run ``history-pull --reparse`` afterwards to write the ids into ``odds_history``.
+    """
+    from nba.odds import player_aliases as pa
+
+    cfg = cfg or load_config()
+    players = pa.load_players(refresh=refresh)
+    table = pa.build_table(players)
+    base = NameResolver.default()
+    before = pa.HistoryResolver(teams=base.teams, players=base.players)
+    after = pa.HistoryResolver(
+        teams=base.teams,
+        players=base.players,
+        generated=table.aliases,
+        collisions=set(table.collisions),
+    )
+    store = OddsStore(cfg.out_db)
+    counts: Counter[str] = Counter(
+        {
+            str(n): int(c)
+            for n, c in store.read(
+                "SELECT player_name, count(*) FROM odds_history "
+                "WHERE player_name IS NOT NULL GROUP BY 1"
+            )
+        }
+    )
+    unmatched = pa.unmatched_names(counts, after)
+    pa.write_table(pa.ALIASES_PATH, table, unmatched, 2022)
+    total_rows, total_names = sum(counts.values()), len(counts)
+    out = [
+        f"players in cache: {players.height}; aliases={len(table.aliases)} "
+        f"collisions={len(table.collisions)} (all-time collisions in full list: "
+        f"{table.all_time_collisions})",
+        f"vendor player names in odds_history: distinct={total_names} rows={total_rows:,}",
+    ]
+    for label, res in (("before (Kalshi only)", before), ("after (+generated)", after)):
+        ok_rows = sum(c for n, c in counts.items() if res.player_id(n) is not None)
+        ok_names = sum(1 for n in counts if res.player_id(n) is not None)
+        out.append(
+            f"name-match {label}: rows {ok_rows:,}/{total_rows:,} = "
+            f"{ok_rows / max(1, total_rows):.1%}; distinct names {ok_names}/{total_names} = "
+            f"{ok_names / max(1, total_names):.1%}"
+        )
+    hit_coll = [
+        (n, c) for n, c in counts.items() if pa.normalize_player_name(n) in table.collisions
+    ]
+    out.append(
+        f"vendor names hitting a collision: {len(hit_coll)} ({sum(c for _, c in hit_coll):,} rows)"
+    )
+    out.append(
+        "top unmatched vendor names (rows): " + ", ".join(f"{n}={c}" for n, c in unmatched[:30])
+    )
     return out

@@ -38,7 +38,7 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -111,6 +111,9 @@ class HistoryConfig:
     base_url: str = "https://api.the-odds-api.com/v4"
     sport_key: str = "basketball_nba"
     regions: tuple[str, ...] = ("us", "eu", "us_ex")
+    #: ``us_ex`` (Novig, ProphetX, ...) is requested only for snapshots at or after this UTC date
+    #: (it returns nothing before, yet is still charged). None = always request every region.
+    us_ex_from: date | None = None
     prop_markets: tuple[str, ...] = (
         "player_points",
         "player_rebounds",
@@ -146,8 +149,15 @@ class HistoryConfig:
             return self.game_markets
         raise ValueError(f"unknown phase {phase!r} (props|games)")
 
-    def expected_odds_cost(self, phase: str) -> int:
-        return self.cost_per_market_region * len(self.markets_for(phase)) * len(self.regions)
+    def regions_at(self, at: datetime) -> tuple[str, ...]:
+        """Regions to request for a snapshot at ``at`` (naive UTC): ``us_ex`` is date-gated."""
+        if self.us_ex_from is not None and at.date() < self.us_ex_from:
+            return tuple(r for r in self.regions if r != "us_ex")
+        return self.regions
+
+    def expected_odds_cost(self, phase: str, at: datetime | None = None) -> int:
+        regions = self.regions if at is None else self.regions_at(at)
+        return self.cost_per_market_region * len(self.markets_for(phase)) * len(regions)
 
     def minutes_before_tip(self, kind: str) -> int:
         for k, m in self.snapshots:
@@ -196,6 +206,9 @@ def load_config(path: Path | None = None) -> HistoryConfig:
     for k in ("regions", "prop_markets", "game_markets"):
         if k in raw:
             upd[k] = tuple(str(x) for x in raw[k])
+    if raw.get("us_ex_from"):
+        v = raw["us_ex_from"]
+        upd["us_ex_from"] = v if isinstance(v, date) else date.fromisoformat(str(v))
     if "seasons" in raw:
         upd["seasons"] = tuple(int(x) for x in raw["seasons"])
     if "snapshots" in raw:
@@ -373,6 +386,30 @@ def raw_path(
     return cfg.raw_dir / str(season) / game_id / name
 
 
+def odds_path(
+    cfg: HistoryConfig,
+    season: int,
+    game_id: str,
+    snapshot_kind: str,
+    markets: Sequence[str],
+    at: datetime,
+) -> Path:
+    """Cache path for a per-event odds file at ``at``.
+
+    The date-gated region set is the canonical path. A file written before the gate existed (all
+    regions requested) is found too, so reparsing or rerunning never re-buys it.
+    """
+    gated = raw_path(
+        cfg, season, game_id, "odds", snapshot_kind, regions=cfg.regions_at(at), markets=markets
+    )
+    if gated.exists():
+        return gated
+    full = raw_path(
+        cfg, season, game_id, "odds", snapshot_kind, regions=cfg.regions, markets=markets
+    )
+    return full if full.exists() else gated
+
+
 def iso_z(dt: datetime) -> str:
     """``2025-01-15T23:00:00Z`` from a naive-UTC or aware datetime."""
     if dt.tzinfo is not None:
@@ -476,10 +513,8 @@ class HistoricalClient:
         refresh: bool = False,
     ) -> Fetched:
         """Per-event odds as of ``at``. Cost 10 x markets x regions (actual from the header)."""
-        regions = self.config.regions
-        path = raw_path(
-            self.config, season, game_id, "odds", snapshot_kind, regions=regions, markets=markets
-        )
+        regions = self.config.regions_at(at)
+        path = odds_path(self.config, season, game_id, snapshot_kind, markets, at)
         url = f"/historical/sports/{self.config.sport_key}/events/{event_id}/odds"
         params = {
             "regions": ",".join(regions),
@@ -632,7 +667,10 @@ class HistoricalClient:
 
 
 def default_resolver() -> NameResolver:
-    """``NameResolver.default()`` plus both spellings of the two Los Angeles franchises.
+    """``NameResolver.default()`` plus both Los Angeles spellings and the generated player table.
+
+    Players resolve through the reviewed Kalshi aliases, then ``configs/odds_player_aliases.yaml``
+    (``nba.odds.player_aliases``), exact normalised match only, collisions never.
 
     This vendor writes "Los Angeles Clippers"; ``configs/team_markets.yaml`` says "LA Clippers"
     (and "Los Angeles Lakers"). Exact names only, never fuzzy.
@@ -643,7 +681,9 @@ def default_resolver() -> NameResolver:
             res.teams.setdefault("los angeles " + name[3:], tid)
         elif name.startswith("los angeles "):
             res.teams.setdefault("la " + name[len("los angeles ") :], tid)
-    return res
+    from nba.odds.player_aliases import history_resolver
+
+    return history_resolver(res)
 
 
 @dataclass(frozen=True)
