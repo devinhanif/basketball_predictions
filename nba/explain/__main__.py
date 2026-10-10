@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from nba.explain.data import open_ro
+from nba.explain.known import DEFAULT_FACTS_DB
 from nba.explain.page import build_page
 from nba.explain.render import render_page
 
@@ -18,6 +19,11 @@ def _parser() -> argparse.ArgumentParser:
     g.add_argument("--game-id", "--id", dest="game_id", required=True)
     g.add_argument("--db", required=True, help="database with forward_predictions (read-only)")
     g.add_argument("--odds-db", default=None, help="odds_history database (read-only; optional)")
+    g.add_argument(
+        "--facts-db",
+        default=DEFAULT_FACTS_DB,
+        help="as-of fact store (read-only); default data/facts/facts.duckdb",
+    )
     g.add_argument("--out", default=None, help="default reports/explain/<game_id>.html")
     return ap
 
@@ -28,7 +34,14 @@ def main(argv: list[str] | None = None) -> int:
     con = open_ro(args.db)
     odds = open_ro(args.odds_db) if args.odds_db else None
     try:
-        page = build_page(con, odds, args.game_id, source_name=Path(args.db).name)
+        page = build_page(
+            con,
+            odds,
+            args.game_id,
+            source_name=Path(args.db).name,
+            facts_db=args.facts_db,
+            with_known=True,
+        )
     finally:
         con.close()
         if odds is not None:

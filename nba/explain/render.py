@@ -12,6 +12,7 @@ import html
 from datetime import datetime
 
 from nba.explain import data as D
+from nba.explain.known import section_known
 from nba.explain.names import team_abbr, team_name
 from nba.explain.page import Call, Page, PlayerRow, ScoreRow, StatCell, WinInfo
 
@@ -584,6 +585,7 @@ def render_page(p: Page) -> str:
         section_out(p),
         section_players(p),
         section_scoring(p),
+        section_known(p.known) if p.known is not None else "",
         section_taught(p),
         '<p class="src">Local page for our own use. Not published; publishing is Devin\'s '
         "decision.</p>",

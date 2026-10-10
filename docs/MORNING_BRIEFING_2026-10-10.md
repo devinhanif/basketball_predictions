@@ -126,3 +126,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - 21:40: Bluesky probe denied twice by the session's permission layer (outbound curl). Run it yourself when convenient:
   `curl -s "https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=NBA%20reporter&limit=8"` and paste the handles, or
   allow network calls for this session. Facts store (knowledge-graph backbone) is being built by the archivist.
+- 23:10: facts store committed (nba/facts) and the explainer reads it ("What was known, and when"). CI green at 40e599c. Example:
+  reports/explain/0022400061.html (BOS at NYK, 2024-10-22). Steals prices: books over-price the over there too (fan doc).

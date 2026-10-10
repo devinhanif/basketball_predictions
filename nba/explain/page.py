@@ -5,12 +5,14 @@ from __future__ import annotations
 import statistics
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 
 from nba.explain import data as D
 from nba.explain.knowledge import WATCH_LIST, Taught, choose
+from nba.explain.known import Known, load_known
 from nba.explain.names import player_name, team_abbr
 
 BIG_PROJ_MINUTES = 15.0  # "best/worst call" is judged among players projected for >= 15 minutes
@@ -102,6 +104,7 @@ class Page:
     taught: Taught
     starter_minutes: dict[str, float | None]
     pts_cover: tuple[int, int, int, int]  # n played, inside, above, below (points)
+    known: Known | None = None  # None = the caller did not ask for the fact-store section
 
 
 def _num(x: Any) -> float | None:
@@ -129,6 +132,8 @@ def build_page(
     game_id: str,
     *,
     source_name: str = "",
+    facts_db: str | Path | None = None,
+    with_known: bool = False,
 ) -> Page | None:
     game = D.load_game(con, game_id)
     if game is None:
@@ -292,6 +297,11 @@ def build_page(
         taught=taught,
         starter_minutes=starter_minutes,
         pts_cover=cover,
+        known=(
+            load_known(facts_db, con, game_id, game.home_team, game.away_team)
+            if with_known
+            else None
+        ),
     )
 
 

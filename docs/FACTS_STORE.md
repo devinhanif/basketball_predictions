@@ -43,3 +43,11 @@ counts per predicate and per source. Rebuild after any load.
 2. The pretip run: `known_before_tip(con, game_id, 60)` and `(..., 30)` as the information set it may read.
 3. The reporter feed: tweets and reports enter as *claimed* edges (own `source`, `confidence < 1`), shown in the briefing and
    never a feature until a frozen rule says how they are used.
+
+## Readers (status)
+- Explainer: DONE 2026-10-10. `python -m nba.explain game … --facts-db data/facts/facts.duckdb` adds "What was known, and when"
+  (T-60 and T-30 report listings with publish times, announced starters with snapshot times, the tip, and a count of post-tip
+  facts withheld). Missing store or unknown game → one sentence, page unchanged. Use `data/rehearsal/replay2025.duckdb` as `--db`
+  for 2025-26 pages (nba.duckdb holds no forecasts for them).
+- Pretip job: not yet (additive read; needs a 20-date replay oracle before it touches the live path).
+- Reporter feed: not yet (writes *claimed* edges with provenance; gated on the Bluesky probe and Devin's allow-list).
