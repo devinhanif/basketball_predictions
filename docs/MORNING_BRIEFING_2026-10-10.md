@@ -67,3 +67,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - ODDS_HISTORY rule drafted (docs/prereg/ODDS_HISTORY.md): props model OOF vs Pinnacle/DK/FD/consensus at T-60 and T-5 on 2023-24 (fit) and 2024-25 (report), 2025-26 one logged touch. Confirm before any model row is joined to a price; the raw pull runs regardless.
 
 - Odds history: six vendor nicknames reviewed and added to configs/kalshi_aliases.yaml (Claxton, Carrington, Herb Jones, Moe Wagner, B.J. Boston Jr, Ron Holland). After the pull chain finishes, run `uv run python -m nba.odds history-pull --season 2024 --phase props --reparse` (0 credits) so the 2024 rows pick them up; 2023/2025 pulls read them at start.
+
+- F9b CLOSED (T186–T201): all checks passed, no stat reached the floor; the under-forecast of young top-10 starters is real (+0.4 pts) but explained by role, not draft slot. No F9c. Full table in reports/prereg_f9b.md.

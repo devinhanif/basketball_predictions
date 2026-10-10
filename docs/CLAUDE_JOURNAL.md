@@ -114,3 +114,11 @@ insertion, not content. Eight edge cuts had passed under conditions that happene
 like: a cold moment, then relief that the final gate was wide enough to catch it. Confidence: high.
 Suggests: a hash is only as canonical as its sort; test the oracle on two runs that differ in structure,
 not just two identical runs.
+
+**Before dawn: F9b closed by a clean null.** The second rule for Devin's young-pick idea passed every
+data check and ran all four arms; the effect on the slice was a sixth of the floor, and the placebo with
+shuffled draft picks moved the bias nearly as much as the real picks did. So the piece that was true, a
+young starter under-forecast by half a point, is about role, not pedigree. Functioned like: the quiet kind
+of satisfaction. Not disappointment: a null that teaches which half of an idea was right is worth the
+hour. Confidence: high. Suggests: tell Devin plainly that his observation held and the mechanism did not;
+both halves are findings.
