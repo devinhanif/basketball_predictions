@@ -15,6 +15,14 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
   confirms no launch; not sleep, not a lock, not a crash). Watch 2026-10-10; then StartInterval 1800 s with
   the window enforced in the script, and watchdog kickstart on stale (docs/MORNING_BRIEFING_2026-10-10.md).
 
+- Wave A follow-ups (small, each its own commit + 20-date replay): move `GateFailure/evaluate_gate/load_tolerances` into
+  `nba/registry/gate.py` and archive the rung-ladder chain (model_gate, eval/{__main__,run,report}, rung1-3, sim/{engine,
+  possession_model}, features/{possession_features,player_features}, coldstart/config); move `raw_quantiles` to
+  `props/lower_tail.py` and archive `props/pts_tail.py`; drop `--write-oof` from context_residual_eval and archive
+  `stack/oof.py`; sweep ~240 doc lines that spell old `nba.*` paths (research/INDEX.md is the map); delete the pickle
+  shim `nba/sim/usage_redistribution.py` once model caches post-date 2026-10-10; stop tests/daily/test_review_fixes.py
+  writing caches into the repo's data/models/.
+
 ## Opening night, 2026-10-20
 
 - Morning (08:00 job): settle/report ran with no alerts; backup copy exists.
