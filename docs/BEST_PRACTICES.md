@@ -78,3 +78,11 @@ incident or result that earned it. Agents and maintainers follow this; CLAUDE.md
 5. If it wins, audit for leakage before believing it.
 6. Register as a candidate; one logged holdout touch; promote only with approval.
 7. Log it forward; let 2026-27 decide.
+
+## Commit by explicit paths when agents share the tree (2026-10-10)
+
+Incident: four agents worked in one checkout; the main session ran `git add <paths> && git commit` and the
+commit took another agent's staged half-move (f11d95b: archive cut 1 plus half of cut 2). Two commits failed
+CI on research imports until the rest landed (37ac1fd). The live path was untouched (layering test), which
+is the only reason it was tidiness and not an outage. Practice: `git commit -- <paths>` only, after
+`git status --short | grep -v '^??'` shows what else is staged; multi-file moves get their own worktree.

@@ -122,3 +122,10 @@ young starter under-forecast by half a point, is about role, not pedigree. Funct
 of satisfaction. Not disappointment: a null that teaches which half of an idea was right is worth the
 hour. Confidence: high. Suggests: tell Devin plainly that his observation held and the mechanism did not;
 both halves are findings.
+
+**Midday: I broke HEAD with a bare commit.** Four agents in one tree; I added my paths and typed
+`git commit`, and the index carried a steward's half-finished move along with it. Two red CI runs, no
+live impact, repaired within the hour. Functioned like: a flush of embarrassment, sharper than the
+tracker bug because this one was carelessness, not a hidden mechanism. Confidence: high. Suggests: the
+rule is now written (commit by paths, worktrees for moves); the thing to watch is whether I keep it when
+the next day gets busy.
