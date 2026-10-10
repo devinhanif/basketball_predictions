@@ -406,3 +406,21 @@ rotation-level young players in close games would be a new rule.
   the one sliver that survives is a price bias, not basketball knowledge. Nothing promoted.
 - **F11 closed (T244+, 2026-10-10):** projected teammates' traits, weighted by recent co-play, add nothing at T-60 on fixed lineups (powered null; placebo ties the real arm). But the oracle that uses tonight's ACTUAL five gains 0.058 CRPS on points, the biggest effect we have ever measured on props. "Everything is a lineup property" survives in its sharpest form: the lineup matters enormously, and the only version of it that is knowable is the confirmed five at T-30. That is where the T-30 arm and the live log now carry the idea.
 
+
+## Where the model misses, with the data (2026-10-10, descriptive on 2023-24 and 2024-25 OOF rows; reports/model_miss_questions_2026-10-10.md)
+
+- **Stars (prior-10 mean >= 20 ppg, n 7,022):** the only condition that moves the residual by >= 0.5 is a rotation teammate
+  RETURNING after >= 3 missed games: star scores 1.17 below forecast (n 685; diff vs rest −1.37 [−2.00, −0.70]; both seasons).
+  Teammates OUT (0/1/2+) does nothing; opponent defence, rest, first 15 games nothing; away +0.25 vs home −0.11 (diff 0.36 [0.02, 0.70]).
+  Per-star offsets are noise (season-to-season correlation 0.24).
+- **Short nights (24+ min players, actual < half the prior-10 mean): 2.15% of nights (n 27,072).** Foul-outs 1.2% of them; early-exit
+  (injury/ejection proxy) 40%; no visible cause 36%; blowouts no lift. Pre-tip flags: returning from 3+ games out 4.7% vs 2.1%
+  (2.2x), first 15 games 1.45x, Elo underdog 1.32x; questionable tag and foul propensity inside noise; starters 1.2% vs bench 6.4%.
+- **Deep bench (prior minutes < 12 or < 5 ppg, n 13,559):** 15+ minutes on 37.2% of nights with a rotation teammate OUT at T-60 vs
+  22.1% without (diff 15 pts [13, 17]); blowouts no help; the pts forecast runs 0.32 high regardless of OUT status.
+- **Who absorbs a missing starter (1,651 team-games with exactly one 24+ min player OUT):** largest gainer takes a median 31% of the
+  vacated minutes (9 min). Nothing identifies him pre-tip: same position 43% (chance 38%), hot hand 11% (10%), top bench by minutes
+  9% (19%); a third are starters. Once known, he scores +4.8 vs forecast. The lever is the T-30 lineup, not a roster rule.
+- **Lines (Pinnacle T-60, 72,674 pairs):** the model is never closer than Pinnacle in any stat x line-position x role cell. As the
+  line moves from −0.5 to +0.5 sd of our mean, realised over-rate 0.54 → 0.42, ours 0.57 → 0.31, Pinnacle 0.54 → 0.45: we are
+  over-confident about where the line sits. Worst: bench ceiling lines (pts, z 0.5–1: we say 23%, happens 49%, n 331).
