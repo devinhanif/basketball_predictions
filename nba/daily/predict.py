@@ -328,6 +328,6 @@ def recency_prop_predictions(
         slate,
         frame,
         exclude_players,
-        config=ForwardConfig(sim_stats=()),
+        config=ForwardConfig(),
         official_roster=official_roster,
     )

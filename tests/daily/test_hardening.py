@@ -109,11 +109,9 @@ def test_full_roster_cap_covers_21_and_leaves_existing_rows_unchanged(
     off = pl.concat([_official(g.home_team, 21, 7000), _official(g.away_team, 21, 8000)])
     capped = predict_slate(
         con, RUN_DATE, frame, set(), official_roster=off,
-        config=ForwardConfig(sim_stats=(), official_max_roster=18),
+        config=ForwardConfig(official_max_roster=18),
     )  # fmt: skip
-    full = predict_slate(
-        con, RUN_DATE, frame, set(), official_roster=off, config=ForwardConfig(sim_stats=())
-    )
+    full = predict_slate(con, RUN_DATE, frame, set(), official_roster=off, config=ForwardConfig())
     assert ForwardConfig().official_max_roster is None
     assert full["player_id"].n_unique() > capped["player_id"].n_unique()  # fixed 18 dropped some
     key = ["game_id", "player_id", "stat"]

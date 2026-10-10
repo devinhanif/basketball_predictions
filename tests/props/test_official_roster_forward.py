@@ -21,7 +21,7 @@ from tests.fixtures.loader import build_fixture_db
 SLATE = pl.DataFrame(
     {"game_id": ["0022600001", "0022600002"], "home_team": [T1, T3], "away_team": [T2, T4]}
 )
-CFG = ForwardConfig(sim_stats=())
+CFG = ForwardConfig()
 
 
 @pytest.fixture
@@ -70,12 +70,12 @@ def test_mover_minutes_shrink_toward_default_not_old_team_blindly(
 ) -> None:
     on = predict_slate(
         con, RUN_DATE, SLATE, None,
-        config=ForwardConfig(sim_stats=(), new_team_shrinkage=True),
+        config=ForwardConfig(new_team_shrinkage=True),
         official_roster=_official(),
     )  # fmt: skip
     off = predict_slate(
         con, RUN_DATE, SLATE, None,
-        config=ForwardConfig(sim_stats=(), new_team_shrinkage=False),
+        config=ForwardConfig(new_team_shrinkage=False),
         official_roster=_official(),
     )  # fmt: skip
     a, b = float(_one(on, 1100)["proj_minutes"]), float(_one(off, 1100)["proj_minutes"])  # type: ignore[arg-type]

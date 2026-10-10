@@ -20,12 +20,12 @@ How leakage is excluded (by construction, not by convention):
 * Rosters come from who played in each team's most recent games before
   ``as_of`` (minus ``out_players``); never from tonight's box score.
 
-Routing (2026-10-08 analysis, ``docs/RESULTS_2026-10-08.md`` section 2): for pts,
-reb, ast the possession sim is used for players whose as-of Syntetos-Boylan
-volatility class is ``insufficient_history`` / ``intermittent`` / ``erratic``,
-and the season average for ``smooth`` / ``lumpy`` regulars. 3PM has no sim head,
-so it is always the season average. The bucket is computed with
-``nba.coldstart.sb_classification`` primitives on the as-of series.
+Every stat is the recency-weighted played-games average (``model = season_avg``). The
+possession sim this module once routed cold-start players to lost to that average on
+every stat in the forward replays (``docs/RESULTS_2026-10-08.md``; T001 retracted) and
+was removed on 2026-10-09 (edge 5 of the restructure). The as-of Syntetos-Boylan
+volatility bucket (``nba.features.sb_classification``) is still computed and stored per
+row, as it always was.
 
 Known limitations (documented, not hidden):
 
@@ -33,9 +33,6 @@ Known limitations (documented, not hidden):
   a team inside the roster window via an offseason move not yet visible in box
   scores cannot be projected; there is no pre-game roster feed. The first
   games of a season use last season's rosters.
-* Sim point/rebound/assist distributions are driven by hurdle-mean projected
-  minutes (as in the backtest) and do not model DNP explicitly; they are used
-  as a distribution conditional on playing.
 * Hand-set minutes game-context adjustments (b2b, travel) are off here because
   those builders have no schedule for unplayed games.
 """
@@ -45,7 +42,6 @@ from __future__ import annotations
 import json
 import pickle
 import time
-import zlib
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, replace
@@ -57,14 +53,7 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.coldstart.sb_classification import (
-    INSUFFICIENT_HISTORY_BUCKET,
-    classify_sb,
-    compute_adi_cv2,
-)
-from nba.features.player_possession_features import build_player_shot_rates
-from nba.features.player_rebound_assist_features import build_player_reb_ast_rates
-from nba.features.possession_features import build_team_possession_rates
+from nba.features.sb_classification import classify_sb, compute_adi_cv2
 from nba.props import full_support
 from nba.props.baselines import _DEFAULT_STD
 from nba.props.config import THRESHOLDS
@@ -89,11 +78,6 @@ from nba.props.roster_cold import (
     rookie_minutes_mu,
 )
 from nba.props.rosters import merge_rosters
-from nba.sim.player_attribution import (
-    DEFAULT_ASSISTED_FG_RATE,
-    profiles_from_features,
-    simulate_game_with_players,
-)
 
 #: Quantile grid stored per prediction so settlement can compute an empirical CRPS
 #: (CRPS = 2 * integral of pinball loss over tau) without assuming a family.
@@ -107,17 +91,9 @@ QUANTILE_TAUS: tuple[float, ...] = tuple(round(0.05 * i, 2) for i in range(1, 20
 P_PLAY_PLATT: tuple[float, float] = (-0.327, 0.581)
 
 PROP_STATS: tuple[str, ...] = ("pts", "reb", "ast", "fg3m")
-# Points routes to season-avg: no out-of-sample sim win, and forward sim-routed points
-# bias was -3.25 [-3.77,-2.78] on 14 2024-25 slates (projected rosters). 2026-10-08.
-# Forward replay (56 slates, 2024-25): sim loses MAE to the recency average on reb/ast too
-# (backtest wins relied on actual box-score rosters). Everything routes to season-avg;
-# mean_sim is still logged for later scoring. 2026-10-08.
-SIM_STATS: tuple[str, ...] = ()
-#: SB classes routed to the sim (2026-10-08 routing result); the rest -> season average.
-SIM_BUCKETS: frozenset[str] = frozenset({INSUFFICIENT_HISTORY_BUCKET, "intermittent", "erratic"})
 SB_MIN_GAMES = 10
-DEFAULT_N_SIMS = 1000
-MODEL_SIM = "sim"
+#: The only model this module produces. ``mean_sim`` stays in the output (always None) so
+#: stored prediction rows keep their shape.
 MODEL_SEASON_AVG = "season_avg"
 
 OUTPUT_COLUMNS: list[str] = [
@@ -155,24 +131,17 @@ OFFICIAL_ROSTER_FLOOR = 18  # 15 standard + 3 two-way: minimum cap with an offic
 
 @dataclass(frozen=True)
 class ForwardConfig:
-    sim_buckets: frozenset[str] = SIM_BUCKETS
-    sim_stats: tuple[str, ...] = SIM_STATS
     roster_window_games: int = 10  # a player is "on the roster" if in a team's last N games
     max_roster: int = 13
     min_proj_minutes: float = 2.0
-    #: 'conditional': sim minutes = minutes-given-play for players with
-    #: P(play) >= ``min_p_play`` (the rest get season-average only); 'hurdle_mean':
-    #: P(play)*minutes for everyone (the backtest shape, which assumed the real
-    #: roster was known).
+    #: 'conditional': projected minutes = minutes-given-play for players with
+    #: P(play) >= ``min_p_play``; 'hurdle_mean': P(play)*minutes for everyone (the
+    #: backtest shape, which assumed the real roster was known).
     sim_minutes: str = "conditional"
     min_p_play: float = 0.5
     #: Recency half-life (games) of the played-games average. Chosen on 2023-24
     #: slates by MAE (plateau 6-14); evaluated on 2024-25.
     halflife_games: float = 10.0
-    #: Drop DNP rows (minutes NULL, stats 0) before the sim's rate builders so
-    #: shot/rebound/assist rates are per game PLAYED, matching the conditional
-    #: contract. Minutes/P(play) still see DNP rows.
-    rates_played_only: bool = True
     thresholds: dict[str, list[int]] = field(default_factory=lambda: dict(THRESHOLDS))
     #: Only consulted when an ``official_roster`` is passed (opening-week roster source; see
     #: ``nba.props.rosters``). ``rookie_prior``: no-history players get the draft-slot minutes
@@ -197,21 +166,8 @@ class ForwardConfig:
     official_max_roster: int | None = None
 
 
-def route_model(stat: str, bucket: str, cfg: ForwardConfig) -> str:
-    """Current routing rule: sim for cold-start/intermittent/erratic on sim stats."""
-    if stat in cfg.sim_stats and bucket in cfg.sim_buckets:
-        return MODEL_SIM
-    return MODEL_SEASON_AVG
-
-
 def _season_for(d: date) -> int:
     return d.year if d.month >= 8 else d.year - 1
-
-
-def game_seed(seed: int, game_id: str) -> int:
-    """Deterministic per-game seed independent of slate ordering."""
-    key = int(game_id) if game_id.isdigit() else zlib.crc32(game_id.encode())
-    return (seed * 1_000_003 + key) % (2**32)
 
 
 # --------------------------------------------------------------------------- scratch
@@ -401,19 +357,16 @@ def predict_slate(
     games: pl.DataFrame,
     out_players: set[int] | None = None,
     *,
-    n_sims: int = DEFAULT_N_SIMS,
-    seed: int = 0,
     config: ForwardConfig | None = None,
     official_roster: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
-    """Routed pts/reb/ast/fg3m distributions for every projected player on a slate.
+    """Recency pts/reb/ast/fg3m distributions for every projected player on a slate.
 
     ``games`` needs columns ``game_id``, ``home_team``, ``away_team`` (extra
     columns ignored). Only rows with ``game_date < as_of`` are read from
-    ``con`` (read-only use). ``out_players`` are excluded before projection, so
-    the sim redistributes their share across teammates. Returns one row per
-    (player, stat) with ``OUTPUT_COLUMNS``; empty (with those columns) when
-    nothing can be projected. Deterministic for a given ``seed``/``n_sims``.
+    ``con`` (read-only use). ``out_players`` are excluded before projection. Returns
+    one row per (player, stat) with ``OUTPUT_COLUMNS``; empty (with those columns)
+    when nothing can be projected. Deterministic.
 
     ``official_roster`` (``team_id``, ``player_id``; default None = the recent-games roster
     only, the production behavior) switches on the pre-tip roster source: the forward roster
@@ -432,7 +385,6 @@ def predict_slate(
                 raise ValueError(f"team {t} appears twice on the slate")
             team_game[t] = str(r["game_id"])
     exclude = set(out_players or ())
-    use_sim = bool(cfg.sim_stats)
 
     sc = _build_history_scratch(con, as_of)
     try:
@@ -459,7 +411,6 @@ def predict_slate(
         minutes_feats = build_minutes_features(sc, use_game_context=False).filter(
             pl.col("game_id").is_in(slate_ids)
         )
-        empty_df = pl.DataFrame()
         cold_bins: dict[str, list[BinPrior]] = {}
         k_mult: np.ndarray | None = None
         rookie_mu: tuple[np.ndarray, np.ndarray] | None = None
@@ -471,18 +422,6 @@ def predict_slate(
             if cfg.rookie_prior:
                 static_raw = sc.execute("SELECT * FROM players_static").pl()
                 rookie_mu = rookie_minutes_mu(sc, minutes_feats, season_i, static_raw)
-        if cfg.rates_played_only and use_sim:
-            sc.register("_slate", pl.DataFrame({"game_id": slate_ids}))
-            sc.execute(
-                "DELETE FROM player_game_stats WHERE (minutes IS NULL OR minutes = 0) "
-                "AND game_id NOT IN (SELECT game_id FROM _slate)"
-            )
-            sc.unregister("_slate")
-        team_rates, shot_rates, reb_ast = empty_df, empty_df, empty_df
-        if use_sim:
-            team_rates = build_team_possession_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
-            shot_rates = build_player_shot_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
-            reb_ast = build_player_reb_ast_rates(sc).filter(pl.col("game_id").is_in(slate_ids))
     finally:
         sc.close()
 
@@ -539,45 +478,11 @@ def predict_slate(
     rows: list[dict[str, object]] = []
     for grow in games.iter_rows(named=True):
         gid, home, away = str(grow["game_id"]), int(grow["home_team"]), int(grow["away_team"])
-        g_rates = team_rates.filter(pl.col("game_id") == gid) if use_sim else empty_df
-        h = g_rates.filter(pl.col("is_home")) if use_sim else empty_df
-        a = g_rates.filter(~pl.col("is_home")) if use_sim else empty_df
         gm = mins.filter(pl.col("game_id") == gid)
         home_ids = gm.filter(pl.col("team_id") == home)["player_id"].to_list()
         away_ids = gm.filter(pl.col("team_id") == away)["player_id"].to_list()
-        if use_sim and (h.height == 0 or a.height == 0 or not home_ids or not away_ids):
-            continue
         if not (home_ids or away_ids):
             continue
-        g_shot = shot_rates.filter(pl.col("game_id") == gid) if use_sim else empty_df
-        g_ra = reb_ast.filter(pl.col("game_id") == gid) if use_sim else empty_df
-
-        def _afr(team_id: int, _ra: pl.DataFrame = g_ra) -> float:
-            t = _ra.filter(pl.col("team_id") == team_id)
-            return float(t[0, "assisted_fg_rate_prior"]) if t.height else DEFAULT_ASSISTED_FG_RATE
-
-        sim_by_stat: dict[str, dict[int, Distribution]] = {}
-        if use_sim:
-            sim = simulate_game_with_players(
-                profiles_from_features(g_shot, proj, home_ids, reb_ast_rates=g_ra),
-                profiles_from_features(g_shot, proj, away_ids, reb_ast_rates=g_ra),
-                home_off_rtg=float(h[0, "off_rtg_prior"]),
-                home_def_rtg=float(h[0, "def_rtg_prior"]),
-                home_pace=float(h[0, "pace_prior"]),
-                away_off_rtg=float(a[0, "off_rtg_prior"]),
-                away_def_rtg=float(a[0, "def_rtg_prior"]),
-                away_pace=float(a[0, "pace_prior"]),
-                league_avg_ppp=float(h[0, "league_avg_ppp_asof"]),
-                n_sims=n_sims,
-                seed=game_seed(seed, gid),
-                home_assisted_fg_rate=_afr(home),
-                away_assisted_fg_rate=_afr(away),
-            )
-            sim_by_stat = {
-                "pts": {**sim.home_player_points, **sim.away_player_points},
-                "reb": {**sim.home_player_rebounds, **sim.away_player_rebounds},
-                "ast": {**sim.home_player_assists, **sim.away_player_assists},
-            }
         for side_home, ids in ((True, home_ids), (False, away_ids)):
             team_id = home if side_home else away
             for pid in ids:
@@ -592,12 +497,7 @@ def predict_slate(
                     if len(pvals) == 0:  # no NBA history: league stat level at his minutes
                         cold = cold_stat_dist(cold_bins, stat, proj[pid])
                         savg = cold if cold is not None else savg
-                    sim_d = sim_by_stat.get(stat, {}).get(pid)
-                    model = route_model(stat, bucket, cfg)
-                    if model == MODEL_SIM and sim_d is None:
-                        model = MODEL_SEASON_AVG
-                    chosen = sim_d if model == MODEL_SIM and sim_d is not None else savg
-                    row = _row_from_dist(chosen, cfg.thresholds[stat], stat)
+                    row = _row_from_dist(savg, cfg.thresholds[stat], stat)
                     pp = pplay[pid]
                     pj = json.loads(str(row["p_ge"]))
                     row["mean_uncond"] = pp * float(row["mean"])  # type: ignore[arg-type]
@@ -610,9 +510,9 @@ def predict_slate(
                         player_id=pid,
                         is_home=side_home,
                         stat=stat,
-                        model=model,
+                        model=MODEL_SEASON_AVG,
                         bucket=bucket,
-                        mean_sim=sim_d.mean() if sim_d is not None else None,
+                        mean_sim=None,
                         mean_season_avg=savg.mean(),
                         n_games_prior=n_prior,
                         proj_minutes=proj[pid],
@@ -839,7 +739,7 @@ def predict_slate_context(
     exclude = set(out_players or ())
     for s in report_out.values():
         exclude |= s
-    rec_cfg = ForwardConfig(sim_stats=()) if config is None else config
+    rec_cfg = ForwardConfig() if config is None else config
     recency = predict_slate(
         con, as_of, games, exclude, config=rec_cfg, official_roster=official_roster
     )

@@ -6,7 +6,8 @@ from __future__ import annotations
 import duckdb
 import pytest
 
-from nba.coldstart.sb_classification import (
+from nba.db.connect import connect
+from nba.features.sb_classification import (
     ADI_CUTOFF,
     CV2_CUTOFF,
     INSUFFICIENT_HISTORY_BUCKET,
@@ -15,7 +16,6 @@ from nba.coldstart.sb_classification import (
     compute_adi_cv2,
     summarize_sb_classes,
 )
-from nba.db.connect import connect
 
 
 @pytest.fixture

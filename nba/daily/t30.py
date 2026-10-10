@@ -250,7 +250,7 @@ def t30_prop_predictions(
     for gl in lineups.values():
         exclude |= gl.inactive  # listed inactive at T-30: certainly not playing
     recency = predict_slate(
-        con, slate, frame, exclude, config=ForwardConfig(sim_stats=()),
+        con, slate, frame, exclude, config=ForwardConfig(),
         official_roster=official_roster,
     )  # fmt: skip
     if recency.is_empty():

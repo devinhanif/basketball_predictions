@@ -1,4 +1,4 @@
-"""Forward routed prop predictions: shape, routing, determinism, no leakage."""
+"""Forward recency prop predictions: shape, determinism, no leakage."""
 
 from __future__ import annotations
 
@@ -9,15 +9,7 @@ import duckdb
 import polars as pl
 import pytest
 
-from nba.props.forward import (
-    MODEL_SEASON_AVG,
-    MODEL_SIM,
-    OUTPUT_COLUMNS,
-    ForwardConfig,
-    game_seed,
-    predict_slate,
-    route_model,
-)
+from nba.props.forward import MODEL_SEASON_AVG, OUTPUT_COLUMNS, predict_slate
 from tests.daily.conftest import RUN_DATE, STAT_COLS, T1, T2, T3, T4, add_history
 from tests.fixtures.loader import build_fixture_db
 
@@ -28,9 +20,6 @@ SLATE = pl.DataFrame(
         "away_team": [T2, T4],
     }
 )
-ALL_SIM = ForwardConfig(sim_stats=("reb", "ast"),
-                        sim_buckets=frozenset({"smooth", "lumpy", "erratic", "intermittent",
-                                               "insufficient_history"}))  # fmt: skip
 
 
 @pytest.fixture
@@ -57,28 +46,19 @@ def _plant(con: duckdb.DuckDBPyConnection, game_id: str, d: date, pts: int) -> N
         )
 
 
-def test_route_model_default_is_season_avg_only() -> None:
-    cfg = ForwardConfig()
-    for stat in ("pts", "reb", "ast", "fg3m"):
-        assert route_model(stat, "insufficient_history", cfg) == MODEL_SEASON_AVG
-
-
-def test_route_model_rule() -> None:
-    cfg = ForwardConfig(sim_stats=("reb", "ast"))
-    assert route_model("pts", "intermittent", cfg) == MODEL_SEASON_AVG  # pts not sim-routed
-    assert route_model("reb", "insufficient_history", cfg) == MODEL_SIM
-    assert route_model("ast", "erratic", cfg) == MODEL_SIM
-    assert route_model("pts", "smooth", cfg) == MODEL_SEASON_AVG
-    assert route_model("ast", "lumpy", cfg) == MODEL_SEASON_AVG
-    assert route_model("fg3m", "intermittent", cfg) == MODEL_SEASON_AVG  # no sim head
-
-
 def test_output_contract_and_distribution_sanity(con: duckdb.DuckDBPyConnection) -> None:
-    out = predict_slate(con, RUN_DATE, SLATE, None, n_sims=200, config=ALL_SIM)
+    out = predict_slate(con, RUN_DATE, SLATE, None)
     assert out.columns == OUTPUT_COLUMNS and out.height > 0
     assert set(out["stat"].unique()) == {"pts", "reb", "ast", "fg3m"}
-    assert set(out["model"].unique()) == {MODEL_SIM, MODEL_SEASON_AVG}
-    assert out.filter(pl.col("stat") == "fg3m")["model"].unique().to_list() == [MODEL_SEASON_AVG]
+    assert out["model"].unique().to_list() == [MODEL_SEASON_AVG]
+    assert out["mean_sim"].is_null().all()
+    assert set(out["bucket"].unique()) <= {
+        "smooth",
+        "lumpy",
+        "erratic",
+        "intermittent",
+        "insufficient_history",
+    }
     for r in out.iter_rows(named=True):
         pj = json.loads(r["p_ge"])
         p = [pj[k] for k in sorted(pj, key=int)]
@@ -89,52 +69,39 @@ def test_output_contract_and_distribution_sanity(con: duckdb.DuckDBPyConnection)
     assert 1005 not in out["player_id"].to_list()  # 0-minute bench player in history
 
 
-def test_default_routing_sends_smooth_regulars_to_season_avg(
-    con: duckdb.DuckDBPyConnection,
-) -> None:
-    out = predict_slate(con, RUN_DATE, SLATE, None, n_sims=100)
-    pts = out.filter(pl.col("stat") == "pts")
-    assert set(pts["bucket"].unique()) <= {"smooth", "lumpy", "erratic", "intermittent"}
-    assert (pts.filter(pl.col("bucket") == "smooth")["model"] == MODEL_SEASON_AVG).all()
-
-
 def test_deterministic_and_order_independent(con: duckdb.DuckDBPyConnection) -> None:
-    a = predict_slate(con, RUN_DATE, SLATE, None, n_sims=150, seed=3, config=ALL_SIM)
-    b = predict_slate(con, RUN_DATE, SLATE, None, n_sims=150, seed=3, config=ALL_SIM)
-    c = predict_slate(con, RUN_DATE, SLATE.reverse(), None, n_sims=150, seed=3, config=ALL_SIM)
-    d = predict_slate(con, RUN_DATE, SLATE, None, n_sims=150, seed=4, config=ALL_SIM)
+    a = predict_slate(con, RUN_DATE, SLATE, None)
+    b = predict_slate(con, RUN_DATE, SLATE, None)
+    c = predict_slate(con, RUN_DATE, SLATE.reverse(), None)
     assert a.equals(b) and a.equals(c)
-    assert not a.equals(d)
-    assert game_seed(3, "0022600001") != game_seed(3, "0022600002")
 
 
-def test_out_players_absent_and_share_redistributed(con: duckdb.DuckDBPyConnection) -> None:
-    base = predict_slate(con, RUN_DATE, SLATE, None, n_sims=300, config=ALL_SIM)
-    out = predict_slate(con, RUN_DATE, SLATE, {1000, 3000}, n_sims=300, config=ALL_SIM)
+def test_out_players_absent(con: duckdb.DuckDBPyConnection) -> None:
+    base = predict_slate(con, RUN_DATE, SLATE, None)
+    out = predict_slate(con, RUN_DATE, SLATE, {1000, 3000})
     assert {1000, 3000}.isdisjoint(out["player_id"].to_list())
     assert {1000, 3000} <= set(base["player_id"].to_list())
+    # a teammate's own recency average does not depend on who else is out
     key = (pl.col("player_id") == 1001) & (pl.col("stat") == "pts")
-    m_base = base.filter(key)["mean_sim"][0]
-    m_out = out.filter(key)["mean_sim"][0]
-    assert m_out > m_base  # teammate inherits the absent player's usage
+    assert base.filter(key)["mean_season_avg"][0] == out.filter(key)["mean_season_avg"][0]
 
 
 def test_same_day_and_future_rows_never_change_output(con: duckdb.DuckDBPyConnection) -> None:
-    a = predict_slate(con, RUN_DATE, SLATE, None, n_sims=150, config=ALL_SIM)
+    a = predict_slate(con, RUN_DATE, SLATE, None)
     _plant(con, "0022600777", RUN_DATE, 99)  # same-day (half-ingested) game
     _plant(con, "0022600778", RUN_DATE + timedelta(days=3), 77)  # future
-    b = predict_slate(con, RUN_DATE, SLATE, None, n_sims=150, config=ALL_SIM)
+    b = predict_slate(con, RUN_DATE, SLATE, None)
     assert a.equals(b)
     # sanity: a planted row dated BEFORE as_of does move the output (the test is not vacuous)
     _plant(con, "0022600779", RUN_DATE - timedelta(days=1), 99)
-    c = predict_slate(con, RUN_DATE, SLATE, None, n_sims=150, config=ALL_SIM)
+    c = predict_slate(con, RUN_DATE, SLATE, None)
     assert not a.equals(c)
 
 
 def test_does_not_write_to_source_connection(con: duckdb.DuckDBPyConnection) -> None:
     tables = ["games", "player_game_stats", "possessions"]
     before = [con.execute(f"SELECT count(*) FROM {t}").fetchone() for t in tables]
-    predict_slate(con, RUN_DATE, SLATE, None, n_sims=50)
+    predict_slate(con, RUN_DATE, SLATE, None)
     assert before == [con.execute(f"SELECT count(*) FROM {t}").fetchone() for t in tables]
 
 
@@ -144,7 +111,7 @@ def test_empty_and_invalid_inputs(con: duckdb.DuckDBPyConnection) -> None:
     with pytest.raises(ValueError, match="twice"):
         predict_slate(con, RUN_DATE, dup, None)
     # a date before any history projects nobody
-    assert predict_slate(con, date(2020, 1, 1), SLATE, None, n_sims=50).height == 0
+    assert predict_slate(con, date(2020, 1, 1), SLATE, None).height == 0
 
 
 def test_stat_mean_is_conditional_on_playing_and_uncond_scaled_by_p_play(
@@ -178,7 +145,7 @@ def test_stat_mean_is_conditional_on_playing_and_uncond_scaled_by_p_play(
             con.execute(
                 f"INSERT INTO player_game_stats ({cols}) VALUES ({ph})", [v[c] for c in STAT_COLS]
             )
-    out = predict_slate(con, RUN_DATE, SLATE, None, n_sims=50)
+    out = predict_slate(con, RUN_DATE, SLATE, None)
     r = out.filter((pl.col("player_id") == pid) & (pl.col("stat") == "pts"))
     assert r.height == 1
     row = r.row(0, named=True)

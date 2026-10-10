@@ -117,7 +117,6 @@ def run_arm(
 ) -> pl.DataFrame:
     spec = ARMS[arm]
     cfg = ForwardConfig(
-        sim_stats=(),
         new_team_shrinkage=spec.get("new_team_shrinkage", False),
         rookie_prior=spec.get("rookie_prior", True),
         drop_unlisted_recent=spec.get("drop_unlisted_recent", False),
