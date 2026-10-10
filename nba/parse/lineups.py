@@ -13,67 +13,49 @@ and turns that into:
     covering that instant for the offense and defense team.
 
 CLAUDE.md flags the parser family as the highest-risk component
-("validate hard"); this module is additionally time-boxed per the task
-that commissioned it. See "Period-boundary heuristic" below for the one
-genuinely hard sub-problem and its documented failure modes.
+("validate hard"). "Exactly five on the floor" is true by construction and
+says nothing about *identity*; the validation that matters is stint minutes
+vs. box minutes (``minutes_within_share``) and the per-period opening-five
+invariant below.
 
-## Period-boundary heuristic
+## Design (v2, 2026-10-09; see docs/reviews/stint_reconciliation_2026-10-09.md)
 
-The on-court five at the start of Q2/Q3/Q4/OT is **not** necessarily the
-starters, and real play-by-play frequently has **no substitution event
-at all** marking the reset (checked against real game 0022200001: Tatum
-is subbed out mid-Q1 and is back on the floor shooting the first shot of
-Q3, with zero ``Substitution`` rows between). The heuristic:
+v1 carried the previous period's closing five into the next period and
+"corrected" it by evicting the first unconfirmed player whenever someone
+unseen acted. That guess was wrong for ~80% of Q2/Q3/Q4 team-periods and
+credited the wrong player for the first 1.5-2 minutes. v2:
 
-1. Carry over the five players who closed the previous period as the
-   *default* hypothesis for the new period's opening five.
-2. Track a per-team, per-period "confirmed" set: a player is confirmed
-   the moment they appear in a real action (shot/rebound/foul/turnover/
-   free throw/violation/jump ball) or as the explicit "in" side of a
-   ``Substitution``.
-3. Whenever a player acts for their team and is **not** currently in the
-   tracked on-court five, treat that as a correction: evict one
-   unconfirmed player (first one in insertion order -- i.e. prefer
-   evicting a player from the stale carried-over guess who hasn't done
-   anything yet this period) and add the player who just acted. This
-   closes the current stint and opens a new one at that instant.
-4. Substitutions mid-period are applied directly (remove the named
-   "out" player, add the named "in" player); if removing "out" leaves
-   the five short the "in" player still joins first and a size-6
-   overflow is resolved with the same unconfirmed-eviction rule, so the
-   invariant "exactly 5 players at all times" never breaks.
+1. **Period openers by look-ahead.** Q1 is seeded from the box-score
+   starters. For every later period the opening five is the first five
+   players whose *first appearance in that period* is an action (shot,
+   rebound, turnover, foul, free throw, violation, jump ball) or the *out*
+   side of a substitution, i.e. before they were subbed in. Technical /
+   delay fouls and technical free throws are ignored as evidence (a bench
+   player can draw them). If fewer than five are found, the remainder is
+   filled from the previous closing five (skipping players already seen) and
+   the team-period is flagged ``open_filled`` in the ``LineupReport``.
+2. **No eviction heuristic.** Mid-period the five changes only through
+   substitutions. An actor who is not on the tracked floor is counted
+   (``actor_off_court``) and surfaced in the report, never "fixed" silently.
+3. **Substitution name resolution.** Sub text is ``SUB: <in> FOR <out>``; the
+   event's ``player_id`` is the *out* player (exact). The *in* name is last
+   name only, or ``"A. Holiday"`` / ``"Jal. Green"`` when two teammates share
+   a surname. Resolution ladder (``_NameBook.resolve``): (a) initial+surname
+   learned game-wide from the out side of other subs (whose id is exact);
+   (b) unique surname among the team's PBP-named players; (c) among several,
+   the one not currently on the floor; (d) roster elimination: box-score
+   players who never appear by name in the PBP (they never act) are the pool
+   for names that match nobody, narrowed by who is not on court. Anything
+   still ambiguous is skipped and recorded in ``LineupReport.unresolved``
+   (fail loud in the report, never silent).
 
-### Known failure modes (documented, not fixed -- time-boxed)
-- **Ambiguous/unresolved sub names.** The "in" player of a
-  ``Substitution`` row is parsed from free text (``"SUB: X FOR Y"``) and
-  resolved to a player_id via a per-game (team, last_name) lookup built
-  from other rows in the same game. The free-text name and the
-  canonical ``player_name`` for the same player are not always
-  byte-identical -- checked against real data: diacritics are dropped
-  inconsistently (``"Doncic"`` in sub text vs. ``"Dončić"`` in
-  ``player_name``) and name suffixes are sometimes dropped
-  (``"Bullock"`` vs. ``"Bullock Jr."``). Resolution therefore tries an
-  exact match first, then a normalized match (NFKD-fold diacritics,
-  strip a trailing ``Jr./Sr./II/III/IV`` suffix, lowercase). If *that*
-  still doesn't resolve (a genuine typo, or two players on the same
-  team sharing a last name even after normalization) the substitution
-  is skipped entirely (left as a no-op) rather than corrupting the five
-  -- the lineup then self-corrects on the next confirming action for
-  the real player, so the error window is at most a handful of events.
-- **Simultaneous unconfirmed errors.** If the previous period ended with
-  the tracker's guess already wrong in *two* slots, the first
-  action-based correction fixes one slot; the second wrong slot is only
-  fixed once that specific player also acts. Until then, one wrong
-  player is attributed to on-court possessions in that window. This is
-  the main source of imperfect 5-5 possessions reported in the
-  validation summary.
-- **Team-level events carry no lineup signal.** Team rebounds/turnovers
-  (``team_id == 0``, see ``nba/parse/possessions.py``) and the
-  unresolved side of a ``Jump Ball`` (only one team's jumper is a
-  distinct row) give no information and are skipped.
-- **Garbage-time/ejection edge cases** (a team briefly playing with a
-  reconstructed five after a disqualification) are not specially
-  handled; they fall under the general correction rule above.
+### Remaining known failure modes
+- Both same-surname teammates off the floor with no initial evidence.
+- Sub whose *out* player is not on the tracked floor (desync from an earlier
+  unresolved sub): skipped and logged in ``LineupReport.desync``.
+- Team-level events (``team_id == 0``) and the unresolved side of a jump
+  ball carry no lineup signal.
+- Ejection / disqualification edge cases get no special handling.
 """
 
 from __future__ import annotations
@@ -87,11 +69,8 @@ import polars as pl
 
 STINTS_COLUMNS = ["game_id", "team_id", "period", "start_clock", "end_clock", "players"]
 
-#: action_type values whose player_id, when team_id != 0, confirms that
-#: player is on the court right now. Matches the set of non-skipped
-#: action types in nba/parse/possessions.py plus Foul/Violation/Jump Ball,
-#: which possessions.py ignores but which still carry useful on-court
-#: signal for lineup tracking.
+#: action_type values whose player_id, when team_id != 0, shows that
+#: player is on the court right now.
 _CONFIRM_ACTION_TYPES = {
     "Made Shot",
     "Missed Shot",
@@ -105,6 +84,8 @@ _CONFIRM_ACTION_TYPES = {
 
 _CLOCK_RE = re.compile(r"PT(\d+)M([\d.]+)S")
 _SUB_RE = re.compile(r"^SUB:\s*(.+?)\s+FOR\s+(.+)$")
+#: ``"A. Holiday"`` / ``"Jal. Green"``: 1-3 letter prefix (capital first) then a dot.
+_INITIAL_RE = re.compile(r"^([A-Z][A-Za-z]{0,2})\.\s+(.+)$")
 
 
 def _clock_to_seconds(clock: str) -> float:
@@ -125,8 +106,8 @@ _NAME_SUFFIXES = (" Jr.", " Jr", " Sr.", " Sr", " II", " III", " IV")
 def _normalize_name(name: str) -> str:
     """Fold diacritics and strip a trailing suffix for fuzzy name matching.
 
-    See module docstring "Known failure modes" -- substitution free text
-    doesn't always match ``player_name`` byte-for-byte.
+    Substitution free text doesn't always match ``player_name`` byte-for-byte
+    (diacritics dropped, ``Jr.`` dropped).
     """
     folded = unicodedata.normalize("NFKD", name)
     folded = "".join(c for c in folded if not unicodedata.combining(c))
@@ -137,210 +118,299 @@ def _normalize_name(name: str) -> str:
     return folded.strip().lower()
 
 
-def _build_name_lookup(
-    pbp: pl.DataFrame,
-) -> tuple[dict[tuple[int, str], int | None], dict[tuple[int, str], int | None]]:
-    """Build (team_id, name) -> player_id lookups, exact and normalized.
-
-    Returns ``(exact, normalized)``; each maps to ``None`` if ambiguous
-    within a team (two players collide on that key). Deliberately
-    duplicated from ``nba/parse/possessions.py`` (same heuristic, used
-    there for assist-name resolution) to keep the two parser modules
-    independently readable rather than sharing a private helper across
-    module boundaries.
-    """
-    pairs = (
-        pbp.filter((pl.col("player_id") != 0) & (pl.col("player_name") != ""))
-        .select(["team_id", "player_name", "player_id"])
-        .unique()
-    )
-    exact: dict[tuple[int, str], int | None] = {}
-    normalized: dict[tuple[int, str], int | None] = {}
-    for team_id, name, player_id in pairs.iter_rows():
-        key = (team_id, name)
-        exact[key] = None if key in exact else player_id
-        norm_key = (team_id, _normalize_name(name))
-        normalized[norm_key] = None if norm_key in normalized else player_id
-    return exact, normalized
+def _fold(name: str) -> str:
+    """Diacritic-folded lowercase name, suffix kept (``"jackson jr."`` stays distinct)."""
+    folded = unicodedata.normalize("NFKD", name)
+    return "".join(c for c in folded if not unicodedata.combining(c)).strip().lower()
 
 
-def _resolve_name(
-    team_id: int,
-    name: str,
-    exact: dict[tuple[int, str], int | None],
-    normalized: dict[tuple[int, str], int | None],
-) -> int | None:
-    resolved = exact.get((team_id, name))
-    if resolved is not None:
-        return resolved
-    return normalized.get((team_id, _normalize_name(name)))
-
-
-def _evict_one(players: list[int], confirmed: set[int], protect: int | None = None) -> int:
-    """Pick a player to evict when the on-court five must shrink by one.
-
-    Prefers a player who hasn't been confirmed active yet this period
-    (i.e. likely the stale half of a wrong carry-over guess), in
-    insertion order for determinism. Falls back to the first non-
-    protected player if everyone is already confirmed.
-    """
-    candidates = [p for p in players if p not in confirmed and p != protect]
-    if not candidates:
-        candidates = [p for p in players if p != protect]
-    return candidates[0]
+def _split_initial(name: str) -> tuple[str | None, str]:
+    """``"A. Holiday"`` -> ``("a", "holiday")``; ``"Holiday"`` -> ``(None, "holiday")``."""
+    m = _INITIAL_RE.match(name.strip())
+    if m:
+        return m.group(1).lower(), _normalize_name(m.group(2))
+    return None, _normalize_name(name)
 
 
 @dataclass
-class _TeamState:
-    players: list[int]
-    confirmed: set[int] = field(default_factory=set)
-    stint_start_clock: float = 0.0
-    stint_start_period: int = 1
+class LineupReport:
+    """Everything the tracker could not settle silently, for one game.
 
-
-def track_lineups(pbp: pl.DataFrame, starters_by_team: dict[int, list[int]]) -> pl.DataFrame:
-    """Track each team's on-court five through one game's play-by-play.
-
-    ``pbp`` is a single game's V3-schema frame (see
-    ``nba/ingest/pbp.py``). ``starters_by_team`` maps team_id -> list of
-    5 player_ids (``player_game_stats.starter`` in the real pipeline; a
-    synthetic roster in tests). Returns a ``stints`` frame matching
-    ``STINTS_COLUMNS`` -- one row per contiguous (period, clock) span
-    where a team's five is unchanged. See the module docstring for the
-    period-boundary heuristic.
+    ``unresolved``: substitutions whose *in* name could not be tied to one
+    player (skipped). ``desync``: substitutions skipped because the tracked
+    floor contradicted them. ``open_filled``: (team, period) look-aheads that
+    found fewer than five openers. ``q1_mismatch``: teams whose Q1 look-ahead
+    openers differ from the box starters. ``actor_off_court``: count of
+    in-game actions by a player the tracker believes is on the bench.
+    ``openings``: (team, period) -> opening five used.
     """
-    if pbp.is_empty():
-        return pl.DataFrame(
-            schema={
-                "game_id": pl.Utf8,
-                "team_id": pl.Int64,
-                "period": pl.Int64,
-                "start_clock": pl.Float64,
-                "end_clock": pl.Float64,
-                "players": pl.List(pl.Int64),
-            }
+
+    game_id: str = ""
+    unresolved: list[dict[str, Any]] = field(default_factory=list)
+    desync: list[dict[str, Any]] = field(default_factory=list)
+    open_filled: list[tuple[int, int]] = field(default_factory=list)
+    q1_mismatch: list[int] = field(default_factory=list)
+    actor_off_court: int = 0
+    openings: dict[tuple[int, int], list[int]] = field(default_factory=dict)
+
+    @property
+    def clean(self) -> bool:
+        return not (self.unresolved or self.desync or self.open_filled or self.q1_mismatch)
+
+
+class _NameBook:
+    """Per-game name -> player_id resolver for substitution text (see module docstring)."""
+
+    def __init__(self, pbp: pl.DataFrame, roster_by_team: dict[int, list[int]] | None) -> None:
+        self.by_surname: dict[int, dict[str, set[int]]] = {}
+        self.by_full: dict[int, dict[str, set[int]]] = {}
+        self.named: dict[int, set[int]] = {}
+        self.initial_ids: dict[tuple[int, str, str], int] = {}
+        self.initial_of: dict[tuple[int, int], str] = {}
+        self.unnamed_assign: dict[tuple[int, str], int] = {}
+        named_rows = (
+            pbp.filter((pl.col("player_id") != 0) & (pl.col("player_name") != ""))
+            .select(["team_id", "player_name", "player_id"])
+            .unique()
         )
+        for team_id, name, pid in named_rows.iter_rows():
+            sur = _normalize_name(name)
+            self.by_surname.setdefault(team_id, {}).setdefault(sur, set()).add(pid)
+            self.by_full.setdefault(team_id, {}).setdefault(_fold(name), set()).add(pid)
+            self.named.setdefault(team_id, set()).add(pid)
+        # Initial+surname -> id from the exact (player_id) out side of subs.
+        for team_id, pid, desc in (
+            pbp.filter(pl.col("action_type") == "Substitution")
+            .select(["team_id", "player_id", "description"])
+            .iter_rows()
+        ):
+            m = _SUB_RE.match((desc or "").strip())
+            if not m or not pid:
+                continue
+            initial, sur = _split_initial(m.group(2))
+            if initial is not None:
+                self.initial_ids[(team_id, initial, sur)] = pid
+                self.initial_of[(team_id, pid)] = initial
+        self.unnamed: dict[int, set[int]] = {
+            t: {p for p in ids if p not in self.named.get(t, set())}
+            for t, ids in (roster_by_team or {}).items()
+        }
+
+    def resolve(self, team: int, name: str, on_court: set[int]) -> int | None:
+        initial, sur = _split_initial(name)
+        if initial is not None:
+            hit = self.initial_ids.get((team, initial, sur))
+            if hit is not None:
+                return hit
+        cands = set(self.by_surname.get(team, {}).get(sur, set()))
+        if initial is not None:
+            cands = {c for c in cands if self.initial_of.get((team, c), initial) == initial}
+        if len(cands) > 1:
+            # Same surname after suffix stripping ("Jackson" vs "Jackson Jr."): the
+            # suffix-preserving name narrows it when it hits.
+            rest = _INITIAL_RE.match(name.strip())
+            full = self.by_full.get(team, {}).get(_fold(rest.group(2) if rest else name), set())
+            narrowed = cands & full
+            if narrowed:
+                cands = narrowed
+        if initial is None and len(cands) == 1:
+            return next(iter(cands))
+        off = cands - on_court
+        if len(off) == 1:
+            return next(iter(off))
+        if len(off) > 1:
+            return None
+        # No bench candidate by name: players who never appear by name in the
+        # PBP are the elimination pool.
+        key = (team, f"{initial or ''}.{sur}")
+        if key in self.unnamed_assign:
+            return self.unnamed_assign[key]
+        claimed = {v for (t, _), v in self.unnamed_assign.items() if t == team}
+        pool = self.unnamed.get(team, set()) - on_court - claimed
+        if len(pool) == 1:
+            pid = next(iter(pool))
+            self.unnamed_assign[key] = pid
+            return pid
+        return None
+
+
+def _is_evidence(ev: dict[str, Any]) -> bool:
+    """True if this event shows ``ev['player_id']`` is on the floor right now."""
+    if ev["action_type"] not in _CONFIRM_ACTION_TYPES or not ev["player_id"]:
+        return False
+    sub_type = ev["sub_type"] or ""
+    # Technical / delay / ejection events can be drawn by bench players.
+    return not ("Technical" in sub_type or sub_type == "Delay Of Game")
+
+
+def _look_ahead_openers(
+    events: list[dict[str, Any]], team: int, book: _NameBook
+) -> tuple[list[int], set[int]]:
+    """First five players seen in this period before being subbed in, in order."""
+    openers: list[int] = []
+    seen: set[int] = set()
+    present: set[int] = set()
+    for ev in events:
+        if ev["team_id"] != team:
+            continue
+        if ev["action_type"] == "Substitution":
+            out_id = ev["player_id"]
+            m = _SUB_RE.match((ev["description"] or "").strip())
+            if out_id and out_id not in seen:
+                openers.append(out_id)
+                seen.add(out_id)
+            present.discard(out_id)
+            if m:
+                in_id = book.resolve(team, m.group(1).strip(), present)
+                if in_id is not None:
+                    seen.add(in_id)
+                    present.add(in_id)
+        elif _is_evidence(ev):
+            pid = ev["player_id"]
+            if pid not in seen:
+                openers.append(pid)
+                seen.add(pid)
+            present.add(pid)
+        if len(openers) >= 5:
+            break
+    return openers[:5], seen
+
+
+def _empty_stints() -> pl.DataFrame:
+    return pl.DataFrame(
+        schema={
+            "game_id": pl.Utf8,
+            "team_id": pl.Int64,
+            "period": pl.Int64,
+            "start_clock": pl.Float64,
+            "end_clock": pl.Float64,
+            "players": pl.List(pl.Int64),
+        }
+    )
+
+
+def _stint_row(
+    game_id: str, team: int, period: int, start: float, end: float, players: list[int]
+) -> dict[str, Any]:
+    return {
+        "game_id": game_id,
+        "team_id": team,
+        "period": period,
+        "start_clock": start,
+        "end_clock": end,
+        "players": sorted(players),
+    }
+
+
+def track_lineups_with_report(
+    pbp: pl.DataFrame,
+    starters_by_team: dict[int, list[int]],
+    roster_by_team: dict[int, list[int]] | None = None,
+) -> tuple[pl.DataFrame, LineupReport]:
+    """Track each team's on-court five through one game; also return what was unsure.
+
+    ``pbp`` is a single game's V3-schema frame. ``starters_by_team`` maps
+    team_id -> 5 player_ids (Q1 seed; ``player_game_stats.starter`` in the real
+    pipeline). ``roster_by_team`` (optional) lists box-score players who played,
+    used to resolve substitution names for players who never act in the PBP.
+    Returns ``(stints, report)``; see the module docstring.
+    """
+    report = LineupReport()
+    if pbp.is_empty():
+        return _empty_stints(), report
 
     game_ids = pbp["game_id"].unique().to_list()
     if len(game_ids) != 1:
         raise ValueError(f"track_lineups expects a single game_id, got {game_ids}")
     game_id = game_ids[0]
+    report.game_id = game_id
 
     for team_id, roster in starters_by_team.items():
         if len(set(roster)) != 5:
             raise ValueError(f"starters_by_team[{team_id}] must have exactly 5 unique players")
 
     pbp = pbp.sort(["period", "action_number"])
-    exact_lookup, normalized_lookup = _build_name_lookup(pbp)
+    book = _NameBook(pbp, roster_by_team)
     teams = sorted(starters_by_team.keys())
+    rows = list(pbp.iter_rows(named=True))
+    periods = sorted({r["period"] for r in rows})
 
-    state: dict[int, _TeamState] = {
-        t: _TeamState(
-            players=list(starters_by_team[t]),
-            stint_start_clock=_period_start_clock(1),
-            stint_start_period=1,
-        )
-        for t in teams
-    }
     stint_rows: list[dict[str, Any]] = []
-    cur_period = 1
+    prev_close: dict[int, list[int]] = {t: list(starters_by_team[t]) for t in teams}
 
-    def close_stint(team: int, end_clock: float) -> None:
-        st = state[team]
-        stint_rows.append(
-            {
-                "game_id": game_id,
-                "team_id": team,
-                "period": st.stint_start_period,
-                "start_clock": st.stint_start_clock,
-                "end_clock": end_clock,
-                "players": sorted(st.players),
-            }
-        )
+    for period in periods:
+        events = [r for r in rows if r["period"] == period]
+        players: dict[int, list[int]] = {}
+        start_clock: dict[int, float] = {}
+        for t in teams:
+            openers, seen = _look_ahead_openers(events, t, book)
+            if period == 1:
+                if set(openers) != set(starters_by_team[t]) and len(openers) == 5:
+                    report.q1_mismatch.append(t)
+                five = list(starters_by_team[t])
+            elif len(openers) == 5:
+                five = openers
+            else:
+                five = openers + [p for p in prev_close[t] if p not in seen]
+                five = five[:5]
+                report.open_filled.append((t, period))
+                if len(five) < 5:
+                    five = list(prev_close[t])
+            players[t] = five
+            start_clock[t] = _period_start_clock(period)
+            report.openings[(t, period)] = sorted(five)
 
-    def change_lineup(team: int, new_players: list[int], clock: float, period: int) -> None:
-        close_stint(team, clock)
-        st = state[team]
-        st.players = new_players
-        st.stint_start_clock = clock
-        st.stint_start_period = period
-
-    for ev in pbp.iter_rows(named=True):
-        period = ev["period"]
-        if period != cur_period:
-            for t in teams:
-                close_stint(t, 0.0)
-                st = state[t]
-                st.stint_start_clock = _period_start_clock(period)
-                st.stint_start_period = period
-                st.confirmed = set()
-            cur_period = period
-
-        team_id = ev["team_id"]
-        atype = ev["action_type"]
-        clock_s = _clock_to_seconds(ev["clock"])
-
-        if atype == "Substitution":
-            if team_id not in state:
+        for ev in events:
+            team_id = ev["team_id"]
+            if team_id not in players:
                 continue
-            m = _SUB_RE.match((ev["description"] or "").strip())
-            if not m:
-                continue
-            in_name = m.group(1).strip()
-            in_id = _resolve_name(team_id, in_name, exact_lookup, normalized_lookup)
-            if in_id is None:
-                # Unresolved "in" name -- skip rather than corrupt the
-                # five; see module docstring "Known failure modes".
-                continue
-            out_id = ev["player_id"]
-            st = state[team_id]
-            if in_id in st.players:
-                # `in_id` is already tracked as on-court -- this sub is
-                # inconsistent with our current state (an earlier
-                # unresolved/miscorrected event desynced us). Treat as a
-                # no-op rather than risk introducing a duplicate and
-                # shrinking the five on a later correction; see module
-                # docstring "Known failure modes".
-                st.confirmed.add(in_id)
-                continue
-            players = [p for p in st.players if p != out_id]
-            players.append(in_id)
-            if len(players) > 5:
-                evict = _evict_one([p for p in players if p != in_id], st.confirmed, protect=in_id)
-                players.remove(evict)
-            st.confirmed.add(in_id)
-            if sorted(players) != sorted(st.players):
-                change_lineup(team_id, players, clock_s, period)
-            continue
+            clock_s = _clock_to_seconds(ev["clock"])
+            if ev["action_type"] == "Substitution":
+                m = _SUB_RE.match((ev["description"] or "").strip())
+                if not m:
+                    continue
+                on_court = set(players[team_id])
+                in_id = book.resolve(team_id, m.group(1).strip(), on_court)
+                out_id = ev["player_id"]
+                where = {
+                    "team_id": team_id,
+                    "period": period,
+                    "clock": clock_s,
+                    "in_name": m.group(1).strip(),
+                    "out_id": out_id,
+                }
+                if in_id is None:
+                    report.unresolved.append(where)
+                    continue
+                if in_id in on_court or out_id not in on_court:
+                    report.desync.append({**where, "in_id": in_id})
+                    continue
+                stint_rows.append(
+                    _stint_row(
+                        game_id, team_id, period, start_clock[team_id], clock_s, players[team_id]
+                    )
+                )
+                players[team_id] = [p for p in players[team_id] if p != out_id] + [in_id]
+                start_clock[team_id] = clock_s
+            elif _is_evidence(ev) and ev["player_id"] not in players[team_id]:
+                report.actor_off_court += 1
 
-        if team_id == 0 or team_id not in state or atype not in _CONFIRM_ACTION_TYPES:
-            continue
-        player_id = ev["player_id"]
-        if not player_id:
-            continue
-        st = state[team_id]
-        if player_id not in st.players:
-            evict = _evict_one(st.players, st.confirmed)
-            players = [p for p in st.players if p != evict]
-            players.append(player_id)
-            change_lineup(team_id, players, clock_s, period)
-        state[team_id].confirmed.add(player_id)
-
-    for t in teams:
-        close_stint(t, 0.0)
+        for t in teams:
+            stint_rows.append(_stint_row(game_id, t, period, start_clock[t], 0.0, players[t]))
+            prev_close[t] = list(players[t])
 
     if not stint_rows:
-        return pl.DataFrame(
-            schema={
-                "game_id": pl.Utf8,
-                "team_id": pl.Int64,
-                "period": pl.Int64,
-                "start_clock": pl.Float64,
-                "end_clock": pl.Float64,
-                "players": pl.List(pl.Int64),
-            }
-        )
-    return pl.DataFrame(stint_rows).select(STINTS_COLUMNS)
+        return _empty_stints(), report
+    return pl.DataFrame(stint_rows).select(STINTS_COLUMNS), report
+
+
+def track_lineups(
+    pbp: pl.DataFrame,
+    starters_by_team: dict[int, list[int]],
+    roster_by_team: dict[int, list[int]] | None = None,
+) -> pl.DataFrame:
+    """``track_lineups_with_report`` without the report (stints only)."""
+    return track_lineups_with_report(pbp, starters_by_team, roster_by_team)[0]
 
 
 def _covering_stint(
@@ -473,3 +543,25 @@ def clean_lineup_rate(possessions: pl.DataFrame) -> float:
 
     clean = _is_five(possessions["off_players"]) & _is_five(possessions["def_players"])
     return float(clean.sum()) / possessions.height
+
+
+#: Reconciliation bar for the stint-minutes gate: |stint - box| <= 1.0 minute.
+MINUTES_WITHIN_TOL = 1.0
+#: Target / floor for the share of player-games within ``MINUTES_WITHIN_TOL``.
+MINUTES_SHARE_TARGET = 0.95
+MINUTES_SHARE_FLOOR = 0.91
+
+
+def minutes_within_share(
+    stints: pl.DataFrame, box_minutes: pl.DataFrame, tol: float = MINUTES_WITHIN_TOL
+) -> tuple[float, int]:
+    """Share of player-games (box minutes > 0) whose stint minutes are within ``tol`` of box.
+
+    Returns ``(share, n_player_games)``. This is the identity-sensitive
+    reconciliation metric for the tracker (``clean_lineup_rate`` only checks
+    set size). ``box_minutes`` needs ``game_id``, ``player_id``, ``minutes``.
+    """
+    rec = reconcile_stint_minutes(stints, box_minutes).filter(pl.col("box_minutes") > 0)
+    if rec.is_empty():
+        return float("nan"), 0
+    return float((rec["abs_diff"] <= tol).mean()), rec.height  # type: ignore[arg-type]

@@ -16,9 +16,11 @@ import pytest
 from nba.parse.lineups import (
     attach_lineups_to_possessions,
     clean_lineup_rate,
+    minutes_within_share,
     reconcile_stint_minutes,
     stint_minutes,
     track_lineups,
+    track_lineups_with_report,
 )
 from nba.parse.possessions import parse_possessions
 from tests.fixtures.loader import load_pbp
@@ -118,43 +120,138 @@ def test_unresolved_sub_name_is_a_noop() -> None:
     assert sorted(home["players"].to_list()[0]) == sorted(HOME_STARTERS)
 
 
-def test_period_boundary_carries_over_then_corrects_from_action() -> None:
-    """Player 1 is subbed out mid-Q1 for player 99 (a bench player we
-    name so the sub resolves); with no explicit sub event marking the
-    reset, player 1 reappears acting at the start of Q2. The carried-
-    over five (minus 99, which never acts) must be corrected to include
-    1 again."""
+def _act(b: PbpBuilder, period: int, clock: str, team: int, player: int, name: str) -> None:
+    _named(b, period, clock, team, player, name)
+
+
+def test_q2_opening_five_differs_from_q1_closing_five() -> None:
+    """Player 1 is subbed out late in Q1 for 99 (closing five has 99, not 1); Q2 opens
+    with no sub event and 1 back on the floor. Look-ahead must open Q2 with the real
+    five from the first instant: one Q2 stint, no stale carry-over stint."""
     b = PbpBuilder()
-    _named(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
-    _sub(b, 1, "PT09M00.00S", HOME, 1, "Starter1", "Bench99")
-    # Bench99's first confirming action comes after the sub (realistic:
-    # a bench player can't act before being subbed in); the name-lookup
-    # used to resolve the sub itself is still built from the whole game.
-    _named(b, 1, "PT08M30.00S", HOME, 99, "Bench99")
-    # Q2 opens with no sub event, but Starter1 (not 99) is back on the floor.
-    b.add(
-        2,
-        "PT11M30.00S",
-        HOME,
-        1,
-        "Made Shot",
-        sub_type="Jump Shot",
-        description="Starter1 Jump Shot (2 PTS)",
-        player_name="Starter1",
-        shot_value=2,
-        shot_distance=15,
-        is_field_goal=1,
-    )
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT01M00.00S", HOME, 1, "Starter1", "Bench99")
+    _act(b, 1, "PT00M30.00S", HOME, 99, "Bench99")
+    for i, pid in enumerate([1, 2, 3, 4, 5]):
+        _act(b, 2, f"PT11M{50 - i}.00S", HOME, pid, f"Starter{pid}")
     stints = track_lineups(b.df(), STARTERS)
-    q2_home = stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 2)).sort(
+    q1 = stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 1))
+    closing = q1.sort("start_clock", descending=True)["players"].to_list()[-1]
+    assert 99 in closing
+    q2 = stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 2))
+    assert q2.height == 1
+    assert sorted(q2["players"].to_list()[0]) == [1, 2, 3, 4, 5]
+    assert q2["start_clock"].to_list() == [720.0] and q2["end_clock"].to_list() == [0.0]
+
+
+def test_q2_opener_who_is_subbed_out_before_acting_counts_as_opener() -> None:
+    """A starter whose first Q2 event is being subbed OUT was on the floor at the tip."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _act(b, 1, "PT10M30.00S", HOME, 50, "BenchX")  # name for later resolution
+    _sub(b, 2, "PT11M40.00S", HOME, 1, "Starter1", "BenchX")
+    for i, pid in enumerate([2, 3, 4, 5]):
+        _act(b, 2, f"PT11M{30 - i}.00S", HOME, pid, f"Starter{pid}")
+    stints = track_lineups(b.df(), STARTERS)
+    q2 = stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 2)).sort(
         "start_clock", descending=True
     )
-    # First Q2 stint is the (wrong) carry-over; it gets corrected at
-    # Starter1's first action, producing a second stint containing 1.
-    assert q2_home.height == 2
-    corrected = q2_home["players"].to_list()[1]
-    assert 1 in corrected
-    assert len(corrected) == 5
+    assert sorted(q2["players"].to_list()[0]) == [1, 2, 3, 4, 5]
+    assert sorted(q2["players"].to_list()[1]) == [2, 3, 4, 5, 50]
+
+
+def test_technical_foul_by_bench_player_is_not_an_opener() -> None:
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    b.add(
+        2,
+        "PT11M59.00S",
+        HOME,
+        99,
+        "Foul",
+        sub_type="Technical",
+        description="Bench99 T.FOUL",
+        player_name="Bench99",
+    )
+    for i, pid in enumerate([1, 2, 3, 4, 5]):
+        _act(b, 2, f"PT11M{50 - i}.00S", HOME, pid, f"Starter{pid}")
+    stints = track_lineups(b.df(), STARTERS)
+    q2 = stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 2))
+    assert sorted(q2["players"].to_list()[0]) == [1, 2, 3, 4, 5]
+
+
+def test_same_surname_substitution_resolved_by_initial_and_elimination() -> None:
+    """J. Holiday (60) and A. Holiday (61) are teammates; both appear as 'Holiday' in
+    player_name. J. Holiday later subs out (exact id), which teaches J.->60; the
+    never-subbed-out A. Holiday then resolves to 61 by elimination."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT09M00.00S", HOME, 1, "Starter1", "J. Holiday")
+    _act(b, 1, "PT08M50.00S", HOME, 60, "Holiday")
+    _sub(b, 1, "PT07M00.00S", HOME, 2, "Starter2", "A. Holiday")
+    _act(b, 1, "PT06M50.00S", HOME, 61, "Holiday")
+    # J. Holiday leaves again; the out side of the text carries the initial.
+    b.add(
+        1,
+        "PT05M00.00S",
+        HOME,
+        60,
+        "Substitution",
+        description="SUB: Starter1 FOR J. Holiday",
+        player_name="Holiday",
+    )
+    stints = track_lineups(b.df(), STARTERS)
+    home = stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 1)).sort(
+        "start_clock", descending=True
+    )
+    fives = [sorted(x) for x in home["players"].to_list()]
+    assert fives[1] == [2, 3, 4, 5, 60]
+    assert fives[2] == [3, 4, 5, 60, 61]
+    assert fives[3] == [1, 3, 4, 5, 61]
+
+
+def test_never_acting_player_resolved_from_box_roster() -> None:
+    """'Ghost' enters and never has any event of his own. With the box roster as the
+    elimination pool he is identified; without it the sub is logged, not silently lost."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT08M00.00S", HOME, 1, "Starter1", "Ghost")
+    _act(b, 1, "PT07M00.00S", HOME, 2, "Starter2")
+    roster = {HOME: [1, 2, 3, 4, 5, 77], AWAY: [11, 12, 13, 14, 15]}
+    stints, rep = track_lineups_with_report(b.df(), STARTERS, roster)
+    home = stints.filter(pl.col("team_id") == HOME).sort("start_clock", descending=True)
+    assert sorted(home["players"].to_list()[1]) == [2, 3, 4, 5, 77]
+    assert not rep.unresolved
+
+    _, rep2 = track_lineups_with_report(b.df(), STARTERS)
+    assert len(rep2.unresolved) == 1 and rep2.unresolved[0]["in_name"] == "Ghost"
+    assert not rep2.clean
+
+
+def test_report_flags_q1_box_mismatch_and_filled_openers() -> None:
+    b = PbpBuilder()
+    for i, pid in enumerate([1, 2, 3, 4, 9]):  # look-ahead sees 9, box says 5
+        _act(b, 1, f"PT11M{50 - i}.00S", HOME, pid, f"P{pid}")
+    _act(b, 2, "PT11M50.00S", HOME, 1, "P1")  # only one Q2 opener evidenced
+    _, rep = track_lineups_with_report(b.df(), STARTERS)
+    assert HOME in rep.q1_mismatch
+    assert (HOME, 2) in rep.open_filled
+    assert len(rep.openings[(HOME, 2)]) == 5
+
+
+def test_minutes_within_share_counts_player_games() -> None:
+    b = PbpBuilder()
+    _shot(b, 1, "PT11M00.00S", HOME, 1)
+    stints = track_lineups(b.df(), STARTERS)
+    box = pl.DataFrame(
+        {
+            "game_id": [b.game_id] * 3,
+            "player_id": [1, 2, 3],
+            "minutes": [12.0, 11.5, 9.0],  # exact, within 1.0, off by 3
+        }
+    )
+    share, n = minutes_within_share(stints, box)
+    assert n == 3 and share == pytest.approx(2 / 3)
 
 
 def test_stints_always_have_exactly_five_players() -> None:

@@ -29,8 +29,10 @@ import polars as pl
 
 from nba.ingest.cache import DEFAULT_DATA_DIR, cache_path_for, open_db
 from nba.parse.lineups import (
+    MINUTES_WITHIN_TOL,
     attach_lineups_to_possessions,
-    track_lineups,
+    reconcile_stint_minutes,
+    track_lineups_with_report,
 )
 from nba.parse.loader import load_possession_lineups, load_possessions, load_stints
 from nba.parse.possessions import parse_possessions
@@ -60,6 +62,12 @@ class ParseSummary:
     mean_signed_poss_error: float = float("nan")
     points_exact_rate: float = float("nan")
     clean_lineup_rate: float = float("nan")
+    lineup_unresolved_subs: int = 0  # sub names the tracker could not tie to one player
+    lineup_desync_subs: int = 0  # subs contradicted by the tracked floor (skipped)
+    lineup_open_filled: int = 0  # team-periods whose look-ahead found < 5 openers
+    lineup_q1_mismatch: int = 0  # teams whose Q1 look-ahead != box starters
+    minutes_n: int = 0  # player-games (box minutes > 0) checked against stint minutes
+    minutes_within: int = 0  # ... of which |stint - box| <= MINUTES_WITHIN_TOL
     gate_pass: bool = False  # literal CLAUDE.md gate: mean |error| <= 1 (informational, see below)
     within_production_envelope: bool = False  # MAE <= PRODUCTION_MAE_CEILING
 
@@ -114,7 +122,8 @@ def parse_games(
             pbp = pl.read_parquet(path)
             poss = parse_possessions(pbp)
             box = con.execute(
-                "SELECT player_id, team_id, starter FROM player_game_stats WHERE game_id = ?",
+                "SELECT player_id, team_id, starter, minutes "
+                "FROM player_game_stats WHERE game_id = ?",
                 [gid],
             ).pl()
             starters = _starters(box)
@@ -125,7 +134,20 @@ def parse_games(
                 if starters is None:
                     summary.no_starters.append(gid)
                 else:
-                    stints = track_lineups(pbp, starters)
+                    roster = {
+                        int(t[0]): g["player_id"].to_list()
+                        for t, g in box.filter(pl.col("minutes") > 0).group_by("team_id")
+                    }
+                    stints, rep = track_lineups_with_report(pbp, starters, roster)
+                    summary.lineup_unresolved_subs += len(rep.unresolved)
+                    summary.lineup_desync_subs += len(rep.desync)
+                    summary.lineup_open_filled += len(rep.open_filled)
+                    summary.lineup_q1_mismatch += len(rep.q1_mismatch)
+                    rec = reconcile_stint_minutes(
+                        stints, box.with_columns(pl.lit(gid).alias("game_id"))
+                    ).filter(pl.col("box_minutes") > 0)
+                    summary.minutes_n += rec.height
+                    summary.minutes_within += int((rec["abs_diff"] <= MINUTES_WITHIN_TOL).sum())
                     poss = attach_lineups_to_possessions(poss, stints)
                     load_possession_lineups(con, poss)
                     load_stints(con, stints)
@@ -214,6 +236,10 @@ def main(argv: list[str] | None = None) -> int:
         f"no_box={s.no_box} no_starters={len(s.no_starters)} errors={len(s.errors)} "
         f"mean_abs_poss_err={s.mean_abs_poss_error:.3f} mean_signed={s.mean_signed_poss_error:.3f} "
         f"points_exact={s.points_exact_rate:.3f} clean_5v5={s.clean_lineup_rate:.3f} "
+        f"minutes_within_1={s.minutes_within}/{s.minutes_n} "
+        f"unresolved_subs={s.lineup_unresolved_subs} "
+        f"desync_subs={s.lineup_desync_subs} open_filled={s.lineup_open_filled} "
+        f"q1_mismatch={s.lineup_q1_mismatch} "
         f"literal_gate(<=1)={'PASS' if s.gate_pass else 'no'} "
         f"within_prod_envelope(<={PRODUCTION_MAE_CEILING})={s.within_production_envelope}"
     )

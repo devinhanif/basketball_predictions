@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-09T11:22:00.604055+00:00",
- "data_version": "e2afd65697e7",
+ "created_at": "2026-10-10T01:11:06.185801+00:00",
+ "data_version": "e9b76c58a2d3",
  "db_path": "/Users/devin/Downloads/nba-prediction/nba.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -8,16 +8,16 @@
    "files": 842
   },
   "availability_official": {
-   "bytes": 109834987,
-   "files": 1681
+   "bytes": 109912261,
+   "files": 1682
   },
   "backfill_db": {
    "bytes": 636263507,
    "files": 4
   },
   "backups": {
-   "bytes": 212086784,
-   "files": 1
+   "bytes": 222228351,
+   "files": 3
   },
   "boxscore": {
    "bytes": 39808141,
@@ -28,16 +28,20 @@
    "files": 4
   },
   "colab": {
-   "bytes": 13391988205,
+   "bytes": 13391994091,
    "files": 1724
   },
   "games": {
    "bytes": 43649,
    "files": 4
   },
+  "history": {
+   "bytes": 151736108,
+   "files": 6213
+  },
   "hustle": {
-   "bytes": 7350361,
-   "files": 617
+   "bytes": 38425808,
+   "files": 3955
   },
   "injury_elo": {
    "bytes": 168352,
@@ -47,12 +51,36 @@
    "bytes": 152630,
    "files": 3
   },
+  "injury_elo_t30": {
+   "bytes": 65280,
+   "files": 1
+  },
+  "injury_elo_v2": {
+   "bytes": 152630,
+   "files": 3
+  },
   "kalshi": {
-   "bytes": 12110441,
-   "files": 2253
+   "bytes": 16068583,
+   "files": 3541
+  },
+  "lineups": {
+   "bytes": 2594598,
+   "files": 16
+  },
+  "markets": {
+   "bytes": 274432,
+   "files": 1
   },
   "matchups": {
    "bytes": 1636714,
+   "files": 4
+  },
+  "minutes_v2": {
+   "bytes": 3482850,
+   "files": 1
+  },
+  "models": {
+   "bytes": 1478990,
    "files": 4
   },
   "national-tv": {
@@ -60,12 +88,12 @@
    "files": 825
   },
   "officials": {
-   "bytes": 1590128,
-   "files": 4
+   "bytes": 2988772,
+   "files": 727
   },
   "ops": {
-   "bytes": 11707,
-   "files": 6
+   "bytes": 74649,
+   "files": 19
   },
   "parlay": {
    "bytes": 276877,
@@ -76,24 +104,32 @@
    "files": 5269
   },
   "players_static": {
-   "bytes": 2571980,
-   "files": 891
+   "bytes": 3105710,
+   "files": 1032
   },
   "rapm": {
    "bytes": 188058,
    "files": 2
   },
+  "refs": {
+   "bytes": 3599293,
+   "files": 20
+  },
   "rehearsal": {
-   "bytes": 819551306,
-   "files": 97
+   "bytes": 4304341041,
+   "files": 4231
   },
   "reviews": {
    "bytes": 3429244272,
    "files": 1368
   },
   "schedule": {
-   "bytes": 886936,
-   "files": 4
+   "bytes": 1125953,
+   "files": 6
+  },
+  "schedule_cache": {
+   "bytes": 75600,
+   "files": 1
   },
   "shots": {
    "bytes": 1675835,
@@ -168,15 +204,15 @@
    "date_range": {
     "created_at": [
      "2026-10-05 23:46:39.392491",
-     "2026-10-08 12:59:27.829101"
+     "2026-10-09 08:00:40.395496"
     ]
    },
-   "fingerprint": "8d7a86108c508b0f-0d73a82287ec0d79",
+   "fingerprint": "bb5d92ae3d9c6cad-cb8852a45c9ce543",
    "pk_duplicates": 0,
    "primary_key": [
     "run_id"
    ],
-   "row_count": 25,
+   "row_count": 27,
    "schema_hash": "a7bf9f987193df75"
   },
   "forward_predictions": {
@@ -423,6 +459,366 @@
    "primary_key": null,
    "row_count": 0,
    "schema_hash": "920d34fc8c277db4",
+   "seasons": {}
+  },
+  "forward_scores_elig": {
+   "columns": {
+    "brier": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "game_date": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DATE"
+    },
+    "game_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "lead_min": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "INTEGER"
+    },
+    "log_loss": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "made_at": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "model_name": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "pinball19": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "pit_hi": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "pit_lo": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "player_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "INTEGER"
+    },
+    "pred": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "q10": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "q90": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "rps": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "run_id": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "scored_at": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "season": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "INTEGER"
+    },
+    "snapshot_fetched_at": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "starter_rate": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    },
+    "status": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "target": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "tipoff": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "TIMESTAMP"
+    },
+    "version": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "VARCHAR"
+    },
+    "y": {
+     "asymmetry": null,
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "null_rate_played": null,
+     "null_rate_unplayed": null,
+     "type": "DOUBLE"
+    }
+   },
+   "date_range": {
+    "game_date": [
+     null,
+     null
+    ],
+    "made_at": [
+     null,
+     null
+    ],
+    "scored_at": [
+     null,
+     null
+    ],
+    "snapshot_fetched_at": [
+     null,
+     null
+    ],
+    "tipoff": [
+     null,
+     null
+    ]
+   },
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "played_split": {
+    "minutes_threshold": 5.0,
+    "n_played": 0,
+    "n_unplayed": 0
+   },
+   "primary_key": null,
+   "row_count": 0,
+   "schema_hash": "7e556c2d1270eb92",
+   "seasons": {}
+  },
+  "forward_t30_decisions": {
+   "columns": {
+    "cutoff": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "TIMESTAMP"
+    },
+    "decided_at": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "TIMESTAMP"
+    },
+    "game_id": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "n_rows": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "INTEGER"
+    },
+    "outcome": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "reason": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "snapshot_fetched_at": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "TIMESTAMP"
+    },
+    "snapshot_id": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "tipoff": {
+     "null_rate": 0.0,
+     "null_rate_by_season": {},
+     "type": "TIMESTAMP"
+    }
+   },
+   "date_range": {
+    "cutoff": [
+     "2026-10-09 23:30:00",
+     "2026-10-09 23:30:00"
+    ],
+    "decided_at": [
+     "2026-10-09 23:32:49.118175",
+     "2026-10-09 23:32:49.118175"
+    ],
+    "snapshot_fetched_at": [
+     "2026-10-09 23:27:44.455210",
+     "2026-10-09 23:27:44.455210"
+    ],
+    "tipoff": [
+     "2026-10-10 00:00:00",
+     "2026-10-10 00:00:00"
+    ]
+   },
+   "fingerprint": "aab3da7348f1c1aa-aab3da7348f1c1aa",
+   "pk_duplicates": 0,
+   "primary_key": [
+    "game_id"
+   ],
+   "row_count": 1,
+   "schema_hash": "b0728d379a1fc510",
+   "seasons": {}
+  },
+  "game_era_flags": {
+   "columns": {
+    "covid_bubble": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "BOOLEAN"
+    },
+    "game_id": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "limited_fans": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "BOOLEAN"
+    },
+    "no_fans": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "BOOLEAN"
+    },
+    "notes": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "VARCHAR"
+    },
+    "season": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "INTEGER"
+    },
+    "shortened_season": {
+     "null_rate": null,
+     "null_rate_by_season": {},
+     "type": "BOOLEAN"
+    }
+   },
+   "date_range": {},
+   "fingerprint": "empty",
+   "pk_duplicates": null,
+   "primary_key": [
+    "game_id"
+   ],
+   "row_count": 0,
+   "schema_hash": "aa7de20cacb0818f",
    "seasons": {}
   },
   "game_officials": {
@@ -942,194 +1338,298 @@
   "player_game_hustle": {
    "columns": {
     "box_out_player_rebounds": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "box_out_player_team_rebounds": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "box_outs": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "charges_drawn": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "comment": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "VARCHAR"
     },
     "contested_shots": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "contested_shots2pt": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "contested_shots3pt": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "defensive_box_outs": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "deflections": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "game_id": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "VARCHAR"
     },
     "loose_balls_recovered_defensive": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "loose_balls_recovered_offensive": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "loose_balls_recovered_total": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "minutes": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
      "type": "FLOAT"
     },
     "offensive_box_outs": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "player_id": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "points": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "position": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "VARCHAR"
     },
     "screen_assist_points": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "screen_assists": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     },
     "team_id": {
-     "asymmetry": null,
-     "null_rate": null,
-     "null_rate_by_season": {},
-     "null_rate_played": null,
-     "null_rate_unplayed": null,
+     "asymmetry": 0.0,
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0
+     },
+     "null_rate_played": 0.0,
+     "null_rate_unplayed": 0.0,
      "type": "INTEGER"
     }
    },
    "date_range": {},
-   "fingerprint": "empty",
-   "pk_duplicates": null,
+   "fingerprint": "b6a191ba767f9f63-0715f7e3382e1565",
+   "pk_duplicates": 0,
    "played_split": {
     "minutes_threshold": 5.0,
-    "n_played": 0,
-    "n_unplayed": 0
+    "n_played": 75460,
+    "n_unplayed": 3803
    },
    "primary_key": [
     "game_id",
     "player_id"
    ],
-   "row_count": 0,
+   "row_count": 79263,
    "schema_hash": "33c93dde18891d73",
-   "seasons": {}
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 26332
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 26473
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1315,
+     "rows": 26458
+    }
+   }
   },
   "player_game_matchups": {
    "columns": {
@@ -2231,7 +2731,7 @@
     }
    },
    "date_range": {},
-   "fingerprint": "7dcc7525296bef51-04cf2f21be6fb22d",
+   "fingerprint": "146232e6bd83a6ec-87125fb119c4b514",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id",
@@ -2668,31 +3168,31 @@
     }
    },
    "date_range": {},
-   "fingerprint": "7a3927c82484c959-c83f9d7228e18001",
+   "fingerprint": "fff239421f063482-a2771880affd9290",
    "pk_duplicates": null,
    "primary_key": null,
-   "row_count": 366338,
+   "row_count": 297159,
    "schema_hash": "30835b63dc0093e7",
    "seasons": {
     "2022": {
      "coverage": 1.0,
      "games": 1320,
-     "rows": 87661
+     "rows": 71647
     },
     "2023": {
      "coverage": 1.0,
      "games": 1318,
-     "rows": 88482
+     "rows": 71881
     },
     "2024": {
      "coverage": 1.0,
      "games": 1315,
-     "rows": 91942
+     "rows": 74236
     },
     "2025": {
      "coverage": 1.0,
      "games": 1316,
-     "rows": 98253
+     "rows": 79395
     }
    }
   },
