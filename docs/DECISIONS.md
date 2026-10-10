@@ -17,3 +17,5 @@ dated. Not for tests (ledger) or incidents (best practices).
 | 2026-10-09 | Agents in sequence (build → adversary → review → decide), one owner per directory | parallel fan-out produced swept commits and a broken pipeline | never; parallel only across non-overlapping areas |
 | 2026-10-09 | CLAUDE.md rewritten as a partnership agreement; original spec archived | the spec drove effort toward architectures the data rejected; goals are built together now | edited together whenever either of us learns something |
 | 2026-10-09 | The tool shows true odds identically after wins and losses | Devin: growth in skill feels like justification but clouds judgment | never |
+
+| 2026-10-09 | F9/F11/F12 pre-registered from fan knowledge, frozen before any fit | the hypotheses came from Devin watching the game and all four descriptive checks agreed; the rule is committed first so creativity cannot reopen it | a new question gets a new rule; these are never edited after results |
