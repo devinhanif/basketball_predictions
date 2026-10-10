@@ -72,7 +72,9 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   # exit 4 is informational for: predict (some games already tipped) and refs (officials not yet
   # mapped to ids until game_officials is loaded). 2 is argparse's usage-error code and must alert.
   # predict exits 5 when it degraded (ingest/schedule failed, cached data used): that alerts too.
-  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ]; } && [ "$rc" -eq 4 ]; }; then
+  # odds_capture exits 4 when the feed is unreachable or the request budget refuses: informational
+  # (the benchmark is never a dependency of the forecast); its exit 5 (internal error) still alerts.
+  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ]; } && [ "$rc" -eq 4 ]; }; then
     HB_RC=$rc
     alert "$name failed (rc=$rc), see $LOG"
   fi
@@ -120,6 +122,9 @@ case "$MODE" in
     step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --rate-limit-s 2.5
     step refs "$UV" run --no-sync python -m nba.ingest.referees collect
+    # read-only sharp-line benchmark (theoddsapi.com; docs/prereg/ODDS_BENCHMARK.md). The key lives
+    # only in .env (gitignored); a missing .env makes uv exit non-zero, which alerts: misconfiguration.
+    step odds_capture "$UV" run --no-sync --env-file .env python -m nba.odds capture --date "$TODAY_ET"
     step market_capture "$UV" run --no-sync python -m nba.markets capture --date "$TODAY_ET"
     step parlay_shadow "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET"
     step props_analysis "$UV" run --no-sync python -m nba.parlay analyze --date "$TODAY_ET"
