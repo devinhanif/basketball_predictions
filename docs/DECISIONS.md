@@ -99,3 +99,10 @@ both seasons (T280–T283); the attempt-feature arm ties production; a threes-on
 Why: production's single-number points model already carries the three-point information through the player's recent threes
 and attempt rates; decomposing the output adds variance faster than it adds structure.
 What would reverse it: nothing in this family; the one allowed follow-up is not queued.
+
+## 2026-10-10 ~21:05 CT — ROUTER_TIME_WEIGHTED: CLOSED, no pass
+What: ran under frozen sha256 bb633f7a (commit 918e03c; T284–T299). The router beats production on pts/reb/ast only because it
+routes almost every row to the T-30 lineups-known arm; the best single candidate ties or beats it (rule 3 fails). Rolling-10,
+rolling-5 and recency alone are all worse than production. Closed; the finding is the known one: T-30 lineup information.
+Why: no candidate other than the T-30 arm beats production in any cell, so there is nothing to route between.
+What would reverse it: a router beating the best single candidate by >= 0.003 on a stat with REAL T-30 snapshots (live season).

@@ -76,6 +76,28 @@ Code under `research/` only (`research/eval/router_time_weighted.py`, reusing `r
 
 === RESULTS BELOW ===
 
-(not run)
+Run 2026-10-10 under the frozen rule (sha256 bb633f7a). Code research/eval/router_time_weighted.py; full table reports/prereg_router.md,
+reports/prereg_router/results.json (+ results.sha256), draft ledger rows reports/prereg_router/ledger_rows.md. Checks 1-4 all OK. Seeds: model 0,
+bootstrap 0 (2000, game-clustered), PIT 0. Season 2025 never loaded (max season in frames 2024).
+
+Verdict: NO STAT PASSES. Rule 1 and the guards hold for pts, reb, ast under both routers in both seasons, but rule 3 fails everywhere:
+the best single candidate chosen on 2023 (A4 = C4, the T-30 lineups-known arm, for all four stats) is as good as or better than the router.
+The finding is "one candidate is better", not "routing helps". fg3m fails rule 1 (A1 -0.0025 / -0.0036, under the -0.005 floor).
+
+| stat | A1 dCRPS 2023 / 2024 | A2 dCRPS 2023 / 2024 | A1-A4 2024 | A2-A4 2024 | A1 share of A3 ceiling 2024 |
+|---|---|---|---|---|---|
+| pts | -0.0336 / -0.0424 | -0.0369 / -0.0404 | +0.0010 | +0.0029 | 0.945 |
+| reb | -0.0154 / -0.0176 | -0.0122 / -0.0121 | +0.0000 | +0.0055 | 0.954 |
+| ast | -0.0091 / -0.0094 | -0.0063 / -0.0050 | +0.0001 | +0.0045 | 0.927 |
+| fg3m | -0.0025 / -0.0036 | -0.0024 / -0.0015 | +0.0005 | +0.0027 | 0.706 |
+
+BH p (A1, A2) <= 0.002 for every stat and season; CIs and MDEs in reports/prereg_router.md. R1 leaves C0 for 83-97% of rows (cell switch rates
+0.34-1.00; the 24+ ppg cells switch least, 0.39-0.78). Per-cell claims (2024, cell rule, best chosen on 2023): 11 cells, all C4 vs C0 in the
+<10 ppg warm, 10-17 ppg warm and cold cells (pts, reb, ast), plus fg3m <10 warm and cold. No router-specific claim. In the 24+ ppg cells the
+2023-selected best was C1 (recency) and lost on 2024 (pts +0.0663, ast +0.0198).
+C1/C2/C3 alone are worse than C0 everywhere (pts +0.09/+0.17/+0.32 in 2023). Caveat: C4 uses the box-score starter proxy of docs/LINEUPS_KNOWN.md
+(a T-30 information set, not available at the T-60 production time), so its edge over C0 is the already-known lineups-known result, not a new one.
+Kill criterion is not triggered (rule 1 passed on 2023), but no stat passes the full rule: close. At most one pre-registered follow-up.
+Unstated details, chosen before scoring: listed in reports/prereg_router.md ("Unstated details").
 
 Freeze: 2026-10-10 16:58 CT, commit 918e03c, sha256 of everything above the line: bb633f7a3176f7cc3709a9c7e8581461eacd1b04f06e293dfbd8998138213c17 (first 8: bb633f7a). Verify with the awk command in the header.

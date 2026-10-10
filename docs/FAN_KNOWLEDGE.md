@@ -502,3 +502,7 @@ rotation-level young players in close games would be a new rule.
   (+0.16) and worse in the upper tail at 20/25/30. The independent sum does as well as the shared draw; adding the attempt and
   make-rate features to production ties it. The threes information is already in the model via the player's recent threes; the
   decomposition adds noise faster than structure. Closed.
+- **Model routing with "who's been winning lately" weights (Devin): tested under a frozen rule, NO PASS (T284–T299).** The router
+  only wins by sending 83–97% of rows to the T-30 lineups arm, and that single arm is as good as the router. Rolling-10 and
+  rolling-5 are far worse than production (pts +0.17 / +0.32 CRPS). Nothing to route between; the lever stays the confirmed
+  lineup. The live season, with real T-30 snapshots, is where that arm gets its honest test.
