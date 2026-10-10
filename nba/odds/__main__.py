@@ -61,6 +61,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     hp.add_argument("--phase", choices=("props", "games"), default=None, help="default: both")
     hp.add_argument("--dry-run", action="store_true", help="estimate credits only; no network")
     hp.add_argument("--max-games", type=int, default=None, help="stop after N pending games")
+    hp.add_argument(
+        "--markets",
+        default=None,
+        help="comma list replacing prop_markets for this run (needs --phase props); state and "
+        "raw entries are keyed by the market set, finished default-set items are not touched",
+    )
     hp.add_argument("--reparse", action="store_true", help="re-read cached raw into the table")
     ba = sub.add_parser("build-aliases", help="generate configs/odds_player_aliases.yaml")
     ba.add_argument("--refresh", action="store_true", help="re-fetch commonallplayers (1 request)")
@@ -95,6 +101,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 dry_run=a.dry_run,
                 max_games=a.max_games,
                 reparse=a.reparse,
+                markets=[m.strip() for m in a.markets.split(",") if m.strip()]
+                if a.markets
+                else None,
             )
             for line in hrep.lines():
                 print(line, flush=True)

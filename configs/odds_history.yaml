@@ -13,7 +13,8 @@ game_markets: [h2h, spreads, totals]
 odds_format: american
 
 # Credit guards (the plan is 5,000,000 credits; this pull is capped well below it).
-max_credits: 2000000            # refuse when cumulative spend of this pull would exceed this
+# max_credits 2,000,000 -> 1,750,000 (Devin, 2026-10-10: player_steals pull approved, 2023+2024 only)
+max_credits: 1750000            # refuse when cumulative spend of this pull would exceed this
 min_server_remaining: 100000    # refuse when the server-reported remaining falls below this
 cost_per_market_region: 10      # historical event odds cost 10 x markets x regions
 cost_events_list: 1

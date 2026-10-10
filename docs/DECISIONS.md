@@ -106,3 +106,10 @@ routes almost every row to the T-30 lineups-known arm; the best single candidate
 rolling-5 and recency alone are all worse than production. Closed; the finding is the known one: T-30 lineup information.
 Why: no candidate other than the T-30 arm beats production in any cell, so there is nothing to route between.
 What would reverse it: a router beating the best single candidate by >= 0.003 on a stat with REAL T-30 snapshots (live season).
+
+## 2026-10-10 ~22:05 CT — player_steals historical prices pulled (2023-24, 2024-25; never 2025-26)
+What: Devin approved ("confirm everyone"); `history-pull --markets player_steals` (new option; state keyed by market set so the
+finished markets are untouched) pulled 520,220 rows at 122,920 credits (dry-run cap 400k; config max_credits now 1.75M, spent
+1.56M). Pinnacle quotes no steals; consensus and DraftKings/FanDuel exist; Novig/ProphetX late 2024 only.
+Why: Devin's hypothesis that books under-price steals; a descriptive calibration check is the honest first look (no steals model).
+What would reverse it: nothing to reverse; rows are deletable by market.

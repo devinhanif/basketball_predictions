@@ -22,7 +22,7 @@ import json
 import logging
 import time
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -48,6 +48,7 @@ from nba.odds.the_odds_api import (
     default_resolver,
     load_config,
     load_raw,
+    markets_hash,
     match_event,
     odds_path,
     parse_event_odds,
@@ -115,8 +116,11 @@ def _attach_tips(games: pl.DataFrame, tips: pl.DataFrame) -> tuple[list[GameRef]
 # ----------------------------------------------------------------------------------------------
 
 
-def item_key(game_id: str, kind: str, phase: str) -> str:
-    return f"{game_id}|{kind}|{phase}"
+def item_key(game_id: str, kind: str, phase: str, tag: str = "") -> str:
+    """State key. ``tag`` (the market-set hash of a ``--markets`` override) is appended only when
+    given, so the default keys, and every row already in the state file, are unchanged."""
+    base = f"{game_id}|{kind}|{phase}"
+    return f"{base}|{tag}" if tag else base
 
 
 class PullState:
@@ -213,18 +217,19 @@ class Item:
     game: GameRef
     kind: str
     phase: str
+    tag: str = ""
 
     @property
     def key(self) -> str:
-        return item_key(self.game.game_id, self.kind, self.phase)
+        return item_key(self.game.game_id, self.kind, self.phase, self.tag)
 
     def at(self, cfg: HistoryConfig) -> datetime:
         return self.game.tipoff_utc - timedelta(minutes=cfg.minutes_before_tip(self.kind))
 
 
-def build_items(games: list[GameRef], phases: list[str]) -> list[Item]:
-    """Phase-major, then game by tip time, then t60 before t5."""
-    return [Item(g, k, ph) for ph in phases for g in games for k in SNAPSHOT_KINDS]
+def build_items(games: list[GameRef], phases: list[str], tag: str = "") -> list[Item]:
+    """Phase-major, then game by tip time, then t60 before t5. ``tag`` marks a market override."""
+    return [Item(g, k, ph, tag) for ph in phases for g in games for k in SNAPSHOT_KINDS]
 
 
 def estimate_credits(cfg: HistoryConfig, items: list[Item]) -> dict[str, int]:
@@ -328,6 +333,7 @@ def run_pull(
     dry_run: bool = False,
     max_games: int | None = None,
     reparse: bool = False,
+    markets: list[str] | None = None,
     cfg: HistoryConfig | None = None,
     client: HistoricalClient | None = None,
     games: list[GameRef] | None = None,
@@ -338,8 +344,19 @@ def run_pull(
 
     ``games``/``all_season_games`` let tests inject the schedule; production reads
     ``nba.duckdb`` read-only plus the schedule parquet.
+
+    ``markets`` replaces ``prop_markets`` for this run (props phase only, so it requires
+    ``phase="props"``). Its state keys carry the market-set hash and its raw files already differ by
+    market hash, so finished items of the default set are never reused for it, nor it for them. The
+    full-plan estimate is then just this run (the other seasons are the caller's explicit choice).
     """
     cfg = cfg or load_config()
+    tag = ""
+    if markets:
+        if phase != "props":
+            raise ValueError("--markets overrides prop_markets and needs --phase props")
+        cfg = replace(cfg, prop_markets=tuple(markets))
+        tag = markets_hash(markets)
     phases = [phase] if phase else list(PHASES)
     for ph in phases:
         cfg.markets_for(ph)  # validates
@@ -352,7 +369,7 @@ def run_pull(
     rep.n_games_total, rep.n_games_no_tip = total, no_tip
 
     state = PullState(cfg.state_path)
-    all_items = build_items(games, phases)
+    all_items = build_items(games, phases, tag)
     pending = [it for it in all_items if reparse or not state.done(it.key)]
     rep.items_skipped_done = len(all_items) - len(pending)
     if max_games is not None:
@@ -367,16 +384,19 @@ def run_pull(
     rep.estimate = estimate_credits(cfg, pending)
 
     full: list[Item] = []
-    by_season = dict(all_season_games or {})
-    by_season[season] = games
-    for s in cfg.seasons:
-        if s not in by_season:
-            by_season[s] = load_games(cfg, s)[0]
-        full += [
-            it
-            for it in build_items(by_season[s], list(PHASES))
-            if reparse or not state.done(it.key)
-        ]
+    if tag:
+        full = [it for it in all_items if reparse or not state.done(it.key)]
+    else:
+        by_season = dict(all_season_games or {})
+        by_season[season] = games
+        for s in cfg.seasons:
+            if s not in by_season:
+                by_season[s] = load_games(cfg, s)[0]
+            full += [
+                it
+                for it in build_items(by_season[s], list(PHASES))
+                if reparse or not state.done(it.key)
+            ]
     rep.full_plan_estimate = estimate_credits(cfg, full)
 
     ledger = CreditLedger(cfg.ledger_path, cfg.max_credits, cfg.min_server_remaining)

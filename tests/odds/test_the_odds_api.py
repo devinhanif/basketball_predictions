@@ -201,7 +201,7 @@ def test_game_lines_sides_points_and_devig(resolver: NameResolver) -> None:
     h2h = dk.filter(pl.col("market") == "h2h").sort("side")
     assert h2h["side"].to_list() == ["away", "home"]  # Knicks away, 76ers home
     assert h2h.filter(pl.col("side") == "home")["price_american"].item() == 185
-    assert abs(h2h["implied_prob"].sum() - 1.0) < 1e-9
+    assert abs(float(h2h["implied_prob"].sum()) - 1.0) < 1e-9
     sp = dk.filter(pl.col("market") == "spreads")
     assert sorted(sp["point"].to_list()) == [-6.0, 6.0]
     assert sp["implied_prob"].null_count() == 0
@@ -810,3 +810,67 @@ def test_reparse_is_cache_only_and_never_needs_a_key(
     kw["all_season_games"] = empty_seasons(cfg, other)
     rep2 = hp.run_pull(2024, "props", reparse=True, **kw)
     assert rep2.items_done == 0 and rep2.items_no_raw == 2 and rep2.requests == 0
+
+
+# ----------------------------------------------------------------------------------------------
+# --markets override: separate state/raw keying, steals rows land with market='player_steals'
+# ----------------------------------------------------------------------------------------------
+
+
+def test_markets_override_is_keyed_by_market_set(
+    cfg: api.HistoryConfig, resolver: NameResolver, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    kw: dict[str, Any] = {
+        "cfg": cfg,
+        "games": [GAME],
+        "all_season_games": empty_seasons(cfg, GAME),
+        "resolver": resolver,
+    }
+    rep = hp.run_pull(2024, "props", client=make_client(cfg, FakeHttp()), **kw)
+    assert rep.items_done == 2
+    n_default = hp.OddsStore(cfg.out_db).read("SELECT count(*) FROM odds_history")[0][0]
+    state_before = cfg.state_path.read_text()
+
+    # the finished default set is not reused for steals: dry run still sees both items pending
+    dry = hp.run_pull(2024, "props", dry_run=True, markets=["player_steals"], **kw)
+    assert dry.items_skipped_done == 0 and dry.estimate["odds_calls"] == 2
+    assert dry.estimate["credits_odds"] == 2 * 10 * 1 * 3  # 10 x 1 market x 3 regions
+    assert cfg.state_path.read_text() == state_before  # dry run leaves the state alone
+
+    real = body("hist_props_2025-01-15")
+    steals = json.loads(json.dumps(real))
+    for b in steals["data"]["bookmakers"]:
+        for m in b["markets"]:
+            m["key"] = "player_steals"
+    monkeypatch.setitem(globals(), "body", lambda _name: steals)
+    fake = FakeHttp()
+    rep2 = hp.run_pull(
+        2024, "props", markets=["player_steals"], client=make_client(cfg, fake), **kw
+    )
+    assert rep2.items_done == 2 and rep2.credits_spent == 2 * (1 + 30) - 2  # events lists cached
+    assert [c["params"]["markets"] for c in fake.calls if c["url"].endswith("/odds")] == [
+        "player_steals"
+    ] * 2
+    store = hp.OddsStore(cfg.out_db)
+    mk = dict(store.read("SELECT market, count(*) FROM odds_history GROUP BY 1"))
+    assert "player_steals" in mk and mk["player_steals"] > 0
+    assert sum(v for k, v in mk.items() if k != "player_steals") == n_default  # old rows intact
+    assert (
+        store.read(
+            "SELECT count(*) FROM odds_history "
+            "WHERE market='player_steals' AND player_id IS NOT NULL"
+        )[0][0]
+        > 0
+    )
+
+    # state: both sets done under distinct keys; a rerun of either is a no-op
+    st = hp.PullState(cfg.state_path)
+    tag = api.markets_hash(["player_steals"])
+    assert st.done(hp.item_key(GAME.game_id, "t60", "props"))
+    assert st.done(hp.item_key(GAME.game_id, "t60", "props", tag))
+    again = hp.run_pull(
+        2024, "props", markets=["player_steals"], client=make_client(cfg, FakeHttp()), **kw
+    )
+    assert again.items_skipped_done == 2 and again.requests == 0
+    with pytest.raises(ValueError, match="needs --phase props"):
+        hp.run_pull(2024, None, markets=["player_steals"], dry_run=True, **kw)

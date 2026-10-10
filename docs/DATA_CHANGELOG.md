@@ -87,3 +87,6 @@
   changed (verified); backup `data/backups/possessions_pre_oreb_fix_20261010T191702Z_possessions.parquet`.
 - Reconciliation with box scores, seasons 2022-24: OREB 27,524 / 27,741 / 29,219 vs 27,534 / 27,749 / 29,223;
   DREB 87,096 / 86,748 / 86,506 vs 87,100 / 86,753 / 86,507. Flags: COLUMN_ADDED x2 expected; nothing else.
+
+- 2026-10-10: `data/odds/odds_history.duckdb` gains market `player_steals` for seasons 2023 and 2024 (520,220 rows; raw cache under
+  data/odds/raw/the_odds_api keyed by market set). 2,682 rows unresolved (vendor name variants, mostly 2023), not guessed.
