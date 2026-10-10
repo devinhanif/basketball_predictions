@@ -10,7 +10,13 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from nba.eval.pts_tail_eval import CANDIDATES, arm_quantiles, candidate_screen, p_ge
+from nba.eval.pts_tail_eval import (
+    CANDIDATES,
+    arm_quantiles,
+    calibration_arrays,
+    candidate_screen,
+    p_ge,
+)
 from nba.props.context_residual import (
     CRPS_TAUS,
     ContextResidualConfig,
@@ -37,27 +43,33 @@ def _fit(train: pl.DataFrame, **kw: object) -> ContextResidualModel:
     return ContextResidualModel("pts", cfg, stat_feature_names("pts")).fit(train)
 
 
-def test_flag_off_byte_identical_and_kinds_valid(
+def test_production_model_has_no_tail_state_and_kinds_valid(
     fitted: tuple[pl.DataFrame, pl.DataFrame],
 ) -> None:
+    """The tail arms are research-only: the model class carries no tail flag or arrays; the
+    eval rebuilds the calibration arrays itself and every arm's quantiles are valid."""
     train, test = fitted
-    assert ContextResidualConfig().pts_tail == "off"
+    assert not hasattr(ContextResidualConfig(), "pts_tail")
     m0 = _fit(train)
+    assert not hasattr(m0, "cal_tail_")
     mean0, q0 = m0.predict(test, CRPS_TAUS)
-    assert m0.cal_tail_ is None  # nothing extra kept when off
     assert _fit(train).predict(test, CRPS_TAUS)[1].tobytes() == q0.tobytes()
+    cal = calibration_arrays(m0, train)
+    assert len(cal["y"]) >= 300 and np.isfinite(cal["z"]).all()
+    c, s = m0.predict_components(test)
     for kind in CANDIDATES:
-        m = _fit(train, pts_tail=kind)
-        mean, q = m.predict(test, CRPS_TAUS)
-        assert mean.tobytes() == mean0.tobytes()  # mean untouched
-        assert np.isfinite(q).all() and (q >= 0).all() and (np.diff(q, axis=1) >= 0).all()
-        c, s = m.predict_components(test)
-        assert np.array_equal(q, m.tail_quantiles(kind, c, s, CRPS_TAUS))
-        # other stats are never touched
-        m_reb = ContextResidualModel(
-            "reb", ContextResidualConfig(pts_tail=kind), stat_feature_names("reb")
+        q = tail_quantiles(
+            kind,
+            y_cal=cal["y"],
+            c_cal=cal["c"],
+            s_cal=cal["s"],
+            z_cal=cal["z"],
+            c=c,
+            s=s,
+            taus=CRPS_TAUS,
         )
-        assert m_reb.cal_tail_ is None
+        assert np.isfinite(q).all() and (q >= 0).all() and (np.diff(q, axis=1) >= 0).all()
+        assert q.shape == q0.shape
 
 
 @given(

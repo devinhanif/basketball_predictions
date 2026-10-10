@@ -752,11 +752,6 @@ def _load_or_fit_models(
     # output-only post-processing: does not change the fitted models, so no refit
     fp["cfg"].pop("integer_support", None)
     fp["cfg"].pop("integer_support_stats", None)
-    # pts_tail changes the stored calibration arrays and the quantiles: keep the fingerprint of
-    # existing caches unchanged while it is off, key on it once it is on
-    fp["cfg"].pop("pts_tail_stats", None)
-    if fp["cfg"].get("pts_tail") == "off":
-        fp["cfg"].pop("pts_tail", None)
     # lower_tail (docs/LOWER_TAIL.md): same rule, so existing caches stay valid while it is off
     fp["cfg"].pop("lower_tail_stats", None)
     if fp["cfg"].get("lower_tail") == "off":

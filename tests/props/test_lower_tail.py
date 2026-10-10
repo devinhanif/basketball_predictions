@@ -83,8 +83,6 @@ def test_guards(fitted: tuple[pl.DataFrame, pl.DataFrame]) -> None:
     train, _ = fitted
     with pytest.raises(ValueError, match="minutes"):
         _fit(train.drop("minutes"), lower_tail="mixture")
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        _fit(train, lower_tail="mixture", pts_tail="sqrt")
 
 
 def test_fingerprint_unchanged_when_off() -> None:

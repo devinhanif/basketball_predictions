@@ -88,11 +88,9 @@ class ContextResidualConfig:
     integer_support_stats: tuple[str, ...] = INTEGER_SUPPORT_STATS
     #: Upper-tail construction for the points quantiles (docs/PTS_TAIL.md): "off"
     #: (production, byte-identical) | "sqrt" | "mondrian_up" | "gamma_tail".
-    pts_tail: str = "off"
-    pts_tail_stats: tuple[str, ...] = ("pts",)
     #: Lower-tail construction (docs/LOWER_TAIL.md): "off" (production, byte-identical) |
     #: "mixture" | "mondrian_centre" | "mondrian_minutes". Needs a ``minutes`` column in the
-    #: training frame; mutually exclusive with ``pts_tail``.
+    #: training frame.
     lower_tail: str = "off"
     lower_tail_stats: tuple[str, ...] = PROP_STATS
     #: F9 young-pick prior (docs/prereg/F9_YOUNG_PICK_PRIOR.md): "off" (production,
@@ -811,8 +809,6 @@ class ContextResidualModel:
     scale_head: lgb.LGBMRegressor | None = None
     z_sorted: np.ndarray | None = None
     z_base_sorted: np.ndarray | None = None
-    #: calibration-window arrays (y, centre m+mu, scale), kept only when ``pts_tail != "off"``.
-    cal_tail_: dict[str, np.ndarray] | None = None
     #: lower-tail state (cal arrays + short-minutes model); kept only when ``lower_tail != "off"``.
     lt_: dict[str, Any] | None = None
     importance_: dict[str, float] = field(default_factory=dict)
@@ -832,13 +828,6 @@ class ContextResidualModel:
         s = self._scale(x_cal)
         z = (cal_df["resid"].to_numpy() - mu) / s
         self.z_sorted = np.sort(z)
-        if self.cfg.pts_tail != "off" and self.stat in self.cfg.pts_tail_stats:
-            self.cal_tail_ = {
-                "y": cal_df["y"].to_numpy(),
-                "c": cal_df["m"].to_numpy() + mu,
-                "s": s,
-                "z": z,
-            }
         if self.cfg.lower_tail != "off" and self.stat in self.cfg.lower_tail_stats:
             self.lt_ = self._fit_lower_tail(train, cal_df, np.asarray(mu), s, np.asarray(z))
         self.z_base_sorted = np.sort(
@@ -859,8 +848,6 @@ class ContextResidualModel:
     ) -> dict[str, Any]:
         from nba.props.lower_tail import fit_short_state, short_flag
 
-        if self.cfg.pts_tail != "off":
-            raise ValueError("lower_tail and pts_tail are mutually exclusive")
         if "minutes" not in train.columns:
             raise ValueError("lower_tail needs a 'minutes' (realised) column in the training frame")
         min10 = cal_df["min10"].to_numpy()
@@ -926,9 +913,7 @@ class ContextResidualModel:
         mu = np.asarray(self.mean_head.predict(x))
         s = self._scale(x)
         m = df["m"].to_numpy()
-        if self.cfg.pts_tail != "off" and self.stat in self.cfg.pts_tail_stats:
-            q = self.tail_quantiles(self.cfg.pts_tail, m + mu, s, taus)
-        elif self.lt_ is not None:
+        if self.lt_ is not None:
             q = self.lower_tail_quantiles(df, m + mu, s, taus)
         else:
             zq = np.asarray(np.quantile(self.z_sorted, taus))
@@ -938,26 +923,6 @@ class ContextResidualModel:
             q = to_integer_support(q)
         mean = np.clip(m + mu + s * float(self.z_sorted.mean()), 0.0, None)
         return mean, q
-
-    def tail_quantiles(
-        self, kind: str, c: np.ndarray, s: np.ndarray, taus: np.ndarray
-    ) -> np.ndarray:
-        """Quantiles of centre ``c`` / scale ``s`` rows under tail construction ``kind``."""
-        from nba.props.pts_tail import tail_quantiles
-
-        if self.cal_tail_ is None:
-            raise ValueError("model was fitted with pts_tail='off'; no calibration arrays kept")
-        cal = self.cal_tail_
-        return tail_quantiles(
-            kind,
-            y_cal=cal["y"],
-            c_cal=cal["c"],
-            s_cal=cal["s"],
-            z_cal=cal["z"],
-            c=c,
-            s=s,
-            taus=taus,
-        )
 
     def predict_components(self, df: pl.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         """(centre ``m + mu``, scale) rows; building block for tail diagnostics."""

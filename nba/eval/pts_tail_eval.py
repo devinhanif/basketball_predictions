@@ -15,7 +15,6 @@ candidate. Season 2023 is the selection season, 2024 the report season.
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import json
 from pathlib import Path
 from typing import Any
@@ -39,6 +38,7 @@ from nba.props.context_residual import (
     ContextResidualModel,
     build_features,
     flagged_from_availability,
+    split_calibration,
     stat_feature_names,
     stat_frame,
 )
@@ -60,13 +60,25 @@ SELECT_SEASON, REPORT_SEASON = 2023, 2024
 # --------------------------------------------------------------------------- collect
 
 
+def calibration_arrays(model: ContextResidualModel, train: pl.DataFrame) -> dict[str, np.ndarray]:
+    """Calibration-window arrays (y, centre, scale, z) the tail arms are built from.
+
+    Recomputed from the fitted model and its own calibration split, so the production
+    model class carries no tail-specific state (the pts_tail flag was removed from it on
+    2026-10-09; these arms reached their verdict in T129-T135 and live here only).
+    """
+    _fit_df, cal_df = split_calibration(train, model.cfg)
+    c, s = model.predict_components(cal_df)
+    y = cal_df["y"].to_numpy()
+    return {"y": y, "c": c, "s": s, "z": (y - c) / s}
+
+
 def collect(
     feats: pl.DataFrame, cfg: ContextResidualConfig, test_seasons: tuple[int, ...] = TEST_SEASONS
 ) -> dict[str, np.ndarray]:
     """Walk-forward (month blocks, same protocol as the production eval), pts only."""
     if max(test_seasons) > MAX_SEASON:
         raise ValueError("season 2025 is the frozen holdout")
-    cfg = dataclasses.replace(cfg, pts_tail="sqrt")  # any non-off value keeps the cal arrays
     sf = stat_frame(feats, "pts")
     names = stat_feature_names("pts")
     test_all = sf.filter(pl.col("season").is_in(list(test_seasons)))
@@ -91,10 +103,10 @@ def collect(
         rows["c"].append(c)
         rows["s"].append(s)
         rows["blk"].append(np.full(n, b))
-        assert model.cal_tail_ is not None
+        arrays = calibration_arrays(model, train)
         for k in ("y", "c", "s", "z"):
-            cal[k].append(model.cal_tail_[k])
-        cal["blk"].append(np.full(len(model.cal_tail_["y"]), b))
+            cal[k].append(arrays[k])
+        cal["blk"].append(np.full(len(arrays["y"]), b))
     out = {f"row_{k}": np.concatenate(v) for k, v in rows.items()}
     out.update({f"cal_{k}": np.concatenate(v) for k, v in cal.items()})
     return out
