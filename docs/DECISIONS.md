@@ -137,3 +137,14 @@ flag rebuilds), then register MINUTES_HAZARD_2 with the same design; (b) registe
 minutes; (c) close the direction. Claude recommends (a): a known gap in a core table should be fixed regardless of this
 experiment (F8 and F11 read stints; the T-30 arm does not).
 What would reverse it: n/a until Devin chooses.
+
+## 2026-10-11 ~00:05 CT — Devin: "do a comprehensive data clean up"
+What: approval for a data-layer pass on nba.duckdb and the odds DB: (1) audit every core table for null patterns, duplicates,
+coverage gaps and reconciliation failures (read-only, report first); (2) fix with a pre-fix backup under data/backups/, one table
+per commit, each with its own gate before/after, a DATA_CHANGELOG entry and a data_version bump: stints (short appearances
+missing), team_coaches (wrong head coaches, no mid-season changes), and whatever the audit finds; (3) apply the 61 AUTO steals
+aliases (roster-verified) and reparse; the 11 REVIEW names stay unresolved until Devin names them. The replay-oracle golden hash
+is re-baselined after the data changes (data changed, code did not; recorded as such). Holdout season 2025 rows are rebuilt
+by the same deterministic code without being evaluated (a rebuild is not a touch).
+Why: two experiments in one day stopped or were qualified by table gaps (rebound flag, stints); the coaches table is wrong.
+What would reverse it: a rebuild that fails its gate is rolled back from the backup and recorded.
