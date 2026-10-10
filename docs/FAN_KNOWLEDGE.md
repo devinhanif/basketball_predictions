@@ -293,3 +293,4 @@ fixed and the numbers are recomputed. F11, F13, F15, F17 wait for the fix.
   is partly inferable. *Hypothesis F18:* trade-reason classification as the cold-start prior for
   traded players, instead of "reset to league average".
 - **Trusted vet, named:** Al Horford (twice). First name on the F14 list.
+- *F18 feasibility:* ~70–90 in-season team changes per season are detectable from box scores alone (2022: 71, 2023: 85, 2024: 88, 2025: 79). Enough to test; waits its turn.

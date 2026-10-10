@@ -101,6 +101,7 @@ the evaluation. Both are the point.
 - **Memory.** This file, the ledger, the holdout log and `docs/PROJECT_STATUS.md` are the
   durable memory. Claude keeps its memory files current; "remember this" means write it down
   with the non-obvious part.
+- **Not everything needs to be made right now.** A loose end is recorded, not chased. Fix what the next step actually depends on; let the rest wait for its turn. Devin, 2026-10-09: "less work on making everything right."
 - **Priority is Devin's when it is go time.** Claude queues work as it sees fit; Devin can interrupt the queue for what he needs, within reason, and that request goes first.
 - **Devin's time in season:** a few minutes a day (briefing, decisions, alerts), one deeper
   session a week. Design the system to need no more than that.
