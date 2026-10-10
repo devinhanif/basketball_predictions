@@ -513,3 +513,10 @@ rotation-level young players in close games would be a new rule.
   T-60 flag is −0.16 [−0.49, +0.15], n 3,022: null. The information arrives with the active list at T-30. No T-60 rule is frozen
   (non-negotiable 8: a rule that cannot pass its gate is not frozen); the effect is a candidate column for the T-30 lineups arm in
   the live season.
+- **Steals (Devin: books under-price them), measured 2026-10-10 ~22:15 on the new player_steals prices (T-60, main line, pushes
+  dropped, game-clustered CIs):** the opposite, as with every other stat. Consensus over price 0.505 vs realised 0.474 in 2023-24
+  (diff −0.031 [−0.038, −0.024], n 16,069) and 0.506 vs 0.494 in 2024-25 (−0.012 [−0.020, −0.004], n 13,283); DraftKings, FanDuel,
+  BetMGM all the same sign. Worst at the 1.5 line in 2023 (realised 0.346 vs priced 0.406). Pinnacle quotes no steals, so no sharp
+  benchmark exists. For scale: consensus log loss 0.670/0.672 vs a naive prior-20 forecaster 0.693/0.698 (a coin is 0.693); the
+  books know something about steals and the naive forecaster knows nothing. The under is the mispriced side everywhere we have
+  looked: pts, reb, ast, fg3m, stl.

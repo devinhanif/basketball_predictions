@@ -29,6 +29,8 @@ _Living document. Last updated: 2026-10-10 14:50 CT (HEAD 5345319; tags `pre-res
 | `local.nba.kalshi-snapshot` | every 15 min | read-only Kalshi market/price snapshot to `data/kalshi/kalshi.duckdb` (plist is not created by `ops/install_launchd.sh`; documented in KALSHI_LIVE_2026-10-08.md) |
 | ingest queue (not launchd; `sh ops/run_ingest_queue.sh`) | continuous, ~6 s/request (~600/h quota) | 50-step sequential queue; at 13:23Z on 2026-10-09: 2 done (handover, cur:tracking), `cur:hustle` running since 13:16Z, 47 pending. Hustle ~6.5 h, older box scores ~18 h, then PBP; total is several days. Old seasons go to `data/history/nba_history.duckdb`, never `nba.duckdb`. Restart after reboot with the same script (done steps are skipped). The daily and lineup jobs yield stats.nba.com to it (b39aed0) |
 
+Derived as-of fact store (2026-10-10, additive, not scheduled): `data/facts/facts.duckdb` from `python -m nba.facts build`; every fact stamped with known_at, season <= 2024 only; no reader yet. See `FACTS_STORE.md`.
+
 Guards: one job at a time (`data/ops/lock`), waits up to 15 min for another `nba.duckdb` writer, failures go to `data/ops/ALERTS.md` plus a macOS notification. The Mac must be awake. Debutants on official-roster runs get a capped, cached `players_static` auto-fill that never fails the run (b39aed0). Details: DAILY_PIPELINE.md.
 
 ## 3. Shadow-logged (no effect on production or parlays)

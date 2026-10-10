@@ -90,3 +90,12 @@
 
 - 2026-10-10: `data/odds/odds_history.duckdb` gains market `player_steals` for seasons 2023 and 2024 (520,220 rows; raw cache under
   data/odds/raw/the_odds_api keyed by market set). 2,682 rows unresolved (vendor name variants, mostly 2023), not guessed.
+
+## 2026-10-10 UTC - facts store (new derived DB; nba.duckdb unchanged)
+- DRAFT (committing is the main session's act). New `data/facts/facts.duckdb` (gitignored, rebuildable) from
+  `python -m nba.facts build`; no manifest registered, no table in `nba.duckdb` read for write. Source opened read_only,
+  season <= 2024 only. Facts per predicate: tips_at 3,961; home_team 3,962; away_team 3,962; listed_status 87,530;
+  announced_starter 2,884; played_minutes 103,785; position 683; height_in 683; first_season 683; head_coach 87.
+  Entities 5,042 (players 1,008, games 3,962, coaches 42, teams 30).
+- Known gaps: 208 players_static rows lack first_season (no static facts); head_coach confidence 0.5 (table wrong in
+  14 of 87 team-seasons). known_at choices are in `docs/FACTS_STORE.md`.

@@ -113,3 +113,11 @@ finished markets are untouched) pulled 520,220 rows at 122,920 credits (dry-run 
 1.56M). Pinnacle quotes no steals; consensus and DraftKings/FanDuel exist; Novig/ProphetX late 2024 only.
 Why: Devin's hypothesis that books under-price steals; a descriptive calibration check is the honest first look (no steals model).
 What would reverse it: nothing to reverse; rows are deletable by market.
+
+## 2026-10-10 ~22:20 CT — As-of fact store adopted as the information backbone (nba/facts)
+What: `nba/facts/` (schema, builder, as-of query with post-tip refusal; docs/FACTS_STORE.md) built from existing tables with an
+honest known_at per predicate; first real build: 87,530 listed_status, 103,785 played_minutes, 2,884 announced_starter, 3,961 tips,
+87 head_coach (confidence 0.5; table known wrong). Not a model, no pre-registration; nothing in the live path reads it yet.
+Why: Devin's "knowledge graph" question (2026-10-10); the data's lesson that information wins; one as-of query for the explainer,
+the pretip job and the reporter feed (claimed edges with provenance = the prompt-injection defence).
+What would reverse it: no reader adopts it within the season.
