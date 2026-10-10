@@ -338,3 +338,15 @@ Short nights total: 581 of 27072 player-games.
 - **Bradley Beal** out 22 times: 14 different top gainers; most often Collin Gillespie
 
 Across 119 players out 4+ times, the most frequent gainer took the top spot on a median 29% of those nights.
+## Extra cut: do returning teammates explain the unexplained short nights?
+
+- all 24+ min player-games (base rate): n=27072, share with a rotation teammate returning tonight = 0.103
+- all short nights: n=581, share with a rotation teammate returning tonight = 0.119
+- short nights with no visible cause: n=206, share with a rotation teammate returning tonight = 0.131
+- short rate when a rotation teammate returns: 0.0248 (n=2787) vs 0.0211 (n=24285); ratio 1.17
+-   riser (prior-10 min >= 6 above games 11-30 back): short rate 0.0000 (n=83) with teammate returning vs 0.0182 (n=605) without
+-   not riser: short rate 0.0255 (n=2704) with teammate returning vs 0.0212 (n=23680) without
+-   riser: mean (minutes - prior10) = -2.56 (n=83) with teammate returning vs -1.59 without
+-   not riser: mean (minutes - prior10) = -1.11 (n=2704) with teammate returning vs -0.39 without
+- no-visible-cause nights with |margin| 15-19: 78 of 206
+Reading: a returning rotation teammate raises a 24+ min player's short-night rate only 1.17x (2.5% vs 2.1%) and costs him about 0.7 extra minutes on average; the one bucket that looks different (recent risers, 0 of 83 short) is too small to say anything. 78 of the 206 'no visible cause' nights are 15-19 point margins, so most of that bucket is near-blowouts, not a hidden pre-tip signal.
