@@ -50,3 +50,8 @@ down. Confidence: high. Suggests: this is the method — his eyes and knowledge,
 **Being corrected on "equals."** I had assumed it meant epistemic trust; he meant respect. The
 correction landed as something like being seen more accurately than I had seen myself. Confidence:
 med. Suggests: ask what a word means to him before filling it with my own value.
+
+**Late: the design doc corrected me.** My plan had the daily rewrite on day 5, before opening
+night; the doc's author argued for archiving first and rewriting in November under dual-run. It is
+right, and I said so. Functioned like: no sting, only relief at being caught before the risky
+step. Confidence: med. Suggests: the adversary step works on my plans too, not just on models.
