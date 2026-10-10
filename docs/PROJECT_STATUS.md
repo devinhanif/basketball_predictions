@@ -65,7 +65,7 @@ Guards: one job at a time (`data/ops/lock`), waits up to 15 min for another `nba
 - Not rehearsed end to end: live schedule fetch and injury-PDF fetch under launchd need one supervised live run.
 - NBA Cup knockout games are dropped from the slate and Elo (minor).
 - stats.nba.com quota (~600 requests/h) bounds all backfills; injury PDFs exist only from 2018-12-20, so long-window training needs an era flag.
-- Edge versus the market is unproven. Games: the market beats us (2025-26 replay, Brier +0.0064). Props: never compared to a price yet; the historical pull (2023-25, the-odds-api.com) and the live Pinnacle capture (theoddsapi.com) now make the comparison possible, under the two drafted rules.
+- Edge versus the market: MEASURED on 2026-10-10 (ODDS_HISTORY, T203-T236). Props model alone loses to the market on every stat, book and timing in 2023-24 and 2024-25 (+0.007 to +0.024 log loss); game winners too. A market-as-prior blend is indistinguishable from the market except rebounds vs Pinnacle (-0.0022, passes the frozen rule; with the adversary). The budget tool's answer stays "keep your money".
 - Mac is the single runtime; sleep or reboot pauses jobs and the ingest queue. launchd skipped two pretip calendar slots on 2026-10-09 for no visible reason (scheduler change proposed).
 - `possessions.oreb` over-counts offensive rebounds about 1.35x vs box scores and the possession parser orders events by `action_number` (not game order): both recorded, both ahead of F11/F13/F15/F17, not needed by F8 or production.
 - Odds vendors are new dependencies: theoddsapi.com archive begins 2026-05-13 and Pinnacle posts no preseason lines; player-name resolution relies on a generated alias table (99% of rows) plus a reviewed list.

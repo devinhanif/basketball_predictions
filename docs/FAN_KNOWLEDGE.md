@@ -389,3 +389,15 @@ rotation-level young players in close games would be a new rule.
   2025-26 replay; same sign, different convention). What did not hold is that draft slot adds information
   beyond the role itself. Honest null; no F9c. The role piece is already what the lineup and minutes work
   is chasing.
+
+## What the market comparison taught us (2026-10-10, ODDS_HISTORY, T203–T236)
+
+- Two seasons, two and a half million prop prices, every book: **the line is a better forecast than our model**, for
+  every stat, at the hour we would predict and at close. Our probabilities relative to the line are over-confident:
+  when we say a player is 26% to go over the line, he does 45% of the time; when we say 64%, 53%. What the model adds
+  beyond the line is mostly noise. Game winners: the same.
+- The market-as-prior shape is confirmed: a blend that is 70–90% market and 10–30% us is indistinguishable from the
+  market almost everywhere, and on rebounds against Pinnacle it is 0.002 log loss better (both timings, n ≈ 7k pairs,
+  CIs clear of zero). That is the one place our information might add a sliver, and it is the stat Devin named first as a
+  lineup property. It is with the adversary; nothing is claimed.
+- For the budget tool: "keep your money" stays the answer; the market's own number is the one to show.
