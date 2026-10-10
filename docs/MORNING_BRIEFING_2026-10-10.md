@@ -36,3 +36,19 @@
   the collaboration. Your call on the name and on disclosure.
 - Overnight: all eight import edges cut, each replay byte-identical to the Day-0 golden hash; the layering
   ratchet is at zero. Full 210-date replay runs next, then F9b under its frozen rule.
+
+## Needs attention before opening night: two pretip slots did not fire
+
+The watchdog alerted at 22:23: `daily-pretip` last started 20:50, nothing at 21:20 or 21:50 although both
+are in the plist. Ruled out: sleep (Kalshi snapshots landed at 21:02, 21:17, 21:32, 21:48 and the lineups
+job ran every 5 min), a held lock (no lock dir, no skip heartbeat, no "skipped" log line), a crash (stderr
+empty, last exit 0). launchd's run count (19 = 18 slots since the 11:52 install + RunAtLoad) says the job
+was simply not launched twice. Preseason: no prediction was missed. Unexplained launchd calendar skips
+are a known class of macOS behaviour; the unified log shows nothing for the job in that window.
+
+Recommendation (Claude): switch the pretip job from `StartCalendarInterval` to `StartInterval` 1800 s with
+the :20/:50 alignment and the 09–21 CT window enforced inside `ops/nba_daily.sh` (a missed interval is
+retried at the next tick; the heartbeat stays the truth), and have the watchdog run `launchctl kickstart`
+on a stale pretip rather than only alerting. Both are reversible and belong before the 10-17 freeze.
+First, watch whether 21:20/21:50 fire on 2026-10-10 (the watchdog will say). Devin: OK to make the
+scheduler change tomorrow?
