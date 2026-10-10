@@ -40,9 +40,11 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
 ## Roadmap after opening night
 
 1. Score the shadow arms forward (integer quantiles, T-30 lineups) with paired clustered bootstrap once enough games exist; decide promotion on live data.
-2. Hustle feature screen after the hustle download finishes (pre-registered in c88788a); expect no signal (T119-T123).
+2. DONE 2026-10-09: hustle feature screen ran under c88788a; no family passes (T174-T175); screen closed.
 3. History window experiment using 2013-2021 once the queue finishes; handle the missing injury feed before 2018-12-20 with an era flag.
-4. Fix the postseason schedule lookahead in the production feature path if it is shared (c9b00d1 fixed research features only).
+4. CLOSED 2026-10-10 by inspection: the production path has no forward-looking schedule feature (rest is the gap to the
+   previous game only; no `shift(-1)`, `days_to_next` or `b2b_first` anywhere under nba/). The lookahead lived only in the
+   research v2 features, fixed in c9b00d1.
 5. Platt P(play) forward check before trusting unconditional parlay probabilities.
 6. Parlay: stay shadow until the deferral gate (30 settled rows, 14 distinct dates) and a positive-EV-at-conservative-bound result; report "no positive EV found" when true.
 7. Optional, only if live results justify: pts-only regular-season hybrid variant with upper-tail fix; no 2025 touch.
