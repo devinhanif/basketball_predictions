@@ -24,3 +24,4 @@ A different hash reverts the cut.
 | 1. injury-report triggers out of nba.sim | 9de4302 | oracle_c | yes (e5714332) |
 | 2. metrics + walk-forward to nba/truth | e9ff326 | oracle_d | yes (e5714332) |
 | 3. feature_config_from next to its config | be4b11d | oracle_e | yes (e5714332) |
+| 4. dead routed-props branches deleted | ed2b168 | oracle_f | yes (e5714332) |
