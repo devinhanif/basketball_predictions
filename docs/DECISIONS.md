@@ -22,3 +22,5 @@ dated. Not for tests (ledger) or incidents (best practices).
 
 | 2026-10-09 | F11 (lineup context) HELD until stint durations reconcile with box minutes (currently 48% within 1 min) | four fan hypotheses rest on stints; running F11 on untrusted lineups would waste its one shot | stint reconciliation ≥ 95%, or proof that possession-level lineups are right even if durations are off |
 | 2026-10-09 | Coaches pulled right after officials, ahead of shots/matchups | ~120 requests; unblocks F14 ("coach's guy") | never |
+
+| 2026-10-09 | Fix the lineup tracker (period-start look-ahead, no eviction heuristic, initial-prefixed name resolution) before any lineup-based test | possessions have the correct five on only 78% of rows; lineups are the unit the project now cares about | never; the reconciliation rate (target ≥ 95%, reference tracker reaches 91.8%) is the acceptance test |

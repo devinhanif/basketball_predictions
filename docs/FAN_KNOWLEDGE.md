@@ -266,3 +266,14 @@ Devin is a Rockets fan.
   so fixing stint parsing is now the prerequisite. F11 is held until it is fixed.
 - **F9 closed (T184) → F9b frozen:** undrafted players (112 of 561 regulars) are a category, not
   missing data; seasons must be indexed from the first NBA season, not from our 2022 data start.
+
+## Caveat on every lineup number above (2026-10-09, late)
+
+The stint diagnosis (docs/reviews/stint_reconciliation_2026-10-09.md, d6a38ef) found that
+`possessions.off_players/def_players` carry the previous period's five into Q2–Q4 until someone acts:
+only ~78% of possessions have the exact correct five on both sides (Q1 93%, Q2–Q4 ~72–75%; mean
+overlap 4.72/5). Durations are exact; attribution is not. Every on/off number in this file (Curry
+gravity, Sheppard hunted, Tre Jones vs Hyland, #2-scorer lift, momentum snapshots) was computed on
+these lineups. Directions probably survive (one wrong slot early in a period is noise, not a
+systematic bias toward any player), but none should be quoted as a measurement until the tracker is
+fixed and the numbers are recomputed. F11, F13, F15, F17 wait for the fix.
