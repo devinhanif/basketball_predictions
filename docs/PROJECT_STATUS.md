@@ -1,6 +1,6 @@
 # NBA Prediction — Project Status
 
-_Living document. Last updated: 2026-10-10 10:45 CT (HEAD c41084b; tags `pre-restructure-2026-10-10`, `live-candidate-2026-10-10`). Earlier narrative (2026-10-08) is kept below under "Background". Sources: git log, TEST_LEDGER (T001-T201), HOLDOUT_ACCESS_LOG, MORNING_BRIEFING_2026-10-10, DECISIONS.md, `nba.registry list`, launchctl, docs/reviews/._
+_Living document. Last updated: 2026-10-10 14:50 CT (HEAD 5345319; tags `pre-restructure-2026-10-10`, `live-candidate-2026-10-10`). Earlier narrative (2026-10-08) is kept below under "Background". Sources: git log, TEST_LEDGER (T001-T201), HOLDOUT_ACCESS_LOG, MORNING_BRIEFING_2026-10-10, DECISIONS.md, `nba.registry list`, launchctl, docs/reviews/._
 
 **Since 2026-10-09 evening (all byte-identical on the live path, proven by the replay oracle):** lineup tracker fixed twice (stint reconciliation 45% → 98-99%); eight research→production import edges cut; 98 research modules (40,780 lines) archived under `research/` and tested in CI; the layering test forbids `nba/` from importing `research/`; F9b closed as a null (T186-T201); two odds feeds wired (live Pinnacle benchmark; two-season historical props pull running); F19 "never four givens" measured (the market's safest legs are priced right)._
 
@@ -41,6 +41,10 @@ Guards: one job at a time (`data/ops/lock`), waits up to 15 min for another `nba
 
 ## 4. Experiments ledger (newest first; ids in TEST_LEDGER.md)
 
+- ODDS_HISTORY market comparison (T203-T237, 2026-10-10): market better on every props cell and on game winners, both seasons; blend indistinguishable except reb vs Pinnacle (-0.0022), red-teamed WOUNDED (half price bias). Nothing promoted.
+- F11 lineup context (T244-T251, 2026-10-10): powered NULL at T-60 on fixed lineups; the oracle on actual stints gains -0.058 pts CRPS, so the lineup signal is the confirmed five at T-30 (live T-30 arm). Closed.
+- REFEREES crew tendencies (T202, T238-T243, 2026-10-10): gate passed after the official-id merge; NULL for pts, fg3m and the total.
+- F8 lineup rebounding: draft finalised (G3 passes on n_oreb/n_dreb), awaiting Devin's "confirmed" to freeze and run.
 - F9b young top-10 pick prior, re-registered (T186-T201, 2026-10-10): CLOSED. All five data checks passed; no stat reached the slice dCRPS floor (pts -0.003 / -0.006 vs -0.02); the placebo moved the bias as much as pedigree. The under-forecast of young starters (+0.4 pts) is role, not draft slot. No F9c.
 - F19 "never four givens" (descriptive, 2025-26 replay with Kalshi prices): the market's four safest sides sweep 40.5% of nights vs 37.4% implied, CI includes 0; a rolled 4-leg ticket returned about -5% after fees. Priced right. reports/f19_safest_legs.md.
 - F12 closing-lineup risk (T185) and F9 (T184): closed at their own data checks (F12 premise not replicated; F9 mis-specified undrafted as missing).

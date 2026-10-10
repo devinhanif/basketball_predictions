@@ -11,9 +11,9 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
 5. Resolve maintainer decisions (PROJECT_STATUS section 6): VM, rclone client_id, checkpoint cleanup, integer-quantile route.
 6. Confirm the registry shows `rung0_injury_elo` v2 and `props_context_residual` v2 as production (`uv run python -m nba.registry list`).
 
-- Pretip scheduler: 21:20 and 21:50 did not fire on 2026-10-09 (watchdog caught it; launchd run count
-  confirms no launch; not sleep, not a lock, not a crash). Watch 2026-10-10; then StartInterval 1800 s with
-  the window enforced in the script, and watchdog kickstart on stale (docs/MORNING_BRIEFING_2026-10-10.md).
+- Pretip scheduler: launchd evaluates the calendar an hour ahead (timezone cached at load; morning job fired 07:00 for an
+  08:00 plist; the 21:20/21:50 slots fire at 20:20/20:50 CDT). Devin chose to leave it (2026-10-10): benign for opening
+  night (last tip 21:30 ET = 20:30 CT is covered). Reboot or the StartInterval schedule if it ever matters.
 
 - Wave A follow-ups (small, each its own commit + 20-date replay): move `GateFailure/evaluate_gate/load_tolerances` into
   `nba/registry/gate.py` and archive the rung-ladder chain (model_gate, eval/{__main__,run,report}, rung1-3, sim/{engine,
