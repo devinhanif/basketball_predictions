@@ -30,9 +30,6 @@ from nba.daily.predict import (
     PROPS_VERSION,
     RECENCY_PROPS_MODEL_NAME,
     RECENCY_PROPS_VERSION,
-    ROUTED_N_SIMS,
-    ROUTED_PROPS_MODEL_NAME,
-    ROUTED_PROPS_VERSION,
     ResolvedModel,
     context_prop_predictions,
     fit_mov_elo,
@@ -43,7 +40,6 @@ from nba.daily.predict import (
     recency_prop_predictions,
     resolve_production,
     rolling_prop_baseline,
-    routed_prop_predictions,
     slate_report_outs,
 )
 from nba.daily.schedule import (
@@ -67,7 +63,7 @@ from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.ingest.games import MAX_VALID_TEAM_ID, MIN_VALID_TEAM_ID
 from nba.ingest.players_static import autofill_players_static
 from nba.models.injury_elo import predict_games
-from nba.props.forward import OFFICIAL_ROSTER_FLOOR, SIM_STATS, ForwardConfig
+from nba.props.forward import OFFICIAL_ROSTER_FLOOR, ForwardConfig
 from nba.props.rosters import (
     DEFAULT_ROSTER_DIR,
     RosterFetcher,
@@ -125,7 +121,6 @@ def run_daily(
     name_index: dict[str, int] | None = None,
     elo_config: Path | None = None,
     props_model: str = "context",
-    n_sims: int = ROUTED_N_SIMS,
     model_cache: Path | None = None,
     roster_source: str = "recent",
     roster_dir: Path | None = None,
@@ -207,7 +202,7 @@ def run_daily(
     if upcoming:
         preds = _build_predictions(
             con, run_date, season_i, upcoming, made_at, registry,
-            with_props, elo_config, summary, props_model, n_sims, model_cache,
+            with_props, elo_config, summary, props_model, model_cache,
             official,
             log_int_variant, log_lower_tail_variant,
         )  # fmt: skip
@@ -316,7 +311,6 @@ def _build_predictions(
     elo_config: Path | None,
     summary: RunSummary,
     props_model: str = "context",
-    n_sims: int = ROUTED_N_SIMS,
     model_cache: Path | None = None,
     official_roster: pl.DataFrame | None = None,
     log_int_variant: bool = False,
@@ -418,15 +412,6 @@ def _build_predictions(
                 summary.model_status[RECENCY_PROPS_MODEL_NAME] = (
                     f"FAILED ({type(exc2).__name__}: {exc2})"[:200] + " -> rolling baseline"
                 )
-    if props_model == "routed":
-        try:
-            out.extend(_routed_props(con, run_date, upcoming, out_set, n_sims, summary))
-            return out
-        except Exception as exc:  # loud, recorded fallback; never blocks the Elo forecast
-            summary.n_props_rows = 0
-            summary.model_status[ROUTED_PROPS_MODEL_NAME] = (
-                f"FAILED ({type(exc).__name__}: {exc})"[:200] + " -> rolling baseline"
-            )
     summary.model_status[PROPS_MODEL_NAME] = f"{PROPS_VERSION} (rolling-average baseline)"
     teams = sorted({t for g in upcoming for t in (g.home_team, g.away_team)})
     base = rolling_prop_baseline(con, run_date, teams, out_set)
@@ -691,33 +676,3 @@ def _recency_only_props(
     return primary + _frame_preds(
         df, upcoming, RECENCY_PROPS_MODEL_NAME, RECENCY_PROPS_VERSION, run_date, common
     )
-
-
-def _routed_props(
-    con: duckdb.DuckDBPyConnection,
-    run_date: date,
-    upcoming: list[ScheduledGame],
-    out_set: set[int],
-    n_sims: int,
-    summary: RunSummary,
-) -> list[ForwardPrediction]:
-    df = routed_prop_predictions(
-        con, run_date, [(g.game_id, g.home_team, g.away_team) for g in upcoming], out_set,
-        n_sims=n_sims,
-    )  # fmt: skip
-    if SIM_STATS:
-        routing = (
-            f"sim for {'/'.join(SIM_STATS)} of cold-start/intermittent/erratic players, "
-            "else recency-weighted played-games average"
-        )
-    else:
-        routing = "sim routing disabled (SIM_STATS empty): recency-weighted played-games average"
-    summary.model_status[ROUTED_PROPS_MODEL_NAME] = (
-        f"{ROUTED_PROPS_VERSION} (n_sims={n_sims}; {routing})"
-    )
-    rows = _frame_preds(
-        df, upcoming, ROUTED_PROPS_MODEL_NAME, ROUTED_PROPS_VERSION, run_date,
-        {"n_sims": n_sims},
-    )  # fmt: skip
-    summary.n_props_rows += len(rows)
-    return rows

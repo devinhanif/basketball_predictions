@@ -40,8 +40,6 @@ RESEARCH_PREFIXES = (
 #: (live module, research module) edges still present. Shrinks with every cut; never grows.
 KNOWN_EDGES: frozenset[tuple[str, str]] = frozenset(
     {
-        ("nba.daily.predict", "nba.stack.frozen"),
-        ("nba.daily.predict", "nba.stack.populate"),
         ("nba.features.player_possession_features", "nba.coldstart.shrinkage"),
         ("nba.features.player_rebound_assist_features", "nba.coldstart.shrinkage"),
         ("nba.features.possession_features", "nba.coldstart.shrinkage"),

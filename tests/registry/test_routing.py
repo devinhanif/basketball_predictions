@@ -6,16 +6,13 @@ Temp DBs / stores only; never nba.duckdb.
 from __future__ import annotations
 
 import json
-from datetime import date
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
-import polars as pl
 import pytest
 
-from nba.daily import predict as pred
 from nba.db.connect import connect
 from nba.registry.local import LocalRegistry
 from nba.registry.routing import (
@@ -32,7 +29,6 @@ from nba.stack.adapters import quantile_grid
 from nba.stack.frozen import freeze_softmax
 from nba.stack.oof import write_oof
 from nba.stack.routebuild import BuildInputs, build_specs
-from tests.fixtures.loader import build_fixture_db
 
 LEDGER_TEXT = "rung0_injury_elo rung0_mov_elo context_residual recency"
 
@@ -216,7 +212,6 @@ def test_registry_round_trip_and_promotion(
         )
         promote_route(reg, con, "pts", v, verdict_path=verdict, ledger=ledger)
         assert fetch_routes(con, "pts")[0].stage == "production"
-        assert pred.load_active_routes(reg)["pts"].version == "v1"
     finally:
         con.close()
 
@@ -283,103 +278,6 @@ def _router_spec_for_fixture() -> dict[str, Any]:
         gate.features,
     )
     return spec.to_dict()
-
-
-def _fixture_frames(con: Any) -> tuple[dict[str, pl.DataFrame], date]:
-    rows = con.execute(
-        "SELECT s.game_id, s.player_id FROM player_game_stats s WHERE s.minutes > 0"
-    ).fetchall()
-    slate = con.execute("SELECT max(game_date) FROM games").fetchone()[0]
-    slate = date.fromordinal(slate.toordinal() + 1)
-    n = len(rows)
-    rng = np.random.default_rng(2)
-    out: dict[str, pl.DataFrame] = {}
-    for off, cid in ((0.0, "context_residual"), (1.0, "recency")):
-        mu = np.full(n, 12.0 + off)
-        q = quantile_grid(mu, np.full(n, 4.0), "normal")
-        out[cid] = pl.DataFrame(
-            {
-                "game_id": [f"slate_{r[0]}" for r in rows],
-                "player_id": [int(r[1]) for r in rows],
-                "stat": ["pts"] * n,
-                "mean": mu,
-                "std": np.full(n, 4.0),
-                "q_grid": [json.dumps(list(map(float, r))) for r in q],
-                "p_ge": [
-                    json.dumps({"10": 0.7 + 0.01 * off + 0.0 * rng.random(), "20": 0.1})
-                    for _ in range(n)
-                ],
-            }
-        )
-    return out, slate
-
-
-def test_load_active_routes_default_is_empty(tmp_path: Path) -> None:
-    assert pred.load_active_routes(None) == {}
-    con = connect(tmp_path / "d.duckdb")
-    try:
-        assert pred.load_active_routes(LocalRegistry(con, tmp_path / "s")) == {}
-    finally:
-        con.close()
-
-
-def test_apply_active_route_on_fixture() -> None:
-    con = build_fixture_db()
-    frames, slate = _fixture_frames(con)
-    spec = _router_spec_for_fixture()
-    route = pred.ActiveRoute("pts", "v1", spec, True, "ok")
-    out = pred.apply_active_route(route, "pts", frames, con, slate)
-    assert out.height == frames["recency"].height
-    grids = np.asarray([json.loads(v) for v in out["q_grid"].to_list()])
-    assert grids.shape[1] == 19 and (np.diff(grids, axis=1) >= -1e-9).all()
-    lo = np.minimum(
-        *[np.asarray([json.loads(v) for v in frames[c]["q_grid"].to_list()]) for c in frames]
-    )
-    hi = np.maximum(
-        *[np.asarray([json.loads(v) for v in frames[c]["q_grid"].to_list()]) for c in frames]
-    )
-    assert (grids >= lo - 1e-3).all() and (grids <= hi + 1e-3).all()  # a convex combination
-    w = [json.loads(v) for v in out["route_weights"].to_list()]
-    assert all(abs(sum(d.values()) - 1.0) < 1e-3 for d in w)
-    assert set(out["model"].to_list()) == {"route:route_pts:v1"}
-    assert all(0.0 <= v <= 1.0 for d in out["p_ge"].to_list() for v in json.loads(d).values())
-
-
-def test_apply_refuses_missing_candidate_and_unapplicable() -> None:
-    con = build_fixture_db()
-    frames, slate = _fixture_frames(con)
-    spec = _router_spec_for_fixture()
-    route = pred.ActiveRoute("pts", "v1", spec, True, "ok")
-    with pytest.raises(KeyError):
-        pred.apply_active_route(
-            route, "pts", {"context_residual": frames["context_residual"]}, con, slate
-        )
-    bad = pred.ActiveRoute("pts", "v1", spec, False, "candidates not available forward")
-    with pytest.raises(ValueError):
-        pred.apply_active_route(bad, "pts", frames, con, slate)
-
-
-def test_routed_wrapper_equals_default_without_routes(monkeypatch: pytest.MonkeyPatch) -> None:
-    sentinel = object()
-    monkeypatch.setattr(pred, "context_prop_predictions", lambda *a, **k: sentinel)
-    res, status = pred.context_prop_predictions_routed(
-        None,
-        date(2026, 1, 1),
-        [],
-        {},
-        {},
-        None,  # type: ignore[arg-type]
-    )
-    assert res is sentinel and status == {}
-
-
-def test_apply_uses_only_games_before_slate() -> None:
-    con = build_fixture_db()
-    frames, slate = _fixture_frames(con)
-    route = pred.ActiveRoute("pts", "v1", _router_spec_for_fixture(), True, "ok")
-    early = date(2023, 10, 24)  # first fixture day: history before it is empty -> still computes
-    out = pred.apply_active_route(route, "pts", frames, con, early)
-    assert out.height > 0
 
 
 def test_cli_validate_show_and_scenario_guard(

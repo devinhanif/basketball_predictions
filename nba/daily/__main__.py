@@ -46,8 +46,7 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument("--skip-ingest", action="store_true")
     r.add_argument("--skip-injury", action="store_true")
     r.add_argument("--no-props", action="store_true")
-    r.add_argument("--props-model", choices=["context", "routed", "rolling"], default="context")
-    r.add_argument("--n-sims", type=int, default=1000)
+    r.add_argument("--props-model", choices=["context", "rolling"], default="context")
     r.add_argument("--rate-limit-s", type=float, default=0.6)
     r.add_argument(
         "--schedule-from-db",
@@ -236,7 +235,6 @@ def main(argv: list[str] | None = None) -> int:
             props_model=args.props_model,
             log_int_variant=args.log_int_variant,
             log_lower_tail_variant=args.log_lower_tail_variant,
-            n_sims=args.n_sims,
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
             schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,

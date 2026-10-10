@@ -74,8 +74,8 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
      history, error), the slate falls back to recency, written under both names, with
      `routed_to=recency_fallback` and the reason in `fallback_reason` and in the run summary.
      Players with < 5 prior played games get `recency_fallback` rows inside a normal slate.
-     Other modes: `--props-model routed` (sim routing per `SIM_STATS`, currently empty so it
-     is recency only) and `--props-model rolling` (old 82-game baseline).
+     The only other mode is `--props-model rolling` (old 82-game baseline); the sim-routed
+     mode and the registry-route branch were deleted on 2026-10-09 (edge 4 of the restructure).
      Rosters come from who played in each team's last 10 games minus outs; a rookie debut or
      an offseason move is invisible until a first box score. **Contract per player-stat**
      (all stored in the prediction JSON):

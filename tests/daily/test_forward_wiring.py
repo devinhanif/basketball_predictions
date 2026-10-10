@@ -1,4 +1,4 @@
-"""Routed props wired into the daily loop; uncached games refresh hook; schema DDL."""
+"""Daily loop props modes; uncached games refresh hook; schema DDL."""
 
 from __future__ import annotations
 
@@ -13,61 +13,22 @@ import pytest
 
 from nba.daily import ingest_step, pipeline
 from nba.daily.pipeline import run_daily
-from nba.daily.predict import ROUTED_PROPS_MODEL_NAME, routed_prop_predictions
 from nba.daily.store import DDL
 from nba.ingest import games as games_mod
-from nba.props.forward import SIM_STATS
 from tests.daily.conftest import RUN_DATE, T1, T2, before_tip, slate_games
 
 
 def _run(con: duckdb.DuckDBPyConnection, now: datetime, **kw: object) -> pipeline.RunSummary:
     return run_daily(
         con, RUN_DATE, schedule_fn=lambda s: slate_games(), now=now, skip_ingest=True,
-        skip_injury=True, n_sims=100, **kw,
+        skip_injury=True, **kw,
     )  # type: ignore[arg-type]  # fmt: skip
-
-
-def test_routed_run_uses_routed_props_pre_tip(con: duckdb.DuckDBPyConnection) -> None:
-    s = _run(con, before_tip(), props_model="routed")
-    label = s.model_status[ROUTED_PROPS_MODEL_NAME]
-    # the label follows SIM_STATS instead of a hardcoded (stale) routing description
-    assert ("sim for " + "/".join(SIM_STATS) in label) if SIM_STATS else ("disabled" in label)
-    assert ROUTED_PROPS_MODEL_NAME in s.model_status
-    assert "FAILED" not in s.model_status[ROUTED_PROPS_MODEL_NAME]
-    rows = con.execute(
-        "SELECT made_at, tipoff, player_id, target, prediction FROM forward_predictions "
-        "WHERE model_name = ?",
-        [ROUTED_PROPS_MODEL_NAME],
-    ).fetchall()
-    assert rows and len(rows) == s.n_props_rows
-    assert all(r[0] < r[1] for r in rows)
-    pred = json.loads(rows[0][4])
-    for k in ("mean", "std", "p_ge", "q10", "q50", "q90", "routed_to", "bucket", "n_sims"):
-        assert k in pred
-    assert pred["features_as_of_before"] == RUN_DATE.isoformat()
-
-
-def test_injury_outs_excluded_from_routed_props(con: duckdb.DuckDBPyConnection) -> None:
-    df = routed_prop_predictions(con, RUN_DATE, [("0022600001", T1, T2)], {1000}, n_sims=50)
-    assert 1000 not in df["player_id"].to_list() and df.height > 0
-
-
-def test_routed_failure_falls_back_loudly(
-    con: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def boom(*a: object, **k: object) -> pl.DataFrame:
-        raise RuntimeError("sim exploded")
-
-    monkeypatch.setattr(pipeline, "routed_prop_predictions", boom)
-    s = _run(con, before_tip(), props_model="routed")
-    assert "FAILED" in s.model_status[ROUTED_PROPS_MODEL_NAME]
-    assert "props_rolling_avg_baseline" in s.model_status
-    assert s.n_props_rows > 0  # win-prob and baseline props still written
 
 
 def test_rolling_flag_keeps_baseline(con: duckdb.DuckDBPyConnection) -> None:
     s = _run(con, before_tip(), props_model="rolling")
-    assert ROUTED_PROPS_MODEL_NAME not in s.model_status
+    assert "props_rolling_avg_baseline" in s.model_status
+    assert "props_context_residual" not in s.model_status
 
 
 def test_refresh_season_games_is_uncached_passthrough(
@@ -174,7 +135,7 @@ def test_context_run_writes_primary_and_recency_and_caches(tmp_path: object) -> 
         ScheduledGame("0022600901", tip, T1, T2),
         ScheduledGame("0022600902", tip + timedelta(hours=3), T3, T4),
     ]
-    kw = dict(schedule_fn=lambda s: games, skip_ingest=True, skip_injury=True, n_sims=50)
+    kw = dict(schedule_fn=lambda s: games, skip_ingest=True, skip_injury=True)
     s1 = run_daily(c, AS_OF, now=tip - timedelta(hours=3), **kw)  # type: ignore[arg-type]
     st = s1.model_status["props_context_residual"]
     assert st.startswith("ctxres-v1") and "fit" in st and "FAILED" not in st

@@ -34,7 +34,6 @@ def test_all_arms_store_full_support_and_int_rescoring_is_identical() -> None:
         schedule_fn=lambda _s: games,
         skip_ingest=True,
         skip_injury=True,
-        n_sims=50,
         log_int_variant=True,
         log_lower_tail_variant=True,
     )

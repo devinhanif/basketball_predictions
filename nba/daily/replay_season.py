@@ -168,7 +168,6 @@ class ReplayConfig:
     paper_db: Path | None = None
     with_props: bool = True
     log_variants: bool = True
-    n_sims: int = 1000
 
     @property
     def state_path(self) -> Path:
@@ -300,7 +299,6 @@ def _pretip_run(cfg: ReplayConfig, d: date, rt: datetime) -> RunSummary:
             props_model="context",
             log_int_variant=cfg.log_variants,
             log_lower_tail_variant=cfg.log_variants,
-            n_sims=cfg.n_sims,
             rate_limiter=RateLimiter(0.0),
             tips_dir=None,
             schedule_cache_dir=None,
