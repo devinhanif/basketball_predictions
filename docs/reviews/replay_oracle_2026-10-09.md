@@ -27,3 +27,4 @@ A different hash reverts the cut.
 | 4. dead routed-props branches deleted | ed2b168 | oracle_f | yes (e5714332) |
 | 7. OpponentAdjustmentConfig into props/config | a9d7a69 | oracle_g | yes (e5714332) |
 | 6. dead pts_tail flag removed | 32e89f2 | oracle_h | yes (e5714332) |
+| 5. possession-sim branch out of props/forward; SB buckets to features | b402035 | oracle_i | yes (e5714332) |
