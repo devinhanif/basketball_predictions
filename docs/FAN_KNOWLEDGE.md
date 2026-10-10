@@ -424,3 +424,15 @@ rotation-level young players in close games would be a new rule.
 - **Lines (Pinnacle T-60, 72,674 pairs):** the model is never closer than Pinnacle in any stat x line-position x role cell. As the
   line moves from −0.5 to +0.5 sd of our mean, realised over-rate 0.54 → 0.42, ours 0.57 → 0.31, Pinnacle 0.54 → 0.45: we are
   over-confident about where the line sits. Worst: bench ceiling lines (pts, z 0.5–1: we say 23%, happens 49%, n 331).
+
+### Devin's answers (2026-10-10, ~16:30)
+1. Returning teammate costs the star about a point: **yes.** → candidate rule (new pre-registration; pre-tip definition of
+   "returning" = absent the last 3+ team games and not on tonight's OUT list).
+2. Number of teammates OUT does nothing for the star because the coach spreads the usage: **yes.** Recorded as a confirmed
+   null; no rule.
+3. Short nights: asked for named examples (reports/model_miss_examples_2026-10-10.md).
+4. Deep-bench minutes: **no**, it is driven by things we cannot read (the coach's intent). The injury flag stays the only
+   pre-tip signal; no "coach said he'd play" source to build.
+5. Absorption: asked for named examples (same report).
+6. Lines: Devin's view is that the book's line is usually wrong by **under-predicting something we are not looking at**.
+   Open hypothesis; needs the "something" named before it can be a rule.
