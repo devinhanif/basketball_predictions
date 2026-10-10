@@ -42,6 +42,8 @@ _SCHEMA = [
     "draft_year",
     "draft_pick",
     "college",
+    "first_season",
+    "draft_status",
 ]
 
 _MAX_FETCH_ATTEMPTS = 3
@@ -79,6 +81,20 @@ def _parse_float(value: object) -> float | None:
         return None
 
 
+def parse_draft_status(draft_year: object, draft_number: object) -> str:
+    """'drafted' | 'undrafted' | 'unknown' from the raw CommonPlayerInfo text.
+
+    'undrafted' needs positive evidence (the literal text 'Undrafted' in DRAFT_NUMBER or
+    DRAFT_YEAR); a numeric pick or draft year is 'drafted'; blanks stay 'unknown'.
+    """
+    raw = [str(v).strip() for v in (draft_year, draft_number) if v is not None]
+    if any(r.lower() == "undrafted" for r in raw):
+        return "undrafted"
+    if any(r.isdigit() for r in raw):
+        return "drafted"
+    return "unknown"
+
+
 def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
     """Map a raw ``CommonPlayerInfo`` frame to ``_SCHEMA`` (one row)."""
     empty = pl.DataFrame(
@@ -91,6 +107,8 @@ def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
             "draft_year": [None],
             "draft_pick": [None],
             "college": [None],
+            "first_season": [None],
+            "draft_status": ["unknown"],
         },
         schema={
             "player_id": pl.Int64,
@@ -101,6 +119,8 @@ def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
             "draft_year": pl.Int64,
             "draft_pick": pl.Int64,
             "college": pl.Utf8,
+            "first_season": pl.Int64,
+            "draft_status": pl.Utf8,
         },
     )
     if frame.is_empty():
@@ -131,6 +151,8 @@ def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
             "draft_year": [_parse_int(_get("DRAFT_YEAR"))],
             "draft_pick": [_parse_int(_get("DRAFT_NUMBER"))],
             "college": [college],
+            "first_season": [_parse_int(_get("FROM_YEAR"))],
+            "draft_status": [parse_draft_status(_get("DRAFT_YEAR"), _get("DRAFT_NUMBER"))],
         },
         schema=empty.schema,
     )
@@ -209,6 +231,12 @@ def load_players_static(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -> int
     """Upsert parsed rows into ``players_static`` (keyed on player_id). Returns count."""
     if df.is_empty():
         return 0
+    # Frames cached before the F9b columns existed lack them: both stay NULL, meaning
+    # "not pulled with these fields yet"; 'unknown' is reserved for a pull that was blank.
+    if "first_season" not in df.columns:
+        df = df.with_columns(pl.lit(None, dtype=pl.Int64).alias("first_season"))
+    if "draft_status" not in df.columns:
+        df = df.with_columns(pl.lit(None, dtype=pl.Utf8).alias("draft_status"))
     con.register("ps_new", df.select(_SCHEMA))
     con.execute("DELETE FROM players_static WHERE player_id IN (SELECT player_id FROM ps_new)")
     cols = ", ".join(_SCHEMA)
@@ -278,3 +306,90 @@ def autofill_players_static(
         "failed": failed,
         "over_cap": skipped,
     }
+
+
+def cached_missing_status_fields(ids: list[int], *, data_dir: Path = DEFAULT_DATA_DIR) -> list[int]:
+    """Ids whose cached frame is absent or predates ``first_season``/``draft_status``."""
+    out_dir = data_dir / "players_static"
+    need: list[int] = []
+    for pid in sorted({int(p) for p in ids}):
+        path = out_dir / f"{pid}.parquet"
+        if not path.exists() or not {"first_season", "draft_status"} <= set(
+            pl.read_parquet_schema(path)
+        ):
+            need.append(pid)
+    return need
+
+
+def refresh_status_fields(
+    ids: list[int],
+    *,
+    data_dir: Path = DEFAULT_DATA_DIR,
+    rate_limiter: RateLimiter | None = None,
+    fetch: Callable[[int], pl.DataFrame] | None = None,
+    progress_every: int = 50,
+) -> dict[str, int]:
+    """Re-pull ``CommonPlayerInfo`` ONLY for ids whose cache lacks the F9b fields.
+
+    Overwrites that player's parquet with the new-schema frame (resumable: a refreshed
+    file is skipped on rerun). Never raises on a single failure; caller upserts after.
+    """
+    todo = cached_missing_status_fields(ids, data_dir=data_dir)
+    out_dir = data_dir / "players_static"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pulled = failed = 0
+    for i, pid in enumerate(todo, 1):
+        try:
+            if rate_limiter is not None:
+                rate_limiter.wait()
+            (fetch or _fetch_with_retry)(pid).write_parquet(out_dir / f"{pid}.parquet")
+            pulled += 1
+        except Exception as exc:
+            failed += 1
+            print(f"players_static refresh FAILED [{pid}]: {type(exc).__name__}: {exc}"[:200])
+        if progress_every and i % progress_every == 0:
+            print(f"...refresh {i}/{len(todo)}", flush=True)
+    return {"requested": len(set(ids)), "needed": len(todo), "pulled": pulled, "failed": failed}
+
+
+def backfill_f9b_prereq(db_path: Path | None = None, *, min_interval_s: float = 2.5) -> None:
+    """F9b prerequisite: refresh cache for players lacking the new fields, then upsert.
+
+    Targets active players (>=20 games, season 2023) plus every player with a NULL
+    draft_pick or draft_year. Holds ``data/ops/lock`` (mkdir; removed on exit) so the
+    background queue yields. Reads the DB read-only for target selection; the upsert is
+    one short write after all network calls. Run: ``python -m nba.ingest.players_static``.
+    """
+    from nba.db.connect import DEFAULT_DB_PATH, connect
+
+    path = db_path or DEFAULT_DB_PATH
+    ro = duckdb.connect(str(path), read_only=True)
+    ids = [
+        int(r[0])
+        for r in ro.execute(
+            "SELECT player_id FROM players_static WHERE draft_pick IS NULL OR draft_year IS NULL "
+            "UNION SELECT pgs.player_id FROM player_game_stats pgs JOIN games g USING(game_id) "
+            "WHERE g.season = 2023 GROUP BY 1 HAVING count(*) >= 20 ORDER BY 1"
+        ).fetchall()
+    ]
+    ro.close()
+    lock = DEFAULT_DATA_DIR / "ops" / "lock"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.mkdir()  # raises if held by someone else
+    try:
+        print(refresh_status_fields(ids, rate_limiter=RateLimiter(min_interval_s)), flush=True)
+    finally:
+        lock.rmdir()
+    frames = [pl.read_parquet(DEFAULT_DATA_DIR / "players_static" / f"{p}.parquet") for p in ids]
+    con = connect(path)
+    try:
+        con.execute("BEGIN")
+        n = load_players_static(con, pl.concat(frames, how="vertical_relaxed"))
+        con.execute("COMMIT")
+    finally:
+        con.close()
+    print("upserted", n)
+
+
+if __name__ == "__main__":
+    backfill_f9b_prereq()

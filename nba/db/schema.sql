@@ -86,6 +86,10 @@ CREATE TABLE IF NOT EXISTS players_static (
     college VARCHAR,
     college_stats JSON          -- nullable; per-100 poss where available
 );
+-- F9b prerequisite: first NBA season (CommonPlayerInfo FROM_YEAR) and explicit draft status
+-- ('drafted' | 'undrafted' | 'unknown'); 'undrafted' only on positive evidence from the raw text.
+ALTER TABLE players_static ADD COLUMN IF NOT EXISTS first_season INT;
+ALTER TABLE players_static ADD COLUMN IF NOT EXISTS draft_status VARCHAR;
 
 CREATE TABLE IF NOT EXISTS player_game_stats (
     game_id VARCHAR,

@@ -14,9 +14,12 @@ from nba.db.connect import connect
 from nba.ingest.players_static import (
     _normalize_player_info,
     _parse_int,
+    cached_missing_status_fields,
     load_players_static,
+    parse_draft_status,
     parse_height_to_inches,
     player_ids_needing_pull,
+    refresh_status_fields,
 )
 
 
@@ -135,3 +138,60 @@ def test_player_ids_needing_pull_and_load(con: duckdb.DuckDBPyConnection) -> Non
     assert player_ids_needing_pull(con) == [30]
     assert load_players_static(con, df) == 2
     assert con.execute("SELECT COUNT(*) FROM players_static").fetchone()[0] == 2
+
+
+def test_parse_draft_status_needs_positive_evidence() -> None:
+    assert parse_draft_status("Undrafted", "Undrafted") == "undrafted"
+    assert parse_draft_status("2020", "Undrafted") == "undrafted"
+    assert parse_draft_status("2009", "7") == "drafted"
+    assert parse_draft_status("2009", "") == "drafted"
+    assert parse_draft_status("", "") == "unknown"
+    assert parse_draft_status(None, None) == "unknown"
+
+
+def test_normalize_reads_from_year_and_status() -> None:
+    raw = pl.DataFrame(
+        {
+            "POSITION": ["Guard"],
+            "HEIGHT": ["6-2"],
+            "WEIGHT": ["185"],
+            "BIRTHDATE": ["1999-03-14T00:00:00"],
+            "DRAFT_YEAR": ["Undrafted"],
+            "DRAFT_NUMBER": ["Undrafted"],
+            "SCHOOL": [""],
+            "FROM_YEAR": ["2021"],
+        }
+    )
+    row = _normalize_player_info(raw, 5).to_dicts()[0]
+    assert row["first_season"] == 2021
+    assert row["draft_status"] == "undrafted"
+    assert row["draft_pick"] is None and row["draft_year"] is None
+
+
+def test_schema_has_f9b_columns_and_load_roundtrip(con: duckdb.DuckDBPyConnection) -> None:
+    raw = pl.DataFrame({"DRAFT_YEAR": ["2018"], "DRAFT_NUMBER": ["3"], "FROM_YEAR": ["2018"]})
+    load_players_static(con, _normalize_player_info(raw, 9))
+    assert con.execute(
+        "SELECT first_season, draft_status FROM players_static WHERE player_id=9"
+    ).fetchall() == [(2018, "drafted")]
+
+
+def test_refresh_only_pulls_stale_cache(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    d = tmp_path / "players_static"
+    d.mkdir()
+    old = _normalize_player_info(pl.DataFrame({"DRAFT_YEAR": ["2010"]}), 1).drop(
+        "first_season", "draft_status"
+    )
+    old.write_parquet(d / "1.parquet")
+    new = _normalize_player_info(pl.DataFrame({"FROM_YEAR": ["2015"]}), 2)
+    new.write_parquet(d / "2.parquet")
+    assert cached_missing_status_fields([1, 2, 3], data_dir=tmp_path) == [1, 3]
+    calls: list[int] = []
+
+    def fake(pid: int) -> pl.DataFrame:
+        calls.append(pid)
+        return _normalize_player_info(pl.DataFrame({"FROM_YEAR": ["2011"]}), pid)
+
+    out = refresh_status_fields([1, 2, 3], data_dir=tmp_path, fetch=fake)
+    assert calls == [1, 3] and out["pulled"] == 2
+    assert refresh_status_fields([1, 2, 3], data_dir=tmp_path, fetch=fake)["needed"] == 0
