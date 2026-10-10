@@ -148,3 +148,17 @@ is re-baselined after the data changes (data changed, code did not; recorded as 
 by the same deterministic code without being evaluated (a rebuild is not a touch).
 Why: two experiments in one day stopped or were qualified by table gaps (rebound flag, stints); the coaches table is wrong.
 What would reverse it: a rebuild that fails its gate is rolled back from the backup and recorded.
+
+## 2026-10-11 ~00:55 CT — Devin's batch of confirmations
+What: (1) "ship t30 fix": the T-30 reader dedupe is approved; committed by path when the steward's draft (test + replay oracle)
+lands. (2) "fix minutes hazard 2": MINUTES_HAZARD_2 is pre-approved: same design as MINUTES_HAZARD (65fced23), re-registered
+and frozen after the stint rebuild (F4/F8) passes its gate; its gate must pass before the freeze (non-negotiable 8). (3) Alias
+rule for same-name players: the join key is the TEAM roster; 9 REVIEW names applied, J. Green and bare "Thompson" left
+unresolved. (4) "I want a twitter/x block": the reporter feed is built against the X API (pay-per-use, read-only, allow-listed
+handles, injection defences as decided 2026-10-10) instead of Bluesky; Devin signs up at developer.x.com (pay-per-use credits,
+no monthly plan) and stores the bearer token as X_BEARER_TOKEN in .env; nothing is bought by Claude. (5) Coach clusters: Devin's
+answer is that coaches redraw or spread by the philosophy they hold; recorded in FAN_KNOWLEDGE next to the data's finding that
+the choice is not predictable from the coach across seasons. (6) Drive: gdrive:nba_colab/ridge_v2_sweep (4.397 GiB, 130 objects)
+deleted on Devin's "please". (7) the-odds-api.com plan: Devin cancels after the month.
+Why: Devin's message of 2026-10-11 ~00:50.
+What would reverse it: (1) the oracle showing a change outside the previously-skipped games; (4) X pricing or terms changing.

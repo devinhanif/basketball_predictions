@@ -96,3 +96,15 @@ aliases:
   "Malachi Flynn (Det)": 1630201  # Malachi Flynn, n=1 games thin
   "Quentin Grimes (Det)": 1629656  # Quentin Grimes, n=1 games thin
   "Trendon Watford (Por)": 1630570  # Trendon Watford, n=1 games thin
+  # Reviewed 2026-10-11 by Devin ("join key for players with the same name is the team"): REVIEW class of
+  # docs/reviews/alias_review_steals_2026-10-10.md where the team roster leaves one candidate. J. Green (Jalen and Jeff Green,
+  # both HOU 2023-24) and the bare "Thompson" stay unresolved on purpose.
+  "Bojan Bogdanovich": 202711      # Bojan Bogdanovic, DET
+  "Danilo Galinari": 201568        # Danilo Gallinari, WAS
+  "Trayce Jackson": 1631218        # Trayce Jackson-Davis, GSW
+  "C. Martin": 1628998             # Cody Martin, CHA (Caleb Martin was on the opponent)
+  "T. Young": 201152               # Thaddeus Young, TOR (Trae Young was on the opponent)
+  "Edrice Femi Adebayo": 1628389   # Bam Adebayo, MIA
+  "Aleksandar Vezenkov": 1628426   # Sasha Vezenkov, SAC
+  "Mil. Bridges": 1628970          # Miles Bridges, CHA
+  "Nah'Shon Hyland": 1630538       # Bones Hyland, LAC

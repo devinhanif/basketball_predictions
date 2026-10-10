@@ -520,3 +520,8 @@ rotation-level young players in close games would be a new rule.
   benchmark exists. For scale: consensus log loss 0.670/0.672 vs a naive prior-20 forecaster 0.693/0.698 (a coin is 0.693); the
   books know something about steals and the naive forecaster knows nothing. The under is the mispriced side everywhere we have
   looked: pts, reb, ast, fg3m, stl.
+- **Coach clusters, Devin's answer (2026-10-11): coaches redraw the rotation or spread the minutes according to the philosophy
+  they hold.** The data's side: the redraw-vs-spread choice did not carry from 2023-24 to 2024-25 at the coach level (−0.013 nats
+  vs a no-coach baseline), while rotation habits (first sub, starters' share, close-game usage) did (r 0.5–0.7). Reconciliation: the
+  philosophy shows in HOW MUCH a coach trusts his starters, which we can measure; which man he picks when one is missing depends
+  on the roster he has that night. Recorded; no rule.
