@@ -174,3 +174,5 @@ ci_hi]`; `[col, bucket, null_rate]`; `[test, ok]` for G1-G4 and the planted test
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-10 16:36 CT, commit e30b750, sha256 of everything above the line: 2a8e581e7f03943da4ea7410c10d516d7adca27f58e9c892b5b07d8f0e682240 (first 8: 2a8e581e). Verify with the awk command in the header.
