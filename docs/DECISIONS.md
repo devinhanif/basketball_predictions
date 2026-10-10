@@ -75,3 +75,13 @@ Knowledge graph (asked the same message): adopted as the information backbone on
 coaches, injuries, lineups, reporter flags with known-at time), not as a model; design note to follow; no pre-registration.
 Why: Devin confirmed; each rule's gate was measured against real data before the freeze (non-negotiable 8).
 What would reverse it: nothing above a line changes; a new question gets a new rule.
+
+## 2026-10-10 ~20:00 CT — Reporter feed for minutes restrictions: "whichever has a free plan" (Devin)
+What: X API (free tier closed to new developers Feb 2026; reads billed per post) and xAI Grok X Search (per-post billing;
+free-credit reports conflict, one log says ended April 2026) both cost money. The free candidate is Bluesky's public AT Protocol
+API (public.api.bsky.app, unauthenticated reads of public author feeds). Decision: build the feed against Bluesky first, with an
+allow-list of reporter handles Devin approves; buy nothing. Open check: which NBA beat reporters post restrictions there (a
+read-only probe of the public API was not run yet; Devin to approve the call or run it). If coverage is thin, the fallback is
+X pay-per-use at $0.005 per post read, a few dollars a month, which is Devin's purchase.
+Why: Devin's answer; the injection defences (DECISIONS 2026-10-10 "confirm everyone") apply to any source.
+What would reverse it: reporters' restriction notes not appearing on Bluesky within the first two weeks of the season.

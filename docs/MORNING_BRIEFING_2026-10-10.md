@@ -115,3 +115,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
 - 19:10: F8 ran under its frozen rule: NULL on reb and pts (T252–T263; reports/prereg_f8.md). The projected five adds nothing; the
   actual five would (oracle −0.013 reb / −0.029 pts). Closed. Drafts waiting on "confirmed": PTS_COMPONENTS, FOUR_FACTORS,
   ROUTER_TIME_WEIGHTED. Steals pull still running.
+- 20:00: reporter feed → Bluesky public API first (free); needs your OK for a read-only probe of the public API to confirm which
+  reporters post there (I'll run it the moment you say go), and your allow-list of handles.
