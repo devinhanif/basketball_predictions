@@ -102,3 +102,8 @@ seeds, SHA, sha256.
 === RESULTS BELOW ===
 
 (not run)
+Run 2026-10-09 (frozen sha256 484e35b7 verified; repo HEAD at run 4e573ba). STOPPED at the minimum data
+checks; no `cl_*` column built, no arm fitted, no dCRPS computed. Details: `reports/F12.md`, ledger T185.
+* Check 2 (premise) FAILED: young close .319 vs blowout .465 (-31.3%, rule +/-4%); vets +32.5% (pass).
+* Check 1b FAILED: stint minutes match box within 1.0 min on 48.1% of 82,403 player-games (needs 95%).
+Closed per kill criteria; a new rule is the only remedy.

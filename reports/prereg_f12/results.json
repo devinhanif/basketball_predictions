@@ -1,0 +1,65 @@
+{
+  "frozen_sha256": "484e35b7f0202918050d988c4b0415505b622625b1e19d28f52024fdeb8176f0",
+  "git_sha": "4e573ba4537a602ea3d798766b6b9841141cb333",
+  "seeds": {
+    "model": 0,
+    "bootstrap": 0
+  },
+  "n_player_games": 82407,
+  "db_seasons_in_scope": 3,
+  "seasons_index_note": "frozen DB-internal index (distinct prior seasons + 1) caps at 3 on 2022-24, so 'veterans >= 5' is empty there; replication uses season - draft_year + 1 (drafted players only; undrafted excluded).",
+  "replication": [
+    {
+      "group": "vet(idx>=5)",
+      "closeness": "close(<=5)",
+      "n": 10093,
+      "ratio": 0.3357858775636468
+    },
+    {
+      "group": "vet(idx>=5)",
+      "closeness": "blowout(>=15)",
+      "n": 13161,
+      "ratio": 0.25340231684712305
+    },
+    {
+      "group": "young(idx<=2)",
+      "closeness": "close(<=5)",
+      "n": 3065,
+      "ratio": 0.3192598851433129
+    },
+    {
+      "group": "young(idx<=2)",
+      "closeness": "blowout(>=15)",
+      "n": 5469,
+      "ratio": 0.46467610245770713
+    }
+  ],
+  "checks": [
+    {
+      "check": "1a stints game coverage 2022-24",
+      "value": 1.0,
+      "threshold": ">= 0.95",
+      "ok": true
+    },
+    {
+      "check": "1b Q1-Q4+OT stint minutes vs box within 1.0 min (share of player-games)",
+      "value": 0.48082338091076804,
+      "threshold": ">= 0.95",
+      "ok": false
+    },
+    {
+      "check": "2a vets close vs blowout ratio gap",
+      "value": 0.3251097375176153,
+      "threshold": ">= +0.04",
+      "ok": true
+    },
+    {
+      "check": "2b young close vs blowout ratio gap",
+      "value": -0.312941028267382,
+      "threshold": "within +/-0.04",
+      "ok": false
+    }
+  ],
+  "all_ok": false,
+  "checks_3_4_5": "not run: study stopped at checks 1-2 (no cl_* built, no arm fitted)"
+}
