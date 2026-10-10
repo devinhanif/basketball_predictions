@@ -198,3 +198,31 @@ Unverified items to confirm on day 1 (before spending most of the credits). Pull
 - Kalshi candlesticks: https://docs.kalshi.com/api-reference/market/get-market-candlesticks
 - Kalshi rate limits: https://docs.kalshi.com/getting_started/rate_limits
 - Kalshi live API checks (2026-10-09): `/trade-api/v2/historical/cutoff`; `/historical/markets?event_ticker=KXNBAGAME-25OCT21HOUOKC`; `...KXNBAPTS-25DEC25CLENYK`; `...KXNBAPTS-25OCT21HOUOKC` (empty); `...KXNBAGAME-25JUN22INDOKC` (empty)
+
+## 2026-10-10 update: what was bought, and what the probe found
+
+Devin bought **theoddsapi.com** (no hyphens; Business, $99/month, 6,667 requests/day), not the
+**the-odds-api.com** plan recommended above. The names differ by two hyphens; the recommendation should
+have given the exact URL. Probe (8 requests, read-only, `x-api-key` header, raw cached under
+`data/odds/raw/theoddsapi_probe/`):
+
+| Check | Result |
+|---|---|
+| Account | tier business, 6,667/day, resets midnight UTC |
+| Live NBA props (`/props/`) | empty: "out of season" (preseason, expected) |
+| Archive, 2023-11-01..08, h2h | 0 rows |
+| Archive, 2025-01-10..17, h2h | 0 rows |
+| Archive, 2026-05-13..20, h2h | rows present (tipico_de, draftkings, ...) |
+| Archive, 2026-06-01..20, player_points | rows present, Pinnacle, with `point` lines (e.g. McBride U 2.5) |
+
+Spec says "collected since 2026-05-13". So: **no 2023-24 or 2024-25 props**; the two-season comparison
+still needs the-odds-api.com (5M plan, $119 once) or the live log. What this vendor does give: a live
+Pinnacle-anchored props benchmark and 50+ books from opening night, archived from here on; `/historical/odds`
+takes one `market` per call, `bookmakers` max 3, keyset pagination; rows are flat
+(event, book, market, outcome_name, point, price, captured_at).
+
+Decision for Devin (docs/MORNING_BRIEFING_2026-10-10.md): keep for the live benchmark (recommended), add
+the-odds-api.com for history, or cancel. Adapter to build either way if kept: `nba/odds/theoddsapi.py`,
+read-only, key via `ODDS_API_KEY`, raw-first cache, pre-tip capture of `player_points/rebounds/assists/threes`
+plus `h2h/spreads/totals` for the slate, logged next to Kalshi in `nba.markets`. Never a dependency the
+daily job can fail on.

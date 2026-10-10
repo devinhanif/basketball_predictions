@@ -52,3 +52,10 @@ retried at the next tick; the heartbeat stays the truth), and have the watchdog 
 on a stale pretip rather than only alerting. Both are reversible and belong before the 10-17 freeze.
 First, watch whether 21:20/21:50 fire on 2026-10-10 (the watchdog will say). Devin: OK to make the
 scheduler change tomorrow?
+
+## Odds data: you bought theoddsapi.com (not the-odds-api.com); decide
+
+The key works (Business, 6,667/day). Its archive starts 2026-05-13, so it has no 2023-25 props; it does give
+a live Pinnacle props benchmark from opening night. Options: (1) keep for live benchmark, history from the live
+log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for the two-season answer now;
+(3) cancel. Details: docs/research/historical_odds_2026-10-09.md, "2026-10-10 update".
