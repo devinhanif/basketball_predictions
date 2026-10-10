@@ -117,3 +117,4 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   ROUTER_TIME_WEIGHTED. Steals pull still running.
 - 20:00: reporter feed → Bluesky public API first (free); needs your OK for a read-only probe of the public API to confirm which
   reporters post there (I'll run it the moment you say go), and your allow-list of handles.
+- 20:20: FOUR_FACTORS ran under its frozen rule: NULL on all four stats (T264–T279). Closed. Router run started; PTS_COMPONENTS and the steals pull still running.

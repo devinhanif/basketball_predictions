@@ -85,3 +85,10 @@ read-only probe of the public API was not run yet; Devin to approve the call or 
 X pay-per-use at $0.005 per post read, a few dollars a month, which is Devin's purchase.
 Why: Devin's answer; the injection defences (DECISIONS 2026-10-10 "confirm everyone") apply to any source.
 What would reverse it: reporters' restriction notes not appearing on Bluesky within the first two weeks of the season.
+
+## 2026-10-10 ~20:20 CT — FOUR_FACTORS: CLOSED as a null
+What: ran under frozen sha256 0d87c2ce (commit 918e03c); null on pts, reb, ast, fg3m for pace alone and for pace plus the eight
+factors (T264–T279; reports/prereg_four_factors.md). reb is slightly worse with CIs clear of zero. Closed; no promotion.
+Why: production's rolling team points for/against and opponent-allowed columns already carry what pace and efficiency add;
+the mechanism check shows no gain even in the fast-pace or high-allowed-ORB terciles.
+What would reverse it: a new pre-registered idea, not a variant of this one.

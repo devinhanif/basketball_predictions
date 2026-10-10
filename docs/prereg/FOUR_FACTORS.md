@@ -101,6 +101,45 @@ no-op until a promotion decision, which is Devin's.
 
 === RESULTS BELOW ===
 
-(not run)
+Run 2026-10-10 (CPU, seed 0, 2000 game-clustered bootstrap draws, season 2025 never loaded). Code: research/features/four_factors.py,
+research/eval/four_factors_eval.py; full tables in reports/prereg_four_factors.md and reports/prereg_four_factors/results.json;
+drafted ledger rows in reports/prereg_four_factors/ledger_rows.md (not appended).
+
+VERDICT: NULL on all four stats; no stat passes rule 1 in either season under either family (A1 pace-only, A2 all nine). CLOSED per the kill
+criterion (no stat passes on 2023). No follow-up variant is run here; at most one pre-registered follow-up exists, none is drafted.
+
+Gate: checks 1-7 passed (coverage 1.0 in 2022/23/24; possession counts in [80,130] for 7905 of 7906 team-games, 1 out of range took the league mean; box
+nulls 0; possession-vs-box points mean |diff| 0.016, p99 0; check 5 gap 0.0 pp because the builder zero-fills only the first date, so the audit is
+uninformative by construction; planted same-game/overtime and planted-future tests identical with non-inert controls; A0 reproduces production to
+0.0 on all 4 stats x 2 seasons). Implementation bug found by the planted test BEFORE any scoring: the first league-mean builder forward-filled a date
+with no in-range games from the previous date, so an edited day leaked one day of lag into its own value; fixed to cumulate over every date, then the
+gate was rerun and passed. No model result existed at that time; the rule is unchanged.
+
+dCRPS vs A0 (integer support, all rows, game-clustered 95% CI; BH over 4 stats per family):
+
+| stat | season | A1 dCRPS [CI] p_bh | A2 dCRPS [CI] p_bh | A3 placebo | A4 no-pace |
+|---|---|---|---|---|---|
+| pts | 2023 | +0.0011 [-0.0013,+0.0035] 0.774 | +0.0016 [-0.0012,+0.0044] 0.373 | +0.0007 | +0.0013 |
+| pts | 2024 | +0.0014 [-0.0005,+0.0034] 0.3 | -0.0001 [-0.0025,+0.0022] 0.948 | +0.0023 | +0.0001 |
+| reb | 2023 | +0.0015 [+0.0004,+0.0026] 0.048 | +0.0013 [+0.0000,+0.0026] 0.188 | +0.0016 | +0.0004 |
+| reb | 2024 | +0.0008 [-0.0000,+0.0017] 0.236 | +0.0013 [+0.0003,+0.0023] 0.048 | +0.0004 | +0.0008 |
+| ast | 2023 | +0.0001 [-0.0007,+0.0009] 0.774 | +0.0000 [-0.0009,+0.0009] 0.975 | +0.0003 | +0.0002 |
+| ast | 2024 | +0.0003 [-0.0003,+0.0010] 0.445 | +0.0004 [-0.0004,+0.0012] 0.448 | +0.0006 | -0.0004 |
+| fg3m | 2023 | -0.0002 [-0.0008,+0.0004] 0.774 | -0.0004 [-0.0011,+0.0003] 0.373 | -0.0003 | -0.0000 |
+| fg3m | 2024 | +0.0000 [-0.0005,+0.0005] 0.932 | +0.0004 [-0.0002,+0.0010] 0.408 | +0.0003 | +0.0008 |
+
+n = 27,619 rows / 1,318 games (2023), 27,583 / 1,315 (2024) per stat. Best point estimate on any stat/arm/season: pts 2024 A2 -0.0001; fg3m 2023 A2
+-0.0004; the floor was -0.005. reb is slightly WORSE than production with the CI excluding zero (A1 2023 +0.0015 [+0.0004,+0.0026]; A2 2024
++0.0013 [+0.0003,+0.0023]). Per-stat MDE (half-width) 0.0005-0.0028. The mechanism check (pts/fg3m by ff_pace tercile, reb by ff_def_orb tercile)
+shows no gain in the fast tercile or the high-allowed-ORB tercile. The placebo A3 is as good as or better than the candidate in most cells, so
+even the tiny point differences are noise. Guards: A0 production already misses the lower-tail PIT q10 band for pts (0.132/0.135) and ast
+2024 (0.123); the arms inherit it.
+
+Unstated details, chosen before scoring: see UNSTATED in research/eval/four_factors_eval.py and the list in reports/prereg_four_factors.md (19 items;
+main ones: no production flag exists so A0 is the unmodified name list; overtime = max possession period - 4 because games stores no periods; league
+mean over strictly earlier dates; n<5 prior games means league mean; pass rule 1 must hold in both 2023 and 2024; tercile slices per season).
+Check 2 measured 1 of 7,906 out-of-range team-games here versus the doc's 2 below 80 (the doc's count was a pre-build measurement; both pass).
+
+No holdout row requested; nothing promoted.
 
 Freeze: 2026-10-10 16:58 CT, commit 918e03c, sha256 of everything above the line: 0d87c2cea7ad257798918927b4065070ac8b6585d3fa67d5ec469f4d7a67f441 (first 8: 0d87c2ce). Verify with the awk command in the header.

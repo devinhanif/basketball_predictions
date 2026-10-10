@@ -494,3 +494,6 @@ rotation-level young players in close games would be a new rule.
   out and minutes spread (16%; Lue, Rivers, Vogel), replace in kind (11%). Knowing the coach does not predict the cluster next
   season (−0.013 nats per case vs baseline; in-sample association is who got hurt, not the coach). Devin to supply the connecting
   knowledge the data cannot see.
+- **Pace and the four factors (Devin's question): tested under a frozen rule the same day, NULL (T264–T279).** As-of pace and
+  eFG%/TOV%/ORB%/FT-rate for the team and the opponent add nothing to any of the four props stats (best point −0.0004 vs floor
+  −0.005); rebounds get slightly worse. Production's rolling points for/against already carry the pace-and-efficiency information.

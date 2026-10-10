@@ -1,0 +1,1015 @@
+{
+  "audit": [
+    {
+      "bucket": "DNP",
+      "col": "ff_pace",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_pace",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_pace",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_pace",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_pace",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_pace",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_pace",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_pace",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_pace",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_pace",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_pace",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_pace",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_pace",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_pace",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_pace",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_pace",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_pace",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_off_efg",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_off_efg",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_off_efg",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_off_efg",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_off_efg",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_off_efg",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_off_efg",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_off_efg",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_off_efg",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_off_efg",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_off_efg",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_off_efg",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_off_efg",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_off_efg",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_off_efg",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_off_efg",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_off_efg",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_off_tov",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_off_tov",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_off_tov",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_off_tov",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_off_tov",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_off_tov",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_off_tov",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_off_tov",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_off_tov",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_off_tov",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_off_tov",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_off_tov",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_off_tov",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_off_tov",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_off_tov",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_off_tov",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_off_tov",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_off_orb",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_off_orb",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_off_orb",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_off_orb",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_off_orb",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_off_orb",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_off_orb",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_off_orb",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_off_orb",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_off_orb",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_off_orb",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_off_orb",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_off_orb",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_off_orb",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_off_orb",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_off_orb",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_off_orb",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_off_ftr",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_off_ftr",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_off_ftr",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_off_ftr",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_off_ftr",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_off_ftr",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_off_ftr",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_off_ftr",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_off_ftr",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_off_ftr",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_off_ftr",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_off_ftr",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_off_ftr",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_off_ftr",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_off_ftr",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_off_ftr",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_off_ftr",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_def_efg",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_def_efg",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_def_efg",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_def_efg",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_def_efg",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_def_efg",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_def_efg",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_def_efg",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_def_efg",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_def_efg",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_def_efg",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_def_efg",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_def_efg",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_def_efg",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_def_efg",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_def_efg",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_def_efg",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_def_tov",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_def_tov",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_def_tov",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_def_tov",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_def_tov",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_def_tov",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_def_tov",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_def_tov",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_def_tov",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_def_tov",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_def_tov",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_def_tov",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_def_tov",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_def_tov",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_def_tov",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_def_tov",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_def_tov",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_def_orb",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_def_orb",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_def_orb",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_def_orb",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_def_orb",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_def_orb",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_def_orb",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_def_orb",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_def_orb",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_def_orb",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_def_orb",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_def_orb",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_def_orb",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_def_orb",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_def_orb",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_def_orb",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_def_orb",
+      "n": 27134,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "DNP",
+      "col": "ff_def_ftr",
+      "n": 0,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "<5",
+      "col": "ff_def_ftr",
+      "n": 7394,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "5-10",
+      "col": "ff_def_ftr",
+      "n": 6206,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "10-20",
+      "col": "ff_def_ftr",
+      "n": 19485,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": ">20",
+      "col": "ff_def_ftr",
+      "n": 50967,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "ff_def_ftr",
+      "n": 28938,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "ff_def_ftr",
+      "n": 28065,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "ff_def_ftr",
+      "n": 27049,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "ff_def_ftr",
+      "n": 32541,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "ff_def_ftr",
+      "n": 20647,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "ff_def_ftr",
+      "n": 30864,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "ff_def_ftr",
+      "n": 21578,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "ff_def_ftr",
+      "n": 31483,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "ff_def_ftr",
+      "n": 30991,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "ff_def_ftr",
+      "n": 37229,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "ff_def_ftr",
+      "n": 19689,
+      "null_rate": 0.0
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "ff_def_ftr",
+      "n": 27134,
+      "null_rate": 0.0
+    }
+  ],
+  "coverage": {
+    "2022": 1.0,
+    "2023": 1.0,
+    "2024": 1.0
+  },
+  "frozen_sha256": "0d87c2cea7ad257798918927b4065070ac8b6585d3fa67d5ec469f4d7a67f441",
+  "n_bad_poss_team_games": 1,
+  "tests": [
+    {
+      "ok": true,
+      "test": "1 possessions coverage 2022",
+      "threshold": ">= 0.95",
+      "value": 1.0
+    },
+    {
+      "ok": true,
+      "test": "1 possessions coverage 2023",
+      "threshold": ">= 0.95",
+      "value": 1.0
+    },
+    {
+      "ok": true,
+      "test": "1 possessions coverage 2024",
+      "threshold": ">= 0.95",
+      "value": 1.0
+    },
+    {
+      "ok": true,
+      "test": "2 team-game possession counts in [80,130]",
+      "threshold": ">= 0.995",
+      "value": 0.9998735137869972
+    },
+    {
+      "ok": true,
+      "test": "3 box inputs non-null (team-game sums / played rows)",
+      "threshold": "== 0",
+      "value": [
+        0,
+        0
+      ]
+    },
+    {
+      "ok": true,
+      "test": "4 possession points vs box points mean |diff|",
+      "threshold": "<= 0.5",
+      "value": {
+        "mean": 0.016063749051353403,
+        "p99": 0.0
+      }
+    },
+    {
+      "ok": true,
+      "test": "5 max NULL-rate gap across minutes buckets / outcome terciles (pp)",
+      "threshold": "<= 2.0",
+      "value": 0.0
+    },
+    {
+      "ok": true,
+      "test": "6 PLANT same-game possessions/box/overtime edited: ff identical through the day",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "6 PLANT same-game is not inert (later games change)",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "6 PLANT overtime count was actually edited",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "6 PLANT future (>= cutoff date) edits: earlier ff unchanged",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "6 PLANT future is not inert (later games change)",
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "ok": true,
+      "test": "7 A0 names == production stat_feature_names (flag off)",
+      "threshold": "== 1",
+      "value": 1
+    }
+  ]
+}
