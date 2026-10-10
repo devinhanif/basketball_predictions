@@ -460,3 +460,9 @@ rotation-level young players in close games would be a new rule.
   bootstrapped (ledger group F, rejected as a tested result); the opponent ridge (ctxres_v2) was the leak. We now have parsed
   possessions (n_oreb/n_dreb), so true pace and four factors are computable as-of. Not yet tested as a declared family → candidate
   pre-registration FOUR_FACTORS (Devin to confirm).
+- **Role clustering (Devin's suggestion), measured 2026-10-10 (reports/role_clusters_2026-10-10.md; descriptive):** k-means roles from
+  as-of per-36 profiles (fit on 2023-24, applied to 2024-25). Largest minutes-gainer is in the OUT player's ROLE 17.3% vs 16.3%
+  chance at k=6 (+1.0 pts [−0.7, +2.9]); k=8 +0.2 [−1.3, +1.8]; sign flips between seasons. Listed POSITION on the same rows:
+  42.8% vs 38.1% (+4.7 [+2.7, +6.9]). One pocket: starting rim big OUT → another rim big is the gainer 17.5% vs 8.3% (n 212), still
+  far below useful. Same-role teammates beat the pts model by +0.3 to +0.5 more than other roles. Verdict: not a usable pre-tip rule;
+  the lever stays the T-30 lineup.
