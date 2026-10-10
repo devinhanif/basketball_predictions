@@ -21,3 +21,11 @@ aliases:
   "Paul George": 202331
   "Stephon Castle": 1642264
   "Victor Wembanyama": 1641705
+  # Reviewed 2026-10-10 (Claude; vendor nicknames from the-odds-api.com prop feeds; each checked
+  # against commonallplayers: one active match, from_year/to_year consistent with the seasons quoted)
+  "Nicolas Claxton": 1629651     # Nic Claxton
+  "Carlton Carrington": 1642267  # Bub Carrington
+  "Herb Jones": 1630529          # Herbert Jones
+  "Moe Wagner": 1629021          # Moritz Wagner
+  "B.J. Boston Jr": 1630527      # Brandon Boston
+  "Ron Holland": 1641842         # Ronald Holland II
