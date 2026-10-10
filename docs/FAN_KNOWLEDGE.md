@@ -475,3 +475,8 @@ rotation-level young players in close games would be a new rule.
   ODDS_HISTORY blend (H2) measured: passes for reb/Pinnacle only, WOUNDED (half is price bias). "No way they hit the over that much"
   is a judgement the market makes better than we do (Q10: we are over-confident about the line's position in every cell). Null;
   no new rule.
+- **Devin, 2026-10-10 ~18:40: "3 is different from 2; the type of make should be categorical; a lot of the numbers should be
+  categorical."** Status: production forecasts pts as one number (recency mean plus a residual model; features include the
+  player's recent pts/reb/ast/fg3m means but no 2-point, free-throw or attempt split). The possession-level categorical heads
+  (rung 4) and the possession sim were tried and not kept for props. A compositional pts model (2s, 3s, FTs as separate
+  count heads with a shared minutes/usage draw) has never been pre-registered → candidate PTS_COMPONENTS.
