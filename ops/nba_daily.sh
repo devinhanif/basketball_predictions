@@ -123,9 +123,8 @@ case "$MODE" in
     step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --rate-limit-s 2.5
     step refs "$UV" run --no-sync python -m nba.ingest.referees collect
-    # read-only sharp-line benchmark (theoddsapi.com; docs/prereg/ODDS_BENCHMARK.md). The key lives
-    # only in .env (gitignored); a missing .env makes uv exit non-zero, which alerts: misconfiguration.
-    step odds_capture "$UV" run --no-sync --env-file .env python -m nba.odds capture --date "$TODAY_ET"
+    # live sharp-line capture (nba.odds capture, theoddsapi.com) was removed on 2026-10-10 when Devin
+    # cancelled that subscription; the adapter stays in nba/odds, re-add this step with a valid key in .env.
     step market_capture "$UV" run --no-sync python -m nba.markets capture --date "$TODAY_ET"
     step parlay_shadow "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET"
     step props_analysis "$UV" run --no-sync python -m nba.parlay analyze --date "$TODAY_ET"
