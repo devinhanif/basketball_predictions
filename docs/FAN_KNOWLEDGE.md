@@ -485,3 +485,12 @@ rotation-level young players in close games would be a new rule.
   [−0.0047, +0.0025]). Devin's HOU observation still shows up as a bias shift (HOU 2024 reb bias −0.105 → +0.016) without a CRPS gain.
   The actual five (oracle) is worth −0.013 reb / −0.029 pts, and the T-30 columns alone −0.018 / −0.043: the lineup matters, the
   projection does not; the lever is the confirmed lineup at T-30, exactly as F11 said.
+- **Coach allocation, measured (2026-10-10, descriptive; reports/coach_allocation_2026-10-10.md; 90 coach-seasons, 1,567
+  regular-season one-OUT cases, 2022-24).** Rotation habits are real, moderately stable traits (year-to-year r 0.4-0.7: first sub
+  279-417 s; starters' share 0.565 Jenkins to 0.738 Thibodeau; Udoka 0.667/0.674 vs league 0.637, first sub ~365 s), but a stable
+  coach is also a stable roster. HOW a coach fills an absence is NOT a trait (r −0.2 to +0.3, CIs through 0; 10-15 different top
+  gainers per coach-season). Five clusters of what happened: ordinary long-term absence (35%), the redraw with a promoted bench man
+  taking half the minutes (22%; Billups over-represented), first night without him (17%; Mazzulla 59% of his cases), the star is
+  out and minutes spread (16%; Lue, Rivers, Vogel), replace in kind (11%). Knowing the coach does not predict the cluster next
+  season (−0.013 nats per case vs baseline; in-sample association is who got hurt, not the coach). Devin to supply the connecting
+  knowledge the data cannot see.

@@ -53,3 +53,8 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
    5,789 of 1,049,740 possessions end after they start and 3,939 start after the previous one ended, in 4,258
    games, so clock glitches beyond the appended corrections are involved. A re-parse renumbers `poss_idx` in
    those games; shots, lineups and anything keyed on it must be rebuilt in the same step, with a pre-fix backup.
+
+- Loose end (2026-10-10, found by the coach-allocation analysis): `team_coaches` names the wrong head coach in 14 of 87
+  team-seasons 2022-24 (rows look shifted one season: Udoka/HOU and Griffin/MIL under 2022) and carries no mid-season changes.
+  No production reader. Archivist: check the postgame "coaches" fetch's season parameter, add a game-by-game head-coach table
+  (the analysis embedded a hand-built one in data/scratch/coach_allocation_2026-10-10.py), re-ingest. Not urgent.
