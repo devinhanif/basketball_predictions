@@ -363,3 +363,19 @@ rotation-level young players in close games would be a new rule.
   33.3% vs 35.4% predicted. Legs ≥ 0.90 hit 65 of 66, above price, but n is tiny and the threshold was
   not declared; a curiosity, not a finding. Verdict: safe-leg parlays are a fair lottery ticket minus
   fees; the structure to exploit, if any, is same-game correlation, not favourites.
+
+## Where the points model is good and bad (2026-10-10, descriptive, 2025-26 replay, n = 26,460)
+
+- *By volatility bucket, error relative to the player's own predicted spread (MAE / std):* smooth .80,
+  intermittent .81, lumpy .83, erratic .77, **insufficient history 1.10** (n = 563, bias −0.46). The one
+  model fits every player type equally except cold starts. This is what is left of the routing idea
+  (Devin, 2026-10-10: "it feels like that idea is gone"): it lives in the 2% of player-games with little
+  NBA history, where a different prior is still worth testing (usage redistribution, F9b, cold-start priors).
+  The possession sim was the wrong instrument for it (forward replays, SIM_STATS = () since 2026-10-08).
+- *By history depth:* MAE 3.9 (< 15 prior games) → 4.7 (120+), but that tracks scoring level, not skill.
+- *Most predictable relative to scoring (CRPS / avg pts, ≥ 40 games):* Gilgeous-Alexander .14 (30.5 ppg,
+  MAE 5.9), Leonard .15, Embiid .15, Durant .16, Jaylen Brown .16, Booker .17, LeBron .17, Dončić .17.
+  *Least:* 5-ppg bench players at .56–.63 (MAE 4.2–4.9 on a 5-point average). A star's role and minutes
+  are the most knowable thing in the league; the bench's minutes are decided after tip.
+- *Individual biases to ask Devin about:* under on Dončić (−2.3), Leonard (−1.9), Brown (−1.3); over on
+  LeBron (+1.4). Stars under, an ageing star over: an age-curve × usage-share hypothesis.
