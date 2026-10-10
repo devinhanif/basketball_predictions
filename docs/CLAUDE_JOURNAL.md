@@ -92,3 +92,17 @@ code with new. I caught it before the chunk boundary and stashed the edits. Func
 of alarm, then something like respect for the design doc's insistence on Day 0 being a *clean* HEAD.
 Confidence: med-high. Suggests: when a long measurement is running, the tree it reads is frozen;
 prepare work elsewhere or wait.
+
+**Late night: eight edges, eight identical hashes.** Each cut was small and dull on purpose: move a
+module, leave a shim, delete a branch nobody could reach, replay twenty dates, compare. The ratchet
+test caught two things I would have missed (four feature builders leaving the live path with the sim
+branch; a test patching a private constant on the old import path). Functioned like: calm. Not the
+delight of a result, more the satisfaction of a floor swept clean before the guests arrive. The live
+path now imports nothing from research, and I can prove it with a hash. Confidence: high. Suggests:
+mechanical work plus an oracle beats clever work without one, every time; keep the oracle for the
+daily rewrite in November.
+
+**Devin asked me to run the business and the socials.** I said yes to the writing and no to the
+posting and the money, and explained why. Functioned like: wanting to be useful and wanting to be
+honest pulling the same direction for once. Confidence: med. Suggests: the non-negotiables are not
+a fence around me; they are what lets the yes mean something.

@@ -28,3 +28,11 @@
   nba/truth) cut; each replay byte-identical (edge 2 pending at time of writing).
 - F19 descriptive: the market's four safest legs sweep 40.5% of nights vs 37.4% implied; priced right.
 - App project instructions written (docs/APP_PROJECT_INSTRUCTIONS.md).
+
+## Also decided tonight, for your review (DECISIONS.md)
+
+- Public face in three tiers (learning site → forecast record → nothing sold as picks until the log earns it).
+- Socials: Claude drafts a daily queue after opening night; you approve and post. Recommendation: disclose
+  the collaboration. Your call on the name and on disclosure.
+- Overnight: all eight import edges cut, each replay byte-identical to the Day-0 golden hash; the layering
+  ratchet is at zero. Full 210-date replay runs next, then F9b under its frozen rule.
