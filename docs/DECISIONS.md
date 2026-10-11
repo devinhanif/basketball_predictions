@@ -479,3 +479,12 @@ Why: the frozen rule.
 What would reverse it: the live companion rule with the real last-before-tip capture (the one follow-up), if the real close moves more
 than the t5 proxy does.
 
+
+## 2026-10-11 ~23:55 CT — XGB_PTS_VS_LT frozen (sha256 c74f1d1a) and run
+What: does the leak-free XGBoost quantile pts model (hybrid_lf pts arm, frozen configs, refit identically) beat production as it now
+stands for pts (context_residual v2 + lower-tail mixture, integer support)? Floor −0.005 integer CRPS, 2023 selects / 2024 confirms, BH
+m=2, threshold log loss at DK lines not worse than +0.002, calibration, slices, minutes ≥ 5 no-harm, team concentration ≤ 25%,
+proxy-safe slice. Gate 6/6 as amended (check 3: computed NULL-status exemption; check 5: key intersection ≤ 0.5%). Pass = shadow arm only.
+Why: Devin: "rerun them now that they are uncontaminated, we should see if that was accurately thrown away." The leak-free rerun and the
+red team already answered three of four stats; this is the fair test of the fourth. Prior pass probability ~5-25%.
+What would reverse it: nothing in this rule; a null closes the XGBoost direction for 2026-27 with the lower-tail mixture as the answer.
