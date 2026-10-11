@@ -226,32 +226,24 @@
   (exit 0). The replay-oracle golden hash (030804df...) was computed before this rebuild and needs re-baselining.
 - 2026-10-11: replay golden re-checked on data_version 418510d401d3: unchanged (030804df…; oracle_golden3).
 
-## 2026-10-11 UTC - official injury-report parser: 2019-10-21 .. 2019-11-19 layouts (history DB; load NOT committed)
-- DRAFT. Finding: data/history/availability_official/ holds PDFs from 2019-10-21 but the history load produced rows only from
-  2019-11-20 13:00. Four header layouts exist in 2019-20 (first-page header text, full scan of the 614 PDFs before 2020-04):
-  A 2019-10-21 .. 2019-11-14 `... Player Name Category Reason Current Status Previous Status`; B 2019-11-15 .. 2019-11-19
-  `... Player Name Reason Current Status Previous Status` (category folded into Reason); C 2019-11-20 .. 2019-12-17
-  `... Player Name Current Status Reason Previous Status [Previous Reason]`; D 2019-12-18 on `... Current Status Reason`. A and B
-  put Reason BEFORE Current Status; the old parser assumed the opposite, so every status landed empty and the loader dropped
-  every row (75 + 24 PDFs, 30 dates).
-- Change (nba/parse/availability.py, additive): when the header has Reason left of Current Status, boundaries are x-sorted with
-  extra `category` and `previous` slots; Category is joined into reason in the later layouts' own style ("G League - Two-Way",
-  "Injury/Illness - Right Knee"; a bare "-" detail is dropped), Previous Status is ignored, "NOT YET SUBMITTED" makes no record.
-  Layouts C and D take the old code path. Known and left as is: in C (and D 2019-12-16) the trailing Previous Status/Reason words
-  fall in the last column and are appended to `reason` in the ALREADY LOADED rows; not touched (no loaded row may change).
-- Parity: record-level old-vs-new parse identical on 510 PDFs (10 random 2024 from data/availability_official + 500 random
-  history PDFs dated >= 2019-11-20), and 10 of the 2024 PDFs re-parsed match the stored nba.duckdb rows (status, reason) exactly
-  (1 PDF: 79 parsed vs 78 stored, a duplicate or unmatched name, not a column difference). Golden record dump of the two committed
-  later-layout fixtures is a regression test.
-- Reload attempt (data/scratch/history_early2019_availability_reload_2026-10-11.py, 10:56 local, heavy.lock, connect_with_retry,
-  one transaction): 90 files, 30 dates (2019-10-21 .. 2019-11-19), +7,277 rows, 0 failed; gate passed on "rows added only for
-  these dates" and "no previously loaded row changes" (fingerprint of the 354,974 existing rows identical), FAILED on unmatched
-  rate 3.67% (277 of 7,554) vs limit 2.24% (history 1.24% + 1 point). ROLLED BACK: player_availability still 354,974 rows,
-  earliest as_of 2019-11-20. Backup:
-  data/backups/history_player_availability_pre_early2019_20261011_105600.parquet (354,974 rows). Unmatched log:
-  data/history/availability_unmatched_early2019_2026-10-11.json (5 names: Gerald Green 69, Nene Hilario 69, Ivan Rabb 54, Kobi
-  Simmons 48, Enes Kanter 37; none 'unresolved', i.e. no ambiguous match; 171 not_in_pool, 106 no_candidate).
-- Per-date new rows 24, 127, 141, 103, 164 ... 357 (2019-11-12), 300 (2019-11-19); 2019-11-20 .. 12-17 range 210-443.
-- Parsing parity for HISTORY_WINDOW (T315): the "no PDFs before 2019-11-10" coverage gap in G0.4 was a parser gap, not missing
-  data; the PDFs exist from 2019-10-21. If the load is approved, 2019-20 report coverage rises and G0.4 / the era-identity audit
-  would need re-measurement; T315 and docs/HISTORY_WINDOW.md are frozen and untouched.
+## 2026-10-11 11:04 CT - history injury reports now start 2019-10-21 (early-2019 PDF layouts parsed; +7,554 rows; COMMITTED)
+- Cause of the gap: the first weeks of 2019-20 used different report layouts (A: `Category / Reason / Current Status / Previous
+  Status`, 2019-10-21..11-14; B: category folded into Reason, 11-15..11-19; C: `Current Status / Reason / Previous Status`,
+  11-20..12-17; D: the modern `Current Status / Reason` from 12-18). The parser assumed Current Status left of Reason and
+  returned no rows for A and B, so the history load began 2019-11-20.
+- Parser (nba/parse/availability.py, commit c00ff84): additive layout detector for A/B; Category joined into reason in the later
+  layouts' style; Previous Status ignored; "NOT YET SUBMITTED" teams yield no record. Later layouts byte-identical: regression
+  fixture of stored records plus 0 differences re-parsing 510 PDFs (10 random 2024 production, 500 random history ≥ 2019-11-20).
+- Load: 90 files, 30 dates (2019-10-21..2019-11-19), +7,554 rows (354,974 → 362,528), 0 files failed, 0 unmatched names; rows
+  added only in the window; the fingerprint of the 354,974 previously loaded rows is unchanged. The opening day 2019-10-21 has
+  24 rows (two games on the report; season opened 10-22) and was waived from the per-date range check explicitly
+  (`--waive-low-dates=2019-10-21`, logged). Backup: data/backups/history_player_availability_pre_early2019_20261011_110412.parquet.
+- Aliases added to data/history/availability_backfill/aliases.csv (the history resolver's file; separate from
+  configs/kalshi_aliases.yaml on purpose), each a unique players_static identity with the team on the report: Enes Kanter →
+  202683 (static "Enes Freedom"), Nene Hilario → 2403 (static "Nene"), Gerald Green → 101123, Ivan Rabb → 1628397, Kobi Simmons
+  → 1628424 (the last three never played in the history window: injured or cut, so no box-score pool could hold them).
+- Known residue (loose end, docs/NEXT_SESSION.md): in layout C rows already loaded (2019-11-20..12-17) the trailing Previous
+  Status words are appended to `reason`; status is correct. Separate fix later.
+- Implication: HISTORY_WINDOW (T315) stopped partly on 2019-20 report coverage (82%); with these rows coverage rises, but the
+  era-identity STOP (AUC 0.80 with sign flips) is a separate finding and the history-window direction is closed for 2026-27
+  (DECISIONS 2026-10-11 ~13:10). data_version: the history DB is outside the manifest; nba.duckdb unchanged.
