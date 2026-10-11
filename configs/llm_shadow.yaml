@@ -1,0 +1,34 @@
+# LLM shadow forecaster (docs/LLM_SHADOW.md, docs/prereg/LLM_SHADOW_2026_27.md). OFF unless
+# NBA_LLM_SHADOW=1. No prices here: rates live in configs/cost.yaml only; this file budgets TOKENS and
+# holds the dollar cap Devin sets. The key is read from ANTHROPIC_API_KEY at call time.
+model_id: claude-fable-5-1
+fallback_model_id: claude-opus-5-5      # used only on a not-found error for model_id; logged
+max_tokens: 3000
+temperature: 0                          # omitted (and logged) if the API rejects it for the model
+
+# REQUIRED before the real provider runs. Unset (null) = the real provider is refused (exit 4).
+# Devin sets this; nothing else in the repo does. Key name per the pre-registration.
+MONTHLY_CAP_USD: null
+
+# Request window in minutes before the real tip. The payload time t is the request time and must be
+# <= tip - 60, so the window is [60, 70]: the T-60 odds capture (its window is [55, 65], same
+# 5-minute tick) runs first, and production's pretip run (made_at <= tip - 60) has finished.
+window_min: [60, 70]
+
+planning_tokens_per_game: 5500          # reserved per game by the guard before a call
+nightly_token_ceiling: 110000           # hard, per ET slate date; later tips are budget_skip
+monthly_token_backstop: 2000000
+input_token_cap: 8000                   # per call; payload legs/facts are trimmed to fit, else input_cap
+max_legs_per_game: 40
+transport_retries: 2                    # transport errors only, and only before tip - 45 min
+retry_until_min: 45
+min_lead_min: 30                        # a row is written only if made_at <= tip - 30 min
+max_wall_s: 180                         # stop starting games after this; they retry on the next tick
+request_timeout_s: 90
+db_wait_s: 120                          # bounded wait for the nba.duckdb file lock
+
+# Paths (relative to the repo root)
+facts_db: data/facts/facts.duckdb
+odds_db: data/markets/market_asof.duckdb
+shadow_db: data/shadow/llm_shadow.duckdb   # llm_shadow_calls: one row per attempt
+lock_dir: data/ops/llm_shadow_lock

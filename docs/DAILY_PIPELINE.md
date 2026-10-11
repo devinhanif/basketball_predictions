@@ -398,3 +398,7 @@ resolves to the live file (pass a separate `--db`, then merge); `alias-candidate
 `tests/kalshi/test_db_safety.py` checks the guard, that consumer openers are read-only (writable
 open of a 0444 file fails, theirs succeeds), and a static scan that every `ATTACH` in `nba/` is
 `READ_ONLY`.
+
+## LLM shadow forecaster (flag-gated, off by default)
+
+A step in the 5-minute lineups tick (`ops/nba_lineups.sh`), after the odds capture and before the T-30 block, runs `python -m nba.shadow_llm run` only when `NBA_LLM_SHADOW=1`. It reads the pretip run's T-60 rows and writes `llm_shadow` rows pre-tip. See `docs/LLM_SHADOW.md`.

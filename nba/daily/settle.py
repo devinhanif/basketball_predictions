@@ -17,6 +17,9 @@ from nba.props.forward import QUANTILE_TAUS
 from nba.truth.metrics import brier_score, log_loss
 
 WIN_TARGET = "win_prob_home"
+#: LLM shadow rows carry p_over, not a predictive mean/std: settled by their own companion scorer
+#: (docs/LLM_SHADOW.md), never by this path.
+SHADOW_LLM_MODEL = "llm_shadow"
 
 
 def normal_crps(mean: float, std: float, y: float) -> float:
@@ -55,7 +58,8 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
             SELECT *, row_number() OVER (
                 PARTITION BY game_id, model_name, target, player_id
                 ORDER BY made_at DESC, run_id DESC) rn
-            FROM forward_predictions)
+            FROM forward_predictions
+            WHERE model_name <> ?)
         SELECT l.game_id, l.model_name, l.version, l.target, l.player_id, l.made_at,
                l.prediction, g.game_date, g.season, g.home_pts, g.away_pts
         FROM latest l JOIN games g USING (game_id)
@@ -63,7 +67,8 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
           AND NOT EXISTS (SELECT 1 FROM forward_scores s
               WHERE s.game_id = l.game_id AND s.model_name = l.model_name
                 AND s.target = l.target AND s.player_id = l.player_id)
-        """
+        """,
+        [SHADOW_LLM_MODEL],
     ).fetchall()
     rows: list[tuple[object, ...]] = []
     n_win = n_prop = n_dnp = 0
