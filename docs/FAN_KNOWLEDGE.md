@@ -669,3 +669,16 @@ Measured follow-ups below, each descriptive first.
   +$9 and −$31 with $100-150 drawdowns and a CI of ±$250. Blend singles −$5 / +$24. Controls: book's shortest price −$24 / +$4;
   random leg −$21 / −$18 (the vig); keep your money $0. Eight cells looked at, one CI excludes zero; descriptive, not a claim; the
   live log is the test.
+- **"What causes overs to hit; black swan theory" (Devin, 2026-10-11; descriptive, DK T-60 main lines, 106,997 played rows,
+  2,616 games, 2023-24 + 2024-25, game-clustered CIs, reports/over_anatomy_2026-10-11.md):** decomposing y − line into a minutes
+  part and a per-minute-rate part, minutes carry 20% of the variance for pts [0.194, 0.207], 17% reb, 10% ast, 7% fg3m; the rate
+  carries 80-88%. Minutes act as a switch on the over anyway: over rate 0.18 [0.17, 0.19] when the player plays 8+ minutes under his
+  trailing-10 mean (n 8,533) and 0.69 [0.68, 0.70] at 8+ over (n 8,531); pts 0.12 vs 0.76. None of that is knowable at T-60 (AUC of
+  the over: production p_model 0.556; minutes surplus 0.653; rate surprise 0.932; home/away and starter move the over rate by under
+  1 pp). Overtime 0.57 vs 0.47; margin > 20 0.42 vs ≤ 5 0.51; team won 0.52 vs lost 0.44, all post-hoc. Black-swan check: the pts
+  upper tail is NOT too thin (realised/predicted P(y > line+k): 0.94 at k=3,5; 0.96 at 8; 1.03 at 12; y ≥ 2×line 0.93 overall, 1.51
+  for the top line tercile on ~68 events); reb/ast/fg3m tails are too FAT in the model (0.55-0.90 at the far end). Excess kurtosis
+  of standardised pts errors 0.43 [0.31, 0.58] vs −0.18 for the model's own draws: a mild heavy-tail signal that does not show in
+  exceedance rates. Caveats: model distribution reconstructed from mean/std (r 0.98-0.99 with p_model); played rows only;
+  overtime inferred from team minutes > 252. Reading: the over is decided by things that happen after tip; the pre-tip model is at
+  its ceiling on direction, and there is no under-priced fat tail to buy at the main line.
