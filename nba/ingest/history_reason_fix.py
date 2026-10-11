@@ -124,8 +124,11 @@ def compute_plan(con: duckdb.DuckDBPyConnection) -> tuple[pl.DataFrame, dict[str
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m nba.ingest.history_reason_fix")
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--insert-missing", action="store_true")
     ap.add_argument("--db", type=Path, default=HISTORY_DB)
     args = ap.parse_args(argv)
+    if args.insert_missing:
+        return insert_main(args.apply)
 
     ro = duckdb.connect(str(args.db), read_only=True)
     n_before = ro.execute("SELECT count(*) FROM player_availability").fetchone()[0]  # type: ignore[index]
@@ -179,6 +182,94 @@ def fingerprint_status(con: duckdb.DuckDBPyConnection) -> str:
             ).fetchall()
         ).encode()
     ).hexdigest()
+
+
+def parse_window(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Fresh full parse of every layout-C PDF (history resolver), all schema columns."""
+    resolver = build_history_resolver(con, HISTORY_DIR)
+    frames = []
+    for path in sorted((HISTORY_DIR / "availability_official").glob("Injury-Report_*.pdf")):
+        rdt = report_dt_from_filename(path.name)
+        if START <= rdt.date() <= END:
+            frames.append(
+                parse_official_injury_report(path, {}, report_dt=rdt, con=con, resolver=resolver)
+            )
+    return pl.concat(frames)
+
+
+def missing_rows(con: duckdb.DuckDBPyConnection) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """(rows parsed but not stored -- multiset difference --, all parsed rows)."""
+    parsed = parse_window(con)
+    cols = parsed.columns
+    stored = pl.from_arrow(
+        con.execute(
+            "SELECT * FROM player_availability WHERE as_of >= '2019-11-20' AND as_of < '2019-12-18'"
+        ).arrow()
+    )
+    assert isinstance(stored, pl.DataFrame)
+    stored = stored.select(cols)
+    p = parsed.with_columns(_n=pl.int_range(pl.len()).over(cols))
+    s = stored.with_columns(_n=pl.int_range(pl.len()).over(cols))
+    extra = p.join(s, on=[*cols, "_n"], how="anti").drop("_n")
+    return extra, parsed
+
+
+def insert_main(apply: bool) -> int:
+    from nba.db.connect import connect_with_retry
+
+    ro = duckdb.connect(str(HISTORY_DB), read_only=True)
+    n_before = ro.execute("SELECT count(*) FROM player_availability").fetchone()[0]  # type: ignore[index]
+    fp_full_before = fingerprint(ro, with_reason=True)
+    extra, parsed = missing_rows(ro)
+    stored_gone = ro.execute(
+        "SELECT count(*) FROM player_availability WHERE as_of >= '2019-11-20' "
+        "AND as_of < '2019-12-18'"
+    ).fetchone()[0]  # type: ignore[index]
+    ro.close()
+    ids = sorted(extra["player_id"].unique().to_list())
+    print("rows_before", n_before, "stored_in_window", stored_gone, "parsed", parsed.height)
+    print("to_insert", extra.height, "distinct_players", len(ids))
+    print("alias_ids_present", sorted(set(ids) & {202683, 2403, 101123, 1628397, 1628424}))
+    print("other_ids", sorted(set(ids) - {202683, 2403, 101123, 1628397, 1628424}))
+    print("extra_as_of_range", extra["as_of"].min(), extra["as_of"].max())
+    print("extra_null_player", extra["player_id"].null_count())
+    if not apply:
+        print("dry run only")
+        return 0
+    backup = Path("data/backups") / (
+        f"history_player_availability_pre_insert262_{datetime.now():%Y%m%d_%H%M%S}.parquet"
+    )
+    w = connect_with_retry(HISTORY_DB)
+    try:
+        w.execute(f"COPY (SELECT * FROM player_availability) TO '{backup}' (FORMAT PARQUET)")
+        w.execute("BEGIN")
+        w.register("extra_df", extra.to_arrow())
+        cols = ", ".join(extra.columns)
+        w.execute(f"INSERT INTO player_availability ({cols}) SELECT {cols} FROM extra_df")
+        n_after = w.execute("SELECT count(*) FROM player_availability").fetchone()[0]  # type: ignore[index]
+        outside = w.execute(
+            "SELECT count(*) FROM player_availability WHERE as_of < '2019-11-20' "
+            "OR as_of >= '2019-12-18'"
+        ).fetchone()[0]  # type: ignore[index]
+        again, _ = missing_rows(w)
+        # existing rows unchanged: full fingerprint of pre-existing rows via backup comparison
+        pre = w.execute(
+            f"SELECT count(*) FROM (SELECT * FROM read_parquet('{backup}') EXCEPT "
+            "SELECT * FROM player_availability)"
+        ).fetchone()[0]  # type: ignore[index]
+        ok = (
+            n_after == n_before + extra.height
+            and again.height == 0
+            and pre == 0
+            and outside == 353408
+        )
+        print("backup", backup)
+        print("rows_after", n_after, "still_missing", again.height, "backup_rows_lost", pre)
+        print("fp_full_before", fp_full_before[:16], "gate_ok", ok)
+        w.execute("COMMIT" if ok else "ROLLBACK")
+        return 0 if ok else 3
+    finally:
+        w.close()
 
 
 if __name__ == "__main__":

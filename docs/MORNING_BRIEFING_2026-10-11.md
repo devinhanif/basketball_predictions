@@ -54,3 +54,8 @@ ELO_HISTORY_WINDOW: null (long replay changes 2024-25 by exactly zero; retune wi
 Done: CI green again (fixture typing); P(play) Platt map OFF by default (oracle: only p_play and the unconditional fields moved;
 golden re-baselined 89889f6d); nightly facts rebuild switched ON in the morning job; early-2019 injury layouts parsed and loaded
 (+7,554 rows); layout-C reason text cleaned in 9,120 history rows. Still only yours: the delete command (permission layer).
+- 14:35 (needs Devin): one last history-DB insert of 262 injury-report rows (2019-11-20..12-17, the four early-2019 aliased
+  players) is dry-run clean but its apply was denied by the permission classifier in the agent's session. Say "apply 262" and I run
+  it, or run it yourself outside xx:15-25 / xx:45-55:
+  `mkdir data/ops/heavy.lock && uv run python -m nba.ingest.history_reason_fix --insert-missing --apply; rmdir data/ops/heavy.lock`
+  (backs up first; commits only if rows == 362,528 + 262 and every PDF's stored rows equal its parsed rows).
