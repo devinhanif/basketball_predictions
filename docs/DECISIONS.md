@@ -208,3 +208,14 @@ What: a fixed hand-back block appended to all six agent definitions; cost-ceilin
 agent work (BEST_PRACTICES). From the agent-team email and the harness paper (docs/research/harness_design_paper_2026-10-11.md).
 Why: four incidents in two days that a schema would have caught. No production impact.
 What would reverse it: the block costing more context than it saves (measure: hand-back length vs incidents over two weeks).
+
+## 2026-10-11 ~03:05 CT — Devin: "run everything overnight that you can, no need to check in w me for everything"
+What: Claude runs the queued work unattended tonight, within the standing limits (no production code ships to the live path
+without Devin's word; no money; no outward action; no holdout evaluation; data fixes only under the clean-up decision with
+backups and gates). Scope taken: (1) HISTORY_WINDOW: after `hist:parse:2019` completes, PAUSE the ingest queue (SIGTERM, it is
+resumable and skips done steps), run the history-DB prep (era flags, availability load), the G0 gate, and the frozen experiment,
+then RESUME the queue; (2) same-surname stint rule with gate ≤ 20 and the 188 NULL-game_id report rows (archivist, data fixes);
+(3) facts `--seasons` list and a DRAFT nightly rebuild step for ops/nba_daily.sh, replay-checked against oracle_golden2, NOT shipped
+until Devin says so; (4) everything committed by path with ledger rows numbered as they land; the morning briefing carries it all.
+Why: Devin's instruction; the queue pause is the only operational call inside it and is reversible (done steps are skipped).
+What would reverse it: any gate failing stops that item; a conflict for nba.duckdb serialises on data/ops/heavy.lock.
