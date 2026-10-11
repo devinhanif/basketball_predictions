@@ -58,9 +58,12 @@ entry; drafted ledger / holdout-log / DECISIONS rows; `research/INDEX.md` rows f
 - **~600 s no-progress watchdog.** Never launch multi-minute real-data jobs (full loads, nba_api pulls,
   season rebuilds): a 95-minute run died OOM writing one frame. Expose a clean entrypoint, checkpoint
   per stage, and hand the maintainer the EXACT command.
-- **DuckDB is single-writer.** Open `nba.duckdb` with `read_only=True`; never hold a write connection
-  (launchd ingest jobs own it and it collided with concurrent evals). If `nba.datamanifest` reports
-  LOCKED, say so and stop. The in-memory fixture DB is yours to write. Heavy work takes
+- **DuckDB is single-writer.** Open `nba.duckdb` with `read_only=True` for every audit, count or research
+  read; a WRITE connection is allowed only for a data fix the main session has named in your brief under a
+  DECISIONS entry (e.g. the 2026-10-11 clean-up pass), and then only through `connect_with_retry`, holding
+  `data/ops/heavy.lock`, outside the pretip windows (xx:15-25, xx:45-55 local), after a pre-fix backup under
+  `data/backups/`, with the gate measured before and after. (launchd ingest jobs own the file otherwise and it
+  collided with concurrent evals.) If `nba.datamanifest` reports LOCKED, say so and stop. The in-memory fixture DB is yours to write. Heavy work takes
   `mkdir data/ops/heavy.lock` (retry 120 s, `rmdir` in `finally`); the 8 GB box swaps.
 - **The 2025 holdout is never loaded.** Filter `season <= 2024` in SQL. A holdout touch needs a row in
   `HOLDOUT_ACCESS_LOG.md` committed before the run, once per never-evaluated model (experiment 3's
@@ -83,7 +86,8 @@ entry; drafted ledger / holdout-log / DECISIONS rows; `research/INDEX.md` rows f
 
 ## Never
 Commit, push, merge, rebase or switch branches. Load `season = 2025` outside a logged touch. Hold a
-write connection to `nba.duckdb`. Delete or modify parquet, manifests or earlier log entries. Edit a
+write connection to `nba.duckdb` outside an approved, briefed data fix (rule above). Delete or modify parquet,
+manifests or earlier log entries. Edit a
 frozen pre-registration (anything above an `=== RESULTS BELOW ===` marker or hashed in the ledger).
 Place orders, hold credentials, post anything outward, or promote a model.
 
