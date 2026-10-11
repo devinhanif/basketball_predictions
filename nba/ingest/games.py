@@ -70,8 +70,22 @@ def _normalize_games_frame(raw: pl.DataFrame, season: str) -> pl.DataFrame:
     non-NBA teams) via ``_filter_competitive_games``; this is the default
     behavior for every games pull.
     """
-    home = raw.filter(~pl.col("MATCHUP").str.contains("@"))
-    away = raw.filter(pl.col("MATCHUP").str.contains("@"))
+    # "A @ B": B is home. Neutral-site games (Global Games, Cup knockouts) carry the SAME
+    # "A @ B" string on both rows, so the home side is the row whose team abbreviation is B,
+    # not "the row without an @" (which dropped all 10 such games in 2024-25 and 2025-26).
+    if "TEAM_ABBREVIATION" in raw.columns:
+        is_home = (
+            pl.when(pl.col("MATCHUP").str.contains("@"))
+            .then(
+                pl.col("MATCHUP").str.split("@").list.last().str.strip_chars()
+                == pl.col("TEAM_ABBREVIATION")
+            )
+            .otherwise(True)
+        )
+    else:  # frames without the abbreviation (old fixtures): the row without an "@" is home
+        is_home = ~pl.col("MATCHUP").str.contains("@")
+    home = raw.filter(is_home)
+    away = raw.filter(~is_home)
     joined = home.join(away, on="GAME_ID", suffix="_away")
     out = joined.select(
         pl.col("GAME_ID").alias("game_id"),

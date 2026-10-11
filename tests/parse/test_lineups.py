@@ -427,3 +427,33 @@ def test_clean_5_5_rate_on_real_games_is_high() -> None:
     mean_rate = sum(rates) / len(rates)
     assert mean_rate >= 0.95, f"mean clean 5-5 rate {mean_rate:.3f} across {len(rates)} games"
     assert min(rates) >= 0.4, f"worst-game clean 5-5 rate {min(rates):.3f}"
+
+
+def test_two_garbage_time_subs_who_never_act_resolve_with_season_wide_names() -> None:
+    """Regression (F4): with two roster players who never act, roster elimination is ambiguous and
+    both subs were dropped (no stint row for either). Names seen in other games resolve them."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT02M00.00S", HOME, 1, "Starter1", "Ghost")
+    _sub(b, 1, "PT01M00.00S", HOME, 2, "Starter2", "Phantom")
+    roster = {HOME: [1, 2, 3, 4, 5, 77, 78], AWAY: [11, 12, 13, 14, 15]}
+    _, rep = track_lineups_with_report(b.df(), STARTERS, roster)
+    assert len(rep.unresolved) == 2  # the old behaviour
+
+    names = {77: "Ghost", 78: "Phantom"}
+    stints, rep2 = track_lineups_with_report(b.df(), STARTERS, roster, names)
+    assert not rep2.unresolved
+    seen = {p for row in stints.filter(pl.col("team_id") == HOME)["players"].to_list() for p in row}
+    assert {77, 78} <= seen
+
+
+def test_stint_idx_makes_the_key_unique_with_zero_duration_stints() -> None:
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT05M00.00S", HOME, 1, "Starter1", "Ghost")
+    _sub(b, 1, "PT05M00.00S", HOME, 77, "Ghost", "Starter1")  # same clock reading
+    roster = {HOME: [1, 2, 3, 4, 5, 77], AWAY: [11, 12, 13, 14, 15]}
+    stints = track_lineups(b.df(), STARTERS, roster, {77: "Ghost"})
+    keys = stints.select("game_id", "team_id", "period", "stint_idx")
+    assert keys.n_unique() == keys.height
+    assert stints.filter(pl.col("start_clock") == pl.col("end_clock")).height >= 1

@@ -16,7 +16,7 @@ import duckdb
 import polars as pl
 
 from nba.ingest.cache import upsert_rows
-from nba.parse.lineups import STINTS_COLUMNS
+from nba.parse.lineups import STINTS_COLUMNS, with_stint_idx
 from nba.parse.possessions import POSSESSIONS_COLUMNS
 
 _CONFLICT_KEY = ["game_id", "poss_idx"]
@@ -65,6 +65,7 @@ def load_stints(con: duckdb.DuckDBPyConnection, stints: pl.DataFrame) -> None:
     """
     if stints.is_empty():
         return
+    stints = with_stint_idx(stints)
     game_ids = [(g,) for g in stints["game_id"].unique().to_list()]
     con.executemany("DELETE FROM stints WHERE game_id = ?", game_ids)
     con.executemany(

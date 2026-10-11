@@ -104,3 +104,23 @@
 - 2026-10-11: 9 REVIEW vendor names added under Devin's team rule; 2023 steals reparsed (0 credits). Unresolved player_steals rows
   348 → 92 (J. Green, 90 rows: Jalen and Jeff Green on the same HOU roster; bare "Thompson", 2 rows). Drive folder
   gdrive:nba_colab/ridge_v2_sweep (4.397 GiB) deleted on Devin's instruction.
+
+## 2026-10-11 UTC - F2 neutral-site games (data_version: assigned at the end-of-pass snapshot, pending)
+- DRAFT (archivist; the main session commits). `games` 5,269 -> 5,279: the 10 neutral-site regular-season
+  games absent since ingest (2024: 0022400147 Mexico City, 0022400621 and 0022400633 Paris, 0022401229 and
+  0022401230 Cup semifinals; 2025: 0022500147 Mexico City, 0022500578 Berlin, 0022500602 London, 0022501229
+  and 0022501230 Cup semifinals). Cause: `_normalize_games_frame` split home/away on "@", but neutral-site
+  rows carry the same "A @ B" string on both teams, so the join dropped them. Fixed by deriving home from
+  the abbreviation after "@" (test `tests/ingest/test_games_neutral.py`). Loaded through the existing
+  ingest functions (2 LeagueGameFinder + 10 box + 10 play-by-play requests, 6 s apart); `player_game_stats`
+  +273 rows, possessions/stints parsed for the 10 games with the parser of that moment (stints are
+  rebuilt for all games in the F4 step).
+- Gate before -> after: regular-season games per team = 82 for 2022-25, teams off 15 -> 0; possession points
+  == box points in the 10 new games 0/0 -> 20/20 team-games; `player_availability` rows with NULL `game_id`
+  336 -> 188 (148 resolved to the new games by player team as of the report date). The audit's claim that all
+  336 were neutral-site games was wrong: the remaining 188 are other cases (136 have no game for the player's
+  team on the report date or the next day, for example postponed games, 52 have a candidate game but did not
+  resolve uniquely). Left NULL, to be investigated; not a gate of this fix.
+- Pre-fix backups: data/backups/games_pre_f2_20261010T235642Z.parquet (5,269 rows),
+  data/backups/player_availability_pre_f2_20261010T235642Z.parquet (the 336 NULL-game rows).
+- Season 2025 rows (5 games) were added by the same code; they were not evaluated or scored (not a holdout touch).

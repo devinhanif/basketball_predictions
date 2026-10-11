@@ -158,6 +158,18 @@ def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
     )
 
 
+def _has_cache(path: Path) -> bool:
+    """A cached frame counts only if it has columns: a zero-column file is a cached empty
+    response (30 of them, keyed by truncated team ids, were found 2026-10-11), never data."""
+    return path.exists() and bool(pl.read_parquet_schema(path))
+
+
+def _write_cache(frame: pl.DataFrame, path: Path) -> None:
+    if frame.width == 0:
+        raise ValueError(f"refusing to cache an empty response at {path}")
+    frame.write_parquet(path)
+
+
 def _fetch_player_info(player_id: int) -> pl.DataFrame:
     """Hit nba_api's CommonPlayerInfo for one player; normalize to ``_SCHEMA``."""
     from nba_api.stats.endpoints import commonplayerinfo  # lazy import
@@ -212,13 +224,13 @@ def pull_players_static(
     frames: list[pl.DataFrame] = []
     for i, pid in enumerate(player_ids, 1):
         path = out_dir / f"{pid}.parquet"
-        if path.exists():
+        if _has_cache(path):
             frames.append(pl.read_parquet(path))
         else:
             if rate_limiter is not None:
                 rate_limiter.wait()
             frame = _fetch_with_retry(pid)
-            frame.write_parquet(path)
+            _write_cache(frame, path)
             frames.append(frame)
         if progress_every and i % progress_every == 0:
             print(f"...players_static {i}/{len(player_ids)}", flush=True)
@@ -273,14 +285,14 @@ def autofill_players_static(
     for pid in todo:
         path = out_dir / f"{pid}.parquet"
         try:
-            if path.exists():
+            if _has_cache(path):
                 frames.append(pl.read_parquet(path))
                 continue
             if rate_limiter is not None:
                 rate_limiter.wait()
             frame = (fetch or _fetch_with_retry)(pid)
             out_dir.mkdir(parents=True, exist_ok=True)
-            frame.write_parquet(path)
+            _write_cache(frame, path)
             frames.append(frame)
             pulled += 1
         except Exception as exc:
@@ -342,7 +354,7 @@ def refresh_status_fields(
         try:
             if rate_limiter is not None:
                 rate_limiter.wait()
-            (fetch or _fetch_with_retry)(pid).write_parquet(out_dir / f"{pid}.parquet")
+            _write_cache((fetch or _fetch_with_retry)(pid), out_dir / f"{pid}.parquet")
             pulled += 1
         except Exception as exc:
             failed += 1

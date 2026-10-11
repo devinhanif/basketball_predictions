@@ -195,3 +195,19 @@ def test_refresh_only_pulls_stale_cache(tmp_path) -> None:  # type: ignore[no-un
     out = refresh_status_fields([1, 2, 3], data_dir=tmp_path, fetch=fake)
     assert calls == [1, 3] and out["pulled"] == 2
     assert refresh_status_fields([1, 2, 3], data_dir=tmp_path, fetch=fake)["needed"] == 0
+
+
+def test_zero_column_cache_is_not_a_cache_and_is_never_written(tmp_path) -> None:
+    import polars as pl
+    import pytest
+
+    from nba.ingest.players_static import _has_cache, _write_cache
+
+    stub = tmp_path / "12737.parquet"
+    pl.DataFrame().write_parquet(stub)
+    assert not _has_cache(stub)
+    with pytest.raises(ValueError):
+        _write_cache(pl.DataFrame(), tmp_path / "x.parquet")
+    ok = tmp_path / "1.parquet"
+    _write_cache(pl.DataFrame({"player_id": [1]}), ok)
+    assert _has_cache(ok)

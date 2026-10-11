@@ -42,7 +42,15 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "n_oreb",
         "n_dreb",
     },
-    "stints": {"game_id", "team_id", "period", "start_clock", "end_clock", "players"},
+    "stints": {
+        "game_id",
+        "team_id",
+        "period",
+        "start_clock",
+        "end_clock",
+        "players",
+        "stint_idx",
+    },
     "player_rates": {
         "player_id",
         "as_of",

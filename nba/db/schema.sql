@@ -52,8 +52,10 @@ CREATE TABLE IF NOT EXISTS stints (
     period INT,
     start_clock FLOAT,
     end_clock FLOAT,
-    players INT[5]
+    players INT[5],
+    stint_idx INT       -- 0-based order within (game_id, team_id, period); unique with them
 );
+ALTER TABLE stints ADD COLUMN IF NOT EXISTS stint_idx INT;
 
 CREATE TABLE IF NOT EXISTS player_rates (
     player_id INT,
@@ -398,6 +400,21 @@ CREATE TABLE IF NOT EXISTS team_coaches (
     season INT, team_id INT, coach_id INT, name VARCHAR, coach_type VARCHAR,
     is_assistant INT,                     -- nba_api: 1 = head coach, 2 = assistant
     PRIMARY KEY (season, team_id, coach_id)
+);
+
+-- Game-level head coach (nba/data/coaches.py). known_at = real tip of the game for verified rows;
+-- NULL for unverified fallback rows (seasons without a reviewed reference). team_coaches above is
+-- the raw season-level fetch and is wrong in 14 of 87 reference team-seasons.
+CREATE TABLE IF NOT EXISTS team_coach_games (
+    game_id VARCHAR,
+    team_id INT,
+    season INT,
+    coach_name VARCHAR,
+    coach_id INT,                         -- NULL when the coach has no team_coaches row
+    source VARCHAR,
+    verified BOOLEAN,
+    known_at TIMESTAMP,
+    PRIMARY KEY (game_id, team_id)
 );
 
 -- ---------------------------------------------------------------------------

@@ -73,7 +73,15 @@ import polars as pl
 from nba.parse.ordering import CLOCK_RE as _CLOCK_RE
 from nba.parse.ordering import in_game_order
 
-STINTS_COLUMNS = ["game_id", "team_id", "period", "start_clock", "end_clock", "players"]
+STINTS_COLUMNS = [
+    "game_id",
+    "team_id",
+    "period",
+    "start_clock",
+    "end_clock",
+    "players",
+    "stint_idx",
+]
 
 #: action_type values whose player_id, when team_id != 0, shows that
 #: player is on the court right now.
@@ -166,7 +174,12 @@ class LineupReport:
 class _NameBook:
     """Per-game name -> player_id resolver for substitution text (see module docstring)."""
 
-    def __init__(self, pbp: pl.DataFrame, roster_by_team: dict[int, list[int]] | None) -> None:
+    def __init__(
+        self,
+        pbp: pl.DataFrame,
+        roster_by_team: dict[int, list[int]] | None,
+        names_by_player: dict[int, str] | None = None,
+    ) -> None:
         self.by_surname: dict[int, dict[str, set[int]]] = {}
         self.by_full: dict[int, dict[str, set[int]]] = {}
         self.named: dict[int, set[int]] = {}
@@ -178,7 +191,18 @@ class _NameBook:
             .select(["team_id", "player_name", "player_id"])
             .unique()
         )
-        for team_id, name, pid in named_rows.iter_rows():
+        pairs: list[tuple[int, str, int]] = list(named_rows.iter_rows())
+        if names_by_player:
+            # Box-roster players who never act in THIS game (garbage-time subs) have no name in
+            # this game's PBP; borrow the name the feed uses for them in other games. Without
+            # this their "SUB: <surname> FOR ..." entry was unresolvable and they never entered
+            # the tracked five (1,106 played player-games had no stint row).
+            seen_here = {pid for _, _, pid in pairs}
+            for team_id, ids in (roster_by_team or {}).items():
+                for pid in ids:
+                    if pid not in seen_here and pid in names_by_player:
+                        pairs.append((team_id, names_by_player[pid], pid))
+        for team_id, name, pid in pairs:
             sur = _normalize_name(name)
             self.by_surname.setdefault(team_id, {}).setdefault(sur, set()).add(pid)
             self.by_full.setdefault(team_id, {}).setdefault(_fold(name), set()).add(pid)
@@ -281,6 +305,22 @@ def _look_ahead_openers(
     return openers[:5], seen
 
 
+def with_stint_idx(stints: pl.DataFrame) -> pl.DataFrame:
+    """Add ``stint_idx``: 0-based emission order within (game, team, period).
+
+    ``(game_id, team_id, period, start_clock)`` is not unique (chained substitutions at one clock
+    reading give zero-duration stints); ``(game_id, team_id, period, stint_idx)`` is.
+    """
+    if "stint_idx" in stints.columns:
+        return stints
+    return stints.with_columns(
+        pl.int_range(pl.len())
+        .over(["game_id", "team_id", "period"])
+        .cast(pl.Int64)
+        .alias("stint_idx")
+    )
+
+
 def _empty_stints() -> pl.DataFrame:
     return pl.DataFrame(
         schema={
@@ -290,6 +330,7 @@ def _empty_stints() -> pl.DataFrame:
             "start_clock": pl.Float64,
             "end_clock": pl.Float64,
             "players": pl.List(pl.Int64),
+            "stint_idx": pl.Int64,
         }
     )
 
@@ -311,6 +352,7 @@ def track_lineups_with_report(
     pbp: pl.DataFrame,
     starters_by_team: dict[int, list[int]],
     roster_by_team: dict[int, list[int]] | None = None,
+    names_by_player: dict[int, str] | None = None,
 ) -> tuple[pl.DataFrame, LineupReport]:
     """Track each team's on-court five through one game; also return what was unsure.
 
@@ -318,6 +360,8 @@ def track_lineups_with_report(
     team_id -> 5 player_ids (Q1 seed; ``player_game_stats.starter`` in the real
     pipeline). ``roster_by_team`` (optional) lists box-score players who played,
     used to resolve substitution names for players who never act in the PBP.
+    ``names_by_player`` (optional) maps player_id to the name the feed uses for him in other
+    games; it names roster players who never act in this game.
     Returns ``(stints, report)``; see the module docstring.
     """
     report = LineupReport()
@@ -335,7 +379,7 @@ def track_lineups_with_report(
             raise ValueError(f"starters_by_team[{team_id}] must have exactly 5 unique players")
 
     pbp = in_game_order(pbp)
-    book = _NameBook(pbp, roster_by_team)
+    book = _NameBook(pbp, roster_by_team, names_by_player)
     teams = sorted(starters_by_team.keys())
     rows = list(pbp.iter_rows(named=True))
     periods = sorted({r["period"] for r in rows})
@@ -409,16 +453,17 @@ def track_lineups_with_report(
 
     if not stint_rows:
         return _empty_stints(), report
-    return pl.DataFrame(stint_rows).select(STINTS_COLUMNS), report
+    return with_stint_idx(pl.DataFrame(stint_rows)).select(STINTS_COLUMNS), report
 
 
 def track_lineups(
     pbp: pl.DataFrame,
     starters_by_team: dict[int, list[int]],
     roster_by_team: dict[int, list[int]] | None = None,
+    names_by_player: dict[int, str] | None = None,
 ) -> pl.DataFrame:
     """``track_lineups_with_report`` without the report (stints only)."""
-    return track_lineups_with_report(pbp, starters_by_team, roster_by_team)[0]
+    return track_lineups_with_report(pbp, starters_by_team, roster_by_team, names_by_player)[0]
 
 
 def _covering_stint(

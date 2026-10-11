@@ -147,8 +147,16 @@ def _clock_to_seconds(clock: str) -> float:
     return minutes * 60.0 + seconds
 
 
+_MISS_RE = re.compile(r"^MISS\s")
+
+
 def _is_miss(description: str) -> bool:
-    return description.strip().upper().startswith("MISS")
+    """A missed free throw carries the token ``MISS `` ("MISS Hayes Free Throw 1 of 2").
+
+    The token must be followed by whitespace: a bare ``startswith("MISS")`` read every made free
+    throw by a player named Missi as a miss (79 New Orleans team-games, 2024-25 and 2025-26).
+    """
+    return _MISS_RE.match(description.strip().upper()) is not None
 
 
 def _is_last_ft(sub_type: str) -> bool:
@@ -322,6 +330,14 @@ def parse_possessions(pbp: pl.DataFrame) -> pl.DataFrame:
         # Clock", "76ers Rebound" both show this pattern.
         team = ev["team_id"] or ev["player_id"]
         clock_s = _clock_to_seconds(ev["clock"])
+        if not team:
+            # Team-level event with no team anywhere on the row ("Excess Timeout Turnover",
+            # "Shot Clock Turnover" with team_id 0 and player_id 0). It belongs to the team on
+            # offense if a trip is open; otherwise it cannot be attributed and is skipped. It
+            # used to open a one-possession trip for "team 0" (2 rows in 5,269 games).
+            if trip is None or atype != "Turnover":
+                continue
+            team = trip.off_team
 
         if atype == "Missed Shot":
             if trip is None or trip.off_team != team or trip.had_fgm:

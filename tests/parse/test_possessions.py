@@ -560,3 +560,54 @@ def test_shot_zone_rim_mid_and_three() -> None:
     assert _shot_zone(2, 12, "Jump Shot", "P1 Jump Shot") == "mid"
     assert _shot_zone(3, 24, "Jump Shot", "P1 3PT Jump Shot") == "above3"
     assert _shot_zone(3, 22, "Corner Jump Shot", "P1 Corner 3") == "corner3"
+
+
+def _two_fts(descs: tuple[str, str], player_name: str) -> list[dict]:
+    b = PbpBuilder()
+    b.add(1, "PT12M00.00S", HOME, 1, "Jump Ball", description="Jump Ball", location="h")
+    b.add(1, "PT10M00.00S", AWAY, 2, "Foul", description="P2 foul", location="v")
+    for i, d in enumerate(descs, start=1):
+        b.add(
+            1, "PT09M55.00S", HOME, 1, "Free Throw", sub_type=f"Free Throw {i} of 2",
+            description=d, player_name=player_name, score_home="0", score_away="0", location="h",
+        )  # fmt: skip
+    return parse_possessions(b.df()).to_dicts()
+
+
+def test_made_free_throws_of_a_player_named_missi_are_not_misses() -> None:
+    """Regression (F6): "Missi Free Throw 1 of 2 (3 PTS)" starts with MISS but is a make."""
+    rows = _two_fts(("Missi Free Throw 1 of 2 (3 PTS)", "Missi Free Throw 2 of 2 (4 PTS)"), "Missi")
+    assert len(rows) == 1
+    assert rows[0]["pts"] == 2 and rows[0]["fta"] == 2 and rows[0]["outcome"] == "FT_trip"
+
+
+def test_real_missed_free_throw_marker_still_counts_as_miss() -> None:
+    rows = _two_fts(("MISS Missi Free Throw 1 of 2", "Missi Free Throw 2 of 2 (3 PTS)"), "Missi")
+    assert rows[0]["pts"] == 1
+
+
+def test_team_turnover_with_no_team_anywhere_attaches_to_the_offense() -> None:
+    """Regression (F7): team_id 0 and player_id 0 must not create an off_team=0 possession."""
+    b = PbpBuilder()
+    b.add(1, "PT12M00.00S", HOME, 1, "Jump Ball", description="Jump Ball", location="h")
+    b.add(1, "PT11M00.00S", HOME, 1, "Missed Shot", sub_type="Jump Shot", description="MISS P1",
+          shot_value=2, shot_distance=15, is_field_goal=1, location="h")  # fmt: skip
+    b.add(1, "PT10M58.00S", 0, 0, "Turnover", sub_type="Excess Timeout Turnover",
+          description="Excess Timeout Turnover", location="h")  # fmt: skip
+    b.add(1, "PT10M40.00S", AWAY, 2, "Made Shot", sub_type="Layup Shot",
+          description="P2 Layup (2 PTS)", score_home="0", score_away="2", shot_value=2,
+          shot_distance=2, is_field_goal=1, location="v")  # fmt: skip
+    out = parse_possessions(b.df())
+    assert 0 not in out["off_team"].to_list()
+    assert out["off_team"].to_list() == [HOME, AWAY]
+    assert out["outcome"].to_list() == ["TOV", "FGM2"]
+
+
+def test_team_turnover_with_no_team_and_no_open_trip_is_skipped() -> None:
+    b = PbpBuilder()
+    b.add(1, "PT12M00.00S", HOME, 1, "Jump Ball", description="Jump Ball", location="h")
+    b.add(1, "PT11M59.00S", AWAY, 2, "Jump Ball", description="Jump Ball", location="v")
+    b.add(1, "PT11M58.00S", 0, 0, "Turnover", sub_type="Shot Clock Turnover",
+          description="Shot Clock Turnover", location="h")  # fmt: skip
+    out = parse_possessions(b.df())
+    assert 0 not in out["off_team"].to_list()

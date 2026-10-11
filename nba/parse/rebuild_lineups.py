@@ -66,6 +66,30 @@ class Rebuilt:
     skipped: dict[str, list[str]] = field(default_factory=dict)  # reason -> game_ids
 
 
+def build_name_map(data_dir: Path, game_ids: list[str]) -> dict[int, str]:
+    """player_id -> the name the feed uses most often for him across the given games' PBP.
+
+    Seeds the substitution name book for roster players who never act in a given game.
+    """
+    paths = [str(data_dir / "pbp" / f"{g}.parquet") for g in game_ids]
+    paths = [p for p in paths if Path(p).exists()]
+    if not paths:
+        return {}
+    counts = (
+        pl.scan_parquet(paths)
+        .filter((pl.col("player_id") != 0) & (pl.col("player_name") != ""))
+        .group_by("player_id", "player_name")
+        .len()
+        .sort("len", descending=True)
+        .collect()
+    )
+    return dict(
+        counts.unique("player_id", keep="first", maintain_order=True)
+        .select("player_id", "player_name")
+        .iter_rows()
+    )
+
+
 def compute_all(
     con: duckdb.DuckDBPyConnection, data_dir: Path = ROOT / "data", limit_every: int = 1
 ) -> Rebuilt:
@@ -77,6 +101,7 @@ def compute_all(
     poss = con.execute(
         "SELECT game_id, poss_idx, period, clock_start, off_team, def_team FROM possessions"
     ).pl()
+    names = build_name_map(data_dir, [g[0] for g in games])
     box_by_game = box.partition_by("game_id", as_dict=True)
     poss_by_game = poss.partition_by("game_id", as_dict=True)
     stints: list[pl.DataFrame] = []
@@ -101,7 +126,7 @@ def compute_all(
             int(t[0]): g["player_id"].to_list()
             for t, g in b.filter(pl.col("minutes") > 0).group_by("team_id")
         }
-        s, rep = track_lineups_with_report(pl.read_parquet(path), starters, roster)
+        s, rep = track_lineups_with_report(pl.read_parquet(path), starters, roster, names)
         att = attach_lineups_to_possessions(p, s)
         stints.append(s)
         lineups.append(att.select("game_id", "poss_idx", "off_players", "def_players"))
@@ -142,7 +167,7 @@ def write_chunk(
         con.execute("DELETE FROM stints WHERE game_id IN (SELECT game_id FROM _chunk_games)")
         con.execute(
             "INSERT INTO stints SELECT game_id, team_id, period, start_clock, end_clock, "
-            "players::INTEGER[5] FROM _chunk_stints"
+            "players::INTEGER[5], stint_idx::INTEGER FROM _chunk_stints"
         )
         con.execute(
             "UPDATE possessions SET off_players = l.off_players::INTEGER[5], "

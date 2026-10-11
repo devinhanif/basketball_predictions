@@ -63,3 +63,7 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
   21% at 1-2 minutes (0.19% at 5-10; players present reconcile to box minutes within 0.3). Archivist: find where the lineup
   tracker or the stint builder drops end-of-game and brief substitutions, rebuild with a pre-fix backup under data/backups/,
   re-run the lineups reconciliation, bump data_version. Devin to approve the rebuild (DECISIONS 2026-10-10 ~23:55).
+
+- Loose end (2026-10-11, F2): 188 `player_availability` rows still have NULL game_id (136: no game for the team on the report date
+  or the next day, e.g. postponements; 52: a candidate game but not a unique match). Invisible to the injury model. Archivist to
+  resolve by schedule-change history; not guessed.

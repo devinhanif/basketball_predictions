@@ -8,6 +8,7 @@ Tables
 ``snapshot_log``      one row per HTTP poll (also failures), with the raw file path and sha256.
 ``lineup_snapshots``  one row per (snapshot, game, team, player) parsed from a 200 response.
 ``game_tips``         tip-off per game (schedule, or parsed from the feed's status text).
+``lineup_snapshots_latest``  VIEW: one row per (snapshot, game, team, player); see ``DDL``.
 """
 
 from __future__ import annotations
@@ -65,6 +66,32 @@ CREATE TABLE IF NOT EXISTS game_tips (
     source VARCHAR,                    -- 'schedule' | 'status_text'
     recorded_at TIMESTAMP
 );
+-- The feed lists a player twice in one snapshot when he is in the starters block (position set,
+-- often 'Expected') and in the confirmed-roster block (position ''): 240 duplicate groups in 20
+-- of 39 snapshots on 2026-10-09/10, which made nba/daily/t30.py read a mixed "Confirmed/Expected"
+-- status and skip the game. Raw rows stay append-only; consumers read this view:
+--   announced_starter = true if ANY row has it (the OR gives exactly 5 starters in 60 of 60
+--   duplicated team-snapshots; "latest row wins" gave 0 in 18), lineup_status and the other
+--   descriptive columns come from the row with the latest source_ts, position = the non-empty one.
+CREATE OR REPLACE VIEW lineup_snapshots_latest AS
+SELECT snapshot_id,
+       arg_max(fetched_at, source_ts) AS fetched_at,
+       arg_max(game_date, source_ts) AS game_date,
+       game_id,
+       arg_max(game_status, source_ts) AS game_status,
+       arg_max(game_status_text, source_ts) AS game_status_text,
+       team_id,
+       arg_max(team_abbr, source_ts) AS team_abbr,
+       arg_max(is_home, source_ts) AS is_home,
+       player_id,
+       arg_max(player_name, source_ts) AS player_name,
+       arg_max(lineup_status, source_ts) AS lineup_status,
+       bool_or(announced_starter) AS announced_starter,
+       max(position) AS position,
+       arg_max(roster_status, source_ts) AS roster_status,
+       max(source_ts) AS source_ts
+FROM lineup_snapshots
+GROUP BY snapshot_id, game_id, team_id, player_id;
 """
 
 
