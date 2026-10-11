@@ -143,3 +143,15 @@ most, and only the live season: the market context captured live by the new clos
 - Confirmed unchanged: A1 replaces exp_margin/abs_margin/r20_pts_* and drops opp_r20_*; R2 required in both seasons.
 
 === RESULTS BELOW ===
+Run 2026-10-11 17:19-17:27 CDT under frozen sha256 fd37a3f3, git 0a4f230 (results written 17:28 CDT), harness research/eval/game_market_context_eval.py,
+rc 0. Gate 20/20 re-run inside `run`. Full tables: reports/prereg_game_market_context.md, reports/prereg_game_market_context/results.json.
+Verdict: CLOSED, no cell passes R1 on 2023 mature rows (nor on all rows, nor on 2024). A1 (market replaces Elo/r20) vs A0, dCRPS: pts
++0.0033 [+0.0002, +0.0064] / 2024 +0.0005; reb +0.0025 [+0.0010, +0.0041] / −0.0007; ast −0.0002 / −0.0002; fg3m −0.0007 / +0.0002. A2
+(market added) pts +0.0052 / −0.0023 [−0.0046, −0.0000]; reb +0.0021 / −0.0001; ast +0.0005 / +0.0000; fg3m −0.0000 / +0.0000. Every real
+arm is within ±0.001 of its within-date-shuffled placebo (R2 fails everywhere), so the market columns carry no game information the trees
+use beyond what the proxies already give (market margin correlates 0.90 with exp_margin). R3 guards hold; R4 (DK over/under log loss not
+worse than +0.002) holds in every cell, with fg3m slightly better (−0.0011 to −0.0012 in 2023). A3 (no own-stat history; "predict points
+without viewing points"): pts +0.42 CRPS (3.58 vs 3.15), reb +0.17, ast +0.19, fg3m +0.10, both seasons: the player's own history is worth
+about 13% of CRPS and nothing in the market or team context replaces it. Closed; one live-season follow-up allowed under a new id with the
+real closing capture.
+

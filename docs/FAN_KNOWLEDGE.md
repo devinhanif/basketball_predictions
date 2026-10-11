@@ -703,3 +703,8 @@ Measured follow-ups below, each descriptive first.
   Complementary halves: XGBoost −0.015 to −0.021 better on players who play ≥ 5 minutes; the mixture +0.16 to +0.18 better on near-DNP rows;
   XGBoost worse in the 2024 playoffs (+0.054) and at 20-30-point thresholds. The count-stat "gains" were integer-support scoring artefacts
   (T114-T117). Closed; a combined arm would be a new question.
+- **"Move off proxies: use the market's game odds as the props context; predict points without viewing points" (Devin, 2026-10-11;
+  GAME_MARKET_CONTEXT, T389-T414, frozen fd37a3f3):** null. Pinnacle spread and total replacing or joining our Elo margin and 20-game
+  scoring rates: every cell within ±0.005 CRPS and within ±0.001 of a within-date placebo; DK over/under log loss unchanged. The market
+  margin correlates 0.90 with our Elo margin, so the trees already had it. The arm with no own-stat history is worse by +0.42 CRPS on pts
+  (3.58 vs 3.15), +0.17 reb, +0.19 ast, +0.10 fg3m: a player's own history is about 13% of the model and nothing else supplies it.

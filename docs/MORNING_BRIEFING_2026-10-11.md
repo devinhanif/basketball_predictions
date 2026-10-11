@@ -83,3 +83,9 @@ honesty paid; CLOSING LINE is the live benchmark; the-odds-api kept; closing cap
 docs/CLOSING_LINE_CAPTURE.md). Rules run: MODEL_CLV closed (model beats the close by ~0.2 pp, mostly a no-model side rule; T340-T381);
 XGB_PTS_VS_LT closed (tie overall; XGBoost better on the body, the lower-tail mixture better on near-DNP rows; T382-T388). Drafting:
 GAME_MARKET_CONTEXT (market spread/total as the props model's game context instead of Elo proxies). Nothing needs you tonight.
+
+## 17:28 CDT update
+GAME_MARKET_CONTEXT closed, null (T389-T414): market spread/total as props context = placebo; no own-stat history = 13% worse. LLM shadow
+forecaster approved (DECISIONS 17:14): rule drafted d15249ea (committed as DRAFT; needs your MONTHLY_CAP_USD), job building behind
+NBA_LLM_SHADOW in a worktree. Capture ON. Needs you: the monthly dollar cap for the LLM shadow; nothing else.
+

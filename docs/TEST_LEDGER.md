@@ -554,3 +554,41 @@ Devin's "was it accurately thrown away": the count-stat arms were a scoring arte
 the distribution and the production lower-tail mixture absorbed the tail part; neither beats the other overall. Gate 6/6 as amended (check 3
 computed NULL-status exemption: yrs_since_draft 19.7 pp gap is player-constant; check 5 key intersection, 118 restored 2024 rows, 0.43%).
 
+### GAME_MARKET_CONTEXT (T389-T414), appended 2026-10-11 17:28 CDT
+
+| id | test | result |
+|---|---|---|
+| T389 | GAME_MARKET_CONTEXT gate (draft sha fd37a3f3) | 20/20 checks pass; A0 max |delta| 0.0e+00 (4 stats x 2 seasons, n 27,619 / 27,701); market coverage 2023 1.0000, 2024 0.9959; NULL-market gap by minutes bucket 0.25 pp; used snapshots later than tip-55: 0 refused, min lead 62.5 min; mature-block row share 2023 0.462 |
+| T390 | GAME_MARKET_CONTEXT pts 2023 A1-A0 (n 27619, 1318 games) | dCRPS +0.0033 CI [+0.0002, +0.0064] p_bh 0.068; vs placebo -0.0010 [-0.0035, +0.0015]; DK O/U dLL +0.0011 [+0.0001, +0.0021] (n 14354) |
+| T391 | GAME_MARKET_CONTEXT pts 2024 A1-A0 (n 27701, 1320 games) | dCRPS +0.0005 CI [-0.0020, +0.0030] p_bh 0.904; vs placebo +0.0013 [-0.0008, +0.0036]; DK O/U dLL -0.0004 [-0.0012, +0.0003] (n 15882) |
+| T392 | GAME_MARKET_CONTEXT reb 2023 A1-A0 (n 27619, 1318 games) | dCRPS +0.0025 CI [+0.0010, +0.0041] p_bh 0.005; vs placebo -0.0002 [-0.0012, +0.0008]; DK O/U dLL +0.0002 [-0.0009, +0.0012] (n 15052) |
+| T393 | GAME_MARKET_CONTEXT reb 2024 A1-A0 (n 27701, 1320 games) | dCRPS -0.0007 CI [-0.0018, +0.0004] p_bh 0.724; vs placebo -0.0001 [-0.0010, +0.0008]; DK O/U dLL -0.0007 [-0.0014, +0.0001] (n 14748) |
+| T394 | GAME_MARKET_CONTEXT ast 2023 A1-A0 (n 27619, 1318 games) | dCRPS -0.0002 CI [-0.0012, +0.0009] p_bh 0.856; vs placebo +0.0000 [-0.0007, +0.0007]; DK O/U dLL +0.0001 [-0.0013, +0.0013] (n 9650) |
+| T395 | GAME_MARKET_CONTEXT ast 2024 A1-A0 (n 27701, 1320 games) | dCRPS -0.0002 CI [-0.0009, +0.0006] p_bh 0.904; vs placebo -0.0004 [-0.0011, +0.0002]; DK O/U dLL -0.0000 [-0.0009, +0.0009] (n 10574) |
+| T396 | GAME_MARKET_CONTEXT fg3m 2023 A1-A0 (n 27619, 1318 games) | dCRPS -0.0007 CI [-0.0014, +0.0001] p_bh 0.158; vs placebo +0.0003 [-0.0002, +0.0008]; DK O/U dLL -0.0012 [-0.0023, -0.0000] (n 14191) |
+| T397 | GAME_MARKET_CONTEXT fg3m 2024 A1-A0 (n 27701, 1320 games) | dCRPS +0.0002 CI [-0.0004, +0.0008] p_bh 0.904; vs placebo -0.0001 [-0.0006, +0.0004]; DK O/U dLL +0.0003 [-0.0007, +0.0013] (n 12548) |
+| T398 | GAME_MARKET_CONTEXT pts 2023 A2-A0 (n 27619, 1318 games) | dCRPS +0.0052 CI [+0.0026, +0.0078] p_bh 0.002; vs placebo +0.0009 [-0.0015, +0.0033]; DK O/U dLL +0.0010 [+0.0002, +0.0018] (n 14354) |
+| T399 | GAME_MARKET_CONTEXT pts 2024 A2-A0 (n 27701, 1320 games) | dCRPS -0.0023 CI [-0.0046, -0.0000] p_bh 0.392; vs placebo -0.0005 [-0.0025, +0.0017]; DK O/U dLL -0.0007 [-0.0013, -0.0000] (n 15882) |
+| T400 | GAME_MARKET_CONTEXT reb 2023 A2-A0 (n 27619, 1318 games) | dCRPS +0.0021 CI [+0.0010, +0.0031] p_bh 0.002; vs placebo -0.0001 [-0.0010, +0.0009]; DK O/U dLL +0.0007 [-0.0001, +0.0014] (n 15052) |
+| T401 | GAME_MARKET_CONTEXT reb 2024 A2-A0 (n 27701, 1320 games) | dCRPS -0.0001 CI [-0.0009, +0.0008] p_bh 0.904; vs placebo +0.0003 [-0.0005, +0.0011]; DK O/U dLL -0.0001 [-0.0007, +0.0006] (n 14748) |
+| T402 | GAME_MARKET_CONTEXT ast 2023 A2-A0 (n 27619, 1318 games) | dCRPS +0.0005 CI [-0.0002, +0.0013] p_bh 0.195; vs placebo -0.0002 [-0.0009, +0.0004]; DK O/U dLL +0.0006 [-0.0003, +0.0015] (n 9650) |
+| T403 | GAME_MARKET_CONTEXT ast 2024 A2-A0 (n 27701, 1320 games) | dCRPS +0.0000 CI [-0.0007, +0.0008] p_bh 0.904; vs placebo +0.0002 [-0.0004, +0.0008]; DK O/U dLL -0.0001 [-0.0008, +0.0007] (n 10574) |
+| T404 | GAME_MARKET_CONTEXT fg3m 2023 A2-A0 (n 27619, 1318 games) | dCRPS -0.0000 CI [-0.0005, +0.0006] p_bh 0.978; vs placebo +0.0007 [+0.0002, +0.0013]; DK O/U dLL -0.0011 [-0.0020, -0.0002] (n 14191) |
+| T405 | GAME_MARKET_CONTEXT fg3m 2024 A2-A0 (n 27701, 1320 games) | dCRPS +0.0000 CI [-0.0005, +0.0006] p_bh 0.904; vs placebo -0.0001 [-0.0006, +0.0003]; DK O/U dLL +0.0001 [-0.0007, +0.0009] (n 12548) |
+| T406 | GAME_MARKET_CONTEXT verdict A1_pts | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T407 | GAME_MARKET_CONTEXT verdict A1_reb | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T408 | GAME_MARKET_CONTEXT verdict A1_ast | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T409 | GAME_MARKET_CONTEXT verdict A1_fg3m | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T410 | GAME_MARKET_CONTEXT verdict A2_pts | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T411 | GAME_MARKET_CONTEXT verdict A2_reb | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T412 | GAME_MARKET_CONTEXT verdict A2_ast | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T413 | GAME_MARKET_CONTEXT verdict A2_fg3m | pass False; crps {'2023': False, '2024': False}; placebo {'2023': False, '2024': False}; guards {'abs_bias<=0.5': True, 'cov80_in_[.75,.85]': True, 'no_slice_worse_than_+0.01': True}; O/U {'2023': True, '2024': True} |
+| T414 | GAME_MARKET_CONTEXT close (no cell passes 2023) | True |
+
+**GAME_MARKET_CONTEXT verdict (T389-T414, frozen sha256 fd37a3f3, commit 0a4f230; research/eval/game_market_context_eval.py;
+reports/prereg_game_market_context.md):** CLOSED, null. Replacing (A1) or adding (A2) the market's T-60 spread and total to the props model
+moves CRPS by at most ±0.005 and never clears the −0.005 floor; every real arm is within ±0.001 of its within-date placebo, so the market
+columns add no game information beyond our Elo margin (r 0.90) and 20-game scoring rates. DK over/under log loss unchanged (R4 holds).
+A3, the arm without the player's own stat history, is worse by +0.42 (pts), +0.17 (reb), +0.19 (ast), +0.10 (fg3m) CRPS: the own history is
+about 13% of the model's skill. Gate 20/20; AM1 (2023 R1 on mature blocks, 12,757 rows) applied pre-freeze; AM2 rejected.
+

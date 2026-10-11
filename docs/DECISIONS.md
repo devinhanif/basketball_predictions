@@ -531,3 +531,15 @@ min; NULL gap by minutes 0.25 pp; 11/11 planted and placebo tests). AM2 (CI-uppe
 Why: Devin (16:21 row): move the props model off proxies for game context onto the market's own numbers. Prior pass probability ~10-20%:
 the market margin correlates 0.90 with our Elo margin; the total is the less redundant column.
 What would reverse it: nothing in this rule; a null closes it with one live-season follow-up (the closing capture gives the live context).
+
+## 2026-10-11 17:28 CDT — GAME_MARKET_CONTEXT: CLOSED, null (T389-T414); "move off proxies" answered
+What: the market's spread and total neither replace nor improve on our Elo margin and 20-game scoring rates as props game context (all
+cells within ±0.005 CRPS, placebo-equivalent); dropping the player's own stat history costs 10-13% of CRPS. Closed; one live-season follow-up
+allowed under a new id once the closing capture has a season of real T-60 context.
+Reading for Devin: the proxies were not the problem; the trees already extract what the market knows about blowout risk and pace from our
+own numbers, and "predict points without viewing points" is a 13% worse model. The market's information lives in the player LINE (MODEL_CLV,
+MARKET_LINE_CLASSIFIER), not in the game lines.
+Why: the frozen rule.
+What would reverse it: the live follow-up, or a market-context feature with information the proxies lack (e.g. live total moves after
+lineup news), which is a T-30 question.
+
