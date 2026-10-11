@@ -270,3 +270,9 @@ tolerance for 2024 (HAZARD_2 precedent); P0 stays the deployed Platt P(play) wit
 (T-60 snapshots 99.85% of games; morning 99.3% of game days; max null gap 0.91 pp; planted tests pass). No arm fitted before the freeze.
 Why: non-negotiable 8 and Devin's confirmation.
 What would reverse it: nothing above the line changes; a new question gets a new rule.
+
+## 2026-10-11 ~12:20 CT — Devin: "Do tracking and hustle, let's ingest that"
+What: the ingest queue order moves history tracking/hustle (2019-21, + loads) and the 2025-26 tracking/hustle raw fetches ahead
+of shots and matchups; the queue is restarted (resumable; done steps skipped). 2025-26 rows are raw post-game data, never evaluated.
+Why: Devin's priority; the tracking/hustle screens are closed (T119-T123, T174-T175) but the history tables complete the data layer.
+What would reverse it: nothing; order only.

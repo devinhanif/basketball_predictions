@@ -13,10 +13,11 @@ Priority (re-prioritised 2026-10-09, see docs/NEW_DATA_SOURCES.md, "History DB")
             nothing holds nba.duckdb
   c         history games 2021, 2020, 2019 -> box scores 2021, 2020, 2019 (-> history DB)
   d         history play-by-play 2021..2019, each parsed (heavy lock)
-  e         current officials 2025 (+ load), shots, coaches, matchups (-> cache, each loaded
+  e         current officials 2025 (+ load); coaches earlier (-> cache, each loaded
             only when no other process holds nba.duckdb)
   f         history tracking, hustle (the history DB only holds 2019-2021) (+ load)
-  g         2025 (frozen holdout) tracking/hustle LAST
+  g         2025 (frozen holdout) tracking/hustle (raw fetch only)
+  h         shots, matchups LAST (moved behind tracking/hustle on 2026-10-11 at Devin's request)
 
 Seasons 2013-2018 are deliberately NOT queued (maintainer decision 2026-10-09: the training
 history starts at 2019-20, the first season with official injury-report PDFs).
@@ -177,16 +178,6 @@ def build_steps() -> list[Step]:
             load_source="officials",
         )
     )
-    for src in CURRENT_AFTER:
-        steps.append(Step(f"cur:{src}", ingest("postgame-fetch", "--source", src)))
-        steps.append(
-            Step(
-                f"load:{src}",
-                ingest("postgame-load", "--source", src),
-                "load",
-                load_source=src,
-            )
-        )
     for src in CHAIN_SOURCES:
         steps.append(
             Step(
@@ -207,6 +198,17 @@ def build_steps() -> list[Step]:
             Step(
                 f"cur:{src}:2025",
                 ingest("postgame-fetch", "--source", src, *seasons_args(CURRENT_DEFERRED_SEASONS)),
+            )
+        )
+    # shots and matchups go last (Devin, 2026-10-11: "do tracking and hustle, let's ingest that")
+    for src in CURRENT_AFTER:
+        steps.append(Step(f"cur:{src}", ingest("postgame-fetch", "--source", src)))
+        steps.append(
+            Step(
+                f"load:{src}",
+                ingest("postgame-load", "--source", src),
+                "load",
+                load_source=src,
             )
         )
     return steps
