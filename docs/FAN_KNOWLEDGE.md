@@ -682,3 +682,19 @@ Measured follow-ups below, each descriptive first.
   exceedance rates. Caveats: model distribution reconstructed from mean/std (r 0.98-0.99 with p_model); played rows only;
   overtime inferred from team minutes > 252. Reading: the over is decided by things that happen after tip; the pre-tip model is at
   its ceiling on direction, and there is no under-priced fat tail to buy at the main line.
+- **Closing-line value of the model's picks (MODEL_CLV, T340-T381, frozen dd16a802, 2026-10-11; Pinnacle and DraftKings, t5 as the
+  closing proxy, 2023-24 + 2024-25):** the market moves toward the model's side by +0.001 to +0.004 probability points in the last 55
+  minutes, CIs above zero in every cell, but a no-model side rule (pick the side the market's own price level favours) earns +0.002 of
+  that and the model beats it by at most +0.001. Floor was +0.005. Closed. The direction of Pinnacle's pre-tip move is predictable (log
+  loss 0.673 vs 0.693 constant) from the Pinnacle-vs-DraftKings gap alone; the model adds nothing. Reading: the model is "right" by a
+  fifth of a point and 55 minutes early; under half a cent per dollar, not an edge.
+- **"Am I better than just taking the over or the under?" (Devin, 2026-10-11; paper user v2, same setup as the $10-a-week replay,
+  reports/paper_user_2026-10-11/compliance_results.json):** on the SAME legs the model selects, forcing the under gives +$24 and +$65
+  against the model's +$24 and +$61; the paired difference is −$1 [−21, +22] and −$4 [−28, +20]. The model's side is the under 87-91% of
+  the time, so its whole value is WHICH legs it flags, not which side: blind under on a random leg each night loses $7 and $6; blind over
+  on the model's legs loses $63 and $96; blind over on random legs loses $33 and $38. How to model it: paired baselines on identical legs
+  (side value) plus random-leg baselines (selection value), week-resampled CIs; the MODEL_CLV shuffle null is the same idea at the price
+  level. Follower who takes the model's leg at rate x (less often when the pick is unlikely: 1.0 / 0.6 / 0.3 of x above 60% / 55% /
+  below) and otherwise bets a random over: x = 0.3 loses $18 and $9; x = 0.5 −$5 and +$11; x = 0.7 +$6 and +$33; x = 1 +$24 and +$61.
+  Parlay sanity: per-leg hit 0.53-0.58 → a 3-leg parlay hits 15-20% of weeks → 4-5.5 expected hits in 28 weeks; the observed 4 and 3 are
+  ordinary, not luck.
