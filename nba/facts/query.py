@@ -12,7 +12,10 @@ import duckdb
 import polars as pl
 
 #: Per-game player predicates; their ``object`` is the game entity, which also defines the roster.
+#: Reporter claims (``claimed_<type>``, nba/ingest/reporter_facts.py) are game-scoped the same way
+#: and count too, so "what was known at T-60" includes them, marked by source and confidence.
 GAME_PREDICATES = ("listed_status", "announced_starter", "played_minutes")
+CLAIMED_PREFIX = "claimed_"
 
 
 class PostTipError(ValueError):
@@ -45,7 +48,9 @@ WITH teams AS (
     WHERE subject = $g AND predicate IN ('home_team', 'away_team') AND known_at <= $t
 ), players AS (
     SELECT DISTINCT subject AS id FROM facts
-    WHERE object = $g AND predicate IN ('listed_status', 'announced_starter', 'played_minutes')
+    WHERE object = $g
+      AND (predicate IN ('listed_status', 'announced_starter', 'played_minutes')
+           OR predicate LIKE 'claimed%')
       AND known_at <= $t
 )
 SELECT * FROM facts

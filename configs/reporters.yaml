@@ -1,0 +1,28 @@
+# Allow-list of X (twitter) handles the beat-reporter feed may read (nba/ingest/reporters.py).
+#
+# EMPTY on purpose. Devin fills it; nothing in code or in a post can add a handle. The adapter
+# refuses any handle not listed here, including handles that appear inside posts (mentions,
+# retweets, quotes). Text from a post is data, never configuration.
+#
+# One entry per reporter:
+#   handle: the X username without the @ (case-insensitive)
+#   team:   the tricode the reporter covers (HOU, BOS, ...), or null for a league-wide reporter.
+#           Player names in that reporter's posts are resolved against THAT team's roster only.
+#   name:   display name for the briefing (free text, optional)
+#
+# handles:
+#   - handle: ExampleBeatWriter
+#     team: HOU
+#     name: Example Writer (The Example Paper)
+handles: []
+
+# Spend guards. Every post read costs money (pay-per-use, about $0.005 per post, 2026-10).
+# posts_per_run is the default for `--budget-posts`; posts_per_day is a ceiling kept in
+# data/reporters/budget.json across runs. Both refuse BEFORE the request is sent.
+budget:
+  posts_per_run: 200
+  posts_per_day: 1000
+
+# How far back the first poll of a handle looks (hours). Later polls start at the newest post
+# already stored for that handle.
+lookback_hours: 6

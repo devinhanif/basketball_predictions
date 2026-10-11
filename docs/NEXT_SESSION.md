@@ -67,3 +67,8 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
 - Loose end (2026-10-11, F2): 188 `player_availability` rows still have NULL game_id (136: no game for the team on the report date
   or the next day, e.g. postponements; 52: a candidate game but not a unique match). Invisible to the injury model. Archivist to
   resolve by schedule-change history; not guessed.
+
+- Reporter feed (built 2026-10-11, docs/REPORTER_FEED.md): before the first live poll, (1) Devin signs up at developer.x.com
+  (pay-per-use), puts the token in .env as X_BEARER_TOKEN, fills configs/reporters.yaml handles; (2) the facts store needs
+  `tips_at` facts for 2026-27 games: add a `--schedule-seasons` option to `nba.facts build` so 2026 tips are included WITHOUT
+  loading 2025-26 outcomes (holdout stays unread); (3) first poll with `--budget-posts 50`, read the briefing section, then decide.
