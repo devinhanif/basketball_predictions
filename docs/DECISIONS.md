@@ -175,3 +175,11 @@ What would reverse it: (1) the oracle showing a change outside the previously-sk
    source_ts). Raw rows untouched. Reverse if the feed stops duplicating or the confirmed-lineup definition changes.
 4. **Defaults recorded:** the 1,200-game live 2026-27 tips file is re-checked weekly (F3); the F2 fix added 10 neutral-site games
    and linked 148 report rows; 188 report rows with no game stay NULL as a loose end (not guessed).
+
+## 2026-10-11 2026-10-10 20:14 CT — MINUTES_HAZARD_2 FROZEN (sha256 a11ae618) after one pre-freeze amendment
+What: same design as MINUTES_HAZARD; gate 5a now passes on the rebuilt stints (on-court label gap 5.79 → 0.77 pp; max over all
+inputs 1.66 pp, limit 2). Check 5c ("M2 reproduces its stored results to 1e-6") was amended BEFORE the freeze to: 2023 to 1e-6
+(unchanged rows) and 2024 within 0.005 min of the stored mean, because the data clean-up moved 2024 rows from 2024-11-04 on by
+0.0015 min; M2 is refit by the same harness so the H1-vs-M2 comparison stays like-for-like. Nothing was scored before the freeze.
+Why: non-negotiable 8 (a rule that cannot pass its gate is not frozen) and Devin's pre-approval.
+What would reverse it: nothing above the line changes; a new question gets a new rule.

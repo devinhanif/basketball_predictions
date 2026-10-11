@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import numpy as np
 import polars as pl
+import pytest
 
 from nba.props.context_residual import CRPS_TAUS
+from research.eval import minutes_hazard_eval as mhe
 from research.eval.minutes_hazard_eval import FROZEN_SHA, frozen_sha
 from research.minutes import hazard as hz
 
@@ -16,6 +21,33 @@ def _keys(n: int = 3) -> pl.DataFrame:
 
 def test_frozen_rule_hash_matches_the_committed_constant() -> None:
     assert frozen_sha() == FROZEN_SHA
+
+
+def test_doc_argument_redirects_hash_cache_and_outputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("PREREG", "OUT_DIR", "REPORT_PATH", "CACHE"):
+        monkeypatch.setattr(mhe, name, getattr(mhe, name))
+    doc = tmp_path / "MINUTES_HAZARD_2.md"
+    doc.write_text("rule line\n=== RESULTS BELOW ===\nnumbers\n")
+    mhe.configure(doc)
+    assert Path("reports/prereg_minutes_hazard_2") == mhe.OUT_DIR
+    assert Path("reports/prereg_minutes_hazard_2.md") == mhe.REPORT_PATH
+    assert Path("data/minutes_hazard_2") == mhe.CACHE
+    sha = mhe.frozen_sha()
+    assert sha == hashlib.sha256(b"rule line\n").hexdigest()
+    assert mhe.require_frozen(sha) == sha
+    with pytest.raises(SystemExit):
+        mhe.require_frozen(FROZEN_SHA)
+    assert mhe.require_frozen(None, allow_draft=True) == sha
+    with pytest.raises(SystemExit):
+        mhe.main(["run", "--doc", str(doc)])  # non-default doc without --sha
+    with pytest.raises(SystemExit):
+        mhe.main(["run", "--doc", str(doc), "--allow-draft"])
+
+
+def test_default_doc_is_the_original() -> None:
+    assert Path("docs/prereg/MINUTES_HAZARD.md") == mhe.DEFAULT_DOC
 
 
 def test_build_y_overlaps_and_overtime() -> None:

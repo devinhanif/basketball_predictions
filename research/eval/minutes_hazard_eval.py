@@ -4,6 +4,12 @@
     python -W ignore -m research.eval.minutes_hazard_eval smoke   # one month block, 50 paths
     python -W ignore -m research.eval.minutes_hazard_eval run     # gate, full run, report
 
+``--doc docs/prereg/<ID>.md`` selects the rule document (default: the original). A non-default
+doc needs ``--sha <full 64-hex>`` (the freeze hash recorded in the commit); the hash check, the
+cache (``data/<id lower>/``) and the outputs (``reports/prereg_<id lower>/``,
+``reports/prereg_<id lower>.md``) follow the doc. ``--allow-draft`` (gate stage only) skips the
+hash equality check and records the computed hash, for measuring gate numbers on a DRAFT.
+
 ``nba.duckdb`` is opened read-only with ``season <= 2024`` in every query (asserted); season 2025
 is never loaded. Heavy stages take ``data/ops/heavy.lock`` (retry 120 s, released in ``finally``).
 Checkpoints live in ``data/minutes_hazard/`` (git-ignored) and resume on rerun; outputs go to
@@ -51,7 +57,8 @@ from research.props.minutes_v2 import (
     summarize_quantiles,
 )
 
-PREREG = Path("docs/prereg/MINUTES_HAZARD.md")
+DEFAULT_DOC = Path("docs/prereg/MINUTES_HAZARD.md")
+PREREG = DEFAULT_DOC
 MARKER = "=== RESULTS BELOW ==="
 FROZEN_SHA = "65fced234352f2cbf1f154add6f5c25e7014401bf9295cd852af3973c15f4283"
 OUT_DIR = Path("reports/prereg_minutes_hazard")
@@ -85,20 +92,33 @@ def _log(msg: str) -> None:
 # --------------------------------------------------------------------------- freeze + lock
 
 
-def frozen_sha(path: Path = PREREG) -> str:
+def frozen_sha(path: Path | None = None) -> str:
     """sha256 of everything above the marker line (the awk command in the doc header)."""
     h = hashlib.sha256()
-    for line in path.read_text().splitlines(keepends=True):
+    for line in (path or PREREG).read_text().splitlines(keepends=True):
         if line.rstrip("\n") == MARKER:
             break
         h.update(line.encode())
     return h.hexdigest()
 
 
-def require_frozen() -> str:
-    sha = frozen_sha()
-    if sha != FROZEN_SHA:
-        raise SystemExit(f"STOP: prereg sha256 {sha} != frozen {FROZEN_SHA}")
+def configure(doc: Path) -> None:
+    """Point the doc path, cache and outputs at ``doc`` (id = file stem, lower-cased)."""
+    global PREREG, OUT_DIR, REPORT_PATH, CACHE
+    stem = doc.stem.lower()
+    PREREG = doc
+    OUT_DIR = Path(f"reports/prereg_{stem}")
+    REPORT_PATH = Path(f"reports/prereg_{stem}.md")
+    CACHE = Path(f"data/{stem}")
+
+
+def require_frozen(expected: str | None = None, allow_draft: bool = False) -> str:
+    sha = frozen_sha(PREREG)
+    if allow_draft:
+        return sha
+    want = expected or FROZEN_SHA
+    if sha != want:
+        raise SystemExit(f"STOP: prereg sha256 {sha} != frozen {want}")
     return sha
 
 
@@ -1227,8 +1247,16 @@ def write_gate_stop(gate: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("stage", choices=["gate", "smoke", "run", "report"])
+    ap.add_argument("--doc", type=Path, default=DEFAULT_DOC, help="prereg document")
+    ap.add_argument("--sha", default=None, help="frozen sha256 (required for a non-default doc)")
+    ap.add_argument("--allow-draft", action="store_true", help="gate stage only: skip hash check")
     args = ap.parse_args(argv)
-    sha = require_frozen()
+    if args.doc != DEFAULT_DOC and not args.allow_draft and not args.sha:
+        raise SystemExit("STOP: a non-default --doc needs --sha (the committed freeze hash)")
+    if args.allow_draft and args.stage != "gate":
+        raise SystemExit("STOP: --allow-draft is for the gate stage only")
+    configure(args.doc)
+    sha = require_frozen(args.sha, args.allow_draft)
     _log(f"prereg sha256 verified {sha[:8]}")
     with HeavyLock():
         t0 = time.time()
