@@ -38,6 +38,11 @@ Allowed (each carries its `known_at`; `assert_as_of` raises on any stamp after `
 
 - facts-store rows with `known_at <= t` (`nba.facts.query.as_of`, which itself refuses post-tip): game, the two
   teams, the leg players;
+- the same-day OFFICIAL injury report, read from `nba.duckdb` by production's serving rule
+  (`serve_pretip_flagged`: per game, the latest snapshot of that game's own rows with `as_of <= min(t, tip-60)`),
+  one fact per listed player of both teams (`player_id, player_name, team, status, reason, known_at = as_of`);
+  a game with no qualifying snapshot gets an explicit `no_report` fact, never "nobody out" (the facts store is
+  only rebuilt in the morning, so this is how the model sees today's report);
 - production's T-60 numbers from `forward_predictions` of the same night (`made_at <= t`): injury-Elo and MOV-Elo
   win probabilities, per leg `p_over_prod`, `mean_prod`, `std_prod`, projected minutes, P(play);
 - the DraftKings main line and the Pinnacle line for each leg, POINT VALUES ONLY, and spread/total points; from
@@ -55,8 +60,8 @@ season-2025 holdout evaluation data outside what the live pipeline already reads
 Measured on the rehearsal DB copy with the stub (`chars / 3` as the token estimate, a conservative bound; the
 real count comes back in `usage` and is booked): about 6.2-6.3k input tokens for the payload plus 0.4k system
 prompt for a 40-leg game, about 1.6k output tokens: roughly 8.3k tokens per game, input-capped at 8,000. The
-planning allowance in the rule is 5,500 per game; at 8.3k the 110,000 ceiling covers about 13 games, so a full
-slate may hit `budget_skip` on the latest tips. Dollars are not computed here: `configs/cost.yaml` has no
+planning allowance is 8,500 per game and the hard nightly ceiling 150,000 tokens (decided 2026-10-11 from this
+measurement), about 17 games at the measured size; games beyond the ceiling are `budget_skip`, latest tip first. Dollars are not computed here: `configs/cost.yaml` has no
 Anthropic rate, and a price is never invented (see "To enable"). Token counts only until Devin adds a rate.
 
 ## To enable (two lines, plus the cap)
@@ -66,9 +71,9 @@ Anthropic rate, and a price is never invented (see "To enable"). Token counts on
 2. Put `NBA_LLM_SHADOW=1` in `.env` (or the job environment).
 
 The real provider is refused (exit 4, logged) until `MONTHLY_CAP_USD` in `configs/llm_shadow.yaml` is set by Devin
-and the optional dependency group `llm` is installed (`uv sync --extra llm`). The facts store (`data/facts/facts.duckdb`) must be
-rebuilt before the T-60 window for the injury report to be in it (`NBA_FACTS_NIGHTLY=1` rebuilds it in the
-morning job only); a game whose facts are unavailable is skipped, not sent blind.
+and the optional dependency group `llm` is installed (`uv sync --extra llm`). The facts store (`data/facts/facts.duckdb`) is rebuilt only in the morning job
+(`NBA_FACTS_NIGHTLY=1`); today's injury report reaches the payload directly from `nba.duckdb`. A game whose
+facts store is unavailable is skipped, not sent blind.
 
 ## Reading it in the weekly report
 

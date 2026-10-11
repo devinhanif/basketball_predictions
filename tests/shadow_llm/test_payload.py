@@ -123,3 +123,33 @@ def test_input_cap_trims_legs_lowest_minutes_first(world: World) -> None:
         return
     assert len(small["legs"]) < len(full["legs"])
     assert small["game"]["n_legs_dropped_for_input_cap"] > 0
+
+
+def _report(p: dict) -> list[dict]:  # type: ignore[type-arg]
+    return [f for f in p["facts"] if f["predicate"] == "injury_report_status"]
+
+
+def test_same_day_injury_report_latest_snapshot_for_both_teams(world: World) -> None:
+    p = build_payload(GAME, now=NOW, paths=world.paths, cfg=world.cfg)
+    rep = _report(p)
+    # latest snapshot at or before t is the 17:00 ET one: only players 12 and 13
+    assert {(r["player_id"], r["status"]) for r in rep} == {(12, "Out"), (13, "Available")}
+    out12 = next(r for r in rep if r["player_id"] == 12)
+    assert out12["reason"] == "Right Ankle; Sprain" and out12["team"] == 1610612738
+    # 17:00 ET == 21:00 UTC
+    assert out12["known_at"] == "2026-10-28T21:00:00" and out12["known_at"] <= NOW.isoformat()
+    # planted rows (as_of after t, after tip) never appear; earlier snapshot rows are superseded
+    assert not any("PLANTED" in (r["reason"] or "") for r in rep)
+    assert not any(r["player_id"] in (11, 21) for r in rep)
+    assert not any(f.get("value_text") == "no_report" for f in p["facts"])
+
+
+def test_game_without_a_report_gets_an_explicit_no_report_fact(world: World) -> None:
+    import duckdb
+
+    con = duckdb.connect(str(world.paths["forward"]))
+    con.execute("DELETE FROM player_availability")
+    con.close()
+    p = build_payload(GAME, now=NOW, paths=world.paths, cfg=world.cfg)
+    nr = [f for f in p["facts"] if f.get("value_text") == "no_report"]
+    assert len(nr) == 1 and nr[0]["predicate"] == "injury_report" and not _report(p)

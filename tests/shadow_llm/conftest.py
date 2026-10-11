@@ -131,6 +131,19 @@ def make_world(tmp: Path) -> World:
     # player 22 has no production row (excluded from legs): drop its rows
     preds = [p for p in preds if p.player_id != 22]
     append_predictions(con, "run-prod", PROD_AT, preds)
+    # official injury report (as_of is the ET wall clock; NOW is 18:25 ET, tip-60 is 18:30 ET)
+    for pid, as_of, status, reason in [
+        (11, datetime(2026, 10, 28, 12, 30), "Questionable", "Left Knee; Soreness"),
+        (21, datetime(2026, 10, 28, 12, 30), "Out", "Rest"),
+        (12, datetime(2026, 10, 28, 17, 0), "Out", "Right Ankle; Sprain"),  # latest usable snapshot
+        (13, datetime(2026, 10, 28, 17, 0), "Available", None),
+        (11, datetime(2026, 10, 28, 18, 26), "Out", "PLANTED after t"),  # after NOW, before tip-60
+        (13, datetime(2026, 10, 28, 19, 40), "Out", "PLANTED after tip"),
+    ]:
+        con.execute(
+            "INSERT INTO player_availability VALUES (?,?,?,?,?,?,?)",
+            [pid, as_of, GAME, status, reason, "nba_official_report", as_of],
+        )
     con.close()
 
     facts_path = tmp / "facts.duckdb"

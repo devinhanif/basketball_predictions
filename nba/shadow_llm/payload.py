@@ -399,6 +399,94 @@ def _facts_section(
     return out
 
 
+def _injury_report_facts(
+    nba_con: duckdb.DuckDBPyConnection,
+    facts_con: duckdb.DuckDBPyConnection,
+    game_id: str,
+    tipoff: datetime,
+    t: datetime,
+    game_day: date,
+    max_season: int | None,
+) -> list[dict[str, Any]]:
+    """The latest official injury-report snapshot for THIS game with ``as_of <= min(t, tip-60)``,
+    chosen by production's own serving rule (``serve_pretip_flagged``, naive US-Eastern clock),
+    one fact per listed player of BOTH teams. A game with no qualifying snapshot gets one explicit
+    ``no_report`` fact, never "nobody out"."""
+    from nba.daily.predict import injury_report_rows
+    from nba.features.injury_report import OFFICIAL_REPORT_SOURCE, ReportTriggerConfig
+    from nba.features.injury_report import serve_pretip_flagged as serve
+
+    def to_et(x: datetime) -> datetime:
+        return x.replace(tzinfo=UTC).astimezone(ET).replace(tzinfo=None)
+
+    no_report = [
+        {
+            "subject": f"game:{game_id}",
+            "predicate": "injury_report",
+            "value_text": "no_report",
+            "source": OFFICIAL_REPORT_SOURCE,
+            "known_at": iso(t),
+        }
+    ]
+    try:
+        rows = injury_report_rows(nba_con, [game_id], game_dates={game_id: game_day})
+        cfg = ReportTriggerConfig()
+        _flagged, used = serve(rows, {game_id: to_et(tipoff)}, to_et(t), cfg)
+        if game_id not in used:
+            return no_report
+        snap = used[game_id]
+        got = nba_con.execute(
+            "SELECT player_id, status, reason, CAST(as_of AS TIMESTAMP) FROM player_availability "
+            "WHERE game_id = ? AND source = ? AND player_id IS NOT NULL "
+            "AND CAST(as_of AS TIMESTAMP) = ? ORDER BY player_id, status",
+            [game_id, OFFICIAL_REPORT_SOURCE, snap],
+        ).fetchall()
+    except duckdb.CatalogException:
+        return no_report
+    if not got:
+        return no_report
+    pids = sorted({int(r[0]) for r in got})
+    marks = ",".join("?" for _ in pids)
+    sc = "AND g.season <= ?" if max_season is not None else ""
+    team_rows = nba_con.execute(
+        f"""
+        SELECT player_id, team_id FROM (
+            SELECT s.player_id, s.team_id, row_number() OVER (
+                PARTITION BY s.player_id ORDER BY g.game_date DESC, s.game_id DESC) rn
+            FROM player_game_stats s JOIN games g USING (game_id)
+            WHERE s.player_id IN ({marks}) AND g.game_date < ? {sc}) WHERE rn = 1
+        """,  # noqa: S608
+        [*pids, game_day, *([max_season] if max_season is not None else [])],
+    ).fetchall()
+    team = {int(a): b for a, b in team_rows}
+    names: dict[int, str] = {}
+    try:
+        for pid, nm in facts_con.execute(
+            f"SELECT entity_id, canonical_name FROM entities WHERE entity_id IN ({marks})",  # noqa: S608
+            [f"player:{p}" for p in pids],
+        ).fetchall():
+            names[int(str(pid).split(":")[1])] = nm
+    except duckdb.Error:
+        pass
+    known = iso(snap.replace(tzinfo=ET).astimezone(UTC).replace(tzinfo=None))
+    out: list[dict[str, Any]] = []
+    for pid, status, reason, _asof in got:
+        out.append(
+            {
+                "subject": f"player:{int(pid)}",
+                "predicate": "injury_report_status",
+                "player_id": int(pid),
+                "player_name": names.get(int(pid)),
+                "team": team.get(int(pid)),
+                "status": str(status).strip().capitalize(),
+                "reason": reason,
+                "source": OFFICIAL_REPORT_SOURCE,
+                "known_at": known,
+            }
+        )
+    return out
+
+
 # ----------------------------------------------------------------------------------------------
 # Build
 # ----------------------------------------------------------------------------------------------
@@ -540,6 +628,9 @@ def build_from_connections(
     inj = win["injury_elo"]
     team_ids = [int(x) for x in (inj.get("home_team"), inj.get("away_team")) if x]
     all_facts = _facts_section(facts_con, game_id, t)
+    report_facts = _injury_report_facts(
+        nba_con, facts_con, game_id, tipoff, t, game_day, max_season
+    )
     team_ctx = _team_context(nba_con, team_ids, game_day, max_season)
     n_keep = len(ranked)
     while True:
@@ -595,7 +686,7 @@ def build_from_connections(
                 "rows": sorted(game_lines, key=lambda r: [str(x) for x in r]),
                 "known_at": iso(odds_known),
             },
-            "facts": [f for f in all_facts if f["subject"] in wanted],
+            "facts": [f for f in all_facts if f["subject"] in wanted] + report_facts,
             "players": players,
             "legs": kept,
         }

@@ -230,12 +230,12 @@ def test_budget_guard_refuses_before_the_call(world: World) -> None:
     no_cap = replace(world.cfg, monthly_cap_usd=None)
     out = _go(world, real, NOW, cfg=no_cap, environ=env)
     assert out["status"] == "monthly_cap_usd_not_set"
-    # (b) nightly ceiling: 109,000 spent + 5,500 planned > 110,000 -> budget_skip, flagged
+    # (b) nightly ceiling: 145,000 spent + 8,500 planned > 150,000 -> budget_skip, flagged
     from nba.shadow_llm.calls import open_shadow, record_call
 
     con = open_shadow(world.paths["shadow"])
     record_call(con, game_id="other", slate=NOW.date(), requested_at=NOW, received_at=NOW,
-                status="ok", tokens_in=100_000, tokens_out=9_000)  # fmt: skip
+                status="ok", tokens_in=135_000, tokens_out=10_000)  # fmt: skip
     con.close()
     out = _go(world, real, NOW, environ=env)
     assert out["status"] == "budget_skip"
@@ -343,4 +343,4 @@ def test_mixed_forward_table_still_settles(world: World) -> None:
 
 def test_config_default_is_unset_cap() -> None:
     assert ShadowConfig().monthly_cap_usd is None
-    assert ShadowConfig().nightly_token_ceiling == 110_000
+    assert ShadowConfig().nightly_token_ceiling == 150_000
