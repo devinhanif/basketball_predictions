@@ -614,3 +614,7 @@ Measured follow-ups below, each descriptive first.
   nothing there either (threes n 81 is noise). Both recorded as nulls; the one untried context with real information is the
   market itself as an INPUT (the line, the book's probability, the game total and spread), which the model has never seen → draft
   rule MARKET_LINE_CLASSIFIER.
+- **The market as an input (MARKET_LINE_CLASSIFIER): NULL (T320–T324).** Feeding the book's probability, the line, the game total
+  and spread and our forecast into one learner is worse than the book on every stat in 2023-24 and within noise in 2024-25; the
+  crude one-weight blend beats the clever classifier in every cell. Lesson for the product: show the book's price as the truth
+  and our forecast as a small, declared lean, never the other way round.

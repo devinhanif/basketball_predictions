@@ -59,3 +59,7 @@ golden re-baselined 89889f6d); nightly facts rebuild switched ON in the morning 
   it, or run it yourself outside xx:15-25 / xx:45-55:
   `mkdir data/ops/heavy.lock && uv run python -m nba.ingest.history_reason_fix --insert-missing --apply; rmdir data/ops/heavy.lock`
   (backs up first; commits only if rows == 362,528 + 262 and every PDF's stored rows equal its parsed rows).
+
+## 19:20 update
+MARKET_LINE_CLASSIFIER: null (T320–T324); the one-weight blend beats the learner everywhere; closed. OWN_TAG waits on a regenerated
+production reference (the stored one predates the restored games); CALIBRATED_GRID and HISTORY_WINDOW_2 gates still being measured.

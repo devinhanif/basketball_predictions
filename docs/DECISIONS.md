@@ -382,3 +382,9 @@ gate-section choices (tier as-of join, spread signed to the player's team, conse
 placebo, one pooled learner with a stat code, 2023 selects without Holm, 2024 confirms with Holm); Oct-Nov 2023 unscored warm-up.
 Why: Devin's confirmation; non-negotiable 8.
 What would reverse it: nothing above the line changes.
+
+## 2026-10-11 ~19:20 CT — MARKET_LINE_CLASSIFIER: NULL; "the market as an input" closed
+What: ran under frozen sha256 b85ae0d7 (T320–T324). The classifier is worse than the book in the select season on all four stats
+and within noise in 2024; the one-weight blend from ODDS_HISTORY beats it everywhere. Closed; no follow-up.
+Why: the book's price already contains what our forecast knows; a learner given both overfits where one shrinkage weight does not.
+What would reverse it: nothing in this family; the budget tool keeps the ODDS_HISTORY stance (market as prior, weight by live track record).

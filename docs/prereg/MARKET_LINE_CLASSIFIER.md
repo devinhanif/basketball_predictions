@@ -102,6 +102,19 @@ SHA, sha256. Code under `research/` only (`research/eval/market_line_classifier_
 
 === RESULTS BELOW ===
 
+RUN 2026-10-11 under sha256 b85ae0d7237f77759393a2816c18e4885e91ba49462a0970da64c3b6b80f790b (harness git c9e9a6f). Runtime: smoke 6 s, run 40 s (18 blocks, 2 unscored), report 7 s.
+Verdict: NO STAT PASSES. Full table, pairwise deltas, reliability: reports/prereg_market_line.md and reports/prereg_market_line/results.json.
+M2 - M0 log loss (negative = better), 2023 (select) / 2024 (report; Holm over 4 stats):
+- pts: +0.00189 [+0.00006, +0.00387] / +0.00027 [-0.00073, +0.00134] Holm 1.000 (n 11,180 / 15,882)
+- reb: +0.00106 [-0.00085, +0.00297] / -0.00067 [-0.00184, +0.00044] Holm 0.908 (n 11,742 / 14,748)
+- ast: +0.00157 [-0.00065, +0.00388] / +0.00045 [-0.00083, +0.00170] Holm 1.000 (n 7,592 / 10,574)
+- fg3m: +0.00099 [-0.00116, +0.00295] / +0.00036 [-0.00105, +0.00174] Holm 1.000 (n 11,121 / 12,548)
+M2 - M3 (market-only) and M2 - M4 (placebo), 2024: pts -0.00043 / -0.00046; reb -0.00018 / +0.00007; ast -0.00047 / +0.00010; fg3m -0.00041 / -0.00071; no CI excludes 0 and none reaches the -0.001 floor.
+M1 (frozen blend, continuity) vs M0: 2024 -0.00032, -0.00141 (CI excludes 0), -0.00041, -0.00118 (CI excludes 0); 2023 is in-sample.
+M2 is worse than the book on 2023 for all four stats, so the kill criterion "no stat passes on 2023" fires: closed, no follow-up. The one-weight blend M1 beats the classifier M2 in every cell: the classifier overfits relative to a single shrinkage weight.
+Side accuracy 2024, M2 vs book (break-even at -110 is 52.4%): pts 51.5 vs 52.4, reb 54.8 vs 54.7, ast 54.7 vs 54.3, fg3m 57.6 vs 57.3. No EV section (no stat passed).
+
+
 (not run)
 
 Freeze: 2026-10-11 15:06 CT, commit 0a728ee, sha256 of everything above the line: b85ae0d7237f77759393a2816c18e4885e91ba49462a0970da64c3b6b80f790b (first 8: b85ae0d7). Verify with the awk command in the header.

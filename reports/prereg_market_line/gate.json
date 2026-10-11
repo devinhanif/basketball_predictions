@@ -1,8 +1,8 @@
 {
  "status": "GATE_PASSED",
- "draft": true,
- "sha256": "91512bfe154d4c4a580f28f068d216d3b39f6edeb23f1db5a811be92e33a03d3",
- "git_sha": "ceedfb7",
+ "draft": false,
+ "sha256": "b85ae0d7237f77759393a2816c18e4885e91ba49462a0970da64c3b6b80f790b",
+ "git_sha": "c9e9a6f",
  "seasons": [
   2023,
   2024
