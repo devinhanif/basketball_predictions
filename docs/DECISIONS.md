@@ -162,3 +162,16 @@ the choice is not predictable from the coach across seasons. (6) Drive: gdrive:n
 deleted on Devin's "please". (7) the-odds-api.com plan: Devin cancels after the month.
 Why: Devin's message of 2026-10-11 ~00:50.
 What would reverse it: (1) the oracle showing a change outside the previously-skipped games; (4) X pricing or terms changing.
+
+## 2026-10-11 ~01:20 CT — Data clean-up pass: four standing decisions (from the audit, accepted)
+1. **Possession reconciliation gate restated.** The hard gate is points: possession points == box points per team-game. The
+   formula `FGA + 0.44 FTA + TOV − OREB` is a diagnostic only; it has run 1.6–2.0 above the parser in every season (MAE 2.0–2.25)
+   while points reconcile in 98.1–100% of team-games. Reverse if points fail to reconcile on a fixed parser or the formula bias
+   moves between seasons.
+2. **Head coach by game.** `team_coach_games` (nba/data/coaches.py from a reviewed reference CSV, verified 2022-24) is the source
+   of truth; `team_coaches` stays as the raw fetch and is no longer used for coach-by-game work. 2025-26 rows are written as
+   unverified (NULL known_at) until Devin supplies or approves a source. Reverse on a dated source or Devin's correction.
+3. **Lineup snapshots are read through `lineup_snapshots_latest`** (starter = OR over duplicate rows; status from the latest
+   source_ts). Raw rows untouched. Reverse if the feed stops duplicating or the confirmed-lineup definition changes.
+4. **Defaults recorded:** the 1,200-game live 2026-27 tips file is re-checked weekly (F3); the F2 fix added 10 neutral-site games
+   and linked 148 report rows; 188 report rows with no game stay NULL as a loose end (not guessed).
