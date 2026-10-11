@@ -556,3 +556,8 @@ rotation-level young players in close games would be a new rule.
 4. **Whistles** get friendlier for the home team when the away team is good.
 5. **Givens:** Jokic 6 rebounds, LeBron 15 points, Curry 2 threes, Anthony Edwards 2 threes.
 Measured follow-ups below, each descriptive first.
+- **Devin's four givens, measured (2023-24 + 2024-25, games played):** Jokic ≥ 6 reb 96.6% (n 175), LeBron ≥ 15 pts 95.4% (152),
+  Curry ≥ 2 threes 92.9% (154), Edwards ≥ 2 threes 76.7% (189). On the 31 nights all four played, all four hit 17 times (54.8%),
+  BELOW the 65.6% independence would give; Edwards alone broke it 6 times, Curry 4. So "four givens never happen" is close to
+  literally true once a 77% leg is called a given, and even three 93-97% legs together only land ~85% of nights. DraftKings never
+  quoted these floor lines at T-60 in the stored data (they live only as deep alternates), so there is no price to compare.
