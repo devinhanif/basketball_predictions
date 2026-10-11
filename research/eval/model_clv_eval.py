@@ -31,7 +31,7 @@ import polars as pl
 
 from nba.eval.context_residual_eval import bh_adjust
 from research.eval.f11_lineup_context import _jd, git_sha
-from research.eval.minutes_hazard_eval import MARKER, frozen_sha
+from research.eval.minutes_hazard_eval import frozen_sha
 from research.eval.odds_history_eval import blend_p
 
 DOC = Path("docs/prereg/MODEL_CLV.md")
@@ -111,7 +111,8 @@ def require_frozen(doc: Path, expected: str | None, allow_draft: bool) -> str:
 
 def declared(doc: Path) -> dict[str, Any]:
     """Machine-readable lines inside the frozen block: FAMILY_CELLS and PAIRS_SHA256_<season>."""
-    head = doc.read_text().split(MARKER)[0]
+    # the marker as a whole line only: the freeze command quoted in the header also contains the marker text
+    head = re.split(r"^=== RESULTS BELOW ===$", doc.read_text(), maxsplit=1, flags=re.M)[0]
     fam = re.search(r"^FAMILY_CELLS: (.*)$", head, re.M)
     out: dict[str, Any] = {
         "family": sorted(x.strip() for x in fam.group(1).split(",") if x.strip()) if fam else None

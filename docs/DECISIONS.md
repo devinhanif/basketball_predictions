@@ -468,3 +468,14 @@ fade-retail-toward-Pinnacle comparator; every cell must beat its 20-shuffle null
 measure: A1 kept, A2 not applied (M3 as drafted), A3 done, FanDuel descriptive. Gate 5/5 pass; 4 M3 × Pinnacle cells dropped (n < 300).
 Why: Devin's "closing line" and "train to beat lines" (22:40, 22:55 rows); CLV is readable on history today and live within weeks.
 What would reverse it: nothing in this rule; a null closes it, with the live companion rule as the one follow-up.
+
+## 2026-10-11 ~23:45 CT — MODEL_CLV: CLOSED, no pass (T340-T381)
+What: the model's T-60 picks beat the closing price by about a fifth of a point of probability, consistently, and a no-model side
+rule earns most of that; nothing near the half-point floor. The line-move direction is predictable from the Pinnacle-vs-DK gap alone;
+the model adds nothing to it. Closed on the select season.
+Reading: the market finishes moving toward us a little; the model is not wrong, it is early by 55 minutes and small. For the product
+this is the number to show honestly: "the line moved your way 0.2 points", not an edge.
+Why: the frozen rule.
+What would reverse it: the live companion rule with the real last-before-tip capture (the one follow-up), if the real close moves more
+than the t5 proxy does.
+

@@ -109,3 +109,16 @@ Maintainer command after the freeze (about a minute; light, takes no lock, refus
 `.venv/bin/python -W ignore -m research.eval.model_clv_eval run --doc docs/prereg/MODEL_CLV.md --sha <64 hex> --pairs-dir data/ops/model_clv_pairs`
 
 === RESULTS BELOW ===
+
+Run 2026-10-11 23:35 CT under frozen sha256 dd16a802, git 6e75614, harness research/eval/model_clv_eval.py (one harness fix before any
+result was seen: the doc parser split on the first occurrence of the marker text, which also appears inside the quoted freeze command;
+it now matches the marker as a whole line; the frozen block is unchanged, hash re-verified). Gate 5/5 pass; family 20 cells.
+Verdict: NO CELL PASSES on 2023 (select); closed. Price CLV of the model's T-60 pick is positive in every cell but an order of
+magnitude under the floor: M1/M2 Pinnacle +0.0013 to +0.0033 probability points (all CIs above 0), DraftKings +0.0009 to +0.0029;
+the 20-shuffle null (pick a side from the market's own price level, no model) earns +0.0018 to +0.0026 of that, and the model beats
+its null by only +0.0000 to +0.0012. The fade-retail comparator rarely has the same-line Pinnacle quote on unchanged lines (n 1-56),
+so the DK-vs-fade condition is weak evidence either way. 2024 confirms the same picture (M1/M2 +0.0013 to +0.0040). Reading: the
+market moves toward the model's side by about a fifth of a point of probability in the last 55 minutes, i.e. the model holds a
+little information the T-60 line lacks, worth under half a cent per dollar at even money; not a betting edge. Full tables:
+reports/prereg_model_clv.md, reports/prereg_model_clv/results.json. One follow-up allowed: the live companion rule with the real
+closing capture.
