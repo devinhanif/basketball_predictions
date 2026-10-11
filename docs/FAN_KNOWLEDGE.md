@@ -546,3 +546,13 @@ rotation-level young players in close games would be a new rule.
   hits all five on 5.5% of 419 nights (book 3.5%), typical payout 18.7x, return per $1 1.15 with night-bootstrap CI [0.71, 1.65];
   k=1..3 return 0.96–1.00; a control picking the book's own favourites returns 0.82 [0.52, 1.17]. Indistinguishable from
   break-even; not a claim; the live parlay shadow log is the only clean test (frozen forward rules).
+
+### Devin's answers to the six questions (2026-10-11 ~10:15)
+1. **Load management** is a general practice that varies by team because teams get in trouble (the participation policy); late
+   scratches are common; "questionable" is the tag to watch; every team has its own reporters.
+2. **Rookie minutes early** are "testing the waters," and the depth of the test depends on whether the team is a lottery team or
+   not (lottery teams play rookies; contenders cap them).
+3. **A cold start's effect** should be read from other players in his situation (same situation, not the league average).
+4. **Whistles** get friendlier for the home team when the away team is good.
+5. **Givens:** Jokic 6 rebounds, LeBron 15 points, Curry 2 threes, Anthony Edwards 2 threes.
+Measured follow-ups below, each descriptive first.
