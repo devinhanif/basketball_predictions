@@ -636,3 +636,11 @@ Measured follow-ups below, each descriptive first.
   Pinnacle is a touch over-confident on the very lines where soft books disagree with it, (4) stale soft lines that get limited or
   pulled. FanDuel's flagged legs returned 0.99; DraftKings 1.03; BetMGM 1.04. Product note: an honest scanner would show the
   realised third, with the interval, not the claimed number.
+- **"Would that make the numbers useful for a parlay?" (Devin, 2026-10-11), same prices, DK + FanDuel vs Pinnacle at T-60, 2023-24 +
+  2024-25 (226,510 legs, 418 dates; data/scratch/ev_parlay_2026-10-11.py):** no. Parlay math itself is exact: random legs with claimed
+  EV < 0 return −6.0% [−7.7, −4.2] single, −12% / −18% / −26% at 2 / 3 / 4 legs, matching (1+EV)^k within a point at every k. Legs
+  flagged at ≥ 3% claimed EV (2.3% of legs, claimed +4.7%) return +0.7% [−3.6, +5.0] single; same-book parlays of flagged legs in
+  distinct games: 2-leg +3% [−5, +12] (claimed +9.5%), 3-leg −1.5% [−14, +12] (claimed +15%), 4-leg −5.6% [−25, +16] (claimed +20%).
+  At ≥ 5%: +3.4% single, −3.7% / +9% / −34% at 2 / 3 / 4 legs, intervals wider still. Supply is thin: median 6 flagged legs per book
+  per night across 3 games, so a 4-leg same-book parlay exists on about half of nights. What the flag does do is keep the worst-priced
+  legs out (−26% vs −6% on 4 legs), which is a per-leg price fact, not a parlay edge. Date-block bootstrap, 4,000 reps.
