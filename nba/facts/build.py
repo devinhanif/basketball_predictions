@@ -11,6 +11,15 @@ docs/FACTS_STORE.md; none of them is a model output. The 2025 holdout is exclude
 * player static: 1 Oct of ``first_season`` (players with no ``first_season`` get no static fact).
 * head_coach: 1 Oct of the season, confidence 0.5 (team_coaches is wrong in 14 of 87 team-seasons).
 * played_minutes: tip + 2h30 PROXY for game end; games with no real tip get no such fact.
+
+``schedule_seasons`` (CLI ``--schedule-seasons 2026[,...]``, default none) is the one way a season
+above ``max_season`` enters the store, and it admits ONLY ``tips_at``, ``home_team`` and
+``away_team`` (``source = schedule``), read from ``data/schedule_cache/schedule_<season>.json`` (the
+daily pipeline's last good fetch; falls back to ``data/schedule/raw_<season>.parquet``) with the
+same known_at rule as above (00:00 ET the day before the game's ET date). No box score, report,
+lineup, coach or starter fact is built for those seasons, and lineup-feed facts for any game whose
+id says its season is above ``max_season`` are dropped (the ``games`` table does not hold future
+games, so the old ``excluded`` set missed them). Season 2025 stays absent unless listed.
 """
 
 from __future__ import annotations
@@ -25,6 +34,7 @@ import duckdb
 import polars as pl
 import yaml
 
+from nba.daily.schedule import ScheduledGame, load_schedule_cache, parse_schedule_frame
 from nba.features.game_tipoff import build_game_tipoff
 from nba.features.injury_report import ReportTriggerConfig, load_report_rows
 
@@ -120,6 +130,69 @@ def team_facts(games: pl.DataFrame) -> pl.DataFrame:
     return _facts(pl.concat(parts), source="schedule", confidence=1.0)
 
 
+def _season_label(season: int) -> str:
+    return f"{season}-{(season + 1) % 100:02d}"
+
+
+def game_id_season(game_id: str) -> int | None:
+    """Start year from a 10-char NBA game id (``0022600001`` -> 2026); None if malformed."""
+    g = str(game_id)
+    return 2000 + int(g[3:5]) if len(g) == 10 and g[3:5].isdigit() else None
+
+
+def load_schedule_games(
+    season: int, cache_dir: Path, schedule_dir: Path | str
+) -> tuple[list[ScheduledGame], str]:
+    """Scheduled games of ``season`` and where they came from; raises if no source exists."""
+    label = _season_label(season)
+    cached = load_schedule_cache(label, cache_dir)
+    if cached:
+        return cached, f"{cache_dir}/schedule_{label}.json"
+    raw = Path(schedule_dir) / f"raw_{label}.parquet"
+    if raw.exists():
+        return parse_schedule_frame(pl.read_parquet(raw)), str(raw)
+    raise FileNotFoundError(f"no schedule source for {label}: {cache_dir} or {raw}")
+
+
+def schedule_only_facts(games: list[ScheduledGame]) -> pl.DataFrame:
+    """tips_at, home_team, away_team for scheduled games, same known_at rule as ``tips_facts``."""
+    d = pl.DataFrame(
+        {
+            "game_id": [g.game_id for g in games],
+            "tipoff_utc": [g.tipoff for g in games],
+            "home": [g.home_team for g in games],
+            "away": [g.away_team for g in games],
+        },
+        schema={
+            "game_id": pl.Utf8,
+            "tipoff_utc": pl.Datetime("us"),
+            "home": pl.Int64,
+            "away": pl.Int64,
+        },
+    ).unique("game_id", keep="last", maintain_order=True)
+    tip_et = d["tipoff_utc"].dt.replace_time_zone("UTC").dt.convert_time_zone(ET)
+    d = d.with_columns(tip_et.dt.replace_time_zone(None).alias("tip_et"))
+    known = _day_before_et(pl.col("tip_et"))
+    subj = _ent("game", "game_id").alias("subject")
+    tips = d.select(
+        subj,
+        pl.lit("tips_at").alias("predicate"),
+        pl.col("tipoff_utc").alias("valid_from"),
+        pl.col("tipoff_utc").dt.strftime("%Y-%m-%dT%H:%M:%S").alias("value_text"),
+        known.alias("known_at"),
+    )
+    teams = [
+        d.select(
+            subj,
+            pl.lit(pred).alias("predicate"),
+            _ent("team", col).alias("object"),
+            known.alias("known_at"),
+        )
+        for pred, col in (("home_team", "home"), ("away_team", "away"))
+    ]
+    return _facts(pl.concat([tips, *teams], how="diagonal"), source="schedule", confidence=1.0)
+
+
 def status_facts(src: duckdb.DuckDBPyConnection, games: pl.DataFrame) -> tuple[pl.DataFrame, int]:
     rows = load_report_rows(src, ReportTriggerConfig())
     rows = rows.join(games.select("game_id"), on="game_id")
@@ -135,8 +208,19 @@ def status_facts(src: duckdb.DuckDBPyConnection, games: pl.DataFrame) -> tuple[p
     return _facts(df, source="official_report", confidence=1.0), n_bad
 
 
+def _drop_future_ids(d: pl.DataFrame, max_season: int) -> pl.DataFrame:
+    """Drop rows whose game id says the season is above ``max_season`` (or is malformed)."""
+    keep = [
+        (y := game_id_season(g)) is not None and y <= max_season for g in d["game_id"].to_list()
+    ]
+    return d.filter(pl.Series(keep, dtype=pl.Boolean))
+
+
 def lineup_facts(
-    lcon: duckdb.DuckDBPyConnection, excluded: set[str], since: str | None
+    lcon: duckdb.DuckDBPyConnection,
+    excluded: set[str],
+    since: str | None,
+    max_season: int = 2024,
 ) -> pl.DataFrame:
     sql = (
         "SELECT game_id, team_id, is_home, player_id, lineup_status, announced_starter, "
@@ -148,6 +232,7 @@ def lineup_facts(
         params.append(since)
     d = lcon.execute(sql, params).pl()
     d = d.filter(~pl.col("game_id").is_in(list(excluded)))
+    d = _drop_future_ids(d, max_season)
     starters = d.select(
         _ent("player", "player_id").alias("subject"),
         pl.lit("announced_starter").alias("predicate"),
@@ -178,7 +263,10 @@ def lineup_facts(
 
 
 def lineup_tip_facts(
-    lcon: duckdb.DuckDBPyConnection, excluded: set[str], since: str | None
+    lcon: duckdb.DuckDBPyConnection,
+    excluded: set[str],
+    since: str | None,
+    max_season: int = 2024,
 ) -> pl.DataFrame:
     sql = "SELECT game_id, tipoff, recorded_at FROM game_tips"
     params: list[Any] = []
@@ -186,6 +274,7 @@ def lineup_tip_facts(
         sql += " WHERE game_date >= ?"
         params.append(since)
     d = lcon.execute(sql, params).pl().filter(~pl.col("game_id").is_in(list(excluded)))
+    d = _drop_future_ids(d, max_season)
     return _facts(
         d.select(
             _ent("game", "game_id").alias("subject"),
@@ -355,6 +444,8 @@ def build(
     kalshi_aliases: Path = Path("configs/kalshi_aliases.yaml"),
     since: str | None = None,
     max_season: int = 2024,
+    schedule_seasons: tuple[int, ...] = (),
+    schedule_cache: Path = Path("data/schedule_cache"),
 ) -> dict[str, Any]:
     notes: list[str] = []
     games = allowed_games(src, max_season, since)
@@ -368,7 +459,10 @@ def build(
     if n_bad:
         notes.append(f"{n_bad} report rows dropped: report time falls in a DST gap")
     if lcon is not None:
-        parts += [lineup_facts(lcon, excluded, since), lineup_tip_facts(lcon, excluded, since)]
+        parts += [
+            lineup_facts(lcon, excluded, since, max_season),
+            lineup_tip_facts(lcon, excluded, since, max_season),
+        ]
     sf, n_skip = static_facts(src)
     parts.append(sf)
     notes.append(f"{n_skip} players_static rows have no first_season: no static facts for them")
@@ -377,6 +471,16 @@ def build(
     mf, n_no_tip = minutes_facts(src, games, tips)
     parts.append(mf)
     notes.append(f"{n_no_tip} games have no real tip: no played_minutes facts for them")
+
+    have = set(games["game_id"].to_list())
+    for season in schedule_seasons:
+        if season <= max_season:
+            notes.append(f"schedule season {season} <= max_season {max_season}: already built")
+            continue
+        sched, origin = load_schedule_games(season, schedule_cache, schedule_dir)
+        sched = [g for g in sched if g.game_id not in have and game_id_season(g.game_id) == season]
+        parts.append(schedule_only_facts(sched))
+        notes.append(f"schedule-only season {season}: {len(sched)} games from {origin}")
 
     facts = pl.concat(parts)
     entities = build_entities(facts, alias_entities(odds_aliases, kalshi_aliases), coach_names)
@@ -400,11 +504,19 @@ def build_from_paths(
     *,
     since: str | None = None,
     max_season: int = 2024,
+    schedule_seasons: tuple[int, ...] = (),
 ) -> dict[str, Any]:
     src = duckdb.connect(source, read_only=True)
     lcon = duckdb.connect(lineups, read_only=True) if Path(lineups).exists() else None
     try:
-        return build(src, lcon, Path(out), since=since, max_season=max_season)
+        return build(
+            src,
+            lcon,
+            Path(out),
+            since=since,
+            max_season=max_season,
+            schedule_seasons=schedule_seasons,
+        )
     finally:
         src.close()
         if lcon is not None:

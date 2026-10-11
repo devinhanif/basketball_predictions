@@ -183,3 +183,12 @@ inputs 1.66 pp, limit 2). Check 5c ("M2 reproduces its stored results to 1e-6") 
 0.0015 min; M2 is refit by the same harness so the H1-vs-M2 comparison stays like-for-like. Nothing was scored before the freeze.
 Why: non-negotiable 8 (a rule that cannot pass its gate is not frozen) and Devin's pre-approval.
 What would reverse it: nothing above the line changes; a new question gets a new rule.
+
+## 2026-10-11 ~03:40 CT — Facts store: schedule-only seasons; lineup facts bounded by max-season
+What: `nba.facts build --schedule-seasons 2026` adds only tips_at/home_team/away_team (source = schedule) for 2026-27 so the reporter
+feed can attach claims to games; lineup facts are now also dropped for seasons above `--max-season` (the old filter leaned on
+`games`, which has no future rows, so 2026 preseason lineup facts had leaked into the default build). Default build loses those
+8,187 preseason announced_starter facts; nothing reads them.
+Why: the holdout stays unread (no 2025 outcome fact) while the live season gets its schedule.
+What would reverse it: a reader that needs 2026 lineup facts → replace `--max-season` with an explicit `--seasons 2022,2023,2024,2026`
+list (queued in NEXT_SESSION) rather than widening the bound past 2025.

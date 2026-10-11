@@ -78,3 +78,7 @@ _Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
   "T. Martin"/"J. Martin" in 0022400124). The rebuild gate target of ≤ 40 came from a 989-game prototype where that case did not
   appear; it was revised to 91 after the full run (recorded here and in the changelog, not silently). A `_NameBook` rule for
   same-surname teammates (use jersey number or the out-player's position) is the fix; its own gate: ≤ 20.
+
+- Facts store for the live season (before 2026-10-20): replace `--max-season` with an explicit `--seasons` list so 2026-27 report,
+  lineup and box facts load while season 2025 stays absent; then the nightly job rebuilds the store after the morning settle and
+  the explainer/pretip read it. Today the store holds 2022-24 fully plus the 2026-27 schedule only.

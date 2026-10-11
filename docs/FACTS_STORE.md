@@ -16,6 +16,14 @@ into it. It does not change any existing reader; the existing tables stay the so
   this is what lets `as_of` keep one game's facts out of another's. (Deviation from the brief, which had `object` = status.)
 - `tips_at` carries the tip in `valid_from` (naive UTC) and `value_text`; the latest-known `tips_at` is "the tip".
 - Holdout: the builder reads `games.season <= 2024` only (`--max-season`); season 2025 is never loaded.
+- **Schedule-only seasons (2026-10-10).** `--schedule-seasons 2026[,...]` (default none) is the only way a season above
+  `--max-season` enters the store, and it admits `tips_at`, `home_team`, `away_team` (`source = schedule`) and nothing else:
+  the reporter feed attaches claims to a player's next game and `as_of` needs the tip and the two teams for 2026-27 games.
+  Source: `data/schedule_cache/schedule_<season>.json` (the daily pipeline's last good fetch; it carries teams and tips), falling
+  back to `data/schedule/raw_<season>.parquet`; same known_at rule as above (00:00 ET the day before the game's ET date). No box
+  score, report, lineup, starter or coach fact is built for those seasons, season 2025 stays absent unless listed, and the
+  builder now also drops lineup-feed facts whose game id says the season is above `--max-season` (the `games` table does not
+  hold future games, so the old filter let 2026 preseason lineup facts through: 8,187 starters, 17 team/tip facts).
 - `as_of` raises `PostTipError` if `t` is after the tip (or the tip is unknown) unless `allow_post_tip=True`.
 
 ## Predicates and known_at rules

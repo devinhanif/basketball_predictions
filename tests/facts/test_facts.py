@@ -194,3 +194,105 @@ def test_facts_imports_nothing_from_research():
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names = [node.module]
             assert not any(n == "research" or n.startswith("research.") for n in names), f
+
+
+G26 = "0022600001"
+TIP26 = dt.datetime(2026, 10, 21, 1, 30)  # 21:30 ET on 20 Oct (EDT)
+
+
+def _sched_cache(tmp_path: Path) -> Path:
+    import json
+
+    d = tmp_path / "cache"
+    d.mkdir(exist_ok=True)
+    rows = [
+        [G26, TIP26.isoformat(), 30, 40],
+        ["0022500009", "2026-01-05T00:00:00", 10, 30],  # a 2025 id inside the 2026 file: ignored
+    ]
+    (d / "schedule_2026-27.json").write_text(json.dumps(rows))
+    return d
+
+
+def _build_sched(tmp_path: Path, schedule_dir: Path, seasons: tuple[int, ...]):
+    out = tmp_path / f"f{len(seasons)}.duckdb"
+    src = make_source()
+    # the planted traps: a 2026 box score, report, and lineup snapshot for the 2026 game
+    src.execute("INSERT INTO games VALUES (?, '2026-10-20', 2026, 30, 40, NULL, NULL, NULL)", [G26])
+    src.execute("INSERT INTO player_game_stats VALUES (?, 5, 30, 12.0)", [G26])
+    src.execute(
+        "INSERT INTO player_availability VALUES (5,'2026-10-20 11:00:00',?,'OUT','x',"
+        "'nba_official_report',NULL)",
+        [G26],
+    )
+    lc = make_lineups()
+    lc.execute(
+        "INSERT INTO lineup_snapshots VALUES ('s', ?, '2026-10-20', ?, 1, 'x', 30, 'AAA', "
+        "TRUE, 5, 'n', 'Confirmed', TRUE, 'G', 'Active', NULL)",
+        [dt.datetime(2026, 10, 20, 12, 0), G26],
+    )
+    build(
+        src,
+        lc,
+        out,
+        schedule_dir=schedule_dir,
+        odds_aliases=tmp_path / "none.yaml",
+        kalshi_aliases=tmp_path / "none2.yaml",
+        schedule_seasons=seasons,
+        schedule_cache=_sched_cache(tmp_path),
+    )
+    return duckdb.connect(str(out), read_only=True)
+
+
+def test_schedule_seasons_adds_only_schedule_predicates(tmp_path: Path, schedule_dir: Path):
+    con = _build_sched(tmp_path, schedule_dir, (2026,))
+    rows = _one(
+        con,
+        "SELECT predicate, object, source, known_at, valid_from FROM facts "
+        "WHERE subject = ? OR object = ? ORDER BY predicate",
+        f"game:{G26}",
+        f"game:{G26}",
+    )
+    assert [r[0] for r in rows] == ["away_team", "home_team", "tips_at"]
+    assert {r[2] for r in rows} == {"schedule"}
+    assert rows[0][1] == "team:40" and rows[1][1] == "team:30"
+    # 00:00 ET on 19 Oct (day before the 20 Oct ET game) = 04:00 UTC
+    assert {r[3] for r in rows} == {dt.datetime(2026, 10, 19, 4, 0)}
+    assert rows[2][4] == TIP26
+    assert _one(con, "SELECT count(*) FROM facts WHERE subject LIKE 'game:00225%'") == [(0,)]
+    assert _one(
+        con, "SELECT count(*) FROM facts WHERE object = 'player:5' OR subject='player:5'"
+    ) == [(0,)]
+
+
+def test_season_2025_and_2026_absent_by_default(tmp_path: Path, schedule_dir: Path):
+    con = _build_sched(tmp_path, schedule_dir, ())
+    assert _one(con, "SELECT count(*) FROM facts WHERE subject LIKE 'game:00226%'") == [(0,)]
+    assert _one(con, "SELECT count(*) FROM facts WHERE subject LIKE 'game:00225%'") == [(0,)]
+
+
+def test_listing_2026_does_not_admit_2025(tmp_path: Path, schedule_dir: Path):
+    con = _build_sched(tmp_path, schedule_dir, (2026,))
+    assert _one(con, "SELECT count(*) FROM facts WHERE subject LIKE 'game:00225%'") == [(0,)]
+
+
+def test_schedule_seasons_leaves_other_counts_unchanged(tmp_path: Path, schedule_dir: Path):
+    base = _build_sched(tmp_path, schedule_dir, ())
+    more = _build_sched(tmp_path, schedule_dir, (2026,))
+    q = "SELECT predicate, count(*) FROM facts GROUP BY 1 ORDER BY 1"
+    b, m = dict(_one(base, q)), dict(_one(more, q))
+    for k in b:
+        assert m[k] - b[k] == (1 if k in {"tips_at", "home_team", "away_team"} else 0), k
+
+
+def test_missing_schedule_source_fails_loudly(tmp_path: Path, schedule_dir: Path):
+    with pytest.raises(FileNotFoundError):
+        build(
+            make_source(),
+            None,
+            tmp_path / "x.duckdb",
+            schedule_dir=schedule_dir,
+            odds_aliases=tmp_path / "n.yaml",
+            kalshi_aliases=tmp_path / "n2.yaml",
+            schedule_seasons=(2031,),
+            schedule_cache=tmp_path / "empty",
+        )
