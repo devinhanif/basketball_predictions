@@ -510,7 +510,7 @@ time from `date` or the commit, never from memory (added to BEST_PRACTICES next 
 What would reverse it: nothing; it is a correction.
 
 
-## 2026-10-11 17:20 CDT — LLM shadow forecaster for 2026-27 approved (Devin: "lets go for it")
+## 2026-10-11 17:14 CDT — LLM shadow forecaster for 2026-27 approved (Devin: "lets go for it")
 What: a nightly shadow arm, `llm_shadow`, in which the strongest Claude model receives ONLY the as-of facts the pipeline holds for a game
 (facts store + injury report + T-60 lines + production's own numbers, nothing from the open web) and writes over/under probabilities for a
 fixed set of legs before tip, stamped and refused after tip like every other forward prediction. Scored beside production under a companion
