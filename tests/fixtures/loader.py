@@ -8,6 +8,7 @@ based reconciliation tests.
 from __future__ import annotations
 
 import json
+from typing import Any
 from pathlib import Path
 
 import duckdb
@@ -19,10 +20,10 @@ from nba.ingest.cache import insert_rows
 FIXTURES_DIR = Path(__file__).parent
 
 
-def _load_json(name: str) -> list[dict]:
+def _load_json(name: str) -> list[dict[str, Any]]:
     path = FIXTURES_DIR / name
     with path.open() as f:
-        data: list[dict] = json.load(f)
+        data: list[dict[str, Any]] = json.load(f)
     return data
 
 
@@ -40,7 +41,7 @@ def load_pbp() -> dict[str, pl.DataFrame]:
     out: dict[str, pl.DataFrame] = {}
     for path in sorted(pbp_dir.glob("*.json")):
         with path.open() as f:
-            rows: list[dict] = json.load(f)
+            rows: list[dict[str, Any]] = json.load(f)
         out[path.stem] = pl.DataFrame(rows)
     return out
 
