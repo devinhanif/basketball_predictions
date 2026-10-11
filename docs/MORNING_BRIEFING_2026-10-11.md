@@ -73,3 +73,13 @@ seasons, 2021-22 (hourly report) is the real odd one. Not frozen; direction clos
 ## 21:00 update
 CALIBRATED_GRID: closed, no pass (T339–T339): the over-confidence at lines is the line's information, not a fixable map. All four
 "try everything" rules done: four honest nulls. The T-60 props model is at its information ceiling; live season next.
+
+## 17:15 CDT update (times earlier in this file from 14:20 on may be mislabelled by up to ~6.5 h; see DECISIONS 17:10)
+Since the EV-tool answer (15:35): parlays of EV-flagged legs are not positive; realised leg-correlation atlas (same-player stacks +18 to
++53c, underdog-star × favourite-covers −18c, everything else ~independent); sportsbook arbs 11-23 per night at ~1% median; $10-a-week paper
+user (+$24 / +$61 on model singles, all of it the under lean on the model's legs; blind under on the same legs matches; parlay persona
+break-even); anatomy of an over (minutes is the switch, not knowable pre-tip; pts upper tail not too thin). Decisions: guidance free /
+honesty paid; CLOSING LINE is the live benchmark; the-odds-api kept; closing capture merged and ON (NBA_CLOSE_CAPTURE=1; first-night check in
+docs/CLOSING_LINE_CAPTURE.md). Rules run: MODEL_CLV closed (model beats the close by ~0.2 pp, mostly a no-model side rule; T340-T381);
+XGB_PTS_VS_LT closed (tie overall; XGBoost better on the body, the lower-tail mixture better on near-DNP rows; T382-T388). Drafting:
+GAME_MARKET_CONTEXT (market spread/total as the props model's game context instead of Elo proxies). Nothing needs you tonight.

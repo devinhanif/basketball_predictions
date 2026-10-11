@@ -186,3 +186,16 @@ uv run --offline --with xgboost python -W ignore $M report --doc $DOC --sha $SHA
 Estimated CPU wall time of `run`: about 25 minutes on an idle machine with 4 threads (A1 about 13 min and A2 about 8 min from the per-block file times of run_20261009 and the red-team v1only log, plus about 2-4 min for loading, the gate and the bootstraps); allow 35-40 minutes if the box swaps. Start outside the xx:15-25 and xx:45-55 pre-tip windows. `run` and `smoke` take `data/ops/heavy.lock`. xgboost is supplied by `uv run --offline --with xgboost` (cached 3.4.1, the version of run_20261009); no GPU is needed.
 
 === RESULTS BELOW ===
+Run 2026-10-11 16:40-17:02 CDT under frozen sha256 c74f1d1a, git dafe0de, harness research/eval/xgb_pts_vs_lt_eval.py; smoke rc 0 (refit matches
+the stored checkpoints), run rc 0, report rc 0. Gate 6/6 as amended. Full tables: reports/prereg_xgb_pts_vs_lt.md and results.json.
+Verdict: CLOSED, no pass. A1 − A0 integer CRPS: 2023 −0.0036 [−0.0094, +0.0019] (p_bh 0.43); 2024 −0.0000 [−0.0063, +0.0060]. P1 and P2 fail
+(floor −0.005 not reached, CIs span 0); P3 holds (DK-line log loss 2023 −0.0021 [−0.0038, −0.0004], 2024 +0.0011 [−0.0003, +0.0024]); P4 holds
+(bias −0.19 / −0.02, cov80 0.79); P5 fails (2024 postseason +0.054 [+0.032, +0.075]; first-15 +0.013); P6 holds; P7 fails (one team carries
+more than 25% of the 2024 sum, which is near zero so the share is meaningless); P8 fails (proxy-safe 2024 +0.0058 [+0.0002, +0.0117]).
+Descriptive: the two models are complementary and the sum cancels: on rows with ≥ 5 minutes the XGBoost quantile model is better by
+−0.021 [−0.027, −0.015] (2023) and −0.015 [−0.021, −0.009] (2024); on rows under 5 minutes the lower-tail mixture is better by +0.18 and
++0.16. A2 (same recipe, v1 features) is worse than A0 (+0.0043 / +0.0023), so the v2 features carry the body gain (A1 − A2 −0.0079 / −0.0023).
+Upper tail: A1 is worse at the 20/25/30-point thresholds in 2024 (+0.003 to +0.004 log loss), as the red team found. Kill criterion: P1
+failed, closed without follow-up under this rule. A combined arm (mixture for the lower tail, quantile body above it) is a NEW question for
+a new rule, if Devin wants it; not run.
+

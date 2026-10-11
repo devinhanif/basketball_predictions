@@ -698,3 +698,8 @@ Measured follow-ups below, each descriptive first.
   below) and otherwise bets a random over: x = 0.3 loses $18 and $9; x = 0.5 −$5 and +$11; x = 0.7 +$6 and +$33; x = 1 +$24 and +$61.
   Parlay sanity: per-leg hit 0.53-0.58 → a 3-leg parlay hits 15-20% of weeks → 4-5.5 expected hits in 28 weeks; the observed 4 and 3 are
   ordinary, not luck.
+- **"Was XGBoost thrown away wrongly?" (Devin, 2026-10-11; XGB_PTS_VS_LT, T382-T388, frozen c74f1d1a):** no. Leak-free XGBoost quantile
+  pts vs production + lower-tail mixture, integer support: tie overall (2023 −0.0036 [−0.0094, +0.0019]; 2024 −0.0000 [−0.0063, +0.0060]).
+  Complementary halves: XGBoost −0.015 to −0.021 better on players who play ≥ 5 minutes; the mixture +0.16 to +0.18 better on near-DNP rows;
+  XGBoost worse in the 2024 playoffs (+0.054) and at 20-30-point thresholds. The count-stat "gains" were integer-support scoring artefacts
+  (T114-T117). Closed; a combined arm would be a new question.

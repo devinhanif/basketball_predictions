@@ -398,7 +398,7 @@ What would reverse it: nothing above the line changes.
 Correction (same hour): the first freeze commit (5ad045f) carried the DRAFT status and an unamended C3 line because the status edit
 failed its match; nothing ran under it. The doc was corrected and re-hashed before any run; the hash above is the real one.
 
-## 2026-10-11 ~20:10 CT — HISTORY_WINDOW_2 not frozen; history-extension direction CLOSED for 2026-27
+## 2026-10-11 15:14 CDT (label corrected; was "~20:10") — HISTORY_WINDOW_2 not frozen; history-extension direction CLOSED for 2026-27
 What: the repaired audit (status-standardised played rates, cold-start-matched phi, placebo requirement) still STOPs, because the
 placebo threshold my brief specified is below the statistics' sampling noise; the repaired numbers themselves put 2019-20 and
 2020-21 inside the current seasons' range, and 2021-22 (hourly report era) is the one real deviation. A noise-aware threshold would
@@ -408,13 +408,13 @@ Why: non-negotiable 4 and the no-variant-chasing practice apply to gates as much
 and spend the effort on T-30 and live information.
 What would reverse it: Devin's explicit request for a HISTORY_WINDOW_3 with a CI-aware threshold or a two-season extension.
 
-## 2026-10-11 ~20:30 CT — OWN_TAG: NULL (T326–T338); closed
+## 2026-10-11 15:18 CDT (label corrected; was "~20:30") — OWN_TAG: NULL (T326–T338); closed
 What: the player's own T-60 report tag as a props feature adds nothing beyond the flag-history and team-OUT features production
 already has; no stat near the floor; placebo-equivalent. Closed under its kill rule.
 Why: the model reads the minutes shift from existing columns; ~1,000 questionable rows per season are too few to add more.
 What would reverse it: nothing in this family; the tag's information lives in P(play) (PPLAY_CONTEXT), not in minutes given played.
 
-## 2026-10-11 ~21:00 CT — CALIBRATED_GRID: CLOSED, no pass (T339–T339); the four "try everything" rules are done
+## 2026-10-11 15:20 CDT (label corrected; was "~21:00") — CALIBRATED_GRID: CLOSED, no pass (T339–T339); the four "try everything" rules are done
 What: calibration maps on the grid do not fix the over-confidence at the book's lines; a shuffled-label control beats every real
 map on line log loss, so the only effect available is generic shrinkage toward 0.5, and every arm stays worse than the book.
 Reading: the grid is calibrated overall (80% coverage 0.77-0.79) and over-confident exactly where the book places its line,
@@ -424,14 +424,14 @@ props model is at the ceiling of its information; the levers are T-30, reporters
 Why: the frozen rules; every one honoured.
 What would reverse it: a calibration source that uses the line's information with a track record (the ODDS_HISTORY blend, live).
 
-## 2026-10-11 ~22:40 CT — Product tiers: guidance free, honesty paid (Devin)
+## 2026-10-11 16:21 CDT (label corrected; was "~22:40") — Product tiers: guidance free, honesty paid (Devin)
 What: the free layer is guidance (the explainer, what the forecast and the market say about a leg, paper tracking of the user's
 own slips). The paid layer is honesty: realised EV with intervals, "this price is fair, sit out" as a first-class answer, the
 user's own calibration, closing-line value of their bets. Matches BUSINESS_DRAFT revenue option 1; the price stays open.
 Why: Devin's answer to "would you accept a product whose most common output is sit out": yes, and that is the thing worth paying for.
 What would reverse it: a month of users who pay for guidance and not for honesty (the slip ledger will show which features are opened).
 
-## 2026-10-11 ~22:40 CT — The live-season benchmark becomes the CLOSING line (Devin)
+## 2026-10-11 16:21 CDT (label corrected; was "~22:40") — The live-season benchmark becomes the CLOSING line (Devin)
 What: in addition to the frozen FORWARD_PREREG_2026_27 scoring (unchanged; nothing edited there), a companion rule scores every
 model-preferred leg by closing-line value (CLV): the closing de-vigged probability of the chosen side minus the T-60 one, plus
 realised return at both prices. Historical version first (docs/prereg/MODEL_CLV.md, drafting; t5 as the closing proxy), then the
@@ -443,7 +443,7 @@ Why: every forecasting field that faced "the outcome is decided after the foreca
 of skill; CLV is readable within weeks, realised return needs a season.
 What would reverse it: the vendor dropping live NBA props, or CLV and realised return disagreeing in sign over a season.
 
-## 2026-10-11 ~22:40 CT — "Train the model to beat lines now" (Devin): approved as a rule family, not a target swap
+## 2026-10-11 16:21 CDT (label corrected; was "~22:40") — "Train the model to beat lines now" (Devin): approved as a rule family, not a target swap
 What: Devin approved training against lines. Reading: the production target stays the outcome (CLAUDE.md: markets are a prior,
 not a target); the new work is a family of pre-registered rules whose METRIC is the line: MODEL_CLV (does the model's T-60 pick beat
 the close), then a line-move learner (descriptive arm inside MODEL_CLV), then, if either passes, a shadow arm for the live season.
@@ -452,7 +452,7 @@ Why: MARKET_LINE_CLASSIFIER already showed a learner on model + line does not be
 untested question is CLV, which is the market's own currency and the first thing a sharp book would ask us.
 What would reverse it: MODEL_CLV null on Pinnacle and DK cells (then the honest product is a price scanner plus the explainer).
 
-## 2026-10-11 ~22:55 CT — Devin: keep the-odds-api through the season; MODEL_CLV and XGB_PTS_VS_LT run as soon as their gates pass; closing capture approved
+## 2026-10-11 16:23 CDT (label corrected; was "~22:55") — Devin: keep the-odds-api through the season; MODEL_CLV and XGB_PTS_VS_LT run as soon as their gates pass; closing capture approved
 What: "im keeping the api ... they run as soon as you're done, i approve." The subscription stays (money decision taken); the two
 drafted rules freeze and run without a further check-in once each gate passes on real data (non-negotiable 8), pre-freeze
 amendments labelled as usual; the closing-line capture merges to main behind NBA_CLOSE_CAPTURE and is switched on for the lineups
@@ -461,7 +461,7 @@ briefing).
 Why: Devin's standing approval for the day's rule family plus explicit word on the two items I had marked as his.
 What would reverse it: a gate failure (rule not frozen, no fit), or the capture's first night writing anything after a tip.
 
-## 2026-10-11 ~23:10 CT — MODEL_CLV frozen (sha256 dd16a802) and run
+## 2026-10-11 16:32 CDT (label corrected; was "~23:10") — MODEL_CLV frozen (sha256 dd16a802) and run
 What: does the production props model's T-60 pick beat the market's closing price (t5 as the closing proxy)? Family 20 cells (M1/M2 ×
 Pinnacle/DK × 4 stats, M3 × DK × 4); floor +0.005 probability points of CLV, CI lower > 0, BH; DK cells must also beat the
 fade-retail-toward-Pinnacle comparator; every cell must beat its 20-shuffle null (A1, kept). Pre-freeze decisions after the gate
@@ -469,7 +469,7 @@ measure: A1 kept, A2 not applied (M3 as drafted), A3 done, FanDuel descriptive. 
 Why: Devin's "closing line" and "train to beat lines" (22:40, 22:55 rows); CLV is readable on history today and live within weeks.
 What would reverse it: nothing in this rule; a null closes it, with the live companion rule as the one follow-up.
 
-## 2026-10-11 ~23:45 CT — MODEL_CLV: CLOSED, no pass (T340-T381)
+## 2026-10-11 16:36 CDT (label corrected; was "~23:45") — MODEL_CLV: CLOSED, no pass (T340-T381)
 What: the model's T-60 picks beat the closing price by about a fifth of a point of probability, consistently, and a no-model side
 rule earns most of that; nothing near the half-point floor. The line-move direction is predictable from the Pinnacle-vs-DK gap alone;
 the model adds nothing to it. Closed on the select season.
@@ -480,7 +480,7 @@ What would reverse it: the live companion rule with the real last-before-tip cap
 than the t5 proxy does.
 
 
-## 2026-10-11 ~23:55 CT — XGB_PTS_VS_LT frozen (sha256 c74f1d1a) and run
+## 2026-10-11 16:37 CDT (label corrected; was "~23:55") — XGB_PTS_VS_LT frozen (sha256 c74f1d1a) and run
 What: does the leak-free XGBoost quantile pts model (hybrid_lf pts arm, frozen configs, refit identically) beat production as it now
 stands for pts (context_residual v2 + lower-tail mixture, integer support)? Floor −0.005 integer CRPS, 2023 selects / 2024 confirms, BH
 m=2, threshold log loss at DK lines not worse than +0.002, calibration, slices, minutes ≥ 5 no-harm, team concentration ≤ 25%,
@@ -488,3 +488,24 @@ proxy-safe slice. Gate 6/6 as amended (check 3: computed NULL-status exemption; 
 Why: Devin: "rerun them now that they are uncontaminated, we should see if that was accurately thrown away." The leak-free rerun and the
 red team already answered three of four stats; this is the fair test of the fourth. Prior pass probability ~5-25%.
 What would reverse it: nothing in this rule; a null closes the XGBoost direction for 2026-27 with the lower-tail mixture as the answer.
+
+## 2026-10-11 17:05 CDT — XGB_PTS_VS_LT: CLOSED, no pass (T382-T388); XGBoost direction closed for 2026-27
+What: tie overall; XGBoost quantile better on the body (≥ 5 minutes, −0.015 to −0.021), the production lower-tail mixture better on the
+near-DNP rows (+0.16 to +0.18), postseason and upper tail worse for XGBoost. Closed under the rule (P1 failed, no follow-up).
+Reading for Devin: it was not thrown away wrongly. The leak-free gain was real where players play and it was a tail artefact where they do
+not; production kept the tail fix and the body gain is worth about 0.5% of CRPS, below the floor once the tail is handled.
+Why: the frozen rule.
+What would reverse it: a NEW rule for a combined arm (mixture tail + quantile body), Devin's call; or the live log showing the body gain
+matters at the lines (P3 was mixed: better in 2023, worse in 2024).
+
+## 2026-10-11 17:10 CDT — Correction: this afternoon's time labels were wrong by about 6.5 hours
+What: the headings above from HISTORY_WINDOW_2 to the XGB_PTS_VS_LT freeze were labelled "~20:10 CT" to "~23:55 CT" from a running
+estimate carried across a context reset; the commits (7135a5b 15:14, d019cdb 15:18, ee9b572 15:20, 35f7aad 16:21, 62eabfc 16:23, 6e75614
+16:32, a832d61 16:36, dafe0de 16:37 CDT) show the real times, now written into each heading with the old label kept in brackets. The same
+wrong labels sit INSIDE the frozen status lines of docs/prereg/MODEL_CLV.md ("~23:10 CT") and docs/prereg/XGB_PTS_VS_LT.md ("~23:55 CT");
+those blocks are frozen and are not edited; their true freeze times are the commit times 16:32 and 16:37 CDT. The TEST_LEDGER heading for
+MODEL_CLV and the "Run ... 23:35 CT" line in MODEL_CLV's results section are corrected in place (below-the-line text).
+Why: the record must carry real times; the launchd pretip windows and the morning briefing depend on them. Rule going forward: take the
+time from `date` or the commit, never from memory (added to BEST_PRACTICES next edit).
+What would reverse it: nothing; it is a correction.
+

@@ -478,7 +478,7 @@ bounds), not because any effect is believed false.
 
 **CALIBRATED_GRID verdict (T339-T339, frozen sha256 43f9182c, commit fe1bfe1; research/eval/calibrated_grid_eval.py; reports/prereg_calibrated_grid.md):** CLOSED, no pass. Temperature and Platt maps on the grid make CRPS slightly WORSE (pts 2023 +0.0021 [+0.0014, +0.0027]) and move the confident bins by nothing (claimed 0.74 → realised 0.56 before and after). Isotonic at lines clears the log-loss floor on pts and reb in 2023 (pts −0.0096 [−0.0127, −0.0066]) but the shuffled-label control gains MORE in every stat-season (pts −0.0116): the gain is generic shrinkage toward 0.5, not learned calibration, because the book's line sits where the grid is over-confident. Every arm stays worse than the book (best C3 pts 2024 +0.0079 [+0.0052, +0.0109]). The over-confidence at lines is a selection effect of the line, not a map-fixable miscalibration of the grid (80% coverage is 0.77-0.79). Closed; no window tuning, no per-tier maps.
 
-### MODEL_CLV (T340-T381), appended 2026-10-11 23:45 CT
+### MODEL_CLV (T340-T381), appended 2026-10-11 16:36 CDT (label corrected; was 23:45 CT)
 
 | id | test | result |
 |---|---|---|
@@ -533,4 +533,24 @@ vs constant 0.6934) but the T-60 Pinnacle-vs-DK gap alone does it (0.6730); the 
 pre-tip 100%; random-side placebo 0/32 outside Bonferroni CI; planted shuffle vs 20-shuffle null; 4 M3 x Pinnacle cells dropped n < 300).
 Pre-freeze decisions labelled in the doc (A1 kept, A2 not applied). Harness fix before any result: marker parser. One follow-up allowed:
 the live companion rule.
+
+### XGB_PTS_VS_LT (T382-T388), appended 2026-10-11 17:05 CDT
+
+| id | test | result |
+|---|---|---|
+| T382 | XGB_PTS_VS_LT pts 2023, A1 (hybrid_lf quantile) - A0 (production lower-tail mixture), integer-support CRPS (n 27619, 1318 games) | -0.0036 [-0.0094, +0.0019] game-clustered, p_bh 0.4300; floor -0.005 |
+| T383 | XGB_PTS_VS_LT pts 2024, A1 (hybrid_lf quantile) - A0 (production lower-tail mixture), integer-support CRPS (n 27583, 1315 games) | -0.0000 [-0.0063, +0.0060] game-clustered, p_bh 0.9850; floor -0.005 |
+| T384 | XGB_PTS_VS_LT pts 2023, threshold log loss A1 - A0 at DK T-60 main lines (n 14354) | -0.0021 [-0.0038, -0.0004]; margin +0.002 |
+| T385 | XGB_PTS_VS_LT pts 2024, threshold log loss A1 - A0 at DK T-60 main lines (n 15882) | +0.0011 [-0.0003, +0.0024]; margin +0.002 |
+| T386 | XGB_PTS_VS_LT descriptive 2024, A2 (same recipe, v1 features) - A0 | +0.0023 [-0.0037, +0.0079] |
+| T387 | XGB_PTS_VS_LT descriptive 2024, minutes >= 5 / < 5 slices A1 - A0 | -0.0148 [-0.0214, -0.0085] / +0.1620 [+0.1448, +0.1800] |
+| T388 | XGB_PTS_VS_LT verdict | CLOSED; conditions {"P1_2023": false, "P2_2024": false, "P3_tll": true, "P4_calibration": true, "P5_slices": false, "P6_minutes>=5_no_harm": true, "P7_concentration": false, "P8_proxy_safe": false} |
+
+**XGB_PTS_VS_LT verdict (T382-T388, frozen sha256 c74f1d1a, commit dafe0de; research/eval/xgb_pts_vs_lt_eval.py; reports/prereg_xgb_pts_vs_lt.md):**
+CLOSED, no pass. The leak-free XGBoost quantile pts model ties production-with-lower-tail-mixture overall (2023 −0.0036 [−0.0094, +0.0019];
+2024 −0.0000 [−0.0063, +0.0060]) because the two are complementary: XGBoost better by −0.015 to −0.021 on rows with ≥ 5 minutes, the mixture
+better by +0.16 to +0.18 on rows under 5 minutes; XGBoost worse in the 2024 postseason (+0.054) and at the 20-30 point thresholds. Answers
+Devin's "was it accurately thrown away": the count-stat arms were a scoring artefact (T114-T117); the pts arm's gain was real on the body of
+the distribution and the production lower-tail mixture absorbed the tail part; neither beats the other overall. Gate 6/6 as amended (check 3
+computed NULL-status exemption: yrs_since_draft 19.7 pp gap is player-constant; check 5 key intersection, 118 restored 2024 rows, 0.43%).
 

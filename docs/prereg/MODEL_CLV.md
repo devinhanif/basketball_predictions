@@ -110,7 +110,7 @@ Maintainer command after the freeze (about a minute; light, takes no lock, refus
 
 === RESULTS BELOW ===
 
-Run 2026-10-11 23:35 CT under frozen sha256 dd16a802, git 6e75614, harness research/eval/model_clv_eval.py (one harness fix before any
+Run 2026-10-11 16:34 CDT (label corrected from "23:35 CT"; see DECISIONS 17:10) under frozen sha256 dd16a802, git 6e75614, harness research/eval/model_clv_eval.py (one harness fix before any
 result was seen: the doc parser split on the first occurrence of the marker text, which also appears inside the quoted freeze command;
 it now matches the marker as a whole line; the frozen block is unchanged, hash re-verified). Gate 5/5 pass; family 20 cells.
 Verdict: NO CELL PASSES on 2023 (select); closed. Price CLV of the model's T-60 pick is positive in every cell but an order of

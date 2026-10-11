@@ -108,3 +108,9 @@ is the only reason it was tidiness and not an outage. Practice: `git commit -- <
 - **Never chain an edit and its commit in one shell line (2026-10-11, twice in one evening).** A failing `assert` inside a Python
   heredoc does not stop the `;`-chained `git commit` that follows, so a doc went out "frozen" with its status unapplied and a ledger
   append went out unappended. Rule: edit → verify (hash, grep, count) → commit, as separate tool calls; `&&` after the edit, never `;`.
+
+## Timestamps come from the clock, not from memory (2026-10-11)
+Incident: an afternoon of DECISIONS headings, a ledger heading and two frozen status lines carried times 6.5 hours late ("~23:55 CT" for a
+16:37 CDT freeze), because the running estimate of the time survived a context reset and was never re-read. The frozen lines cannot be
+edited; the correction lives in DECISIONS 2026-10-11 17:10. Rule: before writing any time into a doc, run `date` (or take the commit
+time); label the zone as the machine prints it (CDT/CST), not "CT".
