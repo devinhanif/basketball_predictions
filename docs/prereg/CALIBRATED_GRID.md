@@ -60,3 +60,5 @@ No family passes on 2023: close; no window tuning, no per-tier maps, one follow-
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-11 15:12 CT, commit fe1bfe1, sha256 of everything above the line: 43f9182c39a6e8f7935c71cd5ae6d6c7160b63ce552df68019195095300eb4d6 (first 8: 43f9182c). Verify with the awk command in the header. (Supersedes the evidence line of 5ad045f, which was written before the status edit had applied.)
