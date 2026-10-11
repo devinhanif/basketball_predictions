@@ -23,7 +23,8 @@ def test_step_order_and_rate_floor() -> None:
     assert names.index("hist:parse:2019") < names.index("cur:officials:2025")
     assert names.index("cur:officials:2025") < names.index("cur:shots")
     # 2026-10-11: history tracking/hustle run before shots/matchups (Devin's priority)
-    i_off, i_tr, i_hu = (names.index(n) for n in ("load:officials:2025", "hist:tracking", "hist:hustle"))
+    first = ("load:officials:2025", "hist:tracking", "hist:hustle")
+    i_off, i_tr, i_hu = (names.index(n) for n in first)
     assert i_off < i_tr < i_hu
     assert names.index("cur:hustle:2025") < names.index("cur:shots") < names.index("cur:matchups")
     assert float(q.RATE) >= 2.5
