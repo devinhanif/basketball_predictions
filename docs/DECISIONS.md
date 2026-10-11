@@ -408,7 +408,7 @@ Why: non-negotiable 4 and the no-variant-chasing practice apply to gates as much
 and spend the effort on T-30 and live information.
 What would reverse it: Devin's explicit request for a HISTORY_WINDOW_3 with a CI-aware threshold or a two-season extension.
 
-## 2026-10-11 ~20:30 CT — OWN_TAG: NULL (T326–T337); closed
+## 2026-10-11 ~20:30 CT — OWN_TAG: NULL (T326–T338); closed
 What: the player's own T-60 report tag as a props feature adds nothing beyond the flag-history and team-OUT features production
 already has; no stat near the floor; placebo-equivalent. Closed under its kill rule.
 Why: the model reads the minutes shift from existing columns; ~1,000 questionable rows per season are too few to add more.

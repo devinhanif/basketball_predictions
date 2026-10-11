@@ -618,6 +618,6 @@ Measured follow-ups below, each descriptive first.
   and spread and our forecast into one learner is worse than the book on every stat in 2023-24 and within noise in 2024-25; the
   crude one-weight blend beats the clever classifier in every cell. Lesson for the product: show the book's price as the truth
   and our forecast as a small, declared lean, never the other way round.
-- **OWN_TAG (the player's own questionable/probable tag into the props model): NULL (T326–T337).** Production already infers the
+- **OWN_TAG (the player's own questionable/probable tag into the props model): NULL (T326–T338).** Production already infers the
   −1.6-minute questionable effect from the flag history and the team's absences; the explicit tag is indistinguishable from a
   shuffled one. "Fix the injury features" ends here for the props model: the report's information is fully used at T-60.

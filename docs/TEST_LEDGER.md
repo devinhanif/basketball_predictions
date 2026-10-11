@@ -459,3 +459,18 @@ bounds), not because any effect is believed false.
 | T325 | 2026-10-11 | HISTORY_WINDOW_2 (docs/prereg/HISTORY_WINDOW_2.md, DRAFT, NOT FROZEN; repaired audit statistics; research/eval/history_window_eval.py audit v2; reports/history_window_2/) gate, descriptive | status-standardised P(played | listed): 2019 0.632, 2020 0.637, 2021 0.680 [0.658, 0.699] vs pooled 2022-24 0.643 (current seasons 0.626-0.663); cold-start-matched phi: 2019 +0.022, 2020 +0.010, 2021 −0.009 vs baseline 0.105; classifier AUC 0.80, no sign flip | n/a | n/a | n/a | game (2000) | n/a | STOPS under the placebo-max threshold (played 0.0206: 2021 +0.037 exceeds; phi 0.0062: all three exceed) because the threshold sits below the statistics' sampling noise (CI half-widths ~0.02); a chance STOP is likely (~82% if independent). The repaired statistics put 2019-20 and 2020-21 inside the current range; 2021-22 (hourly report era, 59% 'available' listings) is the one real deviation. Not frozen; direction CLOSED after two audit designs. G0.4's literal check also fails on 8 no-game manifest dates (All-Star breaks, a bubble off-day) in both versions | not holdout (<=2024) |
 
 **HISTORY_WINDOW_2 (T325):** NOT FROZEN; the history-extension direction is closed for 2026-27 (T315, T318-T319, T325). What survives as knowledge: the old seasons' box scores are usable (ELO showed they add nothing to Elo); their injury reports differ by cadence and listing mix, and 2021-22's hourly report is the genuinely different era; a noise-aware STOP threshold would be a third post-hoc change to a gate and is not made.
+| T326 | OWN_TAG pts 2023 A1-A0 (n 27619, 1318 games) | dCRPS +0.0016 CI [-0.0009, +0.0041] p_bh 0.416; placebo A2 +0.0009; pass 2023 False |
+| T327 | OWN_TAG pts 2024 A1-A0 (n 27701, 1320 games) | dCRPS -0.0001 CI [-0.0021, +0.0019] p_bh 0.989; placebo A2 +0.0007; pass 2023 False |
+| T328 | OWN_TAG reb 2023 A1-A0 (n 27619, 1318 games) | dCRPS +0.0011 CI [+0.0000, +0.0021] p_bh 0.188; placebo A2 +0.0007; pass 2023 False |
+| T329 | OWN_TAG reb 2024 A1-A0 (n 27701, 1320 games) | dCRPS -0.0001 CI [-0.0010, +0.0007] p_bh 0.989; placebo A2 -0.0002; pass 2023 False |
+| T330 | OWN_TAG ast 2023 A1-A0 (n 27619, 1318 games) | dCRPS -0.0001 CI [-0.0009, +0.0007] p_bh 0.864; placebo A2 -0.0002; pass 2023 False |
+| T331 | OWN_TAG ast 2024 A1-A0 (n 27701, 1320 games) | dCRPS -0.0000 CI [-0.0006, +0.0006] p_bh 0.989; placebo A2 -0.0001; pass 2023 False |
+| T332 | OWN_TAG fg3m 2023 A1-A0 (n 27619, 1318 games) | dCRPS -0.0001 CI [-0.0006, +0.0004] p_bh 0.864; placebo A2 -0.0002; pass 2023 False |
+| T333 | OWN_TAG fg3m 2024 A1-A0 (n 27701, 1320 games) | dCRPS +0.0001 CI [-0.0004, +0.0005] p_bh 0.989; placebo A2 -0.0001; pass 2023 False |
+| T334 | OWN_TAG pts verdict | pass False; rule1 False; guards True; A1 beats A2 by 0.003: False |
+| T335 | OWN_TAG reb verdict | pass False; rule1 False; guards True; A1 beats A2 by 0.003: False |
+| T336 | OWN_TAG ast verdict | pass False; rule1 False; guards True; A1 beats A2 by 0.003: False |
+| T337 | OWN_TAG fg3m verdict | pass False; rule1 False; guards True; A1 beats A2 by 0.003: False |
+| T338 | OWN_TAG close (no stat passes 2023) | True |
+
+**OWN_TAG verdict (T326-T338, frozen sha256 2198c1f0, commit a44f876):** NULL. The player's own T-60 report status, added to production, moves no stat (best cell −0.0002; floor −0.005) and does no better than a shuffled tag. The model already infers the minutes shift from the flag history and the team's OUT context. Closed; no re-encodings, no T-30 variant here.
