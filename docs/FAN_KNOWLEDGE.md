@@ -606,3 +606,11 @@ Measured follow-ups below, each descriptive first.
   right 61%). When model and book disagree on the side (35% of legs) it is a coin flip (49.7% vs 50.3%); on legs where the book is
   near 50/50 the model is right 51.2%. Reading: as a classifier the model is a slightly worse version of the book's own line with an
   over-confidence problem, except on rebounds; the value framing and the classification framing agree.
+- **"Can the model confidently say no to a line?" (Devin, 2026-10-11): NO, not yet.** On DraftKings lines incl. alternates where the
+  model claims 80-95% for a side, it is right 54-63% (n 96-506 per bin), about what the book prices those legs at (55-58%); at
+  90-95% claimed it is right 54% (n 48). The tails of the integer grid are the most over-confident part of the model, so a model
+  "no" carries roughly the book's own probability, minus vig. **Sharp-vs-soft (Pinnacle's main line vs DraftKings' at the same
+  minute):** the lines differ on only 12% of player-stats; betting DK toward Pinnacle hits 50.8% (DK implied 50.4%), return 0.94;
+  nothing there either (threes n 81 is noise). Both recorded as nulls; the one untried context with real information is the
+  market itself as an INPUT (the line, the book's probability, the game total and spread), which the model has never seen → draft
+  rule MARKET_LINE_CLASSIFIER.
