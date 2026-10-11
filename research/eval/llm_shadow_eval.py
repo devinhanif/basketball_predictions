@@ -463,6 +463,7 @@ class StubProvider:
     """Returns production's probability plus seeded noise for every requested leg (a fake, never a model)."""
 
     model_id = "stub"
+    is_real = False  # never counts toward the budget or needs a key
 
     def __init__(self, mode: str = "ok", seed: int = 0) -> None:
         self.mode, self.rng, self.calls = mode, np.random.default_rng(seed), 0
@@ -474,6 +475,7 @@ class StubProvider:
             {
                 "player_id": int(g["player_id"]),
                 "stat": g["stat"],
+                "line": float(g["line"]),
                 "p_over": float(
                     np.clip(float(g["p_over_prod"]) + self.rng.normal(0, STUB_SD), 0.02, 0.98)
                 ),
@@ -482,15 +484,15 @@ class StubProvider:
             for g in game_payload["legs"]
         ]
         self.legs_out = legs
-        body = {"game_id": game_payload["game_id"], "legs": legs}
+        body = {"forecasts": legs}
         text = {
             "ok": json.dumps(body),
             "prose": "I lean toward the over on most of these because the starters are rested.",
             "fenced": "```json\n" + json.dumps(body) + "\n```",
             "extra_key": json.dumps({**body, "note": "x"}),
-            "missing_leg": json.dumps({**body, "legs": legs[:-1]}),
-            "duplicate_leg": json.dumps({**body, "legs": [*legs, legs[0]]}),
-            "p_one": json.dumps({**body, "legs": [{**legs[0], "p_over": 1.0}, *legs[1:]]}),
+            "missing_leg": json.dumps({"forecasts": legs[:-1]}),
+            "duplicate_leg": json.dumps({"forecasts": [*legs, legs[0]]}),
+            "p_one": json.dumps({"forecasts": [{**legs[0], "p_over": 1.0}, *legs[1:]]}),
         }[self.mode]
         return {
             "raw_text": text,
@@ -637,19 +639,78 @@ def _canon_lines(rows: list[tuple[str, int, str, float, str]]) -> str:
     return "\n".join(json.dumps(r, sort_keys=True) for r in sorted(rows))
 
 
-def fixture_checks(mod: tuple[Any, Any, Any]) -> list[Check]:
+class Env:
+    """One fresh world for a check: DB paths, game id, tip, a valid request time and extra run_game kwargs."""
+
+    def __init__(
+        self,
+        paths: dict[str, Path],
+        game: str,
+        tip: dt.datetime,
+        now: dt.datetime,
+        kw: dict[str, Any] | None = None,
+    ) -> None:
+        self.paths, self.game, self.tip, self.now, self.kw = paths, game, tip, now, kw or {}
+
+    def run(self, runner: Any, prov: Any, now: dt.datetime | None = None) -> dict[str, Any]:
+        kw = dict(self.kw)
+        if "clock_at" in kw:  # the steward's runner reads its own clock for made_at
+            at = kw.pop("clock_at")
+            kw["clock"] = lambda: at
+            kw["sleep"] = lambda _s: None
+        out: dict[str, Any] = runner.run_game(
+            self.game, provider=prov, now=now or self.now, paths=self.paths, **kw
+        )
+        return out
+
+    def payload(self, payload_mod: Any) -> dict[str, Any]:
+        kw = {k: v for k, v in self.kw.items() if k == "cfg"}
+        out: dict[str, Any] = payload_mod.build_payload(
+            self.game, now=self.now, paths=self.paths, **kw
+        )
+        return out
+
+
+def own_env(root: Path) -> Env:
+    """This harness's stand-in world (the reference interface), request time tip - 65 min."""
+    return Env(build_fixture(root), GAME, TIP, TIP - dt.timedelta(minutes=65))
+
+
+def steward_env(root: Path, worktree: Path) -> Env:
+    """The steward's own fixture world (tests/shadow_llm/conftest.py::make_world), imported from a worktree path."""
+    sys.path.insert(0, str(worktree))
+    try:
+        conf = importlib.import_module("tests.shadow_llm.conftest")
+    finally:
+        sys.path.remove(str(worktree))
+    w = conf.make_world(root)
+    return Env(
+        dict(w.paths),
+        conf.GAME,
+        conf.TIP,
+        conf.NOW,
+        {"cfg": w.cfg, "clock_at": conf.NOW + dt.timedelta(seconds=20)},
+    )
+
+
+def fixture_checks(mod: tuple[Any, Any, Any], make_env: Any = own_env) -> list[Check]:
     from nba.daily.canonical_dump import canonical_csv
     from nba.facts.query import PostTipError, as_of
 
     _, payload_mod, runner = mod
     out: list[Check] = []
-    with tempfile.TemporaryDirectory() as td:
-        paths = build_fixture(Path(td))
-        # (a) plumbing
+
+    def fresh() -> tuple[tempfile.TemporaryDirectory[str], Env]:
+        td = tempfile.TemporaryDirectory()
+        return td, make_env(Path(td.name))
+
+    # (a) plumbing
+    td, env = fresh()
+    with td:
         prov = StubProvider("ok")
-        res = runner.run_game(GAME, provider=prov, now=TIP - dt.timedelta(minutes=58), paths=paths)
-        n_rows = _count_rows(paths["nba"])
-        con = duckdb.connect(str(paths["nba"]), read_only=True)
+        res = env.run(runner, prov)
+        n_rows = _count_rows(env.paths["nba"])
+        con = duckdb.connect(str(env.paths["nba"]), read_only=True)
         try:
             late = _scalar(
                 con,
@@ -669,7 +730,7 @@ def fixture_checks(mod: tuple[Any, Any, Any]) -> list[Check]:
         )
         want_lines = _canon_lines(
             [
-                (GAME, int(x["player_id"]), x["stat"], float(x["p_over"]), x["reason"])
+                (env.game, int(x["player_id"]), x["stat"], float(x["p_over"]), x["reason"])
                 for x in prov.legs_out
             ]
         )
@@ -682,19 +743,23 @@ def fixture_checks(mod: tuple[Any, Any, Any]) -> list[Check]:
             Check(
                 "(a) plumbing + canonical dump byte-identical",
                 "PASS" if ok_a else "FAIL",
-                f"rows={n_rows} late={late} status={res.get('status')}",
+                f"rows={n_rows} legs={len(prov.legs_out)} late={late} same={same} status={res.get('status')}",
             )
         )
-        # (b) as-of assertion
-        pl_ = payload_mod.build_payload(GAME, now=TIP - dt.timedelta(minutes=58), paths=paths)
-        cutoff = TIP - dt.timedelta(minutes=60)
-        ks = [dt.datetime.fromisoformat(str(x["known_at"])) for x in pl_["facts"]]
+    # (b) as-of assertion
+    td, env = fresh()
+    with td:
+        pl_ = env.payload(payload_mod)
+        cutoff = env.tip - dt.timedelta(minutes=60)
+        ks = [
+            dt.datetime.fromisoformat(str(x["known_at"])).replace(tzinfo=None) for x in pl_["facts"]
+        ]
         text = json.dumps(pl_, default=str)
-        planted_absent = "player:103" not in text and "Confirmed" not in text
-        fcon = duckdb.connect(str(paths["facts"]), read_only=True)
+        planted_absent = env.game != GAME or ("player:103" not in text and "Confirmed" not in text)
+        fcon = duckdb.connect(str(env.paths["facts"]), read_only=True)
         try:
             try:
-                as_of(fcon, GAME, TIP + dt.timedelta(minutes=1))
+                as_of(fcon, env.game, env.tip + dt.timedelta(minutes=1))
                 refused = False
             except PostTipError:
                 refused = True
@@ -707,17 +772,16 @@ def fixture_checks(mod: tuple[Any, Any, Any]) -> list[Check]:
                 f"n_facts={len(ks)}",
             )
         )
-    with tempfile.TemporaryDirectory() as td:
-        paths = build_fixture(Path(td))
+    # (c) refuse after tip
+    td, env = fresh()
+    with td:
         prov = StubProvider("ok")
         try:
-            res = runner.run_game(
-                GAME, provider=prov, now=TIP + dt.timedelta(minutes=1), paths=paths
-            )
+            res = env.run(runner, prov, now=env.tip + dt.timedelta(minutes=1))
             status = str(res.get("status"))
         except Exception as e:  # LeakageError / PostTipError are acceptable refusals
             status = type(e).__name__
-        refused_ok = _count_rows(paths["nba"]) == 0 and prov.calls == 0
+        refused_ok = _count_rows(env.paths["nba"]) == 0 and prov.calls == 0
         out.append(
             Check(
                 "(c) refuse after tip: zero rows, zero provider calls",
@@ -725,17 +789,16 @@ def fixture_checks(mod: tuple[Any, Any, Any]) -> list[Check]:
                 status,
             )
         )
+    # (d) schema violations
     bad: list[str] = []
     for mode in ("prose", "fenced", "extra_key", "missing_leg", "duplicate_leg", "p_one"):
-        with tempfile.TemporaryDirectory() as td:
-            paths = build_fixture(Path(td))
+        td, env = fresh()
+        with td:
             prov = StubProvider(mode)
-            res = runner.run_game(
-                GAME, provider=prov, now=TIP - dt.timedelta(minutes=58), paths=paths
-            )
+            res = env.run(runner, prov)
             logged = False
-            if paths["shadow"].exists():
-                sc = duckdb.connect(str(paths["shadow"]), read_only=True)
+            if env.paths["shadow"].exists():
+                sc = duckdb.connect(str(env.paths["shadow"]), read_only=True)
                 try:
                     logged = (
                         _scalar(
@@ -747,12 +810,12 @@ def fixture_checks(mod: tuple[Any, Any, Any]) -> list[Check]:
                 finally:
                     sc.close()
             if not (
-                _count_rows(paths["nba"]) == 0
+                _count_rows(env.paths["nba"]) == 0
                 and logged
                 and prov.calls == 1
                 and res.get("status") == "schema_violation"
             ):
-                bad.append(mode)
+                bad.append(f"{mode}:{res.get('status')}")
     out.append(
         Check(
             "(d) schema violations: discarded, logged, no row, no retry",
@@ -763,9 +826,14 @@ def fixture_checks(mod: tuple[Any, Any, Any]) -> list[Check]:
     return out
 
 
-def run_gate(doc: Path, allow_draft: bool) -> int:
+def run_gate(doc: Path, allow_draft: bool, module_path: Path | None = None) -> int:
     checks = doc_checks(doc, allow_draft)
     checks.append(legcount_check())
+    if module_path is not None:  # gate only: import nba.shadow_llm from a worktree
+        sys.path.insert(0, str(module_path))
+        import nba
+
+        nba.__path__.append(str(module_path / "nba"))  # main tree wins; only nba.shadow_llm is new
     mod = _import_module()
     if mod is None:
         checks.append(
@@ -776,7 +844,10 @@ def run_gate(doc: Path, allow_draft: bool) -> int:
             )
         )
     else:
-        checks.extend(fixture_checks(mod))
+        if module_path is not None:
+            checks.extend(fixture_checks(mod, lambda root: steward_env(root, module_path)))
+        else:
+            checks.extend(fixture_checks(mod))
     for c in checks:
         print(c.line())
     if any(c.status == "FAIL" for c in checks):
@@ -816,6 +887,12 @@ def main(argv: list[str] | None = None) -> int:
     g = sub.add_parser("gate")
     g.add_argument("--doc", type=Path, default=DOC)
     g.add_argument("--allow-draft", action="store_true")
+    g.add_argument(
+        "--module-path",
+        type=Path,
+        default=None,
+        help="worktree root to import nba.shadow_llm and its fixture world from (gate only)",
+    )
     r = sub.add_parser("report")
     r.add_argument("--doc", type=Path, default=DOC)
     r.add_argument("--sha", required=True)
@@ -824,7 +901,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--out", type=Path, default=Path("reports/llm_shadow"))
     a = ap.parse_args(argv)
     if a.stage == "gate":
-        return run_gate(a.doc, a.allow_draft)
+        return run_gate(a.doc, a.allow_draft, a.module_path)
     return run_report(a.doc, a.sha, a.nba_db, a.market_db, a.out)
 
 

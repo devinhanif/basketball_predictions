@@ -146,9 +146,9 @@ def test_fixture_builds_and_facts_planted_after_tip_are_refused(tmp_path: Path) 
 
 
 def test_stub_provider_modes() -> None:
-    payload = {"game_id": "g", "legs": [{"player_id": 1, "stat": "pts", "p_over_prod": 0.5}]}
+    payload = {"legs": [{"player_id": 1, "stat": "pts", "line": 1.5, "p_over_prod": 0.5}]}
     ok = json.loads(ev.StubProvider("ok").forecast(payload)["raw_text"])
-    assert ok["legs"][0]["stat"] == "pts"
+    assert ok["forecasts"][0]["stat"] == "pts"
     for m in ("prose", "fenced"):
         try:
             json.loads(ev.StubProvider(m).forecast(payload)["raw_text"])
@@ -250,12 +250,12 @@ def _fake_modules() -> tuple[object, object, object]:
         status, rows = "ok", []
         try:
             body = json.loads(raw["raw_text"])
-            keys = [(x["player_id"], x["stat"]) for x in body["legs"]]
+            keys = [(x["player_id"], x["stat"]) for x in body["forecasts"]]
             want = [(x["player_id"], x["stat"]) for x in payload["legs"]]
-            if set(body) != {"game_id", "legs"} or sorted(keys) != sorted(want):
+            if set(body) != {"forecasts"} or keys != want:
                 raise ValueError("legs")
-            for x in body["legs"]:
-                if not (0.0 < float(x["p_over"]) < 1.0) or x["p_over"] == 1.0:
+            for x in body["forecasts"]:
+                if not (0.01 <= float(x["p_over"]) <= 0.99):
                     raise ValueError("p")
                 rows.append(
                     ForwardPrediction(
