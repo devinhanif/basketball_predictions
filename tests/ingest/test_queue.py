@@ -22,7 +22,10 @@ def test_step_order_and_rate_floor() -> None:
     )
     assert names.index("hist:parse:2019") < names.index("cur:officials:2025")
     assert names.index("cur:officials:2025") < names.index("cur:shots")
-    assert names.index("cur:matchups") < names.index("hist:tracking") < names.index("hist:hustle")
+    # 2026-10-11: history tracking/hustle run before shots/matchups (Devin's priority)
+    i_off, i_tr, i_hu = (names.index(n) for n in ("load:officials:2025", "hist:tracking", "hist:hustle"))
+    assert i_off < i_tr < i_hu
+    assert names.index("cur:hustle:2025") < names.index("cur:shots") < names.index("cur:matchups")
     assert float(q.RATE) >= 2.5
 
 
@@ -76,6 +79,6 @@ def test_screen_seasons_first_and_2025_deferred_to_end() -> None:
         ]
         late = steps[f"cur:{src}:2025"].argv
         assert late[late.index("--seasons") + 1] == "2025"
-    assert names[-2:] == ["cur:tracking:2025", "cur:hustle:2025"]
+    assert names[-2:] == ["cur:matchups", "load:matchups"]
     assert names.index("hist:load:hustle") < names.index("cur:tracking:2025")
     assert float(q.RATE) >= 6.0
