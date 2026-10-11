@@ -538,6 +538,12 @@ rotation-level young players in close games would be a new rule.
   5-7% (2025-26) as more books were captured. Staleness check in the fan doc's companion query. Not a line of business here
   (read-only, no orders, non-negotiable 5); recorded as a fact about how dispersed book prices are, which is also why the
   consensus de-vig is a better benchmark than any single book.
+  - **Per night, sportsbooks only (exchanges excluded), 2023-24 and 2024-25, best over at one book + best under at another on the
+    same line (2026-10-11):** T-60 snapshot 11-13 arbs per night (1.6-2.2 per night at ≥ 2% margin); T-5 snapshot 17-23 per night
+    (3.5-5.6 at ≥ 2%). Median margin 0.9%; 90th percentile 2.5%; 99th 6%. Quotes are fresh at the snapshot (median 0.5 min since the
+    book's last update, same as non-arb lines), so staleness in the API sense does not explain them; BetRivers is on one side of
+    most pairs (slow to follow moves), FanDuel/BetMGM/DraftKings on the other. Two snapshots per game undercount what a
+    continuous scanner would see and overstate what survives the seconds between placing two legs.
 - **"Craziest parlay the model predicted correctly" (Devin, 2026-10-11; descriptive, OOF model rows × DraftKings T-60 main lines,
   2023-24 and 2024-25):** among 72,321 legs where the model leaned ≥ 55% to a side, 55.9% hit (book implied 53.3%, model's own
   62.7%: over-confident as Q10 found). Best night of model-leaned legs that all hit: 2024-10-23, five legs paying 62x (Grayson
@@ -644,3 +650,14 @@ Measured follow-ups below, each descriptive first.
   At ≥ 5%: +3.4% single, −3.7% / +9% / −34% at 2 / 3 / 4 legs, intervals wider still. Supply is thin: median 6 flagged legs per book
   per night across 3 games, so a 4-leg same-book parlay exists on about half of nights. What the flag does do is keep the worst-priced
   legs out (−26% vs −6% on 4 legs), which is a per-leg price fact, not a parlay edge. Date-block bootstrap, 4,000 reps.
+- **Where correlation between legs actually lives (Devin, 2026-10-11, "conditional odds"; descriptive atlas against Pinnacle T-60
+  marginals, 72,674 legs, 2,509 games, 2023-24 + 2024-25, game-clustered CIs, reports/joint_atlas_2026-10-11.md):** same player
+  across stats is the only large positive dependence (joint over ratio 1.21 [1.19, 1.24]; fg3m × pts 1.53, pts × reb 1.18, i.e. +53
+  and +18 cents per $1 on a fair 2-leg parlay). Underdog-team player over × favourite covers is the large NEGATIVE one (ratio 0.82
+  [0.78, 0.86] for pts, same for reb and ast: −17 to −18 cents); favourite-team players × cover is near zero. Player over × game
+  total over +7 cents pooled (pts, fg3m, ast positive; reb negative). Teammates same stat 0.975 [0.955, 0.994] (small negative,
+  starters and bench alike); opponents same or cross stat: independent. Cross-game control: independent to ±0.006. Caveats: legs
+  are conditional on the player playing (DNP legs dropped upstream); marginals shifted by each stat's in-sample over-rate bias
+  (Pinnacle overs hit 1-2.4 points under their de-vigged price in every stat); 67 cells, ~10 would exclude zero by chance; no price
+  comparison, because no API carries same-game parlay prices. What a retail SGP engine charges for these is the open question;
+  user slips carry both the per-leg and the combined price, so the app's slip flow would give us the book's correlation factor.
