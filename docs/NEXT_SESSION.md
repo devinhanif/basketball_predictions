@@ -1,6 +1,17 @@
 # Next session
 
-_Updated 2026-10-09 (HEAD b39aed0). Status overview: PROJECT_STATUS.md._
+_Updated 2026-10-11 04:00 CT (HEAD 2ffd6ff). Status overview: PROJECT_STATUS.md._
+
+## Before opening night, in order (first games 2026-10-20)
+
+1. **Facts store, live-season build (steward).** Replace `--max-season` with an explicit `--seasons` list in `nba.facts build` so 2026-27 report, lineup and box facts load while season 2025 stays absent, then add a nightly rebuild step to `ops/nba_daily.sh` after the morning settle. The daily script is the live path: run the replay oracle against `oracle_golden2` (hash `030804df`, data_version 1bee33d02ff2) before and after touching it, and the hash must not move.
+2. **Same-surname stint rule (archivist).** 91 played player-games still have no stint row, nearly all same-surname teammates with no initial in the substitution text. Add a rule using jersey number or the out-player's position; its own gate is 20 or fewer. Back up first, bump data_version, re-baseline the oracle and say so.
+3. **188 report rows with no game_id (archivist).** 136 have no game on the date (postponements), 52 have a candidate game but not a unique match. Resolve from schedule-change history; do not guess.
+4. **First live reporter poll, after Devin's X sign-up.** Needs the bearer token in `.env` and handles in `configs/reporters.yaml` (REPORTER_FEED.md). Run it with `--budget-posts 50`, read the briefing section it writes, then decide whether to widen. Shadow only.
+5. **Supervised pretip run** (the checklist item below): one live run of the pretip path, then check `data/ops/ALERTS.md`.
+6. **Sleep settings:** Mac must not sleep on game days.
+
+Plain version: the first three make the data and the store ready for the live season, the fourth waits on Devin, the last two prove the machine runs on its own.
 
 ## Before opening night (by 2026-10-19)
 
