@@ -100,7 +100,7 @@ UNSTATED: list[str] = [
     "check 3 gap = max-min over the five realised-minutes buckets (DNP, <5, 5-10, 10-20, >20; DNP included, stricter) of the imputed/NULL rate, over both columns, seasons 2023-2024 roster rows; the played-only gap is reported too; the non-none share by bucket is reported as description (that variation is the information, not missingness)",
     "planted same-game: an extra all-roster 'questionable' snapshot stamped tip - 30 min is injected on one day's games and their stored minutes are altered; tags must be byte-identical. Non-inert control: the same snapshot at tip - 90 min must change them",
     "planted future: every report row of games dated on/after 2024-01-15 gets its status rotated and its stamp shifted; tags of earlier games must be identical, later games must change",
-    "check 4 = A0 integer CRPS and n for all 4 stats x 2 seasons vs reports/lower_tail/candidates.json 'off' to 1e-6 (pts: 3.1528 / 3.1884); A0 is cached for the run",
+    "check 4 (frozen wording: the stored reference's key set) compares A0 with reports/lower_tail/candidates.json 'off' AS IT STANDS: that reference was re-baselined on the current DB on 2026-10-11 15:11 CT after the data clean-up, so its key set is the full current one (2024 n 27,701); all 4 stats x 2 seasons, CRPS to 1e-6, n identical",
     "placebo A2 permutes own_tag within (team_id, game_date) among the scored feature rows with numpy default_rng(0); own_tag_hours is kept with its row",
     "'stat passes' = dCRPS <= -0.005, CI upper < 0, BH p < 0.05 (4 stats per season, A1) in BOTH 2023 and 2024; guards and the A1-vs-A2 gate are read on 2024 all rows; no stat passing 2023 closes the question",
     "guard slices (n >= 300, 2024, A1 - A0 > +0.01 fails): starter, bench, first15, tag none / probable / questionable",
@@ -469,6 +469,8 @@ def collect_cached(
 
 
 def check_a0_repro(arms: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """A0 vs ``reports/lower_tail/candidates.json`` 'off' (re-baselined on the current DB on
+    2026-10-11), all 4 stats x 2 seasons, CRPS to 1e-6 and n identical."""
     ref = json.loads(LOWER_TAIL_JSON.read_text())
     rec: dict[str, Any] = {}
     ok = True
@@ -799,6 +801,32 @@ def render_report(out_dir: Path = OUT_DIR) -> str:
     return "\n".join(L)
 
 
+def write_ledger(out_dir: Path = OUT_DIR) -> Path:
+    r = json.loads((out_dir / "results.json").read_text())
+    tab = {(x["stat"], x["season"], x["arm"]): x for x in r["rows"]}
+    body = ["| id | test | result |", "|---|---|---|"]
+    for stat in STATS:
+        for se in TEST_SEASONS:
+            x, p = tab[(stat, se, "A1")], tab[(stat, se, "A2")]
+            body.append(
+                f"| T### | OWN_TAG {stat} {se} A1-A0 (n {x['n_rows']}, {x['n_games']} games) | "
+                f"dCRPS {_f(x['dcrps'], 4, True)} CI [{_f(x['ci_lo'], 4, True)}, {_f(x['ci_hi'], 4, True)}] "
+                f"p_bh {_f(x['p_bh'], 3)}; placebo A2 {_f(p['dcrps'], 4, True)}; pass 2023 "
+                f"{r['rules'][stat]['pass_2023']} |"
+            )
+    for stat in STATS:
+        v = r["rules"][stat]
+        body.append(
+            f"| T### | OWN_TAG {stat} verdict | pass {v['pass']}; rule1 {v['rule1']}; guards {v['rule2']}; A1 beats A2 by 0.003: {v['A1_beats_A2_by_0.003_2024']} |"
+        )
+    body.append(
+        f"| T### | OWN_TAG close (no stat passes 2023) | {r['rules']['close_no_stat_passes_2023']} |"
+    )
+    p = out_dir / "ledger_rows.md"
+    p.write_text("\n".join(body) + "\n")
+    return p
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("stage", choices=["gate", "smoke", "run", "report"])
@@ -827,9 +855,11 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
             res = run_arms(a.db, sha)
             REPORT_MD.write_text(render_report())
+            write_ledger()
             print(json.dumps(res["rules"], indent=1))
         else:
             REPORT_MD.write_text(render_report())
+            write_ledger()
             print("wrote", REPORT_MD)
     return 0
 

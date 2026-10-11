@@ -10,12 +10,12 @@
     "stored": 0.9059028606321847
    },
    "ast_2024": {
-    "delta": -0.0008083481308925888,
+    "delta": 0.0,
     "got": 0.9002150882692853,
     "n": 27701,
-    "n_ref": 27583,
-    "ok": false,
-    "stored": 0.9010234364001779
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 0.9002150882692853
    },
    "fg3m_2023": {
     "delta": 0.0,
@@ -26,12 +26,12 @@
     "stored": 0.5690486141021416
    },
    "fg3m_2024": {
-    "delta": -6.469472269310383e-05,
+    "delta": 0.0,
     "got": 0.5922128263543135,
     "n": 27701,
-    "n_ref": 27583,
-    "ok": false,
-    "stored": 0.5922775210770066
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 0.5922128263543135
    },
    "pts_2023": {
     "delta": 0.0,
@@ -42,12 +42,12 @@
     "stored": 3.152829990762183
    },
    "pts_2024": {
-    "delta": -0.0008584111074672052,
+    "delta": 0.0,
     "got": 3.1875525740475275,
     "n": 27701,
-    "n_ref": 27583,
-    "ok": false,
-    "stored": 3.1884109851549947
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 3.1875525740475275
    },
    "reb_2023": {
     "delta": 0.0,
@@ -58,15 +58,15 @@
     "stored": 1.2928172686712307
    },
    "reb_2024": {
-    "delta": 0.0002519706899191121,
+    "delta": 0.0,
     "got": 1.3142466423136836,
     "n": 27701,
-    "n_ref": 27583,
-    "ok": false,
-    "stored": 1.3139946716237645
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 1.3142466423136836
    }
   },
-  "ok": false
+  "ok": true
  },
  "coverage": {
   "2022": {
@@ -96,10 +96,10 @@
   "parity_with_production_flagged": true
  },
  "doc": "docs/prereg/OWN_TAG.md",
- "draft": true,
- "gate_ok": false,
- "gate_seconds": 125.6660521030426,
- "git_sha": "de97df87fb86b558f1eab1847cdde4cad053080f",
+ "draft": false,
+ "gate_ok": true,
+ "gate_seconds": 1.5567591190338135,
+ "git_sha": "87485b754b34a517ce83a8f357f6b75c6359561d",
  "max_season_loaded": 2024,
  "missingness_audit": [
   {
@@ -188,7 +188,7 @@
   "pit": 0,
   "placebo": 0
  },
- "sha256": "21c7c9b745e6929df0f9108a9fc52cd485f639599f67b904e07b3367bf7d98d0",
+ "sha256": "2198c1f05e5500130e77adab3ac9d2318b66501dbd1ba2c3f5450761981d76db",
  "share": {
   "2023_played": {
    "counts": {
@@ -240,7 +240,7 @@
   },
   "played_rows_tagged_out": 48
  },
- "status": "STOPPED_AT_GATE",
+ "status": "GATE_PASSED",
  "tests": [
   {
    "ok": true,
@@ -309,10 +309,10 @@
    "value": 1
   },
   {
-   "ok": false,
+   "ok": true,
    "test": "4 A0 reproduces production integer CRPS and n to 1e-6 (4 stats x 2 seasons)",
    "threshold": "== 1",
-   "value": 0
+   "value": 1
   },
   {
    "ok": true,
@@ -332,7 +332,7 @@
   "check 3 gap = max-min over the five realised-minutes buckets (DNP, <5, 5-10, 10-20, >20; DNP included, stricter) of the imputed/NULL rate, over both columns, seasons 2023-2024 roster rows; the played-only gap is reported too; the non-none share by bucket is reported as description (that variation is the information, not missingness)",
   "planted same-game: an extra all-roster 'questionable' snapshot stamped tip - 30 min is injected on one day's games and their stored minutes are altered; tags must be byte-identical. Non-inert control: the same snapshot at tip - 90 min must change them",
   "planted future: every report row of games dated on/after 2024-01-15 gets its status rotated and its stamp shifted; tags of earlier games must be identical, later games must change",
-  "check 4 = A0 integer CRPS and n for all 4 stats x 2 seasons vs reports/lower_tail/candidates.json 'off' to 1e-6 (pts: 3.1528 / 3.1884); A0 is cached for the run",
+  "check 4 (frozen wording: the stored reference's key set) compares A0 with reports/lower_tail/candidates.json 'off' AS IT STANDS: that reference was re-baselined on the current DB on 2026-10-11 15:11 CT after the data clean-up, so its key set is the full current one (2024 n 27,701); all 4 stats x 2 seasons, CRPS to 1e-6, n identical",
   "placebo A2 permutes own_tag within (team_id, game_date) among the scored feature rows with numpy default_rng(0); own_tag_hours is kept with its row",
   "'stat passes' = dCRPS <= -0.005, CI upper < 0, BH p < 0.05 (4 stats per season, A1) in BOTH 2023 and 2024; guards and the A1-vs-A2 gate are read on 2024 all rows; no stat passing 2023 closes the question",
   "guard slices (n >= 300, 2024, A1 - A0 > +0.01 fails): starter, bench, first15, tag none / probable / questionable"

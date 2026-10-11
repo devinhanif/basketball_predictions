@@ -79,6 +79,9 @@ No stat passes on 2023: close; no tag re-encodings, no T-30 variant here (that i
 
 === RESULTS BELOW ===
 
-(not run)
+## Results (run 2026-10-11 ~19:45 CT; frozen sha256 2198c1f0 verified before and after; research/eval/own_tag_eval.py; reports/prereg_own_tag.md)
+
+NULL on all four stats; the 2023 kill criterion fires. A1 − A0 integer CRPS (game-clustered 95% CI; BH over 4 stats): pts 2023 +0.0016 [−0.0009, +0.0041], 2024 −0.0001 [−0.0021, +0.0019]; reb +0.0011 [+0.0000, +0.0021] / −0.0002; ast −0.0001 / 0.0000; fg3m −0.0001 / +0.0001. No cell near the −0.005 floor; the real tag is no better than the shuffled one (A1 − A2 2024: pts −0.0008, others ≈ 0); dropping own_tag_hours changes nothing. Tag-level slices (descriptive): probable rows gain a little on pts/reb (pts −0.014 [−0.031, +0.002]; reb −0.009 [−0.015, −0.002]); questionable rows do not, and were worse on reb in 2023 (+0.0065 [+0.0003, +0.0122]). Guards pass. Gate: all four checks pass incl. A0 reproduced to 1e-6 on the re-baselined reference (2024 n 27,701). Unstated details fixed before scoring: OUT-but-played coded 5; no-snapshot rows 0 / 48; placebo permuted among scored rows (seed 0). Ledger T326–T337. Closed.
+
 
 Freeze: 2026-10-11 15:05 CT, commit a44f876, sha256 of everything above the line: 2198c1f05e5500130e77adab3ac9d2318b66501dbd1ba2c3f5450761981d76db (first 8: 2198c1f0). Verify with the awk command in the header.

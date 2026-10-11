@@ -68,3 +68,4 @@ production reference (the stored one predates the restored games); CALIBRATED_GR
 HISTORY_WINDOW_2: the repaired audit still stops, at a threshold below its own noise; 2019-20 and 2020-21 now look like the current
 seasons, 2021-22 (hourly report) is the real odd one. Not frozen; direction closed (T325). Your option if you want it: a new rule on
 2019-20 + 2020-21 only, or a CI-aware threshold. OWN_TAG and CALIBRATED_GRID still running.
+- 20:30: OWN_TAG null (T326–T337); closed. CALIBRATED_GRID still running (the last of the four).
