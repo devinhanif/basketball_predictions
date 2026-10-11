@@ -265,3 +265,4 @@
   inserting them would change the row count. Left as a separate load decision.
 - Backup: data/backups/history_player_availability_pre_reasonfix_20261011_133515.parquet. data_version unchanged (history DB
   is outside the manifest).
+- 2026-10-11 14:14 CT (Devin: "APPLY 262"): the 262 layout-C injury-report rows now resolvable by the early-2019 aliases inserted into the history DB (2019-11-20..12-17; players 2403, 101123, 1628397, 1628424); rows 362,528 → 362,790; every PDF's stored rows now equal its parsed rows; no existing row changed (backup data/backups/history_player_availability_pre_insert262_20261011_141454.parquet). History reports are complete for 2019-20 from the first report of the season.
