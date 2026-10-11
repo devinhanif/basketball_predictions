@@ -366,3 +366,11 @@ anything) and keeps every arm, floor and kill criterion of HISTORY_WINDOW. This 
 labelled as such; prior that the arms then pass stays ~20%.
 Why: Devin's "fix the structural asymmetry" and the diagnosis above; the data was never the problem, the statistic was.
 What would reverse it: Devin keeping the direction closed; the repaired audit still stopping.
+
+## 2026-10-11 2026-10-11 15:05 CT — OWN_TAG FROZEN (sha256 2198c1f0); stored production reference to be re-baselined
+What: gate passed on coverage (99.92% / 99.84%), tag share (8.0% / 8.3%), missingness (0.25 pp) and planted tests; check 4 amended
+pre-freeze to the reference key set (the stored OOF reference predates the restored 2024 games). Standing fix queued: regenerate
+the stored production OOF reference on the current data_version so every future gate reproduces on today's rows (steward/modeler,
+after the four runs).
+Why: non-negotiable 8; the third rule to hit the same stale-reference stop.
+What would reverse it: nothing above the line changes.

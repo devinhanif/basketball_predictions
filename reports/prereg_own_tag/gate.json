@@ -1,0 +1,340 @@
+{
+ "a0_repro": {
+  "detail": {
+   "ast_2023": {
+    "delta": 0.0,
+    "got": 0.9059028606321847,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 0.9059028606321847
+   },
+   "ast_2024": {
+    "delta": -0.0008083481308925888,
+    "got": 0.9002150882692853,
+    "n": 27701,
+    "n_ref": 27583,
+    "ok": false,
+    "stored": 0.9010234364001779
+   },
+   "fg3m_2023": {
+    "delta": 0.0,
+    "got": 0.5690486141021416,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 0.5690486141021416
+   },
+   "fg3m_2024": {
+    "delta": -6.469472269310383e-05,
+    "got": 0.5922128263543135,
+    "n": 27701,
+    "n_ref": 27583,
+    "ok": false,
+    "stored": 0.5922775210770066
+   },
+   "pts_2023": {
+    "delta": 0.0,
+    "got": 3.152829990762183,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 3.152829990762183
+   },
+   "pts_2024": {
+    "delta": -0.0008584111074672052,
+    "got": 3.1875525740475275,
+    "n": 27701,
+    "n_ref": 27583,
+    "ok": false,
+    "stored": 3.1884109851549947
+   },
+   "reb_2023": {
+    "delta": 0.0,
+    "got": 1.2928172686712307,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 1.2928172686712307
+   },
+   "reb_2024": {
+    "delta": 0.0002519706899191121,
+    "got": 1.3142466423136836,
+    "n": 27701,
+    "n_ref": 27583,
+    "ok": false,
+    "stored": 1.3139946716237645
+   }
+  },
+  "ok": false
+ },
+ "coverage": {
+  "2022": {
+   "coverage_all_games": 0.9984848484848485,
+   "coverage_regular": 1.0,
+   "n_games": 1320,
+   "proxy_fallback": 0,
+   "real_tip": 1320,
+   "regular_season_games": 1230
+  },
+  "2023": {
+   "coverage_all_games": 0.9992412746585736,
+   "coverage_regular": 0.9991869918699187,
+   "n_games": 1318,
+   "proxy_fallback": 0,
+   "real_tip": 1318,
+   "regular_season_games": 1230
+  },
+  "2024": {
+   "coverage_all_games": 0.9977272727272727,
+   "coverage_regular": 0.9983739837398374,
+   "n_games": 1320,
+   "proxy_fallback": 0,
+   "real_tip": 1320,
+   "regular_season_games": 1230
+  },
+  "parity_with_production_flagged": true
+ },
+ "doc": "docs/prereg/OWN_TAG.md",
+ "draft": true,
+ "gate_ok": false,
+ "gate_seconds": 125.6660521030426,
+ "git_sha": "de97df87fb86b558f1eab1847cdde4cad053080f",
+ "max_season_loaded": 2024,
+ "missingness_audit": [
+  {
+   "bucket": "DNP",
+   "col": "own_tag",
+   "imputed_or_null_rate": 0.003118271586606281,
+   "n": 13469,
+   "non_none_share": 0.2112257777117826
+  },
+  {
+   "bucket": "<5",
+   "col": "own_tag",
+   "imputed_or_null_rate": 0.0005781460782424359,
+   "n": 5189,
+   "non_none_share": 0.058007323183657734
+  },
+  {
+   "bucket": "5-10",
+   "col": "own_tag",
+   "imputed_or_null_rate": 0.0014194464158978,
+   "n": 4227,
+   "non_none_share": 0.05488526141471493
+  },
+  {
+   "bucket": "10-20",
+   "col": "own_tag",
+   "imputed_or_null_rate": 0.0009953296072276242,
+   "n": 13061,
+   "non_none_share": 0.06615113697266672
+  },
+  {
+   "bucket": ">20",
+   "col": "own_tag",
+   "imputed_or_null_rate": 0.0015019436918364943,
+   "n": 33956,
+   "non_none_share": 0.093650606667452
+  },
+  {
+   "bucket": "DNP",
+   "col": "own_tag_hours",
+   "imputed_or_null_rate": 0.003118271586606281,
+   "n": 13469,
+   "non_none_share": 0.2112257777117826
+  },
+  {
+   "bucket": "<5",
+   "col": "own_tag_hours",
+   "imputed_or_null_rate": 0.0005781460782424359,
+   "n": 5189,
+   "non_none_share": 0.058007323183657734
+  },
+  {
+   "bucket": "5-10",
+   "col": "own_tag_hours",
+   "imputed_or_null_rate": 0.0014194464158978,
+   "n": 4227,
+   "non_none_share": 0.05488526141471493
+  },
+  {
+   "bucket": "10-20",
+   "col": "own_tag_hours",
+   "imputed_or_null_rate": 0.0009953296072276242,
+   "n": 13061,
+   "non_none_share": 0.06615113697266672
+  },
+  {
+   "bucket": ">20",
+   "col": "own_tag_hours",
+   "imputed_or_null_rate": 0.0015019436918364943,
+   "n": 33956,
+   "non_none_share": 0.093650606667452
+  }
+ ],
+ "missingness_extra": {
+  "gaps_pp": {
+   "own_tag": 0.2540125508363845,
+   "own_tag_hours": 0.2540125508363845,
+   "own_tag_hours_played": 0.09237976135940583,
+   "own_tag_played": 0.09237976135940583
+  },
+  "join_nulls_on_feature_frame": 0
+ },
+ "seeds": {
+  "bootstrap": 0,
+  "model": 0,
+  "pit": 0,
+  "placebo": 0
+ },
+ "sha256": "21c7c9b745e6929df0f9108a9fc52cd485f639599f67b904e07b3367bf7d98d0",
+ "share": {
+  "2023_played": {
+   "counts": {
+    "available": 609,
+    "doubtful": 3,
+    "none": 25958,
+    "out": 9,
+    "probable": 607,
+    "questionable": 1011
+   },
+   "n": 28197,
+   "non_none_share": 0.07940561052594253
+  },
+  "2023_scored": {
+   "counts": {
+    "available": 584,
+    "doubtful": 3,
+    "none": 25418,
+    "out": 7,
+    "probable": 605,
+    "questionable": 1002
+   },
+   "n": 27619,
+   "non_none_share": 0.07969151670951158
+  },
+  "2024_played": {
+   "counts": {
+    "available": 670,
+    "doubtful": 6,
+    "none": 25898,
+    "out": 19,
+    "probable": 707,
+    "questionable": 936
+   },
+   "n": 28236,
+   "non_none_share": 0.08280209661425131
+  },
+  "2024_scored": {
+   "counts": {
+    "available": 648,
+    "doubtful": 5,
+    "none": 25411,
+    "out": 12,
+    "probable": 703,
+    "questionable": 922
+   },
+   "n": 27701,
+   "non_none_share": 0.08266849572217605
+  },
+  "played_rows_tagged_out": 48
+ },
+ "status": "STOPPED_AT_GATE",
+ "tests": [
+  {
+   "ok": true,
+   "test": "1 snapshot coverage 2023 (regular season)",
+   "threshold": ">= 0.95",
+   "value": 0.9991869918699187
+  },
+  {
+   "ok": true,
+   "test": "1 snapshot coverage 2024 (regular season)",
+   "threshold": ">= 0.95",
+   "value": 0.9983739837398374
+  },
+  {
+   "ok": true,
+   "test": "1 snapshot games == production flagged games",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "2 non-none tag share, scored rows, min over seasons",
+   "threshold": ">= 0.03",
+   "value": 0.07969151670951158
+  },
+  {
+   "ok": true,
+   "test": "3 max imputed/NULL-rate gap across realised-minutes buckets incl. DNP (pp), both columns",
+   "threshold": "<= 2.0",
+   "value": 0.2540125508363845
+  },
+  {
+   "ok": true,
+   "test": "3 join NULLs on the played feature frame",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "ok": true,
+   "test": "3 PLANT same-game: post-cutoff snapshot (tip-30) + altered minutes leave tags identical",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "3 PLANT same-game: tip-59 snapshot is refused",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "3 PLANT same-game is not inert (tip-90 snapshot changes tags)",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "3 PLANT future (>= 2024-01-15) report edits: earlier tags unchanged",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "3 PLANT future is not inert (later tags change)",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": false,
+   "test": "4 A0 reproduces production integer CRPS and n to 1e-6 (4 stats x 2 seasons)",
+   "threshold": "== 1",
+   "value": 0
+  },
+  {
+   "ok": true,
+   "test": "4 A0 names == production stat_feature_names",
+   "threshold": "== 1",
+   "value": 1
+  }
+ ],
+ "unstated_details": [
+  "snapshot = the game's latest usable report (usable_report_rows, tip_source='real', proxy only where the real tip is missing, as production); only rows of THAT snapshot count, so a player in an earlier snapshot but absent from the latest has own_tag 0",
+  "a player listed twice in the snapshot takes the highest code",
+  "an OUT line is coded 5 (the draft lists 0-4; OUT rows are 'already excluded' only if the player did not play); the gate counts played rows with code 5 and reports it as an open item",
+  "a game with no usable snapshot gets own_tag 0 and own_tag_hours 48 (capped value), never NULL; `has_report` already carries the fact; the missingness audit measures exactly this imputed share by realised-minutes bucket",
+  "roster = every player_game_stats row of season <= 2024 (DNP included); the tag frame is built on all of it, then joined to the played feature frame (a join miss would show as NULL and is counted)",
+  "check 1 denominator = regular-season ('002') games with a result per season; also reported: all games, real-tip coverage and proxy-fallback count",
+  "check 2 = share of non-none own_tag among stat-frame rows (n_prior >= 5, the scored universe) per season, min over 2023/2024 must be >= 3%; counts per level for played rows and scored rows are reported",
+  "check 3 gap = max-min over the five realised-minutes buckets (DNP, <5, 5-10, 10-20, >20; DNP included, stricter) of the imputed/NULL rate, over both columns, seasons 2023-2024 roster rows; the played-only gap is reported too; the non-none share by bucket is reported as description (that variation is the information, not missingness)",
+  "planted same-game: an extra all-roster 'questionable' snapshot stamped tip - 30 min is injected on one day's games and their stored minutes are altered; tags must be byte-identical. Non-inert control: the same snapshot at tip - 90 min must change them",
+  "planted future: every report row of games dated on/after 2024-01-15 gets its status rotated and its stamp shifted; tags of earlier games must be identical, later games must change",
+  "check 4 = A0 integer CRPS and n for all 4 stats x 2 seasons vs reports/lower_tail/candidates.json 'off' to 1e-6 (pts: 3.1528 / 3.1884); A0 is cached for the run",
+  "placebo A2 permutes own_tag within (team_id, game_date) among the scored feature rows with numpy default_rng(0); own_tag_hours is kept with its row",
+  "'stat passes' = dCRPS <= -0.005, CI upper < 0, BH p < 0.05 (4 stats per season, A1) in BOTH 2023 and 2024; guards and the A1-vs-A2 gate are read on 2024 all rows; no stat passing 2023 closes the question",
+  "guard slices (n >= 300, 2024, A1 - A0 > +0.01 fails): starter, bench, first15, tag none / probable / questionable"
+ ]
+}

@@ -1,7 +1,7 @@
 # OWN_TAG: the player's own T-60 report status as a props feature (pre-registration)
 
-Status: DRAFT 2026-10-11 ~17:50 CT, NOT FROZEN; gate to be measured before any freeze (Devin pre-approved "try everything",
-2026-10-11 16:50; DECISIONS ~17:40). Freeze evidence: commit hash plus
+Status: FROZEN 2026-10-11 15:05 CT under Devin's pre-approval ("try everything", 2026-10-11 16:50; DECISIONS ~17:40 and ~18:40). Gate measured;
+check 4 amended before the freeze (reference key set). Freeze evidence: commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/OWN_TAG.md | shasum -a 256`. Seasons: 2023 = 2023-24, 2024 = 2024-25,
 2025 = 2025-26 (frozen holdout, never loaded).
 
@@ -39,7 +39,32 @@ questionable), starter/bench, first 15 team games; mechanism: dCRPS largest on q
 2. Tag non-none on ≥ 3% of played rows (else no power); counts per level reported.
 3. Missingness audit of both columns by realised-minutes bucket, max gap ≤ 2 pp (the tag is built for ALL active-roster rows then
    filtered); planted same-game and planted-future tests (a snapshot after tip − 60 never changes the tag).
-4. A0 reproduces production to 1e-6.
+4. A0 reproduces production to 1e-6 on the stored reference's key set (reports/lower_tail/candidates.json 'off', made before
+   the 2026-10-11 data clean-up restored five 2024 neutral-site games); the 118 restored rows stay in the evaluation for every
+   arm. (Amended before the freeze after the gate measure; precedent ELO_HISTORY_WINDOW and PPLAY_CONTEXT. Unstated details
+   fixed before scoring: OUT-but-played rows coded 5; games with no usable snapshot get own_tag 0 and own_tag_hours 48.)
+
+### Gate measurement (2026-10-11, `research/eval/own_tag_eval.py gate --allow-draft`; reports/prereg_own_tag/gate.json)
+Real data, read-only, season <= 2024; no arm fitted (A0 only, for check 4).
+1. PASS. Regular-season games with a usable snapshot at or before tip - 60: 2023 99.92% (1,229 of 1,230), 2024 99.84% (1,228 of 1,230);
+   all games 99.92% / 99.77%; real tip for 100% of games (proxy fallback 0); the snapshot-game set equals the production `flagged` key set.
+2. PASS. Non-none tag share of scored rows (n_prior >= 5): 2023 7.97% (n 27,619), 2024 8.27% (n 27,701). Counts, scored rows 2023 / 2024:
+   available 584 / 648, probable 605 / 703, questionable 1,002 / 922, doubtful 3 / 5 (too few to learn; effectively a tail of the
+   questionable level), OUT 7 / 12. OPEN ITEM: played rows carrying an OUT line (48 across 2022-2024; 9 in 2023, 19 in 2024)
+   exist; the draft codes only 0-4; the harness codes them 5. Devin to choose: keep 5 (built) or amend.
+3. PASS. Imputed-or-NULL rate (no usable snapshot for the game) by realised-minutes bucket, all roster rows 2023-2024 (n 69,902):
+   DNP 0.31%, <5 0.06%, 5-10 0.14%, 10-20 0.10%, >20 0.15%; max gap 0.25 pp (0.09 pp played rows only; both columns identical);
+   NULLs after the join onto the played feature frame: 0. Planted tests (5 of 5): a tip-30 and a tip-59 snapshot plus altered stored
+   minutes leave the day's tags identical, a tip-90 snapshot changes them (not inert); rotating the statuses and shifting the stamps of
+   every report row on/after 2024-01-15 leaves earlier tags identical and changes later ones. Description, not missingness: the non-none
+   share rises with minutes among played rows (<5 5.8%, 5-10 5.5%, 10-20 6.6%, >20 9.4%) and is 21.1% among DNP rows.
+4. FAIL AS WRITTEN. A0 reproduces the stored `reports/lower_tail/candidates.json` 'off' values EXACTLY for 2023 (delta 0.0, n identical,
+   all 4 stats; pts 3.152830). For 2024 it does not: n 27,701 vs stored 27,583 (+118 scored rows, all from five 2024-25 games whose
+   player_game_stats rows were added after the reference: 0022400147, 0022400621, 0022400633, 0022401229, 0022401230, plus 3 single
+   rows), pts 3.187553 vs 3.188411 (delta -0.000858), reb +0.000252, ast -0.000808, fg3m -0.000065. Cause is database movement since
+   2026-10-09/10 (the Oct-10 FOUR_FACTORS A0 cache has the stored n), not the harness: the code path is the production one. This check
+   cannot pass until the reference is regenerated on the current DB (maintainer command in the result note) or the rule is amended to
+   compare against a same-run production-path A0. Not changed here.
 
 ## Pass rule (per stat; 2023 selects, 2024 confirms)
 dCRPS point ≤ −0.005, CI upper < 0, BH p < 0.05; guards as F11 (|bias| ≤ 0.5, coverage in [0.75, 0.85], no slice n ≥ 300 worse
