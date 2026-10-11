@@ -310,3 +310,11 @@ settlement and scores untouched. Replay oracle: only p_play, mean_uncond and p_g
 game rows, scores, T-30 decisions and row sets identical. New golden: 89889f6d (data_version 418510d401d3).
 Why: a calibration map fit in-sample on one season made the live probability worse out of sample.
 What would reverse it: p_play_platt=P_PLAY_PLATT in config; or a walk-forward-fit map that beats raw under a rule.
+
+## 2026-10-11 ~14:20 CT — Nightly facts rebuild ON (Devin: "fix everything!!")
+What: `NBA_FACTS_NIGHTLY=1` added to the daily-morning launchd job's environment (ops/install_launchd.sh generator and the live
+plist; only that job was unloaded and reloaded; the other four untouched). The step runs after the morning report and rebuilds
+data/facts/facts.duckdb (seasons 2022,2023,2024,2026 + 2026 schedule); exit 4 informational, never blocks later steps. Nothing in
+the forecast path reads the store.
+Why: Devin's instruction; the switch was the last thing he had left to himself.
+What would reverse it: remove the variable from the plist and reload that job.

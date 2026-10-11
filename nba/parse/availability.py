@@ -590,7 +590,19 @@ def _page_boundaries(
             [(legacy[k] - 2.0, k) for k in legacy if k != "gamedate"], key=lambda b: b[0]
         )
         return [(0.0, "gamedate")] + slots
-    return [(0.0, "gamedate")] + [(first[k] - 2.0, k) for k in needed]
+    slots_d = [(first[k] - 2.0, k) for k in needed]
+    # 2019-11-20 .. 2019-12-17 layout (C): ``Current Status / Reason / Previous Status`` (the
+    # 2019-12-16 08PM report adds ``Previous Reason``). The trailing Previous columns get their own
+    # ignored slot so their words stay out of ``reason``. The modern layout has no ``Previous``
+    # header word, so it is unchanged.
+    previous = [
+        cast(float, w["x0"])
+        for w in hdr
+        if w["text"] == "Previous" and cast(float, w["x0"]) > first["reason"]
+    ]
+    if previous:
+        slots_d.append((min(previous) - 2.0, "previous"))
+    return [(0.0, "gamedate")] + slots_d
 
 
 def _column_for_x0(x0: float, boundaries: list[tuple[float, str]] = _COLUMN_BOUNDARIES) -> str:

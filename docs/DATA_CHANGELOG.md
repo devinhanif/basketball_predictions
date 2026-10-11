@@ -247,3 +247,21 @@
 - Implication: HISTORY_WINDOW (T315) stopped partly on 2019-20 report coverage (82%); with these rows coverage rises, but the
   era-identity STOP (AUC 0.80 with sign flips) is a separate finding and the history-window direction is closed for 2026-27
   (DECISIONS 2026-10-11 ~13:10). data_version: the history DB is outside the manifest; nba.duckdb unchanged.
+
+## 2026-10-11 13:35 CT - history injury `reason` text cleaned for layout C (2019-11-20..12-17) (DRAFT)
+- Cause: the layout-C parser (c00ff84 left it unchanged) put the trailing `Previous Status` (and, on 2019-12-16 08PM,
+  `Previous Reason`) words into `reason` (e.g. "Left knee soreness Out"; interleaved with wrapped lines). `status` was
+  correct. Parser now gives the Previous columns an ignored slot (nba/parse/availability.py); later layouts byte-identical
+  (0 differences re-parsing 200 random post-2019-12-18 PDFs, old vs new; stored-record regression fixture passes).
+- Fix (history DB only, `nba.duckdb` untouched; nba/ingest/history_reason_fix.py): re-parsed the 84 layout-C PDFs and
+  UPDATEd only `reason` on the 9,120 stored rows in the window, matched by (player_id, as_of, game_id, status). Gate:
+  rows 362,528 -> 362,528; fingerprint over every column except reason identical before/after (36bf2e19...); status counts
+  identical; rows outside the window identical to the backup (0 differ); no reason in the window now ends with a status
+  word or " -". Reason changed on all 9,120 rows (every row carried a Previous cell: 6,183 old reasons ended in "-", 809 in
+  a status word, the other 2,128 had previous words interleaved mid-reason with wrapped lines or carried Previous Reason
+  text). The brief's expectation (changed == ended in a status word) was too narrow; the changed set is exactly the set of
+  rows whose old reason contained any Previous-column token.
+- Not done on purpose: 262 parsed layout-C rows have no stored counterpart (names the early-2019 aliases resolve now);
+  inserting them would change the row count. Left as a separate load decision.
+- Backup: data/backups/history_player_availability_pre_reasonfix_20261011_133515.parquet. data_version unchanged (history DB
+  is outside the manifest).

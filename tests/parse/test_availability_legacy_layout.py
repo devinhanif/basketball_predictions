@@ -144,3 +144,50 @@ def test_later_layouts_unchanged_by_legacy_detector() -> None:
                 for r in _parse_report_pages(pdf)
             ]
         assert got == expected, name
+
+
+# --- layout C (2019-11-20 .. 2019-12-17): ``Current Status / Reason / Previous Status`` ----------
+# Fixtures: ``2019-11-21_01PM`` (single Previous Status column, "-" previous values) and
+# ``2019-12-16_08PM`` (adds a ``Previous Reason`` column). The trailing Previous columns must not
+# leak into ``reason`` (they once did: "Left knee soreness Out" carried the previous status).
+
+LAYOUT_C = FIX / "Injury-Report_2019-11-21_01PM.pdf"
+LAYOUT_C_PREV_REASON = FIX / "Injury-Report_2019-12-16_08PM.pdf"
+_STATUS_WORDS = ("Out", "Doubtful", "Questionable", "Probable", "Available")
+
+
+def _ends_with_status_word(reason: str | None) -> bool:
+    return bool(reason) and str(reason).split()[-1] in _STATUS_WORDS
+
+
+def test_layout_c_reason_excludes_previous_status_column() -> None:
+    recs = _records(LAYOUT_C)
+    assert len(recs) == 28
+    assert not any(_ends_with_status_word(r[6]) for r in recs)
+    assert not any((r[6] or "").rstrip().endswith(" -") for r in recs)
+
+
+def test_layout_c_multiword_reason_and_dash_previous_status() -> None:
+    by = {r[4]: r for r in _records(LAYOUT_C)}
+    # multi-word, wrapped reason (detail wraps onto a second line), previous status "-"
+    assert by["Favors, Derrick"][6] == "Injury/Illness - Left Lower Back; Spasms"
+    assert by["Favors, Derrick"][5] == "Out"
+    assert by["Ball, Lonzo"][6] == "Injury/Illness - Right Adductor; Strain"
+    assert by["Cheatham, Zylan"][6] == "G League - Two-Way"
+
+
+def test_layout_c_previous_reason_variant_1216() -> None:
+    recs = _records(LAYOUT_C_PREV_REASON)
+    assert len(recs) == 127
+    assert not any(_ends_with_status_word(r[6]) for r in recs)
+    by = {r[4]: r for r in recs}
+    assert by["Griffin, Blake"][6] == "Injury/Illness - Left Knee; Soreness"
+    assert by["Bryant, Thomas"][6] == "Injury/Illness - Right Foot; Stress reaction right foot"
+    assert by["King, Louis"][6] == "G League - Two-Way"
+    assert {r[5] for r in recs if r[5]} <= {
+        "Out",
+        "Doubtful",
+        "Questionable",
+        "Probable",
+        "Available",
+    }

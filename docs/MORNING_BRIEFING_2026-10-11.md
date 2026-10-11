@@ -49,3 +49,8 @@ steward drafts the change with the replay oracle. Queue reordered: tracking/hust
 
 ## 13:10 update
 ELO_HISTORY_WINDOW: null (long replay changes 2024-25 by exactly zero; retune within noise). History-window direction closed for the season.
+
+## 14:20 update ("fix everything")
+Done: CI green again (fixture typing); P(play) Platt map OFF by default (oracle: only p_play and the unconditional fields moved;
+golden re-baselined 89889f6d); nightly facts rebuild switched ON in the morning job; early-2019 injury layouts parsed and loaded
+(+7,554 rows); layout-C reason text cleaned in 9,120 history rows. Still only yours: the delete command (permission layer).

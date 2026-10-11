@@ -54,7 +54,8 @@ done
 PRETIP="$PRETIP</array>"
 
 write_plist local.nba.daily-pretip pretip "<key>StartCalendarInterval</key>$PRETIP"
-write_plist local.nba.daily-morning morning "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>"
+# NBA_FACTS_NIGHTLY=1: nightly facts-store rebuild step in ops/nba_daily.sh (Devin, 2026-10-11 "fix everything"; off elsewhere)
+write_plist local.nba.daily-morning morning "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict><key>EnvironmentVariables</key><dict><key>NBA_FACTS_NIGHTLY</key><string>1</string></dict>"
 write_plist local.nba.lineups lineups "<key>StartInterval</key><integer>300</integer>" ops/nba_lineups.sh
 cat > "$AGENTS/local.nba.watchdog.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
