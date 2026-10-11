@@ -69,3 +69,5 @@ E2 and E3; `[test, ok]` for checks 1-4; seeds, SHA, sha256. Code under `research
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-11 10:53 CT, commit 5bc17d2, sha256 of everything above the line: d5432e50523f270b4fafc6a093b52d0fc7bef967d30e3fe1a49c052f66abc633 (first 8: d5432e50). Verify with the awk command in the header.
