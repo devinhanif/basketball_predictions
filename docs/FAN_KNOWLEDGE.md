@@ -598,3 +598,11 @@ Measured follow-ups below, each descriptive first.
   Honest strategy version: the model's 8 largest-edge legs every night hit all 8 on 0.7% of 419 nights (3 nights), typical payout
   160x, return 1.10 per $1 carried entirely by three nights. Hindsight tickets are stories; the only forecast claim in this is the
   +2.1-point hit-rate edge on model-favoured legs, and that is the same small, unproven props edge the ledger already carries.
+- **Props as a strict over/under classifier (Devin's reframe, 2026-10-11; DK main lines at T-60, 106,999 legs, 2023-24 + 2024-25):**
+  the model picks the right side 54.5% of the time; the book's own favourite side 54.7%; a plain recency average 53.3%; break-even at
+  −110 is 52.4%. By stat: threes 57.3% (book 57.8%), rebounds 54.9% (book 54.4%, the one stat where the model edges the book),
+  assists 54.1% (55.0%), points 51.7% (51.9%, both near coin flips). Accuracy rises with the model's confidence (51% at coin-flip
+  legs → 61% at 70%+) but the model's CLAIMED confidence runs 10-13 points above its accuracy in every bin (claims 75% where it is
+  right 61%). When model and book disagree on the side (35% of legs) it is a coin flip (49.7% vs 50.3%); on legs where the book is
+  near 50/50 the model is right 51.2%. Reading: as a classifier the model is a slightly worse version of the book's own line with an
+  over-confidence problem, except on rebounds; the value framing and the classification framing agree.
