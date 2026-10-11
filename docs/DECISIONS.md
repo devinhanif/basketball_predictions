@@ -339,3 +339,14 @@ replay oracle and Devin's word). Items that still need Devin's own hand are not 
 developer apps and the reporter-feed token, the Jev router key, the accounts checklist (APP_SECURITY_BASELINE section 12).
 Why: Devin's instruction.
 What would reverse it: a failed gate stops the rule before the freeze.
+
+## 2026-10-11 ~17:40 CT — Devin: "fix the props injury features and the structural asymmetry; think outside the box"
+What: three new rules are drafted under Devin's "try everything, you have my approval" (16:50): OWN_TAG (the player's own T-60
+report status as a production props feature; the model carries flag timing/direction but not the tag itself), CALIBRATED_GRID
+(a trailing-window temperature/isotonic layer on P(over L) to fix the measured over-confidence: claims 75% where right 61%), and an
+era-aware report definition (status- and reason-category-consistent `has_report` across 2019-24) with a re-audit; if the audit
+reaches parity, HISTORY_WINDOW_2 is drafted as a new question. Each follows gate → freeze → run; results go to the ledger either way.
+Why: Devin's instruction; the searches found no rigorous public result, only the practitioner themes we have already tested
+(minutes first, conditional injury adjustments, recency weighting, pace) and one that we have not: the market as an input and
+calibration layers (docs/research/harness_design_paper_2026-10-11.md will carry the reading-log addendum).
+What would reverse it: Devin; a gate failing.
