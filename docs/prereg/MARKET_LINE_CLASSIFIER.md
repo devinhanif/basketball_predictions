@@ -103,3 +103,5 @@ SHA, sha256. Code under `research/` only (`research/eval/market_line_classifier_
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-11 15:06 CT, commit 0a728ee, sha256 of everything above the line: b85ae0d7237f77759393a2816c18e4885e91ba49462a0970da64c3b6b80f790b (first 8: b85ae0d7). Verify with the awk command in the header.
