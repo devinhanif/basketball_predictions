@@ -520,3 +520,14 @@ forbidden for this arm: the model has read those box scores (contamination in th
 Why: Devin's question "could an LLM do better as a thinker over time"; the honest answer is a measured shadow, not an argument. Routing per
 Jev: cheap model for fact extraction (later), strongest model for the nightly forecast.
 What would reverse it: the frozen companion rule's kill criterion; or a nightly cost above the budget Devin sets.
+
+## 2026-10-11 17:18 CDT — GAME_MARKET_CONTEXT frozen (sha256 fd37a3f3) and run
+What: the market's T-60 spread and total replace (A1) or join (A2) the props model's Elo-margin and 20-game scoring proxies; placebo
+arms with the market columns shuffled within date; A3 descriptive (no own-stat history). Floor −0.005 integer CRPS, BH over 8 cells per
+season, must beat the placebo both seasons, calibration guards, DK-line log loss not worse than +0.002 (point estimate). 2023 selects on
+its mature blocks (≥ 600 market-bearing training games, 12,757 rows: AM1, accepted because the 2022 training rows carry no market), 2024
+confirms on all rows. Gate 20/20 (A0 reproduces the re-baselined reference exactly; market coverage 100% / 99.6%; known-at min lead 62.5
+min; NULL gap by minutes 0.25 pp; 11/11 planted and placebo tests). AM2 (CI-upper non-inferiority) rejected for power.
+Why: Devin (16:21 row): move the props model off proxies for game context onto the market's own numbers. Prior pass probability ~10-20%:
+the market margin correlates 0.90 with our Elo margin; the total is the less redundant column.
+What would reverse it: nothing in this rule; a null closes it with one live-season follow-up (the closing capture gives the live context).
