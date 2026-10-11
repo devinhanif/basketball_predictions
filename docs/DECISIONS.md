@@ -331,3 +331,11 @@ content; email-only accounts; payments only in phase 4; uploaded slips usable fo
 Why: docs/BUSINESS_DRAFT_2026-10-11.md and Devin's answers of 2026-10-11 ~15:00.
 What would reverse it: Devin; any platform's terms barring automated posting on his accounts (checked per platform before the
 first post); any legal advice on the betting-adjacent positioning.
+
+## 2026-10-11 ~16:50 CT — Devin: "i confirm everything, try everything and you have my approval"
+What: MARKET_LINE_CLASSIFIER is confirmed: gate measured on real data, then frozen and run under its rule; the result goes to the
+ledger either way. Standing limits unchanged (no money, no outward action, no holdout evaluation, production changes through the
+replay oracle and Devin's word). Items that still need Devin's own hand are not unlocked by this: the X/TikTok/Instagram
+developer apps and the reporter-feed token, the Jev router key, the accounts checklist (APP_SECURITY_BASELINE section 12).
+Why: Devin's instruction.
+What would reverse it: a failed gate stops the rule before the freeze.
