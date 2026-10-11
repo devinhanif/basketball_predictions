@@ -92,6 +92,31 @@ rc=$?
 release_lock "$LOCK"; LOCK_HELD=$NONE   # polling is done: later ticks poll while a T-30 run waits/runs
 hb_end 0; HB_FINAL=1
 
+# Closing-line capture (the-odds-api.com, docs/CLOSING_LINE_CAPTURE.md): OFF unless NBA_CLOSE_CAPTURE=1,
+# in the environment or as a line in $ROOT/.env (the same file that carries THE_ODDS_API_KEY; the key is
+# passed to python by `uv run --env-file`, never read or echoed here). It lives in this 5-minute tick, not
+# in a new job, because the tick already runs every 300 s and per-game timing is its business, and a new
+# launchd job would be a scheduler install (the maintainer's). It runs BEFORE the T-30 block, whose bounded
+# wait for nba.duckdb can last minutes and must not delay a close pull. Failures never touch the poll
+# heartbeat (already final); they go to the log and ALERTS.md. rc 0 with no game in the window is the norm.
+CLOSE_ON=${NBA_CLOSE_CAPTURE:-0}
+if [ "$CLOSE_ON" != "1" ] && [ -f "$ROOT/.env" ] && grep -q '^NBA_CLOSE_CAPTURE=1' "$ROOT/.env"; then
+  CLOSE_ON=1
+fi
+if [ "$CLOSE_ON" = "1" ]; then
+  ENVF=""
+  [ -f "$ROOT/.env" ] && ENVF="--env-file .env"
+  for KIND in close t60; do   # the close first: it is the one that cannot wait
+    # shellcheck disable=SC2086
+    NBA_CLOSE_CAPTURE=1 "$UV" run --no-sync $ENVF python -m nba.odds capture --kind "$KIND" --date "$TODAY_ET" >> "$LOG" 2>&1
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+      log "odds capture $KIND rc=$rc"
+      echo "- $(date '+%Y-%m-%d %H:%M') [lineups] odds capture $KIND rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
+    fi
+  done
+fi
+
 # T-30 shadow run only when some game is inside [tip-30, tip)
 if "$UV" run --no-sync python -m nba.lineups due >> "$LOG" 2>&1; then
   if ! acquire_lock "$T30_LOCK" 30; then

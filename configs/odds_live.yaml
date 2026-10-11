@@ -1,0 +1,27 @@
+# the-odds-api.com LIVE per-game capture (nba.odds capture --kind close|t60). Off unless NBA_CLOSE_CAPTURE=1.
+# base_url, markets, odds_format and pacing come from configs/odds_history.yaml; no credentials here:
+# the key is read from THE_ODDS_API_KEY only (stripped from every stored param set and log line).
+regions: [us, eu]               # Pinnacle is eu; us_ex (Novig/ProphetX) is not captured live
+
+# Credit rule (vendor docs, the-odds-api.com/liveapi/guides/v4): GET /sports/{sport}/events is free;
+# GET /sports/{sport}/events/{id}/odds costs (markets returned) x (regions). 1 credit per
+# market-region (the HISTORICAL endpoint is 10x, configs/odds_history.yaml). Upper bound used for the
+# guard: cost_per_market_region x len(markets) x len(regions); the real charge is read back from the
+# x-requests-last header and booked in the ledger.
+cost_per_market_region: 1
+
+# Daily guard (ET date, one ledger file per day). 10 games x 2 snapshots x 14 = 280; 15 games = 420.
+daily_max_credits: 600          # refuse a call that would take today's spend past this
+min_server_remaining: 100000    # refuse when the server-reported remaining would fall below this
+
+# Windows in minutes before the real scheduled tip: a game is pulled once when now+lo <= tip <= now+hi.
+# The caller ticks every 5 minutes (ops/nba_lineups.sh), so the pull lands between hi and lo before tip.
+windows: {close: [0, 10], t60: [55, 65]}
+match_window_min: 30            # vendor commence_time must be within +-this of our scheduled tip
+max_attempts_per_game: 2        # failed pulls retried on later ticks, at most this many per (game, kind)
+
+# Paths (relative to the repo root)
+out_db: data/markets/market_asof.duckdb
+tips_db: data/lineups/lineups.duckdb       # game_tips: real scheduled tips, read-only here
+raw_dir: data/odds/raw/the_odds_api_live
+ledger_dir: data/odds/budget
