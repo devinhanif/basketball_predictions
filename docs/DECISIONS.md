@@ -451,3 +451,12 @@ Also running under the day's approvals: XGB_PTS_VS_LT (the leak-free XGBoost pts
 Why: MARKET_LINE_CLASSIFIER already showed a learner on model + line does not beat the one-weight blend on outcome log loss; the
 untested question is CLV, which is the market's own currency and the first thing a sharp book would ask us.
 What would reverse it: MODEL_CLV null on Pinnacle and DK cells (then the honest product is a price scanner plus the explainer).
+
+## 2026-10-11 ~22:55 CT — Devin: keep the-odds-api through the season; MODEL_CLV and XGB_PTS_VS_LT run as soon as their gates pass; closing capture approved
+What: "im keeping the api ... they run as soon as you're done, i approve." The subscription stays (money decision taken); the two
+drafted rules freeze and run without a further check-in once each gate passes on real data (non-negotiable 8), pre-freeze
+amendments labelled as usual; the closing-line capture merges to main behind NBA_CLOSE_CAPTURE and is switched on for the lineups
+job once its tests and the replay oracle are green (production change approved here; the first night is verified by the morning
+briefing).
+Why: Devin's standing approval for the day's rule family plus explicit word on the two items I had marked as his.
+What would reverse it: a gate failure (rule not frozen, no fit), or the capture's first night writing anything after a tip.
