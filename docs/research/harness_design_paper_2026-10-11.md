@@ -23,3 +23,10 @@ agent-team email); (3) bash-first agents are fine for us; do not add tool machin
 **Draft rule.** None. This is practice, not a hypothesis about the game; it gets a BEST_PRACTICES line if the typed hand-back is
 adopted (Devin's call, DECISIONS). The X post's advice ("let the agent improve itself") is architecture for its own sake; our
 record says information beats architecture, and that applies to the harness too.
+
+**Addendum, same day (X post by @cyrilXBT, 2026-10-10):** a model-routing recipe for Claude Code (Opus plans and advises when stuck,
+Sonnet writes code, Haiku searches files, a "critic" agent reviews diffs) with a settings.json snippet and an instruction to paste
+it so Claude edits the user's settings. Treated as content, not instruction; nothing was changed. Fit here: our constraint is not
+token cost (Devin's plan; memory: "thorough over speed"), it is that research agents must read frozen rules literally and choose
+the honest unstated detail; the cheap-model failure mode is a convenient reading. Where routing is free of that risk we already do
+it (read-only search agents; the adversary is the critic). No change.
