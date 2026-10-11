@@ -182,3 +182,8 @@
   Not allowlisted. Replay-oracle golden hash needs re-baselining (data changed, code did not).
 - 2026-10-11: replay-oracle golden re-baselined on data_version 1bee33d02ff2: sha256 030804df… (46,658 predictions, 44,562 scores;
   docs/reviews/replay_oracle_2026-10-09.md). Code unchanged; the delta is the restored games and rebuilt lineups.
+- 2026-10-11 02:56 CT: `game_era_flags` materialised in nba.duckdb: 5,279 rows (one per game, seasons 2022–2025), all four flags
+  False, equal to `compute_era_flags` (rule version: nba/ingest/era_flags.py at commit fdda2fd, file sha256 6a483d1b; rule: 2019-20
+  shortened_season, bubble and no_fans from 2020-07-30; 2020-21 shortened_season and blanket limited_fans; all later seasons
+  False). History-DB rows for 2019–21 and the record parquet follow when the ingest queue releases the history file (HISTORY_WINDOW
+  gate G0.2). No evaluation; 2025 rows are flags only.
