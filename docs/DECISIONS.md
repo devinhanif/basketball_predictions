@@ -192,3 +192,13 @@ feed can attach claims to games; lineup facts are now also dropped for seasons a
 Why: the holdout stays unread (no 2025 outcome fact) while the live season gets its schedule.
 What would reverse it: a reader that needs 2026 lineup facts → replace `--max-season` with an explicit `--seasons 2022,2023,2024,2026`
 list (queued in NEXT_SESSION) rather than widening the bound past 2025.
+
+## 2026-10-11 ~04:00 CT — MINUTES_HAZARD_2: CLOSED, candidate worse than M2; "better pre-game minutes for props" closed
+What: ran under frozen sha256 a11ae618 (T301–T314). The hazard model is 0.55–0.58 min worse than M2 on minutes CRPS with ~50% coverage
+at nominal 80%, worse in every slice and Elo bucket, and worse than M2 when fed to props. Per the rule's kill criteria the direction
+is closed: the pre-game minutes forecast cannot be improved enough to move props; the lever is information (T-30 lineups, reporter
+restrictions), not minutes mechanics.
+Why: between-game variance that M2's features capture is not reproduced by habit × foul × margin multipliers; the L-BFGS cap (200
+iterations, conv=False in every block) is a possible contributor but tuning is forbidden by the rule and would not close a 0.5-min gap.
+What would reverse it: a new pre-registered idea that adds pre-tip information; not a mechanism rewrite. The allowed follow-up is
+not spent.

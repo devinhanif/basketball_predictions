@@ -159,3 +159,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   measured on the rebuilt stints.
 - 2026-10-11 03:10: MINUTES_HAZARD_2 FROZEN (a11ae618; gate passes on the rebuilt stints, label gap 0.77 pp) and RUNNING. Golden
   replay hash re-baselined (030804df). Nothing needs you; next report is the hazard verdict.
+- 2026-10-11 04:00: MINUTES_HAZARD_2 ran under its frozen rule: FAIL, 0.55 min worse than M2, worse everywhere (T301–T314). Closed,
+  and with it the "better pre-game minutes" direction. Night's work complete; nothing pending on you except the X sign-up.

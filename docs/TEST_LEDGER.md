@@ -421,3 +421,19 @@ bounds), not because any effect is believed false.
 | T300 | 2026-10-10 | MINUTES_HAZARD (docs/prereg/MINUTES_HAZARD.md, frozen sha256 65fced23, commit 571c2fc) minimum-data gate | check 5a missingness audit on 80,312 eligible rows 2022-24: on-court label (stints) missing for 5.79% of rows with realised minutes < 10 vs 0.005% at 10-20 and 0% above (limit 2 pp); 5b planted same-game/future pass; 5c M2 reproduces (max per-row CRPS diff 0.0) | n/a | n/a | n/a | n/a | n/a | STOP at gate (non-negotiable 8): no fit, no model result. Root cause: `stints` drops very short appearances (no stint row for 40.2% of players under 1 minute, 21.3% at 1-2 min, 2.1% at 2-5 min); a label missing exactly where minutes are smallest is the null-pattern leak the gate exists to catch | not holdout (<=2024) |
 
 **MINUTES_HAZARD verdict (T300):** STOPPED AT THE GATE. No model number exists. The `stints` table is incomplete for sub-2-minute appearances; the fix is a data rebuild (stints to include short appearances) followed by a NEW rule id (MINUTES_HAZARD_2), or a new rule that imputes the label; Devin decides. The harness (research/minutes/hazard.py, research/eval/minutes_hazard_eval.py) is ready: gate, smoke, run, report stages with resumable blocks.
+| T301 | MINUTES_HAZARD H1 minutes vs M2, 2023 (rule a11ae618) | 27619 rows / 1318 games | dCRPS +0.547 [+0.516,+0.579] min (H1 4.015, M2 3.467) | see report |
+| T302 | MINUTES_HAZARD H1-H0 2023 (rule a11ae618) | same | -0.177 [-0.194,-0.161] | descriptive |
+| T303 | MINUTES_HAZARD H2-H1 2023 (rule a11ae618) | same | -0.105 [-0.129,-0.081] | descriptive |
+| T304 | MINUTES_HAZARD H1 minutes vs M2, 2024 (rule a11ae618) | 27701 rows / 1320 games | dCRPS +0.582 [+0.549,+0.614] min (H1 4.008, M2 3.427) | see report |
+| T305 | MINUTES_HAZARD H1-H0 2024 (rule a11ae618) | same | -0.186 [-0.205,-0.168] | descriptive |
+| T306 | MINUTES_HAZARD H2-H1 2024 (rule a11ae618) | same | -0.113 [-0.134,-0.092] | descriptive |
+| T307 | MINUTES_HAZARD props pts A1-A0 2023 (rule a11ae618) | 27619 rows | +0.0012 [-0.0017,+0.0040] p_bh=0.513 | fail |
+| T308 | MINUTES_HAZARD props reb A1-A0 2023 (rule a11ae618) | 27619 rows | +0.0002 [-0.0009,+0.0014] p_bh=0.698 | fail |
+| T309 | MINUTES_HAZARD props ast A1-A0 2023 (rule a11ae618) | 27619 rows | -0.0007 [-0.0016,+0.0003] p_bh=0.334 | fail |
+| T310 | MINUTES_HAZARD props fg3m A1-A0 2023 (rule a11ae618) | 27619 rows | -0.0005 [-0.0011,+0.0001] p_bh=0.334 | fail |
+| T311 | MINUTES_HAZARD props pts A1-A0 2024 (rule a11ae618) | 27701 rows | -0.0003 [-0.0024,+0.0018] p_bh=0.915 | fail |
+| T312 | MINUTES_HAZARD props reb A1-A0 2024 (rule a11ae618) | 27701 rows | -0.0002 [-0.0011,+0.0006] p_bh=0.915 | fail |
+| T313 | MINUTES_HAZARD props ast A1-A0 2024 (rule a11ae618) | 27701 rows | -0.0000 [-0.0008,+0.0007] p_bh=0.915 | fail |
+| T314 | MINUTES_HAZARD props fg3m A1-A0 2024 (rule a11ae618) | 27701 rows | -0.0000 [-0.0005,+0.0005] p_bh=0.915 | fail |
+
+**MINUTES_HAZARD_2 verdict (T301-T314, frozen sha256 a11ae618, commit 59f00ae; research/eval/minutes_hazard_eval.py; reports/prereg_minutes_hazard_2.md):** FAIL on H1 (minutes) and H2 (props). The on-court hazard model is WORSE than M2 by +0.55 [+0.52, +0.58] min (2023) and +0.58 [+0.55, +0.61] (2024); its 80% interval covers ~50% of outcomes; worse in every slice and every Elo bucket; even with tonight's actual margin (oracle) it stays 0.44-0.47 min behind M2. The structure beats the habit profile alone (H1 − H0 −0.18) but not the feature-based model. Props: no stat near the floor; H1 minutes fed into the props path are worse than M2 minutes (pts +0.0066 [+0.003, +0.010], 2023). Gate passed on the rebuilt stints (label gap 0.77 pp). Closed; the one allowed follow-up is not spent. Direction "better pre-game minutes for props" closed per the rule's kill criteria.

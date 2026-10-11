@@ -132,6 +132,21 @@ sha256. Code under `research/` only (`research/minutes/hazard.py`, `research/eva
 
 === RESULTS BELOW ===
 
-(none yet)
+Run 2026-10-10 20:18-20:30 CT (about 11 min, 27 month blocks, CPU), rule a11ae618, harness research/eval/minutes_hazard_eval.py.
+Full tables: reports/prereg_minutes_hazard_2.md, reports/prereg_minutes_hazard_2/results.json.
+
+Verdict: H1 FAIL on minutes, both seasons; H2 FAIL on all 4 stats in both seasons. Closed, no tuning. n = 27,619 rows / 1,318 games (2023), 27,701 / 1,320 (2024).
+* CRPS (min): 2023 M2 3.4674, H1 4.0148 (dCRPS +0.5475 [+0.516,+0.579]), H0 4.1922, H2 oracle-margin 3.9103; 2024 M2 3.4266, H1 4.0082 (+0.5817 [+0.549,+0.614]), H0 4.1946, H2 3.8955.
+* PIT q10/q90: M2 0.105/0.915 (2023), 0.104/0.903 (2024); H1 0.238/0.727, 0.242/0.748 (nominal 0.10/0.90; coverage80 0.49-0.51 vs M2 0.80-0.81). Bias H1 -0.30 / -0.14 (within 0.5).
+* Structure helps relative to habit alone: H1-H0 -0.177 / -0.186; oracle margin H2-H1 -0.105 / -0.113 (ceiling, still worse than M2).
+* Mechanism by Elo bucket: no bucket where H1 beats M2 (best: favourites >= 0.65, +0.49; worst: returning_3plus, +1.10).
+* Props A1-A0: no stat passes (pts +0.0012/-0.0003; reb +0.0002/-0.0002; ast -0.0007/-0.0000; fg3m -0.0005/-0.0000; 2023/2024; all p_bh >= 0.33). A1-A_M2 worse than M2-fed on pts and reb in 2023 (+0.0066, +0.0025) and reb 2024 (+0.0024).
+* Reading: the hazard distribution is far too narrow (80% interval covers about 50%); the habit-times-multipliers simulation underweights between-game variance that M2's features capture. Not tuned, per kill criteria.
+
+Unstated details, chosen before scoring:
+* Harness check 5c implemented as the amended frozen text (2023 <= 1e-6; 2024 <= 0.005 min); the harness previously applied 1e-6 to both seasons, which failed on 2024 (gate rerun passed with the same measured numbers as in the frozen text). Harness edit only, made after the first gate stage and before any model fit.
+* L-BFGS fit capped at 200 iterations per block; every block reported conv=False (beta drifted +0.030 to +0.041). Cap was in the harness before this run.
+* The auto-generated report heading still reads "MINUTES_HAZARD results (docs/prereg/MINUTES_HAZARD.md)" (cosmetic string).
+
 
 Freeze: 2026-10-10 20:14 CT, commit 59f00ae, sha256 of everything above the line: a11ae618b15885dd92aa94b07aaaa9490011263111a29a4f2f1788bfe1a37a09 (first 8: a11ae618). Verify with the awk command in the header.

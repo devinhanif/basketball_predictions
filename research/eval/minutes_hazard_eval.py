@@ -80,7 +80,8 @@ H0_MARGIN = -0.05
 PROPS_FLOOR = -0.005
 M2_BEAT = -0.002
 GAP_PP = 2.0
-M2_TOL = 1e-6
+M2_TOL = 1e-6  # season 2023 (frozen 5c as amended)
+M2_TOL_2024 = 0.005  # season 2024, data clean-up of 2026-10-11 (frozen 5c as amended)
 BUCKETS = ((0.0, 10.0), (10.0, 20.0), (20.0, 30.0), (30.0, 1e9))
 PROP_STATS = ("pts", "reb", "ast", "fg3m")
 
@@ -342,7 +343,9 @@ def m2_reproduction(sf: pl.DataFrame, m2: dict[str, Any]) -> dict[str, Any]:
         out[f"mean_stored_{s}"] = float(j["crps_stored"].to_numpy()[m].mean())
         out[f"abs_diff_{s}"] = abs(out[f"mean_new_{s}"] - out[f"mean_stored_{s}"])
     out["ok"] = bool(
-        out["n_matched"] == out["n_stored"] and all(out[f"abs_diff_{s}"] <= M2_TOL for s in SEASONS)
+        out["n_matched"] == out["n_stored"]
+        and out[f"abs_diff_{SELECT_SEASON}"] <= M2_TOL
+        and out[f"abs_diff_{REPORT_SEASON}"] <= M2_TOL_2024
     )
     return out
 

@@ -525,3 +525,8 @@ rotation-level young players in close games would be a new rule.
   vs a no-coach baseline), while rotation habits (first sub, starters' share, close-game usage) did (r 0.5–0.7). Reconciliation: the
   philosophy shows in HOW MUCH a coach trusts his starters, which we can measure; which man he picks when one is missing depends
   on the roster he has that night. Recorded; no rule.
+- **Minutes as an on-court hazard (Claude's pick from the "team sport as math" discussion): FAIL (T301–T314).** Rotation habit × foul
+  trouble × score margin, simulated over game time, is 0.55 min WORSE than the earlier feature-based minutes model M2 and far too
+  narrow (80% interval covers 50%); even tonight's actual margin would not close the gap. Mechanisms we can write down do not beat
+  features that learn between-game variance. Closed, with the whole "better pre-game minutes" direction: the minutes that matter
+  arrive at T-30 (lineups) or from reporters (restrictions).
