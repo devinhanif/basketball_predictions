@@ -22,12 +22,18 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--since", default=None, help="only games on/after YYYY-MM-DD")
     b.add_argument("--max-season", type=int, default=2024, help="holdout guard (default 2024)")
     b.add_argument(
+        "--seasons",
+        default="",
+        help="start years whose FULL facts load, e.g. 2022,2023,2024,2026; replaces --max-season",
+    )
+    b.add_argument(
         "--schedule-seasons",
         default="",
         help="start years, e.g. 2026: build ONLY tips_at/home_team/away_team for them",
     )
     args = p.parse_args(argv)
     sched = tuple(int(x) for x in args.schedule_seasons.split(",") if x.strip())
+    seasons = tuple(int(x) for x in args.seasons.split(",") if x.strip())
     try:
         counts = build_from_paths(
             args.source,
@@ -36,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
             since=args.since,
             max_season=args.max_season,
             schedule_seasons=sched,
+            seasons=seasons,
         )
     except duckdb.IOException as e:
         print(f"LOCKED or unreadable: {e}", file=sys.stderr)

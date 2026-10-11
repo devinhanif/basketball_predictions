@@ -230,3 +230,10 @@ the history possessions table; G0.4 "done" = ≥ 1 report row on the manifest da
 rows (no proxy). Confirmed by the main session; no number exists.
 Why: non-negotiable 4 (nothing changes after a result) requires these to be written before the gate runs on real data.
 What would reverse it: nothing after the run; Devin may ask for the looser PASS reading as a reported secondary only.
+
+## 2026-10-11 ~04:30 CT — Facts build takes an explicit seasons list; nightly rebuild drafted, OFF
+What: `nba.facts build --seasons …` (holdout absent unless listed; tested); a `facts` step in ops/nba_daily.sh after the morning
+report, guarded by `NBA_FACTS_NIGHTLY=1` (unset: the script's behaviour is byte-identical; `sh -n` passes). Replay oracle on
+data_version 1bee33d02ff2: hash 030804df… identical to golden2. Real build done (backup data/backups/facts_pre_seasons_20261011.duckdb).
+Why: the reporter feed and the explainer need 2026-27 facts; the live path must not change without Devin's word.
+What would reverse it: Devin sets the env var in the launchd job (ops/install_launchd.sh) to turn it on; removing the step turns it off.

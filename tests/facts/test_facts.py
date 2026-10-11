@@ -213,12 +213,19 @@ def _sched_cache(tmp_path: Path) -> Path:
     return d
 
 
-def _build_sched(tmp_path: Path, schedule_dir: Path, seasons: tuple[int, ...]):
+def _build_sched(
+    tmp_path: Path,
+    schedule_dir: Path,
+    seasons: tuple[int, ...],
+    full: tuple[int, ...] = (),
+):
     out = tmp_path / f"f{len(seasons)}.duckdb"
     src = make_source()
     # the planted traps: a 2026 box score, report, and lineup snapshot for the 2026 game
     src.execute("INSERT INTO games VALUES (?, '2026-10-20', 2026, 30, 40, NULL, NULL, NULL)", [G26])
     src.execute("INSERT INTO player_game_stats VALUES (?, 5, 30, 12.0)", [G26])
+    src.execute("INSERT INTO players_static VALUES (4,'C',82,2025),(6,'G',77,2026)")
+    src.execute("INSERT INTO team_coaches VALUES (2026,30,600,'New Coach','Head Coach',1)")
     src.execute(
         "INSERT INTO player_availability VALUES (5,'2026-10-20 11:00:00',?,'OUT','x',"
         "'nba_official_report',NULL)",
@@ -239,6 +246,7 @@ def _build_sched(tmp_path: Path, schedule_dir: Path, seasons: tuple[int, ...]):
         kalshi_aliases=tmp_path / "none2.yaml",
         schedule_seasons=seasons,
         schedule_cache=_sched_cache(tmp_path),
+        seasons=full,
     )
     return duckdb.connect(str(out), read_only=True)
 
@@ -296,3 +304,30 @@ def test_missing_schedule_source_fails_loudly(tmp_path: Path, schedule_dir: Path
             schedule_seasons=(2031,),
             schedule_cache=tmp_path / "empty",
         )
+
+
+def test_explicit_seasons_load_2026_in_full_and_no_2025_fact(tmp_path: Path, schedule_dir: Path):
+    con = _build_sched(tmp_path, schedule_dir, (2026,), full=(2022, 2026))
+    preds = {
+        r[0]
+        for r in _one(con, "SELECT DISTINCT predicate FROM facts WHERE subject = ?", f"game:{G26}")
+    }
+    assert preds == {"away_team", "home_team", "tips_at"}
+    # 2026 report, starter and box score are now loaded
+    for pred in ("listed_status", "announced_starter"):  # played_minutes needs a real tip
+        q = "SELECT count(*) FROM facts WHERE predicate = ? AND object = ?"
+        assert _one(con, q, pred, f"game:{G26}") == [(1,)], pred
+    assert _one(con, "SELECT count(*) FROM facts WHERE object = 'coach:600'") == [(1,)]
+    # a 2022 game is still there, schedule facts for 2026 are not duplicated
+    assert _one(con, "SELECT count(*) FROM facts WHERE subject = ?", f"game:{G1}")[0][0] > 0
+    q = "SELECT count(*) FROM facts WHERE predicate = 'tips_at' AND subject = ?"
+    assert _one(con, q, f"game:{G26}") == [(1,)]
+    # holdout 2025: no fact of any predicate mentions its game, coach, report player or static
+    assert _one(
+        con,
+        "SELECT count(*) FROM facts WHERE subject LIKE 'game:00225%' OR object LIKE 'game:00225%' "
+        "OR object = 'coach:502' OR subject IN ('player:9', 'player:4')",
+    ) == [(0,)]
+    assert _one(
+        con, "SELECT count(*) FROM facts WHERE known_at >= '2025-10-01' AND known_at < '2026-10-01'"
+    ) == [(0,)]

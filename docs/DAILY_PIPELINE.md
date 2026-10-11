@@ -201,6 +201,15 @@ recalibration; rookies and offseason moves are invisible until a first box score
 | `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
 | `local.nba.daily-morning` | 08:00 | `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
+**Optional fact-store rebuild (drafted 2026-10-11, OFF).** `ops/nba_daily.sh morning` has a step `facts` right after
+`report`: `python -m nba.facts build --seasons 2022,2023,2024,2026 --schedule-seasons 2026 --out data/facts/facts.duckdb`.
+It runs only when the job environment has `NBA_FACTS_NIGHTLY=1`; unset (the default) the branch is not entered and the script's
+behaviour is unchanged. `--seasons` is an explicit list of seasons whose full facts load (replaces `--max-season`); 2025 stays
+absent unless listed. The step reads `nba.duckdb` read-only and writes only `data/facts/facts.duckdb` (dropped and recreated;
+seconds). Exit 0 and 4 are quiet; any other code (2 = source locked) alerts but never stops the later steps. Nothing in the
+forecast path reads the fact store. Enabling it is the maintainer's: add `NBA_FACTS_NIGHTLY` to the launchd job's environment
+by hand (`ops/install_launchd.sh`).
+
 Guards: one job at a time (`data/ops/lock`; the owner pid is stored in it, a dead owner is cleared at once,
 otherwise a lock is stale after 3 h). A run that finds the lock held exits 0 WITHOUT touching its
 heartbeat and writes `data/ops/heartbeat/<job>.skip.json` (`status: skipped`, `consecutive_skips`); the

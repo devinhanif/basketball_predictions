@@ -59,3 +59,11 @@ counts per predicate and per source. Rebuild after any load.
   for 2025-26 pages (nba.duckdb holds no forecasts for them).
 - Pretip job: not yet (additive read; needs a 20-date replay oracle before it touches the live path).
 - Reporter feed: not yet (writes *claimed* edges with provenance; gated on the Bluesky probe and Devin's allow-list).
+
+## Seasons list (2026-10-11)
+`python -m nba.facts build --seasons 2022,2023,2024,2026 --schedule-seasons 2026` loads full facts for the listed seasons only and
+replaces the `--max-season` bound; an unlisted season (2025, the frozen holdout) contributes no fact of any predicate (tested: a
+planted 2025 game, report, box row, coach and rookie all stay out, and no fact has a known_at inside 2025-26). The nightly rebuild
+step in ops/nba_daily.sh runs only when `NBA_FACTS_NIGHTLY=1` is set in the job's environment (off by default; Devin's switch).
+Known gap: 2026-27 preseason REPORTS do not load because `games` holds no 2026 rows yet (reports attach through games); lineups and
+tips for 2026 do load. Regular-season 2026 games enter `games` through the normal ingest once they are played.

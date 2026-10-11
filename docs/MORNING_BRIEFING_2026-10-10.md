@@ -165,3 +165,6 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   convenient, from the repo root (keeps oracle_a, oracle_golden2, full_wave_b, replay2025):
   `rm -rf data/rehearsal/oracle_t30base* data/rehearsal/oracle_t30fix* data/rehearsal/oracle_[b-j]*`
   Typed hand-backs added to all six agents (DECISIONS). X sign-up skipped for now per Devin.
+- 2026-10-11 04:30 (needs Devin, when ready): facts store nightly rebuild is written but OFF; to enable, set `NBA_FACTS_NIGHTLY=1`
+  in the daily-morning job's environment (ops/install_launchd.sh) and reload. Nothing changes until you do. Stale replay leftovers
+  from a self-deadlocked first attempt sit under data/rehearsal/oracle_facts* (not oracle_facts_r2); add them to your delete command.

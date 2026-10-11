@@ -75,7 +75,8 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   # predict exits 5 when it degraded (ingest/schedule failed, cached data used): that alerts too.
   # odds_capture exits 4 when the feed is unreachable or the request budget refuses: informational
   # (the benchmark is never a dependency of the forecast); its exit 5 (internal error) still alerts.
-  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ]; } && [ "$rc" -eq 4 ]; }; then
+  # facts (opt-in, NBA_FACTS_NIGHTLY=1) follows the same 0/4 rule; its exit 2 (source locked) alerts.
+  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ]; } && [ "$rc" -eq 4 ]; }; then
     HB_RC=$rc
     alert "$name failed (rc=$rc), see $LOG"
   fi
@@ -135,6 +136,13 @@ case "$MODE" in
     # immutable snapshot only when an arm-stat first reaches a look's date count; rc 0 otherwise
     step checkpoint "$UV" run --no-sync python -m nba.daily checkpoint --look auto
     step report "$UV" run --no-sync python -m nba.daily report
+    # OFF by default (launchd behaviour unchanged until the maintainer sets NBA_FACTS_NIGHTLY=1 in
+    # the job environment). Rebuilds the derived fact store (docs/FACTS_STORE.md); reads nba.duckdb
+    # read-only, writes only data/facts/facts.duckdb, and never blocks the steps below (rc is logged).
+    if [ "${NBA_FACTS_NIGHTLY:-}" = 1 ]; then
+      step facts "$UV" run --no-sync python -m nba.facts build --seasons 2022,2023,2024,2026 \
+        --schedule-seasons 2026 --out data/facts/facts.duckdb
+    fi
     step parlay_settle "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET" --settle --no-log
     # post-game stats for newly completed games (per-game sources only; shots/coaches are
     # per team-season and cached once, so they are refreshed by hand). Skip while a backfill runs.

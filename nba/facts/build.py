@@ -12,6 +12,10 @@ docs/FACTS_STORE.md; none of them is a model output. The 2025 holdout is exclude
 * head_coach: 1 Oct of the season, confidence 0.5 (team_coaches is wrong in 14 of 87 team-seasons).
 * played_minutes: tip + 2h30 PROXY for game end; games with no real tip get no such fact.
 
+``seasons`` (CLI ``--seasons 2022,2023,2024,2026``, default none) is an explicit list of seasons
+whose FULL facts load; when given it replaces the ``max_season`` bound everywhere (games, reports,
+lineups, box, coaches, static). Anything unlisted (2025) stays absent.
+
 ``schedule_seasons`` (CLI ``--schedule-seasons 2026[,...]``, default none) is the one way a season
 above ``max_season`` enters the store, and it admits ONLY ``tips_at``, ``home_team`` and
 ``away_team`` (``source = schedule``), read from ``data/schedule_cache/schedule_<season>.json`` (the
@@ -89,11 +93,27 @@ def _day_before_et(day: pl.Expr) -> pl.Expr:
     return et_to_utc(day.dt.date().cast(pl.Datetime("us")) - pl.duration(days=1))
 
 
+def season_ok(season: int | None, max_season: int, seasons: tuple[int, ...]) -> bool:
+    """Is ``season`` loaded in full? ``seasons`` (when given) replaces the ``max_season`` bound."""
+    if season is None:
+        return False
+    return season in seasons if seasons else season <= max_season
+
+
+def _season_sql(max_season: int, seasons: tuple[int, ...]) -> tuple[str, list[Any]]:
+    if seasons:
+        return f"season IN ({', '.join('?' for _ in seasons)})", [int(x) for x in seasons]
+    return "season <= ?", [max_season]
+
+
 def allowed_games(
-    src: duckdb.DuckDBPyConnection, max_season: int, since: str | None
+    src: duckdb.DuckDBPyConnection,
+    max_season: int,
+    since: str | None,
+    seasons: tuple[int, ...] = (),
 ) -> pl.DataFrame:
-    sql = "SELECT game_id, game_date, season, home_team, away_team FROM games WHERE season <= ?"
-    params: list[Any] = [max_season]
+    cond, params = _season_sql(max_season, seasons)
+    sql = f"SELECT game_id, game_date, season, home_team, away_team FROM games WHERE {cond}"
     if since:
         sql += " AND game_date >= ?"
         params.append(since)
@@ -208,11 +228,11 @@ def status_facts(src: duckdb.DuckDBPyConnection, games: pl.DataFrame) -> tuple[p
     return _facts(df, source="official_report", confidence=1.0), n_bad
 
 
-def _drop_future_ids(d: pl.DataFrame, max_season: int) -> pl.DataFrame:
-    """Drop rows whose game id says the season is above ``max_season`` (or is malformed)."""
-    keep = [
-        (y := game_id_season(g)) is not None and y <= max_season for g in d["game_id"].to_list()
-    ]
+def _drop_future_ids(
+    d: pl.DataFrame, max_season: int, seasons: tuple[int, ...] = ()
+) -> pl.DataFrame:
+    """Keep rows whose game id says the season is loaded (<= ``max_season`` or in ``seasons``)."""
+    keep = [season_ok(game_id_season(g), max_season, seasons) for g in d["game_id"].to_list()]
     return d.filter(pl.Series(keep, dtype=pl.Boolean))
 
 
@@ -221,6 +241,7 @@ def lineup_facts(
     excluded: set[str],
     since: str | None,
     max_season: int = 2024,
+    seasons: tuple[int, ...] = (),
 ) -> pl.DataFrame:
     sql = (
         "SELECT game_id, team_id, is_home, player_id, lineup_status, announced_starter, "
@@ -232,7 +253,7 @@ def lineup_facts(
         params.append(since)
     d = lcon.execute(sql, params).pl()
     d = d.filter(~pl.col("game_id").is_in(list(excluded)))
-    d = _drop_future_ids(d, max_season)
+    d = _drop_future_ids(d, max_season, seasons)
     starters = d.select(
         _ent("player", "player_id").alias("subject"),
         pl.lit("announced_starter").alias("predicate"),
@@ -267,6 +288,7 @@ def lineup_tip_facts(
     excluded: set[str],
     since: str | None,
     max_season: int = 2024,
+    seasons: tuple[int, ...] = (),
 ) -> pl.DataFrame:
     sql = "SELECT game_id, tipoff, recorded_at FROM game_tips"
     params: list[Any] = []
@@ -274,7 +296,7 @@ def lineup_tip_facts(
         sql += " WHERE game_date >= ?"
         params.append(since)
     d = lcon.execute(sql, params).pl().filter(~pl.col("game_id").is_in(list(excluded)))
-    d = _drop_future_ids(d, max_season)
+    d = _drop_future_ids(d, max_season, seasons)
     return _facts(
         d.select(
             _ent("game", "game_id").alias("subject"),
@@ -288,8 +310,17 @@ def lineup_tip_facts(
     )
 
 
-def static_facts(src: duckdb.DuckDBPyConnection) -> tuple[pl.DataFrame, int]:
+def static_facts(
+    src: duckdb.DuckDBPyConnection, seasons: tuple[int, ...] = ()
+) -> tuple[pl.DataFrame, int]:
     d = src.execute("SELECT player_id, position, height_in, first_season FROM players_static").pl()
+    if seasons:  # a player whose first season is an unlisted one (2025) would be a 2025 fact
+        lo = min(seasons)
+        d = d.filter(
+            pl.col("first_season").is_null()
+            | (pl.col("first_season") < lo)
+            | pl.col("first_season").is_in(list(seasons))
+        )
     n_skipped = d.filter(pl.col("first_season").is_null()).height
     d = d.filter(pl.col("first_season").is_not_null()).with_columns(
         _season_start(pl.col("first_season")).alias("known_at"),
@@ -314,12 +345,13 @@ def static_facts(src: duckdb.DuckDBPyConnection) -> tuple[pl.DataFrame, int]:
 
 
 def coach_facts(
-    src: duckdb.DuckDBPyConnection, max_season: int
+    src: duckdb.DuckDBPyConnection, max_season: int, seasons: tuple[int, ...] = ()
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
+    cond, params = _season_sql(max_season, seasons)
     d = src.execute(
-        "SELECT season, team_id, coach_id, name FROM team_coaches "
-        "WHERE coach_type = 'Head Coach' AND season <= ?",
-        [max_season],
+        f"SELECT season, team_id, coach_id, name FROM team_coaches "
+        f"WHERE coach_type = 'Head Coach' AND {cond}",
+        params,
     ).pl()
     start = _season_start(pl.col("season"))
     facts = d.select(
@@ -446,11 +478,14 @@ def build(
     max_season: int = 2024,
     schedule_seasons: tuple[int, ...] = (),
     schedule_cache: Path = Path("data/schedule_cache"),
+    seasons: tuple[int, ...] = (),
 ) -> dict[str, Any]:
     notes: list[str] = []
-    games = allowed_games(src, max_season, since)
-    over = src.execute("SELECT game_id FROM games WHERE season > ?", [max_season]).fetchall()
-    excluded = {str(r[0]) for r in over}
+    games = allowed_games(src, max_season, since, seasons)
+    over = src.execute("SELECT game_id, season FROM games").fetchall()
+    excluded = {str(g) for g, s in over if not season_ok(s, max_season, seasons)}
+    if seasons:
+        notes.append(f"explicit seasons {sorted(seasons)} replace max_season {max_season}")
     tips = build_game_tipoff(schedule_dir)
 
     parts = [tips_facts(games, tips), team_facts(games)]
@@ -460,26 +495,38 @@ def build(
         notes.append(f"{n_bad} report rows dropped: report time falls in a DST gap")
     if lcon is not None:
         parts += [
-            lineup_facts(lcon, excluded, since, max_season),
-            lineup_tip_facts(lcon, excluded, since, max_season),
+            lineup_facts(lcon, excluded, since, max_season, seasons),
+            lineup_tip_facts(lcon, excluded, since, max_season, seasons),
         ]
-    sf, n_skip = static_facts(src)
+    sf, n_skip = static_facts(src, seasons)
     parts.append(sf)
     notes.append(f"{n_skip} players_static rows have no first_season: no static facts for them")
-    cf, coach_names = coach_facts(src, max_season)
+    cf, coach_names = coach_facts(src, max_season, seasons)
     parts.append(cf)
     mf, n_no_tip = minutes_facts(src, games, tips)
     parts.append(mf)
     notes.append(f"{n_no_tip} games have no real tip: no played_minutes facts for them")
 
     have = set(games["game_id"].to_list())
+    have_tip = have & set(tips["game_id"].to_list())
+    have_subj = {f"game:{g}" for g in have}
     for season in schedule_seasons:
-        if season <= max_season:
+        if not seasons and season <= max_season:
             notes.append(f"schedule season {season} <= max_season {max_season}: already built")
             continue
         sched, origin = load_schedule_games(season, schedule_cache, schedule_dir)
-        sched = [g for g in sched if g.game_id not in have and game_id_season(g.game_id) == season]
-        parts.append(schedule_only_facts(sched))
+        sched = [
+            g for g in sched if g.game_id not in have_tip and game_id_season(g.game_id) == season
+        ]
+        sf_ = schedule_only_facts(sched)
+        # a game already in ``games`` has its teams from there; it only lacks a real tip
+        sf_ = sf_.filter(
+            ~(
+                pl.col("predicate").is_in(["home_team", "away_team"])
+                & pl.col("subject").is_in(list(have_subj))
+            )
+        )
+        parts.append(sf_)
         notes.append(f"schedule-only season {season}: {len(sched)} games from {origin}")
 
     facts = pl.concat(parts)
@@ -505,6 +552,7 @@ def build_from_paths(
     since: str | None = None,
     max_season: int = 2024,
     schedule_seasons: tuple[int, ...] = (),
+    seasons: tuple[int, ...] = (),
 ) -> dict[str, Any]:
     src = duckdb.connect(source, read_only=True)
     lcon = duckdb.connect(lineups, read_only=True) if Path(lineups).exists() else None
@@ -516,6 +564,7 @@ def build_from_paths(
             since=since,
             max_season=max_season,
             schedule_seasons=schedule_seasons,
+            seasons=seasons,
         )
     finally:
         src.close()
