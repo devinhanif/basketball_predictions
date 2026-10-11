@@ -1,7 +1,8 @@
 # CALIBRATED_GRID: a trailing-window calibration layer on the props integer grid (pre-registration)
 
-Status: DRAFT 2026-10-11 ~17:50 CT, NOT FROZEN; gate measured 2026-10-11 (checks 1-4 pass; see the section; C3 pairs question open) (Devin pre-approved "try everything",
-2026-10-11 16:50; DECISIONS ~17:40). Freeze evidence: commit hash plus
+Status: FROZEN 2026-10-11 15:12 CT under Devin's pre-approval ("try everything", 2026-10-11 16:50; DECISIONS ~17:40). Gate measured
+(checks 1-4 pass; see the section); one pre-freeze amendment (C3 pair minimum 2,000). Universe = the stored OOF rows of
+2026-10-10 (reproduce production exactly; written before the data clean-up) and the ODDS_HISTORY DK pairs. Freeze evidence: commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/CALIBRATED_GRID.md | shasum -a 256`. Seasons as the other rules.
 
 ## Why
@@ -24,7 +25,9 @@ number. Season 2025 never loaded; `season <= 2024` asserted. Select 2023, report
 Rows: production OOF rows (the F11 harness) and, for the line test, the ODDS_HISTORY DK main-line pairs. Map families (fixed):
 C1 temperature on the logit of each P(Y ≥ k) with one scalar per stat; C2 Platt (two parameters) per stat; C3 isotonic per stat
 on P(over L) at lines only (reported at lines, not on CRPS). Fit window: the trailing 60 calendar days of OOF rows strictly
-before the block (minimum 3,000 rows, else identity). Applied to the whole grid (monotone-preserving; renormalised so exceedance
+before the block (minimum 3,000 OOF rows for C1/C2, else identity; for C3, which is fit on DK main-line PAIRS, minimum 2,000
+pairs, amended before the freeze after the gate measure: assists have 2,957-2,999 pairs per 2023 block, so 3,000 would make C3
+an identity for assists all season). Applied to the whole grid (monotone-preserving; renormalised so exceedance
 is non-increasing in k).
 Arms: A0 production grid; A1 = C1; A2 = C2; A3 (lines only) = C3; A4 control = C1 fit on a SHUFFLED trailing window (labels
 permuted) to show the map is learning calibration, not noise.
@@ -57,5 +60,3 @@ No family passes on 2023: close; no window tuning, no per-tier maps, one follow-
 === RESULTS BELOW ===
 
 (not run)
-
-Freeze: 2026-10-11 15:12 CT, commit 5ad045f, sha256 of everything above the line: b889db00214ce5e8fe0e69e19ad0f0299ec3e752e7f2b5b5ddba63dcffce155e (first 8: b889db00). Verify with the awk command in the header.

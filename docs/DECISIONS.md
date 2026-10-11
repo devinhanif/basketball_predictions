@@ -389,9 +389,11 @@ and within noise in 2024; the one-weight blend from ODDS_HISTORY beats it everyw
 Why: the book's price already contains what our forecast knows; a learner given both overfits where one shrinkage weight does not.
 What would reverse it: nothing in this family; the budget tool keeps the ODDS_HISTORY stance (market as prior, weight by live track record).
 
-## 2026-10-11 2026-10-11 15:12 CT — CALIBRATED_GRID FROZEN (sha256 b889db00)
+## 2026-10-11 2026-10-11 15:12 CT — CALIBRATED_GRID FROZEN (sha256 43f9182c)
 What: gate passed (7/7 post-warm-up blocks ≥ 3,000 rows; A0 reproduces production CRPS to 0.0 and ODDS_HISTORY line log loss to
 2e-16 on the stored OOF rows; 16/16 planted probes inert; monotonicity exact). Pre-freeze amendment: C3's minimum is 2,000 DK pairs
 (assists sit just under 3,000 per block). Universe fixed to the stored 2026-10-10 OOF rows.
 Why: non-negotiable 8; Devin's pre-approval.
 What would reverse it: nothing above the line changes.
+Correction (same hour): the first freeze commit (5ad045f) carried the DRAFT status and an unamended C3 line because the status edit
+failed its match; nothing ran under it. The doc was corrected and re-hashed before any run; the hash above is the real one.
