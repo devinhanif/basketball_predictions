@@ -1,0 +1,115 @@
+{
+  "audit_sha256": "5219faa04b94e8ba441c8ebf3df7fce6502444f37f66f53a105476d1a0bd75ba",
+  "audit_stops": [
+    "V2.played season 2021: standardised 0.6796 vs pooled 0.6428 (|dev| 0.0367 > placebo max 0.0206)",
+    "V2.phi season 2019: cold-start phi 0.1267 vs baseline 0.1046 (|dev| 0.0221 > placebo max 0.0062)",
+    "V2.phi season 2020: cold-start phi 0.1147 vs baseline 0.1046 (|dev| 0.0101 > placebo max 0.0062)",
+    "V2.phi season 2021: cold-start phi 0.0953 vs baseline 0.1046 (|dev| 0.0094 > placebo max 0.0062)"
+  ],
+  "audit_version": 2,
+  "failed_items": [
+    "G0.4"
+  ],
+  "g06": "evaluated first thing in `run` (W0 pts reproduction)",
+  "gate_pass": false,
+  "items": {
+    "G0.1": {
+      "cached_games": 3637,
+      "dnp_rows_with_nonzero_stats": 0,
+      "dnp_share_current": {
+        "2022": 0.18472254878909006,
+        "2023": 0.1898319689788884,
+        "2024": 0.19514350044175904
+      },
+      "dnp_share_history": {
+        "2019": 0.16030933221862265,
+        "2020": 0.20579471248335765,
+        "2021": 0.17129520207988655
+      },
+      "duplicates": 0,
+      "games_with_box_share": 1.0,
+      "history_games": 3637,
+      "missing_examples": [],
+      "missing_vs_cache": 0,
+      "pass": true,
+      "pf_fta_fga_non_null_share": 1.0,
+      "rows_with_zero_minutes": 14
+    },
+    "G0.2": {
+      "current_all_false": true,
+      "current_flag_coverage": 1.0,
+      "flags_valid": true,
+      "history_flag_coverage": 1.0,
+      "pass": true,
+      "rule_version_sha256": "6a483d1beb887973cc2c9483ba639c96f6040bd0a3b5cd0d99185d1dd39966a1"
+    },
+    "G0.3": {
+      "ceiling": 3.0,
+      "pass": true,
+      "per_season": {
+        "2019": {
+          "mae": 2.087471566054243,
+          "n_team_games": 2286
+        },
+        "2020": {
+          "mae": 2.0273783091374895,
+          "n_team_games": 2342
+        },
+        "2021": {
+          "mae": 2.0111715797430083,
+          "n_team_games": 2646
+        }
+      }
+    },
+    "G0.4": {
+      "audit_complete": true,
+      "dates_missing_rows": [
+        "2020-02-14",
+        "2020-02-15",
+        "2020-02-16",
+        "2020-07-28",
+        "2021-03-06",
+        "2021-03-07",
+        "2022-02-19",
+        "2022-02-20"
+      ],
+      "dates_with_reports": 669,
+      "expected_calendar": 707,
+      "manifest_files": 707,
+      "n_dates_missing_rows": 8,
+      "parsing_parity_pass": true,
+      "pass": false,
+      "spot_check_dates": [
+        "2021-06-10",
+        "2021-10-10",
+        "2019-12-01",
+        "2021-01-30",
+        "2022-01-13",
+        "2021-12-18",
+        "2021-06-30",
+        "2021-03-18",
+        "2021-12-09",
+        "2021-05-13",
+        "2022-03-31",
+        "2020-12-18",
+        "2022-01-06",
+        "2020-07-29",
+        "2021-02-22",
+        "2020-07-30",
+        "2020-01-26",
+        "2022-05-06",
+        "2021-01-21",
+        "2022-02-04"
+      ],
+      "spot_check_manual": "compare 20 dates against raw PDFs; pass --spot-check-done to `run` afterwards"
+    },
+    "G0.5": {
+      "history_games": 3637,
+      "pass": true,
+      "proxy_fallback_allowed": false,
+      "share": 1.0,
+      "with_real_tip": 3637
+    }
+  },
+  "w1r_required": false
+}

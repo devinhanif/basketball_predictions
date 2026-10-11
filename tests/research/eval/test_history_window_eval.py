@@ -784,3 +784,145 @@ def test_cli_smoke_stage_one_block_on_the_synthetic_world(
     assert set(blob["mean_crps_int"]) == {f"{a}|pts" for a in ("W0", "W1", "W2", "W3")}
     assert len(hashes) == 1 and {f"{a}|pts" for a in ("W0", "W1", "W2", "W3")} <= set(kl)
     assert not (tmp_path / "out" / "results.json").exists()  # smoke writes no result file
+
+
+# --------------------------------------------------------------------------- HISTORY_WINDOW_2 repaired STOP statistics
+
+RATES = {"out": 0.02, "uncertain": 0.74, "probable": 0.93, "available": 0.85}
+
+
+def _listing(
+    season: int,
+    mix: dict[str, float],
+    rates: dict[str, float],
+    n: int = 6000,
+    seed: int = 0,
+    unlisted: int = 2000,
+) -> pl.DataFrame:
+    rng = np.random.default_rng(seed + season)
+    keys = list(mix)
+    st = rng.choice(keys, size=n, p=[mix[k] for k in keys])
+    played = rng.random(n) < np.array([rates[k] for k in st])
+    listed = pl.DataFrame(
+        {
+            "game_id": [f"{season}-{i // 10}" for i in range(n)],
+            "season": [season] * n,
+            "played": played,
+            "stratum": st.tolist(),
+        }
+    )
+    un = pl.DataFrame(
+        {
+            "game_id": [f"{season}-u{i // 10}" for i in range(unlisted)],
+            "season": [season] * unlisted,
+            "played": rng.random(unlisted) < 0.83,
+            "stratum": [None] * unlisted,
+        },
+        schema={"game_id": pl.Utf8, "season": pl.Int64, "played": pl.Boolean, "stratum": pl.Utf8},
+    )
+    return pl.concat([listed, un])
+
+
+CUR_MIX = {"out": 0.19, "uncertain": 0.39, "probable": 0.20, "available": 0.22}
+HIST_MIX = {"out": 0.33, "uncertain": 0.10, "probable": 0.07, "available": 0.50}
+
+
+def _world_played(hist_mix: dict[str, float], hist_rates: dict[str, float]) -> pl.DataFrame:
+    return pl.concat(
+        [_listing(2019, hist_mix, hist_rates)]
+        + [_listing(s, CUR_MIX, RATES) for s in (2022, 2023, 2024)]
+    )
+
+
+def test_standardisation_removes_a_pure_mix_difference() -> None:
+    df = _world_played(HIST_MIX, RATES)
+    raw = (
+        df.filter(pl.col("stratum").is_not_null())
+        .group_by("season")
+        .agg(pl.col("played").mean())
+        .sort("season")
+    )
+    r = {int(s): float(v) for s, v in raw.iter_rows()}
+    assert abs(r[2019] - r[2023]) > 0.08  # the raw listed rate differs only by mix
+    a = hw.standardised_played_audit(df, (2019,), (2022, 2023, 2024), n_boot=200)
+    assert abs(a["seasons"]["2019"]["dev_from_pooled"]) < 0.03
+    assert abs(a["seasons"]["2019"]["dev_from_pooled"]) < 0.01  # sampling noise only
+    assert a["seasons"]["2019"]["n_by_stratum"]["out"] > 0
+    assert abs(sum(a["weights_pooled_mix"].values()) - 1.0) < 1e-9
+
+
+def test_a_real_within_status_shift_stops_and_the_placebo_requirement_gates_it() -> None:
+    shifted = {**RATES, "uncertain": 0.54, "available": 0.65}  # -0.2 in two strata
+    a = hw.standardised_played_audit(
+        _world_played(HIST_MIX, shifted), (2019,), (2022, 2023, 2024), n_boot=200
+    )
+    assert len(a["stops"]) == 1 and "season 2019" in a["stops"][0]
+    # placebo requirement: when a current season itself deviates widely from its pool, the threshold rises
+    # to that deviation and the same history season no longer stops.
+    wild = {**RATES, "uncertain": 0.40, "available": 0.55, "probable": 0.80}
+    df = pl.concat(
+        [
+            _listing(2019, HIST_MIX, shifted),
+            _listing(2022, CUR_MIX, RATES),
+            _listing(2023, CUR_MIX, RATES),
+            _listing(2024, CUR_MIX, wild),
+        ]
+    )
+    b = hw.standardised_played_audit(df, (2019,), (2022, 2023, 2024), n_boot=200)
+    assert b["placebo_max_abs_dev"] > a["placebo_max_abs_dev"] * 3
+    assert b["stops"] == []
+
+
+def test_standardised_rate_handles_a_missing_stratum_by_renormalising() -> None:
+    cnt = np.array([[0.0, 0.0], [70.0, 100.0], [90.0, 100.0], [80.0, 100.0]])
+    w = np.array([0.25, 0.25, 0.25, 0.25])
+    est, full = hw.standardised_rate(cnt, w)
+    assert not full and est == pytest.approx((0.7 + 0.9 + 0.8) / 3)
+    assert np.isnan(hw.standardised_rate(np.zeros((4, 2)), w)[0])
+
+
+def _phi_frame(seasons: tuple[int, ...], seed: int = 0) -> pl.DataFrame:
+    rng = np.random.default_rng(seed)
+    parts = []
+    for s in seasons:
+        start = SEASON_START[s]
+        rows = []
+        for p in range(60):
+            for d in range(30):
+                gid = f"{s}-{d}-{p // 10}"
+                dnp = rng.random() < (0.5 if (p < 6 and d < 3) else 0.15)
+                rows.append((gid, p, s, start + dt.timedelta(days=d), not dnp, dnp))
+        parts.append(
+            pl.DataFrame(
+                rows,
+                schema=["game_id", "player_id", "season", "game_date", "played", "dnp_null"],
+                orient="row",
+            )
+        )
+    return pl.concat(parts)
+
+
+def test_cold_start_phi_is_blind_to_earlier_seasons_and_applies_the_placebo() -> None:
+    df = _phi_frame((2019, 2020, 2022, 2023, 2024))
+    full = hw.cold_start_phi_audit(df, (2019, 2020), (2022, 2023, 2024), n_boot=100)
+    only = hw.cold_start_phi_audit(df.filter(pl.col("season") == 2020), (2020,), (), n_boot=100)
+    # a season is counted from its own opener: history in other seasons does not change it
+    assert full["seasons"]["2020"]["phi"] == pytest.approx(only["seasons"]["2020"]["phi"])
+    assert full["seasons"]["2020"]["null_share"] == pytest.approx(60 / (60 * 30), rel=0.5)
+    assert np.isfinite(full["placebo_max_abs_dev"])
+    # identical-by-construction populations: no history season stops except by sampling noise bounded by the placebo
+    assert all(abs(v["dev_from_baseline"]) < 0.2 for v in full["seasons"].values())
+
+
+def test_audit_version_and_draft_gate_only(tmp_path: Path) -> None:
+    assert hw.audit_version(Path("docs/prereg/HISTORY_WINDOW_2.md")) == 2
+    assert hw.audit_version(Path("docs/HISTORY_WINDOW.md")) == 1
+    doc = tmp_path / "HISTORY_WINDOW_2.md"
+    doc.write_text("rule\n=== RESULTS BELOW ===\nx\n")
+    sha = hw.frozen_sha256(doc)
+    assert hw.require_frozen_v2(doc, sha, draft=False, stage="run") == sha
+    assert hw.require_frozen_v2(doc, "", draft=True, stage="gate") == sha
+    with pytest.raises(SystemExit):
+        hw.require_frozen_v2(doc, "", draft=True, stage="run")
+    with pytest.raises(SystemExit):
+        hw.require_frozen_v2(doc, "0" * 64, draft=False, stage="gate")

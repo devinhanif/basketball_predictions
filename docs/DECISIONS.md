@@ -397,3 +397,13 @@ Why: non-negotiable 8; Devin's pre-approval.
 What would reverse it: nothing above the line changes.
 Correction (same hour): the first freeze commit (5ad045f) carried the DRAFT status and an unamended C3 line because the status edit
 failed its match; nothing ran under it. The doc was corrected and re-hashed before any run; the hash above is the real one.
+
+## 2026-10-11 ~20:10 CT — HISTORY_WINDOW_2 not frozen; history-extension direction CLOSED for 2026-27
+What: the repaired audit (status-standardised played rates, cold-start-matched phi, placebo requirement) still STOPs, because the
+placebo threshold my brief specified is below the statistics' sampling noise; the repaired numbers themselves put 2019-20 and
+2020-21 inside the current seasons' range, and 2021-22 (hourly report era) is the one real deviation. A noise-aware threshold would
+be a third change to a STOP rule after seeing results; not made. The audit-v2 code and tests are committed for reproducibility.
+Why: non-negotiable 4 and the no-variant-chasing practice apply to gates as much as to arms. Devin may reopen with a NEW question
+(e.g. 2019-20 and 2020-21 only, excluding the hourly 2021-22 era) at his discretion; Claude's recommendation is to leave it closed
+and spend the effort on T-30 and live information.
+What would reverse it: Devin's explicit request for a HISTORY_WINDOW_3 with a CI-aware threshold or a two-season extension.

@@ -63,3 +63,8 @@ golden re-baselined 89889f6d); nightly facts rebuild switched ON in the morning 
 ## 19:20 update
 MARKET_LINE_CLASSIFIER: null (T320–T324); the one-weight blend beats the learner everywhere; closed. OWN_TAG waits on a regenerated
 production reference (the stored one predates the restored games); CALIBRATED_GRID and HISTORY_WINDOW_2 gates still being measured.
+
+## 20:10 update
+HISTORY_WINDOW_2: the repaired audit still stops, at a threshold below its own noise; 2019-20 and 2020-21 now look like the current
+seasons, 2021-22 (hourly report) is the real odd one. Not frozen; direction closed (T325). Your option if you want it: a new rule on
+2019-20 + 2020-21 only, or a CI-aware threshold. OWN_TAG and CALIBRATED_GRID still running.

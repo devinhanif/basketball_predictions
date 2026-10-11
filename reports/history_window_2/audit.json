@@ -1,0 +1,725 @@
+{
+  "audit_version": 2,
+  "coverage": {
+    "history_minus_pooled": {
+      "2019": -0.0002338641474768366,
+      "2020": 0.0006619461648763592,
+      "2021": 0.001515917129863542
+    },
+    "pooled_2022_24_game_coverage": 0.9984840828701365,
+    "table": {
+      "2019": {
+        "median_lead_min": 150.0,
+        "n_covered": 1141,
+        "n_games": 1143,
+        "share_games_with_report": 0.9982502187226596,
+        "share_rows_has_report": 0.9982985433871436,
+        "snapshots_per_game_all": 3.9186351706036744,
+        "snapshots_per_game_covered": 3.925503943908852
+      },
+      "2020": {
+        "median_lead_min": 150.0,
+        "n_covered": 1170,
+        "n_games": 1171,
+        "share_games_with_report": 0.9991460290350128,
+        "share_rows_has_report": 0.9991617770326907,
+        "snapshots_per_game_all": 3.788215200683177,
+        "snapshots_per_game_covered": 3.7914529914529913
+      },
+      "2021": {
+        "median_lead_min": 60.0,
+        "n_covered": 1323,
+        "n_games": 1323,
+        "share_games_with_report": 1.0,
+        "share_rows_has_report": 1.0,
+        "snapshots_per_game_all": 20.507180650037792,
+        "snapshots_per_game_covered": 20.507180650037792
+      },
+      "2022": {
+        "median_lead_min": 180.0,
+        "n_covered": 1318,
+        "n_games": 1320,
+        "share_games_with_report": 0.9984848484848485,
+        "share_rows_has_report": 0.9983776183437286,
+        "snapshots_per_game_all": 2.496969696969697,
+        "snapshots_per_game_covered": 2.5007587253414263
+      },
+      "2023": {
+        "median_lead_min": 180.0,
+        "n_covered": 1317,
+        "n_games": 1318,
+        "share_games_with_report": 0.9992412746585736,
+        "share_rows_has_report": 0.999361634216406,
+        "snapshots_per_game_all": 2.4764795144157814,
+        "snapshots_per_game_covered": 2.478359908883827
+      },
+      "2024": {
+        "median_lead_min": 180.0,
+        "n_covered": 1317,
+        "n_games": 1320,
+        "share_games_with_report": 0.9977272727272727,
+        "share_rows_has_report": 0.9980521320300326,
+        "snapshots_per_game_all": 2.428030303030303,
+        "snapshots_per_game_covered": 2.433561123766135
+      }
+    },
+    "w1r_required": false
+  },
+  "distinguishability": {
+    "auc": 0.7996200700334727,
+    "correlations": {
+      "ast|flag_dir": {
+        "cur": 0.011310219118149632,
+        "cur_floor": 0.006952537985343935,
+        "hist": 0.01747567090664278,
+        "hist_floor": 0.007377813818030886
+      },
+      "ast|gap_days": {
+        "cur": -0.030435460256965273,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.018338995600400317,
+        "hist_floor": 0.007377813818030886
+      },
+      "ast|has_report": {
+        "cur": 0.017307153870643473,
+        "cur_floor": 0.006952537985343935,
+        "hist": 0.003496479176293305,
+        "hist_floor": 0.007377813818030886
+      },
+      "ast|n_out_rot": {
+        "cur": 0.10392870601076667,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.10741686630663676,
+        "hist_floor": 0.007380877850780648
+      },
+      "ast|since_flag": {
+        "cur": -0.0015266546656474826,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.0038305265341947938,
+        "hist_floor": 0.007377813818030886
+      },
+      "ast|vac_ast": {
+        "cur": 0.1302161185978405,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.12791925105767832,
+        "hist_floor": 0.007380877850780648
+      },
+      "ast|vac_fg3m": {
+        "cur": 0.1131583024789277,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.10710431746368367,
+        "hist_floor": 0.007380877850780648
+      },
+      "ast|vac_min": {
+        "cur": 0.11754482829981457,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.11575167119019045,
+        "hist_floor": 0.007380877850780648
+      },
+      "ast|vac_pts": {
+        "cur": 0.12272472766697803,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.11778075971771007,
+        "hist_floor": 0.007380877850780648
+      },
+      "ast|vac_reb": {
+        "cur": 0.10878155743884768,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.10818869603058281,
+        "hist_floor": 0.007380877850780648
+      },
+      "fg3m|flag_dir": {
+        "cur": -0.002385995073493614,
+        "cur_floor": 0.006952537985343935,
+        "hist": 0.005116052547603361,
+        "hist_floor": 0.007377813818030886
+      },
+      "fg3m|gap_days": {
+        "cur": -0.019468238070184603,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.016612130472067218,
+        "hist_floor": 0.007377813818030886
+      },
+      "fg3m|has_report": {
+        "cur": 0.005174750102158624,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.0012244783230789165,
+        "hist_floor": 0.007377813818030886
+      },
+      "fg3m|n_out_rot": {
+        "cur": 0.07297296888905974,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.07232907499420609,
+        "hist_floor": 0.007380877850780648
+      },
+      "fg3m|since_flag": {
+        "cur": 0.003246883842989668,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.00441217895504488,
+        "hist_floor": 0.007377813818030886
+      },
+      "fg3m|vac_ast": {
+        "cur": 0.07754321431053642,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.06914946284335792,
+        "hist_floor": 0.007380877850780648
+      },
+      "fg3m|vac_fg3m": {
+        "cur": 0.08385309366049858,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.0763487078961509,
+        "hist_floor": 0.007380877850780648
+      },
+      "fg3m|vac_min": {
+        "cur": 0.08146649727303573,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.07612482906507359,
+        "hist_floor": 0.007380877850780648
+      },
+      "fg3m|vac_pts": {
+        "cur": 0.08410548077030008,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.07550966548082855,
+        "hist_floor": 0.007380877850780648
+      },
+      "fg3m|vac_reb": {
+        "cur": 0.07492714853372871,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.07080723325036913,
+        "hist_floor": 0.007380877850780648
+      },
+      "pts|flag_dir": {
+        "cur": 0.0038544054962520386,
+        "cur_floor": 0.006952537985343935,
+        "hist": 0.013296545070572593,
+        "hist_floor": 0.007377813818030886
+      },
+      "pts|gap_days": {
+        "cur": -0.03900967619755735,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.026539869204610253,
+        "hist_floor": 0.007377813818030886
+      },
+      "pts|has_report": {
+        "cur": 0.013703150790685988,
+        "cur_floor": 0.006952537985343935,
+        "hist": 0.002553366492871508,
+        "hist_floor": 0.007377813818030886
+      },
+      "pts|n_out_rot": {
+        "cur": 0.1348560048304489,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.1388436935600632,
+        "hist_floor": 0.007380877850780648
+      },
+      "pts|since_flag": {
+        "cur": 0.0046299955326022015,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.000651016063116439,
+        "hist_floor": 0.007377813818030886
+      },
+      "pts|vac_ast": {
+        "cur": 0.15047411050354173,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.14116112957568172,
+        "hist_floor": 0.007380877850780648
+      },
+      "pts|vac_fg3m": {
+        "cur": 0.14647980645037867,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.14301912165673122,
+        "hist_floor": 0.007380877850780648
+      },
+      "pts|vac_min": {
+        "cur": 0.15248157397530926,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.14910279927839407,
+        "hist_floor": 0.007380877850780648
+      },
+      "pts|vac_pts": {
+        "cur": 0.16188212048150252,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.15442586190945898,
+        "hist_floor": 0.007380877850780648
+      },
+      "pts|vac_reb": {
+        "cur": 0.14831789301637402,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.14483707875585233,
+        "hist_floor": 0.007380877850780648
+      },
+      "reb|flag_dir": {
+        "cur": 0.00496585711272458,
+        "cur_floor": 0.006952537985343935,
+        "hist": 0.013591141432488307,
+        "hist_floor": 0.007377813818030886
+      },
+      "reb|gap_days": {
+        "cur": -0.029120612834752622,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.020802995525157988,
+        "hist_floor": 0.007377813818030886
+      },
+      "reb|has_report": {
+        "cur": 0.003104453735152145,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.002282231862680714,
+        "hist_floor": 0.007377813818030886
+      },
+      "reb|n_out_rot": {
+        "cur": 0.1070349087725839,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.10801888812380482,
+        "hist_floor": 0.007380877850780648
+      },
+      "reb|since_flag": {
+        "cur": -0.0013124641098808305,
+        "cur_floor": 0.006952537985343935,
+        "hist": -0.0024935979171891174,
+        "hist_floor": 0.007377813818030886
+      },
+      "reb|vac_ast": {
+        "cur": 0.11413051942277327,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.10336040798793211,
+        "hist_floor": 0.007380877850780648
+      },
+      "reb|vac_fg3m": {
+        "cur": 0.10477533573379318,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.09987467693333893,
+        "hist_floor": 0.007380877850780648
+      },
+      "reb|vac_min": {
+        "cur": 0.11759752033974924,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.11424053912500083,
+        "hist_floor": 0.007380877850780648
+      },
+      "reb|vac_pts": {
+        "cur": 0.11980308895654365,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.11268611384490727,
+        "hist_floor": 0.007380877850780648
+      },
+      "reb|vac_reb": {
+        "cur": 0.12239256521404294,
+        "cur_floor": 0.006957500329736604,
+        "hist": 0.12192005857427006,
+        "hist_floor": 0.007380877850780648
+      }
+    },
+    "sign_flips": [],
+    "stop": false
+  },
+  "labels": {
+    "current_gap": 0.13584623624970227,
+    "current_phi": {
+      "gap_days_null": 0.07266248468021584,
+      "no_report": 0.01421421264883526
+    },
+    "per_season": {
+      "2019": {
+        "gap": 0.051042911023717163,
+        "n_no_report": 52,
+        "n_report": 28655,
+        "phi_gap_days_null_vs_dnp": 0.12648747456971973,
+        "phi_no_report_vs_dnp": 0.005948115244941894,
+        "phi_since_flag_flag_dir": "never NULL (undefined)",
+        "played_given_no_report": 0.7884615384615384,
+        "played_given_report": 0.8395044494852556,
+        "played_rate_by_snapshots": {
+          "0": {
+            "n": 52,
+            "played_rate": 0.7884615384615384
+          },
+          "1": {
+            "n": 201,
+            "played_rate": 0.8009950248756219
+          },
+          "2": {
+            "n": 1799,
+            "played_rate": 0.8426903835464147
+          },
+          "3": {
+            "n": 26655,
+            "played_rate": 0.8395798161695742
+          }
+        }
+      },
+      "2020": {
+        "gap": 0.016409855078594604,
+        "n_no_report": 27,
+        "n_report": 31519,
+        "phi_gap_days_null_vs_dnp": 0.07478942917507955,
+        "phi_no_report_vs_dnp": 0.0011892794295907032,
+        "phi_since_flag_flag_dir": "never NULL (undefined)",
+        "played_given_no_report": 0.7777777777777778,
+        "played_given_report": 0.7941876328563724,
+        "played_rate_by_snapshots": {
+          "0": {
+            "n": 27,
+            "played_rate": 0.7777777777777778
+          },
+          "1": {
+            "n": 289,
+            "played_rate": 0.8096885813148789
+          },
+          "2": {
+            "n": 2731,
+            "played_rate": 0.7989747345294764
+          },
+          "3": {
+            "n": 28499,
+            "played_rate": 0.7935717042703253
+          }
+        }
+      },
+      "2021": {
+        "gap": NaN,
+        "n_no_report": 0,
+        "n_report": 33848,
+        "phi_gap_days_null_vs_dnp": 0.0813931588247131,
+        "phi_no_report_vs_dnp": NaN,
+        "phi_since_flag_flag_dir": "never NULL (undefined)",
+        "played_given_no_report": NaN,
+        "played_given_report": 0.8285570787047979,
+        "played_rate_by_snapshots": {
+          "3": {
+            "n": 33848,
+            "played_rate": 0.8285570787047979
+          }
+        }
+      },
+      "2022": {
+        "gap": 0.06533388293487219,
+        "n_no_report": 60,
+        "n_report": 33964,
+        "phi_gap_days_null_vs_dnp": 0.07347799089701829,
+        "phi_no_report_vs_dnp": 0.007069956250347197,
+        "phi_since_flag_flag_dir": "never NULL (undefined)",
+        "played_given_no_report": 0.75,
+        "played_given_report": 0.8153338829348722,
+        "played_rate_by_snapshots": {
+          "0": {
+            "n": 60,
+            "played_rate": 0.75
+          },
+          "1": {
+            "n": 2182,
+            "played_rate": 0.8166819431714024
+          },
+          "2": {
+            "n": 12773,
+            "played_rate": 0.8169576450324905
+          },
+          "3": {
+            "n": 19009,
+            "played_rate": 0.8140880635488453
+          }
+        }
+      },
+      "2023": {
+        "gap": 0.2100905562742562,
+        "n_no_report": 30,
+        "n_report": 34785,
+        "phi_gap_days_null_vs_dnp": 0.07372205480922303,
+        "phi_no_report_vs_dnp": 0.015738344658801535,
+        "phi_since_flag_flag_dir": "never NULL (undefined)",
+        "played_given_no_report": 0.6,
+        "played_given_report": 0.8100905562742562,
+        "played_rate_by_snapshots": {
+          "0": {
+            "n": 30,
+            "played_rate": 0.6
+          },
+          "1": {
+            "n": 2603,
+            "played_rate": 0.8244333461390703
+          },
+          "2": {
+            "n": 13187,
+            "played_rate": 0.8130734814590127
+          },
+          "3": {
+            "n": 18995,
+            "played_rate": 0.806054224795999
+          }
+        }
+      },
+      "2024": {
+        "gap": 0.15806659787507937,
+        "n_no_report": 85,
+        "n_report": 35002,
+        "phi_gap_days_null_vs_dnp": 0.07083280041029677,
+        "phi_no_report_vs_dnp": 0.019621281215237953,
+        "phi_since_flag_flag_dir": "never NULL (undefined)",
+        "played_given_no_report": 0.6470588235294118,
+        "played_given_report": 0.8051254214044912,
+        "played_rate_by_snapshots": {
+          "0": {
+            "n": 85,
+            "played_rate": 0.6470588235294118
+          },
+          "1": {
+            "n": 2893,
+            "played_rate": 0.7970964396819911
+          },
+          "2": {
+            "n": 14207,
+            "played_rate": 0.8107974941930034
+          },
+          "3": {
+            "n": 17902,
+            "played_rate": 0.8019215730086023
+          }
+        }
+      }
+    },
+    "stops": [
+      "G3.gap season 2019: 0.0510 vs 2022-24 0.1358",
+      "G3.phi gap_days_null season 2019: 0.1265 vs 2022-24 0.0727",
+      "G3.gap season 2020: 0.0164 vs 2022-24 0.1358"
+    ]
+  },
+  "labels_v2": {
+    "n_listed": 17819,
+    "n_rows": 197773,
+    "phi_cold_start": {
+      "baseline_cold_start_pooled_current": 0.10461470687990967,
+      "placebo_max_abs_dev": 0.006180059001608965,
+      "seasons": {
+        "2019": {
+          "ci": [
+            0.10531056174133001,
+            0.14961075348766353
+          ],
+          "dev_from_baseline": 0.022066829957074402,
+          "n_rows": 28655,
+          "null_share": 0.03172221252835456,
+          "phi": 0.12668153683698408
+        },
+        "2020": {
+          "ci": [
+            0.0953476226470468,
+            0.13724663485649632
+          ],
+          "dev_from_baseline": 0.010114318939634284,
+          "n_rows": 31519,
+          "null_share": 0.03182207557346362,
+          "phi": 0.11472902581954396
+        },
+        "2021": {
+          "ci": [
+            0.0746533199000573,
+            0.11547549956631771
+          ],
+          "dev_from_baseline": -0.009364570325901503,
+          "n_rows": 33848,
+          "null_share": 0.028893878515717324,
+          "phi": 0.09525013655400817
+        },
+        "2022": {
+          "ci": [
+            0.07845251649672141,
+            0.11998352398531821
+          ],
+          "dev_from_baseline": -0.006180059001608965,
+          "n_rows": 33964,
+          "null_share": 0.027146390295607115,
+          "phi": 0.09843464787830071
+        },
+        "2023": {
+          "ci": [
+            0.08153435650722056,
+            0.12801903337068044
+          ],
+          "dev_from_baseline": 0.0001577255976662889,
+          "n_rows": 34785,
+          "null_share": 0.02880551962052609,
+          "phi": 0.10477243247757596
+        },
+        "2024": {
+          "ci": [
+            0.08825827787796042,
+            0.1333090849219836
+          ],
+          "dev_from_baseline": 0.0053764356400754915,
+          "n_rows": 35002,
+          "null_share": 0.029312610707959545,
+          "phi": 0.10999114251998517
+        }
+      },
+      "stops": [
+        "V2.phi season 2019: cold-start phi 0.1267 vs baseline 0.1046 (|dev| 0.0221 > placebo max 0.0062)",
+        "V2.phi season 2020: cold-start phi 0.1147 vs baseline 0.1046 (|dev| 0.0101 > placebo max 0.0062)",
+        "V2.phi season 2021: cold-start phi 0.0953 vs baseline 0.1046 (|dev| 0.0094 > placebo max 0.0062)"
+      ]
+    },
+    "played_rate": {
+      "placebo_max_abs_dev": 0.020573654238007832,
+      "pooled": 0.6428431180051051,
+      "seasons": {
+        "2019": {
+          "all_strata_present": true,
+          "ci": [
+            0.6115519189669492,
+            0.6512573679498338
+          ],
+          "dev_ci": [
+            -0.03129119903815594,
+            0.008414249944728768
+          ],
+          "dev_from_pooled": -0.010947033885919,
+          "n_by_stratum": {
+            "available": 716,
+            "out": 522,
+            "probable": 580,
+            "uncertain": 586
+          },
+          "n_listed": 2404,
+          "std_rate": 0.6318960841191861,
+          "thin_strata": []
+        },
+        "2020": {
+          "all_strata_present": true,
+          "ci": [
+            0.6207621882100374,
+            0.6532391245925047
+          ],
+          "dev_ci": [
+            -0.022080929795067747,
+            0.010396006587399564
+          ],
+          "dev_from_pooled": -0.005597412807379021,
+          "n_by_stratum": {
+            "available": 450,
+            "out": 851,
+            "probable": 474,
+            "uncertain": 806
+          },
+          "n_listed": 2581,
+          "std_rate": 0.637245705197726,
+          "thin_strata": []
+        },
+        "2021": {
+          "all_strata_present": true,
+          "ci": [
+            0.6582517654045397,
+            0.699468661651396
+          ],
+          "dev_ci": [
+            0.015408647399434542,
+            0.05662554364629092
+          ],
+          "dev_from_pooled": 0.03674713124519924,
+          "n_by_stratum": {
+            "available": 1568,
+            "out": 564,
+            "probable": 129,
+            "uncertain": 387
+          },
+          "n_listed": 2648,
+          "std_rate": 0.6795902492503043,
+          "thin_strata": []
+        },
+        "2022": {
+          "all_strata_present": true,
+          "ci": [
+            0.6481805610373679,
+            0.6786587494350019
+          ],
+          "dev_ci": [
+            0.005337443032262778,
+            0.03581563142989686
+          ],
+          "dev_from_pooled": 0.020573654238007832,
+          "n_by_stratum": {
+            "available": 606,
+            "out": 356,
+            "probable": 656,
+            "uncertain": 1146
+          },
+          "n_listed": 2764,
+          "std_rate": 0.6634167722431129,
+          "thin_strata": []
+        },
+        "2023": {
+          "all_strata_present": true,
+          "ci": [
+            0.6315495601201926,
+            0.6578336562148824
+          ],
+          "dev_ci": [
+            -0.011293557884912517,
+            0.014990538209777398
+          ],
+          "dev_from_pooled": 0.001896212866554503,
+          "n_by_stratum": {
+            "available": 770,
+            "out": 578,
+            "probable": 651,
+            "uncertain": 1404
+          },
+          "n_listed": 3403,
+          "std_rate": 0.6447393308716596,
+          "thin_strata": []
+        },
+        "2024": {
+          "all_strata_present": true,
+          "ci": [
+            0.612706675184662,
+            0.6395066856503965
+          ],
+          "dev_ci": [
+            -0.030136442820443005,
+            -0.003336432354708561
+          ],
+          "dev_from_pooled": -0.01643181213289191,
+          "n_by_stratum": {
+            "available": 801,
+            "out": 1009,
+            "probable": 759,
+            "uncertain": 1450
+          },
+          "n_listed": 4019,
+          "std_rate": 0.6264113058722132,
+          "thin_strata": []
+        }
+      },
+      "stops": [
+        "V2.played season 2021: standardised 0.6796 vs pooled 0.6428 (|dev| 0.0367 > placebo max 0.0206)"
+      ],
+      "weights_pooled_mix": {
+        "available": 0.21372472020420186,
+        "out": 0.19075201256626742,
+        "probable": 0.2028274101708227,
+        "uncertain": 0.392695857058708
+      }
+    },
+    "stops": [
+      "V2.played season 2021: standardised 0.6796 vs pooled 0.6428 (|dev| 0.0367 > placebo max 0.0206)",
+      "V2.phi season 2019: cold-start phi 0.1267 vs baseline 0.1046 (|dev| 0.0221 > placebo max 0.0062)",
+      "V2.phi season 2020: cold-start phi 0.1147 vs baseline 0.1046 (|dev| 0.0101 > placebo max 0.0062)",
+      "V2.phi season 2021: cold-start phi 0.0953 vs baseline 0.1046 (|dev| 0.0094 > placebo max 0.0062)"
+    ]
+  },
+  "parsing": {
+    "current_rows": 87705,
+    "current_unresolved": 0.0,
+    "history_rows": 362790,
+    "history_unresolved": 0.0,
+    "name_resolver_log": {
+      "exists": true,
+      "path": "data/history/history_injury_fetch.log",
+      "sha256": "349f5ca93a117247a48ebbbd123771e12b43b18fff1b882eab13fbbfc24bb066"
+    },
+    "pass": true
+  },
+  "stops": [
+    "V2.played season 2021: standardised 0.6796 vs pooled 0.6428 (|dev| 0.0367 > placebo max 0.0206)",
+    "V2.phi season 2019: cold-start phi 0.1267 vs baseline 0.1046 (|dev| 0.0221 > placebo max 0.0062)",
+    "V2.phi season 2020: cold-start phi 0.1147 vs baseline 0.1046 (|dev| 0.0101 > placebo max 0.0062)",
+    "V2.phi season 2021: cold-start phi 0.0953 vs baseline 0.1046 (|dev| 0.0094 > placebo max 0.0062)"
+  ]
+}

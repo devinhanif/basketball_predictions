@@ -257,6 +257,20 @@ def require_frozen(
     return cur
 
 
+def require_frozen_v2(doc: Path, sha: str, draft: bool, stage: str) -> str:
+    """HISTORY_WINDOW_2: ``sha`` must equal the hash of the doc's frozen section. ``draft`` (gate stage only)
+    lets the gate be measured on an uncommitted draft so its numbers can be written into the rule's gate
+    section BEFORE freezing; every later stage refuses a draft."""
+    cur = frozen_sha256(doc)
+    if draft:
+        if stage != "gate":
+            raise SystemExit("REFUSED: --draft is allowed for the gate stage only")
+        return cur
+    if not re.fullmatch(r"[0-9a-f]{64}", sha) or sha != cur:
+        raise SystemExit(f"REFUSED: frozen-section sha256 of {doc} is {cur}, --sha given {sha}")
+    return cur
+
+
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -1344,6 +1358,251 @@ def label_audit(w: World, fr: Frames, n_snap: dict[str, int]) -> dict[str, Any]:
     }
 
 
+# --------------------------------------------------------------------------- repaired STOP statistics (HISTORY_WINDOW_2)
+
+DOC_V2_ID = "HISTORY_WINDOW_2"
+#: status strata of the standardised played rate; doubtful and questionable are pooled because doubtful is
+#: too thin in single history seasons (n = 11 in 2021).
+STATUS_STRATA: dict[str, str] = {
+    "out": "out",
+    "doubtful": "uncertain",
+    "questionable": "uncertain",
+    "probable": "probable",
+    "available": "available",
+}
+STRATA_ORDER: tuple[str, ...] = ("out", "uncertain", "probable", "available")
+V2_STRATUM_MIN_N = 20
+
+
+def audit_version(doc: Path) -> int:
+    """2 for the HISTORY_WINDOW_2 document (repaired played-rate and phi checks), else 1 (frozen original)."""
+    return 2 if doc.stem == DOC_V2_ID else 1
+
+
+def _cluster_arrays(df: pl.DataFrame, cols: list[pl.Expr]) -> tuple[np.ndarray, int]:
+    """Per-game sums of ``cols`` as a (games, len(cols)) array (the bootstrap cluster table)."""
+    t = (
+        df.select(["game_id", *[c.alias(f"_c{i}") for i, c in enumerate(cols)]])
+        .group_by("game_id")
+        .sum()
+    )
+    return t.select([f"_c{i}" for i in range(len(cols))]).to_numpy().astype(float), t.height
+
+
+def standardised_rate(cnt: np.ndarray, weights: np.ndarray) -> tuple[float, bool]:
+    """sum_k w_k p_k over strata with data, renormalised; ``cnt`` = (n_strata, 2) of (played, n)."""
+    n = cnt[:, 1]
+    ok = n >= 1
+    if not ok.any() or weights[ok].sum() <= 0:
+        return float("nan"), False
+    p = cnt[ok, 0] / n[ok]
+    w = weights[ok] / weights[ok].sum()
+    return float((w * p).sum()), bool(ok.all())
+
+
+def standardised_played_audit(
+    df: pl.DataFrame,
+    hist_seasons: tuple[int, ...],
+    cur_seasons: tuple[int, ...],
+    n_boot: int = 2000,
+    seed: int = 0,
+) -> dict[str, Any]:
+    """Repaired played-rate check. ``df`` columns: game_id, season, played (bool), stratum (Utf8, NULL = unlisted).
+
+    P(played | listed) is reweighted to the pooled ``cur_seasons`` mix over ``STRATA_ORDER``. The STOP fires for a
+    history season iff |standardised - pooled| exceeds the largest |standardised - pooled| of any current season
+    (the placebo requirement). CIs: game-clustered bootstrap of the standardised rate and of its deviation."""
+    rng = np.random.default_rng(seed)
+    listed = df.filter(pl.col("stratum").is_not_null())
+
+    def table(sub: pl.DataFrame) -> tuple[np.ndarray, int]:
+        cols: list[pl.Expr] = []
+        for k in STRATA_ORDER:
+            m = pl.col("stratum") == k
+            cols += [(pl.col("played") & m).cast(pl.Float64), m.cast(pl.Float64)]
+        arr, g = _cluster_arrays(sub, cols)
+        return arr.reshape(g, len(STRATA_ORDER), 2), g
+
+    cur = listed.filter(pl.col("season").is_in(list(cur_seasons)))
+    cur_tab, _ = table(cur)
+    wts = cur_tab[:, :, 1].sum(0)
+    wts = wts / wts.sum()
+    pooled, _ = standardised_rate(cur_tab.sum(0), wts)
+    out: dict[str, Any] = {
+        "weights_pooled_mix": dict(zip(STRATA_ORDER, [float(x) for x in wts], strict=True)),
+        "pooled": pooled,
+        "seasons": {},
+    }
+    for s in (*hist_seasons, *cur_seasons):
+        tab, g = table(listed.filter(pl.col("season") == s))
+        if g == 0:
+            continue
+        est, full = standardised_rate(tab.sum(0), wts)
+        idx = rng.integers(0, g, (n_boot, g))
+        bs = np.array([standardised_rate(tab[i].sum(0), wts)[0] for i in idx])
+        n_str = tab[:, :, 1].sum(0)
+        out["seasons"][str(s)] = {
+            "std_rate": est,
+            "ci": [float(np.nanpercentile(bs, 2.5)), float(np.nanpercentile(bs, 97.5))],
+            "dev_from_pooled": est - pooled,
+            "dev_ci": [
+                float(np.nanpercentile(bs - pooled, 2.5)),
+                float(np.nanpercentile(bs - pooled, 97.5)),
+            ],
+            "n_listed": int(n_str.sum()),
+            "n_by_stratum": dict(zip(STRATA_ORDER, [int(x) for x in n_str], strict=True)),
+            "all_strata_present": full,
+            "thin_strata": [
+                k for k, v in zip(STRATA_ORDER, n_str, strict=True) if v < V2_STRATUM_MIN_N
+            ],
+        }
+    placebo = [
+        abs(out["seasons"][str(c)]["dev_from_pooled"])
+        for c in cur_seasons
+        if str(c) in out["seasons"]
+    ]
+    thr = max(placebo) if placebo else float("nan")
+    out["placebo_max_abs_dev"] = thr
+    out["stops"] = [
+        f"V2.played season {s}: standardised {out['seasons'][str(s)]['std_rate']:.4f} vs pooled {pooled:.4f} "
+        f"(|dev| {abs(out['seasons'][str(s)]['dev_from_pooled']):.4f} > placebo max {thr:.4f})"
+        for s in hist_seasons
+        if str(s) in out["seasons"]
+        and np.isfinite(thr)
+        and abs(out["seasons"][str(s)]["dev_from_pooled"]) > thr
+    ]
+    return out
+
+
+def cold_start_phi_audit(
+    df: pl.DataFrame,
+    hist_seasons: tuple[int, ...],
+    cur_seasons: tuple[int, ...],
+    n_boot: int = 2000,
+    seed: int = 0,
+) -> dict[str, Any]:
+    """Repaired NULL-pattern check. ``df`` columns: game_id, player_id, season, game_date, played, dnp_null.
+
+    ``gap_days`` is NULL at a player's first played row of the window; to make eras comparable every season
+    (history and current) counts prior played games from its OWN opener ("cold start"). Baseline = phi pooled
+    over the current seasons so counted. Same placebo requirement as the played-rate check."""
+    rng = np.random.default_rng(seed)
+    x = (
+        df.sort(["season", "player_id", "game_date", "game_id"])
+        .with_columns(
+            (
+                pl.col("played").cast(pl.Int64).cum_sum().over(["season", "player_id"])
+                - pl.col("played").cast(pl.Int64)
+            ).alias("_np")
+        )
+        .with_columns((pl.col("_np") == 0).alias("_null"))
+    )
+
+    def counts(sub: pl.DataFrame) -> np.ndarray:
+        a, b = pl.col("_null"), pl.col("dnp_null")
+        arr, _ = _cluster_arrays(
+            sub,
+            [
+                (a & b).cast(pl.Float64),
+                (a & ~b).cast(pl.Float64),
+                (~a & b).cast(pl.Float64),
+                (~a & ~b).cast(pl.Float64),
+            ],
+        )
+        return arr
+
+    def phi_c(c: np.ndarray) -> float:
+        n11, n10, n01, n00 = (float(v) for v in c)
+        den = ((n11 + n10) * (n01 + n00) * (n11 + n01) * (n10 + n00)) ** 0.5
+        return (n11 * n00 - n10 * n01) / den if den > 0 else float("nan")
+
+    cur_c = counts(x.filter(pl.col("season").is_in(list(cur_seasons))))
+    base = phi_c(cur_c.sum(0))
+    out: dict[str, Any] = {"baseline_cold_start_pooled_current": base, "seasons": {}}
+    for s in (*hist_seasons, *cur_seasons):
+        sub = x.filter(pl.col("season") == s)
+        if sub.is_empty():
+            continue
+        c = counts(sub)
+        g = c.shape[0]
+        idx = rng.integers(0, g, (n_boot, g))
+        bs = np.array([phi_c(c[i].sum(0)) for i in idx])
+        est = phi_c(c.sum(0))
+        out["seasons"][str(s)] = {
+            "phi": est,
+            "ci": [float(np.nanpercentile(bs, 2.5)), float(np.nanpercentile(bs, 97.5))],
+            "dev_from_baseline": est - base,
+            "n_rows": int(sub.height),
+            "null_share": float(sub["_null"].mean()),  # type: ignore[arg-type]
+        }
+    placebo = [
+        abs(out["seasons"][str(c)]["dev_from_baseline"])
+        for c in cur_seasons
+        if str(c) in out["seasons"]
+    ]
+    thr = max(placebo) if placebo else float("nan")
+    out["placebo_max_abs_dev"] = thr
+    out["stops"] = [
+        f"V2.phi season {s}: cold-start phi {out['seasons'][str(s)]['phi']:.4f} vs baseline {base:.4f} "
+        f"(|dev| {abs(out['seasons'][str(s)]['dev_from_baseline']):.4f} > placebo max {thr:.4f})"
+        for s in hist_seasons
+        if str(s) in out["seasons"]
+        and np.isfinite(thr)
+        and abs(out["seasons"][str(s)]["dev_from_baseline"]) > thr
+    ]
+    return out
+
+
+def listing_frame(w: World, fr: Frames) -> pl.DataFrame:
+    """Rostered rows of games with a usable report: ``stratum`` = status stratum in the latest pre-tip snapshot
+    (strongest status if a player repeats), NULL when unlisted. Also the label columns the two checks read."""
+    usable = usable_report_rows(fr.rows_ext, w.cfg.report)
+    if usable.is_empty():
+        raise Stop("no_reports", "no usable report rows")
+    latest = usable.group_by("game_id").agg(pl.col("as_of").max().alias("_mx"))
+    rank = {"out": 0, "doubtful": 1, "questionable": 2, "probable": 3, "available": 4}
+    snap = (
+        usable.join(latest, on="game_id")
+        .filter(pl.col("as_of") == pl.col("_mx"))
+        .with_columns(pl.col("status").replace_strict(rank, default=9).alias("_r"))
+        .sort("_r")
+        .unique(["game_id", "player_id"], keep="first")
+        .with_columns(
+            pl.col("status")
+            .replace_strict(STATUS_STRATA, default=None, return_dtype=pl.Utf8)
+            .alias("stratum")
+        )
+        .select("game_id", "player_id", "stratum")
+    )
+    rows = (
+        w.pgs_all.select("game_id", "player_id", "minutes")
+        .join(w.games_all.select("game_id", "game_date", "season"), on="game_id")
+        .filter(pl.col("game_id").is_in(latest["game_id"].to_list()))
+        .with_columns(
+            (pl.col("minutes") > 0).fill_null(False).alias("played"),
+            pl.col("minutes").is_null().alias("dnp_null"),
+        )
+        .join(snap, on=["game_id", "player_id"], how="left")
+    )
+    return rows.select(
+        "game_id", "player_id", "season", "game_date", "played", "dnp_null", "stratum"
+    )
+
+
+def label_audit_v2(w: World, fr: Frames, n_boot: int = 2000) -> dict[str, Any]:
+    """HISTORY_WINDOW_2 audit item 3 (first two STOP legs); the third (classifier) is unchanged."""
+    lf = listing_frame(w, fr)
+    played = standardised_played_audit(lf, HIST_SEASONS, CUR_SEASONS, n_boot)
+    phi = cold_start_phi_audit(lf, HIST_SEASONS, CUR_SEASONS, n_boot)
+    return {
+        "played_rate": played,
+        "phi_cold_start": phi,
+        "stops": [*played["stops"], *phi["stops"]],
+        "n_rows": int(lf.height),
+        "n_listed": int(lf["stratum"].is_not_null().sum()),
+    }
+
+
 def distinguishability(fr: Frames, n_boot_seed: int = 0) -> dict[str, Any]:
     """Audit item 3, third STOP: history-vs-current classifier on the report columns alone, AND a sign
     flip of the column/residual correlation between eras."""
@@ -1423,22 +1682,33 @@ def parsing_parity(hist_db: str, db: str) -> dict[str, Any]:
     }
 
 
-def full_audit(w: World, fr: Frames, hist_db: str, db: str) -> dict[str, Any]:
+def full_audit(
+    w: World, fr: Frames, hist_db: str, db: str, version: int = 1, n_boot: int = 2000
+) -> dict[str, Any]:
     cov = coverage_table(w, fr)
     n_snap = cov.pop("n_snap_by_game")
     lab = label_audit(w, fr, n_snap)
     dist = distinguishability(fr)
     stops = list(lab["stops"])
+    extra: dict[str, Any] = {}
+    if version == 2:
+        # HISTORY_WINDOW_2: the original gap/phi statistics stay in the file as descriptive; the repaired
+        # player-level standardised check and cold-start phi decide, the classifier leg is unchanged.
+        v2 = label_audit_v2(w, fr, n_boot)
+        extra["labels_v2"] = v2
+        stops = list(v2["stops"])
     if dist["stop"]:
         stops.append(
             f"G3.classifier AUC {dist['auc']:.4f} > {G3_AUC} AND sign flips {dist['sign_flips']}"
         )
     return {
+        "audit_version": version,
         "coverage": cov,
         "labels": lab,
         "distinguishability": dist,
         "parsing": parsing_parity(hist_db, db),
         "stops": stops,
+        **extra,
     }
 
 
@@ -1618,11 +1888,19 @@ def g05(w: World) -> dict[str, Any]:
 
 
 def run_gate(
-    w: World, fr: Frames, hist_db: str, db: str, out_dir: Path, games_dir: Path, manifest_dir: Path
+    w: World,
+    fr: Frames,
+    hist_db: str,
+    db: str,
+    out_dir: Path,
+    games_dir: Path,
+    manifest_dir: Path,
+    version: int = 1,
+    n_boot: int = 2000,
 ) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     items: dict[str, Any] = {"G0.1": g01(w, games_dir), "G0.2": g02(w), "G0.3": g03(hist_db)}
-    audit = full_audit(w, fr, hist_db, db)
+    audit = full_audit(w, fr, hist_db, db, version, n_boot)
     audit_path = out_dir / "audit.json"
     audit_path.write_text(json.dumps(audit, indent=2, default=str, sort_keys=True))
     audit_sha = file_sha256(audit_path)
@@ -1638,6 +1916,7 @@ def run_gate(
         "audit_stops": audit["stops"],
         "w1r_required": audit["coverage"]["w1r_required"],
         "audit_sha256": audit_sha,
+        "audit_version": version,
         "gate_pass": bool(not failed and not audit["stops"]),
         "g06": "evaluated first thing in `run` (W0 pts reproduction)",
     }
@@ -1845,7 +2124,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--db", default="nba.duckdb")
     ap.add_argument("--history-db", default="data/history/nba_history.duckdb")
     ap.add_argument("--doc", default=str(DOC))
-    ap.add_argument("--sha", required=True, help="full 64-hex frozen-section sha256")
+    ap.add_argument("--sha", default="", help="full 64-hex frozen-section sha256")
+    ap.add_argument(
+        "--draft", action="store_true", help="HISTORY_WINDOW_2 gate stage on an uncommitted draft"
+    )
     ap.add_argument("--config", default="configs/context_residual.yaml")
     ap.add_argument("--elo-config", default="configs/mov_elo_tuned.yaml")
     ap.add_argument("--injury-config", default="configs/injury_elo.yaml")
@@ -1866,7 +2148,19 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--n-boot", type=int, default=N_BOOT)
     a = ap.parse_args(argv)
-    sha = require_frozen(Path(a.doc), a.sha)
+    version = audit_version(Path(a.doc))
+    if version == 2:
+        sha = require_frozen_v2(Path(a.doc), a.sha, a.draft, a.stage)
+        if a.out_dir == str(OUT_DIR):
+            a.out_dir = "reports/history_window_2"
+        if a.cache_dir == str(CACHE):
+            a.cache_dir = "data/history_window_2"
+        if a.report_md == str(REPORT_MD):
+            a.report_md = "reports/history_window_2.md"
+    else:
+        if a.draft:
+            raise SystemExit("REFUSED: --draft applies to HISTORY_WINDOW_2 only")
+        sha = require_frozen(Path(a.doc), a.sha)
     out = Path(a.out_dir)
     if a.stage == "report":
         res = json.loads((out / "results.json").read_text())
@@ -1889,7 +2183,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         fr = build_frames(w)
         if a.stage == "gate":
-            gate = run_gate(w, fr, a.history_db, a.db, out, Path(a.games_dir), Path(a.manifest_dir))
+            gate = run_gate(
+                w, fr, a.history_db, a.db, out, Path(a.games_dir), Path(a.manifest_dir), version
+            )
             print(
                 json.dumps(
                     {
