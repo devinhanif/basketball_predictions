@@ -73,6 +73,7 @@ SEASONS = (SELECT_SEASON, REPORT_SEASON)
 N_BOOT = 2000
 MIN_TRAIN_ROWS = MIN_TRAIN
 TOL_P0 = 1e-6
+TOL_P0_BY_SEASON = {2023: 1e-6, 2024: 0.005}  # frozen amended check 1
 GAP_PP = 2.0
 T60_SHARE_MIN = 0.95
 MORNING_DAY_SHARE_MIN = 0.90
@@ -81,7 +82,7 @@ DEFINED_SHARE_MIN = 0.95
 # ---- term constants (draft "Hypothesis" and "Fixed design"; final at the freeze)
 WINDOW = 82  # prior team games for the team's b2b star sit-out rate
 K_PSEUDO = 20.0  # pseudo-count, in b2b games, shrinking toward the league rate
-MIN_B2B = 20  # prior b2b games needed for the team rate to be "defined"
+MIN_B2B = 10  # prior b2b games for "defined" (frozen amendment to check 3: 20 was impossible)
 STAR_PTS = 20.0  # prior-10 points
 STAR_TOP = 3  # top-3 prior-10 minutes among the team's players of the previous game
 MORNING_HOUR_LT = 15  # morning snapshot = the earliest same-day snapshot, stamped before 15:00 ET
@@ -147,7 +148,7 @@ UNSTATED_DETAILS = (
     "team rate unit: each prior b2b second-night team game contributes the share of its star "
     "opportunities who sat (traded-away players excluded); rate = (sum + 20*L) / (n_b2b + 20), "
     "L = league mean of that share over all b2b games strictly before the date; defined only if "
-    "n_b2b >= 20 inside the 82-game window, else the row takes L (counted)",
+    "n_b2b >= 10 inside the 82-game window (frozen amendment), else the row takes L (counted)",
     "the 82-game window is over all team games (playoffs included), crossing seasons",
     "is_b2b_second = previous team game was yesterday; the model gets star and b2b_star (b2b "
     "itself is already a P1 feature); agreement with P1's b2b column is reported",
@@ -729,7 +730,7 @@ def check_p0(frame: pl.DataFrame, stored: dict[str, np.ndarray]) -> dict[str, An
                     "abs_diff": abs(sub_mine - sub_st),
                 }
             ent[key] = r
-            season_ok &= bool(r["within_1e-6"])
+            season_ok &= bool(abs(full_mine - full_st) <= TOL_P0_BY_SEASON[s])
         ent["season_ok"] = season_ok
         detail[str(s)] = ent
         ok &= season_ok
@@ -778,7 +779,7 @@ def check_snapshots(games: pl.DataFrame, snaps: pl.DataFrame) -> dict[str, Any]:
 
 
 def check_defined(frame: pl.DataFrame) -> dict[str, Any]:
-    """Check 3: team_b2b_sit defined (>= 20 prior b2b games) for >= 95% of eligible rows."""
+    """Check 3: team_b2b_sit defined (>= MIN_B2B prior b2b games) for >= 95% of rows."""
     t = frame.filter(pl.col("season").is_in(list(SEASONS)))
     n = t.height
     nb = t["n_b2b_prior"].to_numpy().astype(float)

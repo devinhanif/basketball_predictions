@@ -1,0 +1,938 @@
+{
+ "sha256": "3310de87746012b4a9c2a89793e50a1e59b8f4b9527b2a61761bb6f714ebf153",
+ "git_sha": "fb29604",
+ "seeds": {
+  "lightgbm": 0,
+  "bootstrap": 0,
+  "placebo": 0,
+  "n_boot": 2000
+ },
+ "tests": [
+  {
+   "test": "1_p0_reproduces",
+   "ok": true
+  },
+  {
+   "test": "2_snapshot_coverage",
+   "ok": true
+  },
+  {
+   "test": "3_team_b2b_sit_defined",
+   "ok": true
+  },
+  {
+   "test": "4a_missingness_gap",
+   "ok": true
+  },
+  {
+   "test": "4b_planted",
+   "ok": true
+  }
+ ],
+ "audit": [
+  {
+   "col": "team_b2b_sit(fallback to league)",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.0428251349424585
+  },
+  {
+   "col": "team_b2b_sit(fallback to league)",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.03277021742530893
+  },
+  {
+   "col": "team_b2b_sit(fallback to league)",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.03130986590038314
+  },
+  {
+   "col": "team_b2b_sit(fallback to league)",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.044055698572431544
+  },
+  {
+   "col": "team_b2b_sit(null)",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.0
+  },
+  {
+   "col": "team_b2b_sit(null)",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.0
+  },
+  {
+   "col": "team_b2b_sit(null)",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.0
+  },
+  {
+   "col": "team_b2b_sit(null)",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.0
+  },
+  {
+   "col": "tag60_code(no T-60 snapshot)",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.002444240757714635
+  },
+  {
+   "col": "tag60_code(no T-60 snapshot)",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.0010167370561551697
+  },
+  {
+   "col": "tag60_code(no T-60 snapshot)",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.0010177203065134099
+  },
+  {
+   "col": "tag60_code(no T-60 snapshot)",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.0019892347296981043
+  },
+  {
+   "col": "tagm_code(no morning snapshot)",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.047509929728078215
+  },
+  {
+   "col": "tagm_code(no morning snapshot)",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.04982011575160332
+  },
+  {
+   "col": "tagm_code(no morning snapshot)",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.05256226053639847
+  },
+  {
+   "col": "tagm_code(no morning snapshot)",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.04937982681956471
+  },
+  {
+   "col": "on_morning_report(no morning snapshot)",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.047509929728078215
+  },
+  {
+   "col": "on_morning_report(no morning snapshot)",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.04982011575160332
+  },
+  {
+   "col": "on_morning_report(no morning snapshot)",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.05256226053639847
+  },
+  {
+   "col": "on_morning_report(no morning snapshot)",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.04937982681956471
+  },
+  {
+   "col": "on_evening_report(no evening snapshot)",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.4313575720541807
+  },
+  {
+   "col": "on_evening_report(no evening snapshot)",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.4266385108712654
+  },
+  {
+   "col": "on_evening_report(no evening snapshot)",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.4260057471264368
+  },
+  {
+   "col": "on_evening_report(no evening snapshot)",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.42224432483033
+  },
+  {
+   "col": "terc(no prior-season win%)",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.0
+  },
+  {
+   "col": "terc(no prior-season win%)",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.0
+  },
+  {
+   "col": "terc(no prior-season win%)",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.0
+  },
+  {
+   "col": "terc(no prior-season win%)",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.0
+  },
+  {
+   "col": "star",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.0
+  },
+  {
+   "col": "star",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.0
+  },
+  {
+   "col": "star",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.0
+  },
+  {
+   "col": "star",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.0
+  },
+  {
+   "col": "b2b_star",
+   "bucket": "[0,10)",
+   "n": 19638,
+   "null_rate": 0.0
+  },
+  {
+   "col": "b2b_star",
+   "bucket": "[10,20)",
+   "n": 12786,
+   "null_rate": 0.0
+  },
+  {
+   "col": "b2b_star",
+   "bucket": "[20,30)",
+   "n": 16704,
+   "null_rate": 0.0
+  },
+  {
+   "col": "b2b_star",
+   "bucket": "[30,inf)",
+   "n": 17092,
+   "null_rate": 0.0
+  }
+ ],
+ "unstated_details": [
+  "star = played the team's previous game AND (prior-10 pts >= 20 incl. that game, min 5 games, OR top-3 prior-10 minutes among the team's players of that game); the descriptive tables' definition (data/scratch/fan_answers_2026-10-11.py); a player who missed the previous game is not a star row",
+  "team rate unit: each prior b2b second-night team game contributes the share of its star opportunities who sat (traded-away players excluded); rate = (sum + 20*L) / (n_b2b + 20), L = league mean of that share over all b2b games strictly before the date; defined only if n_b2b >= 10 inside the 82-game window (frozen amendment), else the row takes L (counted)",
+  "the 82-game window is over all team games (playoffs included), crossing seasons",
+  "is_b2b_second = previous team game was yesterday; the model gets star and b2b_star (b2b itself is already a P1 feature); agreement with P1's b2b column is reported",
+  "strength tercile = prior-season regular-season win% rank among 30 teams (ties by team_id), 2 = contender; 2022's comes from data/history 2021-22; tag code unlisted 0, available 1, probable 2, questionable 3, doubtful 4 (null when the game has no such snapshot)",
+  "morning = earliest same-day snapshot stamped before 15:00 ET (usable under the real-tip gate); evening = latest snapshot stamped on the previous calendar day; a game with no such snapshot gets null, never 'nobody listed'",
+  "placebo P3 permutes team_b2b_sit across team-games within season (seed 0)",
+  "P0 is reported against both p_platt (the draft's P0) and p_raw (reference only)"
+ ],
+ "main": [
+  {
+   "family": "T-60",
+   "season": 2023,
+   "arm": "P0",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.4147120804491417,
+   "brier": 0.12864084273437987,
+   "ece": 0.13843427953623652
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "arm": "P1",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.293344863421155,
+   "brier": 0.09289257544487439,
+   "ece": 0.009173764353127844
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "arm": "P2",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.2834572958858848,
+   "brier": 0.0912491003147317,
+   "ece": 0.012339406835808104,
+   "dlogloss": -0.009887567535270139,
+   "ci_lo": -0.01206368641244404,
+   "ci_hi": -0.007808226543467128,
+   "p": 0.0004997501249375312,
+   "p_bh": 0.0004997501249375312
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "arm": "P3",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.28328210262551123,
+   "brier": 0.09119901956119407,
+   "ece": 0.010745919054459532,
+   "dlogloss": -0.010062760795643727,
+   "ci_lo": -0.012200584999662482,
+   "ci_hi": -0.008032178640854032,
+   "p": 0.0004997501249375312
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "arm": "P4",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.29183774708905547,
+   "brier": 0.09279379893356347,
+   "ece": 0.010465254723678954,
+   "dlogloss": -0.0015071163320994863,
+   "ci_lo": -0.0025846802213170647,
+   "ci_hi": -0.0004274252640940315,
+   "p": 0.007
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "arm": "P0",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.4147120804491417,
+   "brier": 0.12864084273437987,
+   "ece": 0.13843427953623652
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "arm": "P1",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.293344863421155,
+   "brier": 0.09289257544487439,
+   "ece": 0.009173764353127844
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "arm": "P2",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.290573046722001,
+   "brier": 0.09243005566516245,
+   "ece": 0.010519054282283868,
+   "dlogloss": -0.002771816699153948,
+   "ci_lo": -0.00401099177032732,
+   "ci_hi": -0.0015029966723981909,
+   "p": 0.0004997501249375312,
+   "p_bh": 0.0004997501249375312
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "arm": "P3",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.2903742577269192,
+   "brier": 0.09236559583236491,
+   "ece": 0.010568256070097235,
+   "dlogloss": -0.0029706056942357113,
+   "ci_lo": -0.004127886530529092,
+   "ci_hi": -0.001798411229240017,
+   "p": 0.0004997501249375312
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "arm": "P4",
+   "n_rows": 33093,
+   "n_games": 1318,
+   "logloss": 0.29183774708905547,
+   "brier": 0.09279379893356347,
+   "ece": 0.010465254723678954,
+   "dlogloss": -0.0015071163320994863,
+   "ci_lo": -0.0025846802213170647,
+   "ci_hi": -0.0004274252640940315,
+   "p": 0.007
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "arm": "P0",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.42809840139687283,
+   "brier": 0.13377218811265662,
+   "ece": 0.1440607342833209
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "arm": "P1",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.29776431492822847,
+   "brier": 0.09329175095859786,
+   "ece": 0.0029581867645287786
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "arm": "P2",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.28160924952305394,
+   "brier": 0.09057966409850068,
+   "ece": 0.004933057384902484,
+   "dlogloss": -0.01615506540517452,
+   "ci_lo": -0.01890878705922375,
+   "ci_hi": -0.01359222084694333,
+   "p": 0.0004997501249375312,
+   "p_bh": 0.0004997501249375312
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "arm": "P3",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.28133312026449775,
+   "brier": 0.09047839945873118,
+   "ece": 0.006649271118937303,
+   "dlogloss": -0.0164311946637307,
+   "ci_lo": -0.0192066576421327,
+   "ci_hi": -0.013875625338504375,
+   "p": 0.0004997501249375312
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "arm": "P4",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.29399745395928834,
+   "brier": 0.09307668362700645,
+   "ece": 0.0035577081998317437,
+   "dlogloss": -0.0037668609689401633,
+   "ci_lo": -0.004988960127714745,
+   "ci_hi": -0.002673590196174068,
+   "p": 0.0004997501249375312
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "arm": "P0",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.42809840139687283,
+   "brier": 0.13377218811265662,
+   "ece": 0.1440607342833209
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "arm": "P1",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.29776431492822847,
+   "brier": 0.09329175095859786,
+   "ece": 0.0029581867645287786
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "arm": "P2",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.290498099256499,
+   "brier": 0.0921418368162047,
+   "ece": 0.0043087012909443344,
+   "dlogloss": -0.00726621567172946,
+   "ci_lo": -0.00905939913479112,
+   "ci_hi": -0.005680509024506191,
+   "p": 0.0004997501249375312,
+   "p_bh": 0.0004997501249375312
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "arm": "P3",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.2904590908477216,
+   "brier": 0.09219945645812393,
+   "ece": 0.0039000667052292723,
+   "dlogloss": -0.007305224080506833,
+   "ci_lo": -0.00909736912841754,
+   "ci_hi": -0.005756670044123594,
+   "p": 0.0004997501249375312
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "arm": "P4",
+   "n_rows": 33127,
+   "n_games": 1320,
+   "logloss": 0.29399745395928834,
+   "brier": 0.09307668362700645,
+   "ece": 0.0035577081998317437,
+   "dlogloss": -0.0037668609689401633,
+   "ci_lo": -0.004988960127714745,
+   "ci_hi": -0.002673590196174068,
+   "p": 0.0004997501249375312
+  }
+ ],
+ "slices": [
+  {
+   "family": "T-60",
+   "season": 2023,
+   "slice": "b2b_second_nights",
+   "arm": "P2",
+   "n": 5222,
+   "dlogloss": -0.015039321233679364,
+   "ci_lo": -0.021733879911303114,
+   "ci_hi": -0.008813889236159415
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "slice": "questionable_rows",
+   "arm": "P2",
+   "n": 1319,
+   "dlogloss": -0.15570998321460416,
+   "ci_lo": -0.1976983045991393,
+   "ci_hi": -0.11509771562310295
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "slice": "star_rows",
+   "arm": "P2",
+   "n": 7663,
+   "dlogloss": -0.014516509069573504,
+   "ci_lo": -0.020052552094638753,
+   "ci_hi": -0.009555370473580883
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "slice": "first15_team_games",
+   "arm": "P2",
+   "n": 5437,
+   "dlogloss": -0.0015461991950838395,
+   "ci_lo": -0.005474125025023596,
+   "ci_hi": 0.002279559818369171
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "slice": "strength_weak",
+   "arm": "P2",
+   "n": 10952,
+   "dlogloss": -0.007399949324405624,
+   "ci_lo": -0.010576984178783803,
+   "ci_hi": -0.004277717833412975
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "slice": "strength_middle",
+   "arm": "P2",
+   "n": 10893,
+   "dlogloss": -0.008876903455883586,
+   "ci_lo": -0.01250291981215633,
+   "ci_hi": -0.005598677955862403
+  },
+  {
+   "family": "T-60",
+   "season": 2023,
+   "slice": "strength_contender",
+   "arm": "P2",
+   "n": 11248,
+   "dlogloss": -0.013288488451179269,
+   "ci_lo": -0.017437132301791322,
+   "ci_hi": -0.009273789550899785
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "slice": "b2b_second_nights",
+   "arm": "P2",
+   "n": 5222,
+   "dlogloss": 0.0003852269696656491,
+   "ci_lo": -0.00163334676943999,
+   "ci_hi": 0.0024216937197177354
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "slice": "questionable_rows",
+   "arm": "P2",
+   "n": 1258,
+   "dlogloss": -0.043157288216327104,
+   "ci_lo": -0.06587853833116536,
+   "ci_hi": -0.023348052877834365
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "slice": "star_rows",
+   "arm": "P2",
+   "n": 7663,
+   "dlogloss": -0.0032762978022205505,
+   "ci_lo": -0.005661400181147206,
+   "ci_hi": -0.0009531526226106872
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "slice": "first15_team_games",
+   "arm": "P2",
+   "n": 5437,
+   "dlogloss": 0.00037860662207671374,
+   "ci_lo": -0.0027100663485144605,
+   "ci_hi": 0.0033751161312163794
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "slice": "strength_weak",
+   "arm": "P2",
+   "n": 10952,
+   "dlogloss": -0.0014236607298168354,
+   "ci_lo": -0.0034362703772130732,
+   "ci_hi": 0.0005750721526593752
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "slice": "strength_middle",
+   "arm": "P2",
+   "n": 10893,
+   "dlogloss": -0.0024112794101518683,
+   "ci_lo": -0.004386598967611386,
+   "ci_hi": -0.000543531330223533
+  },
+  {
+   "family": "Morning",
+   "season": 2023,
+   "slice": "strength_contender",
+   "arm": "P2",
+   "n": 11248,
+   "dlogloss": -0.004433653191444106,
+   "ci_lo": -0.006862489084036056,
+   "ci_hi": -0.0022667906717449256
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "slice": "b2b_second_nights",
+   "arm": "P2",
+   "n": 5519,
+   "dlogloss": -0.018394484283925046,
+   "ci_lo": -0.026862229380817525,
+   "ci_hi": -0.011128747341224531
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "slice": "questionable_rows",
+   "arm": "P2",
+   "n": 1345,
+   "dlogloss": -0.26658690047314765,
+   "ci_lo": -0.31943140066022896,
+   "ci_hi": -0.21860768237992811
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "slice": "star_rows",
+   "arm": "P2",
+   "n": 7612,
+   "dlogloss": -0.030448669041610647,
+   "ci_lo": -0.037394527825364815,
+   "ci_hi": -0.02398906588442319
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "slice": "first15_team_games",
+   "arm": "P2",
+   "n": 5438,
+   "dlogloss": -0.009213297847726325,
+   "ci_lo": -0.013784846479627834,
+   "ci_hi": -0.004934401382658791
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "slice": "strength_weak",
+   "arm": "P2",
+   "n": 10104,
+   "dlogloss": -0.01637932315356474,
+   "ci_lo": -0.021223257577535973,
+   "ci_hi": -0.011781440427558864
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "slice": "strength_middle",
+   "arm": "P2",
+   "n": 11355,
+   "dlogloss": -0.018966033942174117,
+   "ci_lo": -0.023651866826989318,
+   "ci_hi": -0.014213066788676643
+  },
+  {
+   "family": "T-60",
+   "season": 2024,
+   "slice": "strength_contender",
+   "arm": "P2",
+   "n": 11668,
+   "dlogloss": -0.013225304689767821,
+   "ci_lo": -0.017224354832522527,
+   "ci_hi": -0.009520525227343708
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "slice": "b2b_second_nights",
+   "arm": "P2",
+   "n": 5519,
+   "dlogloss": -0.00011054496387830786,
+   "ci_lo": -0.0019393974535501684,
+   "ci_hi": 0.0016913506656976915
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "slice": "questionable_rows",
+   "arm": "P2",
+   "n": 1251,
+   "dlogloss": -0.12638202704364043,
+   "ci_lo": -0.1597916353822452,
+   "ci_hi": -0.09557297618621897
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "slice": "star_rows",
+   "arm": "P2",
+   "n": 7612,
+   "dlogloss": -0.012957346968849445,
+   "ci_lo": -0.016671575514646143,
+   "ci_hi": -0.009435365029328279
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "slice": "first15_team_games",
+   "arm": "P2",
+   "n": 5438,
+   "dlogloss": -0.003508202876906965,
+   "ci_lo": -0.006600109557275864,
+   "ci_hi": -0.0007098099974040699
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "slice": "strength_weak",
+   "arm": "P2",
+   "n": 10104,
+   "dlogloss": -0.008777752523486195,
+   "ci_lo": -0.012209887742253334,
+   "ci_hi": -0.0058123663622464145
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "slice": "strength_middle",
+   "arm": "P2",
+   "n": 11355,
+   "dlogloss": -0.006667083523793997,
+   "ci_lo": -0.009581925033888944,
+   "ci_hi": -0.003812495139830181
+  },
+  {
+   "family": "Morning",
+   "season": 2024,
+   "slice": "strength_contender",
+   "arm": "P2",
+   "n": 11668,
+   "dlogloss": -0.006540348101422391,
+   "ci_lo": -0.00907296462405058,
+   "ci_hi": -0.004119672616870489
+  }
+ ],
+ "pairs": {
+  "T-60|2023": {
+   "P2-P0": {
+    "dlogloss": -0.1312547845632569,
+    "ci_lo": -0.13591446773046334,
+    "ci_hi": -0.1265461858661391,
+    "p": 0.0004997501249375312
+   },
+   "P2-P3": {
+    "dlogloss": 0.00017519326037358562,
+    "ci_lo": -0.00046676131837407824,
+    "ci_hi": 0.0007617791908432189,
+    "p": 0.558
+   },
+   "P2-P4": {
+    "dlogloss": -0.008380451203170653,
+    "ci_lo": -0.0102662366724383,
+    "ci_hi": -0.006670148717006368,
+    "p": 0.0004997501249375312
+   }
+  },
+  "Morning|2023": {
+   "P2-P0": {
+    "dlogloss": -0.12413903372714072,
+    "ci_lo": -0.12881590679830138,
+    "ci_hi": -0.11971696395735751,
+    "p": 0.0004997501249375312
+   },
+   "P2-P3": {
+    "dlogloss": 0.00019878899508176328,
+    "ci_lo": -0.00044085374069868295,
+    "ci_hi": 0.0008569184664624311,
+    "p": 0.551
+   },
+   "P2-P4": {
+    "dlogloss": -0.0012647003670544614,
+    "ci_lo": -0.001984673654791807,
+    "ci_hi": -0.0005330008552809335,
+    "p": 0.0004997501249375312
+   }
+  },
+  "T-60|2024": {
+   "P2-P0": {
+    "dlogloss": -0.14648915187381883,
+    "ci_lo": -0.15081779467198067,
+    "ci_hi": -0.14192742948809445,
+    "p": 0.0004997501249375312
+   },
+   "P2-P3": {
+    "dlogloss": 0.0002761292585561833,
+    "ci_lo": -7.80917946731298e-05,
+    "ci_hi": 0.0006455820858154167,
+    "p": 0.133
+   },
+   "P2-P4": {
+    "dlogloss": -0.012388204436234352,
+    "ci_lo": -0.014643204883625223,
+    "ci_hi": -0.01020211892372513,
+    "p": 0.0004997501249375312
+   }
+  },
+  "Morning|2024": {
+   "P2-P0": {
+    "dlogloss": -0.13760030214037378,
+    "ci_lo": -0.1420236806570085,
+    "ci_hi": -0.13281327271778748,
+    "p": 0.0004997501249375312
+   },
+   "P2-P3": {
+    "dlogloss": 3.9008408777371446e-05,
+    "ci_lo": -0.0003472573488884469,
+    "ci_hi": 0.00043943665573569006,
+    "p": 0.85
+   },
+   "P2-P4": {
+    "dlogloss": -0.0034993547027892973,
+    "ci_lo": -0.004454641353656927,
+    "ci_hi": -0.002604036959245936,
+    "p": 0.0004997501249375312
+   }
+  }
+ },
+ "verdict": {
+  "T-60": {
+   "seasons": {
+    "2023": {
+     "checks": {
+      "floor": true,
+      "ci_below_0": true,
+      "bh_p": true,
+      "ece": true,
+      "slices": true,
+      "beats_placebo": false
+     },
+     "bad_slices": [],
+     "pass": false
+    },
+    "2024": {
+     "checks": {
+      "floor": true,
+      "ci_below_0": true,
+      "bh_p": true,
+      "ece": true,
+      "slices": true,
+      "beats_placebo": false
+     },
+     "bad_slices": [],
+     "pass": false
+    }
+   },
+   "pass": false
+  },
+  "Morning": {
+   "seasons": {
+    "2023": {
+     "checks": {
+      "floor": false,
+      "ci_below_0": true,
+      "bh_p": true,
+      "ece": true,
+      "slices": true,
+      "beats_placebo": false
+     },
+     "bad_slices": [],
+     "pass": false
+    },
+    "2024": {
+     "checks": {
+      "floor": true,
+      "ci_below_0": true,
+      "bh_p": true,
+      "ece": true,
+      "slices": true,
+      "beats_placebo": false
+     },
+     "bad_slices": [],
+     "pass": false
+    }
+   },
+   "pass": false
+  }
+ }
+}

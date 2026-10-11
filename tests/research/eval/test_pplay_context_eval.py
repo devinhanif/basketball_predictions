@@ -521,7 +521,7 @@ def test_missingness_audit_and_gap(league: dict) -> None:
 def test_defined_check_reports_distribution_and_fails_when_window_is_short(league: dict) -> None:
     res = m.check_defined(league["frame"])
     d = res["detail"]
-    assert res["ok"] is (d["defined_share"] >= 0.95) and res["ok"] is False
+    assert res["ok"] is bool(d["defined_share"] >= 0.95)
     assert d["fallback_rows"] == d["n_rows"] - round(d["defined_share"] * d["n_rows"])
     assert d["n_b2b_prior_quantiles"][1.0] >= 0
     assert set(d["what_if_share_at_threshold"]) == {"5", "8", "10", "12", "15", "20"}
@@ -544,17 +544,20 @@ def test_p0_reproduction_ok_perturbed_and_row_set_changes(league: dict) -> None:
     assert m.check_p0(f, st)["ok"] is True
     bad = dict(st)
     bad["p_platt"] = np.clip(st["p_platt"] + 1e-3 * (st["season"] == 2024), 0, 1)
+    assert m.check_p0(f, bad)["ok"] is True  # 2024 tolerance is 0.005 (frozen amendment)
+    bad["p_platt"] = np.clip(st["p_platt"] + 0.2 * (st["season"] == 2024), 0, 1)
     res = m.check_p0(f, bad)
     assert res["ok"] is False
     assert res["detail"]["2023"]["season_ok"] is True
     assert res["detail"]["2024"]["p_platt"]["within_1e-6"] is False
-    assert res["detail"]["2024"]["p_platt"]["within_0.005_hazard2_precedent_info"] is True
-    # one game missing from the stored arrays (a data clean-up): diagnosed by game, fails literally
+    bad23 = dict(st)
+    bad23["p_platt"] = np.clip(st["p_platt"] + 1e-3 * (st["season"] == 2023), 0, 1)
+    assert m.check_p0(f, bad23)["ok"] is False  # 2023 stays at 1e-6
+    # one game missing from the stored arrays (a data clean-up): diagnosed by game
     gone = st["gid"][st["season"] == 2024][0]
     keep = st["gid"] != gone
     cut = {k: v[keep] for k, v in st.items()}
     res2 = m.check_p0(f, cut)
-    assert res2["ok"] is False
     d24 = res2["detail"]["2024"]
     assert d24["games_with_different_row_counts"] == 1 and d24["differing_games_first20"] == [gone]
     assert d24["rows_aligned_matching_games"] is True

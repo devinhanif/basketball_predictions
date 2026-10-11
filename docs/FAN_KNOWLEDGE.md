@@ -580,3 +580,8 @@ Measured follow-ups below, each descriptive first.
   not only those four. Per-team excess with the four removed is TOR +15, DET +11, PHI +11, NOP +9, MEM +8 (7-38 b2b star-games per
   team: noisy). Size: sit rates by height and weight tercile are flat (2.0-2.6% all nights; 2.8-4.7% b2b), so "not really" is
   right: no size-injury signal in sit-outs. Rule drafted: docs/prereg/PPLAY_CONTEXT.md.
+- **Team back-to-back habit into P(play) (PPLAY_CONTEXT): NO PASS (T316–T317).** The model with the new terms beats the honest
+  comparator by 0.010–0.016 log loss, but a placebo that scrambles the team habit across teams does exactly as well: the team term
+  is noise, and the whole gain is the T-60 report tag (questionable/doubtful/probable), which that comparator never had. So "teams
+  have load-management habits" is true as a description and useless as a forecast once the report is in hand. Side finding: the
+  deployed Platt map on P(play) is miscalibrated (worse than the raw probability) and is flagged for Devin.

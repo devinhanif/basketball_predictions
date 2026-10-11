@@ -41,3 +41,8 @@ moves to a report-free follow-up, ELO_HISTORY_WINDOW, drafted for your "confirme
 ## 10:40 update
 Supervised pretip run: clean, rc 0, but the slate is empty until 2026-10-20, so it proves the wiring, not the live fetch; it repeats
 on opening day. PPLAY_CONTEXT and ELO_HISTORY_WINDOW confirmed by you; both gates being measured, then freeze and run.
+
+## 12:40 update
+PPLAY_CONTEXT: no pass (T316–T317): the report tag is the information, the team habit is noise against a placebo. NEEDS YOU (production):
+the P(play) Platt map in the forward path is miscalibrated (ECE ~0.14; raw p is better by ~0.07 log loss); say "fix pplay platt" and the
+steward drafts the change with the replay oracle. Queue reordered: tracking/hustle first (your call). ELO_HISTORY_WINDOW freezing now.

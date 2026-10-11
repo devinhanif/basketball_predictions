@@ -1,0 +1,4 @@
+# Draft ledger rows (T### placeholders; not appended)
+
+| T### | 2026-10-11 | PPLAY_CONTEXT (sha 3310de87) T-60 | P2 (P1 + team b2b habit, b2b x star, tag x strength, morning/evening report flags) vs P1 (M2-p), P(play) log loss, 2023 select / 2024 report | 2023 n=33093 (1318 games): -0.0099 [-0.0121,-0.0078]; 2024 n=33127 (1320): -0.0162 [-0.0189,-0.0136]; BH p 0.0005 | NO PASS: P2 - P3 (placebo) +0.0002 / +0.0003, CI spans 0; team habit carries nothing; P4 gives back -0.0084 / -0.0124 (report tag term carries it); ECE and slices ok |
+| T### | 2026-10-11 | PPLAY_CONTEXT (sha 3310de87) Morning | same, morning features | 2023: -0.0028 [-0.0040,-0.0015]; 2024: -0.0073 [-0.0091,-0.0057]; BH p 0.0005 | NO PASS: fails floor in 2023 and placebo both seasons; P2 - P0 is the Platt map's miscalibration (raw p 0.3419/0.3556 vs Platt 0.4147/0.4281), not the terms |

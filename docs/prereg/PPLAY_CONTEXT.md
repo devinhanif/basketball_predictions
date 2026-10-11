@@ -122,6 +122,45 @@ dlogloss, ci_lo, ci_hi, p, p_bh, brier, ece]`; `[family, season, slice, arm, n, 
 
 === RESULTS BELOW ===
 
-(not run)
+## Results (run 2026-10-11 10:48-10:50 CT; harness `research/eval/pplay_context_eval.py`, git fb29604 + harness conformance edit below)
+
+Verdict: **NO FAMILY PASSES.** Both fail the placebo requirement in both seasons (P2 does not beat P3 by <= -0.003; P2 - P3 is +0.0002 to
++0.0003, CI spanning 0). Morning 2023 also fails the floor (-0.0028 > -0.005). Kill criterion: closed on the pass rule; no shadow candidate.
+At most one pre-registered follow-up remains (new id).
+
+Honest reading: P2 beats P1 by large margins (T-60 -0.0099 / -0.0162) but the team-habit term carries none of it (placebo does as well). The gain
+comes from the report-tag terms (P4 without term 3 gives back -0.0084 / -0.0124 of it at T-60), i.e. P1 (M2-p) did not see the T-60 report tag
+at all; this confirms the report is the information, not the team habit or star-by-b2b.
+
+Gate (as amended, unmodified rule): all four pass (P0 2023 exact; 2024 diff 0.000212 < 0.005; T-60 99.85%, morning days 99.29%; team_b2b_sit
+defined 96.17% of rows; max missingness gap 0.91 pp; plants pass).
+
+Per-family P2 - P1 log loss (game-clustered 95% CI, 2000 resamples, seed 0; BH over {T-60, Morning} within season):
+| family | season | n rows (games) | P2 - P1 [CI] | BH p | ECE P1 -> P2 | P2 - P3 [CI] | P2 - P4 [CI] | P2 - P0 [CI] |
+|---|---|---|---|---|---|---|---|---|
+| T-60 | 2023 | 33093 (1318) | -0.0099 [-0.0121,-0.0078] | 0.0005 | 0.0092 -> 0.0123 | +0.0002 [-0.0005,+0.0008] | -0.0084 [-0.0103,-0.0067] | -0.1313 [-0.1359,-0.1265] |
+| T-60 | 2024 | 33127 (1320) | -0.0162 [-0.0189,-0.0136] | 0.0005 | 0.0030 -> 0.0049 | +0.0003 [-0.0001,+0.0006] | -0.0124 [-0.0146,-0.0102] | -0.1465 [-0.1508,-0.1419] |
+| Morning | 2023 | 33093 (1318) | -0.0028 [-0.0040,-0.0015] | 0.0005 | 0.0092 -> 0.0105 | +0.0002 [-0.0004,+0.0009] | -0.0013 [-0.0020,-0.0005] | -0.1241 [-0.1288,-0.1197] |
+| Morning | 2024 | 33127 (1320) | -0.0073 [-0.0091,-0.0057] | 0.0005 | 0.0030 -> 0.0043 | +0.0000 [-0.0003,+0.0004] | -0.0035 [-0.0045,-0.0026] | -0.1376 [-0.1420,-0.1328] |
+Log loss P0 / P1 / P2 / P3 / P4: T-60 2023 0.4147 / 0.2933 / 0.2835 / 0.2833 / 0.2918; T-60 2024 0.4281 / 0.2978 / 0.2816 / 0.2813 / 0.2940;
+Morning 2023 P2 0.2906, 2024 P2 0.2905. P0 is the Platt-mapped production p; the raw production p (reference only, gate.json) is 0.3419 (2023)
+and 0.3556 (2024), so the P2 - P0 gap is mostly the Platt map's miscalibration (ECE 0.138/0.144), not the terms. ECE stays within +0.005 of P1 in
+every cell (max +0.0031). Slices (n >= 300): none worse than +0.01 in any cell; every slice delta is <= 0 except Morning b2b-second-night
+2023 (+0.0004 [-0.0016,+0.0024]) and Morning first-15-games 2023 (+0.0004 [-0.0027,+0.0034]), both null. Largest gains: questionable rows
+(T-60 -0.156 / -0.267; Morning -0.043 / -0.126). P4 (drop term 3) is the carrier of the gain; term 3 bundles the tag main effect with tag x
+strength, so the rule cannot separate those two (stated before the run).
+
+Harness conformance edit (not a rule change): the committed harness still carried the pre-amendment constants (MIN_B2B = 20, 2024 tolerance 1e-6),
+so the gate stage failed on the first run (check 1 on 2024 at 0.000212; check 3 at 0%). Before any arm was fit, `MIN_B2B` was set to 10 and the
+P0 tolerance to 1e-6 (2023) / 0.005 (2024), exactly as the frozen text states; two unit tests that encoded the old thresholds were updated.
+No other code, arm, seed or definition changed.
+
+Unstated details (simplest reading, chosen before scoring): the eight "Definitions the harness fixed" above plus: the placebo permutes
+team_b2b_sit across team-games within season (seed 0); P0 reported against both p_platt and p_raw; month blocks start 2023-10-01, each block's
+training set is all rows strictly before it including 2022 warm-up; ECE 10 equal-width bins; slices with n < 300 are not guarded.
+
+Artifacts: `reports/prereg_pplay_context/results.json`, `reports/prereg_pplay_context.md`, `reports/prereg_pplay_context/gate.json`,
+`reports/prereg_pplay_context/ledger_rows.md` (draft), logs `data/ops/pplay_context_run_20261011.log`. Runtime: gate 5 s, run 1 min 40 s,
+report 2 s (CPU, 8 GB box, no swap issue). Seed 0 throughout; season 2025 never loaded.
 
 Freeze: 2026-10-11 10:44 CT, commit 5b07734, sha256 of everything above the line: 3310de87746012b4a9c2a89793e50a1e59b8f4b9527b2a61761bb6f714ebf153 (first 8: 3310de87). Verify with the awk command in the header.

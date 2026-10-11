@@ -276,3 +276,12 @@ What: the ingest queue order moves history tracking/hustle (2019-21, + loads) an
 of shots and matchups; the queue is restarted (resumable; done steps skipped). 2025-26 rows are raw post-game data, never evaluated.
 Why: Devin's priority; the tracking/hustle screens are closed (T119-T123, T174-T175) but the history tables complete the data layer.
 What would reverse it: nothing; order only.
+
+## 2026-10-11 ~12:40 CT — PPLAY_CONTEXT: CLOSED, no pass (team habit is noise; the report tag is the information)
+What: ran under frozen sha256 3310de87 (T316–T317). Large log-loss gains over the comparator, but the placebo matches the candidate
+everywhere, so the team back-to-back term carries nothing; the gain is the T-60 report tag. Closed; the allowed follow-up (tag-only
+P(play) vs the comparator) is drafted only if Devin asks. PRODUCTION NOTE for Devin: the deployed Platt map on P(play)
+(`forward.P_PLAY_PLATT`, fit on 2023-24 slates) is worse than the raw hurdle p on 2023 and 2024 rows by ~0.07 log loss with ECE
+~0.14; a production fix (drop or refit the map) is Devin's call and would go through the replay oracle.
+Why: the descriptive team trait did not survive a placebo once the report tag was in the model.
+What would reverse it: a multi-season team-habit term (history box scores) under a new rule, if Devin wants the follow-up spent there.
