@@ -1,0 +1,981 @@
+{
+ "status": "GATE_PASSED",
+ "draft": true,
+ "sha256": "91512bfe154d4c4a580f28f068d216d3b39f6edeb23f1db5a811be92e33a03d3",
+ "git_sha": "ceedfb7",
+ "seasons": [
+  2023,
+  2024
+ ],
+ "unstated_details": [
+  "pairs = DK t60 main-line pairs from ODDS_HISTORY's pairs_for_season on the stored model_rows/market_rows parquets (pushes dropped, status 0); consensus p is the median multiplicative de-vig at the modal main line, which can differ from DK's line (p_cons_over is NaN when no consensus row exists; LightGBM handles NaN)",
+  "game_total = median over books of each book's main total (most balanced prices, ties lower point); spread = median home spread over books, signed to the player's team (home: as is, away: negated); both restricted to book rows with snapshot_ts <= real tip - 60 min; the h2h consensus P(home) is measured in the gate but is not a feature (the draft lists none)",
+  "missing game_total -> median of totals of games on EARLIER dates (as-of; null if none), missing spread -> 0.0 (the median of a team-signed spread); both with a *_missing flag",
+  "tier = prior-10 points per game over the player's last 10 played games (minutes > 0, strictly before the game, min 1 game): 0 <10, 1 10-17, 2 17-24, 3 24+, -1 no prior game",
+  "tag = latest usable T-60 official-report status (production real-tip gate): 0 unlisted, 1 available, 2 probable, 3 questionable, 4 doubtful, 5 out; null when the game has no usable snapshot (never 'nobody listed')",
+  "is_b2b = production team_game_context b2b (previous team game yesterday); n_out_rot and starter10 are the stored production feature-frame values on the model rows",
+  "stat enters M2/M3 as a numeric code (pts 0, reb 1, ast 2, fg3m 3); one pooled model over the four stats per block",
+  "month-block walk-forward: train = every pair row with game_date before the block; odds exist from 2023 only, so the first blocks with fewer than 5,000 training rows are unscored and reported (all arms share the scored rows)",
+  "M1 uses the stored ODDS_HISTORY weights w (fit on 2023 DK t60, results_2024.json h2); on 2023 that is in-sample by construction and is reported as such",
+  "M4 permutes p_grid_over and z JOINTLY (one permutation per (stat, season)) so their relation to each other survives and only their link to the row's side is broken (seed 0)",
+  "pass rule read as: 2023 is the select season (conditions 1-4 on the point estimates and the CI, no Holm), 2024 confirms (all conditions incl. Holm over 4 stats); both must hold",
+  "gate check 4 gap = max - min null rate across tiers within a stat and across stats within a tier (cells under 300 rows listed, not judged); also reported pooled",
+  "side accuracy: prediction > 0.5 means over; acc_book is the book's own p > 0.5 (same rows)"
+ ],
+ "tests": [
+  {
+   "test": "1_pairs_and_coverage",
+   "ok": true
+  },
+  {
+   "test": "2_leak_guard",
+   "ok": true
+  },
+  {
+   "test": "3_m0_reproduces",
+   "ok": true
+  },
+  {
+   "test": "4a_missingness_gap",
+   "ok": true
+  },
+  {
+   "test": "4b_planted",
+   "ok": true
+  }
+ ],
+ "gate": {
+  "1_pairs_and_coverage": {
+   "ok": true,
+   "detail": {
+    "pts/2023": {
+     "pairs": 14354,
+     "scored_after_warmup": 11180,
+     "games": 1316,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    },
+    "pts/2024": {
+     "pairs": 15882,
+     "scored_after_warmup": 15882,
+     "games": 1300,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    },
+    "reb/2023": {
+     "pairs": 15052,
+     "scored_after_warmup": 11742,
+     "games": 1316,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    },
+    "reb/2024": {
+     "pairs": 14748,
+     "scored_after_warmup": 14748,
+     "games": 1297,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    },
+    "ast/2023": {
+     "pairs": 9650,
+     "scored_after_warmup": 7592,
+     "games": 1314,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    },
+    "ast/2024": {
+     "pairs": 10574,
+     "scored_after_warmup": 10574,
+     "games": 1294,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    },
+    "fg3m/2023": {
+     "pairs": 14191,
+     "scored_after_warmup": 11121,
+     "games": 1316,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    },
+    "fg3m/2024": {
+     "pairs": 12548,
+     "scored_after_warmup": 12548,
+     "games": 1296,
+     "total_coverage": 1.0,
+     "spread_coverage": 1.0,
+     "both_coverage": 1.0,
+     "consensus_p_coverage": 1.0,
+     "ok": true
+    }
+   },
+   "unscored_blocks": [
+    {
+     "block": "2023-10-01",
+     "train": 0,
+     "test": 2401
+    },
+    {
+     "block": "2023-11-01",
+     "train": 2401,
+     "test": 9211
+    }
+   ]
+  },
+  "2_leak_guard": {
+   "ok": true,
+   "detail": {
+    "dk_pairs_after_asof": 0,
+    "dk_leak_guard_t60_pairs": {
+     "2023": {
+      "t60_pairs": 116250,
+      "violations": 0
+     },
+     "2024": {
+      "t60_pairs": 122296,
+      "violations": 0
+     }
+    },
+    "consensus_after_asof": 0,
+    "tag_snapshot_rows": 38794,
+    "tag_snapshots_after_asof": 0,
+    "tag_games_on_proxy_tip": 0,
+    "game_line_features_after_asof": 0,
+    "game_line_quote_rows_excluded_before_aggregation": {
+     "2023": 0,
+     "2024": 0
+    },
+    "b2b_tier_n_out_starter": "structural: strictly earlier games / stored production rows"
+   }
+  },
+  "3_m0_reproduces": {
+   "ok": true,
+   "detail": {
+    "pts/2023": {
+     "n_mine": 14354,
+     "n_stored": 14354,
+     "ll_mine": 0.6913960548379159,
+     "ll_stored": 0.6913960548379159,
+     "abs_diff": 0.0,
+     "same_n": true,
+     "ok": true
+    },
+    "reb/2023": {
+     "n_mine": 15052,
+     "n_stored": 15052,
+     "ll_mine": 0.6872401855268472,
+     "ll_stored": 0.6872401855268473,
+     "abs_diff": 1.1102230246251565e-16,
+     "same_n": true,
+     "ok": true
+    },
+    "ast/2023": {
+     "n_mine": 9650,
+     "n_stored": 9650,
+     "ll_mine": 0.6850393999438685,
+     "ll_stored": 0.6850393999438685,
+     "abs_diff": 0.0,
+     "same_n": true,
+     "ok": true
+    },
+    "fg3m/2023": {
+     "n_mine": 14191,
+     "n_stored": 14191,
+     "ll_mine": 0.6724573478636039,
+     "ll_stored": 0.6724573478636039,
+     "abs_diff": 0.0,
+     "same_n": true,
+     "ok": true
+    },
+    "pts/2024": {
+     "n_mine": 15882,
+     "n_stored": 15882,
+     "ll_mine": 0.6920547651892034,
+     "ll_stored": 0.6920547651892034,
+     "abs_diff": 0.0,
+     "same_n": true,
+     "ok": true
+    },
+    "reb/2024": {
+     "n_mine": 14748,
+     "n_stored": 14748,
+     "ll_mine": 0.6864510021093829,
+     "ll_stored": 0.6864510021093829,
+     "abs_diff": 0.0,
+     "same_n": true,
+     "ok": true
+    },
+    "ast/2024": {
+     "n_mine": 10574,
+     "n_stored": 10574,
+     "ll_mine": 0.6858596233560679,
+     "ll_stored": 0.6858596233560679,
+     "abs_diff": 0.0,
+     "same_n": true,
+     "ok": true
+    },
+    "fg3m/2024": {
+     "n_mine": 12548,
+     "n_stored": 12548,
+     "ll_mine": 0.6772678990225229,
+     "ll_stored": 0.6772678990225228,
+     "abs_diff": 1.1102230246251565e-16,
+     "same_n": true,
+     "ok": true
+    }
+   },
+   "devig_recompute_max_abs_diff": 0.0
+  },
+  "4a_missingness_gap": {
+   "ok": true,
+   "detail": {
+    "game_total": {
+     "across_tiers_within_stat_pp": {
+      "pts": 0.0,
+      "reb": 0.0,
+      "ast": 0.0,
+      "fg3m": 0.0,
+      "ALL": 0.0
+     },
+     "across_stats_within_tier_pp": {
+      "-1": 0.0,
+      "0": 0.0,
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0,
+      "ALL": 0.0
+     },
+     "max_pp": 0.0,
+     "pooled_across_tiers_pp": 0.0,
+     "pooled_across_stats_pp": 0.0,
+     "cells_below_min_n": 5
+    },
+    "spread": {
+     "across_tiers_within_stat_pp": {
+      "pts": 0.0,
+      "reb": 0.0,
+      "ast": 0.0,
+      "fg3m": 0.0,
+      "ALL": 0.0
+     },
+     "across_stats_within_tier_pp": {
+      "-1": 0.0,
+      "0": 0.0,
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0,
+      "ALL": 0.0
+     },
+     "max_pp": 0.0,
+     "pooled_across_tiers_pp": 0.0,
+     "pooled_across_stats_pp": 0.0,
+     "cells_below_min_n": 5
+    },
+    "tag": {
+     "across_tiers_within_stat_pp": {
+      "pts": 0.06583731755098358,
+      "reb": 0.0627510516494291,
+      "ast": 0.053082490471540164,
+      "fg3m": 0.060508949154092925,
+      "ALL": 0.058929309562248254
+     },
+     "across_stats_within_tier_pp": {
+      "-1": 0.0,
+      "0": 0.035724181400159497,
+      "1": 0.04382566848062252,
+      "2": 0.010109139155553191,
+      "3": 0.0045947506505401164,
+      "ALL": 0.02108871707127559
+     },
+     "max_pp": 0.06583731755098358,
+     "pooled_across_tiers_pp": 0.058929309562248254,
+     "pooled_across_stats_pp": 0.02108871707127559,
+     "cells_below_min_n": 5
+    }
+   },
+   "audit": [
+    {
+     "col": "game_total",
+     "stat": "pts",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "spread",
+     "stat": "pts",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "tag",
+     "stat": "pts",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "game_total",
+     "stat": "pts",
+     "tier": 0,
+     "n": 7745,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "pts",
+     "tier": 0,
+     "n": 7745,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "pts",
+     "tier": 0,
+     "n": 7745,
+     "null_rate": 0.0012911555842479018
+    },
+    {
+     "col": "game_total",
+     "stat": "pts",
+     "tier": 1,
+     "n": 12201,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "pts",
+     "tier": 1,
+     "n": 12201,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "pts",
+     "tier": 1,
+     "n": 12201,
+     "null_rate": 0.0008196049504139005
+    },
+    {
+     "col": "game_total",
+     "stat": "pts",
+     "tier": 2,
+     "n": 6907,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "pts",
+     "tier": 2,
+     "n": 6907,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "pts",
+     "tier": 2,
+     "n": 6907,
+     "null_rate": 0.000868683943825105
+    },
+    {
+     "col": "game_total",
+     "stat": "pts",
+     "tier": 3,
+     "n": 3383,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "pts",
+     "tier": 3,
+     "n": 3383,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "pts",
+     "tier": 3,
+     "n": 3383,
+     "null_rate": 0.0014779781259237363
+    },
+    {
+     "col": "game_total",
+     "stat": "pts",
+     "tier": "ALL",
+     "n": 30236,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "pts",
+     "tier": "ALL",
+     "n": 30236,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "pts",
+     "tier": "ALL",
+     "n": 30236,
+     "null_rate": 0.0010252678925783834
+    },
+    {
+     "col": "game_total",
+     "stat": "reb",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "spread",
+     "stat": "reb",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "tag",
+     "stat": "reb",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "game_total",
+     "stat": "reb",
+     "tier": 0,
+     "n": 7863,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "reb",
+     "tier": 0,
+     "n": 7863,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "reb",
+     "tier": 0,
+     "n": 7863,
+     "null_rate": 0.0012717792191275594
+    },
+    {
+     "col": "game_total",
+     "stat": "reb",
+     "tier": 1,
+     "n": 11710,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "reb",
+     "tier": 1,
+     "n": 11710,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "reb",
+     "tier": 1,
+     "n": 11710,
+     "null_rate": 0.0008539709649871904
+    },
+    {
+     "col": "game_total",
+     "stat": "reb",
+     "tier": 2,
+     "n": 6852,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "reb",
+     "tier": 2,
+     "n": 6852,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "reb",
+     "tier": 2,
+     "n": 6852,
+     "null_rate": 0.0008756567425569177
+    },
+    {
+     "col": "game_total",
+     "stat": "reb",
+     "tier": 3,
+     "n": 3375,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "reb",
+     "tier": 3,
+     "n": 3375,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "reb",
+     "tier": 3,
+     "n": 3375,
+     "null_rate": 0.0014814814814814814
+    },
+    {
+     "col": "game_total",
+     "stat": "reb",
+     "tier": "ALL",
+     "n": 29800,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "reb",
+     "tier": "ALL",
+     "n": 29800,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "reb",
+     "tier": "ALL",
+     "n": 29800,
+     "null_rate": 0.0010402684563758388
+    },
+    {
+     "col": "game_total",
+     "stat": "ast",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "spread",
+     "stat": "ast",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "tag",
+     "stat": "ast",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "game_total",
+     "stat": "ast",
+     "tier": 0,
+     "n": 3550,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ast",
+     "tier": 0,
+     "n": 3550,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ast",
+     "tier": 0,
+     "n": 3550,
+     "null_rate": 0.0014084507042253522
+    },
+    {
+     "col": "game_total",
+     "stat": "ast",
+     "tier": 1,
+     "n": 7155,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ast",
+     "tier": 1,
+     "n": 7155,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ast",
+     "tier": 1,
+     "n": 7155,
+     "null_rate": 0.0012578616352201257
+    },
+    {
+     "col": "game_total",
+     "stat": "ast",
+     "tier": 2,
+     "n": 6187,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ast",
+     "tier": 2,
+     "n": 6187,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ast",
+     "tier": 2,
+     "n": 6187,
+     "null_rate": 0.0009697753353806369
+    },
+    {
+     "col": "game_total",
+     "stat": "ast",
+     "tier": 3,
+     "n": 3332,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ast",
+     "tier": 3,
+     "n": 3332,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ast",
+     "tier": 3,
+     "n": 3332,
+     "null_rate": 0.0015006002400960385
+    },
+    {
+     "col": "game_total",
+     "stat": "ast",
+     "tier": "ALL",
+     "n": 20224,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ast",
+     "tier": "ALL",
+     "n": 20224,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ast",
+     "tier": "ALL",
+     "n": 20224,
+     "null_rate": 0.0012361550632911393
+    },
+    {
+     "col": "game_total",
+     "stat": "fg3m",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "spread",
+     "stat": "fg3m",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "tag",
+     "stat": "fg3m",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "game_total",
+     "stat": "fg3m",
+     "tier": 0,
+     "n": 6659,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "fg3m",
+     "tier": 0,
+     "n": 6659,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "fg3m",
+     "tier": 0,
+     "n": 6659,
+     "null_rate": 0.0010512088902237572
+    },
+    {
+     "col": "game_total",
+     "stat": "fg3m",
+     "tier": 1,
+     "n": 10269,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "fg3m",
+     "tier": 1,
+     "n": 10269,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "fg3m",
+     "tier": 1,
+     "n": 10269,
+     "null_rate": 0.0009738046547862498
+    },
+    {
+     "col": "game_total",
+     "stat": "fg3m",
+     "tier": 2,
+     "n": 6530,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "fg3m",
+     "tier": 2,
+     "n": 6530,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "fg3m",
+     "tier": 2,
+     "n": 6530,
+     "null_rate": 0.0009188361408882082
+    },
+    {
+     "col": "game_total",
+     "stat": "fg3m",
+     "tier": 3,
+     "n": 3281,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "fg3m",
+     "tier": 3,
+     "n": 3281,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "fg3m",
+     "tier": 3,
+     "n": 3281,
+     "null_rate": 0.0015239256324291375
+    },
+    {
+     "col": "game_total",
+     "stat": "fg3m",
+     "tier": "ALL",
+     "n": 26739,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "fg3m",
+     "tier": "ALL",
+     "n": 26739,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "fg3m",
+     "tier": "ALL",
+     "n": 26739,
+     "null_rate": 0.001047159579640226
+    },
+    {
+     "col": "game_total",
+     "stat": "ALL",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "spread",
+     "stat": "ALL",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "tag",
+     "stat": "ALL",
+     "tier": -1,
+     "n": 0,
+     "null_rate": NaN
+    },
+    {
+     "col": "game_total",
+     "stat": "ALL",
+     "tier": 0,
+     "n": 25817,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ALL",
+     "tier": 0,
+     "n": 25817,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ALL",
+     "tier": 0,
+     "n": 25817,
+     "null_rate": 0.0012394933570902893
+    },
+    {
+     "col": "game_total",
+     "stat": "ALL",
+     "tier": 1,
+     "n": 41335,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ALL",
+     "tier": 1,
+     "n": 41335,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ALL",
+     "tier": 1,
+     "n": 41335,
+     "null_rate": 0.0009435103423249062
+    },
+    {
+     "col": "game_total",
+     "stat": "ALL",
+     "tier": 2,
+     "n": 26476,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ALL",
+     "tier": 2,
+     "n": 26476,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ALL",
+     "tier": 2,
+     "n": 26476,
+     "null_rate": 0.0009064813415923856
+    },
+    {
+     "col": "game_total",
+     "stat": "ALL",
+     "tier": 3,
+     "n": 13371,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ALL",
+     "tier": 3,
+     "n": 13371,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ALL",
+     "tier": 3,
+     "n": 13371,
+     "null_rate": 0.001495774437214868
+    },
+    {
+     "col": "game_total",
+     "stat": "ALL",
+     "tier": "ALL",
+     "n": 106999,
+     "null_rate": 0.0
+    },
+    {
+     "col": "spread",
+     "stat": "ALL",
+     "tier": "ALL",
+     "n": 106999,
+     "null_rate": 0.0
+    },
+    {
+     "col": "tag",
+     "stat": "ALL",
+     "tier": "ALL",
+     "n": 106999,
+     "null_rate": 0.0010747763997794371
+    }
+   ]
+  },
+  "4b_planted": {
+   "ok": true,
+   "detail": {
+    "future_box_scores_and_game_lines_and_reports": true,
+    "same_game_box_score": true,
+    "labels_not_in_features": true,
+    "post_tip_report_rows": true,
+    "control_past_box_changes_later_tier": true,
+    "control_report_edit_changes_tag": true,
+    "control_game_line_edit_changes_features": true,
+    "walk_forward_train_strictly_before_block": true,
+    "walk_forward_future_rewrite_leaves_earlier_blocks_identical": true,
+    "control_walk_forward_later_block_changes": true
+   }
+  },
+  "info_fills": {
+   "total_filled_rows": 0,
+   "spread_filled_rows": 0,
+   "total_still_null": 0,
+   "h2h_p_home_coverage": 1.0,
+   "tag_null_rate": 0.0010747763997794371,
+   "tier_unknown_rate": 0.0,
+   "cons_line_differs_from_dk": 0.07273899756072487
+  },
+  "info_m1_weights": {
+   "pts": 0.2,
+   "reb": 0.35,
+   "ast": 0.2,
+   "fg3m": 0.3
+  },
+  "all_ok": true
+ }
+}

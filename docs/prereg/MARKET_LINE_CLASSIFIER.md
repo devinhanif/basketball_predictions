@@ -1,6 +1,6 @@
 # MARKET_LINE_CLASSIFIER: predict the side of the book's line with the market as an input (pre-registration)
 
-Status: DRAFT 2026-10-11 ~16:40 CT, NOT FROZEN; awaiting Devin's "confirmed"; gate to be measured on real data before any freeze.
+Status: FROZEN 2026-10-11 15:06 CT on Devin's confirmation ("i confirm everything, try everything", 2026-10-11 16:50; DECISIONS). Gate measured (all four pass; section below); Oct-Nov 2023 are the unscored walk-forward warm-up (no 2022 price pairs exist) and the interpretive choices in the gate section are frozen with the rule.
 Freeze evidence: commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/MARKET_LINE_CLASSIFIER.md | shasum -a 256`.
 Season labels: 2023 = 2023-24, 2024 = 2024-25, 2025 = 2025-26 (frozen holdout, never loaded).
 
@@ -53,6 +53,35 @@ at T-60, Holm; M3 and M4 are controls. MDE from ODDS_HISTORY's SEs (~0.001 log l
 2. Leak guard: every feature's snapshot_ts ≤ tip − 60 min (ODDS_HISTORY choice 7).
 3. M0 reproduces the ODDS_HISTORY market log loss per stat/season to 1e-6 on the same pairs.
 4. Missingness audit of game_total/spread and tag by stat and tier; max gap ≤ 2 pp; planted-future test on the walk-forward.
+
+### Gate measured 2026-10-11 (harness `research/eval/market_line_classifier_eval.py gate`; no arm fitted; `reports/prereg_market_line/gate.json`)
+1. PASS. DK t60 two-sided main-line pairs per stat/season (pts, reb, ast, fg3m): 2023 = 14,354 / 15,052 / 9,650 / 14,191; 2024 = 15,882 /
+   14,748 / 10,574 / 12,548 (all >= 5,000; 53,247 and 53,752 in total). Consensus game total, home spread and h2h P(home) cover 100% of
+   pairs (1,318 and 1,320 games with lines; game lines are the median over books of each book's main line; no row is filled). Consensus
+   player p exists for 100% of pairs; its line differs from DK's on 7.3%. Scored after warm-up: odds exist from 2023 only, so the pooled
+   walk-forward cannot score its first blocks: October 2023 (0 training rows) and November 2023 (2,401 rows < 5,000) are UNSCORED, which
+   leaves 2023 with 11,180 / 11,742 / 7,592 / 11,121 scored pairs (78%) and 2024 with all of its pairs. Constant: a block is scored only
+   with >= 5,000 earlier training rows.
+2. PASS. DK pairs with snapshot_ts > tip - 60 min: 0 of 116,250 (2023) and 122,296 (2024) t60 pairs (ODDS_HISTORY's guard, called not
+   copied); consensus-p rows after the as-of: 0; game-line quote rows after the as-of: 0 excluded of every row (so nothing was dropped); report
+   snapshots after tip - 60 min: 0 of 38,794 (all games have a real tip, 0 on the proxy). b2b, tier, starter10 and n_out_rot are built from
+   strictly earlier games or stored production rows.
+3. PASS. M0 (DK de-vigged P(over)) reproduces ODDS_HISTORY's stored market log loss on the same pairs, same n, max |diff| 1.1e-16 (limit
+   1e-6): pts/reb/ast/fg3m 2023 = 0.69140 / 0.68724 / 0.68504 / 0.67246 (n 14,354 / 15,052 / 9,650 / 14,191), 2024 = 0.69205 / 0.68645 /
+   0.68586 / 0.67727 (n 15,882 / 14,748 / 10,574 / 12,548). The de-vig recomputed from the raw DK prices matches the stored p exactly. The
+   2026-10-11 clean-up did not change these pairs (they come from the stored parquets; played/tip tables re-read from nba.duckdb gave the
+   same n), so no registry-keys variant is needed.
+4. PASS. Null rate by stat and tier (cells under 300 rows listed, not judged; the only such cells are the empty tier -1): game_total 0.0%
+   and spread 0.0% everywhere; T-60 report tag (null = the game has no usable snapshot) 0.107% overall, max gap across tiers within a stat
+   0.066 pp, across stats within a tier 0.044 pp (limit 2 pp). Planted-future on the feature builders and the walk-forward: future box scores,
+   game lines and report rows, same-game box scores, post-tip report rows and flipped labels leave the as-of features byte-identical; the
+   walk-forward trains strictly before each block, a rewrite of every row on/after a cut leaves earlier blocks' training sets identical;
+   all four positive controls fire (a past edit moves later tiers, a report edit moves tags, a game-line edit moves features, a later block
+   moves).
+Built-in choices the text above fixes (unstated until now): tier = prior-10 points by an as-of join strictly before the game date (so a
+DNP row is not special); spread is signed to the player's team; p_cons_over is at the consensus line; M4 permutes p_grid_over and z
+jointly within (stat, season); one pooled model over the four stats per block with the stat as a numeric code; the pass rule is read
+as 2023 selects (conditions 1-4 on the point and CI, no Holm) and 2024 confirms (all, with Holm over the 4 stats).
 
 ## Pass rule (per stat; 2023 selects, 2024 confirms; all must hold)
 1. M2 − M0 log loss ≤ −0.002 with CI upper < 0 and Holm p < 0.05.

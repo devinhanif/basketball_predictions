@@ -374,3 +374,11 @@ the stored production OOF reference on the current data_version so every future 
 after the four runs).
 Why: non-negotiable 8; the third rule to hit the same stale-reference stop.
 What would reverse it: nothing above the line changes.
+
+## 2026-10-11 2026-10-11 15:06 CT — MARKET_LINE_CLASSIFIER FROZEN (sha256 b85ae0d7)
+What: gate passed on real data (pairs 9,650-15,882 per stat-season; 100% game-line coverage; 0 leak-guard violations; M0 reproduces
+ODDS_HISTORY to 1e-16; missingness gap 0.07 pp; planted tests pass incl. a bug the plant caught in the tier join). Frozen with its
+gate-section choices (tier as-of join, spread signed to the player's team, consensus p at the consensus line, joint permutation
+placebo, one pooled learner with a stat code, 2023 selects without Holm, 2024 confirms with Holm); Oct-Nov 2023 unscored warm-up.
+Why: Devin's confirmation; non-negotiable 8.
+What would reverse it: nothing above the line changes.
