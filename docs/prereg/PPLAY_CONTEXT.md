@@ -123,3 +123,5 @@ dlogloss, ci_lo, ci_hi, p, p_bh, brier, ece]`; `[family, season, slice, arm, n, 
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-11 10:44 CT, commit 5b07734, sha256 of everything above the line: 3310de87746012b4a9c2a89793e50a1e59b8f4b9527b2a61761bb6f714ebf153 (first 8: 3310de87). Verify with the awk command in the header.
