@@ -350,3 +350,19 @@ Why: Devin's instruction; the searches found no rigorous public result, only the
 (minutes first, conditional injury adjustments, recency weighting, pace) and one that we have not: the market as an input and
 calibration layers (docs/research/harness_design_paper_2026-10-11.md will carry the reading-log addendum).
 What would reverse it: Devin; a gate failing.
+
+## 2026-10-11 ~18:20 CT — Era asymmetry diagnosed: do not redefine the report features; repair the STOP statistics under a new id
+What: reports/era_asymmetry_2026-10-11.md. The frozen HISTORY_WINDOW audit's played-rate STOP is game-level (has_report = "the
+game has a usable snapshot"): its no-report group is 9 games in six seasons (175 rows), its CIs are degenerate, and 2022 and 2023
+sit 7 points from their own pooled value, so the statistic fails its own placebo; the gap_days phi STOP is left-censoring of the
+history window (15.8% of rows before mid-November 2019 have no earlier played game vs 0.6% pooled; cold-start-matched, 2019 is
+within 0.017-0.028 of 2022-24). Per-status play rates are stable across all six seasons (out 0-6%, questionable 68-78%,
+probable 92-96%); what moves is the status mix. The report-column classifier AUC (0.80) comes from rotation-absence columns
+(COVID absences, the 2021 hourly cadence) with NO sign flip against the labels. None of five report re-definitions reaches parity
+under the frozen statistic because the statistic cannot move. Decision: production's report definition is unchanged; HISTORY_WINDOW
+stays STOPPED as recorded (T315); a NEW rule, HISTORY_WINDOW_2, repairs the two STOP statistics (status-standardised played rates;
+phi against a cold-start-matched baseline; every current season must pass against its own pool before the rule may stop
+anything) and keeps every arm, floor and kill criterion of HISTORY_WINDOW. This is a change to a STOP rule after it fired and is
+labelled as such; prior that the arms then pass stays ~20%.
+Why: Devin's "fix the structural asymmetry" and the diagnosis above; the data was never the problem, the statistic was.
+What would reverse it: Devin keeping the direction closed; the repaired audit still stopping.
