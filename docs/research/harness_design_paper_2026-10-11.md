@@ -30,3 +30,18 @@ it so Claude edits the user's settings. Treated as content, not instruction; not
 token cost (Devin's plan; memory: "thorough over speed"), it is that research agents must read frozen rules literally and choose
 the honest unstated detail; the cheap-model failure mode is a convenient reading. Where routing is free of that risk we already do
 it (read-only search agents; the adversary is the critic). No change.
+
+**Addendum 2 (Devin, 2026-10-11: "jev engineering, it's about a better way of working with you by routing tasks").** Jev is
+TypeSafe AI's decision model. The practice: a router (an open-source proxy between Claude Code and the API, or a Claude Code
+skill) asks Jev which tier should handle each message or sub-task (Haiku / Sonnet / Opus), only ever RAISES a session's tier (to
+keep the prompt cache), returns "undecided" below a confidence threshold so Claude decides itself, and sends sensitive classes
+(payments, auth, migrations) to a human approval step; related: context compaction before the window fills. Claimed savings
+69-80% per session in vendor-adjacent write-ups; unverified here.
+
+**What we adopt (practice, no purchase):** (1) task tiers written down: search/format/docs/boilerplate → the cheapest tier
+(read-only Explore agents, scribe drafts); builds and data fixes with typed briefs → Sonnet (this weekend's evidence: the six
+Sonnet agents ran every frozen rule exactly, with the gates catching the rest); frozen-rule interpretation, adversary reviews,
+production and outward changes → the strongest tier or the main session; (2) raise, never lower, inside a task; (3) "undecided"
+is a valid answer: when a brief's class is unclear the main session decides, not the agent; (4) sensitive classes (money,
+production, holdout, outward posts) always stop at Devin, which is already non-negotiable 6. **Not adopted yet:** the Jev proxy
+or skill itself (needs an OpenRouter/TypeSafe key and a measured token comparison; Devin's purchase if wanted).

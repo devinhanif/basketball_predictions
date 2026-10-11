@@ -98,3 +98,9 @@ is the only reason it was tidiness and not an outage. Practice: `git commit -- <
   rebuild overlapping the pretip window, "report once at the end" prose that hid a failed sub-check. Two checks now run before
   every commit of agent work: **cost-ceiling** (each run declares a ceiling in requests/credits/minutes and halts at it) and
   **ledger-complete** (rows drafted equal rows appended). Every uncaught error becomes a new check here.
+
+- **Task routing by tier (Devin, 2026-10-11, "jev engineering").** Before delegating, the main session names the task's class and
+  tier: mechanical (search, format, docs, boilerplate) → cheapest; build/data fix with a typed brief → Sonnet; frozen-rule runs
+  where interpretation matters, adversary reviews, production/outward changes → strongest tier or main. Raise, never lower, inside
+  a task; "undecided" goes to the main session; money/production/holdout/outward always stop at Devin. The Jev router itself is
+  optional tooling (docs/research/harness_design_paper_2026-10-11.md, addendum 2).
