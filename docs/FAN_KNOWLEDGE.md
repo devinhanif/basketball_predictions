@@ -589,3 +589,12 @@ Measured follow-ups below, each descriptive first.
   change MOV-Elo's 2024-25 forecasts by exactly zero (the ratings forget the extra years by then) and re-tuning its parameters on
   four seasons is within noise. The props extension could not even be tested cleanly because the old injury reports carry era
   identity (T315). More history is not a lever here; injury-Elo stays production.
+- **"Best parlay our strongest model would have predicted correctly" (Devin, 2026-10-11; production props model OOF rows × every
+  DraftKings two-sided line incl. alternates, 2023-24 + 2024-25):** of 213,998 legs the model's probability beat the book's on
+  50.0%; those hit 52.3% vs the book's 50.2% implied (+2.1 points; the model's own average claim 58.2% is the over-confidence we
+  know). Best single night of model-favoured legs that all hit: 2024-03-29, ten legs paying 38,366x (Paul Reed, Bam Adebayo,
+  Bagley, Sochan under, Tobias Harris, Lowry, Grant Williams, Claxton, Hardaway under, Cam Thomas; mostly threes and assists on
+  role players), the model gave the combo 1 in 10,000 and the book 1 in 100,000; the 8-leg cut pays 6,392x, the 5-leg 394x.
+  Honest strategy version: the model's 8 largest-edge legs every night hit all 8 on 0.7% of 419 nights (3 nights), typical payout
+  160x, return 1.10 per $1 carried entirely by three nights. Hindsight tickets are stories; the only forecast claim in this is the
+  +2.1-point hit-rate edge on model-favoured legs, and that is the same small, unproven props edge the ledger already carries.
