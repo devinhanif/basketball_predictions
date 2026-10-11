@@ -530,3 +530,11 @@ rotation-level young players in close games would be a new rule.
   narrow (80% interval covers 50%); even tonight's actual margin would not close the gap. Mechanisms we can write down do not beat
   features that learn between-game variance. Closed, with the whole "better pre-game minutes" direction: the minutes that matter
   arrive at T-30 (lineups) or from reporters (restrictions).
+- **Cross-book arbitrage in the stored prop prices (Devin's question, 2026-10-11; descriptive on 2023-24 to 2025-26 T-60/T-5
+  snapshots, 1.12M player-lines with both sides quoted somewhere):** on paper 4.5% of lines show the best over at one book plus the
+  best under at another summing under 100%; median margin 1.0%, 12,430 lines at ≥ 2%, 2,901 at ≥ 5% (the largest "margins" are
+  stale or erroneous quotes). Most involve the exchanges Novig and ProphetX, whose commission is not in the price; sportsbooks only:
+  2.4% of lines, median 1.1%. Rebounds and assists arb most (6%), points 3.4%, steals 2%. Frequency rose from 1.4% (2023-24) to
+  5-7% (2025-26) as more books were captured. Staleness check in the fan doc's companion query. Not a line of business here
+  (read-only, no orders, non-negotiable 5); recorded as a fact about how dispersed book prices are, which is also why the
+  consensus de-vig is a better benchmark than any single book.
