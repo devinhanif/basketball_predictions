@@ -37,3 +37,7 @@ running now: the ingest queue is PAUSED for it (resumable; done steps skip) and 
 HISTORY_WINDOW stopped at its own gate (T315): the 2019-21 injury reports carry era identity (no PDFs before 2019-11-10; three
 snapshots a day), so the props extension cannot be evaluated cleanly. No model was fit. Queue resumed. Your MOV-Elo question
 moves to a report-free follow-up, ELO_HISTORY_WINDOW, drafted for your "confirmed".
+
+## 10:40 update
+Supervised pretip run: clean, rc 0, but the slate is empty until 2026-10-20, so it proves the wiring, not the live fetch; it repeats
+on opening day. PPLAY_CONTEXT and ELO_HISTORY_WINDOW confirmed by you; both gates being measured, then freeze and run.

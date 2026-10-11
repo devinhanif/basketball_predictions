@@ -93,3 +93,7 @@ Plain version: the first three make the data and the store ready for the live se
 - Facts store for the live season (before 2026-10-20): replace `--max-season` with an explicit `--seasons` list so 2026-27 report,
   lineup and box facts load while season 2025 stays absent; then the nightly job rebuilds the store after the morning settle and
   the explainer/pretip read it. Today the store holds 2022-24 fully plus the 2026-27 schedule only.
+
+- Supervised pretip run, 2026-10-11 10:33 CT (`nba.daily run --date 2026-10-11 --roster-source official --log-int-variant`):
+  rc 0, slate 0 (no regular-season games yet), injury step skipped, no alerts. The wiring runs; the live schedule and injury-PDF
+  fetch are still unrehearsed on a real slate. Repeat on 2026-10-20 before the first tip (checklist item 2 stays open).
