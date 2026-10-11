@@ -104,3 +104,7 @@ is the only reason it was tidiness and not an outage. Practice: `git commit -- <
   where interpretation matters, adversary reviews, production/outward changes → strongest tier or main. Raise, never lower, inside
   a task; "undecided" goes to the main session; money/production/holdout/outward always stop at Devin. The Jev router itself is
   optional tooling (docs/research/harness_design_paper_2026-10-11.md, addendum 2).
+
+- **Never chain an edit and its commit in one shell line (2026-10-11, twice in one evening).** A failing `assert` inside a Python
+  heredoc does not stop the `;`-chained `git commit` that follows, so a doc went out "frozen" with its status unapplied and a ledger
+  append went out unappended. Rule: edit → verify (hash, grep, count) → commit, as separate tool calls; `&&` after the edit, never `;`.
