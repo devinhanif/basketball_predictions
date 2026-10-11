@@ -195,3 +195,9 @@ while the columns' correlation with the residual label flips sign between eras (
 loaded: 354,974 rows, 4,466 unmatched names (1.24%; mostly two-way players repeated daily; log at
 data/history/availability_unmatched_2026-10-11.json). Ledger T315. The one allowed follow-up: a win-model-only question that uses
 no report feature in the history era (drafted as ELO_HISTORY_WINDOW).
+
+**Re-audit 2026-10-11 ~17:10 CT (after the early-2019 report load, +7,554 +262 rows; same frozen rule, gate stage only, no arm):**
+2019-20 report coverage now matches the pooled 2022-24 level (−0.02 points; was −17.6), and the report-column classifier STOP no
+longer fires. The played-rate STOP still fires: P(played | has_report) gap 0.051 in 2019-20 and 0.016 in 2020-21 vs 0.136 in
+2022-24, and the gap_days NULL-pattern phi 0.127 vs 0.073. The asymmetry is structural (three snapshots a day and the COVID
+protocol era), not a parser gap. The extension stays un-evaluable; the direction stays closed (T315, DECISIONS 2026-10-11 ~13:10).
