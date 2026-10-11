@@ -21,7 +21,7 @@ class ShadowConfig:
     window_min: tuple[int, int] = (60, 70)
     planning_tokens_per_game: int = 8_500
     nightly_token_ceiling: int = 150_000  # hard: games beyond it are budget_skip (latest tip first)
-    monthly_token_backstop: int = 2_000_000
+    monthly_token_backstop: int = 2_500_000
     monthly_cap_usd: float | None = None  # REQUIRED for the real provider; None = refused
     input_token_cap: int = 8_000  # per call; the payload is trimmed to fit
     max_legs_per_game: int = 40

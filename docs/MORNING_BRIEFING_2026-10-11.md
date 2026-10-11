@@ -89,3 +89,8 @@ GAME_MARKET_CONTEXT closed, null (T389-T414): market spread/total as props conte
 forecaster approved (DECISIONS 17:14): rule drafted d15249ea (committed as DRAFT; needs your MONTHLY_CAP_USD), job building behind
 NBA_LLM_SHADOW in a worktree. Capture ON. Needs you: the monthly dollar cap for the LLM shadow; nothing else.
 
+
+## 17:56 CDT update
+LLM shadow job merged (560232f), flag off; rule draft at 0724ce2 waits on your MONTHLY_CAP_USD. Enable later with three lines in .env
+(ANTHROPIC_API_KEY, NBA_LLM_SHADOW=1) plus the cap in configs/llm_shadow.yaml and `uv sync --extra llm`; docs/LLM_SHADOW.md has the
+first-night check. Oracle golden unchanged.

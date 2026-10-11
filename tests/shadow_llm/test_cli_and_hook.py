@@ -24,7 +24,7 @@ def test_repo_config_loads_with_cap_unset_and_rule_constants() -> None:
     cfg = load_config(CONFIG_PATH)
     assert cfg.monthly_cap_usd is None  # real provider refused until Devin sets MONTHLY_CAP_USD
     assert (cfg.max_tokens, cfg.nightly_token_ceiling, cfg.monthly_token_backstop) == (
-        3000, 150_000, 2_000_000,
+        3000, 150_000, 2_500_000,
     )  # fmt: skip
     assert (cfg.planning_tokens_per_game, cfg.input_token_cap) == (8500, 8000)
     assert cfg.model_id == "claude-fable-5-1" and cfg.fallback_model_id == "claude-opus-5-5"

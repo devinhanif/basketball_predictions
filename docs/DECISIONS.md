@@ -543,3 +543,12 @@ Why: the frozen rule.
 What would reverse it: the live follow-up, or a market-context feature with information the proxies lack (e.g. live total moves after
 lineup news), which is a T-30 question.
 
+
+## 2026-10-11 17:56 CDT — LLM shadow job MERGED (560232f) behind NBA_LLM_SHADOW, off; backstop 2.5M tokens (A5)
+What: nba/shadow_llm merged after the replay oracle on the branch reproduced the golden exactly (89889f6d, 46,658 predictions, 44,562
+scores; first attempt from the bare worktree was not comparable: no data directory, 19:00 proxy tips, one run per date). Flag off, so the
+working tree's live behaviour is unchanged; the only shared-path edit excludes model_name llm_shadow from settle_pending. Monthly token
+backstop set to 2,500,000 (config, defaults, doc, test; the rule draft 0724ce2 says the same). The real provider runs only when
+ANTHROPIC_API_KEY and MONTHLY_CAP_USD are set and NBA_LLM_SHADOW=1 is in .env; `uv sync --extra llm` installs the SDK first.
+Why: Devin's approval (17:14); the oracle gate every structural change passes.
+What would reverse it: a first live night writing anything after tip, or a schema-violation rate above 10% (the rule's G2).
