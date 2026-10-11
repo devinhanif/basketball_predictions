@@ -255,3 +255,10 @@ Why: the rule anticipated exactly this ("the single largest leak trap for the re
 evaluated cleanly. Devin's actual question (does MOV-Elo gain from more seasons) does not need report features, so the one allowed
 follow-up is drafted as ELO_HISTORY_WINDOW for his confirmation.
 What would reverse it: a report source for 2019-10-21 to 2019-11-09 and an era-balanced report design; not expected.
+
+## 2026-10-11 ~11:05 CT — Devin: "Run everything, confirmed confirmed" (PPLAY_CONTEXT and ELO_HISTORY_WINDOW)
+What: both drafts are confirmed. Each freezes the moment its minimum-data gate is measured on real data (non-negotiable 8) and
+runs under its rule; results, ledger rows and the briefing follow without further check-ins. Also run today: the supervised live
+pretip run from the opening-night checklist.
+Why: Devin's instruction; the gates are the only thing between confirmation and freeze.
+What would reverse it: a failed gate stops that rule before the freeze and is reported, not patched.
