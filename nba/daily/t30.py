@@ -100,6 +100,7 @@ class GameLineup:
     fetched_at: datetime
     home: TeamLineup
     away: TeamLineup
+    n_dupes_collapsed: int = 0
 
     @property
     def starters(self) -> frozenset[int]:
@@ -141,6 +142,35 @@ def ensure_decisions_table(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(DECISIONS_DDL)
 
 
+def dedupe_snapshot_rows(rows: list[tuple[Any, ...]]) -> tuple[list[tuple[Any, ...]], int]:
+    """One row per (team_id, player_id) from ONE (snapshot, game) block of lineup rows.
+
+    The feed sometimes lists a player twice in a snapshot (an Expected row plus a Confirmed
+    row, or two Confirmed rows that disagree on ``announced_starter``). The winner is, in order:
+    Confirmed over Expected; the latest ``source_ts`` (NULL last); ``announced_starter`` TRUE;
+    the first row in input order (pass rows ordered by rowid). Dedupe first, then compute the
+    status set, so a leftover Expected twin cannot make a confirmed team look mixed.
+
+    Rows are ``(team_id, lineup_status, announced_starter, roster_status, player_id,
+    source_ts)``. Returns ``(kept rows in first-seen order, number of rows collapsed)``.
+    """
+
+    def rank(r: tuple[Any, ...]) -> tuple[bool, bool, datetime, bool]:
+        return (
+            str(r[1]) == CONFIRMED,
+            r[5] is not None,
+            r[5] if r[5] is not None else datetime.min,
+            bool(r[2]),
+        )
+
+    best: dict[tuple[int, int], tuple[Any, ...]] = {}
+    for r in rows:
+        k = (int(r[0]), int(r[4]))
+        if k not in best or rank(r) > rank(best[k]):  # strict: ties keep the earlier row
+            best[k] = r
+    return list(best.values()), len(rows) - len(best)
+
+
 def load_game_lineup(
     lcon: duckdb.DuckDBPyConnection, g: ScheduledGame, cutoff: datetime
 ) -> tuple[GameLineup | None, str, tuple[str, datetime] | None]:
@@ -151,9 +181,11 @@ def load_game_lineup(
     sid, fetched = snap
     rows = lcon.execute(
         "SELECT team_id, lineup_status, announced_starter, roster_status, player_id, source_ts "
-        "FROM lineup_snapshots WHERE snapshot_id = ? AND game_id = ?",
+        "FROM lineup_snapshots WHERE snapshot_id = ? AND game_id = ? ORDER BY rowid",
         [sid, g.game_id],
     ).fetchall()
+    rows, n_dupes = dedupe_snapshot_rows(rows)
+    note = f"; dupes_collapsed={n_dupes}" if n_dupes else ""
     teams: dict[int, list[tuple[Any, ...]]] = {}
     for r in rows:
         teams.setdefault(int(r[0]), []).append(r)
@@ -177,12 +209,12 @@ def load_game_lineup(
     if h.lineup_status != CONFIRMED or a.lineup_status != CONFIRMED:
         return (
             None,
-            f"lineup_not_confirmed:home={h.lineup_status},away={a.lineup_status}",
+            f"lineup_not_confirmed:home={h.lineup_status},away={a.lineup_status}{note}",
             snap,
         )
     if len(h.starters) != 5 or len(a.starters) != 5:
-        return None, f"starters_not_5:home={len(h.starters)},away={len(a.starters)}", snap
-    return GameLineup(g.game_id, sid, fetched, h, a), "", snap
+        return None, f"starters_not_5:home={len(h.starters)},away={len(a.starters)}{note}", snap
+    return GameLineup(g.game_id, sid, fetched, h, a, n_dupes), "", snap
 
 
 def _slate_pgs_with_starters(
@@ -411,6 +443,8 @@ def run_t30(
             summ.n_skipped_games += 1
         else:
             _record(con, g, made_at, g.tipoff - lead, (gl.snapshot_id, gl.fetched_at),
-                    "logged", f"ok; {len(gl.inactive)} listed-inactive excluded", n)  # fmt: skip
+                    "logged", f"ok; {len(gl.inactive)} listed-inactive excluded"
+                    + (f"; dupes_collapsed={gl.n_dupes_collapsed}" if gl.n_dupes_collapsed else ""),
+                    n)  # fmt: skip
             summ.n_logged_games += 1
     return summ

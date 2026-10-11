@@ -86,3 +86,7 @@ commit took another agent's staged half-move (f11d95b: archive cut 1 plus half o
 CI on research imports until the rest landed (37ac1fd). The live path was untouched (layering test), which
 is the only reason it was tidiness and not an outage. Practice: `git commit -- <paths>` only, after
 `git status --short | grep -v '^??'` shows what else is staged; multi-file moves get their own worktree.
+
+- **launchd runs the working tree.** The pretip job at 00:04 on 2026-10-11 executed an uncommitted edit to nba/daily/t30.py (its
+  decision row carries `dupes_collapsed=10`) before the fix was reviewed. Edits under nba/daily, nba/lineups and ops/ must be made
+  in a worktree or stashed between the :20/:50 runs until shipped; a reviewer's "it is only drafted" is not true for the live job.

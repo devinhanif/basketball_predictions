@@ -144,3 +144,7 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   Phase 2 fixes are running in the audit's order (games+availability, possession "Miss"-name bug, stint rebuild with a season-wide
   name book, game-level coaches table, players_static re-pull, lineup dedupe view). NEEDS DEVIN: the t30.py reader fix is a
   production change; the steward drafts it with a test and the replay check; say "ship t30 fix" to commit.
+- 2026-10-11 01:35: T-30 reader fix SHIPPED (Devin: "ship t30 fix"): duplicate lineup rows collapse before the status check
+  (Confirmed over Expected, latest snapshot, starter TRUE); the decisions table now records `dupes_collapsed=K`. Oracle hash
+  identical (the replay cannot exercise T-30; unit tests carry it). The 00:04 pretip run already used it: game 0012600014 skipped
+  for a real reason (away lineup empty), not for duplicates.
