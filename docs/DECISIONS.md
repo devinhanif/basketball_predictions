@@ -219,3 +219,14 @@ then RESUME the queue; (2) same-surname stint rule with gate ≤ 20 and the 188 
 until Devin says so; (4) everything committed by path with ledger rows numbered as they land; the morning briefing carries it all.
 Why: Devin's instruction; the queue pause is the only operational call inside it and is reversible (done steps are skipped).
 What would reverse it: any gate failing stops that item; a conflict for nba.duckdb serialises on data/ops/heavy.lock.
+
+## 2026-10-11 ~03:40 CT — HISTORY_WINDOW harness: unstated details confirmed before any data
+What: research/eval/history_window_eval.py built against the frozen rule (sha256 9a1090be, matches the 2026-10-09 notice). Choices the
+rule left open, fixed now and printed in the report: outputs under reports/history_window/ and reports/history_window.md; PASS = the
+same stat passes on 2023 AND 2024 (the looser reading is reported, not counted); a 2/sqrt(n) noise floor on the sign-flip STOP so a
+near-zero correlation cannot trip it by chance; NULL-pattern phi definitions; G0.1 game list = data/history/games/*.parquet; G0.3 from
+the history possessions table; G0.4 "done" = ≥ 1 report row on the manifest date, plus the manual 20-date PDF spot check before
+`run`; true-rookie = first played season in the union equals the evaluated season; history games without a real tip get no report
+rows (no proxy). Confirmed by the main session; no number exists.
+Why: non-negotiable 4 (nothing changes after a result) requires these to be written before the gate runs on real data.
+What would reverse it: nothing after the run; Devin may ask for the looser PASS reading as a reported secondary only.
