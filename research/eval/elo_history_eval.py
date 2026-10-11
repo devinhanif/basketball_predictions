@@ -558,8 +558,9 @@ def check_e0_repro(world: dict[str, pl.DataFrame], params: dict[str, float]) -> 
 
     engine_ok = bool(fast_diff <= 1e-9 and fast_diff_e1 <= 1e-9)
     return {
-        "ok": bool(_match(sc) and engine_ok),
+        "ok": bool(_match(scr) and engine_ok),  # frozen check 2: registry keys (amended)
         "ok_registry_keys": bool(_match(scr) and engine_ok),
+        "ok_current_data_as_drafted": bool(_match(sc) and engine_ok),
         "detail": {
             "stored": {
                 "n": STORED_N,

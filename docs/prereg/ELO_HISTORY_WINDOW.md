@@ -68,6 +68,11 @@ E2 and E3; `[test, ok]` for checks 1-4; seeds, SHA, sha256. Code under `research
 
 === RESULTS BELOW ===
 
-(not run)
+Run 2026-10-11 10:54 CT under frozen sha256 d5432e50, git 12e6302, harness research/eval/elo_history_eval.py (check-2 `ok` conformed to the
+amended registry-keys wording before the gate; nothing changed after). Gate: checks 1-4 PASS. n = 1,318 (2023) / 1,320 (2024), identical keys all arms.
+Full table, slices, frozen E2/E3 parameters, injury-Elo reference: reports/prereg_elo_history.md and reports/prereg_elo_history/results.json.
 
-Freeze: 2026-10-11 10:53 CT, commit 5bc17d2, sha256 of everything above the line: d5432e50523f270b4fafc6a093b52d0fc7bef967d30e3fe1a49c052f66abc633 (first 8: d5432e50). Verify with the awk command in the header.
+Log-loss delta vs E0 (game CI; BH family {E1,E2} per season): 2023 E1 +0.0000 [-0.0002,+0.0004] p_bh 0.75; E2 +0.0008 [-0.0005,+0.0021] p_bh 0.41;
+E3 (descriptive) +0.0011 [-0.0006,+0.0028]. 2024 E1 +0.0000 [0.0000,0.0000] p_bh 0.028 (negligible size); E2 -0.0001 [-0.0017,+0.0015] p_bh 0.92;
+E3 +0.0004 [-0.0016,+0.0024]. E0 log loss 0.6114 / 0.6108; injury-Elo v2 reference 0.6055 / 0.5979.
+Verdict: no arm passes (floor -0.004 missed everywhere). Closed on the select season. History-window direction closed for 2026-27.

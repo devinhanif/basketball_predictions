@@ -46,3 +46,6 @@ on opening day. PPLAY_CONTEXT and ELO_HISTORY_WINDOW confirmed by you; both gate
 PPLAY_CONTEXT: no pass (T316–T317): the report tag is the information, the team habit is noise against a placebo. NEEDS YOU (production):
 the P(play) Platt map in the forward path is miscalibrated (ECE ~0.14; raw p is better by ~0.07 log loss); say "fix pplay platt" and the
 steward drafts the change with the replay oracle. Queue reordered: tracking/hustle first (your call). ELO_HISTORY_WINDOW freezing now.
+
+## 13:10 update
+ELO_HISTORY_WINDOW: null (long replay changes 2024-25 by exactly zero; retune within noise). History-window direction closed for the season.

@@ -293,3 +293,10 @@ on the registry's 3,951 keys (exact: |diff| 0.0) and the five games stay in the 
 result, playoffs included, as the stored baseline. No arm fitted before the freeze. E3 down-weights bubble/no-fans games only.
 Why: non-negotiable 8 and Devin's confirmation.
 What would reverse it: nothing above the line changes.
+
+## 2026-10-11 ~13:10 CT — ELO_HISTORY_WINDOW: NULL; the history-window direction is closed for 2026-27
+What: ran under frozen sha256 d5432e50. More seasons of scores do nothing for MOV-Elo: the long replay is identical by the evaluation
+window (2024 delta exactly 0.0000) and re-tuning on four seasons is within noise. Injury-Elo remains production. This spent
+HISTORY_WINDOW's one allowed follow-up; no further history-window rule this season.
+Why: Elo forgets with a half-life of about a season; the 2022-23 warm-up already carries everything the ratings can carry.
+What would reverse it: nothing in this family. (The early-2019 report-layout parser fix proceeds as a data repair on its own merits.)

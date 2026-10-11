@@ -585,3 +585,7 @@ Measured follow-ups below, each descriptive first.
   is noise, and the whole gain is the T-60 report tag (questionable/doubtful/probable), which that comparator never had. So "teams
   have load-management habits" is true as a description and useless as a forecast once the report is in hand. Side finding: the
   deployed Platt map on P(play) is miscalibrated (worse than the raw probability) and is flagged for Devin.
+- **"Retrain on all the old data to see how MOV-Elo works with more data" (Devin): NULL (T318+).** Three more seasons of scores
+  change MOV-Elo's 2024-25 forecasts by exactly zero (the ratings forget the extra years by then) and re-tuning its parameters on
+  four seasons is within noise. The props extension could not even be tested cleanly because the old injury reports carry era
+  identity (T315). More history is not a lever here; injury-Elo stays production.
