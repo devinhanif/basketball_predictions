@@ -177,9 +177,10 @@ bar whenever the market beats production (the usual case).
 
 **Kill (cost control; the arm stops and the result is recorded).** At L60 (the first n gate) and at any later decision look:
 `D >= +0.005` AND the 98.18% CI lower bound `> 0`. **Early cost stop at L30 (A1):** with at least 30 dates and 2,000 scored legs,
-`D >= +0.010` AND the 98.18% CI lower bound `> 0` stops the arm (cost control only, never an efficacy claim). Also: monthly cap (USD or the token backstop) reached, or a leak-audit (G1)
-failure that is not repaired by a documented, not result-driven, pipeline fix. A kill is final for the season; a new version
-is a new arm with new counters. After END the arm stops unless the END look passed.
+`D >= +0.010` AND the 98.18% CI lower bound `> 0` stops the arm (cost control only, never an efficacy claim). Also a KILL: a leak-audit (G1) failure that is not repaired by a documented, not result-driven, pipeline fix. A kill is final for the
+season; a new version is a new arm with new counters. The monthly cap (USD or the token backstop) is a PAUSE, not a kill (pre-freeze
+clarification, main session 18:01 CDT; section 3 already said so): the arm stops for the remainder of the calendar month, the skipped
+games are counted at every look like budget skips, and it resumes on the 1st with the same counters. After END the arm stops unless the END look passed.
 
 **Secondary (descriptive, no pass weight).**
 - CLV of the preferred side. Using the book's own RAW (vigged) implied probabilities at T-60, as in MODEL_CLV:
@@ -220,7 +221,7 @@ Run by `research/eval/llm_shadow_eval.py gate`. Items 1-4 run against a stub pro
    (150,000 / 15 games) and no game over 11,000 (the input cap plus max_tokens), valid-answer share >= 90%, rows written with `made_at < tip`. Until measured this check is recorded as
    PENDING in the freeze commit and must read PASS before the first regular-season call; if it fails, the per-call input cap or
    the leg set is reduced by a documented, not result-driven, change and the check repeated (fresh dry rows, never scored).
-6. **Open fields.** `MONTHLY_CAP_USD` filled; `PROMPT_SHA256` equals the sha256 of `configs/llm_shadow_prompt_v1.txt`.
+6. **Open fields.** `MONTHLY_CAP_USD` filled; `PROMPT_SHA256` equals `nba.shadow_llm.provider.prompt_sha256()` (PROMPT_VERSION + SYSTEM_PROMPT + USER_PREAMBLE).
 7. **Leg-count projection** against real data (read-only counts, `season <= 2024`): at least 30 DraftKings main-line legs per
    game on average (observed 41-42), so the L60 gate is met on dates alone.
 8. **Integration requirements** (implemented by the steward; each must hold before the first regular-season call).
