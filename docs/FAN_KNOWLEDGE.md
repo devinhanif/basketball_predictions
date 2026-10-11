@@ -538,3 +538,11 @@ rotation-level young players in close games would be a new rule.
   5-7% (2025-26) as more books were captured. Staleness check in the fan doc's companion query. Not a line of business here
   (read-only, no orders, non-negotiable 5); recorded as a fact about how dispersed book prices are, which is also why the
   consensus de-vig is a better benchmark than any single book.
+- **"Craziest parlay the model predicted correctly" (Devin, 2026-10-11; descriptive, OOF model rows × DraftKings T-60 main lines,
+  2023-24 and 2024-25):** among 72,321 legs where the model leaned ≥ 55% to a side, 55.9% hit (book implied 53.3%, model's own
+  62.7%: over-confident as Q10 found). Best night of model-leaned legs that all hit: 2024-10-23, five legs paying 62x (Grayson
+  Allen over 1.5 ast +180, Tari Eason over 0.5 ast +145, Aldama under 5.5 reb, Jackson-Davis under 5.5 reb, Duren under 13.5 pts);
+  the model gave the combo 10%, the book 1.2%. The pre-tip STRATEGY version, the model's five most confident legs every night,
+  hits all five on 5.5% of 419 nights (book 3.5%), typical payout 18.7x, return per $1 1.15 with night-bootstrap CI [0.71, 1.65];
+  k=1..3 return 0.96–1.00; a control picking the book's own favourites returns 0.82 [0.52, 1.17]. Indistinguishable from
+  break-even; not a claim; the live parlay shadow log is the only clean test (frozen forward rules).
