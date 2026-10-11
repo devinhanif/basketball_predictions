@@ -124,3 +124,15 @@
 - Pre-fix backups: data/backups/games_pre_f2_20261010T235642Z.parquet (5,269 rows),
   data/backups/player_availability_pre_f2_20261010T235642Z.parquet (the 336 NULL-game rows).
 - Season 2025 rows (5 games) were added by the same code; they were not evaluated or scored (not a holdout touch).
+
+## 2026-10-11 UTC - F6/F7 possession parser fixes (data_version: assigned at the end-of-pass snapshot, pending)
+- DRAFT (archivist; the main session commits). `possessions` rows replaced for 81 games only (the games whose
+  re-parse differs from the stored rows, checked: every one is a Missi free-throw game (79) or a team-0 game (2);
+  no other game's non-lineup columns changed). F6: `_is_miss` read "Missi Free Throw ..." as a missed free
+  throw (`startswith("MISS")`), now requires the `MISS ` token. F7: a team-level turnover with team_id 0 and
+  player_id 0 no longer opens an `off_team = 0` possession (attached to the open trip's offense, else skipped).
+- Gate before -> after: team-games with possession points == box points 10,479 -> 10,558 of 10,558 (100%);
+  possession rows with team 0 or NULL `off_players` 2 -> 0; team-games under 80 possessions 2 -> 0.
+  Lineup columns of those games re-attached from the stored (unchanged) stints.
+- Pre-fix backup: data/backups/possessions_pre_f6f7_20261011T001158Z.parquet (16,148 rows, the 81 games).
+- Season 2025 rows were re-parsed by the same code and not evaluated (not a holdout touch).
