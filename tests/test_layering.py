@@ -32,6 +32,7 @@ ENTRYPOINTS = (
     "nba.markets.__main__",
     "nba.odds.__main__",
     "nba.parlay.__main__",
+    "nba.shadow_llm.__main__",
     "nba.ops.watchdog",
 )
 

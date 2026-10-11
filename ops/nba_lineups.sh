@@ -117,6 +117,32 @@ if [ "$CLOSE_ON" = "1" ]; then
   done
 fi
 
+# LLM shadow forecaster (docs/LLM_SHADOW.md): OFF unless NBA_LLM_SHADOW=1, in the environment or as a
+# line in $ROOT/.env (which also carries ANTHROPIC_API_KEY; passed to python by `uv run --env-file`,
+# never read or echoed here). With the flag unset NOTHING below runs and this script behaves exactly as
+# before. It lives in this 5-minute tick (not a new job: a new launchd job is a scheduler install, the
+# maintainer's) because only this cadence lands inside the request window [tip-70, tip-60]: the :20/:50
+# pretip job sits 40 or 70 min before a :00/:30 tip. It runs AFTER the odds capture above (the T-60
+# lines it needs are captured in the same tick) and BEFORE the T-30 block, bounded by max_wall_s so a
+# slow provider cannot starve the T-30 tick. rc 0 = ok/nothing due; 4 = informational (key or monthly
+# cap not set, budget, schema violation, post-tip refusal); 75 = nba.duckdb busy (next tick retries);
+# anything else alerts. Failures never touch the poll heartbeat (already final).
+LLM_ON=${NBA_LLM_SHADOW:-0}
+if [ "$LLM_ON" != "1" ] && [ -f "$ROOT/.env" ] && grep -q '^NBA_LLM_SHADOW=1' "$ROOT/.env"; then
+  LLM_ON=1
+fi
+if [ "$LLM_ON" = "1" ]; then
+  ENVF=""
+  [ -f "$ROOT/.env" ] && ENVF="--env-file .env"
+  # shellcheck disable=SC2086
+  NBA_LLM_SHADOW=1 "$UV" run --no-sync $ENVF python -m nba.shadow_llm run --date "$TODAY_ET" --provider anthropic >> "$LOG" 2>&1
+  rc=$?
+  log "llm_shadow rc=$rc"
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 4 ] && [ "$rc" -ne 75 ]; then
+    echo "- $(date '+%Y-%m-%d %H:%M') [lineups] llm_shadow rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
+  fi
+fi
+
 # T-30 shadow run only when some game is inside [tip-30, tip)
 if "$UV" run --no-sync python -m nba.lineups due >> "$LOG" 2>&1; then
   if ! acquire_lock "$T30_LOCK" 30; then
