@@ -80,3 +80,5 @@ No stat passes on 2023: close; no tag re-encodings, no T-30 variant here (that i
 === RESULTS BELOW ===
 
 (not run)
+
+Freeze: 2026-10-11 15:05 CT, commit a44f876, sha256 of everything above the line: 2198c1f05e5500130e77adab3ac9d2318b66501dbd1ba2c3f5450761981d76db (first 8: 2198c1f0). Verify with the awk command in the header.
