@@ -266,3 +266,8 @@
 - Backup: data/backups/history_player_availability_pre_reasonfix_20261011_133515.parquet. data_version unchanged (history DB
   is outside the manifest).
 - 2026-10-11 14:14 CT (Devin: "APPLY 262"): the 262 layout-C injury-report rows now resolvable by the early-2019 aliases inserted into the history DB (2019-11-20..12-17; players 2403, 101123, 1628397, 1628424); rows 362,528 → 362,790; every PDF's stored rows now equal its parsed rows; no existing row changed (backup data/backups/history_player_availability_pre_insert262_20261011_141454.parquet). History reports are complete for 2019-20 from the first report of the season.
+- 2026-10-11 15:11 CT: production OOF reference re-baselined on data_version 418510d401d3: `nba.eval.lower_tail_eval` collect →
+  diagnose → collect_pi → candidates re-run on the current DB; reports/lower_tail/candidates.json 'off' now carries 2023 n 27,619
+  pts integer CRPS 3.152830 (unchanged) and 2024 n 27,701 / 3.187553 (was 27,583 / 3.188411 before the restored neutral-site games).
+  Old file backed up at data/backups/lower_tail_candidates_pre_rebaseline_20261011.json (the LOWER_TAIL ledger rows T129–T159
+  keep the old numbers; the file is an untracked artifact). Every future gate's A0 reproduction check compares against this.
