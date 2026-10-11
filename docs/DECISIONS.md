@@ -262,3 +262,11 @@ runs under its rule; results, ledger rows and the briefing follow without furthe
 pretip run from the opening-night checklist.
 Why: Devin's instruction; the gates are the only thing between confirmation and freeze.
 What would reverse it: a failed gate stops that rule before the freeze and is reported, not patched.
+
+## 2026-10-11 2026-10-11 10:44 CT — PPLAY_CONTEXT FROZEN (sha256 3310de87) after two pre-freeze gate amendments
+What: the gate measure (66,220 rows) found check 3 impossible as drafted (teams play 13-16 b2b second nights per 82 games; the
+draft asked for 20) → threshold 10 (96.2% defined); check 1's 2024 reproduction is off by 0.0002 after the data clean-up → 0.005
+tolerance for 2024 (HAZARD_2 precedent); P0 stays the deployed Platt P(play) with the raw p reported beside it. Checks 2 and 4 pass
+(T-60 snapshots 99.85% of games; morning 99.3% of game days; max null gap 0.91 pp; planted tests pass). No arm fitted before the freeze.
+Why: non-negotiable 8 and Devin's confirmation.
+What would reverse it: nothing above the line changes; a new question gets a new rule.
