@@ -28,6 +28,9 @@ statement on everything, no picks sold as certainties.
 Costs: hosting a PWA + small API ~$0-20/month; OCR per slip ~$0.01; X API posting ~$0.015/post; the odds history already bought.
 Break-even is roughly ten paying users. Candidate models, in the order I would try them:
 1. Free tracking, paid "honest edge" ($4-6/month): calibration of YOUR bets, best-EV-at-$20 answers, the explainer per game.
+   DECIDED 2026-10-11 (Devin): guidance is the free mode (explainer, what the forecast and the market say, paper tracking of
+   your slips); honesty is the paid layer (realised EV with intervals, "this price is fair, sit out", your calibration, the
+   closing-line value of your bets). Benchmark for everything shown: the closing line (DECISIONS 2026-10-11 ~22:40).
 2. Tip jar / supporter tier (no features) for people who like the honesty.
 3. Aggregated public-lean index (what uploaders bet, anonymised) as a dataset or a feed, later, only with real n.
 4. Affiliate links to books: the money is real and the conflict is real; if ever, with a disclosure on the page and never tied

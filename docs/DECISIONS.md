@@ -423,3 +423,31 @@ MARKET_LINE_CLASSIFIER null, OWN_TAG null, HISTORY_WINDOW_2 not frozen (directio
 props model is at the ceiling of its information; the levers are T-30, reporters and slips, all live-season.
 Why: the frozen rules; every one honoured.
 What would reverse it: a calibration source that uses the line's information with a track record (the ODDS_HISTORY blend, live).
+
+## 2026-10-11 ~22:40 CT — Product tiers: guidance free, honesty paid (Devin)
+What: the free layer is guidance (the explainer, what the forecast and the market say about a leg, paper tracking of the user's
+own slips). The paid layer is honesty: realised EV with intervals, "this price is fair, sit out" as a first-class answer, the
+user's own calibration, closing-line value of their bets. Matches BUSINESS_DRAFT revenue option 1; the price stays open.
+Why: Devin's answer to "would you accept a product whose most common output is sit out": yes, and that is the thing worth paying for.
+What would reverse it: a month of users who pay for guidance and not for honesty (the slip ledger will show which features are opened).
+
+## 2026-10-11 ~22:40 CT — The live-season benchmark becomes the CLOSING line (Devin)
+What: in addition to the frozen FORWARD_PREREG_2026_27 scoring (unchanged; nothing edited there), a companion rule scores every
+model-preferred leg by closing-line value (CLV): the closing de-vigged probability of the chosen side minus the T-60 one, plus
+realised return at both prices. Historical version first (docs/prereg/MODEL_CLV.md, drafting; t5 as the closing proxy), then the
+live companion rule, which needs a closing capture that does not exist today: the live sportsbook capture was removed on
+2026-10-10 with the cancelled vendor. A per-game `close` capture via the-odds-api.com is being drafted behind NBA_CLOSE_CAPTURE
+(default off, worktree); installing it is a production change and Devin's; keeping the the-odds-api subscription through the
+season is a money decision and Devin's (he had planned to cancel after a month).
+Why: every forecasting field that faced "the outcome is decided after the forecast" settled on the closing price as the measure
+of skill; CLV is readable within weeks, realised return needs a season.
+What would reverse it: the vendor dropping live NBA props, or CLV and realised return disagreeing in sign over a season.
+
+## 2026-10-11 ~22:40 CT — "Train the model to beat lines now" (Devin): approved as a rule family, not a target swap
+What: Devin approved training against lines. Reading: the production target stays the outcome (CLAUDE.md: markets are a prior,
+not a target); the new work is a family of pre-registered rules whose METRIC is the line: MODEL_CLV (does the model's T-60 pick beat
+the close), then a line-move learner (descriptive arm inside MODEL_CLV), then, if either passes, a shadow arm for the live season.
+Also running under the day's approvals: XGB_PTS_VS_LT (the leak-free XGBoost pts arm vs production + lower-tail + integer support).
+Why: MARKET_LINE_CLASSIFIER already showed a learner on model + line does not beat the one-weight blend on outcome log loss; the
+untested question is CLV, which is the market's own currency and the first thing a sharp book would ask us.
+What would reverse it: MODEL_CLV null on Pinnacle and DK cells (then the honest product is a price scanner plus the explainer).
