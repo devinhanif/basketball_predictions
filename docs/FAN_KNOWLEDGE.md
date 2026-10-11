@@ -561,3 +561,16 @@ Measured follow-ups below, each descriptive first.
   BELOW the 65.6% independence would give; Edwards alone broke it 6 times, Curry 4. So "four givens never happen" is close to
   literally true once a 77% leg is called a given, and even three 93-97% legs together only land ~85% of nights. DraftKings never
   quoted these floor lines at T-60 in the stored data (they live only as deep alternates), so there is no price to compare.
+- **Measured against Devin's answers (2026-10-11; reports/fan_answers_2026-10-11.md; 2023-24 + 2024-25; game-clustered CIs):**
+  *Load management:* stars sit the second night of a back-to-back 12.4% vs 6.8% other nights (diff +5.6 [+4.1, +7.0]); it is a
+  team trait (two-season correlation 0.73; BOS 29%, NOP 28%, UTA 25%, TOR 22%, PHI 20%); 93% of those sit-outs are on the T-60
+  report (the model already sees them) but only 2% are on the 11:00 morning report on b2b days vs 78% on other nights, so the
+  morning briefing cannot know them. *Questionable:* plays 47.9% of the time (n 3,863); on weak teams 40.8% vs contenders 50.2%
+  (Devin's "testing the waters": right direction, −9.4 [−13.3, −5.1]); a questionable player who plays gets 1.6 fewer minutes
+  than usual; 44% of rotation DNPs were not out/doubtful at T-60. *Rookies:* weak-team rookies play 19.5 min in the first 15 games
+  vs 9.9 on contenders (draft slot matters more: picks 1-5 25.4 min, undrafted 7.7), but the split explains none of the cold-start
+  error (eta² 0.001). *Situation prior:* a peer group by team strength × draft band × position is 2.4 min WORSE than the recency
+  baseline and no better than pooling all rookies by role. *Whistles:* opposite to the hunch: a stronger away team SHRINKS the
+  home free-throw-rate edge (−0.027 [−0.037, −0.015]) and the home team fouls more; it reads as team quality, not venue; home
+  players' pts residual does not move with away strength. Candidate rule: team b2b-sit trait + questionable × team strength into
+  the P(play) model (Devin to say).
