@@ -661,3 +661,11 @@ Measured follow-ups below, each descriptive first.
   (Pinnacle overs hit 1-2.4 points under their de-vigged price in every stat); 67 cells, ~10 would exclude zero by chance; no price
   comparison, because no API carries same-game parlay prices. What a retail SGP engine charges for these is the open question;
   user slips carry both the per-leg and the combined price, so the app's slip flow would give us the book's correlation factor.
+- **"Act as a user: $10 a week on the model" (Devin, 2026-10-11; paper replay, DraftKings main lines at T-60, production props
+  OOF rows, habits fixed before results, reports/paper_user_2026-10-11.md):** one model-edge single a night (edge ≥ 5%, ~$1.67 a
+  bet) turned $350 of deposits into +$24 [−33, +83] in 2023-24 (207 bets, 52.7% hit) and +$61 [+17, +104] in 2024-25 (212 bets,
+  58.0% hit), max drawdown $11 and $9. The bets are 87% unders at ~1.97 decimal: the model is buying the under lean the market
+  under-prices, at a retail price (against Pinnacle it has no edge). A $10 weekly 3-leg model parlay hit 4/28 and 3/28 weeks, ended
+  +$9 and −$31 with $100-150 drawdowns and a CI of ±$250. Blend singles −$5 / +$24. Controls: book's shortest price −$24 / +$4;
+  random leg −$21 / −$18 (the vig); keep your money $0. Eight cells looked at, one CI excludes zero; descriptive, not a claim; the
+  live log is the test.
