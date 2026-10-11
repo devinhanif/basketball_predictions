@@ -148,3 +148,12 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   (Confirmed over Expected, latest snapshot, starter TRUE); the decisions table now records `dupes_collapsed=K`. Oracle hash
   identical (the replay cannot exercise T-30; unit tests carry it). The 00:04 pretip run already used it: game 0012600014 skipped
   for a real reason (away lineup empty), not for duplicates.
+
+- 2026-10-11 02:30: DATA CLEAN-UP PASS COMPLETE, data_version 1bee33d02ff2 (full suite 1,861 passed). Applied with backups:
+  10 neutral-site games restored (+273 box rows, 148 report rows linked); possession parser "Missi" bug and 2 phantom rows fixed
+  (points reconcile in 100% of team-games); stints rebuilt with a season-wide name book (missing short appearances 671 → 91;
+  within-1-minute 99.7%); game-level head-coach table (14 wrong team-seasons corrected; 2025 unverified); players_static re-pulled
+  (first_season NULL 208 → 4); 30 empty cache stubs quarantined; lineup dedupe view live. Two intended null-rate drops flagged
+  once by data-check (players_static.first_season / draft_status), clear from this baseline. Left on purpose: 188 report rows with
+  no game, 91 same-surname stint misses (NEXT_SESSION). Golden replay hash being re-baselined; MINUTES_HAZARD_2 gate being
+  measured on the rebuilt stints.

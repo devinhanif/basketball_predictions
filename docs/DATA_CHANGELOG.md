@@ -136,3 +136,47 @@
   Lineup columns of those games re-attached from the stored (unchanged) stints.
 - Pre-fix backup: data/backups/possessions_pre_f6f7_20261011T001158Z.parquet (16,148 rows, the 81 games).
 - Season 2025 rows were re-parsed by the same code and not evaluated (not a holdout touch).
+
+## 2026-10-11 UTC - F4/F8 stints rebuilt with season-wide names and stint_idx (data_version 1bee33d02ff2)
+- DRAFT. `stints` 299,083 -> 300,087 rows for all 5,279 games, new column `stint_idx` (0-based order within
+  game, team, period); `possessions.off_players/def_players` re-attached (no other possession column touched).
+  Cause fixed: a garbage-time substitute who never acts in a game had no name in that game's play-by-play, so
+  his "SUB: <surname> FOR ..." entry was unresolvable and he never entered the tracked five; the name book is
+  now seeded with the name the feed uses for him in other games (`nba/parse/rebuild_lineups.build_name_map`).
+- Gate before -> after: played player-games with box >= 1 min and no stint row 671 -> 91 (target revised from
+  40 to 91 after the full run; the remainder is the documented same-surname-teammates case, a later fix);
+  within 1.0 min of box 2022 99.10% -> 99.92%, 2023 98.71% -> 99.89%, 2024 98.60% -> 99.58%,
+  2025 98.38% -> 99.43% (overall 99.70%); team-period tiling exact for 42,838 of 42,838; stint key
+  (game, team, period, stint_idx) duplicates 0; DNP players with a stint 0; unresolved subs 175, desyncs 99.
+- Pre-fix backups: data/backups/lineups_pre_fix_20261011T001445Z_stints.parquet and
+  data/backups/lineups_pre_fix_20261011T001445Z_possessions.parquet. The write ran 19:14-19:16 local, so the
+  last chunks overlapped the xx:15 pretip window by about a minute (the window check ran before the backup).
+- Season 2025 rows rebuilt by the same code, not evaluated (not a holdout touch).
+
+## 2026-10-11 UTC - F5 team_coach_games (data_version 1bee33d02ff2)
+- DRAFT. New table `team_coach_games` (10,303 rows; 7,916 verified) built by `nba/data/coaches.py` from the
+  reviewed `nba/data/head_coach_reference.csv` (Basketball-Reference, 2022-24, hand-copied, unverified beyond
+  82-game sums); `known_at` = real tip for verified rows, NULL for the 2,387 unverified 2025 rows (taken from
+  `team_coaches`, 3 teams missing). `team_coaches` untouched.
+- Gate: 87 team-seasons compared and exactly 14 disagreements with `team_coaches` (11 of them the next
+  season's coach); every 2022-24 game has exactly 2 coach rows (3,958 games); every reference team-season's
+  rows equal its games (90 of 90). New table, so no backup; rollback = DROP/DELETE of the table.
+
+## 2026-10-11 UTC - F10/F11 players_static refresh and cache quarantine (data_version 1bee33d02ff2)
+- DRAFT. 204 legacy rows re-pulled (CommonPlayerInfo, 204 requests at 6 s, 0 failures) and 208 rows upserted.
+  `first_season` NULL 208 -> 4 (undrafted players with no FROM_YEAR from the feed), `draft_status` NULL
+  204 -> 0. 30 zero-column cache files (ids 12737..12766, a team id passed as a player id) moved to
+  data/quarantine/players_static_zero_column_20261011/; the puller now refuses to cache an empty frame.
+- Pre-fix backup: data/backups/players_static_pre_f10_20261011T005643Z.parquet (891 rows).
+
+## 2026-10-11 UTC - F1 lineup_snapshots_latest view (data_version 1bee33d02ff2)
+- DRAFT. View in data/lineups/lineups.duckdb (no table or row changed; the raw snapshots stay append-only):
+  one row per (snapshot, game, team, player), starter = OR over duplicates, status from the latest source_ts.
+  Gate: duplicate groups 240 (60 team-snapshots at the end) -> 0 in the view; every team-snapshot has exactly
+  5 starters. The `t30.py` reader change is the steward's.
+
+## 2026-10-11 UTC - end-of-pass snapshot: data_version 1bee33d02ff2
+- Covers the entries above and the F2 and F6/F7 entries of this pass, whose data_version was pending when
+  written (the append-only log is not edited). `make data-check` exits 2 with 2 flags, both intended:
+  NULL_SHIFT players_static.draft_status 0.229 -> 0.0 and players_static.first_season 0.233 -> 0.0045 (F10).
+  Not allowlisted. Replay-oracle golden hash needs re-baselining (data changed, code did not).
