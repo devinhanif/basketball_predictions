@@ -98,3 +98,9 @@ Plain version: the first three make the data and the store ready for the live se
   rc 0, slate 0 (no regular-season games yet), injury step skipped, no alerts. The wiring runs; the live schedule and injury-PDF
   fetch are still unrehearsed on a real slate. Repeat on 2026-10-20 before the first tip (checklist item 2 stays open).
 
+
+## parlayhitters.ai (after 2026-10-20; nothing touches nba/, ops/, configs/ before then)
+Designs committed 2026-10-11: docs/BUSINESS_DRAFT_2026-10-11.md, docs/APP_ARCHITECTURE.md, docs/APP_SECURITY_BASELINE.md
+(section 12 = Devin's accounts checklist), docs/APP_CONTENT_SPEC.md. Build order once Devin's accounts exist: nba/export/ +
+layering rules → app/ API + PWA skeleton → slip batch → paper-trade ledger → parlay-of-the-day card → posting adapters (X,
+Discord first) with the approval queue and kill switch → 20-post dry run. Open: what "jev engineering best practices" means (Devin).
