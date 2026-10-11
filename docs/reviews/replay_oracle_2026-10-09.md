@@ -46,3 +46,12 @@ content. The order is now total (every kept column). Under the total order the D
 still identical to each other (sha 732fba310e4f0c63...); the earlier e5714332 values were correct
 comparisons under equal insertion order. The full-season dump is the new golden:
 `data/rehearsal/golden_full_wave_b.csv`. Tag: `live-candidate-2026-10-10`.
+
+## Re-baseline 2026-10-11 (data changed, code did not)
+After the data clean-up pass (data_version 1bee33d02ff2: 10 neutral-site games restored, possession parser fix, stint rebuild,
+players_static re-pull), the 20-date replay of season 2025 was re-run on the cleaned source with the committed code (HEAD 291b3b0):
+`data/rehearsal/oracle_golden2.duckdb`, 0 failures. New golden (total order): sha256
+`030804df1a5a51efe0893407bc37b04324ceeb0dc272dc50bb448587e896b3ef`, predictions 46,658, scores 44,562 (old golden 732fba31…,
+46,370 / 44,252 on the pre-clean-up source). The difference is the data: 288 more prediction rows from the restored games and the
+rebuilt lineups. From here, any structural code change is checked against `oracle_golden2` on this data_version; a data change
+re-baselines again and says so here.

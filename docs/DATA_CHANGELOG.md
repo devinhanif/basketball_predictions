@@ -180,3 +180,5 @@
   written (the append-only log is not edited). `make data-check` exits 2 with 2 flags, both intended:
   NULL_SHIFT players_static.draft_status 0.229 -> 0.0 and players_static.first_season 0.233 -> 0.0045 (F10).
   Not allowlisted. Replay-oracle golden hash needs re-baselining (data changed, code did not).
+- 2026-10-11: replay-oracle golden re-baselined on data_version 1bee33d02ff2: sha256 030804df… (46,658 predictions, 44,562 scores;
+  docs/reviews/replay_oracle_2026-10-09.md). Code unchanged; the delta is the restored games and rebuilt lineups.
