@@ -300,3 +300,13 @@ window (2024 delta exactly 0.0000) and re-tuning on four seasons is within noise
 HISTORY_WINDOW's one allowed follow-up; no further history-window rule this season.
 Why: Elo forgets with a half-life of about a season; the 2022-23 warm-up already carries everything the ratings can carry.
 What would reverse it: nothing in this family. (The early-2019 report-layout parser fix proceeds as a data repair on its own merits.)
+
+## 2026-10-11 ~14:10 CT — P(play) Platt map OFF by default (production; Devin: "fix everything!!")
+What: `ForwardConfig.p_play_platt` defaults to None, so the forward path's p_play is the minutes model's raw hurdle probability;
+the old constants are one setting away. On 2023/2024 rows the mapped probability was 0.07 log loss worse than raw with ECE ~0.14
+(T316–T317). Readers: the parlay engine's unconditional legs, mean_uncond/p_ge_uncond and the morning report now see higher
+p_play (mean 0.85 vs 0.70); the 0.5 eligibility threshold already used the raw value, so no player's eligibility changes;
+settlement and scores untouched. Replay oracle: only p_play, mean_uncond and p_ge_uncond moved on prop rows (46,320 of 46,658);
+game rows, scores, T-30 decisions and row sets identical. New golden: 89889f6d (data_version 418510d401d3).
+Why: a calibration map fit in-sample on one season made the live probability worse out of sample.
+What would reverse it: p_play_platt=P_PLAY_PLATT in config; or a walk-forward-fit map that beats raw under a rule.

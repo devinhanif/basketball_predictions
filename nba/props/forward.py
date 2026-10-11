@@ -83,11 +83,13 @@ from nba.props.rosters import merge_rosters
 #: (CRPS = 2 * integral of pinball loss over tau) without assuming a family.
 QUANTILE_TAUS: tuple[float, ...] = tuple(round(0.05 * i, 2) for i in range(1, 20))
 
-#: Platt recalibration of the minutes model's P(play) for rostered players:
-#: p_cal = sigmoid(a + b * logit(p_raw)). Fit on 14 sampled 2023-24 slates
-#: (n=2405 players, Brier 0.195 -> 0.176) and checked on 28 held-out 2024-25 slates
-#: (Brier 0.209 -> 0.187; mean 0.725 vs realized 0.718). Raw p overshoots because
-#: rostered players are selected for having just played.
+#: Platt map of the minutes model's P(play) for rostered players: p_cal = sigmoid(a + b *
+#: logit(p_raw)). Fit on 14 sampled 2023-24 slates (n=2405). OFF by default since 2026-10-11:
+#: on the full 2023 / 2024 rows (n ~33k each; research/eval/pplay_context_eval.py,
+#: reports/prereg_pplay_context/results.json; docs/TEST_LEDGER.md T316-T317, docs/DECISIONS.md
+#: PPLAY_CONTEXT) the mapped probability scores log loss 0.4147 / 0.4281 against 0.3419 / 0.3556
+#: raw, ECE ~0.14 vs ~0.01: the map hurts. ``p_play`` is therefore the raw hurdle P(play)
+#: (``p_play == p_play_raw``). Set ``ForwardConfig.p_play_platt = P_PLAY_PLATT`` to restore it.
 P_PLAY_PLATT: tuple[float, float] = (-0.327, 0.581)
 
 PROP_STATS: tuple[str, ...] = ("pts", "reb", "ast", "fg3m")
@@ -139,6 +141,10 @@ class ForwardConfig:
     #: backtest shape, which assumed the real roster was known).
     sim_minutes: str = "conditional"
     min_p_play: float = 0.5
+    #: ``None`` (default): ``p_play`` is the raw hurdle P(play). ``(a, b)``: Platt map
+    #: ``sigmoid(a + b * logit(p_raw))``, e.g. ``P_PLAY_PLATT`` (the pre-2026-10-11 behaviour).
+    #: The ``min_p_play`` eligibility filter always uses the raw value.
+    p_play_platt: tuple[float, float] | None = None
     #: Recency half-life (games) of the played-games average. Chosen on 2023-24
     #: slates by MAE (plateau 6-14); evaluated on 2024-25.
     halflife_games: float = 10.0
@@ -439,15 +445,18 @@ def predict_slate(
             dtype=pl.Float64,
         ),
     )
-    raw_p = mins["p_play"].clip(1e-3, 1 - 1e-3).to_numpy()
-    platt_a, platt_b = P_PLAY_PLATT
-    mins = mins.with_columns(
-        p_play_raw=pl.col("p_play"),
-        p_play=pl.Series(
-            1.0 / (1.0 + np.exp(-(platt_a + platt_b * np.log(raw_p / (1.0 - raw_p))))),
-            dtype=pl.Float64,
-        ),
-    )
+    if cfg.p_play_platt is None:
+        mins = mins.with_columns(p_play_raw=pl.col("p_play"))
+    else:
+        raw_p = mins["p_play"].clip(1e-3, 1 - 1e-3).to_numpy()
+        platt_a, platt_b = cfg.p_play_platt
+        mins = mins.with_columns(
+            p_play_raw=pl.col("p_play"),
+            p_play=pl.Series(
+                1.0 / (1.0 + np.exp(-(platt_a + platt_b * np.log(raw_p / (1.0 - raw_p))))),
+                dtype=pl.Float64,
+            ),
+        )
     mins = mins.filter(pl.col("proj_minutes") >= cfg.min_proj_minutes)
     if cfg.sim_minutes == "conditional":
         mins = mins.filter(pl.col("p_play_raw") >= cfg.min_p_play)

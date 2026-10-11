@@ -60,3 +60,7 @@ re-baselines again and says so here.
 20-date replay on the new source (`data/rehearsal/oracle_golden3.duckdb`, 0 failures): sha256 030804df… IDENTICAL to golden2,
 46,658 predictions, 44,562 scores. Stints are not on the daily path and the 21 re-linked report rows fall outside the 20 replay
 dates, so the golden stands at 030804df… for data_version 418510d401d3 as well. Either golden2 or golden3 serves as the baseline.
+
+## Re-baseline 2026-10-11 ~14:10 (code changed: P(play) Platt map off; data_version 418510d401d3)
+`data/rehearsal/oracle_pplay.duckdb`, 20 dates, 0 failures: sha256 `89889f6dc57c843d5bc1c722695da894de47fd78f7f4a3b9246ce3dfbc44d295` (46,658 predictions, 44,562 scores). Diff vs golden3
+(030804df): 46,320 prop rows differ in p_play / mean_uncond / p_ge_uncond only; nothing else. This is the golden from here.

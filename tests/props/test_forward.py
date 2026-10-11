@@ -6,10 +6,17 @@ import json
 from datetime import date, timedelta
 
 import duckdb
+import numpy as np
 import polars as pl
 import pytest
 
-from nba.props.forward import MODEL_SEASON_AVG, OUTPUT_COLUMNS, predict_slate
+from nba.props.forward import (
+    MODEL_SEASON_AVG,
+    OUTPUT_COLUMNS,
+    P_PLAY_PLATT,
+    ForwardConfig,
+    predict_slate,
+)
 from tests.daily.conftest import RUN_DATE, STAT_COLS, T1, T2, T3, T4, add_history
 from tests.fixtures.loader import build_fixture_db
 
@@ -157,3 +164,23 @@ def test_stat_mean_is_conditional_on_playing_and_uncond_scaled_by_p_play(
     assert all(pu[k] == pytest.approx(row["p_play"] * pg[k]) for k in pg)
     grid = json.loads(row["q_grid"])
     assert len(grid) == 19 and grid == sorted(grid)
+
+
+def test_p_play_is_raw_by_default_and_platt_flag_restores_old_map(
+    con: duckdb.DuckDBPyConnection,
+) -> None:
+    key = ["game_id", "player_id", "stat"]
+    base = predict_slate(con, RUN_DATE, SLATE, None).sort(key)
+    assert base["p_play"].to_list() == base["p_play_raw"].to_list()  # identity default
+    old = predict_slate(
+        con, RUN_DATE, SLATE, None, config=ForwardConfig(p_play_platt=P_PLAY_PLATT)
+    ).sort(key)
+    assert old["p_play_raw"].to_list() == base["p_play_raw"].to_list()
+    a, b = P_PLAY_PLATT
+    raw = np.clip(old["p_play_raw"].to_numpy(), 1e-3, 1 - 1e-3)
+    expect = 1.0 / (1.0 + np.exp(-(a + b * np.log(raw / (1.0 - raw)))))
+    assert old["p_play"].to_numpy() == pytest.approx(expect, abs=1e-15)
+    assert not np.allclose(old["p_play"].to_numpy(), base["p_play"].to_numpy())
+    # eligibility and every non-p_play-derived column are unchanged by the flag
+    assert old.select(key).equals(base.select(key))
+    assert old["mean"].to_list() == base["mean"].to_list()
