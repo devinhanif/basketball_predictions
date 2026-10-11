@@ -1,0 +1,90 @@
+{
+  "games": 5269,
+  "skipped": {
+    "no_pbp": 0,
+    "empty_parse": 0
+  },
+  "before": {
+    "n_poss": 1049740,
+    "neg_duration": 5789,
+    "start_after_prev_end": 3939,
+    "start_before_prev_start": 8022,
+    "period_regress": 0,
+    "games_with_defect": 4258,
+    "balance_median": 1.0,
+    "balance_mean": 1.346686918549459,
+    "balance_p95": 3.0,
+    "poss_per_team_mean": 99.59582542694497,
+    "poss_per_team_p5": 91.0,
+    "poss_per_team_p95": 109.0,
+    "recon_mae": 2.0067261339912696,
+    "recon_signed": -1.4862782311634088,
+    "points_exact_rate": 0.9925033213133422,
+    "lineup_null_rows": 2
+  },
+  "after": {
+    "n_poss": 1047292,
+    "neg_duration": 0,
+    "start_after_prev_end": 0,
+    "start_before_prev_start": 0,
+    "period_regress": 0,
+    "games_with_defect": 0,
+    "balance_median": 1.0,
+    "balance_mean": 1.1446743876969812,
+    "balance_p95": 3.0,
+    "poss_per_team_mean": 99.36356736242884,
+    "poss_per_team_p5": 91.0,
+    "poss_per_team_p95": 109.0,
+    "recon_mae": 2.066813437084836,
+    "recon_signed": -1.718580375782881,
+    "points_exact_rate": 0.9925033213133422,
+    "lineup_null_rows": 2
+  },
+  "renumbering": {
+    "games": 5269,
+    "games_renumbered": 4374,
+    "rows_changed": 360765,
+    "games_count_changed": 2987,
+    "net_row_change": -2448
+  },
+  "gates": [
+    {
+      "name": "defects_fall",
+      "ok": true,
+      "detail": "neg_duration 5789 -> 0; start_after_prev_end 3939 -> 0"
+    },
+    {
+      "name": "balance_mean",
+      "ok": true,
+      "detail": "mean |A-B| 1.3467 -> 1.1447 (tol +0.02)"
+    },
+    {
+      "name": "balance_median",
+      "ok": true,
+      "detail": "median |A-B| 1.00 -> 1.00 (max 2.0)"
+    },
+    {
+      "name": "recon_mae_ceiling",
+      "ok": true,
+      "detail": "formula MAE 2.0067 -> 2.0668 (signed -1.486 -> -1.719; ceiling 2.5, informational otherwise)"
+    },
+    {
+      "name": "points_exact",
+      "ok": true,
+      "detail": "points exact 0.9925 -> 0.9925 (tol -0.002)"
+    },
+    {
+      "name": "lineup_attach",
+      "ok": true,
+      "detail": "rows with a NULL lineup side 2 -> 2 of 1047292 (tol +10 rows)"
+    },
+    {
+      "name": "row_count",
+      "ok": true,
+      "detail": "rows 1049740 -> 1047292 (tol 0.5%)"
+    }
+  ],
+  "backup": [
+    "/Users/devin/Downloads/nba-prediction/data/backups/possessions_pre_order_fix_20261010T145505Z_possessions.parquet"
+  ]
+}

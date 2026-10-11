@@ -1,0 +1,641 @@
+{
+  "audit": [
+    {
+      "bucket": "DNP",
+      "col": "lc_thr3",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lc_thr3",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lc_thr3",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lc_thr3",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lc_thr3",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "lc_thr3",
+      "n": 28938,
+      "null_rate": 0.004388693067938351
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "lc_thr3",
+      "n": 28065,
+      "null_rate": 0.0033137359700694817
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "lc_thr3",
+      "n": 27049,
+      "null_rate": 0.004029723834522533
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lc_thr3",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lc_thr3",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lc_thr3",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "lc_thr3",
+      "n": 21578,
+      "null_rate": 0.0043562888126795814
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "lc_thr3",
+      "n": 31483,
+      "null_rate": 0.004129212590922085
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "lc_thr3",
+      "n": 30991,
+      "null_rate": 0.0033880804104417413
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "lc_thr3",
+      "n": 37229,
+      "null_rate": 0.004136560208439657
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "lc_thr3",
+      "n": 19689,
+      "null_rate": 0.0040123927065874344
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "lc_thr3",
+      "n": 27134,
+      "null_rate": 0.003537996609419916
+    },
+    {
+      "bucket": "DNP",
+      "col": "lc_lift",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lc_lift",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lc_lift",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lc_lift",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lc_lift",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "lc_lift",
+      "n": 28938,
+      "null_rate": 0.004388693067938351
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "lc_lift",
+      "n": 28065,
+      "null_rate": 0.0033137359700694817
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "lc_lift",
+      "n": 27049,
+      "null_rate": 0.004029723834522533
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lc_lift",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lc_lift",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lc_lift",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "lc_lift",
+      "n": 21578,
+      "null_rate": 0.0043562888126795814
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "lc_lift",
+      "n": 31483,
+      "null_rate": 0.004129212590922085
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "lc_lift",
+      "n": 30991,
+      "null_rate": 0.0033880804104417413
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "lc_lift",
+      "n": 37229,
+      "null_rate": 0.004136560208439657
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "lc_lift",
+      "n": 19689,
+      "null_rate": 0.0040123927065874344
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "lc_lift",
+      "n": 27134,
+      "null_rate": 0.003537996609419916
+    },
+    {
+      "bucket": "DNP",
+      "col": "lc_rpm",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lc_rpm",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lc_rpm",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lc_rpm",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lc_rpm",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "lc_rpm",
+      "n": 28938,
+      "null_rate": 0.004388693067938351
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "lc_rpm",
+      "n": 28065,
+      "null_rate": 0.0033137359700694817
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "lc_rpm",
+      "n": 27049,
+      "null_rate": 0.004029723834522533
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lc_rpm",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lc_rpm",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lc_rpm",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "lc_rpm",
+      "n": 21578,
+      "null_rate": 0.0043562888126795814
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "lc_rpm",
+      "n": 31483,
+      "null_rate": 0.004129212590922085
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "lc_rpm",
+      "n": 30991,
+      "null_rate": 0.0033880804104417413
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "lc_rpm",
+      "n": 37229,
+      "null_rate": 0.004136560208439657
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "lc_rpm",
+      "n": 19689,
+      "null_rate": 0.0040123927065874344
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "lc_rpm",
+      "n": 27134,
+      "null_rate": 0.003537996609419916
+    },
+    {
+      "bucket": "DNP",
+      "col": "lc_top3",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lc_top3",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lc_top3",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lc_top3",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lc_top3",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "lc_top3",
+      "n": 28938,
+      "null_rate": 0.004388693067938351
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "lc_top3",
+      "n": 28065,
+      "null_rate": 0.0033137359700694817
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "lc_top3",
+      "n": 27049,
+      "null_rate": 0.004029723834522533
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lc_top3",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lc_top3",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lc_top3",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "lc_top3",
+      "n": 21578,
+      "null_rate": 0.0043562888126795814
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "lc_top3",
+      "n": 31483,
+      "null_rate": 0.004129212590922085
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "lc_top3",
+      "n": 30991,
+      "null_rate": 0.0033880804104417413
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "lc_top3",
+      "n": 37229,
+      "null_rate": 0.004136560208439657
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "lc_top3",
+      "n": 19689,
+      "null_rate": 0.0040123927065874344
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "lc_top3",
+      "n": 27134,
+      "null_rate": 0.003537996609419916
+    },
+    {
+      "bucket": "DNP",
+      "col": "lc_cover",
+      "n": 19733,
+      "null_rate": 0.004814270511326205
+    },
+    {
+      "bucket": "<5",
+      "col": "lc_cover",
+      "n": 7394,
+      "null_rate": 0.004192588585339464
+    },
+    {
+      "bucket": "5-10",
+      "col": "lc_cover",
+      "n": 6206,
+      "null_rate": 0.003222687721559781
+    },
+    {
+      "bucket": "10-20",
+      "col": "lc_cover",
+      "n": 19485,
+      "null_rate": 0.004311008468052348
+    },
+    {
+      "bucket": ">20",
+      "col": "lc_cover",
+      "n": 50967,
+      "null_rate": 0.0038063845233190104
+    },
+    {
+      "bucket": "pts:T1",
+      "col": "lc_cover",
+      "n": 28938,
+      "null_rate": 0.004388693067938351
+    },
+    {
+      "bucket": "pts:T2",
+      "col": "lc_cover",
+      "n": 28065,
+      "null_rate": 0.0033137359700694817
+    },
+    {
+      "bucket": "pts:T3",
+      "col": "lc_cover",
+      "n": 27049,
+      "null_rate": 0.004029723834522533
+    },
+    {
+      "bucket": "reb:T1",
+      "col": "lc_cover",
+      "n": 32541,
+      "null_rate": 0.00384130788850988
+    },
+    {
+      "bucket": "reb:T2",
+      "col": "lc_cover",
+      "n": 20647,
+      "null_rate": 0.003680922167869424
+    },
+    {
+      "bucket": "reb:T3",
+      "col": "lc_cover",
+      "n": 30864,
+      "null_rate": 0.00414722654224987
+    },
+    {
+      "bucket": "ast:T1",
+      "col": "lc_cover",
+      "n": 21578,
+      "null_rate": 0.0043562888126795814
+    },
+    {
+      "bucket": "ast:T2",
+      "col": "lc_cover",
+      "n": 31483,
+      "null_rate": 0.004129212590922085
+    },
+    {
+      "bucket": "ast:T3",
+      "col": "lc_cover",
+      "n": 30991,
+      "null_rate": 0.0033880804104417413
+    },
+    {
+      "bucket": "fg3m:T1",
+      "col": "lc_cover",
+      "n": 37229,
+      "null_rate": 0.004136560208439657
+    },
+    {
+      "bucket": "fg3m:T2",
+      "col": "lc_cover",
+      "n": 19689,
+      "null_rate": 0.0040123927065874344
+    },
+    {
+      "bucket": "fg3m:T3",
+      "col": "lc_cover",
+      "n": 27134,
+      "null_rate": 0.003537996609419916
+    }
+  ],
+  "check_1": {
+    "by_season": {
+      "2022": {
+        "games": 1230,
+        "poss_both": 1230,
+        "stints_both": 1230
+      },
+      "2023": {
+        "games": 1230,
+        "poss_both": 1230,
+        "stints_both": 1230
+      },
+      "2024": {
+        "games": 1225,
+        "poss_both": 1225,
+        "stints_both": 1225
+      }
+    },
+    "n_regular_games": 3685,
+    "poss_cov": 1.0,
+    "stints_cov": 1.0
+  },
+  "check_2": {
+    "gaps_pp": {
+      "lc_cover|ast": 0.09682084022378401,
+      "lc_cover|fg3m": 0.059856359901974125,
+      "lc_cover|minutes": 0.15915827897664245,
+      "lc_cover|pts": 0.10749570978688694,
+      "lc_cover|reb": 0.04663043743804462,
+      "lc_lift|ast": 0.09682084022378401,
+      "lc_lift|fg3m": 0.059856359901974125,
+      "lc_lift|minutes": 0.15915827897664245,
+      "lc_lift|pts": 0.10749570978688694,
+      "lc_lift|reb": 0.04663043743804462,
+      "lc_rpm|ast": 0.09682084022378401,
+      "lc_rpm|fg3m": 0.059856359901974125,
+      "lc_rpm|minutes": 0.15915827897664245,
+      "lc_rpm|pts": 0.10749570978688694,
+      "lc_rpm|reb": 0.04663043743804462,
+      "lc_thr3|ast": 0.09682084022378401,
+      "lc_thr3|fg3m": 0.059856359901974125,
+      "lc_thr3|minutes": 0.15915827897664245,
+      "lc_thr3|pts": 0.10749570978688694,
+      "lc_thr3|reb": 0.04663043743804462,
+      "lc_top3|ast": 0.09682084022378401,
+      "lc_top3|fg3m": 0.059856359901974125,
+      "lc_top3|minutes": 0.15915827897664245,
+      "lc_top3|pts": 0.10749570978688694,
+      "lc_top3|reb": 0.04663043743804462
+    },
+    "max_gap_pp": 0.15915827897664245,
+    "overall_null_rate": {
+      "lc_cover": 0.004085368791251144,
+      "lc_lift": 0.004085368791251144,
+      "lc_rpm": 0.004085368791251144,
+      "lc_thr3": 0.004085368791251144,
+      "lc_top3": 0.004085368791251144
+    }
+  },
+  "check_6": {
+    "max_abs_dev": 2.6645352591003757e-15,
+    "n_rows_ge4": 103361,
+    "n_rows_lt4_with_values": 0
+  },
+  "checks": [
+    {
+      "check": "1 stints cover regular-season games (both teams)",
+      "ok": true,
+      "threshold": ">= 0.95",
+      "value": 1.0
+    },
+    {
+      "check": "1 possessions cover regular-season games (both teams)",
+      "ok": true,
+      "threshold": ">= 0.95",
+      "value": 1.0
+    },
+    {
+      "check": "2 max NULL-rate gap across buckets / terciles (pp)",
+      "ok": true,
+      "threshold": "<= 2.0",
+      "value": 0.15915827897664245
+    },
+    {
+      "check": "3 planted same-game: lc_* byte-identical",
+      "ok": true,
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "check": "3 planted same-game is not inert (later games do change)",
+      "ok": true,
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "check": "3 teammate moved to OUT after the real tip: no change",
+      "ok": true,
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "check": "3 control: same teammate OUT BEFORE the tip does change lc_*",
+      "ok": true,
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "check": "4 planted future (>= game date): lc_* unchanged",
+      "ok": true,
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "check": "4 planted future is not inert (later games do change)",
+      "ok": true,
+      "threshold": "== 1",
+      "value": 1
+    },
+    {
+      "check": "6 sum_q c(p,q) = 4 for rows with >= 4 available",
+      "ok": true,
+      "threshold": "<= 1e-09",
+      "value": 2.6645352591003757e-15
+    }
+  ],
+  "frozen_sha256": "2e2632794d2612764cc2d1f13fbf0c39d07a267e361df24d43160a1ffcd511f3"
+}

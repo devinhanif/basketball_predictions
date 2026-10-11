@@ -1,0 +1,163 @@
+/Users/devin/Downloads/nba-prediction/nba/props/context_residual.py:372: UserWarning: Sortedness of columns cannot be checked when 'by' groups provided
+  j = left.join_asof(
+/Users/devin/Downloads/nba-prediction/nba/props/minutes_v2.py:311: UserWarning: Sortedness of columns cannot be checked when 'by' groups provided
+  .join_asof(
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:09] block 3/27 2022-12-01 warm-up only
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:11] block 4/27 2023-01-01 warm-up only
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:12] block 5/27 2023-02-01 warm-up only
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:14] block 6/27 2023-03-01 warm-up only
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:16] block 7/27 2023-04-01 warm-up only
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:18] block 8/27 2023-05-01 warm-up only
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:20] block 9/27 2023-06-01 warm-up only
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:25] block 10/27 2023-10-01 n_test=1062
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:30] block 11/27 2023-11-01 n_test=4522
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:36] block 12/27 2023-12-01 n_test=4346
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:42] block 13/27 2024-01-01 n_test=4932
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:49] block 14/27 2024-02-01 n_test=3691
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:54] block 15/27 2024-03-01 n_test=4825
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:03:59] block 16/27 2024-04-01 n_test=3281
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:04] block 17/27 2024-05-01 n_test=846
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:10] block 18/27 2024-06-01 n_test=114
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:15] block 19/27 2024-10-01 n_test=1407
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:22] block 20/27 2024-11-01 n_test=4624
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:29] block 21/27 2024-12-01 n_test=3970
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:38] block 22/27 2025-01-01 n_test=4793
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:44] block 23/27 2025-02-01 n_test=3704
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:04:54] block 24/27 2025-03-01 n_test=4985
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:05:04] block 25/27 2025-04-01 n_test=3099
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:05:14] block 26/27 2025-05-01 n_test=842
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:236: DeprecationWarning: the default behavior of `how='horizontal'` for `concat` is deprecated and will require equal heights in the next breaking release. Use `how='horizontal_extend'` to keep the current behavior.
+(Deprecated in version 1.42.1)
+  pl.concat(
+[11:05:26] block 27/27 2025-06-01 n_test=159
+[11:05:27] minutes stage done
+/Users/devin/Downloads/nba-prediction/nba/props/context_residual.py:372: UserWarning: Sortedness of columns cannot be checked when 'by' groups provided
+  j = left.join_asof(
+/Users/devin/Downloads/nba-prediction/nba/props/minutes_v2.py:311: UserWarning: Sortedness of columns cannot be checked when 'by' groups provided
+  .join_asof(
+[11:06:01] props pts A0 n=55202
+[11:06:33] props pts A1 n=55202
+[11:07:08] props pts A2 n=55202
+[11:07:39] props pts A3 n=55202
+[11:08:03] props reb A0 n=55202
+[11:08:28] props reb A1 n=55202
+[11:08:53] props reb A2 n=55202
+[11:09:17] props reb A3 n=55202
+[11:09:39] props ast A0 n=55202
+[11:10:04] props ast A1 n=55202
+[11:10:28] props ast A2 n=55202
+[11:10:51] props ast A3 n=55202
+[11:11:14] props fg3m A0 n=55202
+[11:11:39] props fg3m A1 n=55202
+[11:12:03] props fg3m A2 n=55202
+[11:12:27] props fg3m A3 n=55202
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+/Users/devin/Downloads/nba-prediction/nba/eval/minutes_v2_eval.py:460: RuntimeWarning: invalid value encountered in cast
+  _matrix(train, names), train["played"].to_numpy().astype(int)
+[11:12:39] pplay stage done
+MINUTES-ONLY

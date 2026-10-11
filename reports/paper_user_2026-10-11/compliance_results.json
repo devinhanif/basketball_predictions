@@ -1,0 +1,174 @@
+{
+ "2023": {
+  "A_model": {
+   "profit": 23.7,
+   "ci": [
+    -33.3,
+    82.7
+   ],
+   "bets": 207,
+   "hit": 0.527
+  },
+  "U_same_legs_under": {
+   "profit": 24.3,
+   "ci": [
+    -33.5,
+    82.3
+   ],
+   "bets": 207,
+   "hit": 0.527
+  },
+  "O_same_legs_over": {
+   "profit": -63.2,
+   "ci": [
+    -112.9,
+    -13.8
+   ],
+   "bets": 207,
+   "hit": 0.473
+  },
+  "A_minus_U_paired": {
+   "diff": -0.6,
+   "ci": [
+    -21.1,
+    21.5
+   ],
+   "weeks_model_better": 6,
+   "weeks_under_better": 10,
+   "share_model_picks_under": 0.865
+  },
+  "U_random_leg_under": {
+   "mean_profit": -7.4,
+   "q05_q95": [
+    -54.4,
+    35.1
+   ]
+  },
+  "O_random_leg_over": {
+   "mean_profit": -33.2,
+   "q05_q95": [
+    -80.4,
+    14.7
+   ]
+  },
+  "follower_x0.3": {
+   "mean_profit": -17.5,
+   "q05_q95": [
+    -56.0,
+    23.0
+   ]
+  },
+  "follower_x0.5": {
+   "mean_profit": -5.1,
+   "q05_q95": [
+    -44.9,
+    36.0
+   ]
+  },
+  "follower_x0.7": {
+   "mean_profit": 6.3,
+   "q05_q95": [
+    -26.6,
+    37.3
+   ]
+  },
+  "follower_x1.0": {
+   "mean_profit": 23.7,
+   "q05_q95": [
+    23.7,
+    23.7
+   ]
+  },
+  "parlay_math": {
+   "per_leg_hit": 0.527,
+   "p_3leg_if_independent": 0.146,
+   "expected_hits_in_28_weeks": 4.1
+  }
+ },
+ "2024": {
+  "A_model": {
+   "profit": 61.4,
+   "ci": [
+    17.0,
+    104.2
+   ],
+   "bets": 212,
+   "hit": 0.58
+  },
+  "U_same_legs_under": {
+   "profit": 65.2,
+   "ci": [
+    17.3,
+    113.1
+   ],
+   "bets": 212,
+   "hit": 0.59
+  },
+  "O_same_legs_over": {
+   "profit": -96.0,
+   "ci": [
+    -141.5,
+    -51.2
+   ],
+   "bets": 212,
+   "hit": 0.41
+  },
+  "A_minus_U_paired": {
+   "diff": -3.8,
+   "ci": [
+    -28.4,
+    20.2
+   ],
+   "weeks_model_better": 8,
+   "weeks_under_better": 8,
+   "share_model_picks_under": 0.906
+  },
+  "U_random_leg_under": {
+   "mean_profit": -5.9,
+   "q05_q95": [
+    -39.7,
+    31.4
+   ]
+  },
+  "O_random_leg_over": {
+   "mean_profit": -37.6,
+   "q05_q95": [
+    -76.7,
+    -2.5
+   ]
+  },
+  "follower_x0.3": {
+   "mean_profit": -8.7,
+   "q05_q95": [
+    -45.4,
+    25.3
+   ]
+  },
+  "follower_x0.5": {
+   "mean_profit": 11.0,
+   "q05_q95": [
+    -23.9,
+    48.3
+   ]
+  },
+  "follower_x0.7": {
+   "mean_profit": 33.0,
+   "q05_q95": [
+    2.3,
+    62.3
+   ]
+  },
+  "follower_x1.0": {
+   "mean_profit": 60.6,
+   "q05_q95": [
+    57.9,
+    61.4
+   ]
+  },
+  "parlay_math": {
+   "per_leg_hit": 0.58,
+   "p_3leg_if_independent": 0.195,
+   "expected_hits_in_28_weeks": 5.5
+  }
+ }
+}

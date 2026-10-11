@@ -1,0 +1,433 @@
+{
+  "families_run": [
+    "passing",
+    "shooting",
+    "rebounding_T"
+  ],
+  "families_not_run": [
+    "rebounding",
+    "activity",
+    "activity_T"
+  ],
+  "hustle_loaded": false,
+  "audit": {
+    "n_played": 76658,
+    "n_unplayed": 7394,
+    "columns": {
+      "trk_passes": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_touches": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_secondary_assists": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_free_throw_assists": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_neff": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_contested_field_goals_attempted": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_uncontested_field_goals_attempted": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_defended_at_rim_field_goals_attempted": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_contested_share": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_rebound_chances_offensive": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_rebound_chances_defensive": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "_has_row": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      }
+    },
+    "max_asymmetry": 0.0,
+    "stop": false
+  },
+  "cells": {
+    "passing|ast": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 0.9163577713709681,
+        "crps_B": 0.9162035563369956,
+        "delta": [
+          -0.00015421503397250347,
+          -0.0011472899102981638,
+          0.0009123232480556387
+        ],
+        "p": 0.774,
+        "cov80_A": 0.7958525178552006,
+        "cov80_B": 0.794076061342131,
+        "bias_A": 0.0370476636954597,
+        "bias_B": 0.015497545845704933,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.013949168705297933,
+          -0.02100708791614904,
+          -0.007062366579814804
+        ],
+        "bias_B_ci": [
+          0.015497545845704936,
+          -0.005362396895025802,
+          0.035477832911231376
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 0.9211177853224783,
+        "crps_B": 0.919618777122845,
+        "delta": [
+          -0.0014990081996334248,
+          -0.0026591011590397827,
+          -0.00022563880780490414
+        ],
+        "p": 0.015,
+        "cov80_A": 0.8035048336290235,
+        "cov80_B": 0.8007531047467323,
+        "bias_A": 0.022787008433250978,
+        "bias_B": 0.025419218005647982
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          -0.00015421503397250347,
+          -0.0011949627800837723,
+          0.0008155114759276182
+        ]
+      }
+    },
+    "passing|pts": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 3.1890101449511494,
+        "crps_B": 3.1905967253050656,
+        "delta": [
+          0.0015865803539157509,
+          -0.00037767301189579904,
+          0.0035266855529239574
+        ],
+        "p": 0.123,
+        "cov80_A": 0.7946198745604176,
+        "cov80_B": 0.794402349273103,
+        "bias_A": 0.0449657966286518,
+        "bias_B": 0.043862365980171,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.002309907990850417,
+          -0.014565890691059418,
+          0.010964967648960423
+        ],
+        "bias_B_ci": [
+          0.043862365980171014,
+          -0.0323356307569389,
+          0.10537537186670948
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 3.1548001330588096,
+        "crps_B": 3.155497900635605,
+        "delta": [
+          0.0006977675767958146,
+          -0.0021843605738716136,
+          0.003542587309143739
+        ],
+        "p": 0.607,
+        "cov80_A": 0.8043013867265288,
+        "cov80_B": 0.8050979398240342,
+        "bias_A": 0.04290377682257262,
+        "bias_B": 0.05520361889016332
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          0.0015865803539157509,
+          -0.0004463541741123122,
+          0.0036271924568814923
+        ]
+      }
+    },
+    "shooting|pts": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 3.1890101449511494,
+        "crps_B": 3.190854152682649,
+        "delta": [
+          0.001844007731498975,
+          -0.0002466259184714109,
+          0.0038976010747284184
+        ],
+        "p": 0.097,
+        "cov80_A": 0.7946198745604176,
+        "cov80_B": 0.7904868941014392,
+        "bias_A": 0.0449657966286518,
+        "bias_B": 0.03064777304062308,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.0017517149261035618,
+          -0.012635297622638056,
+          0.009939976135431029
+        ],
+        "bias_B_ci": [
+          0.03064777304062308,
+          -0.04549860508037541,
+          0.0922706098202389
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 3.1548001330588096,
+        "crps_B": 3.15509546329253,
+        "delta": [
+          0.0002953302337205596,
+          -0.002370401345822048,
+          0.0031292279336970793
+        ],
+        "p": 0.828,
+        "cov80_A": 0.8043013867265288,
+        "cov80_B": 0.805858285962562,
+        "bias_A": 0.04290377682257262,
+        "bias_B": 0.03033073291566927
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          0.001844007731498975,
+          -0.00028408965652062645,
+          0.0036289442390801275
+        ]
+      }
+    },
+    "shooting|fg3m": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 0.6149820528294538,
+        "crps_B": 0.6152693265368738,
+        "delta": [
+          0.0002872737074200365,
+          -0.0002950293663026142,
+          0.000902032121392955
+        ],
+        "p": 0.335,
+        "cov80_A": 0.7908856904615161,
+        "cov80_B": 0.7885654207301599,
+        "bias_A": -0.009610745407917332,
+        "bias_B": -0.010635523486703024,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.00394366608256768,
+          -0.007930326625317428,
+          0.0004115547465685758
+        ],
+        "bias_B_ci": [
+          -0.010635523486703028,
+          -0.0268366117112675,
+          0.003954147100518375
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 0.5917348259154663,
+        "crps_B": 0.5918904027903164,
+        "delta": [
+          0.0001555768748499916,
+          -0.0005725948228103699,
+          0.0008243218766295138
+        ],
+        "p": 0.653,
+        "cov80_A": 0.8071255295267751,
+        "cov80_B": 0.8051341467830117,
+        "bias_A": 0.00691485177954756,
+        "bias_B": 0.010704622814132292
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          0.0002872737074200365,
+          -0.0002969591820354126,
+          0.0008880158068681465
+        ]
+      }
+    },
+    "rebounding_T|reb": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 1.3249434920571117,
+        "crps_B": 1.3236583616041862,
+        "delta": [
+          -0.0012851304529256033,
+          -0.002222892548099515,
+          -0.0003876793276536203
+        ],
+        "p": 0.009,
+        "cov80_A": 0.7995141935249973,
+        "cov80_B": 0.798752855019396,
+        "bias_A": 0.032296793212207305,
+        "bias_B": 0.03056748663406972,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.0018437426357148956,
+          -0.008083933467567816,
+          0.004458601356630126
+        ],
+        "bias_B_ci": [
+          0.030567486634069715,
+          0.002290656189917268,
+          0.06111644792605214
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 1.3038745677301748,
+        "crps_B": 1.3044955593708503,
+        "delta": [
+          0.0006209916406753872,
+          -0.0005713874990809123,
+          0.0017495066333495833
+        ],
+        "p": 0.313,
+        "cov80_A": 0.8021651761468555,
+        "cov80_B": 0.802346210941743,
+        "bias_A": 0.010384738592059146,
+        "bias_B": 0.020714640739287592
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          -0.0012851304529256033,
+          -0.002204770846426494,
+          -0.00047510329162799654
+        ]
+      }
+    }
+  },
+  "verdicts": {
+    "passing|ast": {
+      "bh_adj_p": 0.774,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "passing|pts": {
+      "bh_adj_p": 0.205,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "shooting|pts": {
+      "bh_adj_p": 0.205,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "shooting|fg3m": {
+      "bh_adj_p": 0.41875,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "rebounding_T|reb": {
+      "bh_adj_p": 0.045,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": true,
+        "bh_q": true,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    }
+  },
+  "status": "ok"
+}

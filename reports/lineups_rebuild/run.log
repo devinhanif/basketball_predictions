@@ -1,0 +1,75 @@
+computed 5269 games in 24s
+100% ▕██████████████████████████████████████▏ (00:00:03.22 elapsed)     
+{
+  "games": 5269,
+  "skipped": {
+    "no_pbp": 0,
+    "no_starters": 0,
+    "no_possessions": 0
+  },
+  "before": {
+    "2022": {
+      "share": 0.49143743014745644,
+      "n": 27737
+    },
+    "2023": {
+      "share": 0.4759371564350817,
+      "n": 28197
+    },
+    "2024": {
+      "share": 0.46916565900846435,
+      "n": 28118
+    },
+    "2025": {
+      "share": 0.4479767775329626,
+      "n": 28593
+    }
+  },
+  "after": {
+    "2022": {
+      "share": 0.980134837942099,
+      "n": 27737
+    },
+    "2023": {
+      "share": 0.9758130297549384,
+      "n": 28197
+    },
+    "2024": {
+      "share": 0.9730421793868697,
+      "n": 28118
+    },
+    "2025": {
+      "share": 0.9656909033679572,
+      "n": 28593
+    }
+  },
+  "possession_agreement_old_vs_new": {
+    "all_off": 0.8018848512676496,
+    "all_def": 0.7949354981909772,
+    "n": 1049738.0,
+    "q1_off": 0.9464601986214572,
+    "q2_4_off": 0.7535256896467497
+  },
+  "unresolved_subs": 1177,
+  "desync_subs": 1336,
+  "open_filled": 94,
+  "q1_mismatch": 8,
+  "unresolved_csv": "/Users/devin/Downloads/nba-prediction/reports/lineups_rebuild/unresolved_subs.csv",
+  "desync_csv": "/Users/devin/Downloads/nba-prediction/reports/lineups_rebuild/desync_subs.csv",
+  "snapshot": [
+    "/Users/devin/Downloads/nba-prediction/data/backups/lineups_pre_fix_20261010T011007Z_stints.parquet",
+    "/Users/devin/Downloads/nba-prediction/data/backups/lineups_pre_fix_20261010T011007Z_possessions.parquet"
+  ],
+  "target": 0.95,
+  "floor": 0.91
+}
+WROTE chunk 1: games 1-1000 of 5269
+100% ▕██████████████████████████████████████▏ (00:00:04.03 elapsed)     
+WROTE chunk 2: games 1001-2000 of 5269
+100% ▕██████████████████████████████████████▏ (00:00:03.44 elapsed)     
+WROTE chunk 3: games 2001-3000 of 5269
+100% ▕██████████████████████████████████████▏ (00:00:03.19 elapsed)     
+WROTE chunk 4: games 3001-4000 of 5269
+100% ▕██████████████████████████████████████▏ (00:00:03.58 elapsed)     
+WROTE chunk 5: games 4001-5000 of 5269
+WROTE chunk 6: games 5001-5269 of 5269

@@ -1,0 +1,85 @@
+{
+  "season": 2024,
+  "n_rows": 110332,
+  "per_stat": {
+    "pts": 27583,
+    "reb": 27583,
+    "ast": 27583,
+    "fg3m": 27583
+  },
+  "a0": [
+    {
+      "stat": "pts",
+      "season": 2024,
+      "crps_int": 3.1884109851549947,
+      "lower_tail_crps_int": 3.1884109851549947,
+      "delta": 0.0,
+      "n": 27583,
+      "lower_tail_n": 27583,
+      "ok": true,
+      "components_matched": 27583,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 73,
+      "kmax": 80,
+      "max_tail_mass": 0.0
+    },
+    {
+      "stat": "reb",
+      "season": 2024,
+      "crps_int": 1.3139946716237645,
+      "lower_tail_crps_int": 1.3139946716237645,
+      "delta": 0.0,
+      "n": 27583,
+      "lower_tail_n": 27583,
+      "ok": true,
+      "components_matched": 27583,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 34,
+      "kmax": 35,
+      "max_tail_mass": 0.0
+    },
+    {
+      "stat": "ast",
+      "season": 2024,
+      "crps_int": 0.9010234364001779,
+      "lower_tail_crps_int": 0.9010234364001779,
+      "delta": 0.0,
+      "n": 27583,
+      "lower_tail_n": 27583,
+      "ok": true,
+      "components_matched": 27583,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 29,
+      "kmax": 30,
+      "max_tail_mass": 0.0
+    },
+    {
+      "stat": "fg3m",
+      "season": 2024,
+      "crps_int": 0.5922775210770066,
+      "lower_tail_crps_int": 0.5922775210770066,
+      "delta": 0.0,
+      "n": 27583,
+      "lower_tail_n": 27583,
+      "ok": true,
+      "components_matched": 27583,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 17,
+      "kmax": 18,
+      "max_tail_mass": 0.0
+    }
+  ],
+  "a0_ok": true,
+  "seeds": {
+    "model": 0,
+    "bootstrap": 2026,
+    "pit": 0
+  },
+  "git_sha": "a2e7609b5d3671404b764de91b7f661ed01857a0",
+  "config": "configs/context_residual.yaml",
+  "rule_status": "DRAFT"
+}

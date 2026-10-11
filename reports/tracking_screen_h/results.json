@@ -1,0 +1,433 @@
+{
+  "families_run": [
+    "rebounding",
+    "activity"
+  ],
+  "families_not_run": [
+    "passing",
+    "shooting",
+    "rebounding_T",
+    "activity_T"
+  ],
+  "hustle_loaded": true,
+  "audit": {
+    "n_played": 76658,
+    "n_unplayed": 7394,
+    "columns": {
+      "trk_rebound_chances_offensive": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_rebound_chances_defensive": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "hus_offensive_box_outs": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "hus_defensive_box_outs": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_neff": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "hus_neff": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_distance": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "trk_speed": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "hus_deflections": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "hus_screen_assists": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "hus_loose_balls_recovered_total": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      },
+      "_has_row": {
+        "null_played": 0.0,
+        "null_unplayed": 0.0,
+        "asymmetry": 0.0,
+        "corr_null_pts": null
+      }
+    },
+    "max_asymmetry": 0.0,
+    "stop": false
+  },
+  "cells": {
+    "rebounding|reb": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 1.3248346991669417,
+        "crps_B": 1.3238683382613379,
+        "delta": [
+          -0.0009663609056038149,
+          -0.001996877348071379,
+          6.228693769608235e-05
+        ],
+        "p": 0.064,
+        "cov80_A": 0.7983540586593192,
+        "cov80_B": 0.7982090418011094,
+        "bias_A": 0.026560675805792033,
+        "bias_B": 0.028876664976251982,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.012636875045678356,
+          -0.019308761820214876,
+          -0.005718767231801726
+        ],
+        "bias_B_ci": [
+          0.02887666497625199,
+          0.0005364129007803341,
+          0.05843147609428565
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 1.303810371723824,
+        "crps_B": 1.3052646866490187,
+        "delta": [
+          0.0014543149251942476,
+          0.00011554470954883195,
+          0.0027522242903267992
+        ],
+        "p": 0.036,
+        "cov80_A": 0.8033600057931134,
+        "cov80_B": 0.8039031101777762,
+        "bias_A": 0.01838265727353678,
+        "bias_B": 0.02508107685318017
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          -0.0009663609056038149,
+          -0.0019543308002961807,
+          2.564935897950416e-05
+        ]
+      }
+    },
+    "activity|pts": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 3.1928234976568377,
+        "crps_B": 3.193873094311634,
+        "delta": [
+          0.0010495966547965899,
+          -0.0010675978475800257,
+          0.0032980742239014224
+        ],
+        "p": 0.351,
+        "cov80_A": 0.7911032157488308,
+        "cov80_B": 0.7913207410361455,
+        "bias_A": 0.033121074834226834,
+        "bias_B": 0.022408067245242167,
+        "cold_n": 463,
+        "cold_delta": [
+          0.003493204216236462,
+          -0.00777118141495041,
+          0.014538919629578352
+        ],
+        "bias_B_ci": [
+          0.022408067245242195,
+          -0.053886174423412495,
+          0.08643974288206703
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 3.1571491763876725,
+        "crps_B": 3.1569964256088086,
+        "delta": [
+          -0.000152750778864417,
+          -0.00283102994213023,
+          0.0026752136283376194
+        ],
+        "p": 0.946,
+        "cov80_A": 0.8064738042651798,
+        "cov80_B": 0.8062565625113147,
+        "bias_A": 0.05853972962175929,
+        "bias_B": 0.09699059832468795
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          0.0010495966547965899,
+          -0.001038158380078976,
+          0.003228432761197992
+        ]
+      }
+    },
+    "activity|reb": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 1.3248346991669417,
+        "crps_B": 1.324447706720131,
+        "delta": [
+          -0.00038699244681062155,
+          -0.001335949259454501,
+          0.0006045293057429735
+        ],
+        "p": 0.434,
+        "cov80_A": 0.7983540586593192,
+        "cov80_B": 0.7980640249428996,
+        "bias_A": 0.026560675805792033,
+        "bias_B": 0.03243678087671427,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.005869115750440325,
+          -0.011825391133944787,
+          0.00025008395498098395
+        ],
+        "bias_B_ci": [
+          0.03243678087671426,
+          0.0041472398351448,
+          0.06241301543893751
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 1.303810371723824,
+        "crps_B": 1.305533239087799,
+        "delta": [
+          0.001722867363974523,
+          0.00035793313613816964,
+          0.002959702573363933
+        ],
+        "p": 0.011,
+        "cov80_A": 0.8033600057931134,
+        "cov80_B": 0.8043738006444838,
+        "bias_A": 0.01838265727353678,
+        "bias_B": 0.015821509850587417
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          -0.00038699244681062155,
+          -0.001330325627016814,
+          0.0005775174700481337
+        ]
+      }
+    },
+    "activity|ast": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 0.917058109889342,
+        "crps_B": 0.9175977686747204,
+        "delta": [
+          0.0005396587853784252,
+          -0.00024325291472524854,
+          0.0013457105178098921
+        ],
+        "p": 0.172,
+        "cov80_A": 0.7937860276257115,
+        "cov80_B": 0.794982416705942,
+        "bias_A": 0.04197586342681249,
+        "bias_B": 0.03845510807606575,
+        "cold_n": 463,
+        "cold_delta": [
+          -7.026745280971919e-05,
+          -0.005248165328550622,
+          0.005734462485568898
+        ],
+        "bias_B_ci": [
+          0.03845510807606575,
+          0.017104854879464032,
+          0.05912585770882236
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 0.9215976582705088,
+        "crps_B": 0.9213992351869988,
+        "delta": [
+          -0.00019842308350974765,
+          -0.0011314821978428624,
+          0.000806968129180843
+        ],
+        "p": 0.672,
+        "cov80_A": 0.8015134508852602,
+        "cov80_B": 0.8028169014084507,
+        "bias_A": 0.02330853225227038,
+        "bias_B": 0.02014580339236867
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          0.0005396587853784252,
+          -0.0003289771619496095,
+          0.0014008825046556588
+        ]
+      }
+    },
+    "activity|fg3m": {
+      "report": {
+        "n": 27583,
+        "n_games": 1315,
+        "crps_A": 0.615294002290896,
+        "crps_B": 0.6159536486135946,
+        "delta": [
+          0.0006596463226985106,
+          0.000133090719860765,
+          0.0012121024049775466
+        ],
+        "p": 0.017,
+        "cov80_A": 0.7901243519559149,
+        "cov80_B": 0.7903418772432296,
+        "bias_A": -0.006547887681347277,
+        "bias_B": -0.007327532880834515,
+        "cold_n": 463,
+        "cold_delta": [
+          -0.0008969957483670558,
+          -0.0034193061907936296,
+          0.0018928007309685605
+        ],
+        "bias_B_ci": [
+          -0.007327532880834518,
+          -0.023156550506840616,
+          0.007619114324133641
+        ]
+      },
+      "descr_2023": {
+        "n": 27619,
+        "n_games": 1318,
+        "crps_A": 0.5923857425179926,
+        "crps_B": 0.5921330452583813,
+        "delta": [
+          -0.0002526972596112787,
+          -0.0009015026784757003,
+          0.00041751559111328617
+        ],
+        "p": 0.48,
+        "cov80_A": 0.805930699880517,
+        "cov80_B": 0.8032151779572033,
+        "bias_A": 0.008048075683797253,
+        "bias_B": 0.010342640232426693
+      },
+      "sensitivity_own_game_tracked": {
+        "n": 27583,
+        "delta": [
+          0.0006596463226985106,
+          0.00013301139773003415,
+          0.0011875911070880585
+        ]
+      }
+    }
+  },
+  "verdicts": {
+    "rebounding|reb": {
+      "bh_adj_p": 0.16,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "activity|pts": {
+      "bh_adj_p": 0.434,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "activity|reb": {
+      "bh_adj_p": 0.434,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "activity|ast": {
+      "bh_adj_p": 0.2866666666666666,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    },
+    "activity|fg3m": {
+      "bh_adj_p": 0.085,
+      "checks": {
+        "floor": false,
+        "ci_excludes_0": false,
+        "bh_q": false,
+        "cov80_guard": true,
+        "bias_guard": true,
+        "cold_start_guard": true,
+        "audit_clean": true
+      },
+      "cold_judged": true,
+      "pass": false
+    }
+  },
+  "status": "ok"
+}

@@ -1,0 +1,180 @@
+{
+  "checks": {
+    "1_officials_coverage": {
+      "by_month": {
+        "2022-10": {
+          "n_games": 102,
+          "share_ge3": 1.0
+        },
+        "2022-11": {
+          "n_games": 222,
+          "share_ge3": 1.0
+        },
+        "2022-12": {
+          "n_games": 222,
+          "share_ge3": 1.0
+        },
+        "2023-01": {
+          "n_games": 222,
+          "share_ge3": 1.0
+        },
+        "2023-02": {
+          "n_games": 163,
+          "share_ge3": 1.0
+        },
+        "2023-03": {
+          "n_games": 229,
+          "share_ge3": 1.0
+        },
+        "2023-04": {
+          "n_games": 121,
+          "share_ge3": 1.0
+        },
+        "2023-05": {
+          "n_games": 34,
+          "share_ge3": 1.0
+        },
+        "2023-06": {
+          "n_games": 5,
+          "share_ge3": 1.0
+        },
+        "2023-10": {
+          "n_games": 54,
+          "share_ge3": 1.0
+        },
+        "2023-11": {
+          "n_games": 219,
+          "share_ge3": 1.0
+        },
+        "2023-12": {
+          "n_games": 207,
+          "share_ge3": 1.0
+        },
+        "2024-01": {
+          "n_games": 231,
+          "share_ge3": 1.0
+        },
+        "2024-02": {
+          "n_games": 174,
+          "share_ge3": 1.0
+        },
+        "2024-03": {
+          "n_games": 230,
+          "share_ge3": 1.0
+        },
+        "2024-04": {
+          "n_games": 157,
+          "share_ge3": 1.0
+        },
+        "2024-05": {
+          "n_games": 41,
+          "share_ge3": 1.0
+        },
+        "2024-06": {
+          "n_games": 5,
+          "share_ge3": 1.0
+        },
+        "2024-10": {
+          "n_games": 71,
+          "share_ge3": 1.0
+        },
+        "2024-11": {
+          "n_games": 221,
+          "share_ge3": 1.0
+        },
+        "2024-12": {
+          "n_games": 189,
+          "share_ge3": 1.0
+        },
+        "2025-01": {
+          "n_games": 225,
+          "share_ge3": 1.0
+        },
+        "2025-02": {
+          "n_games": 176,
+          "share_ge3": 1.0
+        },
+        "2025-03": {
+          "n_games": 238,
+          "share_ge3": 1.0
+        },
+        "2025-04": {
+          "n_games": 149,
+          "share_ge3": 1.0
+        },
+        "2025-05": {
+          "n_games": 39,
+          "share_ge3": 1.0
+        },
+        "2025-06": {
+          "n_games": 7,
+          "share_ge3": 1.0
+        }
+      },
+      "by_season": {
+        "2022": {
+          "n_games": 1320,
+          "share_ge3": 1.0
+        },
+        "2023": {
+          "n_games": 1318,
+          "share_ge3": 1.0
+        },
+        "2024": {
+          "n_games": 1315,
+          "share_ge3": 1.0
+        }
+      },
+      "min_month_share": 1.0,
+      "n_games": 3953,
+      "n_games_expected": 3953,
+      "n_games_matches_doc": true,
+      "pass": true,
+      "share_1_or_2_officials": 0.0,
+      "share_ge3_officials": 1.0,
+      "threshold_few_max": 0.01,
+      "threshold_month": 0.95,
+      "threshold_overall": 0.98,
+      "threshold_season": 0.97,
+      "worst_month": "2022-10"
+    },
+    "2_name_id_1to1": {
+      "ids_with_two_jerseys_informational": 11,
+      "ids_with_two_names": [],
+      "n_distinct_ids": 83,
+      "n_distinct_names": 83,
+      "n_names_unresolved_by_jersey": 0,
+      "n_names_with_multiple_ids": 0,
+      "n_slots_on_non_primary_duplicate_ids": 0,
+      "names_with_multiple_ids": [],
+      "pass": true
+    },
+    "3_pf_fta_fields": {
+      "pass": true,
+      "rows_minutes_gt0": 84052,
+      "rows_minutes_non_null": 84067,
+      "share_pf_fta_non_null_minutes_gt0": 1.0,
+      "share_pf_fta_non_null_minutes_non_null": 1.0,
+      "threshold": 0.995
+    }
+  },
+  "failed_items": [],
+  "g0_pass": true,
+  "hash_check": {
+    "constant_in_module": "14613c3a48d788e9c8dff0af2539b55667acee0c45a9e1bfb8f539403728975f",
+    "doc_frozen_sha256": "14613c3a48d788e9c8dff0af2539b55667acee0c45a9e1bfb8f539403728975f",
+    "freeze_commit": "3dc6b6aa9b81da09b6557cf589dc5a29ead8dfb4 2026-10-10 06:30:01 -0500",
+    "ledger_recorded_sha256": "14613c3a48d788e9c8dff0af2539b55667acee0c45a9e1bfb8f539403728975f",
+    "match": true
+  },
+  "item_4_a0_reproduction": {
+    "expected_pts_integer_crps": {
+      "2023": 3.1528,
+      "2024": 3.1884
+    },
+    "status": "evaluated at the first arm fit (kill criterion); not part of this file's hash",
+    "tolerance": 0.0001
+  },
+  "missingness_audit_sha256": "88d99c285efdc2fb0e340fc6281df72576189a675a6e7ba6d53f30b793118f56",
+  "missingness_stop": false
+}

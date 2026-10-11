@@ -1,0 +1,63 @@
+{
+  "games": 5269,
+  "skipped": {
+    "no_pbp": 0,
+    "no_starters": 0,
+    "no_possessions": 0
+  },
+  "before": {
+    "2022": {
+      "share": 0.980134837942099,
+      "n": 27737
+    },
+    "2023": {
+      "share": 0.9758130297549384,
+      "n": 28197
+    },
+    "2024": {
+      "share": 0.9730421793868697,
+      "n": 28118
+    },
+    "2025": {
+      "share": 0.9656909033679572,
+      "n": 28593
+    }
+  },
+  "after": {
+    "2022": {
+      "share": 0.990950715650575,
+      "n": 27737
+    },
+    "2023": {
+      "share": 0.9871262900308544,
+      "n": 28197
+    },
+    "2024": {
+      "share": 0.9859876235863149,
+      "n": 28118
+    },
+    "2025": {
+      "share": 0.9837722519497779,
+      "n": 28593
+    }
+  },
+  "possession_agreement_old_vs_new": {
+    "all_off": 0.9903299680491704,
+    "all_def": 0.9903175840066759,
+    "n": 1049738.0,
+    "q1_off": 0.995942587042601,
+    "q2_4_off": 0.9884053983868604
+  },
+  "unresolved_subs": 1177,
+  "desync_subs": 101,
+  "open_filled": 93,
+  "q1_mismatch": 0,
+  "unresolved_csv": "/Users/devin/Downloads/nba-prediction/reports/lineups_rebuild/unresolved_subs.csv",
+  "desync_csv": "/Users/devin/Downloads/nba-prediction/reports/lineups_rebuild/desync_subs.csv",
+  "snapshot": [
+    "/Users/devin/Downloads/nba-prediction/data/backups/lineups_pre_fix_20261010T014851Z_stints.parquet",
+    "/Users/devin/Downloads/nba-prediction/data/backups/lineups_pre_fix_20261010T014851Z_possessions.parquet"
+  ],
+  "target": 0.95,
+  "floor": 0.91
+}

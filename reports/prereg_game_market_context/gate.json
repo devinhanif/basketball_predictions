@@ -1,0 +1,492 @@
+{
+ "a0_repro": {
+  "detail": {
+   "ast_2023": {
+    "delta": 0.0,
+    "got": 0.9059028606321847,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 0.9059028606321847
+   },
+   "ast_2024": {
+    "delta": 0.0,
+    "got": 0.9002150882692853,
+    "n": 27701,
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 0.9002150882692853
+   },
+   "fg3m_2023": {
+    "delta": 0.0,
+    "got": 0.5690486141021416,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 0.5690486141021416
+   },
+   "fg3m_2024": {
+    "delta": 0.0,
+    "got": 0.5922128263543135,
+    "n": 27701,
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 0.5922128263543135
+   },
+   "pts_2023": {
+    "delta": 0.0,
+    "got": 3.152829990762183,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 3.152829990762183
+   },
+   "pts_2024": {
+    "delta": 0.0,
+    "got": 3.1875525740475275,
+    "n": 27701,
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 3.1875525740475275
+   },
+   "reb_2023": {
+    "delta": 0.0,
+    "got": 1.2928172686712307,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 1.2928172686712307
+   },
+   "reb_2024": {
+    "delta": 0.0,
+    "got": 1.3142466423136836,
+    "n": 27701,
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 1.3142466423136836
+   }
+  },
+  "ok": true
+ },
+ "coverage": {
+  "2022": {
+   "consensus_games": 0,
+   "coverage_all_games": 0.0,
+   "coverage_regular": 0.0,
+   "pinnacle_games": 0,
+   "regular_season_games": 1230,
+   "scored_row_coverage": 0.0,
+   "scored_rows": 25110,
+   "scored_rows_with_market": 0,
+   "with_market": 0
+  },
+  "2023": {
+   "consensus_games": 49,
+   "coverage_all_games": 1.0,
+   "coverage_regular": 1.0,
+   "pinnacle_games": 1181,
+   "regular_season_games": 1230,
+   "scored_row_coverage": 1.0,
+   "scored_rows": 27619,
+   "scored_rows_with_market": 27619,
+   "with_market": 1230
+  },
+  "2024": {
+   "consensus_games": 36,
+   "coverage_all_games": 0.9962121212121212,
+   "coverage_regular": 0.9959349593495935,
+   "pinnacle_games": 1189,
+   "regular_season_games": 1230,
+   "scored_row_coverage": 0.9959929244431609,
+   "scored_rows": 27701,
+   "scored_rows_with_market": 27590,
+   "with_market": 1225
+  }
+ },
+ "descriptive_corr": {
+  "2023": {
+   "corr_mkt_abs_abs_margin": 0.7872233812704361,
+   "corr_mkt_margin_exp_margin": 0.8981079212972569,
+   "corr_mkt_total_r20_for_plus_opp_r20_for": 0.7356795560233681,
+   "n": 27619
+  },
+  "2024": {
+   "corr_mkt_abs_abs_margin": 0.7700816527680688,
+   "corr_mkt_margin_exp_margin": 0.8946746454064324,
+   "corr_mkt_total_r20_for_plus_opp_r20_for": 0.5696713847738365,
+   "n": 27590
+  }
+ },
+ "doc": "docs/prereg/GAME_MARKET_CONTEXT.md",
+ "draft": false,
+ "gate_ok": true,
+ "gate_seconds": 1.5458450317382812,
+ "git_sha": "0a4f2307685538f4225dd3345031ff677c0181c5",
+ "keys": {
+  "keys_equal": {
+   "A0": true,
+   "A1": true,
+   "A2": true,
+   "A3": true,
+   "P1a": true,
+   "P1b": true
+  },
+  "ok": true,
+  "y_equal": {
+   "A0": true,
+   "A1": true,
+   "A2": true,
+   "A3": true,
+   "P1a": true,
+   "P1b": true
+  }
+ },
+ "known_at": {
+  "games": 2633,
+  "median_minutes_before_tip": 64.36666666666666,
+  "min_minutes_before_tip": 62.55,
+  "snapshot_rows": {
+   "rows_in": 62334,
+   "rows_no_real_tip": 0,
+   "rows_refused_late": 0,
+   "rows_used": 62334
+  },
+  "used_games_without_real_tip": 0,
+  "used_rows_last_update_after_snapshot": 0
+ },
+ "max_season_loaded": 2024,
+ "missingness_audit": [
+  {
+   "bucket": "DNP",
+   "n": 13469,
+   "null_market_rate": 0.0017076249164748683
+  },
+  {
+   "bucket": "<5",
+   "n": 5189,
+   "null_market_rate": 0.004239737907111196
+  },
+  {
+   "bucket": "5-20",
+   "n": 17288,
+   "null_market_rate": 0.002140212864414623
+  },
+  {
+   "bucket": ">20",
+   "n": 33956,
+   "null_market_rate": 0.0017375427023206503
+  }
+ ],
+ "missingness_gap_pp": {
+  "all": 0.2532112990636328,
+  "played_only": 0.2502195204790546
+ },
+ "ou_reproduction_info": {
+  "ast": {
+   "matched": 20224,
+   "max_abs_diff_vs_stored_p_model": 0.1306532663316583,
+   "pairs_rows": 20224,
+   "share_within_1e-6": 0.7207278481012658,
+   "share_within_1e-6_by_season": {
+    "2023": 1.0,
+    "2024": 0.46585965575940985
+   },
+   "status0": 20224
+  },
+  "fg3m": {
+   "matched": 26739,
+   "max_abs_diff_vs_stored_p_model": 0.12562814070351758,
+   "pairs_rows": 26739,
+   "share_within_1e-6": 0.7548150641385243,
+   "share_within_1e-6_by_season": {
+    "2023": 1.0,
+    "2024": 0.4775262990117947
+   },
+   "status0": 26739
+  },
+  "pts": {
+   "matched": 30236,
+   "max_abs_diff_vs_stored_p_model": 0.11557788944723618,
+   "pairs_rows": 30236,
+   "share_within_1e-6": 0.7313136658288133,
+   "share_within_1e-6_by_season": {
+    "2023": 1.0,
+    "2024": 0.4884775217227049
+   },
+   "status0": 30236
+  },
+  "reb": {
+   "matched": 29800,
+   "max_abs_diff_vs_stored_p_model": 0.12060301507537685,
+   "pairs_rows": 29800,
+   "share_within_1e-6": 0.7446644295302013,
+   "share_within_1e-6_by_season": {
+    "2023": 1.0,
+    "2024": 0.48406563601844316
+   },
+   "status0": 29800
+  }
+ },
+ "planted": {
+  "corr_placebo_vs_actual_signed_margin_within_home_flag_maxabs": 0.01797010205474082,
+  "corr_real_vs_actual_signed_margin_within_home_flag_min": 0.5084318728822496,
+  "placebo_unchanged": {
+   "rows": 56315,
+   "unchanged_rows": 77,
+   "unchanged_share": 0.001367308887507769
+  },
+  "plant_day": "2025-01-18",
+  "plant_games": 6,
+  "tip55_snapshot_changed_share": 1.0
+ },
+ "seeds": {
+  "bootstrap": 0,
+  "model": 0,
+  "pit": 0,
+  "placebo": 0
+ },
+ "sha256": "fd37a3f322f4a983def03a06cf7dce99a123cc2f2763b3397c2faafb8f64d229",
+ "status": "GATE_PASSED",
+ "tests": [
+  {
+   "ok": true,
+   "test": "2 market coverage 2023 (regular season; Pinnacle else consensus; spread AND total)",
+   "threshold": ">= 0.9",
+   "value": 1.0
+  },
+  {
+   "ok": true,
+   "test": "2 market coverage 2024 (regular season; Pinnacle else consensus; spread AND total)",
+   "threshold": ">= 0.9",
+   "value": 0.9959349593495935
+  },
+  {
+   "ok": true,
+   "test": "3 every used snapshot is <= tip - 55 min (violations)",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "ok": true,
+   "test": "3 every used game has a real tip (no proxy)",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "ok": true,
+   "test": "3 no used quote was updated after its snapshot stamp",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "ok": true,
+   "test": "4 max NULL-market-rate gap across realised-minutes buckets incl. DNP (pp)",
+   "threshold": "<= 2.0",
+   "value": 0.2532112990636328
+  },
+  {
+   "ok": true,
+   "test": "5 PLANT same-game: tip-30 snapshot refused",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "5 PLANT same-game: tip-54 snapshot refused",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "5 PLANT same-game is not inert (tip-55 snapshot is taken: share of games changed)",
+   "threshold": ">= 0.9",
+   "value": 1.0
+  },
+  {
+   "ok": true,
+   "test": "5 PLANT same-game: altered same-day final scores leave that day's pace baseline identical",
+   "threshold": "== 1 (and later days do move)",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "5 PLANT future (>= 2024-01-15) odds edits: earlier market identical",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "5 PLANT future is not inert (later market changes)",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "5 PLANT future score edits: earlier pace baseline identical",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "5 placebo keeps the marginal distribution",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "5 placebo fixed points (share of rows whose own game's numbers survive)",
+   "threshold": "<= 0.01",
+   "value": 0.001367308887507769
+  },
+  {
+   "ok": true,
+   "test": "5 placebo has no game information (max |corr| with the actual signed margin within home/away rows) and real has (min > 0.3)",
+   "threshold": "|x| < 0.05 and real > 0.3",
+   "value": 0.01797010205474082
+  },
+  {
+   "ok": true,
+   "test": "5 sign of mkt_margin by home/away",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "6 identical row keys and y across the six arm frames",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "1 A0 reproduces production integer CRPS and n to 1e-6 (4 stats x 2 seasons)",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "ok": true,
+   "test": "1 A0 names == production stat_feature_names",
+   "threshold": "== 1",
+   "value": 1
+  }
+ ],
+ "training_sufficiency": {
+  "2023": {
+   "blocks": [
+    {
+     "rows": 1062,
+     "train_mkt_games": 0,
+     "ym": "2023-10"
+    },
+    {
+     "rows": 4522,
+     "train_mkt_games": 54,
+     "ym": "2023-11"
+    },
+    {
+     "rows": 4346,
+     "train_mkt_games": 273,
+     "ym": "2023-12"
+    },
+    {
+     "rows": 4932,
+     "train_mkt_games": 480,
+     "ym": "2024-01"
+    },
+    {
+     "rows": 3691,
+     "train_mkt_games": 711,
+     "ym": "2024-02"
+    },
+    {
+     "rows": 4825,
+     "train_mkt_games": 885,
+     "ym": "2024-03"
+    },
+    {
+     "rows": 3281,
+     "train_mkt_games": 1115,
+     "ym": "2024-04"
+    },
+    {
+     "rows": 846,
+     "train_mkt_games": 1272,
+     "ym": "2024-05"
+    },
+    {
+     "rows": 114,
+     "train_mkt_games": 1313,
+     "ym": "2024-06"
+    }
+   ],
+   "share_rows_in_mature_blocks": 0.461892175676165
+  },
+  "2024": {
+   "blocks": [
+    {
+     "rows": 1407,
+     "train_mkt_games": 1318,
+     "ym": "2024-10"
+    },
+    {
+     "rows": 4650,
+     "train_mkt_games": 1389,
+     "ym": "2024-11"
+    },
+    {
+     "rows": 4007,
+     "train_mkt_games": 1610,
+     "ym": "2024-12"
+    },
+    {
+     "rows": 4847,
+     "train_mkt_games": 1799,
+     "ym": "2025-01"
+    },
+    {
+     "rows": 3705,
+     "train_mkt_games": 2024,
+     "ym": "2025-02"
+    },
+    {
+     "rows": 4985,
+     "train_mkt_games": 2200,
+     "ym": "2025-03"
+    },
+    {
+     "rows": 3099,
+     "train_mkt_games": 2438,
+     "ym": "2025-04"
+    },
+    {
+     "rows": 842,
+     "train_mkt_games": 2587,
+     "ym": "2025-05"
+    },
+    {
+     "rows": 159,
+     "train_mkt_games": 2626,
+     "ym": "2025-06"
+    }
+   ],
+   "share_rows_in_mature_blocks": 1.0
+  },
+  "mature_games": 600
+ },
+ "unstated_details": [
+  "market source: odds_history.duckdb snapshot_kind='t60' only, season <= 2024 in the SQL, books pinnacle / draftkings / fanduel / betmgm; Pinnacle where it has a complete (spread AND total) quote for the game, else the MEDIAN over >= 2 complete consensus books; games with neither have NULL market columns",
+  "snapshot choice: of several t60 snapshots of one (game, book) the latest with snapshot_ts <= real tipoff_utc - 55 min; a game with no real tip is NOT given a proxy (its market is NULL); a late snapshot is refused, never clipped",
+  "main line: the quote closest to even money per (game, book, market, side); spread sides must mirror (away = - home) else the book's margin is NULL; over/under points must match else the total is NULL",
+  "signs: mkt_margin = - home spread for a home player, + home spread for an away player (positive = player's team favoured); mkt_abs_margin = |home spread|",
+  "mkt_pace = mkt_total - mean of the ACTUAL totals of the last 300 completed games with game_date STRICTLY earlier (same-day games excluded), NULL below 50 prior games",
+  "A1 replaces exp_margin, abs_margin, r20_pts_for, r20_pts_against in place (same column positions) with mkt_margin, mkt_abs_margin, mkt_total, mkt_pace and DROPS opp_r20_pts_for / opp_r20_pts_against (no market analogue); A2 = production names + the four market columns appended; P1a / P1b = A1 / A2 names on the placebo frame",
+  "training rows of 2022 (and any game without a usable snapshot) carry NULL market columns; LightGBM treats NaN as missing natively; every arm scores the SAME rows (n_prior >= 5, played, season 2023/2024) including rows of games with a NULL market",
+  "A3 (descriptive): A1 names minus every player-own box-stat history column (m10_pts/reb/ast/fg3m, m5/m40/m100/sd10/role_gap/rate of the stat); target offset m = 0 and s = 1 (the model predicts the raw stat); keeps minutes windows, role, rest, market context, teammates-out (n_out_rot, vac_min, vac_<stat>), opp_allow_<stat>",
+  "placebo: the game-level (home margin, total) tuples are permuted ACROSS games within a game date as a derangement (no game keeps its own numbers); dates with one market game are pooled by (season, month); pace and sign are re-derived per row; numpy default_rng(0)",
+  "over/under: the DraftKings t60 pairs of data/ops/model_clv_pairs/pairs_{2023,2024}.parquet (their line/price/keys), with p_over recomputed in-run for EVERY arm from its own integer quantile grid (same pge_matrix/model_p_over as the pairs builder); rows where any arm has status != 0 (push, odd line, certain push) are dropped for all arms; log loss clipped at MODEL_EPS = 0.5/199; non-inferiority = point estimate of (arm - A0) <= +0.002, CI reported",
+  "'stat passes' for arm A in {A1, A2} = dCRPS <= -0.005 with CI upper < 0 and BH p < 0.05 (family {A1,A2} x 4 stats per season) in BOTH 2023 (mature-block rows, AM1) and 2024 (all rows), AND (A - placebo) CI upper < 0 in both seasons, AND the DraftKings log-loss non-inferiority in both seasons, AND the 2024 guards; no cell passing 2023 closes the question",
+  "tercile slices cut |market margin| and market total at the tercile edges of the scored market-bearing rows of the same season (descriptive); 'mature' blocks = test month blocks with >= 600 market-bearing training games (descriptive)",
+  "check 4 buckets = DNP, <5, 5-20, >20 realised minutes over all player_game_stats rows of 2023-2024; the gap is max-min of the NULL-market rate over the four, DNP included (stricter); the played-only gap is reported too",
+  "check 1 compares A0 with reports/lower_tail/candidates.json 'off' AS IT STANDS (re-baselined on the current DB 2026-10-11; 2024 n 27,701), all 4 stats x 2 seasons, CRPS to 1e-6, n identical",
+  "snapshot_ts is naive UTC and is compared with the schedule's tipoff_utc (naive UTC); attach_real_tips (tip_et) is used to assert every used game has a REAL tip (no proxy fallback)"
+ ]
+}

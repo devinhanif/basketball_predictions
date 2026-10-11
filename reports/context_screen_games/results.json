@@ -1,0 +1,458 @@
+{
+  "seed": 20261008,
+  "B": 2000,
+  "q": 0.1,
+  "floor": 0.001,
+  "m": 14,
+  "n": 3951,
+  "tests": [
+    {
+      "feature": "home_altitude_km",
+      "n_unique": 26,
+      "coef_per_sd": 0.06461972713044961,
+      "dLL_per_game": 0.00041896607508440376,
+      "ci_game": [
+        -0.008675508375756142,
+        0.13868780371045467
+      ],
+      "ci_teamseason": [
+        -0.024038217174571344,
+        0.1713750986138653
+      ],
+      "p_game": 0.08095952023988005,
+      "p_teamseason": 0.15792103948025987,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "altitude_diff_km",
+      "n_unique": 471,
+      "coef_per_sd": 0.0035235231452809667,
+      "dLL_per_game": 1.3113376743367766e-06,
+      "ci_game": [
+        -0.06520608640008417,
+        0.0774601739268469
+      ],
+      "ci_teamseason": [
+        -0.07796890527999871,
+        0.07519029738692401
+      ],
+      "p_game": 0.8695652173913043,
+      "p_teamseason": 0.9885057471264368,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "home_log_pop",
+      "n_unique": 28,
+      "coef_per_sd": -0.05862013853095806,
+      "dLL_per_game": 0.00037091479776429903,
+      "ci_game": [
+        -0.12792525258687587,
+        0.008132510679152232
+      ],
+      "ci_teamseason": [
+        -0.13276747313374151,
+        0.016671795450050497
+      ],
+      "p_game": 0.08295852073963018,
+      "p_teamseason": 0.13193403298350825,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "away_log_pop",
+      "n_unique": 28,
+      "coef_per_sd": -0.053918084759895374,
+      "dLL_per_game": 0.00031392640771976676,
+      "ci_game": [
+        -0.11719392977595013,
+        0.011956147227909462
+      ],
+      "ci_teamseason": [
+        -0.11052415390217717,
+        0.0032835824007726583
+      ],
+      "p_game": 0.12193903048475763,
+      "p_teamseason": 0.07096451774112944,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "log_pop_gap",
+      "n_unique": 757,
+      "coef_per_sd": -0.0032992079278869038,
+      "dLL_per_game": 1.1819345709929152e-06,
+      "ci_game": [
+        -0.06970138181591123,
+        0.0617515940317838
+      ],
+      "ci_teamseason": [
+        -0.06938863106543791,
+        0.0673515942435065
+      ],
+      "p_game": 0.9035482258870565,
+      "p_teamseason": 0.9495252373813093,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "away_bodyclock_hr",
+      "n_unique": 35,
+      "coef_per_sd": 0.025595868832259543,
+      "dLL_per_game": 6.957090772818919e-05,
+      "ci_game": [
+        -0.0432265554955096,
+        0.09223199652454933
+      ],
+      "ci_teamseason": [
+        -0.04926530182173213,
+        0.09869294817681178
+      ],
+      "p_game": 0.4577711144427786,
+      "p_teamseason": 0.46976511744127936,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "tz_shift_east_hr",
+      "n_unique": 7,
+      "coef_per_sd": -0.02443750337125576,
+      "dLL_per_game": 6.41308324937917e-05,
+      "ci_game": [
+        -0.0937555296048821,
+        0.04319082301540961
+      ],
+      "ci_teamseason": [
+        -0.09819375768802556,
+        0.046929462836230285
+      ],
+      "p_game": 0.5097451274362819,
+      "p_teamseason": 0.5327336331834083,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "west_to_east_early",
+      "n_unique": 2,
+      "coef_per_sd": -0.049203107655035806,
+      "dLL_per_game": 0.00026336913554902974,
+      "ci_game": [
+        -0.1191793478359199,
+        0.018811160021465382
+      ],
+      "ci_teamseason": [
+        -0.11489697571092806,
+        0.01621778503511047
+      ],
+      "p_game": 0.14392803598200898,
+      "p_teamseason": 0.1409295352323838,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "tip_matinee",
+      "n_unique": 2,
+      "coef_per_sd": -0.011879832376159838,
+      "dLL_per_game": 1.4932637739328847e-05,
+      "ci_game": [
+        -0.08407233767316225,
+        0.055054244548919266
+      ],
+      "ci_teamseason": [
+        -0.08167871005795405,
+        0.06415698835983201
+      ],
+      "p_game": 0.7656171914042978,
+      "p_teamseason": 0.7576211894052973,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "tip_early",
+      "n_unique": 2,
+      "coef_per_sd": -0.004465036503540814,
+      "dLL_per_game": 2.1523970217263155e-06,
+      "ci_game": [
+        -0.06899648269100146,
+        0.06508036202324657
+      ],
+      "ci_teamseason": [
+        -0.07474223250437781,
+        0.06146154528512559
+      ],
+      "p_game": 0.8925537231384307,
+      "p_teamseason": 0.8675662168915542,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "tip_late",
+      "n_unique": 2,
+      "coef_per_sd": -0.05773286064684678,
+      "dLL_per_game": 0.00035330250390919193,
+      "ci_game": [
+        -0.1409780085242951,
+        -0.00037176861211159467
+      ],
+      "ci_teamseason": [
+        -1.2018657491966018,
+        0.00041584263317141556
+      ],
+      "p_game": 0.050974512743628186,
+      "p_teamseason": 0.051974012993503245,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "is_neutral",
+      "n_unique": 2,
+      "coef_per_sd": -0.033825776624601546,
+      "dLL_per_game": 0.0001263634634803834,
+      "ci_game": [
+        -0.9221552389501395,
+        0.035749287901748444
+      ],
+      "ci_teamseason": [
+        -0.9203481652827078,
+        0.03435577778776878
+      ],
+      "p_game": 0.2898550724637681,
+      "p_teamseason": 0.29485257371314344,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "days_into_season",
+      "n_unique": 227,
+      "coef_per_sd": -0.06706100836922173,
+      "dLL_per_game": 0.0004911918343443178,
+      "ci_game": [
+        -0.13789678437116368,
+        0.0011747553389041294
+      ],
+      "ci_teamseason": [
+        -0.13941792319143448,
+        0.0030504693553443383
+      ],
+      "p_game": 0.054972513743128434,
+      "p_teamseason": 0.05997001499250375,
+      "bh_reject": false,
+      "survivor": false,
+      "fragile": false
+    },
+    {
+      "feature": "is_national_tv",
+      "n_unique": 2,
+      "coef_per_sd": 0.09830328888922867,
+      "dLL_per_game": 0.001055658042380947,
+      "ci_game": [
+        0.02984557269543024,
+        0.16694478503713675
+      ],
+      "ci_teamseason": [
+        0.03716424806826065,
+        0.16176795808929414
+      ],
+      "p_game": 0.004997501249375313,
+      "p_teamseason": 0.004997501249375313,
+      "bh_reject": true,
+      "survivor": true,
+      "fragile": false
+    }
+  ],
+  "descriptive": [
+    {
+      "group": "altitude: home >=1.0km (DEN, UTA)",
+      "n": 271,
+      "home_win_rate": 0.6125461254612546,
+      "mean_p": 0.5765059838874161,
+      "mean_resid": 0.03604014157383847,
+      "resid_ci": [
+        -0.019724501644023548,
+        0.09035737782049756
+      ],
+      "mean_logloss": 0.6057443536667877
+    },
+    {
+      "group": "altitude: home <1.0km",
+      "n": 3680,
+      "home_win_rate": 0.553804347826087,
+      "mean_p": 0.5496377360375896,
+      "mean_resid": 0.004166611788497415,
+      "resid_ci": [
+        -0.011733496619568275,
+        0.01836652290482843
+      ],
+      "mean_logloss": 0.6174898704337587
+    },
+    {
+      "group": "altitude: home 0.3-1.0km (PHX, OKC, ATL)",
+      "n": 398,
+      "home_win_rate": 0.6381909547738693,
+      "mean_p": 0.5989694518372692,
+      "mean_resid": 0.039221502936600094,
+      "resid_ci": [
+        -0.011007465388217676,
+        0.08753108849479511
+      ],
+      "mean_logloss": 0.6046687902118103
+    },
+    {
+      "group": "tip bucket: matinee",
+      "n": 299,
+      "home_win_rate": 0.5518394648829431,
+      "mean_p": 0.5547381388622198,
+      "mean_resid": -0.0028986739792767027,
+      "resid_ci": [
+        -0.053531563637355756,
+        0.05517696443153398
+      ],
+      "mean_logloss": 0.6352595488285441
+    },
+    {
+      "group": "tip bucket: early",
+      "n": 487,
+      "home_win_rate": 0.5482546201232033,
+      "mean_p": 0.5438150610814311,
+      "mean_resid": 0.004439559041772275,
+      "resid_ci": [
+        -0.03571101632042435,
+        0.04593310234420743
+      ],
+      "mean_logloss": 0.6049065967127961
+    },
+    {
+      "group": "tip bucket: standard",
+      "n": 3154,
+      "home_win_rate": 0.560558021559924,
+      "mean_p": 0.5522090501119499,
+      "mean_resid": 0.008348971447974052,
+      "resid_ci": [
+        -0.008774544218141968,
+        0.024756590747888784
+      ],
+      "mean_logloss": 0.6169709983731066
+    },
+    {
+      "group": "tip bucket: late",
+      "n": 11,
+      "home_win_rate": 0.36363636363636365,
+      "mean_p": 0.5934552665698912,
+      "mean_resid": -0.2298189029335276,
+      "resid_ci": [
+        -0.4344969653680358,
+        0.001036927437991225
+      ],
+      "mean_logloss": 0.5509814974805828
+    },
+    {
+      "group": "home market tercile: small",
+      "n": 1427,
+      "home_win_rate": 0.5459004905395936,
+      "mean_p": 0.5292637642328206,
+      "mean_resid": 0.016636726306772945,
+      "resid_ci": [
+        -0.008870943585072462,
+        0.03923898326018805
+      ],
+      "mean_logloss": 0.6112322735376219
+    },
+    {
+      "group": "home market tercile: mid",
+      "n": 1224,
+      "home_win_rate": 0.6004901960784313,
+      "mean_p": 0.5914600195521851,
+      "mean_resid": 0.009030176526246254,
+      "resid_ci": [
+        -0.018725644480763536,
+        0.03483161604685894
+      ],
+      "mean_logloss": 0.613017916003933
+    },
+    {
+      "group": "home market tercile: large",
+      "n": 1300,
+      "home_win_rate": 0.5307692307692308,
+      "mean_p": 0.5382257959690074,
+      "mean_resid": -0.007456565199776677,
+      "resid_ci": [
+        -0.03190956988500775,
+        0.017272924034613942
+      ],
+      "mean_logloss": 0.6261208150099469
+    },
+    {
+      "group": "market gap: home much larger (gap>0.5)",
+      "n": 1361,
+      "home_win_rate": 0.56208670095518,
+      "mean_p": 0.5559919344661741,
+      "mean_resid": 0.006094766489005861,
+      "resid_ci": [
+        -0.017308930936876212,
+        0.03082897647455681
+      ],
+      "mean_logloss": 0.6158397668094534
+    },
+    {
+      "group": "market gap: home much smaller (gap<-0.5)",
+      "n": 1369,
+      "home_win_rate": 0.5529583637691746,
+      "mean_p": 0.5431074749780721,
+      "mean_resid": 0.009850888791102463,
+      "resid_ci": [
+        -0.013996078171422496,
+        0.03343147732383148
+      ],
+      "mean_logloss": 0.6128876202984468
+    },
+    {
+      "group": "west->east early (visitor body-clock <17h, shift>=2h)",
+      "n": 279,
+      "home_win_rate": 0.48028673835125446,
+      "mean_p": 0.5097388475640865,
+      "mean_resid": -0.029452109212831937,
+      "resid_ci": [
+        -0.08315790952638763,
+        0.026906830333588674
+      ],
+      "mean_logloss": 0.6390468360398361
+    },
+    {
+      "group": "not west->east early",
+      "n": 3672,
+      "home_win_rate": 0.5637254901960784,
+      "mean_p": 0.5546521927509366,
+      "mean_resid": 0.009073297445141834,
+      "resid_ci": [
+        -0.005984536996016968,
+        0.023846413111848222
+      ],
+      "mean_logloss": 0.6149851241244054
+    },
+    {
+      "group": "neutral site",
+      "n": 6,
+      "home_win_rate": 0.3333333333333333,
+      "mean_p": 0.5190155272302065,
+      "mean_resid": -0.1856821938968731,
+      "resid_ci": [
+        -0.5226592381005492,
+        0.14951372887152634
+      ],
+      "mean_logloss": 0.6058574374217485
+    }
+  ]
+}

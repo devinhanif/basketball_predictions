@@ -1,0 +1,47 @@
+{
+ "date": "2026-10-09",
+ "now": "2026-10-10T01:50:15.937577",
+ "engine": "gaussian_copula",
+ "dnp_policy": "void",
+ "disclaimer": "Analysis only, not financial advice. Estimated edges are noisy; nothing here places orders, handles credentials, or recommends real-money bets.",
+ "gate": {
+  "n_settled": 0,
+  "n_dates": 0,
+  "min_settled": 30,
+  "min_settled_dates": 14,
+  "skill_vs_market": 0.0,
+  "gated_skill": 0.0,
+  "gate_open": false,
+  "describe": "no settled shadow history (n=0)"
+ },
+ "fee_model": {
+  "name": "kalshi_fee_schedule",
+  "formula": "p_one_minus_p",
+  "coefficient": 0.07,
+  "maker_coefficient": 0.0175,
+  "default_multiplier": 1.0,
+  "multipliers": [],
+  "verified": true,
+  "source": "user-provided from Kalshi published fee schedule, 2026-10-08"
+ },
+ "interval_level": 0.8,
+ "n_games": 0,
+ "n_markets_read": 454,
+ "n_mapped": 0,
+ "n_contracts": 0,
+ "n_flagged_positive": 0,
+ "headline_verdict": "no_positive_ev_found",
+ "skipped": {
+  "game_not_in_slate": 454
+ },
+ "unmatched_tickers": [],
+ "notes": [
+  "no win-probability predictions for 2026-10-09 in forward_predictions"
+ ],
+ "shadow_enabled": true,
+ "contracts": [],
+ "same_game_parlays": [],
+ "cross_game_parlays": [],
+ "parlay_price_basis": "product of leg asks, NOT a tradable price (no combo contracts are ingested); same-game legs use the copula, cross-game legs are independent",
+ "narration": null
+}

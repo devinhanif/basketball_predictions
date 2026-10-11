@@ -1,0 +1,85 @@
+{
+  "season": 2023,
+  "n_rows": 110476,
+  "per_stat": {
+    "pts": 27619,
+    "reb": 27619,
+    "ast": 27619,
+    "fg3m": 27619
+  },
+  "a0": [
+    {
+      "stat": "pts",
+      "season": 2023,
+      "crps_int": 3.152829990762183,
+      "lower_tail_crps_int": 3.152829990762183,
+      "delta": 0.0,
+      "n": 27619,
+      "lower_tail_n": 27619,
+      "ok": true,
+      "components_matched": 27619,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 84,
+      "kmax": 84,
+      "max_tail_mass": 0.0
+    },
+    {
+      "stat": "reb",
+      "season": 2023,
+      "crps_int": 1.2928172686712307,
+      "lower_tail_crps_int": 1.2928172686712307,
+      "delta": 0.0,
+      "n": 27619,
+      "lower_tail_n": 27619,
+      "ok": true,
+      "components_matched": 27619,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 35,
+      "kmax": 35,
+      "max_tail_mass": 0.0
+    },
+    {
+      "stat": "ast",
+      "season": 2023,
+      "crps_int": 0.9059028606321847,
+      "lower_tail_crps_int": 0.9059028606321847,
+      "delta": 0.0,
+      "n": 27619,
+      "lower_tail_n": 27619,
+      "ok": true,
+      "components_matched": 27619,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 29,
+      "kmax": 30,
+      "max_tail_mass": 0.0
+    },
+    {
+      "stat": "fg3m",
+      "season": 2023,
+      "crps_int": 0.5690486141021416,
+      "lower_tail_crps_int": 0.5690486141021416,
+      "delta": 0.0,
+      "n": 27619,
+      "lower_tail_n": 27619,
+      "ok": true,
+      "components_matched": 27619,
+      "max_abs_dc": 0.0,
+      "max_abs_ds": 0.0,
+      "qi_max": 19,
+      "kmax": 19,
+      "max_tail_mass": 0.0
+    }
+  ],
+  "a0_ok": true,
+  "seeds": {
+    "model": 0,
+    "bootstrap": 2026,
+    "pit": 0
+  },
+  "git_sha": "a2e7609b5d3671404b764de91b7f661ed01857a0",
+  "config": "configs/context_residual.yaml",
+  "rule_status": "DRAFT"
+}

@@ -1,0 +1,817 @@
+{
+ "check_1": {
+  "2023_draftkings": {
+   "coverage": 0.9918868668657389,
+   "n_joined": 52815,
+   "n_t60_legs": 53247,
+   "n_unchanged": 48467,
+   "unchanged_share_of_joined": 0.9176749029631733,
+   "unchanged_share_of_t60": 0.910229684301463
+  },
+  "2023_fanduel": {
+   "coverage": 0.9760529967324649,
+   "n_joined": 43612,
+   "n_t60_legs": 44682,
+   "n_unchanged": 38446,
+   "unchanged_share_of_joined": 0.8815463633862239,
+   "unchanged_share_of_t60": 0.8604359697417304
+  },
+  "2023_pinnacle": {
+   "coverage": 0.9551584817617936,
+   "n_joined": 33570,
+   "n_t60_legs": 35146,
+   "n_unchanged": 30454,
+   "unchanged_share_of_joined": 0.9071790288948466,
+   "unchanged_share_of_t60": 0.86649974392534
+  },
+  "2024_draftkings": {
+   "coverage": 0.9874051198094954,
+   "n_joined": 53075,
+   "n_t60_legs": 53752,
+   "n_unchanged": 46464,
+   "unchanged_share_of_joined": 0.875440414507772,
+   "unchanged_share_of_t60": 0.864414347373121
+  },
+  "2024_fanduel": {
+   "coverage": 0.9681961274742334,
+   "n_joined": 44903,
+   "n_t60_legs": 46378,
+   "n_unchanged": 41366,
+   "unchanged_share_of_joined": 0.9212302073358127,
+   "unchanged_share_of_t60": 0.8919315192548191
+  },
+  "2024_pinnacle": {
+   "coverage": 0.9234171818375613,
+   "n_joined": 34654,
+   "n_t60_legs": 37528,
+   "n_unchanged": 30674,
+   "unchanged_share_of_joined": 0.8851503433947019,
+   "unchanged_share_of_t60": 0.8173630356000853
+  }
+ },
+ "check_2": {
+  "2023": {
+   "n_joined": 129997,
+   "t5_min_before_tip": [
+    9.266666666666667,
+    9.35,
+    9.383333333333333
+   ],
+   "t60_min_before_tip": [
+    62.55,
+    64.35,
+    79.36666666666666
+   ]
+  },
+  "2024": {
+   "n_joined": 132632,
+   "t5_min_before_tip": [
+    9.316666666666666,
+    9.366666666666667,
+    9.383333333333333
+   ],
+   "t60_min_before_tip": [
+    64.33333333333333,
+    64.36666666666666,
+    64.38333333333334
+   ]
+  }
+ },
+ "check_3": {
+  "2023": {
+   "max_abs_z": 2.3691439559689913,
+   "n_outside_bonferroni": 0,
+   "n_outside_plain95": 1,
+   "n_tests": 32,
+   "unconditioned_always_over": {
+    "draftkings|ast": {
+     "hi": 0.00025563216998481046,
+     "lo": -0.0006486632886142476,
+     "mean": -0.00017824518610306506,
+     "n": 8948,
+     "p": 0.7736131934032984,
+     "se": 0.00023270261159380506
+    },
+    "draftkings|fg3m": {
+     "hi": 0.0001543333146121184,
+     "lo": -0.00043516581917830765,
+     "mean": -0.00013856225367891683,
+     "n": 13727,
+     "p": 0.8195902048975512,
+     "se": 0.00015291046034266912
+    },
+    "draftkings|pts": {
+     "hi": -0.00027388394628787086,
+     "lo": -0.0007592239367973508,
+     "mean": -0.0005206085440207644,
+     "n": 11915,
+     "p": 1.0,
+     "se": 0.0001228899715089047
+    },
+    "draftkings|reb": {
+     "hi": -9.41887164203957e-05,
+     "lo": -0.0009018642424263771,
+     "mean": -0.0004911187107278629,
+     "n": 13877,
+     "p": 0.9905047476261869,
+     "se": 0.00020933468613908935
+    },
+    "fanduel|ast": {
+     "hi": 9.55238794735673e-05,
+     "lo": -0.0009690871532188136,
+     "mean": -0.00041933758372352995,
+     "n": 7042,
+     "p": 0.9385307346326837,
+     "se": 0.0002759431561791718
+    },
+    "fanduel|fg3m": {
+     "hi": 1.6743136623637383e-05,
+     "lo": -0.0007916518196241669,
+     "mean": -0.0003756488219058054,
+     "n": 9448,
+     "p": 0.9675162418790605,
+     "se": 0.00020720603540964674
+    },
+    "fanduel|pts": {
+     "hi": -0.0002981058153105529,
+     "lo": -0.0008005103985932737,
+     "mean": -0.0005598082244221964,
+     "n": 10988,
+     "p": 1.0,
+     "se": 0.00012885216799232398
+    },
+    "fanduel|reb": {
+     "hi": 5.0122338450633525e-05,
+     "lo": -0.0006744573913290889,
+     "mean": -0.0003264930105374188,
+     "n": 10968,
+     "p": 0.9575212393803099,
+     "se": 0.00018703831868465657
+    },
+    "pinnacle|ast": {
+     "hi": 0.00023736486345501736,
+     "lo": -0.0008154877749149178,
+     "mean": -0.00030168210464350415,
+     "n": 5988,
+     "p": 0.8745627186406797,
+     "se": 0.0002656665715910827
+    },
+    "pinnacle|fg3m": {
+     "hi": -5.450345270004907e-06,
+     "lo": -0.0007547013355670232,
+     "mean": -0.00039213259995889474,
+     "n": 9161,
+     "p": 0.9770114942528736,
+     "se": 0.00018998280985151167
+    },
+    "pinnacle|pts": {
+     "hi": -0.0009237097785044919,
+     "lo": -0.0016921286387925965,
+     "mean": -0.0013065994849639883,
+     "n": 9803,
+     "p": 1.0,
+     "se": 0.00019842299518738708
+    },
+    "pinnacle|reb": {
+     "hi": -0.0006216199941014009,
+     "lo": -0.0018642939964083902,
+     "mean": -0.0012315279240721088,
+     "n": 5502,
+     "p": 1.0,
+     "se": 0.00031687416463473974
+    }
+   }
+  },
+  "2024": {
+   "max_abs_z": 2.4975811580523963,
+   "n_outside_bonferroni": 0,
+   "n_outside_plain95": 2,
+   "n_tests": 32,
+   "unconditioned_always_over": {
+    "draftkings|ast": {
+     "hi": 0.00016282610552665675,
+     "lo": -0.0008252190037273104,
+     "mean": -0.0003318141848432337,
+     "n": 9562,
+     "p": 0.9080459770114943,
+     "se": 0.00025327949939860295
+    },
+    "draftkings|fg3m": {
+     "hi": 0.0001808220400845743,
+     "lo": -0.0006377385110251938,
+     "mean": -0.00024069826979545482,
+     "n": 11849,
+     "p": 0.8705647176411794,
+     "se": 0.0002081370157876576
+    },
+    "draftkings|pts": {
+     "hi": -0.0005072964252563202,
+     "lo": -0.0011093464605701302,
+     "mean": -0.0008162143499112831,
+     "n": 11903,
+     "p": 1.0,
+     "se": 0.0001516073396413765
+    },
+    "draftkings|reb": {
+     "hi": -0.0006565873911156028,
+     "lo": -0.0015397508948900055,
+     "mean": -0.001095885116346708,
+     "n": 13150,
+     "p": 1.0,
+     "se": 0.00022797685231241082
+    },
+    "fanduel|ast": {
+     "hi": -0.001062375709354869,
+     "lo": -0.002010042687810247,
+     "mean": -0.0015285128454334568,
+     "n": 7023,
+     "p": 1.0,
+     "se": 0.00024250532297077535
+    },
+    "fanduel|fg3m": {
+     "hi": -0.0005891188679305597,
+     "lo": -0.0014142121469601547,
+     "mean": -0.000985588013387521,
+     "n": 9851,
+     "p": 1.0,
+     "se": 0.00020817128110434601
+    },
+    "fanduel|pts": {
+     "hi": -0.000652466517030396,
+     "lo": -0.0011345535903641514,
+     "mean": -0.000885035735178858,
+     "n": 12308,
+     "p": 1.0,
+     "se": 0.0001229471377720952
+    },
+    "fanduel|reb": {
+     "hi": -0.00044296988017979725,
+     "lo": -0.0012473547445706976,
+     "mean": -0.0008574838919370766,
+     "n": 12184,
+     "p": 1.0,
+     "se": 0.00020840712247561464
+    },
+    "pinnacle|ast": {
+     "hi": 0.0002671274290018205,
+     "lo": -0.0009775839183549107,
+     "mean": -0.0003595606997899923,
+     "n": 5695,
+     "p": 0.8725637181409296,
+     "se": 0.0003153954836769229
+    },
+    "pinnacle|fg3m": {
+     "hi": -2.172341919863805e-05,
+     "lo": -0.0009012642914810884,
+     "mean": -0.00047526267974912657,
+     "n": 9898,
+     "p": 0.9805097451274363,
+     "se": 0.00023082090940516667
+    },
+    "pinnacle|pts": {
+     "hi": -3.5519909935245435e-05,
+     "lo": -0.0008100591011560188,
+     "mean": -0.000424010723322766,
+     "n": 9688,
+     "p": 0.9815092453773113,
+     "se": 0.00019807133813809236
+    },
+    "pinnacle|reb": {
+     "hi": -0.0005993539019987401,
+     "lo": -0.001979337587774206,
+     "mean": -0.0012906206843970058,
+     "n": 5393,
+     "p": 1.0,
+     "se": 0.0003506030257167339
+    }
+   }
+  }
+ },
+ "check_4": {
+  "2023": {
+   "clear_floor_ci_bh": [],
+   "diagnostic_planted_vs_random_side_outside_bonferroni": [
+    "M1|pinnacle|pts",
+    "M1|pinnacle|reb",
+    "M1|pinnacle|ast",
+    "M1|pinnacle|fg3m",
+    "M1|draftkings|pts",
+    "M1|draftkings|reb",
+    "M1|draftkings|ast",
+    "M1|draftkings|fg3m",
+    "M2|pinnacle|pts",
+    "M2|pinnacle|reb",
+    "M2|pinnacle|fg3m",
+    "M2|draftkings|pts",
+    "M2|draftkings|reb",
+    "M2|draftkings|ast",
+    "M2|draftkings|fg3m",
+    "M3|draftkings|reb",
+    "M3|draftkings|ast",
+    "M3|draftkings|fg3m"
+   ],
+   "n_cells": 20,
+   "planted_mean_clv_over_cells": 0.0018619424983348468,
+   "planted_vs_null_outside_bonferroni": [],
+   "random_side_mean_clv_over_cells": 3.0439398490561672e-05,
+   "shuffle_null_mean_clv_over_cells": 0.0018050896225028147
+  },
+  "2024": {
+   "clear_floor_ci_bh": [],
+   "diagnostic_planted_vs_random_side_outside_bonferroni": [
+    "M1|pinnacle|reb",
+    "M1|pinnacle|ast",
+    "M1|pinnacle|fg3m",
+    "M1|draftkings|pts",
+    "M1|draftkings|reb",
+    "M1|draftkings|ast",
+    "M1|draftkings|fg3m",
+    "M2|pinnacle|reb",
+    "M2|pinnacle|ast",
+    "M2|pinnacle|fg3m",
+    "M2|draftkings|pts",
+    "M2|draftkings|reb",
+    "M2|draftkings|ast",
+    "M2|draftkings|fg3m",
+    "M3|draftkings|pts",
+    "M3|draftkings|fg3m"
+   ],
+   "n_cells": 20,
+   "planted_mean_clv_over_cells": 0.002537547678876151,
+   "planted_vs_null_outside_bonferroni": [],
+   "random_side_mean_clv_over_cells": 0.00011629911873689691,
+   "shuffle_null_mean_clv_over_cells": 0.0026236686569675884
+  }
+ },
+ "check_5_table": [
+  {
+   "cell": "M1|pinnacle|pts",
+   "kept": true,
+   "n_edge03_literal": 6888,
+   "n_primary": 5475,
+   "n_sel_own_threshold": 6888
+  },
+  {
+   "cell": "M1|pinnacle|reb",
+   "kept": true,
+   "n_edge03_literal": 3860,
+   "n_primary": 3319,
+   "n_sel_own_threshold": 3860
+  },
+  {
+   "cell": "M1|pinnacle|ast",
+   "kept": true,
+   "n_edge03_literal": 3336,
+   "n_primary": 2932,
+   "n_sel_own_threshold": 3336
+  },
+  {
+   "cell": "M1|pinnacle|fg3m",
+   "kept": true,
+   "n_edge03_literal": 5652,
+   "n_primary": 5233,
+   "n_sel_own_threshold": 5652
+  },
+  {
+   "cell": "M1|draftkings|pts",
+   "kept": true,
+   "n_edge03_literal": 8421,
+   "n_primary": 6904,
+   "n_sel_own_threshold": 8421
+  },
+  {
+   "cell": "M1|draftkings|reb",
+   "kept": true,
+   "n_edge03_literal": 8256,
+   "n_primary": 7538,
+   "n_sel_own_threshold": 8256
+  },
+  {
+   "cell": "M1|draftkings|ast",
+   "kept": true,
+   "n_edge03_literal": 4992,
+   "n_primary": 4588,
+   "n_sel_own_threshold": 4992
+  },
+  {
+   "cell": "M1|draftkings|fg3m",
+   "kept": true,
+   "n_edge03_literal": 8066,
+   "n_primary": 7791,
+   "n_sel_own_threshold": 8066
+  },
+  {
+   "cell": "M2|pinnacle|pts",
+   "kept": true,
+   "n_edge03_literal": 6888,
+   "n_primary": 4297,
+   "n_sel_own_threshold": 5454
+  },
+  {
+   "cell": "M2|pinnacle|reb",
+   "kept": true,
+   "n_edge03_literal": 3860,
+   "n_primary": 2674,
+   "n_sel_own_threshold": 3126
+  },
+  {
+   "cell": "M2|pinnacle|ast",
+   "kept": true,
+   "n_edge03_literal": 3336,
+   "n_primary": 2217,
+   "n_sel_own_threshold": 2531
+  },
+  {
+   "cell": "M2|pinnacle|fg3m",
+   "kept": true,
+   "n_edge03_literal": 5652,
+   "n_primary": 4067,
+   "n_sel_own_threshold": 4398
+  },
+  {
+   "cell": "M2|draftkings|pts",
+   "kept": true,
+   "n_edge03_literal": 8421,
+   "n_primary": 5501,
+   "n_sel_own_threshold": 6725
+  },
+  {
+   "cell": "M2|draftkings|reb",
+   "kept": true,
+   "n_edge03_literal": 8256,
+   "n_primary": 5798,
+   "n_sel_own_threshold": 6393
+  },
+  {
+   "cell": "M2|draftkings|ast",
+   "kept": true,
+   "n_edge03_literal": 4992,
+   "n_primary": 3501,
+   "n_sel_own_threshold": 3822
+  },
+  {
+   "cell": "M2|draftkings|fg3m",
+   "kept": true,
+   "n_edge03_literal": 8066,
+   "n_primary": 6081,
+   "n_sel_own_threshold": 6295
+  },
+  {
+   "cell": "M3|pinnacle|pts",
+   "kept": false,
+   "n_edge03_literal": 6888,
+   "n_primary": 281,
+   "n_sel_own_threshold": 372
+  },
+  {
+   "cell": "M3|pinnacle|reb",
+   "kept": false,
+   "n_edge03_literal": 3860,
+   "n_primary": 142,
+   "n_sel_own_threshold": 181
+  },
+  {
+   "cell": "M3|pinnacle|ast",
+   "kept": false,
+   "n_edge03_literal": 3336,
+   "n_primary": 196,
+   "n_sel_own_threshold": 223
+  },
+  {
+   "cell": "M3|pinnacle|fg3m",
+   "kept": false,
+   "n_edge03_literal": 5652,
+   "n_primary": 138,
+   "n_sel_own_threshold": 152
+  },
+  {
+   "cell": "M3|draftkings|pts",
+   "kept": true,
+   "n_edge03_literal": 8421,
+   "n_primary": 491,
+   "n_sel_own_threshold": 619
+  },
+  {
+   "cell": "M3|draftkings|reb",
+   "kept": true,
+   "n_edge03_literal": 8256,
+   "n_primary": 371,
+   "n_sel_own_threshold": 445
+  },
+  {
+   "cell": "M3|draftkings|ast",
+   "kept": true,
+   "n_edge03_literal": 4992,
+   "n_primary": 337,
+   "n_sel_own_threshold": 371
+  },
+  {
+   "cell": "M3|draftkings|fg3m",
+   "kept": true,
+   "n_edge03_literal": 8066,
+   "n_primary": 326,
+   "n_sel_own_threshold": 338
+  }
+ ],
+ "doc": "docs/prereg/MODEL_CLV.md",
+ "draft": false,
+ "drift_over_move_unchanged": {
+  "2023|draftkings": {
+   "hi": -0.00010029163360125163,
+   "lo": -0.0005857390920514191,
+   "mean": -0.0003407532368885773,
+   "n": 48467,
+   "p": 0.9975012493753124,
+   "se": 0.00012558484163611197
+  },
+  "2023|fanduel": {
+   "hi": -0.0001805818090125201,
+   "lo": -0.0006610028046649943,
+   "mean": -0.00042226118304824047,
+   "n": 38446,
+   "p": 0.9995002498750625,
+   "se": 0.0001225155935970566
+  },
+  "2023|pinnacle": {
+   "hi": -0.0005309732602911761,
+   "lo": -0.0011112118661660449,
+   "mean": -0.000820360562821812,
+   "n": 30454,
+   "p": 1.0,
+   "se": 0.0001481462108236867
+  },
+  "2024|draftkings": {
+   "hi": -0.0003688471724596403,
+   "lo": -0.0009166630709688532,
+   "mean": -0.0006489137767138119,
+   "n": 46464,
+   "p": 1.0,
+   "se": 0.0001387503362705997
+  },
+  "2024|fanduel": {
+   "hi": -0.0007611578663345187,
+   "lo": -0.0012588267017190867,
+   "mean": -0.0010101140260431844,
+   "n": 41366,
+   "p": 1.0,
+   "se": 0.00012572098168919509
+  },
+  "2024|pinnacle": {
+   "hi": -0.00024036215048101002,
+   "lo": -0.0009164758825333954,
+   "mean": -0.0005809474287006869,
+   "n": 30674,
+   "p": 1.0,
+   "se": 0.00016949288890205617
+  }
+ },
+ "dropped_cells": [
+  "M3|pinnacle|pts",
+  "M3|pinnacle|reb",
+  "M3|pinnacle|ast",
+  "M3|pinnacle|fg3m"
+ ],
+ "family_cells": [
+  "M1|draftkings|ast",
+  "M1|draftkings|fg3m",
+  "M1|draftkings|pts",
+  "M1|draftkings|reb",
+  "M1|pinnacle|ast",
+  "M1|pinnacle|fg3m",
+  "M1|pinnacle|pts",
+  "M1|pinnacle|reb",
+  "M2|draftkings|ast",
+  "M2|draftkings|fg3m",
+  "M2|draftkings|pts",
+  "M2|draftkings|reb",
+  "M2|pinnacle|ast",
+  "M2|pinnacle|fg3m",
+  "M2|pinnacle|pts",
+  "M2|pinnacle|reb",
+  "M3|draftkings|ast",
+  "M3|draftkings|fg3m",
+  "M3|draftkings|pts",
+  "M3|draftkings|reb"
+ ],
+ "gate_ok": true,
+ "gate_seconds": 10.550169944763184,
+ "git_sha": "6e75614ea47e8bfce47c885571f16d2cf8fcffed",
+ "m3_alt_thresholds": {
+  "M3 edge>=0.01 draftkings unchanged legs 2023": 6218,
+  "M3 edge>=0.01 pinnacle unchanged legs 2023": 3119,
+  "M3 edge>=0.02 draftkings unchanged legs 2023": 3121,
+  "M3 edge>=0.02 pinnacle unchanged legs 2023": 1534,
+  "M3 edge>=0.03 draftkings unchanged legs 2023": 1525,
+  "M3 edge>=0.03 pinnacle unchanged legs 2023": 757
+ },
+ "max_season_loaded": 2024,
+ "pairs_sha256": {
+  "2023": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+  "2024": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c"
+ },
+ "seeds": {
+  "bootstrap": 0,
+  "lgbm": 0,
+  "random_side": 0,
+  "shuffle": 0
+ },
+ "sha256": "dd16a802226537561ac8619b52fa6ddb4b2aeb378f4490c6605bb202851419a9",
+ "status": "GATE_PASSED",
+ "tests": [
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "1 t60->t5 join coverage 2023 pinnacle",
+   "threshold": ">= 0.8",
+   "value": 0.9551584817617936
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "1 unchanged-line share of t60 legs 2023 pinnacle (warn: < 0.5 = under-powered)",
+   "threshold": ">= 0.5",
+   "value": 0.86649974392534
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "1 t60->t5 join coverage 2023 draftkings",
+   "threshold": ">= 0.8",
+   "value": 0.9918868668657389
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "1 unchanged-line share of t60 legs 2023 draftkings (warn: < 0.5 = under-powered)",
+   "threshold": ">= 0.5",
+   "value": 0.910229684301463
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "1 t60->t5 join coverage 2023 fanduel",
+   "threshold": ">= 0.8",
+   "value": 0.9760529967324649
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "1 unchanged-line share of t60 legs 2023 fanduel (warn: < 0.5 = under-powered)",
+   "threshold": ">= 0.5",
+   "value": 0.8604359697417304
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "1 t60->t5 join coverage 2024 pinnacle",
+   "threshold": ">= 0.8",
+   "value": 0.9234171818375613
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "1 unchanged-line share of t60 legs 2024 pinnacle (warn: < 0.5 = under-powered)",
+   "threshold": ">= 0.5",
+   "value": 0.8173630356000853
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "1 t60->t5 join coverage 2024 draftkings",
+   "threshold": ">= 0.8",
+   "value": 0.9874051198094954
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "1 unchanged-line share of t60 legs 2024 draftkings (warn: < 0.5 = under-powered)",
+   "threshold": ">= 0.5",
+   "value": 0.864414347373121
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "1 t60->t5 join coverage 2024 fanduel",
+   "threshold": ">= 0.8",
+   "value": 0.9681961274742334
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "1 unchanged-line share of t60 legs 2024 fanduel (warn: < 0.5 = under-powered)",
+   "threshold": ">= 0.5",
+   "value": 0.8919315192548191
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "2 t5 snapshot_ts strictly before tipoff_utc, 100% of joined rows 2023",
+   "threshold": "== 1.0",
+   "value": 1.0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "2 t60 snapshot_ts at least 60 min before tip, 100% of legs 2023",
+   "threshold": "== 1.0",
+   "value": 1.0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "2 t5 snapshot_ts strictly before tipoff_utc, 100% of joined rows 2024",
+   "threshold": "== 1.0",
+   "value": 1.0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "2 t60 snapshot_ts at least 60 min before tip, 100% of legs 2024",
+   "threshold": "== 1.0",
+   "value": 1.0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "3 placebo random-side CLV: cells whose Bonferroni CI excludes 0, 2023 (32 tests; plain-95% misses 1)",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "3 placebo random-side CLV: cells whose Bonferroni CI excludes 0, 2024 (32 tests; plain-95% misses 2)",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "4 planted shuffle: shuffled-p_model cells that clear floor+CI+BH, 2023",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "4 planted shuffle vs the 20-shuffle null: cells whose Bonferroni CI excludes 0, 2023",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "4 DIAGNOSTIC planted shuffle vs random side (does NOT collapse: selection on price level): cells outside, 2023",
+   "threshold": "reported",
+   "value": 18
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "4 planted shuffle: shuffled-p_model cells that clear floor+CI+BH, 2024",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "4 planted shuffle vs the 20-shuffle null: cells whose Bonferroni CI excludes 0, 2024",
+   "threshold": "== 0",
+   "value": 0
+  },
+  {
+   "fatal": false,
+   "ok": true,
+   "test": "4 DIAGNOSTIC planted shuffle vs random side (does NOT collapse: selection on price level): cells outside, 2024",
+   "threshold": "reported",
+   "value": 16
+  },
+  {
+   "fatal": true,
+   "ok": true,
+   "test": "5 cells with >= 300 primary legs in 2023 (family size)",
+   "threshold": ">= 1",
+   "value": 20
+  }
+ ],
+ "unstated_details": [
+  "closing proxy = the t5 capture (stamped about tip - 9 min, requested for tip - 5); T-60 capture is stamped about tip - 64 min. The live companion rule will use the real last-before-tip capture",
+  "a 'leg' = one t60 row of pinnacle / draftkings / fanduel (consensus excluded) with both prices, p_model and over present (all are in 2023-2024); 'joined' = a t5 row with the same (game_id, player_id, stat, book) AND a non-null de-vigged probability; 'unchanged' = joined with identical line",
+  "edge uses the book's own RAW (vigged) implied probability of the side at T-60, as written; de-vigged probabilities are used only for CLV and for the Pinnacle fair price in the fade rule. De-vig = multiplicative (p_over_mult); p_under_mult = 1 - p_over_mult",
+  "ties in side choice (edge_over == edge_under) go to over; shorter-price side = over when p_over_mult >= 0.5",
+  "(b) line-move agreement: +1 if the chosen side's number improved by the close (over chosen and the line rose, or under chosen and the line fell: the bettor holds a number the market later moved past), -1 if it moved against, scored as the mean over legs whose line changed; unchanged legs are excluded from (b) and counted in the reported unchanged share",
+  "M3: p_blend = blend_p(own-book de-vigged T-60 over probability, p_model, 0.25); edge = side probability of the blend minus the raw implied probability of that side; threshold 0.03",
+  "fade-retail comparator (DK, FD only): needs Pinnacle's T-60 quote on the SAME line for the same player/stat; gap_over = pinnacle p_over_mult - retail p_over_raw, gap_under = (1 - pinnacle p_over_mult) - retail p_under_raw; side = argmax gap, bet when gap >= the arm's threshold (0.03 for M1/M3, 0.05 for M2); CLV on the retail book's own T-60 -> T-5 de-vigged move, unchanged lines only",
+  "vs-fade test: difference of two means (arm cell minus fade cell at the matched threshold, same book, stat, season), game-clustered bootstrap resampling games jointly; the fade cell is not restricted to the arm's legs",
+  "game clustering = game_id; one multinomial resample matrix per season (seed 0, 2000 draws) shared by every statistic; percentile 95% CI; one-sided p = (1 + #{boot <= 0}) / (2000 + 1) for H0 'CLV <= 0'",
+  "n for the cell-size gate = primary-metric legs: edge >= the arm's own threshold, joined, unchanged line (the literal 'edge >= 0.03 legs' is reported beside it); a cell is dropped from the family if that n < 300 in 2023; the same cells are used in 2024",
+  "BH family: the surviving {arm x book x stat} cells of the book set {pinnacle, draftkings}, per season; 2024 confirmation BH runs over the cells that passed on 2023. FanDuel cells are descriptive (not in the family)",
+  "placebo (check 3) CI is Bonferroni-corrected over the number of tested cells (normal approximation with the bootstrap SE), because 'every one of ~30 cells has a 95% CI containing 0' fails by chance about 3 times in 4",
+  "planted (check 4): p_model is permuted within (game_id, stat, book) with default_rng(0); the arms are rebuilt; PASS = no shuffled cell clears the primary floor-CI-BH test, and every shuffled cell's CLV minus the 20-shuffle null (seeds 1..20) has a Bonferroni CI containing 0. The 'collapses to the random-side value' wording FAILS by construction (the shuffled arm still chooses the side by the market's own price level) and is kept as a non-fatal diagnostic",
+  "shuffle null (A1, proposed): per arm and cell, the mean CLV of 20 shuffled-p_model arms (same edge rule, same book/stat/legs rules); pass needs arm minus null with a CI lower bound > 0 (it removes CLV earned by selecting on the price level rather than on the model)",
+  "random side: one seeded uniform per leg (default_rng(0) over legs sorted by game_id, player_id, stat, book), side = over when u < 0.5; the same draw is used by every cell",
+  "mix-adjusted CLV (secondary): chosen-side CLV minus (2 s - 1) x (over de-vigged move), s = the cell's share of over bets; the expected CLV of a random side with the cell's own over/under mix",
+  "realised return per $1 at the T-60 price and at the t5 price of the same side and line; push impossible (all lines are x.5); American price to decimal in the usual way",
+  "L1: Pinnacle legs with unchanged line and a non-zero de-vigged move; target = move > 0; LightGBM fixed params (300 trees, lr 0.03, 15 leaves, min_child_samples 100, subsample 0.8 / colsample 0.8, seed 0), fit on 2023, scored on 2024; DK features are NaN where DK has no same-line T-60 quote; the gap-only logistic is scored on the rows where the gap exists (both models and the constant on those same rows)"
+ ]
+}

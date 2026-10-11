@@ -1,0 +1,356 @@
+{
+  "games": 5269,
+  "skipped": {
+    "no_pbp": 0,
+    "empty_parse": 0
+  },
+  "before": {
+    "flag": {
+      "2022": {
+        "team_games": 2640,
+        "measured": 37137,
+        "box": 27534,
+        "ratio": 1.3487687949444322,
+        "corr": 0.7990014779315638,
+        "mean_abs_diff": 3.7731060606060605,
+        "mean_measured": 14.067045454545454,
+        "mean_box": 10.429545454545455
+      },
+      "2023": {
+        "team_games": 2636,
+        "measured": 36852,
+        "box": 27749,
+        "ratio": 1.3280478575804533,
+        "corr": 0.7877226601885412,
+        "mean_abs_diff": 3.6308801213960544,
+        "mean_measured": 13.980273141122913,
+        "mean_box": 10.526934749620636
+      },
+      "2024": {
+        "team_games": 2630,
+        "measured": 38452,
+        "box": 29223,
+        "ratio": 1.3158128871094685,
+        "corr": 0.7805506161150828,
+        "mean_abs_diff": 3.691634980988593,
+        "mean_measured": 14.620532319391636,
+        "mean_box": 11.111406844106464
+      },
+      "all": {
+        "team_games": 7906,
+        "measured": 112441,
+        "box": 84506,
+        "ratio": 1.3305682436750053,
+        "corr": 0.7901977155107545,
+        "mean_abs_diff": 3.6985833544143687,
+        "mean_measured": 14.222236276245889,
+        "mean_box": 10.688843916013155
+      }
+    },
+    "count": {},
+    "dcount": {},
+    "mix": {
+      "FGA_miss": {
+        "trips": 268026,
+        "oreb_true": 34232,
+        "share": 0.12771895263892308
+      },
+      "FGM2": {
+        "trips": 228489,
+        "oreb_true": 33275,
+        "share": 0.14563064305065013
+      },
+      "FGM3": {
+        "trips": 101569,
+        "oreb_true": 9404,
+        "share": 0.09258730518169914
+      },
+      "FT_trip": {
+        "trips": 76793,
+        "oreb_true": 24234,
+        "share": 0.31557563840454206
+      },
+      "TOV": {
+        "trips": 110162,
+        "oreb_true": 11296,
+        "share": 0.10253989578983679
+      }
+    },
+    "share_oreb_on_fgm_tov": 0.12260914997046932,
+    "oreb_true_total": 112441
+  },
+  "after": {
+    "flag": {
+      "2022": {
+        "team_games": 2640,
+        "measured": 24338,
+        "box": 27534,
+        "ratio": 0.8839253286845354,
+        "corr": 0.952085239165311,
+        "mean_abs_diff": 1.2106060606060607,
+        "mean_measured": 9.218939393939394,
+        "mean_box": 10.429545454545455
+      },
+      "2023": {
+        "team_games": 2636,
+        "measured": 24433,
+        "box": 27749,
+        "ratio": 0.8805001982053408,
+        "corr": 0.9479004240467751,
+        "mean_abs_diff": 1.2587253414264037,
+        "mean_measured": 9.26896813353566,
+        "mean_box": 10.526934749620636
+      },
+      "2024": {
+        "team_games": 2630,
+        "measured": 25587,
+        "box": 29223,
+        "ratio": 0.8755774561133354,
+        "corr": 0.9457979397134384,
+        "mean_abs_diff": 1.382509505703422,
+        "mean_measured": 9.728897338403042,
+        "mean_box": 11.111406844106464
+      },
+      "all": {
+        "team_games": 7906,
+        "measured": 74358,
+        "box": 84506,
+        "ratio": 0.8799138522708446,
+        "corr": 0.9488885128033754,
+        "mean_abs_diff": 1.2838350619782444,
+        "mean_measured": 9.405261826460915,
+        "mean_box": 10.688843916013155
+      }
+    },
+    "count": {
+      "2022": {
+        "team_games": 2640,
+        "measured": 27524,
+        "box": 27534,
+        "ratio": 0.9996368126679741,
+        "corr": 0.9998811158527238,
+        "mean_abs_diff": 0.003787878787878788,
+        "mean_measured": 10.425757575757576,
+        "mean_box": 10.429545454545455
+      },
+      "2023": {
+        "team_games": 2636,
+        "measured": 27741,
+        "box": 27749,
+        "ratio": 0.9997117013225701,
+        "corr": 0.999870236336877,
+        "mean_abs_diff": 0.0037936267071320183,
+        "mean_measured": 10.523899848254931,
+        "mean_box": 10.526934749620636
+      },
+      "2024": {
+        "team_games": 2630,
+        "measured": 29219,
+        "box": 29223,
+        "ratio": 0.999863121513876,
+        "corr": 0.9999510754579144,
+        "mean_abs_diff": 0.001520912547528517,
+        "mean_measured": 11.109885931558935,
+        "mean_box": 11.111406844106464
+      },
+      "all": {
+        "team_games": 7906,
+        "measured": 84484,
+        "box": 84506,
+        "ratio": 0.9997396634558493,
+        "corr": 0.9999017547534613,
+        "mean_abs_diff": 0.0030356691120667846,
+        "mean_measured": 10.686061219327094,
+        "mean_box": 10.688843916013155
+      }
+    },
+    "dcount": {
+      "2022": {
+        "team_games": 2640,
+        "measured": 87096,
+        "box": 87100,
+        "ratio": 0.9999540757749713,
+        "corr": 0.9999605634295403,
+        "mean_abs_diff": 0.0022727272727272726,
+        "mean_measured": 32.99090909090909,
+        "mean_box": 32.99242424242424
+      },
+      "2023": {
+        "team_games": 2636,
+        "measured": 86748,
+        "box": 86753,
+        "ratio": 0.9999423651055295,
+        "corr": 0.9999544167342557,
+        "mean_abs_diff": 0.002655538694992413,
+        "mean_measured": 32.90895295902883,
+        "mean_box": 32.9108497723824
+      },
+      "2024": {
+        "team_games": 2630,
+        "measured": 86506,
+        "box": 86507,
+        "ratio": 0.9999884402418301,
+        "corr": 0.9999934621180627,
+        "mean_abs_diff": 0.00038022813688212925,
+        "mean_measured": 32.892015209125475,
+        "mean_box": 32.89239543726236
+      },
+      "all": {
+        "team_games": 7906,
+        "measured": 260350,
+        "box": 260360,
+        "ratio": 0.9999615916423413,
+        "corr": 0.9999694618799125,
+        "mean_abs_diff": 0.0017708069820389577,
+        "mean_measured": 32.93068555527447,
+        "mean_box": 32.9319504174045
+      }
+    },
+    "mix": {
+      "FGA_miss": {
+        "trips": 268026,
+        "oreb_true": 23042,
+        "share": 0.08596927163782618
+      },
+      "FGM2": {
+        "trips": 228489,
+        "oreb_true": 29485,
+        "share": 0.12904341128019292
+      },
+      "FGM3": {
+        "trips": 101569,
+        "oreb_true": 7582,
+        "share": 0.07464876094083825
+      },
+      "FT_trip": {
+        "trips": 76793,
+        "oreb_true": 6829,
+        "share": 0.0889273761931426
+      },
+      "TOV": {
+        "trips": 110162,
+        "oreb_true": 7420,
+        "share": 0.06735534939452806
+      }
+    },
+    "share_oreb_on_fgm_tov": 0.10105629003679978,
+    "oreb_true_total": 74358
+  },
+  "structure": {
+    "rows_old": 1047292,
+    "rows_new": 1047292,
+    "key_mismatch": 0,
+    "changed": {
+      "period": 0,
+      "clock_start": 0,
+      "clock_end": 0,
+      "off_team": 0,
+      "def_team": 0,
+      "score_diff": 0,
+      "outcome": 0,
+      "shooter_id": 0,
+      "shot_zone": 0,
+      "assister_id": 0,
+      "fta": 0,
+      "pts": 0
+    },
+    "lineups_changed": 0,
+    "oreb_added": 0,
+    "oreb_removed": 50999
+  },
+  "gates": [
+    {
+      "name": "structure_unchanged",
+      "ok": true,
+      "detail": "rows 1047292 -> 1047292, key mismatches 0, changed non-rebound cells 0 ({'period': 0, 'clock_start': 0, 'clock_end': 0, 'off_team': 0, 'def_team': 0, 'score_diff': 0, 'outcome': 0, 'shooter_id': 0, 'shot_zone': 0, 'assister_id': 0, 'fta': 0, 'pts': 0})"
+    },
+    {
+      "name": "flags_only_removed",
+      "ok": true,
+      "detail": "oreb False->True 0, True->False 50999 (the new rule is a subset of the old one)"
+    },
+    {
+      "name": "oreb_is_n_oreb_positive",
+      "ok": true,
+      "detail": "rows with oreb != (n_oreb > 0): 0"
+    },
+    {
+      "name": "count_ratio_2022",
+      "ok": true,
+      "detail": "n_oreb vs box OREB: 27524 / 27534 = 0.9996 (tol +-0.1)"
+    },
+    {
+      "name": "count_ratio_2023",
+      "ok": true,
+      "detail": "n_oreb vs box OREB: 27741 / 27749 = 0.9997 (tol +-0.1)"
+    },
+    {
+      "name": "count_ratio_2024",
+      "ok": true,
+      "detail": "n_oreb vs box OREB: 29219 / 29223 = 0.9999 (tol +-0.1)"
+    },
+    {
+      "name": "count_corr_2022",
+      "ok": true,
+      "detail": "n_oreb vs box OREB: team-game corr 0.9999 on 2640 (min 0.95)"
+    },
+    {
+      "name": "count_corr_2023",
+      "ok": true,
+      "detail": "n_oreb vs box OREB: team-game corr 0.9999 on 2636 (min 0.95)"
+    },
+    {
+      "name": "count_corr_2024",
+      "ok": true,
+      "detail": "n_oreb vs box OREB: team-game corr 1.0000 on 2630 (min 0.95)"
+    },
+    {
+      "name": "count_corr_all",
+      "ok": true,
+      "detail": "n_oreb vs box OREB: team-game corr 0.9999 on 7906 (min 0.95)"
+    },
+    {
+      "name": "dcount_ratio_2022",
+      "ok": true,
+      "detail": "n_dreb vs box DREB: 87096 / 87100 = 1.0000 (tol +-0.1)"
+    },
+    {
+      "name": "dcount_ratio_2023",
+      "ok": true,
+      "detail": "n_dreb vs box DREB: 86748 / 86753 = 0.9999 (tol +-0.1)"
+    },
+    {
+      "name": "dcount_ratio_2024",
+      "ok": true,
+      "detail": "n_dreb vs box DREB: 86506 / 86507 = 1.0000 (tol +-0.1)"
+    },
+    {
+      "name": "dcount_corr_2022",
+      "ok": true,
+      "detail": "n_dreb vs box DREB: team-game corr 1.0000 on 2640 (min 0.95)"
+    },
+    {
+      "name": "dcount_corr_2023",
+      "ok": true,
+      "detail": "n_dreb vs box DREB: team-game corr 1.0000 on 2636 (min 0.95)"
+    },
+    {
+      "name": "dcount_corr_2024",
+      "ok": true,
+      "detail": "n_dreb vs box DREB: team-game corr 1.0000 on 2630 (min 0.95)"
+    },
+    {
+      "name": "dcount_corr_all",
+      "ok": true,
+      "detail": "n_dreb vs box DREB: team-game corr 1.0000 on 7906 (min 0.95)"
+    },
+    {
+      "name": "all_stored_games_parsed",
+      "ok": true,
+      "detail": "5269 of 5269 stored games (skipped {'no_pbp': 0, 'empty_parse': 0})"
+    }
+  ],
+  "backup": [
+    "/Users/devin/Downloads/nba-prediction/data/backups/possessions_pre_oreb_fix_20261010T191702Z_possessions.parquet"
+  ]
+}

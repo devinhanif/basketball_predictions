@@ -1,0 +1,60 @@
+{
+  "crew_null_vs_minutes_null": {
+    "diff": 0.0064431285919490655,
+    "fisher_p": 0.8652560923709741,
+    "minutes_null_rate_when_crew_null": 0.19642857142857142,
+    "minutes_null_rate_when_crew_present": 0.18998544283662236,
+    "note": "crew columns are NULL only before the first prior league game (opening day 2022, warm-up) or when < 2 officials; STOP rule applied as |diff| > 2 percentage points",
+    "rows_crew_null": 56
+  },
+  "max_share_missing_by_home_team": 0.0,
+  "n_games": 3953,
+  "n_missing_games": 0,
+  "player_rows": {
+    "n": 103785,
+    "share_missing_non_starter": 0.0,
+    "share_missing_played": 0.0,
+    "share_missing_starter": 0.0,
+    "share_missing_unplayed": 0.0
+  },
+  "share_missing_by_month": {
+    "2022-10": 0.0,
+    "2022-11": 0.0,
+    "2022-12": 0.0,
+    "2023-01": 0.0,
+    "2023-02": 0.0,
+    "2023-03": 0.0,
+    "2023-04": 0.0,
+    "2023-05": 0.0,
+    "2023-06": 0.0,
+    "2023-10": 0.0,
+    "2023-11": 0.0,
+    "2023-12": 0.0,
+    "2024-01": 0.0,
+    "2024-02": 0.0,
+    "2024-03": 0.0,
+    "2024-04": 0.0,
+    "2024-05": 0.0,
+    "2024-06": 0.0,
+    "2024-10": 0.0,
+    "2024-11": 0.0,
+    "2024-12": 0.0,
+    "2025-01": 0.0,
+    "2025-02": 0.0,
+    "2025-03": 0.0,
+    "2025-04": 0.0,
+    "2025-05": 0.0,
+    "2025-06": 0.0
+  },
+  "share_missing_by_season": {
+    "2022": 0.0,
+    "2023": 0.0,
+    "2024": 0.0
+  },
+  "share_missing_total_bottom_quartile": 0.0,
+  "share_missing_total_top_quartile": 0.0,
+  "stop": false,
+  "stops": [],
+  "tests": {},
+  "tests_status": "not estimable: 0 games without a usable crew (need >= 20 and as many non-missing); the audit is vacuous, no STOP fires from it"
+}

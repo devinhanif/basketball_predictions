@@ -1,0 +1,164 @@
+{
+  "frozen_sha256": "7dfe62de45b083e7dedd98d6f4c105e7bfcd84634846579a4c12515e6cbc0f2e",
+  "git_sha": "55506f58a895917318292028fcfc72388d881709",
+  "seeds": {
+    "model": 0,
+    "bootstrap": 0
+  },
+  "coverage": {
+    "n_players": 630,
+    "n_with_pick": 491,
+    "share": 0.7793650793650794,
+    "minutes_share_missing": 0.12745574650639832,
+    "n_missing_with_draft_year": 2,
+    "top_unmatched_by_minutes": [
+      {
+        "player_id": 1630559,
+        "n": 247,
+        "mins": 8047.816673755646
+      },
+      {
+        "player_id": 1629652,
+        "n": 258,
+        "mins": 7648.433333396912
+      },
+      {
+        "player_id": 1627832,
+        "n": 209,
+        "mins": 7611.633310317993
+      },
+      {
+        "player_id": 1629622,
+        "n": 246,
+        "mins": 7177.38334107399
+      },
+      {
+        "player_id": 1626220,
+        "n": 238,
+        "mins": 6422.916647911072
+      },
+      {
+        "player_id": 1629675,
+        "n": 260,
+        "mins": 6150.133336782455
+      },
+      {
+        "player_id": 1628997,
+        "n": 214,
+        "mins": 6050.150000095367
+      },
+      {
+        "player_id": 1627827,
+        "n": 206,
+        "mins": 6032.3333349227905
+      },
+      {
+        "player_id": 1627884,
+        "n": 248,
+        "mins": 5333.099994182587
+      },
+      {
+        "player_id": 1627936,
+        "n": 218,
+        "mins": 5311.216683745384
+      },
+      {
+        "player_id": 1630230,
+        "n": 220,
+        "mins": 5148.166661024094
+      },
+      {
+        "player_id": 1630573,
+        "n": 272,
+        "mins": 5066.783338904381
+      },
+      {
+        "player_id": 1629130,
+        "n": 219,
+        "mins": 4958.083348751068
+      },
+      {
+        "player_id": 204456,
+        "n": 263,
+        "mins": 4951.833322823048
+      },
+      {
+        "player_id": 1629312,
+        "n": 224,
+        "mins": 4638.066668380052
+      }
+    ]
+  },
+  "slice_counts": {
+    "2023": {
+      "rows": 27619,
+      "slice_rows": 6022,
+      "slice_games": 1305,
+      "slice_players": 100,
+      "other_young_rows": 21597,
+      "veteran_rows_seasons_ge5": 0,
+      "yp_seasons_counts": {
+        "2": 24749,
+        "1": 2870
+      },
+      "slice_rows_draft_year_le_season_minus1": 1043,
+      "slice_rows_draft_year_null": 0
+    },
+    "2024": {
+      "rows": 27583,
+      "slice_rows": 912,
+      "slice_games": 681,
+      "slice_players": 19,
+      "other_young_rows": 5761,
+      "veteran_rows_seasons_ge5": 0,
+      "yp_seasons_counts": {
+        "3": 20910,
+        "2": 3693,
+        "1": 2980
+      },
+      "slice_rows_draft_year_le_season_minus1": 825,
+      "slice_rows_draft_year_null": 0
+    }
+  },
+  "missingness": {
+    "nan_rate_by_minutes": {
+      "played<10": 0.27893890675241156,
+      "rest": 0.14483589280337247
+    },
+    "gap_pp": 13.41030139490391,
+    "nan_rate_by_yp_seasons": {
+      "2": 0.16517825750650447,
+      "3": 0.17254901960784313,
+      "1": 0.1464957264957265
+    }
+  },
+  "checks": [
+    {
+      "check": "1a draft_pick coverage (players >=20 games)",
+      "value": 0.7793650793650794,
+      "threshold": ">= 0.9",
+      "ok": false
+    },
+    {
+      "check": "1b missingness gap, played<10 vs rest (pp)",
+      "value": 13.41030139490391,
+      "threshold": "<= 2.0",
+      "ok": false
+    },
+    {
+      "check": "2 slice S rows 2023",
+      "value": 6022,
+      "threshold": ">= 300",
+      "ok": true
+    },
+    {
+      "check": "2 slice S rows 2024",
+      "value": 912,
+      "threshold": ">= 300",
+      "ok": true
+    }
+  ],
+  "all_ok": false,
+  "checks_3_4": "3: tests/props/test_young_pick.py (planted future/same-game); 4: flag-off identity tested there; A0 reproduction NOT run (study stopped).",
+  "n_rows_study": 55202
+}

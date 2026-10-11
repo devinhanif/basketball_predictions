@@ -1,0 +1,11 @@
+{
+  "season": 2024,
+  "n_games": 1315,
+  "check": {
+    "n": 1315,
+    "matched_to_stored": 1315,
+    "max_abs_dp_vs_stored_realtip": 0.0
+  },
+  "overall_injury_elo_log_loss_all_oof": 0.6164290423550264,
+  "git_sha": "6e6c6c49c98820dec225d12b4e59a15dee33c7a5"
+}

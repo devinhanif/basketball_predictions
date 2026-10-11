@@ -1,0 +1,16 @@
+{
+  "stat": "ast",
+  "season": 2024,
+  "crps_int": 0.9010234364001779,
+  "lower_tail_crps_int": 0.9010234364001779,
+  "delta": 0.0,
+  "n": 27583,
+  "lower_tail_n": 27583,
+  "ok": true,
+  "components_matched": 27583,
+  "max_abs_dc": 0.0,
+  "max_abs_ds": 0.0,
+  "qi_max": 29,
+  "kmax": 30,
+  "max_tail_mass": 0.0
+}

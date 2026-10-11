@@ -1,0 +1,16 @@
+{
+  "stat": "reb",
+  "season": 2023,
+  "crps_int": 1.2928172686712307,
+  "lower_tail_crps_int": 1.2928172686712307,
+  "delta": 0.0,
+  "n": 27619,
+  "lower_tail_n": 27619,
+  "ok": true,
+  "components_matched": 27619,
+  "max_abs_dc": 0.0,
+  "max_abs_ds": 0.0,
+  "qi_max": 35,
+  "kmax": 35,
+  "max_tail_mass": 0.0
+}

@@ -1,0 +1,4453 @@
+{
+ "date": "2025-11-12",
+ "now": "2025-11-12T20:00:00",
+ "engine": "gaussian_copula",
+ "dnp_policy": "void",
+ "disclaimer": "Analysis only, not financial advice. Estimated edges are noisy; nothing here places orders, handles credentials, or recommends real-money bets.",
+ "gate": {
+  "n_settled": 0,
+  "n_dates": 0,
+  "min_settled": 30,
+  "min_settled_dates": 14,
+  "skill_vs_market": 0.0,
+  "gated_skill": 0.0,
+  "gate_open": false,
+  "describe": "no settled shadow history (n=0)"
+ },
+ "fee_model": {
+  "name": "kalshi_fee_schedule",
+  "formula": "p_one_minus_p",
+  "coefficient": 0.07,
+  "maker_coefficient": 0.0175,
+  "default_multiplier": 1.0,
+  "multipliers": [],
+  "verified": true,
+  "source": "user-provided from Kalshi published fee schedule, 2026-10-08"
+ },
+ "interval_level": 0.8,
+ "n_games": 2,
+ "n_markets_read": 50,
+ "n_mapped": 20,
+ "n_contracts": 40,
+ "n_flagged_positive": 0,
+ "headline_verdict": "no_positive_ev_found",
+ "skipped": {
+  "game_not_in_slate": 30
+ },
+ "unmatched_tickers": [],
+ "notes": [
+  "shadow arms omitted: replay-season slate (shadow-arm deltas are SEALED, docs/HOLDOUT_ACCESS_LOG.md 2026-10-09)"
+ ],
+ "shadow_enabled": false,
+ "contracts": [
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.45499999821186066,
+   "prob_interval": [
+    0.45499999821186066,
+    0.45499999821186066
+   ],
+   "price": 0.4699999988079071,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.40170135295179726,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.08829864585610984,
+   "raw_ev_low": -0.13648035201145334,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12BOSNYK-BOS",
+   "side": "yes",
+   "text": "BOS win",
+   "title": "BOS wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "BOS@NYK",
+   "mid": 0.45499999821186066,
+   "ask": 0.4699999988079071,
+   "bid": 0.4399999976158142,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.35351964679645376,
+    0.45280234559377835
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.5450000017881393,
+   "prob_interval": [
+    0.5450000017881393,
+    0.5450000017881393
+   ],
+   "price": 0.5600000023841858,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5982986470482028,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.018298644664017,
+   "raw_ev_low": -0.0325806723572417,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12BOSNYK-BOS",
+   "side": "no",
+   "text": "NOT (BOS win)",
+   "title": "BOS wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "BOS@NYK",
+   "mid": 0.5450000017881393,
+   "ask": 0.5600000023841858,
+   "bid": 0.5300000011920929,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5474193300269441,
+    0.64606887560326
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.5049999952316284,
+   "prob_interval": [
+    0.5049999952316284,
+    0.5049999952316284
+   ],
+   "price": 0.5199999809265137,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5982986470482028,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.058298666121689116,
+   "raw_ev_low": 0.007419349100430423,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12BOSNYK-NYK",
+   "side": "yes",
+   "text": "NYK win",
+   "title": "NYK wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "BOS@NYK",
+   "mid": 0.5049999952316284,
+   "ask": 0.5199999809265137,
+   "bid": 0.49000000953674316,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5474193300269441,
+    0.64606887560326
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.4950000047683716,
+   "prob_interval": [
+    0.4950000047683716,
+    0.4950000047683716
+   ],
+   "price": 0.5099999904632568,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4017013529517972,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.12829863751145962,
+   "raw_ev_low": -0.17648034366680307,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12BOSNYK-NYK",
+   "side": "no",
+   "text": "NOT (NYK win)",
+   "title": "NYK wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "BOS@NYK",
+   "mid": 0.4950000047683716,
+   "ask": 0.5099999904632568,
+   "bid": 0.48000001907348633,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.35351964679645376,
+    0.45280234559377835
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.6150000095367432,
+   "prob_interval": [
+    0.6150000095367432,
+    0.6150000095367432
+   ],
+   "price": 0.6299999952316284,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5088189251229838,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.14118107010864464,
+   "raw_ev_low": -0.19231113141512682,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12SACLAL-LAL",
+   "side": "yes",
+   "text": "LAL win",
+   "title": "LAL wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "SAC@LAL",
+   "mid": 0.6150000095367432,
+   "ask": 0.6299999952316284,
+   "bid": 0.6000000238418579,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4576888638165016,
+    0.5602480923546973
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.38499999046325684,
+   "prob_interval": [
+    0.38499999046325684,
+    0.38499999046325684
+   ],
+   "price": 0.3999999761581421,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.49118107487701623,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.07118109871887414,
+   "raw_ev_low": 0.019880572295589777,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12SACLAL-LAL",
+   "side": "no",
+   "text": "NOT (LAL win)",
+   "title": "LAL wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "SAC@LAL",
+   "mid": 0.38499999046325684,
+   "ask": 0.3999999761581421,
+   "bid": 0.3700000047683716,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.43988054845373187,
+    0.5425404215278437
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.5149999856948853,
+   "prob_interval": [
+    0.5149999856948853,
+    0.5149999856948853
+   ],
+   "price": 0.5299999713897705,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.49118107487701623,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.05881889651275428,
+   "raw_ev_low": -0.11011942293603864,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12SACLAL-SAC",
+   "side": "yes",
+   "text": "SAC win",
+   "title": "SAC wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "SAC@LAL",
+   "mid": 0.5149999856948853,
+   "ask": 0.5299999713897705,
+   "bid": 0.5,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.43988054845373187,
+    0.5425404215278437
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.48500001430511475,
+   "prob_interval": [
+    0.48500001430511475,
+    0.48500001430511475
+   ],
+   "price": 0.5,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5088189251229838,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.011181074877016233,
+   "raw_ev_low": -0.062311136183498414,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV12SACLAL-SAC",
+   "side": "no",
+   "text": "NOT (SAC win)",
+   "title": "SAC wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "SAC@LAL",
+   "mid": 0.48500001430511475,
+   "ask": 0.5,
+   "bid": 0.4700000286102295,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4576888638165016,
+    0.5602480923546973
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.4949999898672104,
+   "prob_interval": [
+    0.4949999898672104,
+    0.4949999898672104
+   ],
+   "price": 0.5099999904632568,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5330618034274256,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.0030618129641687593,
+   "raw_ev_low": -0.04838776317939157,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-BOSP0-22",
+   "side": "yes",
+   "text": "Synth Honez Larker pts >= 22",
+   "title": "Synth Honez Larker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127381,
+   "player": "Synth Honez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.4949999898672104,
+   "ask": 0.5099999904632568,
+   "bid": 0.47999998927116394,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.48161222728386527,
+    0.583578236340069
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 72.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.5050000101327896,
+   "prob_interval": [
+    0.5050000101327896,
+    0.5050000101327896
+   ],
+   "price": 0.5200000107288361,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.46903819660833723,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.07096181412049883,
+   "raw_ev_low": -0.12148423337220847,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-BOSP0-22",
+   "side": "no",
+   "text": "NOT (Synth Honez Larker pts >= 22)",
+   "title": "Synth Honez Larker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127381,
+   "player": "Synth Honez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.5050000101327896,
+   "ask": 0.5200000107288361,
+   "bid": 0.49000000953674316,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4185157773566276,
+    0.5206011953979451
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 72.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127382,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.5850000083446503,
+   "prob_interval": [
+    0.5850000083446503,
+    0.5850000083446503
+   ],
+   "price": 0.6000000238418579,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5401039806871895,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.07989604315466846,
+   "raw_ev_low": -0.13135784247149138,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-BOSP1-18",
+   "side": "yes",
+   "text": "Synth Ionez Larker pts >= 18",
+   "title": "Synth Ionez Larker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127382,
+   "player": "Synth Ionez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.5850000083446503,
+   "ask": 0.6000000238418579,
+   "bid": 0.5699999928474426,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4886421813703665,
+    0.5904245375188673
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 72.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127382,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.41499999165534973,
+   "prob_interval": [
+    0.41499999165534973,
+    0.41499999165534973
+   ],
+   "price": 0.4300000071525574,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4654960217923637,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.015496014639806339,
+   "raw_ev_low": -0.035384480590527,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-BOSP1-18",
+   "side": "no",
+   "text": "NOT (Synth Ionez Larker pts >= 18)",
+   "title": "Synth Ionez Larker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127382,
+   "player": "Synth Ionez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.41499999165534973,
+   "ask": 0.4300000071525574,
+   "bid": 0.3999999761581421,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4146155265620304,
+    0.5166434869566344
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 72.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.6150000095367432,
+   "prob_interval": [
+    0.6150000095367432,
+    0.6150000095367432
+   ],
+   "price": 0.6299999952316284,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5366618035704767,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.11333819166115176,
+   "raw_ev_low": -0.16435589508731338,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-NYKP0-22",
+   "side": "yes",
+   "text": "Synth Ronez Qarker pts >= 22",
+   "title": "Synth Ronez Qarker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127521,
+   "player": "Synth Ronez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.6150000095367432,
+   "ask": 0.6299999952316284,
+   "bid": 0.6000000238418579,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.485644100144315,
+    0.5874816594400329
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 73.5,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.38499999046325684,
+   "prob_interval": [
+    0.38499999046325684,
+    0.38499999046325684
+   ],
+   "price": 0.3999999761581421,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4654381955712164,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04543821941307431,
+   "raw_ev_low": -0.0053844495961117116,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-NYKP0-22",
+   "side": "no",
+   "text": "NOT (Synth Ronez Qarker pts >= 22)",
+   "title": "Synth Ronez Qarker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127521,
+   "player": "Synth Ronez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.38499999046325684,
+   "ask": 0.3999999761581421,
+   "bid": 0.3700000047683716,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4146155265620304,
+    0.5166434869566344
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 73.5,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.45499999821186066,
+   "prob_interval": [
+    0.45499999821186066,
+    0.45499999821186066
+   ],
+   "price": 0.4699999988079071,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5297039786844734,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.03970397987656628,
+   "raw_ev_low": -0.01140128507505132,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-NYKP1-18",
+   "side": "yes",
+   "text": "Synth Sonez Qarker pts >= 18",
+   "title": "Synth Sonez Qarker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127522,
+   "player": "Synth Sonez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.45499999821186066,
+   "ask": 0.4699999988079071,
+   "bid": 0.4399999976158142,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4785987137328558,
+    0.5806699408299002
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 73.5,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.5450000017881393,
+   "prob_interval": [
+    0.5450000017881393,
+    0.5450000017881393
+   ],
+   "price": 0.5600000023841858,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.47589602141089404,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.10410398097329175,
+   "raw_ev_low": -0.15466380233995022,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12BOSNYK-NYKP1-18",
+   "side": "no",
+   "text": "NOT (Synth Sonez Qarker pts >= 18)",
+   "title": "Synth Sonez Qarker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127522,
+   "player": "Synth Sonez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.5450000017881393,
+   "ask": 0.5600000023841858,
+   "bid": 0.5300000011920929,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.42533620004423556,
+    0.527654110731385
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 73.5,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127471,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.48499999940395355,
+   "prob_interval": [
+    0.48499999940395355,
+    0.48499999940395355
+   ],
+   "price": 0.5,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5327618037135279,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.012761803713527881,
+   "raw_ev_low": -0.038387772716134735,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-LALP0-22",
+   "side": "yes",
+   "text": "Synth Tonez Oarker pts >= 22",
+   "title": "Synth Tonez Oarker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127471,
+   "player": "Synth Tonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.48499999940395355,
+   "ask": 0.5,
+   "bid": 0.4699999988079071,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.48161222728386527,
+    0.583578236340069
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 67.1,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127471,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.5150000005960464,
+   "prob_interval": [
+    0.5150000005960464,
+    0.5150000005960464
+   ],
+   "price": 0.5300000011920929,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.46933819632223495,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.08066180486985795,
+   "raw_ev_low": -0.1314842238354653,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-LALP0-22",
+   "side": "no",
+   "text": "NOT (Synth Tonez Oarker pts >= 22)",
+   "title": "Synth Tonez Oarker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127471,
+   "player": "Synth Tonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.5150000005960464,
+   "ask": 0.5300000011920929,
+   "bid": 0.5,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4185157773566276,
+    0.5206011953979451
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 67.1,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127472,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.4750000089406967,
+   "prob_interval": [
+    0.4750000089406967,
+    0.4750000089406967
+   ],
+   "price": 0.49000000953674316,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5313039795427803,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.021303970006037138,
+   "raw_ev_low": -0.03040285434544358,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-LALP1-18",
+   "side": "yes",
+   "text": "Synth Uonez Oarker pts >= 18",
+   "title": "Synth Uonez Oarker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127472,
+   "player": "Synth Uonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.4750000089406967,
+   "ask": 0.49000000953674316,
+   "bid": 0.46000000834465027,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4795971551912996,
+    0.5816431699226068
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 67.1,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127472,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.5249999910593033,
+   "prob_interval": [
+    0.5249999910593033,
+    0.5249999910593033
+   ],
+   "price": 0.5399999916553497,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4742960205525871,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.08570397110276261,
+   "raw_ev_low": -0.13661422895175154,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-LALP1-18",
+   "side": "no",
+   "text": "NOT (Synth Uonez Oarker pts >= 18)",
+   "title": "Synth Uonez Oarker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127472,
+   "player": "Synth Uonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.5249999910593033,
+   "ask": 0.5399999916553497,
+   "bid": 0.5099999904632568,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4233857627035982,
+    0.5256642417623522
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 67.1,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127581,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.5550000071525574,
+   "prob_interval": [
+    0.5550000071525574,
+    0.5550000071525574
+   ],
+   "price": 0.5699999928474426,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5348618034989511,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.05513818934849156,
+   "raw_ev_low": -0.10635158612772354,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-SACP0-22",
+   "side": "yes",
+   "text": "Synth Zonez Sarker pts >= 22",
+   "title": "Synth Zonez Sarker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127581,
+   "player": "Synth Zonez Sarker",
+   "game": "SAC@LAL",
+   "mid": 0.5550000071525574,
+   "ask": 0.5699999928474426,
+   "bid": 0.5400000214576721,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4836484067197191,
+    0.5855299395642753
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 69.7,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127581,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.4449999928474426,
+   "prob_interval": [
+    0.4449999928474426,
+    0.4449999928474426
+   ],
+   "price": 0.4599999785423279,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.467238195642742,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.012761782899585888,
+   "raw_ev_low": -0.06342975645379077,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-SACP0-22",
+   "side": "no",
+   "text": "NOT (Synth Zonez Sarker pts >= 22)",
+   "title": "Synth Zonez Sarker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127581,
+   "player": "Synth Zonez Sarker",
+   "game": "SAC@LAL",
+   "mid": 0.4449999928474426,
+   "ask": 0.4599999785423279,
+   "bid": 0.4300000071525574,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.4165702220885371,
+    0.5186190065394289
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 69.7,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.5049999952316284,
+   "prob_interval": [
+    0.5049999952316284,
+    0.5049999952316284
+   ],
+   "price": 0.5199999809265137,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5337039772539619,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.006296003672551769,
+   "raw_ev_low": -0.057369845473218814,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-SACP1-18",
+   "side": "yes",
+   "text": "Synth Aonez Tarker pts >= 18",
+   "title": "Synth Aonez Tarker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127582,
+   "player": "Synth Aonez Tarker",
+   "game": "SAC@LAL",
+   "mid": 0.5049999952316284,
+   "ask": 0.5199999809265137,
+   "bid": 0.49000000953674316,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.48263013545329486,
+    0.5845535522849116
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 69.7,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.4950000047683716,
+   "prob_interval": [
+    0.4950000047683716,
+    0.4950000047683716
+   ],
+   "price": 0.5099999904632568,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4718960204572197,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.05810397000603716,
+   "raw_ev_low": -0.10856326815636151,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV12SACLAL-SACP1-18",
+   "side": "no",
+   "text": "NOT (Synth Aonez Tarker pts >= 18)",
+   "title": "Synth Aonez Tarker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127582,
+   "player": "Synth Aonez Tarker",
+   "game": "SAC@LAL",
+   "mid": 0.4950000047683716,
+   "ask": 0.5099999904632568,
+   "bid": 0.48000001907348633,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.42143672230689533,
+    0.5236637632340875
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 69.7,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.4349999874830246,
+   "prob_interval": [
+    0.4349999874830246,
+    0.4349999874830246
+   ],
+   "price": 0.44999998807907104,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.575878996507576,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.10587900842850496,
+   "raw_ev_low": 0.054925597096433756,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-BOSP0-7",
+   "side": "yes",
+   "text": "Synth Honez Larker reb >= 7",
+   "title": "Synth Honez Larker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127381,
+   "player": "Synth Honez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.4349999874830246,
+   "ask": 0.44999998807907104,
+   "bid": 0.41999998688697815,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5249255851755048,
+    0.6250807735102415
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 22.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.5650000125169754,
+   "prob_interval": [
+    0.5650000125169754,
+    0.5650000125169754
+   ],
+   "price": 0.5800000131130219,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.42622100352818687,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.17377900958483497,
+   "raw_ev_low": -0.22312928730061946,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-BOSP0-7",
+   "side": "no",
+   "text": "NOT (Synth Honez Larker reb >= 7)",
+   "title": "Synth Honez Larker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127381,
+   "player": "Synth Honez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.5650000125169754,
+   "ask": 0.5800000131130219,
+   "bid": 0.550000011920929,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.3768707258124024,
+    0.47709862210337156
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 22.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127382,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "yes",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.5850000083446503,
+   "prob_interval": [
+    0.5850000083446503,
+    0.5850000083446503
+   ],
+   "price": 0.6000000238418579,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5824213185217688,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.0375787053200891,
+   "raw_ev_low": -0.0889699509003332,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-BOSP1-6",
+   "side": "yes",
+   "text": "Synth Ionez Larker reb >= 6",
+   "title": "Synth Ionez Larker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127382,
+   "player": "Synth Ionez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.5850000083446503,
+   "ask": 0.6000000238418579,
+   "bid": 0.5699999928474426,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5310300729415247,
+    0.6308433742516355
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 22.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127382,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.41499999165534973,
+   "prob_interval": [
+    0.41499999165534973,
+    0.41499999165534973
+   ],
+   "price": 0.4300000071525574,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.42317868395778446,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.02682132319477291,
+   "raw_ev_low": -0.0760332842382833,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-BOSP1-6",
+   "side": "no",
+   "text": "NOT (Synth Ionez Larker reb >= 6)",
+   "title": "Synth Ionez Larker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127382,
+   "player": "Synth Ionez Larker",
+   "game": "BOS@NYK",
+   "mid": 0.41499999165534973,
+   "ask": 0.4300000071525574,
+   "bid": 0.3999999761581421,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.3739667229142741,
+    0.4740937713773663
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "NYK",
+     "avg": 22.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.5149999856948853,
+   "prob_interval": [
+    0.5149999856948853,
+    0.5149999856948853
+   ],
+   "price": 0.5299999713897705,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5782789960068969,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.02827902461712641,
+   "raw_ev_low": -0.023052179839663105,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-NYKP0-7",
+   "side": "yes",
+   "text": "Synth Ronez Qarker reb >= 7",
+   "title": "Synth Ronez Qarker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127521,
+   "player": "Synth Ronez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.5149999856948853,
+   "ask": 0.5299999713897705,
+   "bid": 0.5,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5269477915501074,
+    0.626997607234374
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 21.7,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.48500001430511475,
+   "prob_interval": [
+    0.48500001430511475,
+    0.48500001430511475
+   ],
+   "price": 0.5,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4238210031347962,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.0961789968652038,
+   "raw_ev_low": -0.14506563174255574,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-NYKP0-7",
+   "side": "no",
+   "text": "NOT (Synth Ronez Qarker reb >= 7)",
+   "title": "Synth Ronez Qarker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127521,
+   "player": "Synth Ronez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.48500001430511475,
+   "ask": 0.5,
+   "bid": 0.4700000286102295,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.37493436825744425,
+    0.4751000978227914
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 21.7,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.6049999892711639,
+   "prob_interval": [
+    0.6049999892711639,
+    0.6049999892711639
+   ],
+   "price": 0.6200000047683716,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5840213169958899,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.0559786877724817,
+   "raw_ev_low": -0.10694658928299793,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-NYKP1-6",
+   "side": "yes",
+   "text": "Synth Sonez Qarker reb >= 6",
+   "title": "Synth Sonez Qarker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127522,
+   "player": "Synth Sonez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.6049999892711639,
+   "ask": 0.6200000047683716,
+   "bid": 0.5899999737739563,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5330534154853737,
+    0.6327869899152337
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 21.7,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.39500001072883606,
+   "prob_interval": [
+    0.39500001072883606,
+    0.39500001072883606
+   ],
+   "price": 0.4100000262260437,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4215786854836634,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.008421340742380306,
+   "raw_ev_low": -0.05700059315099208,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12BOSNYK-NYKP1-6",
+   "side": "no",
+   "text": "NOT (Synth Sonez Qarker reb >= 6)",
+   "title": "Synth Sonez Qarker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127522,
+   "player": "Synth Sonez Qarker",
+   "game": "BOS@NYK",
+   "mid": 0.39500001072883606,
+   "ask": 0.4100000262260437,
+   "bid": 0.3799999952316284,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.3729994330750516,
+    0.47308514789971595
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127524,
+      "name": "player 127524",
+      "pts": 14.6,
+      "reb": 4.8,
+      "ast": 3.6,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 14.6,
+     "reb": 4.8,
+     "ast": 3.6
+    },
+    "opp_allowed_last20": {
+     "team": "BOS",
+     "avg": 21.7,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127471,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.5850000083446503,
+   "prob_interval": [
+    0.5850000083446503,
+    0.5850000083446503
+   ],
+   "price": 0.6000000238418579,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5803789975804596,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.03962102626139828,
+   "raw_ev_low": -0.09102222179017293,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-LALP0-7",
+   "side": "yes",
+   "text": "Synth Tonez Oarker reb >= 7",
+   "title": "Synth Tonez Oarker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127471,
+   "player": "Synth Tonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.5850000083446503,
+   "ask": 0.6000000238418579,
+   "bid": 0.5699999928474426,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.528977802051685,
+    0.6289131804460418
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 21.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127471,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.41499999165534973,
+   "prob_interval": [
+    0.41499999165534973,
+    0.41499999165534973
+   ],
+   "price": 0.4300000071525574,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.42172100334937296,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.028279003803184415,
+   "raw_ev_low": -0.07700057407750575,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-LALP0-7",
+   "side": "no",
+   "text": "NOT (Synth Tonez Oarker reb >= 7)",
+   "title": "Synth Tonez Oarker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127471,
+   "player": "Synth Tonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.41499999165534973,
+   "ask": 0.4300000071525574,
+   "bid": 0.3999999761581421,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.3729994330750516,
+    0.47308514789971595
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 21.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127472,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "yes",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.5349999964237213,
+   "prob_interval": [
+    0.5349999964237213,
+    0.5349999964237213
+   ],
+   "price": 0.550000011920929,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5784213175680945,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.008421305647165495,
+   "raw_ev_low": -0.043052220370821556,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-LALP1-6",
+   "side": "yes",
+   "text": "Synth Uonez Oarker reb >= 6",
+   "title": "Synth Uonez Oarker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127472,
+   "player": "Synth Uonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.5349999964237213,
+   "ask": 0.550000011920929,
+   "bid": 0.5199999809265137,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5269477915501074,
+    0.626997607234374
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 21.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127472,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.4650000035762787,
+   "prob_interval": [
+    0.4650000035762787,
+    0.4650000035762787
+   ],
+   "price": 0.48000001907348633,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.42717868491145883,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.0728213341620275,
+   "raw_ev_low": -0.12216058086907959,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-LALP1-6",
+   "side": "no",
+   "text": "NOT (Synth Uonez Oarker reb >= 6)",
+   "title": "Synth Uonez Oarker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127472,
+   "player": "Synth Uonez Oarker",
+   "game": "SAC@LAL",
+   "mid": 0.4650000035762787,
+   "ask": 0.48000001907348633,
+   "bid": 0.44999998807907104,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.37783943820440674,
+    0.4781192342567211
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127474,
+      "name": "player 127474",
+      "pts": 18.0,
+      "reb": 5.0,
+      "ast": 3.4,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 18.0,
+     "reb": 5.0,
+     "ast": 3.4
+    },
+    "opp_allowed_last20": {
+     "team": "SAC",
+     "avg": 21.8,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127581,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.5449999868869781,
+   "prob_interval": [
+    0.5449999868869781,
+    0.5449999868869781
+   ],
+   "price": 0.5600000023841858,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5791789969367294,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.0008210054474564292,
+   "raw_ev_low": -0.05203491121912972,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-SACP0-7",
+   "side": "yes",
+   "text": "Synth Zonez Sarker reb >= 7",
+   "title": "Synth Zonez Sarker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127581,
+   "player": "Synth Zonez Sarker",
+   "game": "SAC@LAL",
+   "mid": 0.5449999868869781,
+   "ask": 0.5600000023841858,
+   "bid": 0.5299999713897705,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5279650911650561,
+    0.6279555513430595
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 20.6,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127581,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.45500001311302185,
+   "prob_interval": [
+    0.45500001311302185,
+    0.45500001311302185
+   ],
+   "price": 0.4700000286102295,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4229210039931031,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.06707902461712638,
+   "raw_ev_low": -0.11603330569595542,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-SACP0-7",
+   "side": "no",
+   "text": "NOT (Synth Zonez Sarker reb >= 7)",
+   "title": "Synth Zonez Sarker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127581,
+   "player": "Synth Zonez Sarker",
+   "game": "SAC@LAL",
+   "mid": 0.45500001311302185,
+   "ask": 0.4700000286102295,
+   "bid": 0.4399999976158142,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.3739667229142741,
+    0.4740937713773663
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 20.6,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "yes",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.675000011920929,
+   "prob_interval": [
+    0.675000011920929,
+    0.675000011920929
+   ],
+   "price": 0.6899999976158142,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5896213164236853,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.1203786811921289,
+   "raw_ev_low": -0.1707735158749569,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-SACP1-6",
+   "side": "yes",
+   "text": "Synth Aonez Tarker reb >= 6",
+   "title": "Synth Aonez Tarker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127582,
+   "player": "Synth Aonez Tarker",
+   "game": "SAC@LAL",
+   "mid": 0.675000011920929,
+   "ask": 0.6899999976158142,
+   "bid": 0.6600000262260437,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.5392264817408573,
+    0.6384946608175636
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 20.6,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.32499998807907104,
+   "prob_interval": [
+    0.32499998807907104,
+    0.32499998807907104
+   ],
+   "price": 0.3399999737739563,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4159786812874964,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.055978707513540074,
+   "raw_ev_low": 0.0071051417184596795,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV12SACLAL-SACP1-6",
+   "side": "no",
+   "text": "NOT (Synth Aonez Tarker reb >= 6)",
+   "title": "Synth Aonez Tarker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127582,
+   "player": "Synth Aonez Tarker",
+   "game": "SAC@LAL",
+   "mid": 0.32499998807907104,
+   "ask": 0.3399999737739563,
+   "bid": 0.3100000023841858,
+   "price_ts": "2025-11-12 15:00:00",
+   "raw_prob_interval": [
+    0.367105115492416,
+    0.4670209115630381
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "LAL",
+     "avg": 20.6,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  }
+ ],
+ "same_game_parlays": [
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.09359998850822493,
+   "prob_interval": [
+    0.09359998850822493,
+    0.09359998850822493
+   ],
+   "price": 0.09359998850822493,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.16218674362162105,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05858675511339612,
+   "raw_ev_low": 0.03488566708107122,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12BOSNYK-NYK|yes+KXNBAPTS-25NOV12BOSNYK-NYKP0-22|no",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NYK win AND NOT (Synth Ronez Qarker pts >= 22)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.09359998850822493,
+   "bid": null,
+   "mid": 0.09359998850822493,
+   "raw_prob_interval": [
+    0.13848565558929615,
+    0.1902997867412672
+   ],
+   "independence_prob": 0.16176445629511457
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.12401998547077234,
+   "prob_interval": [
+    0.12401998547077234,
+    0.12401998547077234
+   ],
+   "price": 0.12401998547077234,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.19644399247075617,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.06242400699998383,
+   "raw_ev_low": 0.03475851107481554,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12BOSNYK-NYK|yes+KXNBAREB-25NOV12BOSNYK-NYKP0-7|yes",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NYK win AND Synth Ronez Qarker reb >= 7",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.12401998547077234,
+   "bid": null,
+   "mid": 0.12401998547077234,
+   "raw_prob_interval": [
+    0.16877849654558788,
+    0.2289607017053107
+   ],
+   "independence_prob": 0.20068067298904518
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.10997999277353299,
+   "prob_interval": [
+    0.10997999277353299,
+    0.10997999277353299
+   ],
+   "price": 0.10997999277353299,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.17761634189769837,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05763634912416538,
+   "raw_ev_low": 0.03211242962208897,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12BOSNYK-NYK|yes+KXNBAPTS-25NOV12BOSNYK-NYKP1-18|yes",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NYK win AND Synth Sonez Qarker pts >= 18",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.10997999277353299,
+   "bid": null,
+   "mid": 0.10997999277353299,
+   "raw_prob_interval": [
+    0.15209242239562196,
+    0.20777397013930476
+   ],
+   "independence_prob": 0.18474236201885244
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.1335599898207189,
+   "prob_interval": [
+    0.1335599898207189,
+    0.1335599898207189
+   ],
+   "price": 0.1335599898207189,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.1984190861638662,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05485909634314729,
+   "raw_ev_low": 0.02693855841891544,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAREB-25NOV12BOSNYK-NYKP0-7|yes+KXNBAGAME-25NOV12BOSNYK-BOS|no",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND Synth Ronez Qarker reb >= 7 AND NOT (BOS win)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.1335599898207189,
+   "bid": null,
+   "mid": 0.1335599898207189,
+   "raw_prob_interval": [
+    0.17049854823963434,
+    0.23113433942029288
+   ],
+   "independence_prob": 0.20068067298904516
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612747
+    },
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.13599998140335146,
+   "prob_interval": [
+    0.13599998140335146,
+    0.13599998140335146
+   ],
+   "price": 0.13599998140335146,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.20084554023518197,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05484555883183052,
+   "raw_ev_low": 0.026662304875084898,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAGAME-25NOV12SACLAL-LAL|no+KXNBAREB-25NOV12SACLAL-SACP1-6|no",
+   "kind": "parlay",
+   "text": "NOT (LAL win) AND NOT (Synth Aonez Tarker reb >= 6)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.13599998140335146,
+   "bid": null,
+   "mid": 0.13599998140335146,
+   "raw_prob_interval": [
+    0.17266228627843636,
+    0.23387369785036036
+   ],
+   "independence_prob": 0.20671178464651857
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.11843999706625938,
+   "prob_interval": [
+    0.11843999706625938,
+    0.11843999706625938
+   ],
+   "price": 0.11843999706625938,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.18084676235339606,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05240676528713668,
+   "raw_ev_low": 0.026530239551053,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAPTS-25NOV12BOSNYK-NYKP1-18|yes+KXNBAGAME-25NOV12BOSNYK-BOS|no",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND Synth Sonez Qarker pts >= 18 AND NOT (BOS win)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.11843999706625938,
+   "bid": null,
+   "mid": 0.11843999706625938,
+   "raw_prob_interval": [
+    0.15497023661731238,
+    0.21144767894484656
+   ],
+   "independence_prob": 0.1847423620188524
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.09539998663663923,
+   "prob_interval": [
+    0.09539998663663923,
+    0.09539998663663923
+   ],
+   "price": 0.09539998663663923,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.15406066013417918,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04866067349753995,
+   "raw_ev_low": 0.025921730813765677,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAPTS-25NOV12BOSNYK-NYKP0-22|no+KXNBAREB-25NOV12BOSNYK-NYKP0-7|yes",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NOT (Synth Ronez Qarker pts >= 22) AND Synth Ronez Qarker reb >= 7",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.09539998663663923,
+   "bid": null,
+   "mid": 0.09539998663663923,
+   "raw_prob_interval": [
+    0.1313217174504049,
+    0.18100443597210294
+   ],
+   "independence_prob": 0.15658813284792214
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127382,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.1006199953174591,
+   "prob_interval": [
+    0.1006199953174591,
+    0.1006199953174591
+   ],
+   "price": 0.1006199953174591,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.15992216052370722,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04930216520624812,
+   "raw_ev_low": 0.025837311330030067,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12BOSNYK-NYK|yes+KXNBAPTS-25NOV12BOSNYK-BOSP1-18|no",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NYK win AND NOT (Synth Ionez Larker pts >= 18)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.1006199953174591,
+   "bid": null,
+   "mid": 0.1006199953174591,
+   "raw_prob_interval": [
+    0.13645730664748917,
+    0.18771113763719274
+   ],
+   "independence_prob": 0.16176445629511457
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.11209499069511909,
+   "prob_interval": [
+    0.11209499069511909,
+    0.11209499069511909
+   ],
+   "price": 0.11209499069511909,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.17210319973710214,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05000820904198305,
+   "raw_ev_low": 0.025136251213688586,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAPTS-25NOV12BOSNYK-NYKP1-18|yes+KXNBAREB-25NOV12BOSNYK-NYKP0-7|yes",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND Synth Sonez Qarker pts >= 18 AND Synth Ronez Qarker reb >= 7",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.11209499069511909,
+   "bid": null,
+   "mid": 0.11209499069511909,
+   "raw_prob_interval": [
+    0.14723124190880768,
+    0.20154555934209017
+   ],
+   "independence_prob": 0.17883076535472922
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.10079999175071729,
+   "prob_interval": [
+    0.10079999175071729,
+    0.10079999175071729
+   ],
+   "price": 0.10079999175071729,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.1586606813923734,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04786068964165612,
+   "raw_ev_low": 0.024556864547843164,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAPTS-25NOV12BOSNYK-NYKP0-22|no+KXNBAGAME-25NOV12BOSNYK-BOS|no",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NOT (Synth Ronez Qarker pts >= 22) AND NOT (BOS win)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.10079999175071729,
+   "bid": null,
+   "mid": 0.10079999175071729,
+   "raw_prob_interval": [
+    0.13535685629856045,
+    0.18629439142946352
+   ],
+   "independence_prob": 0.1617644562951146
+  }
+ ],
+ "cross_game_parlays": [
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.1529999841451648,
+   "prob_interval": [
+    0.1529999841451648,
+    0.1529999841451648
+   ],
+   "price": 0.1529999841451648,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.23538505598113538,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.07238507183597058,
+   "raw_ev_low": 0.04058828032190615,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAREB-25NOV12SACLAL-SACP1-6|no",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NOT (Synth Aonez Tarker reb >= 6)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.1529999841451648,
+   "bid": null,
+   "mid": 0.1529999841451648,
+   "raw_prob_interval": [
+    0.20358826446707096,
+    0.2722484798227913
+   ],
+   "independence_prob": 0.24373470681302267
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612747
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.15999998092651424,
+   "prob_interval": [
+    0.15999998092651424,
+    0.15999998092651424
+   ],
+   "price": 0.15999998092651424,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.231365436155959,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.06136545522944476,
+   "raw_ev_low": 0.029970249916196824,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAGAME-25NOV12SACLAL-LAL|no+KXNBAPTS-25NOV12BOSNYK-NYKP0-22|no",
+   "kind": "parlay",
+   "text": "NOT (LAL win) AND NOT (Synth Ronez Qarker pts >= 22)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.15999998092651424,
+   "bid": null,
+   "mid": 0.15999998092651424,
+   "raw_prob_interval": [
+    0.19997023084271107,
+    0.26778720308377646
+   ],
+   "independence_prob": 0.2293046927807821
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612758
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127521,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.13599998140335146,
+   "prob_interval": [
+    0.13599998140335146,
+    0.13599998140335146
+   ],
+   "price": 0.13599998140335146,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.1933998634857263,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04739988208237484,
+   "raw_ev_low": 0.020091836126773906,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12SACLAL-SACP1-6|no+KXNBAPTS-25NOV12BOSNYK-NYKP0-22|no",
+   "kind": "parlay",
+   "text": "NOT (Synth Aonez Tarker reb >= 6) AND NOT (Synth Ronez Qarker pts >= 22)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.13599998140335146,
+   "bid": null,
+   "mid": 0.13599998140335146,
+   "raw_prob_interval": [
+    0.16609181753012536,
+    0.22558298329880577
+   ],
+   "independence_prob": 0.1964694045550169
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612758
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127522,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.1597999872684479,
+   "prob_interval": [
+    0.1597999872684479,
+    0.1597999872684479
+   ],
+   "price": 0.1597999872684479,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.2171253658400438,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04732537857159589,
+   "raw_ev_low": 0.017425291470373035,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12SACLAL-SACP1-6|no+KXNBAPTS-25NOV12BOSNYK-NYKP1-18|yes",
+   "kind": "parlay",
+   "text": "NOT (Synth Aonez Tarker reb >= 6) AND Synth Sonez Qarker pts >= 18",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.1597999872684479,
+   "bid": null,
+   "mid": 0.1597999872684479,
+   "raw_prob_interval": [
+    0.18722527873882094,
+    0.25211040853076994
+   ],
+   "independence_prob": 0.22437699042930906
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612747
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127382,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.17199999260902388,
+   "prob_interval": [
+    0.17199999260902388,
+    0.17199999260902388
+   ],
+   "price": 0.17199999260902388,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.2291622692952276,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.047162276686203715,
+   "raw_ev_low": 0.016009340970624904,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAGAME-25NOV12SACLAL-LAL|no+KXNBAPTS-25NOV12BOSNYK-BOSP1-18|no",
+   "kind": "parlay",
+   "text": "NOT (LAL win) AND NOT (Synth Ionez Larker pts >= 18)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.17199999260902388,
+   "bid": null,
+   "mid": 0.17199999260902388,
+   "raw_prob_interval": [
+    0.19800933357964878,
+    0.265361741134145
+   ],
+   "independence_prob": 0.2293046927807821
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612758
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127382,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612738
+    }
+   ],
+   "model_prob": 0.14619999115467053,
+   "prob_interval": [
+    0.14619999115467053,
+    0.14619999115467053
+   ],
+   "price": 0.14619999115467053,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.19252329209268482,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.03632330093801429,
+   "raw_ev_low": 0.009096366027953532,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12SACLAL-SACP1-6|no+KXNBAPTS-25NOV12BOSNYK-BOSP1-18|no",
+   "kind": "parlay",
+   "text": "NOT (Synth Aonez Tarker reb >= 6) AND NOT (Synth Ionez Larker pts >= 18)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.14619999115467053,
+   "bid": null,
+   "mid": 0.14619999115467053,
+   "raw_prob_interval": [
+    0.16529635718262406,
+    0.22457309872973677
+   ],
+   "independence_prob": 0.1964694045550169
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.17999998450279264,
+   "prob_interval": [
+    0.17999998450279264,
+    0.17999998450279264
+   ],
+   "price": 0.17999998450279264,
+   "fees": 0.02,
+   "ev": -0.02,
+   "ev_low": -0.02,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.28153897258643124,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.08153898808363859,
+   "raw_ev_low": 0.04560484407061739,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12SACLAL-LAL|no",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND NOT (LAL win)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.17999998450279264,
+   "bid": null,
+   "mid": 0.17999998450279264,
+   "raw_prob_interval": [
+    0.24560482857341004,
+    0.322340630496317
+   ],
+   "independence_prob": 0.28446929023049766
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612747
+    },
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612752
+    }
+   ],
+   "model_prob": 0.2079999799728398,
+   "prob_interval": [
+    0.2079999799728398,
+    0.2079999799728398
+   ],
+   "price": 0.2079999799728398,
+   "fees": 0.02,
+   "ev": -0.02,
+   "ev_low": -0.02,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.29576021198940056,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.06776023201656074,
+   "raw_ev_low": 0.030629436515171544,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAGAME-25NOV12SACLAL-LAL|no+KXNBAGAME-25NOV12BOSNYK-NYK|yes",
+   "kind": "parlay",
+   "text": "NOT (LAL win) AND NYK win",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.2079999799728398,
+   "bid": null,
+   "mid": 0.2079999799728398,
+   "raw_prob_interval": [
+    0.25862941648801135,
+    0.33755044882999735
+   ],
+   "independence_prob": 0.2938729725546008
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 127381,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612738
+    },
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127472,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612747
+    }
+   ],
+   "model_prob": 0.22049999845027912,
+   "prob_interval": [
+    0.22049999845027912,
+    0.22049999845027912
+   ],
+   "price": 0.22049999845027912,
+   "fees": 0.02,
+   "ev": -0.02,
+   "ev_low": -0.02,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.29744385153066516,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.056943853080386034,
+   "raw_ev_low": 0.019699469961694655,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAPTS-25NOV12SACLAL-LALP1-18|yes",
+   "kind": "parlay",
+   "text": "Synth Honez Larker reb >= 7 AND Synth Uonez Oarker pts >= 18",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.22049999845027912,
+   "bid": null,
+   "mid": 0.22049999845027912,
+   "raw_prob_interval": [
+    0.2601994684119738,
+    0.33936534588229095
+   ],
+   "independence_prob": 0.30877950824443096
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-120",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612752
+    },
+    {
+     "game_id": "f2025-11-121",
+     "player_id": 127582,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612758
+    }
+   ],
+   "model_prob": 0.17679997987747242,
+   "prob_interval": [
+    0.17679997987747242,
+    0.17679997987747242
+   ],
+   "price": 0.17679997987747242,
+   "fees": 0.02,
+   "ev": -0.02,
+   "ev_low": -0.02,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.24828537132155123,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05148539144407881,
+   "raw_ev_low": 0.018488690334390424,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAGAME-25NOV12BOSNYK-NYK|yes+KXNBAREB-25NOV12SACLAL-SACP1-6|no",
+   "kind": "parlay",
+   "text": "NYK win AND NOT (Synth Aonez Tarker reb >= 6)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.17679997987747242,
+   "bid": null,
+   "mid": 0.17679997987747242,
+   "raw_prob_interval": [
+    0.21528867021186285,
+    0.2863766918111028
+   ],
+   "independence_prob": 0.2517918287342358
+  }
+ ],
+ "parlay_price_basis": "product of leg asks, NOT a tradable price (no combo contracts are ingested); same-game legs use the copula, cross-game legs are independent",
+ "narration": null,
+ "budget": {
+  "date": "2025-11-12",
+  "now": "2025-11-12T20:00:00",
+  "gate": {
+   "n_settled": 0,
+   "n_dates": 0,
+   "min_settled": 30,
+   "min_settled_dates": 14,
+   "skill_vs_market": 0.0,
+   "gated_skill": 0.0,
+   "gate_open": false,
+   "describe": "no settled shadow history (n=0)"
+  },
+  "model_weight_zero": true,
+  "fee_model": {
+   "name": "kalshi_fee_schedule",
+   "formula": "p_one_minus_p",
+   "coefficient": 0.07,
+   "maker_coefficient": 0.0175,
+   "default_multiplier": 1.0,
+   "multipliers": [],
+   "verified": true,
+   "source": "user-provided from Kalshi published fee schedule, 2026-10-08"
+  },
+  "interval_level": 0.8,
+  "kelly_fraction": 0.25,
+  "kelly_cap": 0.02,
+  "n_singles": 40,
+  "disclaimer": "Analysis only, not financial advice. Estimated edges are noisy; nothing here places orders, handles credentials, or recommends real-money bets.",
+  "orders_placed": 0,
+  "mode": "budget",
+  "budget_usd": 20.0,
+  "n_options_considered": 315,
+  "n_parlays_considered": 275,
+  "ranked_by": "order EV at the conservative low bound per $ staked (after fees)",
+  "ranked": [
+   {
+    "model_prob": 0.14476000338673592,
+    "prob_interval": [
+     0.14476000338673592,
+     0.14476000338673592
+    ],
+    "price": 0.14476000338673592,
+    "fees": 0.01,
+    "ev": -0.01,
+    "ev_low": -0.01,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.18007224146495537,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": 0.025312238078219453,
+    "raw_ev_low": -0.0005037839603736407,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAPTS-25NOV12BOSNYK-NYKP1-18|yes+KXNBAGAME-25NOV12BOSNYK-BOS|no+KXNBAREB-25NOV12SACLAL-LALP1-6|yes",
+    "kind": "parlay",
+    "text": "Synth Sonez Qarker pts >= 18 AND NOT (BOS win) AND Synth Uonez Oarker reb >= 6",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.14476000338673592,
+    "bid": null,
+    "mid": 0.14476000338673592,
+    "raw_prob_interval": [
+     0.15425621942636228,
+     0.21054384391237255
+    ],
+    "independence_prob": 0.18474236201885244,
+    "legs_text": "Synth Sonez Qarker pts >= 18 AND NOT (BOS win) AND Synth Uonez Oarker reb >= 6",
+    "n_legs": 3,
+    "n_games": 2,
+    "order": {
+     "contracts": 1,
+     "cost": 0.15,
+     "fee": 0.01,
+     "payout": 1.0,
+     "profit_if_hit": 0.85,
+     "ev": -0.005239996613264075,
+     "ev_low": -0.005239996613264075,
+     "raw_ev": 0.03007224146495538,
+     "raw_ev_low": 0.004256219426362284,
+     "ev_low_per_dollar": -0.03493331075509384
+    },
+    "mode": "budget",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.13475000554323202,
+    "prob_interval": [
+     0.13475000554323202,
+     0.13475000554323202
+    ],
+    "price": 0.13475000554323202,
+    "fees": 0.01,
+    "ev": -0.01,
+    "ev_low": -0.01,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.16885944637916261,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": 0.02410944083593059,
+    "raw_ev_low": -0.0003857235001171102,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAPTS-25NOV12SACLAL-LALP1-18|yes+KXNBAPTS-25NOV12SACLAL-LALP0-22|yes+KXNBAREB-25NOV12SACLAL-LALP1-6|yes",
+    "kind": "parlay",
+    "text": "Synth Uonez Oarker pts >= 18 AND Synth Tonez Oarker pts >= 22 AND Synth Uonez Oarker reb >= 6",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.13475000554323202,
+    "bid": null,
+    "mid": 0.13475000554323202,
+    "raw_prob_interval": [
+     0.1443642820431149,
+     0.19785841170807578
+    ],
+    "independence_prob": 0.16462780147780007,
+    "legs_text": "Synth Uonez Oarker pts >= 18 AND Synth Tonez Oarker pts >= 22 AND Synth Uonez Oarker reb >= 6",
+    "n_legs": 3,
+    "n_games": 1,
+    "order": {
+     "contracts": 1,
+     "cost": 0.14,
+     "fee": 0.01,
+     "payout": 1.0,
+     "profit_if_hit": 0.86,
+     "ev": -0.005249994456767992,
+     "ev_low": -0.005249994456767992,
+     "raw_ev": 0.0288594463791626,
+     "raw_ev_low": 0.004364282043114898,
+     "ev_low_per_dollar": -0.03749996040548566
+    },
+    "mode": "budget",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.15400000399351121,
+    "prob_interval": [
+     0.15400000399351121,
+     0.15400000399351121
+    ],
+    "price": 0.15400000399351121,
+    "fees": 0.01,
+    "ev": -0.01,
+    "ev_low": -0.01,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.17967582895827539,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": 0.01567582496476417,
+    "raw_ev_low": -0.010056103021778137,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAGAME-25NOV12BOSNYK-BOS|no+KXNBAPTS-25NOV12SACLAL-LALP0-22|yes+KXNBAREB-25NOV12SACLAL-LALP1-6|yes",
+    "kind": "parlay",
+    "text": "NOT (BOS win) AND Synth Tonez Oarker pts >= 22 AND Synth Uonez Oarker reb >= 6",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.15400000399351121,
+    "bid": null,
+    "mid": 0.15400000399351121,
+    "raw_prob_interval": [
+     0.15394390097173308,
+     0.2101483211235802
+    ],
+    "independence_prob": 0.18474236201885244,
+    "legs_text": "NOT (BOS win) AND Synth Tonez Oarker pts >= 22 AND Synth Uonez Oarker reb >= 6",
+    "n_legs": 3,
+    "n_games": 2,
+    "order": {
+     "contracts": 1,
+     "cost": 0.16,
+     "fee": 0.01,
+     "payout": 1.0,
+     "profit_if_hit": 0.84,
+     "ev": -0.005999996006488789,
+     "ev_low": -0.005999996006488789,
+     "raw_ev": 0.019675828958275382,
+     "raw_ev_low": -0.006056099028266926,
+     "ev_low_per_dollar": -0.03749997504055493
+    },
+    "mode": "budget",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.16323999542117099,
+    "prob_interval": [
+     0.16323999542117099,
+     0.16323999542117099
+    ],
+    "price": 0.16323999542117099,
+    "fees": 0.01,
+    "ev": -0.01,
+    "ev_low": -0.01,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.19735709768360915,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": 0.024117102262438163,
+    "raw_ev_low": -0.0036681593164346795,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAREB-25NOV12BOSNYK-NYKP0-7|yes+KXNBAGAME-25NOV12BOSNYK-BOS|no+KXNBAREB-25NOV12SACLAL-LALP1-6|yes",
+    "kind": "parlay",
+    "text": "Synth Ronez Qarker reb >= 7 AND NOT (BOS win) AND Synth Uonez Oarker reb >= 6",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.16323999542117099,
+    "bid": null,
+    "mid": 0.16323999542117099,
+    "raw_prob_interval": [
+     0.1695718361047363,
+     0.22996413837903765
+    ],
+    "independence_prob": 0.20068067298904518,
+    "legs_text": "Synth Ronez Qarker reb >= 7 AND NOT (BOS win) AND Synth Uonez Oarker reb >= 6",
+    "n_legs": 3,
+    "n_games": 2,
+    "order": {
+     "contracts": 1,
+     "cost": 0.17,
+     "fee": 0.01,
+     "payout": 1.0,
+     "profit_if_hit": 0.83,
+     "ev": -0.006760004578829026,
+     "ev_low": -0.006760004578829026,
+     "raw_ev": 0.02735709768360914,
+     "raw_ev_low": -0.0004281638952637057,
+     "ev_low_per_dollar": -0.03976473281664133
+    },
+    "mode": "budget",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.13441999764204016,
+    "prob_interval": [
+     0.13441999764204016,
+     0.13441999764204016
+    ],
+    "price": 0.13441999764204016,
+    "fees": 0.01,
+    "ev": -0.01,
+    "ev_low": -0.01,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.17586030776801087,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": 0.03144031012597071,
+    "raw_ev_low": 0.006141255196260057,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAGAME-25NOV12BOSNYK-NYK|yes+KXNBAPTS-25NOV12BOSNYK-NYKP1-18|yes+KXNBAREB-25NOV12SACLAL-LALP1-6|yes",
+    "kind": "parlay",
+    "text": "NYK win AND Synth Sonez Qarker pts >= 18 AND Synth Uonez Oarker reb >= 6",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.13441999764204016,
+    "bid": null,
+    "mid": 0.13441999764204016,
+    "raw_prob_interval": [
+     0.1505612528383002,
+     0.20579375358346894
+    ],
+    "independence_prob": 0.18474236201885244,
+    "legs_text": "NYK win AND Synth Sonez Qarker pts >= 18 AND Synth Uonez Oarker reb >= 6",
+    "n_legs": 3,
+    "n_games": 2,
+    "order": {
+     "contracts": 1,
+     "cost": 0.14,
+     "fee": 0.01,
+     "payout": 1.0,
+     "profit_if_hit": 0.86,
+     "ev": -0.005580002357959857,
+     "ev_low": -0.005580002357959857,
+     "raw_ev": 0.03586030776801086,
+     "raw_ev_low": 0.0105612528383002,
+     "ev_low_per_dollar": -0.039857159699713256
+    },
+    "mode": "budget",
+    "order_verdict": "no_positive_ev_found"
+   }
+  ],
+  "verdict": "no_positive_ev_found",
+  "answer": "keep your money: no positive-EV bet at the conservative bound",
+  "recommendation": null,
+  "raw_hypothesis": {
+   "label": "hypothesis, not a recommendation",
+   "note": "unshrunk model probability; the model has no proven edge over the market yet",
+   "options": [
+    {
+     "model_prob": 0.09359998850822493,
+     "prob_interval": [
+      0.09359998850822493,
+      0.09359998850822493
+     ],
+     "price": 0.09359998850822493,
+     "fees": 0.01,
+     "ev": -0.01,
+     "ev_low": -0.01,
+     "verdict": "no_positive_ev_found",
+     "engine": "gaussian_copula",
+     "raw_model_prob": 0.16996390685988652,
+     "model_weight": 0.0,
+     "spread": null,
+     "kelly": 0.0,
+     "n_settled_track": 0,
+     "raw_ev": 0.0663639183516616,
+     "raw_ev_low": 0.041733329464707154,
+     "order_type": "taker",
+     "note": "Informational only; not financial advice. Estimated edges are noisy.",
+     "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12SACLAL-LAL|no+KXNBAGAME-25NOV12BOSNYK-NYK|yes",
+     "kind": "parlay",
+     "text": "Synth Honez Larker reb >= 7 AND NOT (LAL win) AND NYK win",
+     "tradable": false,
+     "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+     "ask": 0.09359998850822493,
+     "bid": null,
+     "mid": 0.09359998850822493,
+     "raw_prob_interval": [
+      0.14533331797293209,
+      0.19910692885991987
+     ],
+     "independence_prob": 0.1701975914716693,
+     "legs_text": "Synth Honez Larker reb >= 7 AND NOT (LAL win) AND NYK win",
+     "n_legs": 3,
+     "n_games": 2,
+     "order": {
+      "contracts": 1,
+      "cost": 0.1,
+      "fee": 0.01,
+      "payout": 1.0,
+      "profit_if_hit": 0.9,
+      "ev": -0.006400011491775076,
+      "ev_low": -0.006400011491775076,
+      "raw_ev": 0.06996390685988652,
+      "raw_ev_low": 0.04533331797293208,
+      "ev_low_per_dollar": -0.06400011491775076
+     },
+     "mode": "budget",
+     "order_verdict": "no_positive_ev_found"
+    },
+    {
+     "model_prob": 0.08459999250173585,
+     "prob_interval": [
+      0.08459999250173585,
+      0.08459999250173585
+     ],
+     "price": 0.08459999250173585,
+     "fees": 0.01,
+     "ev": -0.01,
+     "ev_low": -0.01,
+     "verdict": "no_positive_ev_found",
+     "engine": "gaussian_copula",
+     "raw_model_prob": 0.14784708578685707,
+     "model_weight": 0.0,
+     "spread": null,
+     "kelly": 0.0,
+     "n_settled_track": 0,
+     "raw_ev": 0.05324709328512122,
+     "raw_ev_low": 0.031326240902219187,
+     "order_type": "taker",
+     "note": "Informational only; not financial advice. Estimated edges are noisy.",
+     "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12SACLAL-LAL|no+KXNBAPTS-25NOV12BOSNYK-NYKP1-18|yes",
+     "kind": "parlay",
+     "text": "Synth Honez Larker reb >= 7 AND NOT (LAL win) AND Synth Sonez Qarker pts >= 18",
+     "tradable": false,
+     "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+     "ask": 0.08459999250173585,
+     "bid": null,
+     "mid": 0.08459999250173585,
+     "raw_prob_interval": [
+      0.12592623340395503,
+      0.17392374994419682
+     ],
+     "independence_prob": 0.1516666507594961,
+     "legs_text": "Synth Honez Larker reb >= 7 AND NOT (LAL win) AND Synth Sonez Qarker pts >= 18",
+     "n_legs": 3,
+     "n_games": 2,
+     "order": {
+      "contracts": 1,
+      "cost": 0.09,
+      "fee": 0.01,
+      "payout": 1.0,
+      "profit_if_hit": 0.91,
+      "ev": -0.0054000074982641505,
+      "ev_low": -0.0054000074982641505,
+      "raw_ev": 0.05784708578685707,
+      "raw_ev_low": 0.03592623340395504,
+      "ev_low_per_dollar": -0.06000008331404612
+     },
+     "mode": "budget",
+     "order_verdict": "no_positive_ev_found"
+    },
+    {
+     "model_prob": 0.09359998850822493,
+     "prob_interval": [
+      0.09359998850822493,
+      0.09359998850822493
+     ],
+     "price": 0.09359998850822493,
+     "fees": 0.01,
+     "ev": -0.01,
+     "ev_low": -0.01,
+     "verdict": "no_positive_ev_found",
+     "engine": "gaussian_copula",
+     "raw_model_prob": 0.16218674362162105,
+     "model_weight": 0.0,
+     "spread": null,
+     "kelly": 0.0,
+     "n_settled_track": 0,
+     "raw_ev": 0.05858675511339612,
+     "raw_ev_low": 0.03488566708107122,
+     "order_type": "taker",
+     "note": "Informational only; not financial advice. Estimated edges are noisy.",
+     "key": "KXNBAREB-25NOV12BOSNYK-BOSP0-7|yes+KXNBAGAME-25NOV12BOSNYK-NYK|yes+KXNBAPTS-25NOV12BOSNYK-NYKP0-22|no",
+     "kind": "parlay",
+     "text": "Synth Honez Larker reb >= 7 AND NYK win AND NOT (Synth Ronez Qarker pts >= 22)",
+     "tradable": false,
+     "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+     "ask": 0.09359998850822493,
+     "bid": null,
+     "mid": 0.09359998850822493,
+     "raw_prob_interval": [
+      0.13848565558929615,
+      0.1902997867412672
+     ],
+     "independence_prob": 0.16176445629511457,
+     "legs_text": "Synth Honez Larker reb >= 7 AND NYK win AND NOT (Synth Ronez Qarker pts >= 22)",
+     "n_legs": 3,
+     "n_games": 1,
+     "order": {
+      "contracts": 1,
+      "cost": 0.1,
+      "fee": 0.01,
+      "payout": 1.0,
+      "profit_if_hit": 0.9,
+      "ev": -0.006400011491775076,
+      "ev_low": -0.006400011491775076,
+      "raw_ev": 0.06218674362162105,
+      "raw_ev_low": 0.03848565558929615,
+      "ev_low_per_dollar": -0.06400011491775076
+     },
+     "mode": "budget",
+     "order_verdict": "no_positive_ev_found"
+    }
+   ]
+  }
+ }
+}

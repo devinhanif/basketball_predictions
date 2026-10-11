@@ -1,0 +1,121 @@
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+replay_season running; waiting
+/Users/devin/Downloads/nba-prediction/nba/props/context_residual.py:374: UserWarning: Sortedness of columns cannot be checked when 'by' groups provided
+  j = left.join_asof(
+pts done
+reb done
+ast done
+fg3m done
+{
+ "pts": {
+  "passes_2023": false,
+  "confirmed_2024": false,
+  "gate4_fail_harm_2023": false,
+  "gate4_fail_harm_2024": false,
+  "role_effect_2023": false
+ },
+ "reb": {
+  "passes_2023": false,
+  "confirmed_2024": false,
+  "gate4_fail_harm_2023": false,
+  "gate4_fail_harm_2024": false,
+  "role_effect_2023": false
+ },
+ "ast": {
+  "passes_2023": false,
+  "confirmed_2024": false,
+  "gate4_fail_harm_2023": false,
+  "gate4_fail_harm_2024": false,
+  "role_effect_2023": false
+ },
+ "fg3m": {
+  "passes_2023": false,
+  "confirmed_2024": false,
+  "gate4_fail_harm_2023": false,
+  "gate4_fail_harm_2024": false,
+  "role_effect_2023": false
+ },
+ "pts_gate1_fail_2023_close": true
+}

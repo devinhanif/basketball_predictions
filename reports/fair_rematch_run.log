@@ -1,0 +1,37 @@
+| family | stat | subset | comparison | n | games | delta | lo | hi | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| primary | pts | played | B-S | 12837 | 600 | +0.2680 | +0.2246 | +0.3122 | 0.000 | S beats B |
+| primary | reb | played | B-S | 12837 | 600 | +0.1225 | +0.1062 | +0.1391 | 0.000 | S beats B |
+| primary | ast | played | B-S | 12837 | 600 | +0.0143 | +0.0052 | +0.0229 | 0.002 | S beats B |
+| desc | pts | played | B-A | 12837 | 600 | -0.3683 | -0.3987 | -0.3374 |  | descriptive |
+| desc | pts | played | A-S | 12837 | 600 | +0.6363 | +0.5790 | +0.6939 |  | descriptive |
+| desc | pts | all(mixture) | B-S | 15933 | 600 | +0.1127 | +0.0774 | +0.1479 |  | descriptive |
+| desc | pts | all(A as shipped) | B-A | 15933 | 600 | -0.3730 | -0.4048 | -0.3413 |  | descriptive |
+| desc | pts | all(A as shipped) | A-S | 15933 | 600 | +0.4857 | +0.4301 | +0.5410 |  | descriptive |
+| desc | pts | played / erratic | B-S | 598 | 378 | +0.5265 | +0.3317 | +0.7199 |  | descriptive |
+| desc | pts | played / insufficient_history | B-S | 456 | 244 | +0.0220 | -0.1627 | +0.1948 |  | descriptive |
+| desc | pts | played / intermittent | B-S | 1329 | 511 | +0.3850 | +0.2873 | +0.4854 |  | descriptive |
+| desc | pts | played / lumpy | B-S | 895 | 439 | +0.5178 | +0.3552 | +0.6829 |  | descriptive |
+| desc | pts | played / smooth | B-S | 9559 | 600 | +0.2239 | +0.1781 | +0.2723 |  | descriptive |
+| desc | reb | played | B-A | 12837 | 600 | +0.0214 | +0.0135 | +0.0295 |  | descriptive |
+| desc | reb | played | A-S | 12837 | 600 | +0.1011 | +0.0852 | +0.1171 |  | descriptive |
+| desc | reb | all(mixture) | B-S | 15933 | 600 | +0.0721 | +0.0606 | +0.0838 |  | descriptive |
+| desc | reb | all(A as shipped) | B-A | 15933 | 600 | -0.0313 | -0.0393 | -0.0230 |  | descriptive |
+| desc | reb | all(A as shipped) | A-S | 15933 | 600 | +0.1034 | +0.0903 | +0.1171 |  | descriptive |
+| desc | reb | played / erratic | B-S | 465 | 294 | +0.0667 | -0.0134 | +0.1490 |  | descriptive |
+| desc | reb | played / insufficient_history | B-S | 458 | 246 | +0.0243 | -0.0509 | +0.1004 |  | descriptive |
+| desc | reb | played / intermittent | B-S | 1699 | 548 | +0.0173 | -0.0065 | +0.0396 |  | descriptive |
+| desc | reb | played / lumpy | B-S | 610 | 355 | +0.0376 | -0.0118 | +0.0887 |  | descriptive |
+| desc | reb | played / smooth | B-S | 9605 | 600 | +0.1539 | +0.1339 | +0.1740 |  | descriptive |
+| desc | ast | played | B-A | 12837 | 600 | +0.0047 | +0.0006 | +0.0087 |  | descriptive |
+| desc | ast | played | A-S | 12837 | 600 | +0.0096 | +0.0013 | +0.0181 |  | descriptive |
+| desc | ast | all(mixture) | B-S | 15933 | 600 | -0.0191 | -0.0254 | -0.0130 |  | descriptive |
+| desc | ast | all(A as shipped) | B-A | 15933 | 600 | -0.0550 | -0.0601 | -0.0500 |  | descriptive |
+| desc | ast | all(A as shipped) | A-S | 15933 | 600 | +0.0359 | +0.0281 | +0.0435 |  | descriptive |
+| desc | ast | played / erratic | B-S | 218 | 193 | -0.0162 | -0.1015 | +0.0761 |  | descriptive |
+| desc | ast | played / insufficient_history | B-S | 477 | 258 | +0.1206 | +0.0512 | +0.1814 |  | descriptive |
+| desc | ast | played / intermittent | B-S | 5254 | 600 | -0.0198 | -0.0277 | -0.0122 |  | descriptive |
+| desc | ast | played / lumpy | B-S | 585 | 379 | -0.0228 | -0.0541 | +0.0088 |  | descriptive |
+| desc | ast | played / smooth | B-S | 6303 | 600 | +0.0391 | +0.0236 | +0.0547 |  | descriptive |
+runtime_s=645 seed=0 -> docs/fair_rematch_2024.json
+nice -n 5 uv run python -m nba.eval.fair_rematch --db nba.duckdb --n-sims 100  645.87s user 23.56s system 103% cpu 10:45.91 total

@@ -1,0 +1,523 @@
+{
+  "season": 2024,
+  "rule_status": "DRAFT",
+  "n_market_rows": 436869,
+  "main_line_rows": {
+    "t60": {
+      "pinnacle": 38333,
+      "draftkings": 54705,
+      "fanduel": 47112,
+      "consensus": 70715
+    },
+    "t5": {
+      "pinnacle": 40038,
+      "draftkings": 57657,
+      "fanduel": 49437,
+      "consensus": 78872
+    }
+  },
+  "reasons": {
+    "t60": {
+      "pinnacle": {
+        "quote_groups": 38339,
+        "quoted_two_sided": 38333,
+        "one_sided": 0,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 6,
+        "odd_line_groups": 0
+      },
+      "draftkings": {
+        "quote_groups": 54743,
+        "quoted_two_sided": 54705,
+        "one_sided": 11,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 27,
+        "odd_line_groups": 0
+      },
+      "fanduel": {
+        "quote_groups": 47131,
+        "quoted_two_sided": 47112,
+        "one_sided": 2,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 17,
+        "odd_line_groups": 0
+      },
+      "all": {
+        "quote_groups": 468239,
+        "quoted_two_sided": 446557,
+        "one_sided": 21528,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 154,
+        "odd_line_groups": 0
+      }
+    },
+    "t5": {
+      "pinnacle": {
+        "quote_groups": 40055,
+        "quoted_two_sided": 40038,
+        "one_sided": 1,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 16,
+        "odd_line_groups": 0
+      },
+      "draftkings": {
+        "quote_groups": 57696,
+        "quoted_two_sided": 57657,
+        "one_sided": 8,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 31,
+        "odd_line_groups": 0
+      },
+      "fanduel": {
+        "quote_groups": 49456,
+        "quoted_two_sided": 49437,
+        "one_sided": 2,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 17,
+        "odd_line_groups": 0
+      },
+      "all": {
+        "quote_groups": 505544,
+        "quoted_two_sided": 480132,
+        "one_sided": 25194,
+        "ambiguous_duplicate": 0,
+        "unresolved_name": 218,
+        "odd_line_groups": 0
+      }
+    }
+  },
+  "unmatched_event": {
+    "games_with_real_tip": 1315,
+    "by_kind": {
+      "t60": 0,
+      "t5": 0
+    },
+    "game_ids": {
+      "t60": [],
+      "t5": []
+    }
+  },
+  "unresolved_names": {
+    "distinct": 2,
+    "rows": 715,
+    "top": [
+      {
+        "player_name": "James Huff",
+        "rows": 359,
+        "games": 13,
+        "books": 8
+      },
+      {
+        "player_name": "Kenyon Martin Jr.",
+        "rows": 356,
+        "games": 12,
+        "books": 5
+      }
+    ]
+  },
+  "coverage_vs_box_score": {
+    "t60/any/pts/pinnacle": {
+      "played": 28118,
+      "quoted": 13041,
+      "no_quote": 15077,
+      "share": 0.46379543353012304
+    },
+    "t60/any/pts/draftkings": {
+      "played": 28118,
+      "quoted": 15915,
+      "no_quote": 12203,
+      "share": 0.5660075396543139
+    },
+    "t60/any/pts/fanduel": {
+      "played": 28118,
+      "quoted": 15198,
+      "no_quote": 12920,
+      "share": 0.5405078597339782
+    },
+    "t60/any/pts/consensus": {
+      "played": 28118,
+      "quoted": 18044,
+      "no_quote": 10074,
+      "share": 0.6417241624582118
+    },
+    "t60/any/reb/pinnacle": {
+      "played": 28118,
+      "quoted": 6657,
+      "no_quote": 21461,
+      "share": 0.23675225833985347
+    },
+    "t60/any/reb/draftkings": {
+      "played": 28118,
+      "quoted": 14771,
+      "no_quote": 13347,
+      "share": 0.525321857884629
+    },
+    "t60/any/reb/fanduel": {
+      "played": 28118,
+      "quoted": 13349,
+      "no_quote": 14769,
+      "share": 0.4747492709296536
+    },
+    "t60/any/reb/consensus": {
+      "played": 28118,
+      "quoted": 17641,
+      "no_quote": 10477,
+      "share": 0.6273917063802547
+    },
+    "t60/any/ast/pinnacle": {
+      "played": 28118,
+      "quoted": 6777,
+      "no_quote": 21341,
+      "share": 0.24101998719681342
+    },
+    "t60/any/ast/draftkings": {
+      "played": 28118,
+      "quoted": 10587,
+      "no_quote": 17531,
+      "share": 0.376520378405292
+    },
+    "t60/any/ast/fanduel": {
+      "played": 28118,
+      "quoted": 7614,
+      "no_quote": 20504,
+      "share": 0.2707873959741091
+    },
+    "t60/any/ast/consensus": {
+      "played": 28118,
+      "quoted": 16972,
+      "no_quote": 11146,
+      "share": 0.6035991180027029
+    },
+    "t60/any/fg3m/pinnacle": {
+      "played": 28118,
+      "quoted": 11110,
+      "no_quote": 17008,
+      "share": 0.3951205633402091
+    },
+    "t60/any/fg3m/draftkings": {
+      "played": 28118,
+      "quoted": 12561,
+      "no_quote": 15557,
+      "share": 0.44672451810228325
+    },
+    "t60/any/fg3m/fanduel": {
+      "played": 28118,
+      "quoted": 10283,
+      "no_quote": 17835,
+      "share": 0.36570879863432676
+    },
+    "t60/any/fg3m/consensus": {
+      "played": 28118,
+      "quoted": 16071,
+      "no_quote": 12047,
+      "share": 0.5715555871683619
+    },
+    "t60/ge20/pts/pinnacle": {
+      "played": 17053,
+      "quoted": 11767,
+      "no_quote": 5286,
+      "share": 0.6900252155046033
+    },
+    "t60/ge20/pts/draftkings": {
+      "played": 17053,
+      "quoted": 13649,
+      "no_quote": 3404,
+      "share": 0.8003870286753064
+    },
+    "t60/ge20/pts/fanduel": {
+      "played": 17053,
+      "quoted": 13271,
+      "no_quote": 3782,
+      "share": 0.7782208409077581
+    },
+    "t60/ge20/pts/consensus": {
+      "played": 17053,
+      "quoted": 14723,
+      "no_quote": 2330,
+      "share": 0.8633671494751657
+    },
+    "t60/ge20/reb/pinnacle": {
+      "played": 17053,
+      "quoted": 5946,
+      "no_quote": 11107,
+      "share": 0.34867765202603646
+    },
+    "t60/ge20/reb/draftkings": {
+      "played": 17053,
+      "quoted": 12869,
+      "no_quote": 4184,
+      "share": 0.7546472761390958
+    },
+    "t60/ge20/reb/fanduel": {
+      "played": 17053,
+      "quoted": 11865,
+      "no_quote": 5188,
+      "share": 0.6957720049258195
+    },
+    "t60/ge20/reb/consensus": {
+      "played": 17053,
+      "quoted": 14461,
+      "no_quote": 2592,
+      "share": 0.8480032838796693
+    },
+    "t60/ge20/ast/pinnacle": {
+      "played": 17053,
+      "quoted": 6333,
+      "no_quote": 10720,
+      "share": 0.3713716061690025
+    },
+    "t60/ge20/ast/draftkings": {
+      "played": 17053,
+      "quoted": 9679,
+      "no_quote": 7374,
+      "share": 0.5675834164076702
+    },
+    "t60/ge20/ast/fanduel": {
+      "played": 17053,
+      "quoted": 7188,
+      "no_quote": 9865,
+      "share": 0.42150941183369495
+    },
+    "t60/ge20/ast/consensus": {
+      "played": 17053,
+      "quoted": 14107,
+      "no_quote": 2946,
+      "share": 0.8272444731132352
+    },
+    "t60/ge20/fg3m/pinnacle": {
+      "played": 17053,
+      "quoted": 9871,
+      "no_quote": 7182,
+      "share": 0.5788424324165836
+    },
+    "t60/ge20/fg3m/draftkings": {
+      "played": 17053,
+      "quoted": 11243,
+      "no_quote": 5810,
+      "share": 0.6592974843136105
+    },
+    "t60/ge20/fg3m/fanduel": {
+      "played": 17053,
+      "quoted": 9479,
+      "no_quote": 7574,
+      "share": 0.5558552747317188
+    },
+    "t60/ge20/fg3m/consensus": {
+      "played": 17053,
+      "quoted": 13385,
+      "no_quote": 3668,
+      "share": 0.7849058816630505
+    },
+    "t5/any/pts/pinnacle": {
+      "played": 28118,
+      "quoted": 13838,
+      "no_quote": 14280,
+      "share": 0.4921402660217654
+    },
+    "t5/any/pts/draftkings": {
+      "played": 28118,
+      "quoted": 17288,
+      "no_quote": 10830,
+      "share": 0.6148374706593641
+    },
+    "t5/any/pts/fanduel": {
+      "played": 28118,
+      "quoted": 16225,
+      "no_quote": 11893,
+      "share": 0.5770325058681272
+    },
+    "t5/any/pts/consensus": {
+      "played": 28118,
+      "quoted": 20170,
+      "no_quote": 7948,
+      "share": 0.7173340920406857
+    },
+    "t5/any/reb/pinnacle": {
+      "played": 28118,
+      "quoted": 7028,
+      "no_quote": 21090,
+      "share": 0.249946653389288
+    },
+    "t5/any/reb/draftkings": {
+      "played": 28118,
+      "quoted": 15795,
+      "no_quote": 12323,
+      "share": 0.561739810797354
+    },
+    "t5/any/reb/fanduel": {
+      "played": 28118,
+      "quoted": 14274,
+      "no_quote": 13844,
+      "share": 0.5076463475353866
+    },
+    "t5/any/reb/consensus": {
+      "played": 28118,
+      "quoted": 19899,
+      "no_quote": 8219,
+      "share": 0.7076961377053844
+    },
+    "t5/any/ast/pinnacle": {
+      "played": 28118,
+      "quoted": 7093,
+      "no_quote": 21025,
+      "share": 0.2522583398534746
+    },
+    "t5/any/ast/draftkings": {
+      "played": 28118,
+      "quoted": 11181,
+      "no_quote": 16937,
+      "share": 0.39764563624724375
+    },
+    "t5/any/ast/fanduel": {
+      "played": 28118,
+      "quoted": 8016,
+      "no_quote": 20102,
+      "share": 0.28508428764492494
+    },
+    "t5/any/ast/consensus": {
+      "played": 28118,
+      "quoted": 19331,
+      "no_quote": 8787,
+      "share": 0.6874955544491074
+    },
+    "t5/any/fg3m/pinnacle": {
+      "played": 28118,
+      "quoted": 11955,
+      "no_quote": 16163,
+      "share": 0.4251724873746355
+    },
+    "t5/any/fg3m/draftkings": {
+      "played": 28118,
+      "quoted": 13249,
+      "no_quote": 14869,
+      "share": 0.47119283021552033
+    },
+    "t5/any/fg3m/fanduel": {
+      "played": 28118,
+      "quoted": 10787,
+      "no_quote": 17331,
+      "share": 0.38363325983355856
+    },
+    "t5/any/fg3m/consensus": {
+      "played": 28118,
+      "quoted": 18152,
+      "no_quote": 9966,
+      "share": 0.6455651184294757
+    },
+    "t5/ge20/pts/pinnacle": {
+      "played": 17053,
+      "quoted": 12383,
+      "no_quote": 4670,
+      "share": 0.7261478918665337
+    },
+    "t5/ge20/pts/draftkings": {
+      "played": 17053,
+      "quoted": 14536,
+      "no_quote": 2517,
+      "share": 0.852401337008151
+    },
+    "t5/ge20/pts/fanduel": {
+      "played": 17053,
+      "quoted": 13919,
+      "no_quote": 3134,
+      "share": 0.8162200199378409
+    },
+    "t5/ge20/pts/consensus": {
+      "played": 17053,
+      "quoted": 15931,
+      "no_quote": 1122,
+      "share": 0.9342051251979124
+    },
+    "t5/ge20/reb/pinnacle": {
+      "played": 17053,
+      "quoted": 6215,
+      "no_quote": 10838,
+      "share": 0.36445200258019117
+    },
+    "t5/ge20/reb/draftkings": {
+      "played": 17053,
+      "quoted": 13588,
+      "no_quote": 3465,
+      "share": 0.7968099454641412
+    },
+    "t5/ge20/reb/fanduel": {
+      "played": 17053,
+      "quoted": 12521,
+      "no_quote": 4532,
+      "share": 0.7342403096229403
+    },
+    "t5/ge20/reb/consensus": {
+      "played": 17053,
+      "quoted": 15770,
+      "no_quote": 1283,
+      "share": 0.9247639711487715
+    },
+    "t5/ge20/ast/pinnacle": {
+      "played": 17053,
+      "quoted": 6565,
+      "no_quote": 10488,
+      "share": 0.3849762505131062
+    },
+    "t5/ge20/ast/draftkings": {
+      "played": 17053,
+      "quoted": 10151,
+      "no_quote": 6902,
+      "share": 0.5952618307629156
+    },
+    "t5/ge20/ast/fanduel": {
+      "played": 17053,
+      "quoted": 7518,
+      "no_quote": 9535,
+      "share": 0.44086084559901484
+    },
+    "t5/ge20/ast/consensus": {
+      "played": 17053,
+      "quoted": 15536,
+      "no_quote": 1517,
+      "share": 0.9110420453879083
+    },
+    "t5/ge20/fg3m/pinnacle": {
+      "played": 17053,
+      "quoted": 10509,
+      "no_quote": 6544,
+      "share": 0.6162552043628687
+    },
+    "t5/ge20/fg3m/draftkings": {
+      "played": 17053,
+      "quoted": 11753,
+      "no_quote": 5300,
+      "share": 0.6892042455872867
+    },
+    "t5/ge20/fg3m/fanduel": {
+      "played": 17053,
+      "quoted": 9911,
+      "no_quote": 7142,
+      "share": 0.5811880607517739
+    },
+    "t5/ge20/fg3m/consensus": {
+      "played": 17053,
+      "quoted": 14645,
+      "no_quote": 2408,
+      "share": 0.8587931742215446
+    }
+  },
+  "devig_vs_table_max_abs_diff": 2.220446049250313e-16,
+  "t60_snapshot_minutes_before_tip": {
+    "min": 64.33333333333333,
+    "share_ge_60": 1.0
+  },
+  "game_market_rows": 5201,
+  "git_sha": "37ac1fda132e9d1bc3de43fc423a90892dc9575f",
+  "choices": {
+    "model_clip": "Model probabilities are clipped to [0.5/199, 1-0.5/199] before any log loss or logit (the 199-quantile grid cannot express a probability below 1/398); market probabilities are not clipped (never extreme).",
+    "consensus_line": "consensus: the line that most books have as their main line (ties -> lower line); the probability is the median multiplicative de-vig over every book with a two-sided quote AT that line; n_books recorded, no minimum.",
+    "w_cell": "H2 weight w is fit per (stat, book, snapshot_kind) cell on 2023 (the rule says 'per stat').",
+    "verdict": "beats_market = point <= -0.002 AND CI upper < 0 AND (tested cells only) Holm-adjusted p < 0.05; |point| < 0.002 = indistinguishable; everything else = market_better (literal), with a qualifier when the point is <= -0.002 but not established.",
+    "holm_scope": "Holm over the 16 tests per snapshot kind is computed on the report season (2024); 2023 H1 cells are descriptive (Holm over their 8 tests), H2 is not scored on 2023.",
+    "push": "whole-number lines: model P(over | no push) = P(Y>=k+1)/(P(Y>=k+1)+P(Y<=k-1)); pushes (Y == k) are dropped from both sides and counted; non-0.5 multiples (e.g. 7.25) and lines <= 0 are dropped and counted (odd_line).",
+    "leak_guard": "applied to t60 pairs: snapshot_ts must be <= real tip - 60 min (the model's as-of); t5 is later by design and is not a leak (the model never sees prices).",
+    "ev_gate": "EV is reported only for T-60 cells (tested or untested) that beat the market on H1 or H2; edge = p_model(side) - p_market_devig(side) >= 0.03; consensus has no own price so no EV; pushes are not in the paired set so they are not in the EV set either.",
+    "slices": "vol = recency sd / max(recency mean, 1) and tier = recency mean, both in thirds of the stat's model-row universe in that season; line distance in thirds of the pooled pairs of the stat; over/under = the model's lean (p_model > p_market); first15 = team game < 15.",
+    "clv": "model side = over if p_model > p_market(T-60) else under; line moved => agree if the line moved toward that side; same line => agree if the de-vigged price moved toward it; zero moves excluded."
+  }
+}

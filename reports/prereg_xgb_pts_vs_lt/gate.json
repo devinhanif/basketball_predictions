@@ -1,0 +1,1927 @@
+{
+ "a0_repro": {
+  "detail": {
+   "2023_mixture": {
+    "delta": 0.0,
+    "got": 3.140236466011581,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 3.140236466011581
+   },
+   "2023_off": {
+    "delta": 0.0,
+    "got": 3.152829990762183,
+    "n": 27619,
+    "n_ref": 27619,
+    "ok": true,
+    "stored": 3.152829990762183
+   },
+   "2024_mixture": {
+    "delta": 0.0,
+    "got": 3.1768395165770476,
+    "n": 27701,
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 3.1768395165770476
+   },
+   "2024_off": {
+    "delta": 0.0,
+    "got": 3.1875525740475275,
+    "n": 27701,
+    "n_ref": 27701,
+    "ok": true,
+    "stored": 3.1875525740475275
+   }
+  },
+  "ok": true
+ },
+ "a1_repro": {
+  "descriptive_stored": {
+   "fixsched_vs_hybrid_lf_2023": {
+    "hi": 0.0003657749908608445,
+    "lo": 2.4239061315120708e-05,
+    "point": 0.00018979830343028638
+   },
+   "fixsched_vs_hybrid_lf_2024": {
+    "hi": -0.00013159462313983334,
+    "lo": -0.0004845937427293641,
+    "point": -0.0003119230189611107
+   },
+   "fixsched_vs_v1_prod_2023": {
+    "hi": -0.008522489172902485,
+    "lo": -0.02007910681640566,
+    "point": -0.014308874804004027
+   },
+   "fixsched_vs_v1_prod_2024": {
+    "hi": -0.0031075237008255712,
+    "lo": -0.012997216393756141,
+    "point": -0.008135057212736522
+   },
+   "v1only_vs_hybrid_lf_2023": {
+    "hi": 0.010271459502534835,
+    "lo": 0.0055459587197254235,
+    "point": 0.007876782279464164
+   },
+   "v1only_vs_hybrid_lf_2024": {
+    "hi": 0.004216063105234571,
+    "lo": 0.00033983306834494765,
+    "point": 0.0022858748716119382
+   },
+   "v1only_vs_v1_prod_2023": {
+    "hi": -0.0010260269335478952,
+    "lo": -0.012285273847795328,
+    "point": -0.00662189082797015
+   },
+   "v1only_vs_v1_prod_2024": {
+    "hi": -0.000976718841280741,
+    "lo": -0.009923302195677403,
+    "point": -0.005537259322163476
+   }
+  },
+  "integer_map_max_abs_diff_vs_ceil_m05": 0.0,
+  "ok": true,
+  "seasons": {
+   "2023": {
+    "abs_diff": 1.3257263836372046e-07,
+    "delta_vs_v1_prod": {
+     "hi": -0.008626531798072075,
+     "lo": -0.02032812370989932,
+     "point": -0.014498673107434315
+    },
+    "mde_80pct_from_ci": 0.00835827993701946,
+    "n": 27619,
+    "ok": true,
+    "red_team_reference": -0.014498540534795951,
+    "se_from_ci": 0.00298509997750695
+   },
+   "2024": {
+    "abs_diff": 2.1788598933078496e-07,
+    "delta_vs_v1_prod": {
+     "hi": -0.002747572184979886,
+     "lo": -0.012650294354887594,
+     "point": -0.007823134193775413
+    },
+    "mde_80pct_from_ci": 0.007073372978505506,
+    "n": 27583,
+    "ok": true,
+    "red_team_reference": -0.007822916307786082,
+    "se_from_ci": 0.002526204635180538
+   }
+  }
+ },
+ "as_drafted_all_ok": false,
+ "dk": {
+  "cache_sha256": "c53ba62e1acf49e7eea20223c05830a92dae1a5ad0b3380c3a6d88976ccdce38",
+  "rows": {
+   "2023": 14354,
+   "2024": 15882
+  },
+  "scored_rows": {
+   "2023": 14354,
+   "2024": 15882
+  },
+  "source_sha256": "reused cache"
+ },
+ "doc": "docs/prereg/XGB_PTS_VS_LT.md",
+ "draft": false,
+ "gate_ok": true,
+ "gate_seconds": 16.966439962387085,
+ "inputs_sha256": {
+  "base_config.json": "000764e10bccc3fed6620a40b0a680f143066b6a318d589653119eba15a58133",
+  "candidates.json": "eb778381b034320de6cd2dc13b37ce1e664221dad2dea4c83094a199cd34431d",
+  "components_pi.npz": "0d3fdf4b9c68e0947d84d8bf17d8441d589813ea0c5f472d8bc2da1f3cd4614b",
+  "components_pts.npz": "1d38ac0ca7188b8c32c604169f87e7fdb47ed7ce759da1a1f0fad9bd60805269",
+  "ctxres_v2.parquet": "6586f4aff1d6f060dd69e8efb214478fabf13c562ad109cc7f610ad576a217d6",
+  "dk_t60_pts.parquet": "c53ba62e1acf49e7eea20223c05830a92dae1a5ad0b3380c3a6d88976ccdce38",
+  "ridge_v2.parquet": "e6b70007311b2b6d552a4826957fde918b54f2a296ef3ae99416db4dc93e8776",
+  "units_fixsched_pts": "069d96d4699fd0571e10b2f19061ccc33f0051b99c3f97cb270652689175edd0",
+  "units_hybrid_lf_pts": "d937c78299a346fe4aa16697cce57b0d1367f6d7e82fbb4d9c28c381dd351d6d",
+  "units_v1_prod_pts": "53c394597f982de9878da76e44fb8ad7225a66ebd419cdd84c3347255ee49ab4",
+  "units_v1only_pts": "50e002ae0fc14101d826b9362f40013be4ba9af4e0b5f43fdb36678bbb54f4d1"
+ },
+ "key_accounting": {
+  "2023": {
+   "a0_only": 0,
+   "a0_only_games": [],
+   "a0_only_share": 0.0,
+   "frame_only": 0,
+   "identical": true,
+   "n_a0": 27619,
+   "n_frame": 27619,
+   "n_intersection": 27619
+  },
+  "2024": {
+   "a0_only": 118,
+   "a0_only_games": [
+    "0022400002",
+    "0022400147",
+    "0022400155",
+    "0022400206",
+    "0022400621",
+    "0022400633",
+    "0022400664",
+    "0022400837",
+    "0022401229",
+    "0022401230"
+   ],
+   "a0_only_share": 0.004259774015378506,
+   "frame_only": 0,
+   "identical": false,
+   "n_a0": 27701,
+   "n_frame": 27583,
+   "n_intersection": 27583
+  }
+ },
+ "max_season_loaded": 2024,
+ "missingness": {
+  "all_bucket_n": {
+   "5-20": 24272,
+   "<5": 6435,
+   ">20": 49605
+  },
+  "amended_ok": true,
+  "as_drafted_ok": false,
+  "columns": {
+   "abs_margin": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "abs_streak_prev": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "absent_prev": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "b2b": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "draft_pick_f": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "exp_margin": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "flag_dir": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "game_total_feat": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "gap_days": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "has_report": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "implied_opp_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "implied_team_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "is_home_f": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "is_rookie": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "last_abs_len": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "last_starter": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "ln_pick": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "m100_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "m10_ast": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "m10_fg3m": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "m10_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "m10_reb": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "m40_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "m5_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "min10": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "min40": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "min5": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "min_gap": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "min_gap10": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "n48_min": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "n48_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "n_out_rot": {
+    "all_gap_pp": 0.025539759437552004,
+    "all_rates": {
+     "5-20": 0.000988793671720501,
+     "<5": 0.0012432012432012432,
+     ">20": 0.0009878036488257232
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.034464094876422505,
+    "scored_rates": {
+     "5-20": 0.00047596382674916705,
+     "<5": 0.0004267121826328142,
+     ">20": 0.0007713531313970392
+    }
+   },
+   "n_prior": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "n_season": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "nat_tv": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "nat_tv_major": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "opp_allow_pts": {
+    "all_gap_pp": 0.07114479445897649,
+    "all_rates": {
+     "5-20": 0.0007003955174686882,
+     "<5": 0.0001554001554001554,
+     ">20": 0.0008668480999899203
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "opp_b2b": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "opp_pos_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "opp_r20_pts_against": {
+    "all_gap_pp": 0.07114479445897649,
+    "all_rates": {
+     "5-20": 0.0007003955174686882,
+     "<5": 0.0001554001554001554,
+     ">20": 0.0008668480999899203
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "opp_r20_pts_for": {
+    "all_gap_pp": 0.07114479445897649,
+    "all_rates": {
+     "5-20": 0.0007003955174686882,
+     "<5": 0.0001554001554001554,
+     ">20": 0.0008668480999899203
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "opp_rest_days": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "own_listed": {
+    "all_gap_pp": 0.025539759437552004,
+    "all_rates": {
+     "5-20": 0.000988793671720501,
+     "<5": 0.0012432012432012432,
+     ">20": 0.0009878036488257232
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.034464094876422505,
+    "scored_rates": {
+     "5-20": 0.00047596382674916705,
+     "<5": 0.0004267121826328142,
+     ">20": 0.0007713531313970392
+    }
+   },
+   "own_out_prev": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "own_returning": {
+    "all_gap_pp": 0.025539759437552004,
+    "all_rates": {
+     "5-20": 0.000988793671720501,
+     "<5": 0.0012432012432012432,
+     ">20": 0.0009878036488257232
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.034464094876422505,
+    "scored_rates": {
+     "5-20": 0.00047596382674916705,
+     "<5": 0.0004267121826328142,
+     ">20": 0.0007713531313970392
+    }
+   },
+   "own_status_ord": {
+    "all_gap_pp": 0.025539759437552004,
+    "all_rates": {
+     "5-20": 0.000988793671720501,
+     "<5": 0.0012432012432012432,
+     ">20": 0.0009878036488257232
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.034464094876422505,
+    "scored_rates": {
+     "5-20": 0.00047596382674916705,
+     "<5": 0.0004267121826328142,
+     ">20": 0.0007713531313970392
+    }
+   },
+   "pos_code": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_ast_share": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_dreb36": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_fta_rate": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_on_poss_w": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_oreb36": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_tov_rate": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_usage": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_zone_a3": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_zone_c3": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_zone_mid": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "pr_zone_rim": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "r20_pts_against": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "r20_pts_for": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "rate48_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "rate_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "rest_days": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "ret_min": {
+    "all_gap_pp": 0.05084855593200793,
+    "all_rates": {
+     "5-20": 0.008693144363876072,
+     "<5": 0.008547008547008548,
+     ">20": 0.008184658804555992
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.11471698025070001,
+    "scored_rates": {
+     "5-20": 0.011601618277010946,
+     "<5": 0.010454448474503946,
+     ">20": 0.011362624974041
+    }
+   },
+   "ret_n": {
+    "all_gap_pp": 0.05084855593200793,
+    "all_rates": {
+     "5-20": 0.008693144363876072,
+     "<5": 0.008547008547008548,
+     ">20": 0.008184658804555992
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.11471698025070001,
+    "scored_rates": {
+     "5-20": 0.011601618277010946,
+     "<5": 0.010454448474503946,
+     ">20": 0.011362624974041
+    }
+   },
+   "ret_pts": {
+    "all_gap_pp": 0.05084855593200793,
+    "all_rates": {
+     "5-20": 0.008693144363876072,
+     "<5": 0.008547008547008548,
+     ">20": 0.008184658804555992
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.11471698025070001,
+    "scored_rates": {
+     "5-20": 0.011601618277010946,
+     "<5": 0.010454448474503946,
+     ">20": 0.011362624974041
+    }
+   },
+   "ret_usage": {
+    "all_gap_pp": 0.05084855593200793,
+    "all_rates": {
+     "5-20": 0.008693144363876072,
+     "<5": 0.008547008547008548,
+     ">20": 0.008184658804555992
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.11471698025070001,
+    "scored_rates": {
+     "5-20": 0.011601618277010946,
+     "<5": 0.010454448474503946,
+     ">20": 0.011362624974041
+    }
+   },
+   "rg_f3b8321a_o_pts": {
+    "all_gap_pp": 2.7531202795793055,
+    "all_rates": {
+     "5-20": 0.05895682267633487,
+     "<5": 0.0344988344988345,
+     ">20": 0.062030037294627555
+    },
+    "month_constant": true,
+    "player_constant": false,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "rg_f3b8321a_p_pts": {
+    "all_gap_pp": 2.7531202795793055,
+    "all_rates": {
+     "5-20": 0.05895682267633487,
+     "<5": 0.0344988344988345,
+     ">20": 0.062030037294627555
+    },
+    "month_constant": true,
+    "player_constant": false,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "role_gap_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "rookie_ln_pick": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_b2b_first": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_b2b_second": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_days_to_next": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_four_in_six": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_n_prev4": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_n_prev7": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_opp_n_prev7": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_opp_three_in_four": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_opp_travel7": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_three_in_four": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_travel7": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sch_travel_leg": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "sd10_pts": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "since_flag": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "since_return": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "since_team": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "starter10": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "starter40": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "team_game_no": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "tv_home": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "undrafted": {
+    "all_gap_pp": 0.0,
+    "all_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    },
+    "month_constant": true,
+    "player_constant": true,
+    "scored_gap_pp": 0.0,
+    "scored_rates": {
+     "5-20": 0.0,
+     "<5": 0.0,
+     ">20": 0.0
+    }
+   },
+   "vac_min": {
+    "all_gap_pp": 0.025539759437552004,
+    "all_rates": {
+     "5-20": 0.000988793671720501,
+     "<5": 0.0012432012432012432,
+     ">20": 0.0009878036488257232
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.034464094876422505,
+    "scored_rates": {
+     "5-20": 0.00047596382674916705,
+     "<5": 0.0004267121826328142,
+     ">20": 0.0007713531313970392
+    }
+   },
+   "vac_pts": {
+    "all_gap_pp": 0.025539759437552004,
+    "all_rates": {
+     "5-20": 0.000988793671720501,
+     "<5": 0.0012432012432012432,
+     ">20": 0.0009878036488257232
+    },
+    "month_constant": false,
+    "player_constant": false,
+    "scored_gap_pp": 0.034464094876422505,
+    "scored_rates": {
+     "5-20": 0.00047596382674916705,
+     "<5": 0.0004267121826328142,
+     ">20": 0.0007713531313970392
+    }
+   },
+   "yrs_since_draft": {
+    "all_gap_pp": 19.739419267692625,
+    "all_rates": {
+     "5-20": 0.2301829268292683,
+     "<5": 0.3052059052059052,
+     ">20": 0.10781171252897893
+    },
+    "month_constant": false,
+    "player_constant": true,
+    "scored_gap_pp": 19.265896169736273,
+    "scored_rates": {
+     "5-20": 0.22376249405045218,
+     "<5": 0.3006187326648176,
+     ">20": 0.10795977096745484
+    }
+   }
+  },
+  "columns_over_2pp_all": {
+   "rg_f3b8321a_o_pts": 2.7531202795793055,
+   "rg_f3b8321a_p_pts": 2.7531202795793055,
+   "yrs_since_draft": 19.739419267692625
+  },
+  "columns_over_2pp_not_exempt": {},
+  "columns_over_2pp_scored": {
+   "yrs_since_draft": 19.265896169736273
+  },
+  "max_gap_pp_all": 19.739419267692625,
+  "max_gap_pp_scored": 19.265896169736273,
+  "n_columns": 95,
+  "n_rows": 80312,
+  "scored_bucket_n": {
+   "5-20": 16808,
+   "<5": 4687,
+   ">20": 33707
+  }
+ },
+ "planted": {
+  "proxy19": {
+   "columns_not_in_rebuilt_frame": [],
+   "control_share_changed_after_D": {
+    "game_total_feat": 0.9994496296466163,
+    "m10_pts": 0.9894283027954227,
+    "n48_pts": 0.989611759579884,
+    "opp_pos_pts": 0.9977526543903502,
+    "pr_usage": 1.0
+   },
+   "future_rows_lt_D": {
+    "changed": {
+     "ret_min": {
+      "max_rel_diff": 2.1640667830997399e-16,
+      "n_rows": 637
+     },
+     "ret_pts": {
+      "max_rel_diff": 2.295414313734218e-16,
+      "n_rows": 799
+     },
+     "ret_usage": {
+      "max_rel_diff": 2.1870839662154735e-16,
+      "n_rows": 534
+     }
+    },
+    "changed_beyond_1e-12": {},
+    "n_rows": 40334,
+    "ok": true
+   },
+   "inert": false,
+   "n_columns_compared": 95,
+   "n_columns_requested": 95,
+   "ok": true,
+   "same_game_rows_on_D": {
+    "changed": {},
+    "changed_beyond_1e-12": {},
+    "n_rows": 229,
+    "ok": true
+   },
+   "tip_source": "proxy19"
+  },
+  "real": {
+   "columns_not_in_rebuilt_frame": [],
+   "control_share_changed_after_D": {
+    "game_total_feat": 0.9994496296466163,
+    "m10_pts": 0.9894283027954227,
+    "n48_pts": 0.989611759579884,
+    "opp_pos_pts": 0.9977526543903502,
+    "pr_usage": 1.0
+   },
+   "future_rows_lt_D": {
+    "changed": {
+     "ret_min": {
+      "max_rel_diff": 2.1640667830997399e-16,
+      "n_rows": 625
+     },
+     "ret_pts": {
+      "max_rel_diff": 3.1377906732156096e-16,
+      "n_rows": 826
+     },
+     "ret_usage": {
+      "max_rel_diff": 2.0820245873950718e-16,
+      "n_rows": 550
+     }
+    },
+    "changed_beyond_1e-12": {},
+    "n_rows": 40334,
+    "ok": true
+   },
+   "inert": false,
+   "n_columns_compared": 95,
+   "n_columns_requested": 95,
+   "ok": true,
+   "same_game_rows_on_D": {
+    "changed": {
+     "ret_pts": {
+      "max_rel_diff": 2.130143936812679e-16,
+      "n_rows": 9
+     }
+    },
+    "changed_beyond_1e-12": {},
+    "n_rows": 229,
+    "ok": true
+   },
+   "tip_source": "real"
+  }
+ },
+ "power": {
+  "floor": -0.005,
+  "mde_80pct_two_sided_5pct": 0.007073372978505506,
+  "note": "proxy: the A1 - A0 SE is not computed at the gate (no A1 - A0 contrast before the freeze); the A1 - v1_prod paired SE is used",
+  "se_of_paired_delta_from_A1_vs_v1_prod_2024": 0.002526204635180538
+ },
+ "seeds": {
+  "bootstrap": 0,
+  "engine": 20261008,
+  "pit": 0
+ },
+ "sha256": "c74f1d1a88752103e6161b9e919d4a804aca20a101b387514999dd541418b8b7",
+ "status": "GATE_PASSED",
+ "tests": [
+  {
+   "counts": true,
+   "ok": true,
+   "test": "1 A0 reproduces stored lower-tail mixture and production(off) integer CRPS and n to 1e-6, 2 seasons",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "counts": true,
+   "ok": true,
+   "test": "2 A1 (stored hybrid_lf pts, integer support both arms) reproduces the red team fair delta vs v1_prod to 1e-4, 2 seasons",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "counts": false,
+   "ok": false,
+   "test": "5 literal: identical row keys A0 vs frozen frame (arms A1/A2 share one frame by construction)",
+   "threshold": "== 1 (as drafted; superseded by the amendment below)",
+   "value": 0
+  },
+  {
+   "counts": true,
+   "ok": true,
+   "test": "5 amended: frame keys subset of A0 keys and A0-only share <= 0.5% per season (scored on the intersection)",
+   "threshold": "frame_only == 0 and share <= 0.005",
+   "value": 0.004259774015378506
+  },
+  {
+   "counts": true,
+   "ok": true,
+   "test": "5 labels agree between A0 and the frozen frame on every shared key",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "counts": false,
+   "ok": false,
+   "test": "3 literal: every A1 pts feature NULL-rate gap across minutes buckets (<5, 5-20, >20) <= 2 pp (whole frame)",
+   "threshold": "<= 2.0 (as drafted; superseded by the amendment below)",
+   "value": 19.739419267692625
+  },
+  {
+   "counts": true,
+   "ok": true,
+   "test": "3 amended: same, exempting columns whose NULL status is constant within player or within calendar month (computed, not named)",
+   "threshold": "== 0 columns",
+   "value": 0
+  },
+  {
+   "counts": true,
+   "ok": true,
+   "test": "4 planted-future and planted-same-game, builders at report tip_source=proxy19 (the frozen frame's setting), not inert",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "counts": true,
+   "ok": true,
+   "test": "4 same, builders at report tip_source=real",
+   "threshold": "== 1",
+   "value": 1
+  },
+  {
+   "counts": true,
+   "ok": true,
+   "test": "6 DK t60 pts main-line rows inside the scored intersection (each season)",
+   "threshold": ">= 5000",
+   "value": 14354
+  }
+ ],
+ "tip_exposure": {
+  "2023": {
+   "n": 27619,
+   "share_lt_19": 0.1136898511893986,
+   "tip_ge_19": 24479,
+   "tip_lt_19": 3140,
+   "tip_missing": 0
+  },
+  "2024": {
+   "n": 27583,
+   "share_lt_19": 0.1219229235398615,
+   "tip_ge_19": 24220,
+   "tip_lt_19": 3363,
+   "tip_missing": 0
+  }
+ },
+ "unstated_details": [
+  "A0 = the stored lower-tail components (reports/lower_tail/components_pts.npz + components_pi.npz, collected 2026-10-11 on the current DB) pushed through the production arm_grid('mixture') and to_integer_support; no refit. The three input files are pinned by sha256 in the document.",
+  "A1/A2 rows = the frozen ctxres_v2/ridge_v2 export of 2026-10-08/09 (2023 n 27,619; 2024 n 27,583). The 2026-10-11 data clean-up added 118 scored rows (10 games) to the 2024 production set that the export does not contain. Every contrast is scored on the key INTERSECTION per season; the dropped A0-only keys are counted and bounded (<= 0.5% of A0 rows).",
+  "integer support for every arm: to_integer_support(q) = max(ceil(q - 0.5), 0) then a running maximum along the grid, on the 199-point grid (CRPS_TAUS), scored by crps_from_quantiles (the engine's crps_rows is the same formula).",
+  "A1 = the engine arm 'ref_fixed' (v1 + v2 groups a-h,j + the leak-free rg_f3b8321a ridge columns; 95 pts columns), reg:quantileerror at 19 levels, ext_tails to the 199 grid, XGBoost 3.4.1 CPU hist, seed 20261008, n_jobs 4. A2 = same recipe on the 42 v1 columns (red team 'v1only').",
+  "the engine file has been moved by the research/ restructure (two docstring path strings differ); the pin in the job (4952cc9c) is verified against the engine with those two strings reverted, then the pin is replaced by the current file's sha for the call (code is byte-identical otherwise).",
+  "the frozen A1 frame still carries the postseason look-ahead in sch_days_to_next / sch_b2b_first (red team: effect <= 0.0005) and the 19:00 ET report-time proxy; both are descriptive-flagged, the proxy through the proxy-safe subset guard (games with a real tip at or after 19:00 ET).",
+  "main lines: DraftKings, snapshot_kind t60, stat pts, one line per (game, player), x.5 lines only (status 0 = no pushes), from the ODDS_HISTORY pairs frame; only rows whose key is in the scored intersection count. P(over) = share of the 199 integer quantiles >= ceil(line); log loss clipped to [0.5/199, 1 - 0.5/199] (the lower-tail convention).",
+  "bootstrap: game-clustered, 2000 resamples, seed 0, via paired_score_delta_ci / boot_p_value (the production helpers); BH over the two-member family {A1 2023, A1 2024}.",
+  "minutes buckets for the missingness audit: <5 (including DNP / NULL), 5-20, >20 of tonight's stored minutes; rows = the whole frozen frame (2022-2024) and, separately, the 2023-2024 scored rows.",
+  "starter / bench = starter10 >= 0.5 (pre-tip role, as add_slice_columns); first15 = team_game_no < 15; postseason = game_id not starting with '002' (playoffs and play-in); minutes >= 5 uses tonight's realised minutes (a post-hoc stratifier, never an input).",
+  "planted tests rebuild v1 + v2 + two ridge months through the real builders with report tip_source='proxy19' (the setting of the frozen frame) and, separately, 'real'; tolerance 1e-12 relative for float-summation columns."
+ ]
+}

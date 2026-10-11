@@ -1,0 +1,2793 @@
+{
+ "date": "2025-11-13",
+ "now": "2025-11-13T20:00:00",
+ "engine": "gaussian_copula",
+ "dnp_policy": "void",
+ "disclaimer": "Analysis only, not financial advice. Estimated edges are noisy; nothing here places orders, handles credentials, or recommends real-money bets.",
+ "gate": {
+  "n_settled": 0,
+  "n_dates": 0,
+  "min_settled": 30,
+  "min_settled_dates": 14,
+  "skill_vs_market": 0.0,
+  "gated_skill": 0.0,
+  "gate_open": false,
+  "describe": "no settled shadow history (n=0)"
+ },
+ "fee_model": {
+  "name": "kalshi_fee_schedule",
+  "formula": "p_one_minus_p",
+  "coefficient": 0.07,
+  "maker_coefficient": 0.0175,
+  "default_multiplier": 1.0,
+  "multipliers": [],
+  "verified": true,
+  "source": "user-provided from Kalshi published fee schedule, 2026-10-08"
+ },
+ "interval_level": 0.8,
+ "n_games": 1,
+ "n_markets_read": 50,
+ "n_mapped": 10,
+ "n_contracts": 20,
+ "n_flagged_positive": 0,
+ "headline_verdict": "no_positive_ev_found",
+ "skipped": {
+  "game_not_in_slate": 40
+ },
+ "unmatched_tickers": [],
+ "notes": [
+  "shadow arms omitted: replay-season slate (shadow-arm deltas are SEALED, docs/HOLDOUT_ACCESS_LOG.md 2026-10-09)"
+ ],
+ "shadow_enabled": false,
+ "contracts": [
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.7050000131130219,
+   "prob_interval": [
+    0.7050000131130219,
+    0.7050000131130219
+   ],
+   "price": 0.7200000286102295,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.6425312011754228,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.09746882743480666,
+   "raw_ev_low": -0.1457323781306966,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV13MIAATL-ATL",
+   "side": "yes",
+   "text": "ATL win",
+   "title": "ATL wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "MIA@ATL",
+   "mid": 0.7050000131130219,
+   "ask": 0.7200000286102295,
+   "bid": 0.6899999976158142,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.5942676504795329,
+    0.6883946703397379
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.29499998688697815,
+   "prob_interval": [
+    0.29499998688697815,
+    0.29499998688697815
+   ],
+   "price": 0.3100000023841858,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.35746879882457716,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.02746879644039137,
+   "raw_ev_low": -0.018951165605161007,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV13MIAATL-ATL",
+   "side": "no",
+   "text": "NOT (ATL win)",
+   "title": "ATL wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "MIA@ATL",
+   "mid": 0.29499998688697815,
+   "ask": 0.3100000023841858,
+   "bid": 0.2799999713897705,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.3110488367790248,
+    0.4064610618898207
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.375,
+   "prob_interval": [
+    0.375,
+    0.375
+   ],
+   "price": 0.38999998569488525,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.35746879882457716,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.0525311868703081,
+   "raw_ev_low": -0.09895114891586047,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV13MIAATL-MIA",
+   "side": "yes",
+   "text": "MIA win",
+   "title": "MIA wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "MIA@ATL",
+   "mid": 0.375,
+   "ask": 0.38999998569488525,
+   "bid": 0.36000001430511475,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.3110488367790248,
+    0.4064610618898207
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.625,
+   "prob_interval": [
+    0.625,
+    0.625
+   ],
+   "price": 0.6399999856948853,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.6425312011754228,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.017468784519462415,
+   "raw_ev_low": -0.06573233521535236,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAGAME-25NOV13MIAATL-MIA",
+   "side": "no",
+   "text": "NOT (MIA win)",
+   "title": "MIA wins",
+   "stat": "win",
+   "threshold": 0.0,
+   "player_id": null,
+   "player": null,
+   "game": "MIA@ATL",
+   "mid": 0.625,
+   "ask": 0.6399999856948853,
+   "bid": 0.6100000143051147,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.5942676504795329,
+    0.6883946703397379
+   ],
+   "p_play": null,
+   "dnp_risk": null,
+   "drivers": null,
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.5649999976158142,
+   "prob_interval": [
+    0.5649999976158142,
+    0.5649999976158142
+   ],
+   "price": 0.5799999833106995,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5351618032128488,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.06483818009785068,
+   "raw_ev_low": -0.11635157659098037,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-ATLP0-22",
+   "side": "yes",
+   "text": "Synth Xonez Karker pts >= 22",
+   "title": "Synth Xonez Karker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127371,
+   "player": "Synth Xonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.5649999976158142,
+   "ask": 0.5799999833106995,
+   "bid": 0.550000011920929,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.4836484067197191,
+    0.5855299395642753
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 71.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.4350000023841858,
+   "prob_interval": [
+    0.4350000023841858,
+    0.4350000023841858
+   ],
+   "price": 0.44999998807907104,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4669381959288443,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.0030617921502267657,
+   "raw_ev_low": -0.05342976599053394,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-ATLP0-22",
+   "side": "no",
+   "text": "NOT (Synth Xonez Karker pts >= 22)",
+   "title": "Synth Xonez Karker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127371,
+   "player": "Synth Xonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.4350000023841858,
+   "ask": 0.44999998807907104,
+   "bid": 0.42000001668930054,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.4165702220885371,
+    0.5186190065394289
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 71.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.5349999964237213,
+   "prob_interval": [
+    0.5349999964237213,
+    0.5349999964237213
+   ],
+   "price": 0.550000011920929,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5361039797335152,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.03389603218741376,
+   "raw_ev_low": -0.08534947920497925,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-ATLP1-18",
+   "side": "yes",
+   "text": "Synth Yonez Karker pts >= 18",
+   "title": "Synth Yonez Karker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127372,
+   "player": "Synth Yonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.5349999964237213,
+   "ask": 0.550000011920929,
+   "bid": 0.5199999809265137,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.4846505327159497,
+    0.586502245511895
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 71.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.4650000035762787,
+   "prob_interval": [
+    0.4650000035762787,
+    0.4650000035762787
+   ],
+   "price": 0.48000001907348633,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4694960227460381,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.03050399632744825,
+   "raw_ev_low": -0.08148424171685874,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-ATLP1-18",
+   "side": "no",
+   "text": "NOT (Synth Yonez Karker pts >= 18)",
+   "title": "Synth Yonez Karker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127372,
+   "player": "Synth Yonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.4650000035762787,
+   "ask": 0.48000001907348633,
+   "bid": 0.44999998807907104,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.4185157773566276,
+    0.5206011953979451
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 71.3,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127481,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.4750000089406967,
+   "prob_interval": [
+    0.4750000089406967,
+    0.4750000089406967
+   ],
+   "price": 0.49000000953674316,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5324618039996302,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.022461794462887003,
+   "raw_ev_low": -0.029404047704635655,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-MIAP0-22",
+   "side": "yes",
+   "text": "Synth Donez Parker pts >= 22",
+   "title": "Synth Donez Parker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127481,
+   "player": "Synth Donez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.4750000089406967,
+   "ask": 0.49000000953674316,
+   "bid": 0.46000000834465027,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.4805959618321075,
+    0.5826145546211724
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 68.6,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127481,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.5249999910593033,
+   "prob_interval": [
+    0.5249999910593033,
+    0.5249999910593033
+   ],
+   "price": 0.5399999916553497,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.46963819603613266,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.09036179561921708,
+   "raw_ev_low": -0.14051091445985273,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-MIAP0-22",
+   "side": "no",
+   "text": "NOT (Synth Donez Parker pts >= 22)",
+   "title": "Synth Donez Parker: 20+ points",
+   "stat": "pts",
+   "threshold": 22.0,
+   "player_id": 127481,
+   "player": "Synth Donez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.5249999910593033,
+   "ask": 0.5399999916553497,
+   "bid": 0.5099999904632568,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.419489077195497,
+    0.5216224402976305
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 22,
+    "ctx_shift_vs_recency": 0.8,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 68.6,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.45499999821186066,
+   "prob_interval": [
+    0.45499999821186066,
+    0.45499999821186066
+   ],
+   "price": 0.4699999988079071,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5297039786844734,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.03970397987656628,
+   "raw_ev_low": -0.01140128507505132,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-MIAP1-18",
+   "side": "yes",
+   "text": "Synth Eonez Parker pts >= 18",
+   "title": "Synth Eonez Parker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127482,
+   "player": "Synth Eonez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.45499999821186066,
+   "ask": 0.4699999988079071,
+   "bid": 0.4399999976158142,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.4785987137328558,
+    0.5806699408299002
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 68.6,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "no",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.5450000017881393,
+   "prob_interval": [
+    0.5450000017881393,
+    0.5450000017881393
+   ],
+   "price": 0.5600000023841858,
+   "fees": 0.02,
+   "ev": -0.03500000059604645,
+   "ev_low": -0.03500000059604645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.47589602141089404,
+   "model_weight": 0.0,
+   "spread": 0.030000001192092896,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.10410398097329175,
+   "raw_ev_low": -0.15466380233995022,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAPTS-25NOV13MIAATL-MIAP1-18",
+   "side": "no",
+   "text": "NOT (Synth Eonez Parker pts >= 18)",
+   "title": "Synth Eonez Parker: 20+ points",
+   "stat": "pts",
+   "threshold": 18.0,
+   "player_id": 127482,
+   "player": "Synth Eonez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.5450000017881393,
+   "ask": 0.5600000023841858,
+   "bid": 0.5300000011920929,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.42533620004423556,
+    0.527654110731385
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 18,
+    "ctx_shift_vs_recency": 0.0,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 68.6,
+     "league": 70.4
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.6649999916553497,
+   "prob_interval": [
+    0.6649999916553497,
+    0.6649999916553497
+   ],
+   "price": 0.6800000071525574,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5827789970797805,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.11722101007277684,
+   "raw_ev_low": -0.16795846214700158,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-ATLP0-7",
+   "side": "yes",
+   "text": "Synth Xonez Karker reb >= 7",
+   "title": "Synth Xonez Karker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127371,
+   "player": "Synth Xonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.6649999916553497,
+   "ask": 0.6800000071525574,
+   "bid": 0.6499999761581421,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.5320415450055558,
+    0.6318153723595098
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 21.9,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.33500000834465027,
+   "prob_interval": [
+    0.33500000834465027,
+    0.33500000834465027
+   ],
+   "price": 0.3500000238418579,
+   "fees": 0.02,
+   "ev": -0.035000015497207645,
+   "ev_low": -0.035000015497207645,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.41932100385005194,
+   "model_weight": 0.0,
+   "spread": 0.030000030994415283,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04932098000819403,
+   "raw_ev_low": 6.431561661009513e-05,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-ATLP0-7",
+   "side": "no",
+   "text": "NOT (Synth Xonez Karker reb >= 7)",
+   "title": "Synth Xonez Karker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127371,
+   "player": "Synth Xonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.33500000834465027,
+   "ask": 0.3500000238418579,
+   "bid": 0.3199999928474426,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.370064339458468,
+    0.4700448082181553
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 21.9,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "yes",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.6949999928474426,
+   "prob_interval": [
+    0.6949999928474426,
+    0.6949999928474426
+   ],
+   "price": 0.7099999785423279,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5912213148978064,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.1387786636445215,
+   "raw_ev_low": -0.18974290227541343,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-ATLP1-6",
+   "side": "yes",
+   "text": "Synth Yonez Karker reb >= 6",
+   "title": "Synth Yonez Karker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127372,
+   "player": "Synth Yonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.6949999928474426,
+   "ask": 0.7099999785423279,
+   "bid": 0.6800000071525574,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.5402570762669144,
+    0.6394524586615299
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 21.9,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.3050000071525574,
+   "prob_interval": [
+    0.3050000071525574,
+    0.3050000071525574
+   ],
+   "price": 0.3199999928474426,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4143786828133753,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.07437868996593268,
+   "raw_ev_low": 0.025157709206417096,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-ATLP1-6",
+   "side": "no",
+   "text": "NOT (Synth Yonez Karker reb >= 6)",
+   "title": "Synth Yonez Karker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127372,
+   "player": "Synth Yonez Karker",
+   "game": "MIA@ATL",
+   "mid": 0.3050000071525574,
+   "ask": 0.3199999928474426,
+   "bid": 0.2900000214576721,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.3651577020538597,
+    0.4649985072070386
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [
+     {
+      "player_id": 127374,
+      "name": "player 127374",
+      "pts": 16.4,
+      "reb": 5.7,
+      "ast": 3.3,
+      "min": 30.0
+     }
+    ],
+    "vacated_per_game": {
+     "pts": 16.4,
+     "reb": 5.7,
+     "ast": 3.3
+    },
+    "opp_allowed_last20": {
+     "team": "MIA",
+     "avg": 21.9,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127481,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.5649999976158142,
+   "prob_interval": [
+    0.5649999976158142,
+    0.5649999976158142
+   ],
+   "price": 0.5799999833106995,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5797789963645248,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.020220986946174673,
+   "raw_ev_low": -0.07102218125901448,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-MIAP0-7",
+   "side": "yes",
+   "text": "Synth Donez Parker reb >= 7",
+   "title": "Synth Donez Parker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127481,
+   "player": "Synth Donez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.5649999976158142,
+   "ask": 0.5799999833106995,
+   "bid": 0.550000011920929,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.528977802051685,
+    0.6289131804460418
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 21.2,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127481,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.4350000023841858,
+   "prob_interval": [
+    0.4350000023841858,
+    0.4350000023841858
+   ],
+   "price": 0.44999998807907104,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.42232100277716833,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.04767898530190272,
+   "raw_ev_low": -0.09700055500401943,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-MIAP0-7",
+   "side": "no",
+   "text": "NOT (Synth Donez Parker reb >= 7)",
+   "title": "Synth Donez Parker: 20+ points",
+   "stat": "reb",
+   "threshold": 7.0,
+   "player_id": 127481,
+   "player": "Synth Donez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.4350000023841858,
+   "ask": 0.44999998807907104,
+   "bid": 0.42000001668930054,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.3729994330750516,
+    0.47308514789971595
+   ],
+   "p_play": 0.97,
+   "dnp_risk": 0.030000000000000027,
+   "drivers": {
+    "proj_minutes": 34,
+    "mean_cond": 7,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 21.2,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.5550000071525574,
+   "prob_interval": [
+    0.5550000071525574,
+    0.5550000071525574
+   ],
+   "price": 0.5699999928474426,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.5800213160422155,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.00997867680522711,
+   "raw_ev_low": -0.061022190795757644,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-MIAP1-6",
+   "side": "yes",
+   "text": "Synth Eonez Parker reb >= 6",
+   "title": "Synth Eonez Parker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127482,
+   "player": "Synth Eonez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.5550000071525574,
+   "ask": 0.5699999928474426,
+   "bid": 0.5400000214576721,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.528977802051685,
+    0.6289131804460418
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 21.2,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.4449999928474426,
+   "prob_interval": [
+    0.4449999928474426,
+    0.4449999928474426
+   ],
+   "price": 0.4599999785423279,
+   "fees": 0.02,
+   "ev": -0.03499998569488526,
+   "ev_low": -0.03499998569488526,
+   "verdict": "no_positive_ev_found",
+   "engine": "marginal",
+   "raw_model_prob": 0.4255786816689661,
+   "model_weight": 0.0,
+   "spread": 0.029999971389770508,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": -0.054421296873361766,
+   "raw_ev_low": -0.1031292527299255,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "ticker": "KXNBAREB-25NOV13MIAATL-MIAP1-6",
+   "side": "no",
+   "text": "NOT (Synth Eonez Parker reb >= 6)",
+   "title": "Synth Eonez Parker: 20+ points",
+   "stat": "reb",
+   "threshold": 6.0,
+   "player_id": 127482,
+   "player": "Synth Eonez Parker",
+   "game": "MIA@ATL",
+   "mid": 0.4449999928474426,
+   "ask": 0.4599999785423279,
+   "bid": 0.4300000071525574,
+   "price_ts": "2025-11-13 15:00:00",
+   "raw_prob_interval": [
+    0.3768707258124024,
+    0.47709862210337156
+   ],
+   "p_play": 0.9199999999999999,
+   "dnp_risk": 0.08000000000000007,
+   "drivers": {
+    "proj_minutes": 31,
+    "mean_cond": 6,
+    "ctx_shift_vs_recency": null,
+    "n_games_history": 12,
+    "routed_to": "context",
+    "teammates_out": [],
+    "vacated_per_game": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0
+    },
+    "opp_allowed_last20": {
+     "team": "ATL",
+     "avg": 21.2,
+     "league": 21.7
+    }
+   },
+   "shadow": null
+  }
+ ],
+ "same_game_parlays": [
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.11200000512599928,
+   "prob_interval": [
+    0.11200000512599928,
+    0.11200000512599928
+   ],
+   "price": 0.11200000512599928,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.174085802621454,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05208579749545473,
+   "raw_ev_low": 0.02701049186486921,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAREB-25NOV13MIAATL-ATLP0-7|no",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.11200000512599928,
+   "bid": null,
+   "mid": 0.11200000512599928,
+   "raw_prob_interval": [
+    0.1490104969908685,
+    0.20381209014245577
+   ],
+   "independence_prob": 0.1771116881713033
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.15039999625682832,
+   "prob_interval": [
+    0.15039999625682832,
+    0.15039999625682832
+   ],
+   "price": 0.15039999625682832,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.21394649397232146,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05354649771549314,
+   "raw_ev_low": 0.023959159782429025,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAPTS-25NOV13MIAATL-MIAP1-18|yes",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND Synth Eonez Parker pts >= 18",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.15039999625682832,
+   "bid": null,
+   "mid": 0.15039999625682832,
+   "raw_prob_interval": [
+    0.18435915603925734,
+    0.24854756047274942
+   ],
+   "independence_prob": 0.22437699042930906
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127481,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.15679999954700463,
+   "prob_interval": [
+    0.15679999954700463,
+    0.15679999954700463
+   ],
+   "price": 0.15679999954700463,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.21754527007175167,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.05074527052474704,
+   "raw_ev_low": 0.020785943210141912,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAPTS-25NOV13MIAATL-MIAP0-22|yes",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND Synth Donez Parker pts >= 22",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.15679999954700463,
+   "bid": null,
+   "mid": 0.15679999954700463,
+   "raw_prob_interval": [
+    0.18758594275714655,
+    0.2525607960691676
+   ],
+   "independence_prob": 0.22437699042930906
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.09919999854564665,
+   "prob_interval": [
+    0.09919999854564665,
+    0.09919999854564665
+   ],
+   "price": 0.09919999854564665,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.14923597488490165,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04003597633925499,
+   "raw_ev_low": 0.017954813103703567,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAGAME-25NOV13MIAATL-ATL|no",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (ATL win)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.09919999854564665,
+   "bid": null,
+   "mid": 0.09919999854564665,
+   "raw_prob_interval": [
+    0.12715481164935022,
+    0.17551596641146636
+   ],
+   "independence_prob": 0.15043945530470057
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.143999992966652,
+   "prob_interval": [
+    0.143999992966652,
+    0.143999992966652
+   ],
+   "price": 0.143999992966652,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.19577766887972992,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.04177767591307791,
+   "raw_ev_low": 0.014205691868007056,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAPTS-25NOV13MIAATL-ATLP0-22|no",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker pts >= 22)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.143999992966652,
+   "bid": null,
+   "mid": 0.143999992966652,
+   "raw_prob_interval": [
+    0.16820568483465906,
+    0.22824062795326697
+   ],
+   "independence_prob": 0.1964694045550169
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.16450001078844068,
+   "prob_interval": [
+    0.16450001078844068,
+    0.16450001078844068
+   ],
+   "price": 0.16450001078844068,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.2183737912813302,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.043873780492889515,
+   "raw_ev_low": 0.013807415662524228,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP0-7|no+KXNBAPTS-25NOV13MIAATL-MIAP1-18|yes",
+   "kind": "parlay",
+   "text": "NOT (Synth Xonez Karker reb >= 7) AND Synth Eonez Parker pts >= 18",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.16450001078844068,
+   "bid": null,
+   "mid": 0.16450001078844068,
+   "raw_prob_interval": [
+    0.1883074264509649,
+    0.25346035898542024
+   ],
+   "independence_prob": 0.22437699042930906
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612748
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127481,
+     "stat": "pts",
+     "threshold": 22.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.07369599960017201,
+   "prob_interval": [
+    0.07369599960017201,
+    0.07369599960017201
+   ],
+   "price": 0.07369599960017201,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.11253231239053248,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.028836312790360467,
+   "raw_ev_low": 0.011539102362087017,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAPTS-25NOV13MIAATL-MIAP1-18|yes+KXNBAPTS-25NOV13MIAATL-MIAP0-22|yes",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND Synth Eonez Parker pts >= 18 AND Synth Donez Parker pts >= 22",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.07369599960017201,
+   "bid": null,
+   "mid": 0.07369599960017201,
+   "raw_prob_interval": [
+    0.09523510196225903,
+    0.1333862930769151
+   ],
+   "independence_prob": 0.1196280506002417
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.07168000167846661,
+   "prob_interval": [
+    0.07168000167846661,
+    0.07168000167846661
+   ],
+   "price": 0.07168000167846661,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.11000417741014153,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.028324175731674915,
+   "raw_ev_low": 0.011330148580418762,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAREB-25NOV13MIAATL-ATLP0-7|no+KXNBAGAME-25NOV13MIAATL-MIA|no",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND NOT (MIA win)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.07168000167846661,
+   "bid": null,
+   "mid": 0.07168000167846661,
+   "raw_prob_interval": [
+    0.09301015025888537,
+    0.13043212528119144
+   ],
+   "independence_prob": 0.11379978574291444
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127372,
+     "stat": "reb",
+     "threshold": 6.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127482,
+     "stat": "pts",
+     "threshold": 18.0,
+     "side": "yes",
+     "team_id": 1610612748
+    }
+   ],
+   "model_prob": 0.05264000227570525,
+   "prob_interval": [
+    0.05264000227570525,
+    0.05264000227570525
+   ],
+   "price": 0.05264000227570525,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.0874593649220513,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.024819362646346044,
+   "raw_ev_low": 0.010971671244091543,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAREB-25NOV13MIAATL-ATLP0-7|no+KXNBAPTS-25NOV13MIAATL-MIAP1-18|yes",
+   "kind": "parlay",
+   "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND Synth Eonez Parker pts >= 18",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.05264000227570525,
+   "bid": null,
+   "mid": 0.05264000227570525,
+   "raw_prob_interval": [
+    0.07361167351979679,
+    0.10421192904371558
+   ],
+   "independence_prob": 0.09442824753960732
+  },
+  {
+   "legs": [
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 127371,
+     "stat": "reb",
+     "threshold": 7.0,
+     "side": "no",
+     "team_id": 1610612737
+    },
+    {
+     "game_id": "f2025-11-130",
+     "player_id": 0,
+     "stat": "win",
+     "threshold": 0.0,
+     "side": "no",
+     "team_id": 1610612737
+    }
+   ],
+   "model_prob": 0.10850000822544104,
+   "prob_interval": [
+    0.10850000822544104,
+    0.10850000822544104
+   ],
+   "price": 0.10850000822544104,
+   "fees": 0.01,
+   "ev": -0.01,
+   "ev_low": -0.01,
+   "verdict": "no_positive_ev_found",
+   "engine": "gaussian_copula",
+   "raw_model_prob": 0.15169084345460282,
+   "model_weight": 0.0,
+   "spread": null,
+   "kelly": 0.0,
+   "n_settled_track": 0,
+   "raw_ev": 0.03319083522916178,
+   "raw_ev_low": 0.01077943660058068,
+   "order_type": "taker",
+   "note": "Informational only; not financial advice. Estimated edges are noisy.",
+   "key": "KXNBAREB-25NOV13MIAATL-ATLP0-7|no+KXNBAGAME-25NOV13MIAATL-ATL|no",
+   "kind": "parlay",
+   "text": "NOT (Synth Xonez Karker reb >= 7) AND NOT (ATL win)",
+   "tradable": false,
+   "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+   "ask": 0.10850000822544104,
+   "bid": null,
+   "mid": 0.10850000822544104,
+   "raw_prob_interval": [
+    0.12927944482602172,
+    0.1783187395956393
+   ],
+   "independence_prob": 0.15043945530470057
+  }
+ ],
+ "cross_game_parlays": [],
+ "parlay_price_basis": "product of leg asks, NOT a tradable price (no combo contracts are ingested); same-game legs use the copula, cross-game legs are independent",
+ "narration": null,
+ "budget": {
+  "date": "2025-11-13",
+  "now": "2025-11-13T20:00:00",
+  "gate": {
+   "n_settled": 0,
+   "n_dates": 0,
+   "min_settled": 30,
+   "min_settled_dates": 14,
+   "skill_vs_market": 0.0,
+   "gated_skill": 0.0,
+   "gate_open": false,
+   "describe": "no settled shadow history (n=0)"
+  },
+  "model_weight_zero": true,
+  "fee_model": {
+   "name": "kalshi_fee_schedule",
+   "formula": "p_one_minus_p",
+   "coefficient": 0.07,
+   "maker_coefficient": 0.0175,
+   "default_multiplier": 1.0,
+   "multipliers": [],
+   "verified": true,
+   "source": "user-provided from Kalshi published fee schedule, 2026-10-08"
+  },
+  "interval_level": 0.8,
+  "kelly_fraction": 0.25,
+  "kelly_cap": 0.02,
+  "n_singles": 20,
+  "disclaimer": "Analysis only, not financial advice. Estimated edges are noisy; nothing here places orders, handles credentials, or recommends real-money bets.",
+  "orders_placed": 0,
+  "mode": "target",
+  "budget_usd": 20.0,
+  "target_profit_usd": 10.0,
+  "n_options_considered": 358,
+  "n_parlays_considered": 338,
+  "n_reaching_target": 355,
+  "max_parlay_legs": 4,
+  "ranked_by": "highest P(hit) among options reaching the target",
+  "ranked": [
+   {
+    "model_prob": 0.625,
+    "prob_interval": [
+     0.625,
+     0.625
+    ],
+    "price": 0.6399999856948853,
+    "fees": 0.02,
+    "ev": -0.03499998569488526,
+    "ev_low": -0.03499998569488526,
+    "verdict": "no_positive_ev_found",
+    "engine": "marginal",
+    "raw_model_prob": 0.6425312011754228,
+    "model_weight": 0.0,
+    "spread": 0.029999971389770508,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.017468784519462415,
+    "raw_ev_low": -0.06573233521535236,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAGAME-25NOV13MIAATL-MIA|no",
+    "kind": "single",
+    "text": "NOT (MIA win)",
+    "tradable": true,
+    "price_basis": "kalshi_ask",
+    "ask": 0.6399999856948853,
+    "bid": 0.6100000143051147,
+    "mid": 0.625,
+    "raw_prob_interval": [
+     0.5942676504795329,
+     0.6883946703397379
+    ],
+    "independence_prob": null,
+    "legs_text": "NOT (MIA win)",
+    "n_legs": 1,
+    "n_games": 1,
+    "order": {
+     "contracts": 30,
+     "cost": 19.69,
+     "fee": 0.49,
+     "payout": 30.0,
+     "profit_if_hit": 10.309999999999999,
+     "ev": -0.9400000000000013,
+     "ev_low": -0.9400000000000013,
+     "raw_ev": -0.4140639647373163,
+     "raw_ev_low": -1.861970485614016,
+     "ev_low_per_dollar": -0.04773996952767909
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.5649999976158142,
+    "prob_interval": [
+     0.5649999976158142,
+     0.5649999976158142
+    ],
+    "price": 0.5799999833106995,
+    "fees": 0.02,
+    "ev": -0.03499998569488526,
+    "ev_low": -0.03499998569488526,
+    "verdict": "no_positive_ev_found",
+    "engine": "marginal",
+    "raw_model_prob": 0.5351618032128488,
+    "model_weight": 0.0,
+    "spread": 0.029999971389770508,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.06483818009785068,
+    "raw_ev_low": -0.11635157659098037,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAPTS-25NOV13MIAATL-ATLP0-22|yes",
+    "kind": "single",
+    "text": "Synth Xonez Karker pts >= 22",
+    "tradable": true,
+    "price_basis": "kalshi_ask",
+    "ask": 0.5799999833106995,
+    "bid": 0.550000011920929,
+    "mid": 0.5649999976158142,
+    "raw_prob_interval": [
+     0.4836484067197191,
+     0.5855299395642753
+    ],
+    "independence_prob": null,
+    "legs_text": "Synth Xonez Karker pts >= 22",
+    "n_legs": 1,
+    "n_games": 1,
+    "order": {
+     "contracts": 25,
+     "cost": 14.93,
+     "fee": 0.43,
+     "payout": 25.0,
+     "profit_if_hit": 10.07,
+     "ev": -0.8050000596046445,
+     "ev_low": -0.8050000596046445,
+     "raw_ev": -1.5509549196787802,
+     "raw_ev_low": -2.8387898320070217,
+     "ev_low_per_dollar": -0.0539182893238208
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.5649999976158142,
+    "prob_interval": [
+     0.5649999976158142,
+     0.5649999976158142
+    ],
+    "price": 0.5799999833106995,
+    "fees": 0.02,
+    "ev": -0.03499998569488526,
+    "ev_low": -0.03499998569488526,
+    "verdict": "no_positive_ev_found",
+    "engine": "marginal",
+    "raw_model_prob": 0.5797789963645248,
+    "model_weight": 0.0,
+    "spread": 0.029999971389770508,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.020220986946174673,
+    "raw_ev_low": -0.07102218125901448,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAREB-25NOV13MIAATL-MIAP0-7|yes",
+    "kind": "single",
+    "text": "Synth Donez Parker reb >= 7",
+    "tradable": true,
+    "price_basis": "kalshi_ask",
+    "ask": 0.5799999833106995,
+    "bid": 0.550000011920929,
+    "mid": 0.5649999976158142,
+    "raw_prob_interval": [
+     0.528977802051685,
+     0.6289131804460418
+    ],
+    "independence_prob": null,
+    "legs_text": "Synth Donez Parker reb >= 7",
+    "n_legs": 1,
+    "n_games": 1,
+    "order": {
+     "contracts": 25,
+     "cost": 14.93,
+     "fee": 0.43,
+     "payout": 25.0,
+     "profit_if_hit": 10.07,
+     "ev": -0.8050000596046445,
+     "ev_low": -0.8050000596046445,
+     "raw_ev": -0.4355250908868804,
+     "raw_ev_low": -1.7055549487078743,
+     "ev_low_per_dollar": -0.0539182893238208
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.5550000071525574,
+    "prob_interval": [
+     0.5550000071525574,
+     0.5550000071525574
+    ],
+    "price": 0.5699999928474426,
+    "fees": 0.02,
+    "ev": -0.03499998569488526,
+    "ev_low": -0.03499998569488526,
+    "verdict": "no_positive_ev_found",
+    "engine": "marginal",
+    "raw_model_prob": 0.5800213160422155,
+    "model_weight": 0.0,
+    "spread": 0.029999971389770508,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.00997867680522711,
+    "raw_ev_low": -0.061022190795757644,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAREB-25NOV13MIAATL-MIAP1-6|yes",
+    "kind": "single",
+    "text": "Synth Eonez Parker reb >= 6",
+    "tradable": true,
+    "price_basis": "kalshi_ask",
+    "ask": 0.5699999928474426,
+    "bid": 0.5400000214576721,
+    "mid": 0.5550000071525574,
+    "raw_prob_interval": [
+     0.528977802051685,
+     0.6289131804460418
+    ],
+    "independence_prob": null,
+    "legs_text": "Synth Eonez Parker reb >= 6",
+    "n_legs": 1,
+    "n_games": 1,
+    "order": {
+     "contracts": 25,
+     "cost": 14.68,
+     "fee": 0.43,
+     "payout": 25.0,
+     "profit_if_hit": 10.32,
+     "ev": -0.8049998211860654,
+     "ev_low": -0.8049998211860654,
+     "raw_ev": -0.17946709894461144,
+     "raw_ev_low": -1.4555549487078743,
+     "ev_low_per_dollar": -0.054836500080794645
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.5450000017881393,
+    "prob_interval": [
+     0.5450000017881393,
+     0.5450000017881393
+    ],
+    "price": 0.5600000023841858,
+    "fees": 0.02,
+    "ev": -0.03500000059604645,
+    "ev_low": -0.03500000059604645,
+    "verdict": "no_positive_ev_found",
+    "engine": "marginal",
+    "raw_model_prob": 0.47589602141089404,
+    "model_weight": 0.0,
+    "spread": 0.030000001192092896,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.10410398097329175,
+    "raw_ev_low": -0.15466380233995022,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAPTS-25NOV13MIAATL-MIAP1-18|no",
+    "kind": "single",
+    "text": "NOT (Synth Eonez Parker pts >= 18)",
+    "tradable": true,
+    "price_basis": "kalshi_ask",
+    "ask": 0.5600000023841858,
+    "bid": 0.5300000011920929,
+    "mid": 0.5450000017881393,
+    "raw_prob_interval": [
+     0.42533620004423556,
+     0.527654110731385
+    ],
+    "independence_prob": null,
+    "legs_text": "NOT (Synth Eonez Parker pts >= 18)",
+    "n_legs": 1,
+    "n_games": 1,
+    "order": {
+     "contracts": 24,
+     "cost": 13.86,
+     "fee": 0.42,
+     "payout": 24.0,
+     "profit_if_hit": 10.14,
+     "ev": -0.7799999570846552,
+     "ev_low": -0.7799999570846552,
+     "raw_ev": -2.4384954861385424,
+     "raw_ev_low": -3.651931198938346,
+     "ev_low_per_dollar": -0.05627705318071106
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   }
+  ],
+  "best_ev_per_dollar": [
+   {
+    "model_prob": 0.37119998102188134,
+    "prob_interval": [
+     0.37119998102188134,
+     0.37119998102188134
+    ],
+    "price": 0.37119998102188134,
+    "fees": 0.02,
+    "ev": -0.02,
+    "ev_low": -0.02,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.3673444690071776,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.023855512014703744,
+    "raw_ev_low": -0.06589270478990243,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAGAME-25NOV13MIAATL-MIA|no+KXNBAREB-25NOV13MIAATL-MIAP0-7|yes",
+    "kind": "parlay",
+    "text": "NOT (MIA win) AND Synth Donez Parker reb >= 7",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.37119998102188134,
+    "bid": null,
+    "mid": 0.37119998102188134,
+    "raw_prob_interval": [
+     0.3253072762319789,
+     0.41316274083139437
+    ],
+    "independence_prob": 0.3721242614957974,
+    "legs_text": "NOT (MIA win) AND Synth Donez Parker reb >= 7",
+    "n_legs": 2,
+    "n_games": 1,
+    "order": {
+     "contracts": 17,
+     "cost": 6.59,
+     "fee": 0.28,
+     "payout": 17.0,
+     "profit_if_hit": 10.41,
+     "ev": -0.27960032262801704,
+     "ev_low": -0.27960032262801704,
+     "raw_ev": -0.34514402687798107,
+     "raw_ev_low": -1.0597763040563581,
+     "ev_low_per_dollar": -0.04242797004977497
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.364799987268448,
+    "prob_interval": [
+     0.364799987268448,
+     0.364799987268448
+    ],
+    "price": 0.364799987268448,
+    "fees": 0.02,
+    "ev": -0.02,
+    "ev_low": -0.02,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.3678781442742112,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.01692184299423675,
+    "raw_ev_low": -0.0589728437470025,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAREB-25NOV13MIAATL-MIAP1-6|yes+KXNBAGAME-25NOV13MIAATL-MIA|no",
+    "kind": "parlay",
+    "text": "Synth Eonez Parker reb >= 6 AND NOT (MIA win)",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.364799987268448,
+    "bid": null,
+    "mid": 0.364799987268448,
+    "raw_prob_interval": [
+     0.3258271435214455,
+     0.41373522246261146
+    ],
+    "independence_prob": 0.3721242614957974,
+    "legs_text": "Synth Eonez Parker reb >= 6 AND NOT (MIA win)",
+    "n_legs": 2,
+    "n_games": 1,
+    "order": {
+     "contracts": 17,
+     "cost": 6.48,
+     "fee": 0.28,
+     "payout": 17.0,
+     "profit_if_hit": 10.52,
+     "ev": -0.2784002164363848,
+     "ev_low": -0.2784002164363848,
+     "raw_ev": -0.2260715473384094,
+     "raw_ev_low": -0.940938560135427,
+     "ev_low_per_dollar": -0.04296299636363963
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   },
+   {
+    "model_prob": 0.33059998633861554,
+    "prob_interval": [
+     0.33059998633861554,
+     0.33059998633861554
+    ],
+    "price": 0.33059998633861554,
+    "fees": 0.02,
+    "ev": -0.02,
+    "ev_low": -0.02,
+    "verdict": "no_positive_ev_found",
+    "engine": "gaussian_copula",
+    "raw_model_prob": 0.33293802785656873,
+    "model_weight": 0.0,
+    "spread": null,
+    "kelly": 0.0,
+    "n_settled_track": 0,
+    "raw_ev": -0.017661958482046807,
+    "raw_ev_low": -0.057522406999788264,
+    "order_type": "taker",
+    "note": "Informational only; not financial advice. Estimated edges are noisy.",
+    "key": "KXNBAREB-25NOV13MIAATL-MIAP1-6|yes+KXNBAREB-25NOV13MIAATL-MIAP0-7|yes",
+    "kind": "parlay",
+    "text": "Synth Eonez Parker reb >= 6 AND Synth Donez Parker reb >= 7",
+    "tradable": false,
+    "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+    "ask": 0.33059998633861554,
+    "bid": null,
+    "mid": 0.33059998633861554,
+    "raw_prob_interval": [
+     0.2930775793388273,
+     0.37712339495474
+    ],
+    "independence_prob": 0.33541889820265136,
+    "legs_text": "Synth Eonez Parker reb >= 6 AND Synth Donez Parker reb >= 7",
+    "n_legs": 2,
+    "n_games": 1,
+    "order": {
+     "contracts": 16,
+     "cost": 5.54,
+     "fee": 0.25,
+     "payout": 16.0,
+     "profit_if_hit": 10.46,
+     "ev": -0.25040021858215145,
+     "ev_low": -0.25040021858215145,
+     "raw_ev": -0.21299155429490035,
+     "raw_ev_low": -0.8507587305787636,
+     "ev_low_per_dollar": -0.04519859541194069
+    },
+    "mode": "target",
+    "order_verdict": "no_positive_ev_found"
+   }
+  ],
+  "frontier": [
+   {
+    "target_profit": 5.0,
+    "reachable": true,
+    "n_reaching": 358,
+    "option": "ATL win",
+    "kind": "single",
+    "tradable": true,
+    "p_hit": 0.7050000131130219,
+    "p_hit_interval": [
+     0.7050000131130219,
+     0.7050000131130219
+    ],
+    "raw_p_hit": 0.6425312011754228,
+    "contracts": 19,
+    "cost": 13.95,
+    "profit_if_hit": 5.050000000000001,
+    "ev": -0.5549997508525841,
+    "ev_low": -0.5549997508525841,
+    "ev_low_per_dollar": -0.03978492837652933,
+    "raw_ev_low": -2.6589146408888737,
+    "best_ev_per_dollar": {
+     "option": "ATL win",
+     "tradable": true,
+     "p_hit": 0.7050000131130219,
+     "contracts": 19,
+     "cost": 13.95,
+     "ev": -0.5549997508525841,
+     "ev_low": -0.5549997508525841,
+     "ev_low_per_dollar": -0.03978492837652933
+    }
+   },
+   {
+    "target_profit": 10.0,
+    "reachable": true,
+    "n_reaching": 355,
+    "option": "NOT (MIA win)",
+    "kind": "single",
+    "tradable": true,
+    "p_hit": 0.625,
+    "p_hit_interval": [
+     0.625,
+     0.625
+    ],
+    "raw_p_hit": 0.6425312011754228,
+    "contracts": 30,
+    "cost": 19.69,
+    "profit_if_hit": 10.309999999999999,
+    "ev": -0.9400000000000013,
+    "ev_low": -0.9400000000000013,
+    "ev_low_per_dollar": -0.04773996952767909,
+    "raw_ev_low": -1.861970485614016,
+    "best_ev_per_dollar": {
+     "option": "NOT (MIA win) AND Synth Donez Parker reb >= 7",
+     "tradable": false,
+     "p_hit": 0.37119998102188134,
+     "contracts": 17,
+     "cost": 6.59,
+     "ev": -0.27960032262801704,
+     "ev_low": -0.27960032262801704,
+     "ev_low_per_dollar": -0.04242797004977497
+    },
+    "p_hit_not_above_previous": true
+   },
+   {
+    "target_profit": 25.0,
+    "reachable": true,
+    "n_reaching": 342,
+    "option": "MIA win",
+    "kind": "single",
+    "tradable": true,
+    "p_hit": 0.375,
+    "p_hit_interval": [
+     0.375,
+     0.375
+    ],
+    "raw_p_hit": 0.35746879882457716,
+    "contracts": 43,
+    "cost": 17.49,
+    "profit_if_hit": 25.51,
+    "ev": -1.3649999999999984,
+    "ev_low": -1.3649999999999984,
+    "ev_low_per_dollar": -0.07804459691252136,
+    "raw_ev_low": -4.114900018501933,
+    "best_ev_per_dollar": {
+     "option": "NOT (MIA win) AND Synth Donez Parker reb >= 7",
+     "tradable": false,
+     "p_hit": 0.37119998102188134,
+     "contracts": 41,
+     "cost": 15.89,
+     "ev": -0.6708007781028655,
+     "ev_low": -0.6708007781028655,
+     "ev_low_per_dollar": -0.04221527867230117
+    },
+    "p_hit_not_above_previous": true
+   },
+   {
+    "target_profit": 50.0,
+    "reachable": true,
+    "n_reaching": 326,
+    "option": "Synth Eonez Parker pts >= 18 AND Synth Eonez Parker reb >= 6",
+    "kind": "parlay",
+    "tradable": false,
+    "p_hit": 0.2678999959588051,
+    "p_hit_interval": [
+     0.2678999959588051,
+     0.2678999959588051
+    ],
+    "raw_p_hit": 0.30368696692834185,
+    "contracts": 70,
+    "cost": 19.72,
+    "profit_if_hit": 50.28,
+    "ev": -0.9670002828836424,
+    "ev_low": -0.9670002828836424,
+    "ev_low_per_dollar": -0.049036525501198906,
+    "raw_ev_low": -1.102650853530978,
+    "best_ev_per_dollar": {
+     "option": "Synth Eonez Parker pts >= 18 AND Synth Eonez Parker reb >= 6",
+     "tradable": false,
+     "p_hit": 0.2678999959588051,
+     "contracts": 70,
+     "cost": 19.72,
+     "ev": -0.9670002828836424,
+     "ev_low": -0.9670002828836424,
+     "ev_low_per_dollar": -0.049036525501198906
+    },
+    "p_hit_not_above_previous": true
+   },
+   {
+    "target_profit": 100.0,
+    "reachable": true,
+    "n_reaching": 294,
+    "option": "NOT (Synth Yonez Karker reb >= 6) AND Synth Donez Parker pts >= 22",
+    "kind": "parlay",
+    "tradable": false,
+    "p_hit": 0.15679999954700463,
+    "p_hit_interval": [
+     0.15679999954700463,
+     0.15679999954700463
+    ],
+    "raw_p_hit": 0.21754527007175167,
+    "contracts": 120,
+    "cost": 19.94,
+    "profit_if_hit": 100.06,
+    "ev": -1.1240000543594455,
+    "ev_low": -1.1240000543594455,
+    "ev_low_per_dollar": -0.05636911004811662,
+    "raw_ev_low": 2.570313130857585,
+    "best_ev_per_dollar": {
+     "option": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Yonez Karker pts >= 18)",
+     "tradable": false,
+     "p_hit": 0.15360000267028795,
+     "contracts": 120,
+     "cost": 19.53,
+     "ev": -1.0979996795654472,
+     "ev_low": -1.0979996795654472,
+     "ev_low_per_dollar": -0.056221181749382856
+    },
+    "p_hit_not_above_previous": true
+   }
+  ],
+  "parlay_price_note": "parlays are priced at the product of leg asks; no combo contract is ingested, so that price is NOT tradable and a real combo quote will differ",
+  "verdict": "no_positive_ev_found",
+  "answer": "no positive-EV option reaches +$10 at the conservative bound; keep your money",
+  "recommendation": null,
+  "raw_hypothesis": {
+   "label": "hypothesis, not a recommendation",
+   "note": "unshrunk model probability; the model has no proven edge over the market yet",
+   "options": [
+    {
+     "model_prob": 0.016318400830972173,
+     "prob_interval": [
+      0.016318400830972173,
+      0.016318400830972173
+     ],
+     "price": 0.016318400830972173,
+     "fees": 0.01,
+     "ev": -0.01,
+     "ev_low": -0.01,
+     "verdict": "no_positive_ev_found",
+     "engine": "gaussian_copula",
+     "raw_model_prob": 0.033300957292832806,
+     "model_weight": 0.0,
+     "spread": null,
+     "kelly": 0.0,
+     "n_settled_track": 0,
+     "raw_ev": 0.006982556461860632,
+     "raw_ev_low": 0.0013509303475614607,
+     "order_type": "taker",
+     "note": "Informational only; not financial advice. Estimated edges are noisy.",
+     "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAREB-25NOV13MIAATL-ATLP0-7|no+KXNBAPTS-25NOV13MIAATL-MIAP1-18|yes+KXNBAGAME-25NOV13MIAATL-ATL|no",
+     "kind": "parlay",
+     "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND Synth Eonez Parker pts >= 18 AND NOT (ATL win)",
+     "tradable": false,
+     "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+     "ask": 0.016318400830972173,
+     "bid": null,
+     "mid": 0.016318400830972173,
+     "raw_prob_interval": [
+      0.027669331178533634,
+      0.04033329553296709
+     ],
+     "independence_prob": 0.03375515222309326,
+     "legs_text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND Synth Eonez Parker pts >= 18 AND NOT (ATL win)",
+     "n_legs": 4,
+     "n_games": 1,
+     "order": {
+      "contracts": 11,
+      "cost": 0.2,
+      "fee": 0.02,
+      "payout": 11.0,
+      "profit_if_hit": 10.8,
+      "ev": -0.02049759085930611,
+      "ev_low": -0.02049759085930611,
+      "raw_ev": 0.16631053022116088,
+      "raw_ev_low": 0.10436264296386999,
+      "ev_low_per_dollar": -0.10248795429653054
+     },
+     "mode": "target",
+     "order_verdict": "no_positive_ev_found"
+    },
+    {
+     "model_prob": 0.025793601617109755,
+     "prob_interval": [
+      0.025793601617109755,
+      0.025793601617109755
+     ],
+     "price": 0.025793601617109755,
+     "fees": 0.01,
+     "ev": -0.01,
+     "ev_low": -0.01,
+     "verdict": "no_positive_ev_found",
+     "engine": "gaussian_copula",
+     "raw_model_prob": 0.04895675621179987,
+     "model_weight": 0.0,
+     "spread": null,
+     "kelly": 0.0,
+     "n_settled_track": 0,
+     "raw_ev": 0.013163154594690118,
+     "raw_ev_low": 0.0050542737642322155,
+     "order_type": "taker",
+     "note": "Informational only; not financial advice. Estimated edges are noisy.",
+     "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAREB-25NOV13MIAATL-ATLP0-7|no+KXNBAPTS-25NOV13MIAATL-MIAP1-18|yes+KXNBAPTS-25NOV13MIAATL-MIAP0-22|yes",
+     "kind": "parlay",
+     "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND Synth Eonez Parker pts >= 18 AND Synth Donez Parker pts >= 22",
+     "tradable": false,
+     "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+     "ask": 0.025793601617109755,
+     "bid": null,
+     "mid": 0.025793601617109755,
+     "raw_prob_interval": [
+      0.04084787538134197,
+      0.05897119859662464
+     ],
+     "independence_prob": 0.05034503383411425,
+     "legs_text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND Synth Eonez Parker pts >= 18 AND Synth Donez Parker pts >= 22",
+     "n_legs": 4,
+     "n_games": 1,
+     "order": {
+      "contracts": 11,
+      "cost": 0.3,
+      "fee": 0.02,
+      "payout": 11.0,
+      "profit_if_hit": 10.7,
+      "ev": -0.016270382211792667,
+      "ev_low": -0.016270382211792667,
+      "raw_ev": 0.23852431832979865,
+      "raw_ev_low": 0.1493266291947617,
+      "ev_low_per_dollar": -0.05423460737264223
+     },
+     "mode": "target",
+     "order_verdict": "no_positive_ev_found"
+    },
+    {
+     "model_prob": 0.017012801240599153,
+     "prob_interval": [
+      0.017012801240599153,
+      0.017012801240599153
+     ],
+     "price": 0.017012801240599153,
+     "fees": 0.01,
+     "ev": -0.01,
+     "ev_low": -0.01,
+     "verdict": "no_positive_ev_found",
+     "engine": "gaussian_copula",
+     "raw_model_prob": 0.03342751814060117,
+     "model_weight": 0.0,
+     "spread": null,
+     "kelly": 0.0,
+     "n_settled_track": 0,
+     "raw_ev": 0.00641471690000202,
+     "raw_ev_low": 0.0007819384420524687,
+     "order_type": "taker",
+     "note": "Informational only; not financial advice. Estimated edges are noisy.",
+     "key": "KXNBAREB-25NOV13MIAATL-ATLP1-6|no+KXNBAREB-25NOV13MIAATL-ATLP0-7|no+KXNBAGAME-25NOV13MIAATL-ATL|no+KXNBAPTS-25NOV13MIAATL-MIAP0-22|yes",
+     "kind": "parlay",
+     "text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND NOT (ATL win) AND Synth Donez Parker pts >= 22",
+     "tradable": false,
+     "price_basis": "product_of_leg_asks_NOT_A_TRADABLE_PRICE",
+     "ask": 0.017012801240599153,
+     "bid": null,
+     "mid": 0.017012801240599153,
+     "raw_prob_interval": [
+      0.02779473968265162,
+      0.04051302975047445
+     ],
+     "independence_prob": 0.03375515222309326,
+     "legs_text": "NOT (Synth Yonez Karker reb >= 6) AND NOT (Synth Xonez Karker reb >= 7) AND NOT (ATL win) AND Synth Donez Parker pts >= 22",
+     "n_legs": 4,
+     "n_games": 1,
+     "order": {
+      "contracts": 11,
+      "cost": 0.21,
+      "fee": 0.02,
+      "payout": 11.0,
+      "profit_if_hit": 10.79,
+      "ev": -0.022859186353409305,
+      "ev_low": -0.022859186353409305,
+      "raw_ev": 0.1577026995466129,
+      "raw_ev_low": 0.09574213650916782,
+      "ev_low_per_dollar": -0.10885326834956813
+     },
+     "mode": "target",
+     "order_verdict": "no_positive_ev_found"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,45 @@
+/Users/devin/Downloads/nba-prediction/nba/props/context_residual.py:374: UserWarning: Sortedness of columns cannot be checked when 'by' groups provided
+  j = left.join_asof(
+features built: 84052 rows
+pts 2024 block 1/9 2024-10-01 n=1407
+pts 2024 block 2/9 2024-11-01 n=4624
+pts 2024 block 3/9 2024-12-01 n=3970
+pts 2024 block 4/9 2025-01-01 n=4793
+pts 2024 block 5/9 2025-02-01 n=3704
+pts 2024 block 6/9 2025-03-01 n=4985
+pts 2024 block 7/9 2025-04-01 n=3099
+pts 2024 block 8/9 2025-05-01 n=842
+pts 2024 block 9/9 2025-06-01 n=159
+pts 2024: {"stat": "pts", "season": 2024, "crps_int": 3.1884109851549947, "lower_tail_crps_int": 3.1884109851549947, "delta": 0.0, "n": 27583, "lower_tail_n": 27583, "ok": true, "components_matched": 27583, "max_abs_dc": 0.0, "max_abs_ds": 0.0, "qi_max": 73, "kmax": 80, "max_tail_mass": 0.0}
+reb 2024 block 1/9 2024-10-01 n=1407
+reb 2024 block 2/9 2024-11-01 n=4624
+reb 2024 block 3/9 2024-12-01 n=3970
+reb 2024 block 4/9 2025-01-01 n=4793
+reb 2024 block 5/9 2025-02-01 n=3704
+reb 2024 block 6/9 2025-03-01 n=4985
+reb 2024 block 7/9 2025-04-01 n=3099
+reb 2024 block 8/9 2025-05-01 n=842
+reb 2024 block 9/9 2025-06-01 n=159
+reb 2024: {"stat": "reb", "season": 2024, "crps_int": 1.3139946716237645, "lower_tail_crps_int": 1.3139946716237645, "delta": 0.0, "n": 27583, "lower_tail_n": 27583, "ok": true, "components_matched": 27583, "max_abs_dc": 0.0, "max_abs_ds": 0.0, "qi_max": 34, "kmax": 35, "max_tail_mass": 0.0}
+ast 2024 block 1/9 2024-10-01 n=1407
+ast 2024 block 2/9 2024-11-01 n=4624
+ast 2024 block 3/9 2024-12-01 n=3970
+ast 2024 block 4/9 2025-01-01 n=4793
+ast 2024 block 5/9 2025-02-01 n=3704
+ast 2024 block 6/9 2025-03-01 n=4985
+ast 2024 block 7/9 2025-04-01 n=3099
+ast 2024 block 8/9 2025-05-01 n=842
+ast 2024 block 9/9 2025-06-01 n=159
+ast 2024: {"stat": "ast", "season": 2024, "crps_int": 0.9010234364001779, "lower_tail_crps_int": 0.9010234364001779, "delta": 0.0, "n": 27583, "lower_tail_n": 27583, "ok": true, "components_matched": 27583, "max_abs_dc": 0.0, "max_abs_ds": 0.0, "qi_max": 29, "kmax": 30, "max_tail_mass": 0.0}
+fg3m 2024 block 1/9 2024-10-01 n=1407
+fg3m 2024 block 2/9 2024-11-01 n=4624
+fg3m 2024 block 3/9 2024-12-01 n=3970
+fg3m 2024 block 4/9 2025-01-01 n=4793
+fg3m 2024 block 5/9 2025-02-01 n=3704
+fg3m 2024 block 6/9 2025-03-01 n=4985
+fg3m 2024 block 7/9 2025-04-01 n=3099
+fg3m 2024 block 8/9 2025-05-01 n=842
+fg3m 2024 block 9/9 2025-06-01 n=159
+fg3m 2024: {"stat": "fg3m", "season": 2024, "crps_int": 0.5922775210770066, "lower_tail_crps_int": 0.5922775210770066, "delta": 0.0, "n": 27583, "lower_tail_n": 27583, "ok": true, "components_matched": 27583, "max_abs_dc": 0.0, "max_abs_ds": 0.0, "qi_max": 17, "kmax": 18, "max_tail_mass": 0.0}
+{"season": 2024, "n_rows": 110332, "per_stat": {"pts": 27583, "reb": 27583, "ast": 27583, "fg3m": 27583}, "a0_ok": true}
+exit 0
