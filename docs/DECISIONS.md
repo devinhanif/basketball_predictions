@@ -318,3 +318,16 @@ data/facts/facts.duckdb (seasons 2022,2023,2024,2026 + 2026 schedule); exit 4 in
 the forecast path reads the store.
 Why: Devin's instruction; the switch was the last thing he had left to himself.
 What would reverse it: remove the variable from the plist and reload that job.
+
+## 2026-10-11 ~15:10 CT — Devin: the business (parlayhitters.ai)
+What: name/domain parlayhitters.ai; platforms X, Discord, TikTok, Instagram; Claude runs the socials (drafts and posts) on Devin's
+accounts with API tokens managed the enterprise-safe way (secrets manager, least privilege, rotation; never in repo or chat);
+positioning: a props assistance tool with paper trading, not picks; users see and can use the local props model's forecasts;
+slip images read by a nightly bulk LLM pass (or OCR, whichever parses reliably), fields extracted, images deleted; hosting on the
+VM + Cloudflare Pages; security best practices throughout; Claude handles customer service and escalates to Devin when needed;
+monthly spend: "very little" (ceiling $30 until Devin raises it); Devin's time: his call. Defaults taken where unanswered: no
+affiliate links until the honest tier pays its hosting; sole proprietor under Devin's name for now; US, 21+, no state-specific
+content; email-only accounts; payments only in phase 4; uploaded slips usable for the bettor-flow model under plain terms.
+Why: docs/BUSINESS_DRAFT_2026-10-11.md and Devin's answers of 2026-10-11 ~15:00.
+What would reverse it: Devin; any platform's terms barring automated posting on his accounts (checked per platform before the
+first post); any legal advice on the betting-adjacent positioning.
