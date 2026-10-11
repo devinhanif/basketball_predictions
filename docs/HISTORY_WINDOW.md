@@ -180,3 +180,18 @@ flag-off byte identity, weight application, history DB opened read-only.
 (none yet)
 
 - 2026-10-09 (data gate G0.5): real tip times pulled for 2019-20, 2020-21, 2021-22 via ScheduleLeagueV2 into `data/history/schedule/raw_*.parquet` (kept separate from production `data/schedule/`); `build_game_tipoff(\"data/history/schedule\")` yields 3,759 games with real tips (19: 1,145, 20: 1,221, 21: 1,393 incl. non-regular ids). No experiment result computed.
+
+## Result (2026-10-11 09:41 CT; frozen sha256 9a1090be verified; research/eval/history_window_eval.py; reports/history_window/)
+
+**STOPPED AT THE GATE AND THE COVERAGE AUDIT. No arm was fitted; no model number exists.** Audit sha256 63a755f4 logged before
+any fit. Gate G0.1, G0.2, G0.3, G0.5 pass (3,637/3,637 history games, 100% box coverage, possession MAE 2.01–2.09 within 3.0,
+real tips 100%). G0.4 FAILS: the official report calendar has no report rows for the first 20 dates of 2019-20 (2019-10-21 to
+2019-11-09; the PDFs begin 2019-11-10), so 2019-20 game coverage is 82.2% against 99.8% pooled 2022-24 (−17.6 points; 2020-21
++0.07, 2021-22 +0.15). The STOP rules of audit item 3 fire: the played-rate gap given `has_report` is 0.136 in 2022-24 but
+−0.003 (2019-20) and +0.016 (2020-21) in history; the NULL pattern of `gap_days` correlates with DNP more strongly in 2019-20
+(phi 0.127 vs 0.073); and a classifier on the report columns alone separates history from current rows with AUC 0.796 (> 0.75)
+while the columns' correlation with the residual label flips sign between eras (pts|has_report −0.008 vs +0.014; ast −0.012 vs
++0.017). Per the frozen rule the extension cannot be evaluated cleanly; H1 and H2 are not run. History `player_availability`
+loaded: 354,974 rows, 4,466 unmatched names (1.24%; mostly two-way players repeated daily; log at
+data/history/availability_unmatched_2026-10-11.json). Ledger T315. The one allowed follow-up: a win-model-only question that uses
+no report feature in the history era (drafted as ELO_HISTORY_WINDOW).

@@ -32,3 +32,8 @@ running now: the ingest queue is PAUSED for it (resumable; done steps skip) and 
 ## In flight
 - HISTORY_WINDOW: queue paused → history-DB prep (era flags, report load) → G0 → harness gate → smoke → Claude's 20-date PDF spot
   check → run → report → ledger rows → queue resumed. Result lands here when done.
+
+## 09:50 update
+HISTORY_WINDOW stopped at its own gate (T315): the 2019-21 injury reports carry era identity (no PDFs before 2019-11-10; three
+snapshots a day), so the props extension cannot be evaluated cleanly. No model was fit. Queue resumed. Your MOV-Elo question
+moves to a report-free follow-up, ELO_HISTORY_WINDOW, drafted for your "confirmed".

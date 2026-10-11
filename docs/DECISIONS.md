@@ -247,3 +247,11 @@ Why: brief 2026-10-11 ~03:05 (gates <= 20 missing, within-1-min not lower in any
 (91 -> 1; 188 -> 167 with 0 changed). What would reverse it: restore data/backups/lineups_pre_fix_20261011T082617Z_*.parquet and
 data/backups/player_availability_pre_f2b_20261011T082721Z.parquet; or disable alias use by passing no aliases.
 Open for Devin: GSW@MIN 2026-01-24 (7 rows) would resolve to 0022500644 by game-id slot; not applied.
+
+## 2026-10-11 ~09:50 CT — HISTORY_WINDOW: STOPPED at the coverage audit (T315); queue resumed
+What: the frozen rule's own STOP rules fired on the 2019-21 injury reports (coverage −17.6 points in 2019-20; played-rate gap and
+NULL-pattern asymmetry by era; report-column classifier AUC 0.80 with sign flips). No arm fitted. The ingest queue is resumed.
+Why: the rule anticipated exactly this ("the single largest leak trap for the report features") and says the extension cannot be
+evaluated cleanly. Devin's actual question (does MOV-Elo gain from more seasons) does not need report features, so the one allowed
+follow-up is drafted as ELO_HISTORY_WINDOW for his confirmation.
+What would reverse it: a report source for 2019-10-21 to 2019-11-09 and an era-balanced report design; not expected.

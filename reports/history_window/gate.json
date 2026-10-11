@@ -1,0 +1,126 @@
+{
+  "audit_sha256": "63a755f4474b201dbd1202c07ad3fd8a8585c25c6b6d992c29047194f57c017d",
+  "audit_stops": [
+    "G3.gap season 2019: -0.0026 vs 2022-24 0.1358",
+    "G3.phi gap_days_null season 2019: 0.1265 vs 2022-24 0.0727",
+    "G3.gap season 2020: 0.0164 vs 2022-24 0.1358",
+    "G3.classifier AUC 0.7957 > 0.75 AND sign flips ['pts|has_report: hist -0.0084 vs cur +0.0137', 'ast|has_report: hist -0.0124 vs cur +0.0173']"
+  ],
+  "failed_items": [
+    "G0.4"
+  ],
+  "g06": "evaluated first thing in `run` (W0 pts reproduction)",
+  "gate_pass": false,
+  "items": {
+    "G0.1": {
+      "cached_games": 3637,
+      "dnp_rows_with_nonzero_stats": 0,
+      "dnp_share_current": {
+        "2022": 0.18472254878909006,
+        "2023": 0.1898319689788884,
+        "2024": 0.19514350044175904
+      },
+      "dnp_share_history": {
+        "2019": 0.16030933221862265,
+        "2020": 0.20579471248335765,
+        "2021": 0.17129520207988655
+      },
+      "duplicates": 0,
+      "games_with_box_share": 1.0,
+      "history_games": 3637,
+      "missing_examples": [],
+      "missing_vs_cache": 0,
+      "pass": true,
+      "pf_fta_fga_non_null_share": 1.0,
+      "rows_with_zero_minutes": 14
+    },
+    "G0.2": {
+      "current_all_false": true,
+      "current_flag_coverage": 1.0,
+      "flags_valid": true,
+      "history_flag_coverage": 1.0,
+      "pass": true,
+      "rule_version_sha256": "6a483d1beb887973cc2c9483ba639c96f6040bd0a3b5cd0d99185d1dd39966a1"
+    },
+    "G0.3": {
+      "ceiling": 3.0,
+      "pass": true,
+      "per_season": {
+        "2019": {
+          "mae": 2.087471566054243,
+          "n_team_games": 2286
+        },
+        "2020": {
+          "mae": 2.02737830913749,
+          "n_team_games": 2342
+        },
+        "2021": {
+          "mae": 2.0111715797430083,
+          "n_team_games": 2646
+        }
+      }
+    },
+    "G0.4": {
+      "audit_complete": true,
+      "dates_missing_rows": [
+        "2019-10-21",
+        "2019-10-22",
+        "2019-10-23",
+        "2019-10-24",
+        "2019-10-25",
+        "2019-10-26",
+        "2019-10-27",
+        "2019-10-28",
+        "2019-10-29",
+        "2019-10-30",
+        "2019-10-31",
+        "2019-11-01",
+        "2019-11-02",
+        "2019-11-03",
+        "2019-11-04",
+        "2019-11-05",
+        "2019-11-06",
+        "2019-11-07",
+        "2019-11-08",
+        "2019-11-09"
+      ],
+      "dates_with_reports": 669,
+      "expected_calendar": 707,
+      "manifest_files": 707,
+      "n_dates_missing_rows": 38,
+      "parsing_parity_pass": true,
+      "pass": false,
+      "spot_check_dates": [
+        "2021-06-10",
+        "2021-10-10",
+        "2019-12-01",
+        "2021-01-30",
+        "2022-01-13",
+        "2021-12-18",
+        "2021-06-30",
+        "2021-03-18",
+        "2021-12-09",
+        "2021-05-13",
+        "2022-03-31",
+        "2020-12-18",
+        "2022-01-06",
+        "2020-07-29",
+        "2021-02-22",
+        "2020-07-30",
+        "2020-01-26",
+        "2022-05-06",
+        "2021-01-21",
+        "2022-02-04"
+      ],
+      "spot_check_manual": "compare 20 dates against raw PDFs; pass --spot-check-done to `run` afterwards"
+    },
+    "G0.5": {
+      "history_games": 3637,
+      "pass": true,
+      "proxy_fallback_allowed": false,
+      "share": 1.0,
+      "with_real_tip": 3637
+    }
+  },
+  "w1r_required": true
+}
