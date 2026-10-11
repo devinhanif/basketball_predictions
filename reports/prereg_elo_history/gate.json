@@ -1,0 +1,134 @@
+{
+ "1_history_complete_scores_non_null": {
+  "ok": true,
+  "detail": {
+   "db_games": 3637,
+   "unique_ids": 3637,
+   "cached_list": 3637,
+   "db_minus_cached": 0,
+   "cached_minus_db": 0,
+   "scores_non_null": 3637,
+   "ties": 0,
+   "by_season": {
+    "2019": 1143,
+    "2020": 1171,
+    "2021": 1323
+   }
+  }
+ },
+ "2_e0_reproduces_stored_oof": {
+  "ok": false,
+  "ok_registry_keys": true,
+  "detail": {
+   "stored": {
+    "n": 3951,
+    "log_loss": 0.6245452958318027,
+    "brier": 0.2180259696470721,
+    "ece": 0.0166039727047398,
+    "source": "registry_store/rung0_injury_elo/v2/results.json: mov_elo (pooled 2022-24)",
+    "per_season_stored": false
+   },
+   "measured_current_data": {
+    "n": 3956,
+    "log_loss": 0.6245897254634215,
+    "brier": 0.21804021632003223,
+    "ece": 0.01637840437083899,
+    "log_loss_2023": 0.6113886730820676,
+    "n_2023": 1318,
+    "log_loss_2024": 0.6107672741162157,
+    "n_2024": 1320
+   },
+   "abs_diff_log_loss": 4.442963161876978e-05,
+   "abs_diff_brier": 1.4246672960127604e-05,
+   "abs_diff_ece": 0.0002255683339008087,
+   "games_added_since_registry_run": [
+    "0022400147",
+    "0022400621",
+    "0022400633",
+    "0022401229",
+    "0022401230"
+   ],
+   "measured_registry_keys": {
+    "n": 3951,
+    "log_loss": 0.6245452958318027,
+    "brier": 0.2180259696470721,
+    "ece": 0.0166039727047398,
+    "log_loss_2023": 0.6113886730820676,
+    "n_2023": 1318,
+    "log_loss_2024": 0.6105812256513776,
+    "n_2024": 1315
+   },
+   "abs_diff_log_loss_registry_keys": 0.0,
+   "abs_diff_brier_registry_keys": 0.0,
+   "abs_diff_ece_registry_keys": 0.0,
+   "fast_vs_production_max_abs_E0": 0.0,
+   "fast_vs_production_max_abs_E1": 0.0
+  }
+ },
+ "3_planted_future": {
+  "ok": true,
+  "E0": {
+   "ok": true,
+   "probes": 6,
+   "prior_logits_byte_identical": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "positive_control_later_logits_move": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ]
+  },
+  "E1": {
+   "ok": true,
+   "probes": 6,
+   "prior_logits_byte_identical": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "positive_control_later_logits_move": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ]
+  }
+ },
+ "4_era_flags_complete": {
+  "ok": true,
+  "detail": {
+   "history_games": 3637,
+   "history_flag_rows": 3637,
+   "missing": 0,
+   "null_cells": {
+    "covid_bubble": 0,
+    "no_fans": 0,
+    "limited_fans": 0,
+    "shortened_season": 0
+   },
+   "rule_disagreements": 0,
+   "e3_downweighted_games": 172,
+   "limited_fans_games": 1171,
+   "shortened_games": 2314,
+   "current_games_without_flags_info": 0
+  }
+ },
+ "all_ok": false,
+ "all_ok_if_check2_on_registry_keys": true,
+ "prereg_sha256": "be51c2fe8c9aa741bedf7ce6bf7561bce782a67b5fb033cd48949bc4e2eaf9e5",
+ "allow_draft": true
+}

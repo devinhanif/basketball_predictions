@@ -1,6 +1,6 @@
 # ELO_HISTORY_WINDOW: does MOV-Elo gain from three more seasons of scores? (pre-registration; the one allowed HISTORY_WINDOW follow-up)
 
-Status: DRAFT 2026-10-11 ~10:00 CT, NOT FROZEN; awaiting Devin's "confirmed". Committed by the maintainer's hand BEFORE any fit.
+Status: FROZEN 2026-10-11 10:53 CT on Devin's confirmation ("Run everything, confirmed confirmed", 2026-10-11 ~11:05 CT; docs/DECISIONS.md). Two wordings amended before the freeze after the gate measure (evaluation set incl. playoffs; check 2 on the registry keys); E3 leaves 2020-21 limited_fans games at full weight as drafted. Committed by the maintainer's hand BEFORE any fit.
 Everything above the line `=== RESULTS BELOW ===` is frozen at that time. Freeze evidence: commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/ELO_HISTORY_WINDOW.md | shasum -a 256` (first 8 hex chars into the results
 section and every ledger row). Season labels: 2019 = 2019-20 … 2024 = 2024-25; 2025 = 2025-26 (frozen holdout, never loaded).
@@ -28,7 +28,8 @@ Season 2025 never loaded; `season <= 2024` asserted; both DBs read_only. Select 
 ## Fixed design (constants final)
 Inputs: `games` (game_id, date, home/away, final scores) from nba.duckdb (2022+) and data/history/nba_history.duckdb (2019-21);
 real tips not needed (Elo is a per-game sequence); `game_era_flags` read for the slice only. No report, roster or player feature.
-Arms (same evaluation games: every 2023 and 2024 regular-season game with a result; identical keys asserted):
+Arms (same evaluation games: every 2023 and 2024 game with a result, playoffs included as in the stored baseline (amended before
+the freeze after the gate measure; the draft said regular-season); identical keys asserted):
 * E0 production comparison arm: GA-tuned MOV-Elo, replay from 2022-10-18 (reproduces the stored 2023/2024 OOF log loss to 1e-6).
 * E1 long replay: same parameters, replay from 2019-10-22 with the production season carry-over rule applied at each boundary.
 * E2 re-tuned: the GA (research/… the archived tuner, same population, generations and seed as T182) fit on 2019-20 … 2022-23
@@ -43,11 +44,13 @@ and a date-block bootstrap (14-day blocks) as the clustering sensitivity; reliab
 Slices (descriptive): first 15 team games of the season (where carry-over matters), rest-of-season, home favourites, close games
 (|Elo diff| < 50). MDE: SE ≈ 0.004 per season (T178), so the floor below is at the detectable edge.
 
-## Minimum data checks (fail = stop, no model result). Measured 2026-10-11 (HISTORY_WINDOW gate):
-1. History `games` complete vs the cached game list: 3,637/3,637, no duplicates (pass). Scores non-null for all (to verify at freeze).
-2. E0 reproduces the stored MOV-Elo OOF log loss to 1e-6 (T182 numbers 0.6245 / 0.6271-style values from the registry run).
-3. Planted-future: a score edited after the evaluated game changes no rating used for it.
-4. Era flags present for 100% of history games (pass: 3,637 rows, 0 rule disagreements).
+## Minimum data checks (fail = stop, no model result). Measured 2026-10-11 10:41 CT by `research/eval/elo_history_eval.py gate --allow-draft` (reports/prereg_elo_history/gate.json; draft sha256 24ba3994 before this edit):
+1. History `games` complete vs the cached game list (`data/history/games/*.parquet`): 3,637/3,637, 0 missing either way, no duplicates; scores non-null for all 3,637; 0 ties. PASS.
+2. E0 reproduces the stored MOV-Elo OOF log loss to 1e-6 on the registry run's 3,951 game keys (amended before the freeze after the
+   gate measure: the five 2024 games restored by the 2026-10-11 data clean-up (neutral-site games, F2) post-date the stored run; they
+   stay in the evaluation set for every arm). The only stored value is POOLED 2022-24 (registry_store/rung0_injury_elo/v2/results.json `mov_elo`: log loss 0.6245452958, Brier 0.2180259696, ECE 0.0166039727, n 3,951); no per-season 2023/2024 MOV-Elo value is stored anywhere. On today's `games`: n 3,956, log loss 0.6245897 (|diff| 4.4e-5): FAILS as drafted. Cause: 5 games were added to `games` after the registry run (2024 season: 0022400147, 0022400621, 0022400633, 0022401229, 0022401230; 1,320 games now vs 1,315 then; 2023 unchanged at 1,318). With those five removed from the replay E0 reproduces all three stored numbers EXACTLY (|diff| 0.0; n 3,951). The fast replay used inside the GA equals the production replay (max |logit diff| 0.0 for E0 and E1 replays). Needs Devin's decision before the freeze (see the hand-back).
+3. Planted-future: scores of all games dated on/after an evaluated game's date replaced at random; no logit of any game dated on/before it changes (byte-identical), for 6 probe dates in each of the E0 and E1 replays; positive control (later logits do move) true in all 12. PASS.
+4. Era flags present for 100% of history games: 3,637 rows, 0 missing, 0 null cells, 0 rule disagreements. PASS. E3 down-weights 172 games (bubble/no-fans); the 1,171 2020-21 `limited_fans` games are NOT down-weighted by the rule as drafted.
 
 ## Pass rule (2023 selects, 2024 confirms; all must hold)
 Arm log-loss delta vs E0 <= −0.004 with CI upper < 0 (game bootstrap) and BH p < 0.05; the date-block CI also below 0; reliability

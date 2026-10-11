@@ -285,3 +285,11 @@ P(play) vs the comparator) is drafted only if Devin asks. PRODUCTION NOTE for De
 ~0.14; a production fix (drop or refit the map) is Devin's call and would go through the replay oracle.
 Why: the descriptive team trait did not survive a placebo once the report tag was in the model.
 What would reverse it: a multi-season team-habit term (history box scores) under a new rule, if Devin wants the follow-up spent there.
+
+## 2026-10-11 2026-10-11 10:53 CT — ELO_HISTORY_WINDOW FROZEN (sha256 d5432e50) after two pre-freeze amendments
+What: gate measured (3,637/3,637 history games, 0 ties; planted-future byte-identical; era flags 100%); check 2 could not pass on
+today's games because the 2026-10-11 clean-up restored five 2024 neutral-site games after the registry run → check 2 now reproduces
+on the registry's 3,951 keys (exact: |diff| 0.0) and the five games stay in the evaluation; "regular-season" → all games with a
+result, playoffs included, as the stored baseline. No arm fitted before the freeze. E3 down-weights bubble/no-fans games only.
+Why: non-negotiable 8 and Devin's confirmation.
+What would reverse it: nothing above the line changes.
