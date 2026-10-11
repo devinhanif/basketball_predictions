@@ -413,3 +413,13 @@ What: the player's own T-60 report tag as a props feature adds nothing beyond th
 already has; no stat near the floor; placebo-equivalent. Closed under its kill rule.
 Why: the model reads the minutes shift from existing columns; ~1,000 questionable rows per season are too few to add more.
 What would reverse it: nothing in this family; the tag's information lives in P(play) (PPLAY_CONTEXT), not in minutes given played.
+
+## 2026-10-11 ~21:00 CT — CALIBRATED_GRID: CLOSED, no pass (T339–T339); the four "try everything" rules are done
+What: calibration maps on the grid do not fix the over-confidence at the book's lines; a shuffled-label control beats every real
+map on line log loss, so the only effect available is generic shrinkage toward 0.5, and every arm stays worse than the book.
+Reading: the grid is calibrated overall (80% coverage 0.77-0.79) and over-confident exactly where the book places its line,
+which is the line carrying information the model lacks, not a map-fixable defect. Closed. Tally for the day's rules:
+MARKET_LINE_CLASSIFIER null, OWN_TAG null, HISTORY_WINDOW_2 not frozen (direction closed), CALIBRATED_GRID closed; the T-60
+props model is at the ceiling of its information; the levers are T-30, reporters and slips, all live-season.
+Why: the frozen rules; every one honoured.
+What would reverse it: a calibration source that uses the line's information with a track record (the ODDS_HISTORY blend, live).

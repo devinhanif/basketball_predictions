@@ -59,6 +59,22 @@ No family passes on 2023: close; no window tuning, no per-tier maps, one follow-
 
 === RESULTS BELOW ===
 
-(not run)
+Run 2026-10-11 15:13-15:18 CT under frozen sha256 43f9182c, harness research/eval/calibrated_grid_eval.py (C3 minimum conformed to the frozen 2,000 DK pairs; gate re-run without --allow-draft: checks 1-4 pass; CPU, about 4 min including a 120 s heavy.lock wait). Full tables: reports/prereg_calibrated_grid.md, results.json. Deltas are arm minus A0, negative is better, game-clustered 95% CI, B=2000, seed 0, BH over the 4 stats per (season, metric, arm). Mapped share of rows 80% (2023) / 78% (2024); the rest is warm-up identity.
+
+VERDICT: CLOSED. No family is selected on 2023 for any stat, for lines or CRPS. Nothing is confirmed on 2024.
+
+CRPS (A1 temperature / A2 Platt): worse than production wherever the CI excludes 0 (2023 pts +0.00205 / +0.00436, reb +0.00029 / +0.00201, ast +0.00010 / +0.00040, fg3m +0.00078 / +0.00088, all BH p <= 0.037; 2024 pts +0.00104 [+0.00032, +0.00178] / +0.00146, reb +0.00013 / +0.00006, ast +0.00008 / +0.00036, fg3m +0.00016 / +0.00056). The floor needs <= -0.005; nothing is near it.
+
+Line log loss, DK t60, delta vs A0 [CI] (n 2023: 14,354 / 15,052 / 9,650 / 14,191; 2024: 15,882 / 14,748 / 10,574 / 12,548 for pts / reb / ast / fg3m):
+- A1 2023: pts +0.00007 [-0.00015, +0.00029], reb +0.00026, ast +0.00016, fg3m +0.00094 (no gain, slightly worse). A1 2024: pts -0.00102 [-0.00117, -0.00087], reb -0.00030, ast -0.00053, fg3m -0.00013 (real but below the 0.002 floor).
+- A2 2023: +0.00198 / +0.00222 / +0.00153 / +0.00110 (worse). A2 2024: +0.00029 / +0.00014 / +0.00162 / +0.00104 (worse or flat).
+- A3 isotonic 2023: pts -0.00963 [-0.01268, -0.00660] (BH p 0.002), reb -0.00390 [-0.00642, -0.00130] (0.004), ast -0.00313 [-0.00635, +0.00017] (0.076), fg3m -0.00118 [-0.00327, +0.00099]. A3 2024: pts -0.00754, reb -0.00257, ast -0.00390, fg3m +0.00054 [-0.00238, +0.00368].
+- Versus the book every arm stays worse: best A3 pts 2024 +0.00794 [+0.00519, +0.01091]; A0 itself is +0.014 to +0.018 on pts.
+- CONTROL A4 (C1 fit on a label-shuffled window) gains MORE than the real maps on lines in all 8 stat-seasons (2023: -0.01160 / -0.00695 / -0.00644 / -0.00379; 2024: -0.00913 / -0.00424 / -0.00682 / -0.00440) while its CRPS is far worse (+0.36 pts). The shuffled fit pushes the temperature to its bound and shrinks line probabilities toward 0.5, which helps because the production line probabilities are over-confident. The pass rule's control clause (A4 >= -0.0005) therefore fails everywhere, and the A3 line gains on pts and reb do not count.
+- t5 is the same picture (A3 pts 2023 -0.01511 vs A4 -0.01513).
+
+Confident bins (DK t60, claimed -> realised, n), P(side) >= 0.7: A0 2023 pts 0.739 -> 0.563 (923) and 0.837 -> 0.529 (121); after A1 0.738 -> 0.566 (942) and 0.836 -> 0.557 (131); after A3 0.740 -> 0.557 (246) and 0.880 -> 0.542 (48). A0 2024 pts 0.736 -> 0.537 (682) and 0.838 -> 0.465 (86); A3 0.735 -> 0.526 (289) and 0.869 -> 0.419 (43). Temperature and Platt barely move the confident bins; isotonic thins them but the claimed-minus-realised gap stays 0.18-0.45. Other stats in reports/prereg_calibrated_grid.md.
+
+Reading: the layer does not make the grid's probabilities mean what they say. Per the kill criteria the direction is closed (no window tuning, no per-tier maps, one follow-up at most). The A4 gain says line log loss improves with any strong shrink toward 0.5, a statement about the grid's width at lines, not about trailing-window calibration.
 
 Freeze: 2026-10-11 15:12 CT, commit fe1bfe1, sha256 of everything above the line: 43f9182c39a6e8f7935c71cd5ae6d6c7160b63ce552df68019195095300eb4d6 (first 8: 43f9182c). Verify with the awk command in the header. (Supersedes the evidence line of 5ad045f, which was written before the status edit had applied.)

@@ -69,3 +69,7 @@ HISTORY_WINDOW_2: the repaired audit still stops, at a threshold below its own n
 seasons, 2021-22 (hourly report) is the real odd one. Not frozen; direction closed (T325). Your option if you want it: a new rule on
 2019-20 + 2020-21 only, or a CI-aware threshold. OWN_TAG and CALIBRATED_GRID still running.
 - 20:30: OWN_TAG null (T326–T338); closed. CALIBRATED_GRID still running (the last of the four).
+
+## 21:00 update
+CALIBRATED_GRID: closed, no pass (T339–T339): the over-confidence at lines is the line's information, not a fixable map. All four
+"try everything" rules done: four honest nulls. The T-60 props model is at its information ceiling; live season next.

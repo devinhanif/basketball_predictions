@@ -621,3 +621,8 @@ Measured follow-ups below, each descriptive first.
 - **OWN_TAG (the player's own questionable/probable tag into the props model): NULL (T326–T338).** Production already infers the
   −1.6-minute questionable effect from the flag history and the team's absences; the explicit tag is indistinguishable from a
   shuffled one. "Fix the injury features" ends here for the props model: the report's information is fully used at T-60.
+- **CALIBRATED_GRID ("make 75% mean 75%"): CLOSED (T339–T339).** Calibration maps on the grid cannot fix the over-confidence at
+  the book's lines: a shuffled-label control does as well or better, so the only effect is shrinking toward a coin flip, and the
+  confident bins stay at claimed 0.74 → realised 0.56 after every map. The grid is calibrated overall; it is over-confident
+  precisely where the book put its line, because the line carries information we do not have. "Confidently say no" at T-60 is
+  therefore not available from our side; the book's price is the calibrated number, and our forecast is the lean.

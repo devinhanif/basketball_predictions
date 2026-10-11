@@ -55,6 +55,7 @@ SEASONS = (SELECT_SEASON, REPORT_SEASON)
 MAX_SEASON = 2024  # season 2025 is the frozen holdout: never loaded
 WINDOW_DAYS = 60
 MIN_ROWS = 3000
+C3_MIN_PAIRS = 2000  # frozen amendment: C3 is fit on DK pairs, minimum 2,000
 N_Q = 199
 MODEL_EPS = 0.5 / 199
 T_BOUNDS = (0.25, 4.0)  # temperature
@@ -460,7 +461,7 @@ def score_stat(
                 pp[kind][a][sel] = p
             # C3: isotonic on the A0 line probabilities of pairs in the trailing window
             wmask = window_mask(rows.date[pr.row], start) & (pr.p0 == pr.p0)
-            if int(wmask.sum()) >= MIN_ROWS:
+            if int(wmask.sum()) >= C3_MIN_PAIRS:
                 iso = fit_isotonic(pr.p0[wmask], pr.over[wmask])
                 pp[kind]["A3"][sel] = iso.predict(pr.p0[sel])
                 entry[f"C3_pairs_{kind}"] = int(wmask.sum())

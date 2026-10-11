@@ -1,6 +1,6 @@
 {
- "prereg_sha256": "76c46967548517736b6b4249048d022513c7c89c9ba819e5344f20690afba50d",
- "allow_draft": true,
+ "prereg_sha256": "43f9182c39a6e8f7935c71cd5ae6d6c7160b63ce552df68019195095300eb4d6",
+ "allow_draft": false,
  "seasons": {},
  "check1_window_rows": {
   "ok": true,
@@ -1620,5 +1620,5 @@
   ]
  },
  "all_ok": true,
- "wall_seconds": 18.3
+ "wall_seconds": 16.6
 }
