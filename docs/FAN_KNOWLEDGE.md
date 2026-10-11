@@ -626,3 +626,13 @@ Measured follow-ups below, each descriptive first.
   confident bins stay at claimed 0.74 → realised 0.56 after every map. The grid is calibrated overall; it is over-confident
   precisely where the book put its line, because the line carries information we do not have. "Confidently say no" at T-60 is
   therefore not available from our side; the book's price is the calibrated number, and our forecast is the lean.
+- **"How do EV services show such high EV?" (Devin, 2026-10-11), replicated on our prices (719,628 soft-book legs at DK/FanDuel/
+  BetMGM where Pinnacle quotes the same line and side, 2023-24 + 2024-25):** their "EV" is a price comparison, Pinnacle's de-vigged
+  probability × the soft book's payout − 1, not a forecast. Flagging legs at ≥ 3% claimed EV (2.0% of all legs; claimed average
+  +4.7%) returned +1.5% [−1.2%, +4.1%] at T-60 and +1.6% at T-5; at ≥ 5% (0.6% of legs; claimed +6.7%) +2.4% [−2.4%, +7.0%]; at
+  ≥ 10% (109 legs) +9% with a CI from −12% to +32%. About a third of the claimed EV is real on average and the rest is (1) the de-vig
+  method (a 2-point change in how Pinnacle's vig is removed moves "EV" by ~4 points), (2) showing the extreme tail of thousands of
+  lines a day (selection), (3) the flagged legs hitting at 50.3% while Pinnacle's own de-vigged probability for them is 51.8%, i.e.
+  Pinnacle is a touch over-confident on the very lines where soft books disagree with it, (4) stale soft lines that get limited or
+  pulled. FanDuel's flagged legs returned 0.99; DraftKings 1.03; BetMGM 1.04. Product note: an honest scanner would show the
+  realised third, with the interval, not the claimed number.
