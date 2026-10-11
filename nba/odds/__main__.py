@@ -1,8 +1,11 @@
 """CLI: ``python -m nba.odds {capture,status,history-pull,history-status,build-aliases} ...``
 (read-only; never raises out of main).
 
-``capture`` / ``status`` are the theoddsapi.com live feed. ``history-pull`` / ``history-status`` are
-the SEPARATE the-odds-api.com historical archive pull (``nba.odds.history_pull``).
+``capture`` / ``status`` are the theoddsapi.com live feed (legacy; its subscription was cancelled
+2026-10-10). ``capture --kind t60|close`` is the the-odds-api.com per-game LIVE capture
+(``nba.odds.live_close``), a no-op unless ``NBA_CLOSE_CAPTURE=1``. ``history-pull`` /
+``history-status`` are the SEPARATE the-odds-api.com historical archive pull
+(``nba.odds.history_pull``).
 
 Exit codes: 0 ok (including an empty / out-of-season feed), 4 informational (feed unreachable,
 key missing, budget refused, or the store was busy), 5 an unexpected internal error. The daily job
@@ -55,6 +58,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     c.add_argument("--date", type=date.fromisoformat, required=True, help="ET slate date")
     c.add_argument("--dry-run", action="store_true", help="call + cache raw + parse; no DB write")
     c.add_argument("--out", default=None, help="DuckDB file (default: configs/odds.yaml out_db)")
+    c.add_argument(
+        "--kind",
+        choices=("t60", "close"),
+        default=None,
+        help="the-odds-api.com LIVE per-game capture (needs NBA_CLOSE_CAPTURE=1, else a no-op); "
+        "omitted: the legacy theoddsapi.com slate capture",
+    )
     sub.add_parser("status", help="print /me/ account usage")
     hp = sub.add_parser("history-pull", help="the-odds-api.com historical pull (one season)")
     hp.add_argument("--season", type=int, required=True, help="games.season (2023, 2024, 2025)")
@@ -108,6 +118,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             for line in hrep.lines():
                 print(line, flush=True)
             return RC_INFORMATIONAL if (hrep.refused or hrep.aborted) else 0
+        if a.kind:
+            from nba.odds.live_close import run_live_capture
+
+            lrep = run_live_capture(a.date, a.kind, dry_run=a.dry_run)
+            for line in lrep.lines():
+                print(line, flush=True)
+            return RC_INFORMATIONAL if lrep.degraded else 0
         rep = run_capture(a.date, dry_run=a.dry_run, out_db=Path(a.out) if a.out else None)
         for line in summary_lines(rep):
             print(line)
