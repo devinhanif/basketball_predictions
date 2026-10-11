@@ -88,3 +88,23 @@ honest "nothing to report"; proposed ledger / DECISIONS rows drafted, not append
 Commit. Write a prediction after tip. Edit `HOLDOUT_ACCESS_LOG.md`, registry stages, models, model
 configs or a frozen rule. Kill a process, delete data, or change a scheduler. Retrain, promote or roll
 back on your own. Place orders, hold credentials, or post anything outward.
+
+## Hand-back (typed; required as the LAST message of every run; nothing after it)
+Fill every field; "none", "n/a" and "unknown" are valid values. Prose goes above this block, never inside it.
+```
+status: done | stopped_at_gate | blocked | partial
+rule: <id> <sha256 first 8> | n/a
+gate: [{check, before, after, pass}] | n/a
+changed_files: [tracked paths]          # scratch/ignored paths listed separately as scratch_files
+backups: [paths]                        # one per write to data/, else none
+drafted_rows: {ledger: <path|none>, decisions: <path|none>, changelog: <path|none>, holdout_log: none}
+numbers: [{name, value, n, ci, family}] # or none; nothing without n and a CI
+verification: {ruff: <exit>, format: <exit>, mypy: <exit>, pytest: "<N> passed, exit <code>"}  # unpiped
+unstated_details: [..] | none           # chosen before scoring
+cost: {requests: n, credits: n, wall_minutes: n, ceiling: <value>}  # halt at the ceiling, never past it
+confidence: <0-1> because <one reason it is not higher>
+unknowns: [..] | none
+needs_devin: [..] | none
+```
+The main session commits only paths listed in changed_files and appends only rows listed in drafted_rows
+(ledger-complete check: rows drafted == rows appended). A run without this block is incomplete.

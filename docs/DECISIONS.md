@@ -202,3 +202,9 @@ Why: between-game variance that M2's features capture is not reproduced by habit
 iterations, conv=False in every block) is a possible contributor but tuning is forbidden by the rule and would not close a 0.5-min gap.
 What would reverse it: a new pre-registered idea that adds pre-tip information; not a mechanism rewrite. The allowed follow-up is
 not spent.
+
+## 2026-10-11 ~09:30 CT — Typed hand-backs and two checks for agent runs (Devin: "yes on 2")
+What: a fixed hand-back block appended to all six agent definitions; cost-ceiling and ledger-complete checks before every commit of
+agent work (BEST_PRACTICES). From the agent-team email and the harness paper (docs/research/harness_design_paper_2026-10-11.md).
+Why: four incidents in two days that a schema would have caught. No production impact.
+What would reverse it: the block costing more context than it saves (measure: hand-back length vs incidents over two weeks).

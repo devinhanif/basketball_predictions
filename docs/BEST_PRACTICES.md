@@ -90,3 +90,11 @@ is the only reason it was tidiness and not an outage. Practice: `git commit -- <
 - **launchd runs the working tree.** The pretip job at 00:04 on 2026-10-11 executed an uncommitted edit to nba/daily/t30.py (its
   decision row carries `dupes_collapsed=10`) before the fix was reviewed. Edits under nba/daily, nba/lineups and ops/ must be made
   in a worktree or stashed between the :20/:50 runs until shipped; a reviewer's "it is only drafted" is not true for the live job.
+
+- **Typed hand-backs (Devin, 2026-10-11: "yes on 2").** Every agent run ends with the fixed block in `.claude/agents/*.md`
+  (status, rule, gate, changed_files, backups, drafted_rows, numbers with n and CI, unpiped verification exits, unstated
+  details, cost vs ceiling, confidence with the reason it is not higher, unknowns, needs_devin). Incidents behind it
+  (2026-10-10/11): placeholder ledger rows in three formats, a gate target set from a sample and revised after the full run, a
+  rebuild overlapping the pretip window, "report once at the end" prose that hid a failed sub-check. Two checks now run before
+  every commit of agent work: **cost-ceiling** (each run declares a ceiling in requests/credits/minutes and halts at it) and
+  **ledger-complete** (rows drafted equal rows appended). Every uncaught error becomes a new check here.

@@ -161,3 +161,7 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   replay hash re-baselined (030804df). Nothing needs you; next report is the hazard verdict.
 - 2026-10-11 04:00: MINUTES_HAZARD_2 ran under its frozen rule: FAIL, 0.55 min worse than M2, worse everywhere (T301–T314). Closed,
   and with it the "better pre-game minutes" direction. Night's work complete; nothing pending on you except the X sign-up.
+- 2026-10-11 09:30: delete of the replay scratch DBs was BLOCKED by the session's permission layer (not retried). Run yourself when
+  convenient, from the repo root (keeps oracle_a, oracle_golden2, full_wave_b, replay2025):
+  `rm -rf data/rehearsal/oracle_t30base* data/rehearsal/oracle_t30fix* data/rehearsal/oracle_[b-j]*`
+  Typed hand-backs added to all six agents (DECISIONS). X sign-up skipped for now per Devin.
