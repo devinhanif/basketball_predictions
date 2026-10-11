@@ -574,6 +574,22 @@ def _page_boundaries(
     needed = ("gametime", "matchup", "team", "player", "status", "reason")
     if any(k not in first for k in needed):
         return fallback
+    if first["reason"] < first["status"]:
+        # 2019-10-21 .. 2019-11-19 layouts: ``Reason`` precedes ``Current Status`` and a
+        # ``Previous Status`` column trails it (2019-10-21 .. 2019-11-14 also has a ``Category``
+        # column before ``Reason``). Boundaries must be x-sorted, and the trailing column is
+        # given its own (ignored) slot. The later layouts keep the legacy list unchanged.
+        legacy = dict(first)
+        for w in hdr:
+            text, x0 = str(w["text"]), cast(float, w["x0"])
+            if text == "Category":
+                legacy.setdefault("category", x0)
+            elif text == "Previous":
+                legacy.setdefault("previous", x0)
+        slots = sorted(
+            [(legacy[k] - 2.0, k) for k in legacy if k != "gamedate"], key=lambda b: b[0]
+        )
+        return [(0.0, "gamedate")] + slots
     return [(0.0, "gamedate")] + [(first[k] - 2.0, k) for k in needed]
 
 
@@ -597,7 +613,17 @@ def _is_header_or_footer(row_text: str) -> bool:
 class _PlayerRecord:
     """Mutable builder for one player row while a page is being parsed."""
 
-    __slots__ = ("gamedate", "gametime", "matchup", "team", "player", "status", "y", "reason_parts")
+    __slots__ = (
+        "gamedate",
+        "gametime",
+        "matchup",
+        "team",
+        "player",
+        "status",
+        "y",
+        "reason_parts",
+        "category_parts",
+    )
 
     def __init__(
         self,
@@ -610,6 +636,7 @@ class _PlayerRecord:
         status: str | None,
         y: float,
         reason0: str | None,
+        category0: str | None = None,
     ) -> None:
         self.gamedate = gamedate
         self.gametime = gametime
@@ -619,13 +646,22 @@ class _PlayerRecord:
         self.status = status
         self.y = y
         self.reason_parts: list[tuple[float, str]] = [(y, reason0)] if reason0 else []
+        self.category_parts: list[tuple[float, str]] = [(y, category0)] if category0 else []
 
     @property
     def reason(self) -> str | None:
-        if not self.reason_parts:
-            return None
-        parts = [text for _, text in sorted(self.reason_parts, key=lambda p: p[0])]
-        return " ".join(parts)
+        detail: str | None = None
+        if self.reason_parts:
+            detail = " ".join(text for _, text in sorted(self.reason_parts, key=lambda p: p[0]))
+        if not self.category_parts:
+            return detail
+        # 2019-10-21 .. 2019-11-14 layout: a separate Category column. Joined in the later
+        # layouts' own style ("G League - Two-Way", "Injury/Illness - Left Knee"); a bare "-"
+        # detail means no detail.
+        category = " ".join(text for _, text in sorted(self.category_parts, key=lambda p: p[0]))
+        if detail is None or detail.strip() == "-":
+            return category
+        return f"{category} - {detail}"
 
 
 def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
@@ -662,6 +698,7 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
 
         page_start = len(records)
         floating_fragments: list[tuple[float, str]] = []
+        floating_categories: list[tuple[float, str]] = []
 
         for y in sorted(rows):
             ws = sorted(rows[y], key=lambda w: cast(float, w["x0"]))
@@ -691,18 +728,26 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
                         status=cols.get("status"),
                         y=y,
                         reason0=cols.get("reason"),
+                        category0=cols.get("category"),
                     )
                 )
             else:
                 reason = cols.get("reason")
                 if reason and reason.replace(" ", "").lower() != _PLACEHOLDER_STATUS:
                     floating_fragments.append((y, reason))
+                category = cols.get("category")
+                if category and category.replace(" ", "").lower() != _PLACEHOLDER_STATUS:
+                    floating_categories.append((y, category))
 
         page_records = records[page_start:]
         if page_records and floating_fragments:
             for y, text in floating_fragments:
                 nearest = min(page_records, key=lambda r: abs(r.y - y))
                 nearest.reason_parts.append((y, text))
+        if page_records and floating_categories:
+            for y, text in floating_categories:
+                nearest = min(page_records, key=lambda r: abs(r.y - y))
+                nearest.category_parts.append((y, text))
 
     return records
 

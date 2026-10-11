@@ -97,3 +97,7 @@ Plain version: the first three make the data and the store ready for the live se
 - Supervised pretip run, 2026-10-11 10:33 CT (`nba.daily run --date 2026-10-11 --roster-source official --log-int-variant`):
   rc 0, slate 0 (no regular-season games yet), injury step skipped, no alerts. The wiring runs; the live schedule and injury-PDF
   fetch are still unrehearsed on a real slate. Repeat on 2026-10-20 before the first tip (checklist item 2 stays open).
+
+- Loose end (2026-10-11, early-2019 report layouts): in layout C (2019-11-20 to 12-17) the trailing "Previous Status" words are
+  appended to `reason` in already-loaded history rows (and 2019-12-16 08PM carries "Previous Reason"). Harmless for status, wrong
+  for reason text; a separate data fix (archivist) with the no-row-changes gate relaxed for exactly those dates.
