@@ -157,3 +157,5 @@ log by December (recommended); (2) also buy the-odds-api.com 5M ($119 once) for 
   once by data-check (players_static.first_season / draft_status), clear from this baseline. Left on purpose: 188 report rows with
   no game, 91 same-surname stint misses (NEXT_SESSION). Golden replay hash being re-baselined; MINUTES_HAZARD_2 gate being
   measured on the rebuilt stints.
+- 2026-10-11 03:10: MINUTES_HAZARD_2 FROZEN (a11ae618; gate passes on the rebuilt stints, label gap 0.77 pp) and RUNNING. Golden
+  replay hash re-baselined (030804df). Nothing needs you; next report is the hazard verdict.
