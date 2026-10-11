@@ -45,3 +45,13 @@ production and outward changes → the strongest tier or the main session; (2) r
 is a valid answer: when a brief's class is unclear the main session decides, not the agent; (4) sensitive classes (money,
 production, holdout, outward posts) always stop at Devin, which is already non-negotiable 6. **Not adopted yet:** the Jev proxy
 or skill itself (needs an OpenRouter/TypeSafe key and a measured token comparison; Devin's purchase if wanted).
+
+**Addendum 3 (2026-10-11 ~17:40, Devin: "google what others did to get their number lower"):** three extended searches. No
+rigorous public ablation of NBA prop features exists; practitioner themes (minutes first, with/without conditional usage,
+recency weighting, pace, blowout risk, "injury uncertainty widens the range") are all things this repo has tested under rules
+(MINUTES_V2, usage redistribution, FOUR_FACTORS, lower tail). Two transferable results: (1) a Bundesliga study (Wilkens 2026)
+found the market better calibrated than its model and recommends odds as an INPUT, which is MARKET_LINE_CLASSIFIER; (2)
+calibration layers (temperature, then isotonic on a rolling window; Platt favoured over isotonic for log loss stability) fix
+over-confidence without changing rankings, which is CALIBRATED_GRID. Sources: techbuzzireland feature-engineering post; the
+calibrated football forecasting paper (cse.aua.am); Wilkens, Journal of Sports Analytics 2026; the arXiv conformal and NBA
+scoring papers (none on player props).
