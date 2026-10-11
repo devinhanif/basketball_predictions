@@ -48,6 +48,13 @@ credited the wrong player for the first 1.5-2 minutes. v2:
    for names that match nobody, narrowed by who is not on court. Anything
    still ambiguous is skipped and recorded in ``LineupReport.unresolved``
    (fail loud in the report, never silent).
+   Added 2026-10-11 (F4, same-surname teammates): (e) *alias evidence*. The out side of every
+   substitution carries the exact ``player_id`` and the name text the feed uses for him
+   (``"C. Jones"``, ``"Hansen"`` for a player the feed calls "Yang"), so the corpus of out sides
+   (``aliases_by_player``, built over the supplied games) says which text names a player uses.
+   It narrows same-surname candidates by their observed initial (never by absence of
+   evidence), and names a sub-in whose text matches no PBP name. Jersey numbers are not in
+   the feed; guessing by minutes is not done.
 
 ### Remaining known failure modes
 - Both same-surname teammates off the floor with no initial evidence.
@@ -179,7 +186,9 @@ class _NameBook:
         pbp: pl.DataFrame,
         roster_by_team: dict[int, list[int]] | None,
         names_by_player: dict[int, str] | None = None,
+        aliases_by_player: dict[int, set[tuple[str | None, str]]] | None = None,
     ) -> None:
+        self.aliases: dict[int, set[tuple[str | None, str]]] = aliases_by_player or {}
         self.by_surname: dict[int, dict[str, set[int]]] = {}
         self.by_full: dict[int, dict[str, set[int]]] = {}
         self.named: dict[int, set[int]] = {}
@@ -224,6 +233,29 @@ class _NameBook:
             t: {p for p in ids if p not in self.named.get(t, set())}
             for t, ids in (roster_by_team or {}).items()
         }
+        self.team_players: dict[int, set[int]] = {
+            t: set(self.named.get(t, set())) | set(self.unnamed.get(t, set()))
+            for t in set(self.named) | set(self.unnamed)
+        }
+
+    def _alias_matches(self, team: int, initial: str | None, sur: str) -> set[int]:
+        """Team players whose observed out-side text equals this name (initial if given)."""
+        hits: set[int] = set()
+        for p in self.team_players.get(team, set()):
+            seen = self.aliases.get(p)
+            if not seen:
+                continue
+            if initial is None:
+                if any(a_sur == sur for _, a_sur in seen):
+                    hits.add(p)
+            elif (initial, sur) in seen:
+                hits.add(p)
+        return hits
+
+    def _alias_excludes(self, p: int, initial: str, sur: str) -> bool:
+        """True if ``p`` was observed under this surname only with other, explicit initials."""
+        inits = {a_init for a_init, a_sur in self.aliases.get(p, set()) if a_sur == sur}
+        return bool(inits) and None not in inits and initial not in inits
 
     def resolve(self, team: int, name: str, on_court: set[int]) -> int | None:
         initial, sur = _split_initial(name)
@@ -242,6 +274,22 @@ class _NameBook:
             narrowed = cands & full
             if narrowed:
                 cands = narrowed
+        alias_hits = self._alias_matches(team, initial, sur)
+        if not cands and len(alias_hits) == 1:
+            # The feed's PBP name for this player differs from the text name (e.g. "Yang" vs
+            # "Hansen"); his own out-side text elsewhere ties the name to his id exactly.
+            return next(iter(alias_hits))
+        if initial is not None and len(cands) > 1:
+            kept = {c for c in cands if not self._alias_excludes(c, initial, sur)}
+            if kept:
+                cands = kept
+            if len(cands & alias_hits) == 1 and len(cands) > 1:
+                # Exactly one candidate has been seen under this exact initial+surname text; the
+                # rest are unobserved or seen under other text. The feed disambiguates same-initial
+                # teammates with a longer prefix, so the observed one is the sub-in.
+                only = next(iter(cands & alias_hits))
+                if all(c == only or self.aliases.get(c) is not None for c in cands):
+                    return only
         if initial is None and len(cands) == 1:
             return next(iter(cands))
         off = cands - on_court
@@ -353,6 +401,7 @@ def track_lineups_with_report(
     starters_by_team: dict[int, list[int]],
     roster_by_team: dict[int, list[int]] | None = None,
     names_by_player: dict[int, str] | None = None,
+    aliases_by_player: dict[int, set[tuple[str | None, str]]] | None = None,
 ) -> tuple[pl.DataFrame, LineupReport]:
     """Track each team's on-court five through one game; also return what was unsure.
 
@@ -361,7 +410,9 @@ def track_lineups_with_report(
     pipeline). ``roster_by_team`` (optional) lists box-score players who played,
     used to resolve substitution names for players who never act in the PBP.
     ``names_by_player`` (optional) maps player_id to the name the feed uses for him in other
-    games; it names roster players who never act in this game.
+    games; it names roster players who never act in this game. ``aliases_by_player`` maps
+    player_id to the (initial, surname) texts the feed uses for him on the out side of
+    substitutions (exact ids); it separates same-surname teammates (see the module docstring).
     Returns ``(stints, report)``; see the module docstring.
     """
     report = LineupReport()
@@ -379,7 +430,7 @@ def track_lineups_with_report(
             raise ValueError(f"starters_by_team[{team_id}] must have exactly 5 unique players")
 
     pbp = in_game_order(pbp)
-    book = _NameBook(pbp, roster_by_team, names_by_player)
+    book = _NameBook(pbp, roster_by_team, names_by_player, aliases_by_player)
     teams = sorted(starters_by_team.keys())
     rows = list(pbp.iter_rows(named=True))
     periods = sorted({r["period"] for r in rows})
@@ -461,9 +512,12 @@ def track_lineups(
     starters_by_team: dict[int, list[int]],
     roster_by_team: dict[int, list[int]] | None = None,
     names_by_player: dict[int, str] | None = None,
+    aliases_by_player: dict[int, set[tuple[str | None, str]]] | None = None,
 ) -> pl.DataFrame:
     """``track_lineups_with_report`` without the report (stints only)."""
-    return track_lineups_with_report(pbp, starters_by_team, roster_by_team, names_by_player)[0]
+    return track_lineups_with_report(
+        pbp, starters_by_team, roster_by_team, names_by_player, aliases_by_player
+    )[0]
 
 
 def _covering_stint(

@@ -237,3 +237,13 @@ report, guarded by `NBA_FACTS_NIGHTLY=1` (unset: the script's behaviour is byte-
 data_version 1bee33d02ff2: hash 030804df… identical to golden2. Real build done (backup data/backups/facts_pre_seasons_20261011.duckdb).
 Why: the reporter feed and the explainer need 2026-27 facts; the live path must not change without Devin's word.
 What would reverse it: Devin sets the env var in the launchd job (ops/install_launchd.sh) to turn it on; removing the step turns it off.
+
+## 2026-10-11 ~03:30 CT - DRAFT: alias evidence in the stint name book; availability rows resolved only by the report's own text (archivist)
+What: (1) `_NameBook` uses the corpus of substitution out-side texts (exact ids) to separate same-surname teammates and to name
+sub-ins the feed lists under another name; no minutes-based guessing, no jersey (not in the feed); absence of evidence never
+selects a player. (2) 188 NULL-game_id availability rows were resolved only where the report's own (date, matchup) names a game
+in `games` or a unique same-pair game within 7 days; 167 stay NULL with reasons, including 156 postponed beyond 7 days.
+Why: brief 2026-10-11 ~03:05 (gates <= 20 missing, within-1-min not lower in any season, rows unchanged); both gates passed
+(91 -> 1; 188 -> 167 with 0 changed). What would reverse it: restore data/backups/lineups_pre_fix_20261011T082617Z_*.parquet and
+data/backups/player_availability_pre_f2b_20261011T082721Z.parquet; or disable alias use by passing no aliases.
+Open for Devin: GSW@MIN 2026-01-24 (7 rows) would resolve to 0022500644 by game-id slot; not applied.

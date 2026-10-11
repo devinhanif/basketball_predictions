@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-11T00:56:51.631078+00:00",
- "data_version": "1bee33d02ff2",
+ "created_at": "2026-10-11T08:27:24.310341+00:00",
+ "data_version": "418510d401d3",
  "db_path": "/Users/devin/Downloads/nba-prediction/nba.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -16,8 +16,8 @@
    "files": 4
   },
   "backups": {
-   "bytes": 625438496,
-   "files": 15
+   "bytes": 656745222,
+   "files": 19
   },
   "boxscore": {
    "bytes": 39883910,
@@ -32,7 +32,7 @@
    "files": 1724
   },
   "facts": {
-   "bytes": 21770240,
+   "bytes": 23605248,
    "files": 1
   },
   "games": {
@@ -40,8 +40,8 @@
    "files": 4
   },
   "history": {
-   "bytes": 198924613,
-   "files": 10577
+   "bytes": 276192654,
+   "files": 13071
   },
   "hustle": {
    "bytes": 38425808,
@@ -64,12 +64,12 @@
    "files": 3
   },
   "kalshi": {
-   "bytes": 24913145,
-   "files": 6173
+   "bytes": 27563878,
+   "files": 6985
   },
   "lineups": {
-   "bytes": 4682474,
-   "files": 54
+   "bytes": 5242059,
+   "files": 68
   },
   "markets": {
    "bytes": 1323008,
@@ -82,6 +82,10 @@
   "minutes_hazard": {
    "bytes": 87643572,
    "files": 3
+  },
+  "minutes_hazard_2": {
+   "bytes": 141394667,
+   "files": 41
   },
   "minutes_v2": {
    "bytes": 3482850,
@@ -104,8 +108,8 @@
    "files": 3954
   },
   "ops": {
-   "bytes": 1864882835,
-   "files": 252
+   "bytes": 1864912403,
+   "files": 257
   },
   "parlay": {
    "bytes": 276877,
@@ -128,12 +132,12 @@
    "files": 2
   },
   "refs": {
-   "bytes": 7369875,
-   "files": 45
+   "bytes": 8142965,
+   "files": 47
   },
   "rehearsal": {
-   "bytes": 19927262437,
-   "files": 6414
+   "bytes": 22664332090,
+   "files": 6586
   },
   "reviews": {
    "bytes": 3429244272,
@@ -152,8 +156,8 @@
    "files": 1
   },
   "scratch": {
-   "bytes": 292106,
-   "files": 40
+   "bytes": 407858,
+   "files": 66
   },
   "shots": {
    "bytes": 1675835,
@@ -773,77 +777,133 @@
    "date_range": {
     "cutoff": [
      "2026-10-09 23:30:00",
-     "2026-10-11 00:00:00"
+     "2026-10-11 02:00:00"
     ],
     "decided_at": [
      "2026-10-09 23:32:49.118175",
-     "2026-10-11 00:04:26.276169"
+     "2026-10-11 02:00:33.208303"
     ],
     "snapshot_fetched_at": [
      "2026-10-09 23:27:44.455210",
-     "2026-10-10 23:57:40.826392"
+     "2026-10-11 01:55:28.840552"
     ],
     "tipoff": [
      "2026-10-10 00:00:00",
-     "2026-10-11 00:30:00"
+     "2026-10-11 02:30:00"
     ]
    },
-   "fingerprint": "ab84d7efe38706a0-18de012195cb037a",
+   "fingerprint": "6b85a5854776e1bf-d8df738c3abcea99",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id"
    ],
-   "row_count": 7,
+   "row_count": 8,
    "schema_hash": "b0728d379a1fc510",
    "seasons": {}
   },
   "game_era_flags": {
    "columns": {
     "covid_bubble": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "BOOLEAN"
     },
     "game_id": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "VARCHAR"
     },
     "limited_fans": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "BOOLEAN"
     },
     "no_fans": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "BOOLEAN"
     },
     "notes": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 1.0,
+     "null_rate_by_season": {
+      "2022": 1.0,
+      "2023": 1.0,
+      "2024": 1.0,
+      "2025": 1.0
+     },
      "type": "VARCHAR"
     },
     "season": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "INTEGER"
     },
     "shortened_season": {
-     "null_rate": null,
-     "null_rate_by_season": {},
+     "null_rate": 0.0,
+     "null_rate_by_season": {
+      "2022": 0.0,
+      "2023": 0.0,
+      "2024": 0.0,
+      "2025": 0.0
+     },
      "type": "BOOLEAN"
     }
    },
    "date_range": {},
-   "fingerprint": "empty",
-   "pk_duplicates": null,
+   "fingerprint": "1e48d910525356b6-0980b7843b556392",
+   "pk_duplicates": 0,
    "primary_key": [
     "game_id"
    ],
-   "row_count": 0,
+   "row_count": 5279,
    "schema_hash": "aa7de20cacb0818f",
-   "seasons": {}
+   "seasons": {
+    "2022": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 1320
+    },
+    "2023": {
+     "coverage": 1.0,
+     "games": 1318,
+     "rows": 1318
+    },
+    "2024": {
+     "coverage": 1.0,
+     "games": 1320,
+     "rows": 1320
+    },
+    "2025": {
+     "coverage": 1.0,
+     "games": 1321,
+     "rows": 1321
+    }
+   }
   },
   "game_officials": {
    "columns": {
@@ -1266,7 +1326,7 @@
     },
     "game_id": {
      "asymmetry": 0.0,
-     "null_rate": 0.00159,
+     "null_rate": 0.001412,
      "null_rate_by_season": {
       "2022": 0.0,
       "2023": 0.0,
@@ -1353,7 +1413,7 @@
      "2026-06-13 17:45:00"
     ]
    },
-   "fingerprint": "1532cc5ec3523521-5db23c7364eb0a31",
+   "fingerprint": "d14956bcdd6d9b05-567918711087a1cd",
    "pk_duplicates": 0,
    "played_split": {
     "minutes_threshold": 5.0,
@@ -1382,12 +1442,12 @@
     "2024": {
      "coverage": 0.997727,
      "games": 1317,
-     "rows": 31471
+     "rows": 31477
     },
     "2025": {
      "coverage": 0.996972,
      "games": 1317,
-     "rows": 30444
+     "rows": 30459
     }
    }
   },
@@ -2815,7 +2875,7 @@
     }
    },
    "date_range": {},
-   "fingerprint": "430e302d0120f9bf-a61bba7b8727e341",
+   "fingerprint": "997b031ed23482f4-0b0e57d29ff84946",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id",
@@ -3262,31 +3322,31 @@
     }
    },
    "date_range": {},
-   "fingerprint": "153d84452e6b6b69-39ef94af7c3bba3f",
+   "fingerprint": "07eb3116a6a7a7e3-176189c34f9ebcd1",
    "pk_duplicates": null,
    "primary_key": null,
-   "row_count": 300087,
+   "row_count": 300339,
    "schema_hash": "a9a205e53bfeba53",
    "seasons": {
     "2022": {
      "coverage": 1.0,
      "games": 1320,
-     "rows": 72102
+     "rows": 72112
     },
     "2023": {
      "coverage": 1.0,
      "games": 1318,
-     "rows": 72446
+     "rows": 72460
     },
     "2024": {
      "coverage": 1.0,
      "games": 1320,
-     "rows": 75096
+     "rows": 75181
     },
     "2025": {
      "coverage": 1.0,
      "games": 1321,
-     "rows": 80443
+     "rows": 80586
     }
    }
   },

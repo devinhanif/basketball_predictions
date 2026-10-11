@@ -10,6 +10,7 @@ from nba.db.connect import connect
 from nba.ingest.cache import cache_path_for
 from nba.parse.history import parse_games
 from nba.parse.rebuild_lineups import (
+    build_sub_alias_map,
     compute_all,
     possession_agreement,
     snapshot_pre_fix,
@@ -113,3 +114,32 @@ def test_rebuild_reproduces_and_writes_in_place(tmp_path: Path) -> None:
     u, d = write_unresolved_csv(rb.reports, tmp_path / "rep")
     assert u.exists() and d.exists()
     assert pl.read_csv(u).columns[:2] == ["game_id", "team_id"]
+
+
+def test_build_sub_alias_map_reads_the_out_side_of_substitutions(tmp_path: Path) -> None:
+    """Exact ids: only the 'FOR <out>' side of a sub is evidence; the in side is not."""
+    b = PbpBuilder()
+    b.add(
+        1,
+        "PT05M00.00S",
+        HOME,
+        91,
+        "Substitution",
+        description="SUB: Starter1 FOR T. Martin",
+        player_name="Martin",
+    )
+    b.add(
+        1,
+        "PT04M00.00S",
+        HOME,
+        88,
+        "Substitution",
+        description="SUB: Starter2 FOR Hansen",
+        player_name="Yang",
+    )
+    (tmp_path / "pbp").mkdir()
+    gid = PbpBuilder().game_id
+    b.df().write_parquet(tmp_path / "pbp" / f"{gid}.parquet")
+    got = build_sub_alias_map(tmp_path, [gid, "0000000000"])
+    assert got == {91: {("t", "martin")}, 88: {(None, "hansen")}}
+    assert build_sub_alias_map(tmp_path, ["0000000000"]) == {}

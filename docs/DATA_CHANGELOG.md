@@ -187,3 +187,40 @@
   shortened_season, bubble and no_fans from 2020-07-30; 2020-21 shortened_season and blanket limited_fans; all later seasons
   False). History-DB rows for 2019–21 and the record parquet follow when the ingest queue releases the history file (HISTORY_WINDOW
   gate G0.2). No evaluation; 2025 rows are flags only.
+
+## 2026-10-11 UTC - F4b same-surname stint rule: stints rebuilt (data_version 418510d401d3)
+- DRAFT. `_NameBook` gains alias evidence (nba/parse/lineups.py): the out side of every substitution carries the exact
+  player_id and the text the feed prints for him, so a corpus of those texts (`build_sub_alias_map` in
+  nba/parse/rebuild_lineups.py, all 5,279 games) separates same-surname teammates by observed initial ("T. Martin" /
+  "J. Martin", "C./M./I. Jones", "G./T. Antetokounmpo") and names a sub-in whose text differs from the feed's name for him
+  (the feed calls Yang Hansen "Yang"; the text says "Hansen"). It only eliminates candidates with contrary observations and
+  never guesses on absence; jersey numbers are not in the feed. Existing rules (game-wide initials, off-floor, roster
+  elimination) run unchanged when alias evidence is silent.
+- Gate (data/scratch/data_fix_2026-10-11/f4b_stints.py): played player-games (box >= 1 min) with no stint row 91 -> 1 (gate
+  <= 20); within-1-minute share by season 2022/23/24/25 99.92/99.89/99.58/99.43% -> 99.98/99.97/99.98/99.95% (no season lower);
+  tiling exact (0 bad of 42,838 team-periods); (game, team, period, stint_idx) duplicates 0; DNP players with a stint 0;
+  unresolved subs 175 -> 7, desyncs 99 -> 15; stint rows 300,087 -> 300,339; possessions with NULL off_players 0.
+  Residual: 0022501160 ("A. Antetokounmpo" in Q4; the one remaining missing player-game).
+- Pre-fix backups: data/backups/lineups_pre_fix_20261011T082617Z_stints.parquet and
+  data/backups/lineups_pre_fix_20261011T082617Z_possessions.parquet. Written 03:26-03:27 local, outside both pretip windows,
+  under data/ops/heavy.lock, through `connect_with_retry`.
+- Season 2025 rows rebuilt by the same code, not evaluated (not a holdout touch). Anything cached from the previous stints
+  (replay-oracle golden, minutes-hazard frames) predates this rebuild.
+
+## 2026-10-11 UTC - F2b player_availability: 21 of 188 NULL game_id rows resolved (data_version 418510d401d3)
+- DRAFT. Evidence: the official report PDF's own (game date, matchup, team) for each row (188 of 188 rows map to exactly one
+  record), not a team-as-of-box guess. Rule: (a) the report's (date, away@home) is a game in `games`; else (b) exactly one
+  schedule game of that home/away pair dated within 7 days after the report date and present in `games`. 21 rows set: 0022400147
+  (MIA@WAS, 6; a neutral-site game restored by F2 whose rows the earlier team-based pass missed), 0022500578 (MEM@ORL, 8),
+  0022500602 (ORL@MEM, 7).
+- Still NULL, 167 rows by reason: rescheduled_beyond_7d 156 (WAS@DET 2023-02-01 21; GSW@UTA 2024-01-17 9; CHA@LAL 2025-01-09 10;
+  HOU@ATL 2025-01-11 14; MIL@NOP 2025-01-22 35; MIA@CHI 2026-01-08 39; DEN@MEM 2026-01-25 22; DAL@MIL 2026-01-25 6; each
+  postponed 5-70 days, to a game whose as_of-to-tip gap would put a stale status on it); multiple_in_window 7 (GSW@MIN
+  2026-01-24: 0022500644 on 01-25 and 0022500663 on 01-26 are both MIN-GSW; game-id order puts 0022500644 in the 01-24 slot, an
+  inference left for Devin); game_type_not_in_games 4 (MIL@OKC 2024-12-17 is the NBA Cup final 0062400001, a 006 game
+  that `games` does not keep).
+- Gate: previously resolved rows changed 0 (118,050 compared); every new game_id is in `games`, involves the report's team, and
+  is dated 0-1 days after the report date; table rows 118,238 -> 118,238; NULL game_id 188 -> 167.
+- Pre-fix backup: data/backups/player_availability_pre_f2b_20261011T082721Z.parquet (the 188 rows). Written 03:27 local.
+- 2026-10-11 03:27 CT: end-of-pass snapshot data_version 418510d401d3 covers both entries above; `make data-check` 0 flags
+  (exit 0). The replay-oracle golden hash (030804df...) was computed before this rebuild and needs re-baselining.

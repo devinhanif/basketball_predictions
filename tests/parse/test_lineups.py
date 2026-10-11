@@ -457,3 +457,101 @@ def test_stint_idx_makes_the_key_unique_with_zero_duration_stints() -> None:
     keys = stints.select("game_id", "team_id", "period", "stint_idx")
     assert keys.n_unique() == keys.height
     assert stints.filter(pl.col("start_clock") == pl.col("end_clock")).height >= 1
+
+
+def _garbage_time_game() -> PbpBuilder:
+    """Two same-surname teammates (91, 92) enter at one clock reading and never act."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT01M07.00S", HOME, 1, "Starter1", "T. Martin")
+    _sub(b, 1, "PT01M07.00S", HOME, 2, "Starter2", "J. Martin")
+    return b
+
+
+def test_same_surname_teammates_who_never_act_resolve_by_observed_initial() -> None:
+    """Regression (F4, game 0022400124): 'T. Martin' and 'J. Martin' both borrow the bare name
+    'Martin'; with both on the bench the off-court rule cannot choose. The out side of subs in
+    other games (exact ids) says which initial each uses."""
+    roster = {HOME: [1, 2, 3, 4, 5, 91, 92], AWAY: [11, 12, 13, 14, 15]}
+    names = {91: "Martin", 92: "Martin"}
+    b = _garbage_time_game()
+    _, before = track_lineups_with_report(b.df(), STARTERS, roster, names)
+    assert len(before.unresolved) == 2
+
+    aliases: dict[int, set[tuple[str | None, str]]] = {91: {("t", "martin")}, 92: {("j", "martin")}}
+    stints, rep = track_lineups_with_report(b.df(), STARTERS, roster, names, aliases)
+    assert not rep.unresolved
+    last = (
+        stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 1))
+        .sort("start_clock", descending=True)["players"]
+        .to_list()[-1]
+    )
+    assert sorted(last) == [3, 4, 5, 91, 92]
+
+
+def test_three_same_surname_teammates_resolve_by_observed_initial() -> None:
+    """Regression (F4, 'C./M./I. Jones'): three teammates, one clock reading."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT01M23.00S", HOME, 1, "Starter1", "C. Jones")
+    _sub(b, 1, "PT01M23.00S", HOME, 2, "Starter2", "I. Jones")
+    _sub(b, 1, "PT01M23.00S", HOME, 3, "Starter3", "M. Jones")
+    roster = {HOME: [1, 2, 3, 4, 5, 81, 82, 83], AWAY: [11, 12, 13, 14, 15]}
+    names = {81: "Jones", 82: "Jones", 83: "Jones"}
+    aliases: dict[int, set[tuple[str | None, str]]] = {
+        81: {("c", "jones")},
+        82: {("i", "jones")},
+        83: {("m", "jones")},
+    }
+    _, before = track_lineups_with_report(b.df(), STARTERS, roster, names)
+    assert before.unresolved
+    stints, rep = track_lineups_with_report(b.df(), STARTERS, roster, names, aliases)
+    assert not rep.unresolved
+    last = (
+        stints.filter((pl.col("team_id") == HOME) & (pl.col("period") == 1))
+        .sort("start_clock", descending=True)["players"]
+        .to_list()[-1]
+    )
+    assert sorted(last) == [4, 5, 81, 82, 83]
+
+
+def test_text_name_that_differs_from_pbp_name_resolves_by_alias() -> None:
+    """Regression (F4, Portland 2025): the feed names Yang Hansen 'Yang' on his own events, but
+    the sub text says 'Hansen'. His out-side text elsewhere ties 'hansen' to his id."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT01M02.00S", HOME, 1, "Starter1", "Hansen")
+    _act(b, 1, "PT00M50.00S", HOME, 88, "Yang")
+    roster = {HOME: [1, 2, 3, 4, 5, 88], AWAY: [11, 12, 13, 14, 15]}
+    names = {88: "Yang"}
+    _, before = track_lineups_with_report(b.df(), STARTERS, roster, names)
+    assert before.unresolved and before.unresolved[0]["in_name"] == "Hansen"
+    aliases: dict[int, set[tuple[str | None, str]]] = {88: {(None, "hansen")}}
+    stints, rep = track_lineups_with_report(b.df(), STARTERS, roster, names, aliases)
+    assert not rep.unresolved
+    seen = {p for row in stints.filter(pl.col("team_id") == HOME)["players"].to_list() for p in row}
+    assert 88 in seen
+
+
+def test_alias_evidence_does_not_guess_without_a_matching_observation() -> None:
+    """No observed text for either Martin: still unresolved (counted), never guessed."""
+    roster = {HOME: [1, 2, 3, 4, 5, 91, 92], AWAY: [11, 12, 13, 14, 15]}
+    names = {91: "Martin", 92: "Martin"}
+    b = _garbage_time_game()
+    _, rep = track_lineups_with_report(b.df(), STARTERS, roster, names, {})
+    assert len(rep.unresolved) == 2
+    # evidence for a different initial only: the sub text 'T.' matches nobody observed
+    aliases: dict[int, set[tuple[str | None, str]]] = {91: {("x", "martin")}, 92: {("y", "martin")}}
+    _, rep2 = track_lineups_with_report(b.df(), STARTERS, roster, names, aliases)
+    assert len(rep2.unresolved) == 2
+
+
+def test_alias_never_moves_a_player_to_another_team() -> None:
+    """Aliases are matched among the sub's own team only."""
+    b = PbpBuilder()
+    _act(b, 1, "PT11M00.00S", HOME, 1, "Starter1")
+    _sub(b, 1, "PT01M02.00S", HOME, 1, "Starter1", "Hansen")
+    roster = {HOME: [1, 2, 3, 4, 5], AWAY: [11, 12, 13, 14, 15, 88]}
+    aliases: dict[int, set[tuple[str | None, str]]] = {88: {(None, "hansen")}}
+    _, rep = track_lineups_with_report(b.df(), STARTERS, roster, {88: "Yang"}, aliases)
+    assert len(rep.unresolved) == 1

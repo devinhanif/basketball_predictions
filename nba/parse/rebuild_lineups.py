@@ -42,11 +42,14 @@ from typing import Any
 import duckdb
 import polars as pl
 
+from nba.db.connect import connect_with_retry
 from nba.parse.history import _starters
 from nba.parse.lineups import (
+    _SUB_RE,
     MINUTES_SHARE_FLOOR,
     MINUTES_SHARE_TARGET,
     LineupReport,
+    _split_initial,
     attach_lineups_to_possessions,
     minutes_within_share,
     track_lineups_with_report,
@@ -90,10 +93,44 @@ def build_name_map(data_dir: Path, game_ids: list[str]) -> dict[int, str]:
     )
 
 
+def build_sub_alias_map(
+    data_dir: Path, game_ids: list[str]
+) -> dict[int, set[tuple[str | None, str]]]:
+    """player_id -> {(initial, surname)} the feed prints for him on the *out* side of subs.
+
+    The out side of ``SUB: <in> FOR <out>`` carries the exact ``player_id``, so this is evidence,
+    not inference. It separates same-surname teammates ("T. Martin" / "J. Martin") and names
+    players the feed lists under another name ("Yang" for the player the text calls "Hansen").
+    """
+    paths = [str(data_dir / "pbp" / f"{g}.parquet") for g in game_ids]
+    paths = [p for p in paths if Path(p).exists()]
+    if not paths:
+        return {}
+    pairs = (
+        pl.scan_parquet(paths)
+        .filter((pl.col("action_type") == "Substitution") & (pl.col("player_id") != 0))
+        .select("player_id", "description")
+        .unique()
+        .collect()
+    )
+    out: dict[int, set[tuple[str | None, str]]] = {}
+    for pid, desc in pairs.iter_rows():
+        m = _SUB_RE.match((desc or "").strip())
+        if m:
+            out.setdefault(int(pid), set()).add(_split_initial(m.group(2)))
+    return out
+
+
 def compute_all(
-    con: duckdb.DuckDBPyConnection, data_dir: Path = ROOT / "data", limit_every: int = 1
+    con: duckdb.DuckDBPyConnection,
+    data_dir: Path = ROOT / "data",
+    limit_every: int = 1,
+    only: set[str] | None = None,
 ) -> Rebuilt:
-    """Recompute stints + possession lineups for every game with PBP, starters and possessions."""
+    """Recompute stints + possession lineups for every game with PBP, starters and possessions.
+
+    ``only`` restricts the games rebuilt (name and alias maps still cover every game).
+    """
     games = con.execute("SELECT game_id FROM games ORDER BY game_id").fetchall()[::limit_every]
     box = con.execute(
         "SELECT game_id, player_id, team_id, starter, minutes FROM player_game_stats"
@@ -102,6 +139,7 @@ def compute_all(
         "SELECT game_id, poss_idx, period, clock_start, off_team, def_team FROM possessions"
     ).pl()
     names = build_name_map(data_dir, [g[0] for g in games])
+    aliases = build_sub_alias_map(data_dir, [g[0] for g in games])
     box_by_game = box.partition_by("game_id", as_dict=True)
     poss_by_game = poss.partition_by("game_id", as_dict=True)
     stints: list[pl.DataFrame] = []
@@ -109,6 +147,8 @@ def compute_all(
     reports: list[LineupReport] = []
     skipped: dict[str, list[str]] = {"no_pbp": [], "no_starters": [], "no_possessions": []}
     for (gid,) in games:
+        if only is not None and gid not in only:
+            continue
         path = data_dir / "pbp" / f"{gid}.parquet"
         b = box_by_game.get((gid,))
         p = poss_by_game.get((gid,))
@@ -126,7 +166,7 @@ def compute_all(
             int(t[0]): g["player_id"].to_list()
             for t, g in b.filter(pl.col("minutes") > 0).group_by("team_id")
         }
-        s, rep = track_lineups_with_report(pl.read_parquet(path), starters, roster, names)
+        s, rep = track_lineups_with_report(pl.read_parquet(path), starters, roster, names, aliases)
         att = attach_lineups_to_possessions(p, s)
         stints.append(s)
         lineups.append(att.select("game_id", "poss_idx", "off_players", "def_players"))
@@ -209,7 +249,7 @@ def write_chunked(
         while True:
             if not db_holders(db_path):
                 try:
-                    con = duckdb.connect(str(db_path))
+                    con = connect_with_retry(db_path)
                 except duckdb.IOException:
                     con = None  # lost a race for the lock; retry
                 if con is not None:
