@@ -509,3 +509,14 @@ Why: the record must carry real times; the launchd pretip windows and the mornin
 time from `date` or the commit, never from memory (added to BEST_PRACTICES next edit).
 What would reverse it: nothing; it is a correction.
 
+
+## 2026-10-11 17:20 CDT — LLM shadow forecaster for 2026-27 approved (Devin: "lets go for it")
+What: a nightly shadow arm, `llm_shadow`, in which the strongest Claude model receives ONLY the as-of facts the pipeline holds for a game
+(facts store + injury report + T-60 lines + production's own numbers, nothing from the open web) and writes over/under probabilities for a
+fixed set of legs before tip, stamped and refused after tip like every other forward prediction. Scored beside production under a companion
+rule to FORWARD_PREREG_2026_27 (log loss at the lines, closing-line value, calibration), frozen before opening night, with a token budget per
+night and a kill criterion. Never a production input; never a pick shown to users until it passes. Backtests on past seasons are
+forbidden for this arm: the model has read those box scores (contamination in the weights), so the live log is the only test.
+Why: Devin's question "could an LLM do better as a thinker over time"; the honest answer is a measured shadow, not an argument. Routing per
+Jev: cheap model for fact extraction (later), strongest model for the nightly forecast.
+What would reverse it: the frozen companion rule's kill criterion; or a nightly cost above the budget Devin sets.
