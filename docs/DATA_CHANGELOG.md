@@ -224,3 +224,4 @@
 - Pre-fix backup: data/backups/player_availability_pre_f2b_20261011T082721Z.parquet (the 188 rows). Written 03:27 local.
 - 2026-10-11 03:27 CT: end-of-pass snapshot data_version 418510d401d3 covers both entries above; `make data-check` 0 flags
   (exit 0). The replay-oracle golden hash (030804df...) was computed before this rebuild and needs re-baselining.
+- 2026-10-11: replay golden re-checked on data_version 418510d401d3: unchanged (030804df…; oracle_golden3).

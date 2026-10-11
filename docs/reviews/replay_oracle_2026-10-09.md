@@ -55,3 +55,8 @@ players_static re-pull), the 20-date replay of season 2025 was re-run on the cle
 46,370 / 44,252 on the pre-clean-up source). The difference is the data: 288 more prediction rows from the restored games and the
 rebuilt lineups. From here, any structural code change is checked against `oracle_golden2` on this data_version; a data change
 re-baselines again and says so here.
+
+## Check 2026-10-11 ~04:50 (data_version 418510d401d3: same-surname stint rule, 21 availability rows)
+20-date replay on the new source (`data/rehearsal/oracle_golden3.duckdb`, 0 failures): sha256 030804df… IDENTICAL to golden2,
+46,658 predictions, 44,562 scores. Stints are not on the daily path and the 21 re-linked report rows fall outside the 20 replay
+dates, so the golden stands at 030804df… for data_version 418510d401d3 as well. Either golden2 or golden3 serves as the baseline.
