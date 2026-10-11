@@ -574,3 +574,9 @@ Measured follow-ups below, each descriptive first.
   home free-throw-rate edge (−0.027 [−0.037, −0.015]) and the home team fouls more; it reads as team quality, not venue; home
   players' pts residual does not move with away strength. Candidate rule: team b2b-sit trait + questionable × team strength into
   the P(play) model (Devin to say).
+- **Confound check on the b2b sit trait (Devin, 2026-10-11: "Zion and Embiid have injury trouble; size and injury, not really"):**
+  on a narrower star definition (prior-10 pts ≥ 20, played the previous game, DNP = zero minutes) stars sit b2b second nights 3.5%
+  vs 1.9%; EXCLUDING Zion, Embiid, Barrett and Brown the excess survives (3.2% vs 1.7%, +1.6 points, n 961 b2b star-games), so it is
+  not only those four. Per-team excess with the four removed is TOR +15, DET +11, PHI +11, NOP +9, MEM +8 (7-38 b2b star-games per
+  team: noisy). Size: sit rates by height and weight tercile are flat (2.0-2.6% all nights; 2.8-4.7% b2b), so "not really" is
+  right: no size-injury signal in sit-outs. Rule drafted: docs/prereg/PPLAY_CONTEXT.md.
