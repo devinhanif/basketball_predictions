@@ -1,0 +1,296 @@
+{
+ "measured_at": "Mon Oct 12 17:00 CDT 2026",
+ "label": "DRAFT gate, read-only, no fit, season<=2024",
+ "box_capture": {
+  "2019": {
+   "games": 1143,
+   "box_rows": 28707,
+   "played": 24097,
+   "dnp_null_minutes": 4602,
+   "dnp_share": 0.1606,
+   "rows_per_team_game": 12.56
+  },
+  "2020": {
+   "games": 1171,
+   "box_rows": 31546,
+   "played": 25053,
+   "dnp_null_minutes": 6492,
+   "dnp_share": 0.2058,
+   "rows_per_team_game": 13.47
+  },
+  "2021": {
+   "games": 1323,
+   "box_rows": 33848,
+   "played": 28045,
+   "dnp_null_minutes": 5798,
+   "dnp_share": 0.1714,
+   "rows_per_team_game": 12.79
+  },
+  "2022": {
+   "games": 1320,
+   "box_rows": 34024,
+   "played": 27737,
+   "dnp_null_minutes": 6285,
+   "dnp_share": 0.1848,
+   "rows_per_team_game": 12.89
+  },
+  "2023": {
+   "games": 1318,
+   "box_rows": 34815,
+   "played": 28197,
+   "dnp_null_minutes": 6609,
+   "dnp_share": 0.1901,
+   "rows_per_team_game": 13.21
+  },
+  "2024": {
+   "games": 1320,
+   "box_rows": 35087,
+   "played": 28236,
+   "dnp_null_minutes": 6847,
+   "dnp_share": 0.1953,
+   "rows_per_team_game": 13.29
+  }
+ },
+ "dnp_share_modern_mean": 0.1901,
+ "dnp_share_max_gap_pp": 2.95,
+ "rows_per_season_db_scope": {
+  "2019": {
+   "rows_nprior5_preOUT": 24847,
+   "returner3_rows": 1517,
+   "play_rate": 0.8662
+  },
+  "2020": {
+   "rows_nprior5_preOUT": 30437,
+   "returner3_rows": 2683,
+   "play_rate": 0.8057
+  },
+  "2021": {
+   "rows_nprior5_preOUT": 32665,
+   "returner3_rows": 2491,
+   "play_rate": 0.84
+  },
+  "2022": {
+   "rows_nprior5_preOUT": 30142,
+   "returner3_rows": 2321,
+   "play_rate": 0.8331
+  },
+  "2023": {
+   "rows_nprior5_preOUT": 33652,
+   "returner3_rows": 2970,
+   "play_rate": 0.8207
+  },
+  "2024": {
+   "rows_nprior5_preOUT": 34121,
+   "returner3_rows": 3128,
+   "play_rate": 0.8118
+  }
+ },
+ "training_rows_before_2023_db_scope": 118091,
+ "history_players_static_rows": 0,
+ "age_birth_date": {
+  "2019": {
+   "coverage": 0.6996,
+   "play_rate_age_present": 0.891,
+   "play_rate_age_missing": 0.719,
+   "missing_players": 205
+  },
+  "2020": {
+   "coverage": 0.7713,
+   "play_rate_age_present": 0.846,
+   "play_rate_age_missing": 0.618,
+   "missing_players": 156
+  },
+  "2021": {
+   "coverage": 0.8653,
+   "play_rate_age_present": 0.861,
+   "play_rate_age_missing": 0.618,
+   "missing_players": 161
+  },
+  "2022": {
+   "coverage": 1.0,
+   "play_rate_age_present": 0.815,
+   "play_rate_age_missing": null,
+   "missing_players": 0
+  },
+  "2023": {
+   "coverage": 1.0,
+   "play_rate_age_present": 0.81,
+   "play_rate_age_missing": null,
+   "missing_players": 0
+  },
+  "2024": {
+   "coverage": 1.0,
+   "play_rate_age_present": 0.805,
+   "play_rate_age_missing": null,
+   "missing_players": 0
+  }
+ },
+ "national_tv": {
+  "2019": {
+   "games": 1143,
+   "national_tv_share_in_games_table": 0.0
+  },
+  "2020": {
+   "games": 1171,
+   "national_tv_share_in_games_table": 0.0
+  },
+  "2021": {
+   "games": 1323,
+   "national_tv_share_in_games_table": 0.0
+  },
+  "2022": {
+   "games": 1320,
+   "national_tv_share_in_games_table": 0.275
+  },
+  "2023": {
+   "games": 1318,
+   "national_tv_share_in_games_table": 0.278
+  },
+  "2024": {
+   "games": 1320,
+   "national_tv_share_in_games_table": 0.275
+  },
+  "raw_schedule_raw_2019-20": {
+   "rows": 1145,
+   "national_broadcaster_share": 0.311,
+   "column": "nationalBroadcasters_broadcasterDisplay"
+  },
+  "raw_schedule_raw_2020-21": {
+   "rows": 1221,
+   "national_broadcaster_share": 0.312,
+   "column": "nationalBroadcasters_0_broadcasterDisplay"
+  },
+  "raw_schedule_raw_2021-22": {
+   "rows": 1393,
+   "national_broadcaster_share": 0.282,
+   "column": "nationalBroadcasters_broadcasterDisplay"
+  }
+ },
+ "era_flags": {
+  "2019": {
+   "games_flagged_rows": 1143,
+   "bubble": 172,
+   "no_fans": 172,
+   "limited_fans": 0
+  },
+  "2020": {
+   "games_flagged_rows": 1171,
+   "bubble": 0,
+   "no_fans": 0,
+   "limited_fans": 1171
+  },
+  "2021": {
+   "games_flagged_rows": 1323,
+   "bubble": 0,
+   "no_fans": 0,
+   "limited_fans": 0
+  },
+  "2022": {
+   "games_flagged_rows": 1320,
+   "bubble": 0,
+   "no_fans": 0,
+   "limited_fans": 0
+  },
+  "2023": {
+   "games_flagged_rows": 1318,
+   "bubble": 0,
+   "no_fans": 0,
+   "limited_fans": 0
+  },
+  "2024": {
+   "games_flagged_rows": 1320,
+   "bubble": 0,
+   "no_fans": 0,
+   "limited_fans": 0
+  }
+ },
+ "s2021_snapshot_lead_ge": {
+  "60": 1.0,
+  "180": 1.0
+ },
+ "game_id_overlap_history_vs_nba": 0,
+ "precision": {
+  "2023_vsP0_logloss_proxy(v2-raw)": {
+   "n": 33093,
+   "games": 1318,
+   "sd_row": 0.3007,
+   "deff": 1.77,
+   "half_width95": 0.00431
+  },
+  "2023_vsP0_brier_proxy(v2-raw)": {
+   "n": 33093,
+   "games": 1318,
+   "sd_row": 0.1082,
+   "deff": 1.98,
+   "half_width95": 0.00164
+  },
+  "2023_fitted_vs_fitted_logloss_proxy(R-base)": {
+   "n": 33093,
+   "games": 1318,
+   "sd_row": 0.1855,
+   "deff": 1.42,
+   "half_width95": 0.00238
+  },
+  "2024_vsP0_logloss_proxy(v2-raw)": {
+   "n": 32986,
+   "games": 1315,
+   "sd_row": 0.3237,
+   "deff": 1.65,
+   "half_width95": 0.00448
+  },
+  "2024_vsP0_brier_proxy(v2-raw)": {
+   "n": 32986,
+   "games": 1315,
+   "sd_row": 0.1171,
+   "deff": 1.91,
+   "half_width95": 0.00175
+  },
+  "2024_fitted_vs_fitted_logloss_proxy(R-base)": {
+   "n": 33127,
+   "games": 1320,
+   "sd_row": 0.1874,
+   "deff": 1.3,
+   "half_width95": 0.0023
+  }
+ },
+ "slices_2023_24_stored_rows": {
+  "2022": {
+   "rows": 29838,
+   "bench": 18194,
+   "b2b_second": 4419
+  },
+  "2023": {
+   "rows": 33093,
+   "bench": 20515,
+   "b2b_second": 5222
+  },
+  "2024": {
+   "rows": 33127,
+   "bench": 20665,
+   "b2b_second": 5519
+  }
+ },
+ "slices_questionable_rows_pplay_context": [
+  {
+   "season": 2023,
+   "slice": "questionable_rows",
+   "n": 1319
+  },
+  {
+   "season": 2023,
+   "slice": "questionable_rows",
+   "n": 1258
+  },
+  {
+   "season": 2024,
+   "slice": "questionable_rows",
+   "n": 1345
+  },
+  {
+   "season": 2024,
+   "slice": "questionable_rows",
+   "n": 1251
+  }
+ ],
+ "wall_s": 0.7
+}
