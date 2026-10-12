@@ -1,0 +1,2330 @@
+{
+  "baseline": {
+    "pts|2023": {
+      "n_rows": 27619,
+      "n_games": 1318,
+      "crps_int": 3.152829990762183
+    },
+    "reb|2023": {
+      "n_rows": 27619,
+      "n_games": 1318,
+      "crps_int": 1.2928172686712307
+    },
+    "ast|2023": {
+      "n_rows": 27619,
+      "n_games": 1318,
+      "crps_int": 0.9059028606321847
+    },
+    "fg3m|2023": {
+      "n_rows": 27619,
+      "n_games": 1318,
+      "crps_int": 0.5690486141021416
+    },
+    "pts|2024": {
+      "n_rows": 27701,
+      "n_games": 1320,
+      "crps_int": 3.1875525740475275
+    },
+    "reb|2024": {
+      "n_rows": 27701,
+      "n_games": 1320,
+      "crps_int": 1.3142466423136836
+    },
+    "ast|2024": {
+      "n_rows": 27701,
+      "n_games": 1320,
+      "crps_int": 0.9002150882692853
+    },
+    "fg3m|2024": {
+      "n_rows": 27701,
+      "n_games": 1320,
+      "crps_int": 0.5922128263543135
+    }
+  },
+  "contrasts": {
+    "A1|pts|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 3.152829990762183,
+      "arm_crps_int": 3.141989982356127,
+      "d_crps_int": {
+        "point": -0.010840008406056145,
+        "lo": -0.015619497283491235,
+        "hi": -0.005881984800450966,
+        "se": 0.002484059306898028
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": -0.01084912439412363,
+        "lo": -0.015622072651505415,
+        "hi": -0.005845191678186754,
+        "se": 0.002494102289111903
+      },
+      "d_tll_low": {
+        "point": -0.000616554415330719,
+        "lo": -0.0015456834502895246,
+        "hi": 0.0003537652446471286,
+        "se": 0.00048455323850424823
+      },
+      "bias_arm": 0.10803604867308061,
+      "bias_base": 0.05853972962175929,
+      "cov80_arm": 0.7716427097288099,
+      "cov80_base": 0.7733806437597306,
+      "ece_pge": {
+        "10": {
+          "arm": 0.01878067698279949,
+          "base": 0.01752453203415246
+        },
+        "15": {
+          "arm": 0.0091945661905967,
+          "base": 0.007662957242492559
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": 0.008457554288072593,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.003694757853822671,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.011002415898158837,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.009565083913708352,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.017921715636668074,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": -0.005181377439542562,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.014671930350866995,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": true,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": true,
+        "bh_p": 0.0013326669998334165
+      },
+      "harm": false
+    },
+    "A2|pts|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 3.152829990762183,
+      "arm_crps_int": 3.1433761856344766,
+      "d_crps_int": {
+        "point": -0.009453805127706497,
+        "lo": -0.013738309274323996,
+        "hi": -0.004962776111402565,
+        "se": 0.0022386564191126104
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": -0.009390031965882655,
+        "lo": -0.013717213740352688,
+        "hi": -0.004931321070599784,
+        "se": 0.0022412991504471695
+      },
+      "d_tll_low": {
+        "point": -0.00044365635985377943,
+        "lo": -0.001295172361042614,
+        "hi": 0.0004454471374406978,
+        "se": 0.00044403558634778365
+      },
+      "bias_arm": 0.09755201825822296,
+      "bias_base": 0.05853972962175929,
+      "cov80_arm": 0.7716789166877874,
+      "cov80_base": 0.7733806437597306,
+      "ece_pge": {
+        "10": {
+          "arm": 0.016238002351087095,
+          "base": 0.01752453203415246
+        },
+        "15": {
+          "arm": 0.008941299422271573,
+          "base": 0.007662957242492559
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": 0.0022754429421206514,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.004515059756325775,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.008873684124608146,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.008468522379356644,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.01631310020231626,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": -0.003972892368441385,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.016636148371105126,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": true,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": true,
+        "bh_p": 0.0013326669998334165
+      },
+      "harm": false
+    },
+    "A1|reb|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 1.2928172686712307,
+      "arm_crps_int": 1.2888817228146061,
+      "d_crps_int": {
+        "point": -0.003935545856624637,
+        "lo": -0.005907735517553958,
+        "hi": -0.0019775624679652967,
+        "se": 0.0010025951657113934
+      },
+      "p": 0.001,
+      "d_crps_cont": {
+        "point": -0.0038782537244440424,
+        "lo": -0.005833915140141724,
+        "hi": -0.0019351790534095762,
+        "se": 0.0009945755323296295
+      },
+      "d_tll_low": {
+        "point": -0.0014411404015094705,
+        "lo": -0.0023656738499285325,
+        "hi": -0.000502874543400618,
+        "se": 0.0004752039047265088
+      },
+      "bias_arm": 0.008722163755227955,
+      "bias_base": 0.018382657273536773,
+      "cov80_arm": 0.7857996306890185,
+      "cov80_base": 0.7923892972229263,
+      "ece_pge": {
+        "4": {
+          "arm": 0.011231617008246247,
+          "base": 0.011823482523592324
+        },
+        "6": {
+          "arm": 0.007269411251194249,
+          "base": 0.007721907266154444
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": -0.0078920359419566,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.003307380139325672,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.0033738689896362683,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.003279781987243081,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.003453349500881631,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": -0.0043208443646952106,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.011653674535634255,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.0016
+      },
+      "harm": false
+    },
+    "A2|reb|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 1.2928172686712307,
+      "arm_crps_int": 1.2899598757389896,
+      "d_crps_int": {
+        "point": -0.00285739293224124,
+        "lo": -0.0045668991414977754,
+        "hi": -0.0010741270968105904,
+        "se": 0.0008910132767059147
+      },
+      "p": 0.003,
+      "d_crps_cont": {
+        "point": -0.0027891648975707298,
+        "lo": -0.0044811162495916775,
+        "hi": -0.000983874599374981,
+        "se": 0.0008921534821981368
+      },
+      "d_tll_low": {
+        "point": -0.0012315278771294152,
+        "lo": -0.0020509735943095944,
+        "hi": -0.00043308864924457416,
+        "se": 0.00041272575129209696
+      },
+      "bias_arm": 0.012768282542533534,
+      "bias_base": 0.018382657273536773,
+      "cov80_arm": 0.7852203193453782,
+      "cov80_base": 0.7923892972229263,
+      "ece_pge": {
+        "4": {
+          "arm": 0.010332265258367584,
+          "base": 0.011823482523592324
+        },
+        "6": {
+          "arm": 0.007021784762910831,
+          "base": 0.007721907266154444
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": -0.004813644942658855,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.002209691917259278,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.001464164785897755,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.002200404467758699,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.00364691436930121,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": -0.002226526630234033,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.008687513815992679,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.004
+      },
+      "harm": false
+    },
+    "A1|ast|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.9059028606321847,
+      "arm_crps_int": 0.9036859773163333,
+      "d_crps_int": {
+        "point": -0.002216883315851316,
+        "lo": -0.0037200389459535873,
+        "hi": -0.0007245837574048699,
+        "se": 0.000764146731772632
+      },
+      "p": 0.005,
+      "d_crps_cont": {
+        "point": -0.001974731610423923,
+        "lo": -0.0034686962745109646,
+        "hi": -0.0005007899122955326,
+        "se": 0.0007571189699529164
+      },
+      "d_tll_low": {
+        "point": -0.001074955837116307,
+        "lo": -0.0020996616350500495,
+        "hi": -8.130470452779504e-05,
+        "se": 0.0005148869720720037
+      },
+      "bias_arm": 0.06289284810578762,
+      "bias_base": 0.023308532252270385,
+      "cov80_arm": 0.7871392881711865,
+      "cov80_base": 0.7862703211557261,
+      "ece_pge": {
+        "2": {
+          "arm": 0.019711323189683924,
+          "base": 0.017597491785659926
+        },
+        "4": {
+          "arm": 0.011752888050812016,
+          "base": 0.013773745806406291
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": 0.0034343031865558316,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.0012317275884641662,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.0020248395877533396,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.002552029887093909,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.0050930033277426165,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": 8.12774570688627e-05,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.0023113516331071796,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.005714285714285714
+      },
+      "harm": false
+    },
+    "A2|ast|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.9059028606321847,
+      "arm_crps_int": 0.9040380134431196,
+      "d_crps_int": {
+        "point": -0.0018648471890649547,
+        "lo": -0.0031728484894104434,
+        "hi": -0.000522585291427274,
+        "se": 0.0006760875505059105
+      },
+      "p": 0.011,
+      "d_crps_cont": {
+        "point": -0.0015994306460929007,
+        "lo": -0.0028895233581062094,
+        "hi": -0.0002554174469498311,
+        "se": 0.0006719657936623413
+      },
+      "d_tll_low": {
+        "point": -0.0010996453181214656,
+        "lo": -0.002035132279768542,
+        "hi": -0.0001795334704351811,
+        "se": 0.0004733670431972859
+      },
+      "bias_arm": 0.054259040378477126,
+      "bias_base": 0.023308532252270385,
+      "cov80_arm": 0.7877548064738042,
+      "cov80_base": 0.7862703211557261,
+      "ece_pge": {
+        "2": {
+          "arm": 0.019043768755068316,
+          "base": 0.017597491785659926
+        },
+        "4": {
+          "arm": 0.013689687439332882,
+          "base": 0.013773745806406291
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": 0.006479835748090265,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.0006787254142118962,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.0014681116518988778,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.0021923420264953284,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.004096536712573165,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": -8.161794304650626e-05,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.001849114344280226,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.011
+      },
+      "harm": false
+    },
+    "A1|fg3m|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.5690486141021416,
+      "arm_crps_int": 0.5666625598710949,
+      "d_crps_int": {
+        "point": -0.0023860542310466556,
+        "lo": -0.0032796386909128648,
+        "hi": -0.0014886399728716584,
+        "se": 0.0004568874280717363
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": -0.0026534973241715025,
+        "lo": -0.0035464513836064296,
+        "hi": -0.0017691792460526553,
+        "se": 0.0004533857493759628
+      },
+      "d_tll_low": {
+        "point": -0.0017150449962858216,
+        "lo": -0.002773245892578069,
+        "hi": -0.0006156553164568331,
+        "se": 0.000550405759214601
+      },
+      "bias_arm": 0.0005841634391433907,
+      "bias_base": 0.008048075683797255,
+      "cov80_arm": 0.7869582533762989,
+      "cov80_base": 0.7885151526123321,
+      "ece_pge": {
+        "1": {
+          "arm": 0.03319905221461963,
+          "base": 0.031059020800079214
+        },
+        "2": {
+          "arm": 0.019508091163664372,
+          "base": 0.0176962876586488
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": -0.0012464052853594964,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.0010128475452899043,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.0029693001217178574,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.0025686034072172244,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.002791415330669001,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": -0.0020621508563028234,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.004837344310632445,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.0013326669998334165
+      },
+      "harm": false
+    },
+    "A2|fg3m|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.5690486141021416,
+      "arm_crps_int": 0.5677223729709756,
+      "d_crps_int": {
+        "point": -0.0013262411311659242,
+        "lo": -0.002099605417420597,
+        "hi": -0.0004928661053887145,
+        "se": 0.00040988247755915366
+      },
+      "p": 0.001,
+      "d_crps_cont": {
+        "point": -0.0013096587805701966,
+        "lo": -0.0020898816017020302,
+        "hi": -0.0005115189069426711,
+        "se": 0.0004026435445814692
+      },
+      "d_tll_low": {
+        "point": -0.0011722401552832816,
+        "lo": -0.002119549622627432,
+        "hi": -0.00020969795405722716,
+        "se": 0.0004872070583087257
+      },
+      "bias_arm": 0.0016803687997750507,
+      "bias_base": 0.008048075683797255,
+      "cov80_arm": 0.787030667294254,
+      "cov80_base": 0.7885151526123321,
+      "ece_pge": {
+        "1": {
+          "arm": 0.034649695852447364,
+          "base": 0.031059020800079214
+        },
+        "2": {
+          "arm": 0.018180078130614685,
+          "base": 0.0176962876586488
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1630,
+          "d_crps_int": -8.669298336799209e-05,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2496,
+          "d_crps_int": -0.0007611481418171879,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 15048,
+          "d_crps_int": -0.0017013996244650976,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23246,
+          "d_crps_int": -0.001566457818007966,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12267,
+          "d_crps_int": -0.0019152178547984428,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15352,
+          "d_crps_int": -0.0008556198786385589,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4586,
+          "d_crps_int": -0.0021898496376188954,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": true,
+          "bh_p<0.05": true,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.0016
+      },
+      "harm": false
+    },
+    "A1|pts|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 3.1875525740475275,
+      "arm_crps_int": 3.1910863168688586,
+      "d_crps_int": {
+        "point": 0.0035337428213309836,
+        "lo": 6.394511159541744e-06,
+        "hi": 0.00730469019937162,
+        "se": 0.0018618101245438975
+      },
+      "p": 0.05,
+      "d_crps_cont": {
+        "point": 0.0035128424426731876,
+        "lo": -2.660032616785627e-05,
+        "hi": 0.007311752266335327,
+        "se": 0.0018720287225773428
+      },
+      "d_tll_low": {
+        "point": 0.0006457953441377252,
+        "lo": -0.00013153890935917097,
+        "hi": 0.00142897264798332,
+        "se": 0.0003980896829955334
+      },
+      "bias_arm": 0.00552987125962577,
+      "bias_base": 0.030219967267455346,
+      "cov80_arm": 0.7682394137395762,
+      "cov80_base": 0.7634381430273275,
+      "ece_pge": {
+        "10": {
+          "arm": 0.0134898890684606,
+          "base": 0.014260682859080803
+        },
+        "15": {
+          "arm": 0.010731974735959143,
+          "base": 0.012593380969320828
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": -0.005700237224808018,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": -0.007107270686473219,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.007107830059073227,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.004430312596165408,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": 0.0014684914986034642,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.005138356588787251,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": -0.004922081106791105,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.212
+      },
+      "harm": false
+    },
+    "A2|pts|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 3.1875525740475275,
+      "arm_crps_int": 3.1904209126300542,
+      "d_crps_int": {
+        "point": 0.002868338582526583,
+        "lo": -0.0006224256494644014,
+        "hi": 0.0066058105119202,
+        "se": 0.001843937796271582
+      },
+      "p": 0.106,
+      "d_crps_cont": {
+        "point": 0.0028509355719875916,
+        "lo": -0.0006532734711112716,
+        "hi": 0.006563351570947427,
+        "se": 0.0018409757760353823
+      },
+      "d_tll_low": {
+        "point": 0.00046492651262589177,
+        "lo": -0.000270667732751128,
+        "hi": 0.0011827369400445086,
+        "se": 0.00037076649816215223
+      },
+      "bias_arm": 0.011533377616704959,
+      "bias_base": 0.030219967267455346,
+      "cov80_arm": 0.7660373271723042,
+      "cov80_base": 0.7634381430273275,
+      "ece_pge": {
+        "10": {
+          "arm": 0.013339140741794236,
+          "base": 0.014260682859080803
+        },
+        "15": {
+          "arm": 0.010150750140725655,
+          "base": 0.012593380969320828
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": -0.0003195269035039591,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": -0.003531327282410995,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.006641413295864136,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.0039852344461971225,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": 0.001805186807760122,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.003694362977675174,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": -0.005750347388207741,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.212
+      },
+      "harm": false
+    },
+    "A1|reb|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 1.3142466423136836,
+      "arm_crps_int": 1.3153725496043822,
+      "d_crps_int": {
+        "point": 0.0011259072906988931,
+        "lo": -0.0002759699787635875,
+        "hi": 0.0024572535637416384,
+        "se": 0.0006972509037003128
+      },
+      "p": 0.094,
+      "d_crps_cont": {
+        "point": 0.0011703547001175798,
+        "lo": -0.00023584751203667892,
+        "hi": 0.0024940601030363115,
+        "se": 0.0006964050038451506
+      },
+      "d_tll_low": {
+        "point": 9.971566136101926e-05,
+        "lo": -0.0005382943479478426,
+        "hi": 0.000683231813797075,
+        "se": 0.00031161381677166265
+      },
+      "bias_arm": 0.03657855930280309,
+      "bias_base": 0.026482996882784035,
+      "cov80_arm": 0.7854951084798383,
+      "cov80_base": 0.7866142016533699,
+      "ece_pge": {
+        "4": {
+          "arm": 0.009415330506182406,
+          "base": 0.009497870203695262
+        },
+        "6": {
+          "arm": 0.008266849572217612,
+          "base": 0.007052881098028321
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": 0.0014174218013362622,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": -0.0014638167395252667,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.0013533074280856088,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.0010604571409971667,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": -0.0003028475222644424,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.00223598993195952,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": 0.0025310266185476905,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.212
+      },
+      "harm": false
+    },
+    "A2|reb|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 1.3142466423136836,
+      "arm_crps_int": 1.3148190555033599,
+      "d_crps_int": {
+        "point": 0.0005724131896764766,
+        "lo": -0.0007010817939052677,
+        "hi": 0.001732646254223628,
+        "se": 0.0006208489918696163
+      },
+      "p": 0.366,
+      "d_crps_cont": {
+        "point": 0.0006355231688827309,
+        "lo": -0.0006405671891594,
+        "hi": 0.001793769993444203,
+        "se": 0.0006210043833172458
+      },
+      "d_tll_low": {
+        "point": 3.214335254587704e-05,
+        "lo": -0.000557012550363807,
+        "hi": 0.0005669126332183743,
+        "se": 0.0002867156080566789
+      },
+      "bias_arm": 0.03928223193119802,
+      "bias_base": 0.026482996882784035,
+      "cov80_arm": 0.784520414425472,
+      "cov80_base": 0.7866142016533699,
+      "ece_pge": {
+        "4": {
+          "arm": 0.009714468882443318,
+          "base": 0.009497870203695262
+        },
+        "6": {
+          "arm": 0.007698141986057495,
+          "base": 0.007052881098028321
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": 0.0011219270715957744,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": -0.0004917838507899385,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.0010730059138734111,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.0004972329597512329,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": -0.0012233759792236677,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.0019676661509773013,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": 0.0006824071409891485,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.488
+      },
+      "harm": false
+    },
+    "A1|ast|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.9002150882692853,
+      "arm_crps_int": 0.9008163304162078,
+      "d_crps_int": {
+        "point": 0.0006012421469225372,
+        "lo": -0.0005794564855328407,
+        "hi": 0.0018293992478529725,
+        "se": 0.0006145040136188299
+      },
+      "p": 0.296,
+      "d_crps_cont": {
+        "point": 0.0005411548053226319,
+        "lo": -0.0006092497922483539,
+        "hi": 0.0017448974660661742,
+        "se": 0.000600547769978196
+      },
+      "d_tll_low": {
+        "point": 0.00014365295245166636,
+        "lo": -0.0005904775868302738,
+        "hi": 0.0008681143007979691,
+        "se": 0.0003720897672521028
+      },
+      "bias_arm": 0.012853429705317426,
+      "bias_base": 0.039868112838608215,
+      "cov80_arm": 0.7850619111223421,
+      "cov80_base": 0.7822822280784087,
+      "ece_pge": {
+        "2": {
+          "arm": 0.015415331594617967,
+          "base": 0.015595286275788938
+        },
+        "4": {
+          "arm": 0.012589934256677413,
+          "base": 0.011963539585222602
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": 0.0010869937056096847,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": 0.00019979720997371887,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.0019356953081288326,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.0009927450921316354,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": 7.73109721920019e-05,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.0010083147229913193,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": 0.002577543828408095,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.47359999999999997
+      },
+      "harm": false
+    },
+    "A2|ast|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.9002150882692853,
+      "arm_crps_int": 0.9004452276699599,
+      "d_crps_int": {
+        "point": 0.00023013940067479464,
+        "lo": -0.0008235630317711454,
+        "hi": 0.0013066856689423485,
+        "se": 0.0005434307909983402
+      },
+      "p": 0.671,
+      "d_crps_cont": {
+        "point": 0.00013532436888491635,
+        "lo": -0.0008902634049671598,
+        "hi": 0.0011868845884777626,
+        "se": 0.0005298846922053373
+      },
+      "d_tll_low": {
+        "point": 7.850681219452977e-05,
+        "lo": -0.0005820786511624783,
+        "hi": 0.0007278744180015534,
+        "se": 0.000334171701317355
+      },
+      "bias_arm": 0.015341372547754686,
+      "bias_base": 0.039868112838608215,
+      "cov80_arm": 0.7857117071585863,
+      "cov80_base": 0.7822822280784087,
+      "ece_pge": {
+        "2": {
+          "arm": 0.01537578510218323,
+          "base": 0.015595286275788938
+        },
+        "4": {
+          "arm": 0.01231274599777705,
+          "base": 0.011963539585222602
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": 8.484634226408556e-05,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": 0.0011746893071438761,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.0014742349849192586,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.0005615698750852509,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": -0.0005600344112842625,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.0008440713533624653,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": 0.002016950831953583,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.688
+      },
+      "harm": false
+    },
+    "A1|fg3m|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.5922128263543135,
+      "arm_crps_int": 0.5923825931326802,
+      "d_crps_int": {
+        "point": 0.00016976677836674434,
+        "lo": -0.0006789379169995057,
+        "hi": 0.0010402742039233182,
+        "se": 0.0004385745206435776
+      },
+      "p": 0.688,
+      "d_crps_cont": {
+        "point": -8.619472909644882e-05,
+        "lo": -0.0009199009407236473,
+        "hi": 0.0008118877663479486,
+        "se": 0.0004417828334366316
+      },
+      "d_tll_low": {
+        "point": -0.000596760001984614,
+        "lo": -0.0016543944201878906,
+        "hi": 0.000480776519138819,
+        "se": 0.0005446864641139565
+      },
+      "bias_arm": -0.008755065178231427,
+      "bias_base": -0.007857920426446223,
+      "cov80_arm": 0.7831125230136096,
+      "cov80_base": 0.7802245406303021,
+      "ece_pge": {
+        "1": {
+          "arm": 0.028388395172498006,
+          "base": 0.0294597785868079
+        },
+        "2": {
+          "arm": 0.019961726977184027,
+          "base": 0.0207513869843786
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": 9.586188265688073e-06,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": 0.0004043597673388178,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.000512663994663459,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.00029196159135990937,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": -0.001282100377954376,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.001297806742274719,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": -0.00033874882926045185,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.688
+      },
+      "harm": false
+    },
+    "A2|fg3m|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.5922128263543135,
+      "arm_crps_int": 0.5929581048085442,
+      "d_crps_int": {
+        "point": 0.0007452784542307111,
+        "lo": -0.0001241174730339907,
+        "hi": 0.00161332726142429,
+        "se": 0.00044322569756588797
+      },
+      "p": 0.089,
+      "d_crps_cont": {
+        "point": 0.0010789036944792198,
+        "lo": 0.0002149512854194737,
+        "hi": 0.0019539789666695217,
+        "se": 0.0004436295105229714
+      },
+      "d_tll_low": {
+        "point": 0.0004575518561389956,
+        "lo": -0.0005858223782881599,
+        "hi": 0.001497849455274217,
+        "se": 0.0005315489371332594
+      },
+      "bias_arm": -0.0035416763414685432,
+      "bias_base": -0.007857920426446223,
+      "cov80_arm": 0.7823544276379915,
+      "cov80_base": 0.7802245406303021,
+      "ece_pge": {
+        "1": {
+          "arm": 0.030607715302986907,
+          "base": 0.0294597785868079
+        },
+        "2": {
+          "arm": 0.019779051207084106,
+          "base": 0.0207513869843786
+        }
+      },
+      "slices": {
+        "cold_start(n_prior<20, current window)": {
+          "n_rows": 1325,
+          "d_crps_int": 0.000826661038195625,
+          "binding": true
+        },
+        "true_rookie": {
+          "n_rows": 2835,
+          "d_crps_int": 0.0006839743193202283,
+          "binding": true
+        },
+        "injury_heavy(n_out_rot>=2)": {
+          "n_rows": 16344,
+          "d_crps_int": 0.0014063620394146245,
+          "binding": true
+        },
+        "teammate_out(n_out_rot>0)": {
+          "n_rows": 23156,
+          "d_crps_int": 0.000930896724364314,
+          "binding": true
+        },
+        "starter(starter10>=.5)": {
+          "n_rows": 12112,
+          "d_crps_int": -0.0005562983328050023,
+          "binding": true
+        },
+        "bench": {
+          "n_rows": 15589,
+          "d_crps_int": 0.0017565490966437308,
+          "binding": true
+        },
+        "first15_team_games": {
+          "n_rows": 4624,
+          "d_crps_int": -0.00029696088727268916,
+          "binding": true
+        }
+      },
+      "pass_checks": {
+        "checks": {
+          "floor(d<=-0.005)": false,
+          "ci_upper<0": false,
+          "bh_p<0.05": false,
+          "bias<=0.5": true,
+          "cov80_in_[.75,.85]": true,
+          "no_slice_worse_than_+0.01": true
+        },
+        "bad_slices": [],
+        "pass": false,
+        "bh_p": 0.212
+      },
+      "harm": false
+    }
+  },
+  "knockout": {
+    "K1-K0|pts|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 3.174633414414729,
+      "arm_crps_int": 3.1582840693332987,
+      "d_crps_int": {
+        "point": -0.016349345081429257,
+        "lo": -0.02158651486288406,
+        "hi": -0.010949090788645864,
+        "se": 0.002713628590366887
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": -0.016320298369208786,
+        "lo": -0.021582042760115307,
+        "hi": -0.010901977986056929,
+        "se": 0.0027245063199128517
+      },
+      "d_tll_low": {
+        "point": -0.0017169709717434357,
+        "lo": -0.0027669982469530575,
+        "hi": -0.0006057110040511372,
+        "se": 0.0005513487864545715
+      },
+      "bias_arm": 0.11721661712501222,
+      "bias_base": 0.09880812092766982,
+      "cov80_arm": 0.773054781128933,
+      "cov80_base": 0.7768203048625946,
+      "ece_pge": {
+        "10": {
+          "arm": 0.015162346363775118,
+          "base": 0.014057215364632267
+        },
+        "15": {
+          "arm": 0.008273199154103558,
+          "base": 0.008824672986570123
+        }
+      }
+    },
+    "K0-A0|pts|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 3.152829990762183,
+      "arm_crps_int": 3.174633414414729,
+      "d_crps_int": {
+        "point": 0.02180342365254534,
+        "lo": 0.014805875577946421,
+        "hi": 0.028511457891655063,
+        "se": 0.003496322018803225
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.02180495225404025,
+        "lo": 0.014805450234360995,
+        "hi": 0.028519769590085228,
+        "se": 0.0034985508560521003
+      },
+      "d_tll_low": {
+        "point": 0.004091312690786317,
+        "lo": 0.002657576277309566,
+        "hi": 0.005514339271870898,
+        "se": 0.0007287660700411562
+      },
+      "bias_arm": 0.09880812092766982,
+      "bias_base": 0.05853972962175929,
+      "cov80_arm": 0.7768203048625946,
+      "cov80_base": 0.7733806437597306,
+      "ece_pge": {
+        "10": {
+          "arm": 0.014057215364632267,
+          "base": 0.01752453203415246
+        },
+        "15": {
+          "arm": 0.008824672986570123,
+          "base": 0.007662957242492559
+        }
+      }
+    },
+    "K1-K0|reb|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 1.3000979458538036,
+      "arm_crps_int": 1.2923883541286056,
+      "d_crps_int": {
+        "point": -0.0077095917251977205,
+        "lo": -0.009890033648786859,
+        "hi": -0.005595496123627362,
+        "se": 0.0010955452870304839
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": -0.007658417540014263,
+        "lo": -0.009801787873230688,
+        "hi": -0.005564012032700831,
+        "se": 0.0010810652654412902
+      },
+      "d_tll_low": {
+        "point": -0.002617554865802904,
+        "lo": -0.003588655087588102,
+        "hi": -0.0016772224090538593,
+        "se": 0.0004876103771771028
+      },
+      "bias_arm": -0.003161739470702057,
+      "bias_base": 0.00795508655092357,
+      "cov80_arm": 0.7869582533762989,
+      "cov80_base": 0.792787573771679,
+      "ece_pge": {
+        "4": {
+          "arm": 0.00967489971673059,
+          "base": 0.011774175559356575
+        },
+        "6": {
+          "arm": 0.008621440960550598,
+          "base": 0.007542509971924158
+        }
+      }
+    },
+    "K0-A0|reb|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 1.2928172686712307,
+      "arm_crps_int": 1.3000979458538036,
+      "d_crps_int": {
+        "point": 0.0072806771825727635,
+        "lo": 0.00485332719062593,
+        "hi": 0.00977793220827741,
+        "se": 0.0012562767902172143
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.007255874651337482,
+        "lo": 0.00485436875141415,
+        "hi": 0.00972158732697112,
+        "se": 0.001241637391723717
+      },
+      "d_tll_low": {
+        "point": 0.003166879828951381,
+        "lo": 0.0019380560084701706,
+        "hi": 0.00433279336843573,
+        "se": 0.0006109023877463164
+      },
+      "bias_arm": 0.00795508655092357,
+      "bias_base": 0.018382657273536773,
+      "cov80_arm": 0.792787573771679,
+      "cov80_base": 0.7923892972229263,
+      "ece_pge": {
+        "4": {
+          "arm": 0.011774175559356575,
+          "base": 0.011823482523592324
+        },
+        "6": {
+          "arm": 0.007542509971924158,
+          "base": 0.007721907266154444
+        }
+      }
+    },
+    "K1-K0|ast|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.9105713503201348,
+      "arm_crps_int": 0.9069480157697329,
+      "d_crps_int": {
+        "point": -0.0036233345504019625,
+        "lo": -0.005224417867678672,
+        "hi": -0.0020567334214774183,
+        "se": 0.000808082766888075
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": -0.0032077539820641,
+        "lo": -0.004797419393238787,
+        "hi": -0.0016421739434474376,
+        "se": 0.0008049095535182014
+      },
+      "d_tll_low": {
+        "point": -0.0017911823719567739,
+        "lo": -0.002830078856517062,
+        "hi": -0.0007717774187214008,
+        "se": 0.0005250768973968523
+      },
+      "bias_arm": 0.06540269587691445,
+      "bias_base": 0.022840956906730176,
+      "cov80_arm": 0.7878996343097143,
+      "cov80_base": 0.7878634273507368,
+      "ece_pge": {
+        "2": {
+          "arm": 0.02258077017478136,
+          "base": 0.018600915799534264
+        },
+        "4": {
+          "arm": 0.011332414270927384,
+          "base": 0.013524299872948162
+        }
+      }
+    },
+    "K0-A0|ast|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.9059028606321847,
+      "arm_crps_int": 0.9105713503201348,
+      "d_crps_int": {
+        "point": 0.00466848968795024,
+        "lo": 0.002640696915056954,
+        "hi": 0.0066032778081844615,
+        "se": 0.0010108624727366091
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.004483075933272123,
+        "lo": 0.002474708440391692,
+        "hi": 0.0063856222627376984,
+        "se": 0.0009976820975372467
+      },
+      "d_tll_low": {
+        "point": 0.002580470583899547,
+        "lo": 0.0013196785644773007,
+        "hi": 0.0037898478661133033,
+        "se": 0.0006301452300091844
+      },
+      "bias_arm": 0.022840956906730176,
+      "bias_base": 0.023308532252270385,
+      "cov80_arm": 0.7878634273507368,
+      "cov80_base": 0.7862703211557261,
+      "ece_pge": {
+        "2": {
+          "arm": 0.018600915799534264,
+          "base": 0.017597491785659926
+        },
+        "4": {
+          "arm": 0.013524299872948162,
+          "base": 0.013773745806406291
+        }
+      }
+    },
+    "K1-K0|fg3m|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.5714070081950617,
+      "arm_crps_int": 0.5677471997118174,
+      "d_crps_int": {
+        "point": -0.0036598084832443157,
+        "lo": -0.004592890040186065,
+        "hi": -0.002703490510456673,
+        "se": 0.0004819896759513756
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": -0.003937561627399066,
+        "lo": -0.004848621044623084,
+        "hi": -0.0029843545433676914,
+        "se": 0.0004755781890957634
+      },
+      "d_tll_low": {
+        "point": -0.002373566352248702,
+        "lo": -0.003489533934475836,
+        "hi": -0.0012283865653446556,
+        "se": 0.0005768233084518317
+      },
+      "bias_arm": 0.006456850062671667,
+      "bias_base": 0.01161675359667836,
+      "cov80_arm": 0.7857634237300409,
+      "cov80_base": 0.7880444621456244,
+      "ece_pge": {
+        "1": {
+          "arm": 0.03328947863980462,
+          "base": 0.029721182763085843
+        },
+        "2": {
+          "arm": 0.020239872012948606,
+          "base": 0.021201448787803747
+        }
+      }
+    },
+    "K0-A0|fg3m|2023": {
+      "season": 2023,
+      "n_rows": 27619,
+      "n_games": 1318,
+      "base_crps_int": 0.5690486141021416,
+      "arm_crps_int": 0.5714070081950617,
+      "d_crps_int": {
+        "point": 0.002358394092920175,
+        "lo": 0.0013391017328271283,
+        "hi": 0.0034247439255081394,
+        "se": 0.0005320515797655641
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.0016830468282718186,
+        "lo": 0.000659015391858784,
+        "hi": 0.0027010155399691507,
+        "se": 0.0005209184051301957
+      },
+      "d_tll_low": {
+        "point": 0.002536054720783173,
+        "lo": 0.0013420626102844707,
+        "hi": 0.003684590063811092,
+        "se": 0.0005975835340629136
+      },
+      "bias_arm": 0.01161675359667836,
+      "bias_base": 0.008048075683797255,
+      "cov80_arm": 0.7880444621456244,
+      "cov80_base": 0.7885151526123321,
+      "ece_pge": {
+        "1": {
+          "arm": 0.029721182763085843,
+          "base": 0.031059020800079214
+        },
+        "2": {
+          "arm": 0.021201448787803747,
+          "base": 0.0176962876586488
+        }
+      }
+    },
+    "K1-K0|pts|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 3.2147741042993165,
+      "arm_crps_int": 3.215383269053905,
+      "d_crps_int": {
+        "point": 0.0006091647545881648,
+        "lo": -0.0031789891323037995,
+        "hi": 0.004458685910430138,
+        "se": 0.0019483864904933515
+      },
+      "p": 0.759,
+      "d_crps_cont": {
+        "point": 0.0005633021939690345,
+        "lo": -0.0031921114598876367,
+        "hi": 0.004376717355466135,
+        "se": 0.0019308236773861664
+      },
+      "d_tll_low": {
+        "point": 0.0004678762630028603,
+        "lo": -0.00035786173896418054,
+        "hi": 0.0012833331956331054,
+        "se": 0.0004186721771931852
+      },
+      "bias_arm": -0.03467341205389538,
+      "bias_base": -0.015527269550313276,
+      "cov80_arm": 0.7651348326775207,
+      "cov80_base": 0.7598281650481932,
+      "ece_pge": {
+        "10": {
+          "arm": 0.01690195317949268,
+          "base": 0.017086805820735733
+        },
+        "15": {
+          "arm": 0.014115739522129623,
+          "base": 0.014315648855446499
+        }
+      }
+    },
+    "K0-A0|pts|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 3.1875525740475275,
+      "arm_crps_int": 3.2147741042993165,
+      "d_crps_int": {
+        "point": 0.027221530251789125,
+        "lo": 0.020153893136242034,
+        "hi": 0.0343917152362713,
+        "se": 0.0036320974744972613
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.02720516083350179,
+        "lo": 0.020101811916015712,
+        "hi": 0.034366354435013326,
+        "se": 0.003638913907907555
+      },
+      "d_tll_low": {
+        "point": 0.0045527790794459965,
+        "lo": 0.0030614016173273776,
+        "hi": 0.006200954778414215,
+        "se": 0.0008009064186446014
+      },
+      "bias_arm": -0.015527269550313276,
+      "bias_base": 0.030219967267455346,
+      "cov80_arm": 0.7598281650481932,
+      "cov80_base": 0.7634381430273275,
+      "ece_pge": {
+        "10": {
+          "arm": 0.017086805820735733,
+          "base": 0.014260682859080803
+        },
+        "15": {
+          "arm": 0.014315648855446499,
+          "base": 0.012593380969320828
+        }
+      }
+    },
+    "K1-K0|reb|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 1.3214780860986466,
+      "arm_crps_int": 1.3218277109299008,
+      "d_crps_int": {
+        "point": 0.00034962483125408573,
+        "lo": -0.0010948955251395864,
+        "hi": 0.0017375785351363255,
+        "se": 0.0007225699133356917
+      },
+      "p": 0.643,
+      "d_crps_cont": {
+        "point": 0.00036895342479940067,
+        "lo": -0.0010667979935552942,
+        "hi": 0.0017232746244196147,
+        "se": 0.0007117532188711502
+      },
+      "d_tll_low": {
+        "point": -1.5024147773699477e-05,
+        "lo": -0.0006959086324228714,
+        "hi": 0.000616564622687935,
+        "se": 0.00033481460589561386
+      },
+      "bias_arm": 0.02699786794743422,
+      "bias_base": 0.018109971006905815,
+      "cov80_arm": 0.7823905274177827,
+      "cov80_base": 0.7840150175083932,
+      "ece_pge": {
+        "4": {
+          "arm": 0.00996081813348177,
+          "base": 0.008511021952112827
+        },
+        "6": {
+          "arm": 0.006653243837323152,
+          "base": 0.008404536672024794
+        }
+      }
+    },
+    "K0-A0|reb|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 1.3142466423136836,
+      "arm_crps_int": 1.3214780860986466,
+      "d_crps_int": {
+        "point": 0.007231443784963196,
+        "lo": 0.004681200146114695,
+        "hi": 0.009903263647551164,
+        "se": 0.0013321590564888952
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.007277329825192617,
+        "lo": 0.0047516833828378695,
+        "hi": 0.009918352339284148,
+        "se": 0.0013180277950118058
+      },
+      "d_tll_low": {
+        "point": 0.0031769173635323787,
+        "lo": 0.0018528384266203737,
+        "hi": 0.0045569293476671316,
+        "se": 0.0006898191125119281
+      },
+      "bias_arm": 0.018109971006905815,
+      "bias_base": 0.026482996882784035,
+      "cov80_arm": 0.7840150175083932,
+      "cov80_base": 0.7866142016533699,
+      "ece_pge": {
+        "4": {
+          "arm": 0.008511021952112827,
+          "base": 0.009497870203695262
+        },
+        "6": {
+          "arm": 0.008404536672024794,
+          "base": 0.007052881098028321
+        }
+      }
+    },
+    "K1-K0|ast|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.9049652900220766,
+      "arm_crps_int": 0.9056559826119628,
+      "d_crps_int": {
+        "point": 0.000690692589886234,
+        "lo": -0.000476208457907874,
+        "hi": 0.0018442801154222178,
+        "se": 0.0005919613707474723
+      },
+      "p": 0.237,
+      "d_crps_cont": {
+        "point": 0.0005569507598536895,
+        "lo": -0.0005829310526540235,
+        "hi": 0.0017022800601512171,
+        "se": 0.0005829620185727654
+      },
+      "d_tll_low": {
+        "point": 0.00014250818773263907,
+        "lo": -0.0005922284099701899,
+        "hi": 0.0008661213681400632,
+        "se": 0.00037202800461996256
+      },
+      "bias_arm": -0.003103655013607384,
+      "bias_base": 0.022998030898381434,
+      "cov80_arm": 0.7858922060575431,
+      "cov80_base": 0.7837262192700625,
+      "ece_pge": {
+        "2": {
+          "arm": 0.014790750982449126,
+          "base": 0.013822406135583892
+        },
+        "4": {
+          "arm": 0.012448800444226846,
+          "base": 0.012115376347460571
+        }
+      }
+    },
+    "K0-A0|ast|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.9002150882692853,
+      "arm_crps_int": 0.9049652900220766,
+      "d_crps_int": {
+        "point": 0.004750201752791301,
+        "lo": 0.002831336792259094,
+        "hi": 0.006727582741641573,
+        "se": 0.000993940293209816
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.004690360356316462,
+        "lo": 0.002762587277792576,
+        "hi": 0.006659080854084795,
+        "se": 0.0009940034633398515
+      },
+      "d_tll_low": {
+        "point": 0.002429872121534616,
+        "lo": 0.0011853907567077814,
+        "hi": 0.003677659178141472,
+        "se": 0.000635782760569819
+      },
+      "bias_arm": 0.022998030898381434,
+      "bias_base": 0.039868112838608215,
+      "cov80_arm": 0.7837262192700625,
+      "cov80_base": 0.7822822280784087,
+      "ece_pge": {
+        "2": {
+          "arm": 0.013822406135583892,
+          "base": 0.015595286275788938
+        },
+        "4": {
+          "arm": 0.012115376347460571,
+          "base": 0.011963539585222602
+        }
+      }
+    },
+    "K1-K0|fg3m|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.5951480882275045,
+      "arm_crps_int": 0.594995580536807,
+      "d_crps_int": {
+        "point": -0.00015250769069750556,
+        "lo": -0.0010628450896318002,
+        "hi": 0.00078985827649895,
+        "se": 0.0004726284097272322
+      },
+      "p": 0.773,
+      "d_crps_cont": {
+        "point": -0.0006592067236754828,
+        "lo": -0.0015614755289960164,
+        "hi": 0.0003138671479508698,
+        "se": 0.00047840374411910365
+      },
+      "d_tll_low": {
+        "point": -3.521299329867238e-05,
+        "lo": -0.0011784561221328295,
+        "hi": 0.0011164245031219512,
+        "se": 0.000585428730932342
+      },
+      "bias_arm": -0.0025535402176016866,
+      "bias_base": -0.012426847475795066,
+      "cov80_arm": 0.7811992346846685,
+      "cov80_base": 0.7801523410707195,
+      "ece_pge": {
+        "1": {
+          "arm": 0.029795379554717408,
+          "base": 0.026928258853198894
+        },
+        "2": {
+          "arm": 0.0235521131160296,
+          "base": 0.024517555468037286
+        }
+      }
+    },
+    "K0-A0|fg3m|2024": {
+      "season": 2024,
+      "n_rows": 27701,
+      "n_games": 1320,
+      "base_crps_int": 0.5922128263543135,
+      "arm_crps_int": 0.5951480882275045,
+      "d_crps_int": {
+        "point": 0.0029352618731909997,
+        "lo": 0.001972716646273553,
+        "hi": 0.003920795084560481,
+        "se": 0.0004969587852772776
+      },
+      "p": 0.0004997501249375312,
+      "d_crps_cont": {
+        "point": 0.002409016191142115,
+        "lo": 0.0014920306290304832,
+        "hi": 0.0033167179621419137,
+        "se": 0.00046548146252842616
+      },
+      "d_tll_low": {
+        "point": 0.0028573992775074385,
+        "lo": 0.0017313274793698092,
+        "hi": 0.003988658254161367,
+        "se": 0.000575849687446826
+      },
+      "bias_arm": -0.012426847475795066,
+      "bias_base": -0.007857920426446223,
+      "cov80_arm": 0.7801523410707195,
+      "cov80_base": 0.7802245406303021,
+      "ece_pge": {
+        "1": {
+          "arm": 0.026928258853198894,
+          "base": 0.0294597785868079
+        },
+        "2": {
+          "arm": 0.024517555468037286,
+          "base": 0.0207513869843786
+        }
+      }
+    }
+  },
+  "family": {
+    "2023": {
+      "tests": [
+        "A1|pts",
+        "A1|reb",
+        "A1|ast",
+        "A1|fg3m",
+        "A2|pts",
+        "A2|reb",
+        "A2|ast",
+        "A2|fg3m"
+      ],
+      "p": [
+        0.0004997501249375312,
+        0.001,
+        0.005,
+        0.0004997501249375312,
+        0.0004997501249375312,
+        0.003,
+        0.011,
+        0.001
+      ],
+      "bh_adj_p": [
+        0.0013326669998334165,
+        0.0016,
+        0.005714285714285714,
+        0.0013326669998334165,
+        0.0013326669998334165,
+        0.004,
+        0.011,
+        0.0016
+      ]
+    },
+    "2024": {
+      "tests": [
+        "A1|pts",
+        "A1|reb",
+        "A1|ast",
+        "A1|fg3m",
+        "A2|pts",
+        "A2|reb",
+        "A2|ast",
+        "A2|fg3m"
+      ],
+      "p": [
+        0.05,
+        0.094,
+        0.296,
+        0.688,
+        0.106,
+        0.366,
+        0.671,
+        0.089
+      ],
+      "bh_adj_p": [
+        0.212,
+        0.212,
+        0.47359999999999997,
+        0.688,
+        0.212,
+        0.488,
+        0.688,
+        0.212
+      ]
+    }
+  },
+  "verdict": {
+    "A1": {
+      "status": "FAIL",
+      "confirmed_stats": [],
+      "knockout_ok_stats": [],
+      "harm": []
+    },
+    "A2": {
+      "status": "FAIL",
+      "confirmed_stats": [],
+      "knockout_ok_stats": [],
+      "harm": []
+    }
+  },
+  "key_log": {
+    "A0|pts": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A1|pts": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A2|pts": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K0|pts": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K1|pts": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A0|reb": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A1|reb": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A2|reb": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K0|reb": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K1|reb": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A0|ast": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A1|ast": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A2|ast": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K0|ast": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K1|ast": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A0|fg3m": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A1|fg3m": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "A2|fg3m": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K0|fg3m": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    },
+    "K1|fg3m": {
+      "n_rows": 55320,
+      "n_games": 2638,
+      "key_hash": "1af033393ff8d9f20608cb653c6a463ec9e10526fb8e56f6069e11de9ea49061"
+    }
+  },
+  "ledger_rows_draft": [
+    "HISTORY_WINDOW_3 (sha256 32e05aec) arm A1: FAIL; confirmed stats []; knockout-ok []; harm []",
+    "HISTORY_WINDOW_3 (sha256 32e05aec) arm A2: FAIL; confirmed stats []; knockout-ok []; harm []"
+  ]
+}
