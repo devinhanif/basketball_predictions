@@ -796,3 +796,9 @@ What: a 2023/24 candidate; no production change. Stage 2 (one logged 2025 touch,
 be written and adversary-reviewed first and must reproduce the stored A0 heads/pi, w_q and T467's 2024 delta on the 2024 blocks before any 2025
 row is fitted. Minor harness fix queued: run_arms must refuse checkpoints older than the freeze commit. Why: docs/reviews/recent_role_full_review_2026-10-12.md.
 What would reverse it: a Stage-2 miss (reads as "real but below the floor") or the live joint P(play) x FULL forecast showing no gain.
+
+**2026-10-12 03:39 CDT — Two corrections from the final overnight audit (labels and readings only).**
+(1) The 00:49 RECENT_ROLE_HOLDOUT entry says R beats "the current P(play) feature set" by -0.0205; the comparator was WORKLOAD's C. Against the
+deployed P(play) hurdle the adversary measured -0.0972 [-0.1029, -0.0915] (T462); any production proposal rests on that number. (2) T470 withdraws
+the T466 reading that the SEQ blend is guard-clean without the gate; any SEQ rule needs a descriptive slice/overlap table on the cached 2023/24
+arrays first. Fixed in code the same hour: the run-metadata dirty flag now counts only code and config paths (e13dc52).

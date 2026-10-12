@@ -104,3 +104,11 @@ Designs committed 2026-10-11: docs/BUSINESS_DRAFT_2026-10-11.md, docs/APP_ARCHIT
 (section 12 = Devin's accounts checklist), docs/APP_CONTENT_SPEC.md. Build order once Devin's accounts exist: nba/export/ +
 layering rules → app/ API + PWA skeleton → slip batch → paper-trade ledger → parlay-of-the-day card → posting adapters (X,
 Discord first) with the approval queue and kill switch → 20-post dry run. Open: what "jev engineering best practices" means (Devin).
+
+## Added 2026-10-12 overnight (opening night 2026-10-20)
+- P(play) shadow is ON in pretip (logs R, C, C' for every rostered not-OUT player; parity warning if R minus production > -0.05 over 7 days).
+- T-15 lineup arm runs from ops/nba_lineups.sh (own lock and heartbeat); check its first decisions and the lineups_t15 heartbeat.
+- Run summaries print `code: git=... dirty=...`; dirty should be False on a clean tree.
+- Live odds capture requests 89 markets x 12 points; open the first raw file on 10-20 and check the new market shapes parse (team totals, period lines, yes/no props); watch live_book_odds growth.
+- Keep the Mac on AC with the lid open on game nights (10-11 lid sleep on battery caused a 5-hour collector gap).
+- Pending Devin: RECENT_ROLE_FULL Stage 2 (2025 check on points) vs waiting for the live log; the-odds-api plan and billing reset.
