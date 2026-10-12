@@ -15,6 +15,8 @@
 ## Queue added by Devin ("we missed something and many tests were close")
 - Q1 Diagnostic (descriptive, no claim): why a better pi moves pts CRPS only ~-0.005 when the oracle pi is worth -0.15 — check pi log-loss gain vs CRPS transfer, the short-component quantiles w_q, the mixture weight path; look for a structural cap.
 - Q2 RECENT_ROLE_FULL: one rule putting recent-role minutes into P(play), pi and the props heads together; select 2023, report 2024; floor unchanged (-0.005); a 2025 touch only on Devin's words.
+- Q3 Pace diagnostic (descriptive, no claim): do production props residuals (2023/24 OOF) correlate with as-of expected game pace (both teams' recent possessions per 48) beyond what r20 points-for/against carries? Slice by pace decile.
+- Q4 PACE_TOTALS draft: a game-total model = expected possessions (both teams' as-of pace) x each team's as-of efficiency vs the opponent, scored against the market total (log loss / CRPS on total points, decision score); select 2023, report 2024; Devin confirms before freeze ("no way fitting the games to the pace model doesn't work").
 - Floor: not changed; any floor question is a daylight decision.
 
 ## Log
