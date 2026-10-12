@@ -979,3 +979,6 @@ What (follows the validity audit's redo list; queued behind the two running agen
 2. WORKLOAD_PTS_V2: rerun on top of FULL with a past-only placebo that cannot see the future and a both-arms shuffle; Mac CPU; 2023-24 select; the unspent 2025 touch only with Devin's words.
 3. RAPM_V2: rebuilt on the current (post-2026-10-09) stints with 2019-21 as a prior; Mac CPU; plus F12 re-measured descriptively on the rebuilt stints.
 Order: 1, 2, 3. Live readiness keeps priority each day.
+
+**2026-10-12 16:28 CDT — the three redos train from 2019-20 (Devin: "make sure all 3 go back to 2019 2020").**
+What: PPLAY_MINUTES_VALID, WORKLOAD_PTS_V2 and RAPM_V2 all use data from 2019-20 onward (history read-only, era flags for the bubble and 2020-21, never imputed). P(play)/minutes uses injury-report features, so 2021-22's hourly report cadence must be handled as SEQ_FULL_MIX_RT did (drop or thin its report tokens, chosen before results). Selection stays on 2023-24 (and earlier seasons where coverage allows); report venues as above.
