@@ -684,3 +684,5 @@ seasons. That was seen after the fact on 2023-24, so it can only be confirmed on
 minutes improves it by -0.0205 log loss on the 2025 holdout (twice the frozen floor; larger than the -0.017 seen on 2023-24). About three
 quarters comes from the recent-minutes columns production already computes for its props heads, one quarter from last-game minutes. The
 first pre-registered, holdout-confirmed improvement since injury-Elo and the context-residual props model. Production change is Devin's call.
+
+| T459 | Correction to T439 (ADVANCED_RATES) from the 2026-10-12 ledger audit | The verdict (null) stands. The reading "placebo better than the real columns in 14 of 15 cells" is withdrawn: the placebo permuted feature values within player-season and so carried future, player-level information (USAGE_PACE/pts placebo minus A0 -0.0218 [-0.0267, -0.0169] / -0.0151 [-0.0196, -0.0108]); it was not a null. The shuffled-label arm was inert. docs/reviews/ledger_audit_2026-10-12.md |

@@ -722,3 +722,10 @@ What: R (P(play) features + production's recent-minutes columns + 5 recent-role 
 on season 2025. Production is unchanged until Devin decides; the proposal is to replace the P(play) hurdle's feature set with R in the daily path,
 shadow-logged first, behind the replay oracle and the hands-off window (land before 2026-10-18 or after 2026-10-20).
 Why: holdout-confirmed with all guards. What would reverse it: the live 2026-27 log showing no P(play) gain over the first 4 weeks.
+
+**2026-10-12 01:16 CDT — Ledger audit merged; order of follow-ups; NEAR_MISS_BUNDLE not frozen as drafted.**
+What: docs/reviews/ledger_audit_2026-10-12.md. Order: PI_RECENT_ROLE, then the P(play) shadow and PPLAY_INTO_PROPS_LIVE freeze, then ROUTER_G2,
+then two cheap forward rules before 2026-10-20. NEAR_MISS_BUNDLE as drafted reuses the weak router gate the audit traced to the minutes path,
+so it is not frozen; its members are tested inside ROUTER_G2 with the better gate instead (a change of construction made before any bundle
+result exists, recorded here). T459 corrects the ADVANCED_RATES placebo reading. Why: the audit's root cause. What would reverse it: PI_RECENT_ROLE
+failing, which would leave the bundle as drafted the next test.
