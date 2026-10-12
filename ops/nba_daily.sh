@@ -121,10 +121,12 @@ case "$MODE" in
     # primary; docs/LOWER_TAIL.md frozen live rule), and SHADOW-log the recent-role P(play) model R
     # (--log-pplay-shadow, 2026-10-12: own tables, runs after every primary row is written; oracle
     # 89889f6d identical with the shadow code; its second predict call runs inside the pretip lock)
+    # and SHADOW-log RECENT_ROLE_FULL (--log-full-shadow, 2026-10-12: props heads + lower-tail pi refit with
+    # the five recent-role columns; own tables forward_full_shadow / forward_full_scores; same contract)
     ROSTER=recent
     if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
     step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
-      --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --log-pplay-shadow \
+      --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --log-pplay-shadow --log-full-shadow \
       --rate-limit-s 2.5
     step refs "$UV" run --no-sync python -m nba.ingest.referees collect
     # live sharp-line capture (nba.odds capture, theoddsapi.com) was removed on 2026-10-10 when Devin

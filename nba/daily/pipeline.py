@@ -140,6 +140,7 @@ def run_daily(
     schedule_cache_dir: Path | None = None,
     dedup: bool = True,
     with_pplay_shadow: bool = False,
+    with_full_shadow: bool = False,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC.
 
@@ -228,12 +229,19 @@ def run_daily(
         summary.n_predicted_games = len(upcoming)
 
     summary.settle = settle_pending(con, made_at)
+    shared: dict[str, Any] = {}  # the wide-roster production frame, computed once for both shadows
     if with_pplay_shadow:
         # SHADOW, after every primary row is written and settled: a failure here is recorded and
         # alerts, and cannot change or delay a primary row (own tables, own try/except).
         _pplay_shadow(
             con, run_date, upcoming, made_at, summary, preds,
-            official, elo_config, model_cache, tips_dir,
+            official, elo_config, model_cache, tips_dir, shared,
+        )  # fmt: skip
+    if with_full_shadow:
+        # SHADOW (RECENT_ROLE_FULL), same contract as the P(play) shadow: own tables and try/except.
+        _full_shadow(
+            con, run_date, upcoming, made_at, summary, preds,
+            official, elo_config, model_cache, shared,
         )  # fmt: skip
     return summary
 
@@ -242,6 +250,96 @@ def run_daily(
 _WIDE_CONFIG = ForwardConfig(
     min_proj_minutes=-1.0, min_p_play=0.0, max_roster=1000, official_max_roster=1000
 )
+
+
+def _wide_roster_frame(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    made_at: datetime,
+    official_roster: pl.DataFrame | None,
+    elo_config: Path | None,
+    model_cache: Path | None,
+    shared: dict[str, Any] | None = None,
+) -> tuple[dict[str, float], dict[str, set[int]], pl.DataFrame]:
+    """(elo params, report-OUT map, production's wide-roster rows) for the shadows; computed once
+    per run when ``shared`` is given. Production's own ``predict_slate_context`` with its thresholds
+    relaxed (same report rule, same cached models): the shadows see the players production drops
+    with the same feature code, and nothing is written."""
+    from nba.daily.predict import DEFAULT_CONTEXT_CACHE
+    from nba.props.forward import predict_slate_context
+
+    if shared is not None and "wide" in shared:
+        return shared["params"], shared["report_out"], shared["wide"]
+    params = load_elo_params(elo_config) if elo_config else load_elo_params()
+    report_out = slate_report_outs(con, [(g.game_id, g.tipoff) for g in upcoming], made_at)
+    games = pl.DataFrame(
+        {
+            "game_id": [g.game_id for g in upcoming],
+            "home_team": [g.home_team for g in upcoming],
+            "away_team": [g.away_team for g in upcoming],
+        },
+        schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
+    )
+    wide = predict_slate_context(
+        con, run_date, games, report_out, params,
+        cache_root=model_cache or DEFAULT_CONTEXT_CACHE,
+        official_roster=official_roster, config=_WIDE_CONFIG,
+    ).primary  # fmt: skip
+    if shared is not None:
+        shared.update(params=params, report_out=report_out, wide=wide)
+    return params, report_out, wide
+
+
+def _full_shadow(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    made_at: datetime,
+    summary: RunSummary,
+    preds: list[ForwardPrediction],
+    official_roster: pl.DataFrame | None,
+    elo_config: Path | None,
+    model_cache: Path | None,
+    shared: dict[str, Any] | None = None,
+) -> None:
+    """Log the RECENT_ROLE_FULL conditional grids (props heads + lower-tail pi refit with the five
+    recent-role columns) for every context-model player, then score FULL vs production nightly.
+    Own tables (``forward_full_shadow`` / ``forward_full_scores``); ``forward_predictions`` and
+    every props output are untouched; a failure is recorded in ``shadow_errors``, no primary row
+    changes."""
+    import time
+
+    from nba.daily.full_shadow.run import run_full_shadow
+    from nba.daily.full_shadow.settle import settle_full_shadow
+    from nba.daily.pplay_shadow.features import SlateGame
+    from nba.daily.predict import DEFAULT_CONTEXT_CACHE
+
+    name = "full_shadow"
+    t0 = time.perf_counter()
+    try:
+        if upcoming:
+            params, report_out, wide = _wide_roster_frame(
+                con, run_date, upcoming, made_at, official_roster, elo_config, model_cache, shared
+            )
+            logged = {
+                (p.game_id, p.player_id)
+                for p in preds
+                if p.model_name == CONTEXT_PROPS_MODEL_NAME and p.player_id >= 0
+            }
+            info = run_full_shadow(
+                con, run_date,
+                [SlateGame(g.game_id, g.home_team, g.away_team, g.tipoff) for g in upcoming],
+                made_at, summary.run_id, wide, report_out, logged, params,
+                cache_root=model_cache or DEFAULT_CONTEXT_CACHE,
+            )  # fmt: skip
+            summary.model_status[name] = f"{info}"
+        info_s = settle_full_shadow(con, made_at)
+        summary.model_status[name + "_settle"] = f"{info_s}"
+    except Exception as exc:
+        summary.shadow_errors.append(
+            f"full shadow: {type(exc).__name__}: {exc} ({time.perf_counter() - t0:.0f}s)"[:300]
+        )
 
 
 def _pplay_shadow(
@@ -255,6 +353,7 @@ def _pplay_shadow(
     elo_config: Path | None,
     model_cache: Path | None,
     tips_dir: Path | None,
+    shared: dict[str, Any] | None = None,
 ) -> None:
     """Log p_play_r next to production's p_play for every rostered not-OUT player.
 
@@ -266,28 +365,14 @@ def _pplay_shadow(
     from nba.daily.pplay_shadow.features import SlateGame
     from nba.daily.pplay_shadow.run import run_shadow
     from nba.daily.pplay_shadow.settle import settle_pplay_shadow
-    from nba.daily.predict import DEFAULT_CONTEXT_CACHE
-    from nba.props.forward import predict_slate_context
 
     name = "pplay_r_shadow"
     t0 = time.perf_counter()
     try:
         if upcoming:
-            params = load_elo_params(elo_config) if elo_config else load_elo_params()
-            report_out = slate_report_outs(con, [(g.game_id, g.tipoff) for g in upcoming], made_at)
-            games = pl.DataFrame(
-                {
-                    "game_id": [g.game_id for g in upcoming],
-                    "home_team": [g.home_team for g in upcoming],
-                    "away_team": [g.away_team for g in upcoming],
-                },
-                schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
+            params, report_out, wide = _wide_roster_frame(
+                con, run_date, upcoming, made_at, official_roster, elo_config, model_cache, shared
             )
-            wide = predict_slate_context(
-                con, run_date, games, report_out, params,
-                cache_root=model_cache or DEFAULT_CONTEXT_CACHE,
-                official_roster=official_roster, config=_WIDE_CONFIG,
-            ).primary  # fmt: skip
             logged = {
                 (p.game_id, p.player_id)
                 for p in preds

@@ -490,6 +490,57 @@ off: canonical hash identical, 2246 predictions, 2110 scores).
   adversary's, a week pools many days, and nothing acts on it automatically.
 * Not done: promotion (Devin decides after the live log).
 
+## FULL shadow: RECENT_ROLE_FULL conditional grids (flag-gated; ON in the pretip job since 2026-10-12)
+
+`python -m nba.daily run ... --log-full-shadow` (run_daily `with_full_shadow=True`; default off, so replays and
+the oracle are unaffected). Devin approved the shadow (DECISIONS b348af7, "shadow the combined model yes"); the
+rule is docs/prereg/RECENT_ROLE_FULL.md (frozen 73f3f4b0) and the shadow builds exactly its FULL arm: production
+`context_residual` stat heads refit WITH `wl_min_last, wl_mean_min_l3, wl_min_3d, wl_min_7d, wl_mean_min_l5` and
+the lower-tail short-minutes classifier `pi` refit on `COMMON_FEATURES + those five`, read out through the
+production mixture (`nba.props.lower_tail`, stored `w_q` construction) for ALL four stats, then `ceil(q - 0.5)`.
+Code: `nba/daily/full_shadow/` (`model.py` the refit and the same-date cache, `run.py`, `store.py`, `settle.py`);
+the five columns come from `nba.daily.pplay_shadow.features.load_min_features` (no research import). After every
+primary row is written and settled, in its own try/except (a failure lands in `shadow_errors`, never in a
+primary row). The wide-roster production frame (`predict_slate_context` with its thresholds relaxed) is computed
+once per run and shared with the P(play) shadow (`pipeline._wide_roster_frame`).
+
+* `forward_full_shadow` (append-only, write-on-change, one row per run x game x player x stat; refused when
+  `made_at >= tipoff`): `run_id, made_at, game_id, tipoff, player_id, team_id, stat, model_version (full_v1),
+  q_grid` (FULL conditional-on-playing integer quantiles at taus 0.05..0.95, 19), `mean_full, pi_full` (FULL
+  P(short minutes | plays)), `q_grid_prod, mean_prod, p_play_prod` (production's continuous conditional grid,
+  mean and hurdle P(play) of the same wide frame and run), `in_prod_log, train_through, n_train,
+  features_through, feature_set_sha` (ordered head and pi feature names, learner params, lightgbm),
+  `features_sha` (this row's head + pi feature values). Coverage: every player the context model forecasts in the
+  wide frame (rostered, not OUT, >= 5 prior played games); `recency_fallback` players get no row.
+* Refit: daily on played rows dated before the slate date, `ContextResidualConfig()` (production), seed 0, one
+  `pi` classifier shared by the four stats. Same-date cache `<model cache>/<date>_full/` (models.pkl + meta.json,
+  fingerprint = row count, newest training date, config, recipe sha), exactly production's pattern: the first
+  run of a date refits, the later :20/:50 runs reuse it. About 4 MB a day.
+* Equivalence proofs: with the five columns removed from both feature lists the model is production's
+  `lower_tail='mixture'` model bit for bit (unit test on fixtures; on the real 2025-01-15 slate 271 pts rows
+  equal the live `props_context_residual_lt` grids, 0 differ; the wide frame's conditional grids equal the logged
+  production grids for 1,100 of 1,100 rows).
+* Settle (`python -m nba.daily settle` and the end of every `run`; idempotent) writes `forward_full_scores` with
+  the same eligibility as the other shadows (latest row with `made_at <= tipoff - 60 min`): integer-support
+  conditional CRPS `crps_prod` / `crps_full` on played rows (the FORWARD_PREREG pairing, 2 x mean pinball of the
+  `ceil(q - 0.5)` grids), and the JOINT unconditional forecast for every player in a final box (listed DNP scores
+  as 0): `crps_joint_prod` = production `p_play` x production grid, `crps_joint_full` = `p_play_r` (latest eligible
+  `forward_pplay_shadow` row) x FULL grid, `crps_joint_rprod` = `p_play_r` x production grid (isolates R from
+  FULL). The joint forecast is `(1 - p) at 0 + p/19 on each of the 19 stored quantiles` and the score is its exact
+  CRPS, so joint levels are not comparable to conditional levels, only within a column pair. NULL `p_play_r`
+  (no R row) leaves the two R columns NULL.
+* `build_report` prints a "FULL shadow" section once rows exist (paired FULL minus production per stat, conditional
+  and joint, date-clustered 95% CI). Descriptive: the binding claims are Stage 1/2 of the prereg and the FORWARD_PREREG
+  looks; nothing here promotes anything.
+* Cost, measured 2026-10-12 on a DB copy, real 2025-01-15 slate (11 games, 300 context players, 1,200 shadow
+  rows, `recent` rosters, int + lt arms, P(play) shadow on): pretip run 29 s cold / 20 s warm without the FULL
+  shadow, 47 s cold / 17-21 s warm with it. The added cost is the first run of a date: 15.4 s (feature build
+  2.3 s, refit of four heads + `pi` 12.4 s); every later run of that date reuses the cache and adds about 2 s.
+  Far inside the 30-minute :20/:50 cadence and the lock-wait budgets. Canonical hash of `forward_predictions` /
+  `forward_scores` identical flag on vs off (d3d2d86a..., 3,440 predictions). n = 1 slate each.
+* Enabled 2026-10-12: `ops/nba_daily.sh pretip` passes `--log-full-shadow`. Replay oracle (20 dates of season 2025, `data/rehearsal/oracle_fullshadow.duckdb`, a new file): sha256 89889f6d IDENTICAL to `oracle_pplay.duckdb` (46,658 predictions, 44,562 scores); the replay does not pass the shadow flags, so this proves the shadow code is inert when off.
+* Not done: promotion (Devin decides after the live log); the FULL shadow does not enter the T-30 / T-15 arms.
+
 ## Run metadata (2026-10-12, N15)
 
 `run_daily` records `git_head` and a tracked-file `git_dirty` flag (plus the count of modified tracked files)

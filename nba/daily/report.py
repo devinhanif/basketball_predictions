@@ -315,6 +315,55 @@ def _pplay_shadow_section(con: duckdb.DuckDBPyConnection) -> list[str]:
     return lines
 
 
+def _full_shadow_section(con: duckdb.DuckDBPyConnection) -> list[str]:
+    """SHADOW: RECENT_ROLE_FULL (props heads + lower-tail pi with the five recent-role columns) vs
+    production, integer-support CRPS, paired and date-clustered. Descriptive; the binding rule is
+    docs/prereg/RECENT_ROLE_FULL.md (Stage 1 and 2 are the claim) and the live log for the joint
+    forecast; promotion is Devin's."""
+    head = ["", "## FULL shadow: recent-role heads + pi vs production (SHADOW, never primary)"]
+    try:
+        n_rows = con.execute("SELECT count(*) FROM forward_full_shadow").fetchone()
+        rows = con.execute(
+            "SELECT stat, game_date, played, crps_prod, crps_full, p_play_r, crps_joint_prod, "
+            "crps_joint_full, crps_joint_rprod FROM forward_full_scores WHERE status = 'scored'"
+        ).fetchall()
+    except duckdb.CatalogException:
+        return []  # no shadow table yet: no briefing line
+    if not n_rows or not n_rows[0]:
+        return []
+    if not rows:
+        return head + [f"- {int(n_rows[0])} shadow rows logged, none settled yet."]
+    lines = list(head)
+    for stat in ("pts", "reb", "ast", "fg3m"):
+        sub = [r for r in rows if r[0] == stat]
+        cond = [r for r in sub if r[2]]
+        if cond:
+            d = np.array([str(r[1]) for r in cond])
+            delta = np.array([r[4] - r[3] for r in cond], dtype=float)
+            lines.append(
+                f"- {stat} conditional on playing: FULL minus production CRPS "
+                f"{_fmt(cluster_bootstrap_mean(delta, d), 5)}"
+            )
+        both = [r for r in sub if r[7] is not None]
+        if both:
+            d = np.array([str(r[1]) for r in both])
+            jp = np.array([r[6] for r in both], dtype=float)
+            jf = np.array([r[7] for r in both], dtype=float)
+            jr = np.array([r[8] for r in both], dtype=float)
+            lines.append(
+                f"- {stat} joint (incl. listed DNP, {len(both)} player-games): "
+                f"R x FULL minus production {_fmt(cluster_bootstrap_mean(jf - jp, d), 5)}; "
+                f"R x production minus production {_fmt(cluster_bootstrap_mean(jr - jp, d), 5)}; "
+                f"R x FULL minus R x production {_fmt(cluster_bootstrap_mean(jf - jr, d), 5)}"
+            )
+    lines.append(
+        f"- {len(rows)} settled player-stats over {len({r[1] for r in rows})} dates "
+        "(< 0 favours FULL; joint = mixture CRPS of p x 19 stored quantiles + (1 - p) at 0 "
+        "vs the stat, DNP as 0)."
+    )
+    return lines
+
+
 def build_report(
     con: duckdb.DuckDBPyConnection,
     season: int = FORWARD_SEASON,
@@ -388,6 +437,7 @@ def build_report(
     lines += _paired_t15_section(con, props)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
     lines += _pplay_shadow_section(con)
+    lines += _full_shadow_section(con)
     lines += _checkpoint_section()
     lines += _independence_section(con)
     lines += [

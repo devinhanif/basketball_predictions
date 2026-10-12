@@ -82,6 +82,13 @@ def _parser() -> argparse.ArgumentParser:
         "forward_predictions and the props outputs are unchanged",
     )
     r.add_argument(
+        "--log-full-shadow",
+        action="store_true",
+        help="SHADOW: log the RECENT_ROLE_FULL conditional grids (props heads + lower-tail pi "
+        "refit with the five recent-role columns) next to production's (table forward_full_shadow, "
+        "docs/DAILY_PIPELINE.md); forward_predictions and the props outputs are unchanged",
+    )
+    r.add_argument(
         "--roster-source",
         choices=["recent", "official"],
         default="recent",
@@ -255,6 +262,7 @@ def main(argv: list[str] | None = None) -> int:
             log_int_variant=args.log_int_variant,
             log_lower_tail_variant=args.log_lower_tail_variant,
             with_pplay_shadow=args.log_pplay_shadow,
+            with_full_shadow=args.log_full_shadow,
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
             schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,
@@ -300,6 +308,16 @@ def main(argv: list[str] | None = None) -> int:
                 print(settle_pplay_shadow(con, now))
         except Exception as exc:
             print(f"pplay shadow settle failed (primary unaffected): {type(exc).__name__}: {exc}")
+        from nba.daily.full_shadow.settle import settle_full_shadow
+
+        try:  # FULL shadow scoring never blocks the primary settle either
+            if con.execute(
+                "SELECT count(*) FROM information_schema.tables "
+                "WHERE table_name = 'forward_full_shadow'"
+            ).fetchone()[0]:  # type: ignore[index]
+                print(settle_full_shadow(con, now))
+        except Exception as exc:
+            print(f"full shadow settle failed (primary unaffected): {type(exc).__name__}: {exc}")
         return 0
     text = build_report(con, args.season)
     out = Path(args.out)
