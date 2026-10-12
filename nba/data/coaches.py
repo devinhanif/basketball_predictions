@@ -63,22 +63,34 @@ def load_reference(path: Path = REFERENCE_PATH) -> pl.DataFrame:
     )
 
 
+#: Reviewed spelling variants between sources (Basketball-Reference key -> NBA staff key).
+NAME_ALIASES: dict[str, str] = {"jordifernandeztorres": "jordifernandez"}
+
+
 def norm(name: str) -> str:
-    """Diacritic-free, letters-only lowercase key ('Jordi Fernandez' == 'Jordi Fernández')."""
+    """Diacritic-free, letters-only lowercase key ('Jordi Fernandez' == 'Jordi Fernández'),
+    with reviewed spelling variants folded by ``NAME_ALIASES``."""
     s = unicodedata.normalize("NFKD", name)
-    return "".join(ch for ch in s.lower() if ch.isalpha() and ord(ch) < 128)
+    k = "".join(ch for ch in s.lower() if ch.isalpha() and ord(ch) < 128)
+    return NAME_ALIASES.get(k, k)
 
 
 def coach_id_map(team_coaches: pl.DataFrame) -> dict[str, int]:
-    """Name key -> team_coaches coach_id over every staff row. An ambiguous key raises."""
+    """Name key -> team_coaches coach_id over every staff row. A key that maps to two
+    different ids (e.g. a staffer listed under a player id and a coach id) is left out,
+    so that coach gets a NULL coach_id rather than a guessed one; the key is printed."""
     out: dict[str, int] = {}
+    ambiguous: set[str] = set()
     for r in team_coaches.select("coach_id", "name").unique().iter_rows(named=True):
         if r["coach_id"] is None or r["name"] is None:
             continue
         k = norm(r["name"])
         if k in out and out[k] != int(r["coach_id"]):
-            raise ValueError(f"name key {k!r} maps to two coach ids ({out[k]}, {r['coach_id']})")
+            ambiguous.add(k)
         out[k] = int(r["coach_id"])
+    for k in sorted(ambiguous):
+        print(f"ambiguous coach name {k!r}: coach_id left NULL", flush=True)
+        del out[k]
     return out
 
 

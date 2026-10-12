@@ -169,3 +169,16 @@ def test_reference_files_sum_to_82_and_the_fetched_one_agrees_with_the_handcopie
     tot = new.group_by("season", "team_id").agg(pl.col("games").sum())
     assert tot.height == 120 and (tot["games"] == 82).all()
     assert compare_references(new, old) == []  # 100% agreement for 2022-24
+
+
+def test_coach_id_map_leaves_ambiguous_name_out() -> None:
+    import polars as pl
+
+    from nba.data.coaches import coach_id_map
+
+    staff = pl.DataFrame(
+        {"coach_id": [1, 2, 3], "name": ["Lindsey Harding", "Lindsey Harding", "Jordi Fernández"]}
+    )
+    m = coach_id_map(staff)
+    assert "lindseyharding" not in m
+    assert m["jordifernandez"] == 3
