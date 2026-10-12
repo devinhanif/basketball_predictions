@@ -861,3 +861,9 @@ Q7.3, Q8.2, Q10.3: put to Devin explicitly (pending). (4) LLM shadow: billed on 
 model claude-fable-5-1, fallback claude-opus-5-5; MONTHLY_CAP_USD still unset (main session suggested $50 on Fable or $20 on Opus 5.5 plus a
 Console spend limit) — pending Devin. (5) NBA_FACTS_NIGHTLY on when production moves to the VM. (6) Official-roster window extended past
 2026-11-03 (to 2026-11-30 unless Devin names another date). (7) The main session re-checks the 30 missing 2026-27 tip rows weekly.
+
+**2026-10-12 12:19 CDT — LLM shadow forecaster on Claude Opus 5.5; road stars a live-log slice only; minutes-spread and bench-shrink EDA queued.**
+What: llm_shadow model claude-opus-5-5 (fallback claude-sonnet-5-5), 2ad3e15; MONTHLY_CAP_USD still unset, so no real calls.
+ROAD_STARS not frozen (option 2: descriptive star x home/away slice on the live log). Q7.3 (minutes spread for 24-30-minute players and underdogs):
+descriptive EDA first, reporting where it helps and where it does not; Q8.2 (deep-bench shrink): same EDA, later. Q10.3: not pursued now.
+Why: Devin, 2026-10-12. What would reverse it: Devin.
