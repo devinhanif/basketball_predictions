@@ -739,3 +739,8 @@ after the replay oracle matches golden 89889f6d. Why: Devin "so lets do all of i
 What: a sibling T-15 arm of the T-30 lineup arm, own table and BH family, kill-only L30. Why: in preseason both fives were confirmed >= 30 min
 before tip in 2 of 10 games and >= 15 min in 8 of 10 (audit pass 2, N2). The 18:04-23:03 CDT collector hole on 2026-10-11 coincides with the Mac
 sleeping on battery (N1). What would reverse it: the regular-season T-30 logged share's Wilson lower bound >= 0.70.
+
+**2026-10-12 01:32 CDT — PI_RECENT_ROLE FROZEN (sha256 2d4458ef, commit 304951a).**
+What: the lower-tail short-minutes classifier pi refit with the five recent-role columns, nothing else changed; select 2023, report 2024; one
+logged 2025 touch only on Devin's word. Why: merged ledger audit, found by all three parts; Devin "handle everything". What would reverse it:
+nothing above the results marker.
