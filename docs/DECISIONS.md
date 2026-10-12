@@ -751,3 +751,7 @@ What: (N4) slate takes players' teams from the cached official roster under --ro
 **2026-10-12 01:36 CDT — PI_RECENT_ROLE: closed, fails by 0.0004 (T460-T461).**
 What: no production change, no holdout touch. The gain is real (CIs exclude zero everywhere) but below the floor; the P(play) route, which passed
 the holdout, carries the recent-role information into the live test (PPLAY_INTO_PROPS_LIVE). Why: frozen rule. What would reverse it: nothing.
+
+**2026-10-12 01:43 CDT - label-group NULL check added to `datamanifest check`; "Not Yet Submitted" kept as team sections (commit 26bbb70).**
+What: `LABEL_NULL_GAP` (gap >= 0.10 across minutes buckets and home/away win, seasons <= 2024) joins the played/unplayed check; the report parser can emit `filed` / `not_yet_submitted` team sections, no table is reloaded. Why: audit pass 2, N7, N11 (Devin "handle everything"); live manifest 0 flags; placeholder-only teams 1.6-1.9% of team-games, absent 3.3-3.5%, no rule is warranted yet. What would reverse it: the check flags a structural column that needs a standing allowlist, or a reviewed section feature shows no information over the OUT list.
+

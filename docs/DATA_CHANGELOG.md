@@ -312,3 +312,18 @@
 - Gates: joined to PBP 99.9996 / 100 / 100 / 99.9994 % (2022-2025); made/missed agreement 100 % every season; player agreement 100 % of joined; FGA vs box
   per team-game differs in 4 of 9,741 (by 1). `make data-check`: 0 flags before and after. Per-game coverage of 2025-26: 1,201 of 1,321 games have at least one team.
 - Details: docs/DATA_CARDS.md "shots and shot_events".
+
+## 2026-10-12 01:42 CDT - label-group NULL check, "Not Yet Submitted" sections, report-age measure (data_version a55164376845, unchanged)
+- Code (commit 26bbb70), no table written, no reload, no backup needed: `nba.datamanifest check` gains `LABEL_NULL_GAP` (NULL rate per minutes bucket and
+  per home/away win on `games`, seasons <= 2024 only, gap >= 0.10; tests plant the ridge pattern and a bucket-only pattern the played/unplayed split misses).
+  First run on the live manifest (28 tables): 0 flags before and after (largest gap on any column 0.043, `games.national_tv` by outcome).
+- Parser: `parse_official_injury_report_team_sections` keeps "Not Yet Submitted" as an explicit team-section status (`filed` / `not_yet_submitted`); the
+  player-row output of `parse_official_injury_report` is unchanged (462 sampled PDFs, 0 differences), so no production table changes and the replay oracle
+  was not rerun.
+- Counts (all 1,682 stored production PDFs, 0 parse errors, `python -m nba.data.injury_sections --report`; 110 sections unresolved to a game or team).
+  Team-games with no `filed` snapshot, per season 2022/2023/2024/2025: placeholder only 41/49/43/43 (1.6-1.9%), no section at all while the opponent has one
+  87-92 (3.3-3.5%), game in no snapshot 0/2/0/0; filed in at least one snapshot 2509/2498/2510/2507 of ~2640. Rotation-player DNPs (prior-10-game mean >= 20
+  min, 2022-24) on team-games with no player rows: 55 on "absent", 4 on "placeholder only"; share of team-games with a rotation DNP 18.4% absent, 2.3%
+  placeholder only, 16.3% filed. The 437 of the 2026-10-09 red team is not reproduced under this definition (59); its proxy team assignment differs.
+- Training report age (N12, `python -m nba.data.report_freshness`, real tips, lead 60): median 2.0 h, p95 4.0-4.5 h, 22-24% older than 3 h (2022-24); 2025 median 1.5 h.
+  Live: no live-era report is stored yet, so the live distribution is unobserved.
