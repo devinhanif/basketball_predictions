@@ -654,3 +654,5 @@ The harm halves when the factor is applied at half strength, so the factor is mo
 not play, and spreading the correction over everyone hurts the players who do. With realised minutes shares the same machinery would gain
 0.18 on points. Reading: a game is a closed system, but at T-60 we do not know which part of the roster is in it. The budget belongs at T-30,
 after inactives and starters are confirmed, as the input to the market-update and router follow-ups; not as a T-60 constraint.
+
+| T450 | COACH_PHASE gate at the frozen run (frozen sha256 8111c026, commit 572f08e) | STOPPED AT THE GATE, no arm fitted. (a) Production minutes reproduce to 1e-14 in 2023 but drift up to 1.53 min in 2024 from game 0022400155 on (14% of regular-season, 33% of playoff rows): the 2026-10-11 clean-up (restored games, stint rebuild) changed the inputs since the stored 2026-10-09 table; the frozen text requires 1e-6. (b) G7 missingness: coach playoff-habit fallback rate by realised-minutes bucket 40.6 / 43.4 / 46.4 / 43.1% (gap 5.8 pp vs 2 pp limit); previous-series-game missing on playoff rows gap 3.7 pp. Reliability under the harness definition: blowout habit corrected r -0.07 |

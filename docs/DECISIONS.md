@@ -684,3 +684,9 @@ What: COACH_PHASE frozen (sha256 8111c026, commit 572f08e), coach claim declared
 Cell P is PPLAY_CONTEXT's one follow-up, minutes floor -0.10 min. F10A: MDE 5.0-8.9 points vs a 4-point floor; option 1, rivalry flags go into
 the 2026-27 P(play) shadow log. Why: Devin's confirmations. What would reverse it: nothing above either results marker; F10A reopens at 300+
 forward division non-play events under a new rule.
+
+**2026-10-12 00:07 CDT — COACH_PHASE stopped at its gate (T450).**
+What: the frozen run fails two gate checks (2024 production-minutes reproduction drift after the 10-11 clean-up; coach playoff-habit fallback
+gap 5.8 pp by minutes bucket vs 2 pp). No arm fitted; the frozen limits are not loosened. Why: non-negotiables 4 and 8.
+What would reverse it: a new rule (COACH_PHASE_2) re-baselined on the current data with the habit fallback defined at team level, frozen fresh;
+the main session recommends folding playoff minutes into the T-30 update model instead.
