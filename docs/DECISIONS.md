@@ -696,3 +696,13 @@ What: the adversary cleared the P cell of leaks; the gain is last-game minutes f
 touch. Next: a new rule testing C + min_last against C + production's recent-minutes columns; harness fixes (non-inert shuffled-label arm,
 past-only placebo) before any further freeze. Why: T454 and docs/reviews/workload_review_2026-10-12.md.
 What would reverse it: the comparator rule showing production's recent-minutes columns absorb the gain.
+
+**2026-10-12 00:23 CDT — NEAR_MISS_BUNDLE membership fixed before any further look (Devin: "lets do that, in ur order").**
+What: after RECENT_ROLE, one rule tests a single bundle against production, membership fixed now from the ledger: (1) ENSEMBLE E2 SEQ blend with
+production (learned gate), all four stats (T442: pts -0.0110/-0.0131, failed calibration and slice guards); (2) ENSEMBLE E1 minutes-gated XGBoost
+router, pts (T440: -0.0053/-0.0012); (3) WORKLOAD LOAD family columns in the props model (T452: pts -0.0071/-0.0082, failed 2023 placebo).
+Excluded by reason, not by result: E3 history (failed the era leak guard), TEAM_BUDGET at any strength (harm), HISTORY_WINDOW_3 (2024 harm),
+MARKET_SHRINK (a market blend, different target), ADVANCED_RATES (placebo beat the features). RECENT_ROLE enters only by passing its own rule.
+One test, the fixed placebo and shuffled-label constructions, a holdout touch only if it passes and only on Devin's word.
+Why: near-misses are mostly noise when picked one by one; a single pre-fixed bundle is the honest test. What would reverse it: nothing; no member
+is added or removed after this line.
