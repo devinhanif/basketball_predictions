@@ -828,3 +828,6 @@ What: --log-full-shadow writes the FULL conditional grids for every context-mode
 forecast three ways (production p_play x production grid; P(play) R x FULL grid; R x production grid). Oracle IDENTICAL (oracle_fullshadow.duckdb),
 flag on/off hash identical on a real slate, +15 s on the first run of a date, ~2 s after. The joint scoring construction is the agent's
 ((1-p) at 0 plus p/19 per quantile, exact CRPS) and is not a frozen claim yet. What would reverse it: a persistent shadow error or runtime growth.
+
+**2026-10-12 10:16 CDT — PACE_TOTALS: closed, the line already has the pace (T472).**
+What: the fitted blend put zero weight on the pace model in every month; game totals defer to the market. Why: frozen rule. What would reverse it: nothing.
