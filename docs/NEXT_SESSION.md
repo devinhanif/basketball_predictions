@@ -112,3 +112,5 @@ Discord first) with the approval queue and kill switch → 20-post dry run. Open
 - Live odds capture requests 89 markets x 12 points; open the first raw file on 10-20 and check the new market shapes parse (team totals, period lines, yes/no props); watch live_book_odds growth.
 - Keep the Mac on AC with the lid open on game nights (10-11 lid sleep on battery caused a 5-hour collector gap).
 - Pending Devin: RECENT_ROLE_FULL Stage 2 (2025 check on points) vs waiting for the live log. (Odds plan resolved: START 5M kept.)
+- Weekly (main session): re-check the 30 missing 2026-27 tip rows until they appear (Devin, 2026-10-12).
+- When production moves to the VM: set NBA_FACTS_NIGHTLY=1 (Devin, 2026-10-12).

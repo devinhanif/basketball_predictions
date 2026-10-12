@@ -854,3 +854,10 @@ What: (2) freeze a live scoring rule for the FULL / P(play) shadow before its fi
 RECENT_ROLE_FULL (T471, post-hoc) and spend SEQ's single 2025 touch on it, primary contrast mix minus FULL (SEQ's marginal; FULL's own 2025
 result is already known, disclosed), via a Colab GPU run Devin starts; (4) open questions re-listed for Devin; (5) Mac power setting is Devin's.
 Q1_STARTERS_LIVE stays parked (not answered).
+
+**2026-10-12 12:12 CDT — Devin's answers to the open questions (E).**
+(1) Late scratches after T-30: track them (a briefing/checkpoint stat). (2) Road stars +0.36: draft a rule for confirmation. (3) Model-miss
+Q7.3, Q8.2, Q10.3: put to Devin explicitly (pending). (4) LLM shadow: billed on the Anthropic API by tokens (ANTHROPIC_API_KEY); configured
+model claude-fable-5-1, fallback claude-opus-5-5; MONTHLY_CAP_USD still unset (main session suggested $50 on Fable or $20 on Opus 5.5 plus a
+Console spend limit) — pending Devin. (5) NBA_FACTS_NIGHTLY on when production moves to the VM. (6) Official-roster window extended past
+2026-11-03 (to 2026-11-30 unless Devin names another date). (7) The main session re-checks the 30 missing 2026-27 tip rows weekly.
