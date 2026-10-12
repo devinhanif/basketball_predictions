@@ -13,6 +13,7 @@ Priority (re-prioritised 2026-10-09, see docs/NEW_DATA_SOURCES.md, "History DB")
             nothing holds nba.duckdb
   c         history games 2021, 2020, 2019 -> box scores 2021, 2020, 2019 (-> history DB)
   d         history play-by-play 2021..2019, each parsed (heavy lock)
+  d2        validation box sample for the derived 2015-2019 history (nba.ingest.boxsample)
   e         current officials 2025 (+ load); coaches earlier (-> cache, each loaded
             only when no other process holds nba.duckdb)
   f         history tracking, hustle (the history DB only holds 2019-2021) (+ load)
@@ -67,6 +68,8 @@ PY = str(ROOT / ".venv" / "bin" / "python")
 #: Seconds per request. stats.nba.com enforces a rolling quota of ~600 requests then blocks
 #: for 30+ min, so pace below it (~600/h) rather than racing it. Never lower than 2.5.
 RATE = "6.0"
+#: Validation-sample ids (``nba.parse.history_reconcile pick``); the step exists only when present.
+BOXSAMPLE_IDS = ROOT / "data" / "history" / "boxsample" / "boxsample_game_ids.txt"
 
 
 HISTORY_SEASONS = [2021, 2020, 2019]  # newest first; 2013-2018 dropped (decision 2026-10-09)
@@ -162,6 +165,10 @@ def build_steps() -> list[Step]:
                 season=s,
             )
         )
+    # 2026-10-12: validation sample for the 2015-2019 play-by-play-derived box (about 225 games);
+    # fetched into data/history/boxsample/, not into the history DB. Skipped if no ids file exists.
+    if BOXSAMPLE_IDS.exists():
+        steps.append(Step("hist:boxsample", ["nba.ingest.boxsample", "--rate-limit-s", RATE]))
     steps.append(
         Step(
             "cur:officials:2025",

@@ -48,3 +48,39 @@ def test_write_idempotent() -> None:
     write_era_flags(con, flags)
     assert con.execute("SELECT count(*) FROM game_era_flags").fetchone() == (6,)
     assert con.execute("SELECT count(*) FROM game_era_flags WHERE covid_bubble").fetchone() == (1,)
+
+
+def test_history_flags_and_write_with_extra_columns() -> None:
+    from nba.ingest.era_flags import add_history_flags
+
+    games = pl.DataFrame(
+        {
+            "game_id": ["old", "edge", "after"],
+            "game_date": [date(2016, 1, 1), date(2018, 12, 19), date(2018, 12, 20)],
+            "season": [2015, 2018, 2018],
+            "home_team": [1, 1, 1],
+        }
+    )
+    flags = add_history_flags(compute_era_flags(games), games)
+    got = {
+        r["game_id"]: (r["no_injury_report"], r["box_derived"]) for r in flags.iter_rows(named=True)
+    }
+    assert got == {"old": (True, True), "edge": (True, True), "after": (False, True)}
+    con = duckdb.connect(":memory:")
+    write_era_flags(con, flags)
+    write_era_flags(con, flags)  # idempotent
+    assert con.execute("SELECT count(*) FROM game_era_flags WHERE no_injury_report").fetchone() == (
+        2,
+    )
+    # an older 7-column table is migrated, existing rows default to FALSE
+    con2 = duckdb.connect(":memory:")
+    con2.execute(
+        "CREATE TABLE game_era_flags (game_id VARCHAR PRIMARY KEY, season INT, "
+        "covid_bubble BOOLEAN, "
+        "no_fans BOOLEAN, limited_fans BOOLEAN, shortened_season BOOLEAN, notes VARCHAR)"
+    )
+    con2.execute("INSERT INTO game_era_flags VALUES ('x', 2019, false, false, false, true, NULL)")
+    write_era_flags(con2, flags)
+    assert con2.execute(
+        "SELECT no_injury_report, box_derived FROM game_era_flags WHERE game_id='x'"
+    ).fetchone() == (False, False)

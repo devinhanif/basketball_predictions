@@ -83,3 +83,18 @@ def test_screen_seasons_first_and_2025_deferred_to_end() -> None:
     assert names[-2:] == ["cur:matchups", "load:matchups"]
     assert names.index("hist:load:hustle") < names.index("cur:tracking:2025")
     assert float(q.RATE) >= 6.0
+
+
+def test_boxsample_step_only_when_ids_exist_and_targets_its_own_db(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(q, "BOXSAMPLE_IDS", tmp_path / "missing.txt")
+    assert "hist:boxsample" not in [s.name for s in q.build_steps()]
+    ids = tmp_path / "ids.txt"
+    ids.write_text("0021500001\n")
+    monkeypatch.setattr(q, "BOXSAMPLE_IDS", ids)
+    steps = {s.name: s for s in q.build_steps()}
+    names = list(steps)
+    step = steps["hist:boxsample"]
+    assert step.argv[0] == "nba.ingest.boxsample" and "--history" not in step.argv
+    assert names.index("hist:parse:2019") < names.index("hist:boxsample")
+    assert names.index("hist:boxsample") < names.index("cur:officials:2025")
+    assert float(step.argv[step.argv.index("--rate-limit-s") + 1]) >= 2.5

@@ -427,5 +427,7 @@ CREATE TABLE IF NOT EXISTS team_coach_games (
 CREATE TABLE IF NOT EXISTS game_era_flags (
     game_id VARCHAR PRIMARY KEY, season INT,
     covid_bubble BOOLEAN, no_fans BOOLEAN, limited_fans BOOLEAN,
-    shortened_season BOOLEAN, notes VARCHAR
+    shortened_season BOOLEAN, notes VARCHAR,
+    no_injury_report BOOLEAN DEFAULT FALSE,   -- game dated before 2018-12-20 (first injury report)
+    box_derived BOOLEAN DEFAULT FALSE         -- player box counted from play-by-play (2015-18): no DNP rows
 );

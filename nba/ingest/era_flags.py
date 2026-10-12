@@ -10,7 +10,13 @@ Rules (documented in docs/NEW_DATA_SOURCES.md, "COVID era tags"; season int = st
   arena and date, and no per-arena calendar is encoded, so the whole season is one "reduced
   attendance" regime. ``no_fans`` is NOT asserted (unknown per arena). Toronto home games are
   noted (played in Tampa all season).
-* every other season: all flags False.
+* every other season: all covid flags False.
+
+Two history-era columns (added 2026-10-12 by ``add_history_flags``, not ``compute_era_flags``):
+``no_injury_report`` is TRUE for games dated before 2018-12-20, the first official injury report
+(era-wide, never imputed; DECISIONS 2026-10-12 17:41), and ``box_derived`` is TRUE for seasons
+before 2019, whose player box is counted from play-by-play so DNP/inactive players have no row
+(``nba.ingest.nbastats_box``).
 
 Known unflagged edges: the last pre-suspension dates (2020-03-10/11, some games without fans),
 2021-22 January capacity caps (Omicron), and COVID-protocol postponements/rescheduled games.
@@ -28,6 +34,7 @@ import duckdb
 import polars as pl
 
 BUBBLE_START = date(2020, 7, 30)
+FIRST_INJURY_REPORT = date(2018, 12, 20)
 TORONTO = 1610612761
 COLUMNS = [
     "game_id",
@@ -38,6 +45,7 @@ COLUMNS = [
     "shortened_season",
     "notes",
 ]
+HISTORY_COLUMNS = [*COLUMNS, "no_injury_report", "box_derived"]
 
 
 def compute_era_flags(games: pl.DataFrame) -> pl.DataFrame:
@@ -77,6 +85,24 @@ def compute_era_flags(games: pl.DataFrame) -> pl.DataFrame:
     return pl.DataFrame(rows, schema=schema)
 
 
+def add_history_flags(flags: pl.DataFrame, games: pl.DataFrame) -> pl.DataFrame:
+    """Append ``no_injury_report`` and ``box_derived`` (``games``: game_id, game_date, season)."""
+    extra = games.select(
+        "game_id",
+        (pl.col("game_date") < FIRST_INJURY_REPORT).alias("no_injury_report"),
+        (pl.col("season") < 2019).alias("box_derived"),
+    )
+    return flags.join(extra, on="game_id", how="left").select(HISTORY_COLUMNS)
+
+
+def ensure_era_flag_columns(con: duckdb.DuckDBPyConnection) -> None:
+    """Idempotent migration: add the two history-era columns to an older ``game_era_flags``."""
+    for col in ("no_injury_report", "box_derived"):
+        con.execute(
+            f"ALTER TABLE game_era_flags ADD COLUMN IF NOT EXISTS {col} BOOLEAN DEFAULT FALSE"
+        )
+
+
 def read_games(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     return con.execute("SELECT game_id, game_date, season, home_team FROM games").pl()
 
@@ -86,15 +112,20 @@ def write_era_flags(con: duckdb.DuckDBPyConnection, flags: pl.DataFrame) -> int:
     con.execute(
         "CREATE TABLE IF NOT EXISTS game_era_flags (game_id VARCHAR PRIMARY KEY, season INT, "
         "covid_bubble BOOLEAN, no_fans BOOLEAN, limited_fans BOOLEAN, "
-        "shortened_season BOOLEAN, notes VARCHAR)"
+        "shortened_season BOOLEAN, notes VARCHAR, no_injury_report BOOLEAN DEFAULT FALSE, "
+        "box_derived BOOLEAN DEFAULT FALSE)"
     )
+    ensure_era_flag_columns(con)
     if flags.is_empty():
         return 0
     ids = flags["game_id"].to_list()
     con.execute("DELETE FROM game_era_flags WHERE game_id IN (SELECT unnest(?))", [ids])
-    con.register("_era_df", flags.select(COLUMNS))
+    cols = [c for c in HISTORY_COLUMNS if c in flags.columns]
+    con.register("_era_df", flags.select(cols))
     try:
-        con.execute("INSERT INTO game_era_flags SELECT * FROM _era_df")
+        con.execute(
+            f"INSERT INTO game_era_flags ({', '.join(cols)}) SELECT {', '.join(cols)} FROM _era_df"
+        )
     finally:
         con.unregister("_era_df")
     return flags.height
@@ -114,12 +145,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     frames: list[pl.DataFrame] = []
     cur = connect(DEFAULT_DB_PATH, read_only=True)
     try:
-        frames.append(compute_era_flags(read_games(cur)))
+        cur_games = read_games(cur)
+        frames.append(add_history_flags(compute_era_flags(cur_games), cur_games))
     finally:
         cur.close()
     hcon = connect(args.history_db)
     try:
-        hist = compute_era_flags(read_games(hcon))
+        hist_games = read_games(hcon)
+        hist = add_history_flags(compute_era_flags(hist_games), hist_games)
         n = write_era_flags(hcon, hist)
     finally:
         hcon.close()

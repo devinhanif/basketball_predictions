@@ -1,0 +1,227 @@
+event_msg_type,event_msg_action_type,sub_type,n_overlap_rows,basis
+1,0,No Shot,0,description_2015_17
+1,1,Jump Shot,50009,overlap_2019_21
+1,2,Running Jump Shot,1635,overlap_2019_21
+1,3,Hook Shot,2061,overlap_2019_21
+1,5,Layup Shot,7414,overlap_2019_21
+1,6,Driving Layup Shot,17600,overlap_2019_21
+1,7,Dunk Shot,3036,overlap_2019_21
+1,9,Driving Dunk Shot,2798,overlap_2019_21
+1,40,Layup Shot,0,description_2015_17
+1,41,Running Layup Shot,5750,overlap_2019_21
+1,42,Driving Layup Shot,0,description_2015_17
+1,43,Alley Oop Layup shot,1151,overlap_2019_21
+1,44,Reverse Layup Shot,1803,overlap_2019_21
+1,45,Jump Shot,0,description_2015_17
+1,46,Running Jump Shot,0,description_2015_17
+1,47,Turnaround Jump Shot,2413,overlap_2019_21
+1,48,Dunk Shot,0,description_2015_17
+1,49,Driving Dunk Shot,0,description_2015_17
+1,50,Running Dunk Shot,3180,overlap_2019_21
+1,51,Reverse Dunk Shot,163,overlap_2019_21
+1,52,Alley Oop Dunk Shot,3087,overlap_2019_21
+1,55,Hook Shot,0,description_2015_17
+1,56,Running Hook Shot,0,description_2015_17
+1,57,Driving Hook Shot,970,overlap_2019_21
+1,58,Turnaround Hook Shot,2086,overlap_2019_21
+1,63,Fadeaway Jump Shot,2656,overlap_2019_21
+1,66,Jump Bank Shot,744,overlap_2019_21
+1,67,Hook Bank Shot,164,overlap_2019_21
+1,71,Finger Roll Layup Shot,522,overlap_2019_21
+1,72,Putback Layup Shot,3882,overlap_2019_21
+1,73,Driving Reverse Layup Shot,2485,overlap_2019_21
+1,74,Running Reverse Layup Shot,520,overlap_2019_21
+1,75,Driving Finger Roll Layup Shot,5755,overlap_2019_21
+1,76,Running Finger Roll Layup Shot,1517,overlap_2019_21
+1,77,Driving Jump Shot,0,description_2015_17
+1,78,Floating Jump shot,4191,overlap_2019_21
+1,79,Pullup Jump shot,19231,overlap_2019_21
+1,80,Step Back Jump shot,7176,overlap_2019_21
+1,81,Pullup Bank Shot,0,description_2015_17
+1,82,Driving Bank Shot,0,description_2015_17
+1,83,Fadeaway Bank Shot,0,description_2015_17
+1,85,Turnaround Bank Shot,0,description_2015_17
+1,86,Turnaround Fadeaway shot,2127,overlap_2019_21
+1,87,Putback Dunk Shot,866,overlap_2019_21
+1,93,Driving Bank Hook Shot,186,overlap_2019_21
+1,96,Turnaround Bank Hook Shot,198,overlap_2019_21
+1,97,Tip Layup Shot,4238,overlap_2019_21
+1,98,Cutting Layup Shot,7009,overlap_2019_21
+1,99,Cutting Finger Roll Layup Shot,1025,overlap_2019_21
+1,100,Running Alley Oop Layup Shot,106,overlap_2019_21
+1,101,Driving Floating Jump Shot,7409,overlap_2019_21
+1,102,Driving Floating Bank Jump Shot,2557,overlap_2019_21
+1,103,Running Pull-Up Jump Shot,1143,overlap_2019_21
+1,104,Step Back Bank Jump Shot,83,overlap_2019_21
+1,105,Turnaround Fadeaway Bank Jump Shot,541,overlap_2019_21
+1,106,Running Alley Oop Dunk Shot,365,overlap_2019_21
+1,107,Tip Dunk Shot,1133,overlap_2019_21
+1,108,Cutting Dunk Shot,5534,overlap_2019_21
+1,109,Driving Reverse Dunk Shot,64,overlap_2019_21
+1,110,Running Reverse Dunk Shot,36,overlap_2019_21
+2,0,No Shot,0,description_2015_17
+2,1,Jump Shot,88720,overlap_2019_21
+2,2,Running Jump Shot,2159,overlap_2019_21
+2,3,Hook Shot,2439,overlap_2019_21
+2,5,Layup Shot,8500,overlap_2019_21
+2,6,Driving Layup Shot,20375,overlap_2019_21
+2,7,Dunk Shot,461,overlap_2019_21
+2,9,Driving Dunk Shot,649,overlap_2019_21
+2,40,Layup Shot,0,description_2015_17
+2,41,Running Layup Shot,3414,overlap_2019_21
+2,42,Driving Layup Shot,0,description_2015_17
+2,43,Alley Oop Layup shot,685,overlap_2019_21
+2,44,Reverse Layup Shot,1019,overlap_2019_21
+2,45,Jump Shot,0,description_2015_17
+2,46,Running Jump Shot,0,description_2015_17
+2,47,Turnaround Jump Shot,3479,overlap_2019_21
+2,48,Dunk Shot,0,description_2015_17
+2,49,Driving Dunk Shot,0,description_2015_17
+2,50,Running Dunk Shot,183,overlap_2019_21
+2,51,Reverse Dunk Shot,13,overlap_2019_21
+2,52,Alley Oop Dunk Shot,382,overlap_2019_21
+2,55,Hook Shot,0,description_2015_17
+2,56,Running Hook Shot,0,description_2015_17
+2,57,Driving Hook Shot,1130,overlap_2019_21
+2,58,Turnaround Hook Shot,2145,overlap_2019_21
+2,63,Fadeaway Jump Shot,3963,overlap_2019_21
+2,66,Jump Bank Shot,638,overlap_2019_21
+2,67,Hook Bank Shot,75,overlap_2019_21
+2,71,Finger Roll Layup Shot,285,overlap_2019_21
+2,72,Putback Layup Shot,1935,overlap_2019_21
+2,73,Driving Reverse Layup Shot,1921,overlap_2019_21
+2,74,Running Reverse Layup Shot,213,overlap_2019_21
+2,75,Driving Finger Roll Layup Shot,3373,overlap_2019_21
+2,76,Running Finger Roll Layup Shot,460,overlap_2019_21
+2,77,Driving Jump Shot,0,description_2015_17
+2,78,Floating Jump shot,5425,overlap_2019_21
+2,79,Pullup Jump shot,27936,overlap_2019_21
+2,80,Step Back Jump shot,10885,overlap_2019_21
+2,81,Pullup Bank Shot,0,description_2015_17
+2,82,Driving Bank Shot,0,description_2015_17
+2,83,Fadeaway Bank Shot,0,description_2015_17
+2,85,Turnaround Bank Shot,0,description_2015_17
+2,86,Turnaround Fadeaway shot,2810,overlap_2019_21
+2,87,Putback Dunk Shot,74,overlap_2019_21
+2,93,Driving Bank Hook Shot,148,overlap_2019_21
+2,96,Turnaround Bank Hook Shot,100,overlap_2019_21
+2,97,Tip Layup Shot,4237,overlap_2019_21
+2,98,Cutting Layup Shot,3068,overlap_2019_21
+2,99,Cutting Finger Roll Layup Shot,217,overlap_2019_21
+2,100,Running Alley Oop Layup Shot,44,overlap_2019_21
+2,101,Driving Floating Jump Shot,10158,overlap_2019_21
+2,102,Driving Floating Bank Jump Shot,2264,overlap_2019_21
+2,103,Running Pull-Up Jump Shot,1668,overlap_2019_21
+2,104,Step Back Bank Jump Shot,64,overlap_2019_21
+2,105,Turnaround Fadeaway Bank Jump Shot,433,overlap_2019_21
+2,106,Running Alley Oop Dunk Shot,25,overlap_2019_21
+2,107,Tip Dunk Shot,216,overlap_2019_21
+2,108,Cutting Dunk Shot,415,overlap_2019_21
+2,109,Driving Reverse Dunk Shot,9,overlap_2019_21
+2,110,Running Reverse Dunk Shot,2,overlap_2019_21
+3,10,Free Throw 1 of 1,10915,overlap_2019_21
+3,11,Free Throw 1 of 2,41855,overlap_2019_21
+3,12,Free Throw 2 of 2,41827,overlap_2019_21
+3,13,Free Throw 1 of 3,1948,overlap_2019_21
+3,14,Free Throw 2 of 3,1948,overlap_2019_21
+3,15,Free Throw 3 of 3,1947,overlap_2019_21
+3,16,Free Throw Technical,2358,overlap_2019_21
+3,18,Free Throw Flagrant 1 of 2,264,overlap_2019_21
+3,19,Free Throw Flagrant 2 of 2,264,overlap_2019_21
+3,20,Free Throw Flagrant 1 of 1,31,overlap_2019_21
+3,21,Free Throw Technical 1 of 2,1,overlap_2019_21
+3,22,Free Throw Technical 2 of 2,2,overlap_2019_21
+3,25,Free Throw Clear Path 1 of 2,93,overlap_2019_21
+3,26,Free Throw Clear Path 2 of 2,93,overlap_2019_21
+3,27,Free Throw Flagrant 1 of 3,47,overlap_2019_21
+3,28,Free Throw Flagrant 2 of 3,47,overlap_2019_21
+3,29,Free Throw Flagrant 3 of 3,47,overlap_2019_21
+4,0,Unknown,230458,overlap_2019_21
+4,1,Normal Rebound,11568,overlap_2019_21
+4,2,Unknown,0,description_2015_17
+5,0,,75,overlap_2019_21
+5,1,Bad Pass,22770,overlap_2019_21
+5,2,Lost Ball,12541,overlap_2019_21
+5,3,Out Of Bounds Turnover,0,description_2015_17
+5,4,Traveling,4371,overlap_2019_21
+5,5,Foul Turnover,0,description_2015_17
+5,6,Double Dribble,200,overlap_2019_21
+5,7,Discontinue Dribble,147,overlap_2019_21
+5,8,3 Second Violation,370,overlap_2019_21
+5,9,5 Second Violation,59,overlap_2019_21
+5,10,8 Second Violation,63,overlap_2019_21
+5,11,Shot Clock Turnover,2751,overlap_2019_21
+5,12,Inbound Turnover,52,overlap_2019_21
+5,13,Backcourt Turnover,385,overlap_2019_21
+5,15,Offensive Goaltending,261,overlap_2019_21
+5,17,Lane Violation,30,overlap_2019_21
+5,18,Jump Ball Violation,5,overlap_2019_21
+5,19,Kicked Ball Violation,41,overlap_2019_21
+5,20,Illegal Assist Turnover,12,overlap_2019_21
+5,21,Palming Turnover,183,overlap_2019_21
+5,23,Double Personal Turnover,0,description_2015_17
+5,32,Opposite Basket Turnover,0,description_2015_17
+5,33,Punched Ball Turnover,1,overlap_2019_21
+5,34,Swinging Elbows Turnover,1,overlap_2019_21
+5,35,Basket from Below Turnover,3,overlap_2019_21
+5,36,Illegal Screen Turnover,6,overlap_2019_21
+5,37,Offensive Foul Turnover,8565,overlap_2019_21
+5,38,5 Second Inbound Turnover,0,description_2015_17
+5,39,Step Out of Bounds Turnover,1515,overlap_2019_21
+5,40,Out of Bounds Lost Ball Turnover,3213,overlap_2019_21
+5,41,Steal Turnover,0,description_2015_17
+5,42,Excess Timeout Turnover,2,overlap_2019_21
+5,43,Player Out of Bounds Violation Turnover,0,description_2015_17
+5,44,Too Many Players Turnover,1,overlap_2019_21
+5,45,Out of Bounds - Bad Pass Turnover,7344,overlap_2019_21
+6,1,Personal,29727,overlap_2019_21
+6,2,Shooting,44562,overlap_2019_21
+6,3,Loose Ball,5105,overlap_2019_21
+6,4,Offensive,5930,overlap_2019_21
+6,5,In Foul,0,description_2015_17
+6,6,Away From Play,228,overlap_2019_21
+6,8,Punching,1,overlap_2019_21
+6,9,Clear Path,93,overlap_2019_21
+6,10,Double Personal,31,overlap_2019_21
+6,11,Technical,1617,overlap_2019_21
+6,12,Non-Unsportsmanlike Technical,7,overlap_2019_21
+6,13,Hanging Technical,8,overlap_2019_21
+6,14,Flagrant Type 1,318,overlap_2019_21
+6,15,Flagrant Type 2,24,overlap_2019_21
+6,16,Double Technical,152,overlap_2019_21
+6,17,Defense 3 Second,691,overlap_2019_21
+6,18,Delay Technical,52,overlap_2019_21
+6,19,Taunting Technical,0,description_2015_17
+6,25,Excess Timeout Technical,3,overlap_2019_21
+6,26,Offensive Charge,2634,overlap_2019_21
+6,27,Personal Block Foul,0,description_2015_17
+6,28,Personal Take,3951,overlap_2019_21
+6,29,Shooting Block Foul,0,description_2015_17
+6,30,Too Many Players Technical,1,overlap_2019_21
+7,1,Delay Of Game,816,overlap_2019_21
+7,2,Defensive Goaltending,1051,overlap_2019_21
+7,3,Lane,91,overlap_2019_21
+7,4,Jump Ball,33,overlap_2019_21
+7,5,Kicked Ball,1803,overlap_2019_21
+7,6,Double Lane,24,overlap_2019_21
+8,0,,109624,overlap_2019_21
+9,0,No Timeout,0,description_2015_17
+9,1,Regular,25273,overlap_2019_21
+9,2,Short,0,description_2015_17
+9,4,Official,0,description_2015_17
+9,7,Coach Challenge,316,overlap_2019_21
+10,0,,3916,overlap_2019_21
+10,1,Coach Challenge,220,overlap_2019_21
+11,0,No Ejection,0,description_2015_17
+11,1,Second Technical,0,description_2015_17
+11,3,First Flagrant Type 2,0,description_2015_17
+11,4,Other,130,overlap_2019_21
+12,0,start,9363,overlap_2019_21
+13,0,end,9363,overlap_2019_21
+18,0,Support Ruling,1678,overlap_2019_21
+18,1,Overturn Ruling,829,overlap_2019_21
+18,2,Altercation Ruling,97,overlap_2019_21
+18,3,Ruling Stands,347,overlap_2019_21
+18,4,Coach Challenge Support Ruling,396,overlap_2019_21
+18,5,Coach Challenge Overturn Ruling,637,overlap_2019_21
+18,6,Coach Challenge Ruling Stands,357,overlap_2019_21

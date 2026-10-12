@@ -1,0 +1,190 @@
+{
+ "2015": {
+  "regular": {
+   "games": 1230,
+   "expected": 1230,
+   "missing_game_numbers": [],
+   "teams": 30,
+   "teams_not_82_games_or_41_home": [],
+   "first_date": "2015-10-27",
+   "last_date": "2016-04-13",
+   "season": 2015
+  },
+  "playoffs": {
+   "games": 86,
+   "series": 15,
+   "series_per_round": {
+    "4": 1,
+    "1": 8,
+    "2": 4,
+    "3": 2
+   },
+   "games_per_series": [
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    6,
+    6,
+    6,
+    6,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "structure_problems": []
+  },
+  "sanity": {
+   "games_fewer_than_4_periods": [],
+   "games_total_points_outside_130_330": [],
+   "games_team_with_fewer_than_5_players_with_minutes": [],
+   "games_without_any_shot_row": [],
+   "box_rows_per_game_mean": 21.26139817629179
+  }
+ },
+ "2016": {
+  "regular": {
+   "games": 1230,
+   "expected": 1230,
+   "missing_game_numbers": [],
+   "teams": 30,
+   "teams_not_82_games_or_41_home": [],
+   "first_date": "2016-10-25",
+   "last_date": "2017-04-12",
+   "season": 2016
+  },
+  "playoffs": {
+   "games": 79,
+   "series": 15,
+   "series_per_round": {
+    "3": 2,
+    "4": 1,
+    "2": 4,
+    "1": 8
+   },
+   "games_per_series": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    6,
+    6,
+    6,
+    6,
+    6,
+    7,
+    7
+   ],
+   "structure_problems": []
+  },
+  "sanity": {
+   "games_fewer_than_4_periods": [],
+   "games_total_points_outside_130_330": [],
+   "games_team_with_fewer_than_5_players_with_minutes": [],
+   "games_without_any_shot_row": [],
+   "box_rows_per_game_mean": 21.295645530939648
+  }
+ },
+ "2017": {
+  "regular": {
+   "games": 1230,
+   "expected": 1230,
+   "missing_game_numbers": [],
+   "teams": 30,
+   "teams_not_82_games_or_41_home": [],
+   "first_date": "2017-10-17",
+   "last_date": "2018-04-11",
+   "season": 2017
+  },
+  "playoffs": {
+   "games": 82,
+   "series": 15,
+   "series_per_round": {
+    "3": 2,
+    "2": 4,
+    "4": 1,
+    "1": 8
+   },
+   "games_per_series": [
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    6,
+    6,
+    7,
+    7,
+    7,
+    7
+   ],
+   "structure_problems": []
+  },
+  "sanity": {
+   "games_fewer_than_4_periods": [],
+   "games_total_points_outside_130_330": [],
+   "games_team_with_fewer_than_5_players_with_minutes": [],
+   "games_without_any_shot_row": [],
+   "box_rows_per_game_mean": 21.222560975609756
+  }
+ },
+ "2018": {
+  "regular": {
+   "games": 1230,
+   "expected": 1230,
+   "missing_game_numbers": [],
+   "teams": 30,
+   "teams_not_82_games_or_41_home": [],
+   "first_date": "2018-10-16",
+   "last_date": "2019-04-10",
+   "season": 2018
+  },
+  "playoffs": {
+   "games": 82,
+   "series": 15,
+   "series_per_round": {
+    "3": 2,
+    "1": 8,
+    "4": 1,
+    "2": 4
+   },
+   "games_per_series": [
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    5,
+    6,
+    6,
+    6,
+    6,
+    7,
+    7,
+    7
+   ],
+   "structure_problems": []
+  },
+  "sanity": {
+   "games_fewer_than_4_periods": [],
+   "games_total_points_outside_130_330": [],
+   "games_team_with_fewer_than_5_players_with_minutes": [],
+   "games_without_any_shot_row": [],
+   "box_rows_per_game_mean": 21.240853658536587
+  }
+ }
+}

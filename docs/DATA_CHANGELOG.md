@@ -327,3 +327,21 @@
   placeholder only, 16.3% filed. The 437 of the 2026-10-09 red team is not reproduced under this definition (59); its proxy team assignment differs.
 - Training report age (N12, `python -m nba.data.report_freshness`, real tips, lead 60): median 2.0 h, p95 4.0-4.5 h, 22-24% older than 3 h (2022-24); 2025 median 1.5 h.
   Live: no live-era report is stored yet, so the live distribution is unobserved.
+
+## 2026-10-12 UTC - history DB: seasons 2015-16 .. 2018-19 loaded (history data_version 86fa9a574264 -> de7dfbe490c2; nba.duckdb data_version unchanged)
+- DRAFT. Scope: `data/history/nba_history.duckdb` only (new manifest config `docs/data_manifests/history_config.yaml`, summary `docs/data_manifests/history_latest.json`,
+  snapshots in `data/manifests_history/`); the production manifest and `nba.duckdb` were not touched. No season 2025 row was read or written.
+- Source: shufinskiy/nba_data (Apache-2.0), `nbastats` + `shotdetail`, regular season + playoffs, kept write-once in `data/raw/nba_data_shufinskiy_2026-10-12/` with its LICENSE.
+  Overlap check against our own fetched 2019-21 play-by-play passed (event rows matched 541,168/541,168 and 538,444/538,444; period, team, action, sub type, shot fields identical; clock
+  within 1 s; possessions identical except the assister, which our V3 copy loses for accented names): `reports/history_overlap_2026-10-12.json`.
+- Load (one transaction, `data/ops/heavy.lock`, file backup `data/backups/nba_history_pre_2015_19_ingest_20261012T232608Z.duckdb`, 4 s): games 3,637 -> 8,886 (+5,249: 1,316 / 1,309 /
+  1,312 / 1,312); player_game_stats 94,101 -> 205,669 (+111,568, derived from play-by-play, no DNP rows); possessions 724,450 -> 1,753,412 (+1,028,962, 100% clean 5v5); stints 200,216 ->
+  480,012 (+279,796); shots 0 -> 904,550; game_era_flags 3,637 -> 8,886, with two new columns `no_injury_report` (game before 2018-12-20) and `box_derived` (season < 2019); ingest_log +10,498.
+  5,249 new play-by-play parquet files in `data/history/pbp/` (existing 3,637 untouched).
+- Gates: possession points = box points in 100% of 10,498 team-games; possession-count error mean abs 1.86 / 1.99 / 2.03 / 2.11, signed -1.43 / -1.64 / -1.68 / -1.80 (inside the 3.0 ceiling and the
+  bias band); derived box vs official box on the 2019-21 overlap: 14 stats 0 mismatches over 48,930 player-games, minutes within 1 min 99.4% / 98.7%. Coverage: 1,230 of 1,230 regular-season games
+  per season, no gaps, playoff structure consistent. Shot rows equal box FGA only from 2017-18 (95.3% / 94.2% of team-games in 2015-16 / 2016-17).
+- `make data-check` equivalent on the history DB: 0 flags before; 2 after, both structural and left for the maintainer (not allowlisted): NULL_SHIFT `game_era_flags.notes` 0.631 -> 0.849 and
+  `player_game_stats.minutes` 0.180 -> 0.082 (derived seasons carry no DNP rows, so no NULL minutes). Consumers must read `box_derived` before using DNP/P(play) features.
+- Not done / pending: independent stats.nba.com box sample (218 games) is queued (`hist:boxsample`, needs a queue restart), deadline 2026-10-20; reconciliation to follow as a new entry.
+- Details: docs/reviews/history_2015_2019_ingest_2026-10-12.md.
