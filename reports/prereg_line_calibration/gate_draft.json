@@ -1,10 +1,12 @@
 {
  "status": "GATE_PASSED",
  "draft": true,
- "sha256": "969245b24571e0e8321a7d82d3f9eb2889195ef16ea2819260d3becf51efdebc",
+ "sha256": "ab61ffb60d7d9c113a8cbd03eb3710df1c00c50d15ec765a3dc7a5c03c40f605",
  "pairs_sha256": {
   "2023": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
-  "2024": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c"
+  "model_rows_2023": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
+  "2024": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
+  "model_rows_2024": "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70"
  },
  "counts": {
   "2023 pinnacle": {
@@ -96,12 +98,46 @@
   "pinnacle": {
    "identity_blocks": 0,
    "blocks": 36,
-   "min_fit": 6339
+   "min_fit": 6339,
+   "min_n_eff": 6259.8728059598925
   },
   "draftkings": {
    "identity_blocks": 0,
    "blocks": 36,
-   "min_fit": 9650
+   "min_fit": 9650,
+   "min_n_eff": 9533.752724989286
+  }
+ },
+ "grid_diag": {
+  "2023": {
+   "blocks": 36,
+   "inconsistent_blocks": 0,
+   "max_width_needed": 0.049351739944687834,
+   "p_cont_mismatch": 0
+  },
+  "2024": {
+   "blocks": 36,
+   "inconsistent_blocks": 0,
+   "max_width_needed": 0.03288347644959366,
+   "p_cont_mismatch": 0
+  }
+ },
+ "z_summary": {
+  "2023": {
+   "0.05": -0.273846352655844,
+   "0.25": -0.013655643714302102,
+   "0.5": 0.17723199851938168,
+   "0.75": 0.3781645418664775,
+   "0.95": 0.7024564158820772,
+   "spread_floored_share": 0.0027943389182401323
+  },
+  "2024": {
+   "0.05": -0.26712703119509956,
+   "0.25": -0.024444367295676353,
+   "0.5": 0.15089441931333558,
+   "0.75": 0.33706712511149206,
+   "0.95": 0.6555436582901769,
+   "spread_floored_share": 0.0011831726555652936
   }
  },
  "a0_reproduction": [
@@ -275,34 +311,34 @@
  "power": {
   "synthetic_truth": "logit p = 0.17 + 0.85 logit p_model",
   "syn_d_cal_a0": {
-   "mean": -0.005113956394019649,
-   "lo": -0.006148067206263522,
-   "hi": -0.0040200168659558725,
+   "mean": -0.005056547756538161,
+   "lo": -0.006085541968259251,
+   "hi": -0.003969221067761917,
    "p": 0.0004997501249375312,
-   "se": 0.0005455100409045475,
+   "se": 0.0005460348002606199,
    "n": 37528
   },
   "syn_d_cal_a0_date": {
-   "mean": -0.005113956394019649,
-   "lo": -0.006127656782270104,
-   "hi": -0.00403450413573311,
+   "mean": -0.00505654775653816,
+   "lo": -0.006059687188480306,
+   "hi": -0.0039842005351357285,
    "p": 1.0,
-   "se": 0.0005377375883184824,
+   "se": 0.0005334194597541542,
    "n": 37528
   },
-  "half_width": 0.0010640251701538248,
+  "half_width": 0.0010581604502486672,
   "half_width_per_stat": {
-   "pts": 0.001807240180198326,
-   "reb": 0.0025872758147753435,
-   "ast": 0.0024192402399859135,
-   "fg3m": 0.0019712009565338827
+   "pts": 0.0017986787127334705,
+   "reb": 0.002611757177091197,
+   "ast": 0.0024603351495127174,
+   "fg3m": 0.0019018190396570486
   },
   "syn_d_cal_c0": {
-   "mean": -0.015107569074267451,
-   "lo": -0.016982633850648955,
-   "hi": -0.013309703796609082,
+   "mean": -0.015054251043769562,
+   "lo": -0.01689763911728519,
+   "hi": -0.013269157342046686,
    "p": 1.0,
-   "se": 0.0009402646144940489,
+   "se": 0.0009323383484301592,
    "n": 37528
   },
   "design_effect_real_coin_minus_a0": 1.5140958530821818,
@@ -312,59 +348,59 @@
  },
  "null": {
   "k": 50,
-  "sh_minus_a0_mean": -0.007840545240934915,
-  "sd": 0.00016927178215808044,
+  "sh_minus_a0_mean": -0.007828041620051018,
+  "sd": 0.00018281177430901576,
   "sh_means": [
-   0.6920794045941846,
-   0.6921912691968731,
-   0.692132310949517,
-   0.6919513550201144,
-   0.6923231674410332,
-   0.6922527271821699,
-   0.692079632940652,
-   0.6919898694064126,
-   0.6920270467270279,
-   0.6919413042467779,
-   0.692377804005397,
-   0.6918029130768426,
-   0.692157146205344,
-   0.6919064628687331,
-   0.6923109211021719,
-   0.6922763438087386,
-   0.6921730691572466,
-   0.6922782677066022,
-   0.6920748042969913,
-   0.6916307710245426,
-   0.6921911566181346,
-   0.6922086976683941,
-   0.6921774705181072,
-   0.6919588424008803,
-   0.6919434411790943,
-   0.6917702258037154,
-   0.6923354965999063,
-   0.692213028953779,
-   0.6918656224109835,
-   0.6921065021694154,
-   0.6917943648415391,
-   0.691996470016657,
-   0.691768789912453,
-   0.6919865674935922,
-   0.6919734749213616,
-   0.6920952030543959,
-   0.692265461120031,
-   0.6920430778640669,
-   0.6919647730066005,
-   0.6921761295951847,
-   0.6922421138230558,
-   0.6922186787783208,
-   0.6922937120172181,
-   0.6920506827990087,
-   0.6920734299681188,
-   0.6918930795294289,
-   0.6921518949110222,
-   0.6921691435897137,
-   0.692004121019293,
-   0.6920262723367939
+   0.6920362808491193,
+   0.692239693574028,
+   0.6921080459593812,
+   0.6920431666138328,
+   0.6924131193909003,
+   0.6922400533604993,
+   0.6920489219971158,
+   0.6920247881433311,
+   0.6920074797607908,
+   0.6918677541064187,
+   0.6924054821924032,
+   0.6917804747497966,
+   0.6921571801365864,
+   0.6918501579968015,
+   0.692407863781587,
+   0.6922772450382066,
+   0.6921903394008534,
+   0.6923219252951397,
+   0.6920879651685921,
+   0.6916553559407945,
+   0.6922006689924792,
+   0.6922873588847122,
+   0.692197168152116,
+   0.6919587831913439,
+   0.6919254362715584,
+   0.6918071796031898,
+   0.6923437449774625,
+   0.6921391279828958,
+   0.691758510056667,
+   0.6920977646262111,
+   0.6918292569079398,
+   0.6920510726574143,
+   0.691802741366077,
+   0.6919951333308916,
+   0.6920122165094775,
+   0.6922011770432799,
+   0.6922049951386937,
+   0.6920329165021026,
+   0.6918975744608646,
+   0.6922010539099908,
+   0.6923296398000988,
+   0.6922885911340628,
+   0.6922391670045669,
+   0.6920922708361975,
+   0.6920334142058269,
+   0.6919881437987659,
+   0.6920605809548386,
+   0.6922653105032464,
+   0.6920573846913547,
+   0.6920780199713411
   ]
  },
  "tests": [
@@ -390,9 +426,30 @@
    "fatal": true
   },
   {
-   "test": "2 p_model, mean_int, std_int, line finite on every leg",
+   "test": "2 p_model, continuous median and spread, line finite on every leg",
    "value": true,
    "threshold": "True",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "2g continuous grid: blocks whose survival counts admit no single zq grid",
+   "value": 0,
+   "threshold": "== 0",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "2g continuous grid: widest bracket of a needed grid point (z units)",
+   "value": 0.04935,
+   "threshold": "<= 0.1",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "2g continuous-grid P(over line) equals the served integer-grid p_model (x.5 lines), legs differing",
+   "value": 0,
+   "threshold": "== 0",
    "ok": true,
    "fatal": true
   },
@@ -447,7 +504,7 @@
   },
   {
    "test": "6 permutation null measured (K = 50), sd finite",
-   "value": 0.00016927178215808044,
+   "value": 0.00018281177430901576,
    "threshold": "finite",
    "ok": true,
    "fatal": true
@@ -455,10 +512,12 @@
  ],
  "gate_ok": true,
  "max_season_loaded": 2024,
- "lock": "heavy.lock absent",
+ "lock": "heavy.lock held by pid 24859 (not ours; untouched; this job is light)",
  "unstated_details": [
   "leg = one t60 row of pinnacle or draftkings in the MODEL_CLV pairs frame (main line, unique per game/player/stat/book, DNP voided upstream, every line x.5)",
   "block = calendar month of game_date; fit rows = same book and stat, game_date strictly before the block's first day, every loaded season (2023 onward); < 2,000 fit rows -> identity (raw p_model) for every arm",
+  "fit weights w = 0.5 ** ((block start - game_date) / 365 days) for CAL, C0 and SH alike; weights are not used in scoring (every scored leg weighs 1)",
+  "continuous grid: per (stat, season, calendar month of game_date) the 199 sorted values zq_j are bracketed by the stored integer survival counts N_ik = 199 P(Y >= k): zq_j > (k - 0.5 - c_i) / s_i iff N_ik >= 200 - j; zq_j = midpoint of the bracket (an open end takes the finite bound); q_j = max(c + s zq_j, 0); q25/q50/q75 by linear interpolation at grid positions 49.25 / 99 / 148.75 (0-based)",
   "IRLS logistic, ridge 1.0 on the four non-intercept coefficients (sum-of-losses scale), start at 0, stop when max |step| < 1e-10 or 100 iterations",
   "x = logit(clip(p_model, 0.5/199, 1 - 0.5/199)); every model-derived probability is clipped to the same eps before log loss and Brier; the market de-vig (p_over_mult) is clipped to 1e-9",
   "C0 = the fit rows' over rate (clipped to eps), per book, stat and block; SH_k = the CAL fit after permuting the fit rows' labels with default_rng([1000 + k, stat index, block index, book index]), k = 0..49",
@@ -466,5 +525,5 @@
   "pass contrasts are pooled over the four stats with every leg weighted equally (legs, not stats)",
   "starter = starter10 >= 0.5; confidence bucket on |p_model - 0.5|"
  ],
- "seconds": 9.141900062561035
+ "seconds": 14.396151065826416
 }

@@ -5,14 +5,17 @@
     .venv/bin/python -W ignore $M gate     --allow-draft          # data, timing, A0 reproduction, planted future, power, null sizing
     .venv/bin/python -W ignore $M rehearse                        # whole select path on SYNTHETIC labels, 2024 standing in
     .venv/bin/python -W ignore $M select   --sha <64 hex>         # stage 1: score 2024 (real labels), after the freeze commit
-    .venv/bin/python -W ignore $M report   --sha <64 hex> --pairs-2025 <parquet>   # stage 2: 2025, once, after the holdout row
+    .venv/bin/python -W ignore $M report   --sha <64 hex> --pairs-2025 <parquet> --grid-2025 <parquet>   # stage 2: 2025, once, after the holdout row
 
 What it does: a market-free recalibration of production's own P(over line). Per (book, stat, calendar-month block) one
 logistic regression is fit on every earlier T-60 leg of that book and stat (strictly dated before the block's first day,
-all loaded seasons) with the terms [1, logit p_model, z, bench, bench * logit p_model], z = (line - model integer-grid mean)
-/ max(model sd, 0.5) clipped to [-5, 5], bench = starter10 < 0.5. Nothing derived from a price enters a fit; the de-vigged
-market probability is read only for a reference row. Inputs are the MODEL_CLV paired frames
-(``data/ops/model_clv_pairs/pairs_{2023,2024}.parquet``); season 2025 is read only by ``report`` after
+all loaded seasons, each row weighted 0.5 ** (age in days / 365)) with the terms [1, logit p_model, z, bench,
+bench * logit p_model]. z = (line - continuous median) / max((q75 - q25) / 1.349, 0.5), clipped to [-5, 5], read from the
+production CONTINUOUS 199-point grid (before integer rounding), which is recovered exactly from the stored OOF rows
+(``c + s * zq``; one zq grid per stat and month block, identified from the stored integer survival vectors; no refit).
+bench = starter10 < 0.5. Nothing derived from a price enters a fit; the de-vigged market probability is read only for a
+reference row. Inputs: the MODEL_CLV paired frames (``data/ops/model_clv_pairs/pairs_{2023,2024}.parquet``) and the
+ODDS_HISTORY OOF rows (``reports/odds_history/model_rows_{2023,2024}.parquet``); season 2025 is read only by ``report`` after
 ``line_calibration_rule.require_ready``. No DuckDB is opened. Light job (numpy); ``data/ops/heavy.lock`` is never taken
 and never removed.
 """
@@ -38,6 +41,7 @@ DOC = Path("docs/prereg/LINE_CALIBRATION.md")
 OUT_DIR = Path("reports/prereg_line_calibration")
 PAIRS_DIR = Path("data/ops/model_clv_pairs")
 ODDS_RESULTS = Path("reports/odds_history")
+MODEL_DIR = Path("reports/odds_history")
 LOCK = Path("data/ops/heavy.lock")
 
 MAX_SEASON = 2024
@@ -50,7 +54,15 @@ K4 = ["game_id", "player_id", "stat", "book"]
 
 EPS = 0.5 / 199  # production grid resolution; the ODDS_HISTORY convention for model probabilities
 MARKET_EPS = 1e-9
-SPREAD_MIN = 0.5
+SPREAD_MIN = (
+    0.5  # half an integer unit: a spread below the outcome's own resolution is not resolvable
+)
+IQR_TO_SD = 1.349
+HALF_LIFE_DAYS = 365.0  # one season; fixed from first principles, never tuned
+NQ = 199
+# 0-based positions on the 199-point grid of tau = 0.25, 0.5, 0.75 (tau_j = (j + 0.5) / 199): 49.25, 99, 148.75
+TAU_POS = {"q25": 0.25 * NQ - 0.5, "q50": 0.5 * NQ - 0.5, "q75": 0.75 * NQ - 0.5}
+ZQ_WIDTH_MAX = 0.1  # identification tolerance of a needed grid point, z units
 Z_CLIP = 5.0
 RIDGE = 1.0
 MIN_FIT = 2000
@@ -72,12 +84,15 @@ CONF_BUCKETS: tuple[tuple[str, float, float], ...] = (
 )
 NEED_COLS = [
     "game_id", "player_id", "stat", "book", "snapshot_kind", "snapshot_ts", "line", "p_over_mult", "p_model",
-    "over", "tipoff_utc", "starter10", "mean_int", "std_int", "season", "game_date",
+    "over", "tipoff_utc", "starter10", "season", "game_date",
 ]  # fmt: skip
+GRID_COLS = ["game_id", "player_id", "stat", "game_date", "season", "c", "s", "p_ge"]
 
 UNSTATED: list[str] = [
     "leg = one t60 row of pinnacle or draftkings in the MODEL_CLV pairs frame (main line, unique per game/player/stat/book, DNP voided upstream, every line x.5)",
     "block = calendar month of game_date; fit rows = same book and stat, game_date strictly before the block's first day, every loaded season (2023 onward); < 2,000 fit rows -> identity (raw p_model) for every arm",
+    "fit weights w = 0.5 ** ((block start - game_date) / 365 days) for CAL, C0 and SH alike; weights are not used in scoring (every scored leg weighs 1)",
+    "continuous grid: per (stat, season, calendar month of game_date) the 199 sorted values zq_j are bracketed by the stored integer survival counts N_ik = 199 P(Y >= k): zq_j > (k - 0.5 - c_i) / s_i iff N_ik >= 200 - j; zq_j = midpoint of the bracket (an open end takes the finite bound); q_j = max(c + s zq_j, 0); q25/q50/q75 by linear interpolation at grid positions 49.25 / 99 / 148.75 (0-based)",
     "IRLS logistic, ridge 1.0 on the four non-intercept coefficients (sum-of-losses scale), start at 0, stop when max |step| < 1e-10 or 100 iterations",
     "x = logit(clip(p_model, 0.5/199, 1 - 0.5/199)); every model-derived probability is clipped to the same eps before log loss and Brier; the market de-vig (p_over_mult) is clipped to 1e-9",
     "C0 = the fit rows' over rate (clipped to eps), per book, stat and block; SH_k = the CAL fit after permuting the fit rows' labels with default_rng([1000 + k, stat index, block index, book index]), k = 0..49",
@@ -123,9 +138,103 @@ def read_pairs(path: Path, season: int, *, holdout_ok: bool = False) -> pl.DataF
     return d.sort(K4)
 
 
-def load_holdout(path: Path, sha: str) -> pl.DataFrame:
+def load_holdout(path: Path, grid_path: Path, sha: str) -> tuple[pl.DataFrame, dict[str, Any]]:
     rule.require_ready(sha)
-    return read_pairs(path, REPORT_SEASON, holdout_ok=True)
+    return attach_grid(
+        read_pairs(path, REPORT_SEASON, holdout_ok=True),
+        read_grid(grid_path, REPORT_SEASON, holdout_ok=True),
+    )
+
+
+def read_grid(path: Path, season: int, *, holdout_ok: bool = False) -> pl.DataFrame:
+    """Stored production OOF rows (c, s, integer survival vector) of one season; no outcome column is read."""
+    if season > MAX_SEASON and not holdout_ok:
+        raise ValueError("season 2025 is the frozen holdout")
+    g = pl.read_parquet(path, columns=GRID_COLS)
+    assert g["season"].n_unique() == 1 and int(g["season"][0]) == season
+    assert g.group_by(["game_id", "player_id", "stat"]).len()["len"].max() == 1
+    assert float(g["s"].min()) > 0  # type: ignore[arg-type]
+    return g.with_columns(
+        pl.col("player_id").cast(pl.Int64), pl.col("game_date").dt.strftime("%Y-%m").alias("mo")
+    )
+
+
+def block_zq(c: np.ndarray, s: np.ndarray, pge: list[Any]) -> dict[str, Any]:
+    """Bracket the block's 199 sorted standardized grid values from the stored integer survival counts."""
+    lens = np.array([len(p) for p in pge])
+    flat = np.concatenate([np.asarray(p, dtype=float) for p in pge])
+    rows = np.repeat(np.arange(len(c)), lens)
+    k = np.concatenate([np.arange(1, n + 1) for n in lens])
+    N = np.rint(flat * NQ).astype(np.int64)
+    assert np.abs(flat * NQ - N).max() < 1e-6, "survival values are not counts out of 199"
+    t = (k - 0.5 - c[rows]) / s[rows]
+    mx = np.full(NQ + 1, -np.inf)
+    np.maximum.at(mx, N, t)
+    mn = np.full(NQ + 1, np.inf)
+    np.minimum.at(mn, N, t)
+    suf = np.maximum.accumulate(mx[::-1])[::-1]  # max t over counts >= n
+    pre = np.minimum.accumulate(mn)  # min t over counts <= n
+    j = np.arange(1, NQ + 1)
+    lo, hi = suf[NQ + 1 - j], pre[NQ - j]
+    mid = np.where(
+        np.isfinite(lo) & np.isfinite(hi), (lo + hi) / 2, np.where(np.isfinite(lo), lo, hi)
+    )
+    return {"lo": lo, "hi": hi, "mid": mid, "inconsistent": int(np.sum(hi < lo))}
+
+
+def _interp(q: np.ndarray, pos: float) -> np.ndarray:
+    i = int(np.floor(pos))
+    f = pos - i
+    return np.asarray(q[:, i] * (1 - f) + q[:, min(i + 1, NQ - 1)] * f)
+
+
+def attach_grid(pairs: pl.DataFrame, grid: pl.DataFrame) -> tuple[pl.DataFrame, dict[str, Any]]:
+    """Add the continuous-grid median, robust spread and continuous P(over line) to each leg."""
+    need = [int(np.floor(v)) for v in TAU_POS.values()] + [
+        int(np.floor(v)) + 1 for v in TAU_POS.values()
+    ]
+    legs = pairs.join(
+        grid.select("game_id", "player_id", "stat", "mo", "c", "s"),
+        on=["game_id", "player_id", "stat"],
+        how="left",
+    )
+    assert legs["c"].null_count() == 0, "a leg without its stored grid row"
+    parts: list[pl.DataFrame] = []
+    diag: dict[str, Any] = {
+        "blocks": 0,
+        "inconsistent_blocks": 0,
+        "max_width_needed": 0.0,
+        "p_cont_mismatch": 0,
+    }
+    for (stat, mo), gb in grid.group_by(["stat", "mo"], maintain_order=True):
+        z = block_zq(gb["c"].to_numpy(), gb["s"].to_numpy(), gb["p_ge"].to_list())
+        diag["blocks"] += 1
+        diag["inconsistent_blocks"] += int(z["inconsistent"] > 0)
+        w = (z["hi"] - z["lo"])[need]
+        diag["max_width_needed"] = max(
+            diag["max_width_needed"], float(np.nanmax(np.where(np.isfinite(w), w, np.inf)))
+        )
+        lb = legs.filter((pl.col("stat") == stat) & (pl.col("mo") == mo))
+        if lb.is_empty():
+            continue
+        q = np.maximum(
+            lb["c"].to_numpy()[:, None] + lb["s"].to_numpy()[:, None] * z["mid"][None, :], 0.0
+        )
+        q = np.maximum.accumulate(q, axis=1)
+        line = lb["line"].to_numpy()
+        p_cont = (q > line[:, None]).sum(axis=1) / NQ
+        diag["p_cont_mismatch"] += int(np.sum(np.abs(p_cont - lb["p_model"].to_numpy()) > 1e-9))
+        q25, q50, q75 = (_interp(q, TAU_POS[k]) for k in ("q25", "q50", "q75"))
+        parts.append(
+            lb.with_columns(
+                pl.Series("med", q50),
+                pl.Series("spr", (q75 - q25) / IQR_TO_SD),
+                pl.Series("p_cont", p_cont),
+            )
+        )
+    out = pl.concat(parts).sort(K4)
+    assert out.height == pairs.height
+    return out, diag
 
 
 def to_arrays(frames: list[pl.DataFrame]) -> dict[str, Any]:
@@ -139,8 +248,8 @@ def to_arrays(frames: list[pl.DataFrame]) -> dict[str, Any]:
         "game_id": d["game_id"].to_numpy().astype(str),
         "pm": d["p_model"].cast(pl.Float64).to_numpy(),
         "line": d["line"].cast(pl.Float64).to_numpy(),
-        "mi": d["mean_int"].cast(pl.Float64).to_numpy(),
-        "si": d["std_int"].cast(pl.Float64).to_numpy(),
+        "med": d["med"].cast(pl.Float64).to_numpy(),
+        "spr": d["spr"].cast(pl.Float64).to_numpy(),
         "st10": d["starter10"].cast(pl.Float64).to_numpy(),
         "over": d["over"].cast(pl.Float64).to_numpy(),
         "mult": d["p_over_mult"].cast(pl.Float64).to_numpy(),
@@ -152,10 +261,23 @@ def to_arrays(frames: list[pl.DataFrame]) -> dict[str, Any]:
     return D
 
 
-def load_real(pairs_dir: Path = PAIRS_DIR) -> tuple[dict[str, Any], dict[str, str]]:
-    frames = [read_pairs(pairs_dir / f"pairs_{s}.parquet", s) for s in FIT_SEASONS]
-    shas = {str(s): file_sha(pairs_dir / f"pairs_{s}.parquet") for s in FIT_SEASONS}
+def load_real(
+    pairs_dir: Path = PAIRS_DIR, model_dir: Path = MODEL_DIR
+) -> tuple[dict[str, Any], dict[str, str]]:
+    frames: list[pl.DataFrame] = []
+    shas: dict[str, str] = {}
+    diags: dict[str, Any] = {}
+    for s in FIT_SEASONS:
+        f, dg = attach_grid(
+            read_pairs(pairs_dir / f"pairs_{s}.parquet", s),
+            read_grid(model_dir / f"model_rows_{s}.parquet", s),
+        )
+        frames.append(f)
+        diags[str(s)] = dg
+        shas[str(s)] = file_sha(pairs_dir / f"pairs_{s}.parquet")
+        shas[f"model_rows_{s}"] = file_sha(model_dir / f"model_rows_{s}.parquet")
     D = to_arrays(frames)
+    D["grid_diag"] = diags
     assert int(D["season"].max()) <= MAX_SEASON
     return D, shas
 
@@ -178,23 +300,32 @@ def sigmoid(x: np.ndarray) -> np.ndarray:
 
 
 def design(
-    pm: np.ndarray, line: np.ndarray, mi: np.ndarray, si: np.ndarray, st10: np.ndarray
+    pm: np.ndarray, line: np.ndarray, med: np.ndarray, spr: np.ndarray, st10: np.ndarray
 ) -> np.ndarray:
     """[1, x, z, bench, bench * x]. Takes no price argument by construction (market-free)."""
     x = logit(np.clip(pm, EPS, 1 - EPS))
-    z = np.clip((line - mi) / np.maximum(si, SPREAD_MIN), -Z_CLIP, Z_CLIP)
+    z = np.clip((line - med) / np.maximum(spr, SPREAD_MIN), -Z_CLIP, Z_CLIP)
     bench = (st10 < 0.5).astype(np.float64)
     return np.column_stack([np.ones_like(x), x, z, bench, bench * x])
 
 
-def fit_logistic(X: np.ndarray, y: np.ndarray, ridge: float = RIDGE) -> np.ndarray:
+def age_weights(dates: np.ndarray, block_start: np.datetime64) -> np.ndarray:
+    age = (block_start - dates).astype("timedelta64[D]").astype(np.float64)
+    assert np.all(age > 0), "a fit row on or after the block start"
+    return np.asarray(0.5 ** (age / HALF_LIFE_DAYS))
+
+
+def fit_logistic(
+    X: np.ndarray, y: np.ndarray, ridge: float = RIDGE, w: np.ndarray | None = None
+) -> np.ndarray:
+    w = np.ones(len(y)) if w is None else w
     R = np.eye(X.shape[1]) * ridge
     R[0, 0] = 0.0
     b = np.zeros(X.shape[1])
     for _ in range(100):
         p = sigmoid(X @ b)
-        g = X.T @ (y - p) - R @ b
-        H = X.T @ (X * (p * (1 - p))[:, None]) + R
+        g = X.T @ (w * (y - p)) - R @ b
+        H = X.T @ (X * (w * p * (1 - p))[:, None]) + R
         step = np.linalg.solve(H, g)
         b = b + step
         if np.max(np.abs(step)) < 1e-10:
@@ -213,7 +344,7 @@ def walk_forward(
 ) -> tuple[np.ndarray, list[dict[str, Any]]]:
     """Out-of-block probabilities for every leg of (season, book); NaN elsewhere. arm in {cal, base, shuffle}."""
     assert arm in ("cal", "base", "shuffle")
-    X = design(D["pm"], D["line"], D["mi"], D["si"], D["st10"])
+    X = design(D["pm"], D["line"], D["med"], D["spr"], D["st10"])
     out = np.full(D["n"], np.nan)
     info: list[dict[str, Any]] = []
     for si_, stat in enumerate(STATS):
@@ -236,14 +367,17 @@ def walk_forward(
                 rec["identity"] = True
             else:
                 yf = y[fit]
+                wf = age_weights(D["date"][fit], b0)
+                rec["n_eff"] = float(wf.sum() ** 2 / (wf**2).sum())
                 if arm == "shuffle":
                     rng = np.random.default_rng([1000 + k, si_, bi, BOOKS.index(book)])
                     yf = rng.permutation(yf)
                 if arm == "base":
-                    out[sc] = float(np.clip(yf.mean(), EPS, 1 - EPS))
-                    rec["rate"] = float(yf.mean())
+                    rate = float(np.sum(wf * yf) / np.sum(wf))
+                    out[sc] = float(np.clip(rate, EPS, 1 - EPS))
+                    rec["rate"] = rate
                 else:
-                    beta = fit_logistic(X[fit], yf)
+                    beta = fit_logistic(X[fit], yf, w=wf)
                     out[sc] = np.clip(sigmoid(X[sc] @ beta), EPS, 1 - EPS)
                     rec["beta"] = [float(v) for v in beta]
                 rec["identity"] = False
@@ -377,11 +511,40 @@ def score_stage(
     ):
         sl[name] = _r(bs.mean(L["CAL"] - L["A0"], sm))
     res["slices"] = sl
+    # the same do-no-harm contrasts for each candidate served object (CAL, or C0 if the verdict is shrinkage only)
+    res["objects"] = {}
+    for a in ("CAL", "C0"):
+        res["objects"][a] = {
+            "d_a0": _r(bs.mean(L[a] - L["A0"], every)),
+            "per_stat_lo": {s_: bs.mean(L[a] - L["A0"], stat == s_)["lo"] for s_ in STATS},
+            "slices": {
+                nm: bs.mean(L[a] - L["A0"], rm)["mean"]
+                for nm, rm in (("starter", starter), ("bench", ~starter))
+            },
+            "calib": res["calib"]["all"][a]["mean"],
+            "ll": float(L[a].mean()),
+        }
     return res
 
 
+def object_checks(primary: dict[str, Any], other: dict[str, Any], arm: str) -> dict[str, bool]:
+    """P1 and P4-P7 for a served object (CAL or C0)."""
+    o, d = primary["objects"][arm], primary["objects"][arm]["d_a0"]
+    return {
+        "P1": bool(d["mean"] <= FLOOR and d["hi"] < 0),
+        "P4": bool(abs(o["calib"]) <= CAL_ABS_MAX),
+        "P5": all(not (lo is not None and lo > 0) for lo in o["per_stat_lo"].values()),
+        "P6": all(v is None or v <= 0 for v in o["slices"].values()),
+        "P7": bool(other["objects"][arm]["d_a0"]["mean"] < 0),
+    }
+
+
 def evaluate(primary: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
-    """The frozen pass rule, applied to one stage (primary = Pinnacle, other = DK)."""
+    """The frozen pass rule, applied to one stage (primary = Pinnacle, other = DK).
+
+    Verdict: CALIBRATED = P1-P7 all pass. SHRINKAGE_ONLY = P1, P4-P7 pass but P2 or P3 fails: the map does not beat
+    generic shrinkage; the served object is whichever of CAL and C0 has the lower pooled Pinnacle log loss on this stage,
+    and it must itself pass P1 and P4-P7. FAIL otherwise."""
     d = primary["d_cal_a0"]
     c = {
         "P1 CAL-A0 <= floor and CI upper < 0": bool(d["mean"] <= FLOOR and d["hi"] < 0),
@@ -402,7 +565,25 @@ def evaluate(primary: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
         ),
         "P7 DK direction agrees (CAL-A0 point < 0)": bool(other["d_cal_a0"]["mean"] < 0),
     }
-    return {"checks": c, "pass": all(c.values())}
+    verdict = "FAIL"
+    obj = None
+    if all(c.values()):
+        verdict, obj = "CALIBRATED", "CAL"
+    else:
+        harm_ok = [v for k, v in c.items() if not k.startswith(("P2", "P3"))]
+        if all(harm_ok):
+            obj = min(("C0", "CAL"), key=lambda a: primary["objects"][a]["ll"])
+            if all(object_checks(primary, other, obj).values()):
+                verdict = "SHRINKAGE_ONLY"
+            else:
+                obj = None
+    return {
+        "checks": c,
+        "pass": all(c.values()),
+        "verdict": verdict,
+        "served_object": obj,
+        "object_checks": {a: object_checks(primary, other, a) for a in ("CAL", "C0")},
+    }
 
 
 # --------------------------------------------------------------------------- gate
@@ -513,6 +694,7 @@ def run_gate(
             "identity_blocks": sum(r["identity"] for r in info),
             "blocks": len(info),
             "min_fit": min(r["n_fit"] for r in info),
+            "min_n_eff": min(r["n_eff"] for r in info if "n_eff" in r),
         }
     tests.append(
         chk(
@@ -524,13 +706,46 @@ def run_gate(
     )
     finite = bool(
         np.all(np.isfinite(D["pm"]))
-        and np.all(np.isfinite(D["mi"]))
-        and np.all(np.isfinite(D["si"]))
+        and np.all(np.isfinite(D["med"]))
+        and np.all(np.isfinite(D["spr"]))
         and np.all(np.isfinite(D["line"]))
     )
     n_st_nan = int((~np.isfinite(D["st10"])).sum())
     tests.append(
-        chk("2 p_model, mean_int, std_int, line finite on every leg", finite, "True", finite)
+        chk(
+            "2 p_model, continuous median and spread, line finite on every leg",
+            finite,
+            "True",
+            finite,
+        )
+    )
+    gd = D["grid_diag"]
+    n_inc = sum(v["inconsistent_blocks"] for v in gd.values())
+    wmax = max(v["max_width_needed"] for v in gd.values())
+    n_mis = sum(v["p_cont_mismatch"] for v in gd.values())
+    tests.append(
+        chk(
+            "2g continuous grid: blocks whose survival counts admit no single zq grid",
+            n_inc,
+            "== 0",
+            n_inc == 0,
+        )
+    )
+    tests.append(
+        chk(
+            "2g continuous grid: widest bracket of a needed grid point (z units)",
+            round(wmax, 5),
+            f"<= {ZQ_WIDTH_MAX}",
+            wmax <= ZQ_WIDTH_MAX,
+        )
+    )
+    tests.append(
+        chk(
+            "2g continuous-grid P(over line) equals the served integer-grid p_model (x.5 lines), legs differing",
+            n_mis,
+            "== 0",
+            n_mis == 0,
+        )
     )
     tests.append(chk("2 starter10 finite on every leg", n_st_nan, "== 0", n_st_nan == 0))
     tests.append(
@@ -618,6 +833,22 @@ def run_gate(
         "pairs_sha256": shas,
         "counts": counts,
         "identity": ident,
+        "grid_diag": D["grid_diag"],
+        "z_summary": {
+            str(s): {
+                q: float(
+                    np.quantile(
+                        ((D["line"] - D["med"]) / np.maximum(D["spr"], SPREAD_MIN))[
+                            D["season"] == s
+                        ],
+                        q,
+                    )
+                )
+                for q in (0.05, 0.25, 0.5, 0.75, 0.95)
+            }
+            | {"spread_floored_share": float(np.mean(D["spr"][D["season"] == s] < SPREAD_MIN))}
+            for s in FIT_SEASONS
+        },
         "a0_reproduction": rows3,
         "planted_future": pf,
         "power": {
@@ -675,6 +906,8 @@ def declared(doc: Path) -> dict[str, Any]:
     for s in FIT_SEASONS:
         mm = re.search(rf"^PAIRS_SHA256_{s}: ([0-9a-f]{{64}})$", head, re.M)
         out[f"pairs_sha_{s}"] = mm.group(1) if mm else None
+        mm = re.search(rf"^MODEL_ROWS_SHA256_{s}: ([0-9a-f]{{64}})$", head, re.M)
+        out[f"model_rows_sha_{s}"] = mm.group(1) if mm else None
     mm = re.search(r"^NULL_SD_PINNACLE_2024: ([0-9.eE+-]+)$", head, re.M)
     out["null_sd"] = float(mm.group(1)) if mm else None
     return out
@@ -721,6 +954,8 @@ def select(pairs_dir: Path, doc: Path, sha: str, out_dir: Path = OUT_DIR) -> dic
     for s in FIT_SEASONS:
         if dec[f"pairs_sha_{s}"] != g["pairs_sha256"][str(s)]:
             raise SystemExit(f"pairs_{s}.parquet sha256 does not match the frozen doc")
+        if dec[f"model_rows_sha_{s}"] != g["pairs_sha256"][f"model_rows_{s}"]:
+            raise SystemExit(f"model_rows_{s}.parquet sha256 does not match the frozen doc")
     if dec["null_sd"] is None or abs(dec["null_sd"] - g["null"]["sd"]) > 1e-12:
         raise SystemExit("the null sd does not reproduce the frozen NULL_SD_PINNACLE_2024 line")
     D, _ = load_real(pairs_dir)
@@ -751,27 +986,65 @@ def stage2_data_check(D: dict[str, Any]) -> list[str]:
 
 
 def report(
-    pairs_dir: Path, pairs_2025: Path, doc: Path, sha: str, out_dir: Path = OUT_DIR
+    pairs_dir: Path,
+    pairs_2025: Path,
+    doc: Path,
+    sha: str,
+    out_dir: Path = OUT_DIR,
+    grid_2025: Path | None = None,
+    model_dir: Path = MODEL_DIR,
 ) -> dict[str, Any]:
     rule.require_ready(sha, doc=doc)
     sel = json.loads((out_dir / "select.json").read_text())
-    if sel.get("sha256") != sha or not sel["rule"]["pass"]:
-        raise SystemExit("no passing select stage under this sha: the 2025 touch is not earned")
-    frames = [read_pairs(pairs_dir / f"pairs_{s}.parquet", s) for s in FIT_SEASONS]
-    frames.append(load_holdout(pairs_2025, sha))
+    if sel.get("sha256") != sha or sel["rule"]["verdict"] not in ("CALIBRATED", "SHRINKAGE_ONLY"):
+        raise SystemExit(
+            "no CALIBRATED or SHRINKAGE_ONLY select verdict under this sha: the 2025 touch is not earned"
+        )
+    if grid_2025 is None:
+        raise SystemExit("STOP: --grid-2025 <parquet> (production OOF rows of 2025) is required")
+    frames = [
+        attach_grid(
+            read_pairs(pairs_dir / f"pairs_{s}.parquet", s),
+            read_grid(model_dir / f"model_rows_{s}.parquet", s),
+        )[0]
+        for s in FIT_SEASONS
+    ]
+    f25, diag25 = load_holdout(pairs_2025, grid_2025, sha)
+    frames.append(f25)
     D = to_arrays(frames)
     stop = stage2_data_check(D)
+    if (
+        diag25["inconsistent_blocks"]
+        or diag25["p_cont_mismatch"]
+        or diag25["max_width_needed"] > ZQ_WIDTH_MAX
+    ):
+        stop.append(f"2025 continuous grid check failed: {diag25}")
     if stop:
         (out_dir / "report_2025.json").write_text(
             json.dumps({"sha256": sha, "stopped_unscored": stop}, indent=1)
         )
         raise SystemExit(f"STAGE 2 STOPPED UNSCORED (touch spent): {stop}")
     res = run_stage(D, D["over"], REPORT_SEASON)
+    obj = sel["rule"]["served_object"]
+    oc = object_checks(res[PRIMARY_BOOK], res["draftkings"], obj)
+    res["confirmation"] = {
+        "stage1_verdict": sel["rule"]["verdict"],
+        "served_object": obj,
+        "object_checks_2025": oc,
+        "confirmed": bool(
+            all(oc.values())
+            and (
+                sel["rule"]["verdict"] == "SHRINKAGE_ONLY" or res["rule"]["verdict"] == "CALIBRATED"
+            )
+        ),
+    }
     res |= {
         "sha256": sha,
         "stage": "report",
         "season": REPORT_SEASON,
         "pairs_2025_sha256": file_sha(pairs_2025),
+        "grid_2025_sha256": file_sha(grid_2025),
+        "grid_2025_diag": diag25,
     }
     (out_dir / "report_2025.json").write_text(json.dumps(res, indent=1, default=str))
     return res
@@ -785,6 +1058,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--allow-draft", action="store_true")
     ap.add_argument("--pairs-dir", type=Path, default=PAIRS_DIR)
     ap.add_argument("--pairs-2025", type=Path, default=None)
+    ap.add_argument("--grid-2025", type=Path, default=None)
     a = ap.parse_args(argv)
     if a.allow_draft and a.stage != "gate":
         raise SystemExit("STOP: --allow-draft is for the gate stage only")
@@ -815,7 +1089,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if a.pairs_2025 is None:
         raise SystemExit("STOP: --pairs-2025 <parquet> is required for the report stage")
-    r = report(a.pairs_dir, a.pairs_2025, a.doc, a.sha)
+    r = report(a.pairs_dir, a.pairs_2025, a.doc, a.sha, grid_2025=a.grid_2025)
     print(json.dumps(r["rule"], indent=1))
     return 0
 
