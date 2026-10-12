@@ -118,6 +118,27 @@ def freeze_commit(sha: str, git: Callable[..., str] = PR._git) -> str | None:
     return None
 
 
+def freeze_time(sha: str, git: Callable[..., str] = PR._git) -> float | None:
+    """Unix commit time of the freeze commit, else None."""
+    h = freeze_commit(sha, git)
+    if h is None:
+        return None
+    out = git("log", "-1", "--format=%ct", h).strip()
+    return float(out) if out else None
+
+
+def check_checkpoint(path: Path, frozen_at: float | None) -> bool:
+    """True if a checkpoint may be reused: it exists and was written after the freeze commit.
+    A checkpoint older than the freeze is refused (raises) rather than silently reused."""
+    if not path.exists():
+        return False
+    if frozen_at is not None and path.stat().st_mtime < frozen_at:
+        raise RuntimeError(
+            f"{path} predates the freeze commit; delete it and rerun so every arm is fitted after the freeze"
+        )
+    return True
+
+
 def require_frozen(
     sha: str | None, doc: Path | None = None, git: Callable[..., str] = PR._git
 ) -> str:
@@ -295,13 +316,14 @@ def run_arms(sha: str | None, allow_draft: bool = False) -> None:
     if not allow_draft:
         require_frozen(sha)
         require_gate(sha)
+    frozen_at = None if allow_draft or sha is None else freeze_time(sha)
     fr, cfg, _ = build_frame()
     pic = dict(np.load(LT_DIR / "components_pi.npz", allow_pickle=True))
     CACHE.mkdir(parents=True, exist_ok=True)
     audit: dict[str, Any] = {}
     for arm, (cols, shuf) in ARMS_PI.items():  # pi walks first: small, 15 s each
         path = pi_path(arm)
-        if path.exists():
+        if check_checkpoint(path, frozen_at):
             _log(f"pi {arm} from checkpoint")
             continue
         _log(f"pi walk {arm}")
@@ -313,7 +335,7 @@ def run_arms(sha: str | None, allow_draft: bool = False) -> None:
     for stat in STATS:
         for arm in ARMS_HEADS:
             path = heads_path(stat, arm)
-            if path.exists():
+            if check_checkpoint(path, frozen_at):
                 _log(f"{stat} heads {arm} from checkpoint")
                 continue
             _log(f"{stat} heads walk {arm}")

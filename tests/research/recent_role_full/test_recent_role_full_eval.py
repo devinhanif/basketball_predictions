@@ -259,3 +259,21 @@ def test_floor_is_the_house_floor_and_arms_are_declared() -> None:
         E.heads_names("pts", "R")[-5:] == list(E.R_COLS)
         and E.heads_names("pts", "PL")[-1] == "pl_wl_mean_min_l5"
     )
+
+
+def test_checkpoint_older_than_freeze_is_refused(tmp_path) -> None:
+    import os
+
+    import pytest
+
+    from research.eval.recent_role_full_eval import check_checkpoint
+
+    p = tmp_path / "arm.npz"
+    assert check_checkpoint(p, 1000.0) is False
+    p.write_bytes(b"x")
+    os.utime(p, (500.0, 500.0))
+    with pytest.raises(RuntimeError, match="predates the freeze"):
+        check_checkpoint(p, 1000.0)
+    os.utime(p, (2000.0, 2000.0))
+    assert check_checkpoint(p, 1000.0) is True
+    assert check_checkpoint(p, None) is True
