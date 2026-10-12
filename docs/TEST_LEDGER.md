@@ -597,3 +597,14 @@ about 13% of the model's skill. Gate 20/20; AM1 (2023 R1 on mature blocks, 12,75
 | T417 | MARKET_SHRINK ast DK 2024 (walk-forward, n 10574 legs, 1294 games) | B2-minus-market dLL -0.0004 CI [-0.0010, +0.0002] (Holm p 0.177); B2 ROI@5% -10.30% [-34.15%, +13.55%] (n 68 bets); minus market-lean -8.20% [-36.16%, +20.11%]; production model ROI@5% -1.10% (n 5364); verdict fails_logloss |
 | T418 | MARKET_SHRINK fg3m DK 2024 (walk-forward, n 12548 legs, 1296 games) | B2-minus-market dLL -0.0012 CI [-0.0022, -0.0001] (Holm p 0.042); B2 ROI@5% +2.84% [-4.56%, +10.56%] (n 643 bets); minus market-lean +0.56% [-7.86%, +9.79%]; production model ROI@5% -1.20% (n 7185); verdict fails_decision_guard |
 | T419 | MARKET_SHRINK close (frozen sha256 c128896a) | overall no_positive_ev_found; passing cells 0 of 4; planted shuffle ok False (2024 shuffled dLL B2-M: pts +0.0001, reb +0.0002, ast -0.0004, fg3m -0.0001) |
+| T420 | HISTORY_WINDOW_3 (frozen sha256 32e05aec, commit c7d16ae) A1 2019-20 + 2020-21 history rows, select 2023, integer CRPS vs W0 | pts -0.0108 [-0.0156, -0.0059]; reb -0.0039 [-0.0059, -0.0020]; ast -0.0022 [-0.0037, -0.0007]; fg3m -0.0024 [-0.0033, -0.0015]; n 27,619 / 1,318 games |
+| T421 | HISTORY_WINDOW_3 A1 report 2024 | pts +0.0035 [+0.0000, +0.0073]; reb +0.0011 [-0.0003, +0.0025]; ast +0.0006 [-0.0006, +0.0018]; fg3m +0.0002 [-0.0007, +0.0010]; n 27,701 / 1,320 games |
+| T422 | HISTORY_WINDOW_3 A2 (history weight 0.5) select 2023 / report 2024 | 2023 pts -0.0095 [-0.0137, -0.0050], reb -0.0029, ast -0.0019, fg3m -0.0013; 2024 pts +0.0029 [-0.0006, +0.0066], reb +0.0006, ast +0.0002, fg3m +0.0007 |
+| T423 | HISTORY_WINDOW_3 verdict | FAIL both arms: no stat confirmed in both seasons; no harm cell. Knockout K1-K0 pts 2023 -0.0163 [-0.0216, -0.0109] (gain is not the missing-report pattern). CLOSED |
+
+**HISTORY_WINDOW_3 verdict (T420-T423, frozen sha256 32e05aec, commit c7d16ae; research/eval/history_window3_eval.py; reports/history_window_3/):**
+CLOSED, no pass. Adding 2019-20 and 2020-21 as training rows (injury report missing, 2021-22 excluded) helps every stat in 2023, when the model's own
+training window is short (pts -0.011, CI excluding 0, past the -0.005 floor), and helps nothing in 2024, when two current seasons are already in
+the window (pts +0.0035). The knockout shows the 2023 gain is real box-score signal, not the era pattern. Reading: older seasons are worth about
+one season of current data and stop mattering once a second current season exists; production already has three. The history direction for
+props is closed for 2026-27; it would matter only for a model starting cold.

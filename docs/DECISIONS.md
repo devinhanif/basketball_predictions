@@ -620,3 +620,8 @@ What would reverse it: nothing above the results marker changes; a null closes t
 What: MARKET_SHRINK frozen as drafted (sha256 c128896a, commit b5522fe) on Devin's "yes yes", run once under the frozen rule (walk-forward monthly (w, T) per stat, DraftKings T-60, select 2023, report 2024, seasons 2023/2024 only). No cell passes: pts and ast fail log loss (B2 minus market -0.0004, CIs include 0); rebounds (-0.0014 [-0.0024, -0.0005]) and threes (-0.0012 [-0.0022, -0.0001]) beat the market on log loss but fail the decision guard (B2 ROI at EV>=5%: reb +2.01% [-4.61%, +8.59%] n 857; fg3m +2.84% [-4.56%, +10.56%] n 643). The planted-shuffle diagnostic also failed (shuffled B2 beats the market by -0.0004 on assists), so part of the log-loss gain is available without model information. Ledger T415-T419.
 Why: the rule asked whether a calibrated shrink keeps the model's information and turns it into decisions; the answer on these two seasons is no, and the unshrunk model's over-confidence is the main thing the shrink repairs.
 What would reverse it: a separately pre-registered live-log test (REB_LIVE_2026_27 covers the rebounds cell); nothing on 2023-24 data.
+
+**2026-10-11 ~23:00 CT — HISTORY_WINDOW_3: NULL; props history direction closed for 2026-27.**
+What: T420-T423. Both arms fail: 2023 gains (pts -0.0108 [-0.0156, -0.0059]) do not replicate in 2024 (pts +0.0035 [+0.0000, +0.0073]).
+Production unchanged. Why: the extra seasons substitute for current-season data only while that is short. What would reverse it: a model that
+starts cold (new stat, new league) or a training window cut to one season.
