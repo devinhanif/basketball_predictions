@@ -1,0 +1,470 @@
+{
+ "status": "GATE_PASSED",
+ "draft": true,
+ "sha256": "969245b24571e0e8321a7d82d3f9eb2889195ef16ea2819260d3becf51efdebc",
+ "pairs_sha256": {
+  "2023": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+  "2024": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c"
+ },
+ "counts": {
+  "2023 pinnacle": {
+   "legs": 35146,
+   "games": 1249,
+   "per_stat": {
+    "pts": 12189,
+    "reb": 6339,
+    "ast": 6714,
+    "fg3m": 9904
+   },
+   "months": [
+    "2023-10",
+    "2023-11",
+    "2023-12",
+    "2024-01",
+    "2024-02",
+    "2024-03",
+    "2024-04",
+    "2024-05",
+    "2024-06"
+   ]
+  },
+  "2023 draftkings": {
+   "legs": 53247,
+   "games": 1316,
+   "per_stat": {
+    "pts": 14354,
+    "reb": 15052,
+    "ast": 9650,
+    "fg3m": 14191
+   },
+   "months": [
+    "2023-10",
+    "2023-11",
+    "2023-12",
+    "2024-01",
+    "2024-02",
+    "2024-03",
+    "2024-04",
+    "2024-05",
+    "2024-06"
+   ]
+  },
+  "2024 pinnacle": {
+   "legs": 37528,
+   "games": 1260,
+   "per_stat": {
+    "pts": 13021,
+    "reb": 6645,
+    "ast": 6771,
+    "fg3m": 11091
+   },
+   "months": [
+    "2024-10",
+    "2024-11",
+    "2024-12",
+    "2025-01",
+    "2025-02",
+    "2025-03",
+    "2025-04",
+    "2025-05",
+    "2025-06"
+   ]
+  },
+  "2024 draftkings": {
+   "legs": 53752,
+   "games": 1300,
+   "per_stat": {
+    "pts": 15882,
+    "reb": 14748,
+    "ast": 10574,
+    "fg3m": 12548
+   },
+   "months": [
+    "2024-10",
+    "2024-11",
+    "2024-12",
+    "2025-01",
+    "2025-02",
+    "2025-03",
+    "2025-04",
+    "2025-05",
+    "2025-06"
+   ]
+  }
+ },
+ "identity": {
+  "pinnacle": {
+   "identity_blocks": 0,
+   "blocks": 36,
+   "min_fit": 6339
+  },
+  "draftkings": {
+   "identity_blocks": 0,
+   "blocks": 36,
+   "min_fit": 9650
+  }
+ },
+ "a0_reproduction": [
+  {
+   "season": 2023,
+   "book": "pinnacle",
+   "stat": "pts",
+   "n": 12189,
+   "n_ref": 12189,
+   "ll": 0.7099889485010391,
+   "ll_ref": 0.7099889485010391,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "book": "pinnacle",
+   "stat": "reb",
+   "n": 6339,
+   "n_ref": 6339,
+   "ll": 0.7008803019695008,
+   "ll_ref": 0.7008803019695008,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "book": "pinnacle",
+   "stat": "ast",
+   "n": 6714,
+   "n_ref": 6714,
+   "ll": 0.7045171985481243,
+   "ll_ref": 0.7045171985481243,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "book": "pinnacle",
+   "stat": "fg3m",
+   "n": 9904,
+   "n_ref": 9904,
+   "ll": 0.6880932361048533,
+   "ll_ref": 0.6880932361048533,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "book": "draftkings",
+   "stat": "pts",
+   "n": 14354,
+   "n_ref": 14354,
+   "ll": 0.709242609415272,
+   "ll_ref": 0.709242609415272,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "book": "draftkings",
+   "stat": "reb",
+   "n": 15052,
+   "n_ref": 15052,
+   "ll": 0.6949045322729175,
+   "ll_ref": 0.6949045322729175,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "book": "draftkings",
+   "stat": "ast",
+   "n": 9650,
+   "n_ref": 9650,
+   "ll": 0.6994035399268358,
+   "ll_ref": 0.6994035399268358,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "book": "draftkings",
+   "stat": "fg3m",
+   "n": 14191,
+   "n_ref": 14191,
+   "ll": 0.6809963787312884,
+   "ll_ref": 0.6809963787312884,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "pinnacle",
+   "stat": "pts",
+   "n": 13021,
+   "n_ref": 13021,
+   "ll": 0.7075617837045838,
+   "ll_ref": 0.7075617837045838,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "pinnacle",
+   "stat": "reb",
+   "n": 6645,
+   "n_ref": 6645,
+   "ll": 0.6947330452224225,
+   "ll_ref": 0.6947330452224225,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "pinnacle",
+   "stat": "ast",
+   "n": 6771,
+   "n_ref": 6771,
+   "ll": 0.6996516172466196,
+   "ll_ref": 0.6996516172466196,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "pinnacle",
+   "stat": "fg3m",
+   "n": 11091,
+   "n_ref": 11091,
+   "ll": 0.6942160210388322,
+   "ll_ref": 0.6942160210388322,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "draftkings",
+   "stat": "pts",
+   "n": 15882,
+   "n_ref": 15882,
+   "ll": 0.707534576743894,
+   "ll_ref": 0.707534576743894,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "draftkings",
+   "stat": "reb",
+   "n": 14748,
+   "n_ref": 14748,
+   "ll": 0.6937694736875016,
+   "ll_ref": 0.6937694736875016,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "draftkings",
+   "stat": "ast",
+   "n": 10574,
+   "n_ref": 10574,
+   "ll": 0.6984261489512293,
+   "ll_ref": 0.6984261489512293,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "book": "draftkings",
+   "stat": "fg3m",
+   "n": 12548,
+   "n_ref": 12548,
+   "ll": 0.68749593140339,
+   "ll_ref": 0.68749593140339,
+   "ok": true
+  }
+ ],
+ "planted_future": {
+  "probes": 54,
+  "identical": 54,
+  "positive_control_moved": 54,
+  "bad": []
+ },
+ "power": {
+  "synthetic_truth": "logit p = 0.17 + 0.85 logit p_model",
+  "syn_d_cal_a0": {
+   "mean": -0.005113956394019649,
+   "lo": -0.006148067206263522,
+   "hi": -0.0040200168659558725,
+   "p": 0.0004997501249375312,
+   "se": 0.0005455100409045475,
+   "n": 37528
+  },
+  "syn_d_cal_a0_date": {
+   "mean": -0.005113956394019649,
+   "lo": -0.006127656782270104,
+   "hi": -0.00403450413573311,
+   "p": 1.0,
+   "se": 0.0005377375883184824,
+   "n": 37528
+  },
+  "half_width": 0.0010640251701538248,
+  "half_width_per_stat": {
+   "pts": 0.001807240180198326,
+   "reb": 0.0025872758147753435,
+   "ast": 0.0024192402399859135,
+   "fg3m": 0.0019712009565338827
+  },
+  "syn_d_cal_c0": {
+   "mean": -0.015107569074267451,
+   "lo": -0.016982633850648955,
+   "hi": -0.013309703796609082,
+   "p": 1.0,
+   "se": 0.0009402646144940489,
+   "n": 37528
+  },
+  "design_effect_real_coin_minus_a0": 1.5140958530821818,
+  "legs": 37528,
+  "games": 1260,
+  "legs_per_game": 29.784126984126985
+ },
+ "null": {
+  "k": 50,
+  "sh_minus_a0_mean": -0.007840545240934915,
+  "sd": 0.00016927178215808044,
+  "sh_means": [
+   0.6920794045941846,
+   0.6921912691968731,
+   0.692132310949517,
+   0.6919513550201144,
+   0.6923231674410332,
+   0.6922527271821699,
+   0.692079632940652,
+   0.6919898694064126,
+   0.6920270467270279,
+   0.6919413042467779,
+   0.692377804005397,
+   0.6918029130768426,
+   0.692157146205344,
+   0.6919064628687331,
+   0.6923109211021719,
+   0.6922763438087386,
+   0.6921730691572466,
+   0.6922782677066022,
+   0.6920748042969913,
+   0.6916307710245426,
+   0.6921911566181346,
+   0.6922086976683941,
+   0.6921774705181072,
+   0.6919588424008803,
+   0.6919434411790943,
+   0.6917702258037154,
+   0.6923354965999063,
+   0.692213028953779,
+   0.6918656224109835,
+   0.6921065021694154,
+   0.6917943648415391,
+   0.691996470016657,
+   0.691768789912453,
+   0.6919865674935922,
+   0.6919734749213616,
+   0.6920952030543959,
+   0.692265461120031,
+   0.6920430778640669,
+   0.6919647730066005,
+   0.6921761295951847,
+   0.6922421138230558,
+   0.6922186787783208,
+   0.6922937120172181,
+   0.6920506827990087,
+   0.6920734299681188,
+   0.6918930795294289,
+   0.6921518949110222,
+   0.6921691435897137,
+   0.692004121019293,
+   0.6920262723367939
+  ]
+ },
+ "tests": [
+  {
+   "test": "1 Pinnacle 2024 legs >= 20,000",
+   "value": 37528,
+   "threshold": ">= 20000",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "1 Pinnacle 2024 legs per stat >= 5,000",
+   "value": 6645,
+   "threshold": ">= 5000",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "1 2024 blocks with < 2,000 fit rows (identity), both books",
+   "value": 0,
+   "threshold": "== 0",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "2 p_model, mean_int, std_int, line finite on every leg",
+   "value": true,
+   "threshold": "True",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "2 starter10 finite on every leg",
+   "value": 0,
+   "threshold": "== 0",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "2 t60 snapshot >= 60 min before the real tip, 100% of legs",
+   "value": 1.0,
+   "threshold": "== 1.0",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "2 every line x.5 (no pushes)",
+   "value": true,
+   "threshold": "True",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "3 A0 log loss and n equal ODDS_HISTORY h1 (16 cells, |diff| < 1e-9)",
+   "value": 16,
+   "threshold": "== 16",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "4 planted future: later labels flipped leave every block identical (synthetic labels)",
+   "value": "54/54",
+   "threshold": "all",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "4 positive control: flipping in-window labels moves every block",
+   "value": "54/54",
+   "threshold": "all",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "5 projected 95% half-width of CAL-A0 (Pinnacle 2024, synthetic truth) <= 0.0015 (half the floor)",
+   "value": 0.00106,
+   "threshold": "<= 0.0015",
+   "ok": true,
+   "fatal": true
+  },
+  {
+   "test": "6 permutation null measured (K = 50), sd finite",
+   "value": 0.00016927178215808044,
+   "threshold": "finite",
+   "ok": true,
+   "fatal": true
+  }
+ ],
+ "gate_ok": true,
+ "max_season_loaded": 2024,
+ "lock": "heavy.lock absent",
+ "unstated_details": [
+  "leg = one t60 row of pinnacle or draftkings in the MODEL_CLV pairs frame (main line, unique per game/player/stat/book, DNP voided upstream, every line x.5)",
+  "block = calendar month of game_date; fit rows = same book and stat, game_date strictly before the block's first day, every loaded season (2023 onward); < 2,000 fit rows -> identity (raw p_model) for every arm",
+  "IRLS logistic, ridge 1.0 on the four non-intercept coefficients (sum-of-losses scale), start at 0, stop when max |step| < 1e-10 or 100 iterations",
+  "x = logit(clip(p_model, 0.5/199, 1 - 0.5/199)); every model-derived probability is clipped to the same eps before log loss and Brier; the market de-vig (p_over_mult) is clipped to 1e-9",
+  "C0 = the fit rows' over rate (clipped to eps), per book, stat and block; SH_k = the CAL fit after permuting the fit rows' labels with default_rng([1000 + k, stat index, block index, book index]), k = 0..49",
+  "CIs: 95% percentile, 2,000 multinomial game resamples (seed 0) shared by every statistic of a season; a date-clustered CI (same construction over game dates) is reported beside the primary; one-sided p for 'arm beats comparator' = (1 + #{boot of (comparator - arm) <= 0}) / 2001",
+  "pass contrasts are pooled over the four stats with every leg weighted equally (legs, not stats)",
+  "starter = starter10 >= 0.5; confidence bucket on |p_model - 0.5|"
+ ],
+ "seconds": 9.141900062561035
+}
