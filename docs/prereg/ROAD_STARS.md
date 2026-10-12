@@ -1,6 +1,7 @@
 # ROAD_STARS: a star x road term in the points heads (pre-registration)
 
 Status: **DRAFT (Mon Oct 12 12:16 CDT 2026), written by the modeler. NOT frozen. Devin confirms before any freeze. The minimum-data gate below FAILS (power), so by non-negotiable 8 the rule as asked cannot be frozen; see "Gate verdict" and the options.**
+Frozen on Devin's choice of option 1 despite the failed power gate G5 (non-negotiable 8 exception, Devin's decision); expected result null.
 Everything above the line `=== RESULTS BELOW ===` is the rule. No ROAD, placebo or shuffled arm has been fitted or scored. Seasons are `games.season` (2023 = 2023-24, 2024 = 2024-25; 2025 never loaded).
 
 ## What "+0.36" measured (source: reports/model_miss_questions_2026-10-10.md, Q6(e) and Q6 candidate 3; DECISIONS 2026-10-12 12:12 "Road stars +0.36: draft a rule")
