@@ -1187,7 +1187,15 @@ def fetch_static(
     w = restrict_world(hw.load_world(db, hist_db, config, elo_config, schedule_dir))
     ids = history_static_missing(w)
     print(f"{len(ids)} history players need a CommonPlayerInfo pull", flush=True)
-    pull_players_static([int(i) for i in ids], rate_limiter=RateLimiter(min_interval_s=1.0))
+    limiter = RateLimiter(min_interval_s=1.0)
+    failed: list[tuple[int, str]] = []
+    for pid in (int(i) for i in ids):
+        try:
+            pull_players_static([pid], rate_limiter=limiter)
+        except Exception as exc:  # one bad response must not stop the other players
+            failed.append((pid, f"{type(exc).__name__}: {exc}"))
+            print(f"failed {pid}: {type(exc).__name__}: {exc}", flush=True)
+    print(f"pull done: {len(ids) - len(failed)} ok, {len(failed)} failed", flush=True)
     left = history_static_missing(w)
     print(f"still missing after the pull: {len(left)}", flush=True)
     return 0 if not left else 1
