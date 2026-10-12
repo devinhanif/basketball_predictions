@@ -1,6 +1,6 @@
 # Rivalries and player histories for F10 — candidate list for Devin to verify (2026-10-09)
 
-Status: **DRAFT.** Nothing here is a result or a frozen rule. Devin marks each row Y/N in the
+Status: **Tier 1 and Tier 2 marked Y by Devin (2026-10-11 22:58 CDT, "yes the rivalry list is good"); list frozen at this commit. Tier 3 stays PARKED.** Earlier: DRAFT. Nothing here is a result or a frozen rule. Devin marks each row Y/N in the
 `Devin` column; only the rows he marks Y go into any test, and the list is frozen (git hash) before
 anyone looks at P(play) or residuals by flag.
 
