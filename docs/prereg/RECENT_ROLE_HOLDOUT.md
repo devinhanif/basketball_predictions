@@ -1,6 +1,6 @@
 # RECENT_ROLE_HOLDOUT: one touch of season 2025 for the recent-role P(play) model R against the current P(play) feature set (pre-registration)
 
-Status: **DRAFT (written Mon Oct 12 00:47 CDT 2026), modeler.** Devin chose this as the one allowed follow-up of RECENT_ROLE ("go for it", 2026-10-12 ~00:50 CDT). The main
+Status: **FROZEN (Mon Oct 12 00:47 CDT 2026) by the main session on Devin's "go for it", accepting the disclosed shuffle tolerance -0.003 (set on the 2024 rehearsal, not 2025) and the gate-stop-may-repeat clause.** Earlier: **DRAFT (written Mon Oct 12 00:47 CDT 2026), modeler.** Devin chose this as the one allowed follow-up of RECENT_ROLE ("go for it", 2026-10-12 ~00:50 CDT). The main
 session commits `prereg(RECENT_ROLE_HOLDOUT): <sha256>`, then writes and commits the HOLDOUT_ACCESS_LOG row (format below), then runs the command once. Everything above the
 line `=== RESULTS BELOW ===` is the rule. Freeze evidence: commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/RECENT_ROLE_HOLDOUT.md | shasum -a 256`.
 Season labels as before (2025 = 2025-26, the frozen holdout). The modeler has not loaded or read any season-2025 row; the harness was rehearsed on season 2024 only.
