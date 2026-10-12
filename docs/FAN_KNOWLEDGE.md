@@ -708,3 +708,15 @@ Measured follow-ups below, each descriptive first.
   scoring rates: every cell within ±0.005 CRPS and within ±0.001 of a within-date placebo; DK over/under log loss unchanged. The market
   margin correlates 0.90 with our Elo margin, so the trees already had it. The arm with no own-stat history is worse by +0.42 CRPS on pts
   (3.58 vs 3.15), +0.17 reb, +0.19 ast, +0.10 fg3m: a player's own history is about 13% of the model and nothing else supplies it.
+
+## Play type, momentum, media (2026-10-11, Devin)
+
+- **Type of play:** transition, putbacks, assisted vs self-created makes. *Testable now* from our own play-by-play, as-of per player and
+  against the opponent's transition rate allowed; folded into the ADVANCED_RATES draft as the PLAY_TYPE family (not Synergy: its play-type
+  numbers are season totals, so not as-of).
+- **Momentum and swings:** in-game momentum is not knowable before tip, so it cannot feed a pre-game prop. Pre-game form (streaks, trend,
+  volatility) is covered by the evolution representation in ADVANCED_RATES. Prior notes on the hot hand are above (2026-10-09).
+- **Media influence:** the measurable pieces are national TV (the one survivor of 14 game-context tests, T180, a candidate only, needs a
+  fresh-season rule; `national_tv` is NULL for 77.5% of games, audit F14), revenge games against a former team (needs dated transactions),
+  milestones and award races (the 65-game rule above). Press volume or social-media attention has no as-of source we hold. *Queued*, not
+  tested: a props version of national TV and revenge games, after dated transactions exist.
