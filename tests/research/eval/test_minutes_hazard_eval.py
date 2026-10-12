@@ -675,6 +675,6 @@ def test_git_sha_returns_hash_or_unknown(monkeypatch: pytest.MonkeyPatch) -> Non
     sha = mhe.git_sha()
     assert sha == "unknown" or len(sha) == 40
     monkeypatch.setattr(
-        mhe.subprocess, "check_output", lambda *a, **k: (_ for _ in ()).throw(OSError("x"))
+        subprocess, "check_output", lambda *a, **k: (_ for _ in ()).throw(OSError("x"))
     )
     assert mhe.git_sha() == "unknown"
