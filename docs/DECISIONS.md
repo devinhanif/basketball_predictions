@@ -790,3 +790,9 @@ Risk recorded: 2.30M credits remain after the back-fill; the full live season is
 **2026-10-12 03:09 CDT — RECENT_ROLE_FULL FROZEN (sha256 73f3f4b0, commit 81e3f91).**
 What: recent-role minutes in the props heads and pi together vs A0; select 2023, report 2024; forking paths disclosed; Stage 2 (2025) only on
 Devin's words. Why: overnight queue Q2. What would reverse it: nothing above the marker.
+
+**2026-10-12 03:33 CDT — RECENT_ROLE_FULL pts: candidate PASS survives the adversary (T467-T469).**
+What: a 2023/24 candidate; no production change. Stage 2 (one logged 2025 touch, pts only, seed 0, no reruns) is Devin's decision; its loader must
+be written and adversary-reviewed first and must reproduce the stored A0 heads/pi, w_q and T467's 2024 delta on the 2024 blocks before any 2025
+row is fitted. Minor harness fix queued: run_arms must refuse checkpoints older than the freeze commit. Why: docs/reviews/recent_role_full_review_2026-10-12.md.
+What would reverse it: a Stage-2 miss (reads as "real but below the floor") or the live joint P(play) x FULL forecast showing no gain.
