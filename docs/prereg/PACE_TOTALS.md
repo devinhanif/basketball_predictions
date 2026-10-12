@@ -1,6 +1,6 @@
 # PACE_TOTALS: a possessions x efficiency game-total model, scored against the market total (pre-registration)
 
-Status: **DRAFT, NOT FROZEN** (2026-10-12). Devin confirms before anyone fits; the main session commits it as `prereg(PACE_TOTALS): <sha256>`.
+Status: **FROZEN** (2026-10-12; Devin approved, DECISIONS e24b56c). The main session commits it as `prereg(PACE_TOTALS): <sha256>` before any fit.
 Seasons: 2023 = 2023-24 (select), 2024 = 2024-25 (report). Season 2025 is never loaded and never touched under this rule.
 Draft by the modeler. Gates below were measured on 2023-24 inputs only, no model was fit (reports/pace_periods_2026-10-12.md, section C).
 
@@ -58,7 +58,7 @@ Honest caveat on the gates: pace and the line are 0.78 correlated, so the gate o
 Open assumption not verifiable here: the T-60 prices precede tip for every book/game (documented capture time tip - 64 min; per-quote `snapshot_ts < tipoff` not re-checked in this draft; the decision scorer asserts it).
 
 ## Hardware and cost
-Closed-form OLS and NumPy only; a few seconds on the local CPU. No GPU. Entry point (to be written after freeze): `python -m research.eval.pace_totals_eval --sha <frozen>`.
+Closed-form OLS and NumPy only; a few seconds on the local CPU. No GPU. Entry point: `python -m research.eval.pace_totals_eval run --sha <frozen>` (refuses unless this text above the marker hashes to the sha and a `prereg(PACE_TOTALS): <sha>` commit exists).
 
 ## What each choice protects against
 - Blend only passes: protects against celebrating a pace model that merely tracks the line (corr 0.78) while adding nothing the price lacks.
@@ -68,3 +68,5 @@ Closed-form OLS and NumPy only; a few seconds on the local CPU. No GPU. Entry po
 - Past-only placebo and non-inert shuffle: protect against the opp_adjusted_ridge fingerprint (one feature group carrying everything, shuffle that does not bite).
 - Period totals secondary and cannot pass: protects against a family of six hunting for one lucky period.
 - One report season, no 2025: protects the holdout; a new idea gets a new id.
+
+=== RESULTS BELOW ===
