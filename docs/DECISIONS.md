@@ -954,3 +954,6 @@ Why: the measured history gain (W_ALL - W22 = -0.0120 / -0.0072, adversary SURVI
 **2026-10-12 16:04 CDT — neural family timing agreed (Devin accepted Claude's middle option, supersedes the line above).**
 What: before opening night, inventory + draft + Colab run 1 (W_ALL retrain, scored on 2023-24 only, spends nothing). The family's 2025 run happens only if everything is frozen, reviewed and clean by about 2026-10-16; otherwise in the first week after opening night. Live readiness stays first each day. Still conditional on SEQ_FULL_MIX_RT passing.
 Why: a pass cannot go live by opening night anyway, and the unspent 2025 run should not be spent under deadline pressure. What would reverse it: none.
+
+**2026-10-12 16:07 CDT — SEQ_FULL_MIX_RT 2025 run confirmed (Devin: "confirm SEQ_FULL_MIX_RT 2025 run, can colab do the scoring too or no, do what you trust").**
+What: holdout row logged; scoring stays on the Mac (the scorer and its hard stops were built and tested there; Colab scoring would be a new untested path and send more 2025 data off the machine). Next: export25, run-2 notebook, pre-run check, Devin runs Colab, Mac scores once.
