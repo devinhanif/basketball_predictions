@@ -27,7 +27,7 @@ def test_repo_config_loads_with_cap_unset_and_rule_constants() -> None:
         3000, 150_000, 2_500_000,
     )  # fmt: skip
     assert (cfg.planning_tokens_per_game, cfg.input_token_cap) == (8500, 8000)
-    assert cfg.model_id == "claude-opus-5-5" and cfg.fallback_model_id == "claude-sonnet-5-5"
+    assert cfg.model_id == "claude-opus-5-5" and cfg.fallback_model_id == "claude-fable-5-1"
 
 
 def test_cli_flag_off_is_a_no_op(

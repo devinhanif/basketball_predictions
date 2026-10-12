@@ -100,7 +100,7 @@ Production's P(over) at the same line: `p_over_prod = P(Y >= ceil(line))` from t
 - Population: regular-season games of `season = 2026` only (no preseason, no playoffs). Dry-run rows (version `v1-dry`) never score.
 
 ## 3. Routing, budget and cost ledger (constants final)
-- Forecast model: `claude-opus-5-5` (Devin 2026-10-12: switched from `claude-fable-5-1` for cost, ~\$13 vs ~\$32 a typical month at the planning token figures). Fallback `claude-sonnet-5-5` only if the
+- Forecast model: `claude-opus-5-5` (Devin 2026-10-12: switched from `claude-fable-5-1` for cost, ~\$13 vs ~\$32 a typical month at the planning token figures). Fallback `claude-fable-5-1` (raise, never lower: Jev routing) only if the
   primary returns a not-available error; every row stores `model_id` and `fallback_used`; a fallback is logged and alerted. The
   fact-extraction cheap model is not part of this arm (later, separate rule). Both model ids are as supplied to this draft and
   have not been verified against the vendor's model list.
