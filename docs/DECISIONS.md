@@ -711,3 +711,8 @@ is added or removed after this line.
 What: Stage 1 P(play) with last-game minutes vs a comparator holding production's recent-minutes columns; Stage 2a unconditional props CRPS if
 Stage 1 passes; Stage 2b does not apply; Stage 3 holdout only on Devin's word with a committed log row. Why: Devin "go" and "run, run, run".
 What would reverse it: nothing above the results marker changes.
+
+**2026-10-12 00:40 CDT — RECENT_ROLE: closed, fails by 0.0004 (T455-T457).**
+What: Stage 1 misses the floor in 2024; Stage 2 not run; production unchanged. The descriptive finding (production P(play) lacks its own
+recent-minutes columns; together about -0.017 log loss) is the candidate for the one allowed follow-up, which must be confirmed on unseen data.
+Why: frozen rule. What would reverse it: the follow-up passing on the 2025 holdout (one logged touch, Devin's decision) or on the live log.

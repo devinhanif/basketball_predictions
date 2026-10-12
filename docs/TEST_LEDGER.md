@@ -667,3 +667,13 @@ passing cell of the night, but not the one the rule was about. Fatigue, schedule
 minutes a player got in his last game or few: a bench player who got under 5 minutes last time is a coin flip to play tonight, and the
 production P(play) comparator did not carry that number. It is cheap, public, pre-tip and leak-free. Before anyone touches the holdout, the one
 open question is whether production's own recent-minutes columns already absorb it (a C that includes them).
+
+| T455 | RECENT_ROLE Stage 1, R (C' + 5 recent-role minutes columns) minus C' (WORKLOAD C + production's 13 recent-minutes/role columns), P(play) log loss (frozen sha256 1bb83990, commit b28ad1c) | 2023 -0.0075 [-0.0091, -0.0060]; 2024 -0.0046 [-0.0061, -0.0031]; n 33,093 / 33,127; floor -0.005. Guards, past-only placebo (R-PL -0.0073 / -0.0042) and the non-inert shuffle pass; min_last alone keeps 79% / 81% |
+| T456 | RECENT_ROLE verdict | FAIL: 2024 misses the floor by 0.0004 (CI excludes 0). Stage 2 not run (declared). CLOSED |
+| T457 | RECENT_ROLE descriptive (not a claim) | C' minus base (production's own recent-minutes columns added to the P(play) features) -0.0094 [-0.0113, -0.0074] / -0.0120 [-0.0137, -0.0102]; R minus base -0.0169 / -0.0166. Production's P(play) hurdle uses only trailing-150-game columns |
+
+**RECENT_ROLE verdict (T455-T457, frozen sha256 1bb83990, freeze commit b28ad1c; research/eval/recent_role_eval.py; reports/prereg_recent_role/):**
+CLOSED, fail by 0.0004. Last-game minutes still help P(play) once production's own recent-minutes columns are present (CIs exclude zero in both
+seasons), but in 2024 the gain is -0.0046 against a -0.005 floor. The larger finding is descriptive: production's P(play) does not use the
+recent-minutes columns its own props heads use, and adding them (with or without last-game minutes) improves P(play) by about -0.017 in both
+seasons. That was seen after the fact on 2023-24, so it can only be confirmed on data that has not been looked at: the 2025 holdout or the live log.
