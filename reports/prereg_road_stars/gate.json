@@ -1,0 +1,148 @@
+{
+  "tests": [
+    {
+      "test": "G1 A0 reproduction from stored components (pts mixture integer CRPS vs candidates.json and the quoted 3.140236 / 3.176840)",
+      "value": {
+        "2023": 3.140236,
+        "2024": 3.17684
+      },
+      "threshold": "abs diff <= 1e-06, n equal",
+      "ok": true
+    },
+    {
+      "test": "G2 as-of columns m10_pts and is_home_f attach to every A0 row with 0 nulls (no NULL pattern)",
+      "value": {
+        "n_a0_rows": 55320,
+        "n_star": 6706,
+        "frame_null_m10_pts_n_prior>=5": 0
+      },
+      "threshold": "all A0 rows found, 0 null",
+      "ok": true
+    },
+    {
+      "test": "coin construction: shared by teammates, deterministic per arm, ~50% away, differs across arms",
+      "value": {
+        "teammate_coin_shared": true,
+        "share_away_among_stars": 0.4911371693482411,
+        "deterministic": true,
+        "differs_across_arms": true
+      },
+      "threshold": "shared, deterministic, differs, share in [0.4, 0.6]",
+      "ok": true
+    },
+    {
+      "test": "control refit of the pts heads (production features only) equals the stored components",
+      "value": {
+        "rows_equal": true,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "rows equal, max abs diff <= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "control refit, season-only walk 2023 (the construction of the null arms) equals the stored components of that season",
+      "value": {
+        "rows_equal": true,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "rows equal, max abs diff <= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "planted future (ROAD heads, pts): centre and scale of rows in blocks before the cutoff identical",
+      "value": {
+        "cutoff": "2025-01-24",
+        "n_rows": 10064,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "== 0 and n > 0",
+      "ok": true
+    },
+    {
+      "test": "control (ROAD heads, pts): rows in later blocks change",
+      "value": {
+        "n_rows": 12790,
+        "max_abs_diff": 99.55728618520904
+      },
+      "threshold": "> 0",
+      "ok": true
+    },
+    {
+      "test": "G4 slice sizes (n rows) per season",
+      "value": {
+        "2023": {
+          "all": 27619,
+          "star": 3533,
+          "non_star": 24086,
+          "star_home": 1776,
+          "star_road": 1757,
+          "bench": 15352,
+          "playoffs": 1684,
+          "min<5": 2383,
+          "cold_start": 574,
+          "cold_start_star": 6
+        },
+        "2024": {
+          "all": 27701,
+          "star": 3173,
+          "non_star": 24528,
+          "star_home": 1583,
+          "star_road": 1590,
+          "bench": 15589,
+          "playoffs": 1804,
+          "min<5": 2326,
+          "cold_start": 464,
+          "cold_start_star": 0
+        }
+      },
+      "threshold": "star, star_home, star_road, non_star and every guard slice >= 300 in both seasons",
+      "ok": true
+    },
+    {
+      "test": "G5 power (known FAIL, waived: Devin's option 1, non-negotiable 8 exception): best case 0.001-0.003 on stars vs floor -0.005; MDE ~0.0037 per season",
+      "value": {
+        "waived_by": "Devin 2026-10-12"
+      },
+      "threshold": "recorded, not blocking",
+      "ok": true
+    },
+    {
+      "test": "HOLDOUT_ACCESS_LOG: no row names ROAD_STARS (never evaluated on season 2025)",
+      "value": {
+        "rows_naming_id": 0
+      },
+      "threshold": "== 0",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "sha256": "387bd523f319ab64fbe102f9ddc3df5b98dfe7cddb9079ff3b755562324e2ccc",
+  "draft": false,
+  "seconds": 79.3905611038208,
+  "slice_sizes": {
+    "2023": {
+      "all": 27619,
+      "star": 3533,
+      "non_star": 24086,
+      "star_home": 1776,
+      "star_road": 1757,
+      "bench": 15352,
+      "playoffs": 1684,
+      "min<5": 2383,
+      "cold_start": 574,
+      "cold_start_star": 6
+    },
+    "2024": {
+      "all": 27701,
+      "star": 3173,
+      "non_star": 24528,
+      "star_home": 1583,
+      "star_road": 1590,
+      "bench": 15589,
+      "playoffs": 1804,
+      "min<5": 2326,
+      "cold_start": 464,
+      "cold_start_star": 0
+    }
+  }
+}

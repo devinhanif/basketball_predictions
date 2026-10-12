@@ -880,3 +880,6 @@ Why: against bare production the mixture alone (about -0.011) would clear the -0
 **2026-10-12 12:38 CDT — Q7.3 minutes-spread widening: recorded as descriptive (T474), no rule frozen.**
 What: the mis-calibration is the lower tail of starters and 30+ minute players, mostly rate-driven; lower-only widening is worth about -0.0025 pts, below any reachable floor (power about 0.01 at -0.002 over both seasons).
 Why: a rule that cannot pass its own minimum-data gate is not frozen (non-negotiable 8). What would reverse it: Devin asks for one pooled 2023-24 test at a -0.002 floor.
+
+**2026-10-12 12:46 CDT — ROAD_STARS closed NULL (T475).**
+What: no gain for stars on the road in either season (CIs about ±0.01 around 0); 2025 not touched. Why: the frozen rule's primary and guards failed in both seasons. What would reverse it: nothing; a new question gets a new id.

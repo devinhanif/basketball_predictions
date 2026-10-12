@@ -1,0 +1,402 @@
+{
+  "sha256": "smoke",
+  "scores": {
+    "cells": [
+      {
+        "season": 2023,
+        "contrast": "ROAD_minus_A0_star",
+        "cell": "star",
+        "n_rows": 3533,
+        "n_games": 1300,
+        "a_crps": 4.57277801633136,
+        "b_crps": 4.57277801633136,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      },
+      {
+        "season": 2023,
+        "contrast": "ROAD_minus_A0_all",
+        "cell": "all",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "a_crps": 3.140236466011581,
+        "b_crps": 3.140236466011581,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      },
+      {
+        "season": 2023,
+        "contrast": "ROAD_minus_PL_star",
+        "cell": "star",
+        "n_rows": 3533,
+        "n_games": 1300,
+        "a_crps": 4.57277801633136,
+        "b_crps": 4.57277801633136,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      },
+      {
+        "season": 2023,
+        "contrast": "PL_minus_A0_star",
+        "cell": "star",
+        "n_rows": 3533,
+        "n_games": 1300,
+        "a_crps": 4.57277801633136,
+        "b_crps": 4.57277801633136,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      },
+      {
+        "season": 2024,
+        "contrast": "ROAD_minus_A0_star",
+        "cell": "star",
+        "n_rows": 3173,
+        "n_games": 1262,
+        "a_crps": 4.5917928595859046,
+        "b_crps": 4.5917928595859046,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      },
+      {
+        "season": 2024,
+        "contrast": "ROAD_minus_A0_all",
+        "cell": "all",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "a_crps": 3.1768395165770476,
+        "b_crps": 3.1768395165770476,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      },
+      {
+        "season": 2024,
+        "contrast": "ROAD_minus_PL_star",
+        "cell": "star",
+        "n_rows": 3173,
+        "n_games": 1262,
+        "a_crps": 4.5917928595859046,
+        "b_crps": 4.5917928595859046,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      },
+      {
+        "season": 2024,
+        "contrast": "PL_minus_A0_star",
+        "cell": "star",
+        "n_rows": 3173,
+        "n_games": 1262,
+        "a_crps": 4.5917928595859046,
+        "b_crps": 4.5917928595859046,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "p": 1.0,
+        "mde": 0.0
+      }
+    ],
+    "slices": [
+      {
+        "season": 2023,
+        "slice": "all",
+        "n": 27619,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "star",
+        "n": 3533,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "non_star",
+        "n": 24086,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "star_home",
+        "n": 1776,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "star_road",
+        "n": 1757,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "bench",
+        "n": 15352,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "playoffs",
+        "n": 1684,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "min<5",
+        "n": 2383,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "cold_start",
+        "n": 574,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2023,
+        "slice": "cold_start_star",
+        "n": 6
+      },
+      {
+        "season": 2024,
+        "slice": "all",
+        "n": 27701,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "star",
+        "n": 3173,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "non_star",
+        "n": 24528,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "star_home",
+        "n": 1583,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "star_road",
+        "n": 1590,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "bench",
+        "n": 15589,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "playoffs",
+        "n": 1804,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "min<5",
+        "n": 2326,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "cold_start",
+        "n": 464,
+        "delta": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0
+      },
+      {
+        "season": 2024,
+        "slice": "cold_start_star",
+        "n": 0
+      }
+    ],
+    "coverage": {
+      "2023": {
+        "star": {
+          "A0": {
+            "0.10": 0.13472969148032835,
+            "0.20": 0.22417209170676478,
+            "0.80": 0.8168695159920747,
+            "0.90": 0.9204641947353523
+          },
+          "ROAD": {
+            "0.10": 0.13472969148032835,
+            "0.20": 0.22417209170676478,
+            "0.80": 0.8168695159920747,
+            "0.90": 0.9204641947353523
+          }
+        },
+        "all": {
+          "A0": {
+            "0.10": 0.11517433650747674,
+            "0.20": 0.21619175205474492,
+            "0.80": 0.8090082913936059,
+            "0.90": 0.9071653571816504
+          },
+          "ROAD": {
+            "0.10": 0.11517433650747674,
+            "0.20": 0.21619175205474492,
+            "0.80": 0.8090082913936059,
+            "0.90": 0.9071653571816504
+          }
+        }
+      },
+      "2024": {
+        "star": {
+          "A0": {
+            "0.10": 0.13488811849984242,
+            "0.20": 0.21840529467381029,
+            "0.80": 0.8071225969114403,
+            "0.90": 0.908288685786322
+          },
+          "ROAD": {
+            "0.10": 0.13488811849984242,
+            "0.20": 0.21840529467381029,
+            "0.80": 0.8071225969114403,
+            "0.90": 0.908288685786322
+          }
+        },
+        "all": {
+          "A0": {
+            "0.10": 0.1180462799176925,
+            "0.20": 0.21436049240099636,
+            "0.80": 0.802606404100935,
+            "0.90": 0.9006895057940146
+          },
+          "ROAD": {
+            "0.10": 0.1180462799176925,
+            "0.20": 0.21436049240099636,
+            "0.80": 0.802606404100935,
+            "0.90": 0.9006895057940146
+          }
+        }
+      }
+    },
+    "descriptive_other_stats": [],
+    "a0_crps": {
+      "2023": 3.140236466011581,
+      "2024": 3.1768395165770476
+    }
+  },
+  "verdict": {
+    "per_season": {
+      "2023": {
+        "primary": false,
+        "no_harm": true,
+        "placebo": false,
+        "null_guard": false,
+        "slices_ok": true,
+        "slices_worse": [],
+        "star_delta": 0.0,
+        "star_ci": [
+          0.0,
+          0.0
+        ],
+        "overall_delta": 0.0,
+        "overall_ci_hi": 0.0,
+        "road_minus_pl": 0.0,
+        "null_mean": 0.0,
+        "null_sd": 0.0,
+        "null_threshold": 0.0,
+        "mde": 0.0
+      },
+      "2024": {
+        "primary": false,
+        "no_harm": true,
+        "placebo": false,
+        "null_guard": false,
+        "slices_ok": true,
+        "slices_worse": [],
+        "star_delta": 0.0,
+        "star_ci": [
+          0.0,
+          0.0
+        ],
+        "overall_delta": 0.0,
+        "overall_ci_hi": 0.0,
+        "road_minus_pl": 0.0,
+        "null_mean": 0.0,
+        "null_sd": 0.0,
+        "null_threshold": 0.0,
+        "mde": 0.0
+      }
+    },
+    "coverage_ok": true,
+    "coverage_bad": [],
+    "gate_ok": true,
+    "pass": false,
+    "stage1_pass_both_seasons": false
+  },
+  "null": {
+    "seasons": {
+      "2023": {
+        "K": 0,
+        "mean": 0.0,
+        "sd": 0.0,
+        "threshold": 0.0
+      }
+    }
+  },
+  "stage2": "no code here; 2025 never loaded"
+}
