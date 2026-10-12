@@ -22,14 +22,15 @@ def _git(root: Path, *args: str) -> None:
 
 def test_clean_dirty_and_untracked(tmp_path: Path) -> None:
     _git(tmp_path, "init", "-q")
-    (tmp_path / "a.py").write_text("x = 1\n")
-    _git(tmp_path, "add", "a.py")
+    (tmp_path / "nba").mkdir()
+    (tmp_path / "nba" / "a.py").write_text("x = 1\n")
+    _git(tmp_path, "add", "nba/a.py")
     _git(tmp_path, "commit", "-q", "-m", "c")
     head, dirty, n = git_state(tmp_path)
     assert len(head) == 40 and dirty is False and n == 0
     (tmp_path / "scratch.txt").write_text("untracked")
     assert git_state(tmp_path)[1] is False  # untracked files are not tracked-code drift
-    (tmp_path / "a.py").write_text("x = 2\n")
+    (tmp_path / "nba" / "a.py").write_text("x = 2\n")
     head2, dirty, n = git_state(tmp_path)
     assert head2 == head and dirty is True and n == 1
 
@@ -53,3 +54,26 @@ def test_summary_line_is_printed(capsys: pytest.CaptureFixture[str]) -> None:
     s2 = RunSummary(run_id="r", run_date=date(2026, 10, 20))
     _print_summary(s2)
     assert "dirty=unknown" in capsys.readouterr().out
+
+
+def test_generated_reports_do_not_mark_the_run_dirty(tmp_path) -> None:
+    import subprocess
+
+    from nba.daily.runmeta import git_state
+
+    def g(*a: str) -> None:
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True)
+
+    g("init", "-q")
+    g("config", "user.email", "t@t")
+    g("config", "user.name", "t")
+    (tmp_path / "nba").mkdir()
+    (tmp_path / "reports").mkdir()
+    (tmp_path / "nba" / "x.py").write_text("a = 1\n")
+    (tmp_path / "reports" / "r.md").write_text("old\n")
+    g("add", ".")
+    g("commit", "-q", "-m", "init")
+    (tmp_path / "reports" / "r.md").write_text("new\n")
+    assert git_state(tmp_path)[1] is False
+    (tmp_path / "nba" / "x.py").write_text("a = 2\n")
+    assert git_state(tmp_path)[1] is True

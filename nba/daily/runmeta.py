@@ -13,6 +13,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+CODE_PATHS: tuple[str, ...] = ("nba", "ops", "configs", "pyproject.toml", "uv.lock")
+
+
 def _git(args: list[str], root: Path) -> str | None:
     try:
         out = subprocess.run(
@@ -30,7 +33,9 @@ def git_state(root: Path | None = None) -> tuple[str, bool | None, int]:
     not code the live path executes unless imported, and the tracked-file count says so)."""
     root = root or REPO_ROOT
     head = _git(["rev-parse", "HEAD"], root)
-    status = _git(["status", "--porcelain", "--untracked-files=no"], root)
+    # Only code and config the live path executes count; generated reports the daily job rewrites
+    # (e.g. reports/props_analysis) would otherwise mark every run dirty.
+    status = _git(["status", "--porcelain", "--untracked-files=no", "--", *CODE_PATHS], root)
     sha = head.strip() if head and head.strip() else "unknown"
     if status is None:
         return sha, None, 0
