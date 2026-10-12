@@ -70,7 +70,7 @@ def cluster_stats(delta: np.ndarray, gid: np.ndarray) -> dict[str, float]:
     mu = float(delta.mean())
     r = delta - mu
     s = np.bincount(inv, weights=r, minlength=g)
-    se_cl = math.sqrt(g / (g - 1) * float((s**2).sum())) / n
+    se_cl = math.sqrt(g / (g - 1) * float((s**2).sum())) / n if g > 1 else float("nan")
     sd = float(delta.std(ddof=1))
     se_iid = sd / math.sqrt(n)
     return {
@@ -97,6 +97,155 @@ def week_reached(
 ) -> float:
     """Season week (1 = opening week, 2026-10-20) at which ``n_rows`` eligible rows have accumulated, after the burn-in weeks."""
     return burn_weeks + n_rows / (rows_per_game * games_per_week)
+
+
+def week_reached_piecewise(
+    n_rows: int, segments: list[tuple[float, float]], burn_weeks: float = BURN_WEEKS
+) -> float:
+    """Week at which ``n_rows`` accumulate when rows/week changes: ``segments`` = [(weeks_in_segment, rows_per_week), ...,
+    (inf, rows_per_week)], counted after ``burn_weeks`` of no rows."""
+    t, left = burn_weeks, float(n_rows)
+    for w, rpw in segments:
+        if left <= w * rpw:
+            return t + left / rpw
+        t, left = t + w, left - w * rpw
+    return float("inf")
+
+
+LIVE_SQL = """
+WITH elig AS (
+    SELECT *, row_number() OVER (PARTITION BY game_id, player_id ORDER BY made_at DESC, run_id DESC) rn
+    FROM forward_pplay_shadow WHERE made_at <= tipoff - ? * INTERVAL 1 MINUTE
+)
+SELECT e.game_id, g.game_date, e.tipoff, e.made_at, e.player_id, e.team_id, e.p_play_prod, e.p_play_r, e.proj_minutes,
+       e.in_prod_log, e.props_cond, s.y AS played,
+       b.pts, b.reb, b.ast, b.fg3m,
+       EXISTS (SELECT 1 FROM games g2 WHERE g2.game_date = g.game_date - 1
+               AND (g2.home_team = e.team_id OR g2.away_team = e.team_id)) AS second_night
+FROM elig e
+JOIN forward_pplay_scores s ON s.game_id = e.game_id AND s.player_id = e.player_id AND s.run_id = e.run_id AND s.status = 'scored'
+JOIN games g ON g.game_id = e.game_id
+LEFT JOIN player_game_stats b ON b.game_id = e.game_id AND b.player_id = e.player_id
+WHERE e.rn = 1 AND e.p_play_r IS NOT NULL AND e.p_play_r > 0 AND e.p_play_r < 1
+"""
+
+BENCH_MINUTES = (
+    20.0  # bench slice = production proj_minutes < 20 (the shadow table has no starter rate)
+)
+LOW_P = 0.9  # low-availability slice = production p_play < 0.9 (stands in for "questionable": the shadow table stores no report tag)
+
+
+def load_live(con: Any, stat: str, lead_minutes: int = 60) -> dict[str, np.ndarray]:
+    """Eligible settled rows for ``stat`` from ``forward_pplay_shadow`` + ``forward_pplay_scores`` (read-only connection):
+    the latest shadow row per (game, player) with made_at <= tipoff - ``lead_minutes``, non-NULL ``p_play_r`` in (0,1), a settled
+    label, and a 19-point ``props_cond[stat].q_grid``. The continuous conditional quantiles become integer support with
+    ``to_integer_support`` (ceil(q - 0.5), floored at 0, running max), exactly as the stored 2023-24 components were scored.
+    y_u = box-score stat if the player played else 0. Rows with a missing grid or a played row without a box stat are counted, not scored."""
+    from nba.props.context_residual import to_integer_support
+
+    rows = con.execute(LIVE_SQL, [lead_minutes]).fetchall()
+    cols = [
+        "gid",
+        "day",
+        "tip",
+        "made_at",
+        "pid",
+        "team",
+        "p_prod",
+        "p_r",
+        "proj",
+        "logged",
+        "props",
+        "played",
+        "pts",
+        "reb",
+        "ast",
+        "fg3m",
+        "b2b",
+    ]
+    keep: dict[str, list[Any]] = {c: [] for c in cols}
+    qis: list[np.ndarray] = []
+    dropped = 0
+    for r in rows:
+        d = dict(zip(cols, r, strict=True))
+        props = json.loads(d["props"]) if isinstance(d["props"], str) else d["props"]
+        grid = (props or {}).get(stat, {}).get("q_grid") if isinstance(props, dict) else None
+        val = d[stat]
+        if grid is None or len(grid) != 19 or (d["played"] > 0.5 and val is None):
+            dropped += 1
+            continue
+        for c in cols:
+            keep[c].append(d[c])
+        keep.setdefault("stat_val", []).append(float(val) if d["played"] > 0.5 else 0.0)
+        qis.append(to_integer_support(np.asarray(grid, dtype=float)))
+    out: dict[str, np.ndarray] = {
+        "gid": np.array(keep["gid"], dtype=str), "day": np.array(keep["day"], dtype="datetime64[D]"),
+        "pid": np.array(keep["pid"], dtype=np.int64), "p_prod": np.array(keep["p_prod"], dtype=float), "p_r": np.array(keep["p_r"], dtype=float),
+        "proj": np.array([np.nan if v is None else v for v in keep["proj"]], dtype=float), "y_u": np.array(keep.get("stat_val", []), dtype=float),
+        "b2b": np.array(keep["b2b"], dtype=bool), "made_at": np.array(keep["made_at"], dtype="datetime64[s]"), "tip": np.array(keep["tip"], dtype="datetime64[s]"),
+        "qi": np.array(qis, dtype=np.int16).reshape(len(qis), 19), "dropped": np.array([dropped]),
+    }  # fmt: skip
+    return out
+
+
+def stamp_and_shadow_gates(con: Any, lead_minutes: int = 60) -> dict[str, Any]:
+    """Counts for the integrity gates: (game, player) pairs whose every shadow row was made after the T-minus cutoff (excluded),
+    shadow rows after tip (must be 0: the writer refuses them), and the production-p equality check against ``forward_predictions``
+    rows of the same run (``prediction->>'$.p_play'``); 0 compared means the check could not be made."""
+    late = con.execute(
+        "SELECT count(*) FROM (SELECT game_id, player_id FROM forward_pplay_shadow GROUP BY 1, 2 HAVING min(made_at) > min(tipoff) - ? * INTERVAL 1 MINUTE)",
+        [lead_minutes],
+    ).fetchone()[0]
+    after_tip = con.execute(
+        "SELECT count(*) FROM forward_pplay_shadow WHERE made_at >= tipoff"
+    ).fetchone()[0]
+    total = con.execute("SELECT count(*) FROM forward_pplay_shadow").fetchone()[0]
+    with_r = con.execute(
+        "SELECT count(*) FROM forward_pplay_shadow WHERE p_play_r IS NOT NULL"
+    ).fetchone()[0]
+    cmp_ = con.execute(
+        """SELECT count(*), coalesce(sum(CASE WHEN abs(s.p_play_prod - CAST(p.pp AS DOUBLE)) > 1e-12 THEN 1 ELSE 0 END), 0)
+           FROM forward_pplay_shadow s JOIN (SELECT DISTINCT run_id, game_id, player_id, prediction ->> '$.p_play' AS pp FROM forward_predictions
+                                              WHERE prediction ->> '$.p_play' IS NOT NULL) p
+             ON p.run_id = s.run_id AND p.game_id = s.game_id AND p.player_id = s.player_id
+           WHERE s.in_prod_log"""
+    ).fetchone()
+    return {"late_only_pairs": int(late), "rows_after_tip": int(after_tip), "shadow_rows": int(total), "rows_with_p_r": int(with_r),
+            "prod_p_compared": int(cmp_[0]), "prod_p_mismatch": int(cmp_[1])}  # fmt: skip
+
+
+def score_live(rows: dict[str, np.ndarray], n_boot_seed: int = 0) -> dict[str, Any]:
+    """Primary + guards for one stat from ``load_live`` output. Pure arithmetic; the verdict logic (PASS / INCONCLUSIVE / FAIL, BH over 4)
+    is applied by the caller per the frozen rule."""
+    from research.eval import workload_eval as WE
+
+    qi, y, gid = rows["qi"], rows["y_u"], rows["gid"]
+    if len(y) == 0:
+        return {"n_rows": 0}
+    days = rows["day"].astype("int64")
+    order_key = rows["made_at"].astype("int64")
+    d_main = row_delta(qi, rows["p_r"], rows["p_prod"], y)
+    d_pl = row_delta(qi, rows["p_r"], prev_row_p(rows["pid"], order_key, rows["p_r"]), y)
+    d_sh = row_delta(qi, shuffle_p_within_day(rows["p_r"], days, n_boot_seed), rows["p_prod"], y)
+    out: dict[str, Any] = {
+        "n_rows": int(len(y)), "n_games": int(len(np.unique(gid))), "dropped_no_grid_or_box": int(rows["dropped"][0]),
+        "R_minus_prod": WE.delta_stats(d_main, gid), "R_minus_prev_p_placebo": WE.delta_stats(d_pl, gid), "shuffled_R_minus_prod": WE.delta_stats(d_sh, gid),
+        "cluster": cluster_stats(d_main, gid),
+    }  # fmt: skip
+    for name, m in (
+        ("bench", rows["proj"] < BENCH_MINUTES),
+        ("low_p", rows["p_prod"] < LOW_P),
+        ("second_night", rows["b2b"]),
+    ):
+        out[name] = {
+            "n": int(m.sum()),
+            **(
+                WE.delta_stats(d_main[m], gid[m])
+                if m.sum() >= 300
+                else {"note": "under 300 rows: reported, cannot fail the guard"}
+            ),
+        }
+    return out
 
 
 def rehearse() -> dict[str, Any]:
