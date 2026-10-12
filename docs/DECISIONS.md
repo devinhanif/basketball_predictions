@@ -822,3 +822,9 @@ after these. Start with the Stage-2 loader and the combined-model shadow at ~09:
 **2026-10-12 10:09 CDT — PACE_TOTALS FROZEN (sha256 e59e5c9e, commit 9a6737a) with the drafted floors (Devin item C).**
 What: pace x efficiency game totals vs the market line, blend arm B only can pass; select 2023, report 2024; no 2025. Main session prior ~5%.
 Why: Devin "a b c d". What would reverse it: nothing above the marker.
+
+**2026-10-12 10:12 CDT — RECENT_ROLE_FULL shadow live in pretip (ce59b41; Devin approved in b348af7).**
+What: --log-full-shadow writes the FULL conditional grids for every context-model player and scores them nightly, plus the joint unconditional
+forecast three ways (production p_play x production grid; P(play) R x FULL grid; R x production grid). Oracle IDENTICAL (oracle_fullshadow.duckdb),
+flag on/off hash identical on a real slate, +15 s on the first run of a date, ~2 s after. The joint scoring construction is the agent's
+((1-p) at 0 plus p/19 per quantile, exact CRPS) and is not a frozen claim yet. What would reverse it: a persistent shadow error or runtime growth.
