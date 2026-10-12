@@ -1,0 +1,1043 @@
+{
+  "tracking": {
+    "games_by_season": [
+      {
+        "season": 2022,
+        "games": 1320,
+        "games_ge8": 1320,
+        "games_none": 0
+      },
+      {
+        "season": 2023,
+        "games": 1318,
+        "games_ge8": 1318,
+        "games_none": 0
+      },
+      {
+        "season": 2024,
+        "games": 1320,
+        "games_ge8": 1315,
+        "games_none": 5
+      }
+    ],
+    "played_rows_with_tracking_by_bucket": [
+      {
+        "season": 2022,
+        "bucket": "10-20",
+        "n": 6444,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2022,
+        "bucket": "5-10",
+        "n": 1984,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2022,
+        "bucket": "<5",
+        "n": 2227,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2022,
+        "bucket": ">20",
+        "n": 17082,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": "10-20",
+        "n": 6523,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": "5-10",
+        "n": 2164,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": "<5",
+        "n": 2634,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": ">20",
+        "n": 16876,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2024,
+        "bucket": "10-20",
+        "n": 6506,
+        "has_tracking": 0.9950814632646787
+      },
+      {
+        "season": 2024,
+        "bucket": "5-10",
+        "n": 2063,
+        "has_tracking": 0.9975763451284537
+      },
+      {
+        "season": 2024,
+        "bucket": "<5",
+        "n": 2555,
+        "has_tracking": 0.9913894324853229
+      },
+      {
+        "season": 2024,
+        "bucket": ">20",
+        "n": 17112,
+        "has_tracking": 0.9965521271622253
+      }
+    ],
+    "has_tracking_ge10min_by_season": {
+      "2022": 1.0,
+      "2023": 1.0,
+      "2024": 0.9961470065204505
+    },
+    "mean_abs_gap_tracking_vs_box_minutes_ge10": 0.0,
+    "mean_miles_per_minute_ge10": 0.07370208980370441,
+    "mean_speed_mph": 4.2510697005146225,
+    "max_distance_miles": 4.159999847412109,
+    "max_speed_mph": 5.659999847412109,
+    "share_zero_distance_ge10min": 0.003988531198546528,
+    "pass": true
+  },
+  "rest": {
+    "rest_events": [
+      {
+        "season": 2022,
+        "rest_tagged_player_games": 50,
+        "rest_tagged_dnp": 49,
+        "dnp_out_on_t60_report": 43,
+        "dnp_not_out_at_t60": 6,
+        "dnp_on_t60_report_not_out": 6,
+        "dnp_first_listed_after_t60": 0,
+        "rest_tagged_but_played": 1
+      },
+      {
+        "season": 2023,
+        "rest_tagged_player_games": 85,
+        "rest_tagged_dnp": 79,
+        "dnp_out_on_t60_report": 72,
+        "dnp_not_out_at_t60": 7,
+        "dnp_on_t60_report_not_out": 2,
+        "dnp_first_listed_after_t60": 5,
+        "rest_tagged_but_played": 6
+      },
+      {
+        "season": 2024,
+        "rest_tagged_player_games": 117,
+        "rest_tagged_dnp": 115,
+        "dnp_out_on_t60_report": 110,
+        "dnp_not_out_at_t60": 5,
+        "dnp_on_t60_report_not_out": 3,
+        "dnp_first_listed_after_t60": 2,
+        "rest_tagged_but_played": 2
+      }
+    ],
+    "box_dnp_by_t60_status": [
+      {
+        "season": 2022,
+        "st": "available",
+        "len": 140
+      },
+      {
+        "season": 2022,
+        "st": "doubtful",
+        "len": 24
+      },
+      {
+        "season": 2022,
+        "st": "out",
+        "len": 329
+      },
+      {
+        "season": 2022,
+        "st": "probable",
+        "len": 42
+      },
+      {
+        "season": 2022,
+        "st": "questionable",
+        "len": 235
+      },
+      {
+        "season": 2022,
+        "st": "unlisted",
+        "len": 4880
+      },
+      {
+        "season": 2023,
+        "st": "available",
+        "len": 154
+      },
+      {
+        "season": 2023,
+        "st": "doubtful",
+        "len": 52
+      },
+      {
+        "season": 2023,
+        "st": "out",
+        "len": 536
+      },
+      {
+        "season": 2023,
+        "st": "probable",
+        "len": 43
+      },
+      {
+        "season": 2023,
+        "st": "questionable",
+        "len": 314
+      },
+      {
+        "season": 2023,
+        "st": "unlisted",
+        "len": 4893
+      },
+      {
+        "season": 2024,
+        "st": "available",
+        "len": 126
+      },
+      {
+        "season": 2024,
+        "st": "doubtful",
+        "len": 63
+      },
+      {
+        "season": 2024,
+        "st": "out",
+        "len": 937
+      },
+      {
+        "season": 2024,
+        "st": "probable",
+        "len": 50
+      },
+      {
+        "season": 2024,
+        "st": "questionable",
+        "len": 428
+      },
+      {
+        "season": 2024,
+        "st": "unlisted",
+        "len": 4609
+      }
+    ],
+    "box_dnp_out_by_reason_class": [
+      {
+        "season": 2022,
+        "cls_out": "g_league",
+        "len": 40
+      },
+      {
+        "season": 2022,
+        "cls_out": "illness",
+        "len": 8
+      },
+      {
+        "season": 2022,
+        "cls_out": "injury",
+        "len": 235
+      },
+      {
+        "season": 2022,
+        "cls_out": "not_with_team",
+        "len": 7
+      },
+      {
+        "season": 2022,
+        "cls_out": "personal",
+        "len": 2
+      },
+      {
+        "season": 2022,
+        "cls_out": "rest_or_management",
+        "len": 2
+      },
+      {
+        "season": 2022,
+        "cls_out": "suspension",
+        "len": 35
+      },
+      {
+        "season": 2023,
+        "cls_out": "g_league",
+        "len": 26
+      },
+      {
+        "season": 2023,
+        "cls_out": "illness",
+        "len": 12
+      },
+      {
+        "season": 2023,
+        "cls_out": "injury",
+        "len": 433
+      },
+      {
+        "season": 2023,
+        "cls_out": "not_with_team",
+        "len": 7
+      },
+      {
+        "season": 2023,
+        "cls_out": "personal",
+        "len": 5
+      },
+      {
+        "season": 2023,
+        "cls_out": "rest_or_management",
+        "len": 7
+      },
+      {
+        "season": 2023,
+        "cls_out": "suspension",
+        "len": 46
+      },
+      {
+        "season": 2024,
+        "cls_out": "g_league",
+        "len": 42
+      },
+      {
+        "season": 2024,
+        "cls_out": "illness",
+        "len": 36
+      },
+      {
+        "season": 2024,
+        "cls_out": "injury",
+        "len": 751
+      },
+      {
+        "season": 2024,
+        "cls_out": "not_with_team",
+        "len": 17
+      },
+      {
+        "season": 2024,
+        "cls_out": "personal",
+        "len": 15
+      },
+      {
+        "season": 2024,
+        "cls_out": "rest_or_management",
+        "len": 38
+      },
+      {
+        "season": 2024,
+        "cls_out": "suspension",
+        "len": 38
+      }
+    ],
+    "pplay_population": {
+      "2023": {
+        "rows": 33093,
+        "dnp": 5481,
+        "p_dnp": 0.16562415012238238
+      },
+      "2024": {
+        "rows": 32986,
+        "dnp": 5415,
+        "p_dnp": 0.1641605529618626
+      }
+    },
+    "pass": false
+  },
+  "arena": {
+    "teams_in_yaml": 30,
+    "team_ids_in_games_missing_coords": [],
+    "games": 3958,
+    "games_without_real_tip": 0,
+    "team_games": 7916,
+    "team_games_with_prior_in_season": 7826,
+    "team_context_rows": 0,
+    "reference_distance_check": {
+      "BKN-LAL": {
+        "model": 2448.8143296971416,
+        "reference": 2450,
+        "rel_err": 0.0004839470623911828
+      },
+      "BOS-MIA": {
+        "model": 1257.430152445251,
+        "reference": 1258,
+        "rel_err": 0.0004529789783378405
+      },
+      "DEN-UTA": {
+        "model": 370.13614772045645,
+        "reference": 370,
+        "rel_err": 0.00036796681204445783
+      },
+      "ATL-MIA": {
+        "model": 605.9871807085236,
+        "reference": 600,
+        "rel_err": 0.00997863451420604
+      },
+      "CHI-NYK": {
+        "model": 713.4827369165704,
+        "reference": 710,
+        "rel_err": 0.004905263262775195
+      }
+    },
+    "worst_reference_rel_err": 0.00997863451420604,
+    "rest_days_mean": 1.1731408126756964,
+    "share_b2b_second": 0.16266291847687198,
+    "share_three_in_four": 0.24099156657296192,
+    "share_five_in_seven": 0.016100178890876567,
+    "share_road_trip4plus": 0.07112177867609903,
+    "share_early_tip": 0.10055583628094998,
+    "share_eastbound": 0.1634295936621518,
+    "miles_from_prev_mean": 515.4959889697807,
+    "pass": true
+  },
+  "a0": {
+    "cells": [
+      {
+        "stat": "pts",
+        "season": 2023,
+        "arm": "off",
+        "crps_int": 3.152829990762183,
+        "reference": 3.152829990762183,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "pts",
+        "season": 2024,
+        "arm": "off",
+        "crps_int": 3.1875525740475275,
+        "reference": 3.1875525740475275,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      },
+      {
+        "stat": "pts",
+        "season": 2023,
+        "arm": "mixture",
+        "crps_int": 3.140236466011581,
+        "reference": 3.140236466011581,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "pts",
+        "season": 2024,
+        "arm": "mixture",
+        "crps_int": 3.1768395165770476,
+        "reference": 3.1768395165770476,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      },
+      {
+        "stat": "reb",
+        "season": 2023,
+        "arm": "off",
+        "crps_int": 1.2928172686712307,
+        "reference": 1.2928172686712307,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "reb",
+        "season": 2024,
+        "arm": "off",
+        "crps_int": 1.3142466423136836,
+        "reference": 1.3142466423136836,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      },
+      {
+        "stat": "reb",
+        "season": 2023,
+        "arm": "mixture",
+        "crps_int": 1.288178754113961,
+        "reference": 1.288178754113961,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "reb",
+        "season": 2024,
+        "arm": "mixture",
+        "crps_int": 1.3114005564955942,
+        "reference": 1.3114005564955942,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      },
+      {
+        "stat": "ast",
+        "season": 2023,
+        "arm": "off",
+        "crps_int": 0.9059028606321847,
+        "reference": 0.9059028606321847,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "ast",
+        "season": 2024,
+        "arm": "off",
+        "crps_int": 0.9002150882692853,
+        "reference": 0.9002150882692853,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      },
+      {
+        "stat": "ast",
+        "season": 2023,
+        "arm": "mixture",
+        "crps_int": 0.9019544936299893,
+        "reference": 0.9019544936299893,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "ast",
+        "season": 2024,
+        "arm": "mixture",
+        "crps_int": 0.8985173694367135,
+        "reference": 0.8985173694367135,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      },
+      {
+        "stat": "fg3m",
+        "season": 2023,
+        "arm": "off",
+        "crps_int": 0.5690486141021416,
+        "reference": 0.5690486141021416,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "fg3m",
+        "season": 2024,
+        "arm": "off",
+        "crps_int": 0.5922128263543135,
+        "reference": 0.5922128263543135,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      },
+      {
+        "stat": "fg3m",
+        "season": 2023,
+        "arm": "mixture",
+        "crps_int": 0.5662119747307153,
+        "reference": 0.5662119747307153,
+        "abs_diff": 0.0,
+        "n": 27619,
+        "n_ref": 27619
+      },
+      {
+        "stat": "fg3m",
+        "season": 2024,
+        "arm": "mixture",
+        "crps_int": 0.5901545846609577,
+        "reference": 0.5901545846609577,
+        "abs_diff": 0.0,
+        "n": 27701,
+        "n_ref": 27701
+      }
+    ],
+    "max_abs_diff": 0.0,
+    "n_match": true,
+    "pass": true
+  },
+  "missing": {
+    "n_rows": 55320,
+    "audit": [
+      {
+        "col": "wl_min_3d",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_min_7d",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_g_3d",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_g_7d",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_mean_min_l3",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_mean_min_l5",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_min_last",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_min_l5_vs_base",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_dist_3d",
+        "null_rate_by_bucket": {
+          "<5": 0.0014865151836908049,
+          "5-10": 0.0007449714427613609,
+          "10-20": 0.0009384531164463908,
+          ">20": 0.0006805337751871468
+        },
+        "gap_pp": 0.0805981408503658,
+        "placebo_gap_pp": 0.0604541135401447,
+        "overall_null": 0.0008134490238611713
+      },
+      {
+        "col": "wl_dist_7d",
+        "null_rate_by_bucket": {
+          "<5": 0.0019112338076024634,
+          "5-10": 0.00024832381425378696,
+          "10-20": 0.0011730663955579887,
+          ">20": 0.0012131254253336095
+        },
+        "gap_pp": 0.16629099933486766,
+        "placebo_gap_pp": 0.15259073878206791,
+        "overall_null": 0.001193058568329718
+      },
+      {
+        "col": "wl_dpm_l3",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_speed_l3",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_dpm_decline",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_speed_decline",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_track_n_l3",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_rest_days",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.27401048444342796,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_b2b_second",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.24536161309907048,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_three_in_four",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.1734769284751957,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_five_in_seven",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.1912299834800778,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_games_last10d",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.15395907831734468,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_road_streak",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_road_trip4plus",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_early_tip",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_miles_from_prev",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.1275117228504194,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_miles_7d",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.0593531902696124,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_tz_cross_hr",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.15779351791075855,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_eastbound",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.3347561313125557,
+        "overall_null": 0.011008676789587852
+      },
+      {
+        "col": "wl_alt_km",
+        "null_rate_by_bucket": {
+          "<5": 0.0,
+          "5-10": 0.0,
+          "10-20": 0.0,
+          ">20": 0.0
+        },
+        "gap_pp": 0.0,
+        "placebo_gap_pp": 0.0,
+        "overall_null": 0.0
+      },
+      {
+        "col": "wl_alt_delta_km",
+        "null_rate_by_bucket": {
+          "<5": 0.009980887661923975,
+          "5-10": 0.011919543084181774,
+          "10-20": 0.011183232970986157,
+          ">20": 0.010977305678018759
+        },
+        "gap_pp": 0.1938655422257799,
+        "placebo_gap_pp": 0.06962755484983506,
+        "overall_null": 0.011008676789587852
+      }
+    ],
+    "max_gap_pp": 0.1938655422257799,
+    "max_placebo_gap_pp": 0.3347561313125557,
+    "cols_over_limit": [],
+    "asof_replay_mismatches_load": 0,
+    "asof_replay_mismatches_schedule": 0,
+    "asof_replay_rows": 300,
+    "rows_without_schedule_features": 0,
+    "rows_by_game_type": {
+      "005": 250,
+      "002": 51582,
+      "004": 3488
+    },
+    "feature_summary": {
+      "wl_min_7d": {
+        "mean": 60.663547542736616,
+        "sd": 39.17225587300197
+      },
+      "wl_dist_7d": {
+        "mean": 4.428762982514419,
+        "sd": 2.833837656141746
+      },
+      "wl_speed_l3": {
+        "mean": 4.2959877061891,
+        "sd": 0.3355899660756755
+      },
+      "wl_speed_decline": {
+        "mean": 0.013816233354611785,
+        "sd": 0.15079417233034922
+      },
+      "wl_miles_from_prev": {
+        "mean": 523.0325620692383,
+        "sd": 542.7829208615492
+      },
+      "wl_miles_7d": {
+        "mean": 1862.1820847895465,
+        "sd": 1109.2224386700605
+      }
+    },
+    "flag_slice_counts": {
+      "b2b_second": {
+        "2023": {
+          "rows": 4422,
+          "games": 365
+        },
+        "2024": {
+          "rows": 4694,
+          "games": 379
+        }
+      },
+      "three_in_four": {
+        "2023": {
+          "rows": 6417,
+          "games": 512
+        },
+        "2024": {
+          "rows": 6884,
+          "games": 536
+        }
+      },
+      "five_in_seven": {
+        "2023": {
+          "rows": 375,
+          "games": 34
+        },
+        "2024": {
+          "rows": 608,
+          "games": 57
+        }
+      },
+      "road_trip4plus": {
+        "2023": {
+          "rows": 2020,
+          "games": 190
+        },
+        "2024": {
+          "rows": 1837,
+          "games": 178
+        }
+      },
+      "early_tip": {
+        "2023": {
+          "rows": 2661,
+          "games": 125
+        },
+        "2024": {
+          "rows": 2744,
+          "games": 133
+        }
+      },
+      "eastbound_ge2tz": {
+        "2023": {
+          "rows": 1177,
+          "games": 104
+        },
+        "2024": {
+          "rows": 1356,
+          "games": 115
+        }
+      },
+      "miles_ge1500": {
+        "2023": {
+          "rows": 1727,
+          "games": 154
+        },
+        "2024": {
+          "rows": 1885,
+          "games": 155
+        }
+      },
+      "speed_decline_bottom_decile": {
+        "2023": {
+          "rows": 2819,
+          "games": 941
+        },
+        "2024": {
+          "rows": 2714,
+          "games": 957
+        }
+      }
+    },
+    "pass": true
+  }
+}
