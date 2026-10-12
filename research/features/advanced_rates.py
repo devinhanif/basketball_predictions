@@ -7,9 +7,11 @@ represented ONE way for every family (the pre-declared representation, no sweep)
 ====================  ===============================================================
 ``{s}_ew5/_ew20/_ew100``  ratio-of-sums EWMA at half-lives 5, 20, 100 played games,
                           shrunk to the position-group as-of league rate
-``{s}_slope20``           OLS slope of the per-game ratio over the last 20 played games (valid ones only)
-                          (>= 6 valid games, else NaN), units of the stat per game
-``{s}_vol20``             sample sd (ddof 1) of the same window (>= 6 valid games, else NaN)
+``{s}_slope20``           OLS slope of the per-game ratio over the last 20 played games (valid ones only),
+                          shrunk to 0 by m / (m + 6) with m = valid games in the window (units per game)
+``{s}_vol20``             sd of the same window, variance shrunk to the position group's as-of variance of
+                          the per-game ratio with weight (m - 1) vs 6 (so no NaN when history is short;
+                          a NaN pattern that follows role would mimic a minutes leak, see the missingness audit)
 ``{s}_stint20``           half-life 20 EWMA over the CURRENT team stint only (restarts at a team
                           change), shrunk to the player's career-to-date rate (itself shrunk to the
                           position prior), so a new team starts at the career value
@@ -201,6 +203,9 @@ def position_prior(
             pl.when(ok).then(num).otherwise(0.0).sum().alias(f"{s}__cn"),
             pl.when(ok).then(den).otherwise(0.0).sum().alias(f"{s}__cd"),
             pl.col(inp.entity).count().alias(f"{s}__cnt"),
+            pl.when(ok & (den > 0)).then(num / den).otherwise(0.0).sum().alias(f"{s}__r1"),
+            pl.when(ok & (den > 0)).then((num / den) ** 2).otherwise(0.0).sum().alias(f"{s}__r2"),
+            (ok & (den > 0)).cast(pl.Float64).sum().alias(f"{s}__rn"),
         ]
     daily = (
         played.group_by([inp.pos, "game_date"])
@@ -231,6 +236,12 @@ def position_prior(
         cnt = joined[f"{s}__cnt"]
         out.append((joined[f"{s}__cn"] / cd).alias(f"{s}__mu"))
         out.append((cd / cnt).alias(f"{s}__dbar"))
+        m1 = joined[f"{s}__r1"] / joined[f"{s}__rn"]
+        out.append(
+            (joined[f"{s}__r2"] / joined[f"{s}__rn"] - m1**2)
+            .clip(lower_bound=0.0)
+            .alias(f"{s}__var")
+        )
     return pl.DataFrame(out)
 
 
@@ -238,18 +249,18 @@ def _clean(a: np.ndarray) -> np.ndarray:
     return np.where(np.isfinite(a), a, 0.0)
 
 
-def _slope_vol(window: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Per column OLS slope vs index (oldest 0 .. newest m-1) and ddof-1 sd of the valid
-    entries (NaN = invalid); NaN when fewer than MIN_VALID valid entries."""
+def _slope_vol(window: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per column OLS slope vs index (oldest 0 .. newest), ddof-1 VARIANCE of the valid entries
+    (NaN = invalid) and the valid count m; slope / variance are NaN when fewer than 2 valid."""
     m, s = window.shape
     slope = np.full(s, np.nan)
     vol = np.full(s, np.nan)
     x = np.arange(m, dtype=float)[:, None]
     ok = np.isfinite(window)
     n = ok.sum(axis=0)
-    good = n >= MIN_VALID
+    good = n >= 2
     if not good.any():
-        return slope, vol
+        return slope, vol, n.astype(float)
     w = np.where(ok, 1.0, 0.0)
     y = np.where(ok, window, 0.0)
     xm = (w * x).sum(axis=0) / np.maximum(n, 1)
@@ -259,8 +270,8 @@ def _slope_vol(window: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     syy = (w * (y - ym) ** 2).sum(axis=0)
     with np.errstate(divide="ignore", invalid="ignore"):
         slope = np.where(good & (sxx > 0), sxy / sxx, np.nan)
-        vol = np.where(good, np.sqrt(syy / np.maximum(n - 1, 1)), np.nan)
-    return slope, vol
+        vol = np.where(good, syy / np.maximum(n - 1, 1), np.nan)
+    return slope, vol, n.astype(float)
 
 
 def asof_series(
@@ -284,6 +295,7 @@ def asof_series(
     den = np.column_stack([full[f"{s}__den"].cast(pl.Float64).to_numpy() for s in stats])
     mu = np.column_stack([full[f"{s}__mu"].cast(pl.Float64).to_numpy() for s in stats])
     dbar = np.column_stack([full[f"{s}__dbar"].cast(pl.Float64).to_numpy() for s in stats])
+    vprior = np.column_stack([full[f"{s}__var"].cast(pl.Float64).to_numpy() for s in stats])
     n = full.height
     lam = [0.5 ** (1.0 / h) for h in HALF_LIVES]
     lam_s = 0.5 ** (1.0 / STINT_HALF_LIFE)
@@ -313,8 +325,19 @@ def asof_series(
                 career = (cn + k * mu[i]) / (cd + k)
                 out[i, :, 5] = (stn + k * np.where(np.isfinite(career), career, mu[i])) / (std + k)
             window = np.array(hist[-WINDOW:]) if hist else np.empty((0, n_stats))
+            m_valid = np.zeros(n_stats)
+            sl = np.zeros(n_stats)
+            var = np.full(n_stats, np.nan)
             if len(window):
-                out[i, :, 3], out[i, :, 4] = _slope_vol(window)
+                sl_raw, var_raw, m_valid = _slope_vol(window)
+                sl = np.where(np.isfinite(sl_raw), sl_raw, 0.0)
+                var = var_raw
+            with np.errstate(divide="ignore", invalid="ignore"):
+                out[i, :, 3] = sl * m_valid / (m_valid + MIN_VALID)
+                w_v = np.maximum(m_valid - 1.0, 0.0)
+                var_own = np.where(np.isfinite(var), var, 0.0)
+                var_sh = (w_v * var_own + MIN_VALID * vprior[i]) / (w_v + MIN_VALID)
+                out[i, :, 4] = np.sqrt(var_sh)
             stint_n[i] = n_stint
             if played[i]:
                 x, y = _clean(num[i]), _clean(den[i])

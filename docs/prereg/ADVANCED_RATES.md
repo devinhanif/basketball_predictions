@@ -1,6 +1,6 @@
 # ADVANCED_RATES: as-of advanced rates, shot profile, defense context and play types as props context (pre-registration)
 
-Status: DRAFT 2026-10-11, NOT FROZEN, no arm fitted. Devin confirms, the main session commits it (`prereg(ADVANCED_RATES): <sha256>`)
+Status: DRAFT 2026-10-11 (revised same day after the G10 build, see G6 and G10), NOT FROZEN, no arm fitted beyond A0. Devin confirms, the main session commits it (`prereg(ADVANCED_RATES): <sha256>`)
 before any fit. Everything above the line `=== RESULTS BELOW ===` is frozen at that time; freeze evidence is the commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/ADVANCED_RATES.md | shasum -a 256` (first 8 hex into the results
 section and every ledger row). Season labels are `games.season` (2023 = 2023-24, 2024 = 2024-25, 2025 = frozen holdout, never loaded).
@@ -59,8 +59,8 @@ DATE (same-day excluded); non-played rows get features but never advance a state
 ### Representation (identical for every stat; pre-declared, no sweep)
 Per base stat `s` (a ratio `num/den` per played game, formulas below): `s_ew5, s_ew20, s_ew100` (ratio-of-sums EWMA at half-lives 5,
 20, 100 played games, weight 0.5^(a/h), shrunk to the position-group as-of ratio with pseudo-count 5 games of the position's mean
-denominator), `s_slope20` (OLS slope of the per-game ratio over the last 20 played games, valid games only, >= 6 valid else NaN),
-`s_vol20` (sd, same window), `s_stint20` (half-life 20 EWMA over the CURRENT team stint only, restarts at a team change, shrunk to
+denominator), `s_slope20` (OLS slope of the per-game ratio over the last 20 played games, valid games only, shrunk to 0 by m/(m+6), m = valid games),
+`s_vol20` (sd of the same window; the variance is shrunk to the position group's as-of variance of the per-game ratio with weight (m-1) vs 6), `s_stint20` (half-life 20 EWMA over the CURRENT team stint only, restarts at a team change, shrunk to
 the career-to-date ratio, itself shrunk to the position prior), and `adv_stint_n` (played games with the row's team). A game is
 "valid" when `den >= 0.5 x` the position's as-of mean denominator. Position group = first letter of `players_static.position`
 (G/F/C; unknown U). Code: `research/features/advanced_rates.py::asof_series`. Families with many base stats (SHOT_PROFILE
@@ -102,12 +102,12 @@ dropped. Measured 0.9994, so PPWS is DROPPED (it is TS% with a different FT weig
 ### Families, columns, natural stats (one-family-at-a-time arms; no combined model)
 | Family | Columns | Target stats | Cells |
 |---|---|---|---|
-| USAGE_PACE | usg, pts100, reb100, ast100, fg3m100, pace48 (6 stats x 6) + adv_stint_n; team and opponent as-of pace48 (ew20); proj_poss = mean of the two; exp_plays = usg_ew20 x proj_poss x min10 / 48; exp_pts/reb/ast/fg3m = rate100_ew20 x proj_poss x min10 / 48 / 100 (46 cols) | pts, reb, ast, fg3m | 4 |
+| USAGE_PACE | usg, pts100, reb100, ast100, fg3m100, pace48 (6 stats x 6) + adv_stint_n; team and opponent as-of pace48 (ew20); proj_poss = mean of the two; exp_plays = usg_ew20 x proj_poss x min10 / 48; exp_pts/reb/ast/fg3m = rate100_ew20 x proj_poss x min10 / 48 / 100 (45 cols) | pts, reb, ast, fg3m | 4 |
 | EFFICIENCY | gmsc, ts, par3, ftr (4 x 6) + stint_n (25) | pts, fg3m | 2 |
 | PLAYMAKING | ppr, ast_ratio, ast_pct, tov_pct (4 x 6) + stint_n (25) | ast | 1 |
 | REBOUNDING | orb, drb (2 x 6) + stint_n; own team and opponent-allowed OREB%/DREB% (ew20) (17) | reb | 1 |
-| SHOT_PROFILE | 5 bucket shares of FGA (rim, short mid, long mid, corner 3, above-break 3): ew20, ew100, slope20; 5 bucket FG%: ew100; 7 sub-type shares (dunk, hook, floater, stepback, pullup, layup, jump; putback excluded, see note): ew20; expected FG% from shot mix (league bucket FG% as-of, strictly earlier dates) ew20; shot-making (actual - expected) ew100; rim share and three share stint20; stint_n | pts, fg3m | 2 |
-| DEFENSE_CONTEXT | opponent as-of allowed bucket shares (5) and allowed bucket FG% (5) (ew20); opponent defended-at-rim FG% and contested-FGA share (tracking); opponent contested shots per defensive possession (hustle, presence flag); interactions: exp_fg_vs_opp = sum_b share_b(player ew20) x (opp allowed FG%_b - league_b), rim_x_opp, three_x_opp (16) | pts, fg3m | 2 |
+| SHOT_PROFILE | 5 bucket shares of FGA (rim, short mid, long mid, corner 3, above-break 3): ew20, ew100, slope20; 5 bucket FG%: ew100; 7 sub-type shares (dunk, hook, floater, stepback, pullup, layup, jump; putback excluded, see note): ew20; expected FG% from shot mix (league bucket FG% as-of, strictly earlier dates) ew20; shot-making (actual - expected makes per FGA) ew100; rim share and three share stint20; stint_n (32 cols) | pts, fg3m | 2 |
+| DEFENSE_CONTEXT | opponent as-of allowed bucket shares (5) and allowed bucket FG% (5) (ew20); opponent (as the defence) defended-at-rim FG% = sum over its players of tracking `defended_at_rim` FGM / FGA, and contested-FGA share ALLOWED = the opposing players' `contested / (contested + uncontested)` against that defence (tracking); opponent hustle `contested_shots` per opposing FGA, with the denominator scaled by the share of team minutes that have a hustle row (presence flag from `join_side_table`); interactions: exp_fg_vs_opp = sum_b share_b(player ew20) x (opp allowed FG%_b - league_b), rim_x_opp, three_x_opp (16) | pts, fg3m | 2 |
 | PLAY_TYPE | tr_share, tr_ppp, ast_share, putback_share (4 x 6) + stint_n; opponent as-of fast-possession rate allowed (ew20); interactions tr_share_ew20 x (opp fast allowed - league), tr_ppp_ew20 x same (28) | pts, reb, fg3m | 3 |
 
 Sub-type note (one home per column): the seven sub-type shares are dunk, hook, floater, stepback, pullup, layup, jump; the eighth,
@@ -189,12 +189,16 @@ No arm was fitted and no outcome beyond A0 was computed.
   3.187553 (n 27,701), reb 1.292817 / 1.314247, ast 0.905903 / 0.900215, fg3m 0.569049 / 0.592213. NOTE: Devin's quoted pts 2024
   3.1884 (n 27,583) is the pre-neutral-site-games value; production OOF was re-baselined on 2026-10-11 (DATA_CHANGELOG); the rule
   uses the new reference. PASS.
-* G6 missingness audit (features only): all `*_ew20` columns built for 103,926 rows (17 stats, 8.4 s). NaN rate among played rows
-  by minutes bucket (0-5, 5-20, 20+) and DNP rows by season: 2023 and 2024 max 0.0005 / 0.0003 (a first-career-game effect on DNP
-  rows), 2022 (warm-up) up to 0.0027. Pre-declared threshold: max asymmetry between minute buckets <= 2 pp, and no more than 3x
-  the spread of a placebo that permutes the played / DNP label within player-season (the placebo is run when the audit is run; the
-  threshold is set before any outcome). Current max asymmetry 0.05 pp. PASS so far; the audit repeats for the team-level,
-  tracking and hustle columns when they are built (they are not built yet).
+* G6 missingness audit (features only, on the model rows: 2023-24, `n_prior >= 5`, 55,320 rows, all 183 distinct family columns,
+  built through the final assembly): FIRST RUN FAILED on the first design and the design was changed before any outcome. Slope and
+  volatility were NaN when fewer than 6 valid games were in the window; the NaN rate then followed role and so realised minutes
+  (up to 60 pp gap across the minutes buckets, against a permuted-label placebo of 1.1 pp) while the `ew*` columns were clean. That is
+  exactly the fingerprint of a minutes leak, even though the cause is a pre-game fact (bench players have short, small-denominator
+  histories). Fix (fixed here, nothing scored): slope shrinks to 0 by m/(m+6) and the variance shrinks to the position group's as-of
+  variance, so no NaN is ever produced by short history; the representation text above is the revised one. Re-run: max NaN/NULL
+  asymmetry across the played minutes buckets 0.0 pp for every column (placebo 0.0 pp), threshold max(2 pp, 3 x placebo) = 2 pp.
+  PASS. Caveat: with zero NaNs the audit cannot detect a value-level dependence; the post-freeze gate adds the planted tests below
+  and the label-independence checks (shuffled-label arm) run only after the freeze.
 * G7 tracking / hustle: `player_game_tracking` 1320 / 1318 / 1315 games, 34,024 / 34,815 / 34,946 rows; played rows with a tracking
   row 99.1-100%; `player_game_hustle` 1320 / 1318 / 1315 games, but the row exists for 50-54% of sub-5-minute played rows, 87-89%
   at 5-10, 98% at 10-20, 99.4-99.9% at 20+ (F9): hustle enters only as team-level sums over strictly earlier games through
@@ -207,16 +211,21 @@ No arm was fitted and no outcome beyond A0 was computed.
   PBP 100% (on `is_field_goal = 1` rows), player agreement 100%, made agreement 100%, but `shot_distance` agrees with PBP within
   3 ft in only 93.8% of shots (the two buckets would not be identical). Not yet passable (coverage < 99% of 3,953 games); the
   PRIMARY rule does not wait on it. The swap-in gate is: all 90 RS files, >= 99% of games, map / player / made agreement >= 99.9%.
-* G10 code gates (must be green before the freeze commit): on-court builder, play-type / shot counts and the time-series builder
-  with hand-computed formula tests and planted-future / DNP / same-day / team-change tests exist (`research/features/advanced_*.py`,
-  `tests/research/features/test_advanced_*.py`, 11 tests passing). NOT yet written: team-level series (team and opponent pace, PPR
-  league pace factor, opponent allowed shares / FG% / fast rate, tracking and hustle sums), the three interaction groups, the
-  assembly frame, and `research/eval/advanced_rates_eval.py` (gate, arms, report) with planted tests on the team-level pieces.
-  The freeze should wait for them; none of them changes a number in this rule.
-
+* G10 code gates: PASS (2026-10-11). Built and tested: on-court builder, shot / play-type counts, the time-series builder
+  (`research/features/advanced_rates.py`), team-level series and league references, the interaction columns and the assembly
+  (`research/features/advanced_assemble.py`: team and opponent pace, PPR league pace factor, opponent allowed shares / FG% / fast
+  rate, tracking and hustle sums through `join_side_table`), and the harness `research/eval/advanced_rates_eval.py` (gate, A0,
+  arms, attack, report; arms refuse while `FROZEN_FULL` is empty or the doc changed). Tests: formulas hand-computed; as-of; DNP;
+  same-day; team change; planted same-game and planted-future on a synthetic league with non-inert controls; placebo permutation;
+  knockout groups and carry rule; pass rule and BH on fabricated arms (no fit); freeze refusal.
+  Gate run on the REAL inputs (`gate --draft`, 45 s): frame rows == production rows (84,170); every row keyed; audit above;
+  planted same-game on 14 games of 2025-01-25 (308 rows identical; control: 13,770 later rows change); planted future from the same day
+  (70,400 earlier rows identical). One tolerance note: league-sum float order differs in the 9th decimal between runs, so rows are
+  compared at rtol/atol 1e-6.
+  A0 through the harness: A0 uses exactly the production name list (asserted in a test), so it cannot depend on the new columns; the 8-cell reproduction in G5 (delta 0.0) stands. The harness `a0` command was started but did not run: `data/ops/heavy.lock` was held by another job for more than 10 minutes, and no lock was bypassed. Re-run it under the lock before the freeze.
 ## Compute and runtime
 Trees on the local CPU (Mac). Measured today: features for all 17 stats 8.4 s; A0 for four stats and two seasons 93 s including the
-load; an arm is about 22-30 s per stat at 30 columns, expected 1-2 minutes with 40-50 columns. Plan: 4 A0 + 15 B + 15 P arms plus
+load; an arm is about 22-30 s per stat at 30 columns, expected 1-2 minutes with 40-50 columns. Frame build for all families 14 s; gate 45 s. Plan: 4 A0 + 15 B + 15 P arms plus
 conditional knockout / shuffle arms, about 35-60 arms, roughly 0.7-1.5 hours on the Mac, per-arm checkpoints, one process, under
 `data/ops/heavy.lock`. Colab / GPU is not needed and not requested (no GPU job, no budget line).
 

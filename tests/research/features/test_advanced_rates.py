@@ -137,12 +137,26 @@ def test_same_day_other_player_not_in_prior() -> None:
     assert _get(out, "A", 2, "x_ew5") == pytest.approx(5.0)  # C's same-day game is excluded
 
 
-def test_slope_vol() -> None:
+def test_slope_vol_and_shrinkage() -> None:
     w = (2.0 * np.arange(8) + 1.0)[:, None]
-    s, v = ar._slope_vol(w)
+    s, v, m = ar._slope_vol(w)
     assert s[0] == pytest.approx(2.0)
-    assert v[0] == pytest.approx(np.std(w[:, 0], ddof=1))
+    assert v[0] == pytest.approx(np.var(w[:, 0], ddof=1))
+    assert m[0] == 8
     w2 = w.copy()
-    w2[:3, 0] = np.nan  # 5 valid < MIN_VALID
-    s2, v2 = ar._slope_vol(w2)
-    assert np.isnan(s2[0]) and np.isnan(v2[0])
+    w2[:3, 0] = np.nan  # 5 valid
+    s2, _, m2 = ar._slope_vol(w2)
+    assert s2[0] == pytest.approx(2.0) and m2[0] == 5
+    w3 = np.full((4, 1), np.nan)
+    w3[0, 0] = 1.0  # one valid: slope / variance undefined here, shrunk to the prior by the caller
+    s3, v3, m3 = ar._slope_vol(w3)
+    assert np.isnan(s3[0]) and np.isnan(v3[0]) and m3[0] == 1
+
+
+def test_short_history_has_no_nan_after_first_prior() -> None:
+    out = ar.asof_series(_rows(A_VALS, A_TEAM), ["x"])
+    for day in (3, 4, 5):
+        assert np.isfinite(_get(out, "A", day, "x_slope20"))
+        assert np.isfinite(_get(out, "A", day, "x_vol20"))
+    # one valid game: slope shrunk to 0 (a single point has no slope), vol = position-prior sd
+    assert _get(out, "A", 3, "x_slope20") == pytest.approx(0.0)
