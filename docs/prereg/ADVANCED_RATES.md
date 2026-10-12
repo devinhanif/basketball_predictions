@@ -1,7 +1,6 @@
 # ADVANCED_RATES: as-of advanced rates, shot profile, defense context and play types as props context (pre-registration)
 
-Status: DRAFT 2026-10-11 (revised same day after the G10 build, see G6 and G10), NOT FROZEN, no arm fitted beyond A0. Devin confirms, the main session commits it (`prereg(ADVANCED_RATES): <sha256>`)
-before any fit. Everything above the line `=== RESULTS BELOW ===` is frozen at that time; freeze evidence is the commit hash plus
+Status: FROZEN 2026-10-11 on Devin's "yes yes" (confirming the slope/volatility shrinkage revision, PBP distance + sub-type as the SHOT_PROFILE source with the x/y table not used in this run, and freeze after the harness A0 re-run). Harness A0 re-run under heavy.lock on the frozen data: `A0 repro ok=True`, all 8 cells equal the re-baselined reference (pts 3.152830 n 27,619 / 3.187553 n 27,701; reb 1.292817 / 1.314247; ast 0.905903 / 0.900215; fg3m 0.569049 / 0.592213). Committed `prereg(ADVANCED_RATES): <sha8>` BEFORE any arm. Everything above the line `=== RESULTS BELOW ===` is frozen at that time; freeze evidence is the commit hash plus
 `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/ADVANCED_RATES.md | shasum -a 256` (first 8 hex into the results
 section and every ledger row). Season labels are `games.season` (2023 = 2023-24, 2024 = 2024-25, 2025 = frozen holdout, never loaded).
 Companion draft by another modeler: HISTORY_WINDOW_3 (not touched here).
@@ -222,7 +221,7 @@ No arm was fitted and no outcome beyond A0 was computed.
   planted same-game on 14 games of 2025-01-25 (308 rows identical; control: 13,770 later rows change); planted future from the same day
   (70,400 earlier rows identical). One tolerance note: league-sum float order differs in the 9th decimal between runs, so rows are
   compared at rtol/atol 1e-6.
-  A0 through the harness: A0 uses exactly the production name list (asserted in a test), so it cannot depend on the new columns; the 8-cell reproduction in G5 (delta 0.0) stands. The harness `a0` command was started but did not run: `data/ops/heavy.lock` was held by another job for more than 10 minutes, and no lock was bypassed. Re-run it under the lock before the freeze.
+  A0 through the harness: A0 uses exactly the production name list (asserted in a test), so it cannot depend on the new columns; the 8-cell reproduction in G5 (delta 0.0) stands. The harness `a0` command was re-run under the lock at the freeze: ok=True (see Status).
 ## Compute and runtime
 Trees on the local CPU (Mac). Measured today: features for all 17 stats 8.4 s; A0 for four stats and two seasons 93 s including the
 load; an arm is about 22-30 s per stat at 30 columns, expected 1-2 minutes with 40-50 columns. Frame build for all families 14 s; gate 45 s. Plan: 4 A0 + 15 B + 15 P arms plus

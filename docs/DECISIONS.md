@@ -625,3 +625,8 @@ What would reverse it: a separately pre-registered live-log test (REB_LIVE_2026_
 What: T420-T423. Both arms fail: 2023 gains (pts -0.0108 [-0.0156, -0.0059]) do not replicate in 2024 (pts +0.0035 [+0.0000, +0.0073]).
 Production unchanged. Why: the extra seasons substitute for current-season data only while that is short. What would reverse it: a model that
 starts cold (new stat, new league) or a training window cut to one season.
+
+## 2026-10-11 ADVANCED_RATES frozen (sha256 7eb27839) on Devin's "yes yes"
+What: seven families (USAGE_PACE, EFFICIENCY, PLAYMAKING, REBOUNDING, SHOT_PROFILE, DEFENSE_CONTEXT, PLAY_TYPE), 15 family-by-stat cells, BH over 15, select 2023 / report 2024, floor -0.005; slope/volatility shrinkage revision (the first missingness audit failed on role-driven NaNs); SHOT_PROFILE from PBP distance + sub-type (x/y shots table not used); harness A0 re-run reproduced all 8 reference cells before the freeze.
+Why: Devin asked for usage x pace, PPR and advanced rates as time series with shot-type and defense context; the repo's record says expect a null, so the rule closes it either way.
+What would reverse it: nothing above the results marker changes; a new question gets a new id. One pre-registered follow-up at most.

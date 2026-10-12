@@ -57,7 +57,7 @@ OUT_DIR = Path("reports/prereg_advanced_rates")
 REPORT_MD = Path("reports/prereg_advanced_rates.md")
 CACHE_DIR = Path("data/ops/advanced_rates_cache")
 #: Set at the freeze (sha256 of the text above ``=== RESULTS BELOW ===``). Empty = DRAFT: ``arms`` refuses.
-FROZEN_FULL = ""
+FROZEN_FULL = "7eb27839a77df0689c7a0c7eaa52391b42f5a0a6d9a91e305bc41a3eff5e0919"
 STATS = F.STATS
 N_BOOT = F.N_BOOT
 FLOOR = -0.005

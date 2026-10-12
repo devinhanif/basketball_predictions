@@ -11,7 +11,7 @@ from research.eval import advanced_rates_eval as E
 from research.features import advanced_assemble as A
 
 
-def test_arms_refuse_while_draft() -> None:
+def test_arms_refuse_without_a_matching_freeze() -> None:
     assert E.FROZEN_FULL == "" or len(E.FROZEN_FULL) == 64
     if not E.FROZEN_FULL:
         with pytest.raises(RuntimeError, match="not frozen"):
