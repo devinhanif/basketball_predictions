@@ -591,3 +591,12 @@ Why: `team_coaches` is the last occupant of the job (14 of 87 wrong, 11 next-sea
 facts look known. The first game of a stint is therefore not known before its tip in the facts store (conservative; the real hire date is not sourced).
 What would reverse it: a dated hiring source (press release dates) that makes known_at earlier and verifiable; or BR page layout/terms changes that
 stop the fetch (the cached raw HTML stays the record).
+
+**2026-10-11 ~23:30 CT — Decision scoring is the standard decision metric (Devin: "yes to all").**
+What: every pre-registration that makes a betting-relevant claim declares, next to its accuracy metric, the decision score in
+`docs/DECISION_SCORING.md` (`nba/markets/decision_scoring.py`): legs selected by model EV after the actual price at thresholds 0/2/5/10%,
+one unit per bet, ROI with a game-clustered CI, against the market-lean and random comparators of the same count.
+Why: CRPS scores every forecast, but a bettor acts only on the confident legs; descriptive run 2023-24 (3f5363a): model ROI -1.2% to +0.4%
+across thresholds, above market-lean (-3.9% to -5.1%) and random (about -6%), not above zero; model over-confident above 0.60 (said 66.7%,
+hit 57.0%). Two follow-ups approved the same hour: a rebounds rule scored on the live 2026-27 log only, and a market-shrinkage calibration rule.
+What would reverse it: a stake or fee convention a rule needs that this metric cannot express (then the rule states its own, in advance).
