@@ -773,3 +773,12 @@ What: all cells fail the gate placebo and the constant-gate arm. The useful find
 by about -0.011 in both seasons and passes the guards when playoff rows go to production; the gate adds nothing. Whether to test "SEQ blend on
 regular-season rows" as a new rule (post-hoc by origin; venue the 2025 holdout, SEQ untouched, or the live log, which would need daily SEQ
 inference) is Devin's decision. Why: frozen rule. What would reverse it: nothing.
+
+**2026-10-12 02:37 CDT — Pre-opening-night live batch landed (6036c97, 4ea569a, 5b806d5).**
+What: (1) P(play) shadow on in pretip (+10-22 s per warm run, inside the lock after primary rows); (2) T-15 arm per the frozen code list;
+(3) rivalry flags in the shadow (frozen list as CSV); (4) ReportTriggerConfig defaults to real tips, three closed research harnesses pin
+proxy19; (5) run metadata (git HEAD, dirty flag); (6) the 2026-10-11 collector hole traced to clamshell sleep on battery at 18:33 CDT (fix needs
+Devin: AC power with the lid open or an external display, or sudo pmset); (7) parlay steps share the predict step's roster source;
+(8) P(play) shadow also logs C and C' with a 7-day parity warning at R minus production > -0.05. Replay oracle IDENTICAL 89889f6d
+(new file oracle_batch_1.duckdb); flag-on vs flag-off canonical hash identical on a real slate.
+Why: Devin "handle everything"; audit pass 2. What would reverse it: a regression on the first live nights (watchdog, parity warning).

@@ -1,7 +1,7 @@
 # Overnight loop, 2026-10-12 (started 01:53 CDT)
 
 ## Needs Devin (morning)
-1. Mac sleep: run `sudo pmset -c sleep 0` and keep it plugged in (the 10-11 18:04-23:03 CDT collector hole matches a battery sleep).
+1. Mac sleep: the 10-11 collector hole was the LID closing on battery at 18:33 CDT (clamshell sleep); caffeinate does not stop that. On game nights keep it on AC with the lid open (or an external display), and run `sudo pmset -c sleep 0`; `sudo pmset -a disablesleep 1` also stops lid sleep but drains battery.
 2. the-odds-api plan before ~11-04: cancelling START 5M stops captures; START 100K ($59/mo) carries the full schedule.
 3. Any 2025 holdout touch the loop finds a case for (none taken overnight without your words).
 4. SEQ network blend on regular-season rows: real -0.011/-0.012 points gain, guard-clean without playoffs (T466). Test it as a new rule on the 2025 holdout (SEQ untouched) or the live log? Your call.
@@ -25,3 +25,4 @@
 - 02:03 RECENT_ROLE_HOLDOUT attacked by the adversary: SURVIVES (T462). Attribution corrected (T463): the gain is recent minutes, 96% from the 5 recent-role columns. Against the deployed P(play): -0.097. Shadow will also log C and C' (steward item 8). Diagnostic 2025 arms disclosed in the holdout log.
 - 02:22 Coverage restored to 71.99% with real tests for 7 research modules (no omits beyond the Colab jobs, threshold unchanged). Fragility noted, not fixed: xgb_pts_vs_lt_eval.write_ledger KeyError when a minutes slice has < 300 rows (cannot trigger on real data).
 - 02:23 ROUTER_G2: no pass (T464-T466). The gate adds nothing; the SEQ network blend improves points by -0.011/-0.012 and passes the guards once playoffs go to production. NEEDS DEVIN: whether to test 'SEQ blend on regular-season rows' as a new rule (2025 holdout or live).
+- 02:37 Live batch committed (6036c97, 4ea569a, 5b806d5): shadow on, T-15 arm, rivalry flags, real-tip default, run metadata, parlay roster source, C/C' comparators + parity check; oracle IDENTICAL.
