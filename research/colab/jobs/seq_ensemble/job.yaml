@@ -1,0 +1,32 @@
+name: seq_ensemble
+description: >
+  ENSEMBLE rule (docs/prereg/ENSEMBLE.md, frozen): sequence transformer walk-forward over 2023 and
+  2024 (E2), with 2019-20 and 2020-21 history rows and report tokens missing (E3), knockout (K) and
+  shuffled-input (S) guard arms, and the literal T065 protocol on the fresh export (E2o). Seven
+  programs, 3 seeds, full budgets; about 75 minutes on a T4. Refuses unless the staged rule sha
+  matches. Season 2025 is never in the input and holdout scoring is OFF.
+notebook: research/colab/jobs/seq_ensemble/seq_ensemble.ipynb
+inputs:
+  - path: data/colab/seq_ensemble/seq_ensemble_cur.npz
+    produce: uv run python -m research.features.seq_ensemble_export all --out data/colab/seq_ensemble
+    depends_on: [nba.duckdb]
+  - path: data/colab/seq_ensemble/seq_ensemble_hist.npz
+    produce: uv run python -m research.features.seq_ensemble_export all --out data/colab/seq_ensemble
+    depends_on: [data/history/nba_history.duckdb]
+  - path: docs/prereg/ENSEMBLE.md
+artifacts:
+  - metrics.json
+  - config.json
+  - oof_E2.npz
+  - oof_E2K.npz
+  - oof_E2S.npz
+  - oof_E3.npz
+  - oof_E3K.npz
+  - oof_E3S.npz
+  - oof_E2o.npz
+  - states_E3.npz
+registry:
+  model_name: seq_ensemble
+  tags: {rung: 3, model_method: seq_transformer_quantile_walkforward, holdout_scored: false}
+touches_holdout: false
+preregistration_id: null

@@ -1,0 +1,440 @@
+{
+ "doc_status": "DRAFT",
+ "doc_sha256": "dc29642ef8f6f03290b843a7f2969c533445f82b15eb50b72bbaf6f5f4e8f482",
+ "G3b_position": {
+  "history_rows": 49150,
+  "history_no_position": 0,
+  "history_share": 0.0,
+  "current_share": 0.0,
+  "pass": true
+ },
+ "G3a_report_tokens": {
+  "history_nonzero_report_channels": 0,
+  "current_reportless_rows": 118,
+  "pass": true
+ },
+ "P_in": {
+  "2019v2022": {
+   "auc": 0.5292700783188363,
+   "lo": 0.5139132992158115,
+   "hi": 0.5419753398423496,
+   "n_test": 15955
+  },
+  "2020v2022": {
+   "auc": 0.5941924027553628,
+   "lo": 0.5801588243976161,
+   "hi": 0.6102586119781275,
+   "n_test": 16773
+  },
+  "hist_v_2022": {
+   "auc": 0.5497700455395664,
+   "lo": 0.5377681118702673,
+   "hi": 0.5628000652409342,
+   "n_test": 23925
+  },
+  "2022v2023": {
+   "auc": 0.5803614223350135,
+   "lo": 0.5650667066175996,
+   "hi": 0.5953672375733529,
+   "n_test": 17636
+  },
+  "2022v2024": {
+   "auc": 0.598902342401817,
+   "lo": 0.5873196009888159,
+   "hi": 0.6126444226131728,
+   "n_test": 18117
+  },
+  "2023v2024": {
+   "auc": 0.5222427373232238,
+   "lo": 0.5110272712549633,
+   "hi": 0.5326003505160384,
+   "n_test": 18147
+  },
+  "limit": 0.598902342401817,
+  "flags": {
+   "2019v2022": false,
+   "2020v2022": false,
+   "hist_v_2022": false,
+   "2022v2023": false,
+   "2022v2024": true,
+   "2023v2024": false
+  },
+  "flagged": false,
+  "placebo_self_flag": true,
+  "pass": true
+ },
+ "G4_gate_score": {
+  "2023": {
+   "n": 27619,
+   "rows_lt5": 2383,
+   "auc": 0.8715070398468255,
+   "q": [
+    0.7979705740933073,
+    0.8612593607876445,
+    0.8939121361373296,
+    0.9955002871297358
+   ]
+  },
+  "2024": {
+   "n": 27701,
+   "rows_lt5": 2326,
+   "auc": 0.8721489099449783,
+   "q": [
+    0.7603049077859159,
+    0.8421395537148947,
+    0.8823809981928197,
+    0.9934754412029954
+   ]
+  },
+  "pass": true
+ },
+ "G8_missingness": {
+  "rows": 55320,
+  "channels": {
+   "home": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "rest": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "b2b": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "elo_margin": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "opp_drtg": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "team_pace": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "opp_pace": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "team_drtg": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "has_report": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "st_available": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "st_probable": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "st_questionable": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "st_doubtful": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "st_out": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "n_rep_out": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "vac_rep": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "n_return": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "vac_return": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "log_n_prior": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "log_n_season": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "gap_days": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "pos_g": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "pos_f": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "pos_c": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "team_game_no": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "base_min": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "starter10": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "base_pts": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "base_reb": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "base_ast": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   },
+   "base_fg3m": {
+    "null_rate_by_bucket": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "gap_pp": 0.0,
+    "exempt": false,
+    "hist_null_rate": 0.0,
+    "cur_null_rate": 0.0
+   }
+  },
+  "max_nonexempt_gap_pp": 0.0,
+  "pass": true
+ },
+ "gate_pass": true
+}
