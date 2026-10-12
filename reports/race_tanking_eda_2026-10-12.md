@@ -3,7 +3,7 @@
 DESCRIPTIVE, no claim, no rule. Seasons 2023 and 2024 (regular season); 2025 never loaded. Forecasts are the stored
 walk-forward A0 (production + lower-tail mixture) pts quantiles from the minutes-spread EDA cache. Errors are
 actual minus median, minus the all-row baseline (+0.52); CIs are team-season clustered (1000 draws, seed 0).
-Scripts: research/eval/scratch_2026_10_12/ (scratch, not in the nightly path).
+Scripts: reports/race_tanking_eda_2026-10-12_scripts/ (scratch, stored as .txt so repo lint skips them).
 
 ## Tanking = league bottom-5 record after >= 10 games (Devin's definition)
 | phase | core DNP tank / other | bench min vs prior-10 tank / other | pts error tank [CI] | n |
