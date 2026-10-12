@@ -989,3 +989,10 @@ Correction (lineage check by the modeler): T043-T046 measured "Option 1A" (a rid
 **2026-10-12 17:19 CDT — SEQ_FULL_MIX_RT PASSES its 2025 holdout (T478).**
 What: pts AVG-FULL -0.0133 [-0.0158, -0.0109], n 28,173 / 1,321 games; AVG-A0 -0.0249; every guard passed. A pass is a production-change PROPOSAL only; promotion is Devin's decision. Committed before reading anything else: (1) adversary post-result review; (2) the ENSEMBLE era-embedding probe run descriptively (no bearing on the verdict, citing T443); (3) the line-level reading (CRPS gains have barely reached the line; LINE_CALIBRATION is the lever there). Production integration would need: a Colab-free nightly path (the sequence model is a GPU model), the replay oracle, and a shadow period; none of that is started.
 Why: the frozen rule. What would reverse it: the post-result review finding a defect.
+
+**2026-10-12 17:25 CDT — next Colab work: SEQ learning curve, a sequence minutes/P(play) model, and PBP for halftime; engineering only after results (Devin: "Let's do 1 and 2, 4 and if any of those r good, then we can do engineering analysis after we see if it's just one colab model or 2").**
+What (follows Claude's recommendation; at most 2 agents at a time; each with a playbook check, lineage and a pre-written decision rule):
+1. SEQ_LEARNING_CURVE (descriptive, no holdout): retrain the frozen W_ALL construction on 1-5 seasons, score 2023-24; the "still rising" criterion is written before the run; if rising, a follow-up draft adds box-only history before 2019 with a no-report flag.
+2. SEQ_MINUTES: a sequence model for minutes and P(play) from each player's minutes history, role and report status, trained from 2019-20; select 2023-24 against production's hand-set hurdle and P(play) R; report venue the live log (R spent 2025).
+3. PBP_HALFTIME: PBP_GPT repurposed to forecast second-half player stats at halftime; first rebuild its tokens in true game order (validity audit) and run a learning curve; select on 2023-24.
+Production engineering (nightly Colab or CPU distillation, replay oracle, shadow) is planned only after these results, sized by how many Colab models earn it.
