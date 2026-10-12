@@ -96,3 +96,7 @@ needs_devin: [..] | none
 ```
 The main session commits only paths listed in changed_files and appends only rows listed in drafted_rows
 (ledger-complete check: rows drafted == rows appended). A run without this block is incomplete.
+
+
+## Model playbook (Devin, 2026-10-12)
+Before drafting, reviewing or rejecting any model, read docs/MODEL_PLAYBOOK.md. Name the model class and include a short "Playbook check" section in every report: the five cross-cutting questions (information or capacity, enough data for this class, test validity, lineage and inherited guards, what it is scored against) and the class checks. An invalid test is not a null.

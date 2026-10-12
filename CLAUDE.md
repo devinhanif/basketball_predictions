@@ -68,6 +68,8 @@ the evaluation. Both are the point.
 
 ## How we build
 
+- **Know what drives each kind of model.** `docs/MODEL_PLAYBOOK.md` says what moves each model class (data appetite, inputs, typical failures, fair tests). Every draft and review answers its playbook check; no verdict on a model is accepted without it (Devin, 2026-10-12).
+
 - **Known-at time is first-class.** Every feature is as-of; every stored fact says when it was
   knowable; every forward prediction is stamped before tip and refused after. Real tip-off times,
   never a proxy.
