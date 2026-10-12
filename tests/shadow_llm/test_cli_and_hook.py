@@ -23,10 +23,13 @@ REPO = Path(__file__).resolve().parents[2]
 def test_repo_config_loads_with_cap_unset_and_rule_constants() -> None:
     cfg = load_config(CONFIG_PATH)
     assert cfg.monthly_cap_usd is None  # real provider refused until Devin sets MONTHLY_CAP_USD
+    # claude_code budget PROPOSED in prereg A6 item 11 (3-search cap, 5 games a night)
     assert (cfg.max_tokens, cfg.nightly_token_ceiling, cfg.monthly_token_backstop) == (
-        3000, 150_000, 2_500_000,
+        3000, 600_000, 18_600_000,
     )  # fmt: skip
-    assert (cfg.planning_tokens_per_game, cfg.input_token_cap) == (8500, 8000)
+    assert (cfg.planning_tokens_per_game, cfg.input_token_cap) == (120_000, 8000)
+    assert cfg.nightly_token_ceiling == 5 * cfg.planning_tokens_per_game
+    assert cfg.monthly_token_backstop == 31 * cfg.nightly_token_ceiling
     assert cfg.model_id == "claude-opus-5-5" and cfg.fallback_model_id == "claude-fable-5-1"
 
 
@@ -89,6 +92,28 @@ def test_due_games_window(world: World) -> None:
     con.close()
 
 
+def wait_background_shadow(root: Path, timeout_s: float = 30.0) -> None:
+    """The tick launches the shadow step detached (ops/llm_shadow_bg.sh); wait for it to finish."""
+    import time
+
+    ops = root / "data" / "ops"
+    launched = any(
+        "llm_shadow launched" in p.read_text() for p in ops.glob("lineups_*.log") if p.is_file()
+    )
+    if not launched:
+        return
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        done = any(
+            "llm_shadow rc=" in p.read_text() or "already running" in p.read_text()
+            for p in ops.glob("llm_shadow_*.log")
+        )
+        if done and not (ops / "llm_shadow_bg.lock").exists():
+            return
+        time.sleep(0.1)
+    raise AssertionError("background llm_shadow run did not finish")
+
+
 def _tick(
     tmp: Path, *, flag: str | None, dotenv: str | None = None, rc: int = 0
 ) -> tuple[str, str]:
@@ -111,6 +136,7 @@ def _tick(
     res = subprocess.run(["sh", str(REPO / "ops" / "nba_lineups.sh")], env=env,
                          capture_output=True, text=True, timeout=60, check=False)  # fmt: skip
     assert res.returncode == 0, res.stderr
+    wait_background_shadow(root)
     log = tmp / "uv.log"
     alerts = root / "data" / "ops" / "ALERTS.md"
     return (log.read_text() if log.exists() else ""), (
@@ -130,9 +156,8 @@ def test_hook_off_when_flag_is_not_exactly_one(tmp_path: Path) -> None:
 
 def test_hook_env_and_dotenv_enable_with_env_file(tmp_path: Path) -> None:
     log, _ = _tick(tmp_path / "a", flag="1", dotenv="ANTHROPIC_API_KEY=x\n")
-    assert (
-        "nba.shadow_llm run" in log and "--provider anthropic" in log and "--env-file .env" in log
-    )
+    # the provider comes from configs/llm_shadow.yaml, never from the hook
+    assert "nba.shadow_llm run" in log and "--env-file .env" in log and "--provider" not in log
     log2, _ = _tick(tmp_path / "b", flag=None, dotenv="NBA_LLM_SHADOW=1\n")
     assert log2.count("nba.shadow_llm run") == 1
 

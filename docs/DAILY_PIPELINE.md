@@ -246,7 +246,9 @@ The VM move (bootstrap, cron equivalents, Mac-to-VM sync, shadow period, cutover
 
 `nba.daily run --roster-source official` replaces the offseason-stale last-10-games roster with the
 pre-tip `CommonTeamRoster` (cached per date) plus recent players, with the rookie minutes prior for
-players with no history. Default is `recent`. Measurements and the recommendation are in
+players with no history. Default is `recent`. The daily job and the lineups job use `official` through
+2026-11-30 inclusive (US/Eastern; extended from 2026-11-03 by Devin, 2026-10-12), then `recent` automatically;
+the switch lives only in `ops/roster_source.sh`, sourced by `ops/nba_daily.sh` and `ops/nba_lineups.sh` (the parlay steps use `$ROSTER`). Measurements and the recommendation are in
 docs/OPENING_WEEK_ROSTERS.md.
 
 ## Timing: why :20 and :50 (review 2026-10-09, M1)
@@ -415,7 +417,7 @@ open of a 0444 file fails, theirs succeeds), and a static scan that every `ATTAC
 
 ## LLM shadow forecaster (flag-gated, off by default)
 
-A step in the 5-minute lineups tick (`ops/nba_lineups.sh`), after the odds capture and before the T-30 block, runs `python -m nba.shadow_llm run` only when `NBA_LLM_SHADOW=1`. It reads the pretip run's T-60 rows and writes `llm_shadow` rows pre-tip. See `docs/LLM_SHADOW.md`.
+A step in the 5-minute lineups tick (`ops/nba_lineups.sh`), after the odds capture and before the T-30 block, launches `ops/llm_shadow_bg.sh` DETACHED (own process group, nohup) only when `NBA_LLM_SHADOW=1`; it runs `python -m nba.shadow_llm run` in the background so a 35-60 s `claude -p` call per game never delays the T-30 / T-15 blocks or the next tick. One run at a time: lock `data/ops/llm_shadow_bg.lock` (pid and owner tag inside; a stale lock is cleared only when this mechanism created it and its pid is dead); log `data/ops/llm_shadow_YYYYMMDD.log`; heartbeat `data/ops/heartbeat/llm_shadow.json` (START/END; not yet in the watchdog's job list); rc not in {0, 4, 75} -> one `[lineups] llm_shadow rc=` line in `ALERTS.md`. It reads the pretip run's T-60 rows and writes `llm_shadow` rows pre-tip. The lineups agent needs `HOME`, `USER`, `LOGNAME`, `NBA_CLAUDE_BIN` in its plist `EnvironmentVariables` (`ops/install_launchd.sh`). See `docs/LLM_SHADOW.md`.
 
 ## launchd calendar timezone (found 2026-10-11)
 

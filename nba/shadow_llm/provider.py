@@ -78,11 +78,31 @@ def estimate_tokens(text: str) -> int:
 
 
 class ProviderUnavailable(RuntimeError):
-    """The real provider cannot be used (no key); informational, not a failure."""
+    """The real provider cannot be used (no key, no binary); informational, not a failure."""
+
+    status = "key_missing"
 
 
 class ProviderError(RuntimeError):
     """A provider call failed. The message is already scrubbed of the key."""
+
+
+class ProviderSkip(RuntimeError):
+    """The provider declines this game for a logged reason (wall cap, usage limit, auth). Never
+    retried. ``night_stop`` means no further game tonight can succeed (the runner's guard then
+    skips the rest of the slate). ``audit`` is whatever the call recorded before it stopped."""
+
+    def __init__(
+        self,
+        status: str,
+        detail: str,
+        *,
+        night_stop: bool = False,
+        audit: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(detail)
+        self.status, self.detail, self.night_stop = status, detail, night_stop
+        self.audit: dict[str, Any] = audit or {}
 
 
 class Provider(Protocol):

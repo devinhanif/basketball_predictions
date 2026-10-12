@@ -1,12 +1,15 @@
 # LLM shadow forecaster (docs/LLM_SHADOW.md, docs/prereg/LLM_SHADOW_2026_27.md). OFF unless
 # NBA_LLM_SHADOW=1. No prices here: rates live in configs/cost.yaml only; this file budgets TOKENS and
 # holds the dollar cap Devin sets. The key is read from ANTHROPIC_API_KEY at call time.
+# provider: anthropic = API key + dollar cap; claude_code = headless `claude -p` on Devin's Claude
+# subscription with WebSearch only (no key, no dollar cap; the token ceiling and backstop below guard).
+provider: claude_code
 model_id: claude-opus-5-5
 fallback_model_id: claude-fable-5-1      # used only on a not-found error for model_id; logged
 max_tokens: 3000
 temperature: 0                          # omitted (and logged) if the API rejects it for the model
 
-# REQUIRED before the real provider runs. Unset (null) = the real provider is refused (exit 4).
+# REQUIRED before the ANTHROPIC provider runs (not for claude_code). Unset (null) = refused (exit 4).
 # Devin sets this; nothing else in the repo does. Key name per the pre-registration.
 MONTHLY_CAP_USD: null
 
@@ -15,9 +18,15 @@ MONTHLY_CAP_USD: null
 # 5-minute tick) runs first, and production's pretip run (made_at <= tip - 60) has finished.
 window_min: [60, 70]
 
-planning_tokens_per_game: 8500          # reserved per game by the guard before a call
-nightly_token_ceiling: 150000           # hard, per ET slate date; later tips are budget_skip
-monthly_token_backstop: 2500000   # A5 (2026-10-11): 1.3x a typical 220-game month
+# PROPOSED in prereg A6 item 11 (2026-10-12 preseason dry run, claude_code with a 3-search cap: about
+# 13k + 3 x 33k = 112k processed tokens a game, rounded up); not frozen. The API provider's figures were
+# 8,500 / 150,000 / 2,500,000 (A4, A5).
+planning_tokens_per_game: 120000        # reserved per game by the guard before a call
+nightly_token_ceiling: 600000           # hard, per ET slate date = 5 games x 120,000; later tips are budget_skip
+monthly_token_backstop: 18600000        # 31 x the nightly ceiling
+max_games_per_night: 5                  # deterministic sample: rank by sha256(game_id + sample_salt), first 5
+sample_salt: "nba-llm-shadow-2026-27-sample-v1"   # A6 item 12; fixed before any result
+max_searches_per_call: 3                # claude_code: a 4th WebSearch discards the call (search_cap_exceeded)
 input_token_cap: 8000                   # per call; payload legs/facts are trimmed to fit, else input_cap
 max_legs_per_game: 40
 transport_retries: 2                    # transport errors only, and only before tip - 45 min
@@ -25,6 +34,10 @@ retry_until_min: 45
 min_lead_min: 30                        # a row is written only if made_at <= tip - 30 min
 max_wall_s: 180                         # stop starting games after this; they retry on the next tick
 request_timeout_s: 90
+# claude_code provider only
+claude_bin: null                        # null: $NBA_CLAUDE_BIN, `claude` on PATH, else newest desktop-app binary
+claude_code_wall_s: 180                 # per game; on the cap the game is a logged wall_cap_skip, never a late row
+claude_code_tick_wall_s: 300            # stop starting games after this per tick (sequential, inline in the lineups tick)
 db_wait_s: 120                          # bounded wait for the nba.duckdb file lock
 
 # Paths (relative to the repo root)

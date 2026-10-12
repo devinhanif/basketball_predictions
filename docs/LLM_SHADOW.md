@@ -11,9 +11,12 @@ scores), so the live log is the only test.
 
 ## What it does
 
-One 5-minute lineups tick (`ops/nba_lineups.sh`) calls `python -m nba.shadow_llm run --date <ET date>
---provider anthropic`. For each game of the slate whose real tip is in `[now+60, now+70]` minutes, has
-production's T-60 rows and has no `llm_shadow` row yet, it:
+One 5-minute lineups tick (`ops/nba_lineups.sh`) calls `python -m nba.shadow_llm run --date <ET date>`
+(provider from `configs/llm_shadow.yaml`: `claude_code` = headless `claude -p` on the subscription with WebSearch only,
+audited per call; `anthropic` = API key and dollar cap; see `docs/prereg/LLM_SHADOW_2026_27.md` A6). For each game of the slate whose real tip is in `[now+60, now+70]` minutes, has
+production's T-60 rows and has no `llm_shadow` row yet, it (launched detached by `ops/llm_shadow_bg.sh`, own lock and log,
+so it never blocks the tick; search results are untrusted data: injection markers are flagged per call, any tool other than
+WebSearch discards the answer, and the answer must match the requested legs exactly; prereg A6 items 9-10):
 
 1. builds the payload at `t = now` (must be <= tip - 60; the payload is refused otherwise), sha256 recorded;
 2. checks the guards (key present, `MONTHLY_CAP_USD` set, nightly ceiling, monthly backstop) BEFORE any call;
@@ -56,6 +59,12 @@ lines, anything from the web, anything dated after `t`, closing lines, any post-
 season-2025 holdout evaluation data outside what the live pipeline already reads for its own features.
 
 ## Cost per night
+
+**claude_code provider (PROPOSED, prereg A6 items 11-12):** at most 3 web searches per call (a 4th discards the call,
+`search_cap_exceeded`), about 112k processed tokens a call under that cap (preseason dry run 2026-10-12: 46k with 1
+search, 113k with 3); at most 5 games a night, chosen by `sha256(game_id + sample_salt)` rank (others `not_sampled`,
+no call); planning 120,000 a game, nightly ceiling 600,000, monthly backstop 18,600,000 (`configs/llm_shadow.yaml`).
+The paragraph below is the API provider's measurement.
 
 Measured on the rehearsal DB copy with the stub (`chars / 3` as the token estimate, a conservative bound; the
 real count comes back in `usage` and is booked): about 6.2-6.3k input tokens for the payload plus 0.4k system

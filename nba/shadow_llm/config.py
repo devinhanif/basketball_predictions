@@ -14,6 +14,7 @@ CONFIG_PATH = ROOT / "configs" / "llm_shadow.yaml"
 
 @dataclass(frozen=True)
 class ShadowConfig:
+    provider: str = "anthropic"  # anthropic | claude_code | stub (configs/llm_shadow.yaml sets it)
     model_id: str = "claude-opus-5-5"
     fallback_model_id: str = "claude-fable-5-1"
     max_tokens: int = 3000
@@ -31,6 +32,14 @@ class ShadowConfig:
     max_wall_s: float = 180.0
     request_timeout_s: float = 90.0
     db_wait_s: float = 120.0
+    claude_bin: str | None = None  # None: $NBA_CLAUDE_BIN, PATH, then the newest desktop-app binary
+    claude_code_wall_s: float = 180.0  # claude_code: per-game cap; on cap the game is a logged skip
+    claude_code_tick_wall_s: float = 300.0  # claude_code: stop starting games after this per tick
+    max_searches_per_call: int = 3  # claude_code: a 4th WebSearch discards the call (prompt says 3)
+    max_games_per_night: int = 5  # deterministic sample per ET slate; 0 = the whole slate
+    sample_salt: str = (
+        "nba-llm-shadow-2026-27-sample-v1"  # prereg A6 item 12; never changed after a result
+    )
     facts_db: Path = ROOT / "data" / "facts" / "facts.duckdb"
     odds_db: Path = ROOT / "data" / "markets" / "market_asof.duckdb"
     shadow_db: Path = ROOT / "data" / "shadow" / "llm_shadow.duckdb"
@@ -49,9 +58,11 @@ def load_config(path: Path | None = None) -> ShadowConfig:
         loaded = yaml.safe_load(p.read_text()) or {}
         raw = loaded if isinstance(loaded, dict) else {}
     upd: dict[str, Any] = {}
-    for k in ("model_id", "fallback_model_id"):
+    for k in ("provider", "model_id", "fallback_model_id", "sample_salt"):
         if k in raw:
             upd[k] = str(raw[k])
+    if raw.get("claude_bin"):
+        upd["claude_bin"] = str(raw["claude_bin"])
     for k in (
         "max_tokens",
         "planning_tokens_per_game",
@@ -62,10 +73,19 @@ def load_config(path: Path | None = None) -> ShadowConfig:
         "transport_retries",
         "retry_until_min",
         "min_lead_min",
+        "max_searches_per_call",
+        "max_games_per_night",
     ):
         if k in raw:
             upd[k] = int(raw[k])
-    for k in ("temperature", "max_wall_s", "request_timeout_s", "db_wait_s"):
+    for k in (
+        "temperature",
+        "max_wall_s",
+        "request_timeout_s",
+        "db_wait_s",
+        "claude_code_wall_s",
+        "claude_code_tick_wall_s",
+    ):
         if k in raw:
             upd[k] = float(raw[k])
     cap = raw.get("MONTHLY_CAP_USD", raw.get("monthly_cap_usd"))

@@ -56,7 +56,15 @@ PRETIP="$PRETIP</array>"
 write_plist local.nba.daily-pretip pretip "<key>StartCalendarInterval</key>$PRETIP"
 # NBA_FACTS_NIGHTLY=1: nightly facts-store rebuild step in ops/nba_daily.sh (Devin, 2026-10-11 "fix everything"; off elsewhere)
 write_plist local.nba.daily-morning morning "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict><key>EnvironmentVariables</key><dict><key>NBA_FACTS_NIGHTLY</key><string>1</string></dict>"
-write_plist local.nba.lineups lineups "<key>StartInterval</key><integer>300</integer>" ops/nba_lineups.sh
+# lineups env (Devin 2026-10-12): HOME/USER/LOGNAME let headless `claude -p` (LLM shadow, provider claude_code)
+# find its login in the keychain; NBA_CLAUDE_BIN pins the desktop-app binary (version-pinned path: when the app
+# updates and the path vanishes, nba.shadow_llm falls back to the newest installed binary). NBA_LLM_SHADOW is NOT
+# set here: the shadow stays off until Devin turns it on.
+CLAUDE_BIN=$(ls -d "$HOME"/Library/Application\ Support/Claude/claude-code/*/*/claude.app/Contents/MacOS/claude 2>/dev/null | sort -V | tail -n 1)
+LINEUPS_ENV="<key>EnvironmentVariables</key><dict><key>HOME</key><string>$HOME</string><key>USER</key><string>$(id -un)</string><key>LOGNAME</key><string>$(id -un)</string>"
+[ -n "$CLAUDE_BIN" ] && LINEUPS_ENV="$LINEUPS_ENV<key>NBA_CLAUDE_BIN</key><string>$CLAUDE_BIN</string>"
+LINEUPS_ENV="$LINEUPS_ENV</dict>"
+write_plist local.nba.lineups lineups "<key>StartInterval</key><integer>300</integer>$LINEUPS_ENV" ops/nba_lineups.sh
 cat > "$AGENTS/local.nba.watchdog.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

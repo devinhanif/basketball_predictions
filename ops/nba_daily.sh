@@ -123,8 +123,7 @@ case "$MODE" in
     # 89889f6d identical with the shadow code; its second predict call runs inside the pretip lock)
     # and SHADOW-log RECENT_ROLE_FULL (--log-full-shadow, 2026-10-12: props heads + lower-tail pi refit with
     # the five recent-role columns; own tables forward_full_shadow / forward_full_scores; same contract)
-    ROSTER=recent
-    if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
+    . "$(dirname "$0")/roster_source.sh"   # sets ROSTER (official through 2026-11-30)
     step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --log-pplay-shadow --log-full-shadow \
       --rate-limit-s 2.5

@@ -120,34 +120,33 @@ if [ "$CLOSE_ON" = "1" ]; then
 fi
 
 # LLM shadow forecaster (docs/LLM_SHADOW.md): OFF unless NBA_LLM_SHADOW=1, in the environment or as a
-# line in $ROOT/.env (which also carries ANTHROPIC_API_KEY; passed to python by `uv run --env-file`,
-# never read or echoed here). With the flag unset NOTHING below runs and this script behaves exactly as
-# before. It lives in this 5-minute tick (not a new job: a new launchd job is a scheduler install, the
-# maintainer's) because only this cadence lands inside the request window [tip-70, tip-60]: the :20/:50
-# pretip job sits 40 or 70 min before a :00/:30 tip. It runs AFTER the odds capture above (the T-60
-# lines it needs are captured in the same tick) and BEFORE the T-30 block, bounded by max_wall_s so a
-# slow provider cannot starve the T-30 tick. rc 0 = ok/nothing due; 4 = informational (key or monthly
-# cap not set, budget, schema violation, post-tip refusal); 75 = nba.duckdb busy (next tick retries);
-# anything else alerts. Failures never touch the poll heartbeat (already final).
+# line in $ROOT/.env (passed to python by `uv run --env-file`, never read or echoed here). With the flag
+# unset NOTHING below runs and this script behaves exactly as before. It lives in this 5-minute tick (not
+# a new job: a new launchd job is a scheduler install, the maintainer's) because only this cadence lands
+# inside the request window [tip-70, tip-60]. It is LAUNCHED DETACHED (ops/llm_shadow_bg.sh, own process
+# group via `set -m`, nohup): a `claude -p` call with web search takes 35-60 s a game, and it must never
+# delay the T-30 / T-15 blocks below or the next tick. The background script holds its own lock
+# (data/ops/llm_shadow_bg.lock, pid inside) so two ticks never run it at once, logs to
+# data/ops/llm_shadow_YYYYMMDD.log and alerts on rc not in {0, 4, 75}. Failures never touch the poll heartbeat.
 LLM_ON=${NBA_LLM_SHADOW:-0}
 if [ "$LLM_ON" != "1" ] && [ -f "$ROOT/.env" ] && grep -q '^NBA_LLM_SHADOW=1' "$ROOT/.env"; then
   LLM_ON=1
 fi
 if [ "$LLM_ON" = "1" ]; then
-  ENVF=""
-  [ -f "$ROOT/.env" ] && ENVF="--env-file .env"
-  # shellcheck disable=SC2086
-  NBA_LLM_SHADOW=1 "$UV" run --no-sync $ENVF python -m nba.shadow_llm run --date "$TODAY_ET" --provider anthropic >> "$LOG" 2>&1
-  rc=$?
-  log "llm_shadow rc=$rc"
-  if [ "$rc" -ne 0 ] && [ "$rc" -ne 4 ] && [ "$rc" -ne 75 ]; then
-    echo "- $(date '+%Y-%m-%d %H:%M') [lineups] llm_shadow rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
+  LLM_PID=$(cat "$OPS/llm_shadow_bg.lock/pid" 2>/dev/null || true)
+  if [ -n "$LLM_PID" ] && kill -0 "$LLM_PID" 2>/dev/null; then
+    log "llm_shadow still running in the background (pid $LLM_PID); not starting a second"
+  else
+    set -m   # job control: the background job gets its own process group
+    NBA_ROOT="$ROOT" NBA_UV="$UV" nohup sh "$(dirname "$0")/llm_shadow_bg.sh" "$TODAY_ET" </dev/null >/dev/null 2>&1 &
+    LLM_PID=$!
+    set +m
+    log "llm_shadow launched in the background (pid $LLM_PID), see $OPS/llm_shadow_$(date +%Y%m%d).log"
   fi
 fi
 
 # ROSTER rule shared by both shadow arms (same as the pretip job)
-ROSTER=recent
-if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
+. "$(dirname "$0")/roster_source.sh"   # sets ROSTER (official through 2026-11-30)
 
 # T-30 shadow run only when some game is inside [tip-30, tip). Nothing in this block may exit the
 # script: the T-15 block below must still run on this tick (fall-through, not early exit).

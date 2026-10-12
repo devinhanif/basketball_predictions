@@ -10,6 +10,7 @@ games after ``max_wall_s``.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import logging
 import os
 import time
@@ -23,6 +24,7 @@ import duckdb
 
 from nba.db.connect import DEFAULT_DB_PATH, connect_with_retry, is_lock_error
 from nba.ops.exitcodes import RC_DB_BUSY, RC_DEGRADED, RC_INFORMATIONAL
+from nba.shadow_llm.calls import open_shadow, record_call
 from nba.shadow_llm.config import ShadowConfig
 from nba.shadow_llm.payload import WIN_MODEL, WIN_TARGET, et_date, naive_utc
 from nba.shadow_llm.provider import Provider
@@ -42,9 +44,17 @@ INFORMATIONAL = frozenset(
         "schema_violation",
         "post_tip_refused",
         "input_cap",
+        "wall_cap_skip",
+        "usage_limit",
+        "usage_limit_skip",
+        "auth_failed",
+        "claude_unavailable",
     }
 )
-DEGRADED = frozenset({"provider_error", "as_of_violation"})
+DEGRADED = frozenset(
+    {"provider_error", "as_of_violation", "tool_restriction_violated", "search_cap_exceeded"}
+)
+NOT_SAMPLED = "not_sampled"
 
 
 def enabled(environ: Mapping[str, str] | None = None) -> bool:
@@ -114,6 +124,73 @@ def due_games(
     ]
 
 
+def slate_games(con: duckdb.DuckDBPyConnection, slate: date) -> list[str]:
+    """Every scorable game of the ET ``slate`` with a production win-model row (production predicts
+    the whole slate from the first pretip run), whatever its tip or shadow status."""
+    rows = con.execute(
+        """
+        SELECT game_id, max(tipoff) FROM forward_predictions
+        WHERE model_name = ? AND target = ? AND substr(game_id, 1, 3) NOT IN ('001', '003')
+        GROUP BY game_id
+        """,
+        [WIN_MODEL, WIN_TARGET],
+    ).fetchall()
+    return sorted(str(g) for g, tip in rows if et_date(tip) == slate)
+
+
+def sample_rank(game_ids: list[str], salt: str) -> list[str]:
+    """Game ids ordered by sha256(game_id + salt): fixed before any result, nobody picks."""
+    return sorted(game_ids, key=lambda g: (hashlib.sha256(f"{g}{salt}".encode()).hexdigest(), g))
+
+
+def sampled_games(game_ids: list[str], cfg: ShadowConfig) -> set[str]:
+    """The night's deterministic sample: the first ``max_games_per_night`` by rank (0 = all)."""
+    k = int(cfg.max_games_per_night)
+    ranked = sample_rank(game_ids, cfg.sample_salt)
+    return set(ranked if k <= 0 else ranked[:k])
+
+
+def _not_sampled(shadow_path: Path, gid: str, slate: date, at: datetime, detail: str) -> None:
+    """One ``not_sampled`` row per game and night (no call, no tokens)."""
+    con = open_shadow(shadow_path)
+    try:
+        have = con.execute(
+            "SELECT count(*) FROM llm_shadow_calls WHERE game_id = ? AND status = ?",
+            [gid, NOT_SAMPLED],
+        ).fetchone()
+        if not (have and have[0]):
+            record_call(con, game_id=gid, slate=slate, requested_at=at, received_at=None,
+                        status=NOT_SAMPLED, provider_real=False, detail=detail)  # fmt: skip
+    finally:
+        con.close()
+
+
+def _games_called(shadow_path: Path, slate: date) -> set[str]:
+    """Games of the slate that already had a real attempt (anything but not_sampled)."""
+    if not Path(shadow_path).exists():
+        return set()
+    con = open_shadow(shadow_path)
+    try:
+        rows = con.execute(
+            "SELECT DISTINCT game_id FROM llm_shadow_calls WHERE slate_date = ? AND status <> ?",
+            [slate, NOT_SAMPLED],
+        ).fetchall()
+    finally:
+        con.close()
+    return {str(r[0]) for r in rows}
+
+
+def alert(cfg: ShadowConfig, text: str) -> None:
+    """One line in data/ops/ALERTS.md (the watchdog's file) in the existing format."""
+    path = cfg.lock_dir.parent / "ALERTS.md"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a") as fh:
+            fh.write(f"- {datetime.now():%Y-%m-%d %H:%M} [llm_shadow] {text}\n")
+    except OSError:
+        log.exception("could not write ALERTS.md")
+
+
 def _acquire(lock_dir: Path) -> bool:
     lock_dir.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -173,10 +250,29 @@ def run(
             return summary
         try:
             due = due_games(con, slate, t0, cfg.window_min)
+            sample = sampled_games(slate_games(con, slate), cfg)
         finally:
             con.close()
-        deadline = time.monotonic() + cfg.max_wall_s
+        shadow_path = Path(paths["shadow"])
+        called = _games_called(shadow_path, slate) if due else set()
+        k = int(cfg.max_games_per_night)
+        deadline = time.monotonic() + float(
+            getattr(provider, "tick_wall_s", None) or cfg.max_wall_s
+        )
+        alerted = False
         for gid, _tip in due:
+            # deterministic nightly sample (A6 item 12); the hard cap also holds if the slate's
+            # game set changed during the day
+            why = ""
+            if gid not in sample:
+                why = f"not in the night's sample of {k} (sha256 rank, salt {cfg.sample_salt})"
+            elif k > 0 and gid not in called and len(called) >= k:
+                why = f"nightly game cap {k} reached"
+            if why:
+                _not_sampled(shadow_path, gid, slate, t0, why)
+                summary.results.append(GameResult(gid, NOT_SAMPLED, why))
+                continue
+            called.add(gid)
             if time.monotonic() > deadline:
                 summary.results.append(GameResult(gid, "deferred_wall"))
                 continue
@@ -201,6 +297,10 @@ def run(
                     int(out.get("tokens_out", 0)),
                 )
             )
+            if out["status"] in ("usage_limit", "auth_failed") and not alerted:
+                alerted = True
+                alert(cfg, f"llm_shadow {slate}: {out['status']}; remaining games skipped tonight "
+                      f"({out.get('detail', '')[:120]}). No API fallback.")  # fmt: skip
             if out["status"] == "db_busy_not_written":
                 summary.rc = RC_DB_BUSY
         return summary.finish()
