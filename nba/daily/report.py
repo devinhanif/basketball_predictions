@@ -210,6 +210,46 @@ def _independence_section(con: duckdb.DuckDBPyConnection) -> list[str]:
         return ["", "## Cross-game independence check (forward)", f"- unavailable: {exc!r}"]
 
 
+def _pplay_shadow_section(con: duckdb.DuckDBPyConnection) -> list[str]:
+    """SHADOW: recent-role P(play) (model R, ledger T458) vs production's hurdle P(play), scored on
+    the same player-games (log loss, lower is better). Descriptive; promotion is Devin's."""
+    head = ["", "## P(play) shadow: recent-role model R vs production (SHADOW, never primary)"]
+    try:
+        n_rows = con.execute("SELECT count(*) FROM forward_pplay_shadow").fetchone()
+        rows = con.execute(
+            "SELECT game_date, ll_prod, ll_r, in_prod_log FROM forward_pplay_scores "
+            "WHERE status = 'scored' AND ll_r IS NOT NULL"
+        ).fetchall()
+    except duckdb.CatalogException:
+        return []  # no shadow table yet: no briefing line
+    if not n_rows or not n_rows[0]:
+        return []
+    if not rows:
+        return head + [f"- {int(n_rows[0])} shadow rows logged, none settled yet."]
+    lines = list(head)
+    for label, sub in (
+        ("all rostered not-OUT", rows),
+        ("logged by production", [r for r in rows if r[3]]),
+        ("dropped by production", [r for r in rows if not r[3]]),
+    ):
+        if not sub:
+            continue
+        d = np.array([str(r[0]) for r in sub])
+        lp = np.array([r[1] for r in sub], dtype=float)
+        lr = np.array([r[2] for r in sub], dtype=float)
+        lines.append(
+            f"- {label}: production {_fmt(cluster_bootstrap_mean(lp, d))}; "
+            f"R {_fmt(cluster_bootstrap_mean(lr, d))}; "
+            f"R minus production {_fmt(cluster_bootstrap_mean(lr - lp, d), 5)}"
+        )
+    lines.append(
+        f"- {len(rows)} settled player-games over {len({r[0] for r in rows})} dates "
+        "(R minus production < 0 favours R; the 2025 holdout measured R minus the C comparator "
+        "at -0.0205, not production's own hurdle)."
+    )
+    return lines
+
+
 def build_report(
     con: duckdb.DuckDBPyConnection,
     season: int = FORWARD_SEASON,
@@ -281,6 +321,7 @@ def build_report(
     lines += _paired_props_section(props)
     lines += _paired_t30_section(con, props, lineups_db)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
+    lines += _pplay_shadow_section(con)
     lines += _checkpoint_section()
     lines += _independence_section(con)
     lines += [

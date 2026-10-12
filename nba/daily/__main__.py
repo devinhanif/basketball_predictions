@@ -75,6 +75,13 @@ def _parser() -> argparse.ArgumentParser:
         "unchanged",
     )
     r.add_argument(
+        "--log-pplay-shadow",
+        action="store_true",
+        help="SHADOW: log the recent-role P(play) model R next to production's p_play for every "
+        "rostered not-OUT player (table forward_pplay_shadow, docs/DAILY_PIPELINE.md); "
+        "forward_predictions and the props outputs are unchanged",
+    )
+    r.add_argument(
         "--roster-source",
         choices=["recent", "official"],
         default="recent",
@@ -237,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
             props_model=args.props_model,
             log_int_variant=args.log_int_variant,
             log_lower_tail_variant=args.log_lower_tail_variant,
+            with_pplay_shadow=args.log_pplay_shadow,
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
             schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,
@@ -269,7 +277,18 @@ def main(argv: list[str] | None = None) -> int:
         print(t30)
         return 0
     if args.command == "settle":
-        print(settle_pending(con, args.now or utcnow()))
+        now = args.now or utcnow()
+        print(settle_pending(con, now))
+        from nba.daily.pplay_shadow.settle import settle_pplay_shadow
+
+        try:  # shadow scoring never blocks the primary settle
+            if con.execute(
+                "SELECT count(*) FROM information_schema.tables "
+                "WHERE table_name = 'forward_pplay_shadow'"
+            ).fetchone()[0]:  # type: ignore[index]
+                print(settle_pplay_shadow(con, now))
+        except Exception as exc:
+            print(f"pplay shadow settle failed (primary unaffected): {type(exc).__name__}: {exc}")
         return 0
     text = build_report(con, args.season)
     out = Path(args.out)

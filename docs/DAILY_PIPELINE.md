@@ -429,3 +429,42 @@ else the one-line untracked file `data/ops/schedule_tz`, else Central; the VM's 
 Central). The Mac has `data/ops/schedule_tz = America/New_York`. After a reboot or relogin launchd
 re-reads the zone and the plists then mean Central (pretip until 21:50 CDT, morning 08:00 CDT):
 delete that file then. Whether to keep Eastern or reinstall for Central is the maintainer's call.
+
+## P(play) shadow: recent-role model R (flag-gated, off by default; 2026-10-12)
+
+`python -m nba.daily run ... --log-pplay-shadow` (run_daily `with_pplay_shadow=True`; default off, so
+replays and the oracle are unaffected). After every primary row is written and settled, the run logs the
+holdout-confirmed recent-role P(play) model (docs/prereg/RECENT_ROLE_HOLDOUT.md, frozen 302bc693, ledger
+T458) next to production's `p_play`. Own tables; `forward_predictions`, `forward_scores`, the props
+outputs and `nba.daily.canonical_dump` are untouched (a real 2025-01-15 slate run on a DB copy, flag on vs
+off: canonical hash identical, 2246 predictions, 2110 scores).
+
+* Coverage: every rostered not-OUT player, not only those production logs. Production's own
+  `predict_slate_context` is called a second time with `min_p_play=0`, `min_proj_minutes=-1` and no roster
+  cap (same report rule, same cached models), so dropped players carry production's conditional
+  `q_grid` too. `in_prod_log` / `prod_drop_reason` (`p_play_raw<min_p_play`, `proj_minutes<min`,
+  `roster_cap`) say who production drops.
+* `forward_pplay_shadow` (append-only, write-on-change, one row per run x game x player): `run_id, made_at
+  (known-at), game_id, tipoff, player_id, team_id, model_version (pplay_r_v1), p_play_prod, p_play_r (NULL
+  when R has no row), r_reason (out_on_report | n_played_prior<5 | no_model | no_features), in_prod_log,
+  prod_drop_reason, proj_minutes, props_cond, train_through, n_train, features_through, feature_set_sha
+  (ordered feature names + learner params + lightgbm version), features_sha (this row's 44 feature values),
+  t60_report_as_of`.
+* `props_cond` is JSON `{stat: {"model": "context_residual" | "recency_fallback", "mean": float,
+  "q_grid": [19 floats]}}` for pts / reb / ast / fg3m, conditional on playing, quantiles at taus 0.05, 0.10
+  .. 0.95 (`nba.props.forward.QUANTILE_TAUS`), the continuous (non-integer-support) grid of the primary
+  rows. A player with fewer than 5 prior played games is a `recency_fallback` row and gets no `p_play_r`.
+* Model: LightGBM binary, `configs/context_residual.yaml` params, seed 0, 44 features (C + production's 13
+  recent-minutes/role columns + 5 recent-role columns), refit each run on every eligible played / DNP row
+  dated before the slate date; features vendored in `nba/daily/pplay_shadow/` (no research import), built
+  by one code path for training and tonight's rows (tonight enters as NULL-minutes placeholders). Parity
+  with the research frame on seasons <= 2024: all 44 features identical on 80,570 history rows and 235
+  slate rows (as of 2025-02-01), except `is_national_tv`, which the schedule feed does not carry for an
+  unplayed game (live value False; effect on p_play_r: mean abs 0.0008, max 0.035 on that slate).
+* Settle: `python -m nba.daily settle` (and the end of every `run`) writes `forward_pplay_scores`: the
+  latest shadow row with `made_at <= tipoff - 60 min`, `y = minutes > 0`, log loss of both columns;
+  players absent from a final box are `not_in_box`, unscored. `build_report` prints a P(play) shadow section
+  (paired R minus production, date-clustered CI) once rows exist.
+* A shadow failure is recorded in `shadow_errors` (-> ALERTS.md) and cannot change a primary row.
+* Not done: promotion (Devin decides after the live log) and enabling the flag in `ops/nba_daily.sh`
+  (add `--log-pplay-shadow` to the `predict` step once the maintainer has run the oracle).

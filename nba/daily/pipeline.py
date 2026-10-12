@@ -134,6 +134,7 @@ def run_daily(
     static_fetch: Callable[[int], pl.DataFrame] | None = None,
     schedule_cache_dir: Path | None = None,
     dedup: bool = True,
+    with_pplay_shadow: bool = False,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC.
 
@@ -203,6 +204,7 @@ def run_daily(
         except Exception as exc:  # injury feed must never block the Elo forecast
             summary.injury_status = f"failed: {type(exc).__name__}: {exc}"[:200]
 
+    preds: list[ForwardPrediction] = []
     if upcoming:
         preds = _build_predictions(
             con, run_date, season_i, upcoming, made_at, registry,
@@ -220,7 +222,84 @@ def run_daily(
         summary.n_predicted_games = len(upcoming)
 
     summary.settle = settle_pending(con, made_at)
+    if with_pplay_shadow:
+        # SHADOW, after every primary row is written and settled: a failure here is recorded and
+        # alerts, and cannot change or delay a primary row (own tables, own try/except).
+        _pplay_shadow(
+            con, run_date, upcoming, made_at, summary, preds,
+            official, elo_config, model_cache, tips_dir,
+        )  # fmt: skip
     return summary
+
+
+#: Production thresholds off: every rostered not-OUT player gets a row (the shadow's coverage).
+_WIDE_CONFIG = ForwardConfig(
+    min_proj_minutes=-1.0, min_p_play=0.0, max_roster=1000, official_max_roster=1000
+)
+
+
+def _pplay_shadow(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    made_at: datetime,
+    summary: RunSummary,
+    preds: list[ForwardPrediction],
+    official_roster: pl.DataFrame | None,
+    elo_config: Path | None,
+    model_cache: Path | None,
+    tips_dir: Path | None,
+) -> None:
+    """Log p_play_r next to production's p_play for every rostered not-OUT player.
+
+    Production's own ``predict_slate_context`` is called a second time with its thresholds relaxed
+    (same report rule, same cached models), so the shadow sees the players production drops with the
+    same feature code; ``forward_predictions`` and all props outputs are not touched."""
+    import time
+
+    from nba.daily.pplay_shadow.features import SlateGame
+    from nba.daily.pplay_shadow.run import run_shadow
+    from nba.daily.pplay_shadow.settle import settle_pplay_shadow
+    from nba.daily.predict import DEFAULT_CONTEXT_CACHE
+    from nba.props.forward import predict_slate_context
+
+    name = "pplay_r_shadow"
+    t0 = time.perf_counter()
+    try:
+        if upcoming:
+            params = load_elo_params(elo_config) if elo_config else load_elo_params()
+            report_out = slate_report_outs(con, [(g.game_id, g.tipoff) for g in upcoming], made_at)
+            games = pl.DataFrame(
+                {
+                    "game_id": [g.game_id for g in upcoming],
+                    "home_team": [g.home_team for g in upcoming],
+                    "away_team": [g.away_team for g in upcoming],
+                },
+                schema={"game_id": pl.Utf8, "home_team": pl.Int64, "away_team": pl.Int64},
+            )
+            wide = predict_slate_context(
+                con, run_date, games, report_out, params,
+                cache_root=model_cache or DEFAULT_CONTEXT_CACHE,
+                official_roster=official_roster, config=_WIDE_CONFIG,
+            ).primary  # fmt: skip
+            logged = {
+                (p.game_id, p.player_id)
+                for p in preds
+                if p.model_name == CONTEXT_PROPS_MODEL_NAME and p.player_id >= 0
+            }
+            info = run_shadow(
+                con, run_date,
+                [SlateGame(g.game_id, g.home_team, g.away_team, g.tipoff) for g in upcoming],
+                made_at, summary.run_id, wide, logged, params,
+                tips_dir=tips_dir if tips_dir is not None else None,
+            )  # fmt: skip
+            summary.model_status[name] = f"{info}"
+        info_s = settle_pplay_shadow(con, made_at)
+        summary.model_status[name + "_settle"] = f"{info_s}"
+    except Exception as exc:
+        summary.shadow_errors.append(
+            f"pplay_r shadow: {type(exc).__name__}: {exc} ({time.perf_counter() - t0:.0f}s)"[:300]
+        )
 
 
 def _schedule_with_fallback(
