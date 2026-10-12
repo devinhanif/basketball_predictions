@@ -8,7 +8,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from nba.ops.watchdog import JOBS, Alert, check, dedupe, evaluate, last_due, parse_launchctl
+import pytest
+
+from nba.ops.watchdog import (
+    JOBS,
+    Alert,
+    check,
+    dedupe,
+    evaluate,
+    last_due,
+    parse_launchctl,
+    schedule_tz,
+)
 
 NOW = datetime.fromisoformat("2026-10-09T14:35:00-05:00")
 HEALTHY_LAUNCHCTL = "-\t0\tlocal.nba.lineups\n-\t0\tlocal.nba.daily-pretip\n123\t0\tcom.apple.x\n"
@@ -205,3 +216,58 @@ def test_consecutive_skips_alert_without_touching_run_heartbeat(tmp_path: Path) 
     assert (hb / "daily-pretip.json").read_text() == before
     (hb / "daily-pretip.skip.json").unlink()
     assert _eval(tmp_path) == []
+
+
+ET = ZoneInfo("America/New_York")
+
+
+def test_schedule_tz_env_then_file_then_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("NBA_SCHEDULE_TZ", raising=False)
+    assert schedule_tz(tmp_path) == CT
+    (tmp_path / "schedule_tz").write_text("America/New_York\n")
+    assert schedule_tz(tmp_path) == ET
+    monkeypatch.setenv("NBA_SCHEDULE_TZ", "America/Chicago")
+    assert schedule_tz(tmp_path) == CT
+    monkeypatch.setenv("NBA_SCHEDULE_TZ", "Not/AZone")  # typo: default, never a crash
+    assert schedule_tz(tmp_path) == CT
+
+
+def test_launchd_on_eastern_slots_no_false_stale_after_last_run(tmp_path: Path) -> None:
+    """2026-10-11 incident: launchd fires 'Hour 9..21' on Eastern time while the clock is Central.
+    The last pretip start is 20:50 CDT (= 21:50 ET) and the morning job starts 07:00 CDT (08:00 ET);
+    judged in Central both looked stale every night. Judged in the zone launchd uses, neither is."""
+    hb = tmp_path / "hb"
+    hb.mkdir()
+    for job, mode, start in (
+        ("daily-pretip", "pretip", "2026-10-11T20:50:02-05:00"),
+        ("daily-morning", "morning", "2026-10-11T07:00:05-05:00"),
+        ("lineups", "lineups", "2026-10-11T22:55:00-05:00"),
+    ):
+        (hb / f"{job}.json").write_text(
+            json.dumps({"job": job, "mode": mode, "start_ts": start, "end_ts": start, "rc": 0})
+        )
+    now = datetime(2026, 10, 11, 22, 18, tzinfo=CT)
+    seen = datetime(2026, 10, 9, tzinfo=CT)
+    central = {a.key for a in evaluate(now, hb, "", seen, tz=CT)}
+    assert {"daily-pretip:stale", "daily-morning:stale"} <= central  # the old false alarms
+    assert evaluate(now, hb, "", seen, jobs=JOBS[:3], tz=ET) == []
+    # and a genuinely missed slot is still caught in the Eastern frame: 09:50 ET slot missed
+    # (last start 08:20 CDT = 09:20 ET), judged after 10:15 CDT
+    (hb / "daily-pretip.json").write_text(
+        json.dumps(
+            {
+                "job": "daily-pretip",
+                "mode": "pretip",
+                "start_ts": "2026-10-12T08:20:03-05:00",
+                "end_ts": "2026-10-12T08:20:30-05:00",
+                "rc": 0,
+            }
+        )
+    )
+    soon = datetime(2026, 10, 12, 9, 40, tzinfo=CT)  # slot due 09:20 CDT, grace not yet over
+    assert "daily-pretip:stale" not in {a.key for a in evaluate(soon, hb, "", seen, tz=ET)}
+    later = datetime(2026, 10, 12, 10, 16, tzinfo=CT)  # 09:50 CDT slot missed, grace over
+    out = evaluate(later, hb, "", seen, tz=ET)
+    assert "daily-pretip:stale" in {a.key for a in out}

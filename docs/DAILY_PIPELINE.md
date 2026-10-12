@@ -416,3 +416,16 @@ open of a 0444 file fails, theirs succeeds), and a static scan that every `ATTAC
 ## LLM shadow forecaster (flag-gated, off by default)
 
 A step in the 5-minute lineups tick (`ops/nba_lineups.sh`), after the odds capture and before the T-30 block, runs `python -m nba.shadow_llm run` only when `NBA_LLM_SHADOW=1`. It reads the pretip run's T-60 rows and writes `llm_shadow` rows pre-tip. See `docs/LLM_SHADOW.md`.
+
+## launchd calendar timezone (found 2026-10-11)
+
+launchd evaluates `StartCalendarInterval` in the zone it captured at its own start, not the current
+one. This Mac's launchd (up 99 days) fires on **Eastern** time while the wall clock is Central:
+plist `Hour 9..21` ran at 08:20..20:50 CDT, the morning job (`Hour 8`) at 07:00 CDT. So the last
+pretip start of a day is 20:50 CDT (21:50 ET) and the watchdog's Central slots (21:20, 21:50 CDT)
+raised two false "daily-pretip stale" alerts a night plus one "daily-morning stale" (expected 08:00
+CDT). Nothing was missed. The watchdog now judges slots in `schedule_tz()` (env `NBA_SCHEDULE_TZ`,
+else the one-line untracked file `data/ops/schedule_tz`, else Central; the VM's cron really is
+Central). The Mac has `data/ops/schedule_tz = America/New_York`. After a reboot or relogin launchd
+re-reads the zone and the plists then mean Central (pretip until 21:50 CDT, morning 08:00 CDT):
+delete that file then. Whether to keep Eastern or reinstall for Central is the maintainer's call.

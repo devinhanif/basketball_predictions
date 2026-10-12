@@ -51,22 +51,23 @@ def test_off_when_flag_is_not_exactly_one(tmp_path: Path) -> None:
     assert "nba.odds" not in _tick(tmp_path, flag="0", dotenv="NBA_CLOSE_CAPTURE=0\n")
 
 
-def test_env_flag_runs_close_then_t60_with_env_file(tmp_path: Path) -> None:
+def test_env_flag_runs_one_all_capture_with_env_file(tmp_path: Path) -> None:
     log = _tick(tmp_path, flag="1", dotenv="THE_ODDS_API_KEY=x\n").splitlines()
     odds = [ln for ln in log if "nba.odds capture" in ln]
-    assert len(odds) == 2 and "--kind close" in odds[0] and "--kind t60" in odds[1]
-    assert all("--env-file .env" in ln for ln in odds)
+    # one call walks the whole configs/odds_live.yaml schedule, close first (f014b9c)
+    assert len(odds) == 1 and "--kind all" in odds[0] and "--date " in odds[0]
+    assert "--env-file .env" in odds[0]
 
 
 def test_flag_in_dotenv_enables(tmp_path: Path) -> None:
     log = _tick(tmp_path, flag=None, dotenv="NBA_CLOSE_CAPTURE=1\n")
-    assert log.count("nba.odds capture") == 2
+    assert log.count("nba.odds capture --kind all") == 1
 
 
 def test_failure_alerts_but_poll_heartbeat_stays_clean(tmp_path: Path) -> None:
     _tick(tmp_path, flag="1", odds_rc=4)
     ops = tmp_path / "root" / "data" / "ops"
     alerts = (ops / "ALERTS.md").read_text()
-    assert "odds capture close rc=4" in alerts and "odds capture t60 rc=4" in alerts
+    assert alerts.count("[lineups] odds capture all rc=4") == 1
     hb = json.loads((ops / "heartbeat" / "lineups.json").read_text())
     assert hb["rc"] == 0 and hb["end_ts"]

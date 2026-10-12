@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -34,6 +35,13 @@ from nba.ops.exitcodes import RC_INFORMATIONAL
 #: the Mac's launchd calendar runs in local time; slots are rebuilt per local day so a DST change
 #: (2026-11-01 fall back) moves yesterday's slots with it
 SCHEDULE_TZ = ZoneInfo("America/Chicago")
+#: launchd evaluates StartCalendarInterval in the timezone it captured when it started, not the
+#: current one. The Mac's launchd has been up for months and still fires on Eastern time while the
+#: wall clock is Central (2026-10-11: ``Hour 9`` ran at 08:20 CDT, the morning job at 07:00 CDT), so
+#: the slots must be judged in that zone or every night raises two false "stale" alerts. Override:
+#: env ``NBA_SCHEDULE_TZ`` or the one-line file ``data/ops/schedule_tz`` (machine-local, untracked;
+#: delete it after a reboot/relogin once launchd has picked up the real zone).
+TZ_FILE = "schedule_tz"
 LABEL_PREFIX = "local.nba."
 REALERT_AFTER = timedelta(hours=6)
 OK_RC: dict[str, frozenset[int]] = {"daily-pretip": frozenset({0, RC_INFORMATIONAL})}
@@ -105,14 +113,30 @@ class Alert:
     message: str
 
 
-def last_due(spec: JobSpec, now: datetime) -> datetime:
-    """Most recent time the job should have started at or before ``now``."""
+def schedule_tz(ops_dir: Path | None = None) -> ZoneInfo:
+    """Zone the calendar slots are written in: env, then ``<ops_dir>/schedule_tz``, then default."""
+    name = os.environ.get("NBA_SCHEDULE_TZ", "").strip()
+    if not name and ops_dir is not None:
+        try:
+            name = (ops_dir / TZ_FILE).read_text().strip()
+        except OSError:
+            name = ""
+    if name:
+        try:
+            return ZoneInfo(name)
+        except (KeyError, ValueError, OSError):
+            pass  # a typo must not blind the watchdog: fall back to the default
+    return SCHEDULE_TZ
+
+
+def last_due(spec: JobSpec, now: datetime, tz: ZoneInfo = SCHEDULE_TZ) -> datetime:
+    """Most recent time the job should have started at or before ``now`` (slots in ``tz``)."""
     if spec.kind == "interval":
         assert spec.interval is not None
         return now - spec.interval - spec.grace  # latest acceptable start, grace included
-    local = now.astimezone(SCHEDULE_TZ)
+    local = now.astimezone(tz)
     slots = [
-        datetime.combine(local.date() + timedelta(days=d), time(h, m), tzinfo=SCHEDULE_TZ)
+        datetime.combine(local.date() + timedelta(days=d), time(h, m), tzinfo=tz)
         for d in (0, -1)
         for h in spec.hours
         for m in spec.minutes
@@ -177,11 +201,12 @@ def evaluate(
     first_seen: datetime,
     kalshi_log: Path | None = None,
     jobs: tuple[JobSpec, ...] = JOBS,
+    tz: ZoneInfo = SCHEDULE_TZ,
 ) -> list[Alert]:
     """Pure-ish health check: returns the alerts for the current moment (no dedupe)."""
     alerts: list[Alert] = []
     for spec in jobs:
-        due = last_due(spec, now)
+        due = last_due(spec, now, tz)
         start: datetime | None
         rc: object = None
         if spec.heartbeat:
@@ -297,7 +322,7 @@ def check(
     alerts_state = {k: v for k, v in state.items() if not k.startswith("_")}
     text = run_launchctl() if launchctl_text is None else launchctl_text
     kl = kalshi_log if kalshi_log is not None else ops_dir.parent / "kalshi" / "snapshot.log"
-    current = evaluate(now, ops_dir / "heartbeat", text, first_seen, kl)
+    current = evaluate(now, ops_dir / "heartbeat", text, first_seen, kl, tz=schedule_tz(ops_dir))
     fresh, new_alerts_state = dedupe(current, alerts_state, now)
     if fresh:
         with (ops_dir / "ALERTS.md").open("a") as fh:
@@ -323,6 +348,7 @@ def health_section(ops_dir: Path = Path("data/ops")) -> str:
         run_launchctl(),
         first_seen,
         ops_dir.parent / "kalshi" / "snapshot.log",
+        tz=schedule_tz(ops_dir),
     )
     lines = ["## Job health", ""]
     if not alerts:
