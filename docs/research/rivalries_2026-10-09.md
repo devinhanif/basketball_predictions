@@ -73,91 +73,91 @@ crowd and the standings race can pull a player in.
 
 | Pair | Type | Evidence | Str | Note | Devin |
 |---|---|---|---|---|---|
-| BOS–NYK | division + playoff history | 14 playoff series all-time, 2nd-most of any pairing (2025 R2 NYK 4-2) | 3 | Recent series and both teams contend; the sign is ambiguous | |
-| BOS–PHI | division + playoff history | 23 playoff series, the most of any pairing; 2026 R1 PHI 4-3 (PHI's first series win over BOS since 1982) | 3 | LeBron is now in PHI (signed Jul 2026), so national-TV exposure is likely and the participation policy pushes against sitting | |
-| NYK–PHI | division + recent playoffs | 2024 R1 NYK 4-2; 2026 R2 NYK 4-0 | 2 | | |
-| BKN–NYK | division (same metro) | Same MSA (team_markets.yaml); no playoff evidence checked | 1 | Crosstown game | |
-| BOS–BKN | division | — | 1 | | |
-| BOS–TOR | division | — | 1 | | |
-| BKN–PHI | division + playoffs | 2023 R1 PHI 4-0 | 1 | | |
-| BKN–TOR | division | — | 1 | | |
-| NYK–TOR | division | — | 1 | | |
-| PHI–TOR | division | — | 1 | | |
+| BOS–NYK | division + playoff history | 14 playoff series all-time, 2nd-most of any pairing (2025 R2 NYK 4-2) | 3 | Recent series and both teams contend; the sign is ambiguous | Y |
+| BOS–PHI | division + playoff history | 23 playoff series, the most of any pairing; 2026 R1 PHI 4-3 (PHI's first series win over BOS since 1982) | 3 | LeBron is now in PHI (signed Jul 2026), so national-TV exposure is likely and the participation policy pushes against sitting | Y |
+| NYK–PHI | division + recent playoffs | 2024 R1 NYK 4-2; 2026 R2 NYK 4-0 | 2 | | Y |
+| BKN–NYK | division (same metro) | Same MSA (team_markets.yaml); no playoff evidence checked | 1 | Crosstown game | Y |
+| BOS–BKN | division | — | 1 | | Y |
+| BOS–TOR | division | — | 1 | | Y |
+| BKN–PHI | division + playoffs | 2023 R1 PHI 4-0 | 1 | | Y |
+| BKN–TOR | division | — | 1 | | Y |
+| NYK–TOR | division | — | 1 | | Y |
+| PHI–TOR | division | — | 1 | | Y |
 
 ### Central: CHI 1610612741, CLE 1610612739, DET 1610612765, IND 1610612754, MIL 1610612749
 
 | Pair | Type | Evidence | Str | Note | Devin |
 |---|---|---|---|---|---|
-| CLE–DET | division + recent playoffs | 2026 R2 CLE 4-3 (beat the No. 1 seed) | 2 | Fresh seven-game series | |
-| CLE–IND | division + recent playoffs | 2025 R2 IND 4-1 | 2 | | |
-| IND–MIL | division + recent playoffs | 2024 R1 IND 4-2; 2025 R1 IND 4-1 | 2 | Giannis left MIL in Jun 2026, so the player edge of this rivalry is gone | |
-| CHI–DET | division | Historic (not re-verified here) | 1 | | |
-| CHI–CLE | division | — | 1 | | |
-| CHI–IND | division | — | 1 | | |
-| CHI–MIL | division | — | 1 | | |
-| CLE–MIL | division | — | 1 | | |
-| DET–IND | division | — | 1 | | |
-| DET–MIL | division | — | 1 | | |
+| CLE–DET | division + recent playoffs | 2026 R2 CLE 4-3 (beat the No. 1 seed) | 2 | Fresh seven-game series | Y |
+| CLE–IND | division + recent playoffs | 2025 R2 IND 4-1 | 2 | | Y |
+| IND–MIL | division + recent playoffs | 2024 R1 IND 4-2; 2025 R1 IND 4-1 | 2 | Giannis left MIL in Jun 2026, so the player edge of this rivalry is gone | Y |
+| CHI–DET | division | Historic (not re-verified here) | 1 | | Y |
+| CHI–CLE | division | — | 1 | | Y |
+| CHI–IND | division | — | 1 | | Y |
+| CHI–MIL | division | — | 1 | | Y |
+| CLE–MIL | division | — | 1 | | Y |
+| DET–IND | division | — | 1 | | Y |
+| DET–MIL | division | — | 1 | | Y |
 
 ### Southeast: ATL 1610612737, CHA 1610612766, MIA 1610612748, ORL 1610612753, WAS 1610612764
 
 | Pair | Type | Evidence | Str | Note | Devin |
 |---|---|---|---|---|---|
-| ATL–CHA | division | — | 1 | | |
-| ATL–MIA | division | — | 1 | | |
-| ATL–ORL | division | — | 1 | | |
-| ATL–WAS | division | — | 1 | | |
-| CHA–MIA | division | 2026 play-in CHA 127-126 OT | 1 | A play-in is not a series; Devin decides whether it counts | |
-| CHA–ORL | division | 2026 play-in ORL 121-90 | 1 | Same caveat | |
-| CHA–WAS | division | — | 1 | | |
-| MIA–ORL | division (in-state) | — | 1 | Florida pair | |
-| MIA–WAS | division | — | 1 | | |
-| ORL–WAS | division | — | 1 | | |
+| ATL–CHA | division | — | 1 | | Y |
+| ATL–MIA | division | — | 1 | | Y |
+| ATL–ORL | division | — | 1 | | Y |
+| ATL–WAS | division | — | 1 | | Y |
+| CHA–MIA | division | 2026 play-in CHA 127-126 OT | 1 | A play-in is not a series; Devin decides whether it counts | Y |
+| CHA–ORL | division | 2026 play-in ORL 121-90 | 1 | Same caveat | Y |
+| CHA–WAS | division | — | 1 | | Y |
+| MIA–ORL | division (in-state) | — | 1 | Florida pair | Y |
+| MIA–WAS | division | — | 1 | | Y |
+| ORL–WAS | division | — | 1 | | Y |
 
 ### Northwest: DEN 1610612743, MIN 1610612750, OKC 1610612760, POR 1610612757, UTA 1610612762
 
 | Pair | Type | Evidence | Str | Note | Devin |
 |---|---|---|---|---|---|
-| DEN–MIN | division + playoff history | 2023 R1 DEN 4-1; 2024 R2 MIN 4-3; 2026 R1 MIN 4-2 | 3 | Three series in four seasons; the strongest division rivalry in our data window | |
-| DEN–OKC | division + recent playoffs | 2025 R2 OKC 4-3 | 2 | | |
-| MIN–OKC | division + recent playoffs | 2025 WCF OKC 4-1 | 2 | | |
-| OKC–POR | division | — | 1 | | |
-| DEN–POR | division | — | 1 | | |
-| DEN–UTA | division | — | 1 | | |
-| MIN–POR | division | — | 1 | | |
-| MIN–UTA | division | — | 1 | | |
-| OKC–UTA | division | — | 1 | | |
-| POR–UTA | division | — | 1 | | |
+| DEN–MIN | division + playoff history | 2023 R1 DEN 4-1; 2024 R2 MIN 4-3; 2026 R1 MIN 4-2 | 3 | Three series in four seasons; the strongest division rivalry in our data window | Y |
+| DEN–OKC | division + recent playoffs | 2025 R2 OKC 4-3 | 2 | | Y |
+| MIN–OKC | division + recent playoffs | 2025 WCF OKC 4-1 | 2 | | Y |
+| OKC–POR | division | — | 1 | | Y |
+| DEN–POR | division | — | 1 | | Y |
+| DEN–UTA | division | — | 1 | | Y |
+| MIN–POR | division | — | 1 | | Y |
+| MIN–UTA | division | — | 1 | | Y |
+| OKC–UTA | division | — | 1 | | Y |
+| POR–UTA | division | — | 1 | | Y |
 
 ### Pacific: GSW 1610612744, LAC 1610612746, LAL 1610612747, PHX 1610612756, SAC 1610612758
 
 | Pair | Type | Evidence | Str | Note | Devin |
 |---|---|---|---|---|---|
-| LAC–LAL | division (shared arena city) | Same MSA; playoff history not checked | 1 | Devin to rate; "Battle of LA" is a fan label I have not sourced | |
-| GSW–LAL | division + recent playoffs | 2023 R2 LAL 4-2 | 2 | Curry vs LeBron's old team; LeBron has left LAL | |
-| GSW–SAC | division + recent playoffs | 2023 R1 GSW 4-3 | 1 | | |
-| LAC–PHX | division + recent playoffs | 2023 R1 PHX 4-1 | 1 | | |
-| GSW–LAC | division | — | 1 | | |
-| GSW–PHX | division | — | 1 | | |
-| LAL–PHX | division | — | 1 | | |
-| LAL–SAC | division | — | 1 | | |
-| LAC–SAC | division | — | 1 | | |
-| PHX–SAC | division | — | 1 | | |
+| LAC–LAL | division (shared arena city) | Same MSA; playoff history not checked | 1 | Devin to rate; "Battle of LA" is a fan label I have not sourced | Y |
+| GSW–LAL | division + recent playoffs | 2023 R2 LAL 4-2 | 2 | Curry vs LeBron's old team; LeBron has left LAL | Y |
+| GSW–SAC | division + recent playoffs | 2023 R1 GSW 4-3 | 1 | | Y |
+| LAC–PHX | division + recent playoffs | 2023 R1 PHX 4-1 | 1 | | Y |
+| GSW–LAC | division | — | 1 | | Y |
+| GSW–PHX | division | — | 1 | | Y |
+| LAL–PHX | division | — | 1 | | Y |
+| LAL–SAC | division | — | 1 | | Y |
+| LAC–SAC | division | — | 1 | | Y |
+| PHX–SAC | division | — | 1 | | Y |
 
 ### Southwest: DAL 1610612742, HOU 1610612745, MEM 1610612763, NOP 1610612740, SAS 1610612759
 
 | Pair | Type | Evidence | Str | Note | Devin |
 |---|---|---|---|---|---|
-| HOU–SAS | division (Texas) | — (playoff history not checked) | 1 | Devin (Rockets fan) to rate; the regional rivalry he describes | |
-| DAL–HOU | division (Texas) | 2015 R1 HOU 4-1 | 1 | Devin to rate | |
-| DAL–SAS | division (Texas) | Playoff history not checked | 1 | Devin to rate | |
-| HOU–MEM | division | — | 1 | | |
-| HOU–NOP | division | — | 1 | | |
-| DAL–MEM | division | — | 1 | | |
-| DAL–NOP | division | — | 1 | | |
-| MEM–NOP | division | — | 1 | | |
-| MEM–SAS | division | — | 1 | | |
-| NOP–SAS | division | — | 1 | | |
+| HOU–SAS | division (Texas) | — (playoff history not checked) | 1 | Devin (Rockets fan) to rate; the regional rivalry he describes | Y |
+| DAL–HOU | division (Texas) | 2015 R1 HOU 4-1 | 1 | Devin to rate | Y |
+| DAL–SAS | division (Texas) | Playoff history not checked | 1 | Devin to rate | Y |
+| HOU–MEM | division | — | 1 | | Y |
+| HOU–NOP | division | — | 1 | | Y |
+| DAL–MEM | division | — | 1 | | Y |
+| DAL–NOP | division | — | 1 | | Y |
+| MEM–NOP | division | — | 1 | | Y |
+| MEM–SAS | division | — | 1 | | Y |
+| NOP–SAS | division | — | 1 | | Y |
 
 ---
 
@@ -165,26 +165,26 @@ crowd and the standings race can pull a player in.
 
 | # | Pair (ids) | Type | Evidence | Str | Why it would matter for a questionable player | Devin |
 |---|---|---|---|---|---|---|
-| H1 | LAL 1610612747 – BOS 1610612738 | Finals history | 12 Finals meetings (BOS 9-3; last 2008, 2010) | 3 | The marquee national-TV game: the participation policy pushes stars to play (against F10a). This is the cleanest test of "rivalry → sits" vs "rivalry → TV → plays" | |
-| H2 | CLE 1610612739 – GSW 1610612744 | Finals history | Finals 2015-2018, four in a row (GSW 3-1) | 2 | The GSW core (Curry, Green) remains; the CLE side has turned over. Mostly a fan/media rivalry now | |
-| H3 | SAS 1610612759 – MIA 1610612748 | Finals history | 2013 MIA 4-3; 2014 SAS 4-1 | 2 | Neither roster overlaps; historic only. Giannis is now in MIA | |
-| H4 | NYK 1610612752 – SAS 1610612759 | Finals history (recent) | 1999 SAS 4-1; **2026 NYK 4-1** (Brunson Finals MVP) | 3 | Finals rematch with intact cores (Brunson, Wembanyama). National TV is near-certain, so the policy pushes toward playing | |
-| H5 | OKC 1610612760 – IND 1610612754 | Finals history (recent) | 2025 OKC 4-3 | 2 | | |
-| H6 | GSW 1610612744 – BOS 1610612738 | Finals history (recent) | 2022 GSW 4-2 | 2 | Both cores largely intact | |
-| H7 | DEN 1610612743 – MIA 1610612748 | Finals history (recent) | 2023 DEN 4-1 | 1 | | |
-| H8 | BOS 1610612738 – DAL 1610612742 | Finals history (recent) | 2024 BOS 4-1 | 1 | Doncic has left DAL | |
-| H9 | LAL 1610612747 – MIA 1610612748 | Finals history | 2020 LAL 4-2 | 1 | | |
-| H10 | LAL 1610612747 – DET 1610612765 | Finals history | 1988 LAL 4-3; 1989 DET 4-0; 2004 DET 4-1 | 1 | Historic only | |
-| H11 | MIA 1610612748 – DAL 1610612742 | Finals history | 2006 MIA 4-2; 2011 DAL 4-2 | 1 | Historic only | |
-| H12 | HOU 1610612745 – GSW 1610612744 | Playoff history | 5 series, all GSW: 2015 WCF 4-1, 2016 R1 4-1, 2018 WCF 4-3, 2019 R2 4-2, 2025 R1 4-3 | 3 | **Rockets.** Fresh seven-game loss (2025) on top of a decade of history; Durant is a former Warrior (that is the "revenge" hypothesis, kept separate) | |
-| H13 | HOU 1610612745 – LAL 1610612747 | Playoff history | 10 series (LAL 7-3); 2020 R2 LAL 4-1; **2026 R1 LAL 4-2** | 2 | **Rockets.** Their most recent playoff exit | |
-| H14 | NYK 1610612752 – IND 1610612754 | Playoff history | 9 series (IND 6-3); 2024 R2 IND 4-3; 2025 ECF IND 4-2 | 3 | Back-to-back series | |
-| H15 | BOS 1610612738 – MIA 1610612748 | Playoff history | 7 series 2010-2024 (ECF 2012, 2020, 2022, 2023); 2024 R1 BOS 4-1 | 3 | | |
-| H16 | NYK 1610612752 – MIA 1610612748 | Playoff history | 6 series (1997-2000, 2012, 2023 R2 MIA 4-2) | 2 | | |
-| H17 | DEN 1610612743 – LAL 1610612747 | Playoff history | 9 series; 2020 WCF LAL 4-1, 2023 WCF DEN 4-0, 2024 R1 DEN 4-1 | 3 | | |
-| H18 | OKC 1610612760 – SAS 1610612759 | Playoff history | 2012 WCF OKC 4-2; 2014 WCF SAS 4-2; 2016 R2 OKC 4-2; **2026 WCF SAS 4-3** | 3 | The top two West teams of 2025-26; likely playoff stakes again | |
-| H19 | NYK 1610612752 – CLE 1610612739 | Recent playoffs | 2023 R1 NYK 4-1; 2026 ECF NYK 4-0 | 2 | | |
-| H20 | DAL 1610612742 – MIN 1610612750 | Recent playoffs | 2024 WCF DAL 4-1 | 1 | The Edwards–Doncic series, but Doncic is no longer in DAL, so this is a player pair (P1), not a team pair | |
+| H1 | LAL 1610612747 – BOS 1610612738 | Finals history | 12 Finals meetings (BOS 9-3; last 2008, 2010) | 3 | The marquee national-TV game: the participation policy pushes stars to play (against F10a). This is the cleanest test of "rivalry → sits" vs "rivalry → TV → plays" | Y |
+| H2 | CLE 1610612739 – GSW 1610612744 | Finals history | Finals 2015-2018, four in a row (GSW 3-1) | 2 | The GSW core (Curry, Green) remains; the CLE side has turned over. Mostly a fan/media rivalry now | Y |
+| H3 | SAS 1610612759 – MIA 1610612748 | Finals history | 2013 MIA 4-3; 2014 SAS 4-1 | 2 | Neither roster overlaps; historic only. Giannis is now in MIA | Y |
+| H4 | NYK 1610612752 – SAS 1610612759 | Finals history (recent) | 1999 SAS 4-1; **2026 NYK 4-1** (Brunson Finals MVP) | 3 | Finals rematch with intact cores (Brunson, Wembanyama). National TV is near-certain, so the policy pushes toward playing | Y |
+| H5 | OKC 1610612760 – IND 1610612754 | Finals history (recent) | 2025 OKC 4-3 | 2 | | Y |
+| H6 | GSW 1610612744 – BOS 1610612738 | Finals history (recent) | 2022 GSW 4-2 | 2 | Both cores largely intact | Y |
+| H7 | DEN 1610612743 – MIA 1610612748 | Finals history (recent) | 2023 DEN 4-1 | 1 | | Y |
+| H8 | BOS 1610612738 – DAL 1610612742 | Finals history (recent) | 2024 BOS 4-1 | 1 | Doncic has left DAL | Y |
+| H9 | LAL 1610612747 – MIA 1610612748 | Finals history | 2020 LAL 4-2 | 1 | | Y |
+| H10 | LAL 1610612747 – DET 1610612765 | Finals history | 1988 LAL 4-3; 1989 DET 4-0; 2004 DET 4-1 | 1 | Historic only | Y |
+| H11 | MIA 1610612748 – DAL 1610612742 | Finals history | 2006 MIA 4-2; 2011 DAL 4-2 | 1 | Historic only | Y |
+| H12 | HOU 1610612745 – GSW 1610612744 | Playoff history | 5 series, all GSW: 2015 WCF 4-1, 2016 R1 4-1, 2018 WCF 4-3, 2019 R2 4-2, 2025 R1 4-3 | 3 | **Rockets.** Fresh seven-game loss (2025) on top of a decade of history; Durant is a former Warrior (that is the "revenge" hypothesis, kept separate) | Y |
+| H13 | HOU 1610612745 – LAL 1610612747 | Playoff history | 10 series (LAL 7-3); 2020 R2 LAL 4-1; **2026 R1 LAL 4-2** | 2 | **Rockets.** Their most recent playoff exit | Y |
+| H14 | NYK 1610612752 – IND 1610612754 | Playoff history | 9 series (IND 6-3); 2024 R2 IND 4-3; 2025 ECF IND 4-2 | 3 | Back-to-back series | Y |
+| H15 | BOS 1610612738 – MIA 1610612748 | Playoff history | 7 series 2010-2024 (ECF 2012, 2020, 2022, 2023); 2024 R1 BOS 4-1 | 3 | | Y |
+| H16 | NYK 1610612752 – MIA 1610612748 | Playoff history | 6 series (1997-2000, 2012, 2023 R2 MIA 4-2) | 2 | | Y |
+| H17 | DEN 1610612743 – LAL 1610612747 | Playoff history | 9 series; 2020 WCF LAL 4-1, 2023 WCF DEN 4-0, 2024 R1 DEN 4-1 | 3 | | Y |
+| H18 | OKC 1610612760 – SAS 1610612759 | Playoff history | 2012 WCF OKC 4-2; 2014 WCF SAS 4-2; 2016 R2 OKC 4-2; **2026 WCF SAS 4-3** | 3 | The top two West teams of 2025-26; likely playoff stakes again | Y |
+| H19 | NYK 1610612752 – CLE 1610612739 | Recent playoffs | 2023 R1 NYK 4-1; 2026 ECF NYK 4-0 | 2 | | Y |
+| H20 | DAL 1610612742 – MIN 1610612750 | Recent playoffs | 2024 WCF DAL 4-1 | 1 | The Edwards–Doncic series, but Doncic is no longer in DAL, so this is a player pair (P1), not a team pair | Y |
 
 Other single recent series (2023-2026, cross-division) that would get strength 1 if Devin wants them:
 LAL–MEM 2023 R1; BOS–ATL 2023 R1; MIA–MIL 2023 R1; PHX–DEN 2023 R2; BOS–CLE 2024 R2; DAL–OKC
