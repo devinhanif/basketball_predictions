@@ -5,7 +5,8 @@
 2. the-odds-api plan: live capture now asks for 89 markets x 12 points (~2,136 credits/game, ~459k in a peak month, ~2.63M a season). 2.30M remain after tonight's 1.14M back-fill. When does the billing period reset? Cancelling START 5M stops all captures; with 89 markets the smallest fitting plan is no longer START 100K — tell me which plan and I'll size the market groups to it (groups can be switched off in configs/odds_live.yaml). Also: check the first live raw file on 10-20 (new market shapes parsed from vendor docs).
 3. Any 2025 holdout touch the loop finds a case for (none taken overnight without your words).
 4. SEQ network blend on regular-season rows: real -0.011/-0.012 points gain, guard-clean without playoffs (T466). Test it as a new rule on the 2025 holdout (SEQ untouched) or the live log? Your call.
-5. Open questions listed in docs/reviews/ledger_audit_2026-10-12_pass2.md (N14).
+5. PACE_TOTALS (docs/prereg/PACE_TOTALS.md) is drafted but not frozen: the market total already contains pace (corr 0.78; leftover signal +0.025, CI spans 0), prior of a pass ~5%. Confirm its floors (-0.05 CRPS, -0.002 log loss, +1.0% ROI) or drop it.
+6. Open questions listed in docs/reviews/ledger_audit_2026-10-12_pass2.md (N14).
 
 ## In flight at start
 - Adversary attack on RECENT_ROLE_HOLDOUT (the one holdout pass; Devin worried).
@@ -30,3 +31,4 @@
 - 02:56 Odds: live capture widened to 89 markets (19ff991); 2023-24 period lines back-filled for every game (106f0f7, 1.14M credits): quarter/half moneyline, spread, total from 10-16 books; Q1 player props only in 2024 (1-2 books).
 - 02:58 Q1 transfer diagnostic (e019376, 286c7b9): no structural cap — CRPS gain tracks how close pi gets to perfect; the recent-role pi closed 2.4% of the gap (AUC 0.855 -> 0.864); oracle-like gains need AUC > 0.95, i.e. lineup-time information. Short component, clip and mixing formula worth <= 0.003 combined. Candidate (not run): refit pi on T-15/T-30 information. Started Q2 RECENT_ROLE_FULL draft.
 - 02:58 Full test suite after the live batch: 2,723 passed, 1 skipped, coverage 72.57%.
+- 03:17 Pace (A): props do NOT under-use pace (pts slope per sd +0.060 [-0.017, +0.138]; pace already in r20 scoring, corr 0.57). Periods (B): market ahead of our period winners in every period (log loss +0.002 to +0.007), naive period totals lose to the line everywhere, Q1 player pts ties the line on MAE but loses on log loss (+0.014). PACE_TOTALS drafted, NOT frozen: the line already carries pace (corr 0.78, residual vs pace +0.025 [-0.029, +0.079]); floors need Devin.
