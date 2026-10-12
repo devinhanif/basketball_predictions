@@ -397,7 +397,8 @@ def run_usage_redistribution_eval(
             f"max_season={max_season} touches the frozen 2025 holdout; the pre-registered "
             f"plan allows season < 2025 here (<= {MAX_ALLOWED_SEASON})."
         )
-    cfg = trigger or ReportTriggerConfig()
+    # closed experiment: frame built on the 19:00 proxy, no tip table; explicit, not the default
+    cfg = trigger or ReportTriggerConfig(tip_source="proxy19")
 
     games_df = _q(
         con,
@@ -768,6 +769,7 @@ def main(argv: list[str] | None = None) -> int:
         statuses=tuple(s.strip().lower() for s in args.statuses.split(",") if s.strip()),
         tipoff_hour_et=args.tip_hour,
         table=table,
+        tip_source="proxy19",  # closed experiment on the proxy (no tip table); explicit
     )
     result = run_usage_redistribution_eval(
         con,

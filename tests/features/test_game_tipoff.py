@@ -52,15 +52,25 @@ def test_matinee_does_not_use_post_tip_report_when_real() -> None:
     assert flag["g2"] == {2}  # 20:00 tip: 17:00 snapshot is fine
 
 
-def test_proxy19_default_unchanged_and_admits_post_tip_report() -> None:
-    flag, _ = latest_pretip_flagged(_rows(), ReportTriggerConfig())
+def test_proxy19_is_opt_in_and_admits_post_tip_report() -> None:
+    proxy = ReportTriggerConfig(tip_source="proxy19")
+    flag, _ = latest_pretip_flagged(_rows(), proxy)
     assert flag["g1"] == {2}  # documents the known proxy defect
     # proxy path ignores any tip_et column: byte-identical
     withtip = attach_real_tips(_rows(), _tips())
-    flag2, used2 = latest_pretip_flagged(withtip, ReportTriggerConfig(tip_source="proxy19"))
-    f0, u0 = latest_pretip_flagged(_rows(), ReportTriggerConfig())
+    flag2, used2 = latest_pretip_flagged(withtip, proxy)
+    f0, u0 = latest_pretip_flagged(_rows(), proxy)
     assert flag2 == f0 and used2 == u0
-    assert ReportTriggerConfig().tip_source == "proxy19"
+
+
+def test_default_report_trigger_is_real_tip() -> None:
+    """N15 (2026-10-12): the default is the real tip; a default config no longer admits the matinee
+    post-tip report, and it refuses rows that carry no tip rather than silently using the proxy."""
+    assert ReportTriggerConfig().tip_source == "real"
+    flag, _ = latest_pretip_flagged(attach_real_tips(_rows(), _tips()), ReportTriggerConfig())
+    assert flag["g1"] == {1}
+    with pytest.raises(ValueError, match="tip_et"):
+        latest_pretip_flagged(_rows(), ReportTriggerConfig())
 
 
 def test_missing_real_tip_falls_back_to_proxy() -> None:
@@ -104,9 +114,9 @@ def test_production_defaults_are_real_tip_and_proxy19_still_available() -> None:
     assert InjuryFeatureConfig().tip_source == "real"
     assert feature_config_from(load_config("configs/injury_elo.yaml")).tip_source == "real"
     assert ContextResidualConfig().report.tip_source == "real"
-    # the old gate stays selectable, and the raw trigger config keeps its research default
+    # the old gate stays selectable, but only by asking for it
     assert InjuryFeatureConfig(tip_source="proxy19").tip_source == "proxy19"
-    assert ContextResidualConfig(report=ReportTriggerConfig()).report.tip_source == "proxy19"
+    assert ContextResidualConfig(report=ReportTriggerConfig()).report.tip_source == "real"
 
 
 def test_daily_context_training_path_never_uses_post_tip_report(

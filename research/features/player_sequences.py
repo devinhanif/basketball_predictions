@@ -144,7 +144,11 @@ class SeqConfig:
     team_prior_n: float = 5.0
     pace_prior: float = 99.0
     drtg_prior: float = 113.0
-    report: ReportTriggerConfig = field(default_factory=ReportTriggerConfig)
+    report: ReportTriggerConfig = field(
+        default_factory=lambda: ReportTriggerConfig(
+            tip_source="proxy19"
+        )  # closed seq harness: proxy, explicit
+    )
 
 
 @dataclass

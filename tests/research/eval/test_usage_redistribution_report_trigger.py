@@ -48,14 +48,14 @@ def _at(h: int, m: int = 0, days: int = 0) -> dt.datetime:
 
 
 def test_report_after_cutoff_is_ignored() -> None:
-    cfg = ReportTriggerConfig()  # cutoff 18:00
+    cfg = ReportTriggerConfig(tip_source="proxy19")  # cutoff 18:00
     rows = _rows([("g", 1, "out", _at(18, 30)), ("g", 2, "out", _at(20, 0))])
     flagged, used = latest_pretip_flagged(rows, cfg)
     assert flagged == {} and used == {}
 
 
 def test_future_report_is_ignored_and_latest_prior_wins() -> None:
-    cfg = ReportTriggerConfig()
+    cfg = ReportTriggerConfig(tip_source="proxy19")
     rows = _rows(
         [
             ("g", 1, "out", _at(11, 45)),
@@ -74,13 +74,13 @@ def test_status_mapping_out_only_by_default_doubtful_optional() -> None:
     rows = _rows(
         [("g", 1, "out", _at(17)), ("g", 2, "doubtful", _at(17)), ("g", 3, "questionable", _at(17))]
     )
-    assert latest_pretip_flagged(rows, ReportTriggerConfig())[0]["g"] == {1}
-    both = ReportTriggerConfig(statuses=("out", "doubtful"))
+    assert latest_pretip_flagged(rows, ReportTriggerConfig(tip_source="proxy19"))[0]["g"] == {1}
+    both = ReportTriggerConfig(statuses=("out", "doubtful"), tip_source="proxy19")
     assert latest_pretip_flagged(rows, both)[0]["g"] == {1, 2}
 
 
 def test_usable_rows_exactly_lead_before_tip_boundary() -> None:
-    cfg = ReportTriggerConfig(tipoff_hour_et=19.0, lead_minutes=60)
+    cfg = ReportTriggerConfig(tipoff_hour_et=19.0, lead_minutes=60, tip_source="proxy19")
     rows = _rows([("g", 1, "out", _at(18, 0)), ("g", 2, "out", _at(18, 1))])
     assert usable_report_rows(rows, cfg)["player_id"].to_list() == [1]
 
@@ -145,7 +145,7 @@ def test_load_report_rows_filters_source_and_null_game(con: duckdb.DuckDBPyConne
             "VALUES (5, ?, ?, 'out', ?)",
             [_at(12), gid, src],
         )
-    df = load_report_rows(con, ReportTriggerConfig())
+    df = load_report_rows(con, ReportTriggerConfig(tip_source="proxy19"))
     assert df.height == 1 and df["status"][0] == "out"
 
 

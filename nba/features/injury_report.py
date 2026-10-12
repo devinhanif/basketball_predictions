@@ -59,14 +59,15 @@ def _query_to_polars(
 class ReportTriggerConfig:
     """Which official-report rows may trigger 2A/2B, and by when.
 
-    ``games`` carries a DATE only (no tip-off time), so tip-off is a PROXY:
-    ``game_date`` at ``tipoff_hour_et`` (naive, same clock as the report
-    ``as_of``). A report row is usable for a game iff
-    ``as_of <= proxy_tip - lead_minutes`` (hence strictly before tip). Rows
-    stamped later are ignored, never used. Default 19:00 ET puts the cutoff
-    at 18:00, which admits the 17:45 backfill anchor and excludes anything
-    after; matinee tips are a documented limitation (lower ``tipoff_hour_et``
-    for a conservative sensitivity run).
+    ``games`` carries a DATE only (no tip-off time). The default ``tip_source="real"``
+    gates on the scheduled tip-off (``tip_et`` on the rows, attached via
+    ``nba.features.game_tipoff.attach_real_tips``); a game whose real tip is missing
+    falls back to the PROXY: ``game_date`` at ``tipoff_hour_et`` (naive, same clock
+    as the report ``as_of``). A report row is usable for a game iff
+    ``as_of <= tip - lead_minutes`` (hence strictly before tip). Rows stamped
+    later are ignored, never used. The proxy (``tip_source="proxy19"``, 19:00 ET
+    puts the cutoff at 18:00) admitted post-tip reports for matinees and is now
+    opt-in only, for reproducing old runs (N15, 2026-10-12).
     """
 
     statuses: tuple[str, ...] = ("out",)
@@ -74,11 +75,12 @@ class ReportTriggerConfig:
     lead_minutes: int = 60
     sources: tuple[str, ...] = (OFFICIAL_REPORT_SOURCE,)
     table: str = "player_availability"
-    #: "proxy19" (default, production): tip = game_date at ``tipoff_hour_et``.
-    #: "real": tip = scheduled tip-off (``tip_et`` column on the rows, attached
-    #: via ``nba.features.game_tipoff.attach_real_tips``); games whose real tip
-    #: is missing fall back to the proxy.
-    tip_source: str = "proxy19"
+    #: "real" (default, production since 2026-10-09; the default everywhere since 2026-10-12):
+    #: tip = scheduled tip-off (``tip_et`` column on the rows, attached via
+    #: ``nba.features.game_tipoff.attach_real_tips``); games whose real tip is
+    #: missing fall back to the proxy.
+    #: "proxy19" (opt-in, reproduces old runs): tip = game_date at ``tipoff_hour_et``.
+    tip_source: str = "real"
 
     @property
     def cutoff_minutes_after_midnight(self) -> float:

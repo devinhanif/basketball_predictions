@@ -81,7 +81,7 @@ def test_end_to_end_plumbing_on_synthetic_db() -> None:
     try:
         _build_synthetic(con)
         res = run_usage_redistribution_eval(
-            con, n_sims=100, seed=0, n_boot=200, trigger=ReportTriggerConfig()
+            con, n_sims=100, seed=0, n_boot=200, trigger=ReportTriggerConfig(tip_source="proxy19")
         )
         pre = res.preconditions
         assert pre.passed, pre.summary()
