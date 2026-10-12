@@ -1,7 +1,7 @@
 # Training-history extension, 2019-20 and 2020-21 as extra training rows with the injury report MISSING (HISTORY_WINDOW_3): pre-registration
 
-Status: **DRAFT 2026-10-11. Not frozen. One gate item fails on the real data (G1b below: 244 history players have no `players_static` row), so
-this rule must not be frozen until the maintainer runs the free `fetch-static` pull and the gate is re-run.** Devin ("okay, go for it",
+Status: **DRAFT 2026-10-11. Not frozen. Gate PASSES after `fetch-static` (243 of 244 profiles pulled) and the pre-freeze G1b amendment
+(re-run 2026-10-11 21:32 CT, audit sha256 b80a6d22; see the gate section). Freeze waits for Devin's confirmations.** Devin ("okay, go for it",
 2026-10-11) reopened the history-window question as a NEW rule, per the "What would reverse it" line of DECISIONS 2026-10-11 15:14 CDT
 (HISTORY_WINDOW_2 not frozen). Season labels: `season 2019` = 2019-20, `2020` = 2020-21, `2021` = 2021-22 (EXCLUDED here), `2022` = 2022-23,
 `2023` = 2023-24 (select), `2024` = 2024-25 (report). Season 2025 is the frozen holdout and is never loaded (`season <= 2024` in every query).
@@ -149,13 +149,15 @@ leaves), and the danger is mis-attributing that to "history helps". Guards, all 
 
 Run: `python -W ignore -m research.eval.history_window3_eval gate --doc docs/prereg/HISTORY_WINDOW_3.md --draft --repro` (both DBs read-only,
 `season <= 2024`; W0 pts is the only fit; `reports/history_window_3/gate.json`, `audit.json` sha256
-`9b1e88b8af72c9bf83a225225a8a89e89c96f33d2b8d2f23a1237771d77b4be4`). **GATE: NOT PASSING (3 items: G1b, G4, G5, all caused by the same
-column). Do not freeze until G1b is fixed and the gate re-run passes.**
+`9b1e88b8af72c9bf83a225225a8a89e89c96f33d2b8d2f23a1237771d77b4be4`). First run: **NOT PASSING (3 items: G1b, G4, G5, all caused by the same
+column).** Re-run 2026-10-11 21:32 CT after `fetch-static` and the G1b amendment: **GATE PASSES (0 failed items; audit sha256
+b80a6d22e296e636effd71ca925f7a87aa70b94cc5a4919269a07f86b84a0a36; G4 0 flagged history cells, 0 placebo false flags; G5 no era flags;
+W0 pts reproduces).**
 
 | check | measured | pass |
 |---|---|---|
 | G1 data | history games 1,143 (2019) + 1,171 (2020) = 2,314 = the cached schedule exactly (0 missing, 0 extra, 0 duplicates); box rows for 100% of games; `pf/fta/fga` non-NULL on 100% of played rows; 0 DNP rows with non-zero stats; DNP share 0.160 / 0.206 vs current 0.185 / 0.190 / 0.195 (band 0.155-0.225); possession MAE 2.09 / 2.03 (<= 3.0); era flags 100% coverage and valid, 2022+ all False, all 2,314 history games `shortened_season` | yes |
-| **G1b static** | **244 of 638 history players have no `players_static` row in either DB or in the per-player cache** (the history DB's table is empty; `nba.duckdb` covers players seen from 2022). Their `pos_code` is NULL | **no** |
+| **G1b static** (amended pre-freeze 2026-10-11: counts players with at least one PLAYED history row, since the props model trains on played rows only; never-played ids are listed, not failed. After `fetch-static`, 1 id remains without a profile, 1626218, with 2 rows and 0 played) | **244 of 638 history players have no `players_static` row in either DB or in the per-player cache** (the history DB's table is empty; `nba.duckdb` covers players seen from 2022). Their `pos_code` is NULL | **no** |
 | G2 rows (per stat; identical for the four stats) | history eligible rows 21,522 (2019) + 24,522 (2020) = 46,044; W0 training rows 25,110 at the first test block and 80,271 at the last; the block adds +183% (first) and **+57% (last)**; gate: >= 20,000 rows and >= +30% at the last block | yes |
 | G3 treatment | 49,150 history rows, `has_report == 0` on 49,150, `n_out_rot` and all `vac_*` NULL on 49,150; extended frame's current part `equals` the W0 frame; the 118 reportless current rows are NULL in the same columns | yes |
 | **G4 missingness** | 350 feature cells + 26 box cells (13 columns x played/DNP); **flagged: `pos_code`, all five strata, 2019 and 2020 (NULL 24.2% in 2019, 17.2% in 2020, 0.0% in 2022-24; lower bound of \|D\| 0.234 / 0.166 vs T = 0.0)**; no other column: the largest non-`pos_code` history deviation is 0.0009 against a placebo maximum of 0.0029 (the 0.01 floor binds); placebo (current seasons) false flags: 0; box columns (incl. minutes NULL in DNP rows 0.998-1.000 in every season): 0 flagged | **no** |

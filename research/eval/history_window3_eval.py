@@ -875,10 +875,16 @@ def run_gate(
     _log("G1 data completeness")
     items["G1_data"] = data_gate(w, games_dir, hist_db)
     miss_static = history_static_missing(w)
+    # Amended pre-freeze (2026-10-11): the props model trains on PLAYED rows only, so the gate
+    # covers players with at least one played history row; never-played ids are listed, not failed.
+    played_ids = set(w.hist["pgs"].filter(pl.col("minutes") > 0)["player_id"].unique().to_list())
+    miss_played = [i for i in miss_static if i in played_ids]
     items["G1b_static"] = {
         "history_players": int(w.hist["pgs"]["player_id"].n_unique()),
         "without_static_in_either_db_or_cache": len(miss_static),
-        "pass": bool(not miss_static),
+        "without_static_and_played": len(miss_played),
+        "never_played_without_static": sorted(int(i) for i in miss_static if i not in played_ids),
+        "pass": bool(not miss_played),
         "remedy": "python -W ignore -m research.eval.history_window3_eval fetch-static (free nba_api, ~0.6 s per player, resumable)",
     }
     _log("G2 eligible training rows")
