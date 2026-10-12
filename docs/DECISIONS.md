@@ -563,7 +563,7 @@ Why: 240 duplicate snapshot groups made the T-30 reader skip 4 of 6 decisions; t
 What would reverse it: official team box totals making the formula an identity (re-tighten it); a feed change that makes Expected rows later
 than Confirmed ones meaningful (re-rank the dedup winner).
 
-**2026-10-11 ~21:30 CT — Lineup dedup rule frozen (Devin: "yes"); possession fixture bound restored (Devin: "yes").**
+**2026-10-11 20:32 CDT — Lineup dedup rule frozen (Devin: "yes"); possession fixture bound restored (Devin: "yes").**
 What: (1) Per (snapshot, game, team): the team's status is Confirmed if any of its rows is Confirmed, else Expected. A player is a starter
 only if a row carrying that winning status has `announced_starter` TRUE (OR over winning-status rows only; never across statuses, never
 "latest row wins"). One shared implementation in `nba/lineups/store.py`, used by both `nba/daily/t30.py` and the view `lineup_snapshots_dedup`.
@@ -592,7 +592,7 @@ facts look known. The first game of a stint is therefore not known before its ti
 What would reverse it: a dated hiring source (press release dates) that makes known_at earlier and verifiable; or BR page layout/terms changes that
 stop the fetch (the cached raw HTML stays the record).
 
-**2026-10-11 ~23:30 CT — Decision scoring is the standard decision metric (Devin: "yes to all").**
+**2026-10-11 21:25 CDT — Decision scoring is the standard decision metric (Devin: "yes to all").**
 What: every pre-registration that makes a betting-relevant claim declares, next to its accuracy metric, the decision score in
 `docs/DECISION_SCORING.md` (`nba/markets/decision_scoring.py`): legs selected by model EV after the actual price at thresholds 0/2/5/10%,
 one unit per bet, ROI with a game-clustered CI, against the market-lean and random comparators of the same count.
@@ -601,7 +601,7 @@ across thresholds, above market-lean (-3.9% to -5.1%) and random (about -6%), no
 hit 57.0%). Two follow-ups approved the same hour: a rebounds rule scored on the live 2026-27 log only, and a market-shrinkage calibration rule.
 What would reverse it: a stake or fee convention a rule needs that this metric cannot express (then the rule states its own, in advance).
 
-**2026-10-11 ~23:45 CT — Preseason (001) and All-Star (003) games are skipped by the daily path (Devin: "can you not do stuff on the preseason games").**
+**2026-10-11 21:28 CDT — Preseason (001) and All-Star (003) games are skipped by the daily path (Devin: "can you not do stuff on the preseason games").**
 What: `nba/daily/schedule.py::slate_for_date` (the single slate builder for the daily run, T-30, the lineups tick and replay) drops 001/003 game ids;
 the parlay shadow (`nba/parlay/slate.py`) and LLM shadow (`nba/shadow_llm/run.py`) skip stored 001/003 rows. Jobs still start and heartbeat; a
 preseason-only date prints "no regular-season games: N preseason skipped" and exits 0. Existing 136 forward_predictions and 10 forward_t30_decisions
@@ -609,7 +609,7 @@ preseason rows are kept, marked unscorable rehearsal rows in DAILY_PIPELINE.md. 
 Why: `games` never holds 001/003, so forward rows on them can never settle; they cluttered logs and the T-30 review.
 What would reverse it: a need to rehearse T-30 or lineup feeds on preseason slates (drop the prefix test in `slate_for_date`).
 
-**2026-10-11 ~22:45 CT — HISTORY_WINDOW_3 FROZEN (sha256 32e05aec, commit c7d16ae).**
+**2026-10-11 21:33 CDT — HISTORY_WINDOW_3 FROZEN (sha256 32e05aec, commit c7d16ae).**
 What: props training adds 2019-20 and 2020-21 as rows with the injury report missing, 2021-22 excluded; arms A1, A2 (history weight 0.5),
 knockouts K0/K1; select 2023, report 2024; pass means shadow logging only. Gate passed after the free `fetch-static` pull (243 of 244 history
 profiles) and a pre-freeze amendment of G1b to played players only (the one profile-less id never played).
@@ -621,7 +621,7 @@ What: MARKET_SHRINK frozen as drafted (sha256 c128896a, commit b5522fe) on Devin
 Why: the rule asked whether a calibrated shrink keeps the model's information and turns it into decisions; the answer on these two seasons is no, and the unshrunk model's over-confidence is the main thing the shrink repairs.
 What would reverse it: a separately pre-registered live-log test (REB_LIVE_2026_27 covers the rebounds cell); nothing on 2023-24 data.
 
-**2026-10-11 ~23:00 CT — HISTORY_WINDOW_3: NULL; props history direction closed for 2026-27.**
+**2026-10-11 21:47 CDT — HISTORY_WINDOW_3: NULL; props history direction closed for 2026-27.**
 What: T420-T423. Both arms fail: 2023 gains (pts -0.0108 [-0.0156, -0.0059]) do not replicate in 2024 (pts +0.0035 [+0.0000, +0.0073]).
 Production unchanged. Why: the extra seasons substitute for current-season data only while that is short. What would reverse it: a model that
 starts cold (new stat, new league) or a training window cut to one season.
@@ -631,8 +631,16 @@ What: seven families (USAGE_PACE, EFFICIENCY, PLAYMAKING, REBOUNDING, SHOT_PROFI
 Why: Devin asked for usage x pace, PPR and advanced rates as time series with shot-type and defense context; the repo's record says expect a null, so the rule closes it either way.
 What would reverse it: nothing above the results marker changes; a new question gets a new id. One pre-registered follow-up at most.
 
-**2026-10-11 ~23:15 CT — ENSEMBLE FROZEN (sha256 e26b1657, commit 8b3ee07).**
+**2026-10-11 21:52 CDT — ENSEMBLE FROZEN (sha256 e26b1657, commit 8b3ee07).**
 What: E1 minutes-gated XGBoost/production router (pts), E2 SEQ walk-forward replication, E3 SEQ with 2019-21 history (report tokens zero,
 2021-22 excluded), E4 combination; A0 = production + lower-tail mixture; select 2023, report 2024; pass means shadow arm only.
 Why: Devin's "go", then "yes build that for colab and then we will run that tonight", then "Ok set the colab up for me". Gate passed after
 fetch-static (0 of 49,150 history rows without position). What would reverse it: nothing above the results marker changes.
+
+**2026-10-11 22:03 CDT — Timestamp correction (labels only).**
+What: six DECISIONS headings written this evening carried estimated times ("~21:30 CT" to "~23:45 CT") instead of clock times; they now carry
+the commit times (20:32, 21:25, 21:28, 21:33, 21:47, 21:52 CDT). The frozen status lines of HISTORY_WINDOW_3 ("~22:45 CT"; commit c7d16ae at
+21:33 CDT) and ENSEMBLE ("~23:15 CT"; commit 8b3ee07 at 21:52 CDT) cannot be edited without changing their sha256; the commit times are the
+true freeze times. No order changed: each freeze commit precedes its first fit. Same incident class as the 17:10 entry; the BEST_PRACTICES
+rule (run `date` first) was not followed by the main session.
+Why: freeze order is only auditable if the times are true. What would reverse it: nothing.
