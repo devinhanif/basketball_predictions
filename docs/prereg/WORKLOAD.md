@@ -1,6 +1,6 @@
 # WORKLOAD: accumulated load, schedule density and travel as predictors of who sits, who is cut, and what they produce (pre-registration)
 
-Status: DRAFT (Sun Oct 11 22:58 CDT 2026), written by the modeler. Not frozen. The main session reads it with Devin and commits
+Status: **FROZEN (Sun Oct 11 23:25 CDT 2026) by the main session on Devin's "yes to all": Cell P tests all not-OUT absences (rest-DNP cell descriptive only); Cell P is the one PPLAY_CONTEXT follow-up and the P(play) family closes after it; minutes floor -0.10 min kept.** Earlier: DRAFT (Sun Oct 11 22:58 CDT 2026), written by the modeler. Not frozen. The main session reads it with Devin and commits
 `prereg(WORKLOAD): <sha256>` BEFORE any arm is fitted. Everything above the line `=== RESULTS BELOW ===` is the rule. Freeze evidence once
 committed: commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/WORKLOAD.md | shasum -a 256` (first 8 hex into the
 results section and every ledger row). Season labels are `games.season` (2023 = 2023-24, 2024 = 2024-25, 2025 = frozen holdout, never loaded).
