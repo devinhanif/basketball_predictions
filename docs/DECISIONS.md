@@ -911,3 +911,6 @@ Why: one clean 2025 touch for a fixed model. What would reverse it: nothing afte
 
 **2026-10-12 13:50 CDT — FULL_SHADOW_LIVE_2026_27 FROZEN (sha256 13831b52, commit 859e214; rule text ce754fc).**
 What: comparator A (lower-tail arm), K=100 permutation null, sigma_N 0.00199 (was 0.00229 at K=48); pass line at n_min about -0.00598; stated power 0.78 at the 2023/24 effect size. Frozen before opening night with the live tables empty. Why: Devin's "a yes". What would reverse it: nothing above the marker.
+
+**2026-10-12 13:58 CDT — live-path commits after the replay oracle (IDENTICAL 89889f6d, data/rehearsal/oracle_late.duckdb, 20 dates).**
+What: 704a8dd late-scratch descriptive section in the morning report (read-only, no scored arm); 33e437a official-roster window extended to 2026-11-30 inclusive in ops/roster_source.sh (Devin, "extend date"), and the LLM shadow claude_code provider with the approved hardening, 3-search cap, 5-game sample and detached launch (flag NBA_LLM_SHADOW still off; prereg LLM_SHADOW_2026_27 still DRAFT). Verified: ruff, format, mypy nba/, 169 tests (ops, late scratch, shadow_llm, layering). What would reverse it: ROSTER_OFFICIAL_THROUGH back to 2026-11-03; remove the _late_scratch_section call; provider back to anthropic.
