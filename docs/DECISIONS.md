@@ -755,3 +755,11 @@ the holdout, carries the recent-role information into the live test (PPLAY_INTO_
 **2026-10-12 01:43 CDT - label-group NULL check added to `datamanifest check`; "Not Yet Submitted" kept as team sections (commit 26bbb70).**
 What: `LABEL_NULL_GAP` (gap >= 0.10 across minutes buckets and home/away win, seasons <= 2024) joins the played/unplayed check; the report parser can emit `filed` / `not_yet_submitted` team sections, no table is reloaded. Why: audit pass 2, N7, N11 (Devin "handle everything"); live manifest 0 flags; placeholder-only teams 1.6-1.9% of team-games, absent 3.3-3.5%, no rule is warranted yet. What would reverse it: the check flags a structural column that needs a standing allowlist, or a reviewed section feature shows no information over the OUT list.
 
+
+**2026-10-12 02:03 CDT — RECENT_ROLE_HOLDOUT survives the adversary (T462); attribution corrected (T463); consent-time label corrected.**
+What: the holdout pass stands. The status line and holdout-log row label Devin's "go for it" as "~00:50 CDT"; that was an estimate. His
+message preceded the freeze commit (f8cae43, 00:47:58 CDT) and the run (00:48:13-00:49:22). The adversary scored diagnostic arms on 2025
+beyond its brief; disclosed in HOLDOUT_ACCESS_LOG. The shadow will also log C and C' so the live log can confirm R against C, not only
+against production (adversary recommendation; shadow-only, production outputs unchanged, oracle-gated).
+Why: docs/reviews/recent_role_holdout_review_2026-10-12.md. What would reverse it: live R minus C above -0.010 at >= 300 games, or R minus
+production above -0.05 (a parity fault).
