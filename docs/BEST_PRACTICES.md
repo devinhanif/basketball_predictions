@@ -147,3 +147,9 @@ data-capture audit is written into the draft: which seasons and sources were use
 be fetched or repaired (cost, leak risk), and the gate re-measured on the fullest admissible data. Era differences (2019-20 bubble,
 2020-21 COVID schedule and empty arenas) are flagged as features or excluded, never papered over with invented rows. Power is still set by
 the report season; more training rows do not rescue a report season that is too small.
+
+## Check a new rule's lineage before freezing (2026-10-12)
+Incident: SEQ_FULL_MIX_RT was frozen as a W_ALL sequence model without noticing it is essentially ENSEMBLE E3, which an earlier
+pre-registered guard (era-embedding probe, T443) had ruled ineligible; the new rule silently lacked that guard. Rule: before any freeze,
+search the ledger for ancestors of the construction (same model family, same training window or features) and list in the draft every
+guard that ever disqualified an ancestor, with "carried forward" or "dropped because ..." stated before any result.
