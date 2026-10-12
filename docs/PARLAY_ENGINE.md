@@ -12,10 +12,32 @@ No order code, no credentials. Paper trades and a shadow log go to a separate wr
 - **Copula** (`joint.py`): one latent per (margin, total, player-stat). Correlations pooled by relation (same_player / teammate / opponent x stat pair),
   player vs own-team margin, player vs total, margin vs total; shrunk (k = 200) and Higham-repaired. Gaussian or t (df 6). Estimated on 2023-24 OOF
   (context-residual OOF + injury-Elo OOF + box scores), 35 pooled pairs, n >= 1300 games each.
-- **DNP** (`dnp_leg_policy` / `--dnp-policy`, default `void`): availability is assumed independent of the other latents.
-  `void`: a DNP leg voids the whole contract, stake and fee refunded (EV = P(all play) * (P(hit | play) - cost)).
-  `loss`: a DNP leg loses whatever the side. Kalshi's real rule is unconfirmed; both are implemented and settle consistently.
+- **DNP** (`--dnp-policy`, default `last_fair_price` for the Kalshi commands; availability is assumed independent of the other latents):
+  - `last_fair_price` (Kalshi): the market settles at the last fair market price before game start. Source: field `rules_secondary` of the
+    stored market objects, e.g. `data/kalshi/raw/kalshi-markets/hist:KXNBAPTS:first:100.json`: "If a player is active but never takes the
+    court, the market settles to the last fair market price before game start. Once a player enters the game the market settles based on
+    the player's points recorded." EV = P(all play) * (P(hit | play) - cost) + (1 - P(all play)) * (L - cost), L = the prediction-time mid
+    (a proxy: the true last fair price is only known at tip). Paper/shadow settlement of such a DNP stores NO outcome and NO pnl (the
+    settlement price is not recorded; nothing is guessed). The sentence covers an ACTIVE player only: an INACTIVE player (not covered by
+    the text) is unconfirmed; check one live prop series on 2026-10-20.
+  - `void`: stake and fee refunded (EV = P(all play) * (P(hit | play) - cost)). Optimistic. Rule per book: unknown for every book in
+    `nba/odds` (The Odds API books incl. Pinnacle); no DNP rule is stored in the repo or in the odds payloads, so none is assumed: use
+    `void` or `loss` there only as labelled sensitivity bounds, never as the book's rule.
+  - `loss`: a DNP leg loses whatever the side (pessimistic bound).
   Blowout (|margin|) minute cuts are NOT captured by the linear copula.
+
+## Roster source and the market-skill gate (ledger audit pass 2 N4, N6)
+- **Slate roster** (`slate.load_slate(..., roster_source)`; CLI `--roster-source recent|official` on `evaluate` and `analyze`, default `recent`
+  like `nba.daily`): `official` puts each player on his CURRENT team from the cached pre-tip official roster (`data/rosters/<date>/<team>.parquet`,
+  cache only, never a request), so movers and rookies are placed (about 26-27% of opening-week rotation players were not under `recent`).
+  Missing cache -> falls back to `recent` and says so. A player who still cannot be placed is never silently dropped: `SlateInfo.dropped` lists
+  (game, player, stat, reason) and `evaluate` prints it. Use `--roster-source official` whenever the daily run does.
+- **Gate**: model weight above 0 requires (a) >= `min_settled_for_claims` settled rows, (b) >= `min_settled_dates_for_claims` slate dates, and (c) the
+  LOWER bound of a two-sided game-clustered (CR1, t on G-1 df) `gate_ci_level` CI of the paired per-row Brier difference (market - model) above 0.
+  A point estimate, or fewer than 3 games, never opens it; the default verdict is `no_positive_ev_found`.
+- **Calibration sd** (`interval.calibration_logit_sd` 0.6, `_tail` 1.6 beyond `tail_cut` 0.70): from the measured over-confidence in
+  docs/FAN_KNOWLEDGE.md (80-95% claims right 54-63%, 90-95% right 54%; logit gap about 0.6 to 2.3), replacing the unmeasured 0.15. With it a
+  p = 0.80 leg's 80% interval no longer clears a 0.40 ask: only very extreme forecasts can flag, which is the intended conservatism.
 
 ## Joint calibration, 2023-24 OOF (`reports/parlay/joint_calibration.md`)
 15,798 synthetic same-game parlays (2-4 legs) over 2,633 games; pre-registered rule in `joint_eval.py` (copula kept iff joint log loss CI excludes 0, game-clustered).

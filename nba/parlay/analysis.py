@@ -34,7 +34,7 @@ from nba.parlay.__main__ import (
     side_quote,
 )
 from nba.parlay.config import ParlayConfig, load_config
-from nba.parlay.ev import NO_POSITIVE_EV, Recommendation, prob_interval
+from nba.parlay.ev import NO_POSITIVE_EV, Recommendation, calibration_sd, prob_interval
 from nba.parlay.joint import JointModel
 from nba.parlay.kalshi_map import MarketRow, load_team_abbr
 from nba.parlay.legs import Leg
@@ -123,6 +123,9 @@ class Analysis:
             "min_settled": c.min_settled,
             "min_settled_dates": c.min_settled_dates,
             "skill_vs_market": self.tr.skill,
+            "brier_gain_mean": self.tr.diff_mean,
+            "brier_gain_lower_bound": self.tr.diff_lo,
+            "n_games": self.tr.n_games,
             "gated_skill": self.tr.gated_skill(c.min_settled_dates),
             "gate_open": self.gate_open and self.tr.gated_skill(c.min_settled_dates) > 0,
             "describe": self.tr.describe(),
@@ -175,10 +178,10 @@ def _raw_interval(rec: Recommendation, n_sims: int, cfg: ParlayConfig) -> tuple[
     p = rec.raw_model_prob
     if n_sims == 0:
         return prob_interval(
-            round(p * 1000), 1000, cfg.alpha, cfg.calibration_logit_sd, cfg.n_draws, 0
+            round(p * 1000), 1000, cfg.alpha, calibration_sd(cfg, p), cfg.n_draws, 0
         )
     return prob_interval(
-        round(p * n_sims), n_sims, cfg.alpha, cfg.calibration_logit_sd, cfg.n_draws, 0
+        round(p * n_sims), n_sims, cfg.alpha, calibration_sd(cfg, p), cfg.n_draws, 0
     )
 
 
@@ -311,9 +314,10 @@ def build_analysis(
     model_path: Path | str = DEFAULT_MODEL,
     config: Path | str | None = None,
     engine: str | None = None,
-    dnp_policy: str = "void",
+    dnp_policy: str = "last_fair_price",
     names: Any = None,
     shadow: bool = True,
+    roster_source: str = "recent",
 ) -> Analysis:
     """Price every mapped, pre-tip single-leg contract (both sides) for ``slate``."""
     cfg = load_config(config) if config else load_config()
@@ -333,7 +337,7 @@ def build_analysis(
     if have_k:
         con.execute(f"ATTACH '{kalshi_db}' AS kal (READ_ONLY)")
     try:
-        info = load_slate(con, slate, params, prefix="nba.", as_of=now)
+        info = load_slate(con, slate, params, prefix="nba.", as_of=now, roster_source=roster_source)
         markets = load_open_markets(con, before=now) if have_k else []
         prim, shadow_blobs = _load_forward(con, slate, now)
         out_by_team, allow = _drivers_db(con, slate, now, info, names)

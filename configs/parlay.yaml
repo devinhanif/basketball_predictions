@@ -21,10 +21,21 @@ engine:
   corr_shrink_k: 200.0            # pseudo-count shrinking pairwise rho toward 0
 interval:
   alpha: 0.20                     # 80% interval
-  calibration_logit_sd: 0.15      # extra marginal uncertainty on the logit scale
+  # Extra marginal uncertainty on the logit scale. Measured, not assumed (docs/FAN_KNOWLEDGE.md,
+  # "can the model say no"; ledger audit pass 2 N6): model claims of 80-95% are right 54-63%
+  # (n 96-506 per bin), 90-95% right 54% (n 48): a logit gap of ~0.6 to ~2.3. The old 0.15 was
+  # an unmeasured guess. 0.6 is the LOW end of the measured gap, used everywhere; legs the model
+  # puts beyond tail_cut (or below 1 - tail_cut) are the most over-confident bin and use 1.6
+  # (the 80-95% bin gap, logit(0.875) - logit(0.585)).
+  calibration_logit_sd: 0.6
+  calibration_logit_sd_tail: 1.6
+  tail_cut: 0.70
   n_draws: 4000
 market_prior:
   k: 100.0                        # weight = n_settled / (n_settled + k), gated by skill
+  # The skill gate opens only if the LOWER bound of this two-sided game-clustered CI of the paired
+  # Brier difference (market - model, per row) is > 0. A point estimate never opens it.
+  gate_ci_level: 0.95
 sizing:
   kelly_fraction: 0.25
   kelly_cap: 0.02                 # informational stake cap as bankroll fraction

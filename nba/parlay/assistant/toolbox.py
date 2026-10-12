@@ -31,7 +31,7 @@ from nba.parlay.__main__ import (
 from nba.parlay.assistant.names import NameResolver, PlayerResolutionError
 from nba.parlay.assistant.tools import PAPER_LOG_SPEC, TOOL_SPECS, ArgError, validate
 from nba.parlay.config import ParlayConfig
-from nba.parlay.ev import NO_POSITIVE_EV, Recommendation, prob_interval
+from nba.parlay.ev import NO_POSITIVE_EV, Recommendation, calibration_sd, prob_interval
 from nba.parlay.joint import DNP_POLICIES, GameCtx, JointModel, leg_marginal, p_all_play
 from nba.parlay.kalshi_map import MarketRow, load_team_abbr
 from nba.parlay.legs import Leg
@@ -80,7 +80,7 @@ class Toolbox:
         *,
         default_date: date,
         engine: str | None = None,
-        dnp_policy: str = "void",
+        dnp_policy: str = "last_fair_price",
         allow_paper_log: bool = False,
         top_n: int = 5,
     ) -> None:
@@ -347,7 +347,7 @@ class Toolbox:
                 hits if n else round(p_cond * 1000),
                 n or 1000,
                 self.cfg.alpha,
-                self.cfg.calibration_logit_sd,
+                calibration_sd(self.cfg, p_cond),
                 self.cfg.n_draws,
                 0,
             )

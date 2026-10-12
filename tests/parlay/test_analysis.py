@@ -61,11 +61,11 @@ def _an(tmp: Path, **kw: Any) -> Any:
 
 def _open_gate(tmp: Path) -> None:
     """Settled shadow history where the model clearly beats the market, over 20 dates."""
-    _build_dbs(tmp) if not (tmp / "nba.duckdb").exists() else None
+    _build_dbs(tmp, p_home=0.985) if not (tmp / "nba.duckdb").exists() else None
     paper = duckdb.connect(str(tmp / "paper.duckdb"))
     ensure_schema(paper)
-    leg = Leg("old", 0, "win", 0, "yes", HOME)
     for i in range(400):
+        leg = Leg(f"old{i % 20}", 0, "win", 0, "yes", HOME)
         log_shadow(
             paper, shadow_id=f"s{i}", ticker="t", side="yes", legs=[leg],
             raw_model_prob=0.9 if i % 2 else 0.1, market_mid=0.5, price=0.5, engine="x",

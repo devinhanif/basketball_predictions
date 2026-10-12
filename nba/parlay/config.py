@@ -86,6 +86,9 @@ class ParlayConfig:
     min_settled: int
     order_type: str = "taker"
     min_settled_dates: int = 14
+    calibration_logit_sd_tail: float = 0.0  # used when the raw prob is beyond the tail cut
+    tail_cut: float = 0.70
+    gate_ci_level: float = 0.95  # two-sided level of the game-clustered skill interval
 
 
 def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
@@ -116,4 +119,9 @@ def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
         kelly_cap=float(raw["sizing"]["kelly_cap"]),
         min_settled=int(raw["min_settled_for_claims"]),
         min_settled_dates=int(raw.get("min_settled_dates_for_claims", 14)),
+        calibration_logit_sd_tail=float(
+            i.get("calibration_logit_sd_tail", i["calibration_logit_sd"])
+        ),
+        tail_cut=float(i.get("tail_cut", 0.70)),
+        gate_ci_level=float(raw.get("market_prior", {}).get("gate_ci_level", 0.95)),
     )

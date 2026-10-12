@@ -361,7 +361,7 @@ def test_player_absent_from_final_box_score_is_dnp_not_open() -> None:
 
 
 # ---------------------------------------------------------------- CLI end to end
-def _build_dbs(tmp: Path) -> tuple[Path, Path, Path, Path]:
+def _build_dbs(tmp: Path, p_home: float = 0.80) -> tuple[Path, Path, Path, Path]:
     nba = tmp / "nba.duckdb"
     c = duckdb.connect(str(nba))
     c.execute(
@@ -381,7 +381,7 @@ def _build_dbs(tmp: Path) -> tuple[Path, Path, Path, Path]:
         " player_id INT, prediction JSON)"
     )
     tip = datetime(2026, 10, 9, 0, 30)  # 20:30 ET on 10-08
-    win = {"p_home": 0.80, "home_team": HOME, "away_team": AWAY}
+    win = {"p_home": p_home, "home_team": HOME, "away_team": AWAY}
     c.execute(
         "INSERT INTO forward_predictions VALUES ('r', '2026-10-08 12:00', 'g', ?, "
         "'rung0_injury_elo', 'v', 'win_prob_home', -1, ?)",
@@ -486,18 +486,20 @@ def test_cli_defers_to_market_with_zero_track_record(tmp_path: Path) -> None:
     assert all(d["model_weight"] == 0.0 and d["n_settled_track"] == 0 for d in out)
     # the raw model clearly disagrees with the 0.45 ask on the home-win leg (p~0.80)
     win_yes = next(d for d in out if d["ticker"].endswith("-LAL") and d["side"] == "yes")  # type: ignore[attr-defined]
-    assert win_yes["raw_model_prob"] > 0.7 and win_yes["raw_ev_low"] > 0 and win_yes["ev_low"] < 0
+    assert win_yes["raw_model_prob"] > 0.7 and win_yes["raw_ev"] > 0 and win_yes["ev_low"] < 0
     paper = duckdb.connect(str(tmp_path / "paper.duckdb"))
     assert paper.execute("SELECT count(*) FROM paper_trades").fetchone() == (0,)
     assert paper.execute("SELECT count(*) FROM shadow_predictions").fetchone() == (6,)
 
 
 def test_cli_positive_needs_track_record_and_logs(tmp_path: Path) -> None:
-    _build_dbs(tmp_path)
+    # an extreme forecast: with the measured calibration sd the 80% interval of a p=0.8 leg
+    # cannot clear a 0.45 ask any more (that is the point of the N6 change)
+    _build_dbs(tmp_path, p_home=0.985)
     paper = duckdb.connect(str(tmp_path / "paper.duckdb"))
     ensure_schema(paper)
-    leg = Leg("old", 0, "win", 0, "yes", HOME)
     for i in range(400):  # model clearly better than market on settled shadow rows
+        leg = Leg(f"old{i % 20}", 0, "win", 0, "yes", HOME)  # 20 games: clusters for the CI
         log_shadow(
             paper,
             shadow_id=f"s{i}",
@@ -605,7 +607,11 @@ def test_track_record_skill_gated_on_distinct_dates() -> None:
     one_night = TrackRecord(200, 0.20, 0.25, 0.2, n_dates=1)
     assert one_night.gated_skill(14) == 0.0  # a single night's props never open the gate
     season = TrackRecord(200, 0.20, 0.25, 0.2, n_dates=20)
-    assert season.gated_skill(14) == 0.2
+    assert season.gated_skill(14) == 0.0  # a point estimate with no interval never opens it
+    covers_zero = TrackRecord(200, 0.20, 0.25, 0.2, 20, 0.05, -0.01, 30)
+    assert covers_zero.gated_skill(14) == 0.0  # interval includes no skill -> shut
+    clear = TrackRecord(200, 0.20, 0.25, 0.2, 20, 0.05, 0.01, 30)
+    assert clear.gated_skill(14) == 0.2
 
 
 def test_evaluate_surfaces_unmatched_player_instead_of_dropping(

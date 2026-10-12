@@ -116,10 +116,14 @@ class DnpLeg(Exception):
 def resolve_legs(
     res: duckdb.DuckDBPyConnection, legs: list[Leg], dnp_policy: str
 ) -> tuple[str, bool]:
-    """('open'|'void'|'done', hit). A DNP player leg is void or a loss per ``dnp_policy``."""
+    """('open'|'void'|'last_price'|'done', hit). A DNP player leg is void, a loss, or settled at
+    the last fair price (not a binary outcome: ``last_price``) per ``dnp_policy``."""
     yes: list[bool | None] = []
     void = False
     lost_dnp = False
+    last_price = False
+    if dnp_policy not in ("void", "loss", "last_fair_price"):
+        raise ValueError(f"unknown dnp_policy {dnp_policy!r}")
     for leg in legs:
         try:
             yes.append(_leg_yes(res, leg))
@@ -127,12 +131,16 @@ def resolve_legs(
             yes.append(True)
             if dnp_policy == "void":
                 void = True
+            elif dnp_policy == "last_fair_price":
+                last_price = True
             else:
                 lost_dnp = True
     if any(v is None for v in yes):
         return "open", False
     if void:
         return "void", False
+    if last_price:  # price at settlement is not stored: no outcome, no pnl, no guess
+        return "last_price", False
     hit = not lost_dnp and all(
         bool(v) == (leg.side == "yes") for v, leg in zip(yes, legs, strict=True)
     )
@@ -160,7 +168,13 @@ def settle_trades(
         status, hit = resolve_legs(res, legs, dnp_policy)
         if status == "open":
             continue
-        if status == "void":
+        if status == "last_price":
+            con.execute(
+                "UPDATE paper_trades SET settled=TRUE, outcome=NULL, realized_pnl=NULL "
+                "WHERE trade_id=?",
+                [tid],
+            )
+        elif status == "void":
             con.execute(
                 "UPDATE paper_trades SET settled=TRUE, outcome=NULL, realized_pnl=0 "
                 "WHERE trade_id=?",

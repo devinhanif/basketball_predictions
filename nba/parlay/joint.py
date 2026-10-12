@@ -15,6 +15,11 @@ Player marginals are CONDITIONAL on playing; DNP is handled outside the copula, 
 availability is independent of the other latents:
   void  : a DNP leg voids the whole contract (stake and fee refunded, net 0)
   loss  : a DNP leg loses
+  last_fair_price : the contract settles at the last fair market price before game start
+                    (Kalshi's stated rule for an ACTIVE player who never takes the court;
+                    ``rules_secondary`` of every stored player-prop market, see
+                    docs/PARLAY_ENGINE.md). Needs that price; the caller supplies the
+                    prediction-time mid as the proxy.
 """
 
 from __future__ import annotations
@@ -35,7 +40,7 @@ STATS: tuple[str, ...] = ("pts", "reb", "ast", "fg3m")
 GAME_STATS = ("win", "spread", "total")
 REL_CODE = {"same_player": 0, "teammate": 1, "opponent": 2}
 _REL_NAME = {v: k for k, v in REL_CODE.items()}
-DNP_POLICIES = ("void", "loss")
+DNP_POLICIES = ("void", "loss", "last_fair_price")
 _PAIR = len(STATS) ** 2
 
 
@@ -120,16 +125,29 @@ def p_all_play(legs: Sequence[Leg], ctxs: Mapping[str, GameCtx]) -> float:
     return float(np.prod(list(seen.values()))) if seen else 1.0
 
 
-def effective_prob(p_cond: float, p_nov: float, policy: str, cost: float) -> float:
+def effective_prob(
+    p_cond: float,
+    p_nov: float,
+    policy: str,
+    cost: float,
+    last_fair_price: float | None = None,
+) -> float:
     """Probability-equivalent for EV = p_eff - cost under a DNP policy.
 
     loss: P(all play and all hit).  void: refund of ``cost`` on a DNP, so
     EV = p_nov * (p_cond - cost)  <=>  p_eff = p_nov * p_cond + (1 - p_nov) * cost.
+    last_fair_price: a DNP pays ``last_fair_price`` (the market's own price, not a refund of
+    cost and not zero): p_eff = p_nov * p_cond + (1 - p_nov) * last_fair_price. Raises if the
+    price is not supplied (no guessing).
     """
     if policy == "loss":
         return p_nov * p_cond
     if policy == "void":
         return p_nov * p_cond + (1.0 - p_nov) * cost
+    if policy == "last_fair_price":
+        if last_fair_price is None or not 0.0 <= last_fair_price <= 1.0:
+            raise ValueError("last_fair_price policy needs a price in [0, 1]")
+        return p_nov * p_cond + (1.0 - p_nov) * last_fair_price
     raise ValueError(f"dnp_leg_policy must be one of {DNP_POLICIES}, got {policy!r}")
 
 

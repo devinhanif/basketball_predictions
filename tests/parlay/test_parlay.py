@@ -180,7 +180,8 @@ def test_evaluate_verdicts_and_interval_ordering() -> None:
     r = evaluate(legs, 0.40, 8000, 20000, 0.40, CFG, n_settled=500, skill=0.1)
     assert r.verdict == NO_POSITIVE_EV and r.ev < 0 and r.ev_low < r.ev
     assert r.prob_interval[0] <= r.model_prob <= r.prob_interval[1]
-    r2 = evaluate(legs, 0.80, 16000, 20000, 0.40, CFG, n_settled=2000, skill=0.2)
+    # 0.97: past the tail cut the measured calibration sd (1.6 logit) applies; 0.80 no longer clears
+    r2 = evaluate(legs, 0.97, 19400, 20000, 0.40, CFG, n_settled=2000, skill=0.2)
     assert r2.verdict != NO_POSITIVE_EV and r2.ev_low > 0 and r2.kelly > 0
     # no track record => defers to market => no positive EV by construction
     r3 = evaluate(legs, 0.80, 16000, 20000, 0.40, CFG, n_settled=0, skill=0.0, bid=0.35)

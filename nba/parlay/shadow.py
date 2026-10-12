@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import duckdb
+import numpy as np
+from scipy import stats
 
 from nba.parlay.legs import Leg
 from nba.parlay.papertrade import resolve_legs
@@ -89,7 +91,7 @@ def settle_shadow(
             continue
         con.execute(
             "UPDATE shadow_predictions SET settled=TRUE, outcome=? WHERE shadow_id=?",
-            [None if status == "void" else hit, sid],
+            [None if status in ("void", "last_price") else hit, sid],
         )
         n += 1
     return n
@@ -102,26 +104,59 @@ class TrackRecord:
     brier_market: float | None
     skill: float  # 1 - Brier_model / Brier_market; 0 if undefined
     n_dates: int = 0  # distinct settled game dates (props on one night are correlated)
+    # Paired per-row Brier difference (market - model; > 0 means the model is better), its mean
+    # and the LOWER bound of a two-sided game-clustered CI. None = no interval available, which
+    # keeps the gate shut (the default verdict is no_positive_ev_found).
+    diff_mean: float | None = None
+    diff_lo: float | None = None
+    n_games: int = 0  # clusters behind the interval
 
     def gated_skill(self, min_dates: int) -> float:
-        """``skill`` only once the history spans ``min_dates`` distinct dates, else 0.
+        """``skill`` only if (a) the history spans ``min_dates`` distinct dates and (b) the lower
+        bound of the game-clustered CI of the paired Brier difference is above 0; else 0.
 
         Thirty settled rows can arrive in a single night; they share that night's luck, so the
-        row count alone overstates the evidence. Below the date floor the engine defers to the
-        market entirely.
+        row count alone overstates the evidence, and a point estimate at small n opens by luck
+        about one time in three even when the true skill is negative (ledger audit pass 2 N6).
+        Below either bar the engine defers to the market entirely.
         """
-        return self.skill if self.n_dates >= min_dates else 0.0
+        if self.n_dates < min_dates or self.diff_lo is None or self.diff_lo <= 0.0:
+            return 0.0
+        return self.skill
 
     def describe(self) -> str:
         if self.n_settled == 0:
             return "no settled shadow history (n=0)"
         return (
             f"n={self.n_settled} over {self.n_dates} date(s), Brier model {self.brier_model:.4f} "
-            f"vs market {self.brier_market:.4f}, skill {self.skill:+.4f}"
+            f"vs market {self.brier_market:.4f}, skill {self.skill:+.4f}; "
+            + (
+                f"paired Brier gain {self.diff_mean:+.4f}, lower bound {self.diff_lo:+.4f} "
+                f"({self.n_games} games)"
+                if self.diff_lo is not None and self.diff_mean is not None
+                else f"no game-clustered interval ({self.n_games} games): gate shut"
+            )
         )
 
 
-def track_record(con: duckdb.DuckDBPyConnection) -> TrackRecord:
+def clustered_lower_bound(
+    d: np.ndarray, groups: np.ndarray, ci_level: float
+) -> tuple[float, float | None, int]:
+    """(mean, lower bound or None, n_clusters) of per-row differences ``d`` with cluster-robust
+    SE (CR1) and a t quantile on G-1 df. Fewer than 3 clusters gives no bound."""
+    n = len(d)
+    mean = float(d.mean())
+    ids, inv = np.unique(groups, return_inverse=True)
+    g = len(ids)
+    if g < 3:
+        return mean, None, g
+    sums = np.bincount(inv, weights=d - mean, minlength=g)
+    se = float(np.sqrt(g / (g - 1.0) * float((sums**2).sum())) / n)
+    q = float(stats.t.ppf(1.0 - (1.0 - ci_level) / 2.0, g - 1))
+    return mean, mean - q * se, g
+
+
+def track_record(con: duckdb.DuckDBPyConnection, ci_level: float = 0.95) -> TrackRecord:
     """Skill of the raw model vs the market mid on settled shadow rows.
 
     Only ``side = 'yes'`` rows count: ``evaluate`` logs BOTH sides of every market, and the NO
@@ -145,4 +180,12 @@ def track_record(con: duckdb.DuckDBPyConnection) -> TrackRecord:
     if n == 0 or row is None or row[2] is None or row[2] <= 0:
         return TrackRecord(n, None, None, 0.0, n_dates)
     skill = 1.0 - float(row[1]) / float(row[2])
-    return TrackRecord(n, float(row[1]), float(row[2]), skill, n_dates)
+    rows = con.execute(
+        "SELECT raw_model_prob, market_mid, CAST(outcome AS DOUBLE), "
+        "COALESCE(json_extract_string(legs, '$[0].game_id'), shadow_id) "
+        "FROM shadow_predictions WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
+    ).fetchall()
+    a = np.array([[r[0], r[1], r[2]] for r in rows], dtype=float)
+    diff = (a[:, 1] - a[:, 2]) ** 2 - (a[:, 0] - a[:, 2]) ** 2
+    mean, lo, n_games = clustered_lower_bound(diff, np.array([str(r[3]) for r in rows]), ci_level)
+    return TrackRecord(n, float(row[1]), float(row[2]), skill, n_dates, mean, lo, n_games)

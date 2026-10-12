@@ -74,6 +74,17 @@ def shrink_to_market(
     return w * model_prob + (1.0 - w) * market_prob, w
 
 
+def calibration_sd(cfg: ParlayConfig, p: float) -> float:
+    """Logit-scale calibration sd for a leg/parlay probability ``p``: the tail value beyond
+    ``cfg.tail_cut`` (the measured most over-confident region), else the base value."""
+    tail = p >= cfg.tail_cut or p <= 1.0 - cfg.tail_cut
+    return (
+        max(cfg.calibration_logit_sd, cfg.calibration_logit_sd_tail)
+        if tail
+        else (cfg.calibration_logit_sd)
+    )
+
+
 def prob_interval(
     hits: int, n_sims: int, alpha: float, logit_sd: float, n_draws: int, seed: int
 ) -> tuple[float, float]:
@@ -167,14 +178,14 @@ def evaluate(
     market = ask if bid is None else (ask + bid) / 2.0
     p_use, w = shrink_to_market(joint_prob, market, n_settled, cfg.prior_k, skill)
     lo, hi = prob_interval(
-        hits, max(n_sims, 1), cfg.alpha, cfg.calibration_logit_sd, cfg.n_draws, seed
+        hits, max(n_sims, 1), cfg.alpha, calibration_sd(cfg, joint_prob), cfg.n_draws, seed
     )
     if n_sims == 0:  # closed-form engine: no MC noise, interval from calibration noise only
         lo, hi = prob_interval(
             int(round(joint_prob * 1000)),
             1000,
             cfg.alpha,
-            cfg.calibration_logit_sd,
+            calibration_sd(cfg, joint_prob),
             cfg.n_draws,
             seed,
         )

@@ -32,7 +32,7 @@ def add_arguments(p: argparse.ArgumentParser, root: Path) -> None:
     p.add_argument("--date", help="slate date YYYY-MM-DD (default: today, US/Eastern)")
     p.add_argument("--model", help="Ollama model (env PARLAY_ASSISTANT_MODEL; default qwen2.5:3b)")
     p.add_argument("--transcript", help="append a JSONL audit log of tool calls and outputs here")
-    p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="void")
+    p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="last_fair_price")
     p.add_argument(
         "--allow-paper-log",
         action="store_true",

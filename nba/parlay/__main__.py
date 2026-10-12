@@ -221,7 +221,8 @@ def price_contract(
         out = model.joint(legs, ctxs)
         jp_cond, hits, n, p_nov = out.p_cond, out.hits, out.n_sims, out.p_nov
     cost = ask + fee_per_contract(ask, cfg.fee, series=series, order_type=cfg.order_type)
-    p_eff = effective_prob(jp_cond, p_nov, policy, cost)
+    mid = ask if bid is None else (ask + bid) / 2.0  # prediction-time proxy for the last fair price
+    p_eff = effective_prob(jp_cond, p_nov, policy, cost, last_fair_price=mid)
     if n:
         hits = round(p_eff * n)
     return evaluate(
@@ -293,7 +294,7 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
     con = duckdb.connect(":memory:")
     attach_read_only_with_retry(con, a.nba_db, "nba")
     attach_read_only_with_retry(con, a.kalshi_db, "kal")
-    info = load_slate(con, slate, params, prefix="nba.", as_of=a.now)
+    info = load_slate(con, slate, params, prefix="nba.", as_of=a.now, roster_source=a.roster_source)
     now = a.now or datetime.now(UTC).replace(tzinfo=None)
     markets = load_open_markets(con, before=now)
     paper = duckdb.connect(str(a.paper_db))
@@ -395,6 +396,10 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
         )
     for note in info.notes:
         print("note:", note)
+    for gid, pid, why in sorted(
+        {(str(x["game_id"]), str(x["player_id"]), str(x["reason"])) for x in info.dropped}
+    ):
+        print(f"dropped player {pid} in {gid}: {why}")
     if unmatched_tickers:  # fail loudly: these props are NOT priced until an alias is reviewed
         print(
             f"WARNING: {len(unmatched_tickers)} prop market(s) on this slate have no reviewed "
@@ -429,6 +434,7 @@ def cmd_analyze(a: argparse.Namespace) -> int:
         engine=a.engine,
         dnp_policy=a.dnp_policy,
         shadow=not a.no_shadow,
+        roster_source=a.roster_source,
     )
     if a.target is not None and a.budget is None:
         raise SystemExit("--target needs --budget")
@@ -476,7 +482,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             p.add_argument("--out-dir", default=str(ROOT / "reports" / "parlay"))
             p.add_argument("--engine", choices=list(ENGINE_KIND), default=None)
-            p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="void")
+            p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="last_fair_price")
+            p.add_argument("--roster-source", choices=["recent", "official"], default="recent")
             p.add_argument("--combo", action="append", help="comma-separated same-game tickers")
             p.add_argument("--no-log", action="store_true")
             p.add_argument(
@@ -496,7 +503,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--paper-db", default=str(ROOT / "data" / "parlay" / "paper_trades.duckdb"))
     p.add_argument("--model", default=str(DEFAULT_MODEL))
     p.add_argument("--engine", choices=list(ENGINE_KIND), default=None)
-    p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="void")
+    p.add_argument("--dnp-policy", choices=DNP_POLICIES, default="last_fair_price")
+    p.add_argument("--roster-source", choices=["recent", "official"], default="recent")
     p.add_argument("--no-shadow", action="store_true", help="omit shadow-arm columns")
     p.add_argument("--narrate", action="store_true", help="local-Ollama summary (numguarded)")
     p.add_argument("--budget", type=float, help="also answer: best EV for this many dollars")
