@@ -867,3 +867,8 @@ What: llm_shadow model claude-opus-5-5 (fallback claude-sonnet-5-5), 2ad3e15; MO
 ROAD_STARS not frozen (option 2: descriptive star x home/away slice on the live log). Q7.3 (minutes spread for 24-30-minute players and underdogs):
 descriptive EDA first, reporting where it helps and where it does not; Q8.2 (deep-bench shrink): same EDA, later. Q10.3: not pursued now.
 Why: Devin, 2026-10-12. What would reverse it: Devin.
+
+**2026-10-12 12:28 CDT — ROAD_STARS FROZEN (sha256 387bd523, commit 5c28299) on Devin's "try testing roadstarts".**
+What: option 1, despite the failed power gate G5 (best case ~0.001-0.003 on stars vs a -0.005 floor); expected null (pass probability ~0.02).
+The status block above the marker still carries the earlier DRAFT text alongside the frozen sentence; the commit and this line are the freeze record.
+Why: Devin's decision (non-negotiable 8 exception, explicitly his). What would reverse it: nothing above the marker.
