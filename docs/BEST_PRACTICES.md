@@ -139,3 +139,11 @@ the 2025 holdout (-0.0021) and failed a stat whose primary contrast was -0.0116 
 spread across permutation seeds (sd ~0.0023) is as large as the bootstrap half-width, which ignores the fit noise of two models trained on
 noise. Rule for future pre-registrations: size any shuffle or noise guard from a permutation null measured on the select season before the
 freeze (K >= 50; fail beyond about 2 null sd), report the null sd next to the bootstrap CI, and prefer a noise-column control under real labels.
+
+## Audit data capture before failing a gate (Devin, 2026-10-12)
+Incident: on 2026-10-12 six draft rules were stopped at the minimum-data gate on 2023-24 alone, while 2019-21 history (data/history),
+2022, preseason box scores and repairable sources were never considered. Rule: a gate that fails for lack of data is not final until a
+data-capture audit is written into the draft: which seasons and sources were used, which exist but were not used (and why), which could
+be fetched or repaired (cost, leak risk), and the gate re-measured on the fullest admissible data. Era differences (2019-20 bubble,
+2020-21 COVID schedule and empty arenas) are flagged as features or excluded, never papered over with invented rows. Power is still set by
+the report season; more training rows do not rescue a report season that is too small.

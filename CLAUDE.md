@@ -44,7 +44,7 @@ the evaluation. Both are the point.
 5. No orders, no credentials, no execution code, ever.
 6. Money, production, promotions and anything outward-facing are Devin's decisions.
 7. Every direction-setting choice gets a line in `docs/DECISIONS.md`: what, why, what would reverse it.
-8. Before a rule is frozen, its minimum-data gate is checked against the real data it will run on. A rule that cannot pass its own gate is not frozen (F9 and F12, 2026-10-09).
+8. Before a rule is frozen, its minimum-data gate is checked against the real data it will run on. A rule that cannot pass its own gate is not frozen (F9 and F12, 2026-10-09). Before a gate is declared failed, the data behind it is shown to be comprehensively captured: every season we hold (including data/history), every source we could reasonably add, and every repairable gap listed with its cost. A gate fails on data only after that audit (Devin, 2026-10-12).
 
 ## How we decide
 
