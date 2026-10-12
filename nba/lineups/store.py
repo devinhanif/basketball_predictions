@@ -29,6 +29,7 @@ from nba.lineups.source import CONFIRMED, LineupRow, RawFetch
 LINEUPS_DIR = DEFAULT_DATA_DIR / "lineups"
 DEFAULT_LINEUPS_DB = LINEUPS_DIR / "lineups.duckdb"
 T30_LEAD_MINUTES = 30  # the shadow model's information cutoff: tip-off minus 30 minutes
+T15_LEAD_MINUTES = 15  # the sibling T-15 arm's cutoff (docs/prereg/FORWARD_T15_2026_27.md)
 
 DEDUP_SELECT = """SELECT snapshot_id,
        arg_max(fetched_at, rk) AS fetched_at,

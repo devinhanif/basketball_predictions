@@ -127,13 +127,15 @@ def _col(target: str) -> str:
 PREREG_MODELS: tuple[str, ...] = (
     "props_context_residual",
     "props_context_residual_t30",
+    "props_context_residual_t15",
     "props_context_residual_int",
     "props_context_residual_lt",
     "rung0_injury_elo",
     "rung0_mov_elo",
 )
 T30_MODEL = "props_context_residual_t30"
-LEAD_MINUTES: dict[str, int] = {T30_MODEL: 30}
+T15_MODEL = "props_context_residual_t15"
+LEAD_MINUTES: dict[str, int] = {T30_MODEL: 30, T15_MODEL: 15}
 DEFAULT_LEAD_MINUTES = 60
 
 ELIG_DDL = """
@@ -178,6 +180,11 @@ WITH elig AS (
                THEN made_at < tipoff AND TRY_CAST(
                         json_extract_string(prediction, '$.snapshot_fetched_at') AS TIMESTAMP)
                     < tipoff - ? * INTERVAL 1 MINUTE
+               WHEN model_name = ?
+               -- T-15 arm (docs/prereg/FORWARD_T15_2026_27.md rule 5): same, with a 15 min lead
+               THEN made_at < tipoff AND TRY_CAST(
+                        json_extract_string(prediction, '$.snapshot_fetched_at') AS TIMESTAMP)
+                    < tipoff - ? * INTERVAL 1 MINUTE
                ELSE made_at <= tipoff - ? * INTERVAL 1 MINUTE END
 ),
 box AS (
@@ -213,6 +220,8 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
         *PREREG_MODELS,
         T30_MODEL,
         LEAD_MINUTES[T30_MODEL],
+        T15_MODEL,
+        LEAD_MINUTES[T15_MODEL],
         DEFAULT_LEAD_MINUTES,
     ]
     pending = con.execute(sql, params).fetchall()

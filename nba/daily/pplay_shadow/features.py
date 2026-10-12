@@ -72,6 +72,10 @@ FEATURES: list[str] = [
     *STAGE1_PROD_COLS,
     *R_COLS,
 ]
+#: the comparators, exactly research.eval.recent_role_eval.arm_columns()["base"] / ["Cp"]:
+#: C = WORKLOAD's feature set, C' = C + production's 13 recent-minutes/role columns (R minus R_COLS)
+C_FEATURES: list[str] = [*BASE_FEATURES, *TERM_TAG_T60, *TERM_REPORT]
+CP_FEATURES: list[str] = [*C_FEATURES, *STAGE1_PROD_COLS]
 
 
 # --------------------------------------------------------------------------- recent-minutes load columns

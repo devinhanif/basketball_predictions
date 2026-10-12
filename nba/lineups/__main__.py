@@ -86,7 +86,13 @@ def main(argv: list[str] | None = None) -> int:
     pl.add_argument("--force", action="store_true", help="fetch regardless of the window")
     pl.add_argument("--no-schedule", action="store_true", help="skip the schedule call")
     sub.add_parser("status", help="print snapshot/tip counts")
-    du = sub.add_parser("due", help="exit 0 iff some game is inside [tip-30 min, tip)")
+    du = sub.add_parser("due", help="exit 0 iff some game is inside [tip-LEAD min, tip)")
+    du.add_argument(
+        "--lead-minutes",
+        type=int,
+        default=T30_LEAD_MINUTES,
+        help=f"lead before tip, minutes (default {T30_LEAD_MINUTES} = T-30 arm; 15 = T-15 arm)",
+    )
     du.add_argument("--now", type=_naive_utc, default=None, help="override clock (naive UTC)")
     args = p.parse_args(argv)
 
@@ -96,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
         due = [
             g
             for g, tip, _h, _a in games_with_tips(ro, include_unseen=True)
-            if tip - timedelta(minutes=T30_LEAD_MINUTES) <= now < tip
+            if tip - timedelta(minutes=args.lead_minutes) <= now < tip
         ]
         print(f"due games: {len(due)}")
         return 0 if due else 1

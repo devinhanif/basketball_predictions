@@ -30,6 +30,7 @@ from nba.props.full_support import crps_int  # noqa: F401  (spec section 8.1 ent
 
 DEFAULT_OUT_DIR = Path("data/checkpoints")
 ARM_T30 = "props_context_residual_t30"
+ARM_T15 = "props_context_residual_t15"
 ARM_INT = "props_context_residual_int"
 ARM_LT = "props_context_residual_lt"
 PROD = "props_context_residual"
@@ -71,6 +72,10 @@ SPEC: dict[str, tuple[str, str, str, str]] = {
     "lt_pts": (ARM_LT, PROD, "pts", "delta_int"),
     "win": (WIN_ARM, WIN_BASE, WIN_TARGET, "delta_ll"),
 }
+#: The sibling T-15 arm (docs/prereg/FORWARD_T15_2026_27.md): its OWN family of 4, its own BH. The
+#: T-30 family above is not changed and not merged with it; no joint claim is ever made.
+FAMILY_T15: tuple[str, ...] = ("t15_pts", "t15_reb", "t15_ast", "t15_fg3m")
+SPEC.update({k: (ARM_T15, PROD, k.split("_", 1)[1], "delta_int") for k in FAMILY_T15})
 SAME_RUN = frozenset({"int_reb", "int_ast", "int_fg3m", "lt_pts"})
 
 #: (min dates, min paired player-games); win has none (tripwire only).
@@ -80,10 +85,18 @@ MIN_GATE: dict[str, tuple[int, int]] = {
     "int_reb": (14, 1500), "int_ast": (14, 1500), "int_fg3m": (14, 1500),
     "lt_pts": (120, 10000),
     "win": (0, 0),
+    "t15_pts": (60, 5000), "t15_reb": (60, 5000), "t15_ast": (120, 10000),
+    "t15_fg3m": (120, 10000),
 }  # fmt: skip
 LOOK_DATES: dict[str, int | None] = {"L14": 14, "L30": 30, "L60": 60, "L120": 120, "END": None}
 EFFICACY_LOOKS = ("L30", "L60", "L120", "END")
 DROP_LOOKS = ("L60", "L120", "END")
+#: T-15 arm: L14 and L30 are kill-only interims, efficacy looks start at L60 (rule "Looks").
+EFFICACY_LOOKS_T15 = ("L60", "L120", "END")
+T15_KILL_MIN_DATES = 25  # L30 rule (b): harm test on stats with at least this many dates
+T15_KILL_MIN_DECIDED = 60  # L30 rule (c): decided games before the share upper bound can kill
+T15_KILL_SHARE_UB = 0.50
+T15_KILL_AFTER_TIP_SHARE = 0.10  # L30 rule (d)
 #: T30 direction check (more negative than the backtest upper end => suspected leak).
 DIRECTION: dict[str, float] = {"t30_pts": -0.041, "t30_reb": -0.018, "t30_ast": -0.0089}
 PIT_WINDOWS = ((0.10, 0.08, 0.12), (0.20, 0.17, 0.23))
@@ -136,21 +149,22 @@ def date_cluster_boot(
     return BootResult(point, float(lo), float(hi), max(p, 1.0 / (B + 1)), int(v.size), k)
 
 
-def bh_adjust(pvals: dict[str, float]) -> dict[str, float]:
-    """Benjamini-Hochberg adjusted p-values over the FIXED family of m = 9 tests.
+def bh_adjust(pvals: dict[str, float], family: tuple[str, ...] = FAMILY) -> dict[str, float]:
+    """Benjamini-Hochberg adjusted p-values over a FIXED family: the m = 9 T-30 family by default,
+    or the separate m = 4 T-15 family (``FAMILY_T15``); families are never merged.
 
     Missing, NaN or ineligible tests enter with p = 1.0 (never dropped from m)."""
-    unknown = set(pvals) - set(FAMILY)
+    unknown = set(pvals) - set(family)
     if unknown:
         raise KeyError(f"not in the pre-registered family: {sorted(unknown)}")
-    p = np.array([_pv(pvals.get(k)) for k in FAMILY], dtype=float)
+    p = np.array([_pv(pvals.get(k)) for k in family], dtype=float)
     m = p.size
     order = np.argsort(p, kind="stable")
     ranked = p[order] * m / (np.arange(m) + 1)
     adj_sorted = np.minimum(1.0, np.minimum.accumulate(ranked[::-1])[::-1])
     adj = np.empty(m)
     adj[order] = adj_sorted
-    return {k: float(adj[i]) for i, k in enumerate(FAMILY)}
+    return {k: float(adj[i]) for i, k in enumerate(family)}
 
 
 def _pv(v: float | None) -> float:
@@ -360,6 +374,7 @@ def _guards(
     int_fidelity: dict[str, Any] | None,
     t30_share_lb: float | None,
 ) -> dict[str, Any]:
+    lead_min = 15 if key.startswith("t15") else 30
     n = pairs.height
     g: dict[str, Any] = {}
     if key == "win":
@@ -379,9 +394,9 @@ def _guards(
     g["slices"], g["slice_violations"] = sl["slices"], sl["violations"]
     g["slices_ok"] = not sl["violations"]
     leak = bool((pairs["made_at_arm"] < pairs["tipoff"]).all()) if n else True
-    if key.startswith("t30"):
+    if key.startswith(("t30", "t15")):
         snap = pairs["snapshot_fetched_at"]
-        cutoff = pairs["tipoff"] - timedelta(minutes=30)
+        cutoff = pairs["tipoff"] - timedelta(minutes=lead_min)
         leak = leak and bool(snap.is_not_null().all()) and bool((snap < cutoff).all())
     g["leak_ok"] = leak
     if key == "lt_pts":
@@ -389,7 +404,7 @@ def _guards(
         shares = {f"{t:.2f}": float(np.mean(pit <= t)) for t, _, _ in PIT_WINDOWS}
         g["pit_shares"] = shares
         g["pit_ok"] = all(lo <= shares[f"{t:.2f}"] <= hi for t, lo, hi in PIT_WINDOWS)
-    if key.startswith("t30"):
+    if key.startswith(("t30", "t15")):
         g["logged_share_lb"] = t30_share_lb
         g["logged_share_ok"] = t30_share_lb is not None and t30_share_lb >= LOGGED_SHARE_LB
         if key in DIRECTION:
@@ -447,13 +462,56 @@ def int_fidelity_check(
 # ----------------------------------------------------------------------------- decisions
 
 
+def decide_t15_kill(
+    key: str, res: dict[str, Any], guards: dict[str, Any], share: dict[str, Any] | None
+) -> tuple[str, list[str]]:
+    """T-15 arm L30 kill-only rules (FORWARD_T15_2026_27 "Kill-only interim"). The arm is DROPPED
+    iff (b) harm: point > +0.005 with the 98.18% CI lower bound > 0 on a stat with >= 25 dates;
+    (c) logged-share Wilson UPPER bound < 0.50 at >= 60 decided games; (d) ``run_after_tipoff`` >
+    10% of decisions. (a) a leak or guard failure is flagged AUDIT: whether a documented,
+    result-blind repair exists is a human judgement, never made here. No L30 outcome can be a
+    promote-candidate."""
+    reasons: list[str] = []
+    point, lo = res["point"], res["lo"]
+    if (
+        res["n_dates"] >= T15_KILL_MIN_DATES
+        and np.isfinite(point) and np.isfinite(lo)
+        and point > HARM and lo > 0
+    ):  # fmt: skip
+        reasons.append(f"(b) harm: point {point:.5f} > +{HARM} with CI lower bound {lo:.5f} > 0")
+    if share and share.get("n_decisions", 0) >= T15_KILL_MIN_DECIDED:
+        wl = share.get("logged_wilson")
+        if wl and wl[1] < T15_KILL_SHARE_UB:
+            reasons.append(f"(c) logged-share Wilson upper bound {wl[1]:.3f} < {T15_KILL_SHARE_UB}")
+    if share and share.get("n_decisions", 0):
+        late = share.get("skipped_reasons", {}).get("run_after_tipoff", 0)
+        if late / share["n_decisions"] > T15_KILL_AFTER_TIP_SHARE:
+            reasons.append(
+                f"(d) run_after_tipoff {late}/{share['n_decisions']} > "
+                f"{T15_KILL_AFTER_TIP_SHARE:.0%} of decisions"
+            )
+    if reasons:
+        return "DROP", ["L30 kill-only rule: " + "; ".join(reasons)]
+    if guards.get("direction_suspect") or not guards.get("leak_ok", True):
+        return "AUDIT", ["(a) leak or direction guard tripped: audit first; a result-blind repair "
+                         "decides, not this code"]  # fmt: skip
+    return "KEEP_SHADOWING", ["L30 kill-only interim: no kill rule met; no efficacy claim"]
+
+
 def decide(
-    key: str, look: str, res: dict[str, Any], p_bh: float, guards: dict[str, Any]
+    key: str,
+    look: str,
+    res: dict[str, Any],
+    p_bh: float,
+    guards: dict[str, Any],
+    share: dict[str, Any] | None = None,
 ) -> tuple[str, list[str]]:
     """Section 5.5 / 7 outcome for one arm-stat. Returns (outcome, notes)."""
     notes: list[str] = []
     if look == "L14":
         return "MONITOR", ["L14 is monitoring only (no efficacy claim, no futility decision)"]
+    if key.startswith("t15") and look == "L30":
+        return decide_t15_kill(key, res, guards, share)
     point, lo, hi = res["point"], res["lo"], res["hi"]
     if key == "win":
         if np.isfinite(point) and point > 0 and np.isfinite(lo) and lo > 0:
@@ -480,6 +538,8 @@ def decide(
     gate_fails = []
     if key.startswith("t30") and not guards.get("logged_share_ok"):
         gate_fails.append("T-30 logged-share Wilson lower bound < 0.70")
+    if key.startswith("t15") and not guards.get("logged_share_ok"):
+        gate_fails.append("T-15 logged-share Wilson lower bound < 0.70")
     if key in SAME_RUN and key.startswith("int") and not guards.get("int_fidelity_ok"):
         gate_fails.append("deterministic integer-convention check failed")
     if gate_fails:
@@ -498,16 +558,25 @@ def decide(
 # ----------------------------------------------------------------------------- T-30 share
 
 
-def t30_share(con: duckdb.DuckDBPyConnection, season: int, B: int, seed: int) -> dict[str, Any]:
-    """Logged vs skipped T-30 decisions (regular season): Wilson and date-clustered CIs."""
+def t30_share(
+    con: duckdb.DuckDBPyConnection,
+    season: int,
+    B: int,
+    seed: int,
+    table: str = "forward_t30_decisions",
+) -> dict[str, Any]:
+    """Logged vs skipped T-30 (or, with ``table``/``model``, T-15) decisions (regular season):
+    Wilson and date-clustered CIs."""
+    if table not in ("forward_t30_decisions", "forward_t15_decisions"):
+        raise ValueError(f"unknown decisions table {table!r}")
     try:
         rows = con.execute(
-            """
+            f"""
             SELECT d.game_id, coalesce(g.game_date, CAST(d.tipoff AS DATE)), d.outcome,
                    split_part(split_part(coalesce(d.reason, ''), ':', 1), ';', 1)
-            FROM forward_t30_decisions d LEFT JOIN games g USING (game_id)
+            FROM {table} d LEFT JOIN games g USING (game_id)
             WHERE d.game_id LIKE '002%' AND (g.season = ? OR g.season IS NULL)
-            """,
+            """,  # noqa: S608
             [season],
         ).fetchall()
     except duckdb.CatalogException:
@@ -532,12 +601,12 @@ def t30_share(con: duckdb.DuckDBPyConnection, season: int, B: int, seed: int) ->
     out["n_dates"] = boot.n_dates
     try:  # selection exposure (descriptive): production rps on skipped vs logged games
         prod = con.execute(
-            """
+            f"""
             SELECT d.outcome, count(*), avg(s.rps) FROM forward_scores_elig s
-            JOIN forward_t30_decisions d USING (game_id)
+            JOIN {table} d USING (game_id)
             WHERE s.model_name = ? AND s.status = 'scored' AND s.season = ?
             GROUP BY 1
-            """,
+            """,  # noqa: S608
             [PROD, season],
         ).fetchall()
         out["prod_rps_by_decision"] = {
@@ -596,6 +665,8 @@ def timing_measurements(
         "confirmed_before_tip": lead.n_confirmed_before_tip,
         "confirmed_before_t30": lead.n_confirmed_before_t30,
         "confirmed_before_t30_wilson": list(wilson(lead.n_confirmed_before_t30, lead.n_team_games)),
+        "confirmed_before_t15": lead.n_confirmed_before_t15,
+        "confirmed_before_t15_wilson": list(wilson(lead.n_confirmed_before_t15, lead.n_team_games)),
         "lead_minutes_deciles": dq(lead.lead_minutes),
         "source_lead_minutes_deciles": dq(lead.source_lead_minutes),
         "lead_n": len(lead.lead_minutes),
@@ -684,7 +755,7 @@ def _arm_stat(
         "ci_level": LEVEL, "floor": None if key == "win" else FLOOR,
         "min_dates": min_dates, "min_n": min_n,
     }  # fmt: skip
-    efficacy = look in EFFICACY_LOOKS
+    efficacy = look in (EFFICACY_LOOKS_T15 if key.startswith("t15") else EFFICACY_LOOKS)
     ok_n = boot.n_dates >= min_dates and boot.n >= min_n and boot.n > 0
     res["eligible"] = bool(efficacy and ok_n)
     if not efficacy:
@@ -723,6 +794,31 @@ def _arm_stat(
     return res, pairs, guards
 
 
+def t15_vs_t30(
+    con: duckdb.DuckDBPyConnection,
+    season: int,
+    B: int,
+    seed: int,
+    meta: dict[tuple[str, int], tuple[Any, ...]],
+) -> dict[str, Any]:
+    """DESCRIPTIVE head-to-head (no decision weight): T-15 minus T-30 integer-support CRPS on the
+    player-games logged by BOTH arms (the key intersection of their eligible rows)."""
+    out: dict[str, Any] = {}
+    for stat in ("pts", "reb", "ast", "fg3m"):
+        pairs, pc = paired_deltas(con, ARM_T15, ARM_T30, stat, season=season, meta=meta)
+        if pairs.is_empty():
+            out[stat] = {"n": 0, "n_dates": 0}
+            continue
+        b = date_cluster_boot(
+            pairs["delta_int"].to_numpy(), pairs["game_date"].to_numpy(), B, seed, LEVEL
+        )
+        out[stat] = {
+            "n": b.n, "n_dates": b.n_dates, "point": b.point, "lo": b.lo, "hi": b.hi,
+            "counts": pc._asdict(),
+        }  # fmt: skip
+    return out
+
+
 def evaluate_checkpoint(
     con: duckdb.DuckDBPyConnection,
     look: str,
@@ -749,35 +845,49 @@ def evaluate_checkpoint(
     share = t30_share(con, season, B, seed)
     wl = share.get("logged_wilson")
     share_lb = float(wl[0]) if wl else None
+    share15 = t30_share(con, season, B, seed, "forward_t15_decisions")
+    wl15 = share15.get("logged_wilson")
+    share15_lb = float(wl15[0]) if wl15 else None
     results: dict[str, dict[str, Any]] = {}
     pair_tables: dict[str, pl.DataFrame] = {}
     guards: dict[str, dict[str, Any]] = {}
-    for key in FAMILY:
+    for key in (*FAMILY, *FAMILY_T15):
         results[key], pair_tables[key], guards[key] = _arm_stat(
-            con, key, look, season, B, seed, meta, share_lb
+            con, key, look, season, B, seed, meta, share15_lb if key in FAMILY_T15 else share_lb
         )
     need = LOOK_DATES[look]
     due = [
-        k for k in FAMILY
+        k for k in (*FAMILY, *FAMILY_T15)
         if k not in done and results[k]["n"] > 0 and (need is None or results[k]["n_dates"] >= need)
     ]  # fmt: skip
     if not due and not descriptive:
         raise GateNotMet(
             f"{look}: no arm-stat with >= {need} settled dates that is not already recorded "
-            f"(dates: { {k: results[k]['n_dates'] for k in FAMILY} }); use --descriptive to inspect"
+            f"(dates: { {k: results[k]['n_dates'] for k in (*FAMILY, *FAMILY_T15)} }); "
+            "use --descriptive to inspect"
         )
     if descriptive:
-        due = [k for k in FAMILY if results[k]["n"] > 0]
+        due = [k for k in (*FAMILY, *FAMILY_T15) if results[k]["n"] > 0]
     p_raw = {k: (results[k]["p"] if k in due and results[k]["eligible"] else 1.0) for k in FAMILY}
     if look not in EFFICACY_LOOKS:
         p_raw = dict.fromkeys(FAMILY, 1.0)
     p_bh = bh_adjust(p_raw)
-    for k in FAMILY:
-        results[k]["p_bh"] = p_bh[k]
+    # the T-15 family: its own m = 4 BH, never merged with the T-30 family above
+    p_raw15 = {
+        k: (results[k]["p"] if k in due and results[k]["eligible"] else 1.0) for k in FAMILY_T15
+    }
+    if look not in EFFICACY_LOOKS_T15:
+        p_raw15 = dict.fromkeys(FAMILY_T15, 1.0)
+    p_bh15 = bh_adjust(p_raw15, FAMILY_T15)
+    p_bh_all = {**p_bh, **p_bh15}
+    for k in (*FAMILY, *FAMILY_T15):
+        results[k]["p_bh"] = p_bh_all[k]
         results[k]["guards"] = guards[k]
         results[k]["in_snapshot"] = k in due
         if k in due:
-            outcome, notes = decide(k, look, results[k], p_bh[k], guards[k])
+            outcome, notes = decide(
+                k, look, results[k], p_bh_all[k], guards[k], share15 if k in FAMILY_T15 else share
+            )
         else:
             outcome, notes = "NOT_IN_THIS_SNAPSHOT", ["look count not reached or already recorded"]
         results[k]["outcome"], results[k]["notes"] = outcome, notes
@@ -789,6 +899,8 @@ def evaluate_checkpoint(
         "season": season, "descriptive": descriptive, "family": list(FAMILY),
         "recorded_keys": [] if descriptive else due,
         "bh_adjusted": p_bh, "p_raw_used": p_raw, "t30_share": share,
+        "family_t15": list(FAMILY_T15), "bh_adjusted_t15": p_bh15, "p_raw_used_t15": p_raw15,
+        "t15_share": share15, "t15_vs_t30": t15_vs_t30(con, season, B, seed, meta),
         "timing": timing_measurements(con, lineups_db, B, seed),
         "results": results, "slice_definitions": SLICE_DEFINITIONS,
     }  # fmt: skip
@@ -864,7 +976,7 @@ def due_looks(
     """Looks (not END) that some not-yet-recorded arm-stat has reached (rule 11 date counts)."""
     meta: dict[tuple[str, int], tuple[Any, ...]] = {}
     nd: dict[str, int] = {}
-    for key in FAMILY:
+    for key in (*FAMILY, *FAMILY_T15):
         arm, comp, stat, _ = SPEC[key]
         if key == "win":
             pairs, _c = paired_win(con, season)
@@ -878,7 +990,7 @@ def due_looks(
         if need is None:
             continue
         done = snapshot_keys(Path(out_dir), look)
-        if any(nd[k] >= need and k not in done for k in FAMILY):
+        if any(nd[k] >= need and k not in done for k in (*FAMILY, *FAMILY_T15)):
             out.append(look)
     return out
 
@@ -903,14 +1015,14 @@ def render_markdown(snap: dict[str, Any]) -> str:
         "| test | metric | n pairs | dates | delta [98.18% CI] | p | BH p | outcome |",
         "|---|---|---|---|---|---|---|---|",
     ]
-    for k in snap["family"]:
+    for k in [*snap["family"], *snap.get("family_t15", [])]:
         r = snap["results"][k]
         ci = _ci(r, 5) if r["n"] else "n/a"
         lines.append(
             f"| {k} | {r['metric']} | {r['n']} | {r['n_dates']} | {ci} | {r['p']:.4f} | "
             f"{r['p_bh']:.4f} | {r['outcome']} |"
         )
-    for k in snap["family"]:
+    for k in [*snap["family"], *snap.get("family_t15", [])]:
         r = snap["results"][k]
         if r["notes"] or r["guards"]:
             lines.append(f"- {k}: {'; '.join(r['notes'])}; counts {r['counts']}")
@@ -925,6 +1037,20 @@ def render_markdown(snap: dict[str, Any]) -> str:
             f"date-clustered 95% [{sh['logged_date_ci'][0]:.1%}, {sh['logged_date_ci'][1]:.1%}]; "
             f"skipped reasons {sh['skipped_reasons']}"
         )
+    sh15 = snap.get("t15_share") or {}
+    if sh15.get("n_decisions"):
+        lines.append(
+            f"- T-15 logged share {sh15['logged']}/{sh15['n_decisions']} = "
+            f"{sh15['logged_share']:.1%}, Wilson 95% [{sh15['logged_wilson'][0]:.1%}, "
+            f"{sh15['logged_wilson'][1]:.1%}]; skipped reasons {sh15['skipped_reasons']} "
+            "(own BH family of 4; descriptive head-to-head below has no decision weight)"
+        )
+    for stat, h in (snap.get("t15_vs_t30") or {}).items():
+        if h.get("n"):
+            lines.append(
+                f"- T-15 minus T-30 on games logged by both, {stat}: {_ci(h, 5)} "
+                f"(n {h['n']}, {h['n_dates']} dates; descriptive)"
+            )
     tm = snap["timing"]
     if tm.get("available"):
         o = tm["open"]

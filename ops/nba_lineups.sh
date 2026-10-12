@@ -1,5 +1,5 @@
 #!/bin/sh
-# One 5-minute tick of the lineup collector + the T-30 shadow run. Run by launchd (StartInterval 300).
+# One 5-minute tick of the lineup collector + the T-30 and T-15 shadow runs. Run by launchd (StartInterval 300).
 # Read-only w.r.t. markets, no credentials. Writes data/lineups/lineups.duckdb (poller) and, only when a
 # T-30 decision is due, forward_predictions via `nba.daily run-t30` (which waits, bounded, for
 # any other nba.duckdb writer and exits 75 if it is still busy: deferred to the next tick).
@@ -10,8 +10,10 @@ UV=${NBA_UV:-/opt/homebrew/bin/uv}
 OPS=data/ops
 LOCK=$OPS/lineups_lock
 T30_LOCK=$OPS/lineups_t30_lock
+T15_LOCK=$OPS/lineups_t15_lock
 NONE=$OPS/.not_held
 HB_FINAL=0   # 1 once the poll heartbeat is final: a long T-30 wait must not overwrite newer ticks' heartbeats
+T15_LOCK_HELD=$NONE
 T30_LOCK_HELD=$NONE   # trap targets: set to the real lock only while held (never release a lock another tick now owns)
 LOCK_HELD=$NONE
 mkdir -p "$OPS"
@@ -60,6 +62,7 @@ fi
 
 # Two locks, so a long T-30 run never pauses lineup polling:
 #   $LOCK      held only for the poll itself (a few seconds); the next tick can always poll;
+#   $T15_LOCK  the same for run-t15 (sibling arm);
 #   $T30_LOCK  held for the whole run-t30 (which may wait for nba.duckdb behind a pretip run).
 # Neither is the nba_daily lock (this must not wait behind a long ingest). The owner pid is stored
 # in the lock dir: a dead owner is cleared at once; a live-looking lock older than <stale_min> too.
@@ -83,7 +86,7 @@ fi
 LOCK_HELD=$LOCK
 rm -f "$HB_DIR/$HB_JOB.skip.json"
 hb_write null null
-trap 'rc=$?; release_lock "$LOCK_HELD"; release_lock "$T30_LOCK_HELD"; [ "$HB_FINAL" = 1 ] || hb_end $rc' EXIT
+trap 'rc=$?; release_lock "$LOCK_HELD"; release_lock "$T30_LOCK_HELD"; release_lock "$T15_LOCK_HELD"; [ "$HB_FINAL" = 1 ] || hb_end $rc' EXIT
 trap 'exit 143' INT TERM
 
 "$UV" run --no-sync python -m nba.lineups poll --date "$TODAY_ET" >> "$LOG" 2>&1
@@ -142,28 +145,59 @@ if [ "$LLM_ON" = "1" ]; then
   fi
 fi
 
-# T-30 shadow run only when some game is inside [tip-30, tip)
+# ROSTER rule shared by both shadow arms (same as the pretip job)
+ROSTER=recent
+if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
+
+# T-30 shadow run only when some game is inside [tip-30, tip). Nothing in this block may exit the
+# script: the T-15 block below must still run on this tick (fall-through, not early exit).
 if "$UV" run --no-sync python -m nba.lineups due >> "$LOG" 2>&1; then
   if ! acquire_lock "$T30_LOCK" 30; then
     log "run-t30 already in progress (another tick); not starting a second"
-    exit 0
-  fi
-  T30_LOCK_HELD=$T30_LOCK
-  ROSTER=recent
-  if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi   # same rule as the pretip job
-  # wait for a running pretip `daily run` (measured 4-6 min cold, docs/DAILY_PIPELINE.md) + margin
-  NBA_DB_LOCK_WAIT_S=${NBA_DB_LOCK_WAIT_S:-600} \
-    "$UV" run --no-sync python -m nba.daily run-t30 --date "$TODAY_ET" --roster-source "$ROSTER" >> "$LOG" 2>&1
-  rc=$?
-  log "run-t30 rc=$rc"
-  if [ "$rc" -eq 75 ]; then
-    log "nba.duckdb still busy after the bounded wait; T-30 run deferred to the next tick"
-    note_skip_job lineups_t30 "run-t30 deferred: nba.duckdb busy after bounded wait"   # watchdog reads it
-  elif [ "$rc" -ne 0 ]; then
-    HB_RC=$rc; HB_START=$(date +%Y-%m-%dT%H:%M:%S%z); HB_FINAL=0   # surface the failure in the heartbeat
-    echo "- $(date '+%Y-%m-%d %H:%M') [lineups] run-t30 failed rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
   else
-    rm -f "$HB_DIR/lineups_t30.skip.json"
+    T30_LOCK_HELD=$T30_LOCK
+    # wait for a running pretip `daily run` (measured 4-6 min cold, docs/DAILY_PIPELINE.md) + margin
+    NBA_DB_LOCK_WAIT_S=${NBA_DB_LOCK_WAIT_S:-600} \
+      "$UV" run --no-sync python -m nba.daily run-t30 --date "$TODAY_ET" --roster-source "$ROSTER" >> "$LOG" 2>&1
+    rc=$?
+    log "run-t30 rc=$rc"
+    if [ "$rc" -eq 75 ]; then
+      log "nba.duckdb still busy after the bounded wait; T-30 run deferred to the next tick"
+      note_skip_job lineups_t30 "run-t30 deferred: nba.duckdb busy after bounded wait"   # watchdog reads it
+    elif [ "$rc" -ne 0 ]; then
+      HB_RC=$rc; HB_START=$(date +%Y-%m-%dT%H:%M:%S%z); HB_FINAL=0   # surface the failure in the heartbeat
+      echo "- $(date '+%Y-%m-%d %H:%M') [lineups] run-t30 failed rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
+    else
+      rm -f "$HB_DIR/lineups_t30.skip.json"
+    fi
+    release_lock "$T30_LOCK"; T30_LOCK_HELD=$NONE
+  fi
+fi
+
+# T-15 sibling arm (docs/prereg/FORWARD_T15_2026_27.md): same model, cutoff tip-15 min, own lock
+# (stale after 30 min), own skip heartbeat (lineups_t15), own table. Sequential after the T-30 block
+# (8 GB box: never two fits at once from one tick). The wait for nba.duckdb is capped lower than
+# T-30's (240 s) so the deadline stays reachable; a deferral (rc 75) is a skip record, and a game
+# whose decision starts at/after tip is recorded run_after_tipoff, never dropped.
+if "$UV" run --no-sync python -m nba.lineups due --lead-minutes 15 >> "$LOG" 2>&1; then
+  if ! acquire_lock "$T15_LOCK" 30; then
+    log "run-t15 already in progress (another tick); not starting a second"
+  else
+    T15_LOCK_HELD=$T15_LOCK
+    NBA_DB_LOCK_WAIT_S=${NBA_T15_DB_LOCK_WAIT_S:-240} \
+      "$UV" run --no-sync python -m nba.daily run-t15 --date "$TODAY_ET" --roster-source "$ROSTER" >> "$LOG" 2>&1
+    rc=$?
+    log "run-t15 rc=$rc"
+    if [ "$rc" -eq 75 ]; then
+      log "nba.duckdb still busy after the bounded wait; T-15 run deferred to the next tick"
+      note_skip_job lineups_t15 "run-t15 deferred: nba.duckdb busy after bounded wait"
+    elif [ "$rc" -ne 0 ]; then
+      HB_RC=$rc; HB_START=$(date +%Y-%m-%dT%H:%M:%S%z); HB_FINAL=0
+      echo "- $(date '+%Y-%m-%d %H:%M') [lineups] run-t15 failed rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
+    else
+      rm -f "$HB_DIR/lineups_t15.skip.json"
+    fi
+    release_lock "$T15_LOCK"; T15_LOCK_HELD=$NONE
   fi
 fi
 exit 0

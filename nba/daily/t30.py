@@ -41,6 +41,7 @@ from nba.daily.store import ForwardPrediction, LeakageError, append_predictions
 from nba.ingest.cache import RateLimiter
 from nba.lineups.source import CONFIRMED
 from nba.lineups.store import (
+    T15_LEAD_MINUTES,
     T30_LEAD_MINUTES,
     dedup_snapshot_rows,
     games_with_tips,
@@ -72,13 +73,23 @@ T30_MIN_INTERVAL_S = 2.5
 T30_MODEL_NAME = "props_context_residual_t30"
 T30_VERSION = "ctxres-v1-t30"
 DEFAULT_T30_CACHE = REPO_ROOT / "data" / "models" / "context_residual_t30"
+T30_DECISIONS_TABLE = "forward_t30_decisions"
 
-DECISIONS_DDL = """
-CREATE TABLE IF NOT EXISTS forward_t30_decisions (
+#: Sibling T-15 arm (docs/prereg/FORWARD_T15_2026_27.md): same model, features and model cache as
+#: T-30; only the information cutoff (tip minus 15 min), the names and the decisions table differ.
+T15_MODEL_NAME = "props_context_residual_t15"
+T15_VERSION = "ctxres-v1-t15"
+T15_DECISIONS_TABLE = "forward_t15_decisions"
+#: reason strings for a game with no snapshot before the cutoff: the T-30 string is frozen history
+T30_NO_SNAPSHOT_REASON = "no_snapshot_before_t30"
+T15_NO_SNAPSHOT_REASON = "no_snapshot_before_cutoff"
+
+_DECISIONS_DDL_TEMPLATE = """
+CREATE TABLE IF NOT EXISTS {table} (
     game_id VARCHAR PRIMARY KEY,
     decided_at TIMESTAMP,
     tipoff TIMESTAMP,
-    cutoff TIMESTAMP,          -- tip-off minus 30 min
+    cutoff TIMESTAMP,          -- tip-off minus the arm's lead (30 or 15 min)
     snapshot_id VARCHAR,
     snapshot_fetched_at TIMESTAMP,
     outcome VARCHAR,           -- 'logged' | 'skipped'
@@ -86,6 +97,17 @@ CREATE TABLE IF NOT EXISTS forward_t30_decisions (
     n_rows INT
 );
 """
+_DECISION_TABLES = (T30_DECISIONS_TABLE, T15_DECISIONS_TABLE)
+
+
+def decisions_ddl(table: str) -> str:
+    """DDL for an arm's decisions table (the name is checked: it is interpolated into SQL)."""
+    if table not in _DECISION_TABLES:
+        raise ValueError(f"unknown decisions table {table!r}")
+    return _DECISIONS_DDL_TEMPLATE.format(table=table)
+
+
+DECISIONS_DDL = decisions_ddl(T30_DECISIONS_TABLE)
 
 
 @dataclass(frozen=True)
@@ -144,17 +166,22 @@ def schedule_from_lineups(lcon: duckdb.DuckDBPyConnection) -> ScheduleFn:
     return fn
 
 
-def ensure_decisions_table(con: duckdb.DuckDBPyConnection) -> None:
-    con.execute(DECISIONS_DDL)
+def ensure_decisions_table(
+    con: duckdb.DuckDBPyConnection, table: str = T30_DECISIONS_TABLE
+) -> None:
+    con.execute(decisions_ddl(table))
 
 
 def load_game_lineup(
-    lcon: duckdb.DuckDBPyConnection, g: ScheduledGame, cutoff: datetime
+    lcon: duckdb.DuckDBPyConnection,
+    g: ScheduledGame,
+    cutoff: datetime,
+    no_snapshot_reason: str = T30_NO_SNAPSHOT_REASON,
 ) -> tuple[GameLineup | None, str, tuple[str, datetime] | None]:
     """(lineup or None, reason, snapshot id/time). ``reason`` is '' when usable."""
     snap = latest_snapshot_before(lcon, g.game_id, cutoff)
     if snap is None:
-        return None, "no_snapshot_before_t30", None
+        return None, no_snapshot_reason, None
     sid, fetched = snap
     rows = lcon.execute(
         "SELECT team_id, lineup_status, announced_starter, roster_status, player_id, source_ts "
@@ -320,9 +347,11 @@ def _record(
     outcome: str,
     reason: str,
     n_rows: int,
+    table: str = T30_DECISIONS_TABLE,
 ) -> None:
+    decisions_ddl(table)  # validates the name before it is interpolated
     con.execute(
-        "INSERT INTO forward_t30_decisions VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",
+        f"INSERT INTO {table} VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",  # noqa: S608
         [g.game_id, now, g.tipoff, cutoff, snap[0] if snap else None,
          snap[1] if snap else None, outcome, reason, n_rows],
     )  # fmt: skip
@@ -342,12 +371,21 @@ def run_t30(
     roster_dir: Path | None = None,
     roster_fetch: RosterFetcher | None = None,
     static_fetch: Callable[[int], pl.DataFrame] | None = None,
+    lead_minutes: int = T30_LEAD_MINUTES,
+    model_name: str = T30_MODEL_NAME,
+    version: str = T30_VERSION,
+    decisions_table: str = T30_DECISIONS_TABLE,
+    run_prefix: str = "t30",
+    no_snapshot_reason: str = T30_NO_SNAPSHOT_REASON,
 ) -> T30Summary:
     """Log T-30 shadow props for slate games that are at/after their T-30 decision time and
-    not yet tipped. Idempotent per game (``forward_t30_decisions``). ``now`` is naive UTC."""
+    not yet tipped. Idempotent per game (``forward_t30_decisions``). ``now`` is naive UTC.
+
+    The keyword defaults are today's T-30 values and the T-30 path is byte-identical under them
+    (tests/daily/test_t15_arm.py); ``run_t15`` is this body with the T-15 values."""
     made_at = now if now is not None else utcnow()
-    ensure_decisions_table(con)
-    summ = T30Summary(run_id="t30_" + made_at.strftime("%Y%m%dT%H%M%S"))
+    ensure_decisions_table(con, decisions_table)
+    summ = T30Summary(run_id=f"{run_prefix}_" + made_at.strftime("%Y%m%dT%H%M%S"))
     full = schedule_fn(season_str_for_date(run_date))
     slate = slate_for_date(full, run_date)
     summ.n_slate = len(slate)
@@ -355,9 +393,10 @@ def run_t30(
     if not slate and summ.n_preseason_skipped:
         summ.notes.append(f"no regular-season games: {summ.n_preseason_skipped} preseason skipped")
     decided = {
-        str(r[0]) for r in con.execute("SELECT game_id FROM forward_t30_decisions").fetchall()
+        str(r[0])
+        for r in con.execute(f"SELECT game_id FROM {decisions_table}").fetchall()  # noqa: S608
     }
-    lead = timedelta(minutes=T30_LEAD_MINUTES)
+    lead = timedelta(minutes=lead_minutes)
     ready: dict[str, GameLineup] = {}
     ready_games: list[ScheduledGame] = []
     for g in slate:
@@ -369,13 +408,14 @@ def run_t30(
             summ.n_not_yet += 1
             continue
         if not made_at < g.tipoff:
-            _record(con, g, made_at, cutoff, None, "skipped", "run_after_tipoff", 0)
+            _record(con, g, made_at, cutoff, None, "skipped", "run_after_tipoff", 0,
+                    decisions_table)  # fmt: skip
             summ.skipped[g.game_id] = "run_after_tipoff"
             summ.n_skipped_games += 1
             continue
-        gl, reason, snap = load_game_lineup(lcon, g, cutoff)
+        gl, reason, snap = load_game_lineup(lcon, g, cutoff, no_snapshot_reason)
         if gl is None:
-            _record(con, g, made_at, cutoff, snap, "skipped", reason, 0)
+            _record(con, g, made_at, cutoff, snap, "skipped", reason, 0, decisions_table)
             summ.skipped[g.game_id] = reason
             summ.n_skipped_games += 1
             continue
@@ -393,7 +433,7 @@ def run_t30(
         official = _official_roster(
             con, run_date, season_str_for_date(run_date), roster_source, roster_dir,
             roster_fetch, rate_limiter or RateLimiter(T30_MIN_INTERVAL_S),
-            RunSummary(run_id="t30", run_date=run_date), static_fetch=static_fetch,
+            RunSummary(run_id=run_prefix, run_date=run_date), static_fetch=static_fetch,
         )  # fmt: skip
     df, info = t30_prop_predictions(
         con, run_date, ready_games, ready, report_out, params,
@@ -415,7 +455,7 @@ def run_t30(
             "train_through": info.get("train_through"),
             "comparison_only": True,
         }
-        rows = _frame_preds(sub, [g], T30_MODEL_NAME, T30_VERSION, run_date, extra)
+        rows = _frame_preds(sub, [g], model_name, version, run_date, extra)
         per_game[g.game_id] = len(rows)
         preds.extend(rows)
     try:
@@ -428,13 +468,34 @@ def run_t30(
         gl = ready[g.game_id]
         if n == 0:
             _record(con, g, made_at, g.tipoff - lead, (gl.snapshot_id, gl.fetched_at),
-                    "skipped", "no_model_rows", 0)  # fmt: skip
+                    "skipped", "no_model_rows", 0, decisions_table)  # fmt: skip
             summ.skipped[g.game_id] = "no_model_rows"
             summ.n_skipped_games += 1
         else:
             _record(con, g, made_at, g.tipoff - lead, (gl.snapshot_id, gl.fetched_at),
                     "logged", f"ok; {len(gl.inactive)} listed-inactive excluded"
                     + (f"; dupes_collapsed={gl.n_dupes_collapsed}" if gl.n_dupes_collapsed else ""),
-                    n)  # fmt: skip
+                    n, decisions_table)  # fmt: skip
             summ.n_logged_games += 1
     return summ
+
+
+def run_t15(
+    con: duckdb.DuckDBPyConnection,
+    lcon: duckdb.DuckDBPyConnection,
+    run_date: date,
+    **kwargs: Any,
+) -> T30Summary:
+    """The sibling T-15 arm (docs/prereg/FORWARD_T15_2026_27.md): ``run_t30``'s body with the
+    information cutoff at tip minus 15 min, its own names and its own decisions table
+    (``forward_t15_decisions``). Same model, features, model cache, roster rule and lineup rule."""
+    return run_t30(
+        con, lcon, run_date,
+        lead_minutes=T15_LEAD_MINUTES,
+        model_name=T15_MODEL_NAME,
+        version=T15_VERSION,
+        decisions_table=T15_DECISIONS_TABLE,
+        run_prefix="t15",
+        no_snapshot_reason=T15_NO_SNAPSHOT_REASON,
+        **kwargs,
+    )  # fmt: skip

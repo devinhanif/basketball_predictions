@@ -430,7 +430,7 @@ Central). The Mac has `data/ops/schedule_tz = America/New_York`. After a reboot 
 re-reads the zone and the plists then mean Central (pretip until 21:50 CDT, morning 08:00 CDT):
 delete that file then. Whether to keep Eastern or reinstall for Central is the maintainer's call.
 
-## P(play) shadow: recent-role model R (flag-gated, off by default; 2026-10-12)
+## P(play) shadow: recent-role model R (flag-gated; ON in the pretip job since 2026-10-12)
 
 `python -m nba.daily run ... --log-pplay-shadow` (run_daily `with_pplay_shadow=True`; default off, so
 replays and the oracle are unaffected). After every primary row is written and settled, the run logs the
@@ -449,7 +449,9 @@ off: canonical hash identical, 2246 predictions, 2110 scores).
   when R has no row), r_reason (out_on_report | n_played_prior<5 | no_model | no_features), in_prod_log,
   prod_drop_reason, proj_minutes, props_cond, train_through, n_train, features_through, feature_set_sha
   (ordered feature names + learner params + lightgbm version), features_sha (this row's 44 feature values),
-  t60_report_as_of`.
+  t60_report_as_of, div_rival, hist_rival`. The last two are the F10A option-1 rivalry flags (frozen pair
+  list `nba/daily/pplay_shadow/rivalry_pairs.csv`, 80 rows = docs/research/rivalries_2026-10-09.md Tier 1 + 2;
+  as-of by calendar year; logged only, no model reads them; revisit at 300+ forward division non-play events).
 * `props_cond` is JSON `{stat: {"model": "context_residual" | "recency_fallback", "mean": float,
   "q_grid": [19 floats]}}` for pts / reb / ast / fg3m, conditional on playing, quantiles at taus 0.05, 0.10
   .. 0.95 (`nba.props.forward.QUANTILE_TAUS`), the continuous (non-integer-support) grid of the primary
@@ -466,5 +468,54 @@ off: canonical hash identical, 2246 predictions, 2110 scores).
   players absent from a final box are `not_in_box`, unscored. `build_report` prints a P(play) shadow section
   (paired R minus production, date-clustered CI) once rows exist.
 * A shadow failure is recorded in `shadow_errors` (-> ALERTS.md) and cannot change a primary row.
-* Not done: promotion (Devin decides after the live log) and enabling the flag in `ops/nba_daily.sh`
-  (add `--log-pplay-shadow` to the `predict` step once the maintainer has run the oracle).
+* Enabled 2026-10-12: `ops/nba_daily.sh pretip` passes `--log-pplay-shadow` (oracle 89889f6d identical with
+  the shadow code, e105caf). Cost inside the pretip lock, measured 2026-10-12 on a DB copy, real 2025-01-15
+  slate (11 games, 3,304 prediction rows, `recent` rosters, int + lt arms): warm run 20 s without the flag,
+  30 s with it (+10 s: the second `predict_slate_context` call, the LightGBM refit on 77,422 rows at 5.3 s,
+  and the shadow settle); cold first run 39 s without it. Against the 339 s cold / 16.5 s warm pretip
+  measurements above this adds seconds, far inside the 30-minute :20/:50 cadence and the 300 s / 600 s
+  lock-wait budgets (one n = 1 timing per cell; real opening-night slates are 5-15 games).
+* Comparators (2026-10-12, adversary review of RECENT_ROLE_HOLDOUT): `p_play_c` (C, the WORKLOAD feature set)
+  and `p_play_cp` (C' = C + production's 13 recent-minutes/role columns) are fitted with the same daily refit and
+  learner as R on the same rows (feature lists `C_FEATURES` / `CP_FEATURES`, pinned to
+  `research.eval.recent_role_eval.arm_columns()` by a test; NULL exactly where `p_play_r` is NULL).
+  `forward_pplay_scores` gains `p_play_c, p_play_cp, ll_c, ll_cp`; the report prints R minus C and R minus C'
+  (date-clustered). Measured on the same 2025-01-15 slate (n = 1 each): warm pretip run 20 s without the shadow,
+  30 s with R only, 42 s with R + C + C'; canonical hash of `forward_predictions`/`forward_scores` identical flag on
+  vs off (6b3edfe9...).
+* Parity check (`nba.daily.pplay_shadow.settle.parity_check`, printed by the report): over the trailing 7 days of
+  settled games (>= 200 player-games), if live R minus production log loss is above -0.05 the report prints a
+  `PARITY WARNING` line (likely a feature parity fault, e.g. a stale last-night box at T-60). On the one historical
+  slate above the replay gives -0.048, i.e. the check would fire on that day alone: the threshold is the
+  adversary's, a week pools many days, and nothing acts on it automatically.
+* Not done: promotion (Devin decides after the live log).
+
+## Run metadata (2026-10-12, N15)
+
+`run_daily` records `git_head` and a tracked-file `git_dirty` flag (plus the count of modified tracked files)
+in the `RunSummary` (`nba/daily/runmeta.py`) and `nba.daily run` prints `code: git=<12 hex> dirty=<bool>
+(tracked files modified: N)` into the job log. launchd executes the working tree, so a dirty run is
+visible after the fact. Nothing is written into `forward_predictions` or any scored table (the replay oracle
+cannot see it). Untracked files do not count.
+
+## Sibling T-15 arm (docs/prereg/FORWARD_T15_2026_27.md, frozen 5c0dec6d; implemented 2026-10-12)
+
+`python -m nba.daily run-t15 --date D --roster-source ...` is `run-t30`'s body (`nba.daily.t30.run_t30`
+parametrised with `lead_minutes`, `model_name`, `version`, `decisions_table`; defaults are the T-30 values and
+the T-30 path is byte-identical, `tests/daily/test_t15_arm.py::test_t30_path_identical_with_explicit_default_kwargs`)
+with the cutoff at tip minus 15 min: arm `props_context_residual_t15`, version `ctxres-v1-t15`, table
+`forward_t15_decisions`, same model cache and features. Reason strings are T-30's, plus `no_snapshot_before_cutoff`
+(T-30 keeps `no_snapshot_before_t30`) and `run_after_tipoff` (counted as skipped).
+* `python -m nba.lineups due --lead-minutes N` (default 30): exit 0 iff a game is in [tip-N, tip).
+* `ops/nba_lineups.sh`: after the T-30 block (which now falls through, no early exit, when its lock is held),
+  `due --lead-minutes 15` then `run-t15` under `data/ops/lineups_t15_lock` (stale after 30 min), `NBA_DB_LOCK_WAIT_S`
+  capped at 240 s (`NBA_T15_DB_LOCK_WAIT_S` overrides), same ROSTER rule. Sequential after T-30 on a tick, never
+  parallel from one tick. rc 75 writes `lineups_t15.skip.json` (the watchdog alerts at 2 consecutive, `SKIP_ONLY`).
+  No new launchd job; the existing 5-minute tick lands inside [tip-15, tip).
+* `settle`: `forward_scores_elig` eligibility for `_t15` rows is `made_at < tip` and `snapshot_fetched_at <
+  tip - 15 min` (`lead_min` = 15).
+* `checkpoint`: keys `t15_pts..t15_fg3m` in their own family of 4 with their own BH (`bh_adjusted_t15`); L14
+  monitoring, L30 kill-only (rules b, c, d implemented; a leak guard failure is flagged AUDIT for a human), efficacy
+  looks L60/L120/END; `t15_share` from `forward_t15_decisions`; descriptive `t15_vs_t30` head-to-head. The 9-key
+  T-30 family is untouched. `report`: a descriptive T-15 section; lineup analysis prints the before-T-15 share.
+* Not implemented (not in the code-change list): the `live_book_odds` t15 market comparator.

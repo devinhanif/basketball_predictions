@@ -398,7 +398,11 @@ def test_gate_refuses_then_descriptive_then_writes_immutable(
         big, "L30", out_dir=tmp_path, B=300, lineups_db=tmp_path / "none.duckdb"
     )
     res = snap["results"]
-    assert set(res) == set(ck.FAMILY) and snap["seed"] == 2026 and snap["B"] == 300
+    assert (
+        set(res) == set(ck.FAMILY) | set(ck.FAMILY_T15)
+        and snap["seed"] == 2026
+        and snap["B"] == 300
+    )
     # minimum-n gates: T30/LT need 60/120 dates -> recorded but cannot be claimed
     assert res["t30_pts"]["eligible"] is False and res["t30_pts"]["outcome"] == "KEEP_SHADOWING"
     assert res["lt_pts"]["outcome"] == "KEEP_SHADOWING"

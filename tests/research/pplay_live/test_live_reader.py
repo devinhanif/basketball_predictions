@@ -58,7 +58,7 @@ def _score(
     status: str = "scored",
 ) -> None:
     con.execute(
-        "INSERT INTO forward_pplay_scores VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO forward_pplay_scores VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL)",
         [
             datetime(2026, 10, 22),
             "g1",

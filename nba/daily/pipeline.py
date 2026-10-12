@@ -42,6 +42,7 @@ from nba.daily.predict import (
     rolling_prop_baseline,
     slate_report_outs,
 )
+from nba.daily.runmeta import git_state
 from nba.daily.schedule import (
     MAX_SCHEDULE_CACHE_AGE,
     ScheduledGame,
@@ -103,6 +104,10 @@ class RunSummary:
     errors: list[str] = field(default_factory=list)
     #: shadow-arm (_int, _lt, recency extras) failures; primary rows are unaffected: informational
     shadow_errors: list[str] = field(default_factory=list)
+    #: code identity of this run (nba.daily.runmeta): git HEAD, tracked-file dirty flag + count
+    git_head: str = "unknown"
+    git_dirty: bool | None = None
+    git_n_dirty: int = 0
 
 
 def run_daily(
@@ -149,6 +154,7 @@ def run_daily(
     made_at = now if now is not None else utcnow()
     ensure_tables(con)
     summary = RunSummary(run_id=uuid.uuid4().hex[:12], run_date=run_date)
+    summary.git_head, summary.git_dirty, summary.git_n_dirty = git_state()
     season_i, season_s = season_int_for_date(run_date), season_str_for_date(run_date)
 
     if not skip_ingest:

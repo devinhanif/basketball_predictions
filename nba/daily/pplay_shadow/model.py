@@ -12,7 +12,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +21,7 @@ import numpy as np
 import polars as pl
 import yaml
 
-from nba.daily.pplay_shadow.features import FEATURES
+from nba.daily.pplay_shadow.features import C_FEATURES, CP_FEATURES, FEATURES
 from nba.props.context_residual import ContextResidualConfig, _matrix, _params
 
 CONFIG = Path("configs/context_residual.yaml")
@@ -58,19 +58,29 @@ class Fit:
     n_train: int
     train_through: dt.date
     n_positive: int
+    features: list[str] = field(default_factory=lambda: list(FEATURES))
 
 
 def fit(
-    frame: pl.DataFrame, as_of: dt.date, cfg: ContextResidualConfig, min_train: int = MIN_TRAIN
+    frame: pl.DataFrame,
+    as_of: dt.date,
+    cfg: ContextResidualConfig,
+    min_train: int = MIN_TRAIN,
+    features: list[str] | None = None,
 ) -> Fit | None:
     """Fit on labelled rows with ``game_date < as_of``; ``None`` when fewer than ``min_train`` rows."""
     train = frame.filter((pl.col("game_date") < as_of) & pl.col("played").is_not_null())
     if train.height < min_train:
         return None
+    cols = features or FEATURES
     y = train["played"].to_numpy().astype(int)
-    clf: Any = lgb.LGBMClassifier(**_params(cfg, "binary")).fit(_matrix(train, FEATURES), y)  # type: ignore[arg-type]
-    return Fit(clf, train.height, train["game_date"].max(), int(y.sum()))  # type: ignore[arg-type]
+    clf: Any = lgb.LGBMClassifier(**_params(cfg, "binary")).fit(_matrix(train, cols), y)  # type: ignore[arg-type]
+    return Fit(clf, train.height, train["game_date"].max(), int(y.sum()), cols)  # type: ignore[arg-type]
 
 
 def predict(model: Fit, rows: pl.DataFrame) -> np.ndarray:
-    return np.asarray(model.clf.predict_proba(_matrix(rows, FEATURES)))[:, 1]
+    return np.asarray(model.clf.predict_proba(_matrix(rows, model.features)))[:, 1]
+
+
+#: comparator arms refit with the same daily rule and learner as R (docs/DAILY_PIPELINE.md)
+COMPARATOR_FEATURES: dict[str, list[str]] = {"c": C_FEATURES, "cp": CP_FEATURES}

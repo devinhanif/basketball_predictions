@@ -190,6 +190,49 @@ def _paired_t30_section(
     return lines
 
 
+T15_MODEL = "props_context_residual_t15"
+
+
+def _paired_t15_section(con: duckdb.DuckDBPyConnection, props: list[tuple[Any, ...]]) -> list[str]:
+    """DESCRIPTIVE sibling arm (docs/prereg/FORWARD_T15_2026_27.md): props_context_residual_t15
+    (confirmed lineup known at T-15) minus the production T-60 row, and minus the T-30 arm on the
+    player-games scored by BOTH arms. Negative = T-15 better. No decision weight; the immutable
+    checkpoint snapshots are the only decision input."""
+    lines = ["", f"### Paired SHADOW (descriptive): {T15_MODEL} minus {PROPS_PRIMARY}"]
+    try:
+        dec = con.execute(
+            "SELECT outcome, split_part(split_part(reason, ':', 1), ';', 1), count(*) "
+            "FROM forward_t15_decisions GROUP BY 1, 2 ORDER BY 1, 2"
+        ).fetchall()
+    except duckdb.CatalogException:
+        dec = []
+    if dec:
+        lines.append(
+            "- games decided: "
+            + "; ".join(f"{o}/{(r or 'ok').split(';')[0]}={n}" for o, r, n in dec)
+        )
+    else:
+        lines.append("- no T-15 decisions recorded yet.")
+    prim = {(r[0], r[6], r[7]): r for r in props if r[5] == PROPS_PRIMARY}
+    t30 = {(r[0], r[6], r[7]): r for r in props if r[5] == T30_MODEL}
+    t15 = {(r[0], r[6], r[7]): r for r in props if r[5] == T15_MODEL}
+    for stat in sorted({k[0] for k in t15}):
+        for label, base in (("T-60", prim), ("T-30", t30)):
+            keys = sorted((k for k in t15 if k[0] == stat and k in base), key=str)
+            if not keys:
+                continue
+            d = np.array([str(t15[k][1]) for k in keys])
+            dc = np.array([t15[k][2] - base[k][2] for k in keys], dtype=float)
+            n_games = len({k[1] for k in keys})
+            lines.append(
+                f"- {stat} vs {label}: delta CRPS {_fmt(cluster_bootstrap_mean(dc, d))}; "
+                f"{len(keys)} paired player-games over {n_games} games"
+            )
+    if not t15:
+        lines.append("- no settled T-15 prop rows yet.")
+    return lines
+
+
 def _checkpoint_section() -> list[str]:
     """Pre-registered immutable checkpoint snapshots (the only decision inputs, prereg rule 10)."""
     try:
@@ -242,6 +285,28 @@ def _pplay_shadow_section(con: duckdb.DuckDBPyConnection) -> list[str]:
             f"R {_fmt(cluster_bootstrap_mean(lr, d))}; "
             f"R minus production {_fmt(cluster_bootstrap_mean(lr - lp, d), 5)}"
         )
+    try:  # the live confirmation of R against the comparators C and C' (same rows, paired)
+        comp = con.execute(
+            "SELECT game_date, ll_r, ll_c, ll_cp FROM forward_pplay_scores "
+            "WHERE status = 'scored' AND ll_r IS NOT NULL AND ll_c IS NOT NULL "
+            "AND ll_cp IS NOT NULL"
+        ).fetchall()
+    except duckdb.CatalogException:
+        comp = []
+    if comp:
+        d = np.array([str(r[0]) for r in comp])
+        lr = np.array([r[1] for r in comp], dtype=float)
+        for label, idx in (("C", 2), ("C'", 3)):
+            lc = np.array([r[idx] for r in comp], dtype=float)
+            lines.append(
+                f"- R minus {label} ({len(comp)} player-games): "
+                f"{_fmt(cluster_bootstrap_mean(lr - lc, d), 5)}"
+            )
+    from nba.daily.pplay_shadow.settle import parity_check
+
+    _status, parity_line = parity_check(con)
+    if parity_line:
+        lines.append(parity_line)
     lines.append(
         f"- {len(rows)} settled player-games over {len({r[0] for r in rows})} dates "
         "(R minus production < 0 favours R; the 2025 holdout measured R minus the C comparator "
@@ -320,6 +385,7 @@ def build_report(
             )
     lines += _paired_props_section(props)
     lines += _paired_t30_section(con, props, lineups_db)
+    lines += _paired_t15_section(con, props)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
     lines += _pplay_shadow_section(con)
     lines += _checkpoint_section()

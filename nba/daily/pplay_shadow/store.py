@@ -34,7 +34,11 @@ CREATE TABLE IF NOT EXISTS forward_pplay_shadow (
     features_through DATE,      -- as-of date of every feature (games dated before this)
     feature_set_sha VARCHAR,    -- recipe fingerprint (ordered feature names, learner params, lightgbm)
     features_sha VARCHAR,       -- this row's feature values (NULL when R has no row)
-    t60_report_as_of VARCHAR    -- latest usable official report slot for the game, or NULL
+    t60_report_as_of VARCHAR,   -- latest usable official report slot for the game, or NULL
+    div_rival BOOLEAN,          -- the game's teams are a division pair (F10A option 1; logged only)
+    hist_rival BOOLEAN,         -- Tier 2 historic pair with as-of strength >= 2 (calendar-year as-of)
+    p_play_c DOUBLE,            -- comparator C (WORKLOAD feature set), same daily refit as R; NULL as R
+    p_play_cp DOUBLE            -- comparator C' = C + production's 13 recent-minutes/role columns
 );
 CREATE TABLE IF NOT EXISTS forward_pplay_scores (
     scored_at TIMESTAMP,
@@ -51,7 +55,11 @@ CREATE TABLE IF NOT EXISTS forward_pplay_scores (
     ll_prod DOUBLE,
     ll_r DOUBLE,
     in_prod_log BOOLEAN,
-    status VARCHAR              -- scored | not_in_box
+    status VARCHAR,             -- scored | not_in_box
+    p_play_c DOUBLE,
+    p_play_cp DOUBLE,
+    ll_c DOUBLE,
+    ll_cp DOUBLE
 );
 """
 
@@ -76,11 +84,21 @@ COLUMNS = [
     "feature_set_sha",
     "features_sha",
     "t60_report_as_of",
+    "div_rival",
+    "hist_rival",
+    "p_play_c",
+    "p_play_cp",
 ]
 
 
 def ensure_tables(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(DDL)
+    # tables created before the rivalry flags / comparator columns (2026-10-12)
+    for col, typ in (("div_rival", "BOOLEAN"), ("hist_rival", "BOOLEAN"),
+                     ("p_play_c", "DOUBLE"), ("p_play_cp", "DOUBLE")):  # fmt: skip
+        con.execute(f"ALTER TABLE forward_pplay_shadow ADD COLUMN IF NOT EXISTS {col} {typ}")
+    for col in ("p_play_c", "p_play_cp", "ll_c", "ll_cp"):
+        con.execute(f"ALTER TABLE forward_pplay_scores ADD COLUMN IF NOT EXISTS {col} DOUBLE")
 
 
 def _same(a: tuple[object, ...], b: tuple[object, ...]) -> bool:
@@ -104,7 +122,7 @@ def append_rows(
         (str(r[0]), int(r[1])): r[2:]
         for r in con.execute(
             f"""SELECT game_id, player_id, p_play_prod, p_play_r, r_reason, features_sha, props_cond,
-                       feature_set_sha, in_prod_log
+                       feature_set_sha, in_prod_log, p_play_c, p_play_cp
                 FROM (SELECT *, row_number() OVER (PARTITION BY game_id, player_id
                                                    ORDER BY made_at DESC, run_id DESC) rn
                       FROM forward_pplay_shadow WHERE game_id IN ({marks})) WHERE rn = 1""",
@@ -116,7 +134,7 @@ def append_rows(
         pc = r["props_cond"]
         pcj = json.dumps(json.loads(pc), sort_keys=True) if isinstance(pc, str) else pc
         return (r["p_play_prod"], r["p_play_r"], r["r_reason"], r["features_sha"], pcj,
-                r["feature_set_sha"], r["in_prod_log"])  # fmt: skip
+                r["feature_set_sha"], r["in_prod_log"], r["p_play_c"], r["p_play_cp"])  # fmt: skip
 
     new: list[dict[str, object]] = []
     for r in ok:

@@ -96,30 +96,38 @@ def _parser() -> argparse.ArgumentParser:
         help="official-roster cache root (default data/rosters); rehearsals use a scratch dir so "
         "a rehearsal day never seeds the real per-date cache",
     )
-    t = sub.add_parser(
-        "run-t30",
-        help="SHADOW: log props_context_residual_t30 for games at/after T-30 whose confirmed "
-        "lineup was collected (docs/LINEUPS_T30_COLLECTOR.md); never primary",
-    )
-    t.add_argument("--date", required=True, type=date.fromisoformat)
-    t.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
-    t.add_argument("--lineups-db", default=None, help="default data/lineups/lineups.duckdb")
-    t.add_argument("--roster-source", choices=["recent", "official"], default="recent")
-    t.add_argument("--model-cache", type=Path, default=None)
-    t.add_argument(
-        "--rate-limit-s",
-        type=float,
-        default=2.5,
-        help="min gap between metered roster/pedigree calls (floored at 2.5 s)",
-    )
-    t.add_argument("--roster-dir", type=Path, default=None, help="official-roster cache root")
-    t.add_argument("--schedule-from-db", action="store_true", help="rehearsals only")
-    t.add_argument(
-        "--schedule-nba-api",
-        action="store_true",
-        help="use the nba_api season schedule (1 stats.nba.com call) instead of the collector's "
-        "own tip table",
-    )
+    for cmd, helptext in (
+        (
+            "run-t30",
+            "SHADOW: log props_context_residual_t30 for games at/after T-30 whose confirmed "
+            "lineup was collected (docs/LINEUPS_T30_COLLECTOR.md); never primary",
+        ),
+        (
+            "run-t15",
+            "SHADOW: log props_context_residual_t15 for games at/after T-15 whose confirmed "
+            "lineup was collected (docs/prereg/FORWARD_T15_2026_27.md); never primary",
+        ),
+    ):
+        t = sub.add_parser(cmd, help=helptext)
+        t.add_argument("--date", required=True, type=date.fromisoformat)
+        t.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
+        t.add_argument("--lineups-db", default=None, help="default data/lineups/lineups.duckdb")
+        t.add_argument("--roster-source", choices=["recent", "official"], default="recent")
+        t.add_argument("--model-cache", type=Path, default=None)
+        t.add_argument(
+            "--rate-limit-s",
+            type=float,
+            default=2.5,
+            help="min gap between metered roster/pedigree calls (floored at 2.5 s)",
+        )
+        t.add_argument("--roster-dir", type=Path, default=None, help="official-roster cache root")
+        t.add_argument("--schedule-from-db", action="store_true", help="rehearsals only")
+        t.add_argument(
+            "--schedule-nba-api",
+            action="store_true",
+            help="use the nba_api season schedule (1 stats.nba.com call) instead of the "
+            "collector's own tip table",
+        )
     st = sub.add_parser("settle", help="score completed predictions only")
     st.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
     ck = sub.add_parser(
@@ -149,6 +157,8 @@ def _print_summary(s: RunSummary) -> None:
         f"props={s.n_props_rows} injury={s.injury_status} ({s.injury_report_et}) "
         f"out_excluded={s.n_out_excluded}"
     )
+    dirty = "unknown" if s.git_dirty is None else str(s.git_dirty).lower()
+    print(f"code: git={s.git_head[:12]} dirty={dirty} (tracked files modified: {s.git_n_dirty})")
     if s.n_slate == 0 and s.n_preseason_skipped:
         print(f"no regular-season games: {s.n_preseason_skipped} preseason skipped")
     print(f"models: {s.model_status}\ningest: {s.ingest}\nsettle: {s.settle}")
@@ -254,12 +264,13 @@ def main(argv: list[str] | None = None) -> int:
         if s.errors:
             return RC_DEGRADED
         return RC_INFORMATIONAL if s.n_refused_after_tipoff else 0
-    if args.command == "run-t30":
-        from nba.daily.t30 import T30_MIN_INTERVAL_S, run_t30, schedule_from_lineups
+    if args.command in ("run-t30", "run-t15"):
+        from nba.daily.t30 import T30_MIN_INTERVAL_S, run_t15, run_t30, schedule_from_lineups
         from nba.lineups.store import DEFAULT_LINEUPS_DB, connect_lineups
 
         lcon = connect_lineups(args.lineups_db or DEFAULT_LINEUPS_DB, read_only=True)
-        t30 = run_t30(
+        run_arm = run_t15 if args.command == "run-t15" else run_t30
+        t30 = run_arm(
             con,
             lcon,
             args.date,

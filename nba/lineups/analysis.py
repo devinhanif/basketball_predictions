@@ -23,6 +23,7 @@ from nba.daily.injury import to_report_dt
 from nba.lineups.source import CONFIRMED
 
 LEAD = timedelta(minutes=30)
+LEAD_T15 = timedelta(minutes=15)
 T60 = timedelta(minutes=60)
 MAX_REPORT_AGE = timedelta(hours=36)
 GTD_STATUSES = ("questionable", "doubtful")
@@ -43,6 +44,7 @@ class LeadStats:
     n_team_games: int = 0
     n_confirmed_before_tip: int = 0
     n_confirmed_before_t30: int = 0
+    n_confirmed_before_t15: int = 0  # T-15 arm (docs/prereg/FORWARD_T15_2026_27.md rule 7)
     lead_minutes: list[float] = field(default_factory=list)  # first Confirmed fetch -> tip
     source_lead_minutes: list[float] = field(default_factory=list)  # feed ts -> tip
 
@@ -74,6 +76,8 @@ def announcement_lead(lcon: duckdb.DuckDBPyConnection) -> LeadStats:
             out.lead_minutes.append(lead)
             if first_fetch < tip - LEAD:
                 out.n_confirmed_before_t30 += 1
+            if first_fetch < tip - LEAD_T15:
+                out.n_confirmed_before_t15 += 1
         if src_ts is not None:
             out.source_lead_minutes.append((tip - src_ts).total_seconds() / 60.0)
     return out
@@ -239,7 +243,8 @@ def render_collector_section(
     lines = ["", "### T-30 collector measurements (sample sizes shown; small n = no claim)"]
     lines.append(
         f"- team-games with snapshots: {lead.n_team_games}; confirmed before tip: "
-        f"{lead.n_confirmed_before_tip}; confirmed before T-30: {lead.n_confirmed_before_t30}"
+        f"{lead.n_confirmed_before_tip}; confirmed before T-30: {lead.n_confirmed_before_t30}; "
+        f"confirmed before T-15: {lead.n_confirmed_before_t15}"
     )
     lines.append(
         f"- minutes before tip when first seen Confirmed (our fetch; p10/p50/p90, "

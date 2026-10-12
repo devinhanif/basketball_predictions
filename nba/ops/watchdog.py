@@ -102,9 +102,10 @@ JOBS: tuple[JobSpec, ...] = (
 
 
 #: skip-only records written by a sub-step of a job (``<name>.skip.json``, no heartbeat of its own):
-#: name -> consecutive skips that raise an alert. ``lineups_t30``: run-t30 gave up waiting for
-#: nba.duckdb (rc 75); one deferral is normal contention, two in a row means T-30 rows are missing.
-SKIP_ONLY: dict[str, int] = {"lineups_t30": 2}
+#: name -> consecutive skips that raise an alert. ``lineups_t30`` / ``lineups_t15``: run-t30 /
+#: run-t15 gave up waiting for nba.duckdb (rc 75); one deferral is normal contention, two in a row
+#: means that arm's rows are missing.
+SKIP_ONLY: dict[str, int] = {"lineups_t30": 2, "lineups_t15": 2}
 
 
 @dataclass(frozen=True)
@@ -249,7 +250,7 @@ def evaluate(
                 Alert(
                     f"{name}:skipped",
                     f"{name} deferred {n_skips} consecutive times (nba.duckdb stayed busy past "
-                    "the bounded wait); T-30 rows are missing",
+                    "the bounded wait); that arm's shadow rows are missing",
                 )
             )
     status = parse_launchctl(launchctl_text)

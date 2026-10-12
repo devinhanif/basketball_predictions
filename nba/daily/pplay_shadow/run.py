@@ -18,7 +18,7 @@ import duckdb
 import polars as pl
 
 from nba.daily.pplay_shadow import model as M
-from nba.daily.pplay_shadow import store
+from nba.daily.pplay_shadow import rivalry, store
 from nba.daily.pplay_shadow.features import FEATURES, SlateGame, build_frame
 from nba.features.game_tipoff import build_game_tipoff
 
@@ -109,7 +109,17 @@ def run_shadow(
         tips=slate_tips(slate, base_tips),
     )
     fit = M.fit(frame, run_date, cfg, min_train)
+    # comparators C and C' (the live confirmation of R against them): same refit rule and learner
+    comp_fit = {
+        k: M.fit(frame, run_date, cfg, min_train, cols) for k, cols in M.COMPARATOR_FEATURES.items()
+    }
     sl = frame.filter(pl.col("is_slate"))
+    p_comp: dict[str, dict[tuple[str, int], float]] = {"c": {}, "cp": {}}
+    if sl.height:
+        for k, cf in comp_fit.items():
+            if cf is not None:
+                for g, p, pc in zip(sl["game_id"], sl["player_id"], M.predict(cf, sl), strict=True):
+                    p_comp[k][(str(g), int(p))] = float(pc)
     p_r: dict[tuple[str, int], float] = {}
     sha_row: dict[tuple[str, int], str] = {}
     if fit is not None and sl.height:
@@ -120,6 +130,7 @@ def run_shadow(
             sha_row[(str(g), int(p))] = fp
     cond = props_cond(wide)
     tip = {g.game_id: g.tipoff for g in slate}
+    riv = {g.game_id: rivalry.flags(g.home_team, g.away_team, run_date) for g in slate}
     fsha = M.feature_set_sha(cfg)
     rows: list[dict[str, object]] = []
     for r in per_player.iter_rows(named=True):
@@ -155,6 +166,10 @@ def run_shadow(
                 "feature_set_sha": fsha,
                 "features_sha": sha_row.get(key),
                 "t60_report_as_of": info["t60_snapshot_ts"].get(key[0]),
+                "div_rival": riv[key[0]]["div_rival"],
+                "hist_rival": riv[key[0]]["hist_rival"],
+                "p_play_c": p_comp["c"].get(key) if key in p_r else None,
+                "p_play_cp": p_comp["cp"].get(key) if key in p_r else None,
             }
         )
     written, deduped, refused = store.append_rows(con, rows, made_at)
