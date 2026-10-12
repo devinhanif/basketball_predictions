@@ -118,17 +118,22 @@ case "$MODE" in
     # maintainer decisions 2026-10-09: official rosters for the first two weeks of 2026-27
     # (opening-week coverage 61% -> 96%), log the integer-support quantile variant live, and
     # SHADOW-log the pts lower-tail mixture (props_context_residual_lt; comparison only, never
-    # primary; docs/LOWER_TAIL.md frozen live rule)
+    # primary; docs/LOWER_TAIL.md frozen live rule), and SHADOW-log the recent-role P(play) model R
+    # (--log-pplay-shadow, 2026-10-12: own tables, runs after every primary row is written; oracle
+    # 89889f6d identical with the shadow code; its second predict call runs inside the pretip lock)
     ROSTER=recent
     if [ "$TODAY_ET" \< "2026-11-04" ]; then ROSTER=official; fi
     step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
-      --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --rate-limit-s 2.5
+      --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --log-pplay-shadow \
+      --rate-limit-s 2.5
     step refs "$UV" run --no-sync python -m nba.ingest.referees collect
     # live sharp-line capture (nba.odds capture, theoddsapi.com) was removed on 2026-10-10 when Devin
     # cancelled that subscription; the adapter stays in nba/odds, re-add this step with a valid key in .env.
     step market_capture "$UV" run --no-sync python -m nba.markets capture --date "$TODAY_ET"
-    step parlay_shadow "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET"
-    step props_analysis "$UV" run --no-sync python -m nba.parlay analyze --date "$TODAY_ET"
+    step parlay_shadow "$UV" run --no-sync python -m nba.parlay evaluate --date "$TODAY_ET" \
+      --roster-source "$ROSTER"
+    step props_analysis "$UV" run --no-sync python -m nba.parlay analyze --date "$TODAY_ET" \
+      --roster-source "$ROSTER"
     ;;
   morning)
     step settle "$UV" run --no-sync python -m nba.daily settle
