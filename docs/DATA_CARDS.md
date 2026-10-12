@@ -40,4 +40,4 @@ games do not sum to its regular-season games stops the build and is listed.
 ## lineup_snapshots (lineups.duckdb)
 Raw, append-only; the feed lists a player twice in one snapshot (starters block + confirmed roster block). Read through
 `nba.lineups.store.dedup_lineup_snapshots(con)` or the view `lineup_snapshots_dedup`: Confirmed over Expected, then latest `source_ts`;
-`announced_starter` is the OR over duplicates.
+`announced_starter` is the OR over rows with the team's winning status only (frozen 2026-10-11, DECISIONS ~21:30 CT; one implementation, `dedup_snapshot_rows`, shared by t30 and the view).
