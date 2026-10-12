@@ -111,4 +111,4 @@ Discord first) with the approval queue and kill switch → 20-post dry run. Open
 - Run summaries print `code: git=... dirty=...`; dirty should be False on a clean tree.
 - Live odds capture requests 89 markets x 12 points; open the first raw file on 10-20 and check the new market shapes parse (team totals, period lines, yes/no props); watch live_book_odds growth.
 - Keep the Mac on AC with the lid open on game nights (10-11 lid sleep on battery caused a 5-hour collector gap).
-- Pending Devin: RECENT_ROLE_FULL Stage 2 (2025 check on points) vs waiting for the live log; the-odds-api plan and billing reset.
+- Pending Devin: RECENT_ROLE_FULL Stage 2 (2025 check on points) vs waiting for the live log. (Odds plan resolved: START 5M kept.)

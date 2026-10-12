@@ -802,3 +802,8 @@ What would reverse it: a Stage-2 miss (reads as "real but below the floor") or t
 deployed P(play) hurdle the adversary measured -0.0972 [-0.1029, -0.0915] (T462); any production proposal rests on that number. (2) T470 withdraws
 the T466 reading that the SEQ blend is guard-clean without the gate; any SEQ rule needs a descriptive slice/overlap table on the cached 2023/24
 arrays first. Fixed in code the same hour: the run-metadata dirty flag now counts only code and config paths (e13dc52).
+
+**2026-10-12 08:26 CDT — the-odds-api: START 5M kept (5,000,000 credits per month); all 89 live markets stay ON (Devin: "It's 5million credits a month").**
+What: the full live schedule (89 markets x 2 regions x 12 points, ~2,136 credits a game, ~459k in a peak month, ~9% of the monthly allowance)
+stays as configured; the "2.30M remaining" figure was this billing period only. Supersedes the 2026-10-10 note that the plan would be cancelled
+after the month. Why: Devin. What would reverse it: a plan change (then size market_groups in configs/odds_live.yaml to the new allowance).
