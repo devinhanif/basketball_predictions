@@ -113,3 +113,5 @@ Devin (2026-10-12): results must be readable, thorough enough for confusion matr
 === RESULTS BELOW ===
 
 (not run)
+
+**WITHDRAWN 2026-10-12 14:24 CDT before any season-2025 read (Devin: "withdraw and reregister, i will pick b to be thorough").** Reason: the adversary's loader review (docs/reviews/seq_full_mix_loader_review_2026-10-12.md) showed the frozen proxy19 report-token rule admits post-cutoff report snapshots on early-tip games (6.6% of 2024 rows), inflating the 2024 AVG-FULL by about -0.0011 of -0.0098, a channel guard g5 cannot see. No 2025 export was built and no run was made; the touch is unspent. Successor: SEQ_FULL_MIX_RT (real-tip report tokens), a new id with its own gates and freeze.
