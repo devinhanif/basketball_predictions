@@ -1,6 +1,7 @@
 # Overnight loop, 2026-10-12 (started 01:53 CDT)
 
 ## Needs Devin (morning)
+0. HEADLINE: RECENT_ROLE_FULL (recent minutes in the props heads + pi) passes points in 2023 AND 2024 (-0.0084 / -0.0083) and SURVIVED the adversary (T469). Last-game minutes alone also passes. Decide: (a) one logged 2025 check on points (loader written and reviewed first; ~75-82% chance it clears the floor), or (b) wait for the live log.
 1. Mac sleep: the 10-11 collector hole was the LID closing on battery at 18:33 CDT (clamshell sleep); caffeinate does not stop that. On game nights keep it on AC with the lid open (or an external display), and run `sudo pmset -c sleep 0`; `sudo pmset -a disablesleep 1` also stops lid sleep but drains battery.
 2. the-odds-api plan: live capture now asks for 89 markets x 12 points (~2,136 credits/game, ~459k in a peak month, ~2.63M a season). 2.30M remain after tonight's 1.14M back-fill. When does the billing period reset? Cancelling START 5M stops all captures; with 89 markets the smallest fitting plan is no longer START 100K — tell me which plan and I'll size the market groups to it (groups can be switched off in configs/odds_live.yaml). Also: check the first live raw file on 10-20 (new market shapes parsed from vendor docs).
 3. Any 2025 holdout touch the loop finds a case for (none taken overnight without your words).
@@ -33,3 +34,4 @@
 - 02:58 Full test suite after the live batch: 2,723 passed, 1 skipped, coverage 72.57%.
 - 03:17 Pace (A): props do NOT under-use pace (pts slope per sd +0.060 [-0.017, +0.138]; pace already in r20 scoring, corr 0.57). Periods (B): market ahead of our period winners in every period (log loss +0.002 to +0.007), naive period totals lose to the line everywhere, Q1 player pts ties the line on MAE but loses on log loss (+0.014). PACE_TOTALS drafted, NOT frozen: the line already carries pace (corr 0.78, residual vs pace +0.025 [-0.029, +0.079]); floors need Devin.
 - 03:22 RECENT_ROLE_FULL: pts PASSES the frozen rule in 2023 and 2024 (-0.0084 / -0.0083, CIs below -0.004; placebo and shuffles hold). Candidate only (forking paths). Adversary attacking it now. If it survives, a 2025 check needs Devin's words.
+- 03:33 RECENT_ROLE_FULL pts SURVIVES the adversary (T469). Now: final audit pass over tonight's results.
