@@ -1,0 +1,1119 @@
+{
+ "measured_at": "Mon Oct 12 14:25 CDT 2026",
+ "seasons": [
+  2019,
+  2020,
+  2021,
+  2022,
+  2023,
+  2024
+ ],
+ "report_capture": {
+  "2019": {
+   "games": 1143,
+   "games_real_tip": 1143,
+   "games_usable_t60_snapshot": 1141,
+   "share": 0.9982502187226596,
+   "snapshots_pre_t60_per_game": 3.925503943908852,
+   "median_lead_min_latest_t60": 150.0,
+   "listed_per_game": {
+    "out": 6.915863277826468,
+    "doubtful": 0.15600350569675722,
+    "questionable": 0.670464504820333,
+    "probable": 0.5223488168273445,
+    "available": 0.6625766871165644
+   },
+   "era_flags": {
+    "covid_bubble": 172,
+    "no_fans": 172,
+    "limited_fans": 0,
+    "shortened_season": 1143
+   }
+  },
+  "2020": {
+   "games": 1171,
+   "games_real_tip": 1171,
+   "games_usable_t60_snapshot": 1170,
+   "share": 0.9991460290350128,
+   "snapshots_pre_t60_per_game": 3.7914529914529913,
+   "median_lead_min_latest_t60": 150.0,
+   "listed_per_game": {
+    "out": 5.7905982905982905,
+    "doubtful": 0.147008547008547,
+    "questionable": 0.847008547008547,
+    "probable": 0.4153846153846154,
+    "available": 0.39316239316239315
+   },
+   "era_flags": {
+    "covid_bubble": 0,
+    "no_fans": 0,
+    "limited_fans": 1171,
+    "shortened_season": 1171
+   }
+  },
+  "2021": {
+   "games": 1323,
+   "games_real_tip": 1323,
+   "games_usable_t60_snapshot": 1323,
+   "share": 1.0,
+   "snapshots_pre_t60_per_game": 20.507180650037792,
+   "median_lead_min_latest_t60": 60.0,
+   "listed_per_game": {
+    "out": 8.014361300075587,
+    "doubtful": 0.034013605442176874,
+    "questionable": 0.3401360544217687,
+    "probable": 0.09750566893424037,
+    "available": 1.2025699168556312
+   },
+   "era_flags": {
+    "covid_bubble": 0,
+    "no_fans": 0,
+    "limited_fans": 0,
+    "shortened_season": 0
+   }
+  },
+  "2022": {
+   "games": 1320,
+   "games_real_tip": 1320,
+   "games_usable_t60_snapshot": 1318,
+   "share": 0.9984848484848485,
+   "snapshots_pre_t60_per_game": 2.5007587253414263,
+   "median_lead_min_latest_t60": 180.0,
+   "listed_per_game": {
+    "out": 6.351289833080425,
+    "doubtful": 0.16160849772382396,
+    "questionable": 1.3376327769347496,
+    "probable": 0.5144157814871017,
+    "available": 0.49089529590288317
+   }
+  },
+  "2023": {
+   "games": 1318,
+   "games_real_tip": 1318,
+   "games_usable_t60_snapshot": 1317,
+   "share": 0.9992412746585736,
+   "snapshots_pre_t60_per_game": 2.478359908883827,
+   "median_lead_min_latest_t60": 180.0,
+   "listed_per_game": {
+    "out": 7.044798785117692,
+    "doubtful": 0.17615793470007593,
+    "questionable": 1.5527714502657555,
+    "probable": 0.5003796507213364,
+    "available": 0.6150341685649203
+   }
+  },
+  "2024": {
+   "games": 1320,
+   "games_real_tip": 1320,
+   "games_usable_t60_snapshot": 1317,
+   "share": 0.9977272727272727,
+   "snapshots_pre_t60_per_game": 2.433561123766135,
+   "median_lead_min_latest_t60": 180.0,
+   "listed_per_game": {
+    "out": 7.791192103264996,
+    "doubtful": 0.19893697798025817,
+    "questionable": 1.4973424449506454,
+    "probable": 0.5899772209567198,
+    "available": 0.6271829916476841
+   }
+  }
+ },
+ "firing": {
+  "2019": {
+   "proxy_rows": 24847,
+   "rt_flagged_rows": 7159,
+   "rt_flag_share": 0.2881233146858776,
+   "rt_returner_games": 845,
+   "rt_returner_play_rate_all": 0.48284023668639053,
+   "rt_returner_play_rate_rotation": 0.6425531914893617,
+   "rt_rotation_returners": 470,
+   "rt_returner_play_rate_star": 0.7333333333333333,
+   "rt_star_returners": 105,
+   "qs_rows": 24467,
+   "qs_questionable_rows": 486,
+   "qs_streak_ge1_all_rows": 318,
+   "qs_streak_ge1": 22,
+   "qs_streak_ge3": 0,
+   "qs_change_nonzero": 592,
+   "ea_questionable_listed_per_game": 0.6692913385826772
+  },
+  "2020": {
+   "proxy_rows": 30437,
+   "rt_flagged_rows": 6350,
+   "rt_flag_share": 0.20862765712783782,
+   "rt_returner_games": 657,
+   "rt_returner_play_rate_all": 0.5449010654490106,
+   "rt_returner_play_rate_rotation": 0.6468253968253969,
+   "rt_rotation_returners": 504,
+   "rt_returner_play_rate_star": 0.7591240875912408,
+   "rt_star_returners": 137,
+   "qs_rows": 29612,
+   "qs_questionable_rows": 743,
+   "qs_streak_ge1_all_rows": 458,
+   "qs_streak_ge1": 73,
+   "qs_streak_ge3": 20,
+   "qs_change_nonzero": 484,
+   "ea_questionable_listed_per_game": 0.8462852263023057
+  },
+  "2021": {
+   "proxy_rows": 32672,
+   "rt_flagged_rows": 9341,
+   "rt_flag_share": 0.2859023016650343,
+   "rt_returner_games": 1123,
+   "rt_returner_play_rate_all": 0.6010685663401603,
+   "rt_returner_play_rate_rotation": 0.7511045655375552,
+   "rt_rotation_returners": 679,
+   "rt_returner_play_rate_star": 0.9225806451612903,
+   "rt_star_returners": 155,
+   "qs_rows": 32124,
+   "qs_questionable_rows": 375,
+   "qs_streak_ge1_all_rows": 266,
+   "qs_streak_ge1": 60,
+   "qs_streak_ge3": 13,
+   "qs_change_nonzero": 1498,
+   "ea_questionable_listed_per_game": 0.3401360544217687
+  },
+  "2022": {
+   "proxy_rows": 33207,
+   "rt_flagged_rows": 10157,
+   "rt_flag_share": 0.305869244436414,
+   "rt_returner_games": 1120,
+   "rt_returner_play_rate_all": 0.45803571428571427,
+   "rt_returner_play_rate_rotation": 0.6029411764705882,
+   "rt_rotation_returners": 612,
+   "rt_returner_play_rate_star": 0.8142857142857143,
+   "rt_star_returners": 140,
+   "qs_rows": 32866,
+   "qs_questionable_rows": 1104,
+   "qs_streak_ge1_all_rows": 763,
+   "qs_streak_ge1": 158,
+   "qs_streak_ge3": 38,
+   "qs_change_nonzero": 473,
+   "ea_questionable_listed_per_game": 1.3356060606060607
+  },
+  "2023": {
+   "proxy_rows": 33860,
+   "rt_flagged_rows": 10065,
+   "rt_flag_share": 0.2972533963378618,
+   "rt_returner_games": 1140,
+   "rt_returner_play_rate_all": 0.46842105263157896,
+   "rt_returner_play_rate_rotation": 0.6821705426356589,
+   "rt_rotation_returners": 516,
+   "rt_returner_play_rate_star": 0.7941176470588235,
+   "rt_star_returners": 136,
+   "qs_rows": 33295,
+   "qs_questionable_rows": 1319,
+   "qs_streak_ge1_all_rows": 896,
+   "qs_streak_ge1": 227,
+   "qs_streak_ge3": 69,
+   "qs_change_nonzero": 516,
+   "ea_questionable_listed_per_game": 1.5515933232169954
+  },
+  "2024": {
+   "proxy_rows": 34152,
+   "rt_flagged_rows": 10913,
+   "rt_flag_share": 0.31954204731787306,
+   "rt_returner_games": 1184,
+   "rt_returner_play_rate_all": 0.5092905405405406,
+   "rt_returner_play_rate_rotation": 0.65625,
+   "rt_rotation_returners": 640,
+   "rt_returner_play_rate_star": 0.7439024390243902,
+   "rt_star_returners": 164,
+   "qs_rows": 33158,
+   "qs_questionable_rows": 1345,
+   "qs_streak_ge1_all_rows": 790,
+   "qs_streak_ge1": 105,
+   "qs_streak_ge3": 4,
+   "qs_change_nonzero": 506,
+   "ea_questionable_listed_per_game": 1.493939393939394
+  }
+ },
+ "firing_lead180": {
+  "2019": {
+   "proxy_rows": 24847,
+   "rt_flagged_rows": 7192,
+   "rt_flag_share": 0.2894514428301203,
+   "rt_returner_games": 849,
+   "rt_returner_play_rate_all": 0.4499411071849234,
+   "rt_returner_play_rate_rotation": 0.5845213849287169,
+   "rt_rotation_returners": 491,
+   "rt_returner_play_rate_star": 0.6153846153846154,
+   "rt_star_returners": 117,
+   "qs_rows": 24509,
+   "qs_questionable_rows": 650,
+   "qs_streak_ge1_all_rows": 424,
+   "qs_streak_ge1": 38,
+   "qs_streak_ge3": 1,
+   "qs_change_nonzero": 301,
+   "ea_questionable_listed_per_game": 0.9081364829396326
+  },
+  "2020": {
+   "proxy_rows": 30437,
+   "rt_flagged_rows": 6603,
+   "rt_flag_share": 0.21693990866379737,
+   "rt_returner_games": 686,
+   "rt_returner_play_rate_all": 0.5131195335276968,
+   "rt_returner_play_rate_rotation": 0.6037735849056604,
+   "rt_rotation_returners": 530,
+   "rt_returner_play_rate_star": 0.7034482758620689,
+   "rt_star_returners": 145,
+   "qs_rows": 29725,
+   "qs_questionable_rows": 934,
+   "qs_streak_ge1_all_rows": 566,
+   "qs_streak_ge1": 94,
+   "qs_streak_ge3": 24,
+   "qs_change_nonzero": 204,
+   "ea_questionable_listed_per_game": 1.1024765157984628
+  },
+  "2021": {
+   "proxy_rows": 32672,
+   "rt_flagged_rows": 9953,
+   "rt_flag_share": 0.3046339373163565,
+   "rt_returner_games": 1208,
+   "rt_returner_play_rate_all": 0.5372516556291391,
+   "rt_returner_play_rate_rotation": 0.6446173800259404,
+   "rt_rotation_returners": 771,
+   "rt_returner_play_rate_star": 0.7595628415300546,
+   "rt_star_returners": 183,
+   "qs_rows": 32289,
+   "qs_questionable_rows": 1293,
+   "qs_streak_ge1_all_rows": 892,
+   "qs_streak_ge1": 224,
+   "qs_streak_ge3": 73,
+   "qs_change_nonzero": 350,
+   "ea_questionable_listed_per_game": 1.4270597127739986
+  },
+  "2022": {
+   "proxy_rows": 33207,
+   "rt_flagged_rows": 10496,
+   "rt_flag_share": 0.3160779353750715,
+   "rt_returner_games": 1316,
+   "rt_returner_play_rate_all": 0.35714285714285715,
+   "rt_returner_play_rate_rotation": 0.4541832669322709,
+   "rt_rotation_returners": 753,
+   "rt_returner_play_rate_star": 0.5786516853932584,
+   "rt_star_returners": 178,
+   "qs_rows": 32907,
+   "qs_questionable_rows": 1151,
+   "qs_streak_ge1_all_rows": 804,
+   "qs_streak_ge1": 157,
+   "qs_streak_ge3": 41,
+   "qs_change_nonzero": 226,
+   "ea_questionable_listed_per_game": 1.412121212121212
+  },
+  "2023": {
+   "proxy_rows": 33860,
+   "rt_flagged_rows": 10723,
+   "rt_flag_share": 0.31668635558180747,
+   "rt_returner_games": 1477,
+   "rt_returner_play_rate_all": 0.3276912660798917,
+   "rt_returner_play_rate_rotation": 0.4281842818428184,
+   "rt_rotation_returners": 738,
+   "rt_returner_play_rate_star": 0.47549019607843135,
+   "rt_star_returners": 204,
+   "qs_rows": 33386,
+   "qs_questionable_rows": 1349,
+   "qs_streak_ge1_all_rows": 940,
+   "qs_streak_ge1": 216,
+   "qs_streak_ge3": 63,
+   "qs_change_nonzero": 225,
+   "ea_questionable_listed_per_game": 1.6487101669195752
+  },
+  "2024": {
+   "proxy_rows": 34152,
+   "rt_flagged_rows": 11408,
+   "rt_flag_share": 0.33403607402201924,
+   "rt_returner_games": 1526,
+   "rt_returner_play_rate_all": 0.35714285714285715,
+   "rt_returner_play_rate_rotation": 0.4201312910284464,
+   "rt_rotation_returners": 914,
+   "rt_returner_play_rate_star": 0.48523206751054854,
+   "rt_star_returners": 237,
+   "qs_rows": 33341,
+   "qs_questionable_rows": 1405,
+   "qs_streak_ge1_all_rows": 838,
+   "qs_streak_ge1": 109,
+   "qs_streak_ge3": 11,
+   "qs_change_nonzero": 229,
+   "ea_questionable_listed_per_game": 1.5871212121212122
+  }
+ },
+ "roster_continuity": {
+  "preseason_coverage": {
+   "2019": {
+    "nba_teams_with_preseason_rows": 30,
+    "player_team_pairs": 611
+   },
+   "2020": {
+    "nba_teams_with_preseason_rows": 30,
+    "player_team_pairs": 506
+   },
+   "2021": {
+    "nba_teams_with_preseason_rows": 30,
+    "player_team_pairs": 536
+   },
+   "2022": {
+    "nba_teams_with_preseason_rows": 30,
+    "player_team_pairs": 561
+   },
+   "2023": {
+    "nba_teams_with_preseason_rows": 30,
+    "player_team_pairs": 569
+   },
+   "2024": {
+    "nba_teams_with_preseason_rows": 30,
+    "player_team_pairs": 569
+   },
+   "2025": {
+    "nba_teams_with_preseason_rows": 30,
+    "player_team_pairs": 560
+   }
+  },
+  "prev_season_2018_19_rows": 26101,
+  "continuity_by_season": {
+   "2019": {
+    "teams": 30,
+    "game1_defined": 30,
+    "game1_mean": 0.5371647792505907,
+    "game1_sd": 0.1653789892716101,
+    "game1_min": 0.27040611178126256,
+    "game25_mean": 0.5563402514933968
+   },
+   "2020": {
+    "teams": 30,
+    "game1_defined": 30,
+    "game1_mean": 0.6298869124699756,
+    "game1_sd": 0.13752522553192106,
+    "game1_min": 0.24371160243325513,
+    "game25_mean": 0.6732474409617283
+   },
+   "2021": {
+    "teams": 30,
+    "game1_defined": 30,
+    "game1_mean": 0.609884919186943,
+    "game1_sd": 0.16409676012192664,
+    "game1_min": 0.23351949313669945,
+    "game25_mean": 0.6460508003640154
+   },
+   "2022": {
+    "teams": 30,
+    "game1_defined": 30,
+    "game1_mean": 0.6558465968303901,
+    "game1_sd": 0.1530197201410005,
+    "game1_min": 0.2881187405096161,
+    "game25_mean": 0.6847943209828242
+   },
+   "2023": {
+    "teams": 30,
+    "game1_defined": 30,
+    "game1_mean": 0.6385783994843883,
+    "game1_sd": 0.1575162112874014,
+    "game1_min": 0.21937276603844966,
+    "game25_mean": 0.6788723414140041
+   },
+   "2024": {
+    "teams": 30,
+    "game1_defined": 30,
+    "game1_mean": 0.6536220279073756,
+    "game1_sd": 0.16087403107129128,
+    "game1_min": 0.33774358697888335,
+    "game25_mean": 0.7072737962512561
+   }
+  },
+  "elo_ceiling": {
+   "beta_0.5": {
+    "2019": {
+     "early_games": 383,
+     "expected_delta_early": -0.0,
+     "sd_if_true": 0.0
+    },
+    "2020": {
+     "early_games": 388,
+     "expected_delta_early": -0.0002549330510871166,
+     "sd_if_true": 0.02266649700614987
+    },
+    "2021": {
+     "early_games": 383,
+     "expected_delta_early": -0.00028691387011146223,
+     "sd_if_true": 0.02399654119058627
+    },
+    "2022": {
+     "early_games": 380,
+     "expected_delta_early": -0.0002125320029786879,
+     "sd_if_true": 0.020568731592139594
+    },
+    "2023": {
+     "early_games": 384,
+     "expected_delta_early": -0.00017037791126955082,
+     "sd_if_true": 0.018485360610760476
+    },
+    "2024": {
+     "early_games": 387,
+     "expected_delta_early": -0.0002990541863501883,
+     "sd_if_true": 0.02437472008549178
+    },
+    "select_pooled": {
+     "early_games": 1922,
+     "expected_delta_early": -0.0002449132597562035,
+     "sd_if_true": 0.022136156000486646
+    }
+   },
+   "beta_1.0": {
+    "2019": {
+     "early_games": 383,
+     "expected_delta_early": -0.0,
+     "sd_if_true": 0.0
+    },
+    "2020": {
+     "early_games": 388,
+     "expected_delta_early": -0.001027741828175292,
+     "sd_if_true": 0.045629472196860386
+    },
+    "2021": {
+     "early_games": 383,
+     "expected_delta_early": -0.0011482963627418975,
+     "sd_if_true": 0.048032194958612266
+    },
+    "2022": {
+     "early_games": 380,
+     "expected_delta_early": -0.000857366893722249,
+     "sd_if_true": 0.041196720988679984
+    },
+    "2023": {
+     "early_games": 384,
+     "expected_delta_early": -0.0007041200909901167,
+     "sd_if_true": 0.037603318049167604
+    },
+    "2024": {
+     "early_games": 387,
+     "expected_delta_early": -0.001198878958034368,
+     "sd_if_true": 0.04858982433564552
+    },
+    "select_pooled": {
+     "early_games": 1922,
+     "expected_delta_early": -0.0009878819082081792,
+     "sd_if_true": 0.04442399903321281
+    }
+   }
+  },
+  "props_2024_low_continuity_early_proxy_rows": 2324,
+  "props_2024_tercile_cut_asof": 0.5907654220745527
+ },
+ "b2b": {
+  "2019": {
+   "games": 1143,
+   "b2b_diff_nonzero": 251,
+   "bubble_games": 172,
+   "b2b_diff_nonzero_in_bubble": 20,
+   "expected_delta_beta_-0.35_movelo": -0.00298117416961661,
+   "sd_if_true": 0.0767102152998666
+  },
+  "2020": {
+   "games": 1171,
+   "b2b_diff_nonzero": 323,
+   "bubble_games": 0,
+   "b2b_diff_nonzero_in_bubble": 0,
+   "expected_delta_beta_-0.35_movelo": -0.0036475437560934136,
+   "sd_if_true": 0.084926003033497
+  },
+  "2021": {
+   "games": 1323,
+   "b2b_diff_nonzero": 331,
+   "bubble_games": 0,
+   "b2b_diff_nonzero_in_bubble": 0,
+   "expected_delta_beta_-0.35_movelo": -0.0032139605639054354,
+   "sd_if_true": 0.07970309600706758
+  },
+  "2022": {
+   "games": 1320,
+   "b2b_diff_nonzero": 291,
+   "bubble_games": 0,
+   "b2b_diff_nonzero_in_bubble": 0,
+   "expected_delta_beta_-0.35_movelo": -0.002983289532282857,
+   "sd_if_true": 0.07667621523629592
+  },
+  "2023": {
+   "games": 1318,
+   "b2b_diff_nonzero": 308,
+   "bubble_games": 0,
+   "b2b_diff_nonzero_in_bubble": 0,
+   "expected_delta_beta_-0.35_movelo": -0.0029771712515811537,
+   "sd_if_true": 0.07682091124920697
+  },
+  "2024": {
+   "games": 1320,
+   "b2b_diff_nonzero": 308,
+   "bubble_games": 0,
+   "b2b_diff_nonzero_in_bubble": 0,
+   "expected_delta_beta_-0.35_movelo": -0.002985174647660857,
+   "sd_if_true": 0.07704153833375015
+  },
+  "select_pooled_games": 6452
+ },
+ "error_feedback_training_coverage_first_block": {
+  "forecasts_from_2020": {
+   "2020": 0.0,
+   "2021": 0.5216518341654005,
+   "2022": 0.6956091682204739,
+   "2023": 0.7770606538299646,
+   "2024": 0.8239035497958368
+  },
+  "forecasts_from_2021": {
+   "2021": 0.0,
+   "2022": 0.35228978125426347,
+   "2023": 0.5274217376591864,
+   "2024": 0.6286938067254536
+  },
+  "forecasts_from_2022": {
+   "2022": 0.0,
+   "2023": 0.26106979853585666,
+   "2024": 0.420292472729853
+  },
+  "forecasts_from_2023": {
+   "2023": 0.0,
+   "2024": 0.20760790334337487
+  }
+ },
+ "wall_s": 4.4697980880737305,
+ "sizing": {
+  "returning_teammate": {
+   "p_star_0.77": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 8860.0,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.003648539033488552,
+     "halfwidth95": 0.007151136505637562,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.009853517391282783,
+     "power_one_season": 0.7705546760357762,
+     "power_both_seasons": 0.5937545087606
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 8255.90909090909,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.0037796658500878783,
+     "halfwidth95": 0.007408145066172241,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.009853517391282783,
+     "power_one_season": 0.7411779083746044,
+     "power_both_seasons": 0.5493446918625535
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 17115.90909090909,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.002625039678066827,
+     "halfwidth95": 0.005145077769010981,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.009853517391282783,
+     "power_one_season": 0.9635666064683359,
+     "power_both_seasons": 0.9284606051009049
+    },
+    "select_pooled": {
+     "name": "select pooled",
+     "n": 38016.89361312196,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.0017613576260484347,
+     "halfwidth95": 0.003452260947054932,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.009853517391282783,
+     "power_one_season": 0.9970703652216878,
+     "power_both_seasons": 0.9941493132033099
+    },
+    "p_select_and_report": 0.7682972322582707
+   },
+   "p_rotation_0.63": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 8860.0,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.003648539033488552,
+     "halfwidth95": 0.007151136505637562,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.006667410352806489,
+     "power_one_season": 0.4472624665696766,
+     "power_both_seasons": 0.20004371400199109
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 8255.90909090909,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.0037796658500878783,
+     "halfwidth95": 0.007408145066172241,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.006667410352806489,
+     "power_one_season": 0.4223133449337074,
+     "power_both_seasons": 0.17834856130909654
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 17115.90909090909,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.002625039678066827,
+     "halfwidth95": 0.005145077769010981,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.006667410352806489,
+     "power_one_season": 0.7190182303842253,
+     "power_both_seasons": 0.5169872156248629
+    },
+    "select_pooled": {
+     "name": "select pooled",
+     "n": 38016.89361312196,
+     "sd_row": 0.32471635207184624,
+     "deff": 1.1185705909868804,
+     "se": 0.0017613576260484347,
+     "halfwidth95": 0.003452260947054932,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18123.574177409726,
+     "expected_effect": -0.006667410352806489,
+     "power_one_season": 0.8280944829602586,
+     "power_both_seasons": 0.685740472709218
+    },
+    "p_select_and_report": 0.3703755810015463
+   },
+   "select_flagged_rows_est": 38016.89361312196
+  },
+  "error_feedback": {
+   "slope_2024": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 27701.0,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.0020728046802338056,
+     "halfwidth95": 0.004062697173258259,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.004520901012690939,
+     "power_one_season": 0.4086047231609158,
+     "power_both_seasons": 0.16695781978940863
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 25812.295454545452,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.002147300328123685,
+     "halfwidth95": 0.004208708643122423,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.004520901012690939,
+     "power_one_season": 0.4117222637393387,
+     "power_both_seasons": 0.16951522245864556
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 53513.29545454545,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.0014913351564979044,
+     "halfwidth95": 0.0029230169067358926,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.004520901012690939,
+     "power_one_season": 0.374008549241193,
+     "power_both_seasons": 0.13988239490550186
+    },
+    "select_pooled": {
+     "name": "select pooled",
+     "n": 133287.94588896696,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.0009449539977300015,
+     "halfwidth95": 0.0018521098355508028,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.004520901012690939,
+     "power_one_season": 0.3060746951856632,
+     "power_both_seasons": 0.09368171903299664
+    },
+    "p_select_and_report": 0.1250635660928996
+   },
+   "slope_2023": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 27701.0,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.0020728046802338056,
+     "halfwidth95": 0.004062697173258259,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.00959051311809045,
+     "power_one_season": 0.9866075575534192,
+     "power_both_seasons": 0.9733944726215235
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 25812.295454545452,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.002147300328123685,
+     "halfwidth95": 0.004208708643122423,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.00959051311809045,
+     "power_one_season": 0.9837337841915363,
+     "power_both_seasons": 0.9677321581598002
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 53513.29545454545,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.0014913351564979044,
+     "halfwidth95": 0.0029230169067358926,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.00959051311809045,
+     "power_one_season": 0.9989584555871084,
+     "power_both_seasons": 0.9979179959889808
+    },
+    "select_pooled": {
+     "name": "select pooled",
+     "n": 133287.94588896696,
+     "sd_row": 0.33016851793432717,
+     "deff": 1.0917944641234931,
+     "se": 0.0009449539977300015,
+     "halfwidth95": 0.0018521098355508028,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18288.763440666382,
+     "expected_effect": -0.00959051311809045,
+     "power_one_season": 0.9999994068803656,
+     "power_both_seasons": 0.999998813761083
+    },
+    "p_select_and_report": 0.9866069723771054
+   }
+  },
+  "b2b_elo": {
+   "floor_-0.002": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 1315.0,
+     "sd_row": 0.07495305999597014,
+     "deff": 1.225257716058189,
+     "se": 0.0022879167325439236,
+     "halfwidth95": 0.00448431679578609,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 6610.865679833633,
+     "expected_effect": -0.0028263381304468684,
+     "power_one_season": 0.23432805024377573,
+     "power_both_seasons": 0.05490963513104948
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 1225.340909090909,
+     "sd_row": 0.07495305999597014,
+     "deff": 1.225257716058189,
+     "se": 0.002370143408763957,
+     "halfwidth95": 0.0046454810811773556,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 6610.865679833633,
+     "expected_effect": -0.0028263381304468684,
+     "power_one_season": 0.2213848891844229,
+     "power_both_seasons": 0.049011269159199206
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 2540.340909090909,
+     "sd_row": 0.07495305999597014,
+     "deff": 1.225257716058189,
+     "se": 0.0016461033164001243,
+     "halfwidth95": 0.0032263625001442437,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 6610.865679833633,
+     "expected_effect": -0.0028263381304468684,
+     "power_one_season": 0.40399769525803064,
+     "power_both_seasons": 0.1632141377738006
+    },
+    "select_pooled": {
+     "name": "select pooled",
+     "n": 6452,
+     "sd_row": 0.07495305999597014,
+     "deff": 1.225257716058189,
+     "se": 0.0010328943731782586,
+     "halfwidth95": 0.002024472971429387,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 6610.865679833633,
+     "expected_effect": -0.0028263381304468684,
+     "power_one_season": 0.7812224237014538,
+     "power_both_seasons": 0.6103084752939738
+    },
+    "p_select_and_report": 0.18306232735267852
+   },
+   "one_sided_floor_0": {
+    "report_2025": 0.34102497441466517,
+    "forward": 0.32544561567629593,
+    "pooled": 0.528693906008603
+   }
+  },
+  "questionable_streak": {
+   "all_rows": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 33127.0,
+     "sd_row": 0.12037967055949698,
+     "deff": 1.3280001176255918,
+     "se": 0.0007621863265507891,
+     "halfwidth95": 0.0014938852000395467,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 2957.171748378057,
+     "expected_effect": -0.00012924845591911888,
+     "power_one_season": 8.267222705976545e-11,
+     "power_both_seasons": 6.834697127021415e-21
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 30868.340909090908,
+     "sd_row": 0.12037967055949698,
+     "deff": 1.3280001176255918,
+     "se": 0.0007895789529524255,
+     "halfwidth95": 0.0015475747477867539,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 2957.171748378057,
+     "expected_effect": -0.00012924845591911888,
+     "power_one_season": 3.440595260221051e-10,
+     "power_both_seasons": 1.1837695744655563e-19
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 63995.340909090904,
+     "sd_row": 0.12037967055949698,
+     "deff": 1.3280001176255918,
+     "se": 0.0005483754815041091,
+     "halfwidth95": 0.0010748159437480537,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 2957.171748378057,
+     "expected_effect": -0.00012924845591911888,
+     "power_one_season": 3.27910961077198e-19,
+     "power_both_seasons": 1.0752559839457166e-37
+    }
+   },
+   "questionable_slice": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 1345.0,
+     "sd_row": 0.12588812733811863,
+     "deff": 1.0281303166578022,
+     "se": 0.0034805486915903483,
+     "halfwidth95": 0.006821875435517082,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 2503.7435638248726,
+     "expected_effect": -0.003183355835860708,
+     "power_one_season": 0.14792212141719896,
+     "power_both_seasons": 0.02188095400456455
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 1253.2954545454545,
+     "sd_row": 0.12588812733811863,
+     "deff": 1.0281303166578022,
+     "se": 0.0036056380124823905,
+     "halfwidth95": 0.007067050504465485,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 2503.7435638248726,
+     "expected_effect": -0.003183355835860708,
+     "power_one_season": 0.14071395813852855,
+     "power_both_seasons": 0.019800418015011565
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 2598.2954545454545,
+     "sd_row": 0.12588812733811863,
+     "deff": 1.0281303166578022,
+     "se": 0.0025041745019053012,
+     "halfwidth95": 0.00490818202373439,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 2503.7435638248726,
+     "expected_effect": -0.003183355835860708,
+     "power_one_season": 0.2340891342332274,
+     "power_both_seasons": 0.054797722766061964
+    }
+   },
+   "streak_rows_by_season": {
+    "2019": 22,
+    "2020": 73,
+    "2021": 60,
+    "2022": 158,
+    "2023": 227,
+    "2024": 105
+   }
+  },
+  "expected_absence": {
+   "report_2025": {
+    "name": "report 2025 (2024 size)",
+    "n": 1315.0,
+    "sd_row": 0.04139611711419909,
+    "deff": 1.225257716058189,
+    "se": 0.001263602433483251,
+    "halfwidth95": 0.0024766607696271718,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 2016.5027166676223,
+    "expected_effect": -0.0008496715747545518,
+    "power_one_season": 0.09894610616344268,
+    "power_both_seasons": 0.00979033192490727
+   },
+   "forward_2026_27": {
+    "name": "forward 2026-27 full season",
+    "n": 1225.340909090909,
+    "sd_row": 0.04139611711419909,
+    "deff": 1.225257716058189,
+    "se": 0.0013090157244002442,
+    "halfwidth95": 0.0025656708198244786,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 2016.5027166676223,
+    "expected_effect": -0.0008496715747545518,
+    "power_one_season": 0.09494441614294924,
+    "power_both_seasons": 0.00901444215672552
+   },
+   "pooled_2025_plus_forward": {
+    "name": "2025 + 2026-27 pooled",
+    "n": 2540.340909090909,
+    "sd_row": 0.04139611711419909,
+    "deff": 1.225257716058189,
+    "se": 0.000909132804870605,
+    "halfwidth95": 0.0017819002975463856,
+    "floor": -0.002,
+    "hw_le_floor": true,
+    "n_for_hw_at_floor": 2016.5027166676223,
+    "expected_effect": -0.0008496715747545518,
+    "power_one_season": 0.10288137370051281,
+    "power_both_seasons": 0.010584577054504569
+   }
+  },
+  "roster_continuity": {
+   "a_elo_beta1": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 387,
+     "sd_row": 0.04858982433564552,
+     "deff": 1.0,
+     "se": 0.0024699595812994486,
+     "halfwidth95": 0.0048411207793469194,
+     "floor": -0.004,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 566.8691440554304,
+     "expected_effect": -0.001198878958034368,
+     "power_one_season": 0.07015791068054833,
+     "power_both_seasons": 0.004922132431059797
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 360.6136363636363,
+     "sd_row": 0.04858982433564552,
+     "deff": 1.0,
+     "se": 0.0025587287938670126,
+     "halfwidth95": 0.0050151084359793445,
+     "floor": -0.004,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 566.8691440554304,
+     "expected_effect": -0.001198878958034368,
+     "power_one_season": 0.06792100664158514,
+     "power_both_seasons": 0.004613263143206253
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 747.6136363636363,
+     "sd_row": 0.04858982433564552,
+     "deff": 1.0,
+     "se": 0.001777078947112962,
+     "halfwidth95": 0.0034830747363414055,
+     "floor": -0.004,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 566.8691440554304,
+     "expected_effect": -0.001198878958034368,
+     "power_one_season": 0.0574840770325129,
+     "power_both_seasons": 0.0033044191122798766
+    }
+   },
+   "b_props_widen_1.10": {
+    "report_2025": {
+     "name": "report 2025 (2024 size)",
+     "n": 2537.0,
+     "sd_row": 0.3381456561280364,
+     "deff": 1.0380679553081251,
+     "se": 0.006840005824838346,
+     "halfwidth95": 0.013406411416683157,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18239.189870605842,
+     "expected_effect": -0.006970167945556496,
+     "power_one_season": 0.17335999709782846,
+     "power_both_seasons": 0.03005368859375909
+    },
+    "forward_2026_27": {
+     "name": "forward 2026-27 full season",
+     "n": 2364.022727272727,
+     "sd_row": 0.3381456561280364,
+     "deff": 1.0380679553081251,
+     "se": 0.007085832491649231,
+     "halfwidth95": 0.013888231683632494,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18239.189870605842,
+     "expected_effect": -0.006970167945556496,
+     "power_one_season": 0.16445212536931053,
+     "power_both_seasons": 0.02704450153848343
+    },
+    "pooled_2025_plus_forward": {
+     "name": "2025 + 2026-27 pooled",
+     "n": 4901.022727272727,
+     "sd_row": 0.3381456561280364,
+     "deff": 1.0380679553081251,
+     "se": 0.0049212264206588245,
+     "halfwidth95": 0.009645603784491296,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 18239.189870605842,
+     "expected_effect": -0.006970167945556496,
+     "power_one_season": 0.2933403969361238,
+     "power_both_seasons": 0.08604858847464267
+    }
+   }
+  }
+ }
+}
