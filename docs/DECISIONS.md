@@ -786,3 +786,7 @@ Why: Devin "handle everything"; audit pass 2. What would reverse it: a regressio
 **2026-10-12 02:56 CDT — the-odds-api market coverage widened; 2023-24 period markets back-filled.**
 What: the-odds-api.com market coverage widened (Devin: "check all endpoints there too"; "do all captures of prices before the game"). LIVE: configs/odds_live.yaml market_groups, 89 markets x 2 regions = 178 credits/call, 2,136/game over the 12-point schedule, 459,240 credits at 215 peak-month games (9.2% of START 5M; rule: keep all ON under 50%), alternates drop first if it ever exceeds; daily guard 3,200 -> 48,000. HISTORY: phase `periods` (period h2h/spreads/totals/team_totals q1-q4,h1,h2 + player_{points,rebounds,assists}_q1), seasons 2023+2024 only, t60 only, us+eu, own ledger, 1,144,355 credits (cap 1.5M). Reverse: set enabled:false per group / lower daily_max_credits. Commits 19ff991, 106f0f7.
 Risk recorded: 2.30M credits remain after the back-fill; the full live season is ~2.63M. Unless the billing period resets first, the season does not fit; the daily guard bounds each night. Plan continuity is Devin's decision.
+
+**2026-10-12 03:09 CDT — RECENT_ROLE_FULL FROZEN (sha256 73f3f4b0, commit 81e3f91).**
+What: recent-role minutes in the props heads and pi together vs A0; select 2023, report 2024; forking paths disclosed; Stage 2 (2025) only on
+Devin's words. Why: overnight queue Q2. What would reverse it: nothing above the marker.
