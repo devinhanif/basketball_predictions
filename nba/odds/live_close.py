@@ -173,6 +173,20 @@ class PlanBudget:
 
 
 @dataclass(frozen=True)
+class MarketGroup:
+    """A switchable set of market keys (``configs/odds_live.yaml: market_groups``).
+
+    ``alternate`` groups are the first thing dropped when the full set would not fit the plan's
+    budget rule (:meth:`LiveConfig.markets`); ``enabled: false`` switches a group off by hand.
+    """
+
+    name: str
+    markets: tuple[str, ...]
+    enabled: bool = True
+    alternate: bool = False
+
+
+@dataclass(frozen=True)
 class LiveConfig:
     hist: HistoryConfig
     regions: tuple[str, ...] = ("us", "eu")
@@ -181,6 +195,7 @@ class LiveConfig:
     min_server_remaining: int = 100_000
     schedule: tuple[ScheduleEntry, ...] = DEFAULT_SCHEDULE
     plan: PlanBudget = field(default_factory=PlanBudget)
+    market_groups: tuple[MarketGroup, ...] = ()  # empty = the odds_history game + prop markets
     match_window_min: float = 30.0
     max_attempts_per_game: int = 2
     out_db: Path = ROOT / "data" / "markets" / "market_asof.duckdb"
@@ -188,9 +203,38 @@ class LiveConfig:
     raw_dir: Path = ROOT / "data" / "odds" / "raw" / "the_odds_api_live"
     ledger_dir: Path = ROOT / "data" / "odds" / "budget"
 
+    def _union(self, groups: tuple[MarketGroup, ...]) -> tuple[str, ...]:
+        seen: dict[str, None] = {}
+        for g in groups:
+            for m in g.markets:
+                seen.setdefault(m)
+        return tuple(seen)
+
+    @property
+    def enabled_markets(self) -> tuple[str, ...]:
+        """Markets of every enabled group (de-duplicated, config order); before the budget rule."""
+        if not self.market_groups:
+            return (*self.hist.game_markets, *self.hist.prop_markets)
+        return self._union(tuple(g for g in self.market_groups if g.enabled))
+
     @property
     def markets(self) -> tuple[str, ...]:
-        return (*self.hist.game_markets, *self.hist.prop_markets)
+        """Markets requested per call. The enabled set, unless the FULL schedule over that set
+        exceeds ``plan.max_plan_fraction`` of the plan's monthly credits: then the ``alternate``
+        groups are dropped first (before any schedule point is: see :meth:`active_schedule`)."""
+        on = self.enabled_markets
+        if not self.market_groups:
+            return on
+        cost = self.cost_per_market_region * len(self.regions)
+        budget = self.plan.max_plan_fraction * self.plan.monthly_credits
+        if self.plan.games_per_month * len(self.schedule) * len(on) * cost <= budget:
+            return on
+        return self._union(tuple(g for g in self.market_groups if g.enabled and not g.alternate))
+
+    def dropped_groups(self) -> tuple[str, ...]:
+        """Names of enabled groups the budget rule turned off (empty when everything fits)."""
+        kept = set(self.markets)
+        return tuple(g.name for g in self.market_groups if g.enabled and not set(g.markets) <= kept)
 
     def expected_cost(self) -> int:
         """Upper-bound credits for one per-event odds call (all markets x all regions)."""
@@ -267,6 +311,16 @@ def load_live_config(path: Path | None = None, hist_path: Path | None = None) ->
         upd["match_window_min"] = float(raw["match_window_min"])
     if "schedule" in raw:
         upd["schedule"] = tuple(_entry(x) for x in raw["schedule"])
+    if "market_groups" in raw:
+        upd["market_groups"] = tuple(
+            MarketGroup(
+                name=str(name),
+                markets=tuple(str(m) for m in (spec or {}).get("markets", ())),
+                enabled=bool((spec or {}).get("enabled", True)),
+                alternate=bool((spec or {}).get("alternate", False)),
+            )
+            for name, spec in raw["market_groups"].items()
+        )
     if "plan" in raw:
         pl_ = {k: v for k, v in raw["plan"].items() if k in PlanBudget.__dataclass_fields__}
         upd["plan"] = PlanBudget(**pl_)

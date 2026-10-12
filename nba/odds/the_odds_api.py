@@ -813,12 +813,36 @@ def _price(value: Any) -> int | None:
     return int(round(v))
 
 
+_TEAM_TOTAL_PREFIXES = ("team_totals", "alternate_team_totals")
+#: player markets whose outcome carries no ``description``: the outcome ``name`` IS the player
+_NAME_IS_PLAYER = ("player_first_basket", "player_first_team_basket")
+
+
+def is_team_total(market: str) -> bool:
+    """``team_totals``, ``alternate_team_totals`` and their ``_q1`` .. ``_h2`` period variants."""
+    return market.startswith(_TEAM_TOTAL_PREFIXES)
+
+
 def _side(
     market: str, name: str, description: str | None, home: str, away: str
 ) -> tuple[str | None, str | None]:
-    """``(side, player_name)``; side None means the outcome is not understood."""
+    """``(side, subject)``; side None means the outcome is not understood.
+
+    ``subject`` is the player for ``player_*`` markets and the team for team-total markets (whose
+    outcomes are Over/Under with the team in ``description``). Yes/No markets (double_double,
+    triple_double) give side yes/no; a ``player_*`` outcome with a description but any other name
+    (method of first basket) is kept with side ``outcome``; first-basket markets whose outcome name
+    is the player give side ``yes``. A 3-way period moneyline's ``Draw`` is side ``draw``.
+    """
     low = name.strip().lower()
     if market.startswith("player_"):
+        if description:
+            who = description.strip()
+            return (low if low in ("over", "under", "yes", "no") else "outcome"), who
+        if market in _NAME_IS_PLAYER and name.strip():
+            return "yes", name.strip()
+        return None, None
+    if is_team_total(market):
         if low in ("over", "under") and description:
             return low, description.strip()
         return None, None
@@ -828,6 +852,8 @@ def _side(
         return "home", None
     if name.strip() and name.strip() == away:
         return "away", None
+    if low == "draw":
+        return "draw", None
     return None, None
 
 
@@ -901,8 +927,10 @@ def parse_event_odds(
                     except (TypeError, ValueError):
                         reasons["bad_point"] += 1
                         continue
-                pid = resolver.player_id(player) if player else None
-                if player and pid is None:
+                team_total = is_team_total(mkey)
+                # a team-total's subject is a TEAM: never sent to the player resolver
+                pid = resolver.player_id(player) if player and not team_total else None
+                if player and not team_total and pid is None:
                     reasons["unresolved_player"] += 1
                     unresolved[player] += 1
                 out.append(
@@ -916,8 +944,9 @@ def parse_event_odds(
                         "snapshot_ts": snap,
                         "book": bkey,
                         "market": mkey,
-                        "outcome_name": name,
-                        "player_name": player,
+                        "outcome_name": f"{name} ({player})" if team_total else name,
+                        "player_name": None if team_total else player,
+                        "_subject": player,
                         "player_id": pid,
                         "side": side,
                         "point": point,
@@ -930,6 +959,8 @@ def parse_event_odds(
                 )
     _devig(out)
     out = _dedupe(out, reasons)
+    for r in out:
+        r.pop("_subject", None)
     frame = pl.DataFrame(out, schema=ROW_SCHEMA) if out else pl.DataFrame(schema=ROW_SCHEMA)
     books_c: Counter[str] = Counter(r["book"] for r in out)
     return ParseResult(frame, reasons, unresolved, books_c)
@@ -940,14 +971,14 @@ def _devig(rows: list[dict[str, Any]]) -> None:
     groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
     for r in rows:
         pt = r["point"]
-        if r["market"] == "spreads" and pt is not None:
+        if r["market"].startswith(("spreads", "alternate_spreads")) and pt is not None:
             pt = abs(pt)  # home -6 pairs with away +6
-        groups.setdefault((r["book"], r["market"], r["player_name"], pt), []).append(r)
+        groups.setdefault((r["book"], r["market"], r.get("_subject"), pt), []).append(r)
     for grp in groups.values():
         if len(grp) != 2:
             continue
         sides = {g["side"] for g in grp}
-        if sides not in ({"over", "under"}, {"home", "away"}):
+        if sides not in ({"over", "under"}, {"home", "away"}, {"yes", "no"}):
             continue
         a, b = grp
         p = devig_two_way(a["implied_prob_raw"], b["implied_prob_raw"])

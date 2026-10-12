@@ -3,16 +3,70 @@
 # the key is read from THE_ODDS_API_KEY only (stripped from every stored param set and log line).
 regions: [us, eu]               # Pinnacle is eu; us_ex (Novig/ProphetX) is not captured live
 
+# Market groups (Devin, 2026-10-12: "check all endpoints there too"). Every call asks the event-odds
+# endpoint for the union of the ENABLED groups, so one switch (`enabled: false`) turns a group off.
+# Keys are the vendor's (the-odds-api.com/sports-odds-data/betting-markets.html, fetched 2026-10-12).
+# `alternate: true` groups are dropped first, automatically, if the full schedule over the enabled
+# set would cost more than plan.max_plan_fraction of the plan per month (LiveConfig.markets). With
+# this file: 89 markets x 2 regions = 178 credits per call, 12 calls per game = 2,136 per game,
+# 215 peak-month games = 459,240 (9.2% of 5,000,000), so every group is ON. No 1H/2H player props
+# exist at the vendor. player_fantasy_points* are DFS-only and are not requested.
+market_groups:
+  core:                         # what was captured before 2026-10-12 (7 markets)
+    markets: [h2h, spreads, totals, player_points, player_rebounds, player_assists, player_threes]
+  game_additional:              # full-game alternate lines and team totals (4)
+    markets: [alternate_spreads, alternate_totals, team_totals, alternate_team_totals]
+    alternate: true
+  periods_q1:
+    markets: [h2h_q1, h2h_3_way_q1, spreads_q1, totals_q1, team_totals_q1]
+  periods_q2:
+    markets: [h2h_q2, h2h_3_way_q2, spreads_q2, totals_q2, team_totals_q2]
+  periods_q3:
+    markets: [h2h_q3, h2h_3_way_q3, spreads_q3, totals_q3, team_totals_q3]
+  periods_q4:
+    markets: [h2h_q4, h2h_3_way_q4, spreads_q4, totals_q4, team_totals_q4]
+  periods_h1:
+    markets: [h2h_h1, h2h_3_way_h1, spreads_h1, totals_h1, team_totals_h1]
+  periods_h2:
+    markets: [h2h_h2, h2h_3_way_h2, spreads_h2, totals_h2, team_totals_h2]
+  periods_alternate:            # alternate spreads / totals / team totals for q1..q4, h1, h2 (18)
+    markets:
+      [alternate_spreads_q1, alternate_totals_q1, alternate_team_totals_q1,
+       alternate_spreads_q2, alternate_totals_q2, alternate_team_totals_q2,
+       alternate_spreads_q3, alternate_totals_q3, alternate_team_totals_q3,
+       alternate_spreads_q4, alternate_totals_q4, alternate_team_totals_q4,
+       alternate_spreads_h1, alternate_totals_h1, alternate_team_totals_h1,
+       alternate_spreads_h2, alternate_totals_h2, alternate_team_totals_h2]
+    alternate: true
+  player_q1:                    # first-quarter player props (no 1H/2H player props exist)
+    markets: [player_points_q1, player_rebounds_q1, player_assists_q1]
+  player_extra:                 # more full-game player lines (11)
+    markets: [player_blocks, player_steals, player_blocks_steals, player_turnovers,
+              player_points_rebounds_assists, player_points_rebounds, player_points_assists,
+              player_rebounds_assists, player_field_goals, player_frees_made, player_frees_attempts]
+  player_specials:              # yes/no and first-basket markets (5)
+    markets: [player_double_double, player_triple_double, player_first_basket,
+              player_first_team_basket, player_method_of_first_basket]
+  player_alternate:             # milestone / alternate player lines (11)
+    markets: [player_points_alternate, player_rebounds_alternate, player_assists_alternate,
+              player_blocks_alternate, player_steals_alternate, player_turnovers_alternate,
+              player_threes_alternate, player_points_assists_alternate,
+              player_points_rebounds_alternate, player_rebounds_assists_alternate,
+              player_points_rebounds_assists_alternate]
+    alternate: true
+
 # Credit rule (vendor docs, the-odds-api.com/liveapi/guides/v4): GET /sports/{sport}/events is free;
 # GET /sports/{sport}/events/{id}/odds costs (markets returned) x (regions). 1 credit per
 # market-region (the HISTORICAL endpoint is 10x, configs/odds_history.yaml). Upper bound used for the
-# guard: cost_per_market_region x len(markets) x len(regions); the real charge is read back from the
+# guard: cost_per_market_region x len(markets) x len(regions) (the markets of the enabled groups
+# above; the vendor bills markets RETURNED, so this is an upper bound); the real charge is read back from the
 # x-requests-last header and booked in the ledger.
 cost_per_market_region: 1
 
-# Daily guard (ET date, one ledger file per day). Per game one call is 14 credits; the 12-point
-# schedule below is 168 per game: 15 games = 2,520, 16 games = 2,688.
-daily_max_credits: 3200         # refuse a call that would take today's spend past this
+# Daily guard (ET date, one ledger file per day). Per game one call is 178 credits (89 markets x 2
+# regions); the 12-point schedule below is 2,136 per game: 15 games = 32,040. 48,000 leaves 50%
+# for the (max_attempts_per_game) retries of a 15-game night and a 16th game.
+daily_max_credits: 48000         # refuse a call that would take today's spend past this
 min_server_remaining: 100000    # refuse when the server-reported remaining would fall below this
 
 # Capture schedule (Devin, 2026-10-11: "do all captures of prices before the game"). One entry = one
