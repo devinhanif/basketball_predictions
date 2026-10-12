@@ -1,0 +1,134 @@
+{
+  "tests": [
+    {
+      "test": "A0 reproduction from stored components",
+      "value": 0.0,
+      "threshold": "<= 1e-6, n equal",
+      "ok": true
+    },
+    {
+      "test": "Cell P rows (WORKLOAD gate: 33,093 / 33,127)",
+      "value": {
+        "2023": 33093,
+        "2024": 33127
+      },
+      "threshold": "within 0.5% of the WORKLOAD run",
+      "ok": true
+    },
+    {
+      "test": "control C refit reproduces WORKLOAD's stored p_base (log loss)",
+      "value": {
+        "2023": {
+          "mine": 0.2832018810769818,
+          "stored": 0.2832018810769818,
+          "n_mine": 33093,
+          "n_stored": 33093,
+          "abs_diff": 0.0
+        },
+        "2024": {
+          "mine": 0.281513653669289,
+          "stored": 0.281513653669289,
+          "n_mine": 33127,
+          "n_stored": 33127,
+          "abs_diff": 0.0
+        }
+      },
+      "threshold": "abs diff <= 0.005 per season",
+      "ok": true
+    },
+    {
+      "test": "production-state lookup equals build_features on every played row",
+      "value": {
+        "n_rows": 84170,
+        "max_abs_diff": 0.0,
+        "worst_col": "",
+        "rows_off": 0,
+        "ok": true
+      },
+      "threshold": "max abs diff <= 1e-09, 0 rows off",
+      "ok": true
+    },
+    {
+      "test": "production-state lookup equals the forward placeholder truth on sampled DNP rows",
+      "value": {
+        "n_checked": 300,
+        "max_abs_diff": 0.0,
+        "ok": true
+      },
+      "threshold": "300 sampled, max abs diff <= 1e-09",
+      "ok": true
+    },
+    {
+      "test": "missingness of added columns by realised-minutes bucket incl DNP (pp)",
+      "value": {
+        "max_gap_pp": 1.2132715641618628,
+        "worst_col": "pl_wl_min_last",
+        "placebo_max_gap_pp": 0.5201020540632031
+      },
+      "threshold": "<= 2.00",
+      "ok": true
+    },
+    {
+      "test": "past-only placebo: share of rows with no earlier row in the player-season (NaN)",
+      "value": {
+        "2023": 0.016801136191943917,
+        "2024": 0.0167838922932955
+      },
+      "threshold": "reported (< 0.05 expected)",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: rows of the edited day identical",
+      "value": 350,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 16508,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows dated on or before the cutoff identical",
+      "value": 16619,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (schedule): rows up to the cutoff identical",
+      "value": 6618,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "slice sizes (n rows)",
+      "value": {
+        "2023": {
+          "all": 33093,
+          "starter": 12578,
+          "bench": 20515,
+          "second_night": 5222,
+          "cold5_9": 1003,
+          "playoffs": 2246,
+          "min_last_lt5": 4976
+        },
+        "2024": {
+          "all": 33127,
+          "starter": 12462,
+          "bench": 20665,
+          "second_night": 5519,
+          "cold5_9": 742,
+          "playoffs": 2363,
+          "min_last_lt5": 4789
+        }
+      },
+      "threshold": "every declared slice >= 300 in both seasons",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "sha256": null,
+  "draft": true,
+  "seconds": 21.414724111557007
+}
