@@ -872,3 +872,7 @@ Why: Devin, 2026-10-12. What would reverse it: Devin.
 What: option 1, despite the failed power gate G5 (best case ~0.001-0.003 on stars vs a -0.005 floor); expected null (pass probability ~0.02).
 The status block above the marker still carries the earlier DRAFT text alongside the frozen sentence; the commit and this line are the freeze record.
 Why: Devin's decision (non-negotiable 8 exception, explicitly his). What would reverse it: nothing above the marker.
+
+**2026-10-12 12:34 CDT — FULL_SHADOW_LIVE_2026_27: comparator A and the K=100 null extension (Devin: "a yes").**
+What: the pts primary compares FULL with the lower-tail arm (production plus the short-minutes mixture), not bare production; the permutation null is extended to K=100 and, once committed, its pooled sd replaces sigma_N = 0.00229 in the rule and in `NULL_SD_PTS`. Then the rule is frozen, before opening night and before any live row is read.
+Why: against bare production the mixture alone (about -0.011) would clear the -0.005 floor with no recent-role information; K=48 was 2 short of the BEST_PRACTICES K>=50. What would reverse it: nothing after the freeze; before it, only Devin.
