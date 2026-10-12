@@ -744,3 +744,6 @@ sleeping on battery (N1). What would reverse it: the regular-season T-30 logged 
 What: the lower-tail short-minutes classifier pi refit with the five recent-role columns, nothing else changed; select 2023, report 2024; one
 logged 2025 touch only on Devin's word. Why: merged ledger audit, found by all three parts; Devin "handle everything". What would reverse it:
 nothing above the results marker.
+
+**2026-10-12 01:35 CDT — Parlay layer: roster source, CI gate, last_fair_price DNP (commit be92bfd).**
+What: (N4) slate takes players' teams from the cached official roster under --roster-source official (else last-game team) and lists every unplaceable player with a reason; (N6) model weight needs the lower bound of a game-clustered 95% CI of the paired Brier gain over the market above 0, and calibration sd is 0.6 (1.6 beyond p 0.70) from measured over-confidence, not 0.15; (N3) third DNP policy last_fair_price (Kalshi rules_secondary: active DNP settles at the last fair price), default for Kalshi commands, DNP outcome/pnl left NULL; non-Kalshi book rules marked unknown. Why: ledger audit pass 2 N3, N4, N6; Devin "handle everything". What would reverse it: the 2026-10-20 live check showing inactive-player or active-DNP settlement differs from the stored text; a measured calibration sd below 0.6 on the forward log.
