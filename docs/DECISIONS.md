@@ -562,3 +562,18 @@ Why: 240 duplicate snapshot groups made the T-30 reader skip 4 of 6 decisions; t
 100%; the hustle row-existence shape is the leak pattern that contaminated three experiments.
 What would reverse it: official team box totals making the formula an identity (re-tighten it); a feed change that makes Expected rows later
 than Confirmed ones meaningful (re-rank the dedup winner).
+
+**2026-10-11 ~21:30 CT — Lineup dedup rule frozen (Devin: "yes"); possession fixture bound restored (Devin: "yes").**
+What: (1) Per (snapshot, game, team): the team's status is Confirmed if any of its rows is Confirmed, else Expected. A player is a starter
+only if a row carrying that winning status has `announced_starter` TRUE (OR over winning-status rows only; never across statuses, never
+"latest row wins"). One shared implementation in `nba/lineups/store.py`, used by both `nba/daily/t30.py` and the view `lineup_snapshots_dedup`.
+The T-30 gate is unchanged: both teams Confirmed with exactly 5 starters each, else skip. (2) The possession-formula fixture bound returns from
+2.5 to 1.0 (clean fixture MAE 0.34); real data keeps points reconciliation as the hard gate and gains a band on the signed formula bias.
+Why: adversary review `docs/reviews/phase2_cleanup_review_2026-10-11.md`: the feed marks starter blocks Expected or Confirmed per team (MIA
+Confirmed and MIN Expected in one snapshot of 0012600002), so an Expected five is unconfirmed. The view ORed starters across statuses (87 of
+87 Confirmed-not-5 team-snapshots promoted, 6 genuine); t30's latest-row rank dropped 6 of 527 Confirmed fives (false skip of 0012600041).
+At 2.5 a planted +2 or +3 possessions per team-game passed the fixture gate. Expected effect on the 9 skipped preseason decisions: 0041 logged,
+8 still skipped. Fixed before any live T-30 result under the new rule exists.
+What would reverse it: evidence that the feed's Expected starter rows after a Confirmed roster are re-publications of a confirmed five
+(e.g. lineups later matching at a rate indistinguishable from Confirmed fives over >= 50 team-games); for (2), official team possession
+counts that show the 0.44 formula is biased on clean data by more than 1.
