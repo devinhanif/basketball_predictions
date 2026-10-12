@@ -10,6 +10,21 @@ regions: [us, eu, us_ex]        # Pinnacle is in eu; Novig / ProphetX are in us_
 us_ex_from: 2024-12-20
 prop_markets: [player_points, player_rebounds, player_assists, player_threes]
 game_markets: [h2h, spreads, totals]
+# phase `periods` (Devin, 2026-10-12): game-period markets and first-quarter player props, seasons
+# 2023 and 2024 ONLY (never 2025), at period_snapshots only, own ledger/cap (the props/games cap
+# above is nearly spent and is not raised). Run: nba.odds history-pull --phase periods --season N.
+period_markets: [h2h_q1, spreads_q1, totals_q1, team_totals_q1,
+                 h2h_q2, spreads_q2, totals_q2, team_totals_q2,
+                 h2h_q3, spreads_q3, totals_q3, team_totals_q3,
+                 h2h_q4, spreads_q4, totals_q4, team_totals_q4,
+                 h2h_h1, spreads_h1, totals_h1, team_totals_h1,
+                 h2h_h2, spreads_h2, totals_h2, team_totals_h2,
+                 player_points_q1, player_rebounds_q1, player_assists_q1]
+period_regions: [us, eu]     # us_ex was charged but returned none of these markets (probe 2026-10-12)
+period_seasons: [2023, 2024]
+period_snapshots: [t60]
+period_max_credits: 1500000
+period_ledger_path: data/odds/budget/the_odds_api_periods_ledger.json
 odds_format: american
 
 # Credit guards (the plan is 5,000,000 credits; this pull is capped well below it).

@@ -121,6 +121,18 @@ class HistoryConfig:
         "player_threes",
     )
     game_markets: tuple[str, ...] = ("h2h", "spreads", "totals")
+    #: phase ``periods`` (2026-10-12): period markets + first-quarter player props, back-filled for
+    #: ``period_seasons`` only, at ``period_snapshots`` only, on its OWN ledger and credit cap.
+    period_markets: tuple[str, ...] = ()
+    #: regions for the periods phase. us_ex (Novig/ProphetX) is charged yet returned none of these
+    #: markets in the 2026-10-12 probe, so it is left out (a third of the cost).
+    period_regions: tuple[str, ...] = ("us", "eu")
+    period_seasons: tuple[int, ...] = (2023, 2024)
+    period_snapshots: tuple[str, ...] = ("t60",)
+    period_max_credits: int = 1_500_000
+    period_ledger_path: Path = (
+        ROOT / "data" / "odds" / "budget" / "the_odds_api_periods_ledger.json"
+    )
     odds_format: str = "american"
     max_credits: int = 2_000_000
     min_server_remaining: int = 100_000
@@ -147,7 +159,17 @@ class HistoryConfig:
             return self.prop_markets
         if phase == "games":
             return self.game_markets
-        raise ValueError(f"unknown phase {phase!r} (props|games)")
+        if phase == "periods":
+            if not self.period_markets:
+                raise ValueError("phase periods needs period_markets in configs/odds_history.yaml")
+            return self.period_markets
+        raise ValueError(f"unknown phase {phase!r} (props|games|periods)")
+
+    def kinds_for(self, phase: str) -> tuple[str, ...]:
+        """Snapshot kinds a phase pulls (props/games: all of ``snapshots``)."""
+        if phase == "periods":
+            return self.period_snapshots
+        return tuple(k for k, _ in self.snapshots)
 
     def regions_at(self, at: datetime) -> tuple[str, ...]:
         """Regions to request for a snapshot at ``at`` (naive UTC): ``us_ex`` is date-gated."""
@@ -203,9 +225,20 @@ def load_config(path: Path | None = None) -> HistoryConfig:
     ):
         if k in raw:
             upd[k] = float(raw[k])
-    for k in ("regions", "prop_markets", "game_markets"):
+    for k in (
+        "regions",
+        "prop_markets",
+        "game_markets",
+        "period_markets",
+        "period_snapshots",
+        "period_regions",
+    ):
         if k in raw:
             upd[k] = tuple(str(x) for x in raw[k])
+    if "period_seasons" in raw:
+        upd["period_seasons"] = tuple(int(x) for x in raw["period_seasons"])
+    if "period_max_credits" in raw:
+        upd["period_max_credits"] = int(raw["period_max_credits"])
     if raw.get("us_ex_from"):
         v = raw["us_ex_from"]
         upd["us_ex_from"] = v if isinstance(v, date) else date.fromisoformat(str(v))
@@ -213,7 +246,15 @@ def load_config(path: Path | None = None) -> HistoryConfig:
         upd["seasons"] = tuple(int(x) for x in raw["seasons"])
     if "snapshots" in raw:
         upd["snapshots"] = tuple((str(k), int(v)) for k, v in raw["snapshots"].items())
-    for k in ("raw_dir", "ledger_path", "state_path", "out_db", "games_db", "schedule_dir"):
+    for k in (
+        "raw_dir",
+        "ledger_path",
+        "period_ledger_path",
+        "state_path",
+        "out_db",
+        "games_db",
+        "schedule_dir",
+    ):
         if k in raw:
             upd[k] = _repo_path(raw[k])
     return replace(base, **upd) if upd else base

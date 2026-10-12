@@ -177,3 +177,45 @@ Smaller plans on https://the-odds-api.com/#get-access at the time of writing: ST
 (100,000: full schedule fits at the 0.5 rule). **Caveat:** DECISIONS 2026-10-10 says Devin cancels the
 5M plan after the month; the key stops working then and every capture degrades (`error`, alert). The
 smallest plan that carries this schedule all season is START 100K, $59/month. Buying is Devin's.
+
+## Market groups and the 89-market request (2026-10-12)
+
+Devin, 2026-10-12: "check all endpoints there too". `configs/odds_live.yaml: market_groups` lists the
+vendor's NBA markets in switchable groups (`enabled: false` turns one off); every call asks the
+event-odds endpoint for the union of the enabled groups: core 7, game_additional 4, periods q1..q4,
+h1, h2 (h2h, h2h_3_way, spreads, totals, team_totals: 30), periods_alternate 18, player_q1 3,
+player_extra 11, player_specials 5, player_alternate 11 = **89 markets x 2 regions = 178 credits a
+call; 12 schedule points = 2,136 a game; 215 peak-month games = 459,240 credits (9.2% of the 5M
+plan)**. The 50% rule is unchanged: if the full schedule over the enabled set would pass it, the
+groups marked `alternate` are dropped first (`LiveConfig.markets`, `dropped_groups()`), and only
+then the `extended` schedule points. Vendor billing is per market RETURNED, so these are upper
+bounds. `daily_max_credits` is 48,000 (a 15-game night is 32,040). The scorable-game filter and the
+never-after-tip refusal are untouched.
+
+Parsing additions (`nba.odds.the_odds_api`): team-total outcomes are Over/Under with the team in
+`description`: stored as `outcome_name = "Over (Team)"`, `player_name` NULL, de-vigged per team;
+`Draw` (3-way period moneyline) is side `draw`; Yes/No player markets are side `yes`/`no`; a
+first-basket outcome whose name is the player is side `yes`; any other described player outcome
+(method of first basket) is side `outcome`. These shapes are written from the vendor docs, not from a
+recorded payload: the first live pull's raw file is the check (raw is cached before parse, so a
+wrong guess is fixed by `reparse`, not by a re-buy).
+
+Storage warning: one snapshot is now on the order of 10^4 rows (alternate ladders dominate), 12
+snapshots a game: the first week's `live_book_odds` row count and `data/odds/raw/the_odds_api_live`
+size are the number to read before the season is a surprise.
+
+## Historical back-fill of period markets (phase `periods`)
+
+`python -m nba.odds history-pull --season {2023|2024} --phase periods` (own ledger
+`data/odds/budget/the_odds_api_periods_ledger.json`, cap `period_max_credits` 1,500,000, regions
+us+eu, t60 only, never 2025). Probe 2026-10-12: 2023-24 has h2h/spreads/totals for q1..q4, h1, h2
+(10-12 books); no team totals, no q1 player props. 2024-25 adds team totals (1-3 books) and
+player_{points,rebounds,assists}_q1 from one book (williamhill_us).
+
+Run 2026-10-12 (t60 only; t5 would double a ~1.14M spend past the 1.5M cap): 2,639 games, 2,643
+calls, **1,144,355 credits** (ledger `the_odds_api_periods_ledger.json`), 660k rows, 0 failures, 0
+unresolved player names. Coverage (games with any row of the family, of 1,318 / 1,320): h2h, spreads,
+totals for q1..q4, h1, h2: 1,318 / 1,320 both seasons (11-16 books, Pinnacle in about 95%); team
+totals: 63 games in 2023 (2 books), 1,320 in 2024 (3 books); player_{points,rebounds,assists}_q1:
+none in 2023, 2024: points 902 games (williamhill_us, fanduel), rebounds 313, assists 351
+(williamhill_us only). The q1 player props are one book deep: a price, not a market consensus.

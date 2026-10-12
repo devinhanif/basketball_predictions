@@ -68,7 +68,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     sub.add_parser("status", help="print /me/ account usage")
     hp = sub.add_parser("history-pull", help="the-odds-api.com historical pull (one season)")
     hp.add_argument("--season", type=int, required=True, help="games.season (2023, 2024, 2025)")
-    hp.add_argument("--phase", choices=("props", "games"), default=None, help="default: both")
+    hp.add_argument(
+        "--phase",
+        choices=("props", "games", "periods"),
+        default=None,
+        help="default: props then games; periods = period markets + q1 player props "
+        "(seasons/snapshots/cap from configs/odds_history.yaml, own ledger)",
+    )
+    hp.add_argument(
+        "--game-id", action="append", default=None, help="only this game id (repeatable): probes"
+    )
     hp.add_argument("--dry-run", action="store_true", help="estimate credits only; no network")
     hp.add_argument("--max-games", type=int, default=None, help="stop after N pending games")
     hp.add_argument(
@@ -111,6 +120,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 dry_run=a.dry_run,
                 max_games=a.max_games,
                 reparse=a.reparse,
+                only_games=a.game_id,
                 markets=[m.strip() for m in a.markets.split(",") if m.strip()]
                 if a.markets
                 else None,

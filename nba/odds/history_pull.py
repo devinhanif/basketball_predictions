@@ -59,7 +59,8 @@ from nba.odds.theoddsapi import NameResolver
 
 log = logging.getLogger("nba.odds.history")
 
-PHASES = ("props", "games")
+PHASES = ("props", "games")  # the default plan
+ALL_PHASES = (*PHASES, "periods")  # periods is run only when asked for (own seasons/cap/ledger)
 DDL = """
 CREATE TABLE IF NOT EXISTS odds_history (
     source VARCHAR, season INTEGER, game_id VARCHAR, event_id VARCHAR, snapshot_kind VARCHAR,
@@ -227,9 +228,17 @@ class Item:
         return self.game.tipoff_utc - timedelta(minutes=cfg.minutes_before_tip(self.kind))
 
 
-def build_items(games: list[GameRef], phases: list[str], tag: str = "") -> list[Item]:
-    """Phase-major, then game by tip time, then t60 before t5. ``tag`` marks a market override."""
-    return [Item(g, k, ph, tag) for ph in phases for g in games for k in SNAPSHOT_KINDS]
+def build_items(
+    games: list[GameRef], phases: list[str], tag: str = "", cfg: HistoryConfig | None = None
+) -> list[Item]:
+    """Phase-major, then game by tip time, then t60 before t5. ``tag`` marks a market override.
+    With ``cfg`` the kinds come from ``cfg.kinds_for(phase)`` (the periods phase is t60 only)."""
+    return [
+        Item(g, k, ph, tag)
+        for ph in phases
+        for g in games
+        for k in (cfg.kinds_for(ph) if cfg else SNAPSHOT_KINDS)
+    ]
 
 
 def estimate_credits(cfg: HistoryConfig, items: list[Item]) -> dict[str, int]:
@@ -301,7 +310,8 @@ class PullReport:
             f"selected={self.n_games_selected}",
             f"estimate (this run, files on disk cost 0): odds_calls={e.get('odds_calls', 0)} "
             f"events_calls={e.get('events_calls', 0)} credits={e.get('credits_total', 0):,}",
-            f"estimate (full plan {'+'.join(PHASES)} x all seasons): "
+            f"estimate (full plan {'+'.join(self.phases if 'periods' in self.phases else PHASES)}"
+            f" x all seasons): "
             f"credits={f.get('credits_total', 0):,}",
         ]
         if self.refused:
@@ -332,6 +342,7 @@ def run_pull(
     *,
     dry_run: bool = False,
     max_games: int | None = None,
+    only_games: list[str] | None = None,
     reparse: bool = False,
     markets: list[str] | None = None,
     cfg: HistoryConfig | None = None,
@@ -358,6 +369,16 @@ def run_pull(
         cfg = replace(cfg, prop_markets=tuple(markets))
         tag = markets_hash(markets)
     phases = [phase] if phase else list(PHASES)
+    if phase == "periods":
+        if tag:
+            raise ValueError("--markets does not apply to the periods phase (set period_markets)")
+        # own ledger and cap: the 1.75M props/games cap is nearly spent and must not be raised
+        cfg = replace(
+            cfg, ledger_path=cfg.period_ledger_path, max_credits=cfg.period_max_credits,
+            seasons=cfg.period_seasons, regions=cfg.period_regions, us_ex_from=None,
+        )  # fmt: skip
+        if season not in cfg.period_seasons:
+            raise ValueError(f"periods phase covers seasons {cfg.period_seasons}, not {season}")
     for ph in phases:
         cfg.markets_for(ph)  # validates
     if games is None:
@@ -369,9 +390,11 @@ def run_pull(
     rep.n_games_total, rep.n_games_no_tip = total, no_tip
 
     state = PullState(cfg.state_path)
-    all_items = build_items(games, phases, tag)
+    all_items = build_items(games, phases, tag, cfg)
     pending = [it for it in all_items if reparse or not state.done(it.key)]
     rep.items_skipped_done = len(all_items) - len(pending)
+    if only_games:
+        pending = [it for it in pending if it.game.game_id in set(only_games)]
     if max_games is not None:
         keep: list[str] = []
         for it in pending:
@@ -394,16 +417,23 @@ def run_pull(
                 by_season[s] = load_games(cfg, s)[0]
             full += [
                 it
-                for it in build_items(by_season[s], list(PHASES))
+                for it in build_items(
+                    by_season[s], list(phases if phase == "periods" else PHASES), "", cfg
+                )
                 if reparse or not state.done(it.key)
             ]
     rep.full_plan_estimate = estimate_credits(cfg, full)
 
     ledger = CreditLedger(cfg.ledger_path, cfg.max_credits, cfg.min_server_remaining)
     spent = ledger.spent()
-    if spent + rep.full_plan_estimate["credits_total"] > cfg.max_credits:
+    # a periods probe (--game-id / --max-games) is judged on its own estimate; the ledger's
+    # cumulative cap still stops any call past period_max_credits
+    guard = (
+        rep.estimate if phase == "periods" and (only_games or max_games) else rep.full_plan_estimate
+    )
+    if spent + guard["credits_total"] > cfg.max_credits:
         rep.refused = (
-            f"estimate {rep.full_plan_estimate['credits_total']:,} + already spent {spent:,} "
+            f"estimate {guard['credits_total']:,} + already spent {spent:,} "
             f"exceeds max_credits {cfg.max_credits:,}"
         )
     if dry_run or rep.refused:
@@ -514,7 +544,12 @@ def status_lines(cfg: HistoryConfig | None = None) -> list[str]:
     cfg = cfg or load_config()
     led = CreditLedger(cfg.ledger_path, cfg.max_credits, cfg.min_server_remaining).totals()
     st = PullState(cfg.state_path)
+    pled = CreditLedger(
+        cfg.period_ledger_path, cfg.period_max_credits, cfg.min_server_remaining
+    ).totals()
     out = [
+        f"periods ledger: spent={int(pled['spent']):,} / cap={cfg.period_max_credits:,} "
+        f"n_calls={pled['n_calls']}",
         f"ledger: spent={int(led['spent']):,} / max_credits={cfg.max_credits:,} "
         f"n_calls={led['n_calls']} server_remaining={led['server_remaining']} "
         f"(floor {cfg.min_server_remaining:,}) updated={led.get('updated_at')}",
