@@ -767,3 +767,9 @@ production above -0.05 (a parity fault).
 **2026-10-12 02:17 CDT — ROUTER_G2 FROZEN (sha256 2dc26443, commit 954e15f).**
 What: router gate g' from the holdout-confirmed P(play) features with a hard postseason route; E1', E2', E4' cells; supersedes the bundle's
 router, gate and blend; a 2025 touch only on Devin's words. Why: merged audit item 3; overnight standing approval. What would reverse it: nothing above the marker.
+
+**2026-10-12 02:23 CDT — ROUTER_G2: closed, no pass (T464-T466).**
+What: all cells fail the gate placebo and the constant-gate arm. The useful finding is descriptive: the sequence-network blend improves points
+by about -0.011 in both seasons and passes the guards when playoff rows go to production; the gate adds nothing. Whether to test "SEQ blend on
+regular-season rows" as a new rule (post-hoc by origin; venue the 2025 holdout, SEQ untouched, or the live log, which would need daily SEQ
+inference) is Devin's decision. Why: frozen rule. What would reverse it: nothing.

@@ -1,0 +1,455 @@
+{
+ "id": "ROUTER_G2",
+ "doc_status": "FROZEN",
+ "doc_sha256": "2dc2644366a0eec9c7f4a266fe68e952dc63e8324df745fa093ef26ef649e00a",
+ "checks": {
+  "G1_A0_reproduction": {
+   "pts": {
+    "2023": {
+     "crps": 3.140236466011581,
+     "ref": 3.140236,
+     "n": 27619,
+     "pass": true
+    },
+    "2024": {
+     "crps": 3.1768395165770476,
+     "ref": 3.17684,
+     "n": 27701,
+     "pass": true
+    }
+   },
+   "reb": {
+    "2023": {
+     "crps": 1.288178754113961,
+     "ref": 1.288179,
+     "n": 27619,
+     "pass": true
+    },
+    "2024": {
+     "crps": 1.3114005564955942,
+     "ref": 1.311401,
+     "n": 27701,
+     "pass": true
+    }
+   },
+   "ast": {
+    "2023": {
+     "crps": 0.9019544936299893,
+     "ref": 0.901954,
+     "n": 27619,
+     "pass": true
+    },
+    "2024": {
+     "crps": 0.8985173694367135,
+     "ref": 0.898517,
+     "n": 27701,
+     "pass": true
+    }
+   },
+   "fg3m": {
+    "2023": {
+     "crps": 0.5662119747307153,
+     "ref": 0.566212,
+     "n": 27619,
+     "pass": true
+    },
+    "2024": {
+     "crps": 0.5901545846609577,
+     "ref": 0.590155,
+     "n": 27701,
+     "pass": true
+    }
+   },
+   "max_season": 2024,
+   "game_id_prefixes": {
+    "002": 51582,
+    "004": 3488,
+    "005": 250
+   },
+   "pass": true
+  },
+  "G2_members_reproduce": {
+   "E1_pts": {
+    "2023": {
+     "delta": -0.005312552251048241,
+     "stored": -0.005312552251048241,
+     "n": 27619,
+     "pass": true
+    },
+    "2024": {
+     "delta": -0.001243616326161658,
+     "stored": -0.001243616326161658,
+     "n": 27583,
+     "pass": true
+    }
+   },
+   "E2_learned": {
+    "pts": {
+     "2023": {
+      "delta": -0.010954190019447392,
+      "stored": -0.010954190019447392,
+      "pass": true
+     },
+     "2024": {
+      "delta": -0.013140434704084145,
+      "stored": -0.013140434704084145,
+      "pass": true
+     }
+    },
+    "reb": {
+     "2023": {
+      "delta": -0.0027887239627463947,
+      "stored": -0.0027887239627463947,
+      "pass": true
+     },
+     "2024": {
+      "delta": -0.004286524552940106,
+      "stored": -0.004286524552940106,
+      "pass": true
+     }
+    },
+    "ast": {
+     "2023": {
+      "delta": -0.0015774617093900092,
+      "stored": -0.0015774617093900092,
+      "pass": true
+     },
+     "2024": {
+      "delta": -0.002507735502035682,
+      "stored": -0.002507735502035682,
+      "pass": true
+     }
+    },
+    "fg3m": {
+     "2023": {
+      "delta": -0.0027279124363831083,
+      "stored": -0.0027279124363831083,
+      "pass": true
+     },
+     "2024": {
+      "delta": -0.0031604367679001935,
+      "stored": -0.0031604367679001935,
+      "pass": true
+     }
+    }
+   },
+   "a1_present": 55202,
+   "a1_missing_gap_pp": 0.2924585073891242,
+   "seq_rows_missing": 0,
+   "pass": true
+  },
+  "G3_gate_builds": {
+   "rows": 55320,
+   "rows_with_g_prime": 55301,
+   "rows_without": 19,
+   "absent_by_season": {
+    "2023": 7,
+    "2024": 12
+   },
+   "absent_game_prefixes": [
+    "002"
+   ],
+   "absent_rate_by_minutes_bucket": {
+    "<5": 0.002548311743469951,
+    "5-20": 0.00035618878005342833,
+    ">20": 2.961558964638986e-05
+   },
+   "absent_gap_pp": 0.2518696153823561,
+   "absent_minutes_mean": 5.531578939211996,
+   "finite_and_in_unit_interval": true,
+   "placebo_nan_rows": 0,
+   "const_nan_rows": 0,
+   "repeat_max_abs_diff": 0.0,
+   "planted_future": {
+    "rows_before": 41296,
+    "max_abs_diff_before_cutoff": 0.0,
+    "rows_after": 12785,
+    "max_abs_diff_after_cutoff": 0.8412223040899613,
+    "pass": true
+   },
+   "pass": true
+  },
+  "G4_gate_premise": {
+   "metrics": {
+    "2023": {
+     "n": 27612,
+     "n_short": 2377,
+     "g_prime": {
+      "logloss": 0.16294201767731922,
+      "auc_short": 0.9369598471048627,
+      "ece": 0.009483966428088424
+     },
+     "g_prod": {
+      "logloss": 0.24681988805712635,
+      "auc_short": 0.8714589213934243,
+      "ece": 0.052639109219648865
+     },
+     "const": {
+      "logloss": 0.2944758129905069,
+      "auc_short": 0.5443666055694061,
+      "ece": 0.014348276934559645
+     },
+     "g_prime_minus_g_prod_ll": {
+      "delta": -0.08387787037980712,
+      "ci_lo": -0.09241492017814783,
+      "ci_hi": -0.07550896462006346,
+      "p": 0.0004997501249375312,
+      "mde": 0.008452977779042185
+     },
+     "g_prime_minus_const_ll": {
+      "delta": -0.13153379531318768,
+      "ci_lo": -0.14107665161817956,
+      "ci_hi": -0.12195114368019053,
+      "p": 0.0004997501249375312,
+      "mde": 0.009562753968994517
+     },
+     "share_routed_to_A0": 0.2373243517311314,
+     "share_short_routed": 0.8767353807320152
+    },
+    "2024": {
+     "n": 27689,
+     "n_short": 2320,
+     "g_prime": {
+      "logloss": 0.16214519149492962,
+      "auc_short": 0.9344192987368509,
+      "ece": 0.003661971719540572
+     },
+     "g_prod": {
+      "logloss": 0.2352251568954232,
+      "auc_short": 0.8721201785779822,
+      "ece": 0.04660888286357978
+     },
+     "const": {
+      "logloss": 0.28809991919532507,
+      "auc_short": 0.5002193316306489,
+      "ece": 0.005309568637972828
+     },
+     "g_prime_minus_g_prod_ll": {
+      "delta": -0.07307996540049355,
+      "ci_lo": -0.08159264642085326,
+      "ci_hi": -0.06500710122102847,
+      "p": 0.0004997501249375312,
+      "mde": 0.008292772599912394
+     },
+     "g_prime_minus_const_ll": {
+      "delta": -0.12595472770039545,
+      "ci_lo": -0.1355550666015432,
+      "ci_hi": -0.11692723709694273,
+      "p": 0.0004997501249375312,
+      "mde": 0.009313914752300236
+     },
+     "share_routed_to_A0": 0.2472461988515295,
+     "share_short_routed": 0.8827586206896552
+    }
+   },
+   "pass": true
+  },
+  "G5_power": {
+   "mde": {
+    "pts": {
+     "2023": 0.00391912471586928,
+     "2024": 0.003932153171966546
+    },
+    "reb": {
+     "2023": 0.0012703220562171084,
+     "2024": 0.0012118349294614628
+    },
+    "ast": {
+     "2023": 0.000823401242909249,
+     "2024": 0.0006823761162729062
+    },
+    "fg3m": {
+     "2023": 0.0007473664932820319,
+     "2024": 0.0007750870572680773
+    }
+   },
+   "floor": -0.005,
+   "pass": true
+  },
+  "G6_guards_testable": {
+   "a0_guard": {
+    "pts": {
+     "2023": {
+      "bias": -0.2785628784787109,
+      "cov80": 0.7919910206741736,
+      "ok": true
+     },
+     "2024": {
+      "bias": -0.19793763227893554,
+      "cov80": 0.783473520811523,
+      "ok": true
+     }
+    },
+    "reb": {
+     "2023": {
+      "bias": -0.08667236395599054,
+      "cov80": 0.8026358666135631,
+      "ok": true
+     },
+     "2024": {
+      "bias": -0.07379321066543504,
+      "cov80": 0.8011624129092813,
+      "ok": true
+     }
+    },
+    "ast": {
+     "2023": {
+      "bias": -0.07959035555779549,
+      "cov80": 0.7999927586082045,
+      "ok": true
+     },
+     "2024": {
+      "bias": -0.08054858604055982,
+      "cov80": 0.7956030468214144,
+      "ok": true
+     }
+    },
+    "fg3m": {
+     "2023": {
+      "bias": -0.028158097413458545,
+      "cov80": 0.8006444838697998,
+      "ok": true
+     },
+     "2024": {
+      "bias": -0.006215511331612031,
+      "cov80": 0.7947727518862135,
+      "ok": true
+     }
+    }
+   },
+   "slice_n": {
+    "pts": {
+     "2023": {
+      "regular": 25815,
+      "postseason": 1804,
+      "starter": 12267,
+      "bench": 15352,
+      "cold_start": 1630,
+      "first15": 4586,
+      "teammate_out": 23322,
+      "minutes<5": 2383
+     },
+     "2024": {
+      "regular": 25767,
+      "postseason": 1934,
+      "starter": 12112,
+      "bench": 15589,
+      "cold_start": 1325,
+      "first15": 4624,
+      "teammate_out": 23419,
+      "minutes<5": 2326
+     }
+    },
+    "reb": {
+     "2023": {
+      "regular": 25815,
+      "postseason": 1804,
+      "starter": 12267,
+      "bench": 15352,
+      "cold_start": 1630,
+      "first15": 4586,
+      "teammate_out": 23322,
+      "minutes<5": 2383
+     },
+     "2024": {
+      "regular": 25767,
+      "postseason": 1934,
+      "starter": 12112,
+      "bench": 15589,
+      "cold_start": 1325,
+      "first15": 4624,
+      "teammate_out": 23419,
+      "minutes<5": 2326
+     }
+    },
+    "ast": {
+     "2023": {
+      "regular": 25815,
+      "postseason": 1804,
+      "starter": 12267,
+      "bench": 15352,
+      "cold_start": 1630,
+      "first15": 4586,
+      "teammate_out": 23322,
+      "minutes<5": 2383
+     },
+     "2024": {
+      "regular": 25767,
+      "postseason": 1934,
+      "starter": 12112,
+      "bench": 15589,
+      "cold_start": 1325,
+      "first15": 4624,
+      "teammate_out": 23419,
+      "minutes<5": 2326
+     }
+    },
+    "fg3m": {
+     "2023": {
+      "regular": 25815,
+      "postseason": 1804,
+      "starter": 12267,
+      "bench": 15352,
+      "cold_start": 1630,
+      "first15": 4586,
+      "teammate_out": 23322,
+      "minutes<5": 2383
+     },
+     "2024": {
+      "regular": 25767,
+      "postseason": 1934,
+      "starter": 12112,
+      "bench": 15589,
+      "cold_start": 1325,
+      "first15": 4624,
+      "teammate_out": 23419,
+      "minutes<5": 2326
+     }
+    }
+   },
+   "dk_rows_pts": {
+    "2023": 14354,
+    "2024": 15882
+   },
+   "routed_slice_n": {
+    "2023": {
+     "routed_to_A0": 6560,
+     "kept": 21059,
+     "short_routed": 2090,
+     "short_kept": 293,
+     "postseason_rows": 1804
+    },
+    "2024": {
+     "routed_to_A0": 6858,
+     "kept": 20843,
+     "short_routed": 2054,
+     "short_kept": 272,
+     "postseason_rows": 1934
+    }
+   },
+   "a0_guard_all_ok": true,
+   "slices_testable": true,
+   "pass": true
+  },
+  "G7_provenance_and_virgin": {
+   "inputs": {
+    "lower_tail components (A0)": {
+     "mtime": "2026-10-11 15:08",
+     "after_cleanup_rebaseline_2026-10-11_15:08": true
+    },
+    "A1 XGBoost aligned": {
+     "mtime": "2026-10-11 21:22",
+     "after_cleanup_rebaseline_2026-10-11_15:08": true
+    },
+    "SEQ E2 OOF": {
+     "mtime": "2026-10-11 21:58",
+     "after_cleanup_rebaseline_2026-10-11_15:08": true
+    }
+   },
+   "holdout_log_rows_naming_A1_or_SEQ": [],
+   "pass": true
+  }
+ },
+ "gate_pass": true,
+ "seconds": 155.09004402160645
+}
