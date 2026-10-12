@@ -848,3 +848,9 @@ network outage (DNS to stats.nba.com); later runs succeeded. The daily job still
 What: under this construction the guard fires ~19% of the time on honest shuffles (9/48; ~0.21-0.35 at the 2025 CI width); no label-free gain
 from the five columns (null mean -0.0003, se 0.0003). T473 stands unchanged. Future rules size shuffle guards from a permutation null (BEST_PRACTICES).
 Why: reports/shuffle_guard_diagnostic_2026-10-12.md. What would reverse it: a within-player-season shuffle with a tighter null.
+
+**2026-10-12 12:05 CDT — Devin: "shadow, and the 3 is cool, 4, remind me, and then 5".**
+What: (2) freeze a live scoring rule for the FULL / P(play) shadow before its first look; (3) pre-register the 50/50 mix of the SEQ blend and
+RECENT_ROLE_FULL (T471, post-hoc) and spend SEQ's single 2025 touch on it, primary contrast mix minus FULL (SEQ's marginal; FULL's own 2025
+result is already known, disclosed), via a Colab GPU run Devin starts; (4) open questions re-listed for Devin; (5) Mac power setting is Devin's.
+Q1_STARTERS_LIVE stays parked (not answered).
