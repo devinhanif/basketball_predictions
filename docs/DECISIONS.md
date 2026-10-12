@@ -908,3 +908,6 @@ What: model picks lose at stored Pinnacle and DK prices on both sides; the model
 What: decision rule unchanged (pts primary; reb, ast, fg3m secondary; E2P unmeasured pre-freeze). Added before the freeze, as descriptive outputs with no bearing on the verdict: per-row export, confusion matrices at the stored line and own median, a spot-check pack by slice, and a user simulation with five personas fixed in advance (also on 2023/24, flagged as already seen). Season-2025 prop prices are named as touched in the holdout row.
 Not added (main session pushback, Devin's request): steals, blocks, halves, quarters and moneylines; no SEQ/FULL model exists for them and each needs its own selection on 2023/24 first.
 Why: one clean 2025 touch for a fixed model. What would reverse it: nothing after the freeze.
+
+**2026-10-12 13:50 CDT — FULL_SHADOW_LIVE_2026_27 FROZEN (sha256 13831b52, commit 859e214; rule text ce754fc).**
+What: comparator A (lower-tail arm), K=100 permutation null, sigma_N 0.00199 (was 0.00229 at K=48); pass line at n_min about -0.00598; stated power 0.78 at the 2023/24 effect size. Frozen before opening night with the live tables empty. Why: Devin's "a yes". What would reverse it: nothing above the marker.
