@@ -288,3 +288,15 @@
   (rows, gates, backup path) is appended by the run that does it. Table schema changes to the six columns in `nba/db/schema.sql` (the live table keeps
   its older eight columns until the reload drops and recreates it).
 - Readers: `nba/facts/build.py` `coach_facts` reads only `game_id, team_id, coach_name, coach_id, known_at`, so it works on both layouts.
+
+## 2026-10-12 02:31 UTC - F5 team_coach_games reloaded from Basketball-Reference
+- Fetch: 120 of 120 team-season pages (2022-2025), 0 failed, cached write-once in `data/coaches/raw/`; reference CSV
+  `nba/data/head_coach_games_reference.csv`, 133 coach stints. Reference problems: none (every team-season sums to its games).
+- Load: `python -m nba.data.coaches --apply` under heavy.lock; 10,558 rows (six-column layout); backup
+  `data/backups/team_coach_games_pre_br_20261012T023108Z.parquet`.
+- Gates: 5,279 of 5,279 games have exactly 2 coach rows; 0 games without a coach; known_at NULL 0; agreement with the
+  2026-10-10 hand-copied 2022-24 reference 100% (after the reviewed alias Jordi Fernández Torres = Jordi Fernández);
+  coach_id NULL on 117 rows (Dwane Casey, Kevin Ollie, Steve Nash: no NBA staff row; Lindsey Harding's name maps to two ids
+  and is left NULL rather than guessed). 13 mid-season changes found, including interims (Prunty ATL 2022 and MIL 2023,
+  Ollie BKN 2023) and 2025-26 (Borrego NOP from game 13, Splitter POR from game 2).
+- Not run: `make data-snapshot` (manifest), queued for the next maintenance window.
