@@ -1,0 +1,356 @@
+{
+  "audit_sha256": "9b1e88b8af72c9bf83a225225a8a89e89c96f33d2b8d2f23a1237771d77b4be4",
+  "failed_items": [
+    "G1b_static",
+    "G4_missingness",
+    "G5_era"
+  ],
+  "gate_pass": false,
+  "items": {
+    "DIAGNOSTIC_without_pos_code": {
+      "g4_false_flags_on_current_seasons": [],
+      "g4_flagged_history_cells": [],
+      "g5_history_flags": {
+        "2019v2022": false,
+        "2020v2022": false,
+        "hist_pooled_v_cur_pooled": false
+      },
+      "g5_limit": 0.505,
+      "g5_pairs": {
+        "2019v2022": 0.49938386147339947,
+        "2020v2022": 0.5008519822787686,
+        "2022v2023": 0.5008519822787686,
+        "2022v2024": 0.5008519822787686,
+        "2023v2024": 0.5,
+        "hist_pooled_v_cur_pooled": 0.4995839405365734
+      },
+      "g5_pass_rule": true,
+      "g5_placebo_rule_ok": true,
+      "note": "not a gate item; what G4/G5 would show if pos_code were NULL-free in the history block",
+      "pass": true
+    },
+    "G1_data": {
+      "all_history_games_flagged_shortened": true,
+      "cached_games": 2314,
+      "dnp_band": [
+        0.15472254878909006,
+        0.22514350044175904
+      ],
+      "dnp_rows_with_nonzero_stats": 0,
+      "dnp_share_current": {
+        "2022": 0.18472254878909006,
+        "2023": 0.1898319689788884,
+        "2024": 0.19514350044175904
+      },
+      "dnp_share_history": {
+        "2019": 0.16030933221862265,
+        "2020": 0.20579471248335765
+      },
+      "duplicates": 0,
+      "era_flags": {
+        "current_all_false": true,
+        "current_flag_coverage": 1.0,
+        "flags_valid": true,
+        "history_flag_coverage": 1.0,
+        "rule_version_sha256": "6a483d1beb887973cc2c9483ba639c96f6040bd0a3b5cd0d99185d1dd39966a1"
+      },
+      "extra_vs_cache": 0,
+      "games_with_box_share": 1.0,
+      "history_games": {
+        "2019": 1143,
+        "2020": 1171
+      },
+      "missing_vs_cache": 0,
+      "pass": true,
+      "pf_fta_fga_non_null_share": 1.0,
+      "possession_mae": {
+        "2019": {
+          "mae": 2.087471566054243,
+          "n_team_games": 2286
+        },
+        "2020": {
+          "mae": 2.027378309137487,
+          "n_team_games": 2342
+        }
+      }
+    },
+    "G1b_static": {
+      "history_players": 638,
+      "pass": false,
+      "remedy": "python -W ignore -m research.eval.history_window3_eval fetch-static (free nba_api, ~0.6 s per player, resumable)",
+      "without_static_in_either_db_or_cache": 244
+    },
+    "G2_rows": {
+      "ast": {
+        "add_frac_first_block": 1.8336917562724013,
+        "add_frac_last_block": 0.5736069066038794,
+        "history_rows": 46044,
+        "history_rows_by_season": {
+          "2019": 21522,
+          "2020": 24522
+        },
+        "w0_rows_first_block": 25110,
+        "w0_rows_last_block": 80271
+      },
+      "fg3m": {
+        "add_frac_first_block": 1.8336917562724013,
+        "add_frac_last_block": 0.5736069066038794,
+        "history_rows": 46044,
+        "history_rows_by_season": {
+          "2019": 21522,
+          "2020": 24522
+        },
+        "w0_rows_first_block": 25110,
+        "w0_rows_last_block": 80271
+      },
+      "pass": true,
+      "pts": {
+        "add_frac_first_block": 1.8336917562724013,
+        "add_frac_last_block": 0.5736069066038794,
+        "history_rows": 46044,
+        "history_rows_by_season": {
+          "2019": 21522,
+          "2020": 24522
+        },
+        "w0_rows_first_block": 25110,
+        "w0_rows_last_block": 80271
+      },
+      "reb": {
+        "add_frac_first_block": 1.8336917562724013,
+        "add_frac_last_block": 0.5736069066038794,
+        "history_rows": 46044,
+        "history_rows_by_season": {
+          "2019": 21522,
+          "2020": 24522
+        },
+        "w0_rows_first_block": 25110,
+        "w0_rows_last_block": 80271
+      }
+    },
+    "G3_treatment": {
+      "current_part_equals_f0": true,
+      "current_reportless_rows": 118,
+      "current_reportless_rows_null_like_history": true,
+      "history_has_report_zero": 49150,
+      "history_report_nulls": {
+        "n_out_rot": 49150,
+        "vac_ast": 49150,
+        "vac_fg3m": 49150,
+        "vac_min": 49150,
+        "vac_pts": 49150,
+        "vac_reb": 49150
+      },
+      "history_rows": 49150,
+      "pass": true
+    },
+    "G4_missingness": {
+      "box_cells": 26,
+      "false_flags_on_current_seasons": [],
+      "feature_cells": 350,
+      "flagged_history_cells": [
+        "pos_code|all|2019",
+        "pos_code|all|2020",
+        "pos_code|m10-20|2019",
+        "pos_code|m10-20|2020",
+        "pos_code|m20-30|2019",
+        "pos_code|m20-30|2020",
+        "pos_code|m<=10|2019",
+        "pos_code|m<=10|2020",
+        "pos_code|m>30|2019",
+        "pos_code|m>30|2020"
+      ],
+      "pass": false
+    },
+    "G5_era": {
+      "declared_report_columns_auc": {
+        "auc": 0.9993135435992578,
+        "hi": 1.0,
+        "lo": 0.9983804899040943,
+        "n_games_test": 2046,
+        "n_test": 42072,
+        "n_train": 84402
+      },
+      "history_flags": {
+        "2019v2022": true,
+        "2020v2022": true,
+        "hist_pooled_v_cur_pooled": true
+      },
+      "indicator_columns": [
+        "opp_r20_pts_for",
+        "opp_r20_pts_against",
+        "pos_code",
+        "opp_allow_pts",
+        "opp_allow_reb",
+        "opp_allow_ast",
+        "opp_allow_fg3m"
+      ],
+      "limit": 0.505,
+      "pairs": {
+        "2019v2022": {
+          "auc": 0.6201933523272648,
+          "hi": 0.6254643620421737,
+          "lo": 0.615963863771512,
+          "n_games_test": 794,
+          "n_test": 15955,
+          "n_train": 30677
+        },
+        "2020v2022": {
+          "auc": 0.5859012932029132,
+          "hi": 0.5899543126737127,
+          "lo": 0.5818042780599576,
+          "n_games_test": 819,
+          "n_test": 16773,
+          "n_train": 32859
+        },
+        "2022v2023": {
+          "auc": 0.5008519822787686,
+          "hi": 0.5021934534199104,
+          "lo": 0.5,
+          "n_games_test": 859,
+          "n_test": 17636,
+          "n_train": 35093
+        },
+        "2022v2024": {
+          "auc": 0.5008519822787686,
+          "hi": 0.502263999970433,
+          "lo": 0.5,
+          "n_games_test": 885,
+          "n_test": 18117,
+          "n_train": 34694
+        },
+        "2023v2024": {
+          "auc": 0.5,
+          "hi": 0.5,
+          "lo": 0.5,
+          "n_games_test": 870,
+          "n_test": 18147,
+          "n_train": 37173
+        },
+        "hist_pooled_v_cur_pooled": {
+          "auc": 0.6016631459307221,
+          "hi": 0.6057650362491642,
+          "lo": 0.5988659371692668,
+          "n_games_test": 2046,
+          "n_test": 42072,
+          "n_train": 84402
+        }
+      },
+      "pass": false,
+      "pass_rule": false,
+      "placebo_max_auc": 0.5008519822787686,
+      "placebo_rule_ok": true,
+      "placebo_self_flags": {
+        "2022v2023": false,
+        "2022v2024": false,
+        "2023v2024": false
+      },
+      "value_auc_descriptive": {
+        "2019v2022": {
+          "auc": 0.9604083644456168,
+          "hi": 0.9666443397198962,
+          "lo": 0.9481359852189156,
+          "n_games_test": 794,
+          "n_test": 15955,
+          "n_train": 30677
+        },
+        "2020v2022": {
+          "auc": 0.9965496107392384,
+          "hi": 0.9971147790364876,
+          "lo": 0.9956634345855492,
+          "n_games_test": 819,
+          "n_test": 16773,
+          "n_train": 32859
+        },
+        "2022v2023": {
+          "auc": 0.996397580104114,
+          "hi": 0.9973687102004679,
+          "lo": 0.9954943403522442,
+          "n_games_test": 859,
+          "n_test": 17636,
+          "n_train": 35093
+        },
+        "2022v2024": {
+          "auc": 0.99798040378557,
+          "hi": 0.9983861451787375,
+          "lo": 0.9974322537713656,
+          "n_games_test": 885,
+          "n_test": 18117,
+          "n_train": 34694
+        },
+        "2023v2024": {
+          "auc": 0.9752665114892493,
+          "hi": 0.9785462715599836,
+          "lo": 0.9715946421723366,
+          "n_games_test": 870,
+          "n_test": 18147,
+          "n_train": 37173
+        }
+      }
+    },
+    "G6_planted_future": {
+      "columns_differing": [],
+      "cutoff": "2020-03-01",
+      "pass": true,
+      "rows_compared": 18899,
+      "rows_full": 18899,
+      "rows_truncated": 18899
+    },
+    "G7_planted_detection": {
+      "clean_flags": [],
+      "indicator_auc_clean": 0.5,
+      "indicator_auc_planted": 0.5732747804265997,
+      "indicator_auc_planted_lo": 0.5700928887380098,
+      "null_clean_not_flagged": true,
+      "null_plant_column": "rest_days",
+      "null_plant_detected": true,
+      "null_plant_fraction": 0.15,
+      "pass": true,
+      "planted_flags": [
+        "rest_days|all|2019",
+        "rest_days|all|2020"
+      ]
+    },
+    "G8_w0_repro": {
+      "2023": {
+        "got": 3.152829990762183,
+        "n": 27619,
+        "n_want": 27619,
+        "ok": true,
+        "want": 3.15283
+      },
+      "2024": {
+        "got": 3.1875525740475275,
+        "n": 27701,
+        "n_want": 27701,
+        "ok": true,
+        "want": 3.187553
+      },
+      "blocks_train_rows": [
+        25110,
+        26172,
+        30694,
+        35040,
+        39972,
+        43663,
+        48488,
+        51769,
+        52615,
+        52729,
+        54136,
+        58786,
+        62793,
+        67640,
+        71345,
+        76330,
+        79429,
+        80271
+      ],
+      "n_blocks": 18,
+      "old_2024_reference_3.1884_would_pass": false,
+      "pass": true,
+      "seconds": 23.269101858139038,
+      "skipped": []
+    }
+  },
+  "repro_run": true
+}
