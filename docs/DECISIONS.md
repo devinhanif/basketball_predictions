@@ -876,3 +876,7 @@ Why: Devin's decision (non-negotiable 8 exception, explicitly his). What would r
 **2026-10-12 12:34 CDT — FULL_SHADOW_LIVE_2026_27: comparator A and the K=100 null extension (Devin: "a yes").**
 What: the pts primary compares FULL with the lower-tail arm (production plus the short-minutes mixture), not bare production; the permutation null is extended to K=100 and, once committed, its pooled sd replaces sigma_N = 0.00229 in the rule and in `NULL_SD_PTS`. Then the rule is frozen, before opening night and before any live row is read.
 Why: against bare production the mixture alone (about -0.011) would clear the -0.005 floor with no recent-role information; K=48 was 2 short of the BEST_PRACTICES K>=50. What would reverse it: nothing after the freeze; before it, only Devin.
+
+**2026-10-12 12:38 CDT — Q7.3 minutes-spread widening: recorded as descriptive (T474), no rule frozen.**
+What: the mis-calibration is the lower tail of starters and 30+ minute players, mostly rate-driven; lower-only widening is worth about -0.0025 pts, below any reachable floor (power about 0.01 at -0.002 over both seasons).
+Why: a rule that cannot pass its own minimum-data gate is not frozen (non-negotiable 8). What would reverse it: Devin asks for one pooled 2023-24 test at a -0.002 floor.
