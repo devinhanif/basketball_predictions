@@ -1,0 +1,188 @@
+{
+ "legs_total": 270733,
+ "games": 2633,
+ "a_post_t60_reports": {
+  "all": {
+   "legs": 270733,
+   "games": 2633,
+   "legs_game_has_post_report": 11542,
+   "legs_game_has_change": 10694,
+   "legs_own_changed": 931,
+   "share_game_has_post_report": 0.04263240905246128,
+   "share_game_has_change": 0.03950017175593666,
+   "share_own_changed": 0.003438812409274082
+  },
+  "book=draftkings": {
+   "legs": 106999,
+   "games": 2616,
+   "legs_game_has_post_report": 4594,
+   "legs_game_has_change": 4262,
+   "legs_own_changed": 367,
+   "share_game_has_post_report": 0.04293498070075421,
+   "share_game_has_change": 0.03983214796399966,
+   "share_own_changed": 0.0034299385975569865
+  },
+  "book=pinnacle": {
+   "legs": 72674,
+   "games": 2509,
+   "legs_game_has_post_report": 3090,
+   "legs_game_has_change": 2844,
+   "legs_own_changed": 255,
+   "share_game_has_post_report": 0.04251864490739467,
+   "share_game_has_change": 0.03913366540991276,
+   "share_own_changed": 0.003508820210804414
+  },
+  "book=fanduel": {
+   "legs": 91060,
+   "games": 2599,
+   "legs_game_has_post_report": 3858,
+   "legs_game_has_change": 3588,
+   "legs_own_changed": 309,
+   "share_game_has_post_report": 0.04236766966835054,
+   "share_game_has_change": 0.03940259169778168,
+   "share_own_changed": 0.0033933670107621347
+  },
+  "season=2023": {
+   "legs": 133075,
+   "games": 1318,
+   "legs_game_has_post_report": 5048,
+   "legs_game_has_change": 4918,
+   "legs_own_changed": 344,
+   "share_game_has_post_report": 0.03793349614878828,
+   "share_game_has_change": 0.03695660341912455,
+   "share_own_changed": 0.0025850084538793913
+  },
+  "season=2024": {
+   "legs": 137658,
+   "games": 1315,
+   "legs_game_has_post_report": 6494,
+   "legs_game_has_change": 5776,
+   "legs_own_changed": 587,
+   "share_game_has_post_report": 0.04717488268026559,
+   "share_game_has_change": 0.04195905795522236,
+   "share_own_changed": 0.004264190966017231
+  },
+  "draftkings,season=2023": {
+   "legs": 53247,
+   "games": 1316,
+   "legs_game_has_post_report": 2005,
+   "legs_game_has_change": 1960,
+   "legs_own_changed": 141,
+   "share_game_has_post_report": 0.037654703551373785,
+   "share_game_has_change": 0.03680958551655492,
+   "share_own_changed": 0.0026480365090991043
+  },
+  "draftkings,season=2024": {
+   "legs": 53752,
+   "games": 1300,
+   "legs_game_has_post_report": 2589,
+   "legs_game_has_change": 2302,
+   "legs_own_changed": 226,
+   "share_game_has_post_report": 0.04816564965024557,
+   "share_game_has_change": 0.04282631343949993,
+   "share_own_changed": 0.004204494716475666
+  }
+ },
+ "a_status_change_kinds": [
+  {
+   "s0": "none",
+   "s1": "out",
+   "n": 179
+  },
+  {
+   "s0": "questionable",
+   "s1": "out",
+   "n": 104
+  },
+  {
+   "s0": "questionable",
+   "s1": "available",
+   "n": 97
+  },
+  {
+   "s0": "probable",
+   "s1": "available",
+   "n": 51
+  },
+  {
+   "s0": "none",
+   "s1": "available",
+   "n": 30
+  },
+  {
+   "s0": "doubtful",
+   "s1": "out",
+   "n": 24
+  },
+  {
+   "s0": "out",
+   "s1": "available",
+   "n": 10
+  },
+  {
+   "s0": "none",
+   "s1": "questionable",
+   "n": 3
+  },
+  {
+   "s0": "probable",
+   "s1": "out",
+   "n": 2
+  },
+  {
+   "s0": "doubtful",
+   "s1": "available",
+   "n": 1
+  },
+  {
+   "s0": "questionable",
+   "s1": "doubtful",
+   "n": 1
+  }
+ ],
+ "b_t30_lineups_history": {
+  "announced_lineup_snapshots_games": 13,
+  "first_date": "2026-10-09",
+  "last_date": "2026-10-11",
+  "note": "collector began 2026-10-09; 2023/2024 have only the post-hoc box-score starter flag (known_at violated by construction)"
+ },
+ "c_intermediate_price": {
+  "history_snapshot_kinds_by_season": [
+   [
+    "2023",
+    "t5",
+    "1318"
+   ],
+   [
+    "2023",
+    "t60",
+    "1318"
+   ],
+   [
+    "2024",
+    "t5",
+    "1315"
+   ],
+   [
+    "2024",
+    "t60",
+    "1315"
+   ]
+  ],
+  "live_capture_log": [
+   [
+    "close",
+    "unmatched",
+    "4"
+   ],
+   [
+    "t60",
+    "unmatched",
+    "2"
+   ]
+  ],
+  "live_book_odds_rows": 0,
+  "t30_price_exists": false
+ },
+ "dk_legs_per_game": 40.901758409785934
+}
