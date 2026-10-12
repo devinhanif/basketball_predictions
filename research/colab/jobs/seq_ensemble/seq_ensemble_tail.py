@@ -45,7 +45,7 @@ def check_rule(run_dir):
         raise FileNotFoundError(f"{p} not staged: the rule document must travel with the inputs")
     text = p.read_text()
     head = text.split(RESULTS_MARKER)[0]
-    if not any(line.startswith("Status: FROZEN") for line in head.splitlines()):
+    if not any(line.replace("*", "").startswith("Status: FROZEN") for line in head.splitlines()):
         raise RuntimeError("the rule document is not FROZEN; refusing to fit")
     got = rule_text_sha(text)
     if got != RULE_SHA:

@@ -46,7 +46,7 @@ def rule_sha() -> str:
     head = text.split(MARK_RESULTS)[0]
     if head == text:
         raise SystemExit("results marker missing")
-    if not any(line.startswith("Status: FROZEN") for line in head.splitlines()):
+    if not any(line.replace("*", "").startswith("Status: FROZEN") for line in head.splitlines()):
         raise SystemExit("docs/prereg/ENSEMBLE.md is not FROZEN; refusing to build")
     return hashlib.sha256(head.encode()).hexdigest()
 
