@@ -1,0 +1,270 @@
+{
+  "tests": [
+    {
+      "test": "A0 reproduction from stored components (mixture integer CRPS vs candidates.json)",
+      "value": {
+        "max_abs_diff": 0.0,
+        "pts": {
+          "2023": 3.140236466011581,
+          "2024": 3.1768395165770476
+        }
+      },
+      "threshold": "<= 1e-06, n equal",
+      "ok": true
+    },
+    {
+      "test": "A0 pts equals the quoted 3.140236 / 3.176840",
+      "value": {
+        "2023": 3.140236,
+        "2024": 3.17684
+      },
+      "threshold": "to 1e-6",
+      "ok": true
+    },
+    {
+      "test": "the 5 R columns attach to every A0 row",
+      "value": {
+        "n_a0_rows": 55320,
+        "frame_rows": 84170,
+        "null_or_nan": {
+          "wl_min_last": 0,
+          "wl_mean_min_l3": 0,
+          "wl_min_3d": 0,
+          "wl_min_7d": 0,
+          "wl_mean_min_l5": 0
+        },
+        "minutes_null": 0
+      },
+      "threshold": "all A0 rows found in the frame; null share < 2%",
+      "ok": true
+    },
+    {
+      "test": "control refit of pi (COMMON_FEATURES only) equals the stored A0 pi",
+      "value": {
+        "max_abs_diff": 0.0,
+        "mean_abs_diff": 0.0,
+        "n": 55320
+      },
+      "threshold": "max abs diff <= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "missingness of the 5 R columns by realised-minutes bucket (pp)",
+      "value": {
+        "max_gap_pp": 0.0,
+        "worst_col": "wl_min_last",
+        "placebo_max_gap_pp": 0.0
+      },
+      "threshold": "<= 2.00",
+      "ok": true
+    },
+    {
+      "test": "past-only placebo columns: NaN share and its gap by realised-minutes bucket (reported; conservative for CAND)",
+      "value": {
+        "max_gap_pp": 3.7714327658523916,
+        "worst_col": "pl_wl_min_last",
+        "permuted_gap_pp": 0.1992630140700582,
+        "nan_share": {
+          "pl_wl_min_last": 0.022035430224150398,
+          "pl_wl_mean_min_l3": 0.022035430224150398,
+          "pl_wl_min_3d": 0.01614244396240058,
+          "pl_wl_min_7d": 0.01614244396240058,
+          "pl_wl_mean_min_l5": 0.022035430224150398
+        }
+      },
+      "threshold": "NaN share < 5%; gap reported",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: rows of the edited day identical",
+      "value": 308,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 13770,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows dated on or before the cutoff identical",
+      "value": 14466,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (schedule): rows up to the cutoff identical",
+      "value": 6618,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (walk): candidate pi of rows dated before the cutoff identical",
+      "value": {
+        "cutoff": "2025-01-24",
+        "n_rows": 13691,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "== 0",
+      "ok": true
+    },
+    {
+      "test": "control (walk): pi of rows in later blocks change",
+      "value": {
+        "n_rows": 12790,
+        "max_abs_diff": 0.495
+      },
+      "threshold": "> 0",
+      "ok": true
+    },
+    {
+      "test": "slice sizes (n rows) per stat and season",
+      "value": {
+        "2023": {
+          "all": 27619,
+          "min<5": 2383,
+          "bench": 15352,
+          "playoffs": 1684,
+          "cold_start": 574,
+          "starter": 12267,
+          "short(<0.5*proj)": 2931,
+          "not short": 24688,
+          "min<10": 4437
+        },
+        "2024": {
+          "all": 27701,
+          "min<5": 2326,
+          "bench": 15589,
+          "playoffs": 1804,
+          "cold_start": 464,
+          "starter": 12112,
+          "short(<0.5*proj)": 2820,
+          "not short": 24881,
+          "min<10": 4299
+        }
+      },
+      "threshold": "every declared guard slice >= 300 in both seasons, all stats",
+      "ok": true
+    },
+    {
+      "test": "short-flag base rate and mean stored pi (descriptive)",
+      "value": {
+        "2023": {
+          "observed_short": 0.10612259676309786,
+          "mean_stored_pi": 0.09048546198709022,
+          "n": 27619
+        },
+        "2024": {
+          "observed_short": 0.10180137901158803,
+          "mean_stored_pi": 0.09227569283677103,
+          "n": 27701
+        }
+      },
+      "threshold": "reported",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "sha256": null,
+  "draft": true,
+  "seconds": 47.61941194534302,
+  "slice_sizes": {
+    "pts": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    },
+    "reb": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    },
+    "ast": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    },
+    "fg3m": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    }
+  }
+}
