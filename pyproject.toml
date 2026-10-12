@@ -48,6 +48,8 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ["nba", "research"]
 branch = true
+# Archived Colab job scripts run only on the Colab VM (Devin, 2026-10-12).
+omit = ["research/colab/jobs/*"]
 
 [tool.ruff]
 line-length = 100
