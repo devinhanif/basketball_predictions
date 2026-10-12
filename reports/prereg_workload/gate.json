@@ -1,0 +1,198 @@
+{
+  "tests": [
+    {
+      "test": "G1 tracking coverage",
+      "value": {
+        "2022": 1.0,
+        "2023": 1.0,
+        "2024": 0.9961470065204505
+      },
+      "threshold": ">= 0.95 of >=10-min rows",
+      "ok": true
+    },
+    {
+      "test": "G3 arena/tz/tips/schedule",
+      "value": 0.00997863451420604,
+      "threshold": "teams 30/30, 0 missing tips, ref err < 5%",
+      "ok": true
+    },
+    {
+      "test": "G4 A0 reproduction from stored components",
+      "value": 0.0,
+      "threshold": "<= 1e-6, n equal",
+      "ok": true
+    },
+    {
+      "test": "G6 missingness asymmetry, props/minutes rows (pp)",
+      "value": 0.1938655422257799,
+      "threshold": "<= 2.00",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: rows of the edited day identical",
+      "value": 308,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 13770,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows dated on or before the cutoff identical",
+      "value": 14466,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (schedule): rows up to the cutoff identical",
+      "value": 6618,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "G6 missingness asymmetry, P(play) rows incl. DNP (pp)",
+      "value": 0.19279739588533018,
+      "threshold": "<= 2.00",
+      "ok": true
+    }
+  ],
+  "audit_props": {
+    "max_gap_pp": 0.1938655422257799,
+    "worst_col": "wl_three_in_four",
+    "placebo_max_gap_pp": 0.26116978604232427,
+    "threshold_pp": 2.0,
+    "ok": true,
+    "n_rows": 55320
+  },
+  "audit_pplay": {
+    "max_gap_pp": 0.19279739588533018,
+    "worst_col": "wl_three_in_four",
+    "placebo_max_gap_pp": 0.37140479435683116,
+    "threshold_pp": 2.0,
+    "ok": true,
+    "n_rows": 66220
+  },
+  "tracking": {
+    "games_by_season": [
+      {
+        "season": 2022,
+        "games": 1320,
+        "games_ge8": 1320,
+        "games_none": 0
+      },
+      {
+        "season": 2023,
+        "games": 1318,
+        "games_ge8": 1318,
+        "games_none": 0
+      },
+      {
+        "season": 2024,
+        "games": 1320,
+        "games_ge8": 1315,
+        "games_none": 5
+      }
+    ],
+    "played_rows_with_tracking_by_bucket": [
+      {
+        "season": 2022,
+        "bucket": "10-20",
+        "n": 6444,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2022,
+        "bucket": "5-10",
+        "n": 1984,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2022,
+        "bucket": "<5",
+        "n": 2227,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2022,
+        "bucket": ">20",
+        "n": 17082,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": "10-20",
+        "n": 6523,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": "5-10",
+        "n": 2164,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": "<5",
+        "n": 2634,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2023,
+        "bucket": ">20",
+        "n": 16876,
+        "has_tracking": 1.0
+      },
+      {
+        "season": 2024,
+        "bucket": "10-20",
+        "n": 6506,
+        "has_tracking": 0.9950814632646787
+      },
+      {
+        "season": 2024,
+        "bucket": "5-10",
+        "n": 2063,
+        "has_tracking": 0.9975763451284537
+      },
+      {
+        "season": 2024,
+        "bucket": "<5",
+        "n": 2555,
+        "has_tracking": 0.9913894324853229
+      },
+      {
+        "season": 2024,
+        "bucket": ">20",
+        "n": 17112,
+        "has_tracking": 0.9965521271622253
+      }
+    ],
+    "has_tracking_ge10min_by_season": {
+      "2022": 1.0,
+      "2023": 1.0,
+      "2024": 0.9961470065204505
+    },
+    "mean_abs_gap_tracking_vs_box_minutes_ge10": 0.0,
+    "mean_miles_per_minute_ge10": 0.07370208980370441,
+    "mean_speed_mph": 4.2510697005146225,
+    "max_distance_miles": 4.159999847412109,
+    "max_speed_mph": 5.659999847412109,
+    "share_zero_distance_ge10min": 0.003988531198546528,
+    "pass": true
+  },
+  "arena": {
+    "team_games": 7916,
+    "team_games_with_prior_in_season": 7826,
+    "worst_reference_rel_err": 0.00997863451420604
+  },
+  "a0": {
+    "max_abs_diff": 0.0,
+    "n_match": true
+  },
+  "gate_ok": true,
+  "sha256": "261fabceabd4956808f962d5e5901d4f009499cfcb9085218ae5e3ea057b81c7",
+  "seconds": 11.585264921188354
+}
