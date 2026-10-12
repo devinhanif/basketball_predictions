@@ -1,6 +1,6 @@
 # F10A_RIVALRY: does a questionable player sit more often against a rival? (pre-registration)
 
-Status: **DRAFT, STOPPED AT THE MINIMUM-DATA GATE (Sun Oct 11 23:05 CDT 2026).** Not freezable as the research doc drafted it
+Status: **CLOSED AT THE GATE (Sun Oct 11 23:25 CDT 2026); Devin chose option 1 ("yes to all"): no test now; `div_rival` and `hist_rival` columns go into the 2026-27 P(play) shadow log; revisit at 300+ forward division non-play events under a new rule.** Earlier: **DRAFT, STOPPED AT THE MINIMUM-DATA GATE (Sun Oct 11 23:05 CDT 2026).** Not freezable as the research doc drafted it
 (non-negotiable 8). Nothing is fitted; no play rate by flag has been computed or seen. The only numbers below are counts and
 cluster-robust standard errors. Everything above `=== RESULTS BELOW ===` would be the rule if Devin freezes one of the options in
 "What Devin decides"; the main session commits `prereg(F10A_RIVALRY): <sha256>` first.
