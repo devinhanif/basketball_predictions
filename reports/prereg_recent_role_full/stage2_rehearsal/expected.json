@@ -1,0 +1,11 @@
+{
+  "expected_delta_pts_2025": -0.007,
+  "pass_probability": [
+    0.75,
+    0.82
+  ],
+  "basis": "adversary review 2026-10-12: true effect plausibly near the pre-specifiable wl_min_last level (-0.0065 to -0.007), SE ~0.0022; floor -0.005",
+  "reading": "a delta between -0.005 and 0 with CI upper < 0 is real-but-sub-floor, not a broken pipeline; a delta above 0 would be a surprise to investigate under a new id",
+  "written_at": "2026-10-12 09:25:21 CDT",
+  "written_before": "any 2025 model is fitted or scored"
+}

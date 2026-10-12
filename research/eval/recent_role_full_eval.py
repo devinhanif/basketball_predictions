@@ -13,10 +13,12 @@ SHUF_CTRL / SHUF_FULL (shared-permutation shuffled labels), ORACLE (descriptive)
     .venv/bin/python -W ignore $M arms  --sha <64 hex>       # heads walks + pi walks, per (stat, arm) checkpoints (heavy.lock)
     .venv/bin/python -W ignore $M score --sha <64 hex>       # integer CRPS vs A0, guards, verdict, report (light)
     .venv/bin/python -W ignore $M run   --sha <64 hex>       # gate -> arms -> score under ONE data/ops/heavy.lock
-    .venv/bin/python -W ignore $M holdout --sha <64 hex>     # Stage 2: refuses unless a committed, confirmed log row exists; no 2025 loader exists
+    .venv/bin/python -W ignore $M rehearse                   # Stage 2 path with season 2024 standing in for 2025 (cap never raised)
+    .venv/bin/python -W ignore $M stage2 --sha <64 hex>      # Stage 2: the ONE 2025 touch (pts only); refuses without the committed, confirmed row
 
 Every stage except `gate --allow-draft` refuses unless the text above `=== RESULTS BELOW ===` hashes to `--sha` AND a commit whose subject is
-`prereg(RECENT_ROLE_FULL): <sha>` is reachable from HEAD. `nba.duckdb` is read-only; `season <= 2024` is asserted; season 2025 is never loaded.
+`prereg(RECENT_ROLE_FULL): <sha>` is reachable from HEAD. `nba.duckdb` is read-only; `season <= 2024` is asserted in every Stage 1 command. `stage2` alone raises the cap to 2025, after the freeze and
+holdout-row refusals and an unspent check, and restores it on exit.
 """
 
 from __future__ import annotations
@@ -34,7 +36,7 @@ import numpy as np
 import polars as pl
 
 from nba.eval.context_residual_eval import MAX_SEASON, TEST_SEASONS, bh_adjust, month_blocks
-from nba.eval.lower_tail_eval import ROW_COVARIATES, load_components, randomized_pit
+from nba.eval.lower_tail_eval import ROW_COVARIATES, collect_pi, load_components, randomized_pit
 from nba.props.context_residual import (
     COMMON_FEATURES,
     PROP_STATS,
@@ -47,6 +49,7 @@ from nba.props.context_residual import (
 from nba.props.lower_tail import short_flag
 from research.eval import pi_recent_role_eval as PR
 from research.eval import workload_eval as WE
+from research.eval.recent_role_holdout import season_cap
 
 ID = "RECENT_ROLE_FULL"
 MARKER = "=== RESULTS BELOW ==="
@@ -821,20 +824,422 @@ def render(out: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def holdout(sha: str) -> None:
-    """Stage 2. Refuses unless the pre-registered, Devin-confirmed row is committed and Stage 1 passed for >= 1 stat. Performs NO touch: the 2025
-    loader (stat-head components, pi walk and the stored-mixture w_q on season 2025 under a season cap, as research/eval/recent_role_holdout.py) is
-    written in the commit that follows the row; the decision rule does not change."""
-    require_holdout_row(sha)
-    prev = json.loads((OUT_DIR / "results.json").read_text())
-    if not prev["verdict"]["any_pass"]:
-        raise RuntimeError("Stage 1 passed for no stat: Stage 2 refuses")
-    raise NotImplementedError("the 2025 loader is added in the commit that follows the holdout row")
+# --------------------------------------------------------------------------- Stage 2 (season 2025, pts only, ONE run)
+STAGE2_DIR = OUT_DIR / "stage2"
+STAGE2_REPORT = ROOT / "reports/prereg_recent_role_full_stage2.md"
+STAGE_STAT = "pts"
+GATE_SEASON = 2024  # the stored season the 2025 code path must first reproduce
+HOLDOUT_SEASON = 2025
+REPO_CAP = 2024
+T467_DELTA_2024 = (
+    -0.008314
+)  # T467 / results.json: pts 2024 FULL minus A0 (stored exact -0.0083144764)
+T467_TOL = 1e-6
+WQ_TOL = 1e-6  # stored-mixture w_q
+EXPECTED_DELTA = -0.007  # adversary 2026-10-12: shrunk from -0.0083 for selection
+EXPECTED_PASS_P = (0.75, 0.82)
+MIN_ROWS_2025 = (
+    25_000  # data gate on the held-out season's pts rows (2023 / 2024 had 27,619 / 27,701)
+)
+MIN_GAMES_2025 = 1_000  # 1,316 games in 2025 per the HOLDOUT_ACCESS_LOG injury-Elo row
+MAX_NULL_SHARE = 0.02  # the five recent-role columns, as the Stage 1 gate
+
+
+def require_unspent(out_dir: Path | None = None) -> None:
+    """Refusal 2: a scored stage-2 results file, or a started touch, exists. A run that STOPPED AT A GATE writes `gate_failed.json` and
+    neither of these, so the touch is not consumed by it."""
+    out_dir = out_dir or STAGE2_DIR
+    for name in ("results.json", "touch_started.json"):
+        if (out_dir / name).exists():
+            raise RuntimeError(
+                f"{out_dir / name} exists: the 2025 touch is spent (one run, no reruns); Devin decides what happens next"
+            )
+
+
+def restrict_stored(
+    comp: dict[str, np.ndarray], pic: dict[str, np.ndarray], season: int = GATE_SEASON
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """The rows of one stored season (and the calibration arrays and `w_q` rows of the month blocks that hold them), in stored order."""
+    m = comp["row_season"] == season
+    blks = np.unique(comp["row_blk"][m])
+    cm = np.isin(comp["cal_blk"], blks)
+    out = {k: (v[m] if k.startswith("row_") else v[cm]) for k, v in comp.items() if k.startswith(("row_", "cal_"))}  # fmt: skip
+    allb = np.unique(comp["row_blk"])  # `arm_grid` reads w_q row i for the i-th block in this order
+    wq = pic[f"wq_{STAGE_STAT}"]
+    if wq.shape[0] != len(allb):
+        raise RuntimeError("stored w_q rows do not match the stored blocks")
+    pic_r = {
+        "row_gid": pic["row_gid"][m].astype(str),
+        "row_pid": pic["row_pid"][m].astype(np.int64),
+        "row_pi": pic["row_pi"][m],
+        f"wq_{STAGE_STAT}": wq[np.isin(allb, blks)],
+    }
+    return out, pic_r
+
+
+def stored_reference() -> dict[str, Any]:
+    """Stored 2023-24 pts components restricted to the gate season, plus the Stage 1 numbers (results.json). Reads NO 2025 file (none exists)."""
+    comp = load_components(STAGE_STAT, LT_DIR)
+    pic = dict(np.load(LT_DIR / "components_pi.npz", allow_pickle=True))
+    if int(comp["row_season"].max()) > MAX_SEASON or int(comp["row_season"].max()) > REPO_CAP:
+        raise RuntimeError("season > 2024 in the stored components")
+    comp_r, pic_r = restrict_stored(comp, pic, GATE_SEASON)
+    res = json.loads((OUT_DIR / "results.json").read_text())
+    rows = {(x["stat"], x["season"], x["arm"]): x for x in res["scores"]["rows"] if "stat" in x}
+    return {
+        "comp": comp_r,
+        "pic": pic_r,
+        "full_minus_a0": rows[(STAGE_STAT, GATE_SEASON, "FULL_minus_A0")]["delta"],
+        "full_minus_pl": rows[(STAGE_STAT, GATE_SEASON, "FULL_minus_PL_FULL")]["delta"],
+        "a0_crps": rows[(STAGE_STAT, GATE_SEASON, "A0")]["crps_int"],
+    }
+
+
+def stage2_pipeline(
+    fr: pl.DataFrame,
+    cfg: ContextResidualConfig,
+    season: int,
+    guards: tuple[str, ...] = ("PL", "SHUF"),
+    log: bool = True,
+) -> dict[str, Any]:
+    """A0 and FULL pts forecasts for ONE season by the production walk (month blocks, every earlier row trains: for 2025 that is 2022-2024 plus
+    the earlier 2025 months), and the guard arms. `w_q` and the A0 `pi` come from production's `collect_pi` on this very walk (never a stored
+    file), identical for every arm; FULL = heads with the five columns + `pi` with them (PI_RECENT_ROLE's walk); guards: PL (past-only
+    placebo in both components), SHUF (shared-permutation shuffled labels in both components). Same code for the gate season and 2025."""
+    ts = (season,)
+    pic = collect_pi(fr, cfg, stats=(STAGE_STAT,), test_seasons=ts)
+    pic["row_gid"] = pic["row_gid"].astype(str)
+    pic["row_pid"] = pic["row_pid"].astype(np.int64)
+    heads: dict[str, dict[str, Any]] = {}
+    pis: dict[str, np.ndarray] = {"A0": pic["row_pi"]}
+    hashes: dict[str, Any] = {}
+
+    def walk(arm: str, key: str) -> None:
+        shuf = arm.startswith("SHUF")
+        _log(f"stage2 {season}: heads {key}")
+        heads[key] = collect_heads(fr, STAGE_STAT, cfg, heads_names(STAGE_STAT, arm), shuffle=shuf, test_seasons=ts, log=log)  # fmt: skip
+        cols, pshuf = ARMS_PI[arm]
+        _log(f"stage2 {season}: pi {key}")
+        res = PR.walk_pi(fr, cols, cfg, test_seasons=ts, shuffle=pshuf, log=log)
+        pis[key] = PR.align_to_stored(res, pic["row_gid"], pic["row_pid"])
+        hashes[key] = {"heads": [str(h) for h in heads[key]["label_hashes"]], "pi": [str(h) for h in res["label_hashes"]]}  # fmt: skip
+
+    _log(f"stage2 {season}: heads A0")
+    heads["A0"] = collect_heads(fr, STAGE_STAT, cfg, heads_names(STAGE_STAT, "A0"), test_seasons=ts, log=log)  # fmt: skip
+    walk("R", "FULL")
+    plan = {"PL": ("PL",), "SHUF": ("SHUF_CTRL", "SHUF_R")}
+    names = {"PL": "PL", "SHUF_CTRL": "SHUF_CTRL", "SHUF_R": "SHUF_FULL"}
+    for g in guards:
+        for arm in plan[g]:
+            walk(arm, names[arm])
+    for k, h in heads.items():
+        if not same_rows(h, heads["A0"]):
+            raise RuntimeError(f"stage2 heads {k}: rows differ from the A0 heads")
+    if not (
+        np.array_equal(heads["A0"]["row_gid"].astype(str), pic["row_gid"])
+        and np.array_equal(heads["A0"]["row_pid"].astype(np.int64), pic["row_pid"])
+    ):
+        raise RuntimeError("stage2: collect_pi rows are not the heads rows")
+    if "SHUF" in guards and hashes["SHUF_CTRL"] != hashes["SHUF_FULL"]:
+        raise RuntimeError("stage2: the shuffled CTRL and FULL arms were not fitted on the same labels")  # fmt: skip
+    return {"season": season, "heads": heads, "pis": pis, "pic": pic, "hashes": hashes}
+
+
+def _wq_diff(a: np.ndarray, b: np.ndarray) -> float:
+    if a.shape != b.shape or not np.array_equal(np.isnan(a), np.isnan(b)):
+        return float("inf")
+    f = ~np.isnan(a)
+    return float(np.abs(a[f] - b[f]).max()) if f.any() else 0.0
+
+
+def arm_scores(res: dict[str, Any]) -> dict[str, np.ndarray]:
+    """Per-row integer CRPS of every arm in ``res`` through the stored-mixture construction (integer grid for every arm)."""
+    y = res["heads"]["A0"]["row_y"]
+    keys = {"A0": ("A0", "A0"), "FULL": ("FULL", "FULL"), "PL_FULL": ("PL", "PL"), "SHUF_CTRL": ("SHUF_CTRL", "SHUF_CTRL"), "SHUF_FULL": ("SHUF_FULL", "SHUF_FULL")}  # fmt: skip
+    out: dict[str, np.ndarray] = {}
+    for name, (hk, pk) in keys.items():
+        if hk in res["heads"]:
+            qi = WE.mixture_qi(res["heads"][hk], PR.candidate_pic(res["pic"], res["pis"][pk]), STAGE_STAT)  # fmt: skip
+            out[name] = PR.crps_int(qi, y)
+    return out
+
+
+def reproduction_checks(
+    res: dict[str, Any], ref: dict[str, Any], with_pl: bool, label: str
+) -> list[dict[str, Any]]:
+    """The Stage-2 gate: the walk of the stored season, run through the SAME `stage2_pipeline` as 2025, must reproduce the stored A0 heads and `pi`
+    to 0.0, the stored `w_q` to 1e-6 and T467's 2024 FULL minus A0 to 1e-6 (and the stored A0 CRPS and, if run, the past-only placebo delta)."""
+    chk = WE._check
+    comp, pic = ref["comp"], ref["pic"]
+    hv = heads_vs_stored(res["heads"]["A0"], comp)
+    tests = [
+        chk(
+            f"[{label}] A0 heads equal the stored components (centre, scale, calibration z/centre/scale)",
+            {"rows_equal": hv["rows_equal"], "max_abs_diff": hv["max_abs_diff"]},
+            "rows equal, max abs diff == 0.0",
+            hv["rows_equal"] and hv["max_abs_diff"] == 0.0,
+        )
+    ]
+    same = hv["rows_equal"] and np.array_equal(res["pic"]["row_gid"], pic["row_gid"]) and np.array_equal(res["pic"]["row_pid"], pic["row_pid"])  # fmt: skip
+    dpi = float(np.abs(res["pic"]["row_pi"] - pic["row_pi"]).max()) if same else float("inf")
+    tests.append(chk(f"[{label}] A0 pi equals the stored pi", {"max_abs_diff": dpi, "n": len(pic["row_pi"])}, "== 0.0", dpi == 0.0))  # fmt: skip
+    dwq = _wq_diff(res["pic"][f"wq_{STAGE_STAT}"], pic[f"wq_{STAGE_STAT}"])
+    tests.append(chk(f"[{label}] w_q equals the stored mixture weights", {"max_abs_diff": dwq}, f"<= {WQ_TOL}", dwq <= WQ_TOL))  # fmt: skip
+    sc = arm_scores(res)
+    y = res["heads"]["A0"]["row_y"]
+    d = float((sc["FULL"] - sc["A0"]).mean())
+    tests.append(
+        chk(
+            f"[{label}] pts {GATE_SEASON} FULL minus A0 equals T467",
+            {"delta": d, "T467": T467_DELTA_2024, "stored_exact": ref["full_minus_a0"], "abs_diff": abs(d - T467_DELTA_2024), "n": int(len(y))},
+            f"|diff to {T467_DELTA_2024}| <= {T467_TOL}",
+            abs(d - T467_DELTA_2024) <= T467_TOL,
+        )
+    )  # fmt: skip
+    a0 = float(sc["A0"].mean())
+    tests.append(chk(f"[{label}] A0 integer CRPS equals the stored value", {"crps": a0, "stored": ref["a0_crps"]}, f"<= {REPRO_TOL}", abs(a0 - ref["a0_crps"]) <= REPRO_TOL))  # fmt: skip
+    if with_pl:
+        dpl = float((sc["FULL"] - sc["PL_FULL"]).mean())
+        tests.append(chk(f"[{label}] FULL minus past-only placebo equals Stage 1", {"delta": dpl, "stored": ref["full_minus_pl"]}, f"<= {T467_TOL}", abs(dpl - ref["full_minus_pl"]) <= T467_TOL))  # fmt: skip
+    return tests
+
+
+def data_gate_2025(fr: pl.DataFrame, season: int) -> list[dict[str, Any]]:
+    """Minimum-data gate on the held-out season's real rows, BEFORE any model is fitted on them: rows, games, the five columns attach."""
+    chk = WE._check
+    sf = stat_frame(fr, STAGE_STAT).filter(pl.col("season") == season)
+    n_games = int(sf["game_id"].n_unique())
+    nulls = {c: float((sf[c].is_null() | sf[c].is_nan()).mean()) if sf.height else 1.0 for c in R_COLS}  # fmt: skip
+    aud = WE.audit_nulls(sf, list(R_COLS), WE.minutes_bucket("minutes")) if sf.height else {"ok": False, "max_gap_pp": float("nan"), "threshold_pp": float("nan")}  # fmt: skip
+    return [
+        chk(
+            f"season {season} pts rows and games",
+            {"rows": sf.height, "games": n_games},
+            f">= {MIN_ROWS_2025} rows, >= {MIN_GAMES_2025} games",
+            sf.height >= MIN_ROWS_2025 and n_games >= MIN_GAMES_2025,
+        ),  # fmt: skip
+        chk(
+            f"season {season}: the five recent-role columns attach",
+            {"null_share": nulls},
+            f"each < {MAX_NULL_SHARE}",
+            all(v < MAX_NULL_SHARE for v in nulls.values()),
+        ),  # fmt: skip
+        chk(
+            f"season {season}: missingness of the five columns by realised-minutes bucket (pp)",
+            {"max_gap_pp": aud["max_gap_pp"], "threshold_pp": aud["threshold_pp"]},
+            "<= threshold",
+            aud["ok"],
+        ),  # fmt: skip
+    ]
+
+
+def stage2_scores(res: dict[str, Any]) -> dict[str, Any]:
+    """The frozen pts rule on one season: FULL minus A0 (integer CRPS, game-clustered 2000 draws seed 0), BH over m = 1, guards."""
+    h0 = res["heads"]["A0"]
+    y = h0["row_y"]
+    gid = h0["row_gid"].astype(str)
+    season = int(res["season"])
+    sc = arm_scores(res)
+    n_games = int(len(np.unique(gid)))
+    base = {"n_rows": int(len(y)), "n_games": n_games}
+    rows: list[dict[str, Any]] = [{"arm": k, **base, "crps_int": float(v.mean())} for k, v in sc.items()]  # fmt: skip
+    for a, b in (("FULL", "A0"), ("FULL", "PL_FULL"), ("SHUF_FULL", "SHUF_CTRL")):
+        if a in sc and b in sc:
+            rows.append({"arm": f"{a}_minus_{b}", **base, **WE.delta_stats(sc[a] - sc[b], gid)})
+    prim = next(r for r in rows if r["arm"] == "FULL_minus_A0")
+    prim["p_bh"] = float(bh_adjust(np.array([prim["p"]]))[0])
+    d = sc["FULL"] - sc["A0"]
+    slices: list[dict[str, Any]] = []
+    for name, mk in PR.slice_masks(h0).items():
+        rec: dict[str, Any] = {"slice": name, "n": int(mk.sum())}
+        if mk.sum() >= MIN_SLICE_N or name == "all":
+            ds = WE.delta_stats(d[mk], gid[mk])
+            rec.update({k: ds[k] for k in ("delta", "ci_lo", "ci_hi")})
+        slices.append(rec)
+    qa = WE.mixture_qi(h0, PR.candidate_pic(res["pic"], res["pis"]["A0"]), STAGE_STAT)
+    qf = WE.mixture_qi(h0, PR.candidate_pic(res["pic"], res["pis"]["FULL"]), STAGE_STAT)
+
+    def cov(qi: np.ndarray) -> dict[str, dict[str, float]]:
+        pit = randomized_pit(qi.astype(float), y.astype(float))
+        return {str(season): {f"{t:.2f}": float((pit < t).mean()) for t in COV_TAUS}}
+
+    short = short_flag(h0["row_minutes"], h0["row_min10"])
+    pi_rows = {
+        k: {
+            "ece": PR.ece_bins(res["pis"][k], short),
+            "logloss": float(WE._ll(res["pis"][k], short.astype(float)).mean()),
+            "auc": PR.auc(res["pis"][k], short),
+            "mean_pi": float(res["pis"][k].mean()),
+        }  # fmt: skip
+        for k in ("A0", "FULL")
+    }
+    pi_rows["ece_delta"] = pi_rows["FULL"]["ece"] - pi_rows["A0"]["ece"]
+    return {"season": season, "rows": rows, "slices": slices, "coverage": {"A0": cov(qa), "FULL": cov(qf)}, "pi": pi_rows, "observed_short": float(short.mean())}  # fmt: skip
+
+
+def decide_stage2(sc: dict[str, Any], gate_ok: bool) -> dict[str, Any]:
+    """The frozen pts rule applied to 2025 (Stage 2 of docs/prereg/RECENT_ROLE_FULL.md, BH over the one carried stat): FULL minus A0 <= -0.005,
+    CI upper < 0, p_BH <= 0.05; pi ECE no worse by > 0.005; coverage no worse than A0's by > 0.01 at each tau; no guard slice (n >= 300) worse by
+    > 0.01; FULL beats the past-only placebo by <= -0.003; the shuffled-label check not fired; gates clean."""
+    r = {x["arm"]: x for x in sc["rows"] if "delta" in x}
+    p = r["FULL_minus_A0"]
+    prim = bool(p["delta"] <= FLOOR and p["ci_hi"] < 0 and p.get("p_bh", 1.0) <= 0.05)
+    ece_ok = bool(sc["pi"]["ece_delta"] <= PR.ECE_TOL)
+    cov_ok, cov_bad = coverage_ok(sc["coverage"])
+    worse = [(x["slice"], x["n"], x["delta"]) for x in sc["slices"] if x["slice"] in GUARD_SLICES and x["n"] >= MIN_SLICE_N and x.get("delta", -1.0) > SLICE_TOL]  # fmt: skip
+    plc = "FULL_minus_PL_FULL" in r and r["FULL_minus_PL_FULL"]["delta"] <= PLACEBO_MARGIN
+    s = r.get("SHUF_FULL_minus_SHUF_CTRL")
+    shuf_ok = s is not None and not (s["delta"] <= SHUF_TOL and s["ci_hi"] < 0)
+    passed = bool(prim and ece_ok and cov_ok and not worse and plc and shuf_ok and gate_ok)
+    return {
+        "pass": passed, "primary": prim, "delta": p["delta"], "ci": [p["ci_lo"], p["ci_hi"]], "p_bh": p.get("p_bh"), "mde": p["mde"],
+        "floor": FLOOR, "ece_ok": ece_ok, "coverage_ok": bool(cov_ok), "coverage_bad": cov_bad, "slices_ok": not worse, "slices_worse": worse,
+        "placebo_ok": bool(plc), "shuffle_ok": bool(shuf_ok), "gate_ok": gate_ok,
+        "note": "A pass is a production-change PROPOSAL only (Devin's decision); a miss is read against the stated expectation, not as a broken pipeline.",
+    }  # fmt: skip
+
+
+def expected_note() -> dict[str, Any]:
+    return {
+        "expected_delta_pts_2025": EXPECTED_DELTA,
+        "pass_probability": list(EXPECTED_PASS_P),
+        "basis": "adversary review 2026-10-12: true effect plausibly near the pre-specifiable wl_min_last level (-0.0065 to -0.007), SE ~0.0022; floor -0.005",
+        "reading": "a delta between -0.005 and 0 with CI upper < 0 is real-but-sub-floor, not a broken pipeline; a delta above 0 would be a surprise to investigate under a new id",
+        "written_at": time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "written_before": "any 2025 model is fitted or scored",
+    }
+
+
+def _stop(
+    out_dir: Path, sha: str | None, stage: str, tests: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """A gate failed: write `gate_failed.json` (NOT results.json), fit nothing on the held-out season, leave the touch unspent."""
+    for t in tests:
+        print(("PASS " if t["ok"] else "FAIL ") + f"{t['test']}: {t['value']} ({t['threshold']})", flush=True)  # fmt: skip
+    out = {
+        "sha256": sha,
+        "stopped_at": stage,
+        "gate": tests,
+        "gate_ok": False,
+        "touch_consumed": False,
+    }
+    WE.write_json(out_dir / "gate_failed.json", out)
+    _log(f"STOPPED at {stage}: no {HOLDOUT_SEASON} model was fitted; the touch is not consumed")
+    return out
+
+
+def _stage2_body(
+    sha: str | None,
+    target: int,
+    cap_ctx: Callable[[], Any],
+    out_dir: Path,
+    build: Callable[[], tuple[pl.DataFrame, ContextResidualConfig, dict[str, Any]]],
+) -> dict[str, Any]:
+    """Gate A (stored season, loaders capped at 2024) -> raise the cap -> rebuild -> gate B (same stored season on the rebuilt frame; 2025 rows
+    present but unused) -> 2025 data gate -> expected value written -> touch marker -> the one 2025 pipeline -> score -> results."""
+    if target > REPO_CAP and sha is None:
+        raise RuntimeError(
+            "a held-out-season run needs the frozen --sha and the committed holdout row (use `stage2`)"
+        )
+    t0 = time.time()
+    ref = stored_reference()
+    fr, cfg, _ = build()
+    a = stage2_pipeline(fr, cfg, GATE_SEASON, guards=("PL",))
+    gate_a = reproduction_checks(a, ref, with_pl=True, label="gate A, cap 2024")
+    del a, fr
+    if not all(t["ok"] for t in gate_a):
+        return _stop(out_dir, sha, "gate A (2024 reproduction, cap 2024)", gate_a)
+    for t in gate_a:
+        print("PASS " + t["test"] + f": {t['value']}", flush=True)
+    with cap_ctx():  # the cap is raised here and only here; restored on exit, also on error
+        fr, cfg, _ = build()
+        b = stage2_pipeline(fr, cfg, GATE_SEASON, guards=())
+        gate_b = reproduction_checks(b, ref, with_pl=False, label=f"gate B, cap {target}")
+        del b
+        if not all(t["ok"] for t in gate_b):
+            return _stop(
+                out_dir, sha, "gate B (2024 reproduction on the rebuilt frame)", gate_a + gate_b
+            )
+        for t in gate_b:
+            print("PASS " + t["test"] + f": {t['value']}", flush=True)
+        dg = data_gate_2025(fr, target)
+        if not all(t["ok"] for t in dg):
+            return _stop(out_dir, sha, f"{target} data gate", gate_a + gate_b + dg)
+        exp = expected_note()
+        WE.write_json(out_dir / "expected.json", exp)
+        print("EXPECTED (written before scoring): " + json.dumps(exp), flush=True)
+        WE.write_json(out_dir / "touch_started.json", {"sha256": sha, "season": target, "started": time.strftime("%Y-%m-%d %H:%M:%S %Z")})  # fmt: skip
+        res = stage2_pipeline(fr, cfg, target, guards=("PL", "SHUF"))
+        sc = stage2_scores(res)
+    verdict = decide_stage2(sc, True)
+    out = {"sha256": sha, "season": target, "scores": sc, "verdict": verdict, "expected": exp, "gate": gate_a + gate_b + dg, "gate_ok": True, "seconds": time.time() - t0, "label_hashes_equal": True}  # fmt: skip
+    WE.write_json(out_dir / "results.json", out)
+    return out
+
+
+def render_stage2(out: dict[str, Any]) -> str:
+    v, sc, f = out["verdict"], out["scores"], PR._f
+    lines = [
+        f"# {ID} Stage 2 results (season {out['season']}, pts only, one run)", "",
+        f"Rule sha256 {str(out['sha256'])[:8]}. Verdict: **{'PASS' if v['pass'] else 'NOT A PASS'}** (a pass is a proposal; Devin decides).",
+        f"Expected before scoring: delta {out['expected']['expected_delta_pts_2025']}, pass probability {out['expected']['pass_probability']}.", "",
+        "| arm | n rows | n games | integer CRPS / delta | CI | p | p BH | MDE |", "|---|---|---|---|---|---|---|---|",
+    ]  # fmt: skip
+    for r in sc["rows"]:
+        if "crps_int" in r:
+            lines.append(
+                f"| {r['arm']} | {r['n_rows']} | {r['n_games']} | {f(r['crps_int'], 6)} | | | | |"
+            )
+        else:
+            lines.append(f"| {r['arm']} | {r['n_rows']} | {r['n_games']} | {f(r['delta'], 5)} | [{f(r['ci_lo'], 5)}, {f(r['ci_hi'], 5)}] | {f(r['p'])} | {f(r.get('p_bh'))} | {f(r['mde'], 5)} |")  # fmt: skip
+    lines += ["", "| slice | n | FULL - A0 | CI |", "|---|---|---|---|"]
+    for s in sc["slices"]:
+        ci = "" if "ci_lo" not in s else f"[{f(s['ci_lo'], 5)}, {f(s['ci_hi'], 5)}]"
+        lines.append(f"| {s['slice']} | {s['n']} | {f(s.get('delta'), 5)} | {ci} |")
+    lines += ["", "```json", json.dumps({"coverage": sc["coverage"], "pi": sc["pi"], "verdict": v}, indent=1, default=float), "```", ""]  # fmt: skip
+    return "\n".join(lines)
+
+
+def stage2(
+    sha: str, git: Callable[..., str] = PR._git, doc: Path | None = None, log: Path | None = None
+) -> dict[str, Any]:
+    """Stage 2: the ONE logged 2025 touch (pts only, seed 0). Refuses unless (1) the committed, Devin-confirmed holdout row exists and (2) no scored
+    stage-2 results (or started touch) exists; the season cap is raised to 2025 only after both pass, and only inside `_stage2_body`."""
+    require_holdout_row(sha, log, git, doc)
+    require_unspent()
+    from research.eval.recent_role_holdout import preimport
+
+    preimport()
+    out = _stage2_body(
+        sha, HOLDOUT_SEASON, lambda: season_cap(HOLDOUT_SEASON), STAGE2_DIR, build_frame
+    )
+    if out.get("gate_ok"):
+        STAGE2_REPORT.write_text(render_stage2(out))
+    return out
+
+
+def rehearse() -> dict[str, Any]:
+    """The whole stage-2 path with season 2024 standing in for 2025: no sha, no log row, the cap is never raised (`nullcontext`). Scratch output
+    in OUT_DIR/stage2_rehearsal; the 2024 numbers must equal T467's."""
+    from contextlib import nullcontext
+
+    memo: list[Any] = []
+
+    def build_once() -> tuple[pl.DataFrame, ContextResidualConfig, dict[str, Any]]:
+        if not memo:
+            memo.append(build_frame())
+        return memo[0]
+
+    out_dir = OUT_DIR / "stage2_rehearsal"
+    out = _stage2_body(None, GATE_SEASON, nullcontext, out_dir, build_once)
+    if out.get("gate_ok"):
+        (out_dir / "report.md").write_text(render_stage2(out))
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["gate", "arms", "score", "run", "holdout"])
+    ap.add_argument("cmd", choices=["gate", "arms", "score", "run", "stage2", "rehearse"])
     ap.add_argument("--sha", default=None)
     ap.add_argument(
         "--allow-draft", action="store_true", help="gate only: measure before the freeze"
@@ -849,10 +1254,16 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "score" and a.smoke:
         run_score(None, smoke=True)
         return 0
+    if a.cmd == "rehearse":
+        with WE.heavy():
+            return 0 if rehearse().get("gate_ok") else 1
     sha = require_frozen(a.sha)
-    if a.cmd == "holdout":
-        holdout(sha)
-        return 0
+    if a.cmd == "stage2":
+        require_holdout_row(sha)  # refuse before taking the lock
+        require_unspent()
+        with WE.heavy():
+            out = stage2(sha)
+        return 0 if out.get("gate_ok") else 1
     with WE.heavy():
         if a.cmd == "gate":
             return 0 if run_gate(sha)["gate_ok"] else 1

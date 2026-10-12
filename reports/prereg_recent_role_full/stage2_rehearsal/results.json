@@ -1,0 +1,341 @@
+{
+  "sha256": null,
+  "season": 2024,
+  "scores": {
+    "season": 2024,
+    "rows": [
+      {
+        "arm": "A0",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1768395165770476
+      },
+      {
+        "arm": "FULL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1685250402000773
+      },
+      {
+        "arm": "PL_FULL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1771035788863706
+      },
+      {
+        "arm": "SHUF_CTRL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.310436255451237
+      },
+      {
+        "arm": "SHUF_FULL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.314160963108542
+      },
+      {
+        "arm": "FULL_minus_A0",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.008314476376969474,
+        "ci_lo": -0.012753930621961788,
+        "ci_hi": -0.004075507257000795,
+        "p": 0.0004997501249375312,
+        "mde": 0.0043392116824804965,
+        "p_bh": 0.0004997501249375312
+      },
+      {
+        "arm": "FULL_minus_PL_FULL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.008578538686292419,
+        "ci_lo": -0.012763443058400175,
+        "ci_hi": -0.0043990831807450975,
+        "p": 0.0004997501249375312,
+        "mde": 0.0041821799388275386
+      },
+      {
+        "arm": "SHUF_FULL_minus_SHUF_CTRL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": 0.0037247076573040444,
+        "ci_lo": 0.001856439722598553,
+        "ci_hi": 0.005550210314112663,
+        "p": 0.0004997501249375312,
+        "mde": 0.001846885295757055
+      }
+    ],
+    "slices": [
+      {
+        "slice": "all",
+        "n": 27701,
+        "delta": -0.008314476376969474,
+        "ci_lo": -0.012753930621961788,
+        "ci_hi": -0.004075507257000795
+      },
+      {
+        "slice": "min<5",
+        "n": 2326,
+        "delta": -0.05403934339620691,
+        "ci_lo": -0.07059205418987986,
+        "ci_hi": -0.03757730304344428
+      },
+      {
+        "slice": "bench",
+        "n": 15589,
+        "delta": -0.010822135482948603,
+        "ci_lo": -0.017234179934880436,
+        "ci_hi": -0.004910106303649387
+      },
+      {
+        "slice": "playoffs",
+        "n": 1804,
+        "delta": -0.004359799980414383,
+        "ci_lo": -0.019749234201535217,
+        "ci_hi": 0.011111762013010533
+      },
+      {
+        "slice": "cold_start",
+        "n": 464,
+        "delta": -0.01027104200607956,
+        "ci_lo": -0.030890548688802675,
+        "ci_hi": 0.01125507277292531
+      },
+      {
+        "slice": "starter",
+        "n": 12112,
+        "delta": -0.005086941881996831,
+        "ci_lo": -0.010270139646795639,
+        "ci_hi": -0.00011374975040728773
+      },
+      {
+        "slice": "short(<0.5*proj)",
+        "n": 2820,
+        "delta": -0.06215180825901488,
+        "ci_lo": -0.07878331319371146,
+        "ci_hi": -0.04519074145232284
+      },
+      {
+        "slice": "not short",
+        "n": 24881,
+        "delta": -0.0022125803154217838,
+        "ci_lo": -0.006645973426803956,
+        "ci_hi": 0.0018498871226123135
+      },
+      {
+        "slice": "min<10",
+        "n": 4299,
+        "delta": -0.03617477687220088,
+        "ci_lo": -0.04775085974963568,
+        "ci_hi": -0.024271487047391137
+      }
+    ],
+    "coverage": {
+      "A0": {
+        "2024": {
+          "0.10": 0.11717988520270026,
+          "0.20": 0.21645427962889427,
+          "0.80": 0.8026786036605177,
+          "0.90": 0.9006534060142233
+        }
+      },
+      "FULL": {
+        "2024": {
+          "0.10": 0.11634959026749937,
+          "0.20": 0.21558788491390202,
+          "0.80": 0.802714703440309,
+          "0.90": 0.9007978051333887
+        }
+      }
+    },
+    "pi": {
+      "A0": {
+        "ece": 0.009525686174817,
+        "logloss": 0.2442829888650198,
+        "auc": 0.8552068199238303,
+        "mean_pi": 0.09227569283677103
+      },
+      "FULL": {
+        "ece": 0.009304253473699725,
+        "logloss": 0.23834476278144556,
+        "auc": 0.8637805600046291,
+        "mean_pi": 0.0924971255378883
+      },
+      "ece_delta": -0.00022143270111727419
+    },
+    "observed_short": 0.10180137901158803
+  },
+  "verdict": {
+    "pass": true,
+    "primary": true,
+    "delta": -0.008314476376969474,
+    "ci": [
+      -0.012753930621961788,
+      -0.004075507257000795
+    ],
+    "p_bh": 0.0004997501249375312,
+    "mde": 0.0043392116824804965,
+    "floor": -0.005,
+    "ece_ok": true,
+    "coverage_ok": true,
+    "coverage_bad": [],
+    "slices_ok": true,
+    "slices_worse": [],
+    "placebo_ok": true,
+    "shuffle_ok": true,
+    "gate_ok": true,
+    "note": "A pass is a production-change PROPOSAL only (Devin's decision); a miss is read against the stated expectation, not as a broken pipeline."
+  },
+  "expected": {
+    "expected_delta_pts_2025": -0.007,
+    "pass_probability": [
+      0.75,
+      0.82
+    ],
+    "basis": "adversary review 2026-10-12: true effect plausibly near the pre-specifiable wl_min_last level (-0.0065 to -0.007), SE ~0.0022; floor -0.005",
+    "reading": "a delta between -0.005 and 0 with CI upper < 0 is real-but-sub-floor, not a broken pipeline; a delta above 0 would be a surprise to investigate under a new id",
+    "written_at": "2026-10-12 09:25:21 CDT",
+    "written_before": "any 2025 model is fitted or scored"
+  },
+  "gate": [
+    {
+      "test": "[gate A, cap 2024] A0 heads equal the stored components (centre, scale, calibration z/centre/scale)",
+      "value": {
+        "rows_equal": true,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "rows equal, max abs diff == 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] A0 pi equals the stored pi",
+      "value": {
+        "max_abs_diff": 0.0,
+        "n": 27701
+      },
+      "threshold": "== 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] w_q equals the stored mixture weights",
+      "value": {
+        "max_abs_diff": 0.0
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] pts 2024 FULL minus A0 equals T467",
+      "value": {
+        "delta": -0.008314476376969474,
+        "T467": -0.008314,
+        "stored_exact": -0.008314476376969474,
+        "abs_diff": 4.763769694739878e-07,
+        "n": 27701
+      },
+      "threshold": "|diff to -0.008314| <= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] A0 integer CRPS equals the stored value",
+      "value": {
+        "crps": 3.1768395165770476,
+        "stored": 3.1768395165770476
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] FULL minus past-only placebo equals Stage 1",
+      "value": {
+        "delta": -0.008578538686292419,
+        "stored": -0.008578538686292419
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2024] A0 heads equal the stored components (centre, scale, calibration z/centre/scale)",
+      "value": {
+        "rows_equal": true,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "rows equal, max abs diff == 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2024] A0 pi equals the stored pi",
+      "value": {
+        "max_abs_diff": 0.0,
+        "n": 27701
+      },
+      "threshold": "== 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2024] w_q equals the stored mixture weights",
+      "value": {
+        "max_abs_diff": 0.0
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2024] pts 2024 FULL minus A0 equals T467",
+      "value": {
+        "delta": -0.008314476376969474,
+        "T467": -0.008314,
+        "stored_exact": -0.008314476376969474,
+        "abs_diff": 4.763769694739878e-07,
+        "n": 27701
+      },
+      "threshold": "|diff to -0.008314| <= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2024] A0 integer CRPS equals the stored value",
+      "value": {
+        "crps": 3.1768395165770476,
+        "stored": 3.1768395165770476
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "season 2024 pts rows and games",
+      "value": {
+        "rows": 27701,
+        "games": 1320
+      },
+      "threshold": ">= 25000 rows, >= 1000 games",
+      "ok": true
+    },
+    {
+      "test": "season 2024: the five recent-role columns attach",
+      "value": {
+        "null_share": {
+          "wl_min_last": 0.0,
+          "wl_mean_min_l3": 0.0,
+          "wl_min_3d": 0.0,
+          "wl_min_7d": 0.0,
+          "wl_mean_min_l5": 0.0
+        }
+      },
+      "threshold": "each < 0.02",
+      "ok": true
+    },
+    {
+      "test": "season 2024: missingness of the five columns by realised-minutes bucket (pp)",
+      "value": {
+        "max_gap_pp": 0.0,
+        "threshold_pp": 2.0
+      },
+      "threshold": "<= threshold",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "seconds": 294.3370358943939,
+  "label_hashes_equal": true
+}
