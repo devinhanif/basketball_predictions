@@ -325,14 +325,19 @@ def _fake_res(
             "scores": {"A0": base, "FULL": base + delta, "PL_FULL": base + delta + 0.0086}}  # fmt: skip
 
 
+FAKE_COV = {"0.10": 0.11, "0.20": 0.21, "0.80": 0.8, "0.90": 0.9}
+
+
 def _fake_ref() -> dict[str, Any]:
     r = _fake_res(2024)
     return {
         "comp": r["heads"]["A0"],
         "pic": r["pic"],
-        "full_minus_a0": -0.008314476,
+        "full_minus_a0": -0.008314,
         "full_minus_pl": -0.0086,
         "a0_crps": 3.0,
+        "coverage": {"A0": dict(FAKE_COV), "FULL": dict(FAKE_COV)},
+        "n_prefix": 0,
     }
 
 
@@ -368,6 +373,10 @@ def _wire(
     monkeypatch.setattr(E, "STAGE2_REPORT", tmp_path / "stage2.md")
     monkeypatch.setattr(E, "stored_reference", _fake_ref)
     monkeypatch.setattr(E, "arm_scores", lambda res: res["scores"])
+    monkeypatch.setattr(
+        E, "arm_coverage", lambda res, n=0: {"A0": dict(FAKE_COV), "FULL": dict(FAKE_COV)}
+    )
+    monkeypatch.setattr(E, "require_stage1_pass", lambda *a, **k: None)
 
     def build() -> tuple[Any, Any, dict[str, Any]]:
         spy.builds.append(E.MAX_SEASON)
@@ -494,15 +503,13 @@ def test_planted_reproduction_mismatch_stops_before_any_2025_row_is_fitted(
     spy = _Spy()
     _wire(monkeypatch, tmp_path, spy, mismatch_season=(which, "pi"))
     r = E.stage2(sha, _ok_git_for(sha), doc, log)
-    assert r["gate_ok"] is False and r["touch_consumed"] is False
+    assert r["gate_ok"] is False and r["touch_consumed"] is (which == 2)
     assert all(s == 2024 for s, _, _ in spy.pipes) and len(spy.pipes) == which
     out = tmp_path / "stage2"
     assert (out / "gate_failed.json").exists()
-    assert (
-        not (out / "results.json").exists()
-        and not (out / "touch_started.json").exists()
-        and not (out / "expected.json").exists()
-    )
+    assert not (out / "results.json").exists() and not (out / "expected.json").exists()
+    # gate A stops before the cap is raised (touch unspent); gate B is inside the cap, where the marker is the first write (touch consumed)
+    assert (out / "touch_started.json").exists() is (which == 2)
     assert E.MAX_SEASON == 2024
     if which == 1:
         assert spy.builds == [2024]  # the cap was never raised at all
@@ -516,7 +523,8 @@ def test_2025_data_gate_failure_stops_without_fitting(
     _wire(monkeypatch, tmp_path, spy, data_ok=False)
     r = E.stage2(sha, _ok_git_for(sha), doc, log)
     assert r["gate_ok"] is False and all(s == 2024 for s, _, _ in spy.pipes)
-    assert not (tmp_path / "stage2" / "touch_started.json").exists() and E.MAX_SEASON == 2024
+    assert r["touch_consumed"] is True and (tmp_path / "stage2" / "touch_started.json").exists()
+    assert E.MAX_SEASON == 2024
 
 
 def test_held_out_body_needs_a_sha() -> None:
@@ -541,7 +549,10 @@ def test_reproduction_checks_each_one_fails_on_its_planted_mismatch(
     assert any("w_q" in t for t in failed(_fake_res(2024, wq_shift=1e-5)))
     assert failed(_fake_res(2024, wq_shift=1e-7)) == []  # inside the 1e-6 tolerance
     assert any("T467" in t for t in failed(_fake_res(2024, delta=-0.0085)))
-    assert failed(_fake_res(2024, delta=-0.008314 + 9e-7)) == []
+    assert failed(_fake_res(2024, delta=-0.008314 + 5e-10)) == []
+    assert any(
+        "T467" in t for t in failed(_fake_res(2024, delta=-0.008314 + 5e-9))
+    )  # 1e-9 vs the stored exact value
     plc = _fake_res(2024)
     plc["scores"]["PL_FULL"] = plc["scores"]["PL_FULL"] + 1e-3
     assert any("placebo" in t for t in failed(plc)) and not failed(plc, with_pl=False)
@@ -606,3 +617,139 @@ def test_decide_stage2_pass_and_each_way_to_fail() -> None:
     sc = _fake_sc()
     sc["rows"] = [r for r in sc["rows"] if r["arm"] != "FULL_minus_PL_FULL"]
     assert not E.decide_stage2(sc, True)["pass"]  # a missing guard arm is not a pass
+
+
+def test_touch_marker_is_the_first_write_inside_the_cap_and_carries_head(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doc, log, sha = _good_doc_and_log(tmp_path)
+    spy = _Spy()
+    _wire(monkeypatch, tmp_path, spy)
+    seen: list[bool] = []
+    build = E.build_frame
+
+    def watch() -> Any:
+        seen.append((tmp_path / "stage2" / "touch_started.json").exists())
+        return build()
+
+    monkeypatch.setattr(E, "build_frame", watch)
+    E.stage2(sha, _ok_git_for(sha), doc, log)
+    assert seen == [
+        False,
+        True,
+    ]  # absent at the capped gate-A build, present before the 2025-capable build
+    import json as _j
+
+    m = _j.loads((tmp_path / "stage2" / "touch_started.json").read_text())
+    assert m["head"] and m["season"] == 2025 and m["sha256"] == sha
+
+
+def test_assert_cap_fails_when_the_cap_is_not_where_the_walk_reads_it() -> None:
+    with pytest.raises(RuntimeError, match="season cap is not 2025"):
+        E.assert_cap(2025)
+    E.assert_cap(2024)
+    with E.season_cap(2025):
+        E.assert_cap(2025)
+    assert E.MAX_SEASON == 2024
+
+
+def test_arm_coverage_scores_full_with_the_full_heads(monkeypatch: pytest.MonkeyPatch) -> None:
+    used: list[str] = []
+
+    def fake_qi(comp: dict[str, Any], pic: dict[str, Any], stat: str) -> np.ndarray:
+        used.append(comp["tag"])
+        return np.tile(np.arange(1.0, 6.0), (4, 1))
+
+    monkeypatch.setattr(E.WE, "mixture_qi", fake_qi)
+    res = {
+        "heads": {
+            "A0": {"tag": "A0heads", "row_y": np.array([1.0, 2.0, 3.0, 4.0])},
+            "FULL": {"tag": "FULLheads"},
+        },
+        "pic": {"row_pi": None},
+        "pis": {"A0": np.zeros(4), "FULL": np.zeros(4)},
+    }
+    cov = E.arm_coverage(res)
+    assert used == ["A0heads", "FULLheads"] and set(cov) == {"A0", "FULL"}
+
+
+def test_coverage_reproduction_gate_fails_on_a_planted_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(E, "arm_scores", lambda res: res["scores"])
+    ref = _fake_ref()
+    ok = dict(FAKE_COV)
+    drift = {**FAKE_COV, "0.10": 0.1125}
+    for cov, want in ((ok, True), (drift, False)):
+        monkeypatch.setattr(
+            E, "arm_coverage", lambda res, n=0, c=cov: {"A0": dict(FAKE_COV), "FULL": dict(c)}
+        )
+        t = [
+            x
+            for x in E.reproduction_checks(_fake_res(2024), ref, True, "x", with_cov=True)
+            if "coverage" in x["test"]
+        ]
+        assert len(t) == 1 and t[0]["ok"] is want
+
+
+def test_stage1_pass_precondition(tmp_path: Path) -> None:
+    p = tmp_path / "r.json"
+    p.write_text('{"verdict": {"per_stat": {"pts": {"pass": false}}}}')
+    with pytest.raises(RuntimeError, match="Stage 1 did not pass"):
+        E.require_stage1_pass(p)
+    p.write_text('{"verdict": {"per_stat": {"pts": {"pass": true}}}}')
+    E.require_stage1_pass(p)
+
+
+def test_cli_path_as_documented_reaches_the_cap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`python -m research.eval.recent_role_full_eval stage2 --sha ...` runs the file as `__main__`; the cap must still reach collect_heads (blocker B1)."""
+    import contextlib
+    import runpy
+    import sys
+
+    doc, log, sha = _good_doc_and_log(tmp_path)
+    spy = _Spy()
+    _wire(monkeypatch, tmp_path, spy)
+    reached: list[str] = []
+    inner = E.stage2_pipeline
+
+    def pipe(
+        fr: Any, cfg: Any, season: int, guards: tuple[str, ...] = (), log: bool = True
+    ) -> dict[str, Any]:
+        if season == 2025:
+            E.assert_cap(2025)
+            try:
+                E.collect_heads(pl.DataFrame(), "pts", CFG, [], test_seasons=(2025,))
+            except Exception as e:  # noqa: BLE001  (anything but the holdout refusal proves the cap check passed)
+                assert "frozen holdout" not in str(e), e
+            reached.append("ok")
+        return inner(fr, cfg, season, guards, log)
+
+    monkeypatch.setattr(E, "stage2_pipeline", pipe)
+    monkeypatch.setattr(E, "require_frozen", lambda sha_: sha_)
+    monkeypatch.setattr(E, "require_holdout_row", lambda *a, **k: "row")
+    monkeypatch.setattr(E.WE, "heavy", lambda: contextlib.nullcontext())
+    monkeypatch.setattr(sys, "argv", ["recent_role_full_eval", "stage2", "--sha", sha])
+    with pytest.raises(SystemExit) as ex:
+        runpy.run_module("research.eval.recent_role_full_eval", run_name="__main__")
+    assert ex.value.code == 0 and reached == ["ok"] and E.MAX_SEASON == 2024
+    assert (tmp_path / "stage2" / "results.json").exists()
+
+
+def test_arm_coverage_n_prefix_equals_slicing_the_longer_draw(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    grid = np.arange(1.0, 100.0)
+    y = np.array([3.0, 7.0, 50.0, 90.0, 20.0, 60.0])
+    pit_full = E.randomized_pit(np.tile(grid, (10, 1)), np.concatenate([np.zeros(4), y]))[4:]
+    monkeypatch.setattr(E.WE, "mixture_qi", lambda c, p, s: np.tile(grid, (6, 1)))
+    res = {
+        "heads": {"A0": {"row_y": y}, "FULL": {"row_y": y}},
+        "pic": {},
+        "pis": {"A0": 0, "FULL": 0},
+    }
+    assert E.arm_coverage(res, n_prefix=4)["A0"]["0.10"] == float((pit_full < 0.10).mean())
+    pit0 = E.randomized_pit(np.tile(grid, (6, 1)), y)
+    assert E.arm_coverage(res)["FULL"]["0.90"] == float((pit0 < 0.90).mean())

@@ -142,10 +142,10 @@
       },
       "FULL": {
         "2024": {
-          "0.10": 0.11634959026749937,
-          "0.20": 0.21558788491390202,
-          "0.80": 0.802714703440309,
-          "0.90": 0.9007978051333887
+          "0.10": 0.11764918233998772,
+          "0.20": 0.21746507346305188,
+          "0.80": 0.8022093065232302,
+          "0.90": 0.9006173062344319
         }
       }
     },
@@ -195,7 +195,7 @@
     ],
     "basis": "adversary review 2026-10-12: true effect plausibly near the pre-specifiable wl_min_last level (-0.0065 to -0.007), SE ~0.0022; floor -0.005",
     "reading": "a delta between -0.005 and 0 with CI upper < 0 is real-but-sub-floor, not a broken pipeline; a delta above 0 would be a surprise to investigate under a new id",
-    "written_at": "2026-10-12 09:25:21 CDT",
+    "written_at": "2026-10-12 10:13:25 CDT",
     "written_before": "any 2025 model is fitted or scored"
   },
   "gate": [
@@ -229,12 +229,12 @@
       "test": "[gate A, cap 2024] pts 2024 FULL minus A0 equals T467",
       "value": {
         "delta": -0.008314476376969474,
-        "T467": -0.008314,
+        "T467_rounded": -0.008314,
         "stored_exact": -0.008314476376969474,
-        "abs_diff": 4.763769694739878e-07,
+        "abs_diff": 0.0,
         "n": 27701
       },
-      "threshold": "|diff to -0.008314| <= 1e-06",
+      "threshold": "|diff to the stored exact value| <= 1e-09 (and the rounded T467 -0.008314 within 1e-06)",
       "ok": true
     },
     {
@@ -244,6 +244,42 @@
         "stored": 3.1768395165770476
       },
       "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] A0 and FULL coverage at tau 0.10/0.20/0.80/0.90 reproduce Stage 1",
+      "value": {
+        "max_abs_diff": 0.0,
+        "stage2": {
+          "A0": {
+            "0.10": 0.1180462799176925,
+            "0.20": 0.21436049240099636,
+            "0.80": 0.802606404100935,
+            "0.90": 0.9006895057940146
+          },
+          "FULL": {
+            "0.10": 0.11898487419226743,
+            "0.20": 0.21677917764701635,
+            "0.80": 0.8017039096061515,
+            "0.90": 0.8999314104183964
+          }
+        },
+        "stage1": {
+          "A0": {
+            "0.10": 0.1180462799176925,
+            "0.20": 0.21436049240099636,
+            "0.80": 0.802606404100935,
+            "0.90": 0.9006895057940146
+          },
+          "FULL": {
+            "0.10": 0.11898487419226743,
+            "0.20": 0.21677917764701635,
+            "0.80": 0.8017039096061515,
+            "0.90": 0.8999314104183964
+          }
+        }
+      },
+      "threshold": "<= 1e-09",
       "ok": true
     },
     {
@@ -285,12 +321,12 @@
       "test": "[gate B, cap 2024] pts 2024 FULL minus A0 equals T467",
       "value": {
         "delta": -0.008314476376969474,
-        "T467": -0.008314,
+        "T467_rounded": -0.008314,
         "stored_exact": -0.008314476376969474,
-        "abs_diff": 4.763769694739878e-07,
+        "abs_diff": 0.0,
         "n": 27701
       },
-      "threshold": "|diff to -0.008314| <= 1e-06",
+      "threshold": "|diff to the stored exact value| <= 1e-09 (and the rounded T467 -0.008314 within 1e-06)",
       "ok": true
     },
     {
@@ -336,6 +372,7 @@
     }
   ],
   "gate_ok": true,
-  "seconds": 294.3370358943939,
-  "label_hashes_equal": true
+  "seconds": 214.2298309803009,
+  "label_hashes_equal": true,
+  "plants": "Rule pass item 8 (planted-future / control plants) was NOT re-run on season 2025: the walk functions are unchanged since Stage 1, where the plants passed on them."
 }

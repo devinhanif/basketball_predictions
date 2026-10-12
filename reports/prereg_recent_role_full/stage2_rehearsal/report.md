@@ -39,10 +39,10 @@ Expected before scoring: delta -0.007, pass probability [0.75, 0.82].
   },
   "FULL": {
    "2024": {
-    "0.10": 0.11634959026749937,
-    "0.20": 0.21558788491390202,
-    "0.80": 0.802714703440309,
-    "0.90": 0.9007978051333887
+    "0.10": 0.11764918233998772,
+    "0.20": 0.21746507346305188,
+    "0.80": 0.8022093065232302,
+    "0.90": 0.9006173062344319
    }
   }
  },
@@ -84,3 +84,5 @@ Expected before scoring: delta -0.007, pass probability [0.75, 0.82].
  }
 }
 ```
+
+Rule pass item 8 (planted-future / control plants) was NOT re-run on season 2025: the walk functions are unchanged since Stage 1, where the plants passed on them.

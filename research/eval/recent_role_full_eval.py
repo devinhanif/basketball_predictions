@@ -35,6 +35,7 @@ from typing import Any
 import numpy as np
 import polars as pl
 
+from nba.eval import context_residual_eval as CRE
 from nba.eval.context_residual_eval import MAX_SEASON, TEST_SEASONS, bh_adjust, month_blocks
 from nba.eval.lower_tail_eval import ROW_COVARIATES, collect_pi, load_components, randomized_pit
 from nba.props.context_residual import (
@@ -47,8 +48,10 @@ from nba.props.context_residual import (
     stat_frame,
 )
 from nba.props.lower_tail import short_flag
+from research.eval import four_factors_eval as F
 from research.eval import pi_recent_role_eval as PR
 from research.eval import workload_eval as WE
+from research.eval import workload_gates as G
 from research.eval.recent_role_holdout import season_cap
 
 ID = "RECENT_ROLE_FULL"
@@ -835,6 +838,8 @@ T467_DELTA_2024 = (
     -0.008314
 )  # T467 / results.json: pts 2024 FULL minus A0 (stored exact -0.0083144764)
 T467_TOL = 1e-6
+EXACT_TOL = 1e-9  # gate FULL minus A0 vs the stored exact Stage 1 value
+COV_REPRO_TOL = 1e-9  # coverage vs Stage 1 once the randomised-PIT uniforms are the same draw (see `arm_coverage` n_prefix)
 WQ_TOL = 1e-6  # stored-mixture w_q
 EXPECTED_DELTA = -0.007  # adversary 2026-10-12: shrunk from -0.0083 for selection
 EXPECTED_PASS_P = (0.75, 0.82)
@@ -884,6 +889,9 @@ def stored_reference() -> dict[str, Any]:
     if int(comp["row_season"].max()) > MAX_SEASON or int(comp["row_season"].max()) > REPO_CAP:
         raise RuntimeError("season > 2024 in the stored components")
     comp_r, pic_r = restrict_stored(comp, pic, GATE_SEASON)
+    idx = np.flatnonzero(comp["row_season"] == GATE_SEASON)
+    if len(idx) == 0 or not np.array_equal(idx, np.arange(idx[0], len(comp["row_season"]))):
+        raise RuntimeError("the gate season is not a contiguous suffix of the stored rows")
     res = json.loads((OUT_DIR / "results.json").read_text())
     rows = {(x["stat"], x["season"], x["arm"]): x for x in res["scores"]["rows"] if "stat" in x}
     return {
@@ -892,6 +900,11 @@ def stored_reference() -> dict[str, Any]:
         "full_minus_a0": rows[(STAGE_STAT, GATE_SEASON, "FULL_minus_A0")]["delta"],
         "full_minus_pl": rows[(STAGE_STAT, GATE_SEASON, "FULL_minus_PL_FULL")]["delta"],
         "a0_crps": rows[(STAGE_STAT, GATE_SEASON, "A0")]["crps_int"],
+        "n_prefix": int(idx[0]),
+        "coverage": {
+            arm: res["scores"]["coverage"][STAGE_STAT][arm][str(GATE_SEASON)]
+            for arm in ("A0", "FULL")
+        },
     }
 
 
@@ -964,8 +977,25 @@ def arm_scores(res: dict[str, Any]) -> dict[str, np.ndarray]:
     return out
 
 
+def arm_coverage(res: dict[str, Any], n_prefix: int = 0) -> dict[str, dict[str, float]]:
+    """Randomised-PIT coverage P(PIT < tau) of the A0 and FULL forecasts (each through ITS OWN heads and pi, as Stage 1's `score_stat`).
+    Stage 1 drew the PIT uniforms once over the whole two-season array and sliced the season; ``n_prefix`` = the rows before this season in that
+    array, so the gate reproduces the same uniforms (seed 0) and compares exactly. The 2025 scoring uses n_prefix = 0 (the walk's own array)."""
+    y = res["heads"]["A0"]["row_y"]
+    out: dict[str, dict[str, float]] = {}
+    for arm in ("A0", "FULL"):
+        qi = WE.mixture_qi(res["heads"][arm], PR.candidate_pic(res["pic"], res["pis"][arm]), STAGE_STAT)  # fmt: skip
+        q, yy = qi.astype(float), y.astype(float)
+        f_lo = (q < (yy - 0.5)[:, None]).mean(axis=1)
+        f_hi = (q <= (yy + 0.5)[:, None]).mean(axis=1)
+        u = np.random.default_rng(0).random(n_prefix + len(yy))[n_prefix:]
+        pit = f_lo + u * (f_hi - f_lo)  # = randomized_pit(q, y) when n_prefix == 0
+        out[arm] = {f"{t:.2f}": float((pit < t).mean()) for t in COV_TAUS}
+    return out
+
+
 def reproduction_checks(
-    res: dict[str, Any], ref: dict[str, Any], with_pl: bool, label: str
+    res: dict[str, Any], ref: dict[str, Any], with_pl: bool, label: str, with_cov: bool = False
 ) -> list[dict[str, Any]]:
     """The Stage-2 gate: the walk of the stored season, run through the SAME `stage2_pipeline` as 2025, must reproduce the stored A0 heads and `pi`
     to 0.0, the stored `w_q` to 1e-6 and T467's 2024 FULL minus A0 to 1e-6 (and the stored A0 CRPS and, if run, the past-only placebo delta)."""
@@ -991,13 +1021,17 @@ def reproduction_checks(
     tests.append(
         chk(
             f"[{label}] pts {GATE_SEASON} FULL minus A0 equals T467",
-            {"delta": d, "T467": T467_DELTA_2024, "stored_exact": ref["full_minus_a0"], "abs_diff": abs(d - T467_DELTA_2024), "n": int(len(y))},
-            f"|diff to {T467_DELTA_2024}| <= {T467_TOL}",
-            abs(d - T467_DELTA_2024) <= T467_TOL,
+            {"delta": d, "T467_rounded": T467_DELTA_2024, "stored_exact": ref["full_minus_a0"], "abs_diff": abs(d - ref["full_minus_a0"]), "n": int(len(y))},
+            f"|diff to the stored exact value| <= {EXACT_TOL} (and the rounded T467 {T467_DELTA_2024} within {T467_TOL})",
+            abs(d - ref["full_minus_a0"]) <= EXACT_TOL and abs(d - T467_DELTA_2024) <= T467_TOL,
         )
     )  # fmt: skip
     a0 = float(sc["A0"].mean())
     tests.append(chk(f"[{label}] A0 integer CRPS equals the stored value", {"crps": a0, "stored": ref["a0_crps"]}, f"<= {REPRO_TOL}", abs(a0 - ref["a0_crps"]) <= REPRO_TOL))  # fmt: skip
+    if with_cov:
+        cov = arm_coverage(res, ref["n_prefix"])
+        worst = max(abs(cov[arm][t] - ref["coverage"][arm][t]) for arm in ("A0", "FULL") for t in cov[arm])  # fmt: skip
+        tests.append(chk(f"[{label}] A0 and FULL coverage at tau 0.10/0.20/0.80/0.90 reproduce Stage 1", {"max_abs_diff": worst, "stage2": cov, "stage1": ref["coverage"]}, f"<= {COV_REPRO_TOL}", worst <= COV_REPRO_TOL))  # fmt: skip
     if with_pl:
         dpl = float((sc["FULL"] - sc["PL_FULL"]).mean())
         tests.append(chk(f"[{label}] FULL minus past-only placebo equals Stage 1", {"delta": dpl, "stored": ref["full_minus_pl"]}, f"<= {T467_TOL}", abs(dpl - ref["full_minus_pl"]) <= T467_TOL))  # fmt: skip
@@ -1056,12 +1090,7 @@ def stage2_scores(res: dict[str, Any]) -> dict[str, Any]:
             ds = WE.delta_stats(d[mk], gid[mk])
             rec.update({k: ds[k] for k in ("delta", "ci_lo", "ci_hi")})
         slices.append(rec)
-    qa = WE.mixture_qi(h0, PR.candidate_pic(res["pic"], res["pis"]["A0"]), STAGE_STAT)
-    qf = WE.mixture_qi(h0, PR.candidate_pic(res["pic"], res["pis"]["FULL"]), STAGE_STAT)
-
-    def cov(qi: np.ndarray) -> dict[str, dict[str, float]]:
-        pit = randomized_pit(qi.astype(float), y.astype(float))
-        return {str(season): {f"{t:.2f}": float((pit < t).mean()) for t in COV_TAUS}}
+    cv = arm_coverage(res)
 
     short = short_flag(h0["row_minutes"], h0["row_min10"])
     pi_rows = {
@@ -1074,7 +1103,7 @@ def stage2_scores(res: dict[str, Any]) -> dict[str, Any]:
         for k in ("A0", "FULL")
     }
     pi_rows["ece_delta"] = pi_rows["FULL"]["ece"] - pi_rows["A0"]["ece"]
-    return {"season": season, "rows": rows, "slices": slices, "coverage": {"A0": cov(qa), "FULL": cov(qf)}, "pi": pi_rows, "observed_short": float(short.mean())}  # fmt: skip
+    return {"season": season, "rows": rows, "slices": slices, "coverage": {"A0": {str(season): cv["A0"]}, "FULL": {str(season): cv["FULL"]}}, "pi": pi_rows, "observed_short": float(short.mean())}  # fmt: skip
 
 
 def decide_stage2(sc: dict[str, Any], gate_ok: bool) -> dict[str, Any]:
@@ -1110,10 +1139,39 @@ def expected_note() -> dict[str, Any]:
     }
 
 
+PLANTS_NOTE = "Rule pass item 8 (planted-future / control plants) was NOT re-run on season 2025: the walk functions are unchanged since Stage 1, where the plants passed on them."
+
+
+def assert_cap(target: int) -> None:
+    """Preflight, right after the cap is raised: the season bound seen by every function the walk calls (read from the functions' own globals, so a
+    module run as __main__ cannot hide behind an unpatched copy) must equal ``target``. Raises before the touch marker is written."""
+    seen: dict[str, Any] = {
+        "collect_heads": collect_heads.__globals__["MAX_SEASON"],
+        "collect_pi": collect_pi.__globals__["MAX_SEASON"],
+        "WE.assert_seasons (walk_pi, load_sources)": WE.assert_seasons.__globals__["MAX_SEASON"],
+        "F.load_study": F.load_study.__globals__["MAX_SEASON"],
+        "F.load_extra": F.load_extra.__globals__["MAX_SEASON"],
+        "G.load_played": G.load_played.__globals__["MAX_SEASON"],
+        "CRE.load_inputs default": (CRE.load_inputs.__defaults__ or (None,))[-1],
+    }
+    bad = {k: v for k, v in seen.items() if v != target}
+    if bad:
+        raise RuntimeError(f"season cap is not {target} where the walk reads it: {bad}")
+
+
+def require_stage1_pass(path: Path | None = None) -> None:
+    """Stage 2 precondition (rule item 5): Stage 1's committed results show pts passing."""
+    p = path or (OUT_DIR / "results.json")
+    prev = json.loads(p.read_text())
+    if not prev["verdict"]["per_stat"][STAGE_STAT]["pass"]:
+        raise RuntimeError("Stage 1 did not pass for pts: Stage 2 refuses")
+
+
 def _stop(
-    out_dir: Path, sha: str | None, stage: str, tests: list[dict[str, Any]]
+    out_dir: Path, sha: str | None, stage: str, tests: list[dict[str, Any]], consumed: bool = False
 ) -> dict[str, Any]:
-    """A gate failed: write `gate_failed.json` (NOT results.json), fit nothing on the held-out season, leave the touch unspent."""
+    """A gate failed: write `gate_failed.json` (NOT results.json), fit nothing on the held-out season. ``consumed``: the touch marker was already
+    written (any stop inside the raised cap), so the touch IS spent and a rerun is Devin's logged decision."""
     for t in tests:
         print(("PASS " if t["ok"] else "FAIL ") + f"{t['test']}: {t['value']} ({t['threshold']})", flush=True)  # fmt: skip
     out = {
@@ -1121,10 +1179,10 @@ def _stop(
         "stopped_at": stage,
         "gate": tests,
         "gate_ok": False,
-        "touch_consumed": False,
+        "touch_consumed": consumed,
     }
     WE.write_json(out_dir / "gate_failed.json", out)
-    _log(f"STOPPED at {stage}: no {HOLDOUT_SEASON} model was fitted; the touch is not consumed")
+    _log(f"STOPPED at {stage}: no {HOLDOUT_SEASON} model was fitted; touch_consumed={consumed}")
     return out
 
 
@@ -1136,7 +1194,8 @@ def _stage2_body(
     build: Callable[[], tuple[pl.DataFrame, ContextResidualConfig, dict[str, Any]]],
 ) -> dict[str, Any]:
     """Gate A (stored season, loaders capped at 2024) -> raise the cap -> rebuild -> gate B (same stored season on the rebuilt frame; 2025 rows
-    present but unused) -> 2025 data gate -> expected value written -> touch marker -> the one 2025 pipeline -> score -> results."""
+    present but unused) -> 2025 data gate -> expected value written -> the one 2025 pipeline -> score -> results. The touch marker is the first thing written inside the
+    raised cap (after `assert_cap`, before any 2025-capable load), so every stop or crash from there on has consumed the touch."""
     if target > REPO_CAP and sha is None:
         raise RuntimeError(
             "a held-out-season run needs the frozen --sha and the committed holdout row (use `stage2`)"
@@ -1145,34 +1204,39 @@ def _stage2_body(
     ref = stored_reference()
     fr, cfg, _ = build()
     a = stage2_pipeline(fr, cfg, GATE_SEASON, guards=("PL",))
-    gate_a = reproduction_checks(a, ref, with_pl=True, label="gate A, cap 2024")
+    gate_a = reproduction_checks(a, ref, with_pl=True, label="gate A, cap 2024", with_cov=True)
     del a, fr
     if not all(t["ok"] for t in gate_a):
         return _stop(out_dir, sha, "gate A (2024 reproduction, cap 2024)", gate_a)
     for t in gate_a:
         print("PASS " + t["test"] + f": {t['value']}", flush=True)
     with cap_ctx():  # the cap is raised here and only here; restored on exit, also on error
+        assert_cap(target)  # fail BEFORE the marker and before any row is loaded
+        WE.write_json(out_dir / "touch_started.json", {"sha256": sha, "season": target, "head": PR._git("rev-parse", "HEAD").strip(), "started": time.strftime("%Y-%m-%d %H:%M:%S %Z")})  # fmt: skip
         fr, cfg, _ = build()
         b = stage2_pipeline(fr, cfg, GATE_SEASON, guards=())
         gate_b = reproduction_checks(b, ref, with_pl=False, label=f"gate B, cap {target}")
         del b
         if not all(t["ok"] for t in gate_b):
             return _stop(
-                out_dir, sha, "gate B (2024 reproduction on the rebuilt frame)", gate_a + gate_b
+                out_dir,
+                sha,
+                "gate B (2024 reproduction on the rebuilt frame)",
+                gate_a + gate_b,
+                True,
             )
         for t in gate_b:
             print("PASS " + t["test"] + f": {t['value']}", flush=True)
         dg = data_gate_2025(fr, target)
         if not all(t["ok"] for t in dg):
-            return _stop(out_dir, sha, f"{target} data gate", gate_a + gate_b + dg)
+            return _stop(out_dir, sha, f"{target} data gate", gate_a + gate_b + dg, True)
         exp = expected_note()
         WE.write_json(out_dir / "expected.json", exp)
         print("EXPECTED (written before scoring): " + json.dumps(exp), flush=True)
-        WE.write_json(out_dir / "touch_started.json", {"sha256": sha, "season": target, "started": time.strftime("%Y-%m-%d %H:%M:%S %Z")})  # fmt: skip
         res = stage2_pipeline(fr, cfg, target, guards=("PL", "SHUF"))
         sc = stage2_scores(res)
     verdict = decide_stage2(sc, True)
-    out = {"sha256": sha, "season": target, "scores": sc, "verdict": verdict, "expected": exp, "gate": gate_a + gate_b + dg, "gate_ok": True, "seconds": time.time() - t0, "label_hashes_equal": True}  # fmt: skip
+    out = {"sha256": sha, "season": target, "scores": sc, "verdict": verdict, "expected": exp, "gate": gate_a + gate_b + dg, "gate_ok": True, "seconds": time.time() - t0, "label_hashes_equal": True, "plants": PLANTS_NOTE}  # fmt: skip
     WE.write_json(out_dir / "results.json", out)
     return out
 
@@ -1197,6 +1261,7 @@ def render_stage2(out: dict[str, Any]) -> str:
         ci = "" if "ci_lo" not in s else f"[{f(s['ci_lo'], 5)}, {f(s['ci_hi'], 5)}]"
         lines.append(f"| {s['slice']} | {s['n']} | {f(s.get('delta'), 5)} | {ci} |")
     lines += ["", "```json", json.dumps({"coverage": sc["coverage"], "pi": sc["pi"], "verdict": v}, indent=1, default=float), "```", ""]  # fmt: skip
+    lines += [out.get("plants", PLANTS_NOTE), ""]
     return "\n".join(lines)
 
 
@@ -1207,6 +1272,7 @@ def stage2(
     stage-2 results (or started touch) exists; the season cap is raised to 2025 only after both pass, and only inside `_stage2_body`."""
     require_holdout_row(sha, log, git, doc)
     require_unspent()
+    require_stage1_pass()
     from research.eval.recent_role_holdout import preimport
 
     preimport()
@@ -1261,6 +1327,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "stage2":
         require_holdout_row(sha)  # refuse before taking the lock
         require_unspent()
+        require_stage1_pass()
         with WE.heavy():
             out = stage2(sha)
         return 0 if out.get("gate_ok") else 1
@@ -1281,4 +1348,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # `python -m` runs this file as `__main__`, which `season_cap` does not patch (it patches `nba.*` / `research.*` modules only): hand off to the
+    # imported module so the cap reaches the code that runs.
+    import research.eval.recent_role_full_eval as _E
+
+    raise SystemExit(_E.main())
