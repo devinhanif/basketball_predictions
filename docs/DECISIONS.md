@@ -608,3 +608,10 @@ preseason-only date prints "no regular-season games: N preseason skipped" and ex
 preseason rows are kept, marked unscorable rehearsal rows in DAILY_PIPELINE.md. Replay oracle 89889f6d IDENTICAL (20 dates, 46,658 predictions).
 Why: `games` never holds 001/003, so forward rows on them can never settle; they cluttered logs and the T-30 review.
 What would reverse it: a need to rehearse T-30 or lineup feeds on preseason slates (drop the prefix test in `slate_for_date`).
+
+**2026-10-11 ~22:45 CT — HISTORY_WINDOW_3 FROZEN (sha256 32e05aec, commit c7d16ae).**
+What: props training adds 2019-20 and 2020-21 as rows with the injury report missing, 2021-22 excluded; arms A1, A2 (history weight 0.5),
+knockouts K0/K1; select 2023, report 2024; pass means shadow logging only. Gate passed after the free `fetch-static` pull (243 of 244 history
+profiles) and a pre-freeze amendment of G1b to played players only (the one profile-less id never played).
+Why: Devin reopened the direction ("okay, go for it") per the 15:14 entry; confirmations "yes yes" (knockout -0.0025, A2 weight 0.5, W0 3.187553).
+What would reverse it: nothing above the results marker changes; a null closes the history direction for props this season.
