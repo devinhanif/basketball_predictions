@@ -1,0 +1,19 @@
+{
+  "sha256": "8524f683523df05ecead3bd56b19e3e43574732de82345ab10692ecb7c235d84",
+  "head": "92069c59e34f7585674d15ccb8637e2a628fc8e4",
+  "code_diff_sha256": "1cd222813c6d5cc929cffa8493d128369408de979fb6b776d364181b0a0b19c7",
+  "seq_run": "/Users/devin/Downloads/nba-prediction/data/colab/runs/seq_full_mix_rt/20261012_162217",
+  "seq_files": {
+    "oof_E2.npz": "1610d41e67645411b17d0967d1a1cfd320fd3103254f883f1c9d172e4c7c477e",
+    "oof_E2P.npz": "81e83c6ce3281f717fcc4e790b57d090d8a8f47f5f920f79767a979a588d2aed",
+    "oof_E2S.npz": "ee3ee40ee3b4c9c11b05f1a716e2ca6ac1d3b48d8c294b81e0c6485c41352668",
+    "config.json": "5797fe08c6f01a4702534ecd18b82dcdf4a5bb1d76b7b7330fbc91a8aaddf11b"
+  },
+  "export": {
+    "npz_sha256": "316d8e1e363ae8bcf71edc04ef1f3e3464eace2fc1cd99199b9df87486bd54f0",
+    "meta_sha256": "fdf575aeaea80c40c40d6081eea33035bab9f9624195e3ef346c16de04c1d22d"
+  },
+  "export_identity": null,
+  "season": 2025,
+  "started": "2026-10-12 17:03:45 CDT"
+}

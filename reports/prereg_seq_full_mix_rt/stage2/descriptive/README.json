@@ -1,0 +1,15 @@
+{
+ "target": 2025,
+ "rows": 112692,
+ "files": [
+  "confusion.json",
+  "rows.csv",
+  "rows.parquet",
+  "sim_bankroll_paths.csv",
+  "simulation.json",
+  "simulation.md",
+  "spot_check.md"
+ ],
+ "odds_db": "/Users/devin/Downloads/nba-prediction/data/odds/odds_history.duckdb",
+ "note": "descriptive; computed after the verdict JSON was written; cannot change it"
+}
