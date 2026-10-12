@@ -630,3 +630,9 @@ starts cold (new stat, new league) or a training window cut to one season.
 What: seven families (USAGE_PACE, EFFICIENCY, PLAYMAKING, REBOUNDING, SHOT_PROFILE, DEFENSE_CONTEXT, PLAY_TYPE), 15 family-by-stat cells, BH over 15, select 2023 / report 2024, floor -0.005; slope/volatility shrinkage revision (the first missingness audit failed on role-driven NaNs); SHOT_PROFILE from PBP distance + sub-type (x/y shots table not used); harness A0 re-run reproduced all 8 reference cells before the freeze.
 Why: Devin asked for usage x pace, PPR and advanced rates as time series with shot-type and defense context; the repo's record says expect a null, so the rule closes it either way.
 What would reverse it: nothing above the results marker changes; a new question gets a new id. One pre-registered follow-up at most.
+
+**2026-10-11 ~23:15 CT — ENSEMBLE FROZEN (sha256 e26b1657, commit 8b3ee07).**
+What: E1 minutes-gated XGBoost/production router (pts), E2 SEQ walk-forward replication, E3 SEQ with 2019-21 history (report tokens zero,
+2021-22 excluded), E4 combination; A0 = production + lower-tail mixture; select 2023, report 2024; pass means shadow arm only.
+Why: Devin's "go", then "yes build that for colab and then we will run that tonight", then "Ok set the colab up for me". Gate passed after
+fetch-static (0 of 49,150 history rows without position). What would reverse it: nothing above the results marker changes.
