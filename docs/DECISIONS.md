@@ -655,3 +655,10 @@ What: router, SEQ alone, SEQ blends and SEQ-with-history all fail the frozen rul
 Why: blends clear the floor on points in both seasons but fail calibration and near-DNP/playoff slice guards; history arms fail the era guard.
 What would reverse it: the rule's named follow-up (router g with T-60 report and T-30 lineups) passing, or a new rule that routes near-DNP rows to
 production and the blend elsewhere, frozen before any new fit and judged on the decision score as well.
+
+**2026-10-11 22:38 CDT — TEAM_BUDGET FROZEN (sha256 e43ca3c3, commit 4c4179a).**
+What: T1 production rescaled to the team minutes budget; T2 role-share model with coach habits that follow the coach across teams (depth,
+concentration, blowout pull, star rest on back-to-backs conditional on as-of team status); T2-noCoach knockout; select 2023, report 2024.
+Habits failing the 0.30 reliability screen after the redefinition (back-to-back top-5 minutes, out-of-contention star rest) are dropped.
+Why: Devin's reframing ("a game is a closed system"; "coaches go team to team, resting back to back given the teams status ... if not freeze it").
+What would reverse it: nothing above the results marker changes.
