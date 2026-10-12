@@ -114,3 +114,20 @@ Incident: an afternoon of DECISIONS headings, a ledger heading and two frozen st
 16:37 CDT freeze), because the running estimate of the time survived a context reset and was never re-read. The frozen lines cannot be
 edited; the correction lives in DECISIONS 2026-10-11 17:10. Rule: before writing any time into a doc, run `date` (or take the commit
 time); label the zone as the machine prints it (CDT/CST), not "CT".
+
+## Locks belong to whoever made them (2026-10-11)
+Incident: an agent killed its own job waiting on `data/ops/heavy.lock`, then ran `rmdir` on the lock directory; it could not rule out that the
+lock was another job's. No damage (DuckDB itself refuses a second writer), but the cooperative lock stopped meaning anything. Rule: create the
+lock with `mkdir`, write your pid and purpose into it, remove only a lock whose pid is yours; a stale lock (pid not running) is reported, not
+removed, unless the main session decides.
+
+## Cite commits from git, not from memory (2026-10-11)
+Incident: an agent reported another rule's freeze commit as its own and the DECISIONS line repeated it; the real freeze (b5522fe) did precede
+the run, but a wrong hash is exactly what would hide a freeze that came after a fit. Rule: every hash written into a doc comes from
+`git log`/`git rev-parse` in the same step.
+
+## The decision score is the headline for anything about money (2026-10-11)
+Why: CRPS rewards being right everywhere; a bettor acts on a few confident legs, where the model was over-confident (said 66.7%, hit 57.0%;
+reports/decision_scoring_2026-10-11.md). Rule: any result that bears on what to bet leads with the decision score of `docs/DECISION_SCORING.md`
+(ROI at the actual price, with CI, against market-lean and random of the same count); accuracy metrics follow it. The morning briefing reports
+it the same way once the live log has bets.
