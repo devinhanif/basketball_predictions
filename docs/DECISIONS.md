@@ -836,3 +836,10 @@ What: the fitted blend put zero weight on the pace model in every month; game to
 What: the primary contrast met the floor with room (-0.0116), but the frozen shuffled-label guard fired (-0.0021); no rerun, no new seed, no
 change to the guard after the fact. No production change. The live FULL shadow is the remaining venue; a descriptive diagnostic of why the shuffle
 arm differs may be run on 2023/24 only, and any new guard design is a new rule for future work. Why: frozen rule. What would reverse it: nothing for this rule.
+
+**2026-10-12 11:15 CDT — Preseason rehearsal (one-off, scratch only; Devin asked).**
+What: the-odds-api lists preseason under basketball_nba_preseason, not basketball_nba; 4 games pulled into a scratch store, 110 credits (22 per
+call: billing is per market returned, so 178 was an upper bound); 1,440/1,440 outcomes parsed; exchange *_lay markets no longer de-vigged.
+Only 11 of 89 markets exist in preseason, so period lines, q1 player props and yes/no props remain unverified until 2026-10-20. Full pipeline
+ran on a database copy (no production writes); no preseason injury report was found, so injury-Elo fell back. The 10:02 pretip rc=5 was a
+network outage (DNS to stats.nba.com); later runs succeeded. The daily job still skips preseason.
