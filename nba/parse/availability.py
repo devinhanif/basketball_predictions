@@ -676,8 +676,31 @@ class _PlayerRecord:
         return f"{category} - {detail}"
 
 
+class _TeamSection:
+    """A team block printed with the "Not Yet Submitted" placeholder (no report filed)."""
+
+    __slots__ = ("gamedate", "gametime", "matchup", "team")
+
+    def __init__(
+        self, gamedate: str | None, gametime: str | None, matchup: str | None, team: str | None
+    ) -> None:
+        self.gamedate = gamedate
+        self.gametime = gametime
+        self.matchup = matchup
+        self.team = team
+
+
+def _is_placeholder(text: str | None) -> bool:
+    return bool(text) and str(text).replace(" ", "").lower() == _PLACEHOLDER_STATUS
+
+
 def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
-    """Walk every page's words into ``_PlayerRecord``s.
+    """Player records only; see ``_parse_report_sections`` for the team-section view."""
+    return _parse_report_sections(pdf)[0]
+
+
+def _parse_report_sections(pdf: object) -> tuple[list[_PlayerRecord], list[_TeamSection]]:
+    """Walk every page's words into ``_PlayerRecord``s and "Not Yet Submitted" team sections.
 
     Implements the validated algorithm exactly: visual rows bucketed by
     ``round(top / _ROW_BUCKET_PX) * _ROW_BUCKET_PX``, columns assigned by
@@ -691,6 +714,7 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
     fragment can look "nearest" to a page-1 player if compared globally.
     """
     records: list[_PlayerRecord] = []
+    sections: list[_TeamSection] = []
     state: dict[str, str | None] = {
         "gamedate": None,
         "gametime": None,
@@ -729,6 +753,18 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
                     state[field] = cols[field]
 
             player = cols.get("player")
+            if _is_placeholder(player) or (
+                not player
+                and any(_is_placeholder(cols.get(k)) for k in ("status", "reason", "category"))
+            ):
+                # A team block with no report filed yet. Kept as its own section row: it is
+                # neither a player row nor "nobody is out".
+                sections.append(
+                    _TeamSection(
+                        state["gamedate"], state["gametime"], state["matchup"], state["team"]
+                    )
+                )
+                continue
             if player:
                 records.append(
                     _PlayerRecord(
@@ -761,7 +797,81 @@ def _parse_report_pages(pdf: object) -> list[_PlayerRecord]:
                 nearest = min(page_records, key=lambda r: abs(r.y - y))
                 nearest.category_parts.append((y, text))
 
-    return records
+    return records, sections
+
+
+#: Output of ``parse_official_injury_report_team_sections``. ``section_status`` is ``filed``
+#: (the team has at least one player row in this snapshot) or ``not_yet_submitted`` (the
+#: report prints the placeholder for the team). A team in neither state is absent from the
+#: snapshot, which is not the same as "filed with nobody listed".
+TEAM_SECTION_SCHEMA = [
+    "as_of",
+    "game_id",
+    "team_id",
+    "matchup",
+    "section_status",
+    "n_rows",
+    "source",
+    "pulled_at",
+]
+
+
+def parse_official_injury_report_team_sections(
+    pdf_path_or_bytes: object,
+    *,
+    report_dt: datetime,
+    con: duckdb.DuckDBPyConnection | None = None,
+    extra_games: Mapping[tuple[date, int, int], str] | None = None,
+) -> pl.DataFrame:
+    """One row per (game, team) section printed in the report: ``filed`` or ``not_yet_submitted``.
+
+    Name-free (no player resolution), so it cannot raise on an unmatched name. ``n_rows`` is the
+    number of player rows under the team (0 for the placeholder). ``game_id`` needs ``con`` as in
+    ``parse_official_injury_report``. A team can appear as both when a report prints both; then
+    ``filed`` wins.
+    """
+    import pdfplumber
+
+    pdf = pdfplumber.open(pdf_path_or_bytes)  # type: ignore[arg-type]
+    try:
+        records, sections = _parse_report_sections(pdf)
+    finally:
+        pdf.close()
+
+    cells: dict[tuple[str | None, str | None, str | None], dict[str, object]] = {}
+
+    def cell(gd: str | None, matchup: str | None, team: str | None) -> dict[str, object]:
+        key = (gd, matchup, team)
+        if key not in cells:
+            game_id: str | None = None
+            if con is not None:
+                parsed_date = _parse_report_gamedate(gd)
+                mu = parse_matchup(matchup)
+                if parsed_date is not None and mu is not None:
+                    game_id = resolve_game_id(con, parsed_date, mu[0], mu[1], extra_games)
+            cells[key] = {
+                "as_of": report_dt,
+                "game_id": game_id,
+                "team_id": team_id_from_report_team(team),
+                "matchup": matchup,
+                "section_status": "not_yet_submitted",
+                "n_rows": 0,
+                "source": "nba_official_report",
+                "pulled_at": report_dt,
+            }
+        return cells[key]
+
+    for rec in records:
+        if not (rec.status or "").strip():
+            continue
+        c = cell(rec.gamedate, rec.matchup, rec.team)
+        c["section_status"] = "filed"
+        c["n_rows"] = cast(int, c["n_rows"]) + 1
+    for sec in sections:
+        cell(sec.gamedate, sec.matchup, sec.team)
+    if not cells:
+        return pl.DataFrame(schema=dict.fromkeys(TEAM_SECTION_SCHEMA, pl.Null))
+    return pl.DataFrame(list(cells.values())).select(TEAM_SECTION_SCHEMA)
 
 
 def _reorder_last_first(raw_name: str) -> str:
@@ -815,7 +925,8 @@ def parse_official_injury_report(
     ``UnmatchedPlayerNameError``).
 
     Rows whose status is the "Not Yet Submitted" placeholder (no real report
-    filed for that slot yet) are skipped, not written as a row.
+    filed for that slot yet) are not player rows, so they are not in this frame; they are kept
+    as explicit team sections by ``parse_official_injury_report_team_sections``.
     """
     import pdfplumber  # lazy: keep this module network/parse-dependency-free at import time
 

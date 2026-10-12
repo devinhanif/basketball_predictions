@@ -33,6 +33,15 @@ played and unplayed rows by more than `thresholds.asymmetry` (both groups >= `mi
 reported by `check` for any column and marked NEW in `diff` when it was not asymmetric before.
 Reviewed structural cases go in `known_asymmetry` (`table.column`).
 
+`LABEL_NULL_GAP` (N7, 2026-10-12): for each column, the NULL rate per outcome group, flagged by
+`check` when max - min across groups with >= `min_group_rows` rows reaches `thresholds.label_gap`
+(0.10). Groups: minutes bucket (DNP/0, <5, 5-15, 15-25, 25+) on any table with player-game rows, and
+the per-table SQL in `label_groups` (games: home win vs away win). Seasons after `label_max_season`
+(2024, the holdout) are excluded from the grouping, so no 2025 outcome is read. The ridge pattern
+(NULL iff minutes < 5) and a bucket-only pattern the played/unplayed split averages away are both
+planted in tests/datamanifest. A flag is a hypothesis; `known_label_gap` (`table.column`) takes only
+reviewed structural cases, written by the maintainer, not by the archivist.
+
 ## Registry
 `build_run_metadata` adds `data_version`, read from the newest manifest file (no hashing per run;
 `None` if no snapshot exists). Take a snapshot before registering runs, and after any ingest load.

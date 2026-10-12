@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from nba.datamanifest.diff import diff_manifests, leak_candidates, render_diff_md
+from nba.datamanifest.diff import (
+    diff_manifests,
+    label_gap_candidates,
+    leak_candidates,
+    render_diff_md,
+)
 from nba.datamanifest.manifest import (
     DataManifestLocked,
     build_manifest,
@@ -15,6 +20,7 @@ __all__ = [
     "build_manifest",
     "diff_manifests",
     "latest_data_version",
+    "label_gap_candidates",
     "leak_candidates",
     "load_config",
     "render_diff_md",

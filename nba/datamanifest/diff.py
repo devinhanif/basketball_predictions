@@ -30,6 +30,35 @@ def leak_candidates(m: dict[str, Any], cfg: dict[str, Any]) -> list[dict[str, An
     return out
 
 
+def label_gap_candidates(m: dict[str, Any], cfg: dict[str, Any]) -> list[dict[str, Any]]:
+    """Columns whose NULL rate differs by outcome group (minutes bucket, win/loss) by >= limit.
+
+    Complements ``leak_candidates`` (which only compares played vs unplayed). A flag is a
+    hypothesis to investigate; ``known_label_gap`` entries need a written review.
+    """
+    thr = float(cfg["thresholds"].get("label_gap", 0.10))
+    known = set(cfg.get("known_label_gap", []))
+    out = []
+    for tname, t in m["tables"].items():
+        for c, info in t["columns"].items():
+            for scheme, gap in (info.get("label_gap") or {}).items():
+                if gap is None or gap < thr or f"{tname}.{c}" in known:
+                    continue
+                rates = info["null_rate_by_label"][scheme]
+                hi = max(rates, key=lambda g: rates[g] or 0.0)
+                lo = min(rates, key=lambda g: rates[g] or 0.0)
+                out.append(
+                    _flag(
+                        "LABEL_NULL_GAP",
+                        tname,
+                        f"{scheme}: NULL rate {rates[hi]} in {hi} vs {rates[lo]} in {lo} "
+                        f"(gap {gap:.3f} >= {thr})",
+                        c,
+                    )
+                )
+    return out
+
+
 def diff_manifests(old: dict[str, Any], new: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
     """Return ``{"changes": [...], "flags": [...]}`` describing old -> new."""
     th = cfg["thresholds"]

@@ -17,6 +17,7 @@ thresholds:
   null_shift_season: 0.10      # flag |change| in a per-season null rate
   asymmetry: 0.50              # |null_rate(unplayed) - null_rate(played)| => POSSIBLE LEAK
   asymmetry_old_max: 0.25      # ... and it was below this before (or the column is new)
+  label_gap: 0.10              # max-min NULL rate across outcome groups => LABEL_NULL_GAP flag
   min_group_rows: 200          # ignore played/unplayed groups smaller than this
 
 # Natural keys for tables without a declared PRIMARY KEY (duplicate counting).
@@ -39,3 +40,12 @@ exclude_from_version:
 # Columns whose played/unplayed NULL asymmetry is structural (reviewed, not a leak),
 # as "table.column". Keep this list short and justified.
 known_asymmetry: []
+
+# Label-group NULL check (N7): NULL rate per minutes bucket (tables with player-game rows) and per
+# configured outcome expression over t.* (table -> SQL). Seasons after label_max_season are
+# excluded (2025 is the frozen holdout). Reviewed structural gaps go in known_label_gap as
+# "table.column" with a written reason; the archivist never adds to it.
+label_max_season: 2024
+label_groups:
+  games: "CASE WHEN home_pts > away_pts THEN 'home_win' WHEN home_pts < away_pts THEN 'away_win' END"
+known_label_gap: []

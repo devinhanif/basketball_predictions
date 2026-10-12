@@ -14,6 +14,7 @@ from nba.datamanifest import (
     DataManifestLocked,
     build_manifest,
     diff_manifests,
+    label_gap_candidates,
     latest_data_version,
     leak_candidates,
     load_config,
@@ -155,3 +156,74 @@ def test_unscanned_parquet_is_not_a_removal_flag(cfg: dict[str, Any]) -> None:
     assert not any(f["kind"] == "TABLE_REMOVED" for f in out["flags"])
     out2 = diff_manifests(old, {"data_version": "c", "tables": {"parquet:x.parquet": t}}, cfg)
     assert any(f["kind"] == "TABLE_REMOVED" for f in out2["flags"])
+
+
+def _make_label_db(path: Path) -> None:
+    """games (home win drives a NULL), plus a player table with three feature columns:
+    f_mid NULL iff minutes in [5, 15) (played-vs-unplayed rates look alike: asymmetry misses it),
+    f_ridge NULL iff minutes < 5 (the ridge pattern), f_ok NULL on a hash pattern.
+    A 2025 row pattern is planted to prove holdout seasons are excluded from the grouping."""
+    con = duckdb.connect(str(path))
+    con.execute(
+        "CREATE TABLE games (game_id VARCHAR PRIMARY KEY, season INT, home_pts INT, away_pts INT,"
+        " lead_f DOUBLE)"
+    )
+    con.execute(
+        "INSERT INTO games SELECT 'g' || i, 2023 + (i % 2), 100 + (i % 3), 100 + ((i + 1) % 3) * 2,"
+        " CASE WHEN (100 + (i % 3)) > (100 + ((i + 1) % 3) * 2) THEN NULL ELSE 1.0 END"
+        " FROM range(600) t(i)"
+    )
+    con.execute("CREATE TABLE player_game_stats (game_id VARCHAR, player_id INT, minutes FLOAT)")
+    con.execute(
+        "INSERT INTO player_game_stats SELECT 'g' || (i // 2), i % 2,"
+        " CASE WHEN i % 10 = 0 THEN 2.0 WHEN i % 10 < 4 THEN 10.0 ELSE 30.0 END"
+        " FROM range(1200) t(i)"
+    )
+    con.execute(
+        "CREATE TABLE feats (game_id VARCHAR, player_id INT, f_mid DOUBLE, f_ridge DOUBLE,"
+        " f_ok DOUBLE)"
+    )
+    con.execute(
+        "INSERT INTO feats SELECT 'g' || (i // 2), i % 2,"
+        " CASE WHEN i % 10 BETWEEN 1 AND 3 THEN NULL ELSE 1.0 END,"
+        " CASE WHEN i % 10 = 0 THEN NULL ELSE 1.0 END,"
+        " CASE WHEN (i * 7919) % 13 < 3 THEN NULL ELSE 1.0 END FROM range(1200) t(i)"
+    )
+    con.close()
+
+
+def test_label_gap_flags_planted_leaks_not_clean_column(
+    tmp_path: Path, cfg: dict[str, Any]
+) -> None:
+    _make_label_db(tmp_path / "l.duckdb")
+    cfg = {**cfg, "thresholds": {**cfg["thresholds"], "min_group_rows": 50}}
+    m = build_manifest(tmp_path / "l.duckdb", cfg)
+    hits = {(f["table"], f["column"]) for f in label_gap_candidates(m, cfg)}
+    assert ("feats", "f_mid") in hits
+    assert ("feats", "f_ridge") in hits
+    assert ("games", "lead_f") in hits
+    assert ("feats", "f_ok") not in hits
+    # f_mid: the played-vs-unplayed check alone has no gap this size; the bucket check does
+    asym = {f["column"] for f in leak_candidates(m, cfg) if f["table"] == "feats"}
+    assert "f_mid" not in asym
+    known = {**cfg, "known_label_gap": ["feats.f_mid"]}
+    assert ("feats", "f_mid") not in {
+        (f["table"], f["column"]) for f in label_gap_candidates(m, known)
+    }
+
+
+def test_label_gap_excludes_holdout_season(tmp_path: Path, cfg: dict[str, Any]) -> None:
+    con = duckdb.connect(str(tmp_path / "h.duckdb"))
+    con.execute(
+        "CREATE TABLE games (game_id VARCHAR, season INT, home_pts INT, away_pts INT, f INT)"
+    )
+    # f is NULL iff home win, but only in season 2025: grouping must ignore that season entirely
+    con.execute(
+        "INSERT INTO games SELECT 'g' || i, 2025, 100 + (i % 2) * 5, 102,"
+        " CASE WHEN i % 2 = 1 THEN NULL ELSE 1 END FROM range(600) t(i)"
+    )
+    con.close()
+    c = cfg
+    m = build_manifest(tmp_path / "h.duckdb", c)
+    assert m["tables"]["games"]["label_schemes"]["outcome"] == {}
+    assert label_gap_candidates(m, c) == []

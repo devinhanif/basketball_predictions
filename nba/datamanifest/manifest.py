@@ -109,6 +109,7 @@ def _table_manifest(
     if has_game and "player_id" in names:
         if "minutes" in names:
             sel.append(f"(coalesce(t.minutes, 0) >= {minutes}) AS __played")
+            sel.append("coalesce(t.minutes, 0) AS __mn")
             played = True
         elif have_pgs:
             joins += (
@@ -117,6 +118,7 @@ def _table_manifest(
                 " ON p.game_id = t.game_id AND p.player_id = t.player_id"
             )
             sel.append(f"CASE WHEN p.mn IS NULL THEN NULL ELSE p.mn >= {minutes} END AS __played")
+            sel.append("p.mn AS __mn")
             played = True
     src = f"(SELECT {', '.join(sel)} FROM {rel} t{joins})"
     has_season = any(s.endswith("__season") for s in sel)
@@ -203,8 +205,68 @@ def _table_manifest(
             col_info[c]["asymmetry"] = (
                 _r(abs(rp - ru)) if ok and rp is not None and ru is not None else None
             )
+    schemes: dict[str, str] = {}
+    if played:
+        schemes["minutes_bucket"] = _MINUTES_BUCKET_SQL
+    custom = cfg.get("label_groups", {}).get(name)
+    if custom:
+        schemes["outcome"] = str(custom)
+    if schemes:
+        _label_groups(con, src, names, col_info, out, schemes, cfg, has_season=has_season)
     out["columns"] = col_info
     return out
+
+
+# Minutes buckets for the label-group NULL check; DNP (0 or NULL minutes) is its own bucket.
+_MINUTES_BUCKET_SQL = (
+    "CASE WHEN __mn IS NULL THEN NULL WHEN __mn = 0 THEN 'b0_dnp' WHEN __mn < 5 THEN 'b1_lt5' "
+    "WHEN __mn < 15 THEN 'b2_5_15' WHEN __mn < 25 THEN 'b3_15_25' ELSE 'b4_25plus' END"
+)
+
+
+def _label_groups(
+    con: duckdb.DuckDBPyConnection,
+    src: str,
+    names: list[str],
+    col_info: dict[str, dict[str, Any]],
+    out: dict[str, Any],
+    schemes: dict[str, str],
+    cfg: dict[str, Any],
+    *,
+    has_season: bool,
+) -> None:
+    """Per-column NULL rate by outcome group; ``label_gap`` is max - min over big-enough groups.
+
+    Seasons after ``label_max_season`` (the holdout) are excluded from the grouping, so no
+    holdout outcome is used. Groups under ``min_group_rows`` rows are ignored.
+    """
+    last = int(cfg.get("label_max_season", 2024))
+    where = "WHERE __g IS NOT NULL"
+    if has_season:
+        where += f" AND (__season IS NULL OR __season <= {last})"
+    min_rows = int(cfg["thresholds"]["min_group_rows"])
+    out["label_schemes"] = {}
+    for scheme, expr in schemes.items():
+        try:
+            rows = con.execute(
+                f"SELECT __g, count(*), {_null_counts_sql(names)} FROM "
+                f"(SELECT *, ({expr}) AS __g FROM {src}) {where} GROUP BY 1 ORDER BY 1"
+            ).fetchall()
+        except duckdb.BinderException as exc:  # expression names columns this table lacks
+            out.setdefault("label_scheme_errors", {})[scheme] = str(exc).splitlines()[0]
+            continue
+        groups = {str(r[0]): r for r in rows if int(r[1]) >= min_rows}
+        out["label_schemes"][scheme] = {g: int(r[1]) for g, r in groups.items()}
+        for i, c in enumerate(names):
+            if c == "minutes" and scheme == "minutes_bucket":
+                continue
+            rates = {g: _r(1 - int(r[2 + i]) / int(r[1])) for g, r in groups.items()}
+            vals = [v for v in rates.values() if v is not None]
+            ci = col_info[c]
+            ci.setdefault("null_rate_by_label", {})[scheme] = rates
+            ci.setdefault("label_gap", {})[scheme] = (
+                _r(max(vals) - min(vals)) if len(vals) >= 2 else None
+            )
 
 
 def _dir_caches(data_dir: Path) -> dict[str, Any]:

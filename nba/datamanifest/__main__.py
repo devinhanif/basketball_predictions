@@ -9,7 +9,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from nba.datamanifest.diff import diff_manifests, leak_candidates, render_diff_md
+from nba.datamanifest.diff import (
+    diff_manifests,
+    label_gap_candidates,
+    leak_candidates,
+    render_diff_md,
+)
 from nba.datamanifest.manifest import (
     REPO_ROOT,
     DataManifestLocked,
@@ -103,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     if old is not None:
         flags += diff_manifests(old, new, cfg)["flags"]
     flags += leak_candidates(new, cfg)
+    flags += label_gap_candidates(new, cfg)
     seen: set[str] = set()
     for f in flags:
         line = f"FLAG {f['kind']} {f.get('table', '')}.{f.get('column', '')}: {f['detail']}"
