@@ -677,3 +677,10 @@ the chart and PBP disagree on a non-block row.
 
 **2026-10-11 23:05 CDT — Full pre-tip odds capture schedule, 12 points per game (commits 06ba0c3 base, c310720 scorable filter).**
 What: `configs/odds_live.yaml` gets a `schedule` list (morning 10:00 ET, T-180/120/90/60/45/30/20/15/10/5, close) run by `nba.odds capture --kind all`; preseason/All-Star ids skipped; close narrowed to [0,5] min; daily guard 600 -> 3,200 credits. Why: Devin, "do all captures before the game, don't skimp on credits"; cost 168 credits/game, about 36k/month against a 5M-credit START 5M plan (0.7%), so nothing is gated; entries marked `extended` auto-drop if a smaller plan cannot carry them. What would reverse it: the plan is cancelled (DECISIONS 2026-10-10; START 100K $59/month is the smallest that fits), credits per call differ from 14 on the first night's `x-requests-last`, or the extra points show no use in the model-vs-price movement analysis.
+
+**2026-10-11 23:25 CDT — COACH_PHASE and WORKLOAD frozen; F10A_RIVALRY closed at the gate (Devin: "yes to all").**
+What: COACH_PHASE frozen (sha256 8111c026, commit 572f08e), coach claim declared incapable of PASS (7 coaches with 20+ prior playoff games in
+2023, gate 8). WORKLOAD frozen (sha256 261fabce, commit 282e2cc): all not-OUT absences instead of rest-only (6/7/5 unannounced rest DNPs a season),
+Cell P is PPLAY_CONTEXT's one follow-up, minutes floor -0.10 min. F10A: MDE 5.0-8.9 points vs a 4-point floor; option 1, rivalry flags go into
+the 2026-27 P(play) shadow log. Why: Devin's confirmations. What would reverse it: nothing above either results marker; F10A reopens at 300+
+forward division non-play events under a new rule.
