@@ -486,5 +486,71 @@
     "reach_k_sd_ok": true,
     "pass": true,
     "wall_s": 1.3413689136505127
+  },
+  "reliability": {
+    "coaches": 33,
+    "games": 5095,
+    "depth": {
+      "n_coaches": 33,
+      "r_split_half": 0.9295449662703076,
+      "spearman_brown": 0.9634861923607421,
+      "keep": true
+    },
+    "conc": {
+      "n_coaches": 33,
+      "r_split_half": 0.9274127920443954,
+      "spearman_brown": 0.9623395630374479,
+      "keep": true
+    },
+    "b2b_top5_career": {
+      "n_coaches": 33,
+      "r_split_half": 0.05837970566230613,
+      "spearman_brown": 0.11031901944070942,
+      "keep": false
+    },
+    "blowout_pull_career": {
+      "n_coaches": 33,
+      "r_split_half": 0.3231242282076909,
+      "spearman_brown": 0.48842613765057596,
+      "keep": true
+    },
+    "star_rest_contending": {
+      "n_coaches": 19,
+      "r_split_half": 0.6226255369937118,
+      "spearman_brown": 0.7674297276835286,
+      "keep": true,
+      "pairs": 393,
+      "rest_events": 17
+    },
+    "star_rest_middle": {
+      "n_coaches": 25,
+      "r_split_half": 0.3346147247258993,
+      "spearman_brown": 0.5014401812397535,
+      "keep": true,
+      "pairs": 573,
+      "rest_events": 16
+    },
+    "star_rest_out": {
+      "n_coaches": 11,
+      "r_split_half": 0.03766217885773548,
+      "spearman_brown": 0.07259044345086225,
+      "keep": false,
+      "pairs": 270,
+      "rest_events": 8
+    },
+    "star_rest_all_status": {
+      "n_coaches": 33,
+      "r_split_half": 0.4153544104811548,
+      "spearman_brown": 0.5869263661529885,
+      "keep": true,
+      "pairs": 1236,
+      "rest_events": 41
+    },
+    "blowout_games_per_coach_status_median": {
+      "contending": 14.5,
+      "middle": 10.0,
+      "out": 7.0
+    },
+    "wall_s": 0.5972778797149658
   }
 }

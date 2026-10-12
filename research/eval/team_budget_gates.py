@@ -637,7 +637,7 @@ def gate_roster() -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("stage", choices=["sql", "coach", "a0", "roster", "all"])
+    ap.add_argument("stage", choices=["sql", "coach", "a0", "roster", "reliability", "all"])
     args = ap.parse_args(argv)
     stages = ["sql", "coach", "a0", "roster"] if args.stage == "all" else [args.stage]
     for st in stages:
@@ -646,6 +646,12 @@ def main(argv: list[str] | None = None) -> int:
             res = gate_a0()
         elif st == "roster":
             res = gate_roster()
+        elif st == "reliability":
+            con0 = connect()
+            try:
+                res = gate_reliability(con0)
+            finally:
+                con0.close()
         else:
             con = connect()
             try:
@@ -656,6 +662,178 @@ def main(argv: list[str] | None = None) -> int:
         _save(st, res)
         _log(f"{st}: pass={res.get('pass')} ({res['wall_s']:.0f}s)")
     return 0
+
+
+# --------------------------------------------------------------------------- reliability (amendment 1)
+#: Declared BEFORE computing (TEAM_BUDGET amendment 2026-10-11): career-pooled habits over a coach's 2022-23
+#: games on any team (2024 untouched), split-half by ALTERNATE GAMES (odd/even order by date), Pearson r across
+#: coaches with >= 60 games, Spearman-Brown corrected 2r/(1+r); keep a habit iff the corrected value >= 0.30.
+REL_MIN_GAMES = 60
+REL_KEEP = 0.30
+REL_MIN_EVENTS = 3  # conditional means need this many games of each kind per half
+REL_MIN_STAR_PAIRS = 5
+
+
+def star_pairs(
+    box: pl.DataFrame, tgm: pl.DataFrame, avail: pl.DataFrame, b2b: pl.DataFrame
+) -> pl.DataFrame:
+    """Per (game_id, team_id, player_id): star on the second night of a back-to-back who played the first
+    night; ``rest`` = 1 if absent with a rest/management reason, 0 if he played; absent for another
+    reason (injury etc.) is dropped. Stars = top-2 mean minutes in the team's previous 10 games."""
+    from research.budget import asof as A
+
+    roster = A.asof_roster(box, tgm)
+    stars = (
+        roster.sort(["game_id", "team_id", "mean_min"], descending=[False, False, True])
+        .group_by("game_id", "team_id", maintain_order=True)
+        .head(2)
+        .join(b2b.filter(pl.col("b2b")).select("game_id", "team_id"), on=["game_id", "team_id"])
+    )
+    played = (
+        box.filter(pl.col("minutes") > 0)
+        .select("game_id", "team_id", "player_id")
+        .with_columns(pl.lit(1).alias("_pl"))
+    )
+    prev = tgm.sort(["team_id", "game_date", "game_id"]).with_columns(
+        pl.col("game_id").shift(1).over("team_id").alias("prev_game")
+    )
+    s = stars.join(prev.select("game_id", "team_id", "prev_game"), on=["game_id", "team_id"])
+    s = s.join(
+        played.rename({"game_id": "prev_game", "_pl": "_pp"}),
+        on=["prev_game", "team_id", "player_id"],
+        how="left",
+    ).filter(pl.col("_pp").is_not_null())
+    s = s.join(played, on=["game_id", "team_id", "player_id"], how="left")
+    rest_rows = (
+        avail.filter(pl.col("reason").str.to_lowercase().str.contains("rest|management"))
+        .select("game_id", "player_id")
+        .unique()
+        .with_columns(pl.lit(1).alias("_rest"))
+    )
+    other = avail.select("game_id", "player_id").unique().with_columns(pl.lit(1).alias("_any"))
+    s = s.join(rest_rows, on=["game_id", "player_id"], how="left").join(
+        other, on=["game_id", "player_id"], how="left"
+    )
+    s = s.with_columns(
+        pl.when(pl.col("_pl").is_not_null())
+        .then(0)
+        .when(pl.col("_rest").is_not_null())
+        .then(1)
+        .otherwise(None)
+        .alias("rest")
+    ).filter(pl.col("rest").is_not_null())
+    return s.select("game_id", "team_id", "player_id", "rest")
+
+
+def gate_reliability(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
+    from research.budget import asof as A
+    from research.budget.status import STATUSES, team_status
+
+    games, box, coach = load_team_games(con)
+    avail = con.execute(
+        "SELECT game_id, player_id, reason FROM player_availability WHERE game_id IS NOT NULL"
+    ).pl()
+    shape = A.team_game_shape(box, games).join(
+        coach.select("game_id", "team_id", "coach_key"), on=["game_id", "team_id"], how="left"
+    )
+    st = team_status(games)
+    tgm = shape.select("game_id", "team_id", "game_date")
+    box_i = box.with_columns(pl.col("minutes").fill_null(0.0))
+    pairs = star_pairs(box_i, tgm, avail, shape.select("game_id", "team_id", "b2b"))
+    pairs = pairs.join(
+        st.select("game_id", "team_id", "status", "late"), on=["game_id", "team_id"]
+    ).join(shape.select("game_id", "team_id", "coach_key", "game_date"), on=["game_id", "team_id"])
+    base = (
+        shape.join(st.select("game_id", "team_id", "status", "late"), on=["game_id", "team_id"])
+        .join(games.select("game_id", "season"), on="game_id")
+        .filter(
+            pl.col("season").is_in([2022, 2023])
+            & pl.col("coach_key").is_not_null()
+            & pl.col("depth").is_not_null()
+        )
+        .sort(["coach_key", "game_date", "game_id"])
+        .with_columns((pl.int_range(pl.len()).over("coach_key") % 2).alias("half"))
+    )
+    n_by = base.group_by("coach_key").len().filter(pl.col("len") >= REL_MIN_GAMES)
+    keep = set(n_by["coach_key"].to_list())
+    base = base.filter(pl.col("coach_key").is_in(list(keep)))
+    pairs = pairs.join(games.select("game_id", "season"), on="game_id").filter(
+        pl.col("season").is_in([2022, 2023]) & pl.col("coach_key").is_in(list(keep))
+    )
+    pairs = pairs.sort(["coach_key", "game_date", "game_id"]).with_columns(
+        (pl.int_range(pl.len()).over("coach_key") % 2).alias("half")
+    )
+
+    def corr(per: dict[tuple[str, int], float]) -> dict[str, Any]:
+        xs, ys = [], []
+        for c in keep:
+            a, b = per.get((c, 0)), per.get((c, 1))
+            if a is not None and b is not None and np.isfinite(a) and np.isfinite(b):
+                xs.append(a)
+                ys.append(b)
+        if len(xs) < 5:
+            return {
+                "n_coaches": len(xs),
+                "r_split_half": float("nan"),
+                "spearman_brown": float("nan"),
+                "keep": False,
+            }
+        r = float(np.corrcoef(xs, ys)[0, 1])
+        sb = 2 * r / (1 + r) if r > -1 else float("nan")
+        return {
+            "n_coaches": len(xs),
+            "r_split_half": r,
+            "spearman_brown": sb,
+            "keep": bool(sb >= REL_KEEP),
+        }
+
+    out: dict[str, Any] = {"coaches": len(keep), "games": base.height}
+    for name in ("depth", "conc"):
+        per = {
+            (r["coach_key"], r["half"]): r["v"]
+            for r in base.group_by("coach_key", "half")
+            .agg(pl.col(name).mean().alias("v"))
+            .iter_rows(named=True)
+        }
+        out[name] = corr(per)
+    per_b: dict[tuple[str, int], float] = {}
+    per_w: dict[tuple[str, int], float] = {}
+    for (c, h), d in base.group_by("coach_key", "half"):
+        nb, nr = int(d["b2b"].sum()), int((~d["b2b"]).sum())
+        if nb >= REL_MIN_EVENTS and nr >= REL_MIN_EVENTS:
+            per_b[(c, h)] = float(
+                d.filter(pl.col("b2b"))["top5_min"].mean()
+                - d.filter(~pl.col("b2b"))["top5_min"].mean()
+            )
+        bl, cl = d.filter(pl.col("abs_margin") >= 20), d.filter(pl.col("abs_margin") <= 10)
+        if bl.height >= REL_MIN_EVENTS and cl.height >= REL_MIN_EVENTS:
+            per_w[(c, h)] = float(bl["top5_min"].mean() - cl["top5_min"].mean())
+    out["b2b_top5_career"] = corr(per_b)
+    out["blowout_pull_career"] = corr(per_w)
+    for sname in STATUSES:
+        per_s: dict[tuple[str, int], float] = {}
+        for (c, h), d in pairs.filter(pl.col("status") == sname).group_by("coach_key", "half"):
+            if d.height >= REL_MIN_STAR_PAIRS:
+                per_s[(c, h)] = float(d["rest"].mean())
+        out[f"star_rest_{sname}"] = corr(per_s) | {
+            "pairs": int(pairs.filter(pl.col("status") == sname).height),
+            "rest_events": int(pairs.filter(pl.col("status") == sname)["rest"].sum()),
+        }
+    per_all = {
+        (c, h): float(d["rest"].mean())
+        for (c, h), d in pairs.group_by("coach_key", "half")
+        if d.height >= REL_MIN_STAR_PAIRS
+    }
+    out["star_rest_all_status"] = corr(per_all) | {
+        "pairs": pairs.height,
+        "rest_events": int(pairs["rest"].sum()),
+    }
+    # status-conditioned blowout pull: sample check (declared: conditioned only if the median per half >= 5)
+    bl = base.filter(pl.col("abs_margin") >= 20).group_by("coach_key", "status").len()
+    out["blowout_games_per_coach_status_median"] = {
+        s: float(bl.filter(pl.col("status") == s)["len"].median() or 0.0) for s in STATUSES
+    }
+    return out
 
 
 if __name__ == "__main__":

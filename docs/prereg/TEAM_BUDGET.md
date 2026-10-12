@@ -1,10 +1,16 @@
 # TEAM_BUDGET: a game is a closed system; forecast the team's minutes budget, then allocate by role (pre-registration)
 
-Status: DRAFT 2026-10-11. NOT FROZEN. Devin confirms before freeze; the maintainer then commits `prereg(TEAM_BUDGET): <sha256>`
-BEFORE any arm is fitted. Everything above the line `=== RESULTS BELOW ===` is the rule. Freeze evidence: commit hash plus
-`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/TEAM_BUDGET.md | shasum -a 256` (first 8 hex into the results section and
-every ledger row). Season labels are `games.season` (2023 = 2023-24, 2024 = 2024-25, 2025 = frozen holdout, never loaded).
-No arm exists. The only model computation run for this draft is the A0 reproduction (stored components, no fit).
+Status: FROZEN Sun Oct 11 22:37:56 CDT 2026 by the main session on Devin's words ("coaches go team to team, resting back to back given the teams status ... if not freeze it"), after the coach-habit amendment. The main
+session commits `prereg(TEAM_BUDGET): <sha256>` BEFORE any arm is fitted. Everything above the line `=== RESULTS BELOW ===` is the
+rule. Freeze evidence: commit hash plus
+`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/TEAM_BUDGET.md | shasum -a 256` (first 8 hex into the results section
+and every ledger row). Season labels are `games.season` (2023 = 2023-24, 2024 = 2024-25, 2025 = frozen holdout, never loaded).
+No arm exists. The only model computation run is the A0 reproduction (stored components, no fit).
+Amendment (Devin, relayed 2026-10-11 after the first draft, in his words "coaches go team to team, resting back to back given the
+team's status ... if not [in the ensemble], freeze it"): (1) coach habits are CAREER-pooled across teams, not per coach-season;
+(2) back-to-back rest is conditional on as-of team status; (3) the reliability screen is re-run with those definitions; (4)
+confirmations recorded: gamma = 1 primary, previous-game coach identity, stage-1 totals deferred to TEAM_BUDGET_2, `in_roster` not a
+feature. Habits that failed the first screen are dropped only if they still fail the redefined one (see Coach habits).
 
 ## What Devin said
 > "a game is a closed system; model the role, not the player." (2026-10-11, approved reframing)
@@ -82,7 +88,8 @@ latest row dated STRICTLY before the game (tonight's row used when present: 90% 
   (share of the team's previous 10 games with final |margin| <= 10 in which the player was on court in the last stint of the
   fourth period; `stints`), recent trend (share of roster minutes, last 3 vs last 10 appearances), games with the team (cap 10),
   `n_roster`, `S = sum e`, rest days, back-to-back, as-of |Elo margin|, `n_out_rot`. Coach columns (Section below): `h_depth`,
-  `h_conc`. No `in_roster` flag, no tonight's lineup.
+  `h_conc`, `h_blowout`, `h_star_rest_all`, `h_star_rest_matched`, plus tonight's as-of status (win%, games back of the 6th and 10th
+  seed, late flag). No `in_roster` flag, no tonight's lineup.
 * T2-noCoach (knockout): T2 without the coach columns.
 * P (placebo): T2 with the role and coach columns permuted jointly across rows within team-season (marginals kept, link broken).
 * Descriptive only, never in the family: O1 oracle budget (realised OT known), O2 oracle shares (realised minutes shares). They are
@@ -101,19 +108,44 @@ with the rate the one A0 already implies (no new rate model; the sim's failure).
 Dirichlet(kappa x e~/B_roster)`, kappa estimated from prior blocks by the method of moments on share residuals; the sum equals the
 budget exactly in every draw. Joint draws do not change the marginal CRPS; they serve the consistency check only.
 
-### Coach habits (as-of; `research/budget/asof.py`)
-Source `team_coach_games` (10,558 rows; per game head coach). FINDING from the gate: its `known_at` is EACH GAME'S OWN tip (the
-stamp equals `tipoff_utc` for every row), so tonight's coach is never stamped knowable at T-60. The rule therefore uses the coach
-of the team's PREVIOUS game (stamped before tonight's tip for 98.9% of 2022 and 100% of 2023-24 team-games); it equals the actual
-coach in 99.6% of 2023-24 team-games; a new coach's first game receives the predecessor's habits (the change is not foreknown).
-Habits per team-game from the post-game box (depth = players with >= 10 min; concentration = Herfindahl of minute shares; top-5
-minutes on back-to-backs minus otherwise; top-5 minutes in |margin| >= 20 games minus <= 10), accumulated over the coach's
-strictly-earlier games (any team), shrunk to the league as-of mean (strictly earlier dates) with pseudo-counts 15 (depth,
-concentration) and 6 (conditionals). Reliability screen, measured before the freeze on box data only (coaches with >= 30 games in
-both 2022 and 2023; correlation of the raw habit): depth 0.70, concentration 0.71 (n = 26 coaches), back-to-back 0.20, blowout
-0.14. Declared consequence: only `h_depth` and `h_conc` enter T2; the back-to-back and blowout habits do NOT persist across seasons
-and are dropped before any fit (the implementation still computes them; the unit tests cover them). With n = 26 the interval on
-0.20 is wide; the rule is the threshold (0.30), not the estimate.
+### Coach habits (as-of; `research/budget/asof.py`, `research/budget/status.py`)
+Source `team_coach_games`. Its `known_at` is EACH GAME'S OWN tip (equal to `tipoff_utc` on every row), so tonight's coach is never
+stamped knowable at T-60. The coach whose habits a game receives is the coach of the team's PREVIOUS game (stamped before tonight's
+tip for 100% of 2023-24 team-games; equals the actual coach in 99.6%); a new coach's first game gets the predecessor's habits.
+Habits follow the COACH: each is estimated over his whole as-of career in our data (all his earlier games on any team and season,
+strictly earlier dates), shrunk to the league as-of value (pseudo-counts 15 games for depth, concentration and blowout pull; 10 star
+pairs for star rest), not per coach-season. Definitions, all from post-game boxes of earlier games:
+* `h_depth`: players with >= 10 minutes. `h_conc`: Herfindahl of minute shares. `h_blowout`: top-5 minutes in |margin| >= 20 games minus
+  <= 10 games (career-pooled over all statuses: the median coach has 14.5 / 10 / 7 blowout games per status in 2022-23, below the
+  declared 15 needed to condition it on status, so it is NOT status-conditioned).
+* As-of team status (`status.py::team_status`, standings from games dated STRICTLY earlier within the season, same-day games blind):
+  win%, games back of the 6th and the 10th seed of the team's conference, `late` = 60 or more games played. Class: contending = at or
+  above the 6th seed; middle = below it but inside the 10th seed; out = beyond the 10th seed; middle when fewer than 20 games played.
+* Star rest: the team's top-2 players by minutes per appearance over its previous 10 games, on the second night of a back-to-back, who
+  played the night before. `rest` = 1 if absent with a rest or management reason in `player_availability`, 0 if he played; absent for
+  any other reason (injury) is dropped. `h_star_rest_all` pools statuses; `h_star_rest_matched` is the coach's rate in tonight's status
+  when it is contending or middle and the pooled rate when it is out (that cell fails the screen). Plain back-to-back top-5 minutes
+  difference (the earlier definition) is `h_b2b`.
+Reliability screen, stated before it was computed (`team_budget_gates.py reliability`; box and availability data only, no stat outcome,
+season 2024 untouched): coaches with >= 60 games in 2022-23 (33 coaches, 5,095 team-games); each habit estimated career-pooled on
+the ODD and the EVEN games of the coach's 2022-23 career (alternate games, by date), Pearson r across coaches, Spearman-Brown corrected
+`2r/(1+r)`; a habit is kept iff the corrected value >= 0.30; conditional means need >= 3 games of each kind (>= 5 star pairs) per
+half. Result:
+| habit | coaches | split-half r | corrected | kept |
+|---|---|---|---|---|
+| depth | 33 | 0.930 | 0.963 | yes |
+| concentration | 33 | 0.927 | 0.962 | yes |
+| blowout pull (career) | 33 | 0.323 | 0.488 | yes |
+| back-to-back top-5 minutes (career) | 33 | 0.058 | 0.110 | NO |
+| star rest, contending | 19 | 0.623 | 0.767 | yes (17 rest events, 393 pairs) |
+| star rest, middle | 25 | 0.335 | 0.501 | yes (16 events, 573 pairs) |
+| star rest, out | 11 | 0.038 | 0.073 | NO (8 events, 270 pairs) |
+| star rest, all statuses | 33 | 0.415 | 0.587 | yes (41 events, 1,236 pairs) |
+Entering T2: `h_depth`, `h_conc`, `h_blowout`, `h_star_rest_all`, `h_star_rest_matched`. Dropped: `h_b2b` and star rest in the out status
+(they still fail after the redefinition). Cautions recorded, not used to change the rule: alternate-game splits share the same
+roster and season, so depth and concentration reliabilities (0.96) measure team stability as much as the coach (the previous
+cross-season r was 0.70-0.71); star-rest estimates rest on only 41 events, so a few coaches carry them and the feature is mostly
+shrunk values near 0.03. The knockout T2-noCoach removes all five columns.
 
 ## Metrics, support, inference
 Integer-support CRPS (199-quantile form) per stat per arm; paired dCRPS = CRPS(arm) - CRPS(A0); 95% percentile bootstrap clustered
@@ -129,7 +161,7 @@ unable to rescue a failure: bias, 80% PIT coverage, lower-tail PIT, threshold lo
   It is silent on limits and availability; a descriptive number, not a claim.
 * Slices (descriptive plus the guard): starter / bench (as-of `start_rate >= 0.5`), star-out (an as-of top-2 minutes player of the
   team is OUT on the report), overtime games (known only afterwards: a descriptive slice, not a feature), cold start (5 <= n_prior
-  < 10), back-to-back, first 15 team games, coach in his first 20 games (`coach_n_prior < 20`), terciles of the raking factor.
+  < 10), back-to-back, first 15 team games, coach in his first 20 games (`coach_n_prior < 20`), team status (contending / middle / out, late season), terciles of the raking factor.
 
 ## Pass rule (per cell; 2023 selects, 2024 confirms; all must hold)
 1. 2023: point dCRPS <= -0.005 with clustered CI upper < 0. 2024: point <= -0.005, CI upper < 0, BH p <= 0.05 over 8 cells.
@@ -139,7 +171,7 @@ unable to rescue a failure: bias, 80% PIT coverage, lower-tail PIT, threshold lo
    rows within team-season); shuffled-label (T2's share model refit on permuted training shares within block) gives dCRPS >= -MDE;
    the planted tests (Checks 3-4) pass with non-inert controls; the missingness audit (G6) passed; the arm does not beat its oracle.
 4. Role claim: T2 passes AS ROLE only if T2 - T1 <= -0.003 (paired, same rows); otherwise any gain is credited to the constraint.
-   Coach claim: only if T2 - T2noCoach <= -0.002 and the T2 gain does not drop by >= 80% when `h_depth` or `h_conc` is removed alone.
+   Coach claim: only if T2 - T2noCoach <= -0.002 and the T2 gain does not drop by >= 80% when any single coach column is removed alone.
 5. Honest ceiling: only the gain beyond A0 counts; A0 already contains vacated minutes, `n_out_rot`, recency minutes, role and rest.
 A PASS means a red-team review and a drafted one-touch holdout row. Nothing is promoted or wired in; that is Devin's.
 
@@ -193,8 +225,9 @@ No arm was fitted. Reproduce with `.venv/bin/python -m research.eval.team_budget
   `coach_n_prior < 10` for 2.2% (2023) and 2.7% (2024) of team-games, `< 20` for 4.4% and 5.5%, `>= 40` for 91% and 90% (2022 is the
   warm-up, 12% under 10). Conditional samples per coach-season: median 14-15 back-to-back games, 15.5-17 blowout (>= 20) games, 43-44
   close (<= 10) games. Previous-game coach usable at T-60 for 98.9% (2022) and 100% (2023, 2024); equals the actual coach in 99.6%.
-  Own-game coach stamped before T-60: 0% (the `known_at` finding). Reliability (above): depth 0.70, concentration 0.71, back-to-back
-  0.20, blowout 0.14 (n = 26). PASS for depth and concentration; back-to-back and blowout habits fail the 0.30 screen and are dropped.
+  Own-game coach stamped before T-60: 0% (the `known_at` finding). Reliability: superseded by the career-pooled, status-conditioned
+  screen in the Coach habits section (first-draft per-season screen: depth 0.70, concentration 0.71, back-to-back 0.20, blowout 0.14).
+  PASS: five habit columns kept, `h_b2b` and out-status star rest dropped.
 * G4 A0 reproduction (stored components, no fit, 10 s): 16 of 16 cells (4 stats x 2 seasons x {raw, mixture}) match
   `reports/lower_tail/candidates.json` to 0.0 with the same n (27,619 / 27,701): pts 3.152830 / 3.187553 raw and 3.140236 / 3.176840 mixture;
   reb 1.292817 / 1.314247 and 1.288179 / 1.311401; ast 0.905903 / 0.900215 and 0.901954 / 0.898517; fg3m 0.569049 / 0.592213 and
