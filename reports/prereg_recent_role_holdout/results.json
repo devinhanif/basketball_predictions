@@ -1,0 +1,215 @@
+{
+  "sha256": "302bc693269b36f617531fe78ec859eb3714e2cc973af5cd2f644e6eb4b8a0bd",
+  "season": 2025,
+  "scores": {
+    "season": 2025,
+    "rows": [
+      {
+        "arm": "base",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "logloss": 0.27387083477644414,
+        "ece": 0.008015153238365083
+      },
+      {
+        "arm": "Cp",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "logloss": 0.25823968411540676,
+        "ece": 0.005485528546217175
+      },
+      {
+        "arm": "R",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "logloss": 0.25333746773230337,
+        "ece": 0.005717634766902962
+      },
+      {
+        "arm": "PL",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "logloss": 0.2580637539173907,
+        "ece": 0.004800033178937094
+      },
+      {
+        "arm": "R_minus_base",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "delta": -0.020533367044140733,
+        "ci_lo": -0.023196451411168793,
+        "ci_hi": -0.017876375873729866,
+        "p": 0.0004997501249375312,
+        "mde": 0.0026600377687194636,
+        "ece_delta": -0.002297518471462121
+      },
+      {
+        "arm": "R_minus_Cp",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "delta": -0.004902216383103353,
+        "ci_lo": -0.006335685802919884,
+        "ci_hi": -0.00340945622545877,
+        "p": 0.0004997501249375312,
+        "mde": 0.001463114788730557,
+        "ece_delta": 0.0002321062206857875
+      },
+      {
+        "arm": "Cp_minus_base",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "delta": -0.015631150661037384,
+        "ci_lo": -0.01760195315668765,
+        "ci_hi": -0.013615595556519075,
+        "p": 0.0004997501249375312,
+        "mde": 0.001993178800084287,
+        "ece_delta": -0.0025296246921479087
+      },
+      {
+        "arm": "R_minus_PL",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "delta": -0.004726286185087331,
+        "ci_lo": -0.006194290484180826,
+        "ci_hi": -0.003224796980510659,
+        "p": 0.0004997501249375312,
+        "mde": 0.0014847467518350837,
+        "ece_delta": 0.0009176015879658684
+      },
+      {
+        "arm": "R_shuf_minus_base_shuf",
+        "n_rows": 33061,
+        "n_games": 1321,
+        "delta": -0.00022994024951272378,
+        "ci_lo": -0.0006347958510028915,
+        "ci_hi": 0.0001610750987862229,
+        "p": 0.258,
+        "mde": 0.0003979354748945572
+      }
+    ],
+    "slices": [
+      {
+        "slice": "all",
+        "n": 33061,
+        "delta": -0.020533367044140733,
+        "ci_lo": -0.023196451411168793,
+        "ci_hi": -0.017876375873729866
+      },
+      {
+        "slice": "starter",
+        "n": 12362,
+        "delta": -0.006226188113752899,
+        "ci_lo": -0.008183703882527895,
+        "ci_hi": -0.004064528980487202
+      },
+      {
+        "slice": "bench",
+        "n": 20699,
+        "delta": -0.029077999438819432,
+        "ci_lo": -0.03307551363489154,
+        "ci_hi": -0.025026775037975752
+      },
+      {
+        "slice": "second_night",
+        "n": 5386,
+        "delta": -0.017284028492441088,
+        "ci_lo": -0.02355203504766336,
+        "ci_hi": -0.01136874655006976
+      },
+      {
+        "slice": "cold5_9",
+        "n": 750,
+        "delta": -0.014321828675520202,
+        "ci_lo": -0.025312219288418075,
+        "ci_hi": -0.003654271896757377
+      },
+      {
+        "slice": "playoffs",
+        "n": 2407,
+        "delta": -0.01088263925257283,
+        "ci_lo": -0.0244552732005625,
+        "ci_hi": 0.002428624719272484
+      },
+      {
+        "slice": "min_last_lt5",
+        "n": 4305,
+        "delta": -0.03877909780743516,
+        "ci_lo": -0.0525549042089192,
+        "ci_hi": -0.025222095007900243
+      }
+    ]
+  },
+  "verdict": {
+    "pass": true,
+    "primary": true,
+    "ece": true,
+    "slices_ok": true,
+    "slices_worse": [],
+    "placebo": true,
+    "shuffle": {
+      "season": 2025,
+      "delta": -0.00022994024951272378,
+      "ci_hi": 0.0001610750987862229,
+      "ok": true
+    },
+    "gate_ok": true,
+    "mde": 0.0026600377687194636,
+    "secondary_R_minus_Cp": -0.004902216383103353
+  },
+  "gate": [
+    {
+      "test": "season 2025 Cell-P rows and games",
+      "value": {
+        "rows": 33061,
+        "games": 1321
+      },
+      "threshold": ">= 25000 rows, >= 1000 games",
+      "ok": true
+    },
+    {
+      "test": "missingness of added columns by realised-minutes bucket incl DNP (pp)",
+      "value": {
+        "max_gap_pp": 1.3371382797778997,
+        "worst_col": "pl_wl_min_last",
+        "placebo_max_gap_pp": 0.4672723570310242
+      },
+      "threshold": "<= 2.00",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: rows of the edited day identical",
+      "value": 209,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 16721,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows on or before the cutoff identical",
+      "value": 16340,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "slice sizes (n rows; slices under 300 are skipped by the rule)",
+      "value": {
+        "all": 33061,
+        "starter": 12362,
+        "bench": 20699,
+        "second_night": 5386,
+        "cold5_9": 750,
+        "playoffs": 2407,
+        "min_last_lt5": 4305
+      },
+      "threshold": "reported",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "seconds": 68.41700577735901,
+  "props_secondary": "not run: no stored 2025 A0 components exist (reports/lower_tail components are 2023-24 by construction); a live-refit props test would be a new id"
+}

@@ -677,3 +677,10 @@ CLOSED, fail by 0.0004. Last-game minutes still help P(play) once production's o
 seasons), but in 2024 the gain is -0.0046 against a -0.005 floor. The larger finding is descriptive: production's P(play) does not use the
 recent-minutes columns its own props heads use, and adding them (with or without last-game minutes) improves P(play) by about -0.017 in both
 seasons. That was seen after the fact on 2023-24, so it can only be confirmed on data that has not been looked at: the 2025 holdout or the live log.
+
+| T458 | RECENT_ROLE_HOLDOUT, season 2025 holdout, one logged touch (frozen sha256 302bc693, commit f8cae43; log row b47d212), P(play) log loss for not-OUT rostered players | R minus base -0.0205 [-0.0232, -0.0179], n 33,061 (floor -0.010); C' minus base -0.0156 [-0.0176, -0.0136]; R minus C' -0.0049 [-0.0063, -0.0034]; placebo and non-inert shuffle checks hold; ECE and slices clean. PASS |
+
+**RECENT_ROLE_HOLDOUT verdict (T458):** PASS on unseen data. Giving the P(play) model production's own recent-minutes columns plus last-game
+minutes improves it by -0.0205 log loss on the 2025 holdout (twice the frozen floor; larger than the -0.017 seen on 2023-24). About three
+quarters comes from the recent-minutes columns production already computes for its props heads, one quarter from last-game minutes. The
+first pre-registered, holdout-confirmed improvement since injury-Elo and the context-residual props model. Production change is Devin's call.

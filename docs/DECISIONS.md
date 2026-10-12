@@ -716,3 +716,9 @@ What would reverse it: nothing above the results marker changes.
 What: Stage 1 misses the floor in 2024; Stage 2 not run; production unchanged. The descriptive finding (production P(play) lacks its own
 recent-minutes columns; together about -0.017 log loss) is the candidate for the one allowed follow-up, which must be confirmed on unseen data.
 Why: frozen rule. What would reverse it: the follow-up passing on the 2025 holdout (one logged touch, Devin's decision) or on the live log.
+
+**2026-10-12 00:49 CDT — RECENT_ROLE_HOLDOUT: PASS on the 2025 holdout (T458).**
+What: R (P(play) features + production's recent-minutes columns + 5 recent-role columns) beats the current P(play) feature set by -0.0205 log loss
+on season 2025. Production is unchanged until Devin decides; the proposal is to replace the P(play) hurdle's feature set with R in the daily path,
+shadow-logged first, behind the replay oracle and the hands-off window (land before 2026-10-18 or after 2026-10-20).
+Why: holdout-confirmed with all guards. What would reverse it: the live 2026-27 log showing no P(play) gain over the first 4 weeks.
