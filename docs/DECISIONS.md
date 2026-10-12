@@ -706,3 +706,8 @@ MARKET_SHRINK (a market blend, different target), ADVANCED_RATES (placebo beat t
 One test, the fixed placebo and shuffled-label constructions, a holdout touch only if it passes and only on Devin's word.
 Why: near-misses are mostly noise when picked one by one; a single pre-fixed bundle is the honest test. What would reverse it: nothing; no member
 is added or removed after this line.
+
+**2026-10-12 00:37 CDT — RECENT_ROLE FROZEN (sha256 1bb83990, commit b28ad1c).**
+What: Stage 1 P(play) with last-game minutes vs a comparator holding production's recent-minutes columns; Stage 2a unconditional props CRPS if
+Stage 1 passes; Stage 2b does not apply; Stage 3 holdout only on Devin's word with a committed log row. Why: Devin "go" and "run, run, run".
+What would reverse it: nothing above the results marker changes.
