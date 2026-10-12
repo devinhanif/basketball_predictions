@@ -1,0 +1,232 @@
+{
+ "measured_at": "Mon Oct 12 13:54 CDT 2026",
+ "seasons": [
+  2023,
+  2024
+ ],
+ "asof_opening_roster_dirs_2023_24": [],
+ "asof_opening_roster_available": false,
+ "continuity_proxy": {
+  "team_seasons": 60,
+  "mean": 0.6368751525878906,
+  "sd": 0.1597161740064621,
+  "min": 0.21937274932861328,
+  "max": 0.9686190485954285
+ },
+ "elo": {
+  "beta_0.5": {
+   "2023": {
+    "games": 1318,
+    "early_games": 384,
+    "mean_abs_prob_change_early": 0.007245320833961268,
+    "mean_abs_prob_change_after_game_25": 0.0019117202188617226,
+    "expected_delta_early": -0.0002087616292681049,
+    "expected_delta_all": -7.502907964331106e-05,
+    "early_slice": {
+     "name": "early games, floor -0.004, sd if arm true",
+     "n": 384.0,
+     "sd_row": 0.020477932546284088,
+     "deff": 1.0,
+     "se": 0.0010450101192818475,
+     "halfwidth95": 0.002048219833792421,
+     "floor": -0.004,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 100.68490770097567,
+     "expected_effect": -0.0002087616292681049,
+     "power_one_season": 0.00014284350785646546,
+     "power_both_seasons": 2.040426773674011e-08
+    }
+   },
+   "2024": {
+    "games": 1320,
+    "early_games": 387,
+    "mean_abs_prob_change_early": 0.009346791193123071,
+    "mean_abs_prob_change_after_game_25": 0.0031992584554225933,
+    "expected_delta_early": -0.0003654230618517528,
+    "expected_delta_all": -0.0001472851346949587,
+    "early_slice": {
+     "name": "early games, floor -0.004, sd if arm true",
+     "n": 387.0,
+     "sd_row": 0.02698050336700009,
+     "deff": 1.0,
+     "se": 0.0013714960634405135,
+     "halfwidth95": 0.0026881322843434067,
+     "floor": -0.004,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 174.78020962100246,
+     "expected_effect": -0.0003654230618517528,
+     "power_one_season": 0.004023612649418183,
+     "power_both_seasons": 1.6189458752558006e-05
+    }
+   }
+  },
+  "beta_1.0": {
+   "2023": {
+    "games": 1318,
+    "early_games": 384,
+    "mean_abs_prob_change_early": 0.014482001161533068,
+    "mean_abs_prob_change_after_game_25": 0.0037992433757633977,
+    "expected_delta_early": -0.0008341644232716856,
+    "expected_delta_all": -0.00029903450413226593,
+    "early_slice": {
+     "name": "early games, floor -0.004, sd if arm true",
+     "n": 384.0,
+     "sd_row": 0.04099302218065611,
+     "deff": 1.0,
+     "se": 0.0020919164032750094,
+     "halfwidth95": 0.004100156150419018,
+     "floor": -0.004,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 403.4707309876537,
+     "expected_effect": -0.0008341644232716856,
+     "power_one_season": 0.05923310710150955,
+     "power_both_seasons": 0.003508560976898901
+    }
+   },
+   "2024": {
+    "games": 1320,
+    "early_games": 387,
+    "mean_abs_prob_change_early": 0.018630423167968486,
+    "mean_abs_prob_change_after_game_25": 0.006391822109861244,
+    "expected_delta_early": -0.001444684106091065,
+    "expected_delta_all": -0.0005841497671042145,
+    "early_slice": {
+     "name": "early games, floor -0.004, sd if arm true",
+     "n": 387.0,
+     "sd_row": 0.05348184627279276,
+     "deff": 1.0,
+     "se": 0.002718635031783013,
+     "halfwidth95": 0.0053285246622947055,
+     "floor": -0.004,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 686.7599221672675,
+     "expected_effect": -0.001444684106091065,
+     "power_one_season": 0.076559693786314,
+     "power_both_seasons": 0.005861386712654166
+    }
+   }
+  }
+ },
+ "props": {
+  "2023": {
+   "rows": 27619,
+   "early_rows": 7725,
+   "low_continuity_early_rows": 2542,
+   "tercile_cut": 0.56490159034729,
+   "descriptive_mae_ratio_low_vs_rest": 1.030237866311457,
+   "scenarios": {
+    "widen_1.05": {
+     "expected_delta_slice": -0.0019436900390601669,
+     "expected_delta_all_rows": -0.00017889351820453108
+    },
+    "widen_1.1": {
+     "expected_delta_slice": -0.007011511423618177,
+     "expected_delta_all_rows": -0.0006453261174856949
+    }
+   },
+   "slice": {
+    "name": "low-continuity early rows, floor -0.005",
+    "n": 2542.0,
+    "sd_row": 0.35607866754176126,
+    "deff": 1.0,
+    "se": 0.007062495482360465,
+    "halfwidth95": 0.013842491145426511,
+    "floor": -0.005,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 19483.36857378797,
+    "expected_effect": -0.007011511423618177,
+    "power_one_season": 0.16671728635875954,
+    "power_both_seasons": 0.02779465357082863
+   },
+   "all_rows": {
+    "name": "all rows, floor -0.005",
+    "n": 27619.0,
+    "sd_row": 0.3397846949658044,
+    "deff": 1.0,
+    "se": 0.002044559896078417,
+    "halfwidth95": 0.004007337396313697,
+    "floor": -0.005,
+    "hw_le_floor": true,
+    "n_for_hw_at_floor": 17741.06797300123,
+    "expected_effect": -0.0006453261174856949,
+    "power_one_season": 0.016590626542138852,
+    "power_both_seasons": 0.00027524888906072214
+   }
+  },
+  "2024": {
+   "rows": 27701,
+   "early_rows": 7746,
+   "low_continuity_early_rows": 2537,
+   "tercile_cut": 0.5912527441978455,
+   "descriptive_mae_ratio_low_vs_rest": 1.0600145002799153,
+   "scenarios": {
+    "widen_1.05": {
+     "expected_delta_slice": -0.0019117878608134768,
+     "expected_delta_all_rows": -0.00017509136142680013
+    },
+    "widen_1.1": {
+     "expected_delta_slice": -0.006970167945556496,
+     "expected_delta_all_rows": -0.0006383638163920736
+    }
+   },
+   "slice": {
+    "name": "low-continuity early rows, floor -0.005",
+    "n": 2537.0,
+    "sd_row": 0.3381456561280364,
+    "deff": 1.0380679553081251,
+    "se": 0.006840005824838346,
+    "halfwidth95": 0.013406411416683157,
+    "floor": -0.005,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 18239.189870605842,
+    "expected_effect": -0.006970167945556496,
+    "power_one_season": 0.17335999709782846,
+    "power_both_seasons": 0.03005368859375909
+   },
+   "all_rows": {
+    "name": "all rows, floor -0.005",
+    "n": 27701.0,
+    "sd_row": 0.33016851793432717,
+    "deff": 1.0917944641234931,
+    "se": 0.0020728046802338056,
+    "halfwidth95": 0.004062697173258259,
+    "floor": -0.005,
+    "hw_le_floor": true,
+    "n_for_hw_at_floor": 18288.763440666382,
+    "expected_effect": -0.0006383638163920736,
+    "power_one_season": 0.017679648873720578,
+    "power_both_seasons": 0.00031256998429804927
+   }
+  }
+ },
+ "gate": [
+  {
+   "check": "as-of opening roster exists for 2023-24",
+   "value": 0,
+   "pass": false
+  },
+  {
+   "check": "(a) 2023 early-games power >= 0.5 at beta 1.0",
+   "value": 0.05923310710150955,
+   "pass": false
+  },
+  {
+   "check": "(b) 2023 low-continuity early rows power >= 0.5 at widen 1.10",
+   "value": 0.16671728635875954,
+   "pass": false
+  },
+  {
+   "check": "(a) 2024 early-games power >= 0.5 at beta 1.0",
+   "value": 0.076559693786314,
+   "pass": false
+  },
+  {
+   "check": "(b) 2024 low-continuity early rows power >= 0.5 at widen 1.10",
+   "value": 0.17335999709782846,
+   "pass": false
+  }
+ ],
+ "gate_pass_a": false,
+ "gate_pass_b": false,
+ "wall_s": 6.595427751541138
+}

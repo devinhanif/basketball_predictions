@@ -1,0 +1,141 @@
+{
+ "measured_at": "Mon Oct 12 13:54 CDT 2026",
+ "seasons": [
+  2023,
+  2024
+ ],
+ "rows": 66220,
+ "team_missing": 0,
+ "sizing": {
+  "2023": {
+   "n": 33093,
+   "games": 1318,
+   "questionable_rows": 1319,
+   "q_streak_ge1": 227,
+   "q_streak_ge3": 69,
+   "q_change_upgraded": 498,
+   "q_change_downgraded": 17,
+   "q_change_on_questionable_rows_nonzero": 31,
+   "primary_all_rows": {
+    "name": "all R rows, floor -0.005",
+    "n": 33093.0,
+    "sd_row": 0.12653610655052688,
+    "deff": 1.3873673020798314,
+    "se": 0.0008192984344794179,
+    "halfwidth95": 0.0016058249315796592,
+    "floor": -0.005,
+    "hw_le_floor": true,
+    "n_for_hw_at_floor": 3413.4419645698026,
+    "expected_effect": -0.0003236348980559311,
+    "power_one_season": 5.723376595112202e-09,
+    "power_both_seasons": 3.275703964947814e-17
+   },
+   "slice_questionable": {
+    "name": "questionable rows, floor -0.005",
+    "n": 1319.0,
+    "sd_row": 0.12090952914719462,
+    "deff": 1.0472559434471407,
+    "se": 0.0034069405005296366,
+    "halfwidth95": 0.006677603381038088,
+    "floor": -0.005,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 2352.588813606451,
+    "expected_effect": -0.008119825383900629,
+    "power_one_season": 0.6639686643377611,
+    "power_both_seasons": 0.4408543872224705
+   },
+   "scenarios": {
+    "shift_0.05": {
+     "expected_delta_all_rows": -0.00011841825287160853,
+     "expected_delta_questionable_rows": -0.0029710502215922223
+    },
+    "shift_0.1": {
+     "expected_delta_all_rows": -0.0003236348980559311,
+     "expected_delta_questionable_rows": -0.008119825383900629
+    }
+   }
+  },
+  "2024": {
+   "n": 33127,
+   "games": 1320,
+   "questionable_rows": 1345,
+   "q_streak_ge1": 105,
+   "q_streak_ge3": 4,
+   "q_change_upgraded": 489,
+   "q_change_downgraded": 15,
+   "q_change_on_questionable_rows_nonzero": 40,
+   "primary_all_rows": {
+    "name": "all R rows, floor -0.005",
+    "n": 33127.0,
+    "sd_row": 0.12037967055949698,
+    "deff": 1.3280001176255918,
+    "se": 0.0007621863265507891,
+    "halfwidth95": 0.0014938852000395467,
+    "floor": -0.005,
+    "hw_le_floor": true,
+    "n_for_hw_at_floor": 2957.171748378057,
+    "expected_effect": -0.00012924845591911888,
+    "power_one_season": 8.267222705976545e-11,
+    "power_both_seasons": 6.834697127021415e-21
+   },
+   "slice_questionable": {
+    "name": "questionable rows, floor -0.005",
+    "n": 1345.0,
+    "sd_row": 0.12588812733811863,
+    "deff": 1.0281303166578022,
+    "se": 0.0034805486915903483,
+    "halfwidth95": 0.006821875435517082,
+    "floor": -0.005,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 2503.7435638248726,
+    "expected_effect": -0.003183355835860708,
+    "power_one_season": 0.14792212141719896,
+    "power_both_seasons": 0.02188095400456455
+   },
+   "scenarios": {
+    "shift_0.05": {
+     "expected_delta_all_rows": -3.337766021470231e-05,
+     "expected_delta_questionable_rows": -0.0008220830854516307
+    },
+    "shift_0.1": {
+     "expected_delta_all_rows": -0.00012924845591911888,
+     "expected_delta_questionable_rows": -0.003183355835860708
+    }
+   }
+  }
+ },
+ "gate": [
+  {
+   "check": "2023 all rows: half-width <= 0.005",
+   "value": 0.0016058249315796592,
+   "pass": true
+  },
+  {
+   "check": "2023 all rows: power >= 0.5 at the 0.10-shift scenario",
+   "value": 5.723376595112202e-09,
+   "pass": false
+  },
+  {
+   "check": "2023 q_streak >= 1 on >= 300 questionable rows",
+   "value": 227,
+   "pass": false
+  },
+  {
+   "check": "2024 all rows: half-width <= 0.005",
+   "value": 0.0014938852000395467,
+   "pass": true
+  },
+  {
+   "check": "2024 all rows: power >= 0.5 at the 0.10-shift scenario",
+   "value": 8.267222705976545e-11,
+   "pass": false
+  },
+  {
+   "check": "2024 q_streak >= 1 on >= 300 questionable rows",
+   "value": 105,
+   "pass": false
+  }
+ ],
+ "gate_pass": false,
+ "wall_s": 0.26749277114868164
+}

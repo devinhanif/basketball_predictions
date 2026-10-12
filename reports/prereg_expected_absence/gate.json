@@ -1,0 +1,227 @@
+{
+ "measured_at": "Mon Oct 12 13:54 CDT 2026",
+ "seasons": [
+  2023,
+  2024
+ ],
+ "coverage": {
+  "2023/available": {
+   "n": 810,
+   "share_with_p": 0.8765432098765432,
+   "value_share_with_p": 0.9645233018357976,
+   "n_value_gt0": 775
+  },
+  "2023/doubtful": {
+   "n": 232,
+   "share_with_p": 0.23706896551724138,
+   "value_share_with_p": 0.15516486894189063,
+   "n_value_gt0": 221
+  },
+  "2023/probable": {
+   "n": 659,
+   "share_with_p": 0.9817905918057663,
+   "value_share_with_p": 0.9952276112334981,
+   "n_value_gt0": 624
+  },
+  "2023/questionable": {
+   "n": 2045,
+   "share_with_p": 0.6449877750611247,
+   "value_share_with_p": 0.7682087774501053,
+   "n_value_gt0": 1850
+  },
+  "2024/available": {
+   "n": 826,
+   "share_with_p": 0.9055690072639225,
+   "value_share_with_p": 0.977253293420655,
+   "n_value_gt0": 773
+  },
+  "2024/doubtful": {
+   "n": 262,
+   "share_with_p": 0.26717557251908397,
+   "value_share_with_p": 0.26093741870173714,
+   "n_value_gt0": 245
+  },
+  "2024/probable": {
+   "n": 777,
+   "share_with_p": 0.9691119691119691,
+   "value_share_with_p": 0.9880577477178983,
+   "n_value_gt0": 742
+  },
+  "2024/questionable": {
+   "n": 1972,
+   "share_with_p": 0.6820486815415822,
+   "value_share_with_p": 0.7256959772305587,
+   "n_value_gt0": 1881
+  }
+ },
+ "missing_p_in_box_share": 0.09710743801652892,
+ "coef_used": {
+  "b_out": 0.3160532523764565,
+  "g_doubt": 0.011648605972584812
+ },
+ "sizing": {
+  "2023": {
+   "games": 1318,
+   "games_with_fallback_value": 532,
+   "games_with_listed_valued_not_out": 1174,
+   "logit_change_mean_abs": 0.04654125931045775,
+   "logit_change_share_gt_0.05": 0.2905918057663126,
+   "prob_change_mean_abs": 0.009194511961104306,
+   "proxy_sd_game_injury_minus_mov": 0.14219126651011363,
+   "bernoulli_sd_game_if_arm_true": 0.03615399875014802,
+   "deff_date": 1.080132745312951,
+   "primary": {
+    "name": "all games, floor -0.002",
+    "n": 1318.0,
+    "sd_row": 0.14219126651011363,
+    "deff": 1.080132745312951,
+    "se": 0.0040705564660732515,
+    "halfwidth95": 0.007978290673503573,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 20973.703722366194,
+    "expected_effect": -0.000664031102626386,
+    "power_one_season": 0.036178154051674453,
+    "power_both_seasons": 0.0013088588305866886
+   },
+   "primary_alt_floor": {
+    "name": "all games, floor -0.004",
+    "n": 1318.0,
+    "sd_row": 0.14219126651011363,
+    "deff": 1.080132745312951,
+    "se": 0.0040705564660732515,
+    "halfwidth95": 0.007978290673503573,
+    "floor": -0.004,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 5243.425930591548,
+    "expected_effect": -0.000664031102626386,
+    "power_one_season": 0.036178154051674453,
+    "power_both_seasons": 0.0013088588305866886
+   },
+   "primary_bernoulli_sd": {
+    "name": "all games, floor -0.002, sd if the arm were true",
+    "n": 1318.0,
+    "sd_row": 0.03615399875014802,
+    "deff": 1.080132745312951,
+    "se": 0.001034992492850127,
+    "halfwidth95": 0.002028585285986249,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 1355.9446475003106,
+    "expected_effect": -0.000664031102626386,
+    "power_one_season": 0.09368164470930501,
+    "power_both_seasons": 0.008776250555440455
+   },
+   "close_slice": {
+    "name": "|p-0.5|<0.2, floor -0.002",
+    "n": 772.0,
+    "sd_row": 0.131877742126891,
+    "deff": 1.0,
+    "se": 0.0047463837978055385,
+    "halfwidth95": 0.009302912243698854,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 16703.02600929468,
+    "expected_effect": -0.0007940684386542414,
+    "power_one_season": 0.03651042679538833,
+    "power_both_seasons": 0.0013330112647814102
+   }
+  },
+  "2024": {
+   "games": 1315,
+   "games_with_fallback_value": 546,
+   "games_with_listed_valued_not_out": 1144,
+   "logit_change_mean_abs": 0.05123570143707898,
+   "logit_change_share_gt_0.05": 0.3231939163498099,
+   "prob_change_mean_abs": 0.010128566901097855,
+   "proxy_sd_game_injury_minus_mov": 0.13084227598775014,
+   "bernoulli_sd_game_if_arm_true": 0.04139611711419909,
+   "deff_date": 1.225257716058189,
+   "primary": {
+    "name": "all games, floor -0.002",
+    "n": 1315.0,
+    "sd_row": 0.13084227598775014,
+    "deff": 1.225257716058189,
+    "se": 0.003993916093253544,
+    "halfwidth95": 0.007828075542776945,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 20145.39455375018,
+    "expected_effect": -0.0008496715747545518,
+    "power_one_season": 0.040296251403280504,
+    "power_both_seasons": 0.001623787877156386
+   },
+   "primary_alt_floor": {
+    "name": "all games, floor -0.004",
+    "n": 1315.0,
+    "sd_row": 0.13084227598775014,
+    "deff": 1.225257716058189,
+    "se": 0.003993916093253544,
+    "halfwidth95": 0.007828075542776945,
+    "floor": -0.004,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 5036.348638437545,
+    "expected_effect": -0.0008496715747545518,
+    "power_one_season": 0.040296251403280504,
+    "power_both_seasons": 0.001623787877156386
+   },
+   "primary_bernoulli_sd": {
+    "name": "all games, floor -0.002, sd if the arm were true",
+    "n": 1315.0,
+    "sd_row": 0.04139611711419909,
+    "deff": 1.225257716058189,
+    "se": 0.001263602433483251,
+    "halfwidth95": 0.0024766607696271718,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 2016.5027166676223,
+    "expected_effect": -0.0008496715747545518,
+    "power_one_season": 0.09894610616344268,
+    "power_both_seasons": 0.00979033192490727
+   },
+   "close_slice": {
+    "name": "|p-0.5|<0.2, floor -0.002",
+    "n": 731.0,
+    "sd_row": 0.1260147842118039,
+    "deff": 1.0,
+    "se": 0.004660825158994797,
+    "halfwidth95": 0.009135217311629801,
+    "floor": -0.002,
+    "hw_le_floor": false,
+    "n_for_hw_at_floor": 15250.88869668558,
+    "expected_effect": -0.0008055782934746489,
+    "power_one_season": 0.036955838191479656,
+    "power_both_seasons": 0.0013657339764348263
+   }
+  }
+ },
+ "gate": [
+  {
+   "check": "2023 half-width <= 0.002",
+   "value": 0.007978290673503573,
+   "pass": false
+  },
+  {
+   "check": "2023 power >= 0.5 at the KL ceiling",
+   "value": 0.036178154051674453,
+   "pass": false
+  },
+  {
+   "check": "2024 half-width <= 0.002",
+   "value": 0.007828075542776945,
+   "pass": false
+  },
+  {
+   "check": "2024 power >= 0.5 at the KL ceiling",
+   "value": 0.040296251403280504,
+   "pass": false
+  },
+  {
+   "check": "P(play) R covers >= 90% of questionable value",
+   "value": 0.7256959772305587,
+   "pass": false
+  }
+ ],
+ "gate_pass": false,
+ "wall_s": 0.245103120803833
+}

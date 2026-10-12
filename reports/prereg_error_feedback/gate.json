@@ -1,0 +1,200 @@
+{
+ "measured_at": "Mon Oct 12 14:09 CDT 2026",
+ "seasons": [
+  2023,
+  2024
+ ],
+ "training_coverage_by_block": [
+  {
+   "block": 0,
+   "train_rows_approx": 27737,
+   "train_rows_with_feature": 0,
+   "share": 0.0
+  },
+  {
+   "block": 1,
+   "train_rows_approx": 28799,
+   "train_rows_with_feature": 707,
+   "share": 0.024549463523038995
+  },
+  {
+   "block": 2,
+   "train_rows_approx": 33321,
+   "train_rows_with_feature": 5135,
+   "share": 0.15410701959725098
+  },
+  {
+   "block": 3,
+   "train_rows_approx": 37667,
+   "train_rows_with_feature": 9449,
+   "share": 0.25085618711338836
+  },
+  {
+   "block": 4,
+   "train_rows_approx": 42599,
+   "train_rows_with_feature": 14362,
+   "share": 0.3371440644146576
+  },
+  {
+   "block": 5,
+   "train_rows_approx": 46290,
+   "train_rows_with_feature": 18036,
+   "share": 0.38963058976020737
+  },
+  {
+   "block": 6,
+   "train_rows_approx": 51115,
+   "train_rows_with_feature": 22841,
+   "share": 0.44685513058789006
+  },
+  {
+   "block": 7,
+   "train_rows_approx": 54396,
+   "train_rows_with_feature": 26108,
+   "share": 0.47996176189425693
+  },
+  {
+   "block": 8,
+   "train_rows_approx": 55242,
+   "train_rows_with_feature": 26954,
+   "share": 0.4879258535172514
+  },
+  {
+   "block": 9,
+   "train_rows_approx": 55356,
+   "train_rows_with_feature": 27068,
+   "share": 0.4889804176602356
+  },
+  {
+   "block": 10,
+   "train_rows_approx": 56763,
+   "train_rows_with_feature": 28465,
+   "share": 0.5014710286630375
+  },
+  {
+   "block": 11,
+   "train_rows_approx": 61413,
+   "train_rows_with_feature": 33065,
+   "share": 0.5384039209939264
+  },
+  {
+   "block": 12,
+   "train_rows_approx": 65420,
+   "train_rows_with_feature": 37057,
+   "share": 0.5664475695505962
+  },
+  {
+   "block": 13,
+   "train_rows_approx": 70267,
+   "train_rows_with_feature": 41891,
+   "share": 0.5961688986295132
+  },
+  {
+   "block": 14,
+   "train_rows_approx": 73972,
+   "train_rows_with_feature": 45592,
+   "share": 0.6163413183366679
+  },
+  {
+   "block": 15,
+   "train_rows_approx": 78957,
+   "train_rows_with_feature": 50569,
+   "share": 0.6404625302379776
+  },
+  {
+   "block": 16,
+   "train_rows_approx": 82056,
+   "train_rows_with_feature": 53657,
+   "share": 0.6539070878424491
+  },
+  {
+   "block": 17,
+   "train_rows_approx": 82898,
+   "train_rows_with_feature": 54499,
+   "share": 0.657422374484306
+  }
+ ],
+ "sizing": {
+  "2023": {
+   "rows": 27619,
+   "rows_with_feature(ef_n>=3)": 25988,
+   "share_with_feature": 0.9409464499076723,
+   "ef_res_l5_sd": 2.9087220008783543,
+   "descriptive_slope_res_on_l5": 0.14859691406925402,
+   "slope_ci95_game": [
+    0.12007276422766013,
+    0.17584636521434804
+   ],
+   "expected_delta_all_rows": -0.00959051311809045,
+   "primary": {
+    "name": "all rows, floor -0.005",
+    "n": 27619.0,
+    "sd_row": 0.3397846949658044,
+    "deff": 1.0,
+    "se": 0.002044559896078417,
+    "halfwidth95": 0.004007337396313697,
+    "floor": -0.005,
+    "hw_le_floor": true,
+    "n_for_hw_at_floor": 17741.06797300123,
+    "expected_effect": -0.00959051311809045,
+    "power_one_season": 0.9876234070492298,
+    "power_both_seasons": 0.9753999941515287
+   }
+  },
+  "2024": {
+   "rows": 27701,
+   "rows_with_feature(ef_n>=3)": 27383,
+   "share_with_feature": 0.9885202700263528,
+   "ef_res_l5_sd": 2.826486998675824,
+   "descriptive_slope_res_on_l5": 0.10159957497740812,
+   "slope_ci95_game": [
+    0.07137726796154034,
+    0.13304284935717514
+   ],
+   "expected_delta_all_rows": -0.004520901012690939,
+   "primary": {
+    "name": "all rows, floor -0.005",
+    "n": 27701.0,
+    "sd_row": 0.33016851793432717,
+    "deff": 1.0917944641234931,
+    "se": 0.0020728046802338056,
+    "halfwidth95": 0.004062697173258259,
+    "floor": -0.005,
+    "hw_le_floor": true,
+    "n_for_hw_at_floor": 18288.763440666382,
+    "expected_effect": -0.004520901012690939,
+    "power_one_season": 0.4086047231609158,
+    "power_both_seasons": 0.16695781978940863
+   }
+  }
+ },
+ "gate": [
+  {
+   "check": "2023 half-width <= 0.005",
+   "value": 0.004007337396313697,
+   "pass": true
+  },
+  {
+   "check": "2023 power >= 0.5 at the descriptive persistence",
+   "value": 0.9876234070492298,
+   "pass": true
+  },
+  {
+   "check": "2024 half-width <= 0.005",
+   "value": 0.004062697173258259,
+   "pass": true
+  },
+  {
+   "check": "2024 power >= 0.5 at the descriptive persistence",
+   "value": 0.4086047231609158,
+   "pass": false
+  },
+  {
+   "check": "first 2023 block: training rows with the feature >= 0.5",
+   "value": 0.0,
+   "pass": false
+  }
+ ],
+ "gate_pass": false,
+ "wall_s": 16.579953908920288
+}

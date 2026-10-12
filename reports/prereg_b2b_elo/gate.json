@@ -1,0 +1,254 @@
+{
+ "measured_at": "Mon Oct 12 13:57 CDT 2026",
+ "seasons": [
+  2023,
+  2024
+ ],
+ "null_b2b": 0,
+ "sizing": {
+  "2023": {
+   "games": 1318,
+   "either_b2b": 365,
+   "b2b_diff_nonzero": 308,
+   "home_only": 146,
+   "away_only": 162,
+   "close_games": 772,
+   "early_games": 384,
+   "proxy_sd_injury_minus_mov": 0.14219126651011363,
+   "beta_-0.35": {
+    "expected_delta_all": -0.00282853404322824,
+    "expected_delta_close": -0.0032080734472735187,
+    "expected_delta_early": -0.0031141516919720546,
+    "primary_bernoulli_sd": {
+     "name": "all games, floor -0.002, sd if arm true",
+     "n": 1318.0,
+     "sd_row": 0.07485507991586426,
+     "deff": 1.080132745312951,
+     "se": 0.002142901157352577,
+     "halfwidth95": 0.004200086268411051,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 5812.618776160326,
+     "expected_effect": -0.00282853404322824,
+     "power_one_season": 0.2610718156100795,
+     "power_both_seasons": 0.06815849290594336
+    },
+    "primary_proxy_sd": {
+     "name": "all games, floor -0.002, stored injury-minus-MOV sd",
+     "n": 1318.0,
+     "sd_row": 0.14219126651011363,
+     "deff": 1.080132745312951,
+     "se": 0.0040705564660732515,
+     "halfwidth95": 0.007978290673503573,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 20973.703722366194,
+     "expected_effect": -0.00282853404322824,
+     "power_one_season": 0.10291353057204428,
+     "power_both_seasons": 0.010591194774803091
+    },
+    "alt_floor_bernoulli_sd": {
+     "name": "all games, floor -0.004",
+     "n": 1318.0,
+     "sd_row": 0.07485507991586426,
+     "deff": 1.080132745312951,
+     "se": 0.002142901157352577,
+     "halfwidth95": 0.004200086268411051,
+     "floor": -0.004,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 1453.1546940400815,
+     "expected_effect": -0.00282853404322824,
+     "power_one_season": 0.2610718156100795,
+     "power_both_seasons": 0.06815849290594336
+    }
+   },
+   "beta_-0.175": {
+    "expected_delta_all": -0.0007123892000206487,
+    "expected_delta_close": -0.0008099579293936992,
+    "expected_delta_early": -0.0007882801301137419,
+    "primary_bernoulli_sd": {
+     "name": "all games, floor -0.002, sd if arm true",
+     "n": 1318.0,
+     "sd_row": 0.03769624376915493,
+     "deff": 1.080132745312951,
+     "se": 0.0010791428516482978,
+     "halfwidth95": 0.002115119989230664,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 1474.0948814338087,
+     "expected_effect": -0.0007123892000206487,
+     "power_one_season": 0.0968250879504845,
+     "power_both_seasons": 0.009375097656619058
+    },
+    "primary_proxy_sd": {
+     "name": "all games, floor -0.002, stored injury-minus-MOV sd",
+     "n": 1318.0,
+     "sd_row": 0.14219126651011363,
+     "deff": 1.080132745312951,
+     "se": 0.0040705564660732515,
+     "halfwidth95": 0.007978290673503573,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 20973.703722366194,
+     "expected_effect": -0.0007123892000206487,
+     "power_one_season": 0.0371314916388275,
+     "power_both_seasons": 0.0013787476713243165
+    },
+    "alt_floor_bernoulli_sd": {
+     "name": "all games, floor -0.004",
+     "n": 1318.0,
+     "sd_row": 0.03769624376915493,
+     "deff": 1.080132745312951,
+     "se": 0.0010791428516482978,
+     "halfwidth95": 0.002115119989230664,
+     "floor": -0.004,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 368.5237203584522,
+     "expected_effect": -0.0007123892000206487,
+     "power_one_season": 0.001157604894036636,
+     "power_both_seasons": 1.340049090697571e-06
+    }
+   },
+   "deff_date": 1.080132745312951
+  },
+  "2024": {
+   "games": 1315,
+   "either_b2b": 379,
+   "b2b_diff_nonzero": 308,
+   "home_only": 150,
+   "away_only": 158,
+   "close_games": 731,
+   "early_games": 384,
+   "proxy_sd_injury_minus_mov": 0.13084227598775014,
+   "beta_-0.35": {
+    "expected_delta_all": -0.0028263381304468684,
+    "expected_delta_close": -0.003125716099502608,
+    "expected_delta_early": -0.0030855258855849014,
+    "primary_bernoulli_sd": {
+     "name": "all games, floor -0.002, sd if arm true",
+     "n": 1315.0,
+     "sd_row": 0.07495305999597014,
+     "deff": 1.225257716058189,
+     "se": 0.0022879167325439236,
+     "halfwidth95": 0.00448431679578609,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 6610.865679833633,
+     "expected_effect": -0.0028263381304468684,
+     "power_one_season": 0.23432805024377573,
+     "power_both_seasons": 0.05490963513104948
+    },
+    "primary_proxy_sd": {
+     "name": "all games, floor -0.002, stored injury-minus-MOV sd",
+     "n": 1315.0,
+     "sd_row": 0.13084227598775014,
+     "deff": 1.225257716058189,
+     "se": 0.003993916093253544,
+     "halfwidth95": 0.007828075542776945,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 20145.39455375018,
+     "expected_effect": -0.0028263381304468684,
+     "power_one_season": 0.10522315778769581,
+     "power_both_seasons": 0.01107191293481433
+    },
+    "alt_floor_bernoulli_sd": {
+     "name": "all games, floor -0.004",
+     "n": 1315.0,
+     "sd_row": 0.07495305999597014,
+     "deff": 1.225257716058189,
+     "se": 0.0022879167325439236,
+     "halfwidth95": 0.00448431679578609,
+     "floor": -0.004,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 1652.7164199584083,
+     "expected_effect": -0.0028263381304468684,
+     "power_one_season": 0.23432805024377573,
+     "power_both_seasons": 0.05490963513104948
+    }
+   },
+   "beta_-0.175": {
+    "expected_delta_all": -0.000709478717771288,
+    "expected_delta_close": -0.0007867859155593269,
+    "expected_delta_early": -0.0007780305506127893,
+    "primary_bernoulli_sd": {
+     "name": "all games, floor -0.002, sd if arm true",
+     "n": 1315.0,
+     "sd_row": 0.0376498233868214,
+     "deff": 1.225257716058189,
+     "se": 0.0011492480881856394,
+     "halfwidth95": 0.0022525262528438534,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 1668.036248368066,
+     "expected_effect": -0.000709478717771288,
+     "power_one_season": 0.08969131444068729,
+     "power_both_seasons": 0.00804453188609824
+    },
+    "primary_proxy_sd": {
+     "name": "all games, floor -0.002, stored injury-minus-MOV sd",
+     "n": 1315.0,
+     "sd_row": 0.13084227598775014,
+     "deff": 1.225257716058189,
+     "se": 0.003993916093253544,
+     "halfwidth95": 0.007828075542776945,
+     "floor": -0.002,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 20145.39455375018,
+     "expected_effect": -0.000709478717771288,
+     "power_one_season": 0.037345261067541775,
+     "power_both_seasons": 0.0013946685242028514
+    },
+    "alt_floor_bernoulli_sd": {
+     "name": "all games, floor -0.004",
+     "n": 1315.0,
+     "sd_row": 0.0376498233868214,
+     "deff": 1.225257716058189,
+     "se": 0.0011492480881856394,
+     "halfwidth95": 0.0022525262528438534,
+     "floor": -0.004,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 417.0090620920165,
+     "expected_effect": -0.000709478717771288,
+     "power_one_season": 0.0020969624042993227,
+     "power_both_seasons": 4.397251325044796e-06
+    }
+   },
+   "deff_date": 1.225257716058189
+  }
+ },
+ "gate": [
+  {
+   "check": "2023 half-width <= 0.002 (arm-implied sd)",
+   "value": 0.004200086268411051,
+   "pass": false
+  },
+  {
+   "check": "2023 power >= 0.5 at beta -0.35",
+   "value": 0.2610718156100795,
+   "pass": false
+  },
+  {
+   "check": "2023 >= 300 games with a b2b difference",
+   "value": 308,
+   "pass": true
+  },
+  {
+   "check": "2024 half-width <= 0.002 (arm-implied sd)",
+   "value": 0.00448431679578609,
+   "pass": false
+  },
+  {
+   "check": "2024 power >= 0.5 at beta -0.35",
+   "value": 0.23432805024377573,
+   "pass": false
+  },
+  {
+   "check": "2024 >= 300 games with a b2b difference",
+   "value": 308,
+   "pass": true
+  }
+ ],
+ "gate_pass": false,
+ "wall_s": 0.061203956604003906
+}
