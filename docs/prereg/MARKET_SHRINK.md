@@ -1,6 +1,6 @@
 # MARKET_SHRINK: calibrate the model toward the de-vigged market price and score it on decisions (pre-registration)
 
-Status: DRAFT 2026-10-11. Not frozen. Nothing is fitted or scored by this document. Freeze by a hand that can commit before any fit.
+Status: FROZEN 2026-10-11 under Devin's approval ("yes yes", freeze and run now), exactly as drafted, no amendments. Committed by the maintainer's hand BEFORE any fit.
 Freeze evidence: commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/MARKET_SHRINK.md | shasum -a 256`.
 Seasons: 2023 = 2023-24 (select), 2024 = 2024-25 (report). Season 2025 is never loaded and never touched under this rule.
 
