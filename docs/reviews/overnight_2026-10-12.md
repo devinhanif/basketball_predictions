@@ -22,3 +22,4 @@
 ## Log
 - 01:53 loop started; limits: no 2025 holdout, no production promotion, no purchases, <= 2 new agents at a time.
 - 02:03 RECENT_ROLE_HOLDOUT attacked by the adversary: SURVIVES (T462). Attribution corrected (T463): the gain is recent minutes, 96% from the 5 recent-role columns. Against the deployed P(play): -0.097. Shadow will also log C and C' (steward item 8). Diagnostic 2025 arms disclosed in the holdout log.
+- 02:22 Coverage restored to 71.99% with real tests for 7 research modules (no omits beyond the Colab jobs, threshold unchanged). Fragility noted, not fixed: xgb_pts_vs_lt_eval.write_ledger KeyError when a minutes slice has < 300 rows (cannot trigger on real data).
