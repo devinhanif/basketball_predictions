@@ -686,3 +686,10 @@ quarters comes from the recent-minutes columns production already computes for i
 first pre-registered, holdout-confirmed improvement since injury-Elo and the context-residual props model. Production change is Devin's call.
 
 | T459 | Correction to T439 (ADVANCED_RATES) from the 2026-10-12 ledger audit | The verdict (null) stands. The reading "placebo better than the real columns in 14 of 15 cells" is withdrawn: the placebo permuted feature values within player-season and so carried future, player-level information (USAGE_PACE/pts placebo minus A0 -0.0218 [-0.0267, -0.0169] / -0.0151 [-0.0196, -0.0108]); it was not a null. The shuffled-label arm was inert. docs/reviews/ledger_audit_2026-10-12.md |
+
+| T460 | PI_RECENT_ROLE: lower-tail pi refit with the 5 recent-role columns, integer CRPS vs A0 (frozen sha256 2d4458ef, commit 304951a) | pts -0.0059 [-0.0076, -0.0043] / -0.0046 [-0.0062, -0.0030]; reb -0.0030 / -0.0026; ast -0.0011 / -0.0012; fg3m -0.0009 / -0.0003 (2023 / 2024); n 27,619 / 27,701. Every CI excludes zero; placebo near 0; shuffle checks hold. Oracle pi pts -0.150 / -0.146 |
+| T461 | PI_RECENT_ROLE verdict | FAIL: pts selects on 2023 but misses the 2024 floor by 0.0004; reb/ast/fg3m below the floor and the 0.003 placebo margin. No holdout touch. CLOSED |
+
+**PI_RECENT_ROLE verdict (T460-T461):** the second near-miss of the night on the same mechanism, by the same margin. Recent-role minutes improve
+the short-minutes piece of the props model in every stat and both seasons, with intervals well clear of zero, but by about 3% of the oracle gap:
+the pi classifier sees the signal and the rest of the mixture does not let it move the forecast much. Real, small, not a pass.
