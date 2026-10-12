@@ -1,6 +1,6 @@
 # COACH_PHASE: coach habits that differ between playoffs and regular season, and shift game by game (pre-registration)
 
-Status: **DRAFT (Sun Oct 11 23:10 CDT 2026), passes its minimum-data gate (non-negotiable 8) with two stated limits.** Not frozen. The main
+Status: **FROZEN (Sun Oct 11 23:25 CDT 2026) by the main session on Devin's "yes to all", accepting that the coach claim cannot PASS (at most suggestive; shadow column in 2026-27).** Earlier: **DRAFT (Sun Oct 11 23:10 CDT 2026), passes its minimum-data gate (non-negotiable 8) with two stated limits.** Not frozen. The main
 session commits `prereg(COACH_PHASE): <sha256>` BEFORE any arm is fitted. Everything above the line `=== RESULTS BELOW ===` is the rule.
 Freeze evidence: commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/COACH_PHASE.md | shasum -a 256`.
 Season labels are `games.season` (2023 = 2023-24, 2024 = 2024-25; 2022 is warm-up only; 2025 is the frozen holdout, never loaded).
