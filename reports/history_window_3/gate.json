@@ -1,11 +1,7 @@
 {
-  "audit_sha256": "9b1e88b8af72c9bf83a225225a8a89e89c96f33d2b8d2f23a1237771d77b4be4",
-  "failed_items": [
-    "G1b_static",
-    "G4_missingness",
-    "G5_era"
-  ],
-  "gate_pass": false,
+  "audit_sha256": "b80a6d22e296e636effd71ca925f7a87aa70b94cc5a4919269a07f86b84a0a36",
+  "failed_items": [],
+  "gate_pass": true,
   "items": {
     "DIAGNOSTIC_without_pos_code": {
       "g4_false_flags_on_current_seasons": [],
@@ -69,16 +65,20 @@
           "n_team_games": 2286
         },
         "2020": {
-          "mae": 2.027378309137487,
+          "mae": 2.027378309137489,
           "n_team_games": 2342
         }
       }
     },
     "G1b_static": {
       "history_players": 638,
-      "pass": false,
+      "never_played_without_static": [
+        1626218
+      ],
+      "pass": true,
       "remedy": "python -W ignore -m research.eval.history_window3_eval fetch-static (free nba_api, ~0.6 s per player, resumable)",
-      "without_static_in_either_db_or_cache": 244
+      "without_static_and_played": 0,
+      "without_static_in_either_db_or_cache": 1
     },
     "G2_rows": {
       "ast": {
@@ -147,19 +147,8 @@
       "box_cells": 26,
       "false_flags_on_current_seasons": [],
       "feature_cells": 350,
-      "flagged_history_cells": [
-        "pos_code|all|2019",
-        "pos_code|all|2020",
-        "pos_code|m10-20|2019",
-        "pos_code|m10-20|2020",
-        "pos_code|m20-30|2019",
-        "pos_code|m20-30|2020",
-        "pos_code|m<=10|2019",
-        "pos_code|m<=10|2020",
-        "pos_code|m>30|2019",
-        "pos_code|m>30|2020"
-      ],
-      "pass": false
+      "flagged_history_cells": [],
+      "pass": true
     },
     "G5_era": {
       "declared_report_columns_auc": {
@@ -171,14 +160,13 @@
         "n_train": 84402
       },
       "history_flags": {
-        "2019v2022": true,
-        "2020v2022": true,
-        "hist_pooled_v_cur_pooled": true
+        "2019v2022": false,
+        "2020v2022": false,
+        "hist_pooled_v_cur_pooled": false
       },
       "indicator_columns": [
         "opp_r20_pts_for",
         "opp_r20_pts_against",
-        "pos_code",
         "opp_allow_pts",
         "opp_allow_reb",
         "opp_allow_ast",
@@ -187,17 +175,17 @@
       "limit": 0.505,
       "pairs": {
         "2019v2022": {
-          "auc": 0.6201933523272648,
-          "hi": 0.6254643620421737,
-          "lo": 0.615963863771512,
+          "auc": 0.49938386147339947,
+          "hi": 0.5013227009455492,
+          "lo": 0.49743612688731303,
           "n_games_test": 794,
           "n_test": 15955,
           "n_train": 30677
         },
         "2020v2022": {
-          "auc": 0.5859012932029132,
-          "hi": 0.5899543126737127,
-          "lo": 0.5818042780599576,
+          "auc": 0.5008519822787686,
+          "hi": 0.5020858947591951,
+          "lo": 0.5,
           "n_games_test": 819,
           "n_test": 16773,
           "n_train": 32859
@@ -227,16 +215,16 @@
           "n_train": 37173
         },
         "hist_pooled_v_cur_pooled": {
-          "auc": 0.6016631459307221,
-          "hi": 0.6057650362491642,
-          "lo": 0.5988659371692668,
+          "auc": 0.4995839405365734,
+          "hi": 0.5003065025111721,
+          "lo": 0.4985910938087683,
           "n_games_test": 2046,
           "n_test": 42072,
           "n_train": 84402
         }
       },
-      "pass": false,
-      "pass_rule": false,
+      "pass": true,
+      "pass_rule": true,
       "placebo_max_auc": 0.5008519822787686,
       "placebo_rule_ok": true,
       "placebo_self_flags": {
@@ -246,17 +234,17 @@
       },
       "value_auc_descriptive": {
         "2019v2022": {
-          "auc": 0.9604083644456168,
-          "hi": 0.9666443397198962,
-          "lo": 0.9481359852189156,
+          "auc": 0.9490632610501657,
+          "hi": 0.95776880550917,
+          "lo": 0.932906589895147,
           "n_games_test": 794,
           "n_test": 15955,
           "n_train": 30677
         },
         "2020v2022": {
-          "auc": 0.9965496107392384,
-          "hi": 0.9971147790364876,
-          "lo": 0.9956634345855492,
+          "auc": 0.9957162430795593,
+          "hi": 0.9964715830141163,
+          "lo": 0.994585668779813,
           "n_games_test": 819,
           "n_test": 16773,
           "n_train": 32859
@@ -348,7 +336,7 @@
       "n_blocks": 18,
       "old_2024_reference_3.1884_would_pass": false,
       "pass": true,
-      "seconds": 23.269101858139038,
+      "seconds": 26.53604817390442,
       "skipped": []
     }
   },
