@@ -1,0 +1,42 @@
+{
+  "cells": {
+    "P": {
+      "gain_full": -0.01570046593243907,
+      "gain_shuffled": 0.16571442261453212,
+      "mde": 0.0025051122729490647,
+      "shuffled_ok": true,
+      "gain_alone": {
+        "LOAD": -0.015749241760674798,
+        "SCHEDULE": -4.056996268836838e-05,
+        "TRAVEL": -0.00012459511670889826
+      },
+      "carries": {
+        "LOAD": true,
+        "SCHEDULE": false,
+        "TRAVEL": false
+      },
+      "one_family_carries": true
+    },
+    "pts": {
+      "gain_full": -0.008243718948939773,
+      "gain_shuffled": 0.09924849166508265,
+      "mde": 0.0035197184152966072,
+      "shuffled_ok": true,
+      "gain_alone": {
+        "LOAD": -0.006491279337061354,
+        "SCHEDULE": 0.0008544474481569249,
+        "TRAVEL": -0.000690830239610947
+      },
+      "carries": {
+        "LOAD": true,
+        "SCHEDULE": false,
+        "TRAVEL": false
+      },
+      "one_family_carries": true
+    }
+  },
+  "passing": [
+    "P",
+    "pts"
+  ]
+}
