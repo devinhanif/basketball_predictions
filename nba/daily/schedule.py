@@ -58,9 +58,30 @@ def fetch_schedule_nba_api(season: str) -> list[ScheduledGame]:
     return parse_schedule_frame(pl.from_pandas(frames[0]))
 
 
+#: game_id prefixes that can never be scored: 001 = preseason, 003 = all-star. The ``games`` table
+#: drops them, so a forecast on one would sit unsettled forever (Devin, 2026-10-11).
+UNSCORABLE_GAME_PREFIXES: frozenset[str] = frozenset({"001", "003"})
+
+
+def is_scorable_game_id(game_id: str) -> bool:
+    """False for preseason (001) and all-star (003) game ids."""
+    return str(game_id)[:3] not in UNSCORABLE_GAME_PREFIXES
+
+
 def slate_for_date(games: list[ScheduledGame], d: date) -> list[ScheduledGame]:
-    """Games whose US-Eastern tip-off calendar date is ``d`` (NBA game-date rule)."""
-    return sorted((g for g in games if g.game_date_et == d), key=lambda g: (g.tipoff, g.game_id))
+    """Scorable games whose US-Eastern tip-off calendar date is ``d`` (NBA game-date rule).
+
+    The one place a daily slate is built: preseason (001) and all-star (003) games are dropped
+    here, so forward predictions, T-30 decisions, the lineups tick and replays all skip them."""
+    return sorted(
+        (g for g in games if g.game_date_et == d and is_scorable_game_id(g.game_id)),
+        key=lambda g: (g.tipoff, g.game_id),
+    )
+
+
+def n_unscorable_on_date(games: list[ScheduledGame], d: date) -> int:
+    """Preseason / all-star games on ``d`` that ``slate_for_date`` skipped."""
+    return sum(1 for g in games if g.game_date_et == d and not is_scorable_game_id(g.game_id))
 
 
 #: Tip-off assumed for games read from the database (no tip time is stored there). Same

@@ -47,6 +47,7 @@ from nba.daily.schedule import (
     ScheduledGame,
     ScheduleFn,
     load_schedule_cache,
+    n_unscorable_on_date,
     save_schedule_cache,
     slate_for_date,
 )
@@ -83,6 +84,8 @@ class RunSummary:
     run_id: str
     run_date: date
     n_slate: int = 0
+    #: preseason / all-star games on the date, skipped (never scorable)
+    n_preseason_skipped: int = 0
     n_predicted_games: int = 0
     n_refused_after_tipoff: int = 0
     n_rows_written: int = 0
@@ -167,6 +170,7 @@ def run_daily(
         persist_live_tips([(g.game_id, g.tipoff) for g in schedule], season_s, tips_dir)
     slate = slate_for_date(schedule, run_date)
     summary.n_slate = len(slate)
+    summary.n_preseason_skipped = n_unscorable_on_date(schedule, run_date)
     upcoming: list[ScheduledGame] = [g for g in slate if made_at < g.tipoff]
     summary.n_refused_after_tipoff = len(slate) - len(upcoming)
 

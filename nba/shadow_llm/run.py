@@ -98,6 +98,7 @@ def due_games(
         """
         SELECT game_id, max(tipoff) FROM forward_predictions
         WHERE model_name = ? AND target = ?
+          AND substr(game_id, 1, 3) NOT IN ('001', '003')
           AND game_id NOT IN (SELECT game_id FROM forward_predictions WHERE model_name = ?)
         GROUP BY game_id ORDER BY max(tipoff), game_id
         """,

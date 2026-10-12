@@ -142,6 +142,8 @@ def _print_summary(s: RunSummary) -> None:
         f"props={s.n_props_rows} injury={s.injury_status} ({s.injury_report_et}) "
         f"out_excluded={s.n_out_excluded}"
     )
+    if s.n_slate == 0 and s.n_preseason_skipped:
+        print(f"no regular-season games: {s.n_preseason_skipped} preseason skipped")
     print(f"models: {s.model_status}\ningest: {s.ingest}\nsettle: {s.settle}")
     if s.static_autofill:
         print(f"players_static autofill: {s.static_autofill}")

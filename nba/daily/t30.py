@@ -35,7 +35,7 @@ import polars as pl
 
 from nba.daily.pipeline import RunSummary, _frame_preds, _official_roster, utcnow
 from nba.daily.predict import REPO_ROOT, load_elo_params, slate_report_outs
-from nba.daily.schedule import ScheduledGame, ScheduleFn, slate_for_date
+from nba.daily.schedule import ScheduledGame, ScheduleFn, n_unscorable_on_date, slate_for_date
 from nba.daily.season import season_str_for_date
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions
 from nba.ingest.cache import RateLimiter
@@ -120,6 +120,7 @@ class GameLineup:
 class T30Summary:
     run_id: str = ""
     n_slate: int = 0
+    n_preseason_skipped: int = 0
     n_not_yet: int = 0
     n_already_decided: int = 0
     n_logged_games: int = 0
@@ -347,8 +348,12 @@ def run_t30(
     made_at = now if now is not None else utcnow()
     ensure_decisions_table(con)
     summ = T30Summary(run_id="t30_" + made_at.strftime("%Y%m%dT%H%M%S"))
-    slate = slate_for_date(schedule_fn(season_str_for_date(run_date)), run_date)
+    full = schedule_fn(season_str_for_date(run_date))
+    slate = slate_for_date(full, run_date)
     summ.n_slate = len(slate)
+    summ.n_preseason_skipped = n_unscorable_on_date(full, run_date)
+    if not slate and summ.n_preseason_skipped:
+        summ.notes.append(f"no regular-season games: {summ.n_preseason_skipped} preseason skipped")
     decided = {
         str(r[0]) for r in con.execute("SELECT game_id FROM forward_t30_decisions").fetchall()
     }

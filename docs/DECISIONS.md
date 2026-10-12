@@ -600,3 +600,11 @@ Why: CRPS scores every forecast, but a bettor acts only on the confident legs; d
 across thresholds, above market-lean (-3.9% to -5.1%) and random (about -6%), not above zero; model over-confident above 0.60 (said 66.7%,
 hit 57.0%). Two follow-ups approved the same hour: a rebounds rule scored on the live 2026-27 log only, and a market-shrinkage calibration rule.
 What would reverse it: a stake or fee convention a rule needs that this metric cannot express (then the rule states its own, in advance).
+
+**2026-10-11 ~23:45 CT — Preseason (001) and All-Star (003) games are skipped by the daily path (Devin: "can you not do stuff on the preseason games").**
+What: `nba/daily/schedule.py::slate_for_date` (the single slate builder for the daily run, T-30, the lineups tick and replay) drops 001/003 game ids;
+the parlay shadow (`nba/parlay/slate.py`) and LLM shadow (`nba/shadow_llm/run.py`) skip stored 001/003 rows. Jobs still start and heartbeat; a
+preseason-only date prints "no regular-season games: N preseason skipped" and exits 0. Existing 136 forward_predictions and 10 forward_t30_decisions
+preseason rows are kept, marked unscorable rehearsal rows in DAILY_PIPELINE.md. Replay oracle 89889f6d IDENTICAL (20 dates, 46,658 predictions).
+Why: `games` never holds 001/003, so forward rows on them can never settle; they cluttered logs and the T-30 review.
+What would reverse it: a need to rehearse T-30 or lineup feeds on preseason slates (drop the prefix test in `slate_for_date`).

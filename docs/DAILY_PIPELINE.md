@@ -115,6 +115,20 @@ The same DDL is in `nba/db/schema.sql` (idempotent, safe to apply twice).
 - `forward_scores(scored_at, game_id, game_date, season, model_name, version, target,
   player_id, made_at, y, pred, log_loss, brier, crps, status)`.
 
+## Preseason and all-star games are skipped (2026-10-11)
+
+`nba.daily.schedule.slate_for_date` is the one place a daily slate is built (daily run, T-30, lineups
+tick, replay), and it drops game ids starting `001` (preseason) and `003` (all-star), so no forward
+prediction, T-30 decision, injury probe or roster call is made for them. The parlay shadow
+(`nba.parlay.slate.load_slate`) and the LLM shadow (`nba.shadow_llm.run.due_games`) apply the same
+prefix test to stored rows. The jobs still run and heartbeat: on a date with only such games the run
+prints `no regular-season games: N preseason skipped` (T-30: the same text in `notes`) and exits 0.
+
+Existing rows on 001 games (136 `forward_predictions` rows and 10 `forward_t30_decisions` rows from
+2026-10-10) are **unscorable rehearsal rows**: `games` never holds preseason games, so they can never
+settle. They are kept, not deleted, and excluded from every scoring claim. Replay oracle: 2025 has no
+001/003 rows in `games`, so the golden hash is unaffected.
+
 ## Season encoding
 
 `games.season` is the start year: 2025 = 2025-26, so 2026-27 = **2026**

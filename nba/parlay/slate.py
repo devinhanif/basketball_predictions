@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 import duckdb
 
+from nba.daily.schedule import UNSCORABLE_GAME_PREFIXES
 from nba.parlay.game_model import GameModelParams, slate_total_feature
 from nba.parlay.joint import GameCtx
 from nba.parlay.qdist import QuantileGridDist
@@ -51,6 +52,8 @@ def load_slate(
     tips: dict[str, datetime] = {}
     for gid, tipoff, model, target, pid, pred, _made in rows:
         if as_of is not None and _made > as_of:
+            continue
+        if str(gid)[:3] in UNSCORABLE_GAME_PREFIXES:  # preseason / all-star: never scorable
             continue
         et = tipoff.replace(tzinfo=UTC).astimezone(ET).date()
         if et != slate:
