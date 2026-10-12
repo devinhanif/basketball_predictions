@@ -1,6 +1,6 @@
 """Tests for nba/parse/reconcile.py -- the possession-count reconciliation
-gate CLAUDE.md requires: mean |parsed - (FGA + 0.44*FTA + TOV - OREB)| <= 1
-per team-game.
+formula diagnostic (mean |parsed - (FGA + 0.44*FTA + TOV - OREB)|, reported, not a gate) and the
+points hard gate (possession points == box points per team-game).
 """
 
 from __future__ import annotations
@@ -10,7 +10,10 @@ import pytest
 
 from nba.parse.possessions import parse_possessions
 from nba.parse.reconcile import (
+    FORMULA_MAE_DIAGNOSTIC,
     mean_abs_error,
+    points_match_rate,
+    reconcile_points,
     reconcile_possessions,
     team_box_from_player_game_stats,
 )
@@ -65,11 +68,31 @@ def test_reconcile_missing_column_raises() -> None:
 
 def test_fixture_dataset_reconciles_within_gate() -> None:
     """End-to-end on the committed fixture (nba_api V3 schema, no network):
-    parse every fixture game and check the CLAUDE.md gate (mean <= 1)."""
+    parse every fixture game and check the diagnostic bound."""
     pbp_map = load_pbp()
     possessions = pl.concat([parse_possessions(df) for df in pbp_map.values()])
     team_box = team_box_from_player_game_stats(load_player_game_stats())
     rec = reconcile_possessions(possessions, team_box)
     assert rec.height == 6  # 3 fixture games x 2 teams
     mae = mean_abs_error(rec)
-    assert mae <= 1.0, f"mean abs error {mae} exceeds the CLAUDE.md gate of 1 possession"
+    assert mae <= FORMULA_MAE_DIAGNOSTIC, f"mean abs error {mae} above the diagnostic level"
+
+
+def test_reconcile_points_flags_a_dropped_free_throw_point() -> None:
+    """The F6 shape: a trip that lost its points shows as a nonzero diff and a lower match rate."""
+    possessions = pl.DataFrame({"game_id": ["g1"] * 3, "off_team": [1, 1, 2], "pts": [2, 1, 3]})
+    box = pl.DataFrame(
+        {
+            "game_id": ["g1"] * 4,
+            "team_id": [1, 1, 2, 2],
+            "pts": [2, 2, 3, 0],  # team 1 box = 4, parsed 3
+        }
+    )
+    rec = reconcile_points(possessions, box)
+    assert rec["diff"].to_list() == [-1, 0]
+    assert points_match_rate(rec) == pytest.approx(0.5)
+
+
+def test_reconcile_points_missing_column_raises() -> None:
+    with pytest.raises(ValueError, match="missing required columns"):
+        reconcile_points(pl.DataFrame({"game_id": []}), pl.DataFrame({"game_id": []}))

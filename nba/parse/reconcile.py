@@ -1,10 +1,15 @@
-"""Possession-count reconciliation.
+"""Reconciliation of parsed possessions against the box score.
 
-CLAUDE.md requires validating the parser's possession counts against the
-box-score estimate ``FGA + 0.44*FTA + TOV - OREB`` per team-game, failing
-the ingest test if the mean absolute error exceeds 1 possession. This
-module computes that per-team-game error given the parser's output
-(``nba/parse/possessions.py``) and a team-level box score aggregate.
+HARD GATE (restated 2026-10-11, DECISIONS "Phase 2 data clean-up", audit F12): the points the
+parser attributes to each team's possessions must equal that team's box-score points, per
+team-game (``reconcile_points``; ``POINTS_MATCH_MIN`` of team-games must match exactly). On the
+real data this is 100% of 10,558 team-games.
+
+DIAGNOSTIC (reported, never a gate): the possession count against the box estimate
+``FGA + 0.44*FTA + TOV - OREB`` (``reconcile_possessions``). The estimate is not an identity (team
+turnovers and the 0.44 constant are not in the player box), so the real data sits 1.6-2.0 below it
+with MAE 2.0-2.25 in every season; the original "MAE <= 1" gate was mis-specified (docs/adr/0001).
+``FORMULA_MAE_DIAGNOSTIC`` is the level above which the diagnostic is worth a look.
 """
 
 from __future__ import annotations
@@ -13,6 +18,11 @@ import polars as pl
 
 #: Columns a `team_box` frame must carry (one row per game_id/team_id).
 TEAM_BOX_COLUMNS = ["game_id", "team_id", "fga", "fta", "tov", "oreb"]
+
+#: Hard gate: share of team-games whose possession points equal box points.
+POINTS_MATCH_MIN = 0.99
+#: Diagnostic only: formula MAE above this is reported as worth a look (real data: 2.0-2.25).
+FORMULA_MAE_DIAGNOSTIC = 2.5
 
 
 def team_box_from_player_game_stats(player_game_stats: pl.DataFrame) -> pl.DataFrame:
@@ -68,3 +78,42 @@ def mean_abs_error(reconciliation: pl.DataFrame) -> float:
     value = reconciliation["abs_error"].mean()
     assert value is not None
     return float(value)  # type: ignore[arg-type]
+
+
+def reconcile_points(possessions: pl.DataFrame, player_game_stats: pl.DataFrame) -> pl.DataFrame:
+    """Per (game_id, team_id): points summed over the parsed possessions vs box-score points.
+
+    ``possessions`` needs ``game_id, off_team, pts``; ``player_game_stats`` needs ``game_id,
+    team_id, pts``. Returns game_id, team_id, poss_pts, box_pts, diff (poss - box). A team-game
+    with no parsed possessions has poss_pts 0 (it shows up as a miss, not as a missing row).
+    """
+    for name, frame, cols in (
+        ("possessions", possessions, ["game_id", "off_team", "pts"]),
+        ("player_game_stats", player_game_stats, ["game_id", "team_id", "pts"]),
+    ):
+        missing = set(cols) - set(frame.columns)
+        if missing:
+            raise ValueError(f"{name} is missing required columns: {sorted(missing)}")
+    poss = (
+        possessions.group_by(["game_id", "off_team"])
+        .agg(pl.col("pts").sum().alias("poss_pts"))
+        .rename({"off_team": "team_id"})
+    )
+    box = player_game_stats.group_by(["game_id", "team_id"]).agg(
+        pl.col("pts").sum().alias("box_pts")
+    )
+    out = box.join(poss, on=["game_id", "team_id"], how="left").with_columns(
+        pl.col("poss_pts").fill_null(0)
+    )
+    return (
+        out.with_columns((pl.col("poss_pts") - pl.col("box_pts")).alias("diff"))
+        .select(["game_id", "team_id", "poss_pts", "box_pts", "diff"])
+        .sort(["game_id", "team_id"])
+    )
+
+
+def points_match_rate(reconciliation: pl.DataFrame) -> float:
+    """Share of team-games (``reconcile_points`` output) with possession points == box points."""
+    if reconciliation.is_empty():
+        return 0.0
+    return float((reconciliation["diff"] == 0).mean())  # type: ignore[arg-type]
