@@ -782,3 +782,7 @@ Devin: AC power with the lid open or an external display, or sudo pmset); (7) pa
 (8) P(play) shadow also logs C and C' with a 7-day parity warning at R minus production > -0.05. Replay oracle IDENTICAL 89889f6d
 (new file oracle_batch_1.duckdb); flag-on vs flag-off canonical hash identical on a real slate.
 Why: Devin "handle everything"; audit pass 2. What would reverse it: a regression on the first live nights (watchdog, parity warning).
+
+**2026-10-12 02:56 CDT — the-odds-api market coverage widened; 2023-24 period markets back-filled.**
+What: the-odds-api.com market coverage widened (Devin: "check all endpoints there too"; "do all captures of prices before the game"). LIVE: configs/odds_live.yaml market_groups, 89 markets x 2 regions = 178 credits/call, 2,136/game over the 12-point schedule, 459,240 credits at 215 peak-month games (9.2% of START 5M; rule: keep all ON under 50%), alternates drop first if it ever exceeds; daily guard 3,200 -> 48,000. HISTORY: phase `periods` (period h2h/spreads/totals/team_totals q1-q4,h1,h2 + player_{points,rebounds,assists}_q1), seasons 2023+2024 only, t60 only, us+eu, own ledger, 1,144,355 credits (cap 1.5M). Reverse: set enabled:false per group / lower daily_max_credits. Commits 19ff991, 106f0f7.
+Risk recorded: 2.30M credits remain after the back-fill; the full live season is ~2.63M. Unless the billing period resets first, the season does not fit; the daily guard bounds each night. Plan continuity is Devin's decision.

@@ -2,7 +2,7 @@
 
 ## Needs Devin (morning)
 1. Mac sleep: the 10-11 collector hole was the LID closing on battery at 18:33 CDT (clamshell sleep); caffeinate does not stop that. On game nights keep it on AC with the lid open (or an external display), and run `sudo pmset -c sleep 0`; `sudo pmset -a disablesleep 1` also stops lid sleep but drains battery.
-2. the-odds-api plan before ~11-04: cancelling START 5M stops captures; START 100K ($59/mo) carries the full schedule.
+2. the-odds-api plan: live capture now asks for 89 markets x 12 points (~2,136 credits/game, ~459k in a peak month, ~2.63M a season). 2.30M remain after tonight's 1.14M back-fill. When does the billing period reset? Cancelling START 5M stops all captures; with 89 markets the smallest fitting plan is no longer START 100K — tell me which plan and I'll size the market groups to it (groups can be switched off in configs/odds_live.yaml). Also: check the first live raw file on 10-20 (new market shapes parsed from vendor docs).
 3. Any 2025 holdout touch the loop finds a case for (none taken overnight without your words).
 4. SEQ network blend on regular-season rows: real -0.011/-0.012 points gain, guard-clean without playoffs (T466). Test it as a new rule on the 2025 holdout (SEQ untouched) or the live log? Your call.
 5. Open questions listed in docs/reviews/ledger_audit_2026-10-12_pass2.md (N14).
@@ -27,3 +27,4 @@
 - 02:23 ROUTER_G2: no pass (T464-T466). The gate adds nothing; the SEQ network blend improves points by -0.011/-0.012 and passes the guards once playoffs go to production. NEEDS DEVIN: whether to test 'SEQ blend on regular-season rows' as a new rule (2025 holdout or live).
 - 02:37 Live batch committed (6036c97, 4ea569a, 5b806d5): shadow on, T-15 arm, rivalry flags, real-tip default, run metadata, parlay roster source, C/C' comparators + parity check; oracle IDENTICAL.
 - 02:53 Feature significance + half points (81de744): injury/vacated is the top input for every prop (pts +0.0245 when removed); recent-role columns ADDED to the props heads cut pts CRPS by -0.0086 [-0.0111, -0.0062] pooled 2023-24 (descriptive; supports the queued combined rule). Halves: direct model beats naive by -0.043 (1H), -0.052 (2H), -0.130 (Q1); 2H ~11% harder, worse in expected blowouts. No 1H/2H player market exists; Q1 pending the back-fill. Started Q1 transfer diagnostic.
+- 02:56 Odds: live capture widened to 89 markets (19ff991); 2023-24 period lines back-filled for every game (106f0f7, 1.14M credits): quarter/half moneyline, spread, total from 10-16 books; Q1 player props only in 2024 (1-2 books).
