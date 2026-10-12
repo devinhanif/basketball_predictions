@@ -1,0 +1,319 @@
+{
+  "tests": [
+    {
+      "test": "A0 reproduction from stored components (mixture integer CRPS vs candidates.json)",
+      "value": {
+        "max_abs_diff": 0.0,
+        "pts": {
+          "2023": 3.140236466011581,
+          "2024": 3.1768395165770476
+        }
+      },
+      "threshold": "<= 1e-06, n equal",
+      "ok": true
+    },
+    {
+      "test": "A0 pts equals the quoted 3.140236 / 3.176840",
+      "value": {
+        "2023": 3.140236,
+        "2024": 3.17684
+      },
+      "threshold": "to 1e-6",
+      "ok": true
+    },
+    {
+      "test": "the 5 R columns attach to every A0 row",
+      "value": {
+        "n_a0_rows": 55320,
+        "null_or_nan": {
+          "wl_min_last": 0,
+          "wl_mean_min_l3": 0,
+          "wl_min_3d": 0,
+          "wl_min_7d": 0,
+          "wl_mean_min_l5": 0
+        },
+        "minutes_null": 0
+      },
+      "threshold": "all A0 rows found; null share < 2%",
+      "ok": true
+    },
+    {
+      "test": "control refit of the stat heads (production features only) equals the stored components",
+      "value": {
+        "pts": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        },
+        "reb": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        },
+        "ast": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        },
+        "fg3m": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        }
+      },
+      "threshold": "rows equal, max abs diff <= 1e-06 for every output",
+      "ok": true
+    },
+    {
+      "test": "control refit of pi (COMMON_FEATURES only) equals the stored A0 pi",
+      "value": {
+        "max_abs_diff": 0.0,
+        "n": 55320
+      },
+      "threshold": "max abs diff <= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "PI arm (pi refit with the 5 columns, stored heads) reproduces T460 (PI_RECENT_ROLE frozen deltas)",
+      "value": {
+        "max_abs_diff": 0.0,
+        "pts": {
+          "2023": [
+            -0.005914,
+            -0.005914
+          ],
+          "2024": [
+            -0.004618,
+            -0.004618
+          ]
+        }
+      },
+      "threshold": "max abs diff over 4 stats x 2 seasons <= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "missingness of the 5 R columns by realised-minutes bucket (pp)",
+      "value": {
+        "max_gap_pp": 0.0,
+        "worst_col": "wl_min_last",
+        "placebo_max_gap_pp": 0.0
+      },
+      "threshold": "<= 2.00",
+      "ok": true
+    },
+    {
+      "test": "past-only placebo columns: NaN share and gap by realised-minutes bucket (reported; conservative for FULL)",
+      "value": {
+        "max_gap_pp": 3.7714327658523916,
+        "worst_col": "pl_wl_min_last",
+        "permuted_gap_pp": 0.1992630140700582,
+        "nan_share": {
+          "pl_wl_min_last": 0.022035430224150398,
+          "pl_wl_mean_min_l3": 0.022035430224150398,
+          "pl_wl_min_3d": 0.01614244396240058,
+          "pl_wl_min_7d": 0.01614244396240058,
+          "pl_wl_mean_min_l5": 0.022035430224150398
+        }
+      },
+      "threshold": "NaN share < 5%; gap reported",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: rows of the edited day identical",
+      "value": 308,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 13770,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows dated on or before the cutoff identical",
+      "value": 14466,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (schedule): rows up to the cutoff identical",
+      "value": 6618,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (walk): candidate pi of rows dated before the cutoff identical",
+      "value": {
+        "cutoff": "2025-01-24",
+        "n_rows": 13691,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "== 0",
+      "ok": true
+    },
+    {
+      "test": "control (walk): pi of rows in later blocks change",
+      "value": {
+        "n_rows": 12790,
+        "max_abs_diff": 0.495
+      },
+      "threshold": "> 0",
+      "ok": true
+    },
+    {
+      "test": "planted future (heads, pts): centre and scale of rows in blocks before the cutoff identical",
+      "value": {
+        "cutoff": "2025-01-24",
+        "n_rows": 10064,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "== 0 and n > 0",
+      "ok": true
+    },
+    {
+      "test": "control (heads, pts): rows in later blocks change",
+      "value": {
+        "n_rows": 12790,
+        "max_abs_diff": 97.369099070721
+      },
+      "threshold": "> 0",
+      "ok": true
+    },
+    {
+      "test": "slice sizes (n rows) per stat and season",
+      "value": {
+        "2023": {
+          "all": 27619,
+          "min<5": 2383,
+          "bench": 15352,
+          "playoffs": 1684,
+          "cold_start": 574,
+          "starter": 12267,
+          "short(<0.5*proj)": 2931,
+          "not short": 24688,
+          "min<10": 4437
+        },
+        "2024": {
+          "all": 27701,
+          "min<5": 2326,
+          "bench": 15589,
+          "playoffs": 1804,
+          "cold_start": 464,
+          "starter": 12112,
+          "short(<0.5*proj)": 2820,
+          "not short": 24881,
+          "min<10": 4299
+        }
+      },
+      "threshold": "every declared guard slice >= 300 in both seasons, all stats",
+      "ok": true
+    },
+    {
+      "test": "HOLDOUT_ACCESS_LOG: no row names RECENT_ROLE_FULL (never evaluated on season 2025)",
+      "value": {
+        "rows_naming_id": 0
+      },
+      "threshold": "== 0",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "sha256": null,
+  "draft": true,
+  "seconds": 201.50252294540405,
+  "slice_sizes": {
+    "pts": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    },
+    "reb": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    },
+    "ast": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    },
+    "fg3m": {
+      "2023": {
+        "all": 27619,
+        "min<5": 2383,
+        "bench": 15352,
+        "playoffs": 1684,
+        "cold_start": 574,
+        "starter": 12267,
+        "short(<0.5*proj)": 2931,
+        "not short": 24688,
+        "min<10": 4437
+      },
+      "2024": {
+        "all": 27701,
+        "min<5": 2326,
+        "bench": 15589,
+        "playoffs": 1804,
+        "cold_start": 464,
+        "starter": 12112,
+        "short(<0.5*proj)": 2820,
+        "not short": 24881,
+        "min<10": 4299
+      }
+    }
+  }
+}
