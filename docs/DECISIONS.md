@@ -734,3 +734,8 @@ failing, which would leave the bundle as drafted the next test.
 What: the live 2026-27 verdict rule for feeding the holdout-confirmed P(play) into the unconditional props forecast; all rostered not-OUT
 players; fg3m look ~week 4, ast ~week 9, reb at season end, pts PASS-or-INCONCLUSIVE only. The shadow is switched on in ops/nba_daily.sh only
 after the replay oracle matches golden 89889f6d. Why: Devin "so lets do all of it". What would reverse it: nothing above the results marker.
+
+**2026-10-12 01:31 CDT — FORWARD_T15_2026_27 FROZEN (sha256 5c0dec6d, commit f2389f5).**
+What: a sibling T-15 arm of the T-30 lineup arm, own table and BH family, kill-only L30. Why: in preseason both fives were confirmed >= 30 min
+before tip in 2 of 10 games and >= 15 min in 8 of 10 (audit pass 2, N2). The 18:04-23:03 CDT collector hole on 2026-10-11 coincides with the Mac
+sleeping on battery (N1). What would reverse it: the regular-season T-30 logged share's Wilson lower bound >= 0.70.
