@@ -1,0 +1,69 @@
+{
+ "built_at": "2026-10-12 14:42:35 CDT",
+ "seasons": [
+  2020,
+  2021,
+  2022,
+  2023,
+  2024
+ ],
+ "stats": {
+  "pts": {
+   "path": "data/ops/error_feedback_cache/base_pts.npz",
+   "sha256": "f07ee5bb80627b51e1e39dae7c840f805469c2b339d4dbee71d5f54ffd921dfa",
+   "frame_sha": "9e5b686bb06aab89bb1d73c610f8ff5d49edab1bf24b7638280a065e282475b2",
+   "rows": 134715,
+   "rows_by_season": {
+    "2020": 24522,
+    "2021": 27442,
+    "2022": 27322,
+    "2023": 27708,
+    "2024": 27721
+   },
+   "blocks": 44
+  },
+  "reb": {
+   "path": "data/ops/error_feedback_cache/base_reb.npz",
+   "sha256": "6c222498cf633c8fed47295e2addcc443b8a8ff6d450c9e06232d25877719774",
+   "frame_sha": "ad809643a921fe0fb1c18e4498ff3263fcfc5b99280958758cf1fb0a2513c72c",
+   "rows": 134715,
+   "rows_by_season": {
+    "2020": 24522,
+    "2021": 27442,
+    "2022": 27322,
+    "2023": 27708,
+    "2024": 27721
+   },
+   "blocks": 44
+  },
+  "ast": {
+   "path": "data/ops/error_feedback_cache/base_ast.npz",
+   "sha256": "661fb78a76539df040de433ffaac9ebd96f5760a476ee6092ea4e6a4b12f07cd",
+   "frame_sha": "25e700e84d50c7fdcd3d5489b11003c21b8db3ff10e074c24b556dbc3a7882c9",
+   "rows": 134715,
+   "rows_by_season": {
+    "2020": 24522,
+    "2021": 27442,
+    "2022": 27322,
+    "2023": 27708,
+    "2024": 27721
+   },
+   "blocks": 44
+  },
+  "fg3m": {
+   "path": "data/ops/error_feedback_cache/base_fg3m.npz",
+   "sha256": "c0fb7b855d6da8db1e56454afcb7435f029dc1f5103f456e1e56c1a7831ed971",
+   "frame_sha": "e09ae4ae7ed59eed27339b911caf5342e9c462a46466c383109a41a2a2518309",
+   "rows": 134715,
+   "rows_by_season": {
+    "2020": 24522,
+    "2021": 27442,
+    "2022": 27322,
+    "2023": 27708,
+    "2024": 27721
+   },
+   "blocks": 44
+  }
+ },
+ "wall_s": 287.2007038593292
+}

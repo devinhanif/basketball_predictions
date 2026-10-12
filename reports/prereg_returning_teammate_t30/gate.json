@@ -1,0 +1,75 @@
+{
+ "measured_at": "Mon Oct 12 14:50 CDT 2026",
+ "seasons": [
+  2023,
+  2024
+ ],
+ "proxy": "returner played tonight (box) for Active at T-30",
+ "by_season": {
+  "2023": {
+   "rows": 27619,
+   "games": 1318,
+   "flagged_rows": 4746,
+   "flag_share": 0.17183822730728845,
+   "flagged_rows_per_game": 3.600910470409712,
+   "rotation_flagged_rows": 4264,
+   "crps_delta_sd_row": 0.3434562982666445,
+   "deff_game": 0.9597220116623988,
+   "deff_date": 0.8262642607538208,
+   "deff_used": 1.0,
+   "expected_effect_flagged_p1": -0.015339936430581094,
+   "n_flagged_rows_for_hw_le_floor": 18126.54792924685,
+   "games_for_hw_le_floor": 5922.210696499182,
+   "forward_full_season": {
+    "logged_flagged_rows": 3764.751896813354,
+    "halfwidth95": 0.010971332467285225,
+    "pass_line": -0.010971332467285225,
+    "power_at_p1_effect": 0.7824339554937292,
+    "power_at_half_effect": 0.2776690314822089
+   },
+   "pooled_two_seasons": {
+    "halfwidth95": 0.007757903586269517,
+    "power_at_p1_effect": 0.972289885583485
+   },
+   "bias_form": {
+    "expected_shift_pts_flagged_p1": -0.4540094727151477,
+    "residual_sd_row": 5.921722506218002,
+    "residual_deff": 1.0,
+    "full_season_se_pts": 0.09651167920410678
+   }
+  },
+  "2024": {
+   "rows": 27701,
+   "games": 1320,
+   "flagged_rows": 5222,
+   "flag_share": 0.18851305007039457,
+   "flagged_rows_per_game": 3.956060606060606,
+   "rotation_flagged_rows": 4633,
+   "crps_delta_sd_row": 0.3184785293312808,
+   "deff_game": 1.11734587378432,
+   "deff_date": 0.8525599423029535,
+   "deff_used": 1.11734587378432,
+   "expected_effect_flagged_p1": -0.01736634495542674,
+   "n_flagged_rows_for_hw_le_floor": 17414.863781686723,
+   "games_for_hw_le_floor": 5178.908282115591,
+   "forward_full_season": {
+    "logged_flagged_rows": 4136.061363636363,
+    "halfwidth95": 0.010259744804703185,
+    "pass_line": -0.010259744804703185,
+    "power_at_p1_effect": 0.9127094245143222,
+    "power_at_half_effect": 0.3816366942854671
+   },
+   "pooled_two_seasons": {
+    "halfwidth95": 0.007254735124649072,
+    "power_at_p1_effect": 0.9968508872716622
+   },
+   "bias_form": {
+    "expected_shift_pts_flagged_p1": -0.48516847024323256,
+    "residual_sd_row": 5.8073193065595206,
+    "residual_deff": 1.0,
+    "full_season_se_pts": 0.09029884991544428
+   }
+  }
+ },
+ "wall_s": 8.799899101257324
+}
