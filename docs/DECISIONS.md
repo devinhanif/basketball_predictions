@@ -807,3 +807,8 @@ arrays first. Fixed in code the same hour: the run-metadata dirty flag now count
 What: the full live schedule (89 markets x 2 regions x 12 points, ~2,136 credits a game, ~459k in a peak month, ~9% of the monthly allowance)
 stays as configured; the "2.30M remaining" figure was this billing period only. Supersedes the 2026-10-10 note that the plan would be cancelled
 after the month. Why: Devin. What would reverse it: a plan change (then size market_groups in configs/odds_live.yaml to the new allowance).
+
+**2026-10-12 08:29 CDT — Devin approves: RECENT_ROLE_FULL Stage 2 (2025 check on points) and a combined-model shadow; work starts ~45 minutes from now.**
+Devin's words: "2025 check on points for combined model, shadow the combined model yes, for mac, let's start this in 45 minutes, you handle the
+smaller items but run them by me". Stage 2 runs only after the loader is adversary-reviewed and reproduces the stored 2024 result; the holdout-log
+row quotes these words and is committed before the run. Smaller items are proposed to Devin before any is run.
