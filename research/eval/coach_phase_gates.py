@@ -36,6 +36,10 @@ A0_TOL = 1e-6
 REF = {"pts": {"2023": (3.152830, 3.140236), "2024": (3.187553, 3.176840)}}
 
 
+def _mean(x: pl.Series) -> float | None:
+    return float(x.mean()) if len(x) else None
+
+
 def _log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
@@ -44,6 +48,8 @@ def mde(df: pl.DataFrame, col: str) -> float:
     """1.96 x game-clustered SE of the mean of ``col`` (a noise scale for a paired difference)."""
     s = df.group_by("gid").agg(pl.col(col).sum().alias("s"), pl.len().alias("n"))
     n, g = int(s["n"].sum()), s.height
+    if g < 2:
+        return float("nan")
     m = float(s["s"].sum()) / n
     se = float(np.sqrt(((s["s"] - m * s["n"]) ** 2).sum())) / n * float(np.sqrt(g / (g - 1)))
     return 1.96 * se
@@ -229,7 +235,7 @@ def gate_series_and_clinch(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
         str(s): {
             "team_games": late.filter(pl.col("season") == s).height,
             **{
-                c: float(late.filter(pl.col("season") == s)[c].mean())
+                c: _mean(late.filter(pl.col("season") == s)[c])
                 for c in ("clinched_6", "clinched_10", "elim_6", "elim_10")
             },
         }

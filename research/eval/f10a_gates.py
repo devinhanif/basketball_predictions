@@ -144,7 +144,9 @@ def summarize(df: pl.DataFrame, games: pl.DataFrame, used_games: set[str]) -> di
                 "coverage_rival": float(gg.filter(pl.col("f"))["has"].mean())
                 if gg["f"].sum()
                 else None,
-                "coverage_other": float(gg.filter(~pl.col("f"))["has"].mean()),
+                "coverage_other": float(gg.filter(~pl.col("f"))["has"].mean())
+                if (~gg["f"]).sum()
+                else None,
             }
         res[str(s)]["report_coverage"] = cov
     return res
