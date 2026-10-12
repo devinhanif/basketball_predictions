@@ -900,3 +900,6 @@ In order, at most 2 agents at a time, 2025 untouched without a logged row and De
 5. Forward-only, after opening night: line moves up to T-30/T-15 as a play/sit signal.
 Not pursued: league-state inputs, stabilization pseudo-counts (not in the production path), scorekeeper factor.
 Why: today's descriptive work (T474, T476 and scratch checks) ranked these by information known before tip. What would reverse it: Devin reprioritises.
+
+**2026-10-12 13:38 CDT — market descriptive (T477): no edge at the price; Kalshi vs Pinnacle deferred to the regular season; no preseason capture change.**
+What: model picks lose at stored Pinnacle and DK prices on both sides; the model's P(over) at the line is about 4 pp too low (shape, not mean); Kalshi preseason props are too thin to compare and Pinnacle 2026 rows do not exist yet. Why: preseason Kalshi liquidity is negligible and preseason capture would be a production change that costs credits. What would reverse it: Devin wanting a preseason feasibility check. The reb UNDER >0.20 cell is post-hoc and is not a rule.

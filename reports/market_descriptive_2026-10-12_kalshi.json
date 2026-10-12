@@ -1,0 +1,79 @@
+{
+ "fee_model": {
+  "name": "kalshi_fee_schedule",
+  "formula": "p_one_minus_p",
+  "coefficient": 0.07,
+  "maker_coefficient": 0.0175,
+  "default_multiplier": 1.0,
+  "multipliers": [],
+  "verified": true,
+  "source": "user-provided from Kalshi published fee schedule, 2026-10-08"
+ },
+ "kalshi_prop_events_preseason": [
+  [
+   "KXNBAPTS",
+   "KXNBAPTS-26OCT05NYKPHI",
+   "8",
+   "8",
+   "8",
+   "2026-10-05 15:05:56",
+   "2026-10-06 02:19:28"
+  ],
+  [
+   "KXNBAPTS",
+   "KXNBAPTS-26OCT08BOSCLE",
+   "8",
+   "8",
+   "8",
+   "2026-10-08 19:40:00",
+   "2026-10-09 02:14:19"
+  ],
+  [
+   "KXNBAPTS",
+   "KXNBAPTS-26OCT08PHIBKN",
+   "8",
+   "8",
+   "8",
+   "2026-10-08 19:40:00",
+   "2026-10-09 02:59:59"
+  ]
+ ],
+ "kalshi_prop_price_rows": 340,
+ "kalshi_prop_tickers_priced": 16,
+ "kalshi_prop_snapshots": 29,
+ "first_ts": "2026-10-08 19:47:41",
+ "last_ts": "2026-10-09 02:59:33",
+ "spread_median": 0.41999998688697815,
+ "spread_p10": 0.030000001192092896,
+ "spread_p90": 0.849999975413084,
+ "volume_max": 3186,
+ "open_interest_max": 2992,
+ "rows_volume_gt0": 210,
+ "mid_median": 0.32750000478699803,
+ "two_way_cost_median": 1.449999998062849,
+ "pinnacle_live_props_rows_live_book_odds": 0,
+ "pinnacle_props_rows_odds_snapshots": 0,
+ "live_capture_log": [
+  [
+   "0012600040",
+   "t60",
+   "unmatched",
+   "no unique vendor event",
+   "2"
+  ],
+  [
+   "0012600040",
+   "close",
+   "unmatched",
+   "no unique vendor event",
+   "2"
+  ],
+  [
+   "0012600041",
+   "close",
+   "unmatched",
+   "no unique vendor event",
+   "2"
+  ]
+ ]
+}
