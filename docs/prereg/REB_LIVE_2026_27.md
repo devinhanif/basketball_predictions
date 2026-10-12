@@ -36,7 +36,7 @@ Measured on the 15,620 historical bets: per-bet SD 0.950, game-clustered SE 0.00
   55 to 67 weeks (two to three seasons).
 - Therefore the rule is built to what this season can reach, and says so: **n_min = 5,000 settled bets**, reached at week 16 (320/wk) to
   week 19 (265/wk) at full capture, i.e. mid-February to early March, and at week 22-25 at 85% capture. Power at season end (n about 7,000):
-  if the true ROI is +2% the lower CI bound clears 0 about 42% of the time; at +3% about 70%; at +1% about 15%. **A season-end "not
+  if the true ROI is +2% the lower CI bound clears 0 about 42% of the time; at +3% about 75%; at +1% about 15%. **A season-end "not
   confirmed" is not "no edge"**, and the rule is written so nobody reads it that way.
 
 ## Decision rule (two looks, one confirmatory test)
