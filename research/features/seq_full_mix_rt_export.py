@@ -50,6 +50,59 @@ OUT_DIR = RULE.ROOT / "data/colab/seq_full_mix_rt"
 HOLDOUT = 2025
 
 
+def team_map_arrays(team_id: Any, team_idx: Any) -> dict[int, int]:
+    """team_id -> team_idx as actually used by rows (one index per team, or the export is inconsistent)."""
+    m: dict[int, int] = {}
+    for t, i in {(int(t), int(i)) for t, i in zip(team_id, team_idx, strict=True)}:
+        if m.setdefault(t, i) != i:
+            raise RuntimeError(f"team {t} has two indices in one export")
+    return m
+
+
+def team_map(exp: P.SeqExport) -> dict[int, int]:
+    return team_map_arrays(exp.meta["team_id"], exp.arrays["team_idx"])
+
+
+def assert_same_vocabulary(a: P.SeqExport, b: P.SeqExport) -> None:
+    """The history and current exports share the team index mapping, the stat scale and the feature names (the Colab concat takes these from the history export)."""
+    ma, mb = team_map(a), team_map(b)
+    bad = {t: (ma[t], mb[t]) for t in ma.keys() & mb.keys() if ma[t] != mb[t]}
+    if bad:
+        raise RuntimeError(f"team index mapping differs between the exports: {bad}")
+    if (
+        not np.array_equal(a.arrays["stat_scale"], b.arrays["stat_scale"])
+        or a.step_features != b.step_features
+        or a.ctx_features != b.ctx_features
+    ):
+        raise RuntimeError(
+            "stat_scale or feature names differ between the history and the current export"
+        )
+
+
+def assert_hist_files_match(exp: P.SeqExport, out: Path) -> None:
+    """Held-out export vs the history export already on disk (npz + meta): same team mapping, stat scale and feature names."""
+    npz, meta = out / "seq_ensemble_rt_hist.npz", out / "seq_ensemble_rt_hist_meta.parquet"
+    if not (npz.exists() and meta.exists()):
+        raise RuntimeError(
+            f"{npz} / {meta} missing: build the history export first (`... seq_full_mix_rt_export hist`)"
+        )
+    z = np.load(npz)
+    import pandas as pd
+
+    mh = team_map_arrays(pd.read_parquet(meta)["team_id"], z["team_idx"])
+    mc = team_map(exp)
+    bad = {t: (mh[t], mc[t]) for t in mh.keys() & mc.keys() if mh[t] != mc[t]}
+    if (
+        bad
+        or not np.array_equal(z["stat_scale"], exp.arrays["stat_scale"])
+        or list(z["ctx_features"]) != list(exp.ctx_features)
+        or list(z["step_features"]) != list(exp.step_features)
+    ):
+        raise RuntimeError(
+            f"the history export on disk and the current export disagree (team mapping {bad}, stat scale or feature names)"
+        )
+
+
 def assert_selection_seasons(exp: P.SeqExport) -> None:
     """The selection exports hold nothing after 2024 (the held-out season is never in run #1)."""
     if int(exp.meta["season"].max()) > SEL_MAX_SEASON:
@@ -151,6 +204,7 @@ def selection(out: Path | None = None) -> dict[str, Any]:
     hist, hi = build_hist_rt()
     if int(hist.meta["season"].max()) > max(HIST_SEASONS):
         raise RuntimeError("history export holds a season after 2021")
+    assert_same_vocabulary(hist, cur)
     info: dict[str, Any] = {
         "cur": {"npz": str(X.write(cur, out, "rt_cur")), "targets": int(len(cur.meta)), "seasons": sorted(int(s) for s in cur.meta["season"].unique()), **ci},
         "hist": {"npz": str(X.write(hist, out, "rt_hist")), "targets": int(len(hist.meta)), "seasons": sorted(int(s) for s in hist.meta["season"].unique()), **hi},
@@ -191,6 +245,7 @@ def export25(
     RULE.require_ready(sha, run)
     out = out or OUT_DIR
     exp, ci = build_current25_rt()
+    assert_hist_files_match(exp, out)
     info: dict[str, Any] = {
         "rule_sha256": sha, "npz": str(X.write(exp, out, "rt_cur25")), "targets": int(len(exp.meta)),
         "rows_by_season": {str(s): int((exp.meta["season"] == s).sum()) for s in (2022, 2023, 2024, 2025)}, **ci,

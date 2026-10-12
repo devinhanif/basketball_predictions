@@ -151,6 +151,14 @@ def placebo_inputs(d, seed=PLACEBO_SEED):
 
 
 def concat_rows(a, b):
+    """History rows (a) then current rows (b). The non-row keys are taken from a, so they must EQUAL b's: the stat scaling and the step / ctx feature names."""
+    for k in a:
+        if k in ROW_KEYS:
+            continue
+        if k not in b or not np.array_equal(np.asarray(a[k]), np.asarray(b[k])):
+            raise AssertionError(
+                f"non-row key {k!r} differs between the history and the current export"
+            )
     out = {k: np.concatenate([a[k], b[k]]) for k in ROW_KEYS}
     for k in a:
         if k not in out:

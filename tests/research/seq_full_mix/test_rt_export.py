@@ -205,3 +205,26 @@ def test_selection_export_refuses_any_season_after_2024() -> None:
 def test_export25_refuses_before_the_freeze(tmp_path) -> None:
     with pytest.raises(RuntimeError):
         X.export25("a" * 64, run=lambda *a: "", out=tmp_path)
+
+
+def test_history_and_current_exports_must_share_vocabulary_scale_and_feature_names() -> None:
+    real, _ = _exports()
+    other, _ = _exports()
+    X.assert_same_vocabulary(real, other)
+    assert len(X.team_map(real)) == 2  # the fixture's two teams
+    other.arrays["team_idx"] = other.arrays["team_idx"] + 1  # a shifted team index mapping
+    with pytest.raises(RuntimeError, match="team index mapping"):
+        X.assert_same_vocabulary(real, other)
+    third, _ = _exports()
+    third.arrays["stat_scale"] = third.arrays["stat_scale"] * 2
+    with pytest.raises(RuntimeError, match="stat_scale"):
+        X.assert_same_vocabulary(real, third)
+    fourth, _ = _exports()
+    fourth.ctx_features = (*fourth.ctx_features, "extra")
+    with pytest.raises(RuntimeError, match="feature names"):
+        X.assert_same_vocabulary(real, fourth)
+    dup, _ = _exports()
+    dup.arrays["team_idx"] = dup.arrays["team_idx"].copy()
+    dup.arrays["team_idx"][0] = 99
+    with pytest.raises(RuntimeError, match="two indices"):
+        X.team_map(dup)

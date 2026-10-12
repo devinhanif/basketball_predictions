@@ -259,3 +259,38 @@ def test_held_out_run_refuses_without_the_holdout_row_and_runs_the_all_data_wind
         ).returncode
         != 0
     )  # sha mismatch
+
+
+def test_run2_concat_requires_equal_non_row_keys(tmp_path: Path) -> None:
+    """History rows are concatenated before the current rows and the non-row keys are taken from the history export: they must equal the current export's."""
+    b = _builder()
+    doc, _ = _doc(tmp_path, "FROZEN")
+    code, _ = b.build("held", doc)
+    train = tmp_path / "train.py"
+    train.write_text(code)
+    _npz(tmp_path / "h.npz", (2019,), 30, 1)
+    _npz(tmp_path / "c.npz", (2022,), 30, 2)
+    script = (
+        "import importlib.util, numpy as np\n"
+        f"spec = importlib.util.spec_from_file_location('t', {str(train)!r})\n"
+        "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n"
+        f"h = dict(np.load({str(tmp_path / 'h.npz')!r})); c = dict(np.load({str(tmp_path / 'c.npz')!r}))\n"
+        "out = m.concat_rows(h, c); assert len(out['y']) == len(h['y']) + len(c['y'])\n"
+        "for key, val in (('stat_scale', c['stat_scale'] * 2), ('ctx_features', np.array(['a'] * len(c['ctx_features'])))):\n"
+        "    bad = dict(h); bad[key] = val\n"
+        "    try:\n"
+        "        m.concat_rows(bad, c)\n"
+        "    except AssertionError as e:\n"
+        "        assert key in str(e)\n"
+        "    else:\n"
+        "        raise SystemExit('no refusal for ' + key)\n"
+        "print('OK')\n"
+    )
+    r = subprocess.run(
+        [sys.executable, "-I", "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        check=False,
+    )
+    assert r.returncode == 0 and "OK" in r.stdout, r.stderr[-1500:]
