@@ -668,12 +668,5 @@ What: the T-60 minutes budget and role/coach model make all props worse; product
 Why: the budget correction is noise until inactives are known. What would reverse it: a T-30 version fed confirmed lineups (inactives removed
 before the budget is applied), frozen as a new rule.
 
-## 2026-10-12 - shots loaded and mapped to play-by-play as `shot_events` (new module nba/data/shot_events.py)
-DRAFT. What: ShotChartDetail shots (2022-2025) are stored in `shots` and exposed as `shot_events` keyed (game_id, action_number), post-game data with
-known_at = game_date + 1 day 12:00 UTC. Why: Devin wanted shot coordinates on play-by-play; the join is exact once block rows (which reuse the shot's
-action_number) are excluded, so no fuzzy matching is needed and no player_id repair rule is needed (0 mismatches). Also `shots` loading now deletes by
-(game_id, team_id). What would reverse it: a feature built from `shot_events` that uses a game's own shots (known_at violation), or a refetch showing
-the chart and PBP disagree on a non-block row.
-
 **2026-10-11 23:05 CDT — Full pre-tip odds capture schedule, 12 points per game (commits 06ba0c3 base, c310720 scorable filter).**
 What: `configs/odds_live.yaml` gets a `schedule` list (morning 10:00 ET, T-180/120/90/60/45/30/20/15/10/5, close) run by `nba.odds capture --kind all`; preseason/All-Star ids skipped; close narrowed to [0,5] min; daily guard 600 -> 3,200 credits. Why: Devin, "do all captures before the game, don't skimp on credits"; cost 168 credits/game, about 36k/month against a 5M-credit START 5M plan (0.7%), so nothing is gated; entries marked `extended` auto-drop if a smaller plan cannot carry them. What would reverse it: the plan is cancelled (DECISIONS 2026-10-10; START 100K $59/month is the smallest that fits), credits per call differ from 14 on the first night's `x-requests-last`, or the extra points show no use in the model-vs-price movement analysis.

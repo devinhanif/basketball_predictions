@@ -1,4 +1,8 @@
-"""LIVE per-game odds capture from the-odds-api.com at T-60 and at the close (T-5 target).
+"""LIVE per-game odds capture from the-odds-api.com on a configured pre-tip schedule.
+
+The schedule (``configs/odds_live.yaml: schedule``) is a list: a morning pull (first line of the
+day), T-180 ... T-5, and the close. Each entry is one snapshot kind; the default in code is the
+original pair (t60, close). Estimated credits: :func:`estimate_credits`.
 
 Off unless ``NBA_CLOSE_CAPTURE=1``. Devin, 2026-10-11: the live season's benchmark is the CLOSING
 line. Read-only (GET only), the key comes from ``THE_ODDS_API_KEY`` and is never stored or logged.
@@ -24,11 +28,13 @@ import gzip
 import json
 import logging
 import os
+import re
 import time
 from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
+from datetime import time as dtime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -37,6 +43,7 @@ import duckdb
 import polars as pl
 import yaml
 
+from nba.daily.schedule import is_scorable_game_id
 from nba.odds.the_odds_api import (
     AuthError,
     CreditBudgetExceeded,
@@ -61,14 +68,20 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "configs" / "odds_live.yaml"
 FLAG_ENV = "NBA_CLOSE_CAPTURE"
 SOURCE = "the_odds_api_live"
-KINDS = ("t60", "close")
+_KIND_RE = re.compile(r"^(close|morning|t[0-9]{1,4})$")
+
+
+def valid_kind(kind: str) -> bool:
+    """Snapshot kinds: ``close``, ``morning`` or ``t<minutes before tip>`` (t60, t180, ...)."""
+    return bool(_KIND_RE.match(kind))
+
 
 DDL = """
 CREATE TABLE IF NOT EXISTS live_book_odds (
     source VARCHAR,
     game_id VARCHAR,
     slate_date DATE,              -- ET date of the slate the capture was requested for
-    snapshot_kind VARCHAR,        -- t60 | close
+    snapshot_kind VARCHAR,        -- morning | t180 .. t5 | close (configs/odds_live.yaml schedule)
     requested_at TIMESTAMP,       -- our clock before the request (naive UTC)
     received_at TIMESTAMP,        -- our clock after the response (naive UTC); always < tipoff
     tipoff TIMESTAMP,             -- our real scheduled tip (naive UTC)
@@ -124,15 +137,50 @@ def enabled(environ: Mapping[str, str] | None = None) -> bool:
 
 
 @dataclass(frozen=True)
+class ScheduleEntry:
+    """One capture point. Relative: pull when ``lo <= minutes to tip <= hi``. Morning: pull once the
+    ET wall clock is in ``[at_et, at_et + grace_min)`` of the slate date (first line of the day)."""
+
+    kind: str
+    lo: float = 0.0
+    hi: float = 0.0
+    at_et: dtime | None = None
+    grace_min: int = 60
+    extended: bool = False  # gated off when the estimate exceeds the plan budget rule
+
+    def __post_init__(self) -> None:
+        if not valid_kind(self.kind):
+            raise ValueError(f"bad snapshot kind {self.kind!r} (morning|t<min>|close)")
+        if self.at_et is None and not (0 <= self.lo <= self.hi):
+            raise ValueError(f"{self.kind}: need 0 <= lo <= hi, got [{self.lo}, {self.hi}]")
+
+
+DEFAULT_SCHEDULE: tuple[ScheduleEntry, ...] = (
+    ScheduleEntry("close", 0, 5),
+    ScheduleEntry("t60", 55, 65),
+)
+
+
+@dataclass(frozen=True)
+class PlanBudget:
+    """The vendor plan as recorded in the repo (docs/DECISIONS.md 2026-10-10; the-odds-api.com)."""
+
+    name: str = "START 5M"
+    monthly_credits: int = 5_000_000
+    price_usd_month: int = 119
+    games_per_month: int = 215  # peak regular-season month (about 1,230 games over 6 months)
+    max_plan_fraction: float = 0.5  # extended entries stay ON only while the estimate fits this
+
+
+@dataclass(frozen=True)
 class LiveConfig:
     hist: HistoryConfig
     regions: tuple[str, ...] = ("us", "eu")
     cost_per_market_region: int = 1
     daily_max_credits: int = 600
     min_server_remaining: int = 100_000
-    windows: Mapping[str, tuple[int, int]] = field(
-        default_factory=lambda: {"close": (0, 10), "t60": (55, 65)}
-    )
+    schedule: tuple[ScheduleEntry, ...] = DEFAULT_SCHEDULE
+    plan: PlanBudget = field(default_factory=PlanBudget)
     match_window_min: float = 30.0
     max_attempts_per_game: int = 2
     out_db: Path = ROOT / "data" / "markets" / "market_asof.duckdb"
@@ -148,15 +196,52 @@ class LiveConfig:
         """Upper-bound credits for one per-event odds call (all markets x all regions)."""
         return self.cost_per_market_region * len(self.markets) * len(self.regions)
 
-    def window(self, kind: str) -> tuple[int, int]:
-        if kind not in KINDS or kind not in self.windows:
-            raise ValueError(f"unknown snapshot kind {kind!r} (t60|close)")
-        return self.windows[kind]
+    def entry(self, kind: str) -> ScheduleEntry:
+        for e in self.schedule:
+            if e.kind == kind:
+                return e
+        raise ValueError(f"snapshot kind {kind!r} is not in the schedule")
+
+    def active_schedule(self) -> tuple[ScheduleEntry, ...]:
+        """The schedule that runs: all entries, or without the ``extended`` ones when the full
+        schedule's monthly estimate exceeds ``plan.max_plan_fraction`` of the plan's credits."""
+        if estimate_credits(self, self.plan.games_per_month, self.schedule) <= (
+            self.plan.max_plan_fraction * self.plan.monthly_credits
+        ):
+            return self.schedule
+        return tuple(e for e in self.schedule if not e.extended)
+
+
+def estimate_credits(
+    cfg: LiveConfig, games: int, schedule: tuple[ScheduleEntry, ...] | None = None
+) -> int:
+    """Upper-bound credits for ``games`` games: entries x per-call cost (``/events`` is free)."""
+    entries = cfg.schedule if schedule is None else schedule
+    return games * len(entries) * cfg.expected_cost()
+
+
+def due_order(entries: tuple[ScheduleEntry, ...]) -> list[ScheduleEntry]:
+    """Run order inside a tick: the close first (it cannot wait), then latest-to-earliest."""
+    return sorted(entries, key=lambda e: (e.kind != "close", e.lo if e.at_et is None else 1e9))
 
 
 def _p(value: str | Path) -> Path:
     p = Path(value)
     return p if p.is_absolute() else ROOT / p
+
+
+def _entry(x: Mapping[str, Any]) -> ScheduleEntry:
+    at = x.get("at_et")
+    t = dtime.fromisoformat(str(at)) if at is not None else None
+    lo, hi = x.get("window", (0, 0))
+    return ScheduleEntry(
+        kind=str(x["kind"]),
+        lo=float(lo),
+        hi=float(hi),
+        at_et=t,
+        grace_min=int(x.get("grace_min", 60)),
+        extended=bool(x.get("extended", False)),
+    )
 
 
 def load_live_config(path: Path | None = None, hist_path: Path | None = None) -> LiveConfig:
@@ -180,8 +265,11 @@ def load_live_config(path: Path | None = None, hist_path: Path | None = None) ->
             upd[k] = int(raw[k])
     if "match_window_min" in raw:
         upd["match_window_min"] = float(raw["match_window_min"])
-    if "windows" in raw:
-        upd["windows"] = {str(k): (int(v[0]), int(v[1])) for k, v in raw["windows"].items()}
+    if "schedule" in raw:
+        upd["schedule"] = tuple(_entry(x) for x in raw["schedule"])
+    if "plan" in raw:
+        pl_ = {k: v for k, v in raw["plan"].items() if k in PlanBudget.__dataclass_fields__}
+        upd["plan"] = PlanBudget(**pl_)
     for k in ("out_db", "tips_db", "raw_dir", "ledger_dir"):
         if k in raw:
             upd[k] = _p(raw[k])
@@ -230,20 +318,43 @@ def read_slate(tips_db: Path, slate: date) -> list[LiveGame]:
         return []
     finally:
         con.close()
-    return [LiveGame(str(g), naive_utc(t), int(h or 0), int(a or 0)) for g, t, h, a in rows]
+    return [
+        LiveGame(str(g), naive_utc(t), int(h or 0), int(a or 0))
+        for g, t, h, a in rows
+        if is_scorable_game_id(str(g))  # same filter as the daily slate: no 001 preseason / 003 ASG
+    ]
+
+
+def _slate_day(tip: datetime) -> date:
+    """ET slate date of a tip: tips before 06:00 ET belong to the previous day's slate."""
+    t = tip.replace(tzinfo=UTC).astimezone(ET)
+    return t.date() - timedelta(days=1) if t.hour < 6 else t.date()
 
 
 def select_window(
-    games: list[LiveGame], now: datetime, kind: str, cfg: LiveConfig
+    games: list[LiveGame], now: datetime, kind: str, cfg: LiveConfig, slate: date | None = None
 ) -> list[LiveGame]:
-    """Games with ``now + lo <= tip <= now + hi`` minutes AND ``tip > now`` (never a tipped one)."""
-    lo, hi = cfg.window(kind)
+    """Games due for ``kind`` at ``now`` (never one that has tipped: ``tip > now`` always).
+
+    Relative entries: ``now + lo <= tip <= now + hi`` minutes. ``morning``: the ET clock is within
+    ``[at_et, at_et + grace_min)`` of the slate day (the slate date is the games' own ET date).
+    """
+    e = cfg.entry(kind)
     n = naive_utc(now)
-    return [
-        g
-        for g in games
-        if g.tipoff > n and n + timedelta(minutes=lo) <= g.tipoff <= n + timedelta(minutes=hi)
-    ]
+    live = [g for g in games if g.tipoff > n]
+    if e.at_et is None:
+        return [
+            g for g in live
+            if n + timedelta(minutes=e.lo) <= g.tipoff <= n + timedelta(minutes=e.hi)
+        ]  # fmt: skip
+    now_et = n.replace(tzinfo=UTC).astimezone(ET)
+    out = []
+    for g in live:
+        day = slate or _slate_day(g.tipoff)
+        start = datetime.combine(day, e.at_et, tzinfo=ET)
+        if start <= now_et < start + timedelta(minutes=e.grace_min):
+            out.append(g)
+    return out
 
 
 # ----------------------------------------------------------------------------------------------
@@ -312,7 +423,7 @@ def write_snapshot(
     Raises :class:`PostTipError` when ``received_at`` is not strictly before both tips. Idempotent:
     a (game, kind) that already has rows is left alone (returns 0).
     """
-    if kind not in KINDS:
+    if not valid_kind(kind):
         raise ValueError(f"unknown snapshot kind {kind!r}")
     recv = naive_utc(received_at)
     if recv >= game.tipoff or recv >= naive_utc(commence_time):
@@ -513,7 +624,7 @@ def run_live_capture(
         return rep
     clock = now_fn or (lambda: datetime.now(UTC))
     c = cfg or load_live_config()
-    games = select_window(read_slate(c.tips_db, slate), clock(), kind, c)
+    games = select_window(read_slate(c.tips_db, slate), clock(), kind, c, slate)
     rep.due = len(games)
     if not games:  # the common tick: nothing in the window, no key read, no request
         return rep
@@ -668,3 +779,15 @@ def _record(
             note[:300],
         ],
     )
+
+
+def run_schedule_tick(
+    slate: date, *, dry_run: bool = False, cfg: LiveConfig | None = None, **kw: Any
+) -> list[LiveReport]:
+    """One tick over the whole active schedule (``--kind all``), close first. Each kind is its own
+    idempotent pass; a no-op unless the flag is set. ``**kw`` goes to :func:`run_live_capture`."""
+    c = cfg or load_live_config()
+    return [
+        run_live_capture(slate, e.kind, dry_run=dry_run, cfg=c, **kw)
+        for e in due_order(c.active_schedule())
+    ]

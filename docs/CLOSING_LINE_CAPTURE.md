@@ -1,5 +1,10 @@
 # Closing-line capture (the-odds-api.com, live)
 
+**2026-10-11 23:05 CDT update: full pre-tip schedule (Devin: "do all captures of prices before the
+game now, don't skimp on credits").** Sections below that say "t60 and close" describe the first
+version; the schedule is now the list in `configs/odds_live.yaml`, run by
+`python -m nba.odds capture --kind all` (the lineups hook). See "The schedule" at the end.
+
 Devin, 2026-10-11: the live season's benchmark is the CLOSING line. This is the capture that makes
 it exist. **Off unless `NBA_CLOSE_CAPTURE=1`**; with the flag unset nothing here runs, reads a key,
 opens a file or makes a request. A closing price that was not captured before tip can never be
@@ -120,3 +125,55 @@ it (not part of this branch). For a leg `(game_id, market, player_id, side, poin
 `{id, commence_time, home_team, away_team, bookmakers}`, as in the historical `data` object), the
 header names `x-requests-last/remaining/used`, the credit rule, and which of the 7 markets each book
 returns for a given game. Fixtures in `tests/odds/test_live_close.py` encode these assumptions.
+
+
+## The schedule (2026-10-11)
+
+`configs/odds_live.yaml: schedule` is the list; change it there, no code. One entry is one snapshot
+kind per game, pulled once per game (idempotent), same markets (h2h, spreads, totals, player
+points/rebounds/assists/threes), same regions (`us,eu`) and books as before. Every row carries
+`snapshot_kind`, `requested_at`, `received_at` and the book's `last_update`; the never-after-tip
+refusal is unchanged and applies to every kind (request not sent after tip, response after tip kept
+as raw only).
+
+| kind | when | window (min before real tip) |
+|---|---|---|
+| `morning` | first tick at or after 10:00 ET on the slate day (up to 60 min later) | clock-based |
+| `t180` `t120` `t90` | | 177.5-182.5, 117.5-122.5, 87.5-92.5 |
+| `t60` | unchanged | 55-65 |
+| `t45` `t30` `t20` `t15` `t10` `t5` | | tick +- 2.5 min around each |
+| `close` | the last tick before tip | 0-5 (was 0-10) |
+
+Notes. (1) The tick is still every 5 minutes (launchd, not ours to change), so a 5-minute-wide window
+is hit by exactly one tick; `t5` and `close` are therefore usually the same minute (two requests, two
+rows, 14 credits each; the close is the one the benchmark uses). A finer cadence than 5 minutes needs
+a scheduler change, which is Devin's. (2) `close` was narrowed from [0, 10] to [0, 5] because `t10` and
+`t5` now cover the earlier part; a missed tick at T-5 now loses the close (T-10/T-5 rows remain).
+(3) `morning` is "first line of the day we saw", not "the book's opening line"; props are often not
+posted at 10:00, which shows as `empty` or fewer rows, not an error. (4) Scorable games only:
+`read_slate` drops game ids starting `001` (preseason) and `003` (All-Star) with the same
+`is_scorable_game_id` the daily slate uses (commit c310720), so no credit is spent on them. (5) The
+hook now runs one process, `--kind all`, close first; idle kinds print nothing.
+
+### Credits (upper bound; the real charge is `x-requests-last`)
+
+One call = 7 markets x 2 regions x 1 = 14 credits; `/events` is free. 12 points x 14 = **168
+credits a game**.
+
+| volume | credits |
+|---|---|
+| 7-game night / 15-game night | 1,176 / 2,520 (daily guard raised 600 -> 3,200) |
+| peak month, 215 games | 36,120 |
+| average month, ~205 games | 34,440 |
+| season, 1,230 games | 206,640 |
+
+Quota as recorded in the repo: START 5M, $119 per **month**, 5,000,000 credits per billing period
+(DECISIONS 2026-10-10; the pre-reg ledger shows 3,441,402 remaining of the current period at
+2026-10-11 22:59 UTC). The full schedule is 0.7% of a month's credits, so nothing is gated: the
+`extended` entries stay ON while the monthly estimate is within `plan.max_plan_fraction` (0.5) of
+`plan.monthly_credits`, else `LiveConfig.active_schedule()` drops them, leaving `close` and `t60`.
+Smaller plans on https://the-odds-api.com/#get-access at the time of writing: START 20K $30/month
+(20,000: too small, auto-gates to close + t60 at 2 x 14 x 215 = 6,020), START 100K $59/month
+(100,000: full schedule fits at the 0.5 rule). **Caveat:** DECISIONS 2026-10-10 says Devin cancels the
+5M plan after the month; the key stops working then and every capture degrades (`error`, alert). The
+smallest plan that carries this schedule all season is START 100K, $59/month. Buying is Devin's.

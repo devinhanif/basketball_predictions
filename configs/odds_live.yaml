@@ -10,13 +10,45 @@ regions: [us, eu]               # Pinnacle is eu; us_ex (Novig/ProphetX) is not 
 # x-requests-last header and booked in the ledger.
 cost_per_market_region: 1
 
-# Daily guard (ET date, one ledger file per day). 10 games x 2 snapshots x 14 = 280; 15 games = 420.
-daily_max_credits: 600          # refuse a call that would take today's spend past this
+# Daily guard (ET date, one ledger file per day). Per game one call is 14 credits; the 12-point
+# schedule below is 168 per game: 15 games = 2,520, 16 games = 2,688.
+daily_max_credits: 3200         # refuse a call that would take today's spend past this
 min_server_remaining: 100000    # refuse when the server-reported remaining would fall below this
 
-# Windows in minutes before the real scheduled tip: a game is pulled once when now+lo <= tip <= now+hi.
-# The caller ticks every 5 minutes (ops/nba_lineups.sh), so the pull lands between hi and lo before tip.
-windows: {close: [0, 10], t60: [55, 65]}
+# Capture schedule (Devin, 2026-10-11: "do all captures of prices before the game"). One entry = one
+# snapshot kind per game, pulled once. `window: [lo, hi]` = minutes before the REAL tip (pulled when
+# now+lo <= tip <= now+hi, never after tip); the caller ticks every 5 minutes (ops/nba_lineups.sh) so
+# a 5-minute-wide window is hit by exactly one tick. `at_et` = first tick of the slate day at/after
+# that ET wall clock (up to grace_min later), i.e. the first available line of the day; whether a book
+# has posted props by 10:00 is the book's business, an empty pull is logged `empty`.
+# `extended: true` entries are dropped automatically if the full schedule's monthly estimate exceeds
+# plan.max_plan_fraction of plan.monthly_credits (nba.odds.live_close.LiveConfig.active_schedule).
+# close and t60 keep their original meaning; close is now the last tick before tip ([0, 5]) because
+# the T-10/T-5 points cover the rest of the old [0, 10] window.
+schedule:
+  - {kind: close, window: [0, 5]}
+  - {kind: t5, window: [2.5, 7.5], extended: true}
+  - {kind: t10, window: [7.5, 12.5], extended: true}
+  - {kind: t15, window: [12.5, 17.5], extended: true}
+  - {kind: t20, window: [17.5, 22.5], extended: true}
+  - {kind: t30, window: [27.5, 32.5], extended: true}
+  - {kind: t45, window: [42.5, 47.5], extended: true}
+  - {kind: t60, window: [55, 65]}
+  - {kind: t90, window: [87.5, 92.5], extended: true}
+  - {kind: t120, window: [117.5, 122.5], extended: true}
+  - {kind: t180, window: [177.5, 182.5], extended: true}
+  - {kind: morning, at_et: "10:00", grace_min: 60, extended: true}
+
+# The vendor plan as recorded in the repo (docs/DECISIONS.md 2026-10-10; the-odds-api.com #get-access:
+# START 5M, $119 per MONTH, 5,000,000 credits per billing period). games_per_month is the peak
+# regular-season month (1,230 games / 6 months = 205 average).
+plan:
+  name: START 5M
+  monthly_credits: 5000000
+  price_usd_month: 119
+  games_per_month: 215
+  max_plan_fraction: 0.5
+
 match_window_min: 30            # vendor commence_time must be within +-this of our scheduled tip
 max_attempts_per_game: 2        # failed pulls retried on later ticks, at most this many per (game, kind)
 

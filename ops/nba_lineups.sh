@@ -106,15 +106,14 @@ fi
 if [ "$CLOSE_ON" = "1" ]; then
   ENVF=""
   [ -f "$ROOT/.env" ] && ENVF="--env-file .env"
-  for KIND in close t60; do   # the close first: it is the one that cannot wait
-    # shellcheck disable=SC2086
-    NBA_CLOSE_CAPTURE=1 "$UV" run --no-sync $ENVF python -m nba.odds capture --kind "$KIND" --date "$TODAY_ET" >> "$LOG" 2>&1
-    rc=$?
-    if [ "$rc" -ne 0 ]; then
-      log "odds capture $KIND rc=$rc"
-      echo "- $(date '+%Y-%m-%d %H:%M') [lineups] odds capture $KIND rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
-    fi
-  done
+  KIND=all   # the whole configs/odds_live.yaml schedule, close first (it cannot wait)
+  # shellcheck disable=SC2086
+  NBA_CLOSE_CAPTURE=1 "$UV" run --no-sync $ENVF python -m nba.odds capture --kind "$KIND" --date "$TODAY_ET" >> "$LOG" 2>&1
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    log "odds capture $KIND rc=$rc"
+    echo "- $(date '+%Y-%m-%d %H:%M') [lineups] odds capture $KIND rc=$rc, see $LOG" >> "$OPS/ALERTS.md"
+  fi
 fi
 
 # LLM shadow forecaster (docs/LLM_SHADOW.md): OFF unless NBA_LLM_SHADOW=1, in the environment or as a

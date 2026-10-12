@@ -8,10 +8,13 @@ import gzip
 import json
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
+from datetime import time as dtime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import duckdb
+import polars as pl
 import pytest
 
 from nba.lineups.store import DDL as LINEUPS_DDL
@@ -136,6 +139,8 @@ def cfg(tmp_path: Path) -> lc.LiveConfig:
         tips_db=tips,
         raw_dir=tmp_path / "raw",
         ledger_dir=tmp_path / "budget",
+        # the original two-point schedule (close tolerance 10 min); the full one is tested below
+        schedule=(lc.ScheduleEntry("close", 0, 10), lc.ScheduleEntry("t60", 55, 65)),
     )
 
 
@@ -349,7 +354,7 @@ def test_window_selection(cfg: lc.LiveConfig) -> None:
     t60 = {x.game_id for x in lc.select_window(games, now, "t60", cfg)}
     assert t60 == {"g55", "g65"}
     with pytest.raises(ValueError):
-        lc.select_window(games, now, "t5", cfg)
+        lc.select_window(games, now, "t5", cfg)  # not in the default two-entry schedule
 
 
 def test_slate_reader_uses_real_tips_only(cfg: lc.LiveConfig, tmp_path: Path) -> None:
@@ -407,3 +412,165 @@ def test_cli_flag_off_prints_and_exits_zero(
     rc = main(["capture", "--kind", "close", "--date", "2026-10-20"])
     out = capsys.readouterr().out
     assert rc == 0 and "disabled" in out and list(tmp_path.iterdir()) == []
+
+
+# ---- schedule, preseason skip, credit estimate --------------------------------------------------
+
+LIVE_YAML = lc.CONFIG_PATH  # the real configs/odds_live.yaml: parsed here, never sent anywhere
+EXPECTED = [
+    "close",
+    "t5",
+    "t10",
+    "t15",
+    "t20",
+    "t30",
+    "t45",
+    "t60",
+    "t90",
+    "t120",
+    "t180",
+    "morning",
+]
+
+
+def test_real_schedule_config_parses() -> None:
+    c = lc.load_live_config()
+    assert sorted(e.kind for e in c.schedule) == sorted(EXPECTED)
+    by = {e.kind: e for e in c.schedule}
+    assert by["t60"].lo == 55 and by["t60"].hi == 65 and not by["t60"].extended  # unchanged
+    assert by["morning"].at_et == dtime(10, 0) and by["morning"].grace_min == 60
+    assert (by["t180"].lo, by["t180"].hi) == (177.5, 182.5)
+    assert c.plan.monthly_credits == 5_000_000 and c.plan.name == "START 5M"
+    assert len(c.active_schedule()) == 12  # the full schedule fits the recorded plan
+    assert [e.kind for e in lc.due_order(c.schedule)][0] == "close"
+    assert len(c.markets) == 7 and c.regions == ("us", "eu")
+
+
+def test_bad_schedule_rejected(tmp_path: Path) -> None:
+    for bad in ("[{kind: soon, window: [1, 2]}]", "[{kind: t5, window: [9, 2]}]"):
+        p = tmp_path / "x.yaml"
+        p.write_text(f"schedule: {bad}\n")
+        with pytest.raises(ValueError):
+            lc.load_live_config(p)
+
+
+def test_five_minute_ticks_hit_each_point_once() -> None:
+    c = lc.load_live_config()
+    tip = datetime(2026, 10, 20, 23, 30)
+    hits: dict[str, int] = {}
+    for k in range(0, 24 * 12):  # a tick every 5 minutes, from 24 h before the tip, aligned
+        now = (tip - timedelta(minutes=5 * k)).replace(tzinfo=UTC)
+        g = lc.LiveGame("G1", tip, PHI, NYK)
+        for e in c.schedule:
+            if e.at_et is None and lc.select_window([g], now, e.kind, c):
+                hits[e.kind] = hits.get(e.kind, 0) + 1
+    # t60 keeps the wide original window (55, 60, 65: one pull, the rest dedupe)
+    assert hits == {k: (3 if k == "t60" else 1) for k in EXPECTED if k != "morning"}
+
+
+def test_morning_window_is_et_clock_and_never_after_tip() -> None:
+    c = lc.load_live_config()
+    g = lc.LiveGame("G1", TIP, PHI, NYK)  # 19:30 EDT
+    et = ZoneInfo("America/New_York")
+
+    def now(h: int, m: int) -> datetime:
+        return datetime(2026, 10, 20, h, m, tzinfo=et)
+
+    assert lc.select_window([g], now(9, 55), "morning", c, SLATE) == []
+    assert lc.select_window([g], now(10, 0), "morning", c, SLATE) == [g]
+    assert lc.select_window([g], now(10, 59), "morning", c, SLATE) == [g]
+    assert lc.select_window([g], now(11, 0), "morning", c, SLATE) == []
+    early = lc.LiveGame("G0", datetime(2026, 10, 20, 14, 5), PHI, NYK)  # 10:05 EDT, already tipped
+    assert lc.select_window([early], now(10, 10), "morning", c, SLATE) == []
+
+
+def test_every_kind_refused_at_or_after_tip(cfg: lc.LiveConfig) -> None:
+    c = lc.load_live_config()
+    c = replace(cfg, schedule=c.schedule)
+    for e in c.schedule:
+        for late in (0, -1, -30):  # tip == now, and after
+            http = FakeHttp()
+            rep = run(c, http, at(late), kind=e.kind)
+            assert http.n_odds == 0 and rep.inserted == 0
+    assert not c.out_db.exists()  # nothing was even opened
+    g = lc.LiveGame("G1", TIP, PHI, NYK)
+    con = lc.open_store(cfg.out_db)
+    try:
+        for kind in ("t5", "t180", "morning"):  # the writer enforces it for the new kinds too
+            with pytest.raises(lc.PostTipError):
+                lc.write_snapshot(
+                    con, pl.DataFrame(), game=g, kind=kind, slate=SLATE, requested_at=TIP,
+                    received_at=TIP, commence_time=TIP, raw_file="x",
+                )  # fmt: skip
+        with pytest.raises(ValueError):
+            lc.write_snapshot(
+                con, pl.DataFrame(), game=g, kind="t5x", slate=SLATE, requested_at=TIP,
+                received_at=TIP - timedelta(minutes=9), commence_time=TIP, raw_file="x",
+            )  # fmt: skip
+    finally:
+        con.close()
+
+
+def test_new_kind_is_stamped_and_independent(cfg: lc.LiveConfig) -> None:
+    c = replace(cfg, schedule=lc.load_live_config().schedule)
+    http = FakeHttp()
+    rep = run(c, http, at(30.0), kind="t30")
+    assert rep.inserted > 0 and http.n_odds == 1
+    kinds = rows(c, "SELECT DISTINCT snapshot_kind FROM live_book_odds")
+    assert kinds == [("t30",)]
+    stamps = rows(
+        c, "SELECT min(requested_at), min(received_at), min(last_update) FROM live_book_odds"
+    )[0]
+    assert all(v is not None for v in stamps) and stamps[1] < TIP
+    run(c, http, at(30.0), kind="t30")
+    assert http.n_odds == 1  # idempotent
+    run(c, http, at(20.0), kind="t20")
+    assert http.n_odds == 2
+
+
+def test_run_schedule_tick_runs_only_due_kinds_and_flag_off_is_noop(cfg: lc.LiveConfig) -> None:
+    c = replace(cfg, schedule=lc.load_live_config().schedule)
+    http = FakeHttp()
+    reps = lc.run_schedule_tick(
+        SLATE, cfg=c, environ=ENV_ON, now_fn=at(45.0), resolver=RES, sleep=lambda _s: None,
+        http_get=http,
+    )  # fmt: skip
+    assert http.n_odds == 1 and [r.kind for r in reps if r.inserted] == ["t45"]
+    off = lc.run_schedule_tick(SLATE, cfg=c, environ={}, now_fn=at(45.0), http_get=http)
+    assert all(r.disabled for r in off) and http.n_odds == 1
+
+
+def test_preseason_and_allstar_games_are_not_captured(cfg: lc.LiveConfig) -> None:
+    con = duckdb.connect(str(cfg.tips_db))
+    for gid in ("0012600001", "0032600001", "0022600001"):
+        con.execute("INSERT INTO game_tips VALUES (?, ?, ?, 'schedule', ?)", [gid, SLATE, TIP, TIP])
+    con.close()
+    ids = {g.game_id for g in lc.read_slate(cfg.tips_db, SLATE)}
+    assert ids == {"G1", "0022600001"}  # 001 preseason and 003 all-star dropped
+
+
+def test_credit_estimator_and_gating(cfg: lc.LiveConfig) -> None:
+    c = lc.load_live_config()
+    assert c.expected_cost() == 14  # 7 markets x 2 regions x 1
+    assert lc.estimate_credits(c, 1) == 12 * 14 == 168
+    assert lc.estimate_credits(c, 215) == 36_120
+    assert lc.estimate_credits(c, 1230) == 206_640
+    assert lc.estimate_credits(c, 15) == 2_520 <= c.daily_max_credits  # a 15-game night fits
+    # a plan too small for the extended points drops them, keeping close and t60
+    small = replace(c, plan=replace(c.plan, name="START 20K", monthly_credits=20_000))
+    assert sorted(e.kind for e in small.active_schedule()) == ["close", "t60"]
+    # ... and 100K at the 0.5 rule keeps the full schedule (36,120 <= 50,000)
+    mid = replace(c, plan=replace(c.plan, name="START 100K", monthly_credits=100_000))
+    assert len(mid.active_schedule()) == 12
+
+
+def test_fixture_dry_run_over_the_full_schedule_pulls_nothing(cfg: lc.LiveConfig) -> None:
+    c = replace(cfg, schedule=lc.load_live_config().schedule)
+    http = FakeHttp()
+    reps = lc.run_schedule_tick(
+        SLATE, dry_run=True, cfg=c, environ=ENV_ON, now_fn=at(90.0), resolver=RES,
+        sleep=lambda _s: None, http_get=http,
+    )  # fmt: skip
+    assert http.n_odds == 0
+    assert rows(c, "SELECT count(*) FROM live_book_odds")[0] == (0,)
+    assert [r.kind for r in reps if r.statuses] == ["t90"]

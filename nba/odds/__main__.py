@@ -60,9 +60,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     c.add_argument("--out", default=None, help="DuckDB file (default: configs/odds.yaml out_db)")
     c.add_argument(
         "--kind",
-        choices=("t60", "close"),
         default=None,
-        help="the-odds-api.com LIVE per-game capture (needs NBA_CLOSE_CAPTURE=1, else a no-op); "
+        help="the-odds-api.com LIVE per-game capture: a schedule kind (morning, t180 .. t5, close) "
+        "or 'all' for the whole active schedule (needs NBA_CLOSE_CAPTURE=1, else a no-op); "
         "omitted: the legacy theoddsapi.com slate capture",
     )
     sub.add_parser("status", help="print /me/ account usage")
@@ -119,12 +119,20 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(line, flush=True)
             return RC_INFORMATIONAL if (hrep.refused or hrep.aborted) else 0
         if a.kind:
-            from nba.odds.live_close import run_live_capture
+            from nba.odds.live_close import run_live_capture, run_schedule_tick
 
-            lrep = run_live_capture(a.date, a.kind, dry_run=a.dry_run)
-            for line in lrep.lines():
-                print(line, flush=True)
-            return RC_INFORMATIONAL if lrep.degraded else 0
+            reps = (
+                run_schedule_tick(a.date, dry_run=a.dry_run)
+                if a.kind == "all"
+                else [run_live_capture(a.date, a.kind, dry_run=a.dry_run)]
+            )
+            for lrep in reps:
+                idle = not (lrep.disabled or lrep.due or lrep.messages)
+                if a.kind == "all" and (idle or (lrep.disabled and lrep is not reps[0])):
+                    continue  # one line per active kind would be noise every 5 minutes
+                for line in lrep.lines():
+                    print(line, flush=True)
+            return RC_INFORMATIONAL if any(r.degraded for r in reps) else 0
         rep = run_capture(a.date, dry_run=a.dry_run, out_db=Path(a.out) if a.out else None)
         for line in summary_lines(rep):
             print(line)
