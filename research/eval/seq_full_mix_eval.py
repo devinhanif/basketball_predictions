@@ -771,6 +771,9 @@ def score_world(
                 null_cache,
                 cap,
             )
+        world.setdefault("_arms", {})[st] = {
+            k: arms[k] for k in ("A0", "FULL", "AVG")
+        }  # kept for the post-verdict descriptive step only
         del arms
     return res
 
@@ -938,7 +941,28 @@ def _body(
         "seconds": time.time() - t0,
     }
     WE.write_json(out_dir / "results.json", out)
+    descriptive_after_verdict(world, target, out_dir)
     return out
+
+
+def descriptive_after_verdict(world: dict[str, Any], target: int, out_dir: Path) -> None:
+    """Descriptive outputs (rule section "Descriptive outputs"): only after results.json is written; a failure here writes descriptive_error.txt and never
+    touches the verdict."""
+    from research.eval import seq_full_mix_descriptive as D
+
+    try:
+        D.run_descriptive(
+            world,
+            target,
+            out_dir,
+            out_dir / "results.json",
+            "nba.duckdb",
+            ROOT / "data/odds/odds_history.duckdb",
+            ROOT / "data/ops/recent_role_holdout_cache/run/blocks",
+        )
+    except Exception as e:  # noqa: BLE001
+        (out_dir / "descriptive_error.txt").write_text(f"{type(e).__name__}: {e}\n")
+        _log(f"descriptive step failed (the verdict is unaffected): {e}")
 
 
 def _stop(
