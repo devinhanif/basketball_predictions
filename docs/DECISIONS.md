@@ -812,3 +812,9 @@ after the month. Why: Devin. What would reverse it: a plan change (then size mar
 Devin's words: "2025 check on points for combined model, shadow the combined model yes, for mac, let's start this in 45 minutes, you handle the
 smaller items but run them by me". Stage 2 runs only after the loader is adversary-reviewed and reproduces the stored 2024 result; the holdout-log
 row quotes these words and is committed before the run. Smaller items are proposed to Devin before any is run.
+
+**2026-10-12 08:41 CDT — Devin approves smaller items A, B, C, D (then E): "We will get setup for a b c d and then e".**
+A: SEQ-blend slice/overlap check on the stored 2023/24 arrays (descriptive). B: draft a forward-only, kill-only Q1 player-points rule on confirmed
+starters (live log only). C: freeze PACE_TOTALS with its drafted floors (-0.05 CRPS, -0.002 log loss, +1.0% ROI) and run it on 2023/24
+(main session noted a ~5% pass prior; Devin's call). D: RECENT_ROLE_FULL harness refuses checkpoints older than its freeze. E (open questions)
+after these. Start with the Stage-2 loader and the combined-model shadow at ~09:15 CDT.
