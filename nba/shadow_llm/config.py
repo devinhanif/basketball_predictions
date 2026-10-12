@@ -14,8 +14,8 @@ CONFIG_PATH = ROOT / "configs" / "llm_shadow.yaml"
 
 @dataclass(frozen=True)
 class ShadowConfig:
-    model_id: str = "claude-fable-5-1"
-    fallback_model_id: str = "claude-opus-5-5"
+    model_id: str = "claude-opus-5-5"
+    fallback_model_id: str = "claude-sonnet-5-5"
     max_tokens: int = 3000
     temperature: float = 0.0
     window_min: tuple[int, int] = (60, 70)

@@ -1,8 +1,8 @@
 # LLM shadow forecaster (docs/LLM_SHADOW.md, docs/prereg/LLM_SHADOW_2026_27.md). OFF unless
 # NBA_LLM_SHADOW=1. No prices here: rates live in configs/cost.yaml only; this file budgets TOKENS and
 # holds the dollar cap Devin sets. The key is read from ANTHROPIC_API_KEY at call time.
-model_id: claude-fable-5-1
-fallback_model_id: claude-opus-5-5      # used only on a not-found error for model_id; logged
+model_id: claude-opus-5-5
+fallback_model_id: claude-sonnet-5-5      # used only on a not-found error for model_id; logged
 max_tokens: 3000
 temperature: 0                          # omitted (and logged) if the API rejects it for the model
 
