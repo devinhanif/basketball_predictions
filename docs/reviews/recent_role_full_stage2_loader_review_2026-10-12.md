@@ -80,3 +80,39 @@ B1: the touch is consumed by a crash after `collect_pi` has fitted on 2025, with
 ```
 | T470 | Adversary pre-touch review of the RECENT_ROLE_FULL Stage-2 loader d006d8e (docs/reviews/recent_role_full_stage2_loader_review_2026-10-12.md) | CHANGES REQUIRED. Blocker: under `python -m` the module runs as __main__, season_cap does not patch it, collect_heads refuses 2025 after touch_started.json and the 2025 collect_pi fit (touch burned, nothing scored); proven with a no-data probe. Major: Stage-2 coverage guard uses A0 heads for FULL (rehearsal FULL 2024 cov 0.1163 vs Stage 1 0.1190 at tau 0.10, n 27,701); touch marker written after 2025 rows and realised minutes are read. Passed: rule hash 73f3f4b0 intact, refusals, gate A/B reproduce T467 -0.0083144764 exactly (n 27,701, 1,320 games), live w_q shared, no extra arms, thresholds/BH m=1/CI unchanged, expected -0.007 written first, cap restored. Shuffle guard permutation sd ~0.002 (2024: -0.0004 vs +0.0037 same rows): spurious-fire risk ~4-17%, conservative direction only |
 ```
+
+---
+
+## Re-review of the fix commit 4d7a98b (2026-10-12): **APPROVED**
+
+The loader may run once, when Devin chooses to, after the committed `HOLDOUT_ACCESS_LOG.md` row (RECENT_ROLE_FULL, 73f3f4b0,
+PRE-REGISTERED, DEVIN CONFIRMED). No season-2025 row was loaded for this re-review. The scratch probes import modules and read the
+committed 2024 rehearsal only.
+
+| Item | Command / evidence | Result | Pass |
+|---|---|---|---|
+| Rule unchanged | the diff touches only `research/eval/recent_role_full_eval.py`, tests and the rehearsal artefacts (`git show --stat 4d7a98b`) | no rule, threshold, BH or CI change; decide_stage2 untouched | PASS |
+| B1 hand-off | `if __name__ == "__main__"`: `import research.eval.recent_role_full_eval as _E; raise SystemExit(_E.main())`; test `test_cli_path_as_documented_reaches_the_cap` runs `runpy.run_module(..., run_name="__main__")` and calls the real `collect_heads` under the cap. Removing the hand-off makes the `__main__` copy run unpatched refusals, so the test fails | the cap reaches the running code | PASS |
+| B1 preflight | `assert_cap(target)` is the first statement inside `cap_ctx`, before the marker and before any build. It reads `MAX_SEASON` from the `__globals__` of collect_heads, collect_pi, WE.assert_seasons, F.load_study/load_extra, G.load_played and the `CRE.load_inputs` default | PASS |
+| Coverage of the 2025 frame build (asked) | scratch `probe_cap2.py` (imports only, exit 0): after `preimport()` the lazily imported modules on the build path (`game_location_context`, `research.workload.asof`, `research.recent_role.placebo`) are already loaded. All 12 loaded modules that carry `MAX_SEASON` are moved by `season_cap(2099)` and restored on exit (stale = {}, restored = {}). They are context_residual_eval, lower_tail_eval, rookie_minutes, f11_lineup_context, four_factors_eval, minutes_hazard_eval, minutes_v2_eval, pi_recent_role_eval, pplay_context_eval, recent_role_full_eval, workload_eval and workload_gates. `load_inputs(db_path, injury_db, max_season=2024)` has its default moved. A grep for hard-coded `202[45]` season literals in every loaded `nba.*` / `research.*` module finds only docstrings, error-message strings and constants that are not SQL bounds. | yes: `preimport` + `season_cap` cover every loader the `PR.build_frame` path touches (F.load_study -> load_inputs/load_extra, WE.load_sources -> G.load_games/load_played, W.player_load_features, PB.permute_past_only). The backstop is the data gate (>= 25,000 rows, >= 1,000 games), which now consumes the touch if it fires | PASS |
+| M1 | `arm_coverage` builds each arm through its own heads and `pi` (test `test_arm_coverage_scores_full_with_the_full_heads`). Gate A replays Stage 1's PIT uniforms (`n_prefix`) | rehearsal: A0 and FULL coverage reproduce Stage 1 with max abs diff **0.0** (n 27,701). In 2025, A0 and FULL share the same uniforms (seed 0, same length), so the coverage comparison is paired | PASS |
+| M2 | marker first inside the cap with HEAD, season, rule sha, timestamp (test `test_touch_marker_is_the_first_write_inside_the_cap_and_carries_head`); gate-B and data-gate stops write `touch_consumed: true` | PASS |
+| m1 | `require_stage1_pass` in `main` and `stage2` before the cap; test | PASS |
+| m2 | gate compares to the stored exact value at 1e-9: abs diff **0.0** (FULL-A0 -0.0083144764, CI [-0.01275, -0.00408], n 27,701 rows / 1,320 games) | PASS |
+| m3 | `PLANTS_NOTE` in results and report | PASS |
+| Tests | `.venv/bin/python -m pytest -q tests/research/recent_role_full/ -p no:cacheprovider --no-cov` | 29 passed, exit 0 | PASS |
+
+Unchanged from the first review, to be read with the result. The shuffle guard's between-permutation spread (~0.002) gives roughly
+a 4-17% chance of a spurious fire, which can only fail the run, never pass it. A shuffle-only NOT A PASS is final under the frozen
+rule.
+
+Non-blocking nit: add `nba.props.rookie_minutes` to `assert_cap`'s list for symmetry. `season_cap` already moves it (probe) and
+nothing in the walk reads it directly.
+
+Not verified: behaviour on real 2025 rows (by design); LightGBM determinism across a fresh process for 2025 (2024 reproduced to
+0.0 in two builds, which is the best available evidence).
+
+Drafted ledger row (not appended):
+```
+| T471 | Adversary re-review of the RECENT_ROLE_FULL Stage-2 loader fixes 4d7a98b (docs/reviews/recent_role_full_stage2_loader_review_2026-10-12.md) | APPROVED. B1: CLI hands off to the imported module; assert_cap before marker and loads; runpy CLI test. Cap probe (imports only): all 12 MAX_SEASON-bearing loaded modules moved and restored, lazy build modules preloaded, no SQL season literals. M1: FULL coverage on FULL heads, gate replays Stage 1 PIT, diff 0.0. M2: touch marker first inside the cap, stops consume the touch. 2024 rehearsal FULL-A0 -0.0083144764 [-0.01275, -0.00408] exact (0.0), n 27,701 / 1,320 games. 29 tests pass. Shuffle spurious-fire risk ~4-17% (conservative only) |
+```
