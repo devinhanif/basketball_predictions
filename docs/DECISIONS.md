@@ -883,3 +883,7 @@ Why: a rule that cannot pass its own minimum-data gate is not frozen (non-negoti
 
 **2026-10-12 12:46 CDT — ROAD_STARS closed NULL (T475).**
 What: no gain for stars on the road in either season (CIs about ±0.01 around 0); 2025 not touched. Why: the frozen rule's primary and guards failed in both seasons. What would reverse it: nothing; a new question gets a new id.
+
+**2026-10-12 13:08 CDT — LLM shadow (claude_code): odds-site calls out of the headline, detached launch, launchd env, injection hardening (Devin: "make sure to follow best practices for prompt injection ... i approve the launcd settings, leave odds sight calls out, yes").**
+What: headline D excludes calls with `odds_domain_flag` or `injection_flag`, each reported separately with counts and market correlation; the shadow step runs detached from the lineups tick with its own lock; the lineups plist gets HOME/USER/LOGNAME/NBA_CLAUDE_BIN (prepared, backup in data/ops/backups/, not yet installed); search results treated as untrusted data (system-prompt clause, exact-leg and range checks, marker scan, any non-WebSearch tool discards the answer). Flag NBA_LLM_SHADOW stays off; prereg A6 still DRAFT.
+Why: odds exposure and injected pages must not score; a 35-60 s call must not delay T-30/T-15. Dry run (2 preseason games): 46k and 113k tokens per call, so the drafted 8.5k/150k budget would refuse every call. What would reverse it: the flagged share leaving the headline without power, or the detached run missing windows.
