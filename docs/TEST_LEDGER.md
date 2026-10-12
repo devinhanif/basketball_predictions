@@ -627,3 +627,17 @@ props is closed for 2026-27; it would matter only for a model starting cold.
 
 
 **ADVANCED_RATES verdict (T424-T439, frozen sha256 7eb27839, freeze commit 2f50db5; research/eval/advanced_rates_eval.py; reports/prereg_advanced_rates/):** NULL, closed. Seven families of as-of advanced rates (usage x pace, efficiency, playmaking incl. PPR, rebounding, shot profile, defense context, play types), each as ew5/20/100 + slope + volatility + current-stint level, add nothing to production props: no cell reaches -0.005, none selects on 2023, and the placebo (permuted within player-season) is better than the real columns in 14 of 15 cells in 2024 (B minus placebo is positive). The rebounding-related families are slightly worse than production in 2023. Reading: past-game advanced rates are already summarised by the recency averages, minutes and role the model has; this extends the FOUR_FACTORS, TRACKING_SCREEN and sim nulls to player-level rates, time-series representations, shot type and play type. Direction closed for 2026-27; no follow-up planned.
+| T440 | ENSEMBLE E1 minutes-gated router, pts (frozen sha256 e26b1657, commit 8b3ee07) | 2023 -0.0053 [-0.0109, +0.0001]; 2024 -0.0012 [-0.0073, +0.0046]; FAIL. Oracle router (actual minutes, descriptive) -0.0191 / -0.0136 |
+| T441 | ENSEMBLE E2 SEQ alone | pts HARM +0.0279 / +0.0173; reb, ast HARM; fg3m FAIL |
+| T442 | ENSEMBLE E2 blend 50/50 and learned, pts | b50 -0.0099 [-0.0141, -0.0056] / -0.0127 [-0.0174, -0.0080]; learned -0.0110 / -0.0131; floor and BH met both seasons; FAIL on pre-registered guards: calibration (5% quantile covers 7.6%) and slices (minutes < 5 +0.089, postseason +0.024 in 2024) |
+| T443 | ENSEMBLE E3 SEQ with 2019-21 history, blends | pts b50 -0.0274 / -0.0173, learned -0.0276 / -0.0166; reb b50 -0.0078 / -0.0070; ast -0.0056 / -0.0040 (PASS_2023_ONLY); fg3m -0.0046 / -0.0037. E3 INELIGIBLE: embedding era probe AUC 0.998 (2019 v 2022) and 0.998 (2020 v 2022) above the limit; reb learned VOID_SHUFFLE. Descriptive: E3-E2 pts 2023 -0.0175 and E3K-E2K -0.0164 (gain not via report tokens) |
+| T444 | ENSEMBLE E4 (E1 + best SEQ) | pts 2023 -0.0030, 2024 -0.0060 [-0.0130, +0.0008]; FAIL |
+| T445 | ENSEMBLE verdict | CLOSED, no pass. 0 confirmed cells. Harness fix before reading results: shuffle-arm outputs carried permuted player ids, restored from the unshuffled sibling by row order (game and date asserted equal). Colab run 20261011_215342, 22.5 min T4, 7 of 7 programs |
+
+**ENSEMBLE verdict (T440-T445, frozen sha256 e26b1657, freeze commit 8b3ee07; research/eval/ensemble_eval.py; reports/prereg_ensemble/score_results.json):**
+CLOSED, no pass. The sequence network is worse than production alone, again. Blended with production it improves points by about 0.010-0.013 CRPS
+in BOTH seasons (twice the floor, BH met), but fails the pre-registered calibration and slice guards: the blend over-weights the lower tail and is
+much worse on near-DNP rows (minutes < 5, +0.089) and in the playoffs (+0.024). That is the same split XGBoost showed (better on players who play,
+worse on near-DNPs). With 2019-21 history the blend gain doubles on points (-0.027 / -0.017), but the network's internal state identifies the
+era almost perfectly (AUC 0.998), so the rule's era guard disqualifies E3 and the gain cannot be credited to more data rather than to era
+artefacts. Nothing is promoted. The allowed follow-up is the one the rule names (a router g using T-60 report and T-30 lineups).

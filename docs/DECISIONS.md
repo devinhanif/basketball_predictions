@@ -649,3 +649,9 @@ Why: freeze order is only auditable if the times are true. What would reverse it
 What: T424-T439, frozen sha256 7eb27839 (freeze commit 2f50db5). No cell selects on 2023, none passes in 2024, no family passes; best 2024 point -0.0024 against a -0.005 floor; the placebo beats the real columns in 14 of 15 cells.
 Why: past-game advanced rates, in any time-series form, are already summarised by the recency averages, minutes and role in production. Production unchanged.
 What would reverse it: a new information source (matchup data once pulled, T-30 lineups), not a new representation of the same box and play-by-play history.
+
+**2026-10-11 22:38 CDT — ENSEMBLE: CLOSED, no pass (T440-T445).**
+What: router, SEQ alone, SEQ blends and SEQ-with-history all fail the frozen rule (e26b1657, freeze 8b3ee07). Production unchanged.
+Why: blends clear the floor on points in both seasons but fail calibration and near-DNP/playoff slice guards; history arms fail the era guard.
+What would reverse it: the rule's named follow-up (router g with T-60 report and T-30 lineups) passing, or a new rule that routes near-DNP rows to
+production and the blend elsewhere, frozen before any new fit and judged on the decision score as well.
