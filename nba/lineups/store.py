@@ -8,7 +8,9 @@ Tables
 ``snapshot_log``      one row per HTTP poll (also failures), with the raw file path and sha256.
 ``lineup_snapshots``  one row per (snapshot, game, team, player) parsed from a 200 response.
 ``game_tips``         tip-off per game (schedule, or parsed from the feed's status text).
-``lineup_snapshots_latest``  VIEW: one row per (snapshot, game, team, player); see ``DDL``.
+``lineup_snapshots_dedup``  VIEW: one row per (snapshot, game, team, player), Confirmed over
+                           Expected then latest source_ts; ``lineup_snapshots_latest`` is the
+                           same view under its old name.
 """
 
 from __future__ import annotations
@@ -26,7 +28,27 @@ LINEUPS_DIR = DEFAULT_DATA_DIR / "lineups"
 DEFAULT_LINEUPS_DB = LINEUPS_DIR / "lineups.duckdb"
 T30_LEAD_MINUTES = 30  # the shadow model's information cutoff: tip-off minus 30 minutes
 
-DDL = """
+DEDUP_SELECT = """SELECT snapshot_id,
+       arg_max(fetched_at, rk) AS fetched_at,
+       arg_max(game_date, rk) AS game_date,
+       game_id,
+       arg_max(game_status, rk) AS game_status,
+       arg_max(game_status_text, rk) AS game_status_text,
+       team_id,
+       arg_max(team_abbr, rk) AS team_abbr,
+       arg_max(is_home, rk) AS is_home,
+       player_id,
+       arg_max(player_name, rk) AS player_name,
+       arg_max(lineup_status, rk) AS lineup_status,
+       bool_or(announced_starter) AS announced_starter,
+       max(position) AS position,
+       arg_max(roster_status, rk) AS roster_status,
+       max(source_ts) AS source_ts
+FROM (SELECT *, (lineup_status = 'Confirmed', source_ts) AS rk FROM lineup_snapshots)
+GROUP BY snapshot_id, game_id, team_id, player_id
+"""
+
+_DDL_TEMPLATE = """
 CREATE TABLE IF NOT EXISTS snapshot_log (
     snapshot_id VARCHAR PRIMARY KEY,   -- fetched_at (iso) + '_' + sha256[:8]
     fetched_at TIMESTAMP,
@@ -71,28 +93,31 @@ CREATE TABLE IF NOT EXISTS game_tips (
 -- of 39 snapshots on 2026-10-09/10, which made nba/daily/t30.py read a mixed "Confirmed/Expected"
 -- status and skip the game. Raw rows stay append-only; consumers read this view:
 --   announced_starter = true if ANY row has it (the OR gives exactly 5 starters in 60 of 60
---   duplicated team-snapshots; "latest row wins" gave 0 in 18), lineup_status and the other
---   descriptive columns come from the row with the latest source_ts, position = the non-empty one.
-CREATE OR REPLACE VIEW lineup_snapshots_latest AS
-SELECT snapshot_id,
-       arg_max(fetched_at, source_ts) AS fetched_at,
-       arg_max(game_date, source_ts) AS game_date,
-       game_id,
-       arg_max(game_status, source_ts) AS game_status,
-       arg_max(game_status_text, source_ts) AS game_status_text,
-       team_id,
-       arg_max(team_abbr, source_ts) AS team_abbr,
-       arg_max(is_home, source_ts) AS is_home,
-       player_id,
-       arg_max(player_name, source_ts) AS player_name,
-       arg_max(lineup_status, source_ts) AS lineup_status,
-       bool_or(announced_starter) AS announced_starter,
-       max(position) AS position,
-       arg_max(roster_status, source_ts) AS roster_status,
-       max(source_ts) AS source_ts
-FROM lineup_snapshots
-GROUP BY snapshot_id, game_id, team_id, player_id;
+--   duplicated team-snapshots; "latest row wins" gave 0 in 18); lineup_status and the other
+--   descriptive columns come from the winning row: Confirmed over Expected (a later Expected
+--   starters-block row must not downgrade a player the same snapshot also lists as Confirmed;
+--   that kept 57 team-snapshots 'mixed' under pure latest-source_ts), then the latest source_ts;
+--   position = the non-empty one. Same winner order as nba/daily/t30.py.
+CREATE OR REPLACE VIEW lineup_snapshots_dedup AS
+__DEDUP__;
+-- Earlier name for the same view (kept so existing readers keep working).
+CREATE OR REPLACE VIEW lineup_snapshots_latest AS SELECT * FROM lineup_snapshots_dedup;
 """
+
+
+DDL = _DDL_TEMPLATE.replace("__DEDUP__", DEDUP_SELECT)
+
+
+def dedup_lineup_snapshots(con: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
+    """One row per (snapshot, game, team, player): Confirmed over Expected, then latest source_ts.
+
+    Reads the ``lineup_snapshots_dedup`` view when it exists, else runs the same SELECT inline
+    (a read-only connection cannot create the view; the collector adds it on its next tick).
+    Raw ``lineup_snapshots`` rows are never modified."""
+    try:
+        return con.sql("SELECT * FROM lineup_snapshots_dedup")
+    except duckdb.CatalogException:
+        return con.sql(DEDUP_SELECT)
 
 
 def connect_lineups(
