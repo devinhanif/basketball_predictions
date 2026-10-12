@@ -299,4 +299,4 @@
   coach_id NULL on 117 rows (Dwane Casey, Kevin Ollie, Steve Nash: no NBA staff row; Lindsey Harding's name maps to two ids
   and is left NULL rather than guessed). 13 mid-season changes found, including interims (Prunty ATL 2022 and MIL 2023,
   Ollie BKN 2023) and 2025-26 (Borrego NOP from game 13, Splitter POR from game 2).
-- Not run: `make data-snapshot` (manifest), queued for the next maintenance window.
+- Manifest: data_version 418510d401d3 -> f67c63f376bc (`make data-snapshot`, 27 tables).
