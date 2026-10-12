@@ -247,4 +247,14 @@ one-touch holdout row and a shadow-log recommendation; the archivist logs it bef
 
 === RESULTS BELOW ===
 
-(none; no fit has been run)
+Run 2026-10-11 under the frozen sha256 7eb27839 (commit 2f50db5), CPU, seed 0, 2000 game-clustered draws, season 2025 never loaded.
+Gate (non-draft): all six checks passed. A0 reproduced all 8 reference cells. Full tables: reports/prereg_advanced_rates.md and
+reports/prereg_advanced_rates/results.json. Ledger T424-T439.
+
+VERDICT: NULL, CLOSED. No cell selects on 2023 (none reaches -0.005 with CI upper < 0) and none passes in 2024; no family passes; the
+attack arms (shuffled labels, knockout) were not run because no cell passed rules 1-3. 2024 dCRPS (n = 27,701 rows / 1,315 games per
+cell; BH over 15): EFFICIENCY/pts -0.0024 [-0.0055,+0.0006] (best), USAGE_PACE/ast -0.0000, DEFENSE_CONTEXT/fg3m -0.0002, REBOUNDING/reb
+-0.0002, every other cell between +0.0001 and +0.0022; smallest BH p 0.708. 2023 (n = 27,619): best DEFENSE_CONTEXT/pts -0.0030
+[-0.0060,+0.0001]; USAGE_PACE/reb +0.0024 [+0.0010,+0.0039] (BH 0.015) and REBOUNDING/reb +0.0020 [+0.0007,+0.0033] (BH 0.037) are
+worse than production and do not replicate in 2024. The permuted-within-player-season placebo beat the real columns in 14 of 15 cells
+in 2024. One follow-up is allowed by the rule; none is planned.

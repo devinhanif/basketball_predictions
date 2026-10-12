@@ -644,3 +644,8 @@ the commit times (20:32, 21:25, 21:28, 21:33, 21:47, 21:52 CDT). The frozen stat
 true freeze times. No order changed: each freeze commit precedes its first fit. Same incident class as the 17:10 entry; the BEST_PRACTICES
 rule (run `date` first) was not followed by the main session.
 Why: freeze order is only auditable if the times are true. What would reverse it: nothing.
+
+## 2026-10-11 ADVANCED_RATES: NULL; advanced-rates direction closed for 2026-27
+What: T424-T439, frozen sha256 7eb27839 (freeze commit 2f50db5). No cell selects on 2023, none passes in 2024, no family passes; best 2024 point -0.0024 against a -0.005 floor; the placebo beats the real columns in 14 of 15 cells.
+Why: past-game advanced rates, in any time-series form, are already summarised by the recency averages, minutes and role in production. Production unchanged.
+What would reverse it: a new information source (matchup data once pulled, T-30 lineups), not a new representation of the same box and play-by-play history.

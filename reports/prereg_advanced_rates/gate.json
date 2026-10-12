@@ -1,0 +1,53 @@
+{
+  "tests": [
+    {
+      "test": "frame rows == production feature rows",
+      "value": 84170,
+      "threshold": "== feats",
+      "ok": true
+    },
+    {
+      "test": "every feature row keyed in the box (null rate of the first column)",
+      "value": 0,
+      "threshold": "== 0",
+      "ok": true
+    },
+    {
+      "test": "missingness asymmetry across realised-minutes buckets (pp)",
+      "value": 0.0,
+      "threshold": "<= 2.00",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: the edited games' own rows identical",
+      "value": 308,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 13770,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows dated on or before the cutoff identical",
+      "value": 70400,
+      "threshold": "identical",
+      "ok": true
+    }
+  ],
+  "audit": {
+    "max_gap_pp": 0.0,
+    "worst_col": "adv_stint_n",
+    "placebo_max_gap_pp": 0.0,
+    "threshold_pp": 2.0,
+    "ok": true,
+    "n_rows": 55320,
+    "n_cols": 183
+  },
+  "gate_ok": true,
+  "draft": false,
+  "seconds": 32.728535175323486,
+  "git": "2f50db59962c1241700b249783cf09c329f8c960"
+}
