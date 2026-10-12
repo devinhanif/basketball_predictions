@@ -843,3 +843,8 @@ call: billing is per market returned, so 178 was an upper bound); 1,440/1,440 ou
 Only 11 of 89 markets exist in preseason, so period lines, q1 player props and yes/no props remain unverified until 2026-10-20. Full pipeline
 ran on a database copy (no production writes); no preseason injury report was found, so injury-Elo fell back. The 10:02 pretip rc=5 was a
 network outage (DNS to stats.nba.com); later runs succeeded. The daily job still skips preseason.
+
+**2026-10-12 11:27 CDT — Shuffle-guard diagnostic: the 2025 fire is consistent with chance; guard template changed for future rules.**
+What: under this construction the guard fires ~19% of the time on honest shuffles (9/48; ~0.21-0.35 at the 2025 CI width); no label-free gain
+from the five columns (null mean -0.0003, se 0.0003). T473 stands unchanged. Future rules size shuffle guards from a permutation null (BEST_PRACTICES).
+Why: reports/shuffle_guard_diagnostic_2026-10-12.md. What would reverse it: a within-player-season shuffle with a tighter null.

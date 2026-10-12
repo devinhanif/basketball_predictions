@@ -131,3 +131,11 @@ Why: CRPS rewards being right everywhere; a bettor acts on a few confident legs,
 reports/decision_scoring_2026-10-11.md). Rule: any result that bears on what to bet leads with the decision score of `docs/DECISION_SCORING.md`
 (ROI at the actual price, with CI, against market-lean and random of the same count); accuracy metrics follow it. The morning briefing reports
 it the same way once the live log has bets.
+
+## Shuffle guards must be sized from a permutation null (2026-10-12)
+Incident: RECENT_ROLE_FULL's frozen shuffled-label guard (fail if SHUF_FULL minus SHUF_CTRL <= -0.001 with a bootstrap CI upper < 0) fired on
+the 2025 holdout (-0.0021) and failed a stat whose primary contrast was -0.0116 [-0.0159, -0.0076] (T473). The diagnostic
+(reports/shuffle_guard_diagnostic_2026-10-12.md) showed the guard fires in 9 of 48 honest shuffles (19%, plus ~10% the other way): the
+spread across permutation seeds (sd ~0.0023) is as large as the bootstrap half-width, which ignores the fit noise of two models trained on
+noise. Rule for future pre-registrations: size any shuffle or noise guard from a permutation null measured on the select season before the
+freeze (K >= 50; fail beyond about 2 null sd), report the null sd next to the bootstrap CI, and prefer a noise-column control under real labels.
