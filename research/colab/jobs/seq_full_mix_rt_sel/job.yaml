@@ -1,0 +1,28 @@
+name: seq_full_mix_rt_sel
+description: >
+  SEQ_FULL_MIX_RT run #1 (gate measurement; NOT a holdout touch). The construction W_ALL (all the data: 2019-20, 2020-21,
+  2021-22 with era tokens, 2021-22 report tokens dropped, then 2022 on) on the REAL-TIP export, programs E2 and E2S, scored
+  walk-forward on 2023 and 2024 only, plus a W22 (warm pool from 2022) E2 DIAGNOSTIC that is never selected. 3 seeds, full
+  budgets, about 22 minutes on a T4. The inputs hold nothing after 2024 and the notebook cannot read season 2025. Scores
+  nothing: the RT gates are measured on W_ALL on the Mac.
+notebook: research/colab/jobs/seq_full_mix_rt_sel/seq_full_mix_rt_sel.ipynb
+inputs:
+  - path: data/colab/seq_full_mix_rt/seq_ensemble_rt_cur.npz
+    produce: uv run python -m research.features.seq_full_mix_rt_export selection
+    depends_on: [nba.duckdb, data/history/nba_history.duckdb]
+  - path: data/colab/seq_full_mix_rt/seq_ensemble_rt_hist.npz
+  - path: docs/prereg/SEQ_FULL_MIX_RT.md
+artifacts:
+  - metrics.json
+  - config.json
+  - oof_W22_E2.npz
+  - oof_WALL_E2.npz
+  - oof_WALL_E2S.npz
+  - info_W22_E2.json
+  - info_WALL_E2.json
+  - info_WALL_E2S.json
+registry:
+  model_name: seq_full_mix_rt_sel
+  tags: {rung: 3, model_method: seq_transformer_quantile_walkforward, holdout_scored: false}
+touches_holdout: false
+preregistration_id: null

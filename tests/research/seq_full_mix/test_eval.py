@@ -165,7 +165,7 @@ def test_require_unspent_blocks_a_spent_or_started_touch(tmp_path: Path) -> None
     (tmp_path / "touch_started.json").write_text("{}")
     with pytest.raises(RuntimeError, match="consumed"):
         E.require_unspent(tmp_path, False)
-    E.require_unspent(tmp_path, True)
+    E.require_unspent(tmp_path, True, {})
     (tmp_path / "results.json").write_text("{}")
     with pytest.raises(RuntimeError, match="spent"):
         E.require_unspent(tmp_path, True)

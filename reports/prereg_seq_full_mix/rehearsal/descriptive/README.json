@@ -2,6 +2,7 @@
  "target": 2024,
  "rows": 110804,
  "files": [
+  "README.json",
   "confusion.json",
   "rows.csv",
   "rows.parquet",

@@ -535,6 +535,8 @@ def main():
     cur_path = Path(os.environ.get("NBA_PARQUET", "seq_ensemble_cur25.npz"))
     run_dir = cur_path.parent
     sha = check_rule(run_dir)
+    export_sha = file_sha256(cur_path)
+    print("export npz sha256", export_sha, flush=True)
     print("rule sha256", sha, flush=True)
     root = Path(os.environ.get("NBA_ARTIFACT_ROOT", "data/colab/artifacts"))
     stamp = os.environ.get("NBA_RUN_STAMP") or datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -553,22 +555,43 @@ def main():
         print(f"=== program {prog} ===", flush=True)
         d = prepare(prog, cur)
         infos[prog] = run_walk_forward(prog, d, dev, hidden, out_dir, bool(smoke))
+        infos[prog].update(
+            hidden=hidden,
+            smoke=bool(smoke),
+            cold=COLD,
+            warm=WARM,
+            rule_sha256=sha,
+            export_npz_sha256=export_sha,
+        )
+        (out_dir / f"info_{prog}.json").write_text(json.dumps(infos[prog], indent=2, default=str))
         print(
             prog,
             json.dumps({k: v for k, v in infos[prog].items() if k != "blocks_detail"}),
             flush=True,
         )
-        write_metrics(out_dir, infos, sha, t0, hidden, smoke)
-    write_metrics(out_dir, infos, sha, t0, hidden, smoke)
+        write_metrics(out_dir, sha, t0, hidden, smoke, export_sha)
+    write_metrics(out_dir, sha, t0, hidden, smoke, export_sha)
     print("ARTIFACTS WRITTEN TO", out_dir)
     return infos
 
 
-def write_metrics(out_dir, infos, sha, t0, hidden, smoke):
+def file_sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def write_metrics(out_dir, sha, t0, hidden, smoke, export_sha):
+    """config.json / metrics.json describe EVERY program in the directory (merged from the per-program info files), never only this session's."""
+    infos = {
+        p.stem[5:]: json.loads(p.read_text()) for p in sorted(Path(out_dir).glob("info_*.json"))
+    }
     cfg = {
-        "rule": RULE_ID, "rule_sha256": sha, "seeds": list(SEEDS), "cold": COLD, "warm": WARM,
+        "rule": RULE_ID, "rule_sha256": sha, "seeds": [0] if smoke else list(SEEDS), "cold": COLD, "warm": WARM,
         "cold_end": COLD_END, "hidden": hidden, "smoke": smoke, "test_seasons": list(TEST_SEASONS),
-        "season_2025_used": True, "placebo_seed": PLACEBO_SEED, "programs": list(infos),
+        "season_2025_used": True, "placebo_seed": PLACEBO_SEED, "programs": sorted(infos), "export_npz_sha256": export_sha,
     }  # fmt: skip
     (out_dir / "config.json").write_text(json.dumps(cfg, indent=2, default=str))
     metrics = {"programs": infos, "rule_sha256": sha, "runtime_s": round(time.monotonic() - t0, 1)}

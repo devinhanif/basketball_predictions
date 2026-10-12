@@ -313,6 +313,13 @@ def context_flags(pgs: pd.DataFrame, games: pd.DataFrame) -> pd.DataFrame:
     return out.rename(columns={"b2b": "second_night_b2b"})
 
 
+def assert_bounded(df: pd.DataFrame, target: int, what: str) -> None:
+    if len(df) and int(df["season"].max()) > int(target):
+        raise RuntimeError(
+            f"{what}: a frame holds season {int(df['season'].max())} > target {target}; the descriptive step refuses"
+        )
+
+
 def load_pplay(cache_dir: Path) -> pl.DataFrame | None:
     """P(play) of the RECENT_ROLE_HOLDOUT model R (2025 only, Cell P rows), else None. Predictions only."""
     fs = sorted(cache_dir.glob("block_*.npz"))
@@ -596,13 +603,16 @@ def run_descriptive(
     con = duckdb.connect(nba_db, read_only=True)
     try:
         games = con.execute(
-            "SELECT game_id, game_date, home_team, away_team FROM games WHERE season >= 2022"
+            f"SELECT game_id, game_date, season, home_team, away_team FROM games WHERE season >= 2022 AND season <= {int(target)}"
         ).df()
         pgs = con.execute(
-            "SELECT s.game_id, s.player_id, s.team_id, s.minutes FROM player_game_stats s JOIN games g USING (game_id) WHERE g.season >= 2022"
+            "SELECT s.game_id, s.player_id, s.team_id, s.minutes, g.season FROM player_game_stats s JOIN games g USING (game_id) "
+            f"WHERE g.season >= 2022 AND g.season <= {int(target)}"
         ).df()
     finally:
         con.close()
+    assert_bounded(games, target, "games")  # a rehearsal (target 2024) must never hold a 2025 row
+    assert_bounded(pgs, target, "player_game_stats")
     ctx = context_flags(pgs, games)
     seasons = sorted({int(target), *[s for s in seen if s <= target]})
     rows_by_season: dict[int, dict[str, pl.DataFrame]] = {}

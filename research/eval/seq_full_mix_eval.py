@@ -18,6 +18,7 @@ points: AVG minus FULL (what the sequence model adds once FULL is in), floor -0.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import time
 from collections.abc import Callable, Iterator
@@ -37,6 +38,7 @@ from research.eval import near_miss_bundle_eval as N
 from research.eval import pi_recent_role_eval as PR
 from research.eval import recent_role_full_eval as F
 from research.eval import router_g2_eval as G
+from research.eval import seq_full_mix_rt_rule as RT_RULE
 from research.eval import seq_full_mix_rule as RULE
 from research.eval import workload_eval as WE
 
@@ -45,7 +47,10 @@ ROOT = RULE.ROOT
 OUT_DIR = ROOT / "reports/prereg_seq_full_mix"
 REPORT_MD = ROOT / "reports/prereg_seq_full_mix.md"
 CACHE = ROOT / "data/ops/seq_full_mix_cache"
-SEQ_STORED = N.SEQ_RUN
+SEQ_STORED: Path | None = N.SEQ_RUN
+OOF_PREFIX = ""  # run #1 files are named oof_<window>_<program>.npz
+WINDOW: str | None = None
+VARIANT = "base"
 STATS = tuple(PROP_STATS)
 SELECT_SEASONS = (2023, 2024)
 HOLDOUT_SEASON = 2025
@@ -303,6 +308,34 @@ def arm_guards(
 # --------------------------------------------------------------------------- the stored world (2023 / 2024)
 def stored_world() -> dict[str, Any]:
     """A0 arrays, FULL (stored heads/pi caches), SEQ E2 / E2S for 2023-24. Seasons <= 2024 asserted."""
+    w = stored_world_base()
+    if SEQ_STORED is None:  # the held-out run needs the stored A0 / FULL only
+        w["seq_programs"] = {}
+        return w
+    if VARIANT == "rt":
+        w["seq_programs"] = {
+            "E2": load_seq_run(SEQ_STORED, "E2", w["base"], REPO_CAP),
+            "E2S": load_seq_run(SEQ_STORED, "E2S", w["base"], REPO_CAP),
+        }
+        return w
+    w["seq_programs"] = {"E2": w["seq"]}
+    w["seq_programs"]["E2S"] = load_seq_run(SEQ_STORED, "E2S", w["base"], REPO_CAP, key_from="E2")
+    return w
+
+
+def load_seq_run_prefixed(
+    run_dir: Path, prefix: str, prog: str, base: dict[str, dict[str, Any]], max_season: int
+) -> dict[str, np.ndarray]:
+    global OOF_PREFIX
+    old, OOF_PREFIX = OOF_PREFIX, prefix
+    try:
+        return load_seq_run(run_dir, prog, base, max_season)
+    finally:
+        OOF_PREFIX = old
+
+
+def stored_world_base() -> dict[str, Any]:
+    """A0 and FULL for 2023-24 (stored caches); in the RT variant the blend context comes from the real-tip export meta."""
     w = N.load_world()
     pic = dict(np.load(F.LT_DIR / "components_pi.npz", allow_pickle=True))
     pi_r = np.load(F.pi_path("R"))["pi"]
@@ -318,9 +351,61 @@ def stored_world() -> dict[str, Any]:
         b["full_mix"] = arm_grid("mixture", comp_full, PR.candidate_pic(pic, pi_r), st)
         if not np.array_equal(WE.mixture_qi(comp, pic, st), b["a0_int"]):
             raise RuntimeError(f"{st}: A0 from the components is not the ensemble A0")
-    w["seq_programs"] = {"E2": w["seq"]}
-    w["seq_programs"]["E2S"] = load_seq_run(SEQ_STORED, "E2S", w["base"], REPO_CAP, key_from="E2")
+    if VARIANT == "rt":
+        rt_covariates(w)
     return w
+
+
+def rt_covariates(w: dict[str, Any]) -> None:
+    """SEQ_FULL_MIX_RT: the blend gate's context (has_report, n_rep_out, n_prior, team_game_no, team) and the tip clock come from the REAL-TIP export meta, not the
+    proxy19 one the stored ensemble world carries (the report fields differ exactly on the leaky games)."""
+    meta = pl.read_parquet(STORED_META).select(
+        "game_id",
+        pl.col("player_id").cast(pl.Int64),
+        "team_id",
+        "n_prior",
+        "team_game_no",
+        "has_report",
+        "n_rep_out",
+    )
+    for st in STATS:
+        b = w["base"][st]
+        j = pl.DataFrame(
+            {"game_id": b["game_id"].astype(str), "player_id": b["player_id"].astype(np.int64)}
+        ).join(meta, on=["game_id", "player_id"], how="left")
+        if j["team_id"].null_count():
+            raise RuntimeError(f"{st}: A0 rows missing from the real-tip export meta {STORED_META}")
+        for k in ("team_id", "n_prior", "team_game_no", "has_report", "n_rep_out"):
+            b[k] = j[k].to_numpy()
+    w["ctx"] = blend_ctx(w["base"][STAT_PRIMARY])
+
+
+def ref_values() -> tuple[dict[int, float], dict[int, float]] | None:
+    """(AVG - A0, AVG - FULL) pts references per season: T471's stored values for the base rule; for RT none exist outside its own gate (loaded from gate_draft.json)."""
+    if VARIANT == "base":
+        return T471_AVG_MINUS_A0, T471_AVG_MINUS_FULL
+    f = OUT_DIR / "gate_draft.json"
+    if not f.exists():
+        return None
+    c = json.loads(f.read_text())["stats"][STAT_PRIMARY]["contrasts"]
+    return (
+        {s: c["AVG_minus_A0"][str(s)]["delta"] for s in SELECT_SEASONS},
+        {s: c["AVG_minus_FULL"][str(s)]["delta"] for s in SELECT_SEASONS},
+    )
+
+
+def configure_rt(sel_run: Path | None, window: str | None) -> None:
+    """Rebind the module to SEQ_FULL_MIX_RT: its rule module, outputs, real-tip export paths, the selection run's files (prefix <window>_) for the stored 2023/24 SEQ
+    member, and the real-tip expectation (the 2024 clean-game figure -0.0087)."""
+    g = globals()
+    g.update(
+        RULE=RT_RULE, ID=RT_RULE.ID, VARIANT="rt", WINDOW=window, SEQ_STORED=sel_run, OOF_PREFIX=f"{window}_" if sel_run is not None and window else "",
+        OUT_DIR=ROOT / "reports/prereg_seq_full_mix_rt", REPORT_MD=ROOT / "reports/prereg_seq_full_mix_rt.md", CACHE=ROOT / "data/ops/seq_full_mix_rt_cache",
+        EXPORT25_META=ROOT / "data/colab/seq_full_mix_rt/seq_ensemble_rt_cur25_meta.parquet", EXPORT25_NPZ=ROOT / "data/colab/seq_full_mix_rt/seq_ensemble_rt_cur25.npz",
+        EXPORT25_INFO=ROOT / "data/colab/seq_full_mix_rt/export_info.json", STORED_META=ROOT / "data/colab/seq_full_mix_rt/seq_ensemble_rt_cur_meta.parquet",
+        EXPECTED_AVG_MINUS_FULL=-0.0087,
+    )  # fmt: skip
+    g["STAGE2_DIR"] = g["OUT_DIR"] / "stage2"
 
 
 def load_seq_run(
@@ -332,12 +417,12 @@ def load_seq_run(
 ) -> dict[str, np.ndarray]:
     """Per stat the continuous 199-grid of ``prog`` aligned to the A0 rows (error on any missing key). ``key_from``: take the (game_id, player_id) keys
     positionally from another program's file of the same run (ENSEMBLE's stored E2S file carries the SHUFFLED input's player id; its rows are in E2's order)."""
-    z = np.load(run_dir / f"oof_{prog}.npz", allow_pickle=True)
+    z = np.load(run_dir / f"oof_{OOF_PREFIX}{prog}.npz", allow_pickle=True)
     if int(z["season"].max()) > max_season:
         raise RuntimeError(f"season > {max_season} in {prog}")
     gid, pid = z["game_id"].astype(str), z["player_id"].astype(np.int64)
     if key_from is not None:
-        k = np.load(run_dir / f"oof_{key_from}.npz", allow_pickle=True)
+        k = np.load(run_dir / f"oof_{OOF_PREFIX}{key_from}.npz", allow_pickle=True)
         if not (
             np.array_equal(k["game_id"].astype(str), gid)
             and np.array_equal(k["date_days"], z["date_days"])
@@ -385,8 +470,9 @@ def run_gate(allow_draft: bool = False) -> dict[str, Any]:
             res["stats"][st] = {"contrasts": rows, "guards_AVG": guards}
             if st == STAT_PRIMARY:
                 for s in SELECT_SEASONS:
-                    tests.append(check(f"pts {s} AVG - A0 reproduces T471", {"delta": rows["AVG_minus_A0"][str(s)]["delta"], "stored": T471_AVG_MINUS_A0[s]}, f"<= {EXACT_TOL}", abs(rows["AVG_minus_A0"][str(s)]["delta"] - T471_AVG_MINUS_A0[s]) <= EXACT_TOL))  # fmt: skip
-                    tests.append(check(f"pts {s} AVG - FULL reproduces T471", {"delta": rows["AVG_minus_FULL"][str(s)]["delta"], "stored": T471_AVG_MINUS_FULL[s]}, f"<= {EXACT_TOL}", abs(rows["AVG_minus_FULL"][str(s)]["delta"] - T471_AVG_MINUS_FULL[s]) <= EXACT_TOL))  # fmt: skip
+                    if VARIANT == "base":
+                        tests.append(check(f"pts {s} AVG - A0 reproduces T471", {"delta": rows["AVG_minus_A0"][str(s)]["delta"], "stored": T471_AVG_MINUS_A0[s]}, f"<= {EXACT_TOL}", abs(rows["AVG_minus_A0"][str(s)]["delta"] - T471_AVG_MINUS_A0[s]) <= EXACT_TOL))  # fmt: skip
+                        tests.append(check(f"pts {s} AVG - FULL reproduces T471", {"delta": rows["AVG_minus_FULL"][str(s)]["delta"], "stored": T471_AVG_MINUS_FULL[s]}, f"<= {EXACT_TOL}", abs(rows["AVG_minus_FULL"][str(s)]["delta"] - T471_AVG_MINUS_FULL[s]) <= EXACT_TOL))  # fmt: skip
                     tests.append(check(f"pts {s} FULL - A0 reproduces T467", {"delta": rows["FULL_minus_A0"][str(s)]["delta"], "stored": T467[s]}, f"<= {EXACT_TOL}", abs(rows["FULL_minus_A0"][str(s)]["delta"] - T467[s]) <= EXACT_TOL))  # fmt: skip
                 res["pts_arms_crps"] = {k: {str(s): float(crps_from_quantiles(v.astype(float), b["y"])[b["season"] == s].mean()) for s in SELECT_SEASONS} for k, v in arms.items()}  # fmt: skip
             for s in SELECT_SEASONS:
@@ -590,6 +676,9 @@ META_COLS = (
     "n_rep_out",
 )
 EXPORT25_META = ROOT / "data/colab/seq_full_mix/seq_ensemble_cur25_meta.parquet"
+EXPORT25_NPZ = ROOT / "data/colab/seq_full_mix/seq_ensemble_cur25.npz"
+EXPORT25_INFO = ROOT / "data/colab/seq_full_mix/export_info.json"
+MARKER_KEYS = ("sha256", "head", "code_diff_sha256", "seq_run", "seq_files", "export")
 STORED_META = ROOT / "data/colab/seq_ensemble/seq_ensemble_cur_meta.parquet"
 
 
@@ -819,15 +908,80 @@ def secondary_family(res: dict[str, Any], target: int) -> list[dict[str, Any]]:
     return rows
 
 
-def require_unspent(out_dir: Path, resume: bool) -> None:
+def marker_info(sha: str, seq_run: Path, export: dict[str, Any]) -> dict[str, Any]:
+    """Identity of this run: the rule, the code (HEAD plus a hash of any uncommitted change under research/ and nba/), the Colab directory and the bytes of its files."""
+    diff = PR._git("diff", "HEAD", "--", "research", "nba")
+    return {
+        "sha256": sha, "head": PR._git("rev-parse", "HEAD").strip(), "code_diff_sha256": hashlib.sha256(diff.encode()).hexdigest(),
+        "seq_run": str(seq_run.resolve()), "seq_files": {n: RULE.file_sha256(seq_run / n) for n in ("oof_E2.npz", "oof_E2P.npz", "oof_E2S.npz", "config.json")},
+        "export": {"npz_sha256": export["npz_sha256"], "meta_sha256": export["meta_sha256"]},
+    }  # fmt: skip
+
+
+def require_unspent(out_dir: Path, resume: bool, current: dict[str, Any] | None = None) -> None:
+    """Refuse a spent touch, any failed gate (the remedy is a new id), a started touch without --resume, and a --resume that is not the same sha, code, Colab
+    directory and file bytes as the started touch."""
     if (out_dir / "results.json").exists():
         raise RuntimeError(
             f"{out_dir / 'results.json'} exists: the 2025 touch is spent (one run, no reruns); Devin decides what happens next"
         )
-    if (out_dir / "touch_started.json").exists() and not resume:
+    if (out_dir / "gate_failed.json").exists():
         raise RuntimeError(
-            f"{out_dir / 'touch_started.json'} exists: a started touch is consumed; resume only with --resume (same sha, same code)"
+            f"{out_dir / 'gate_failed.json'} exists: a run-time gate failed; the rule's remedy is a new id, not a resume"
         )
+    mk = out_dir / "touch_started.json"
+    if not mk.exists():
+        return
+    if not resume:
+        raise RuntimeError(
+            f"{mk} exists: a started touch is consumed; resume only with --resume (same sha, same code)"
+        )
+    if current is None:
+        raise RuntimeError(
+            "--resume needs the identity of the current run to compare with the started touch"
+        )
+    prev = json.loads(mk.read_text())
+    bad = {k: (prev.get(k), current.get(k)) for k in MARKER_KEYS if prev.get(k) != current.get(k)}
+    if bad:
+        raise RuntimeError(
+            f"--resume must repeat the started touch exactly (sha, code, seq-run, file bytes, export); differs: {bad}"
+        )
+
+
+def write_marker(out_dir: Path, marker: dict[str, Any]) -> Path:
+    """touch_started.json is written once and never overwritten; a resume appends touch_resumed_<n>.json."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    payload = {**marker, "season": HOLDOUT_SEASON, "started": time.strftime("%Y-%m-%d %H:%M:%S %Z")}
+    mk = out_dir / "touch_started.json"
+    if not mk.exists():
+        WE.write_json(mk, payload)
+        return mk
+    path = out_dir / f"touch_resumed_{len(list(out_dir.glob('touch_resumed_*.json'))) + 1}.json"
+    WE.write_json(path, payload)
+    return path
+
+
+def check_export(
+    cfg: dict[str, Any] | None = None,
+    info_path: Path | None = None,
+    npz: Path | None = None,
+    meta: Path | None = None,
+) -> dict[str, Any]:
+    """The export on disk is the one the Colab run used and the one the exporter described (sha256 of the npz and the meta)."""
+    info = json.loads((info_path or EXPORT25_INFO).read_text())
+    got = {
+        "npz_sha256": RULE.file_sha256(npz or EXPORT25_NPZ),
+        "meta_sha256": RULE.file_sha256(meta or EXPORT25_META),
+    }
+    if got != {k: info.get(k) for k in got}:
+        raise RuntimeError(
+            f"the export on disk is not the one export_info.json describes: {got} vs {info}"
+        )
+    if cfg is not None and cfg.get("export_npz_sha256") != got["npz_sha256"]:
+        raise RuntimeError(
+            "the Colab run used a different export than the one on disk (npz sha256 differs): re-export means a new Colab run"
+        )
+    return {**got, "identity_vs_stored_export": info.get("identity_vs_stored_export")}
 
 
 def t473_identity(members: dict[str, dict[str, np.ndarray]]) -> dict[str, Any]:
@@ -855,17 +1009,23 @@ def _body(
     stored_seq: bool,
     null_k: int,
     resume: bool = False,
+    marker: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Gate A (stored season regenerated under the 2024 cap) -> raise the cap -> touch marker -> rebuild -> gate B -> data gate -> expected value written
     -> the held-out season's members -> world -> score -> verdict. ``stored_seq``: the SEQ files are the stored ENSEMBLE ones (rehearsal)."""
     t0 = time.time()
-    if target > REPO_CAP and sha is None:
+    if target > REPO_CAP and (sha is None or marker is None):
         raise RuntimeError(
-            "a held-out-season run needs the frozen --sha and the committed holdout row"
+            "a held-out-season run needs the frozen --sha, the committed holdout row and the preflighted run identity"
         )
     w = stored_world()
     progs = ("E2", "E2S") if stored_seq else (*PROGS_PRIMARY, *PROGS_GUARD)
-    key_from = {"E2S": "E2"} if stored_seq else None
+    key_from = {"E2S": "E2"} if stored_seq and VARIANT == "base" else None
+    if (
+        target > REPO_CAP
+    ):  # forecasts only (no 2025 outcome is read): every stored 2023/24 A0 row must have a row in every Colab file, before the cap is raised
+        for pg in progs:
+            load_seq_run(seq_run, pg, w["base"], target, key_from)
     gate_season = REPO_CAP if target > REPO_CAP else target
     tests: list[dict[str, Any]] = []
     if target > REPO_CAP:
@@ -879,7 +1039,7 @@ def _body(
     with cap_ctx():
         if target > REPO_CAP:
             F.assert_cap(target)
-            WE.write_json(out_dir / "touch_started.json", {"sha256": sha, "season": target, "head": PR._git("rev-parse", "HEAD").strip(), "started": time.strftime("%Y-%m-%d %H:%M:%S %Z"), "seq_run": str(seq_run)})  # fmt: skip
+            write_marker(out_dir, marker)
         fr, cfg, _ = build()
         if target > REPO_CAP:
             tests += members_vs_stored(
@@ -912,9 +1072,9 @@ def _body(
         target <= REPO_CAP
     ):  # rehearsal: the scoring path must reproduce the gate's numbers for the stand-in season
         c = res["stats"][STAT_PRIMARY]["contrasts"]
+        refs = ref_values()
         for key, ref in (
-            ("AVG_minus_FULL", T471_AVG_MINUS_FULL),
-            ("AVG_minus_A0", T471_AVG_MINUS_A0),
+            () if refs is None else (("AVG_minus_FULL", refs[1]), ("AVG_minus_A0", refs[0]))
         ):
             d = c[key][str(target)]["delta"]
             tests.append(
@@ -927,9 +1087,12 @@ def _body(
             )
     verdict = decide(res, all(t["ok"] for t in tests), target, SIGMA0_PRE)
     rerun: dict[str, Any] = {}
-    if not stored_seq:  # reported, not a criterion: does the Colab rerun reproduce the stored E2 on the select seasons?
+    refs_rr = ref_values()
+    if (
+        not stored_seq and refs_rr is not None
+    ):  # reported, not a criterion: does the Colab rerun reproduce the stored E2 on the select seasons?
         c = res["stats"][STAT_PRIMARY]["contrasts"]
-        rerun = {str(s): {"AVG_minus_A0_rerun": c["AVG_minus_A0"][str(s)]["delta"], "AVG_minus_A0_stored": T471_AVG_MINUS_A0[s], "AVG_minus_FULL_rerun": c["AVG_minus_FULL"][str(s)]["delta"], "AVG_minus_FULL_stored": T471_AVG_MINUS_FULL[s]} for s in SELECT_SEASONS}  # fmt: skip
+        rerun = {str(s): {"AVG_minus_A0_rerun": c["AVG_minus_A0"][str(s)]["delta"], "AVG_minus_A0_stored": refs_rr[0][s], "AVG_minus_FULL_rerun": c["AVG_minus_FULL"][str(s)]["delta"], "AVG_minus_FULL_stored": refs_rr[1][s]} for s in SELECT_SEASONS}  # fmt: skip
     out = {
         "sha256": sha,
         "target": target,
@@ -937,6 +1100,7 @@ def _body(
         "verdict": verdict,
         "secondary": secondary_family(res, target),
         "rerun_reproduction": rerun,
+        "export_identity": (marker or {}).get("export_identity"),
         "gate": tests,
         "seconds": time.time() - t0,
     }
@@ -985,8 +1149,9 @@ def _stop(
     return out
 
 
-def check_seq_run(seq_run: Path, sha: str) -> dict[str, Any]:
-    """Before anything reads a 2025 outcome: the Colab artifacts are this rule's full-budget run (sha, seeds, width, test seasons, no smoke)."""
+def check_seq_run(seq_run: Path, sha: str, export: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Before anything reads a 2025 outcome: the Colab artifacts are this rule's full-budget run: per program seeds [0, 1, 2], hidden 64, not smoke, every
+    warm pool dated before its block, forecasts for exactly the seasons 2023-2025, and the export hash equal to the export on disk."""
     cfg = json.loads((seq_run / "config.json").read_text())
     want = {
         "rule_sha256": sha,
@@ -995,24 +1160,67 @@ def check_seq_run(seq_run: Path, sha: str) -> dict[str, Any]:
         "test_seasons": [2023, 2024, 2025],
         "season_2025_used": True,
     }
-    bad = {k: (cfg.get(k), v) for k, v in want.items() if cfg.get(k) != v}
+    bad: dict[str, Any] = {k: (cfg.get(k), v) for k, v in want.items() if cfg.get(k) != v}
     if cfg.get("smoke"):
         bad["smoke"] = (cfg.get("smoke"), None)
+    if export is not None and cfg.get("export_npz_sha256") != export["npz_sha256"]:
+        bad["export_npz_sha256"] = (cfg.get("export_npz_sha256"), export["npz_sha256"])
+    for p in (*PROGS_PRIMARY, *PROGS_GUARD):
+        f = seq_run / f"info_{p}.json"
+        if not f.exists():
+            bad[f"info_{p}"] = "missing"
+            continue
+        info = json.loads(f.read_text())
+        for k, v in (
+            ("seeds", [0, 1, 2]),
+            ("hidden", 64),
+            ("rule_sha256", sha),
+            *((("window", WINDOW),) if WINDOW else ()),
+        ):
+            if info.get(k) != v:
+                bad[f"{p}.{k}"] = (info.get(k), v)
+        if info.get("smoke"):
+            bad[f"{p}.smoke"] = info.get("smoke")
+        det = info.get("blocks_detail") or []
+        if not det or any(not (b["max_pool_date"] < b["min_block_date"]) for b in det):
+            bad[f"{p}.pool_before_block"] = (
+                "a warm pool is not dated strictly before its block (or no blocks)"
+            )
+        seasons = sorted({int(s) for s in np.load(seq_run / f"oof_{p}.npz")["season"]})
+        if seasons != [2023, 2024, 2025]:
+            bad[f"{p}.oof_seasons"] = seasons
     if bad:
         raise RuntimeError(f"the Colab run is not this rule's full-budget run: {bad}")
     return cfg
+
+
+def preflight(seq_run: Path, sha: str) -> dict[str, Any]:
+    """Everything that can fail cheaply, BEFORE the cap is raised and the touch marker written (a stop after the marker wastes the touch)."""
+    for need in (EXPORT25_META, EXPORT25_NPZ, EXPORT25_INFO, T473, Path(E.DK_CACHE)):
+        if not Path(need).exists():
+            raise RuntimeError(f"{need} missing: preflight refuses before the touch")
+    for p in (*PROGS_PRIMARY, *PROGS_GUARD):
+        if not (seq_run / f"oof_{p}.npz").exists():
+            raise RuntimeError(f"{seq_run / f'oof_{p}.npz'} missing: run the Colab job first")
+    cfg = json.loads((seq_run / "config.json").read_text())
+    export = check_export(cfg)
+    check_seq_run(seq_run, sha, export)
+    return marker_info(sha, seq_run, export) | {
+        "export_identity": export["identity_vs_stored_export"]
+    }
 
 
 def run_held_out(
     sha: str, seq_run: Path, resume: bool = False, null_k: int = NULL_K
 ) -> dict[str, Any]:
     """THE one 2025 touch. Refuses unless the rule is frozen and the Devin-confirmed holdout row is committed; unspent; the Colab artifacts present."""
+    if null_k != NULL_K:
+        raise RuntimeError(
+            f"the permutation null is K = {NULL_K} in the frozen rule; --k {null_k} is refused for the held-out run"
+        )
     RULE.require_ready(sha)
-    require_unspent(STAGE2_DIR, resume)
-    for p in (*PROGS_PRIMARY, *PROGS_GUARD):
-        if not (seq_run / f"oof_{p}.npz").exists():
-            raise RuntimeError(f"{seq_run / f'oof_{p}.npz'} missing: run the Colab job first")
-    check_seq_run(seq_run, sha)
+    marker = preflight(seq_run, sha)
+    require_unspent(STAGE2_DIR, resume, marker)
     from research.eval.recent_role_holdout import preimport, season_cap
 
     preimport()
@@ -1028,6 +1236,7 @@ def run_held_out(
             False,
             null_k,
             resume,
+            marker,
         )
     if "verdict" in out:
         REPORT_MD.write_text(render(out))

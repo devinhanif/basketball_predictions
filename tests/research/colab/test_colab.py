@@ -183,3 +183,19 @@ def test_cli_missing_drive(monkeypatch, tmp_path, capsys):
     monkeypatch.delenv("NBA_COLAB_DRIVE_DIR", raising=False)
     assert main(["status"]) == 1
     assert "Drive" in capsys.readouterr().err
+
+
+def test_pull_never_deletes_an_existing_destination(tmp_path):
+    repo, jobs = _make_repo(tmp_path)
+    job = load_job("demo", jobs, repo)
+    drive = tmp_path / "drive" / "nba_colab"
+    res = push(job, drive, run_id="r1")
+    _fake_artifacts(res.run_dir)
+    out = pull(job, drive, dest_root=tmp_path / "out")
+    keep = out.dest / "scorer_is_reading_this.txt"
+    keep.write_text("x")
+    with pytest.raises(FileExistsError, match="never deletes"):
+        pull(job, drive, dest_root=tmp_path / "out")
+    assert keep.exists()
+    pull(job, drive, dest_root=tmp_path / "out", overwrite=True)
+    assert not keep.exists()

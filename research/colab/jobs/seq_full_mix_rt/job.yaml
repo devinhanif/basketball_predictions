@@ -1,0 +1,30 @@
+name: seq_full_mix_rt
+description: >
+  SEQ_FULL_MIX_RT run #2 (the one 2025 touch; stage only after the RT freeze, the adversary's loader review and a committed
+  holdout row). The chosen window's E2 sequence-transformer walk-forward over 2023, 2024 AND 2025 on the REAL-TIP export, plus the
+  past-only placebo E2P and the shuffled-input guard E2S. 3 seeds, full budgets. Refuses unless the staged rule sha matches and the
+  staged holdout log has the row. Scores nothing; scoring is one run on the Mac.
+notebook: research/colab/jobs/seq_full_mix_rt/seq_full_mix_rt.ipynb
+inputs:
+  - path: data/colab/seq_full_mix_rt/seq_ensemble_rt_cur25.npz
+    produce: uv run python -m research.features.seq_full_mix_rt_export export25
+    depends_on: [nba.duckdb]
+  - path: data/colab/seq_full_mix_rt/seq_ensemble_rt_hist.npz
+    produce: uv run python -m research.features.seq_full_mix_rt_export hist
+    depends_on: [data/history/nba_history.duckdb]
+  - path: docs/prereg/SEQ_FULL_MIX_RT.md
+  - path: docs/HOLDOUT_ACCESS_LOG.md
+artifacts:
+  - metrics.json
+  - config.json
+  - oof_E2.npz
+  - oof_E2P.npz
+  - oof_E2S.npz
+  - info_E2.json
+  - info_E2P.json
+  - info_E2S.json
+registry:
+  model_name: seq_full_mix_rt
+  tags: {rung: 3, model_method: seq_transformer_quantile_walkforward, holdout_scored: false}
+touches_holdout: true
+preregistration_id: SEQ_FULL_MIX_RT

@@ -101,6 +101,8 @@ def export(
         "rows_by_season": {str(s): int((exp.meta["season"] == s).sum()) for s in SEASONS},
         "games_2025": int(exp.meta.loc[exp.meta["season"] == HOLDOUT, "game_id"].nunique()),
     }
+    info["npz_sha256"] = RULE.file_sha256(Path(info["npz"]))
+    info["meta_sha256"] = RULE.file_sha256(out / "seq_ensemble_cur25_meta.parquet")
     if STORED_CUR.exists() and STORED_META.exists():
         stored = {k: v for k, v in np.load(STORED_CUR, allow_pickle=False).items()}
         info["identity_vs_stored_export"] = identity_report(

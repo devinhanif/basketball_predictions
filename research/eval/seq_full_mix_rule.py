@@ -22,26 +22,46 @@ DOC = ROOT / "docs/prereg/SEQ_FULL_MIX.md"
 HOLDOUT_LOG = ROOT / "docs/HOLDOUT_ACCESS_LOG.md"
 
 
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def git(*args: str) -> str:
     return subprocess.run(
         ["git", *args], capture_output=True, text=True, check=False, cwd=ROOT
     ).stdout
 
 
-def frozen_sha(doc: Path = DOC) -> str:
-    """sha256 of the text above the results marker line (the freeze evidence)."""
+def text_sha(text: str) -> str:
+    """sha256 of the text above the results marker line."""
     keep: list[str] = []
-    for line in doc.read_text().splitlines(keepends=True):
+    for line in text.splitlines(keepends=True):
         if line.rstrip("\n") == MARKER:
             break
         keep.append(line)
     return hashlib.sha256("".join(keep).encode()).hexdigest()
 
 
+def frozen_sha(doc: Path = DOC) -> str:
+    """sha256 of the text above the results marker line (the freeze evidence)."""
+    return text_sha(doc.read_text())
+
+
+DOC_REL = "docs/prereg/SEQ_FULL_MIX.md"
+
+
 def freeze_commit(sha: str, run: Callable[..., str] = git) -> str | None:
+    """The commit whose subject is `prereg(SEQ_FULL_MIX): <sha>` AND whose copy of the rule document hashes to ``sha`` (a subject alone proves nothing)."""
     for line in run("log", "--format=%H%x09%s").splitlines():
         h, _, subj = line.partition("\t")
-        if subj.strip() == f"prereg({ID}): {sha}":
+        if (
+            subj.strip() == f"prereg({ID}): {sha}"
+            and text_sha(run("show", f"{h}:{DOC_REL}")) == sha
+        ):
             return h
     return None
 

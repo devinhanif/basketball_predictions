@@ -1279,6 +1279,7 @@
     }
   ],
   "rerun_reproduction": {},
+  "export_identity": null,
   "gate": [
     {
       "test": "[rehearsal] pts 2024: regenerated rows, A0 and FULL integer grids equal the stored arrays",
@@ -1347,5 +1348,5 @@
       "ok": true
     }
   ],
-  "seconds": 218.2782552242279
+  "seconds": 178.72968888282776
 }

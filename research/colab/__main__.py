@@ -24,6 +24,7 @@ def _parser() -> argparse.ArgumentParser:
     pl = sub.add_parser("pull", help="copy artifacts back to data/colab/runs/<job>/<run_id>/")
     pl.add_argument("job")
     pl.add_argument("run_id", nargs="?", help="default: newest run with artifacts")
+    pl.add_argument("--overwrite", action="store_true", help="replace an existing run dir")
     pl.add_argument("--register", action="store_true", help="registry import-artifacts (candidate)")
     pl.add_argument("--db-path", help="registry DB (default: repo default)")
     pl.add_argument("--store-dir", help="registry store (default: repo default)")
@@ -57,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
                 register=args.register,
                 db_path=Path(args.db_path) if args.db_path else None,
                 store_dir=Path(args.store_dir) if args.store_dir else None,
+                overwrite=args.overwrite,
             )
             print(res.summary)
         return 0

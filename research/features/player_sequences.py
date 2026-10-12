@@ -160,6 +160,10 @@ class RawInputs:
     avail: pd.DataFrame  # game_id, player_id, status, as_of
     static: pd.DataFrame  # player_id, position
     elo: pd.DataFrame | None = None  # game_id, exp_margin_home
+    tips: pl.DataFrame | None = None  # game_id, tip_et (real tip); used when tip_source == 'real'
+    no_report_seasons: tuple[
+        int, ...
+    ] = ()  # seasons whose report tokens are dropped (no-report token), box rows kept
 
 
 # --------------------------------------------------------------------------- loading
@@ -357,7 +361,9 @@ def _post_state(pg: pd.DataFrame, cfg: SeqConfig) -> pd.DataFrame:
 # --------------------------------------------------------------------------- reports
 
 
-def latest_pretip_status(avail: pd.DataFrame, games: pd.DataFrame, cfg: SeqConfig) -> pd.DataFrame:
+def latest_pretip_status(
+    avail: pd.DataFrame, games: pd.DataFrame, cfg: SeqConfig, tips: pl.DataFrame | None = None
+) -> pd.DataFrame:
     """Rows (game_id, player_id, status) of each game's LATEST usable snapshot.
 
     Usable = ``as_of <= game_date + tipoff proxy - lead`` (the repo-wide report
@@ -371,6 +377,13 @@ def latest_pretip_status(avail: pd.DataFrame, games: pd.DataFrame, cfg: SeqConfi
             game_date=lambda d: pd.to_datetime(d["game_date"]).dt.date
         )
     ).with_columns(pl.col("as_of").cast(pl.Datetime("us")), pl.col("game_date").cast(pl.Date))
+    if cfg.report.tip_source == "real":
+        # real scheduled tip: no real tip -> NO report token (never the proxy); a cutoff only
+        if tips is None:
+            raise ValueError("tip_source='real' needs raw.tips (game_id, tip_et)")
+        rows = rows.join(
+            tips.select("game_id", "tip_et").unique("game_id"), on="game_id", how="inner"
+        )
     usable = usable_report_rows(rows, cfg.report)
     if usable.height == 0:
         return pd.DataFrame({"game_id": [], "player_id": [], "status": []})
@@ -535,7 +548,13 @@ def build_target_context(
     c["team_game_no"] = tgi["team_game_no"].to_numpy()[pos] / 82.0
     c["opp_id"] = tgi["opp_id"].to_numpy()[pos]
 
-    snap = latest_pretip_status(raw.avail, raw.games, cfg)
+    avail = raw.avail
+    if (
+        raw.no_report_seasons
+    ):  # drop whole seasons' report tokens (they stay box-score rows with has_report = 0)
+        drop = set(raw.games.loc[raw.games["season"].isin(raw.no_report_seasons), "game_id"])
+        avail = avail[~avail["game_id"].isin(drop)]
+    snap = latest_pretip_status(avail, raw.games, cfg, raw.tips)
     reported = set(snap["game_id"].unique()) if len(snap) else set()
     c["has_report"] = t["game_id"].isin(reported).astype(float)
     own = snap.rename(columns={"status": "own_status"})

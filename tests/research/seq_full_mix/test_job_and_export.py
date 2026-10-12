@@ -34,11 +34,20 @@ def _doc(tmp: Path, body: str = "rule\n") -> tuple[Path, str]:
     return p, hashlib.sha256(f"# t\nStatus: FROZEN x\n{body}".encode()).hexdigest()
 
 
+def _fake_git(doc: Path, sha: str, rid: str = "SEQ_FULL_MIX"):
+    """`git log` shows one prereg commit; `git show <hash>:<doc>` returns the document's current text."""
+
+    def run(*a: str) -> str:
+        return doc.read_text() if a[0] == "show" else f"abc\tprereg({rid}): {sha}\n"
+
+    return run
+
+
 # --------------------------------------------------------------------------- freeze and holdout refusals
 def test_require_frozen_needs_matching_hash_and_the_prereg_commit(tmp_path: Path) -> None:
     p, sha = _doc(tmp_path)
-    good = lambda *a: f"abc\tprereg(SEQ_FULL_MIX): {sha}\n"  # noqa: E731
-    other = lambda *a: f"abc\tprereg(RECENT_ROLE_FULL): {sha}\n"  # noqa: E731
+    good = _fake_git(p, sha)
+    other = _fake_git(p, sha, "RECENT_ROLE_FULL")
     assert R.require_frozen(sha, p, good) == sha
     with pytest.raises(RuntimeError, match="no commit"):
         R.require_frozen(sha, p, other)
@@ -54,7 +63,7 @@ def test_require_frozen_needs_matching_hash_and_the_prereg_commit(tmp_path: Path
 def test_holdout_refuses_without_a_committed_confirmed_row(tmp_path: Path) -> None:
     p, sha = _doc(tmp_path)
     log = tmp_path / "log.md"
-    frozen = lambda *a: f"abc\tprereg(SEQ_FULL_MIX): {sha}\n"  # noqa: E731
+    frozen = _fake_git(p, sha)
     log.write_text("| nothing |\n")
     with pytest.raises(RuntimeError, match="no committed holdout row"):
         R.require_holdout_row(sha, log, frozen, p)
@@ -104,7 +113,7 @@ def test_export_refuses_before_the_freeze_and_never_builds(
     )
     with pytest.raises(RuntimeError, match="no commit"):
         X.export(sha, run=lambda *a: "", out=tmp_path)
-    frozen = lambda *a: f"abc\tprereg(SEQ_FULL_MIX): {sha}\n"  # noqa: E731
+    frozen = _fake_git(p, sha)
     monkeypatch.setattr(R, "HOLDOUT_LOG", tmp_path / "none.md")
     with pytest.raises(
         RuntimeError, match="no committed holdout row"
@@ -417,6 +426,24 @@ def test_end_to_end_tiny_run_covers_2025_with_no_future_pool(tmp_path: Path) -> 
         and cfg["season_2025_used"] is True
     )
     assert sha == mod.RULE_SHA
+    # N3/N4: per-program evidence survives the second session (which ran nothing), and the config carries the export's hash
+    assert sorted(cfg["programs"]) == ["E2", "E2P", "E2S"] and cfg[
+        "export_npz_sha256"
+    ] == R.file_sha256(tmp_path / "seq_ensemble_cur25.npz")
+    assert sorted(json.loads((out / "metrics.json").read_text())["programs"]) == [
+        "E2",
+        "E2P",
+        "E2S",
+    ]
+    for prog in ("E2", "E2P", "E2S"):
+        info = json.loads((out / f"info_{prog}.json").read_text())
+        assert (
+            info["seeds"] == [0]
+            and info["smoke"] is True
+            and info["hidden"] == 16
+            and info["blocks_detail"]
+        )  # smoke is recorded as smoke
+        assert info["export_npz_sha256"] == cfg["export_npz_sha256"] and info["rule_sha256"] == sha
 
 
 def test_notebook_builds_from_a_frozen_document_and_compiles(
@@ -434,3 +461,33 @@ def test_notebook_builds_from_a_frozen_document_and_compiles(
     src = "".join(nb["cells"][1]["source"])
     assert "def run_walk_forward" in src and "E2P" in src and "check_rule" in src
     assert "seq_full_mix" in "".join(nb["cells"][0]["source"])
+
+
+def test_freeze_commit_checks_the_content_of_the_commit_not_only_its_subject(
+    tmp_path: Path,
+) -> None:
+    p, sha = _doc(tmp_path)
+    other = tmp_path / "other.md"
+    other.write_text(p.read_text().replace("rule", "a different rule"))
+    assert R.freeze_commit(sha, _fake_git(p, sha)) == "abc"
+    assert (
+        R.freeze_commit(sha, _fake_git(other, sha)) is None
+    )  # right subject, wrong content at that commit
+    with pytest.raises(RuntimeError, match="no commit"):
+        R.require_frozen(sha, p, _fake_git(other, sha))
+
+
+def test_export_records_the_sha256_of_the_npz_and_the_meta(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = SeqConfig(k=5, min_target_season=2023, rotation_min=5.0, min_rotation_games=2)
+    exp = build_export(_raw(), cfg)
+    monkeypatch.setattr(X, "build_current25", lambda *a, **k: exp)
+    monkeypatch.setattr(R, "require_ready", lambda *a, **k: "x")
+    monkeypatch.setattr(X, "STORED_CUR", tmp_path / "none.npz")
+    info = X.export("a" * 64, out=tmp_path)
+    assert info["npz_sha256"] == R.file_sha256(tmp_path / "seq_ensemble_cur25.npz")
+    assert info["meta_sha256"] == R.file_sha256(tmp_path / "seq_ensemble_cur25_meta.parquet")
+    assert (
+        json.loads((tmp_path / "export_info.json").read_text())["npz_sha256"] == info["npz_sha256"]
+    )

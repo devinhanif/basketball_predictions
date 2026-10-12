@@ -43,6 +43,7 @@ def pull(
     db_path: Path | None = None,
     store_dir: Path | None = None,
     dest_root: Path | None = None,
+    overwrite: bool = False,
 ) -> PullResult:
     run_id = _pick_run(drive_root, job, run_id)
     art = latest_artifact_dir(drive_root / job.name / run_id)
@@ -59,6 +60,10 @@ def pull(
         raise ValueError(f"metrics.json has NaN/inf at: {bad[:5]}")
     dest = (dest_root or job.repo_root / RUNS_SUBDIR) / job.name / run_id
     if dest.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"{dest} exists: pull never deletes an existing destination; use --overwrite"
+            )
         shutil.rmtree(dest)
     shutil.copytree(art, dest)
     lines = [f"pulled {job.name}/{run_id} -> {dest}"]
