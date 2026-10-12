@@ -1,7 +1,8 @@
 # Training-history extension, 2019-20 and 2020-21 as extra training rows with the injury report MISSING (HISTORY_WINDOW_3): pre-registration
 
-Status: **DRAFT 2026-10-11. Not frozen. Gate PASSES after `fetch-static` (243 of 244 profiles pulled) and the pre-freeze G1b amendment
-(re-run 2026-10-11 21:32 CT, audit sha256 b80a6d22; see the gate section). Freeze waits for Devin's confirmations.** Devin ("okay, go for it",
+Status: **FROZEN 2026-10-11 ~22:45 CT.** Gate PASSES after `fetch-static` (243 of 244 profiles pulled) and the pre-freeze G1b amendment
+(re-run 2026-10-11 21:32 CT, audit sha256 b80a6d22). Devin confirmed ("yes yes", 2026-10-11): knockout guard K1-K0 <= -0.0025, A2 = uniform
+weight 0.5 on the history block, W0 reference pts 3.152830 / 3.187553 (restored neutral-site games). No arm was fitted before this line. Devin ("okay, go for it",
 2026-10-11) reopened the history-window question as a NEW rule, per the "What would reverse it" line of DECISIONS 2026-10-11 15:14 CDT
 (HISTORY_WINDOW_2 not frozen). Season labels: `season 2019` = 2019-20, `2020` = 2020-21, `2021` = 2021-22 (EXCLUDED here), `2022` = 2022-23,
 `2023` = 2023-24 (select), `2024` = 2024-25 (report). Season 2025 is the frozen holdout and is never loaded (`season <= 2024` in every query).
