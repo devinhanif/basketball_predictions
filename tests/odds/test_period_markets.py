@@ -125,3 +125,14 @@ def test_player_q1_alternate_yesno_and_first_basket_shapes() -> None:
     assert by["player_method_of_first_basket"]["side"].to_list() == ["outcome"]
     assert by["player_method_of_first_basket"]["outcome_name"].to_list() == ["Three Pointer"]
     assert by["player_points_alternate"]["implied_prob"].null_count() == 1  # one-sided: no de-vig
+
+
+def test_exchange_lay_market_is_kept_but_not_devigged() -> None:
+    """Real preseason payload (2026-10-12): betfair_ex_eu returns h2h_lay next to h2h. A lay price
+    is not the back price, so the pair must not be de-vigged as a back market."""
+    res = parse([{"key": "h2h_lay", "outcomes": [o(HOME, -108), o(AWAY, 112)]}])
+    df = res.rows
+    assert df.height == 2
+    assert set(df["market"]) == {"h2h_lay"}
+    assert df["implied_prob"].null_count() == 2
+    assert df["implied_prob_raw"].null_count() == 0

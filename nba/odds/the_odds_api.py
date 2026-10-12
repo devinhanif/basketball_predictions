@@ -1011,6 +1011,8 @@ def _devig(rows: list[dict[str, Any]]) -> None:
     """Fill ``implied_prob`` in place for every pair that has both sides exactly once."""
     groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
     for r in rows:
+        if r["market"].endswith("_lay"):
+            continue  # exchange LAY prices (betfair h2h_lay) are not the back price: no de-vig
         pt = r["point"]
         if r["market"].startswith(("spreads", "alternate_spreads")) and pt is not None:
             pt = abs(pt)  # home -6 pairs with away +6
