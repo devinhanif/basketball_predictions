@@ -729,3 +729,8 @@ then two cheap forward rules before 2026-10-20. NEAR_MISS_BUNDLE as drafted reus
 so it is not frozen; its members are tested inside ROUTER_G2 with the better gate instead (a change of construction made before any bundle
 result exists, recorded here). T459 corrects the ADVANCED_RATES placebo reading. Why: the audit's root cause. What would reverse it: PI_RECENT_ROLE
 failing, which would leave the bundle as drafted the next test.
+
+**2026-10-12 01:22 CDT — PPLAY_INTO_PROPS_LIVE FROZEN (sha256 3a305482, commit 4d8a1c7); P(play) shadow committed off (e105caf).**
+What: the live 2026-27 verdict rule for feeding the holdout-confirmed P(play) into the unconditional props forecast; all rostered not-OUT
+players; fg3m look ~week 4, ast ~week 9, reb at season end, pts PASS-or-INCONCLUSIVE only. The shadow is switched on in ops/nba_daily.sh only
+after the replay oracle matches golden 89889f6d. Why: Devin "so lets do all of it". What would reverse it: nothing above the results marker.
