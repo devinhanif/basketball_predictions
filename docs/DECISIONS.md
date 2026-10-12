@@ -552,3 +552,13 @@ backstop set to 2,500,000 (config, defaults, doc, test; the rule draft 0724ce2 s
 ANTHROPIC_API_KEY and MONTHLY_CAP_USD are set and NBA_LLM_SHADOW=1 is in .env; `uv sync --extra llm` installs the SDK first.
 Why: Devin's approval (17:14); the oracle gate every structural change passes.
 What would reverse it: a first live night writing anything after tip, or a schema-violation rate above 10% (the rule's G2).
+
+## 2026-10-11 ~20:10 CDT — Phase 2 data clean-up closed: F1 dedup view, F12 gate restated, cards (Devin: "fix everything")
+What: (a) readers of `lineup_snapshots` use `lineup_snapshots_dedup` / `nba.lineups.store.dedup_lineup_snapshots(con)` (Confirmed over Expected, then
+latest `source_ts`; raw rows stay append-only). (b) Possession reconciliation hard gate is points == box points per team-game; the
+`FGA + 0.44 FTA + TOV - OREB` formula is a reported diagnostic (ADR 0002; audit question 3, safe default). (c) Side tables with minutes-dependent
+row existence are joined through `join_side_table` (absent = NULL + flag); data cards in `docs/DATA_CARDS.md`. Results: audit section 10.
+Why: 240 duplicate snapshot groups made the T-30 reader skip 4 of 6 decisions; the formula gate was unmet in every season while points reconciled
+100%; the hustle row-existence shape is the leak pattern that contaminated three experiments.
+What would reverse it: official team box totals making the formula an identity (re-tighten it); a feed change that makes Expected rows later
+than Confirmed ones meaningful (re-rank the dedup winner).

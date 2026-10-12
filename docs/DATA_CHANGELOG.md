@@ -271,3 +271,12 @@
   pts integer CRPS 3.152830 (unchanged) and 2024 n 27,701 / 3.187553 (was 27,583 / 3.188411 before the restored neutral-site games).
   Old file backed up at data/backups/lower_tail_candidates_pre_rebaseline_20261011.json (the LOWER_TAIL ledger rows T129–T159
   keep the old numbers; the file is an untracked artifact). Every future gate's A0 reproduction check compares against this.
+
+## 2026-10-11 UTC - Phase 2 close-out: F1 dedup view, F12 gate, F9 helper, data cards (data_version 418510d401d3, unchanged)
+- DRAFT. No change to `nba.duckdb`, parquet or manifests in this entry; verification only (read-only): games 5,279; regular-season games
+  per team 82 for 2022-25; possession pts == box pts 10,558/10,558; team-0/NULL `off_players` rows 0; stint key duplicates 0; players
+  played >= 1 min with no stint row 1; `players_static` first_season/draft_status NULL 4/0; `player_availability` NULL game_id 167.
+- `lineups.duckdb` (collector-owned): view `lineup_snapshots_dedup` added to the DDL (applied at the collector's next write tick;
+  `lineup_snapshots_latest` is now `SELECT *` from it). Gate: duplicate groups 550 raw -> 0; mixed-status team-snapshots 57 -> 0;
+  confirmed team-snapshots with 5 starters: all. Raw rows untouched.
+- Details and per-finding before/after: docs/reviews/data_audit_2026-10-11.md section 10.

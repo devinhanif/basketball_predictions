@@ -439,3 +439,28 @@ One table per commit, backup under `data/backups/` first, `heavy.lock`, `make da
 5. F10/F11 players_static re-pull and cache quarantine (network).
 6. F1 lineup view (mine) plus the `t30.py` reader change (main session).
 Replay-oracle golden hash: re-baselined once after steps 1-4 (data changed, code did not, recorded as such).
+
+## 10. Phase 2 results (Devin, 2026-10-11: "fix everything"; F3, F5, F15 skipped by instruction)
+
+Most data writes landed earlier in the pass (DATA_CHANGELOG entries of 2026-10-11, commit d872dc7); this run verified every gate read-only
+on `nba.duckdb` (after counts below were measured this run) and added the code that was still missing (F1 view and helper, F12, F9, cards).
+This run wrote nothing to `nba.duckdb`, no parquet, no manifest (data_version unchanged at 418510d401d3).
+
+| # | Status | Gate | Before | After | Commit |
+|---|---|---|---|---|---|
+| F1 | done (data side) | duplicate (snapshot, game, team, player) groups in the dedup view | 240 at audit (550 raw groups now, 14,466 raw rows) | 0 (13,916 rows); mixed-status team-snapshots 57 under pure latest-`source_ts`, 0 with Confirmed-over-Expected; confirmed team-snapshots with starters != 5: 0; the 4 mixed-status decision snapshots all resolve to Confirmed with 5 starters per team | d995c4c (view `lineup_snapshots_dedup`, helper `nba.lineups.store.dedup_lineup_snapshots`) |
+| F2 | done; residual documented | games 5,269 -> 5,279; teams not at 82 (2022-25) 15 -> 0; poss pts == box pts in the 10 games 0/0 -> 20/20; `player_availability` NULL `game_id` 336 -> 167 | 336 | 167 (156 rescheduled > 7 days, 7 ambiguous, 4 Cup final 006) | d872dc7 |
+| F4 + F8 | done | played player-games (box >= 1 min) with no stint row 671 -> 1 (gate was <= 40); within 1 min of box 98.4-99.1% -> 99.95-99.98% by season; stint key (game, team, period, stint_idx) duplicates | 74,370 excess rows on the old key | 0 (stints 300,339 incl. `stint_idx`) | d872dc7 |
+| F6 + F7 | done | team-games with possession pts == box pts; rows with team 0 or NULL `off_players` | 10,479 of 10,558; 2 | 10,558 of 10,558 (this run); 0 | d872dc7 |
+| F9 | done | consumer helper `nba.data.side_tables.join_side_table` + test (absent row is NULL with a presence flag, never 0); data card | none | helper, 3 tests, `docs/DATA_CARDS.md` | b6e1016 |
+| F10 | done | `first_season` NULL / `draft_status` NULL | 208 / 204 | 4 / 0 (this run) | d872dc7 |
+| F11 | done | zero-column cache files; puller raises on an empty frame | 30 | 0 (moved to `data/quarantine/players_static_zero_column_20261011/`, README added); `_write_cache` raises, tested | d872dc7 |
+| F12 | done (safe default) | hard gate = points reconciliation (`reconcile_points`, >= 99% of team-games; real 100%); formula MAE is a diagnostic (<= 2.5 flag) | formula MAE 2.0-2.25 vs gate 1, unmet | ADR 0002, BEST_PRACTICES row, tests | e524b36 |
+| F13, F14 | done (notes only) | data cards; no tables dropped | n/a | `docs/DATA_CARDS.md` | b6e1016 |
+| F3, F5, F15 | skipped by instruction | | | | |
+
+Notes. (1) The brief's F1 rule was "latest `source_ts`, ties to Confirmed"; applied literally, 57 team-snapshots stayed mixed (a later Expected
+starters-block row beats an earlier Confirmed roster row, preseason game 0012600037 among them), so the gate "the 4 mixed-status decisions
+resolve to confirmed" failed. The view ranks Confirmed over Expected first, then latest `source_ts` (the same winner order as `nba/daily/t30.py`).
+(2) The live `lineups.duckdb` gets the new view at the collector's next write tick (`CREATE OR REPLACE` in `DDL`); until then the helper runs the same
+SELECT inline, so a read-only reader works either way. (3) The replay-oracle golden (030804df...) was re-baselined earlier in the pass; nothing here changes data.
