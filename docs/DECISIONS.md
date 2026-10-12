@@ -615,3 +615,8 @@ knockouts K0/K1; select 2023, report 2024; pass means shadow logging only. Gate 
 profiles) and a pre-freeze amendment of G1b to played players only (the one profile-less id never played).
 Why: Devin reopened the direction ("okay, go for it") per the 15:14 entry; confirmations "yes yes" (knockout -0.0025, A2 weight 0.5, W0 3.187553).
 What would reverse it: nothing above the results marker changes; a null closes the history direction for props this season.
+
+## 2026-10-11 MARKET_SHRINK frozen and run: no_positive_ev_found (shrinking toward the DK price does not make the model money)
+What: MARKET_SHRINK frozen as drafted (sha256 c128896a, commit c7d16ae) on Devin's "yes yes", run once under the frozen rule (walk-forward monthly (w, T) per stat, DraftKings T-60, select 2023, report 2024, seasons 2023/2024 only). No cell passes: pts and ast fail log loss (B2 minus market -0.0004, CIs include 0); rebounds (-0.0014 [-0.0024, -0.0005]) and threes (-0.0012 [-0.0022, -0.0001]) beat the market on log loss but fail the decision guard (B2 ROI at EV>=5%: reb +2.01% [-4.61%, +8.59%] n 857; fg3m +2.84% [-4.56%, +10.56%] n 643). The planted-shuffle diagnostic also failed (shuffled B2 beats the market by -0.0004 on assists), so part of the log-loss gain is available without model information. Ledger T415-T419.
+Why: the rule asked whether a calibrated shrink keeps the model's information and turns it into decisions; the answer on these two seasons is no, and the unshrunk model's over-confidence is the main thing the shrink repairs.
+What would reverse it: a separately pre-registered live-log test (REB_LIVE_2026_27 covers the rebounds cell); nothing on 2023-24 data.
