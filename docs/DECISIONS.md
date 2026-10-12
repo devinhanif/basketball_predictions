@@ -890,3 +890,13 @@ Why: odds exposure and injected pages must not score; a 35-60 s call must not de
 
 **2026-10-12 13:20 CDT — lineups launchd env installed (Devin: "make it so that you run the foecaster files").**
 What: ~/Library/LaunchAgents/local.nba.lineups.plist now carries HOME/USER/LOGNAME/NBA_CLAUDE_BIN (diff is env-only; backup data/ops/backups/local.nba.lineups.plist.bak_20261012); reloaded, run interval 300 s. A one-shot launchd job ran `nba.shadow_llm --check-auth`: OK, api_key_source=none, model claude-opus-5-5, exit 0; the job was then removed. NBA_LLM_SHADOW is still unset. What would reverse it: copy the backup back and bootout/bootstrap.
+
+**2026-10-12 13:27 CDT — work queue after the FULL_SHADOW_LIVE reruns (Devin: "lets do everything, after the reruns").**
+In order, at most 2 agents at a time, 2025 untouched without a logged row and Devin's words:
+1. Freeze FULL_SHADOW_LIVE; replay check; commit roster window, late scratches, LLM forecaster code.
+2. Descriptive: over/under hit rates vs stored lines (2023-24); Kalshi vs Pinnacle prop price lag (live captures).
+3. Draft rules, minimum-data gate first (non-negotiable 8): RETURNING_TEAMMATE (props); expected absence = sum (1 - P(play) R) x player value inside injury-Elo (wins); roster-continuity carryover per team for Elo and as an early-season props spread widener; "questionable N games in a row" for P(play).
+4. Morning-report monitor: monthly error per stat beside league FTA, 3PA share and pace.
+5. Forward-only, after opening night: line moves up to T-30/T-15 as a play/sit signal.
+Not pursued: league-state inputs, stabilization pseudo-counts (not in the production path), scorekeeper factor.
+Why: today's descriptive work (T474, T476 and scratch checks) ranked these by information known before tip. What would reverse it: Devin reprioritises.
