@@ -1,0 +1,187 @@
+{
+  "2022": {
+    "questionable_player_games": 1670,
+    "games_with_rows": 785,
+    "div_rival": {
+      "n_rows": 334,
+      "n_games": 147,
+      "n_players": 190,
+      "share": 0.2,
+      "ntv_share": 0.17365269461077845,
+      "ntv_share_off": 0.21706586826347304
+    },
+    "hist_rival": {
+      "n_rows": 49,
+      "n_games": 22,
+      "n_players": 32,
+      "share": 0.029341317365269463,
+      "ntv_share": 0.46938775510204084,
+      "ntv_share_off": 0.20049352251696484
+    },
+    "any_rival": {
+      "n_rows": 383,
+      "n_games": 169,
+      "n_players": 202,
+      "share": 0.22934131736526947,
+      "ntv_share": 0.21148825065274152,
+      "ntv_share_off": 0.20745920745920746
+    },
+    "non_play_events_overall": 857,
+    "players": 361,
+    "report_coverage": {
+      "div_rival": {
+        "rival_games": 240,
+        "coverage_rival": 1.0,
+        "coverage_other": 1.0
+      },
+      "hist_rival": {
+        "rival_games": 33,
+        "coverage_rival": 1.0,
+        "coverage_other": 1.0
+      },
+      "any_rival": {
+        "rival_games": 273,
+        "coverage_rival": 1.0,
+        "coverage_other": 1.0
+      }
+    }
+  },
+  "2023": {
+    "questionable_player_games": 1877,
+    "games_with_rows": 817,
+    "div_rival": {
+      "n_rows": 350,
+      "n_games": 159,
+      "n_players": 194,
+      "share": 0.18646776771443793,
+      "ntv_share": 0.22,
+      "ntv_share_off": 0.22134905042567124
+    },
+    "hist_rival": {
+      "n_rows": 45,
+      "n_games": 24,
+      "n_players": 31,
+      "share": 0.02397442727757059,
+      "ntv_share": 0.6,
+      "ntv_share_off": 0.21179039301310043
+    },
+    "any_rival": {
+      "n_rows": 395,
+      "n_games": 183,
+      "n_players": 208,
+      "share": 0.21044219499200853,
+      "ntv_share": 0.26329113924050634,
+      "ntv_share_off": 0.20985155195681512
+    },
+    "non_play_events_overall": 935,
+    "players": 387,
+    "report_coverage": {
+      "div_rival": {
+        "rival_games": 244,
+        "coverage_rival": 0.9959016393442623,
+        "coverage_other": 1.0
+      },
+      "hist_rival": {
+        "rival_games": 37,
+        "coverage_rival": 1.0,
+        "coverage_other": 0.9991617770326907
+      },
+      "any_rival": {
+        "rival_games": 281,
+        "coverage_rival": 0.99644128113879,
+        "coverage_other": 1.0
+      }
+    }
+  },
+  "2024": {
+    "questionable_player_games": 1906,
+    "games_with_rows": 841,
+    "div_rival": {
+      "n_rows": 367,
+      "n_games": 164,
+      "n_players": 208,
+      "share": 0.1925498426023085,
+      "ntv_share": 0.3106267029972752,
+      "ntv_share_off": 0.20727745289148797
+    },
+    "hist_rival": {
+      "n_rows": 66,
+      "n_games": 26,
+      "n_players": 45,
+      "share": 0.03462749213011543,
+      "ntv_share": 0.5454545454545454,
+      "ntv_share_off": 0.2157608695652174
+    },
+    "any_rival": {
+      "n_rows": 433,
+      "n_games": 190,
+      "n_players": 224,
+      "share": 0.22717733473242394,
+      "ntv_share": 0.3464203233256351,
+      "ntv_share_off": 0.19212491513917176
+    },
+    "non_play_events_overall": 999,
+    "players": 420,
+    "report_coverage": {
+      "div_rival": {
+        "rival_games": 240,
+        "coverage_rival": 1.0,
+        "coverage_other": 0.997979797979798
+      },
+      "hist_rival": {
+        "rival_games": 42,
+        "coverage_rival": 1.0,
+        "coverage_other": 0.9983164983164983
+      },
+      "any_rival": {
+        "rival_games": 282,
+        "coverage_rival": 1.0,
+        "coverage_other": 0.9978902953586498
+      }
+    }
+  },
+  "mde_play_rate_diff_80pct": {
+    "2023": {
+      "div_rival/game_id": 0.08849238152083357,
+      "div_rival/player_id": 0.07947668348164591,
+      "hist_rival/game_id": 0.18065141619258668,
+      "hist_rival/player_id": 0.2596437220655129,
+      "any_rival/game_id": 0.08480180972337945,
+      "any_rival/player_id": 0.08683983604008605
+    },
+    "2024": {
+      "div_rival/game_id": 0.08850174886213835,
+      "div_rival/player_id": 0.07460362711461953,
+      "hist_rival/game_id": 0.20953988078249144,
+      "hist_rival/player_id": 0.17734036335031578,
+      "any_rival/game_id": 0.08422278583939165,
+      "any_rival/player_id": 0.07323404732691807
+    },
+    "2022-2024": {
+      "div_rival/game_id": 0.05028641938471861,
+      "div_rival/player_id": 0.04717818001500216,
+      "hist_rival/game_id": 0.11999094345203484,
+      "hist_rival/player_id": 0.13727920453627643,
+      "any_rival/game_id": 0.04818972667097438,
+      "any_rival/player_id": 0.0509659065177108
+    },
+    "2023-2024": {
+      "div_rival/game_id": 0.06291621762534667,
+      "div_rival/player_id": 0.05569391020132606,
+      "hist_rival/game_id": 0.14731058930988777,
+      "hist_rival/player_id": 0.16233370168239775,
+      "any_rival/game_id": 0.059921427622134774,
+      "any_rival/player_id": 0.058948870524003445
+    }
+  },
+  "meta": {
+    "n_games": 3690,
+    "games_with_usable_report": 3687,
+    "unresolved_team": 89,
+    "tip_coverage": {
+      "n_games": 3690,
+      "with_real_tip": 3690,
+      "proxy_fallback": 0
+    }
+  }
+}

@@ -1,0 +1,246 @@
+{
+  "a0_props": {
+    "cells": [
+      {
+        "arm": "off",
+        "season": 2023,
+        "got": 3.152829990762183,
+        "want": 3.15283,
+        "abs_diff": 9.237816733786985e-09,
+        "n": 27619
+      },
+      {
+        "arm": "off",
+        "season": 2024,
+        "got": 3.1875525740475275,
+        "want": 3.187553,
+        "abs_diff": 4.259524724048447e-07,
+        "n": 27701
+      },
+      {
+        "arm": "mixture",
+        "season": 2023,
+        "got": 3.140236466011581,
+        "want": 3.140236,
+        "abs_diff": 4.660115813237553e-07,
+        "n": 27619
+      },
+      {
+        "arm": "mixture",
+        "season": 2024,
+        "got": 3.1768395165770476,
+        "want": 3.17684,
+        "abs_diff": 4.834229523353883e-07,
+        "n": 27701
+      }
+    ],
+    "max_abs_diff": 4.834229523353883e-07,
+    "pass": true,
+    "props_rows": {
+      "2023": {
+        "all": {
+          "rows": 27619,
+          "games": 1318,
+          "noise_mde": 0.004658703846142656
+        },
+        "playoff": {
+          "rows": 1684,
+          "games": 82,
+          "noise_mde": 0.024768249072104367
+        },
+        "late15": {
+          "rows": 5156,
+          "games": 244,
+          "noise_mde": 0.011022165453167997
+        },
+        "phase": {
+          "rows": 6840,
+          "games": 326,
+          "noise_mde": 0.010403842780688836
+        }
+      },
+      "2024": {
+        "all": {
+          "rows": 27701,
+          "games": 1320,
+          "noise_mde": 0.004498248916632548
+        },
+        "playoff": {
+          "rows": 1804,
+          "games": 84,
+          "noise_mde": 0.023531602252005346
+        },
+        "late15": {
+          "rows": 5134,
+          "games": 246,
+          "noise_mde": 0.011783609661218622
+        },
+        "phase": {
+          "rows": 6938,
+          "games": 330,
+          "noise_mde": 0.010660687132305852
+        }
+      }
+    },
+    "props_rows_mean_mixture_crps": {
+      "2023": {
+        "playoff": 2.9672439082220445,
+        "late15": 3.136417019466619,
+        "phase": 3.0947667973414936
+      },
+      "2024": {
+        "playoff": 3.0774398824505034,
+        "late15": 3.256890408391685,
+        "phase": 3.2102301678615768
+      }
+    }
+  },
+  "minutes": {
+    "rows": {
+      "2023": {
+        "all": {
+          "rows": 27619,
+          "games": 1318,
+          "noise_mde": 0.03096460780547744
+        },
+        "playoff": {
+          "rows": 1684,
+          "games": 82,
+          "noise_mde": 0.1262548837102358
+        },
+        "late15": {
+          "rows": 5156,
+          "games": 244,
+          "noise_mde": 0.0913929350852344
+        },
+        "phase": {
+          "rows": 6840,
+          "games": 326,
+          "noise_mde": 0.07677999557668759
+        }
+      },
+      "2024": {
+        "all": {
+          "rows": 27583,
+          "games": 1315,
+          "noise_mde": 0.03032361723868521
+        },
+        "playoff": {
+          "rows": 1804,
+          "games": 84,
+          "noise_mde": 0.08666610924156472
+        },
+        "late15": {
+          "rows": 5134,
+          "games": 246,
+          "noise_mde": 0.09119383960831186
+        },
+        "phase": {
+          "rows": 6938,
+          "games": 330,
+          "noise_mde": 0.07118700102745198
+        }
+      }
+    },
+    "production_minutes_crps_P": {
+      "2023": {
+        "playoff": 4.881108062380704,
+        "late15": 4.80144008539428,
+        "phase": 4.821054248149418,
+        "regular_early": 4.126793619987512
+      },
+      "2024": {
+        "playoff": 4.492163208477489,
+        "late15": 4.743983656912401,
+        "phase": 4.678505984820072,
+        "regular_early": 4.147316939132899
+      }
+    },
+    "mean_minutes_given_plays": {
+      "2023": {
+        "playoff": 23.462282234736477,
+        "late15": 22.70192332510512,
+        "rest": 22.799633445993507
+      },
+      "2024": {
+        "playoff": 22.48921842838817,
+        "late15": 22.961845871615456,
+        "rest": 22.80312828078666
+      }
+    }
+  },
+  "coach": {
+    "2023": {
+      "playoff_team_games": 164,
+      "coaches": 16,
+      "share_prior_po_gt0": 0.9573170731707317,
+      "coaches_with_prior_po_ge20": 7,
+      "coaches_with_prior_po_ge10": 11,
+      "median_prior_po": 12.0
+    },
+    "2024": {
+      "playoff_team_games": 168,
+      "coaches": 16,
+      "share_prior_po_gt0": 0.9702380952380952,
+      "coaches_with_prior_po_ge20": 9,
+      "coaches_with_prior_po_ge10": 12,
+      "median_prior_po": 21.0
+    },
+    "pass_report_season_coaches": true,
+    "pass_select_season_coaches": false
+  },
+  "series_clinch": {
+    "playoff_team_games": 500,
+    "max_series_game": 7,
+    "elim_game_team_games_by_season": {
+      "2023": {
+        "team_games": 164,
+        "elim_game": 26,
+        "games_by_series_game": {
+          "1": 30,
+          "2": 30,
+          "3": 30,
+          "4": 30,
+          "5": 24,
+          "6": 14,
+          "7": 6
+        }
+      },
+      "2024": {
+        "team_games": 168,
+        "elim_game": 27,
+        "games_by_series_game": {
+          "1": 30,
+          "2": 30,
+          "3": 30,
+          "4": 30,
+          "5": 26,
+          "6": 14,
+          "7": 8
+        }
+      }
+    },
+    "clinch_late15_team_games": {
+      "2023": {
+        "team_games": 488,
+        "clinched_6": 0.09836065573770492,
+        "clinched_10": 0.4098360655737705,
+        "elim_6": 0.3422131147540984,
+        "elim_10": 0.23770491803278687
+      },
+      "2024": {
+        "team_games": 492,
+        "clinched_6": 0.16260162601626016,
+        "clinched_10": 0.4105691056910569,
+        "elim_6": 0.34959349593495936,
+        "elim_10": 0.18495934959349594
+      }
+    }
+  },
+  "pass": {
+    "a0_reproduced": true,
+    "phase_games_ge_200_each_season": true,
+    "coach_claim_report_season": true,
+    "coach_claim_select_season": false
+  }
+}
