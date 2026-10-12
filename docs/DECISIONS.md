@@ -818,3 +818,7 @@ A: SEQ-blend slice/overlap check on the stored 2023/24 arrays (descriptive). B: 
 starters (live log only). C: freeze PACE_TOTALS with its drafted floors (-0.05 CRPS, -0.002 log loss, +1.0% ROI) and run it on 2023/24
 (main session noted a ~5% pass prior; Devin's call). D: RECENT_ROLE_FULL harness refuses checkpoints older than its freeze. E (open questions)
 after these. Start with the Stage-2 loader and the combined-model shadow at ~09:15 CDT.
+
+**2026-10-12 10:09 CDT — PACE_TOTALS FROZEN (sha256 e59e5c9e, commit 9a6737a) with the drafted floors (Devin item C).**
+What: pace x efficiency game totals vs the market line, blend arm B only can pass; select 2023, report 2024; no 2025. Main session prior ~5%.
+Why: Devin "a b c d". What would reverse it: nothing above the marker.
