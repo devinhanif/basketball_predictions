@@ -690,3 +690,9 @@ What: the frozen run fails two gate checks (2024 production-minutes reproduction
 gap 5.8 pp by minutes bucket vs 2 pp). No arm fitted; the frozen limits are not loosened. Why: non-negotiables 4 and 8.
 What would reverse it: a new rule (COACH_PHASE_2) re-baselined on the current data with the habit fallback defined at team level, frozen fresh;
 the main session recommends folding playoff minutes into the T-30 update model instead.
+
+**2026-10-12 00:18 CDT — WORKLOAD: P cell passes (renamed recent-role minutes); pts wounded; T451-T454.**
+What: the adversary cleared the P cell of leaks; the gain is last-game minutes for bench players, not workload. No production change and no holdout
+touch. Next: a new rule testing C + min_last against C + production's recent-minutes columns; harness fixes (non-inert shuffled-label arm,
+past-only placebo) before any further freeze. Why: T454 and docs/reviews/workload_review_2026-10-12.md.
+What would reverse it: the comparator rule showing production's recent-minutes columns absorb the gain.
