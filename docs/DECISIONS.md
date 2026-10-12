@@ -662,3 +662,8 @@ concentration, blowout pull, star rest on back-to-backs conditional on as-of tea
 Habits failing the 0.30 reliability screen after the redefinition (back-to-back top-5 minutes, out-of-contention star rest) are dropped.
 Why: Devin's reframing ("a game is a closed system"; "coaches go team to team, resting back to back given the teams status ... if not freeze it").
 What would reverse it: nothing above the results marker changes.
+
+**2026-10-11 22:51 CDT — TEAM_BUDGET: CLOSED, harm (T446-T449).**
+What: the T-60 minutes budget and role/coach model make all props worse; production unchanged; coach habits add nothing at T-60.
+Why: the budget correction is noise until inactives are known. What would reverse it: a T-30 version fed confirmed lineups (inactives removed
+before the budget is applied), frozen as a new rule.

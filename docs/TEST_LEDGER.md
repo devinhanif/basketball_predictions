@@ -641,3 +641,16 @@ much worse on near-DNP rows (minutes < 5, +0.089) and in the playoffs (+0.024). 
 worse on near-DNPs). With 2019-21 history the blend gain doubles on points (-0.027 / -0.017), but the network's internal state identifies the
 era almost perfectly (AUC 0.998), so the rule's era guard disqualifies E3 and the gain cannot be credited to more data rather than to era
 artefacts. Nothing is promoted. The allowed follow-up is the one the rule names (a router g using T-60 report and T-30 lineups).
+
+| T446 | TEAM_BUDGET T1 production raked to the team minutes budget (frozen sha256 e43ca3c3, commit 4c4179a), integer CRPS vs A0 (prod + mixture) | pts +0.1017 [+0.0910, +0.1120] / +0.1179 [+0.1062, +0.1302]; reb +0.035 / +0.043; ast +0.021 / +0.019; fg3m +0.006 / +0.007 (2023 / 2024). HARM |
+| T447 | TEAM_BUDGET T2 role-share model with coach habits, raked | pts +0.1250 / +0.1017; reb +0.048 / +0.039; ast +0.021 / +0.016; fg3m +0.006 / +0.006. HARM. T2 minus T2-noCoach: pts 2024 +0.0002 (coach habits add nothing) |
+| T448 | TEAM_BUDGET descriptive: half elasticity (gamma 0.5) and oracle | T1g5 pts 2024 +0.029, T2g5 +0.021 (harm halves with elasticity: the factor is mostly noise); oracle O2 (realised minutes shares) pts -0.180 [-0.194, -0.166], reb -0.066, ast -0.026, fg3m -0.016 |
+| T449 | TEAM_BUDGET verdict | CLOSED, HARM in every cell. Team-consistency exact (gap 1e-13); production's roster minutes overcount 36 min per team-game on average. Harness fixes before any score: games_prior column (two crashes, no score printed) |
+
+**TEAM_BUDGET verdict (T446-T449, frozen sha256 e43ca3c3, freeze commit 4c4179a; research/eval/team_budget_eval.py; reports/prereg_team_budget/results.json):**
+CLOSED, harm. Forcing production's player minutes to add up to the team's 241 makes every stat worse in both seasons (pts +0.10 to +0.12
+CRPS, twenty times the floor), and the role model with coach habits is no better; coach habits change nothing (T2 minus T2-noCoach +0.0002).
+The harm halves when the factor is applied at half strength, so the factor is mostly noise: at T-60 the overcount comes from players who will
+not play, and spreading the correction over everyone hurts the players who do. With realised minutes shares the same machinery would gain
+0.18 on points. Reading: a game is a closed system, but at T-60 we do not know which part of the roster is in it. The budget belongs at T-30,
+after inactives and starters are confirmed, as the input to the market-update and router follow-ups; not as a T-60 constraint.

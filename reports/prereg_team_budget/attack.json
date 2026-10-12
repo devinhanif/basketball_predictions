@@ -1,0 +1,24 @@
+{
+ "T2": {
+  "pts": {
+   "gain_shuffled": 0.24812462163588894,
+   "mde": 0.011494777312711063,
+   "shuffled_ok": true
+  },
+  "reb": {
+   "gain_shuffled": 0.07842563165642334,
+   "mde": 0.0046252878883801495,
+   "shuffled_ok": true
+  },
+  "ast": {
+   "gain_shuffled": 0.038777189089812446,
+   "mde": 0.002819423076677852,
+   "shuffled_ok": true
+  },
+  "fg3m": {
+   "gain_shuffled": 0.016873062234291074,
+   "mde": 0.0013973253217453097,
+   "shuffled_ok": true
+  }
+ }
+}
