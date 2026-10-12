@@ -10,7 +10,7 @@ import pytest
 
 from nba.parse.possessions import parse_possessions
 from nba.parse.reconcile import (
-    FORMULA_MAE_DIAGNOSTIC,
+    FIXTURE_MAE_MAX,
     mean_abs_error,
     points_match_rate,
     reconcile_points,
@@ -75,7 +75,7 @@ def test_fixture_dataset_reconciles_within_gate() -> None:
     rec = reconcile_possessions(possessions, team_box)
     assert rec.height == 6  # 3 fixture games x 2 teams
     mae = mean_abs_error(rec)
-    assert mae <= FORMULA_MAE_DIAGNOSTIC, f"mean abs error {mae} above the diagnostic level"
+    assert mae <= FIXTURE_MAE_MAX, f"mean abs error {mae} above the fixture gate"
 
 
 def test_reconcile_points_flags_a_dropped_free_throw_point() -> None:

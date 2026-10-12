@@ -9,8 +9,9 @@ Tables
 ``lineup_snapshots``  one row per (snapshot, game, team, player) parsed from a 200 response.
 ``game_tips``         tip-off per game (schedule, or parsed from the feed's status text).
 ``lineup_snapshots_dedup``  VIEW: one row per (snapshot, game, team, player), Confirmed over
-                           Expected then latest source_ts; ``lineup_snapshots_latest`` is the
-                           same view under its old name.
+                           Expected then latest source_ts; starter = OR over the rows of the
+                           team's winning status (see ``dedup_snapshot_rows``);
+                           ``lineup_snapshots_latest`` is the same view under its old name.
 """
 
 from __future__ import annotations
@@ -18,11 +19,12 @@ from __future__ import annotations
 import time
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
 import duckdb
 
 from nba.ingest.cache import DEFAULT_DATA_DIR
-from nba.lineups.source import LineupRow, RawFetch
+from nba.lineups.source import CONFIRMED, LineupRow, RawFetch
 
 LINEUPS_DIR = DEFAULT_DATA_DIR / "lineups"
 DEFAULT_LINEUPS_DB = LINEUPS_DIR / "lineups.duckdb"
@@ -40,11 +42,16 @@ DEDUP_SELECT = """SELECT snapshot_id,
        player_id,
        arg_max(player_name, rk) AS player_name,
        arg_max(lineup_status, rk) AS lineup_status,
-       bool_or(announced_starter) AS announced_starter,
+       coalesce(bool_or(announced_starter) FILTER (WHERE is_conf = team_conf), false)
+           AS announced_starter,
        max(position) AS position,
        arg_max(roster_status, rk) AS roster_status,
        max(source_ts) AS source_ts
-FROM (SELECT *, (lineup_status = 'Confirmed', source_ts) AS rk FROM lineup_snapshots)
+FROM (SELECT *, (lineup_status = 'Confirmed', source_ts) AS rk,
+             lineup_status = 'Confirmed' AS is_conf,
+             bool_or(lineup_status = 'Confirmed')
+                 OVER (PARTITION BY snapshot_id, game_id, team_id) AS team_conf
+      FROM lineup_snapshots)
 GROUP BY snapshot_id, game_id, team_id, player_id
 """
 
@@ -92,12 +99,13 @@ CREATE TABLE IF NOT EXISTS game_tips (
 -- often 'Expected') and in the confirmed-roster block (position ''): 240 duplicate groups in 20
 -- of 39 snapshots on 2026-10-09/10, which made nba/daily/t30.py read a mixed "Confirmed/Expected"
 -- status and skip the game. Raw rows stay append-only; consumers read this view:
---   announced_starter = true if ANY row has it (the OR gives exactly 5 starters in 60 of 60
---   duplicated team-snapshots; "latest row wins" gave 0 in 18); lineup_status and the other
---   descriptive columns come from the winning row: Confirmed over Expected (a later Expected
---   starters-block row must not downgrade a player the same snapshot also lists as Confirmed;
---   that kept 57 team-snapshots 'mixed' under pure latest-source_ts), then the latest source_ts;
---   position = the non-empty one. Same winner order as nba/daily/t30.py.
+--   Frozen rule (DECISIONS 2026-10-11 ~21:30 CT): the team's winning status is Confirmed if ANY
+--   of its rows in the snapshot is Confirmed, else Expected. announced_starter = OR over only the
+--   rows carrying that winning status (never across statuses, never "latest row wins"), so an
+--   Expected starters block next to a Confirmed roster block is NOT a confirmed five.
+--   lineup_status and the other descriptive columns come from the player's winning row:
+--   Confirmed over Expected, then the latest source_ts; position = the non-empty one.
+--   The Python twin is ``dedup_snapshot_rows`` below; a test asserts they agree.
 CREATE OR REPLACE VIEW lineup_snapshots_dedup AS
 __DEDUP__;
 -- Earlier name for the same view (kept so existing readers keep working).
@@ -106,6 +114,43 @@ CREATE OR REPLACE VIEW lineup_snapshots_latest AS SELECT * FROM lineup_snapshots
 
 
 DDL = _DDL_TEMPLATE.replace("__DEDUP__", DEDUP_SELECT)
+
+
+def dedup_snapshot_rows(rows: list[tuple[Any, ...]]) -> tuple[list[tuple[Any, ...]], int]:
+    """Python twin of ``DEDUP_SELECT`` for ONE (snapshot, game) block (the T-30 reader).
+
+    Rows are ``(team_id, lineup_status, announced_starter, roster_status, player_id,
+    source_ts)``; pass them ordered by rowid. Frozen rule: a team's winning status is Confirmed
+    if any of its rows is Confirmed, else Expected; ``announced_starter`` is the OR over only
+    the rows carrying that winning status. Per player the descriptive columns come from the
+    winning row (Confirmed over Expected, then latest ``source_ts`` with NULL last, then the
+    first row); ``source_ts`` is the max. Returns ``(one row per (team, player) in first-seen
+    order, number of rows collapsed)``."""
+    team_conf: dict[int, bool] = {}
+    for r in rows:
+        t = int(r[0])
+        team_conf[t] = team_conf.get(t, False) or str(r[1]) == CONFIRMED
+
+    def rank(r: tuple[Any, ...]) -> tuple[bool, bool, datetime]:
+        return (
+            str(r[1]) == CONFIRMED,
+            r[5] is not None,
+            r[5] if r[5] is not None else datetime.min,
+        )
+
+    groups: dict[tuple[int, int], list[tuple[Any, ...]]] = {}
+    for r in rows:
+        groups.setdefault((int(r[0]), int(r[4])), []).append(r)
+    kept: list[tuple[Any, ...]] = []
+    for (t, pid), grp in groups.items():
+        win = grp[0]
+        for r in grp[1:]:
+            if rank(r) > rank(win):  # strict: ties keep the earlier row
+                win = r
+        starter = any(bool(r[2]) for r in grp if (str(r[1]) == CONFIRMED) == team_conf[t])
+        stamps = [r[5] for r in grp if r[5] is not None]
+        kept.append((t, win[1], starter, win[3], pid, max(stamps) if stamps else None))
+    return kept, len(rows) - len(kept)
 
 
 def dedup_lineup_snapshots(con: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:

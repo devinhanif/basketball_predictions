@@ -6,7 +6,7 @@ _Living document. Last updated: 2026-10-11 04:00 CT (HEAD 2ffd6ff; tags `pre-res
 
 **Shipped since 2026-10-10 midday.**
 - T-30 reader fix (e06763d, Devin: "ship t30 fix"): duplicate lineup rows (Expected plus Confirmed) now collapse before the confirmed check, and each T-30 decision records `dupes_collapsed`. Before the fix, 4 of the 6 recorded T-30 decisions had been skipped for this reason (data audit F1). The replay oracle hash was identical; the replay cannot exercise T-30, so unit tests carry it.
-- Data clean-up pass complete at **data_version 1bee33d02ff2** (291b3b0; DATA_CHANGELOG; audit in docs/reviews/data_audit_2026-10-11.md): 10 neutral-site games restored (+273 box rows, 148 report rows linked), possession parser fixed (points reconcile in 100% of team-games), stints rebuilt with a season-wide name book (played player-games with no stint row 671 -> 91), head coach by game, players_static re-pulled, lineup dedupe view. Replay golden re-baselined to `030804df` (46,658 predictions; code unchanged, data changed; docs/reviews/replay_oracle_2026-10-09.md).
+- Data clean-up pass complete at **data_version 1bee33d02ff2** (291b3b0; DATA_CHANGELOG; audit in docs/reviews/data_audit_2026-10-11.md): 10 neutral-site games restored (+273 box rows, 148 report rows linked), possession parser fixed (points reconcile in 100% of team-games), stints rebuilt with a season-wide name book (played player-games with no stint row 671 -> 91), head coach by game, players_static re-pulled, lineup dedupe view. Replay golden is now `89889f6d` (46,658 predictions; `030804df` until the p_play change re-baselined it on 2026-10-11; docs/reviews/replay_oracle_2026-10-09.md).
 - Facts store (`nba/facts`, 40e599c, 0555501) and reporter feed (`nba/ingest/reporters.py`, e3da819) built; see the components table in section 2.
 
 ## 1. In production (registry alias `production`)
@@ -111,7 +111,7 @@ Not open any more: F8 and the other frozen rules (all run and closed), the T-30 
 ## 7. Opening-night checklist (first games 2026-10-20)
 
 See NEXT_SESSION.md for the ordered list. The standing checklist (jobs loaded, one supervised pretip run, ingest queue, sleep off, registry shows production v2) is unchanged. Added 2026-10-11:
-- Rebuild the facts store nightly once `nba.facts build --seasons` exists (today it is `--max-season`); do not touch the daily script before the replay oracle (`oracle_golden2`, `030804df`) passes on the change.
+- Rebuild the facts store nightly once `nba.facts build --seasons` exists (today it is `--max-season`); do not touch the daily script before the replay oracle (`oracle_pplay`, golden `89889f6d`; was `030804df` before 2026-10-11) passes on the change.
 - First reporter poll only after Devin's sign-up, with `--budget-posts 50`; read the briefing section before widening the budget.
 
 ## 8. Roadmap after opening night

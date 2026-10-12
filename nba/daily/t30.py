@@ -40,7 +40,12 @@ from nba.daily.season import season_str_for_date
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions
 from nba.ingest.cache import RateLimiter
 from nba.lineups.source import CONFIRMED
-from nba.lineups.store import T30_LEAD_MINUTES, games_with_tips, latest_snapshot_before
+from nba.lineups.store import (
+    T30_LEAD_MINUTES,
+    dedup_snapshot_rows,
+    games_with_tips,
+    latest_snapshot_before,
+)
 from nba.props.context_residual import (
     CRPS_TAUS,
     ContextResidualConfig,
@@ -142,35 +147,6 @@ def ensure_decisions_table(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(DECISIONS_DDL)
 
 
-def dedupe_snapshot_rows(rows: list[tuple[Any, ...]]) -> tuple[list[tuple[Any, ...]], int]:
-    """One row per (team_id, player_id) from ONE (snapshot, game) block of lineup rows.
-
-    The feed sometimes lists a player twice in a snapshot (an Expected row plus a Confirmed
-    row, or two Confirmed rows that disagree on ``announced_starter``). The winner is, in order:
-    Confirmed over Expected; the latest ``source_ts`` (NULL last); ``announced_starter`` TRUE;
-    the first row in input order (pass rows ordered by rowid). Dedupe first, then compute the
-    status set, so a leftover Expected twin cannot make a confirmed team look mixed.
-
-    Rows are ``(team_id, lineup_status, announced_starter, roster_status, player_id,
-    source_ts)``. Returns ``(kept rows in first-seen order, number of rows collapsed)``.
-    """
-
-    def rank(r: tuple[Any, ...]) -> tuple[bool, bool, datetime, bool]:
-        return (
-            str(r[1]) == CONFIRMED,
-            r[5] is not None,
-            r[5] if r[5] is not None else datetime.min,
-            bool(r[2]),
-        )
-
-    best: dict[tuple[int, int], tuple[Any, ...]] = {}
-    for r in rows:
-        k = (int(r[0]), int(r[4]))
-        if k not in best or rank(r) > rank(best[k]):  # strict: ties keep the earlier row
-            best[k] = r
-    return list(best.values()), len(rows) - len(best)
-
-
 def load_game_lineup(
     lcon: duckdb.DuckDBPyConnection, g: ScheduledGame, cutoff: datetime
 ) -> tuple[GameLineup | None, str, tuple[str, datetime] | None]:
@@ -184,7 +160,12 @@ def load_game_lineup(
         "FROM lineup_snapshots WHERE snapshot_id = ? AND game_id = ? ORDER BY rowid",
         [sid, g.game_id],
     ).fetchall()
-    rows, n_dupes = dedupe_snapshot_rows(rows)
+    # raw rows still carry the Expected starters block that the dedup rule discards
+    expected_block: dict[int, int] = {}
+    for r in rows:
+        if str(r[1]) != CONFIRMED and r[2]:
+            expected_block[int(r[0])] = expected_block.get(int(r[0]), 0) + 1
+    rows, n_dupes = dedup_snapshot_rows(rows)
     note = f"; dupes_collapsed={n_dupes}" if n_dupes else ""
     teams: dict[int, list[tuple[Any, ...]]] = {}
     for r in rows:
@@ -194,8 +175,8 @@ def load_game_lineup(
         tr = teams.get(tid)
         if not tr:
             return None, f"team_{tid}_missing_in_snapshot", snap
-        statuses = {str(r[1]) for r in tr}
-        status = CONFIRMED if statuses == {CONFIRMED} else "/".join(sorted(statuses))
+        # frozen rule: the team is Confirmed if any of its rows is Confirmed
+        status = CONFIRMED if any(str(r[1]) == CONFIRMED for r in tr) else "Expected"
         ts = [r[5] for r in tr if r[5] is not None]
         built[tid] = TeamLineup(
             tid,
@@ -213,7 +194,11 @@ def load_game_lineup(
             snap,
         )
     if len(h.starters) != 5 or len(a.starters) != 5:
-        return None, f"starters_not_5:home={len(h.starters)},away={len(a.starters)}{note}", snap
+        counts = f"home={len(h.starters)},away={len(a.starters)}"
+        # a Confirmed roster block next to an Expected starters block: the five is unconfirmed
+        if any(expected_block.get(t.team_id, 0) and len(t.starters) != 5 for t in (h, a)):
+            return None, f"starters_block_expected:{counts}{note}", snap
+        return None, f"starters_not_5:{counts}{note}", snap
     return GameLineup(g.game_id, sid, fetched, h, a, n_dupes), "", snap
 
 

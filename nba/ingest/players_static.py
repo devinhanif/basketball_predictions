@@ -159,13 +159,17 @@ def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
 
 
 def _has_cache(path: Path) -> bool:
-    """A cached frame counts only if it has columns: a zero-column file is a cached empty
-    response (30 of them, keyed by truncated team ids, were found 2026-10-11), never data."""
-    return path.exists() and bool(pl.read_parquet_schema(path))
+    """A cached frame counts only if it has columns AND rows: an empty file is a cached empty
+    response (30 zero-column ones, keyed by truncated team ids, found 2026-10-11), never data."""
+    if not path.exists() or not pl.read_parquet_schema(path):
+        return False
+    return int(pl.scan_parquet(path).select(pl.len()).collect().item()) > 0
 
 
 def _write_cache(frame: pl.DataFrame, path: Path) -> None:
-    if frame.width == 0:
+    # Only per-player CommonPlayerInfo frames come through here (one row each; the retry loop
+    # already treats an empty response as a miss), so there is no legitimately empty caller.
+    if frame.width == 0 or frame.height == 0:
         raise ValueError(f"refusing to cache an empty response at {path}")
     frame.write_parquet(path)
 

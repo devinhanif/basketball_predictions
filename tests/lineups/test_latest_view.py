@@ -1,4 +1,4 @@
-"""lineup_snapshots_latest: one row per player per snapshot; starter is OR, status is latest."""
+"""lineup_snapshots_latest: one row per player per snapshot; starter = OR over winning status."""
 
 from __future__ import annotations
 
@@ -31,7 +31,9 @@ def test_duplicate_player_rows_collapse_and_keep_the_starter() -> None:
         "SELECT lineup_status, announced_starter, position FROM lineup_snapshots_latest "
         "WHERE player_id = 1"
     ).fetchone()
-    assert p1 == ("Confirmed", True, "C")
+    # frozen rule: the Expected starters block does not make a Confirmed five; the Confirmed
+    # row of this player says non-starter (the position is still the non-empty one)
+    assert p1 == ("Confirmed", False, "C")
     assert (
         con.execute("SELECT count(DISTINCT lineup_status) FROM lineup_snapshots_latest").fetchone()[
             0

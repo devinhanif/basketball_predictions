@@ -12,7 +12,8 @@ The formula cannot see team turnovers and uses an approximate 0.44; it is not an
 1. Hard gate: possession points == box points per team-game; `reconcile_points` / `points_match_rate`, `POINTS_MATCH_MIN = 0.99`
    (real data 1.000).
 2. The formula (`reconcile_possessions`, `mean_abs_error`) is reported as a diagnostic, flagged above `FORMULA_MAE_DIAGNOSTIC = 2.5`,
-   and never fails a build on its own.
+   and never fails a build on its own. The fixture bound is restored to `FIXTURE_MAE_MAX = 1.0` (clean fixture 0.34; at 2.5 a planted
+   +2 possessions per team-game passed), and real data gets a bias band `FORMULA_BIAS_BAND = (-2.5, -1.0)` (stored bias -1.6 to -2.0), flag only.
 
 ## Would reverse
 A source of official team box totals (team turnovers, team rebounds) that makes the formula an identity; then re-tighten it.

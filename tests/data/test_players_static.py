@@ -211,3 +211,18 @@ def test_zero_column_cache_is_not_a_cache_and_is_never_written(tmp_path) -> None
     ok = tmp_path / "1.parquet"
     _write_cache(pl.DataFrame({"player_id": [1]}), ok)
     assert _has_cache(ok)
+
+
+def test_zero_row_cache_with_columns_is_not_a_cache_and_is_never_written(tmp_path) -> None:
+    import polars as pl
+    import pytest
+
+    from nba.ingest.players_static import _has_cache, _write_cache
+
+    stub = tmp_path / "7.parquet"
+    pl.DataFrame({"player_id": pl.Series([], dtype=pl.Int64)}).write_parquet(stub)
+    assert not _has_cache(stub)
+    out = tmp_path / "8.parquet"
+    with pytest.raises(ValueError):
+        _write_cache(pl.DataFrame({"player_id": pl.Series([], dtype=pl.Int64)}), out)
+    assert not out.exists()
