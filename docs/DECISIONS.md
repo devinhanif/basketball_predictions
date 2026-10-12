@@ -763,3 +763,7 @@ beyond its brief; disclosed in HOLDOUT_ACCESS_LOG. The shadow will also log C an
 against production (adversary recommendation; shadow-only, production outputs unchanged, oracle-gated).
 Why: docs/reviews/recent_role_holdout_review_2026-10-12.md. What would reverse it: live R minus C above -0.010 at >= 300 games, or R minus
 production above -0.05 (a parity fault).
+
+**2026-10-12 02:17 CDT — ROUTER_G2 FROZEN (sha256 2dc26443, commit 954e15f).**
+What: router gate g' from the holdout-confirmed P(play) features with a hard postseason route; E1', E2', E4' cells; supersedes the bundle's
+router, gate and blend; a 2025 touch only on Devin's words. Why: merged audit item 3; overnight standing approval. What would reverse it: nothing above the marker.
