@@ -48,7 +48,7 @@ improves on the oracle with A0's w_q by only -0.0020 [-0.0026, -0.0014] (1.4% of
 inside the short component gets -0.0029 [-0.0035, -0.0022]. A better short component is worth at most 0.002-0.003 even at a perfect pi.
 
 Other stats, same shape: reb CAND -0.0028 vs oracle -0.0605 (4.6%); ast -0.0012 vs -0.0240 (4.8%); fg3m -0.0006 vs -0.0130 (4.7%). In each,
-about 81-85% of the oracle gain is on short rows.
+about 79-86% of the oracle gain is on short rows.
 
 ## (3) Sensitivity of the mixture to pi (pts, by A0 pi bucket; constant pi grid 0..1)
 
