@@ -153,3 +153,12 @@ Incident: SEQ_FULL_MIX_RT was frozen as a W_ALL sequence model without noticing 
 pre-registered guard (era-embedding probe, T443) had ruled ineligible; the new rule silently lacked that guard. Rule: before any freeze,
 search the ledger for ancestors of the construction (same model family, same training window or features) and list in the draft every
 guard that ever disqualified an ancestor, with "carried forward" or "dropped because ..." stated before any result.
+
+## An invalid test is not a null (Devin, 2026-10-12)
+"If there's more, better, more complete data, and the test we did in the past wasn't done correctly, then we don't know if it was right,
+especially if neural networks get better with data." Rule: a result from a test later found flawed (proxy tip times before the 2026-10-09
+real-tip fix, the DNP/played-games bug era, inputs contaminated by a later-found leak such as opp_adjusted_ridge, continuous-vs-integer
+support mismatch, a training window too short for the model class) is relabelled INVALID, not NULL, and cannot be cited against the idea.
+It stays open until a valid retest. For data-hungry models, "data starvation" is tested directly with a learning curve on the select
+seasons (train on 1, 2, 3, ... seasons; a curve still rising at the largest window means the earlier loss may be starvation) before any
+holdout is spent.
