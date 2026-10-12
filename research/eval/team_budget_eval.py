@@ -794,7 +794,10 @@ class StatWorld:
                 "late",
                 "star_out",
                 "ot",
-                "games_prior",
+                # team games earlier in the same season (as-of; dates are unique per team)
+                (pl.col("game_date").rank("ordinal").over(["team_id", "season"]) - 1).alias(
+                    "games_prior"
+                ),
             ),
             on=["game_id", "team_id"],
             how="left",
