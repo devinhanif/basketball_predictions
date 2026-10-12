@@ -1,0 +1,378 @@
+{
+  "sha256": "73f3f4b04754ec9a8674b050d0b492116376dd03c513b9338ddabb7146355235",
+  "season": 2025,
+  "scores": {
+    "season": 2025,
+    "rows": [
+      {
+        "arm": "A0",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "crps_int": 3.144051633928212
+      },
+      {
+        "arm": "FULL",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "crps_int": 3.1325005020059655
+      },
+      {
+        "arm": "PL_FULL",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "crps_int": 3.143662253998579
+      },
+      {
+        "arm": "SHUF_CTRL",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "crps_int": 3.2927499817637953
+      },
+      {
+        "arm": "SHUF_FULL",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "crps_int": 3.290659690509377
+      },
+      {
+        "arm": "FULL_minus_A0",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "delta": -0.011551131922246959,
+        "ci_lo": -0.015856548285945044,
+        "ci_hi": -0.007557972396585582,
+        "p": 0.0004997501249375312,
+        "mde": 0.004149287944679731,
+        "p_bh": 0.0004997501249375312
+      },
+      {
+        "arm": "FULL_minus_PL_FULL",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "delta": -0.011161751992613735,
+        "ci_lo": -0.015466734511040593,
+        "ci_hi": -0.007212864414469964,
+        "p": 0.0004997501249375312,
+        "mde": 0.004126935048285315
+      },
+      {
+        "arm": "SHUF_FULL_minus_SHUF_CTRL",
+        "n_rows": 28173,
+        "n_games": 1321,
+        "delta": -0.0020902912544180415,
+        "ci_lo": -0.003586006622862395,
+        "ci_hi": -0.0006091375177606221,
+        "p": 0.007,
+        "mde": 0.0014884345525508864
+      }
+    ],
+    "slices": [
+      {
+        "slice": "all",
+        "n": 28173,
+        "delta": -0.011551131922246959,
+        "ci_lo": -0.015856548285945044,
+        "ci_hi": -0.007557972396585582
+      },
+      {
+        "slice": "min<5",
+        "n": 2277,
+        "delta": -0.08214787254732447,
+        "ci_lo": -0.09858812961301713,
+        "ci_hi": -0.06762100901221424
+      },
+      {
+        "slice": "bench",
+        "n": 16130,
+        "delta": -0.01930693572289352,
+        "ci_lo": -0.02549303443775725,
+        "ci_hi": -0.013477948791399456
+      },
+      {
+        "slice": "playoffs",
+        "n": 1921,
+        "delta": -0.021171019545683994,
+        "ci_lo": -0.036006049103762795,
+        "ci_hi": -0.006784901915772038
+      },
+      {
+        "slice": "cold_start",
+        "n": 485,
+        "delta": -0.03246929357454004,
+        "ci_lo": -0.060840365897247665,
+        "ci_hi": -0.005675604284315011
+      },
+      {
+        "slice": "starter",
+        "n": 12043,
+        "delta": -0.001163262180120496,
+        "ci_lo": -0.005837657762264218,
+        "ci_hi": 0.0036365941292083896
+      },
+      {
+        "slice": "short(<0.5*proj)",
+        "n": 2888,
+        "delta": -0.09422630804602783,
+        "ci_lo": -0.11206617377614954,
+        "ci_hi": -0.07710870025434838
+      },
+      {
+        "slice": "not short",
+        "n": 25285,
+        "delta": -0.0021081456202703265,
+        "ci_lo": -0.0063711940584252605,
+        "ci_hi": 0.0016476443348513157
+      },
+      {
+        "slice": "min<10",
+        "n": 4257,
+        "delta": -0.05772430238279409,
+        "ci_lo": -0.06998004182667442,
+        "ci_hi": -0.04551539992658353
+      }
+    ],
+    "coverage": {
+      "A0": {
+        "2025": {
+          "0.10": 0.11340645298690236,
+          "0.20": 0.2139637241330352,
+          "0.80": 0.808291626734817,
+          "0.90": 0.9054413800447236
+        }
+      },
+      "FULL": {
+        "2025": {
+          "0.10": 0.11411635253611614,
+          "0.20": 0.21446065381748483,
+          "0.80": 0.8070138075462322,
+          "0.90": 0.9047669754729706
+        }
+      }
+    },
+    "pi": {
+      "A0": {
+        "ece": 0.010714580791544602,
+        "logloss": 0.24700321111121418,
+        "auc": 0.852451738546224,
+        "mean_pi": 0.09179491411492612
+      },
+      "FULL": {
+        "ece": 0.010204513781451856,
+        "logloss": 0.2405436475740713,
+        "auc": 0.861526718675794,
+        "mean_pi": 0.09272888426025462
+      },
+      "ece_delta": -0.0005100670100927455
+    },
+    "observed_short": 0.10250949490647074
+  },
+  "verdict": {
+    "pass": false,
+    "primary": true,
+    "delta": -0.011551131922246959,
+    "ci": [
+      -0.015856548285945044,
+      -0.007557972396585582
+    ],
+    "p_bh": 0.0004997501249375312,
+    "mde": 0.004149287944679731,
+    "floor": -0.005,
+    "ece_ok": true,
+    "coverage_ok": true,
+    "coverage_bad": [],
+    "slices_ok": true,
+    "slices_worse": [],
+    "placebo_ok": true,
+    "shuffle_ok": false,
+    "gate_ok": true,
+    "note": "A pass is a production-change PROPOSAL only (Devin's decision); a miss is read against the stated expectation, not as a broken pipeline."
+  },
+  "expected": {
+    "expected_delta_pts_2025": -0.007,
+    "pass_probability": [
+      0.75,
+      0.82
+    ],
+    "basis": "adversary review 2026-10-12: true effect plausibly near the pre-specifiable wl_min_last level (-0.0065 to -0.007), SE ~0.0022; floor -0.005",
+    "reading": "a delta between -0.005 and 0 with CI upper < 0 is real-but-sub-floor, not a broken pipeline; a delta above 0 would be a surprise to investigate under a new id",
+    "written_at": "2026-10-12 10:19:46 CDT",
+    "written_before": "any 2025 model is fitted or scored"
+  },
+  "gate": [
+    {
+      "test": "[gate A, cap 2024] A0 heads equal the stored components (centre, scale, calibration z/centre/scale)",
+      "value": {
+        "rows_equal": true,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "rows equal, max abs diff == 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] A0 pi equals the stored pi",
+      "value": {
+        "max_abs_diff": 0.0,
+        "n": 27701
+      },
+      "threshold": "== 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] w_q equals the stored mixture weights",
+      "value": {
+        "max_abs_diff": 0.0
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] pts 2024 FULL minus A0 equals T467",
+      "value": {
+        "delta": -0.008314476376969474,
+        "T467_rounded": -0.008314,
+        "stored_exact": -0.008314476376969474,
+        "abs_diff": 0.0,
+        "n": 27701
+      },
+      "threshold": "|diff to the stored exact value| <= 1e-09 (and the rounded T467 -0.008314 within 1e-06)",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] A0 integer CRPS equals the stored value",
+      "value": {
+        "crps": 3.1768395165770476,
+        "stored": 3.1768395165770476
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] A0 and FULL coverage at tau 0.10/0.20/0.80/0.90 reproduce Stage 1",
+      "value": {
+        "max_abs_diff": 0.0,
+        "stage2": {
+          "A0": {
+            "0.10": 0.1180462799176925,
+            "0.20": 0.21436049240099636,
+            "0.80": 0.802606404100935,
+            "0.90": 0.9006895057940146
+          },
+          "FULL": {
+            "0.10": 0.11898487419226743,
+            "0.20": 0.21677917764701635,
+            "0.80": 0.8017039096061515,
+            "0.90": 0.8999314104183964
+          }
+        },
+        "stage1": {
+          "A0": {
+            "0.10": 0.1180462799176925,
+            "0.20": 0.21436049240099636,
+            "0.80": 0.802606404100935,
+            "0.90": 0.9006895057940146
+          },
+          "FULL": {
+            "0.10": 0.11898487419226743,
+            "0.20": 0.21677917764701635,
+            "0.80": 0.8017039096061515,
+            "0.90": 0.8999314104183964
+          }
+        }
+      },
+      "threshold": "<= 1e-09",
+      "ok": true
+    },
+    {
+      "test": "[gate A, cap 2024] FULL minus past-only placebo equals Stage 1",
+      "value": {
+        "delta": -0.008578538686292419,
+        "stored": -0.008578538686292419
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2025] A0 heads equal the stored components (centre, scale, calibration z/centre/scale)",
+      "value": {
+        "rows_equal": true,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "rows equal, max abs diff == 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2025] A0 pi equals the stored pi",
+      "value": {
+        "max_abs_diff": 0.0,
+        "n": 27701
+      },
+      "threshold": "== 0.0",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2025] w_q equals the stored mixture weights",
+      "value": {
+        "max_abs_diff": 0.0
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2025] pts 2024 FULL minus A0 equals T467",
+      "value": {
+        "delta": -0.008314476376969474,
+        "T467_rounded": -0.008314,
+        "stored_exact": -0.008314476376969474,
+        "abs_diff": 0.0,
+        "n": 27701
+      },
+      "threshold": "|diff to the stored exact value| <= 1e-09 (and the rounded T467 -0.008314 within 1e-06)",
+      "ok": true
+    },
+    {
+      "test": "[gate B, cap 2025] A0 integer CRPS equals the stored value",
+      "value": {
+        "crps": 3.1768395165770476,
+        "stored": 3.1768395165770476
+      },
+      "threshold": "<= 1e-06",
+      "ok": true
+    },
+    {
+      "test": "season 2025 pts rows and games",
+      "value": {
+        "rows": 28173,
+        "games": 1321
+      },
+      "threshold": ">= 25000 rows, >= 1000 games",
+      "ok": true
+    },
+    {
+      "test": "season 2025: the five recent-role columns attach",
+      "value": {
+        "null_share": {
+          "wl_min_last": 0.0,
+          "wl_mean_min_l3": 0.0,
+          "wl_min_3d": 0.0,
+          "wl_min_7d": 0.0,
+          "wl_mean_min_l5": 0.0
+        }
+      },
+      "threshold": "each < 0.02",
+      "ok": true
+    },
+    {
+      "test": "season 2025: missingness of the five columns by realised-minutes bucket (pp)",
+      "value": {
+        "max_gap_pp": 0.0,
+        "threshold_pp": 2.0
+      },
+      "threshold": "<= threshold",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "seconds": 230.94556999206543,
+  "label_hashes_equal": true,
+  "plants": "Rule pass item 8 (planted-future / control plants) was NOT re-run on season 2025: the walk functions are unchanged since Stage 1, where the plants passed on them."
+}

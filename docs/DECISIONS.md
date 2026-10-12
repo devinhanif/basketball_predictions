@@ -831,3 +831,8 @@ flag on/off hash identical on a real slate, +15 s on the first run of a date, ~2
 
 **2026-10-12 10:16 CDT — PACE_TOTALS: closed, the line already has the pace (T472).**
 What: the fitted blend put zero weight on the pace model in every month; game totals defer to the market. Why: frozen rule. What would reverse it: nothing.
+
+**2026-10-12 10:22 CDT — RECENT_ROLE_FULL Stage 2: NOT A PASS on the 2025 holdout (T473); 2025 spent for this model.**
+What: the primary contrast met the floor with room (-0.0116), but the frozen shuffled-label guard fired (-0.0021); no rerun, no new seed, no
+change to the guard after the fact. No production change. The live FULL shadow is the remaining venue; a descriptive diagnostic of why the shuffle
+arm differs may be run on 2023/24 only, and any new guard design is a new rule for future work. Why: frozen rule. What would reverse it: nothing for this rule.
