@@ -786,7 +786,15 @@ class StatWorld:
         )
         m = m.join(
             tf.select(
-                "game_id", "team_id", "_k", "coach_n_prior", "status", "late", "star_out", "ot"
+                "game_id",
+                "team_id",
+                "_k",
+                "coach_n_prior",
+                "status",
+                "late",
+                "star_out",
+                "ot",
+                "games_prior",
             ),
             on=["game_id", "team_id"],
             how="left",
