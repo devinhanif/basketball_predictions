@@ -12,5 +12,10 @@
 - ROUTER_G2 draft (last modelling item from the audit).
 - Coverage tests (68.5% -> >= 70%).
 
+## Queue added by Devin ("we missed something and many tests were close")
+- Q1 Diagnostic (descriptive, no claim): why a better pi moves pts CRPS only ~-0.005 when the oracle pi is worth -0.15 — check pi log-loss gain vs CRPS transfer, the short-component quantiles w_q, the mixture weight path; look for a structural cap.
+- Q2 RECENT_ROLE_FULL: one rule putting recent-role minutes into P(play), pi and the props heads together; select 2023, report 2024; floor unchanged (-0.005); a 2025 touch only on Devin's words.
+- Floor: not changed; any floor question is a daylight decision.
+
 ## Log
 - 01:53 loop started; limits: no 2025 holdout, no production promotion, no purchases, <= 2 new agents at a time.
