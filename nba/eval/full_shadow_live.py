@@ -46,7 +46,7 @@ SEED = 0
 Z1 = 1.6448536  # one-sided 95%
 #: sd of SHUF_FULL - SHUF_CTRL (pts integer CRPS) across permutation seeds, pooled 2023 + 2024, K = 48
 #: (reports/shuffle_guard_diagnostic_2026-10-12.json, pooled_both.sd); the fit-noise term the game bootstrap ignores.
-NULL_SD_PTS = 0.00229
+NULL_SD_PTS = 0.00199  # K=100 permutation null, pooled 2023+2024 (FULL_SHADOW_LIVE_2026_27, frozen)
 N_MIN = 14_600  # eligible conditional pts rows at the final look
 N_INTERIM = 7_300  # kill-only look
 LATE_PAIR_SHARE = 0.02  # more than 2% of shadow pairs without a pre-cutoff row => no verdict
