@@ -9,7 +9,9 @@ docs/FACTS_STORE.md; none of them is a model output. The 2025 holdout is exclude
 * listed_status: the report's own ``as_of`` stamp (ET clock in the source, converted to UTC).
 * announced_starter: the lineup snapshot's ``fetched_at``.
 * player static: 1 Oct of ``first_season`` (players with no ``first_season`` get no static fact).
-* head_coach: 1 Oct of the season, confidence 0.5 (team_coaches is wrong in 14 of 87 team-seasons).
+* head_coach: per stint from team_coach_games (Basketball-Reference), known at the real tip of the
+  first game he ran, confidence 0.9; seasons that table does not cover fall back to team_coaches
+  (1 Oct, confidence 0.5, a last-occupant snapshot wrong in 14 of 87 reference team-seasons).
 * played_minutes: tip + 2h30 PROXY for game end; games with no real tip get no such fact.
 
 ``seasons`` (CLI ``--seasons 2022,2023,2024,2026``, default none) is an explicit list of seasons
@@ -39,6 +41,7 @@ import polars as pl
 import yaml
 
 from nba.daily.schedule import ScheduledGame, load_schedule_cache, parse_schedule_frame
+from nba.data.coaches import norm as coach_name_key
 from nba.features.game_tipoff import build_game_tipoff
 from nba.features.injury_report import ReportTriggerConfig, load_report_rows
 
@@ -347,27 +350,88 @@ def static_facts(
 def coach_facts(
     src: duckdb.DuckDBPyConnection, max_season: int, seasons: tuple[int, ...] = ()
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Head coach per stint from ``team_coach_games`` (Basketball-Reference reference).
+
+    One fact per (team, season, uninterrupted run of the same coach): ``valid_from`` =
+    ``known_at`` = the real tip of the first game he ran (a change is never known before he
+    coaches), ``valid_to`` = the first tip of the next coach, else the next 1 October. Seasons the
+    table does not cover keep the old ``team_coaches`` fact (1 Oct, confidence 0.5, a
+    last-occupant snapshot).
+    """
     cond, params = _season_sql(max_season, seasons)
-    d = src.execute(
-        f"SELECT season, team_id, coach_id, name FROM team_coaches "
-        f"WHERE coach_type = 'Head Coach' AND {cond}",
+    g = src.execute(
+        "SELECT g.season, c.team_id, c.coach_id, c.coach_name AS name, c.known_at, g.game_date, "
+        "c.game_id FROM team_coach_games c JOIN games g USING (game_id) "
+        f"WHERE c.known_at IS NOT NULL AND g.{cond}",
         params,
     ).pl()
-    start = _season_start(pl.col("season"))
-    facts = d.select(
+    runs = (
+        g.sort("team_id", "season", "known_at", "game_id")
+        .with_columns(
+            (pl.col("name") != pl.col("name").shift(1))
+            .fill_null(True)
+            .cum_sum()
+            .over(["team_id", "season"])
+            .alias("run")
+        )
+        .group_by("team_id", "season", "run", maintain_order=True)
+        .agg(pl.col("name").first(), pl.col("coach_id").first(), pl.col("known_at").min())
+        .sort("team_id", "season", "run")
+        .with_columns(
+            pl.col("known_at").shift(-1).over(["team_id", "season"]).alias("next_start"),
+        )
+    )
+    obj = (
+        pl.when(pl.col("coach_id").is_not_null())
+        .then(pl.concat_str(pl.lit("coach:"), pl.col("coach_id").cast(pl.Utf8)))
+        .otherwise(
+            pl.concat_str(
+                pl.lit("coach:n:"),
+                pl.col("name").map_elements(coach_name_key, return_dtype=pl.Utf8),
+            )
+        )
+    )
+    new = runs.select(
         _ent("team", "team_id").alias("subject"),
         pl.lit("head_coach").alias("predicate"),
-        _ent("coach", "coach_id").alias("object"),
+        obj.alias("object"),
         pl.col("season").cast(pl.Float64).alias("value"),
-        pl.lit("team_coaches; known wrong in 14 of 87 team-seasons").alias("value_text"),
-        start.alias("known_at"),
-        start.alias("valid_from"),
-        _season_start(pl.col("season") + 1).alias("valid_to"),
+        pl.lit("team_coach_games; basketball-reference.com").alias("value_text"),
+        pl.col("known_at"),
+        pl.col("known_at").alias("valid_from"),
+        pl.coalesce(pl.col("next_start"), _season_start(pl.col("season") + 1)).alias("valid_to"),
+        pl.col("name"),
+        obj.alias("entity_id"),
     )
-    names = d.select(_ent("coach", "coach_id").alias("entity_id"), pl.col("name")).unique(
-        "entity_id"
-    )
-    return _facts(facts, source="team_coaches", confidence=0.5), names
+    parts = [_facts(new, source="team_coach_games", confidence=0.9)]
+    names = new.select("entity_id", "name")
+    covered = sorted(set(g["season"].to_list()))
+    cond2 = "coach_type = 'Head Coach'"
+    if covered:
+        cond2 += f" AND season NOT IN ({', '.join(str(int(x)) for x in covered)})"
+    d = src.execute(
+        f"SELECT season, team_id, coach_id, name FROM team_coaches WHERE {cond2} AND {cond}",
+        params,
+    ).pl()
+    if d.height:
+        start = _season_start(pl.col("season"))
+        old = d.select(
+            _ent("team", "team_id").alias("subject"),
+            pl.lit("head_coach").alias("predicate"),
+            _ent("coach", "coach_id").alias("object"),
+            pl.col("season").cast(pl.Float64).alias("value"),
+            pl.lit("team_coaches; last-occupant snapshot, no reference for this season").alias(
+                "value_text"
+            ),
+            start.alias("known_at"),
+            start.alias("valid_from"),
+            _season_start(pl.col("season") + 1).alias("valid_to"),
+        )
+        parts.append(_facts(old, source="team_coaches", confidence=0.5))
+        names = pl.concat(
+            [names, d.select(_ent("coach", "coach_id").alias("entity_id"), pl.col("name"))]
+        )
+    return pl.concat(parts), names.unique("entity_id")
 
 
 def minutes_facts(

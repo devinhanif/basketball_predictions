@@ -80,8 +80,17 @@ def test_static_coach_and_minutes_facts(built):
     assert _one(con, "SELECT count(*) FROM facts WHERE subject='player:3'") == [
         (0,)
     ]  # no first_season
-    coach = _one(con, "SELECT object, confidence, valid_to FROM facts WHERE predicate='head_coach'")
-    assert coach == [("coach:500", 0.5, dt.datetime(2023, 10, 1))]
+    coach = _one(
+        con,
+        "SELECT object, confidence, valid_from, known_at, valid_to FROM facts "
+        "WHERE predicate='head_coach' AND subject IN ('team:10', 'team:20') ORDER BY subject",
+    )
+    # known at the real tip of the first game he ran (not 1 October); a coach with no staff id
+    # gets a name-keyed entity
+    assert coach == [
+        ("coach:500", 0.9, TIP1, TIP1, dt.datetime(2023, 10, 1)),
+        ("coach:n:cyother", 0.9, TIP1, TIP1, dt.datetime(2023, 10, 1)),
+    ]
     mins = _one(
         con,
         "SELECT subject, value, value_text, known_at FROM facts "
@@ -147,9 +156,12 @@ def test_as_of_excludes_facts_known_after_t(built):
     assert statuses["subject"].to_list() == ["player:1"]  # player 2's report is 21:45 UTC
     # roster comes only from facts known by t: player 2 is absent entirely, statics included
     assert "player:2" not in set(df["subject"])
-    assert {"player:1", f"game:{G1}", "team:10"} <= set(df["subject"])
+    assert {"player:1", f"game:{G1}"} <= set(df["subject"])  # team:10 has only a coach fact, at tip
     assert set(df.filter(pl.col("predicate") == "away_team")["object"]) == {"team:20"}
-    assert "head_coach" in set(df["predicate"])  # team 10, season 2022 window contains the tip
+    # a stint's first game: the coach is not known before that game's tip
+    assert "head_coach" not in set(df["predicate"])
+    at_tip = as_of(con, G1, TIP1)
+    assert "coach:500" in set(at_tip.filter(pl.col("predicate") == "head_coach")["object"])
 
 
 def test_as_of_is_game_scoped(built):
@@ -331,3 +343,37 @@ def test_explicit_seasons_load_2026_in_full_and_no_2025_fact(tmp_path: Path, sch
     assert _one(
         con, "SELECT count(*) FROM facts WHERE known_at >= '2025-10-01' AND known_at < '2026-10-01'"
     ) == [(0,)]
+
+
+def test_coach_change_after_a_game_never_appears_for_it(tmp_path: Path, schedule_dir: Path):
+    """Planted future: team 10 changes coach at a later game; as-of reads for G1 never see him."""
+    src = make_source()
+    late = dt.datetime(2022, 12, 1, 0, 0)
+    src.execute("INSERT INTO games VALUES ('0022200050','2022-11-30',2022,10,20,1,2,NULL)")
+    src.execute(
+        "INSERT INTO team_coach_games VALUES ('0022200050',10,'New Boss',900,'t',?),"
+        "('0022200050',20,'Cy Other',NULL,'t',?)",
+        [late, late],
+    )
+    out = tmp_path / "f_change.duckdb"
+    build(
+        src,
+        make_lineups(),
+        out,
+        schedule_dir=schedule_dir,
+        odds_aliases=tmp_path / "none.yaml",
+        kalshi_aliases=tmp_path / "none2.yaml",
+    )
+    con = duckdb.connect(str(out), read_only=True)
+    rows = _one(
+        con,
+        "SELECT object, valid_from, valid_to FROM facts WHERE predicate='head_coach' "
+        "AND subject='team:10' ORDER BY known_at",
+    )
+    assert rows == [("coach:500", TIP1, late), ("coach:900", late, dt.datetime(2023, 10, 1))]
+    df = as_of(con, G1, TIP1)
+    assert "coach:900" not in set(df["object"].drop_nulls())
+    assert _one(
+        con, "SELECT count(*) FROM facts WHERE object='coach:900' AND known_at < ?", late
+    ) == [(0,)]
+    con.close()

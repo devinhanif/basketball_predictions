@@ -577,3 +577,17 @@ At 2.5 a planted +2 or +3 possessions per team-game passed the fixture gate. Exp
 What would reverse it: evidence that the feed's Expected starter rows after a Confirmed roster are re-publications of a confirmed five
 (e.g. lineups later matching at a rate indistinguishable from Confirmed fives over >= 50 team-games); for (2), official team possession
 counts that show the 0.44 formula is biased on clean data by more than 1.
+
+## 2026-10-11 DRAFT - F5 coach source: Basketball-Reference team pages, no new dependency; facts switch to team_coach_games
+What: head coach by game comes from Basketball-Reference team pages (`/teams/<ABBR>/<YEAR>.html`, "Coach: A (W-L), B (W-L)" in tenure order), approved
+by Devin 2026-10-11 after he reviewed the 14 `team_coaches` disagreements, for all seasons 2022-2025 (2025 = 2025-26). Fetched with `httpx` (already
+locked) and parsed with the standard library (`nba/data/coaches_br.py`); no package added: `basketball_reference_web_scraper` and
+`basketball-reference-scraper` expose players, schedules and standings, not the per-team-season coach line with W-L. Reference CSV committed at
+`nba/data/head_coach_games_reference.csv` (data/ is gitignored); table `team_coach_games(game_id, team_id, coach_name, coach_id, source, known_at)`
+replaces the earlier 2022-24 draft (hand-copied, 2025 unverified; its CSV is kept as `head_coach_reference_handcopied_2026-10-10.csv` for the agreement
+gate). `nba/facts/build.py` `coach_facts` now reads `team_coach_games` (per stint, known_at = tip of the first game he ran, confidence 0.9) and keeps
+the old 1-Oct `team_coaches` fact only for seasons the new table does not cover (2026 live season).
+Why: `team_coaches` is the last occupant of the job (14 of 87 wrong, 11 next-season hires, no mid-season changes); a stamp of 1 October made future
+facts look known. The first game of a stint is therefore not known before its tip in the facts store (conservative; the real hire date is not sourced).
+What would reverse it: a dated hiring source (press release dates) that makes known_at earlier and verifiable; or BR page layout/terms changes that
+stop the fetch (the cached raw HTML stays the record).

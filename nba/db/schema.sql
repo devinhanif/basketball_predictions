@@ -402,17 +402,16 @@ CREATE TABLE IF NOT EXISTS team_coaches (
     PRIMARY KEY (season, team_id, coach_id)
 );
 
--- Game-level head coach (nba/data/coaches.py). known_at = real tip of the game for verified rows;
--- NULL for unverified fallback rows (seasons without a reviewed reference). team_coaches above is
--- the raw season-level fetch and is wrong in 14 of 87 reference team-seasons.
+-- Game-level head coach (nba/data/coaches.py). Source: Basketball-Reference team pages via the committed
+-- reference CSV (nba/data/head_coach_games_reference.csv). known_at = real tip of the game, per game.
+-- coach_id is the team_coaches id (NULL when the coach has no staff row there). team_coaches above is the
+-- raw season-level fetch and is wrong in 14 of 87 reference team-seasons.
 CREATE TABLE IF NOT EXISTS team_coach_games (
     game_id VARCHAR,
     team_id INT,
-    season INT,
     coach_name VARCHAR,
-    coach_id INT,                         -- NULL when the coach has no team_coaches row
+    coach_id INT,
     source VARCHAR,
-    verified BOOLEAN,
     known_at TIMESTAMP,
     PRIMARY KEY (game_id, team_id)
 );

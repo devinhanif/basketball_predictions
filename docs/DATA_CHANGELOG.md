@@ -280,3 +280,11 @@
   `lineup_snapshots_latest` is now `SELECT *` from it). Gate: duplicate groups 550 raw -> 0; mixed-status team-snapshots 57 -> 0;
   confirmed team-snapshots with 5 starters: all. Raw rows untouched.
 - Details and per-finding before/after: docs/reviews/data_audit_2026-10-11.md section 10.
+
+## 2026-10-11 UTC - F5 team_coach_games from Basketball-Reference, code and tests landed; load pending the fetch (data_version unchanged)
+- DRAFT. No data written by this entry. `nba/data/coaches_br.py` (fetch 120 pages to `data/coaches/raw/`, write-once, 3.5 s apart, resumable; parse;
+  `build-csv`) and `nba/data/coaches.py` (build + `--apply` load with backup and heavy.lock) replace the 2022-24 hand-copied draft. The network fetch was
+  refused by the sandbox in this run, so the reference CSV, the table reload and the manifest snapshot are NOT done; the entry that records the reload
+  (rows, gates, backup path) is appended by the run that does it. Table schema changes to the six columns in `nba/db/schema.sql` (the live table keeps
+  its older eight columns until the reload drops and recreates it).
+- Readers: `nba/facts/build.py` `coach_facts` reads only `game_id, team_id, coach_name, coach_id, known_at`, so it works on both layouts.

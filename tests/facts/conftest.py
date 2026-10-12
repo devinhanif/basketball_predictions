@@ -62,6 +62,15 @@ def make_source() -> duckdb.DuckDBPyConnection:
         "INSERT INTO team_coaches VALUES (2022,10,500,'Ann Coach','Head Coach',1),"
         "(2022,10,501,'Bo Assist','Assistant Coach',2),(2025,10,502,'Late','Head Coach',1)"
     )
+    c.execute(
+        "CREATE TABLE team_coach_games (game_id VARCHAR, team_id INTEGER, coach_name VARCHAR, "
+        "coach_id INTEGER, source VARCHAR, known_at TIMESTAMP)"
+    )
+    c.execute(
+        "INSERT INTO team_coach_games VALUES "
+        f"('{G1}',10,'Ann Coach',500,'t','{TIP1}'),('{G1}',20,'Cy Other',NULL,'t','{TIP1}'),"
+        f"('{G2}',30,'Di Third',NULL,'t','{TIP2}'),('{G2}',40,'Ed Fourth',NULL,'t','{TIP2}')"
+    )
     return c
 
 

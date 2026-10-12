@@ -24,10 +24,14 @@ apart, the source (data/national-tv) must be re-read per game; do not infer from
 `player_rates`, `shots`, `team_context`, `team_game_advanced`, `forward_scores`, `forward_scores_elig`. Left in place on purpose (no drops).
 `forward_predictions` (136 rows) are all preseason ids (001...), which `games` excludes, so they can never be scored.
 
-## team_coaches (F5, open)
-The NBA endpoint returns the staff as recorded after the following offseason: 14 of 87 reference team-seasons name the wrong head coach,
-11 of them the next season's hire. Do not use as a known-at fact. `team_coach_games` (reviewed reference, 2022-24 verified, 2025
-unverified with NULL `known_at`) is the replacement; Devin is reviewing the coaches.
+## team_coaches (F5)
+Raw fetch of the NBA endpoint, kept as is. It returns the staff as recorded after the following offseason: 14 of 87 reference team-seasons name the
+wrong head coach, 11 of them the next season's hire, and a mid-season change is unrepresentable. Do not use it as a known-at fact or for coach-by-game
+work. `team_coach_games(game_id, team_id, coach_name, coach_id, source, known_at)` replaces it: Basketball-Reference team pages (fetched with
+`python -m nba.data.coaches_br`, committed as `nba/data/head_coach_games_reference.csv`), game numbers per team in date order from `games`, a change
+effective on the first game the new coach ran, `known_at` = that game's real tip, play-in and playoffs carry the last regular-season coach. `coach_id`
+is the `team_coaches` id matched on a diacritic-free name and is NULL for a coach with no staff row there. No imputation; a team-season whose coach
+games do not sum to its regular-season games stops the build and is listed.
 
 ## player_availability.game_id
 167 rows NULL after the clean-up (156 rescheduled beyond 7 days, 7 ambiguous, 4 NBA Cup final 006 not kept in `games`). NULL = unlinked, not

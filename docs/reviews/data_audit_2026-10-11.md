@@ -457,10 +457,18 @@ This run wrote nothing to `nba.duckdb`, no parquet, no manifest (data_version un
 | F11 | done | zero-column cache files; puller raises on an empty frame | 30 | 0 (moved to `data/quarantine/players_static_zero_column_20261011/`, README added); `_write_cache` raises, tested | d872dc7 |
 | F12 | done (safe default) | hard gate = points reconciliation (`reconcile_points`, >= 99% of team-games; real 100%); formula MAE is a diagnostic (<= 2.5 flag) | formula MAE 2.0-2.25 vs gate 1, unmet | ADR 0002, BEST_PRACTICES row, tests | e524b36 |
 | F13, F14 | done (notes only) | data cards; no tables dropped | n/a | `docs/DATA_CARDS.md` | b6e1016 |
-| F3, F5, F15 | skipped by instruction | | | | |
+| F5 | code done, data pending the fetch (2026-10-11 follow-up) | see note 4 | draft table: 2022-24 hand-copied reference, 2025 unverified (NULL `known_at`) | pending: 120 BR pages, 6-column table | this commit (code); reload not yet run |
+| F3, F15 | skipped by instruction | | | | |
 
 Notes. (1) The brief's F1 rule was "latest `source_ts`, ties to Confirmed"; applied literally, 57 team-snapshots stayed mixed (a later Expected
 starters-block row beats an earlier Confirmed roster row, preseason game 0012600037 among them), so the gate "the 4 mixed-status decisions
 resolve to confirmed" failed. The view ranks Confirmed over Expected first, then latest `source_ts` (the same winner order as `nba/daily/t30.py`).
 (2) The live `lineups.duckdb` gets the new view at the collector's next write tick (`CREATE OR REPLACE` in `DDL`); until then the helper runs the same
-SELECT inline, so a read-only reader works either way. (3) The replay-oracle golden (030804df...) was re-baselined earlier in the pass; nothing here changes data.
+SELECT inline, so a read-only reader works either way. (3) The replay-oracle golden is `89889f6d` (data_version 418510d401d3; it was `030804df` until the p_play change re-baselined it, 2026-10-11); nothing here changes data.
+4. F5 follow-up (Devin approved Basketball-Reference for 2022-2025 after reviewing the 14 disagreements). Built: `nba/data/coaches_br.py` (polite
+write-once fetch, parse, reference CSV), `nba/data/coaches.py` (per-game table with the six columns, coverage gate that raises and lists, change-date
+report, agreement check against the hand-copied reference, `--apply` load with backup, heavy.lock and pretip-window guard), and `nba/facts/build.py`
+`coach_facts` on the new table (per stint, known_at = first-game tip; old fact kept only for uncovered seasons). Tests: parse, fetch (cache, no
+refetch, bad page not cached, 429 stops), allocation, planted-future (reference and facts), the 14 disagreements re-derived. The sandbox refused the
+network fetch in this run, so the real gates (sums, 2 rows per game, 100% agreement for 2022-24, 2025 changes) are NOT measured yet; the run that does
+the fetch appends them here.
