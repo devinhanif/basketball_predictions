@@ -11,7 +11,10 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
 2. **Was the training data enough for this class?** A short window is a flaw for data-hungry classes (neural), not for Elo.
    If in doubt, run a learning curve on the select seasons before concluding anything.
 3. **Was the test valid?** Real tip gating, played-games handling, leak-free inputs, integer support for counts, power for the
-   effect size, guards sized from a permutation null. An invalid test is not a null (BEST_PRACTICES).
+   effect size, guards sized from a permutation null. Also: guards that cannot pass or fire too often by chance; an inert shuffle
+   (only false passes); a placebo that leaks the future (only false fails); a comparator missing information production had; the data
+   version of lineup and possession inputs at run time. Noisy inputs pull effects toward zero and CAN create a null.
+   An invalid test is not a null (BEST_PRACTICES; validity audit docs/reviews/validity_audit_2026-10-12.md).
 4. **Lineage.** Which earlier constructions is this essentially, which guards disqualified them, carried forward or dropped and why.
 5. **What does it score against?** CRPS of the whole distribution and log loss at a market line are different questions;
    our CRPS gains have not reached the line (T477; line log loss worse than a coin flip before recalibration).
@@ -34,6 +37,7 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
 - Driven by: features and their as-of correctness; residual targets over a strong base (recency average); calibration of the
   scale head and conformal quantiles.
 - Data appetite: moderate. 2-4 seasons usually enough; more helps rare situations (role changes, returners) a little.
+- Note: a 2023 select season trains on about one season, so a 2023-only fail is weak evidence (no tree verdict flipped: every 2023 fail also failed 2024).
 - Typical failure: leakage through missingness patterns (the NULL-pattern leak), duplicated signals (CUSUM vs recent-role),
   and outcome-dependent populations (P(play) R coverage of questionable players).
 - Fair test: integer-support CRPS for counts, game-clustered, with a past-only placebo and shuffle guards sized from a null.
@@ -49,6 +53,7 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
 - Driven by: data volume first (W_ALL vs 2022-start: -0.0120 / -0.0072 pts, adversary SURVIVES), then input timing (real-tip
   report tokens), then seeds and early stopping.
 - Data appetite: high. The history gain is largest early in a season and fades as the current-season pool grows.
+- Validity audit: every SEQ export before SEQ_FULL_MIX_RT used the 19:00 proxy tip; SEQ-alone and ENSEMBLE verdicts (T065-T068, T441-T445) are INVALID on the training window (W_ALL raw gain -0.047 / -0.025 exceeds their recorded harm). Real-tip timing alone is unmeasured (confounded with rerun noise).
 - Typical failure: era identification (the embedding probe disqualified E3, T443; the probe is weak, AUC 0.96-0.998 even between
   adjacent modern seasons), near-DNP rows (T442 guards), proxy timing channels (proxy19).
 - Fair test: walk-forward warm refits by month, 3 seeds, permutation null on the blend, shuffled-input placebo, past-only placebo;
@@ -64,8 +69,13 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
 ## Play-by-play generative models (PBP_GPT)
 - Driven by: event volume and vocabulary consistency across seasons; long-context training; compute.
 - Data appetite: very high. Earlier runs used 2022 plus part of 2023 only (T082-T084); history has the same schema for 2019-21.
-- Typical failure: small evaluation n for pregame questions (n = 150), live questions dominated by score and clock.
+- Typical failure: small evaluation n for pregame questions (n = 150), live questions dominated by score and clock; PBP_GPT was also trained on play-by-play in the wrong event order (validity audit) - rebuild tokens in game order before any retest.
 - Checks: learning curve first; is the target one the market does not already price (live win probability is heavily priced)?
+
+## RAPM and lineup-based ratings
+- Driven by: correct lineups and stints, many possessions; data-hungry (needs multiple seasons or a prior).
+- Validity audit: RAPM (T176) and F12 (T185) ran on pre-2026-10-09 stints that matched box minutes only 47-49% of the time: INVALID.
+- Checks: stint data version at run time; a prior from earlier seasons.
 
 ## MLPs on tabular features (WINPROB mlp_offset, CTXRES_V2 mlp_quantile)
 - Driven by: the same features as trees, with more sensitivity to scaling and less to interactions; usually lose to trees on tabular data.
