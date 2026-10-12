@@ -233,6 +233,15 @@ def _paired_t15_section(con: duckdb.DuckDBPyConnection, props: list[tuple[Any, .
     return lines
 
 
+def _late_scratch_section(con: duckdb.DuckDBPyConnection, lineups_db: Path | None) -> list[str]:
+    try:
+        from nba.daily.late_scratch import late_scratch_section
+
+        return late_scratch_section(con, lineups_db)
+    except Exception as exc:  # the report must never fail on an auxiliary section
+        return ["", f"## Late scratches: unavailable ({exc!r})"]
+
+
 def _checkpoint_section() -> list[str]:
     """Pre-registered immutable checkpoint snapshots (the only decision inputs, prereg rule 10)."""
     try:
@@ -438,6 +447,7 @@ def build_report(
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
     lines += _pplay_shadow_section(con)
     lines += _full_shadow_section(con)
+    lines += _late_scratch_section(con, lineups_db)
     lines += _checkpoint_section()
     lines += _independence_section(con)
     lines += [
