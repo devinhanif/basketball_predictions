@@ -41,3 +41,19 @@ games do not sum to its regular-season games stops the build and is listed.
 Raw, append-only; the feed lists a player twice in one snapshot (starters block + confirmed roster block). Read through
 `nba.lineups.store.dedup_lineup_snapshots(con)` or the view `lineup_snapshots_dedup`: Confirmed over Expected, then latest `source_ts`;
 `announced_starter` is the OR over rows with the team's winning status only (frozen 2026-10-11, DECISIONS ~21:30 CT; one implementation, `dedup_snapshot_rows`, shared by t30 and the view).
+
+## shots and shot_events (post-game; 2022-2025, 2025 = 2025-26 partial until the fetch completes)
+`shots` = nba_api ShotChartDetail, one call per team x season x {RS, PO, PI}, loaded 2026-10-11 (863,158 rows). `shot_events` = `shots` joined to
+play-by-play, key `(game_id, action_number)` (`nba/data/shot_events.py`, rebuilt by `python -m nba.data.shot_events --apply`). Columns: coordinates
+`loc_x, loc_y, shot_distance`, `shot_zone_basic/area/range`, `action_type`, `shot_type`, `made`, `pbp_made`, `made_match`, `shot_player_id`,
+`pbp_player_id`, `player_id` (PBP's when present, else the chart's), `player_match`, `pbp_matched`, `pbp_description`, `known_at`.
+- Join rule: PBP side restricted to `is_field_goal = 1` (Made/Missed Shot). A block is a second PBP row that REUSES the shot's `action_number`
+  (blocker's team and player); the naive join fans out 5.3% of shots (12,323 / 13,490 / 12,895 / 8,750 rows by season) and attributes them to the
+  blocker. That fan-out was the whole "23 of 503 player_id mismatches" of the first check; with the rule, player and made/missed agree on every
+  joined shot (0 mismatches in 863,156).
+- Known-at: POST-GAME. `known_at` = game_date + 1 day 12:00 UTC (after the last finish, before the next slate). A feature for game G may use only
+  rows with `known_at` before G's tip; never G's own shots. There is no game-end timestamp in `games`, so this is a bound, not the true end.
+- Missingness: 2 shots have no PBP row (kept, `pbp_matched = false`, PBP fields NULL; they are the +1 in 2 of the 4 team-games where chart FGA != box FGA).
+  Unfetched team-seasons are absent rows, not zeros: a game may have one team's shots only until the 2025-26 fetch finishes (check both `team_id`s).
+- Reconciliation (chart attempts vs box FGA per team-game): 9,741 compared, 4 differ by exactly 1 (0.04%); mean signed diff 0.0.
+- Imputation: none.

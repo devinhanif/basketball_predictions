@@ -300,3 +300,15 @@
   and is left NULL rather than guessed). 13 mid-season changes found, including interims (Prunty ATL 2022 and MIL 2023,
   Ollie BKN 2023) and 2025-26 (Borrego NOP from game 13, Splitter POR from game 2).
 - Manifest: data_version 418510d401d3 -> f67c63f376bc (`make data-snapshot`, 27 tables).
+
+## 2026-10-12 UTC - shots loaded, shot_events built (data_version f67c63f376bc -> a55164376845)
+- DRAFT. Fetch: `postgame-fetch --source shots` for teams x 2022-2025 x {RS, PO, PI}: 331 of 360 keys cached (all 2022-2024; 2025-26: 21 of 30 teams
+  regular season, playoffs/play-in as available). The remaining 29 keys (9 RS, 10 PO, 10 PI, all 2025-26) hit stats.nba.com ReadTimeouts; the breaker is
+  cooling down and the fetch resumes on rerun (cached keys are never refetched). Log: data/ops/shots_fetch_20261011.log.
+- Load (one write window, heavy.lock, DB file backed up to data/backups/nba_pre_shots_load_20261011.duckdb, empty `shots` backup
+  data/backups/shots_pre_load_20261012T035621Z.parquet): `shots` 0 -> 863,158 rows (2022 232,917; 2023 233,604; 2024 234,973; 2025 161,664 partial);
+  new table `shot_events` 863,158 rows. Bug fixed on the way: `load_frames` deleted shots per game_id, so a second batch erased the other team's rows of a
+  shared game; the delete key is now (game_id, team_id) (tests/data/test_shot_events.py).
+- Gates: joined to PBP 99.9996 / 100 / 100 / 99.9994 % (2022-2025); made/missed agreement 100 % every season; player agreement 100 % of joined; FGA vs box
+  per team-game differs in 4 of 9,741 (by 1). `make data-check`: 0 flags before and after. Per-game coverage of 2025-26: 1,201 of 1,321 games have at least one team.
+- Details: docs/DATA_CARDS.md "shots and shot_events".

@@ -160,7 +160,9 @@ TABLES: dict[str, tuple[str, list[str], list[str]]] = {
         ["game_id", "off_player_id", "def_player_id", "team_id", "def_team_id", *_MATCHUP_COLS],
         ["game_id"],
     ),
-    "shots": ("shots", _SHOT_COLS, ["game_id"]),
+    # both teams' files hold rows of the same game: delete per (game_id, team_id), or a later
+    # batch erases the other team's rows
+    "shots": ("shots", _SHOT_COLS, ["game_id", "team_id"]),
     "coaches": ("team_coaches", _COACH_COLS, ["season", "team_id"]),
 }
 
