@@ -1,6 +1,6 @@
 # RECENT_ROLE: does last-game / recent-role minutes improve P(play) beyond what production's own recency columns already say, and does that reach the props (pre-registration)
 
-Status: **DRAFT (Mon Oct 12 00:36 CDT 2026), written by the modeler. Not frozen.** Devin pre-confirmed ("run, run, run", 2026-10-12 ~00:25 CDT); the main session commits
+Status: **FROZEN (Mon Oct 12 00:37 CDT 2026) by the main session on Devin's "run, run, run" (pre-confirmed after "go, if it works..."), including the Stage 2a restatement (unconditional integer CRPS, since p_play does not enter the conditional props score) and Stage 2b not applying (injury-Elo uses only OUT/doubtful flags).** Earlier: **DRAFT (Mon Oct 12 00:36 CDT 2026), written by the modeler. Not frozen.** Devin pre-confirmed ("run, run, run", 2026-10-12 ~00:25 CDT); the main session commits
 `prereg(RECENT_ROLE): <sha256>` BEFORE any arm is fitted and then runs Stages 1 and 2. Everything above the line `=== RESULTS BELOW ===` is the rule. Freeze evidence:
 commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/RECENT_ROLE.md | shasum -a 256`. Season labels are `games.season` (2023 = 2023-24, 2024 = 2024-25,
 2025 = frozen holdout, never loaded in Stages 1 and 2). No arm other than the control C has been fitted.
