@@ -303,7 +303,7 @@ import copy
 import hashlib
 
 RULE_ID = "SEQ_LEARNING_CURVE_2"
-RULE_SHA = "DRAFT_NOT_FROZEN"  # sha256 of the frozen document's text above the marker
+RULE_SHA = "86f3164917fe66b191b40f39c1ba98617074d3fd1ff209ef06c589c920232f8a"  # sha256 of the frozen document's text above the marker
 RULE_DOC = "SEQ_LEARNING_CURVE_2.md"
 ATTESTATION = "loader_review_attestation.json"
 RESULTS_MARKER = "=== RESULTS BELOW ===\n"
