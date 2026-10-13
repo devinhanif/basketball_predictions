@@ -1,40 +1,56 @@
 {
  "per_season": {
+  "2013": {
+   "played_rows": 27324,
+   "unknown_rows": 290,
+   "unknown_share": 0.01061338017859757,
+   "unknown_ids": 9,
+   "mean_min_unknown": 14.280632019042969,
+   "mean_min_known": 23.460407257080078
+  },
+  "2014": {
+   "played_rows": 27478,
+   "unknown_rows": 217,
+   "unknown_share": 0.007897226872407017,
+   "unknown_ids": 8,
+   "mean_min_unknown": 12.845160484313965,
+   "mean_min_known": 23.156253814697266
+  },
   "2015": {
    "played_rows": 27817,
-   "unknown_rows": 11111,
-   "unknown_share": 0.39943200201315743,
-   "unknown_ids": 241,
-   "mean_min_unknown": 17.945837020874023,
-   "mean_min_known": 26.160289764404297
+   "unknown_rows": 43,
+   "unknown_share": 0.0015458173059639789,
+   "unknown_ids": 1,
+   "mean_min_unknown": 7.9352707862854,
+   "mean_min_known": 22.90230941772461
   },
   "2016": {
    "played_rows": 27709,
-   "unknown_rows": 8496,
-   "unknown_share": 0.3066151791836587,
-   "unknown_ids": 202,
-   "mean_min_unknown": 16.71668243408203,
-   "mean_min_known": 25.526729583740234
+   "unknown_rows": 0,
+   "unknown_share": 0.0,
+   "unknown_ids": 0,
+   "mean_min_unknown": NaN,
+   "mean_min_known": 22.825435638427734
   },
   "2017": {
    "played_rows": 27683,
-   "unknown_rows": 5733,
-   "unknown_share": 0.20709460679839614,
-   "unknown_ids": 188,
-   "mean_min_unknown": 15.629591941833496,
-   "mean_min_known": 24.77474021911621
+   "unknown_rows": 0,
+   "unknown_share": 0.0,
+   "unknown_ids": 0,
+   "mean_min_unknown": NaN,
+   "mean_min_known": 22.880828857421875
   },
   "2018": {
    "played_rows": 27739,
-   "unknown_rows": 2644,
-   "unknown_share": 0.0953170626194167,
-   "unknown_ids": 104,
-   "mean_min_unknown": 14.144074440002441,
-   "mean_min_known": 23.782148361206055
+   "unknown_rows": 0,
+   "unknown_share": 0.0,
+   "unknown_ids": 0,
+   "mean_min_unknown": NaN,
+   "mean_min_known": 22.86347770690918
   }
  },
- "pooled_unknown_share": 0.2522262681616613,
- "pooled_unknown_ids": 380,
- "pooled_unknown_rows": 27984,
- "pooled_rows": 110948
+ "pooled_unknown_share": 0.0033182503770739064,
+ "pooled_unknown_ids": 13,
+ "pooled_unknown_rows": 550,
+ "pooled_rows": 165750
 }

@@ -1,43 +1,48 @@
 # Next session
 
-_Updated 2026-10-13 06:58 CDT (HEAD 30657b9). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
+_Updated 2026-10-13 08:55 CDT (HEAD 7e77efd). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
-## Start here (handoff 2026-10-13 morning)
+## Start here (handoff 2026-10-13 08:55 CDT)
 
-Results since the last handoff (all committed, ledger T479-T486):
-- T479 T478 review SURVIVES (pre-run review skipped then; practice added). T480 line reading: gain reaches the line, small; market better.
-- T481 ERROR_FEEDBACK Stage 1 FAIL on its slice guard (ef_n<3 +0.0107 > +0.01; primary -0.0056 passed): CLOSED, no 2025 touch.
-- T482/T484 PPLAY_MINUTES_VALID: R19 beats production P(play) by -0.085 / -0.092 log loss (2023/2024); attack WOUNDED not broken
-  (gain is current-form info; production handles only OUT players, same as P0; wounds: never-dressed players unscored, live arm is
-  the 2022-start R not R19). Claude: no switch before opening night; PPLAY_INTO_PROPS_LIVE decides. Devin's call.
-- T483 era probe flagged (2019z v 2022 AUC 0.984 vs limit 0.896): W_ALL encodes era beyond tokens; T478 pass stands.
-- T485/T486 SEQ_LEARNING_CURVE RISING (A 8v4 -0.0062, B 8v6 -0.0029); attack WOUNDED: A robust (pooled 6 seeds -0.0068), not
-  survivorship, in the SEQ member; B within seed noise; data vs extra warm-refit steps not separated. Prior P(RISING) 0.12 scored a miss.
+Session 2026-10-13 morning, commits e333157..7e77efd (plus this one). Nothing is running.
+
+Done:
+- History position audit SURVIVES (docs/reviews/history_position_audit_2026-10-13.md). FULL/ROUTER/ENSEMBLE etc. never read history;
+  only W_ALL (T478/T483/T485) had 322/77,195 training rows (0.42%) with no position, no eval exposure. Tree path saw NULL, not 0.
+- Devin's decisions (DECISIONS 07:06-07:15): P(play) switch waits for the live log (PPLAY_INTO_PROPS_LIVE; the live arm is the
+  2022-start R, not R19); T478 AVG to a live shadow; SEQ_LEARNING_CURVE_2 approved for drafting. `sudo pmset -c sleep 0` done
+  (verified: AC sleep 0; battery still sleeps at 1 min and lid close sleeps, so plugged in + lid open on game nights).
+- Holdout log: disclosure row for the audit's 2025 row-count query (counts only).
+- 2013-14 and 2014-15 loaded into the history DB (b8a0db7, data_version 82ce3683ec29; backup
+  data/backups/nba_history_pre_2015_19_ingest_20261013T122611Z.duckdb, tag name is the loader default). Static fetch widened to
+  2013-21 (b2c20d1) and run by Devin 07:43-08:04.
+- BEST_PRACTICES: check a command's scope before handing it to Devin (two wasted Devin runs this morning).
+- AVG_SHADOW_LIVE drafted, BLOCKED, fixed, re-review APPROVED (7e77efd; docs/reviews/AVG_SHADOW_LIVE_prefreeze_2026-10-13.md). Not frozen.
+
+SEQ_LEARNING_CURVE_2 gates (draft docs/prereg/SEQ_LEARNING_CURVE_2.md):
+- D4 position: 0.33% unknown (13 ids, 550/165,750 rows): PASS (needs <= 1%).
+- D3 reconcile (reports/history_2013_2014_boxsample_reconcile.json, 125 games): missing/extra 0 PASS; minutes 99.4% PASS;
+  pts/ftm off by one: 2013-14 1.22% (17/1397) FAIL read strictly, 2014-15 0.64%, pooled 0.95%. The rule does not say per season
+  or pooled; read it per season (do not pick the passing reading after seeing it) and fix that wording before freeze.
+  Every mismatch is derived = official - 1 FT (derived never higher); player 202326 three times; 2015-18 was 0.34%.
+- NEXT (Devin agreed, "in some hours"): archivist repairs the 2013-14 free-throw parse (likely an unmapped FT wording, like the
+  13 shot codes), offline against the cached boxsample (no network, no Devin command), backup + data_version bump, re-reconcile.
+  If 2013-14 still fails: Devin's fallback is 2014-15 only, windows 8 and 9 (E becomes 9 v 8, near-certain FLAT/AMBIGUOUS);
+  record it in DECISIONS as Devin's call. Then: normalizer constants for new seasons, the review-gate fix (exact whole-line
+  Rule: match; deleted/renamed later review counts as BLOCKED), pre-run loader review with Verdict: APPROVED, freeze.
 
 Waiting on Devin:
-1. SEQ_LEARNING_CURVE_2 (the one allowed follow-up): Claude recommends windows 9-10 (2013-14, 2014-15 via Devin's shell download,
-   ~16 MB, then ingest + 218-game reconcile + gate), a step-matched control, 6+ seeds per window, seed-inclusive CIs. Yes/no.
-2. Production P(play) switch: Claude recommends waiting for the live log.
-3. T478 AVG promotion/routing: Claude recommends (A) AVG_SHADOW_LIVE (postseason route to FULL, monthly Colab refit + nightly CPU
-   inference), but only after item 4.
-4. `sudo pmset -c sleep 0` (Mac sleep is 1 min; only caffeinate held it awake).
+1. AVG_SHADOW_LIVE: sign off the rule; approve the drafted holdout-log row (text at the end of the rule: 2025 labels as training
+   rows for the Colab rebuild, 2025 OOF consumed only by the T442 gate fit; no 2025 forecast scored). It must be committed BEFORE
+   the rebuild. After the rebuild, 2025 is in-sample for AVG: the live log is its only clean test. Then freeze; steward builds
+   (4 tables, pretip CPU inference, Colab rebuild with weights saved, monthly refit, scorer, watchdog, 4 parity proofs; oracle
+   89889f6d must not move). Before the rebuild, check the live gate's inputs equal T442's exactly (reviewer's open point).
+2. Keep the week-12 look floor (Claude: keep). 3. Colab unit rate (configs cost.yaml has null rates).
+4. Force-push: e333157 carries a Claude co-author trailer (against the no-attribution rule; pushed). Amend + force-push main, or leave.
 
-Next, in order:
-1. HISTORY POSITION AUDIT (before any promotion): history players_static was EMPTY before 2026-10-12 20:34, so every build through
-   build_features/context_residual before then gave pos_code 0 to 2019-21-only players (survival pattern). Find which completed
-   results read it (candidates: T473 RECENT_ROLE_FULL = FULL in T478, ROUTER_G2, ENSEMBLE, PI_RECENT_ROLE, ROAD_STARS,
-   NEAR_MISS_BUNDLE, INJURY_REASON, minutes_v2 and lower_tail exports) and whether it moves their numbers. R19 (T482) does not use
-   pos_code; the sequence exporter is unaffected (T486).
-2. SEQ_LEARNING_CURVE_2 draft if Devin says yes (modeler; gate on real data; pre-run loader review with Verdict: APPROVED).
-3. Opening-night checklist below (first games 2026-10-20): supervised pretip run, sleep, ingest queue on game days.
-4. SEQ_MINUTES after the PPLAY decision. PBP_HALFTIME last.
-
-Loose ends: the SEQ_LEARNING_CURVE review gate shares the S7/S7b hole the PPLAY gate fixed (deleting/renaming a later BLOCKED review
-reopens an earlier APPROVED one) and a substring Rule: match; its job description says "18 arms" (14 is correct). Fix both now that
-its run is scored (editing reviewed paths voided nothing that is still pending). Loader-gate R1-R3 / R5 (stamp transitive
-dependency hashes). mypy: 10 errors in research/eval/pi_transfer_diag.py (unchanged since 2026-10-12 02:57). rclone shared
-client_id retires during 2026 (own client_id). nba/truth/bootstrap.py does not exist; harness CIs are separate copies.
-Usage: cost mode; weekly reset ~10-13.
+Loose ends (recorded, not chased): AVG non-blocking R3-R5; the 2013-15 changelog entry is marked DRAFT; 13 history ids with no
+position; one 2014-15 game with no derivable starters/stints; mypy 10 errors in research/eval/pi_transfer_diag.py; "18 arms" typo
+in the SEQ_LEARNING_CURVE job description; rclone client_id; nba/truth/bootstrap.py does not exist.
 
 ## Before opening night, in order (first games 2026-10-20)
 
