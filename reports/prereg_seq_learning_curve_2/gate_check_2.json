@@ -1,5 +1,5 @@
 {
- "data_version": "4104818c6695",
+ "data_version": "507d4a01a024",
  "D1": {
   "files": {
    "nbastats_2013.tar.xz": true,
@@ -293,60 +293,39 @@
   "per_season": {
    "2013": {
     "played_rows": 27324,
-    "unknown_rows": 290,
-    "unknown_share": 0.01061338017859757,
-    "unknown_ids": [
-     201576,
-     201946,
-     201964,
-     202091,
-     202399,
-     202970,
-     203106,
-     203502,
-     203810
-    ],
-    "mean_min_unknown": 14.280632019042969,
-    "mean_min_known": 23.460407257080078,
-    "minutes_gap": 9.17977523803711,
-    "share_le_1pct": false,
-    "gap_le_3": false,
-    "pass": false
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 23.362977981567383,
+    "minutes_gap": 0.0,
+    "share_le_1pct": true,
+    "gap_le_3": true,
+    "pass": true
    },
    "2014": {
     "played_rows": 27478,
-    "unknown_rows": 217,
-    "unknown_share": 0.007897226872407017,
-    "unknown_ids": [
-     201595,
-     201946,
-     201964,
-     202399,
-     203106,
-     203565,
-     203805,
-     203968
-    ],
-    "mean_min_unknown": 12.845160484313965,
-    "mean_min_known": 23.156253814697266,
-    "minutes_gap": 10.3110933303833,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 23.0748233795166,
+    "minutes_gap": 0.0,
     "share_le_1pct": true,
-    "gap_le_3": false,
-    "pass": false
+    "gap_le_3": true,
+    "pass": true
    },
    "2015": {
     "played_rows": 27817,
-    "unknown_rows": 43,
-    "unknown_share": 0.0015458173059639789,
-    "unknown_ids": [
-     201946
-    ],
-    "mean_min_unknown": 7.9352707862854,
-    "mean_min_known": 22.90230941772461,
-    "minutes_gap": 14.967039108276367,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 22.879175186157227,
+    "minutes_gap": 0.0,
     "share_le_1pct": true,
-    "gap_le_3": false,
-    "pass": false
+    "gap_le_3": true,
+    "pass": true
    },
    "2016": {
     "played_rows": 27709,
@@ -421,7 +400,7 @@
     "pass": true
    }
   },
-  "pooled_unknown_share": 0.0022638868879787605
+  "pooled_unknown_share": 0.0
  },
  "D6_carried_gates_2015_2024": {
   "2015": true,

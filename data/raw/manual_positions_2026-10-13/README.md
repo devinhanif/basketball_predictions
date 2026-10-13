@@ -1,0 +1,1 @@
+Positions for 13 history players (2013-15) whose stats.nba.com CommonPlayerInfo record has an empty position (nba.com player pages also list none). Source: each player's Wikipedia infobox, retrieved 2026-10-13. Mapping: first-listed position, PG/SG -> Guard, SF/PF -> Forward, C -> Center (pos_code uses the first letter). For SEQ_LEARNING_CURVE_2 gate D4. Write-once.

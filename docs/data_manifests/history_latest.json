@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-13T17:14:18.153385+00:00",
- "data_version": "4104818c6695",
+ "created_at": "2026-10-13T17:57:43.423332+00:00",
+ "data_version": "507d4a01a024",
  "db_path": "/Users/devin/Downloads/nba-prediction/data/history/nba_history.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -3557,7 +3557,7 @@
      "type": "INTEGER"
     },
     "position": {
-     "null_rate": 0.014372,
+     "null_rate": 0.004539,
      "type": "VARCHAR"
     },
     "weight_lb": {
@@ -3571,13 +3571,58 @@
      "2002-12-24"
     ]
    },
-   "fingerprint": "ecaa57b428beb5f6-3a95024d47eb5d1c",
+   "fingerprint": "5b77a5a4b035f2bd-be511c8cdfb97d1f",
    "pk_duplicates": 0,
    "primary_key": [
     "player_id"
    ],
    "row_count": 1322,
    "schema_hash": "d9d6d85c90824824"
+  },
+  "players_static_position_source": {
+   "columns": {
+    "file_sha256": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "loaded_at": {
+     "null_rate": 0.0,
+     "type": "TIMESTAMP"
+    },
+    "player_id": {
+     "null_rate": 0.0,
+     "type": "INTEGER"
+    },
+    "position": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "retrieved_at": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "source_position": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    },
+    "source_url": {
+     "null_rate": 0.0,
+     "type": "VARCHAR"
+    }
+   },
+   "date_range": {
+    "loaded_at": [
+     "2026-10-13 12:57:34.806738",
+     "2026-10-13 12:57:34.806738"
+    ]
+   },
+   "fingerprint": "9c5fcbf80cee7ef2-fd4dd831b1998c8a",
+   "pk_duplicates": 0,
+   "primary_key": [
+    "player_id"
+   ],
+   "row_count": 13,
+   "schema_hash": "566f32190ae50f09"
   },
   "possessions": {
    "columns": {
