@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-12T23:27:20.721568+00:00",
- "data_version": "de7dfbe490c2",
+ "created_at": "2026-10-13T01:35:20.177758+00:00",
+ "data_version": "343603612bb1",
  "db_path": "/Users/devin/Downloads/nba-prediction/data/history/nba_history.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -12,8 +12,8 @@
    "files": 5502
   },
   "boxsample": {
-   "bytes": 2398,
-   "files": 1
+   "bytes": 3495614,
+   "files": 221
   },
   "boxscore": {
    "bytes": 27451680,
@@ -843,13 +843,13 @@
     },
     "national_tv": {
      "label_gap": {
-      "outcome": 0.0
+      "outcome": 0.004008
      },
-     "null_rate": 1.0,
+     "null_rate": 0.877898,
      "null_rate_by_label": {
       "outcome": {
-       "away_win": 1.0,
-       "home_win": 1.0
+       "away_win": 0.880189,
+       "home_win": 0.876181
       }
      },
      "null_rate_by_season": {
@@ -857,9 +857,9 @@
       "2016": 1.0,
       "2017": 1.0,
       "2018": 1.0,
-      "2019": 1.0,
-      "2020": 1.0,
-      "2021": 1.0
+      "2019": 0.690289,
+      "2020": 0.688301,
+      "2021": 0.723356
      },
      "type": "VARCHAR"
     },
@@ -892,7 +892,7 @@
      "2022-06-16"
     ]
    },
-   "fingerprint": "873a37133c42f183-ff712fb163fe2bbb",
+   "fingerprint": "719411cd785650e9-d7f14b1a89581ea7",
    "label_schemes": {
     "outcome": {
      "away_win": 3806,
@@ -3417,62 +3417,62 @@
   "players_static": {
    "columns": {
     "birth_date": {
-     "null_rate": null,
+     "null_rate": 0.0,
      "type": "DATE"
     },
     "college": {
-     "null_rate": null,
+     "null_rate": 0.001359,
      "type": "VARCHAR"
     },
     "college_stats": {
-     "null_rate": null,
+     "null_rate": 1.0,
      "type": "JSON"
     },
     "draft_pick": {
-     "null_rate": null,
+     "null_rate": 0.294837,
      "type": "INTEGER"
     },
     "draft_status": {
-     "null_rate": null,
+     "null_rate": 0.002717,
      "type": "VARCHAR"
     },
     "draft_year": {
-     "null_rate": null,
+     "null_rate": 0.264946,
      "type": "INTEGER"
     },
     "first_season": {
-     "null_rate": null,
+     "null_rate": 0.004076,
      "type": "INTEGER"
     },
     "height_in": {
-     "null_rate": null,
+     "null_rate": 0.001359,
      "type": "FLOAT"
     },
     "player_id": {
-     "null_rate": null,
+     "null_rate": 0.0,
      "type": "INTEGER"
     },
     "position": {
-     "null_rate": null,
+     "null_rate": 0.001359,
      "type": "VARCHAR"
     },
     "weight_lb": {
-     "null_rate": null,
+     "null_rate": 0.001359,
      "type": "FLOAT"
     }
    },
    "date_range": {
     "birth_date": [
-     null,
-     null
+     "1977-01-26",
+     "2002-12-24"
     ]
    },
-   "fingerprint": "empty",
-   "pk_duplicates": null,
+   "fingerprint": "31d79f23387165dc-d04d9a41cf95461e",
+   "pk_duplicates": 0,
    "primary_key": [
     "player_id"
    ],
-   "row_count": 0,
+   "row_count": 736,
    "schema_hash": "d9d6d85c90824824"
   },
   "possessions": {
