@@ -173,4 +173,27 @@ Every row equals the rule text.
 - That the only changes from 4104818c6695 to c90139d87ded are `players_static` and the sidecar. D3's reconcile files predate c90139d87ded and are carried, not re-fetched.
 - Torch and lightgbm import order (the coordinator's report). I did not run tests/research/colab.
 
-Verdict: BLOCKED
+Re-review verdict (superseded by the second re-review below): BLOCKED
+
+## Second re-review 2026-10-13 (commit 64a4dba)
+
+Scope: only the R1 and R2 edits to the rule, checked with `git diff 64a4dba~1 64a4dba -- docs/prereg/SEQ_LEARNING_CURVE_2.md`.
+
+- **R1: FIXED.** The D4 verdict cell on line 57 now opens with `**PASS on history data_version c90139d87ded**`. The FAIL reading follows it, labelled "History:".
+  - No "OPEN" remains anywhere in the rule.
+  - Minor leftover, not blocking: inside that history text, "Options in the audit below; the choice is Devin's and is not taken here" still reads as if the choice were pending. That choice was made (option 2, the fill), as the audit bullet "D4 after the fill" records.
+- **R2: FIXED.** Line 46 now reads "If U(8) or the FULL/A0 grids fail too, VOID (gate) takes precedence."
+  - This matches `gate_verdict` in the eval (lines 156-159), which checks grids or U(8) first and returns VOID.
+  - It also matches line 45 and the kill criteria on line 120.
+  - Every combination of the three reproduction checks now has exactly one outcome in both the text and the code.
+
+No new contradiction found in the lines these edits touch.
+
+Still open, not blocking:
+- R3: T4 and the 10-unit ceiling are not enforced by the job.
+- R4: `export_info.json` is not cross-checked against the export shas.
+- D8: the Colab rate is Devin's, and the freeze also needs D8.
+
+This approves the draft for freezing as far as review goes. It is not the post-freeze loader review that `require_review` requires.
+
+Verdict: APPROVED
