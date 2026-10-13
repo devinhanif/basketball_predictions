@@ -46,9 +46,7 @@ in the SEQ_LEARNING_CURVE job description; rclone client_id; nba/truth/bootstrap
 
 ## Before opening night (first games Tue 2026-10-20)
 
-1. Facts store live-season build (steward): `nba.facts build --seasons` list (2026-27 report/lineup/box facts in, 2025 absent) plus
-   `--schedule-seasons` for 2026-27 `tips_at`; nightly rebuild after the morning settle. Replay oracle `oracle_pplay` golden
-   `89889f6d` before and after; the hash must not move.
+1. DONE: facts store live-season build (fa81e35 on 2026-10-11; holdout guard + 14 tests d32464a on 2026-10-13). NBA_FACTS_NIGHTLY=1 only on the VM.
 2. Reporter feed first poll after Devin's X sign-up (X_BEARER_TOKEN in .env, handles in configs/reporters.yaml; `--budget-posts 50`; shadow only).
 3. `launchctl list | grep local.nba` shows daily-pretip, daily-morning, lineups, kalshi-snapshot; `uv run python -m nba.registry list`
    shows rung0_injury_elo v2 and props_context_residual v2 as production.
