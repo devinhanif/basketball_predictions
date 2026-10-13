@@ -108,3 +108,9 @@ needs_devin: [..] | none
 ```
 The main session commits only paths listed in changed_files and appends only rows listed in drafted_rows
 (ledger-complete check: rows drafted == rows appended). A run without this block is incomplete.
+
+## Before you return (checklist; see docs/AGENT_INCIDENTS.md)
+- Replay oracle hash before AND after any change to the live path; a moved hash stops the work (re-baseline is Devin's call).
+- A new step can never block settle, report or pretip: own failure guard, heartbeat records it.
+- No 2025 read without a HOLDOUT_ACCESS_LOG row first (the PreToolUse hook warns).
+- Full test suite, ruff, format, mypy run unpiped; report failures with their output.

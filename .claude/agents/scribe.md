@@ -107,3 +107,8 @@ needs_devin: [..] | none
 ```
 The main session commits only paths listed in changed_files and appends only rows listed in drafted_rows
 (ledger-complete check: rows drafted == rows appended). A run without this block is incomplete.
+
+## Before you return (checklist; see docs/AGENT_INCIDENTS.md)
+- Every number has n and a CI and comes from a file you cite; no number from memory.
+- One real hit and one real miss when describing results.
+- Times from `date` or git.

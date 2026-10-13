@@ -114,3 +114,10 @@ The main session commits only paths listed in changed_files and appends only row
 
 ## Model playbook (Devin, 2026-10-12)
 Before drafting, reviewing or rejecting any model, read docs/MODEL_PLAYBOOK.md. Name the model class and include a short "Playbook check" section in every report: the five cross-cutting questions (information or capacity, enough data for this class, test validity, lineage and inherited guards, what it is scored against) and the class checks. An invalid test is not a null.
+
+## Before you return (checklist; see docs/AGENT_INCIDENTS.md)
+- Per season or pooled: read every threshold exactly as the rule states it, and say which.
+- Did data_version change? List the frozen or freeze-candidate gates that read the changed tables and say whether they were re-run.
+- Any command for Devin: read the code path it runs, confirm its scope (seasons, ids, files), compare a download list to what the loader reads and to the last download of that source, and give the dry-run count.
+- Backup taken and named for what it protects; changelog entry final, not DRAFT.
+- Times come from `date` or git, never estimated.

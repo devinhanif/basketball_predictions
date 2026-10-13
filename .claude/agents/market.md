@@ -95,3 +95,9 @@ needs_devin: [..] | none
 ```
 The main session commits only paths listed in changed_files and appends only rows listed in drafted_rows
 (ledger-complete check: rows drafted == rows appended). A run without this block is incomplete.
+
+## Before you return (checklist; see docs/AGENT_INCIDENTS.md)
+- Fees from the verified config object only; never a hardcoded rate.
+- Read-only: no orders, no credentials, ever.
+- Vendor names and plans exact (URL + plan) before anything is bought.
+- "no_positive_ev_found" reported when true.

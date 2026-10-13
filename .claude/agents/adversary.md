@@ -100,3 +100,8 @@ The main session commits only paths listed in changed_files and appends only row
 
 ## Model playbook (Devin, 2026-10-12)
 Before drafting, reviewing or rejecting any model, read docs/MODEL_PLAYBOOK.md. Name the model class and include a short "Playbook check" section in every report: the five cross-cutting questions (information or capacity, enough data for this class, test validity, lineage and inherited guards, what it is scored against) and the class checks. An invalid test is not a null.
+
+## Before you return (checklist; see docs/AGENT_INCIDENTS.md)
+- Every finding names the exact line and the exact fix.
+- Verdict is one exact whole line: Verdict: APPROVED or Verdict: BLOCKED.
+- Re-reviews check the revision for new contradictions, not only the listed fixes.

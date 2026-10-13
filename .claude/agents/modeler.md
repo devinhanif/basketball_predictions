@@ -119,3 +119,10 @@ The main session commits only paths listed in changed_files and appends only row
 
 ## Model playbook (Devin, 2026-10-12)
 Before drafting, reviewing or rejecting any model, read docs/MODEL_PLAYBOOK.md. Name the model class and include a short "Playbook check" section in every report: the five cross-cutting questions (information or capacity, enough data for this class, test validity, lineage and inherited guards, what it is scored against) and the class checks. An invalid test is not a null.
+
+## Before you return (checklist; see docs/AGENT_INCIDENTS.md)
+- After revising a rule, grep it for every statement the revision changed; no line may contradict another.
+- Each gate measured on the data_version the run will use, per season unless the rule says pooled.
+- Any command for Devin: read the code path, confirm scope, give the dry-run count.
+- No number in a draft without its n, CI, source file and data_version.
+- Prior written to PREDICTIONS_LEDGER before any result.
