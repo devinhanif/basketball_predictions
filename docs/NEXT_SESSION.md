@@ -26,7 +26,7 @@ Next, in order:
 4. ERROR_FEEDBACK: freeze after a passing rehearsal (Devin already said "freeze"); then Stage 1 select on the Mac (not Colab).
 5. PPLAY_MINUTES_VALID: harness -> loader review -> run (Mac CPU, no 2025). Then SEQ_MINUTES.
 
-Loose ends: loader-gate R1-R3 (review file immutable after commit; refuse runs predating approval; record scorer dependency shas);
+Loose ends: loader-gate R1-R3 (review file immutable after commit; refuse runs predating approval; record scorer dependency shas); the SEQ_LEARNING_CURVE gate likely shares the PPLAY review's S7/S7b hole (git rm or rename of a later BLOCKED review reopens an earlier APPROVED one) and substring Rule: match; fix only after the staged run is scored, since editing reviewed paths voids its approval;
 mypy fails on research/eval/pi_transfer_diag.py (10 errors, file unchanged since 02:57); rclone shared client_id retires in 2026;
 PI history manifest NULL_SHIFT flags from the national_tv fill (intended). Practice to add once the ERROR_FEEDBACK cause is
 confirmed: re-run any pre-freeze gate after a data change it depends on. Two guessed timestamps this session (freeze times),
