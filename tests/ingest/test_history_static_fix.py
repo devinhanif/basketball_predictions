@@ -117,3 +117,33 @@ def test_no_overwrite_of_existing_value(tmp_path: Path) -> None:
         ro.execute("SELECT national_tv FROM games WHERE game_id='0022000001'").fetchone()[0] is None
     )  # type: ignore[index]
     ro.close()
+
+
+def test_wide_range_covers_pre_2019_seasons(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    from nba.ingest.history_static_fix import fetch_missing
+
+    db = tmp_path / "h.duckdb"
+    _db(db)
+    con = connect(db)
+    con.execute("INSERT INTO games (game_id, season) VALUES ('0021300001', 2013)")
+    con.execute("INSERT INTO games (game_id, season) VALUES ('0021500001', 2015)")
+    for gid, pid in (("0021300001", 7), ("0021500001", 8), ("0021500001", 1)):
+        con.execute(
+            "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes) "
+            "VALUES (?, ?, 10, 20.0)",
+            [gid, pid],
+        )
+    con.close()
+    data_dir = tmp_path / "data"
+    _cache(data_dir, 1, date(1990, 1, 2))
+    _cache(data_dir, 8, date(1991, 1, 2))
+    # dry run: counts ids from 2013 on (7 uncached; 2, 3 uncached too), no network, no writes
+    assert fetch_missing(db, data_dir, first_season=2013, dry_run=True) == 0
+    assert "uncached players, seasons 2013-2021: 3 " in capsys.readouterr().out
+    fetch_missing(db, data_dir, first_season=2019, dry_run=True)
+    assert "seasons 2019-2021: 2 " in capsys.readouterr().out  # 2, 3 only
+    ro = duckdb.connect(str(db), read_only=True)
+    p = plan(ro, data_dir, _schedules(tmp_path / "sched"))
+    ro.close()
+    assert sorted(p["uncached_wide"]) == [2, 3, 7]
+    assert sorted(p["static"]["player_id"].to_list()) == [1, 8]  # the 2015 id 8 is loaded

@@ -41,6 +41,9 @@ HEAVY_LOCK = DEFAULT_DATA_DIR / "ops" / "heavy.lock"
 BACKUP_DIR = DEFAULT_DATA_DIR / "backups"
 #: History seasons the P(play) models train on (start year of the season).
 FIRST_SEASON, LAST_SEASON = 2019, 2021
+#: Earliest history season held (2013-14); the fetch and the apply cover FIRST_HELD..LAST_SEASON so
+#: every played row of every history season can carry a position (SEQ_LEARNING_CURVE_2 gate D4).
+FIRST_HELD = 2013
 _NATIONAL_SUFFIX = "broadcasterAbbreviation"
 
 
@@ -133,12 +136,14 @@ def plan(
     con: duckdb.DuckDBPyConnection,
     data_dir: Path = DEFAULT_DATA_DIR,
     schedule_dir: Path = HISTORY_DIR / "schedule",
+    first_season: int = FIRST_HELD,
 ) -> dict[str, Any]:
     tv = national_tv_from_schedules(schedule_dir)
     games = {r[0] for r in con.execute("SELECT game_id FROM games").fetchall()}
     tv_in = tv.filter(pl.col("game_id").is_in(list(games)))
     box_ids = box_player_ids(con)
-    static = cached_static_rows(box_player_ids(con, 2015, LAST_SEASON), data_dir)
+    wide = box_player_ids(con, first_season, LAST_SEASON)
+    static = cached_static_rows(wide, data_dir)
     return {
         "tv": tv_in,
         "tv_schedule_rows": tv.height,
@@ -146,6 +151,8 @@ def plan(
         "static": static,
         "box_ids_2019_21": len(box_ids),
         "uncached_2019_21": uncached_ids(box_ids, data_dir),
+        "box_ids_wide": len(wide),
+        "uncached_wide": uncached_ids(wide, data_dir),
     }
 
 
@@ -230,13 +237,27 @@ def apply_plan(
         w.close()
 
 
-def fetch_missing(db: Path, data_dir: Path = DEFAULT_DATA_DIR, min_interval_s: float = 2.5) -> int:
-    """Pull ``CommonPlayerInfo`` for 2019-21 box players with no cache (network; resumable)."""
+def fetch_missing(
+    db: Path,
+    data_dir: Path = DEFAULT_DATA_DIR,
+    min_interval_s: float = 2.5,
+    first_season: int = FIRST_HELD,
+    dry_run: bool = False,
+) -> int:
+    """Pull ``CommonPlayerInfo`` for box players of ``first_season..2021`` with no cache.
+
+    Network; resumable (the per-player cache is never refetched); an empty response is not cached.
+    ``dry_run`` only prints the id count and the minutes at ``min_interval_s`` per id.
+    """
     ro = duckdb.connect(str(db), read_only=True)
-    ids = uncached_ids(box_player_ids(ro), data_dir)
+    ids = uncached_ids(box_player_ids(ro, first_season, LAST_SEASON), data_dir)
     ro.close()
-    print(f"uncached 2019-21 players: {len(ids)}", flush=True)
-    if not ids:
+    print(
+        f"uncached players, seasons {first_season}-{LAST_SEASON}: {len(ids)} "
+        f"(about {len(ids) * min_interval_s / 60:.0f} min at {min_interval_s} s/id)",
+        flush=True,
+    )
+    if dry_run or not ids:
         return 0
     limiter = RateLimiter(min_interval_s)
     frames: list[pl.DataFrame] = []
@@ -258,13 +279,20 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("cmd", nargs="?", choices=["fetch"], default=None)
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--db", type=Path, default=HISTORY_DB)
+    ap.add_argument(
+        "--first-season",
+        type=int,
+        default=FIRST_HELD,
+        help="first history season (start year) to fetch/load positions for; default 2013",
+    )
+    ap.add_argument("--dry-run", action="store_true", help="with fetch: count ids, no network")
     args = ap.parse_args(argv)
     if args.cmd == "fetch":
-        rc = fetch_missing(args.db)
-        if rc != 0 or not args.apply:
+        rc = fetch_missing(args.db, first_season=args.first_season, dry_run=args.dry_run)
+        if rc != 0 or not args.apply or args.dry_run:
             return rc
     ro = duckdb.connect(str(args.db), read_only=True)
-    p = plan(ro)
+    p = plan(ro, first_season=args.first_season)
     before = coverage(ro)
     ro.close()
     print(
@@ -274,7 +302,12 @@ def main(argv: list[str] | None = None) -> int:
         p["tv_matched_games"],
     )
     print(
-        "static rows from cache", p["static"].height, "uncached 2019-21", len(p["uncached_2019_21"])
+        "static rows from cache",
+        p["static"].height,
+        "uncached (seasons from",
+        args.first_season,
+        ")",
+        len(p["uncached_wide"]),
     )
     print("coverage before", before)
     if not args.apply:
