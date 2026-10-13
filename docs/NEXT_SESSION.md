@@ -78,7 +78,7 @@ in the SEQ_LEARNING_CURVE job description; rclone client_id; nba/truth/bootstrap
 - SEQ_MINUTES after the P(play) decision; PBP_HALFTIME last. Pending Devin: RECENT_ROLE_FULL Stage 2 vs waiting for the live log.
 - When production moves to the VM: NBA_FACTS_NIGHTLY=1.
 - parlayhitters.ai build after 10-20 (designs in docs/BUSINESS_DRAFT_2026-10-11.md, APP_ARCHITECTURE, APP_SECURITY_BASELINE section 12,
-  APP_CONTENT_SPEC); nothing touches nba/, ops/, configs/ before then. Open: what "jev engineering best practices" means (Devin).
+  APP_CONTENT_SPEC); nothing touches nba/, ops/, configs/ before then. "jev engineering" = route LLM calls by difficulty (Jev-style router: cheap tier for easy, flagship for hard; Devin 2026-10-13); applies to the app's per-token calls, not the Claude Code build loop; confirm exact vendor URL/plan before buying; test routed vs unrouted on real app questions.
 
 ## Loose ends (recorded, not chased)
 
