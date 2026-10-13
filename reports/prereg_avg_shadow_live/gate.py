@@ -74,7 +74,7 @@ def main() -> None:
         gid = x["game_id"].to_numpy()
         b = boot(dd, gid)
         a = boot(da, gid)
-        # n for a one-sided 95% bound (bootstrap se + fit noise in quadrature) of half-width <= target
+        # n for a one-sided 95% bound (boot se + fit noise), half-width <= target
         target = FLOOR if s == "pts" else TARGET_COUNT
         room = (target / Z1) ** 2 - SIGMA_F**2
         n_min = (b["sd_row"] * math.sqrt(b["deff_game"]) / math.sqrt(room)) ** 2
