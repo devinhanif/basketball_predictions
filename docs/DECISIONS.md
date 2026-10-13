@@ -1052,3 +1052,11 @@ Why: the frozen rule. What would reverse it: the attack breaking it.
 **2026-10-13 06:55 CDT — T485 RISING is WOUNDED (T486); the follow-up must separate data from steps.**
 What: the 4-to-8-season gain (A) is robust and comes from the sequence model, not survivorship or the FULL mixture; whether it is still rising at 8 (B) is within seed noise, and part of A may be extra warm-refit steps. Claude recommends the one allowed follow-up (SEQ_LEARNING_CURVE_2) include a step-matched control (fixed warm-step budget across windows), 6+ seeds per window with seed-inclusive CIs, windows 9-10 after the 2013-15 ingest with its data gate, and that any change to the production window waits for a separate 2024-25 replication rule. No production change.
 Why: T486. What would reverse it: Devin declining the follow-up (then the curve closes at RISING-but-wounded and W_ALL stays).
+
+**2026-10-13 07:06 CDT — P(play) switch waits for the live log (Devin; follows Claude's advice).**
+What: production P(play) stays as is through opening night; R19 keeps running as the pretip shadow and PPLAY_INTO_PROPS_LIVE decides.
+Why: T482/T484 WOUNDED (never-dressed players unscored; the live arm is the 2022-start R, not R19), and the shadow costs nothing to keep. What would reverse it: the live log passing PPLAY_INTO_PROPS_LIVE, or the parity warning showing R worse than production.
+
+**2026-10-13 07:06 CDT — T478 AVG goes to a live shadow soon (Devin; follows Claude's advice).**
+What: draft AVG_SHADOW_LIVE (postseason routes to FULL, monthly Colab refit plus nightly CPU inference, promotion read from the live log only). The history position audit (docs/reviews/history_position_audit_2026-10-13.md, SURVIVES) cleared it: FULL never read history; the W_ALL exposure is 322/77,195 training rows with no eval exposure. The wiring waits on Mac sleep being disabled (`sudo pmset -c sleep 0`), so nightly inference cannot be missed.
+Why: T478 pass, T483 probe flagged but the pass stands, audit clean. What would reverse it: the shadow rule failing its own data gate, or the replay oracle moving when the arm is added.
