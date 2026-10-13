@@ -181,6 +181,37 @@ def heavy_lock(lock: Path = HEAVY_LOCK, retry_s: float = 120.0) -> Iterator[None
         shutil.rmtree(lock, ignore_errors=True)
 
 
+def load_players_static_keep(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -> int:
+    """Upsert like ``load_players_static`` but never blank a held value.
+
+    ``load_players_static`` is delete+insert, so a cache row with an empty position replaced a
+    position loaded from another source (2026-10-13: a waiting apply blanked 13 hand-sourced
+    positions). Here every column keeps its old value when the new one is NULL/empty, and an id
+    listed in ``players_static_position_source`` keeps its sourced position.
+    """
+    cols = [r[0] for r in con.execute("DESCRIBE players_static").fetchall()]
+    con.execute("CREATE OR REPLACE TEMP TABLE ps_old AS SELECT * FROM players_static")
+    n = load_players_static(con, df) if df.height else 0
+    has_side = con.execute(
+        "SELECT count(*) FROM information_schema.tables WHERE table_name = 'players_static_position_source'"
+    ).fetchone()[0]  # type: ignore[index]
+    for c in cols:
+        if c == "player_id":
+            continue
+        empty = f"(p.{c} IS NULL OR trim(CAST(p.{c} AS VARCHAR)) = '')"
+        cond = (
+            f"{empty} OR p.player_id IN (SELECT player_id FROM players_static_position_source)"
+            if (c == "position" and has_side)
+            else empty
+        )
+        con.execute(
+            f"UPDATE players_static p SET {c} = o.{c} FROM ps_old o WHERE p.player_id = o.player_id "
+            f"AND ({cond}) AND o.{c} IS NOT NULL AND trim(CAST(o.{c} AS VARCHAR)) <> ''"
+        )
+    con.execute("DROP TABLE ps_old")
+    return n
+
+
 def apply_plan(
     db: Path, p: dict[str, Any], *, backup_dir: Path = BACKUP_DIR, stamp: str | None = None
 ) -> dict[str, Any]:
@@ -212,7 +243,7 @@ def apply_plan(
             "WHERE g.national_tv IS DISTINCT FROM t.national_tv"
         ).fetchone()[0]  # type: ignore[index]
         w.unregister("tv_new")
-        loaded = load_players_static(w, p["static"]) if p["static"].height else 0
+        loaded = load_players_static_keep(w, p["static"]) if p["static"].height else 0
         n_games2 = w.execute("SELECT count(*) FROM games").fetchone()[0]  # type: ignore[index]
         n_box2 = w.execute("SELECT count(*) FROM player_game_stats").fetchone()[0]  # type: ignore[index]
         post_tv = w.execute("SELECT count(*) FROM games WHERE national_tv IS NOT NULL").fetchone()[

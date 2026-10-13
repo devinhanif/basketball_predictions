@@ -99,7 +99,7 @@ def apply_positions(
             "WHERE players_static.player_id = n.player_id "
             "AND (players_static.position IS NULL OR trim(players_static.position) = '')"
         )
-        w.execute(f"INSERT INTO {SIDECAR} SELECT * FROM pos_new")
+        w.execute(f"INSERT OR REPLACE INTO {SIDECAR} SELECT * FROM pos_new")
         w.unregister("pos_new")
         post = dict(w.execute("SELECT player_id, position FROM players_static").fetchall())
         rows_after = w.execute("SELECT count(*) FROM players_static").fetchone()[0]  # type: ignore[index]

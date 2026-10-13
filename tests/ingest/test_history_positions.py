@@ -56,3 +56,41 @@ def test_unquoted_comma_in_url(tmp_path: Path) -> None:
     df = read_positions(csv)
     assert df["source_url"][0] == "https://x/Tony_(basketball,_born_1992)"
     assert df["retrieved_at"][0] == "2026-10-13"
+
+
+def test_static_apply_after_manual_load_keeps_positions(tmp_path: Path) -> None:
+    """Manual load, then a cache apply with an empty position: positions must survive."""
+    import polars as pl
+
+    from nba.ingest.history_static_fix import load_players_static_keep
+    from nba.ingest.players_static import load_players_static
+
+    db, csv = _setup(tmp_path)
+    apply_positions(db, csv, expect_sha=file_sha256(csv)[:8], backup_dir=tmp_path / "bk")
+    c = duckdb.connect(str(db))
+    c.execute("ALTER TABLE players_static ADD COLUMN height_in FLOAT")
+    c.execute("UPDATE players_static SET height_in = 80 WHERE player_id = 1")
+    cache = pl.DataFrame(
+        {"player_id": [1, 2], "position": [None, ""], "height_in": [None, 78.0]},
+        schema={"player_id": pl.Int64, "position": pl.Utf8, "height_in": pl.Float64},
+    )
+    cols = ["player_id", "position", "height_in"]
+    import nba.ingest.players_static as ps
+
+    old = ps._SCHEMA
+    ps._SCHEMA = cols
+    try:
+        load_players_static_keep(c, cache)
+        got = dict(c.execute("SELECT player_id, position FROM players_static").fetchall())
+        assert got[1] == "Center" and got[2] == "Forward"
+        assert (
+            c.execute("SELECT height_in FROM players_static WHERE player_id=1").fetchone()[0] == 80
+        )
+        # the old code path blanks them
+        load_players_static(c, cache)
+        assert (
+            dict(c.execute("SELECT player_id, position FROM players_static").fetchall())[1] is None
+        )
+    finally:
+        ps._SCHEMA = old
+        c.close()

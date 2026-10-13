@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-13T17:57:43.423332+00:00",
- "data_version": "507d4a01a024",
+ "created_at": "2026-10-13T18:16:33.916785+00:00",
+ "data_version": "c90139d87ded",
  "db_path": "/Users/devin/Downloads/nba-prediction/data/history/nba_history.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -3612,11 +3612,11 @@
    },
    "date_range": {
     "loaded_at": [
-     "2026-10-13 12:57:34.806738",
-     "2026-10-13 12:57:34.806738"
+     "2026-10-13 13:16:30.012838",
+     "2026-10-13 13:16:30.012838"
     ]
    },
-   "fingerprint": "9c5fcbf80cee7ef2-fd4dd831b1998c8a",
+   "fingerprint": "6364731c9faeb7ff-037662e6485bc19b",
    "pk_duplicates": 0,
    "primary_key": [
     "player_id"
