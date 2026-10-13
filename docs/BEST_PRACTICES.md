@@ -162,3 +162,10 @@ support mismatch, a training window too short for the model class) is relabelled
 It stays open until a valid retest. For data-hungry models, "data starvation" is tested directly with a learning curve on the select
 seasons (train on 1, 2, 3, ... seasons; a curve still rising at the largest window means the earlier loss may be starvation) before any
 holdout is spent.
+
+## A required pre-run review is a hard stop, not a citation (2026-10-12)
+Incident: SEQ_FULL_MIX_RT's frozen Stage-2 step (3) required an adversary loader review after the freeze and before the Colab run; none was
+done, the holdout row cited an older review, and a post-freeze notebook change (716da5e) went unreviewed (T479). The verdict survived only
+because the post-result review found no defect. Rule: a scorer that touches a holdout refuses to run unless the review file the rule names is
+committed after the freeze commit. A label shuffle is not a valid guard for a mixture contrast (a 50/50 mix wins on shuffled labels by spread
+alone); use the run's permutation null and member-swap controls instead.
