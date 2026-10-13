@@ -16,6 +16,7 @@ from typing import Any
 import duckdb
 import polars as pl
 
+from nba.daily import stamps
 from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
 from nba.daily.injury import ProbeFn, PullFn, out_players, pull_latest_report
 from nba.daily.predict import (
@@ -108,6 +109,10 @@ class RunSummary:
     git_head: str = "unknown"
     git_dirty: bool | None = None
     git_n_dirty: int = 0
+    #: model stamp write (nba.daily.stamps): "ok: N rows" | "failed: ..." | "skipped"
+    stamp_status: str = "skipped"
+    #: fit facts the run hands to the stamp writer (Elo ratings, props fit info); never persisted
+    stamp_inputs: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
 
 def run_daily(
@@ -227,6 +232,7 @@ def run_daily(
             summary.n_refused_after_tipoff += len(upcoming)
             raise
         summary.n_predicted_games = len(upcoming)
+        _stamp_models(con, run_date, made_at, summary, preds, model_cache)
 
     summary.settle = settle_pending(con, made_at)
     shared: dict[str, Any] = {}  # the wide-roster production frame, computed once for both shadows
@@ -244,6 +250,30 @@ def run_daily(
             official, elo_config, model_cache, shared,
         )  # fmt: skip
     return summary
+
+
+def _stamp_models(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    made_at: datetime,
+    summary: RunSummary,
+    preds: list[ForwardPrediction],
+    model_cache: Path | None,
+) -> None:
+    """Write one ``forward_model_stamps`` row per model of this run (own table, own try/except).
+    A failure is recorded in ``summary.stamp_status`` and ``shadow_errors`` (an ALERTS line); it can
+    never change, delay or fail a prediction row, which are already written."""
+    try:
+        found = stamps.collect_stamps(con, run_date, preds, summary, model_cache)
+        summary.stamp_status = stamps.write_stamps(
+            con, summary.run_id, made_at, found,
+            git_sha=summary.git_head, git_dirty=summary.git_dirty,
+            data_version=stamps.current_data_version(), stamped_at=utcnow(),
+        )  # fmt: skip
+    except Exception as exc:
+        summary.stamp_status = f"failed: {type(exc).__name__}: {exc}"[:200]
+    if summary.stamp_status.startswith("failed"):
+        summary.shadow_errors.append(f"model stamps: {summary.stamp_status}"[:200])
 
 
 #: Production thresholds off: every rostered not-OUT player gets a row (the shadow's coverage).
@@ -495,6 +525,9 @@ def _build_predictions(
     elo_model = resolve_production(registry, ELO_MODEL_NAME)
     summary.model_status[ELO_MODEL_NAME] = f"{elo_model.version} ({elo_model.status})"
     elo, n_train = fit_mov_elo(con, run_date, season_i, params)
+    summary.stamp_inputs["elo"] = {
+        "ratings": dict(elo.ratings_), "params": dict(params), "n_train": n_train,
+    }  # fmt: skip
     probs = predict_win_probs(elo, [(g.home_team, g.away_team) for g in upcoming])
     inj_model = resolve_production(registry, INJURY_ELO_MODEL_NAME)
     inj = _injury_frame(con, run_date, season_i, upcoming, made_at, params, inj_model, summary)
@@ -752,6 +785,9 @@ def _context_props(
         int_variant=log_int_variant, lower_tail_variant=log_lower_tail_variant,
     )  # fmt: skip
     info = res.info
+    summary.stamp_inputs["props_info"] = {
+        "train_through": info.get("train_through"), "n_train_rows": info.get("n_train_rows"),
+    }  # fmt: skip
     n_rep = len(report_out)
     common = {"n_games_with_report": n_rep, "n_slate_games": len(upcoming)}
     primary = _frame_preds(

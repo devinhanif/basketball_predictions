@@ -572,3 +572,29 @@ with the cutoff at tip minus 15 min: arm `props_context_residual_t15`, version `
   looks L60/L120/END; `t15_share` from `forward_t15_decisions`; descriptive `t15_vs_t30` head-to-head. The 9-key
   T-30 family is untouched. `report`: a descriptive T-15 section; lineup analysis prints the before-T-15 share.
 * Not implemented (not in the code-change list): the `live_book_odds` t15 market comparator.
+
+## Model stamps (2026-10-13)
+
+Every `run_daily` that writes prediction rows also writes one row per model name of that run to the NEW
+table `forward_model_stamps` (`nba/daily/stamps.py`), right after `append_predictions_ex`. Join to
+`forward_predictions` on `run_id` + `model_name`. The table has no `game_id`, is created lazily by the
+stamp writer, and is read by neither the scorers nor `canonical_dump`, so the replay oracle cannot see it.
+
+`forward_model_stamps(run_id, model_name, version, made_at, weights_sha256, weights_scope, data_version,
+fit_through DATE, n_train, git_sha, git_dirty, stamped_at)`.
+
+- `weights_sha256`: sha256 of a canonical serialization of the fitted state (sorted keys, arrays as dtype +
+  shape + bytes, LightGBM boosters as their text dump; never pickle bytes). MOV-Elo: ratings after fit +
+  params. Injury-Elo: ridge coefficients, train counts and Elo params (its Elo ratings are refit inside
+  `predict_games` and are not exposed, stated in `weights_scope`). Context props (and the `_int` / `_lt`
+  arms, which share the models): the per-stat model dict read back from `models.pkl` in the cache dir
+  (heads, conformal arrays, lower-tail state, config). Recency and the rolling baseline have no fitted
+  weights: the digest covers name + version and the scope says so. If the context model did not fit
+  (recency fallback) the digest is the literal `unavailable`.
+- `data_version`: `nba.datamanifest.manifest.latest_data_version()` at stamp time (the newest manifest the
+  nightly manifest job wrote, not a recompute). `git_sha` / `git_dirty`: as in Run metadata.
+- Never blocks the run: collection and insert sit in their own try/except; `RunSummary.stamp_status` is
+  printed (`model stamps: ok: N rows`) and a failure also adds a `shadow_errors` line (ALERTS.md).
+- Not stamped: the P(play) and FULL shadow models (their own tables and fits).
+- Rows deduplicated by write-on-change still get a stamp for their run: the stamp says which fit that run
+  used, `forward_predictions` keeps the first run that wrote the row.

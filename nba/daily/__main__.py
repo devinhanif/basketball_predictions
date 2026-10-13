@@ -166,6 +166,7 @@ def _print_summary(s: RunSummary) -> None:
     )
     dirty = "unknown" if s.git_dirty is None else str(s.git_dirty).lower()
     print(f"code: git={s.git_head[:12]} dirty={dirty} (tracked files modified: {s.git_n_dirty})")
+    print(f"model stamps: {s.stamp_status}")
     if s.n_slate == 0 and s.n_preseason_skipped:
         print(f"no regular-season games: {s.n_preseason_skipped} preseason skipped")
     print(f"models: {s.model_status}\ningest: {s.ingest}\nsettle: {s.settle}")
