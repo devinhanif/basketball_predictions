@@ -23,7 +23,8 @@ Next, in order:
    learned minutes gate (T440, T465-T466 closed), monthly Colab refit + nightly CPU inference; freeze before 2026-10-20.
 3. Pull and score the learning curve (`research.colab pull seq_learning_curve 20261012_212816`, then
    `research.eval.seq_learning_curve_eval run --run <dir>`); the gate refuses without the approved fix-check.
-4. ERROR_FEEDBACK: freeze after a passing rehearsal (Devin already said "freeze"); then Stage 1 select on the Mac (not Colab).
+4. ERROR_FEEDBACK: FROZEN 443d6ef5 (05b2f36) after the rebuilt gate passed; Stage 1 select queued detached behind PPLAY (log data/ops/logs/error_feedback_select_*). Read it; Stage 2 only on Devin's words, logged first.
+4b. AUDIT (priority before any promotion): history pos_code was 0 for 2019-21-only players in every build before 21:33 (history players_static was empty). Check which completed results read it (DECISIONS 23:0x entry lists candidates incl. T473 FULL and T478) and whether it moves their numbers.
 5. PPLAY_MINUTES_VALID: harness ce6afc2 + fixes 2eb3360, fix-check APPROVED; run STARTED 22:58 CDT detached (waits for heavy.lock, 3-4.5 h), log data/ops/logs/pplay_minutes_valid_run_20261012T2258.log; results reports/prereg_pplay_minutes_valid.md. Read it, ledger row; then SEQ_MINUTES.
 
 Loose ends: loader-gate R1-R3 (review file immutable after commit; refuse runs predating approval; record scorer dependency shas); the SEQ_LEARNING_CURVE gate likely shares the PPLAY review's S7/S7b hole (git rm or rename of a later BLOCKED review reopens an earlier APPROVED one) and substring Rule: match; fix only after the staged run is scored, since editing reviewed paths voids its approval;

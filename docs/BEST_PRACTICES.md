@@ -169,3 +169,10 @@ done, the holdout row cited an older review, and a post-freeze notebook change (
 because the post-result review found no defect. Rule: a scorer that touches a holdout refuses to run unless the review file the rule names is
 committed after the freeze commit, says `Verdict: APPROVED`, and names the reviewed commit and export manifest that match what will run (a gate that checks only that a file exists opens on a BLOCKED review; found by the SEQ_LEARNING_CURVE loader review, 2026-10-12). A label shuffle is not a valid guard for a mixture contrast (a 50/50 mix wins on shuffled labels by spread
 alone); use the run's permutation null and member-swap controls instead.
+
+## A data change re-opens every gate built on it (2026-10-12)
+Incident: the history players_static fill (for PPLAY_MINUTES_VALID) ran while ERROR_FEEDBACK's base, null and gate sat built on the old
+store; its blind rehearsal caught the drift (regenerated base != stored) because pos_code had been 0 for every 2019-21-only player. Rule:
+before changing a shared table, list the frozen or freeze-candidate rules whose gates read it; after the change, re-run their gates and
+rehearsals before any freeze or run. Hash-bound identity checks (frame sha, regenerated-equals-stored) are what make drift visible; keep them.
+An empty side table is a NULL pattern too: a feature that silently becomes 0 for a subset is the same survival leak as a NULL.
