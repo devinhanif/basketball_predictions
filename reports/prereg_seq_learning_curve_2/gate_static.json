@@ -1,0 +1,40 @@
+{
+ "per_season": {
+  "2015": {
+   "played_rows": 27817,
+   "unknown_rows": 11111,
+   "unknown_share": 0.39943200201315743,
+   "unknown_ids": 241,
+   "mean_min_unknown": 17.945837020874023,
+   "mean_min_known": 26.160289764404297
+  },
+  "2016": {
+   "played_rows": 27709,
+   "unknown_rows": 8496,
+   "unknown_share": 0.3066151791836587,
+   "unknown_ids": 202,
+   "mean_min_unknown": 16.71668243408203,
+   "mean_min_known": 25.526729583740234
+  },
+  "2017": {
+   "played_rows": 27683,
+   "unknown_rows": 5733,
+   "unknown_share": 0.20709460679839614,
+   "unknown_ids": 188,
+   "mean_min_unknown": 15.629591941833496,
+   "mean_min_known": 24.77474021911621
+  },
+  "2018": {
+   "played_rows": 27739,
+   "unknown_rows": 2644,
+   "unknown_share": 0.0953170626194167,
+   "unknown_ids": 104,
+   "mean_min_unknown": 14.144074440002441,
+   "mean_min_known": 23.782148361206055
+  }
+ },
+ "pooled_unknown_share": 0.2522262681616613,
+ "pooled_unknown_ids": 380,
+ "pooled_unknown_rows": 27984,
+ "pooled_rows": 110948
+}
