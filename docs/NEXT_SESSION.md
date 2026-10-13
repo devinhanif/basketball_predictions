@@ -1,28 +1,37 @@
 # Next session
 
-_Updated 2026-10-12 19:02 CDT (HEAD 332827f). Status overview: PROJECT_STATUS.md._
+_Updated 2026-10-12 21:49 CDT (HEAD 8e15012). Status overview: PROJECT_STATUS.md._
 
-## Start here (handoff 2026-10-12)
+## Start here (handoff 2026-10-12, late session)
 
-Done this session: history 2015-16 .. 2018-19 loaded from shufinskiy/nba_data play-by-play (history DB only; 5,249 games),
-overlap check passed at event level, independent 218-game stats.nba.com sample reconciles (12/14 stats exact; pts/ftm
-0.65% off in 2015-17; minutes >= 97.8% within 1 min). P(play)/minutes stay on 2019-20 on (DECISIONS: option A); 2015-18
-is played rows only, flags `box_derived`, `no_injury_report`. Facts-store item 1 below is already done (`--seasons` and the
-nightly step exist).
+Done: T478 post-result review SURVIVES (T479; skipped pre-run review recorded); line reading (T480: gain reaches the line, small;
+market still better); SEQ_LEARNING_CURVE frozen (ad0408a7), built, loader review + fix-check APPROVED (acc4e61), staged on Colab
+(run 20261012_212816); T478 era probe plan committed and staged (run 20261012_200752); PPLAY_MINUTES_VALID backfill done (birth
+dates 99.99/100/100%, national_tv 2019-21) and rule FROZEN (91d82de7, 8e15012); ERROR_FEEDBACK gate G1-G6 passed at 20:34 but its
+blind rehearsal FAILED at 21:40 (regenerated 2024 base != stored), most likely because the history fill changed base inputs after
+the base was built. Opening-night checks: 5 launchd jobs loaded, registry shows both production v2; Mac sleep = 1 min (only
+caffeinate holds it): Devin to set game-day sleep off.
+
+In flight at handoff: (a) modeler diagnosing/rebuilding ERROR_FEEDBACK base, null, gate, rehearsal on current data (not frozen;
+freeze only after a passing rehearsal); (b) modeler building the PPLAY_MINUTES_VALID harness (then adversary loader review with
+Verdict: APPROVED naming the harness commit, then the Mac run). Devin running on Colab: era probe, then the learning curve.
 
 Next, in order:
-1. **SEQ_LEARNING_CURVE draft (modeler).** Windows 1..10 seasons scored on 2023-24; era flags for rule changes; stats
-   normalized to the season league rate; "still rising" criterion written before any run; data gate checked on the real
-   tables (non-negotiable 8). Verify first: 2023-24 player participation policy / 65-game rule dates, 2016-17 and 2017-18
-   rule changes (only 2018-19 14 s reset and 2021-22 non-basketball moves are verified).
-2. **T478 post-result commitments:** adversary post-result review, ENSEMBLE era probe (descriptive), line-level reading.
-3. Opening-night checks below (launchctl, registry, supervised pretip run, sleep settings).
-4. Then SEQ_MINUTES (2019-20 on), the redos (PPLAY_MINUTES_VALID waits on Devin: backfill/floors/no-2025), PBP_HALFTIME last.
+1. Pull and read the era probe (`uv run python -m research.colab pull t478_era_probe 20261012_200752`, then
+   `uv run python -m research.eval.t478_era_probe --states <run dir>/states_WALL_E2.npz --out reports/t478_era_probe`); ledger row.
+2. Then Devin's promotion/routing choice. Claude recommends (A): AVG_SHADOW_LIVE forward rule, hard postseason route to FULL, no
+   learned minutes gate (T440, T465-T466 closed), monthly Colab refit + nightly CPU inference; freeze before 2026-10-20.
+3. Pull and score the learning curve (`research.colab pull seq_learning_curve 20261012_212816`, then
+   `research.eval.seq_learning_curve_eval run --run <dir>`); the gate refuses without the approved fix-check.
+4. ERROR_FEEDBACK: freeze after a passing rehearsal (Devin already said "freeze"); then Stage 1 select on the Mac (not Colab).
+5. PPLAY_MINUTES_VALID: harness -> loader review -> run (Mac CPU, no 2025). Then SEQ_MINUTES.
 
-Waiting on Devin: ERROR_FEEDBACK uncommitted changes (whose? commit?), PPLAY_MINUTES_VALID backfill/floors/no-2025,
-LINE_CALIBRATION rev 2 freeze, X sign-up for the reporter poll, the 2 unallowlisted NULL_SHIFT flags on the history
-manifest (both structural, from the new seasons). Shot rows != FGA before 2017-18: never use shot counts as FGA there.
-Usage: weekly 72% on 2026-10-12, resets ~10-13; stay in cost mode.
+Loose ends: loader-gate R1-R3 (review file immutable after commit; refuse runs predating approval; record scorer dependency shas);
+mypy fails on research/eval/pi_transfer_diag.py (10 errors, file unchanged since 02:57); rclone shared client_id retires in 2026;
+PI history manifest NULL_SHIFT flags from the national_tv fill (intended). Practice to add once the ERROR_FEEDBACK cause is
+confirmed: re-run any pre-freeze gate after a data change it depends on. Two guessed timestamps this session (freeze times),
+both corrected by re-freezing before any result; take every time from `date`.
+Usage: cost mode; weekly 72% on 2026-10-12, resets ~10-13.
 
 ## Before opening night, in order (first games 2026-10-20)
 
