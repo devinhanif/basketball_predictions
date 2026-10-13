@@ -225,3 +225,28 @@ event_msg_type,event_msg_action_type,sub_type,n_overlap_rows,basis
 18,4,Coach Challenge Support Ruling,396,overlap_2019_21
 18,5,Coach Challenge Overturn Ruling,637,overlap_2019_21
 18,6,Coach Challenge Ruling Stands,357,overlap_2019_21
+1,4,Tip Shot,0,description_2013_14
+1,8,Slam Dunk,0,description_2013_14
+1,53,Tip Shot,0,description_2013_14
+1,54,Running Tip Shot,0,description_2013_14
+1,65,Jump Hook Shot,0,description_2013_14
+1,84,Running Bank Shot,0,description_2013_14
+1,88,Driving Slam Dunk,0,description_2013_14
+1,89,Reverse Slam Dunk,0,description_2013_14
+1,90,Running Slam Dunk,0,description_2013_14
+1,91,Putback Reverse Dunk,0,description_2013_14
+1,92,Putback Slam Dunk,0,description_2013_14
+1,94,Jump Bank Hook Shot,0,description_2013_14
+1,95,Running Bank Hook Shot,0,description_2013_14
+2,4,Tip Shot,0,description_2013_14
+2,8,Slam Dunk,0,description_2013_14
+2,53,Tip Shot,0,description_2013_14
+2,54,Running Tip Shot,0,description_2013_14
+2,65,Jump Hook Shot,0,description_2013_14
+2,84,Running Bank Shot,0,description_2013_14
+2,88,Driving Slam Dunk,0,description_2013_14
+2,89,Reverse Slam Dunk,0,description_2013_14
+2,90,Running Slam Dunk,0,description_2013_14
+2,92,Putback Slam Dunk,0,description_2013_14
+2,94,Jump Bank Hook Shot,0,description_2013_14
+2,95,Running Bank Hook Shot,0,description_2013_14
