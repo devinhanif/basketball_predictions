@@ -172,3 +172,15 @@ Read: `docs/prereg/AVG_SHADOW_LIVE.md` at e3a2f1e (`git diff 08bee07 HEAD -- doc
 Commit note: this reviewer does not commit (role constraint). The main session commits this path.
 
 Verdict: BLOCKED
+
+## Second re-review 2026-10-13 (commit 27fcd09)
+
+Read: `git show 27fcd09 -- docs/prereg/AVG_SHADOW_LIVE.md` (exit 0). Only the two edits were checked, plus the lines they touch.
+
+* **R1: FIXED.** The Stamp bullet (line 40) now scores a late-AVG triple as the FULL grid under item 2, never drops it, and counts it in the missingness table. This agrees with line 9 (ITT) and with the coverage gate (line 43). A triple whose FULL or A0 row is late is not eligible under line 9, so it is not covered by the Stamp text, and that is consistent. Keeping "more than 2% late => INCONCLUSIVE" on top of ITT is a stricter operational gate, not a contradiction.
+* **R2: FIXED.** Line 81 now agrees with the header (line 4) and the drafted holdout row (line 76). Non-blocking: it does not say outright that 2025 is in-sample for the served weights and can never be a confirmatory venue for this lineage. Line 4 and the re-review record that.
+* No new contradiction found. R3-R5 (non-blocking) are not addressed and remain recommended.
+
+Before the rebuild: commit the drafted HOLDOUT_ACCESS_LOG row (Devin's approval). Record the T442 gate's input column list in `forward_avg_meta` and assert it equals T442's.
+
+Verdict: APPROVED
