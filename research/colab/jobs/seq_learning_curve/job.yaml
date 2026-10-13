@@ -1,0 +1,33 @@
+name: seq_learning_curve
+description: >
+  SEQ_LEARNING_CURVE (docs/prereg/SEQ_LEARNING_CURVE.md, frozen; descriptive, NOT a holdout touch: nothing after season 2023 can be loaded).
+  How much does the W_ALL sequence model gain from each added training season? Windows N = 1..8 (the N seasons ending 2022-23), E2 transformer
+  walk-forward scored on 2023-24 only, 3 seeds, full budgets; NORM arms (past-only league-rate normalizer + era/rule channels), RAW anchors for
+  N = 1, 4, 8 and replicate ensembles (seeds 3-5) for N = 4, 6, 8. Refuses unless the staged rule sha matches AND the Mac-side loader-review
+  attestation is staged (a committed docs/reviews/seq_learning_curve_loader_<date>.md descended from the freeze commit). Scores nothing; scoring
+  is one CPU run on the Mac. Estimate 60-150 T4 minutes (not measured); ceiling 240.
+notebook: research/colab/jobs/seq_learning_curve/seq_learning_curve.ipynb
+inputs:
+  - path: data/colab/seq_learning_curve/seq_learning_curve_norm_S3.npz
+    produce: uv run python -m research.features.seq_learning_curve_export build
+    depends_on: [nba.duckdb, data/history/nba_history.duckdb]
+  - path: data/colab/seq_learning_curve/seq_learning_curve_norm_S2.npz
+  - path: data/colab/seq_learning_curve/seq_learning_curve_norm_S1.npz
+  - path: data/colab/seq_learning_curve/seq_learning_curve_raw_S3.npz
+  - path: data/colab/seq_learning_curve/seq_learning_curve_raw_S2.npz
+  - path: data/colab/seq_learning_curve/seq_learning_curve_raw_S1.npz
+  - path: docs/prereg/SEQ_LEARNING_CURVE.md
+  - path: data/colab/seq_learning_curve/loader_review.md
+    produce: uv run python -m research.eval.seq_learning_curve_rule stage
+  - path: data/colab/seq_learning_curve/loader_review_attestation.json
+    produce: uv run python -m research.eval.seq_learning_curve_rule stage
+    depends_on: [data/colab/seq_learning_curve/seq_learning_curve_norm_S3.npz]
+artifacts:
+  - metrics.json
+  - config.json
+  - cap_diagnostic.json
+registry:
+  model_name: seq_learning_curve
+  tags: {rung: 3, model_method: seq_transformer_quantile_walkforward, holdout_scored: false}
+touches_holdout: false
+preregistration_id: null
