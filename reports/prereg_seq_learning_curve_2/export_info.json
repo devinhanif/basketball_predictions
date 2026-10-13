@@ -1,0 +1,252 @@
+{
+  "cap_season": 2023,
+  "rule": "SEQ_LEARNING_CURVE_2",
+  "history_data_version": "c90139d87ded",
+  "nba_duckdb_data_version": "d0960b5a561c",
+  "segments": {
+    "S3": {
+      "npz": "/Users/devin/Downloads/nba-prediction/data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S3.npz",
+      "npz_sha256": "25931b1bc4da7c3e8a8cc4ec473f83866950bbd5a13f43c7fc6c21497368f9c1",
+      "meta_sha256": "0a7e01d8e6621333a219db355acf89b4969898044ae16a5a022611e9d26f4301",
+      "targets": 55934,
+      "rows_by_season": {
+        "2022": 27737,
+        "2023": 28197
+      },
+      "rows_n_prior_ge3_by_season": {
+        "2022": 26139,
+        "2023": 27846
+      },
+      "ctx_width": 41,
+      "norm_c_range": {
+        "pts": [
+          0.989884822038175,
+          1.0363300157720128
+        ],
+        "reb": [
+          0.974513540025564,
+          1.0
+        ],
+        "ast": [
+          0.9486634075306843,
+          1.0337855703630385
+        ],
+        "fg3m": [
+          0.9613005884472199,
+          1.010959568210465
+        ]
+      },
+      "tip_coverage": {
+        "n_games": 2638,
+        "with_real_tip": 2638,
+        "without_real_tip": 0
+      },
+      "position_sources": {
+        "db_known": 887,
+        "known_after": 1802
+      },
+      "era": {
+        "rows": 55934,
+        "rows_without_flags": 0
+      },
+      "position": {
+        "rows": 55934,
+        "no_position_rows": 0,
+        "share": 0.0
+      },
+      "position_by_season": {
+        "2022": {
+          "rows": 27737,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2023": {
+          "rows": 28197,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "ok": true
+      }
+    },
+    "S2": {
+      "npz": "/Users/devin/Downloads/nba-prediction/data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S2.npz",
+      "npz_sha256": "a4ac666555fb24200f8d4b26d24861c4d2c7a7c8bcd859c1d5d3d973e920fda3",
+      "meta_sha256": "06a2fddd9f7bb4991c90caa4da974ec18d536a6823399b2dbd09ae6463851885",
+      "targets": 77195,
+      "rows_by_season": {
+        "2019": 24097,
+        "2020": 25053,
+        "2021": 28045
+      },
+      "rows_n_prior_ge3_by_season": {
+        "2019": 22527,
+        "2020": 24739,
+        "2021": 27655
+      },
+      "ctx_width": 41,
+      "norm_c_range": {
+        "pts": [
+          1.0190684465818167,
+          1.0567103797813586
+        ],
+        "reb": [
+          0.9513427230046947,
+          0.9811329281243645
+        ],
+        "ast": [
+          1.0182238780048425,
+          1.0636203935310595
+        ],
+        "fg3m": [
+          0.961513198661544,
+          1.0899083646616543
+        ]
+      },
+      "tip_coverage": {
+        "n_games": 3637,
+        "with_real_tip": 3637,
+        "without_real_tip": 0
+      },
+      "position_sources": {
+        "db_known": 1316,
+        "known_after": 1815
+      },
+      "era": {
+        "rows": 77195,
+        "rows_without_flags": 0
+      },
+      "position": {
+        "rows": 77195,
+        "no_position_rows": 0,
+        "share": 0.0
+      },
+      "position_by_season": {
+        "2019": {
+          "rows": 24097,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2020": {
+          "rows": 25053,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2021": {
+          "rows": 28045,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "ok": true
+      }
+    },
+    "S1": {
+      "npz": "/Users/devin/Downloads/nba-prediction/data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S1.npz",
+      "npz_sha256": "e2abd30cca6c3cf2c05b66200b707737d04fe774a421c381770c58a313c85198",
+      "meta_sha256": "56cee21a8ed1d22dddfd5d1b91beec23c7cbbc33d0839390eed5cf83ec234dce",
+      "targets": 165750,
+      "rows_by_season": {
+        "2013": 27324,
+        "2014": 27478,
+        "2015": 27817,
+        "2016": 27709,
+        "2017": 27683,
+        "2018": 27739
+      },
+      "rows_n_prior_ge3_by_season": {
+        "2013": 25894,
+        "2014": 27196,
+        "2015": 27592,
+        "2016": 27437,
+        "2017": 27330,
+        "2018": 27426
+      },
+      "ctx_width": 41,
+      "norm_c_range": {
+        "pts": [
+          1.0,
+          1.145013700199536
+        ],
+        "reb": [
+          0.9637611193344907,
+          1.026533810820513
+        ],
+        "ast": [
+          1.0,
+          1.17336923284468
+        ],
+        "fg3m": [
+          1.0,
+          1.6322758037225042
+        ]
+      },
+      "s1_dropped_non_playing_rows": 980,
+      "position_sources": {
+        "db_known": 1316,
+        "known_after": 1815
+      },
+      "era": {
+        "rows": 165750,
+        "rows_without_flags": 0
+      },
+      "position": {
+        "rows": 165750,
+        "no_position_rows": 0,
+        "share": 0.0
+      },
+      "position_by_season": {
+        "2013": {
+          "rows": 27324,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2014": {
+          "rows": 27478,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2015": {
+          "rows": 27817,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2016": {
+          "rows": 27709,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2017": {
+          "rows": 27683,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "2018": {
+          "rows": 27739,
+          "no_position_rows": 0,
+          "share": 0.0
+        },
+        "ok": true
+      }
+    }
+  },
+  "era_runtime_gate": {
+    "test_rows": 28197,
+    "share_equal_expected": 1.0,
+    "prev_season_distinct_vectors": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "test_vectors_in_prev_season": true,
+    "ok": true
+  },
+  "manifest_sha256": "e12d04c90ba5a6fe2f800988e121b36339c56ea4531b936b21684240644d9da0"
+}

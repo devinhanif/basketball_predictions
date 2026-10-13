@@ -1,0 +1,43 @@
+{
+ "rule_sha": "86f31649",
+ "history_data_version": "c90139d87ded",
+ "nba_duckdb_data_version": "d0960b5a561c",
+ "segments": {
+  "S3": {
+   "npz_sha256": "25931b1bc4da7c3e8a8cc4ec473f83866950bbd5a13f43c7fc6c21497368f9c1",
+   "targets": 55934,
+   "rows_by_season": {
+    "2022": 27737,
+    "2023": 28197
+   },
+   "no_position_share": 0.0
+  },
+  "S2": {
+   "npz_sha256": "a4ac666555fb24200f8d4b26d24861c4d2c7a7c8bcd859c1d5d3d973e920fda3",
+   "targets": 77195,
+   "rows_by_season": {
+    "2019": 24097,
+    "2020": 25053,
+    "2021": 28045
+   },
+   "no_position_share": 0.0
+  },
+  "S1": {
+   "npz_sha256": "e2abd30cca6c3cf2c05b66200b707737d04fe774a421c381770c58a313c85198",
+   "targets": 165750,
+   "rows_by_season": {
+    "2013": 27324,
+    "2014": 27478,
+    "2015": 27817,
+    "2016": 27709,
+    "2017": 27683,
+    "2018": 27739
+   },
+   "no_position_share": 0.0
+  }
+ },
+ "nan_in_float_arrays": 0,
+ "era_runtime_gate_ok": true,
+ "position_guard_ok": true,
+ "planted_future_on_real_export": "not run separately; only the run-time era gate; unit test planted-future in tests/research/seq_learning_curve_2/test_export.py"
+}
