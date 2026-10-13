@@ -137,9 +137,9 @@ def test_reproduction_gate_and_budget_diagnostic() -> None:
         return [
             {
                 "epochs_run": 25 if reached else 12,
-                "best_epoch": 20 if reached else 8,
+                "best_epoch": 22 if reached else 8,
                 "best_val": 1.0,
-                "reached_cap": reached,
+                "reached_cap": False,  # the job's own flag is ignored: the scorer recomputes it
                 "seed": i,
             }
             for i in range(n)
@@ -163,6 +163,24 @@ def test_reproduction_gate_and_budget_diagnostic() -> None:
     assert E.budget_gate(exactly_third)[
         "ok"
     ]  # "more than one third" fails; exactly one third passes
+
+
+def test_reached_the_cap_means_25_epochs_and_the_best_epoch_in_the_last_four() -> None:
+    f = E.fit_reached_cap
+    assert f({"epochs_run": 25, "best_epoch": 21}) and f({"epochs_run": 25, "best_epoch": 24})
+    assert not f({"epochs_run": 25, "best_epoch": 20})  # patience fired on the 25th epoch
+    assert not f({"epochs_run": 24, "best_epoch": 23}) and not f(
+        {"epochs_run": 12, "best_epoch": 11}
+    )
+    infos = [
+        {"arm": "NORM_4", "cold": [{"epochs_run": 25, "best_epoch": 22}] * 3},
+        {"arm": "NORM_6", "cold": [{"epochs_run": 25, "best_epoch": 20}] * 3},
+    ]
+    g = E.budget_gate(infos)
+    assert g["reached_cap"] == 3 and g["by_arm"]["NORM_6"]["reached_cap"] == 0
+    assert g["arms_with_every_fit_at_cap"] == ["NORM_4"] and g["share_norm_only"] == pytest.approx(
+        0.5
+    )
 
 
 def test_restrict_world_drops_every_other_season_at_load() -> None:
@@ -367,25 +385,202 @@ def test_curve_wires_end_to_end_on_a_synthetic_world(
     assert "Verdict" in txt and "A = C(8) - C(4)" in txt
 
 
-def test_check_run_flags_each_problem(tmp_path: Path) -> None:
+def _rv(tmp: Path) -> tuple[dict, dict, dict]:
+    """A run directory's worth of consistent inputs: exports on disk, a review result naming them, a config and one info per arm."""
+    for n in E.RULE.EXPORT_NAMES:
+        (tmp / n).write_bytes(n.encode())
+    exp = {n: E.RULE.file_sha256(tmp / n) for n in E.RULE.EXPORT_NAMES}
+    rv = {"review_commit": "c" * 40, "exports_manifest": E.RULE.manifest_sha(exp)}
     sha = "a" * 64
-    f = tmp_path / "e.npz"
-    f.write_bytes(b"x")
-    ok_cfg = {
-        "rule_sha256": sha,
-        "cap_season": 2023,
-        "test_label": 2023,
-        "exports": {"e.npz": E.RULE.file_sha256(f)},
-    }
-    infos = [
-        {"arm": "RAW_1", "variant": "raw", "test_keys_sha256": "k", "test_inputs_sha256": "r"},
-        {"arm": "NORM_1", "variant": "norm", "test_keys_sha256": "k", "test_inputs_sha256": "n"},
-    ]
-    assert E.check_run(ok_cfg, infos, sha, tmp_path)["ok"]
-    assert not E.check_run({**ok_cfg, "rule_sha256": "b" * 64}, infos, sha, tmp_path)["ok"]
-    assert not E.check_run({**ok_cfg, "exports": {"e.npz": "0" * 64}}, infos, sha, tmp_path)["ok"]
+    cfg = {
+        "rule_sha256": sha, "cap_season": 2023, "test_label": 2023, "review_commit": rv["review_commit"], "exports": exp, "hidden": 64, "smoke": None,
+        "cold": E.COLD_CFG, "warm": E.WARM_CFG, "seeds_main": [0, 1, 2], "seeds_rep": [3, 4, 5],
+    }  # fmt: skip
+    infos = {}
+    for arm in E.ALL_ARMS:
+        variant, seeds = E.expected_arm(arm)
+        infos[arm] = {
+            "arm": arm, "variant": variant, "hidden": 64, "cold_cfg": E.COLD_CFG, "warm_cfg": E.WARM_CFG, "seeds": seeds, "rule_sha256": sha, "n_test": 28197, "smoke": False,
+            "exports": exp, "review_commit": rv["review_commit"], "test_keys_sha256": "k", "test_inputs_sha256": variant,
+            "cold": [{"seed": s, "epochs_run": 12, "best_epoch": 8} for s in seeds],
+        }  # fmt: skip
+    return cfg, infos, rv
+
+
+def test_check_run_flags_each_problem(tmp_path: Path) -> None:
+    cfg, infos, rv = _rv(tmp_path)
+    sha = "a" * 64
+
+    def chk(cfg_=cfg, **changes):
+        arms = {a: {**i, **changes.get(a, {})} for a, i in infos.items()}
+        return E.check_run(cfg_, list(arms.values()), sha, tmp_path, rv)
+
+    assert chk()["ok"]
     assert not E.check_run(
-        ok_cfg, [{**infos[0]}, {**infos[1], "test_keys_sha256": "other"}], sha, tmp_path
+        {**cfg, "rule_sha256": "b" * 64}, list(infos.values()), sha, tmp_path, rv
     )["ok"]
-    assert not E.check_run(ok_cfg, [{**infos[0]}, {**infos[1], "smoke": True}], sha, tmp_path)["ok"]
-    assert not E.check_run({**ok_cfg, "cap_season": 2024}, infos, sha, tmp_path)["ok"]
+    assert not chk(
+        {**cfg, "exports": {**cfg["exports"], "seq_learning_curve_raw_S3.npz": "0" * 64}}
+    )["ok"]
+    assert not chk({**cfg, "cap_season": 2024})["ok"]
+    assert not chk({**cfg, "review_commit": "d" * 40})["ok"]
+    assert not chk({**cfg, "hidden": 16})["ok"] and not chk({**cfg, "smoke": "4000"})["ok"]
+    assert not chk({**cfg, "cold": {**E.COLD_CFG, "epochs": 30}})["ok"]
+    assert not chk({**cfg, "seeds_rep": [0, 1, 2]})["ok"]
+    assert not chk({**cfg, "exports": dict(list(cfg["exports"].items())[:5])})[
+        "ok"
+    ]  # fewer than the six reviewed exports
+    # per-arm configuration drift (a restart under a different environment)
+    drifts: list[dict] = [
+        {"hidden": 16}, {"cold_cfg": {**E.COLD_CFG, "patience": 9}}, {"warm_cfg": {**E.WARM_CFG, "epochs": 1}}, {"seeds": [0, 1, 5]}, {"rule_sha256": "b" * 64},
+        {"n_test": 28000}, {"smoke": True}, {"variant": "raw"}, {"exports": {}}, {"review_commit": "d" * 40}, {"test_keys_sha256": "other"},
+    ]  # fmt: skip
+    for bad in drifts:
+        r = chk(**{"NORM_3": bad})
+        assert not r["ok"], bad
+    assert not chk(**{"NREP_4": {"seeds": [0, 1, 2], "cold": [{"seed": s} for s in (0, 1, 2)]}})[
+        "ok"
+    ]  # the replicate set must use seeds 3-5
+    assert not chk(**{"RAW_4": {"test_inputs_sha256": "different"}})["ok"]
+
+
+# ------------------------------------------------------------------ gate first, curve last (F2 / F5)
+def _score_inputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    drop=(),
+    repro_ok=True,
+    runtime_ok=True,
+    budget_ok=True,
+):
+    monkeypatch.setattr(E, "CACHE", tmp_path / "cache")
+    w, mu = _world()
+    rng = np.random.default_rng(5)
+    n = len(w["date_days"])
+    c = rng.uniform(0.92, 1.12, (n, 4))
+    meta = pd.DataFrame({"game_id": w["base"]["pts"]["game_id"], "player_id": w["base"]["pts"]["player_id"], **{f"norm_c_{st}": c[:, i] for i, st in enumerate(E.STATS)}})  # fmt: skip
+    zs = {
+        a: _oof(
+            w,
+            mu,
+            c if not a.startswith("RAW") else np.ones_like(c),
+            0.15 - 0.01 * k,
+            np.random.default_rng(100 + k),
+        )[0]
+        for k, a in enumerate(E.ALL_ARMS)
+    }
+    loaded: list[str] = []
+
+    def load_oof(arm: str):
+        loaded.append(arm)
+        return zs[arm], "t"
+
+    monkeypatch.setattr(E, "repro_gate", lambda *a, **k: {"checks": {}, "ok": repro_ok})
+    done = [a for a in E.ALL_ARMS if a not in drop]
+    cold = [
+        {"epochs_run": 25 if not budget_ok else 12, "best_epoch": 22 if not budget_ok else 8}
+    ] * 3
+    infos = [{"arm": a, "cold": cold} for a in done]
+    out = {
+        "run_check": {"ok": True, "arms_done": done, "problems": []},
+        "budget": E.budget_gate(infos),
+        "unfinished": [a for a in E.ALL_ARMS if a in drop],
+    }
+    return out, infos, runtime_ok, w, meta, load_oof, loaded
+
+
+def _norm_cache(tmp_path: Path) -> list[str]:
+    d = tmp_path / "cache"
+    return sorted(p.name for p in d.glob("N*")) if d.exists() else []
+
+
+def test_a_void_run_scores_only_the_two_reproduction_arms_and_writes_no_norm_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out, infos, rt, w, meta, load, loaded = _score_inputs(tmp_path, monkeypatch, repro_ok=False)
+    E.score_run(out, infos, rt, w, meta, load)
+    assert (
+        out["curve"]["decision"]["verdict"] == "VOID (gate)" and out["gates"]["repro_ok"] is False
+    )
+    assert sorted(loaded) == ["RAW_1", "RAW_4"] and _norm_cache(tmp_path) == []
+    assert sorted(p.name for p in (tmp_path / "cache").iterdir()) == [
+        "RAW_1__pts__t.npz",
+        "RAW_4__pts__t.npz",
+    ]
+    assert set(out["curve"]) == {"decision"}  # no curve, no per-arm figure
+
+
+def test_a_runtime_gate_failure_scores_nothing_at_all(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out, infos, _, w, meta, load, loaded = _score_inputs(tmp_path, monkeypatch)
+    E.score_run(out, infos, False, w, meta, load)
+    assert (
+        out["curve"]["decision"]["verdict"] == "VOID (gate)"
+        and loaded == []
+        and not (tmp_path / "cache").exists()
+    )
+
+
+def test_unfinished_and_budget_runs_stop_before_any_norm_arm_and_a_missing_raw_arm_is_not_void(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out, infos, rt, w, meta, load, loaded = _score_inputs(
+        tmp_path, monkeypatch, drop=("NORM_8", "NREP_8")
+    )
+    E.score_run(out, infos, rt, w, meta, load)
+    assert (
+        out["curve"]["decision"]["verdict"] == "INCONCLUSIVE (unfinished)"
+        and sorted(loaded) == ["RAW_1", "RAW_4"]
+        and _norm_cache(tmp_path) == []
+    )
+    # F5: RAW_1 missing -> INCONCLUSIVE (unfinished), not VOID, and nothing is scored
+    sub = tmp_path / "b"
+    sub.mkdir()
+    out, infos, rt, w, meta, load, loaded = _score_inputs(sub, monkeypatch, drop=("RAW_1",))
+    E.score_run(out, infos, rt, w, meta, load)
+    assert (
+        out["curve"]["decision"]["verdict"] == "INCONCLUSIVE (unfinished)"
+        and loaded == []
+        and _norm_cache(sub) == []
+    )
+    sub = tmp_path / "c"
+    sub.mkdir()
+    out, infos, rt, w, meta, load, loaded = _score_inputs(sub, monkeypatch, budget_ok=False)
+    E.score_run(out, infos, rt, w, meta, load)
+    assert (
+        out["curve"]["decision"]["verdict"] == "INVALID (budget)"
+        and sorted(loaded) == ["RAW_1", "RAW_4"]
+        and _norm_cache(sub) == []
+    )
+
+
+def test_when_every_gate_passes_the_whole_curve_is_scored(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out, infos, rt, w, meta, load, loaded = _score_inputs(tmp_path, monkeypatch)
+    E.score_run(out, infos, rt, w, meta, load)
+    assert out["gates"] == {"repro_ok": True, "runtime_ok": True, "budget_ok": True}
+    assert "norm" in out["curve"] and out["curve"]["decision"]["verdict"] in {
+        "RISING",
+        "NOT RISING (closed)",
+        "HURTS",
+        "INCONCLUSIVE (construction)",
+        "INCONCLUSIVE (replicate guard)",
+    }
+    assert (
+        set(loaded) == set(E.ALL_ARMS) and len(_norm_cache(tmp_path)) == 8 * 4 + 3
+    )  # NORM_1..8 x 4 stats, NREP x pts
+    r = out["curve"]["replicates"]
+    assert (
+        "main_minus_rep_sd_across_N" in r
+        and "seed_sd_single_ensemble_estimate" in r
+        and "seed_noise_sd_of_differences" not in r
+    )
+
+
+def test_oof_files_are_read_without_pickles() -> None:
+    import inspect
+
+    src = inspect.getsource(E.run)
+    assert "allow_pickle=True" not in src and src.count("allow_pickle=False") >= 2

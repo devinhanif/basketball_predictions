@@ -13,6 +13,9 @@ nothing else. Season 2024 and 2025 rows of the stored caches are dropped before 
 Predictions of the NORM / NREP arms are in normalized units: the mean and the 19 quantiles are DIVIDED by the target row's c_k(d) BEFORE the integer-grid conversion, so every arm is scored on
 the raw integer grid (rule, "Stat normalizer"). RAW arms are raw already (c = 1).
 
+Gate first, curve last: settle runtime / unfinished / budget, score only RAW_1 and RAW_4 (pts) for the reproduction gate, and score NORM / NREP / RAW_8 only if every gate passes (``score_run``);
+a voided, unfinished or invalid run leaves no NORM-arm CRPS on disk. Reads OOF files with allow_pickle=False.
+
 Verdict ordering (the rule's text leaves the overlaps to the code; ambiguities are listed in the report): VOID (gate) > INCONCLUSIVE (unfinished) > INVALID (budget) > INCONCLUSIVE (construction)
 > HURTS > RISING > NOT RISING (closed) > INCONCLUSIVE (replicate guard: criteria (i) and (ii) pass but (iii) fails, which the rule does not name).
 """
@@ -22,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +66,17 @@ REPRO = {1: -0.0083, 4: -0.0203}  # run #1 AVG - FULL on 2023-24 pts: W22 diagno
 REPRO_TOL = 0.003
 EXACT_TOL = 1e-6
 CAP_SHARE_MAX = 1.0 / 3.0
+EPOCH_CAP = 25  # frozen cold-fit epoch cap and patience (rule; the Colab job's COLD)
+PATIENCE = 4
+CAP_BEST_EPOCH = (
+    EPOCH_CAP - PATIENCE
+)  # a fit "reached the cap" iff it ran EPOCH_CAP epochs AND best_epoch >= 21: the cap ended it, not patience (review ruling 1)
+HIDDEN = 64
+COLD_CFG = {"epochs": EPOCH_CAP, "patience": PATIENCE, "lr": 1e-3, "batch": 1024}
+WARM_CFG = {"epochs": 3, "lr": 3e-4, "batch": 1024}
+SEEDS_MAIN = [0, 1, 2]
+SEEDS_REP = [3, 4, 5]
+N_TEST = 28197  # 2023-24 rows every arm scores (window-independent)
 COV_TAUS = tuple(round(0.05 * i, 2) for i in range(1, 20))
 CRPS_TAUS_N = 199
 ARM_NORM = [f"NORM_{n}" for n in NORM_NS]
@@ -161,24 +176,39 @@ def repro_gate(
     return {"checks": checks, "ok": all(c["ok"] for c in checks.values())}
 
 
+def fit_reached_cap(c: dict[str, Any]) -> bool:
+    """Computed here, never trusted from the job: ran the whole epoch cap AND the best epoch is in the last PATIENCE epochs (patience did not end it)."""
+    return bool(c["epochs_run"] >= EPOCH_CAP and c["best_epoch"] >= CAP_BEST_EPOCH)
+
+
 def budget_gate(infos: list[dict[str, Any]]) -> dict[str, Any]:
-    """Epoch-cap diagnostic over every completed cold fit: INVALID (budget) when more than one third ran the whole 25-epoch cap."""
+    """Epoch-cap diagnostic over every completed cold fit: INVALID (budget) when more than one third reached the cap (``fit_reached_cap``)."""
     fits = [(i["arm"], c) for i in infos for c in i["cold"]]
-    reached = sum(1 for _, c in fits if c["reached_cap"])
+    reached = sum(1 for _, c in fits if fit_reached_cap(c))
     share = reached / len(fits) if fits else float("nan")
     by_arm = {
         i["arm"]: {
             "epochs_run": [c["epochs_run"] for c in i["cold"]],
             "best_epoch": [c["best_epoch"] for c in i["cold"]],
-            "reached_cap": sum(c["reached_cap"] for c in i["cold"]),
+            "reached_cap": sum(fit_reached_cap(c) for c in i["cold"]),
         }
         for i in infos
     }
     norm_fits = [c for i in infos if i["arm"].startswith("NORM") for c in i["cold"]]
+    all_cap = sorted(
+        a
+        for a in ("NORM_4", "NORM_6", "NORM_8")
+        if a in by_arm and by_arm[a]["reached_cap"] == len(infos_by(infos, a)["cold"])
+    )
     return {
         "cold_fits": len(fits), "reached_cap": int(reached), "share": share, "limit": CAP_SHARE_MAX, "ok": bool(fits and share <= CAP_SHARE_MAX),
-        "share_norm_only": (sum(c["reached_cap"] for c in norm_fits) / len(norm_fits)) if norm_fits else float("nan"), "by_arm": by_arm,
+        "share_norm_only": (sum(fit_reached_cap(c) for c in norm_fits) / len(norm_fits)) if norm_fits else float("nan"), "by_arm": by_arm,
+        "arms_with_every_fit_at_cap": all_cap,  # disclosed beside the verdict (review ruling 1)
     }  # fmt: skip
+
+
+def infos_by(infos: list[dict[str, Any]], arm: str) -> dict[str, Any]:
+    return next(i for i in infos if i["arm"] == arm)
 
 
 def decide(r: dict[str, Any]) -> dict[str, Any]:
@@ -409,10 +439,12 @@ def assemble(
             "main_minus_rep": {str(n): float((avg[f"NORM_{n}"] - rep[n]).mean()) for n in REP_NS},
         }  # fmt: skip
         d = np.array(list(res["replicates"]["main_minus_rep"].values()))
-        res["replicates"]["seed_noise_sd_of_differences"] = (
+        # NOT the seed sd: the ddof=1 sd of the three main-minus-replicate differences says how the difference varies across N (review ruling 11)
+        res["replicates"]["main_minus_rep_sd_across_N"] = (
             float(d.std(ddof=1)) if len(d) > 1 else float("nan")
         )
-        res["replicates"]["seed_noise_single_ensemble_rms"] = float(np.sqrt(np.mean(d**2) / 2.0))
+        # the seed sd of ONE 3-seed ensemble's C(N), assuming equal means: sqrt(mean(d^2) / 2); rests on 3 values (95% range about 0.6x-3.7x)
+        res["replicates"]["seed_sd_single_ensemble_estimate"] = float(np.sqrt(np.mean(d**2) / 2.0))
     # SEQc(N) - A0 curves, four stats; secondary family S (A, B for reb, ast, fg3m on the AVG - FULL scale)
     res["seqc_minus_a0"] = {
         st: {str(n): boot.ci(arm_crps[(f"NORM_{n}", st)]["crps_seqc"] - base_crps[st]["A0"]) for n in NORM_NS}
@@ -470,19 +502,76 @@ def load_run(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     return cfg, infos
 
 
+def expected_arm(name: str) -> tuple[str, list[int]]:
+    """(variant, seeds) the frozen job uses for an arm: RAW_* raw, NORM_* / NREP_* norm; NREP uses the second seed set."""
+    return (
+        "raw" if name.startswith("RAW") else "norm",
+        SEEDS_REP if name.startswith("NREP") else SEEDS_MAIN,
+    )
+
+
 def check_run(
-    cfg: dict[str, Any], infos: list[dict[str, Any]], sha: str, export_dir: Path
+    cfg: dict[str, Any],
+    infos: list[dict[str, Any]],
+    sha: str,
+    export_dir: Path,
+    rv: dict[str, str],
 ) -> dict[str, Any]:
-    """The run-time gates the rule names: the run used the frozen rule and the exports on disk, cap season 2023, identical row sets, and (via the exporter) the era vector gate."""
-    bad = []
+    """The run-time gates the rule names. The run used the frozen rule, the reviewed commit and the reviewed exports (cfg and every info agree with ``rv`` and the files on disk), cap
+    season 2023, ONE configuration for every arm (hidden 64, the frozen cold / warm settings, the frozen seeds), the same 28,197 test rows, no smoke run. Any mismatch is VOID (runtime)."""
+    bad: list[str] = []
     if cfg.get("rule_sha256") != sha:
         bad.append("run used a different rule sha")
     if cfg.get("cap_season") != 2023 or cfg.get("test_label") != 2023:
         bad.append("run cap / test season is not 2023")
-    for name, esha in (cfg.get("exports") or {}).items():
+    if cfg.get("review_commit") != rv.get("review_commit"):
+        bad.append("the run was attested against a different review commit")
+    cexp = cfg.get("exports") or {}
+    if set(cexp) != set(RULE.EXPORT_NAMES) or RULE.manifest_sha(cexp) != rv.get("exports_manifest"):
+        bad.append("the run's exports are not the six exports named by the review's manifest")
+    for name, esha in cexp.items():
         f = export_dir / name
         if not f.exists() or RULE.file_sha256(f) != esha:
             bad.append(f"export {name} differs from the one the run used")
+    if cfg.get("hidden") != HIDDEN:
+        bad.append(f"config hidden {cfg.get('hidden')} != {HIDDEN}")
+    if cfg.get("smoke"):
+        bad.append("a smoke run cannot be scored")
+    if (cfg.get("cold") or {}) != COLD_CFG or (cfg.get("warm") or {}) != WARM_CFG:
+        bad.append("config cold / warm settings differ from the frozen ones")
+    if cfg.get("seeds_main") != SEEDS_MAIN or cfg.get("seeds_rep") != SEEDS_REP:
+        bad.append("config seed sets differ from the frozen ones")
+    names = [i.get("arm") for i in infos]
+    if len(set(names)) != len(names) or not set(names) <= set(ALL_ARMS):
+        bad.append("duplicate or unknown arm in the run's info files")
+    for i in infos:
+        arm = str(i.get("arm"))
+        if arm not in ALL_ARMS:
+            continue
+        variant, seeds = expected_arm(arm)
+        why = []
+        if i.get("hidden") != HIDDEN:
+            why.append(f"hidden {i.get('hidden')}")
+        if i.get("cold_cfg") != COLD_CFG:
+            why.append("cold_cfg")
+        if i.get("warm_cfg") != WARM_CFG:
+            why.append("warm_cfg")
+        if i.get("seeds") != seeds or [c.get("seed") for c in i.get("cold", [])] != seeds:
+            why.append(f"seeds (want {seeds})")
+        if i.get("rule_sha256") != sha:
+            why.append("rule sha")
+        if i.get("n_test") != N_TEST:
+            why.append(f"n_test {i.get('n_test')} != {N_TEST}")
+        if i.get("smoke") is not False:
+            why.append("smoke")
+        if i.get("variant") != variant:
+            why.append("variant")
+        if i.get("exports") != cexp:
+            why.append("exports differ from the attested ones")
+        if i.get("review_commit") != rv.get("review_commit"):
+            why.append("review commit")
+        if why:
+            bad.append(f"{arm}: " + ", ".join(why))
     keys = {i["test_keys_sha256"] for i in infos}
     if len(keys) > 1:
         bad.append("the arms scored different 2023-24 row sets")
@@ -490,23 +579,123 @@ def check_run(
         shas = {i["test_inputs_sha256"] for i in infos if i["variant"] == v}
         if len(shas) > 1:
             bad.append(f"the {v} arms saw different 2023-24 test inputs")
-    if any(i.get("smoke") for i in infos):
-        bad.append("a smoke run cannot be scored")
     return {"problems": bad, "ok": not bad, "arms_done": sorted(i["arm"] for i in infos)}
 
 
+def meta_from_exports(z3: Any) -> pd.DataFrame:
+    """The 2023-24 row table (game_id, player_id, season, norm_c_<stat>) read from the ATTESTED S3 npz (its sha is checked against the review's manifest), not from the unchecked
+    meta parquet (review F6)."""
+    if tuple(XP.P.STATS) != STATS:
+        raise RuntimeError("stat order of the export differs from the scorer's")
+    c = np.asarray(z3["norm_c"], dtype=float)
+    df = pd.DataFrame(
+        {
+            "game_id": np.asarray(z3["game_id"]).astype(str),
+            "player_id": np.asarray(z3["player_id"]).astype(np.int64),
+            "season": np.asarray(z3["season"]).astype(int),
+            **{f"norm_c_{st}": c[:, k] for k, st in enumerate(STATS)},
+        }
+    )
+    return df[df["season"] == SCORE_LABEL].reset_index(drop=True)
+
+
+DISCLOSURES = [
+    "Cost ceiling (review F9): the job sums runtime_s of COMPLETED arms only, so wall-clock spent in an arm that was interrupted before it wrote its info file is not counted; the 240 T4-minute ceiling can be overrun by one partial arm.",
+    "Seed noise (review ruling 11): the figures under 'replicates' rest on three main-minus-replicate differences (N = 4, 6, 8); the 95% range of a standard deviation from 3 values is about 0.6x to 3.7x.",
+]
+
+
+def verdict_only(out: dict[str, Any], verdict: str, why: str) -> None:
+    out["curve"] = {"decision": {"verdict": verdict, "why": why}}
+
+
+def score_run(
+    out: dict[str, Any],
+    infos: list[dict[str, Any]],
+    runtime_ok: bool,
+    world: dict[str, Any],
+    meta: pd.DataFrame,
+    load_oof: Callable[[str], tuple[Any, str]],
+) -> dict[str, Any]:
+    """Gate first, curve last (review F2 / F5). Order: runtime (config, exports, era, world rows) -> VOID without scoring anything; then ONLY RAW_1 and RAW_4 on pts for the reproduction gate
+    (a failed reproduction -> VOID); a missing RAW_1 / RAW_4 or any unfinished arm -> INCONCLUSIVE (unfinished); a failed budget gate -> INVALID (budget); only when every gate passes are the NORM / NREP /
+    RAW_8 arms and the other stats scored. So a voided, unfinished or invalid run never leaves a NORM-arm CRPS anywhere, including the cache."""
+    chk = out["run_check"]
+    budget = out["budget"]
+    unfinished = out["unfinished"]
+    out["world_rows"] = check_world_rows(world, meta)
+    gates = {
+        "repro_ok": False,
+        "runtime_ok": bool(runtime_ok and out["world_rows"]["ok"]),
+        "budget_ok": bool(budget["ok"]),
+    }
+    out["gates"] = gates  # fmt: skip
+    P = STAT_PRIMARY
+    if not gates["runtime_ok"]:
+        verdict_only(out, "VOID (gate)", "run-time gate failed; nothing was scored")
+        return out
+    base_crps: dict[str, dict[str, np.ndarray]] = {}
+
+    def base(st: str) -> dict[str, np.ndarray]:
+        if st not in base_crps:
+            b = world["base"][st]
+            base_crps[st] = {
+                "A0": E_crps(b["a0_int"], b["y"]),
+                "FULL": E_crps(b["full_int"], b["y"]),
+            }
+        return base_crps[st]
+
+    arm_crps: dict[tuple[str, str], dict[str, np.ndarray]] = {}
+
+    def score(arm: str, st: str) -> None:
+        _log(f"scoring {arm} / {st}")
+        z, tag = load_oof(arm)
+        arm_crps[(arm, st)] = score_arm_stat(arm, st, world, z, meta, tag)
+
+    repro_arms = ("RAW_1", "RAW_4")
+    if all(a in chk["arms_done"] for a in repro_arms):
+        for a in repro_arms:
+            score(a, P)
+        fa = base(P)
+        out["repro"] = repro_gate(
+            float((arm_crps[("RAW_1", P)]["crps_avg"] - fa["FULL"]).mean()),
+            float((arm_crps[("RAW_4", P)]["crps_avg"] - fa["FULL"]).mean()),
+            float((fa["FULL"] - fa["A0"]).mean()),
+            S.T467[SCORE_LABEL],
+        )
+        gates["repro_ok"] = bool(out["repro"]["ok"])
+        if not gates["repro_ok"]:
+            verdict_only(out, "VOID (gate)", "reproduction gate failed; no other arm was scored")
+            return out
+    if unfinished:  # includes a missing RAW_1 / RAW_4 (F5): the reproduction gate could not be computed, which is unfinished, not void
+        verdict_only(
+            out, "INCONCLUSIVE (unfinished)", "arms not finished: " + ", ".join(unfinished)
+        )
+        return out
+    if not gates["budget_ok"]:
+        verdict_only(
+            out, "INVALID (budget)", "more than one third of cold fits reached the epoch cap"
+        )
+        return out
+    for arm in ALL_ARMS:  # every gate passed: now, and only now, the curve arms
+        for st in STATS if arm.startswith("NORM") else (P,):
+            if (arm, st) not in arm_crps:
+                score(arm, st)
+    out["curve"] = assemble({st: base(st) for st in STATS}, arm_crps, world, gates, unfinished)
+    return out
+
+
 def run(run_dir: Path, export_dir: Path = EXPORT_DIR) -> dict[str, Any]:
-    rv = (
-        RULE.require_review()
-    )  # hard stop: frozen rule + committed loader review descended from the freeze
+    rv = RULE.require_review(
+        export_dir=export_dir
+    )  # hard stop: frozen rule + the latest committed review says APPROVED, covers this code and these exports
     _log(f"rule {rv['rule_sha256'][:8]}, review {rv['review_path']} @ {rv['review_commit'][:8]}")
     cfg, infos = load_run(run_dir)
-    chk = check_run(cfg, infos, rv["rule_sha256"], export_dir)
-    z3 = np.load(export_dir / f"{XP.stem('norm', 'S3')}.npz")
+    chk = check_run(cfg, infos, rv["rule_sha256"], export_dir, rv)
+    z3 = np.load(export_dir / f"{XP.stem('norm', 'S3')}.npz", allow_pickle=False)
     era = XP.era_runtime_gate(z3["ctx"], z3["season"], tuple(str(a) for a in z3["ctx_features"]))
     runtime_ok = bool(chk["ok"] and era["ok"])
-    meta = pd.read_parquet(export_dir / f"{XP.stem('norm', 'S3')}_meta.parquet")
-    meta = meta[meta["season"] == SCORE_LABEL].reset_index(drop=True)
+    meta = meta_from_exports(z3)
     budget = budget_gate(infos)
     unfinished = [a for a in ALL_ARMS if a not in chk["arms_done"]]
     out: dict[str, Any] = {
@@ -517,62 +706,26 @@ def run(run_dir: Path, export_dir: Path = EXPORT_DIR) -> dict[str, Any]:
         "era_runtime_gate": era,
         "budget": budget,
         "unfinished": unfinished,
+        "disclosures": DISCLOSURES,
     }
-    with WE.heavy():
-        _log("loading the stored A0 / FULL world and restricting it to 2023-24")
-        world = load_world_2023()
-        out["world_rows"] = check_world_rows(world, meta)
-        base_crps = {
-            st: {
-                "A0": E_crps(world["base"][st]["a0_int"], world["base"][st]["y"]),
-                "FULL": E_crps(world["base"][st]["full_int"], world["base"][st]["y"]),
-            }
-            for st in STATS
-        }
-        arm_crps: dict[tuple[str, str], dict[str, np.ndarray]] = {}
-        for arm in ALL_ARMS:
-            if arm in unfinished:
-                continue
-            f = run_dir / f"oof_{arm}.npz"
-            z = np.load(f, allow_pickle=True)
-            tag = RULE.file_sha256(f)[:8]
-            stats = STATS if arm.startswith("NORM") else (STAT_PRIMARY,)
-            for st in stats:
-                _log(f"scoring {arm} / {st}")
-                arm_crps[(arm, st)] = score_arm_stat(arm, st, world, z, meta, tag)
-        gates = {
-            "repro_ok": False,
-            "runtime_ok": runtime_ok and bool(out["world_rows"]["ok"]),
-            "budget_ok": budget["ok"],
-        }
-        if all(a in chk["arms_done"] for a in ("RAW_1", "RAW_4")):
-            out["repro"] = repro_gate(
-                float(
-                    (
-                        arm_crps[("RAW_1", STAT_PRIMARY)]["crps_avg"]
-                        - base_crps[STAT_PRIMARY]["FULL"]
-                    ).mean()
-                ),
-                float(
-                    (
-                        arm_crps[("RAW_4", STAT_PRIMARY)]["crps_avg"]
-                        - base_crps[STAT_PRIMARY]["FULL"]
-                    ).mean()
-                ),
-                float((base_crps[STAT_PRIMARY]["FULL"] - base_crps[STAT_PRIMARY]["A0"]).mean()),
-                S.T467[SCORE_LABEL],
-            )
-            gates["repro_ok"] = bool(out["repro"]["ok"])
-        # the curve is read only when every gate passes, the budget diagnostic passes and every arm finished (rule: a failed gate voids the run; an unfinished arm is INCONCLUSIVE; no partial curve is called)
-        if not gates["repro_ok"] or not gates["runtime_ok"]:
-            out["curve"] = {"decision": {"verdict": "VOID (gate)"}}
-        elif unfinished:
-            out["curve"] = {"decision": {"verdict": "INCONCLUSIVE (unfinished)"}}
-        elif not gates["budget_ok"]:
-            out["curve"] = {"decision": {"verdict": "INVALID (budget)"}}
-        else:
-            out["curve"] = assemble(base_crps, arm_crps, world, gates, unfinished)
-    out["gates"] = gates
+    _log(
+        "cap diagnostic: "
+        + json.dumps({a: v["reached_cap"] for a, v in budget["by_arm"].items()})
+        + f"; share {budget['share']:.3f}, NORM-only {budget['share_norm_only']:.3f}"
+    )
+
+    def load_oof(arm: str) -> tuple[Any, str]:
+        f = run_dir / f"oof_{arm}.npz"
+        return np.load(f, allow_pickle=False), RULE.file_sha256(f)[:8]
+
+    if not runtime_ok:
+        out["gates"] = {"repro_ok": False, "runtime_ok": False, "budget_ok": bool(budget["ok"])}
+        verdict_only(out, "VOID (gate)", "run-time gate failed; nothing was scored")
+    else:
+        with WE.heavy():
+            _log("loading the stored A0 / FULL world and restricting it to 2023-24")
+            world = load_world_2023()
+            score_run(out, infos, runtime_ok, world, meta, load_oof)
     out["verdict"] = out["curve"]["decision"]["verdict"]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / "results.json").write_text(json.dumps(out, indent=1, default=float))
@@ -600,6 +753,13 @@ def render(out: dict[str, Any]) -> str:
         f"Gates: {json.dumps(out['gates'])}; unfinished arms: {out['unfinished'] or 'none'}.",
         "",
     ]
+    b = out.get("budget") or {}
+    if b:
+        lines += [
+            f"Epoch-cap diagnostic: {b['reached_cap']}/{b['cold_fits']} cold fits reached the cap (share {b['share']:.3f}, NORM-only {b['share_norm_only']:.3f}); "
+            f"arms with every fit at the cap: {b.get('arms_with_every_fit_at_cap') or 'none'}.",
+            "",
+        ]
     if "norm" in c:
         lines += [
             f"n = {c['n_rows']} player-games, {c['n_games']} games (2023-24, pts), {c['n_boot']} paired game-clustered draws.",
@@ -617,6 +777,7 @@ def render(out: dict[str, Any]) -> str:
         ]
     if "decision" in c:
         lines += ["", f"Decision detail: {json.dumps(c['decision'], default=float)}"]
+    lines += ["", *[f"- {d}" for d in out.get("disclosures", [])]]
     return "\n".join(lines) + "\n"
 
 
