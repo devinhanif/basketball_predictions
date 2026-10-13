@@ -193,7 +193,8 @@ def load_players_static_keep(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -
     con.execute("CREATE OR REPLACE TEMP TABLE ps_old AS SELECT * FROM players_static")
     n = load_players_static(con, df) if df.height else 0
     has_side = con.execute(
-        "SELECT count(*) FROM information_schema.tables WHERE table_name = 'players_static_position_source'"
+        "SELECT count(*) FROM information_schema.tables "
+        "WHERE table_name = 'players_static_position_source'"
     ).fetchone()[0]  # type: ignore[index]
     for c in cols:
         if c == "player_id":
@@ -205,7 +206,8 @@ def load_players_static_keep(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -
             else empty
         )
         con.execute(
-            f"UPDATE players_static p SET {c} = o.{c} FROM ps_old o WHERE p.player_id = o.player_id "
+            f"UPDATE players_static p SET {c} = o.{c} FROM ps_old o "
+            "WHERE p.player_id = o.player_id "
             f"AND ({cond}) AND o.{c} IS NOT NULL AND trim(CAST(o.{c} AS VARCHAR)) <> ''"
         )
     con.execute("DROP TABLE ps_old")
