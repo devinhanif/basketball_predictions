@@ -238,11 +238,18 @@ def fetch_missing(db: Path, data_dir: Path = DEFAULT_DATA_DIR, min_interval_s: f
     print(f"uncached 2019-21 players: {len(ids)}", flush=True)
     if not ids:
         return 0
-    df = pull_players_static(
-        ids, data_dir=data_dir, rate_limiter=RateLimiter(min_interval_s), progress_every=10
-    )
-    got = int(df.filter(pl.col("birth_date").is_not_null()).height)
-    print(f"fetched {df.height}, with birth date {got}", flush=True)
+    limiter = RateLimiter(min_interval_s)
+    frames: list[pl.DataFrame] = []
+    failed: list[int] = []
+    for pid in ids:
+        try:  # one player at a time: stats.nba.com returns an empty body for some ids
+            frames.append(pull_players_static([pid], data_dir=data_dir, rate_limiter=limiter))
+        except Exception as e:  # noqa: BLE001 - recorded and reported, never imputed
+            print(f"player {pid}: fetch failed ({type(e).__name__}); left NULL", flush=True)
+            failed.append(pid)
+    df = pl.concat(frames, how="diagonal_relaxed") if frames else pl.DataFrame()
+    got = int(df.filter(pl.col("birth_date").is_not_null()).height) if df.height else 0
+    print(f"fetched {df.height}, with birth date {got}, failed {failed}", flush=True)
     return 0
 
 
