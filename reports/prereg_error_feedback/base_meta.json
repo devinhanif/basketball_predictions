@@ -1,6 +1,7 @@
 {
- "built_at": "2026-10-12 14:42:35 CDT",
+ "built_at": "2026-10-12 16:23:33 CDT",
  "seasons": [
+  2019,
   2020,
   2021,
   2022,
@@ -10,60 +11,64 @@
  "stats": {
   "pts": {
    "path": "data/ops/error_feedback_cache/base_pts.npz",
-   "sha256": "f07ee5bb80627b51e1e39dae7c840f805469c2b339d4dbee71d5f54ffd921dfa",
+   "sha256": "b1e62d8e326cb0d65612e8a109f4dd74ea06873f96643f12a66ac76207d3c84b",
    "frame_sha": "9e5b686bb06aab89bb1d73c610f8ff5d49edab1bf24b7638280a065e282475b2",
-   "rows": 134715,
+   "rows": 152310,
    "rows_by_season": {
+    "2019": 17595,
     "2020": 24522,
     "2021": 27442,
     "2022": 27322,
     "2023": 27708,
     "2024": 27721
    },
-   "blocks": 44
+   "blocks": 52
   },
   "reb": {
    "path": "data/ops/error_feedback_cache/base_reb.npz",
-   "sha256": "6c222498cf633c8fed47295e2addcc443b8a8ff6d450c9e06232d25877719774",
+   "sha256": "02fefb5268103373a9de0c0989639cbb4fb9f685283e282ed9bb294a64b38275",
    "frame_sha": "ad809643a921fe0fb1c18e4498ff3263fcfc5b99280958758cf1fb0a2513c72c",
-   "rows": 134715,
+   "rows": 152310,
    "rows_by_season": {
+    "2019": 17595,
     "2020": 24522,
     "2021": 27442,
     "2022": 27322,
     "2023": 27708,
     "2024": 27721
    },
-   "blocks": 44
+   "blocks": 52
   },
   "ast": {
    "path": "data/ops/error_feedback_cache/base_ast.npz",
-   "sha256": "661fb78a76539df040de433ffaac9ebd96f5760a476ee6092ea4e6a4b12f07cd",
+   "sha256": "aba40ccdc2b634562b5a3b477d2d7a6d86724ea8516f1f3931b30dc267d42b7e",
    "frame_sha": "25e700e84d50c7fdcd3d5489b11003c21b8db3ff10e074c24b556dbc3a7882c9",
-   "rows": 134715,
+   "rows": 152310,
    "rows_by_season": {
+    "2019": 17595,
     "2020": 24522,
     "2021": 27442,
     "2022": 27322,
     "2023": 27708,
     "2024": 27721
    },
-   "blocks": 44
+   "blocks": 52
   },
   "fg3m": {
    "path": "data/ops/error_feedback_cache/base_fg3m.npz",
-   "sha256": "c0fb7b855d6da8db1e56454afcb7435f029dc1f5103f456e1e56c1a7831ed971",
+   "sha256": "2e96fc1165c09ddf2272c8f8720842cb42e5c79329c6dc3c66cce35cb55cc4f5",
    "frame_sha": "e09ae4ae7ed59eed27339b911caf5342e9c462a46466c383109a41a2a2518309",
-   "rows": 134715,
+   "rows": 152310,
    "rows_by_season": {
+    "2019": 17595,
     "2020": 24522,
     "2021": 27442,
     "2022": 27322,
     "2023": 27708,
     "2024": 27721
    },
-   "blocks": 44
+   "blocks": 52
   }
  },
- "wall_s": 287.2007038593292
+ "wall_s": 354.642618894577
 }

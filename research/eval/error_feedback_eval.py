@@ -6,11 +6,11 @@ Claim arm EF = production ``context_residual`` heads (production feature list, p
 plus five as-of columns built from the player's own recent errors against a REPORT-FREE walk-forward base
 (``research.features.error_feedback``). Comparator A0 = the same heads without the columns, same rows, same window
 (every row since 2019-20 dated before the block trains), same readout (production quantiles mapped to integer support,
-integer CRPS). Select = 2022-2024 pooled (2021 fails the first-block coverage gate); report = 2025 once.
+integer CRPS). Select = 2021-2024 pooled (base from 2019-20); report = 2025 once.
 
     M="-m research.eval.error_feedback_eval"
-    .venv/bin/python -W ignore $M base                 # report-free base 2020-2024, 4 stats (heavy.lock; ~5 min; resumable per block)
-    .venv/bin/python -W ignore $M null --k 50          # permutation null SH_k - A0, pts, 2022-2024 (heavy.lock; ~50 s per draw; resumable)
+    .venv/bin/python -W ignore $M base                 # report-free base 2019-2024, 4 stats (heavy.lock; ~6 min; resumable per block)
+    .venv/bin/python -W ignore $M null --k 50          # permutation null SH_k - A0, pts, 2021-2024 (heavy.lock; ~80 s per draw; resumable)
     .venv/bin/python -W ignore $M gate                 # minimum-data gate on the built base + null (heavy.lock; ~1 min)
     .venv/bin/python -W ignore $M rehearse             # the 2025 path with 2024 standing in, BLIND scoring (heavy.lock; ~10 min)
     .venv/bin/python -W ignore $M select --sha <64 hex>    # AFTER the freeze: the select-season evaluation, once
@@ -68,9 +68,16 @@ SECONDARY: tuple[str, ...] = ("reb", "ast", "fg3m")
 STAT_PRIMARY = "pts"
 HIST_SEASONS: tuple[int, ...] = (2019, 2020, 2021)
 CUR_START = 2022
-BASE_SEASONS: tuple[int, ...] = (2020, 2021, 2022, 2023, 2024)
-# 2021 dropped from select: its first-block training coverage is 0.498 < 0.50 (outcome-free gate, 2026-10-12)
-SELECT_SEASONS: tuple[int, ...] = (2022, 2023, 2024)
+BASE_SEASONS: tuple[int, ...] = (
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+)  # from 2019-20 (Devin: max data usage)
+# with the base from 2019-20, 2021's first block carries the column on 0.876 of training rows (gate >= 0.50)
+SELECT_SEASONS: tuple[int, ...] = (2021, 2022, 2023, 2024)
 HOLDOUT_SEASON = 2025
 REPO_CAP = 2024
 N_BOOT = 2000
@@ -329,7 +336,7 @@ def regen_base(
 
 
 def run_base(stats: tuple[str, ...] = STATS) -> dict[str, Any]:
-    """Build and store the report-free base for 2020-2024 (cap 2024; ``save_base`` refuses any later season)."""
+    """Build and store the report-free base for 2019-2024 (cap 2024; ``save_base`` refuses any later season)."""
     t0 = time.time()
     with heavy():
         w = load_world(REPO_CAP)
@@ -670,7 +677,7 @@ def null_dir() -> Path:
 
 
 def run_null(k: int = NULL_K) -> dict[str, Any]:
-    """A0 and K shuffled-residual arms SH_k (pts, 2022-2024, real labels). Resumable per draw. No EF arm is fitted."""
+    """A0 and K shuffled-residual arms SH_k (pts, 2021-2024, real labels). Resumable per draw. No EF arm is fitted."""
     t0 = time.time()
     stat = STAT_PRIMARY
     with heavy():
@@ -861,8 +868,8 @@ def run_gate() -> dict[str, Any]:
         cov = training_coverage(fr, SELECT_SEASONS)
         out["training_coverage"] = cov
         out["training_coverage_first_block"] = cov[0]
-        cov21 = training_coverage(fr, (2021,))
-        out["training_coverage_2021_first_block(dropped season)"] = cov21[0]
+        cov21 = training_coverage(fr, (2022,))
+        out["training_coverage_2022_first_block"] = cov21[0]
         # 2. evaluation-row coverage and missingness by realised minutes, per season and stat
         ev: dict[str, Any] = {}
         for s in STATS:
@@ -894,7 +901,7 @@ def run_gate() -> dict[str, Any]:
     siz: dict[str, Any] = {}
     for g, msk in (
         ("2024 (report stand-in)", a0["season"] == REPO_CAP),
-        ("select pooled 2022-24", np.isin(a0["season"], SELECT_SEASONS)),
+        ("select pooled 2021-24", np.isin(a0["season"], SELECT_SEASONS)),
     ):
         cg = cluster_sd(delta[msk], a0["gid"].astype(str)[msk])
         cd = cluster_sd(delta[msk], a0["day"][msk])
@@ -944,7 +951,7 @@ def run_gate() -> dict[str, Any]:
     rep = siz["2024 conservative (sd/deff of stored FULL-A0)"]
     gate = [
         {
-            "check": "first select block (2022-10): training rows with ef_n >= 3 >= 0.50",
+            "check": "first select block (2021-10): training rows with ef_n >= 3 >= 0.50",
             "value": first,
             "pass": bool(first >= COVERAGE_MIN),
         },
@@ -1260,6 +1267,17 @@ def require_gate() -> dict[str, Any]:
     g: dict[str, Any] = json.loads((OUT_DIR / "gate_history_base.json").read_text())
     if not g.get("gate_pass"):
         raise RuntimeError("the minimum-data gate did not pass: no arm may be fitted")
+    # a gate file measured for another design (other select seasons or another base) does not count
+    if g.get("select_seasons") != list(SELECT_SEASONS):
+        raise RuntimeError(
+            f"gate measured on select seasons {g.get('select_seasons')}, rule says {list(SELECT_SEASONS)}: rerun `gate`"
+        )
+    meta = json.loads((OUT_DIR / "base_meta.json").read_text())
+    for st in STATS:
+        if g["base"]["stats"][st]["sha256"] != meta["stats"][st]["sha256"]:
+            raise RuntimeError(
+                f"gate measured on another {st} base than base_meta.json: rerun `gate`"
+            )
     nul = json.loads((OUT_DIR / "null.json").read_text())
     if int(nul["k"]) < NULL_K:
         raise RuntimeError(f"the permutation null has K = {nul['k']} < {NULL_K}")
@@ -1272,7 +1290,7 @@ def require_gate() -> dict[str, Any]:
 
 
 def run_select(sha: str) -> dict[str, Any]:
-    """AFTER the freeze: the select-season evaluation (2022-2024 pooled), once."""
+    """AFTER the freeze: the select-season evaluation (2021-2024 pooled), once."""
     RULE.require_frozen(sha)
     require_gate()
     out_dir = OUT_DIR / "select"
