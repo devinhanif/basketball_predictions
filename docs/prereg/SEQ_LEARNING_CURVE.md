@@ -1,6 +1,6 @@
 # SEQ_LEARNING_CURVE: how much does the W_ALL sequence model gain from each added training season? (pre-registration, descriptive, no holdout touch)
 
-Status: **DRAFT 2026-10-12 (modeler). Not frozen. No fit, no Colab run, no number from any window has been produced or read.** Nothing here is a claim until Devin confirms and the main session commits `prereg(SEQ_LEARNING_CURVE): <sha256>`. Freeze evidence: the commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/SEQ_LEARNING_CURVE.md | shasum -a 256` (first 8 hex into the results and every ledger row). To freeze: change this line to `Status: **FROZEN <date> ...**` citing Devin's confirmation, compute the hash, commit. Everything above `=== RESULTS BELOW ===` is the rule.
+Status: **FROZEN 2026-10-12 19:31 CDT (clock read by `date`).** Devin confirmed the drafted defaults for open questions 1-5 ("do 1 adn 2 adn 3", 2026-10-12, answering Claude's request to confirm the four defaults). No fit, no Colab run, no number from any window had been produced or read at the freeze. Freeze evidence: the commit `prereg(SEQ_LEARNING_CURVE): <sha256>` plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/SEQ_LEARNING_CURVE.md | shasum -a 256` (first 8 hex into the results and every ledger row). Everything above `=== RESULTS BELOW ===` is the rule.
 Season labels are `games.season` (2015 = 2015-16, ..., 2022 = 2022-23, 2023 = 2023-24 = the select season, 2025 = the frozen holdout). Id: `SEQ_LEARNING_CURVE`.
 Advice or momentum: **follows advice** (Claude's recommendation in DECISIONS 2026-10-12 17:25 item 1; BEST_PRACTICES "An invalid test is not a null": data-hungry models get a learning curve on the select season before anything is concluded; Devin chose it).
 Holdout: **none touched.** The export is capped at season 2023 in code; the gate script reads `season <= 2024` in SQL on `nba.duckdb` (read-only); 2024 and 2025 outcomes are never scored here. HOLDOUT_ACCESS_LOG needs no row (the archivist confirms).
@@ -149,7 +149,10 @@ Class checks: training window long enough? that is the question. Era channels ze
 * A window not completed within the 240 T4-minute ceiling: INCONCLUSIVE; no partial curve is called.
 * Not RISING: closed; no variant windows, floors, normalizers or seeds are tried afterward (at most the one pre-registered follow-up after RISING).
 
-## Open questions for Devin (safe defaults in brackets)
+## Before the run
+* An adversary loader review of the export, the notebook and the scorer, committed as `docs/reviews/seq_learning_curve_loader_<date>.md` after the freeze commit, before any Colab run. The run script refuses to start without it (BEST_PRACTICES 2026-10-12, "A required pre-run review is a hard stop").
+
+## Open questions for Devin (answered 2026-10-12: every bracketed default confirmed)
 1. Windows 9-10: download 2013-14 and 2014-15 now so one run covers 1..10? [No: windows 1..8 now; 9-10 only in the follow-up if RISING. If yes: `mkdir -p data/raw/nba_data_shufinskiy_2026-10-12_b && cd` there and fetch `nbastats_2013.tar.xz`, `nbastats_2014.tar.xz`, `nbastats_po_2013.tar.xz`, `nbastats_po_2014.tar.xz` from the shufinskiy/nba_data release assets; then ingest, reconcile, rerun the gate, and add N = 9, 10 before the freeze.]
 2. Confirm the S1 decisions: played rows only, no report tokens, position zeroed for all S1 rows. [Yes.]
 3. Confirm the floors (A -0.003, B -0.0015) and the replicate guard (direction plus half the floor). [Yes.]
