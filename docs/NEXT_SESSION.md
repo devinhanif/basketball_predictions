@@ -1,38 +1,43 @@
 # Next session
 
-_Updated 2026-10-12 21:49 CDT (HEAD 8e15012). Status overview: PROJECT_STATUS.md._
+_Updated 2026-10-13 06:58 CDT (HEAD 30657b9). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
-## Start here (handoff 2026-10-12, late session)
+## Start here (handoff 2026-10-13 morning)
 
-Done: T478 post-result review SURVIVES (T479; skipped pre-run review recorded); line reading (T480: gain reaches the line, small;
-market still better); SEQ_LEARNING_CURVE frozen (ad0408a7), built, loader review + fix-check APPROVED (acc4e61), staged on Colab
-(run 20261012_212816); T478 era probe plan committed and staged (run 20261012_200752); PPLAY_MINUTES_VALID backfill done (birth
-dates 99.99/100/100%, national_tv 2019-21) and rule FROZEN (91d82de7, 8e15012); ERROR_FEEDBACK gate G1-G6 passed at 20:34 but its
-blind rehearsal FAILED at 21:40 (regenerated 2024 base != stored), most likely because the history fill changed base inputs after
-the base was built. Opening-night checks: 5 launchd jobs loaded, registry shows both production v2; Mac sleep = 1 min (only
-caffeinate holds it): Devin to set game-day sleep off.
+Results since the last handoff (all committed, ledger T479-T486):
+- T479 T478 review SURVIVES (pre-run review skipped then; practice added). T480 line reading: gain reaches the line, small; market better.
+- T481 ERROR_FEEDBACK Stage 1 FAIL on its slice guard (ef_n<3 +0.0107 > +0.01; primary -0.0056 passed): CLOSED, no 2025 touch.
+- T482/T484 PPLAY_MINUTES_VALID: R19 beats production P(play) by -0.085 / -0.092 log loss (2023/2024); attack WOUNDED not broken
+  (gain is current-form info; production handles only OUT players, same as P0; wounds: never-dressed players unscored, live arm is
+  the 2022-start R not R19). Claude: no switch before opening night; PPLAY_INTO_PROPS_LIVE decides. Devin's call.
+- T483 era probe flagged (2019z v 2022 AUC 0.984 vs limit 0.896): W_ALL encodes era beyond tokens; T478 pass stands.
+- T485/T486 SEQ_LEARNING_CURVE RISING (A 8v4 -0.0062, B 8v6 -0.0029); attack WOUNDED: A robust (pooled 6 seeds -0.0068), not
+  survivorship, in the SEQ member; B within seed noise; data vs extra warm-refit steps not separated. Prior P(RISING) 0.12 scored a miss.
 
-In flight at handoff: (a) modeler diagnosing/rebuilding ERROR_FEEDBACK base, null, gate, rehearsal on current data (not frozen;
-freeze only after a passing rehearsal); (b) modeler building the PPLAY_MINUTES_VALID harness (then adversary loader review with
-Verdict: APPROVED naming the harness commit, then the Mac run). Devin running on Colab: era probe, then the learning curve.
+Waiting on Devin:
+1. SEQ_LEARNING_CURVE_2 (the one allowed follow-up): Claude recommends windows 9-10 (2013-14, 2014-15 via Devin's shell download,
+   ~16 MB, then ingest + 218-game reconcile + gate), a step-matched control, 6+ seeds per window, seed-inclusive CIs. Yes/no.
+2. Production P(play) switch: Claude recommends waiting for the live log.
+3. T478 AVG promotion/routing: Claude recommends (A) AVG_SHADOW_LIVE (postseason route to FULL, monthly Colab refit + nightly CPU
+   inference), but only after item 4.
+4. `sudo pmset -c sleep 0` (Mac sleep is 1 min; only caffeinate held it awake).
 
 Next, in order:
-1. Pull and read the era probe (`uv run python -m research.colab pull t478_era_probe 20261012_200752`, then
-   `uv run python -m research.eval.t478_era_probe --states <run dir>/states_WALL_E2.npz --out reports/t478_era_probe`); ledger row.
-2. Then Devin's promotion/routing choice. Claude recommends (A): AVG_SHADOW_LIVE forward rule, hard postseason route to FULL, no
-   learned minutes gate (T440, T465-T466 closed), monthly Colab refit + nightly CPU inference; freeze before 2026-10-20.
-3. Pull and score the learning curve (`research.colab pull seq_learning_curve 20261012_212816`, then
-   `research.eval.seq_learning_curve_eval run --run <dir>`); the gate refuses without the approved fix-check.
-4. ERROR_FEEDBACK: FROZEN 443d6ef5 (05b2f36) after the rebuilt gate passed; Stage 1 select queued detached behind PPLAY (log data/ops/logs/error_feedback_select_*). Read it; Stage 2 only on Devin's words, logged first.
-4b. AUDIT (priority before any promotion): history pos_code was 0 for 2019-21-only players in every build before 21:33 (history players_static was empty). Check which completed results read it (DECISIONS 23:0x entry lists candidates incl. T473 FULL and T478) and whether it moves their numbers.
-5. PPLAY_MINUTES_VALID: harness ce6afc2 + fixes 2eb3360, fix-check APPROVED; run STARTED 22:58 CDT detached (waits for heavy.lock, 3-4.5 h), log data/ops/logs/pplay_minutes_valid_run_20261012T2258.log; results reports/prereg_pplay_minutes_valid.md. Read it, ledger row; then SEQ_MINUTES.
+1. HISTORY POSITION AUDIT (before any promotion): history players_static was EMPTY before 2026-10-12 20:34, so every build through
+   build_features/context_residual before then gave pos_code 0 to 2019-21-only players (survival pattern). Find which completed
+   results read it (candidates: T473 RECENT_ROLE_FULL = FULL in T478, ROUTER_G2, ENSEMBLE, PI_RECENT_ROLE, ROAD_STARS,
+   NEAR_MISS_BUNDLE, INJURY_REASON, minutes_v2 and lower_tail exports) and whether it moves their numbers. R19 (T482) does not use
+   pos_code; the sequence exporter is unaffected (T486).
+2. SEQ_LEARNING_CURVE_2 draft if Devin says yes (modeler; gate on real data; pre-run loader review with Verdict: APPROVED).
+3. Opening-night checklist below (first games 2026-10-20): supervised pretip run, sleep, ingest queue on game days.
+4. SEQ_MINUTES after the PPLAY decision. PBP_HALFTIME last.
 
-Loose ends: loader-gate R1-R3 (review file immutable after commit; refuse runs predating approval; record scorer dependency shas); the SEQ_LEARNING_CURVE gate likely shares the PPLAY review's S7/S7b hole (git rm or rename of a later BLOCKED review reopens an earlier APPROVED one) and substring Rule: match; fix only after the staged run is scored, since editing reviewed paths voids its approval;
-mypy fails on research/eval/pi_transfer_diag.py (10 errors, file unchanged since 02:57); rclone shared client_id retires in 2026;
-PI history manifest NULL_SHIFT flags from the national_tv fill (intended). Practice to add once the ERROR_FEEDBACK cause is
-confirmed: re-run any pre-freeze gate after a data change it depends on. Two guessed timestamps this session (freeze times),
-both corrected by re-freezing before any result; take every time from `date`.
-Usage: cost mode; weekly 72% on 2026-10-12, resets ~10-13.
+Loose ends: the SEQ_LEARNING_CURVE review gate shares the S7/S7b hole the PPLAY gate fixed (deleting/renaming a later BLOCKED review
+reopens an earlier APPROVED one) and a substring Rule: match; its job description says "18 arms" (14 is correct). Fix both now that
+its run is scored (editing reviewed paths voided nothing that is still pending). Loader-gate R1-R3 / R5 (stamp transitive
+dependency hashes). mypy: 10 errors in research/eval/pi_transfer_diag.py (unchanged since 2026-10-12 02:57). rclone shared
+client_id retires during 2026 (own client_id). nba/truth/bootstrap.py does not exist; harness CIs are separate copies.
+Usage: cost mode; weekly reset ~10-13.
 
 ## Before opening night, in order (first games 2026-10-20)
 
