@@ -217,19 +217,16 @@ stale 15:44 gate file cannot stand in.
 * **G3 planted future, real frame, MEASURED:** every base residual dated on or after 2023-01-15 rewritten: the columns of all 87,064 rows
   dated on or before the cut are unchanged; control moves 99.9% of the following 7 days. Repeated at the 2021-22 cut 2021-12-15
   (54,915 rows on or before the cut): inert, control moves 99.1%. **PASS.**
-* **G4 harness reproduction (production window, pts 2023-2024, stored production forecasts, max abs diff <= 1e-6):** measured 0.0 on all
-  55,320 rows at 15:46 CDT. It does not read the base or the select seasons, and the code it exercises is unchanged by the revision; it is
-  re-run by `gate` and the revised value is filled in before the freeze. **PENDING (re-run by `gate`).**
-* **G5 permutation null (K = 50, pts, 2021-2024, SH_k - A0, real labels):** **PENDING.** The new null is resumable and stands at 19 of 50
-  draws (`data/ops/error_feedback_cache/null/`; identity.json matches the new base and frame); `... null --k 50` finishes it (about
-  31 draws x 80 s). Its mean, sd and line (mean - 2 sd), pooled and by season (2021 included), are filled in here afterwards. The first
-  null's 2022 noise arms gained because the missing pattern marked the pre-base era; with the base from 2019-20 that marker moves to
-  2019-20 training rows, and the null guard absorbs whatever remains. Nothing here involves an EF or PL arm.
-* **G6 report half-width (2024 stands in for 2025: 27,721 rows, 1,320 games):** the conservative sizing (sd 0.330, deff 1.09 of the stored
-  FULL - A0 refit) does not depend on the base: **0.0041 <= 0.005 PASS** (carried). The SH-based and select-pooled figures (pooled
-  2021-2024 is now 110,193 rows, 5,281 games) are **PENDING** the null.
-* **Verdict: G1, G2, G3 pass (re-measured); G4 carried and re-run by `gate`; G5 and the null-based part of G6 pending. The gate is not
-  complete: this document is not to be frozen until `gate` has run on the finished null and every PENDING line is replaced.**
+* **G4 harness reproduction (production window, pts 2023-2024, stored production forecasts, max abs diff <= 1e-6):** re-run by `gate`
+  at 20:34 CDT on the revised base: 0.0 on all 55,320 rows. **PASS.**
+* **G5 permutation null (K = 50, pts, 2021-2024, SH_k - A0, real labels; finished 20:34 CDT, reports/prereg_error_feedback/null.json):**
+  pooled mean +0.00010, sd 0.00031, line (mean - 2 sd) -0.00052; by season 2021 +0.00034 / 0.00083 / -0.00132, 2022 -0.00014 / 0.00056 /
+  -0.00125, 2023 +0.00004 / 0.00056 / -0.00108, 2024 +0.00015 / 0.00044 / -0.00073. No noise arm gains beyond the line. **PASS.**
+* **G6 half-width:** report (2024 stands in for 2025: 27,721 rows, 1,320 games): conservative 0.0041 <= 0.005 **PASS**; SH-based se_total
+  0.00087, half-width 0.0015. Select pooled 2021-2024 (110,193 rows, 5,281 games, deff_game 1.05): half-width 0.0009, se_total 0.00056.
+  Power to clear the -0.005 floor: about 1.00 at 2023's persistence slope (0.149) and **0.18 pooled / 0.28 on the report season at 2024's
+  slope (0.102)**: if 2024's persistence is the truth, the test is expected to fail by the floor, not by noise.
+* **Verdict: G1-G6 all PASS (gate_history_base.json, measured 20:34 CDT, gate_pass true). Ready for Devin to freeze.**
 
 ## Expected effect and power (honest)
 Expected effect (outcome-free, from the disclosed persistence slopes: the A0 grid shifted by slope x `ef_res_l5`): **-0.0096 if
