@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-13T01:35:20.177758+00:00",
- "data_version": "343603612bb1",
+ "created_at": "2026-10-13T02:34:23.870890+00:00",
+ "data_version": "9e66461ad129",
  "db_path": "/Users/devin/Downloads/nba-prediction/data/history/nba_history.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -3421,7 +3421,7 @@
      "type": "DATE"
     },
     "college": {
-     "null_rate": 0.001359,
+     "null_rate": 0.001264,
      "type": "VARCHAR"
     },
     "college_stats": {
@@ -3429,23 +3429,23 @@
      "type": "JSON"
     },
     "draft_pick": {
-     "null_rate": 0.294837,
+     "null_rate": 0.326169,
      "type": "INTEGER"
     },
     "draft_status": {
-     "null_rate": 0.002717,
+     "null_rate": 0.002528,
      "type": "VARCHAR"
     },
     "draft_year": {
-     "null_rate": 0.264946,
+     "null_rate": 0.289507,
      "type": "INTEGER"
     },
     "first_season": {
-     "null_rate": 0.004076,
+     "null_rate": 0.010114,
      "type": "INTEGER"
     },
     "height_in": {
-     "null_rate": 0.001359,
+     "null_rate": 0.007585,
      "type": "FLOAT"
     },
     "player_id": {
@@ -3453,11 +3453,11 @@
      "type": "INTEGER"
     },
     "position": {
-     "null_rate": 0.001359,
+     "null_rate": 0.007585,
      "type": "VARCHAR"
     },
     "weight_lb": {
-     "null_rate": 0.001359,
+     "null_rate": 0.007585,
      "type": "FLOAT"
     }
    },
@@ -3467,12 +3467,12 @@
      "2002-12-24"
     ]
    },
-   "fingerprint": "31d79f23387165dc-d04d9a41cf95461e",
+   "fingerprint": "c0f30a310a6dfefb-8d5f3504ad69e785",
    "pk_duplicates": 0,
    "primary_key": [
     "player_id"
    ],
-   "row_count": 736,
+   "row_count": 791,
    "schema_hash": "d9d6d85c90824824"
   },
   "possessions": {
