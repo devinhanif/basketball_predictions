@@ -25,7 +25,7 @@ MARK_RESULTS = "=== RESULTS BELOW ===\n"
 
 INTRO = """# seq_learning_curve -- SEQ_LEARNING_CURVE (windows 1..8 of the E2 sequence transformer, scored on 2023-24 only), T4 GPU
 
-Runtime > Change runtime type > T4 GPU. Run all. 18 arms (NORM 1-8, RAW 1/4/8, NREP 4/6/8), 3 seeds each, full budgets, 9 monthly warm refits per arm; estimate 60-150 T4 minutes
+Runtime > Change runtime type > T4 GPU. Run all. 14 arms (NORM 1-8, RAW 1/4/8, NREP 4/6/8), 3 seeds each, full budgets, 9 monthly warm refits per arm; estimate 60-150 T4 minutes
 (not measured), hard ceiling 240 cumulative minutes (an arm not finished is reported as unfinished). The notebook refuses unless the staged SEQ_LEARNING_CURVE.md is the frozen
 document it was built for AND the staged loader-review attestation is present and matches. Nothing after season 2023 can be loaded. It scores nothing."""
 SETUP = """try:  # Colab?

@@ -43,7 +43,7 @@ ROW_KEYS = (
     "game_id", "y", "base", "n_prior", "norm_c", "date_str",
 )  # fmt: skip
 TEST_INPUT_KEYS = ("seq", "mask", "opp_step", "ctx", "team_idx", "opp_idx", "y", "base", "norm_c")
-EST = "about 60-150 T4 minutes (estimate, not measured): 18 arms, 9 monthly warm refits each; ceiling 240"
+EST = "about 60-150 T4 minutes (estimate, not measured): 14 arms, 9 monthly warm refits each; ceiling 240"
 
 
 class CeilingReached(RuntimeError):

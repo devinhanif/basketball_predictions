@@ -1,0 +1,30 @@
+name: seq_learning_curve_2
+description: >
+  SEQ_LEARNING_CURVE_2 (docs/prereg/SEQ_LEARNING_CURVE_2.md; DRAFT until frozen; descriptive, NOT a holdout touch: nothing after season 2023 can be loaded).
+  Does more history help the W_ALL sequence model once warm training steps are held fixed, and does the curve keep falling at 9 and 10 seasons?
+  E2 transformer, walk-forward scored on 2023-24 only, 6 seeds, full budgets: unmatched U(4,6,8,9,10), step-matched M(6,8,9,10), UP(4) = window-4 data with
+  U(8)'s warm steps; 10 arms in 5 window units (cold fits shared within a unit). Refuses unless the staged rule sha matches AND the Mac-side loader-review
+  attestation is staged (a committed docs/reviews/seq_learning_curve_2_loader_<date>.md, a whole-line Rule match, descended from the freeze commit, no later
+  deleted or renamed review). Scores nothing; scoring is one CPU run on the Mac. Estimate 90-170 T4 minutes (not measured); ceiling 240.
+notebook: research/colab/jobs/seq_learning_curve_2/seq_learning_curve_2.ipynb
+inputs:
+  - path: data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S3.npz
+    produce: uv run python -m research.features.seq_learning_curve_2_export build
+    depends_on: [nba.duckdb, data/history/nba_history.duckdb]
+  - path: data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S2.npz
+  - path: data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S1.npz
+  - path: docs/prereg/SEQ_LEARNING_CURVE_2.md
+  - path: data/colab/seq_learning_curve_2/loader_review.md
+    produce: uv run python -m research.eval.seq_learning_curve_2_rule stage
+  - path: data/colab/seq_learning_curve_2/loader_review_attestation.json
+    produce: uv run python -m research.eval.seq_learning_curve_2_rule stage
+    depends_on: [data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S3.npz]
+artifacts:
+  - metrics.json
+  - config.json
+  - cap_diagnostic.json
+registry:
+  model_name: seq_learning_curve_2
+  tags: {rung: 3, model_method: seq_transformer_quantile_walkforward, holdout_scored: false}
+touches_holdout: false
+preregistration_id: null

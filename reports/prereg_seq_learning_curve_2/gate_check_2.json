@@ -1,0 +1,554 @@
+{
+ "data_version": "4104818c6695",
+ "D1": {
+  "files": {
+   "nbastats_2013.tar.xz": true,
+   "nbastats_2014.tar.xz": true,
+   "nbastats_po_2013.tar.xz": true,
+   "nbastats_po_2014.tar.xz": true
+  },
+  "pass": true
+ },
+ "D2": {
+  "2013": {
+   "games": 1319,
+   "played_rows": 27324,
+   "null_rows": 0,
+   "team_games": 2638,
+   "team_games_5_starters": 2638,
+   "minutes_ratio": 2.0165845337034995,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2014": {
+   "games": 1311,
+   "played_rows": 27478,
+   "null_rows": 0,
+   "team_games": 2622,
+   "team_games_5_starters": 2620,
+   "minutes_ratio": 2.015160183550463,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2015": {
+   "games": 1316,
+   "played_rows": 27817,
+   "null_rows": 0,
+   "team_games": 2632,
+   "team_games_5_starters": 2632,
+   "minutes_ratio": 2.0150392603698664,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2016": {
+   "games": 1309,
+   "played_rows": 27709,
+   "null_rows": 0,
+   "team_games": 2618,
+   "team_games_5_starters": 2618,
+   "minutes_ratio": 2.0132098290461906,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2017": {
+   "games": 1312,
+   "played_rows": 27683,
+   "null_rows": 0,
+   "team_games": 2624,
+   "team_games_5_starters": 2624,
+   "minutes_ratio": 2.011591717608323,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2018": {
+   "games": 1312,
+   "played_rows": 27739,
+   "null_rows": 0,
+   "team_games": 2624,
+   "team_games_5_starters": 2624,
+   "minutes_ratio": 2.0141323686326036,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2019": {
+   "games": 1143,
+   "played_rows": 24097,
+   "null_rows": 0,
+   "team_games": 2286,
+   "team_games_5_starters": 2286,
+   "minutes_ratio": 2.0149676163383177,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2020": {
+   "games": 1171,
+   "played_rows": 25053,
+   "null_rows": 0,
+   "team_games": 2342,
+   "team_games_5_starters": 2342,
+   "minutes_ratio": 2.0119395813287864,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2021": {
+   "games": 1323,
+   "played_rows": 28045,
+   "null_rows": 0,
+   "team_games": 2646,
+   "team_games_5_starters": 2646,
+   "minutes_ratio": 2.0107278805473054,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2022": {
+   "games": 1320,
+   "played_rows": 27737,
+   "null_rows": 0,
+   "team_games": 2640,
+   "team_games_5_starters": 2640,
+   "minutes_ratio": 2.014856744147514,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2023": {
+   "games": 1318,
+   "played_rows": 28197,
+   "null_rows": 0,
+   "team_games": 2636,
+   "team_games_5_starters": 2636,
+   "minutes_ratio": 2.0110867159250914,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  },
+  "2024": {
+   "games": 1320,
+   "played_rows": 28236,
+   "null_rows": 0,
+   "team_games": 2640,
+   "team_games_5_starters": 2640,
+   "minutes_ratio": 2.0110682347502955,
+   "checks": {
+    "box_rows_for_every_game": true,
+    "played_rows_ge_24000": true,
+    "null_share_le_0.1pct": true,
+    "five_starters_ge_99.5pct": true,
+    "minutes_ratio_2.00_2.03": true,
+    "possessions_every_game": true,
+    "era_flag_row_per_game": true
+   },
+   "pass": true
+  }
+ },
+ "D3": {
+  "2013": {
+   "file": "reports/history_2013_2014_boxsample_reconcile.json",
+   "games": 67,
+   "official_played_rows": 1397,
+   "missing": 0,
+   "extra": 0,
+   "worst_stat_mismatch_rows": 0,
+   "minutes_within_tol": 0.9942734430923408,
+   "pass": true
+  },
+  "2014": {
+   "file": "reports/history_2013_2014_boxsample_reconcile.json",
+   "games": 58,
+   "official_played_rows": 1246,
+   "missing": 0,
+   "extra": 0,
+   "worst_stat_mismatch_rows": 0,
+   "minutes_within_tol": 0.9943820224719101,
+   "pass": true
+  },
+  "2015": {
+   "file": "reports/prereg_seq_learning_curve_2/d3_2015_2018_reconcile_post_ftfix.json",
+   "games": 58,
+   "official_played_rows": 1228,
+   "missing": 0,
+   "extra": 0,
+   "worst_stat_mismatch_rows": 0,
+   "minutes_within_tol": 0.9780130293159609,
+   "pass": true
+  },
+  "2016": {
+   "file": "reports/prereg_seq_learning_curve_2/d3_2015_2018_reconcile_post_ftfix.json",
+   "games": 58,
+   "official_played_rows": 1240,
+   "missing": 0,
+   "extra": 0,
+   "worst_stat_mismatch_rows": 0,
+   "minutes_within_tol": 0.9967741935483871,
+   "pass": true
+  },
+  "2017": {
+   "file": "reports/prereg_seq_learning_curve_2/d3_2015_2018_reconcile_post_ftfix.json",
+   "games": 52,
+   "official_played_rows": 1115,
+   "missing": 0,
+   "extra": 0,
+   "worst_stat_mismatch_rows": 0,
+   "minutes_within_tol": 1.0,
+   "pass": true
+  },
+  "2018": {
+   "file": "reports/prereg_seq_learning_curve_2/d3_2015_2018_reconcile_post_ftfix.json",
+   "games": 50,
+   "official_played_rows": 1079,
+   "missing": 0,
+   "extra": 0,
+   "worst_stat_mismatch_rows": 0,
+   "minutes_within_tol": 0.9981464318813716,
+   "pass": true
+  }
+ },
+ "D4": {
+  "per_season": {
+   "2013": {
+    "played_rows": 27324,
+    "unknown_rows": 290,
+    "unknown_share": 0.01061338017859757,
+    "unknown_ids": [
+     201576,
+     201946,
+     201964,
+     202091,
+     202399,
+     202970,
+     203106,
+     203502,
+     203810
+    ],
+    "mean_min_unknown": 14.280632019042969,
+    "mean_min_known": 23.460407257080078,
+    "minutes_gap": 9.17977523803711,
+    "share_le_1pct": false,
+    "gap_le_3": false,
+    "pass": false
+   },
+   "2014": {
+    "played_rows": 27478,
+    "unknown_rows": 217,
+    "unknown_share": 0.007897226872407017,
+    "unknown_ids": [
+     201595,
+     201946,
+     201964,
+     202399,
+     203106,
+     203565,
+     203805,
+     203968
+    ],
+    "mean_min_unknown": 12.845160484313965,
+    "mean_min_known": 23.156253814697266,
+    "minutes_gap": 10.3110933303833,
+    "share_le_1pct": true,
+    "gap_le_3": false,
+    "pass": false
+   },
+   "2015": {
+    "played_rows": 27817,
+    "unknown_rows": 43,
+    "unknown_share": 0.0015458173059639789,
+    "unknown_ids": [
+     201946
+    ],
+    "mean_min_unknown": 7.9352707862854,
+    "mean_min_known": 22.90230941772461,
+    "minutes_gap": 14.967039108276367,
+    "share_le_1pct": true,
+    "gap_le_3": false,
+    "pass": false
+   },
+   "2016": {
+    "played_rows": 27709,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 22.825435638427734,
+    "minutes_gap": 0.0,
+    "share_le_1pct": true,
+    "gap_le_3": true,
+    "pass": true
+   },
+   "2017": {
+    "played_rows": 27683,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 22.880828857421875,
+    "minutes_gap": 0.0,
+    "share_le_1pct": true,
+    "gap_le_3": true,
+    "pass": true
+   },
+   "2018": {
+    "played_rows": 27739,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 22.86347770690918,
+    "minutes_gap": 0.0,
+    "share_le_1pct": true,
+    "gap_le_3": true,
+    "pass": true
+   },
+   "2019": {
+    "played_rows": 24097,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 22.938371658325195,
+    "minutes_gap": 0.0,
+    "share_le_1pct": true,
+    "gap_le_3": true,
+    "pass": true
+   },
+   "2020": {
+    "played_rows": 25053,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 22.56957244873047,
+    "minutes_gap": 0.0,
+    "share_le_1pct": true,
+    "gap_le_3": true,
+    "pass": true
+   },
+   "2021": {
+    "played_rows": 28045,
+    "unknown_rows": 0,
+    "unknown_share": 0.0,
+    "unknown_ids": [],
+    "mean_min_unknown": null,
+    "mean_min_known": 22.76506805419922,
+    "minutes_gap": 0.0,
+    "share_le_1pct": true,
+    "gap_le_3": true,
+    "pass": true
+   }
+  },
+  "pooled_unknown_share": 0.0022638868879787605
+ },
+ "D6_carried_gates_2015_2024": {
+  "2015": true,
+  "2016": true,
+  "2017": true,
+  "2018": true,
+  "2019": true,
+  "2020": true,
+  "2021": true,
+  "2022": true,
+  "2023": true,
+  "2024": true
+ },
+ "D7": {
+  "season_mean_pts_reb_ast_fg3m": {
+   "2013": [
+    100.91,
+    42.639,
+    21.856,
+    7.763
+   ],
+   "2014": [
+    100.047,
+    43.401,
+    22.016,
+    7.904
+   ],
+   "2015": [
+    102.486,
+    43.707,
+    22.132,
+    8.558
+   ],
+   "2016": [
+    105.618,
+    43.409,
+    22.598,
+    9.705
+   ],
+   "2017": [
+    106.215,
+    43.474,
+    23.147,
+    10.492
+   ],
+   "2018": [
+    110.989,
+    45.155,
+    24.488,
+    11.363
+   ],
+   "2019": [
+    111.646,
+    44.71,
+    24.276,
+    12.275
+   ],
+   "2020": [
+    111.971,
+    44.257,
+    24.598,
+    12.678
+   ],
+   "2021": [
+    110.322,
+    44.287,
+    24.524,
+    12.422
+   ],
+   "2022": [
+    114.33,
+    43.422,
+    25.211,
+    12.315
+   ],
+   "2023": [
+    113.646,
+    43.438,
+    26.447,
+    12.764
+   ],
+   "2024": [
+    113.494,
+    44.017,
+    26.3,
+    13.463
+   ]
+  },
+  "Lprev": {
+   "2013": [
+    114.33,
+    43.422,
+    25.211,
+    12.315
+   ],
+   "2014": [
+    100.91,
+    42.639,
+    21.856,
+    7.763
+   ]
+  },
+  "parent_constant_drift_2015_2018": {
+   "2015": [
+    -0.003,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "2016": [
+    -0.003,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "2017": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "2018": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  }
+ }
+}
