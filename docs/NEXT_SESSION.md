@@ -1,6 +1,28 @@
 # Next session
 
-_Updated 2026-10-11 04:00 CT (HEAD 2ffd6ff). Status overview: PROJECT_STATUS.md._
+_Updated 2026-10-12 19:02 CDT (HEAD 332827f). Status overview: PROJECT_STATUS.md._
+
+## Start here (handoff 2026-10-12)
+
+Done this session: history 2015-16 .. 2018-19 loaded from shufinskiy/nba_data play-by-play (history DB only; 5,249 games),
+overlap check passed at event level, independent 218-game stats.nba.com sample reconciles (12/14 stats exact; pts/ftm
+0.65% off in 2015-17; minutes >= 97.8% within 1 min). P(play)/minutes stay on 2019-20 on (DECISIONS: option A); 2015-18
+is played rows only, flags `box_derived`, `no_injury_report`. Facts-store item 1 below is already done (`--seasons` and the
+nightly step exist).
+
+Next, in order:
+1. **SEQ_LEARNING_CURVE draft (modeler).** Windows 1..10 seasons scored on 2023-24; era flags for rule changes; stats
+   normalized to the season league rate; "still rising" criterion written before any run; data gate checked on the real
+   tables (non-negotiable 8). Verify first: 2023-24 player participation policy / 65-game rule dates, 2016-17 and 2017-18
+   rule changes (only 2018-19 14 s reset and 2021-22 non-basketball moves are verified).
+2. **T478 post-result commitments:** adversary post-result review, ENSEMBLE era probe (descriptive), line-level reading.
+3. Opening-night checks below (launchctl, registry, supervised pretip run, sleep settings).
+4. Then SEQ_MINUTES (2019-20 on), the redos (PPLAY_MINUTES_VALID waits on Devin: backfill/floors/no-2025), PBP_HALFTIME last.
+
+Waiting on Devin: ERROR_FEEDBACK uncommitted changes (whose? commit?), PPLAY_MINUTES_VALID backfill/floors/no-2025,
+LINE_CALIBRATION rev 2 freeze, X sign-up for the reporter poll, the 2 unallowlisted NULL_SHIFT flags on the history
+manifest (both structural, from the new seasons). Shot rows != FGA before 2017-18: never use shot counts as FGA there.
+Usage: weekly 72% on 2026-10-12, resets ~10-13; stay in cost mode.
 
 ## Before opening night, in order (first games 2026-10-20)
 
