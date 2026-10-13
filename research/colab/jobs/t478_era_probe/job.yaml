@@ -1,0 +1,23 @@
+name: t478_era_probe
+description: >
+  T478 post-result descriptive probe (reports/t478_era_probe/PLAN.md): the SEQ_FULL_MIX_RT run-#1 program WALL_E2 (W_ALL, real-tip tokens,
+  era channels), seed 0 only, test seasons 2023-2024, then head-input states (128-d: target token + pooled history) of the final model for up to 6000 rows per season
+  2019-2024 (n_prior >= 5). The notebook cannot read season 2025. Scores nothing; the era AUCs are
+  computed on the Mac. About 7 T4 minutes (5-12).
+notebook: research/colab/jobs/t478_era_probe/t478_era_probe.ipynb
+inputs:
+  - path: data/colab/seq_full_mix_rt/seq_ensemble_rt_cur.npz
+    produce: uv run python -m research.features.seq_full_mix_rt_export selection
+    depends_on: [nba.duckdb, data/history/nba_history.duckdb]
+  - path: data/colab/seq_full_mix_rt/seq_ensemble_rt_hist.npz
+artifacts:
+  - metrics.json
+  - config.json
+  - info_WALL_E2.json
+  - oof_WALL_E2.npz
+  - states_WALL_E2.npz
+registry:
+  model_name: t478_era_probe
+  tags: {rung: 3, model_method: seq_transformer_era_probe, holdout_scored: false}
+touches_holdout: false
+preregistration_id: null
