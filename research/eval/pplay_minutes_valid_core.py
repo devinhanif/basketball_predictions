@@ -15,6 +15,7 @@ frame goes through ``assert_holdout``.
 from __future__ import annotations
 
 import hashlib
+import json
 import time
 from pathlib import Path
 from typing import Any
@@ -83,8 +84,19 @@ REPORT_FEATURE_COLS = (
     "on_morning_report",
     "on_evening_report",
 )
-# minutes-head (M2) features derived from the report: NULL on 2021-22 rows, ``has_report`` = 0 there
-M2_REPORT_COLS = ("n_out_rot", "vac_reb", "vac_ast", "vac_fg3m", "n_out_starters", "out_max_min40")
+# minutes-head (M2) features derived from the report: NULL on 2021-22 rows, ``has_report`` = 0 there. This tuple is only the FLOOR (F1: the loader review found
+# vac_min and vac_pts missing from a hand-written list); the harness derives the full list from every column MV.build_frame computes from the OUT sets
+# (``derive_report_cols``) and drops and gates on the union.
+M2_REPORT_COLS = (
+    "n_out_rot",
+    "vac_min",
+    "vac_pts",
+    "vac_reb",
+    "vac_ast",
+    "vac_fg3m",
+    "n_out_starters",
+    "out_max_min40",
+)
 META_COLS = ("tag60_code", "starter10", "is_b2b_second", "returner", "n_played_prior", "terc")
 
 #: Every input that may legitimately carry NULLs, with the cause (G2 lists each; a NULL input with no entry stops the run).
@@ -112,19 +124,29 @@ NULL_CAUSES: dict[str, str] = {
     "out_max_min40": "same as n_out_rot",
     "ret_mean_min": "no return from a long absence in the player's history (as-of, outcome-independent by construction)",
     "ret_ramp": "same as ret_mean_min",
+    "opp_r20_pts_for": "the opponent has fewer than 5 earlier games in the held data (rolling-20 mean needs 5; 2018-19 is not held, so the 2019-20 opening days)",
+    "opp_r20_pts_against": "same as opp_r20_pts_for",
     "wl_min_last": "no earlier played game for the player",
     "wl_mean_min_l3": "no earlier played game for the player",
     "wl_mean_min_l5": "no earlier played game for the player",
 }
 
 
-#: Inputs whose NULL is a deterministic function of other as-of inputs (a return-from-absence window that has no game yet): the NULL implies the stated as-of
-#: cause (checked exactly), and the input is exempt from the outcome-group gap test because the cause variable (``ret_n``) is itself an input and legitimately informative.
+_RET_CAUSE = (pl.col("ret_n") >= 99) | (pl.col("ret_n") <= 0)
+
+#: Inputs whose NULL is a deterministic function of other as-of inputs (a return-from-absence window that has no game yet): NULL IFF the stated as-of cause
+#: (F3: checked exactly in both directions), and the input is exempt from the outcome-group gap test because the cause variable (``ret_n``) is itself an
+#: input and legitimately informative. ``ret_ramp``'s cause is ``ret_mean_min``'s (their NULL sets are row-for-row equal on the real data).
 AS_OF_CAUSE: dict[str, pl.Expr] = {
-    "ret_mean_min": (pl.col("ret_n") >= 99) | (pl.col("ret_n") <= 0),
-    "ret_ramp": pl.col("ret_mean_min").is_null()
-    | pl.col("ret_mean_min").is_nan()
-    | pl.col("ret_n").is_between(1, 30),
+    "ret_mean_min": _RET_CAUSE,
+    "ret_ramp": _RET_CAUSE,
+}
+
+#: Inputs whose NULL has an exact as-of cause but that are NOT exempt from the gap test (F2): NULL iff the opponent has fewer than 5 earlier games in the held data
+#: (``opp_games_prior`` is the opponent's count of earlier rows in the union games table, a column of the minutes frame that is never a model input).
+EXACT_NULL_CAUSE: dict[str, pl.Expr] = {
+    "opp_r20_pts_for": pl.col("opp_games_prior") < 5,
+    "opp_r20_pts_against": pl.col("opp_games_prior") < 5,
 }
 
 
@@ -318,14 +340,39 @@ def walk_p(
     p0_col: str = "p0",
     meta: tuple[str, ...] = (),
     permute: bool = True,
+    manifest_ctx: dict[str, Any] | None = None,
 ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     """Calendar-month walk over ``seasons``: every block is fitted on EVERY row dated strictly before it (from 2019-20 on).
 
     LightGBM binary arms (``arms``: name -> columns, RECENT_ROLE's parameters via ``_params``, seed 0, threads fixed) and P0c, the Platt map of
     ``p0_col`` fitted on the same earlier rows with era-flagged games excluded (the map never sees the scored rows).
     With ``shuffle_seed`` the training labels are permuted ONCE per block (drawn from ``default_rng([seed, block])``, one global permutation over all
-    training rows) and that same permuted vector feeds every arm AND the Platt map; scoring uses the real labels."""
+    training rows) and that same permuted vector feeds every arm AND the Platt map; scoring uses the real labels.
+
+    Checkpoints (F6): the directory is guarded by a manifest (``manifest_ctx``: rule sha, data versions, code; plus the label hash, an input hash, the arms and the
+    walk's parameters); each reloaded block re-derives the label hash of its training set and the Platt row count and refuses on any difference; ``allow_pickle=False``."""
     assert_holdout(frame)
+    if ckpt is not None:
+        used = sorted({c for names in arms.values() for c in names} | {p0_col, "era_any", *meta})
+        guard_cache(
+            ckpt,
+            {
+                **(manifest_ctx or {}),
+                "kind": "walk_p",
+                "label_hash": frame_hash(frame, ["played"]),
+                "input_hash": frame_hash(frame, used),
+                "arms": arms,
+                "seasons": list(seasons),
+                "min_train": min_train,
+                "n_estimators": n_estimators,
+                "shuffle_seed": shuffle_seed,
+                "permute": permute,
+                "p0_col": p0_col,
+                "meta": list(meta),
+                "lgb_threads": LGB_THREADS,
+                "params": _params(cfg, "binary"),
+            },
+        )
     test_all = frame.filter(pl.col("season").is_in(list(seasons)))
     blocks = month_blocks(test_all)
     parts: list[dict[str, np.ndarray]] = []
@@ -333,14 +380,30 @@ def walk_p(
     platt: list[tuple[int, str, float, float, int]] = []
     for bi, (start, end) in enumerate(blocks):
         path = None if ckpt is None else ckpt / f"block_{start}.npz"
+        train = frame.filter(pl.col("game_date") < start)
+        ytr = train["played"].to_numpy().astype(int)
+        y_fit = ytr
+        if shuffle_seed is not None and permute:
+            y_fit = ytr[np.random.default_rng([shuffle_seed, bi]).permutation(len(ytr))]
+        h = hashlib.sha256(np.ascontiguousarray(y_fit).tobytes()).hexdigest()[:16]
+        use = ~train["era_any"].to_numpy()
         if path is not None and path.exists():
-            z = np.load(path, allow_pickle=True)
-            parts.append({k: z[k] for k in z.files if not k.startswith("_")})
+            with np.load(path, allow_pickle=False) as z:
+                for a in hashes:
+                    if f"_hash_{a}" not in z.files or str(z[f"_hash_{a}"]) != h:
+                        raise RuntimeError(
+                            f"checkpoint {path.name}: stored label hash for {a} differs from the one derived from this run's training rows: refusing to resume"
+                        )
+                if "_platt_n" not in z.files or int(z["_platt_n"]) != int(use.sum()):
+                    raise RuntimeError(
+                        f"checkpoint {path.name}: the Platt training row count differs from this run's: refusing to resume"
+                    )
+                parts.append({k: z[k] for k in z.files if not k.startswith("_")})
+                platt.append(
+                    (bi, str(start), float(z["_platt_a"]), float(z["_platt_b"]), int(z["_platt_n"]))
+                )
             for a in hashes:
-                hashes[a].append(str(z[f"_hash_{a}"]))
-            platt.append(
-                (bi, str(start), float(z["_platt_a"]), float(z["_platt_b"]), int(z["_platt_n"]))
-            )
+                hashes[a].append(h)
             _log(f"block {bi + 1}/{len(blocks)} {start} from checkpoint")
             continue
         block = frame.filter(
@@ -348,16 +411,9 @@ def walk_p(
             & (pl.col("game_date") < end)
             & pl.col("season").is_in(list(seasons))
         )
-        train = frame.filter(pl.col("game_date") < start)
         if block.is_empty() or train.height < min_train:
             _log(f"block {bi + 1}/{len(blocks)} {start} skipped (train {train.height})")
             continue
-        ytr = train["played"].to_numpy().astype(int)
-        y_fit = ytr
-        if shuffle_seed is not None and permute:
-            y_fit = ytr[np.random.default_rng([shuffle_seed, bi]).permutation(len(ytr))]
-        h = hashlib.sha256(np.ascontiguousarray(y_fit).tobytes()).hexdigest()[:16]
-        use = ~train["era_any"].to_numpy()
         a, b = fit_platt(train[p0_col].to_numpy()[use], y_fit[use])
         part: dict[str, np.ndarray] = {
             "gid": block["game_id"].to_numpy().astype(str),
@@ -587,17 +643,48 @@ def null_expr(d: pl.DataFrame, c: str) -> pl.Expr:
     return pl.col(c).is_null()
 
 
+def cause_mismatch(frame: pl.DataFrame, c: str, cause: pl.Expr) -> dict[str, int]:
+    """NULL iff cause, both directions. A cause that cannot be evaluated on this frame (a column missing) counts every NULL as unexplained."""
+    isnull = null_expr(frame, c)
+    try:
+        cz = frame.select(cause.fill_null(False).alias("_c"))["_c"]
+    except pl.exceptions.ColumnNotFoundError:
+        n = int(frame.select(isnull.sum()).item())
+        return {"null_without_cause": n, "cause_without_null": 0, "cause_unavailable": 1}
+    v = frame.with_columns(cz.alias("_cause"), isnull.alias("_isnull"))
+    return {
+        "null_without_cause": int(v.filter(pl.col("_isnull") & ~pl.col("_cause")).height),
+        "cause_without_null": int(v.filter(~pl.col("_isnull") & pl.col("_cause")).height),
+        "cause_unavailable": 0,
+    }
+
+
 def g2_missingness(
-    frame: pl.DataFrame, cols: list[str], dnp_bucket: bool = True, minutes_col: str = "min_real"
+    frame: pl.DataFrame,
+    cols: list[str],
+    dnp_bucket: bool = True,
+    minutes_col: str = "min_real",
+    extra_causes: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """G2: for every fitted-arm input, the NULL share by outcome group (DNP; played in minute buckets) must be within max(2 pp, 3 x the permuted-outcome
     gap), measured separately per training season (history seasons 2019-21 = history rows, 2022-24 = modern rows); plus the NULL share by row source
-    and era for every input, with each NULL cause listed (an input with NULLs and no listed cause stops the run)."""
+    and era for every input (season x ``era_any`` when the frame has it), with each NULL cause listed (an input with NULLs and no listed cause stops the
+    run). ``extra_causes``: causes the harness derived (the report-derived minutes columns). ``AS_OF_CAUSE`` inputs must be NULL iff their cause (F3);
+    ``EXACT_NULL_CAUSE`` inputs likewise (F2) but still go through the gap test."""
+    causes = {**NULL_CAUSES, **(extra_causes or {})}
     cols = [c for c in cols if c in frame.columns]
     exempt = [c for c in cols if c in AS_OF_CAUSE]
+    detail: dict[str, dict[str, int]] = {
+        c: cause_mismatch(frame, c, AS_OF_CAUSE[c]) for c in exempt
+    }
+    for c in cols:
+        if c in EXACT_NULL_CAUSE and c not in AS_OF_CAUSE:
+            m = cause_mismatch(frame, c, EXACT_NULL_CAUSE[c])
+            if m["cause_unavailable"] and not m["null_without_cause"]:
+                continue  # no NULLs and no way to evaluate the cause on this frame (e.g. the P(play) frame): nothing to explain
+            detail[c] = m
     cause_violations = {
-        c: int(frame.filter(null_expr(frame, c) & ~AS_OF_CAUSE[c].fill_null(False)).height)
-        for c in exempt
+        c: d["null_without_cause"] + d["cause_without_null"] for c, d in detail.items()
     }
     test_cols = [c for c in cols if c not in AS_OF_CAUSE]
     per: list[dict[str, Any]] = []
@@ -626,24 +713,125 @@ def g2_missingness(
             frame.group_by("season").agg(null_expr(frame, c).mean().alias("share")).sort("season")
         )
         any_null = float(shares["share"].max()) > 0
-        table.append(
-            {
-                "col": c,
-                "by_season": {
-                    int(r["season"]): float(r["share"]) for r in shares.iter_rows(named=True)
-                },
-                "cause": NULL_CAUSES.get(c),
+        row: dict[str, Any] = {
+            "col": c,
+            "by_season": {
+                int(r["season"]): float(r["share"]) for r in shares.iter_rows(named=True)
+            },
+            "cause": causes.get(c),
+        }
+        if "era_any" in frame.columns:  # R3: by season x era, not by season alone
+            by_era = (
+                frame.group_by(["season", "era_any"])
+                .agg(null_expr(frame, c).mean().alias("share"))
+                .sort(["season", "era_any"])
+            )
+            row["by_season_era"] = {
+                f"{int(r['season'])}|era_any={bool(r['era_any'])}": float(r["share"])
+                for r in by_era.iter_rows(named=True)
             }
-        )
-        if any_null and c not in NULL_CAUSES:
+        table.append(row)
+        if any_null and c not in causes:
             unexplained.append(c)
     return {
         "per_season": per,
         "null_share_by_input": table,
         "unexplained_null_inputs": unexplained,
         "as_of_cause_violations": cause_violations,
+        "as_of_cause_detail": detail,
         "ok": all(p["ok"] for p in per) and not unexplained and not any(cause_violations.values()),
     }
+
+
+def derive_report_cols(
+    with_report: pl.DataFrame, without_report: pl.DataFrame, keys: list[str] | None = None
+) -> tuple[str, ...]:
+    """F1: every column that depends on the pre-tip OUT sets, found by building the same frame with the real OUT sets and with none and listing what differs
+    (NaN equals NaN, NULL equals NULL; a column present only in the first frame counts). Derived from the producing code, never hand-listed."""
+    ks = keys or KEYS
+    a, b = with_report.sort(ks), without_report.sort(ks)
+    if a.height != b.height or not a.select(ks).equals(b.select(ks)):
+        raise ValueError("the with-report and without-report frames have different rows")
+    out: list[str] = []
+    for c in a.columns:
+        if c in ks:
+            continue
+        if c not in b.columns:
+            out.append(c)
+            continue
+        u, v = a[c], b[c]
+        if u.dtype in (pl.Float32, pl.Float64):
+            same = np.array_equal(
+                u.to_numpy().astype(float), v.to_numpy().astype(float), equal_nan=True
+            )
+        else:
+            same = bool(u.equals(v, null_equal=True))
+        if not same:
+            out.append(c)
+    return tuple(out)
+
+
+# --------------------------------------------------------------------------- F6: checkpoint integrity
+MANIFEST_NAME = "MANIFEST.json"
+
+
+def array_hash(*arrays: np.ndarray) -> str:
+    h = hashlib.sha256()
+    for a in arrays:
+        h.update(np.ascontiguousarray(a).tobytes())
+    return h.hexdigest()
+
+
+def frame_hash(frame: pl.DataFrame, cols: list[str], keys: list[str] | None = None) -> str:
+    """sha256 over the row keys and ``cols`` (as float64; strings as text) in frame order: a resumed run must be on the same rows, labels and inputs."""
+    h = hashlib.sha256()
+    for c in [*(keys or KEYS), *sorted(set(cols))]:
+        if c not in frame.columns:
+            h.update(f"<missing {c}>".encode())
+            continue
+        s = frame[c]
+        if s.dtype in (pl.Utf8, pl.String):
+            h.update("\x00".join(s.fill_null("<null>").to_list()).encode())
+        else:
+            h.update(s.cast(pl.Float64).fill_null(float("nan")).to_numpy().tobytes())
+    return h.hexdigest()
+
+
+def manifest_id(manifest: dict[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(manifest, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def guard_cache(directory: Path, manifest: dict[str, Any]) -> str:
+    """F6: a checkpoint directory is keyed by its manifest (rule sha, data versions, code, label and input hashes, the walk's parameters). The first use writes
+    ``MANIFEST.json``; a later use with ANY different entry refuses; files without a manifest (unkeyed) refuse. Returns the manifest id."""
+    want = json.loads(json.dumps(manifest, sort_keys=True, default=str))
+    directory.mkdir(parents=True, exist_ok=True)
+    mp = directory / MANIFEST_NAME
+    if mp.exists():
+        have = json.loads(mp.read_text())
+        if have != want:
+            bad = sorted(k for k in set(have) | set(want) if have.get(k) != want.get(k))
+            raise RuntimeError(
+                f"cache {directory} was written under a different manifest (differs in {bad}): refusing to resume; use a fresh cache directory"
+            )
+        return manifest_id(want)
+    stray = sorted(p.name for p in directory.iterdir() if p.name != MANIFEST_NAME)
+    if stray:
+        raise RuntimeError(
+            f"cache {directory} holds {len(stray)} file(s) but no manifest (unkeyed checkpoints, e.g. {stray[:2]}): refusing"
+        )
+    tmp = directory / (MANIFEST_NAME + ".tmp")
+    tmp.write_text(json.dumps(want, sort_keys=True, indent=1))
+    tmp.replace(mp)
+    return manifest_id(want)
+
+
+def assert_no_pickle(directory: Path) -> None:
+    """Every ``.npz`` under ``directory`` must load with ``allow_pickle=False`` (used for checkpoint directories whose reader is outside this harness)."""
+    for f in sorted(directory.glob("*.npz")) if directory.exists() else []:
+        with np.load(f, allow_pickle=False) as z:
+            for k in z.files:
+                z[k]
 
 
 # --------------------------------------------------------------------------- planted future

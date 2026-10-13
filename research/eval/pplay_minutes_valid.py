@@ -318,19 +318,61 @@ def build_p_frame(world: dict[str, Any], lw: dict[str, Any]) -> pl.DataFrame:
     return fr
 
 
-def build_m_frame(world: dict[str, Any], lw: dict[str, Any]) -> pl.DataFrame:
-    """MINUTES_V2's frame (production features + V2 group + realised labels) on the union, with the era channels and the 2021-22 report drop, joined to P0's mu / sigma."""
+def opp_games_prior(frame: pl.DataFrame, games: pl.DataFrame) -> pl.DataFrame:
+    """F2: ``opp_games_prior`` = the number of earlier rows of the opponent in the games table ``team_game_context`` rolls over (sorted by team, date, game id,
+    across seasons). The rolling-20 mean needs 5, so ``opp_r20_pts_*`` is NULL exactly when this is below 5. Never a model input."""
+    g = games.select("game_id", "game_date", "home_team", "away_team")
+    long = (
+        pl.concat(
+            [
+                g.select(
+                    "game_id", "game_date", pl.col("home_team").cast(pl.Int64).alias("opp_id")
+                ),
+                g.select(
+                    "game_id", "game_date", pl.col("away_team").cast(pl.Int64).alias("opp_id")
+                ),
+            ]
+        )
+        .sort(["opp_id", "game_date", "game_id"])
+        .with_columns(
+            pl.int_range(pl.len()).over("opp_id").cast(pl.Float64).alias("opp_games_prior")
+        )
+        .select("game_id", "opp_id", "opp_games_prior")
+    )
+    out = frame.with_columns(pl.col("opp_id").cast(pl.Int64)).join(
+        long, on=["game_id", "opp_id"], how="left"
+    )
+    if out.height != frame.height:
+        raise ValueError("opp_games_prior join changed the row count")
+    return out
+
+
+def build_m_frame_ex(
+    world: dict[str, Any], lw: dict[str, Any]
+) -> tuple[pl.DataFrame, tuple[str, ...]]:
+    """MINUTES_V2's frame (production features + V2 group + realised labels) on the union, with the era channels and the 2021-22 report drop, joined to P0's mu / sigma.
+
+    F1: the report-derived columns are DERIVED (the frame is built again with no OUT sets and the differing columns listed), united with the static floor
+    ``C.M2_REPORT_COLS``, and every one of them is NULL on 2021-22 rows. Returns (frame, report-derived columns)."""
     from nba.props.context_residual import MIN_PRIOR_PLAYED  # noqa: F401  (stat_frame default)
 
     f = MV.build_frame(lw)
+    f_none = MV.build_frame({**lw, "flagged": {}})
+    derived = tuple(c for c in C.derive_report_cols(f, f_none) if c != "has_report")
+    cols = tuple(dict.fromkeys([*C.M2_REPORT_COLS, *derived]))
     f = C.add_era_channels(f, world["flags"])
-    f = C.drop_report_features(f, C.M2_REPORT_COLS, zero=("has_report",))
+    f = C.drop_report_features(f, cols, zero=("has_report",))
+    f = opp_games_prior(f, lw["games"])
     sf = stat_frame(f, "pts").sort(["game_date", "game_id", "player_id"])
     sf, _ = C.exclude_null_age_player(sf)
     prod = MV.production_minutes_table(lw["sc"])
     sf = sf.join(prod, on=C.KEYS, how="left")
     C.assert_holdout(sf)
-    return sf
+    return sf, cols
+
+
+def build_m_frame(world: dict[str, Any], lw: dict[str, Any]) -> pl.DataFrame:
+    return build_m_frame_ex(world, lw)[0]
 
 
 @dataclasses.dataclass
@@ -338,6 +380,7 @@ class Built:
     p: pl.DataFrame
     m: pl.DataFrame
     lw_flagged: dict[str, set[int]]
+    m_report_cols: tuple[str, ...] = ()  # F1: derived, not hand-listed
 
 
 def build_all(world: dict[str, Any]) -> Built:
@@ -345,11 +388,11 @@ def build_all(world: dict[str, Any]) -> Built:
     try:
         lw = legacy_world(world, sc)
         p = build_p_frame(world, lw)
-        m = build_m_frame(world, lw)
+        m, m_cols = build_m_frame_ex(world, lw)
         flagged = lw["flagged"]
     finally:
         sc.close()
-    return Built(p, m, flagged)
+    return Built(p, m, flagged, m_cols)
 
 
 # --------------------------------------------------------------------------- run-time gates
@@ -486,12 +529,17 @@ def platt_maps_equal(a: pl.DataFrame, b: pl.DataFrame, cutoff: dt.date) -> bool:
     return True
 
 
-def era_and_report_gate(frame: pl.DataFrame, m: pl.DataFrame) -> list[dict[str, Any]]:
-    """2021-22: no row carries a report feature; ``era_report_dropped`` is 1 exactly on 2021-22 rows; era channels are 0 on every verdict-season and 2022 row."""
+def era_and_report_gate(
+    frame: pl.DataFrame, m: pl.DataFrame, m_report_cols: tuple[str, ...] = ()
+) -> list[dict[str, Any]]:
+    """2021-22: no row carries a report feature; ``era_report_dropped`` is 1 exactly on 2021-22 rows; era channels are 0 on every verdict-season and 2022 row.
+
+    The minutes head is checked on the union of the floor ``C.M2_REPORT_COLS`` and ``m_report_cols`` (every column derived from the OUT sets, F1)."""
     f21 = frame.filter(pl.col("season") == C.REPORT_DROPPED_SEASON)
     leaks = {c: int(f21[c].is_not_null().sum()) for c in C.REPORT_FEATURE_COLS if c in f21.columns}
     m21 = m.filter(pl.col("season") == C.REPORT_DROPPED_SEASON)
-    leaks_m = {c: int(m21[c].is_not_null().sum()) for c in C.M2_REPORT_COLS if c in m21.columns}
+    m_cols = tuple(dict.fromkeys([*C.M2_REPORT_COLS, *m_report_cols]))
+    leaks_m = {c: int(m21[c].is_not_null().sum()) for c in m_cols if c in m21.columns}
     has_rep = int((m21["has_report"] != 0).sum()) if "has_report" in m21.columns else 0
     dropped_exact = bool(
         ((frame["era_report_dropped"] == 1.0) == (frame["season"] == C.REPORT_DROPPED_SEASON)).all()
@@ -510,7 +558,7 @@ def era_and_report_gate(frame: pl.DataFrame, m: pl.DataFrame) -> list[dict[str, 
         ),
         check(
             "2021-22 rows carry no report feature (minutes head)",
-            {**leaks_m, "has_report_nonzero": has_rep},
+            {**leaks_m, "has_report_nonzero": has_rep, "n_columns_checked": len(m_cols)},
             "all 0",
             not any(leaks_m.values()) and has_rep == 0,
         ),
@@ -647,12 +695,31 @@ def parity_gate(
     )
 
 
+def load_flag_inputs(db: str = DB) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """(games, availability) for the OUT-set parity check: read-only, games ``season <= 2024`` and availability rows of those games dated before the July after the last verdict season, both
+    bounded IN SQL (F4: ``context_residual_eval.load_inputs`` read every ``player_availability`` row, later seasons' included)."""
+    con = duckdb.connect(db, read_only=True)
+    try:
+        games = con.execute(
+            "SELECT game_id, game_date, season, home_team, away_team, home_pts, away_pts "
+            f"FROM games WHERE season <= {C.MAX_SEASON}"
+        ).pl()
+        avail = con.execute(
+            "SELECT game_id, player_id, status, as_of, source FROM player_availability "
+            "WHERE game_id IS NOT NULL "
+            f"AND game_id IN (SELECT game_id FROM games WHERE season <= {C.MAX_SEASON}) "
+            f"AND as_of < TIMESTAMP '{C.MAX_SEASON + 1}-07-01'"
+        ).pl()
+    finally:
+        con.close()
+    return games, avail
+
+
 def flagged_parity_gate(world: dict[str, Any], db: str = DB) -> dict[str, Any]:
     """The union OUT sets equal production's (``flagged_from_availability`` on nba.duckdb alone) on every 2022-24 game."""
-    from nba.eval.context_residual_eval import load_inputs
     from nba.props.context_residual import flagged_from_availability
 
-    games, _, _, avail = load_inputs(db, None)
+    games, avail = load_flag_inputs(db)
     flagged, _ = flagged_from_availability(avail, games, world["cfg"].report)
     mine = flagged_union(world)
     ids = set(games.filter(pl.col("season").is_in([2022, 2023, 2024]))["game_id"].to_list())
@@ -667,13 +734,21 @@ def flagged_parity_gate(world: dict[str, Any], db: str = DB) -> dict[str, Any]:
 
 
 def repro_gate(
-    res19: dict[str, np.ndarray] | None = None,
+    res19: dict[str, np.ndarray] | None = None, manifest_ctx: dict[str, Any] | None = None
 ) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
     """R22 on the 2022-start frame (the existing RECENT_ROLE construction) equals the stored ``p_R``: max |diff| <= 1e-9, n 33,093 / 33,127. Returns (check, R22 scores)."""
     fr, cfg, _ = RR.build_frame()
     ck = CACHE / "r22_blocks"
+    man: dict[str, Any] = {**(manifest_ctx or {}), "kind": "r22", "arms": RR.arm_columns()["R"]}
+    if isinstance(fr, pl.DataFrame):
+        man["label_hash"] = C.frame_hash(fr, ["played"])
+        man["input_hash"] = C.frame_hash(fr, list(RR.arm_columns()["R"]))
+    C.guard_cache(
+        ck, man
+    )  # F6: keyed checkpoints; recent_role_eval.walk's own reader unpickles, so refuse any non-plain array first
+    C.assert_no_pickle(ck)
     res, _ = RR.walk(fr, {"R": RR.arm_columns()["R"]}, cfg, ckpt=ck)
-    stored = dict(np.load(STORED_RR_SCORES, allow_pickle=True))
+    stored = dict(np.load(STORED_RR_SCORES, allow_pickle=False))
     mine = pl.DataFrame(
         {
             "gid": res["gid"].astype(str),
@@ -707,6 +782,18 @@ def repro_gate(
     return chk, {k: res[k] for k in ("gid", "pid", "season", "p_R")}
 
 
+def age_check(built: Built) -> dict[str, Any]:
+    """R4: no NULL or NaN ``age`` on any training row of either frame (player 1626218's rows are in neither on the real data)."""
+    bad = pl.col("age").is_null() | pl.col("age").is_nan()
+    n = {k: int(f.filter(bad).height) for k, f in (("p", built.p), ("m", built.m))}
+    return check(
+        "no NULL or NaN age on any training row (player 1626218's rows excluded)",
+        n,
+        "0 on both frames",
+        sum(n.values()) == 0,
+    )
+
+
 def run_gate(
     world: dict[str, Any],
     built: Built,
@@ -719,12 +806,13 @@ def run_gate(
     db: str = DB,
     min_rows: int = 25000,
     min_games: int = 1000,
+    manifest_ctx: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The run-time gates and the data-dependent guards G1 and G2 (stop before scoring; a stop is not a result)."""
     tests: list[dict[str, Any]] = []
     detail: dict[str, Any] = {}
     tests.append(holdout_gate({"p": built.p, "m2": built.m, "games": world["games_full"]}))
-    tests += era_and_report_gate(built.p, built.m)
+    tests += era_and_report_gate(built.p, built.m, built.m_report_cols)
     counts = {int(s): int((built.p["season"] == s).sum()) for s in C.SCORED_SEASONS}
     games_n = {
         int(s): int(built.p.filter(pl.col("season") == s)["game_id"].n_unique())
@@ -738,14 +826,7 @@ def run_gate(
             all(counts[s] >= min_rows and games_n[s] >= min_games for s in C.VERDICT_SEASONS),
         )
     )
-    tests.append(
-        check(
-            "no NULL age on any training row (player 1626218's 2 rows excluded)",
-            int(built.p.filter(pl.col("age").is_null()).height),
-            "0",
-            built.p.filter(pl.col("age").is_null()).height == 0,
-        )
-    )
+    tests.append(age_check(built))
     if planted:
         g1 = planted_future_gate(world, built)
         detail["g1"] = g1
@@ -758,7 +839,16 @@ def run_gate(
             )
         )
     g2p = C.g2_missingness(built.p, r_columns() + ["p0", "mu0", "sigma0"], dnp_bucket=True)
-    g2m = C.g2_missingness(built.m, m_inputs(), dnp_bucket=False, minutes_col="minutes")
+    g2m = C.g2_missingness(
+        built.m,
+        m_inputs(),
+        dnp_bucket=False,
+        minutes_col="minutes",
+        extra_causes={
+            c: "report-derived (derived from the OUT sets): NULL when the game has no usable report (has_report = 0) and on every 2021-22 row"
+            for c in built.m_report_cols
+        },
+    )
     detail["g2_p"], detail["g2_m2"] = g2p, g2m
     tests.append(
         check(
@@ -788,7 +878,7 @@ def run_gate(
     if parity:
         tests.append(parity_gate(world, built, slate_fn))
     if repro:
-        chk, r22 = repro_gate()
+        chk, r22 = repro_gate(manifest_ctx=manifest_ctx)
         tests.append(chk)
     gate = {"tests": tests, "gate_ok": all(t["ok"] for t in tests), "detail": detail}
     for t in tests:
@@ -809,6 +899,7 @@ def run_arms(
     min_train: int = C.MIN_TRAIN,
     n_estimators: int | None = None,
     seasons: tuple[int, ...] = C.SCORED_SEASONS,
+    manifest_ctx: dict[str, Any] | None = None,
 ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     arms = arm_sets()
     return C.walk_p(
@@ -820,6 +911,7 @@ def run_arms(
         min_train=min_train,
         n_estimators=n_estimators,
         meta=C.META_COLS,
+        manifest_ctx=manifest_ctx,
     )
 
 
@@ -832,15 +924,36 @@ def run_g5(
     ckpt: Path | None = None,
     min_train: int = C.MIN_TRAIN,
     n_estimators: int | None = None,
+    manifest_ctx: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """G5 permutation null: seeds 1..K; each permutes the training labels once per block (one global permutation shared by R19 and P0c's map), scored on real
     labels; s_k = LL(R_shuf) - LL(P0c_shuf) per verdict season. Per-permutation checkpoints."""
     sk: dict[int, list[float]] = {s: [] for s in C.VERDICT_SEASONS}
     arms = {"R19": arm_sets()["R19"]}
+    mid = ""
+    if ckpt is not None:
+        mid = C.guard_cache(
+            ckpt,
+            {
+                **(manifest_ctx or {}),
+                "kind": "g5",
+                "label_hash": C.frame_hash(built.p, ["played"]),
+                "input_hash": C.frame_hash(built.p, [*arms["R19"], "p0", "era_any"]),
+                "arms": arms,
+                "seasons": list(C.VERDICT_SEASONS),
+                "min_train": min_train,
+                "n_estimators": n_estimators,
+                "lgb_threads": C.LGB_THREADS,
+            },
+        )
     for seed in range(1, k + 1):
         path = None if ckpt is None else ckpt / f"perm_{seed:03d}.json"
         if path is not None and path.exists():
             rec = json.loads(path.read_text())
+            if rec.get("_manifest") != mid or rec.get("_seed") != seed:
+                raise RuntimeError(
+                    f"checkpoint {path.name}: not written under this run's manifest/seed: refusing to resume"
+                )
         else:
             res, _ = C.walk_p(
                 built.p,
@@ -861,7 +974,7 @@ def run_g5(
                 )
             if path is not None:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(json.dumps(rec))
+                path.write_text(json.dumps({**rec, "_manifest": mid, "_seed": seed}))
         for s in C.VERDICT_SEASONS:
             sk[s].append(rec[str(s)])
         C._log(
@@ -957,6 +1070,7 @@ def m2_walk(
     *,
     min_train: int = C.MIN_TRAIN,
     ckpt: Path | None = None,
+    manifest_ctx: dict[str, Any] | None = None,
 ) -> dict[str, np.ndarray]:
     """M2_19 (MINUTES_V2's M2 head, monthly refit on the union with the era channels) vs P0's truncated Normal, minutes | plays, on the verdict seasons' Cell-P played rows."""
     from research.props.minutes_v2 import MinutesV2Model, trunc_normal_quantiles
@@ -964,15 +1078,40 @@ def m2_walk(
     sf = built.m
     keys = built.p.select(*C.KEYS)
     names = m_inputs()
+    if ckpt is not None:
+        C.guard_cache(
+            ckpt,
+            {
+                **(manifest_ctx or {}),
+                "kind": "m2",
+                "label_hash": C.frame_hash(sf, ["minutes"]),
+                "input_hash": C.frame_hash(sf, [*names, "p_mu", "p_sigma"]),
+                "cell_p_hash": C.frame_hash(built.p, []),
+                "names": names,
+                "seasons": list(C.VERDICT_SEASONS),
+                "min_train": min_train,
+            },
+        )
     test_all = sf.filter(pl.col("season").is_in(list(C.VERDICT_SEASONS)))
     acc: dict[str, list[np.ndarray]] = {}
     blocks = month_blocks(test_all)
     for bi, (start, end) in enumerate(blocks):
         path = None if ckpt is None else ckpt / f"m2_block_{start}.npz"
+        train = sf.filter(pl.col("game_date") < start)
+        train_h = C.array_hash(
+            train["game_id"].to_numpy().astype(str),
+            train["player_id"].to_numpy().astype(np.int64),
+            train["minutes"].cast(pl.Float64).to_numpy(),
+        )[:16]
         if path is not None and path.exists():
-            z = np.load(path, allow_pickle=True)
-            for k in z.files:
-                acc.setdefault(k, []).append(z[k])
+            with np.load(path, allow_pickle=False) as z:
+                if "_train_hash" not in z.files or str(z["_train_hash"]) != train_h:
+                    raise RuntimeError(
+                        f"checkpoint {path.name}: stored training-label hash differs from this run's: refusing to resume"
+                    )
+                for k in z.files:
+                    if not k.startswith("_"):
+                        acc.setdefault(k, []).append(z[k])
             C._log(f"M2 block {bi + 1}/{len(blocks)} {start} from checkpoint")
             continue
         block = sf.filter(
@@ -980,7 +1119,6 @@ def m2_walk(
             & (pl.col("game_date") < end)
             & pl.col("season").is_in(list(C.VERDICT_SEASONS))
         )
-        train = sf.filter(pl.col("game_date") < start)
         if block.is_empty() or train.height < min_train:
             continue
         tst = block.join(keys, on=C.KEYS, how="inner")
@@ -1001,7 +1139,7 @@ def m2_walk(
                 part[f"{arm}_{k}"] = np.asarray(v)
         if path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
-            np.savez_compressed(path, **part)
+            np.savez_compressed(path, **part, _train_hash=np.array(train_h))
         for k, v in part.items():
             acc.setdefault(k, []).append(v)
         C._log(f"M2 block {bi + 1}/{len(blocks)} {start} n_test={tst.height}")
@@ -1214,6 +1352,17 @@ def _json(o: Any) -> Any:
     return str(o)
 
 
+def cache_ctx(stamp: dict[str, Any], gate_info: dict[str, Any]) -> dict[str, Any]:
+    """F6: what every checkpoint directory is keyed by besides its own labels and inputs: the rule sha, the data versions and the sha of the reviewed code's git blobs
+    (a function of the code commit; a docs-only commit does not invalidate a resume)."""
+    return {
+        "rule_sha256": gate_info.get("rule_sha256"),
+        "data_version_production": stamp.get("data_version_production"),
+        "data_version_history": stamp.get("data_version_history"),
+        "code_sha": gate_info.get("code_sha"),
+    }
+
+
 def pipeline(
     world: dict[str, Any],
     cfg: ContextResidualConfig,
@@ -1235,7 +1384,8 @@ def pipeline(
     C._log("building the union frames")
     built = build_all(world)
     C._log(f"frames: P {built.p.height} rows, M2 {built.m.height} rows ({time.time() - t0:.0f} s)")
-    gate = run_gate(world, built, slate_fn=slate_fn, **(gate_kwargs or {}))
+    ctx = cache_ctx(stamp, gate_info)
+    gate = run_gate(world, built, slate_fn=slate_fn, **{"manifest_ctx": ctx, **(gate_kwargs or {})})
     r22 = gate.pop("_r22", {})
     (out_dir / "gate.json").write_text(
         json.dumps({k_: v for k_, v in gate.items()}, indent=2, default=_json)
@@ -1245,7 +1395,12 @@ def pipeline(
             "a run-time gate or data guard failed: NO VERDICT (see gate.json); fix plumbing only, the rule does not change"
         )
     res, info = run_arms(
-        built, cfg, ckpt=cache / "arms", min_train=min_train, n_estimators=n_estimators
+        built,
+        cfg,
+        ckpt=cache / "arms",
+        min_train=min_train,
+        n_estimators=n_estimators,
+        manifest_ctx=ctx,
     )
     np.savez_compressed(out_dir / "scores.npz", **res)
     g5 = run_g5(
@@ -1256,10 +1411,11 @@ def pipeline(
         ckpt=cache / "g5",
         min_train=min_train,
         n_estimators=n_estimators,
+        manifest_ctx=ctx,
     )
     results = analyze(res, g5, gate)
     results["secondary"] = secondary_rows(res, r22 or None)
-    mz = m2_walk(built, cfg, min_train=min_train, ckpt=cache / "m2")
+    mz = m2_walk(built, cfg, min_train=min_train, ckpt=cache / "m2", manifest_ctx=ctx)
     results["minutes"] = minutes_report(mz)
     if "p_P0p" in res:
         results["lineage_P0p_logloss"] = {
@@ -1283,21 +1439,39 @@ def _cfg() -> ContextResidualConfig:
     return PC._load_cfg()
 
 
-def run_real(sha: str | None, accept: str | None, gate_only: bool = False) -> dict[str, Any]:
-    rule_sha, fc = RULE.require_frozen(sha)
+def _preload_lazy_modules() -> None:
+    """R1: the modules the harness imports lazily (forward, minutes_v2, workload_eval) load now, after the lock is held and before the re-check."""
+    import nba.props.forward  # noqa: F401
+    import research.eval.workload_eval  # noqa: F401
+    import research.props.minutes_v2  # noqa: F401
+
+
+def review_and_stamp(accept: str | None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """(review, data stamp, gate_info): the loader review verdict, the data versions and the code stamp (R2: git blob shas of every reviewed file)."""
     rv = RULE.require_review()
     stamp = data_stamp(accept=accept)
-    gate_info = {**rv, "rule_sha256": rule_sha, "freeze_commit": fc}
+    blobs = RULE.module_blobs()
+    info = {**rv, "module_blobs": blobs, "code_sha": RULE.code_sha(blobs)}
+    return rv, stamp, info
+
+
+def run_real(sha: str | None, accept: str | None, gate_only: bool = False) -> dict[str, Any]:
+    rule_sha, fc = RULE.require_frozen(sha)
+    review_and_stamp(accept)  # fail fast, before waiting for the lock
     with HeavyLock():
+        _preload_lazy_modules()
+        # R1: the wait for heavy.lock can be long; a commit made during it must be seen, so the review gate and the data stamp are taken again now
+        _, stamp, gate_info = review_and_stamp(accept)
+        gate_info = {**gate_info, "rule_sha256": rule_sha, "freeze_commit": fc}
         world = make_world()
         cfg = _cfg()
         if gate_only:
             built = build_all(world)
-            gate = run_gate(world, built)
+            gate = run_gate(world, built, manifest_ctx=cache_ctx(stamp, gate_info))
             gate.pop("_r22", None)
             OUT_DIR.mkdir(parents=True, exist_ok=True)
             (OUT_DIR / "gate.json").write_text(
-                json.dumps({**gate, "stamp": stamp}, indent=2, default=_json)
+                json.dumps({**gate, "stamp": stamp, "code": gate_info}, indent=2, default=_json)
             )
             return gate
         results = pipeline(world, cfg, stamp, gate_info, out_dir=OUT_DIR, cache=CACHE)

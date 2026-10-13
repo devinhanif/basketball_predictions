@@ -544,15 +544,82 @@ def test_coalesce_static_takes_the_first_non_null_birth_date() -> None:
     ]
 
 
+def _avail_db(path: Path) -> Path:
+    """A throw-away nba.duckdb with games of 2023, 2024 and the frozen holdout season and report rows for each (one 2024 game with a report dated after the bound)."""
+    import duckdb
+
+    con = duckdb.connect(str(path))
+    con.execute(
+        "CREATE TABLE games(game_id VARCHAR, game_date DATE, season INTEGER, home_team BIGINT, away_team BIGINT, home_pts INTEGER, away_pts INTEGER)"
+    )
+    con.execute(
+        "CREATE TABLE player_availability(game_id VARCHAR, player_id BIGINT, status VARCHAR, as_of TIMESTAMP, source VARCHAR)"
+    )
+    holdout = C.MAX_SEASON + 1
+    for gid, d, season in (
+        ("g23", "2024-01-10", 2023),
+        ("g24", "2025-01-10", 2024),
+        ("g25", f"{holdout}-12-10", holdout),
+        ("g26", f"{holdout + 1}-01-10", holdout + 1),
+    ):
+        con.execute("INSERT INTO games VALUES (?, ?, ?, 1, 2, 100, 90)", [gid, d, season])
+        con.execute(
+            "INSERT INTO player_availability VALUES (?, 7, 'Out', ?, 'nba_official_report')",
+            [gid, f"{d} 12:00:00"],
+        )
+    con.execute(
+        "INSERT INTO player_availability VALUES ('g24', 8, 'Out', ?, 'nba_official_report')",
+        [f"{holdout}-08-01 12:00:00"],
+    )
+    con.execute("INSERT INTO player_availability VALUES (NULL, 9, 'Out', '2024-01-01', 'x')")
+    con.close()
+    return path
+
+
+def test_f4_the_availability_query_never_loads_a_holdout_row(
+    world, tmp_path: Path, monkeypatch
+) -> None:
+    import inspect
+
+    import duckdb
+
+    import nba.props.context_residual as PCR
+
+    db = _avail_db(tmp_path / "nba.duckdb")
+    games, avail = H.load_flag_inputs(str(db))
+    assert sorted(games["game_id"].to_list()) == ["g23", "g24"]
+    assert sorted(zip(avail["game_id"].to_list(), avail["player_id"].to_list(), strict=True)) == [
+        ("g23", 7),
+        ("g24", 7),
+    ]  # g24's report dated after the bound, g25, g26 and the NULL-game row are never loaded
+    assert "load_inputs" not in inspect.getsource(H.flagged_parity_gate)
+    seen: dict = {}
+    mine = H.flagged_union(world)
+
+    def fake(av, games_, cfg):
+        seen["avail"], seen["games"] = av, games_
+        return dict(mine), {}
+
+    monkeypatch.setattr(PCR, "flagged_from_availability", fake)
+    modes: list = []
+    real_connect = duckdb.connect
+    monkeypatch.setattr(
+        duckdb,
+        "connect",
+        lambda *a, **k: modes.append(k.get("read_only")) or real_connect(*a, **k),
+    )
+    H.flagged_parity_gate(world, str(db))
+    assert modes == [True, True] or modes == [True]
+    assert set(seen["avail"]["game_id"].to_list()) <= {"g23", "g24"}
+    assert int(seen["games"]["season"].max()) <= C.MAX_SEASON
+
+
 def test_flagged_parity_and_repro_gates(world, tmp_path: Path, monkeypatch) -> None:
     import nba.props.context_residual as PCR
 
-    ids = world["games_full"]["game_id"].to_list()
     mine = H.flagged_union(world)
     games22 = world["games_full"].filter(pl.col("season") >= 2022)
-    import nba.eval.context_residual_eval as NCE
-
-    monkeypatch.setattr(NCE, "load_inputs", lambda db, inj: (games22, None, None, None))
+    monkeypatch.setattr(H, "load_flag_inputs", lambda db: (games22, None))
     monkeypatch.setattr(
         PCR, "flagged_from_availability", lambda avail, games, cfg: (dict(mine), {})
     )
@@ -560,7 +627,7 @@ def test_flagged_parity_and_repro_gates(world, tmp_path: Path, monkeypatch) -> N
     wrong = {g: s | {1} for g, s in mine.items()}
     monkeypatch.setattr(PCR, "flagged_from_availability", lambda avail, games, cfg: (wrong, {}))
     assert not H.flagged_parity_gate(world)["ok"]
-    del ids
+    monkeypatch.setattr(H, "CACHE", tmp_path / "cache")
 
     # R22 reproduction: exact match passes; a 1e-8 difference, a missing row or a different n fails
     n23, n24 = C.REPRO_N[2023], C.REPRO_N[2024]
@@ -620,3 +687,315 @@ def test_props_descriptive_assembles_unconditional_crps_on_stored_grids(
         and {"R19-P0c", "R19-P0", "P0c-P0"} <= set(rec)
         and rec["R19-P0"]["n_games"] > 0
     )
+
+
+# ---------------------------------------------------------------- F1: the minutes-head report list is derived, not hand-listed
+def test_f1_report_columns_are_derived_from_the_producing_code_and_cover_vac_min_and_vac_pts(
+    built: H.Built,
+) -> None:
+    assert {"vac_min", "vac_pts", "n_out_rot", "vac_reb", "out_max_min40"} <= set(
+        built.m_report_cols
+    )
+    assert "has_report" not in built.m_report_cols and "game_id" not in built.m_report_cols
+    m21 = built.m.filter(pl.col("season") == C.REPORT_DROPPED_SEASON)
+    assert all(m21[c].null_count() == m21.height for c in built.m_report_cols)
+
+
+def test_f1_a_2021_22_vac_min_value_fails_the_era_gate_even_with_the_old_hand_list(
+    world, built: H.Built, monkeypatch
+) -> None:
+    old_list = ("n_out_rot", "vac_reb", "vac_ast", "vac_fg3m", "n_out_starters", "out_max_min40")
+    leaked = built.m.with_columns(
+        pl.when(pl.col("season") == C.REPORT_DROPPED_SEASON)
+        .then(3.0)
+        .otherwise(pl.col("vac_min"))
+        .alias("vac_min")
+    )
+    monkeypatch.setattr(C, "M2_REPORT_COLS", old_list)  # the pre-fix floor: vac_min is not in it
+    pre_fix = H.era_and_report_gate(built.p, leaked)
+    assert all(t["ok"] for t in pre_fix)  # the defect: a gate that passes for the wrong reason
+    fixed = H.era_and_report_gate(built.p, leaked, built.m_report_cols)
+    bad = [t for t in fixed if not t["ok"]]
+    assert len(bad) == 1 and bad[0]["value"]["vac_min"] > 0
+    # the derivation itself, with the old floor, still carries vac_min and vac_pts into the build
+    sc = H.scratch(world)
+    try:
+        m, cols = H.build_m_frame_ex(world, H.legacy_world(world, sc))
+    finally:
+        sc.close()
+    assert "vac_min" in cols and "vac_pts" in cols
+    assert m.filter(pl.col("season") == C.REPORT_DROPPED_SEASON)["vac_min"].null_count() > 0
+
+
+def test_f1_a_new_report_dependent_column_is_found_without_being_listed(monkeypatch) -> None:
+    w = H.synthetic_world()
+    real = H.MV.build_frame
+
+    def with_sneaky(lw):
+        f = real(lw)
+        return f.with_columns(pl.lit(float(len(lw["flagged"]))).alias("zz_sneaky_report_col"))
+
+    monkeypatch.setattr(H.MV, "build_frame", with_sneaky)
+    sc = H.scratch(w)
+    try:
+        lw = H.legacy_world(w, sc)
+        m, cols = H.build_m_frame_ex(w, lw)
+    finally:
+        sc.close()
+    assert "zz_sneaky_report_col" in cols
+    assert (
+        m.filter(pl.col("season") == C.REPORT_DROPPED_SEASON)["zz_sneaky_report_col"]
+        .is_null()
+        .all()
+    )
+
+
+# ---------------------------------------------------------------- F2: opp_games_prior is exactly the NULL cause of opp_r20_*
+def test_f2_opp_r20_is_null_exactly_when_the_opponent_has_fewer_than_five_earlier_games() -> None:
+    from nba.props.context_residual import team_game_context
+
+    rng = np.random.default_rng(0)
+    rows, box = [], []
+    d0 = dt.date(2019, 10, 22)
+    gid = 0
+    for day in range(40):
+        teams = rng.permutation([1, 2, 3, 4, 5, 6])[: 2 * int(rng.integers(1, 4))]
+        for a, b in zip(teams[::2], teams[1::2], strict=True):
+            gid += 1
+            g = f"{gid:010d}"
+            rows.append(
+                {
+                    "game_id": g,
+                    "game_date": d0 + dt.timedelta(days=day),
+                    "season": 2019,
+                    "home_team": int(a),
+                    "away_team": int(b),
+                    "home_pts": 100 + int(rng.integers(0, 20)),
+                    "away_pts": 100 + int(rng.integers(0, 20)),
+                }
+            )
+            for t in (a, b):
+                box.append(
+                    {"game_id": g, "team_id": int(t), "pts": 100, "reb": 40, "ast": 20, "fg3m": 10}
+                )
+    games = pl.DataFrame(rows).with_columns(pl.col("game_date").cast(pl.Date))
+    pgs = pl.DataFrame(box)
+    elo = games.select("game_id", pl.lit(1.0).alias("exp_margin_home"))
+    tg = team_game_context(games, pgs, elo)
+    frame = tg.select("game_id", "opp_id", "opp_r20_pts_for", "opp_r20_pts_against")
+    out = H.opp_games_prior(frame, games)
+    assert out.height == frame.height and out["opp_games_prior"].null_count() == 0
+    for c in ("opp_r20_pts_for", "opp_r20_pts_against"):
+        assert (out[c].is_null() == (out["opp_games_prior"] < 5)).all()
+        assert C.cause_mismatch(out, c, C.EXACT_NULL_CAUSE[c]) == {
+            "null_without_cause": 0,
+            "cause_without_null": 0,
+            "cause_unavailable": 0,
+        }
+    assert int(out["opp_r20_pts_for"].is_null().sum()) > 0  # the case exists in the fixture
+
+
+# ---------------------------------------------------------------- R4, R2
+def test_r4_the_age_check_counts_nan_as_well_as_null(built: H.Built) -> None:
+    assert H.age_check(built)["ok"]
+    nan_p = built.p.with_columns(
+        pl.when(pl.int_range(pl.len()) == 0)
+        .then(float("nan"))
+        .otherwise(pl.col("age"))
+        .alias("age")
+    )
+    chk = H.age_check(H.Built(nan_p, built.m, built.lw_flagged, built.m_report_cols))
+    assert not chk["ok"] and chk["value"]["p"] == 1
+    null_m = built.m.with_columns(
+        pl.when(pl.int_range(pl.len()) == 0).then(None).otherwise(pl.col("age")).alias("age")
+    )
+    assert not H.age_check(H.Built(built.p, null_m, built.lw_flagged))["ok"]
+
+
+# ---------------------------------------------------------------- F6 on the harness checkpoints (arms, G5, M2, R22)
+CTX = {"rule_sha256": "r" * 64, "data_version_production": "p1", "code_sha": "c1"}
+
+
+def test_f6_arms_g5_and_m2_checkpoints_refuse_a_different_manifest(
+    built: H.Built, tmp_path: Path
+) -> None:
+    kw = dict(min_train=300, n_estimators=12)
+    a, _ = H.run_arms(built, TINY, ckpt=tmp_path / "arms", manifest_ctx=CTX, **kw)
+    b, _ = H.run_arms(built, TINY, ckpt=tmp_path / "arms", manifest_ctx=CTX, **kw)
+    assert all(np.array_equal(a[k], b[k]) for k in a)
+    other = {
+        **CTX,
+        "data_version_production": "p2",
+    }  # e.g. a resumed run after --accept-data-version
+    with pytest.raises(RuntimeError, match="different manifest"):
+        H.run_arms(built, TINY, ckpt=tmp_path / "arms", manifest_ctx=other, **kw)
+
+    obs = H.observed_d1(a)
+    g = H.run_g5(built, TINY, obs, k=2, ckpt=tmp_path / "g5", manifest_ctx=CTX, **kw)
+    g2 = H.run_g5(built, TINY, obs, k=2, ckpt=tmp_path / "g5", manifest_ctx=CTX, **kw)
+    assert g["s_k"] == g2["s_k"]
+    with pytest.raises(RuntimeError, match="different manifest"):
+        H.run_g5(built, TINY, obs, k=2, ckpt=tmp_path / "g5", manifest_ctx=other, **kw)
+    rec = tmp_path / "g5" / "perm_001.json"
+    d = json.loads(rec.read_text())
+    rec.write_text(
+        json.dumps({**d, "_manifest": "0" * 64})
+    )  # a record from another manifest inside a valid directory
+    with pytest.raises(RuntimeError, match="manifest/seed"):
+        H.run_g5(built, TINY, obs, k=2, ckpt=tmp_path / "g5", manifest_ctx=CTX, **kw)
+    rec.write_text(
+        json.dumps({k: v for k, v in d.items() if not k.startswith("_")})
+    )  # unkeyed record
+    with pytest.raises(RuntimeError, match="manifest/seed"):
+        H.run_g5(built, TINY, obs, k=2, ckpt=tmp_path / "g5", manifest_ctx=CTX, **kw)
+
+    z = H.m2_walk(built, TINY, min_train=300, ckpt=tmp_path / "m2", manifest_ctx=CTX)
+    z2 = H.m2_walk(built, TINY, min_train=300, ckpt=tmp_path / "m2", manifest_ctx=CTX)
+    assert all(np.array_equal(z[k], z2[k]) for k in z)
+    with pytest.raises(RuntimeError, match="different manifest"):
+        H.m2_walk(built, TINY, min_train=300, ckpt=tmp_path / "m2", manifest_ctx=other)
+    blk = sorted((tmp_path / "m2").glob("m2_block_*.npz"))[0]
+    arrs = dict(np.load(blk, allow_pickle=False))
+    np.savez_compressed(blk, **{**arrs, "_train_hash": np.array("0" * 16)})
+    with pytest.raises(RuntimeError, match="training-label hash"):
+        H.m2_walk(built, TINY, min_train=300, ckpt=tmp_path / "m2", manifest_ctx=CTX)
+    np.savez_compressed(blk, **{k: v for k, v in arrs.items() if k != "_train_hash"})
+    with pytest.raises(RuntimeError, match="training-label hash"):
+        H.m2_walk(built, TINY, min_train=300, ckpt=tmp_path / "m2", manifest_ctx=CTX)
+    # M2 labels changed under the same directory
+    drifted = H.Built(
+        built.p,
+        built.m.with_columns((pl.col("minutes") + 1.0).alias("minutes")),
+        built.lw_flagged,
+        built.m_report_cols,
+    )
+    with pytest.raises(RuntimeError, match="different manifest"):
+        H.m2_walk(drifted, TINY, min_train=300, ckpt=tmp_path / "m2", manifest_ctx=CTX)
+
+
+def test_f6_the_r22_checkpoint_directory_is_keyed_and_unpickled_never(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(H, "CACHE", tmp_path / "cache")
+    n23, n24 = C.REPRO_N[2023], C.REPRO_N[2024]
+    season = np.r_[np.full(n23, 2023), np.full(n24, 2024)]
+    gid = np.array([f"g{i}" for i in range(len(season))])
+    pid = np.arange(len(season)).astype(np.int64)
+    p = np.random.default_rng(0).uniform(0.2, 0.9, len(season))
+    stored = tmp_path / "scores.npz"
+    np.savez(stored, gid=gid, pid=pid, p_R=p)
+    monkeypatch.setattr(H, "STORED_RR_SCORES", stored)
+    monkeypatch.setattr(H.RR, "build_frame", lambda: (None, None, None))
+    monkeypatch.setattr(
+        H.RR,
+        "walk",
+        lambda fr, arms, cfg, ckpt=None: (
+            {"gid": gid, "pid": pid, "season": season, "p_R": p.copy()},
+            {},
+        ),
+    )
+    assert H.repro_gate(manifest_ctx=CTX)[0]["ok"]
+    assert H.repro_gate(manifest_ctx=CTX)[0]["ok"]
+    with pytest.raises(RuntimeError, match="different manifest"):
+        H.repro_gate(manifest_ctx={**CTX, "code_sha": "c2"})
+    np.savez(
+        tmp_path / "cache" / "r22_blocks" / "block_x.npz",
+        gid=np.array([{"a": 1}], dtype=object),
+    )
+    with pytest.raises(ValueError, match="allow_pickle"):
+        H.repro_gate(manifest_ctx=CTX)
+    # the stored reference is loaded without pickle too
+    obj = tmp_path / "obj.npz"
+    np.savez(obj, gid=np.array([{"a": 1}], dtype=object), pid=pid[:1], p_R=p[:1])
+    monkeypatch.setattr(H, "STORED_RR_SCORES", obj)
+    (tmp_path / "cache" / "r22_blocks" / "block_x.npz").unlink()
+    with pytest.raises(ValueError, match="allow_pickle"):
+        H.repro_gate(manifest_ctx=CTX)
+
+
+def test_f6_the_pipeline_keys_every_checkpoint_by_rule_data_and_code(
+    world, tmp_path: Path, monkeypatch
+) -> None:
+    stamp = {"data_version_production": "p1", "data_version_history": "h1"}
+    info = {"rule_sha256": "r" * 64, "code_sha": "c1", "review_path": "x"}
+    ctx = H.cache_ctx(stamp, info)
+    assert ctx == {
+        "rule_sha256": "r" * 64,
+        "data_version_production": "p1",
+        "data_version_history": "h1",
+        "code_sha": "c1",
+    }
+    seen: list = []
+    real = C.guard_cache
+    monkeypatch.setattr(C, "guard_cache", lambda d, m: seen.append((d.name, m)) or real(d, m))
+    monkeypatch.setattr(
+        H,
+        "run_gate",
+        lambda *a, **k: seen.append(("gate", k["manifest_ctx"])) or {"gate_ok": False, "tests": []},
+    )
+    with pytest.raises(RuntimeError, match="NO VERDICT"):
+        H.pipeline(
+            world, TINY, stamp, info, out_dir=tmp_path / "o", cache=tmp_path / "c", min_train=300
+        )
+    assert seen[0] == ("gate", ctx)
+
+
+# ---------------------------------------------------------------- R1, R2: the review and the data stamp are re-taken after heavy.lock
+def test_r1_a_review_that_stops_being_valid_while_waiting_for_the_lock_stops_the_run(
+    monkeypatch, tmp_path: Path
+) -> None:
+    sha = RULE.frozen_sha()
+    events: list[str] = []
+    state = {"calls": 0}
+
+    def review():
+        state["calls"] += 1
+        events.append(f"review{state['calls']}")
+        if state["calls"] >= 2:
+            raise RuntimeError("hard stop: a later BLOCKED review was committed during the wait")
+        return {"verdict": "APPROVED"}
+
+    class FakeLock:
+        def __enter__(self):
+            events.append("lock")
+            return self
+
+        def __exit__(self, *e):
+            events.append("unlock")
+
+    monkeypatch.setattr(RULE, "require_review", review)
+    monkeypatch.setattr(RULE, "module_blobs", lambda *a, **k: {"x.py": "a" * 40})
+    monkeypatch.setattr(H, "data_stamp", lambda **k: events.append("stamp") or {})
+    monkeypatch.setattr(H, "HeavyLock", FakeLock)
+    monkeypatch.setattr(H, "make_world", lambda *a, **k: events.append("world"))
+    monkeypatch.setattr(H, "_preload_lazy_modules", lambda: events.append("preload"))
+    with pytest.raises(RuntimeError, match="BLOCKED"):
+        H.run_real(sha, None, gate_only=True)
+    assert events == [
+        "review1",
+        "stamp",
+        "lock",
+        "preload",
+        "review2",
+        "unlock",
+    ]  # nothing built, lock released
+
+    # the happy path takes review and stamp after the lock and stamps the code blobs (R2)
+    events.clear()
+    state["calls"] = -10
+    monkeypatch.setattr(H, "OUT_DIR", tmp_path / "out")
+    monkeypatch.setattr(H, "make_world", lambda *a, **k: {})
+    monkeypatch.setattr(H, "_cfg", lambda: None)
+    monkeypatch.setattr(H, "build_all", lambda w: None)
+    got: dict = {}
+    monkeypatch.setattr(
+        H,
+        "run_gate",
+        lambda w, b, **k: got.update(k) or {"gate_ok": True, "tests": [], "_r22": {}},
+    )
+    H.run_real(sha, None, gate_only=True)
+    assert events == ["review-9", "stamp", "lock", "preload", "review-8", "stamp", "unlock"]
+    out = json.loads((tmp_path / "out" / "gate.json").read_text())
+    assert out["code"]["module_blobs"] == {"x.py": "a" * 40} and len(out["code"]["code_sha"]) == 64
+    assert got["manifest_ctx"]["code_sha"] == out["code"]["code_sha"]
+    assert got["manifest_ctx"]["rule_sha256"] == sha

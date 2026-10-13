@@ -530,3 +530,224 @@ def test_no_holdout_path_exists() -> None:
     fr = _toy_frame().with_columns(pl.lit(2025).alias("season"))
     with pytest.raises(ValueError, match="holdout"):
         C.walk_p(fr, {"R": ["x"]}, TINY, (2025,), min_train=10)
+
+
+# ---------------------------------------------------------------- F3: the as-of cause is enforced in both directions
+def _ret_frame(n: int = 3000, seed: int = 1) -> pl.DataFrame:
+    rng = np.random.default_rng(seed)
+    played = rng.random(n) < 0.7
+    ret_n = np.where(played, 99.0, 3.0)
+    ret_n[:20] = 0.0
+    return pl.DataFrame(
+        {"season": np.full(n, 2023), "min_real": np.where(played, 20.0, 0.0), "ret_n": ret_n}
+    ).with_columns(
+        pl.when((pl.col("ret_n") >= 99) | (pl.col("ret_n") <= 0))
+        .then(None)
+        .otherwise(5.0)
+        .alias("ret_mean_min"),
+        pl.when((pl.col("ret_n") >= 99) | (pl.col("ret_n") <= 0))
+        .then(None)
+        .otherwise(2.0)
+        .alias("ret_ramp"),
+    )
+
+
+def test_f3_ret_mean_min_and_ret_ramp_share_one_cause_and_must_be_null_iff_it_holds() -> None:
+    assert (
+        C.AS_OF_CAUSE["ret_ramp"].meta.serialize() == C.AS_OF_CAUSE["ret_mean_min"].meta.serialize()
+    )
+    f = _ret_frame()
+    ok = C.g2_missingness(f, ["ret_n", "ret_mean_min", "ret_ramp"])
+    assert ok["ok"] and all(v == 0 for v in ok["as_of_cause_violations"].values())
+    # cause holds but the value is present (the old one-sided check passed this)
+    filled = f.with_columns(
+        pl.when(pl.col("ret_n") <= 0)
+        .then(7.0)
+        .otherwise(pl.col("ret_mean_min"))
+        .alias("ret_mean_min")
+    )
+    out = C.g2_missingness(filled, ["ret_n", "ret_mean_min"])
+    assert not out["ok"] and out["as_of_cause_detail"]["ret_mean_min"]["cause_without_null"] == 20
+    # ret_ramp NULL on rows where ret_mean_min is not (a broader cause) fails
+    broad = f.with_columns(
+        pl.when(pl.col("ret_n") == 3.0).then(None).otherwise(pl.col("ret_ramp")).alias("ret_ramp")
+    )
+    out2 = C.g2_missingness(broad, ["ret_n", "ret_ramp"])
+    assert not out2["ok"] and out2["as_of_cause_detail"]["ret_ramp"]["null_without_cause"] > 0
+    # a NULL cause variable cannot excuse a NULL value
+    nulln = f.with_columns(
+        pl.when(pl.int_range(pl.len()) == 25).then(None).otherwise(pl.col("ret_n")).alias("ret_n"),
+        pl.when(pl.int_range(pl.len()) == 25)
+        .then(None)
+        .otherwise(pl.col("ret_ramp"))
+        .alias("ret_ramp"),
+    )
+    assert not C.g2_missingness(nulln, ["ret_n", "ret_ramp"])["ok"]
+
+
+# ---------------------------------------------------------------- F2: opp_r20_* NULLs have a listed, exact cause
+def test_f2_opp_r20_nulls_are_explained_exactly_by_the_opponents_earlier_games() -> None:
+    assert "opp_r20_pts_for" in C.NULL_CAUSES and "opp_r20_pts_against" in C.NULL_CAUSES
+    rng = np.random.default_rng(2)
+    n = 4000
+    played = rng.random(n) < 0.8
+    prior = rng.integers(0, 40, n).astype(float)
+    f = pl.DataFrame(
+        {
+            "season": np.full(n, 2023),
+            "min_real": np.where(played, 20.0, 0.0),
+            "opp_games_prior": prior,
+        }
+    ).with_columns(
+        pl.when(pl.col("opp_games_prior") < 5).then(None).otherwise(110.0).alias("opp_r20_pts_for"),
+        pl.when(pl.col("opp_games_prior") < 5)
+        .then(None)
+        .otherwise(108.0)
+        .alias("opp_r20_pts_against"),
+    )
+    cols = ["opp_r20_pts_for", "opp_r20_pts_against"]
+    g = C.g2_missingness(f, cols)
+    assert g["ok"] and not g["unexplained_null_inputs"] and (f["opp_games_prior"] < 5).sum() > 0
+    # NULL where the opponent has played enough games: the cause does not explain it
+    bad = f.with_columns(
+        pl.when(pl.int_range(pl.len()) == 100)
+        .then(None)
+        .otherwise(pl.col("opp_r20_pts_for"))
+        .alias("opp_r20_pts_for")
+    )
+    out = C.g2_missingness(bad, cols)
+    assert not out["ok"] and out["as_of_cause_detail"]["opp_r20_pts_for"]["null_without_cause"] > 0
+    # the cause holds but the value is present
+    full = f.with_columns(pl.lit(1.0).alias("opp_r20_pts_against"))
+    assert not C.g2_missingness(full, cols)["ok"]
+    # an outcome-dependent NULL pattern still fails the gap test (the entries are NOT exempt from it)
+    leaky = f.with_columns(
+        pl.when(pl.col("min_real") > 0).then(None).otherwise(1.0).alias("opp_r20_pts_for"),
+        pl.col("min_real").alias("opp_games_prior"),
+    )
+    assert not C.g2_missingness(leaky, ["opp_r20_pts_for"])["ok"]
+    # a frame that cannot evaluate the cause and has no NULLs is not blamed; with NULLs it is
+    nocause = f.drop("opp_games_prior")
+    assert C.g2_missingness(
+        nocause.with_columns(pl.lit(1.0).alias("opp_r20_pts_for")), ["opp_r20_pts_for"]
+    )["ok"]
+    assert not C.g2_missingness(nocause, ["opp_r20_pts_for"])["ok"]
+
+
+def test_g2_reports_nulls_by_season_and_era_and_accepts_derived_causes() -> None:
+    f = _ret_frame().with_columns(
+        pl.Series("era_any", [i % 5 == 0 for i in range(3000)]),
+        pl.when(pl.Series([i % 7 == 0 for i in range(3000)]))
+        .then(None)
+        .otherwise(1.0)
+        .alias("vac_zz"),
+    )
+    g = C.g2_missingness(f, ["vac_zz"], extra_causes={"vac_zz": "derived"})
+    assert g["ok"] and not g["unexplained_null_inputs"]
+    row = g["null_share_by_input"][0]
+    assert set(row["by_season_era"]) == {"2023|era_any=False", "2023|era_any=True"}
+    assert row["cause"] == "derived"
+    assert "vac_zz" in C.g2_missingness(f, ["vac_zz"])["unexplained_null_inputs"]
+
+
+# ---------------------------------------------------------------- F1: the pure derivation
+def test_derive_report_cols_lists_exactly_the_columns_that_move_with_the_out_sets() -> None:
+    a = pl.DataFrame(
+        {
+            "game_id": ["g1", "g1", "g2"],
+            "player_id": [1, 2, 1],
+            "vac_min": [1.0, None, float("nan")],
+            "stable": [1.0, 2.0, 3.0],
+            "txt": ["a", "b", "c"],
+            "only_with": [1, 2, 3],
+        }
+    )
+    b = a.with_columns(
+        pl.Series("vac_min", [None, None, float("nan")], dtype=pl.Float64),
+        pl.Series("txt", ["a", "b", "z"]),
+    ).drop("only_with")
+    assert C.derive_report_cols(a, b) == ("vac_min", "txt", "only_with")
+    assert C.derive_report_cols(a, a.reverse()) == ()  # row order is irrelevant, NaN equals NaN
+    with pytest.raises(ValueError, match="different rows"):
+        C.derive_report_cols(a, b.head(2))
+
+
+# ---------------------------------------------------------------- F6: checkpoints are keyed
+def _ctx(**kw):
+    return {"rule_sha256": "r" * 64, "data_version_production": "p1", "code_sha": "c1", **kw}
+
+
+def test_f6_guard_cache_writes_a_manifest_and_refuses_any_other(tmp_path) -> None:
+    d = tmp_path / "c"
+    mid = C.guard_cache(d, {"a": 1, "b": [1, 2]})
+    assert (d / C.MANIFEST_NAME).exists() and C.guard_cache(d, {"b": [1, 2], "a": 1}) == mid
+    with pytest.raises(RuntimeError, match=r"differs in \['a'\]"):
+        C.guard_cache(d, {"a": 2, "b": [1, 2]})
+    with pytest.raises(RuntimeError, match=r"differs in \['c'\]"):
+        C.guard_cache(d, {"a": 1, "b": [1, 2], "c": 3})
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "block_2023-10-01.npz").write_bytes(b"x")
+    with pytest.raises(RuntimeError, match="no manifest"):
+        C.guard_cache(legacy, {"a": 1})
+
+
+def test_f6_walk_refuses_a_checkpoint_from_another_rule_data_code_or_label_set(tmp_path) -> None:
+    fr = _toy_frame()
+    ck = tmp_path / "ck"
+    a, _ = C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=_ctx())
+    b, _ = C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=_ctx())
+    assert all(np.array_equal(a[k], b[k]) for k in a)  # same manifest: resumes to identical output
+    for bad in (
+        _ctx(rule_sha256="s" * 64),
+        _ctx(data_version_production="p2"),
+        _ctx(code_sha="c2"),
+    ):
+        with pytest.raises(RuntimeError, match="different manifest"):
+            C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=bad)
+    flipped = fr.with_columns(
+        pl.when(pl.int_range(pl.len()) == 0)
+        .then(1.0 - pl.col("played"))
+        .otherwise(pl.col("played"))
+        .alias("played")
+    )
+    with pytest.raises(RuntimeError, match="different manifest"):
+        C.walk_p(flipped, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=_ctx())
+    with pytest.raises(RuntimeError, match="different manifest"):
+        C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=400, manifest_ctx=_ctx())
+    with pytest.raises(RuntimeError, match="different manifest"):
+        C.walk_p(
+            fr,
+            {"R": ["x"]},
+            TINY,
+            (2023,),
+            ckpt=ck,
+            min_train=500,
+            shuffle_seed=3,
+            manifest_ctx=_ctx(),
+        )
+
+
+def test_f6_walk_rechecks_the_stored_label_hash_and_never_unpickles(tmp_path) -> None:
+    fr = _toy_frame()
+    ck = tmp_path / "ck"
+    C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=_ctx())
+    blk = sorted(ck.glob("block_*.npz"))[0]
+    z = dict(np.load(blk, allow_pickle=False))
+    # a checkpoint whose stored training-label hash is not this run's (manifest intact): refused
+    forged = {**z, "_hash_R": np.array("0" * 16)}
+    np.savez_compressed(blk, **forged)
+    with pytest.raises(RuntimeError, match="stored label hash"):
+        C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=_ctx())
+    # a different Platt row count
+    forged2 = {k: v for k, v in z.items()}
+    forged2["_platt_n"] = np.array(int(z["_platt_n"]) + 1)
+    np.savez_compressed(blk, **forged2)
+    with pytest.raises(RuntimeError, match="Platt training row count"):
+        C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=_ctx())
+    # an object (pickled) array is never loaded
+    np.savez_compressed(blk, **{**z, "gid": np.array([{"a": 1}] * len(z["gid"]), dtype=object)})
+    with pytest.raises(ValueError, match="allow_pickle"):
+        C.walk_p(fr, {"R": ["x"]}, TINY, (2023,), ckpt=ck, min_train=500, manifest_ctx=_ctx())
+    with pytest.raises(ValueError, match="allow_pickle"):
+        C.assert_no_pickle(ck)

@@ -295,3 +295,122 @@ def test_the_real_rule_document_hashes_to_the_frozen_sha() -> None:
     assert sha.startswith("91d82de7")
     fc = R.freeze_commit(sha)
     assert fc is not None and fc.startswith("8e15012")
+
+
+# ---------------------------------------------------------------- F5: the hard stop survives deletion, renaming and substring tricks
+def _approved_then_blocked(tmp_path: Path) -> tuple[Path, Path, Path]:
+    root = _ready(tmp_path)
+    ok = review(root, "pplay_minutes_valid_loader_2026-10-13.md")
+    assert R.require_review(root)
+    bad = review(root, "pplay_minutes_valid_loader_2026-10-14.md", verdict="BLOCKED")
+    with pytest.raises(RuntimeError, match="not exactly 'APPROVED'"):
+        R.require_review(root)
+    return root, ok, bad
+
+
+def test_s7_a_later_blocked_review_removed_with_git_rm_does_not_reopen_the_gate(
+    tmp_path: Path,
+) -> None:
+    root, _ok, bad = _approved_then_blocked(tmp_path)
+    git(root, "rm", "-q", str(bad.relative_to(root)))
+    git(root, "commit", "-q", "-m", "remove the blocking review")
+    with pytest.raises(RuntimeError, match="deleted or renamed out of the glob"):
+        R.require_review(root)
+    # the removal is only replaced by a LATER committed APPROVED review
+    review(root, "pplay_minutes_valid_loader_2026-10-15_fixcheck.md")
+    assert R.require_review(root)["review_path"].endswith("fixcheck.md")
+
+
+def test_s7b_a_later_blocked_review_renamed_out_of_the_glob_does_not_reopen_the_gate(
+    tmp_path: Path,
+) -> None:
+    root, _ok, bad = _approved_then_blocked(tmp_path)
+    git(root, "mv", str(bad.relative_to(root)), "docs/reviews/archived_blocked.md")
+    git(root, "commit", "-q", "-m", "move the blocking review out of the glob")
+    with pytest.raises(RuntimeError, match="deleted or renamed out of the glob"):
+        R.require_review(root)
+
+
+def test_a_staged_or_working_tree_deletion_is_refused_before_commit(tmp_path: Path) -> None:
+    root, _ok, bad = _approved_then_blocked(tmp_path)
+    bad.unlink()
+    with pytest.raises(RuntimeError, match="uncommitted changes"):
+        R.require_review(root)
+
+
+def test_renaming_an_old_approved_review_never_makes_it_newer_than_a_blocked_one(
+    tmp_path: Path,
+) -> None:
+    root, ok, _bad = _approved_then_blocked(tmp_path)
+    git(
+        root,
+        "mv",
+        str(ok.relative_to(root)),
+        "docs/reviews/pplay_minutes_valid_loader_2026-10-20_renamed.md",
+    )
+    git(root, "commit", "-q", "-m", "rename the approved review so that it sorts and adds later")
+    with pytest.raises(RuntimeError, match="not exactly 'APPROVED'"):
+        R.require_review(root)
+
+
+def test_swapping_the_contents_of_two_reviews_is_an_edit_and_is_refused(tmp_path: Path) -> None:
+    root, ok, bad = _approved_then_blocked(tmp_path)
+    a, b = ok.read_text(), bad.read_text()
+    ok.write_text(b)
+    bad.write_text(a)
+    git(root, "commit", "-qam", "swap the two reviews")
+    with pytest.raises(RuntimeError, match="edited after its adding commit"):
+        R.require_review(root)
+
+
+def test_reviews_added_in_one_commit_must_all_pass(tmp_path: Path) -> None:
+    root = _ready(tmp_path)
+    review(root, "pplay_minutes_valid_loader_2026-10-13.md", commit=False)
+    review(root, "pplay_minutes_valid_loader_2026-10-14.md", commit=False, verdict="BLOCKED")
+    git(root, "add", "docs/reviews")
+    git(root, "commit", "-q", "-m", "two reviews at once")
+    with pytest.raises(RuntimeError, match="not exactly 'APPROVED'"):
+        R.require_review(root)
+
+
+def test_s12b_the_rule_line_is_an_exact_match_not_a_substring(tmp_path: Path) -> None:
+    root = _ready(tmp_path)
+    sha = R.frozen_sha(root)
+    for k, rule in enumerate(
+        (
+            f"NOT_PPLAY_MINUTES_VALID_X {sha[:8]} BLOCKED",
+            f"PPLAY_MINUTES_VALID {sha[:8]} BLOCKED",
+            f"XPPLAY_MINUTES_VALID {sha[:8]}",
+            f"PPLAY_MINUTES_VALID {sha[:8]}x",
+            f"PPLAY_MINUTES_VALID deadbeef {sha[:8]}",
+        )
+    ):
+        review(root, f"pplay_minutes_valid_loader_2026-10-{20 + k}.md", rule=rule)
+        with pytest.raises(RuntimeError, match="does not name"):
+            R.require_review(root)
+    review(root, "pplay_minutes_valid_loader_2026-10-30.md", rule=f"PPLAY_MINUTES_VALID {sha[:8]}")
+    assert R.require_review(root)["verdict"] == "APPROVED"
+
+
+def test_s9c_a_committed_change_to_an_imported_module_voids_the_review(tmp_path: Path) -> None:
+    root = _ready(tmp_path)
+    review(root)
+    assert R.require_review(root)
+    dep = "research/eval/pplay_context_eval.py"
+    assert dep in R.REVIEWED_PATHS
+    (root / dep).write_text("v1\nchanged dependency\n")
+    git(root, "commit", "-qam", "change an imported module")
+    with pytest.raises(RuntimeError, match="reviewed code changed"):
+        R.require_review(root)
+
+
+def test_module_blobs_are_stamped_for_every_reviewed_file(tmp_path: Path) -> None:
+    root = _ready(tmp_path)
+    blobs = R.module_blobs(root)
+    assert "research/eval/forward_not_there.py" not in blobs
+    assert "nba/props/forward.py" in blobs and "tests/research/pplay_minutes_valid/x.py" in blobs
+    assert all(len(v) == 40 for v in blobs.values())
+    a = R.code_sha(blobs)
+    (root / "nba/props/forward.py").write_text("v1\nx\n")
+    git(root, "commit", "-qam", "dep")
+    assert R.code_sha(R.module_blobs(root)) != a
