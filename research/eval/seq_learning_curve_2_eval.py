@@ -519,6 +519,12 @@ def check_run(
         bad.append("run cap / test season is not 2023")
     if cfg.get("review_commit") != rv.get("review_commit"):
         bad.append("the run was attested against a different review commit")
+    info_f = export_dir / "export_info.json"
+    got_v = json.loads(info_f.read_text()).get("history_data_version") if info_f.exists() else None
+    if got_v != X2.HISTORY_DATA_VERSION:
+        bad.append(
+            f"the exports' history data_version {got_v} != the rule's {X2.HISTORY_DATA_VERSION}"
+        )
     cexp = cfg.get("exports") or {}
     if set(cexp) != set(RULE.EXPORT_NAMES) or RULE.manifest_sha(cexp) != rv.get("exports_manifest"):
         bad.append("the run's exports are not the three exports named by the review's manifest")
@@ -576,7 +582,7 @@ DISCLOSURES = [
     "Blend weights are those fit on the full 6-seed ensemble and held fixed in every resampled pool (rule, disclosed approximation); the leave-one-seed-out spread of each contrast is printed beside its interval.",
     "Cold fits are shared by the U / M / UP arms of a window, so the independent per-arm seed resampling ignores that pairing: intervals are conservative (rule, disclosed).",
     "Descriptive contrasts other than A_m, E and A - A_m are game-clustered on the full 6-seed ensemble only (seed noise not included); slices use the two-way draws; team drop-one is point estimates.",
-    "A failed U(4) reproduction is read as the rule's declared fallback (INCONCLUSIVE (construction)); a failed U(8) band or a failed FULL / A0 grid reproduction is VOID (gate). The rule lists both under reproduction gates; this is the reading that keeps the fallback sentence meaningful.",
+    "A failed U(4) reproduction is INCONCLUSIVE (construction) (the rule's Fallback, condition met); a failed U(8) band or a failed FULL / A0 grid reproduction is VOID (gate), as the rule states.",
     "The 'wall-clock of an interrupted arm' is not counted in the ceiling (the job sums runtime_s of completed arms only), as the parent disclosed.",
 ]
 

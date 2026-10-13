@@ -618,3 +618,17 @@ def test_exporter_rows_feed_the_scorer_meta(fixture_world) -> None:
         and len(m) == int((exp.meta["season"] == 2023).sum())
     )
     assert P1.check_world_rows(world, meta)["ok"]
+
+
+def test_check_run_refuses_exports_built_on_another_data_version(tmp_path) -> None:
+    (tmp_path / "export_info.json").write_text('{"history_data_version": "507d4a01a024"}')
+    chk = V.check_run({}, [], "0" * 64, tmp_path, {})
+    assert not chk["ok"] and any("data_version" in p for p in chk["problems"])
+    (tmp_path / "export_info.json").write_text(
+        f'{{"history_data_version": "{X2.HISTORY_DATA_VERSION}"}}'
+    )
+    assert not any(
+        "data_version" in p for p in V.check_run({}, [], "0" * 64, tmp_path, {})["problems"]
+    )
+    (tmp_path / "export_info.json").unlink()
+    assert any("data_version" in p for p in V.check_run({}, [], "0" * 64, tmp_path, {})["problems"])

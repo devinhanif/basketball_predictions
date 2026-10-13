@@ -5,7 +5,9 @@ description: >
   E2 transformer, walk-forward scored on 2023-24 only, 6 seeds, full budgets: unmatched U(4,6,8,9,10), step-matched M(6,8,9,10), UP(4) = window-4 data with
   U(8)'s warm steps; 10 arms in 5 window units (cold fits shared within a unit). Refuses unless the staged rule sha matches AND the Mac-side loader-review
   attestation is staged (a committed docs/reviews/seq_learning_curve_2_loader_<date>.md, a whole-line Rule match, descended from the freeze commit, no later
-  deleted or renamed review). Scores nothing; scoring is one CPU run on the Mac. Estimate 90-170 T4 minutes (not measured); ceiling 240.
+  deleted or renamed review). Scores nothing; scoring is one CPU run on the Mac. Estimate 90-170 T4 minutes (not measured); ceiling 240 T4 minutes or 10 Colab compute units, whichever comes first.
+accelerator: T4
+compute_units_ceiling: 10
 notebook: research/colab/jobs/seq_learning_curve_2/seq_learning_curve_2.ipynb
 inputs:
   - path: data/colab/seq_learning_curve_2/seq_learning_curve_2_norm_S3.npz

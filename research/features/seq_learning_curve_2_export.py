@@ -47,6 +47,8 @@ TEST_LABEL = X1.TEST_LABEL
 POSITION_MAX_UNKNOWN_SHARE = 0.01  # gate D4, per season label <= 2021
 POSITION_GUARD_LAST_LABEL = 2021
 SIDECAR = "players_static_position_source"
+#: The history data_version the rule's gates (D1-D4, D6, D7) were measured on; quoted in docs/prereg/SEQ_LEARNING_CURVE_2.md. The build recomputes the DB's version and refuses a mismatch.
+HISTORY_DATA_VERSION = "c90139d87ded"
 
 # --- the frozen normalizer constants (rule table "Windows, segments, arms"; 3 decimals as printed) --------------------------------------------------------------------
 REF = X1.REF
@@ -269,6 +271,20 @@ def window_counts(meta: pd.DataFrame, n: int) -> dict[str, int]:
 
 
 # --------------------------------------------------------------------------- build
+def db_data_version(db: str | Path) -> str:
+    """The data_version of a database, recomputed from the file (read-only), not read from the cached manifest json."""
+    from nba.datamanifest.manifest import build_manifest
+
+    return str(build_manifest(db)["data_version"])
+
+
+def require_data_version(found: str, pinned: str = HISTORY_DATA_VERSION) -> None:
+    if found != pinned:
+        raise RuntimeError(
+            f"history data_version {found} != the rule's pinned {pinned}: the gates were measured on a different database; refusing to export"
+        )
+
+
 def build(
     out: Path | None = None,
     only: tuple[str, ...] = ("S3", "S2", "S1"),
@@ -276,7 +292,15 @@ def build(
 ) -> dict[str, Any]:
     out = out or OUT_DIR
     out.mkdir(parents=True, exist_ok=True)
-    info: dict[str, Any] = {"cap_season": CAP_SEASON, "rule": RULE.ID, "segments": {}}
+    hist_v = db_data_version(SEG_DB["S1"])
+    require_data_version(hist_v)  # before anything is loaded
+    info: dict[str, Any] = {
+        "cap_season": CAP_SEASON,
+        "rule": RULE.ID,
+        "history_data_version": hist_v,
+        "nba_duckdb_data_version": db_data_version(SEG_DB["S3"]),
+        "segments": {},
+    }
     for seg in only:
         raw = load_segment_raw(seg)
         pinfo = prepare_segment(raw, seg, elo_config)

@@ -225,7 +225,7 @@ def _truncate(raw, keep_games: int):
     )
 
 
-@pytest.mark.parametrize("season,seg", [(2013, "S1"), (2023, "S3")])
+@pytest.mark.parametrize("season,seg", [(2013, "S1"), (2019, "S2"), (2023, "S3")])
 def test_planted_future_later_games_change_no_earlier_row(season: int, seg: str) -> None:
     raw = _tips(_raw(season=season))
     raw.static = pd.DataFrame(
@@ -322,3 +322,17 @@ def test_era_runtime_gate_is_the_parents() -> None:
     assert X.era_runtime_gate(ctx, season, names)["ok"]
     ctx[15, names.index("era_limited")] = 1.0
     assert not X.era_runtime_gate(ctx, season, names)["ok"]
+
+
+# ------------------------------------------------------------------ the data_version pin
+def test_export_refuses_a_history_data_version_other_than_the_rules(monkeypatch, tmp_path) -> None:
+    assert X.HISTORY_DATA_VERSION == "c90139d87ded"
+    X.require_data_version("c90139d87ded")
+    with pytest.raises(RuntimeError, match="pinned"):
+        X.require_data_version("507d4a01a024")
+    called = []
+    monkeypatch.setattr(X, "db_data_version", lambda db: "507d4a01a024")
+    monkeypatch.setattr(X, "load_segment_raw", lambda seg: called.append(seg))
+    with pytest.raises(RuntimeError, match="pinned"):
+        X.build(tmp_path, ("S1",))
+    assert called == []  # refused before anything was loaded
