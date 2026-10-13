@@ -315,6 +315,11 @@ def test_smoke_matched_steps_unmatched_steps_restart_and_unfinished(tmp_path: Pa
     for name, info in infos.items():
         z = np.load(out / f"oof_{name}.npz")
         assert set(np.unique(z["season"]).tolist()) == {2023}
+        # per-seed RAW quantiles are stored (the scorer's seed bootstrap needs them); their mean, clipped and made monotone, IS the stored ensemble
+        sq = z["seed_q"]
+        assert sq.shape == (2, len(z["game_id"]), 4, 19) and z["seeds"].tolist() == [0, 1]
+        pooled = np.maximum.accumulate(np.clip(sq.mean(axis=0), 0.0, None), axis=2)
+        assert np.allclose(pooled, z["q"], atol=1e-6)
         assert info["seeds"] == [0, 1] and len(info["cold"]) == 2  # smoke keeps 2 of the 6 seeds
         assert all(b["max_pool_date"] < b["min_block_date"] for b in info["blocks_detail"])
     assert (

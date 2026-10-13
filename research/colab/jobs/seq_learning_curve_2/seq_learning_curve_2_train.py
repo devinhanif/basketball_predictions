@@ -592,8 +592,10 @@ def walk(name, kind, d, m, nets, seeds, dev, ts, meta, warm, batch, n, t0, prior
                 fit(net, ts, prow, None, warm, dev, warm["lr"], warm["epochs"], 99)
             else:
                 fit_steps(net, ts, prow, warm["lr"], steps, batch, dev)
-        mean, q = ensemble([predict(x, ts, to_dev(blk, dev), batch, dev) for x in nets])
+        preds = [predict(x, ts, to_dev(blk, dev), batch, dev) for x in nets]
+        mean, q = ensemble(preds)
         frames.append(oof_dict(d, blk, mean, q))
+        frames[-1]["seed_q"] = np.stack([p[1] for p in preds]).astype(np.float32)  # (seeds, n, 4, 19) RAW per-seed quantiles: the scorer's seed bootstrap pools these
         detail.append(
             {
                 "block": str(per), "n": int(len(blk)), "pool": int(len(pool)), "warm_steps": int(steps) if steps is not None else steps_of(len(pool), batch, warm["epochs"]),
@@ -605,7 +607,8 @@ def walk(name, kind, d, m, nets, seeds, dev, ts, meta, warm, batch, n, t0, prior
             f"  [{name}] block {bi + 1}/{len(blocks)} {per}: n={len(blk)} pool={len(pool)} steps={detail[-1]['warm_steps']} total {elapsed_min(t0, prior_s):.1f} min",
             flush=True,
         )
-    oof = {k: np.concatenate([f[k] for f in frames]) for k in frames[0]}
+    oof = {k: np.concatenate([f[k] for f in frames], axis=1 if k == "seed_q" else 0) for k in frames[0]}
+    oof["seeds"] = np.array(seeds, dtype=np.int16)
     np.savez_compressed(out_dir / f"oof_{name}.npz", **oof)
     return {"arm": name, "kind": kind, "window_n": n, "blocks": len(blocks), "n_oof": int(len(oof["game_id"])), "blocks_detail": detail,
             "oof_by_season": {str(int(s)): int((oof["season"] == s).sum()) for s in np.unique(oof["season"])}}  # fmt: skip
