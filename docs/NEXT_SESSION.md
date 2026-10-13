@@ -1,17 +1,10 @@
 # Next session
 
-_Updated 2026-10-13 08:55 CDT (HEAD 7e77efd). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
+_Updated 2026-10-13 (pruned to open items). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
 ## Start here (handoff 2026-10-13 08:55 CDT)
 
 Session 2026-10-13 morning, commits e333157..7e77efd (plus this one). Nothing is running.
-
-FIRST (Devin, 2026-10-13, ~10 min, no facts change): prune the two bloated memory files before any other work.
-(1) Claude's memory project-state.md (57 KB of resume pointers since 10-05) -> only the current pointer (~2 KB); history lives in
-git, DECISIONS and this file. (2) This file (15.6 KB, DONE items mixed with open) -> one page of what is open; move DONE items
-to docs/archive/next_session_done_2026-10.md. Cause noted: today's slips were checking failures (relayed unverified commands,
-a guessed time, an arm named from memory, a harness trailer followed over a standing rule), not context length; BEST_PRACTICES
-(20 KB) is not loaded into the main context.
 
 Done:
 - History position audit SURVIVES (docs/reviews/history_position_audit_2026-10-13.md). FULL/ROUTER/ENSEMBLE etc. never read history;
@@ -51,115 +44,51 @@ Loose ends (recorded, not chased): AVG non-blocking R3-R5; the 2013-15 changelog
 position; one 2014-15 game with no derivable starters/stints; mypy 10 errors in research/eval/pi_transfer_diag.py; "18 arms" typo
 in the SEQ_LEARNING_CURVE job description; rclone client_id; nba/truth/bootstrap.py does not exist.
 
-## Before opening night, in order (first games 2026-10-20)
+## Before opening night (first games Tue 2026-10-20)
 
-1. **Facts store, live-season build (steward).** Replace `--max-season` with an explicit `--seasons` list in `nba.facts build` so 2026-27 report, lineup and box facts load while season 2025 stays absent, then add a nightly rebuild step to `ops/nba_daily.sh` after the morning settle. The daily script is the live path: run the replay oracle against `oracle_pplay` (golden `89889f6d`, data_version 418510d401d3; it was `030804df` until the p_play change re-baselined it on 2026-10-11) before and after touching it, and the hash must not move.
-2. DONE 2026-10-11 03:27 (missing stint rows 91 → 1; data_version 418510d401d3). Was: **Same-surname stint rule (archivist).** 91 played player-games still have no stint row, nearly all same-surname teammates with no initial in the substitution text. Add a rule using jersey number or the out-player's position; its own gate is 20 or fewer. Back up first, bump data_version, re-baseline the oracle and say so.
-3. DONE 2026-10-11 03:27 (21 resolved by PDF evidence; 167 stay NULL: 156 postponed > 7 days, 7 ambiguous GSW@MIN 2026-01-24, 4 NBA Cup final not in `games`). Was: **188 report rows with no game_id (archivist).** 136 have no game on the date (postponements), 52 have a candidate game but not a unique match. Resolve from schedule-change history; do not guess.
-4. **First live reporter poll, after Devin's X sign-up.** Needs the bearer token in `.env` and handles in `configs/reporters.yaml` (REPORTER_FEED.md). Run it with `--budget-posts 50`, read the briefing section it writes, then decide whether to widen. Shadow only.
-5. **Supervised pretip run** (the checklist item below): one live run of the pretip path, then check `data/ops/ALERTS.md`.
-6. **Sleep settings:** Mac must not sleep on game days.
+1. Facts store live-season build (steward): `nba.facts build --seasons` list (2026-27 report/lineup/box facts in, 2025 absent) plus
+   `--schedule-seasons` for 2026-27 `tips_at`; nightly rebuild after the morning settle. Replay oracle `oracle_pplay` golden
+   `89889f6d` before and after; the hash must not move.
+2. Reporter feed first poll after Devin's X sign-up (X_BEARER_TOKEN in .env, handles in configs/reporters.yaml; `--budget-posts 50`; shadow only).
+3. `launchctl list | grep local.nba` shows daily-pretip, daily-morning, lineups, kalshi-snapshot; `uv run python -m nba.registry list`
+   shows rung0_injury_elo v2 and props_context_residual v2 as production.
+4. Ingest queue on game days (data/ops/ingest_queue_status.md): confirm daily and lineup jobs get through; decide whether to pause it.
+5. Maintainer decisions (PROJECT_STATUS section 6): VM, rclone own client_id, checkpoint cleanup, integer-quantile route.
 
-Plain version: the first three make the data and the store ready for the live season, the fourth waits on Devin, the last two prove the machine runs on its own.
+## Opening night 2026-10-20
 
-## Before opening night (by 2026-10-19)
-
-1. Confirm jobs are loaded: `launchctl list | grep local.nba` should show daily-pretip, daily-morning, lineups, kalshi-snapshot.
-2. One supervised live run of the pretip path (live schedule and injury-PDF fetch were not rehearsed): `uv run python -m nba.daily run --date <date> --roster-source official --log-int-variant`, then check `data/ops/ALERTS.md`.
-3. Check the ingest queue (`data/ops/ingest_queue_status.md`). The queue holds stats.nba.com quota; confirm the daily and lineup jobs still get through (they yield to it, b39aed0). Decide whether to pause the queue on game days.
-4. Disable Mac sleep on game days (a missed job runs once on wake only).
-5. Resolve maintainer decisions (PROJECT_STATUS section 6): VM, rclone client_id, checkpoint cleanup, integer-quantile route.
-6. Confirm the registry shows `rung0_injury_elo` v2 and `props_context_residual` v2 as production (`uv run python -m nba.registry list`).
-
-- Pretip scheduler: launchd evaluates the calendar an hour ahead (timezone cached at load; morning job fired 07:00 for an
-  08:00 plist; the 21:20/21:50 slots fire at 20:20/20:50 CDT). Devin chose to leave it (2026-10-10): benign for opening
-  night (last tip 21:30 ET = 20:30 CT is covered). Reboot or the StartInterval schedule if it ever matters.
-
-- Wave A follow-ups: DONE 2026-10-10 in the restructure (gate.py, pts_tail, stack/oof archived; living docs carry no
-  archived `nba.*` path, checked 15:55; tests/daily/test_review_fixes.py writes only to tmp_path). Still open, on purpose:
-  the pickle shim `nba/sim/usage_redistribution.py` stays until every cache under data/models/ and data/rehearsal/
-  post-dates 2026-10-10 (the 2026-10-09 caches still unpickle through it). Historical docs (ledger, reviews, frozen
-  pre-registrations) keep the paths they were written with; research/INDEX.md is the map.
-
-## Opening night, 2026-10-20
-
-- Morning (08:00 job): settle/report ran with no alerts; backup copy exists.
-- Day: pretip job runs hourly from 09:30; confirm a forward prediction row exists per slate game before tip, with official-roster source and no rows written after tip.
-- Confirm the injury report was fetched (feed failures are recorded, never block Elo).
-- Confirm the lineups collector wrote snapshots for the slate and the T-30 shadow rows exist.
-- Confirm the integer-variant rows are logged next to production rows; parlay shadow log has rows; Kalshi snapshot job is writing.
-- If Kalshi lists player props, run the alias review before any matching is trusted.
-- Next morning: settled predictions, forward report, DNP handling (absent players settle as DNP).
+- Supervised pretip run before the first tip: `uv run python -m nba.daily run --date 2026-10-20 --roster-source official --log-int-variant`, then data/ops/ALERTS.md.
+- Mac on AC, lid open (AC sleep is 0; lid close and battery still sleep).
+- Morning job: settle/report, no alerts, backup exists. Pretip hourly from 09:30: a forward row per slate game before tip, official roster, none after tip.
+- Injury report fetched; lineups snapshots and T-30 shadow rows; T-15 arm decisions and lineups_t15 heartbeat; integer-variant rows;
+  parlay shadow rows; Kalshi snapshot writing; P(play) shadow rows (R, C, C'). Run summary `dirty=False`.
+- Open the first live odds raw file: 89 markets x 12 points, new shapes parse; watch live_book_odds growth.
+- If Kalshi lists player props, alias review before any match is trusted. Next morning: settled rows, forward report, DNPs settle as DNP.
 
 ## First two weeks
 
-- Official roster source stays on through 2026-11-03; then the script switches to `recent` automatically. Compare coverage and rookie minutes error.
-- Run the steward's weekly forward health check: calibration, bias per stat, production versus comparison models.
-- Do not read win/loss on small n; report CIs with every comparison.
+- Official roster source through 2026-11-03, then `recent` automatically; compare coverage and rookie minutes error.
+- Weekly forward health check (steward): calibration, bias per stat, production vs comparison models. No win/loss read on small n.
+- Weekly: re-check the 30 missing 2026-27 tip rows (Devin, 2026-10-12).
+- PPLAY_INTO_PROPS_LIVE first look fg3m ~Sun 2026-11-15; AVG_SHADOW_LIVE (once frozen) interim kill-only week 4, final Sun 2027-01-10.
 
-## Roadmap after opening night
+## After opening night
 
-1. Score the shadow arms forward (integer quantiles, T-30 lineups) with paired clustered bootstrap once enough games exist; decide promotion on live data.
-2. DONE 2026-10-09: hustle feature screen ran under c88788a; no family passes (T174-T175); screen closed.
-3. History window experiment using 2013-2021 once the queue finishes; handle the missing injury feed before 2018-12-20 with an era flag.
-4. CLOSED 2026-10-10 by inspection: the production path has no forward-looking schedule feature (rest is the gap to the
-   previous game only; no `shift(-1)`, `days_to_next` or `b2b_first` anywhere under nba/). The lookahead lived only in the
-   research v2 features, fixed in c9b00d1.
-5. Platt P(play) forward check before trusting unconditional parlay probabilities.
-6. Parlay: stay shadow until the deferral gate (30 settled rows, 14 distinct dates) and a positive-EV-at-conservative-bound result; report "no positive EV found" when true.
-7. Optional, only if live results justify: pts-only regular-season hybrid variant with upper-tail fix; no 2025 touch.
-8. DONE 2026-10-10 (docs/reviews/possession_order_2026-10-10.md; data_version 85d8a41277ce; backup data/backups/possessions_pre_order_fix_*). Was: Possession parser time order (before F11, F13, F15, F17; not needed by F8). `nba/parse/possessions.py` sorts by
-   `action_number`, which is not game order (ADR 0002 item 5). Measured 2026-10-09 on the stored table:
-   5,789 of 1,049,740 possessions end after they start and 3,939 start after the previous one ended, in 4,258
-   games, so clock glitches beyond the appended corrections are involved. A re-parse renumbers `poss_idx` in
-   those games; shots, lineups and anything keyed on it must be rebuilt in the same step, with a pre-fix backup.
+- Score shadow arms forward (integer quantiles, T-30 lineups) with paired clustered bootstrap; promotion on live data only.
+- Platt P(play) forward check before trusting unconditional parlay probabilities.
+- Parlay stays shadow until the deferral gate (30 settled rows, 14 dates) and positive EV at the conservative bound; else "no positive EV found".
+- SEQ_MINUTES after the P(play) decision; PBP_HALFTIME last. Pending Devin: RECENT_ROLE_FULL Stage 2 vs waiting for the live log.
+- When production moves to the VM: NBA_FACTS_NIGHTLY=1.
+- parlayhitters.ai build after 10-20 (designs in docs/BUSINESS_DRAFT_2026-10-11.md, APP_ARCHITECTURE, APP_SECURITY_BASELINE section 12,
+  APP_CONTENT_SPEC); nothing touches nba/, ops/, configs/ before then. Open: what "jev engineering best practices" means (Devin).
 
-- Loose end (2026-10-10, found by the coach-allocation analysis): `team_coaches` names the wrong head coach in 14 of 87
-  team-seasons 2022-24 (rows look shifted one season: Udoka/HOU and Griffin/MIL under 2022) and carries no mid-season changes.
-  No production reader. Archivist: check the postgame "coaches" fetch's season parameter, add a game-by-game head-coach table
-  (the analysis embedded a hand-built one in data/scratch/coach_allocation_2026-10-10.py), re-ingest. Not urgent.
+## Loose ends (recorded, not chased)
 
-- Loose end (2026-10-10, found by the MINUTES_HAZARD gate): `stints` has no row for 40% of players who played under 1 minute and
-  21% at 1-2 minutes (0.19% at 5-10; players present reconcile to box minutes within 0.3). Archivist: find where the lineup
-  tracker or the stint builder drops end-of-game and brief substitutions, rebuild with a pre-fix backup under data/backups/,
-  re-run the lineups reconciliation, bump data_version. Devin to approve the rebuild (DECISIONS 2026-10-10 ~23:55).
+- team_coaches wrong head coach in 14/87 team-seasons 2022-24, no mid-season changes; no production reader (archivist).
+- stints miss 40% of <1-minute appearances; rebuild needs Devin's approval (DECISIONS 2026-10-10 ~23:55).
+- 167 player_availability rows with NULL game_id stay NULL by design (postponed > 7 days, ambiguous, Cup final not in games).
+- Pickle shim nba/sim/usage_redistribution.py stays until every cache post-dates 2026-10-10.
+- Pretip launchd fires an hour ahead (Devin left it, 2026-10-10; covers the last tip).
+- Loader-gate R1-R3/R5 (stamp transitive dependency hashes).
 
-- Loose end (2026-10-11, F2): 188 `player_availability` rows still have NULL game_id (136: no game for the team on the report date
-  or the next day, e.g. postponements; 52: a candidate game but not a unique match). Invisible to the injury model. Archivist to
-  resolve by schedule-change history; not guessed.
-
-- Reporter feed (built 2026-10-11, docs/REPORTER_FEED.md): before the first live poll, (1) Devin signs up at developer.x.com
-  (pay-per-use), puts the token in .env as X_BEARER_TOKEN, fills configs/reporters.yaml handles; (2) the facts store needs
-  `tips_at` facts for 2026-27 games: add a `--schedule-seasons` option to `nba.facts build` so 2026 tips are included WITHOUT
-  loading 2025-26 outcomes (holdout stays unread); (3) first poll with `--budget-posts 50`, read the briefing section, then decide.
-
-- Loose end (2026-10-11, F4): after the season-wide name book, 91 played player-games (box ≥ 1 min) still have no stint row (from
-  671). Nearly all are same-surname teammates with no initial in the substitution text (e.g. two "Hansen"/"Yang" entries in 2025,
-  "T. Martin"/"J. Martin" in 0022400124). The rebuild gate target of ≤ 40 came from a 989-game prototype where that case did not
-  appear; it was revised to 91 after the full run (recorded here and in the changelog, not silently). A `_NameBook` rule for
-  same-surname teammates (use jersey number or the out-player's position) is the fix; its own gate: ≤ 20.
-
-- Facts store for the live season (before 2026-10-20): replace `--max-season` with an explicit `--seasons` list so 2026-27 report,
-  lineup and box facts load while season 2025 stays absent; then the nightly job rebuilds the store after the morning settle and
-  the explainer/pretip read it. Today the store holds 2022-24 fully plus the 2026-27 schedule only.
-
-- Supervised pretip run, 2026-10-11 10:33 CT (`nba.daily run --date 2026-10-11 --roster-source official --log-int-variant`):
-  rc 0, slate 0 (no regular-season games yet), injury step skipped, no alerts. The wiring runs; the live schedule and injury-PDF
-  fetch are still unrehearsed on a real slate. Repeat on 2026-10-20 before the first tip (checklist item 2 stays open).
-
-
-## parlayhitters.ai (after 2026-10-20; nothing touches nba/, ops/, configs/ before then)
-Designs committed 2026-10-11: docs/BUSINESS_DRAFT_2026-10-11.md, docs/APP_ARCHITECTURE.md, docs/APP_SECURITY_BASELINE.md
-(section 12 = Devin's accounts checklist), docs/APP_CONTENT_SPEC.md. Build order once Devin's accounts exist: nba/export/ +
-layering rules → app/ API + PWA skeleton → slip batch → paper-trade ledger → parlay-of-the-day card → posting adapters (X,
-Discord first) with the approval queue and kill switch → 20-post dry run. Open: what "jev engineering best practices" means (Devin).
-
-## Added 2026-10-12 overnight (opening night 2026-10-20)
-- P(play) shadow is ON in pretip (logs R, C, C' for every rostered not-OUT player; parity warning if R minus production > -0.05 over 7 days).
-- T-15 lineup arm runs from ops/nba_lineups.sh (own lock and heartbeat); check its first decisions and the lineups_t15 heartbeat.
-- Run summaries print `code: git=... dirty=...`; dirty should be False on a clean tree.
-- Live odds capture requests 89 markets x 12 points; open the first raw file on 10-20 and check the new market shapes parse (team totals, period lines, yes/no props); watch live_book_odds growth.
-- Keep the Mac on AC with the lid open on game nights (10-11 lid sleep on battery caused a 5-hour collector gap).
-- Pending Devin: RECENT_ROLE_FULL Stage 2 (2025 check on points) vs waiting for the live log. (Odds plan resolved: START 5M kept.)
-- Weekly (main session): re-check the 30 missing 2026-27 tip rows until they appear (Devin, 2026-10-12).
-- When production moves to the VM: set NBA_FACTS_NIGHTLY=1 (Devin, 2026-10-12).
+Finished items and the pre-prune text: docs/archive/next_session_done_2026-10.md.
