@@ -1054,9 +1054,13 @@ What: the 4-to-8-season gain (A) is robust and comes from the sequence model, no
 Why: T486. What would reverse it: Devin declining the follow-up (then the curve closes at RISING-but-wounded and W_ALL stays).
 
 **2026-10-13 07:06 CDT — P(play) switch waits for the live log (Devin; follows Claude's advice).**
-What: production P(play) stays as is through opening night; R19 keeps running as the pretip shadow and PPLAY_INTO_PROPS_LIVE decides.
+What: production P(play) stays as is through opening night; the 2022-start R (not R19, the offline winner) keeps running as the pretip shadow and PPLAY_INTO_PROPS_LIVE decides.
 Why: T482/T484 WOUNDED (never-dressed players unscored; the live arm is the 2022-start R, not R19), and the shadow costs nothing to keep. What would reverse it: the live log passing PPLAY_INTO_PROPS_LIVE, or the parity warning showing R worse than production.
 
 **2026-10-13 07:06 CDT — T478 AVG goes to a live shadow soon (Devin; follows Claude's advice).**
 What: draft AVG_SHADOW_LIVE (postseason routes to FULL, monthly Colab refit plus nightly CPU inference, promotion read from the live log only). The history position audit (docs/reviews/history_position_audit_2026-10-13.md, SURVIVES) cleared it: FULL never read history; the W_ALL exposure is 322/77,195 training rows with no eval exposure. The wiring waits on Mac sleep being disabled (`sudo pmset -c sleep 0`), so nightly inference cannot be missed.
 Why: T478 pass, T483 probe flagged but the pass stands, audit clean. What would reverse it: the shadow rule failing its own data gate, or the replay oracle moving when the arm is added.
+
+**2026-10-13 07:15 CDT — SEQ_LEARNING_CURVE_2 approved for drafting (Devin; follows Claude's advice, T486).**
+What: the one allowed follow-up to T485. Windows 9-10 (2013-14, 2014-15 via Devin's shell download), a step-matched control, 6+ seeds per window, seed-inclusive CIs, and a gate item for the 2015-18 position gap (384 players with no static row; fetch preferred over zeroing). Draft, pre-run loader review, then freeze; no production change from it.
+Why: T486 could not separate data from training steps. What would reverse it: the rule failing its own data gate after the CLAUDE.md #8 audit.
