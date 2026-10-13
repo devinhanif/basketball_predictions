@@ -96,6 +96,19 @@ def _day_before_et(day: pl.Expr) -> pl.Expr:
     return et_to_utc(day.dt.date().cast(pl.Datetime("us")) - pl.duration(days=1))
 
 
+HOLDOUT_SEASON = 2025  # frozen holdout; lifting this guard is a logged, Devin-owned step
+
+
+def guard_holdout(
+    max_season: int, seasons: tuple[int, ...], schedule_seasons: tuple[int, ...]
+) -> None:
+    """Refuse every flag combination that would load season 2025 outcomes."""
+    if HOLDOUT_SEASON in seasons or HOLDOUT_SEASON in schedule_seasons:
+        raise ValueError(f"season {HOLDOUT_SEASON} is the frozen holdout and cannot be loaded")
+    if not seasons and max_season >= HOLDOUT_SEASON:
+        raise ValueError(f"max_season {max_season} would load the frozen holdout {HOLDOUT_SEASON}")
+
+
 def season_ok(season: int | None, max_season: int, seasons: tuple[int, ...]) -> bool:
     """Is ``season`` loaded in full? ``seasons`` (when given) replaces the ``max_season`` bound."""
     if season is None:
@@ -545,6 +558,7 @@ def build(
     seasons: tuple[int, ...] = (),
 ) -> dict[str, Any]:
     notes: list[str] = []
+    guard_holdout(max_season, seasons, schedule_seasons)
     games = allowed_games(src, max_season, since, seasons)
     over = src.execute("SELECT game_id, season FROM games").fetchall()
     excluded = {str(g) for g, s in over if not season_ok(s, max_season, seasons)}

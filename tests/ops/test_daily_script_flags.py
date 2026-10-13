@@ -54,3 +54,62 @@ def test_both_entrypoints_use_the_single_switch() -> None:
     assert "/roster_source.sh" in lineups
     for text in (SCRIPT, lineups):
         assert "2026-11-04" not in text and "2026-11-03" not in text
+
+
+# --- nightly facts rebuild: opt-in, and its failure never changes the morning exit path ----------
+
+
+def _run_morning(tmp: Path, *, nightly: str, facts_rc: int) -> tuple[int, str, str]:
+    import os
+    import subprocess
+
+    root = tmp / "root"
+    (root / "data").mkdir(parents=True)
+    uv = tmp / "uv"
+    # stub uv: the facts build exits facts_rc, every other step succeeds and is recorded
+    uv.write_text(
+        f'#!/bin/sh\necho "$@" >> "{tmp}/calls"\n'
+        f'case "$*" in *nba.facts*) exit {facts_rc};; esac\nexit 0\n'
+    )
+    rc = tmp / "rclone"
+    rc.write_text("#!/bin/sh\nexit 0\n")
+    for f in (uv, rc):
+        f.chmod(0o755)
+    env = {
+        "PATH": os.environ["PATH"],
+        "NBA_ROOT": str(root),
+        "NBA_UV": str(uv),
+        "NBA_RCLONE": str(rc),
+    }
+    if nightly:
+        env["NBA_FACTS_NIGHTLY"] = nightly
+    script = Path(__file__).resolve().parents[2] / "ops" / "nba_daily.sh"
+    p = subprocess.run(["sh", str(script), "morning"], env=env, capture_output=True, text=True)
+    calls = (tmp / "calls").read_text() if (tmp / "calls").exists() else ""
+    hb = (root / "data/ops/heartbeat/daily-morning.json").read_text()
+    return p.returncode, calls, hb
+
+
+def test_nightly_facts_off_by_default(tmp_path: Path) -> None:
+    rc, calls, _ = _run_morning(tmp_path, nightly="", facts_rc=0)
+    assert rc == 0 and "nba.facts" not in calls
+
+
+def test_nightly_facts_failure_does_not_change_exit_path(tmp_path: Path) -> None:
+    rc, calls, hb = _run_morning(tmp_path, nightly="1", facts_rc=1)
+    lines = calls.splitlines()
+    facts_i = next(i for i, c in enumerate(lines) if "nba.facts" in c)
+    assert "--seasons 2022,2023,2024,2026" in lines[facts_i] and "2025" not in lines[facts_i]
+    assert any("daily settle" in c for c in lines[:facts_i])
+    assert any("daily report" in c for c in lines[:facts_i])
+    # steps after the failed rebuild still ran
+    assert any("parlay evaluate" in c and "--settle" in c for c in lines[facts_i + 1 :])
+    assert (
+        rc == 0
+    )  # script exit unchanged; the failure is visible via ALERTS.md and the heartbeat rc
+    assert '"rc": 1' in hb
+
+
+def test_nightly_facts_informational_rc4_is_not_a_failure(tmp_path: Path) -> None:
+    rc, _, hb = _run_morning(tmp_path, nightly="1", facts_rc=4)
+    assert rc == 0 and '"rc": 0' in hb

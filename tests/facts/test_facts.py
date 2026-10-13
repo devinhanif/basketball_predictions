@@ -377,3 +377,54 @@ def test_coach_change_after_a_game_never_appears_for_it(tmp_path: Path, schedule
         con, "SELECT count(*) FROM facts WHERE object='coach:900' AND known_at < ?", late
     ) == [(0,)]
     con.close()
+
+
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"seasons": (2025,)},
+        {"seasons": (2022, 2025, 2026)},
+        {"schedule_seasons": (2025,)},
+        {"schedule_seasons": (2025, 2026)},
+        {"max_season": 2025},
+        {"max_season": 2026},
+    ],
+)
+def test_no_flag_combination_loads_2025(tmp_path: Path, schedule_dir: Path, kw):
+    with pytest.raises(ValueError, match="holdout"):
+        build(
+            make_source(),
+            None,
+            tmp_path / "x.duckdb",
+            schedule_dir=schedule_dir,
+            odds_aliases=tmp_path / "n.yaml",
+            kalshi_aliases=tmp_path / "n2.yaml",
+            schedule_cache=_sched_cache(tmp_path),
+            **kw,
+        )
+    assert not (tmp_path / "x.duckdb").exists()
+
+
+def test_cli_rejects_2025_in_seasons(tmp_path: Path):
+    from nba.facts.__main__ import main
+
+    with pytest.raises(ValueError, match="holdout"):
+        main(["build", "--seasons", "2024,2025", "--out", str(tmp_path / "f.duckdb")])
+
+
+def test_schedule_only_load_carries_no_outcome_columns(tmp_path: Path, schedule_dir: Path):
+    con = _build_sched(tmp_path, schedule_dir, (2026,))  # full=() : 2026 is schedule-only
+    sched = {
+        r[0] for r in _one(con, "SELECT DISTINCT predicate FROM facts WHERE source='schedule'")
+    }
+    assert sched == {"tips_at", "home_team", "away_team"}
+    rows = _one(
+        con, "SELECT DISTINCT predicate, source FROM facts WHERE subject = ?", f"game:{G26}"
+    )
+    assert {r[1] for r in rows} == {"schedule"}
+    # none of the planted 2026 outcome rows (box score, report, lineup) leaks in
+    assert _one(
+        con,
+        "SELECT count(*) FROM facts WHERE predicate IN ('played_minutes', 'announced_starter', "
+        "'listed_status') AND (subject LIKE 'game:00226%' OR object LIKE 'game:00226%')",
+    ) == [(0,)]
