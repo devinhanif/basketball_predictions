@@ -689,7 +689,7 @@ TEST_SEASONS = (2023, 2024)
 SEEDS = (
     0,
 )  # net 0 of the 3-seed run: same cold init and warm seeds as in run #1 (cold fit seed 0, warm seed 1000)
-PLAN_SHA = "3d2cd9e45253c3289c11c760cd141999b2c974eb0d1c43717c2673dd7a4fa15a"
+PLAN_SHA = "0390d64c1d4551060cb6eef7a6dcfb57932fab629d5d4a08c05dcb1dbf5561f7"
 ERA_COLS = ("era_bubble", "era_nofans", "era_limited")
 
 _orig_fit = globals().get("_orig_fit", fit)
