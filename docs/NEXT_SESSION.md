@@ -6,6 +6,13 @@ _Updated 2026-10-13 08:55 CDT (HEAD 7e77efd). Status overview: PROJECT_STATUS.md
 
 Session 2026-10-13 morning, commits e333157..7e77efd (plus this one). Nothing is running.
 
+FIRST (Devin, 2026-10-13, ~10 min, no facts change): prune the two bloated memory files before any other work.
+(1) Claude's memory project-state.md (57 KB of resume pointers since 10-05) -> only the current pointer (~2 KB); history lives in
+git, DECISIONS and this file. (2) This file (15.6 KB, DONE items mixed with open) -> one page of what is open; move DONE items
+to docs/archive/next_session_done_2026-10.md. Cause noted: today's slips were checking failures (relayed unverified commands,
+a guessed time, an arm named from memory, a harness trailer followed over a standing rule), not context length; BEST_PRACTICES
+(20 KB) is not loaded into the main context.
+
 Done:
 - History position audit SURVIVES (docs/reviews/history_position_audit_2026-10-13.md). FULL/ROUTER/ENSEMBLE etc. never read history;
   only W_ALL (T478/T483/T485) had 322/77,195 training rows (0.42%) with no position, no eval exposure. Tree path saw NULL, not 0.
