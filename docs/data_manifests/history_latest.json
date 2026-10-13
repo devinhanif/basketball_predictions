@@ -1,6 +1,6 @@
 {
- "created_at": "2026-10-13T12:26:20.785679+00:00",
- "data_version": "82ce3683ec29",
+ "created_at": "2026-10-13T17:14:18.153385+00:00",
+ "data_version": "4104818c6695",
  "db_path": "/Users/devin/Downloads/nba-prediction/data/history/nba_history.duckdb",
  "dir_caches": {
   "availability_backfill": {
@@ -12,8 +12,8 @@
    "files": 5502
   },
   "boxsample": {
-   "bytes": 3495614,
-   "files": 221
+   "bytes": 6274865,
+   "files": 347
   },
   "boxscore": {
    "bytes": 27451680,
@@ -28,11 +28,11 @@
    "files": 3638
   },
   "nbastats_stage": {
-   "bytes": 163421285,
-   "files": 7915
+   "bytes": 184906221,
+   "files": 7979
   },
   "pbp": {
-   "bytes": 196143914,
+   "bytes": 196143897,
    "files": 11516
   },
   "schedule": {
@@ -2728,7 +2728,7 @@
     }
    },
    "date_range": {},
-   "fingerprint": "03d28124344f757a-a1dc22d4bd41c916",
+   "fingerprint": "9bbad2b84f30f4e3-71f724abfcd6943b",
    "label_schemes": {
     "minutes_bucket": {
      "b0_dnp": 17886,
@@ -3525,7 +3525,7 @@
      "type": "DATE"
     },
     "college": {
-     "null_rate": 0.001264,
+     "null_rate": 0.000756,
      "type": "VARCHAR"
     },
     "college_stats": {
@@ -3533,23 +3533,23 @@
      "type": "JSON"
     },
     "draft_pick": {
-     "null_rate": 0.326169,
+     "null_rate": 0.336611,
      "type": "INTEGER"
     },
     "draft_status": {
-     "null_rate": 0.002528,
+     "null_rate": 0.001513,
      "type": "VARCHAR"
     },
     "draft_year": {
-     "null_rate": 0.289507,
+     "null_rate": 0.295764,
      "type": "INTEGER"
     },
     "first_season": {
-     "null_rate": 0.010114,
+     "null_rate": 0.006051,
      "type": "INTEGER"
     },
     "height_in": {
-     "null_rate": 0.007585,
+     "null_rate": 0.014372,
      "type": "FLOAT"
     },
     "player_id": {
@@ -3557,26 +3557,26 @@
      "type": "INTEGER"
     },
     "position": {
-     "null_rate": 0.007585,
+     "null_rate": 0.014372,
      "type": "VARCHAR"
     },
     "weight_lb": {
-     "null_rate": 0.007585,
+     "null_rate": 0.014372,
      "type": "FLOAT"
     }
    },
    "date_range": {
     "birth_date": [
-     "1977-01-26",
+     "1974-02-07",
      "2002-12-24"
     ]
    },
-   "fingerprint": "c0f30a310a6dfefb-8d5f3504ad69e785",
+   "fingerprint": "ecaa57b428beb5f6-3a95024d47eb5d1c",
    "pk_duplicates": 0,
    "primary_key": [
     "player_id"
    ],
-   "row_count": 791,
+   "row_count": 1322,
    "schema_hash": "d9d6d85c90824824"
   },
   "possessions": {
@@ -3868,7 +3868,7 @@
     }
    },
    "date_range": {},
-   "fingerprint": "06c656968c8de67a-5af3a1f81b7119da",
+   "fingerprint": "238f84f26aa45baa-02da431a42210b88",
    "pk_duplicates": 0,
    "primary_key": [
     "game_id",

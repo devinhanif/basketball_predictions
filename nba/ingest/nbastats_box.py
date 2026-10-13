@@ -39,6 +39,7 @@ from nba.ingest.boxscores import _STATS_SCHEMA
 _REB_RE = re.compile(r"\(Off:(\d+) Def:(\d+)\)")
 _TECH_TEXT = re.compile(r"(?<![A-Za-z])T\.FOUL")
 _TECH_SUBTYPES = ("Technical", "Defense 3 Second")
+_MADE_PTS_RE = re.compile(r"\(\d+ PTS\)")
 # events whose actor shows the player is on the floor (technical/delay excluded, as in the tracker)
 _EVIDENCE = {1, 2, 3, 4, 5, 6, 7, 10}
 
@@ -54,6 +55,17 @@ def _i(v: Any) -> int:
 
 def _desc(r: dict[str, Any]) -> str:
     return r["HOMEDESCRIPTION"] or r["VISITORDESCRIPTION"] or r["NEUTRALDESCRIPTION"] or ""
+
+
+def ft_made(desc: str) -> bool:
+    """True if a free-throw event's text records a make.
+
+    A make carries the shooter's running total ("Hayes Free Throw 2 of 2 (17 PTS)"), a miss starts
+    with "MISS ". In 2013-14 .. 2016-17 a few misses have neither (a bare "Free Throw 2 of 2", no
+    name, no score change), which the old "not MISS" test counted as makes: pts and ftm one too
+    high for the shooter (SEQ_LEARNING_CURVE_2 gate D3).
+    """
+    return not desc.startswith("MISS") and _MADE_PTS_RE.search(desc) is not None
 
 
 def _clock_s(r: dict[str, Any]) -> int:
@@ -137,7 +149,7 @@ def derive_box(
         elif et == 3 and p1 and t1:
             a = line(p1, t1)
             a["fta"] += 1
-            if not d.startswith("MISS"):
+            if ft_made(d):
                 a["ftm"] += 1
                 a["pts"] += 1
         elif et == 4 and p1 and t1:

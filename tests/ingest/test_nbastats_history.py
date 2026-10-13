@@ -13,7 +13,7 @@ import polars as pl
 import pytest
 
 from nba.db.connect import connect
-from nba.ingest.nbastats_box import derive_box, derive_starters
+from nba.ingest.nbastats_box import derive_box, derive_starters, ft_made
 from nba.ingest.nbastats_pbp import (
     RAW_COLUMNS,
     duplicate_keys,
@@ -332,6 +332,33 @@ def test_box_counts_and_technical_excluded() -> None:
     assert b[204]["pf"] == 1 and b[204]["ast"] == 1
     assert b[106]["pf"] == 0  # technical
     assert b[203]["tov"] == 1 and b[205]["pts"] == 2
+
+
+def test_bare_free_throw_text_is_a_miss_not_a_make() -> None:
+    """2013-17 feeds sometimes leave a missed free throw as a bare "Free Throw 2 of 2" (no name,
+    no score change); it must not count as a make (SEQ_LEARNING_CURVE_2 gate D3: pts and ftm one
+    too high for 17/1397 sampled player-games)."""
+    raw = _game()
+    ft = next(
+        r
+        for r in raw
+        if r["EVENTMSGTYPE"] == "3" and r["HOMEDESCRIPTION"] and "MISS" in r["HOMEDESCRIPTION"]
+    )
+    bare = dict(ft)
+    bare.update(EVENTNUM="99", HOMEDESCRIPTION="Free Throw 2 of 2")
+    raw2 = [*raw, bare]
+    b = {r["player_id"]: r for r in derive_box(raw2, SUBS, {}, None).iter_rows(named=True)}
+    assert (b[105]["ftm"], b[105]["fta"], b[105]["pts"]) == (1, 3, 1)
+    assert ft_made("Egret Free Throw 1 of 2 (1 PTS)")
+    assert ft_made("Egret Free Throw Technical (13 PTS)")
+    assert not ft_made("MISS Egret Free Throw 2 of 2")
+    assert not ft_made("Free Throw 2 of 2")
+    assert not ft_made("")
+    # the V3 text carries the miss mark, so the possession parser agrees with the box
+    stats: dict[str, int] = {}
+    v3 = to_v3(pl.DataFrame(raw2), SUBS, stats)
+    last = v3.filter(pl.col("action_number") == 99)["description"][0]
+    assert last == "MISS Free Throw 2 of 2" and stats["unmarked_ft_miss"] == 1
 
 
 def test_reconcile_box_flags_planted_differences() -> None:

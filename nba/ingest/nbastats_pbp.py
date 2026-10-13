@@ -39,6 +39,7 @@ from typing import Any
 
 import polars as pl
 
+from nba.ingest.nbastats_box import ft_made
 from nba.ingest.pbp import _PBP_SCHEMA
 
 SUBTYPE_CSV = Path(__file__).with_name("nbastats_subtypes.csv")
@@ -268,6 +269,10 @@ def to_v3(
             desc = (hd if tid == home_team else vd) or hd or vd or nd or ""
         else:
             desc = hd or vd or nd or ""
+        if et == 3 and not desc.startswith("MISS") and not ft_made(desc):
+            # a miss the feed left unmarked (bare "Free Throw 2 of 2"): mark it, as the V3 feed does
+            desc = f"MISS {desc}".strip()
+            st["unmarked_ft_miss"] = st.get("unmarked_ft_miss", 0) + 1
         if et == 8:
             m = _SUB_RE.match(desc.strip())
             p_in, p_out = _int(r["PLAYER2_ID"]), pid
