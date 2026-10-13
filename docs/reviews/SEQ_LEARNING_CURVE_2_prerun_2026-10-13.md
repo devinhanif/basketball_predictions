@@ -83,4 +83,94 @@ The exports are rebuilt from a history DB that has drifted from the one the gate
 - Ledger: none (pre-run review, no result).
 - DECISIONS: none.
 
+First-pass verdict (superseded by the re-review below): BLOCKED
+
+## Re-review 2026-10-13 (commit 6bc8007)
+
+Read: `git diff 6bc8007~1 6bc8007` (rule, exporter, scorer, job.yaml, tests).
+
+The first-pass verdict line above was renamed so that this file holds exactly one whole `Verdict:` line, the ambiguity `parse_header` refuses. Nothing else in the first pass was edited.
+
+### Re-run checks
+
+| check | command | result |
+|---|---|---|
+| Tests | `.venv/bin/python -m pytest -q tests/research/seq_learning_curve_2 -p no:cacheprovider --no-cov` | 65 passed, exit 0 |
+| Lint, format, types | ruff check, ruff format --check, mypy (exporter, scorer, tests) | all exit 0 |
+| Pin matches the live DB | `X.db_data_version(X.SEG_DB['S1'])`, read-only (`_connect` opens with `read_only=True`) | recomputes to **c90139d87ded**, so the pin does not refuse the live DB |
+| Stamp | `gate_check_2.json` `data_version` | c90139d87ded |
+
+### Blocking items from the first pass
+
+**B1 (rule names the measured data_version): FIXED, except one cell (R1).**
+- c90139d87ded now appears at rule line 3 (status), line 15 (D7), line 50, and the D2, D3 and D6 cells.
+- Remaining exception: R1 below.
+
+**B2 (no refusal of another data_version): FIXED.**
+- Exporter: `HISTORY_DATA_VERSION = "c90139d87ded"` at line 51. `build()` recomputes the version and refuses a mismatch before anything is loaded (lines 295-296). It records both history and nba.duckdb versions in `export_info.json`.
+- Scorer: `check_run` refuses a missing or different version (eval lines 522-527).
+- Tests: `test_export_refuses_a_history_data_version_other_than_the_rules` and `test_check_run_refuses_exports_built_on_another_data_version`.
+
+**B3 (U(4) failure had two outcomes): FIXED for a single failure. The combined case is open (R2).**
+- Line 45 now voids only U(8), the grids and the run-time gates.
+- Line 46 makes a U(4) failure INCONCLUSIVE (construction) with the condition stated as met.
+- Line 120 carries the exception.
+- Eval disclosure line 585 now quotes the rule rather than "a reading".
+
+### Non-blocking items
+- N2, N3, N4, N6, N7: FIXED.
+- N5 (CI code is not `truth/bootstrap.py`): inherited, open.
+- N1: PARTIAL. job.yaml gains `accelerator: T4` and `compute_units_ceiling: 10`, but rule line 92 says "the job refuses nothing else". Nothing in `seq_learning_curve_2_train.py` reads either key or the device name.
+
+### D2/D3/D7 numbers vs `gate_check_2.json`, field by field: ALL MATCH
+
+**D2**
+- 2013: games 1,319; played rows 27,324; 2,638/2,638 team-games with five starters; minutes ratio 2.0166, printed 2.017.
+- 2014: games 1,311; played rows 27,478; 2,620/2,622 team-games with five starters (99.92%); minutes ratio 2.0152, printed 2.015.
+- null_rows 0 in every season. pass is true and all checks are true for 2013-2024.
+
+**D3**
+
+| season | games | rows | missing / extra / mismatched | minutes within tolerance (json) |
+|---|---|---|---|---|
+| 2013 | 67 | 1,397 | 0 / 0 / 0 | 0.99427 |
+| 2014 | 58 | 1,246 | 0 / 0 / 0 | 0.99438 |
+| 2015 | 58 | 1,228 | 0 / 0 / 0 | 0.97801 |
+| 2016 | 58 | 1,240 | 0 / 0 / 0 | 0.99677 |
+| 2017 | 52 | 1,115 | 0 / 0 / 0 | 1.0 |
+| 2018 | 50 | 1,079 | 0 / 0 / 0 | 0.99815 |
+
+Every row equals the rule text.
+
+**D7**
+- 2013 = (100.910, 42.639, 21.856, 7.763); 2014 = (100.047, 43.401, 22.016, 7.904).
+- 2015 pts 102.486 and 2016 pts 105.618. reb/ast/fg3m for 2015 and 2016 equal the exporter's constants (lines 56-57).
+- Drift for 2017-18 is 0.
+- Lprev 2013 = (114.330, 43.422, 25.211, 12.315) = L_ref = the 2022 mean. Lprev 2014 = the 2013 mean.
+- Exporter `SEASON_MEAN` and `LPREV` equal these values.
+
+### New or remaining contradictions
+
+**R1 (BLOCKING). The D4 verdict cell still opens with FAIL.**
+- Where: rule line 57, last column. The cell starts `**FAIL (strict, per season)**: 2013-14 exceeds 1% by 0.061 point ...`; the PASS on c90139d87ded comes later in the same cell.
+- Why it blocks: the freeze condition is "every gate item D1-D8 PASS", and the cell's leading verdict word is FAIL.
+- Fix: start the cell with `**PASS (strict, per season) on data_version c90139d87ded**`. Move the 4104818c6695 FAIL narrative and the 12:58 clobber into the audit bullet "D4 after the fetch".
+
+**R2 (BLOCKING). No precedence when U(4) and U(8) both fail.**
+- Where: rule line 46 ("If the FULL/A0 grids fail as well, VOID (gate) takes precedence"). It names only the grids.
+- Why it blocks: a U(4) failure together with a U(8) failure gets INCONCLUSIVE from line 46 and VOID from line 45. The code (`gate_verdict`, eval lines 156-159) returns VOID.
+- Fix: "If U(8) or the FULL/A0 grids fail as well, VOID (gate) takes precedence."
+
+**R3 (non-blocking). The T4 pin and the 10-unit ceiling are not enforced.**
+- Risk: on an A100 the 240-minute ceiling is about 50 units.
+- Fix: in `run` of `seq_learning_curve_2_train.py`, refuse unless `"T4" in torch.cuda.get_device_name(0)` when `not smoke`. On a T4, 240 minutes is about 7 units, under 10.
+- If this is not done: rule line 92 should call the 10-unit ceiling Devin's runtime choice, not a job ceiling.
+
+**R4 (non-blocking). `check_run` trusts `export_info.json`, which is not in the Exports-manifest.**
+- Fix: also require `export_info.json` `segments[*].npz_sha256` to equal `cfg["exports"]`.
+
+### Not verified
+- That the only changes from 4104818c6695 to c90139d87ded are `players_static` and the sidecar. D3's reconcile files predate c90139d87ded and are carried, not re-fetched.
+- Torch and lightgbm import order (the coordinator's report). I did not run tests/research/colab.
+
 Verdict: BLOCKED
