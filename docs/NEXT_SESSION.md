@@ -2,6 +2,16 @@
 
 _Updated 2026-10-13 (pruned to open items). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
+## PAUSED 2026-10-13 ~16:05 CDT (Devin heading home)
+- SEQ_LEARNING_CURVE_2: FROZEN 86f31649 (cf2ba61), loader review APPROVED (93dd7c0), Colab run done 98.5 T4 min (pulled to
+  data/colab/runs/seq_learning_curve_2/20261013_134937/). Scoring was running on the Mac (modeler; log in the session
+  scratchpad); verdicts not yet read. Open: cap diagnostic 5/30 (Colab file) vs 2/30 (scorer), both under the 1/3 limit.
+  Next: results section, TEST_LEDGER rows, prior scored, then the adversary's post-result attack. T4 units/hour still unread.
+- AVG_SHADOW_LIVE: built, flag OFF, uncommitted; /code-review found 10 issues (one could break the morning briefing);
+  steward fixing. P3 FAILED (19-atom G1 calibration, q10 0.126): counting cannot start; repair = new rule id, Devin's call;
+  check whether FULL_SHADOW_LIVE has the same 19-atom issue. Do NOT run the AVG rebuild notebook until then.
+- Waiting on Devin: Oracle VM + stats.nba.com test; P3 repair decision; old co-author trailers (Claude: leave).
+
 ## Start here (handoff 2026-10-13 08:55 CDT)
 
 Session 2026-10-13 morning, commits e333157..7e77efd (plus this one). Nothing is running.
