@@ -126,3 +126,33 @@ passes $25. The cost monitor reports month-to-date; a cleanup or plan change is 
 2. API read-only pages + PWA shell on fixtures. 3. Accounts + paper ledger. 4. Slip ingest (gate: 20 slips by hand).
 5. Parlay-of-day page. 6. Social adapters behind the approval queue (gate: zero errors in 20 posts).
 7. Support KB. 8. Payments only in phase 4, per the draft.
+
+## 9. Gameplan to the PWA (2026-10-13; adds the features agreed today; weeks are estimates, each step keeps its gate)
+Production moves to the Oracle VM first (DECISIONS VM item), so section 4's "Mac" column becomes the VM; the wall in
+section 2 is unchanged. New features, all on one ledger stamped before tip:
+- **Ledger schema (designed before any code):** one row per leg; `made_at` (refused after tip, like forecasts); line and
+  price shown; source (swipe / typed / slip); `saw_model` flag (blind by default); user id; paper stake; settlement.
+- **Over/under swipe:** cards drawn at random from the day's props (missingness by design), line and price only, no
+  forecast; over / under / skip and response time logged. Feeds leagues and the crowd-signal test.
+- **Leagues:** free, bragging rights only, scored on calibration against the price (not raw hits); no entry fees or prizes
+  (paid contests are regulated; a change is Devin's call with legal advice).
+- **Post-mortems:** per leg, forecast at the time vs outcome, the minutes/fouls/blowout facts behind a miss, bad bet vs bad
+  luck from the stamped forecast and price; user tendencies only with n shown.
+- **Grounded chat:** RAG over `nba/export`, the facts store and the ledger; numbers only from the engine (numguard);
+  routed by difficulty (template, cheap model, strong model; "jev engineering"); "not enough data" is an answer.
+- **Why library (later):** line moves paired with what was knowable before them; content first, an LLM-shadow arm only
+  under a pre-registered rule.
+
+| Week | Dates | Build | Gate / exit |
+|---|---|---|---|
+| 0 | now - 10-19 | Ledger + swipe schema (docs); VM created, stats.nba.com test; Devin's accounts (domain, Cloudflare, email sender) | network test result; hands-off 10-18 to 10-20 |
+| 1 | 10-20 - 10-26 | Opening night on the Mac; VM runs the pipeline in parallel; `nba/export` + layering tests | replay oracle identical on the VM; export read-only |
+| 2 | 10-27 - 11-02 | Cut over to the VM; API + PWA shell on fixtures; slate and forecast pages, installable | a few clean slates on the VM before cutover |
+| 3 | 11-03 - 11-09 | Magic-link accounts, paper ledger, swipe cards, settlement | private alpha: Devin + 3-5 friends, consent noted |
+| 4 | 11-10 - 11-16 | Post-mortems v1 (templates, no LLM), leagues, "my calibration" | settlement matches box scores on 100% of resolvable legs |
+| 5 | 11-17 - 11-23 | Slip screenshot ingest; grounded chat v1 with routing | 20 slips checked by Devin; chat answers carry sources |
+| 6+ | 11-24 on | Approval-queue posting (Discord, then X) of honest recaps; parlay-of-day page; support KB | 20-post dry run with zero errors; platform terms checked |
+Public beta only after about four weeks of live log and the first PPLAY look (11-15). A business target is committed
+before launch (e.g. weekly actives or paying users by 2027-01-15, with a rethink if missed), the same way a model rule is.
+Devin supplies: the VM, the domain, a Cloudflare account, an email sender and a capped vision-LLM key (exact vendor URL and
+plan each), the friend list, and later the Discord server and X developer app.
