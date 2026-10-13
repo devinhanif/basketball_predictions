@@ -1,0 +1,1169 @@
+{
+ "2015": {
+  "games": 58,
+  "official_rows": 1484,
+  "official_played_rows": 1228,
+  "derived_rows": 1228,
+  "missing_in_derived_played": 0,
+  "missing_in_derived_played_minutes_mean": 0.0,
+  "missing_in_derived_played_minutes_max": 0.0,
+  "missing_examples": [],
+  "extra_in_derived": 0,
+  "extra_in_derived_with_minutes_or_stats": 0,
+  "per_stat": {
+   "pts": {
+    "n": 1228,
+    "mismatch": 8,
+    "rate": 0.006514657980456026,
+    "examples": [
+     [
+      "0021500391",
+      202704,
+      31,
+      32
+     ],
+     [
+      "0021500594",
+      203079,
+      20,
+      21
+     ],
+     [
+      "0021500627",
+      201566,
+      27,
+      28
+     ],
+     [
+      "0021500761",
+      202322,
+      23,
+      24
+     ],
+     [
+      "0021500765",
+      201144,
+      16,
+      17
+     ],
+     [
+      "0021500965",
+      201976,
+      8,
+      9
+     ],
+     [
+      "0021501180",
+      201577,
+      24,
+      25
+     ],
+     [
+      "0041500311",
+      201566,
+      27,
+      28
+     ]
+    ]
+   },
+   "reb": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ast": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fg3m": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fga": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fta": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fgm": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ftm": {
+    "n": 1228,
+    "mismatch": 8,
+    "rate": 0.006514657980456026,
+    "examples": [
+     [
+      "0021500391",
+      202704,
+      7,
+      8
+     ],
+     [
+      "0021500594",
+      203079,
+      2,
+      3
+     ],
+     [
+      "0021500627",
+      201566,
+      6,
+      7
+     ],
+     [
+      "0021500761",
+      202322,
+      7,
+      8
+     ],
+     [
+      "0021500765",
+      201144,
+      2,
+      3
+     ],
+     [
+      "0021500965",
+      201976,
+      3,
+      4
+     ],
+     [
+      "0021501180",
+      201577,
+      6,
+      7
+     ],
+     [
+      "0041500311",
+      201566,
+      11,
+      12
+     ]
+    ]
+   },
+   "tov": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "stl": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "blk": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "oreb": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "dreb": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "pf": {
+    "n": 1228,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   }
+  },
+  "minutes": {
+   "n": 1228,
+   "within_tol": 1201,
+   "share_within_tol": 0.9780130293159609,
+   "mean_abs_diff": 0.1056596091205214,
+   "p95_abs_diff": 0.016666666666667496,
+   "examples": [
+    [
+     "0021501092",
+     202325,
+     27.633333333333333,
+     12.0
+    ],
+    [
+     "0021501092",
+     201965,
+     2.3166666666666664,
+     15.633333333333333
+    ],
+    [
+     "0021500707",
+     203084,
+     34.38333333333333,
+     25.5
+    ],
+    [
+     "0021500707",
+     2571,
+     15.116666666666667,
+     24.0
+    ],
+    [
+     "0021500916",
+     2449,
+     14.95,
+     19.95
+    ],
+    [
+     "0021500916",
+     202685,
+     26.633333333333333,
+     31.633333333333333
+    ],
+    [
+     "0021500916",
+     201942,
+     36.666666666666664,
+     41.666666666666664
+    ],
+    [
+     "0021500916",
+     200768,
+     36.65,
+     41.65
+    ]
+   ]
+  },
+  "team_game_points_exact": {
+   "n": 116,
+   "exact": 108
+  },
+  "games_fetched": 58,
+  "games_in_stage": 1316,
+  "games_table_points_ne_official_team_games": 2,
+  "games_table_points_examples": [
+   [
+    "0021500916",
+    1610612757,
+    115,
+    112
+   ],
+   [
+    "0021500916",
+    1610612761,
+    117,
+    114
+   ]
+  ],
+  "short_stint_gap": {
+   "derived_rows_with_no_stint_time": 8,
+   "of_which_official_minutes_gt_0": 8,
+   "official_minutes_max": 3.3166666666666664,
+   "official_minutes_mean": 1.7416666666666667
+  }
+ },
+ "2016": {
+  "games": 58,
+  "official_rows": 1484,
+  "official_played_rows": 1240,
+  "derived_rows": 1240,
+  "missing_in_derived_played": 0,
+  "missing_in_derived_played_minutes_mean": 0.0,
+  "missing_in_derived_played_minutes_max": 0.0,
+  "missing_examples": [],
+  "extra_in_derived": 0,
+  "extra_in_derived_with_minutes_or_stats": 0,
+  "per_stat": {
+   "pts": {
+    "n": 1240,
+    "mismatch": 8,
+    "rate": 0.0064516129032258064,
+    "examples": [
+     [
+      "0021600026",
+      203471,
+      11,
+      12
+     ],
+     [
+      "0021600158",
+      101162,
+      10,
+      11
+     ],
+     [
+      "0021600344",
+      202339,
+      30,
+      31
+     ],
+     [
+      "0021600478",
+      204001,
+      24,
+      25
+     ],
+     [
+      "0021600487",
+      201566,
+      21,
+      22
+     ],
+     [
+      "0021600528",
+      203903,
+      16,
+      17
+     ],
+     [
+      "0021600770",
+      203500,
+      15,
+      16
+     ],
+     [
+      "0021601215",
+      203080,
+      10,
+      11
+     ]
+    ]
+   },
+   "reb": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ast": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fg3m": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fga": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fta": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fgm": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ftm": {
+    "n": 1240,
+    "mismatch": 8,
+    "rate": 0.0064516129032258064,
+    "examples": [
+     [
+      "0021600026",
+      203471,
+      3,
+      4
+     ],
+     [
+      "0021600158",
+      101162,
+      0,
+      1
+     ],
+     [
+      "0021600344",
+      202339,
+      7,
+      8
+     ],
+     [
+      "0021600478",
+      204001,
+      6,
+      7
+     ],
+     [
+      "0021600487",
+      201566,
+      7,
+      8
+     ],
+     [
+      "0021600528",
+      203903,
+      1,
+      2
+     ],
+     [
+      "0021600770",
+      203500,
+      3,
+      4
+     ],
+     [
+      "0021601215",
+      203080,
+      2,
+      3
+     ]
+    ]
+   },
+   "tov": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "stl": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "blk": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "oreb": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "dreb": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "pf": {
+    "n": 1240,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   }
+  },
+  "minutes": {
+   "n": 1240,
+   "within_tol": 1236,
+   "share_within_tol": 0.9967741935483871,
+   "mean_abs_diff": 0.008696236559140067,
+   "p95_abs_diff": 0.016666666666666607,
+   "examples": [
+    [
+     "0021600966",
+     201628,
+     2.2,
+     0.0
+    ],
+    [
+     "0021600966",
+     201583,
+     27.35,
+     29.55
+    ],
+    [
+     "0041600213",
+     2594,
+     21.233333333333334,
+     22.916666666666668
+    ],
+    [
+     "0041600213",
+     2563,
+     1.6833333333333333,
+     0.0
+    ],
+    [
+     "0021600406",
+     101109,
+     10.966666666666667,
+     10.933333333333334
+    ],
+    [
+     "0021600406",
+     101108,
+     37.03333333333333,
+     37.06666666666666
+    ],
+    [
+     "0021600549",
+     203186,
+     31.666666666666668,
+     31.7
+    ],
+    [
+     "0021600005",
+     203084,
+     34.68333333333333,
+     34.7
+    ]
+   ]
+  },
+  "team_game_points_exact": {
+   "n": 116,
+   "exact": 108
+  },
+  "games_fetched": 58,
+  "games_in_stage": 1309,
+  "games_table_points_ne_official_team_games": 0,
+  "games_table_points_examples": [],
+  "short_stint_gap": {
+   "derived_rows_with_no_stint_time": 2,
+   "of_which_official_minutes_gt_0": 2,
+   "official_minutes_max": 2.2,
+   "official_minutes_mean": 1.9416666666666669
+  }
+ },
+ "2017": {
+  "games": 52,
+  "official_rows": 1306,
+  "official_played_rows": 1115,
+  "derived_rows": 1115,
+  "missing_in_derived_played": 0,
+  "missing_in_derived_played_minutes_mean": 0.0,
+  "missing_in_derived_played_minutes_max": 0.0,
+  "missing_examples": [],
+  "extra_in_derived": 0,
+  "extra_in_derived_with_minutes_or_stats": 0,
+  "per_stat": {
+   "pts": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "reb": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ast": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fg3m": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fga": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fta": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fgm": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ftm": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "tov": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "stl": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "blk": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "oreb": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "dreb": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "pf": {
+    "n": 1115,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   }
+  },
+  "minutes": {
+   "n": 1115,
+   "within_tol": 1115,
+   "share_within_tol": 1.0,
+   "mean_abs_diff": 0.0018834080717491446,
+   "p95_abs_diff": 0.01666666666666572,
+   "examples": [
+    [
+     "0021700525",
+     202326,
+     43.78333333333333,
+     43.81666666666666
+    ],
+    [
+     "0021700549",
+     2544,
+     33.81666666666667,
+     33.85
+    ],
+    [
+     "0021700361",
+     200752,
+     32.95,
+     32.93333333333333
+    ],
+    [
+     "0021700549",
+     203081,
+     32.833333333333336,
+     32.81666666666666
+    ],
+    [
+     "0021700575",
+     203078,
+     37.7,
+     37.68333333333333
+    ],
+    [
+     "0021700685",
+     201960,
+     34.083333333333336,
+     34.06666666666666
+    ],
+    [
+     "0021700002",
+     2733,
+     18.55,
+     18.53333333333333
+    ],
+    [
+     "0021700127",
+     204020,
+     25.55,
+     25.53333333333333
+    ]
+   ]
+  },
+  "team_game_points_exact": {
+   "n": 104,
+   "exact": 104
+  },
+  "games_fetched": 52,
+  "games_in_stage": 1312,
+  "games_table_points_ne_official_team_games": 4,
+  "games_table_points_examples": [
+   [
+    "0021700025",
+    1610612740,
+    120,
+    103
+   ],
+   [
+    "0021700025",
+    1610612744,
+    128,
+    124
+   ],
+   [
+    "0021700211",
+    1610612740,
+    116,
+    85
+   ],
+   [
+    "0021700211",
+    1610612761,
+    125,
+    89
+   ]
+  ],
+  "short_stint_gap": {
+   "derived_rows_with_no_stint_time": 1,
+   "of_which_official_minutes_gt_0": 1,
+   "official_minutes_max": 0.016666666666666666,
+   "official_minutes_mean": 0.016666666666666666
+  }
+ },
+ "2018": {
+  "games": 50,
+  "official_rows": 1259,
+  "official_played_rows": 1079,
+  "derived_rows": 1079,
+  "missing_in_derived_played": 0,
+  "missing_in_derived_played_minutes_mean": 0.0,
+  "missing_in_derived_played_minutes_max": 0.0,
+  "missing_examples": [],
+  "extra_in_derived": 0,
+  "extra_in_derived_with_minutes_or_stats": 0,
+  "per_stat": {
+   "pts": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "reb": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ast": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fg3m": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fga": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fta": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fgm": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ftm": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "tov": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "stl": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "blk": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "oreb": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "dreb": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "pf": {
+    "n": 1079,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   }
+  },
+  "minutes": {
+   "n": 1079,
+   "within_tol": 1077,
+   "share_within_tol": 0.9981464318813716,
+   "mean_abs_diff": 0.011044176706827571,
+   "p95_abs_diff": 0.01666666666666572,
+   "examples": [
+    [
+     "0041800403",
+     1627783,
+     38.666666666666664,
+     40.88333333333333
+    ],
+    [
+     "0041800403",
+     1627775,
+     2.216666666666667,
+     0.0
+    ],
+    [
+     "0041800403",
+     202695,
+     38.416666666666664,
+     39.28333333333333
+    ],
+    [
+     "0041800403",
+     200768,
+     43.36666666666667,
+     44.233333333333334
+    ],
+    [
+     "0041800403",
+     201975,
+     0.8666666666666667,
+     0.0
+    ],
+    [
+     "0041800403",
+     202391,
+     0.8666666666666667,
+     0.0
+    ],
+    [
+     "0041800403",
+     1626259,
+     0.8666666666666667,
+     0.0
+    ],
+    [
+     "0041800403",
+     1627832,
+     33.31666666666667,
+     34.18333333333333
+    ]
+   ]
+  },
+  "team_game_points_exact": {
+   "n": 100,
+   "exact": 100
+  },
+  "games_fetched": 50,
+  "games_in_stage": 1312,
+  "games_table_points_ne_official_team_games": 0,
+  "games_table_points_examples": [],
+  "short_stint_gap": {
+   "derived_rows_with_no_stint_time": 4,
+   "of_which_official_minutes_gt_0": 4,
+   "official_minutes_max": 2.216666666666667,
+   "official_minutes_mean": 1.2041666666666666
+  }
+ },
+ "all": {
+  "games": 218,
+  "official_rows": 5533,
+  "official_played_rows": 4662,
+  "derived_rows": 4662,
+  "missing_in_derived_played": 0,
+  "missing_in_derived_played_minutes_mean": 0.0,
+  "missing_in_derived_played_minutes_max": 0.0,
+  "missing_examples": [],
+  "extra_in_derived": 0,
+  "extra_in_derived_with_minutes_or_stats": 0,
+  "per_stat": {
+   "pts": {
+    "n": 4662,
+    "mismatch": 16,
+    "rate": 0.003432003432003432,
+    "examples": [
+     [
+      "0021500391",
+      202704,
+      31,
+      32
+     ],
+     [
+      "0021500594",
+      203079,
+      20,
+      21
+     ],
+     [
+      "0021500627",
+      201566,
+      27,
+      28
+     ],
+     [
+      "0021500761",
+      202322,
+      23,
+      24
+     ],
+     [
+      "0021500765",
+      201144,
+      16,
+      17
+     ],
+     [
+      "0021500965",
+      201976,
+      8,
+      9
+     ],
+     [
+      "0021501180",
+      201577,
+      24,
+      25
+     ],
+     [
+      "0041500311",
+      201566,
+      27,
+      28
+     ]
+    ]
+   },
+   "reb": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ast": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fg3m": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fga": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fta": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "fgm": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "ftm": {
+    "n": 4662,
+    "mismatch": 16,
+    "rate": 0.003432003432003432,
+    "examples": [
+     [
+      "0021500391",
+      202704,
+      7,
+      8
+     ],
+     [
+      "0021500594",
+      203079,
+      2,
+      3
+     ],
+     [
+      "0021500627",
+      201566,
+      6,
+      7
+     ],
+     [
+      "0021500761",
+      202322,
+      7,
+      8
+     ],
+     [
+      "0021500765",
+      201144,
+      2,
+      3
+     ],
+     [
+      "0021500965",
+      201976,
+      3,
+      4
+     ],
+     [
+      "0021501180",
+      201577,
+      6,
+      7
+     ],
+     [
+      "0041500311",
+      201566,
+      11,
+      12
+     ]
+    ]
+   },
+   "tov": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "stl": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "blk": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "oreb": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "dreb": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   },
+   "pf": {
+    "n": 4662,
+    "mismatch": 0,
+    "rate": 0.0,
+    "examples": []
+   }
+  },
+  "minutes": {
+   "n": 4662,
+   "within_tol": 4629,
+   "share_within_tol": 0.9929214929214929,
+   "mean_abs_diff": 0.03315100815100841,
+   "p95_abs_diff": 0.016666666666666607,
+   "examples": [
+    [
+     "0021501092",
+     202325,
+     27.633333333333333,
+     12.0
+    ],
+    [
+     "0021501092",
+     201965,
+     2.3166666666666664,
+     15.633333333333333
+    ],
+    [
+     "0021500707",
+     203084,
+     34.38333333333333,
+     25.5
+    ],
+    [
+     "0021500707",
+     2571,
+     15.116666666666667,
+     24.0
+    ],
+    [
+     "0021500916",
+     2449,
+     14.95,
+     19.95
+    ],
+    [
+     "0021500916",
+     202685,
+     26.633333333333333,
+     31.633333333333333
+    ],
+    [
+     "0021500916",
+     201942,
+     36.666666666666664,
+     41.666666666666664
+    ],
+    [
+     "0021500916",
+     200768,
+     36.65,
+     41.65
+    ]
+   ]
+  },
+  "team_game_points_exact": {
+   "n": 436,
+   "exact": 420
+  }
+ }
+}

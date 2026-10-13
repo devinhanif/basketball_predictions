@@ -345,3 +345,8 @@
   `player_game_stats.minutes` 0.180 -> 0.082 (derived seasons carry no DNP rows, so no NULL minutes). Consumers must read `box_derived` before using DNP/P(play) features.
 - Not done / pending: independent stats.nba.com box sample (218 games) is queued (`hist:boxsample`, needs a queue restart), deadline 2026-10-20; reconciliation to follow as a new entry.
 - Details: docs/reviews/history_2015_2019_ingest_2026-10-12.md.
+
+## 2026-10-12 UTC - history 2015-16 .. 2018-19: independent box sample reconciled (no data change)
+- 218 games fetched from stats.nba.com (BoxScoreTraditionalV3, 0 failures; 50 random per season + the 19 games whose box points disagree with the feed score), 4,662 official played player-games.
+  Derived box vs official: no played player missing or extra; 12 of 14 stats exact; pts and ftm differ on 16 rows (0.65% in 2015-16 and 2016-17, 0 in 2017-18 and 2018-19), the same rows, so free throws
+  missing from or extra in the play-by-play; minutes within 1 min 97.8% / 99.7% / 100% / 99.8%. Inside the 17:41 gate (any stat <= 1% off, minutes >= 0.91). `reports/history_2015_2019_boxsample_reconcile.json`.
