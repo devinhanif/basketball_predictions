@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -324,6 +325,23 @@ def _pplay_shadow_section(con: duckdb.DuckDBPyConnection) -> list[str]:
     return lines
 
 
+def _avg_shadow_section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> list[str]:
+    """SHADOW (AVG_SHADOW_LIVE): counts and gates only (no delta on a non-look day)."""
+    from nba.daily.avg_shadow.display import section
+
+    return section(con, season)
+
+
+def _guarded_section(
+    name: str, fn: Callable[..., list[str]], con: duckdb.DuckDBPyConnection, *args: Any
+) -> list[str]:
+    """A shadow section never breaks the briefing: any exception becomes one reported line."""
+    try:
+        return fn(con, *args)
+    except Exception as exc:
+        return ["", f"## {name}", f"- unavailable: {type(exc).__name__}: {exc}"[:300]]
+
+
 def _full_shadow_section(con: duckdb.DuckDBPyConnection) -> list[str]:
     """SHADOW: RECENT_ROLE_FULL (props heads + lower-tail pi with the five recent-role columns) vs
     production, integer-support CRPS, paired and date-clustered. Descriptive; the binding rule is
@@ -445,8 +463,9 @@ def build_report(
     lines += _paired_t30_section(con, props, lineups_db)
     lines += _paired_t15_section(con, props)
     lines.append(f"- DNP / not-in-box (excluded from metrics): {int(dnp[0]) if dnp else 0}")
-    lines += _pplay_shadow_section(con)
-    lines += _full_shadow_section(con)
+    lines += _guarded_section("P(play) shadow", _pplay_shadow_section, con)
+    lines += _guarded_section("FULL shadow", _full_shadow_section, con)
+    lines += _guarded_section("AVG shadow", _avg_shadow_section, con, season)
     lines += _late_scratch_section(con, lineups_db)
     lines += _checkpoint_section()
     lines += _independence_section(con)

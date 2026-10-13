@@ -146,6 +146,9 @@ def run_daily(
     dedup: bool = True,
     with_pplay_shadow: bool = False,
     with_full_shadow: bool = False,
+    with_avg_shadow: bool = False,
+    avg_bundle_root: Path | None = None,
+    avg_heartbeat_dir: Path | None = None,
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC.
 
@@ -249,6 +252,12 @@ def run_daily(
             con, run_date, upcoming, made_at, summary, preds,
             official, elo_config, model_cache, shared,
         )  # fmt: skip
+    if with_avg_shadow:
+        # SHADOW (AVG_SHADOW_LIVE), after the FULL shadow it mixes with: own tables,
+        # own try/except, own heartbeat.
+        _avg_shadow(
+            con, run_date, upcoming, made_at, summary, shared, avg_bundle_root, avg_heartbeat_dir
+        )
     return summary
 
 
@@ -369,6 +378,66 @@ def _full_shadow(
     except Exception as exc:
         summary.shadow_errors.append(
             f"full shadow: {type(exc).__name__}: {exc} ({time.perf_counter() - t0:.0f}s)"[:300]
+        )
+
+
+def _avg_shadow(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    made_at: datetime,
+    summary: RunSummary,
+    shared: dict[str, Any],
+    bundle_root: Path | None = None,
+    hb_dir: Path | None = None,
+) -> None:
+    """Log AVG = 0.5 pmf(SEQc) + 0.5 pmf(FULL) for the slate group (CPU inference in a child
+    process), then settle.
+
+    Own tables (``forward_avg_*``); ``forward_predictions`` and every scored production table
+    are untouched. Statuses ok / skipped (no weights installed) / failed go to the heartbeat
+    table and ``data/ops/heartbeat/avg_shadow.json``; an exception is recorded in
+    ``shadow_errors`` and nothing else changes. Never retried after tip: only games with
+    ``made_at < tipoff`` are passed."""
+    import time
+
+    from nba.daily.avg_shadow import bundle as avg_bundle
+    from nba.daily.avg_shadow import run as avg_run
+    from nba.daily.avg_shadow.preflight import sleep_warning
+    from nba.daily.avg_shadow.run import run_avg_shadow
+    from nba.daily.avg_shadow.settle import settle_avg_shadow
+    from nba.daily.pplay_shadow.features import SlateGame
+
+    name = "avg_shadow"
+    t0 = time.perf_counter()
+    try:
+        if upcoming:
+            warn = sleep_warning()
+            if warn:  # a warning only: it alerts, it never blocks or alters the step
+                summary.shadow_errors.append(f"avg shadow: {warn}"[:300])
+            wide = shared.get("wide")
+            hint: dict[tuple[str, int], int] = {}
+            if wide is not None:
+                rows = wide.select("game_id", "player_id", "team_id").unique()
+                hint = {
+                    (str(r["game_id"]), int(r["player_id"])): int(r["team_id"])
+                    for r in rows.iter_rows(named=True)
+                }
+            info = run_avg_shadow(
+                con, run_date,
+                [SlateGame(g.game_id, g.home_team, g.away_team, g.tipoff) for g in upcoming],
+                made_at, summary.run_id, season=season_int_for_date(run_date),
+                bundle_root=bundle_root or avg_bundle.DEFAULT_ROOT, team_hint=hint,
+                hb_dir=hb_dir or avg_run.HB_DIR,
+            )  # fmt: skip
+            summary.model_status[name] = f"{info}"
+            if info.get("status") == "failed":
+                summary.shadow_errors.append(f"avg shadow: failed: {info.get('detail')}"[:300])
+        info_s = settle_avg_shadow(con, made_at)
+        summary.model_status[name + "_settle"] = f"{info_s}"
+    except Exception as exc:
+        summary.shadow_errors.append(
+            f"avg shadow: {type(exc).__name__}: {exc} ({time.perf_counter() - t0:.0f}s)"[:300]
         )
 
 

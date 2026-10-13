@@ -598,3 +598,52 @@ fit_through DATE, n_train, git_sha, git_dirty, stamped_at)`.
 - Not stamped: the P(play) and FULL shadow models (their own tables and fits).
 - Rows deduplicated by write-on-change still get a stamp for their run: the stamp says which fit that run
   used, `forward_predictions` keeps the first run that wrote the row.
+
+## AVG shadow: 0.5 pmf(SEQc) + 0.5 pmf(FULL) (AVG_SHADOW_LIVE; flag `--log-avg-shadow`, OFF; built 2026-10-13)
+
+Rule: `docs/prereg/AVG_SHADOW_LIVE.md` (frozen 2026-10-13 12:35, sha256 6e57fc11). Code: `nba/daily/avg_shadow/`, reader `nba/eval/avg_shadow_live.py`,
+rebuild job `research/colab/jobs/avg_shadow_rebuild/`. **Not enabled in `ops/nba_daily.sh`** (that is the maintainer's edit, after the proofs and the weights
+install; hands-off window 10-18 to 10-20). Counting start in `forward_avg_meta` is UNSET: `store.set_counting_start` refuses until P1a, P1b, P2, P3, P4 are recorded
+as `pass` (`python -m nba.daily.avg_shadow.meta proof ...`).
+
+* **Step** (`pipeline._avg_shadow`, after the FULL shadow, own try/except): per run, regular-season games (`game_id` prefix `002`) that have not tipped; reads
+  production's latest A0 rows (pts: `props_context_residual_lt`, the others `props_context_residual`) and the latest `forward_full_shadow` grid already in the
+  store (`made_at <=` now); builds tonight's sequence arrays with the live exporter (`sequences.py`, a copy of T478's `research/features/player_sequences.py`
+  pinned to it by proof P2: bit-identical arrays, planted-future test, real tips, reports `as_of <= tip - 60`, era channels 0); runs the 3-seed E2 transformer on
+  CPU **in a child process** (`infer.py`; torch and lightgbm hang when loaded in one process on macOS) with a 240 s timeout; learned gate (T442 coefficients
+  from the bundle) -> SEQc; AVG = 0.5 pmf(SEQc) + 0.5 pmf(FULL) on the 199-point integer grid (`grids.py`), stored as 19 integer quantiles plus the 199 values.
+  Serving rule: only rows with `n_prior >= 3` and a FULL and an A0 grid; every other row (preseason 001, playoffs 004, play-in 005, Cup final, debuts) is served
+  FULL: no AVG row is written. The writer refuses `made_at >= tipoff_utc`; rows are write-on-change. Nothing the pretip run waits on.
+* **Tables** (`store.py`, all new, none in the canonical dump): `forward_avg_shadow`, `forward_avg_scores` (settle, latest row with `made_at <= tip - 60`),
+  `forward_avg_heartbeat` (one row per run: ok / skipped / failed, rc, rows, games seen), `forward_avg_meta` (key/value; the steward's writes).
+* **Weights**: `data/avg_shadow/bundles/<YYYY-MM>/` = `seed0-2.pt`, `vocab.json`, `gate.json`, `manifest.json` (sha256s, `model_id`, `fit_through`, `month_block`,
+  gate id and fit). `python -m nba.daily.avg_shadow.bundle install <dir>` verifies and stamps `installed_at` (the maintainer's act, before the first game of the
+  month; weights are never overwritten). No bundle installed: status `skipped`. A bundle for another month serves with `stale_model = 1` (valid iff
+  `month_block` = game month, `installed_at <= made_at`, `fit_through` before the 1st).
+* **Heartbeat / watchdog**: `data/ops/heartbeat/avg_shadow.json` at START and END of every run (`consecutive_bad` counts failed runs and runs skipped for want of
+  weights; a slate with nothing to serve leaves it alone). `nba.ops.watchdog.SHADOW_JOBS` alerts at 3 consecutive bad runs and at once for a missed monthly install
+  past the 3rd. Silent while the flag is off (no file). pmset preflight: `preflight.py` appends a `shadow_errors` (ALERTS) warning when `pmset -g custom` shows
+  AC `sleep` other than 0; it never blocks.
+* **Reader** (`python -m nba.eval.avg_shadow_live`): intention to treat (a missing, late or failed AVG row is the FULL grid, delta 0, never dropped), missingness
+  table, integrity gates, primary + guards G1-G5 on the 19-atom pmf with the randomised PIT, BH over the seven, kill-only interim; the one shared bootstrap is
+  `nba.eval.full_shadow_live.cluster_boot` (imported). `look_due` fixes the calendar (interim Sun 2026-11-15, final the first Sunday on or after 2027-01-10 with
+  pts triples >= 6,900, one second look); `read_look` raises `LookNotDue` before touching a score on any other day. The briefing (`nba.daily report`) prints counts
+  and gates only (`display.py`).
+* **Replay**: `python -m nba.daily.replay_season ... --avg-shadow-root <bundle root>` turns the flag on for the replay (proof P4 only; the heartbeat file goes
+  to `<out-dir>/avg_heartbeat/`, never `data/ops`).
+* **Pre-count proofs, state at build (2026-10-13)** (`reports/prereg_avg_shadow_live/`; the scripts are in the rebuild job directory):
+  * **P2 PASS** (`p2.json`; current data copy, seasons <= 2024 only): the live exporter vs T478's exporter on all 84,052 rows of 2022-24, every array bit-identical (ctx on
+    the 31 pre-era columns, the 3 era columns of T478 are all zero); planted-future identical on 4 dates; the live placeholder slate (games strictly before D + a placeholder
+    row per player who played, real tips, reports `as_of <= tip - 60`) identical to T478's rows on 4 dates. First real-data replay also found and fixed an int32/int64 merge
+    key in the placeholder rows (regression test added).
+  * **P3 FAIL (G1 rehearsal)** (`p3.json`): the 19-quantile arithmetic reproduces the 199-point contrast (pts AVG minus FULL -0.01624 vs -0.01610, diff 0.00014 <= 0.0005,
+    n 25,767; reb / ast / fg3m same sign), but G1 on the 19-atom pmf with the randomised PIT misses on 2024 pts (q10 0.126 vs 0.10 +- 0.02, q20 0.228 vs 0.20 +- 0.02):
+    FULL and A0 show the same shift on 19 atoms (q10 0.128 / 0.129), the 199-point form passes (0.114 / 0.217). Counting does not start; a repair is a new rule id.
+  * **P4 hash PASS** (20 dates of season 2025, source copy of nba.duckdb at 13:59, `oracle_avg_{1,2,3}`): sha256 89889f6d (46,658 predictions, 44,562 scores) IDENTICAL
+    with the flag on and no weights (96 runs, all `skipped`), with fixture random-init weights (model_id f325012d..., 96 runs `ok`, 15,021 sequence rows inferred, step
+    wall time mean 2.9 s, max 6.3 s per run against the 60 s budget, no shadow error; no FULL shadow runs in the replay, so no AVG row is written there) and with the flag
+    off. The replay copies are deleted by the maintainer (command in the hand-back); no AVG row was read.
+  * **P1a / P1b**: scripts written (`p1a_check.py`, `p1b_check.py`, mechanics checked on T478's own run-1 file: P1a reproduces -0.016101 exactly), not run: they need the Colab rebuild.
+* **Rebuild order (maintainer)**: `export_inputs.py hist` and `cur` -> `python -m research.colab push avg_shadow_rebuild` -> run the notebook (T4, budget 45 min, ceiling 60) ->
+  `pull` -> `p1a_check.py`, `p1b_check.py` -> assemble the aligned 2023-25 rows and `fit_gate.py` -> `assemble_bundle.py` -> `bundle install` -> `meta bundle`, `meta proof` ->
+  `meta counting-start` (refused until all five proofs pass). Not run: the gate fit needs the 2025 A0 members of T478's held-out path.

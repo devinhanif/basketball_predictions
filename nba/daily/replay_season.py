@@ -168,6 +168,7 @@ class ReplayConfig:
     paper_db: Path | None = None
     with_props: bool = True
     log_variants: bool = True
+    avg_bundle_root: Path | None = None  # proof P4: run the AVG shadow on this bundle root
 
     @property
     def state_path(self) -> Path:
@@ -299,6 +300,9 @@ def _pretip_run(cfg: ReplayConfig, d: date, rt: datetime) -> RunSummary:
             props_model="context",
             log_int_variant=cfg.log_variants,
             log_lower_tail_variant=cfg.log_variants,
+            with_avg_shadow=cfg.avg_bundle_root is not None,
+            avg_bundle_root=cfg.avg_bundle_root,
+            avg_heartbeat_dir=cfg.out_dir / "avg_heartbeat",
             rate_limiter=RateLimiter(0.0),
             tips_dir=None,
             schedule_cache_dir=None,
@@ -841,6 +845,13 @@ def _parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--no-lock", action="store_true", help="skip data/ops/heavy.lock (tests)")
     p.add_argument("--no-props", action="store_true", help="tests only")
+    p.add_argument(
+        "--avg-shadow-root",
+        type=Path,
+        default=None,
+        help="proof P4 only: run the AVG shadow (flag on) against this weights-bundle root; "
+        "an empty directory means no weights (status skipped)",
+    )
     return p
 
 
@@ -856,6 +867,7 @@ def _config(a: argparse.Namespace) -> ReplayConfig:
         lineups_db=a.lineups_db,
         paper_db=(out / "paper_trades.duckdb") if a.kalshi_db else None,
         with_props=not a.no_props,
+        avg_bundle_root=a.avg_shadow_root,
     )
 
 
@@ -911,6 +923,8 @@ def main(argv: list[str] | None = None) -> int:
                 cmd += ["--end-date", a.end_date.isoformat()]
             if a.no_props:
                 cmd.append("--no-props")
+            if a.avg_shadow_root:
+                cmd += ["--avg-shadow-root", str(a.avg_shadow_root)]
             rc = subprocess.run(cmd, cwd=ROOT, check=False).returncode  # noqa: S603
         finally:
             if not a.no_lock:

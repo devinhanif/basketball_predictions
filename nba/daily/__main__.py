@@ -8,6 +8,7 @@ injury PDFs); never any market/execution code.
 from __future__ import annotations
 
 import argparse
+import importlib
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -87,6 +88,14 @@ def _parser() -> argparse.ArgumentParser:
         help="SHADOW: log the RECENT_ROLE_FULL conditional grids (props heads + lower-tail pi "
         "refit with the five recent-role columns) next to production's (table forward_full_shadow, "
         "docs/DAILY_PIPELINE.md); forward_predictions and the props outputs are unchanged",
+    )
+    r.add_argument(
+        "--log-avg-shadow",
+        action="store_true",
+        help="SHADOW (AVG_SHADOW_LIVE): CPU inference of the E2 sequence transformer in a "
+        "child process and AVG = 0.5 pmf(SEQc) + 0.5 pmf(FULL), regular-season rows only "
+        "(tables forward_avg_*, heartbeat data/ops/heartbeat/avg_shadow.json); no weights "
+        "installed -> status skipped; default OFF",
     )
     r.add_argument(
         "--roster-source",
@@ -232,6 +241,14 @@ def _checkpoint(args: argparse.Namespace) -> int:
     return 0
 
 
+#: (label, module, function, table): shadows settled after the primary settle, each in its own try
+SHADOW_SETTLERS = (
+    ("pplay", "nba.daily.pplay_shadow.settle", "settle_pplay_shadow", "forward_pplay_shadow"),
+    ("full", "nba.daily.full_shadow.settle", "settle_full_shadow", "forward_full_shadow"),
+    ("avg", "nba.daily.avg_shadow.settle", "settle_avg_shadow", "forward_avg_shadow"),
+)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "checkpoint":
@@ -264,6 +281,7 @@ def main(argv: list[str] | None = None) -> int:
             log_lower_tail_variant=args.log_lower_tail_variant,
             with_pplay_shadow=args.log_pplay_shadow,
             with_full_shadow=args.log_full_shadow,
+            with_avg_shadow=args.log_avg_shadow,
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
             schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,
@@ -299,26 +317,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "settle":
         now = args.now or utcnow()
         print(settle_pending(con, now))
-        from nba.daily.pplay_shadow.settle import settle_pplay_shadow
-
-        try:  # shadow scoring never blocks the primary settle
-            if con.execute(
-                "SELECT count(*) FROM information_schema.tables "
-                "WHERE table_name = 'forward_pplay_shadow'"
-            ).fetchone()[0]:  # type: ignore[index]
-                print(settle_pplay_shadow(con, now))
-        except Exception as exc:
-            print(f"pplay shadow settle failed (primary unaffected): {type(exc).__name__}: {exc}")
-        from nba.daily.full_shadow.settle import settle_full_shadow
-
-        try:  # FULL shadow scoring never blocks the primary settle either
-            if con.execute(
-                "SELECT count(*) FROM information_schema.tables "
-                "WHERE table_name = 'forward_full_shadow'"
-            ).fetchone()[0]:  # type: ignore[index]
-                print(settle_full_shadow(con, now))
-        except Exception as exc:
-            print(f"full shadow settle failed (primary unaffected): {type(exc).__name__}: {exc}")
+        for label, module, fn, table in SHADOW_SETTLERS:
+            try:  # shadow scoring never blocks the primary settle; the import is inside the try
+                settle = getattr(importlib.import_module(module), fn)
+                if con.execute(
+                    "SELECT count(*) FROM information_schema.tables WHERE table_name = ?", [table]
+                ).fetchone()[0]:  # type: ignore[index]
+                    print(settle(con, now))
+            except Exception as exc:
+                msg = f"{type(exc).__name__}: {exc}"
+                print(f"{label} shadow settle failed (primary unaffected): {msg}")
         return 0
     text = build_report(con, args.season)
     out = Path(args.out)

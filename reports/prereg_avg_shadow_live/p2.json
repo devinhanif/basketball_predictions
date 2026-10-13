@@ -1,0 +1,446 @@
+{
+  "db": "data/rehearsal/avg_src.duckdb",
+  "max_season": 2024,
+  "t478_seconds": 5.5,
+  "era_columns_all_zero": true,
+  "live_code_seconds": 4.2,
+  "parity": {
+    "label": "live exporter vs T478 exporter, 2022-2024",
+    "n_a": 84170,
+    "n_b": 84170,
+    "missing_in_b": 0,
+    "diff": {
+      "seq": {
+        "identical": true
+      },
+      "mask": {
+        "identical": true
+      },
+      "opp_step": {
+        "identical": true
+      },
+      "ctx": {
+        "identical": true
+      },
+      "player_id": {
+        "identical": true
+      },
+      "team_idx": {
+        "identical": true
+      },
+      "opp_idx": {
+        "identical": true
+      },
+      "date_days": {
+        "identical": true
+      },
+      "season": {
+        "identical": true
+      },
+      "game_id": {
+        "identical": true
+      },
+      "y": {
+        "identical": true
+      },
+      "base": {
+        "identical": true
+      },
+      "n_prior": {
+        "identical": true
+      }
+    },
+    "identical": true
+  },
+  "dates": {
+    "2023-10-25": {
+      "planted_future": {
+        "label": "games before 2023-10-25 only vs all later games present",
+        "n_a": 44,
+        "n_b": 44,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "y": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true
+      },
+      "live_slate_seconds": 1.8,
+      "live_slate": {
+        "label": "live placeholder export of 2023-10-25 vs T478 rows (y is a placeholder 0 live, not compared)",
+        "n_a": 272,
+        "n_b": 272,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true,
+        "tip_source": "real"
+      }
+    },
+    "2024-01-15": {
+      "planted_future": {
+        "label": "games before 2024-01-15 only vs all later games present",
+        "n_a": 2284,
+        "n_b": 2284,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "y": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true
+      },
+      "live_slate_seconds": 2.3,
+      "live_slate": {
+        "label": "live placeholder export of 2024-01-15 vs T478 rows (y is a placeholder 0 live, not compared)",
+        "n_a": 229,
+        "n_b": 229,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true,
+        "tip_source": "real"
+      }
+    },
+    "2024-03-05": {
+      "planted_future": {
+        "label": "games before 2024-03-05 only vs all later games present",
+        "n_a": 2001,
+        "n_b": 2001,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "y": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true
+      },
+      "live_slate_seconds": 1.9,
+      "live_slate": {
+        "label": "live placeholder export of 2024-03-05 vs T478 rows (y is a placeholder 0 live, not compared)",
+        "n_a": 186,
+        "n_b": 186,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true,
+        "tip_source": "real"
+      }
+    },
+    "2024-04-10": {
+      "planted_future": {
+        "label": "games before 2024-04-10 only vs all later games present",
+        "n_a": 2367,
+        "n_b": 2367,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "y": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true
+      },
+      "live_slate_seconds": 1.6,
+      "live_slate": {
+        "label": "live placeholder export of 2024-04-10 vs T478 rows (y is a placeholder 0 live, not compared)",
+        "n_a": 188,
+        "n_b": 188,
+        "missing_in_b": 0,
+        "diff": {
+          "seq": {
+            "identical": true
+          },
+          "mask": {
+            "identical": true
+          },
+          "opp_step": {
+            "identical": true
+          },
+          "ctx": {
+            "identical": true
+          },
+          "player_id": {
+            "identical": true
+          },
+          "team_idx": {
+            "identical": true
+          },
+          "opp_idx": {
+            "identical": true
+          },
+          "date_days": {
+            "identical": true
+          },
+          "season": {
+            "identical": true
+          },
+          "game_id": {
+            "identical": true
+          },
+          "base": {
+            "identical": true
+          },
+          "n_prior": {
+            "identical": true
+          }
+        },
+        "identical": true,
+        "tip_source": "real"
+      }
+    }
+  },
+  "pass": true
+}

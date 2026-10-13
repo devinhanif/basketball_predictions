@@ -26,7 +26,7 @@ import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -106,6 +106,25 @@ JOBS: tuple[JobSpec, ...] = (
 #: run-t15 gave up waiting for nba.duckdb (rc 75); one deferral is normal contention, two in a row
 #: means that arm's rows are missing.
 SKIP_ONLY: dict[str, int] = {"lineups_t30": 2, "lineups_t15": 2}
+
+
+@dataclass(frozen=True)
+class ShadowJob:
+    """A shadow step that is not a launchd job: it writes its own heartbeat ``<name>.json`` from
+    inside the pretip run (flat keys of the wrappers plus ``status``, ``consecutive_bad`` and
+    ``month_block``). Alert after ``max_consecutive`` failed or skipped slate runs; a missed
+    monthly install alerts at once past day ``install_deadline_day`` of the month."""
+
+    name: str
+    max_consecutive: int
+    install_deadline_day: int | None = None
+
+
+#: AVG_SHADOW_LIVE (docs/prereg/AVG_SHADOW_LIVE.md, "What the steward builds" 6): alert after 3
+#: consecutive failed or missing slate heartbeats on game days, 1 for a missed monthly weights
+#: install past the 3rd. Silent until the step has written its first heartbeat (flag off = no
+#: file = no alert).
+SHADOW_JOBS: tuple[ShadowJob, ...] = (ShadowJob("avg_shadow", 3, 3),)
 
 
 @dataclass(frozen=True)
@@ -253,11 +272,73 @@ def evaluate(
                     "the bounded wait); that arm's shadow rows are missing",
                 )
             )
+    alerts += evaluate_shadow_jobs(now, hb_dir, tz)
     status = parse_launchctl(launchctl_text)
     for label, code in sorted(status.items()):
         if code != 0 and label != "local.nba.watchdog":
             alerts.append(
                 Alert(f"{label}:launchctl", f"launchctl last exit status {code} for {label}")
+            )
+    return alerts
+
+
+#: a shadow heartbeat whose last activity is older than this is a flag that was switched off: silent
+SHADOW_IDLE_AFTER = timedelta(days=3)
+#: a run that wrote its START but no END within this long died mid-run
+SHADOW_RUN_TIMEOUT = timedelta(minutes=30)
+
+
+def evaluate_shadow_jobs(
+    now: datetime,
+    hb_dir: Path,
+    tz: ZoneInfo = SCHEDULE_TZ,
+    jobs: tuple[ShadowJob, ...] = SHADOW_JOBS,
+) -> list[Alert]:
+    """Alerts for the in-process shadow steps from their heartbeat files (no file, or no
+    activity for ``SHADOW_IDLE_AFTER`` = flag off: silent)."""
+    alerts: list[Alert] = []
+    for spec in jobs:
+        hb = read_heartbeat(hb_dir, spec.name)
+        if not hb:
+            continue
+        start, end = _parse_ts(hb.get("start_ts")), _parse_ts(hb.get("end_ts"))
+        last = end or start
+        if last is None:
+            continue
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=UTC)  # the step writes naive UTC
+        if now - last > SHADOW_IDLE_AFTER:
+            continue
+        if end is None and start is not None and now - last > SHADOW_RUN_TIMEOUT:
+            alerts.append(
+                Alert(
+                    f"{spec.name}:hung",
+                    f"{spec.name} started {last:%Y-%m-%d %H:%M} UTC and never finished "
+                    "(died mid-run); the shadow is missing rows, production is unaffected",
+                )
+            )
+        bad = hb.get("consecutive_bad")
+        if isinstance(bad, int) and bad >= spec.max_consecutive:
+            alerts.append(
+                Alert(
+                    f"{spec.name}:failed",
+                    f"{spec.name} failed or skipped {bad} consecutive slate runs (last status "
+                    f"{hb.get('status')}); the shadow is missing rows, production is unaffected",
+                )
+            )
+        block, today = hb.get("month_block"), now.astimezone(tz)
+        past_deadline = spec.install_deadline_day is not None and (
+            today.day > spec.install_deadline_day
+        )
+        behind = isinstance(block, str) and block < today.strftime("%Y-%m")
+        if past_deadline and (behind or hb.get("stale_model") is True):
+            alerts.append(
+                Alert(
+                    f"{spec.name}:install",
+                    f"{spec.name} is serving stale weights for {today:%Y-%m} (newest bundle "
+                    f"{block}); rows are written stale_model=1 (deadline: the 1st, alert after "
+                    f"the {spec.install_deadline_day}th)",
+                )
             )
     return alerts
 
