@@ -1,0 +1,327 @@
+{
+ "seasons": [
+  2024
+ ],
+ "blind": true,
+ "missingness": {
+  "unconditional": {
+   "by_bucket": {
+    "0-5": {
+     "n": 2330,
+     "missing_share": 0.03690987124463519
+    },
+    "5-10": {
+     "n": 1975,
+     "missing_share": 0.02379746835443038
+    },
+    "10-20": {
+     "n": 6393,
+     "missing_share": 0.011888002502737369
+    },
+    "20-99": {
+     "n": 17023,
+     "missing_share": 0.003935851495036127
+    }
+   },
+   "max_gap": 0.032974019749599064
+  },
+  "reference_n_prior_lt8": {
+   "by_bucket": {
+    "0-5": {
+     "n": 2330,
+     "missing_share": 0.03690987124463519
+    },
+    "5-10": {
+     "n": 1975,
+     "missing_share": 0.02379746835443038
+    },
+    "10-20": {
+     "n": 6393,
+     "missing_share": 0.011888002502737369
+    },
+    "20-99": {
+     "n": 17023,
+     "missing_share": 0.003935851495036127
+    }
+   },
+   "max_gap": 0.032974019749599064
+  },
+  "excess_over_reference": 0.0,
+  "n_prior_ge10": {
+   "by_bucket": {
+    "0-5": {
+     "n": 2196,
+     "missing_share": 0.0
+    },
+    "5-10": {
+     "n": 1901,
+     "missing_share": 0.0
+    },
+    "10-20": {
+     "n": 6265,
+     "missing_share": 0.0
+    },
+    "20-99": {
+     "n": 16909,
+     "missing_share": 0.0
+    }
+   },
+   "max_gap": 0.0
+  },
+  "max_gap": 0.0,
+  "pass": true
+ },
+ "null_draws": [
+  0.0009344136661871009,
+  0.00032793476167147133,
+  -0.00021659271171496365
+ ],
+ "primary": {
+  "n_rows": 27721,
+  "n_games": 1320,
+  "EF_minus_A0": {
+   "point": 0.0010914242754259354,
+   "lo": -0.0019984257214658565,
+   "hi": 0.004248181917152371,
+   "n": 27721,
+   "clusters": 1320
+  },
+  "EF_minus_A0_date_clustered": {
+   "point": 0.0010914242754259354,
+   "lo": -0.002106201168871666,
+   "hi": 0.004427660930984257,
+   "n": 27721,
+   "clusters": 213
+  },
+  "EF_minus_PL": {
+   "point": 0.00381238553135398,
+   "lo": 0.0006953243575623928,
+   "hi": 0.007129706613599395,
+   "n": 27721,
+   "clusters": 1320
+  },
+  "null": {
+   "k": 3,
+   "mean": 0.0003485852387145362,
+   "sd": 0.000575780993212165,
+   "min": -0.00021659271171496365,
+   "max": 0.0009344136661871009,
+   "line": -0.0008029767477097938
+  },
+  "missingness": {
+   "unconditional": {
+    "by_bucket": {
+     "0-5": {
+      "n": 2330,
+      "missing_share": 0.03690987124463519
+     },
+     "5-10": {
+      "n": 1975,
+      "missing_share": 0.02379746835443038
+     },
+     "10-20": {
+      "n": 6393,
+      "missing_share": 0.011888002502737369
+     },
+     "20-99": {
+      "n": 17023,
+      "missing_share": 0.003935851495036127
+     }
+    },
+    "max_gap": 0.032974019749599064
+   },
+   "reference_n_prior_lt8": {
+    "by_bucket": {
+     "0-5": {
+      "n": 2330,
+      "missing_share": 0.03690987124463519
+     },
+     "5-10": {
+      "n": 1975,
+      "missing_share": 0.02379746835443038
+     },
+     "10-20": {
+      "n": 6393,
+      "missing_share": 0.011888002502737369
+     },
+     "20-99": {
+      "n": 17023,
+      "missing_share": 0.003935851495036127
+     }
+    },
+    "max_gap": 0.032974019749599064
+   },
+   "excess_over_reference": 0.0,
+   "n_prior_ge10": {
+    "by_bucket": {
+     "0-5": {
+      "n": 2196,
+      "missing_share": 0.0
+     },
+     "5-10": {
+      "n": 1901,
+      "missing_share": 0.0
+     },
+     "10-20": {
+      "n": 6265,
+      "missing_share": 0.0
+     },
+     "20-99": {
+      "n": 16909,
+      "missing_share": 0.0
+     }
+    },
+    "max_gap": 0.0
+   },
+   "max_gap": 0.0,
+   "pass": true
+  },
+  "coverage": {
+   "A0": {
+    "0.10": 0.2622560513689982,
+    "0.20": 0.33306879261209915,
+    "0.80": 0.6820461022329641,
+    "0.90": 0.7574041340499982
+   },
+   "EF": {
+    "0.10": 0.2631578947368421,
+    "0.20": 0.33353775116337797,
+    "0.80": 0.6821543234371055,
+    "0.90": 0.7576927239277083
+   },
+   "ok": {
+    "0.10": true,
+    "0.20": true,
+    "0.80": true,
+    "0.90": true
+   }
+  },
+  "slices": {
+   "bench(starter10<0.5)": {
+    "n": 15600,
+    "EF_minus_A0": 0.003125262635817932,
+    "ok": true
+   },
+   "starter(starter10>=0.5)": {
+    "n": 12121,
+    "EF_minus_A0": -0.001526171502324673,
+    "ok": true
+   },
+   "cold_start(n_prior<10)": {
+    "n": 450,
+    "EF_minus_A0": 0.009156222205387697,
+    "ok": true
+   },
+   "min<5(realised)": {
+    "n": 2330,
+    "EF_minus_A0": 0.005016628855667887,
+    "ok": true
+   },
+   "playoffs": {
+    "n": 1804,
+    "EF_minus_A0": -0.0038146027690514795,
+    "ok": true
+   },
+   "ef_n<3": {
+    "n": 276,
+    "skipped": "n < 300"
+   },
+   "season_2024": {
+    "n": 27721,
+    "EF_minus_A0": 0.0010914242754259354,
+    "ok": true
+   }
+  },
+  "checks": {
+   "primary: EF-A0 <= -0.005 and game-clustered CI upper < 0": false,
+   "placebo: EF-PL <= -0.003": false,
+   "null guard: EF-A0 <= null mean - 2 null sd": false,
+   "coverage: no tau worse than A0 by > 0.01": true,
+   "slices: none worse than +0.01 (n >= 300)": true,
+   "missingness: no pattern beyond its as-of cause": true
+  },
+  "pass": false
+ },
+ "secondary": {
+  "reb": {
+   "EF_minus_A0": {
+    "point": 6.263098482978112e-05,
+    "lo": -0.0010723489365654692,
+    "hi": 0.0012481426119192712,
+    "n": 27721,
+    "clusters": 1320
+   },
+   "p": 0.873,
+   "p_bh": 0.8729999999999999,
+   "label": "no label"
+  },
+  "ast": {
+   "EF_minus_A0": {
+    "point": -0.0014128622850967327,
+    "lo": -0.0024384267201398354,
+    "hi": -0.00038518263867113944,
+    "n": 27721,
+    "clusters": 1320
+   },
+   "p": 0.008,
+   "p_bh": 0.024,
+   "label": "improves"
+  },
+  "fg3m": {
+   "EF_minus_A0": {
+    "point": -0.0001525916883253084,
+    "lo": -0.000689549134645967,
+    "hi": 0.00039513921101923765,
+    "n": 27721,
+    "clusters": 1320
+   },
+   "p": 0.548,
+   "p_bh": 0.8220000000000001,
+   "label": "no label"
+  }
+ },
+ "descriptive_EF_minus_A0P_common_rows": {
+  "point": -0.00021384203790340698,
+  "lo": -0.025458086747969823,
+  "hi": 0.025439753612753812,
+  "n": 27701,
+  "clusters": 1320
+ },
+ "descriptive_A0_minus_A0P_common_rows": {
+  "point": -0.0013756759067532745,
+  "lo": -0.025950461550004713,
+  "hi": 0.02388043375019788,
+  "n": 27701,
+  "clusters": 1320
+ },
+ "target": 2024,
+ "regenerated_base_equals_stored": {
+  "pts": {
+   "rows_equal": true,
+   "max_abs_diff": 1.0839154207860737,
+   "pass": false
+  },
+  "reb": {
+   "rows_equal": true,
+   "max_abs_diff": 0.8811179777992448,
+   "pass": false
+  },
+  "ast": {
+   "rows_equal": true,
+   "max_abs_diff": 0.44148904037072967,
+   "pass": false
+  },
+  "fg3m": {
+   "rows_equal": true,
+   "max_abs_diff": 0.24598821352836087,
+   "pass": false
+  }
+ },
+ "a0_2024_equals_null_run": {
+  "rows_equal": true,
+  "max_abs_diff": 1.26487705134981,
+  "pass": false
+ },
+ "wall_s": 362.9991047382355,
+ "note": "BLIND: every score is against labels permuted within game; numbers carry no information about any arm"
+}

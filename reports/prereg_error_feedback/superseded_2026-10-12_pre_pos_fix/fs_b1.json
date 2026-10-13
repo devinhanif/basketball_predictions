@@ -1,0 +1,65 @@
+{
+ "pts": {
+  "frame_sha": "9e5b686bb06aab89bb1d73c610f8ff5d49edab1bf24b7638280a065e282475b2",
+  "stored": "9e5b686bb06aab89bb1d73c610f8ff5d49edab1bf24b7638280a065e282475b2",
+  "rows": 156237,
+  "cols": {
+   "n_prior": "31e0b73d",
+   "n_season": "ea991860",
+   "gap_days": "2fcecd7c",
+   "since_flag": "b07d5ef5",
+   "flag_dir": "6db87820",
+   "since_team": "d607da73",
+   "min5": "189a8fb8",
+   "min10": "511d2b05",
+   "min40": "a5f1a2fb",
+   "min_gap": "f51a6053",
+   "min_gap10": "6a025496",
+   "starter10": "1bd22569",
+   "starter40": "38c56cfb",
+   "last_starter": "d739a1ee",
+   "rest_days": "867fa8d5",
+   "b2b": "8b245378",
+   "team_game_no": "6a5dfdde",
+   "exp_margin": "8534c13f",
+   "abs_margin": "cd3fc022",
+   "r20_pts_for": "db46868b",
+   "r20_pts_against": "77161dab",
+   "opp_rest_days": "3a5ed0c9",
+   "opp_b2b": "72dd0db5",
+   "opp_r20_pts_for": "6ebc97b6",
+   "opp_r20_pts_against": "d96c924e",
+   "pos_code": "f21d6cf5",
+   "is_home_f": "068e1de3",
+   "m10_pts": "1cbe0fde",
+   "m10_reb": "acdce0c3",
+   "m10_ast": "2a9157d0",
+   "m10_fg3m": "b4675834",
+   "m5_pts": "e1f5fe2b",
+   "m40_pts": "ac08a635",
+   "m100_pts": "e2356358",
+   "sd10_pts": "74049c35",
+   "role_gap_pts": "d08a01f4",
+   "rate_pts": "0fa52c61",
+   "opp_allow_pts": "d96c924e"
+  }
+ },
+ "reb": {
+  "frame_sha": "ad809643a921fe0fb1c18e4498ff3263fcfc5b99280958758cf1fb0a2513c72c",
+  "stored": "ad809643a921fe0fb1c18e4498ff3263fcfc5b99280958758cf1fb0a2513c72c",
+  "rows": 156237,
+  "cols": null
+ },
+ "ast": {
+  "frame_sha": "25e700e84d50c7fdcd3d5489b11003c21b8db3ff10e074c24b556dbc3a7882c9",
+  "stored": "25e700e84d50c7fdcd3d5489b11003c21b8db3ff10e074c24b556dbc3a7882c9",
+  "rows": 156237,
+  "cols": null
+ },
+ "fg3m": {
+  "frame_sha": "e09ae4ae7ed59eed27339b911caf5342e9c462a46466c383109a41a2a2518309",
+  "stored": "e09ae4ae7ed59eed27339b911caf5342e9c462a46466c383109a41a2a2518309",
+  "rows": 156237,
+  "cols": null
+ }
+}

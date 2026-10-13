@@ -1,6 +1,6 @@
 # ERROR_FEEDBACK: a player's own recent errors against a report-free base, as a props input (pre-registration)
 
-Status: **FREEZE CANDIDATE, written by the modeler Mon Oct 12 15:48 CDT 2026, revised Mon Oct 12 19:42 CDT 2026 (clocks read by `date`).** It becomes the rule only when the main
+Status: **FROZEN 2026-10-12 23:05 CDT by the main session (Devin: "Feeeze", 2026-10-12, given before the rehearsal failure; the rule above the gate section is unchanged since; the gate and rehearsal were re-measured and pass). Earlier: FREEZE CANDIDATE, written by the modeler Mon Oct 12 15:48 CDT 2026, revised Mon Oct 12 19:42 CDT 2026, gate and rehearsal re-measured on the position-filled history data Mon Oct 12 23:04 CDT 2026 (clocks read by `date`).** It becomes the rule only when the main
 session commits `prereg(ERROR_FEEDBACK): <sha256>` of everything above the line `=== RESULTS BELOW ===`
 (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/ERROR_FEEDBACK.md | shasum -a 256`); the harness refuses any arm-bearing
 command without that commit. Approved for freezing by Devin, 2026-10-12: "props yes, lets see this" (design: select on history, report
@@ -204,36 +204,52 @@ stale 15:44 gate file cannot stand in.
 * **Data.** Played rows with `n_prior >= 5` (counted across seasons), pts: 2019 21,522; 2020 24,522; 2021 27,442; 2022 27,322;
   2023 27,708; 2024 27,721. Base: 152,310 rows per stat (2019-2024: 17,595 / 24,522 / 27,442 / 27,322 / 27,708 / 27,721), 52 month
   blocks per stat, first block December 2019 (3,927 training rows, floor 1,500); files `data/ops/error_feedback_cache/base_<stat>.npz`,
-  sha256 prefixes pts b1e62d8e, reb 02fefb52, ast aba40ccd, fg3m 2e96fc11 (full hashes in `base_meta.json`).
+  sha256 prefixes pts e5f27179, reb dec36d33, ast 310b0ad6, fg3m 7a241311 (full hashes in `base_meta.json`; rebuilt 21:41-21:46 CDT on the
+  position-filled history store, see the supersession note below; the 16:23 base had b1e62d8e / 02fefb52 / aba40ccd / 2e96fc11).
 * **G1 training coverage, first select block (requirement >= 0.50), MEASURED Mon Oct 12 19:41-19:43 CDT:** 2021-10-01: 40,338 of 46,044
   training rows carry `ef_n >= 3` = **0.876 PASS**; the minimum over all 36 select blocks is this first one (2021-11 0.880, 2022-01 0.896;
   last block 2025-06 0.957). Evaluation rows with `ef_n >= 3`: 98.9% / 99.2% / 99.0% / 99.0% (2021 / 2022 / 2023 / 2024). 2021-22
   has 27,442 rows in 1,323 games (a full season, the same size as the others, so the hourly-report slice is not underpowered by size).
-* **G2 missingness, MEASURED (requirement: excess over the as-of cause <= 0.01, and gap <= 0.02 among `n_prior >= 10`, every stat, every
+* **G2 missingness, MEASURED 22:56 CDT on the rebuilt base (requirement: excess over the as-of cause <= 0.01, and gap <= 0.02 among `n_prior >= 10`, every stat, every
   select season):** excess 0.0005 / 0.0000 / 0.0000 / 0.0000 (2021-2024), gap among `n_prior >= 10` 0.0005 / 0 / 0 / 0, identical
-  for the four stats. **PASS** (detail in the adversary check above). Disclosure kept from the first version: the unconditional audit
+  for the four stats (unchanged by the position fill: missingness depends on `n_prior`, not position). **PASS** (detail in the adversary check above). Disclosure kept from the first version: the unconditional audit
   (gap <= 0.02) failed at 0.034 and was rewritten to test beyond the as-of cause before any arm was fitted; the rewritten audit is the
   one frozen.
-* **G3 planted future, real frame, MEASURED:** every base residual dated on or after 2023-01-15 rewritten: the columns of all 87,064 rows
-  dated on or before the cut are unchanged; control moves 99.9% of the following 7 days. Repeated at the 2021-22 cut 2021-12-15
-  (54,915 rows on or before the cut): inert, control moves 99.1%. **PASS.**
+* **G3 planted future, real frame, MEASURED 22:56 CDT on the rebuilt base:** every base residual dated on or after 2023-01-15 rewritten: the columns of all 87,064 rows
+  dated on or before the cut are unchanged; control moves 99.9% of the following 7 days. (The 2021-22 cut 2021-12-15 repeat, 54,915 rows, inert,
+  control 99.1%, was measured on the superseded 16:23 base and not re-run; `gate` measures the 2023 cut only.) **PASS.**
 * **G4 harness reproduction (production window, pts 2023-2024, stored production forecasts, max abs diff <= 1e-6):** re-run by `gate`
-  at 20:34 CDT on the revised base: 0.0 on all 55,320 rows. **PASS.**
-* **G5 permutation null (K = 50, pts, 2021-2024, SH_k - A0, real labels; finished 20:34 CDT, reports/prereg_error_feedback/null.json):**
-  pooled mean +0.00010, sd 0.00031, line (mean - 2 sd) -0.00052; by season 2021 +0.00034 / 0.00083 / -0.00132, 2022 -0.00014 / 0.00056 /
-  -0.00125, 2023 +0.00004 / 0.00056 / -0.00108, 2024 +0.00015 / 0.00044 / -0.00073. No noise arm gains beyond the line. **PASS.**
-* **G6 half-width:** report (2024 stands in for 2025: 27,721 rows, 1,320 games): conservative 0.0041 <= 0.005 **PASS**; SH-based se_total
-  0.00087, half-width 0.0015. Select pooled 2021-2024 (110,193 rows, 5,281 games, deff_game 1.05): half-width 0.0009, se_total 0.00056.
-  Power to clear the -0.005 floor: about 1.00 at 2023's persistence slope (0.149) and **0.18 pooled / 0.28 on the report season at 2024's
-  slope (0.102)**: if 2024's persistence is the truth, the test is expected to fail by the floor, not by noise.
-* **Verdict: G1-G6 all PASS (gate_history_base.json, measured 20:34 CDT, gate_pass true). Ready for Devin to freeze.**
+  at 22:56 CDT on the rebuilt base: 0.0 on all 55,320 rows. **PASS.**
+* **G5 permutation null (K = 50, pts, 2021-2024, SH_k - A0, real labels; finished 22:55 CDT, reports/prereg_error_feedback/null.json):**
+  pooled mean -0.00008, sd 0.00036, line (mean - 2 sd) -0.00080; by season (mean / sd / line) 2021 -0.00092 / 0.00090 / -0.00272, 2022 -0.00033 /
+  0.00067 / -0.00166, 2023 -0.00027 / 0.00055 / -0.00137, 2024 +0.00117 / 0.00040 / +0.00038. One pooled draw (-0.00088) falls marginally below the pooled line (-0.00080): 1 of 50, about what 2 sd predicts, and none approaches the -0.005 floor; one 2021-only draw reaches -0.00418, below the 2021 line, which is why the pooled null, not a per-season one, is the pass line).
+  Disclosure: the null means moved from the superseded null (pooled +0.00010,
+  2024 +0.00015) because A0 and the noise arms were refit on the position-filled frame; the 2024 mean of +0.0012 is 3 null sds from zero, i.e. the
+  noise arms are slightly WORSE than A0 in 2024 and slightly better in 2021; neither affects the pass line, which the floor (-0.005) sets.
+  **PASS** (K = 50).
+* **G6 half-width (22:56 CDT):** report (2024 stands in for 2025: 27,721 rows, 1,320 games): conservative 0.0041 <= 0.005 **PASS**; SH-based se_total
+  0.00088, half-width 0.0015. Select pooled 2021-2024 (110,193 rows, 5,281 games, deff_game 0.99, used 1.0): half-width 0.0009, se_total 0.00057.
+  Power to clear the -0.005 floor: about 1.00 at 2023's persistence slope (0.149) and **0.19 pooled / 0.28 on the report season at 2024's
+  slope (0.102)** (conservative sizing 0.99 / 0.41): if 2024's persistence is the truth, the test is expected to fail by the floor, not by noise.
+* **Verdict: G1-G6 all PASS (gate_history_base.json, measured 22:56 CDT on the rebuilt base, gate_pass true). Ready for Devin to freeze.**
+* **Supersession note (23:04 CDT).** The first rehearsal of the 20:34 gate (21:35-21:40 CDT) FAILED its identity checks (regenerated 2024 base
+  vs stored, max abs diff pts 1.08, reb 0.88, ast 0.44, fg3m 0.25; touch-path A0 vs null A0 1.26). Cause, measured: the history store's
+  `players_static` was empty when the 16:23 base was built (0 rows) and was filled with 736 rows at 20:34 (positions for 735) and 791 rows
+  (785 positions) at 21:33; `pos_code` is a production head feature, so the 2019-21 frame changed in that one column only (every other
+  one of the pts feature columns hashes identically across the three store states; the frame built on the 20:34 backup of the
+  pre-fill store reproduces the stored 16:23 `frame_sha` exactly for all four stats; the 20:34-post and current stores do not).
+  `national_tv` and birth date are not in this rule's feature list. The 16:23 base, the 20:34 null and the 20:34 gate are therefore
+  superseded (kept under `data/ops/error_feedback_cache_v2_superseded_2026-10-12/` and
+  `reports/prereg_error_feedback/superseded_2026-10-12_pre_pos_fix/`, with the failed rehearsal log); base, null (K = 50), gate and
+  rehearsal were rebuilt blind on the current store. No arm EF or PL was scored at any point; the rule's text above the gate section is
+  unchanged. The position fill is also a correction: before it, 2019-21-only players had `pos_code` 0 while 2022+ players had a position.
 
 ## Expected effect and power (honest)
 Expected effect (outcome-free, from the disclosed persistence slopes: the A0 grid shifted by slope x `ef_res_l5`): **-0.0096 if
 2023's persistence (0.149) is the truth, -0.0045 if 2024's (0.102) is.** Power with the conservative se plus fit noise (0.0021) and
 the pass line min(-0.005, -half-width, null line) = -0.005:
-* Report stage (2025): **0.98** at 2023's slope, **0.41** at 2024's. Select stage (pooled 2021-2024, 110,193 rows; se and power to be refreshed from the new null, the figures here are from the 2022-2024 null): about 1.0 at
-  2023's slope, about **0.2-0.35** at 2024's: an effect of -0.0045 sits above the floor, so more rows make a pass less likely, not
+* Report stage (2025): **0.98** at 2023's slope, **0.41** at 2024's. Select stage (pooled 2021-2024, 110,193 rows; refreshed 22:56 CDT from the rebuilt null: se_total 0.00057): about 1.0 at
+  2023's slope, about **0.19** at 2024's (0.4 with the conservative sizing): an effect of -0.0045 sits above the floor, so more rows make a pass less likely, not
   more. Both stages: about 0.98 or about 0.1-0.2 depending on which season's persistence is the truth.
 * Why the realised effect could be smaller: EF learns from base residuals, and part of the base's error is report-driven (a teammate
   out for a stretch) that A0's heads already explain; the GBM sees five summaries, not the linear shift the sizing assumes; FULL
@@ -257,9 +273,9 @@ the pass line min(-0.005, -half-width, null line) = -0.005:
   code diff and input hashes; checkpoints are per arm.
 * Rehearsed end to end with 2024 standing in for 2025 (`rehearse`): cap never raised, every frame asserted `season <= 2024`, scores
   BLIND (labels permuted within game) so no arm's skill was seen; the regenerated 2024 base must equal the stored one exactly and the
-  touch path's A0 on 2024 must equal the null run's A0 exactly. **Rehearsal Mon Oct 12 15:46-15:52 CDT 2026 (`rehearse`, 6 min,
-  K = 3 draws): regenerated 2024 base equals the stored base for all four stats (max abs difference 0.0); the touch path's A0 on 2024
-  equals the null run's A0 (0.0); every frame capped at 2024; arms A0/EF (4 stats), PL, SH_0..2 and A0P fitted and scored blind.
+  touch path's A0 on 2024 must equal the null run's A0 exactly. **Rehearsal Mon Oct 12 22:57-23:03 CDT 2026 (`rehearse`, 6 min, K = 3 draws, on the rebuilt base; it supersedes the 15:46 rehearsal
+  and the failed 21:35 one): regenerated 2024 base equals the stored base for all four stats (max abs difference 0.0); the touch path's A0
+  on 2024 equals the null run's A0 (0.0); every frame capped at 2024; arms A0/EF (4 stats), PL, SH_0..2 and A0P fitted and scored blind.
   `reports/prereg_error_feedback/rehearsal/results.json` (blind numbers, no information about any arm).**
 
 ## If both stages pass (proposal only; Devin decides)

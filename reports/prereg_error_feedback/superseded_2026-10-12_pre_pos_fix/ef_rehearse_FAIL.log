@@ -1,0 +1,54 @@
+[21:34:01 CDT] base pts block 0 2024-10-01 rows 1410 train 128516
+[21:34:03 CDT] base pts block 1 2024-11-01 rows 4657 train 129926
+[21:34:05 CDT] base pts block 2 2024-12-01 rows 4007 train 134583
+[21:34:07 CDT] base pts block 3 2025-01-01 rows 4847 train 138590
+[21:34:09 CDT] base pts block 4 2025-02-01 rows 3706 train 143437
+[21:34:11 CDT] base pts block 5 2025-03-01 rows 4994 train 147143
+[21:34:13 CDT] base pts block 6 2025-04-01 rows 3099 train 152137
+[21:34:15 CDT] base pts block 7 2025-05-01 rows 842 train 155236
+[21:34:17 CDT] base pts block 8 2025-06-01 rows 159 train 156078
+[21:34:20 CDT] base reb block 0 2024-10-01 rows 1410 train 128516
+[21:34:22 CDT] base reb block 1 2024-11-01 rows 4657 train 129926
+[21:34:24 CDT] base reb block 2 2024-12-01 rows 4007 train 134583
+[21:34:26 CDT] base reb block 3 2025-01-01 rows 4847 train 138590
+[21:34:28 CDT] base reb block 4 2025-02-01 rows 3706 train 143437
+[21:34:31 CDT] base reb block 5 2025-03-01 rows 4994 train 147143
+[21:34:33 CDT] base reb block 6 2025-04-01 rows 3099 train 152137
+[21:34:35 CDT] base reb block 7 2025-05-01 rows 842 train 155236
+[21:34:37 CDT] base reb block 8 2025-06-01 rows 159 train 156078
+[21:34:39 CDT] base ast block 0 2024-10-01 rows 1410 train 128516
+[21:34:41 CDT] base ast block 1 2024-11-01 rows 4657 train 129926
+[21:34:43 CDT] base ast block 2 2024-12-01 rows 4007 train 134583
+[21:34:46 CDT] base ast block 3 2025-01-01 rows 4847 train 138590
+[21:34:48 CDT] base ast block 4 2025-02-01 rows 3706 train 143437
+[21:34:50 CDT] base ast block 5 2025-03-01 rows 4994 train 147143
+[21:34:52 CDT] base ast block 6 2025-04-01 rows 3099 train 152137
+[21:34:54 CDT] base ast block 7 2025-05-01 rows 842 train 155236
+[21:34:56 CDT] base ast block 8 2025-06-01 rows 159 train 156078
+[21:34:59 CDT] base fg3m block 0 2024-10-01 rows 1410 train 128516
+[21:35:01 CDT] base fg3m block 1 2024-11-01 rows 4657 train 129926
+[21:35:03 CDT] base fg3m block 2 2024-12-01 rows 4007 train 134583
+[21:35:05 CDT] base fg3m block 3 2025-01-01 rows 4847 train 138590
+[21:35:07 CDT] base fg3m block 4 2025-02-01 rows 3706 train 143437
+[21:35:09 CDT] base fg3m block 5 2025-03-01 rows 4994 train 147143
+[21:35:11 CDT] base fg3m block 6 2025-04-01 rows 3099 train 152137
+[21:35:13 CDT] base fg3m block 7 2025-05-01 rows 842 train 155236
+[21:35:16 CDT] base fg3m block 8 2025-06-01 rows 159 train 156078
+[21:35:37 CDT] walk pts A0 9 blocks 21s
+[21:36:00 CDT] walk pts EF 9 blocks 23s
+[21:36:22 CDT] walk pts PL 9 blocks 22s
+[21:36:45 CDT] walk SH_0 9 blocks 22s
+[21:37:07 CDT] walk SH_1 9 blocks 22s
+[21:37:30 CDT] walk SH_2 9 blocks 23s
+[21:37:55 CDT] walk reb A0 9 blocks 24s
+[21:38:20 CDT] walk reb EF 9 blocks 25s
+[21:38:41 CDT] walk ast A0 9 blocks 21s
+[21:39:03 CDT] walk ast EF 9 blocks 22s
+[21:39:24 CDT] walk fg3m A0 9 blocks 21s
+[21:39:47 CDT] walk fg3m EF 9 blocks 22s
+[21:40:01 CDT] walk pts A0P 9 blocks 13s
+FAIL touch-path A0 2024 == null-run A0 2024: 1.26487705134981
+FAIL regenerated 2024 base == stored (pts): 1.0839154207860737
+FAIL regenerated 2024 base == stored (reb): 0.8811179777992448
+FAIL regenerated 2024 base == stored (ast): 0.44148904037072967
+FAIL regenerated 2024 base == stored (fg3m): 0.24598821352836087

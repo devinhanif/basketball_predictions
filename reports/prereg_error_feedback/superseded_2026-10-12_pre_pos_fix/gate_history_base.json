@@ -1,0 +1,1655 @@
+{
+ "measured_at": "2026-10-12 20:34:14 CDT",
+ "select_seasons": [
+  2021,
+  2022,
+  2023,
+  2024
+ ],
+ "report_standin": 2024,
+ "base": {
+  "built_at": "2026-10-12 16:23:33 CDT",
+  "seasons": [
+   2019,
+   2020,
+   2021,
+   2022,
+   2023,
+   2024
+  ],
+  "stats": {
+   "pts": {
+    "path": "data/ops/error_feedback_cache/base_pts.npz",
+    "sha256": "b1e62d8e326cb0d65612e8a109f4dd74ea06873f96643f12a66ac76207d3c84b",
+    "frame_sha": "9e5b686bb06aab89bb1d73c610f8ff5d49edab1bf24b7638280a065e282475b2",
+    "rows": 152310,
+    "rows_by_season": {
+     "2019": 17595,
+     "2020": 24522,
+     "2021": 27442,
+     "2022": 27322,
+     "2023": 27708,
+     "2024": 27721
+    },
+    "blocks": 52
+   },
+   "reb": {
+    "path": "data/ops/error_feedback_cache/base_reb.npz",
+    "sha256": "02fefb5268103373a9de0c0989639cbb4fb9f685283e282ed9bb294a64b38275",
+    "frame_sha": "ad809643a921fe0fb1c18e4498ff3263fcfc5b99280958758cf1fb0a2513c72c",
+    "rows": 152310,
+    "rows_by_season": {
+     "2019": 17595,
+     "2020": 24522,
+     "2021": 27442,
+     "2022": 27322,
+     "2023": 27708,
+     "2024": 27721
+    },
+    "blocks": 52
+   },
+   "ast": {
+    "path": "data/ops/error_feedback_cache/base_ast.npz",
+    "sha256": "aba40ccdc2b634562b5a3b477d2d7a6d86724ea8516f1f3931b30dc267d42b7e",
+    "frame_sha": "25e700e84d50c7fdcd3d5489b11003c21b8db3ff10e074c24b556dbc3a7882c9",
+    "rows": 152310,
+    "rows_by_season": {
+     "2019": 17595,
+     "2020": 24522,
+     "2021": 27442,
+     "2022": 27322,
+     "2023": 27708,
+     "2024": 27721
+    },
+    "blocks": 52
+   },
+   "fg3m": {
+    "path": "data/ops/error_feedback_cache/base_fg3m.npz",
+    "sha256": "2e96fc1165c09ddf2272c8f8720842cb42e5c79329c6dc3c66cce35cb55cc4f5",
+    "frame_sha": "e09ae4ae7ed59eed27339b911caf5342e9c462a46466c383109a41a2a2518309",
+    "rows": 152310,
+    "rows_by_season": {
+     "2019": 17595,
+     "2020": 24522,
+     "2021": 27442,
+     "2022": 27322,
+     "2023": 27708,
+     "2024": 27721
+    },
+    "blocks": 52
+   }
+  },
+  "wall_s": 354.642618894577
+ },
+ "training_coverage": [
+  {
+   "block": 0,
+   "start": "2021-10-01",
+   "train_rows": 46044,
+   "with_feature": 40338,
+   "share": 0.8760750586395621
+  },
+  {
+   "block": 1,
+   "start": "2021-11-01",
+   "train_rows": 47911,
+   "with_feature": 42179,
+   "share": 0.8803615036212978
+  },
+  {
+   "block": 2,
+   "start": "2021-12-01",
+   "train_rows": 52666,
+   "with_feature": 46828,
+   "share": 0.8891504955758933
+  },
+  {
+   "block": 3,
+   "start": "2022-01-01",
+   "train_rows": 56896,
+   "with_feature": 51000,
+   "share": 0.8963723284589427
+  },
+  {
+   "block": 4,
+   "start": "2022-02-01",
+   "train_rows": 61744,
+   "with_feature": 55799,
+   "share": 0.9037153407618554
+  },
+  {
+   "block": 5,
+   "start": "2022-03-01",
+   "train_rows": 65111,
+   "with_feature": 59150,
+   "share": 0.9084486492297769
+  },
+  {
+   "block": 6,
+   "start": "2022-04-01",
+   "train_rows": 69846,
+   "with_feature": 63859,
+   "share": 0.9142828508432838
+  },
+  {
+   "block": 7,
+   "start": "2022-05-01",
+   "train_rows": 72502,
+   "with_feature": 66508,
+   "share": 0.9173264185815564
+  },
+  {
+   "block": 8,
+   "start": "2022-06-01",
+   "train_rows": 73339,
+   "with_feature": 67341,
+   "share": 0.9182154106273606
+  },
+  {
+   "block": 9,
+   "start": "2022-10-01",
+   "train_rows": 73486,
+   "with_feature": 67488,
+   "share": 0.9183790109680755
+  },
+  {
+   "block": 10,
+   "start": "2022-11-01",
+   "train_rows": 75565,
+   "with_feature": 69536,
+   "share": 0.920214384966585
+  },
+  {
+   "block": 11,
+   "start": "2022-12-01",
+   "train_rows": 80164,
+   "with_feature": 74045,
+   "share": 0.9236689785938825
+  },
+  {
+   "block": 12,
+   "start": "2023-01-01",
+   "train_rows": 84793,
+   "with_feature": 78636,
+   "share": 0.9273878739990329
+  },
+  {
+   "block": 13,
+   "start": "2023-02-01",
+   "train_rows": 89378,
+   "with_feature": 83204,
+   "share": 0.9309225984022914
+  },
+  {
+   "block": 14,
+   "start": "2023-03-01",
+   "train_rows": 92767,
+   "with_feature": 86574,
+   "share": 0.933241346599545
+  },
+  {
+   "block": 15,
+   "start": "2023-04-01",
+   "train_rows": 97510,
+   "with_feature": 91299,
+   "share": 0.9363039688237104
+  },
+  {
+   "block": 16,
+   "start": "2023-05-01",
+   "train_rows": 100010,
+   "with_feature": 93787,
+   "share": 0.9377762223777623
+  },
+  {
+   "block": 17,
+   "start": "2023-06-01",
+   "train_rows": 100708,
+   "with_feature": 94485,
+   "share": 0.938207490963975
+  },
+  {
+   "block": 18,
+   "start": "2023-10-01",
+   "train_rows": 100808,
+   "with_feature": 94585,
+   "share": 0.9382687881914133
+  },
+  {
+   "block": 19,
+   "start": "2023-11-01",
+   "train_rows": 101883,
+   "with_feature": 95658,
+   "share": 0.9389005035187421
+  },
+  {
+   "block": 20,
+   "start": "2023-12-01",
+   "train_rows": 106426,
+   "with_feature": 100077,
+   "share": 0.9403435250784583
+  },
+  {
+   "block": 21,
+   "start": "2024-01-01",
+   "train_rows": 110787,
+   "with_feature": 104405,
+   "share": 0.9423939631906271
+  },
+  {
+   "block": 22,
+   "start": "2024-02-01",
+   "train_rows": 115731,
+   "with_feature": 109320,
+   "share": 0.944604297897711
+  },
+  {
+   "block": 23,
+   "start": "2024-03-01",
+   "train_rows": 119427,
+   "with_feature": 112983,
+   "share": 0.9460423522319074
+  },
+  {
+   "block": 24,
+   "start": "2024-04-01",
+   "train_rows": 124265,
+   "with_feature": 117785,
+   "share": 0.9478533778618276
+  },
+  {
+   "block": 25,
+   "start": "2024-05-01",
+   "train_rows": 127556,
+   "with_feature": 121049,
+   "share": 0.9489871115431654
+  },
+  {
+   "block": 26,
+   "start": "2024-06-01",
+   "train_rows": 128402,
+   "with_feature": 121895,
+   "share": 0.9493232192644975
+  },
+  {
+   "block": 27,
+   "start": "2024-10-01",
+   "train_rows": 128516,
+   "with_feature": 122009,
+   "share": 0.9493681720563977
+  },
+  {
+   "block": 28,
+   "start": "2024-11-01",
+   "train_rows": 129926,
+   "with_feature": 123411,
+   "share": 0.9498560719178609
+  },
+  {
+   "block": 29,
+   "start": "2024-12-01",
+   "train_rows": 134583,
+   "with_feature": 127933,
+   "share": 0.9505881129117347
+  },
+  {
+   "block": 30,
+   "start": "2025-01-01",
+   "train_rows": 138590,
+   "with_feature": 131909,
+   "share": 0.9517930586622412
+  },
+  {
+   "block": 31,
+   "start": "2025-02-01",
+   "train_rows": 143437,
+   "with_feature": 136717,
+   "share": 0.9531501634864087
+  },
+  {
+   "block": 32,
+   "start": "2025-03-01",
+   "train_rows": 147143,
+   "with_feature": 140405,
+   "share": 0.9542078114487268
+  },
+  {
+   "block": 33,
+   "start": "2025-04-01",
+   "train_rows": 152137,
+   "with_feature": 145376,
+   "share": 0.9555597915037105
+  },
+  {
+   "block": 34,
+   "start": "2025-05-01",
+   "train_rows": 155236,
+   "with_feature": 148453,
+   "share": 0.9563052384756113
+  },
+  {
+   "block": 35,
+   "start": "2025-06-01",
+   "train_rows": 156078,
+   "with_feature": 149295,
+   "share": 0.9565409602890862
+  }
+ ],
+ "training_coverage_first_block": {
+  "block": 0,
+  "start": "2021-10-01",
+  "train_rows": 46044,
+  "with_feature": 40338,
+  "share": 0.8760750586395621
+ },
+ "training_coverage_2022_first_block": {
+  "block": 0,
+  "start": "2022-10-01",
+  "train_rows": 73486,
+  "with_feature": 67488,
+  "share": 0.9183790109680755
+ },
+ "evaluation_rows": {
+  "pts": {
+   "2021": {
+    "rows": 27442,
+    "share_ef_n_ge3": 0.9893593761387653,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04423529411764706
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012818532818532818
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.04007424389201265
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04376470588235294
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012664092664092665
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.03960365565671853
+     },
+     "excess_over_reference": 0.0004705882352941185,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1976,
+        "missing_share": 0.0005060728744939271
+       },
+       "5-10": {
+        "n": 1712,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6341,
+        "missing_share": 0.00015770383220312253
+       },
+       "20-99": {
+        "n": 16936,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0005060728744939271
+     },
+     "max_gap": 0.0004705882352941185,
+     "pass": true
+    }
+   },
+   "2022": {
+    "rows": 27322,
+    "share_ef_n_ge3": 0.9917648781201962,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1952,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1852,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6247,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16898,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2023": {
+    "rows": 27708,
+    "share_ef_n_ge3": 0.9897502526346181,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2293,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1990,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6294,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16675,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2024": {
+    "rows": 27721,
+    "share_ef_n_ge3": 0.9900436492190037,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2196,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1901,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6265,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16909,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   }
+  },
+  "reb": {
+   "2021": {
+    "rows": 27442,
+    "share_ef_n_ge3": 0.9893593761387653,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04423529411764706
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012818532818532818
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.04007424389201265
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04376470588235294
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012664092664092665
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.03960365565671853
+     },
+     "excess_over_reference": 0.0004705882352941185,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1976,
+        "missing_share": 0.0005060728744939271
+       },
+       "5-10": {
+        "n": 1712,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6341,
+        "missing_share": 0.00015770383220312253
+       },
+       "20-99": {
+        "n": 16936,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0005060728744939271
+     },
+     "max_gap": 0.0004705882352941185,
+     "pass": true
+    }
+   },
+   "2022": {
+    "rows": 27322,
+    "share_ef_n_ge3": 0.9917648781201962,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1952,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1852,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6247,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16898,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2023": {
+    "rows": 27708,
+    "share_ef_n_ge3": 0.9897502526346181,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2293,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1990,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6294,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16675,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2024": {
+    "rows": 27721,
+    "share_ef_n_ge3": 0.9900436492190037,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2196,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1901,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6265,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16909,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   }
+  },
+  "ast": {
+   "2021": {
+    "rows": 27442,
+    "share_ef_n_ge3": 0.9893593761387653,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04423529411764706
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012818532818532818
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.04007424389201265
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04376470588235294
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012664092664092665
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.03960365565671853
+     },
+     "excess_over_reference": 0.0004705882352941185,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1976,
+        "missing_share": 0.0005060728744939271
+       },
+       "5-10": {
+        "n": 1712,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6341,
+        "missing_share": 0.00015770383220312253
+       },
+       "20-99": {
+        "n": 16936,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0005060728744939271
+     },
+     "max_gap": 0.0004705882352941185,
+     "pass": true
+    }
+   },
+   "2022": {
+    "rows": 27322,
+    "share_ef_n_ge3": 0.9917648781201962,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1952,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1852,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6247,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16898,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2023": {
+    "rows": 27708,
+    "share_ef_n_ge3": 0.9897502526346181,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2293,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1990,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6294,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16675,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2024": {
+    "rows": 27721,
+    "share_ef_n_ge3": 0.9900436492190037,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2196,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1901,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6265,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16909,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   }
+  },
+  "fg3m": {
+   "2021": {
+    "rows": 27442,
+    "share_ef_n_ge3": 0.9893593761387653,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04423529411764706
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012818532818532818
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.04007424389201265
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2125,
+        "missing_share": 0.04376470588235294
+       },
+       "5-10": {
+        "n": 1779,
+        "missing_share": 0.02473299606520517
+       },
+       "10-20": {
+        "n": 6475,
+        "missing_share": 0.012664092664092665
+       },
+       "20-99": {
+        "n": 17063,
+        "missing_share": 0.004161050225634413
+       }
+      },
+      "max_gap": 0.03960365565671853
+     },
+     "excess_over_reference": 0.0004705882352941185,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1976,
+        "missing_share": 0.0005060728744939271
+       },
+       "5-10": {
+        "n": 1712,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6341,
+        "missing_share": 0.00015770383220312253
+       },
+       "20-99": {
+        "n": 16936,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0005060728744939271
+     },
+     "max_gap": 0.0004705882352941185,
+     "pass": true
+    }
+   },
+   "2022": {
+    "rows": 27322,
+    "share_ef_n_ge3": 0.9917648781201962,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2061,
+        "missing_share": 0.031052886948083454
+       },
+       "5-10": {
+        "n": 1907,
+        "missing_share": 0.02149973780807551
+       },
+       "10-20": {
+        "n": 6354,
+        "missing_share": 0.009757632987094743
+       },
+       "20-99": {
+        "n": 17000,
+        "missing_share": 0.003411764705882353
+       }
+      },
+      "max_gap": 0.0276411222422011
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 1952,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1852,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6247,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16898,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2023": {
+    "rows": 27708,
+    "share_ef_n_ge3": 0.9897502526346181,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2422,
+        "missing_share": 0.03509496284062758
+       },
+       "5-10": {
+        "n": 2075,
+        "missing_share": 0.028433734939759037
+       },
+       "10-20": {
+        "n": 6420,
+        "missing_share": 0.011838006230529595
+       },
+       "20-99": {
+        "n": 16791,
+        "missing_share": 0.003811565719730808
+       }
+      },
+      "max_gap": 0.031283397120896776
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2293,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1990,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6294,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16675,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   },
+   "2024": {
+    "rows": 27721,
+    "share_ef_n_ge3": 0.9900436492190037,
+    "missingness": {
+     "unconditional": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "reference_n_prior_lt8": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2330,
+        "missing_share": 0.03690987124463519
+       },
+       "5-10": {
+        "n": 1975,
+        "missing_share": 0.02379746835443038
+       },
+       "10-20": {
+        "n": 6393,
+        "missing_share": 0.011888002502737369
+       },
+       "20-99": {
+        "n": 17023,
+        "missing_share": 0.003935851495036127
+       }
+      },
+      "max_gap": 0.032974019749599064
+     },
+     "excess_over_reference": 0.0,
+     "n_prior_ge10": {
+      "by_bucket": {
+       "0-5": {
+        "n": 2196,
+        "missing_share": 0.0
+       },
+       "5-10": {
+        "n": 1901,
+        "missing_share": 0.0
+       },
+       "10-20": {
+        "n": 6265,
+        "missing_share": 0.0
+       },
+       "20-99": {
+        "n": 16909,
+        "missing_share": 0.0
+       }
+      },
+      "max_gap": 0.0
+     },
+     "max_gap": 0.0,
+     "pass": true
+    }
+   }
+  }
+ },
+ "planted_future_real": {
+  "cut": "2023-01-15",
+  "rows_le_cut": 87064,
+  "future_inert": true,
+  "control_rows_moved_share": 0.9990215264187867,
+  "pass": true
+ },
+ "prod_repro": {
+  "rows_equal": true,
+  "n": 55320,
+  "max_abs_diff": 0.0,
+  "pass": true
+ },
+ "sizing": {
+  "2024 (report stand-in)": {
+   "n_rows": 27721,
+   "n_games": 1320,
+   "sd_row": 0.12411584030569141,
+   "deff_game": 0.991330777481243,
+   "deff_date": 0.9638384085852729,
+   "deff_used": 1.0,
+   "se_bootstrap": 0.0007454572888908833,
+   "halfwidth95": 0.0014610962862261312,
+   "null_sd_fit_noise": 0.0004426013165387603,
+   "null_line": -0.0007329993470402225,
+   "se_total": 0.0008669501109996986,
+   "pass_line": -0.005,
+   "power": {
+    "slope_2023_0.149": 0.9999999439583066,
+    "slope_2024_0.102": 0.2820594265193406
+   }
+  },
+  "select pooled 2021-24": {
+   "n_rows": 110193,
+   "n_games": 5281,
+   "sd_row": 0.15000170591468368,
+   "deff_game": 1.0473773887101403,
+   "deff_date": 1.0197943225945805,
+   "deff_used": 1.0473773887101403,
+   "se_bootstrap": 0.00046245639742867865,
+   "halfwidth95": 0.0009064145389602101,
+   "null_sd_fit_noise": 0.00031117481199063386,
+   "null_line": -0.0005246631186534432,
+   "se_total": 0.0005574008280762761,
+   "pass_line": -0.005,
+   "power": {
+    "slope_2023_0.149": 0.9999999999999999,
+    "slope_2024_0.102": 0.18485397449392021
+   }
+  },
+  "2024 conservative (sd/deff of stored FULL-A0)": {
+   "n_rows": 27721,
+   "sd_row": 0.33016851793432717,
+   "deff_used": 1.0917944641234931,
+   "se_bootstrap": 0.0020720568072551274,
+   "halfwidth95": 0.004061231342220049,
+   "null_sd_fit_noise": 0.0004426013165387603,
+   "se_total": 0.0021188004478700103,
+   "pass_line": -0.005,
+   "power": {
+    "slope_2023_0.149": 0.9850359162223389,
+    "slope_2024_0.102": 0.4067230931168001
+   }
+  }
+ },
+ "null": {
+  "pooled": {
+   "k": 50,
+   "mean": 9.768650532782457e-05,
+   "sd": 0.00031117481199063386,
+   "min": -0.00037983428545539474,
+   "max": 0.000766987041972569,
+   "line": -0.0005246631186534432
+  },
+  "2021": {
+   "k": 50,
+   "mean": 0.0003363976185738267,
+   "sd": 0.0008293799003558814,
+   "min": -0.0016125633457568362,
+   "max": 0.0022344313357458502,
+   "line": -0.0013223621821379361
+  },
+  "2022": {
+   "k": 50,
+   "mean": -0.00013714577228918283,
+   "sd": 0.0005563912648558522,
+   "min": -0.0012474850217035973,
+   "max": 0.0011065191920695114,
+   "line": -0.0012499283020008874
+  },
+  "2023": {
+   "k": 50,
+   "mean": 3.828551793457259e-05,
+   "sd": 0.0005566625192233901,
+   "min": -0.0008573347566984234,
+   "max": 0.0012396573388483278,
+   "line": -0.0010750395205122076
+  },
+  "2024": {
+   "k": 50,
+   "mean": 0.00015220328603729805,
+   "sd": 0.0004426013165387603,
+   "min": -0.0008178474332912011,
+   "max": 0.001067544248266991,
+   "line": -0.0007329993470402225
+  }
+ },
+ "gate": [
+  {
+   "check": "first select block (2021-10): training rows with ef_n >= 3 >= 0.50",
+   "value": 0.8760750586395621,
+   "pass": true
+  },
+  {
+   "check": "report half-width (2024 stand-in, conservative sd/deff) <= 0.005",
+   "value": 0.004061231342220049,
+   "pass": true
+  },
+  {
+   "check": "missingness: excess over the as-of n_prior<8 pattern <= 0.01 and gap <= 0.02 among n_prior>=10 (every stat, select season)",
+   "value": 0.0004705882352941185,
+   "pass": true
+  },
+  {
+   "check": "planted future inert, past control moves (real frame)",
+   "value": 0.9990215264187867,
+   "pass": true
+  },
+  {
+   "check": "permutation null K >= 50 on the select seasons",
+   "value": 50,
+   "pass": true
+  },
+  {
+   "check": "harness reproduces stored production pts forecasts 2023-24 (<= 1e-6)",
+   "value": 0.0,
+   "pass": true
+  }
+ ],
+ "gate_pass": true,
+ "wall_s": 25.74657893180847
+}

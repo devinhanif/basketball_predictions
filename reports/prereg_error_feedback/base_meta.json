@@ -1,5 +1,5 @@
 {
- "built_at": "2026-10-12 16:23:33 CDT",
+ "built_at": "2026-10-12 21:41:44 CDT",
  "seasons": [
   2019,
   2020,
@@ -11,8 +11,8 @@
  "stats": {
   "pts": {
    "path": "data/ops/error_feedback_cache/base_pts.npz",
-   "sha256": "b1e62d8e326cb0d65612e8a109f4dd74ea06873f96643f12a66ac76207d3c84b",
-   "frame_sha": "9e5b686bb06aab89bb1d73c610f8ff5d49edab1bf24b7638280a065e282475b2",
+   "sha256": "e5f271797de8911a0a3ef7211f89ccae07df8fc8d22e1281a55dc5e107eacf09",
+   "frame_sha": "e53030f1a49ef5c34d4db3649fa3664c310ed60f4e7f209fbc8d9fed3e5af570",
    "rows": 152310,
    "rows_by_season": {
     "2019": 17595,
@@ -26,8 +26,8 @@
   },
   "reb": {
    "path": "data/ops/error_feedback_cache/base_reb.npz",
-   "sha256": "02fefb5268103373a9de0c0989639cbb4fb9f685283e282ed9bb294a64b38275",
-   "frame_sha": "ad809643a921fe0fb1c18e4498ff3263fcfc5b99280958758cf1fb0a2513c72c",
+   "sha256": "dec36d3398e23542798cdfa721c9014fc2f860f5ad228d745e2a330d63f2f81d",
+   "frame_sha": "9ae0851faf0f62a7a264917cff83dc47b9634ec7a470c6aabedd706888a0c998",
    "rows": 152310,
    "rows_by_season": {
     "2019": 17595,
@@ -41,8 +41,8 @@
   },
   "ast": {
    "path": "data/ops/error_feedback_cache/base_ast.npz",
-   "sha256": "aba40ccdc2b634562b5a3b477d2d7a6d86724ea8516f1f3931b30dc267d42b7e",
-   "frame_sha": "25e700e84d50c7fdcd3d5489b11003c21b8db3ff10e074c24b556dbc3a7882c9",
+   "sha256": "310b0ad6cda71628e022cd1b8bcb94a8c26d8424db2bed42eabcb417cde3d68d",
+   "frame_sha": "abadaf1510f15035746dbb35945846304a888aecf060ea3640b285988cc4a5be",
    "rows": 152310,
    "rows_by_season": {
     "2019": 17595,
@@ -56,8 +56,8 @@
   },
   "fg3m": {
    "path": "data/ops/error_feedback_cache/base_fg3m.npz",
-   "sha256": "2e96fc1165c09ddf2272c8f8720842cb42e5c79329c6dc3c66cce35cb55cc4f5",
-   "frame_sha": "e09ae4ae7ed59eed27339b911caf5342e9c462a46466c383109a41a2a2518309",
+   "sha256": "7a24131178ce54b47d65359a9d6002be7a5340acacd40c8b79bc5c9ce0127b55",
+   "frame_sha": "1a7d1859470012646c486348e933461dcdd8cbd00a919e51106bbae039d66788",
    "rows": 152310,
    "rows_by_season": {
     "2019": 17595,
@@ -70,5 +70,5 @@
    "blocks": 52
   }
  },
- "wall_s": 354.642618894577
+ "wall_s": 310.29828000068665
 }
