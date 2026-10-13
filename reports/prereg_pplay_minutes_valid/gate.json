@@ -1,0 +1,2660 @@
+{
+  "tests": [
+    {
+      "test": "holdout: max season per frame",
+      "value": {
+        "p": 2024,
+        "m2": 2024,
+        "games": 2024
+      },
+      "threshold": "<= 2024",
+      "ok": true
+    },
+    {
+      "test": "2021-22 rows carry no report feature (P(play))",
+      "value": {
+        "tag60_code": 0,
+        "q60": 0,
+        "d60": 0,
+        "q60_x_terc": 0,
+        "d60_x_terc": 0,
+        "on_morning_report": 0,
+        "on_evening_report": 0
+      },
+      "threshold": "all 0",
+      "ok": true
+    },
+    {
+      "test": "2021-22 rows carry no report feature (minutes head)",
+      "value": {
+        "n_out_rot": 0,
+        "vac_min": 0,
+        "vac_pts": 0,
+        "vac_reb": 0,
+        "vac_ast": 0,
+        "vac_fg3m": 0,
+        "n_out_starters": 0,
+        "out_max_min40": 0,
+        "has_report_nonzero": 0,
+        "n_columns_checked": 8
+      },
+      "threshold": "all 0",
+      "ok": true
+    },
+    {
+      "test": "era_report_dropped is 1 exactly on 2021-22 rows",
+      "value": true,
+      "threshold": "exact",
+      "ok": true
+    },
+    {
+      "test": "era channels are 0 on every 2022-24 scored row",
+      "value": 0,
+      "threshold": "0",
+      "ok": true
+    },
+    {
+      "test": "Cell-P rows and games per scored season (union recount)",
+      "value": {
+        "rows": {
+          "2020": 29612,
+          "2022": 32866,
+          "2023": 33295,
+          "2024": 33158
+        },
+        "games": {
+          "2020": 1171,
+          "2022": 1320,
+          "2023": 1318,
+          "2024": 1320
+        }
+      },
+      "threshold": "verdict seasons rows >= 25,000, games >= 1,000",
+      "ok": true
+    },
+    {
+      "test": "no NULL or NaN age on any training row (player 1626218's rows excluded)",
+      "value": {
+        "p": 0,
+        "m": 0
+      },
+      "threshold": "0 on both frames",
+      "ok": true
+    },
+    {
+      "test": "G1 planted future (P0, P0c maps, R19 and M2_19 inputs) + non-inert control",
+      "value": {
+        "cutoff": "2024-01-26"
+      },
+      "threshold": "future identical, control changes",
+      "ok": true
+    },
+    {
+      "test": "G2 missingness beyond the as-of cause (P(play) inputs)",
+      "value": {
+        "unexplained": [],
+        "worst": [
+          [
+            2019,
+            0.59,
+            "on_evening_report"
+          ],
+          [
+            2020,
+            2.49,
+            "on_evening_report"
+          ],
+          [
+            2021,
+            0.0,
+            "games_played_prior"
+          ],
+          [
+            2022,
+            3.92,
+            "on_evening_report"
+          ],
+          [
+            2023,
+            3.96,
+            "on_evening_report"
+          ],
+          [
+            2024,
+            5.01,
+            "on_evening_report"
+          ]
+        ]
+      },
+      "threshold": "max(2 pp, 3 x permuted gap) per season; every NULL input has a listed cause",
+      "ok": true
+    },
+    {
+      "test": "G2 missingness beyond the as-of cause (minutes head inputs)",
+      "value": {
+        "unexplained": []
+      },
+      "threshold": "same",
+      "ok": true
+    },
+    {
+      "test": "OUT sets on 2022-24 games equal production's",
+      "value": {
+        "games": 3958,
+        "mine": 3952,
+        "production": 3952
+      },
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "parity: forward.predict_slate vs P0 (nba-only scope)",
+      "value": {
+        "dates": [
+          "2024-10-25",
+          "2024-10-30",
+          "2024-11-07",
+          "2024-11-30",
+          "2024-12-20",
+          "2024-12-30",
+          "2025-02-09",
+          "2025-03-11",
+          "2025-04-26",
+          "2025-06-22"
+        ],
+        "n_shared": [
+          203,
+          226,
+          64,
+          107,
+          64,
+          150,
+          62,
+          86,
+          96,
+          25
+        ],
+        "max_abs_dp": 0.0,
+        "max_abs_dmu": 0.0,
+        "rookie_prior_rows": 0,
+        "new_team_multiplier_rows": 0,
+        "data_scope_effect": {
+          "n_rows": 66453,
+          "share_changed": 0.40889049403337696,
+          "mean_abs_dp": 0.012705116940879032
+        }
+      },
+      "threshold": "<= 1e-12 on every shared (game, player), shared > 0 per date",
+      "ok": true
+    },
+    {
+      "test": "R22 reproduces stored RECENT_ROLE p_R",
+      "value": {
+        "max_abs_diff": 0.0,
+        "unmatched_rows": 0,
+        "n": {
+          "2023": 33093,
+          "2024": 33127
+        }
+      },
+      "threshold": "<= 1e-09, n {2023: 33093, 2024: 33127}",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "detail": {
+    "g1": {
+      "cutoff": "2024-01-26",
+      "future": {
+        "p_inputs": {
+          "n": 136037,
+          "same_rows": true,
+          "differing": [],
+          "identical": true
+        },
+        "m2_inputs": {
+          "n": 114857,
+          "same_rows": true,
+          "differing": [],
+          "identical": true
+        },
+        "p0c_maps_identical": true
+      },
+      "control": {
+        "p_inputs": {
+          "n": 136037,
+          "n_other": 136047,
+          "same_rows": false,
+          "differing": [
+            "<row set>"
+          ],
+          "identical": false
+        },
+        "m2_inputs": {
+          "n": 114857,
+          "n_other": 115385,
+          "same_rows": false,
+          "differing": [
+            "<row set before the cutoff day>"
+          ],
+          "identical": false
+        },
+        "p0c_maps_identical": false
+      },
+      "ok": true
+    },
+    "g2_p": {
+      "per_season": [
+        {
+          "season": 2019,
+          "source": "history",
+          "max_gap_pp": 0.5939958946288058,
+          "worst_col": "on_evening_report",
+          "placebo_max_gap_pp": 0.948730591121612,
+          "threshold_pp": 2.846191773364836,
+          "n_rows": 24467,
+          "ok": true
+        },
+        {
+          "season": 2020,
+          "source": "history",
+          "max_gap_pp": 2.492456313194092,
+          "worst_col": "on_evening_report",
+          "placebo_max_gap_pp": 0.9970564490859701,
+          "threshold_pp": 2.9911693472579106,
+          "n_rows": 29612,
+          "ok": true
+        },
+        {
+          "season": 2021,
+          "source": "history",
+          "max_gap_pp": 0.0,
+          "worst_col": "games_played_prior",
+          "placebo_max_gap_pp": 0.0,
+          "threshold_pp": 2.0,
+          "n_rows": 32282,
+          "ok": true
+        },
+        {
+          "season": 2022,
+          "source": "modern",
+          "max_gap_pp": 3.9180571681124157,
+          "worst_col": "on_evening_report",
+          "placebo_max_gap_pp": 1.3276069792090117,
+          "threshold_pp": 3.982820937627035,
+          "n_rows": 32866,
+          "ok": true
+        },
+        {
+          "season": 2023,
+          "source": "modern",
+          "max_gap_pp": 3.9590583873134246,
+          "worst_col": "on_evening_report",
+          "placebo_max_gap_pp": 2.8720996586883762,
+          "threshold_pp": 8.616298976065128,
+          "n_rows": 33295,
+          "ok": true
+        },
+        {
+          "season": 2024,
+          "source": "modern",
+          "max_gap_pp": 5.006082058354277,
+          "worst_col": "on_evening_report",
+          "placebo_max_gap_pp": 2.4062845997248896,
+          "threshold_pp": 7.218853799174669,
+          "n_rows": 33158,
+          "ok": true
+        }
+      ],
+      "null_share_by_input": [
+        {
+          "col": "games_played_prior",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "n_played_prior",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "play_rate_prior",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "avg_minutes_given_played_prior",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "std_minutes_given_played_prior",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "fewer than two played games in the trailing window (never on Cell-P rows)",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "starter_rate_prior",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "rest_days",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "b2b",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "travel_miles_asof",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "tanking_incentive",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "is_national_tv",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "games_into_season",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "in_playoff_pos",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "in_playin",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "age",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "exp_margin",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "Elo margin undefined before a team's first rated game",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "dnp_last5",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "no earlier box row for the player (never on Cell-P rows)",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "days_since_played",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "no earlier played game for the player (never on Cell-P rows)",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "terc",
+          "by_season": {
+            "2019": 1.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "team strength tercile needs the prior season's standings; 2018-19 is not held, so 2019-20 rows are NULL (team-level, flagged, never imputed)",
+          "by_season_era": {
+            "2019|era_any=False": 1.0,
+            "2019|era_any=True": 1.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "tag60_code",
+          "by_season": {
+            "2019": 0.0020435688887072384,
+            "2020": 0.0009117925165473457,
+            "2021": 1.0,
+            "2022": 0.0018255948396519199,
+            "2023": 0.0008710016518996847,
+            "2024": 0.0025634839254478556
+          },
+          "cause": "no usable T-60 snapshot for the game (0.1-0.2% of games) and every 2021-22 row (report features dropped, rule 4)",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.011870845204178538,
+            "2020|era_any=True": 0.0009117925165473457,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0018255948396519199,
+            "2023|era_any=False": 0.0008710016518996847,
+            "2024|era_any=False": 0.0025634839254478556
+          }
+        },
+        {
+          "col": "q60",
+          "by_season": {
+            "2019": 0.0020435688887072384,
+            "2020": 0.0009117925165473457,
+            "2021": 1.0,
+            "2022": 0.0018255948396519199,
+            "2023": 0.0008710016518996847,
+            "2024": 0.0025634839254478556
+          },
+          "cause": "same as tag60_code",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.011870845204178538,
+            "2020|era_any=True": 0.0009117925165473457,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0018255948396519199,
+            "2023|era_any=False": 0.0008710016518996847,
+            "2024|era_any=False": 0.0025634839254478556
+          }
+        },
+        {
+          "col": "d60",
+          "by_season": {
+            "2019": 0.0020435688887072384,
+            "2020": 0.0009117925165473457,
+            "2021": 1.0,
+            "2022": 0.0018255948396519199,
+            "2023": 0.0008710016518996847,
+            "2024": 0.0025634839254478556
+          },
+          "cause": "same as tag60_code",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.011870845204178538,
+            "2020|era_any=True": 0.0009117925165473457,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0018255948396519199,
+            "2023|era_any=False": 0.0008710016518996847,
+            "2024|era_any=False": 0.0025634839254478556
+          }
+        },
+        {
+          "col": "q60_x_terc",
+          "by_season": {
+            "2019": 1.0,
+            "2020": 0.0009117925165473457,
+            "2021": 1.0,
+            "2022": 0.0018255948396519199,
+            "2023": 0.0008710016518996847,
+            "2024": 0.0025634839254478556
+          },
+          "cause": "tag60_code NULL, or terc NULL (2019-20)",
+          "by_season_era": {
+            "2019|era_any=False": 1.0,
+            "2019|era_any=True": 1.0,
+            "2020|era_any=True": 0.0009117925165473457,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0018255948396519199,
+            "2023|era_any=False": 0.0008710016518996847,
+            "2024|era_any=False": 0.0025634839254478556
+          }
+        },
+        {
+          "col": "d60_x_terc",
+          "by_season": {
+            "2019": 1.0,
+            "2020": 0.0009117925165473457,
+            "2021": 1.0,
+            "2022": 0.0018255948396519199,
+            "2023": 0.0008710016518996847,
+            "2024": 0.0025634839254478556
+          },
+          "cause": "tag60_code NULL, or terc NULL (2019-20)",
+          "by_season_era": {
+            "2019|era_any=False": 1.0,
+            "2019|era_any=True": 1.0,
+            "2020|era_any=True": 0.0009117925165473457,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0018255948396519199,
+            "2023|era_any=False": 0.0008710016518996847,
+            "2024|era_any=False": 0.0025634839254478556
+          }
+        },
+        {
+          "col": "on_morning_report",
+          "by_season": {
+            "2019": 0.01226141333224343,
+            "2020": 0.05001350803728218,
+            "2021": 1.0,
+            "2022": 0.042475506602568006,
+            "2023": 0.045382189517945634,
+            "2024": 0.054044272875324206
+          },
+          "cause": "no morning snapshot for the game, and every 2021-22 row",
+          "by_season_era": {
+            "2019|era_any=False": 0.010071587262404345,
+            "2019|era_any=True": 0.022792022792022793,
+            "2020|era_any=True": 0.05001350803728218,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.042475506602568006,
+            "2023|era_any=False": 0.045382189517945634,
+            "2024|era_any=False": 0.054044272875324206
+          }
+        },
+        {
+          "col": "on_evening_report",
+          "by_season": {
+            "2019": 0.03555809866350595,
+            "2020": 0.07459813589085505,
+            "2021": 1.0,
+            "2022": 0.383192356842938,
+            "2023": 0.40928067277368974,
+            "2024": 0.4440858917908197
+          },
+          "cause": "no previous-evening snapshot for the game, and every 2021-22 row",
+          "by_season_era": {
+            "2019|era_any=False": 0.03209084176746482,
+            "2019|era_any=True": 0.052231718898385564,
+            "2020|era_any=True": 0.07459813589085505,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.383192356842938,
+            "2023|era_any=False": 0.40928067277368974,
+            "2024|era_any=False": 0.4440858917908197
+          }
+        },
+        {
+          "col": "min5",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min40",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min_gap",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min_gap10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "starter10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "starter40",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "last_starter",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "gap_days",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "no earlier played game for the player",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "since_flag",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "flag_dir",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "since_team",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "n_season",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "wl_min_last",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "no earlier played game for the player",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "wl_mean_min_l3",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "no earlier played game for the player",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "wl_min_3d",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "wl_min_7d",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "wl_mean_min_l5",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "no earlier played game for the player",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_bubble",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_nofans",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_limited",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_report_dropped",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "p0",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "mu0",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "sigma0",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        }
+      ],
+      "unexplained_null_inputs": [],
+      "as_of_cause_violations": {},
+      "as_of_cause_detail": {},
+      "ok": true
+    },
+    "g2_m2": {
+      "per_season": [
+        {
+          "season": 2019,
+          "source": "history",
+          "max_gap_pp": 0.17957178123813142,
+          "worst_col": "n_out_rot",
+          "placebo_max_gap_pp": 0.17090770983668818,
+          "threshold_pp": 2.0,
+          "n_rows": 21522,
+          "ok": true
+        },
+        {
+          "season": 2020,
+          "source": "history",
+          "max_gap_pp": 0.12237762237762238,
+          "worst_col": "n_out_rot",
+          "placebo_max_gap_pp": 0.11035839160839161,
+          "threshold_pp": 2.0,
+          "n_rows": 24522,
+          "ok": true
+        },
+        {
+          "season": 2021,
+          "source": "history",
+          "max_gap_pp": 0.0,
+          "worst_col": "n_prior",
+          "placebo_max_gap_pp": 0.0,
+          "threshold_pp": 2.0,
+          "n_rows": 27442,
+          "ok": true
+        },
+        {
+          "season": 2022,
+          "source": "modern",
+          "max_gap_pp": 0.17933619173941207,
+          "worst_col": "n_out_rot",
+          "placebo_max_gap_pp": 0.131194996021318,
+          "threshold_pp": 2.0,
+          "n_rows": 27322,
+          "ok": true
+        },
+        {
+          "season": 2023,
+          "source": "modern",
+          "max_gap_pp": 0.08337800011911142,
+          "worst_col": "n_out_rot",
+          "placebo_max_gap_pp": 0.06774607633556366,
+          "threshold_pp": 2.0,
+          "n_rows": 27708,
+          "ok": true
+        },
+        {
+          "season": 2024,
+          "source": "modern",
+          "max_gap_pp": 0.12440919215515836,
+          "worst_col": "n_out_rot",
+          "placebo_max_gap_pp": 0.16732764709078068,
+          "threshold_pp": 2.0,
+          "n_rows": 27721,
+          "ok": true
+        }
+      ],
+      "null_share_by_input": [
+        {
+          "col": "n_prior",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "n_season",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "gap_days",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "no earlier played game for the player",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "since_flag",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "flag_dir",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "since_team",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min5",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min40",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min_gap",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "min_gap10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "starter10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "starter40",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "last_starter",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "rest_days",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "b2b",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "team_game_no",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "exp_margin",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "Elo margin undefined before a team's first rated game",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "abs_margin",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "r20_pts_for",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "r20_pts_against",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "opp_rest_days",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "opp_b2b",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "opp_r20_pts_for",
+          "by_season": {
+            "2019": 0.0013474584146454791,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "the opponent has fewer than 5 earlier games in the held data (rolling-20 mean needs 5; 2018-19 is not held, so the 2019-20 opening days)",
+          "by_season_era": {
+            "2019|era_any=False": 0.0016097696364140994,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "opp_r20_pts_against",
+          "by_season": {
+            "2019": 0.0013474584146454791,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": "same as opp_r20_pts_for",
+          "by_season_era": {
+            "2019|era_any=False": 0.0016097696364140994,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "n_out_rot",
+          "by_season": {
+            "2019": 0.0018585633305454883,
+            "2020": 0.0008563738683631026,
+            "2021": 1.0,
+            "2022": 0.0016470243759607642,
+            "2023": 0.00064963187527068,
+            "2024": 0.0019840554092565204
+          },
+          "cause": "report-derived (derived from the OUT sets): NULL when the game has no usable report (has_report = 0) and on every 2021-22 row",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.01140575990875392,
+            "2020|era_any=True": 0.0008563738683631026,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0016470243759607642,
+            "2023|era_any=False": 0.00064963187527068,
+            "2024|era_any=False": 0.0019840554092565204
+          }
+        },
+        {
+          "col": "vac_min",
+          "by_season": {
+            "2019": 0.0018585633305454883,
+            "2020": 0.0008563738683631026,
+            "2021": 1.0,
+            "2022": 0.0016470243759607642,
+            "2023": 0.00064963187527068,
+            "2024": 0.0019840554092565204
+          },
+          "cause": "report-derived (derived from the OUT sets): NULL when the game has no usable report (has_report = 0) and on every 2021-22 row",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.01140575990875392,
+            "2020|era_any=True": 0.0008563738683631026,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0016470243759607642,
+            "2023|era_any=False": 0.00064963187527068,
+            "2024|era_any=False": 0.0019840554092565204
+          }
+        },
+        {
+          "col": "has_report",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "pos_code",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "is_home_f",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "pf36_h20",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "pf5_rate_h40",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "age",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "own_b2b_gap",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "ret_n",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "ret_mean_min",
+          "by_season": {
+            "2019": 0.689805780131958,
+            "2020": 0.7078133920561129,
+            "2021": 0.6664237300488303,
+            "2022": 0.7437230071005051,
+            "2023": 0.7398946152735671,
+            "2024": 0.7146928321489123
+          },
+          "cause": "no return from a long absence in the player's history (as-of, outcome-independent by construction)",
+          "by_season_era": {
+            "2019|era_any=False": 0.8046627810158201,
+            "2019|era_any=True": 0.0998003992015968,
+            "2020|era_any=True": 0.7078133920561129,
+            "2021|era_any=False": 0.6664237300488303,
+            "2022|era_any=False": 0.7437230071005051,
+            "2023|era_any=False": 0.7398946152735671,
+            "2024|era_any=False": 0.7146928321489123
+          }
+        },
+        {
+          "col": "ret_ramp",
+          "by_season": {
+            "2019": 0.689805780131958,
+            "2020": 0.7078133920561129,
+            "2021": 0.6664237300488303,
+            "2022": 0.7437230071005051,
+            "2023": 0.7398946152735671,
+            "2024": 0.7146928321489123
+          },
+          "cause": "same as ret_mean_min",
+          "by_season_era": {
+            "2019|era_any=False": 0.8046627810158201,
+            "2019|era_any=True": 0.0998003992015968,
+            "2020|era_any=True": 0.7078133920561129,
+            "2021|era_any=False": 0.6664237300488303,
+            "2022|era_any=False": 0.7437230071005051,
+            "2023|era_any=False": 0.7398946152735671,
+            "2024|era_any=False": 0.7146928321489123
+          }
+        },
+        {
+          "col": "own_blow_gap",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "team_blow_rate",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "rot_hhi10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "rot_n15_10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "rot_top5_10",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "n_out_starters",
+          "by_season": {
+            "2019": 0.0018585633305454883,
+            "2020": 0.0008563738683631026,
+            "2021": 1.0,
+            "2022": 0.0016470243759607642,
+            "2023": 0.00064963187527068,
+            "2024": 0.0019840554092565204
+          },
+          "cause": "report-derived (derived from the OUT sets): NULL when the game has no usable report (has_report = 0) and on every 2021-22 row",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.01140575990875392,
+            "2020|era_any=True": 0.0008563738683631026,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0016470243759607642,
+            "2023|era_any=False": 0.00064963187527068,
+            "2024|era_any=False": 0.0019840554092565204
+          }
+        },
+        {
+          "col": "out_max_min40",
+          "by_season": {
+            "2019": 0.0018585633305454883,
+            "2020": 0.0008563738683631026,
+            "2021": 1.0,
+            "2022": 0.0016470243759607642,
+            "2023": 0.00064963187527068,
+            "2024": 0.0019840554092565204
+          },
+          "cause": "report-derived (derived from the OUT sets): NULL when the game has no usable report (has_report = 0) and on every 2021-22 row",
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.01140575990875392,
+            "2020|era_any=True": 0.0008563738683631026,
+            "2021|era_any=False": 1.0,
+            "2022|era_any=False": 0.0016470243759607642,
+            "2023|era_any=False": 0.00064963187527068,
+            "2024|era_any=False": 0.0019840554092565204
+          }
+        },
+        {
+          "col": "win_pct_asof",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "opp_win_pct_asof",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "tanking_incentive",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "in_playoff_pos",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "in_playin",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "cal_month",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "is_playoff",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "is_playin",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_bubble",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_nofans",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_limited",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        },
+        {
+          "col": "era_report_dropped",
+          "by_season": {
+            "2019": 0.0,
+            "2020": 0.0,
+            "2021": 0.0,
+            "2022": 0.0,
+            "2023": 0.0,
+            "2024": 0.0
+          },
+          "cause": null,
+          "by_season_era": {
+            "2019|era_any=False": 0.0,
+            "2019|era_any=True": 0.0,
+            "2020|era_any=True": 0.0,
+            "2021|era_any=False": 0.0,
+            "2022|era_any=False": 0.0,
+            "2023|era_any=False": 0.0,
+            "2024|era_any=False": 0.0
+          }
+        }
+      ],
+      "unexplained_null_inputs": [],
+      "as_of_cause_violations": {
+        "ret_mean_min": 0,
+        "ret_ramp": 0,
+        "opp_r20_pts_for": 0,
+        "opp_r20_pts_against": 0
+      },
+      "as_of_cause_detail": {
+        "ret_mean_min": {
+          "null_without_cause": 0,
+          "cause_without_null": 0,
+          "cause_unavailable": 0
+        },
+        "ret_ramp": {
+          "null_without_cause": 0,
+          "cause_without_null": 0,
+          "cause_unavailable": 0
+        },
+        "opp_r20_pts_for": {
+          "null_without_cause": 0,
+          "cause_without_null": 0,
+          "cause_unavailable": 0
+        },
+        "opp_r20_pts_against": {
+          "null_without_cause": 0,
+          "cause_without_null": 0,
+          "cause_unavailable": 0
+        }
+      },
+      "ok": true
+    }
+  }
+}
