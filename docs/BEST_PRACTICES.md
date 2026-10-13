@@ -176,3 +176,10 @@ store; its blind rehearsal caught the drift (regenerated base != stored) because
 before changing a shared table, list the frozen or freeze-candidate rules whose gates read it; after the change, re-run their gates and
 rehearsals before any freeze or run. Hash-bound identity checks (frame sha, regenerated-equals-stored) are what make drift visible; keep them.
 An empty side table is a NULL pattern too: a feature that silently becomes 0 for a subset is the same survival leak as a NULL.
+
+## Check what a command acts on before handing it to Devin (2026-10-13)
+Incident: for SEQ_LEARNING_CURVE_2, two commands went to Devin checked only for existence. `history_static_fix fetch --apply` fetched
+2019-21 players only, so the 2015-18 position gap stayed at 25.2% after he ran it; the download list left out the shotdetail archives the
+loader needs (the only source of game_date), so the ingest stopped. Rule: before a command goes to Devin, read the code path it runs and
+confirm its scope covers the target (seasons, ids, files), compare a download list against what the loader reads and what the last
+download of that source held, and give the dry-run count where one exists. Devin's shell time is the scarce resource; one wasted run costs more than the check.
