@@ -1,0 +1,341 @@
+{
+ "source": "reports/prereg_seq_full_mix_rt/rehearsal/descriptive/rows.parquet",
+ "season": 2024,
+ "sigma_F": 0.001,
+ "stats": {
+  "pts": {
+   "avg_minus_full": {
+    "delta": -0.016101018847856204,
+    "ci95": [
+     -0.018953848500966028,
+     -0.013100505056055478
+    ],
+    "se": 0.0014790443222187763,
+    "sd_row": 0.22933764067608567,
+    "deff_game": 1.0717057330000903,
+    "n": 25767,
+    "games": 1230
+   },
+   "avg_minus_a0": {
+    "delta": -0.025308128325457233,
+    "ci95": [
+     -0.02926066645024504,
+     -0.021493853230157792
+    ],
+    "se": 0.0019525022734720868,
+    "sd_row": 0.3066892470514748,
+    "deff_game": 1.044359100140075,
+    "n": 25767,
+    "games": 1230
+   },
+   "rows_per_game": 20.94878048780488,
+   "rows_per_game_first_weeks": {
+    "1": 19.88,
+    "2": 20.18,
+    "3": 21.17,
+    "4": 20.96
+   },
+   "n_min_exact": 6841.802437974509,
+   "n_min_frozen": 6900,
+   "halfwidth_target": 0.005,
+   "halfwidth_at_n_min": 0.00498116081295449,
+   "by_month_pts": {
+    "2024-10": -0.02448,
+    "2024-11": -0.01885,
+    "2024-12": -0.02168,
+    "2025-01": -0.00931,
+    "2025-02": -0.01774,
+    "2025-03": -0.01156,
+    "2025-04": -0.01729
+   },
+   "minutes_ge5": {
+    "delta": -0.02153606006320817,
+    "ci95": [
+     -0.024601056808335464,
+     -0.018456402960638735
+    ],
+    "se": 0.0015546336483572116,
+    "sd_row": 0.2316730841240974,
+    "deff_game": 1.0667681161880895,
+    "n": 23690,
+    "games": 1230
+   }
+  },
+  "reb": {
+   "avg_minus_full": {
+    "delta": -0.005359999546138306,
+    "ci95": [
+     -0.00648047171450487,
+     -0.004260520488930587
+    ],
+    "se": 0.0005549066652689466,
+    "sd_row": 0.08645300489689714,
+    "deff_game": 1.0615575768173644,
+    "n": 25767,
+    "games": 1230
+   },
+   "avg_minus_a0": {
+    "delta": -0.009096188157940383,
+    "ci95": [
+     -0.010592452680763522,
+     -0.007621297061795456
+    ],
+    "se": 0.0007635872869430675,
+    "sd_row": 0.11839826986990974,
+    "deff_game": 1.0717426737533655,
+    "n": 25767,
+    "games": 1230
+   },
+   "rows_per_game": 20.94878048780488,
+   "rows_per_game_first_weeks": {
+    "1": 19.88,
+    "2": 20.18,
+    "3": 21.17,
+    "4": 20.96
+   },
+   "n_min_exact": 3411.2262991262387,
+   "n_min_frozen": 3500,
+   "halfwidth_target": 0.003,
+   "halfwidth_at_n_min": 0.0029732743156345837,
+   "by_month": {
+    "2024-10": -0.00913,
+    "2024-11": -0.00379,
+    "2024-12": -0.00483,
+    "2025-01": -0.00429,
+    "2025-02": -0.00503,
+    "2025-03": -0.00586,
+    "2025-04": -0.00906
+   },
+   "minutes_ge5": null
+  },
+  "ast": {
+   "avg_minus_full": {
+    "delta": -0.0030575030952574482,
+    "ci95": [
+     -0.0037338761731669622,
+     -0.0023309000294410116
+    ],
+    "se": 0.00035648200439505814,
+    "sd_row": 0.05619308344428783,
+    "deff_game": 1.0369870970975137,
+    "n": 25767,
+    "games": 1230
+   },
+   "avg_minus_a0": {
+    "delta": -0.0051891506863903005,
+    "ci95": [
+     -0.006209003809477697,
+     -0.004187164290044864
+    ],
+    "se": 0.0005172808152213105,
+    "sd_row": 0.07940091663663043,
+    "deff_game": 1.0936177957411082,
+    "n": 25767,
+    "games": 1230
+   },
+   "rows_per_game": 20.94878048780488,
+   "rows_per_game_first_weeks": {
+    "1": 19.88,
+    "2": 20.18,
+    "3": 21.17,
+    "4": 20.96
+   },
+   "n_min_exact": 1407.8159155270007,
+   "n_min_frozen": 1500,
+   "halfwidth_target": 0.003,
+   "halfwidth_at_n_min": 0.002934824887101904,
+   "by_month": {
+    "2024-10": -0.00355,
+    "2024-11": -0.00263,
+    "2024-12": -0.00403,
+    "2025-01": -0.00218,
+    "2025-02": -0.00201,
+    "2025-03": -0.00286,
+    "2025-04": -0.00609
+   },
+   "minutes_ge5": null
+  },
+  "fg3m": {
+   "avg_minus_full": {
+    "delta": -0.0036364237126868806,
+    "ci95": [
+     -0.004257383981240515,
+     -0.003050582257265721
+    ],
+    "se": 0.00030930063165206896,
+    "sd_row": 0.04987731979196267,
+    "deff_game": 0.9908758755121472,
+    "n": 25767,
+    "games": 1230
+   },
+   "avg_minus_a0": {
+    "delta": -0.0037688738663726983,
+    "ci95": [
+     -0.004582936318598805,
+     -0.0029787424439164517
+    ],
+    "se": 0.0004055185944755195,
+    "sd_row": 0.06370526514517359,
+    "deff_game": 1.0440823355496083,
+    "n": 25767,
+    "games": 1230
+   },
+   "rows_per_game": 20.94878048780488,
+   "rows_per_game_first_weeks": {
+    "1": 19.88,
+    "2": 20.18,
+    "3": 21.17,
+    "4": 20.96
+   },
+   "n_min_exact": 1059.8203695771351,
+   "n_min_frozen": 1100,
+   "halfwidth_target": 0.003,
+   "halfwidth_at_n_min": 0.002961435525768058,
+   "by_month": {
+    "2024-10": -0.00313,
+    "2024-11": -0.0041,
+    "2024-12": -0.00341,
+    "2025-01": -0.00289,
+    "2025-02": -0.00421,
+    "2025-03": -0.0037,
+    "2025-04": -0.00393
+   },
+   "minutes_ge5": null
+  }
+ },
+ "power_pts_at_n_min": {
+  "n_min": 6900,
+  "se_boot": 0.002858173392660257,
+  "pass_threshold": -0.005,
+  "p_pass_ab": {
+   "-0.0155": 1.0,
+   "-0.0133": 0.998,
+   "-0.01": 0.96,
+   "-0.007": 0.758,
+   "-0.005": 0.5,
+   "0.0": 0.04
+  }
+ },
+ "weeks": {
+  "base:pts": {
+   "rows_per_game": 17.81,
+   "week_n_reached": 8,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 10470,
+   "halfwidth_at_final": 0.00416,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "base:reb": {
+   "rows_per_game": 17.81,
+   "week_n_reached": 5,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 10470,
+   "halfwidth_at_final": 0.00218,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "base:ast": {
+   "rows_per_game": 17.81,
+   "week_n_reached": 2,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 10470,
+   "halfwidth_at_final": 0.00188,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "base:fg3m": {
+   "rows_per_game": 17.81,
+   "week_n_reached": 2,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 10470,
+   "halfwidth_at_final": 0.00183,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "optimistic:pts": {
+   "rows_per_game": 20.95,
+   "week_n_reached": 7,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 12317,
+   "halfwidth_at_final": 0.00388,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "optimistic:reb": {
+   "rows_per_game": 20.95,
+   "week_n_reached": 4,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 12317,
+   "halfwidth_at_final": 0.00211,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "optimistic:ast": {
+   "rows_per_game": 20.95,
+   "week_n_reached": 2,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 12317,
+   "halfwidth_at_final": 0.00185,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "optimistic:fg3m": {
+   "rows_per_game": 20.95,
+   "week_n_reached": 2,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 12317,
+   "halfwidth_at_final": 0.0018,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "pessimistic:pts": {
+   "rows_per_game": 14.66,
+   "week_n_reached": 12,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 7185,
+   "halfwidth_at_final": 0.00489,
+   "interim_week": 7,
+   "interim_sunday": "2026-12-06"
+  },
+  "pessimistic:reb": {
+   "rows_per_game": 14.66,
+   "week_n_reached": 7,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 7185,
+   "halfwidth_at_final": 0.00239,
+   "interim_week": 5,
+   "interim_sunday": "2026-11-22"
+  },
+  "pessimistic:ast": {
+   "rows_per_game": 14.66,
+   "week_n_reached": 5,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 7185,
+   "halfwidth_at_final": 0.00198,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  },
+  "pessimistic:fg3m": {
+   "rows_per_game": 14.66,
+   "week_n_reached": 4,
+   "final_week": 12,
+   "final_sunday": "2027-01-10",
+   "rows_at_final": 7185,
+   "halfwidth_at_final": 0.00191,
+   "interim_week": 4,
+   "interim_sunday": "2026-11-15"
+  }
+ }
+}
