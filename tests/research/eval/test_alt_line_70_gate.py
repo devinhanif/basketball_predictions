@@ -100,14 +100,17 @@ def _write_root(root: Path) -> None:
         pl.DataFrame({"game_id": [game], "tipoff_utc": [tip], "junk": [1]}).write_parquet(
             root / f"data/ops/model_clv_pairs/pairs_{season}.parquet"
         )
-        snap = tip - dt.timedelta(minutes=70)
-        for market in ("player_points", "player_rebounds", "player_assists", "player_threes"):
-            for book in ("betrivers", "draftkings"):
-                for point in (8.5, 10.5, 11.5, 12.5, 13.5):
-                    if book == "draftkings" and point != 12.5:
-                        continue
-                    for side, px in (("over", -250), ("under", 180)):
-                        quotes.append((season, game, "t60", snap, book, market, 7, side, point, px))
+        for kind, minutes in (("t60", 70), ("t5", 9)):
+            snap = tip - dt.timedelta(minutes=minutes)
+            for market in ("player_points", "player_rebounds", "player_assists", "player_threes"):
+                for book in ("betrivers", "draftkings"):
+                    for point in (8.5, 10.5, 11.5, 12.5, 13.5):
+                        if book == "draftkings" and point != 12.5:
+                            continue
+                        for side, px in (("over", -250), ("under", 180)):
+                            quotes.append(
+                                (season, game, kind, snap, book, market, 7, side, point, px)
+                            )
     con = duckdb.connect(str(root / "data/odds/odds_history.duckdb"))
     con.execute(
         "create table odds_history (season INTEGER, game_id VARCHAR, snapshot_kind VARCHAR, "
@@ -129,8 +132,11 @@ def test_run_gate_end_to_end_on_a_synthetic_root(tmp_path: Path) -> None:
     assert p1["all_p70"]["line_rows"] == 12
     assert p1["band_70_90"]["line_rows"] == 1
     assert p1["bins"]["0.90-0.95"]["line_rows"] == 1
-    p2 = res["part2"]["2023"]
-    assert p2["snapshot_after_tip_minus_60_or_no_tip"] == 0
+    p2 = res["part2"]["t5"]["2023"]
+    assert p2["timing_rule_violations"] == 0
+    assert p2["lead_minutes_min_med_max"] == [9.0, 9.0, 9.0]
+    assert res["part2"]["t60"]["2023"]["timing_rule_violations"] == 0
+    assert res["part2"]["t60"]["2023"]["lead_minutes_min_med_max"][0] == 70.0
     # betrivers quotes 5 half-point lines per stat; P(over) >= .7 on 8.5, 10.5, 11.5
     # (k=9,11,12 -> 1, .9, .8); 12.5 is k=13 (.6) and fails; 13.5 is k=14 (.3)
     a = p2["arm_A_primary_book"]
@@ -140,3 +146,26 @@ def test_run_gate_end_to_end_on_a_synthetic_root(tmp_path: Path) -> None:
     # best price over books: draftkings only quotes 12.5 which fails the threshold
     assert p2["arm_B_best_price_any_book"]["rungs"] == 12
     assert a["decimal_min_med_max"][0] == 1.4
+
+
+def test_timing_rule_never_accepts_a_price_older_than_the_model_cutoff() -> None:
+    tip = dt.datetime(2024, 1, 1, 20, 0)
+    tw = pl.DataFrame(
+        {
+            "tipoff_utc": [tip] * 4,
+            "snapshot_ts": [
+                tip - dt.timedelta(minutes=70),  # before the cutoff
+                tip - dt.timedelta(minutes=60),  # exactly at the cutoff
+                tip - dt.timedelta(minutes=9),
+                tip + dt.timedelta(minutes=1),  # after tip
+            ],
+        }
+    )
+    assert g.snapshot_violations(tw, "t5") == 2  # the 70-minute and the after-tip rows
+    assert g.snapshot_violations(tw, "t60") == 2  # the 9-minute and after-tip rows
+
+
+def test_dedupe_dropping_removes_every_duplicated_key() -> None:
+    df = pl.DataFrame({"k": [1, 1, 2, 3], "v": [10, 11, 12, 13]})
+    out, n = g.dedupe_dropping(df, ["k"])
+    assert n == 2 and sorted(out["k"].to_list()) == [2, 3]
