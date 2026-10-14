@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { ErrorPanel, Explain, Loading } from "../components";
-import { american, lineText, longDate, num, stamp, tipTime } from "../format";
+import { american, bookName, lineText, longDate, num, stamp, tipTime } from "../format";
 import {
   clampLine,
   ladderAt,
@@ -56,7 +56,11 @@ function LineCard(props: {
           ))}
         </div>
         <span class="small muted">
-          {posted !== null && line === posted ? "Posted line" : "Your line"}
+          {posted !== null && line === posted
+            ? "Posted line"
+            : data.line_source === "model_middle"
+              ? "Your line (starts at the middle of our forecast)"
+              : "Your line"}
         </span>
       </div>
       <div class="stepper leg-stepper">
@@ -161,7 +165,7 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
             {row && row.over_price !== null && row.under_price !== null
               ? ` (over ${american(row.over_price)}, under ${american(row.under_price)})`
               : ""}
-            . DraftKings about an hour before tip.
+            . {data.line === line ? data.prices.say : ""}
           </>
         ) : (
           <span class="muted">No price is stored for this line.</span>
@@ -186,7 +190,8 @@ function ChipItem({ c }: { c: Chip }) {
         {c.state === "hit" ? "HIT" : c.state === "miss" ? "MISS" : "PUSH"}
       </span>
       <span class="leg-chip-meta num" aria-hidden="true">
-        {c.home ? "vs" : "at"} {c.opp}
+        {c.home === null ? "" : c.home ? "vs " : "at "}
+        {c.opp}
       </span>
       <span class="leg-chip-meta num" aria-hidden="true">
         {num(c.minutes, 0)} min
@@ -322,6 +327,64 @@ function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ the numbers, in words */
+function InWords({ data }: { data: LegBreakdown }) {
+  const d = data.dissection;
+  if (!d || !d.text) return null;
+  return (
+    <section class="panel leg-words" aria-label="In words">
+      <h2>In plain words</h2>
+      <p class="leg-words-text">{d.text}</p>
+      <p class="small muted num">
+        {d.disclosure} Each of the {S(d.numbers_checked)} numbers in this paragraph was matched to a figure on this page
+        before it was shown.
+      </p>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ every book at this line */
+function Books({ data, line }: { data: LegBreakdown; line: number }) {
+  const books = data.prices.books;
+  if (books.length === 0 || data.line !== line) return null;
+  const cell = (price: number | null, unusable: boolean) =>
+    unusable ? <span class="muted">not usable</span> : price !== null ? american(price) : <span class="muted">none</span>;
+  return (
+    <section class="panel" aria-label="Prices by book">
+      <h2>Prices by book at {lineText(line)}</h2>
+      <p class="small muted" style={{ marginTop: 0 }}>
+        What each book had before tip. Exchanges (Kalshi, Polymarket, Novig) are not sportsbooks. "Not usable" is a quote
+        with no real bid behind it: we do not show it as a price.
+      </p>
+      <div class="table-wrap">
+        <table class="leg-table num">
+          <thead>
+            <tr>
+              <th scope="col">Book</th>
+              <th scope="col">Over</th>
+              <th scope="col">Under</th>
+              <th scope="col">Min to tip</th>
+            </tr>
+          </thead>
+          <tbody>
+            {books.map((b) => (
+              <tr key={b.book}>
+                <td>
+                  <strong>{bookName(b.book)}</strong>
+                  {b.alternate ? <span class="tag">Alt</span> : null}
+                </td>
+                <td>{cell(b.over_price, b.over_unusable)}</td>
+                <td>{cell(b.under_price, b.under_unusable)}</td>
+                <td>{b.minutes_before_tip !== null ? Math.round(b.minutes_before_tip).toString() : ""}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -514,7 +577,7 @@ function Opponent({ data }: { data: LegBreakdown }) {
           <p class="small muted">{o.note}</p>
         </>
       ) : (
-        <p class="muted">Not enough games this season to say.</p>
+        <p class="muted">We do not have this comparison for this player.</p>
       )}
     </section>
   );
@@ -627,10 +690,12 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
         onSide={setSide}
       />
       <Headline data={data} row={row} side={side} line={shown} fresh={fresh} />
+      <InWords data={data} />
       <HeadsUp data={data} />
       <Games data={data} side={side} line={shown} row={row} />
       <ModelPanel data={data} side={side} line={shown} row={row} />
       <Ladder data={data} line={shown} side={side} onLine={setLine} />
+      <Books data={data} line={shown} />
       <Splits data={data} side={side} line={shown} />
       <Teammates data={data} side={side} line={shown} />
       <Opponent data={data} />

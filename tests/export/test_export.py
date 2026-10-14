@@ -21,6 +21,7 @@ from nba.export import (
     explainer,
     forward_predictions,
     parlay_of_day,
+    prop_lines,
     resolve_seasons,
     settled_scores,
 )
@@ -135,10 +136,10 @@ def src(tmp_path: Path) -> Path:
     )
     con.executemany(
         "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, reb, ast, fg3m, "
-        "starter) VALUES (?,?,?,?,?,?,?,?,?)",
-        [(G_PREV, 1000, 1610612738, 31.0, 20, 5, 3, 2, True),
-         (G_PREV, 1001, 1610612738, None, 0, 0, 0, 0, False),
-         (G_HOLD, 1000, 1610612738, 33.0, 44, 5, 3, 2, True)],
+        "starter, stl, blk, tov) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        [(G_PREV, 1000, 1610612738, 31.0, 20, 5, 3, 2, True, 2, 1, 3),
+         (G_PREV, 1001, 1610612738, None, 0, 0, 0, 0, False, 0, 0, 0),
+         (G_HOLD, 1000, 1610612738, 33.0, 44, 5, 3, 2, True, 1, 1, 1)],
     )  # fmt: skip
     con.execute(
         "INSERT INTO player_availability VALUES (1000, ?, ?, 'questionable', 'Left Knee', "
@@ -177,7 +178,8 @@ def test_schema_manifest_and_content(src: Path, tmp_path: Path) -> None:
         "2026-10-29T09:00:00Z",
     )
     meta = dict(con.execute("SELECT key, value FROM meta").fetchall())
-    assert meta["schema_version"] == "1" and meta["made_at"] == m["made_at"]
+    assert meta["schema_version"] == "2" and meta["made_at"] == m["made_at"]
+    assert m["schema_version"] == 2
     # the daily run's forecast grid and the model stamp survive intact
     row = con.execute(
         "SELECT q_grid, p_ge_full_counts, p_ge_full_n, stamp_weights_sha256, stamp_data_version, "
@@ -198,6 +200,9 @@ def test_schema_manifest_and_content(src: Path, tmp_path: Path) -> None:
         None,
         0,
     )
+    assert con.execute(
+        "SELECT stl, blk, tov FROM box_scores WHERE player_id IN (1000, 1001) ORDER BY player_id"
+    ).fetchall() == [(2, 1, 3), (0, 0, 0)]  # DNP stays explicit zeros as stored
     assert con.execute("SELECT status, reason FROM injury_report").fetchone() == (
         "questionable",
         "Left Knee",
@@ -211,7 +216,7 @@ def test_holdout_and_other_seasons_never_exported(src: Path, tmp_path: Path) -> 
     con = duckdb.connect(str(out / DB_NAME), read_only=True)
     for t, col in [("games", "game_id"), ("win_probs", "game_id"), ("prop_grids", "game_id"),
                    ("settled_scores", "game_id"), ("box_scores", "game_id"),
-                   ("injury_report", "game_id")]:  # fmt: skip
+                   ("injury_report", "game_id"), ("prop_lines", "game_id")]:  # fmt: skip
         ids = {r[0] for r in con.execute(f'SELECT DISTINCT "{col}" FROM {t}').fetchall()}
         assert not ids & {G_HOLD, G_HOLD_UNKNOWN, G_PRESEASON}, t
     assert {r[0] for r in con.execute("SELECT DISTINCT season FROM games").fetchall()} == {2026}
@@ -394,8 +399,219 @@ def test_cli_build_end_to_end(
             str(src),
             "--parlay-dir",
             str(pdir),
+            "--odds-db",
+            str(tmp_path / "no_such_odds.duckdb"),
         ]
     )
     assert rc == 0
     assert json.loads((out / PARLAY_NAME).read_text())["verdict"] == "no_positive_ev_found"
     assert "export 2026-10-28" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------- prop_lines / team ids
+
+PRED_A, PRED_B = TIP - timedelta(minutes=120), TIP - timedelta(minutes=30)  # made_at of the runs
+PTS = "player_points"
+
+
+def _odds_db(path: Path, quotes: list[tuple[Any, ...]]) -> Path:
+    """A capture store (the real DDL) holding ``quotes``: (game, player, market, book, side, point,
+    price, received_at, kind). ``tipoff`` / ``commence_time`` are TIP for every row."""
+    from nba.odds import live_close as lc
+
+    con = duckdb.connect(str(path))
+    con.execute(lc.DDL)
+    for g, pid, market, book, side, point, price, recv, kind in quotes:
+        con.execute(
+            "INSERT INTO live_book_odds VALUES ('the_odds_api_live', ?, ?, ?, ?, ?, ?, ?, 'ev', "
+            "?, ?, 'N', 'P', ?, ?, ?, ?, NULL, NULL, NULL, 'raw')",
+            [g, DAY, kind, recv, recv, TIP, TIP, book, market, pid, side, point, price],
+        )
+    con.close()
+    return path
+
+
+def _quotes() -> list[tuple[Any, ...]]:
+    early = TIP - timedelta(minutes=150)  # known to both runs
+    mid = TIP - timedelta(minutes=60)  # known to the T-30 run only
+    late = TIP - timedelta(minutes=10)  # pre-tip but after both runs were made
+    post = TIP + timedelta(minutes=5)
+    return [
+        (G_LIVE, 1000, PTS, "draftkings", "over", 12.5, -110, early, "t180"),
+        (G_LIVE, 1000, PTS, "draftkings", "over", 12.5, -125, mid, "t60"),
+        (G_LIVE, 1000, PTS, "draftkings", "over", 13.5, 105, late, "t10"),
+        (G_LIVE, 1000, PTS, "draftkings", "over", 12.5, -300, post, "close"),  # planted post-tip
+        (G_LIVE, 1000, PTS + "_alternate", "novig", "over", 20.5, 450, early, "t180"),
+        (G_LIVE, 1000, PTS + "_alternate", "novig", "over", 25.5, 900, early, "t180"),
+        (G_LIVE, 1000, PTS, "kalshi", "over", 14.5, -105, mid, "t60"),
+        (G_LIVE, 1000, PTS, "polymarket", "over", 12.5, 120, early, "t180"),
+        (G_LIVE, 1000, PTS, "polymarket", "under", 12.5, -3233, early, "t180"),
+        (G_LIVE, 1000, PTS, "polymarket_us", "under", 12.5, -900, early, "t180"),
+        (G_LIVE, 1000, "player_blocks", "draftkings", "over", 0.5, -150, early, "t180"),
+        (G_LIVE, 1000, "player_rebounds", "draftkings", "over", 4.5, -110, early, "t180"),
+        (G_LIVE, None, PTS, "draftkings", "over", 9.5, -110, early, "t180"),  # unresolved name
+        (G_HOLD, 1000, PTS, "draftkings", "over", 30.5, -110, early, "t180"),  # holdout game
+        (G_FUTURE, 1000, PTS, "draftkings", "over", 30.5, -110, early, "t180"),  # outside window
+    ]
+
+
+def _lines_out(
+    src: Path, tmp_path: Path, odds: Path
+) -> tuple[dict[str, Any], duckdb.DuckDBPyConnection]:
+    out = tmp_path / "out"
+    m = _build(src, out, odds_db=odds)
+    return m, duckdb.connect(str(out / DB_NAME), read_only=True)
+
+
+def test_prop_lines_are_as_of_each_prediction_and_pre_tip(src: Path, tmp_path: Path) -> None:
+    odds = _odds_db(tmp_path / "market_asof.duckdb", _quotes())
+    m, con = _lines_out(src, tmp_path, odds)
+    got = con.execute(
+        "SELECT run_id, book, market, line, side, price_american, minutes_before_tip "
+        "FROM prop_lines ORDER BY run_id, book, market, line, side"
+    ).fetchall()
+    # r_early (made 120 min before tip) cannot see the T-60 quotes, only the T-150 ones
+    assert [g[1:5] for g in got if g[0] == "r_early"] == [
+        ("draftkings", "player_points", 12.5, "over"),
+        ("novig", "player_points_alternate", 20.5, "over"),
+        ("novig", "player_points_alternate", 25.5, "over"),
+        ("polymarket", "player_points", 12.5, "over"),
+        ("polymarket", "player_points", 12.5, "under"),
+        ("polymarket_us", "player_points", 12.5, "under"),
+    ]
+    t30 = {g[1:5]: g for g in got if g[0] == "r_t30"}
+    assert t30[("draftkings", "player_points", 12.5, "over")][5] == -125  # newest known quote wins
+    assert ("kalshi", "player_points", 14.5, "over") in t30  # T-60 quote, known at T-30
+    assert ("draftkings", "player_points", 13.5, "over") not in t30  # T-10 is after made_at
+    assert all(g[6] >= 30.0 for g in got)  # no quote from inside a run's own last 30 minutes
+    # the planted post-tip quote is never exported, and is counted
+    assert -300 not in {g[5] for g in got}
+    assert m["excluded"]["lines_post_tip"] == 1
+    # scoping: no blocks, no rebounds (no rebound forecast), no unresolved player, no other game
+    assert {g[2] for g in got} == {"player_points", "player_points_alternate"}
+    assert con.execute("SELECT DISTINCT game_id, player_id FROM prop_lines").fetchall() == [
+        (G_LIVE, 1000)
+    ]
+    assert m["lines"]["status"] == "ok" and m["lines"]["n_quotes"] == len(got)
+    assert con.execute(
+        "SELECT bool_and(snapshot_ts <= made_at AND snapshot_ts < ?) FROM prop_lines", [TIP]
+    ).fetchone() == (True,)
+    assert con.execute(
+        "SELECT is_alternate FROM prop_lines WHERE market = 'player_points_alternate' LIMIT 1"
+    ).fetchone() == (True,)
+    con.close()
+
+
+def test_polymarket_unders_beyond_minus_1000_are_flagged_unusable(
+    src: Path, tmp_path: Path
+) -> None:
+    odds = _odds_db(tmp_path / "market_asof.duckdb", _quotes())
+    m, con = _lines_out(src, tmp_path, odds)
+    flagged = con.execute(
+        "SELECT book, side, price_american, unusable_reason FROM prop_lines WHERE unusable "
+        "ORDER BY run_id, book"
+    ).fetchall()
+    assert flagged == [("polymarket", "under", -3233, "polymarket_under_placeholder")] * 2
+    # -900 is above the floor, and the Over of the same book is a real price
+    assert con.execute(
+        "SELECT count(*) FROM prop_lines WHERE NOT unusable AND book LIKE 'polymarket%' "
+        "AND run_id = 'r_early'"
+    ).fetchone() == (2,)
+    assert m["lines"]["n_unusable"] == 2
+    con.close()
+
+
+def test_holdout_quotes_refused_and_not_exported(src: Path, tmp_path: Path) -> None:
+    odds = _odds_db(tmp_path / "market_asof.duckdb", _quotes())
+    _, con = _lines_out(src, tmp_path, odds)
+    assert con.execute(
+        "SELECT count(*) FROM prop_lines WHERE game_id IN (?, ?)", [G_HOLD, G_FUTURE]
+    ).fetchone() == (0,)
+    con.close()
+    oc = duckdb.connect(str(odds), read_only=True)
+    forged = [{"run_id": "x", "game_id": G_HOLD, "player_id": 1000, "stat": "pts",
+               "made_at": PRED_A, "tipoff": TIP}]  # fmt: skip
+    with pytest.raises(ExportRefused):  # a 2025 prediction reaching the lines reader is refused
+        prop_lines(oc, forged, Window(DAY))
+    oc.close()
+
+
+def test_lines_absent_missing_table_and_locked(
+    src: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    m = _build(src, tmp_path / "o1")  # not requested
+    assert m["lines"] == {"status": "not_requested", "n_quotes": 0, "n_unusable": 0}
+    m = _build(src, tmp_path / "o2", odds_db=tmp_path / "missing.duckdb")
+    assert m["lines"]["status"] == "absent" and m["row_counts"]["prop_lines"] == 0
+    empty = tmp_path / "empty.duckdb"
+    duckdb.connect(str(empty)).close()
+    m = _build(src, tmp_path / "o3", odds_db=empty)
+    assert m["lines"]["status"] == "no_table"
+
+    def locked(*a: Any, **k: Any) -> Any:
+        raise duckdb.IOException("IO Error: Could not set lock on file: Conflicting lock")
+
+    monkeypatch.setattr(build_mod.reader, "open_odds_read_only", locked)
+    present = _odds_db(tmp_path / "market_asof.duckdb", _quotes())
+    m = _build(src, tmp_path / "o4", odds_db=present)
+    assert m["lines"]["status"] == "locked" and m["row_counts"]["prop_grids"] == 2
+
+
+def test_odds_store_is_read_only_and_unchanged(src: Path, tmp_path: Path) -> None:
+    odds = _odds_db(tmp_path / "market_asof.duckdb", _quotes())
+    before = _sha(odds)
+    _build(src, tmp_path / "out", odds_db=odds)
+    assert _sha(odds) == before
+
+
+def test_prop_grids_carry_team_id_without_reading_the_holdout(src: Path, tmp_path: Path) -> None:
+    w = duckdb.connect(str(src))
+    ctx = "props_context_residual"
+    w.execute("INSERT INTO games (game_id, game_date, season, home_team, away_team) VALUES "
+              "('0022500001', DATE '2026-04-01', 2025, 1610612738, 1610612755)")  # fmt: skip
+    w.executemany(
+        "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, reb, ast, fg3m,"
+        " starter) VALUES (?,?,?,?,?,?,?,?,?)",
+        [(G_PREV, 1002, 1610612999, 20.0, 5, 1, 1, 0, False),  # prior team is not in this game
+         ("0022500001", 4243, 1610612755, 20.0, 5, 1, 1, 0, False)],  # holdout-only history
+    )  # fmt: skip
+    for pid in (1002, 4242, 4243):
+        w.execute(
+            "INSERT INTO forward_predictions VALUES (?,?,?,?,?,?,?,?,?)",
+            ["r_early", PRED_A, G_LIVE, TIP, ctx, "v1", "pts", pid, _pred(8.0)],
+        )
+    w.close()
+    out = tmp_path / "out"
+    _build(src, out)
+    con = duckdb.connect(str(out / DB_NAME), read_only=True)
+    got = {
+        r[0]: r[1:]
+        for r in con.execute(
+            "SELECT player_id, team_id, team_source FROM prop_grids WHERE run_id = 'r_early'"
+        ).fetchall()
+    }
+    assert got[1000] == (1610612738, "prior_game")  # last game before this one, a team in the game
+    assert got[1002] == (None, None)  # prior team is not one of the two: never guessed
+    assert got[4242] == (None, None)  # no history at all
+    assert got[4243] == (None, None)  # only a season-2025 row exists: the holdout is not read
+    con.close()
+
+
+def test_team_id_from_box_when_the_game_is_final(src: Path, tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    w = duckdb.connect(str(src))
+    w.execute("UPDATE games SET home_pts = 100, away_pts = 99 WHERE game_id = ?", [G_LIVE])
+    w.execute(
+        "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, reb, ast, "
+        "fg3m, starter) VALUES (?, 1000, 1610612755, 30.0, 10, 1, 1, 1, true)",
+        [G_LIVE],
+    )
+    w.close()
+    _build(src, out)
+    con = duckdb.connect(str(out / DB_NAME), read_only=True)
+    assert con.execute(
+        "SELECT DISTINCT team_id, team_source FROM prop_grids WHERE player_id = 1000 "
+        "AND game_id = ?",
+        [G_LIVE],
+    ).fetchall() == [(1610612755, "box")]
+    con.close()

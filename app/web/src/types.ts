@@ -32,11 +32,13 @@ export interface KeyProp {
   team: string;
   stat: Stat;
   line: number;
-  over_price: number;
-  under_price: number;
+  over_price: number | null;
+  under_price: number | null;
   forecast_mean: number | null;
   model_p_over: number;
-  market_p_over: number;
+  /** Null when the data holds no sportsbook price (the nightly export). */
+  market_p_over: number | null;
+  line_source: "posted" | "reference";
   extrapolated: boolean;
 }
 
@@ -71,8 +73,12 @@ export interface PropView {
   prop_id: string;
   stat: Stat;
   line: number;
-  over_price: number;
-  under_price: number;
+  /** "posted" is a sportsbook line; "reference" is the middle of our own forecast (no market line). */
+  line_source: "posted" | "reference";
+  over_price: number | null;
+  under_price: number | null;
+  /** The one book whose over and under are shown. */
+  price_book: string | null;
   line_snapshot_utc: string | null;
   forecast_mean: number | null;
   q: number[];
@@ -81,7 +87,7 @@ export interface PropView {
   model_p_under: number;
   model_p_push: number;
   extrapolated: boolean;
-  market_p_over: number;
+  market_p_over: number | null;
   forecast_stamp: string;
 }
 
@@ -101,6 +107,8 @@ export interface GameDetail {
   away: Team;
   win_probability: WinProbability;
   clock_utc: string;
+  /** False until the game is over (an export also holds tonight's games). */
+  final: boolean;
   players: PlayerView[];
   notes: string[];
 }
@@ -130,6 +138,7 @@ export interface SwipeCardData {
   line: number;
   over_price: number;
   under_price: number;
+  book: string | null;
   tip_utc: string;
 }
 
@@ -167,6 +176,9 @@ export interface Meta {
   mode_note: string;
   data_version: string;
   built_at: string;
+  /** When the data was built, from the export's manifest (or the fixture build). */
+  data_as_of: string;
+  export_date: string | null;
   max_season: number;
   slates: string[];
   stubs: string[];
@@ -185,6 +197,7 @@ export interface ParlayState {
   engine: string;
   reason: string;
   counts: Record<string, number>;
+  /** Null when the export carries only the engine's verdict and counts. */
   gate: {
     n_settled: number;
     n_dates: number;
@@ -193,10 +206,10 @@ export interface ParlayState {
     skill_vs_market: number;
     gate_open: boolean;
     describe: string;
-  };
-  model_weight: number;
+  } | null;
+  model_weight: number | null;
   model_weight_note: string;
-  fee_model: { name: string; formula: string; coefficient: number; verified: boolean; source: string };
+  fee_model: { name: string; formula: string; coefficient: number; verified: boolean; source: string } | null;
   price_basis: string;
   historical_note: string;
   disclaimer: string;

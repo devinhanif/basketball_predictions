@@ -2,7 +2,7 @@ import { useState } from "preact/hooks";
 import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
-import { american, lineText, num, pct, pctBounded, tipTime } from "../format";
+import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { legHref } from "../router";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
@@ -17,7 +17,11 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
       <div class="row between wrap">
         <strong>{STAT_LABEL[prop.stat]}</strong>
         <span class="small muted num">
-          Line {lineText(prop.line)} · Over {american(prop.over_price)} · Under {american(prop.under_price)}
+          {prop.line_source === "reference"
+            ? `Reference line ${lineText(prop.line)} (no usable sportsbook line)`
+            : prop.over_price !== null && prop.under_price !== null
+              ? `Line ${lineText(prop.line)} · Over ${american(prop.over_price)} · Under ${american(prop.under_price)}${prop.price_book ? ` (${bookName(prop.price_book)})` : ""}`
+              : `Line ${lineText(prop.line)} (no usable price for both sides)`}
         </span>
       </div>
       <p class="row wrap" style={{ margin: "6px 0" }}>
@@ -31,9 +35,11 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
         <span>
           Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
         </span>
-        <span>
-          Sportsbook: <b>{pct(prop.market_p_over)}</b>
-        </span>
+        {prop.market_p_over !== null ? (
+          <span>
+            {prop.price_book ? bookName(prop.price_book) : "Sportsbook"}: <b>{pct(prop.market_p_over)}</b>
+          </span>
+        ) : null}
         {prop.model_p_push > 0.005 ? <span>Exactly on the line: {pct(prop.model_p_push)}</span> : null}
       </div>
       <div class="kv num">
@@ -150,6 +156,7 @@ function Body({ g }: { g: GameDetail }) {
         </Explain>
       </section>
 
+      {g.final ? (
       <section class="panel">
         <div class="row between wrap">
           <div>
@@ -180,6 +187,7 @@ function Body({ g }: { g: GameDetail }) {
           </p>
         ) : null}
       </section>
+      ) : null}
 
       <section class="panel">
         <div class="row between wrap">
@@ -201,13 +209,13 @@ function Body({ g }: { g: GameDetail }) {
           </div>
         </div>
         <p class="small muted">
-          {team.city} {team.name}: {players.length} players with a line from the sportsbook, highest forecast scorer first.
+          {team.city} {team.name}: {players.length} players with {g.players.some((p) => p.props.pts?.line_source === "reference") ? "a forecast" : "a line from the sportsbook"}, highest forecast scorer first.
           Tap a name to open them up.
         </p>
         <DistLegend />
         <div class="players">
           {players.length === 0 ? (
-            <p class="muted">No lines were posted for this team.</p>
+            <p class="muted">No forecasts are stored for this team.</p>
           ) : (
             players.map((p) => <PlayerRow key={p.player_id} gameId={g.game_id} p={p} result={res} />)
           )}

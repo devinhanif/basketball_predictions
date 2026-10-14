@@ -21,7 +21,7 @@ import duckdb
 from nba.export import guard, reader
 from nba.export.parlay import parlay_of_day
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DB_NAME = "export.duckdb"
 PARLAY_NAME = "parlay_of_day.json"
 MANIFEST_NAME = "manifest.json"
@@ -76,6 +76,8 @@ TABLES: dict[str, list[tuple[str, str]]] = {
         ("version", "VARCHAR"),
         ("stat", "VARCHAR"),
         ("player_id", "INTEGER"),
+        ("team_id", "INTEGER"),
+        ("team_source", "VARCHAR"),
         ("mean", "DOUBLE"),
         ("std", "DOUBLE"),
         ("p_play", "DOUBLE"),
@@ -140,8 +142,31 @@ TABLES: dict[str, list[tuple[str, str]]] = {
         ("reb", "INTEGER"),
         ("ast", "INTEGER"),
         ("fg3m", "INTEGER"),
+        ("stl", "INTEGER"),
+        ("blk", "INTEGER"),
+        ("tov", "INTEGER"),
         ("game_date", "DATE"),
         ("season", "INTEGER"),
+    ],
+    "prop_lines": [
+        ("run_id", "VARCHAR"),
+        ("made_at", "TIMESTAMP"),
+        ("game_id", "VARCHAR"),
+        ("player_id", "INTEGER"),
+        ("stat", "VARCHAR"),
+        ("book", "VARCHAR"),
+        ("market", "VARCHAR"),
+        ("is_alternate", "BOOLEAN"),
+        ("line", "DOUBLE"),
+        ("side", "VARCHAR"),
+        ("price_american", "INTEGER"),
+        ("implied_prob_raw", "DOUBLE"),
+        ("snapshot_ts", "TIMESTAMP"),
+        ("snapshot_kind", "VARCHAR"),
+        ("last_update", "TIMESTAMP"),
+        ("minutes_before_tip", "DOUBLE"),
+        ("unusable", "BOOLEAN"),
+        ("unusable_reason", "VARCHAR"),
     ],
     "injury_report": [
         ("game_id", "VARCHAR"),
@@ -234,6 +259,34 @@ def _write_json_atomic(path: Path, obj: Any) -> None:
         tmp.unlink(missing_ok=True)
 
 
+def _read_lines(
+    props: list[dict[str, Any]],
+    window: reader.Window,
+    odds_db: Path | None,
+    odds_con: duckdb.DuckDBPyConnection | None,
+) -> reader.LinesBundle:
+    """Quotes for ``props`` from the capture store, read-only. A missing store or table, or a
+    lock that outlasts the retry, yields no rows and a status the manifest carries; the export
+    itself never fails on the capture's file."""
+    if odds_con is not None:
+        return reader.prop_lines(odds_con, props, window)
+    if odds_db is None:
+        return reader.LinesBundle([], 0, "not_requested")
+    try:
+        con = reader.open_odds_read_only(odds_db)
+    except duckdb.IOException as exc:
+        from nba.db.connect import is_lock_error
+
+        if not is_lock_error(exc):
+            raise
+        return reader.LinesBundle([], 0, "locked")
+    try:
+        return reader.prop_lines(con, props, window)
+    finally:
+        if con is not None:
+            con.close()
+
+
 def build_export(
     src_db: Path,
     out_dir: Path,
@@ -242,6 +295,8 @@ def build_export(
     lookback_days: int = 7,
     seasons: Iterable[int] | None = None,
     parlay_dir: Path | None = None,
+    odds_db: Path | None = None,
+    odds_con: duckdb.DuckDBPyConnection | None = None,
     now: Callable[[], datetime] | None = None,
     git: Callable[[], dict[str, Any]] = git_info,
     version: Callable[[], str | None] = data_version,
@@ -250,6 +305,8 @@ def build_export(
     """Build the export for ``day``; returns the manifest dict (also written to ``manifest.json``).
 
     ``con`` lets a test pass an open read-only connection; production passes ``src_db`` only.
+    ``odds_db`` is the live capture store (``data/markets/market_asof.duckdb``), opened read-only
+    for ``prop_lines``; None (or an absent file) exports no lines and says so in the manifest.
     Raises ``guard.ExportRefused`` before reading anything when a holdout season is requested."""
     allowed = guard.resolve_seasons(seasons)
     out_dir = Path(out_dir)
@@ -265,9 +322,14 @@ def build_export(
         scores = reader.settled_scores(src, window)
         box = reader.box_scores(src, window)
         report = reader.explainer_rows(src, fwd.games, window)
+        teams_of = reader.player_teams(src, fwd.prop_grids, fwd.games, window)
     finally:
         if own:
             src.close()
+    for prow in fwd.prop_grids:
+        tid, how = teams_of.get((prow["game_id"], prow["player_id"]), (None, None))
+        prow["team_id"], prow["team_source"] = tid, how
+    lines = _read_lines(fwd.prop_grids, window, odds_db, odds_con)
     parlay = parlay_of_day(parlay_dir or REPO_ROOT / "reports" / "parlay", day.isoformat())
 
     players, teams = _names(
@@ -281,11 +343,13 @@ def build_export(
         "games": fwd.games, "win_probs": fwd.win_probs, "prop_grids": fwd.prop_grids,
         "model_stamps": fwd.stamps, "settled_scores": scores, "box_scores": box,
         "injury_report": report, "players": players, "teams": teams,
+        "prop_lines": lines.rows,
     }  # fmt: skip
     meta = {
         "schema_version": str(SCHEMA_VERSION), "export_date": day.isoformat(),
         "made_at": made_at.isoformat() + "Z", "seasons": ",".join(map(str, allowed)),
         "lookback_days": str(lookback_days), "data_version": dv or "",
+        "lines_status": lines.status,
         "git_sha": gi["git_sha"] or "", "timestamps": "naive UTC unless a column says _et",
     }  # fmt: skip
 
@@ -327,7 +391,10 @@ def build_export(
         "seasons": list(allowed), "lookback_days": lookback_days,
         "row_counts": counts,
         "excluded": {"post_tip": fwd.excluded_post_tip,
-                     "unresolved_or_disallowed_season": fwd.excluded_unresolved_season},
+                     "unresolved_or_disallowed_season": fwd.excluded_unresolved_season,
+                     "lines_post_tip": lines.excluded_post_tip},
+        "lines": {"status": lines.status, "n_quotes": len(lines.rows),
+                  "n_unusable": sum(1 for q in lines.rows if q["unusable"])},
         "parlay": {"status": parlay["status"], "verdict": parlay["verdict"],
                    "n_evaluated": parlay["n_evaluated"]},
         "files": {

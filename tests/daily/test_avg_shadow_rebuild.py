@@ -307,3 +307,20 @@ def test_smoke_run_saves_weights_and_the_mac_assembles_a_loadable_bundle(
     assert cp.returncode == 0, cp.stderr[-800:]
     q = np.load(tmp_path / "out.npz")["q"]
     assert q.shape == (n, 4, 19) and (np.diff(q, axis=2) >= 0).all() and (q >= 0).all()
+
+
+def test_p1b_imports_torch_first() -> None:
+    """p1b_check.py segfaulted (exit 139, 2026-10-14) when numpy / pandas / lightgbm loaded before torch. The fix is import order; this reads the script's AST
+    (no import, so nothing heavy loads here) and requires torch to be the first of the heavy imports at module level."""
+    import ast
+
+    tree = ast.parse((JOB / "p1b_check.py").read_text())
+    heavy = ("torch", "numpy", "pandas", "nba", "research", "_world")
+    order = []
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            order += [a.name.split(".")[0] for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+            order.append(node.module.split(".")[0])
+    first_heavy = [m for m in order if m in heavy]
+    assert first_heavy[0] == "torch", first_heavy

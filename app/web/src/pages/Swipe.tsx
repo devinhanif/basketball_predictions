@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { api } from "../api";
 import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
-import { american, lineText, longDate, tipTime } from "../format";
+import { american, bookName, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
 import { useLoad } from "../useLoad";
 import { useSettled } from "../useSettled";
@@ -76,6 +76,7 @@ function Card(props: {
       </div>
       <div class="stat">{STAT_LABEL[card.stat]}</div>
       <div class="line num">{lineText(card.line)}</div>
+      {card.book ? <div class="muted small">Price from {bookName(card.book)}</div> : null}
       <div class="muted small">
         Over means {sideText(card.stat, card.line, "over")}. Under means {sideText(card.stat, card.line, "under")}.
       </div>
@@ -224,7 +225,7 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
         <h1>Over or under?</h1>
         <Explain label="How does this work?">
           <p>
-            These are real player lines from a past night. You see the number and the price, nothing else: no forecast, no
+            These are real player lines. You see the number and the price, nothing else: no forecast, no
             stats. Your answer is locked in before tip-off, then graded against what actually happened. They are pretend
             picks, so no money is involved, and your record is saved only on this device.
           </p>
@@ -256,7 +257,13 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
   const [state, reload] = useLoad(() => api.swipe(date, seed, 60), [date, seed]);
   return (
     <View state={state} reload={reload} onStale={onStale}>
-      {(deck) => (
+      {(deck) =>
+        deck.cards.length === 0 ? (
+          <div class="panel empty">
+            <h2>No cards for this night</h2>
+            <p class="muted">{deck.note}</p>
+          </div>
+        ) : (
         <Deck
           key={`${deck.date}-${deck.seed.toString()}`}
           date={deck.date}
@@ -264,7 +271,8 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
           cards={deck.cards.slice(0, 24)}
           reroll={() => { setSeed(newSeed()); }}
         />
-      )}
+        )
+      }
     </View>
   );
 }

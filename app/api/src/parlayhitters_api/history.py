@@ -63,10 +63,13 @@ class Row:
     season: int
     team: int
     opp: int
-    home: bool
+    home: bool | None  # None: the export holds no schedule row for this older game
     minutes: float
     starter: bool
     base: tuple[int, int, int, int, int, int]  # pts, reb, ast, fg3m, stl, blk
+    # Columns the box score left NULL (stored as 0 in `base` only as a placeholder). A stat that
+    # needs one of them must not count this game: see `History.usable`.
+    missing: frozenset[str] = frozenset()
 
     def value(self, stat: str) -> int:
         idx = {"pts": 0, "reb": 1, "ast": 2, "fg3m": 3, "stl": 4, "blk": 5}
@@ -87,6 +90,15 @@ def days_between(a: str, b: str) -> int:
 class History:
     def __init__(self, data: Json) -> None:
         self.window: Json = data["window"]
+        # Games whose home/away side is not known (an export only schedules recent games).
+        self.home_unknown: frozenset[str] = frozenset(data.get("home_unknown", []))
+        # Stats the box-score rows can support (an old export carries no steals or blocks).
+        self.stats: tuple[str, ...] = tuple(data.get("stats", STAT_ORDER))
+        # False for an export that carries no sportsbook lines or prices at all.
+        self.market: bool = bool(data.get("market", True))
+        # game -> player -> stat -> every stored quote (book, line, side, price or None when the
+        # quote is not usable). Only an export has these; the fixtures carry `prices` alone.
+        self.quotes: dict[str, dict[str, dict[str, list[Json]]]] = data.get("quotes", {})
         self.abbr: dict[int, str] = {int(t): a for t, a in data["teams"].items()}
         self.players: dict[int, Json] = {int(p): v for p, v in data["players"].items()}
         self.availability: dict[str, list[list[Any]]] = data["availability"]
@@ -103,13 +115,14 @@ class History:
             per_team: dict[int, dict[int, Row]] = defaultdict(dict)
             for r in rows:
                 team = int(r[_C_TEAM])
+                gone = frozenset(c for c, i in (("stl", _C_STL), ("blk", _C_BLK)) if r[i] is None)
                 row = Row(
                     game_id=gid,
                     date=d,
                     season=season,
                     team=team,
                     opp=away if team == home else home,
-                    home=team == home,
+                    home=None if gid in self.home_unknown else team == home,
                     minutes=float(r[_C_MIN]),
                     starter=bool(r[_C_START]),
                     base=(
@@ -117,9 +130,10 @@ class History:
                         int(r[_C_REB]),
                         int(r[_C_AST]),
                         int(r[_C_FG3M]),
-                        int(r[_C_STL]),
-                        int(r[_C_BLK]),
+                        int(r[_C_STL] or 0),
+                        int(r[_C_BLK] or 0),
                     ),
+                    missing=gone,
                 )
                 per_team[team][int(r[_C_PLAYER])] = row
                 self.logs[int(r[_C_PLAYER])].append(row)
@@ -136,6 +150,11 @@ class History:
         self.team_index: dict[int, dict[str, int]] = {
             t: {gid: i for i, (_, gid) in enumerate(lst)} for t, lst in self.team_games.items()
         }
+
+    @staticmethod
+    def usable(row: Row, stat: str) -> bool:
+        """False when this game's box score lacks a column the stat is made of."""
+        return not (row.missing & set(STAT_PARTS[stat]))
 
     def name(self, pid: int) -> str | None:
         p = self.players.get(pid)

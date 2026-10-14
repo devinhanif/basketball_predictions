@@ -140,6 +140,16 @@
 .leg-group {
   margin: 12px 0 6px;
 }
+/* The written paragraph: plain reading text, theme colours only. */
+.leg-words h2 {
+  margin-top: 0;
+}
+.leg-words-text {
+  font-size: 1.02rem;
+  line-height: 1.55;
+  margin: 0 0 8px;
+  max-width: 62ch;
+}
 .leg-chips {
   list-style: none;
   margin: 0;

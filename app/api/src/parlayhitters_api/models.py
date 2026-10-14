@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -29,8 +29,13 @@ class PropView(BaseModel):
     prop_id: str
     stat: Stat
     line: float
-    over_price: int
-    under_price: int
+    # "posted": a sportsbook line. "reference": the middle of the model's own forecast, used when
+    # the data holds no sportsbook line (the nightly export); then there are no prices.
+    line_source: Literal["posted", "reference"] = "posted"
+    over_price: int | None
+    under_price: int | None
+    # The one book whose over and under are shown (None when the prices are absent).
+    price_book: str | None = None
     line_snapshot_utc: str | None
     forecast_mean: float | None
     q: list[float]
@@ -39,7 +44,7 @@ class PropView(BaseModel):
     model_p_under: float
     model_p_push: float
     extrapolated: bool
-    market_p_over: float
+    market_p_over: float | None
     forecast_stamp: str
 
 
@@ -79,6 +84,7 @@ class GameView(BaseModel):
     away: Team
     win_probability: WinProbability
     clock_utc: str
+    final: bool = True  # False until the game is over (an export holds tonight's games too)
     players: list[PlayerView]
     notes: list[str]
 
@@ -114,6 +120,7 @@ class SwipeCard(BaseModel):
     line: float
     over_price: int
     under_price: int
+    book: str | None = None
     tip_utc: str
 
 

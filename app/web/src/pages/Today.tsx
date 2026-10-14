@@ -26,12 +26,12 @@ function KeyProps({ game }: { game: GameSummary }) {
               {sentenceCase(doesText(p.stat, p.line, "over"))} {inTen(p.model_p_over, p.extrapolated)}
             </div>
             <div class="muted small">
-              {STAT_LABEL[p.stat]} line {lineText(p.line)}
+              {STAT_LABEL[p.stat]} {p.line_source === "reference" ? "reference line" : "line"} {lineText(p.line)}
             </div>
           </div>
           <div class="prop-nums num">
             <span class="big-num">{pctBounded(p.model_p_over, p.extrapolated)}</span>
-            <span class="muted small">book {pct(p.market_p_over)}</span>
+            {p.market_p_over !== null ? <span class="muted small">book {pct(p.market_p_over)}</span> : null}
           </div>
         </div>
       ))}
@@ -97,10 +97,11 @@ function SlateBody({ date, onStale }: { date: string; onStale: (s: boolean) => v
           <section class="panel flat">
             <p class="small">
               <strong>
-                {s.counts.games} games, {s.counts.props} player lines.
+                {s.counts.games} games, {s.counts.props} player {s.mode === "fixture_replay" ? "lines" : "forecasts"}.
               </strong>{" "}
-              This is a replay of a real night from the 2024-25 season, not tonight's slate. Every forecast was made before
-              tip, using only what was known then.
+              {s.mode === "fixture_replay"
+                ? "This is a replay of a real night from the 2024-25 season, not tonight's slate. Every forecast was made before tip, using only what was known then."
+                : "Every forecast is the last one stored before tip. A prop's line is the one most books carried; where none had a usable quote, it shows a reference line at the middle of our own forecast."}
             </p>
           </section>
           <div class="games">

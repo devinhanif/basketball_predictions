@@ -8,3 +8,5 @@ __pycache__/
 .pytest_cache/
 .env*
 *.log
+# the committed test export (the repo root ignores *.duckdb)
+!fixtures/export_small/export.duckdb

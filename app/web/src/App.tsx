@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "./api";
+import { stamp } from "./format";
 import { Shell } from "./components";
 import { useRoute } from "./router";
 import { Game } from "./pages/Game";
@@ -16,12 +17,17 @@ export function App() {
 
   useEffect(() => {
     api.meta().then(
-      (m) => {
-        setNote("A replay of real 2024-25 games, not tonight's slate. Nothing here is advice.");
-        if (m.fromCache) setStale(true);
+      (r) => {
+        const m = r.data;
+        setNote(
+          m.mode === "fixture_replay"
+            ? "A replay of real 2024-25 games, not tonight's slate. Nothing here is advice."
+            : `Data as of ${stamp(m.data_as_of)}. ${m.mode_note}`,
+        );
+        if (r.fromCache) setStale(true);
       },
       () => {
-        setNote("A replay of real 2024-25 games, not tonight's slate. The data server is not answering.");
+        setNote("The data server is not answering, so what you see may be old. Nothing here is advice.");
       },
     );
   }, []);

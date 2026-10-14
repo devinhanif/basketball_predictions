@@ -1,24 +1,35 @@
-"""Read-only fixture store. The files are only ever opened for reading.
+"""Read-only stores. The files are only ever opened for reading.
 
-When nba.export exists this module is the single seam that changes: same methods, backed by
-the nightly export.duckdb opened read_only=True.
+``Store`` serves the committed fixtures (two real 2024-25 nights, built from stored data).
+``load_store`` returns an ``ExportStore`` instead when the configured export directory holds a
+manifest (``APP_EXPORT_DIR``), and the fixtures otherwise. Both expose the same surface:
+``slates``, ``games``, ``game_slate``, ``history``, ``parlay``, ``evidence``, ``slate()``,
+``game()``, ``clock()``, ``slate_clock()`` and ``meta()``.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
 
+from .export_store import ExportStore, has_export, manifest_path
 from .history import History
 
 Json = dict[str, Any]
 
 DEFAULT_FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
+EXPORT_ENV = "APP_EXPORT_DIR"
+FIXTURE_MODE = "fixture_replay"
+log = logging.getLogger("parlayhitters")
 
 
 class Store:
+    mode = FIXTURE_MODE
+    has_lines = True  # every fixture prop has a posted line and price
+
     def __init__(self, root: Path | None = None) -> None:
         self.root = Path(os.environ.get("APP_FIXTURES_DIR") or root or DEFAULT_FIXTURES)
         self.manifest: Json = self._load("manifest.json")
@@ -51,3 +62,59 @@ class Store:
 
     def game(self, game_id: str) -> Json | None:
         return self.games.get(game_id)
+
+    def clock(self, game_id: str) -> str:
+        """Replay mode: the clock is frozen on the slate (see the README)."""
+        return str(self.slates[self.game_slate[game_id]]["demo_clock_utc"])
+
+    def slate_clock(self, date: str) -> str:
+        return str(self.slates[date]["demo_clock_utc"])
+
+    def meta(self) -> Json:
+        m = self.manifest
+        return {
+            "mode": self.mode,
+            "mode_note": (
+                "A replay of real 2024-25 nights, built from stored data. Nothing here is live, "
+                "and nothing here is advice."
+            ),
+            "data_version": m["source_data_version"],
+            "built_at": m["built_at"],
+            "data_as_of": m["built_at"],
+            "export_date": None,
+            "max_season": m["max_season"],
+            "slates": [s["date"] for s in m["slates"]],
+            "stubs": m["stubs"],
+            "sources": m["sources"],
+            "queries": m["queries"],
+            "export": None,
+        }
+
+
+AnyStore = Store | ExportStore
+
+
+def export_dir() -> Path | None:
+    raw = os.environ.get(EXPORT_ENV)
+    return Path(raw) if raw else None
+
+
+def store_key() -> tuple[str, int, int]:
+    """What identifies the data on disk now: changes when a new export lands (its manifest is
+    written last, atomically), so the API picks it up without a restart."""
+    d = export_dir()
+    if has_export(d) and d is not None:
+        st = manifest_path(d).stat()
+        return (str(d), st.st_mtime_ns, st.st_size)
+    return ("", 0, 0)
+
+
+def load_store() -> AnyStore:
+    """The export when one exists (verified; ``ExportRefused`` if it cannot be trusted), else the
+    fixtures. A configured directory with no manifest falls back, with a warning in the log."""
+    d = export_dir()
+    if d is not None and has_export(d):
+        return ExportStore(d)
+    if d is not None:
+        log.warning("%s=%s has no manifest.json; serving the fixtures", EXPORT_ENV, d)
+    return Store()
