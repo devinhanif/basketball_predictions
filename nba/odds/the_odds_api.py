@@ -106,6 +106,15 @@ class EventMatchError(HistoryError):
 # ----------------------------------------------------------------------------------------------
 
 
+#: The frozen holdout (2025-26, ``games.season`` 2025). The ``alt`` phase refuses it in code: it is
+#: neither requested, stored nor even listed (Devin, 2026-10-14: seasons 2023 and 2024 only).
+HOLDOUT_SEASON = 2025
+
+
+class HoldoutRefused(HistoryError):
+    """A request or config named the frozen holdout season; nothing was requested."""
+
+
 @dataclass(frozen=True)
 class HistoryConfig:
     base_url: str = "https://api.the-odds-api.com/v4"
@@ -133,6 +142,15 @@ class HistoryConfig:
     period_ledger_path: Path = (
         ROOT / "data" / "odds" / "budget" / "the_odds_api_periods_ledger.json"
     )
+    #: phase ``alt`` (2026-10-14): the player ``*_alternate`` (milestone) markets, back-filled
+    #: for ``alt_seasons`` only (2025 refused in code), at ``alt_snapshots`` only, own ledger/cap.
+    alt_markets: tuple[str, ...] = ()
+    alt_regions: tuple[str, ...] = ("us", "eu")
+    alt_us_ex_from: date | None = None  # same meaning as ``us_ex_from``, for the alt phase
+    alt_seasons: tuple[int, ...] = (2023, 2024)
+    alt_snapshots: tuple[str, ...] = ("t60",)
+    alt_max_credits: int = 1_000_000
+    alt_ledger_path: Path = ROOT / "data" / "odds" / "budget" / "the_odds_api_alt_ledger.json"
     odds_format: str = "american"
     max_credits: int = 2_000_000
     min_server_remaining: int = 100_000
@@ -154,6 +172,10 @@ class HistoryConfig:
     games_db: Path = ROOT / "nba.duckdb"
     schedule_dir: Path = ROOT / "data" / "schedule"
 
+    def __post_init__(self) -> None:
+        if HOLDOUT_SEASON in self.alt_seasons:
+            raise HoldoutRefused(f"alt_seasons names the holdout season {HOLDOUT_SEASON}")
+
     def markets_for(self, phase: str) -> tuple[str, ...]:
         if phase == "props":
             return self.prop_markets
@@ -163,12 +185,18 @@ class HistoryConfig:
             if not self.period_markets:
                 raise ValueError("phase periods needs period_markets in configs/odds_history.yaml")
             return self.period_markets
-        raise ValueError(f"unknown phase {phase!r} (props|games|periods)")
+        if phase == "alt":
+            if not self.alt_markets:
+                raise ValueError("phase alt needs alt_markets in configs/odds_history.yaml")
+            return self.alt_markets
+        raise ValueError(f"unknown phase {phase!r} (props|games|periods|alt)")
 
     def kinds_for(self, phase: str) -> tuple[str, ...]:
         """Snapshot kinds a phase pulls (props/games: all of ``snapshots``)."""
         if phase == "periods":
             return self.period_snapshots
+        if phase == "alt":
+            return self.alt_snapshots
         return tuple(k for k, _ in self.snapshots)
 
     def regions_at(self, at: datetime) -> tuple[str, ...]:
@@ -232,6 +260,9 @@ def load_config(path: Path | None = None) -> HistoryConfig:
         "period_markets",
         "period_snapshots",
         "period_regions",
+        "alt_markets",
+        "alt_regions",
+        "alt_snapshots",
     ):
         if k in raw:
             upd[k] = tuple(str(x) for x in raw[k])
@@ -239,6 +270,13 @@ def load_config(path: Path | None = None) -> HistoryConfig:
         upd["period_seasons"] = tuple(int(x) for x in raw["period_seasons"])
     if "period_max_credits" in raw:
         upd["period_max_credits"] = int(raw["period_max_credits"])
+    if "alt_seasons" in raw:
+        upd["alt_seasons"] = tuple(int(x) for x in raw["alt_seasons"])
+    if "alt_max_credits" in raw:
+        upd["alt_max_credits"] = int(raw["alt_max_credits"])
+    if raw.get("alt_us_ex_from"):
+        v = raw["alt_us_ex_from"]
+        upd["alt_us_ex_from"] = v if isinstance(v, date) else date.fromisoformat(str(v))
     if raw.get("us_ex_from"):
         v = raw["us_ex_from"]
         upd["us_ex_from"] = v if isinstance(v, date) else date.fromisoformat(str(v))
@@ -250,6 +288,7 @@ def load_config(path: Path | None = None) -> HistoryConfig:
         "raw_dir",
         "ledger_path",
         "period_ledger_path",
+        "alt_ledger_path",
         "state_path",
         "out_db",
         "games_db",

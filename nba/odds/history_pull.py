@@ -31,6 +31,7 @@ import duckdb
 import polars as pl
 
 from nba.odds.the_odds_api import (
+    HOLDOUT_SEASON,
     ROW_SCHEMA,
     SNAPSHOT_KINDS,
     AuthError,
@@ -41,6 +42,7 @@ from nba.odds.the_odds_api import (
     HistoricalClient,
     HistoryConfig,
     HistoryError,
+    HoldoutRefused,
     KeyMissingError,
     ParseResult,
     RequestRejected,
@@ -60,7 +62,9 @@ from nba.odds.theoddsapi import NameResolver
 log = logging.getLogger("nba.odds.history")
 
 PHASES = ("props", "games")  # the default plan
-ALL_PHASES = (*PHASES, "periods")  # periods is run only when asked for (own seasons/cap/ledger)
+# periods and alt are run only when asked for (own seasons/cap/ledger)
+ALL_PHASES = (*PHASES, "periods", "alt")
+OWN_LEDGER_PHASES = ("periods", "alt")
 DDL = """
 CREATE TABLE IF NOT EXISTS odds_history (
     source VARCHAR, season INTEGER, game_id VARCHAR, event_id VARCHAR, snapshot_kind VARCHAR,
@@ -310,7 +314,8 @@ class PullReport:
             f"selected={self.n_games_selected}",
             f"estimate (this run, files on disk cost 0): odds_calls={e.get('odds_calls', 0)} "
             f"events_calls={e.get('events_calls', 0)} credits={e.get('credits_total', 0):,}",
-            f"estimate (full plan {'+'.join(self.phases if 'periods' in self.phases else PHASES)}"
+            f"estimate (full plan "
+            f"{'+'.join(self.phases if set(self.phases) & set(OWN_LEDGER_PHASES) else PHASES)}"
             f" x all seasons): "
             f"credits={f.get('credits_total', 0):,}",
         ]
@@ -362,6 +367,12 @@ def run_pull(
     full-plan estimate is then just this run (the other seasons are the caller's explicit choice).
     """
     cfg = cfg or load_config()
+    if phase == "alt" and (season == HOLDOUT_SEASON or season not in cfg.alt_seasons):
+        # refused before anything is read, listed or requested (never season 2025)
+        raise HoldoutRefused(
+            f"alt phase covers seasons {cfg.alt_seasons}, not {season} "
+            f"(season {HOLDOUT_SEASON} is the frozen holdout and is never requested)"
+        )
     tag = ""
     if markets:
         if phase != "props":
@@ -379,6 +390,13 @@ def run_pull(
         )  # fmt: skip
         if season not in cfg.period_seasons:
             raise ValueError(f"periods phase covers seasons {cfg.period_seasons}, not {season}")
+    if phase == "alt":
+        if tag:
+            raise ValueError("--markets does not apply to the alt phase (set alt_markets)")
+        cfg = replace(
+            cfg, ledger_path=cfg.alt_ledger_path, max_credits=cfg.alt_max_credits,
+            seasons=cfg.alt_seasons, regions=cfg.alt_regions, us_ex_from=cfg.alt_us_ex_from,
+        )  # fmt: skip
     for ph in phases:
         cfg.markets_for(ph)  # validates
     if games is None:
@@ -418,7 +436,7 @@ def run_pull(
             full += [
                 it
                 for it in build_items(
-                    by_season[s], list(phases if phase == "periods" else PHASES), "", cfg
+                    by_season[s], list(phases if phase in OWN_LEDGER_PHASES else PHASES), "", cfg
                 )
                 if reparse or not state.done(it.key)
             ]
@@ -429,7 +447,9 @@ def run_pull(
     # a periods probe (--game-id / --max-games) is judged on its own estimate; the ledger's
     # cumulative cap still stops any call past period_max_credits
     guard = (
-        rep.estimate if phase == "periods" and (only_games or max_games) else rep.full_plan_estimate
+        rep.estimate
+        if phase in OWN_LEDGER_PHASES and (only_games or max_games)
+        else rep.full_plan_estimate
     )
     if spent + guard["credits_total"] > cfg.max_credits:
         rep.refused = (
@@ -547,7 +567,10 @@ def status_lines(cfg: HistoryConfig | None = None) -> list[str]:
     pled = CreditLedger(
         cfg.period_ledger_path, cfg.period_max_credits, cfg.min_server_remaining
     ).totals()
+    aled = CreditLedger(cfg.alt_ledger_path, cfg.alt_max_credits, cfg.min_server_remaining).totals()
     out = [
+        f"alt ledger: spent={int(aled['spent']):,} / cap={cfg.alt_max_credits:,} "
+        f"n_calls={aled['n_calls']}",
         f"periods ledger: spent={int(pled['spent']):,} / cap={cfg.period_max_credits:,} "
         f"n_calls={pled['n_calls']}",
         f"ledger: spent={int(led['spent']):,} / max_credits={cfg.max_credits:,} "

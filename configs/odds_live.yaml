@@ -1,15 +1,17 @@
 # the-odds-api.com LIVE per-game capture (nba.odds capture --kind close|t60). Off unless NBA_CLOSE_CAPTURE=1.
 # base_url, markets, odds_format and pacing come from configs/odds_history.yaml; no credentials here:
 # the key is read from THE_ODDS_API_KEY only (stripped from every stored param set and log line).
-regions: [us, eu]               # Pinnacle is eu; us_ex (Novig/ProphetX) is not captured live
+regions: [us, eu, us_ex]        # Pinnacle is eu; us_ex = Kalshi, Polymarket, Novig, ProphetX, BetOpenly
+                                # (Devin, 2026-10-14: START 5M kept, us_ex added; research note
+                                # docs/research/lines_everywhere_2026-10-14.md)
 
 # Market groups (Devin, 2026-10-12: "check all endpoints there too"). Every call asks the event-odds
 # endpoint for the union of the ENABLED groups, so one switch (`enabled: false`) turns a group off.
 # Keys are the vendor's (the-odds-api.com/sports-odds-data/betting-markets.html, fetched 2026-10-12).
 # `alternate: true` groups are dropped first, automatically, if the full schedule over the enabled
 # set would cost more than plan.max_plan_fraction of the plan per month (LiveConfig.markets). With
-# this file: 89 markets x 2 regions = 178 credits per call, 12 calls per game = 2,136 per game,
-# 215 peak-month games = 459,240 (9.2% of 5,000,000), so every group is ON. No 1H/2H player props
+# this file: 89 markets x 3 regions = 267 credits per call, 12 calls per game = 3,204 per game,
+# 215 peak-month games = 688,860 (13.8% of 5,000,000), so every group is ON. No 1H/2H player props
 # exist at the vendor. player_fantasy_points* are DFS-only and are not requested.
 market_groups:
   core:                         # what was captured before 2026-10-12 (7 markets)
@@ -63,10 +65,11 @@ market_groups:
 # x-requests-last header and booked in the ledger.
 cost_per_market_region: 1
 
-# Daily guard (ET date, one ledger file per day). Per game one call is 178 credits (89 markets x 2
-# regions); the 12-point schedule below is 2,136 per game: 15 games = 32,040. 48,000 leaves 50%
-# for the (max_attempts_per_game) retries of a 15-game night and a 16th game.
-daily_max_credits: 48000         # refuse a call that would take today's spend past this
+# Daily guard (ET date, one ledger file per day). Per game one call is 267 credits (89 markets x 3
+# regions); the 12-point schedule below is 3,204 per game: 15 games = 48,060. 72,000 keeps the same
+# 50% headroom as before for the (max_attempts_per_game) retries of a 15-game night and a 16th game
+# (2026-10-14: 48,000 would have refused the last calls of a 15-game night once us_ex was added).
+daily_max_credits: 72000         # refuse a call that would take today's spend past this
 min_server_remaining: 100000    # refuse when the server-reported remaining would fall below this
 
 # Capture schedule (Devin, 2026-10-11: "do all captures of prices before the game"). One entry = one
