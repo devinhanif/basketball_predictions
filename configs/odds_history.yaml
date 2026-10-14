@@ -25,6 +25,21 @@ period_seasons: [2023, 2024]
 period_snapshots: [t60]
 period_max_credits: 1500000
 period_ledger_path: data/odds/budget/the_odds_api_periods_ledger.json
+# phase `alt` (Devin, 2026-10-14, DECISIONS "START 5M kept"): the player *_alternate milestone ladders
+# (the vendor's 11 keys, betting-markets page), seasons 2023 and 2024 ONLY (season 2025 is the frozen
+# holdout and is refused in code, HoldoutRefused), one T-60 snapshot per game. Own ledger and cap;
+# the cap is the "stop and ask" line from the decision (1,000,000 credits). Run:
+#   python -m nba.odds history-pull --phase alt --season N [--dry-run]
+alt_markets: [player_points_alternate, player_rebounds_alternate, player_assists_alternate,
+              player_blocks_alternate, player_steals_alternate, player_turnovers_alternate,
+              player_threes_alternate, player_points_assists_alternate,
+              player_points_rebounds_alternate, player_rebounds_assists_alternate,
+              player_points_rebounds_assists_alternate]
+alt_regions: [us, eu]        # see alt_us_ex_from below
+alt_seasons: [2023, 2024]
+alt_snapshots: [t60]
+alt_max_credits: 1000000
+alt_ledger_path: data/odds/budget/the_odds_api_alt_ledger.json
 odds_format: american
 
 # Credit guards (the plan is 5,000,000 credits; this pull is capped well below it).

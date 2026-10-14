@@ -70,9 +70,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     hp.add_argument("--season", type=int, required=True, help="games.season (2023, 2024, 2025)")
     hp.add_argument(
         "--phase",
-        choices=("props", "games", "periods"),
+        choices=("props", "games", "periods", "alt"),
         default=None,
-        help="default: props then games; periods = period markets + q1 player props "
+        help="default: props then games; periods = period markets + q1 player props; alt = player "
+        "*_alternate ladders, seasons 2023 and 2024 only (2025 refused) "
         "(seasons/snapshots/cap from configs/odds_history.yaml, own ledger)",
     )
     hp.add_argument(

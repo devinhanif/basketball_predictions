@@ -189,7 +189,8 @@ call; 12 schedule points = 2,136 a game; 215 peak-month games = 459,240 credits 
 plan)**. The 50% rule is unchanged: if the full schedule over the enabled set would pass it, the
 groups marked `alternate` are dropped first (`LiveConfig.markets`, `dropped_groups()`), and only
 then the `extended` schedule points. Vendor billing is per market RETURNED, so these are upper
-bounds. `daily_max_credits` is 48,000 (a 15-game night is 32,040). The scorable-game filter and the
+bounds. `daily_max_credits` was 48,000 here (a 15-game night was 32,040 at two regions; the
+3-region numbers are in "The `us_ex` region" below). The scorable-game filter and the
 never-after-tip refusal are untouched.
 
 Parsing additions (`nba.odds.the_odds_api`): team-total outcomes are Over/Under with the team in
@@ -203,6 +204,32 @@ wrong guess is fixed by `reparse`, not by a re-buy).
 Storage warning: one snapshot is now on the order of 10^4 rows (alternate ladders dominate), 12
 snapshots a game: the first week's `live_book_odds` row count and `data/odds/raw/the_odds_api_live`
 size are the number to read before the season is a surprise.
+
+## The `us_ex` region (2026-10-14)
+
+Devin, 2026-10-14 (DECISIONS "START 5M kept"): `regions` is now `[us, eu, us_ex]`. `us_ex` is the
+vendor's exchange group (Kalshi, Polymarket, Novig, ProphetX, BetOpenly). Credits: **89 markets x 3
+regions = 267 a call; 12 points = 3,204 a game; 215 peak-month games = 688,860 (13.8% of the 5M
+plan)**, still under the 50% rule, so every market group and schedule point stays on.
+`daily_max_credits` 48,000 -> **72,000**: a 15-game night is now 48,060, which the old cap would have
+refused part way; 72,000 is the same 50% headroom for retries and a 16th game (the guard still stops
+the 270th call of a night: `tests/odds/test_us_ex_region.py`).
+
+Dry run (one live call, 2026-10-14, a preseason event; then three us_ex-only reads of regular-season
+events 2026-10-20/21, 15 credits): the live regular-season `us_ex` payload carries books `kalshi` (h2h
+only), `novig` (h2h, spreads, totals, player_points), `polymarket` (h2h, spreads, totals, player_points)
+and `polymarket_us` (h2h, spreads, totals); `prophetx` and `betopenly` posted nothing yet. It goes
+through the existing parser with no new market or outcome shape (`parse reasons` empty; recorded in
+`tests/fixtures/odds/the_odds_api/us_ex_live_2026-10-14.json.gz`). Two cautions for any reader of
+these rows: (1) **`polymarket_us` is a new book key** (a US-venue listing of the same kind of
+contracts); filter by book name, do not sum books. (2) **Polymarket player_points Unders are a
+no-bid placeholder (-3233)**: the de-vigged `implied_prob` of that pair is not a probability, use
+the Over's `implied_prob_raw` (pinned by
+`test_recording_shows_polymarket_under_is_a_placeholder_price`). The consumers that read
+`live_book_odds` select books by name (`nba/shadow_llm/payload.py` draftkings + one other,
+`nba/eval/q1_starters_live.py` PRIMARY_BOOKS), so the new books change none of their inputs.
+Billing note: an empty `us_ex` response in a combined call is still charged (markets returned x
+regions requested); a us_ex-ONLY empty read is free.
 
 ## Historical back-fill of period markets (phase `periods`)
 
