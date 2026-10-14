@@ -1,6 +1,8 @@
 import { useState } from "preact/hooks";
 import { api } from "../api";
 import { AltLine } from "../AltLine";
+import { RoleSection } from "../RoleSection";
+import { SteadyBadge } from "../RoleCards";
 import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
 import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { legHref } from "../router";
@@ -75,6 +77,11 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
           <span class="player-name">
             {props.p.name}
             {res?.starter ? <span class="tag">Starter</span> : null}
+            {props.p.role ? (
+              <span class="player-role">
+                <SteadyBadge s={props.p.role.steadiness} />
+              </span>
+            ) : null}
           </span>
           {lead ? (
             <span class="player-lead num">
@@ -94,6 +101,7 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
       ) : (
         <p class="small muted">We do not forecast minutes yet. Show the final score above to see how long he played.</p>
       )}
+      {props.p.role ? <RoleSection role={props.p.role} player={props.p.name} /> : null}
       {STATS.map((s: Stat) => {
         const prop = props.p.props[s];
         return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={res?.actual[s]} /> : null;

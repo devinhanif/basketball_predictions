@@ -14,6 +14,7 @@ Reads, never writes:
   nba.duckdb                      games, player_game_stats (box-score outcomes)
   data/stack/oof.duckdb           walk-forward out-of-fold forecasts: rung0_injury_elo win
                                   probabilities and props_context_residual 19-quantile grids
+  nba.duckdb possessions          play-by-play possessions (on-floor lineups, points) for on/off
   data/odds/odds_history.duckdb   the-odds-api historical DraftKings T-60 snapshots (lines, prices)
   data/schedule/raw_2024-25.parquet  scheduled tip-off (UTC), team names and tricodes
   reports/odds_history.md         published model-vs-market results (copied, not recomputed)
@@ -26,8 +27,10 @@ and every query that touches games or forecasts carries `season <= 2024`. Season
 holdout) is never selected; `assert_pre_2025` runs on every game it loads.
 
 Output (app/fixtures/): manifest.json, slates/<date>.json, parlay_of_day.json, evidence.json,
-breakdown.json (raw box-score history for the leg breakdown; see build_breakdown).
-`--only breakdown` rewrites just breakdown.json and its manifest entry.
+breakdown.json (raw box-score history for the leg breakdown; see build_breakdown), onoff.json
+(per game: team and per-player possession and points totals from the play-by-play, for on/off).
+`--only breakdown` rewrites just breakdown.json, `--only onoff` just onoff.json (and their
+manifest entries).
 The queries are listed verbatim in manifest.json so the build is auditable.
 """
 
@@ -172,6 +175,42 @@ WHERE season <= ? AND snapshot_kind = 't60' AND book = 'draftkings'
   AND market IN ('player_points','player_rebounds','player_assists','player_threes','player_steals')
   AND player_id IS NOT NULL AND game_id = ANY(?)
 GROUP BY game_id, player_id, market, point
+"""
+
+
+# On/off: possession counts and points per game, per team and per player on the floor. The
+# games query carries the season cap; the player list is the slate players (the only ones the
+# app shows on/off for). Points on a possession are the offence's points, free throws included;
+# for 2023 and 2024 they add up exactly to each team's final score (asserted at build time).
+SQL_OO_GAMES = """
+SELECT game_id, home_team, away_team, home_pts, away_pts
+FROM games
+WHERE season <= ? AND season >= ? AND game_date <= ?
+"""
+SQL_OO_TEAM = """
+SELECT game_id, team_id, sum(o) AS own_poss, sum(pf) AS pts_for, sum(d) AS opp_poss,
+       sum(pa) AS pts_against
+FROM (
+  SELECT game_id, off_team AS team_id, 1 AS o, pts AS pf, 0 AS d, 0 AS pa FROM possessions
+  WHERE game_id = ANY(?)
+  UNION ALL
+  SELECT game_id, def_team AS team_id, 0 AS o, 0 AS pf, 1 AS d, pts AS pa FROM possessions
+  WHERE game_id = ANY(?)
+)
+GROUP BY game_id, team_id
+"""
+SQL_OO_PLAYER = """
+SELECT game_id, pid, sum(o) AS own_poss, sum(pf) AS pts_for, sum(d) AS opp_poss,
+       sum(pa) AS pts_against
+FROM (
+  SELECT game_id, unnest(off_players) AS pid, 1 AS o, pts AS pf, 0 AS d, 0 AS pa
+  FROM possessions WHERE game_id = ANY(?)
+  UNION ALL
+  SELECT game_id, unnest(def_players) AS pid, 0 AS o, 0 AS pf, 1 AS d, pts AS pa
+  FROM possessions WHERE game_id = ANY(?)
+)
+WHERE pid = ANY(?)
+GROUP BY game_id, pid
 """
 
 
@@ -451,6 +490,66 @@ def build_breakdown(
     }
 
 
+def build_onoff(
+    dates: list[str], slates: dict[str, dict[str, Any]], nba: duckdb.DuckDBPyConnection
+) -> dict[str, Any]:
+    """Possession totals per game for the on/off panel: raw sums only, nothing derived.
+
+    Same game window as the breakdown (2023-24 on, season <= 2024, a few days past the last
+    slate). The API applies the as-of rule at read time. Fails the build if a team's possession
+    points do not add up to its final score, so a broken possession table cannot ship.
+    """
+    last = datetime.fromisoformat(max(dates)).date() + timedelta(days=BREAKDOWN_TAIL_DAYS)
+    games = nba.execute(
+        SQL_OO_GAMES, [MAX_SEASON, BREAKDOWN_FROM_SEASON, last.isoformat()]
+    ).fetchall()
+    ids = [g[0] for g in games]
+    pids = sorted(
+        {int(p["player_id"]) for d in dates for g in slates[d]["games"] for p in g["players"]}
+    )
+    scores = {g[0]: {int(g[1]): int(g[3]), int(g[2]): int(g[4])} for g in games}
+    team: dict[str, dict[str, list[int]]] = {}
+    for gid, tid, o, pf, dd, pa in nba.execute(SQL_OO_TEAM, [ids, ids]).fetchall():
+        assert scores[gid][int(tid)] == int(pf), f"possession points != final score in {gid}"
+        team.setdefault(gid, {})[str(int(tid))] = [int(o), int(pf), int(dd), int(pa)]
+    player: dict[str, dict[str, list[int]]] = {}
+    for gid, pid, o, pf, dd, pa in nba.execute(SQL_OO_PLAYER, [ids, ids, pids]).fetchall():
+        player.setdefault(gid, {})[str(int(pid))] = [int(o), int(pf), int(dd), int(pa)]
+    return {
+        "window": {
+            "from_season": BREAKDOWN_FROM_SEASON,
+            "to_date": last.isoformat(),
+            "max_season": MAX_SEASON,
+        },
+        "columns": ["own_poss", "pts_for", "opp_poss", "pts_against"],
+        "team": {gid: team[gid] for gid in sorted(team)},
+        "player": {gid: player[gid] for gid in sorted(player)},
+    }
+
+
+def write_onoff(out: Path, dates: list[str], nba: duckdb.DuckDBPyConnection) -> dict[str, Any]:
+    """Write onoff.json from the slate files already in `out`; return its manifest entry."""
+    slates = {d: json.loads((out / "slates" / f"{d}.json").read_text()) for d in dates}
+    oo = build_onoff(dates, slates, nba)
+    (out / "onoff.json").write_text(json.dumps(oo, separators=(",", ":")) + "\n")
+    n_rows = sum(len(v) for v in oo["player"].values())
+    print(
+        f"onoff: {len(oo['team'])} games, {n_rows} player-game rows, to {oo['window']['to_date']}"
+    )
+    return {
+        "file": "onoff.json",
+        "games": len(oo["team"]),
+        "player_rows": n_rows,
+        "to_date": oo["window"]["to_date"],
+        "sha256": sha256(out / "onoff.json"),
+        "queries": {
+            "games": " ".join(SQL_OO_GAMES.split()),
+            "team": " ".join(SQL_OO_TEAM.split()),
+            "player": " ".join(SQL_OO_PLAYER.split()),
+        },
+    }
+
+
 def parse_evidence(report: Path) -> dict[str, Any]:
     """Copy (not recompute) the season-2024 T-60 consensus rows and the games line."""
     text = report.read_text()
@@ -613,9 +712,10 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=HERE)
     ap.add_argument(
         "--only",
-        choices=["all", "breakdown"],
+        choices=["all", "breakdown", "onoff"],
         default="all",
-        help="'breakdown' rewrites only breakdown.json and its manifest entry",
+        help="'breakdown' rewrites only breakdown.json, 'onoff' only onoff.json (and their "
+        "manifest entries)",
     )
     ap.add_argument(
         "--data-root",
@@ -627,6 +727,17 @@ def main() -> None:
     droot: Path = args.data_root
 
     tmp = Path(tempfile.mkdtemp(prefix="app_fixture_"))
+    if args.only == "onoff":
+        try:
+            nba = open_ro(droot / "nba.duckdb", tmp)
+            entry = write_onoff(args.out, args.dates, nba)
+            mpath = args.out / "manifest.json"
+            manifest = json.loads(mpath.read_text())
+            manifest["onoff"] = entry
+            mpath.write_text(json.dumps(manifest, indent=1) + "\n")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        return
     if args.only == "breakdown":
         try:
             nba = open_ro(droot / "nba.duckdb", tmp)
@@ -727,6 +838,7 @@ def main() -> None:
             ],
         }
         manifest["breakdown"] = write_breakdown(args.out, list(args.dates), nba, odds, sched_path)
+        manifest["onoff"] = write_onoff(args.out, list(args.dates), nba)
         (args.out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

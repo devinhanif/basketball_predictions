@@ -1,4 +1,5 @@
 // Shapes returned by the read-only API (app/api/src/parlayhitters_api/models.py).
+import type { PlayerRole } from "./roleTypes";
 
 export type Stat = "pts" | "reb" | "ast" | "fg3m";
 export const STATS: readonly Stat[] = ["pts", "reb", "ast", "fg3m"];
@@ -96,6 +97,8 @@ export interface PlayerView {
   name: string;
   side: "home" | "away";
   props: Partial<Record<Stat, PropView>>;
+  /** Minutes steadiness, on/off and without-teammate numbers; null when no history is loaded. */
+  role?: PlayerRole | null;
 }
 
 export interface GameDetail {

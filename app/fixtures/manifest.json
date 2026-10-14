@@ -97,5 +97,17 @@
    "teams": "SELECT DISTINCT homeTeam_teamId AS team_id, homeTeam_teamTricode AS abbr FROM read_parquet(?)",
    "prices": "SELECT game_id, player_id, market, point, max(CASE WHEN side = 'over' THEN price_american END) AS over_price, max(CASE WHEN side = 'under' THEN price_american END) AS under_price, max(snapshot_ts) AS snapshot_ts FROM odds_history WHERE season <= ? AND snapshot_kind = 't60' AND book = 'draftkings' AND market IN ('player_points','player_rebounds','player_assists','player_threes','player_steals') AND player_id IS NOT NULL AND game_id = ANY(?) GROUP BY game_id, player_id, market, point"
   }
+ },
+ "onoff": {
+  "file": "onoff.json",
+  "games": 1562,
+  "player_rows": 10411,
+  "to_date": "2024-11-23",
+  "sha256": "2d7d5261cfff40929537151a08d763566af539757af2faf8b7942fe2319c56fa",
+  "queries": {
+   "games": "SELECT game_id, home_team, away_team, home_pts, away_pts FROM games WHERE season <= ? AND season >= ? AND game_date <= ?",
+   "team": "SELECT game_id, team_id, sum(o) AS own_poss, sum(pf) AS pts_for, sum(d) AS opp_poss, sum(pa) AS pts_against FROM ( SELECT game_id, off_team AS team_id, 1 AS o, pts AS pf, 0 AS d, 0 AS pa FROM possessions WHERE game_id = ANY(?) UNION ALL SELECT game_id, def_team AS team_id, 0 AS o, 0 AS pf, 1 AS d, pts AS pa FROM possessions WHERE game_id = ANY(?) ) GROUP BY game_id, team_id",
+   "player": "SELECT game_id, pid, sum(o) AS own_poss, sum(pf) AS pts_for, sum(d) AS opp_poss, sum(pa) AS pts_against FROM ( SELECT game_id, unnest(off_players) AS pid, 1 AS o, pts AS pf, 0 AS d, 0 AS pa FROM possessions WHERE game_id = ANY(?) UNION ALL SELECT game_id, unnest(def_players) AS pid, 0 AS o, 0 AS pf, 1 AS d, pts AS pa FROM possessions WHERE game_id = ANY(?) ) WHERE pid = ANY(?) GROUP BY game_id, pid"
+  }
  }
 }

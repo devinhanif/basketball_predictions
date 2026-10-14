@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import { badgeText, gapText, netText, onoffN, per36N, per36Text, possText, signed, thousands } from "./role";
+import type { OnOffWindow, Per36, Rate, Steadiness } from "./roleTypes";
+
+const rate = (net: number | null, poss = 1420): Rate => ({ poss, off_poss: poss / 2, def_poss: poss / 2, ortg: null, drtg: null, net });
+const win = (over: Partial<OnOffWindow> = {}): OnOffWindow => ({
+  games: 12,
+  on: rate(11),
+  off: rate(7.6),
+  diff: 3.4,
+  ci_lo: -4.5,
+  ci_hi: 11.2,
+  small: false,
+  note: "",
+  ...over,
+});
+const steady = (label: Steadiness["label"], n: number): Steadiness => ({
+  label,
+  n,
+  window: 15,
+  avg_minutes: 30,
+  sd_minutes: 4,
+  cv: 0.13,
+  say: "",
+  caveat: "",
+});
+
+describe("role formatting", () => {
+  it("signs gaps with a real minus and never prints -0.0", () => {
+    expect(signed(3.44)).toBe("+3.4");
+    expect(signed(-4.66)).toBe("-4.7");
+    expect(signed(-0.02)).toBe("0.0");
+    expect(signed(0)).toBe("0.0");
+  });
+
+  it("prints thousands and possessions", () => {
+    expect(thousands(15284)).toBe("15,284");
+    expect(possText(rate(1, 1420))).toBe("1,420 possessions");
+  });
+
+  it("shows a missing side as none, not zero", () => {
+    expect(netText(rate(null))).toBe("none");
+    expect(netText(rate(-12.5))).toBe("-12.5");
+  });
+
+  it("gap text carries the interval when there is one", () => {
+    expect(gapText(win())).toBe("gap +3.4, 95% range -4.5 to +11.2");
+    expect(gapText(win({ ci_lo: null, ci_hi: null }))).toBe("gap +3.4");
+    expect(gapText(win({ diff: null }))).toBeNull();
+  });
+
+  it("flags small samples beside the game count", () => {
+    expect(onoffN(win())).toBe("12 games");
+    expect(onoffN(win({ games: 1, small: true }))).toBe("1 game, small sample");
+  });
+
+  it("per-36 text and n", () => {
+    const p: Per36 = { n: 4, avg_minutes: 30, pts36: 12, reb36: 6, ast36: 2.4, small: true };
+    expect(per36Text(p)).toBe("12.0 pts, 6.0 reb, 2.4 ast per 36");
+    expect(per36N(p)).toBe("n = 4, small sample");
+    expect(per36Text({ ...p, n: 0, pts36: null, reb36: null, ast36: null })).toBeNull();
+    expect(per36N({ ...p, n: 11, small: false })).toBe("n = 11");
+  });
+
+  it("the badge never appears without its n", () => {
+    expect(badgeText(steady("Steady", 15))).toBe("Steady, last 15 games");
+    expect(badgeText(steady("Mixed", 12))).toBe("Mixed, last 12 games");
+    expect(badgeText(steady("Limited data", 3))).toBe("Limited data, 3 games");
+    expect(badgeText(steady("Limited data", 1))).toBe("Limited data, 1 game");
+  });
+});

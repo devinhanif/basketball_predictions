@@ -40,7 +40,10 @@ class Store:
         self.game_slate: dict[str, str] = {}
         self.history: History | None = None
         if (self.root / "breakdown.json").exists():
-            self.history = History(self._load("breakdown.json"))
+            data = self._load("breakdown.json")
+            if (self.root / "onoff.json").exists():  # play-by-play on/off, same game window
+                data["onoff"] = self._load("onoff.json")
+            self.history = History(data)
             if any(v[1] > int(self.manifest["max_season"]) for v in self.history.games.values()):
                 raise ValueError("breakdown history is beyond the season cap")
         for entry in self.manifest["slates"]:
