@@ -47,6 +47,11 @@ def root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return r
 
 
+@pytest.fixture(autouse=True)
+def pin_odds(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ev, "ODDS_FINGERPRINT", e70.odds_fingerprint(root / ev.ODDS_DB))
+
+
 @pytest.fixture()
 def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, dict[str, str]]:
     """A repo root holding the rule files and copies of the construction code."""
@@ -77,6 +82,34 @@ def test_harness_refuses_a_gate_json_that_is_not_the_one_the_rule_quotes(
 ) -> None:
     pf = _preflight(root, *repo)  # GATE_JSON_SHA is the real pin; the synthetic gate differs
     assert [c.name for c in pf.failures()] == ["gate.json equals the sha256 quoted in the rule"]
+
+
+def test_odds_store_check_fails_closed_and_a_re_freeze_is_refused(
+    root: Path, repo: tuple[Path, dict[str, str]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(ev, "GATE_JSON_SHA", hc.file_sha256(root / ev.GATE_JSON))
+    r, shas = repo
+    monkeypatch.setattr(ev, "ODDS_FINGERPRINT", {"rows": 1, "hash_sum": "0"})
+    pf = _preflight(root, r, shas)
+    assert [c.name for c in pf.failures()] == [
+        "odds rows the rule reads equal the pinned fingerprint"
+    ]
+    monkeypatch.undo()
+
+    def two(rid: str, _repo: Path) -> list[str]:
+        return [shas[rid], "f" * 64] if rid == "ALT_LADDER_HIST" else [shas[rid]]
+
+    monkeypatch.setattr(ev, "RULE_SHA", shas["ALT_PARLAY_X"])
+    monkeypatch.setattr(ev, "GATE_JSON_SHA", hc.file_sha256(root / ev.GATE_JSON))
+    monkeypatch.setattr(ev, "ODDS_FINGERPRINT", e70.odds_fingerprint(root / ev.ODDS_DB))
+    pf2 = hc.Preflight()
+    ev.run_preflight(pf2, root, r, lookup=two)
+    assert [c.name for c in pf2.failures()] == [
+        "ALT_LADDER_HIST: exactly one distinct prereg(ALT_LADDER_HIST) sha exists in history"
+    ]
+    pf3 = hc.Preflight()
+    ev.run_preflight(pf3, root, r, lookup=_lookup(shas), adh_sha="0" * 64)
+    assert any("ALT_LADDER_HIST" in c.name and "pinned" in c.name for c in pf3.failures())
 
 
 def test_harness_refuses_when_alt_ladder_hist_is_not_frozen(

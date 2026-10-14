@@ -966,6 +966,325 @@
        "35": 322,
        "45": 310
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 62,
+         "fg3m": 90,
+         "pts": 0,
+         "reb": 88
+        },
+        "dates": 8,
+        "decimal_min_med_max": [
+         1.091,
+         1.476,
+         2.25
+        ],
+        "games": 46,
+        "mean_model_p": 0.5492,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1709,
+        "roi_halfwidth_cons": 0.2439,
+        "roi_halfwidth_independent": 0.0961,
+        "rungs": 240,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 240,
+        "weekly_units_median": 120.0,
+        "weeks": 2,
+        "weeks_with_ge_10_units": 2
+       },
+       "65": {
+        "by_stat": {
+         "ast": 61,
+         "fg3m": 85,
+         "pts": 0,
+         "reb": 95
+        },
+        "dates": 8,
+        "decimal_min_med_max": [
+         1.05,
+         1.286,
+         2.1
+        ],
+        "games": 48,
+        "mean_model_p": 0.6456,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1506,
+        "roi_halfwidth_cons": 0.199,
+        "roi_halfwidth_independent": 0.08,
+        "rungs": 241,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 241,
+        "weekly_units_median": 120.5,
+        "weeks": 2,
+        "weeks_with_ge_10_units": 2
+       },
+       "75": {
+        "by_stat": {
+         "ast": 53,
+         "fg3m": 101,
+         "pts": 0,
+         "reb": 114
+        },
+        "dates": 8,
+        "decimal_min_med_max": [
+         1.05,
+         1.167,
+         1.952
+        ],
+        "games": 46,
+        "mean_model_p": 0.7476,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.109,
+        "roi_halfwidth_cons": 0.1644,
+        "roi_halfwidth_independent": 0.0623,
+        "rungs": 268,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 268,
+        "weekly_units_median": 134.0,
+        "weeks": 2,
+        "weeks_with_ge_10_units": 2
+       },
+       "85": {
+        "by_stat": {
+         "ast": 39,
+         "fg3m": 100,
+         "pts": 0,
+         "reb": 58
+        },
+        "dates": 8,
+        "decimal_min_med_max": [
+         1.05,
+         1.111,
+         1.645
+        ],
+        "games": 44,
+        "mean_model_p": 0.8472,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.041,
+        "roi_halfwidth_cons": 0.1325,
+        "roi_halfwidth_independent": 0.057,
+        "rungs": 197,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 197,
+        "weekly_units_median": 98.5,
+        "weeks": 2,
+        "weeks_with_ge_10_units": 2
+       }
+      },
+      "games": 48,
+      "ge70": {
+       "by_stat": {
+        "ast": 111,
+        "fg3m": 228,
+        "pts": 0,
+        "reb": 173
+       },
+       "dates": 8,
+       "decimal_min_med_max": [
+        1.05,
+        1.143,
+        1.952
+       ],
+       "games": 47,
+       "mean_model_p": 0.8029,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0708,
+       "roi_halfwidth_cons": 0.1393,
+       "roi_halfwidth_independent": 0.04,
+       "rungs": 512,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 509,
+       "weekly_units_median": 254.5,
+       "weeks": 2,
+       "weeks_with_ge_10_units": 2
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 40,
+        "halfwidth_cons": 0.15,
+        "halfwidth_independent": 0.0833,
+        "mean_p": 0.7893,
+        "player_games": 92,
+        "rungs": 92
+       },
+       "fg3m": {
+        "games": 46,
+        "halfwidth_cons": 0.1249,
+        "halfwidth_independent": 0.0555,
+        "mean_p": 0.7978,
+        "player_games": 201,
+        "rungs": 201
+       },
+       "pts": {
+        "rungs": 0
+       },
+       "reb": {
+        "games": 45,
+        "halfwidth_cons": 0.1368,
+        "halfwidth_independent": 0.0618,
+        "mean_p": 0.7807,
+        "player_games": 172,
+        "rungs": 172
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 33,
+         "halfwidth_cons": 0.1914,
+         "halfwidth_independent": 0.1239,
+         "mean_p": 0.5481,
+         "player_games": 62,
+         "rungs": 62
+        },
+        "fg3m": {
+         "games": 44,
+         "halfwidth_cons": 0.1695,
+         "halfwidth_independent": 0.1029,
+         "mean_p": 0.5432,
+         "player_games": 90,
+         "rungs": 90
+        },
+        "pts": {
+         "rungs": 0
+        },
+        "reb": {
+         "games": 38,
+         "halfwidth_cons": 0.1858,
+         "halfwidth_independent": 0.1038,
+         "mean_p": 0.5561,
+         "player_games": 88,
+         "rungs": 88
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 34,
+         "halfwidth_cons": 0.1803,
+         "halfwidth_independent": 0.1203,
+         "mean_p": 0.6418,
+         "player_games": 61,
+         "rungs": 61
+        },
+        "fg3m": {
+         "games": 40,
+         "halfwidth_cons": 0.1632,
+         "halfwidth_independent": 0.1017,
+         "mean_p": 0.6462,
+         "player_games": 85,
+         "rungs": 85
+        },
+        "pts": {
+         "rungs": 0
+        },
+        "reb": {
+         "games": 40,
+         "halfwidth_cons": 0.1681,
+         "halfwidth_independent": 0.0961,
+         "mean_p": 0.6476,
+         "player_games": 95,
+         "rungs": 95
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 31,
+         "halfwidth_cons": 0.1808,
+         "halfwidth_independent": 0.1177,
+         "mean_p": 0.7425,
+         "player_games": 53,
+         "rungs": 53
+        },
+        "fg3m": {
+         "games": 45,
+         "halfwidth_cons": 0.1419,
+         "halfwidth_independent": 0.0848,
+         "mean_p": 0.7473,
+         "player_games": 101,
+         "rungs": 101
+        },
+        "pts": {
+         "rungs": 0
+        },
+        "reb": {
+         "games": 43,
+         "halfwidth_cons": 0.151,
+         "halfwidth_independent": 0.0795,
+         "mean_p": 0.7503,
+         "player_games": 114,
+         "rungs": 114
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 27,
+         "halfwidth_cons": 0.15,
+         "halfwidth_independent": 0.1111,
+         "mean_p": 0.853,
+         "player_games": 39,
+         "rungs": 39
+        },
+        "fg3m": {
+         "games": 43,
+         "halfwidth_cons": 0.1208,
+         "halfwidth_independent": 0.0702,
+         "mean_p": 0.8489,
+         "player_games": 100,
+         "rungs": 100
+        },
+        "pts": {
+         "rungs": 0
+        },
+        "reb": {
+         "games": 30,
+         "halfwidth_cons": 0.1496,
+         "halfwidth_independent": 0.0943,
+         "mean_p": 0.8403,
+         "player_games": 58,
+         "rungs": 58
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 41,
+        "halfwidth_cons": 0.1354,
+        "halfwidth_independent": 0.0723,
+        "mean_p": 0.8144,
+        "player_games": 110,
+        "rungs": 111
+       },
+       "fg3m": {
+        "games": 47,
+        "halfwidth_cons": 0.1202,
+        "halfwidth_independent": 0.0505,
+        "mean_p": 0.8137,
+        "player_games": 226,
+        "rungs": 228
+       },
+       "pts": {
+        "rungs": 0
+       },
+       "reb": {
+        "games": 45,
+        "halfwidth_cons": 0.1364,
+        "halfwidth_independent": 0.0616,
+        "mean_p": 0.7814,
+        "player_games": 173,
+        "rungs": 173
+       }
+      },
+      "rungs": 2917,
+      "tail_rungs": {
+       "05": 224,
+       "15": 599,
+       "25": 469,
+       "35": 322,
+       "45": 310
+      }
      }
     },
     "betonlineag": {
@@ -2014,6 +2333,355 @@
        "25": 25620,
        "35": 20473,
        "45": 16828
+      }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 2734,
+         "fg3m": 1448,
+         "pts": 5014,
+         "reb": 4078
+        },
+        "dates": 135,
+        "decimal_min_med_max": [
+         1.04,
+         1.571,
+         4.74
+        ],
+        "games": 713,
+        "mean_model_p": 0.5471,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1099,
+        "roi_halfwidth_cons": 0.063,
+        "roi_halfwidth_independent": 0.014,
+        "rungs": 13274,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 13234,
+        "weekly_units_median": 605.5,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 24
+       },
+       "65": {
+        "by_stat": {
+         "ast": 2384,
+         "fg3m": 721,
+         "pts": 2378,
+         "reb": 2229
+        },
+        "dates": 135,
+        "decimal_min_med_max": [
+         1.04,
+         1.42,
+         3.08
+        ],
+        "games": 712,
+        "mean_model_p": 0.6454,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0682,
+        "roi_halfwidth_cons": 0.0553,
+        "roi_halfwidth_independent": 0.0156,
+        "rungs": 7712,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 7710,
+        "weekly_units_median": 335.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 22
+       },
+       "75": {
+        "by_stat": {
+         "ast": 2015,
+         "fg3m": 430,
+         "pts": 678,
+         "reb": 823
+        },
+        "dates": 135,
+        "decimal_min_med_max": [
+         1.02,
+         1.29,
+         2.47
+        ],
+        "games": 704,
+        "mean_model_p": 0.7442,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0219,
+        "roi_halfwidth_cons": 0.0483,
+        "roi_halfwidth_independent": 0.018,
+        "rungs": 3946,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 3945,
+        "weekly_units_median": 167.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 23
+       },
+       "85": {
+        "by_stat": {
+         "ast": 1459,
+         "fg3m": 190,
+         "pts": 73,
+         "reb": 77
+        },
+        "dates": 130,
+        "decimal_min_med_max": [
+         1.001,
+         1.17,
+         2.16
+        ],
+        "games": 647,
+        "mean_model_p": 0.8472,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": 0.0193,
+        "roi_halfwidth_cons": 0.0386,
+        "roi_halfwidth_independent": 0.0201,
+        "rungs": 1799,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 1799,
+        "weekly_units_median": 84.5,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 19
+       }
+      },
+      "games": 714,
+      "ge70": {
+       "by_stat": {
+        "ast": 4330,
+        "fg3m": 637,
+        "pts": 760,
+        "reb": 903
+       },
+       "dates": 135,
+       "decimal_min_med_max": [
+        1.001,
+        1.23,
+        2.47
+       ],
+       "games": 709,
+       "mean_model_p": 0.7977,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0,
+       "roi_halfwidth_cons": 0.0406,
+       "roi_halfwidth_independent": 0.0123,
+       "rungs": 6630,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 5721,
+       "weekly_units_median": 249.5,
+       "weeks": 24,
+       "weeks_with_ge_10_units": 23
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 706,
+        "halfwidth_cons": 0.0325,
+        "halfwidth_independent": 0.0135,
+        "mean_p": 0.7905,
+        "player_games": 3351,
+        "rungs": 3474
+       },
+       "fg3m": {
+        "games": 414,
+        "halfwidth_cons": 0.0441,
+        "halfwidth_independent": 0.0328,
+        "mean_p": 0.777,
+        "player_games": 620,
+        "rungs": 620
+       },
+       "pts": {
+        "games": 390,
+        "halfwidth_cons": 0.0518,
+        "halfwidth_independent": 0.0311,
+        "mean_p": 0.7462,
+        "player_games": 713,
+        "rungs": 751
+       },
+       "reb": {
+        "games": 458,
+        "halfwidth_cons": 0.046,
+        "halfwidth_independent": 0.0284,
+        "mean_p": 0.7467,
+        "player_games": 880,
+        "rungs": 900
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 708,
+         "halfwidth_cons": 0.0396,
+         "halfwidth_independent": 0.0187,
+         "mean_p": 0.5465,
+         "player_games": 2734,
+         "rungs": 2734
+        },
+        "fg3m": {
+         "games": 622,
+         "halfwidth_cons": 0.0442,
+         "halfwidth_independent": 0.0256,
+         "mean_p": 0.5452,
+         "player_games": 1448,
+         "rungs": 1448
+        },
+        "pts": {
+         "games": 710,
+         "halfwidth_cons": 0.0393,
+         "halfwidth_independent": 0.0138,
+         "mean_p": 0.5471,
+         "player_games": 4985,
+         "rungs": 5014
+        },
+        "reb": {
+         "games": 707,
+         "halfwidth_cons": 0.0399,
+         "halfwidth_independent": 0.0153,
+         "mean_p": 0.5482,
+         "player_games": 4067,
+         "rungs": 4078
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 696,
+         "halfwidth_cons": 0.0388,
+         "halfwidth_independent": 0.0191,
+         "mean_p": 0.6498,
+         "player_games": 2384,
+         "rungs": 2384
+        },
+        "fg3m": {
+         "games": 471,
+         "halfwidth_cons": 0.0486,
+         "halfwidth_independent": 0.035,
+         "mean_p": 0.644,
+         "player_games": 721,
+         "rungs": 721
+        },
+        "pts": {
+         "games": 663,
+         "halfwidth_cons": 0.042,
+         "halfwidth_independent": 0.0193,
+         "mean_p": 0.6423,
+         "player_games": 2376,
+         "rungs": 2378
+        },
+        "reb": {
+         "games": 667,
+         "halfwidth_cons": 0.0409,
+         "halfwidth_independent": 0.0199,
+         "mean_p": 0.6446,
+         "player_games": 2229,
+         "rungs": 2229
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 675,
+         "halfwidth_cons": 0.0362,
+         "halfwidth_independent": 0.019,
+         "mean_p": 0.748,
+         "player_games": 2015,
+         "rungs": 2015
+        },
+        "fg3m": {
+         "games": 320,
+         "halfwidth_cons": 0.0515,
+         "halfwidth_independent": 0.041,
+         "mean_p": 0.748,
+         "player_games": 430,
+         "rungs": 430
+        },
+        "pts": {
+         "games": 378,
+         "halfwidth_cons": 0.0521,
+         "halfwidth_independent": 0.0331,
+         "mean_p": 0.7368,
+         "player_games": 677,
+         "rungs": 678
+        },
+        "reb": {
+         "games": 445,
+         "halfwidth_cons": 0.0467,
+         "halfwidth_independent": 0.03,
+         "mean_p": 0.7388,
+         "player_games": 823,
+         "rungs": 823
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 622,
+         "halfwidth_cons": 0.032,
+         "halfwidth_independent": 0.0184,
+         "mean_p": 0.8492,
+         "player_games": 1459,
+         "rungs": 1459
+        },
+        "fg3m": {
+         "games": 168,
+         "halfwidth_cons": 0.0577,
+         "halfwidth_independent": 0.0518,
+         "mean_p": 0.8427,
+         "player_games": 190,
+         "rungs": 190
+        },
+        "pts": {
+         "games": 66,
+         "halfwidth_cons": 0.0944,
+         "halfwidth_independent": 0.0855,
+         "mean_p": 0.8333,
+         "player_games": 73,
+         "rungs": 73
+        },
+        "reb": {
+         "games": 69,
+         "halfwidth_cons": 0.0928,
+         "halfwidth_independent": 0.0836,
+         "mean_p": 0.8318,
+         "player_games": 77,
+         "rungs": 77
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 707,
+        "halfwidth_cons": 0.031,
+        "halfwidth_independent": 0.0115,
+        "mean_p": 0.8194,
+        "player_games": 3492,
+        "rungs": 4330
+       },
+       "fg3m": {
+        "games": 420,
+        "halfwidth_cons": 0.0436,
+        "halfwidth_independent": 0.0321,
+        "mean_p": 0.7808,
+        "player_games": 636,
+        "rungs": 637
+       },
+       "pts": {
+        "games": 390,
+        "halfwidth_cons": 0.0523,
+        "halfwidth_independent": 0.0309,
+        "mean_p": 0.7483,
+        "player_games": 713,
+        "rungs": 760
+       },
+       "reb": {
+        "games": 458,
+        "halfwidth_cons": 0.046,
+        "halfwidth_independent": 0.0283,
+        "mean_p": 0.7473,
+        "player_games": 880,
+        "rungs": 903
+       }
+      },
+      "rungs": 211218,
+      "tail_rungs": {
+       "05": 80246,
+       "15": 40437,
+       "25": 25619,
+       "35": 20473,
+       "45": 16827
       }
      }
     },
@@ -3064,6 +3732,355 @@
        "35": 20373,
        "45": 15369
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 2246,
+         "fg3m": 981,
+         "pts": 9335,
+         "reb": 4215
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.056,
+         1.5,
+         12.0
+        ],
+        "games": 971,
+        "mean_model_p": 0.5516,
+        "mean_overround_two_sided": 0.0765,
+        "model_claimed_ev_mean": -0.1505,
+        "roi_halfwidth_cons": 0.0513,
+        "roi_halfwidth_independent": 0.0119,
+        "rungs": 16777,
+        "two_sided_share": 0.535,
+        "units_player_game_stat": 14790,
+        "weekly_units_median": 676.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       },
+       "65": {
+        "by_stat": {
+         "ast": 2861,
+         "fg3m": 1292,
+         "pts": 6680,
+         "reb": 4891
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.04,
+         1.351,
+         13.0
+        ],
+        "games": 972,
+        "mean_model_p": 0.65,
+        "mean_overround_two_sided": 0.0734,
+        "model_claimed_ev_mean": -0.0987,
+        "roi_halfwidth_cons": 0.0443,
+        "roi_halfwidth_independent": 0.0106,
+        "rungs": 15724,
+        "two_sided_share": 0.512,
+        "units_player_game_stat": 14881,
+        "weekly_units_median": 672.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       },
+       "75": {
+        "by_stat": {
+         "ast": 2734,
+         "fg3m": 1743,
+         "pts": 4511,
+         "reb": 4876
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.033,
+         1.235,
+         12.0
+        ],
+        "games": 968,
+        "mean_model_p": 0.7485,
+        "mean_overround_two_sided": 0.0682,
+        "model_claimed_ev_mean": -0.0495,
+        "roi_halfwidth_cons": 0.0372,
+        "roi_halfwidth_independent": 0.0094,
+        "rungs": 13864,
+        "two_sided_share": 0.48,
+        "units_player_game_stat": 13659,
+        "weekly_units_median": 565.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       },
+       "85": {
+        "by_stat": {
+         "ast": 2050,
+         "fg3m": 1466,
+         "pts": 2285,
+         "reb": 3157
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.012,
+         1.167,
+         14.0
+        ],
+        "games": 961,
+        "mean_model_p": 0.847,
+        "mean_overround_two_sided": 0.0619,
+        "model_claimed_ev_mean": 0.0239,
+        "roi_halfwidth_cons": 0.03,
+        "roi_halfwidth_independent": 0.0096,
+        "rungs": 8958,
+        "two_sided_share": 0.493,
+        "units_player_game_stat": 8915,
+        "weekly_units_median": 357.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       }
+      },
+      "games": 972,
+      "ge70": {
+       "by_stat": {
+        "ast": 6127,
+        "fg3m": 3477,
+        "pts": 8109,
+        "reb": 9213
+       },
+       "dates": 166,
+       "decimal_min_med_max": [
+        1.005,
+        1.19,
+        14.0
+       ],
+       "games": 972,
+       "mean_model_p": 0.811,
+       "mean_overround_two_sided": 0.0647,
+       "model_claimed_ev_mean": 0.0219,
+       "roi_halfwidth_cons": 0.0313,
+       "roi_halfwidth_independent": 0.006,
+       "rungs": 26926,
+       "two_sided_share": 0.498,
+       "units_player_game_stat": 21673,
+       "weekly_units_median": 876.0,
+       "weeks": 29,
+       "weeks_with_ge_10_units": 29
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 966,
+        "halfwidth_cons": 0.0276,
+        "halfwidth_independent": 0.0115,
+        "mean_p": 0.792,
+        "player_games": 4611,
+        "rungs": 4784
+       },
+       "fg3m": {
+        "games": 863,
+        "halfwidth_cons": 0.0297,
+        "halfwidth_independent": 0.014,
+        "mean_p": 0.7955,
+        "player_games": 3209,
+        "rungs": 3209
+       },
+       "pts": {
+        "games": 956,
+        "halfwidth_cons": 0.0288,
+        "halfwidth_independent": 0.0099,
+        "mean_p": 0.7793,
+        "player_games": 5505,
+        "rungs": 6796
+       },
+       "reb": {
+        "games": 888,
+        "halfwidth_cons": 0.0287,
+        "halfwidth_independent": 0.0089,
+        "mean_p": 0.7876,
+        "player_games": 7311,
+        "rungs": 8033
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 900,
+         "halfwidth_cons": 0.0362,
+         "halfwidth_independent": 0.0206,
+         "mean_p": 0.5535,
+         "player_games": 2246,
+         "rungs": 2246
+        },
+        "fg3m": {
+         "games": 606,
+         "halfwidth_cons": 0.0444,
+         "halfwidth_independent": 0.0311,
+         "mean_p": 0.553,
+         "player_games": 981,
+         "rungs": 981
+        },
+        "pts": {
+         "games": 939,
+         "halfwidth_cons": 0.0339,
+         "halfwidth_independent": 0.0101,
+         "mean_p": 0.5497,
+         "player_games": 7369,
+         "rungs": 9335
+        },
+        "reb": {
+         "games": 879,
+         "halfwidth_cons": 0.0358,
+         "halfwidth_independent": 0.015,
+         "mean_p": 0.5544,
+         "player_games": 4194,
+         "rungs": 4215
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 943,
+         "halfwidth_cons": 0.0336,
+         "halfwidth_independent": 0.0175,
+         "mean_p": 0.6518,
+         "player_games": 2861,
+         "rungs": 2861
+        },
+        "fg3m": {
+         "games": 694,
+         "halfwidth_cons": 0.0399,
+         "halfwidth_independent": 0.0259,
+         "mean_p": 0.6534,
+         "player_games": 1292,
+         "rungs": 1292
+        },
+        "pts": {
+         "games": 948,
+         "halfwidth_cons": 0.0332,
+         "halfwidth_independent": 0.0115,
+         "mean_p": 0.6471,
+         "player_games": 5839,
+         "rungs": 6680
+        },
+        "reb": {
+         "games": 886,
+         "halfwidth_cons": 0.0336,
+         "halfwidth_independent": 0.0133,
+         "mean_p": 0.6521,
+         "player_games": 4889,
+         "rungs": 4891
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 919,
+         "halfwidth_cons": 0.031,
+         "halfwidth_independent": 0.0163,
+         "mean_p": 0.7488,
+         "player_games": 2734,
+         "rungs": 2734
+        },
+        "fg3m": {
+         "games": 763,
+         "halfwidth_cons": 0.0345,
+         "halfwidth_independent": 0.0203,
+         "mean_p": 0.7529,
+         "player_games": 1743,
+         "rungs": 1743
+        },
+        "pts": {
+         "games": 941,
+         "halfwidth_cons": 0.0306,
+         "halfwidth_independent": 0.0127,
+         "mean_p": 0.7462,
+         "player_games": 4309,
+         "rungs": 4511
+        },
+        "reb": {
+         "games": 885,
+         "halfwidth_cons": 0.0309,
+         "halfwidth_independent": 0.0122,
+         "mean_p": 0.7488,
+         "player_games": 4873,
+         "rungs": 4876
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 858,
+         "halfwidth_cons": 0.0271,
+         "halfwidth_independent": 0.0155,
+         "mean_p": 0.8497,
+         "player_games": 2050,
+         "rungs": 2050
+        },
+        "fg3m": {
+         "games": 704,
+         "halfwidth_cons": 0.0303,
+         "halfwidth_independent": 0.0185,
+         "mean_p": 0.8462,
+         "player_games": 1466,
+         "rungs": 1466
+        },
+        "pts": {
+         "games": 840,
+         "halfwidth_cons": 0.0282,
+         "halfwidth_independent": 0.0149,
+         "mean_p": 0.8446,
+         "player_games": 2242,
+         "rungs": 2285
+        },
+        "reb": {
+         "games": 856,
+         "halfwidth_cons": 0.0272,
+         "halfwidth_independent": 0.0125,
+         "mean_p": 0.8475,
+         "player_games": 3157,
+         "rungs": 3157
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 966,
+        "halfwidth_cons": 0.0261,
+        "halfwidth_independent": 0.0095,
+        "mean_p": 0.8245,
+        "player_games": 4917,
+        "rungs": 6127
+       },
+       "fg3m": {
+        "games": 868,
+        "halfwidth_cons": 0.0289,
+        "halfwidth_independent": 0.0132,
+        "mean_p": 0.8054,
+        "player_games": 3472,
+        "rungs": 3477
+       },
+       "pts": {
+        "games": 962,
+        "halfwidth_cons": 0.0276,
+        "halfwidth_independent": 0.0086,
+        "mean_p": 0.8082,
+        "player_games": 5747,
+        "rungs": 8109
+       },
+       "reb": {
+        "games": 888,
+        "halfwidth_cons": 0.0278,
+        "halfwidth_independent": 0.0081,
+        "mean_p": 0.8065,
+        "player_games": 7537,
+        "rungs": 9213
+       }
+      },
+      "rungs": 157987,
+      "tail_rungs": {
+       "05": 10188,
+       "15": 26170,
+       "25": 26463,
+       "35": 20373,
+       "45": 15366
+      }
      }
     },
     "fanduel": {
@@ -3766,6 +4783,355 @@
       }
      },
      "excl_window_lead66": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 3010,
+         "fg3m": 2313,
+         "pts": 12919,
+         "reb": 5522
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.01,
+         1.521,
+         4.8
+        ],
+        "games": 964,
+        "mean_model_p": 0.5497,
+        "mean_overround_two_sided": 0.0692,
+        "model_claimed_ev_mean": -0.1464,
+        "roi_halfwidth_cons": 0.0512,
+        "roi_halfwidth_independent": 0.01,
+        "rungs": 23764,
+        "two_sided_share": 0.848,
+        "units_player_game_stat": 18635,
+        "weekly_units_median": 829.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       },
+       "65": {
+        "by_stat": {
+         "ast": 2580,
+         "fg3m": 1950,
+         "pts": 11611,
+         "reb": 4767
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.002,
+         1.323,
+         3.8
+        ],
+        "games": 964,
+        "mean_model_p": 0.6506,
+        "mean_overround_two_sided": 0.0701,
+        "model_claimed_ev_mean": -0.1275,
+        "roi_halfwidth_cons": 0.0425,
+        "roi_halfwidth_independent": 0.0088,
+        "rungs": 20908,
+        "two_sided_share": 0.68,
+        "units_player_game_stat": 16642,
+        "weekly_units_median": 739.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       },
+       "75": {
+        "by_stat": {
+         "ast": 2581,
+         "fg3m": 2285,
+         "pts": 10416,
+         "reb": 5155
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.003,
+         1.2,
+         2.82
+        ],
+        "games": 964,
+        "mean_model_p": 0.75,
+        "mean_overround_two_sided": 0.0709,
+        "model_claimed_ev_mean": -0.0909,
+        "roi_halfwidth_cons": 0.0349,
+        "roi_halfwidth_independent": 0.0072,
+        "rungs": 20437,
+        "two_sided_share": 0.357,
+        "units_player_game_stat": 16720,
+        "weekly_units_median": 732.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       },
+       "85": {
+        "by_stat": {
+         "ast": 2593,
+         "fg3m": 2655,
+         "pts": 7061,
+         "reb": 5490
+        },
+        "dates": 166,
+        "decimal_min_med_max": [
+         1.002,
+         1.111,
+         2.25
+        ],
+        "games": 963,
+        "mean_model_p": 0.8513,
+        "mean_overround_two_sided": 0.0727,
+        "model_claimed_ev_mean": -0.0443,
+        "roi_halfwidth_cons": 0.0266,
+        "roi_halfwidth_independent": 0.0059,
+        "rungs": 17799,
+        "two_sided_share": 0.073,
+        "units_player_game_stat": 15465,
+        "weekly_units_median": 637.0,
+        "weeks": 29,
+        "weeks_with_ge_10_units": 29
+       }
+      },
+      "games": 964,
+      "ge70": {
+       "by_stat": {
+        "ast": 9895,
+        "fg3m": 7535,
+        "pts": 20110,
+        "reb": 17959
+       },
+       "dates": 166,
+       "decimal_min_med_max": [
+        1.002,
+        1.111,
+        2.82
+       ],
+       "games": 964,
+       "mean_model_p": 0.8446,
+       "mean_overround_two_sided": 0.0712,
+       "model_claimed_ev_mean": -0.0492,
+       "roi_halfwidth_cons": 0.0257,
+       "roi_halfwidth_independent": 0.0034,
+       "rungs": 55499,
+       "two_sided_share": 0.156,
+       "units_player_game_stat": 26850,
+       "weekly_units_median": 1191.0,
+       "weeks": 29,
+       "weeks_with_ge_10_units": 29
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 955,
+        "halfwidth_cons": 0.0272,
+        "halfwidth_independent": 0.0109,
+        "mean_p": 0.8019,
+        "player_games": 4720,
+        "rungs": 5174
+       },
+       "fg3m": {
+        "games": 957,
+        "halfwidth_cons": 0.0265,
+        "halfwidth_independent": 0.011,
+        "mean_p": 0.807,
+        "player_games": 4940,
+        "rungs": 4940
+       },
+       "pts": {
+        "games": 962,
+        "halfwidth_cons": 0.0285,
+        "halfwidth_independent": 0.0061,
+        "mean_p": 0.7888,
+        "player_games": 7142,
+        "rungs": 17477
+       },
+       "reb": {
+        "games": 955,
+        "halfwidth_cons": 0.0269,
+        "halfwidth_independent": 0.0075,
+        "mean_p": 0.804,
+        "player_games": 7822,
+        "rungs": 10645
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 925,
+         "halfwidth_cons": 0.0351,
+         "halfwidth_independent": 0.0178,
+         "mean_p": 0.5474,
+         "player_games": 3010,
+         "rungs": 3010
+        },
+        "fg3m": {
+         "games": 889,
+         "halfwidth_cons": 0.0367,
+         "halfwidth_independent": 0.0203,
+         "mean_p": 0.5476,
+         "player_games": 2313,
+         "rungs": 2313
+        },
+        "pts": {
+         "games": 962,
+         "halfwidth_cons": 0.0337,
+         "halfwidth_independent": 0.0086,
+         "mean_p": 0.5506,
+         "player_games": 7825,
+         "rungs": 12919
+        },
+        "reb": {
+         "games": 947,
+         "halfwidth_cons": 0.034,
+         "halfwidth_independent": 0.0131,
+         "mean_p": 0.5496,
+         "player_games": 5487,
+         "rungs": 5522
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 898,
+         "halfwidth_cons": 0.0343,
+         "halfwidth_independent": 0.0184,
+         "mean_p": 0.6512,
+         "player_games": 2580,
+         "rungs": 2580
+        },
+        "fg3m": {
+         "games": 833,
+         "halfwidth_cons": 0.0365,
+         "halfwidth_independent": 0.0212,
+         "mean_p": 0.6502,
+         "player_games": 1950,
+         "rungs": 1950
+        },
+        "pts": {
+         "games": 953,
+         "halfwidth_cons": 0.0327,
+         "halfwidth_independent": 0.0087,
+         "mean_p": 0.6503,
+         "player_games": 7351,
+         "rungs": 11611
+        },
+        "reb": {
+         "games": 939,
+         "halfwidth_cons": 0.0327,
+         "halfwidth_independent": 0.0135,
+         "mean_p": 0.6513,
+         "player_games": 4761,
+         "rungs": 4767
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 894,
+         "halfwidth_cons": 0.0313,
+         "halfwidth_independent": 0.0167,
+         "mean_p": 0.7502,
+         "player_games": 2581,
+         "rungs": 2581
+        },
+        "fg3m": {
+         "games": 874,
+         "halfwidth_cons": 0.032,
+         "halfwidth_independent": 0.0177,
+         "mean_p": 0.7528,
+         "player_games": 2285,
+         "rungs": 2285
+        },
+        "pts": {
+         "games": 951,
+         "halfwidth_cons": 0.0301,
+         "halfwidth_independent": 0.0083,
+         "mean_p": 0.749,
+         "player_games": 6722,
+         "rungs": 10416
+        },
+        "reb": {
+         "games": 933,
+         "halfwidth_cons": 0.0298,
+         "halfwidth_independent": 0.0118,
+         "mean_p": 0.7509,
+         "player_games": 5132,
+         "rungs": 5155
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 904,
+         "halfwidth_cons": 0.0256,
+         "halfwidth_independent": 0.0136,
+         "mean_p": 0.8533,
+         "player_games": 2593,
+         "rungs": 2593
+        },
+        "fg3m": {
+         "games": 916,
+         "halfwidth_cons": 0.0256,
+         "halfwidth_independent": 0.0134,
+         "mean_p": 0.8537,
+         "player_games": 2655,
+         "rungs": 2655
+        },
+        "pts": {
+         "games": 942,
+         "halfwidth_cons": 0.0261,
+         "halfwidth_independent": 0.0084,
+         "mean_p": 0.8476,
+         "player_games": 4792,
+         "rungs": 7061
+        },
+        "reb": {
+         "games": 925,
+         "halfwidth_cons": 0.0245,
+         "halfwidth_independent": 0.0093,
+         "mean_p": 0.8538,
+         "player_games": 5425,
+         "rungs": 5490
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 959,
+        "halfwidth_cons": 0.0228,
+        "halfwidth_independent": 0.0065,
+        "mean_p": 0.8757,
+        "player_games": 5111,
+        "rungs": 9895
+       },
+       "fg3m": {
+        "games": 961,
+        "halfwidth_cons": 0.0231,
+        "halfwidth_independent": 0.0079,
+        "mean_p": 0.8557,
+        "player_games": 6560,
+        "rungs": 7535
+       },
+       "pts": {
+        "games": 963,
+        "halfwidth_cons": 0.0276,
+        "halfwidth_independent": 0.0054,
+        "mean_p": 0.8081,
+        "player_games": 7273,
+        "rungs": 20110
+       },
+       "reb": {
+        "games": 956,
+        "halfwidth_cons": 0.0234,
+        "halfwidth_independent": 0.005,
+        "mean_p": 0.8637,
+        "player_games": 7906,
+        "rungs": 17959
+       }
+      },
+      "rungs": 224901,
+      "tail_rungs": {
+       "05": 12167,
+       "15": 26967,
+       "25": 31004,
+       "35": 29160,
+       "45": 25432
+      }
+     },
+     "primary": {
       "bins": {
        "55": {
         "by_stat": {
@@ -5162,6 +6528,355 @@
        "35": 19725,
        "45": 16141
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 2630,
+         "fg3m": 1375,
+         "pts": 4825,
+         "reb": 3928
+        },
+        "dates": 136,
+        "decimal_min_med_max": [
+         1.059,
+         1.571,
+         4.7
+        ],
+        "games": 704,
+        "mean_model_p": 0.5472,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1103,
+        "roi_halfwidth_cons": 0.0634,
+        "roi_halfwidth_independent": 0.0142,
+        "rungs": 12758,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 12725,
+        "weekly_units_median": 648.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 24
+       },
+       "65": {
+        "by_stat": {
+         "ast": 2277,
+         "fg3m": 688,
+         "pts": 2281,
+         "reb": 2100
+        },
+        "dates": 136,
+        "decimal_min_med_max": [
+         1.029,
+         1.417,
+         3.08
+        ],
+        "games": 702,
+        "mean_model_p": 0.6454,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0681,
+        "roi_halfwidth_cons": 0.0558,
+        "roi_halfwidth_independent": 0.0159,
+        "rungs": 7346,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 7346,
+        "weekly_units_median": 367.5,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 22
+       },
+       "75": {
+        "by_stat": {
+         "ast": 1954,
+         "fg3m": 421,
+         "pts": 658,
+         "reb": 794
+        },
+        "dates": 136,
+        "decimal_min_med_max": [
+         1.02,
+         1.286,
+         2.47
+        ],
+        "games": 697,
+        "mean_model_p": 0.7442,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0226,
+        "roi_halfwidth_cons": 0.0484,
+        "roi_halfwidth_independent": 0.0183,
+        "rungs": 3827,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 3826,
+        "weekly_units_median": 186.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 22
+       },
+       "85": {
+        "by_stat": {
+         "ast": 1389,
+         "fg3m": 183,
+         "pts": 65,
+         "reb": 68
+        },
+        "dates": 130,
+        "decimal_min_med_max": [
+         1.01,
+         1.167,
+         2.16
+        ],
+        "games": 632,
+        "mean_model_p": 0.8475,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": 0.0177,
+        "roi_halfwidth_cons": 0.039,
+        "roi_halfwidth_independent": 0.0206,
+        "rungs": 1705,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 1705,
+        "weekly_units_median": 85.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 19
+       }
+      },
+      "games": 704,
+      "ge70": {
+       "by_stat": {
+        "ast": 4150,
+        "fg3m": 620,
+        "pts": 731,
+        "reb": 864
+       },
+       "dates": 136,
+       "decimal_min_med_max": [
+        1.01,
+        1.235,
+        2.47
+       ],
+       "games": 702,
+       "mean_model_p": 0.797,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0015,
+       "roi_halfwidth_cons": 0.0409,
+       "roi_halfwidth_independent": 0.0126,
+       "rungs": 6365,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 5518,
+       "weekly_units_median": 280.0,
+       "weeks": 24,
+       "weeks_with_ge_10_units": 23
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 699,
+        "halfwidth_cons": 0.0328,
+        "halfwidth_independent": 0.0138,
+        "mean_p": 0.7904,
+        "player_games": 3229,
+        "rungs": 3343
+       },
+       "fg3m": {
+        "games": 410,
+        "halfwidth_cons": 0.0444,
+        "halfwidth_independent": 0.0332,
+        "mean_p": 0.7767,
+        "player_games": 604,
+        "rungs": 604
+       },
+       "pts": {
+        "games": 381,
+        "halfwidth_cons": 0.0522,
+        "halfwidth_independent": 0.0318,
+        "mean_p": 0.7449,
+        "player_games": 690,
+        "rungs": 723
+       },
+       "reb": {
+        "games": 450,
+        "halfwidth_cons": 0.046,
+        "halfwidth_independent": 0.0291,
+        "mean_p": 0.746,
+        "player_games": 844,
+        "rungs": 862
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 697,
+         "halfwidth_cons": 0.0401,
+         "halfwidth_independent": 0.019,
+         "mean_p": 0.5464,
+         "player_games": 2630,
+         "rungs": 2630
+        },
+        "fg3m": {
+         "games": 606,
+         "halfwidth_cons": 0.0449,
+         "halfwidth_independent": 0.0263,
+         "mean_p": 0.5458,
+         "player_games": 1375,
+         "rungs": 1375
+        },
+        "pts": {
+         "games": 701,
+         "halfwidth_cons": 0.0396,
+         "halfwidth_independent": 0.014,
+         "mean_p": 0.5472,
+         "player_games": 4802,
+         "rungs": 4825
+        },
+        "reb": {
+         "games": 695,
+         "halfwidth_cons": 0.0402,
+         "halfwidth_independent": 0.0156,
+         "mean_p": 0.5482,
+         "player_games": 3918,
+         "rungs": 3928
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 681,
+         "halfwidth_cons": 0.0394,
+         "halfwidth_independent": 0.0196,
+         "mean_p": 0.6499,
+         "player_games": 2277,
+         "rungs": 2277
+        },
+        "fg3m": {
+         "games": 451,
+         "halfwidth_cons": 0.0496,
+         "halfwidth_independent": 0.0358,
+         "mean_p": 0.6437,
+         "player_games": 688,
+         "rungs": 688
+        },
+        "pts": {
+         "games": 651,
+         "halfwidth_cons": 0.0423,
+         "halfwidth_independent": 0.0197,
+         "mean_p": 0.6424,
+         "player_games": 2281,
+         "rungs": 2281
+        },
+        "reb": {
+         "games": 651,
+         "halfwidth_cons": 0.0415,
+         "halfwidth_independent": 0.0205,
+         "mean_p": 0.6442,
+         "player_games": 2100,
+         "rungs": 2100
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 666,
+         "halfwidth_cons": 0.0364,
+         "halfwidth_independent": 0.0192,
+         "mean_p": 0.7484,
+         "player_games": 1954,
+         "rungs": 1954
+        },
+        "fg3m": {
+         "games": 319,
+         "halfwidth_cons": 0.0515,
+         "halfwidth_independent": 0.0415,
+         "mean_p": 0.7479,
+         "player_games": 421,
+         "rungs": 421
+        },
+        "pts": {
+         "games": 367,
+         "halfwidth_cons": 0.0528,
+         "halfwidth_independent": 0.0337,
+         "mean_p": 0.7362,
+         "player_games": 657,
+         "rungs": 658
+        },
+        "reb": {
+         "games": 438,
+         "halfwidth_cons": 0.0468,
+         "halfwidth_independent": 0.0306,
+         "mean_p": 0.7385,
+         "player_games": 794,
+         "rungs": 794
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 609,
+         "halfwidth_cons": 0.0324,
+         "halfwidth_independent": 0.0188,
+         "mean_p": 0.8496,
+         "player_games": 1389,
+         "rungs": 1389
+        },
+        "fg3m": {
+         "games": 163,
+         "halfwidth_cons": 0.0584,
+         "halfwidth_independent": 0.0527,
+         "mean_p": 0.8431,
+         "player_games": 183,
+         "rungs": 183
+        },
+        "pts": {
+         "games": 61,
+         "halfwidth_cons": 0.0962,
+         "halfwidth_independent": 0.0908,
+         "mean_p": 0.8325,
+         "player_games": 65,
+         "rungs": 65
+        },
+        "reb": {
+         "games": 60,
+         "halfwidth_cons": 0.0998,
+         "halfwidth_independent": 0.0887,
+         "mean_p": 0.8328,
+         "player_games": 68,
+         "rungs": 68
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 701,
+        "halfwidth_cons": 0.0313,
+        "halfwidth_independent": 0.0117,
+        "mean_p": 0.8189,
+        "player_games": 3365,
+        "rungs": 4150
+       },
+       "fg3m": {
+        "games": 415,
+        "halfwidth_cons": 0.0439,
+        "halfwidth_independent": 0.0326,
+        "mean_p": 0.7804,
+        "player_games": 619,
+        "rungs": 620
+       },
+       "pts": {
+        "games": 381,
+        "halfwidth_cons": 0.0527,
+        "halfwidth_independent": 0.0315,
+        "mean_p": 0.7469,
+        "player_games": 690,
+        "rungs": 731
+       },
+       "reb": {
+        "games": 450,
+        "halfwidth_cons": 0.0461,
+        "halfwidth_independent": 0.029,
+        "mean_p": 0.7464,
+        "player_games": 844,
+        "rungs": 864
+       }
+      },
+      "rungs": 202000,
+      "tail_rungs": {
+       "05": 76364,
+       "15": 38761,
+       "25": 24540,
+       "35": 19725,
+       "45": 16141
+      }
      }
     },
     "pointsbetus": {
@@ -6210,6 +7925,355 @@
        "25": 13456,
        "35": 10767,
        "45": 9349
+      }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 1421,
+         "fg3m": 1765,
+         "pts": 2810,
+         "reb": 2680
+        },
+        "dates": 123,
+        "decimal_min_med_max": [
+         1.04,
+         1.5,
+         8.0
+        ],
+        "games": 795,
+        "mean_model_p": 0.5493,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1533,
+        "roi_halfwidth_cons": 0.0564,
+        "roi_halfwidth_independent": 0.0164,
+        "rungs": 8676,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 8676,
+        "weekly_units_median": 511.0,
+        "weeks": 20,
+        "weeks_with_ge_10_units": 20
+       },
+       "65": {
+        "by_stat": {
+         "ast": 1444,
+         "fg3m": 1408,
+         "pts": 2249,
+         "reb": 1968
+        },
+        "dates": 123,
+        "decimal_min_med_max": [
+         1.033,
+         1.308,
+         3.1
+        ],
+        "games": 794,
+        "mean_model_p": 0.6502,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1316,
+        "roi_halfwidth_cons": 0.0473,
+        "roi_halfwidth_independent": 0.015,
+        "rungs": 7069,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 7069,
+        "weekly_units_median": 410.0,
+        "weeks": 20,
+        "weeks_with_ge_10_units": 20
+       },
+       "75": {
+        "by_stat": {
+         "ast": 1533,
+         "fg3m": 1863,
+         "pts": 2447,
+         "reb": 2112
+        },
+        "dates": 123,
+        "decimal_min_med_max": [
+         1.033,
+         1.19,
+         2.4
+        ],
+        "games": 794,
+        "mean_model_p": 0.7521,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0932,
+        "roi_halfwidth_cons": 0.0383,
+        "roi_halfwidth_independent": 0.0115,
+        "rungs": 7955,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 7955,
+        "weekly_units_median": 461.5,
+        "weeks": 20,
+        "weeks_with_ge_10_units": 20
+       },
+       "85": {
+        "by_stat": {
+         "ast": 1417,
+         "fg3m": 2247,
+         "pts": 2773,
+         "reb": 2960
+        },
+        "dates": 123,
+        "decimal_min_med_max": [
+         1.033,
+         1.111,
+         2.4
+        ],
+        "games": 794,
+        "mean_model_p": 0.8536,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0404,
+        "roi_halfwidth_cons": 0.029,
+        "roi_halfwidth_independent": 0.0081,
+        "rungs": 9397,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 9397,
+        "weekly_units_median": 544.5,
+        "weeks": 20,
+        "weeks_with_ge_10_units": 20
+       }
+      },
+      "games": 796,
+      "ge70": {
+       "by_stat": {
+        "ast": 4661,
+        "fg3m": 6010,
+        "pts": 7312,
+        "reb": 7219
+       },
+       "dates": 123,
+       "decimal_min_med_max": [
+        1.022,
+        1.111,
+        2.4
+       ],
+       "games": 795,
+       "mean_model_p": 0.849,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0421,
+       "roi_halfwidth_cons": 0.0278,
+       "roi_halfwidth_independent": 0.005,
+       "rungs": 25202,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 22836,
+       "weekly_units_median": 1323.5,
+       "weeks": 20,
+       "weeks_with_ge_10_units": 20
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 788,
+        "halfwidth_cons": 0.0304,
+        "halfwidth_independent": 0.0145,
+        "mean_p": 0.7991,
+        "player_games": 2950,
+        "rungs": 2950
+       },
+       "fg3m": {
+        "games": 790,
+        "halfwidth_cons": 0.0293,
+        "halfwidth_independent": 0.012,
+        "mean_p": 0.808,
+        "player_games": 4110,
+        "rungs": 4110
+       },
+       "pts": {
+        "games": 795,
+        "halfwidth_cons": 0.0289,
+        "halfwidth_independent": 0.0107,
+        "mean_p": 0.806,
+        "player_games": 5220,
+        "rungs": 5220
+       },
+       "reb": {
+        "games": 792,
+        "halfwidth_cons": 0.0286,
+        "halfwidth_independent": 0.0108,
+        "mean_p": 0.8119,
+        "player_games": 5044,
+        "rungs": 5072
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 679,
+         "halfwidth_cons": 0.042,
+         "halfwidth_independent": 0.0259,
+         "mean_p": 0.5477,
+         "player_games": 1421,
+         "rungs": 1421
+        },
+        "fg3m": {
+         "games": 723,
+         "halfwidth_cons": 0.0407,
+         "halfwidth_independent": 0.0232,
+         "mean_p": 0.5471,
+         "player_games": 1765,
+         "rungs": 1765
+        },
+        "pts": {
+         "games": 781,
+         "halfwidth_cons": 0.0381,
+         "halfwidth_independent": 0.0184,
+         "mean_p": 0.5512,
+         "player_games": 2810,
+         "rungs": 2810
+        },
+        "reb": {
+         "games": 773,
+         "halfwidth_cons": 0.0386,
+         "halfwidth_independent": 0.0188,
+         "mean_p": 0.5494,
+         "player_games": 2680,
+         "rungs": 2680
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 685,
+         "halfwidth_cons": 0.0397,
+         "halfwidth_independent": 0.0246,
+         "mean_p": 0.6521,
+         "player_games": 1444,
+         "rungs": 1444
+        },
+        "fg3m": {
+         "games": 677,
+         "halfwidth_cons": 0.0407,
+         "halfwidth_independent": 0.0249,
+         "mean_p": 0.6513,
+         "player_games": 1408,
+         "rungs": 1408
+        },
+        "pts": {
+         "games": 755,
+         "halfwidth_cons": 0.0378,
+         "halfwidth_independent": 0.0197,
+         "mean_p": 0.6496,
+         "player_games": 2249,
+         "rungs": 2249
+        },
+        "reb": {
+         "games": 733,
+         "halfwidth_cons": 0.0386,
+         "halfwidth_independent": 0.0211,
+         "mean_p": 0.6488,
+         "player_games": 1968,
+         "rungs": 1968
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 687,
+         "halfwidth_cons": 0.0363,
+         "halfwidth_independent": 0.0217,
+         "mean_p": 0.7505,
+         "player_games": 1533,
+         "rungs": 1533
+        },
+        "fg3m": {
+         "games": 718,
+         "halfwidth_cons": 0.0355,
+         "halfwidth_independent": 0.0196,
+         "mean_p": 0.7534,
+         "player_games": 1863,
+         "rungs": 1863
+        },
+        "pts": {
+         "games": 762,
+         "halfwidth_cons": 0.0339,
+         "halfwidth_independent": 0.0171,
+         "mean_p": 0.7516,
+         "player_games": 2447,
+         "rungs": 2447
+        },
+        "reb": {
+         "games": 747,
+         "halfwidth_cons": 0.0345,
+         "halfwidth_independent": 0.0184,
+         "mean_p": 0.7526,
+         "player_games": 2112,
+         "rungs": 2112
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 684,
+         "halfwidth_cons": 0.0301,
+         "halfwidth_independent": 0.0185,
+         "mean_p": 0.8518,
+         "player_games": 1417,
+         "rungs": 1417
+        },
+        "fg3m": {
+         "games": 756,
+         "halfwidth_cons": 0.0282,
+         "halfwidth_independent": 0.0146,
+         "mean_p": 0.8534,
+         "player_games": 2247,
+         "rungs": 2247
+        },
+        "pts": {
+         "games": 773,
+         "halfwidth_cons": 0.0276,
+         "halfwidth_independent": 0.0131,
+         "mean_p": 0.8539,
+         "player_games": 2773,
+         "rungs": 2773
+        },
+        "reb": {
+         "games": 775,
+         "halfwidth_cons": 0.0271,
+         "halfwidth_independent": 0.0127,
+         "mean_p": 0.8542,
+         "player_games": 2960,
+         "rungs": 2960
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 793,
+        "halfwidth_cons": 0.026,
+        "halfwidth_independent": 0.0101,
+        "mean_p": 0.8541,
+        "player_games": 4365,
+        "rungs": 4661
+       },
+       "fg3m": {
+        "games": 793,
+        "halfwidth_cons": 0.026,
+        "halfwidth_independent": 0.009,
+        "mean_p": 0.8516,
+        "player_games": 5361,
+        "rungs": 6010
+       },
+       "pts": {
+        "games": 795,
+        "halfwidth_cons": 0.0264,
+        "halfwidth_independent": 0.0083,
+        "mean_p": 0.8438,
+        "player_games": 6529,
+        "rungs": 7312
+       },
+       "reb": {
+        "games": 794,
+        "halfwidth_cons": 0.026,
+        "halfwidth_independent": 0.0083,
+        "mean_p": 0.849,
+        "player_games": 6581,
+        "rungs": 7219
+       }
+      },
+      "rungs": 109451,
+      "tail_rungs": {
+       "05": 14285,
+       "15": 20649,
+       "25": 13455,
+       "35": 10767,
+       "45": 9348
       }
      }
     },
@@ -7260,6 +9324,355 @@
        "35": 10249,
        "45": 8972
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 1680,
+         "fg3m": 1922,
+         "pts": 1903,
+         "reb": 2423
+        },
+        "dates": 136,
+        "decimal_min_med_max": [
+         1.029,
+         1.417,
+         5.3
+        ],
+        "games": 679,
+        "mean_model_p": 0.5489,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1969,
+        "roi_halfwidth_cons": 0.0611,
+        "roi_halfwidth_independent": 0.0163,
+        "rungs": 7928,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 7928,
+        "weekly_units_median": 264.5,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 24
+       },
+       "65": {
+        "by_stat": {
+         "ast": 1318,
+         "fg3m": 1416,
+         "pts": 1430,
+         "reb": 2005
+        },
+        "dates": 136,
+        "decimal_min_med_max": [
+         1.02,
+         1.25,
+         3.0
+        ],
+        "games": 695,
+        "mean_model_p": 0.6491,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1731,
+        "roi_halfwidth_cons": 0.0511,
+        "roi_halfwidth_independent": 0.0153,
+        "rungs": 6169,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 6169,
+        "weekly_units_median": 232.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 23
+       },
+       "75": {
+        "by_stat": {
+         "ast": 1166,
+         "fg3m": 1449,
+         "pts": 1285,
+         "reb": 2049
+        },
+        "dates": 135,
+        "decimal_min_med_max": [
+         1.017,
+         1.125,
+         2.3
+        ],
+        "games": 671,
+        "mean_model_p": 0.7498,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1366,
+        "roi_halfwidth_cons": 0.0421,
+        "roi_halfwidth_independent": 0.0127,
+        "rungs": 5949,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 5949,
+        "weekly_units_median": 196.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 23
+       },
+       "85": {
+        "by_stat": {
+         "ast": 939,
+         "fg3m": 1611,
+         "pts": 1079,
+         "reb": 1657
+        },
+        "dates": 134,
+        "decimal_min_med_max": [
+         1.012,
+         1.053,
+         2.4
+        ],
+        "games": 663,
+        "mean_model_p": 0.8496,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0842,
+        "roi_halfwidth_cons": 0.0328,
+        "roi_halfwidth_independent": 0.0104,
+        "rungs": 5286,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 5286,
+        "weekly_units_median": 147.0,
+        "weeks": 24,
+        "weeks_with_ge_10_units": 23
+       }
+      },
+      "games": 740,
+      "ge70": {
+       "by_stat": {
+        "ast": 2708,
+        "fg3m": 3584,
+        "pts": 3252,
+        "reb": 4076
+       },
+       "dates": 136,
+       "decimal_min_med_max": [
+        1.012,
+        1.067,
+        2.4
+       ],
+       "games": 717,
+       "mean_model_p": 0.8209,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0966,
+       "roi_halfwidth_cons": 0.0341,
+       "roi_halfwidth_independent": 0.0071,
+       "rungs": 13620,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 12970,
+       "weekly_units_median": 376.5,
+       "weeks": 24,
+       "weeks_with_ge_10_units": 24
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 655,
+        "halfwidth_cons": 0.0351,
+        "halfwidth_independent": 0.0173,
+        "mean_p": 0.7934,
+        "player_games": 2105,
+        "rungs": 2105
+       },
+       "fg3m": {
+        "games": 603,
+        "halfwidth_cons": 0.0344,
+        "halfwidth_independent": 0.0141,
+        "mean_p": 0.804,
+        "player_games": 3060,
+        "rungs": 3060
+       },
+       "pts": {
+        "games": 595,
+        "halfwidth_cons": 0.0351,
+        "halfwidth_independent": 0.0163,
+        "mean_p": 0.7955,
+        "player_games": 2364,
+        "rungs": 2364
+       },
+       "reb": {
+        "games": 657,
+        "halfwidth_cons": 0.0347,
+        "halfwidth_independent": 0.013,
+        "mean_p": 0.7935,
+        "player_games": 3696,
+        "rungs": 3706
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 619,
+         "halfwidth_cons": 0.0447,
+         "halfwidth_independent": 0.0238,
+         "mean_p": 0.5453,
+         "player_games": 1680,
+         "rungs": 1680
+        },
+        "fg3m": {
+         "games": 577,
+         "halfwidth_cons": 0.0451,
+         "halfwidth_independent": 0.0223,
+         "mean_p": 0.5475,
+         "player_games": 1922,
+         "rungs": 1922
+        },
+        "pts": {
+         "games": 583,
+         "halfwidth_cons": 0.0445,
+         "halfwidth_independent": 0.0223,
+         "mean_p": 0.5509,
+         "player_games": 1903,
+         "rungs": 1903
+        },
+        "reb": {
+         "games": 616,
+         "halfwidth_cons": 0.0444,
+         "halfwidth_independent": 0.0198,
+         "mean_p": 0.5511,
+         "player_games": 2423,
+         "rungs": 2423
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 599,
+         "halfwidth_cons": 0.0434,
+         "halfwidth_independent": 0.0258,
+         "mean_p": 0.6494,
+         "player_games": 1318,
+         "rungs": 1318
+        },
+        "fg3m": {
+         "games": 545,
+         "halfwidth_cons": 0.0449,
+         "halfwidth_independent": 0.0248,
+         "mean_p": 0.6499,
+         "player_games": 1416,
+         "rungs": 1416
+        },
+        "pts": {
+         "games": 557,
+         "halfwidth_cons": 0.0447,
+         "halfwidth_independent": 0.0247,
+         "mean_p": 0.6484,
+         "player_games": 1430,
+         "rungs": 1430
+        },
+        "reb": {
+         "games": 609,
+         "halfwidth_cons": 0.043,
+         "halfwidth_independent": 0.0209,
+         "mean_p": 0.6489,
+         "player_games": 2005,
+         "rungs": 2005
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 561,
+         "halfwidth_cons": 0.0406,
+         "halfwidth_independent": 0.0249,
+         "mean_p": 0.7483,
+         "player_games": 1166,
+         "rungs": 1166
+        },
+        "fg3m": {
+         "games": 551,
+         "halfwidth_cons": 0.0407,
+         "halfwidth_independent": 0.0222,
+         "mean_p": 0.7519,
+         "player_games": 1449,
+         "rungs": 1449
+        },
+        "pts": {
+         "games": 533,
+         "halfwidth_cons": 0.0414,
+         "halfwidth_independent": 0.0237,
+         "mean_p": 0.7479,
+         "player_games": 1285,
+         "rungs": 1285
+        },
+        "reb": {
+         "games": 589,
+         "halfwidth_cons": 0.0392,
+         "halfwidth_independent": 0.0187,
+         "mean_p": 0.7504,
+         "player_games": 2049,
+         "rungs": 2049
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 505,
+         "halfwidth_cons": 0.0356,
+         "halfwidth_independent": 0.0229,
+         "mean_p": 0.8495,
+         "player_games": 939,
+         "rungs": 939
+        },
+        "fg3m": {
+         "games": 558,
+         "halfwidth_cons": 0.0329,
+         "halfwidth_independent": 0.0174,
+         "mean_p": 0.8508,
+         "player_games": 1611,
+         "rungs": 1611
+        },
+        "pts": {
+         "games": 505,
+         "halfwidth_cons": 0.0343,
+         "halfwidth_independent": 0.0212,
+         "mean_p": 0.8522,
+         "player_games": 1079,
+         "rungs": 1079
+        },
+        "reb": {
+         "games": 587,
+         "halfwidth_cons": 0.034,
+         "halfwidth_independent": 0.0173,
+         "mean_p": 0.8467,
+         "player_games": 1657,
+         "rungs": 1657
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 667,
+        "halfwidth_cons": 0.0323,
+        "halfwidth_independent": 0.0143,
+        "mean_p": 0.8252,
+        "player_games": 2674,
+        "rungs": 2708
+       },
+       "fg3m": {
+        "games": 606,
+        "halfwidth_cons": 0.0329,
+        "halfwidth_independent": 0.0125,
+        "mean_p": 0.8224,
+        "player_games": 3542,
+        "rungs": 3584
+       },
+       "pts": {
+        "games": 598,
+        "halfwidth_cons": 0.0321,
+        "halfwidth_independent": 0.0128,
+        "mean_p": 0.8348,
+        "player_games": 2761,
+        "rungs": 3252
+       },
+       "reb": {
+        "games": 661,
+        "halfwidth_cons": 0.034,
+        "halfwidth_independent": 0.0122,
+        "mean_p": 0.8056,
+        "player_games": 3993,
+        "rungs": 4076
+       }
+      },
+      "rungs": 81543,
+      "tail_rungs": {
+       "05": 6037,
+       "15": 16162,
+       "25": 12726,
+       "35": 10100,
+       "45": 8801
+      }
      }
     }
    },
@@ -7281,11 +9694,92 @@
     "games_with_report_stamp_in_window": 39,
     "half_point_rungs": 1051600,
     "joined_to_model": 1037426,
+    "ladder_integrity_by_book": [
+     {
+      "book": "betmgm",
+      "ladders": 1305,
+      "off": 0,
+      "tested": 753,
+      "untested_kept": 552
+     },
+     {
+      "book": "betonlineag",
+      "ladders": 30846,
+      "off": 1,
+      "tested": 29031,
+      "untested_kept": 1815
+     },
+     {
+      "book": "draftkings",
+      "ladders": 37120,
+      "off": 359,
+      "tested": 25342,
+      "untested_kept": 11778
+     },
+     {
+      "book": "fanduel",
+      "ladders": 35696,
+      "off": 0,
+      "tested": 32149,
+      "untested_kept": 3547
+     },
+     {
+      "book": "mybookieag",
+      "ladders": 29548,
+      "off": 0,
+      "tested": 26406,
+      "untested_kept": 3142
+     },
+     {
+      "book": "pointsbetus",
+      "ladders": 28346,
+      "off": 1,
+      "tested": 24898,
+      "untested_kept": 3448
+     },
+     {
+      "book": "williamhill_us",
+      "ladders": 30304,
+      "off": 419,
+      "tested": 22385,
+      "untested_kept": 7919
+     }
+    ],
     "lead_minutes_min_med_max": [
      64.2,
      64.35,
      79.37
     ],
+    "off_ladder_rungs_by_book": {
+     "betmgm": {
+      "all_rungs": 0,
+      "p_ge_70_rungs_window_arm": 0
+     },
+     "betonlineag": {
+      "all_rungs": 3,
+      "p_ge_70_rungs_window_arm": 0
+     },
+     "draftkings": {
+      "all_rungs": 1080,
+      "p_ge_70_rungs_window_arm": 1032
+     },
+     "fanduel": {
+      "all_rungs": 0,
+      "p_ge_70_rungs_window_arm": 0
+     },
+     "mybookieag": {
+      "all_rungs": 0,
+      "p_ge_70_rungs_window_arm": 0
+     },
+     "pointsbetus": {
+      "all_rungs": 6,
+      "p_ge_70_rungs_window_arm": 1
+     },
+     "williamhill_us": {
+      "all_rungs": 1934,
+      "p_ge_70_rungs_window_arm": 440
+     }
+    },
     "over_rungs_after_dedupe": 1051600,
     "quote_age_min_p10_med_p90": [
      -0.2,
@@ -8470,6 +10964,355 @@
        "35": 17233,
        "45": 15196
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 2232,
+         "fg3m": 3330,
+         "pts": 3589,
+         "reb": 3841
+        },
+        "dates": 195,
+        "decimal_min_med_max": [
+         1.05,
+         1.5,
+         6.0
+        ],
+        "games": 1120,
+        "mean_model_p": 0.5488,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1546,
+        "roi_halfwidth_cons": 0.048,
+        "roi_halfwidth_independent": 0.0134,
+        "rungs": 12992,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 12992,
+        "weekly_units_median": 469.0,
+        "weeks": 33,
+        "weeks_with_ge_10_units": 32
+       },
+       "65": {
+        "by_stat": {
+         "ast": 1478,
+         "fg3m": 2652,
+         "pts": 3041,
+         "reb": 3534
+        },
+        "dates": 194,
+        "decimal_min_med_max": [
+         1.05,
+         1.308,
+         4.0
+        ],
+        "games": 1120,
+        "mean_model_p": 0.6493,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1321,
+        "roi_halfwidth_cons": 0.0402,
+        "roi_halfwidth_independent": 0.0122,
+        "rungs": 10705,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 10705,
+        "weekly_units_median": 387.0,
+        "weeks": 33,
+        "weeks_with_ge_10_units": 32
+       },
+       "75": {
+        "by_stat": {
+         "ast": 1214,
+         "fg3m": 3016,
+         "pts": 2337,
+         "reb": 3173
+        },
+        "dates": 195,
+        "decimal_min_med_max": [
+         1.04,
+         1.19,
+         2.55
+        ],
+        "games": 1119,
+        "mean_model_p": 0.7507,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0925,
+        "roi_halfwidth_cons": 0.0329,
+        "roi_halfwidth_independent": 0.0104,
+        "rungs": 9740,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 9740,
+        "weekly_units_median": 350.0,
+        "weeks": 33,
+        "weeks_with_ge_10_units": 32
+       },
+       "85": {
+        "by_stat": {
+         "ast": 1468,
+         "fg3m": 3687,
+         "pts": 1783,
+         "reb": 2346
+        },
+        "dates": 195,
+        "decimal_min_med_max": [
+         1.04,
+         1.111,
+         1.909
+        ],
+        "games": 1119,
+        "mean_model_p": 0.8486,
+        "mean_overround_two_sided": 0.0476,
+        "model_claimed_ev_mean": -0.0429,
+        "roi_halfwidth_cons": 0.0257,
+        "roi_halfwidth_independent": 0.0082,
+        "rungs": 9284,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 9284,
+        "weekly_units_median": 288.0,
+        "weeks": 33,
+        "weeks_with_ge_10_units": 31
+       }
+      },
+      "games": 1126,
+      "ge70": {
+       "by_stat": {
+        "ast": 3325,
+        "fg3m": 7955,
+        "pts": 4586,
+        "reb": 6079
+       },
+       "dates": 195,
+       "decimal_min_med_max": [
+        1.04,
+        1.133,
+        2.55
+       ],
+       "games": 1123,
+       "mean_model_p": 0.8159,
+       "mean_overround_two_sided": 0.0476,
+       "model_claimed_ev_mean": -0.0584,
+       "roi_halfwidth_cons": 0.0271,
+       "roi_halfwidth_independent": 0.0059,
+       "rungs": 21945,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 21551,
+       "weekly_units_median": 717.0,
+       "weeks": 33,
+       "weeks_with_ge_10_units": 32
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 1037,
+        "halfwidth_cons": 0.0267,
+        "halfwidth_independent": 0.0149,
+        "mean_p": 0.8067,
+        "player_games": 2682,
+        "rungs": 2682
+       },
+       "fg3m": {
+        "games": 1112,
+        "halfwidth_cons": 0.0249,
+        "halfwidth_independent": 0.0095,
+        "mean_p": 0.8062,
+        "player_games": 6703,
+        "rungs": 6703
+       },
+       "pts": {
+        "games": 1085,
+        "halfwidth_cons": 0.0265,
+        "halfwidth_independent": 0.0124,
+        "mean_p": 0.7916,
+        "player_games": 4120,
+        "rungs": 4120
+       },
+       "reb": {
+        "games": 1103,
+        "halfwidth_cons": 0.0259,
+        "halfwidth_independent": 0.0107,
+        "mean_p": 0.7902,
+        "player_games": 5519,
+        "rungs": 5519
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 967,
+         "halfwidth_cons": 0.0354,
+         "halfwidth_independent": 0.0206,
+         "mean_p": 0.5479,
+         "player_games": 2232,
+         "rungs": 2232
+        },
+        "fg3m": {
+         "games": 1053,
+         "halfwidth_cons": 0.0334,
+         "halfwidth_independent": 0.0169,
+         "mean_p": 0.5463,
+         "player_games": 3330,
+         "rungs": 3330
+        },
+        "pts": {
+         "games": 1070,
+         "halfwidth_cons": 0.033,
+         "halfwidth_independent": 0.0163,
+         "mean_p": 0.549,
+         "player_games": 3589,
+         "rungs": 3589
+        },
+        "reb": {
+         "games": 1075,
+         "halfwidth_cons": 0.033,
+         "halfwidth_independent": 0.0157,
+         "mean_p": 0.5512,
+         "player_games": 3841,
+         "rungs": 3841
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 840,
+         "halfwidth_cons": 0.0365,
+         "halfwidth_independent": 0.0243,
+         "mean_p": 0.6492,
+         "player_games": 1478,
+         "rungs": 1478
+        },
+        "fg3m": {
+         "games": 1017,
+         "halfwidth_cons": 0.033,
+         "halfwidth_independent": 0.0181,
+         "mean_p": 0.6504,
+         "player_games": 2652,
+         "rungs": 2652
+        },
+        "pts": {
+         "games": 1046,
+         "halfwidth_cons": 0.0323,
+         "halfwidth_independent": 0.017,
+         "mean_p": 0.6483,
+         "player_games": 3041,
+         "rungs": 3041
+        },
+        "reb": {
+         "games": 1072,
+         "halfwidth_cons": 0.0319,
+         "halfwidth_independent": 0.0157,
+         "mean_p": 0.6494,
+         "player_games": 3534,
+         "rungs": 3534
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 779,
+         "halfwidth_cons": 0.0334,
+         "halfwidth_independent": 0.0242,
+         "mean_p": 0.7538,
+         "player_games": 1214,
+         "rungs": 1214
+        },
+        "fg3m": {
+         "games": 1041,
+         "halfwidth_cons": 0.0293,
+         "halfwidth_independent": 0.0154,
+         "mean_p": 0.7525,
+         "player_games": 3016,
+         "rungs": 3016
+        },
+        "pts": {
+         "games": 986,
+         "halfwidth_cons": 0.0306,
+         "halfwidth_independent": 0.0176,
+         "mean_p": 0.749,
+         "player_games": 2337,
+         "rungs": 2337
+        },
+        "reb": {
+         "games": 1047,
+         "halfwidth_cons": 0.0292,
+         "halfwidth_independent": 0.0151,
+         "mean_p": 0.7491,
+         "player_games": 3173,
+         "rungs": 3173
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 829,
+         "halfwidth_cons": 0.0273,
+         "halfwidth_independent": 0.0182,
+         "mean_p": 0.8505,
+         "player_games": 1468,
+         "rungs": 1468
+        },
+        "fg3m": {
+         "games": 1072,
+         "halfwidth_cons": 0.0237,
+         "halfwidth_independent": 0.0115,
+         "mean_p": 0.8501,
+         "player_games": 3687,
+         "rungs": 3687
+        },
+        "pts": {
+         "games": 893,
+         "halfwidth_cons": 0.0267,
+         "halfwidth_independent": 0.0167,
+         "mean_p": 0.8475,
+         "player_games": 1783,
+         "rungs": 1783
+        },
+        "reb": {
+         "games": 981,
+         "halfwidth_cons": 0.0256,
+         "halfwidth_independent": 0.0146,
+         "mean_p": 0.8458,
+         "player_games": 2346,
+         "rungs": 2346
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 1067,
+        "halfwidth_cons": 0.0248,
+        "halfwidth_independent": 0.0127,
+        "mean_p": 0.8312,
+        "player_games": 3288,
+        "rungs": 3325
+       },
+       "fg3m": {
+        "games": 1117,
+        "halfwidth_cons": 0.0236,
+        "halfwidth_independent": 0.0083,
+        "mean_p": 0.8256,
+        "player_games": 7831,
+        "rungs": 7955
+       },
+       "pts": {
+        "games": 1088,
+        "halfwidth_cons": 0.0257,
+        "halfwidth_independent": 0.0115,
+        "mean_p": 0.8053,
+        "player_games": 4453,
+        "rungs": 4586
+       },
+       "reb": {
+        "games": 1108,
+        "halfwidth_cons": 0.0254,
+        "halfwidth_independent": 0.01,
+        "mean_p": 0.8028,
+        "player_games": 5979,
+        "rungs": 6079
+       }
+      },
+      "rungs": 155294,
+      "tail_rungs": {
+       "05": 22412,
+       "15": 31330,
+       "25": 23763,
+       "35": 17093,
+       "45": 15054
+      }
      }
     },
     "betonlineag": {
@@ -9172,6 +12015,355 @@
       }
      },
      "excl_window_lead66": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 4958,
+         "fg3m": 2871,
+         "pts": 9026,
+         "reb": 7718
+        },
+        "dates": 209,
+        "decimal_min_med_max": [
+         1.04,
+         1.581,
+         5.0
+        ],
+        "games": 1226,
+        "mean_model_p": 0.548,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1054,
+        "roi_halfwidth_cons": 0.0478,
+        "roi_halfwidth_independent": 0.0103,
+        "rungs": 24573,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 24539,
+        "weekly_units_median": 827.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "65": {
+        "by_stat": {
+         "ast": 4108,
+         "fg3m": 1556,
+         "pts": 5161,
+         "reb": 4864
+        },
+        "dates": 209,
+        "decimal_min_med_max": [
+         1.02,
+         1.41,
+         3.9
+        ],
+        "games": 1226,
+        "mean_model_p": 0.6453,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0685,
+        "roi_halfwidth_cons": 0.0417,
+        "roi_halfwidth_independent": 0.0109,
+        "rungs": 15689,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 15687,
+        "weekly_units_median": 501.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "75": {
+        "by_stat": {
+         "ast": 3337,
+         "fg3m": 770,
+         "pts": 1525,
+         "reb": 1698
+        },
+        "dates": 209,
+        "decimal_min_med_max": [
+         1.03,
+         1.3,
+         3.2
+        ],
+        "games": 1207,
+        "mean_model_p": 0.7446,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0184,
+        "roi_halfwidth_cons": 0.0369,
+        "roi_halfwidth_independent": 0.0132,
+        "rungs": 7330,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 7329,
+        "weekly_units_median": 247.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "85": {
+        "by_stat": {
+         "ast": 2969,
+         "fg3m": 374,
+         "pts": 243,
+         "reb": 198
+        },
+        "dates": 204,
+        "decimal_min_med_max": [
+         1.01,
+         1.18,
+         2.18
+        ],
+        "games": 1143,
+        "mean_model_p": 0.8457,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": 0.0182,
+        "roi_halfwidth_cons": 0.0288,
+        "roi_halfwidth_independent": 0.0139,
+        "rungs": 3784,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 3783,
+        "weekly_units_median": 131.5,
+        "weeks": 34,
+        "weeks_with_ge_10_units": 31
+       }
+      },
+      "games": 1228,
+      "ge70": {
+       "by_stat": {
+        "ast": 7593,
+        "fg3m": 1168,
+        "pts": 1783,
+        "reb": 1906
+       },
+       "dates": 209,
+       "decimal_min_med_max": [
+        1.001,
+        1.24,
+        3.2
+       ],
+       "games": 1222,
+       "mean_model_p": 0.7959,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0001,
+       "roi_halfwidth_cons": 0.0313,
+       "roi_halfwidth_independent": 0.009,
+       "rungs": 12450,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 10838,
+       "weekly_units_median": 373.0,
+       "weeks": 35,
+       "weeks_with_ge_10_units": 35
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 1214,
+        "halfwidth_cons": 0.0244,
+        "halfwidth_independent": 0.0099,
+        "mean_p": 0.7969,
+        "player_games": 6008,
+        "rungs": 6306
+       },
+       "fg3m": {
+        "games": 760,
+        "halfwidth_cons": 0.0328,
+        "halfwidth_independent": 0.0242,
+        "mean_p": 0.7758,
+        "player_games": 1144,
+        "rungs": 1144
+       },
+       "pts": {
+        "games": 810,
+        "halfwidth_cons": 0.0363,
+        "halfwidth_independent": 0.0202,
+        "mean_p": 0.7505,
+        "player_games": 1680,
+        "rungs": 1768
+       },
+       "reb": {
+        "games": 869,
+        "halfwidth_cons": 0.034,
+        "halfwidth_independent": 0.0195,
+        "mean_p": 0.7482,
+        "player_games": 1854,
+        "rungs": 1896
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 1214,
+         "halfwidth_cons": 0.0303,
+         "halfwidth_independent": 0.0138,
+         "mean_p": 0.5499,
+         "player_games": 4958,
+         "rungs": 4958
+        },
+        "fg3m": {
+         "games": 1124,
+         "halfwidth_cons": 0.0325,
+         "halfwidth_independent": 0.0182,
+         "mean_p": 0.544,
+         "player_games": 2871,
+         "rungs": 2871
+        },
+        "pts": {
+         "games": 1215,
+         "halfwidth_cons": 0.0297,
+         "halfwidth_independent": 0.0103,
+         "mean_p": 0.5467,
+         "player_games": 9006,
+         "rungs": 9026
+        },
+        "reb": {
+         "games": 1217,
+         "halfwidth_cons": 0.0298,
+         "halfwidth_independent": 0.0111,
+         "mean_p": 0.5498,
+         "player_games": 7704,
+         "rungs": 7718
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 1183,
+         "halfwidth_cons": 0.0299,
+         "halfwidth_independent": 0.0146,
+         "mean_p": 0.6496,
+         "player_games": 4108,
+         "rungs": 4108
+        },
+        "fg3m": {
+         "games": 874,
+         "halfwidth_cons": 0.0359,
+         "halfwidth_independent": 0.0238,
+         "mean_p": 0.6465,
+         "player_games": 1556,
+         "rungs": 1556
+        },
+        "pts": {
+         "games": 1178,
+         "halfwidth_cons": 0.0307,
+         "halfwidth_independent": 0.0131,
+         "mean_p": 0.6424,
+         "player_games": 5161,
+         "rungs": 5161
+        },
+        "reb": {
+         "games": 1194,
+         "halfwidth_cons": 0.0302,
+         "halfwidth_independent": 0.0135,
+         "mean_p": 0.6443,
+         "player_games": 4862,
+         "rungs": 4864
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 1149,
+         "halfwidth_cons": 0.028,
+         "halfwidth_independent": 0.0147,
+         "mean_p": 0.7508,
+         "player_games": 3337,
+         "rungs": 3337
+        },
+        "fg3m": {
+         "games": 596,
+         "halfwidth_cons": 0.038,
+         "halfwidth_independent": 0.0308,
+         "mean_p": 0.7439,
+         "player_games": 770,
+         "rungs": 770
+        },
+        "pts": {
+         "games": 788,
+         "halfwidth_cons": 0.0365,
+         "halfwidth_independent": 0.0221,
+         "mean_p": 0.7378,
+         "player_games": 1524,
+         "rungs": 1525
+        },
+        "reb": {
+         "games": 853,
+         "halfwidth_cons": 0.0341,
+         "halfwidth_independent": 0.0209,
+         "mean_p": 0.7389,
+         "player_games": 1698,
+         "rungs": 1698
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 1102,
+         "halfwidth_cons": 0.0238,
+         "halfwidth_independent": 0.0129,
+         "mean_p": 0.8487,
+         "player_games": 2969,
+         "rungs": 2969
+        },
+        "fg3m": {
+         "games": 323,
+         "halfwidth_cons": 0.0419,
+         "halfwidth_independent": 0.037,
+         "mean_p": 0.8416,
+         "player_games": 374,
+         "rungs": 374
+        },
+        "pts": {
+         "games": 203,
+         "halfwidth_cons": 0.0566,
+         "halfwidth_independent": 0.0472,
+         "mean_p": 0.8301,
+         "player_games": 242,
+         "rungs": 243
+        },
+        "reb": {
+         "games": 166,
+         "halfwidth_cons": 0.0617,
+         "halfwidth_independent": 0.0526,
+         "mean_p": 0.8274,
+         "player_games": 198,
+         "rungs": 198
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 1215,
+        "halfwidth_cons": 0.0235,
+        "halfwidth_independent": 0.0086,
+        "mean_p": 0.8206,
+        "player_games": 6136,
+        "rungs": 7593
+       },
+       "fg3m": {
+        "games": 767,
+        "halfwidth_cons": 0.0326,
+        "halfwidth_independent": 0.0238,
+        "mean_p": 0.7787,
+        "player_games": 1168,
+        "rungs": 1168
+       },
+       "pts": {
+        "games": 810,
+        "halfwidth_cons": 0.0364,
+        "halfwidth_independent": 0.02,
+        "mean_p": 0.752,
+        "player_games": 1680,
+        "rungs": 1783
+       },
+       "reb": {
+        "games": 869,
+        "halfwidth_cons": 0.0341,
+        "halfwidth_independent": 0.0195,
+        "mean_p": 0.7491,
+        "player_games": 1854,
+        "rungs": 1906
+       }
+      },
+      "rungs": 382399,
+      "tail_rungs": {
+       "05": 144509,
+       "15": 69976,
+       "25": 48017,
+       "35": 36417,
+       "45": 30768
+      }
+     },
+     "primary": {
       "bins": {
        "55": {
         "by_stat": {
@@ -10568,6 +13760,355 @@
        "35": 2019,
        "45": 1662
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 215,
+         "fg3m": 333,
+         "pts": 436,
+         "reb": 395
+        },
+        "dates": 58,
+        "decimal_min_med_max": [
+         1.2,
+         1.556,
+         3.85
+        ],
+        "games": 140,
+        "mean_model_p": 0.5454,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1283,
+        "roi_halfwidth_cons": 0.1423,
+        "roi_halfwidth_independent": 0.0426,
+        "rungs": 1379,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 1379,
+        "weekly_units_median": 101.0,
+        "weeks": 12,
+        "weeks_with_ge_10_units": 12
+       },
+       "65": {
+        "by_stat": {
+         "ast": 226,
+         "fg3m": 180,
+         "pts": 371,
+         "reb": 341
+        },
+        "dates": 58,
+        "decimal_min_med_max": [
+         1.2,
+         1.377,
+         2.35
+        ],
+        "games": 138,
+        "mean_model_p": 0.6483,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0884,
+        "roi_halfwidth_cons": 0.1205,
+        "roi_halfwidth_independent": 0.0396,
+        "rungs": 1118,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 1118,
+        "weekly_units_median": 71.5,
+        "weeks": 12,
+        "weeks_with_ge_10_units": 12
+       },
+       "75": {
+        "by_stat": {
+         "ast": 147,
+         "fg3m": 204,
+         "pts": 273,
+         "reb": 246
+        },
+        "dates": 58,
+        "decimal_min_med_max": [
+         1.16,
+         1.278,
+         2.5
+        ],
+        "games": 139,
+        "mean_model_p": 0.7463,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.033,
+        "roi_halfwidth_cons": 0.1034,
+        "roi_halfwidth_independent": 0.0376,
+        "rungs": 870,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 870,
+        "weekly_units_median": 50.5,
+        "weeks": 12,
+        "weeks_with_ge_10_units": 12
+       },
+       "85": {
+        "by_stat": {
+         "ast": 50,
+         "fg3m": 83,
+         "pts": 108,
+         "reb": 52
+        },
+        "dates": 57,
+        "decimal_min_med_max": [
+         1.1,
+         1.238,
+         1.847
+        ],
+        "games": 116,
+        "mean_model_p": 0.8374,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": 0.0485,
+        "roi_halfwidth_cons": 0.1047,
+        "roi_halfwidth_independent": 0.0529,
+        "rungs": 293,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 293,
+        "weekly_units_median": 20.5,
+        "weeks": 12,
+        "weeks_with_ge_10_units": 10
+       }
+      },
+      "games": 140,
+      "ge70": {
+       "by_stat": {
+        "ast": 198,
+        "fg3m": 290,
+        "pts": 385,
+        "reb": 302
+       },
+       "dates": 58,
+       "decimal_min_med_max": [
+        1.1,
+        1.267,
+        2.5
+       ],
+       "games": 139,
+       "mean_model_p": 0.7708,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0107,
+       "roi_halfwidth_cons": 0.097,
+       "roi_halfwidth_independent": 0.0308,
+       "rungs": 1175,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 1167,
+       "weekly_units_median": 73.5,
+       "weeks": 12,
+       "weeks_with_ge_10_units": 12
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 104,
+        "halfwidth_cons": 0.0922,
+        "halfwidth_independent": 0.0585,
+        "mean_p": 0.7729,
+        "player_games": 197,
+        "rungs": 197
+       },
+       "fg3m": {
+        "games": 125,
+        "halfwidth_cons": 0.0824,
+        "halfwidth_independent": 0.0485,
+        "mean_p": 0.7729,
+        "player_games": 287,
+        "rungs": 287
+       },
+       "pts": {
+        "games": 130,
+        "halfwidth_cons": 0.0814,
+        "halfwidth_independent": 0.042,
+        "mean_p": 0.774,
+        "player_games": 381,
+        "rungs": 381
+       },
+       "reb": {
+        "games": 120,
+        "halfwidth_cons": 0.0867,
+        "halfwidth_independent": 0.0487,
+        "mean_p": 0.7572,
+        "player_games": 297,
+        "rungs": 298
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 112,
+         "halfwidth_cons": 0.1095,
+         "halfwidth_independent": 0.0665,
+         "mean_p": 0.5495,
+         "player_games": 215,
+         "rungs": 215
+        },
+        "fg3m": {
+         "games": 129,
+         "halfwidth_cons": 0.0947,
+         "halfwidth_independent": 0.0535,
+         "mean_p": 0.5404,
+         "player_games": 333,
+         "rungs": 333
+        },
+        "pts": {
+         "games": 132,
+         "halfwidth_cons": 0.0962,
+         "halfwidth_independent": 0.0468,
+         "mean_p": 0.5441,
+         "player_games": 436,
+         "rungs": 436
+        },
+        "reb": {
+         "games": 133,
+         "halfwidth_cons": 0.0933,
+         "halfwidth_independent": 0.0491,
+         "mean_p": 0.5487,
+         "player_games": 395,
+         "rungs": 395
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 107,
+         "halfwidth_cons": 0.1026,
+         "halfwidth_independent": 0.0622,
+         "mean_p": 0.6486,
+         "player_games": 226,
+         "rungs": 226
+        },
+        "fg3m": {
+         "games": 94,
+         "halfwidth_cons": 0.1073,
+         "halfwidth_independent": 0.0696,
+         "mean_p": 0.6526,
+         "player_games": 180,
+         "rungs": 180
+        },
+        "pts": {
+         "games": 130,
+         "halfwidth_cons": 0.0929,
+         "halfwidth_independent": 0.0486,
+         "mean_p": 0.6473,
+         "player_games": 371,
+         "rungs": 371
+        },
+        "reb": {
+         "games": 133,
+         "halfwidth_cons": 0.091,
+         "halfwidth_independent": 0.0507,
+         "mean_p": 0.647,
+         "player_games": 341,
+         "rungs": 341
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 89,
+         "halfwidth_cons": 0.1024,
+         "halfwidth_independent": 0.0697,
+         "mean_p": 0.7532,
+         "player_games": 147,
+         "rungs": 147
+        },
+        "fg3m": {
+         "games": 112,
+         "halfwidth_cons": 0.091,
+         "halfwidth_independent": 0.0597,
+         "mean_p": 0.7464,
+         "player_games": 204,
+         "rungs": 204
+        },
+        "pts": {
+         "games": 123,
+         "halfwidth_cons": 0.0865,
+         "halfwidth_independent": 0.0514,
+         "mean_p": 0.7489,
+         "player_games": 273,
+         "rungs": 273
+        },
+        "reb": {
+         "games": 115,
+         "halfwidth_cons": 0.0903,
+         "halfwidth_independent": 0.0549,
+         "mean_p": 0.7391,
+         "player_games": 246,
+         "rungs": 246
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 45,
+         "halfwidth_cons": 0.1138,
+         "halfwidth_independent": 0.1039,
+         "mean_p": 0.8309,
+         "player_games": 50,
+         "rungs": 50
+        },
+        "fg3m": {
+         "games": 54,
+         "halfwidth_cons": 0.109,
+         "halfwidth_independent": 0.0793,
+         "mean_p": 0.838,
+         "player_games": 83,
+         "rungs": 83
+        },
+        "pts": {
+         "games": 74,
+         "halfwidth_cons": 0.098,
+         "halfwidth_independent": 0.0696,
+         "mean_p": 0.8374,
+         "player_games": 108,
+         "rungs": 108
+        },
+        "reb": {
+         "games": 40,
+         "halfwidth_cons": 0.1316,
+         "halfwidth_independent": 0.099,
+         "mean_p": 0.8427,
+         "player_games": 52,
+         "rungs": 52
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 105,
+        "halfwidth_cons": 0.0917,
+        "halfwidth_independent": 0.0583,
+        "mean_p": 0.7736,
+        "player_games": 198,
+        "rungs": 198
+       },
+       "fg3m": {
+        "games": 125,
+        "halfwidth_cons": 0.0821,
+        "halfwidth_independent": 0.0481,
+        "mean_p": 0.7745,
+        "player_games": 290,
+        "rungs": 290
+       },
+       "pts": {
+        "games": 130,
+        "halfwidth_cons": 0.0813,
+        "halfwidth_independent": 0.0417,
+        "mean_p": 0.7755,
+        "player_games": 382,
+        "rungs": 385
+       },
+       "reb": {
+        "games": 120,
+        "halfwidth_cons": 0.0871,
+        "halfwidth_independent": 0.0482,
+        "mean_p": 0.7593,
+        "player_games": 297,
+        "rungs": 302
+       }
+      },
+      "rungs": 10443,
+      "tail_rungs": {
+       "05": 46,
+       "15": 985,
+       "25": 2059,
+       "35": 2019,
+       "45": 1662
+      }
      }
     },
     "bovada": {
@@ -11616,6 +15157,355 @@
        "25": 13270,
        "35": 10153,
        "45": 8716
+      }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 1088,
+         "fg3m": 1737,
+         "pts": 2338,
+         "reb": 2406
+        },
+        "dates": 158,
+        "decimal_min_med_max": [
+         1.025,
+         1.556,
+         4.6
+        ],
+        "games": 863,
+        "mean_model_p": 0.5485,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1373,
+        "roi_halfwidth_cons": 0.0561,
+        "roi_halfwidth_independent": 0.0178,
+        "rungs": 7569,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 7569,
+        "weekly_units_median": 324.0,
+        "weeks": 27,
+        "weeks_with_ge_10_units": 26
+       },
+       "65": {
+        "by_stat": {
+         "ast": 1067,
+         "fg3m": 998,
+         "pts": 2080,
+         "reb": 1929
+        },
+        "dates": 157,
+        "decimal_min_med_max": [
+         1.012,
+         1.357,
+         2.5
+        ],
+        "games": 858,
+        "mean_model_p": 0.649,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1077,
+        "roi_halfwidth_cons": 0.0476,
+        "roi_halfwidth_independent": 0.0166,
+        "rungs": 6074,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 6074,
+        "weekly_units_median": 270.0,
+        "weeks": 26,
+        "weeks_with_ge_10_units": 26
+       },
+       "75": {
+        "by_stat": {
+         "ast": 799,
+         "fg3m": 717,
+         "pts": 1774,
+         "reb": 1665
+        },
+        "dates": 157,
+        "decimal_min_med_max": [
+         1.017,
+         1.222,
+         2.55
+        ],
+        "games": 860,
+        "mean_model_p": 0.7494,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0699,
+        "roi_halfwidth_cons": 0.0391,
+        "roi_halfwidth_independent": 0.015,
+        "rungs": 4955,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 4955,
+        "weekly_units_median": 230.5,
+        "weeks": 26,
+        "weeks_with_ge_10_units": 26
+       },
+       "85": {
+        "by_stat": {
+         "ast": 701,
+         "fg3m": 616,
+         "pts": 1813,
+         "reb": 1550
+        },
+        "dates": 157,
+        "decimal_min_med_max": [
+         1.01,
+         1.125,
+         1.8
+        ],
+        "games": 856,
+        "mean_model_p": 0.852,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0294,
+        "roi_halfwidth_cons": 0.0294,
+        "roi_halfwidth_independent": 0.0116,
+        "rungs": 4680,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 4680,
+        "weekly_units_median": 207.5,
+        "weeks": 26,
+        "weeks_with_ge_10_units": 26
+       }
+      },
+      "games": 873,
+      "ge70": {
+       "by_stat": {
+        "ast": 2294,
+        "fg3m": 1503,
+        "pts": 5870,
+        "reb": 4919
+       },
+       "dates": 157,
+       "decimal_min_med_max": [
+        1.001,
+        1.125,
+        2.55
+       ],
+       "games": 864,
+       "mean_model_p": 0.8506,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0306,
+       "roi_halfwidth_cons": 0.0269,
+       "roi_halfwidth_independent": 0.0067,
+       "rungs": 14586,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 11124,
+       "weekly_units_median": 523.5,
+       "weeks": 26,
+       "weeks_with_ge_10_units": 26
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 760,
+        "halfwidth_cons": 0.0314,
+        "halfwidth_independent": 0.0203,
+        "mean_p": 0.799,
+        "player_games": 1500,
+        "rungs": 1500
+       },
+       "fg3m": {
+        "games": 724,
+        "halfwidth_cons": 0.0324,
+        "halfwidth_independent": 0.0217,
+        "mean_p": 0.794,
+        "player_games": 1333,
+        "rungs": 1333
+       },
+       "pts": {
+        "games": 860,
+        "halfwidth_cons": 0.0285,
+        "halfwidth_independent": 0.013,
+        "mean_p": 0.8021,
+        "player_games": 3586,
+        "rungs": 3587
+       },
+       "reb": {
+        "games": 845,
+        "halfwidth_cons": 0.0291,
+        "halfwidth_independent": 0.0139,
+        "mean_p": 0.7983,
+        "player_games": 3181,
+        "rungs": 3215
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 659,
+         "halfwidth_cons": 0.0422,
+         "halfwidth_independent": 0.0296,
+         "mean_p": 0.5479,
+         "player_games": 1088,
+         "rungs": 1088
+        },
+        "fg3m": {
+         "games": 755,
+         "halfwidth_cons": 0.0396,
+         "halfwidth_independent": 0.0234,
+         "mean_p": 0.5445,
+         "player_games": 1737,
+         "rungs": 1737
+        },
+        "pts": {
+         "games": 815,
+         "halfwidth_cons": 0.0382,
+         "halfwidth_independent": 0.0202,
+         "mean_p": 0.5482,
+         "player_games": 2338,
+         "rungs": 2338
+        },
+        "reb": {
+         "games": 817,
+         "halfwidth_cons": 0.0377,
+         "halfwidth_independent": 0.0199,
+         "mean_p": 0.5517,
+         "player_games": 2406,
+         "rungs": 2406
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 641,
+         "halfwidth_cons": 0.0412,
+         "halfwidth_independent": 0.0286,
+         "mean_p": 0.6497,
+         "player_games": 1067,
+         "rungs": 1067
+        },
+        "fg3m": {
+         "games": 579,
+         "halfwidth_cons": 0.0439,
+         "halfwidth_independent": 0.0296,
+         "mean_p": 0.648,
+         "player_games": 998,
+         "rungs": 998
+        },
+        "pts": {
+         "games": 796,
+         "halfwidth_cons": 0.0374,
+         "halfwidth_independent": 0.0205,
+         "mean_p": 0.6495,
+         "player_games": 2080,
+         "rungs": 2080
+        },
+        "reb": {
+         "games": 773,
+         "halfwidth_cons": 0.0374,
+         "halfwidth_independent": 0.0213,
+         "mean_p": 0.6486,
+         "player_games": 1929,
+         "rungs": 1929
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 546,
+         "halfwidth_cons": 0.04,
+         "halfwidth_independent": 0.03,
+         "mean_p": 0.7499,
+         "player_games": 799,
+         "rungs": 799
+        },
+        "fg3m": {
+         "games": 524,
+         "halfwidth_cons": 0.0405,
+         "halfwidth_independent": 0.0318,
+         "mean_p": 0.7487,
+         "player_games": 717,
+         "rungs": 717
+        },
+        "pts": {
+         "games": 765,
+         "halfwidth_cons": 0.0346,
+         "halfwidth_independent": 0.0201,
+         "mean_p": 0.7501,
+         "player_games": 1774,
+         "rungs": 1774
+        },
+        "reb": {
+         "games": 759,
+         "halfwidth_cons": 0.0348,
+         "halfwidth_independent": 0.0208,
+         "mean_p": 0.7488,
+         "player_games": 1665,
+         "rungs": 1665
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 509,
+         "halfwidth_cons": 0.0333,
+         "halfwidth_independent": 0.0261,
+         "mean_p": 0.855,
+         "player_games": 701,
+         "rungs": 701
+        },
+        "fg3m": {
+         "games": 454,
+         "halfwidth_cons": 0.036,
+         "halfwidth_independent": 0.0285,
+         "mean_p": 0.8467,
+         "player_games": 616,
+         "rungs": 616
+        },
+        "pts": {
+         "games": 783,
+         "halfwidth_cons": 0.0277,
+         "halfwidth_independent": 0.0163,
+         "mean_p": 0.853,
+         "player_games": 1813,
+         "rungs": 1813
+        },
+        "reb": {
+         "games": 755,
+         "halfwidth_cons": 0.0281,
+         "halfwidth_independent": 0.0177,
+         "mean_p": 0.8516,
+         "player_games": 1550,
+         "rungs": 1550
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 811,
+        "halfwidth_cons": 0.0272,
+        "halfwidth_independent": 0.0145,
+        "mean_p": 0.8524,
+        "player_games": 1947,
+        "rungs": 2294
+       },
+       "fg3m": {
+        "games": 741,
+        "halfwidth_cons": 0.0313,
+        "halfwidth_independent": 0.0198,
+        "mean_p": 0.8105,
+        "player_games": 1426,
+        "rungs": 1503
+       },
+       "pts": {
+        "games": 863,
+        "halfwidth_cons": 0.0246,
+        "halfwidth_independent": 0.0089,
+        "mean_p": 0.8601,
+        "player_games": 4215,
+        "rungs": 5870
+       },
+       "reb": {
+        "games": 848,
+        "halfwidth_cons": 0.0256,
+        "halfwidth_independent": 0.01,
+        "mean_p": 0.8508,
+        "player_games": 3536,
+        "rungs": 4919
+       }
+      },
+      "rungs": 103415,
+      "tail_rungs": {
+       "05": 24611,
+       "15": 18876,
+       "25": 13077,
+       "35": 10030,
+       "45": 8592
       }
      }
     },
@@ -12666,6 +16556,355 @@
        "35": 36750,
        "45": 36200
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 5674,
+         "fg3m": 3876,
+         "pts": 12107,
+         "reb": 8690
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.025,
+         1.606,
+         6.0
+        ],
+        "games": 1252,
+        "mean_model_p": 0.5482,
+        "mean_overround_two_sided": 0.0986,
+        "model_claimed_ev_mean": -0.1076,
+        "roi_halfwidth_cons": 0.0469,
+        "roi_halfwidth_independent": 0.0092,
+        "rungs": 30347,
+        "two_sided_share": 0.003,
+        "units_player_game_stat": 29231,
+        "weekly_units_median": 814.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "65": {
+        "by_stat": {
+         "ast": 3664,
+         "fg3m": 3060,
+         "pts": 9866,
+         "reb": 7419
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.012,
+         1.377,
+         3.9
+        ],
+        "games": 1252,
+        "mean_model_p": 0.6487,
+        "mean_overround_two_sided": 0.0968,
+        "model_claimed_ev_mean": -0.0881,
+        "roi_halfwidth_cons": 0.0391,
+        "roi_halfwidth_independent": 0.0086,
+        "rungs": 24009,
+        "two_sided_share": 0.003,
+        "units_player_game_stat": 23710,
+        "weekly_units_median": 693.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "75": {
+        "by_stat": {
+         "ast": 2519,
+         "fg3m": 3440,
+         "pts": 8691,
+         "reb": 5934
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.017,
+         1.235,
+         2.6
+        ],
+        "games": 1252,
+        "mean_model_p": 0.75,
+        "mean_overround_two_sided": 0.0907,
+        "model_claimed_ev_mean": -0.0584,
+        "roi_halfwidth_cons": 0.0315,
+        "roi_halfwidth_independent": 0.0075,
+        "rungs": 20584,
+        "two_sided_share": 0.002,
+        "units_player_game_stat": 20532,
+        "weekly_units_median": 599.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "85": {
+        "by_stat": {
+         "ast": 2567,
+         "fg3m": 4228,
+         "pts": 8127,
+         "reb": 4590
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.012,
+         1.143,
+         2.1
+        ],
+        "games": 1251,
+        "mean_model_p": 0.8503,
+        "mean_overround_two_sided": 0.0803,
+        "model_claimed_ev_mean": -0.0183,
+        "roi_halfwidth_cons": 0.0243,
+        "roi_halfwidth_independent": 0.0058,
+        "rungs": 19512,
+        "two_sided_share": 0.001,
+        "units_player_game_stat": 19312,
+        "weekly_units_median": 550.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       }
+      },
+      "games": 1252,
+      "ge70": {
+       "by_stat": {
+        "ast": 6675,
+        "fg3m": 9385,
+        "pts": 21627,
+        "reb": 12596
+       },
+       "dates": 211,
+       "decimal_min_med_max": [
+        1.005,
+        1.154,
+        2.6
+       ],
+       "games": 1252,
+       "mean_model_p": 0.8266,
+       "mean_overround_two_sided": 0.0836,
+       "model_claimed_ev_mean": -0.0274,
+       "roi_halfwidth_cons": 0.0252,
+       "roi_halfwidth_independent": 0.0039,
+       "rungs": 50283,
+       "two_sided_share": 0.002,
+       "units_player_game_stat": 35033,
+       "weekly_units_median": 1121.0,
+       "weeks": 35,
+       "weeks_with_ge_10_units": 35
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 1216,
+        "halfwidth_cons": 0.0244,
+        "halfwidth_independent": 0.011,
+        "mean_p": 0.8009,
+        "player_games": 4619,
+        "rungs": 5086
+       },
+       "fg3m": {
+        "games": 1246,
+        "halfwidth_cons": 0.0233,
+        "halfwidth_independent": 0.0088,
+        "mean_p": 0.8062,
+        "player_games": 7668,
+        "rungs": 7668
+       },
+       "pts": {
+        "games": 1252,
+        "halfwidth_cons": 0.0232,
+        "halfwidth_independent": 0.0061,
+        "mean_p": 0.7989,
+        "player_games": 12073,
+        "rungs": 16818
+       },
+       "reb": {
+        "games": 1247,
+        "halfwidth_cons": 0.0243,
+        "halfwidth_independent": 0.0078,
+        "mean_p": 0.7922,
+        "player_games": 8452,
+        "rungs": 10524
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 1235,
+         "halfwidth_cons": 0.0303,
+         "halfwidth_independent": 0.013,
+         "mean_p": 0.547,
+         "player_games": 5674,
+         "rungs": 5674
+        },
+        "fg3m": {
+         "games": 1202,
+         "halfwidth_cons": 0.0311,
+         "halfwidth_independent": 0.0157,
+         "mean_p": 0.5462,
+         "player_games": 3876,
+         "rungs": 3876
+        },
+        "pts": {
+         "games": 1252,
+         "halfwidth_cons": 0.0288,
+         "halfwidth_independent": 0.0089,
+         "mean_p": 0.5474,
+         "player_games": 11020,
+         "rungs": 12107
+        },
+        "reb": {
+         "games": 1248,
+         "halfwidth_cons": 0.0294,
+         "halfwidth_independent": 0.0105,
+         "mean_p": 0.5511,
+         "player_games": 8661,
+         "rungs": 8690
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 1177,
+         "halfwidth_cons": 0.0307,
+         "halfwidth_independent": 0.0155,
+         "mean_p": 0.647,
+         "player_games": 3664,
+         "rungs": 3664
+        },
+        "fg3m": {
+         "games": 1148,
+         "halfwidth_cons": 0.0308,
+         "halfwidth_independent": 0.0169,
+         "mean_p": 0.6507,
+         "player_games": 3060,
+         "rungs": 3060
+        },
+        "pts": {
+         "games": 1252,
+         "halfwidth_cons": 0.0278,
+         "halfwidth_independent": 0.0094,
+         "mean_p": 0.649,
+         "player_games": 9586,
+         "rungs": 9866
+        },
+        "reb": {
+         "games": 1238,
+         "halfwidth_cons": 0.029,
+         "halfwidth_independent": 0.0109,
+         "mean_p": 0.6483,
+         "player_games": 7400,
+         "rungs": 7419
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 1086,
+         "halfwidth_cons": 0.0289,
+         "halfwidth_independent": 0.0169,
+         "mean_p": 0.7508,
+         "player_games": 2519,
+         "rungs": 2519
+        },
+        "fg3m": {
+         "games": 1179,
+         "halfwidth_cons": 0.0274,
+         "halfwidth_independent": 0.0144,
+         "mean_p": 0.7521,
+         "player_games": 3440,
+         "rungs": 3440
+        },
+        "pts": {
+         "games": 1252,
+         "halfwidth_cons": 0.0252,
+         "halfwidth_independent": 0.0091,
+         "mean_p": 0.7499,
+         "player_games": 8646,
+         "rungs": 8691
+        },
+        "reb": {
+         "games": 1230,
+         "halfwidth_cons": 0.0264,
+         "halfwidth_independent": 0.011,
+         "mean_p": 0.7485,
+         "player_games": 5927,
+         "rungs": 5934
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 1094,
+         "halfwidth_cons": 0.0235,
+         "halfwidth_independent": 0.0138,
+         "mean_p": 0.8502,
+         "player_games": 2567,
+         "rungs": 2567
+        },
+        "fg3m": {
+         "games": 1203,
+         "halfwidth_cons": 0.0224,
+         "halfwidth_independent": 0.0108,
+         "mean_p": 0.8503,
+         "player_games": 4228,
+         "rungs": 4228
+        },
+        "pts": {
+         "games": 1243,
+         "halfwidth_cons": 0.0212,
+         "halfwidth_independent": 0.0077,
+         "mean_p": 0.8514,
+         "player_games": 7968,
+         "rungs": 8127
+        },
+        "reb": {
+         "games": 1189,
+         "halfwidth_cons": 0.0228,
+         "halfwidth_independent": 0.0104,
+         "mean_p": 0.8487,
+         "player_games": 4549,
+         "rungs": 4590
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 1227,
+        "halfwidth_cons": 0.0229,
+        "halfwidth_independent": 0.0089,
+        "mean_p": 0.8345,
+        "player_games": 4991,
+        "rungs": 6675
+       },
+       "fg3m": {
+        "games": 1247,
+        "halfwidth_cons": 0.0221,
+        "halfwidth_independent": 0.0076,
+        "mean_p": 0.8295,
+        "player_games": 9085,
+        "rungs": 9385
+       },
+       "pts": {
+        "games": 1252,
+        "halfwidth_cons": 0.022,
+        "halfwidth_independent": 0.005,
+        "mean_p": 0.8294,
+        "player_games": 12127,
+        "rungs": 21627
+       },
+       "reb": {
+        "games": 1247,
+        "halfwidth_cons": 0.0235,
+        "halfwidth_independent": 0.0068,
+        "mean_p": 0.8154,
+        "player_games": 8830,
+        "rungs": 12596
+       }
+      },
+      "rungs": 358244,
+      "tail_rungs": {
+       "05": 76528,
+       "15": 60293,
+       "25": 43839,
+       "35": 36748,
+       "45": 36197
+      }
      }
     },
     "fanatics": {
@@ -13368,6 +17607,355 @@
       }
      },
      "excl_window_lead66": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 2570,
+         "fg3m": 1328,
+         "pts": 9677,
+         "reb": 3880
+        },
+        "dates": 106,
+        "decimal_min_med_max": [
+         1.045,
+         1.588,
+         10.5
+        ],
+        "games": 502,
+        "mean_model_p": 0.5495,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1016,
+        "roi_halfwidth_cons": 0.0735,
+        "roi_halfwidth_independent": 0.0123,
+        "rungs": 17455,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 14070,
+        "weekly_units_median": 568.0,
+        "weeks": 19,
+        "weeks_with_ge_10_units": 19
+       },
+       "65": {
+        "by_stat": {
+         "ast": 1956,
+         "fg3m": 1022,
+         "pts": 9409,
+         "reb": 3872
+        },
+        "dates": 106,
+        "decimal_min_med_max": [
+         1.04,
+         1.364,
+         7.0
+        ],
+        "games": 501,
+        "mean_model_p": 0.6493,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0908,
+        "roi_halfwidth_cons": 0.0603,
+        "roi_halfwidth_independent": 0.0104,
+        "rungs": 16259,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 12896,
+        "weekly_units_median": 561.0,
+        "weeks": 19,
+        "weeks_with_ge_10_units": 19
+       },
+       "75": {
+        "by_stat": {
+         "ast": 1704,
+         "fg3m": 1357,
+         "pts": 8619,
+         "reb": 3680
+        },
+        "dates": 106,
+        "decimal_min_med_max": [
+         1.029,
+         1.235,
+         4.75
+        ],
+        "games": 502,
+        "mean_model_p": 0.7507,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0638,
+        "roi_halfwidth_cons": 0.0485,
+        "roi_halfwidth_independent": 0.0086,
+        "rungs": 15360,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 12276,
+        "weekly_units_median": 547.0,
+        "weeks": 19,
+        "weeks_with_ge_10_units": 19
+       },
+       "85": {
+        "by_stat": {
+         "ast": 1787,
+         "fg3m": 2002,
+         "pts": 9236,
+         "reb": 3737
+        },
+        "dates": 106,
+        "decimal_min_med_max": [
+         1.033,
+         1.125,
+         2.75
+        ],
+        "games": 500,
+        "mean_model_p": 0.8519,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0255,
+        "roi_halfwidth_cons": 0.0366,
+        "roi_halfwidth_independent": 0.0062,
+        "rungs": 16762,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 12254,
+        "weekly_units_median": 551.0,
+        "weeks": 19,
+        "weeks_with_ge_10_units": 18
+       }
+      },
+      "games": 503,
+      "ge70": {
+       "by_stat": {
+        "ast": 5273,
+        "fg3m": 4493,
+        "pts": 24043,
+        "reb": 10335
+       },
+       "dates": 106,
+       "decimal_min_med_max": [
+        1.012,
+        1.125,
+        4.75
+       ],
+       "games": 502,
+       "mean_model_p": 0.8406,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0286,
+       "roi_halfwidth_cons": 0.0369,
+       "roi_halfwidth_independent": 0.004,
+       "rungs": 44144,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 18374,
+       "weekly_units_median": 830.0,
+       "weeks": 19,
+       "weeks_with_ge_10_units": 19
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 494,
+        "halfwidth_cons": 0.0365,
+        "halfwidth_independent": 0.0132,
+        "mean_p": 0.8023,
+        "player_games": 3122,
+        "rungs": 3491
+       },
+       "fg3m": {
+        "games": 492,
+        "halfwidth_cons": 0.0362,
+        "halfwidth_independent": 0.0132,
+        "mean_p": 0.8114,
+        "player_games": 3359,
+        "rungs": 3359
+       },
+       "pts": {
+        "games": 499,
+        "halfwidth_cons": 0.0357,
+        "halfwidth_independent": 0.0058,
+        "mean_p": 0.8034,
+        "player_games": 5541,
+        "rungs": 17855
+       },
+       "reb": {
+        "games": 494,
+        "halfwidth_cons": 0.0363,
+        "halfwidth_independent": 0.0091,
+        "mean_p": 0.8009,
+        "player_games": 5605,
+        "rungs": 7417
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 494,
+         "halfwidth_cons": 0.047,
+         "halfwidth_independent": 0.0192,
+         "mean_p": 0.549,
+         "player_games": 2570,
+         "rungs": 2570
+        },
+        "fg3m": {
+         "games": 465,
+         "halfwidth_cons": 0.0499,
+         "halfwidth_independent": 0.0268,
+         "mean_p": 0.5452,
+         "player_games": 1328,
+         "rungs": 1328
+        },
+        "pts": {
+         "games": 500,
+         "halfwidth_cons": 0.0447,
+         "halfwidth_independent": 0.0099,
+         "mean_p": 0.5492,
+         "player_games": 6310,
+         "rungs": 9677
+        },
+        "reb": {
+         "games": 492,
+         "halfwidth_cons": 0.0457,
+         "halfwidth_independent": 0.0156,
+         "mean_p": 0.5518,
+         "player_games": 3862,
+         "rungs": 3880
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 488,
+         "halfwidth_cons": 0.0458,
+         "halfwidth_independent": 0.0211,
+         "mean_p": 0.6494,
+         "player_games": 1956,
+         "rungs": 1956
+        },
+        "fg3m": {
+         "games": 428,
+         "halfwidth_cons": 0.0501,
+         "halfwidth_independent": 0.0292,
+         "mean_p": 0.6513,
+         "player_games": 1022,
+         "rungs": 1022
+        },
+        "pts": {
+         "games": 499,
+         "halfwidth_cons": 0.0429,
+         "halfwidth_independent": 0.0096,
+         "mean_p": 0.6492,
+         "player_games": 6060,
+         "rungs": 9409
+        },
+        "reb": {
+         "games": 494,
+         "halfwidth_cons": 0.0441,
+         "halfwidth_independent": 0.015,
+         "mean_p": 0.6488,
+         "player_games": 3858,
+         "rungs": 3872
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 483,
+         "halfwidth_cons": 0.042,
+         "halfwidth_independent": 0.0205,
+         "mean_p": 0.7534,
+         "player_games": 1704,
+         "rungs": 1704
+        },
+        "fg3m": {
+         "games": 468,
+         "halfwidth_cons": 0.0437,
+         "halfwidth_independent": 0.0229,
+         "mean_p": 0.7533,
+         "player_games": 1357,
+         "rungs": 1357
+        },
+        "pts": {
+         "games": 499,
+         "halfwidth_cons": 0.0389,
+         "halfwidth_independent": 0.0091,
+         "mean_p": 0.7504,
+         "player_games": 5541,
+         "rungs": 8619
+        },
+        "reb": {
+         "games": 492,
+         "halfwidth_cons": 0.04,
+         "halfwidth_independent": 0.014,
+         "mean_p": 0.7494,
+         "player_games": 3674,
+         "rungs": 3680
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 482,
+         "halfwidth_cons": 0.0343,
+         "halfwidth_independent": 0.0166,
+         "mean_p": 0.849,
+         "player_games": 1787,
+         "rungs": 1787
+        },
+        "fg3m": {
+         "games": 486,
+         "halfwidth_cons": 0.0342,
+         "halfwidth_independent": 0.0156,
+         "mean_p": 0.8507,
+         "player_games": 2002,
+         "rungs": 2002
+        },
+        "pts": {
+         "games": 498,
+         "halfwidth_cons": 0.032,
+         "halfwidth_independent": 0.0072,
+         "mean_p": 0.8529,
+         "player_games": 4768,
+         "rungs": 9236
+        },
+        "reb": {
+         "games": 491,
+         "halfwidth_cons": 0.0329,
+         "halfwidth_independent": 0.0114,
+         "mean_p": 0.8516,
+         "player_games": 3697,
+         "rungs": 3737
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 494,
+        "halfwidth_cons": 0.0329,
+        "halfwidth_independent": 0.0096,
+        "mean_p": 0.8522,
+        "player_games": 3143,
+        "rungs": 5273
+       },
+       "fg3m": {
+        "games": 493,
+        "halfwidth_cons": 0.0332,
+        "halfwidth_independent": 0.0106,
+        "mean_p": 0.844,
+        "player_games": 4084,
+        "rungs": 4493
+       },
+       "pts": {
+        "games": 499,
+        "halfwidth_cons": 0.0333,
+        "halfwidth_independent": 0.0047,
+        "mean_p": 0.8377,
+        "player_games": 5541,
+        "rungs": 24043
+       },
+       "reb": {
+        "games": 494,
+        "halfwidth_cons": 0.0335,
+        "halfwidth_independent": 0.0071,
+        "mean_p": 0.8398,
+        "player_games": 5606,
+        "rungs": 10335
+       }
+      },
+      "rungs": 213990,
+      "tail_rungs": {
+       "05": 22898,
+       "15": 40247,
+       "25": 29643,
+       "35": 22955,
+       "45": 20389
+      }
+     },
+     "primary": {
       "bins": {
        "55": {
         "by_stat": {
@@ -14764,6 +19352,355 @@
        "35": 39579,
        "45": 34815
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 3551,
+         "fg3m": 3077,
+         "pts": 17293,
+         "reb": 7194
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.011,
+         1.581,
+         4.3
+        ],
+        "games": 1239,
+        "mean_model_p": 0.5495,
+        "mean_overround_two_sided": 0.0677,
+        "model_claimed_ev_mean": -0.1096,
+        "roi_halfwidth_cons": 0.0478,
+        "roi_halfwidth_independent": 0.0091,
+        "rungs": 31115,
+        "two_sided_share": 0.861,
+        "units_player_game_stat": 24964,
+        "weekly_units_median": 882.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "65": {
+        "by_stat": {
+         "ast": 3247,
+         "fg3m": 2237,
+         "pts": 16452,
+         "reb": 6636
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.005,
+         1.37,
+         5.4
+        ],
+        "games": 1238,
+        "mean_model_p": 0.6495,
+        "mean_overround_two_sided": 0.068,
+        "model_claimed_ev_mean": -0.0912,
+        "roi_halfwidth_cons": 0.0398,
+        "roi_halfwidth_independent": 0.0078,
+        "rungs": 28572,
+        "two_sided_share": 0.778,
+        "units_player_game_stat": 22897,
+        "weekly_units_median": 755.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "75": {
+        "by_stat": {
+         "ast": 3094,
+         "fg3m": 2781,
+         "pts": 14810,
+         "reb": 6324
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.01,
+         1.238,
+         2.68
+        ],
+        "games": 1239,
+        "mean_model_p": 0.7511,
+        "mean_overround_two_sided": 0.0683,
+        "model_claimed_ev_mean": -0.0578,
+        "roi_halfwidth_cons": 0.0323,
+        "roi_halfwidth_independent": 0.0065,
+        "rungs": 27009,
+        "two_sided_share": 0.483,
+        "units_player_game_stat": 22328,
+        "weekly_units_median": 762.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       },
+       "85": {
+        "by_stat": {
+         "ast": 3892,
+         "fg3m": 4195,
+         "pts": 12669,
+         "reb": 7295
+        },
+        "dates": 211,
+        "decimal_min_med_max": [
+         1.002,
+         1.149,
+         2.34
+        ],
+        "games": 1238,
+        "mean_model_p": 0.8515,
+        "mean_overround_two_sided": 0.0684,
+        "model_claimed_ev_mean": -0.0144,
+        "roi_halfwidth_cons": 0.0245,
+        "roi_halfwidth_independent": 0.0048,
+        "rungs": 28051,
+        "two_sided_share": 0.146,
+        "units_player_game_stat": 23576,
+        "weekly_units_median": 827.0,
+        "weeks": 35,
+        "weeks_with_ge_10_units": 35
+       }
+      },
+      "games": 1240,
+      "ge70": {
+       "by_stat": {
+        "ast": 14607,
+        "fg3m": 11275,
+        "pts": 34231,
+        "reb": 24299
+       },
+       "dates": 211,
+       "decimal_min_med_max": [
+        1.002,
+        1.139,
+        2.68
+       ],
+       "games": 1240,
+       "mean_model_p": 0.8545,
+       "mean_overround_two_sided": 0.0682,
+       "model_claimed_ev_mean": -0.0198,
+       "roi_halfwidth_cons": 0.0227,
+       "roi_halfwidth_independent": 0.0028,
+       "rungs": 84412,
+       "two_sided_share": 0.208,
+       "units_player_game_stat": 37948,
+       "weekly_units_median": 1373.0,
+       "weeks": 35,
+       "weeks_with_ge_10_units": 35
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 1228,
+        "halfwidth_cons": 0.0235,
+        "halfwidth_independent": 0.0092,
+        "mean_p": 0.8086,
+        "player_games": 6328,
+        "rungs": 6986
+       },
+       "fg3m": {
+        "games": 1228,
+        "halfwidth_cons": 0.0232,
+        "halfwidth_independent": 0.0092,
+        "mean_p": 0.8129,
+        "player_games": 6976,
+        "rungs": 6976
+       },
+       "pts": {
+        "games": 1239,
+        "halfwidth_cons": 0.0253,
+        "halfwidth_independent": 0.0048,
+        "mean_p": 0.796,
+        "player_games": 10887,
+        "rungs": 27479
+       },
+       "reb": {
+        "games": 1238,
+        "halfwidth_cons": 0.0237,
+        "halfwidth_independent": 0.0066,
+        "mean_p": 0.806,
+        "player_games": 10301,
+        "rungs": 13619
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 1160,
+         "halfwidth_cons": 0.0317,
+         "halfwidth_independent": 0.0164,
+         "mean_p": 0.549,
+         "player_games": 3551,
+         "rungs": 3551
+        },
+        "fg3m": {
+         "games": 1164,
+         "halfwidth_cons": 0.0318,
+         "halfwidth_independent": 0.0176,
+         "mean_p": 0.5451,
+         "player_games": 3077,
+         "rungs": 3077
+        },
+        "pts": {
+         "games": 1232,
+         "halfwidth_cons": 0.0306,
+         "halfwidth_independent": 0.0074,
+         "mean_p": 0.5495,
+         "player_games": 11171,
+         "rungs": 17293
+        },
+        "reb": {
+         "games": 1234,
+         "halfwidth_cons": 0.0298,
+         "halfwidth_independent": 0.0115,
+         "mean_p": 0.5516,
+         "player_games": 7165,
+         "rungs": 7194
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 1147,
+         "halfwidth_cons": 0.0307,
+         "halfwidth_independent": 0.0164,
+         "mean_p": 0.65,
+         "player_games": 3247,
+         "rungs": 3247
+        },
+        "fg3m": {
+         "games": 1052,
+         "halfwidth_cons": 0.0325,
+         "halfwidth_independent": 0.0198,
+         "mean_p": 0.6507,
+         "player_games": 2237,
+         "rungs": 2237
+        },
+        "pts": {
+         "games": 1221,
+         "halfwidth_cons": 0.0296,
+         "halfwidth_independent": 0.0073,
+         "mean_p": 0.6491,
+         "player_games": 10798,
+         "rungs": 16452
+        },
+        "reb": {
+         "games": 1227,
+         "halfwidth_cons": 0.0289,
+         "halfwidth_independent": 0.0115,
+         "mean_p": 0.6497,
+         "player_games": 6615,
+         "rungs": 6636
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 1135,
+         "halfwidth_cons": 0.028,
+         "halfwidth_independent": 0.0152,
+         "mean_p": 0.753,
+         "player_games": 3094,
+         "rungs": 3094
+        },
+        "fg3m": {
+         "games": 1122,
+         "halfwidth_cons": 0.0282,
+         "halfwidth_independent": 0.016,
+         "mean_p": 0.7537,
+         "player_games": 2781,
+         "rungs": 2781
+        },
+        "pts": {
+         "games": 1223,
+         "halfwidth_cons": 0.0271,
+         "halfwidth_independent": 0.007,
+         "mean_p": 0.7501,
+         "player_games": 10138,
+         "rungs": 14810
+        },
+        "reb": {
+         "games": 1214,
+         "halfwidth_cons": 0.0264,
+         "halfwidth_independent": 0.0107,
+         "mean_p": 0.7513,
+         "player_games": 6315,
+         "rungs": 6324
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 1176,
+         "halfwidth_cons": 0.0223,
+         "halfwidth_independent": 0.0111,
+         "mean_p": 0.8529,
+         "player_games": 3891,
+         "rungs": 3892
+        },
+        "fg3m": {
+         "games": 1185,
+         "halfwidth_cons": 0.0221,
+         "halfwidth_independent": 0.0107,
+         "mean_p": 0.8521,
+         "player_games": 4195,
+         "rungs": 4195
+        },
+        "pts": {
+         "games": 1210,
+         "halfwidth_cons": 0.0229,
+         "halfwidth_independent": 0.0062,
+         "mean_p": 0.8498,
+         "player_games": 8311,
+         "rungs": 12669
+        },
+        "reb": {
+         "games": 1217,
+         "halfwidth_cons": 0.0217,
+         "halfwidth_independent": 0.0081,
+         "mean_p": 0.8535,
+         "player_games": 7179,
+         "rungs": 7295
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 1237,
+        "halfwidth_cons": 0.0189,
+        "halfwidth_independent": 0.0051,
+        "mean_p": 0.8888,
+        "player_games": 7149,
+        "rungs": 14607
+       },
+       "fg3m": {
+        "games": 1230,
+        "halfwidth_cons": 0.0197,
+        "halfwidth_independent": 0.0063,
+        "mean_p": 0.866,
+        "player_games": 9170,
+        "rungs": 11275
+       },
+       "pts": {
+        "games": 1239,
+        "halfwidth_cons": 0.0236,
+        "halfwidth_independent": 0.004,
+        "mean_p": 0.8252,
+        "player_games": 11162,
+        "rungs": 34231
+       },
+       "reb": {
+        "games": 1238,
+        "halfwidth_cons": 0.0205,
+        "halfwidth_independent": 0.0042,
+        "mean_p": 0.8698,
+        "player_games": 10467,
+        "rungs": 24299
+       }
+      },
+      "rungs": 346624,
+      "tail_rungs": {
+       "05": 44534,
+       "15": 40499,
+       "25": 43098,
+       "35": 39579,
+       "45": 34815
+      }
      }
     },
     "williamhill_us": {
@@ -15813,6 +20750,355 @@
        "35": 17899,
        "45": 15437
       }
+     },
+     "primary": {
+      "bins": {
+       "55": {
+        "by_stat": {
+         "ast": 2962,
+         "fg3m": 2856,
+         "pts": 3892,
+         "reb": 4084
+        },
+        "dates": 179,
+        "decimal_min_med_max": [
+         1.02,
+         1.488,
+         5.2
+        ],
+        "games": 1123,
+        "mean_model_p": 0.5492,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1641,
+        "roi_halfwidth_cons": 0.0469,
+        "roi_halfwidth_independent": 0.0128,
+        "rungs": 13794,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 13794,
+        "weekly_units_median": 534.0,
+        "weeks": 30,
+        "weeks_with_ge_10_units": 30
+       },
+       "65": {
+        "by_stat": {
+         "ast": 2641,
+         "fg3m": 2051,
+         "pts": 3522,
+         "reb": 3763
+        },
+        "dates": 179,
+        "decimal_min_med_max": [
+         1.01,
+         1.294,
+         9.5
+        ],
+        "games": 1120,
+        "mean_model_p": 0.6498,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1445,
+        "roi_halfwidth_cons": 0.039,
+        "roi_halfwidth_independent": 0.0114,
+        "rungs": 11977,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 11977,
+        "weekly_units_median": 450.5,
+        "weeks": 30,
+        "weeks_with_ge_10_units": 30
+       },
+       "75": {
+        "by_stat": {
+         "ast": 2153,
+         "fg3m": 2080,
+         "pts": 3007,
+         "reb": 3824
+        },
+        "dates": 179,
+        "decimal_min_med_max": [
+         1.01,
+         1.169,
+         2.5
+        ],
+        "games": 1122,
+        "mean_model_p": 0.7507,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.1089,
+        "roi_halfwidth_cons": 0.0319,
+        "roi_halfwidth_independent": 0.0096,
+        "rungs": 11064,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 11064,
+        "weekly_units_median": 435.5,
+        "weeks": 30,
+        "weeks_with_ge_10_units": 30
+       },
+       "85": {
+        "by_stat": {
+         "ast": 1913,
+         "fg3m": 2194,
+         "pts": 2765,
+         "reb": 3901
+        },
+        "dates": 179,
+        "decimal_min_med_max": [
+         1.008,
+         1.08,
+         2.8
+        ],
+        "games": 1116,
+        "mean_model_p": 0.8505,
+        "mean_overround_two_sided": null,
+        "model_claimed_ev_mean": -0.0659,
+        "roi_halfwidth_cons": 0.0246,
+        "roi_halfwidth_independent": 0.0074,
+        "rungs": 10773,
+        "two_sided_share": 0.0,
+        "units_player_game_stat": 10773,
+        "weekly_units_median": 392.5,
+        "weeks": 30,
+        "weeks_with_ge_10_units": 30
+       }
+      },
+      "games": 1125,
+      "ge70": {
+       "by_stat": {
+        "ast": 5794,
+        "fg3m": 5946,
+        "pts": 7752,
+        "reb": 10186
+       },
+       "dates": 179,
+       "decimal_min_med_max": [
+        1.005,
+        1.08,
+        2.8
+       ],
+       "games": 1123,
+       "mean_model_p": 0.8386,
+       "mean_overround_two_sided": null,
+       "model_claimed_ev_mean": -0.0694,
+       "roi_halfwidth_cons": 0.0242,
+       "roi_halfwidth_independent": 0.0047,
+       "rungs": 29678,
+       "two_sided_share": 0.0,
+       "units_player_game_stat": 26485,
+       "weekly_units_median": 985.0,
+       "weeks": 30,
+       "weeks_with_ge_10_units": 30
+      },
+      "p1_band_70_90": {
+       "ast": {
+        "games": 1090,
+        "halfwidth_cons": 0.026,
+        "halfwidth_independent": 0.0124,
+        "mean_p": 0.797,
+        "player_games": 4063,
+        "rungs": 4066
+       },
+       "fg3m": {
+        "games": 986,
+        "halfwidth_cons": 0.0295,
+        "halfwidth_independent": 0.012,
+        "mean_p": 0.8017,
+        "player_games": 4274,
+        "rungs": 4274
+       },
+       "pts": {
+        "games": 1116,
+        "halfwidth_cons": 0.0261,
+        "halfwidth_independent": 0.0103,
+        "mean_p": 0.7988,
+        "player_games": 5772,
+        "rungs": 5772
+       },
+       "reb": {
+        "games": 1094,
+        "halfwidth_cons": 0.0252,
+        "halfwidth_independent": 0.0089,
+        "mean_p": 0.8014,
+        "player_games": 7704,
+        "rungs": 7725
+       }
+      },
+      "p1_bins": {
+       "55": {
+        "ast": {
+         "games": 1056,
+         "halfwidth_cons": 0.0338,
+         "halfwidth_independent": 0.0179,
+         "mean_p": 0.5488,
+         "player_games": 2962,
+         "rungs": 2962
+        },
+        "fg3m": {
+         "games": 1036,
+         "halfwidth_cons": 0.0342,
+         "halfwidth_independent": 0.0183,
+         "mean_p": 0.546,
+         "player_games": 2856,
+         "rungs": 2856
+        },
+        "pts": {
+         "games": 1095,
+         "halfwidth_cons": 0.0325,
+         "halfwidth_independent": 0.0156,
+         "mean_p": 0.5496,
+         "player_games": 3892,
+         "rungs": 3892
+        },
+        "reb": {
+         "games": 1075,
+         "halfwidth_cons": 0.0325,
+         "halfwidth_independent": 0.0153,
+         "mean_p": 0.5513,
+         "player_games": 4084,
+         "rungs": 4084
+        }
+       },
+       "65": {
+        "ast": {
+         "games": 1033,
+         "halfwidth_cons": 0.0325,
+         "halfwidth_independent": 0.0182,
+         "mean_p": 0.6498,
+         "player_games": 2641,
+         "rungs": 2641
+        },
+        "fg3m": {
+         "games": 893,
+         "halfwidth_cons": 0.0362,
+         "halfwidth_independent": 0.0206,
+         "mean_p": 0.6499,
+         "player_games": 2051,
+         "rungs": 2051
+        },
+        "pts": {
+         "games": 1076,
+         "halfwidth_cons": 0.0321,
+         "halfwidth_independent": 0.0158,
+         "mean_p": 0.6487,
+         "player_games": 3522,
+         "rungs": 3522
+        },
+        "reb": {
+         "games": 1081,
+         "halfwidth_cons": 0.0315,
+         "halfwidth_independent": 0.0152,
+         "mean_p": 0.6508,
+         "player_games": 3763,
+         "rungs": 3763
+        }
+       },
+       "75": {
+        "ast": {
+         "games": 959,
+         "halfwidth_cons": 0.0311,
+         "halfwidth_independent": 0.0183,
+         "mean_p": 0.7495,
+         "player_games": 2153,
+         "rungs": 2153
+        },
+        "fg3m": {
+         "games": 872,
+         "halfwidth_cons": 0.0335,
+         "halfwidth_independent": 0.0186,
+         "mean_p": 0.7506,
+         "player_games": 2080,
+         "rungs": 2080
+        },
+        "pts": {
+         "games": 1034,
+         "halfwidth_cons": 0.0301,
+         "halfwidth_independent": 0.0155,
+         "mean_p": 0.7507,
+         "player_games": 3007,
+         "rungs": 3007
+        },
+        "reb": {
+         "games": 1064,
+         "halfwidth_cons": 0.029,
+         "halfwidth_independent": 0.0137,
+         "mean_p": 0.7515,
+         "player_games": 3824,
+         "rungs": 3824
+        }
+       },
+       "85": {
+        "ast": {
+         "games": 931,
+         "halfwidth_cons": 0.0258,
+         "halfwidth_independent": 0.016,
+         "mean_p": 0.8504,
+         "player_games": 1913,
+         "rungs": 1913
+        },
+        "fg3m": {
+         "games": 785,
+         "halfwidth_cons": 0.029,
+         "halfwidth_independent": 0.0149,
+         "mean_p": 0.85,
+         "player_games": 2194,
+         "rungs": 2194
+        },
+        "pts": {
+         "games": 1026,
+         "halfwidth_cons": 0.025,
+         "halfwidth_independent": 0.0133,
+         "mean_p": 0.8511,
+         "player_games": 2765,
+         "rungs": 2765
+        },
+        "reb": {
+         "games": 1054,
+         "halfwidth_cons": 0.0241,
+         "halfwidth_independent": 0.0112,
+         "mean_p": 0.8503,
+         "player_games": 3901,
+         "rungs": 3901
+        }
+       }
+      },
+      "p1_ge70_by_stat": {
+       "ast": {
+        "games": 1101,
+        "halfwidth_cons": 0.0235,
+        "halfwidth_independent": 0.0094,
+        "mean_p": 0.8432,
+        "player_games": 5394,
+        "rungs": 5794
+       },
+       "fg3m": {
+        "games": 991,
+        "halfwidth_cons": 0.0277,
+        "halfwidth_independent": 0.0093,
+        "mean_p": 0.8426,
+        "player_games": 5334,
+        "rungs": 5946
+       },
+       "pts": {
+        "games": 1120,
+        "halfwidth_cons": 0.0232,
+        "halfwidth_independent": 0.0082,
+        "mean_p": 0.8367,
+        "player_games": 6624,
+        "rungs": 7752
+       },
+       "reb": {
+        "games": 1094,
+        "halfwidth_cons": 0.0242,
+        "halfwidth_independent": 0.0072,
+        "mean_p": 0.8352,
+        "player_games": 9133,
+        "rungs": 10186
+       }
+      },
+      "rungs": 163685,
+      "tail_rungs": {
+       "05": 22353,
+       "15": 30757,
+       "25": 22247,
+       "35": 17678,
+       "45": 15201
+      }
      }
     }
    },
@@ -15834,11 +21120,103 @@
     "games_with_report_stamp_in_window": 62,
     "half_point_rungs": 1865067,
     "joined_to_model": 1824639,
+    "ladder_integrity_by_book": [
+     {
+      "book": "betmgm",
+      "ladders": 54535,
+      "off": 401,
+      "tested": 39259,
+      "untested_kept": 15276
+     },
+     {
+      "book": "betonlineag",
+      "ladders": 55234,
+      "off": 0,
+      "tested": 52884,
+      "untested_kept": 2350
+     },
+     {
+      "book": "betrivers",
+      "ladders": 4955,
+      "off": 0,
+      "tested": 4702,
+      "untested_kept": 253
+     },
+     {
+      "book": "bovada",
+      "ladders": 26897,
+      "off": 326,
+      "tested": 20300,
+      "untested_kept": 6597
+     },
+     {
+      "book": "draftkings",
+      "ladders": 64107,
+      "off": 4,
+      "tested": 53667,
+      "untested_kept": 10440
+     },
+     {
+      "book": "fanatics",
+      "ladders": 24233,
+      "off": 0,
+      "tested": 6378,
+      "untested_kept": 17855
+     },
+     {
+      "book": "fanduel",
+      "ladders": 49813,
+      "off": 2,
+      "tested": 44614,
+      "untested_kept": 5199
+     },
+     {
+      "book": "williamhill_us",
+      "ladders": 53354,
+      "off": 635,
+      "tested": 42931,
+      "untested_kept": 10423
+     }
+    ],
     "lead_minutes_min_med_max": [
      64.33,
      64.37,
      64.38
     ],
+    "off_ladder_rungs_by_book": {
+     "betmgm": {
+      "all_rungs": 1557,
+      "p_ge_70_rungs_window_arm": 259
+     },
+     "betonlineag": {
+      "all_rungs": 0,
+      "p_ge_70_rungs_window_arm": 0
+     },
+     "betrivers": {
+      "all_rungs": 0,
+      "p_ge_70_rungs_window_arm": 0
+     },
+     "bovada": {
+      "all_rungs": 1927,
+      "p_ge_70_rungs_window_arm": 400
+     },
+     "draftkings": {
+      "all_rungs": 27,
+      "p_ge_70_rungs_window_arm": 5
+     },
+     "fanatics": {
+      "all_rungs": 0,
+      "p_ge_70_rungs_window_arm": 0
+     },
+     "fanduel": {
+      "all_rungs": 10,
+      "p_ge_70_rungs_window_arm": 3
+     },
+     "williamhill_us": {
+      "all_rungs": 2986,
+      "p_ge_70_rungs_window_arm": 602
+     }
+    },
     "over_rungs_after_dedupe": 1865067,
     "quote_age_min_p10_med_p90": [
      -0.3,
@@ -23383,6 +28761,2473 @@
        "halfwidth_cons": 0.0199,
        "halfwidth_independent": 0.0108,
        "rungs": 4182
+      },
+      "reb": {
+       "games": 1641,
+       "halfwidth_cons": 0.0197,
+       "halfwidth_independent": 0.0094,
+       "rungs": 5558
+      }
+     }
+    }
+   }
+  },
+  "primary": {
+   "betmgm": {
+    "bins": {
+     "55": {
+      "dates": 203,
+      "games": 1166,
+      "roi_halfwidth_cons": 0.0473,
+      "roi_halfwidth_independent": 0.0133,
+      "rungs": 13232,
+      "units_player_game_stat": 13232
+     },
+     "65": {
+      "dates": 202,
+      "games": 1168,
+      "roi_halfwidth_cons": 0.0396,
+      "roi_halfwidth_independent": 0.0121,
+      "rungs": 10946,
+      "units_player_game_stat": 10946
+     },
+     "75": {
+      "dates": 203,
+      "games": 1165,
+      "roi_halfwidth_cons": 0.0323,
+      "roi_halfwidth_independent": 0.0103,
+      "rungs": 10008,
+      "units_player_game_stat": 10008
+     },
+     "85": {
+      "dates": 203,
+      "games": 1163,
+      "roi_halfwidth_cons": 0.0253,
+      "roi_halfwidth_independent": 0.0081,
+      "rungs": 9481,
+      "units_player_game_stat": 9481
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      {
+       "ast": false,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": false,
+      "fg3m": true,
+      "pts": true,
+      "reb": true
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "65": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "75": {
+       "ast": false,
+       "fg3m": true,
+       "pts": false,
+       "reb": true
+      },
+      "85": {
+       "ast": false,
+       "fg3m": true,
+       "pts": false,
+       "reb": false
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": false,
+       "75": false,
+       "85": false
+      },
+      {
+       "55": true,
+       "65": true,
+       "75": true,
+       "85": true
+      }
+     ],
+     "part2_bins_pooled": {
+      "55": true,
+      "65": true,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      false,
+      true
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 203,
+     "games": 1170,
+     "roi_halfwidth_cons": 0.0267,
+     "roi_halfwidth_independent": 0.0058,
+     "rungs": 22457,
+     "units_player_game_stat": 22060
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 1077,
+      "halfwidth_cons": 0.0263,
+      "halfwidth_independent": 0.0147,
+      "rungs": 2774
+     },
+     "fg3m": {
+      "games": 1158,
+      "halfwidth_cons": 0.0244,
+      "halfwidth_independent": 0.0094,
+      "rungs": 6904
+     },
+     "pts": {
+      "games": 1085,
+      "halfwidth_cons": 0.0265,
+      "halfwidth_independent": 0.0124,
+      "rungs": 4120
+     },
+     "reb": {
+      "games": 1148,
+      "halfwidth_cons": 0.0255,
+      "halfwidth_independent": 0.0105,
+      "rungs": 5691
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 1000,
+       "halfwidth_cons": 0.0348,
+       "halfwidth_independent": 0.0203,
+       "rungs": 2294
+      },
+      "fg3m": {
+       "games": 1097,
+       "halfwidth_cons": 0.0328,
+       "halfwidth_independent": 0.0167,
+       "rungs": 3420
+      },
+      "pts": {
+       "games": 1070,
+       "halfwidth_cons": 0.033,
+       "halfwidth_independent": 0.0163,
+       "rungs": 3589
+      },
+      "reb": {
+       "games": 1113,
+       "halfwidth_cons": 0.0325,
+       "halfwidth_independent": 0.0155,
+       "rungs": 3929
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 874,
+       "halfwidth_cons": 0.0358,
+       "halfwidth_independent": 0.0238,
+       "rungs": 1539
+      },
+      "fg3m": {
+       "games": 1057,
+       "halfwidth_cons": 0.0324,
+       "halfwidth_independent": 0.0178,
+       "rungs": 2737
+      },
+      "pts": {
+       "games": 1046,
+       "halfwidth_cons": 0.0323,
+       "halfwidth_independent": 0.017,
+       "rungs": 3041
+      },
+      "reb": {
+       "games": 1112,
+       "halfwidth_cons": 0.0314,
+       "halfwidth_independent": 0.0155,
+       "rungs": 3629
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 810,
+       "halfwidth_cons": 0.0329,
+       "halfwidth_independent": 0.0237,
+       "rungs": 1267
+      },
+      "fg3m": {
+       "games": 1086,
+       "halfwidth_cons": 0.0287,
+       "halfwidth_independent": 0.0152,
+       "rungs": 3117
+      },
+      "pts": {
+       "games": 986,
+       "halfwidth_cons": 0.0306,
+       "halfwidth_independent": 0.0176,
+       "rungs": 2337
+      },
+      "reb": {
+       "games": 1090,
+       "halfwidth_cons": 0.0287,
+       "halfwidth_independent": 0.0148,
+       "rungs": 3287
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 856,
+       "halfwidth_cons": 0.0269,
+       "halfwidth_independent": 0.018,
+       "rungs": 1507
+      },
+      "fg3m": {
+       "games": 1115,
+       "halfwidth_cons": 0.0233,
+       "halfwidth_independent": 0.0113,
+       "rungs": 3787
+      },
+      "pts": {
+       "games": 893,
+       "halfwidth_cons": 0.0267,
+       "halfwidth_independent": 0.0167,
+       "rungs": 1783
+      },
+      "reb": {
+       "games": 1011,
+       "halfwidth_cons": 0.0252,
+       "halfwidth_independent": 0.0144,
+       "rungs": 2404
+      }
+     }
+    }
+   },
+   "betonlineag": {
+    "bins": {
+     "55": {
+      "dates": 344,
+      "games": 1939,
+      "roi_halfwidth_cons": 0.0381,
+      "roi_halfwidth_independent": 0.0083,
+      "rungs": 37847,
+      "units_player_game_stat": 37773
+     },
+     "65": {
+      "dates": 344,
+      "games": 1938,
+      "roi_halfwidth_cons": 0.0334,
+      "roi_halfwidth_independent": 0.0089,
+      "rungs": 23401,
+      "units_player_game_stat": 23397
+     },
+     "75": {
+      "dates": 344,
+      "games": 1911,
+      "roi_halfwidth_cons": 0.0293,
+      "roi_halfwidth_independent": 0.0106,
+      "rungs": 11276,
+      "units_player_game_stat": 11274
+     },
+     "85": {
+      "dates": 334,
+      "games": 1790,
+      "roi_halfwidth_cons": 0.0231,
+      "roi_halfwidth_independent": 0.0114,
+      "rungs": 5583,
+      "units_player_game_stat": 5582
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      {
+       "ast": true,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": true,
+      "fg3m": false,
+      "pts": false,
+      "reb": false
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "65": {
+       "ast": true,
+       "fg3m": false,
+       "pts": true,
+       "reb": true
+      },
+      "75": {
+       "ast": true,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "85": {
+       "ast": true,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": false,
+       "75": true,
+       "85": true
+      },
+      {
+       "55": true,
+       "65": true,
+       "75": true,
+       "85": true
+      }
+     ],
+     "part2_bins_pooled": {
+      "55": true,
+      "65": true,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      true
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 344,
+     "games": 1931,
+     "roi_halfwidth_cons": 0.0248,
+     "roi_halfwidth_independent": 0.0073,
+     "rungs": 19080,
+     "units_player_game_stat": 16559
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 1920,
+      "halfwidth_cons": 0.0195,
+      "halfwidth_independent": 0.008,
+      "rungs": 9780
+     },
+     "fg3m": {
+      "games": 1174,
+      "halfwidth_cons": 0.0263,
+      "halfwidth_independent": 0.0195,
+      "rungs": 1764
+     },
+     "pts": {
+      "games": 1200,
+      "halfwidth_cons": 0.0298,
+      "halfwidth_independent": 0.0169,
+      "rungs": 2519
+     },
+     "reb": {
+      "games": 1327,
+      "halfwidth_cons": 0.0274,
+      "halfwidth_independent": 0.0161,
+      "rungs": 2796
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 1922,
+       "halfwidth_cons": 0.0241,
+       "halfwidth_independent": 0.0111,
+       "rungs": 7692
+      },
+      "fg3m": {
+       "games": 1746,
+       "halfwidth_cons": 0.0262,
+       "halfwidth_independent": 0.0148,
+       "rungs": 4319
+      },
+      "pts": {
+       "games": 1925,
+       "halfwidth_cons": 0.0237,
+       "halfwidth_independent": 0.0083,
+       "rungs": 14040
+      },
+      "reb": {
+       "games": 1924,
+       "halfwidth_cons": 0.0239,
+       "halfwidth_independent": 0.009,
+       "rungs": 11796
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 1879,
+       "halfwidth_cons": 0.0237,
+       "halfwidth_independent": 0.0116,
+       "rungs": 6492
+      },
+      "fg3m": {
+       "games": 1345,
+       "halfwidth_cons": 0.029,
+       "halfwidth_independent": 0.0197,
+       "rungs": 2277
+      },
+      "pts": {
+       "games": 1841,
+       "halfwidth_cons": 0.0248,
+       "halfwidth_independent": 0.0108,
+       "rungs": 7539
+      },
+      "reb": {
+       "games": 1861,
+       "halfwidth_cons": 0.0244,
+       "halfwidth_independent": 0.0112,
+       "rungs": 7093
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 1824,
+       "halfwidth_cons": 0.0221,
+       "halfwidth_independent": 0.0116,
+       "rungs": 5352
+      },
+      "fg3m": {
+       "games": 916,
+       "halfwidth_cons": 0.0306,
+       "halfwidth_independent": 0.0246,
+       "rungs": 1200
+      },
+      "pts": {
+       "games": 1166,
+       "halfwidth_cons": 0.0299,
+       "halfwidth_independent": 0.0184,
+       "rungs": 2203
+      },
+      "reb": {
+       "games": 1298,
+       "halfwidth_cons": 0.0276,
+       "halfwidth_independent": 0.0171,
+       "rungs": 2521
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 1724,
+       "halfwidth_cons": 0.0191,
+       "halfwidth_independent": 0.0106,
+       "rungs": 4428
+      },
+      "fg3m": {
+       "games": 491,
+       "halfwidth_cons": 0.0339,
+       "halfwidth_independent": 0.0301,
+       "rungs": 564
+      },
+      "pts": {
+       "games": 269,
+       "halfwidth_cons": 0.0487,
+       "halfwidth_independent": 0.0413,
+       "rungs": 316
+      },
+      "reb": {
+       "games": 235,
+       "halfwidth_cons": 0.0515,
+       "halfwidth_independent": 0.0445,
+       "rungs": 275
+      }
+     }
+    }
+   },
+   "betrivers": {
+    "bins": {
+     "55": {
+      "dates": 58,
+      "games": 140,
+      "roi_halfwidth_cons": 0.1423,
+      "roi_halfwidth_independent": 0.0426,
+      "rungs": 1379,
+      "units_player_game_stat": 1379
+     },
+     "65": {
+      "dates": 58,
+      "games": 138,
+      "roi_halfwidth_cons": 0.1205,
+      "roi_halfwidth_independent": 0.0396,
+      "rungs": 1118,
+      "units_player_game_stat": 1118
+     },
+     "75": {
+      "dates": 58,
+      "games": 139,
+      "roi_halfwidth_cons": 0.1034,
+      "roi_halfwidth_independent": 0.0376,
+      "rungs": 870,
+      "units_player_game_stat": 870
+     },
+     "85": {
+      "dates": 57,
+      "games": 116,
+      "roi_halfwidth_cons": 0.1047,
+      "roi_halfwidth_independent": 0.0529,
+      "rungs": 293,
+      "units_player_game_stat": 293
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": false,
+      "fg3m": false,
+      "pts": false,
+      "reb": false
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "65": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "75": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "85": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": false,
+       "75": false,
+       "85": false
+      },
+      {}
+     ],
+     "part2_bins_pooled": {
+      "55": false,
+      "65": false,
+      "75": false,
+      "85": false
+     },
+     "part2_ge70_by_season": [
+      false,
+      false
+     ],
+     "part2_ge70_pooled": false
+    },
+    "ge70": {
+     "dates": 58,
+     "games": 139,
+     "roi_halfwidth_cons": 0.097,
+     "roi_halfwidth_independent": 0.0308,
+     "rungs": 1175,
+     "units_player_game_stat": 1167
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 104,
+      "halfwidth_cons": 0.0922,
+      "halfwidth_independent": 0.0585,
+      "rungs": 197
+     },
+     "fg3m": {
+      "games": 125,
+      "halfwidth_cons": 0.0824,
+      "halfwidth_independent": 0.0485,
+      "rungs": 287
+     },
+     "pts": {
+      "games": 130,
+      "halfwidth_cons": 0.0814,
+      "halfwidth_independent": 0.042,
+      "rungs": 381
+     },
+     "reb": {
+      "games": 120,
+      "halfwidth_cons": 0.0867,
+      "halfwidth_independent": 0.0487,
+      "rungs": 298
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 112,
+       "halfwidth_cons": 0.1095,
+       "halfwidth_independent": 0.0665,
+       "rungs": 215
+      },
+      "fg3m": {
+       "games": 129,
+       "halfwidth_cons": 0.0947,
+       "halfwidth_independent": 0.0535,
+       "rungs": 333
+      },
+      "pts": {
+       "games": 132,
+       "halfwidth_cons": 0.0962,
+       "halfwidth_independent": 0.0468,
+       "rungs": 436
+      },
+      "reb": {
+       "games": 133,
+       "halfwidth_cons": 0.0933,
+       "halfwidth_independent": 0.0491,
+       "rungs": 395
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 107,
+       "halfwidth_cons": 0.1026,
+       "halfwidth_independent": 0.0622,
+       "rungs": 226
+      },
+      "fg3m": {
+       "games": 94,
+       "halfwidth_cons": 0.1073,
+       "halfwidth_independent": 0.0696,
+       "rungs": 180
+      },
+      "pts": {
+       "games": 130,
+       "halfwidth_cons": 0.0929,
+       "halfwidth_independent": 0.0486,
+       "rungs": 371
+      },
+      "reb": {
+       "games": 133,
+       "halfwidth_cons": 0.091,
+       "halfwidth_independent": 0.0507,
+       "rungs": 341
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 89,
+       "halfwidth_cons": 0.1024,
+       "halfwidth_independent": 0.0697,
+       "rungs": 147
+      },
+      "fg3m": {
+       "games": 112,
+       "halfwidth_cons": 0.091,
+       "halfwidth_independent": 0.0597,
+       "rungs": 204
+      },
+      "pts": {
+       "games": 123,
+       "halfwidth_cons": 0.0865,
+       "halfwidth_independent": 0.0514,
+       "rungs": 273
+      },
+      "reb": {
+       "games": 115,
+       "halfwidth_cons": 0.0903,
+       "halfwidth_independent": 0.0549,
+       "rungs": 246
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 45,
+       "halfwidth_cons": 0.1138,
+       "halfwidth_independent": 0.1039,
+       "rungs": 50
+      },
+      "fg3m": {
+       "games": 54,
+       "halfwidth_cons": 0.109,
+       "halfwidth_independent": 0.0793,
+       "rungs": 83
+      },
+      "pts": {
+       "games": 74,
+       "halfwidth_cons": 0.098,
+       "halfwidth_independent": 0.0696,
+       "rungs": 108
+      },
+      "reb": {
+       "games": 40,
+       "halfwidth_cons": 0.1316,
+       "halfwidth_independent": 0.099,
+       "rungs": 52
+      }
+     }
+    }
+   },
+   "bovada": {
+    "bins": {
+     "55": {
+      "dates": 158,
+      "games": 863,
+      "roi_halfwidth_cons": 0.0561,
+      "roi_halfwidth_independent": 0.0178,
+      "rungs": 7569,
+      "units_player_game_stat": 7569
+     },
+     "65": {
+      "dates": 157,
+      "games": 858,
+      "roi_halfwidth_cons": 0.0476,
+      "roi_halfwidth_independent": 0.0166,
+      "rungs": 6074,
+      "units_player_game_stat": 6074
+     },
+     "75": {
+      "dates": 157,
+      "games": 860,
+      "roi_halfwidth_cons": 0.0391,
+      "roi_halfwidth_independent": 0.015,
+      "rungs": 4955,
+      "units_player_game_stat": 4955
+     },
+     "85": {
+      "dates": 157,
+      "games": 856,
+      "roi_halfwidth_cons": 0.0294,
+      "roi_halfwidth_independent": 0.0116,
+      "rungs": 4680,
+      "units_player_game_stat": 4680
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": true,
+       "reb": true
+      },
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": false,
+      "fg3m": false,
+      "pts": true,
+      "reb": true
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "65": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "75": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "85": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": true,
+       "75": true,
+       "85": true
+      },
+      {}
+     ],
+     "part2_bins_pooled": {
+      "55": false,
+      "65": true,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      false
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 157,
+     "games": 864,
+     "roi_halfwidth_cons": 0.0269,
+     "roi_halfwidth_independent": 0.0067,
+     "rungs": 14586,
+     "units_player_game_stat": 11124
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 760,
+      "halfwidth_cons": 0.0314,
+      "halfwidth_independent": 0.0203,
+      "rungs": 1500
+     },
+     "fg3m": {
+      "games": 724,
+      "halfwidth_cons": 0.0324,
+      "halfwidth_independent": 0.0217,
+      "rungs": 1333
+     },
+     "pts": {
+      "games": 860,
+      "halfwidth_cons": 0.0285,
+      "halfwidth_independent": 0.013,
+      "rungs": 3587
+     },
+     "reb": {
+      "games": 845,
+      "halfwidth_cons": 0.0291,
+      "halfwidth_independent": 0.0139,
+      "rungs": 3215
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 659,
+       "halfwidth_cons": 0.0422,
+       "halfwidth_independent": 0.0296,
+       "rungs": 1088
+      },
+      "fg3m": {
+       "games": 755,
+       "halfwidth_cons": 0.0396,
+       "halfwidth_independent": 0.0234,
+       "rungs": 1737
+      },
+      "pts": {
+       "games": 815,
+       "halfwidth_cons": 0.0382,
+       "halfwidth_independent": 0.0202,
+       "rungs": 2338
+      },
+      "reb": {
+       "games": 817,
+       "halfwidth_cons": 0.0377,
+       "halfwidth_independent": 0.0199,
+       "rungs": 2406
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 641,
+       "halfwidth_cons": 0.0412,
+       "halfwidth_independent": 0.0286,
+       "rungs": 1067
+      },
+      "fg3m": {
+       "games": 579,
+       "halfwidth_cons": 0.0439,
+       "halfwidth_independent": 0.0296,
+       "rungs": 998
+      },
+      "pts": {
+       "games": 796,
+       "halfwidth_cons": 0.0374,
+       "halfwidth_independent": 0.0205,
+       "rungs": 2080
+      },
+      "reb": {
+       "games": 773,
+       "halfwidth_cons": 0.0374,
+       "halfwidth_independent": 0.0213,
+       "rungs": 1929
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 546,
+       "halfwidth_cons": 0.04,
+       "halfwidth_independent": 0.03,
+       "rungs": 799
+      },
+      "fg3m": {
+       "games": 524,
+       "halfwidth_cons": 0.0405,
+       "halfwidth_independent": 0.0318,
+       "rungs": 717
+      },
+      "pts": {
+       "games": 765,
+       "halfwidth_cons": 0.0346,
+       "halfwidth_independent": 0.0201,
+       "rungs": 1774
+      },
+      "reb": {
+       "games": 759,
+       "halfwidth_cons": 0.0348,
+       "halfwidth_independent": 0.0208,
+       "rungs": 1665
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 509,
+       "halfwidth_cons": 0.0333,
+       "halfwidth_independent": 0.0261,
+       "rungs": 701
+      },
+      "fg3m": {
+       "games": 454,
+       "halfwidth_cons": 0.036,
+       "halfwidth_independent": 0.0285,
+       "rungs": 616
+      },
+      "pts": {
+       "games": 783,
+       "halfwidth_cons": 0.0277,
+       "halfwidth_independent": 0.0163,
+       "rungs": 1813
+      },
+      "reb": {
+       "games": 755,
+       "halfwidth_cons": 0.0281,
+       "halfwidth_independent": 0.0177,
+       "rungs": 1550
+      }
+     }
+    }
+   },
+   "draftkings": {
+    "bins": {
+     "55": {
+      "dates": 377,
+      "games": 2223,
+      "roi_halfwidth_cons": 0.0353,
+      "roi_halfwidth_independent": 0.0073,
+      "rungs": 47124,
+      "units_player_game_stat": 44021
+     },
+     "65": {
+      "dates": 377,
+      "games": 2224,
+      "roi_halfwidth_cons": 0.0294,
+      "roi_halfwidth_independent": 0.0067,
+      "rungs": 39733,
+      "units_player_game_stat": 38591
+     },
+     "75": {
+      "dates": 377,
+      "games": 2220,
+      "roi_halfwidth_cons": 0.0241,
+      "roi_halfwidth_independent": 0.0059,
+      "rungs": 34448,
+      "units_player_game_stat": 34191
+     },
+     "85": {
+      "dates": 377,
+      "games": 2212,
+      "roi_halfwidth_cons": 0.0191,
+      "roi_halfwidth_independent": 0.005,
+      "rungs": 28470,
+      "units_player_game_stat": 28227
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": true,
+      "fg3m": true,
+      "pts": true,
+      "reb": true
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "65": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "75": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "85": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": true,
+       "75": true,
+       "85": true
+      },
+      {
+       "55": true,
+       "65": true,
+       "75": true,
+       "85": true
+      }
+     ],
+     "part2_bins_pooled": {
+      "55": true,
+      "65": true,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      true
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 377,
+     "games": 2224,
+     "roi_halfwidth_cons": 0.0197,
+     "roi_halfwidth_independent": 0.0033,
+     "rungs": 77209,
+     "units_player_game_stat": 56706
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 2182,
+      "halfwidth_cons": 0.0184,
+      "halfwidth_independent": 0.0079,
+      "rungs": 9870
+     },
+     "fg3m": {
+      "games": 2109,
+      "halfwidth_cons": 0.0186,
+      "halfwidth_independent": 0.0075,
+      "rungs": 10877
+     },
+     "pts": {
+      "games": 2208,
+      "halfwidth_cons": 0.0185,
+      "halfwidth_independent": 0.0052,
+      "rungs": 23614
+     },
+     "reb": {
+      "games": 2135,
+      "halfwidth_cons": 0.0186,
+      "halfwidth_independent": 0.0059,
+      "rungs": 18557
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 2135,
+       "halfwidth_cons": 0.024,
+       "halfwidth_independent": 0.011,
+       "rungs": 7920
+      },
+      "fg3m": {
+       "games": 1808,
+       "halfwidth_cons": 0.0264,
+       "halfwidth_independent": 0.014,
+       "rungs": 4857
+      },
+      "pts": {
+       "games": 2191,
+       "halfwidth_cons": 0.022,
+       "halfwidth_independent": 0.0067,
+       "rungs": 21442
+      },
+      "reb": {
+       "games": 2127,
+       "halfwidth_cons": 0.023,
+       "halfwidth_independent": 0.0086,
+       "rungs": 12905
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 2120,
+       "halfwidth_cons": 0.0227,
+       "halfwidth_independent": 0.0116,
+       "rungs": 6525
+      },
+      "fg3m": {
+       "games": 1842,
+       "halfwidth_cons": 0.0247,
+       "halfwidth_independent": 0.0142,
+       "rungs": 4352
+      },
+      "pts": {
+       "games": 2200,
+       "halfwidth_cons": 0.0213,
+       "halfwidth_independent": 0.0073,
+       "rungs": 16546
+      },
+      "reb": {
+       "games": 2124,
+       "halfwidth_cons": 0.022,
+       "halfwidth_independent": 0.0084,
+       "rungs": 12310
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 2005,
+       "halfwidth_cons": 0.0213,
+       "halfwidth_independent": 0.0117,
+       "rungs": 5253
+      },
+      "fg3m": {
+       "games": 1942,
+       "halfwidth_cons": 0.0216,
+       "halfwidth_independent": 0.0117,
+       "rungs": 5183
+      },
+      "pts": {
+       "games": 2193,
+       "halfwidth_cons": 0.0196,
+       "halfwidth_independent": 0.0074,
+       "rungs": 13202
+      },
+      "reb": {
+       "games": 2115,
+       "halfwidth_cons": 0.0201,
+       "halfwidth_independent": 0.0082,
+       "rungs": 10810
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 1952,
+       "halfwidth_cons": 0.0178,
+       "halfwidth_independent": 0.0103,
+       "rungs": 4617
+      },
+      "fg3m": {
+       "games": 1907,
+       "halfwidth_cons": 0.0184,
+       "halfwidth_independent": 0.0093,
+       "rungs": 5694
+      },
+      "pts": {
+       "games": 2083,
+       "halfwidth_cons": 0.0177,
+       "halfwidth_independent": 0.0068,
+       "rungs": 10412
+      },
+      "reb": {
+       "games": 2045,
+       "halfwidth_cons": 0.0175,
+       "halfwidth_independent": 0.008,
+       "rungs": 7747
+      }
+     }
+    }
+   },
+   "fanatics": {
+    "bins": {
+     "55": {
+      "dates": 106,
+      "games": 502,
+      "roi_halfwidth_cons": 0.0735,
+      "roi_halfwidth_independent": 0.0123,
+      "rungs": 17455,
+      "units_player_game_stat": 14070
+     },
+     "65": {
+      "dates": 106,
+      "games": 501,
+      "roi_halfwidth_cons": 0.0603,
+      "roi_halfwidth_independent": 0.0104,
+      "rungs": 16259,
+      "units_player_game_stat": 12896
+     },
+     "75": {
+      "dates": 106,
+      "games": 502,
+      "roi_halfwidth_cons": 0.0485,
+      "roi_halfwidth_independent": 0.0086,
+      "rungs": 15360,
+      "units_player_game_stat": 12276
+     },
+     "85": {
+      "dates": 106,
+      "games": 500,
+      "roi_halfwidth_cons": 0.0366,
+      "roi_halfwidth_independent": 0.0062,
+      "rungs": 16762,
+      "units_player_game_stat": 12254
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": false,
+      "fg3m": false,
+      "pts": false,
+      "reb": false
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "65": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "75": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "85": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": false,
+       "75": true,
+       "85": true
+      },
+      {}
+     ],
+     "part2_bins_pooled": {
+      "55": false,
+      "65": false,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      false
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 106,
+     "games": 502,
+     "roi_halfwidth_cons": 0.0369,
+     "roi_halfwidth_independent": 0.004,
+     "rungs": 44144,
+     "units_player_game_stat": 18374
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 494,
+      "halfwidth_cons": 0.0365,
+      "halfwidth_independent": 0.0132,
+      "rungs": 3491
+     },
+     "fg3m": {
+      "games": 492,
+      "halfwidth_cons": 0.0362,
+      "halfwidth_independent": 0.0132,
+      "rungs": 3359
+     },
+     "pts": {
+      "games": 499,
+      "halfwidth_cons": 0.0357,
+      "halfwidth_independent": 0.0058,
+      "rungs": 17855
+     },
+     "reb": {
+      "games": 494,
+      "halfwidth_cons": 0.0363,
+      "halfwidth_independent": 0.0091,
+      "rungs": 7417
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 494,
+       "halfwidth_cons": 0.047,
+       "halfwidth_independent": 0.0192,
+       "rungs": 2570
+      },
+      "fg3m": {
+       "games": 465,
+       "halfwidth_cons": 0.0499,
+       "halfwidth_independent": 0.0268,
+       "rungs": 1328
+      },
+      "pts": {
+       "games": 500,
+       "halfwidth_cons": 0.0447,
+       "halfwidth_independent": 0.0099,
+       "rungs": 9677
+      },
+      "reb": {
+       "games": 492,
+       "halfwidth_cons": 0.0457,
+       "halfwidth_independent": 0.0156,
+       "rungs": 3880
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 488,
+       "halfwidth_cons": 0.0458,
+       "halfwidth_independent": 0.0211,
+       "rungs": 1956
+      },
+      "fg3m": {
+       "games": 428,
+       "halfwidth_cons": 0.0501,
+       "halfwidth_independent": 0.0292,
+       "rungs": 1022
+      },
+      "pts": {
+       "games": 499,
+       "halfwidth_cons": 0.0429,
+       "halfwidth_independent": 0.0096,
+       "rungs": 9409
+      },
+      "reb": {
+       "games": 494,
+       "halfwidth_cons": 0.0441,
+       "halfwidth_independent": 0.015,
+       "rungs": 3872
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 483,
+       "halfwidth_cons": 0.042,
+       "halfwidth_independent": 0.0205,
+       "rungs": 1704
+      },
+      "fg3m": {
+       "games": 468,
+       "halfwidth_cons": 0.0437,
+       "halfwidth_independent": 0.0229,
+       "rungs": 1357
+      },
+      "pts": {
+       "games": 499,
+       "halfwidth_cons": 0.0389,
+       "halfwidth_independent": 0.0091,
+       "rungs": 8619
+      },
+      "reb": {
+       "games": 492,
+       "halfwidth_cons": 0.04,
+       "halfwidth_independent": 0.014,
+       "rungs": 3680
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 482,
+       "halfwidth_cons": 0.0343,
+       "halfwidth_independent": 0.0166,
+       "rungs": 1787
+      },
+      "fg3m": {
+       "games": 486,
+       "halfwidth_cons": 0.0342,
+       "halfwidth_independent": 0.0156,
+       "rungs": 2002
+      },
+      "pts": {
+       "games": 498,
+       "halfwidth_cons": 0.032,
+       "halfwidth_independent": 0.0072,
+       "rungs": 9236
+      },
+      "reb": {
+       "games": 491,
+       "halfwidth_cons": 0.0329,
+       "halfwidth_independent": 0.0114,
+       "rungs": 3737
+      }
+     }
+    }
+   },
+   "fanduel": {
+    "bins": {
+     "55": {
+      "dates": 377,
+      "games": 2203,
+      "roi_halfwidth_cons": 0.035,
+      "roi_halfwidth_independent": 0.0067,
+      "rungs": 54879,
+      "units_player_game_stat": 43599
+     },
+     "65": {
+      "dates": 377,
+      "games": 2202,
+      "roi_halfwidth_cons": 0.0292,
+      "roi_halfwidth_independent": 0.0058,
+      "rungs": 49480,
+      "units_player_game_stat": 39539
+     },
+     "75": {
+      "dates": 377,
+      "games": 2203,
+      "roi_halfwidth_cons": 0.0238,
+      "roi_halfwidth_independent": 0.0048,
+      "rungs": 47446,
+      "units_player_game_stat": 39048
+     },
+     "85": {
+      "dates": 377,
+      "games": 2201,
+      "roi_halfwidth_cons": 0.0182,
+      "roi_halfwidth_independent": 0.0037,
+      "rungs": 45850,
+      "units_player_game_stat": 39041
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": true,
+      "fg3m": true,
+      "pts": true,
+      "reb": true
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "65": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "75": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "85": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": true,
+       "75": true,
+       "85": true
+      },
+      {
+       "55": true,
+       "65": true,
+       "75": true,
+       "85": true
+      }
+     ],
+     "part2_bins_pooled": {
+      "55": true,
+      "65": true,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      true
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 377,
+     "games": 2204,
+     "roi_halfwidth_cons": 0.0171,
+     "roi_halfwidth_independent": 0.0022,
+     "rungs": 139911,
+     "units_player_game_stat": 64798
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 2183,
+      "halfwidth_cons": 0.0178,
+      "halfwidth_independent": 0.007,
+      "rungs": 12160
+     },
+     "fg3m": {
+      "games": 2185,
+      "halfwidth_cons": 0.0175,
+      "halfwidth_independent": 0.0071,
+      "rungs": 11916
+     },
+     "pts": {
+      "games": 2201,
+      "halfwidth_cons": 0.019,
+      "halfwidth_independent": 0.0038,
+      "rungs": 44956
+     },
+     "reb": {
+      "games": 2193,
+      "halfwidth_cons": 0.0178,
+      "halfwidth_independent": 0.005,
+      "rungs": 24264
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 2085,
+       "halfwidth_cons": 0.0235,
+       "halfwidth_independent": 0.0121,
+       "rungs": 6561
+      },
+      "fg3m": {
+       "games": 2053,
+       "halfwidth_cons": 0.024,
+       "halfwidth_independent": 0.0133,
+       "rungs": 5390
+      },
+      "pts": {
+       "games": 2194,
+       "halfwidth_cons": 0.0227,
+       "halfwidth_independent": 0.0056,
+       "rungs": 30212
+      },
+      "reb": {
+       "games": 2181,
+       "halfwidth_cons": 0.0224,
+       "halfwidth_independent": 0.0086,
+       "rungs": 12716
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 2045,
+       "halfwidth_cons": 0.0229,
+       "halfwidth_independent": 0.0122,
+       "rungs": 5827
+      },
+      "fg3m": {
+       "games": 1885,
+       "halfwidth_cons": 0.0243,
+       "halfwidth_independent": 0.0145,
+       "rungs": 4187
+      },
+      "pts": {
+       "games": 2174,
+       "halfwidth_cons": 0.022,
+       "halfwidth_independent": 0.0056,
+       "rungs": 28063
+      },
+      "reb": {
+       "games": 2166,
+       "halfwidth_cons": 0.0217,
+       "halfwidth_independent": 0.0088,
+       "rungs": 11403
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 2029,
+       "halfwidth_cons": 0.0209,
+       "halfwidth_independent": 0.0112,
+       "rungs": 5675
+      },
+      "fg3m": {
+       "games": 1996,
+       "halfwidth_cons": 0.0212,
+       "halfwidth_independent": 0.0119,
+       "rungs": 5066
+      },
+      "pts": {
+       "games": 2174,
+       "halfwidth_cons": 0.0202,
+       "halfwidth_independent": 0.0054,
+       "rungs": 25226
+      },
+      "reb": {
+       "games": 2147,
+       "halfwidth_cons": 0.0198,
+       "halfwidth_independent": 0.0079,
+       "rungs": 11479
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 2080,
+       "halfwidth_cons": 0.0168,
+       "halfwidth_independent": 0.0086,
+       "rungs": 6485
+      },
+      "fg3m": {
+       "games": 2101,
+       "halfwidth_cons": 0.0168,
+       "halfwidth_independent": 0.0084,
+       "rungs": 6850
+      },
+      "pts": {
+       "games": 2152,
+       "halfwidth_cons": 0.0174,
+       "halfwidth_independent": 0.005,
+       "rungs": 19730
+      },
+      "reb": {
+       "games": 2142,
+       "halfwidth_cons": 0.0162,
+       "halfwidth_independent": 0.0061,
+       "rungs": 12785
+      }
+     }
+    }
+   },
+   "mybookieag": {
+    "bins": {
+     "55": {
+      "dates": 136,
+      "games": 704,
+      "roi_halfwidth_cons": 0.0634,
+      "roi_halfwidth_independent": 0.0142,
+      "rungs": 12758,
+      "units_player_game_stat": 12725
+     },
+     "65": {
+      "dates": 136,
+      "games": 702,
+      "roi_halfwidth_cons": 0.0558,
+      "roi_halfwidth_independent": 0.0159,
+      "rungs": 7346,
+      "units_player_game_stat": 7346
+     },
+     "75": {
+      "dates": 136,
+      "games": 697,
+      "roi_halfwidth_cons": 0.0484,
+      "roi_halfwidth_independent": 0.0183,
+      "rungs": 3827,
+      "units_player_game_stat": 3826
+     },
+     "85": {
+      "dates": 130,
+      "games": 632,
+      "roi_halfwidth_cons": 0.039,
+      "roi_halfwidth_independent": 0.0206,
+      "rungs": 1705,
+      "units_player_game_stat": 1705
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": false,
+      "fg3m": false,
+      "pts": false,
+      "reb": false
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "65": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "75": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "85": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": false,
+       "75": true,
+       "85": true
+      },
+      {}
+     ],
+     "part2_bins_pooled": {
+      "55": false,
+      "65": false,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      false
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 136,
+     "games": 702,
+     "roi_halfwidth_cons": 0.0409,
+     "roi_halfwidth_independent": 0.0126,
+     "rungs": 6365,
+     "units_player_game_stat": 5518
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 699,
+      "halfwidth_cons": 0.0328,
+      "halfwidth_independent": 0.0138,
+      "rungs": 3343
+     },
+     "fg3m": {
+      "games": 410,
+      "halfwidth_cons": 0.0444,
+      "halfwidth_independent": 0.0332,
+      "rungs": 604
+     },
+     "pts": {
+      "games": 381,
+      "halfwidth_cons": 0.0522,
+      "halfwidth_independent": 0.0318,
+      "rungs": 723
+     },
+     "reb": {
+      "games": 450,
+      "halfwidth_cons": 0.046,
+      "halfwidth_independent": 0.0291,
+      "rungs": 862
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 697,
+       "halfwidth_cons": 0.0401,
+       "halfwidth_independent": 0.019,
+       "rungs": 2630
+      },
+      "fg3m": {
+       "games": 606,
+       "halfwidth_cons": 0.0449,
+       "halfwidth_independent": 0.0263,
+       "rungs": 1375
+      },
+      "pts": {
+       "games": 701,
+       "halfwidth_cons": 0.0396,
+       "halfwidth_independent": 0.014,
+       "rungs": 4825
+      },
+      "reb": {
+       "games": 695,
+       "halfwidth_cons": 0.0402,
+       "halfwidth_independent": 0.0156,
+       "rungs": 3928
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 681,
+       "halfwidth_cons": 0.0394,
+       "halfwidth_independent": 0.0196,
+       "rungs": 2277
+      },
+      "fg3m": {
+       "games": 451,
+       "halfwidth_cons": 0.0496,
+       "halfwidth_independent": 0.0358,
+       "rungs": 688
+      },
+      "pts": {
+       "games": 651,
+       "halfwidth_cons": 0.0423,
+       "halfwidth_independent": 0.0197,
+       "rungs": 2281
+      },
+      "reb": {
+       "games": 651,
+       "halfwidth_cons": 0.0415,
+       "halfwidth_independent": 0.0205,
+       "rungs": 2100
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 666,
+       "halfwidth_cons": 0.0364,
+       "halfwidth_independent": 0.0192,
+       "rungs": 1954
+      },
+      "fg3m": {
+       "games": 319,
+       "halfwidth_cons": 0.0515,
+       "halfwidth_independent": 0.0415,
+       "rungs": 421
+      },
+      "pts": {
+       "games": 367,
+       "halfwidth_cons": 0.0528,
+       "halfwidth_independent": 0.0337,
+       "rungs": 658
+      },
+      "reb": {
+       "games": 438,
+       "halfwidth_cons": 0.0468,
+       "halfwidth_independent": 0.0306,
+       "rungs": 794
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 609,
+       "halfwidth_cons": 0.0324,
+       "halfwidth_independent": 0.0188,
+       "rungs": 1389
+      },
+      "fg3m": {
+       "games": 163,
+       "halfwidth_cons": 0.0584,
+       "halfwidth_independent": 0.0527,
+       "rungs": 183
+      },
+      "pts": {
+       "games": 61,
+       "halfwidth_cons": 0.0962,
+       "halfwidth_independent": 0.0908,
+       "rungs": 65
+      },
+      "reb": {
+       "games": 60,
+       "halfwidth_cons": 0.0998,
+       "halfwidth_independent": 0.0887,
+       "rungs": 68
+      }
+     }
+    }
+   },
+   "pointsbetus": {
+    "bins": {
+     "55": {
+      "dates": 123,
+      "games": 795,
+      "roi_halfwidth_cons": 0.0564,
+      "roi_halfwidth_independent": 0.0164,
+      "rungs": 8676,
+      "units_player_game_stat": 8676
+     },
+     "65": {
+      "dates": 123,
+      "games": 794,
+      "roi_halfwidth_cons": 0.0473,
+      "roi_halfwidth_independent": 0.015,
+      "rungs": 7069,
+      "units_player_game_stat": 7069
+     },
+     "75": {
+      "dates": 123,
+      "games": 794,
+      "roi_halfwidth_cons": 0.0383,
+      "roi_halfwidth_independent": 0.0115,
+      "rungs": 7955,
+      "units_player_game_stat": 7955
+     },
+     "85": {
+      "dates": 123,
+      "games": 794,
+      "roi_halfwidth_cons": 0.029,
+      "roi_halfwidth_independent": 0.0081,
+      "rungs": 9397,
+      "units_player_game_stat": 9397
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": false,
+      "fg3m": true,
+      "pts": true,
+      "reb": true
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "65": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "75": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      "85": {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": true,
+       "75": true,
+       "85": true
+      },
+      {}
+     ],
+     "part2_bins_pooled": {
+      "55": false,
+      "65": true,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      false
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 123,
+     "games": 795,
+     "roi_halfwidth_cons": 0.0278,
+     "roi_halfwidth_independent": 0.005,
+     "rungs": 25202,
+     "units_player_game_stat": 22836
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 788,
+      "halfwidth_cons": 0.0304,
+      "halfwidth_independent": 0.0145,
+      "rungs": 2950
+     },
+     "fg3m": {
+      "games": 790,
+      "halfwidth_cons": 0.0293,
+      "halfwidth_independent": 0.012,
+      "rungs": 4110
+     },
+     "pts": {
+      "games": 795,
+      "halfwidth_cons": 0.0289,
+      "halfwidth_independent": 0.0107,
+      "rungs": 5220
+     },
+     "reb": {
+      "games": 792,
+      "halfwidth_cons": 0.0286,
+      "halfwidth_independent": 0.0108,
+      "rungs": 5072
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 679,
+       "halfwidth_cons": 0.042,
+       "halfwidth_independent": 0.0259,
+       "rungs": 1421
+      },
+      "fg3m": {
+       "games": 723,
+       "halfwidth_cons": 0.0407,
+       "halfwidth_independent": 0.0232,
+       "rungs": 1765
+      },
+      "pts": {
+       "games": 781,
+       "halfwidth_cons": 0.0381,
+       "halfwidth_independent": 0.0184,
+       "rungs": 2810
+      },
+      "reb": {
+       "games": 773,
+       "halfwidth_cons": 0.0386,
+       "halfwidth_independent": 0.0188,
+       "rungs": 2680
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 685,
+       "halfwidth_cons": 0.0397,
+       "halfwidth_independent": 0.0246,
+       "rungs": 1444
+      },
+      "fg3m": {
+       "games": 677,
+       "halfwidth_cons": 0.0407,
+       "halfwidth_independent": 0.0249,
+       "rungs": 1408
+      },
+      "pts": {
+       "games": 755,
+       "halfwidth_cons": 0.0378,
+       "halfwidth_independent": 0.0197,
+       "rungs": 2249
+      },
+      "reb": {
+       "games": 733,
+       "halfwidth_cons": 0.0386,
+       "halfwidth_independent": 0.0211,
+       "rungs": 1968
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 687,
+       "halfwidth_cons": 0.0363,
+       "halfwidth_independent": 0.0217,
+       "rungs": 1533
+      },
+      "fg3m": {
+       "games": 718,
+       "halfwidth_cons": 0.0355,
+       "halfwidth_independent": 0.0196,
+       "rungs": 1863
+      },
+      "pts": {
+       "games": 762,
+       "halfwidth_cons": 0.0339,
+       "halfwidth_independent": 0.0171,
+       "rungs": 2447
+      },
+      "reb": {
+       "games": 747,
+       "halfwidth_cons": 0.0345,
+       "halfwidth_independent": 0.0184,
+       "rungs": 2112
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 684,
+       "halfwidth_cons": 0.0301,
+       "halfwidth_independent": 0.0185,
+       "rungs": 1417
+      },
+      "fg3m": {
+       "games": 756,
+       "halfwidth_cons": 0.0282,
+       "halfwidth_independent": 0.0146,
+       "rungs": 2247
+      },
+      "pts": {
+       "games": 773,
+       "halfwidth_cons": 0.0276,
+       "halfwidth_independent": 0.0131,
+       "rungs": 2773
+      },
+      "reb": {
+       "games": 775,
+       "halfwidth_cons": 0.0271,
+       "halfwidth_independent": 0.0127,
+       "rungs": 2960
+      }
+     }
+    }
+   },
+   "williamhill_us": {
+    "bins": {
+     "55": {
+      "dates": 315,
+      "games": 1802,
+      "roi_halfwidth_cons": 0.0372,
+      "roi_halfwidth_independent": 0.0101,
+      "rungs": 21722,
+      "units_player_game_stat": 21722
+     },
+     "65": {
+      "dates": 315,
+      "games": 1815,
+      "roi_halfwidth_cons": 0.0311,
+      "roi_halfwidth_independent": 0.0091,
+      "rungs": 18146,
+      "units_player_game_stat": 18146
+     },
+     "75": {
+      "dates": 314,
+      "games": 1793,
+      "roi_halfwidth_cons": 0.0254,
+      "roi_halfwidth_independent": 0.0077,
+      "rungs": 17013,
+      "units_player_game_stat": 17013
+     },
+     "85": {
+      "dates": 313,
+      "games": 1779,
+      "roi_halfwidth_cons": 0.0197,
+      "roi_halfwidth_independent": 0.006,
+      "rungs": 16059,
+      "units_player_game_stat": 16059
+     }
+    },
+    "gate": {
+     "part1_band_cells_by_season": [
+      {
+       "ast": false,
+       "fg3m": false,
+       "pts": false,
+       "reb": false
+      },
+      {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      }
+     ],
+     "part1_band_pooled": {
+      "ast": true,
+      "fg3m": true,
+      "pts": true,
+      "reb": true
+     },
+     "part1_bins_pooled": {
+      "55": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "65": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "75": {
+       "ast": true,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      },
+      "85": {
+       "ast": false,
+       "fg3m": true,
+       "pts": true,
+       "reb": true
+      }
+     },
+     "part2_bins_by_season": [
+      {
+       "55": false,
+       "65": false,
+       "75": true,
+       "85": true
+      },
+      {
+       "55": true,
+       "65": true,
+       "75": true,
+       "85": true
+      }
+     ],
+     "part2_bins_pooled": {
+      "55": true,
+      "65": true,
+      "75": true,
+      "85": true
+     },
+     "part2_ge70_by_season": [
+      true,
+      true
+     ],
+     "part2_ge70_pooled": true
+    },
+    "ge70": {
+     "dates": 315,
+     "games": 1840,
+     "roi_halfwidth_cons": 0.0198,
+     "roi_halfwidth_independent": 0.0039,
+     "rungs": 43298,
+     "units_player_game_stat": 39455
+    },
+    "p1_band_70_90": {
+     "ast": {
+      "games": 1745,
+      "halfwidth_cons": 0.0209,
+      "halfwidth_independent": 0.0101,
+      "rungs": 6171
+     },
+     "fg3m": {
+      "games": 1589,
+      "halfwidth_cons": 0.0224,
+      "halfwidth_independent": 0.0091,
+      "rungs": 7334
+     },
+     "pts": {
+      "games": 1711,
+      "halfwidth_cons": 0.0211,
+      "halfwidth_independent": 0.0087,
+      "rungs": 8136
+     },
+     "reb": {
+      "games": 1751,
+      "halfwidth_cons": 0.0204,
+      "halfwidth_independent": 0.0073,
+      "rungs": 11431
+     }
+    },
+    "p1_bins": {
+     "55": {
+      "ast": {
+       "games": 1675,
+       "halfwidth_cons": 0.027,
+       "halfwidth_independent": 0.0143,
+       "rungs": 4642
+      },
+      "fg3m": {
+       "games": 1613,
+       "halfwidth_cons": 0.0273,
+       "halfwidth_independent": 0.0141,
+       "rungs": 4778
+      },
+      "pts": {
+       "games": 1678,
+       "halfwidth_cons": 0.0263,
+       "halfwidth_independent": 0.0128,
+       "rungs": 5795
+      },
+      "reb": {
+       "games": 1691,
+       "halfwidth_cons": 0.0263,
+       "halfwidth_independent": 0.0121,
+       "rungs": 6507
+      }
+     },
+     "65": {
+      "ast": {
+       "games": 1632,
+       "halfwidth_cons": 0.0261,
+       "halfwidth_independent": 0.0149,
+       "rungs": 3959
+      },
+      "fg3m": {
+       "games": 1438,
+       "halfwidth_cons": 0.0282,
+       "halfwidth_independent": 0.0158,
+       "rungs": 3467
+      },
+      "pts": {
+       "games": 1633,
+       "halfwidth_cons": 0.0262,
+       "halfwidth_independent": 0.0133,
+       "rungs": 4952
+      },
+      "reb": {
+       "games": 1690,
+       "halfwidth_cons": 0.0254,
+       "halfwidth_independent": 0.0123,
+       "rungs": 5768
+      }
+     },
+     "75": {
+      "ast": {
+       "games": 1520,
+       "halfwidth_cons": 0.0247,
+       "halfwidth_independent": 0.0147,
+       "rungs": 3319
+      },
+      "fg3m": {
+       "games": 1423,
+       "halfwidth_cons": 0.0259,
+       "halfwidth_independent": 0.0143,
+       "rungs": 3529
+      },
+      "pts": {
+       "games": 1567,
+       "halfwidth_cons": 0.0245,
+       "halfwidth_independent": 0.013,
+       "rungs": 4292
+      },
+      "reb": {
+       "games": 1653,
+       "halfwidth_cons": 0.0233,
+       "halfwidth_independent": 0.0111,
+       "rungs": 5873
+      }
+     },
+     "85": {
+      "ast": {
+       "games": 1436,
+       "halfwidth_cons": 0.0209,
+       "halfwidth_independent": 0.0131,
+       "rungs": 2852
+      },
+      "fg3m": {
+       "games": 1343,
+       "halfwidth_cons": 0.0218,
+       "halfwidth_independent": 0.0113,
+       "rungs": 3805
+      },
+      "pts": {
+       "games": 1531,
+       "halfwidth_cons": 0.0204,
+       "halfwidth_independent": 0.0113,
+       "rungs": 3844
       },
       "reb": {
        "games": 1641,

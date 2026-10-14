@@ -241,3 +241,69 @@ def test_run_gate_end_to_end_on_a_synthetic_root(tmp_path: Path) -> None:
     assert pooled["ge70"]["rungs"] == 2 * 4 * 2
     assert pooled["gate"]["part2_ge70_pooled"] is False  # far below 1,500 rungs
     assert res["thresholds"]["part2"]["rungs"] == 1500
+
+
+def test_off_ladders_flags_a_ladder_centred_far_from_the_books_main_line() -> None:
+    key = ["game_id", "player_id", "stat", "book"]
+
+    def ladder(game: str, centre: float, book: str = "dk") -> list[tuple[object, ...]]:
+        # rungs around the centre priced from -400 to +400: the rung nearest a raw implied
+        # probability of 0.5 is the one at the centre
+        pts = [centre - 2.0, centre - 1.0, centre, centre + 1.0, centre + 2.0]
+        px = [-400, -200, 105, 200, 400]
+        return [(game, 7, "pts", book, p, x) for p, x in zip(pts, px, strict=True)]
+
+    rows = ladder("g_ok", 12.5) + ladder("g_off", 5.5) + ladder("g_nomain", 5.5)
+    over = pl.DataFrame(rows, schema=[*key, "point", "po"], orient="row")
+    main = pl.DataFrame(
+        {
+            "game_id": ["g_ok", "g_off"],
+            "player_id": [7, 7],
+            "stat": ["pts", "pts"],
+            "book": ["dk", "dk"],
+            "main_point": [12.5, 12.5],
+        }
+    )
+    off, summary = g.off_ladders(over, main)
+    assert off["game_id"].to_list() == ["g_off"]
+    row = summary.row(0, named=True)
+    assert (row["ladders"], row["tested"], row["off"], row["untested_kept"]) == (3, 2, 1, 1)
+    # exactly 3.0 points away is NOT off (strictly more than 3.0)
+    edge = pl.DataFrame(
+        {
+            "game_id": ["g_ok"],
+            "player_id": [7],
+            "stat": ["pts"],
+            "book": ["dk"],
+            "main_point": [9.5],
+        }
+    )
+    assert g.off_ladders(over.filter(pl.col("game_id") == "g_ok"), edge)[0].is_empty()
+
+
+def test_alt_over_rungs_marks_off_ladders_and_keeps_them_for_s3() -> None:
+    season = 2023
+    snap = dt.datetime(season, 11, 1, 21, 56)
+    tips = pl.DataFrame(
+        {
+            "game_id": [f"00{season}01", f"00{season}02"],
+            "tipoff_utc": [dt.datetime(season, 11, 2, 1, 0)] * 2,
+        }
+    )
+    main = pl.DataFrame(
+        {
+            "game_id": [f"00{season}01"],
+            "player_id": [7],
+            "stat": ["pts"],
+            "book": ["dk"],
+            "main_point": [30.5],  # the points ladder (centred near 12) is far away: off
+        }
+    )
+    t, meta = g.alt_over_rungs(_quotes(season, snap), tips, _model(season), main)
+    off = t.filter(pl.col("ladder_off"))
+    assert set(off["stat"].to_list()) == {"pts"}
+    assert set(off["game_id"].to_list()) == {f"00{season}01"}
+    assert any(r["book"] == "dk" and r["off"] == 1 for r in meta["ladder_integrity_by_book"])
+    t0, _ = g.alt_over_rungs(_quotes(season, snap), tips, _model(season))  # no main: nothing off
+    assert not t0["ladder_off"].any()
+    assert t0.height == t.height  # the flag never drops a row; the arms do (S3 adds them back)
