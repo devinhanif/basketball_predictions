@@ -19,8 +19,11 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import pandas as pd
+# torch FIRST: with numpy / pandas (or lightgbm via research.eval) loaded before torch, the CPU forward pass segfaults on macOS (exit 139, 2026-10-14).
+# The import order is the whole fix; tests/daily/test_avg_shadow_rebuild.py::test_p1b_imports_torch_first guards it.
+import torch  # isort: skip  # noqa: F401
+import numpy as np  # isort: skip
+import pandas as pd  # isort: skip
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _world  # noqa: E402

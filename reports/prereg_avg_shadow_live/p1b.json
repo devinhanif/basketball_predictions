@@ -1,0 +1,37 @@
+{
+  "months": {
+    "2023-12": {
+      "rows": 4420,
+      "median_abs_dq": 0.0,
+      "p99_abs_dq": 0.0,
+      "max_abs_dq": 1.0
+    },
+    "2024-02": {
+      "rows": 3730,
+      "median_abs_dq": 0.0,
+      "p99_abs_dq": 0.0,
+      "max_abs_dq": 1.0
+    },
+    "2024-12": {
+      "rows": 4053,
+      "median_abs_dq": 0.0,
+      "p99_abs_dq": 0.0,
+      "max_abs_dq": 1.0
+    },
+    "2025-02": {
+      "rows": 3738,
+      "median_abs_dq": 0.0,
+      "p99_abs_dq": 0.0,
+      "max_abs_dq": 1.0
+    }
+  },
+  "median_abs_dq": 0.0,
+  "p99_abs_dq": 0.0,
+  "agg_avg_minus_full_gpu": -0.02246054145642821,
+  "agg_avg_minus_full_cpu": -0.02248233000810169,
+  "agg_abs_diff": 2.1788551673479484e-05,
+  "tolerance_agg": 0.0005,
+  "n_rows": 15749,
+  "run": "/Users/devin/Downloads/nba-prediction/data/colab/runs/avg_shadow_rebuild/20261014_112103",
+  "pass": true
+}
