@@ -266,3 +266,31 @@ On 5005a3b:
 Drafted DECISIONS row (not appended): `2026-10-14 | COMBO_STOCKS_SHADOW pre-freeze re-review APPROVED (B1-B5 fixed at 5005a3b; R1-R4 cosmetic) | what would reverse it: a post-freeze change to any hashed input`.
 
 Verdict: APPROVED
+
+## Second re-review (revision 72563af, 2026-10-14)
+
+Scope: `git diff 5005a3b 72563af`. It touches three files and contains only the R1-R4 edits. `ruff check` exit 0 and `ruff format --check`
+exit 0 on `reports/prereg_combo_stocks_shadow`. The hashes of `combo_g1.py` (792635d0) and of the config (8932ccec) are unchanged.
+
+- **R1 FIXED.** Line 4 now carries the `combo_g1.py` sha256, which matches `shasum`, and adds "the text governs".
+- **R2 FIXED.** Line 20 adds the PRA/PA G1 sentence (0.1211, 0.1204).
+- **R4 FIXED.** Line 7 says the Count-models playbook section is a main-session change and not part of the rule.
+- **R3 PARTLY FIXED (SUBSTANTIVE).**
+  - What is fixed: `COMBO_NO_LOCK` is gone. `stage_a_oof.py:90` and `stage_b.py:685` always take `WE.WorkloadLock`, and `git grep` finds no
+    bypass in the combo scripts.
+  - What is not: three committed combo scripts never take `data/ops/heavy.lock` at all, so they skip it by construction:
+    - `stage_c_guards.py` (opens the DuckDB copy read-only);
+    - `mc_noise.py` (four full joint passes, including one at 40,000 draws over 25,767 rows, which is heavier than stage B);
+    - `make_config_and_p1.py`.
+  - That makes the new sentence in line 81 false: "they take `data/ops/heavy.lock` or wait, and never skip it".
+  - Fix (either one):
+    - (a) wrap the `main()` body of each of those three scripts in
+      `with WE.WorkloadLock(Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock")):`, as `stage_b.py` does; or
+    - (b) reword line 81 to "stage A and stage B take the lock with no bypass; stage C, `mc_noise.py` and `make_config_and_p1.py` take none".
+  - Option (a) is the safe default because `mc_noise.py` is heavy.
+  - Line 81 is below the results marker, so neither fix changes the rule hash. Data integrity is not in question: every connection is
+    read-only.
+
+No other changes and no new contradictions.
+
+Verdict: BLOCKED
