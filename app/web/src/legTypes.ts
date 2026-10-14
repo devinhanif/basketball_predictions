@@ -1,6 +1,6 @@
 // Shapes returned by GET /api/breakdown/{game}/{player}/{stat} (app/api/src/parlayhitters_api/breakdown.py).
 
-import type { OnOff, Per36, Steadiness } from "./roleTypes";
+import type { Beyond, OnOff, Per36, Steadiness } from "./roleTypes";
 
 export type LegStat = "pts" | "reb" | "ast" | "fg3m" | "blk" | "stl" | "pra" | "pr" | "pa" | "ra" | "stocks";
 export const LEG_STATS: readonly LegStat[] = ["pts", "reb", "ast", "fg3m", "blk", "stl", "pra", "pr", "pa", "ra", "stocks"];
@@ -67,6 +67,7 @@ export interface TeammateOut {
   /** His minutes and per-36 points, rebounds and assists in the same two sets of games. */
   per36_without: Per36;
   per36_with: Per36;
+  beyond: Beyond;
   note: string;
 }
 

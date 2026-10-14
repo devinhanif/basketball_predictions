@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, gapText, netText, onoffN, per36N, per36Text, possText, signed, thousands } from "./role";
-import type { OnOffWindow, Per36, Rate, Steadiness } from "./roleTypes";
+import { badgeText, carriedText, extraText, gapText, netText, onoffN, pastText, per36N, per36Text, possText, signed, thousands } from "./role";
+import type { BeyondStat, OnOffWindow, Per36, Rate, Steadiness } from "./roleTypes";
 
 const rate = (net: number | null, poss = 1420): Rate => ({ poss, off_poss: poss / 2, def_poss: poss / 2, ortg: null, drtg: null, net });
 const win = (over: Partial<OnOffWindow> = {}): OnOffWindow => ({
@@ -67,5 +67,52 @@ describe("role formatting", () => {
     expect(badgeText(steady("Mixed", 12))).toBe("Mixed, last 12 games");
     expect(badgeText(steady("Limited data", 3))).toBe("Limited data, 3 games");
     expect(badgeText(steady("Limited data", 1))).toBe("Limited data, 1 game");
+  });
+});
+
+const beyondStat = (over: Partial<BeyondStat> = {}): BeyondStat => ({
+  stat: "ast",
+  label: "Assists",
+  past_gap: 4,
+  expected_extra: 0.138,
+  no_effect: false,
+  one_in: 21,
+  large_gap: false,
+  no_carry_large: false,
+  window: "2020-22",
+  ...over,
+});
+
+describe("shrunk with/without headline", () => {
+  it("leads with the small shrunk number to two decimals", () => {
+    expect(extraText(beyondStat())).toBe("+0.14");
+    expect(extraText(beyondStat({ expected_extra: -0.1476 }))).toBe("-0.15");
+  });
+
+  it("threes say no measurable effect, never a number", () => {
+    const t = beyondStat({ stat: "fg3m", label: "Threes", no_effect: true, expected_extra: 0, one_in: null });
+    expect(extraText(t)).toBe("no measurable effect");
+    expect(carriedText(t)).toBe("");
+  });
+
+  it("the raw history stays, labelled past games and carrying its n, and is not the headline", () => {
+    const s = beyondStat();
+    expect(pastText(s, 15)).toBe("past games +4.0 a game, n = 15");
+    expect(extraText(s)).not.toContain("past games");
+    expect(extraText(s)).not.toBe(signed(s.past_gap ?? 0));
+    expect(carriedText(s)).toBe("about 1 in 21 carried over");
+  });
+
+  it("a large gap whose in-slice carry-over spans zero shows no measurable carry-over", () => {
+    const s = beyondStat({ stat: "reb", label: "Rebounds", large_gap: true, no_carry_large: true, expected_extra: 0, one_in: null });
+    expect(extraText(s)).toBe("no measurable carry-over");
+    expect(carriedText(s)).toBe("no measurable carry-over for gaps this big");
+    expect(carriedText(beyondStat({ large_gap: true, one_in: 30 }))).toBe("about 1 in 30 carried over for gaps this big");
+  });
+
+  it("no gap means no number, said in words", () => {
+    const s = beyondStat({ past_gap: null, expected_extra: null });
+    expect(extraText(s)).toBe("none");
+    expect(pastText(s, 0)).toBe("no games to compare");
   });
 });

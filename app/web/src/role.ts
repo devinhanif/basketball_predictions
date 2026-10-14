@@ -1,5 +1,5 @@
 // Small pure helpers for the role facts. They only format numbers the API already computed.
-import type { OnOffWindow, Per36, Rate, Steadiness } from "./roleTypes";
+import type { BeyondStat, OnOffWindow, Per36, Rate, Steadiness } from "./roleTypes";
 
 /** A signed one-decimal number with a real minus sign, for gaps between two rates: "+3.4", "-4.7". */
 export function signed(x: number, digits = 1): string {
@@ -57,4 +57,25 @@ export function per36Text(p: Per36): string | null {
 export function badgeText(s: Steadiness): string {
   if (s.label === "Limited data") return `Limited data, ${s.n.toString()} ${s.n === 1 ? "game" : "games"}`;
   return `${s.label}, last ${s.n.toString()} games`;
+}
+
+/** The headline number for one stat: "+0.14". Threes say "no measurable effect" in words, never a bare 0. */
+export function extraText(s: BeyondStat): string {
+  if (s.no_effect) return "no measurable effect";
+  if (s.no_carry_large) return "no measurable carry-over";
+  if (s.expected_extra === null) return "none";
+  return signed(s.expected_extra, 2);
+}
+
+/** The raw history for one stat, with its n: "past games +3.0 a game, n = 15". */
+export function pastText(s: BeyondStat, nWithout: number): string {
+  if (s.past_gap === null) return "no games to compare";
+  return `past games ${signed(s.past_gap)} a game, n = ${nWithout.toString()}`;
+}
+
+/** "about 1 in 27 carried over", or "" when nothing carried over. */
+export function carriedText(s: BeyondStat): string {
+  if (s.no_carry_large) return "no measurable carry-over for gaps this big";
+  if (s.one_in === null) return "";
+  return `about 1 in ${s.one_in.toString()} carried over${s.large_gap ? " for gaps this big" : ""}`;
 }

@@ -2,8 +2,10 @@
 // player's numbers without a teammate who is out tonight. All numbers come from the API; every
 // rate prints its n and every small sample says so.
 import { num } from "./format";
-import { badgeText, netText, onoffN, per36N, per36Text, possText, rangeOf, signed } from "./role";
-import type { MateOut, OnOff, OnOffWindow, Per36, Steadiness } from "./roleTypes";
+import { badgeText, carriedText, extraText, netText, onoffN, pastText, per36N, per36Text, possText, rangeOf, signed } from "./role";
+import type { Beyond, MateOut, OnOff, OnOffWindow, Per36, Steadiness } from "./roleTypes";
+
+const capital = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 
 const cls = (s: Steadiness): string => `steady steady-${s.label === "Limited data" ? "limited" : s.label.toLowerCase()}`;
 
@@ -109,12 +111,56 @@ function Per36Cell({ label, p }: { label: string; p: Per36 }) {
   );
 }
 
-/** His minutes and per-36 numbers with and without one out teammate. */
+/**
+ * The headline for one out teammate: what past seasons say carries into tonight beyond the forecast
+ * (coefficient x n/(n+6) x the raw gap), per stat. The raw gap is the small line under each number.
+ */
+export function BeyondBlock({ b }: { b: Beyond }) {
+  if (!b.available) {
+    return <p class="small muted">No games on one side of this comparison, so there is no number to show.</p>;
+  }
+  return (
+    <div class={`beyond${b.small ? " thin" : ""}`}>
+      <div class="label">Expected extra beyond the forecast, per game</div>
+      <div class="beyond-rows">
+        {b.stats.map((s) => {
+          const carried = carriedText(s);
+          return (
+            <div key={s.stat} class="beyond-row">
+              <span class="beyond-name">{s.label}</span>
+              <span class={`beyond-val num${s.no_effect ? " none" : ""}`}>{extraText(s)}</span>
+              <span class="beyond-sub small muted num">
+                {pastText(s, b.n_without)}
+                {carried ? `; ${carried}` : ""}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {b.small ? (
+        <p class="leg-flag" role="note">
+          <strong>Small sample.</strong> Only n = {b.n_without} {b.n_without === 1 ? "game" : "games"} without him. Treat the past games as noise.
+        </p>
+      ) : null}
+      {b.flags.map((f) => (
+        <p key={f} class="leg-flag" role="note">
+          <strong>{f.split(": ")[0]}.</strong> {capital(f.split(": ").slice(1).join(": "))}
+        </p>
+      ))}
+      <p class="small muted">{b.note}</p>
+    </div>
+  );
+}
+
+/** His minutes and per-36 numbers with and without one out teammate: the past games, shown smaller. */
 export function MatePer36({ without, with_, name }: { without: Per36; with_: Per36; name: string }) {
   return (
-    <div class="leg-cells role-mate-cells">
-      <Per36Cell label={`Without ${name}`} p={without} />
-      <Per36Cell label={`With ${name}`} p={with_} />
+    <div class="past-games">
+      <div class="label">Past games, per 36 minutes</div>
+      <div class="leg-cells role-mate-cells">
+        <Per36Cell label={`Without ${name}`} p={without} />
+        <Per36Cell label={`With ${name}`} p={with_} />
+      </div>
     </div>
   );
 }
@@ -142,9 +188,10 @@ export function MatesBlock({ mates, player }: { mates: MateOut[]; player: string
               <div class="small muted">
                 {cleanReason(m.reason) ? `${cleanReason(m.reason)}. ` : ""}Plays {num(m.avg_minutes, 0)} minutes a game lately.
               </div>
+              <BeyondBlock b={m.beyond} />
               <MatePer36 without={m.without} with_={m.with_} name={m.name} />
               <p class="small muted" style={{ marginBottom: 0 }}>
-                {player} in games with and without him, per 36 minutes. {m.note}
+                {player} in games with and without him. {m.note}
               </p>
             </div>
           ))}

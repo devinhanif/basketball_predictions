@@ -53,6 +53,37 @@ export interface OnOff {
   note: string;
 }
 
+export type BeyondKey = "min" | "pts" | "reb" | "ast" | "fg3m";
+
+/** One stat of the shrunk with/without headline (api wowy_shrink.py). */
+export interface BeyondStat {
+  stat: BeyondKey;
+  label: string;
+  /** Games without him minus games with him, per game: the raw history. */
+  past_gap: number | null;
+  /** What past seasons say carries into tonight beyond the forecast; 0 when there is no effect. */
+  expected_extra: number | null;
+  no_effect: boolean;
+  /** "about 1 in this many" of a gap carried over. */
+  one_in: number | null;
+  large_gap: boolean;
+  /** Large gap and the coefficient measured inside the biggest gaps spans 0: a zero, in words. */
+  no_carry_large: boolean;
+  window: string;
+}
+
+export interface Beyond {
+  available: boolean;
+  n_without: number;
+  n_with: number;
+  weight: number;
+  small: boolean;
+  stats: BeyondStat[];
+  flags: string[];
+  note: string;
+  source: string;
+}
+
 export interface MateOut {
   player_id: number;
   name: string;
@@ -61,6 +92,7 @@ export interface MateOut {
   avg_minutes: number;
   without: Per36;
   with_: Per36;
+  beyond: Beyond;
   note: string;
 }
 

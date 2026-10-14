@@ -32,6 +32,7 @@ from .history import (
     days_between,
 )
 from .role_stats import OnOff, Per36, Steadiness, onoff, per36, steadiness
+from .wowy_shrink import Beyond, beyond
 
 Json = dict[str, Any]
 Side = Literal["over", "under"]
@@ -98,6 +99,8 @@ class TeammateOut(BaseModel):
     # same two sets of games, whatever the stat on screen.
     per36_without: Per36
     per36_with: Per36
+    # The headline; the tallies and per-36 numbers above are the raw history, not the lead.
+    beyond: Beyond
     note: str
 
 
@@ -521,6 +524,7 @@ def _teammates(ctx: Context, stat: str, line: float, side: Side) -> Teammates:
                 with_=wi,
                 per36_without=per36(m.without_rows),
                 per36_with=per36(m.with_rows),
+                beyond=beyond(m.without_rows, m.with_rows),
                 note=mate_note(wo.n),
             )
         )
