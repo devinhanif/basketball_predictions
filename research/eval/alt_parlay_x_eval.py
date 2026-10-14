@@ -38,6 +38,7 @@ from research.eval.alt_line_70_eval import (
     ADH_PATH,
     MODEL_INPUTS,
     ODDS_DB,
+    ODDS_FINGERPRINT,
     add_indices,
     load_model,
     load_tips,
@@ -455,11 +456,12 @@ def run_preflight(
     repo: Path,
     pre_alt_backup: Path | None = None,
     lookup: Any = hc.git_prereg_shas,
+    adh_sha: str | None = None,
 ) -> None:
     assert max(SEASONS) <= MAX_SEASON  # before any file is read
     pf.add("seasons <= 2024 (holdout never loaded)", max(SEASONS) <= MAX_SEASON, str(SEASONS))
     hc.check_rule(pf, repo / RULE_PATH, RULE_ID, repo, RULE_SHA, lookup)
-    hc.check_rule(pf, repo / ADH_PATH, ADH_ID, repo, None, lookup)
+    hc.check_rule(pf, repo / ADH_PATH, ADH_ID, repo, adh_sha, lookup)
     pf.add("numpy version equals the rule's pin", np.__version__ == NUMPY_PIN, np.__version__)
     for f, want in CODE_SHA.items():
         path = repo / f
@@ -477,15 +479,16 @@ def run_preflight(
         pf.add(f"input {f} matches the frozen sha256", ok, "")
     odds = data_root / ODDS_DB
     pf.add("odds store exists", odds.exists(), str(odds))
-    if odds.exists() and pre_alt_backup is not None:
-        a, b = odds_fingerprint(odds), odds_fingerprint(pre_alt_backup)
-        pf.add("odds rows the rule reads equal the pre-alternate backup", a == b, f"{a} vs {b}")
-    elif odds.exists():
+    if odds.exists():
+        live = odds_fingerprint(odds)
         pf.add(
-            "odds store content check (counts only; no --pre-alt-backup given)",
-            True,
-            "NOT VERIFIED by fingerprint; parlay counts and fingerprints are asserted below",
+            "odds rows the rule reads equal the pinned fingerprint",
+            live == ODDS_FINGERPRINT,
+            f"{live} vs {ODDS_FINGERPRINT}",
         )
+        if pre_alt_backup is not None:
+            b = odds_fingerprint(pre_alt_backup)
+            pf.add("odds rows the rule reads equal the pre-alternate backup", live == b, f"{b}")
 
 
 def run_scoring(
@@ -695,11 +698,14 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--repo-root", type=Path, default=Path("."))
     ap.add_argument("--out", type=Path, default=Path(OUT_DEFAULT))
     ap.add_argument("--pre-alt-backup", type=Path, default=None)
+    ap.add_argument(
+        "--adh-sha", default=None, help="the exact frozen ALT_LADDER_HIST sha256 (64 hex)"
+    )
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--b", type=int, default=hc.B_DEFAULT)
     args = ap.parse_args(argv)
     pf = hc.Preflight()
-    run_preflight(pf, args.data_root, args.repo_root, args.pre_alt_backup)
+    run_preflight(pf, args.data_root, args.repo_root, args.pre_alt_backup, adh_sha=args.adh_sha)
     if args.check_only:
         res = run_scoring(args.data_root, pf, with_y=False)
         print(json.dumps(pf.as_dicts(), indent=1))
@@ -707,6 +713,7 @@ def main(argv: list[str] | None = None) -> None:
     pf.require()
     res = run_scoring(args.data_root, pf, b=args.b)
     res["checks"] = pf.as_dicts()
+    res["adh_sha256"] = pf.info.get("ALT_LADDER_HIST_sha256")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(res, indent=1, sort_keys=True, default=str) + "\n")
     print(f"wrote {args.out}; profitable cells: {res['profitable_cells']}")

@@ -59,6 +59,11 @@ ALT_MARKET_STAT = {
 SNAPSHOT_KIND = "t60"  # the only alternate capture the pull stored
 #: sensitivity arm: only games whose snapshot is within this many minutes before the real tip
 LEAD_CAP_MIN = 66.0
+#: ladder integrity (review B1): a (book, game, player, stat) ladder is off when its rung nearest a
+#: raw implied over probability of 0.5 (within OFF_NEAR of it) lies more than OFF_POINTS from the
+#: same book's main-market over line; prices only, no outcome
+OFF_POINTS = 3.0
+OFF_NEAR = 0.15
 ET = "America/New_York"
 #: Part 1 gate thresholds (carried from ALT_LINE_70): cell games, cell rungs, conservative
 #: hit-rate half-width
@@ -104,6 +109,67 @@ def load_alt_quotes(odds_db: Path, season: int) -> pl.DataFrame:
     return raw.with_columns(pl.col("market").replace_strict(ALT_MARKET_STAT).alias("stat"))
 
 
+def load_main_lines(odds_db: Path, season: int) -> pl.DataFrame:
+    """Per (game, player, stat, book) the book's main-market over line at ``t60``: the over line
+    whose raw implied probability is nearest 0.5 (ties to the lower line); a single line for
+    DraftKings and FanDuel. Prices only."""
+    import duckdb
+
+    assert season <= MAX_SEASON
+    markets = ", ".join(f"'{m}'" for m in MARKET_STAT)
+    con = duckdb.connect(str(odds_db), read_only=True)
+    try:
+        raw: pl.DataFrame = con.execute(
+            "select game_id, player_id, market, book, point, price_american from odds_history "
+            "where season = ? and snapshot_kind = ? and side = 'over' and player_id is not null "
+            f"and market in ({markets})",
+            [season, SNAPSHOT_KIND],
+        ).pl()
+    finally:
+        con.close()
+    key = ["game_id", "player_id", "stat", "book"]
+    raw = raw.with_columns(
+        pl.col("market").replace_strict(MARKET_STAT).alias("stat"),
+        pl.Series("d5", np.abs(1.0 / decimal_odds(raw["price_american"].to_numpy()) - 0.5)),
+    )
+    return (
+        raw.sort([*key, "d5", "point"])
+        .unique(key, keep="first", maintain_order=True)
+        .select(*key, pl.col("point").alias("main_point"))
+    )
+
+
+def off_ladders(over: pl.DataFrame, main: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Ladder integrity (rule, review B1). ``over``: over rungs with ``po``. Returns the off ladder
+    keys and, per book, the counts: ladders, tested (a rung within OFF_NEAR of 0.5 AND a main line),
+    off, and untested-but-kept (no such rung or no main line)."""
+    key = ["game_id", "player_id", "stat", "book"]
+    r = over.with_columns(pl.Series("d5", np.abs(1.0 / decimal_odds(over["po"].to_numpy()) - 0.5)))
+    near = (
+        r.sort([*key, "d5", "point"])
+        .unique(key, keep="first", maintain_order=True)
+        .select(*key, pl.col("point").alias("alt50"), "d5")
+    )
+    tested = (
+        near.filter(pl.col("d5") < OFF_NEAR)
+        .join(main, on=key, how="inner")
+        .with_columns(((pl.col("alt50") - pl.col("main_point")).abs() > OFF_POINTS).alias("off"))
+    )
+    summary = (
+        near.group_by("book")
+        .agg(pl.len().alias("ladders"))
+        .join(
+            tested.group_by("book").agg(pl.len().alias("tested"), pl.col("off").sum().alias("off")),
+            on="book",
+            how="left",
+        )
+        .with_columns(pl.col("tested").fill_null(0), pl.col("off").fill_null(0))
+        .with_columns((pl.col("ladders") - pl.col("tested")).alias("untested_kept"))
+        .sort("book")
+    )
+    return tested.filter(pl.col("off")).select(key), summary
+
+
 def load_report_stamps(nba_db: Path, seasons: tuple[int, ...] = SEASONS) -> pl.DataFrame:
     """Distinct (game_id, as_of) of the official-report rows the model gates on. ``as_of`` is a
     naive Eastern clock time (11:00 and 17:00 in the stored seasons). Seasons 2023 and 2024 only."""
@@ -143,7 +209,10 @@ def window_games(stamps: pl.DataFrame, snap: pl.DataFrame) -> pl.DataFrame:
 
 
 def alt_over_rungs(
-    raw: pl.DataFrame, tips: pl.DataFrame, model: pl.DataFrame
+    raw: pl.DataFrame,
+    tips: pl.DataFrame,
+    model: pl.DataFrame,
+    main: pl.DataFrame | None = None,
 ) -> tuple[pl.DataFrame, dict[str, Any]]:
     """Over rungs (half-point) of every book joined to the stored model P(over) (played rows only),
     the under price at the same key when the book posted one, the lead of the snapshot before the
@@ -161,6 +230,11 @@ def alt_over_rungs(
     half = ((pl.col("point") * 2).round(6) % 2) == 1
     over = over.filter(half)
     n_half = over.height
+    off_keys = over.head(0).select("game_id", "player_id", "stat", "book")
+    integrity: list[dict[str, Any]] = []
+    if main is not None:
+        off_keys, summary = off_ladders(over, main)
+        integrity = summary.to_dicts()
     over = over.join(tips, on="game_id", how="left")
     parts: list[pl.DataFrame] = []
     for stat in STATS:
@@ -187,8 +261,14 @@ def alt_over_rungs(
             "quote_age_min"
         ),
     )
+    t = t.join(
+        off_keys.with_columns(pl.lit(True).alias("ladder_off")),
+        on=["game_id", "player_id", "stat", "book"],
+        how="left",
+    ).with_columns(pl.col("ladder_off").fill_null(False))
     lead = t["lead_min"].drop_nulls().to_numpy()
-    meta = {
+    meta: dict[str, Any] = {
+        "ladder_integrity_by_book": integrity,
         "over_rungs_after_dedupe": n_all,
         "half_point_rungs": n_half,
         "joined_to_model": t.height,
@@ -445,6 +525,7 @@ def run_gate(
         "all": {},
         "excl_window": {},
         "excl_window_lead66": {},
+        "primary": {},
     }
     books_seen: set[str] = set()
     for season in SEASONS:
@@ -454,7 +535,7 @@ def run_gate(
         )
         assert "y" not in m.columns
         raw = load_alt_quotes(odds_db, season)
-        t, meta = alt_over_rungs(raw, tips, m)
+        t, meta = alt_over_rungs(raw, tips, m, load_main_lines(odds_db, season))
         snap = (
             raw.group_by("game_id")
             .agg(
@@ -482,14 +563,30 @@ def run_gate(
         )
         meta["rungs_by_book"] = {b: int((t["book"] == b).sum()) for b in books}
         meta["rungs_in_window_games"] = int(t["in_window"].sum())
+        cap = t.filter(~pl.col("in_window") & (pl.col("lead_min") <= LEAD_CAP_MIN))
+        meta["off_ladder_rungs_by_book"] = {
+            b: {
+                "all_rungs": int(t.filter((pl.col("book") == b) & pl.col("ladder_off")).height),
+                "p_ge_70_rungs_window_arm": int(
+                    cap.filter(
+                        (pl.col("book") == b)
+                        & pl.col("ladder_off")
+                        & (pl.col("pm") >= THRESHOLD - EPS)
+                    ).height
+                ),
+            }
+            for b in books
+        }
         res: dict[str, Any] = {"meta": meta, "books": {}}
         for book in books:
             tb = t.filter(pl.col("book") == book)
             fresh = tb.filter(~pl.col("in_window"))
+            capped = fresh.filter(pl.col("lead_min") <= LEAD_CAP_MIN)
             for arm, frame in (
                 ("all", tb),
                 ("excl_window", fresh),
-                ("excl_window_lead66", fresh.filter(pl.col("lead_min") <= LEAD_CAP_MIN)),
+                ("excl_window_lead66", capped),  # S3: off ladders added back
+                ("primary", capped.filter(~pl.col("ladder_off"))),
             ):
                 r = book_arm(frame)
                 res["books"].setdefault(book, {})[arm] = r

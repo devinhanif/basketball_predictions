@@ -86,6 +86,7 @@ class Check:
 @dataclass
 class Preflight:
     checks: list[Check] = field(default_factory=list)
+    info: dict[str, str] = field(default_factory=dict)
 
     def add(self, name: str, ok: bool, detail: str = "") -> bool:
         self.checks.append(Check(name, bool(ok), detail))
@@ -136,6 +137,13 @@ def check_rule(
         sha in shas,
         f"computed {sha[:8]}; commits carry {[x[:8] for x in shas]}",
     )
+    # a re-freeze must not pass: exactly one distinct sha may exist in history (review H1)
+    pf.add(
+        f"{rule_id}: exactly one distinct prereg({rule_id}) sha exists in history",
+        len(set(shas)) == 1,
+        f"{len(set(shas))} distinct",
+    )
+    pf.info[f"{rule_id}_sha256"] = sha
     pf.add(f"{rule_id}: status line begins 'Status: **FROZEN'", frozen_status(rule_path), "")
     return sha
 

@@ -46,6 +46,12 @@ def root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return r
 
 
+@pytest.fixture(autouse=True)
+def pin_odds(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The real pin is the frozen store's fingerprint; the synthetic store gets its own."""
+    monkeypatch.setattr(ev, "ODDS_FINGERPRINT", ev.odds_fingerprint(root / ev.ODDS_DB))
+
+
 def test_preflight_passes_only_when_everything_is_frozen_and_pinned(
     tmp_path: Path, root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -78,8 +84,50 @@ def test_harness_refuses_when_the_adh_freeze_commit_is_missing(
     pf = hc.Preflight()
     ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas, with_adh=False))
     assert [c.name for c in pf.failures()] == [
-        "ALT_LADDER_HIST: a commit 'prereg(ALT_LADDER_HIST): <sha>' carries the rule text sha"
+        "ALT_LADDER_HIST: a commit 'prereg(ALT_LADDER_HIST): <sha>' carries the rule text sha",
+        "ALT_LADDER_HIST: exactly one distinct prereg(ALT_LADDER_HIST) sha exists in history",
     ]
+
+
+def test_harness_refuses_a_re_frozen_alt_ladder_hist(
+    tmp_path: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """H1: a second prereg(ALT_LADDER_HIST) sha in history (a re-freeze after results) fails, and
+    so does any sha other than the exact one handed in with --adh-sha."""
+    shas = _write_rules(tmp_path)
+    monkeypatch.setattr(ev, "RULE_SHA", shas["ALT_LINE_70"])
+
+    def two(rid: str, _repo: Path) -> list[str]:
+        return [shas[rid], "f" * 64] if rid == "ALT_LADDER_HIST" else [shas[rid]]
+
+    pf = hc.Preflight()
+    ev.run_preflight(pf, root, tmp_path, lookup=two)
+    assert [c.name for c in pf.failures()] == [
+        "ALT_LADDER_HIST: exactly one distinct prereg(ALT_LADDER_HIST) sha exists in history"
+    ]
+    pf2 = hc.Preflight()
+    ev.run_preflight(pf2, root, tmp_path, lookup=_lookup(shas), adh_sha="0" * 64)
+    assert any(
+        "pinned frozen sha" in c.name and "ALT_LADDER_HIST" in c.name for c in pf2.failures()
+    )
+    pf3 = hc.Preflight()
+    ev.run_preflight(pf3, root, tmp_path, lookup=_lookup(shas), adh_sha=shas["ALT_LADDER_HIST"])
+    assert pf3.ok and pf3.info["ALT_LADDER_HIST_sha256"] == shas["ALT_LADDER_HIST"]
+
+
+def test_odds_store_check_fails_closed_without_a_backup(
+    tmp_path: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """H2: no --pre-alt-backup is not a pass; the live store must equal the pinned fingerprint."""
+    shas = _write_rules(tmp_path)
+    monkeypatch.setattr(ev, "RULE_SHA", shas["ALT_LINE_70"])
+    monkeypatch.setattr(ev, "ODDS_FINGERPRINT", {"rows": 1, "hash_sum": "0"})
+    pf = hc.Preflight()
+    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas))
+    assert [c.name for c in pf.failures()] == [
+        "odds rows the rule reads equal the pinned fingerprint"
+    ]
+    assert not any("NOT VERIFIED" in c.detail for c in pf.checks)
 
 
 def test_harness_refuses_a_rule_text_that_is_not_the_frozen_sha(tmp_path: Path, root: Path) -> None:
