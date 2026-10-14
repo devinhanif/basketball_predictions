@@ -152,4 +152,70 @@ words are frozen before ALT_LINE_70's harness runs. Why: adding a part after a f
 reveal calibration at the same 2023-24 player-games. What would reverse it: Devin choosing to score ALT_LINE_70 first and accept a
 result-informed ALT_LADDER_HIST, logged as an override.`
 
+(First-review verdict: BLOCKED; superseded by the re-review below.)
+
+## Re-review, 2026-10-14 (revision 2, commit 143b974, merged at cf65b72)
+
+Revision 2 changed `docs/prereg/ALT_LINE_70.md`, `research/eval/alt_line_70_gate.py`, the test and `gate.json`
+(sha256 8c06cd8d..., which matches the draft at line 95). New attack scripts in the scratchpad: `a3.py`, `a4.py`. Season <= 2024
+only, read-only, no `y` read.
+
+### The first-review items
+| Item | Status | Where |
+|---|---|---|
+| B1 (follow-ups vs DECISIONS 12:31; Part 3) | **FIXED** in the rule | lines 86, 89-93 (ALT_LADDER_HIST is its own id; the 5M plan is kept; the pull is approved). Still outstanding, but not rule text: the main session's correcting DECISIONS line. `docs/DECISIONS.md:1101` still says "feeds ALT_LINE_70 Part 3", and no correcting line exists yet (grep). |
+| B2 (margin set from the counts) | **FIXED** | lines 38, 101, 144, 170, 173, 184 (at +-0.02 the gate fails 8 of 8; Devin chose +-0.03 at 13:12, DECISIONS 13:12) |
+| B3 (p = max(p_game, p_date)) | **FIXED** | lines 31, 74, 156 |
+| N1 | addressed | the primary price is now `t5` (line 53); attack (vii) runs on the `t60` sensitivity capture (line 80); the lead is stored |
+| N3 / N4 / N5 | addressed | E1u at line 66; drop-all de-duplication at line 52 and `dedupe_dropping` in the gate; starter/bench split at line 43 |
+
+### Is t5 at or after T-60 for every game, against real tips?
+Verified independently (`a3.py`, exit 0):
+- Every t5 row of every game sits **9.27 to 9.38 minutes before the real tip**: 2023 has 1,623,573 rows over 1,318 games, 2024 has
+  1,107,540 rows over 1,315 games. 0 rows have a null tip, and 0 games have any t5 row before tip - 60 or at or after tip.
+- BetRivers t5 quotes are fresh. 0 of 244,140 (2023) and 0 of 159,516 (2024) have `last_update` before tip - 60. The
+  `last_update` lead has a median of 9.8 / 9.5 minutes and a maximum of 22.4 / 20.9. So no stale pre-cutoff price hides inside t5.
+- The disclosure that the t5 price is better informed than the forecast is present at lines 53, 135, 144 and 171.
+
+### A new problem the revision introduced (blocking)
+**B4. Line 53 says the t5 choice "can only hurt the word PROFITABLE". That holds for the price, not for which bets exist.** At t5
+the bet set is the set of lines BetRivers still posts about 9 minutes before tip, so whether a line is in the set depends on news after the
+model's cutoff. Among played player-stat units (`a4.py`):
+- BetRivers quoted **1,422 of 34,816 (4.1%) at t60 that are gone by t5 in 2023, and 1,130 of 37,776 (3.0%) in 2024**.
+- 2,564 and 2,740 units appear only at t5.
+
+A line pulled between T-60 and T-9 for a player who still plays fits late minutes-restriction news, which would be a losing over.
+A real T-60 bettor would have held those bets. Dropping them can flatter the over strategy, which is exactly the direction
+the rule says is impossible.
+*Fix (text only, before the hash):*
+1. Line 53: replace "That can only hurt the word PROFITABLE" with "The price can only hurt the word PROFITABLE. Which bets
+   exist cannot be guaranteed the same way: it depends on lines still posted at T-9 (3.0-4.1% of played t60 units are pulled by t5,
+   and 2,564 / 2,740 units appear only at t5)."
+2. Add attack (viii) at line 80: "units quoted at t60 and absent at t5 (played) are scored at their t60 price and added to arm A;
+   the ROI sign must hold. Units that appear only at t5 are reported separately."
+3. Add "t60 units pulled by t5" to the counted exclusions in step 2 or step 4.
+
+### Contradictions introduced or left (non-blocking; fix in the same pass)
+- Line 82 says "BetRivers' availability in Devin's state [is] unknown", but line 7 and DECISIONS 13:12 say Devin bets only on
+  Kalshi and Polymarket. Reword to "not Devin's venue; whether a friend can get that price at T-9 is unknown".
+- Lines 13 and 58 give a 94.9% Unibet identity (a t60 figure), while line 124 gives 93.2% at t5. Label each with its capture.
+- Line 12 still describes the ladders from `t60`, while the decision set is `t5`. Label it, or add the t5 ladder shares from `gate.json`.
+- Line 134 quotes a claimed edge of "+5 to +10%", while t5 gives +5.3% and +11.0% (line 124). The prior text may stand, but it
+  should note that it was written for t60.
+- Gate coverage: 25 (2023) and 15 (2024) games have BetRivers at t60 but not at t5. They are counted inside the gate's totals; the
+  harness should report them as an exclusion.
+
+### Verification (unpiped)
+`pytest tests/research/eval/test_alt_line_70_gate.py --no-cov` gave 8 passed, exit 0. `ruff check` exit 0, `ruff format --check`
+exit 0, `mypy research/eval/alt_line_70_gate.py` exit 0. `shasum` of `gate.json` = 8c06cd8d..., which matches.
+
+### Playbook check (re-review)
+The class is unchanged: a quantile/distribution layer, nothing trained. Test validity improved: the price is no longer older
+than the model's information, and that is verified. The remaining validity hole is which bets exist at T-9 (B4). Power is
+unchanged: pooled 4,546 rungs over 1,449 games, conservative half-width 0.041 (independent 0.018). 2024 alone fails the gate,
+and the decision is made pooled with a per-season sign check, which is consistent.
+
+**Single biggest risk:** a PROFITABLE word caused by lines BetRivers withdrew after T-60, which drops the late-news losers from
+an over-only bet set.
+
 Verdict: BLOCKED
