@@ -1,0 +1,1855 @@
+{
+ "measured_at": "Wed Oct 14 16:37 CDT 2026",
+ "root": "/Users/devin/Downloads/nba-prediction",
+ "seasons": [
+  2022,
+  2023,
+  2024
+ ],
+ "by_season": {
+  "2022": {
+   "rows_a0_population(n_prior>=5, played)": 25110,
+   "team_games": 2490,
+   "team_games_with_report": 2486,
+   "team_games_with_rotation_out": 1805,
+   "games_with_rotation_out_either_team": 1142,
+   "out_slice_rows": 18095,
+   "out_slice_share_of_rows": 0.7206292313819196,
+   "out_slice_rows_n_out_ge2": 10810,
+   "informative_rows(wo_conf>0)": 17174,
+   "informative_share_of_out_slice": 0.9491019618679193,
+   "wo_conf_quantiles(out_slice)": {
+    "0.25": 0.5,
+    "0.5": 0.8571428571428571,
+    "0.75": 1.5125,
+    "0.9": 2.1925717303291674
+   },
+   "wo_n_quantiles(informative)": {
+    "0.25": 7.0,
+    "0.5": 18.0,
+    "0.75": 35.0,
+    "0.9": 56.0
+   },
+   "sd_wo_d_min(informative)": 5.159710125158258,
+   "sd_wo_d_ast(informative)": 0.9632413467210068,
+   "sd_wo_d_pts(informative)": 3.2657475666450138,
+   "sd_wo_d_reb(informative)": 1.2735936802438923,
+   "placebo_informative_share_of_out_slice": 0.806465874550981
+  },
+  "2023": {
+   "rows_a0_population(n_prior>=5, played)": 27619,
+   "team_games": 2636,
+   "team_games_with_report": 2634,
+   "team_games_with_rotation_out": 2233,
+   "games_with_rotation_out_either_team": 1285,
+   "out_slice_rows": 23246,
+   "out_slice_share_of_rows": 0.8416669683913248,
+   "out_slice_rows_n_out_ge2": 15048,
+   "informative_rows(wo_conf>0)": 21666,
+   "informative_share_of_out_slice": 0.9320313172158651,
+   "wo_conf_quantiles(out_slice)": {
+    "0.25": 0.6842105263157895,
+    "0.5": 1.0545454545454545,
+    "0.75": 1.749342105263158,
+    "0.9": 2.6399977929047695
+   },
+   "wo_n_quantiles(informative)": {
+    "0.25": 14.0,
+    "0.5": 32.0,
+    "0.75": 61.0,
+    "0.9": 93.0
+   },
+   "sd_wo_d_min(informative)": 7.085240832073468,
+   "sd_wo_d_ast(informative)": 1.1307709998027442,
+   "sd_wo_d_pts(informative)": 4.052631571725339,
+   "sd_wo_d_reb(informative)": 1.6791202743842526,
+   "placebo_informative_share_of_out_slice": 0.8373913791620063
+  },
+  "2024": {
+   "rows_a0_population(n_prior>=5, played)": 27701,
+   "team_games": 2640,
+   "team_games_with_report": 2634,
+   "team_games_with_rotation_out": 2215,
+   "games_with_rotation_out_either_team": 1276,
+   "out_slice_rows": 23156,
+   "out_slice_share_of_rows": 0.8359265008483449,
+   "out_slice_rows_n_out_ge2": 16344,
+   "informative_rows(wo_conf>0)": 21585,
+   "informative_share_of_out_slice": 0.9321558127483158,
+   "wo_conf_quantiles(out_slice)": {
+    "0.25": 0.7272727272727273,
+    "0.5": 1.2857142857142856,
+    "0.75": 2.016780018761726,
+    "0.9": 2.962721374701343
+   },
+   "wo_n_quantiles(informative)": {
+    "0.25": 15.0,
+    "0.5": 35.0,
+    "0.75": 68.0,
+    "0.9": 107.0
+   },
+   "sd_wo_d_min(informative)": 7.125763542928135,
+   "sd_wo_d_ast(informative)": 1.1387009268191475,
+   "sd_wo_d_pts(informative)": 4.1021839246587435,
+   "sd_wo_d_reb(informative)": 1.682739188018951,
+   "placebo_informative_share_of_out_slice": 0.8479011919157022
+  }
+ },
+ "pair_coverage": {
+  "2022": {
+   "single_out_pairs": 7285,
+   "n_wo_quantiles(single-out rows)": {
+    "0.1": 0.0,
+    "0.25": 2.0,
+    "0.5": 7.0,
+    "0.75": 16.0,
+    "0.9": 28.0
+   },
+   "share_n_wo>=1": 0.896636925188744,
+   "share_n_wo>=3": 0.7371310912834592,
+   "share_n_wo>=5": 0.6074124914207275,
+   "share_n_wo>=10": 0.3925875085792725,
+   "mean_conf": 0.4881603010808336
+  },
+  "2023": {
+   "single_out_pairs": 8198,
+   "n_wo_quantiles(single-out rows)": {
+    "0.1": 0.0,
+    "0.25": 4.0,
+    "0.5": 15.0,
+    "0.75": 30.0,
+    "0.9": 48.0
+   },
+   "share_n_wo>=1": 0.867406684557209,
+   "share_n_wo>=3": 0.8042205415955112,
+   "share_n_wo>=5": 0.7401805318370335,
+   "share_n_wo>=10": 0.6041717492071237,
+   "mean_conf": 0.5924632931155926
+  },
+  "2024": {
+   "single_out_pairs": 6812,
+   "n_wo_quantiles(single-out rows)": {
+    "0.1": 0.0,
+    "0.25": 4.0,
+    "0.5": 14.0,
+    "0.75": 27.0,
+    "0.9": 53.0
+   },
+   "share_n_wo>=1": 0.8669994128009395,
+   "share_n_wo>=3": 0.8088667058132707,
+   "share_n_wo>=5": 0.7420728126834997,
+   "share_n_wo>=10": 0.6196418085731062,
+   "mean_conf": 0.5913754361843051
+  }
+ },
+ "firing_by_realised_minutes_bucket": {
+  "2022": {
+   "<5": {
+    "n": 1163,
+    "informative": 0.9208942390369733
+   },
+   "5-10": {
+    "n": 1184,
+    "informative": 0.9315878378378378
+   },
+   "10-20": {
+    "n": 4130,
+    "informative": 0.9433414043583536
+   },
+   ">=20": {
+    "n": 11618,
+    "informative": 0.9557583060767774
+   },
+   "max_gap": 0.03486406703980405,
+   "null_count_in_out_slice": 0
+  },
+  "2023": {
+   "<5": {
+    "n": 1921,
+    "informative": 0.8381051535658511
+   },
+   "5-10": {
+    "n": 1715,
+    "informative": 0.8816326530612245
+   },
+   "10-20": {
+    "n": 5367,
+    "informative": 0.9185764859325508
+   },
+   ">=20": {
+    "n": 14243,
+    "informative": 0.9558379554869059
+   },
+   "max_gap": 0.11773280192105473,
+   "null_count_in_out_slice": 0
+  },
+  "2024": {
+   "<5": {
+    "n": 1828,
+    "informative": 0.849015317286652
+   },
+   "5-10": {
+    "n": 1583,
+    "informative": 0.8875552747946936
+   },
+   "10-20": {
+    "n": 5403,
+    "informative": 0.9189339255968906
+   },
+   ">=20": {
+    "n": 14342,
+    "informative": 0.9526565332589597
+   },
+   "max_gap": 0.10364121597230769,
+   "null_count_in_out_slice": 0
+  }
+ },
+ "placebo_firing_by_realised_minutes_bucket": {
+  "2022": {
+   "by_bucket": {
+    "<5": 0.7858985382631126,
+    "5-10": 0.8209459459459459,
+    "10-20": 0.7958837772397095,
+    ">=20": 0.8108108108108109
+   },
+   "gap": 0.03504740768283332
+  },
+  "2023": {
+   "by_bucket": {
+    "<5": 0.7558563248308173,
+    "5-10": 0.793002915451895,
+    "10-20": 0.8222470653996646,
+    ">=20": 0.8594397247770835
+   },
+   "gap": 0.1035833999462662
+  },
+  "2024": {
+   "by_bucket": {
+    "<5": 0.7817286652078774,
+    "5-10": 0.8250157927984839,
+    "10-20": 0.8325004627059042,
+    ">=20": 0.8646632268860689
+   },
+   "gap": 0.08293456167819147
+  }
+ },
+ "planted_future": {
+  "cutoff": "2025-01-15",
+  "rows_before_cutoff": 10877,
+  "features_before_cutoff_unchanged": true,
+  "sensitivity_mean_abs_move_30d_after(wo_d_min)": 26.42077192546274,
+  "inert_test": false
+ },
+ "kappa_2022_only": {
+  "ANY": {
+   "rows": 17433,
+   "pts": {
+    "coef": 0.03053823583086636,
+    "se": 0.018188449594547542,
+    "n": 17174.0,
+    "clusters": 1116.0
+   },
+   "reb": {
+    "coef": 0.04631531732488547,
+    "se": 0.019049162519789522,
+    "n": 17174.0,
+    "clusters": 1116.0
+   },
+   "ast": {
+    "coef": 0.07555675047130998,
+    "se": 0.019719631127848754,
+    "n": 17174.0,
+    "clusters": 1116.0
+   },
+   "fg3m": {
+    "coef": -0.03424904389887847,
+    "se": 0.021191810570974846,
+    "n": 17174.0,
+    "clusters": 1116.0
+   },
+   "minutes": {
+    "coef": 0.16978673480560574,
+    "se": 0.014573911891378948,
+    "n": 17433.0,
+    "clusters": 1116.0
+   }
+  },
+  "VAC24": {
+   "rows": 14513,
+   "pts": {
+    "coef": 0.033924155329815096,
+    "se": 0.018730470043384642,
+    "n": 14288.0,
+    "clusters": 1019.0
+   },
+   "reb": {
+    "coef": 0.03931142231502051,
+    "se": 0.01966580471496483,
+    "n": 14288.0,
+    "clusters": 1019.0
+   },
+   "ast": {
+    "coef": 0.07828189515986493,
+    "se": 0.020093091065712745,
+    "n": 14288.0,
+    "clusters": 1019.0
+   },
+   "fg3m": {
+    "coef": -0.028557291213105948,
+    "se": 0.021704595089916765,
+    "n": 14288.0,
+    "clusters": 1019.0
+   },
+   "minutes": {
+    "coef": 0.1659735077322276,
+    "se": 0.015056752929487653,
+    "n": 14513.0,
+    "clusters": 1019.0
+   }
+  },
+  "ABSORB": {
+   "rows": 6555,
+   "pts": {
+    "coef": 0.003434023379340581,
+    "se": 0.026951774233491467,
+    "n": 6543.0,
+    "clusters": 995.0
+   },
+   "reb": {
+    "coef": 0.009819493628480596,
+    "se": 0.03007584855370932,
+    "n": 6543.0,
+    "clusters": 995.0
+   },
+   "ast": {
+    "coef": 0.06858245312026766,
+    "se": 0.02794342577430538,
+    "n": 6543.0,
+    "clusters": 995.0
+   },
+   "fg3m": {
+    "coef": -0.0448051776681492,
+    "se": 0.02990797082295644,
+    "n": 6543.0,
+    "clusters": 995.0
+   },
+   "minutes": {
+    "coef": 0.11745240957363047,
+    "se": 0.021846846911499154,
+    "n": 6555.0,
+    "clusters": 995.0
+   }
+  }
+ },
+ "firing_within_asof_min10_strata": {
+  "2022": {
+   "min10[0,15)": {
+    "n": 4002,
+    "gap_across_realised_buckets": 0.02188045029332497
+   },
+   "min10[15,25)": {
+    "n": 5916,
+    "gap_across_realised_buckets": 0.03371536523929464
+   },
+   "min10[25,99)": {
+    "n": 8177,
+    "gap_across_realised_buckets": 0.008665034249759729
+   },
+   "max_within_stratum_gap": 0.03371536523929464
+  },
+  "2023": {
+   "min10[0,15)": {
+    "n": 5484,
+    "gap_across_realised_buckets": 0.06166484426208885
+   },
+   "min10[15,25)": {
+    "n": 7398,
+    "gap_across_realised_buckets": 0.09538604940189532
+   },
+   "min10[25,99)": {
+    "n": 10364,
+    "gap_across_realised_buckets": 0.04150121766915493
+   },
+   "max_within_stratum_gap": 0.09538604940189532
+  },
+  "2024": {
+   "min10[0,15)": {
+    "n": 5452,
+    "gap_across_realised_buckets": 0.09686766578823003
+   },
+   "min10[15,25)": {
+    "n": 7711,
+    "gap_across_realised_buckets": 0.08286634680155558
+   },
+   "min10[25,99)": {
+    "n": 9993,
+    "gap_across_realised_buckets": 0.040245783233424204
+   },
+   "max_within_stratum_gap": 0.09686766578823003
+  }
+ },
+ "data_capture_audit": {
+  "history_db_seasons_box": [
+   2013,
+   2014,
+   2015,
+   2016,
+   2017,
+   2018,
+   2019,
+   2020,
+   2021
+  ],
+  "history_report_seasons(rows with has_report)": [
+   2019,
+   2020,
+   2021
+  ],
+  "window_fuller_with_history_box": {
+   "2022": {
+    "median_wo_n_without_history": 18.0,
+    "median_wo_n_with_history": 27.0,
+    "informative_share_without": 0.9491019618679193,
+    "informative_share_with": 0.9665100856590219
+   },
+   "2023": {
+    "median_wo_n_without_history": 32.0,
+    "median_wo_n_with_history": 32.0,
+    "informative_share_without": 0.9320313172158651,
+    "informative_share_with": 0.9323754624451519
+   },
+   "2024": {
+    "median_wo_n_without_history": 35.0,
+    "median_wo_n_with_history": 35.0,
+    "informative_share_without": 0.9321558127483158,
+    "informative_share_with": 0.9321558127483158
+   }
+  },
+  "kappa": {
+   "ANY": {
+    "2022 (history-box window)": {
+     "rows": 17854,
+     "pts": {
+      "coef": 0.0716647949537293,
+      "se": 0.01757492038261112,
+      "n": 17489.0,
+      "clusters": 1135.0
+     },
+     "reb": {
+      "coef": 0.05994944393923436,
+      "se": 0.018987167532798794,
+      "n": 17489.0,
+      "clusters": 1135.0
+     },
+     "ast": {
+      "coef": 0.09792098496582673,
+      "se": 0.020217968156372525,
+      "n": 17489.0,
+      "clusters": 1135.0
+     },
+     "fg3m": {
+      "coef": 0.0014795234159721028,
+      "se": 0.021983838889442837,
+      "n": 17489.0,
+      "clusters": 1135.0
+     }
+    },
+    "2020 (hist)": {
+     "rows": 19774,
+     "pts": {
+      "coef": 0.0251721996152102,
+      "se": 0.014564533729573115,
+      "n": 19641.0,
+      "clusters": 1138.0
+     },
+     "reb": {
+      "coef": 0.03336389198198657,
+      "se": 0.015106489090129242,
+      "n": 19641.0,
+      "clusters": 1138.0
+     },
+     "ast": {
+      "coef": 0.04456902584988002,
+      "se": 0.017263870243586055,
+      "n": 19641.0,
+      "clusters": 1138.0
+     },
+     "fg3m": {
+      "coef": -0.008243415077068472,
+      "se": 0.018778695042835514,
+      "n": 19641.0,
+      "clusters": 1138.0
+     }
+    },
+    "2021 (hist)": {
+     "rows": 22661,
+     "pts": {
+      "coef": 0.021997144825215587,
+      "se": 0.011444664334109657,
+      "n": 22513.0,
+      "clusters": 1298.0
+     },
+     "reb": {
+      "coef": 0.029773273458296824,
+      "se": 0.013328363960082792,
+      "n": 22513.0,
+      "clusters": 1298.0
+     },
+     "ast": {
+      "coef": 0.024868649659718786,
+      "se": 0.014889654257838955,
+      "n": 22513.0,
+      "clusters": 1298.0
+     },
+     "fg3m": {
+      "coef": 0.003969927950582412,
+      "se": 0.014539130622744657,
+      "n": 22513.0,
+      "clusters": 1298.0
+     }
+    },
+    "pooled 2020-2022": {
+     "rows": 60289,
+     "pts": {
+      "coef": 0.03690956195329251,
+      "se": 0.008061539005577573,
+      "n": 59643.0,
+      "clusters": 3571.0
+     },
+     "reb": {
+      "coef": 0.03813014869615156,
+      "se": 0.008835185606936484,
+      "n": 59643.0,
+      "clusters": 3571.0
+     },
+     "ast": {
+      "coef": 0.04823912334795294,
+      "se": 0.009905065353356632,
+      "n": 59643.0,
+      "clusters": 3571.0
+     },
+     "fg3m": {
+      "coef": 0.0011374228909304372,
+      "se": 0.010190798663602512,
+      "n": 59643.0,
+      "clusters": 3571.0
+     }
+    }
+   },
+   "VAC24": {
+    "2022 (history-box window)": {
+     "rows": 14799,
+     "pts": {
+      "coef": 0.0775485672726472,
+      "se": 0.018202638319485705,
+      "n": 14486.0,
+      "clusters": 1035.0
+     },
+     "reb": {
+      "coef": 0.057133340016809815,
+      "se": 0.01957167833978719,
+      "n": 14486.0,
+      "clusters": 1035.0
+     },
+     "ast": {
+      "coef": 0.10091500614203654,
+      "se": 0.02078634703516106,
+      "n": 14486.0,
+      "clusters": 1035.0
+     },
+     "fg3m": {
+      "coef": 0.006595926755517263,
+      "se": 0.022452930118721157,
+      "n": 14486.0,
+      "clusters": 1035.0
+     }
+    },
+    "2020 (hist)": {
+     "rows": 17430,
+     "pts": {
+      "coef": 0.030908756263867698,
+      "se": 0.015035283870273421,
+      "n": 17310.0,
+      "clusters": 1081.0
+     },
+     "reb": {
+      "coef": 0.0370535005242287,
+      "se": 0.015510570509614378,
+      "n": 17310.0,
+      "clusters": 1081.0
+     },
+     "ast": {
+      "coef": 0.04221445630359984,
+      "se": 0.01775393585353155,
+      "n": 17310.0,
+      "clusters": 1081.0
+     },
+     "fg3m": {
+      "coef": -0.00607578626826764,
+      "se": 0.019552524126845577,
+      "n": 17310.0,
+      "clusters": 1081.0
+     }
+    },
+    "2021 (hist)": {
+     "rows": 21064,
+     "pts": {
+      "coef": 0.02462576175824463,
+      "se": 0.011562280887323235,
+      "n": 20929.0,
+      "clusters": 1271.0
+     },
+     "reb": {
+      "coef": 0.028361023652780697,
+      "se": 0.013468360931852804,
+      "n": 20929.0,
+      "clusters": 1271.0
+     },
+     "ast": {
+      "coef": 0.027041825023322415,
+      "se": 0.01500185948390235,
+      "n": 20929.0,
+      "clusters": 1271.0
+     },
+     "fg3m": {
+      "coef": 0.009220198406143618,
+      "se": 0.0145944000535672,
+      "n": 20929.0,
+      "clusters": 1271.0
+     }
+    },
+    "pooled 2020-2022": {
+     "rows": 53293,
+     "pts": {
+      "coef": 0.04069833704031809,
+      "se": 0.00824577747160191,
+      "n": 52725.0,
+      "clusters": 3387.0
+     },
+     "reb": {
+      "coef": 0.0379100017783455,
+      "se": 0.00900544391950042,
+      "n": 52725.0,
+      "clusters": 3387.0
+     },
+     "ast": {
+      "coef": 0.04872040562658637,
+      "se": 0.010093018823584711,
+      "n": 52725.0,
+      "clusters": 3387.0
+     },
+     "fg3m": {
+      "coef": 0.0053153746806318585,
+      "se": 0.010387372029079939,
+      "n": 52725.0,
+      "clusters": 3387.0
+     }
+    }
+   }
+  }
+ },
+ "sizing": {
+  "pts": {
+   "ANY": {
+    "kappa_used": 0.03053823583086636,
+    "kappa_pooled_2020_22": 0.03690956195329251,
+    "kappa_2022_full_window": 0.0716647949537293,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.004176227255151995,
+     "power_one_season_at_2022_full_window": 0.35540243755300516,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0011171108743381227,
+     "power_one_season_at_pooled": 0.04026095114457852,
+     "all_rows": 27619,
+     "slice_rows": 23246,
+     "slice_games": 1285,
+     "informative_rows": 21666,
+     "slice_sizing": {
+      "name": "pts ANY, floor -0.005",
+      "n": 23246.0,
+      "sd_row": 0.3430960870080754,
+      "deff": 0.9747873248916105,
+      "se": 0.002221757142269822,
+      "halfwidth95": 0.004354643998848852,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 17632.485583843518,
+      "expected_effect": -0.0007836058514882719,
+      "power_one_season": 0.028862893934665696,
+      "power_both_seasons": 0.0008330666462837618
+     },
+     "all_rows_sizing": {
+      "name": "pts all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.3397846949658044,
+      "deff": 0.9727454365611823,
+      "se": 0.0020165056301941265,
+      "halfwidth95": 0.003952351035180488,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 431438.5727614674,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0007836058514882719,
+     "expected_delta_all_rows(kappa_2022)": -0.0006595351614358365
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.004512717108381533,
+     "power_one_season_at_2022_full_window": 0.4152426037138241,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0011881713214203725,
+     "power_one_season_at_pooled": 0.047000379439067486,
+     "all_rows": 27701,
+     "slice_rows": 23156,
+     "slice_games": 1276,
+     "informative_rows": 21585,
+     "slice_sizing": {
+      "name": "pts ANY, floor -0.005",
+      "n": 23156.0,
+      "sd_row": 0.3326641426061155,
+      "deff": 1.0840878558026965,
+      "se": 0.0022761792537924837,
+      "halfwidth95": 0.004461311337433268,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 18435.231526370713,
+      "expected_effect": -0.0008295184000917007,
+      "power_one_season": 0.03345865623931486,
+      "power_both_seasons": 0.0011194816773406435
+     },
+     "all_rows_sizing": {
+      "name": "pts all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.33016851793432717,
+      "deff": 1.0917944641234931,
+      "se": 0.0020728046802338056,
+      "halfwidth95": 0.004062697173258259,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 457219.0860166595,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0008295184000917007,
+     "expected_delta_all_rows(kappa_2022)": -0.0006934164135779727
+    }
+   },
+   "VAC24": {
+    "kappa_used": 0.033924155329815096,
+    "kappa_pooled_2020_22": 0.04069833704031809,
+    "kappa_2022_full_window": 0.0775485672726472,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.0059561101533891925,
+     "power_one_season_at_2022_full_window": 0.6272558251064788,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0016420462649532617,
+     "power_one_season_at_pooled": 0.09173313038215003,
+     "all_rows": 27619,
+     "slice_rows": 17845,
+     "slice_games": 1144,
+     "informative_rows": 17068,
+     "slice_sizing": {
+      "name": "pts VAC24, floor -0.005",
+      "n": 17845.0,
+      "sd_row": 0.34780116167236386,
+      "deff": 1.002678873987621,
+      "se": 0.0026070759564677903,
+      "halfwidth95": 0.005109868874676869,
+      "floor": -0.005,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 18637.860428320215,
+      "expected_effect": -0.0011529662346603353,
+      "power_one_season": 0.0645380831189195,
+      "power_both_seasons": 0.004165164172664561
+     },
+     "all_rows_sizing": {
+      "name": "pts all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.3397846949658044,
+      "deff": 0.9727454365611823,
+      "se": 0.0020165056301941265,
+      "halfwidth95": 0.003952351035180488,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 431438.5727614674,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0011529662346603353,
+     "expected_delta_all_rows(kappa_2022)": -0.0007449466837146052
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.005947462189235624,
+     "power_one_season_at_2022_full_window": 0.6469887063711934,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.001601253156101746,
+     "power_one_season_at_pooled": 0.08801063479606624,
+     "all_rows": 27701,
+     "slice_rows": 19882,
+     "slice_games": 1208,
+     "informative_rows": 18831,
+     "slice_sizing": {
+      "name": "pts VAC24, floor -0.005",
+      "n": 19882.0,
+      "sd_row": 0.3396169505905042,
+      "deff": 1.0875628003156224,
+      "se": 0.0025118083252951466,
+      "halfwidth95": 0.004923144317578487,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 19275.479685497827,
+      "expected_effect": -0.001125591267511677,
+      "power_one_season": 0.061478756902520394,
+      "power_both_seasons": 0.003779637550279199
+     },
+     "all_rows_sizing": {
+      "name": "pts all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.33016851793432717,
+      "deff": 1.0917944641234931,
+      "se": 0.0020728046802338056,
+      "halfwidth95": 0.004062697173258259,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 457219.0860166595,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.001125591267511677,
+     "expected_delta_all_rows(kappa_2022)": -0.0008078771734113268
+    }
+   },
+   "ABSORB": {
+    "kappa_used": 0.003434023379340581,
+    "kappa_pooled_2020_22": null,
+    "kappa_2022_full_window": null,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27619,
+     "slice_rows": 8842,
+     "slice_games": 1216,
+     "informative_rows": 8842,
+     "slice_sizing": {
+      "name": "pts ABSORB, floor -0.005",
+      "n": 8842.0,
+      "sd_row": 0.33963232713284797,
+      "deff": 0.9688132780603069,
+      "se": 0.0035551162527876403,
+      "halfwidth95": 0.006968027855463775,
+      "floor": -0.005,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 17172.370824957507,
+      "expected_effect": -6.789907568209965e-05,
+      "power_one_season": 0.026135141822797345,
+      "power_both_seasons": 0.0006830456380977309
+     },
+     "all_rows_sizing": {
+      "name": "pts all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.3397846949658044,
+      "deff": 0.9727454365611823,
+      "se": 0.0020165056301941265,
+      "halfwidth95": 0.003952351035180488,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 431438.5727614674,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -6.789907568209965e-05,
+     "expected_delta_all_rows(kappa_2022)": -2.1737341220939395e-05
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27701,
+     "slice_rows": 9695,
+     "slice_games": 1257,
+     "informative_rows": 9695,
+     "slice_sizing": {
+      "name": "pts ABSORB, floor -0.005",
+      "n": 9695.0,
+      "sd_row": 0.3471954423456196,
+      "deff": 0.9936884841936021,
+      "se": 0.003514999254469781,
+      "halfwidth95": 0.006889398538760771,
+      "floor": -0.005,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 18406.466381195896,
+      "expected_effect": -6.684001434161208e-05,
+      "power_one_season": 0.026130088155296553,
+      "power_both_seasons": 0.0006827815070035692
+     },
+     "all_rows_sizing": {
+      "name": "pts all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.33016851793432717,
+      "deff": 1.0917944641234931,
+      "se": 0.0020728046802338056,
+      "halfwidth95": 0.004062697173258259,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 457219.0860166595,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -6.684001434161208e-05,
+     "expected_delta_all_rows(kappa_2022)": -2.339316050113458e-05
+    }
+   }
+  },
+  "reb": {
+   "ANY": {
+    "kappa_used": 0.04631531732488547,
+    "kappa_pooled_2020_22": 0.03813014869615156,
+    "kappa_2022_full_window": 0.05994944393923436,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.0011037212689740266,
+     "power_one_season_at_2022_full_window": 3.795105225355388e-05,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.00046548812054028783,
+     "power_one_season_at_pooled": 2.0607374488434503e-06,
+     "all_rows": 27619,
+     "slice_rows": 23246,
+     "slice_games": 1285,
+     "informative_rows": 21666,
+     "slice_sizing": {
+      "name": "reb ANY, floor -0.005",
+      "n": 23246.0,
+      "sd_row": 0.14224401587640065,
+      "deff": 1.1139141845130862,
+      "se": 0.000984658774466469,
+      "halfwidth95": 0.0019299311979542792,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 3463.3140773100176,
+      "expected_effect": -0.0006700321033114918,
+      "power_one_season": 5.477013324538273e-06,
+      "power_both_seasons": 2.9997674957169785e-11
+     },
+     "all_rows_sizing": {
+      "name": "reb all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.14232681235636765,
+      "deff": 1.100286767241521,
+      "se": 0.0008983295642240709,
+      "halfwidth95": 0.001760725945879179,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 85623.2046004561,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0006700321033114918,
+     "expected_delta_all_rows(kappa_2022)": -0.0005639438891190463
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.0010675105702966292,
+     "power_one_season_at_2022_full_window": 1.3775803144239695e-05,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0004553104207037315,
+     "power_one_season_at_pooled": 6.313383987327098e-07,
+     "all_rows": 27701,
+     "slice_rows": 23156,
+     "slice_games": 1276,
+     "informative_rows": 21585,
+     "slice_sizing": {
+      "name": "reb ANY, floor -0.005",
+      "n": 23156.0,
+      "sd_row": 0.14173932451728524,
+      "deff": 1.0139274516828056,
+      "se": 0.0009379118631640892,
+      "halfwidth95": 0.0018383072518016147,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 3130.110958828938,
+      "expected_effect": -0.0006520932464749245,
+      "power_one_season": 1.7783945100306905e-06,
+      "power_both_seasons": 3.1626870333072998e-12
+     },
+     "all_rows_sizing": {
+      "name": "reb all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.14111310492014614,
+      "deff": 1.0463366970856545,
+      "se": 0.0008672720546162227,
+      "halfwidth95": 0.0016998532270477964,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 80042.06702107667,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0006520932464749245,
+     "expected_delta_all_rows(kappa_2022)": -0.0005451020257526208
+    }
+   },
+   "VAC24": {
+    "kappa_used": 0.03931142231502051,
+    "kappa_pooled_2020_22": 0.0379100017783455,
+    "kappa_2022_full_window": 0.057133340016809815,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.0012355920522963265,
+     "power_one_season_at_2022_full_window": 0.0004695492064153531,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0005634121346704032,
+     "power_one_season_at_pooled": 4.832012886502747e-05,
+     "all_rows": 27619,
+     "slice_rows": 17845,
+     "slice_games": 1144,
+     "informative_rows": 17068,
+     "slice_sizing": {
+      "name": "reb VAC24, floor -0.005",
+      "n": 17845.0,
+      "sd_row": 0.1439923756136786,
+      "deff": 1.1144405173056058,
+      "se": 0.0011379145937669927,
+      "halfwidth95": 0.0022303126037833054,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 3550.651278902473,
+      "expected_effect": -0.0006031585632670758,
+      "power_one_season": 5.578476868795615e-05,
+      "power_both_seasons": 3.1119404175687728e-09
+     },
+     "all_rows_sizing": {
+      "name": "reb all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.14232681235636765,
+      "deff": 1.100286767241521,
+      "se": 0.0008983295642240709,
+      "halfwidth95": 0.001760725945879179,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 85623.2046004561,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0006031585632670758,
+     "expected_delta_all_rows(kappa_2022)": -0.0003897086991383094
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.0010837698132219662,
+     "power_one_season_at_2022_full_window": 6.21662559450347e-05,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0004999497794544437,
+     "power_one_season_at_pooled": 5.180621779968319e-06,
+     "all_rows": 27701,
+     "slice_rows": 19882,
+     "slice_games": 1208,
+     "informative_rows": 18831,
+     "slice_sizing": {
+      "name": "reb VAC24, floor -0.005",
+      "n": 19882.0,
+      "sd_row": 0.1428171044294711,
+      "deff": 1.0152122136530528,
+      "se": 0.0010205366499378879,
+      "halfwidth95": 0.00200025183387826,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 3181.9211642237083,
+      "expected_effect": -0.0005348111520657161,
+      "power_one_season": 6.062330178271996e-06,
+      "power_both_seasons": 3.6751847190387375e-11
+     },
+     "all_rows_sizing": {
+      "name": "reb all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.14111310492014614,
+      "deff": 1.0463366970856545,
+      "se": 0.0008672720546162227,
+      "halfwidth95": 0.0016998532270477964,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 80042.06702107667,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0005348111520657161,
+     "expected_delta_all_rows(kappa_2022)": -0.0003838531217418348
+    }
+   },
+   "ABSORB": {
+    "kappa_used": 0.009819493628480596,
+    "kappa_pooled_2020_22": null,
+    "kappa_2022_full_window": null,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27619,
+     "slice_rows": 8842,
+     "slice_games": 1216,
+     "informative_rows": 8842,
+     "slice_sizing": {
+      "name": "reb ABSORB, floor -0.005",
+      "n": 8842.0,
+      "sd_row": 0.1464130731435015,
+      "deff": 1.0419442118515885,
+      "se": 0.0015893766716823061,
+      "halfwidth95": 0.00311517827649732,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 3432.229448381532,
+      "expected_effect": -9.183724823172559e-05,
+      "power_one_season": 0.0010071849179771543,
+      "power_both_seasons": 1.0144214590006471e-06
+     },
+     "all_rows_sizing": {
+      "name": "reb all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.14232681235636765,
+      "deff": 1.100286767241521,
+      "se": 0.0008983295642240709,
+      "halfwidth95": 0.001760725945879179,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 85623.2046004561,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -9.183724823172559e-05,
+     "expected_delta_all_rows(kappa_2022)": -2.9400954012271176e-05
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27701,
+     "slice_rows": 9695,
+     "slice_games": 1257,
+     "informative_rows": 9695,
+     "slice_sizing": {
+      "name": "reb ABSORB, floor -0.005",
+      "n": 9695.0,
+      "sd_row": 0.1455440905938258,
+      "deff": 1.0211668557086853,
+      "se": 0.0014937194129848708,
+      "halfwidth95": 0.0029276900494503467,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 3323.9769081472923,
+      "expected_effect": -8.869546443671435e-05,
+      "power_one_season": 0.0005045630600157951,
+      "power_both_seasons": 2.545838815325029e-07
+     },
+     "all_rows_sizing": {
+      "name": "reb all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.14111310492014614,
+      "deff": 1.0463366970856545,
+      "se": 0.0008672720546162227,
+      "halfwidth95": 0.0016998532270477964,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 80042.06702107667,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -8.869546443671435e-05,
+     "expected_delta_all_rows(kappa_2022)": -3.1042291892492895e-05
+    }
+   }
+  },
+  "ast": {
+   "ANY": {
+    "kappa_used": 0.07555675047130998,
+    "kappa_pooled_2020_22": 0.04823912334795294,
+    "kappa_2022_full_window": 0.09792098496582673,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.0017507316372148331,
+     "power_one_season_at_2022_full_window": 1.0530964578998845e-06,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0004438818207924488,
+     "power_one_season_at_pooled": 1.4598208034226536e-11,
+     "all_rows": 27619,
+     "slice_rows": 23246,
+     "slice_games": 1285,
+     "informative_rows": 21666,
+     "slice_sizing": {
+      "name": "ast ANY, floor -0.005",
+      "n": 23246.0,
+      "sd_row": 0.10312615240745485,
+      "deff": 1.0258481849733836,
+      "se": 0.000685072043552941,
+      "halfwidth95": 0.0013427412053637643,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 1676.4586958298808,
+      "expected_effect": -0.0010511980814874612,
+      "power_one_season": 4.105512701551676e-09,
+      "power_both_seasons": 1.685523454260214e-17
+     },
+     "all_rows_sizing": {
+      "name": "ast all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.10228283086187198,
+      "deff": 0.9933384964728755,
+      "se": 0.0006134051215407555,
+      "halfwidth95": 0.0012022740382198807,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 39922.23881257667,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0010511980814874612,
+     "expected_delta_all_rows(kappa_2022)": -0.0008847587024243283
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.0017569145820856883,
+     "power_one_season_at_2022_full_window": 7.153430664484858e-07,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.00044511849889903525,
+     "power_one_season_at_pooled": 6.412485029663699e-12,
+     "all_rows": 27701,
+     "slice_rows": 23156,
+     "slice_games": 1276,
+     "informative_rows": 21585,
+     "slice_sizing": {
+      "name": "ast ANY, floor -0.005",
+      "n": 23156.0,
+      "sd_row": 0.0992409403977557,
+      "deff": 1.0640981649116457,
+      "se": 0.0006727441773800149,
+      "halfwidth95": 0.0013185785876648293,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 1610.406705329454,
+      "expected_effect": -0.0010525945520594529,
+      "power_one_season": 2.2105096658640994e-09,
+      "power_both_seasons": 4.8863529828786125e-18
+     },
+     "all_rows_sizing": {
+      "name": "ast all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.09737251130621451,
+      "deff": 1.0470220071349692,
+      "se": 0.0005986411304664432,
+      "halfwidth95": 0.0011733366157142286,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 38136.48786040121,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0010525945520594529,
+     "expected_delta_all_rows(kappa_2022)": -0.0008798916807150895
+    }
+   },
+   "VAC24": {
+    "kappa_used": 0.07828189515986493,
+    "kappa_pooled_2020_22": 0.04872040562658637,
+    "kappa_2022_full_window": 0.10091500614203654,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.002246161414154949,
+     "power_one_season_at_2022_full_window": 0.00021759840760768111,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.000543908253107176,
+     "power_one_season_at_pooled": 6.269498772159098e-09,
+     "all_rows": 27619,
+     "slice_rows": 17845,
+     "slice_games": 1144,
+     "informative_rows": 17068,
+     "slice_sizing": {
+      "name": "ast VAC24, floor -0.005",
+      "n": 17845.0,
+      "sd_row": 0.10687474470533845,
+      "deff": 0.9574355993759214,
+      "se": 0.0007828374612946682,
+      "halfwidth95": 0.0015343614241375497,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 1680.4743426393502,
+      "expected_effect": -0.0013601166168818644,
+      "power_one_season": 1.6628730882452472e-06,
+      "power_both_seasons": 2.7651469076102854e-12
+     },
+     "all_rows_sizing": {
+      "name": "ast all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.10228283086187198,
+      "deff": 0.9933384964728755,
+      "se": 0.0006134051215407555,
+      "halfwidth95": 0.0012022740382198807,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 39922.23881257667,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0013601166168818644,
+     "expected_delta_all_rows(kappa_2022)": -0.0008787892765218462
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -0.002087590133470515,
+     "power_one_season_at_2022_full_window": 4.112883842591155e-05,
+     "expected_delta_slice(kappa_pooled_2020_22)": -0.0005061617793612401,
+     "power_one_season_at_pooled": 6.164850514074953e-10,
+     "all_rows": 27701,
+     "slice_rows": 19882,
+     "slice_games": 1208,
+     "informative_rows": 18831,
+     "slice_sizing": {
+      "name": "ast VAC24, floor -0.005",
+      "n": 19882.0,
+      "sd_row": 0.101113947723943,
+      "deff": 1.0637806492572592,
+      "se": 0.0007396173236713503,
+      "halfwidth95": 0.0014496499543958465,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 1671.2689830697832,
+      "expected_effect": -0.0012628953897615386,
+      "power_one_season": 2.1774198330144752e-07,
+      "power_both_seasons": 4.7411571292047854e-14
+     },
+     "all_rows_sizing": {
+      "name": "ast all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.09737251130621451,
+      "deff": 1.0470220071349692,
+      "se": 0.0005986411304664432,
+      "halfwidth95": 0.0011733366157142286,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 38136.48786040121,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0012628953897615386,
+     "expected_delta_all_rows(kappa_2022)": -0.0009064252604324359
+    }
+   },
+   "ABSORB": {
+    "kappa_used": 0.06858245312026766,
+    "kappa_pooled_2020_22": null,
+    "kappa_2022_full_window": null,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27619,
+     "slice_rows": 8842,
+     "slice_games": 1216,
+     "informative_rows": 8842,
+     "slice_sizing": {
+      "name": "ast ABSORB, floor -0.005",
+      "n": 8842.0,
+      "sd_row": 0.10338095500036493,
+      "deff": 1.0051820510426013,
+      "se": 0.0011022691355065722,
+      "halfwidth95": 0.0021604475055928816,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 1650.8132215497512,
+      "expected_effect": -0.0015776603696059555,
+      "power_one_season": 0.0009519965295725677,
+      "power_both_seasons": 9.062973923182129e-07
+     },
+     "all_rows_sizing": {
+      "name": "ast all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.10228283086187198,
+      "deff": 0.9933384964728755,
+      "se": 0.0006134051215407555,
+      "halfwidth95": 0.0012022740382198807,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 39922.23881257667,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0015776603696059555,
+     "expected_delta_all_rows(kappa_2022)": -0.0005050752376282943
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27701,
+     "slice_rows": 9695,
+     "slice_games": 1257,
+     "informative_rows": 9695,
+     "slice_sizing": {
+      "name": "ast ABSORB, floor -0.005",
+      "n": 9695.0,
+      "sd_row": 0.10152849632562118,
+      "deff": 0.9823561050265387,
+      "se": 0.0010219944132099162,
+      "halfwidth95": 0.0020031090498914355,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 1556.026506740553,
+      "expected_effect": -0.0015002981194350209,
+      "power_one_season": 0.00030809679658872857,
+      "power_both_seasons": 9.492363606823639e-08
+     },
+     "all_rows_sizing": {
+      "name": "ast all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.09737251130621451,
+      "deff": 1.0470220071349692,
+      "se": 0.0005986411304664432,
+      "halfwidth95": 0.0011733366157142286,
+      "floor": 0.001,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 38136.48786040121,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0015002981194350209,
+     "expected_delta_all_rows(kappa_2022)": -0.0005250853856511508
+    }
+   }
+  },
+  "fg3m": {
+   "ANY": {
+    "kappa_used": 0.0,
+    "kappa_pooled_2020_22": 0.0011374228909304372,
+    "kappa_2022_full_window": 0.0014795234159721028,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -2.5527805131937616e-06,
+     "power_one_season_at_2022_full_window": 6.741206418991258e-32,
+     "expected_delta_slice(kappa_pooled_2020_22)": -1.9564075337284904e-06,
+     "power_one_season_at_pooled": 6.631279465463743e-32,
+     "all_rows": 27619,
+     "slice_rows": 23246,
+     "slice_games": 1285,
+     "informative_rows": 21666,
+     "slice_sizing": {
+      "name": "fg3m ANY, floor -0.005",
+      "n": 23246.0,
+      "sd_row": 0.06386122108872501,
+      "deff": 1.0407653387371256,
+      "se": 0.0004273065124196215,
+      "halfwidth95": 0.0008375207643424582,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 652.2279279905283,
+      "expected_effect": -0.0,
+      "power_one_season": 6.283008177906898e-32,
+      "power_both_seasons": 3.9476191763644954e-63
+     },
+     "all_rows_sizing": {
+      "name": "fg3m all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.06319688236562804,
+      "deff": 1.028400020236423,
+      "se": 0.0003856316915443251,
+      "halfwidth95": 0.0007558381154268771,
+      "floor": 0.001,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 15778.49321968258,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0,
+     "expected_delta_all_rows(kappa_2022)": -0.0
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -2.6935637553607952e-06,
+     "power_one_season_at_2022_full_window": 5.312751264233846e-33,
+     "expected_delta_slice(kappa_pooled_2020_22)": -2.019627560699705e-06,
+     "power_one_season_at_pooled": 5.211403204653797e-33,
+     "all_rows": 27701,
+     "slice_rows": 23156,
+     "slice_games": 1276,
+     "informative_rows": 21585,
+     "slice_sizing": {
+      "name": "fg3m ANY, floor -0.005",
+      "n": 23156.0,
+      "sd_row": 0.06224226056058673,
+      "deff": 1.0524824026543096,
+      "se": 0.00041962466588927255,
+      "halfwidth95": 0.0008224643451429742,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 626.5528241269009,
+      "expected_effect": -0.0,
+      "power_one_season": 4.919043467316011e-33,
+      "power_both_seasons": 2.4196988633344325e-65
+     },
+     "all_rows_sizing": {
+      "name": "fg3m all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.06247518646928416,
+      "deff": 1.084769060957917,
+      "se": 0.0003909565399343755,
+      "halfwidth95": 0.000766274818271376,
+      "floor": 0.001,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 16265.392767233314,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0,
+     "expected_delta_all_rows(kappa_2022)": -0.0
+    }
+   },
+   "VAC24": {
+    "kappa_used": 0.0,
+    "kappa_pooled_2020_22": 0.0053153746806318585,
+    "kappa_2022_full_window": 0.006595926755517263,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": -1.35436153552674e-05,
+     "power_one_season_at_2022_full_window": 2.3250971259384547e-23,
+     "expected_delta_slice(kappa_pooled_2020_22)": -1.0809704074692915e-05,
+     "power_one_season_at_pooled": 2.2025024763247275e-23,
+     "all_rows": 27619,
+     "slice_rows": 17845,
+     "slice_games": 1144,
+     "informative_rows": 17068,
+     "slice_sizing": {
+      "name": "fg3m VAC24, floor -0.005",
+      "n": 17845.0,
+      "sd_row": 0.06551943381178635,
+      "deff": 1.0569699519445006,
+      "se": 0.0005042468341469043,
+      "halfwidth95": 0.0009883237949279324,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 697.228364680491,
+      "expected_effect": -0.0,
+      "power_one_season": 1.7773685742935178e-23,
+      "power_both_seasons": 3.159039048886172e-46
+     },
+     "all_rows_sizing": {
+      "name": "fg3m all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.06319688236562804,
+      "deff": 1.028400020236423,
+      "se": 0.0003856316915443251,
+      "halfwidth95": 0.0007558381154268771,
+      "floor": 0.001,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 15778.49321968258,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0,
+     "expected_delta_all_rows(kappa_2022)": -0.0
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": -1.3366405033555561e-05,
+     "power_one_season_at_2022_full_window": 1.1560723596612123e-27,
+     "expected_delta_slice(kappa_pooled_2020_22)": -1.0523948318894095e-05,
+     "power_one_season_at_pooled": 1.0805955813975746e-27,
+     "all_rows": 27701,
+     "slice_rows": 19882,
+     "slice_games": 1208,
+     "informative_rows": 18831,
+     "slice_sizing": {
+      "name": "fg3m VAC24, floor -0.005",
+      "n": 19882.0,
+      "sd_row": 0.06309657819567885,
+      "deff": 1.0575173000960525,
+      "se": 0.0004601712832243687,
+      "halfwidth95": 0.0009019357151197626,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 646.9507638454136,
+      "expected_effect": -0.0,
+      "power_one_season": 8.413149078565353e-28,
+      "power_both_seasons": 7.078107741816505e-55
+     },
+     "all_rows_sizing": {
+      "name": "fg3m all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.06247518646928416,
+      "deff": 1.084769060957917,
+      "se": 0.0003909565399343755,
+      "halfwidth95": 0.000766274818271376,
+      "floor": 0.001,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 16265.392767233314,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0,
+     "expected_delta_all_rows(kappa_2022)": -0.0
+    }
+   },
+   "ABSORB": {
+    "kappa_used": 0.0,
+    "kappa_pooled_2020_22": null,
+    "kappa_2022_full_window": null,
+    "2023": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27619,
+     "slice_rows": 8842,
+     "slice_games": 1216,
+     "informative_rows": 8842,
+     "slice_sizing": {
+      "name": "fg3m ABSORB, floor -0.005",
+      "n": 8842.0,
+      "sd_row": 0.06492619820665943,
+      "deff": 1.0391135972303154,
+      "se": 0.0007038437067814897,
+      "halfwidth95": 0.0013795336652917198,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 673.0930531175395,
+      "expected_effect": -0.0,
+      "power_one_season": 6.066434244356231e-13,
+      "power_both_seasons": 3.6801624441097957e-25
+     },
+     "all_rows_sizing": {
+      "name": "fg3m all rows (no-harm guard)",
+      "n": 27619.0,
+      "sd_row": 0.06319688236562804,
+      "deff": 1.028400020236423,
+      "se": 0.0003856316915443251,
+      "halfwidth95": 0.0007558381154268771,
+      "floor": 0.001,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 15778.49321968258,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0,
+     "expected_delta_all_rows(kappa_2022)": -0.0
+    },
+    "2024": {
+     "expected_delta_slice(kappa_2022_full_window)": null,
+     "power_one_season_at_2022_full_window": null,
+     "expected_delta_slice(kappa_pooled_2020_22)": null,
+     "power_one_season_at_pooled": null,
+     "all_rows": 27701,
+     "slice_rows": 9695,
+     "slice_games": 1257,
+     "informative_rows": 9695,
+     "slice_sizing": {
+      "name": "fg3m ABSORB, floor -0.005",
+      "n": 9695.0,
+      "sd_row": 0.06254286121813296,
+      "deff": 1.051503874466391,
+      "se": 0.0006513422910723841,
+      "halfwidth95": 0.001276630890501873,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 632.031177780322,
+      "expected_effect": -0.0,
+      "power_one_season": 8.177552672981916e-15,
+      "power_both_seasons": 6.687236771939369e-29
+     },
+     "all_rows_sizing": {
+      "name": "fg3m all rows (no-harm guard)",
+      "n": 27701.0,
+      "sd_row": 0.06247518646928416,
+      "deff": 1.084769060957917,
+      "se": 0.0003909565399343755,
+      "halfwidth95": 0.000766274818271376,
+      "floor": 0.001,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 16265.392767233314,
+      "expected_effect": null
+     },
+     "expected_delta_slice(kappa_2022)": -0.0,
+     "expected_delta_all_rows(kappa_2022)": -0.0
+    }
+   }
+  }
+ },
+ "gate": [
+  {
+   "check": "2023 out-slice rows >= 5000",
+   "value": 23246,
+   "pass": true
+  },
+  {
+   "check": "2023 informative share of out-slice >= 0.5",
+   "value": 0.9320313172158651,
+   "pass": true
+  },
+  {
+   "check": "2023 firing gap across realised-minute buckets <= 0.10 (first run: raw)",
+   "value": 0.11773280192105473,
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "2023 firing gap within as-of min10 strata <= 0.05 (added after run 1)",
+   "value": 0.09538604940189532,
+   "pass": false
+  },
+  {
+   "check": "2023 placebo informative share within 0.10 of real",
+   "value": 0.09463993805385873,
+   "pass": true
+  },
+  {
+   "check": "ANY pts 2023 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.004354643998848852,
+    0.028862893934665696
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "ANY ast 2023 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.0013427412053637643,
+    4.105512701551676e-09
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "VAC24 pts 2023 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.005109868874676869,
+    0.0645380831189195
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "VAC24 ast 2023 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.0015343614241375497,
+    1.6628730882452472e-06
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "ABSORB pts 2023 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.006968027855463775,
+    0.026135141822797345
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "ABSORB ast 2023 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.0021604475055928816,
+    0.0009519965295725677
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "pts 2023 out-slice half-width <= 0.005",
+   "value": 0.004354643998848852,
+   "pass": true,
+   "decides": true
+  },
+  {
+   "check": "reb 2023 out-slice half-width <= 0.005",
+   "value": 0.0019299311979542792,
+   "pass": true,
+   "decides": false
+  },
+  {
+   "check": "ast 2023 out-slice half-width <= 0.005",
+   "value": 0.0013427412053637643,
+   "pass": true,
+   "decides": true
+  },
+  {
+   "check": "fg3m 2023 out-slice half-width <= 0.005",
+   "value": 0.0008375207643424582,
+   "pass": true,
+   "decides": false
+  },
+  {
+   "check": "2024 out-slice rows >= 5000",
+   "value": 23156,
+   "pass": true
+  },
+  {
+   "check": "2024 informative share of out-slice >= 0.5",
+   "value": 0.9321558127483158,
+   "pass": true
+  },
+  {
+   "check": "2024 firing gap across realised-minute buckets <= 0.10 (first run: raw)",
+   "value": 0.10364121597230769,
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "2024 firing gap within as-of min10 strata <= 0.05 (added after run 1)",
+   "value": 0.09686766578823003,
+   "pass": false
+  },
+  {
+   "check": "2024 placebo informative share within 0.10 of real",
+   "value": 0.08425462083261359,
+   "pass": true
+  },
+  {
+   "check": "ANY pts 2024 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.004461311337433268,
+    0.03345865623931486
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "ANY ast 2024 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.0013185785876648293,
+    2.2105096658640994e-09
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "VAC24 pts 2024 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.004923144317578487,
+    0.061478756902520394
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "VAC24 ast 2024 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.0014496499543958465,
+    2.1774198330144752e-07
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "ABSORB pts 2024 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.006889398538760771,
+    0.026130088155296553
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "ABSORB ast 2024 half-width <= 0.005 / power at kappa_2022 >= 0.5",
+   "value": [
+    0.0020031090498914355,
+    0.00030809679658872857
+   ],
+   "pass": false,
+   "decides": false
+  },
+  {
+   "check": "pts 2024 out-slice half-width <= 0.005",
+   "value": 0.004461311337433268,
+   "pass": true,
+   "decides": true
+  },
+  {
+   "check": "reb 2024 out-slice half-width <= 0.005",
+   "value": 0.0018383072518016147,
+   "pass": true,
+   "decides": false
+  },
+  {
+   "check": "ast 2024 out-slice half-width <= 0.005",
+   "value": 0.0013185785876648293,
+   "pass": true,
+   "decides": true
+  },
+  {
+   "check": "fg3m 2024 out-slice half-width <= 0.005",
+   "value": 0.0008224643451429742,
+   "pass": true,
+   "decides": false
+  },
+  {
+   "check": "planted future: features before cutoff unchanged",
+   "value": true,
+   "pass": true
+  },
+  {
+   "check": "planted future test is not inert",
+   "value": 26.42077192546274,
+   "pass": true
+  }
+ ],
+ "gate_pass": false,
+ "wall_s": 2185.849813938141
+}
