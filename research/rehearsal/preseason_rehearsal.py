@@ -13,6 +13,7 @@ import time
 from collections import Counter
 from datetime import UTC, date, datetime
 from pathlib import Path
+from unittest import mock
 
 import duckdb
 import polars as pl
@@ -35,12 +36,11 @@ def raw_schedule(season: str) -> list[ScheduledGame]:
     from nba.daily import schedule as sch
 
     frame = pl.from_pandas(scheduleleaguev2.ScheduleLeagueV2(season=season).get_data_frames()[0])
-    keep = sch.KEPT_GAME_TYPE_PREFIXES
-    try:
-        sch.KEPT_GAME_TYPE_PREFIXES = keep | {"001"}  # type: ignore[misc]
+    from nba.ingest.games import KEPT_GAME_TYPE_PREFIXES
+
+    # rehearsal only: let preseason (001) through the parser for this call
+    with mock.patch.object(sch, "KEPT_GAME_TYPE_PREFIXES", KEPT_GAME_TYPE_PREFIXES | {"001"}):
         return parse_schedule_frame(frame)
-    finally:
-        sch.KEPT_GAME_TYPE_PREFIXES = keep  # type: ignore[misc]
 
 
 def main() -> int:

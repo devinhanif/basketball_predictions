@@ -1,0 +1,339 @@
+"""Build ``export.duckdb`` + ``parlay_of_day.json`` + ``manifest.json`` from ``nba.duckdb``.
+
+Source is opened ``read_only=True`` (``reader.open_read_only``); the only files written are in the
+output directory, each to a temp name in the same directory and then ``os.replace``d, the manifest
+last. A failed build leaves yesterday's files untouched and removes its temp files.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import subprocess
+from collections.abc import Callable, Iterable, Sequence
+from datetime import UTC, date, datetime
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+from nba.export import guard, reader
+from nba.export.parlay import parlay_of_day
+
+SCHEMA_VERSION = 1
+DB_NAME = "export.duckdb"
+PARLAY_NAME = "parlay_of_day.json"
+MANIFEST_NAME = "manifest.json"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+#: table -> ordered (column, DuckDB type): the schema the app reads (docs/APP_ARCHITECTURE.md).
+TABLES: dict[str, list[tuple[str, str]]] = {
+    "meta": [("key", "VARCHAR"), ("value", "VARCHAR")],
+    "games": [
+        ("game_id", "VARCHAR"),
+        ("season", "INTEGER"),
+        ("game_date", "DATE"),
+        ("tipoff", "TIMESTAMP"),
+        ("home_team", "INTEGER"),
+        ("away_team", "INTEGER"),
+        ("final", "BOOLEAN"),
+        ("home_pts", "INTEGER"),
+        ("away_pts", "INTEGER"),
+    ],
+    "win_probs": [
+        ("run_id", "VARCHAR"),
+        ("made_at", "TIMESTAMP"),
+        ("game_id", "VARCHAR"),
+        ("tipoff", "TIMESTAMP"),
+        ("lead_minutes", "DOUBLE"),
+        ("model_name", "VARCHAR"),
+        ("version", "VARCHAR"),
+        ("p_home", "DOUBLE"),
+        ("home_team", "INTEGER"),
+        ("away_team", "INTEGER"),
+        ("is_primary", "BOOLEAN"),
+        ("fallback_reason", "VARCHAR"),
+        ("is_latest", "BOOLEAN"),
+        ("comparison_only", "BOOLEAN"),
+        ("stamp_weights_sha256", "VARCHAR"),
+        ("stamp_weights_scope", "VARCHAR"),
+        ("stamp_data_version", "VARCHAR"),
+        ("stamp_fit_through", "DATE"),
+        ("stamp_n_train", "BIGINT"),
+        ("stamp_git_sha", "VARCHAR"),
+        ("stamp_git_dirty", "BOOLEAN"),
+        ("stamp_stamped_at", "TIMESTAMP"),
+        ("prediction_json", "VARCHAR"),
+    ],
+    "prop_grids": [
+        ("run_id", "VARCHAR"),
+        ("made_at", "TIMESTAMP"),
+        ("game_id", "VARCHAR"),
+        ("tipoff", "TIMESTAMP"),
+        ("lead_minutes", "DOUBLE"),
+        ("model_name", "VARCHAR"),
+        ("version", "VARCHAR"),
+        ("stat", "VARCHAR"),
+        ("player_id", "INTEGER"),
+        ("mean", "DOUBLE"),
+        ("std", "DOUBLE"),
+        ("p_play", "DOUBLE"),
+        ("proj_minutes", "DOUBLE"),
+        ("q10", "DOUBLE"),
+        ("q50", "DOUBLE"),
+        ("q90", "DOUBLE"),
+        ("q_grid", "DOUBLE[]"),
+        ("p_ge", "VARCHAR"),
+        ("p_ge_full_counts", "BIGINT[]"),
+        ("p_ge_full_n", "BIGINT"),
+        ("is_latest", "BOOLEAN"),
+        ("comparison_only", "BOOLEAN"),
+        ("stamp_weights_sha256", "VARCHAR"),
+        ("stamp_weights_scope", "VARCHAR"),
+        ("stamp_data_version", "VARCHAR"),
+        ("stamp_fit_through", "DATE"),
+        ("stamp_n_train", "BIGINT"),
+        ("stamp_git_sha", "VARCHAR"),
+        ("stamp_git_dirty", "BOOLEAN"),
+        ("stamp_stamped_at", "TIMESTAMP"),
+        ("prediction_json", "VARCHAR"),
+    ],
+    "model_stamps": [
+        ("run_id", "VARCHAR"),
+        ("model_name", "VARCHAR"),
+        ("version", "VARCHAR"),
+        ("made_at", "TIMESTAMP"),
+        ("weights_sha256", "VARCHAR"),
+        ("weights_scope", "VARCHAR"),
+        ("data_version", "VARCHAR"),
+        ("fit_through", "DATE"),
+        ("n_train", "BIGINT"),
+        ("git_sha", "VARCHAR"),
+        ("git_dirty", "BOOLEAN"),
+        ("stamped_at", "TIMESTAMP"),
+    ],
+    "settled_scores": [
+        ("scored_at", "TIMESTAMP"),
+        ("game_id", "VARCHAR"),
+        ("game_date", "DATE"),
+        ("season", "INTEGER"),
+        ("model_name", "VARCHAR"),
+        ("version", "VARCHAR"),
+        ("target", "VARCHAR"),
+        ("player_id", "INTEGER"),
+        ("made_at", "TIMESTAMP"),
+        ("y", "DOUBLE"),
+        ("pred", "DOUBLE"),
+        ("log_loss", "DOUBLE"),
+        ("brier", "DOUBLE"),
+        ("crps", "DOUBLE"),
+        ("status", "VARCHAR"),
+    ],
+    "box_scores": [
+        ("game_id", "VARCHAR"),
+        ("player_id", "INTEGER"),
+        ("team_id", "INTEGER"),
+        ("minutes", "DOUBLE"),
+        ("starter", "BOOLEAN"),
+        ("pts", "INTEGER"),
+        ("reb", "INTEGER"),
+        ("ast", "INTEGER"),
+        ("fg3m", "INTEGER"),
+        ("game_date", "DATE"),
+        ("season", "INTEGER"),
+    ],
+    "injury_report": [
+        ("game_id", "VARCHAR"),
+        ("report_as_of_et", "TIMESTAMP"),
+        ("player_id", "INTEGER"),
+        ("team_id", "INTEGER"),
+        ("status", "VARCHAR"),
+        ("reason", "VARCHAR"),
+    ],
+    "players": [("player_id", "INTEGER"), ("full_name", "VARCHAR")],
+    "teams": [("team_id", "INTEGER"), ("abbr", "VARCHAR"), ("full_name", "VARCHAR")],
+}
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def git_info(repo: Path = REPO_ROOT) -> dict[str, Any]:
+    """HEAD sha and dirty flag from the local repo (no network); Nones if git is unavailable."""
+    try:
+        sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True
+        ).stdout.strip()
+        dirty = bool(
+            subprocess.run(
+                ["git", "status", "--porcelain", "--untracked-files=no"],
+                cwd=repo, capture_output=True, text=True, check=True,
+            ).stdout.strip()
+        )  # fmt: skip
+        return {"git_sha": sha, "git_dirty": dirty}
+    except (OSError, subprocess.CalledProcessError):
+        return {"git_sha": None, "git_dirty": None}
+
+
+def data_version() -> str | None:
+    """Newest manifest's data_version, read from disk (no recompute)."""
+    try:
+        from nba.datamanifest.manifest import latest_data_version
+
+        return latest_data_version()
+    except Exception:
+        return None
+
+
+def _ids(rows: Iterable[dict[str, Any]], *keys: str) -> set[int]:
+    return {int(r[k]) for r in rows for k in keys if r.get(k) is not None}
+
+
+def _names(
+    player_ids: set[int], team_ids: set[int]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Static nba_api lists (local data, no network); unknown ids keep the 'Player <id>' form."""
+    from nba.explain import names
+
+    players = [{"player_id": p, "full_name": names.player_name(p)} for p in sorted(player_ids)]
+    teams = [
+        {"team_id": t, "abbr": names.team_abbr(t), "full_name": names.team_name(t)}
+        for t in sorted(team_ids)
+    ]
+    return players, teams
+
+
+def _insert(con: duckdb.DuckDBPyConnection, table: str, rows: Sequence[dict[str, Any]]) -> int:
+    cols = [c for c, _ in TABLES[table]]
+    if rows:
+        q = ",".join("?" for _ in cols)
+        quoted = ",".join(f'"{c}"' for c in cols)
+        con.executemany(
+            f'INSERT INTO "{table}" ({quoted}) VALUES ({q})',
+            [[_cell(r.get(c)) for c in cols] for r in rows],
+        )
+    return len(rows)
+
+
+def _cell(v: Any) -> Any:
+    return json.dumps(v, sort_keys=True) if isinstance(v, dict) else v
+
+
+def _write_json_atomic(path: Path, obj: Any) -> None:
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    try:
+        tmp.write_text(json.dumps(obj, indent=1, sort_keys=True, default=str) + "\n")
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def build_export(
+    src_db: Path,
+    out_dir: Path,
+    day: date,
+    *,
+    lookback_days: int = 7,
+    seasons: Iterable[int] | None = None,
+    parlay_dir: Path | None = None,
+    now: Callable[[], datetime] | None = None,
+    git: Callable[[], dict[str, Any]] = git_info,
+    version: Callable[[], str | None] = data_version,
+    con: duckdb.DuckDBPyConnection | None = None,
+) -> dict[str, Any]:
+    """Build the export for ``day``; returns the manifest dict (also written to ``manifest.json``).
+
+    ``con`` lets a test pass an open read-only connection; production passes ``src_db`` only.
+    Raises ``guard.ExportRefused`` before reading anything when a holdout season is requested."""
+    allowed = guard.resolve_seasons(seasons)
+    out_dir = Path(out_dir)
+    outs = {out_dir / n for n in (DB_NAME, PARLAY_NAME, MANIFEST_NAME)}
+    if Path(src_db).resolve() in {o.resolve() for o in outs}:
+        raise guard.ExportRefused("output path equals the source database")
+    window = reader.Window(day, lookback_days, allowed)
+    made_at = (now or (lambda: datetime.now(UTC)))().replace(tzinfo=None)
+    own = con is None
+    src = con if con is not None else reader.open_read_only(src_db)
+    try:
+        fwd = reader.forward_predictions(src, window)
+        scores = reader.settled_scores(src, window)
+        box = reader.box_scores(src, window)
+        report = reader.explainer_rows(src, fwd.games, window)
+    finally:
+        if own:
+            src.close()
+    parlay = parlay_of_day(parlay_dir or REPO_ROOT / "reports" / "parlay", day.isoformat())
+
+    players, teams = _names(
+        (_ids(fwd.prop_grids, "player_id") | _ids(box, "player_id") | _ids(report, "player_id")
+         | _ids(scores, "player_id")) - {reader.NO_PLAYER},
+        _ids(fwd.games, "home_team", "away_team") | _ids(box, "team_id") | _ids(report, "team_id"),
+    )  # fmt: skip
+    gi = git()
+    dv = version()
+    tables: dict[str, list[dict[str, Any]]] = {
+        "games": fwd.games, "win_probs": fwd.win_probs, "prop_grids": fwd.prop_grids,
+        "model_stamps": fwd.stamps, "settled_scores": scores, "box_scores": box,
+        "injury_report": report, "players": players, "teams": teams,
+    }  # fmt: skip
+    meta = {
+        "schema_version": str(SCHEMA_VERSION), "export_date": day.isoformat(),
+        "made_at": made_at.isoformat() + "Z", "seasons": ",".join(map(str, allowed)),
+        "lookback_days": str(lookback_days), "data_version": dv or "",
+        "git_sha": gi["git_sha"] or "", "timestamps": "naive UTC unless a column says _et",
+    }  # fmt: skip
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pid = os.getpid()
+    tmp_db = out_dir / f".{DB_NAME}.tmp.{pid}"
+    try:
+        for p in (tmp_db, Path(str(tmp_db) + ".wal")):
+            p.unlink(missing_ok=True)
+        out = duckdb.connect(str(tmp_db))
+        try:
+            for t, cols in TABLES.items():
+                defs = ", ".join(f'"{c}" {ty}' for c, ty in cols)
+                out.execute(f'CREATE TABLE "{t}" ({defs})')
+            _insert(out, "meta", [{"key": k, "value": v} for k, v in meta.items()])
+            counts = {t: _insert(out, t, rows) for t, rows in tables.items()}
+            out.execute("CHECKPOINT")
+        finally:
+            out.close()
+        chk = duckdb.connect(
+            str(tmp_db), read_only=True
+        )  # verify the file reopens and counts agree
+        try:
+            for t, n in counts.items():
+                got = chk.execute(f'SELECT count(*) FROM "{t}"').fetchone()
+                if not got or got[0] != n:
+                    raise RuntimeError(f"export verify failed for {t}: wrote {n}, read {got}")
+        finally:
+            chk.close()
+        os.replace(tmp_db, out_dir / DB_NAME)
+    finally:
+        for p in (tmp_db, Path(str(tmp_db) + ".wal")):
+            p.unlink(missing_ok=True)
+    _write_json_atomic(out_dir / PARLAY_NAME, parlay)
+
+    manifest: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION, "export_date": day.isoformat(),
+        "made_at": meta["made_at"], "data_version": dv, **gi,
+        "seasons": list(allowed), "lookback_days": lookback_days,
+        "row_counts": counts,
+        "excluded": {"post_tip": fwd.excluded_post_tip,
+                     "unresolved_or_disallowed_season": fwd.excluded_unresolved_season},
+        "parlay": {"status": parlay["status"], "verdict": parlay["verdict"],
+                   "n_evaluated": parlay["n_evaluated"]},
+        "files": {
+            n: {"sha256": sha256_file(out_dir / n), "bytes": (out_dir / n).stat().st_size}
+            for n in (DB_NAME, PARLAY_NAME)
+        },
+    }  # fmt: skip
+    _write_json_atomic(out_dir / MANIFEST_NAME, manifest)
+    return manifest

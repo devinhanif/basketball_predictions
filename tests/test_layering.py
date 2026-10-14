@@ -146,6 +146,111 @@ def test_nba_never_imports_research() -> None:
     assert not bad, f"nba/ imports research/: {bad}"
 
 
+# --- the app wall (docs/APP_ARCHITECTURE.md s2): nba never imports app; app reaches nba only
+# --- through nba.export.*; the ops/*.sh live path does not import nba.export (2026-10-14).
+
+#: (app file relative to the repo, nba.export module) edges. Both ways, like KNOWN_EDGES: a new
+#: edge is a regression to justify here, a vanished edge means this list is stale.
+KNOWN_APP_EDGES: frozenset[tuple[str, str]] = frozenset()
+
+APP_SKIP_DIRS = {".venv", "node_modules", "__pycache__", "dist", "build"}
+
+
+def raw_imports(path: Path) -> set[str]:
+    """Absolute module names a file imports, any depth, no first-party filter."""
+    out: set[str] = set()
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.Import):
+            out.update(a.name for a in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            if node.module != "nba":  # ``from nba import export`` is judged by its names
+                out.add(node.module)
+            out.update(f"{node.module}.{a.name}" for a in node.names)
+    return out
+
+
+def _is(name: str, pkg: str) -> bool:
+    return name == pkg or name.startswith(pkg + ".")
+
+
+def app_files() -> list[Path]:
+    return sorted(
+        p
+        for p in (ROOT / "app").rglob("*.py")
+        if not APP_SKIP_DIRS & set(p.relative_to(ROOT / "app").parts)
+    )
+
+
+def app_nba_imports() -> set[tuple[str, str]]:
+    return {
+        (str(p.relative_to(ROOT)), target)
+        for p in app_files()
+        for target in raw_imports(p)
+        if _is(target, "nba")
+    }
+
+
+def test_nba_never_imports_app() -> None:
+    bad = sorted(
+        (mod, target)
+        for mod, path in nba_modules().items()
+        for target in raw_imports(path)
+        if _is(target, "app")
+    )
+    assert not bad, f"nba/ imports app/: {bad}"
+
+
+def test_app_imports_nba_only_via_export() -> None:
+    bad = sorted(e for e in app_nba_imports() if not _is(e[1], "nba.export"))
+    assert not bad, f"app/ imports nba outside nba.export.*: {bad}"
+    research = sorted(
+        (str(p.relative_to(ROOT)), t)
+        for p in app_files()
+        for t in raw_imports(p)
+        if _is(t, "research")
+    )
+    assert not research, f"app/ imports research/: {research}"
+
+
+def test_app_export_edges_are_current() -> None:
+    edges = {e for e in app_nba_imports() if _is(e[1], "nba.export")}
+    assert not edges - KNOWN_APP_EDGES, (
+        f"new app -> nba.export edges: {sorted(edges - KNOWN_APP_EDGES)}"
+    )
+    assert not KNOWN_APP_EDGES - edges, f"stale KNOWN_APP_EDGES: {sorted(KNOWN_APP_EDGES - edges)}"
+
+
+def test_live_path_does_not_import_export() -> None:
+    """The nightly export job is a post-10-20 decision. Until it is added on purpose, no scheduler
+    script names it and no module the scheduler runs imports it."""
+    reached = sorted(m for m in live_closure() if _is(m, "nba.export"))
+    assert not reached, f"ops/*.sh closure reaches nba.export: {reached}"
+    wired = sorted(p.name for p in (ROOT / "ops").glob("*.sh") if "nba.export" in p.read_text())
+    assert not wired, f"ops scripts run nba.export: {wired}"
+
+
+def test_export_is_pure_and_read_only() -> None:
+    """nba/export: no app/research, no network client, and nba.duckdb is only opened read-only."""
+    banned = ("app", "research", "requests", "httpx", "aiohttp", "urllib", "socket", "nba_api")
+    mods = {m: p for m, p in nba_modules().items() if _is(m, "nba.export")}
+    assert mods, "nba/export is missing"
+    bad = sorted(
+        (m, t) for m, p in mods.items() for t in raw_imports(p) if any(_is(t, b) for b in banned)
+    )
+    assert not bad, f"nba/export imports a banned package: {bad}"
+    for m, p in mods.items():
+        for node in ast.walk(ast.parse(p.read_text())):
+            if isinstance(node, ast.Call):
+                fn = node.func
+                name = fn.attr if isinstance(fn, ast.Attribute) else getattr(fn, "id", "")
+                if name == "connect_with_retry":
+                    kw = {k.arg: k.value for k in node.keywords}
+                    ro = kw.get("read_only")
+                    assert isinstance(ro, ast.Constant) and ro.value is True, (
+                        f"{m}: nba.duckdb must be opened read_only=True"
+                    )
+
+
 def test_research_package_is_importable() -> None:
     assert module_path("research") is not None
     assert (ROOT / "research" / "INDEX.md").exists(), "research/INDEX.md maps every archived module"
