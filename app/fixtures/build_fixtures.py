@@ -509,9 +509,9 @@ def main() -> None:
                 "orientation_check": " ".join(SQL_SANITY_WIN.split()),
             },
             "stubs": [
-                "Minutes are not forecast in this fixture; actual minutes appear only as a result.",
-                "Prices are DraftKings American odds at the T-60 snapshot, not a Kalshi price.",
-                "The parlay-of-the-day state is the engine's real no-parlay state, not a recompute.",
+                "We do not forecast minutes yet. How long a player really played shows up only as a result.",
+                "Prices are DraftKings odds from about an hour before tip, not Kalshi prices.",
+                "The parlay-of-the-day card is the engine's real no-parlay state, copied as stored, not recalculated.",
             ],
         }
         (args.out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")

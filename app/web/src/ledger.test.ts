@@ -1,5 +1,17 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { addPick, canPlace, loadLedger, settle, settleSide, summarize, type Pick } from "./ledger";
+import {
+  addPick,
+  canPlace,
+  lastWeek,
+  loadLedger,
+  recordOf,
+  settle,
+  settleSide,
+  streak,
+  summarize,
+  type Pick,
+  type Settled,
+} from "./ledger";
 import { wilson } from "./stats";
 import type { ResultRow } from "./types";
 
@@ -187,5 +199,42 @@ describe("wilson", () => {
     const [l0, h0] = wilson(0, 10);
     expect(l0).toBe(0);
     expect(h0).toBeGreaterThan(0.2);
+  });
+});
+
+describe("record and streak", () => {
+  const mk = (id: string, outcome: "win" | "loss" | "push", madeAt: string): Settled => ({
+    pick: { ...card, id, prop_id: id, side: "over", made_at: madeAt } as Pick,
+    row: {} as ResultRow,
+    outcome,
+    model_side: 0.5,
+    market_side: 0.5,
+  });
+
+  const rows = [
+    mk("a", "loss", "2026-10-01T10:00:00Z"),
+    mk("b", "win", "2026-10-12T10:00:00Z"),
+    mk("c", "push", "2026-10-13T10:00:00Z"),
+    mk("d", "win", "2026-10-13T11:00:00Z"),
+    mk("e", "win", "2026-10-13T12:00:00Z"),
+  ];
+
+  it("counts wins and losses and leaves pushes out", () => {
+    expect(recordOf(rows)).toEqual({ wins: 3, losses: 1 });
+  });
+
+  it("finds the current run; a push neither extends nor breaks it", () => {
+    expect(streak(rows)).toEqual({ kind: "win", count: 3 });
+    expect(streak([mk("x", "win", "2026-10-13T10:00:00Z"), mk("y", "loss", "2026-10-13T11:00:00Z")])).toEqual({
+      kind: "loss",
+      count: 1,
+    });
+    expect(streak([])).toBeNull();
+  });
+
+  it("keeps only picks from the last 7 days", () => {
+    const week = lastWeek(rows, new Date("2026-10-14T12:00:00Z"));
+    expect(week.map((s) => s.pick.id)).toEqual(["b", "c", "d", "e"]);
+    expect(recordOf(week)).toEqual({ wins: 3, losses: 0 });
   });
 });

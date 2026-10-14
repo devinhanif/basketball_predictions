@@ -2,9 +2,13 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { LoadState } from "./useLoad";
 import { num, pct } from "./format";
+import { lastWeek, recordOf, streak, type Settled } from "./ledger";
+import { MIN_LEGS } from "./stats";
+import { teamColor } from "./teams";
 import type { PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
 import type { Route } from "./router";
+import { winSentence } from "./words";
 
 /* ------------------------------------------------------------------ icons */
 const I = {
@@ -25,10 +29,10 @@ function Icon({ d }: { d: string }) {
 function Logo() {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="14" fill="#1f2a44" />
-      <rect x="14" y="36" width="9" height="14" rx="2" fill="#9fb0ff" />
-      <rect x="27.5" y="20" width="9" height="30" rx="2" fill="#f6f5f1" />
-      <rect x="41" y="29" width="9" height="21" rx="2" fill="#9fb0ff" />
+      <rect width="64" height="64" rx="10" fill="#0f1115" />
+      <rect x="14" y="36" width="9" height="14" rx="1" fill="#f3f3f0" />
+      <rect x="27.5" y="20" width="9" height="30" rx="1" fill="#ff7a1a" />
+      <rect x="41" y="29" width="9" height="21" rx="1" fill="#f3f3f0" />
     </svg>
   );
 }
@@ -38,7 +42,7 @@ const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] 
   { name: "today", href: "#/", label: "Today", icon: I.today },
   { name: "swipe", href: "#/swipe", label: "Swipe", icon: I.swipe },
   { name: "picks", href: "#/picks", label: "My picks", icon: I.picks },
-  { name: "method", href: "#/method", label: "Method", icon: I.method },
+  { name: "method", href: "#/method", label: "How it works", icon: I.method },
 ];
 
 function isCurrent(route: Route, name: Route["name"]): boolean {
@@ -85,10 +89,10 @@ export function Footer() {
           problem, call <strong>1-800-GAMBLER</strong>.
         </p>
         <p>
-          Forecasts are uncertain, and the market is usually better than we are on game winners.{" "}
-          <a href="#/method">Method and responsible gambling</a>.
+          Our forecasts can be wrong, and the sportsbooks have been better than us at picking game winners.{" "}
+          <a href="#/method">Responsible gambling and how this works</a>.
         </p>
-        <p>Written by an automated system and reviewed by a person. Everything here is a paper trade.</p>
+        <p>Written by an automated system and reviewed by a person. Everything here is a paper trade: no real money.</p>
       </div>
     </footer>
   );
@@ -121,7 +125,7 @@ export function Shell(props: {
         {props.replayNote ? <div class="banner">{props.replayNote}</div> : null}
         {props.offline ? (
           <div class="banner" role="status">
-            Offline or API down: showing the last saved copy.
+            You are offline, or the data server is not answering. Showing the last copy we saved.
           </div>
         ) : null}
       </header>
@@ -152,16 +156,39 @@ export function Loading() {
 
 export function ErrorPanel(props: { message: string; retry: () => void }) {
   return (
-    <div class="card error" role="alert">
+    <div class="panel error" role="alert">
       <h2>Could not load this</h2>
-      <p class="muted">
-        The local API may not be running (<code>uv run uvicorn parlayhitters_api.main:app</code> in app/api). Detail:{" "}
-        <span class="mono">{props.message}</span>
+      <p>
+        The data server did not answer. If you are running this on your own machine, start it with{" "}
+        <code>uv run uvicorn parlayhitters_api.main:app --app-dir src</code> in <code>app/api</code>, then try again.
+      </p>
+      <p class="muted small">
+        Technical detail: <span class="mono">{props.message}</span>
       </p>
       <button type="button" class="btn" onClick={props.retry}>
         Try again
       </button>
     </div>
+  );
+}
+
+/** A small "what does this mean?" line. Closed by default; the main text never needs it. */
+export function Explain(props: { children: ComponentChildren; label?: string }) {
+  return (
+    <details class="explain">
+      <summary>{props.label ?? "What does this mean?"}</summary>
+      <div class="explain-body">{props.children}</div>
+    </details>
+  );
+}
+
+/** Abbreviation with its team swatch. */
+export function TeamTag(props: { abbr: string; big?: boolean }) {
+  return (
+    <span class={`team${props.big ? " big" : ""}`}>
+      <i class="swatch" style={{ background: teamColor(props.abbr) }} aria-hidden="true" />
+      {props.abbr}
+    </span>
   );
 }
 
@@ -182,36 +209,42 @@ export function View<T>(props: {
 }
 
 /* ------------------------------------------------------------------ win probability */
-function WpRow(props: { kind: "model" | "market"; label: string; homeP: number; home: string; away: string }) {
-  const homePct = props.homeP * 100;
-  const homeFav = props.homeP >= 0.5;
-  const fav = homeFav ? props.home : props.away;
-  const favP = homeFav ? props.homeP : 1 - props.homeP;
+function WpRow(props: { label: string; kind: "model" | "book"; homeP: number; home: Team; away: Team }) {
+  const { home, away, homeP } = props;
   return (
-    <div class="wp-row">
-      <span class="lab">{props.label}</span>
-      <div
-        class={`wp-bar ${props.kind}`}
-        role="img"
-        aria-label={`${props.label}: ${props.home} ${pct(props.homeP)}, ${props.away} ${pct(1 - props.homeP)}`}
-      >
-        <i style={{ width: `${homePct.toFixed(1)}%` }} />
+    <div class={`wp-row ${props.kind}`}>
+      <div class="wp-head">
+        <span class="wp-lab">{props.label}</span>
+        <span class="wp-say">{winSentence(homeP, home.name, away.name)}</span>
       </div>
-      <span class="num">
-        {fav} {pct(favP)}
-      </span>
+      <div
+        class="wp-bar"
+        role="img"
+        aria-label={`${props.label}: ${away.abbr} ${pct(1 - homeP)}, ${home.abbr} ${pct(homeP)}`}
+      >
+        <i style={{ flexGrow: 1 - homeP, background: teamColor(away.abbr) }} />
+        <i style={{ flexGrow: homeP, background: teamColor(home.abbr) }} />
+      </div>
+      <div class="wp-ends num">
+        <span>
+          {away.abbr} {pct(1 - homeP)}
+        </span>
+        <span>
+          {pct(homeP)} {home.abbr}
+        </span>
+      </div>
     </div>
   );
 }
 
 export function WinBars(props: { wp: WinProbability; home: Team; away: Team }) {
   const { wp, home, away } = props;
-  if (wp.model_home === null) return <p class="muted small">No stored forecast for this game.</p>;
+  if (wp.model_home === null) return <p class="muted small">We have no forecast for this game.</p>;
   return (
     <div class="wp">
-      <WpRow kind="model" label="Model" homeP={wp.model_home} home={home.abbr} away={away.abbr} />
+      <WpRow kind="model" label="Our model" homeP={wp.model_home} home={home} away={away} />
       {wp.market_home !== null ? (
-        <WpRow kind="market" label="Market" homeP={wp.market_home} home={home.abbr} away={away.abbr} />
+        <WpRow kind="book" label="Sportsbook odds" homeP={wp.market_home} home={home} away={away} />
       ) : null}
     </div>
   );
@@ -219,11 +252,17 @@ export function WinBars(props: { wp: WinProbability; home: Team; away: Team }) {
 
 export function WinLegend() {
   return (
-    <p class="small muted" style={{ margin: 0 }}>
-      Bars fill from the left for the home team (the second team named); the notch is 50%.{" "}
-      <span class="tag forecast">model</span> out-of-fold forecast. <span class="tag market">market</span> DraftKings
-      moneyline, de-vigged, about an hour before tip.
-    </p>
+    <Explain>
+      <p>
+        Each bar splits 100% between the two teams. <strong>Our model</strong> is our own forecast, made before the game
+        using only what was known then. <strong>Sportsbook odds</strong> are DraftKings' moneyline about an hour before
+        tip, with the book's built-in margin taken out so the two sides add up to 100%.
+      </p>
+      <p>
+        If the bars match, the market and our model see the game the same way. If they differ, one of us knows
+        something the other does not, and over a full season the books have usually been right more often.
+      </p>
+    </Explain>
   );
 }
 
@@ -244,22 +283,22 @@ export function DistBar(props: { player: string; prop: PropView; actual?: number
   hi += span * 0.06;
   const W = 320;
   const x = (v: number): number => 10 + ((v - lo) / (hi - lo)) * (W - 20);
-  const label = `Forecast range for ${props.player}, ${STAT_LABEL[prop.stat]}: 5th percentile ${num(q05)}, median ${num(q50)}, 95th percentile ${num(q95)}; line ${prop.line}${actual === undefined ? "" : `; actual ${actual}`}`;
+  const label = `Likely range for ${props.player}, ${STAT_LABEL[prop.stat]}: about half of nights between ${num(q25)} and ${num(q75)}, nine nights in ten between ${num(q05)} and ${num(q95)}, typical night ${num(q50)}; book line ${prop.line.toString()}${actual === undefined ? "" : `; final number ${actual.toString()}`}`;
   return (
-    <svg class="dist" viewBox={`0 0 ${W} ${actual === undefined ? 58 : 70}`} role="img" aria-label={label}>
+    <svg class="dist" viewBox={`0 0 ${W.toString()} ${actual === undefined ? "58" : "70"}`} role="img" aria-label={label}>
       <line class="axis" x1="10" x2={W - 10} y1="40" y2="40" />
-      <rect class="band" x={x(q05)} y="30" width={Math.max(x(q95) - x(q05), 1)} height="20" rx="4" />
-      <rect class="iqr" x={x(q25)} y="26" width={Math.max(x(q75) - x(q25), 1)} height="28" rx="4" />
+      <rect class="band" x={x(q05)} y="30" width={Math.max(x(q95) - x(q05), 1)} height="20" />
+      <rect class="iqr" x={x(q25)} y="26" width={Math.max(x(q75) - x(q25), 1)} height="28" />
       <line class="med" x1={x(q50)} x2={x(q50)} y1="26" y2="54" />
       <line class="lineMark" x1={x(prop.line)} x2={x(prop.line)} y1="14" y2="58" />
       <text class="lineText" x={x(prop.line)} y="10" text-anchor="middle">
-        line {prop.line}
+        book line {prop.line}
       </text>
       {actual !== undefined ? (
         <g>
-          <polygon class="actual" points={`${x(actual)},20 ${x(actual) + 6},27 ${x(actual)},34 ${x(actual) - 6},27`} />
-          <text x={x(actual)} y="68" text-anchor="middle" style={{ fill: "var(--ink)", fontWeight: 700 }}>
-            actual {actual}
+          <polygon class="actual" points={`${x(actual).toString()},20 ${(x(actual) + 6).toString()},27 ${x(actual).toString()},34 ${(x(actual) - 6).toString()},27`} />
+          <text x={x(actual)} y="68" text-anchor="middle" class="actualText">
+            finished {actual}
           </text>
         </g>
       ) : null}
@@ -269,9 +308,65 @@ export function DistBar(props: { player: string; prop: PropView; actual?: number
 
 export function DistLegend() {
   return (
-    <p class="small muted" style={{ margin: 0 }}>
-      Light band: the model's 5th to 95th percentile. Dark bar: 25th to 75th. White tick: median. Orange line: the book's
-      line.
-    </p>
+    <Explain label="How do I read these bars?">
+      <p>
+        Each bar is our forecast for one player's night. The dark bar is where about half of his nights land. The light
+        band stretches to cover nine nights in ten. The white tick is the typical night. The black line is the number the
+        sportsbook set.
+      </p>
+      <p>
+        A bar that sits mostly to the right of the line says "over". The wider the bar, the less sure we are. These
+        forecasts assume the player suits up.
+      </p>
+    </Explain>
+  );
+}
+
+/* ------------------------------------------------------------------ record board */
+export function RecordBoard(props: { settled: Settled[]; loading: boolean; picks: number; now?: Date; compact?: boolean }) {
+  const all = recordOf(props.settled);
+  const week = recordOf(lastWeek(props.settled, props.now));
+  const weekN = week.wins + week.losses;
+  const allN = all.wins + all.losses;
+  const shown = weekN > 0 ? week : all;
+  const run = streak(props.settled);
+  if (allN === 0) {
+    return (
+      <div class={`board${props.compact ? " compact" : ""}`}>
+        <p class="board-line">{props.loading ? "Grading your picks..." : "No graded picks yet."}</p>
+        <p class="muted small">
+          {props.picks === 0
+            ? "Make a few picks and your record shows up here."
+            : "Your picks will be graded as soon as the results load."}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div class={`board${props.compact ? " compact" : ""}`}>
+      <p class="board-line">
+        You're{" "}
+        <span class="rec num">
+          {shown.wins}-{shown.losses}
+        </span>{" "}
+        {weekN > 0 ? "this week" : "so far"}
+      </p>
+      <div class="board-facts num">
+        {run ? (
+          <span class={`streak ${run.kind}`}>
+            {run.count} {run.kind === "win" ? (run.count === 1 ? "hit" : "hits") : run.count === 1 ? "miss" : "misses"} in a row
+          </span>
+        ) : null}
+        {weekN > 0 ? (
+          <span>
+            All time {all.wins}-{all.losses}
+          </span>
+        ) : null}
+        <span>{pct(all.wins / allN)} right</span>
+      </div>
+      {allN < MIN_LEGS && !props.compact ? (
+        <p class="muted small">Only {allN} graded so far, so luck is doing most of the work. It takes {MIN_LEGS} or more to say anything.</p>
+      ) : null}
+    </div>
   );
 }

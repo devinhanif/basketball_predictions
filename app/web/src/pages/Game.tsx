@@ -1,47 +1,50 @@
 import { useState } from "preact/hooks";
 import { api } from "../api";
-import { DistBar, DistLegend, View, WinBars, WinLegend } from "../components";
+import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
 import { american, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
-import { STATS, STAT_LABEL } from "../types";
+import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
+import { chanceSentence, didText } from "../words";
 
-function PropBlock(props: {
-  player: string;
-  prop: PropView;
-  actual: number | undefined;
-}) {
+function PropBlock(props: { player: string; prop: PropView; actual: number | undefined }) {
   const { prop, player, actual } = props;
   const q = prop.q;
   return (
     <div class="prop-block">
-      <div class="row between wrap" style={{ gap: 6 }}>
+      <div class="row between wrap">
         <strong>{STAT_LABEL[prop.stat]}</strong>
         <span class="small muted num">
-          line {lineText(prop.line)} · over {american(prop.over_price)} · under {american(prop.under_price)}
+          Line {lineText(prop.line)} · Over {american(prop.over_price)} · Under {american(prop.under_price)}
         </span>
       </div>
+      <p class="prop-say">{chanceSentence(player, prop.stat, prop.line, "over", prop.model_p_over, prop.extrapolated)}.</p>
       <DistBar player={player} prop={prop} actual={actual} />
       <div class="kv num">
         <span>
-          Model over: <b style={{ color: "var(--model)" }}>{pctBounded(prop.model_p_over, prop.extrapolated)}</b>
+          Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
         </span>
         <span>
-          Book over: <b style={{ color: "var(--market)" }}>{pct(prop.market_p_over)}</b>
+          Sportsbook: <b>{pct(prop.market_p_over)}</b>
+        </span>
+        {prop.model_p_push > 0.005 ? <span>Exactly on the line: {pct(prop.model_p_push)}</span> : null}
+      </div>
+      <div class="kv num">
+        <span>
+          Typical night: <b>{num(q[9] ?? 0)}</b>
         </span>
         <span>
-          Median <b>{num(q[9] ?? 0)}</b>, 5% to 95%: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
+          Half of nights: <b>{num(q[4] ?? 0)}</b> to <b>{num(q[14] ?? 0)}</b>
         </span>
-        {prop.model_p_push > 0.005 ? <span>Push chance: {pct(prop.model_p_push)}</span> : null}
+        <span>
+          Nine in ten: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
+        </span>
       </div>
       {actual !== undefined ? (
-        <div class="kv">
-          <span class="tag result">result</span>
-          <span>
-            Actual <b>{actual}</b> against a line of <b>{lineText(prop.line)}</b>:{" "}
-            <b>{actual === prop.line ? "push" : actual > prop.line ? "went over" : "went under"}</b>
-          </span>
-        </div>
+        <p class="result-line">
+          <span class="label">Final</span> {player} {didText(prop.stat, actual)}:{" "}
+          <b>{actual === prop.line ? "right on the line, a push" : actual > prop.line ? `over the ${lineText(prop.line)} line` : `under the ${lineText(prop.line)} line`}</b>
+        </p>
       ) : null}
     </div>
   );
@@ -50,34 +53,32 @@ function PropBlock(props: {
 function PlayerRow(props: { p: PlayerView; result: GameResult | null }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
-  const pts = props.p.props.pts;
-  const lead = pts ?? first;
+  const lead = props.p.props.pts ?? first;
   return (
     <details class="player">
       <summary>
-        <span class="row between" style={{ width: "100%" }}>
-          <span>
-            <strong>{props.p.name}</strong>
-            {res?.starter ? <span class="tag" style={{ marginLeft: 8 }}>starter</span> : null}
+        <span class="player-sum">
+          <span class="player-name">
+            {props.p.name}
+            {res?.starter ? <span class="tag">Starter</span> : null}
           </span>
           {lead ? (
-            <span class="small num muted">
-              {lead.stat} {lineText(lead.line)}: model{" "}
-              <b style={{ color: "var(--model)" }}>{pctBounded(lead.model_p_over, lead.extrapolated)}</b> / book{" "}
-              <b style={{ color: "var(--market)" }}>{pct(lead.market_p_over)}</b>
+            <span class="player-lead num">
+              <span class="muted small nowrap">
+                Over {lineText(lead.line)} {STAT_SHORT[lead.stat]}
+              </span>
+              <span class="big-num">{pctBounded(lead.model_p_over, lead.extrapolated)}</span>
             </span>
           ) : null}
         </span>
       </summary>
       {res ? (
-        <p class="small muted" style={{ marginTop: 0 }}>
-          <span class="tag result">result</span> Played <b>{res.minutes === null ? "n/a" : `${num(res.minutes)} min`}</b>
-          {res.starter === null ? "" : res.starter ? ", started" : ", off the bench"}. Minutes are not forecast in this fixture.
+        <p class="small muted">
+          Played {res.minutes === null ? "no recorded minutes" : `${num(res.minutes)} minutes`}
+          {res.starter === null ? "" : res.starter ? " and started" : " off the bench"}. We do not forecast minutes yet.
         </p>
       ) : (
-        <p class="small muted" style={{ marginTop: 0 }}>
-          Minutes are not forecast in this fixture; the actual minutes appear only after you show the result.
-        </p>
+        <p class="small muted">We do not forecast minutes yet. Show the final score above to see how long he played.</p>
       )}
       {STATS.map((s: Stat) => {
         const prop = props.p.props[s];
@@ -94,71 +95,96 @@ function Body({ g }: { g: GameDetail }) {
   const [side, setSide] = useState<"away" | "home">("away");
   const team = side === "home" ? g.home : g.away;
   const players = g.players.filter((p) => p.side === side);
+  const modelHome = g.win_probability.model_home;
+  const winner = res ? (res.home_won ? g.home : g.away) : null;
   return (
     <div class="stack">
       <p class="small">
-        <a href="#/">Back to the slate</a>
+        <a href="#/">Back to the night</a>
       </p>
-      <section class="card">
-        <div class="teams">
-          <h1>
-            {g.away.abbr} <span class="at muted" style={{ fontWeight: 500 }}>at</span> {g.home.abbr}
-          </h1>
-          <span class="muted small num">{tipTime(g.tip_utc)} scheduled tip</span>
+      <section class="panel scoreboard">
+        <div class="score-row">
+          <div class="score-team">
+            <TeamTag abbr={g.away.abbr} big />
+            <span class="muted small">
+              {g.away.city} {g.away.name}
+            </span>
+          </div>
+          <div class="score-mid num">
+            {res ? (
+              <span class="final">
+                {res.away_pts}
+                <span class="dash">-</span>
+                {res.home_pts}
+              </span>
+            ) : (
+              <span class="at">at</span>
+            )}
+          </div>
+          <div class="score-team right">
+            <TeamTag abbr={g.home.abbr} big />
+            <span class="muted small">
+              {g.home.city} {g.home.name}
+            </span>
+          </div>
         </div>
-        <div class="muted small">
-          {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
-          {g.arena ? `, ${g.arena}` : ""}
-        </div>
+        <p class="muted small center num">
+          {res ? "Final" : `Tip-off ${tipTime(g.tip_utc)}`}
+          {g.arena ? ` · ${g.arena}` : ""}
+        </p>
         <WinBars wp={g.win_probability} home={g.home} away={g.away} />
         <WinLegend />
-        <p class="small muted" style={{ marginBottom: 0 }}>
-          Model stamp: {g.win_probability.model_stamp ?? "none"}. n = 1 game; see the Method page for how the model does over
-          a season.
-        </p>
+        <Explain label="Where did this forecast come from?">
+          <p>
+            Forecast stamp: <span class="mono">{g.win_probability.model_stamp ?? "none"}</span>. In plain terms, the model was
+            built without ever seeing this game or any later one.
+          </p>
+          <p>This is one game, so it says very little about how good the model is. The season-wide record is on the How it works page.</p>
+        </Explain>
       </section>
 
-      <section class="card">
+      <section class="panel">
         <div class="row between wrap">
           <div>
-            <h2>Result</h2>
+            <h2>How it ended</h2>
             <p class="small muted" style={{ margin: 0 }}>
-              Hidden by default so you can read the forecast first.
+              Spoilers are hidden so you can read the forecast first.
             </p>
           </div>
           <button type="button" class="btn" aria-pressed={show} onClick={() => { setShow(!show); }}>
-            {show ? "Hide result" : "Show result"}
+            {show ? "Hide the score" : "Show the final score"}
           </button>
         </div>
         {show && result.status === "loading" ? <p class="muted">Loading...</p> : null}
         {show && result.status === "error" ? (
           <p role="alert">
-            Could not load the result. <button type="button" class="btn" onClick={reloadResult}>Retry</button>
+            Could not load the score. <button type="button" class="btn" onClick={reloadResult}>Try again</button>
           </p>
         ) : null}
-        {res ? (
-          <p class="num" style={{ marginTop: 12, marginBottom: 0 }}>
-            <span class="tag result">result</span> Final: {g.away.abbr} <b>{res.away_pts}</b>, {g.home.abbr}{" "}
-            <b>{res.home_pts}</b>. {res.home_won ? g.home.name : g.away.name} won
-            {g.win_probability.model_home !== null
-              ? `; the model had them at ${pct(res.home_won ? g.win_probability.model_home : 1 - g.win_probability.model_home)}`
+        {res && winner ? (
+          <p class="num result-line">
+            <b>
+              {g.away.name} {res.away_pts}, {g.home.name} {res.home_pts}.
+            </b>{" "}
+            The {winner.name} won.
+            {modelHome !== null
+              ? ` Going in, our model gave them ${pct(res.home_won ? modelHome : 1 - modelHome)}.`
               : ""}
-            .
           </p>
         ) : null}
       </section>
 
-      <section class="card">
+      <section class="panel">
         <div class="row between wrap">
-          <h2>Who plays, and what they produce</h2>
-          <div class="chips" role="tablist" aria-label="Team">
+          <h2>Player lines</h2>
+          <div class="tabs" role="tablist" aria-label="Team">
             {(["away", "home"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 role="tab"
                 aria-selected={side === s}
-                class="chip"
+                class="tab"
                 aria-current={side === s ? "true" : undefined}
                 onClick={() => { setSide(s); }}
               >
@@ -168,13 +194,13 @@ function Body({ g }: { g: GameDetail }) {
           </div>
         </div>
         <p class="small muted">
-          {team.city} {team.name}: {players.length} players with a posted line, ordered by forecast points. Forecasts are
-          conditional on the player playing. <span class="tag forecast">forecast</span>
+          {team.city} {team.name}: {players.length} players with a line from the sportsbook, highest forecast scorer first.
+          Tap a name to open them up.
         </p>
         <DistLegend />
-        <div style={{ marginTop: 8 }}>
+        <div class="players">
           {players.length === 0 ? (
-            <p class="muted">No posted lines for this team.</p>
+            <p class="muted">No lines were posted for this team.</p>
           ) : (
             players.map((p) => <PlayerRow key={p.player_id} p={p} result={res} />)
           )}

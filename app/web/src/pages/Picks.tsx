@@ -1,38 +1,10 @@
-import { useEffect, useMemo, useState } from "preact/hooks";
-import { api } from "../api";
-import { american, lineText, longDate, pct, stamp } from "../format";
-import { clearLedger, loadLedger, settle, summarize, type Pick, type Settled } from "../ledger";
+import { useMemo, useState } from "preact/hooks";
+import { Explain, RecordBoard } from "../components";
+import { american, lineText, longDate, pct } from "../format";
+import { clearLedger, loadLedger, summarize, type Pick, type Settled } from "../ledger";
 import { MIN_LEGS } from "../stats";
-import { STAT_SHORT, type ResultRow } from "../types";
-
-type ResultsState =
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "ready"; rows: ResultRow[] };
-
-function useResults(dates: string[]): ResultsState {
-  const [state, setState] = useState<ResultsState>({ status: "loading" });
-  const key = dates.join(",");
-  useEffect(() => {
-    let live = true;
-    if (dates.length === 0) {
-      setState({ status: "ready", rows: [] });
-      return;
-    }
-    Promise.all(dates.map((d) => api.results(d))).then(
-      (rs) => {
-        if (live) setState({ status: "ready", rows: rs.flatMap((r) => r.data.rows) });
-      },
-      (e: unknown) => {
-        if (live) setState({ status: "error", message: e instanceof Error ? e.message : String(e) });
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [key]);
-  return state;
-}
+import { useSettled } from "../useSettled";
+import { didText } from "../words";
 
 function download(picks: Pick[]): void {
   const blob = new Blob([JSON.stringify(picks, null, 1)], { type: "application/json" });
@@ -44,30 +16,49 @@ function download(picks: Pick[]): void {
   URL.revokeObjectURL(url);
 }
 
-function Pill({ s }: { s: Settled }) {
-  return <span class={`pill ${s.outcome}`}>{s.outcome}</span>;
+const BADGE = { win: "Hit", loss: "Miss", push: "Push" } as const;
+
+function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: boolean }) {
+  const skipped = p.side === "skip";
+  const cls = skipped ? "skip" : s ? s.outcome : "open";
+  const badge = skipped ? "Skip" : s ? BADGE[s.outcome] : "Open";
+  let title: string;
+  if (skipped) title = `${p.player}: you skipped this one`;
+  else if (s) {
+    title = `${p.player} ${didText(p.stat, s.row.actual)}`;
+    if (s.outcome === "push") title += ", right on the line";
+  } else title = isOpen ? `${p.player}: waiting on the game` : p.player;
+  return (
+    <li class={`pick ${cls}`}>
+      <span class="badge">{badge}</span>
+      <div class="pick-body">
+        <div class="pick-title">{title}</div>
+        <div class="pick-sub num">
+          {skipped ? "" : `You took ${p.side} ${lineText(p.line)} (${american(p.side === "over" ? p.over_price : p.under_price)}). `}
+          {p.team} vs {p.opponent}, {longDate(p.slate_date)}
+        </div>
+      </div>
+    </li>
+  );
 }
 
 export function Picks() {
   const [picks, setPicks] = useState<Pick[]>(loadLedger);
-  const dates = useMemo(() => [...new Set(picks.map((p) => p.slate_date))].sort(), [picks]);
-  const results = useResults(dates);
-  const { settled, open } = useMemo(
-    () => (results.status === "ready" ? settle(picks, results.rows) : { settled: [] as Settled[], open: [] as Pick[] }),
-    [picks, results],
-  );
+  const { results, settled, open } = useSettled(picks);
   const sum = useMemo(() => summarize(picks, settled), [picks, settled]);
   const [confirm, setConfirm] = useState(false);
 
   if (picks.length === 0) {
     return (
       <div class="stack">
-        <h1>My picks</h1>
-        <div class="card empty">
+        <div class="page-head">
+          <h1>My picks</h1>
+        </div>
+        <div class="panel empty">
           <h2>No picks yet</h2>
-          <p class="muted">Swipe a few cards and they will appear here, settled against the real results.</p>
+          <p class="muted">Swipe a few cards. Each one gets graded against what really happened, and your record shows up here.</p>
           <a class="btn primary" href="#/swipe">
-            Go to Swipe
+            Make some picks
           </a>
         </div>
       </div>
@@ -76,112 +67,97 @@ export function Picks() {
 
   return (
     <div class="stack">
-      <h1>My picks</h1>
-      <p class="muted" style={{ margin: 0 }}>
-        A paper ledger stored only on this device. <span class="tag result">result</span> means a real 2024-25 box-score
-        outcome; <span class="tag forecast">forecast</span> means what the model said before tip.
-      </p>
+      <div class="page-head">
+        <h1>My picks</h1>
+        <p class="muted">Pretend picks, saved only on this device. Each is graded against the real box score.</p>
+      </div>
 
       {results.status === "error" ? (
-        <div class="card error" role="alert">
+        <div class="panel error" role="alert">
           <p style={{ margin: 0 }}>
-            Could not fetch results, so nothing is settled yet. <span class="mono">{results.message}</span>
+            We could not fetch the results, so nothing is graded yet. <span class="mono">{results.message}</span>
           </p>
         </div>
       ) : null}
 
-      <section class="card" aria-labelledby="sum-h">
-        <h2 id="sum-h">How you did</h2>
-        {sum.decided === 0 ? (
-          <p class="muted">{results.status === "loading" ? "Settling..." : "Nothing settled yet."}</p>
-        ) : (
-          <>
-            <p class="num" style={{ fontSize: "1.3rem", fontWeight: 700, margin: "8px 0 4px" }}>
-              {sum.wins} of {sum.decided} correct{sum.hit_rate !== null ? ` (${pct(sum.hit_rate)})` : ""}
+      <RecordBoard settled={settled} loading={results.status === "loading"} picks={sum.n_picks} />
+
+      {sum.decided > 0 ? (
+        <section class="panel" aria-labelledby="sum-h">
+          <h2 id="sum-h">You vs the odds</h2>
+          <p>
+            Your picks won <b class="num">{pct(sum.wins / sum.decided)}</b> ({sum.wins} of {sum.decided}).{" "}
+            {sum.mean_market !== null ? (
+              <>
+                The sportsbook's prices said the sides you took would win about <b class="num">{pct(sum.mean_market)}</b> of the
+                time
+              </>
+            ) : null}
+            {sum.mean_model !== null ? (
+              <>
+                {sum.mean_market !== null ? ", and our model said " : "Our model said "}
+                <b class="num">{pct(sum.mean_model)}</b>
+              </>
+            ) : null}
+            .
+          </p>
+          <p class="small muted num">
+            {sum.enough && sum.hit_ci
+              ? `The 95% range for your win rate is ${pct(sum.hit_ci[0])} to ${pct(sum.hit_ci[1])}. `
+              : `Only ${sum.decided.toString()} graded, which is not enough to say whether this is skill or luck (we want at least ${MIN_LEGS.toString()}). `}
+            {sum.pushes > 0 ? `${sum.pushes.toString()} landed exactly on the line and are left out. ` : ""}
+            {sum.n_skips > 0 ? `${sum.n_skips.toString()} skipped.` : ""}
+          </p>
+          <Explain>
+            <p>
+              "Won" means you picked the right side of the line. The sportsbook's price turns into a chance once you remove
+              its built-in margin: a side priced like a 52% shot should win about 52 times in 100. If your win rate sits
+              near those numbers, you did about as well as the odds said you would.
             </p>
-            <p class="small muted num">
-              n = {sum.decided} decided picks, {sum.pushes} pushes, {sum.n_skips} skips.{" "}
-              {sum.enough && sum.hit_ci
-                ? `95% interval for your hit rate: ${pct(sum.hit_ci[0])} to ${pct(sum.hit_ci[1])} (Wilson).`
-                : `Not enough to say: an interval needs at least ${MIN_LEGS} decided picks.`}
+            <p>With a small number of picks, a hot or cold streak says very little. Differences here are mostly luck.</p>
+          </Explain>
+          <Explain label="Does the model's confidence hold up on your picks?">
+            <p>
+              We group your graded picks by how likely our model said your side was. If the model is honest, what happened
+              should land close to what it predicted in every row. Rows with fewer than {MIN_LEGS} picks say "not enough to
+              say".
             </p>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Compare to</th>
-                    <th class="r">Average probability of your side</th>
+                    <th>Model said</th>
+                    <th class="r">Picks</th>
+                    <th class="r">Predicted</th>
+                    <th class="r">Happened</th>
+                    <th class="r">95% range</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>Your hit rate</td>
-                    <td class="r num">{sum.hit_rate !== null ? pct(sum.hit_rate, 1) : "n/a"}</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <span class="tag market">book</span> de-vigged price
-                    </td>
-                    <td class="r num">{sum.mean_market !== null ? pct(sum.mean_market, 1) : "n/a"}</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <span class="tag forecast">model</span> at the time
-                    </td>
-                    <td class="r num">{sum.mean_model !== null ? pct(sum.mean_model, 1) : "n/a"}</td>
-                  </tr>
+                  {sum.bins.map((b) => (
+                    <tr key={b.label}>
+                      <td>{b.label}</td>
+                      <td class="r num">{b.n}</td>
+                      <td class="r num">{b.predicted !== null ? pct(b.predicted) : "-"}</td>
+                      <td class="r num">{b.observed !== null ? pct(b.observed) : "-"}</td>
+                      <td class="r num">
+                        {b.n === 0 ? "-" : b.enough && b.ci ? `${pct(b.ci[0])} to ${pct(b.ci[1])}` : "not enough to say"}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-            <p class="small muted">
-              The book column is what a coin weighted by the price would hit; with a small n, differences here are mostly
-              luck. Pushes are left out of every rate.
-            </p>
-          </>
-        )}
-      </section>
+          </Explain>
+        </section>
+      ) : null}
 
-      <section class="card" aria-labelledby="cal-h">
-        <h2 id="cal-h">Calibration of the model on the props you picked</h2>
-        <p class="small muted">
-          Group your decided picks by the model's probability for the side you took. If the model were calibrated, the
-          observed rate would match the predicted rate in each row. Rows with fewer than {MIN_LEGS} picks say "not enough
-          to say".
-        </p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Model said</th>
-                <th class="r">n</th>
-                <th class="r">Predicted</th>
-                <th class="r">Observed</th>
-                <th class="r">95% interval</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sum.bins.map((b) => (
-                <tr key={b.label}>
-                  <td>{b.label}</td>
-                  <td class="r num">{b.n}</td>
-                  <td class="r num">{b.predicted !== null ? pct(b.predicted) : "-"}</td>
-                  <td class="r num">{b.observed !== null ? pct(b.observed) : "-"}</td>
-                  <td class="r num">
-                    {b.n === 0 ? "-" : b.enough && b.ci ? `${pct(b.ci[0])} to ${pct(b.ci[1])}` : "not enough to say"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card" aria-labelledby="led-h">
+      <section class="panel" aria-labelledby="led-h">
         <div class="row between wrap">
-          <h2 id="led-h">Ledger ({picks.length} cards answered)</h2>
+          <h2 id="led-h">Every card you answered ({picks.length})</h2>
           <div class="row">
             <button type="button" class="btn" onClick={() => { download(picks); }}>
-              Download JSON
+              Download
             </button>
             {confirm ? (
               <button
@@ -202,49 +178,13 @@ export function Picks() {
             )}
           </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Prop</th>
-                <th>Pick</th>
-                <th class="r">Actual</th>
-                <th>Outcome</th>
-                <th>Made</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...picks].reverse().map((p) => {
-                const s = settled.find((x) => x.pick.id === p.id);
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      {p.player} <span class="muted">{STAT_SHORT[p.stat]}</span> {lineText(p.line)}
-                      <div class="muted small">
-                        {longDate(p.slate_date)} · {p.team} vs {p.opponent}
-                      </div>
-                    </td>
-                    <td>
-                      {p.side === "skip" ? (
-                        <span class="muted">skipped</span>
-                      ) : (
-                        <>
-                          {p.side} <span class="muted num">{american(p.side === "over" ? p.over_price : p.under_price)}</span>
-                        </>
-                      )}
-                    </td>
-                    <td class="r num">{s ? s.row.actual : "-"}</td>
-                    <td>{p.side === "skip" ? "-" : s ? <Pill s={s} /> : open.some((o) => o.id === p.id) ? "open" : "-"}</td>
-                    <td class="small muted num">{stamp(p.made_at)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <ul class="picks">
+          {[...picks].reverse().map((p) => (
+            <PickRow key={p.id} p={p} s={settled.find((x) => x.pick.id === p.id)} isOpen={open.some((o) => o.id === p.id)} />
+          ))}
+        </ul>
         <p class="small muted">
-          Each row keeps made_at (real time), the replay clock used for the tip check, your response time and that the
-          model was not shown (saw_model = false).
+          Each pick is saved with the time you made it, how long you took, and a note that you never saw our forecast.
         </p>
       </section>
     </div>

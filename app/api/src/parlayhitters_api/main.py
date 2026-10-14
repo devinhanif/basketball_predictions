@@ -166,7 +166,7 @@ def register(app: FastAPI) -> None:
         return {
             "mode": MODE,
             "mode_note": (
-                "Historical replay of 2024-25 slates built from stored data. Nothing here is "
+                "A replay of real 2024-25 nights, built from stored data. Nothing here is "
                 "live, and nothing here is advice."
             ),
             "data_version": m["source_data_version"],
@@ -238,8 +238,10 @@ def register(app: FastAPI) -> None:
             clock_utc=_clock(store, game_id),
             players=players,
             notes=[
-                "Only players with a posted line appear; forecasts are conditional on playing.",
-                "Minutes are not forecast in this fixture. Actual minutes are a result.",
+                "Only players with a line from the sportsbook are listed. "
+                "Every forecast assumes the player suits up.",
+                "We do not forecast minutes yet. "
+                "How long a player really played is part of the final result.",
             ],
         )
 
@@ -248,7 +250,7 @@ def register(app: FastAPI) -> None:
         g = _need_game(store, game_id)
         return {
             "game_id": game_id,
-            "label": "result (historical replay)",
+            "label": "result (replay)",
             "home_pts": g["result"]["home_pts"],
             "away_pts": g["result"]["away_pts"],
             "home_won": g["result"]["home_won"],
@@ -333,7 +335,7 @@ def register(app: FastAPI) -> None:
             seed=seed,
             cards=cards[:n],
             note=(
-                "Blind cards: line and price only. Drawn at random from every posted prop; "
+                "Blind cards: the line and the price only. Drawn at random from every posted line; "
                 "players who do not play are void."
             ),
         )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write the PWA icons (stdlib only): three bars, a forecast distribution, on navy.
+"""Write the PWA icons (stdlib only): three bars, a forecast distribution, on near-black with an orange centre bar.
 
     python3 app/web/scripts/make_icons.py
 """
@@ -9,9 +9,9 @@ import zlib
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "public" / "icons"
-BG = (31, 42, 68)
-LIGHT = (159, 176, 255)
-CREAM = (246, 245, 241)
+BG = (15, 17, 21)
+LIGHT = (243, 243, 240)
+CREAM = (255, 122, 26)
 
 
 def in_round_rect(x: float, y: float, x0: float, y0: float, x1: float, y1: float, r: float) -> bool:

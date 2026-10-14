@@ -1,68 +1,84 @@
 import { api } from "../api";
-import { View } from "../components";
+import { Explain, View } from "../components";
 import { stamp } from "../format";
 import { useLoad } from "../useLoad";
 import type { ParlayState } from "../types";
 
+/** Plain-language headline for the verdict. The engine's own label is kept in the details. */
+function verdictText(p: ParlayState): string {
+  if (p.headline_verdict === "no_positive_ev_found") return "We found nothing worth betting. Keep your money.";
+  return p.verdict_line;
+}
+
+function whatWeChecked(p: ParlayState, compact: boolean): string {
+  const c = p.counts;
+  const games = c["n_games"];
+  const read = c["n_markets_read"];
+  const mapped = c["n_mapped"];
+  const priced = c["n_contracts"];
+  if (games === undefined || read === undefined || mapped === undefined || priced === undefined) return p.reason;
+  if (compact) {
+    return `We looked at ${read.toLocaleString()} open markets. ${mapped.toString()} matched a game we have a forecast for.`;
+  }
+  const gameText =
+    games === 0 ? "We had no game forecasts stored for this date." : `We had forecasts for ${games.toString()} games.`;
+  return `${gameText} We looked at ${read.toLocaleString()} open Kalshi markets (Kalshi is a prediction market). ${mapped.toString()} matched a game on the schedule, and ${priced.toString()} had a price on both sides, so there was nothing we could check.`;
+}
+
 function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
+  const g = p.gate;
   return (
-    <section class="card verdict" aria-labelledby="parlay-h">
-      <div class="row between wrap">
-        <h2 id="parlay-h">Parlay of the day: {p.title.toLowerCase()}</h2>
-        <span class="tag">state {p.state}</span>
-      </div>
-      <p class="big" style={{ margin: "8px 0" }}>
-        Verdict: <span class="mono">{p.headline_verdict}</span>. {p.verdict_line}
+    <section class="panel verdict" aria-labelledby="parlay-h">
+      <div class="kicker">Parlay of the day</div>
+      <h2 id="parlay-h">{p.title}</h2>
+      <p class="lead">{verdictText(p)}</p>
+      <p>{whatWeChecked(p, compact)}</p>
+      <p class="small">
+        {g.gate_open
+          ? "Our model has earned a track record, so it is allowed to vouch for a bet."
+          : `Our model has to earn trust first. It needs ${g.min_settled.toString()} graded picks over ${g.min_settled_dates.toString()} different days before we let it back a bet. So far: ${g.n_settled.toString()} picks over ${g.n_dates.toString()} days. Until then we just follow the sportsbooks.`}{" "}
+        {compact ? <a href="#/parlay">The full story</a> : null}
       </p>
-      <p class="muted">{p.reason}</p>
-      {!compact ? (
-        <>
-          <div class="table-wrap">
-            <table>
-              <tbody>
-                <tr>
-                  <th scope="row">Model weight</th>
-                  <td class="num">{p.model_weight.toFixed(2)}</td>
-                  <td class="muted">{p.model_weight_note}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Gate</th>
-                  <td class="num">
-                    {p.gate.n_settled} of {p.gate.min_settled} settled
-                  </td>
-                  <td class="muted">
-                    over {p.gate.n_dates} of {p.gate.min_settled_dates} slate dates; open = {String(p.gate.gate_open)}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Record</th>
-                  <td class="num">n = {p.gate.n_settled}</td>
-                  <td class="muted">{p.gate.describe}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Fees</th>
-                  <td class="num">{p.fee_model.name}</td>
-                  <td class="muted">
-                    {p.fee_model.formula}, coefficient {p.fee_model.coefficient}; verified: {String(p.fee_model.verified)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="small muted" style={{ marginTop: 12 }}>
-            {p.price_basis}. {p.historical_note}
-          </p>
-          <p class="small muted">
-            Engine: {p.engine}. As of {stamp(p.as_of)}. Source: <span class="mono">{p.source}</span>.
-          </p>
-          <p class="small muted">{p.disclaimer}</p>
-        </>
-      ) : (
-        <p class="small" style={{ margin: 0 }}>
-          Gate: {p.gate.n_settled} of {p.gate.min_settled} settled. The model defers to the market until it has a track
-          record. Engine state as of {stamp(p.as_of)}. <a href="#/parlay">Why nothing today</a>
+      <Explain>
+        <p>
+          <strong>Parlay.</strong> One ticket with several bets stacked together. Every one has to hit or the whole thing
+          loses. That is why the payout looks big and why parlays lose often.
         </p>
-      )}
+        <p>
+          <strong>Worth betting.</strong> We only call a bet worth it if, on average, you would come out ahead after the
+          sportsbook's cut and the fees. We use the cautious end of our own estimate, not the hopeful end.
+        </p>
+        <p>
+          <strong>Paper only.</strong> Nothing here places a bet. Any ticket we show is pretend, so we can keep score
+          honestly.
+        </p>
+      </Explain>
+      {!compact ? (
+        <Explain label="Show the exact details">
+          <ul class="plain small">
+            <li>
+              The engine's own label: <span class="mono">{p.headline_verdict}</span>. Its note: {p.reason}
+            </li>
+            <li>
+              Model weight: <span class="num">{p.model_weight.toFixed(2)}</span>. {p.model_weight_note}
+            </li>
+            <li>
+              Track record: {g.describe}; gate open: {g.gate_open ? "yes" : "no"}.
+            </li>
+            <li>
+              Fee schedule used: {p.fee_model.name} (formula {p.fee_model.formula}, coefficient {p.fee_model.coefficient}),
+              verified: {p.fee_model.verified ? "yes" : "no"}. Source: {p.fee_model.source}.
+            </li>
+            <li>
+              How a ticket would be priced: {p.price_basis}. {p.historical_note}
+            </li>
+            <li>
+              Engine: {p.engine}. As of {stamp(p.as_of)}. Source: <span class="mono">{p.source}</span>.
+            </li>
+            <li>{p.disclaimer}</li>
+          </ul>
+        </Explain>
+      ) : null}
     </section>
   );
 }
@@ -81,21 +97,23 @@ export function ParlayPage() {
     <div class="stack">
       <h1>Parlay of the day</h1>
       <ParlayCard compact={false} />
-      <div class="card flat">
-        <h3>What the three states mean</h3>
-        <ul class="plain small">
+      <section class="panel flat">
+        <h3>The three ways a day can go</h3>
+        <ul class="plain">
           <li>
-            <strong>A.</strong> The gate is open and a ticket has positive expected value at the low end of its interval.
+            <strong>We have a bet we trust.</strong> The model has a track record and a ticket still looks good after the
+            sportsbook's cut. We show it, with the record next to it, and it stays a paper ticket.
           </li>
           <li>
-            <strong>B.</strong> The gate is closed. The best ticket may be shown, labelled hypothesis, unproven. Keep your
-            money.
+            <strong>We have a guess, but it is unproven.</strong> The model has no track record yet. We may show its best
+            idea, clearly marked as unproven. Keep your money.
           </li>
           <li>
-            <strong>C.</strong> No priced ticket, or no positive expected value. This is a normal day, not an error.
+            <strong>Nothing today.</strong> No ticket was worth it, or there was nothing we could price. This is a normal
+            day, not an error.
           </li>
         </ul>
-      </div>
+      </section>
     </div>
   );
 }

@@ -17,11 +17,11 @@ export function App() {
   useEffect(() => {
     api.meta().then(
       (m) => {
-        setNote(`Historical replay, not live: 2024-25 slates, data ${m.data.data_version}. Nothing here is advice.`);
+        setNote("A replay of real 2024-25 games, not tonight's slate. Nothing here is advice.");
         if (m.fromCache) setStale(true);
       },
       () => {
-        setNote("Historical replay, not live. The API is unreachable.");
+        setNote("A replay of real 2024-25 games, not tonight's slate. The data server is not answering.");
       },
     );
   }, []);

@@ -198,3 +198,39 @@ export function summarize(all: Pick[], settled: Settled[]): Summary {
     bins,
   };
 }
+
+export type Streak = { kind: "win" | "loss"; count: number } | null;
+
+function byMadeAt(a: Settled, b: Settled): number {
+  return a.pick.made_at < b.pick.made_at ? -1 : a.pick.made_at > b.pick.made_at ? 1 : 0;
+}
+
+/** The run at the end of the ledger, oldest to newest by made_at. Pushes neither extend nor break it. */
+export function streak(settled: Settled[]): Streak {
+  const ordered = settled.filter((s) => s.outcome !== "push").sort(byMadeAt);
+  const last = ordered[ordered.length - 1];
+  if (!last || last.outcome === "push") return null;
+  let count = 0;
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    if (ordered[i]?.outcome !== last.outcome) break;
+    count++;
+  }
+  return { kind: last.outcome, count };
+}
+
+export interface WinLoss {
+  wins: number;
+  losses: number;
+}
+
+export function recordOf(settled: Settled[]): WinLoss {
+  const decided = settled.filter((s) => s.outcome !== "push");
+  const wins = decided.filter((s) => s.outcome === "win").length;
+  return { wins, losses: decided.length - wins };
+}
+
+/** Picks made in the 7 days before `now` (by made_at, real time). */
+export function lastWeek(settled: Settled[], now: Date = new Date()): Settled[] {
+  const cutoff = now.getTime() - 7 * 24 * 3600 * 1000;
+  return settled.filter((s) => new Date(s.pick.made_at).getTime() >= cutoff);
+}
