@@ -67,6 +67,8 @@ export interface BeyondStat {
   /** "about 1 in this many" of a gap carried over. */
   one_in: number | null;
   large_gap: boolean;
+  /** Large gap and the coefficient measured inside the biggest gaps spans 0: a zero, in words. */
+  no_carry_large: boolean;
   window: string;
 }
 

@@ -78,6 +78,7 @@ const beyondStat = (over: Partial<BeyondStat> = {}): BeyondStat => ({
   no_effect: false,
   one_in: 21,
   large_gap: false,
+  no_carry_large: false,
   window: "2020-22",
   ...over,
 });
@@ -100,6 +101,13 @@ describe("shrunk with/without headline", () => {
     expect(extraText(s)).not.toContain("past games");
     expect(extraText(s)).not.toBe(signed(s.past_gap ?? 0));
     expect(carriedText(s)).toBe("about 1 in 21 carried over");
+  });
+
+  it("a large gap whose in-slice carry-over spans zero shows no measurable carry-over", () => {
+    const s = beyondStat({ stat: "reb", label: "Rebounds", large_gap: true, no_carry_large: true, expected_extra: 0, one_in: null });
+    expect(extraText(s)).toBe("no measurable carry-over");
+    expect(carriedText(s)).toBe("no measurable carry-over for gaps this big");
+    expect(carriedText(beyondStat({ large_gap: true, one_in: 30 }))).toBe("about 1 in 30 carried over for gaps this big");
   });
 
   it("no gap means no number, said in words", () => {

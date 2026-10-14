@@ -20,6 +20,7 @@ from parlayhitters_api.wowy_shrink import (
     COEF,
     GATE_SOURCE,
     SHRINK_K,
+    TOP_TENTH_COEF,
     beyond,
     coef_spans_zero,
     large_cut,
@@ -97,6 +98,47 @@ def test_a_large_gap_is_flagged_and_says_large_gaps_repeat_least() -> None:
     assert player_role(_teammate_hist(), GAME, PLAYER).teammates_out[0].beyond.flags == []
 
 
+def test_a_large_points_gap_uses_the_in_slice_coefficient_and_shows_no_carry_over() -> None:
+    h = _with_base(_teammate_hist(), lambda r, sat: (0 if sat else 40, *r.base[1:]))
+    b = player_role(h, GAME, PLAYER).teammates_out[0].beyond
+    pts = next(s for s in b.stats if s.stat == "pts")
+    assert pts.large_gap and pts.no_carry_large and pts.expected_extra == 0.0
+    assert pts.one_in is None and pts.past_gap == pytest.approx(-40.0)  # raw history kept
+    assert any("no measurable carry-over for gaps this big" in f for f in b.flags)
+    assert not any("upper bound" in f and "points" in f for f in b.flags)
+
+
+def test_a_large_assist_gap_uses_the_in_slice_coefficient() -> None:
+    h = _with_base(
+        _teammate_hist(), lambda r, sat: (r.base[0], r.base[1], 2 if sat else 20, 1, 0, 0)
+    )
+    b = player_role(h, GAME, PLAYER).teammates_out[0].beyond
+    ast = next(s for s in b.stats if s.stat == "ast")
+    assert ast.large_gap and not ast.no_carry_large
+    # the in-slice coefficient (0.0335), not the overall 0.0482
+    assert ast.expected_extra == pytest.approx(TOP_TENTH_COEF["ast"][0] * 0.4 * -18.0)
+    assert ast.one_in == round(1 / TOP_TENTH_COEF["ast"][0])
+    # an ordinary gap in the same stat keeps the overall coefficient
+    normal = player_role(_teammate_hist(), GAME, PLAYER).teammates_out[0].beyond
+    n_ast = next(s for s in normal.stats if s.stat == "ast")
+    assert not n_ast.large_gap and n_ast.expected_extra == pytest.approx(
+        COEF["ast"][0] * 0.4 * -2.0
+    )
+
+
+def test_no_in_slice_coefficient_keeps_the_overall_one_and_the_upper_bound() -> None:
+    b = beyond([row(5.0)] * 4, [row(35.0)] * 11)
+    m = next(s for s in b.stats if s.stat == "min")
+    assert m.large_gap and not m.no_carry_large
+    assert m.expected_extra == pytest.approx(COEF["min"][0] * 0.4 * -30.0)
+    assert any("minutes" in f and "upper bound" in f for f in b.flags)
+
+
+def test_in_slice_coefficients_cite_the_gate() -> None:
+    assert TOP_TENTH_COEF["pts"] == pytest.approx((0.0094, 0.0167))
+    assert set(TOP_TENTH_COEF) == {"pts", "reb", "ast"}  # no minutes or threes outcome in the gate
+
+
 def test_no_games_on_either_side_gives_no_number() -> None:
     for b in (beyond([], [row(30.0)]), beyond([row(30.0)], [])):
         assert not b.available
@@ -156,11 +198,11 @@ def test_fixture_slate_headlines_recompute_from_raw_sets_and_stay_pre_2025(
                     for s in b["stats"]:
                         if s["expected_extra"] is None:
                             continue
-                        want = (
-                            0.0
-                            if s["no_effect"]
-                            else COEF[s["stat"]][0] * b["weight"] * s["past_gap"]
-                        )
+                        coef = COEF[s["stat"]][0]
+                        if s["large_gap"] and s["stat"] in TOP_TENTH_COEF:
+                            coef = TOP_TENTH_COEF[s["stat"]][0]
+                        none = s["no_effect"] or s["no_carry_large"]
+                        want = 0.0 if none else coef * b["weight"] * s["past_gap"]
                         assert s["expected_extra"] == pytest.approx(want)
                     seen += 1
     assert seen > 0
