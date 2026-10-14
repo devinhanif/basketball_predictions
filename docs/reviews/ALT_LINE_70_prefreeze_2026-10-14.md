@@ -243,5 +243,93 @@ Lines touched by these edits, all minor and none blocking:
 No new decision-rule contradiction. All of B1-B4 are closed. Still open, and non-blocking: the remaining items from the first re-review
 (capture labels at lines 12, 13 and 58; the line-134 claimed-edge note; reporting the 25 / 15 t60-only games).
 
-Verdict: APPROVED
+(Second re-review verdict: APPROVED; superseded by the v3 review below.)
 
+
+## v3 review, 2026-10-14 (revision 3: commit 391ef56, merged at 4628557 on main)
+
+Scope: the v3 secondary family, plus a byte check of the primary text against the approved revision. No outcome exists, and none
+was computed here. No `y` was read and season 2025 was not loaded (`SEASONS = (2023, 2024)`; `priced_rungs` asserts
+`season <= MAX_SEASON`). DuckDB was opened `read_only=True`. New scratch script: `p2.py` (scratchpad; not in the repo).
+
+### Is the primary text byte-identical except where stated?
+`git diff 2199198 4628557 -- docs/prereg/ALT_LINE_70.md` (exit 0). The approved revision is 5da0111, and 2199198 holds it unchanged.
+Lines removed: two. The gate header gets a new date and sha, labelled. One prior sentence gains a pointer to the secondary
+priors. Lines added: the revision-3 note, the "Secondary family (v3)" section, one kill-criteria bullet, one protects-against
+row, and one item under "What Devin must sign". **Parts 1 and 2, the timing rule, the bet set, the words, the attacks (i)-(viii) and the
+follow-ups are byte-identical to the approved text on main.** PASS.
+
+**Major (procedural): the branch commit is not the approved text; only the merge is.** The modeler wrote v3 on top of 143b974,
+not 5da0111. So `git diff 5da0111 391ef56` shows the branch commit **dropping the B4 fix**: it removes the "Which bets exist
+cannot be guaranteed..." sentence and attack (viii) from step 3, and puts back the stale "availability in Devin's state" venue
+wording. The merge 4628557 restored both. Main is correct. The revision-3 note ("Parts 1 and 2 exactly as approved in
+revision 2") is true of main, not of 391ef56.
+*Fix:* hash from main only. The above-the-line sha256 on main is now
+`f6b0ec42302ccb1625dd953fbcf343161c537b6174f0450461c0002dad0a7fb1`
+(`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/ALT_LINE_70.md | shasum -a 256`, exit 0). Never take it from the
+modeler's worktree. Before the next revision, rebase the modeler branch on main.
+
+### The checks you asked for
+| Item | Finding | Pass |
+|---|---|---|
+| "No bin is promoted after the result" | Stated three times: the section header ("reported, none promoted"), the first paragraph ("None is selected, ranked or promoted after the result ... can never replace or soften the primary word"), and the kill criteria ("no bin is chosen, ranked or promoted afterwards"; bin edges frozen) | pass |
+| Disjoint bins | Half-open [0.50,0.60), [0.60,0.70), [0.70,0.80), [0.80,0.90). In the code, `SECONDARY_BINS` uses `>= lo - EPS` and `< hi - EPS`, the same boundary convention for every bin, so no rung lands in two bins. `test_secondary_part1_bins_are_disjoint_and_half_open` covers the edges | pass |
+| Clustering across the bins of one ladder | One resample matrix of GAMES (and separately DATES) per season, shared by every bin, stat and arm. A cluster carries its rungs in all bins, so cross-bin dependence is kept, not ignored | pass |
+| BH family size | Part 1S: 32 cells (4 bins x 4 stats x 2 seasons), separate from the primary 8. Part 2S PROFITABLE: BH over 4 bin cells. The primary is outside both families, which is correct: it was declared first and answers Devin's own question. Sharing clusters makes the cells positively dependent, and BH stays valid under that (PRDS) | pass, minor m1 |
+| Gate per bin | Part 1S: all 32 cells pass (cons. half-width 0.0192-0.0291 against 0.03). Part 2S pooled: 55 / 65 / 75 pass (0.0348 / 0.0351 / 0.0402). Bin 85 fails (495 rungs, 331 games, 0.0653) and is given no money word. `gate.json` sha256 = 497c99ca..., matching the rule. 2024 alone fails in all four bins, so the decision is pooled with a per-season sign check, the same as the primary | pass |
+| Forking disclosures | The Part 1S row floor was lowered from 5,000 to 4,000 after the counts (the smallest cell is 4,283); disclosed. The +-0.02 alternative is disclosed (it fails 24 of 24 cells in bins 55-75) | pass |
+
+**Is CALIBRATED reachable in the low bins?** The conservative bound of 0.027-0.029 in bins 55 and 65 sits just under 0.03. If the
+real interval were that wide, CALIBRATED would need |gap| <= 0.002. So I simulated a calibrated model: Y drawn from each
+player-game's own grid, comonotone across its lines, players independent, S = 300, seed 7 (`p2.py`, exit 0). The resulting
+half-widths are **0.004-0.013 across all 32 cells** (fg3m is the widest, at 0.012-0.013). The true interval lies between that and
+the conservative bound, because same-game and same-night shocks widen it. CALIBRATED is reachable. PASS.
+
+### Minor (fix in the same text pass; none changes a word)
+- **m1.** Part 2S: "BH q < 0.05 over the 4 bin cells". Add: "m = 4. Bin 85's p is computed and counts in m, but bin 85 gets no
+  word." Without it, a harness author could pick m = 3.
+- **m2.** Bin 75's Part 2S set is 4,004 of the primary's 4,546 t5 rungs (88%). Add one sentence: "a bin-75 word is not a second
+  test of the primary". The clause "A secondary word never changes the primary word" covers the decision, not how it is read.
+- **m3.** The v3 asks are Devin's, but there is no DECISIONS line for the secondary family or for ALT_PARLAY_X (grep over
+  `docs/DECISIONS.md` 2026-10-14 entries, exit 0). A row is drafted below; the main session appends it.
+- Items still open from earlier rounds (capture labels at lines 12, 13 and 58; the claimed-edge note in the prior) are still
+  open. Non-blocking.
+
+### Verification (unpiped)
+- `.venv/bin/python -m pytest -q tests/research/eval/test_alt_parlay_x_gate.py tests/research/eval/test_alt_line_70_gate.py --no-cov -p no:cacheprovider`: 15 passed, exit 0.
+- `ruff check` exit 0, `ruff format --check` exit 0, and `mypy research/eval/alt_parlay_x_gate.py research/eval/alt_line_70_gate.py` exit 0.
+- `shasum -a 256 reports/prereg_alt_line_70/gate.json` = 497c99ca..., which matches the rule.
+- Code sha256 at review time: `research/eval/alt_line_70_gate.py` 8da31748..., `research/eval/alt_parlay_x_gate.py` 303d67ce...
+
+### Playbook check (v3)
+The class is unchanged: a stored quantile/distribution layer, nothing trained.
+1. Information or capacity: neither.
+2. Enough data: Part 1S yes in all 32 cells. Part 2S pooled yes in bins 55-75, no in bin 85, and no in 2024 alone.
+3. Test validity: unchanged from the approved primary. The bins share its t5 timing rule and attacks.
+4. Lineage: the primary's guards are inherited. The new guard is the shared resample matrix across bins.
+5. What it scores against: reliability per bin and ROI at the posted price.
+
+Class check: the bins are fixed before any outcome, and the family is reported in full.
+
+### Power and family (v3)
+- Part 1S: 32 cells, BH. Simulated calibrated half-width 0.004-0.013, conservative 0.019-0.029. A gap of 0.03 or more is
+  detectable in every cell.
+- Part 2S: 4 cells, BH. To reach PROFITABLE, a bin needs a point ROI above roughly its pooled half-width: 0.035 (55), 0.035
+  (65), 0.040 (75) conservative, and 0.008 / 0.011 / 0.020 independent. The model's claimed EV is negative in bins 55 and 65
+  (-11.6% / -6.7%, -5.2% / +0.9%), so PROFITABLE there needs the model to be underconfident. That is unlikely, and the 0.04 prior
+  says so.
+
+**Single biggest risk (v3):** that the hash is taken from the branch text (391ef56), which silently drops the B4 guard against
+pulled late-news lines, instead of from main.
+
+**Not verified:** the real bootstrap widths (no outcomes exist), and whether the future harness builds one shared resample matrix
+(the rule requires it; the harness does not exist yet).
+
+### Drafted DECISIONS row (not appended)
+`2026-10-14 13:29 CDT — ALT_LINE_70 revision 3 adds a secondary family of four P bins (55/65/75/85), and ALT_PARLAY_X is drafted
+as its own rule (Devin's asks). What: the primary P >= 0.70 decision is unchanged; the bins are reported in full under their own
+BH and never promoted; bin 85 gets no money word; parlays are secondary to single legs. Why: Devin asked how calibration and
+profit vary by confidence, and whether cross-game parlays help. What would reverse it: none for the bins (they are frozen with the
+rule); the parlay rule stays a draft until its own review passes.`
+
+Verdict: APPROVED
