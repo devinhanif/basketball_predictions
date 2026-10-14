@@ -23,6 +23,7 @@ Inputs (read-only; season <= 2024 asserted before any read):
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 from pathlib import Path
 from typing import Any
@@ -64,6 +65,16 @@ LEAD_CAP_MIN = 66.0
 #: same book's main-market over line; prices only, no outcome
 OFF_POINTS = 3.0
 OFF_NEAR = 0.15
+#: contradiction test (review B1b): rungs at least CONTRA_POINTS from the main line whose raw
+#: implied probability is on the wrong side of the main line's by more than CONTRA_PROB
+CONTRA_POINTS = 1.0
+CONTRA_PROB = 0.05
+#: known vendor defect (DATA_CHANGELOG 2026-10-14): DraftKings player_points_alternate at the
+#: t60 snapshots of these dates carries other stats' ladders; every such rung is excluded outright
+VENDOR_DEFECT_BOOK = "draftkings"
+VENDOR_DEFECT_STAT = "pts"
+VENDOR_DEFECT_FIRST = dt.date(2023, 12, 7)
+VENDOR_DEFECT_LAST = dt.date(2023, 12, 19)
 ET = "America/New_York"
 #: Part 1 gate thresholds (carried from ALT_LINE_70): cell games, cell rungs, conservative
 #: hit-rate half-width
@@ -128,46 +139,81 @@ def load_main_lines(odds_db: Path, season: int) -> pl.DataFrame:
     finally:
         con.close()
     key = ["game_id", "player_id", "stat", "book"]
+    imp = 1.0 / decimal_odds(raw["price_american"].to_numpy())
     raw = raw.with_columns(
         pl.col("market").replace_strict(MARKET_STAT).alias("stat"),
-        pl.Series("d5", np.abs(1.0 / decimal_odds(raw["price_american"].to_numpy()) - 0.5)),
+        pl.Series("imp", imp),
+        pl.Series("d5", np.abs(imp - 0.5)),
     )
     return (
         raw.sort([*key, "d5", "point"])
         .unique(key, keep="first", maintain_order=True)
-        .select(*key, pl.col("point").alias("main_point"))
+        .select(*key, pl.col("point").alias("main_point"), pl.col("imp").alias("main_imp"))
     )
 
 
 def off_ladders(over: pl.DataFrame, main: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Ladder integrity (rule, review B1). ``over``: over rungs with ``po``. Returns the off ladder
-    keys and, per book, the counts: ladders, tested (a rung within OFF_NEAR of 0.5 AND a main line),
-    off, and untested-but-kept (no such rung or no main line)."""
+    """Ladder integrity (rule, review B1 and B1b). ``over``: over rungs with ``po``. A ladder is off
+    when (test 1) its rung nearest a raw implied over probability of 0.5, within OFF_NEAR of it, is
+    more than OFF_POINTS from the book's main line, OR (test 2) any rung at least CONTRA_POINTS
+    below the main line has raw implied probability more than CONTRA_PROB below the main line's, or
+    any rung at least CONTRA_POINTS above has one more than CONTRA_PROB above (the ladder
+    contradicts the book's own main line; needs no rung near 0.5). Returns the off ladder keys and,
+    per book: ladders, tested (test 1 applicable), off1, off2_only, off, no_main_line, untested."""
     key = ["game_id", "player_id", "stat", "book"]
-    r = over.with_columns(pl.Series("d5", np.abs(1.0 / decimal_odds(over["po"].to_numpy()) - 0.5)))
+    imp = 1.0 / decimal_odds(over["po"].to_numpy())
+    r = over.with_columns(pl.Series("imp", imp), pl.Series("d5", np.abs(imp - 0.5)))
     near = (
         r.sort([*key, "d5", "point"])
         .unique(key, keep="first", maintain_order=True)
         .select(*key, pl.col("point").alias("alt50"), "d5")
     )
-    tested = (
+    t1 = (
         near.filter(pl.col("d5") < OFF_NEAR)
         .join(main, on=key, how="inner")
-        .with_columns(((pl.col("alt50") - pl.col("main_point")).abs() > OFF_POINTS).alias("off"))
+        .with_columns(((pl.col("alt50") - pl.col("main_point")).abs() > OFF_POINTS).alias("off1"))
+    )
+    rm = r.join(main, on=key, how="inner").with_columns(
+        (
+            (
+                (pl.col("point") <= pl.col("main_point") - CONTRA_POINTS)
+                & (pl.col("imp") < pl.col("main_imp") - CONTRA_PROB)
+            )
+            | (
+                (pl.col("point") >= pl.col("main_point") + CONTRA_POINTS)
+                & (pl.col("imp") > pl.col("main_imp") + CONTRA_PROB)
+            )
+        ).alias("contra")
+    )
+    t2 = rm.group_by(key).agg(pl.col("contra").any().alias("off2"))
+    allv = (
+        near.select(*key)
+        .join(main.select(*key, pl.lit(True).alias("has_main")), on=key, how="left")
+        .join(t1.select(*key, "off1"), on=key, how="left")
+        .join(t2, on=key, how="left")
+        .with_columns(
+            pl.col("has_main").fill_null(False),
+            pl.col("off1").fill_null(False),
+            pl.col("off2").fill_null(False),
+        )
+        .with_columns(
+            (pl.col("off1") | pl.col("off2")).alias("off"),
+            (pl.col("off2") & ~pl.col("off1")).alias("off2_only"),
+        )
     )
     summary = (
-        near.group_by("book")
-        .agg(pl.len().alias("ladders"))
-        .join(
-            tested.group_by("book").agg(pl.len().alias("tested"), pl.col("off").sum().alias("off")),
-            on="book",
-            how="left",
+        allv.group_by("book")
+        .agg(
+            pl.len().alias("ladders"),
+            pl.col("has_main").sum().alias("with_main_line"),
+            pl.col("off1").sum().alias("off1"),
+            pl.col("off2_only").sum().alias("off2_only"),
+            pl.col("off").sum().alias("off"),
         )
-        .with_columns(pl.col("tested").fill_null(0), pl.col("off").fill_null(0))
-        .with_columns((pl.col("ladders") - pl.col("tested")).alias("untested_kept"))
+        .with_columns((pl.col("ladders") - pl.col("with_main_line")).alias("no_main_line"))
         .sort("book")
     )
-    return tested.filter(pl.col("off")).select(key), summary
+    return allv.filter(pl.col("off")).select(key), summary
 
 
 def load_report_stamps(nba_db: Path, seasons: tuple[int, ...] = SEASONS) -> pl.DataFrame:
@@ -261,11 +307,24 @@ def alt_over_rungs(
             "quote_age_min"
         ),
     )
+    lk = ["game_id", "player_id", "stat", "book"]
     t = t.join(
-        off_keys.with_columns(pl.lit(True).alias("ladder_off")),
-        on=["game_id", "player_id", "stat", "book"],
-        how="left",
-    ).with_columns(pl.col("ladder_off").fill_null(False))
+        off_keys.with_columns(pl.lit(True).alias("ladder_off_test")), on=lk, how="left"
+    ).with_columns(pl.col("ladder_off_test").fill_null(False))
+    if main is not None:
+        t = t.join(main.select(*lk, pl.lit(True).alias("has_main")), on=lk, how="left")
+    else:
+        t = t.with_columns(pl.lit(False).alias("has_main"))
+    t = t.with_columns(pl.col("has_main").fill_null(False))
+    snap_date = pl.col("snapshot_ts").dt.date()
+    t = t.with_columns(
+        (
+            (pl.col("book") == VENDOR_DEFECT_BOOK)
+            & (pl.col("stat") == VENDOR_DEFECT_STAT)
+            & (snap_date >= VENDOR_DEFECT_FIRST)
+            & (snap_date <= VENDOR_DEFECT_LAST)
+        ).alias("vendor_window")
+    ).with_columns((pl.col("ladder_off_test") | pl.col("vendor_window")).alias("ladder_off"))
     lead = t["lead_min"].drop_nulls().to_numpy()
     meta: dict[str, Any] = {
         "ladder_integrity_by_book": integrity,
@@ -567,6 +626,46 @@ def run_gate(
         meta["off_ladder_rungs_by_book"] = {
             b: {
                 "all_rungs": int(t.filter((pl.col("book") == b) & pl.col("ladder_off")).height),
+                "by_vendor_window_all_rungs": int(
+                    t.filter((pl.col("book") == b) & pl.col("vendor_window")).height
+                ),
+                "by_vendor_window_p_ge_70_window_arm": int(
+                    cap.filter(
+                        (pl.col("book") == b)
+                        & pl.col("vendor_window")
+                        & (pl.col("pm") >= THRESHOLD - EPS)
+                    ).height
+                ),
+                "by_test_only_p_ge_70_window_arm": int(
+                    cap.filter(
+                        (pl.col("book") == b)
+                        & pl.col("ladder_off_test")
+                        & ~pl.col("vendor_window")
+                        & (pl.col("pm") >= THRESHOLD - EPS)
+                    ).height
+                ),
+                "no_main_line_p_ge_70_primary_arm": int(
+                    cap.filter(
+                        (pl.col("book") == b)
+                        & ~pl.col("ladder_off")
+                        & ~pl.col("has_main")
+                        & (pl.col("pm") >= THRESHOLD - EPS)
+                    ).height
+                ),
+                "residual_vendor_window_rungs_in_primary_arm": int(
+                    cap.filter(
+                        (pl.col("book") == b) & pl.col("vendor_window") & ~pl.col("ladder_off")
+                    ).height
+                ),
+                "dec_ge_2_p_ge_70_december_primary_arm": int(
+                    cap.filter(
+                        (pl.col("book") == b)
+                        & ~pl.col("ladder_off")
+                        & (pl.col("pm") >= THRESHOLD - EPS)
+                        & (pl.col("dec") >= 2.0)
+                        & (pl.col("snapshot_ts").dt.month() == 12)
+                    ).height
+                ),
                 "p_ge_70_rungs_window_arm": int(
                     cap.filter(
                         (pl.col("book") == b)
