@@ -11,8 +11,8 @@ app/
   web/        Vite + TypeScript + Preact PWA, own npm project (package-lock.json, exact pins)
 ```
 
-The wall: nothing here imports `nba/`, and `nba/` never imports `app/`. When `nba.export` exists, only
-`app/api/src/parlayhitters_api/store.py` changes.
+The wall: nothing here imports `nba/`, and `nba/` never imports `app/`. The app meets `nba.export` only through the
+files it writes (`export.duckdb`, `parlay_of_day.json`, `manifest.json`); see "Reading the nightly export" below.
 
 ## Run it (two terminals, from the repo root)
 
@@ -99,6 +99,45 @@ any game from a later season. `fixtures/manifest.json` records the verbatim quer
 `/api/props/{game_id}/{player_id}/{stat}?line=`, `/api/breakdown/{game_id}/{player_id}/{stat}?line=&side=`, `/api/slates/{date}/swipe?seed=&n=`, `/api/slates/{date}/results`,
 `/api/parlay-of-the-day`, `/api/evidence`. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
 quantiles by interpolation with a continuity correction for integer counts: an approximation, labelled as one.
+
+## Reading the nightly export (`APP_EXPORT_DIR`)
+
+```
+APP_EXPORT_DIR=/path/to/export uv run uvicorn parlayhitters_api.main:app --app-dir src --host 127.0.0.1 --port 8000
+```
+
+With the variable unset, or pointing at a directory with no `manifest.json`, the API serves the fixtures (a warning is
+logged for the second case). With an export present, `export_store.py` first checks the manifest: valid JSON, schema 1,
+a non-empty `data_version`, a parseable `made_at`, no season 2025, and the sha256 of both data files, all before
+`export.duckdb` is opened (`read_only=True`, read once, closed). Anything wrong raises `ExportRefused` and every route
+answers 503 with the reason; nothing is silently replaced by fixtures. A new manifest on disk is picked up without a
+restart. "Data as of" in the banner is the manifest's `made_at`.
+
+The export has no sportsbook lines or prices, no steals or blocks, no player positions, and the schedule of only the last
+`lookback_days` days, so: a prop's line is the middle of the model's own forecast (labelled "reference line", never a
+market line); there is no swipe deck, no settled-pick rows and no stocks/blk/stl legs; "opponent allows to his
+position" is absent; home/away splits count only games the export schedules. Alt lines and the ladder read the exact
+stored full-support table (`p_ge_full`) when it is complete, else interpolate the quantile grid as the fixtures do.
+Forecast players with no earlier box score and no injury-report line cannot be placed on a team and are listed in
+`/api/meta` stubs as a count (the export's `prop_grids` carries no team id).
+
+Test export: `fixtures/export_small/` was built by the real `python -m nba.export build` from synthetic rows dated
+Oct-Nov 2024 (invented player ids, real team ids). Rebuild from the repo root with the project interpreter:
+`.venv/bin/python app/fixtures/build_export_fixture.py`. `NBA_PYTHON=.venv/bin/python uv run pytest` also runs the test
+that rebuilds it and compares.
+
+## Written dissection of a leg (scaffold; no model is called)
+
+`api/src/parlayhitters_api/dissect/`: `packet.py` builds the fact packet for a leg (last 10 and 5 against the line,
+minutes, splits, teammates out, opponent allowed, model chance and reason, small-n and disagreement flags);
+`template.py` writes two to four plain sentences from it; `numguard.py` rejects any text with a number the packet does not
+hold (no exemption for small numbers; recommendation and hype phrases too); `providers.py` has `TemplateProvider`
+(default) and a stub `ClaudeProvider`, disabled unless `ANTHROPIC_API_KEY` is in the environment (never read from a file)
+and, even then, it makes no call: `write` raises `NotWired` until Devin turns it on. Routing by difficulty: one leg goes
+to the cheap tier, a whole ticket to the strong tier; the model names come from `PARLAYHITTERS_MODEL_CHEAP` and
+`PARLAYHITTERS_MODEL_STRONG`. A provider that cannot run or fails the guard is replaced by the template, with the reason
+in `dissection.rejected`; if even the template failed, the text would be empty, not wrong. The text is attached to
+`/api/breakdown/...` as `dissection` and shown on the leg screen as "In plain words".
 
 ## Leg breakdown (`#/leg/<game>/<player>/<stat>`, one tap from every prop on the game page)
 

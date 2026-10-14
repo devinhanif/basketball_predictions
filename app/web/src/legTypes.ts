@@ -38,7 +38,8 @@ export interface Chip {
   game_id: string;
   date: string;
   opp: string;
-  home: boolean;
+  /** Null when the data holds no schedule row for that older game. */
+  home: boolean | null;
   value: number;
   minutes: number;
   starter: boolean;
@@ -104,6 +105,7 @@ export interface LegRole {
   avg_minutes: number | null;
   starts: number;
   minutes_forecast: number | null;
+  p_play: number | null;
   say: string;
 }
 
@@ -136,6 +138,19 @@ export interface StatTab {
   has_model: boolean;
   posted_line: number | null;
   default_line: number;
+  default_source: "posted" | "last10_middle" | "model_middle";
+}
+
+export interface Dissection {
+  text: string;
+  tier: "leg" | "parlay";
+  provider: string;
+  model: string | null;
+  guard_ok: boolean;
+  numbers_checked: number;
+  fell_back: boolean;
+  rejected: string[];
+  disclosure: string;
 }
 
 export interface LegBreakdown {
@@ -151,7 +166,7 @@ export interface LegBreakdown {
   label: string;
   side: Side;
   line: number;
-  line_source: "posted" | "last10_middle";
+  line_source: "posted" | "last10_middle" | "model_middle";
   prior_games: number;
   last10: Tally;
   last5: Tally;
@@ -169,4 +184,5 @@ export interface LegBreakdown {
   ladder_n10: number;
   ladder_n5: number;
   tabs: StatTab[];
+  dissection: Dissection | null;
 }
