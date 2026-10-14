@@ -1,0 +1,64 @@
+{
+ "source": "reports/odds_history.md, section 'Season 2024 - report season (formal tests)'",
+ "rule": "docs/prereg/ODDS_HISTORY.md (frozen)",
+ "seasonLabel": "2024-25",
+ "snapshot": "T-60 (about one hour before tip)",
+ "unit": "paired log-loss difference, model minus market; positive means the market is better",
+ "ci_note": "95% percentile bootstrap clustered by game_id",
+ "props_consensus_t60": [
+  {
+   "stat": "pts",
+   "n": 17993,
+   "games": 1315,
+   "log_loss_model": 0.7087,
+   "log_loss_market": 0.6921,
+   "delta": 0.0166,
+   "ci_lo": 0.0133,
+   "ci_hi": 0.0198,
+   "verdict": "+0.0166"
+  },
+  {
+   "stat": "reb",
+   "n": 17595,
+   "games": 1315,
+   "log_loss_model": 0.6961,
+   "log_loss_market": 0.6858,
+   "delta": 0.0103,
+   "ci_lo": 0.0073,
+   "ci_hi": 0.0132,
+   "verdict": "+0.0105"
+  },
+  {
+   "stat": "ast",
+   "n": 16926,
+   "games": 1314,
+   "log_loss_model": 0.6928,
+   "log_loss_market": 0.6825,
+   "delta": 0.0103,
+   "ci_lo": 0.0075,
+   "ci_hi": 0.0133,
+   "verdict": "+0.0103"
+  },
+  {
+   "stat": "fg3m",
+   "n": 16030,
+   "games": 1315,
+   "log_loss_model": 0.6833,
+   "log_loss_market": 0.6715,
+   "delta": 0.0118,
+   "ci_lo": 0.0085,
+   "ci_hi": 0.015,
+   "verdict": "+0.0120"
+  }
+ ],
+ "games_t60": {
+  "n": 1315,
+  "log_loss_model": 0.5979,
+  "log_loss_market": 0.5872,
+  "delta": 0.0107,
+  "ci_lo": 0.0006,
+  "ci_hi": 0.0211,
+  "verdict": "market_better",
+  "market": "Pinnacle moneyline (consensus fallback), de-vigged"
+ }
+}

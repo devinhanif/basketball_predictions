@@ -1,0 +1,82 @@
+{
+ "built_at": "2026-10-14T16:30:40+00:00",
+ "builder": "app/fixtures/build_fixtures.py",
+ "repo": {
+  "sha": "57968079013532c972aeeb02c63e209eb7383f0a",
+  "commit_time": "2026-10-14T11:17:07-05:00"
+ },
+ "source_data_version": "d0960b5a561c",
+ "source_data_version_from": "docs/data_manifests/latest.json (created_at 2026-10-14T12:41:11.506986+00:00)",
+ "max_season": 2024,
+ "season_note": "season 2024 = the 2024-25 NBA season; season 2025 is never read",
+ "quantile_taus": [
+  0.05,
+  0.1,
+  0.15,
+  0.2,
+  0.25,
+  0.3,
+  0.35,
+  0.4,
+  0.45,
+  0.5,
+  0.55,
+  0.6,
+  0.65,
+  0.7,
+  0.75,
+  0.8,
+  0.85,
+  0.9,
+  0.95
+ ],
+ "slates": [
+  {
+   "date": "2024-11-12",
+   "games": 8,
+   "players": 83,
+   "props": 276,
+   "dropped_forecast_rows": {
+    "no_line": 396,
+    "no_box_row": 0,
+    "no_two_sided": 0
+   },
+   "file": "slates/2024-11-12.json"
+  },
+  {
+   "date": "2024-11-20",
+   "games": 8,
+   "players": 68,
+   "props": 218,
+   "dropped_forecast_rows": {
+    "no_line": 510,
+    "no_box_row": 0,
+    "no_two_sided": 0
+   },
+   "file": "slates/2024-11-20.json"
+  }
+ ],
+ "sources": {
+  "nba.duckdb": "read_only; games, player_game_stats (box-score outcomes)",
+  "data/stack/oof.duckdb": "read_only; oof_predictions: rung0_injury_elo win (P home wins), props_context_residual v1 q_grid at taus 0.05..0.95. Out-of-fold rows exist only for players with a box-score row, so forecasts are conditional on playing. Win-probability orientation check: Brier 0.2144 over 3951 games, season <= 2024.",
+  "data/odds/odds_history.duckdb": "read_only; the-odds-api DraftKings T-60 snapshots (props main line = most balanced two-sided prices, ties to the lower line; h2h implied_prob is the de-vigged probability)",
+  "data/schedule/raw_2024-25.parquet": "scheduled tip (UTC), names, tricodes",
+  "reports/odds_history.md": "sha256 47889005da914b320da4ea4288de92279122fe5b34e4b85d87c8cf1794e85599",
+  "reports/props_analysis/2026-10-11.json": "git HEAD blob sha256 691883eb436dd14e1c76894bc90ead4347fe33d305aaf12cea1d834ee37401ee (parlay_of_day.json; the one live-season file, a committed no-games report with no player or game data)"
+ },
+ "queries": {
+  "games": "SELECT game_id, game_date, season, home_team, away_team, home_pts, away_pts FROM games WHERE season <= ? AND game_date = ? ORDER BY game_id",
+  "box_scores": "SELECT game_id, player_id, team_id, minutes, pts, reb, ast, fg3m, starter FROM player_game_stats WHERE game_id IN (SELECT game_id FROM games WHERE season <= ? AND game_date = ?)",
+  "win_probability": "SELECT game_id, p, made_with_data_through, meta FROM oof_predictions WHERE model = 'rung0_injury_elo' AND target = 'win' AND season <= ? AND game_id = ANY(?)",
+  "prop_forecasts": "SELECT game_id, player_id, target AS stat, q_grid, mean, made_with_data_through FROM oof_predictions WHERE model = 'props_context_residual' AND model_version = 'v1' AND target IN ('pts','reb','ast','fg3m') AND season <= ? AND game_id = ANY(?)",
+  "prop_lines": "SELECT game_id, player_id, any_value(player_name) AS player_name, market, point, max(CASE WHEN side = 'over' THEN price_american END) AS over_price, max(CASE WHEN side = 'under' THEN price_american END) AS under_price, max(snapshot_ts) AS snapshot_ts FROM odds_history WHERE season <= ? AND snapshot_kind = 't60' AND book = 'draftkings' AND market IN ('player_points','player_rebounds','player_assists','player_threes') AND player_id IS NOT NULL AND game_id = ANY(?) GROUP BY game_id, player_id, market, point",
+  "market_moneyline": "SELECT game_id, implied_prob, snapshot_ts FROM odds_history WHERE season <= ? AND snapshot_kind = 't60' AND book = 'draftkings' AND market = 'h2h' AND side = 'home' AND game_id = ANY(?)",
+  "schedule": "SELECT gameId AS game_id, gameDateTimeUTC AS tip_utc, arenaName AS arena, homeTeam_teamId AS home_id, homeTeam_teamTricode AS home_abbr, homeTeam_teamCity AS home_city, homeTeam_teamName AS home_name, awayTeam_teamId AS away_id, awayTeam_teamTricode AS away_abbr, awayTeam_teamCity AS away_city, awayTeam_teamName AS away_name FROM read_parquet(?) WHERE gameId = ANY(?)",
+  "orientation_check": "SELECT avg(pow(w.p - CASE WHEN g.home_pts > g.away_pts THEN 1.0 ELSE 0.0 END, 2)) AS brier, count(*) AS n FROM oof_predictions w JOIN games_ref g USING (game_id) WHERE w.model = 'rung0_injury_elo' AND w.target = 'win' AND w.season <= ?"
+ },
+ "stubs": [
+  "Minutes are not forecast in this fixture; actual minutes appear only as a result.",
+  "Prices are DraftKings American odds at the T-60 snapshot, not a Kalshi price.",
+  "The parlay-of-the-day state is the engine's real no-parlay state, not a recompute."
+ ]
+}

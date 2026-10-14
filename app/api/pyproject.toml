@@ -1,0 +1,40 @@
+[project]
+name = "parlayhitters-api"
+version = "0.1.0"
+description = "Read-only API for the parlayhitters.ai PWA (fixtures only until nba.export exists)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.143.1",
+    "pydantic==2.14.1",
+    "uvicorn==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2==2.13.1",
+    "mypy==2.4.0",
+    "pytest==9.1.1",
+    "ruff==0.17.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

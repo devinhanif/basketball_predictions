@@ -1,0 +1,40 @@
+{
+ "state": "C",
+ "title": "No parlay today",
+ "headline_verdict": "no_positive_ev_found",
+ "verdict_line": "Keep your money.",
+ "as_of": "2026-10-11T23:20:10.735352",
+ "report_date": "2026-10-11",
+ "source": "reports/props_analysis/2026-10-11.json (copied verbatim, not recomputed)",
+ "engine": "gaussian_copula",
+ "reason": "No win-probability forecasts stored for this date (0 games with forward predictions); 210 open Kalshi markets read, 0 mapped to a game on the slate, 0 contracts priced on both sides.",
+ "counts": {
+  "n_games": 0,
+  "n_markets_read": 210,
+  "n_mapped": 0,
+  "n_contracts": 0,
+  "n_flagged_positive": 0
+ },
+ "gate": {
+  "n_settled": 0,
+  "n_dates": 0,
+  "min_settled": 30,
+  "min_settled_dates": 14,
+  "skill_vs_market": 0.0,
+  "gated_skill": 0.0,
+  "gate_open": false,
+  "describe": "no settled shadow history (n=0)"
+ },
+ "model_weight": 0.0,
+ "model_weight_note": "The engine defers to the market until the gate opens.",
+ "fee_model": {
+  "name": "kalshi_fee_schedule",
+  "formula": "p_one_minus_p",
+  "coefficient": 0.07,
+  "verified": true,
+  "source": "user-provided from Kalshi published fee schedule, 2026-10-08"
+ },
+ "price_basis": "product of leg asks, NOT a tradable price (no combo contracts are ingested); same-game legs use the copula, cross-game legs are independent",
+ "historical_note": "The fixture slates are 2024-25 replays; the parlay engine did not exist then, so no parlay is priced for them. This card is the engine's real current state.",
+ "disclaimer": "Analysis only, not financial advice. Estimated edges are noisy; nothing here places orders, handles credentials, or recommends real-money bets."
+}
