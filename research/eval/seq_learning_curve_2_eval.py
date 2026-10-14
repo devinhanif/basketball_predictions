@@ -283,6 +283,23 @@ def oof_index(z: Any, base: dict[str, Any]) -> np.ndarray:
     return j["_i"].to_numpy()
 
 
+def team_by_key(
+    game_id: np.ndarray, player_id: np.ndarray, team_idx: np.ndarray, base: dict[str, Any]
+) -> np.ndarray:
+    """Team per scored (A0) row, joined on (game_id, player_id) and never by position (SEQ_LEARNING_CURVE_2 bug note: the export holds 28,197 rows of 2023-24, the scored A0 population 27,619,
+    so a positional team array crashed the team drop-one). Refuses duplicate keys on either side and any scored row absent from the export."""
+    ek = pl.DataFrame({"game_id": np.asarray(game_id).astype(str), "player_id": np.asarray(player_id).astype(np.int64), "team": np.asarray(team_idx)})  # fmt: skip
+    bk = pl.DataFrame({"game_id": np.asarray(base["game_id"]).astype(str), "player_id": np.asarray(base["player_id"]).astype(np.int64), "_i": np.arange(len(base["game_id"]))})  # fmt: skip
+    if ek.select(["game_id", "player_id"]).is_duplicated().any():
+        raise RuntimeError("duplicate (game_id, player_id) keys in the export")
+    if bk.select(["game_id", "player_id"]).is_duplicated().any():
+        raise RuntimeError("duplicate (game_id, player_id) keys in the scored rows")
+    j = bk.join(ek, on=["game_id", "player_id"], how="left").sort("_i")
+    if j["team"].null_count():
+        raise RuntimeError(f"{j['team'].null_count()} scored rows are missing from the export")
+    return j["team"].to_numpy()
+
+
 def pooled_grid(seed_q: np.ndarray, counts: np.ndarray, c_row: np.ndarray | None) -> np.ndarray:
     """Continuous 199-grid of a seed pool. ``seed_q`` (S, n, 19) RAW per-seed quantiles aligned to the A0 rows; ``counts`` (S,) multiplicities. Mean over the pool, clipped at 0 and made
     monotone (the job's ensemble), divided by the target row's c_k, then the parent's extension. The full pool equals the job's stored ensemble (checked at run time)."""
@@ -478,6 +495,8 @@ def assemble(
         for m in masks if m != "all" and f"game:{m}" in tp["M_8"]
     }  # fmt: skip
     if team is not None:  # team drop-one: point estimates with each team's rows removed
+        if len(team) != len(avg["M_8"]) or any(len(v) != len(team) for v in avg.values()):
+            raise RuntimeError("team and arm rows are not the same population")
         drops = {}
         for t_id in np.unique(team):
             keep = team != t_id
@@ -757,7 +776,8 @@ def run(run_dir: Path, export_dir: Path = EXPORT_DIR) -> dict[str, Any]:
     era = X2.era_runtime_gate(z3["ctx"], z3["season"], tuple(str(a) for a in z3["ctx_features"]))
     runtime_ok = bool(chk["ok"] and era["ok"])
     meta = P1.meta_from_exports(z3)
-    team = np.asarray(z3["team_idx"])[np.asarray(z3["season"]).astype(int) == SCORE_LABEL]
+    in23 = np.asarray(z3["season"]).astype(int) == SCORE_LABEL
+    team_keys = (np.asarray(z3["game_id"])[in23], np.asarray(z3["player_id"])[in23], np.asarray(z3["team_idx"])[in23])  # fmt: skip
     earlier = set()
     for seg in ("S1", "S2"):
         earlier |= {
@@ -791,6 +811,7 @@ def run(run_dir: Path, export_dir: Path = EXPORT_DIR) -> dict[str, Any]:
         with WE.heavy():
             _log("loading the stored A0 / FULL world and restricting it to 2023-24")
             world = P1.load_world_2023()
+            team = team_by_key(*team_keys, world["base"][STAT_PRIMARY])
             score_run(
                 out, infos, runtime_ok, world, meta, load_oof, team=team, earlier_players=earlier
             )

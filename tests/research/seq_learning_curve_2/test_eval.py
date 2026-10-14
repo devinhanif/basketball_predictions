@@ -632,3 +632,18 @@ def test_check_run_refuses_exports_built_on_another_data_version(tmp_path) -> No
     )
     (tmp_path / "export_info.json").unlink()
     assert any("data_version" in p for p in V.check_run({}, [], "0" * 64, tmp_path, {})["problems"])
+
+
+def test_team_is_joined_by_key_when_export_has_more_rows_than_the_scored_population() -> None:
+    """Bug note: the export holds more 2023-24 rows than the scored A0 population, in a different order; a positional team array crashed the drop-one (IndexError, 28,197 vs 27,619)."""
+    gid = np.array(["g1", "g1", "g2", "g2", "g3"])
+    pid = np.array([1, 2, 1, 3, 9])
+    team = np.array([10, 20, 11, 30, 99])
+    order = np.array([4, 2, 0, 3, 1])  # export order differs from the scored order
+    base = {"game_id": np.array(["g1", "g2", "g1"]), "player_id": np.array([2, 3, 1])}
+    out = V.team_by_key(gid[order], pid[order], team[order], base)
+    assert out.tolist() == [20, 30, 10]
+    with pytest.raises(RuntimeError, match="missing"):
+        V.team_by_key(gid[:2], pid[:2], team[:2], base)
+    with pytest.raises(RuntimeError, match="duplicate"):
+        V.team_by_key(np.append(gid, "g1"), np.append(pid, 1), np.append(team, 10), base)

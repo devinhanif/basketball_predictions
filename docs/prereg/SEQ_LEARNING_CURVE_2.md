@@ -133,4 +133,9 @@ Read here: T485 outputs and run-time info files, the audit, the two DBs (counts 
 
 === RESULTS BELOW ===
 
-(not run)
+(scoring not yet complete)
+
+### Scorer attempt 1 (2026-10-13/14): code bug, no verdict read
+All 40 arm-stat seed-pool tables finished, then `assemble` crashed at the team drop-one (`avg["M_8"][keep]`: IndexError, 27,619 vs 28,197). Cause: `team` was taken POSITIONALLY from the S3 export (all 28,197 rows of 2023-24) while every arm is scored on the stored A0 population (27,619 rows, joined to each OOF file by (game_id, player_id)). Fix (pure code, decided from the data structures only; no outcome had been read, no floor, CI, arm or population changed): `team_by_key` joins team to the scored rows on (game_id, player_id), refuses duplicate keys on either side or a scored row missing from the export, and `assemble` asserts team and every arm have the same length. All arms already share identical keys by construction (`oof_index` joins each to the A0 base and fails on a missing row). Test: `test_team_is_joined_by_key_when_export_has_more_rows_than_the_scored_population`. The scorer is a REVIEWED path, so `require_review` refuses the fixed code until a new committed APPROVED adversary review covers it.
+
+Cap diagnostic bookkeeping: the Colab job counts a cold fit as at the cap when it ran all 25 epochs (5/30 = 0.167: N=8 seeds 2,5; N=9 seeds 1,5; N=10 seed 2); the scorer (parent `fit_reached_cap`, recomputed, never trusted from the job) also requires the best epoch in the last 4 epochs (2/30 = 0.067: N=8 seed 2, N=9 seed 5). The rule's text ("reach the 25-epoch cap") is literal for the first and purposive for the second; both are under 1/3, the gate is unchanged. The scorer's figure is the gating one in code.
