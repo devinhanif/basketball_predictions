@@ -218,4 +218,30 @@ and the decision is made pooled with a per-season sign check, which is consisten
 **Single biggest risk:** a PROFITABLE word caused by lines BetRivers withdrew after T-60, which drops the late-news losers from
 an over-only bet set.
 
-Verdict: BLOCKED
+(Re-review verdict: BLOCKED on B4; superseded by the second re-review below.)
+
+## Second re-review, 2026-10-14 (commits 5da0111, 68c15fa)
+
+I checked only the edits listed by the main session (`git diff cf65b72 68c15fa -- docs/prereg/ALT_LINE_70.md docs/DECISIONS.md`)
+and the lines those edits touch.
+
+| Item | Status | Where |
+|---|---|---|
+| B4, wording | **FIXED** | line 53 now separates the price, which can only hurt PROFITABLE, from which bets exist (3.0-4.1% of played t60 units pulled, 2,564 / 2,740 appearing only at t5), matching `a4.py` |
+| B4, exclusion counted | **FIXED** | line 53 ("t60 units pulled by t5 are counted as an exclusion"), inside bet set A, whose header requires every exclusion to be counted and reported |
+| B4, attack (viii) | **FIXED** | line 80, verbatim from the fix |
+| Line-82 venue | **FIXED** | it now agrees with line 7 and DECISIONS 13:12 |
+| B1, DECISIONS correction | **FIXED** | `docs/DECISIONS.md` line 1111 ("Correction (2026-10-14) ... ALT_LADDER_HIST ... frozen before ALT_LINE_70's harness runs") |
+
+Lines touched by these edits, all minor and none blocking:
+- Line 171 still says t5 was "chosen knowing it lowers the model's chances (the price is better informed)". Its own parenthetical
+  limits this to the price, so it does not contradict line 53. Suggested: append "; which bets exist is not guaranteed the same way
+  (line 53)".
+- DECISIONS line 1111 calls the corrected entry "the 13:xx alt-history entry"; that entry is stamped 12:31. Fix it to "12:31".
+- Line 82: "the limits, are unknown" has a stray comma.
+
+No new decision-rule contradiction. All of B1-B4 are closed. Still open, and non-blocking: the remaining items from the first re-review
+(capture labels at lines 12, 13 and 58; the line-134 claimed-edge note; reporting the 25 / 15 t60-only games).
+
+Verdict: APPROVED
+
