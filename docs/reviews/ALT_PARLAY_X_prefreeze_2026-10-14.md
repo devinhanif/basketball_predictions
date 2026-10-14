@@ -281,4 +281,23 @@ Attack (viii) now guards it.
 
 **Not verified:** real bootstrap widths; BetRivers' real parlay pricing; whether the future harness writes p as B5 asks.
 
-Verdict: BLOCKED
+(Re-review verdict: BLOCKED on B5; superseded by the second re-review below.)
+
+## Second re-review, 2026-10-14 (commit e390190)
+
+What I checked: only the edit, `git diff e390190^ e390190 -- docs/prereg/ALT_PARLAY_X.md` (exit 0). The commit changes one
+line of the rule; the review file is the only other file in it. The above-the-line sha256 is now
+`5eb905f27fa096e14c96b73cbeb39f5d67a802c5b5a66940d3bfd67e8317cae3`.
+
+| Item | Status | Where |
+|---|---|---|
+| B5 (p for the T1 and T2 BH q) | **FIXED** | Line 34 ends with the review's sentence, verbatim: two-sided, date-clustered, B = 5,000, `default_rng(2026)`, +1 correction, the same resample of dates as the interval. It matches line 33's CI and leaves line 38's one-sided money p as it was. No new contradiction. |
+| N1 (the +-0.03 margin in ROI terms per cell) | left open | non-blocking; no word changes |
+| N2 (attack viii re-draws every leg) | left open | non-blocking; it makes the attack stricter, not more lenient |
+| N3 (line 50 vs line 16 on PROFITABLE) | left open | non-blocking; line 50 still carries its "conservative bound" qualifier |
+| N4 (`alt_line_70_gate.py` coupling) | note for the main session | not rule text |
+
+B1-B5 are all closed. N1-N3 may be fixed before the hash; that would be text-only and needs no further review, as long as
+no word, margin or threshold changes. If any of those changes, a new review is needed.
+
+Verdict: APPROVED
