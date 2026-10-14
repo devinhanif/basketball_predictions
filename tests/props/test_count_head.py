@@ -49,3 +49,29 @@ def test_fit_predict_on_synthetic_counts() -> None:
     assert q.shape == (500, 199) and np.array_equal(q, np.round(q))
     assert abs(float(mean.mean()) - float(y[:500].mean())) < 0.15
     assert m.info["alpha_max"] > 0.1  # the over-dispersion (gamma mixing) is found
+
+
+def test_nb_head_is_deterministic_across_thread_counts() -> None:
+    rng = np.random.default_rng(2)
+    n = 4000
+    x = rng.normal(size=(n, 2))
+    y = rng.poisson(np.exp(-0.5 + 0.4 * x[:, 0])).astype(float)
+    days = [dt.date(2023, 1, 1) + dt.timedelta(days=i // 20) for i in range(n)]
+    df = pl.DataFrame(
+        {
+            "a": x[:, 0],
+            "b": x[:, 1],
+            "y": y,
+            "game_date": days,
+            "game_id": [str(i) for i in range(n)],
+            "player_id": list(range(n)),
+        }
+    ).sort("game_date")
+    taus = (np.arange(1, 200) - 0.5) / 199
+    outs = []
+    for jobs in (1, 4):
+        cfg = ContextResidualConfig(
+            n_estimators=40, min_child_samples=30, min_cal_rows=500, n_jobs=jobs
+        )
+        outs.append(NBCountModel("blk", cfg, ["a", "b"]).fit(df).predict(df.head(300), taus))
+    assert np.allclose(outs[0][0], outs[1][0], atol=1e-9) and np.array_equal(outs[0][1], outs[1][1])

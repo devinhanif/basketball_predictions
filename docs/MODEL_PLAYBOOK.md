@@ -60,6 +60,20 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
   learning curve before concluding a loss.
 - Checks: training window long enough? era channels zero on test rows? lineage guards carried forward?
 
+## Count models (NB / Poisson heads for zero-heavy stats: blk, stl, fg3m)
+- Driven by: the mean model and the dispersion. A continuous scale family that is rounded to integers (the production recipe: recency mean +
+  residual + conformal standardised quantiles) misplaces P(Y = 0); a count family has the support built in.
+- Data appetite: moderate; the dispersion needs a few thousand rows per mean bin (4 bins on about 4,000 calibration rows were enough).
+- Evidence here (COMBO_STOCKS_SHADOW, select season 2023, n = 25,815): production recipe on blocks predicted P(0) = 3% where 19.6% happened
+  (1,011 rows) and lost to the recent empirical pmf (+0.0043); the NB head (LightGBM Poisson mean + binned NB dispersion) was calibrated at P(0)
+  and won (-0.0069 vs recent, -0.0081 vs the calibrated-Normal baseline). The 2024 report season repeated it (blk -0.0094, stl -0.0151).
+- Typical failure: P(0) reliability, tails at low means, randomised-PIT noise near a coverage bound (the PIT draw depends on the row order for a
+  fixed seed: fix the order in the rule), counts of near-zero-minute rows, an empirical comparator that is already a count distribution.
+- Fair test: integer CRPS on the same 199-point grid for every arm; the recency-weighted empirical pmf as the comparator (it beat the calibrated
+  Normal on blocks); a within-date label shuffle on the mean head (gain must vanish); slices by role and realised minutes.
+- Checks: P(Y = 0) reliability by decile; randomised PIT coverage at 0.10/0.20/0.80/0.90 with a fixed row order; dispersion by mean bin; does the
+  comparator have the same support?
+
 ## Set and joint models (JOINT set transformer, copulas for parlays)
 - Driven by: correlation structure across legs; needs many same-game combinations.
 - Data appetite: high for the joint structure; the copula's whole gain over independence is small (about 0.0011 log loss).

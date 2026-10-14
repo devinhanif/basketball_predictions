@@ -30,7 +30,7 @@ from scipy.special import ndtr, ndtri
 from nba.props.context_residual import CRPS_TAUS
 
 #: Support caps per stat (mass above is lumped into the cap); pts/reb/ast as ``nba.props.full_support.KMAX``.
-KMAX: dict[str, int] = {"pts": 80, "reb": 35, "ast": 30, "blk": 12, "stl": 12}
+KMAX: dict[str, int] = {"pts": 80, "reb": 35, "ast": 30, "fg3m": 18, "blk": 12, "stl": 12}
 COMBOS: dict[str, tuple[str, ...]] = {
     "pra": ("pts", "reb", "ast"),
     "pr": ("pts", "reb"),
@@ -38,7 +38,7 @@ COMBOS: dict[str, tuple[str, ...]] = {
     "ra": ("reb", "ast"),
     "bs": ("blk", "stl"),
 }
-STAT_ORDER: tuple[str, ...] = ("pts", "reb", "ast", "blk", "stl")
+STAT_ORDER: tuple[str, ...] = ("pts", "reb", "ast", "fg3m", "blk", "stl")
 N_DRAWS = 10_000
 BASE_SEED = 20261014
 EPS = 1e-6

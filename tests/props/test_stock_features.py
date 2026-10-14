@@ -197,3 +197,42 @@ def test_fit_and_predict_stock_heads_integer_grid() -> None:
         assert stock_feature_names(s)[-2:] == ["m10_blk", "m10_stl"]
         # fit rows strictly before as_of (no row on/after as_of used): the model never saw `test`
         assert m.z_sorted is not None
+
+
+def _stock_cols(base: pl.DataFrame) -> list[str]:
+    return [c for c in base.columns if any(c.endswith(f"_{s}") for s in STOCK_STATS)]
+
+
+def test_stock_features_ignore_every_later_game_and_tonights_own_values() -> None:
+    """Review N3 (checks 2a, 2b): every box value of every game after date D set to 37 moves nothing at D; nor does
+    blanking tonight's own blk/stl (the live placeholder rows carry NULL stats)."""
+    gdf, pdf, static = _league()
+    flagged, _ = _flagged(gdf)
+    d = gdf.sort(["game_date", "game_id"])["game_date"][200]
+    base = add_stock_features(build_features(gdf, pdf, static, flagged, ELO), gdf, pdf, flagged)
+    later_ids = gdf.filter(pl.col("game_date") > d)["game_id"].to_list()
+    mod = pdf.with_columns(
+        [
+            pl.when(pl.col("game_id").is_in(later_ids)).then(37).otherwise(pl.col(c)).alias(c)
+            for c in ("pts", "reb", "ast", "fg3m", "blk", "stl")
+        ]
+    )
+    alt = add_stock_features(build_features(gdf, mod, static, flagged, ELO), gdf, mod, flagged)
+    tonight_ids = gdf.filter(pl.col("game_date") == d)["game_id"].to_list()
+    blank = pdf.with_columns(
+        pl.when(pl.col("game_id").is_in(tonight_ids))
+        .then(None)
+        .otherwise(pl.col("blk"))
+        .alias("blk"),
+        pl.when(pl.col("game_id").is_in(tonight_ids))
+        .then(None)
+        .otherwise(pl.col("stl"))
+        .alias("stl"),
+    )
+    alt2 = add_stock_features(build_features(gdf, blank, static, flagged, ELO), gdf, blank, flagged)
+    sel = (base["game_date"] == d).to_numpy()
+    assert sel.sum() > 20
+    for c in _stock_cols(base):
+        a = base[c].to_numpy().astype(float)[sel]
+        assert np.allclose(a, alt[c].to_numpy().astype(float)[sel], equal_nan=True), c
+        assert np.allclose(a, alt2[c].to_numpy().astype(float)[sel], equal_nan=True), c

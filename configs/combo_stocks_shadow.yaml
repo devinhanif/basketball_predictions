@@ -1,8 +1,10 @@
-# COMBO_STOCKS_SHADOW model config (docs/prereg/COMBO_STOCKS_SHADOW.md, DRAFT). Every value below was fixed on the
-# 2023 select phase (reports/prereg_combo_stocks_shadow/select_2023/select.json, sha256 575c6bb6...) before the 2024
-# report phase was run. Nothing here is tuned on 2024 or on any live row.
-version: combo_stocks_v1
-stat_order: [pts, reb, ast, blk, stl]
+# COMBO_STOCKS_SHADOW model config (docs/prereg/COMBO_STOCKS_SHADOW.md, DRAFT). Every value was fixed on the 2023 select phase
+# (reports/prereg_combo_stocks_shadow/select_2023/select.json) before the 2024 report phase was run on this design. This file is hashed into
+# the freeze (the rule text carries its sha256); R to 4 dp below is canonical. A change to any value is a new rule id.
+version: combo_stocks_v2_joint
+# ONE within-player joint (Devin, 2026-10-14, before the freeze): a single Gaussian copula over all six stat marginals; every combo is a sum
+# of the SAME simulated games of a player-game (fixed common draws), so PRA, PR, PA, RA and blk+stl are mutually coherent.
+stat_order: [pts, reb, ast, fg3m, blk, stl]
 targets: [blk, stl, pra, pr, pa, ra, bs]
 combos:
   pra: [pts, reb, ast]
@@ -14,6 +16,7 @@ marginals:
   pts: props_context_residual_lt      # production lower-tail mixture row (the A0 of the other shadows), p_ge_full
   reb: props_context_residual         # production primary row, p_ge_full
   ast: props_context_residual
+  fg3m: props_context_residual        # enters the joint for coherence; no scored target uses it
   blk: nb_count_head                  # nba.props.count_head.NBCountModel on nba.props.stock_features columns
   stl: nb_count_head
 nb_head:
@@ -21,23 +24,20 @@ nb_head:
   dispersion_bins: 4
   # learner settings = configs/context_residual.yaml (n_estimators 200, lr 0.04, 15 leaves, min_child 100, seed 0)
 copula:
-  estimator: rpit                     # randomised-PIT correlation matched by simulation (nba.props.combo_copula)
-  scheme: pooled                      # one matrix; by-position had a 1,583-row group, by-starter gained 0.0009 < 0.005
+  estimator: rpit                     # randomised-PIT correlation matched by simulation (nba.props.combo_copula.estimate_latent_corr)
+  scheme: pooled                      # one matrix; by-position had a 1,583-row group, by-starter gained 0.0008 < 0.005
+  shrinkage: none                     # none; the only repair is nearest_corr (eigenvalue floor 1e-6), shift 7.2e-16, smallest eigenvalue of the 4-dp R 0.247
   n_draws: 10000
   base_seed: 20261014                 # whitened + antithetic base normals (combo_copula.base_normals)
-  use_copula:                         # COPULA - INDEP < 0 with game-clustered one-sided upper bound < 0 on the 2023 eval half
-    pra: true
-    pr: true
-    pa: true
-    ra: true
-    bs: false                         # blk+stl: dependence adds nothing (delta -0.00009, upper +0.00009): shadow arm = independent sum
+  base_sha256: 08ddb2a22c0828b2ea50e7dcbf2f0462bf5c4aeabf9789381423049c2b9a5a3a
   # latent correlation, all of 2023 regular season (n = 25,815 played rows with n_prior >= 5), stat_order above
   R:
-    - [1.0, 0.3662, 0.2334, 0.1657, 0.2122]
-    - [0.3662, 1.0, 0.2707, 0.1916, 0.1466]
-    - [0.2334, 0.2707, 1.0, 0.1171, 0.1812]
-    - [0.1657, 0.1916, 0.1171, 1.0, 0.1140]
-    - [0.2122, 0.1466, 0.1812, 0.1140, 1.0]
+    - [1.0000, 0.3768, 0.2350, 0.7288, 0.1598, 0.2116]
+    - [0.3768, 1.0000, 0.2679, 0.2123, 0.1918, 0.1442]
+    - [0.2350, 0.2679, 1.0000, 0.1621, 0.1032, 0.1822]
+    - [0.7288, 0.2123, 0.1621, 1.0000, 0.1035, 0.1303]
+    - [0.1598, 0.1918, 0.1032, 0.1035, 1.0000, 0.0763]
+    - [0.2116, 0.1442, 0.1822, 0.1303, 0.0763, 1.0000]
 recent:                               # the RECENT comparator (all seven targets)
   window: 40                          # last 40 played games
   halflife: 10.0                      # production recency weights
@@ -52,3 +52,13 @@ floors:                               # max(0.005, 1% of RECENT's 2023 regular-s
   bs: 0.0061
 n_min: 3000                           # per target at the final look (also the G1 minimum)
 n_interim: 1500
+g1:                                   # rule 6(d), implemented by nba.props.combo_g1 (NOT nba.eval.avg_shadow_live.calibration)
+  row_order: [game_date, game_id, player_id]
+  pit: randomized_pit(q, y, seed=0), one call per target over that target's scored rows
+  required_taus: [0.10, 0.20, 0.80, 0.90]
+  tolerance: 0.02
+  cov80: [0.75, 0.85]
+  relative_bias: 0.05
+  min_rows: 3000
+select_json: reports/prereg_combo_stocks_shadow/select_2023/select.json
+p1_reference: reports/prereg_combo_stocks_shadow/p1_reference.npz

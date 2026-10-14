@@ -97,7 +97,7 @@ def history_grids(db: str, keys: pl.DataFrame) -> dict[str, np.ndarray]:
     con = duckdb.connect(db, read_only=True)
     try:
         pg = con.execute(
-            "SELECT s.game_id, s.player_id, s.minutes, s.pts, s.reb, s.ast, s.stl, s.blk, g.game_date FROM player_game_stats s "
+            "SELECT s.game_id, s.player_id, s.minutes, s.pts, s.reb, s.ast, s.fg3m, s.stl, s.blk, g.game_date FROM player_game_stats s "
             "JOIN games g USING (game_id) WHERE g.season <= 2024 AND s.minutes > 0"
         ).pl()
     finally:
@@ -124,6 +124,12 @@ class World:
 
     def __init__(self, args: argparse.Namespace) -> None:
         self.keys, arr = load_oof(Path(args.a))
+        if getattr(args, "a5", "none") != "none":  # fg3m joins the joint (Devin, 2026-10-14)
+            k5, a5 = load_oof(Path(args.a5))
+            assert k5.select("game_id", "player_id").equals(
+                self.keys.select("game_id", "player_id")
+            ), "stage A5 rows differ"
+            arr.update({k_: v for k_, v in a5.items() if k_.endswith("_fg3m")})
         k = self.keys
         self.reg = k["game_id"].str.starts_with("002").to_numpy()
         self.season = k["season"].to_numpy()
@@ -483,8 +489,9 @@ def phase_select(w: World, out: Path) -> None:
                 r[f"copula_vs_{other_arm}"] = contrast(
                     scs["copula"], scs[other_arm], w.gid[eval_idx], w.day[eval_idx]
                 )
-        d = r["copula_vs_indep"]
-        use_copula[c] = bool(d["delta"] < 0 and d["game_upper95"] < 0)
+        use_copula[c] = (
+            True  # ONE joint for every combo (Devin, 2026-10-14); copula_vs_indep is reported, not a switch
+        )
         s_arm = scs["copula"] if use_copula[c] else scs["indep"]
         r["shadow_arm"] = "copula" if use_copula[c] else "indep"
         r["shadow_vs_recent"] = contrast(s_arm, scs["recent"], w.gid[eval_idx], w.day[eval_idx])
@@ -661,6 +668,7 @@ def main() -> None:
     ap.add_argument("--phase", choices=("select", "report"), required=True)
     ap.add_argument("--a", required=True)
     ap.add_argument("--a2", default="none")
+    ap.add_argument("--a5", default="none", help="stage A output of fg3m")
     ap.add_argument(
         "--a4", default="none", help="stage A output of pts with the lower-tail mixture"
     )
@@ -671,9 +679,17 @@ def main() -> None:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
+    import contextlib
+    import os
+
     from research.eval import workload_eval as WE
 
-    with WE.WorkloadLock(Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock")):
+    lock = (
+        contextlib.nullcontext()
+        if os.environ.get("COMBO_NO_LOCK")
+        else WE.WorkloadLock(Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock"))
+    )
+    with lock:
         w = World(args)
         print(f"world built: {w.keys.height} oof rows ({time.time() - t0:.0f}s)", flush=True)
         (phase_select if args.phase == "select" else phase_report)(w, out)

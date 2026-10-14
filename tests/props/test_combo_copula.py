@@ -11,6 +11,8 @@ from scipy.special import ndtr
 from nba.props import combo_copula as C
 from nba.props.context_residual import CRPS_TAUS
 
+D = len(C.STAT_ORDER)  # one joint over pts, reb, ast, fg3m, blk, stl
+
 
 def _nb_world(n: int, true_r: np.ndarray, seed: int = 1):
     """Rows with their own negative-binomial marginals (pts, reb, blk) joined by a Gaussian copula."""
@@ -79,6 +81,7 @@ def _grid_marginals(n: int = 60, seed: int = 3):
         ("pts", 4, 25),
         ("reb", 1, 9),
         ("ast", 0.5, 8),
+        ("fg3m", 0.2, 3),
         ("blk", 0.1, 1.2),
         ("stl", 0.2, 1.6),
     ):
@@ -92,7 +95,7 @@ def _grid_marginals(n: int = 60, seed: int = 3):
 def test_identity_correlation_matches_exact_convolution() -> None:
     """R = I through the sampler is the independent sum: it matches the exact convolution up to Monte-Carlo noise."""
     cd = _grid_marginals()
-    g = C.joint_grids(cd, np.eye(5), C.base_normals())
+    g = C.joint_grids(cd, np.eye(D), C.base_normals())
     for name, parts in C.COMBOS.items():
         cdf = np.cumsum(C.convolve_exact(cd, parts), axis=1)
         exact = (cdf[:, :, None] < (CRPS_TAUS - 1e-12)[None, None, :]).sum(axis=1)
@@ -102,10 +105,10 @@ def test_identity_correlation_matches_exact_convolution() -> None:
 
 def test_positive_correlation_widens_the_sum_and_keeps_margins() -> None:
     cd = _grid_marginals()
-    r = np.full((5, 5), 0.5)
+    r = np.full((D, D), 0.5)
     np.fill_diagonal(r, 1.0)
     dep = C.joint_grids(cd, r, C.base_normals())
-    ind = C.joint_grids(cd, np.eye(5), C.base_normals())
+    ind = C.joint_grids(cd, np.eye(D), C.base_normals())
     for name in ("pra", "pr", "pa", "ra", "bs"):
         assert dep[name].std(axis=1).mean() > ind[name].std(axis=1).mean()
         assert (
@@ -117,7 +120,7 @@ def test_positive_correlation_widens_the_sum_and_keeps_margins() -> None:
 def test_joint_grids_do_not_depend_on_the_batch() -> None:
     """Common random numbers: a row's grid is the same alone, in a batch, or in a different chunk size."""
     cd = _grid_marginals(40)
-    r = np.full((5, 5), 0.3)
+    r = np.full((D, D), 0.3)
     np.fill_diagonal(r, 1.0)
     base = C.base_normals()
     whole = C.joint_grids(cd, r, base, chunk=40)
@@ -128,8 +131,8 @@ def test_joint_grids_do_not_depend_on_the_batch() -> None:
         assert np.array_equal(whole[name][11], one[name][0])
     assert np.array_equal(C.base_normals(), C.base_normals())  # frozen seed
     b = C.base_normals()
-    assert b.shape == (10_000, 5) and np.allclose(b.mean(axis=0), 0, atol=1e-12)
-    assert np.allclose(np.cov(b.T, bias=True), np.eye(5), atol=1e-9)
+    assert b.shape == (10_000, D) and np.allclose(b.mean(axis=0), 0, atol=1e-12)
+    assert np.allclose(np.cov(b.T, bias=True), np.eye(D), atol=1e-9)
 
 
 def test_pmf_and_q19_helpers() -> None:
@@ -184,3 +187,26 @@ def test_grid_from_survival_reproduces_the_integer_grid_of_production_rows() -> 
         got = C.grid_from_survival(surv)
         want = to_integer_support(q).astype(np.int16)
         assert np.array_equal(got, want), stat
+
+
+def test_all_combos_come_from_the_same_joint_draws() -> None:
+    """One simulated game set per player-game: PRA dominates PR, PA and RA quantile by quantile, and the
+    blk+stl sum equals the independent convolution when R carries no blk-stl dependence."""
+    cd = _grid_marginals(30)
+    r = np.full((D, D), 0.3)
+    np.fill_diagonal(r, 1.0)
+    g = C.joint_grids(cd, r, C.base_normals())
+    for sub in ("pr", "pa", "ra"):
+        assert (g["pra"] >= g[sub]).all()
+    assert (g["pra"] >= g["pr"]).all() and (g["pr"] >= 0).all()
+    pos = {s: i for i, s in enumerate(C.STAT_ORDER)}
+    r2 = r.copy()
+    r2[pos["blk"], pos["stl"]] = r2[pos["stl"], pos["blk"]] = 0.0
+    r2[pos["blk"], :] = r2[:, pos["blk"]] = 0.0
+    r2[pos["stl"], :] = r2[:, pos["stl"]] = 0.0
+    r2[pos["blk"], pos["blk"]] = r2[pos["stl"], pos["stl"]] = 1.0
+    g2 = C.joint_grids(cd, r2, C.base_normals())
+    ind = C.joint_grids(cd, np.eye(D), C.base_normals())
+    assert (
+        np.abs(g2["bs"].astype(float) - ind["bs"]).mean() < 0.02
+    )  # same draws, no blk-stl dependence: same grid up to rounding of the other stats' mixing
