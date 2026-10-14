@@ -17,6 +17,7 @@ import polars as pl
 import pytest
 
 from nba.props.context_residual import ContextResidualConfig
+from research.eval import ensemble_eval as EE
 from research.eval import near_miss_bundle_eval as N
 from research.eval import recent_role_eval as RR
 from research.eval import router_g2_eval as R
@@ -293,6 +294,9 @@ def test_open_gate_gives_the_unrouted_members(world: dict[str, Any]) -> None:
     assert not any(k.startswith(("E1", "E4")) for k in arms_r)
 
 
+@pytest.mark.skipif(
+    not EE.DK_CACHE.exists(), reason="no local DK T-60 cache (data/ops, gitignored; CI)"
+)
 def test_score_cell_end_to_end_with_planted_signal(world: dict[str, Any]) -> None:
     w = world["w"]
     n = len(w["base"]["pts"]["y"])

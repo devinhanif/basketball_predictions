@@ -11,6 +11,8 @@ import subprocess
 import time
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[2]
 TAG = "nba_llm_shadow_bg"
 
@@ -85,14 +87,33 @@ def test_slow_shadow_does_not_block_the_tick_or_t30(tmp_path: Path) -> None:
     assert (lock / "owner").read_text().strip() == TAG
     lines = "".join(p.read_text() for p in ops.glob("lineups_*.log"))
     assert "llm_shadow launched in the background" in lines
-    # own process group: not the tick's
-    _wait(lambda: "SHADOW_PGID=" in _uvlog(tmp_path))
-    pgid = int(_uvlog(tmp_path).split("SHADOW_PGID=")[1].split()[0])
-    assert pgid != os.getpgid(0)
     _wait(lambda: "llm_shadow rc=0" in _shadow_log(tmp_path))
     _wait(lambda: not lock.exists())  # released on exit
     hb = (ops / "heartbeat" / "llm_shadow.json").read_text()
     assert '"rc": 0' in hb and '"end_ts": "' in hb
+
+
+def _sh_job_control_gives_own_group() -> bool:
+    """True where `sh` honours `set -m` without a tty (macOS /bin/sh, the production shell). Debian/
+    Ubuntu dash prints "can't access tty; job control turned off" and keeps one process group."""
+    probe = "set -m; sh -c 'ps -o pgid= -p $$' & wait; ps -o pgid= -p $$"
+    res = subprocess.run(["sh", "-c", probe], capture_output=True, text=True, check=False)
+    pgids = res.stdout.split()
+    return len(pgids) == 2 and pgids[0] != pgids[1]
+
+
+@pytest.mark.skipif(
+    not _sh_job_control_gives_own_group(),
+    reason="this platform's sh has no job control without a tty (dash on CI); production is macOS",
+)
+def test_shadow_runs_in_its_own_process_group(tmp_path: Path) -> None:
+    uv = _fake_uv(tmp_path, shadow_sleep=2)
+    res, _ = _tick(tmp_path, uv)
+    assert res.returncode == 0, res.stderr
+    _wait(lambda: "SHADOW_PGID=" in _uvlog(tmp_path))
+    pgid = int(_uvlog(tmp_path).split("SHADOW_PGID=")[1].split()[0])
+    assert pgid != os.getpgid(0)  # not the tick's group
+    _wait(lambda: "llm_shadow rc=0" in _shadow_log(tmp_path))
 
 
 def test_second_tick_never_starts_a_second_run(tmp_path: Path) -> None:

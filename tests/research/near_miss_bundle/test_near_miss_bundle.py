@@ -14,6 +14,7 @@ import pytest
 from scipy import stats
 
 from nba.props.context_residual import CRPS_TAUS
+from research.eval import ensemble_eval as _EE
 from research.eval import near_miss_bundle_eval as M
 
 # --------------------------------------------------------------------------- synthetic world
@@ -392,6 +393,9 @@ def _write_arm(cache: Path, stat: str, tag: str, qi: np.ndarray, b: dict[str, An
     )
 
 
+@pytest.mark.skipif(
+    not _EE.DK_CACHE.exists(), reason="no local DK T-60 cache (data/ops, gitignored; CI)"
+)
 def test_stage_score_and_render_on_the_synthetic_world(
     world: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

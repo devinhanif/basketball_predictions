@@ -39,6 +39,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # tests/research/pplay_minutes_valid verify the frozen rule against its prereg commit
+          # text and first-commit sha in git history; a shallow clone has neither.
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}

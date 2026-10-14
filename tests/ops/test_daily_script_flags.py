@@ -113,3 +113,49 @@ def test_nightly_facts_failure_does_not_change_exit_path(tmp_path: Path) -> None
 def test_nightly_facts_informational_rc4_is_not_a_failure(tmp_path: Path) -> None:
     rc, _, hb = _run_morning(tmp_path, nightly="1", facts_rc=4)
     assert rc == 0 and '"rc": 0' in hb
+
+
+# --- morning backup: prune and Drive upload see only the morning job's own nba_YYYYMMDD.duckdb ----
+
+
+def _select_backups(tmp_path: Path, script: str = SCRIPT) -> list[str]:
+    """Newest-first names the script's own ``ls`` line (the one behind prune and ``latest=``)
+    selects in a scratch data/backups where a history backup is the newest file."""
+    import os
+    import subprocess
+
+    glob = re.search(r"^BACKUP_GLOB=.+$", script, re.M)
+    assert glob, "BACKUP_GLOB missing"
+    d = tmp_path / "data" / "backups"
+    d.mkdir(parents=True)
+    names = [
+        "nba_20261010.duckdb",
+        "nba_20261011.duckdb",
+        "nba_20261012.duckdb",
+        "nba_history_pre_static_fix_20261013T080424.duckdb",  # newest by mtime
+        "facts_pre_seasons_20261011.duckdb",
+    ]
+    for i, n in enumerate(names):
+        (d / n).write_text("x")
+        os.utime(d / n, (1_000_000 + i, 1_000_000 + i))
+    lines = re.findall(r"^\s*(?:latest=\$\()?(ls -1t \$BACKUP_GLOB[^|)]*)", script, re.M)
+    assert len(lines) == 2, lines  # the prune line and the `latest=` line
+    out = subprocess.run(
+        ["sh", "-c", f"{glob.group(0)}; {lines[1]}"],
+        cwd=tmp_path, capture_output=True, text=True, check=True,
+    )  # fmt: skip
+    return [Path(p).name for p in out.stdout.split()]
+
+
+def test_backup_prune_and_drive_upload_ignore_history_backups(tmp_path: Path) -> None:
+    assert "backups/nba_*" not in SCRIPT  # nothing may fall back to the loose glob
+    assert _select_backups(tmp_path) == [
+        "nba_20261012.duckdb",
+        "nba_20261011.duckdb",
+        "nba_20261010.duckdb",
+    ]
+
+
+def test_the_backup_test_would_catch_the_old_loose_glob(tmp_path: Path) -> None:
+    loose = SCRIPT.replace("nba_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].duckdb", "nba_*.duckdb")
+    assert "nba_history_pre_static_fix_20261013T080424.duckdb" in _select_backups(tmp_path, loose)

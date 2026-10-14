@@ -408,8 +408,20 @@ def test_no_flag_combination_loads_2025(tmp_path: Path, schedule_dir: Path, kw):
 def test_cli_rejects_2025_in_seasons(tmp_path: Path):
     from nba.facts.__main__ import main
 
+    src = tmp_path / "empty_source.duckdb"  # the guard must fire without the production DB
+    duckdb.connect(str(src)).close()
     with pytest.raises(ValueError, match="holdout"):
-        main(["build", "--seasons", "2024,2025", "--out", str(tmp_path / "f.duckdb")])
+        main(
+            [
+                "build",
+                "--source",
+                str(src),
+                "--seasons",
+                "2024,2025",
+                "--out",
+                str(tmp_path / "f.duckdb"),
+            ]
+        )
 
 
 def test_schedule_only_load_carries_no_outcome_columns(tmp_path: Path, schedule_dir: Path):

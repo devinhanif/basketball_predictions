@@ -21,6 +21,10 @@ MODE=${1:-}
 OPS=data/ops
 LOCK=$OPS/lock
 KEEP_BACKUPS=7
+# the morning backup's own name (nba_YYYYMMDD.duckdb, written below). Not nba_*: that also matches the
+# history DB backups (nba_history_pre_*.duckdb), which would be pruned here and, if the morning copy
+# failed, uploaded to Drive as nba_latest.
+BACKUP_GLOB='data/backups/nba_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].duckdb'
 mkdir -p "$OPS" data/backups
 LOG=$OPS/${MODE}_$(date +%Y%m%d).log
 TODAY_ET=$(TZ=America/New_York date +%Y-%m-%d)
@@ -174,11 +178,11 @@ case "$MODE" in
     else
       cp nba.duckdb "data/backups/nba_$(date +%Y%m%d).duckdb" && log "backup written"
     fi
-    ls -1t data/backups/nba_*.duckdb 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | while read -r f; do
+    ls -1t $BACKUP_GLOB 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | while read -r f; do
       rm -f "$f" && log "pruned old backup $f"
     done
     # off-machine copy (own Google Drive via the configured rclone remote): registry + latest backup
-    latest=$(ls -1t data/backups/nba_*.duckdb 2>/dev/null | head -n 1)
+    latest=$(ls -1t $BACKUP_GLOB 2>/dev/null | head -n 1)
     step backup_registry_drive "$RCLONE" copy registry_store gdrive:nba_backups/registry_store
     [ -n "$latest" ] && step backup_db_drive "$RCLONE" copyto "$latest" gdrive:nba_backups/nba_latest.duckdb
     [ -d data/lineups ] && step backup_lineups_drive "$RCLONE" copy data/lineups gdrive:nba_backups/lineups
