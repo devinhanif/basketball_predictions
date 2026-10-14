@@ -1,6 +1,6 @@
 {
  "input_sha256": {
-  "data/odds/odds_history.duckdb": "2bf7bb813de8a5da50e798c73c53838dbb4af1df99ba6d77d3be9d94afd9cecd",
+  "data/odds/odds_history.duckdb": "f0515449d8d247028d4eea466abf4832ae4f4d54aa7f2756cdbc8d71623150e0",
   "data/ops/model_clv_pairs/pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
   "data/ops/model_clv_pairs/pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
   "reports/odds_history/model_rows_2023.parquet": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
@@ -829,218 +829,471 @@
   }
  },
  "part2": {
-  "2023": {
-   "arm_A_duplicate_book": {
-    "book": "unibet_us",
-    "by_stat": {
-     "ast": 232,
-     "fg3m": 264,
-     "pts": 2352,
-     "reb": 228
-    },
-    "dates": 194,
-    "decimal_min_med_max": [
-     1.267,
-     1.36,
-     2.75
-    ],
-    "games": 946,
-    "mean_model_p": 0.7487,
-    "mean_overround": 0.0918,
-    "model_claimed_ev_mean": 0.0527,
-    "roi_halfwidth_cons": 0.049,
-    "roi_halfwidth_independent": 0.0216,
-    "rungs": 3076,
-    "units_player_game_stat": 2395,
-    "weekly_units_median": 82.0,
-    "weeks": 32,
-    "weeks_with_ge_10_units": 30
-   },
-   "arm_A_primary_book": {
-    "book": "betrivers",
-    "by_stat": {
-     "ast": 234,
-     "fg3m": 265,
-     "pts": 2343,
-     "reb": 228
-    },
-    "dates": 197,
-    "decimal_min_med_max": [
-     1.267,
-     1.36,
-     2.75
-    ],
-    "games": 947,
-    "mean_model_p": 0.7487,
-    "mean_overround": 0.0917,
-    "model_claimed_ev_mean": 0.0527,
-    "roi_halfwidth_cons": 0.0489,
-    "roi_halfwidth_independent": 0.0216,
-    "rungs": 3070,
-    "units_player_game_stat": 2392,
-    "weekly_units_median": 75.0,
-    "weeks": 35,
-    "weeks_with_ge_10_units": 30
-   },
-   "arm_B_best_price_any_book": {
-    "by_stat": {
-     "ast": 645,
-     "fg3m": 629,
-     "pts": 2487,
-     "reb": 344
-    },
-    "dates": 199,
-    "decimal_min_med_max": [
-     1.222,
-     1.417,
-     2.75
-    ],
-    "games": 1074,
-    "mean_model_p": 0.7491,
-    "mean_overround": 0.0852,
-    "model_claimed_ev_mean": 0.0961,
-    "roi_halfwidth_cons": 0.0477,
-    "roi_halfwidth_independent": 0.0195,
-    "rungs": 4105,
-    "units_player_game_stat": 3407,
-    "weekly_units_median": 109.0,
-    "weeks": 35,
-    "weeks_with_ge_10_units": 30
-   },
-   "half_point_rungs_joined_to_model": 664389,
-   "ladder_cells": [
-    {
-     "book": "betrivers",
-     "mean_points": 6.94,
-     "share_ge3": 0.988,
-     "stat": "pts",
-     "units": 10511
-    },
-    {
-     "book": "betrivers",
-     "mean_points": 2.13,
-     "share_ge3": 0.256,
-     "stat": "reb",
-     "units": 9895
-    },
-    {
+  "t5": {
+   "2023": {
+    "arm_A_duplicate_book": {
      "book": "unibet_us",
-     "mean_points": 6.95,
-     "share_ge3": 0.988,
-     "stat": "pts",
-     "units": 10499
+     "by_stat": {
+      "ast": 221,
+      "fg3m": 280,
+      "pts": 2463,
+      "reb": 236
+     },
+     "dates": 195,
+     "decimal_min_med_max": [
+      1.26,
+      1.36,
+      2.75
+     ],
+     "games": 965,
+     "mean_model_p": 0.7492,
+     "mean_overround": 0.0919,
+     "model_claimed_ev_mean": 0.0531,
+     "roi_halfwidth_cons": 0.0486,
+     "roi_halfwidth_independent": 0.0211,
+     "rungs": 3200,
+     "units_player_game_stat": 2493,
+     "weekly_units_median": 86.5,
+     "weeks": 32,
+     "weeks_with_ge_10_units": 30
     },
-    {
-     "book": "unibet_us",
-     "mean_points": 2.13,
-     "share_ge3": 0.256,
-     "stat": "reb",
-     "units": 9875
-    }
-   ],
-   "primary_vs_duplicate_identical_price_share": 0.949,
-   "primary_vs_duplicate_shared_rungs": 3060,
-   "rungs_p70_by_book": {
-    "barstool": 72,
-    "betmgm": 870,
-    "betonlineag": 705,
-    "betrivers": 3070,
-    "bovada": 649,
-    "draftkings": 693,
-    "fanduel": 357,
-    "mybookieag": 567,
-    "pinnacle": 300,
-    "pointsbetus": 559,
-    "unibet_us": 3076,
-    "williamhill_us": 843,
-    "wynnbet": 12
+    "arm_A_primary_book": {
+     "book": "betrivers",
+     "by_stat": {
+      "ast": 221,
+      "fg3m": 281,
+      "pts": 2461,
+      "reb": 236
+     },
+     "dates": 198,
+     "decimal_min_med_max": [
+      1.23,
+      1.36,
+      2.75
+     ],
+     "games": 967,
+     "mean_model_p": 0.7491,
+     "mean_overround": 0.0919,
+     "model_claimed_ev_mean": 0.0529,
+     "roi_halfwidth_cons": 0.0485,
+     "roi_halfwidth_independent": 0.0211,
+     "rungs": 3199,
+     "units_player_game_stat": 2496,
+     "weekly_units_median": 82.0,
+     "weeks": 35,
+     "weeks_with_ge_10_units": 30
+    },
+    "arm_B_best_price_any_book": {
+     "by_stat": {
+      "ast": 854,
+      "fg3m": 826,
+      "pts": 2744,
+      "reb": 443
+     },
+     "dates": 199,
+     "decimal_min_med_max": [
+      1.23,
+      1.435,
+      2.75
+     ],
+     "games": 1127,
+     "mean_model_p": 0.7509,
+     "mean_overround": 0.0831,
+     "model_claimed_ev_mean": 0.1192,
+     "roi_halfwidth_cons": 0.0475,
+     "roi_halfwidth_independent": 0.0182,
+     "rungs": 4867,
+     "units_player_game_stat": 4125,
+     "weekly_units_median": 147.0,
+     "weeks": 35,
+     "weeks_with_ge_10_units": 30
+    },
+    "duplicate_key_rows_dropped": {
+     "over": 2016,
+     "under": 4
+    },
+    "half_point_rungs_joined_to_model": 746103,
+    "ladder_cells": [
+     {
+      "book": "betrivers",
+      "mean_points": 6.93,
+      "share_ge3": 0.987,
+      "stat": "pts",
+      "units": 10880
+     },
+     {
+      "book": "betrivers",
+      "mean_points": 2.12,
+      "share_ge3": 0.251,
+      "stat": "reb",
+      "units": 10218
+     },
+     {
+      "book": "unibet_us",
+      "mean_points": 6.93,
+      "share_ge3": 0.987,
+      "stat": "pts",
+      "units": 10836
+     },
+     {
+      "book": "unibet_us",
+      "mean_points": 2.12,
+      "share_ge3": 0.251,
+      "stat": "reb",
+      "units": 10168
+     }
+    ],
+    "lead_minutes_min_med_max": [
+     9.27,
+     9.35,
+     9.38
+    ],
+    "primary_vs_duplicate_identical_price_share": 0.932,
+    "primary_vs_duplicate_shared_rungs": 3178,
+    "rungs_p70_by_book": {
+     "barstool": 84,
+     "betmgm": 1369,
+     "betonlineag": 960,
+     "betrivers": 3199,
+     "bovada": 934,
+     "draftkings": 1051,
+     "fanduel": 457,
+     "mybookieag": 697,
+     "pinnacle": 389,
+     "pointsbetus": 769,
+     "unibet_us": 3200,
+     "williamhill_us": 1138,
+     "wynnbet": 13
+    },
+    "timing_rule_violations": 0,
+    "two_sided_rungs": 750288
    },
-   "snapshot_after_tip_minus_60_or_no_tip": 0,
-   "two_sided_rungs": 674051
+   "2024": {
+    "arm_A_duplicate_book": {
+     "book": "unibet_us",
+     "rungs": 0
+    },
+    "arm_A_primary_book": {
+     "book": "betrivers",
+     "by_stat": {
+      "ast": 170,
+      "fg3m": 164,
+      "pts": 876,
+      "reb": 137
+     },
+     "dates": 141,
+     "decimal_min_med_max": [
+      1.29,
+      1.417,
+      2.4
+     ],
+     "games": 482,
+     "mean_model_p": 0.7522,
+     "mean_overround": 0.0843,
+     "model_claimed_ev_mean": 0.11,
+     "roi_halfwidth_cons": 0.0746,
+     "roi_halfwidth_independent": 0.0342,
+     "rungs": 1347,
+     "units_player_game_stat": 1132,
+     "weekly_units_median": 11.0,
+     "weeks": 32,
+     "weeks_with_ge_10_units": 17
+    },
+    "arm_B_best_price_any_book": {
+     "by_stat": {
+      "ast": 1001,
+      "fg3m": 820,
+      "pts": 1241,
+      "reb": 400
+     },
+     "dates": 206,
+     "decimal_min_med_max": [
+      1.007,
+      1.503,
+      2.45
+     ],
+     "games": 1003,
+     "mean_model_p": 0.7561,
+     "mean_overround": 0.0744,
+     "model_claimed_ev_mean": 0.169,
+     "roi_halfwidth_cons": 0.0547,
+     "roi_halfwidth_independent": 0.0223,
+     "rungs": 3462,
+     "units_player_game_stat": 3178,
+     "weekly_units_median": 68.0,
+     "weeks": 35,
+     "weeks_with_ge_10_units": 33
+    },
+    "duplicate_key_rows_dropped": {
+     "over": 0,
+     "under": 0
+    },
+    "half_point_rungs_joined_to_model": 526505,
+    "ladder_cells": [
+     {
+      "book": "betrivers",
+      "mean_points": 3.64,
+      "share_ge3": 0.641,
+      "stat": "pts",
+      "units": 12337
+     }
+    ],
+    "lead_minutes_min_med_max": [
+     9.32,
+     9.37,
+     9.38
+    ],
+    "primary_vs_duplicate_identical_price_share": null,
+    "primary_vs_duplicate_shared_rungs": 0,
+    "rungs_p70_by_book": {
+     "betmgm": 1711,
+     "betonlineag": 777,
+     "betrivers": 1347,
+     "bovada": 417,
+     "draftkings": 577,
+     "fanatics": 102,
+     "fanduel": 351,
+     "novig": 437,
+     "pinnacle": 337,
+     "prophetx": 192,
+     "williamhill_us": 1197
+    },
+    "timing_rule_violations": 0,
+    "two_sided_rungs": 530088
+   }
   },
-  "2024": {
-   "arm_A_duplicate_book": {
-    "book": "unibet_us",
-    "rungs": 0
-   },
-   "arm_A_primary_book": {
-    "book": "betrivers",
-    "by_stat": {
-     "ast": 143,
-     "fg3m": 154,
-     "pts": 790,
-     "reb": 120
+  "t60": {
+   "2023": {
+    "arm_A_duplicate_book": {
+     "book": "unibet_us",
+     "by_stat": {
+      "ast": 232,
+      "fg3m": 264,
+      "pts": 2352,
+      "reb": 228
+     },
+     "dates": 194,
+     "decimal_min_med_max": [
+      1.267,
+      1.36,
+      2.75
+     ],
+     "games": 946,
+     "mean_model_p": 0.7487,
+     "mean_overround": 0.0918,
+     "model_claimed_ev_mean": 0.0527,
+     "roi_halfwidth_cons": 0.049,
+     "roi_halfwidth_independent": 0.0216,
+     "rungs": 3076,
+     "units_player_game_stat": 2395,
+     "weekly_units_median": 82.0,
+     "weeks": 32,
+     "weeks_with_ge_10_units": 30
     },
-    "dates": 135,
-    "decimal_min_med_max": [
-     1.299,
-     1.417,
-     2.35
-    ],
-    "games": 460,
-    "mean_model_p": 0.7508,
-    "mean_overround": 0.0846,
-    "model_claimed_ev_mean": 0.1031,
-    "roi_halfwidth_cons": 0.0751,
-    "roi_halfwidth_independent": 0.036,
-    "rungs": 1207,
-    "units_player_game_stat": 1026,
-    "weekly_units_median": 8.5,
-    "weeks": 32,
-    "weeks_with_ge_10_units": 15
-   },
-   "arm_B_best_price_any_book": {
-    "by_stat": {
-     "ast": 836,
-     "fg3m": 687,
-     "pts": 1059,
-     "reb": 328
-    },
-    "dates": 206,
-    "decimal_min_med_max": [
-     1.005,
-     1.5,
-     2.49
-    ],
-    "games": 942,
-    "mean_model_p": 0.7556,
-    "mean_overround": 0.0746,
-    "model_claimed_ev_mean": 0.1541,
-    "roi_halfwidth_cons": 0.0552,
-    "roi_halfwidth_independent": 0.0241,
-    "rungs": 2910,
-    "units_player_game_stat": 2684,
-    "weekly_units_median": 54.0,
-    "weeks": 35,
-    "weeks_with_ge_10_units": 33
-   },
-   "half_point_rungs_joined_to_model": 484607,
-   "ladder_cells": [
-    {
+    "arm_A_primary_book": {
      "book": "betrivers",
-     "mean_points": 3.64,
-     "share_ge3": 0.641,
-     "stat": "pts",
-     "units": 11828
-    }
-   ],
-   "primary_vs_duplicate_identical_price_share": null,
-   "primary_vs_duplicate_shared_rungs": 0,
-   "rungs_p70_by_book": {
-    "betmgm": 1390,
-    "betonlineag": 691,
-    "betrivers": 1207,
-    "bovada": 339,
-    "draftkings": 500,
-    "fanatics": 79,
-    "fanduel": 273,
-    "novig": 349,
-    "pinnacle": 301,
-    "prophetx": 166,
-    "williamhill_us": 962
+     "by_stat": {
+      "ast": 234,
+      "fg3m": 265,
+      "pts": 2343,
+      "reb": 228
+     },
+     "dates": 197,
+     "decimal_min_med_max": [
+      1.267,
+      1.36,
+      2.75
+     ],
+     "games": 947,
+     "mean_model_p": 0.7487,
+     "mean_overround": 0.0917,
+     "model_claimed_ev_mean": 0.0527,
+     "roi_halfwidth_cons": 0.0489,
+     "roi_halfwidth_independent": 0.0216,
+     "rungs": 3070,
+     "units_player_game_stat": 2392,
+     "weekly_units_median": 75.0,
+     "weeks": 35,
+     "weeks_with_ge_10_units": 30
+    },
+    "arm_B_best_price_any_book": {
+     "by_stat": {
+      "ast": 645,
+      "fg3m": 629,
+      "pts": 2487,
+      "reb": 344
+     },
+     "dates": 199,
+     "decimal_min_med_max": [
+      1.222,
+      1.417,
+      2.75
+     ],
+     "games": 1074,
+     "mean_model_p": 0.7491,
+     "mean_overround": 0.0852,
+     "model_claimed_ev_mean": 0.0961,
+     "roi_halfwidth_cons": 0.0477,
+     "roi_halfwidth_independent": 0.0195,
+     "rungs": 4105,
+     "units_player_game_stat": 3407,
+     "weekly_units_median": 109.0,
+     "weeks": 35,
+     "weeks_with_ge_10_units": 30
+    },
+    "duplicate_key_rows_dropped": {
+     "over": 1726,
+     "under": 4
+    },
+    "half_point_rungs_joined_to_model": 663538,
+    "ladder_cells": [
+     {
+      "book": "betrivers",
+      "mean_points": 6.94,
+      "share_ge3": 0.988,
+      "stat": "pts",
+      "units": 10511
+     },
+     {
+      "book": "betrivers",
+      "mean_points": 2.13,
+      "share_ge3": 0.256,
+      "stat": "reb",
+      "units": 9895
+     },
+     {
+      "book": "unibet_us",
+      "mean_points": 6.95,
+      "share_ge3": 0.988,
+      "stat": "pts",
+      "units": 10499
+     },
+     {
+      "book": "unibet_us",
+      "mean_points": 2.13,
+      "share_ge3": 0.256,
+      "stat": "reb",
+      "units": 9875
+     }
+    ],
+    "lead_minutes_min_med_max": [
+     62.55,
+     64.35,
+     79.37
+    ],
+    "primary_vs_duplicate_identical_price_share": 0.949,
+    "primary_vs_duplicate_shared_rungs": 3060,
+    "rungs_p70_by_book": {
+     "barstool": 72,
+     "betmgm": 870,
+     "betonlineag": 705,
+     "betrivers": 3070,
+     "bovada": 649,
+     "draftkings": 693,
+     "fanduel": 357,
+     "mybookieag": 565,
+     "pinnacle": 300,
+     "pointsbetus": 559,
+     "unibet_us": 3076,
+     "williamhill_us": 843,
+     "wynnbet": 12
+    },
+    "timing_rule_violations": 0,
+    "two_sided_rungs": 673188
    },
-   "snapshot_after_tip_minus_60_or_no_tip": 0,
-   "two_sided_rungs": 494031
+   "2024": {
+    "arm_A_duplicate_book": {
+     "book": "unibet_us",
+     "rungs": 0
+    },
+    "arm_A_primary_book": {
+     "book": "betrivers",
+     "by_stat": {
+      "ast": 143,
+      "fg3m": 154,
+      "pts": 790,
+      "reb": 120
+     },
+     "dates": 135,
+     "decimal_min_med_max": [
+      1.299,
+      1.417,
+      2.35
+     ],
+     "games": 460,
+     "mean_model_p": 0.7508,
+     "mean_overround": 0.0846,
+     "model_claimed_ev_mean": 0.1031,
+     "roi_halfwidth_cons": 0.0751,
+     "roi_halfwidth_independent": 0.036,
+     "rungs": 1207,
+     "units_player_game_stat": 1026,
+     "weekly_units_median": 8.5,
+     "weeks": 32,
+     "weeks_with_ge_10_units": 15
+    },
+    "arm_B_best_price_any_book": {
+     "by_stat": {
+      "ast": 836,
+      "fg3m": 687,
+      "pts": 1059,
+      "reb": 328
+     },
+     "dates": 206,
+     "decimal_min_med_max": [
+      1.005,
+      1.5,
+      2.49
+     ],
+     "games": 942,
+     "mean_model_p": 0.7556,
+     "mean_overround": 0.0746,
+     "model_claimed_ev_mean": 0.1541,
+     "roi_halfwidth_cons": 0.0552,
+     "roi_halfwidth_independent": 0.0241,
+     "rungs": 2910,
+     "units_player_game_stat": 2684,
+     "weekly_units_median": 54.0,
+     "weeks": 35,
+     "weeks_with_ge_10_units": 33
+    },
+    "duplicate_key_rows_dropped": {
+     "over": 0,
+     "under": 0
+    },
+    "half_point_rungs_joined_to_model": 484607,
+    "ladder_cells": [
+     {
+      "book": "betrivers",
+      "mean_points": 3.64,
+      "share_ge3": 0.641,
+      "stat": "pts",
+      "units": 11828
+     }
+    ],
+    "lead_minutes_min_med_max": [
+     64.33,
+     64.37,
+     64.38
+    ],
+    "primary_vs_duplicate_identical_price_share": null,
+    "primary_vs_duplicate_shared_rungs": 0,
+    "rungs_p70_by_book": {
+     "betmgm": 1390,
+     "betonlineag": 691,
+     "betrivers": 1207,
+     "bovada": 339,
+     "draftkings": 500,
+     "fanatics": 79,
+     "fanduel": 273,
+     "novig": 349,
+     "pinnacle": 301,
+     "prophetx": 166,
+     "williamhill_us": 962
+    },
+    "timing_rule_violations": 0,
+    "two_sided_rungs": 494031
+   }
   }
  },
  "rule": "docs/prereg/ALT_LINE_70.md (DRAFT)",

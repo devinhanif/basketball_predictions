@@ -11,7 +11,9 @@ only after the freeze.
 Inputs (read-only; season <= 2024 asserted before any read):
 * ``reports/odds_history/model_rows_{2023,2024}.parquet``: the stored production walk-forward
   context-residual forecast, ``p_ge[k-1] = P(Y >= k)`` on the integer support (played rows only);
-* ``data/odds/odds_history.duckdb``: book quotes (table ``odds_history``), snapshot ``t60`` only;
+* ``data/odds/odds_history.duckdb``: book quotes (table ``odds_history``), snapshots ``t5``
+  (primary: the stored capture at or after the model's T-60 cutoff and before tip) and ``t60``
+  (sensitivity: before the cutoff);
 * ``data/ops/model_clv_pairs/pairs_{2023,2024}.parquet``: only ``game_id`` and ``tipoff_utc``.
 """
 
@@ -54,7 +56,9 @@ DIST_EDGES: tuple[tuple[float, float], ...] = (
     (2.0, 4.0),
     (4.0, 1e9),
 )
-LAST_SAFE_MIN = 60  # the model's as-of: snapshot at least this many minutes before the real tip
+CUTOFF_MIN = 60  # the model's report cutoff: real tip minus this many minutes
+PRIMARY_KIND = "t5"  # price snapshot at or after the cutoff, before tip
+SENSITIVITY_KIND = "t60"  # price snapshot before the cutoff (model may know newer news)
 EPS = 1e-12
 LADDER_MIN_POINTS = 3
 LADDER_MIN_SHARE = 0.10
@@ -199,10 +203,29 @@ def summarize_bets(e: pl.DataFrame) -> dict[str, Any]:
     }
 
 
+def dedupe_dropping(df: pl.DataFrame, key: list[str]) -> tuple[pl.DataFrame, int]:
+    """Drop EVERY row of a duplicated key (no arbitrary survivor); return the frame and the count
+    of rows dropped."""
+    dup = df.select(key).is_duplicated()
+    return df.filter(~dup), int(dup.sum())
+
+
+def snapshot_violations(tw: pl.DataFrame, kind: str) -> int:
+    """Rows breaking the timing rule. ``t5``: snapshot must satisfy tip - 60 <= ts < tip (never
+    before the model's cutoff). ``t60`` (sensitivity): ts <= tip - 60, the old as-of check."""
+    cut = pl.col("tipoff_utc") - pl.duration(minutes=CUTOFF_MIN)
+    if kind == PRIMARY_KIND:
+        bad = (pl.col("snapshot_ts") < cut) | (pl.col("snapshot_ts") >= pl.col("tipoff_utc"))
+    else:
+        bad = pl.col("snapshot_ts") > cut
+    return tw.filter(pl.col("tipoff_utc").is_null() | bad).height
+
+
 def priced_rungs(
-    odds_db: Path, season: int, tips: pl.DataFrame, model: pl.DataFrame
+    odds_db: Path, season: int, tips: pl.DataFrame, model: pl.DataFrame, kind: str = PRIMARY_KIND
 ) -> tuple[pl.DataFrame, dict[str, Any]]:
-    """Two-sided half-point t60 rungs joined to the stored model P(over); also the as-of check."""
+    """Two-sided half-point rungs of snapshot ``kind`` joined to the stored model P(over); also
+    the timing check against the real tip."""
     import duckdb
 
     assert season <= MAX_SEASON
@@ -210,10 +233,10 @@ def priced_rungs(
     try:
         raw: pl.DataFrame = con.execute(
             "select game_id, player_id, market, book, snapshot_ts, side, point, price_american "
-            "from odds_history where season = ? and snapshot_kind = 't60' "
+            "from odds_history where season = ? and snapshot_kind = ? "
             "and market in ('player_points','player_rebounds','player_assists','player_threes') "
             "and player_id is not null and side in ('over','under')",
-            [season],
+            [season, kind],
         ).pl()
     finally:
         con.close()
@@ -221,14 +244,16 @@ def priced_rungs(
     key = ["game_id", "player_id", "stat", "book", "point"]
     over = raw.filter(pl.col("side") == "over").rename({"price_american": "po"}).drop("side")
     under = raw.filter(pl.col("side") == "under").select(*key, pl.col("price_american").alias("pu"))
-    tw = over.join(under, on=key, how="inner").unique(key)
+    over, dup_over = dedupe_dropping(over, key)
+    under, dup_under = dedupe_dropping(under, key)
+    tw = over.join(under, on=key, how="inner")
     n_two_sided = tw.height
     tw = tw.filter(((pl.col("point") * 2).round(6) % 2) == 1)  # half-point lines only
     tw = tw.join(tips, on="game_id", how="left")
-    late = tw.filter(
-        pl.col("tipoff_utc").is_null()
-        | (pl.col("snapshot_ts") > pl.col("tipoff_utc") - pl.duration(minutes=LAST_SAFE_MIN))
-    ).height
+    late = snapshot_violations(tw, kind)
+    lead = (
+        (tw["tipoff_utc"] - tw["snapshot_ts"]).dt.total_seconds().drop_nulls() / 60.0
+    ).to_numpy()
     parts: list[pl.DataFrame] = []
     for stat in STATS:
         d = model.filter(pl.col("stat") == stat)
@@ -248,7 +273,13 @@ def priced_rungs(
     meta = {
         "two_sided_rungs": n_two_sided,
         "half_point_rungs_joined_to_model": t.height,
-        "snapshot_after_tip_minus_60_or_no_tip": late,
+        "timing_rule_violations": late,
+        "duplicate_key_rows_dropped": {"over": dup_over, "under": dup_under},
+        "lead_minutes_min_med_max": [
+            round(float(lead.min()), 2),
+            round(float(np.median(lead)), 2),
+            round(float(lead.max()), 2),
+        ],
     }
     return t, meta
 
@@ -327,32 +358,37 @@ def run_gate(data_root: Path, hash_inputs: bool = True) -> dict[str, Any]:
                 (d["minutes"].is_null() | (d["minutes"] <= 0)).sum()
             )
             part1[str(season)][stat] = c
-        t, meta = priced_rungs(data_root / "data/odds/odds_history.duckdb", season, tips, m)
-        e = t.filter(pl.col("pm") >= THRESHOLD - EPS)
-        arm_a = e.filter(pl.col("book") == PRIMARY_BOOK)
-        arm_a_dup = e.filter(pl.col("book") == DUPLICATE_BOOK)
-        shared = arm_a.join(
-            arm_a_dup.select("game_id", "player_id", "stat", "point", pl.col("po").alias("po_u")),
-            on=["game_id", "player_id", "stat", "point"],
-            how="inner",
-        )
-        part2[str(season)] = {
-            **meta,
-            "ladder_cells": ladder_cells(t),
-            "arm_A_primary_book": {"book": PRIMARY_BOOK, **summarize_bets(arm_a)},
-            "arm_A_duplicate_book": {"book": DUPLICATE_BOOK, **summarize_bets(arm_a_dup)},
-            "primary_vs_duplicate_shared_rungs": shared.height,
-            "primary_vs_duplicate_identical_price_share": (
-                round(float((shared["po"] == shared["po_u"]).mean()), 3)  # type: ignore[arg-type]
-                if shared.height
-                else None
-            ),
-            "arm_B_best_price_any_book": summarize_bets(best_price(e)),
-            "rungs_p70_by_book": {
-                r["book"]: r["n"]
-                for r in e.group_by("book").agg(pl.len().alias("n")).sort("n").to_dicts()
-            },
-        }
+        for kind in (PRIMARY_KIND, SENSITIVITY_KIND):
+            t, meta = priced_rungs(
+                data_root / "data/odds/odds_history.duckdb", season, tips, m, kind
+            )
+            e = t.filter(pl.col("pm") >= THRESHOLD - EPS)
+            arm_a = e.filter(pl.col("book") == PRIMARY_BOOK)
+            arm_a_dup = e.filter(pl.col("book") == DUPLICATE_BOOK)
+            shared = arm_a.join(
+                arm_a_dup.select(
+                    "game_id", "player_id", "stat", "point", pl.col("po").alias("po_u")
+                ),
+                on=["game_id", "player_id", "stat", "point"],
+                how="inner",
+            )
+            part2.setdefault(kind, {})[str(season)] = {
+                **meta,
+                "ladder_cells": ladder_cells(t),
+                "arm_A_primary_book": {"book": PRIMARY_BOOK, **summarize_bets(arm_a)},
+                "arm_A_duplicate_book": {"book": DUPLICATE_BOOK, **summarize_bets(arm_a_dup)},
+                "primary_vs_duplicate_shared_rungs": shared.height,
+                "primary_vs_duplicate_identical_price_share": (
+                    round(float((shared["po"] == shared["po_u"]).mean()), 3)  # type: ignore[arg-type]
+                    if shared.height
+                    else None
+                ),
+                "arm_B_best_price_any_book": summarize_bets(best_price(e)),
+                "rungs_p70_by_book": {
+                    r["book"]: r["n"]
+                    for r in e.group_by("book").agg(pl.len().alias("n")).sort("n").to_dicts()
+                },
+            }
     result["part1"] = part1
     result["part2"] = part2
     return result
