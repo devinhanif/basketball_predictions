@@ -1,0 +1,1051 @@
+{
+ "input_sha256": {
+  "data/odds/odds_history.duckdb": "2bf7bb813de8a5da50e798c73c53838dbb4af1df99ba6d77d3be9d94afd9cecd",
+  "data/ops/model_clv_pairs/pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+  "data/ops/model_clv_pairs/pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
+  "reports/odds_history/model_rows_2023.parquet": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
+  "reports/odds_history/model_rows_2024.parquet": "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70"
+ },
+ "part1": {
+  "2023": {
+   "ast": {
+    "K": 30,
+    "all_p70": {
+     "games": 1318,
+     "halfwidth_cons": 0.016654082135370698,
+     "line_rows": 38886,
+     "mean_p": 0.8962193831886378,
+     "player_games": 17570
+    },
+    "band_70_90": {
+     "games": 1318,
+     "halfwidth_cons": 0.02207111618054549,
+     "line_rows": 16848,
+     "mean_p": 0.797843681847032,
+     "player_games": 15942
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     },
+     "(0,1]": {
+      "games": 1318,
+      "halfwidth_cons": 0.023548024753563265,
+      "line_rows": 10232,
+      "mean_p": 0.7738113947375659,
+      "player_games": 10232
+     },
+     "(1,2]": {
+      "games": 1318,
+      "halfwidth_cons": 0.021364924923525888,
+      "line_rows": 6117,
+      "mean_p": 0.8319675868306713,
+      "player_games": 6117
+     },
+     "(2,4]": {
+      "games": 418,
+      "halfwidth_cons": 0.03420834503806603,
+      "line_rows": 499,
+      "mean_p": 0.8723174993202486,
+      "player_games": 493
+     },
+     "(4,1e+09]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1281,
+      "halfwidth_cons": 0.026922622986908833,
+      "line_rows": 4690,
+      "mean_p": 0.7261852974895802,
+      "player_games": 4690
+     },
+     "0.75-0.80": {
+      "games": 1274,
+      "halfwidth_cons": 0.025357431165880462,
+      "line_rows": 4266,
+      "mean_p": 0.7758942391281302,
+      "player_games": 4266
+     },
+     "0.80-0.85": {
+      "games": 1264,
+      "halfwidth_cons": 0.023155054478231487,
+      "line_rows": 3933,
+      "mean_p": 0.8268471776630417,
+      "player_games": 3933
+     },
+     "0.85-0.90": {
+      "games": 1259,
+      "halfwidth_cons": 0.02005070144076567,
+      "line_rows": 3959,
+      "mean_p": 0.8775717435370844,
+      "player_games": 3959
+     },
+     "0.90-0.95": {
+      "games": 1306,
+      "halfwidth_cons": 0.015073026328755106,
+      "line_rows": 5508,
+      "mean_p": 0.9284184174321133,
+      "player_games": 5508
+     },
+     "0.95-1.00": {
+      "games": 1318,
+      "halfwidth_cons": 0.00661045410894818,
+      "line_rows": 16530,
+      "mean_p": 0.9857584960495157,
+      "player_games": 8458
+     }
+    },
+    "games": 1318,
+    "p_equals_1": 4307,
+    "player_games": 27619,
+    "rows_with_minutes_null_or_le_0": 0
+   },
+   "fg3m": {
+    "K": 19,
+    "all_p70": {
+     "games": 1318,
+     "halfwidth_cons": 0.019725146157790578,
+     "line_rows": 13672,
+     "mean_p": 0.8514008015501733,
+     "player_games": 11557
+    },
+    "band_70_90": {
+     "games": 1318,
+     "halfwidth_cons": 0.022510999920409218,
+     "line_rows": 8987,
+     "mean_p": 0.7988976819112811,
+     "player_games": 8987
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 52,
+      "halfwidth_cons": 0.12610539988749597,
+      "line_rows": 55,
+      "mean_p": 0.7114664230242119,
+      "player_games": 55
+     },
+     "(0,1]": {
+      "games": 1318,
+      "halfwidth_cons": 0.022572178228115608,
+      "line_rows": 8800,
+      "mean_p": 0.7981458428506167,
+      "player_games": 8800
+     },
+     "(1,2]": {
+      "games": 123,
+      "halfwidth_cons": 0.05791717566125902,
+      "line_rows": 132,
+      "mean_p": 0.8854499771585199,
+      "player_games": 132
+     },
+     "(2,4]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     },
+     "(4,1e+09]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1127,
+      "halfwidth_cons": 0.029567409749491902,
+      "line_rows": 2420,
+      "mean_p": 0.7258856264795049,
+      "player_games": 2420
+     },
+     "0.75-0.80": {
+      "games": 1096,
+      "halfwidth_cons": 0.02800342588955644,
+      "line_rows": 2284,
+      "mean_p": 0.7754732506666433,
+      "player_games": 2284
+     },
+     "0.80-0.85": {
+      "games": 1081,
+      "halfwidth_cons": 0.025551457091446374,
+      "line_rows": 2062,
+      "mean_p": 0.8258386988287703,
+      "player_games": 2062
+     },
+     "0.85-0.90": {
+      "games": 1083,
+      "halfwidth_cons": 0.022046118752229695,
+      "line_rows": 2221,
+      "mean_p": 0.8775281178517532,
+      "player_games": 2221
+     },
+     "0.90-0.95": {
+      "games": 1132,
+      "halfwidth_cons": 0.017111705266721698,
+      "line_rows": 2319,
+      "mean_p": 0.9275939854511887,
+      "player_games": 2319
+     },
+     "0.95-1.00": {
+      "games": 1060,
+      "halfwidth_cons": 0.010304702565657345,
+      "line_rows": 2366,
+      "mean_p": 0.976148706338115,
+      "player_games": 2258
+     }
+    },
+    "games": 1318,
+    "p_equals_1": 118,
+    "player_games": 27619,
+    "rows_with_minutes_null_or_le_0": 0
+   },
+   "pts": {
+    "K": 84,
+    "all_p70": {
+     "games": 1318,
+     "halfwidth_cons": 0.015624990116750505,
+     "line_rows": 200430,
+     "mean_p": 0.9089523353934769,
+     "player_games": 25961
+    },
+    "band_70_90": {
+     "games": 1318,
+     "halfwidth_cons": 0.021544624714096353,
+     "line_rows": 76170,
+     "mean_p": 0.8041422156073791,
+     "player_games": 25961
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     },
+     "(0,1]": {
+      "games": 1158,
+      "halfwidth_cons": 0.029470530349784044,
+      "line_rows": 3435,
+      "mean_p": 0.7311608991098141,
+      "player_games": 3433
+     },
+     "(1,2]": {
+      "games": 1318,
+      "halfwidth_cons": 0.02296715298004082,
+      "line_rows": 34041,
+      "mean_p": 0.7725125731474564,
+      "player_games": 22529
+     },
+     "(2,4]": {
+      "games": 1318,
+      "halfwidth_cons": 0.020298290568032437,
+      "line_rows": 37818,
+      "mean_p": 0.8373788929841445,
+      "player_games": 17602
+     },
+     "(4,1e+09]": {
+      "games": 563,
+      "halfwidth_cons": 0.03045112784715292,
+      "line_rows": 876,
+      "mean_p": 0.8845655216722885,
+      "player_games": 729
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1318,
+      "halfwidth_cons": 0.024540319153151306,
+      "line_rows": 18164,
+      "mean_p": 0.7256772189509539,
+      "player_games": 18034
+     },
+     "0.75-0.80": {
+      "games": 1318,
+      "halfwidth_cons": 0.02282110491123436,
+      "line_rows": 18735,
+      "mean_p": 0.775949402738271,
+      "player_games": 18579
+     },
+     "0.80-0.85": {
+      "games": 1318,
+      "halfwidth_cons": 0.020791939503887386,
+      "line_rows": 18424,
+      "mean_p": 0.8265567961387484,
+      "player_games": 18125
+     },
+     "0.85-0.90": {
+      "games": 1318,
+      "halfwidth_cons": 0.017907290267814638,
+      "line_rows": 20847,
+      "mean_p": 0.8780360284658291,
+      "player_games": 19406
+     },
+     "0.90-0.95": {
+      "games": 1318,
+      "halfwidth_cons": 0.01399981926129621,
+      "line_rows": 29123,
+      "mean_p": 0.929461716438526,
+      "player_games": 19212
+     },
+     "0.95-1.00": {
+      "games": 1318,
+      "halfwidth_cons": 0.006307783819749429,
+      "line_rows": 95137,
+      "mean_p": 0.9865887136683027,
+      "player_games": 15712
+     }
+    },
+    "games": 1318,
+    "p_equals_1": 26842,
+    "player_games": 27619,
+    "rows_with_minutes_null_or_le_0": 0
+   },
+   "reb": {
+    "K": 35,
+    "all_p70": {
+     "games": 1318,
+     "halfwidth_cons": 0.016520344474618056,
+     "line_rows": 73150,
+     "mean_p": 0.8965728849304622,
+     "player_games": 25161
+    },
+    "band_70_90": {
+     "games": 1318,
+     "halfwidth_cons": 0.02160528779512221,
+     "line_rows": 32385,
+     "mean_p": 0.8039679639512989,
+     "player_games": 24882
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     },
+     "(0,1]": {
+      "games": 1317,
+      "halfwidth_cons": 0.024371041511700046,
+      "line_rows": 9683,
+      "mean_p": 0.7563714472392947,
+      "player_games": 9683
+     },
+     "(1,2]": {
+      "games": 1318,
+      "halfwidth_cons": 0.021400020718518133,
+      "line_rows": 16809,
+      "mean_p": 0.8138563003607484,
+      "player_games": 16809
+     },
+     "(2,4]": {
+      "games": 1316,
+      "halfwidth_cons": 0.020818926749290954,
+      "line_rows": 5842,
+      "mean_p": 0.8536752574925294,
+      "player_games": 5062
+     },
+     "(4,1e+09]": {
+      "games": 49,
+      "halfwidth_cons": 0.08996389396700877,
+      "line_rows": 51,
+      "mean_p": 0.8877721943048575,
+      "player_games": 50
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1317,
+      "halfwidth_cons": 0.02561375774097795,
+      "line_rows": 7784,
+      "mean_p": 0.7264566666838818,
+      "player_games": 7784
+     },
+     "0.75-0.80": {
+      "games": 1317,
+      "halfwidth_cons": 0.02391212364525728,
+      "line_rows": 7856,
+      "mean_p": 0.7772045052144636,
+      "player_games": 7856
+     },
+     "0.80-0.85": {
+      "games": 1317,
+      "halfwidth_cons": 0.021648022023710432,
+      "line_rows": 8236,
+      "mean_p": 0.8267539738517745,
+      "player_games": 8236
+     },
+     "0.85-0.90": {
+      "games": 1317,
+      "halfwidth_cons": 0.01868235506654657,
+      "line_rows": 8509,
+      "mean_p": 0.8775296154057395,
+      "player_games": 8509
+     },
+     "0.90-0.95": {
+      "games": 1318,
+      "halfwidth_cons": 0.014383016774701336,
+      "line_rows": 11319,
+      "mean_p": 0.9283363544464968,
+      "player_games": 11309
+     },
+     "0.95-1.00": {
+      "games": 1318,
+      "halfwidth_cons": 0.0063945892682334094,
+      "line_rows": 29446,
+      "mean_p": 0.9862108545853633,
+      "player_games": 13889
+     }
+    },
+    "games": 1318,
+    "p_equals_1": 9247,
+    "player_games": 27619,
+    "rows_with_minutes_null_or_le_0": 0
+   }
+  },
+  "2024": {
+   "ast": {
+    "K": 30,
+    "all_p70": {
+     "games": 1315,
+     "halfwidth_cons": 0.0167301560395673,
+     "line_rows": 40176,
+     "mean_p": 0.8956255791102066,
+     "player_games": 18853
+    },
+    "band_70_90": {
+     "games": 1315,
+     "halfwidth_cons": 0.021735865541292764,
+     "line_rows": 18304,
+     "mean_p": 0.8047739791615419,
+     "player_games": 17182
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 5,
+      "halfwidth_cons": 0.3987317442132459,
+      "line_rows": 5,
+      "mean_p": 0.707537688442211,
+      "player_games": 5
+     },
+     "(0,1]": {
+      "games": 1315,
+      "halfwidth_cons": 0.02299176052580589,
+      "line_rows": 11634,
+      "mean_p": 0.7849609919979819,
+      "player_games": 11634
+     },
+     "(1,2]": {
+      "games": 1313,
+      "halfwidth_cons": 0.021142087100247564,
+      "line_rows": 6152,
+      "mean_p": 0.8364604230515384,
+      "player_games": 6152
+     },
+     "(2,4]": {
+      "games": 429,
+      "halfwidth_cons": 0.03401582653192044,
+      "line_rows": 513,
+      "mean_p": 0.8750575489533438,
+      "player_games": 508
+     },
+     "(4,1e+09]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1261,
+      "halfwidth_cons": 0.02726982153727108,
+      "line_rows": 4172,
+      "mean_p": 0.7256440399504713,
+      "player_games": 4172
+     },
+     "0.75-0.80": {
+      "games": 1277,
+      "halfwidth_cons": 0.025342323844016308,
+      "line_rows": 4488,
+      "mean_p": 0.777129856053888,
+      "player_games": 4488
+     },
+     "0.80-0.85": {
+      "games": 1288,
+      "halfwidth_cons": 0.022605128594469472,
+      "line_rows": 4830,
+      "mean_p": 0.8267247209130539,
+      "player_games": 4830
+     },
+     "0.85-0.90": {
+      "games": 1294,
+      "halfwidth_cons": 0.019516600116360784,
+      "line_rows": 4814,
+      "mean_p": 0.8770994565682589,
+      "player_games": 4814
+     },
+     "0.90-0.95": {
+      "games": 1304,
+      "halfwidth_cons": 0.01504045022944321,
+      "line_rows": 5603,
+      "mean_p": 0.9284024979439406,
+      "player_games": 5603
+     },
+     "0.95-1.00": {
+      "games": 1315,
+      "halfwidth_cons": 0.006476576808114047,
+      "line_rows": 16269,
+      "mean_p": 0.9865530245115801,
+      "player_games": 8337
+     }
+    },
+    "games": 1315,
+    "p_equals_1": 4529,
+    "player_games": 27583,
+    "rows_with_minutes_null_or_le_0": 0
+   },
+   "fg3m": {
+    "K": 18,
+    "all_p70": {
+     "games": 1315,
+     "halfwidth_cons": 0.01944690528117249,
+     "line_rows": 15566,
+     "mean_p": 0.8543914484409715,
+     "player_games": 12959
+    },
+    "band_70_90": {
+     "games": 1315,
+     "halfwidth_cons": 0.02214033623092404,
+     "line_rows": 10371,
+     "mean_p": 0.8049460493093178,
+     "player_games": 10371
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 64,
+      "halfwidth_cons": 0.1124886556531928,
+      "line_rows": 66,
+      "mean_p": 0.7121973503883051,
+      "player_games": 66
+     },
+     "(0,1]": {
+      "games": 1315,
+      "halfwidth_cons": 0.02215940775487757,
+      "line_rows": 10195,
+      "mean_p": 0.8046904458535935,
+      "player_games": 10195
+     },
+     "(1,2]": {
+      "games": 104,
+      "halfwidth_cons": 0.06295556992801338,
+      "line_rows": 110,
+      "mean_p": 0.8842850616719964,
+      "player_games": 110
+     },
+     "(2,4]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     },
+     "(4,1e+09]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1112,
+      "halfwidth_cons": 0.029384471713044025,
+      "line_rows": 2352,
+      "mean_p": 0.72610928793628,
+      "player_games": 2352
+     },
+     "0.75-0.80": {
+      "games": 1128,
+      "halfwidth_cons": 0.027618393997752785,
+      "line_rows": 2438,
+      "mean_p": 0.7763901542165298,
+      "player_games": 2438
+     },
+     "0.80-0.85": {
+      "games": 1184,
+      "halfwidth_cons": 0.024073393718842376,
+      "line_rows": 2894,
+      "mean_p": 0.8266783120856528,
+      "player_games": 2894
+     },
+     "0.85-0.90": {
+      "games": 1176,
+      "halfwidth_cons": 0.021162013218519467,
+      "line_rows": 2687,
+      "mean_p": 0.8764570900651377,
+      "player_games": 2687
+     },
+     "0.90-0.95": {
+      "games": 1181,
+      "halfwidth_cons": 0.01677571080364755,
+      "line_rows": 2559,
+      "mean_p": 0.9275981313366362,
+      "player_games": 2559
+     },
+     "0.95-1.00": {
+      "games": 1159,
+      "halfwidth_cons": 0.009545309196283634,
+      "line_rows": 2636,
+      "mean_p": 0.9778597082529492,
+      "player_games": 2531
+     }
+    },
+    "games": 1315,
+    "p_equals_1": 150,
+    "player_games": 27583,
+    "rows_with_minutes_null_or_le_0": 0
+   },
+   "pts": {
+    "K": 80,
+    "all_p70": {
+     "games": 1315,
+     "halfwidth_cons": 0.015601942854615978,
+     "line_rows": 199996,
+     "mean_p": 0.9094541941090079,
+     "player_games": 25835
+    },
+    "band_70_90": {
+     "games": 1315,
+     "halfwidth_cons": 0.021497435310212865,
+     "line_rows": 76389,
+     "mean_p": 0.8066271611233984,
+     "player_games": 25835
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     },
+     "(0,1]": {
+      "games": 1187,
+      "halfwidth_cons": 0.02872402609304217,
+      "line_rows": 3498,
+      "mean_p": 0.7330707281404163,
+      "player_games": 3495
+     },
+     "(1,2]": {
+      "games": 1315,
+      "halfwidth_cons": 0.022916139112193326,
+      "line_rows": 35069,
+      "mean_p": 0.773813176063098,
+      "player_games": 23029
+     },
+     "(2,4]": {
+      "games": 1315,
+      "halfwidth_cons": 0.020219362627041968,
+      "line_rows": 37328,
+      "mean_p": 0.8432830677174987,
+      "player_games": 17983
+     },
+     "(4,1e+09]": {
+      "games": 337,
+      "halfwidth_cons": 0.04592620923988805,
+      "line_rows": 494,
+      "mean_p": 0.8871177751103697,
+      "player_games": 428
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1315,
+      "halfwidth_cons": 0.02454135964315674,
+      "line_rows": 17794,
+      "mean_p": 0.7257655027977925,
+      "player_games": 17747
+     },
+     "0.75-0.80": {
+      "games": 1315,
+      "halfwidth_cons": 0.02289621223770775,
+      "line_rows": 17660,
+      "mean_p": 0.7764766641816101,
+      "player_games": 17592
+     },
+     "0.80-0.85": {
+      "games": 1315,
+      "halfwidth_cons": 0.020767266433323037,
+      "line_rows": 18705,
+      "mean_p": 0.8270239193830687,
+      "player_games": 18464
+     },
+     "0.85-0.90": {
+      "games": 1315,
+      "halfwidth_cons": 0.017900113470663708,
+      "line_rows": 22230,
+      "mean_p": 0.8781426249556374,
+      "player_games": 20440
+     },
+     "0.90-0.95": {
+      "games": 1315,
+      "halfwidth_cons": 0.014060260961029133,
+      "line_rows": 29130,
+      "mean_p": 0.9286597767415862,
+      "player_games": 19907
+     },
+     "0.95-1.00": {
+      "games": 1315,
+      "halfwidth_cons": 0.006301209457368403,
+      "line_rows": 94477,
+      "mean_p": 0.9866729415359022,
+      "player_games": 16468
+     }
+    },
+    "games": 1315,
+    "p_equals_1": 27557,
+    "player_games": 27583,
+    "rows_with_minutes_null_or_le_0": 0
+   },
+   "reb": {
+    "K": 35,
+    "all_p70": {
+     "games": 1315,
+     "halfwidth_cons": 0.01642740008786621,
+     "line_rows": 74011,
+     "mean_p": 0.8983101724183469,
+     "player_games": 24993
+    },
+    "band_70_90": {
+     "games": 1315,
+     "halfwidth_cons": 0.021555428703950337,
+     "line_rows": 31871,
+     "mean_p": 0.8054817086909241,
+     "player_games": 24630
+    },
+    "band_by_distance_units": {
+     "(-inf,0]": {
+      "games": 0,
+      "halfwidth_cons": NaN,
+      "line_rows": 0,
+      "mean_p": NaN,
+      "player_games": 0
+     },
+     "(0,1]": {
+      "games": 1311,
+      "halfwidth_cons": 0.024526745955716647,
+      "line_rows": 8781,
+      "mean_p": 0.7558667955424543,
+      "player_games": 8781
+     },
+     "(1,2]": {
+      "games": 1315,
+      "halfwidth_cons": 0.021382517154596332,
+      "line_rows": 16660,
+      "mean_p": 0.8131989479208768,
+      "player_games": 16660
+     },
+     "(2,4]": {
+      "games": 1315,
+      "halfwidth_cons": 0.020964416503844712,
+      "line_rows": 6368,
+      "mean_p": 0.852984299638898,
+      "player_games": 5467
+     },
+     "(4,1e+09]": {
+      "games": 53,
+      "halfwidth_cons": 0.09536317472026651,
+      "line_rows": 62,
+      "mean_p": 0.8797211865780518,
+      "player_games": 58
+     }
+    },
+    "bins": {
+     "0.70-0.75": {
+      "games": 1314,
+      "halfwidth_cons": 0.025636065248990307,
+      "line_rows": 7480,
+      "mean_p": 0.7258545400800794,
+      "player_games": 7480
+     },
+     "0.75-0.80": {
+      "games": 1314,
+      "halfwidth_cons": 0.023998057434966552,
+      "line_rows": 7389,
+      "mean_p": 0.7765597509811883,
+      "player_games": 7389
+     },
+     "0.80-0.85": {
+      "games": 1314,
+      "halfwidth_cons": 0.02157886985006813,
+      "line_rows": 8154,
+      "mean_p": 0.8266910959013857,
+      "player_games": 8154
+     },
+     "0.85-0.90": {
+      "games": 1314,
+      "halfwidth_cons": 0.018643712633256038,
+      "line_rows": 8848,
+      "mean_p": 0.877404654374949,
+      "player_games": 8848
+     },
+     "0.90-0.95": {
+      "games": 1315,
+      "halfwidth_cons": 0.01429908113870346,
+      "line_rows": 12367,
+      "mean_p": 0.9287616216442445,
+      "player_games": 12350
+     },
+     "0.95-1.00": {
+      "games": 1315,
+      "halfwidth_cons": 0.006699606798270053,
+      "line_rows": 29773,
+      "mean_p": 0.9850311241155228,
+      "player_games": 14339
+     }
+    },
+    "games": 1315,
+    "p_equals_1": 7809,
+    "player_games": 27583,
+    "rows_with_minutes_null_or_le_0": 0
+   }
+  }
+ },
+ "part2": {
+  "2023": {
+   "arm_A_duplicate_book": {
+    "book": "unibet_us",
+    "by_stat": {
+     "ast": 232,
+     "fg3m": 264,
+     "pts": 2352,
+     "reb": 228
+    },
+    "dates": 194,
+    "decimal_min_med_max": [
+     1.267,
+     1.36,
+     2.75
+    ],
+    "games": 946,
+    "mean_model_p": 0.7487,
+    "mean_overround": 0.0918,
+    "model_claimed_ev_mean": 0.0527,
+    "roi_halfwidth_cons": 0.049,
+    "roi_halfwidth_independent": 0.0216,
+    "rungs": 3076,
+    "units_player_game_stat": 2395,
+    "weekly_units_median": 82.0,
+    "weeks": 32,
+    "weeks_with_ge_10_units": 30
+   },
+   "arm_A_primary_book": {
+    "book": "betrivers",
+    "by_stat": {
+     "ast": 234,
+     "fg3m": 265,
+     "pts": 2343,
+     "reb": 228
+    },
+    "dates": 197,
+    "decimal_min_med_max": [
+     1.267,
+     1.36,
+     2.75
+    ],
+    "games": 947,
+    "mean_model_p": 0.7487,
+    "mean_overround": 0.0917,
+    "model_claimed_ev_mean": 0.0527,
+    "roi_halfwidth_cons": 0.0489,
+    "roi_halfwidth_independent": 0.0216,
+    "rungs": 3070,
+    "units_player_game_stat": 2392,
+    "weekly_units_median": 75.0,
+    "weeks": 35,
+    "weeks_with_ge_10_units": 30
+   },
+   "arm_B_best_price_any_book": {
+    "by_stat": {
+     "ast": 645,
+     "fg3m": 629,
+     "pts": 2487,
+     "reb": 344
+    },
+    "dates": 199,
+    "decimal_min_med_max": [
+     1.222,
+     1.417,
+     2.75
+    ],
+    "games": 1074,
+    "mean_model_p": 0.7491,
+    "mean_overround": 0.0852,
+    "model_claimed_ev_mean": 0.0961,
+    "roi_halfwidth_cons": 0.0477,
+    "roi_halfwidth_independent": 0.0195,
+    "rungs": 4105,
+    "units_player_game_stat": 3407,
+    "weekly_units_median": 109.0,
+    "weeks": 35,
+    "weeks_with_ge_10_units": 30
+   },
+   "half_point_rungs_joined_to_model": 664389,
+   "ladder_cells": [
+    {
+     "book": "betrivers",
+     "mean_points": 6.94,
+     "share_ge3": 0.988,
+     "stat": "pts",
+     "units": 10511
+    },
+    {
+     "book": "betrivers",
+     "mean_points": 2.13,
+     "share_ge3": 0.256,
+     "stat": "reb",
+     "units": 9895
+    },
+    {
+     "book": "unibet_us",
+     "mean_points": 6.95,
+     "share_ge3": 0.988,
+     "stat": "pts",
+     "units": 10499
+    },
+    {
+     "book": "unibet_us",
+     "mean_points": 2.13,
+     "share_ge3": 0.256,
+     "stat": "reb",
+     "units": 9875
+    }
+   ],
+   "primary_vs_duplicate_identical_price_share": 0.949,
+   "primary_vs_duplicate_shared_rungs": 3060,
+   "rungs_p70_by_book": {
+    "barstool": 72,
+    "betmgm": 870,
+    "betonlineag": 705,
+    "betrivers": 3070,
+    "bovada": 649,
+    "draftkings": 693,
+    "fanduel": 357,
+    "mybookieag": 567,
+    "pinnacle": 300,
+    "pointsbetus": 559,
+    "unibet_us": 3076,
+    "williamhill_us": 843,
+    "wynnbet": 12
+   },
+   "snapshot_after_tip_minus_60_or_no_tip": 0,
+   "two_sided_rungs": 674051
+  },
+  "2024": {
+   "arm_A_duplicate_book": {
+    "book": "unibet_us",
+    "rungs": 0
+   },
+   "arm_A_primary_book": {
+    "book": "betrivers",
+    "by_stat": {
+     "ast": 143,
+     "fg3m": 154,
+     "pts": 790,
+     "reb": 120
+    },
+    "dates": 135,
+    "decimal_min_med_max": [
+     1.299,
+     1.417,
+     2.35
+    ],
+    "games": 460,
+    "mean_model_p": 0.7508,
+    "mean_overround": 0.0846,
+    "model_claimed_ev_mean": 0.1031,
+    "roi_halfwidth_cons": 0.0751,
+    "roi_halfwidth_independent": 0.036,
+    "rungs": 1207,
+    "units_player_game_stat": 1026,
+    "weekly_units_median": 8.5,
+    "weeks": 32,
+    "weeks_with_ge_10_units": 15
+   },
+   "arm_B_best_price_any_book": {
+    "by_stat": {
+     "ast": 836,
+     "fg3m": 687,
+     "pts": 1059,
+     "reb": 328
+    },
+    "dates": 206,
+    "decimal_min_med_max": [
+     1.005,
+     1.5,
+     2.49
+    ],
+    "games": 942,
+    "mean_model_p": 0.7556,
+    "mean_overround": 0.0746,
+    "model_claimed_ev_mean": 0.1541,
+    "roi_halfwidth_cons": 0.0552,
+    "roi_halfwidth_independent": 0.0241,
+    "rungs": 2910,
+    "units_player_game_stat": 2684,
+    "weekly_units_median": 54.0,
+    "weeks": 35,
+    "weeks_with_ge_10_units": 33
+   },
+   "half_point_rungs_joined_to_model": 484607,
+   "ladder_cells": [
+    {
+     "book": "betrivers",
+     "mean_points": 3.64,
+     "share_ge3": 0.641,
+     "stat": "pts",
+     "units": 11828
+    }
+   ],
+   "primary_vs_duplicate_identical_price_share": null,
+   "primary_vs_duplicate_shared_rungs": 0,
+   "rungs_p70_by_book": {
+    "betmgm": 1390,
+    "betonlineag": 691,
+    "betrivers": 1207,
+    "bovada": 339,
+    "draftkings": 500,
+    "fanatics": 79,
+    "fanduel": 273,
+    "novig": 349,
+    "pinnacle": 301,
+    "prophetx": 166,
+    "williamhill_us": 962
+   },
+   "snapshot_after_tip_minus_60_or_no_tip": 0,
+   "two_sided_rungs": 494031
+  }
+ },
+ "rule": "docs/prereg/ALT_LINE_70.md (DRAFT)",
+ "seasons": [
+  2023,
+  2024
+ ]
+}
