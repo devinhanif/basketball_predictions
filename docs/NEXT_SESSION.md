@@ -102,6 +102,8 @@ in the SEQ_LEARNING_CURVE job description; rclone client_id; nba/truth/bootstrap
   APP_CONTENT_SPEC); nothing touches nba/, ops/, configs/ before then. "jev engineering" = route LLM calls by difficulty (Jev-style router: cheap tier for easy, flagship for hard; Devin 2026-10-13); applies to the app's per-token calls, not the Claude Code build loop; confirm exact vendor URL/plan before buying; test routed vs unrouted on real app questions.
 
 ## Loose ends (recorded, not chased)
+- NEW 2026-10-14 (null audit): possessions `assister_id` is NULL for accented passers (Jokic, Doncic at 0%; 91.2% coverage overall); no closed verdict depends on it; fix in the parser's name matching before any assist-network feature (archivist).
+- Null audit re-tests queued for after 10-20, one pre-registered rule each: T185 F12 closing risk (gate failed on pre-v2 stints), then T176 RAPM (pre-v2 lineups; check power first); PBP_GPT T082/T084 UNKNOWN pending a code read.
 
 - team_coaches wrong head coach in 14/87 team-seasons 2022-24, no mid-season changes; no production reader (archivist).
 - stints miss 40% of <1-minute appearances; rebuild needs Devin's approval (DECISIONS 2026-10-10 ~23:55).
