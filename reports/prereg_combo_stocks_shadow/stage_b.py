@@ -679,17 +679,12 @@ def main() -> None:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    import contextlib
-    import os
 
     from research.eval import workload_eval as WE
 
-    lock = (
-        contextlib.nullcontext()
-        if os.environ.get("COMBO_NO_LOCK")
-        else WE.WorkloadLock(Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock"))
-    )
-    with lock:
+    with WE.WorkloadLock(
+        Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock")
+    ):  # no bypass
         w = World(args)
         print(f"world built: {w.keys.height} oof rows ({time.time() - t0:.0f}s)", flush=True)
         (phase_select if args.phase == "select" else phase_report)(w, out)

@@ -84,13 +84,10 @@ LOCK = Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock")
 
 
 def main() -> None:
-    import contextlib
-    import os
 
     from research.eval import workload_eval as WE
 
-    # COMBO_NO_LOCK=1: a long job by another owner holds the lock; this run is small (about 1 GB, minutes). Disclosed in the report.
-    with contextlib.nullcontext() if os.environ.get("COMBO_NO_LOCK") else WE.WorkloadLock(LOCK):
+    with WE.WorkloadLock(LOCK):  # always take the cooperative lock or wait; there is no bypass
         run()
 
 
