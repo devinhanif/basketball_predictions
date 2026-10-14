@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   addPick,
   canPlace,
+  clearLedger,
   lastWeek,
   loadLedger,
   recordOf,
@@ -236,5 +237,15 @@ describe("record and streak", () => {
     const week = lastWeek(rows, new Date("2026-10-14T12:00:00Z"));
     expect(week.map((s) => s.pick.id)).toEqual(["b", "c", "d", "e"]);
     expect(recordOf(week)).toEqual({ wins: 3, losses: 0 });
+  });
+});
+
+describe("reset my picks", () => {
+  it("empties the saved ledger", () => {
+    store.clear();
+    addPick([], card, "over", CLOCK, 900);
+    expect(loadLedger()).toHaveLength(1);
+    clearLedger();
+    expect(loadLedger()).toHaveLength(0);
   });
 });

@@ -3,7 +3,6 @@ import { api } from "./api";
 import { Shell } from "./components";
 import { useRoute } from "./router";
 import { Game } from "./pages/Game";
-import { Method } from "./pages/Method";
 import { ParlayPage } from "./pages/Parlay";
 import { Picks } from "./pages/Picks";
 import { Swipe } from "./pages/Swipe";
@@ -39,9 +38,6 @@ export function App() {
       break;
     case "parlay":
       page = <ParlayPage />;
-      break;
-    case "method":
-      page = <Method onStale={setStale} />;
       break;
     default:
       page = <Today date={route.date} onStale={setStale} />;

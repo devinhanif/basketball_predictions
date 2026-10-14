@@ -5,8 +5,7 @@ export type Route =
   | { name: "game"; id: string }
   | { name: "swipe"; date: string | null }
   | { name: "picks" }
-  | { name: "parlay" }
-  | { name: "method" };
+  | { name: "parlay" };
 
 export function parse(hash: string): Route {
   const [path = "", query = ""] = hash.replace(/^#/, "").split("?");
@@ -21,8 +20,6 @@ export function parse(hash: string): Route {
       return { name: "picks" };
     case "parlay":
       return { name: "parlay" };
-    case "method":
-      return { name: "method" };
     default:
       return { name: "today", date: q.get("date") };
   }

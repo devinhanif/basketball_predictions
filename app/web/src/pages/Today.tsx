@@ -1,8 +1,8 @@
 import { api } from "../api";
-import { Explain, TeamTag, View, WinBars, WinLegend } from "../components";
-import { lineText, longDate, pct, pctBounded, signed, tipTime } from "../format";
+import { TeamTag, View, WinBars, WinLegend } from "../components";
+import { lineText, longDate, pct, pctBounded, tipTime } from "../format";
 import { useLoad } from "../useLoad";
-import type { Evidence, GameSummary } from "../types";
+import type { GameSummary } from "../types";
 import { STAT_LABEL } from "../types";
 import { doesText, inTen } from "../words";
 import { ParlayCard } from "./Parlay";
@@ -88,39 +88,8 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
   );
 }
 
-function HowGood({ ev }: { ev: Evidence }) {
-  const g = ev.games_t60;
-  const bookAhead = g.ci_lo > 0;
-  const modelAhead = g.ci_hi < 0;
-  return (
-    <>
-      <p class="small">
-        <strong>How good are we?</strong>{" "}
-        {bookAhead
-          ? `Over all ${g.n.toLocaleString()} games in the ${ev.seasonLabel} season, the sportsbook's odds were closer to what happened than our model's. The gap was small, but it was there.`
-          : modelAhead
-            ? `Over all ${g.n.toLocaleString()} games in the ${ev.seasonLabel} season, our model was closer to what happened than the sportsbook's odds.`
-            : `Over all ${g.n.toLocaleString()} games in the ${ev.seasonLabel} season, we could not separate our model from the sportsbook's odds.`}{" "}
-        <a href="#/method">More on how it works</a>.
-      </p>
-      <Explain>
-        <p>
-          We score each forecast by how surprised it was by the real result (the score is called log loss, and lower is
-          better). Averaged over {g.n.toLocaleString()} games: our model {g.log_loss_model}, the sportsbook {g.log_loss_market}.
-        </p>
-        <p>
-          The model minus the market is {signed(g.delta)}, and the 95% range for that gap is {signed(g.ci_lo)} to{" "}
-          {signed(g.ci_hi)}. A positive number means the market did better. When the range stays above zero, the gap is
-          unlikely to be luck.
-        </p>
-      </Explain>
-    </>
-  );
-}
-
 function SlateBody({ date, onStale }: { date: string; onStale: (s: boolean) => void }) {
   const [slate, reload] = useLoad(() => api.slate(date), [date]);
-  const [ev] = useLoad(() => api.evidence(), []);
   return (
     <View state={slate} reload={reload} onStale={onStale}>
       {(s) => (
@@ -133,7 +102,6 @@ function SlateBody({ date, onStale }: { date: string; onStale: (s: boolean) => v
               This is a replay of a real night from the 2024-25 season, not tonight's slate. Every forecast was made before
               tip, using only what was known then.
             </p>
-            {ev.status === "ready" ? <HowGood ev={ev.data} /> : null}
           </section>
           <div class="games">
             {s.games.map((g) => (

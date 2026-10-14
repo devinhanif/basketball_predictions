@@ -107,6 +107,22 @@ def test_prop_probability_falls_as_the_line_rises(client: TestClient) -> None:
     assert lo["p_over"] >= hi["p_over"]
 
 
+def test_alt_line_has_a_price_only_at_the_posted_line(client: TestClient) -> None:
+    gid, pid, stat, prop = _first_prop(client)
+    url = f"/api/props/{gid}/{pid}/{stat}"
+    main = client.get(url, params={"line": prop["line"]}).json()
+    assert main["is_main_line"] is True
+    assert main["over_price"] == prop["over_price"]
+    assert main["under_price"] == prop["under_price"]
+    alt = client.get(url, params={"line": prop["line"] + 1}).json()
+    assert alt["is_main_line"] is False
+    assert alt["main_line"] == prop["line"]
+    assert alt["over_price"] is None
+    assert alt["under_price"] is None
+    # same function as the main line: the numbers on an alt line come from the stored quantiles
+    assert alt["q"] == prop["q"]
+
+
 def test_prop_validation(client: TestClient) -> None:
     gid, pid, stat, _ = _first_prop(client)
     assert client.get(f"/api/props/{gid}/{pid}/{stat}").status_code == 422

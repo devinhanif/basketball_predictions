@@ -2,7 +2,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { LoadState } from "./useLoad";
 import { num, pct } from "./format";
-import { lastWeek, recordOf, streak, type Settled } from "./ledger";
+import { clearLedger, lastWeek, recordOf, streak, type Settled } from "./ledger";
 import { MIN_LEGS } from "./stats";
 import { teamColor } from "./teams";
 import type { PropView, Team, WinProbability } from "./types";
@@ -15,7 +15,6 @@ const I = {
   today: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z",
   swipe: "M4 7h16v10H4zM8 3h8M8 21h8",
   picks: "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4",
-  method: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 8v6m0-9.5v.5",
 };
 
 function Icon({ d }: { d: string }) {
@@ -42,7 +41,6 @@ const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] 
   { name: "today", href: "#/", label: "Today", icon: I.today },
   { name: "swipe", href: "#/swipe", label: "Swipe", icon: I.swipe },
   { name: "picks", href: "#/picks", label: "My picks", icon: I.picks },
-  { name: "method", href: "#/method", label: "How it works", icon: I.method },
 ];
 
 function isCurrent(route: Route, name: Route["name"]): boolean {
@@ -88,10 +86,7 @@ export function Footer() {
           <strong>Analysis only, not advice.</strong> We do not take bets or sell picks. 21+ (US). If gambling is a
           problem, call <strong>1-800-GAMBLER</strong>.
         </p>
-        <p>
-          Our forecasts can be wrong, and the sportsbooks have been better than us at picking game winners.{" "}
-          <a href="#/method">Responsible gambling and how this works</a>.
-        </p>
+        <p>Our forecasts can be wrong. A forecast is a chance, not a promise. Past results do not predict what comes next.</p>
         <p>Written by an automated system and reviewed by a person. Everything here is a paper trade: no real money.</p>
       </div>
     </footer>
@@ -258,10 +253,7 @@ export function WinLegend() {
         using only what was known then. <strong>Sportsbook odds</strong> are DraftKings' moneyline about an hour before
         tip, with the book's built-in margin taken out so the two sides add up to 100%.
       </p>
-      <p>
-        If the bars match, the market and our model see the game the same way. If they differ, one of us knows
-        something the other does not, and over a full season the books have usually been right more often.
-      </p>
+      <p>If the two bars match, the market and our model see the game the same way. If they differ, we disagree.</p>
     </Explain>
   );
 }
@@ -368,5 +360,47 @@ export function RecordBoard(props: { settled: Settled[]; loading: boolean; picks
         <p class="muted small">Only {allN} graded so far, so luck is doing most of the work. It takes {MIN_LEGS} or more to say anything.</p>
       ) : null}
     </div>
+  );
+}
+
+/** Clears every saved pick on this device. Asks once first. */
+export function ResetPicks(props: { onReset: () => void }) {
+  const [confirm, setConfirm] = useState(false);
+  if (confirm) {
+    return (
+      <span class="row">
+        <button
+          type="button"
+          class="btn primary"
+          onClick={() => {
+            clearLedger();
+            setConfirm(false);
+            props.onReset();
+          }}
+        >
+          Yes, wipe my picks
+        </button>
+        <button
+          type="button"
+          class="btn"
+          onClick={() => {
+            setConfirm(false);
+          }}
+        >
+          Keep them
+        </button>
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      class="btn"
+      onClick={() => {
+        setConfirm(true);
+      }}
+    >
+      Reset my picks
+    </button>
   );
 }

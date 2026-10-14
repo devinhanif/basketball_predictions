@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { api } from "../api";
+import { AltLine } from "../AltLine";
 import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
 import { american, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { useLoad } from "../useLoad";
@@ -7,7 +8,7 @@ import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../type
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
 import { chanceSentence, didText } from "../words";
 
-function PropBlock(props: { player: string; prop: PropView; actual: number | undefined }) {
+function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined }) {
   const { prop, player, actual } = props;
   const q = prop.q;
   return (
@@ -40,6 +41,7 @@ function PropBlock(props: { player: string; prop: PropView; actual: number | und
           Nine in ten: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
         </span>
       </div>
+      <AltLine gameId={props.gameId} playerId={props.playerId} player={player} prop={prop} />
       {actual !== undefined ? (
         <p class="result-line">
           <span class="label">Final</span> {player} {didText(prop.stat, actual)}:{" "}
@@ -50,7 +52,7 @@ function PropBlock(props: { player: string; prop: PropView; actual: number | und
   );
 }
 
-function PlayerRow(props: { p: PlayerView; result: GameResult | null }) {
+function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
@@ -82,7 +84,7 @@ function PlayerRow(props: { p: PlayerView; result: GameResult | null }) {
       )}
       {STATS.map((s: Stat) => {
         const prop = props.p.props[s];
-        return prop ? <PropBlock key={s} player={props.p.name} prop={prop} actual={res?.actual[s]} /> : null;
+        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={res?.actual[s]} /> : null;
       })}
     </details>
   );
@@ -139,7 +141,6 @@ function Body({ g }: { g: GameDetail }) {
             Forecast stamp: <span class="mono">{g.win_probability.model_stamp ?? "none"}</span>. In plain terms, the model was
             built without ever seeing this game or any later one.
           </p>
-          <p>This is one game, so it says very little about how good the model is. The season-wide record is on the How it works page.</p>
         </Explain>
       </section>
 
@@ -202,7 +203,7 @@ function Body({ g }: { g: GameDetail }) {
           {players.length === 0 ? (
             <p class="muted">No lines were posted for this team.</p>
           ) : (
-            players.map((p) => <PlayerRow key={p.player_id} p={p} result={res} />)
+            players.map((p) => <PlayerRow key={p.player_id} gameId={g.game_id} p={p} result={res} />)
           )}
         </div>
         <ul class="plain small muted">

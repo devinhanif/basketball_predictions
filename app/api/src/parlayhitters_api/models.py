@@ -95,6 +95,12 @@ class ProbAtLine(BaseModel):
     method: str
     taus: list[float]
     q: list[float]
+    # The posted line for this prop and, only when `line` is exactly that line, its stored prices.
+    # For any other line there is no stored price, and none is made up.
+    main_line: float
+    is_main_line: bool
+    over_price: int | None
+    under_price: int | None
 
 
 class SwipeCard(BaseModel):

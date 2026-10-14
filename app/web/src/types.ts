@@ -202,34 +202,18 @@ export interface ParlayState {
   disclaimer: string;
 }
 
-export interface EvidenceRow {
+export interface ProbAtLine {
+  game_id: string;
+  player_id: number;
   stat: Stat;
-  n: number;
-  games: number;
-  log_loss_model: number;
-  log_loss_market: number;
-  delta: number;
-  ci_lo: number;
-  ci_hi: number;
-  verdict: string;
-}
-
-export interface Evidence {
-  source: string;
-  rule: string;
-  seasonLabel: string;
-  snapshot: string;
-  unit: string;
-  ci_note: string;
-  props_consensus_t60: EvidenceRow[];
-  games_t60: {
-    n: number;
-    log_loss_model: number;
-    log_loss_market: number;
-    delta: number;
-    ci_lo: number;
-    ci_hi: number;
-    verdict: string;
-    market: string;
-  };
+  line: number;
+  p_over: number;
+  p_under: number;
+  p_push: number;
+  extrapolated: boolean;
+  method: string;
+  main_line: number;
+  is_main_line: boolean;
+  over_price: number | null;
+  under_price: number | null;
 }

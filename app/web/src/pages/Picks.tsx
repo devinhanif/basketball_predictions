@@ -1,7 +1,7 @@
 import { useMemo, useState } from "preact/hooks";
-import { Explain, RecordBoard } from "../components";
+import { Explain, RecordBoard, ResetPicks } from "../components";
 import { american, lineText, longDate, pct } from "../format";
-import { clearLedger, loadLedger, summarize, type Pick, type Settled } from "../ledger";
+import { loadLedger, summarize, type Pick, type Settled } from "../ledger";
 import { MIN_LEGS } from "../stats";
 import { useSettled } from "../useSettled";
 import { didText } from "../words";
@@ -46,7 +46,6 @@ export function Picks() {
   const [picks, setPicks] = useState<Pick[]>(loadLedger);
   const { results, settled, open } = useSettled(picks);
   const sum = useMemo(() => summarize(picks, settled), [picks, settled]);
-  const [confirm, setConfirm] = useState(false);
 
   if (picks.length === 0) {
     return (
@@ -116,39 +115,6 @@ export function Picks() {
             </p>
             <p>With a small number of picks, a hot or cold streak says very little. Differences here are mostly luck.</p>
           </Explain>
-          <Explain label="Does the model's confidence hold up on your picks?">
-            <p>
-              We group your graded picks by how likely our model said your side was. If the model is honest, what happened
-              should land close to what it predicted in every row. Rows with fewer than {MIN_LEGS} picks say "not enough to
-              say".
-            </p>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Model said</th>
-                    <th class="r">Picks</th>
-                    <th class="r">Predicted</th>
-                    <th class="r">Happened</th>
-                    <th class="r">95% range</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sum.bins.map((b) => (
-                    <tr key={b.label}>
-                      <td>{b.label}</td>
-                      <td class="r num">{b.n}</td>
-                      <td class="r num">{b.predicted !== null ? pct(b.predicted) : "-"}</td>
-                      <td class="r num">{b.observed !== null ? pct(b.observed) : "-"}</td>
-                      <td class="r num">
-                        {b.n === 0 ? "-" : b.enough && b.ci ? `${pct(b.ci[0])} to ${pct(b.ci[1])}` : "not enough to say"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Explain>
         </section>
       ) : null}
 
@@ -159,23 +125,11 @@ export function Picks() {
             <button type="button" class="btn" onClick={() => { download(picks); }}>
               Download
             </button>
-            {confirm ? (
-              <button
-                type="button"
-                class="btn primary"
-                onClick={() => {
-                  clearLedger();
-                  setPicks([]);
-                  setConfirm(false);
-                }}
-              >
-                Yes, delete all
-              </button>
-            ) : (
-              <button type="button" class="btn" onClick={() => { setConfirm(true); }}>
-                Clear
-              </button>
-            )}
+            <ResetPicks
+              onReset={() => {
+                setPicks([]);
+              }}
+            />
           </div>
         </div>
         <ul class="picks">

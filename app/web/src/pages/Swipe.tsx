@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { api } from "../api";
-import { Explain, RecordBoard, TeamTag, View } from "../components";
+import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
 import { american, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
 import { useLoad } from "../useLoad";
@@ -203,6 +203,14 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
             {didText(last.pick.stat, last.row.actual)}. <span class="muted">You took {last.pick.side} {lineText(last.pick.line)}.</span>
           </p>
         ) : null}
+      </div>
+      <div class="reset-row">
+        <ResetPicks
+          onReset={() => {
+            setLedger([]);
+            props.reroll();
+          }}
+        />
       </div>
     </div>
   );

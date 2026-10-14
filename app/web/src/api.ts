@@ -1,8 +1,8 @@
 import type {
-  Evidence,
   GameDetail,
   GameResult,
   Meta,
+  ProbAtLine,
   ParlayState,
   Slate,
   SlateListItem,
@@ -32,5 +32,8 @@ export const api = {
   swipe: (date: string, seed: number, n = 24) =>
     getJson<SwipeDeck>(`/api/slates/${encodeURIComponent(date)}/swipe?seed=${seed}&n=${n}`),
   parlay: () => getJson<ParlayState>("/api/parlay-of-the-day"),
-  evidence: () => getJson<Evidence>("/api/evidence"),
+  propAtLine: (gameId: string, playerId: number, stat: string, line: number) =>
+    getJson<ProbAtLine>(
+      `/api/props/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}?line=${line.toString()}`,
+    ),
 };

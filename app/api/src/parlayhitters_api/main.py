@@ -280,6 +280,8 @@ def register(app: FastAPI) -> None:
             if pl["player_id"] == player_id and stat in pl["props"]:
                 q = [float(v) for v in pl["props"][stat]["forecast"]["q"]]
                 lp = line_probs(q, line)
+                posted = pl["props"][stat]
+                is_main = float(posted["line"]) == line
                 return ProbAtLine(
                     game_id=game_id,
                     player_id=player_id,
@@ -292,6 +294,10 @@ def register(app: FastAPI) -> None:
                     method=METHOD,
                     taus=list(TAUS),
                     q=q,
+                    main_line=float(posted["line"]),
+                    is_main_line=is_main,
+                    over_price=int(posted["over_price"]) if is_main else None,
+                    under_price=int(posted["under_price"]) if is_main else None,
                 )
         raise HTTPException(404, "no forecast for that player and stat")
 
