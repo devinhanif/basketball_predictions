@@ -599,11 +599,14 @@ fit_through DATE, n_train, git_sha, git_dirty, stamped_at)`.
 - Rows deduplicated by write-on-change still get a stamp for their run: the stamp says which fit that run
   used, `forward_predictions` keeps the first run that wrote the row.
 
-## AVG shadow: 0.5 pmf(SEQc) + 0.5 pmf(FULL) (AVG_SHADOW_LIVE_2; flag `--log-avg-shadow`, OFF; built 2026-10-13)
+## AVG shadow: 0.5 pmf(SEQc) + 0.5 pmf(FULL) (AVG_SHADOW_LIVE_2; flag `--log-avg-shadow`, ON in the pretip job since 2026-10-14; built 2026-10-13)
 
 Rule: `docs/prereg/AVG_SHADOW_LIVE_2.md` (frozen 2026-10-14 11:11 CDT, sha256 9afbfeb6, commit 6e86f1a; supersedes AVG_SHADOW_LIVE 6e57fc11, which changed only G1/P3 after its P3 failed on the 19-atom G1 reading). Code: `nba/daily/avg_shadow/`, reader `nba/eval/avg_shadow_live.py`,
-rebuild job `research/colab/jobs/avg_shadow_rebuild/`. **Not enabled in `ops/nba_daily.sh`** (that is the maintainer's edit, after the proofs and the weights
-install; hands-off window 10-18 to 10-20). Counting start in `forward_avg_meta` is UNSET: `store.set_counting_start` refuses until P1a, P1b, P2, P3, P4 are recorded
+rebuild job `research/colab/jobs/avg_shadow_rebuild/`. **ON in `ops/nba_daily.sh` since 2026-10-14 (Devin's go).** The bundle `b8d2b27b` (month_block 2026-10, fit_through 2026-06-13) was installed to
+`data/avg_shadow/bundles/2026-10` at 2026-10-14 16:16 CDT, after Devin deleted `data/avg_shadow/gate_work` (the build review's blocker: the 2025 gate rows); the source copy stays in
+`data/avg_shadow/incoming/2026-10`. A slate with no regular-season game records `skipped` without touching `consecutive_bad`; a month with no valid bundle serves `stale_model = 1`
+(November needs its own bundle before the 1st; the watchdog alerts past the 3rd). Not yet recorded in `forward_avg_meta`: `meta bundle`, the five proofs and the counting start (UNSET; never
+earlier than the FULL shadow's, 2026-10-20). Counting start in `forward_avg_meta` is UNSET: `store.set_counting_start` refuses until P1a, P1b, P2, P3, P4 are recorded
 as `pass` (`python -m nba.daily.avg_shadow.meta proof ...`).
 
 * **Step** (`pipeline._avg_shadow`, after the FULL shadow, own try/except): per run, regular-season games (`game_id` prefix `002`) that have not tipped; reads
@@ -648,3 +651,60 @@ as `pass` (`python -m nba.daily.avg_shadow.meta proof ...`).
 * **Rebuild order (maintainer)**: `export_inputs.py hist` and `cur` -> `make colab-push JOB=avg_shadow_rebuild` (the notebook and the builder refuse any rule text whose sha256 does not start with the pinned 9afbfeb6) -> run the notebook (T4, budget 45 min, ceiling 60) ->
   `pull` -> `p1a_check.py`, `p1b_check.py` -> assemble the aligned 2023-25 rows and `fit_gate.py` -> `assemble_bundle.py` -> `bundle install` -> `meta bundle`, `meta proof` ->
   `meta counting-start` (refused until all five proofs pass). Not run: the gate fit needs the 2025 A0 members of T478's held-out path.
+
+## COMBO_STOCKS shadow: blk, stl and the combo props (COMBO_STOCKS_SHADOW; flag `--log-combo-shadow`, ON in the pretip job since 2026-10-14)
+
+Rule: `docs/prereg/COMBO_STOCKS_SHADOW.md` (FROZEN 2026-10-14 15:08 CDT, sha256 b9b38cbe; config `configs/combo_stocks_shadow.yaml` sha256 8932ccec). Code: `nba/daily/combo_shadow/`
+(`config.py`, `store.py`, `run.py`, `settle.py`, `display.py`, `meta.py`), reader `nba/eval/combo_shadow_live.py`, step `pipeline._combo_shadow`. Flag-gated, ON in the pretip job
+(Devin's go, 2026-10-14). Counting start in `forward_combo_meta` is UNSET: `store.set_counting_start` refuses until P1, P2, P3, P4 are recorded as `pass`
+(`python -m nba.daily.combo_shadow.meta proof ...`).
+
+* **Step** (after the AVG shadow, own try/except, own heartbeat; a failure is a `shadow_errors` ALERTS line and changes no primary row): per run, regular-season games (`002`) that
+  have not tipped. (a) Production's feature frame with the slate placeholders plus the stock columns (`nba.props.stock_features`); blk and stl come from their own read-only
+  query (`_history_frames` does not select them and is not edited). (b) `NBCountModel` (Poisson mean + NB dispersion in 4 bins) for blk and stl on played rows dated before the
+  slate date, same-date cache `<model cache>/<date>_combo/`. (c) The latest production rows for pts (`props_context_residual_lt`), reb, ast, fg3m rebuilt to 199-point grids from the stored
+  `p_ge_full` (n = 199). (d) `joint_grids` with the frozen R and 10,000 frozen base normals (one call: every combo is a sum of the SAME simulated games, so PRA >= PR, PA, RA draw by
+  draw) and the same sampler with R = I (INDEP). (e) RECENT from the player's last 40 played games (half-life 10). (f) rows, write-on-change, refusing `made_at >= tipoff_utc`.
+  Serving rule: `n_prior >= 5`; a player without an on-time context row for each of the four marginals is not servable (counted in the run info, never imputed). DIRECT and RECENT_CAL
+  (descriptive, droppable per the rule) are not built; their columns are NULL. The writer REFUSES to run on any config or base-normal sha other than the frozen ones.
+* **Tables** (`store.py`, all new, none read by the canonical dump, so the replay oracle cannot move through this writer): `forward_combo_shadow`, `forward_combo_scores` (settle: the
+  latest row with `made_at <= tip - 60`, exact integer CRPS of the 199-point grid for S, RECENT, INDEP), `forward_combo_heartbeat`, `forward_combo_meta`.
+* **Settle**: `nba.daily settle` (morning) and every pretip run call `settle_combo_shadow` in their own try; idempotent; a player absent from a final box is `not_in_box`.
+* **Heartbeat / watchdog**: `data/ops/heartbeat/combo_shadow.json` at START and END of every run (`consecutive_bad` counts failed runs; a slate with nothing to serve leaves it alone).
+  `nba.ops.watchdog.SHADOW_JOBS` alerts at 3 consecutive failed runs and when a run started but never ended (30 min). Silent while the flag is off (no file).
+* **Reader** (`python -m nba.eval.combo_shadow_live`): rows are the on-time shadow rows of played regular-season players with `n_prior >= 5`; S minus RECENT on the exact integer CRPS, both
+  clusterings (game and date, `full_shadow_live.cluster_boot` / `one_sided` imported), BH over the seven targets, G1 and the slice guard from `nba.props.combo_g1`, the later-half condition,
+  COPULA minus INDEP for PRA, PR, PA, RA, integrity gates, servability (flag above 5% not servable), coverage (95% overall, 90% starter and bench, kill below 80%) and the missingness
+  table at every look. `look_due` fixes the calendar (interim Sun 2026-11-15 when every target has >= 1,500 rows, kill-only; final the first Sunday on or after 2027-01-10 at >= 3,000 rows
+  per target; one second look); `read_look` raises `LookNotDue` before touching a score on any other day. The briefing prints counts and gates only (`display.py`).
+* **Replay (proof P3)**: `... replay_season ... --combo-shadow` turns the writer on for the replay (heartbeat to `<out-dir>/combo_heartbeat/`, never `data/ops`). Each replayed date's
+  `models.combo_shadow` entry in the replay state shows the status and `written`.
+* **Proofs, state at build (2026-10-14)**: **P1 PASS** (`tests/props/test_combo_p1.py` and `tests/daily/test_combo_shadow.py::test_p1_reference_is_reproduced_through_the_writers_code_path`:
+  the committed 200-row reference reproduced bit for bit in two chunkings through `run.joint_from_cdfs`). **P2 PASS** (`tests/props/test_stock_features.py` plus the writer-level planted-future test:
+  a later game, tonight's own leaked box and a post-run report move no grid; editing a prior game does). **P3 NOT RUN**: needs the HOLDOUT_ACCESS_LOG row first (drafted in the rule, the
+  archivist's), then the maintainer's replay of 20 dates of season 2025 with `--combo-shadow` (about 30 min), hash 89889f6d with `rows_written > 0`, copy deleted unread.
+  **P4 (cost and storage)**: not measured on real data; fixture figures in the build hand-back.
+
+## App export job (its own launchd job, 2026-10-14)
+
+`python -m nba.ops.app_export` runs `python -m nba.export build --date <today ET> --out data/export/latest` after the morning job. It is NOT a step of `ops/nba_daily.sh`: an export failure
+can never change a morning or pretip exit code, and a slow Drive upload in the morning job (today: 98 minutes, rc 1) cannot delay it past its own slots.
+
+* **Schedule**: `ops/launchd/local.nba.app-export.plist`, two slots a day at 12:35 and 14:35 on the schedule clock (the same clock as the other jobs, `data/ops/schedule_tz`), at :35 so they fall
+  between the pretip runs. **Not installed by anything in the repo.** Install: `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist`;
+  remove: `launchctl bootout gui/$(id -u)/local.nba.app-export`.
+* **Gate**: the `daily-morning` heartbeat must have an END written today (Eastern date) with `rc == 0`. Otherwise the run is SKIPPED with a recorded reason (heartbeat `status: skipped`, the log
+  `data/ops/app_export_YYYYMMDD.log`, and `app-export.skip.json` with a consecutive count); a skip exits 0 and the watchdog alerts after two in a row. Note: the morning job's rc is the
+  worst rc of any step, so a failed Drive upload (rclone) also skips the export even though the data is fine; that is the stated rule, Devin can relax it.
+* **Atomic**: built in `data/export/.latest.stage.<pid>` and swapped into `data/export/latest` only after the build exited 0; a failed build leaves the previous export in place. A locked
+  `nba.duckdb` (exit 2) is retried 4 times a minute apart. A second slot that finds today's export already built after the morning job's end does nothing.
+* **Heartbeat / watchdog**: `data/ops/heartbeat/app-export.json` at START and END (`status`, `reason`, `rc`). `JOBS["app-export"]` in `nba.ops.watchdog` is `optional`: silent until the job has left a
+  heartbeat or its label is loaded, so merging before the maintainer installs it raises no false alert; once loaded, a missed slot, a non-zero rc or two skips alert like any job.
+
+## Watchdog drill (2026-10-14)
+
+`python -m nba.ops.watchdog drill [--hb-dir data/ops/heartbeat]` copies the heartbeat directory to a temporary directory (the source is only read), writes a healthy baseline for every job, injects
+(1) a missed pretip (the newest pretip start is one slot older than the slot that is due) and (2) a failed morning job (rc 1), runs the real `check` on the copy (collecting notifier instead of osascript,
+`launchctl` text injected), and prints what was raised; exit 0 only when both alerts fire. Result on the live copy at 17:17 ET 2026-10-14: baseline 0 alerts; raised `daily-pretip:stale`
+("last start 16:20, expected by 16:50") and `daily-morning:rc` ("last run exited rc=1"), both written to the temporary ALERTS.md and sent to the notifier; the live heartbeat directory unchanged (tests/ops/test_watchdog_drill.py
+checks byte equality of the source and four clock positions, including overnight and just after a slot).

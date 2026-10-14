@@ -127,10 +127,15 @@ case "$MODE" in
     # 89889f6d identical with the shadow code; its second predict call runs inside the pretip lock)
     # and SHADOW-log RECENT_ROLE_FULL (--log-full-shadow, 2026-10-12: props heads + lower-tail pi refit with
     # the five recent-role columns; own tables forward_full_shadow / forward_full_scores; same contract)
+    # and SHADOW-log AVG_SHADOW_LIVE_2 (--log-avg-shadow, Devin 2026-10-14: logs "skipped" until the weights
+    # bundle is installed by hand; own tables forward_avg_*, heartbeat avg_shadow.json; counting never starts
+    # before 2026-10-20) and COMBO_STOCKS_SHADOW (--log-combo-shadow, Devin 2026-10-14: blk / stl NB heads and
+    # the six-stat copula joint for PRA, PR, PA, RA, blk+stl; own tables forward_combo_*, heartbeat
+    # combo_shadow.json; each in its own try/except after every primary row is written)
     . "$(dirname "$0")/roster_source.sh"   # sets ROSTER (official through 2026-11-30)
     step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --log-pplay-shadow --log-full-shadow \
-      --rate-limit-s 2.5
+      --log-avg-shadow --log-combo-shadow --rate-limit-s 2.5
     step refs "$UV" run --no-sync python -m nba.ingest.referees collect
     # live sharp-line capture (nba.odds capture, theoddsapi.com) was removed on 2026-10-10 when Devin
     # cancelled that subscription; the adapter stays in nba/odds, re-add this step with a valid key in .env.

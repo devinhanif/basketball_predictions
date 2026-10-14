@@ -24,6 +24,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
@@ -61,6 +62,9 @@ class JobSpec:
     heartbeat: bool = True  # False: judged from ``log_path`` mtime instead
     #: alert when the wrapper reports this many consecutive skipped runs (lock held)
     max_skips: int | None = None
+    #: judged only once the job has ever left a heartbeat or its launchd label is loaded: a job the
+    #: maintainer has not installed yet is silent, an installed job that never starts still alerts
+    optional: bool = False
 
 
 JOBS: tuple[JobSpec, ...] = (
@@ -89,6 +93,19 @@ JOBS: tuple[JobSpec, ...] = (
         timedelta(minutes=10),
         timedelta(minutes=5),
         max_skips=6,
+    ),
+    JobSpec(
+        # the app export (nba.ops.app_export, ops/launchd/local.nba.app-export.plist): two slots
+        # after the morning job, at :35 so it falls between the pretip runs (:20 + a few minutes,
+        # :50). Keep in step with the plist.
+        "app-export",
+        "local.nba.app-export",
+        "slots",
+        timedelta(minutes=30),
+        minutes=(35,),
+        hours=(12, 14),
+        max_skips=2,
+        optional=True,
     ),
     JobSpec(
         "kalshi-snapshot",
@@ -124,7 +141,10 @@ class ShadowJob:
 #: consecutive failed or missing slate heartbeats on game days, 1 for a missed monthly weights
 #: install past the 3rd. Silent until the step has written its first heartbeat (flag off = no
 #: file = no alert).
-SHADOW_JOBS: tuple[ShadowJob, ...] = (ShadowJob("avg_shadow", 3, 3),)
+#: COMBO_STOCKS_SHADOW (docs/prereg/COMBO_STOCKS_SHADOW.md, "What the steward builds" 1): the
+#: same contract, heartbeat ``combo_shadow.json`` written by nba.daily.combo_shadow.run; no
+#: monthly install.
+SHADOW_JOBS: tuple[ShadowJob, ...] = (ShadowJob("avg_shadow", 3, 3), ShadowJob("combo_shadow", 3))
 
 
 @dataclass(frozen=True)
@@ -183,6 +203,15 @@ def read_skips(hb_dir: Path, job: str) -> int:
         return 0
 
 
+def read_skip_reason(hb_dir: Path, job: str) -> str | None:
+    """The reason the wrapper recorded for its latest skip (``<job>.skip.json``), if any."""
+    try:
+        reason = json.loads((hb_dir / f"{job}.skip.json").read_text()).get("reason")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return str(reason) if reason else None
+
+
 def read_heartbeat(hb_dir: Path, job: str) -> dict[str, object] | None:
     path = hb_dir / f"{job}.json"
     try:
@@ -225,7 +254,10 @@ def evaluate(
 ) -> list[Alert]:
     """Pure-ish health check: returns the alerts for the current moment (no dedupe)."""
     alerts: list[Alert] = []
+    loaded = parse_launchctl(launchctl_text)
     for spec in jobs:
+        if spec.optional and read_heartbeat(hb_dir, spec.name) is None and spec.label not in loaded:
+            continue  # never installed (no heartbeat, label not loaded): nothing to judge yet
         due = last_due(spec, now, tz)
         start: datetime | None
         rc: object = None
@@ -246,11 +278,15 @@ def evaluate(
         if spec.max_skips is not None and spec.heartbeat:
             n_skips = read_skips(hb_dir, spec.name)
             if n_skips >= spec.max_skips:
+                why = (
+                    read_skip_reason(hb_dir, spec.name)
+                    or "lock held by another job or a stale lock"
+                )
                 alerts.append(
                     Alert(
                         f"{spec.name}:skipped",
-                        f"{spec.name} skipped {n_skips} consecutive runs (lock held by another "
-                        "job or a stale lock); no predictions/ticks in that window",
+                        f"{spec.name} skipped {n_skips} consecutive runs ({why}); "
+                        "no predictions/ticks in that window",
                     )
                 )
         reference = start if start is not None else first_seen
@@ -440,13 +476,100 @@ def health_section(ops_dir: Path = Path("data/ops")) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _write_fake_heartbeat(
+    hb_dir: Path, job: str, start: datetime, end: datetime | None, rc: int | None
+) -> None:
+    hb_dir.mkdir(parents=True, exist_ok=True)
+    rec = {
+        "job": job,
+        "mode": "drill",
+        "host": "drill",
+        "start_ts": start.isoformat(),
+        "end_ts": end.isoformat() if end else None,
+        "rc": rc,
+    }
+    (hb_dir / f"{job}.json").write_text(json.dumps(rec))
+
+
+def drill(source_hb: Path, now: datetime | None = None) -> dict[str, object]:
+    """Fault-injection drill on a TEMPORARY copy of the heartbeat dir (``source_hb`` is only read).
+
+    Builds a healthy baseline for every heartbeat job, then injects (1) a missed pretip (the newest
+    pretip start is one slot older than the slot that is due) and (2) a failed morning job (rc 1),
+    runs the real ``check`` on the copy with a collecting notifier, and returns what it raised. The
+    checker is evaluated just past the pretip grace window of the last due slot, so the missed run
+    is overdue by construction. Nothing outside the temporary directory is written; no launchctl,
+    no osascript."""
+    real_now = now or datetime.now().astimezone()
+    tz = schedule_tz(source_hb.parent)
+    specs = {s.name: s for s in JOBS}
+    pre, mor = specs["daily-pretip"], specs["daily-morning"]
+    drill_now = (
+        last_due(pre, real_now, tz) + pre.grace + timedelta(minutes=2)
+    )  # < the 30 min slot gap
+    with tempfile.TemporaryDirectory(prefix="watchdog_drill_") as tmp:
+        ops = Path(tmp) / "ops"
+        hb = ops / "heartbeat"
+        if source_hb.is_dir():
+            shutil.copytree(source_hb, hb)
+        hb.mkdir(parents=True, exist_ok=True)
+        tz_file = source_hb.parent / TZ_FILE
+        if tz_file.exists():
+            shutil.copy(
+                tz_file, ops / TZ_FILE
+            )  # the copy is judged in the zone the live checker uses
+        for f in hb.glob("*.skip.json"):
+            f.unlink()
+        for sj in SHADOW_JOBS:
+            (hb / f"{sj.name}.json").unlink(missing_ok=True)
+        for spec in JOBS:
+            if spec.heartbeat and not spec.optional:
+                start = last_due(spec, drill_now, tz) + timedelta(seconds=30)
+                _write_fake_heartbeat(hb, spec.name, start, start + timedelta(minutes=1), 0)
+        (hb / "app-export.json").unlink(missing_ok=True)
+        healthy = (
+            "-\t0\tlocal.nba.lineups\n-\t0\tlocal.nba.daily-pretip\n-\t0\tlocal.nba.daily-morning\n"
+        )
+        base = evaluate(drill_now, hb, healthy, drill_now, None, tz=tz)
+        missed = last_due(pre, drill_now, tz) - timedelta(minutes=30)
+        _write_fake_heartbeat(hb, "daily-pretip", missed, missed + timedelta(minutes=1), 0)
+        m_start = last_due(mor, drill_now, tz) + timedelta(seconds=30)
+        _write_fake_heartbeat(hb, "daily-morning", m_start, m_start + timedelta(hours=1), 1)
+        sent: list[str] = []
+        fresh = check(
+            ops, now=drill_now, launchctl_text=healthy, kalshi_log=None, notifier=sent.append
+        )
+        alerts_md = (
+            (ops / "ALERTS.md").read_text().splitlines() if (ops / "ALERTS.md").exists() else []
+        )
+    keys = [a.key for a in fresh]
+    return {
+        "drill_now": drill_now.isoformat(),
+        "baseline_alerts": [a.key for a in base],
+        "raised": keys,
+        "missed_pretip_raised": "daily-pretip:stale" in keys,
+        "failed_morning_raised": "daily-morning:rc" in keys,
+        "notifications": sent,
+        "alerts_md": alerts_md,
+        "source_untouched": str(source_hb),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="nba.ops.watchdog")
     sub = p.add_subparsers(dest="command", required=True)
     c = sub.add_parser("check", help="check job heartbeats + launchctl status, alert on problems")
     c.add_argument("--ops-dir", default="data/ops")
     c.add_argument("--no-notify", action="store_true")
+    d = sub.add_parser(
+        "drill", help="fault-injection drill on a temporary copy of the heartbeat dir"
+    )
+    d.add_argument("--hb-dir", default="data/ops/heartbeat", help="read-only source of the copy")
     args = p.parse_args(argv)
+    if args.command == "drill":
+        res = drill(Path(args.hb_dir))
+        print(json.dumps(res, indent=1))
+        return 0 if res["missed_pretip_raised"] and res["failed_morning_raised"] else 1
     ops = Path(args.ops_dir)
     now = datetime.now().astimezone()
     fresh = check(ops, now=now, notifier=None if args.no_notify else notify)

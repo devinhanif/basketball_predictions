@@ -169,6 +169,8 @@ class ReplayConfig:
     with_props: bool = True
     log_variants: bool = True
     avg_bundle_root: Path | None = None  # proof P4: run the AVG shadow on this bundle root
+    # COMBO_STOCKS_SHADOW proof P3: writer ON (heartbeat in out_dir, never the live one)
+    combo_shadow: bool = False
 
     @property
     def state_path(self) -> Path:
@@ -303,6 +305,8 @@ def _pretip_run(cfg: ReplayConfig, d: date, rt: datetime) -> RunSummary:
             with_avg_shadow=cfg.avg_bundle_root is not None,
             avg_bundle_root=cfg.avg_bundle_root,
             avg_heartbeat_dir=cfg.out_dir / "avg_heartbeat",
+            with_combo_shadow=cfg.combo_shadow,
+            combo_heartbeat_dir=cfg.out_dir / "combo_heartbeat",
             rate_limiter=RateLimiter(0.0),
             tips_dir=None,
             schedule_cache_dir=None,
@@ -852,6 +856,12 @@ def _parser() -> argparse.ArgumentParser:
         help="proof P4 only: run the AVG shadow (flag on) against this weights-bundle root; "
         "an empty directory means no weights (status skipped)",
     )
+    p.add_argument(
+        "--combo-shadow",
+        action="store_true",
+        help="COMBO_STOCKS_SHADOW proof P3 only: run the combo shadow writer (flag on) inside "
+        "the replay; its heartbeat goes to <out-dir>/combo_heartbeat, never data/ops/heartbeat",
+    )
     return p
 
 
@@ -868,6 +878,7 @@ def _config(a: argparse.Namespace) -> ReplayConfig:
         paper_db=(out / "paper_trades.duckdb") if a.kalshi_db else None,
         with_props=not a.no_props,
         avg_bundle_root=a.avg_shadow_root,
+        combo_shadow=a.combo_shadow,
     )
 
 
@@ -925,6 +936,8 @@ def main(argv: list[str] | None = None) -> int:
                 cmd.append("--no-props")
             if a.avg_shadow_root:
                 cmd += ["--avg-shadow-root", str(a.avg_shadow_root)]
+            if a.combo_shadow:
+                cmd.append("--combo-shadow")
             rc = subprocess.run(cmd, cwd=ROOT, check=False).returncode  # noqa: S603
         finally:
             if not a.no_lock:
