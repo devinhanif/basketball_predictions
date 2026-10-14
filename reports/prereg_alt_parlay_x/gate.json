@@ -1,63 +1,118 @@
 {
  "capture": "t5",
+ "code_sha256": {
+  "research/eval/alt_line_70_gate.py": "8da31748003500f52f219ccc8c7bea71ee5ee91d56e30bc966112433e6413277",
+  "research/eval/alt_parlay_x_gate.py": "169b8194491a7f12ec5369441d90f8f50df52797616440147198786626c7eb76"
+ },
+ "numpy_version": "2.5.3",
  "per_date": 20,
  "pooled": {
   "55_size2": {
    "dates": 371,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0115,
+    "gap_halfwidth": 0.0122,
+    "rho_halfwidth": 0.0232
+   },
    "parlays": 7300,
    "roi_halfwidth_cons_date": 0.1299,
    "roi_halfwidth_independent": 0.0297
   },
   "55_size3": {
    "dates": 323,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0101,
+    "gap_halfwidth": 0.0107,
+    "rho_halfwidth": 0.015
+   },
    "parlays": 6454,
    "roi_halfwidth_cons_date": 0.1907,
    "roi_halfwidth_independent": 0.0435
   },
   "65_size2": {
    "dates": 358,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0152,
+    "gap_halfwidth": 0.0184,
+    "rho_halfwidth": 0.0253
+   },
    "parlays": 6278,
    "roi_halfwidth_cons_date": 0.1233,
    "roi_halfwidth_independent": 0.0292
   },
   "65_size3": {
    "dates": 317,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0137,
+    "gap_halfwidth": 0.0167,
+    "rho_halfwidth": 0.0154
+   },
    "parlays": 5960,
    "roi_halfwidth_cons_date": 0.1843,
    "roi_halfwidth_independent": 0.043
   },
   "75_size2": {
    "dates": 264,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0189,
+    "gap_halfwidth": 0.0301,
+    "rho_halfwidth": 0.0347
+   },
    "parlays": 3261,
    "roi_halfwidth_cons_date": 0.1318,
    "roi_halfwidth_independent": 0.0341
   },
   "75_size3": {
    "dates": 209,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.025,
+    "gap_halfwidth": 0.0339,
+    "rho_halfwidth": 0.027
+   },
    "parlays": 3285,
    "roi_halfwidth_cons_date": 0.1902,
    "roi_halfwidth_independent": 0.0465
   },
   "85_size2": {
    "dates": 90,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0549,
+    "gap_halfwidth": 0.0806,
+    "rho_halfwidth": 0.1056
+   },
    "parlays": 340,
    "roi_halfwidth_cons_date": 0.2598,
    "roi_halfwidth_independent": 0.096
   },
   "85_size3": {
    "dates": 38,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.1286,
+    "gap_halfwidth": 0.1442,
+    "rho_halfwidth": 0.1251
+   },
    "parlays": 218,
    "roi_halfwidth_cons_date": 0.608,
    "roi_halfwidth_independent": 0.1774
   },
   "ge70_size2": {
    "dates": 264,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0191,
+    "gap_halfwidth": 0.0281,
+    "rho_halfwidth": 0.034
+   },
    "parlays": 3337,
    "roi_halfwidth_cons_date": 0.1295,
    "roi_halfwidth_independent": 0.0333
   },
   "ge70_size3": {
    "dates": 210,
+   "null_halfwidths": {
+    "excess_halfwidth": 0.0244,
+    "gap_halfwidth": 0.0322,
+    "rho_halfwidth": 0.0267
+   },
    "parlays": 3360,
    "roi_halfwidth_cons_date": 0.1872,
    "roi_halfwidth_independent": 0.0453
@@ -81,8 +136,14 @@
       2.499,
       3.357
      ],
+     "fingerprint_sha256": "dae2b2d3680ad5fa52daf4a3660881f8a847f8a8795238fe80f532673a8e2445",
      "mean_joint_p": 0.2972,
      "model_claimed_ev_mean": -0.2296,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0155,
+      "gap_halfwidth": 0.0175,
+      "rho_halfwidth": 0.032
+     },
      "parlays": 3702,
      "roi_halfwidth_cons_date": 0.1705,
      "roi_halfwidth_independent": 0.039,
@@ -96,14 +157,22 @@
       3.967,
       5.787
      ],
+     "fingerprint_sha256": "597a39385b9828d776c1c8513edefe64025c078e5878af1478e30f9bad5da09d",
      "mean_joint_p": 0.162,
      "model_claimed_ev_mean": -0.32,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0139,
+      "gap_halfwidth": 0.0149,
+      "rho_halfwidth": 0.0218
+     },
      "parlays": 3200,
      "roi_halfwidth_cons_date": 0.2416,
      "roi_halfwidth_independent": 0.0556,
      "weeks": 28,
      "weeks_with_ge_10_parlays": 28
-    }
+    },
+    "t60_units_in_pool": 18083,
+    "t60_units_pulled_by_t5": 726
    },
    "65": {
     "dates": 206,
@@ -119,8 +188,14 @@
       2.051,
       2.594
      ],
+     "fingerprint_sha256": "d00ba7cb5b739195805ea21baa49db77de5a9dbc714d3b67827ac6fea6b267fb",
      "mean_joint_p": 0.4101,
      "model_claimed_ev_mean": -0.125,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0185,
+      "gap_halfwidth": 0.022,
+      "rho_halfwidth": 0.0328
+     },
      "parlays": 3488,
      "roi_halfwidth_cons_date": 0.1525,
      "roi_halfwidth_independent": 0.0353,
@@ -134,14 +209,22 @@
       2.996,
       3.995
      ],
+     "fingerprint_sha256": "be3da7afe5515678fed7690f05c60b46e711fe377f9053200dec69ccd12b358f",
      "mean_joint_p": 0.263,
      "model_claimed_ev_mean": -0.1736,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.018,
+      "gap_halfwidth": 0.0211,
+      "rho_halfwidth": 0.022
+     },
      "parlays": 3156,
      "roi_halfwidth_cons_date": 0.2162,
      "roi_halfwidth_independent": 0.0494,
      "weeks": 28,
      "weeks_with_ge_10_parlays": 28
-    }
+    },
+    "t60_units_in_pool": 8655,
+    "t60_units_pulled_by_t5": 329
    },
    "75": {
     "dates": 198,
@@ -157,8 +240,14 @@
       1.859,
       2.192
      ],
+     "fingerprint_sha256": "eae0a1dcbbd5944f270511f2100c31df15eda4ebb571484f6941e2cac70ba32a",
      "mean_joint_p": 0.5391,
      "model_claimed_ev_mean": 0.028,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0219,
+      "gap_halfwidth": 0.0347,
+      "rho_halfwidth": 0.0414
+     },
      "parlays": 2369,
      "roi_halfwidth_cons_date": 0.1523,
      "roi_halfwidth_independent": 0.0385,
@@ -172,14 +261,22 @@
       2.535,
       3.16
      ],
+     "fingerprint_sha256": "91abf01680e13774f3021cdb0f8a419cacaa6ac65224061322d52a6debbbfdba",
      "mean_joint_p": 0.3963,
      "model_claimed_ev_mean": 0.0449,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0266,
+      "gap_halfwidth": 0.0386,
+      "rho_halfwidth": 0.0315
+     },
      "parlays": 2430,
      "roi_halfwidth_cons_date": 0.2165,
      "roi_halfwidth_independent": 0.0519,
      "weeks": 26,
      "weeks_with_ge_10_parlays": 26
-    }
+    },
+    "t60_units_in_pool": 2330,
+    "t60_units_pulled_by_t5": 93
    },
    "85": {
     "dates": 120,
@@ -195,8 +292,14 @@
       1.842,
       2.203
      ],
+     "fingerprint_sha256": "bf7926fa16468355eb3b496b8437c8bc647c3f4432b56cd3f0fe6960431ba127",
      "mean_joint_p": 0.6889,
      "model_claimed_ev_mean": 0.3212,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0648,
+      "gap_halfwidth": 0.099,
+      "rho_halfwidth": 0.1239
+     },
      "parlays": 215,
      "roi_halfwidth_cons_date": 0.3306,
      "roi_halfwidth_independent": 0.1194,
@@ -210,14 +313,22 @@
       2.486,
       3.157
      ],
+     "fingerprint_sha256": "99cef6c46d7782c769aa486be2f18930f83ca7818f8e478c600f0a98acf8a345",
      "mean_joint_p": 0.5721,
      "model_claimed_ev_mean": 0.4713,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.1549,
+      "gap_halfwidth": 0.1693,
+      "rho_halfwidth": 0.1456
+     },
      "parlays": 139,
      "roi_halfwidth_cons_date": 0.7459,
      "roi_halfwidth_independent": 0.2135,
      "weeks": 15,
      "weeks_with_ge_10_parlays": 4
-    }
+    },
+    "t60_units_in_pool": 264,
+    "t60_units_pulled_by_t5": 14
    },
    "ge70": {
     "dates": 198,
@@ -233,8 +344,14 @@
       1.844,
       2.171
      ],
+     "fingerprint_sha256": "4c3399283979cab35490eb104b9824f4504e302102b2af80d1ed32281f7bbb74",
      "mean_joint_p": 0.5474,
      "model_claimed_ev_mean": 0.037,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0226,
+      "gap_halfwidth": 0.0343,
+      "rho_halfwidth": 0.0403
+     },
      "parlays": 2407,
      "roi_halfwidth_cons_date": 0.1504,
      "roi_halfwidth_independent": 0.0378,
@@ -248,14 +365,22 @@
       2.505,
       3.074
      ],
+     "fingerprint_sha256": "b89ba850a8ced0fb8cdc84234c4b2af3bedc6c655f90a9107550d4b426aa0245",
      "mean_joint_p": 0.4031,
      "model_claimed_ev_mean": 0.0504,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0277,
+      "gap_halfwidth": 0.0386,
+      "rho_halfwidth": 0.0308
+     },
      "parlays": 2481,
      "roi_halfwidth_cons_date": 0.2131,
      "roi_halfwidth_independent": 0.0507,
      "weeks": 27,
      "weeks_with_ge_10_parlays": 26
-    }
+    },
+    "t60_units_in_pool": 2392,
+    "t60_units_pulled_by_t5": 96
    }
   },
   "2024": {
@@ -273,8 +398,14 @@
       2.957,
       3.609
      ],
+     "fingerprint_sha256": "153161c5c2cc187bfcfb5781b650d54e7bc72bd22ec257f566a4b074cf8a45a2",
      "mean_joint_p": 0.2932,
      "model_claimed_ev_mean": -0.1275,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0162,
+      "gap_halfwidth": 0.0187,
+      "rho_halfwidth": 0.0329
+     },
      "parlays": 3598,
      "roi_halfwidth_cons_date": 0.1968,
      "roi_halfwidth_independent": 0.0449,
@@ -288,14 +419,22 @@
       5.195,
       6.6
      ],
+     "fingerprint_sha256": "132f9e7c5f3aed3dd9f4b8abc13e29cdda555930f4537b1539db69d721efe101",
      "mean_joint_p": 0.1595,
      "model_claimed_ev_mean": -0.1714,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0142,
+      "gap_halfwidth": 0.0158,
+      "rho_halfwidth": 0.0192
+     },
      "parlays": 3254,
      "roi_halfwidth_cons_date": 0.2943,
      "roi_halfwidth_independent": 0.0668,
      "weeks": 28,
      "weeks_with_ge_10_parlays": 28
-    }
+    },
+    "t60_units_in_pool": 14130,
+    "t60_units_pulled_by_t5": 362
    },
    "65": {
     "dates": 208,
@@ -311,8 +450,14 @@
       2.695,
       3.199
      ],
+     "fingerprint_sha256": "4d2b6fdfecc5069cb3e74d72e3ddb1ec75fb48d15cb2c5af0e61c2d25c6f39af",
      "mean_joint_p": 0.4026,
      "model_claimed_ev_mean": 0.0614,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0229,
+      "gap_halfwidth": 0.0291,
+      "rho_halfwidth": 0.0382
+     },
      "parlays": 2790,
      "roi_halfwidth_cons_date": 0.2016,
      "roi_halfwidth_independent": 0.0488,
@@ -326,14 +471,22 @@
       4.503,
       5.66
      ],
+     "fingerprint_sha256": "34c6f6cd941a778f1fa029d347eea894a914d7e351023b13d290a2750cc2e743",
      "mean_joint_p": 0.2554,
      "model_claimed_ev_mean": 0.1132,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0253,
+      "gap_halfwidth": 0.0304,
+      "rho_halfwidth": 0.026
+     },
      "parlays": 2804,
      "roi_halfwidth_cons_date": 0.3071,
      "roi_halfwidth_independent": 0.0725,
      "weeks": 28,
      "weeks_with_ge_10_parlays": 27
-    }
+    },
+    "t60_units_in_pool": 5015,
+    "t60_units_pulled_by_t5": 117
    },
    "75": {
     "dates": 140,
@@ -349,8 +502,14 @@
       1.992,
       2.846
      ],
+     "fingerprint_sha256": "7b2750f7c67c10b5fb92dad291648fa8569e228325b4a7a289bd1711cef3d009",
      "mean_joint_p": 0.543,
      "model_claimed_ev_mean": 0.166,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0395,
+      "gap_halfwidth": 0.0543,
+      "rho_halfwidth": 0.0648
+     },
      "parlays": 892,
      "roi_halfwidth_cons_date": 0.2618,
      "roi_halfwidth_independent": 0.0716,
@@ -364,14 +523,22 @@
       2.739,
       4.082
      ],
+     "fingerprint_sha256": "1189495f532dadea2124cf22f8a6481a1cb59d7ffe9a4378a1f2ae2c1403a532",
      "mean_joint_p": 0.4,
      "model_claimed_ev_mean": 0.1915,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.048,
+      "gap_halfwidth": 0.0639,
+      "rho_halfwidth": 0.0499
+     },
      "parlays": 855,
      "roi_halfwidth_cons_date": 0.3943,
      "roi_halfwidth_independent": 0.1008,
      "weeks": 18,
      "weeks_with_ge_10_parlays": 12
-    }
+    },
+    "t60_units_in_pool": 960,
+    "t60_units_pulled_by_t5": 21
    },
    "85": {
     "dates": 52,
@@ -387,8 +554,14 @@
       1.924,
       2.279
      ],
+     "fingerprint_sha256": "368821bd3cbd4c3b22b9016f6c8e8f9c3e5b41c12c2db09eff9aec261550f54a",
      "mean_joint_p": 0.6915,
      "model_claimed_ev_mean": 0.3689,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0904,
+      "gap_halfwidth": 0.1367,
+      "rho_halfwidth": 0.1822
+     },
      "parlays": 125,
      "roi_halfwidth_cons_date": 0.4196,
      "roi_halfwidth_independent": 0.1613,
@@ -402,14 +575,22 @@
       2.722,
       3.475
      ],
+     "fingerprint_sha256": "58c8ca9d15846e3f0338404a658077c6c0874b0dbc1298c89926e897ca126e05",
      "mean_joint_p": 0.5772,
      "model_claimed_ev_mean": 0.6494,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.198,
+      "gap_halfwidth": 0.2336,
+      "rho_halfwidth": 0.1755
+     },
      "parlays": 79,
      "roi_halfwidth_cons_date": 1.0451,
      "roi_halfwidth_independent": 0.3139,
      "weeks": 5,
      "weeks_with_ge_10_parlays": 4
-    }
+    },
+    "t60_units_in_pool": 130,
+    "t60_units_pulled_by_t5": 2
    },
    "ge70": {
     "dates": 141,
@@ -425,8 +606,14 @@
       1.963,
       2.829
      ],
+     "fingerprint_sha256": "77d2b74f7e28dbd956a3052a6fd7e89f4041eb8efc8971865a5433b5fc5ce1b6",
      "mean_joint_p": 0.5549,
      "model_claimed_ev_mean": 0.1728,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0387,
+      "gap_halfwidth": 0.0549,
+      "rho_halfwidth": 0.0715
+     },
      "parlays": 930,
      "roi_halfwidth_cons_date": 0.2538,
      "roi_halfwidth_independent": 0.0688,
@@ -440,14 +627,22 @@
       2.715,
       3.912
      ],
+     "fingerprint_sha256": "525ae0d57e058843170f528b726d09d2ccba4767a17ad994d435b86308544d36",
      "mean_joint_p": 0.4159,
      "model_claimed_ev_mean": 0.2146,
+     "null_halfwidths": {
+      "excess_halfwidth": 0.0491,
+      "gap_halfwidth": 0.0652,
+      "rho_halfwidth": 0.0505
+     },
      "parlays": 879,
      "roi_halfwidth_cons_date": 0.3878,
      "roi_halfwidth_independent": 0.0978,
      "weeks": 18,
      "weeks_with_ge_10_parlays": 12
-    }
+    },
+    "t60_units_in_pool": 1026,
+    "t60_units_pulled_by_t5": 22
    }
   }
  }
