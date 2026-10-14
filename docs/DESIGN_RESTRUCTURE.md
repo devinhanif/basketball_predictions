@@ -119,11 +119,11 @@ planted-future-row test. The replay found the failure mode (a 19:00 ET proxy adm
 impossible to write:
 
 ```python
-known = data.known_at(db, T)                  # read-only view; every table filtered known_at <= T
-known.results()                               # games completed before T (known_at = end of ET day + 0)
-known.injury_report(game)                     # latest snapshot with stamp <= tip - 60 min and <= 36 h old
-known.lineup_snapshot(game)                   # T-30 only if it exists at T, else None
-known.market(game)                            # latest Kalshi state with ts <= T
+known = data.known_at(db, T)  # read-only view; every table filtered known_at <= T
+known.results()  # games completed before T (known_at = end of ET day + 0)
+known.injury_report(game)  # latest snapshot with stamp <= tip - 60 min and <= 36 h old
+known.lineup_snapshot(game)  # T-30 only if it exists at T, else None
+known.market(game)  # latest Kalshi state with ts <= T
 ```
 
 Models receive `Known`, never a connection. New code (F11, explain/) is written against it from day one.
@@ -168,9 +168,11 @@ Every model implements one contract (replaces the `ForecastModel` ABC residue in
 
 ```python
 class Model(Protocol):
-    name: str; version: str
-    def predict(self, known: Known, game: Game) -> list[Forecast]: ...   # no I/O, no refit
-    def fit(self, known: Known) -> None: ...                              # daily refit uses only known(T)
+    name: str
+    version: str
+
+    def predict(self, known: Known, game: Game) -> list[Forecast]: ...  # no I/O, no refit
+    def fit(self, known: Known) -> None: ...  # daily refit uses only known(T)
 ```
 `Forecast` is the stored unit: `(game_id, model, version, subject, stat, made_at, quantile_grid | p_win,
 p_ge_full, inputs_fingerprint)`. `truth/store.py` is the only writer.
@@ -278,8 +280,9 @@ Sketch (pseudocode-level; names are illustrative, not an implementation):
 
 ```python
 """nba/daily/flow.py - one day of the forecast loop. Read top to bottom; nothing clever here."""
+
 from nba import data, models, truth, markets
-from nba.daily.arms import ARMS                      # shadow arms, frozen under FORWARD_PREREG_2026_27
+from nba.daily.arms import ARMS  # shadow arms, frozen under FORWARD_PREREG_2026_27
 
 
 def pretip(day: date, *, now: datetime | None = None) -> RunSummary:
@@ -288,23 +291,25 @@ def pretip(day: date, *, now: datetime | None = None) -> RunSummary:
     summary = RunSummary(day, now)
 
     # 1. SCHEDULE - which games exist today and when exactly do they tip (real tips, never a proxy)
-    slate = data.known_at.schedule(day)                              # list[Game(id, home, away, tip_utc)]
-    open_games = [g for g in slate if now < g.tip]                   # a tipped game is never predicted
-    summary.skipped_tipped = len(slate) - len(open_games)            # -> exit code 4 (informational)
+    slate = data.known_at.schedule(day)  # list[Game(id, home, away, tip_utc)]
+    open_games = [g for g in slate if now < g.tip]  # a tipped game is never predicted
+    summary.skipped_tipped = len(slate) - len(open_games)  # -> exit code 4 (informational)
 
     # 2. KNOWABLE AT T - one read-only handle; nothing downstream can query past it
     known = data.known_at(db_path(), T=now)
-    summary.feeds = known.feed_status()                              # injury PDF, rosters, lineups: ok/missing/stale
+    summary.feeds = known.feed_status()  # injury PDF, rosters, lineups: ok/missing/stale
 
     # 3. PREDICT - production models first, then comparison baselines, then shadow arms
-    production = models.resolve_production(registry())               # mov_elo, injury_elo, context_residual
-    baselines = models.baselines()                                    # mov_elo, recency (logged next to production)
+    production = models.resolve_production(registry())  # mov_elo, injury_elo, context_residual
+    baselines = models.baselines()  # mov_elo, recency (logged next to production)
     forecasts: list[Forecast] = []
     for g in open_games:
-        gk = known.for_game(g, report_cutoff=g.tip - minutes(60))    # the rule, in one place
+        gk = known.for_game(g, report_cutoff=g.tip - minutes(60))  # the rule, in one place
         forecasts += predict_game(production, baselines, gk, g, summary)
-    for arm in ARMS:                                                  # int, lt, t30: comparison rows only
-        forecasts += run_arm(arm, known, open_games, production, summary)   # failure isolated, never touches primary
+    for arm in ARMS:  # int, lt, t30: comparison rows only
+        forecasts += run_arm(
+            arm, known, open_games, production, summary
+        )  # failure isolated, never touches primary
 
     # 4. STORE - the only writer; refuses (LeakageError) if made_at >= tip; write-on-change by content hash
     summary.stored = truth.store.append(forecasts, made_at=now)
@@ -318,9 +323,9 @@ def predict_game(production, baselines, gk, g, summary) -> list[Forecast]:
     out = []
     for model in (*production, *baselines):
         try:
-            out += model.predict(gk, g)                               # no I/O, no refit inside predict
-        except FeedMissing as e:                                      # e.g. no usable injury report
-            out += fallback(model, gk, g, reason=str(e))             # MOV-Elo with fallback_reason stored
+            out += model.predict(gk, g)  # no I/O, no refit inside predict
+        except FeedMissing as e:  # e.g. no usable injury report
+            out += fallback(model, gk, g, reason=str(e))  # MOV-Elo with fallback_reason stored
             summary.fallbacks.append((g.id, model.name, str(e)))
     return out
 
@@ -328,22 +333,25 @@ def predict_game(production, baselines, gk, g, summary) -> list[Forecast]:
 def morning(day: date) -> RunSummary:
     """08:00 job. Settle yesterday, score, report. Never predicts."""
     summary = RunSummary(day, utcnow())
-    data.bronze.refresh_results(day - 1)                              # games + box scores for finished games
-    summary.settled = truth.settle.settle_pending(scored_at=utcnow()) # uses STORED forecasts, never refits
-    summary.eligible = truth.settle.settle_eligible_pending()         # integer-support, eligible rows
-    truth.checkpoint.run_if_due()                                     # frozen 30/60/120-date looks, BH over 9
+    data.bronze.refresh_results(day - 1)  # games + box scores for finished games
+    summary.settled = truth.settle.settle_pending(
+        scored_at=utcnow()
+    )  # uses STORED forecasts, never refits
+    summary.eligible = truth.settle.settle_eligible_pending()  # integer-support, eligible rows
+    truth.checkpoint.run_if_due()  # frozen 30/60/120-date looks, BH over 9
     truth.report.write_forward_report()
     markets.ev.settle_paper_trades()
-    data.manifest.snapshot_diff_check()                               # missingness / row-drop leak detector
+    data.manifest.snapshot_diff_check()  # missingness / row-drop leak detector
     return summary
 
 
 def main(argv: list[str]) -> int:
-    args = parse(argv)                                                # run | settle | report | checkpoint
-    with job_lock(), heartbeat(args.cmd):                             # one job at a time; independent watchdog
+    args = parse(argv)  # run | settle | report | checkpoint
+    with job_lock(), heartbeat(args.cmd):  # one job at a time; independent watchdog
         s = {"run": pretip, "settle": morning}[args.cmd](args.date)
-    s.write_json(); alert_on(s)                                       # failures -> ALERTS.md + notification
-    return s.exit_code()                                              # 0 ok, 4 some tipped, 5 degraded
+    s.write_json()
+    alert_on(s)  # failures -> ALERTS.md + notification
+    return s.exit_code()  # 0 ok, 4 some tipped, 5 degraded
 ```
 
 Design notes:

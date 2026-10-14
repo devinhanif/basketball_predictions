@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -26,13 +27,13 @@ EPS = 1e-6
 TAUS = CRPS_TAUS
 
 
-def crps_q(qi, y):
+def crps_q(qi: Any, y: Any) -> Any:
     d = y[:, None] - qi
     pin = np.where(d >= 0, TAUS[None, :] * d, (TAUS[None, :] - 1.0) * d)
     return 2.0 * pin.mean(axis=1)
 
 
-def grid(comp, wq_all, pi, stat_wq=None, wq_rows=None):
+def grid(comp: Any, wq_all: Any, pi: Any, stat_wq: Any = None, wq_rows: Any = None) -> Any:
     """Integer-support mixture quantiles with row pi; optional per-row short component quantiles (wq_rows [n,199]) replacing w_q."""
     n = len(comp["row_y"])
     out = np.empty((n, len(TAUS)), dtype=np.int16)
@@ -58,7 +59,7 @@ def grid(comp, wq_all, pi, stat_wq=None, wq_rows=None):
     return out
 
 
-def mix_rows(comp, r, pi, z_norm, wq):
+def mix_rows(comp: Any, r: Any, pi: Any, z_norm: Any, wq: Any) -> Any:
     k = wq.shape[1]
     g = (np.arange(k) + 0.5) / k
     zq = np.quantile(z_norm, g)
@@ -78,7 +79,7 @@ def mix_rows(comp, r, pi, z_norm, wq):
     return np.maximum.accumulate(out, 1)
 
 
-def boot(delta, gid, n_boot=1000, seed=0):
+def boot(delta: Any, gid: Any, n_boot: int = 1000, seed: int = 0) -> list[float]:
     u, inv = np.unique(gid, return_inverse=True)
     s = np.bincount(inv, weights=delta, minlength=len(u))
     c = np.bincount(inv, minlength=len(u)).astype(float)
@@ -88,12 +89,12 @@ def boot(delta, gid, n_boot=1000, seed=0):
     return [float(delta.mean()), float(np.quantile(est, 0.025)), float(np.quantile(est, 0.975))]
 
 
-def ll(p, y):
+def ll(p: Any, y: Any) -> Any:
     p = np.clip(p, EPS, 1 - EPS)
     return -np.where(y > 0.5, np.log(p), np.log(1 - p))
 
 
-def auc(p, y):
+def auc(p: Any, y: Any) -> float:
     from scipy.stats import rankdata
 
     r = rankdata(p)
@@ -101,7 +102,7 @@ def auc(p, y):
     return float((r[y > 0.5].sum() - n1 * (n1 + 1) / 2) / (n1 * (len(y) - n1)))
 
 
-def per_stat(stat, pic, pis, with_extras):
+def per_stat(stat: Any, pic: Any, pis: Any, with_extras: Any) -> Any:
     comp = load_components(stat, LT)
     assert int(comp["row_season"].max()) <= 2024
     y, gid, season = comp["row_y"], comp["row_gid"].astype(str), comp["row_season"]
@@ -213,7 +214,7 @@ def per_stat(stat, pic, pis, with_extras):
         "at_cap": float((p >= PI_CLIP[1] - 1e-12).mean()),
     }
     # (4) short-component calibration: realised y on short rows vs m_row*w_q (block wq)
-    cov = {"10": [], "50": [], "90": []}
+    cov: dict[str, list[Any]] = {"10": [], "50": [], "90": []}
     for i, b in enumerate(np.unique(comp["row_blk"])):
         r = (comp["row_blk"] == b) & short
         w = wq[i]
@@ -231,7 +232,7 @@ def per_stat(stat, pic, pis, with_extras):
     strata = {"min<5": mins < 5, "5<=min<10": (mins >= 5) & (mins < 10), "10<=min": mins >= 10}
     res["short_component_coverage_by_realised_minutes"] = {}
     for sn, sm in strata.items():
-        cc = {"10": [], "50": [], "90": []}
+        cc: dict[str, list[Any]] = {"10": [], "50": [], "90": []}
         for i, b in enumerate(np.unique(comp["row_blk"])):
             r = (comp["row_blk"] == b) & short & sm
             w = wq[i]
@@ -302,7 +303,7 @@ def per_stat(stat, pic, pis, with_extras):
     return res, comp, short
 
 
-def main():
+def main() -> None:
     pic = dict(np.load(LT / "components_pi.npz", allow_pickle=True))
     a0 = pic["row_pi"]
     cand = np.load(CACHE / "pi_CAND.npz")["pi"]

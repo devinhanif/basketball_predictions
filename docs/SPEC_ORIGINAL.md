@@ -189,10 +189,17 @@ The work registry (`spp-tonnage-forecast-pipeline`) is a **Snowflake Model Regis
 ```python
 class RegistryAdapter(Protocol):
     def next_version(self, model_name: str) -> str: ...
-    def log_model(self, model_name: str, version: str, model_path: str,
-                  metrics: dict, metadata: dict, tags: dict) -> None: ...
+    def log_model(
+        self,
+        model_name: str,
+        version: str,
+        model_path: str,
+        metrics: dict,
+        metadata: dict,
+        tags: dict,
+    ) -> None: ...
     def set_alias(self, model_name: str, version: str, alias: str) -> None: ...
-    def promote(self, model_name: str, version: str) -> None: ...   # old production -> deprecated
+    def promote(self, model_name: str, version: str) -> None: ...  # old production -> deprecated
     def load_model(self, model_name: str, alias: str = "production") -> str: ...  # local path
 ```
 Backends via `REGISTRY_BACKEND`:
