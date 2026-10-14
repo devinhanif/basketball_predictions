@@ -27,7 +27,41 @@ import numpy as np
 import polars as pl
 
 HALF_LIFE = 10.0
-STATE_COLS = ("minutes", "pts", "reb", "ast", "fg3m", "fga", "fta", "tov")
+STATE_COLS = (
+    "minutes",
+    "pts",
+    "reb",
+    "ast",
+    "fg3m",
+    "fga",
+    "fta",
+    "tov",
+    "fg3a",
+    "starter",
+    "touches",
+    "passes",
+    "sec_ast",
+    "ft_ast",
+    "rbc",
+    "unc",
+    "con",
+)
+#: as-of traits for the PROP propensity (all from the decayed states; ratios of decayed means)
+TRAITS = (
+    "tr_use",
+    "tr_a2u",
+    "tr_f3",
+    "tr_ftr",
+    "tr_start",
+    "tr_min",
+    "tr_touch",
+    "tr_ppt",
+    "tr_sec",
+    "tr_rbc",
+    "tr_unc",
+    "tr_posG",
+    "tr_posC",
+)
 STATS = ("pts", "reb", "ast", "fg3m")
 USAGE_STATS = ("pts", "fg3m")
 
@@ -36,7 +70,14 @@ def decayed_states(box: pl.DataFrame, half_life: float = HALF_LIFE) -> pl.DataFr
     """State of every player AFTER each played game: player_id, game_date, n_after, st_<col> (decayed means).
     ``box``: played rows with player_id, game_id, game_date and the ``STATE_COLS``."""
     b = box.sort(["player_id", "game_date", "game_id"])
-    x = np.column_stack([b[c].cast(pl.Float64).fill_null(0.0).to_numpy() for c in STATE_COLS])
+    x = np.column_stack(
+        [
+            b[c].cast(pl.Float64).fill_null(0.0).to_numpy()
+            if c in b.columns
+            else np.zeros(b.height)
+            for c in STATE_COLS
+        ]
+    )
     pid = b["player_id"].to_numpy()
     dec = 0.5 ** (1.0 / half_life)
     n = len(pid)
@@ -83,6 +124,43 @@ def _usage(prefix: str = "st_") -> pl.Expr:
     return pl.col(f"{prefix}fga") + 0.44 * pl.col(f"{prefix}fta") + pl.col(f"{prefix}tov")
 
 
+def _div(num: pl.Expr, den: pl.Expr) -> pl.Expr:
+    return pl.when(den > 0).then(num / den).otherwise(0.0)
+
+
+def trait_exprs() -> list[pl.Expr]:
+    """Traits from the as-of state columns ``st_*`` and the position group ``grp``."""
+    use = _usage()
+    m = pl.col("st_minutes")
+    return [
+        _div(use * 36.0, m).alias("tr_use"),
+        _div(pl.col("st_ast"), use).alias("tr_a2u"),
+        _div(pl.col("st_fg3a"), pl.col("st_fga")).alias("tr_f3"),
+        _div(pl.col("st_fta"), pl.col("st_fga")).alias("tr_ftr"),
+        pl.col("st_starter").alias("tr_start"),
+        (m / 36.0).alias("tr_min"),
+        _div(pl.col("st_touches") * 36.0, m).alias("tr_touch"),
+        _div(pl.col("st_passes"), pl.col("st_touches")).alias("tr_ppt"),
+        _div((pl.col("st_sec_ast") + pl.col("st_ft_ast")) * 36.0, m).alias("tr_sec"),
+        _div(pl.col("st_rbc") * 36.0, m).alias("tr_rbc"),
+        _div(pl.col("st_unc"), pl.col("st_unc") + pl.col("st_con")).alias("tr_unc"),
+        (pl.col("grp") == "G").cast(pl.Float64).alias("tr_posG"),
+        (pl.col("grp") == "C").cast(pl.Float64).alias("tr_posC"),
+    ]
+
+
+def g_expr(prop: dict[str, Any]) -> pl.Expr:
+    """Relative step-up propensity 1 + sum theta_k z_k (floored at 0.05) from fitted ``mu``, ``sd``, ``theta``."""
+    z = [
+        (pl.col(t) - float(mu)) / float(sd) * float(th)
+        for t, mu, sd, th in zip(TRAITS, prop["mu"], prop["sd"], prop["theta"], strict=True)
+    ]
+    tot = z[0]
+    for e in z[1:]:
+        tot = tot + e
+    return (1.0 + tot).clip(lower_bound=0.05)
+
+
 def build_struct(
     rows: pl.DataFrame,
     out_players: pl.DataFrame,
@@ -90,6 +168,7 @@ def build_struct(
     states: pl.DataFrame,
     dates: pl.DataFrame,
     positions: pl.DataFrame,
+    prop: dict[str, dict[str, Any]] | None = None,
 ) -> pl.DataFrame:
     """STRUCT columns for ``rows`` (game_id, team_id, player_id) from the OUT players, the pool and the states.
 
@@ -141,7 +220,13 @@ def build_struct(
         *[pl.col(f"st_{s}").sum().alias(f"V_{s}") for s in STATS],
         pl.col("st_minutes").sum().alias("V_min"),
     )
+    pool_df = pool_df.with_columns(trait_exprs())
+    if prop is not None:
+        pool_df = pool_df.with_columns(
+            [(pl.col(f"st_{st}") * g_expr(prop[st])).alias(f"wp_{st}") for st in STATS]
+        )
     agg = pool_df.group_by(["game_id", "team_id"]).agg(
+        *([pl.col(f"wp_{st}").sum().alias(f"PP_{st}") for st in STATS] if prop is not None else []),
         *[pl.col(f"st_{s}").sum().alias(f"P_{s}") for s in STATS],
         _usage().sum().alias("P_use"),
         pl.col("st_minutes").sum().alias("P_min"),
@@ -159,6 +244,11 @@ def build_struct(
         .join(pos, on="player_id", how="left")
         .with_columns(pl.col("grp").fill_null("X"))
     )
+    r = r.with_columns(trait_exprs())
+    if prop is not None:
+        r = r.with_columns(
+            [(pl.col(f"st_{st}") * g_expr(prop[st])).alias(f"wpi_{st}") for st in STATS]
+        )
     nz = pl.col("V_min").is_not_null()
     exprs: list[pl.Expr] = []
     for s in STATS:
@@ -177,6 +267,15 @@ def build_struct(
             .otherwise(0.0)
             .alias(f"struct_u_{s}")
         )
+    if prop is not None:
+        for st in STATS:
+            pden = pl.col(f"PP_{st}").fill_null(0.0) + pl.col(f"wpi_{st}") * (1 - pl.col("in_pool"))
+            exprs.append(
+                pl.when(nz & (pden > 0))
+                .then(pl.col(f"V_{st}") * pl.col(f"wpi_{st}") / pden)
+                .otherwise(0.0)
+                .alias(f"prop_d_{st}")
+            )
     r = r.with_columns(exprs)
     # minutes: per OUT player j, hand his as-of minutes out pro rata (role) or with weight 2 for the same position group
     pj = outs.select(
@@ -232,7 +331,7 @@ def build_struct(
         *[pl.col(f"leader_out_{s}").fill_null(0) for s in STATS]
     )
     keep = ["game_id", "team_id", "player_id", "V_min", *[f"V_{s}" for s in STATS]]
-    cols = [c for c in r.columns if c.startswith(("struct_", "leader_out_"))]
+    cols = [c for c in r.columns if c.startswith(("struct_", "leader_out_", "prop_d_", "tr_"))]
     return r.select(*keep, *cols)
 
 

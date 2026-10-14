@@ -52,7 +52,11 @@ def load_box_state(db: str) -> pl.DataFrame:
         return C.query(
             con,
             "SELECT s.game_id, s.team_id, s.player_id, s.minutes, s.pts, s.reb, s.ast, s.fg3m, s.fga, s.fta, s.tov, "
+            "s.fg3a, CAST(s.starter AS DOUBLE) AS starter, t.touches, t.passes, t.secondary_assists AS sec_ast, "
+            "t.free_throw_assists AS ft_ast, t.rebound_chances_total AS rbc, "
+            "t.uncontested_field_goals_attempted AS unc, t.contested_field_goals_attempted AS con, "
             "g.game_date, g.season FROM player_game_stats s JOIN games g ON g.game_id = s.game_id "
+            "LEFT JOIN player_game_tracking t ON t.game_id = s.game_id AND t.player_id = s.player_id "
             "WHERE g.season <= 2024 AND s.minutes > 0",
         ).with_columns(pl.col("game_date").cast(pl.Date))
     finally:

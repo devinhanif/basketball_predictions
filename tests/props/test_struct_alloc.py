@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from typing import Any
 
 import numpy as np
 import polars as pl
@@ -147,3 +148,39 @@ def test_leader_flag() -> None:
     assert (f["leader_out_pts"] == 1).all()
     f2 = _run(box, out_pid=6)
     assert (f2["leader_out_pts"] == 0).all()
+
+
+def _prop(theta_use: float = 0.0) -> dict[str, dict[str, Any]]:
+    n = len(S.TRAITS)
+    th = [0.0] * n
+    th[S.TRAITS.index("tr_use")] = theta_use
+    return {s: {"mu": [0.0] * n, "sd": [1.0] * n, "theta": th} for s in S.STATS}
+
+
+def _run_prop(box: pl.DataFrame, prop: dict[str, dict[str, Any]]) -> pl.DataFrame:
+    states = S.decayed_states(box)
+    pool = W.asof_rotation_pool(box)
+    outp = pl.DataFrame({"game_id": ["G025"], "team_id": [T1], "player_id": [1]})
+    rows = box.filter((pl.col("game_id") == "G025") & (pl.col("player_id") != 1)).select(
+        "game_id", "team_id", "player_id"
+    )
+    return S.build_struct(rows, outp, pool, states, _dates(), _positions(), prop=prop)
+
+
+def test_prop_with_flat_propensity_equals_plain_and_conserves() -> None:
+    box = _box()
+    f = _run_prop(box, _prop(0.0))
+    for s in S.STATS:
+        assert np.allclose(f[f"prop_d_{s}"].to_numpy(), f[f"struct_d_{s}"].to_numpy())
+    f2 = _run_prop(box, _prop(0.5))
+    for s in S.STATS:
+        assert abs(f2[f"prop_d_{s}"].sum() - f2[f"V_{s}"][0]) < 1e-9
+
+
+def test_prop_shifts_share_toward_high_trait_player() -> None:
+    box = _box()
+    f0 = _run_prop(box, _prop(0.0)).sort("player_id")
+    f1 = _run_prop(box, _prop(1.0)).sort("player_id")
+    hi = f1["tr_use"].arg_max()
+    assert hi is not None
+    assert f1["prop_d_pts"][hi] > f0["prop_d_pts"][hi]
