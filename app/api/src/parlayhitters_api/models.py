@@ -34,6 +34,8 @@ class PropView(BaseModel):
     line_source: Literal["posted", "reference"] = "posted"
     over_price: int | None
     under_price: int | None
+    # The one book whose over and under are shown (None when the prices are absent).
+    price_book: str | None = None
     line_snapshot_utc: str | None
     forecast_mean: float | None
     q: list[float]
@@ -118,6 +120,7 @@ class SwipeCard(BaseModel):
     line: float
     over_price: int
     under_price: int
+    book: str | None = None
     tip_utc: str
 
 

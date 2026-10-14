@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { american, lineText, num, pct, pctBounded, tipTime } from "./format";
+import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "./format";
 import { parse } from "./router";
 
 describe("format", () => {
+  it("names books and exchanges as people write them", () => {
+    expect(bookName("draftkings")).toBe("DraftKings");
+    expect(bookName("kalshi")).toBe("Kalshi");
+    expect(bookName("polymarket_us")).toBe("Polymarket US");
+    expect(bookName("some_new_book")).toBe("Some new book");
+  });
+
   it("formats probabilities and prices", () => {
     expect(pct(0.3649)).toBe("36%");
     expect(pct(0.3649, 1)).toBe("36.5%");

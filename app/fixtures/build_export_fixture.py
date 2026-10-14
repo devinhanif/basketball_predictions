@@ -8,8 +8,11 @@ What it does (nothing is read from the live database, nothing is real):
   1. creates a scratch source DB from nba/db/schema.sql (the SQL text is executed; nothing from
      nba is imported here) and fills it with SYNTHETIC rows: invented player ids (990001 and up),
      real team ids, dates in Oct-Nov 2024 (season 2024; the 2025 holdout is never touched);
-  2. writes a one-line parlay evaluation file (an empty list: nothing priced);
-  3. runs the exporter as a subprocess, `python -m nba.export build --season 2024`, which is the
+  2. creates a scratch odds-capture DB (the live_book_odds table, same columns as the real
+     capture store) with SYNTHETIC quotes: two sportsbooks, three exchanges, an alternate ladder
+     and a planted Polymarket Under placeholder (the exporter must flag it unusable);
+  3. writes a one-line parlay evaluation file (an empty list: nothing priced);
+  4. runs the exporter as a subprocess, `python -m nba.export build --season 2024`, which is the
      only way the app side ever meets nba/.
 
 The numbers are invented so the screens can be exercised; they say nothing about any real player.
@@ -101,7 +104,12 @@ def prediction(rng: random.Random, stat: str, scale: float, minutes: float) -> s
     )
 
 
-def build_source(path: Path) -> None:
+Plan = dict[tuple[str, int, str], tuple[float, datetime]]
+
+
+def build_source(path: Path) -> Plan:
+    """The scratch nba.duckdb; returns (game, player, stat) -> (forecast mean, tipoff) for quotes."""
+    plan: Plan = {}
     rng = random.Random(20241112)
     con = duckdb.connect(str(path))
     con.execute((REPO / "nba" / "db" / "schema.sql").read_text())
@@ -168,6 +176,7 @@ def build_source(path: Path) -> None:
                     if pid == SIDEKICK and d == DAY:
                         continue  # out tonight: no forecast
                     for st in STATS:
+                        plan[(gid, pid, st)] = (BASE[st] * (1.9 - 0.28 * k), tip)
                         con.execute(
                             "INSERT INTO forward_predictions VALUES (?,?,?,?,?,?,?,?,?)",
                             [run_id, made, gid, tip, "props_context_residual", "v1", st, pid,
@@ -207,6 +216,68 @@ def build_source(path: Path) -> None:
              tip - timedelta(minutes=150), 1.0, 0.55, 0.598, 0.2025, None, "scored"],
         )  # fmt: skip
     con.close()
+    return plan
+
+
+ODDS_DDL = """
+CREATE TABLE live_book_odds (
+    source VARCHAR, game_id VARCHAR, slate_date DATE, snapshot_kind VARCHAR,
+    requested_at TIMESTAMP, received_at TIMESTAMP, tipoff TIMESTAMP, commence_time TIMESTAMP,
+    event_id VARCHAR, book VARCHAR, market VARCHAR, outcome_name VARCHAR, player_name VARCHAR,
+    player_id INT, side VARCHAR, point DOUBLE, price_american INT, implied_prob_raw DOUBLE,
+    implied_prob DOUBLE, last_update TIMESTAMP, raw_file VARCHAR
+)
+"""
+MARKET = {"pts": "player_points", "reb": "player_rebounds", "ast": "player_assists",
+          "fg3m": "player_threes"}  # fmt: skip
+
+
+def raw_prob(price: int) -> float:
+    return 100 / (price + 100) if price > 0 else -price / (-price + 100)
+
+
+def build_odds(path: Path, plan: Plan) -> None:
+    """Synthetic quotes for every planned prop, captured 200 minutes before tip (known to every
+    run) and, for tonight's games, re-captured at T-60 (known to the T-30 run only).
+
+    Main line L = floor(mean) + 0.5 at draftkings and fanduel; kalshi posts L + 1 (so the main
+    line is the one most books carry); novig posts an alternate over ladder at L + 4 and L + 9;
+    polymarket posts an over and a -3233 Under (a placeholder with no bid: flagged unusable).
+    The fifth rostered player of each team (index 4) is priced by fanduel at L + 1 only, so the
+    draftkings/fanduel disagreement is exercised too. Prices are invented."""
+    rng = random.Random(777)
+    con = duckdb.connect(str(path))
+    con.execute(ODDS_DDL)
+    rows: list[list[object]] = []
+
+    def add(gid: str, tip: datetime, kind: str, recv: datetime, pid: int, st: str, book: str,
+            market: str, side: str, point: float, price: int) -> None:  # fmt: skip
+        rows.append(
+            ["the_odds_api_live", gid, tip.date(), kind, recv, recv, tip, tip, "ev", book, market,
+             side.title(), "Player", pid, side, point, price, raw_prob(price), None, recv, "raw"]
+        )  # fmt: skip
+
+    for (gid, pid, st), (mean, tip) in sorted(plan.items()):
+        line = float(int(mean)) + 0.5
+        quote_times = [("t180", tip - timedelta(minutes=200))]
+        if tip.date() == DAY + timedelta(days=1):
+            quote_times.append(("t60", tip - timedelta(minutes=60)))
+        for kind, recv in quote_times:
+            drift = 0 if kind == "t180" else 5
+            over = -118 + rng.randint(-8, 8) + drift
+            under = -118 + rng.randint(-8, 8) - drift
+            fd_line = line + 1 if pid % 10 == 5 else line
+            m = MARKET[st]
+            for book, ln in (("draftkings", line), ("fanduel", fd_line), ("kalshi", line + 1)):
+                add(gid, tip, kind, recv, pid, st, book, m, "over", ln, over)
+                add(gid, tip, kind, recv, pid, st, book, m, "under", ln, under)
+            add(gid, tip, kind, recv, pid, st, "polymarket", m, "over", line, 120)
+            add(gid, tip, kind, recv, pid, st, "polymarket", m, "under", line, -3233)
+            for extra in (4.0, 9.0):
+                add(gid, tip, kind, recv, pid, st, "novig", m + "_alternate", "over", line + extra,
+                    int(110 * (1 + extra)))  # fmt: skip
+    con.executemany("INSERT INTO live_book_odds VALUES (" + ",".join("?" * 21) + ")", rows)
+    con.close()
 
 
 def main() -> int:
@@ -219,7 +290,9 @@ def main() -> int:
     out = args.out
     with tempfile.TemporaryDirectory() as tmp:
         src = Path(tmp) / "nba.duckdb"
-        build_source(src)
+        plan = build_source(src)
+        odds = Path(tmp) / "market_asof.duckdb"
+        build_odds(odds, plan)
         pdir = Path(tmp) / "parlay"
         pdir.mkdir()
         (pdir / f"evaluate_{DAY.isoformat()}.json").write_text("[]")
@@ -229,6 +302,7 @@ def main() -> int:
         cmd = [
             args.python, "-m", "nba.export", "build", "--date", DAY.isoformat(), "--out", str(out),
             "--db", str(src), "--season", str(SEASON), "--parlay-dir", str(pdir),
+            "--odds-db", str(odds),
         ]  # fmt: skip
         subprocess.run(cmd, cwd=REPO, check=True)  # noqa: S603
     return 0

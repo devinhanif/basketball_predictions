@@ -117,7 +117,7 @@ def test_meta_must_agree_with_the_manifest(export_dir: Path) -> None:
 
 
 def test_garbled_or_wrong_schema_manifests_are_refused(export_dir: Path) -> None:
-    seal(export_dir, schema_version=2)
+    seal(export_dir, schema_version=3)
     with pytest.raises(ExportRefused, match="schema_version"):
         ExportStore(export_dir)
     (export_dir / "manifest.json").write_text("{not json")
@@ -176,31 +176,31 @@ def test_a_new_export_is_picked_up_without_a_restart(
 # ------------------------------------------------------------------------- the same screens
 
 
-def test_meta_says_when_the_data_is_from(export_client: TestClient) -> None:
-    m = export_client.get("/api/meta").json()
+def test_schema1_meta_says_when_the_data_is_from(v1_client: TestClient) -> None:
+    m = v1_client.get("/api/meta").json()
     assert m["mode"] == "export"
     assert m["data_as_of"] == _manifest(EXPORT_SMALL)["made_at"]
     assert m["data_version"] == _manifest(EXPORT_SMALL)["data_version"]
     assert any("no sportsbook lines" in s for s in m["stubs"])
 
 
-def test_slate_and_game_come_from_the_export(export_client: TestClient) -> None:
-    slates = export_client.get("/api/slates").json()
+def test_schema1_slate_and_game_have_reference_lines_and_no_prices(v1_client: TestClient) -> None:
+    slates = v1_client.get("/api/slates").json()
     assert [s["date"] for s in slates][0] == EXPORT_DAY
-    s = export_client.get(f"/api/slates/{EXPORT_DAY}").json()
+    s = v1_client.get(f"/api/slates/{EXPORT_DAY}").json()
     assert s["mode"] == "export" and len(s["games"]) == 2
     for g in s["games"]:
         wp = g["win_probability"]
         assert 0 < wp["model_home"] < 1 and wp["market_home"] is None
         assert g["key_props"] and g["key_props"][0]["market_p_over"] is None
     gid = s["games"][0]["game_id"]
-    body = export_client.get(f"/api/games/{gid}").json()
+    body = v1_client.get(f"/api/games/{gid}").json()
     assert body["final"] is False
     prop = body["players"][0]["props"]["pts"]
     assert prop["line_source"] == "reference"
     assert prop["over_price"] is None and prop["market_p_over"] is None
     assert prop["model_p_over"] + prop["model_p_under"] + prop["model_p_push"] == pytest.approx(1)
-    assert export_client.get(f"/api/games/{gid}/result").status_code == 404  # not played yet
+    assert v1_client.get(f"/api/games/{gid}/result").status_code == 404  # not played yet
 
 
 def test_a_played_game_has_a_result_and_actuals(export_client: TestClient) -> None:
@@ -229,12 +229,12 @@ def test_win_probability_is_the_latest_pre_tip_run_not_the_late_one(
     assert got == {gid: p for gid, p in rows}
 
 
-def test_breakdown_works_from_the_export(export_client: TestClient) -> None:
-    s = export_client.get(f"/api/slates/{EXPORT_DAY}").json()
+def test_schema1_breakdown_has_no_prices_and_no_steals_or_blocks(v1_client: TestClient) -> None:
+    s = v1_client.get(f"/api/slates/{EXPORT_DAY}").json()
     gid = s["games"][0]["game_id"]
-    g = export_client.get(f"/api/games/{gid}").json()
+    g = v1_client.get(f"/api/games/{gid}").json()
     star = next(p for p in g["players"] if p["name"] == "Player 990001")
-    b = export_client.get(f"/api/breakdown/{gid}/{star['player_id']}/pts").json()
+    b = v1_client.get(f"/api/breakdown/{gid}/{star['player_id']}/pts").json()
     assert b["line_source"] == "model_middle" and b["line"] % 1 == 0.5
     assert b["last10"]["n"] == 10 and len(b["chips"]) == 10
     assert b["model"]["available"] and not b["model"]["extrapolated"]
@@ -247,8 +247,8 @@ def test_breakdown_works_from_the_export(export_client: TestClient) -> None:
     assert b["teammates"]["items"][0]["without"]["n"] == 3
     # no steals or blocks in the export: those tabs and routes do not exist
     assert [t["stat"] for t in b["tabs"]] == list(es.EXPORT_STATS)
-    assert export_client.get(f"/api/breakdown/{gid}/{star['player_id']}/stocks").status_code == 404
-    assert export_client.get(f"/api/breakdown/{gid}/{star['player_id']}/pra").status_code == 200
+    assert v1_client.get(f"/api/breakdown/{gid}/{star['player_id']}/stocks").status_code == 404
+    assert v1_client.get(f"/api/breakdown/{gid}/{star['player_id']}/pra").status_code == 200
     # home/away is known only for games the export schedules; older games leave it out
     homes = {c["home"] for c in b["chips"]}
     assert None in homes and (True in homes or False in homes)
@@ -258,11 +258,11 @@ def test_breakdown_works_from_the_export(export_client: TestClient) -> None:
     assert b["opponent_allowed"] is None  # no positions in the export
 
 
-def test_alt_lines_use_the_exact_stored_table(export_client: TestClient) -> None:
-    s = export_client.get(f"/api/slates/{EXPORT_DAY}").json()
+def test_schema1_alt_lines_use_the_exact_stored_table(v1_client: TestClient) -> None:
+    s = v1_client.get(f"/api/slates/{EXPORT_DAY}").json()
     gid = s["games"][0]["game_id"]
     star = next(
-        p for p in export_client.get(f"/api/games/{gid}").json()["players"]
+        p for p in v1_client.get(f"/api/games/{gid}").json()["players"]
         if p["name"] == "Player 990001"
     )  # fmt: skip
     con = duckdb.connect(str(EXPORT_SMALL / "export.duckdb"), read_only=True)
@@ -275,9 +275,7 @@ def test_alt_lines_use_the_exact_stored_table(export_client: TestClient) -> None
     finally:
         con.close()
     for line in (10.5, 20.5, 25.5, 30.5, 99.5):
-        r = export_client.get(
-            f"/api/props/{gid}/{star['player_id']}/pts", params={"line": line}
-        ).json()
+        r = v1_client.get(f"/api/props/{gid}/{star['player_id']}/pts", params={"line": line}).json()
         want = surv_probs(c, n, line)
         assert r["p_over"] == pytest.approx(want.p_over)
         assert r["p_under"] == pytest.approx(want.p_under)
@@ -286,16 +284,16 @@ def test_alt_lines_use_the_exact_stored_table(export_client: TestClient) -> None
         # P(over L) is the stored count of outcomes >= floor(L) + 1, over the stored denominator
         k = int(line) + 1
         assert r["p_over"] == pytest.approx((c[k - 1] / n) if k - 1 < len(c) else 0.0)
-    ladder = export_client.get(f"/api/breakdown/{gid}/{star['player_id']}/pts").json()["ladder"]
+    ladder = v1_client.get(f"/api/breakdown/{gid}/{star['player_id']}/pts").json()["ladder"]
     row = next(x for x in ladder if x["line"] == 25.5)
     assert row["model_over"] == pytest.approx(surv_probs(c, n, 25.5).p_over)
     assert row["over_price"] is None
 
 
-def test_no_prices_means_no_swipe_cards_and_no_settled_rows(export_client: TestClient) -> None:
-    deck = export_client.get(f"/api/slates/{EXPORT_DAY}/swipe").json()
+def test_schema1_has_no_swipe_cards_and_no_settled_rows(v1_client: TestClient) -> None:
+    deck = v1_client.get(f"/api/slates/{EXPORT_DAY}/swipe").json()
     assert deck["cards"] == [] and "no sportsbook lines" in deck["note"]
-    res = export_client.get("/api/slates/2024-11-11/results").json()
+    res = v1_client.get("/api/slates/2024-11-11/results").json()
     assert res["rows"] == []
 
 

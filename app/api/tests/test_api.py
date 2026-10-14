@@ -140,7 +140,7 @@ def test_swipe_deck_is_blind_and_seeded(client: TestClient) -> None:
     assert len(a["cards"]) == 10
     allowed = {
         "prop_id", "game_id", "player_id", "player", "team", "opponent",
-        "stat", "line", "over_price", "under_price", "tip_utc",
+        "stat", "line", "over_price", "under_price", "book", "tip_utc",
     }  # fmt: skip
     for card in a["cards"]:
         assert set(card) == allowed, "a card carries line and price only"

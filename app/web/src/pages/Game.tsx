@@ -2,7 +2,7 @@ import { useState } from "preact/hooks";
 import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
-import { american, lineText, num, pct, pctBounded, tipTime } from "../format";
+import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { legHref } from "../router";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
@@ -17,9 +17,11 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
       <div class="row between wrap">
         <strong>{STAT_LABEL[prop.stat]}</strong>
         <span class="small muted num">
-          {prop.over_price !== null && prop.under_price !== null
-            ? `Line ${lineText(prop.line)} · Over ${american(prop.over_price)} · Under ${american(prop.under_price)}`
-            : `Reference line ${lineText(prop.line)} (no sportsbook line in this data)`}
+          {prop.line_source === "reference"
+            ? `Reference line ${lineText(prop.line)} (no usable sportsbook line)`
+            : prop.over_price !== null && prop.under_price !== null
+              ? `Line ${lineText(prop.line)} · Over ${american(prop.over_price)} · Under ${american(prop.under_price)}${prop.price_book ? ` (${bookName(prop.price_book)})` : ""}`
+              : `Line ${lineText(prop.line)} (no usable price for both sides)`}
         </span>
       </div>
       <p class="row wrap" style={{ margin: "6px 0" }}>
@@ -35,7 +37,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
         </span>
         {prop.market_p_over !== null ? (
           <span>
-            Sportsbook: <b>{pct(prop.market_p_over)}</b>
+            {prop.price_book ? bookName(prop.price_book) : "Sportsbook"}: <b>{pct(prop.market_p_over)}</b>
           </span>
         ) : null}
         {prop.model_p_push > 0.005 ? <span>Exactly on the line: {pct(prop.model_p_push)}</span> : null}

@@ -113,16 +113,29 @@ a non-empty `data_version`, a parseable `made_at`, no season 2025, and the sha25
 answers 503 with the reason; nothing is silently replaced by fixtures. A new manifest on disk is picked up without a
 restart. "Data as of" in the banner is the manifest's `made_at`.
 
-The export has no sportsbook lines or prices, no steals or blocks, no player positions, and the schedule of only the last
-`lookback_days` days, so: a prop's line is the middle of the model's own forecast (labelled "reference line", never a
-market line); there is no swipe deck, no settled-pick rows and no stocks/blk/stl legs; "opponent allows to his
-position" is absent; home/away splits count only games the export schedules. Alt lines and the ladder read the exact
-stored full-support table (`p_ge_full`) when it is complete, else interpolate the quantile grid as the fixtures do.
-Forecast players with no earlier box score and no injury-report line cannot be placed on a team and are listed in
-`/api/meta` stubs as a count (the export's `prop_grids` carries no team id).
+Schema 1 and 2 both load (anything else is refused). **Schema 2** adds `prop_lines`, `prop_grids.team_id` and
+`box_scores.stl/blk/tov`:
 
-Test export: `fixtures/export_small/` was built by the real `python -m nba.export build` from synthetic rows dated
-Oct-Nov 2024 (invented player ids, real team ids). Rebuild from the repo root with the project interpreter:
+- A prop's line is the posted main line: among usable, non-alternate quotes of the forecast's own run, the line the most
+  books carry (ties: nearest the median, then lower). The price beside it is one book's over and under (sportsbooks in a
+  fixed order, then exchanges alphabetically); its market probability is that pair de-vigged. A prop with no usable main
+  line shows a "reference line" (middle of our forecast) and no price. Lines exist only for pts/reb/ast/fg3m.
+- The leg screen lists every book's quote at the line on screen (Kalshi, Polymarket, Novig included), and the ladder
+  carries alternate-line prices. A quote the exporter flagged `unusable` (or whose number is not an American price) has
+  no price in any response: the screen says "not usable".
+- The Swipe deck is built from the posted main lines (cards before tip only); settled rows exist for played games.
+- A forecast's team comes from `prop_grids.team_id`; blocks, steals and stocks come from the box (a game whose box has
+  them NULL is left out of those stats, not counted as zero).
+
+**Schema 1** has none of that: a prop's line is the middle of the model's own forecast ("reference line", never a market
+line); no swipe deck, no settled-pick rows, no stocks/blk/stl legs; players are placed from their earlier box scores or
+the injury report, and those who cannot be placed are counted in the `/api/meta` stubs. In both schemas "opponent allows
+to his position" is absent (no positions are exported) and home/away splits count only games the export schedules. Alt
+lines read the exact stored full-support table (`p_ge_full`) when it is complete, else interpolate the quantile grid.
+
+Test export: `fixtures/export_small/` (schema 2) was built by the real `python -m nba.export build --odds-db` from
+synthetic rows dated Oct-Nov 2024 (invented player ids and prices, real team ids), including a planted Polymarket Under
+placeholder. The tests derive a schema 1 export from it by dropping the schema 2 tables and columns. Rebuild from the repo root with the project interpreter:
 `.venv/bin/python app/fixtures/build_export_fixture.py`. `NBA_PYTHON=.venv/bin/python uv run pytest` also runs the test
 that rebuilds it and compares.
 

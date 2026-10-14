@@ -16,6 +16,24 @@ export function american(price: number): string {
   return price > 0 ? `+${price}` : `${price}`;
 }
 
+const BOOKS: Record<string, string> = {
+  draftkings: "DraftKings",
+  fanduel: "FanDuel",
+  betmgm: "BetMGM",
+  caesars: "Caesars",
+  espnbet: "ESPN Bet",
+  fanatics: "Fanatics",
+  kalshi: "Kalshi",
+  novig: "Novig",
+  polymarket: "Polymarket",
+  polymarket_us: "Polymarket US",
+};
+
+/** The book's name as people write it; an unknown key is shown as the vendor sent it. */
+export function bookName(key: string): string {
+  return BOOKS[key] ?? key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
+}
+
 export function num(x: number, digits = 1): string {
   return x.toFixed(digits).replace(/\.0$/, "");
 }

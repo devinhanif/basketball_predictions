@@ -109,6 +109,7 @@ def _prop_view(stat: str, p: Json) -> PropView:
         stat=stat,
         line=float(p["line"]),
         line_source=p.get("line_source", "posted"),
+        price_book=p.get("price_book"),
         over_price=None if p["over_price"] is None else int(p["over_price"]),
         under_price=None if p["under_price"] is None else int(p["under_price"]),
         line_snapshot_utc=p.get("line_snapshot_utc"),
@@ -150,9 +151,17 @@ def _game_notes(store: AnyStore) -> list[str]:
             "We do not forecast minutes yet. "
             "How long a player really played is part of the final result.",
         ]
+    lead = "Every forecast assumes the player suits up; the chance he plays and his projected "
+    lead += "minutes are on his breakdown page."
+    if getattr(store, "has_lines", False):
+        return [
+            lead,
+            "Lines are the one most books carried before tip; the price beside it is one book's "
+            "quote, and every book's quote is on the breakdown page. A line with no price beside "
+            "it had no usable quote, so it starts at the middle of our own forecast.",
+        ]
     return [
-        "Every forecast assumes the player suits up; the chance he plays and his projected "
-        "minutes are on his breakdown page.",
+        lead,
         "There is no sportsbook line in this data. The line shown is the middle of our own "
         "forecast, a place to start, and you can move it on the breakdown page.",
     ]
@@ -176,6 +185,7 @@ def _key_props(g: Json, n: int = 3) -> list[dict[str, Any]]:
                 "team": g["home"]["abbr"] if pl["side"] == "home" else g["away"]["abbr"],
                 "stat": "pts",
                 "line": v.line,
+                "line_source": v.line_source,
                 "over_price": v.over_price,
                 "under_price": v.under_price,
                 "forecast_mean": v.forecast_mean,
@@ -379,6 +389,7 @@ def register(app: FastAPI) -> None:
                             line=float(pr["line"]),
                             over_price=int(pr["over_price"]),
                             under_price=int(pr["under_price"]),
+                            book=pr.get("price_book"),
                             tip_utc=g["tip_utc"],
                         )
                     )
