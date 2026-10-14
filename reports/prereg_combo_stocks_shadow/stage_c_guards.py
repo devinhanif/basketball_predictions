@@ -32,7 +32,7 @@ from nba.props import combo_g1 as G  # noqa: E402
 FLOOR_STOCK = {"blk": 0.0050, "stl": 0.0050}
 
 
-def main() -> None:
+def _main() -> None:
     ap = argparse.ArgumentParser()
     for k in ("--a", "--db", "--out"):
         ap.add_argument(k, required=True)
@@ -125,6 +125,16 @@ def main() -> None:
         )
     (HERE / "guards_2024.json").write_text(json.dumps(res, indent=1, default=float))
     print("done")
+
+
+LOCK = Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock")
+
+
+def main() -> None:
+    from research.eval import workload_eval as WE
+
+    with WE.WorkloadLock(LOCK):  # the cooperative lock: take it or wait, never skip it
+        _main()
 
 
 if __name__ == "__main__":

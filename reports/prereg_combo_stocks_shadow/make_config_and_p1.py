@@ -136,7 +136,7 @@ def write_p1(args: argparse.Namespace) -> None:
     print("p1 reference written", REF, len(pick), "rows; sha256", sha(REF))
 
 
-def main() -> None:
+def _main() -> None:
     ap = argparse.ArgumentParser()
     for k in ("--a", "--db"):
         ap.add_argument(k, required=True)
@@ -146,6 +146,16 @@ def main() -> None:
     args = ap.parse_args()
     write_config()
     write_p1(args)
+
+
+LOCK = Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock")
+
+
+def main() -> None:
+    from research.eval import workload_eval as WE
+
+    with WE.WorkloadLock(LOCK):  # the cooperative lock: take it or wait, never skip it
+        _main()
 
 
 if __name__ == "__main__":

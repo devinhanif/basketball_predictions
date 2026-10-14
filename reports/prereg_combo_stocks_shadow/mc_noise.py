@@ -19,7 +19,7 @@ from nba.props import combo_copula as C  # noqa: E402
 from nba.props import combo_g1 as G  # noqa: E402
 
 
-def main() -> None:
+def _main() -> None:
     ap = argparse.ArgumentParser()
     for k in ("--a", "--db", "--out"):
         ap.add_argument(k, required=True)
@@ -42,6 +42,16 @@ def main() -> None:
                 f"N={n_draws} seed={seed} {c}: q10 {r['cover'][0.1]:.4f} q20 {r['cover'][0.2]:.4f} ok={r['ok']}",
                 flush=True,
             )
+
+
+LOCK = Path("/Users/devin/Downloads/nba-prediction/data/ops/heavy.lock")
+
+
+def main() -> None:
+    from research.eval import workload_eval as WE
+
+    with WE.WorkloadLock(LOCK):  # the cooperative lock: take it or wait, never skip it
+        _main()
 
 
 if __name__ == "__main__":
