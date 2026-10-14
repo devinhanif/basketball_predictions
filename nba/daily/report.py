@@ -326,7 +326,7 @@ def _pplay_shadow_section(con: duckdb.DuckDBPyConnection) -> list[str]:
 
 
 def _avg_shadow_section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> list[str]:
-    """SHADOW (AVG_SHADOW_LIVE): counts and gates only (no delta on a non-look day)."""
+    """SHADOW (AVG_SHADOW_LIVE_2): counts and gates only (no delta on a non-look day)."""
     from nba.daily.avg_shadow.display import section
 
     return section(con, season)

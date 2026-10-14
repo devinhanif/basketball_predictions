@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""AVG_SHADOW_LIVE shadow (docs/prereg/AVG_SHADOW_LIVE.md): grid arithmetic pinned to the offline originals, live exporter pinned to the
+"""AVG_SHADOW_LIVE_2 shadow (docs/prereg/AVG_SHADOW_LIVE_2.md): grid arithmetic pinned to the offline originals, live exporter pinned to the
 T478 exporter on fixture data, tip refusal, weights bundles and staleness, inference in a child process, heartbeat statuses, serving rule,
 settle, and that the primary rows (and so the replay hash) do not move."""
 

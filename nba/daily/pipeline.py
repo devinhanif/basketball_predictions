@@ -253,7 +253,7 @@ def run_daily(
             official, elo_config, model_cache, shared,
         )  # fmt: skip
     if with_avg_shadow:
-        # SHADOW (AVG_SHADOW_LIVE), after the FULL shadow it mixes with: own tables,
+        # SHADOW (AVG_SHADOW_LIVE_2), after the FULL shadow it mixes with: own tables,
         # own try/except, own heartbeat.
         _avg_shadow(
             con, run_date, upcoming, made_at, summary, shared, avg_bundle_root, avg_heartbeat_dir

@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Proof P2 (docs/prereg/AVG_SHADOW_LIVE.md): the LIVE sequence exporter equals the T478 exporter, bit for bit.
+"""Proof P2 (docs/prereg/AVG_SHADOW_LIVE_2.md): the LIVE sequence exporter equals the T478 exporter, bit for bit.
 
 Reads ONE database (default: a copy of nba.duckdb; never the live file) and only game dates up to 2024-12-31 (season <= 2024):
 

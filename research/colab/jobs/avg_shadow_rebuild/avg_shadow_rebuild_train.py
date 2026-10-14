@@ -285,7 +285,7 @@ def baseline_grid(d: dict[str, np.ndarray], fit_rows: np.ndarray, rows: np.ndarr
 # ruff: noqa
 # mypy: ignore-errors
 # ----------------------------------------------------------------------------------------
-# AVG_SHADOW_LIVE chain rebuild (docs/prereg/AVG_SHADOW_LIVE.md). TAIL appended by build_notebook.py to the model code of
+# AVG_SHADOW_LIVE chain rebuild (docs/prereg/AVG_SHADOW_LIVE_2.md). TAIL appended by build_notebook.py to the model code of
 # ../seq_props/seq_props_train.py (everything before its own `main`), so transformer, loss, fit and predict are exactly T478's.
 # The T478 walk-forward functions (load_npz_25, concat_rows, month_blocks, to_dev, oof_dict, run_walk_forward) are NOT written here:
 # build_notebook.py copies them verbatim from ../seq_full_mix_rt/seq_full_mix_rt_tail.py (AST extraction) and splices ONE block into
@@ -296,9 +296,10 @@ import hashlib
 
 MODE = "held"  # the T478 held-out construction (test seasons 2023, 2024, 2025); its code paths are the ones copied below
 WINDOW = "WALL"
-RULE_SHA = "6e57fc11b2487cff52bd2c27fd43044882c5ddc20a89726a8de31e9085cf6152"  # sha256 of the frozen rule text above the results marker (baked in at build time, checked on the VM)
-RULE_ID = "AVG_SHADOW_LIVE"
-RULE_DOC = "AVG_SHADOW_LIVE.md"
+RULE_SHA = "9afbfeb6e16449f334c159ab9457167b760c03e31692962469b85ee32c92fa87"  # sha256 of the frozen rule text above the results marker (baked in at build time, checked on the VM)
+RULE_ID = "AVG_SHADOW_LIVE_2"
+RULE_SHA_PIN = "9afbfeb6"  # AVG_SHADOW_LIVE_2 (frozen 2026-10-14): written here by hand, not derived from the staged document, so a different rule cannot build or run
+RULE_DOC = "AVG_SHADOW_LIVE_2.md"
 LOG_DOC = "HOLDOUT_ACCESS_LOG.md"
 LOG_ROW_KEY = "Colab chain rebuild for AVG_SHADOW_LIVE"
 RESULTS_MARKER = "=== RESULTS BELOW ===\n"
@@ -519,6 +520,10 @@ def check_rule(run_dir):
     if not any(line.replace("*", "").startswith("Status: FROZEN") for line in head.splitlines()):
         raise RuntimeError("the rule document is not FROZEN; refusing to fit")
     got = rule_text_sha(text)
+    if not (got.startswith(RULE_SHA_PIN) and RULE_SHA.startswith(RULE_SHA_PIN)):
+        raise RuntimeError(
+            f"rule sha {got[:8]} (notebook {RULE_SHA[:8]}) is not {RULE_ID} {RULE_SHA_PIN}; refusing"
+        )
     if got != RULE_SHA:
         raise RuntimeError(f"rule sha mismatch: document {got} vs notebook {RULE_SHA}; refusing")
     lg = Path(run_dir) / LOG_DOC

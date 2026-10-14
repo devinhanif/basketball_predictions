@@ -1,10 +1,10 @@
 # mypy: ignore-errors
 # ruff: noqa: E501
-"""Build the AVG_SHADOW_LIVE chain-rebuild notebook.
+"""Build the AVG_SHADOW_LIVE_2 chain-rebuild notebook.
 
     uv run python research/colab/jobs/avg_shadow_rebuild/build_notebook.py
 
-Refuses unless docs/prereg/AVG_SHADOW_LIVE.md is FROZEN, bakes its sha256 (text above the results marker) into the notebook, and takes the T478
+Refuses unless docs/prereg/AVG_SHADOW_LIVE_2.md is FROZEN and its sha256 starts with the pinned 9afbfeb6, bakes its sha256 (text above the results marker) into the notebook, and takes the T478
 walk-forward functions VERBATIM from ../seq_full_mix_rt/seq_full_mix_rt_tail.py (AST extraction, no retyping), splicing exactly two blocks (the P1b weight saves at four mid-season months and the install fit with the weight save) into ``run_walk_forward``. A missing anchor or function is a build error, never a silent fallback.
 """
 
@@ -20,7 +20,8 @@ ROOT = HERE.parents[3]
 BASE = ROOT / "research/colab/jobs/seq_props/seq_props_train.py"
 RT_TAIL = ROOT / "research/colab/jobs/seq_full_mix_rt/seq_full_mix_rt_tail.py"
 TAIL = HERE / "avg_shadow_rebuild_tail.py"
-DOC = ROOT / "docs/prereg/AVG_SHADOW_LIVE.md"
+DOC = ROOT / "docs/prereg/AVG_SHADOW_LIVE_2.md"
+RULE_SHA_PIN = "9afbfeb6"  # AVG_SHADOW_LIVE_2, frozen 2026-10-14 (commit 6e86f1a); any other rule text is a build error
 MARK_MAIN = "# --------------------------------------------------------------------------- main\n"
 MARK_RESULTS = "=== RESULTS BELOW ===\n"
 COPIED = ("load_npz_25", "concat_rows", "month_blocks", "to_dev", "oof_dict", "run_walk_forward")
@@ -61,9 +62,14 @@ def rule_sha(doc: Path | None = None) -> str:
     head = head_text((doc or DOC).read_text())
     if not any(line.replace("*", "").startswith("Status: FROZEN") for line in head.splitlines()):
         raise SystemExit(
-            "docs/prereg/AVG_SHADOW_LIVE.md is not FROZEN; refusing to build the notebook"
+            "docs/prereg/AVG_SHADOW_LIVE_2.md is not FROZEN; refusing to build the notebook"
         )
-    return hashlib.sha256(head.encode()).hexdigest()
+    sha = hashlib.sha256(head.encode()).hexdigest()
+    if not sha.startswith(RULE_SHA_PIN):
+        raise SystemExit(
+            f"rule text sha {sha[:8]} is not AVG_SHADOW_LIVE_2 {RULE_SHA_PIN}; refusing to build the notebook"
+        )
+    return sha
 
 
 def copied_functions(rt_tail: Path | None = None) -> str:
@@ -112,10 +118,10 @@ def script(sha: str) -> str:
     return base.split(MARK_MAIN)[0].rstrip("\n") + "\n\n\n" + tail
 
 
-INTRO = """# avg_shadow_rebuild -- AVG_SHADOW_LIVE one-time chain rebuild (E2, W_ALL, 3 seeds, weights SAVED), T4 GPU
+INTRO = """# avg_shadow_rebuild -- AVG_SHADOW_LIVE_2 one-time chain rebuild (E2, W_ALL, 3 seeds, weights SAVED), T4 GPU
 
 Runtime > Change runtime type > T4 GPU. Run all. One program (E2, 3 seeds): T478's cold fit and monthly warm refits through the last settled month, then the
-install fit (every row before 2026-10-01) with the three state dicts and the vocabulary saved. The notebook refuses unless the staged AVG_SHADOW_LIVE.md is the
+install fit (every row before 2026-10-01) with the three state dicts and the vocabulary saved. The notebook refuses unless the staged AVG_SHADOW_LIVE_2.md is the
 frozen document it was built for (sha256) and the staged HOLDOUT_ACCESS_LOG.md has the 2026-10-13 rebuild row. It scores nothing. Budget 45 T4-minutes, ceiling 60.
 Download seed0.pt seed1.pt seed2.pt vocab.json bundle_parts.json oof_E2.npz info_E2.json metrics.json config.json from the run folder."""
 SETUP = """try:  # Colab?

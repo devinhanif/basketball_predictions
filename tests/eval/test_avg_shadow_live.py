@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Fixture tests for the AVG shadow reader (docs/prereg/AVG_SHADOW_LIVE.md): in-memory DuckDB, synthetic grids built with the real
+"""Fixture tests for the AVG shadow reader (docs/prereg/AVG_SHADOW_LIVE_2.md): in-memory DuckDB, synthetic grids built with the real
 mixture code. Planted gain passes; no gain and a mixture-only gain do not; harm kills at the interim; stale, coverage and stamp failures
 block; intention-to-treat (a missing AVG row is the FULL grid, never dropped); planted-future placebo; shuffle alive; BH keys;
 settle reproduction; no look before its date."""
@@ -417,4 +417,65 @@ def test_daily_display_has_counts_and_gates_but_no_delta() -> None:
         and "crps" not in text
         and out["pts"]["n_eligible"] > 0
         and out["gates"]["rows_after_tip"] == 0
+    )
+
+
+# --------------------------------------------------------------------------- G1 on avg_pmf199 (AVG_SHADOW_LIVE_2)
+def _shift_stored(con: duckdb.DuckDBPyConnection, column: str, by: int) -> None:
+    """Shift one stored JSON grid of every pts AVG row by ``by`` and leave every other column alone."""
+    rows = con.execute(
+        f"SELECT run_id, game_id, player_id, CAST({column} AS VARCHAR) FROM forward_avg_shadow WHERE stat = 'pts'"
+    ).fetchall()
+    con.executemany(
+        f"UPDATE forward_avg_shadow SET {column} = ? WHERE run_id = ? AND game_id = ? AND player_id = ? AND stat = 'pts'",
+        [(json.dumps([int(v) + by for v in json.loads(g)]), r, gm, p) for r, gm, p, g in rows],
+    )
+
+
+def _g1(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
+    return dict(_final(con)["stats"]["pts"]["guards"]["G1_calibration"])
+
+
+def test_g1_reads_the_stored_199_point_pmf_not_the_19_atoms() -> None:
+    base = _g1(build(n_dates=60))
+    assert base["form"] == "avg_pmf199" and base["share_without_avg_row"] == 0.0
+    # a miscalibration planted on avg_pmf199 only (avg_q19, the scored object, untouched) fails G1: a 19-atom reading would still pass
+    bad = build(n_dates=60)
+    _shift_stored(bad, "avg_pmf199", 3)
+    got = _g1(bad)
+    assert got["ok"] is False and got["bias"] < -2.0
+    assert got["atom19_descriptive"]["bias"] == pytest.approx(base["atom19_descriptive"]["bias"])
+    assert got["atom19_descriptive"]["guard"] == base["atom19_descriptive"]["guard"]
+
+
+def test_a_19_atom_only_shift_does_not_move_g1() -> None:
+    base = _g1(build(n_dates=60))
+    con = build(n_dates=60)
+    _shift_stored(
+        con, "avg_q19", 3
+    )  # the stored pmf is calibrated; only the 19 scored quantiles move
+    got = _g1(con)
+    assert got["bias"] == pytest.approx(base["bias"]) and got["cov80"] == pytest.approx(
+        base["cov80"]
+    )
+    assert got["guard"] == base["guard"] and got["ok"] == base["ok"]
+    assert got["atom19_descriptive"]["bias"] < base["atom19_descriptive"]["bias"] - 2.0
+    assert (
+        got["atom19_descriptive"]["ok"] is False
+    )  # the descriptive 19-atom reading does see it, and decides nothing
+
+
+def test_g1_pmf199_for_an_itt_triple_without_an_avg_row_is_the_full_reconstruction() -> None:
+    con = build(n_dates=40, miss_rate=0.3)
+    rows = L.load_live(con, "pts")
+    m = np.ones(len(rows["gid"]), dtype=bool)
+    pmf = L.g1_pmf199(rows, m)
+    assert pmf.shape == (len(m), 199)
+    ha = rows["has_avg"]
+    assert 0.1 < (~ha).mean() < 0.5
+    want = to_integer_support(grids.ext19(rows["qf"][~ha]))
+    assert (pmf[~ha] == want).all()
+    assert (pmf[ha] == rows["pavg"][ha]).all()
+    assert _g1(con)["share_without_avg_row"] == pytest.approx(
+        float((~ha[L.population(rows)["verdict"]]).mean()), abs=1e-9
     )

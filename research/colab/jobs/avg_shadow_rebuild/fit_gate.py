@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""The first live T442 gate (docs/prereg/AVG_SHADOW_LIVE.md, "What the steward builds" 3): a SoftmaxGate over [A0, SEQ], one fit on every row
+"""The first live T442 gate (docs/prereg/AVG_SHADOW_LIVE_2.md, "What the steward builds" 3): a SoftmaxGate over [A0, SEQ], one fit on every row
 strictly earlier than the month it serves, written as ``gate.json`` for the weights bundle.
 
 The fit is T442's own code (``research.stack.router.ContextEncoder`` + ``SoftmaxGate``, 30-day-block walk replaced by ONE fit because the live

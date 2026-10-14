@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Proof P3 (docs/prereg/AVG_SHADOW_LIVE.md): the 19-quantile live arithmetic reproduces the 199-point integer CRPS contrast.
+"""Proof P3 (docs/prereg/AVG_SHADOW_LIVE_2.md, frozen 9afbfeb6): the 19-quantile live arithmetic reproduces the 199-point integer CRPS contrast.
 
 Reads ONLY the stored selection-side artifacts of T478's run #1 (seasons 2023 and 2024; ``oof_WALL_E2.npz`` of data/colab/runs/seq_full_mix_rt_sel,
 the stored A0 / FULL caches); the 2025-bearing files are never opened. For each stat, on the 2024 (2024-25) regular-season played rows:
@@ -9,8 +9,11 @@ the stored A0 / FULL caches); the 2025-bearing files are never opened. For each 
             19 equal-mass integer quantiles), the stored learned-gate weights, ``nba.daily.avg_shadow.grids.build_arms``, AVG stored as 19 integer
             quantiles, every arm scored with the 19-tau pinball (``crps_rows``).
 
-Pass (rule P3): |live - offline| of pts AVG minus FULL <= 0.0005, the same sign on reb / ast / fg3m, and the 19-atom guards G1 and (f) rehearsed
-(G1 rehearsal: the randomised PIT of the 19-atom pmf must satisfy the rule's own G1 limits on 2024 pts; ``pass_g1_rehearsal`` is reported separately).
+Pass (rule AVG_SHADOW_LIVE_2 P3): |live - offline| of pts AVG minus FULL <= 0.0005, the same sign on reb / ast / fg3m, and the rehearsals of
+G1 and (f). G1 is read on the 199-point pmf built from the 19 stored members exactly as the shadow builds it (``grids.build_arms`` -> ``live["AVG"]``,
+the object stored as ``avg_pmf199``) with the randomised PIT, seed 0, and must satisfy the rule's own G1 limits on 2024 pts (``pass_g1_rehearsal``);
+(f) AVG minus AVG_A0 on the 19-atom form must be <= -0.003 (point). The 19-atom G1 is printed, descriptive, not a pass condition. G1 on reb / ast /
+fg3m (same form) is printed; a count stat failing it here is not proposable under rule 7 (it does not fail P3).
 
     .venv/bin/python -W ignore research/colab/jobs/avg_shadow_rebuild/p3_equivalence.py --sel-run data/colab/runs/seq_full_mix_rt_sel/20261012_144207
 """
@@ -29,23 +32,30 @@ from nba.daily.avg_shadow import grids
 from nba.eval import avg_shadow_live as L
 from nba.eval.context_residual_eval import crps_from_quantiles
 from nba.eval.full_shadow_live import crps_rows
+from nba.props.context_residual import to_integer_support
 from research.eval import ensemble_eval as E
 from research.eval import seq_full_mix_eval as S
 from research.eval import workload_eval as WE
 
 ROOT = Path(__file__).resolve().parents[4]
 TOL = 0.0005
+F_FLOOR = -0.003
 SEASON = 2024
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sel-run", type=Path, required=True)
-    ap.add_argument("--out", type=Path, default=ROOT / "reports/prereg_avg_shadow_live/p3.json")
+    ap.add_argument("--out", type=Path, default=ROOT / "reports/prereg_avg_shadow_live_2/p3.json")
     a = ap.parse_args(argv)
     S.configure_rt(a.sel_run, "WALL")
     t0 = time.time()
-    res: dict[str, Any] = {"sel_run": str(a.sel_run), "season": SEASON, "stats": {}}
+    res: dict[str, Any] = {
+        "rule": "AVG_SHADOW_LIVE_2 9afbfeb6",
+        "sel_run": str(a.sel_run),
+        "season": SEASON,
+        "stats": {},
+    }
     with WE.heavy():
         w = S.stored_world()
         for st in S.STATS:
@@ -109,8 +119,20 @@ def main(argv: list[str] | None = None) -> int:
                     ).mean()
                 ),
             }
+            # G1 (AVG_SHADOW_LIVE_2): the 199-point pmf the shadow stores as avg_pmf199 (live["AVG"], before compression to 19 quantiles)
+            rec["G1_calibration_199"] = L.calibration(live["AVG"][m], y[m])
+            rec["G1_calibration_19_atom_descriptive"] = L.calibration(q["AVG"][m], y[m])
             if st == "pts":
-                rec["G1_calibration_19_atom"] = L.calibration(q["AVG"][m], y[m])
+                # FULL and A0 on the 199-point reconstruction of their stored 19 (descriptive; the shadow builds FULL this way inside the mixture)
+                rec["G1_recon199_descriptive"] = {
+                    k: {
+                        t: L.calibration(
+                            to_integer_support(grids.ext19(q[k][m])).astype(np.int16), y[m]
+                        )["guard"]["cover"][t]
+                        for t in ("0.1", "0.2")
+                    }
+                    for k in ("FULL", "A0")
+                }
                 # the same readings on the 199-point form and for the other arms: is a G1 miss the 19-atom pmf or AVG itself?
                 rec["G1_context"] = {
                     k: {
@@ -130,14 +152,15 @@ def main(argv: list[str] | None = None) -> int:
                     for k in ("AVG", "FULL", "A0")
                 }
                 rec["pass_crps"] = bool(rec["avg_minus_full"]["abs_diff"] <= TOL)
-                rec["pass_g1_rehearsal"] = bool(rec["G1_calibration_19_atom"]["ok"])
-                rec["pass"] = bool(rec["pass_crps"] and rec["pass_g1_rehearsal"])
+                rec["pass_g1_rehearsal"] = bool(rec["G1_calibration_199"]["ok"])
+                rec["pass_f"] = bool(rec["avg_minus_avg_a0_f"]["live_19"] <= F_FLOOR)
+                rec["pass"] = bool(rec["pass_crps"] and rec["pass_g1_rehearsal"] and rec["pass_f"])
             else:
                 rec["pass"] = bool(rec["same_sign_avg_minus_full"])
             res["stats"][st] = rec
             print(
                 st,
-                json.dumps({k: v for k, v in rec.items() if k != "G1_calibration_19_atom"}),
+                json.dumps(rec, default=float),
                 flush=True,
             )
             del off, live

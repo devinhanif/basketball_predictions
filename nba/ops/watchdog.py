@@ -120,7 +120,7 @@ class ShadowJob:
     install_deadline_day: int | None = None
 
 
-#: AVG_SHADOW_LIVE (docs/prereg/AVG_SHADOW_LIVE.md, "What the steward builds" 6): alert after 3
+#: AVG_SHADOW_LIVE_2 (docs/prereg/AVG_SHADOW_LIVE_2.md, "What the steward builds" 6): alert after 3
 #: consecutive failed or missing slate heartbeats on game days, 1 for a missed monthly weights
 #: install past the 3rd. Silent until the step has written its first heartbeat (flag off = no
 #: file = no alert).

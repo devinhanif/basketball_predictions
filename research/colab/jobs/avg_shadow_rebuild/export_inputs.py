@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Inputs of the AVG_SHADOW_LIVE chain rebuild (the maintainer runs this on the Mac; HOLDOUT_ACCESS_LOG row 72 is the systems/training use it needs).
+"""Inputs of the AVG_SHADOW_LIVE_2 chain rebuild (the maintainer runs this on the Mac; HOLDOUT_ACCESS_LOG row 72 is the systems/training use it needs).
 
     uv run python research/colab/jobs/avg_shadow_rebuild/export_inputs.py cur     # 2022-2025 with the real-tip tokens of T478: seq_ensemble_rt_cur25.npz
     uv run python research/colab/jobs/avg_shadow_rebuild/export_inputs.py hist    # 2019-2021 only: seq_ensemble_rt_hist.npz

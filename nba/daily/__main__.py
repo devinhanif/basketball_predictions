@@ -92,7 +92,7 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument(
         "--log-avg-shadow",
         action="store_true",
-        help="SHADOW (AVG_SHADOW_LIVE): CPU inference of the E2 sequence transformer in a "
+        help="SHADOW (AVG_SHADOW_LIVE_2): CPU inference of the E2 sequence transformer in a "
         "child process and AVG = 0.5 pmf(SEQc) + 0.5 pmf(FULL), regular-season rows only "
         "(tables forward_avg_*, heartbeat data/ops/heartbeat/avg_shadow.json); no weights "
         "installed -> status skipped; default OFF",

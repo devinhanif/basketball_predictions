@@ -71,7 +71,7 @@ def section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> list[str]:
     stale = f"{c['stale_rows'] / c['rows']:.1%}" if c["rows"] else "n/a"
     return [
         "",
-        "## AVG shadow: counts and gates only (AVG_SHADOW_LIVE; no delta is published on a non-look day)",
+        "## AVG shadow: counts and gates only (AVG_SHADOW_LIVE_2; no delta is published on a non-look day)",
         f"- rows {c['rows']} ({c['settled']} settled), stale-model share {stale}, rows stamped at or after tip {c['rows_after_tip']} (must be 0).",
         f"- on-time triples {c['avg_triples']} of {c['full_triples']} settled FULL triples = coverage {cov} (approximate; caps: 95% overall, 90% starter and bench).",
         f"- slate heartbeats, last 14 days: {c['heartbeats_14d'] or 'none'}; counting start: {c['counting_start'] or 'NOT SET (warm-up rows, never scored)'}.",

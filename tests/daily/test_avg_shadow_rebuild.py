@@ -88,11 +88,11 @@ def _run(
     stage: Path, out: Path, rule_doc: bool = True, log_row: bool = True
 ) -> subprocess.CompletedProcess[str]:
     if rule_doc:
-        (stage / "AVG_SHADOW_LIVE.md").write_text(
-            (ROOT / "docs/prereg/AVG_SHADOW_LIVE.md").read_text()
+        (stage / "AVG_SHADOW_LIVE_2.md").write_text(
+            (ROOT / "docs/prereg/AVG_SHADOW_LIVE_2.md").read_text()
         )
-    elif (stage / "AVG_SHADOW_LIVE.md").exists():
-        (stage / "AVG_SHADOW_LIVE.md").unlink()
+    elif (stage / "AVG_SHADOW_LIVE_2.md").exists():
+        (stage / "AVG_SHADOW_LIVE_2.md").unlink()
     log = (ROOT / "docs/HOLDOUT_ACCESS_LOG.md").read_text()
     (stage / "HOLDOUT_ACCESS_LOG.md").write_text(
         log if log_row else log.replace("Colab chain rebuild for AVG_SHADOW_LIVE", "x")
@@ -161,8 +161,8 @@ def test_refuses_without_the_frozen_rule_or_the_holdout_row(run_dir: Path, tmp_p
     assert r.returncode != 0 and "not staged" in (r.stderr + r.stdout)
     r = _run(run_dir, tmp_path, log_row=False)
     assert r.returncode != 0 and "no holdout-log row" in (r.stderr + r.stdout)
-    (run_dir / "AVG_SHADOW_LIVE.md").write_text(
-        (ROOT / "docs/prereg/AVG_SHADOW_LIVE.md")
+    (run_dir / "AVG_SHADOW_LIVE_2.md").write_text(
+        (ROOT / "docs/prereg/AVG_SHADOW_LIVE_2.md")
         .read_text()
         .replace("Status: **FROZEN", "Status: **DRAFT", 1)
     )
@@ -184,6 +184,48 @@ def test_refuses_without_the_frozen_rule_or_the_holdout_row(run_dir: Path, tmp_p
         timeout=300,
     )
     assert r.returncode != 0 and ("not FROZEN" in r.stderr or "mismatch" in r.stderr)
+
+
+def test_notebook_and_builder_refuse_any_rule_text_but_avg_shadow_live_2_9afbfeb6(
+    run_dir: Path, tmp_path: Path
+) -> None:
+    BN = load_job_module("build_notebook")
+    assert BN.RULE_SHA_PIN == "9afbfeb6" == RULE_SHA256[:8]
+    other = tmp_path / "other.md"
+    other.write_text(
+        (ROOT / "docs/prereg/AVG_SHADOW_LIVE_2.md")
+        .read_text()
+        .replace("Season labels", "Season label", 1)
+    )  # still FROZEN, one word moved above the results marker
+    with pytest.raises(SystemExit, match="9afbfeb6"):
+        BN.rule_sha(other)
+    # the old rule (sha 6e57fc11) is refused by the builder and by the notebook on the VM
+    old = tmp_path / "old.md"
+    old.write_text(
+        "Status: **FROZEN Tue Oct 13 2026**\nold rule text\n=== RESULTS BELOW ===\nresults\n"
+    )
+    with pytest.raises(SystemExit, match="9afbfeb6"):
+        BN.rule_sha(old)
+    (run_dir / "AVG_SHADOW_LIVE_2.md").write_text(other.read_text())
+    (run_dir / "HOLDOUT_ACCESS_LOG.md").write_text(
+        (ROOT / "docs/HOLDOUT_ACCESS_LOG.md").read_text()
+    )
+    env = {
+        **os.environ,
+        "NBA_SMOKE": "200",
+        "NBA_PARQUET": str(run_dir / "seq_ensemble_rt_cur25.npz"),
+        "NBA_ARTIFACT_ROOT": str(tmp_path),
+        "NBA_RUN_STAMP": "t",
+    }
+    r = subprocess.run(
+        [sys.executable, str(JOB / "avg_shadow_rebuild_train.py")],
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=run_dir,
+        timeout=300,
+    )
+    assert r.returncode != 0 and "is not AVG_SHADOW_LIVE_2 9afbfeb6" in r.stderr
 
 
 def test_smoke_run_saves_weights_and_the_mac_assembles_a_loadable_bundle(

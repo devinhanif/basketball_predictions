@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Tables of the AVG shadow (docs/prereg/AVG_SHADOW_LIVE.md, "What the steward builds" 1). Timestamps are naive UTC.
+"""Tables of the AVG shadow (docs/prereg/AVG_SHADOW_LIVE_2.md, "What the steward builds" 1). Timestamps are naive UTC.
 
 ``forward_avg_shadow``   append-only, one row per run x game x player x stat (write-on-change); a row whose
                          game has tipped (``made_at >= tipoff_utc``) is refused, never written.

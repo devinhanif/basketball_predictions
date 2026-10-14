@@ -599,9 +599,9 @@ fit_through DATE, n_train, git_sha, git_dirty, stamped_at)`.
 - Rows deduplicated by write-on-change still get a stamp for their run: the stamp says which fit that run
   used, `forward_predictions` keeps the first run that wrote the row.
 
-## AVG shadow: 0.5 pmf(SEQc) + 0.5 pmf(FULL) (AVG_SHADOW_LIVE; flag `--log-avg-shadow`, OFF; built 2026-10-13)
+## AVG shadow: 0.5 pmf(SEQc) + 0.5 pmf(FULL) (AVG_SHADOW_LIVE_2; flag `--log-avg-shadow`, OFF; built 2026-10-13)
 
-Rule: `docs/prereg/AVG_SHADOW_LIVE.md` (frozen 2026-10-13 12:35, sha256 6e57fc11). Code: `nba/daily/avg_shadow/`, reader `nba/eval/avg_shadow_live.py`,
+Rule: `docs/prereg/AVG_SHADOW_LIVE_2.md` (frozen 2026-10-14 11:11 CDT, sha256 9afbfeb6, commit 6e86f1a; supersedes AVG_SHADOW_LIVE 6e57fc11, which changed only G1/P3 after its P3 failed on the 19-atom G1 reading). Code: `nba/daily/avg_shadow/`, reader `nba/eval/avg_shadow_live.py`,
 rebuild job `research/colab/jobs/avg_shadow_rebuild/`. **Not enabled in `ops/nba_daily.sh`** (that is the maintainer's edit, after the proofs and the weights
 install; hands-off window 10-18 to 10-20). Counting start in `forward_avg_meta` is UNSET: `store.set_counting_start` refuses until P1a, P1b, P2, P3, P4 are recorded
 as `pass` (`python -m nba.daily.avg_shadow.meta proof ...`).
@@ -625,7 +625,7 @@ as `pass` (`python -m nba.daily.avg_shadow.meta proof ...`).
   past the 3rd. Silent while the flag is off (no file). pmset preflight: `preflight.py` appends a `shadow_errors` (ALERTS) warning when `pmset -g custom` shows
   AC `sleep` other than 0; it never blocks.
 * **Reader** (`python -m nba.eval.avg_shadow_live`): intention to treat (a missing, late or failed AVG row is the FULL grid, delta 0, never dropped), missingness
-  table, integrity gates, primary + guards G1-G5 on the 19-atom pmf with the randomised PIT, BH over the seven, kill-only interim; the one shared bootstrap is
+  table, integrity gates, primary + guards G1-G5 (G1 is read on the stored 199-point `avg_pmf199` with the randomised PIT, seed 0; an ITT triple without an AVG row reads `to_integer_support(ext19(FULL q19))`; the 19-atom reading is printed beside it, descriptive; every CRPS contrast and G2-G5 stay on the 19 atoms), BH over the seven, kill-only interim; the one shared bootstrap is
   `nba.eval.full_shadow_live.cluster_boot` (imported). `look_due` fixes the calendar (interim Sun 2026-11-15, final the first Sunday on or after 2027-01-10 with
   pts triples >= 6,900, one second look); `read_look` raises `LookNotDue` before touching a score on any other day. The briefing (`nba.daily report`) prints counts
   and gates only (`display.py`).
@@ -636,7 +636,8 @@ as `pass` (`python -m nba.daily.avg_shadow.meta proof ...`).
     the 31 pre-era columns, the 3 era columns of T478 are all zero); planted-future identical on 4 dates; the live placeholder slate (games strictly before D + a placeholder
     row per player who played, real tips, reports `as_of <= tip - 60`) identical to T478's rows on 4 dates. First real-data replay also found and fixed an int32/int64 merge
     key in the placeholder rows (regression test added).
-  * **P3 FAIL (G1 rehearsal)** (`p3.json`): the 19-quantile arithmetic reproduces the 199-point contrast (pts AVG minus FULL -0.01624 vs -0.01610, diff 0.00014 <= 0.0005,
+  * **P3 PASS under AVG_SHADOW_LIVE_2** (2026-10-14, `reports/prereg_avg_shadow_live_2/p3.json`, 61 s, selection-side files only): pts AVG minus FULL live 19-tau -0.01624 vs offline 199-point -0.01610 (diff 0.00014 <= 0.0005, n 25,767), reb / ast / fg3m same sign; G1 on the 199-point pmf built exactly as the shadow builds it: q10 0.1129, q20 0.2151, 80% coverage 0.790, bias -0.086 (limits 0.12 / 0.22 / [0.75, 0.85] / 0.5: pass); (f) AVG minus AVG_A0 -0.00847 (floor -0.003: pass). The 19-atom G1 (q10 0.1257, q20 0.2272) is printed, descriptive. Count stats on the same form: reb 0.1040 / 0.2066, ast 0.1077 / 0.2057, fg3m 0.1039 / 0.1989 (all pass).
+  * *Superseded:* **P3 FAIL (G1 rehearsal, AVG_SHADOW_LIVE)** (`reports/prereg_avg_shadow_live/p3.json`): the 19-quantile arithmetic reproduces the 199-point contrast (pts AVG minus FULL -0.01624 vs -0.01610, diff 0.00014 <= 0.0005,
     n 25,767; reb / ast / fg3m same sign), but G1 on the 19-atom pmf with the randomised PIT misses on 2024 pts (q10 0.126 vs 0.10 +- 0.02, q20 0.228 vs 0.20 +- 0.02):
     FULL and A0 show the same shift on 19 atoms (q10 0.128 / 0.129), the 199-point form passes (0.114 / 0.217). Counting does not start; a repair is a new rule id.
   * **P4 hash PASS** (20 dates of season 2025, source copy of nba.duckdb at 13:59, `oracle_avg_{1,2,3}`): sha256 89889f6d (46,658 predictions, 44,562 scores) IDENTICAL
@@ -644,6 +645,6 @@ as `pass` (`python -m nba.daily.avg_shadow.meta proof ...`).
     wall time mean 2.9 s, max 6.3 s per run against the 60 s budget, no shadow error; no FULL shadow runs in the replay, so no AVG row is written there) and with the flag
     off. The replay copies are deleted by the maintainer (command in the hand-back); no AVG row was read.
   * **P1a / P1b**: scripts written (`p1a_check.py`, `p1b_check.py`, mechanics checked on T478's own run-1 file: P1a reproduces -0.016101 exactly), not run: they need the Colab rebuild.
-* **Rebuild order (maintainer)**: `export_inputs.py hist` and `cur` -> `python -m research.colab push avg_shadow_rebuild` -> run the notebook (T4, budget 45 min, ceiling 60) ->
+* **Rebuild order (maintainer)**: `export_inputs.py hist` and `cur` -> `make colab-push JOB=avg_shadow_rebuild` (the notebook and the builder refuse any rule text whose sha256 does not start with the pinned 9afbfeb6) -> run the notebook (T4, budget 45 min, ceiling 60) ->
   `pull` -> `p1a_check.py`, `p1b_check.py` -> assemble the aligned 2023-25 rows and `fit_gate.py` -> `assemble_bundle.py` -> `bundle install` -> `meta bundle`, `meta proof` ->
   `meta counting-start` (refused until all five proofs pass). Not run: the gate fit needs the 2025 A0 members of T478's held-out path.

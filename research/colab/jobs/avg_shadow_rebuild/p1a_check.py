@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Proof P1a (lineage; docs/prereg/AVG_SHADOW_LIVE.md): the rebuilt walk reproduces T478's 2024 regular-season pts AVG minus FULL.
+"""Proof P1a (lineage; docs/prereg/AVG_SHADOW_LIVE_2.md): the rebuilt walk reproduces T478's 2024 regular-season pts AVG minus FULL.
 
 PASS iff |rebuilt - (-0.0161)| <= 0.0021 (2 x sqrt2 x 0.00074, the seed sd of one 3-seed ensemble) on the same 25,767 rows. Only seasons <= 2024 are read
 (the 2025 rows of the OOF file are dropped on the season key first). Run after the Colab rebuild:

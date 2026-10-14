@@ -1,6 +1,6 @@
 name: avg_shadow_rebuild
 description: >
-  AVG_SHADOW_LIVE chain rebuild (docs/prereg/AVG_SHADOW_LIVE.md, frozen 6e57fc11): ONE-time E2 transformer chain, W_ALL (2019-20 on),
+  AVG_SHADOW_LIVE_2 chain rebuild (docs/prereg/AVG_SHADOW_LIVE_2.md, frozen 9afbfeb6): ONE-time E2 transformer chain, W_ALL (2019-20 on),
   same code and seeds as T478 (cold fit on the pre-April-2023 rows, monthly warm refits through the last settled month, 3 seeds,
   hidden 64), plus the install fit (a warm refit on every row, i.e. the month-block 2026-10 weights) with the weights SAVED and
   their sha256 recorded. E2 only (no E2P / E2S / permutation programs). T4, budget 45 minutes, ceiling 60. Refuses unless the staged
@@ -14,7 +14,7 @@ inputs:
   - path: data/colab/avg_shadow_rebuild/seq_ensemble_rt_hist.npz
     produce: uv run python research/colab/jobs/avg_shadow_rebuild/export_inputs.py hist
     depends_on: [data/history/nba_history.duckdb]
-  - path: docs/prereg/AVG_SHADOW_LIVE.md
+  - path: docs/prereg/AVG_SHADOW_LIVE_2.md
   - path: docs/HOLDOUT_ACCESS_LOG.md
 artifacts:
   - metrics.json
@@ -31,4 +31,4 @@ registry:
   model_name: avg_shadow_rebuild
   tags: {rung: 3, model_method: seq_transformer_quantile_walkforward, holdout_scored: false}
 touches_holdout: true
-preregistration_id: AVG_SHADOW_LIVE
+preregistration_id: AVG_SHADOW_LIVE_2

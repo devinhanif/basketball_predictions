@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""AVG_SHADOW_LIVE reader and scorer (docs/prereg/AVG_SHADOW_LIVE.md, frozen; sha256 6e57fc11), by the pattern of ``full_shadow_live``.
+"""AVG_SHADOW_LIVE_2 reader and scorer (docs/prereg/AVG_SHADOW_LIVE_2.md, frozen; sha256 9afbfeb6), by the pattern of ``full_shadow_live``.
 
 Read-only. ``load_live`` builds the intention-to-treat population from the stored grids (FULL, A0 and AVG all scored from their 19 stored
 quantiles on the integer grid); ``integrity_gates``, ``score_stat``, ``secondary_family``, ``decide`` are the frozen arithmetic. The ONE
@@ -10,6 +10,11 @@ cluster-bootstrap (``cluster_boot`` / ``one_sided``), the stale-adjustment place
 Decisions made before any live row (the rule leaves them open): for a triple with no on-time AVG row the AVG_A0 control is also the FULL grid
 (both arms are "served FULL" there, delta 0); the placebo and the day-shuffle are built from the ITT AVG grids (a missing triple has the
 adjustment 0); AVG_A0 is scored from the mixture of the two 19-atom pmfs (38 atoms of mass 1/38; 19 quantiles at the same taus).
+
+G1 (the only absolute limit) is read on the 199-point integer pmf stored in ``forward_avg_shadow.avg_pmf199``, never on the 19 atoms
+(AVG_SHADOW_LIVE_2 G1/P3; ``g1_pmf199``). A triple without an on-time AVG row is read as its FULL grid under the intention-to-treat rule,
+i.e. ``to_integer_support(ext19(stored FULL 19 quantiles))``. Every CRPS contrast and G2-G5 stay on the 19 atoms for every arm; the 19-atom
+G1 reading is printed beside the real one, descriptive, and decides nothing.
 """
 
 from __future__ import annotations
@@ -67,6 +72,7 @@ TLL_MAX, THRESHOLDS = 0.005, (20, 25, 30)
 G5_FLOOR = -0.005
 BENCH_MINUTES, LOW_P = 20.0, 0.9
 REPRO_TOL = 1e-9
+G1_N = 199  # G1 is read on the 199 equal-mass integer values of ``avg_pmf199``
 GRID_TOL = 0.95
 TAUS = np.asarray(QUANTILE_TAUS, dtype=float)
 SECONDARY = (
@@ -113,7 +119,7 @@ WITH prior AS (
            row_number() OVER (PARTITION BY game_id, player_id ORDER BY made_at DESC, run_id DESC) rn
     FROM forward_predictions WHERE model_name = ? AND target = ? AND player_id > 0 AND made_at <= tipoff - ? * INTERVAL 1 MINUTE
 ), avg_ AS (
-    SELECT game_id, player_id, CAST(avg_q19 AS VARCHAR) AS avg_q, CAST(seqc_q19 AS VARCHAR) AS seqc_q, stale_model, made_at,
+    SELECT game_id, player_id, CAST(avg_q19 AS VARCHAR) AS avg_q, CAST(seqc_q19 AS VARCHAR) AS seqc_q, CAST(avg_pmf199 AS VARCHAR) AS avg_p, stale_model, made_at,
            row_number() OVER (PARTITION BY game_id, player_id ORDER BY made_at DESC, run_id DESC) rn
     FROM forward_avg_shadow WHERE stat = ? AND made_at <= tipoff_utc - ? * INTERVAL 1 MINUTE
 ), late AS (
@@ -121,7 +127,7 @@ WITH prior AS (
     GROUP BY 1, 2
 ){pp_cte}
 SELECT f.game_id, g.game_date, f.tipoff, f.player_id, f.team_id, CAST(f.q_grid AS VARCHAR), a0.grid,
-       av.avg_q, av.seqc_q, av.stale_model, COALESCE(late.n, 0) AS n_late, COALESCE(p.n_prior, 0) AS n_prior,
+       av.avg_q, av.seqc_q, av.avg_p, av.stale_model, COALESCE(late.n, 0) AS n_late, COALESCE(p.n_prior, 0) AS n_prior,
        b.played, b.val, b.minutes, b.starter,
        {proj} AS proj_minutes, f.p_play_prod,
        (g.home_team = f.team_id AND g.home_pts > g.away_pts) OR (g.away_team = f.team_id AND g.away_pts > g.home_pts) AS won,
@@ -140,7 +146,8 @@ LEFT JOIN (SELECT game_id, player_id, max(CASE WHEN minutes > 0 THEN 1.0 ELSE 0.
            FROM player_game_stats GROUP BY 1, 2) b ON b.game_id = f.game_id AND b.player_id = f.player_id
 {pp_join}
 WHERE f.rn = 1 AND g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND f.game_id LIKE '002%'
-"""
+ORDER BY f.game_id, f.player_id
+"""  # fixed row order: the randomised PIT (seed 0) assigns its draws by row, so G1 must not depend on the physical order of the tables
 _PP_CTE = """, pp AS (
     SELECT game_id, player_id, proj_minutes,
            row_number() OVER (PARTITION BY game_id, player_id ORDER BY made_at DESC, run_id DESC) rn
@@ -173,7 +180,7 @@ def load_live(
         + ([lead] if has_pp else [])
         + [stat, season]
     )
-    cols = ["gid", "day", "tip", "pid", "team", "qf", "qa0", "qavg", "qseqc", "stale", "n_late", "n_prior", "played", "val", "minutes",
+    cols = ["gid", "day", "tip", "pid", "team", "qf", "qa0", "qavg", "qseqc", "pavg", "stale", "n_late", "n_prior", "played", "val", "minutes",
             "starter", "proj", "p_play", "won", "b2b", "tgn"]  # fmt: skip
     keep: dict[str, list[Any]] = {c: [] for c in cols}
     short = 0
@@ -188,14 +195,22 @@ def load_live(
         d["qseqc"] = (
             None if d["qseqc"] is None else np.asarray(json.loads(d["qseqc"]), dtype=np.int16)
         )
+        d["pavg"] = None if d["pavg"] is None else np.asarray(json.loads(d["pavg"]), dtype=np.int16)
+        if (d["qavg"] is None) != (d["pavg"] is None) or (
+            d["pavg"] is not None and len(d["pavg"]) != G1_N
+        ):
+            raise ValueError(
+                f"forward_avg_shadow row {d['gid']}/{d['pid']}: avg_q19 and a {G1_N}-value avg_pmf199 must be stored together; G1 reads avg_pmf199"
+            )
         for c in cols:
             keep[c].append(d[c])
     n = len(keep["gid"])
     has = np.array([q is not None for q in keep["qavg"]], dtype=bool)
     qavg = np.zeros((n, 19), dtype=np.int16)
     qseqc = np.zeros((n, 19), dtype=np.int16)
+    pavg = np.zeros((n, G1_N), dtype=np.int16)
     for i in np.flatnonzero(has):
-        qavg[i], qseqc[i] = keep["qavg"][i], keep["qseqc"][i]
+        qavg[i], qseqc[i], pavg[i] = keep["qavg"][i], keep["qseqc"][i], keep["pavg"][i]
 
     def f(k: str) -> np.ndarray:
         return np.array([np.nan if v is None else v for v in keep[k]], dtype=float)
@@ -207,7 +222,7 @@ def load_live(
         "tip": np.array(keep["tip"], dtype="datetime64[s]"), "pid": np.array(keep["pid"], dtype=np.int64),
         "team": np.array(keep["team"], dtype=np.int64),
         "qf": np.array(keep["qf"], dtype=np.int16).reshape(n, 19), "qa0": np.array(keep["qa0"], dtype=np.int16).reshape(n, 19),
-        "qavg": qavg, "qseqc": qseqc, "has_avg": has, "stale": np.array([bool(s) for s in keep["stale"]], dtype=bool) & has,
+        "qavg": qavg, "qseqc": qseqc, "pavg": pavg, "has_avg": has, "stale": np.array([bool(s) for s in keep["stale"]], dtype=bool) & has,
         "late_only": (~has) & (np.array(keep["n_late"], dtype=int) > 0),
         "n_prior": f("n_prior"), "played": np.nan_to_num(f("played")) > 0, "y": f("val"), "minutes": f("minutes"),
         "starter": np.nan_to_num(f("starter")) > 0, "proj": f("proj"), "p_play": f("p_play"),
@@ -353,8 +368,22 @@ def per_protocol_delta(rows: dict[str, np.ndarray], m: np.ndarray) -> dict[str, 
     return {"n": int(mm.sum()), **one_sided(d, rows["gid"][mm])}
 
 
+def g1_pmf199(rows: dict[str, np.ndarray], m: np.ndarray) -> np.ndarray:
+    """The G1 object on the mask ``m`` (AVG_SHADOW_LIVE_2): the stored 199-point ``avg_pmf199`` where an on-time AVG row exists, and for an
+    intention-to-treat triple without one (served FULL, rule 2) ``to_integer_support(ext19(stored FULL 19 quantiles))``, the construction the
+    shadow uses for FULL inside the mixture. Never the 19 atoms."""
+    from nba.daily.avg_shadow.grids import ext19
+    from nba.props.context_residual import to_integer_support
+
+    ha = rows["has_avg"][m]
+    recon = to_integer_support(ext19(rows["qf"][m])).astype(np.int16)
+    return np.where(ha[:, None], rows["pavg"][m], recon)
+
+
 def calibration(q: np.ndarray, y: np.ndarray) -> dict[str, Any]:
-    """G1 on the 19-atom integer pmf with the randomised PIT, seed 0 (never an inclusive or strict P(y <= q))."""
+    """G1 on an equal-mass integer grid with the randomised PIT, seed 0 (never an inclusive or strict P(y <= q)). The verdict object is the
+    199-point ``avg_pmf199`` (``g1_pmf199``); the 19-atom reading (the 19 stored quantiles as equal-mass atoms) is invalid for integer
+    forecasts (AVG_SHADOW_LIVE_2 review) and is printed only as a descriptive cross-check."""
     pit = randomized_pit(q.astype(float), y, 0)
     cov80 = float(((pit > 0.10) & (pit <= 0.90)).mean())
     bias = float((y - q.mean(axis=1)).mean())
@@ -470,7 +499,9 @@ def score_stat(
         "point": float(d_full[late_half].mean()) if late_half.any() else None,
     }
     # guards (AVG against A0)
-    cal = calibration(a["AVG"], y)
+    pmf = g1_pmf199(rows, m)
+    cal = calibration(pmf, y)
+    cal19 = calibration(a["AVG"], y)  # descriptive only: the 19-atom reading decides nothing
     sl = slice_masks(rows, m)
     slices = {
         k: {
@@ -502,7 +533,10 @@ def score_stat(
     g5n = int(late_tip.sum())
     g5 = bool(g5n < MIN_SLICE_N or float(d_a0[late_tip].mean()) <= G5_FLOOR)
     out["guards"] = {
-        "G1_calibration": {**cal, "n_ok": bool(len(y) >= 3000)}, "G2_slices": {"ok": bool(g2), "slices": slices},
+        "G1_calibration": {
+            **cal, "n_ok": bool(len(y) >= 3000), "form": "avg_pmf199",
+            "share_without_avg_row": float((~rows["has_avg"][m]).mean()), "atom19_descriptive": cal19,
+        }, "G2_slices": {"ok": bool(g2), "slices": slices},
         "G3_concentration": {"ok": g3, "top_team": top, "top_share": share}, "G4_thresholds": {"ok": bool(g4), "delta": tll},
         "G5_proxy_safe": {"ok": g5, "n": g5n},
     }  # fmt: skip

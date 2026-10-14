@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Proof P1b (serving; docs/prereg/AVG_SHADOW_LIVE.md): CPU equals GPU on the SAME weights.
+"""Proof P1b (serving; docs/prereg/AVG_SHADOW_LIVE_2.md): CPU equals GPU on the SAME weights.
 
 The notebook saved the 3 seed state dicts at four month blocks (``p1b/<YYYY-MM>/seed*.pt``: 2023-12, 2024-02, 2024-12, 2025-02; every predicted row has a
 season label <= 2024). For each, the live CPU inference (``nba.daily.avg_shadow.infer.predict_bundle``, fp32, no autocast) scores that month's rows from the
