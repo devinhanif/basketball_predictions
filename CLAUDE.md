@@ -85,6 +85,11 @@ the evaluation. Both are the point.
 - **Boring on game night.** The daily pipeline should read top to bottom; nothing clever runs at
   7 pm. Verify with `ruff check`, `ruff format --check`, `mypy`, `pytest` — never piped through
   `tail`. Keep the tree importable: launchd runs it.
+- **Branches, not main (Devin, 2026-10-14).** Every agent works on its own branch in its own git worktree
+  (`agent/<area>-<topic>`; the main checkout stays on `main` because launchd runs the live job from it). The main
+  session merges a branch into `main` only after its checks pass and its review is done; a branch touching the live
+  path (nba/daily, ops/, configs/) also needs the replay oracle unchanged and Devin's go. Branches are pushed so work is
+  never only local.
 - **Markets are a prior, not a target.** Train on outcomes; use prices as the benchmark and, with
   a track record, as a shrinkage prior. Fees are a verified config object. "no_positive_ev_found"
   is a first-class answer.

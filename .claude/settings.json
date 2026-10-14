@@ -91,5 +91,11 @@
         ]
       }
     ]
+  },
+  "worktree": {
+    "symlinkDirectories": [
+      "data"
+    ],
+    "baseRef": "head"
   }
 }
