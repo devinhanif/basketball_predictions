@@ -1,8 +1,8 @@
 # Inputs for the cost-monitor agent (.claude/agents/cost-monitor.md). Fill from Colab ▸ Resources.
 # No prices are hardcoded anywhere; rates stay null until read from Colab's runtime picker.
 colab_plan: pro
-colab_units_per_t4_hour: null
+colab_units_per_t4_hour: 1.27  # Devin, read from the runtime picker 2026-10-14 12:12
 colab_units_per_l4_hour: null
 colab_units_per_a100_hour: null
-colab_units_remaining: 50  # Devin, 2026-10-13
+colab_units_remaining: 50  # Devin, 2026-10-13, before LC2 run 1 (98.5 T4 min = 2.08 units) and run 2 (in progress, ~2.1 units): estimate ~45.8 after run 2
 as_of: "2026-10-09 09:30"  # previous reading 93 at 2026-10-08 19:15; ridge_v2 L4 run in between
