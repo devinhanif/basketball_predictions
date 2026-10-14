@@ -25,7 +25,9 @@ nba/, opens every database read_only=True (copying to a temp file if another job
 and every query that touches games or forecasts carries `season <= 2024`. Season 2025 (the frozen
 holdout) is never selected; `assert_pre_2025` runs on every game it loads.
 
-Output (app/fixtures/): manifest.json, slates/<date>.json, parlay_of_day.json, evidence.json.
+Output (app/fixtures/): manifest.json, slates/<date>.json, parlay_of_day.json, evidence.json,
+breakdown.json (raw box-score history for the leg breakdown; see build_breakdown).
+`--only breakdown` rewrites just breakdown.json and its manifest entry.
 The queries are listed verbatim in manifest.json so the build is auditable.
 """
 
@@ -43,6 +45,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import duckdb
 
@@ -112,6 +115,63 @@ SQL_SANITY_WIN = """
 SELECT avg(pow(w.p - CASE WHEN g.home_pts > g.away_pts THEN 1.0 ELSE 0.0 END, 2)) AS brier, count(*) AS n
 FROM oof_predictions w JOIN games_ref g USING (game_id)
 WHERE w.model = 'rung0_injury_elo' AND w.target = 'win' AND w.season <= ?
+"""
+
+
+BREAKDOWN_FROM_SEASON = 2023  # history window starts at the first game of the 2023-24 season
+BREAKDOWN_TAIL_DAYS = 3  # days kept after the last slate so the as-of filter has real future rows
+PRICE_MARKETS = {**STAT_MARKETS, "player_steals": "stl"}
+ET = ZoneInfo("America/New_York")
+BREAKDOWN_STUBS = [
+    "The leg breakdown computes every number from stored box scores; the model's chance exists "
+    "only for points, rebounds, assists and threes. Blocks, steals and every combo show the "
+    "descriptive breakdown and no model chance.",
+    "The breakdown shows no forecast of minutes (none is stored); it shows recent minutes and "
+    "starting role instead, labelled as such.",
+    "Alternate lines have no stored prices; a price appears only on a line the book posted.",
+]
+
+SQL_BD_GAMES = """
+SELECT game_id, game_date, season, home_team, away_team
+FROM games
+WHERE season <= ? AND season >= ? AND game_date <= ?
+ORDER BY game_date, game_id
+"""
+SQL_BD_BOX = """
+SELECT b.game_id, b.player_id, b.team_id, b.minutes, b.pts, b.reb, b.ast, b.fg3m, b.stl, b.blk,
+       b.starter
+FROM player_game_stats b JOIN games g USING (game_id)
+WHERE g.season <= ? AND g.season >= ? AND g.game_date <= ? AND b.minutes IS NOT NULL
+  AND b.minutes > 0
+ORDER BY b.game_id, b.player_id
+"""
+SQL_BD_POSITIONS = "SELECT player_id, position FROM players_static"
+SQL_BD_AVAIL = """
+SELECT player_id, game_id, as_of, status, reason
+FROM player_availability
+WHERE game_id = ANY(?)
+ORDER BY game_id, player_id, as_of
+"""
+SQL_BD_NAMES = """
+SELECT player_id, any_value(player_name) AS player_name
+FROM odds_history
+WHERE season <= ? AND player_id IS NOT NULL AND player_name IS NOT NULL
+GROUP BY player_id
+"""
+SQL_BD_TEAMS = """
+SELECT DISTINCT homeTeam_teamId AS team_id, homeTeam_teamTricode AS abbr
+FROM read_parquet(?)
+"""
+SQL_BD_PRICES = """
+SELECT game_id, player_id, market, point,
+       max(CASE WHEN side = 'over'  THEN price_american END) AS over_price,
+       max(CASE WHEN side = 'under' THEN price_american END) AS under_price,
+       max(snapshot_ts) AS snapshot_ts
+FROM odds_history
+WHERE season <= ? AND snapshot_kind = 't60' AND book = 'draftkings'
+  AND market IN ('player_points','player_rebounds','player_assists','player_threes','player_steals')
+  AND player_id IS NOT NULL AND game_id = ANY(?)
+GROUP BY game_id, player_id, market, point
 """
 
 
@@ -303,6 +363,94 @@ def _demo_clock(games: list[dict[str, Any]]) -> str:
     return (first.replace(microsecond=0) - timedelta(minutes=30)).isoformat()
 
 
+def build_breakdown(
+    dates: list[str],
+    slates: dict[str, dict[str, Any]],
+    nba: duckdb.DuckDBPyConnection,
+    odds: duckdb.DuckDBPyConnection,
+    sched_path: Path,
+) -> dict[str, Any]:
+    """Box-score history for the leg breakdown: raw rows only, nothing derived.
+
+    Every game from the first game of the 2023-24 season to a few days after the last slate
+    (season <= 2024), with each played row (minutes > 0). The API applies the as-of filter
+    (strictly before the slate date) at read time, so same-day and later games are present
+    here on purpose and must be excluded there. Also: positions, names (from the odds feed),
+    the official availability reports for the slate games (with their own as-of times), and
+    every stored DraftKings T-60 price for the slate games' players.
+    """
+    last = datetime.fromisoformat(max(dates)).date() + timedelta(days=BREAKDOWN_TAIL_DAYS)
+    to = last.isoformat()
+    games = nba.execute(SQL_BD_GAMES, [MAX_SEASON, BREAKDOWN_FROM_SEASON, to]).fetchall()
+    for g in games:
+        assert_pre_2025(g[2])
+    box = nba.execute(SQL_BD_BOX, [MAX_SEASON, BREAKDOWN_FROM_SEASON, to]).fetchall()
+    box_by_game: dict[str, list[list[Any]]] = {}
+    for gid, pid, tid, mins, pts, reb, ast, fg3m, stl, blk, starter in box:
+        box_by_game.setdefault(gid, []).append(
+            [int(pid), int(tid), r(mins, 1), pts, reb, ast, fg3m, stl, blk, 1 if starter else 0]
+        )
+    game_ids = [g[0] for g in games]
+    played_players = {row[0] for rows in box_by_game.values() for row in rows}
+
+    teams = {int(t): a for t, a in nba.execute(SQL_BD_TEAMS, [str(sched_path)]).fetchall()}
+    names = {int(p): n for p, n in odds.execute(SQL_BD_NAMES, [MAX_SEASON]).fetchall()}
+    positions = {int(p): pos for p, pos in nba.execute(SQL_BD_POSITIONS).fetchall() if pos}
+
+    slate_game_ids = [g["game_id"] for d in dates for g in slates[d]["games"]]
+    avail: dict[str, list[list[Any]]] = {}
+    for pid, gid, as_of, status, reason in nba.execute(SQL_BD_AVAIL, [slate_game_ids]).fetchall():
+        played_players.add(int(pid))
+        # The report time is a naive Eastern timestamp (the NBA publishes in ET); store UTC.
+        as_of_utc = as_of.replace(tzinfo=ET).astimezone(UTC).isoformat()
+        avail.setdefault(gid, []).append([int(pid), status, reason, as_of_utc])
+
+    raw_prices: dict[tuple[str, int, str], list[dict[str, Any]]] = {}
+    for gid, pid, market, point, op, up, ts in odds.execute(
+        SQL_BD_PRICES, [MAX_SEASON, slate_game_ids]
+    ).fetchall():
+        raw_prices.setdefault((gid, int(pid), PRICE_MARKETS[market]), []).append(
+            {"point": float(point), "over_price": op, "under_price": up, "ts": ts}
+        )
+    prices: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = {}
+    for (gid, pid, stat), rows in raw_prices.items():
+        ml = main_line(rows)
+        prices.setdefault(gid, {}).setdefault(str(pid), {})[stat] = [
+            {
+                "point": x["point"],
+                "over_price": x["over_price"],
+                "under_price": x["under_price"],
+                "main": ml is not None and x["point"] == ml["point"],
+                "snapshot_utc": x["ts"].replace(tzinfo=UTC).isoformat() if x["ts"] else None,
+            }
+            for x in sorted(rows, key=lambda x: x["point"])
+        ]
+
+    return {
+        "window": {"from_season": BREAKDOWN_FROM_SEASON, "to_date": to, "max_season": MAX_SEASON},
+        "box_columns": [
+            "player_id",
+            "team_id",
+            "min",
+            "pts",
+            "reb",
+            "ast",
+            "fg3m",
+            "stl",
+            "blk",
+            "starter",
+        ],
+        "games": {g[0]: [str(g[1])[:10], int(g[2]), int(g[3]), int(g[4])] for g in games},
+        "box": {gid: box_by_game[gid] for gid in game_ids if gid in box_by_game},
+        "teams": {str(t): a for t, a in sorted(teams.items())},
+        "players": {
+            str(p): {"name": names.get(p), "pos": positions.get(p)} for p in sorted(played_players)
+        },
+        "availability": avail,
+        "prices": prices,
+    }
+
+
 def parse_evidence(report: Path) -> dict[str, Any]:
     """Copy (not recompute) the season-2024 T-60 consensus rows and the games line."""
     text = report.read_text()
@@ -426,19 +574,82 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def write_breakdown(
+    out: Path,
+    dates: list[str],
+    nba: duckdb.DuckDBPyConnection,
+    odds: duckdb.DuckDBPyConnection,
+    sched_path: Path,
+) -> dict[str, Any]:
+    """Write breakdown.json from the slate files already in `out`; return its manifest entry."""
+    slates = {d: json.loads((out / "slates" / f"{d}.json").read_text()) for d in dates}
+    bd = build_breakdown(dates, slates, nba, odds, sched_path)
+    (out / "breakdown.json").write_text(
+        json.dumps(bd, separators=(",", ":"), ensure_ascii=False) + "\n"
+    )
+    n_rows = sum(len(v) for v in bd["box"].values())
+    print(f"breakdown: {len(bd['games'])} games, {n_rows} box rows, to {bd['window']['to_date']}")
+    return {
+        "file": "breakdown.json",
+        "games": len(bd["games"]),
+        "box_rows": n_rows,
+        "to_date": bd["window"]["to_date"],
+        "sha256": sha256(out / "breakdown.json"),
+        "queries": {
+            "games": " ".join(SQL_BD_GAMES.split()),
+            "box_scores": " ".join(SQL_BD_BOX.split()),
+            "positions": " ".join(SQL_BD_POSITIONS.split()),
+            "availability": " ".join(SQL_BD_AVAIL.split()),
+            "names": " ".join(SQL_BD_NAMES.split()),
+            "teams": " ".join(SQL_BD_TEAMS.split()),
+            "prices": " ".join(SQL_BD_PRICES.split()),
+        },
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--dates", nargs="+", default=list(DEFAULT_DATES))
     ap.add_argument("--out", type=Path, default=HERE)
+    ap.add_argument(
+        "--only",
+        choices=["all", "breakdown"],
+        default="all",
+        help="'breakdown' rewrites only breakdown.json and its manifest entry",
+    )
+    ap.add_argument(
+        "--data-root",
+        type=Path,
+        default=ROOT,
+        help="where nba.duckdb and data/ live (a git worktree has no copy of them)",
+    )
     args = ap.parse_args()
+    droot: Path = args.data_root
+
+    tmp = Path(tempfile.mkdtemp(prefix="app_fixture_"))
+    if args.only == "breakdown":
+        try:
+            nba = open_ro(droot / "nba.duckdb", tmp)
+            odds = open_ro(droot / "data/odds/odds_history.duckdb", tmp)
+            entry = write_breakdown(
+                args.out, args.dates, nba, odds, droot / "data/schedule/raw_2024-25.parquet"
+            )
+            mpath = args.out / "manifest.json"
+            manifest = json.loads(mpath.read_text())
+            manifest["breakdown"] = entry
+            manifest["stubs"] = [s for s in manifest["stubs"] if s not in BREAKDOWN_STUBS]
+            manifest["stubs"].extend(BREAKDOWN_STUBS)
+            mpath.write_text(json.dumps(manifest, indent=1) + "\n")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        return
 
     manifest_src = json.loads((ROOT / "docs/data_manifests/latest.json").read_text())
-    tmp = Path(tempfile.mkdtemp(prefix="app_fixture_"))
     try:
-        nba = open_ro(ROOT / "nba.duckdb", tmp)
-        oof = open_ro(ROOT / "data/stack/oof.duckdb", tmp)
-        odds = open_ro(ROOT / "data/odds/odds_history.duckdb", tmp)
-        sched_path = ROOT / "data/schedule/raw_2024-25.parquet"
+        nba = open_ro(droot / "nba.duckdb", tmp)
+        oof = open_ro(droot / "data/stack/oof.duckdb", tmp)
+        odds = open_ro(droot / "data/odds/odds_history.duckdb", tmp)
+        sched_path = droot / "data/schedule/raw_2024-25.parquet"
 
         # Sanity: win probabilities are P(home wins). Brier must beat the 0.25 coin flip.
         oof.execute("CREATE TEMP TABLE games_ref(game_id VARCHAR, home_pts INT, away_pts INT)")
@@ -512,8 +723,10 @@ def main() -> None:
                 "We do not forecast minutes yet. How long a player really played shows up only as a result.",
                 "Prices are DraftKings odds from about an hour before tip, not Kalshi prices.",
                 "The parlay-of-the-day card is the engine's real no-parlay state, copied as stored, not recalculated.",
+                *BREAKDOWN_STUBS,
             ],
         }
+        manifest["breakdown"] = write_breakdown(args.out, list(args.dates), nba, odds, sched_path)
         (args.out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

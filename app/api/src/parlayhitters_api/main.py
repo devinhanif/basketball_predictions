@@ -10,7 +10,10 @@ from typing import Annotated, Any
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from .breakdown import Breakdown, Side
+from .breakdown import build as build_breakdown
 from .forecast import TAUS, american_to_raw_prob, devig_over, line_probs
+from .history import STAT_ORDER
 from .models import (
     GameSummary,
     GameView,
@@ -300,6 +303,26 @@ def register(app: FastAPI) -> None:
                     under_price=int(posted["under_price"]) if is_main else None,
                 )
         raise HTTPException(404, "no forecast for that player and stat")
+
+    @app.get("/api/breakdown/{game_id}/{player_id}/{stat}", response_model=Breakdown)
+    def breakdown(
+        game_id: str,
+        player_id: int,
+        stat: str,
+        store: StoreDep,
+        line: Annotated[float | None, Query(ge=0, le=200)] = None,
+        side: Annotated[Side, Query()] = "over",
+    ) -> Breakdown:
+        """Everything checked before a leg, as of before tip. Deterministic; no model is run."""
+        g = _need_game(store, game_id)
+        if store.history is None:
+            raise HTTPException(404, "no breakdown history loaded")
+        if stat not in STAT_ORDER:
+            raise HTTPException(404, "unknown stat")
+        player = next((p for p in g["players"] if p["player_id"] == player_id), None)
+        if player is None:
+            raise HTTPException(404, "no such player in that game")
+        return build_breakdown(store.history, g, player, stat, line, side)
 
     @app.get("/api/slates/{date}/swipe", response_model=SwipeDeck)
     def swipe(

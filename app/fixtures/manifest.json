@@ -77,6 +77,25 @@
  "stubs": [
   "We do not forecast minutes yet. How long a player really played shows up only as a result.",
   "Prices are DraftKings odds from about an hour before tip, not Kalshi prices.",
-  "The parlay-of-the-day card is the engine's real no-parlay state, copied as stored, not recalculated."
- ]
+  "The parlay-of-the-day card is the engine's real no-parlay state, copied as stored, not recalculated.",
+  "The leg breakdown computes every number from stored box scores; the model's chance exists only for points, rebounds, assists and threes. Blocks, steals and every combo show the descriptive breakdown and no model chance.",
+  "The breakdown shows no forecast of minutes (none is stored); it shows recent minutes and starting role instead, labelled as such.",
+  "Alternate lines have no stored prices; a price appears only on a line the book posted."
+ ],
+ "breakdown": {
+  "file": "breakdown.json",
+  "games": 1562,
+  "box_rows": 33532,
+  "to_date": "2024-11-23",
+  "sha256": "fd9e39509a71e001db5f3450877b5e58528ef431f887ffc836ba8ac62fa67992",
+  "queries": {
+   "games": "SELECT game_id, game_date, season, home_team, away_team FROM games WHERE season <= ? AND season >= ? AND game_date <= ? ORDER BY game_date, game_id",
+   "box_scores": "SELECT b.game_id, b.player_id, b.team_id, b.minutes, b.pts, b.reb, b.ast, b.fg3m, b.stl, b.blk, b.starter FROM player_game_stats b JOIN games g USING (game_id) WHERE g.season <= ? AND g.season >= ? AND g.game_date <= ? AND b.minutes IS NOT NULL AND b.minutes > 0 ORDER BY b.game_id, b.player_id",
+   "positions": "SELECT player_id, position FROM players_static",
+   "availability": "SELECT player_id, game_id, as_of, status, reason FROM player_availability WHERE game_id = ANY(?) ORDER BY game_id, player_id, as_of",
+   "names": "SELECT player_id, any_value(player_name) AS player_name FROM odds_history WHERE season <= ? AND player_id IS NOT NULL AND player_name IS NOT NULL GROUP BY player_id",
+   "teams": "SELECT DISTINCT homeTeam_teamId AS team_id, homeTeam_teamTricode AS abbr FROM read_parquet(?)",
+   "prices": "SELECT game_id, player_id, market, point, max(CASE WHEN side = 'over' THEN price_american END) AS over_price, max(CASE WHEN side = 'under' THEN price_american END) AS under_price, max(snapshot_ts) AS snapshot_ts FROM odds_history WHERE season <= ? AND snapshot_kind = 't60' AND book = 'draftkings' AND market IN ('player_points','player_rebounds','player_assists','player_threes','player_steals') AND player_id IS NOT NULL AND game_id = ANY(?) GROUP BY game_id, player_id, market, point"
+  }
+ }
 }

@@ -1,0 +1,296 @@
+/* Leg breakdown screen. Uses the theme variables from styles.css, so light and dark both follow. */
+.leg-open {
+  min-height: 44px;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+}
+.leg-title h1 {
+  font-size: 1.9rem;
+  margin: 2px 0 2px;
+}
+.leg-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px 0 2px;
+  scrollbar-width: thin;
+}
+.leg-tab {
+  flex: 0 0 auto;
+  position: relative;
+  min-height: 44px;
+  min-width: 52px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 750;
+  text-decoration: none;
+  border-radius: 6px;
+}
+.leg-tab[aria-current="true"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.leg-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.leg-tab[aria-current="true"] .leg-dot {
+  background: var(--bg);
+}
+.leg.stale .leg-chips,
+.leg.stale .leg-split,
+.leg.stale .leg-mate {
+  opacity: 0.55;
+}
+.leg-line {
+  border-top-color: var(--accent);
+}
+.leg-sides {
+  display: inline-flex;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.leg-side {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-height: 44px;
+  min-width: 88px;
+  cursor: pointer;
+}
+.leg-side[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.leg-stepper {
+  margin-top: 8px;
+}
+.leg-line-out {
+  font-size: 3rem;
+}
+.leg-tiles {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+}
+.leg-tile {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 10px 10px 12px;
+  min-width: 0;
+}
+.leg-tile.main {
+  border-top: 3px solid var(--ink);
+}
+.leg-tile.model {
+  border-top: 3px solid var(--accent);
+}
+.leg-tile.nomodel {
+  border-style: dashed;
+}
+.leg-big {
+  font-size: 2.1rem;
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 2px 0;
+}
+.leg-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.leg-sub.strong {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.leg-flag,
+.leg-notice {
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  border-left: 4px solid var(--accent);
+  padding: 10px 12px;
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+}
+.leg-notice {
+  margin: 0;
+  font-weight: 600;
+}
+.leg-price {
+  margin: 8px 0 0;
+}
+.leg-group {
+  margin: 12px 0 6px;
+}
+.leg-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.leg-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 2px;
+  border: 2px solid var(--line);
+  min-width: 0;
+  text-align: center;
+}
+.leg-chip.hit {
+  border-color: var(--win);
+  background: color-mix(in srgb, var(--win) 16%, var(--surface));
+}
+.leg-chip.miss {
+  border-color: var(--loss);
+  background: color-mix(in srgb, var(--loss) 12%, var(--surface));
+  border-style: dashed;
+}
+.leg-chip.push {
+  border-color: var(--muted);
+  background: var(--surface-2);
+}
+.leg-chip-val {
+  font-size: 1.5rem;
+  font-weight: 850;
+  line-height: 1.1;
+}
+.leg-chip-mark {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.leg-chip.hit .leg-chip-mark {
+  color: var(--win);
+}
+.leg-chip.miss .leg-chip-mark {
+  color: var(--loss);
+}
+.leg-chip.push .leg-chip-mark {
+  color: var(--muted);
+}
+.leg-chip-meta {
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.leg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.leg-table th,
+.leg-table td {
+  text-align: left;
+  padding: 6px;
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+.leg-table thead th {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-top: 0;
+}
+.leg-table tr[aria-current="true"] {
+  background: var(--accent-soft);
+  font-weight: 750;
+}
+.leg-pick {
+  font-size: 1rem;
+  font-weight: 800;
+  min-width: 44px;
+  padding: 0;
+  text-align: left;
+}
+.leg-group-block + .leg-group-block {
+  margin-top: 14px;
+}
+.leg-split {
+  border-top: 1px solid var(--line);
+  padding: 8px 0 10px;
+}
+.leg-split.tonight .leg-split-label {
+  color: var(--accent);
+}
+.leg-split-label {
+  font-weight: 750;
+  margin-bottom: 4px;
+}
+.leg-cells {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.leg-cell {
+  min-width: 0;
+}
+.leg-cell-main {
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.leg-cell.thin .leg-cell-main {
+  color: var(--muted);
+  font-weight: 650;
+}
+.leg-mate {
+  border: 1px solid var(--line);
+  padding: 10px 12px 12px;
+}
+.leg-mate .leg-cells {
+  margin-top: 6px;
+}
+.leg-status.out {
+  color: var(--loss);
+  border-color: var(--loss);
+}
+.leg-status.doubtful,
+.leg-status.questionable {
+  color: var(--notice-ink);
+  border-color: var(--notice-ink);
+}
+@media (max-width: 400px) {
+  .leg-big {
+    font-size: 1.75rem;
+  }
+  .leg-tiles {
+    gap: 6px;
+  }
+  .leg-tile {
+    padding: 8px 8px 10px;
+  }
+  .leg-chip-val {
+    font-size: 1.3rem;
+  }
+  .leg-line-out {
+    font-size: 2.6rem;
+  }
+}
+@media (min-width: 760px) {
+  .leg-chips {
+    grid-template-columns: repeat(5, minmax(0, 96px));
+  }
+}

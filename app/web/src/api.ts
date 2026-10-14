@@ -9,6 +9,7 @@ import type {
   SlateResults,
   SwipeDeck,
 } from "./types";
+import type { LegBreakdown, Side } from "./legTypes";
 
 /** Result of a fetch: the data, and whether the service worker served a saved copy. */
 export interface Loaded<T> {
@@ -31,6 +32,12 @@ export const api = {
   results: (date: string) => getJson<SlateResults>(`/api/slates/${encodeURIComponent(date)}/results`),
   swipe: (date: string, seed: number, n = 24) =>
     getJson<SwipeDeck>(`/api/slates/${encodeURIComponent(date)}/swipe?seed=${seed}&n=${n}`),
+  breakdown: (gameId: string, playerId: number, stat: string, line: number | null, side: Side) =>
+    getJson<LegBreakdown>(
+      `/api/breakdown/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}?side=${side}${
+        line === null ? "" : `&line=${line.toString()}`
+      }`,
+    ),
   parlay: () => getJson<ParlayState>("/api/parlay-of-the-day"),
   propAtLine: (gameId: string, playerId: number, stat: string, line: number) =>
     getJson<ProbAtLine>(

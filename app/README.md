@@ -96,11 +96,26 @@ any game from a later season. `fixtures/manifest.json` records the verbatim quer
 ## API (read-only; GET only; CORS allows localhost origins only)
 
 `/api/meta`, `/api/slates`, `/api/slates/{date}`, `/api/games/{id}`, `/api/games/{id}/result`,
-`/api/props/{game_id}/{player_id}/{stat}?line=`, `/api/slates/{date}/swipe?seed=&n=`, `/api/slates/{date}/results`,
+`/api/props/{game_id}/{player_id}/{stat}?line=`, `/api/breakdown/{game_id}/{player_id}/{stat}?line=&side=`, `/api/slates/{date}/swipe?seed=&n=`, `/api/slates/{date}/results`,
 `/api/parlay-of-the-day`, `/api/evidence`. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
 quantiles by interpolation with a continuity correction for integer counts: an approximation, labelled as one.
 
+## Leg breakdown (`#/leg/<game>/<player>/<stat>`, one tap from every prop on the game page)
+
+Last 10 and last 5 against the line (hit/miss chips, number, minutes), home/away, rest and back-to-back, this opponent,
+rotation teammates out on the pre-tip report with how his numbers moved when they sat, what the opponent allows to his
+position, alt-line ladder, and the model's chance. Stats: pts, reb, ast, fg3m, blk, stl, pra, pr, pa, ra, stocks. All of
+it is counted in `api/src/parlayhitters_api/breakdown.py` from `fixtures/breakdown.json` (raw box-score rows, 2023-24 to
+2024-11-23), strictly before the slate date. The model chance exists only for pts/reb/ast/fg3m; blocks, steals and combos
+say "No model forecast for this stat yet" (a combo is never built from single-stat forecasts). Prices only where one is
+stored (the DraftKings main line; steals has a stored main line, no stat has stored alt lines). Rebuild only this fixture:
+`uv run --script app/fixtures/build_fixtures.py --only breakdown --data-root <checkout with nba.duckdb and data/>`.
+
 ## What is stubbed or limited
+
+- The breakdown shows no minutes forecast (none is stored): it shows recent minutes and starting role, labelled as context.
+  Its "model reason" text is built from the stored forecast and those recent facts, not from model internals.
+- "Teammate out" effects use a rule (rotation player, on the team within 20 team games) and are small samples; n is printed.
 
 - Replay mode: the clock is frozen 30 minutes before the first tip of the slate so the swipe tip rule can be exercised on
   history. The rule is implemented and unit tested; in live mode the clock is real time.
