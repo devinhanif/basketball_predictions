@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from .history import History
+
 Json = dict[str, Any]
 
 DEFAULT_FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
@@ -25,6 +27,11 @@ class Store:
         self.slates: dict[str, Json] = {}
         self.games: dict[str, Json] = {}
         self.game_slate: dict[str, str] = {}
+        self.history: History | None = None
+        if (self.root / "breakdown.json").exists():
+            self.history = History(self._load("breakdown.json"))
+            if any(v[1] > int(self.manifest["max_season"]) for v in self.history.games.values()):
+                raise ValueError("breakdown history is beyond the season cap")
         for entry in self.manifest["slates"]:
             slate = self._load(entry["file"])
             if int(slate["season"]) > int(self.manifest["max_season"]):

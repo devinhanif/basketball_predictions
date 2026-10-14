@@ -3,6 +3,7 @@ import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
 import { american, lineText, num, pct, pctBounded, tipTime } from "../format";
+import { legHref } from "../router";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
@@ -19,6 +20,11 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           Line {lineText(prop.line)} · Over {american(prop.over_price)} · Under {american(prop.under_price)}
         </span>
       </div>
+      <p class="row wrap" style={{ margin: "6px 0" }}>
+        <a class="btn leg-open" href={legHref(props.gameId, props.playerId, prop.stat)}>
+          Full breakdown: last 10, splits, teammates out
+        </a>
+      </p>
       <p class="prop-say">{chanceSentence(player, prop.stat, prop.line, "over", prop.model_p_over, prop.extrapolated)}.</p>
       <DistBar player={player} prop={prop} actual={actual} />
       <div class="kv num">

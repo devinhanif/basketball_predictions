@@ -3,6 +3,7 @@ import { api } from "./api";
 import { Shell } from "./components";
 import { useRoute } from "./router";
 import { Game } from "./pages/Game";
+import { Leg } from "./pages/Leg";
 import { ParlayPage } from "./pages/Parlay";
 import { Picks } from "./pages/Picks";
 import { Swipe } from "./pages/Swipe";
@@ -29,6 +30,18 @@ export function App() {
   switch (route.name) {
     case "game":
       page = <Game id={route.id} onStale={setStale} />;
+      break;
+    case "leg":
+      page = (
+        <Leg
+          key={`${route.gameId}-${route.playerId.toString()}-${route.stat}`}
+          gameId={route.gameId}
+          playerId={route.playerId}
+          stat={route.stat}
+          side={route.side}
+          onStale={setStale}
+        />
+      );
       break;
     case "swipe":
       page = <Swipe date={route.date} onStale={setStale} />;

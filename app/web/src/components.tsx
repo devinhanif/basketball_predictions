@@ -44,7 +44,7 @@ const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] 
 ];
 
 function isCurrent(route: Route, name: Route["name"]): boolean {
-  if (name === "today") return route.name === "today" || route.name === "game" || route.name === "parlay";
+  if (name === "today") return route.name === "today" || route.name === "game" || route.name === "leg" || route.name === "parlay";
   return route.name === name;
 }
 
