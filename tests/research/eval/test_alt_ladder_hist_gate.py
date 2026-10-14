@@ -262,12 +262,14 @@ def test_off_ladders_flags_a_ladder_centred_far_from_the_books_main_line() -> No
             "stat": ["pts", "pts"],
             "book": ["dk", "dk"],
             "main_point": [12.5, 12.5],
+            "main_imp": [0.5, 0.5],
         }
     )
     off, summary = g.off_ladders(over, main)
     assert off["game_id"].to_list() == ["g_off"]
     row = summary.row(0, named=True)
-    assert (row["ladders"], row["tested"], row["off"], row["untested_kept"]) == (3, 2, 1, 1)
+    assert (row["ladders"], row["with_main_line"], row["off"], row["no_main_line"]) == (3, 2, 1, 1)
+    assert (row["off1"], row["off2_only"]) == (1, 0)  # the rung nearest 0.5 is far from the main
     # exactly 3.0 points away is NOT off (strictly more than 3.0)
     edge = pl.DataFrame(
         {
@@ -276,6 +278,7 @@ def test_off_ladders_flags_a_ladder_centred_far_from_the_books_main_line() -> No
             "stat": ["pts"],
             "book": ["dk"],
             "main_point": [9.5],
+            "main_imp": [0.95],  # keeps test (b) quiet: only the 3.0-point edge of (a) is probed
         }
     )
     assert g.off_ladders(over.filter(pl.col("game_id") == "g_ok"), edge)[0].is_empty()
@@ -297,6 +300,7 @@ def test_alt_over_rungs_marks_off_ladders_and_keeps_them_for_s3() -> None:
             "stat": ["pts"],
             "book": ["dk"],
             "main_point": [30.5],  # the points ladder (centred near 12) is far away: off
+            "main_imp": [0.5],
         }
     )
     t, meta = g.alt_over_rungs(_quotes(season, snap), tips, _model(season), main)
@@ -307,3 +311,69 @@ def test_alt_over_rungs_marks_off_ladders_and_keeps_them_for_s3() -> None:
     t0, _ = g.alt_over_rungs(_quotes(season, snap), tips, _model(season))  # no main: nothing off
     assert not t0["ladder_off"].any()
     assert t0.height == t.height  # the flag never drops a row; the arms do (S3 adds them back)
+
+
+def test_contradiction_test_flags_a_ladder_with_no_rung_near_even_money() -> None:
+    """Review B1b: a mislabelled small-stat ladder priced against a points line has no rung near
+    0.5 (test (a) cannot fire), but its rungs below the main line carry LOWER over probability than
+    the main line itself, which a real ladder never does."""
+    key = ["game_id", "player_id", "stat", "book"]
+    # main line 12.5 at raw implied 0.52; the ladder starts at -150 (0.6) for 2.5 / 3.5 / 4.5 ...
+    # real ladder: rungs below the line are MORE likely than the line
+    real = [("real", 7, "pts", "dk", p, x) for p, x in ((9.5, -250), (10.5, -200), (11.5, -150))]
+    # mislabelled: every rung is far below the line yet priced at +300 or longer (implied <= 0.25)
+    fake = [("fake", 7, "pts", "dk", p, x) for p, x in ((2.5, 300), (3.5, 500), (4.5, 1000))]
+    over = pl.DataFrame(real + fake, schema=[*key, "point", "po"], orient="row")
+    main = pl.DataFrame(
+        {
+            "game_id": ["real", "fake"],
+            "player_id": [7, 7],
+            "stat": ["pts", "pts"],
+            "book": ["dk", "dk"],
+            "main_point": [12.5, 12.5],
+            "main_imp": [0.52, 0.52],
+        }
+    )
+    off, summary = g.off_ladders(over, main)
+    assert off["game_id"].to_list() == ["fake"]
+    row = summary.row(0, named=True)
+    assert (row["off1"], row["off2_only"], row["off"]) == (0, 1, 1)  # only test (b) catches it
+    # a rung less than 1.0 point from the line is never tested by (b): 12.5 vs 11.5 is exactly 1.0
+    near = pl.DataFrame(
+        [("near", 7, "pts", "dk", 12.0 - 0.5, 300)], schema=[*key, "point", "po"], orient="row"
+    )
+    main_near = main.head(1).with_columns(pl.lit("near").alias("game_id"))
+    assert g.off_ladders(near, main_near)[0].height == 1  # 1.0 below, implied 0.25 < 0.47: flagged
+    near2 = near.with_columns(pl.lit(12.0).alias("point"))
+    assert g.off_ladders(near2, main_near)[0].is_empty()  # 0.5 below the line: not tested
+
+
+def test_vendor_defect_window_is_excluded_outright_for_draftkings_points_only() -> None:
+    season = 2023
+    tips = pl.DataFrame(
+        {
+            "game_id": [f"00{season}01", f"00{season}02"],
+            "tipoff_utc": [dt.datetime(season, 12, 8, 1, 0)] * 2,
+        }
+    )
+    model = _model(season)
+    days = (
+        (dt.datetime(season, 12, 7, 21, 56), True),
+        (dt.datetime(season, 12, 19, 21, 56), True),
+        (dt.datetime(season, 12, 6, 21, 56), False),
+        (dt.datetime(season, 12, 20, 21, 56), False),
+    )
+    for day, expect in days:
+        raw = _quotes(season, day).with_columns(pl.col("book").replace({"dk": "draftkings"}))
+        t, _ = g.alt_over_rungs(raw, tips, model)
+        w = t.filter(pl.col("vendor_window"))
+        assert (w.height > 0) is expect, day
+        assert t.filter(pl.col("vendor_window") & ~pl.col("ladder_off")).is_empty()
+        if expect:
+            # DraftKings points only: its other stats are not in the window
+            assert set(w["stat"].to_list()) == {"pts"}
+            assert set(w["book"].to_list()) == {"draftkings"}
+            assert t.filter(pl.col("stat") == "reb")["vendor_window"].sum() == 0
+    other = _quotes(season, days[0][0])  # book 'dk' is not DraftKings by name: never in the window
+    t2, _ = g.alt_over_rungs(other, tips, model)
+    assert t2["vendor_window"].sum() == 0

@@ -1277,10 +1277,10 @@
         "rungs": 173
        }
       },
-      "rungs": 2917,
+      "rungs": 2916,
       "tail_rungs": {
        "05": 224,
-       "15": 599,
+       "15": 598,
        "25": 469,
        "35": 322,
        "45": 310
@@ -2675,9 +2675,9 @@
         "rungs": 903
        }
       },
-      "rungs": 211218,
+      "rungs": 211212,
       "tail_rungs": {
-       "05": 80246,
+       "05": 80240,
        "15": 40437,
        "25": 25619,
        "35": 20473,
@@ -3739,25 +3739,25 @@
         "by_stat": {
          "ast": 2246,
          "fg3m": 981,
-         "pts": 9335,
+         "pts": 9240,
          "reb": 4215
         },
         "dates": 166,
         "decimal_min_med_max": [
          1.056,
-         1.5,
-         12.0
+         1.488,
+         5.5
         ],
-        "games": 971,
+        "games": 969,
         "mean_model_p": 0.5516,
-        "mean_overround_two_sided": 0.0765,
-        "model_claimed_ev_mean": -0.1505,
-        "roi_halfwidth_cons": 0.0513,
-        "roi_halfwidth_independent": 0.0119,
-        "rungs": 16777,
-        "two_sided_share": 0.535,
-        "units_player_game_stat": 14790,
-        "weekly_units_median": 676.0,
+        "mean_overround_two_sided": 0.0766,
+        "model_claimed_ev_mean": -0.1554,
+        "roi_halfwidth_cons": 0.0514,
+        "roi_halfwidth_independent": 0.0117,
+        "rungs": 16682,
+        "two_sided_share": 0.532,
+        "units_player_game_stat": 14698,
+        "weekly_units_median": 657.0,
         "weeks": 29,
         "weeks_with_ge_10_units": 29
        },
@@ -3765,24 +3765,24 @@
         "by_stat": {
          "ast": 2861,
          "fg3m": 1292,
-         "pts": 6680,
+         "pts": 6554,
          "reb": 4891
         },
         "dates": 166,
         "decimal_min_med_max": [
          1.04,
          1.351,
-         13.0
+         4.3
         ],
-        "games": 972,
+        "games": 967,
         "mean_model_p": 0.65,
-        "mean_overround_two_sided": 0.0734,
-        "model_claimed_ev_mean": -0.0987,
-        "roi_halfwidth_cons": 0.0443,
-        "roi_halfwidth_independent": 0.0106,
-        "rungs": 15724,
-        "two_sided_share": 0.512,
-        "units_player_game_stat": 14881,
+        "mean_overround_two_sided": 0.0735,
+        "model_claimed_ev_mean": -0.1083,
+        "roi_halfwidth_cons": 0.0444,
+        "roi_halfwidth_independent": 0.0103,
+        "rungs": 15598,
+        "two_sided_share": 0.508,
+        "units_player_game_stat": 14756,
         "weekly_units_median": 672.0,
         "weeks": 29,
         "weeks_with_ge_10_units": 29
@@ -3791,25 +3791,25 @@
         "by_stat": {
          "ast": 2734,
          "fg3m": 1743,
-         "pts": 4511,
+         "pts": 4363,
          "reb": 4876
         },
         "dates": 166,
         "decimal_min_med_max": [
          1.033,
          1.235,
-         12.0
+         2.6
         ],
-        "games": 968,
-        "mean_model_p": 0.7485,
-        "mean_overround_two_sided": 0.0682,
-        "model_claimed_ev_mean": -0.0495,
-        "roi_halfwidth_cons": 0.0372,
-        "roi_halfwidth_independent": 0.0094,
-        "rungs": 13864,
-        "two_sided_share": 0.48,
-        "units_player_game_stat": 13659,
-        "weekly_units_median": 565.0,
+        "games": 963,
+        "mean_model_p": 0.7484,
+        "mean_overround_two_sided": 0.0681,
+        "model_claimed_ev_mean": -0.0602,
+        "roi_halfwidth_cons": 0.0374,
+        "roi_halfwidth_independent": 0.0092,
+        "rungs": 13716,
+        "two_sided_share": 0.475,
+        "units_player_game_stat": 13515,
+        "weekly_units_median": 550.0,
         "weeks": 29,
         "weeks_with_ge_10_units": 29
        },
@@ -3817,24 +3817,24 @@
         "by_stat": {
          "ast": 2050,
          "fg3m": 1466,
-         "pts": 2285,
+         "pts": 2114,
          "reb": 3157
         },
         "dates": 166,
         "decimal_min_med_max": [
-         1.012,
+         1.02,
          1.167,
-         14.0
+         2.0
         ],
-        "games": 961,
+        "games": 948,
         "mean_model_p": 0.847,
-        "mean_overround_two_sided": 0.0619,
-        "model_claimed_ev_mean": 0.0239,
-        "roi_halfwidth_cons": 0.03,
-        "roi_halfwidth_independent": 0.0096,
-        "rungs": 8958,
-        "two_sided_share": 0.493,
-        "units_player_game_stat": 8915,
+        "mean_overround_two_sided": 0.0616,
+        "model_claimed_ev_mean": -0.0061,
+        "roi_halfwidth_cons": 0.0298,
+        "roi_halfwidth_independent": 0.0089,
+        "rungs": 8787,
+        "two_sided_share": 0.483,
+        "units_player_game_stat": 8754,
         "weekly_units_median": 357.0,
         "weeks": 29,
         "weeks_with_ge_10_units": 29
@@ -3845,24 +3845,24 @@
        "by_stat": {
         "ast": 6127,
         "fg3m": 3477,
-        "pts": 8109,
+        "pts": 7009,
         "reb": 9213
        },
        "dates": 166,
        "decimal_min_med_max": [
         1.005,
         1.19,
-        14.0
+        2.6
        ],
-       "games": 972,
-       "mean_model_p": 0.811,
-       "mean_overround_two_sided": 0.0647,
-       "model_claimed_ev_mean": 0.0219,
-       "roi_halfwidth_cons": 0.0313,
-       "roi_halfwidth_independent": 0.006,
-       "rungs": 26926,
-       "two_sided_share": 0.498,
-       "units_player_game_stat": 21673,
+       "games": 971,
+       "mean_model_p": 0.8061,
+       "mean_overround_two_sided": 0.0645,
+       "model_claimed_ev_mean": -0.0282,
+       "roi_halfwidth_cons": 0.0319,
+       "roi_halfwidth_independent": 0.0058,
+       "rungs": 25826,
+       "two_sided_share": 0.477,
+       "units_player_game_stat": 21194,
        "weekly_units_median": 876.0,
        "weeks": 29,
        "weeks_with_ge_10_units": 29
@@ -3885,12 +3885,12 @@
         "rungs": 3209
        },
        "pts": {
-        "games": 956,
-        "halfwidth_cons": 0.0288,
-        "halfwidth_independent": 0.0099,
-        "mean_p": 0.7793,
-        "player_games": 5505,
-        "rungs": 6796
+        "games": 880,
+        "halfwidth_cons": 0.0298,
+        "halfwidth_independent": 0.0101,
+        "mean_p": 0.778,
+        "player_games": 5235,
+        "rungs": 6477
        },
        "reb": {
         "games": 888,
@@ -3920,12 +3920,12 @@
          "rungs": 981
         },
         "pts": {
-         "games": 939,
-         "halfwidth_cons": 0.0339,
+         "games": 888,
+         "halfwidth_cons": 0.0342,
          "halfwidth_independent": 0.0101,
-         "mean_p": 0.5497,
-         "player_games": 7369,
-         "rungs": 9335
+         "mean_p": 0.5496,
+         "player_games": 7277,
+         "rungs": 9240
         },
         "reb": {
          "games": 879,
@@ -3954,12 +3954,12 @@
          "rungs": 1292
         },
         "pts": {
-         "games": 948,
-         "halfwidth_cons": 0.0332,
-         "halfwidth_independent": 0.0115,
-         "mean_p": 0.6471,
-         "player_games": 5839,
-         "rungs": 6680
+         "games": 885,
+         "halfwidth_cons": 0.0338,
+         "halfwidth_independent": 0.0116,
+         "mean_p": 0.647,
+         "player_games": 5714,
+         "rungs": 6554
         },
         "reb": {
          "games": 886,
@@ -3988,12 +3988,12 @@
          "rungs": 1743
         },
         "pts": {
-         "games": 941,
-         "halfwidth_cons": 0.0306,
-         "halfwidth_independent": 0.0127,
-         "mean_p": 0.7462,
-         "player_games": 4309,
-         "rungs": 4511
+         "games": 872,
+         "halfwidth_cons": 0.0314,
+         "halfwidth_independent": 0.0129,
+         "mean_p": 0.746,
+         "player_games": 4165,
+         "rungs": 4363
         },
         "reb": {
          "games": 885,
@@ -4022,12 +4022,12 @@
          "rungs": 1466
         },
         "pts": {
-         "games": 840,
-         "halfwidth_cons": 0.0282,
-         "halfwidth_independent": 0.0149,
-         "mean_p": 0.8446,
-         "player_games": 2242,
-         "rungs": 2285
+         "games": 774,
+         "halfwidth_cons": 0.0294,
+         "halfwidth_independent": 0.0155,
+         "mean_p": 0.844,
+         "player_games": 2081,
+         "rungs": 2114
         },
         "reb": {
          "games": 856,
@@ -4057,12 +4057,12 @@
         "rungs": 3477
        },
        "pts": {
-        "games": 962,
-        "halfwidth_cons": 0.0276,
-        "halfwidth_independent": 0.0086,
-        "mean_p": 0.8082,
-        "player_games": 5747,
-        "rungs": 8109
+        "games": 880,
+        "halfwidth_cons": 0.0295,
+        "halfwidth_independent": 0.0095,
+        "mean_p": 0.7898,
+        "player_games": 5268,
+        "rungs": 7009
        },
        "reb": {
         "games": 888,
@@ -4073,13 +4073,13 @@
         "rungs": 9213
        }
       },
-      "rungs": 157987,
+      "rungs": 156508,
       "tail_rungs": {
-       "05": 10188,
-       "15": 26170,
-       "25": 26463,
-       "35": 20373,
-       "45": 15366
+       "05": 10186,
+       "15": 26163,
+       "25": 26437,
+       "35": 20327,
+       "45": 15289
       }
      }
     },
@@ -9331,7 +9331,7 @@
         "by_stat": {
          "ast": 1680,
          "fg3m": 1922,
-         "pts": 1903,
+         "pts": 1902,
          "reb": 2423
         },
         "dates": 136,
@@ -9346,9 +9346,9 @@
         "model_claimed_ev_mean": -0.1969,
         "roi_halfwidth_cons": 0.0611,
         "roi_halfwidth_independent": 0.0163,
-        "rungs": 7928,
+        "rungs": 7927,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 7928,
+        "units_player_game_stat": 7927,
         "weekly_units_median": 264.5,
         "weeks": 24,
         "weeks_with_ge_10_units": 24
@@ -9357,7 +9357,7 @@
         "by_stat": {
          "ast": 1318,
          "fg3m": 1416,
-         "pts": 1430,
+         "pts": 1428,
          "reb": 2005
         },
         "dates": 136,
@@ -9372,9 +9372,9 @@
         "model_claimed_ev_mean": -0.1731,
         "roi_halfwidth_cons": 0.0511,
         "roi_halfwidth_independent": 0.0153,
-        "rungs": 6169,
+        "rungs": 6167,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 6169,
+        "units_player_game_stat": 6167,
         "weekly_units_median": 232.0,
         "weeks": 24,
         "weeks_with_ge_10_units": 23
@@ -9383,7 +9383,7 @@
         "by_stat": {
          "ast": 1166,
          "fg3m": 1449,
-         "pts": 1285,
+         "pts": 1283,
          "reb": 2049
         },
         "dates": 135,
@@ -9395,12 +9395,12 @@
         "games": 671,
         "mean_model_p": 0.7498,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.1366,
-        "roi_halfwidth_cons": 0.0421,
+        "model_claimed_ev_mean": -0.1365,
+        "roi_halfwidth_cons": 0.0422,
         "roi_halfwidth_independent": 0.0127,
-        "rungs": 5949,
+        "rungs": 5947,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 5949,
+        "units_player_game_stat": 5947,
         "weekly_units_median": 196.0,
         "weeks": 24,
         "weeks_with_ge_10_units": 23
@@ -9437,7 +9437,7 @@
        "by_stat": {
         "ast": 2708,
         "fg3m": 3584,
-        "pts": 3252,
+        "pts": 3250,
         "reb": 4076
        },
        "dates": 136,
@@ -9452,9 +9452,9 @@
        "model_claimed_ev_mean": -0.0966,
        "roi_halfwidth_cons": 0.0341,
        "roi_halfwidth_independent": 0.0071,
-       "rungs": 13620,
+       "rungs": 13618,
        "two_sided_share": 0.0,
-       "units_player_game_stat": 12970,
+       "units_player_game_stat": 12968,
        "weekly_units_median": 376.5,
        "weeks": 24,
        "weeks_with_ge_10_units": 24
@@ -9481,8 +9481,8 @@
         "halfwidth_cons": 0.0351,
         "halfwidth_independent": 0.0163,
         "mean_p": 0.7955,
-        "player_games": 2364,
-        "rungs": 2364
+        "player_games": 2362,
+        "rungs": 2362
        },
        "reb": {
         "games": 657,
@@ -9514,10 +9514,10 @@
         "pts": {
          "games": 583,
          "halfwidth_cons": 0.0445,
-         "halfwidth_independent": 0.0223,
+         "halfwidth_independent": 0.0224,
          "mean_p": 0.5509,
-         "player_games": 1903,
-         "rungs": 1903
+         "player_games": 1902,
+         "rungs": 1902
         },
         "reb": {
          "games": 616,
@@ -9548,10 +9548,10 @@
         "pts": {
          "games": 557,
          "halfwidth_cons": 0.0447,
-         "halfwidth_independent": 0.0247,
+         "halfwidth_independent": 0.0248,
          "mean_p": 0.6484,
-         "player_games": 1430,
-         "rungs": 1430
+         "player_games": 1428,
+         "rungs": 1428
         },
         "reb": {
          "games": 609,
@@ -9582,10 +9582,10 @@
         "pts": {
          "games": 533,
          "halfwidth_cons": 0.0414,
-         "halfwidth_independent": 0.0237,
+         "halfwidth_independent": 0.0238,
          "mean_p": 0.7479,
-         "player_games": 1285,
-         "rungs": 1285
+         "player_games": 1283,
+         "rungs": 1283
         },
         "reb": {
          "games": 589,
@@ -9652,9 +9652,9 @@
         "games": 598,
         "halfwidth_cons": 0.0321,
         "halfwidth_independent": 0.0128,
-        "mean_p": 0.8348,
-        "player_games": 2761,
-        "rungs": 3252
+        "mean_p": 0.8349,
+        "player_games": 2759,
+        "rungs": 3250
        },
        "reb": {
         "games": 661,
@@ -9665,13 +9665,13 @@
         "rungs": 4076
        }
       },
-      "rungs": 81543,
+      "rungs": 81520,
       "tail_rungs": {
-       "05": 6037,
-       "15": 16162,
-       "25": 12726,
-       "35": 10100,
-       "45": 8801
+       "05": 6031,
+       "15": 16157,
+       "25": 12724,
+       "35": 10097,
+       "45": 8799
       }
      }
     }
@@ -9698,51 +9698,65 @@
      {
       "book": "betmgm",
       "ladders": 1305,
-      "off": 0,
-      "tested": 753,
-      "untested_kept": 552
+      "no_main_line": 50,
+      "off": 1,
+      "off1": 0,
+      "off2_only": 1,
+      "with_main_line": 1255
      },
      {
       "book": "betonlineag",
       "ladders": 30846,
-      "off": 1,
-      "tested": 29031,
-      "untested_kept": 1815
+      "no_main_line": 51,
+      "off": 3,
+      "off1": 1,
+      "off2_only": 2,
+      "with_main_line": 30795
      },
      {
       "book": "draftkings",
       "ladders": 37120,
-      "off": 359,
-      "tested": 25342,
-      "untested_kept": 11778
+      "no_main_line": 338,
+      "off": 804,
+      "off1": 359,
+      "off2_only": 445,
+      "with_main_line": 36782
      },
      {
       "book": "fanduel",
       "ladders": 35696,
+      "no_main_line": 1635,
       "off": 0,
-      "tested": 32149,
-      "untested_kept": 3547
+      "off1": 0,
+      "off2_only": 0,
+      "with_main_line": 34061
      },
      {
       "book": "mybookieag",
       "ladders": 29548,
+      "no_main_line": 1499,
       "off": 0,
-      "tested": 26406,
-      "untested_kept": 3142
+      "off1": 0,
+      "off2_only": 0,
+      "with_main_line": 28049
      },
      {
       "book": "pointsbetus",
       "ladders": 28346,
+      "no_main_line": 1272,
       "off": 1,
-      "tested": 24898,
-      "untested_kept": 3448
+      "off1": 1,
+      "off2_only": 0,
+      "with_main_line": 27074
      },
      {
       "book": "williamhill_us",
       "ladders": 30304,
-      "off": 419,
-      "tested": 22385,
-      "untested_kept": 7919
+      "no_main_line": 4443,
+      "off": 426,
+      "off1": 419,
+      "off2_only": 7,
+      "with_main_line": 25861
      }
     ],
     "lead_minutes_min_med_max": [
@@ -9752,32 +9766,74 @@
     ],
     "off_ladder_rungs_by_book": {
      "betmgm": {
-      "all_rungs": 0,
-      "p_ge_70_rungs_window_arm": 0
+      "all_rungs": 1,
+      "by_test_only_p_ge_70_window_arm": 0,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 18,
+      "p_ge_70_rungs_window_arm": 0,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "betonlineag": {
-      "all_rungs": 3,
-      "p_ge_70_rungs_window_arm": 0
+      "all_rungs": 9,
+      "by_test_only_p_ge_70_window_arm": 0,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 5,
+      "p_ge_70_rungs_window_arm": 0,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "draftkings": {
-      "all_rungs": 1080,
-      "p_ge_70_rungs_window_arm": 1032
+      "all_rungs": 2566,
+      "by_test_only_p_ge_70_window_arm": 3,
+      "by_vendor_window_all_rungs": 2546,
+      "by_vendor_window_p_ge_70_window_arm": 2129,
+      "dec_ge_2_p_ge_70_december_primary_arm": 1,
+      "no_main_line_p_ge_70_primary_arm": 204,
+      "p_ge_70_rungs_window_arm": 2132,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "fanduel": {
       "all_rungs": 0,
-      "p_ge_70_rungs_window_arm": 0
+      "by_test_only_p_ge_70_window_arm": 0,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 3,
+      "no_main_line_p_ge_70_primary_arm": 715,
+      "p_ge_70_rungs_window_arm": 0,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "mybookieag": {
       "all_rungs": 0,
-      "p_ge_70_rungs_window_arm": 0
+      "by_test_only_p_ge_70_window_arm": 0,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 110,
+      "p_ge_70_rungs_window_arm": 0,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "pointsbetus": {
       "all_rungs": 6,
-      "p_ge_70_rungs_window_arm": 1
+      "by_test_only_p_ge_70_window_arm": 1,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 1193,
+      "p_ge_70_rungs_window_arm": 1,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "williamhill_us": {
-      "all_rungs": 1934,
-      "p_ge_70_rungs_window_arm": 440
+      "all_rungs": 1957,
+      "by_test_only_p_ge_70_window_arm": 442,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 438,
+      "p_ge_70_rungs_window_arm": 442,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      }
     },
     "over_rungs_after_dedupe": 1051600,
@@ -10969,10 +11025,10 @@
       "bins": {
        "55": {
         "by_stat": {
-         "ast": 2232,
+         "ast": 2231,
          "fg3m": 3330,
-         "pts": 3589,
-         "reb": 3841
+         "pts": 3579,
+         "reb": 3840
         },
         "dates": 195,
         "decimal_min_med_max": [
@@ -10983,13 +11039,13 @@
         "games": 1120,
         "mean_model_p": 0.5488,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.1546,
+        "model_claimed_ev_mean": -0.1545,
         "roi_halfwidth_cons": 0.048,
         "roi_halfwidth_independent": 0.0134,
-        "rungs": 12992,
+        "rungs": 12980,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 12992,
-        "weekly_units_median": 469.0,
+        "units_player_game_stat": 12980,
+        "weekly_units_median": 466.0,
         "weeks": 33,
         "weeks_with_ge_10_units": 32
        },
@@ -10997,8 +11053,8 @@
         "by_stat": {
          "ast": 1478,
          "fg3m": 2652,
-         "pts": 3041,
-         "reb": 3534
+         "pts": 3029,
+         "reb": 3533
         },
         "dates": 194,
         "decimal_min_med_max": [
@@ -11009,12 +11065,12 @@
         "games": 1120,
         "mean_model_p": 0.6493,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.1321,
-        "roi_halfwidth_cons": 0.0402,
+        "model_claimed_ev_mean": -0.1319,
+        "roi_halfwidth_cons": 0.0403,
         "roi_halfwidth_independent": 0.0122,
-        "rungs": 10705,
+        "rungs": 10692,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 10705,
+        "units_player_game_stat": 10692,
         "weekly_units_median": 387.0,
         "weeks": 33,
         "weeks_with_ge_10_units": 32
@@ -11023,7 +11079,7 @@
         "by_stat": {
          "ast": 1214,
          "fg3m": 3016,
-         "pts": 2337,
+         "pts": 2327,
          "reb": 3173
         },
         "dates": 195,
@@ -11038,18 +11094,18 @@
         "model_claimed_ev_mean": -0.0925,
         "roi_halfwidth_cons": 0.0329,
         "roi_halfwidth_independent": 0.0104,
-        "rungs": 9740,
+        "rungs": 9730,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 9740,
+        "units_player_game_stat": 9730,
         "weekly_units_median": 350.0,
         "weeks": 33,
         "weeks_with_ge_10_units": 32
        },
        "85": {
         "by_stat": {
-         "ast": 1468,
+         "ast": 1467,
          "fg3m": 3687,
-         "pts": 1783,
+         "pts": 1781,
          "reb": 2346
         },
         "dates": 195,
@@ -11064,9 +11120,9 @@
         "model_claimed_ev_mean": -0.0429,
         "roi_halfwidth_cons": 0.0257,
         "roi_halfwidth_independent": 0.0082,
-        "rungs": 9284,
+        "rungs": 9281,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 9284,
+        "units_player_game_stat": 9281,
         "weekly_units_median": 288.0,
         "weeks": 33,
         "weeks_with_ge_10_units": 31
@@ -11075,9 +11131,9 @@
       "games": 1126,
       "ge70": {
        "by_stat": {
-        "ast": 3325,
+        "ast": 3324,
         "fg3m": 7955,
-        "pts": 4586,
+        "pts": 4574,
         "reb": 6079
        },
        "dates": 195,
@@ -11089,12 +11145,12 @@
        "games": 1123,
        "mean_model_p": 0.8159,
        "mean_overround_two_sided": 0.0476,
-       "model_claimed_ev_mean": -0.0584,
+       "model_claimed_ev_mean": -0.0583,
        "roi_halfwidth_cons": 0.0271,
        "roi_halfwidth_independent": 0.0059,
-       "rungs": 21945,
+       "rungs": 21932,
        "two_sided_share": 0.0,
-       "units_player_game_stat": 21551,
+       "units_player_game_stat": 21538,
        "weekly_units_median": 717.0,
        "weeks": 33,
        "weeks_with_ge_10_units": 32
@@ -11105,8 +11161,8 @@
         "halfwidth_cons": 0.0267,
         "halfwidth_independent": 0.0149,
         "mean_p": 0.8067,
-        "player_games": 2682,
-        "rungs": 2682
+        "player_games": 2681,
+        "rungs": 2681
        },
        "fg3m": {
         "games": 1112,
@@ -11120,9 +11176,9 @@
         "games": 1085,
         "halfwidth_cons": 0.0265,
         "halfwidth_independent": 0.0124,
-        "mean_p": 0.7916,
-        "player_games": 4120,
-        "rungs": 4120
+        "mean_p": 0.7917,
+        "player_games": 4108,
+        "rungs": 4108
        },
        "reb": {
         "games": 1103,
@@ -11136,12 +11192,12 @@
       "p1_bins": {
        "55": {
         "ast": {
-         "games": 967,
+         "games": 966,
          "halfwidth_cons": 0.0354,
-         "halfwidth_independent": 0.0206,
+         "halfwidth_independent": 0.0207,
          "mean_p": 0.5479,
-         "player_games": 2232,
-         "rungs": 2232
+         "player_games": 2231,
+         "rungs": 2231
         },
         "fg3m": {
          "games": 1053,
@@ -11152,20 +11208,20 @@
          "rungs": 3330
         },
         "pts": {
-         "games": 1070,
-         "halfwidth_cons": 0.033,
+         "games": 1069,
+         "halfwidth_cons": 0.0331,
          "halfwidth_independent": 0.0163,
          "mean_p": 0.549,
-         "player_games": 3589,
-         "rungs": 3589
+         "player_games": 3579,
+         "rungs": 3579
         },
         "reb": {
          "games": 1075,
          "halfwidth_cons": 0.033,
          "halfwidth_independent": 0.0157,
          "mean_p": 0.5512,
-         "player_games": 3841,
-         "rungs": 3841
+         "player_games": 3840,
+         "rungs": 3840
         }
        },
        "65": {
@@ -11186,20 +11242,20 @@
          "rungs": 2652
         },
         "pts": {
-         "games": 1046,
-         "halfwidth_cons": 0.0323,
+         "games": 1043,
+         "halfwidth_cons": 0.0324,
          "halfwidth_independent": 0.017,
-         "mean_p": 0.6483,
-         "player_games": 3041,
-         "rungs": 3041
+         "mean_p": 0.6484,
+         "player_games": 3029,
+         "rungs": 3029
         },
         "reb": {
          "games": 1072,
          "halfwidth_cons": 0.0319,
          "halfwidth_independent": 0.0157,
          "mean_p": 0.6494,
-         "player_games": 3534,
-         "rungs": 3534
+         "player_games": 3533,
+         "rungs": 3533
         }
        },
        "75": {
@@ -11220,12 +11276,12 @@
          "rungs": 3016
         },
         "pts": {
-         "games": 986,
+         "games": 983,
          "halfwidth_cons": 0.0306,
          "halfwidth_independent": 0.0176,
          "mean_p": 0.749,
-         "player_games": 2337,
-         "rungs": 2337
+         "player_games": 2327,
+         "rungs": 2327
         },
         "reb": {
          "games": 1047,
@@ -11242,8 +11298,8 @@
          "halfwidth_cons": 0.0273,
          "halfwidth_independent": 0.0182,
          "mean_p": 0.8505,
-         "player_games": 1468,
-         "rungs": 1468
+         "player_games": 1467,
+         "rungs": 1467
         },
         "fg3m": {
          "games": 1072,
@@ -11258,8 +11314,8 @@
          "halfwidth_cons": 0.0267,
          "halfwidth_independent": 0.0167,
          "mean_p": 0.8475,
-         "player_games": 1783,
-         "rungs": 1783
+         "player_games": 1781,
+         "rungs": 1781
         },
         "reb": {
          "games": 981,
@@ -11277,8 +11333,8 @@
         "halfwidth_cons": 0.0248,
         "halfwidth_independent": 0.0127,
         "mean_p": 0.8312,
-        "player_games": 3288,
-        "rungs": 3325
+        "player_games": 3287,
+        "rungs": 3324
        },
        "fg3m": {
         "games": 1117,
@@ -11292,9 +11348,9 @@
         "games": 1088,
         "halfwidth_cons": 0.0257,
         "halfwidth_independent": 0.0115,
-        "mean_p": 0.8053,
-        "player_games": 4453,
-        "rungs": 4586
+        "mean_p": 0.8054,
+        "player_games": 4441,
+        "rungs": 4574
        },
        "reb": {
         "games": 1108,
@@ -11305,13 +11361,13 @@
         "rungs": 6079
        }
       },
-      "rungs": 155294,
+      "rungs": 155122,
       "tail_rungs": {
-       "05": 22412,
-       "15": 31330,
-       "25": 23763,
-       "35": 17093,
-       "45": 15054
+       "05": 22369,
+       "15": 31297,
+       "25": 23739,
+       "35": 17078,
+       "45": 15035
       }
      }
     },
@@ -12703,10 +12759,10 @@
         "rungs": 1906
        }
       },
-      "rungs": 382399,
+      "rungs": 382298,
       "tail_rungs": {
-       "05": 144509,
-       "15": 69976,
+       "05": 144409,
+       "15": 69975,
        "25": 48017,
        "35": 36417,
        "45": 30768
@@ -15163,10 +15219,10 @@
       "bins": {
        "55": {
         "by_stat": {
-         "ast": 1088,
-         "fg3m": 1737,
-         "pts": 2338,
-         "reb": 2406
+         "ast": 1076,
+         "fg3m": 1727,
+         "pts": 2316,
+         "reb": 2399
         },
         "dates": 158,
         "decimal_min_med_max": [
@@ -15179,20 +15235,20 @@
         "mean_overround_two_sided": null,
         "model_claimed_ev_mean": -0.1373,
         "roi_halfwidth_cons": 0.0561,
-        "roi_halfwidth_independent": 0.0178,
-        "rungs": 7569,
+        "roi_halfwidth_independent": 0.0179,
+        "rungs": 7518,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 7569,
-        "weekly_units_median": 324.0,
+        "units_player_game_stat": 7518,
+        "weekly_units_median": 322.0,
         "weeks": 27,
         "weeks_with_ge_10_units": 26
        },
        "65": {
         "by_stat": {
-         "ast": 1067,
-         "fg3m": 998,
-         "pts": 2080,
-         "reb": 1929
+         "ast": 1057,
+         "fg3m": 996,
+         "pts": 2062,
+         "reb": 1927
         },
         "dates": 157,
         "decimal_min_med_max": [
@@ -15204,21 +15260,21 @@
         "mean_model_p": 0.649,
         "mean_overround_two_sided": null,
         "model_claimed_ev_mean": -0.1077,
-        "roi_halfwidth_cons": 0.0476,
-        "roi_halfwidth_independent": 0.0166,
-        "rungs": 6074,
+        "roi_halfwidth_cons": 0.0477,
+        "roi_halfwidth_independent": 0.0167,
+        "rungs": 6042,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 6074,
-        "weekly_units_median": 270.0,
+        "units_player_game_stat": 6042,
+        "weekly_units_median": 269.0,
         "weeks": 26,
         "weeks_with_ge_10_units": 26
        },
        "75": {
         "by_stat": {
-         "ast": 799,
+         "ast": 797,
          "fg3m": 717,
-         "pts": 1774,
-         "reb": 1665
+         "pts": 1760,
+         "reb": 1660
         },
         "dates": 157,
         "decimal_min_med_max": [
@@ -15229,22 +15285,22 @@
         "games": 860,
         "mean_model_p": 0.7494,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.0699,
-        "roi_halfwidth_cons": 0.0391,
-        "roi_halfwidth_independent": 0.015,
-        "rungs": 4955,
+        "model_claimed_ev_mean": -0.07,
+        "roi_halfwidth_cons": 0.0392,
+        "roi_halfwidth_independent": 0.0151,
+        "rungs": 4934,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 4955,
-        "weekly_units_median": 230.5,
+        "units_player_game_stat": 4934,
+        "weekly_units_median": 228.5,
         "weeks": 26,
         "weeks_with_ge_10_units": 26
        },
        "85": {
         "by_stat": {
-         "ast": 701,
+         "ast": 697,
          "fg3m": 616,
-         "pts": 1813,
-         "reb": 1550
+         "pts": 1800,
+         "reb": 1544
         },
         "dates": 157,
         "decimal_min_med_max": [
@@ -15252,16 +15308,16 @@
          1.125,
          1.8
         ],
-        "games": 856,
+        "games": 855,
         "mean_model_p": 0.852,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.0294,
+        "model_claimed_ev_mean": -0.0292,
         "roi_halfwidth_cons": 0.0294,
-        "roi_halfwidth_independent": 0.0116,
-        "rungs": 4680,
+        "roi_halfwidth_independent": 0.0117,
+        "rungs": 4657,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 4680,
-        "weekly_units_median": 207.5,
+        "units_player_game_stat": 4657,
+        "weekly_units_median": 206.5,
         "weeks": 26,
         "weeks_with_ge_10_units": 26
        }
@@ -15269,10 +15325,10 @@
       "games": 873,
       "ge70": {
        "by_stat": {
-        "ast": 2294,
+        "ast": 2286,
         "fg3m": 1503,
-        "pts": 5870,
-        "reb": 4919
+        "pts": 5824,
+        "reb": 4900
        },
        "dates": 157,
        "decimal_min_med_max": [
@@ -15283,13 +15339,13 @@
        "games": 864,
        "mean_model_p": 0.8506,
        "mean_overround_two_sided": null,
-       "model_claimed_ev_mean": -0.0306,
-       "roi_halfwidth_cons": 0.0269,
+       "model_claimed_ev_mean": -0.0305,
+       "roi_halfwidth_cons": 0.027,
        "roi_halfwidth_independent": 0.0067,
-       "rungs": 14586,
+       "rungs": 14513,
        "two_sided_share": 0.0,
-       "units_player_game_stat": 11124,
-       "weekly_units_median": 523.5,
+       "units_player_game_stat": 11074,
+       "weekly_units_median": 521.0,
        "weeks": 26,
        "weeks_with_ge_10_units": 26
       },
@@ -15299,8 +15355,8 @@
         "halfwidth_cons": 0.0314,
         "halfwidth_independent": 0.0203,
         "mean_p": 0.799,
-        "player_games": 1500,
-        "rungs": 1500
+        "player_games": 1494,
+        "rungs": 1494
        },
        "fg3m": {
         "games": 724,
@@ -15311,99 +15367,99 @@
         "rungs": 1333
        },
        "pts": {
-        "games": 860,
-        "halfwidth_cons": 0.0285,
-        "halfwidth_independent": 0.013,
+        "games": 859,
+        "halfwidth_cons": 0.0286,
+        "halfwidth_independent": 0.0131,
         "mean_p": 0.8021,
-        "player_games": 3586,
-        "rungs": 3587
+        "player_games": 3559,
+        "rungs": 3560
        },
        "reb": {
         "games": 845,
-        "halfwidth_cons": 0.0291,
+        "halfwidth_cons": 0.0292,
         "halfwidth_independent": 0.0139,
-        "mean_p": 0.7983,
-        "player_games": 3181,
-        "rungs": 3215
+        "mean_p": 0.7984,
+        "player_games": 3170,
+        "rungs": 3204
        }
       },
       "p1_bins": {
        "55": {
         "ast": {
-         "games": 659,
-         "halfwidth_cons": 0.0422,
-         "halfwidth_independent": 0.0296,
+         "games": 656,
+         "halfwidth_cons": 0.0423,
+         "halfwidth_independent": 0.0297,
          "mean_p": 0.5479,
-         "player_games": 1088,
-         "rungs": 1088
+         "player_games": 1076,
+         "rungs": 1076
         },
         "fg3m": {
-         "games": 755,
-         "halfwidth_cons": 0.0396,
-         "halfwidth_independent": 0.0234,
-         "mean_p": 0.5445,
-         "player_games": 1737,
-         "rungs": 1737
+         "games": 752,
+         "halfwidth_cons": 0.0397,
+         "halfwidth_independent": 0.0235,
+         "mean_p": 0.5446,
+         "player_games": 1727,
+         "rungs": 1727
         },
         "pts": {
-         "games": 815,
+         "games": 813,
          "halfwidth_cons": 0.0382,
-         "halfwidth_independent": 0.0202,
+         "halfwidth_independent": 0.0203,
          "mean_p": 0.5482,
-         "player_games": 2338,
-         "rungs": 2338
+         "player_games": 2316,
+         "rungs": 2316
         },
         "reb": {
          "games": 817,
          "halfwidth_cons": 0.0377,
          "halfwidth_independent": 0.0199,
          "mean_p": 0.5517,
-         "player_games": 2406,
-         "rungs": 2406
+         "player_games": 2399,
+         "rungs": 2399
         }
        },
        "65": {
         "ast": {
-         "games": 641,
-         "halfwidth_cons": 0.0412,
-         "halfwidth_independent": 0.0286,
-         "mean_p": 0.6497,
-         "player_games": 1067,
-         "rungs": 1067
+         "games": 635,
+         "halfwidth_cons": 0.0414,
+         "halfwidth_independent": 0.0288,
+         "mean_p": 0.6496,
+         "player_games": 1057,
+         "rungs": 1057
         },
         "fg3m": {
          "games": 579,
          "halfwidth_cons": 0.0439,
-         "halfwidth_independent": 0.0296,
+         "halfwidth_independent": 0.0297,
          "mean_p": 0.648,
-         "player_games": 998,
-         "rungs": 998
+         "player_games": 996,
+         "rungs": 996
         },
         "pts": {
-         "games": 796,
+         "games": 794,
          "halfwidth_cons": 0.0374,
-         "halfwidth_independent": 0.0205,
+         "halfwidth_independent": 0.0206,
          "mean_p": 0.6495,
-         "player_games": 2080,
-         "rungs": 2080
+         "player_games": 2062,
+         "rungs": 2062
         },
         "reb": {
          "games": 773,
          "halfwidth_cons": 0.0374,
          "halfwidth_independent": 0.0213,
          "mean_p": 0.6486,
-         "player_games": 1929,
-         "rungs": 1929
+         "player_games": 1927,
+         "rungs": 1927
         }
        },
        "75": {
         "ast": {
          "games": 546,
          "halfwidth_cons": 0.04,
-         "halfwidth_independent": 0.03,
-         "mean_p": 0.7499,
-         "player_games": 799,
-         "rungs": 799
+         "halfwidth_independent": 0.0301,
+         "mean_p": 0.75,
+         "player_games": 797,
+         "rungs": 797
         },
         "fg3m": {
          "games": 524,
@@ -15414,30 +15470,30 @@
          "rungs": 717
         },
         "pts": {
-         "games": 765,
-         "halfwidth_cons": 0.0346,
-         "halfwidth_independent": 0.0201,
+         "games": 762,
+         "halfwidth_cons": 0.0347,
+         "halfwidth_independent": 0.0202,
          "mean_p": 0.7501,
-         "player_games": 1774,
-         "rungs": 1774
+         "player_games": 1760,
+         "rungs": 1760
         },
         "reb": {
-         "games": 759,
+         "games": 757,
          "halfwidth_cons": 0.0348,
-         "halfwidth_independent": 0.0208,
+         "halfwidth_independent": 0.0209,
          "mean_p": 0.7488,
-         "player_games": 1665,
-         "rungs": 1665
+         "player_games": 1660,
+         "rungs": 1660
         }
        },
        "85": {
         "ast": {
-         "games": 509,
+         "games": 508,
          "halfwidth_cons": 0.0333,
          "halfwidth_independent": 0.0261,
          "mean_p": 0.855,
-         "player_games": 701,
-         "rungs": 701
+         "player_games": 697,
+         "rungs": 697
         },
         "fg3m": {
          "games": 454,
@@ -15448,20 +15504,20 @@
          "rungs": 616
         },
         "pts": {
-         "games": 783,
-         "halfwidth_cons": 0.0277,
-         "halfwidth_independent": 0.0163,
-         "mean_p": 0.853,
-         "player_games": 1813,
-         "rungs": 1813
+         "games": 781,
+         "halfwidth_cons": 0.0278,
+         "halfwidth_independent": 0.0164,
+         "mean_p": 0.8531,
+         "player_games": 1800,
+         "rungs": 1800
         },
         "reb": {
-         "games": 755,
-         "halfwidth_cons": 0.0281,
+         "games": 752,
+         "halfwidth_cons": 0.0282,
          "halfwidth_independent": 0.0177,
-         "mean_p": 0.8516,
-         "player_games": 1550,
-         "rungs": 1550
+         "mean_p": 0.8517,
+         "player_games": 1544,
+         "rungs": 1544
         }
        }
       },
@@ -15471,8 +15527,8 @@
         "halfwidth_cons": 0.0272,
         "halfwidth_independent": 0.0145,
         "mean_p": 0.8524,
-        "player_games": 1947,
-        "rungs": 2294
+        "player_games": 1940,
+        "rungs": 2286
        },
        "fg3m": {
         "games": 741,
@@ -15484,28 +15540,28 @@
        },
        "pts": {
         "games": 863,
-        "halfwidth_cons": 0.0246,
+        "halfwidth_cons": 0.0247,
         "halfwidth_independent": 0.0089,
         "mean_p": 0.8601,
-        "player_games": 4215,
-        "rungs": 5870
+        "player_games": 4183,
+        "rungs": 5824
        },
        "reb": {
         "games": 848,
-        "halfwidth_cons": 0.0256,
+        "halfwidth_cons": 0.0257,
         "halfwidth_independent": 0.01,
-        "mean_p": 0.8508,
-        "player_games": 3536,
-        "rungs": 4919
+        "mean_p": 0.8507,
+        "player_games": 3525,
+        "rungs": 4900
        }
       },
-      "rungs": 103415,
+      "rungs": 102566,
       "tail_rungs": {
-       "05": 24611,
-       "15": 18876,
-       "25": 13077,
-       "35": 10030,
-       "45": 8592
+       "05": 24324,
+       "15": 18727,
+       "25": 12974,
+       "35": 9958,
+       "45": 8510
       }
      }
     },
@@ -20757,7 +20813,7 @@
         "by_stat": {
          "ast": 2962,
          "fg3m": 2856,
-         "pts": 3892,
+         "pts": 3885,
          "reb": 4084
         },
         "dates": 179,
@@ -20769,12 +20825,12 @@
         "games": 1123,
         "mean_model_p": 0.5492,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.1641,
+        "model_claimed_ev_mean": -0.164,
         "roi_halfwidth_cons": 0.0469,
         "roi_halfwidth_independent": 0.0128,
-        "rungs": 13794,
+        "rungs": 13787,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 13794,
+        "units_player_game_stat": 13787,
         "weekly_units_median": 534.0,
         "weeks": 30,
         "weeks_with_ge_10_units": 30
@@ -20783,7 +20839,7 @@
         "by_stat": {
          "ast": 2641,
          "fg3m": 2051,
-         "pts": 3522,
+         "pts": 3511,
          "reb": 3763
         },
         "dates": 179,
@@ -20795,12 +20851,12 @@
         "games": 1120,
         "mean_model_p": 0.6498,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.1445,
+        "model_claimed_ev_mean": -0.1444,
         "roi_halfwidth_cons": 0.039,
         "roi_halfwidth_independent": 0.0114,
-        "rungs": 11977,
+        "rungs": 11966,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 11977,
+        "units_player_game_stat": 11966,
         "weekly_units_median": 450.5,
         "weeks": 30,
         "weeks_with_ge_10_units": 30
@@ -20809,7 +20865,7 @@
         "by_stat": {
          "ast": 2153,
          "fg3m": 2080,
-         "pts": 3007,
+         "pts": 3001,
          "reb": 3824
         },
         "dates": 179,
@@ -20819,14 +20875,14 @@
          2.5
         ],
         "games": 1122,
-        "mean_model_p": 0.7507,
+        "mean_model_p": 0.7508,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.1089,
+        "model_claimed_ev_mean": -0.1088,
         "roi_halfwidth_cons": 0.0319,
         "roi_halfwidth_independent": 0.0096,
-        "rungs": 11064,
+        "rungs": 11058,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 11064,
+        "units_player_game_stat": 11058,
         "weekly_units_median": 435.5,
         "weeks": 30,
         "weeks_with_ge_10_units": 30
@@ -20835,7 +20891,7 @@
         "by_stat": {
          "ast": 1913,
          "fg3m": 2194,
-         "pts": 2765,
+         "pts": 2756,
          "reb": 3901
         },
         "dates": 179,
@@ -20847,12 +20903,12 @@
         "games": 1116,
         "mean_model_p": 0.8505,
         "mean_overround_two_sided": null,
-        "model_claimed_ev_mean": -0.0659,
+        "model_claimed_ev_mean": -0.0658,
         "roi_halfwidth_cons": 0.0246,
         "roi_halfwidth_independent": 0.0074,
-        "rungs": 10773,
+        "rungs": 10764,
         "two_sided_share": 0.0,
-        "units_player_game_stat": 10773,
+        "units_player_game_stat": 10764,
         "weekly_units_median": 392.5,
         "weeks": 30,
         "weeks_with_ge_10_units": 30
@@ -20863,7 +20919,7 @@
        "by_stat": {
         "ast": 5794,
         "fg3m": 5946,
-        "pts": 7752,
+        "pts": 7729,
         "reb": 10186
        },
        "dates": 179,
@@ -20878,9 +20934,9 @@
        "model_claimed_ev_mean": -0.0694,
        "roi_halfwidth_cons": 0.0242,
        "roi_halfwidth_independent": 0.0047,
-       "rungs": 29678,
+       "rungs": 29655,
        "two_sided_share": 0.0,
-       "units_player_game_stat": 26485,
+       "units_player_game_stat": 26469,
        "weekly_units_median": 985.0,
        "weeks": 30,
        "weeks_with_ge_10_units": 30
@@ -20905,10 +20961,10 @@
        "pts": {
         "games": 1116,
         "halfwidth_cons": 0.0261,
-        "halfwidth_independent": 0.0103,
+        "halfwidth_independent": 0.0104,
         "mean_p": 0.7988,
-        "player_games": 5772,
-        "rungs": 5772
+        "player_games": 5757,
+        "rungs": 5757
        },
        "reb": {
         "games": 1094,
@@ -20942,8 +20998,8 @@
          "halfwidth_cons": 0.0325,
          "halfwidth_independent": 0.0156,
          "mean_p": 0.5496,
-         "player_games": 3892,
-         "rungs": 3892
+         "player_games": 3885,
+         "rungs": 3885
         },
         "reb": {
          "games": 1075,
@@ -20972,12 +21028,12 @@
          "rungs": 2051
         },
         "pts": {
-         "games": 1076,
+         "games": 1075,
          "halfwidth_cons": 0.0321,
          "halfwidth_independent": 0.0158,
          "mean_p": 0.6487,
-         "player_games": 3522,
-         "rungs": 3522
+         "player_games": 3511,
+         "rungs": 3511
         },
         "reb": {
          "games": 1081,
@@ -21006,12 +21062,12 @@
          "rungs": 2080
         },
         "pts": {
-         "games": 1034,
+         "games": 1032,
          "halfwidth_cons": 0.0301,
          "halfwidth_independent": 0.0155,
-         "mean_p": 0.7507,
-         "player_games": 3007,
-         "rungs": 3007
+         "mean_p": 0.7508,
+         "player_games": 3001,
+         "rungs": 3001
         },
         "reb": {
          "games": 1064,
@@ -21040,12 +21096,12 @@
          "rungs": 2194
         },
         "pts": {
-         "games": 1026,
+         "games": 1024,
          "halfwidth_cons": 0.025,
          "halfwidth_independent": 0.0133,
-         "mean_p": 0.8511,
-         "player_games": 2765,
-         "rungs": 2765
+         "mean_p": 0.851,
+         "player_games": 2756,
+         "rungs": 2756
         },
         "reb": {
          "games": 1054,
@@ -21079,8 +21135,8 @@
         "halfwidth_cons": 0.0232,
         "halfwidth_independent": 0.0082,
         "mean_p": 0.8367,
-        "player_games": 6624,
-        "rungs": 7752
+        "player_games": 6608,
+        "rungs": 7729
        },
        "reb": {
         "games": 1094,
@@ -21091,13 +21147,13 @@
         "rungs": 10186
        }
       },
-      "rungs": 163685,
+      "rungs": 163525,
       "tail_rungs": {
-       "05": 22353,
-       "15": 30757,
-       "25": 22247,
-       "35": 17678,
-       "45": 15201
+       "05": 22306,
+       "15": 30730,
+       "25": 22233,
+       "35": 17660,
+       "45": 15188
       }
      }
     }
@@ -21124,58 +21180,74 @@
      {
       "book": "betmgm",
       "ladders": 54535,
-      "off": 401,
-      "tested": 39259,
-      "untested_kept": 15276
+      "no_main_line": 4023,
+      "off": 449,
+      "off1": 401,
+      "off2_only": 48,
+      "with_main_line": 50512
      },
      {
       "book": "betonlineag",
       "ladders": 55234,
-      "off": 0,
-      "tested": 52884,
-      "untested_kept": 2350
+      "no_main_line": 416,
+      "off": 31,
+      "off1": 0,
+      "off2_only": 31,
+      "with_main_line": 54818
      },
      {
       "book": "betrivers",
       "ladders": 4955,
+      "no_main_line": 11,
       "off": 0,
-      "tested": 4702,
-      "untested_kept": 253
+      "off1": 0,
+      "off2_only": 0,
+      "with_main_line": 4944
      },
      {
       "book": "bovada",
       "ladders": 26897,
-      "off": 326,
-      "tested": 20300,
-      "untested_kept": 6597
+      "no_main_line": 5871,
+      "off": 531,
+      "off1": 326,
+      "off2_only": 205,
+      "with_main_line": 21026
      },
      {
       "book": "draftkings",
       "ladders": 64107,
+      "no_main_line": 9919,
       "off": 4,
-      "tested": 53667,
-      "untested_kept": 10440
+      "off1": 4,
+      "off2_only": 0,
+      "with_main_line": 54188
      },
      {
       "book": "fanatics",
       "ladders": 24233,
+      "no_main_line": 17855,
       "off": 0,
-      "tested": 6378,
-      "untested_kept": 17855
+      "off1": 0,
+      "off2_only": 0,
+      "with_main_line": 6378
      },
      {
       "book": "fanduel",
       "ladders": 49813,
+      "no_main_line": 2849,
       "off": 2,
-      "tested": 44614,
-      "untested_kept": 5199
+      "off1": 2,
+      "off2_only": 0,
+      "with_main_line": 46964
      },
      {
       "book": "williamhill_us",
       "ladders": 53354,
-      "off": 635,
-      "tested": 42931,
-      "untested_kept": 10423
+      "no_main_line": 1914,
+      "off": 676,
+      "off1": 635,
+      "off2_only": 41,
+      "with_main_line": 51440
      }
     ],
     "lead_minutes_min_med_max": [
@@ -21185,36 +21257,84 @@
     ],
     "off_ladder_rungs_by_book": {
      "betmgm": {
-      "all_rungs": 1557,
-      "p_ge_70_rungs_window_arm": 259
+      "all_rungs": 1729,
+      "by_test_only_p_ge_70_window_arm": 272,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 2,
+      "no_main_line_p_ge_70_primary_arm": 896,
+      "p_ge_70_rungs_window_arm": 272,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "betonlineag": {
-      "all_rungs": 0,
-      "p_ge_70_rungs_window_arm": 0
+      "all_rungs": 104,
+      "by_test_only_p_ge_70_window_arm": 0,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 23,
+      "p_ge_70_rungs_window_arm": 0,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "betrivers": {
       "all_rungs": 0,
-      "p_ge_70_rungs_window_arm": 0
+      "by_test_only_p_ge_70_window_arm": 0,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 3,
+      "p_ge_70_rungs_window_arm": 0,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "bovada": {
-      "all_rungs": 1927,
-      "p_ge_70_rungs_window_arm": 400
+      "all_rungs": 2804,
+      "by_test_only_p_ge_70_window_arm": 473,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 763,
+      "p_ge_70_rungs_window_arm": 473,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "draftkings": {
       "all_rungs": 27,
-      "p_ge_70_rungs_window_arm": 5
+      "by_test_only_p_ge_70_window_arm": 5,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 1,
+      "no_main_line_p_ge_70_primary_arm": 1709,
+      "p_ge_70_rungs_window_arm": 5,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "fanatics": {
       "all_rungs": 0,
-      "p_ge_70_rungs_window_arm": 0
+      "by_test_only_p_ge_70_window_arm": 0,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 20571,
+      "p_ge_70_rungs_window_arm": 0,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "fanduel": {
       "all_rungs": 10,
-      "p_ge_70_rungs_window_arm": 3
+      "by_test_only_p_ge_70_window_arm": 3,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 1,
+      "no_main_line_p_ge_70_primary_arm": 1120,
+      "p_ge_70_rungs_window_arm": 3,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      },
      "williamhill_us": {
-      "all_rungs": 2986,
-      "p_ge_70_rungs_window_arm": 602
+      "all_rungs": 3149,
+      "by_test_only_p_ge_70_window_arm": 625,
+      "by_vendor_window_all_rungs": 0,
+      "by_vendor_window_p_ge_70_window_arm": 0,
+      "dec_ge_2_p_ge_70_december_primary_arm": 0,
+      "no_main_line_p_ge_70_primary_arm": 477,
+      "p_ge_70_rungs_window_arm": 625,
+      "residual_vendor_window_rungs_in_primary_arm": 0
      }
     },
     "over_rungs_after_dedupe": 1865067,
@@ -28780,32 +28900,32 @@
       "games": 1166,
       "roi_halfwidth_cons": 0.0473,
       "roi_halfwidth_independent": 0.0133,
-      "rungs": 13232,
-      "units_player_game_stat": 13232
+      "rungs": 13220,
+      "units_player_game_stat": 13220
      },
      "65": {
       "dates": 202,
       "games": 1168,
-      "roi_halfwidth_cons": 0.0396,
+      "roi_halfwidth_cons": 0.0397,
       "roi_halfwidth_independent": 0.0121,
-      "rungs": 10946,
-      "units_player_game_stat": 10946
+      "rungs": 10933,
+      "units_player_game_stat": 10933
      },
      "75": {
       "dates": 203,
       "games": 1165,
       "roi_halfwidth_cons": 0.0323,
       "roi_halfwidth_independent": 0.0103,
-      "rungs": 10008,
-      "units_player_game_stat": 10008
+      "rungs": 9998,
+      "units_player_game_stat": 9998
      },
      "85": {
       "dates": 203,
       "games": 1163,
       "roi_halfwidth_cons": 0.0253,
       "roi_halfwidth_independent": 0.0081,
-      "rungs": 9481,
-      "units_player_game_stat": 9481
+      "rungs": 9478,
+      "units_player_game_stat": 9478
      }
     },
     "gate": {
@@ -28886,15 +29006,15 @@
      "games": 1170,
      "roi_halfwidth_cons": 0.0267,
      "roi_halfwidth_independent": 0.0058,
-     "rungs": 22457,
-     "units_player_game_stat": 22060
+     "rungs": 22444,
+     "units_player_game_stat": 22047
     },
     "p1_band_70_90": {
      "ast": {
       "games": 1077,
       "halfwidth_cons": 0.0263,
       "halfwidth_independent": 0.0147,
-      "rungs": 2774
+      "rungs": 2773
      },
      "fg3m": {
       "games": 1158,
@@ -28906,7 +29026,7 @@
       "games": 1085,
       "halfwidth_cons": 0.0265,
       "halfwidth_independent": 0.0124,
-      "rungs": 4120
+      "rungs": 4108
      },
      "reb": {
       "games": 1148,
@@ -28918,10 +29038,10 @@
     "p1_bins": {
      "55": {
       "ast": {
-       "games": 1000,
+       "games": 999,
        "halfwidth_cons": 0.0348,
-       "halfwidth_independent": 0.0203,
-       "rungs": 2294
+       "halfwidth_independent": 0.0204,
+       "rungs": 2293
       },
       "fg3m": {
        "games": 1097,
@@ -28930,16 +29050,16 @@
        "rungs": 3420
       },
       "pts": {
-       "games": 1070,
-       "halfwidth_cons": 0.033,
+       "games": 1069,
+       "halfwidth_cons": 0.0331,
        "halfwidth_independent": 0.0163,
-       "rungs": 3589
+       "rungs": 3579
       },
       "reb": {
        "games": 1113,
        "halfwidth_cons": 0.0325,
        "halfwidth_independent": 0.0155,
-       "rungs": 3929
+       "rungs": 3928
       }
      },
      "65": {
@@ -28956,16 +29076,16 @@
        "rungs": 2737
       },
       "pts": {
-       "games": 1046,
-       "halfwidth_cons": 0.0323,
+       "games": 1043,
+       "halfwidth_cons": 0.0324,
        "halfwidth_independent": 0.017,
-       "rungs": 3041
+       "rungs": 3029
       },
       "reb": {
        "games": 1112,
        "halfwidth_cons": 0.0314,
        "halfwidth_independent": 0.0155,
-       "rungs": 3629
+       "rungs": 3628
       }
      },
      "75": {
@@ -28982,10 +29102,10 @@
        "rungs": 3117
       },
       "pts": {
-       "games": 986,
+       "games": 983,
        "halfwidth_cons": 0.0306,
        "halfwidth_independent": 0.0176,
-       "rungs": 2337
+       "rungs": 2327
       },
       "reb": {
        "games": 1090,
@@ -28999,7 +29119,7 @@
        "games": 856,
        "halfwidth_cons": 0.0269,
        "halfwidth_independent": 0.018,
-       "rungs": 1507
+       "rungs": 1506
       },
       "fg3m": {
        "games": 1115,
@@ -29011,7 +29131,7 @@
        "games": 893,
        "halfwidth_cons": 0.0267,
        "halfwidth_independent": 0.0167,
-       "rungs": 1783
+       "rungs": 1781
       },
       "reb": {
        "games": 1011,
@@ -29521,33 +29641,33 @@
       "dates": 158,
       "games": 863,
       "roi_halfwidth_cons": 0.0561,
-      "roi_halfwidth_independent": 0.0178,
-      "rungs": 7569,
-      "units_player_game_stat": 7569
+      "roi_halfwidth_independent": 0.0179,
+      "rungs": 7518,
+      "units_player_game_stat": 7518
      },
      "65": {
       "dates": 157,
       "games": 858,
-      "roi_halfwidth_cons": 0.0476,
-      "roi_halfwidth_independent": 0.0166,
-      "rungs": 6074,
-      "units_player_game_stat": 6074
+      "roi_halfwidth_cons": 0.0477,
+      "roi_halfwidth_independent": 0.0167,
+      "rungs": 6042,
+      "units_player_game_stat": 6042
      },
      "75": {
       "dates": 157,
       "games": 860,
-      "roi_halfwidth_cons": 0.0391,
-      "roi_halfwidth_independent": 0.015,
-      "rungs": 4955,
-      "units_player_game_stat": 4955
+      "roi_halfwidth_cons": 0.0392,
+      "roi_halfwidth_independent": 0.0151,
+      "rungs": 4934,
+      "units_player_game_stat": 4934
      },
      "85": {
       "dates": 157,
-      "games": 856,
+      "games": 855,
       "roi_halfwidth_cons": 0.0294,
-      "roi_halfwidth_independent": 0.0116,
-      "rungs": 4680,
-      "units_player_game_stat": 4680
+      "roi_halfwidth_independent": 0.0117,
+      "rungs": 4657,
+      "units_player_game_stat": 4657
      }
     },
     "gate": {
@@ -29621,17 +29741,17 @@
     "ge70": {
      "dates": 157,
      "games": 864,
-     "roi_halfwidth_cons": 0.0269,
+     "roi_halfwidth_cons": 0.027,
      "roi_halfwidth_independent": 0.0067,
-     "rungs": 14586,
-     "units_player_game_stat": 11124
+     "rungs": 14513,
+     "units_player_game_stat": 11074
     },
     "p1_band_70_90": {
      "ast": {
       "games": 760,
       "halfwidth_cons": 0.0314,
       "halfwidth_independent": 0.0203,
-      "rungs": 1500
+      "rungs": 1494
      },
      "fg3m": {
       "games": 724,
@@ -29640,77 +29760,77 @@
       "rungs": 1333
      },
      "pts": {
-      "games": 860,
-      "halfwidth_cons": 0.0285,
-      "halfwidth_independent": 0.013,
-      "rungs": 3587
+      "games": 859,
+      "halfwidth_cons": 0.0286,
+      "halfwidth_independent": 0.0131,
+      "rungs": 3560
      },
      "reb": {
       "games": 845,
-      "halfwidth_cons": 0.0291,
+      "halfwidth_cons": 0.0292,
       "halfwidth_independent": 0.0139,
-      "rungs": 3215
+      "rungs": 3204
      }
     },
     "p1_bins": {
      "55": {
       "ast": {
-       "games": 659,
-       "halfwidth_cons": 0.0422,
-       "halfwidth_independent": 0.0296,
-       "rungs": 1088
+       "games": 656,
+       "halfwidth_cons": 0.0423,
+       "halfwidth_independent": 0.0297,
+       "rungs": 1076
       },
       "fg3m": {
-       "games": 755,
-       "halfwidth_cons": 0.0396,
-       "halfwidth_independent": 0.0234,
-       "rungs": 1737
+       "games": 752,
+       "halfwidth_cons": 0.0397,
+       "halfwidth_independent": 0.0235,
+       "rungs": 1727
       },
       "pts": {
-       "games": 815,
+       "games": 813,
        "halfwidth_cons": 0.0382,
-       "halfwidth_independent": 0.0202,
-       "rungs": 2338
+       "halfwidth_independent": 0.0203,
+       "rungs": 2316
       },
       "reb": {
        "games": 817,
        "halfwidth_cons": 0.0377,
        "halfwidth_independent": 0.0199,
-       "rungs": 2406
+       "rungs": 2399
       }
      },
      "65": {
       "ast": {
-       "games": 641,
-       "halfwidth_cons": 0.0412,
-       "halfwidth_independent": 0.0286,
-       "rungs": 1067
+       "games": 635,
+       "halfwidth_cons": 0.0414,
+       "halfwidth_independent": 0.0288,
+       "rungs": 1057
       },
       "fg3m": {
        "games": 579,
        "halfwidth_cons": 0.0439,
-       "halfwidth_independent": 0.0296,
-       "rungs": 998
+       "halfwidth_independent": 0.0297,
+       "rungs": 996
       },
       "pts": {
-       "games": 796,
+       "games": 794,
        "halfwidth_cons": 0.0374,
-       "halfwidth_independent": 0.0205,
-       "rungs": 2080
+       "halfwidth_independent": 0.0206,
+       "rungs": 2062
       },
       "reb": {
        "games": 773,
        "halfwidth_cons": 0.0374,
        "halfwidth_independent": 0.0213,
-       "rungs": 1929
+       "rungs": 1927
       }
      },
      "75": {
       "ast": {
        "games": 546,
        "halfwidth_cons": 0.04,
-       "halfwidth_independent": 0.03,
-       "rungs": 799
+       "halfwidth_independent": 0.0301,
+       "rungs": 797
       },
       "fg3m": {
        "games": 524,
@@ -29719,24 +29839,24 @@
        "rungs": 717
       },
       "pts": {
-       "games": 765,
-       "halfwidth_cons": 0.0346,
-       "halfwidth_independent": 0.0201,
-       "rungs": 1774
+       "games": 762,
+       "halfwidth_cons": 0.0347,
+       "halfwidth_independent": 0.0202,
+       "rungs": 1760
       },
       "reb": {
-       "games": 759,
+       "games": 757,
        "halfwidth_cons": 0.0348,
-       "halfwidth_independent": 0.0208,
-       "rungs": 1665
+       "halfwidth_independent": 0.0209,
+       "rungs": 1660
       }
      },
      "85": {
       "ast": {
-       "games": 509,
+       "games": 508,
        "halfwidth_cons": 0.0333,
        "halfwidth_independent": 0.0261,
-       "rungs": 701
+       "rungs": 697
       },
       "fg3m": {
        "games": 454,
@@ -29745,16 +29865,16 @@
        "rungs": 616
       },
       "pts": {
-       "games": 783,
-       "halfwidth_cons": 0.0277,
-       "halfwidth_independent": 0.0163,
-       "rungs": 1813
+       "games": 781,
+       "halfwidth_cons": 0.0278,
+       "halfwidth_independent": 0.0164,
+       "rungs": 1800
       },
       "reb": {
-       "games": 755,
-       "halfwidth_cons": 0.0281,
+       "games": 752,
+       "halfwidth_cons": 0.0282,
        "halfwidth_independent": 0.0177,
-       "rungs": 1550
+       "rungs": 1544
       }
      }
     }
@@ -29763,35 +29883,35 @@
     "bins": {
      "55": {
       "dates": 377,
-      "games": 2223,
+      "games": 2221,
       "roi_halfwidth_cons": 0.0353,
-      "roi_halfwidth_independent": 0.0073,
-      "rungs": 47124,
-      "units_player_game_stat": 44021
+      "roi_halfwidth_independent": 0.0072,
+      "rungs": 47029,
+      "units_player_game_stat": 43929
      },
      "65": {
       "dates": 377,
-      "games": 2224,
-      "roi_halfwidth_cons": 0.0294,
-      "roi_halfwidth_independent": 0.0067,
-      "rungs": 39733,
-      "units_player_game_stat": 38591
+      "games": 2219,
+      "roi_halfwidth_cons": 0.0295,
+      "roi_halfwidth_independent": 0.0066,
+      "rungs": 39607,
+      "units_player_game_stat": 38466
      },
      "75": {
       "dates": 377,
-      "games": 2220,
+      "games": 2215,
       "roi_halfwidth_cons": 0.0241,
-      "roi_halfwidth_independent": 0.0059,
-      "rungs": 34448,
-      "units_player_game_stat": 34191
+      "roi_halfwidth_independent": 0.0058,
+      "rungs": 34300,
+      "units_player_game_stat": 34047
      },
      "85": {
       "dates": 377,
-      "games": 2212,
+      "games": 2199,
       "roi_halfwidth_cons": 0.0191,
-      "roi_halfwidth_independent": 0.005,
-      "rungs": 28470,
-      "units_player_game_stat": 28227
+      "roi_halfwidth_independent": 0.0049,
+      "rungs": 28299,
+      "units_player_game_stat": 28066
      }
     },
     "gate": {
@@ -29869,11 +29989,11 @@
     },
     "ge70": {
      "dates": 377,
-     "games": 2224,
-     "roi_halfwidth_cons": 0.0197,
-     "roi_halfwidth_independent": 0.0033,
-     "rungs": 77209,
-     "units_player_game_stat": 56706
+     "games": 2223,
+     "roi_halfwidth_cons": 0.0199,
+     "roi_halfwidth_independent": 0.0032,
+     "rungs": 76109,
+     "units_player_game_stat": 56227
     },
     "p1_band_70_90": {
      "ast": {
@@ -29889,10 +30009,10 @@
       "rungs": 10877
      },
      "pts": {
-      "games": 2208,
-      "halfwidth_cons": 0.0185,
+      "games": 2132,
+      "halfwidth_cons": 0.0187,
       "halfwidth_independent": 0.0052,
-      "rungs": 23614
+      "rungs": 23295
      },
      "reb": {
       "games": 2135,
@@ -29916,10 +30036,10 @@
        "rungs": 4857
       },
       "pts": {
-       "games": 2191,
+       "games": 2140,
        "halfwidth_cons": 0.022,
        "halfwidth_independent": 0.0067,
-       "rungs": 21442
+       "rungs": 21347
       },
       "reb": {
        "games": 2127,
@@ -29942,10 +30062,10 @@
        "rungs": 4352
       },
       "pts": {
-       "games": 2200,
-       "halfwidth_cons": 0.0213,
+       "games": 2137,
+       "halfwidth_cons": 0.0215,
        "halfwidth_independent": 0.0073,
-       "rungs": 16546
+       "rungs": 16420
       },
       "reb": {
        "games": 2124,
@@ -29968,10 +30088,10 @@
        "rungs": 5183
       },
       "pts": {
-       "games": 2193,
-       "halfwidth_cons": 0.0196,
+       "games": 2124,
+       "halfwidth_cons": 0.0198,
        "halfwidth_independent": 0.0074,
-       "rungs": 13202
+       "rungs": 13054
       },
       "reb": {
        "games": 2115,
@@ -29994,10 +30114,10 @@
        "rungs": 5694
       },
       "pts": {
-       "games": 2083,
-       "halfwidth_cons": 0.0177,
-       "halfwidth_independent": 0.0068,
-       "rungs": 10412
+       "games": 2017,
+       "halfwidth_cons": 0.0179,
+       "halfwidth_independent": 0.0069,
+       "rungs": 10241
       },
       "reb": {
        "games": 2045,
@@ -30996,32 +31116,32 @@
       "games": 1802,
       "roi_halfwidth_cons": 0.0372,
       "roi_halfwidth_independent": 0.0101,
-      "rungs": 21722,
-      "units_player_game_stat": 21722
+      "rungs": 21714,
+      "units_player_game_stat": 21714
      },
      "65": {
       "dates": 315,
       "games": 1815,
       "roi_halfwidth_cons": 0.0311,
       "roi_halfwidth_independent": 0.0091,
-      "rungs": 18146,
-      "units_player_game_stat": 18146
+      "rungs": 18133,
+      "units_player_game_stat": 18133
      },
      "75": {
       "dates": 314,
       "games": 1793,
-      "roi_halfwidth_cons": 0.0254,
+      "roi_halfwidth_cons": 0.0255,
       "roi_halfwidth_independent": 0.0077,
-      "rungs": 17013,
-      "units_player_game_stat": 17013
+      "rungs": 17005,
+      "units_player_game_stat": 17005
      },
      "85": {
       "dates": 313,
       "games": 1779,
       "roi_halfwidth_cons": 0.0197,
       "roi_halfwidth_independent": 0.006,
-      "rungs": 16059,
-      "units_player_game_stat": 16059
+      "rungs": 16050,
+      "units_player_game_stat": 16050
      }
     },
     "gate": {
@@ -31102,8 +31222,8 @@
      "games": 1840,
      "roi_halfwidth_cons": 0.0198,
      "roi_halfwidth_independent": 0.0039,
-     "rungs": 43298,
-     "units_player_game_stat": 39455
+     "rungs": 43273,
+     "units_player_game_stat": 39437
     },
     "p1_band_70_90": {
      "ast": {
@@ -31121,8 +31241,8 @@
      "pts": {
       "games": 1711,
       "halfwidth_cons": 0.0211,
-      "halfwidth_independent": 0.0087,
-      "rungs": 8136
+      "halfwidth_independent": 0.0088,
+      "rungs": 8119
      },
      "reb": {
       "games": 1751,
@@ -31149,7 +31269,7 @@
        "games": 1678,
        "halfwidth_cons": 0.0263,
        "halfwidth_independent": 0.0128,
-       "rungs": 5795
+       "rungs": 5787
       },
       "reb": {
        "games": 1691,
@@ -31172,10 +31292,10 @@
        "rungs": 3467
       },
       "pts": {
-       "games": 1633,
+       "games": 1632,
        "halfwidth_cons": 0.0262,
        "halfwidth_independent": 0.0133,
-       "rungs": 4952
+       "rungs": 4939
       },
       "reb": {
        "games": 1690,
@@ -31198,10 +31318,10 @@
        "rungs": 3529
       },
       "pts": {
-       "games": 1567,
+       "games": 1565,
        "halfwidth_cons": 0.0245,
        "halfwidth_independent": 0.013,
-       "rungs": 4292
+       "rungs": 4284
       },
       "reb": {
        "games": 1653,
@@ -31224,10 +31344,10 @@
        "rungs": 3805
       },
       "pts": {
-       "games": 1531,
+       "games": 1529,
        "halfwidth_cons": 0.0204,
        "halfwidth_independent": 0.0113,
-       "rungs": 3844
+       "rungs": 3835
       },
       "reb": {
        "games": 1641,
