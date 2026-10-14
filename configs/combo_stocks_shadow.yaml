@@ -1,0 +1,54 @@
+# COMBO_STOCKS_SHADOW model config (docs/prereg/COMBO_STOCKS_SHADOW.md, DRAFT). Every value below was fixed on the
+# 2023 select phase (reports/prereg_combo_stocks_shadow/select_2023/select.json, sha256 575c6bb6...) before the 2024
+# report phase was run. Nothing here is tuned on 2024 or on any live row.
+version: combo_stocks_v1
+stat_order: [pts, reb, ast, blk, stl]
+targets: [blk, stl, pra, pr, pa, ra, bs]
+combos:
+  pra: [pts, reb, ast]
+  pr: [pts, reb]
+  pa: [pts, ast]
+  ra: [reb, ast]
+  bs: [blk, stl]
+marginals:
+  pts: props_context_residual_lt      # production lower-tail mixture row (the A0 of the other shadows), p_ge_full
+  reb: props_context_residual         # production primary row, p_ge_full
+  ast: props_context_residual
+  blk: nb_count_head                  # nba.props.count_head.NBCountModel on nba.props.stock_features columns
+  stl: nb_count_head
+nb_head:
+  objective: poisson
+  dispersion_bins: 4
+  # learner settings = configs/context_residual.yaml (n_estimators 200, lr 0.04, 15 leaves, min_child 100, seed 0)
+copula:
+  estimator: rpit                     # randomised-PIT correlation matched by simulation (nba.props.combo_copula)
+  scheme: pooled                      # one matrix; by-position had a 1,583-row group, by-starter gained 0.0009 < 0.005
+  n_draws: 10000
+  base_seed: 20261014                 # whitened + antithetic base normals (combo_copula.base_normals)
+  use_copula:                         # COPULA - INDEP < 0 with game-clustered one-sided upper bound < 0 on the 2023 eval half
+    pra: true
+    pr: true
+    pa: true
+    ra: true
+    bs: false                         # blk+stl: dependence adds nothing (delta -0.00009, upper +0.00009): shadow arm = independent sum
+  # latent correlation, all of 2023 regular season (n = 25,815 played rows with n_prior >= 5), stat_order above
+  R:
+    - [1.0, 0.3662, 0.2334, 0.1657, 0.2122]
+    - [0.3662, 1.0, 0.2707, 0.1916, 0.1466]
+    - [0.2334, 0.2707, 1.0, 0.1171, 0.1812]
+    - [0.1657, 0.1916, 0.1171, 1.0, 0.1140]
+    - [0.2122, 0.1466, 0.1812, 0.1140, 1.0]
+recent:                               # the RECENT comparator (all seven targets)
+  window: 40                          # last 40 played games
+  halflife: 10.0                      # production recency weights
+  min_prior: 5
+floors:                               # max(0.005, 1% of RECENT's 2023 regular-season integer CRPS)
+  blk: 0.0050
+  stl: 0.0050
+  pra: 0.0438
+  pr: 0.0401
+  pa: 0.0363
+  ra: 0.0188
+  bs: 0.0061
+n_min: 3000                           # per target at the final look (also the G1 minimum)
+n_interim: 1500

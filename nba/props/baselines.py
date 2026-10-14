@@ -21,7 +21,23 @@ from nba.props.distributions import NormalDist
 
 #: Fallback std when a player has 0-1 prior games (can't compute a sample
 #: std yet). One default per stat, documented and not tuned.
-_DEFAULT_STD: dict[str, float] = {"pts": 7.0, "reb": 2.5, "ast": 2.0, "fg3m": 1.3}
+_DEFAULT_STD: dict[str, float] = {
+    "pts": 7.0,
+    "reb": 2.5,
+    "ast": 2.0,
+    "fg3m": 1.3,
+    # blk / stl (COMBO_STOCKS_SHADOW): pooled std of a played row, season 2022, is 0.81 / 0.94;
+    # rounded, not tuned. Used for players with < 2 prior games and for the scale-head floor.
+    "blk": 0.8,
+    "stl": 1.0,
+    # combo targets of the DIRECT comparator (pra = pts+reb+ast, pr, pa, ra, bs = blk+stl): between
+    # the per-player std and the pooled std of season 2022 (12.6/11.1/10.6/4.9/1.3); not tuned.
+    "pra": 9.0,
+    "pr": 8.0,
+    "pa": 7.5,
+    "ra": 3.5,
+    "bs": 1.2,
+}
 
 _SEASON_WINDOW = (
     "PARTITION BY pgs.player_id ORDER BY g.game_date, pgs.game_id "
