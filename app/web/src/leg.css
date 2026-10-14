@@ -390,3 +390,57 @@
 .role-mate-cells {
   margin-top: 6px;
 }
+
+/* ------------------------------------------------------------------ shrunk with/without headline */
+.beyond {
+  margin-top: 8px;
+}
+.beyond.thin .beyond-val {
+  color: var(--muted);
+}
+.beyond-rows {
+  display: grid;
+  gap: 2px;
+  margin-top: 2px;
+}
+.beyond-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name val" "sub sub";
+  align-items: baseline;
+  column-gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+}
+.beyond-row:first-child {
+  border-top: 0;
+}
+.beyond-name {
+  grid-area: name;
+  font-weight: 650;
+}
+.beyond-val {
+  grid-area: val;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-align: right;
+}
+.beyond-val.none {
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+.beyond-sub {
+  grid-area: sub;
+}
+.past-games {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+.past-games .leg-cell-main,
+.past-games .role-36 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+}

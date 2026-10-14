@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from .breakdown import Context, mate_note, teammates_on_report
 from .history import History
 from .role_stats import OnOff, Per36, Steadiness, onoff, per36, steadiness
+from .wowy_shrink import Beyond, beyond
 
 Json = dict[str, Any]
 
@@ -26,6 +27,9 @@ class MateOut(BaseModel):
     avg_minutes: float
     without: Per36
     with_: Per36
+    # The headline: what past seasons say carries into tonight. `without` and `with_` are the
+    # raw history.
+    beyond: Beyond
     note: str
 
 
@@ -50,6 +54,7 @@ def player_role(hist: History, game: Json, player: Json) -> PlayerRole:
                 avg_minutes=m.avg_minutes,
                 without=per36(m.without_rows),
                 with_=per36(m.with_rows),
+                beyond=beyond(m.without_rows, m.with_rows),
                 note=mate_note(len(m.without_rows)),
             )
             for m in rep.mates

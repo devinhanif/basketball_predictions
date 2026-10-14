@@ -17,7 +17,7 @@ import {
   snapHalf,
 } from "../leg";
 import { legHref } from "../router";
-import { MatePer36, OnOffBlock, SteadyBlock } from "../RoleCards";
+import { BeyondBlock, MatePer36, OnOffBlock, SteadyBlock } from "../RoleCards";
 import { LEG_SHORT, type Chip, type LadderRow, type LegBreakdown, type LegStat, type Side, type Split, type Tally, type TeammateOut } from "../legTypes";
 
 const S = (n: number): string => n.toString();
@@ -486,6 +486,9 @@ function TeammateCard({ t, side, line }: { t: TeammateOut; side: Side; line: num
       <div class="small muted">
         {cleanReason(t.reason) ? `${cleanReason(t.reason)}. ` : ""}Plays {num(t.avg_minutes, 0)} minutes a game lately.
       </div>
+      <BeyondBlock b={t.beyond} />
+      <div class="past-games">
+      <div class="label">Past games on this line</div>
       <div class="leg-cells">
         <div class={`leg-cell${wo.small ? " thin" : ""}`}>
           <div class="label">With him out</div>
@@ -521,6 +524,7 @@ function TeammateCard({ t, side, line }: { t: TeammateOut; side: Side; line: num
       <p class="small muted" style={{ marginBottom: 0 }}>
         Games {side} {lineText(line)}. {t.note}
       </p>
+      </div>
       <MatePer36 without={t.per36_without} with_={t.per36_with} name={t.name} />
       <p class="small muted" style={{ marginBottom: 0 }}>
         Per 36 minutes, the same games, whatever stat is on screen. Assists are from the box score.
