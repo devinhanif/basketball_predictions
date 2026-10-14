@@ -2,6 +2,23 @@
 
 _Updated 2026-10-13 (pruned to open items). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
+## STOPPED 2026-10-14 ~16:35 CDT (Devin heading home)
+Done today (all recorded in TEST_LEDGER / DECISIONS): SEQ_LEARNING_CURVE_2 A_m=DATA, E=FLAT (T487, SURVIVES T488; curve closed);
+ALT_LINE_70 / ALT_PARLAY_X / ALT_LADDER_HIST all NOT PROFITABLE, model ~= book's de-vigged price, losses ~= vig (T489-T491, attack
+T492: two SURVIVE, parlay WOUNDED on DEPENDENT only); AVG_SHADOW_LIVE_2 frozen 9afbfeb6, all proofs P1a-P4 pass, bundle assembled
+NOT installed; COMBO_STOCKS_SHADOW frozen b9b38cbe; FULL clean; RAPM untestable at this n; F12 closes validly; PPLAY_INTO_ELO closed;
+SEQ window deferred; nba/export schema 2; app: plain-language UI, alt lines, leg breakdown, real export data, AI scaffold, role-steadiness
+badge, on/off; us_ex live capture; alt-line history pulled (vendor defect logged); backup-prune bug fixed; null audit done.
+Running when stopped (may finish or need restarting next session):
+- steward agent/steward-opening-wiring: COMBO + AVG2 wiring into pretip (flag ON per Devin), export as its own launchd job, watchdog
+  drill, ingest recommendation; replay oracle before/after. Merge only after review of its diff and oracle 89889f6d.
+- modeler agent/modeler-wowy: WOWY_REDISTRIBUTION draft + gate, then STOP for pre-freeze review and Devin's signature.
+- CI on the final pushed commit (watch it go green; several runs were cancelled by pushes today).
+Devin to do: rm -rf data/avg_shadow/gate_work data/rehearsal/oracle_export* (blocks AVG2 install); load the export launchd job
+(command from the steward); X developer sign-up (reporter feed); own rclone client_id; decide 10-16 wiring if not already done.
+Next session first: read the two agents' results, merge, review, then Thursday's wiring decision. App gaps: on/off not in the export
+(add pre-computed on/off after WOWY); badge cut-offs untested.
+
 ## SIX-DAY PLAN to opening night (written 2026-10-14; production stays on the MacBook)
 | Day | Claude / agents | Devin |
 |---|---|---|
