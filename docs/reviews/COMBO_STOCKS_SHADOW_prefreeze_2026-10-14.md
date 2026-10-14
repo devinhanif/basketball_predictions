@@ -204,3 +204,65 @@ made after the data exist.
 - PREDICTIONS_LEDGER (modeler, before freeze): RA P(PASS) restated given the 2024 min<10 slice result (+0.0378 vs floor 0.0188).
 
 Verdict: BLOCKED
+
+## Re-review (revision 5005a3b, 2026-10-14)
+
+Object: `agent/modeler-combo-stocks` at 5005a3b (one commit on top of f8f22d5). Line numbers below refer to `docs/prereg/COMBO_STOCKS_SHADOW.md`
+at 5005a3b. This verdict supersedes the BLOCKED line above.
+
+### Blocking items
+
+| Item | Status | Where | Evidence |
+|---|---|---|---|
+| B1 hash covers R | FIXED | line 4 | `shasum -a 256` reproduces all four named hashes: config 8932ccec, select.json 84619e3e, R_chosen.npz e535258c, p1_reference.npz 1356c78a. The config carries R (4 dp, canonical), base sha 08ddb2a2 (recomputed from `base_normals()`: equal), floors and the G1 spec. |
+| B2 G1 deterministic, reader matches text | FIXED | line 20 (6d); config `g1:`; `nba/props/combo_g1.py` | The row order is sorted inside `g1()`; required taus are 0.10/0.20/0.80/0.90; bias is relative; `avg_shadow_live.calibration` is excluded by name. Re-derived on the six-stat 2024 grids (`scratch/cs_g1v2.py`, exit 0, n 25,767): pra q10 0.1211 fail, pa 0.1204 fail, pr 0.1184, ra 0.1171, bs 0.0986 pass, all matching line 128. A random permutation of the input order gives an identical q10 for every target. |
+| B3 slice guard rehearsed, RA stated | FIXED | line 20 ("RA cannot PASS..."), lines 120-132, `guards_2024.json`, ledger row 14:55 | The realised-minutes slices are kept (Devin's default). RA min<10 reads +0.0384 vs 0.0188 (my five-stat figure was +0.0378). The 6(e)/6(f) dry run covers all seven targets. |
+| B4 holdout text | FIXED | line 6, drafted row at line 75 | The rule now states the 2025 training, history and P3 uses. The log row is drafted for writing before P3. It is not yet in HOLDOUT_ACCESS_LOG, which is correct at this stage. |
+| B5a blk/stl read | FIXED | line 69 | A separate read-only query; `_history_frames` is not edited. |
+| B5b P3 with the shadow on | FIXED | line 71 | Requires `with_combo_shadow` ON, heartbeat `ok` and `rows_written > 0`. |
+| B5c P1 reference | FIXED | line 71; `tests/props/test_combo_p1.py` | 200 rows built with the config R, committed, reproduced bit for bit in two chunkings (test passes). |
+
+### The one six-stat joint
+- **Positive definite:** symmetric; eigenvalues 0.247, 0.704, 0.844, 0.945, 1.049, 2.212. The 4-dp config R equals `R_chosen.npz` to 4.8e-5.
+- **Select season only:** `select.json` has season 2023, n 25,815, fit/eval halves 12,774 / 13,041. The final R comes from `sel = reg & season == 2023`.
+- **Seed fixed:** base seed 20261014; base sha 08ddb2a2 recomputed and equal.
+- **Timing:** the select re-run (14:41:35) precedes the six-stat report (14:44:16), per the scratch logs. The re-run kept every earlier choice: NB heads, rpit, pooled. So nothing was re-selected on a 2024 number.
+- **Disclosure:** the design change itself came after the first 2024 read; line 79 says so. It moved PA's G1 from pass to fail, which is the opposite of a favourable fork.
+
+### Honesty about which targets can PASS
+Yes. Line 132 says 4 of 7 (blk, stl, pr, bs). Line 20 says RA cannot PASS on the 2024 reading. Line 65 names G1 as the binding risk for PRA
+and PA, with a Monte Carlo check showing the miss is systematic rather than draw noise.
+The priors (pra 0.30, pa 0.25, ra 0.10) are consistent with that. At about 9,700 live rows the sampling sd of q10 is about 0.0033, so a true
+0.1214 still has about a one-in-three chance of reading at or below 0.12.
+
+### Heavy-lock runs
+Read-only, verified:
+- Every DuckDB connect in `stage_a_oof.py`, `stage_b.py` and `stage_c_guards.py` passes `read_only=True`; `mc_noise.py` opens no database.
+- `make_config_and_p1.py` writes only the config and `reports/prereg_combo_stocks_shadow/`.
+- The source copy `data/backups/nba_20261014.duckdb` still has mtime 07:41.
+
+### Verification
+On 5005a3b:
+- `ruff check` exit 0; `ruff format --check` exit 0;
+- `mypy` on the five props modules exit 0;
+- `pytest -q -p no:cacheprovider --no-cov tests/props tests/test_layering.py tests/daily/test_canonical_dump.py tests/daily/test_full_shadow.py`: 204 passed, exit 0.
+
+### New findings
+- **R1 (COSMETIC).** Line 4 names `nba/props/combo_g1.py` as the implementation but gives no hash for it. The text now fully specifies G1, so
+  the text governs. Fix: add "`nba/props/combo_g1.py` sha256 792635d02311f2fb758c3d182b138fee2cba7564237307e7e67c0426ef18b9c4" to line 4.
+- **R2 (COSMETIC).** The consequences sentence in line 20 names RA but not PRA and PA. Fix: append "PRA and PA fail G1 at q10 on the 2024
+  rehearsal (0.1211, 0.1204) and can PASS only if live calibration differs."
+- **R3 (COSMETIC, process).** `stage_a_oof.py` and `stage_b.py` now carry a `COMBO_NO_LOCK` bypass of the cooperative heavy lock. It is
+  disclosed (line 81 vii) and harmless to the data. Fix: the main session decides whether the bypass stays in committed scripts; the
+  default is to remove it before merge.
+- **R4 (COSMETIC, scope).** The modeler branch edits `docs/MODEL_PLAYBOOK.md`, which my review assigned to the main session. The content is
+  accurate. The main session should review it as its own change at merge.
+- No other contradictions found. Checked:
+  - line 2 vs 6(g) for bs (reported, not required);
+  - fg3m now in the servability condition (line 18) and in `src`;
+  - n_min figures (line 31) vs select.json;
+  - the second-look z in line 21 (stricter, consistent).
+
+Drafted DECISIONS row (not appended): `2026-10-14 | COMBO_STOCKS_SHADOW pre-freeze re-review APPROVED (B1-B5 fixed at 5005a3b; R1-R4 cosmetic) | what would reverse it: a post-freeze change to any hashed input`.
+
+Verdict: APPROVED
