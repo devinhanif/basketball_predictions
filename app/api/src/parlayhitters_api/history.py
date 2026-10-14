@@ -63,7 +63,7 @@ class Row:
     season: int
     team: int
     opp: int
-    home: bool
+    home: bool | None  # None: the export holds no schedule row for this older game
     minutes: float
     starter: bool
     base: tuple[int, int, int, int, int, int]  # pts, reb, ast, fg3m, stl, blk
@@ -87,6 +87,12 @@ def days_between(a: str, b: str) -> int:
 class History:
     def __init__(self, data: Json) -> None:
         self.window: Json = data["window"]
+        # Games whose home/away side is not known (an export only schedules recent games).
+        self.home_unknown: frozenset[str] = frozenset(data.get("home_unknown", []))
+        # Stats the box-score rows can support (an export carries no steals or blocks).
+        self.stats: tuple[str, ...] = tuple(data.get("stats", STAT_ORDER))
+        # False for an export: it carries no sportsbook lines or prices at all.
+        self.market: bool = bool(data.get("market", True))
         self.abbr: dict[int, str] = {int(t): a for t, a in data["teams"].items()}
         self.players: dict[int, Json] = {int(p): v for p, v in data["players"].items()}
         self.availability: dict[str, list[list[Any]]] = data["availability"]
@@ -109,7 +115,7 @@ class History:
                     season=season,
                     team=team,
                     opp=away if team == home else home,
-                    home=team == home,
+                    home=None if gid in self.home_unknown else team == home,
                     minutes=float(r[_C_MIN]),
                     starter=bool(r[_C_START]),
                     base=(

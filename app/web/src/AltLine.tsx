@@ -103,7 +103,7 @@ export function AltLine(props: { gameId: string; playerId: number; player: strin
         <div class="muted small num alt-ends">
           <span>{lineText(min)}</span>
           <button type="button" class="linklike" disabled={onMain} onClick={() => { setLine(main); }}>
-            Back to the posted line ({lineText(main)})
+            Back to the {prop.line_source === "posted" ? "posted" : "starting"} line ({lineText(main)})
           </button>
           <span>{lineText(max)}</span>
         </div>
@@ -116,7 +116,7 @@ export function AltLine(props: { gameId: string; playerId: number; player: strin
               <p class="small muted num">Exactly {lineText(line)} is a push: {Math.round(p.push * 100)}%.</p>
             ) : null}
             <p class="small num">
-              {onMain && ready
+              {onMain && ready && prop.over_price !== null && prop.under_price !== null
                 ? `Posted prices: over ${american(prop.over_price)}, under ${american(prop.under_price)}.`
                 : "No price for this line."}
             </p>

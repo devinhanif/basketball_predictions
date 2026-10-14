@@ -4,16 +4,24 @@ from __future__ import annotations
 
 import random
 from collections.abc import Awaitable, Callable
-from functools import lru_cache
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .breakdown import Breakdown, Side
 from .breakdown import build as build_breakdown
-from .forecast import TAUS, american_to_raw_prob, devig_over, line_probs
-from .history import STAT_ORDER
+from .dissect.providers import default_router
+from .dissect.service import dissect_leg
+from .export_store import ExportRefused
+from .forecast import (
+    TAUS,
+    american_to_raw_prob,
+    devig_over,
+    forecast_method,
+    forecast_probs,
+)
 from .models import (
     GameSummary,
     GameView,
@@ -26,23 +34,29 @@ from .models import (
     Team,
     WinProbability,
 )
-from .store import Json, Store
+from .store import AnyStore, Json, load_store, store_key
 
 STATS = ("pts", "reb", "ast", "fg3m")
 LOCAL_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
-MODE = "fixture_replay"
-METHOD = (
-    "Linear interpolation of the stored 19 out-of-fold quantiles (0.05..0.95) with a "
-    "continuity correction for integer counts. Approximate; tails beyond 5%/95% are clamped."
-)
+_cache: dict[str, Any] = {}
 
 
-@lru_cache(maxsize=1)
-def get_store() -> Store:
-    return Store()
+def get_store() -> AnyStore:
+    """The data behind every route: the verified export if one is configured, else the fixtures.
+    Reloaded when a new export lands (the manifest is replaced last), without a restart."""
+    key = store_key()
+    if _cache.get("key") != key or "store" not in _cache:
+        _cache["store"] = load_store()  # raises ExportRefused for an export we cannot vouch for
+        _cache["key"] = key
+    store: AnyStore = _cache["store"]
+    return store
 
 
-StoreDep = Annotated[Store, Depends(get_store)]
+def reset_store() -> None:
+    _cache.clear()
+
+
+StoreDep = Annotated[AnyStore, Depends(get_store)]
 
 
 def create_app() -> FastAPI:
@@ -71,6 +85,10 @@ def create_app() -> FastAPI:
         resp.headers["Cache-Control"] = "no-cache"  # the service worker owns offline caching
         return resp
 
+    @app.exception_handler(ExportRefused)
+    async def export_refused(request: Request, exc: ExportRefused) -> JSONResponse:
+        return JSONResponse({"detail": f"the data export was refused: {exc}"}, status_code=503)
+
     register(app)
     return app
 
@@ -84,13 +102,15 @@ def _team(t: Json) -> Team:
 
 def _prop_view(stat: str, p: Json) -> PropView:
     q = [float(v) for v in p["forecast"]["q"]]
-    lp = line_probs(q, float(p["line"]))
+    lp = forecast_probs(p["forecast"], float(p["line"]))
+    priced = p["over_price"] is not None and p["under_price"] is not None
     return PropView(
         prop_id=p["prop_id"],
         stat=stat,
         line=float(p["line"]),
-        over_price=int(p["over_price"]),
-        under_price=int(p["under_price"]),
+        line_source=p.get("line_source", "posted"),
+        over_price=None if p["over_price"] is None else int(p["over_price"]),
+        under_price=None if p["under_price"] is None else int(p["under_price"]),
         line_snapshot_utc=p.get("line_snapshot_utc"),
         forecast_mean=p["forecast"].get("mean"),
         q=q,
@@ -99,7 +119,7 @@ def _prop_view(stat: str, p: Json) -> PropView:
         model_p_under=lp.p_under,
         model_p_push=lp.p_push,
         extrapolated=lp.extrapolated,
-        market_p_over=devig_over(int(p["over_price"]), int(p["under_price"])),
+        market_p_over=devig_over(int(p["over_price"]), int(p["under_price"])) if priced else None,
         forecast_stamp=p["forecast"]["stamp"],
     )
 
@@ -108,18 +128,34 @@ def _wp(g: Json) -> WinProbability:
     return WinProbability(**g["win_probability"])
 
 
-def _need_slate(store: Store, date: str) -> Json:
+def _need_slate(store: AnyStore, date: str) -> Json:
     s = store.slate(date)
     if s is None:
         raise HTTPException(404, "no such slate")
     return s
 
 
-def _need_game(store: Store, game_id: str) -> Json:
+def _need_game(store: AnyStore, game_id: str) -> Json:
     g = store.game(game_id)
     if g is None:
         raise HTTPException(404, "no such game")
     return g
+
+
+def _game_notes(store: AnyStore) -> list[str]:
+    if store.mode == "fixture_replay":
+        return [
+            "Only players with a line from the sportsbook are listed. "
+            "Every forecast assumes the player suits up.",
+            "We do not forecast minutes yet. "
+            "How long a player really played is part of the final result.",
+        ]
+    return [
+        "Every forecast assumes the player suits up; the chance he plays and his projected "
+        "minutes are on his breakdown page.",
+        "There is no sportsbook line in this data. The line shown is the middle of our own "
+        "forecast, a place to start, and you can move it on the breakdown page.",
+    ]
 
 
 def _key_props(g: Json, n: int = 3) -> list[dict[str, Any]]:
@@ -151,35 +187,17 @@ def _key_props(g: Json, n: int = 3) -> list[dict[str, Any]]:
     return out
 
 
-def _clock(store: Store, game_id: str) -> str:
-    return str(store.slates[store.game_slate[game_id]]["demo_clock_utc"])
-
-
 # ----------------------------------------------------------------------------- routes
 
 
 def register(app: FastAPI) -> None:
     @app.get("/api/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok", "mode": MODE}
+    def health(store: StoreDep) -> dict[str, str]:
+        return {"status": "ok", "mode": store.mode}
 
     @app.get("/api/meta")
     def meta(store: StoreDep) -> dict[str, Any]:
-        m = store.manifest
-        return {
-            "mode": MODE,
-            "mode_note": (
-                "A replay of real 2024-25 nights, built from stored data. Nothing here is "
-                "live, and nothing here is advice."
-            ),
-            "data_version": m["source_data_version"],
-            "built_at": m["built_at"],
-            "max_season": m["max_season"],
-            "slates": [s["date"] for s in m["slates"]],
-            "stubs": m["stubs"],
-            "sources": m["sources"],
-            "queries": m["queries"],
-        }
+        return store.meta()
 
     @app.get("/api/slates")
     def slates(store: StoreDep) -> list[dict[str, Any]]:
@@ -212,8 +230,8 @@ def register(app: FastAPI) -> None:
         return SlateView(
             date=s["date"],
             label=s["label"],
-            clock_utc=s["demo_clock_utc"],
-            mode=MODE,
+            clock_utc=store.slate_clock(date),
+            mode=store.mode,
             counts=s["counts"],
             games=games,
         )
@@ -238,31 +256,33 @@ def register(app: FastAPI) -> None:
             home=_team(g["home"]),
             away=_team(g["away"]),
             win_probability=_wp(g),
-            clock_utc=_clock(store, game_id),
+            clock_utc=store.clock(game_id),
+            final=bool(g.get("final", True)),
             players=players,
-            notes=[
-                "Only players with a line from the sportsbook are listed. "
-                "Every forecast assumes the player suits up.",
-                "We do not forecast minutes yet. "
-                "How long a player really played is part of the final result.",
-            ],
+            notes=_game_notes(store),
         )
 
     @app.get("/api/games/{game_id}/result")
     def game_result(game_id: str, store: StoreDep) -> dict[str, Any]:
         g = _need_game(store, game_id)
+        if g.get("result") is None:
+            raise HTTPException(404, "that game has not been played yet")
         return {
             "game_id": game_id,
-            "label": "result (replay)",
+            "label": "result (replay)" if store.mode == "fixture_replay" else "final",
             "home_pts": g["result"]["home_pts"],
             "away_pts": g["result"]["away_pts"],
             "home_won": g["result"]["home_won"],
             "players": [
                 {
                     "player_id": pl["player_id"],
-                    "minutes": pl["result"]["minutes"],
-                    "starter": pl["result"]["starter"],
-                    "actual": {st: pr["actual"] for st, pr in pl["props"].items()},
+                    "minutes": None if pl["result"] is None else pl["result"]["minutes"],
+                    "starter": None if pl["result"] is None else pl["result"]["starter"],
+                    "actual": {
+                        st: pr["actual"]
+                        for st, pr in pl["props"].items()
+                        if pr["actual"] is not None
+                    },
                 }
                 for pl in g["players"]
             ],
@@ -281,9 +301,11 @@ def register(app: FastAPI) -> None:
             raise HTTPException(404, "unknown stat")
         for pl in g["players"]:
             if pl["player_id"] == player_id and stat in pl["props"]:
-                q = [float(v) for v in pl["props"][stat]["forecast"]["q"]]
-                lp = line_probs(q, line)
+                forecast = pl["props"][stat]["forecast"]
+                q = [float(v) for v in forecast["q"]]
+                lp = forecast_probs(forecast, line)
                 posted = pl["props"][stat]
+                priced = posted["over_price"] is not None
                 is_main = float(posted["line"]) == line
                 return ProbAtLine(
                     game_id=game_id,
@@ -294,13 +316,13 @@ def register(app: FastAPI) -> None:
                     p_under=lp.p_under,
                     p_push=lp.p_push,
                     extrapolated=lp.extrapolated,
-                    method=METHOD,
+                    method=forecast_method(forecast),
                     taus=list(TAUS),
                     q=q,
                     main_line=float(posted["line"]),
                     is_main_line=is_main,
-                    over_price=int(posted["over_price"]) if is_main else None,
-                    under_price=int(posted["under_price"]) if is_main else None,
+                    over_price=int(posted["over_price"]) if is_main and priced else None,
+                    under_price=int(posted["under_price"]) if is_main and priced else None,
                 )
         raise HTTPException(404, "no forecast for that player and stat")
 
@@ -317,12 +339,14 @@ def register(app: FastAPI) -> None:
         g = _need_game(store, game_id)
         if store.history is None:
             raise HTTPException(404, "no breakdown history loaded")
-        if stat not in STAT_ORDER:
+        if stat not in store.history.stats:
             raise HTTPException(404, "unknown stat")
         player = next((p for p in g["players"] if p["player_id"] == player_id), None)
         if player is None:
             raise HTTPException(404, "no such player in that game")
-        return build_breakdown(store.history, g, player, stat, line, side)
+        b = build_breakdown(store.history, g, player, stat, line, side)
+        b.dissection = dissect_leg(b, default_router())
+        return b
 
     @app.get("/api/slates/{date}/swipe", response_model=SwipeDeck)
     def swipe(
@@ -333,7 +357,7 @@ def register(app: FastAPI) -> None:
     ) -> SwipeDeck:
         """Blind cards: line and price only, no forecast, no result. Random draw by seed."""
         s = _need_slate(store, date)
-        clock = str(s["demo_clock_utc"])
+        clock = store.slate_clock(date)
         cards: list[SwipeCard] = []
         for g in s["games"]:
             if str(g["tip_utc"]) <= clock:  # refused at or after tip (ISO-8601 UTC sorts as text)
@@ -341,6 +365,8 @@ def register(app: FastAPI) -> None:
             for pl in g["players"]:
                 me, opp = (g["home"], g["away"]) if pl["side"] == "home" else (g["away"], g["home"])
                 for st, pr in pl["props"].items():
+                    if pr["over_price"] is None or pr["under_price"] is None:
+                        continue  # no sportsbook line in this data: nothing to swipe on
                     cards.append(
                         SwipeCard(
                             prop_id=pr["prop_id"],
@@ -366,6 +392,8 @@ def register(app: FastAPI) -> None:
             note=(
                 "Blind cards: the line and the price only. Drawn at random from every posted line; "
                 "players who do not play are void."
+                if cards
+                else "No cards: this data holds no sportsbook lines or prices to swipe on."
             ),
         )
 
@@ -378,6 +406,10 @@ def register(app: FastAPI) -> None:
             for pl in g["players"]:
                 for st, pr in pl["props"].items():
                     v = _prop_view(st, pr)
+                    if v.over_price is None or v.under_price is None or v.market_p_over is None:
+                        continue  # settling a pick needs the line and price that were shown
+                    if pr["actual"] is None:
+                        continue  # not played yet, or did not play
                     rows.append(
                         {
                             "prop_id": pr["prop_id"],
@@ -396,7 +428,8 @@ def register(app: FastAPI) -> None:
                     )
         return {
             "date": date,
-            "label": "results and the forecasts that existed before tip (historical replay)",
+            "label": "results and the forecasts that existed before tip"
+            + (" (historical replay)" if store.mode == "fixture_replay" else ""),
             "rows": rows,
         }
 

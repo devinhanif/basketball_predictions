@@ -34,9 +34,11 @@ function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
       <p class="lead">{verdictText(p)}</p>
       <p>{whatWeChecked(p, compact)}</p>
       <p class="small">
-        {g.gate_open
-          ? "Our model has earned a track record, so it is allowed to vouch for a bet."
-          : `Our model has to earn trust first. It needs ${g.min_settled.toString()} graded picks over ${g.min_settled_dates.toString()} different days before we let it back a bet. So far: ${g.n_settled.toString()} picks over ${g.n_dates.toString()} days. Until then we just follow the sportsbooks.`}{" "}
+        {g === null
+          ? "The track record behind this answer is not part of the data we have."
+          : g.gate_open
+            ? "Our model has earned a track record, so it is allowed to vouch for a bet."
+            : `Our model has to earn trust first. It needs ${g.min_settled.toString()} graded picks over ${g.min_settled_dates.toString()} different days before we let it back a bet. So far: ${g.n_settled.toString()} picks over ${g.n_dates.toString()} days. Until then we just follow the sportsbooks.`}{" "}
         {compact ? <a href="#/parlay">The full story</a> : null}
       </p>
       <Explain>
@@ -59,19 +61,27 @@ function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
             <li>
               The engine's own label: <span class="mono">{p.headline_verdict}</span>. Its note: {p.reason}
             </li>
-            <li>
-              Model weight: <span class="num">{p.model_weight.toFixed(2)}</span>. {p.model_weight_note}
-            </li>
-            <li>
-              Track record: {g.describe}; gate open: {g.gate_open ? "yes" : "no"}.
-            </li>
-            <li>
-              Fee schedule used: {p.fee_model.name} (formula {p.fee_model.formula}, coefficient {p.fee_model.coefficient}),
-              verified: {p.fee_model.verified ? "yes" : "no"}. Source: {p.fee_model.source}.
-            </li>
-            <li>
-              How a ticket would be priced: {p.price_basis}. {p.historical_note}
-            </li>
+            {p.model_weight !== null ? (
+              <li>
+                Model weight: <span class="num">{p.model_weight.toFixed(2)}</span>. {p.model_weight_note}
+              </li>
+            ) : null}
+            {g !== null ? (
+              <li>
+                Track record: {g.describe}; gate open: {g.gate_open ? "yes" : "no"}.
+              </li>
+            ) : null}
+            {p.fee_model !== null ? (
+              <li>
+                Fee schedule used: {p.fee_model.name} (formula {p.fee_model.formula}, coefficient {p.fee_model.coefficient}),
+                verified: {p.fee_model.verified ? "yes" : "no"}. Source: {p.fee_model.source}.
+              </li>
+            ) : null}
+            {p.price_basis ? (
+              <li>
+                How a ticket would be priced: {p.price_basis}. {p.historical_note}
+              </li>
+            ) : null}
             <li>
               Engine: {p.engine}. As of {stamp(p.as_of)}. Source: <span class="mono">{p.source}</span>.
             </li>

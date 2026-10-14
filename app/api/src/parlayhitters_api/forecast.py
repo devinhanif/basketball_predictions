@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 TAUS: tuple[float, ...] = tuple(round(0.05 * i, 2) for i in range(1, 20))
 
@@ -58,6 +59,66 @@ def line_probs(q: Sequence[float], line: float) -> LineProbs:
         p_push=max(0.0, 1.0 - p_over - p_under),
         extrapolated=ex1 or ex2,
     )
+
+
+TAIL_EPS = 1e-3  # the stored table is complete when its last P(Y >= k) is at most this
+
+
+def surv_complete(counts: Sequence[int], n: int) -> bool:
+    """True when the stored table reaches the tail: its last entry is within TAIL_EPS of zero."""
+    return n > 0 and len(counts) > 0 and counts[-1] / n <= TAIL_EPS
+
+
+def _p_ge(counts: Sequence[int], n: int, k: int) -> float:
+    """P(Y >= k) from the stored table c_k / n (k = 1..K); 1 at k <= 0, 0 beyond the table."""
+    if k <= 0:
+        return 1.0
+    return counts[k - 1] / n if k - 1 < len(counts) else 0.0
+
+
+def surv_probs(counts: Sequence[int], n: int, line: float) -> LineProbs:
+    """Exact probabilities on integer support from the stored full-support table.
+
+    over L means Y >= floor(L) + 1; under L means Y <= ceil(L) - 1; the rest is the push mass.
+    Nothing is interpolated, so nothing is flagged as extrapolated.
+    """
+    p_over = _p_ge(counts, n, math.floor(line) + 1)
+    p_under = 1.0 - _p_ge(counts, n, math.ceil(line))
+    return LineProbs(
+        p_over=p_over,
+        p_under=p_under,
+        p_push=max(0.0, 1.0 - p_over - p_under),
+        extrapolated=False,
+    )
+
+
+def forecast_probs(forecast: dict[str, Any], line: float) -> LineProbs:
+    """P(over / under / push) at a line from a stored forecast: the exact full-support table when
+    the export carries a complete one, else the interpolated quantile grid (fixtures)."""
+    surv = forecast.get("surv")
+    if surv and surv_complete(surv["c"], int(surv["n"])):
+        return surv_probs(surv["c"], int(surv["n"]), line)
+    return line_probs([float(v) for v in forecast["q"]], line)
+
+
+def forecast_method(forecast: dict[str, Any]) -> str:
+    surv = forecast.get("surv")
+    if surv and surv_complete(surv["c"], int(surv["n"])):
+        return (
+            f"Read from the stored full-support table (denominator {int(surv['n'])}): the share "
+            "of the stored forecast above the line. Exact on whole-number counts."
+        )
+    return (
+        "Linear interpolation of the stored 19 quantiles (0.05..0.95) with a continuity "
+        "correction for integer counts. Approximate; tails beyond 5%/95% are clamped."
+    )
+
+
+def reference_line(forecast: dict[str, Any]) -> float:
+    """A half-point starting line at the middle of the stored forecast (its 50% quantile).
+
+    It is a place to start the slider, never a sportsbook line."""
+    return math.floor(float(forecast["q"][9])) + 0.5
 
 
 def american_to_raw_prob(price: int) -> float:

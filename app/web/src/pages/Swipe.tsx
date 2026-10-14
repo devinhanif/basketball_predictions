@@ -256,7 +256,13 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
   const [state, reload] = useLoad(() => api.swipe(date, seed, 60), [date, seed]);
   return (
     <View state={state} reload={reload} onStale={onStale}>
-      {(deck) => (
+      {(deck) =>
+        deck.cards.length === 0 ? (
+          <div class="panel empty">
+            <h2>No cards for this night</h2>
+            <p class="muted">{deck.note}</p>
+          </div>
+        ) : (
         <Deck
           key={`${deck.date}-${deck.seed.toString()}`}
           date={deck.date}
@@ -264,7 +270,8 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
           cards={deck.cards.slice(0, 24)}
           reroll={() => { setSeed(newSeed()); }}
         />
-      )}
+        )
+      }
     </View>
   );
 }

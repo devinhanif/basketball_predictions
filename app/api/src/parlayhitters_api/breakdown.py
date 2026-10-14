@@ -20,12 +20,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-from .forecast import line_probs
+from .dissect.types import Dissection
+from .forecast import forecast_probs, reference_line
 from .history import (
     MODEL_STATS,
     POSITION_NOUN,
     STAT_LABEL,
-    STAT_ORDER,
     History,
     Row,
     days_between,
@@ -69,7 +69,7 @@ class Chip(BaseModel):
     game_id: str
     date: str
     opp: str
-    home: bool
+    home: bool | None  # None when the export holds no schedule row for that older game
     value: int
     minutes: float
     starter: bool
@@ -135,6 +135,7 @@ class Role(BaseModel):
     avg_minutes: float | None
     starts: int
     minutes_forecast: float | None
+    p_play: float | None
     say: str
 
 
@@ -167,6 +168,7 @@ class StatTab(BaseModel):
     has_model: bool
     posted_line: float | None
     default_line: float
+    default_source: Literal["posted", "last10_middle", "model_middle"]
 
 
 class Breakdown(BaseModel):
@@ -182,7 +184,7 @@ class Breakdown(BaseModel):
     label: str
     side: Side
     line: float
-    line_source: Literal["posted", "last10_middle"]
+    line_source: Literal["posted", "last10_middle", "model_middle"]
     prior_games: int
     last10: Tally
     last5: Tally
@@ -200,6 +202,7 @@ class Breakdown(BaseModel):
     ladder_n10: int
     ladder_n5: int
     tabs: list[StatTab]
+    dissection: Dissection | None = None
 
 
 # ----------------------------------------------------------------------------- pure math
@@ -304,8 +307,8 @@ def _splits(ctx: Context, stat: str, line: float, side: Side) -> list[Split]:
     tonight_rest = _bucket(ctx.rest_days(ctx.team, ctx.gid))
     opp = ctx.h.team_abbr(ctx.opp)
     specs: list[tuple[str, str, bool, Any]] = [
-        ("home", "At home", ctx.is_home, lambda r: r.home),
-        ("away", "On the road", not ctx.is_home, lambda r: not r.home),
+        ("home", "At home", ctx.is_home, lambda r: r.home is True),
+        ("away", "On the road", not ctx.is_home, lambda r: r.home is False),
         (
             "b2b",
             "Second night of a back-to-back",
@@ -490,7 +493,7 @@ def _model(ctx: Context, stat: str, line: float, side: Side) -> Model:
             reason="",
         )
     q = [float(v) for v in prop["forecast"]["q"]]
-    lp = line_probs(q, line)
+    lp = forecast_probs(prop["forecast"], line)
     p_hit = lp.p_over if side == "over" else lp.p_under
     return Model(
         available=True,
@@ -518,7 +521,23 @@ def _role(ctx: Context) -> Role:
         say = (
             f"Averaged {avg_min:.1f} minutes over his last {n} games and started {starts} of them."
         )
-    return Role(n=n, avg_minutes=avg_min, starts=starts, minutes_forecast=None, say=say)
+    proj, p_play = _stored_minutes(ctx)
+    if proj is not None:
+        chance = "" if p_play is None else f" He is given a {round(p_play * 100)}% chance to play."
+        say += f" The model projects about {proj:.1f} minutes.{chance}"
+    return Role(
+        n=n, avg_minutes=avg_min, starts=starts, minutes_forecast=proj, p_play=p_play, say=say
+    )
+
+
+def _stored_minutes(ctx: Context) -> tuple[float | None, float | None]:
+    """The projected minutes and chance to play stored with this player's forecasts, if any."""
+    for st in MODEL_STATS:
+        f = (ctx.player["props"].get(st) or {}).get("forecast") or {}
+        if f.get("proj_minutes") is not None:
+            p = f.get("p_play")
+            return float(f["proj_minutes"]), None if p is None else float(p)
+    return None, None
 
 
 def _prices(ctx: Context, stat: str, line: float) -> Prices:
@@ -532,7 +551,11 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
             under_price=None,
             on_posted_line=False,
             snapshot_utc=None,
-            say="The book posted no line for this stat, so there is no price.",
+            say=(
+                "The book posted no line for this stat, so there is no price."
+                if ctx.h.market
+                else "This data holds no sportsbook lines or prices, so none is shown."
+            ),
         )
     if at is None:
         return Prices(
@@ -560,14 +583,13 @@ def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderR
     lo = max(0.5, math.floor(min(vals)) - 1.5)
     hi = math.ceil(max(vals)) + 1.5
     prop = ctx.player["props"].get(stat) if stat in MODEL_STATS else None
-    q = [float(v) for v in prop["forecast"]["q"]] if prop else None
     rows = ctx.h.prices.get(ctx.gid, {}).get(str(ctx.pid), {}).get(stat, [])
     by_point = {float(x["point"]): x for x in rows}
     out: list[LadderRow] = []
     for ln in half_grid(lo, hi):
         t10 = [hit_state(r.value(stat), ln, "over") for r in last10]
         t5 = [hit_state(r.value(stat), ln, "over") for r in last5]
-        lp = line_probs(q, ln) if q else None
+        lp = forecast_probs(prop["forecast"], ln) if prop else None
         px = by_point.get(ln)
         out.append(
             LadderRow(
@@ -590,19 +612,29 @@ def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderR
 def _tabs(ctx: Context) -> list[StatTab]:
     tabs: list[StatTab] = []
     last10 = ctx.last(LAST_N)
-    for st in STAT_ORDER:
+    for st in ctx.h.stats:
         rows = ctx.h.prices.get(ctx.gid, {}).get(str(ctx.pid), {}).get(st, [])
         main = next((x for x in rows if x["main"]), None)
         posted = None if main is None else float(main["point"])
+        has_model = st in MODEL_STATS and st in ctx.player["props"]
+        start: float
+        source: Literal["posted", "last10_middle", "model_middle"]
+        if posted is not None:
+            start, source = posted, "posted"
+        elif has_model and not ctx.h.market:
+            # No sportsbook line exists in this data: start at the middle of the model's own
+            # forecast, the same reference line the game page shows. Not a market line.
+            start, source = reference_line(ctx.player["props"][st]["forecast"]), "model_middle"
+        else:
+            start, source = default_line([r.value(st) for r in last10]), "last10_middle"
         tabs.append(
             StatTab(
                 stat=st,
                 label=STAT_LABEL[st],
-                has_model=st in MODEL_STATS and st in ctx.player["props"],
+                has_model=has_model,
                 posted_line=posted,
-                default_line=posted
-                if posted is not None
-                else default_line([r.value(st) for r in last10]),
+                default_line=start,
+                default_source=source,
             )
         )
     return tabs
@@ -652,7 +684,7 @@ def build(
     line: float | None,
     side: Side,
 ) -> Breakdown:
-    if stat not in STAT_ORDER:
+    if stat not in hist.stats:
         raise ValueError(f"unknown stat {stat}")
     ctx = Context(hist, game, player)
     last10 = ctx.last(LAST_N)
@@ -660,9 +692,7 @@ def build(
     tabs = _tabs(ctx)
     tab = next(t for t in tabs if t.stat == stat)
     use = tab.default_line if line is None else line
-    source: Literal["posted", "last10_middle"] = (
-        "posted" if tab.posted_line is not None else "last10_middle"
-    )
+    source = tab.default_source
 
     l10 = tally(last10, stat, use, side)
     l5 = tally(last5, stat, use, side)
@@ -677,10 +707,13 @@ def build(
         recent = (
             f"; his last {l10.n} averaged {l10.avg:.1f}" if l10.avg is not None and l10.n else ""
         )
-        model.reason = (
-            f"It expects {typical}{recent}. {role.say} We do not forecast minutes yet, so "
-            "minutes and role are context here, not a number the model hands us."
+        no_minutes = (
+            " We do not forecast minutes yet, so minutes and role are context here, not a "
+            "number the model hands us."
+            if role.minutes_forecast is None
+            else ""
         )
+        model.reason = f"It expects {typical}{recent}. {role.say}{no_minutes}"
     chips = [
         Chip(
             game_id=r.game_id,
