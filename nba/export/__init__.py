@@ -5,6 +5,8 @@ and writes ``export.duckdb``, ``parlay_of_day.json`` and ``manifest.json`` atomi
 reads only the output files, never ``nba.duckdb``, and imports ``nba`` only as ``nba.export.*``.
 
 Guarantees (each pinned by tests/export and tests/test_layering.py):
+  * prop_lines come from the capture store opened read-only, quotes with received_at <= the
+    prediction's made_at and < tip only; Polymarket Unders beyond -1000 are flagged unusable;
   * no write path to ``nba.duckdb``, no network, no import of ``app`` or ``research``;
   * the 2025 holdout is refused (``guard.ExportRefused``), only season 2026 (and pre-2025
     seasons for fixtures) is exported, filtered in SQL and re-asserted on the rows;
@@ -15,23 +17,29 @@ from nba.export.guard import ExportRefused, resolve_seasons
 from nba.export.parlay import parlay_of_day
 from nba.export.reader import (
     ForwardBundle,
+    LinesBundle,
     Window,
     box_scores,
     explainer,
     forward_predictions,
     model_stamps,
+    player_teams,
+    prop_lines,
     settled_scores,
 )
 
 __all__ = [
     "ExportRefused",
     "ForwardBundle",
+    "LinesBundle",
     "Window",
     "box_scores",
     "explainer",
     "forward_predictions",
     "model_stamps",
     "parlay_of_day",
+    "player_teams",
+    "prop_lines",
     "resolve_seasons",
     "settled_scores",
 ]

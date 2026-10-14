@@ -249,9 +249,11 @@ def settled_scores(con: duckdb.DuckDBPyConnection, window: Window) -> list[dict[
 
 def box_scores(con: duckdb.DuckDBPyConnection, window: Window) -> list[dict[str, Any]]:
     """Actuals for final games in the allowed seasons (player_game_stats), for leg settlement.
-    DNP rows are explicit: NULL minutes, zero stats (the table's own convention)."""
+    DNP rows are explicit: NULL minutes, zero stats (the table's own convention). ``stl``, ``blk``
+    and ``tov`` ride along as stored: NULL when the box score lacked them, never zero-filled."""
     marks = ",".join("?" for _ in window.seasons)
-    cols = ("game_id", "player_id", "team_id", "minutes", "starter", "pts", "reb", "ast", "fg3m")
+    cols = ("game_id", "player_id", "team_id", "minutes", "starter", "pts", "reb", "ast", "fg3m",
+            "stl", "blk", "tov")  # fmt: skip
     rows = con.execute(
         f"SELECT {', '.join('b.' + c for c in cols)}, g.game_date, g.season "
         f"FROM player_game_stats b JOIN games g ON g.game_id = b.game_id "
@@ -262,6 +264,191 @@ def box_scores(con: duckdb.DuckDBPyConnection, window: Window) -> list[dict[str,
     out = [dict(zip((*cols, "game_date", "season"), r, strict=True)) for r in rows]
     _assert_allowed({int(r["season"]) for r in out}, window.seasons)
     return out
+
+
+# ------------------------------------------------------------------------------- team ids
+
+
+def player_teams(
+    con: duckdb.DuckDBPyConnection,
+    props: list[dict[str, Any]],
+    games: list[dict[str, Any]],
+    window: Window,
+) -> dict[tuple[str, int], tuple[int, str]]:
+    """``(game_id, player_id) -> (team_id, source)`` for the players of the exported prop rows.
+
+    ``box``: the player's own box-score row in that game. ``prior_game``: the team on the player's
+    latest EARLIER game (``game_date`` strictly before) in the allowed seasons, accepted only when
+    it is one of the game's two teams. Seasons outside the window are never read (the 2025
+    holdout holds last season's rosters); a player with neither stays absent (NULL, never
+    guessed)."""
+    pairs = {(str(p["game_id"]), int(p["player_id"])) for p in props}
+    if not pairs:
+        return {}
+    gmeta = {g["game_id"]: g for g in games}
+    ids = sorted({pid for _, pid in pairs})
+    gids = sorted({gid for gid, _ in pairs})
+    smarks = ",".join("?" for _ in window.seasons)
+    pmarks = ",".join("?" for _ in ids)
+    gmarks = ",".join("?" for _ in gids)
+    out: dict[tuple[str, int], tuple[int, str]] = {}
+    rows = con.execute(
+        f"SELECT b.game_id, b.player_id, b.team_id FROM player_game_stats b "
+        f"JOIN games g ON g.game_id = b.game_id "
+        f"WHERE b.game_id IN ({gmarks}) AND b.player_id IN ({pmarks}) AND g.season IN ({smarks}) "
+        f"AND b.team_id IS NOT NULL",
+        [*gids, *ids, *window.seasons],
+    ).fetchall()
+    for gid, pid, tid in rows:
+        if (gid, int(pid)) in pairs:
+            out[(gid, int(pid))] = (int(tid), "box")
+    todo = pairs - set(out)
+    if not todo:
+        return out
+    hist: dict[int, list[tuple[date, int]]] = defaultdict(list)
+    for pid, gd, tid in con.execute(
+        f"SELECT b.player_id, g.game_date, b.team_id FROM player_game_stats b "
+        f"JOIN games g ON g.game_id = b.game_id "
+        f"WHERE b.player_id IN ({pmarks}) AND g.season IN ({smarks}) AND g.game_date <= ? "
+        f"AND b.team_id IS NOT NULL ORDER BY g.game_date, b.game_id",
+        [*ids, *window.seasons, window.day],
+    ).fetchall():
+        hist[int(pid)].append((gd, int(tid)))
+    for gid, pid in sorted(todo):
+        g = gmeta.get(gid)
+        if g is None:
+            continue
+        pair = {g.get("home_team"), g.get("away_team")} - {None}
+        for gd, tid in reversed(hist.get(pid, [])):
+            if gd < g["game_date"] and tid in pair:
+                out[(gid, pid)] = (tid, "prior_game")
+                break
+    return out
+
+
+# ------------------------------------------------------------------------------------ lines
+
+LINES_TABLE = "live_book_odds"
+#: the vendor's player markets for the four forecast stats (``nba.daily.predict.PROP_STATS``),
+#: main and alternate (milestone) ladders -> (stat, is_alternate). Combos / blocks / steals have
+#: no forecast to attach to.
+LINE_MARKETS: dict[str, tuple[str, bool]] = {
+    "player_points": ("pts", False), "player_points_alternate": ("pts", True),
+    "player_rebounds": ("reb", False), "player_rebounds_alternate": ("reb", True),
+    "player_assists": ("ast", False), "player_assists_alternate": ("ast", True),
+    "player_threes": ("fg3m", False), "player_threes_alternate": ("fg3m", True),
+}  # fmt: skip
+#: Polymarket Unders priced beyond this (more negative) are a no-bid placeholder, not a price
+#: (docs/CLOSING_LINE_CAPTURE.md, "The us_ex region": every recorded player_points Under <= -3000).
+POLYMARKET_UNDER_FLOOR = -1000
+UNUSABLE_PM_UNDER = "polymarket_under_placeholder"
+
+
+@dataclass(frozen=True)
+class LinesBundle:
+    """Pre-tip quotes per forward prop prediction, plus what was left out."""
+
+    rows: list[dict[str, Any]]
+    excluded_post_tip: int  # quotes for these players stamped at/after tip or the vendor start
+    status: str  # ok | no_table | absent | locked | not_requested
+
+
+def open_odds_read_only(
+    path: str | Path, *, max_wait_s: float = 20.0
+) -> duckdb.DuckDBPyConnection | None:
+    """``market_asof.duckdb`` read-only; None when the file is absent. A lock that outlasts the
+    retry raises ``duckdb.IOException`` (the capture owns that file; the caller records it)."""
+    from nba.db.connect import connect_with_retry
+
+    if not Path(path).exists():
+        return None
+    return connect_with_retry(path, read_only=True, max_wait_s=max_wait_s)
+
+
+def unusable_reason(book: str, side: str | None, price: int | None) -> str | None:
+    """Why a quote must not be read as a price, or None. Polymarket (any ``polymarket*`` key)
+    Unders beyond -1000 are a placeholder with no bid behind them."""
+    if (
+        book.startswith("polymarket")
+        and side == "under"
+        and price is not None
+        and price < POLYMARKET_UNDER_FLOOR
+    ):
+        return UNUSABLE_PM_UNDER
+    return None
+
+
+def prop_lines(
+    odds: duckdb.DuckDBPyConnection | None,
+    props: list[dict[str, Any]],
+    window: Window,
+) -> LinesBundle:
+    """For each forward prop prediction (run, game, player, stat), the book quotes knowable when
+    it was made: ``received_at <= made_at`` (our clock after the response, naive UTC) and strictly
+    before the tip. The newest quote per (book, market, line, side) wins; main and alternate ladders
+    are separate markets. Nothing is de-vigged; a Polymarket Under beyond -1000 is kept but flagged
+    ``unusable``. ``player_id`` is the capture's name resolution (NULL = unresolved, not exported).
+    Only games of the exported prop rows are read, so a game outside the window's seasons never
+    appears; the row set is re-asserted against the allowed seasons."""
+    if odds is None:
+        return LinesBundle([], 0, "absent")
+    if not table_exists(odds, LINES_TABLE):
+        return LinesBundle([], 0, "no_table")
+    _assert_allowed(
+        {s for p in props if (s := guard.season_of_game_id(str(p["game_id"]))) is not None},
+        window.seasons,
+    )
+    preds: dict[tuple[str, str, int, str], tuple[datetime, datetime]] = {}
+    for p in props:  # models in one run share that run's quotes
+        preds[(p["run_id"], str(p["game_id"]), int(p["player_id"]), str(p["stat"]))] = (
+            p["made_at"],
+            p["tipoff"],
+        )
+    if not preds:
+        return LinesBundle([], 0, "ok")
+    stat_of = {m: v[0] for m, v in LINE_MARKETS.items()}
+    gids = sorted({k[1] for k in preds})
+    pids = sorted({k[2] for k in preds})
+    gm, pm, mm = (",".join("?" for _ in xs) for xs in (gids, pids, stat_of))
+    where = (
+        f"game_id IN ({gm}) AND player_id IN ({pm}) AND market IN ({mm})"
+        f" AND game_id NOT LIKE '001%' AND game_id NOT LIKE '003%'"
+    )
+    params = [*gids, *pids, *stat_of]
+    post = odds.execute(
+        f"SELECT count(*) FROM {LINES_TABLE} WHERE {where} "  # noqa: S608
+        f"AND NOT (received_at < tipoff AND received_at < commence_time)",
+        params,
+    ).fetchone()
+    raw = odds.execute(
+        f"SELECT game_id, player_id, market, book, side, point, price_american, implied_prob_raw, "  # noqa: S608
+        f"received_at, snapshot_kind, last_update FROM {LINES_TABLE} "
+        f"WHERE {where} AND received_at < tipoff AND received_at < commence_time "
+        f"AND point IS NOT NULL AND price_american IS NOT NULL AND side IN ('over', 'under') "
+        f"ORDER BY received_at, snapshot_kind",
+        params,
+    ).fetchall()
+    by_player: dict[tuple[str, int], list[tuple[Any, ...]]] = defaultdict(list)
+    for r in raw:
+        by_player[(r[0], int(r[1]))].append(r)
+    out: list[dict[str, Any]] = []
+    for (run_id, gid, pid, stat), (made_at, tipoff) in sorted(preds.items()):
+        newest: dict[tuple[str, str, float, str], tuple[Any, ...]] = {}
+        for r in by_player.get((gid, pid), []):  # ascending received_at: the last one wins
+            if stat_of[r[2]] == stat and r[8] <= made_at and r[8] < tipoff:
+                newest[(r[3], r[2], float(r[5]), r[4])] = r
+        for (book, market, point, side), r in sorted(newest.items()):
+            reason = unusable_reason(book, side, int(r[6]))
+            out.append({
+                "run_id": run_id, "made_at": made_at, "game_id": gid, "player_id": pid,
+                "stat": stat, "book": book, "market": market,
+                "is_alternate": LINE_MARKETS[market][1], "line": point, "side": side,
+                "price_american": int(r[6]), "implied_prob_raw": r[7], "snapshot_ts": r[8],
+                "snapshot_kind": r[9], "last_update": r[10],
+                "minutes_before_tip": (tipoff - r[8]).total_seconds() / 60.0,
+                "unusable": reason is not None, "unusable_reason": reason,
+            })  # fmt: skip
+    return LinesBundle(out, int(post[0]) if post else 0, "ok")
 
 
 # ------------------------------------------------------------------------------ explainer
