@@ -1,0 +1,10 @@
+{
+  "rebuilt": -0.015988943077791258,
+  "stored": -0.016101018847856204,
+  "abs_diff": 0.00011207577006494551,
+  "tolerance": 0.0021,
+  "n": 25767,
+  "n_expected": 25767,
+  "pass": true,
+  "run": "/Users/devin/Downloads/nba-prediction/data/colab/runs/avg_shadow_rebuild/20261014_112103"
+}

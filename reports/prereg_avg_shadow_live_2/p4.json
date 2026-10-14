@@ -1,0 +1,16 @@
+{
+  "proof": "P4",
+  "rule": "AVG_SHADOW_LIVE_2 9afbfeb6",
+  "kind": "transcribed from docs/DAILY_PIPELINE.md (AVG_SHADOW section, 'P4 hash PASS'); the replays were run 2026-10-13 and 2026-10-14 by the build and not re-run by the steward",
+  "golden_sha256_prefix": "89889f6d",
+  "dates": 20,
+  "season": 2025,
+  "predictions": 46658,
+  "scores": 44562,
+  "flag_on_no_weights": {"hash_identical": true, "runs": 96, "status": "skipped"},
+  "flag_on_fixture_weights": {"hash_identical": true, "runs": 96, "status": "ok", "model_id_prefix": "f325012d", "sequence_rows_inferred": 15021, "step_wall_s_mean": 2.9, "step_wall_s_max": 6.3, "budget_s": 60},
+  "flag_off": {"hash_identical": true},
+  "avg_rows_read_or_kept": 0,
+  "replay_copies_deleted": "by Devin about 12:31 CDT 2026-10-14, verified 0 remaining (HOLDOUT_ACCESS_LOG row 77)",
+  "pass": true
+}
