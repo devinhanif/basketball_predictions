@@ -50,7 +50,7 @@ def repo(root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[P
     monkeypatch.setattr(ev, "CODE_SHA", {f: hc.file_sha256(tmp_path / f) for f in ev.CODE_SHA})
     monkeypatch.setattr(ev, "GATE_JSON_SHA", hc.file_sha256(root / ev.GATE_JSON))
     monkeypatch.setattr(ev, "ODDS_FINGERPRINT", e70.odds_fingerprint(root / ev.ODDS_DB))
-    res70 = root / ev.LINE70_RESULT
+    res70 = tmp_path / ev.LINE70_RESULT
     res70.parent.mkdir(parents=True, exist_ok=True)
     res70.write_text(json.dumps({"adh_sha256": sha}))
     return tmp_path, sha
@@ -95,7 +95,7 @@ def test_refuses_when_the_alt_line_70_result_recorded_another_sha_or_none(
     root: Path, repo: tuple[Path, str]
 ) -> None:
     r, sha = repo
-    res70 = root / ev.LINE70_RESULT
+    res70 = r / ev.LINE70_RESULT
     res70.write_text(json.dumps({"adh_sha256": "0" * 64}))
     pf = _pf(root, r, sha)
     assert [c.name for c in pf.failures()] == [

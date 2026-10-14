@@ -626,7 +626,7 @@ def run_preflight(
             live == ODDS_FINGERPRINT,
             str(live),
         )
-    res70 = data_root / LINE70_RESULT
+    res70 = repo / LINE70_RESULT  # results are written in the repo checkout (committed)
     if res70.exists():
         rec = json.loads(res70.read_text()).get("adh_sha256")
         pf.add("the ALT_LINE_70 result recorded this ALT_LADDER_HIST sha", rec == sha, f"{rec}")
