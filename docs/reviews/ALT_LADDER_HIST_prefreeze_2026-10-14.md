@@ -275,4 +275,103 @@ scoring-convention artifact.
   nearest-0.5 rung > 3 points from the book's main line); also williamhill_us 419 / 635, betmgm 417,
   bovada 326, betrivers 101 ladders; stored rows unchanged; consumers exclude by rule."
 
+First-round verdict (superseded by the re-review below): BLOCKED
+
+## Re-review of revision 2 (main 1d8d86d, branch commit f2f8fe3), 2026-10-14
+
+Rule text sha256 6d292294... (not frozen). Gate json 32a61365... reproduces byte-identically
+(`alt_ladder_hist_gate --out <scratch>`, exit 0). No `y` read, no 2025 read, read-only DuckDB.
+Scratch scripts: `alh_resid.py`, `alh_resid2.py`, `alh_mono.py`.
+
+### B1: NOT FIXED (SUBSTANTIVE, blocker). The filter I specified misses most of the defect.
+The text was applied as written (rule line 15, `alt_ladder_hist_gate.py: off_ladders`). The flaw is in
+the rule I proposed, not in how it was applied. Its "within 0.15 of 0.5" condition marks a ladder as
+untested and keeps it. Most mislabelled December ladders have no rung near 0.5, because they are a
+small stat's ladder priced against a points line. With the filter applied, the DraftKings 2023
+primary set still holds:
+- **385 P >= 0.70 rungs at decimal >= 2.0 in December 2023** (328 ladders, 81 games, all pts).
+  The other DraftKings months have 2-10 such rungs; FanDuel's December has 3.
+- 370 of the 385 are "no rung within 0.15 of 0.5". For example game 0022301229, player 1630167:
+  nearest-0.5 rung 2.5 against a main points line of 12.5.
+- Model-implied profit +1,173 stake units, which is **+0.015 on pooled E1 ROI**, three quarters of the
+  floor. DraftKings 2023 claimed EV is still +2.2%, against -3.3% once the top 5% of rungs is dropped.
+
+Fix (SUBSTANTIVE; returns to Devin under DECISIONS 14:40). Rule line 15, after "...at the same `t60`
+snapshot", insert:
+> "; **or** when any of its rungs at a point at least 1.0 below the main line has raw implied over
+> probability more than 0.05 below the main line's raw implied over probability, or any rung at least
+> 1.0 above it has one more than 0.05 above (a ladder that contradicts the book's own main line; this
+> second test needs no rung near 0.5)"
+
+Then:
+- Implement it in `off_ladders` (pass the main line's price as well as its point; `load_main_lines`
+  already selects it).
+- Re-run the gate.
+- Replace the line-15 counts and the gate tables (lines 65-92), plus the claimed-EV text on lines 85
+  and 99 and in the ledger restatement (PREDICTIONS_LEDGER line 31).
+
+Measured with this extra test (prices only, `alh_mono.py`, exit 0):
+- **Books flagged:** it adds 444 DraftKings 2023 ladders, all in December 2023, and 0 DraftKings 2024
+  ladders. FanDuel: 0 in both seasons. williamhill_us +6 / +41, bovada +203, betmgm +1 / +46,
+  betonlineag +2 / +31.
+- **DraftKings 2023 primary after both tests:** 25,896 P >= 0.70 rungs (1,030 fewer). Claimed EV
+  -2.8% (top 5% dropped: -3.9%). 32 rungs at decimal >= 2, of which 4 in December. That is now in line
+  with FanDuel 2023 (-4.9%) and DraftKings 2024 (-2.7%).
+- **Pooled claimed EV:** about -2.7%.
+- **Still kept:** 248 DraftKings 2023 primary rungs have no main line and stay in, counted.
+
+### Main line "nearest 0.5": principled and stated (PASS)
+Rule line 15 and `load_main_lines` take the book's own main over line with raw implied probability
+nearest 0.5, ties to the lower line. That is the definition of a main line. My first-round script took
+an arbitrary first line, which explains betmgm 401 vs 417 and betrivers 0 vs 101. DraftKings and
+FanDuel each post one main line, so the primary and replicate counts are unaffected.
+
+### Fix status
+| Item | Status | Where |
+|---|---|---|
+| B1 | **NOT FIXED** (above) | line 15; `alt_ladder_hist_gate.py:142-170` |
+| N1 latency bound | FIXED | line 21 |
+| N2 claimed EV visible at book choice | FIXED | line 69 |
+| N3 duplicate listings have no time order | FIXED | line 14 |
+| N4 ast 2023 also below 5,000 | FIXED | line 30 |
+| N5 Part 1S asymmetry | FIXED | line 55 |
+| N6 failed attack consequence | FIXED | line 51 |
+| N7 harness guards in the frozen text | FIXED | line 152 |
+| N8 DNP settlement on exchanges | FIXED | line 111 |
+| H1 one distinct freeze sha, sha recorded | FIXED | `alt_harness_common.py:140-146`; `--adh-sha`; `res["adh_sha256"]` |
+| H2 odds check fails closed | FIXED | `alt_line_70_eval.py:82, 896-905`; `alt_parlay_x_eval.py:482-491` (pinned fingerprint passes without a backup) |
+| m2 ledger link | FIXED on line 30, but see C1 | PREDICTIONS_LEDGER |
+
+### New contradictions (revision 2)
+- **C1 COSMETIC.** PREDICTIONS_LEDGER lines 25 and 30 are the same ALT_LADDER_HIST prior twice.
+  Line 25 has the stale "branch agent/modeler-alt-ladder" link. Merge 1d8d86d kept the old row and
+  appended the edited copy, which breaks the rows-drafted-equals-rows-appended check. Fix: delete line
+  25; keep 30 and 31.
+- **C2 COSMETIC.** Line 32 says "(28,590 rungs" but bin 85 is now 28,470 (line 92). Replace with
+  "(28,470 rungs after the ladder filter".
+- **C3 COSMETIC.** Line 46 says "DraftKings has 895 (2023)" but the table (line 82) now says 876.
+  Replace "895 (2023)" with "876 (2023)".
+- **C4 COSMETIC.** Line 114: "New guard: the report-window exclusion (timing section)." Replace with
+  "New guards: the report-window exclusion (timing section) and the ladder-integrity filter (data
+  section, review B1)." Line 120: after "a documented duplicate-price rule" insert "; the price-only
+  ladder-integrity filter (B1)". Table at lines 126-138: add the row "| Ladder-integrity filter, S3 |
+  another stat's ladder priced as this stat (a vendor defect) carrying a fake PROFITABLE; S3 shows
+  what it removed |".
+- Once the B1 fix lands, the numbers on lines 15, 65-92, 99 and 119 all change again. The re-run must
+  confirm that the Part 1 pts 2023 cell still passes (6,796 band rungs before the second test).
+
+### Harness dry runs (no `--pre-alt-backup`, so H2 fails closed)
+- `alt_line_70_eval --check-only`: exit 2, 57 checks. `alt_parlay_x_eval --check-only`: exit 2, 73
+  checks.
+- Both fail only the three ALT_LADDER_HIST freeze checks: no prereg commit; 0 distinct shas; status
+  not FROZEN.
+- The pinned odds fingerprint check passes.
+
+Verification: ruff 0, format 0, mypy 0 (four alt files); pytest 60 passed, exit 0 (`--no-cov`, alt
+tests). There is no test of the B1 residual. Add one: a synthetic mislabelled ladder with no rung
+within 0.15 of 0.5 must be flagged.
+
+Biggest risk: the residual December-2023 DraftKings rungs (+0.015 model-implied ROI) turning
+INCONCLUSIVE into PROFITABLE if 2024 is near zero.
+
 Verdict: BLOCKED

@@ -1129,3 +1129,7 @@ Why: frozen rule 86f31649 and the attack. What would reverse it: the untested S1
 **2026-10-14 15:05 CDT — COMBO_STOCKS_SHADOW signed; ALT_LADDER_HIST B1 approved (Devin).**
 What: (1) Devin signed COMBO_STOCKS_SHADOW (one six-stat copula; blk/stl NB heads; realised-minutes slices kept, so RA cannot PASS; PRA/PA fail G1 narrowly on 2024 and can PASS only if live differs; the no-lock bypass removed); frozen once the reviewer confirms R1-R4, then the steward wires it on 10-16 with the oracle checked. (2) Devin approved ALT_LADDER_HIST B1: exclude the mislabelled DraftKings points-alternate ladders (2023-12-07..19) and add a price-only ladder-integrity filter for every book before freeze; his earlier signature stands unless the re-review finds another substantive change.
 Why: the pre-freeze reviews. What would reverse it: a substantive finding in the confirmations.
+
+**2026-10-14 15:21 CDT — ALT_LADDER_HIST B1b approved (Devin: "go ahead").**
+What: the price-integrity filter missed 370 of 385 residual December-2023 DraftKings rungs. Fix: exclude the whole known-defect window outright (DraftKings player_points_alternate, 2023-12-07..2023-12-19) PLUS the reviewer's main-line contradiction test for every other book and date (verbatim from the review). Dates and prices only; no outcome read. Devin's signature stands after the confirmation unless another substantive change appears.
+Why: a known vendor defect is excluded by its window, not by a heuristic; the test catches unknown ones. What would reverse it: none before freeze.
