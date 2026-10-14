@@ -374,4 +374,68 @@ within 0.15 of 0.5 must be flagged.
 Biggest risk: the residual December-2023 DraftKings rungs (+0.015 model-implied ROI) turning
 INCONCLUSIVE into PROFITABLE if 2024 is near zero.
 
-Verdict: BLOCKED
+Re-review verdict (superseded by the second re-review below): BLOCKED
+
+## Second re-review of revision 3 (main 01fb38e, branch commit 8e0bc40), 2026-10-14
+
+Scope: B1b and C1-C4 only. No `y` read, no 2025 read, read-only DuckDB. Gate json 005919d4...
+reproduces byte-identically (`alt_ladder_hist_gate --out <scratch>`, exit 0). Scratch script:
+`alh_resid3.py` (exit 0).
+
+**B1b: FIXED (SUBSTANTIVE; Devin approved).** Rule line 16 excludes the vendor-defect window
+outright. Rule line 17 adds the main-line contradiction test as test (b), in my wording; the code is
+`alt_ladder_hist_gate.py: off_ladders` (CONTRA_POINTS 1.0, CONTRA_PROB 0.05) and the
+`vendor_window` flag in `alt_over_rungs`. Independent re-derivation, prices and model P only:
+- **DraftKings 2023 primary set:** 25,826 P >= 0.70 rungs in 971 games. Claimed EV -2.8% (-3.9% with
+  the top 5% dropped, so it no longer rests on a few rungs). 28 rungs at decimal >= 2.0, spread over
+  the season with 1 in December. FanDuel 2023 has 25 such rungs, 3 in December. December now looks
+  like the other months.
+- **DraftKings points rungs by UTC snapshot date:** every rung from 12-07 to 12-19 is excluded. On
+  12-20 (UTC; mostly the evening games of 12-19 ET) 16 of 593 rungs are flagged by the tests. On
+  12-21 and 12-22, 0. The defect ends at the window edge, and the tests catch the overspill.
+- **Untested (no main line) primary rungs:** DraftKings 204 (2023) and 1,709 (2024), with 0 and 3 at
+  decimal >= 2.0. No sign of a hidden defect.
+- **Pooled claimed EV:** about -2.8%. NOT PROFITABLE is the expected word and PROFITABLE needs
+  realised ROI well above what the model claims, so the integrity artifact can no longer produce the
+  word.
+- **Tests:** `test_contradiction_test_flags_a_ladder_with_no_rung_near_even_money` (line 316) and
+  `test_vendor_defect_window_is_excluded_outright_for_draftkings_points_only` (line 351) cover the
+  residual case I asked for.
+- **Disclosure:** the window was picked from prices after the first review, before any outcome, and
+  rule line 16 says so ("a stated defect window ..., not a test").
+- **Optional COSMETIC, not required:** line 16 "snapshot date" means the UTC date of `snapshot_ts`
+  (line 148 defines `snapshot_ts` as naive UTC), so the text is unambiguous. If wanted, append
+  "(UTC date of `snapshot_ts`; 12-20 UTC overspill is handled by the tests: 16 rungs)".
+
+**Part 1 pts 2023 width (0.0298).** It passes the 0.03 gate by 0.0002. Every word is still reachable:
+- OVERCONFIDENT and UNDERCONFIDENT need only an interval beyond 0 and BH.
+- CALIBRATED needs the empirical union interval inside +-0.03. Under the worst-case conservative
+  bound that would need |gap| <= 0.0002. Under the independent width (0.0101) any |gap| up to 0.02
+  qualifies, and the true width lies between the two.
+- Line 82 states this correctly ("conservative hw 0.0276-0.0298 ... CALIBRATED only if the empirical
+  decision interval is narrower than the conservative bound"). No change is needed.
+
+**C1-C4: FIXED (COSMETIC).**
+- **C1:** PREDICTIONS_LEDGER has one ALT_LADDER_HIST prior row (line 29) plus the restatement (line
+  30); the duplicate is gone.
+- **C2:** rule line 37 reads 28,299, matching the line 97 table.
+- **C3:** line 51 reads 876 (2023).
+- **C4:** line 119 has "New guards: ... and the ladder-integrity exclusions"; line 121 adds the
+  exclusions to test validity; line 142 adds the protection-table row.
+
+**Harness dry runs** (no backup, so the pinned fingerprint is used):
+- `alt_line_70_eval --check-only`: exit 2, 57 checks. `alt_parlay_x_eval --check-only`: exit 2, 73
+  checks.
+- Both fail only the three ALT_LADDER_HIST freeze checks: no prereg commit; 0 distinct shas; not
+  FROZEN.
+
+Verification: ruff 0, format 0, mypy 0 (`alt_ladder_hist_gate.py` and its test); pytest 62 passed,
+exit 0 (the four alt test files, `--no-cov`).
+
+Not verified: outcomes (none read by design); whether the williamhill_us, bovada and betmgm flagged
+ladders share the DraftKings cause; the cosmetic UTC note.
+
+Remaining risk, now small: one fixed book at a single snapshot about T-64. The words are read "at the
+DraftKings t60 snapshot".
+
+Verdict: APPROVED
