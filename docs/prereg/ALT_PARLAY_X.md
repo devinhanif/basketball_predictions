@@ -146,4 +146,40 @@ NOT PROFITABLE or INCONCLUSIVE closes the question for stored BetRivers legs; no
 4. That the result is never a recommendation to bet and that 2025 is not touched.
 
 === RESULTS BELOW ===
-(empty until the frozen harness runs)
+**Run: Wed Oct 14 2026 (one pass, no reruns).** Harness `research/eval/alt_parlay_x_eval.py`, B = 5,000 date-clustered draws (`default_rng(2026)`; week sensitivity 2028), plan R = 2,000; results `reports/alt_parlay_x/results.json` sha256 df0a64ea730e2e02b41fad3930dfa0d810abf416e314a1e97017a73b99afa2ad. All 74 preflight checks passed: rule sha 91d34595, construction files and numpy 2.5.3 as pinned, `gate.json` sha 31e93881, every (season, pool, size) parlay count and cell fingerprint equal to the gate's, ALT_LADDER_HIST frozen (ef316f3d), odds fingerprint. 2023 and 2024 only. The money gate pattern (8 of 10 cells) matched the rule.
+
+## Decision words (pooled over seasons; date-clustered 95% interval; BH over m = 10 per family)
+| Cell | Parlays (2023 / 2024) | T1 gap [interval], word | T2 excess E [interval], word | rho [interval] | Pooled ROI [interval], word |
+|---|---|---|---|---|---|
+| 55_size2 | 7,300 (3,702 / 3,598) | +0.0192 [+0.0062, +0.0328] q 0.007; **INCONCLUSIVE** | +0.0042 [-0.0071, +0.0157] q 0.670; **INDEPENDENCE SUPPORTED** | +0.0053 [-0.0165, +0.0266] | -0.1513 [-0.1880, -0.1132]; **NOT PROFITABLE** |
+| 55_size3 | 6,454 (3,200 / 3,254) | +0.0134 [+0.0016, +0.0257] q 0.032; **CALIBRATED** | +0.0011 [-0.0093, +0.0115] q 0.889; **INDEPENDENCE SUPPORTED** | +0.0175 [+0.0024, +0.0323] | -0.2224 [-0.2772, -0.1667]; **NOT PROFITABLE** |
+| 65_size2 | 6,278 (3,488 / 2,790) | -0.0304 [-0.0490, -0.0123] q 0.001; **OVERCONFIDENT** | +0.0011 [-0.0140, +0.0155] q 0.889; **INDEPENDENCE SUPPORTED** | +0.0160 [-0.0129, +0.0439] | -0.1334 [-0.1783, -0.0903]; **NOT PROFITABLE** |
+| 65_size3 | 5,960 (3,156 / 2,804) | -0.0252 [-0.0429, -0.0074] q 0.008; **OVERCONFIDENT** | +0.0046 [-0.0098, +0.0189] q 0.670; **INDEPENDENCE SUPPORTED** | +0.0189 [-0.0012, +0.0400] | -0.1628 [-0.2319, -0.0935]; **NOT PROFITABLE** |
+| 75_size2 | 3,261 (2,369 / 892) | -0.0888 [-0.1165, -0.0606] q 0.001; **OVERCONFIDENT** | +0.0279 [+0.0086, +0.0471] q 0.016; **DEPENDENT** | +0.0449 [+0.0063, +0.0818] | -0.1227 [-0.1773, -0.0663]; **NOT PROFITABLE** |
+| 75_size3 | 3,285 (2,430 / 855) | -0.0868 [-0.1170, -0.0556] q 0.001; **OVERCONFIDENT** | +0.0347 [+0.0127, +0.0564] q 0.016; **DEPENDENT** | +0.0297 [-0.0002, +0.0617] | -0.1558 [-0.2425, -0.0691]; **NOT PROFITABLE** |
+| 85_size2 | 340 (215 / 125) | -0.1546 [-0.2455, -0.0656] q 0.001; **NO WORD (gate)** | +0.0314 [-0.0334, +0.0926] q 0.575; **NO WORD (gate)** | -0.0773 [-0.2294, +0.0594] | -0.0023 [-0.1705, +0.1556]; **NO WORD (gate)** |
+| 85_size3 | 218 (139 / 79) | -0.1382 [-0.2813, +0.0037] q 0.055; **NO WORD (gate)** | +0.0736 [-0.0447, +0.1884] q 0.443; **NO WORD (gate)** | +0.0086 [-0.1463, +0.1645] | +0.0917 [-0.2395, +0.4114]; **NO WORD (gate)** |
+| ge70_size2 | 3,337 (2,407 / 930) | -0.0985 [-0.1287, -0.0677] q 0.001; **OVERCONFIDENT** | +0.0237 [+0.0037, +0.0438] q 0.054; **INCONCLUSIVE** | +0.0114 [-0.0300, +0.0530] | -0.1287 [-0.1875, -0.0687]; **NOT PROFITABLE** |
+| ge70_size3 | 3,360 (2,481 / 879) | -0.0871 [-0.1195, -0.0551] q 0.001; **OVERCONFIDENT** | +0.0404 [+0.0167, +0.0637] q 0.004; **DEPENDENT** | +0.0434 [+0.0106, +0.0773] | -0.1528 [-0.2394, -0.0654]; **NOT PROFITABLE** |
+
+**Headline.** No cell is PROFITABLE (all 8 gated cells are NOT PROFITABLE, interval upper bounds -0.065 to -0.167); the two `85` cells are too thin (340 and 218 parlays) and get no word. T1: the model's joint probability is **OVERCONFIDENT** in `ge70` (2-leg -0.099, 3-leg -0.087), `75` (-0.089, -0.087) and `65` (-0.030, -0.025); `55` 3-leg is CALIBRATED (+0.013) and `55` 2-leg INCONCLUSIVE (+0.019, interval upper 0.033 just outside the margin). T2: INDEPENDENCE SUPPORTED in `55` and `65` (both sizes, the four cells that can issue it); **DEPENDENT** in `75` (2- and 3-leg, E +0.028 and +0.035) and `ge70` 3-leg (E +0.040); `ge70` 2-leg INCONCLUSIVE (E +0.024, q 0.054). So legs in the high-probability pools carry a positive cross-game dependence beyond the common bias (month-block drift and same-night effects are not removed), while mid-probability pools look independent.
+
+## Break-even and comparators (pooled, per cell)
+| Cell | Mean D | Mean joint P | Hit rate | Break-even decimal at claim / at realised | Compounded overround | Claimed EV | Realised ROI | C1 singles ROI |
+|---|---|---|---|---|---|---|---|---|
+| 55_size2 | 2.787 | 0.2952 | 0.3144 | 3.387 / 3.181 | 1.159 | -0.179 | -0.1513 | -0.0796 |
+| 55_size3 | 4.715 | 0.1608 | 0.1742 | 6.221 / 5.742 | 1.248 | -0.245 | -0.2224 | -0.0885 |
+| 65_size2 | 2.360 | 0.4068 | 0.3764 | 2.458 / 2.657 | 1.172 | -0.042 | -0.1334 | -0.0732 |
+| 65_size3 | 3.725 | 0.2595 | 0.2342 | 3.854 / 4.269 | 1.267 | -0.039 | -0.1628 | -0.0689 |
+| 75_size2 | 1.974 | 0.5401 | 0.4514 | 1.851 / 2.215 | 1.189 | +0.066 | -0.1227 | -0.0707 |
+| 75_size3 | 2.727 | 0.3973 | 0.3105 | 2.517 / 3.221 | 1.298 | +0.083 | -0.1558 | -0.0683 |
+| 85_size2 | 1.939 | 0.6899 | 0.5353 | 1.450 / 1.868 | 1.189 | +0.339 | -0.0023 | +0.0123 |
+| 85_size3 | 2.673 | 0.5740 | 0.4358 | 1.742 / 2.295 | 1.304 | +0.536 | +0.0917 | +0.0352 |
+| ge70_size2 | 1.957 | 0.5495 | 0.4510 | 1.820 / 2.217 | 1.188 | +0.075 | -0.1287 | -0.0687 |
+| ge70_size3 | 2.689 | 0.4065 | 0.3193 | 2.460 / 3.131 | 1.297 | +0.093 | -0.1528 | -0.0703 |
+
+The parlay multiplies the margin, not the edge: every cell's parlay ROI is below its legs bet singly (C1, -0.07 to -0.09 for the gated pools), by the compounded overround (1.16 to 1.30) and, in the `ge70` and `75` pools, by the joint overconfidence.
+
+## E2 and caveats
+E2 plan paths per cell and season are in the results file (a $2 x 10-a-week season of 3-leg parlays has a weekly sd about $7.7). Attacks: not run (no cell is PROFITABLE). Caveats from the rule stand: product pricing is an assumption no book guarantees; one capture (T-9) per leg; BetRivers is not Devin's venue; legs per date are uneven.
+

@@ -456,12 +456,12 @@ def run_preflight(
     repo: Path,
     pre_alt_backup: Path | None = None,
     lookup: Any = hc.git_prereg_shas,
-    adh_sha: str | None = None,
+    adh_sha: str | None = None,  # tests only; main() never passes it
 ) -> None:
     assert max(SEASONS) <= MAX_SEASON  # before any file is read
     pf.add("seasons <= 2024 (holdout never loaded)", max(SEASONS) <= MAX_SEASON, str(SEASONS))
     hc.check_rule(pf, repo / RULE_PATH, RULE_ID, repo, RULE_SHA, lookup)
-    hc.check_rule(pf, repo / ADH_PATH, ADH_ID, repo, adh_sha, lookup)
+    hc.check_rule(pf, repo / ADH_PATH, ADH_ID, repo, adh_sha or hc.ADH_SHA, lookup)
     pf.add("numpy version equals the rule's pin", np.__version__ == NUMPY_PIN, np.__version__)
     for f, want in CODE_SHA.items():
         path = repo / f
@@ -698,14 +698,11 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--repo-root", type=Path, default=Path("."))
     ap.add_argument("--out", type=Path, default=Path(OUT_DEFAULT))
     ap.add_argument("--pre-alt-backup", type=Path, default=None)
-    ap.add_argument(
-        "--adh-sha", default=None, help="the exact frozen ALT_LADDER_HIST sha256 (64 hex)"
-    )
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--b", type=int, default=hc.B_DEFAULT)
     args = ap.parse_args(argv)
     pf = hc.Preflight()
-    run_preflight(pf, args.data_root, args.repo_root, args.pre_alt_backup, adh_sha=args.adh_sha)
+    run_preflight(pf, args.data_root, args.repo_root, args.pre_alt_backup)
     if args.check_only:
         res = run_scoring(args.data_root, pf, with_y=False)
         print(json.dumps(pf.as_dicts(), indent=1))

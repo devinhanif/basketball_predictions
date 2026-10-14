@@ -228,4 +228,94 @@ Class checks (quantile layers): the reliability table is at the point that matte
 6. Not part of the freeze: ALT_LADDER_HIST (its decision words frozen before this rule's harness runs, unless Devin overrides and logs it), the forward Kalshi/Polymarket rule from 2026-10-20, and the PrizePicks calculation; plus the main session's correcting DECISIONS line ("Part 3" becomes "a new rule id").
 
 === RESULTS BELOW ===
-(empty until the frozen harness runs)
+**Run: Wed Oct 14 2026 (one pass, no reruns).** Harness `research/eval/alt_line_70_eval.py` (branch agent/modeler-alt-ladder), command `.venv/bin/python -W ignore -m research.eval.alt_line_70_eval --data-root /Users/devin/Downloads/nba-prediction --repo-root <worktree>`; B = 5,000 (game seed 2026, date seed 2027), plan R = 2,000; results file `reports/alt_line_70/results.json` sha256 2943c6e72ffe86f8a1a756204ef709135ddbecde080efd3eb6a373d18dc49bf6. All 58 preflight checks passed, including the rule sha a72bdff2, the ALT_LADDER_HIST freeze (ef316f3d), the odds-store fingerprint, every input sha and every count of the rule's gate tables (arm A 3,199 / 1,347 rungs). Seasons 2023 and 2024 only; 2025 never loaded. data_version: model rows 002e53ef.. / ec47dcdf.., pairs 050dba3e.. / 560a3808.., odds store fingerprint 5,223,918 rows (hash_sum 48161699822608609601892543, equal to the pre-alternate backup).
+
+## Decision words
+- **Part 1 model word: OVERCONFIDENT at 70%+ for fg3m.** Stat words: pts CALIBRATED, reb CALIBRATED, ast MIXED, fg3m OVERCONFIDENT.
+- **Part 2 primary (arm A, BetRivers `t5`, P >= 0.70, pooled E1): NOT PROFITABLE.** ROI -0.0696 [-0.0954, -0.0445] on n = 4,546 rungs (1,449 games), game- and date-clustered union interval; 2023 -0.0803 (n 3,199), 2024 -0.0440 (n 1,347). The upper bound is below the +0.02 floor.
+- Secondary bins (Part 2S): 55 NOT PROFITABLE, 65 NOT PROFITABLE, 75 NOT PROFITABLE, 85 NO WORD (gate) (bin 85 too thin: 495 rungs).
+
+## Part 1: calibration at P >= 0.70 (headline band [0.70, 0.90))
+gap = hit rate - mean P; decision interval = union of game- and date-clustered percentile intervals; BH over the 8 cells; cons. hw = conservative half-width.
+
+| Season | Stat | Line-rows | Games | Hit rate | Mean P | Gap | Decision interval | BH q | Word |
+|---|---|---|---|---|---|---|---|---|---|
+| 2023 | pts | 76,170 | 1,318 | 0.7929 | 0.8041 | -0.0112 | [-0.0167, -0.0060] | 0.000 | CALIBRATED |
+| 2023 | reb | 32,385 | 1,318 | 0.7969 | 0.8040 | -0.0070 | [-0.0127, -0.0016] | 0.014 | CALIBRATED |
+| 2023 | ast | 16,848 | 1,318 | 0.7854 | 0.7978 | -0.0124 | [-0.0189, -0.0059] | 0.000 | CALIBRATED |
+| 2023 | fg3m | 8,987 | 1,318 | 0.7786 | 0.7989 | -0.0203 | [-0.0291, -0.0116] | 0.000 | OVERCONFIDENT |
+| 2024 | pts | 76,389 | 1,315 | 0.7904 | 0.8066 | -0.0162 | [-0.0208, -0.0115] | 0.000 | CALIBRATED |
+| 2024 | reb | 31,871 | 1,315 | 0.7943 | 0.8055 | -0.0112 | [-0.0164, -0.0059] | 0.000 | CALIBRATED |
+| 2024 | ast | 18,304 | 1,315 | 0.7758 | 0.8048 | -0.0289 | [-0.0352, -0.0225] | 0.000 | OVERCONFIDENT |
+| 2024 | fg3m | 10,371 | 1,315 | 0.7696 | 0.8049 | -0.0353 | [-0.0434, -0.0270] | 0.000 | OVERCONFIDENT |
+
+**Reading.** The model is slightly overconfident in the 70-90% band in every cell (gaps -0.007 to -0.035); the bands are small in pts and reb (CALIBRATED), larger in ast 2024 (-0.029) and in fg3m in both seasons (-0.020, -0.035). ast is MIXED (2023 CALIBRATED, 2024 OVERCONFIDENT). Since fg3m is OVERCONFIDENT in both seasons the model word is "OVERCONFIDENT at 70%+ for fg3m". Reliability by P bin (gap (line-rows), per season and stat; descriptive, the full tables incl. distance slices and the BetRivers-posted decomposition are in the results file):
+
+| P bin | pts 2023 | reb 2023 | ast 2023 | fg3m 2023 | pts 2024 | reb 2024 | ast 2024 | fg3m 2024 |
+|---|---|---|---|---|---|---|---|---|
+| 0.70-0.75 | -0.000 (18,164) | -0.000 (7,784) | +0.009 (4,690) | +0.006 (2,420) | -0.000 (17,794) | -0.006 (7,480) | -0.009 (4,172) | -0.010 (2,352) |
+| 0.75-0.80 | -0.007 (18,735) | -0.005 (7,856) | -0.015 (4,266) | -0.017 (2,284) | -0.013 (17,660) | -0.018 (7,389) | -0.022 (4,488) | -0.029 (2,438) |
+| 0.80-0.85 | -0.012 (18,424) | -0.011 (8,236) | -0.015 (3,933) | -0.033 (2,062) | -0.018 (18,705) | -0.007 (8,154) | -0.036 (4,830) | -0.038 (2,894) |
+| 0.85-0.90 | -0.024 (20,847) | -0.011 (8,509) | -0.031 (3,959) | -0.041 (2,221) | -0.030 (22,230) | -0.015 (8,848) | -0.045 (4,814) | -0.060 (2,687) |
+| 0.90-0.95 | -0.028 (29,123) | -0.017 (11,319) | -0.047 (5,508) | -0.045 (2,319) | -0.034 (29,130) | -0.018 (12,367) | -0.039 (5,603) | -0.046 (2,559) |
+| 0.95-1.00 | -0.014 (95,137) | -0.011 (29,446) | -0.022 (16,530) | -0.053 (2,366) | -0.015 (94,477) | -0.012 (29,773) | -0.025 (16,269) | -0.052 (2,636) |
+| P=1.0 | -0.004 (26,842) | -0.004 (9,247) | -0.009 (4,307) | -0.059 (118) | -0.005 (27,557) | -0.007 (7,809) | -0.008 (4,529) | -0.020 (150) |
+
+**Secondary Part 1S (bins 55 / 65 / 75 / 85; 32 cells, BH over 32); gap per season and word:**
+
+| Bin | Stat | 2023 gap (word) | 2024 gap (word) | Stat word |
+|---|---|---|---|---|
+| 55 | pts | +0.0061 (39,673; CALIBRATED) | +0.0056 (38,341; CALIBRATED) | CALIBRATED |
+| 55 | reb | +0.0048 (16,886; CALIBRATED) | -0.0060 (16,274; CALIBRATED) | CALIBRATED |
+| 55 | ast | +0.0112 (11,457; CALIBRATED) | +0.0026 (11,000; CALIBRATED) | CALIBRATED |
+| 55 | fg3m | +0.0147 (6,257; CALIBRATED) | +0.0173 (6,115; CALIBRATED) | CALIBRATED |
+| 65 | pts | +0.0025 (37,633; CALIBRATED) | +0.0019 (37,385; CALIBRATED) | CALIBRATED |
+| 65 | reb | -0.0018 (14,823; CALIBRATED) | +0.0036 (15,652; CALIBRATED) | CALIBRATED |
+| 65 | ast | +0.0174 (9,722; CALIBRATED) | +0.0040 (9,288; CALIBRATED) | CALIBRATED |
+| 65 | fg3m | -0.0020 (5,179; CALIBRATED) | +0.0046 (4,749; CALIBRATED) | CALIBRATED |
+| 75 | pts | -0.0039 (36,899; CALIBRATED) | -0.0064 (35,454; CALIBRATED) | CALIBRATED |
+| 75 | reb | -0.0024 (15,640; CALIBRATED) | -0.0116 (14,869; CALIBRATED) | CALIBRATED |
+| 75 | ast | -0.0028 (8,956; CALIBRATED) | -0.0158 (8,660; CALIBRATED) | CALIBRATED |
+| 75 | fg3m | -0.0051 (4,704; CALIBRATED) | -0.0200 (4,790; INCONCLUSIVE) | MIXED |
+| 85 | pts | -0.0181 (39,271; CALIBRATED) | -0.0247 (40,935; OVERCONFIDENT) | MIXED |
+| 85 | reb | -0.0113 (16,745; CALIBRATED) | -0.0108 (17,002; CALIBRATED) | CALIBRATED |
+| 85 | ast | -0.0234 (7,892; OVERCONFIDENT) | -0.0407 (9,644; OVERCONFIDENT) | OVERCONFIDENT |
+| 85 | fg3m | -0.0371 (4,283; OVERCONFIDENT) | -0.0485 (5,581; OVERCONFIDENT) | OVERCONFIDENT |
+
+Bins 55 and 65 are CALIBRATED in all 16 cells; bin 75 is CALIBRATED except fg3m 2024 (INCONCLUSIVE; MIXED); bin 85 is OVERCONFIDENT in ast and fg3m in both seasons and in pts 2024. The overconfidence concentrates in the high-probability bin, as the prior said.
+
+## Part 2: profit at BetRivers `t5` prices ($2 x up to 10 bets a week)
+**Arm A (every eligible rung):** n = 4,546 rungs, 3,628 units, 1,449 games; E1 ROI -0.0696 [-0.0954, -0.0445]; E1u -0.0798 [-0.1047, -0.0561]. Gate: conservative half-width 0.0407 <= 0.05, PASS. Word **NOT PROFITABLE**.
+
+| Cut | n rungs | ROI | Decision interval | BH q | Word |
+|---|---|---|---|---|---|
+| stat pts | 3,337 | -0.0769 | [-0.1066, -0.0484] | 0.002 | NOT PROFITABLE |
+| stat reb | 373 | +0.0191 | [-0.0513, +0.0915] | 0.617 | INCONCLUSIVE |
+| stat ast | 391 | -0.0857 | [-0.1627, -0.0118] | 0.033 | NOT PROFITABLE |
+| stat fg3m | 445 | -0.0747 | [-0.1351, -0.0150] | 0.029 | NOT PROFITABLE |
+| bin 55 (pooled) | 41,415 | -0.0895 | [-0.1002, -0.0794] | 1.000 | NOT PROFITABLE (gate PASS) |
+| bin 65 (pooled) | 16,918 | -0.0851 | [-0.0988, -0.0716] | 1.000 | NOT PROFITABLE (gate PASS) |
+| bin 75 (pooled) | 4,004 | -0.0779 | [-0.1034, -0.0533] | 1.000 | NOT PROFITABLE (gate PASS) |
+| bin 85 (pooled) | 495 | -0.0116 | [-0.0762, +0.0509] | 1.000 | NO WORD (gate) (gate FAIL) |
+
+**Comparators and sensitivities (descriptive, never decide):** C1 market lean (own de-vigged over >= 0.70) -0.1277 (n 2,643); C2 all BetRivers rungs (vig baseline) -0.1039 (n 201,053); arm B best price any book -0.0415 [-0.0600, -0.0237] (n 8,329); Unibet replicate (2023) -0.0800; `t60` capture arm A -0.0695 (n 4,277). Arm A beats the vig baseline C2 by +0.034 (the model's selection recovers about a third of the overround) and still loses.
+
+**Break-even by P bin (arm A):**
+
+| P bin | Rungs | Claimed P | Realised hit rate (interval) | Mean decimal | Break-even at claim | Break-even at realised | ROI at claim | Realised ROI |
+|---|---|---|---|---|---|---|---|---|
+| 0.70-0.75 | 2,808 | 0.723 | 0.650 [0.632, 0.669] | 1.432 | 1.384 (-261) | 1.538 | +0.035 | -0.073 |
+| 0.75-0.80 | 1,196 | 0.772 | 0.647 [0.620, 0.674] | 1.418 | 1.295 (-339) | 1.545 | +0.095 | -0.088 |
+| 0.80-0.85 | 371 | 0.822 | 0.701 [0.655, 0.745] | 1.410 | 1.216 (-463) | 1.427 | +0.160 | -0.023 |
+| 0.85-0.90 | 124 | 0.873 | 0.726 [0.638, 0.810] | 1.435 | 1.145 (-688) | 1.378 | +0.253 | +0.022 |
+| 0.90-0.95 | 44 | 0.922 | 0.773 [0.622, 0.909] | 1.427 | 1.084 (-1184) | 1.294 | +0.315 | +0.099 |
+| 0.95-1.00 | 3 | 0.961 | 0.000 [0.000, 0.000] | 1.420 | 1.040 (-2496) | nan | +0.365 | -1.000 |
+
+**E2 plan dollars ($2 x <= 10 a week, R = 2,000 draws; descriptive):** 2023 (35 weeks, $620 staked): final profit median $-58 (5th $-92, 95th $-23), P(final > 0) 0.002, median max drawdown $63, losing weeks 0.66. 2024 (32 weeks, $486 staked): median $-15 (5th $-40, 95th $8), P(final > 0) 0.144.
+
+## Honest reading
+- No profit claim: NOT PROFITABLE (upper bound -0.0445). The $2 x 10-a-week plan loses a median $58 over the 2023 season and $15 over 2024 (E2). The model's claimed +5 to +11% edge at the posted price (gate) did not materialise: the realised hit rate in the 70-80% claim bins is 0.65, 7 to 13 points under the claim at BetRivers' rungs (the same shape as CALIBRATED_GRID).
+- Part 1 is price-free and covers every line of the support (gaps -0.7 to -1.6 points in pts and reb); Part 2 covers only the rungs BetRivers posts, where the 70-80% claims miss by 7 to 13 points. The BetRivers-posted decomposition of the band gap is in the results file; Part 1 does not transfer to bets.
+- Caveats from the rule stand: one snapshot (T-9), BetRivers is not Devin's venue, deep alternates are not in this rule (see ALT_LADDER_HIST).
+- Attacks: not run (the word is not PROFITABLE).
+

@@ -168,4 +168,91 @@ Class checks (quantile layers): the reliability table is at the point that matte
 8. That the result is never a recommendation to bet and that 2025 is not touched.
 
 === RESULTS BELOW ===
-(empty until the frozen harness runs)
+**Run: Wed Oct 14 2026 (one pass, no reruns), after the ALT_LINE_70 and ALT_PARLAY_X runs.** Harness `research/eval/alt_ladder_hist_eval.py`; B = 5,000 (game seed 2026, date seed 2027), plan R = 2,000; results `reports/alt_ladder_hist/results.json` sha256 5cc17281a6086ca6da91ab1d94a54ac3b1034f509765674a6b5d1c943a3ff73c. All 34 preflight checks passed: rule sha ef316f3d (exactly one distinct freeze sha in history, the one the ALT_LINE_70 result recorded), the pinned gate files, `gate.json` sha 005919d4, the five input shas, the odds fingerprint, snapshot_ts and last_update <= tip - 60 for every scored DraftKings, FanDuel and Fanatics row, and every window / lead-cap / ladder-exclusion / primary-arm rung count equal to the gate tables. DraftKings `t60` primary arm (window games, lead cap, defect window and off ladders excluded). Seasons 2023 and 2024 only.
+
+## Decision words
+- **Part 1 model word: NOT SHOWN calibrated (pts: MIXED, reb: CALIBRATED, ast: MIXED, fg3m: MIXED).** Stat words: pts MIXED, reb CALIBRATED, ast MIXED, fg3m MIXED.
+- **Part 2 primary (arm A, DraftKings `t60`, P >= 0.70, pooled E1): NOT PROFITABLE.** ROI -0.0573 [-0.0618, -0.0525] on n = 76,109 rungs (2,223 games, 377 dates); 2023 -0.0535 (n 25,826) [-0.0613, -0.0457], 2024 -0.0592 (n 50,283) [-0.0652, -0.0532]; word read as "not profitable at the DraftKings t60 snapshot (about T-64)". Gate PASS (conservative half-width 0.0199).
+- Part 2S bins: 55 NOT PROFITABLE, 65 NOT PROFITABLE, 75 NOT PROFITABLE, 85 NOT PROFITABLE.
+
+## Part 1: calibration on posted DraftKings rungs (headline band [0.70, 0.90))
+| Season | Stat | Rungs | Games | Hit rate | Mean P | Gap | Decision interval | BH q | Word |
+|---|---|---|---|---|---|---|---|---|---|
+| 2023 | pts | 6,477 | 880 | 0.7559 | 0.7780 | -0.0221 | [-0.0354, -0.0086] | 0.002 | OVERCONFIDENT |
+| 2023 | reb | 8,033 | 888 | 0.7887 | 0.7876 | +0.0011 | [-0.0094, +0.0114] | 0.837 | CALIBRATED |
+| 2023 | ast | 4,784 | 966 | 0.7824 | 0.7920 | -0.0096 | [-0.0217, +0.0025] | 0.133 | CALIBRATED |
+| 2023 | fg3m | 3,209 | 863 | 0.7775 | 0.7955 | -0.0180 | [-0.0327, -0.0034] | 0.027 | INCONCLUSIVE |
+| 2024 | pts | 16,818 | 1,252 | 0.7881 | 0.7989 | -0.0108 | [-0.0179, -0.0037] | 0.006 | CALIBRATED |
+| 2024 | reb | 10,524 | 1,247 | 0.7835 | 0.7922 | -0.0087 | [-0.0181, +0.0005] | 0.088 | CALIBRATED |
+| 2024 | ast | 5,086 | 1,216 | 0.7680 | 0.8009 | -0.0329 | [-0.0462, -0.0205] | 0.002 | OVERCONFIDENT |
+| 2024 | fg3m | 7,668 | 1,246 | 0.7743 | 0.8062 | -0.0320 | [-0.0411, -0.0226] | 0.002 | OVERCONFIDENT |
+
+**Reading.** pts 2023 is OVERCONFIDENT (gap -0.022 [-0.035, -0.009]) but pts 2024 is CALIBRATED (-0.011), so pts is MIXED; ast and fg3m are MIXED (ast 2023 CALIBRATED, 2024 OVERCONFIDENT -0.033; fg3m 2023 INCONCLUSIVE -0.018 [-0.033, -0.003], 2024 OVERCONFIDENT -0.032); only reb is CALIBRATED in both seasons. The model word is therefore "NOT SHOWN calibrated". The 2024 gaps for ast and fg3m (-0.03) match ALT_LINE_70's BetRivers main-line result for the same stats and season.
+
+**Secondary Part 1S (pooled over seasons, 16 cells, BH over 16):**
+
+| Bin | Stat | Rungs | Pooled gap [interval] | q | Per-season gaps (2023, 2024) | Word |
+|---|---|---|---|---|---|---|
+| 55 | pts | 21,347 | +0.0182 [+0.0107, +0.0254] | 0.001 | +0.024, +0.014 | CALIBRATED |
+| 55 | reb | 12,905 | +0.0304 [+0.0215, +0.0391] | 0.001 | +0.061, +0.016 | UNDERCONFIDENT |
+| 55 | ast | 7,920 | +0.0381 [+0.0271, +0.0492] | 0.001 | +0.093, +0.016 | UNDERCONFIDENT |
+| 55 | fg3m | 4,857 | +0.0470 [+0.0331, +0.0606] | 0.001 | +0.071, +0.041 | UNDERCONFIDENT |
+| 65 | pts | 16,420 | +0.0123 [+0.0043, +0.0198] | 0.001 | +0.002, +0.019 | CALIBRATED |
+| 65 | reb | 12,310 | +0.0261 [+0.0178, +0.0347] | 0.001 | +0.036, +0.020 | UNDERCONFIDENT |
+| 65 | ast | 6,525 | +0.0235 [+0.0114, +0.0359] | 0.001 | +0.049, +0.003 | UNDERCONFIDENT |
+| 65 | fg3m | 4,352 | +0.0224 [+0.0084, +0.0368] | 0.004 | +0.036, +0.017 | UNDERCONFIDENT |
+| 75 | pts | 13,054 | +0.0003 [-0.0076, +0.0080] | 0.944 | -0.010, +0.006 | CALIBRATED |
+| 75 | reb | 10,810 | +0.0079 [-0.0004, +0.0158] | 0.079 | +0.016, +0.001 | CALIBRATED |
+| 75 | ast | 5,253 | -0.0054 [-0.0171, +0.0062] | 0.424 | +0.005, -0.017 | CALIBRATED |
+| 75 | fg3m | 5,183 | -0.0039 [-0.0156, +0.0074] | 0.551 | +0.004, -0.008 | CALIBRATED |
+| 85 | pts | 10,241 | -0.0321 [-0.0394, -0.0244] | 0.001 | -0.046, -0.028 | OVERCONFIDENT |
+| 85 | reb | 7,747 | -0.0216 [-0.0302, -0.0127] | 0.001 | -0.021, -0.022 | OVERCONFIDENT |
+| 85 | ast | 4,617 | -0.0401 [-0.0521, -0.0287] | 0.001 | -0.029, -0.049 | OVERCONFIDENT |
+| 85 | fg3m | 5,694 | -0.0496 [-0.0610, -0.0382] | 0.001 | -0.045, -0.051 | OVERCONFIDENT |
+
+The pattern is monotone in P: the model is UNDERCONFIDENT at 50-70% (bin 55: reb, ast, fg3m; bin 65: reb, ast, fg3m; gaps +0.02 to +0.05), CALIBRATED at 70-80%, and OVERCONFIDENT at 80-90% in all four stats (gaps -0.022 to -0.050). The primary band [0.70, 0.90) therefore mixes a calibrated half and an overconfident half. Reliability by P bin and the deep-tail / distance / starter-bench tables are in the results file.
+
+## Part 2: profit at DraftKings `t60` prices ($2 x up to 10 bets a week)
+| Cut | n rungs | ROI | Decision interval | BH q | Word |
+|---|---|---|---|---|---|
+| arm A pooled | 76,109 | -0.0573 | [-0.0618, -0.0525] | n/a | **NOT PROFITABLE** |
+| stat pts | 28,636 | -0.0582 | [-0.0652, -0.0510] | 0.000 | NOT PROFITABLE |
+| stat reb | 21,809 | -0.0619 | [-0.0699, -0.0542] | 0.000 | NOT PROFITABLE |
+| stat ast | 12,802 | -0.0495 | [-0.0588, -0.0399] | 0.000 | NOT PROFITABLE |
+| stat fg3m | 12,862 | -0.0551 | [-0.0636, -0.0465] | 0.000 | NOT PROFITABLE |
+| bin 55 (pooled) | 47,029 | -0.0975 | [-0.1055, -0.0896] | 1.000 | NOT PROFITABLE (2023 -0.1036, 2024 -0.0941) |
+| bin 65 (pooled) | 39,607 | -0.0796 | [-0.0870, -0.0723] | 1.000 | NOT PROFITABLE (2023 -0.0850, 2024 -0.0761) |
+| bin 75 (pooled) | 34,300 | -0.0633 | [-0.0696, -0.0570] | 1.000 | NOT PROFITABLE (2023 -0.0608, 2024 -0.0650) |
+| bin 85 (pooled) | 28,299 | -0.0569 | [-0.0632, -0.0506] | 1.000 | NOT PROFITABLE (2023 -0.0476, 2024 -0.0611) |
+
+E1u -0.0573 [-0.0617, -0.0529]. Every bin and every stat is negative; ROI improves monotonically with P (bin 55 -0.0975 to bin 85 -0.0569) but stays about 5.7 points under zero at the top: roughly the overround.
+
+**Comparators and replicates (descriptive):** C1 price lean (1/d >= 0.70) -0.0735 (n 114,611); C2 all primary-arm rungs -0.1499 (n 514,752); arm B best price across books -0.0477 [-0.0515, -0.0437] (n 178,785, mean 2.19 books per rung); FanDuel arm A -0.0518 [-0.0562, -0.0473] (n 139,911; same sign as DraftKings; FanDuel Part 1 words: pts CALIBRATED, reb CALIBRATED, ast MIXED, fg3m MIXED); Fanatics (2024) -0.0593 [-0.0677, -0.0509] (n 44,144). Other books' P >= 0.70 ROI (point): betmgm -0.091, betonlineag -0.063, betrivers -0.078, bovada -0.057, mybookieag -0.043, pointsbetus -0.060, williamhill_us -0.105 (counts in the results file).
+
+**Sensitivities (descriptive, never decide):**
+| Arm | n rungs (P >= 0.70) | ROI [interval] |
+|---|---|---|
+| S1_window_games_included | 79,712 | -0.0568 [-0.0613, -0.0521] |
+| S2_no_lead_cap | 76,151 | -0.0572 [-0.0617, -0.0524] |
+| S3_excluded_added_back | 78,246 | -0.0211 [-0.0427, +0.0040] |
+| window_games_only | 3,603 | -0.0454 [-0.0665, -0.0247] |
+
+S1 and S2 move the ROI by 0.001 or less: the report-window exclusion and the lead cap do not matter (the window games alone lose -0.045). **S3, adding back the defect-window rungs and flagged ladders, moves the pooled ROI from -0.057 to -0.021 and widens the interval to include zero** ([-0.043, +0.004]): the mislabelled DraftKings December-2023 ladders would have made the strategy look about 3.6 points better and nearly profitable, which is the artifact the integrity exclusions were written for.
+
+**Break-even (arm A, by P bin):**
+| P bin | Rungs | Claimed P | Realised hit (interval) | Mean decimal | ROI at claim | Realised ROI |
+|---|---|---|---|---|---|---|
+| 0.70-0.75 | 18,109 | 0.726 | 0.739 [0.732, 0.746] | 1.283 | -0.070 | -0.059 |
+| 0.75-0.80 | 16,191 | 0.776 | 0.763 [0.757, 0.770] | 1.228 | -0.047 | -0.068 |
+| 0.80-0.85 | 15,231 | 0.826 | 0.804 [0.797, 0.811] | 1.180 | -0.025 | -0.055 |
+| 0.85-0.90 | 13,068 | 0.876 | 0.828 [0.821, 0.835] | 1.139 | -0.002 | -0.059 |
+| 0.90-0.95 | 10,091 | 0.925 | 0.869 [0.862, 0.876] | 1.102 | +0.020 | -0.044 |
+| 0.95-1.00 | 3,419 | 0.968 | 0.895 [0.884, 0.906] | 1.074 | +0.040 | -0.040 |
+
+**E2 plan dollars (R = 2,000):** 2023 (29 weeks, $580 staked) median final $-34 (5th $-63, 95th $-9), P(final > 0) 0.013; 2024 (35 weeks, $700) median $-44 (5th $-73, 95th $-14), P(final > 0) 0.004.
+
+## Honest reading
+- Not profitable at DraftKings alternate prices: pooled ROI -0.057 with an upper bound of -0.053, 0.073 below the +0.02 floor; the plan loses $34 to $44 a season in the median draw. The loss is about the overround; no P bin earns a positive ROI.
+- Calibration: the model is calibrated in the middle (70-80%) and overconfident above 80% on posted rungs; below 70% it is underconfident. Posted-rung overconfidence at 85-90% costs real money because those rungs sit at -700 and shorter.
+- Attacks: not run (the word is not PROFITABLE). Pre-registered follow-up allowed: the forward Kalshi / Polymarket rule only.
+
