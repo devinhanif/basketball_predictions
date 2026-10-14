@@ -1125,3 +1125,7 @@ Why: Devin. What would reverse it: the review finding the exclusion does not clo
 **2026-10-14 14:56 CDT — SEQ_LEARNING_CURVE_2: A_m = DATA, E = FLAT (T487); attack SURVIVES (T488). The curve question closes.**
 What: the 4-to-8-season gain in the W_ALL sequence model is data, not extra warm steps (step share +0.0000 [-0.0011, +0.0013]); 10 vs 8 seasons is FLAT as a bound (rules out the 6-to-8 slope, not half of it). This was the one allowed follow-up to T485: the curve closes. No production change: any change to the served window needs its own 2024-25 replication rule. Priors scored: both hits.
 Why: frozen rule 86f31649 and the attack. What would reverse it: the untested S1 planted-future/shuffled retraining (Colab) breaking A_m.
+
+**2026-10-14 15:05 CDT — COMBO_STOCKS_SHADOW signed; ALT_LADDER_HIST B1 approved (Devin).**
+What: (1) Devin signed COMBO_STOCKS_SHADOW (one six-stat copula; blk/stl NB heads; realised-minutes slices kept, so RA cannot PASS; PRA/PA fail G1 narrowly on 2024 and can PASS only if live differs; the no-lock bypass removed); frozen once the reviewer confirms R1-R4, then the steward wires it on 10-16 with the oracle checked. (2) Devin approved ALT_LADDER_HIST B1: exclude the mislabelled DraftKings points-alternate ladders (2023-12-07..19) and add a price-only ladder-integrity filter for every book before freeze; his earlier signature stands unless the re-review finds another substantive change.
+Why: the pre-freeze reviews. What would reverse it: a substantive finding in the confirmations.
