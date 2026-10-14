@@ -198,4 +198,87 @@ T-60 and T-9 for a player whose minutes were cut, and every parlay that would ha
 The ledger rows for the priors are already drafted in `docs/PREDICTIONS_LEDGER.md`. The B1 restatement, if made, needs a dated
 note there. The DECISIONS row for Devin's ask is drafted in `docs/reviews/ALT_LINE_70_prefreeze_2026-10-14.md` (v3 review).
 
+(First-review verdict: BLOCKED; superseded by the re-review below.)
+
+## Re-review, 2026-10-14 (revision 2: branch commit 80b7cf3, merged at ae4e9dd)
+
+What I checked: `git diff 4628557 HEAD -- docs/prereg/ALT_PARLAY_X.md research/eval/alt_parlay_x_gate.py` and the whole
+revised rule, read again for new contradictions. The above-the-line sha256 at re-review time is
+`0071937a0d2ea88075913d865ddadab042a39aff53a5ab2ca12f8d37b169b6d2`.
+
+Conditions: no `y` was read, season 2025 was not loaded, and DuckDB was opened read-only.
+
+**The gate reproduces byte for byte.** I re-ran it to the scratchpad:
+`.venv/bin/python -W ignore -m research.eval.alt_parlay_x_gate --data-root . --out <scratchpad>/gate_repro.json`. It exits 0
+with sha256 `31e93881...`, and `cmp` against the committed `gate.json` exits 0. The rule's widths table matches the
+`pooled.*.null_halfwidths` in `gate.json`. My first-review simulation agrees independently: ge70 2-leg T1 per season
+0.034 / 0.054, which pools to about 0.029, against the gate's 0.0281.
+
+### The blocking items
+| Item | Status | Where / evidence |
+|---|---|---|
+| B1 (T1/T2 had no gate; positive words unreachable) | **FIXED** | Line 34: words are decided per (pool, size), pooled, with a per-season sign check. Lines 35-36: CALIBRATED and INDEPENDENCE SUPPORTED are restricted to the cells that can issue them. Lines 48 and 65-80: model-only widths are in the gate, along with the can-issue table and the list of cells that cannot issue positive words (T1: ge70 2/3, 75 2/3; T2: ge70 3, 75 3; both 85 cells get no word). Line 80 says INCONCLUSIVE there means underpowered. Line 36 and line 124: the new E scale, its 0.01 point limit and the 0.02 can-issue bound are disclosed as set after the widths and before any outcome. Line 89 and `PREDICTIONS_LEDGER.md` (last row): the priors are restated, and the earlier row stands. |
+| B2 (unstated families and multiplicity) | **FIXED** | Line 34: three BH families of m = 10 (T1 directional, T2 DEPENDENT, money), with the 85 cells' p values counted in m. Line 36: pairs are counted with multiplicity; the code matches (`estimators`, loop over all pairs of columns of each parlay row). |
+| B3 (pulled-line guard) | **FIXED** | Line 19 adds the statement and says the bias compounds with m. Line 82 gives the counts per pool and season (1.5%-5.3%). Line 44 adds attacks (vii) and (viii) with a sign requirement, implemented by `pulled_units` and `pool_legs_with_pulled`. |
+| B4 (construction identity) | **FIXED** | Lines 131-132: both code sha256 values match the files (`shasum`: 169b8194..., 8da31748...), the numpy version is 2.5.3, the pooled counts are listed, the per-cell `fingerprint_sha256` is stored in `gate.json`, and the harness asserts all of them. `run_gate` now asserts `max(SEASONS) <= MAX_SEASON` before any read, which makes line 7 true. |
+| Minor items from the first review | done | Lines 16 and 143 say plainly that PROFITABLE needs roughly +0.05 to +0.13. Line 45 adds that there is no single placement time. Line 26 covers thin-date weights. Line 36 adds a week-clustered interval of E. |
+
+### Is every word reachable on the real gate widths? (non-negotiable 8)
+The bar for each word, on the model-only widths (a lower bound, so the real bar is higher):
+- **CALIBRATED** (|gap| <= 0.02 and interval inside +-0.03): issued only where the pooled width is <= 0.02 (0.0107-0.0184),
+  which leaves |gap| up to about 0.012-0.019. Reachable in all 4 listed cells.
+- **INDEPENDENCE SUPPORTED** (|E| <= 0.01 and interval inside +-0.03): issued only where the width is <= 0.02 (0.0101-0.0191).
+  Reachable in all 6 listed cells, but only barely in ge70 2-leg (0.0191) and 75 2-leg (0.0189). Both sit just under a
+  bound that was chosen after the widths were seen. This is disclosed and involves no outcome, so it is acceptable. With
+  same-night shocks the real width will be larger, so in those two cells INCONCLUSIVE is the likely word, and the restated
+  prior (0.30) says so.
+- **OVERCONFIDENT / UNDERCONFIDENT / DEPENDENT** need the statistic beyond 0.02 (T1) or 0.01 (E) and beyond the width.
+  Reachable in every gated cell for effects of about 0.011-0.034 (T1) and 0.010-0.025 (E).
+- **PROFITABLE / NOT PROFITABLE** were checked in the first review; both are reachable.
+
+The cells that cannot issue positive words are listed (lines 69-80). PASS.
+
+### New problems introduced by the revision
+**B5 (blocking, one line): the p-value behind the T1 and T2 BH q is no longer defined (lines 35-36).** The first draft said
+"the p-value is the date-clustered bootstrap p, the only cluster available here". Revision 2 deleted that sentence (visible in the
+diff) and put nothing in its place. Only the money word still says where its p comes from (line 38, one-sided). OVERCONFIDENT,
+UNDERCONFIDENT and DEPENDENT all need "BH q < 0.05". Without a stated p, the harness author has to choose one-sided or
+two-sided, the bootstrap type and the +1 correction, and that choice changes q and so the word.
+*Fix:* at the end of line 34, add: "For T1 and T2, p is the two-sided date-clustered bootstrap p of the cell's pooled statistic
+against 0 (B = 5,000, `default_rng(2026)`, with the +1 correction), the same resample of dates as the interval."
+
+Non-blocking (fix in the same pass):
+- **N1 (major, disclosure): the +-0.03 margin of probability means a different amount of money in each cell.** The median
+  parlay decimal D is about 1.8-2.0 for ge70/75 2-leg, 2.5-3.0 for 55 2-leg, and 4.0-5.2 for 55 3-leg (`gate.json`
+  `decimal_p10_med_p90`). So an interval edge of 0.03 is worth an ROI of about +-0.06 (ge70 2-leg) up to about +-0.14 (55 3-leg).
+  The 0.01 point limit on E is worth +-0.02 to +-0.05. The mean joint P in 55 3-leg is 0.16, so +-0.03 there is about +-19%
+  relative. A CALIBRATED or INDEPENDENCE SUPPORTED word in pools 55 and 65 is therefore a weak equivalence when measured in
+  money. *Fix:* one sentence after line 80 giving D x 0.03 per cell.
+- **N2: attack (viii) re-draws everything, not only the added legs.** `pool_legs_with_pulled` concatenates the pulled rows and
+  then calls `pool_legs`, which assigns `u` over the merged sorted table. Every unit's leg can change, and `draw_parlays` re-draws
+  every date. So the attack's ROI change mixes the pulled-line effect with construction noise. That makes the sign test
+  stricter, not more lenient, so it cannot hide the leak. It does stop line 44's "same seeds" from meaning "same parlays plus
+  the pulled legs". *Fix:* either say this on line 44, or report the attack as the ROI difference over the parlays that contain
+  at least one pulled leg.
+- **N3: two lines still conflict about PROFITABLE.** Line 50 still says "PROFITABLE is nearly out of reach by design" (conservative
+  bound only), while line 16 gives the realistic +0.05 to +0.13. *Fix:* on line 50, append "(on the conservative bound; line 16
+  gives the realistic range)".
+- **N4: coupling.** ALT_PARLAY_X pins `alt_line_70_gate.py`, so any edit to that file stops this rule (the harness assert)
+  unless the rule records a new hash. ALT_LINE_70's own harness must import that file, not edit it. Note this for the main session.
+
+### Verification (unpiped)
+- `.venv/bin/python -m pytest -q tests/research/eval/test_alt_parlay_x_gate.py tests/research/eval/test_alt_line_70_gate.py --no-cov -p no:cacheprovider`: 18 passed, exit 0.
+- `ruff check` exit 0, `ruff format --check` exit 0, `mypy research/eval/alt_parlay_x_gate.py` exit 0.
+- Gate rerun exit 0; `cmp` exit 0.
+
+### Playbook check (re-review)
+The class is unchanged. Enough data: the joint words are now sized, and the positive words are limited to the cells that can
+carry them. Test validity: the pulled-line guard is inherited. What remains is the lower-bound nature of the widths (no
+same-night shocks) and N1. Lineage: ALT_LINE_70's attacks (vii) and (viii) are now carried.
+
+**Single biggest risk (re-review):** unchanged. Pulled late-news overs flatter the parlays if a PROFITABLE word appears.
+Attack (viii) now guards it.
+
+**Not verified:** real bootstrap widths; BetRivers' real parlay pricing; whether the future harness writes p as B5 asks.
+
 Verdict: BLOCKED
