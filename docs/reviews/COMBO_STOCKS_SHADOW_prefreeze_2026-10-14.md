@@ -294,3 +294,21 @@ exit 0 on `reports/prereg_combo_stocks_shadow`. The hashes of `combo_g1.py` (792
 No other changes and no new contradictions.
 
 Verdict: BLOCKED
+
+## Third re-review (revision c4a0b9d, 2026-10-14)
+
+Scope: `git diff 72563af c4a0b9d` changes four files and only the lock wrappers. Each of `stage_c_guards.py`, `mc_noise.py` and
+`make_config_and_p1.py` renames its body to `_main()` and wraps it in `WE.WorkloadLock(LOCK)`. The new test is
+`tests/props/test_combo_scripts_lock.py`.
+
+Checks:
+- **Test:** `pytest -q -p no:cacheprovider --no-cov tests/props/test_combo_scripts_lock.py`: 1 passed, exit 0.
+- **Lint:** `ruff check` exit 0 and `ruff format --check` exit 0 on the scripts and `tests/props`.
+- **Grep:** every one of the five scripts has a `WorkloadLock(` call, at `stage_a_oof.py:90`, `stage_b.py:685`, `stage_c_guards.py:136`,
+  `mc_noise.py:53` and `make_config_and_p1.py:157`. None contains `NO_LOCK`, `nullcontext`, `os.environ` or a no-lock flag.
+- **The lock itself:** `research/eval/workload_eval.WorkloadLock` has no environment bypass. Its only timeout raises `TimeoutError` instead
+  of proceeding, and the scripts leave `max_wait_s` at None, so they wait.
+
+Line 81's "never skip it" is now true. R3 is FIXED. No other changes.
+
+Verdict: APPROVED
