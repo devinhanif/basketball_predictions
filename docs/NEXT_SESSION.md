@@ -2,6 +2,17 @@
 
 _Updated 2026-10-13 (pruned to open items). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
+## SIX-DAY PLAN to opening night (written 2026-10-14; production stays on the MacBook)
+| Day | Claude / agents | Devin |
+|---|---|---|
+| Tue 10-14 | LC2 re-score (fixed scorer) + adversary attack + ledger; AVG_SHADOW_LIVE_2 freeze if signed; steward re-runs P3; pretip dry run (slate 0) with all new code; launchctl / registry / full suite + CI green; fix the 10 mypy errors | "sign AVG2" or no; run the scratch cleanup command |
+| Wed 10-15 | AVG Colab rebuild staged; P1a/P1b proofs after it; incident-log and retro catch-up | click Run on the rebuild notebook (~45 T4 min) |
+| Thu 10-16 | if all AVG proofs pass: PR-style diff to add --log-avg-shadow to ops/nba_daily.sh, replay oracle before/after; watchdog drill (stop a job, confirm the alert); ingest-queue game-day decision | approve or decline AVG wiring (a production change) |
+| Fri 10-17 | last change day: CI green, backups verified, tag opening-night-2026-10-20, opening-night checklist final | read the checklist (5 min) |
+| Sat-Mon 10-18/19 | hands-off: nothing under nba/, ops/, configs/, uv.lock; monitoring only | Mac on AC, lid open from 10-19 |
+| Tue 10-20 | opening night: supervised pretip run, ALERTS, forward rows before tip, shadows writing, odds file shapes | 5-minute check after first tip |
+Not in the six days: mini PC, app/PWA work, reporter feed (needs Devin's X sign-up; optional for opening night).
+
 ## PAUSED 2026-10-13 ~16:05 CDT (Devin heading home)
 - SEQ_LEARNING_CURVE_2: FROZEN 86f31649 (cf2ba61), loader review APPROVED (93dd7c0), Colab run done 98.5 T4 min (pulled to
   data/colab/runs/seq_learning_curve_2/20261013_134937/). Scoring was running on the Mac (modeler; log in the session
