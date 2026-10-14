@@ -109,6 +109,17 @@ export interface LegRole {
   say: string;
 }
 
+/** One book's stored quote at the line on screen. A quote that is not usable has no number. */
+export interface BookRow {
+  book: string;
+  over_price: number | null;
+  under_price: number | null;
+  over_unusable: boolean;
+  under_unusable: boolean;
+  alternate: boolean;
+  minutes_before_tip: number | null;
+}
+
 export interface LegPrices {
   posted_line: number | null;
   over_price: number | null;
@@ -116,6 +127,7 @@ export interface LegPrices {
   on_posted_line: boolean;
   snapshot_utc: string | null;
   say: string;
+  books: BookRow[];
 }
 
 export interface LadderRow {

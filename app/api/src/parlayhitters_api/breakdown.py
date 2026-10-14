@@ -139,6 +139,19 @@ class Role(BaseModel):
     say: str
 
 
+class BookRow(BaseModel):
+    """One book's stored quote at the line on screen. A price that is not usable (a placeholder
+    with no bid behind it) is never given as a number: it is None and `*_unusable` is set."""
+
+    book: str
+    over_price: int | None
+    under_price: int | None
+    over_unusable: bool
+    under_unusable: bool
+    alternate: bool  # the quote came from the alternate-line ladder
+    minutes_before_tip: float | None
+
+
 class Prices(BaseModel):
     posted_line: float | None
     over_price: int | None
@@ -146,6 +159,7 @@ class Prices(BaseModel):
     on_posted_line: bool
     snapshot_utc: str | None
     say: str
+    books: list[BookRow] = []
 
 
 class LadderRow(BaseModel):
@@ -268,7 +282,7 @@ def half_grid(lo: float, hi: float) -> list[float]:
 class Context:
     """One game and one player, with the as-of rule applied once."""
 
-    def __init__(self, hist: History, game: Json, player: Json) -> None:
+    def __init__(self, hist: History, game: Json, player: Json, stat: str | None = None) -> None:
         self.h = hist
         self.game = game
         self.player = player
@@ -281,11 +295,17 @@ class Context:
         self.opp = away_id if player["side"] == "home" else home_id
         self.is_home = player["side"] == "home"
         # THE as-of filter: strictly before the slate date. Same-day and later rows never enter.
-        self.prior: list[Row] = [r for r in hist.logs.get(self.pid, []) if r.date < self.date]
+        self.all_prior: list[Row] = [r for r in hist.logs.get(self.pid, []) if r.date < self.date]
+        # A game whose box score lacks a column this stat needs (steals, blocks) is left out of
+        # that stat's counts, never counted as zero.
+        self.prior: list[Row] = [r for r in self.all_prior if stat is None or hist.usable(r, stat)]
         self.prior_season = [r for r in self.prior if r.season == self.season]
 
     def last(self, n: int) -> list[Row]:
         return self.prior[-n:][::-1]  # most recent first
+
+    def last_for(self, stat: str, n: int) -> list[Row]:
+        return [r for r in self.all_prior if self.h.usable(r, stat)][-n:][::-1]
 
     def rest_days(self, team: int, gid: str) -> int | None:
         """Full days off before this team game, from the team's own schedule; None if unknown."""
@@ -544,6 +564,7 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
     rows = ctx.h.prices.get(ctx.gid, {}).get(str(ctx.pid), {}).get(stat, [])
     main = next((x for x in rows if x["main"]), None)
     at = next((x for x in rows if x["point"] == line), None)
+    books = _books_at(ctx, stat, line)
     if main is None:
         return Prices(
             posted_line=None,
@@ -556,6 +577,7 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
                 if ctx.h.market
                 else "This data holds no sportsbook lines or prices, so none is shown."
             ),
+            books=books,
         )
     if at is None:
         return Prices(
@@ -565,6 +587,7 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
             on_posted_line=False,
             snapshot_utc=main.get("snapshot_utc"),
             say="No price is stored for this line.",
+            books=books,
         )
     return Prices(
         posted_line=float(main["point"]),
@@ -572,8 +595,65 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
         under_price=at["under_price"],
         on_posted_line=bool(at["main"]),
         snapshot_utc=at.get("snapshot_utc"),
-        say="Posted price, DraftKings about an hour before tip.",
+        say=_price_say(at),
+        books=books,
     )
+
+
+BOOK_NAMES = {
+    "draftkings": "DraftKings",
+    "fanduel": "FanDuel",
+    "betmgm": "BetMGM",
+    "caesars": "Caesars",
+    "espnbet": "ESPN Bet",
+    "fanatics": "Fanatics",
+    "kalshi": "Kalshi",
+    "novig": "Novig",
+    "polymarket": "Polymarket",
+    "polymarket_us": "Polymarket US",
+}
+
+
+def book_name(key: str) -> str:
+    return BOOK_NAMES.get(key, key.replace("_", " ").capitalize())
+
+
+def _price_say(entry: Json) -> str:
+    """Who quoted the price on screen (fixture entries name no book: DraftKings)."""
+    ob, ub = entry.get("over_book"), entry.get("under_book")
+    if ob is None and ub is None:
+        return "Posted price, DraftKings about an hour before tip."
+    if ob is not None and ub is not None and ob != ub:
+        return (
+            f"Posted prices, over from {book_name(ob)} and under from {book_name(ub)}, "
+            "captured before tip."
+        )
+    return f"Posted price from {book_name(str(ob or ub))}, captured before tip."
+
+
+def _books_at(ctx: Context, stat: str, line: float) -> list[BookRow]:
+    """Every book's stored quote at this exact line, main and alternate ladders together."""
+    quotes = ctx.h.quotes.get(ctx.gid, {}).get(str(ctx.pid), {}).get(stat, [])
+    by_book: dict[str, dict[str, Json]] = {}
+    for q in quotes:
+        if float(q["line"]) == line:
+            by_book.setdefault(q["book"], {})[q["side"]] = q
+    out: list[BookRow] = []
+    for book in sorted(by_book):
+        o, u = by_book[book].get("over"), by_book[book].get("under")
+        mins = [q["minutes_before_tip"] for q in (o, u) if q and q.get("minutes_before_tip")]
+        out.append(
+            BookRow(
+                book=book,
+                over_price=None if o is None else o["price"],
+                under_price=None if u is None else u["price"],
+                over_unusable=bool(o and o["unusable"]),
+                under_unusable=bool(u and u["unusable"]),
+                alternate=any(q["alt"] for q in (o, u) if q),
+                minutes_before_tip=min(mins) if mins else None,
+            )
+        )
+    return out
 
 
 def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderRow]:
@@ -611,8 +691,8 @@ def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderR
 
 def _tabs(ctx: Context) -> list[StatTab]:
     tabs: list[StatTab] = []
-    last10 = ctx.last(LAST_N)
     for st in ctx.h.stats:
+        last10 = ctx.last_for(st, LAST_N)
         rows = ctx.h.prices.get(ctx.gid, {}).get(str(ctx.pid), {}).get(st, [])
         main = next((x for x in rows if x["main"]), None)
         posted = None if main is None else float(main["point"])
@@ -621,8 +701,8 @@ def _tabs(ctx: Context) -> list[StatTab]:
         source: Literal["posted", "last10_middle", "model_middle"]
         if posted is not None:
             start, source = posted, "posted"
-        elif has_model and not ctx.h.market:
-            # No sportsbook line exists in this data: start at the middle of the model's own
+        elif has_model:
+            # No sportsbook line is stored for this prop: start at the middle of the model's own
             # forecast, the same reference line the game page shows. Not a market line.
             start, source = reference_line(ctx.player["props"][st]["forecast"]), "model_middle"
         else:
@@ -686,7 +766,7 @@ def build(
 ) -> Breakdown:
     if stat not in hist.stats:
         raise ValueError(f"unknown stat {stat}")
-    ctx = Context(hist, game, player)
+    ctx = Context(hist, game, player, stat)
     last10 = ctx.last(LAST_N)
     last5 = last10[:RECENT_N]
     tabs = _tabs(ctx)

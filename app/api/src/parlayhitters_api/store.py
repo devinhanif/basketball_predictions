@@ -28,6 +28,7 @@ log = logging.getLogger("parlayhitters")
 
 class Store:
     mode = FIXTURE_MODE
+    has_lines = True  # every fixture prop has a posted line and price
 
     def __init__(self, root: Path | None = None) -> None:
         self.root = Path(os.environ.get("APP_FIXTURES_DIR") or root or DEFAULT_FIXTURES)

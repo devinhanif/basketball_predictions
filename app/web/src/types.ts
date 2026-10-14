@@ -38,6 +38,7 @@ export interface KeyProp {
   model_p_over: number;
   /** Null when the data holds no sportsbook price (the nightly export). */
   market_p_over: number | null;
+  line_source: "posted" | "reference";
   extrapolated: boolean;
 }
 
@@ -76,6 +77,8 @@ export interface PropView {
   line_source: "posted" | "reference";
   over_price: number | null;
   under_price: number | null;
+  /** The one book whose over and under are shown. */
+  price_book: string | null;
   line_snapshot_utc: string | null;
   forecast_mean: number | null;
   q: number[];
@@ -135,6 +138,7 @@ export interface SwipeCardData {
   line: number;
   over_price: number;
   under_price: number;
+  book: string | null;
   tip_utc: string;
 }
 
