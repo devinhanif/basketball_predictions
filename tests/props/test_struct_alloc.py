@@ -103,8 +103,14 @@ def test_planted_future_changes_nothing() -> None:
     )
     # tonight's row is scored, but nothing of game 25 or later may enter a state or the pool
     f1 = _run(scr).sort("player_id")
-    cols = [c for c in f0.columns if c.startswith(("struct_", "V_", "leader_out_"))]
-    assert f0.select(cols).equals(f1.select(cols))
+    cols = [c for c in f0.columns if c.startswith(("struct_", "V_", "leader_out_", "role_share_"))]
+    for c in (
+        cols
+    ):  # polars group-by sums are order-nondeterministic: floats to 1e-9, discrete columns exactly
+        if c.startswith("leader_out_"):
+            assert f0[c].to_list() == f1[c].to_list()
+        else:
+            assert np.allclose(f0[c].to_numpy(), f1[c].to_numpy(), rtol=0, atol=1e-9)
 
 
 def test_vacated_totals_match_production_vac() -> None:
@@ -184,3 +190,22 @@ def test_prop_shifts_share_toward_high_trait_player() -> None:
     hi = f1["tr_use"].arg_max()
     assert hi is not None
     assert f1["prop_d_pts"][hi] > f0["prop_d_pts"][hi]
+
+
+def test_attach_struct_null_rule_and_role_share() -> None:
+    box = _box()
+    f = _run(box)
+    assert (f["role_share_pts"] > 0).all() and (f["role_share_pts"] < 1).all()
+    feats = pl.DataFrame(
+        {
+            "game_id": ["G025", "G025", "G026", "G027"],
+            "team_id": [T1, T1, T1, T1],
+            "player_id": [2, 3, 2, 2],
+            "has_report": [1, 1, 1, 0],
+        }
+    )
+    a = S.attach_struct(feats, f.filter(pl.col("player_id").is_in([2, 3])))
+    # reported and scored: the value; reported, nobody OUT: explicit 0; no usable report: NULL
+    assert a["struct_d_pts"][0] is not None and a["struct_d_pts"][0] > 0
+    assert a["struct_d_pts"][2] == 0.0
+    assert a["struct_d_pts"][3] is None and a["role_share_pts"][3] is None and a["V_pts"][3] is None

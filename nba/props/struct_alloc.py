@@ -259,6 +259,15 @@ def build_struct(
             .otherwise(0.0)
             .alias(f"struct_d_{s}")
         )
+        # role share: the player's as-of share of the WHOLE rotation's stat (OUT players counted in the denominator,
+        # no allocation of anything): the control that says whether STRUCT is more than "who is a big part of the team"
+        rden = den + pl.col(f"V_{s}").fill_null(0.0)
+        exprs.append(
+            pl.when(nz & (rden > 0))
+            .then(pl.col(f"st_{s}") / rden)
+            .otherwise(0.0)
+            .alias(f"role_share_{s}")
+        )
     udn = pl.col("P_use").fill_null(0.0) + _usage() * (1 - pl.col("in_pool"))
     for s in USAGE_STATS:
         exprs.append(
@@ -331,8 +340,37 @@ def build_struct(
         *[pl.col(f"leader_out_{s}").fill_null(0) for s in STATS]
     )
     keep = ["game_id", "team_id", "player_id", "V_min", *[f"V_{s}" for s in STATS]]
-    cols = [c for c in r.columns if c.startswith(("struct_", "leader_out_", "prop_d_", "tr_"))]
+    cols = [
+        c
+        for c in r.columns
+        if c.startswith(("struct_", "leader_out_", "prop_d_", "tr_", "role_share_"))
+    ]
     return r.select(*keep, *cols)
 
 
-__all__ = ["STATS", "build_struct", "decayed_states"]
+def attach_struct(feats: pl.DataFrame, st: pl.DataFrame) -> pl.DataFrame:
+    """Left-join the STRUCT columns onto the production frame with the ``attach_wowy`` / ``vac_*`` missingness rule:
+    a game with a usable report and nobody rotation-OUT gets explicit zeros; a game WITHOUT a usable report stays NULL
+    (never imputed as 'nobody out'). ``feats`` needs ``has_report``."""
+    cols = [
+        c
+        for c in st.columns
+        if c.startswith(("struct_", "leader_out_", "prop_d_", "role_share_", "V_"))
+    ]
+    j = feats.join(
+        st.select("game_id", "team_id", "player_id", *cols),
+        on=["game_id", "team_id", "player_id"],
+        how="left",
+    )
+    return j.with_columns(
+        [
+            pl.when(pl.col("has_report") == 1)
+            .then(pl.col(c).fill_null(0.0))
+            .otherwise(None)
+            .alias(c)
+            for c in cols
+        ]
+    )
+
+
+__all__ = ["STATS", "attach_struct", "build_struct", "decayed_states"]
