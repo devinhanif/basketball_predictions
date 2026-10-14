@@ -10,7 +10,7 @@ _Updated 2026-10-13 (pruned to open items). Status overview: PROJECT_STATUS.md. 
 | Thu 10-16 | if all AVG proofs pass: PR-style diff to add --log-avg-shadow to ops/nba_daily.sh, replay oracle before/after; watchdog drill (stop a job, confirm the alert); ingest-queue game-day decision | approve or decline AVG wiring (a production change) |
 | Fri 10-17 | last change day: CI green, backups verified, tag opening-night-2026-10-20, opening-night checklist final | read the checklist (5 min) |
 | Sat-Mon 10-18/19 | hands-off: nothing under nba/, ops/, configs/, uv.lock; monitoring only | Mac on AC, lid open from 10-19 |
-| Tue 10-20 | opening night: supervised pretip run, ALERTS, forward rows before tip, shadows writing, odds file shapes | 5-minute check after first tip |
+| Tue 10-20 | opening night: probe the first 2026-27 injury-report PDF in the morning (none published as of 10-14; parser only tested on 2025-26 format), supervised pretip run, ALERTS, forward rows before tip, shadows writing, odds file shapes | 5-minute check after first tip |
 Not in the six days: mini PC, app/PWA work, reporter feed (needs Devin's X sign-up; optional for opening night).
 
 ## PAUSED 2026-10-13 ~16:05 CDT (Devin heading home)
