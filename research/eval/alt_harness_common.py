@@ -20,6 +20,8 @@ from typing import Any
 import numpy as np
 
 RESULTS_MARK = "=== RESULTS BELOW ==="
+#: the exact frozen ALT_LADDER_HIST rule sha256 (commit c70d11a); there is no 'any sha' path
+ADH_SHA = "ef316f3d4a1ae26afe7b971ecd455c39785f8029bfed3d917ab7c543240ebea2"
 B_DEFAULT = 5_000
 SEED_GAME = 2026  # game-clustered bootstrap (ALT_LINE_70 Part 1 CI)
 SEED_DATE = 2027  # date-clustered bootstrap
@@ -115,7 +117,7 @@ def check_rule(
     rule_path: Path,
     rule_id: str,
     repo: Path,
-    expected_sha: str | None = None,
+    expected_sha: str,
     lookup: Callable[[str, Path], list[str]] = git_prereg_shas,
 ) -> str | None:
     """Rule text hash, freeze commit and FROZEN status. ``expected_sha`` pins a rule whose sha is
@@ -125,12 +127,11 @@ def check_rule(
         pf.add(f"{rule_id}: rule file exists", False, str(rule_path))
         return None
     sha = rule_sha256(rule_path)
-    if expected_sha is not None:
-        pf.add(
-            f"{rule_id}: rule text sha256 equals the pinned frozen sha",
-            sha == expected_sha,
-            f"computed {sha[:8]}, pinned {expected_sha[:8]}",
-        )
+    pf.add(
+        f"{rule_id}: rule text sha256 equals the pinned frozen sha",
+        sha == expected_sha,
+        f"computed {sha[:8]}, pinned {expected_sha[:8]}",
+    )
     shas = lookup(rule_id, repo)
     pf.add(
         f"{rule_id}: a commit 'prereg({rule_id}): <sha>' carries the rule text sha",

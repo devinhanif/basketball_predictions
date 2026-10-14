@@ -58,7 +58,7 @@ def test_preflight_passes_only_when_everything_is_frozen_and_pinned(
     shas = _write_rules(tmp_path)
     monkeypatch.setattr(ev, "RULE_SHA", shas["ALT_LINE_70"])
     pf = hc.Preflight()
-    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas))
+    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas), adh_sha=shas["ALT_LADDER_HIST"])
     assert pf.ok, [c for c in pf.checks if not c.ok]
     pf.require()
 
@@ -69,7 +69,7 @@ def test_harness_refuses_when_alt_ladder_hist_is_not_frozen(
     shas = _write_rules(tmp_path, adh_status="DRAFT 14:04. Not frozen.")
     monkeypatch.setattr(ev, "RULE_SHA", shas["ALT_LINE_70"])
     pf = hc.Preflight()
-    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas))
+    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas), adh_sha=shas["ALT_LADDER_HIST"])
     assert not pf.ok
     assert any("ALT_LADDER_HIST" in c.name and "FROZEN" in c.name for c in pf.failures())
     with pytest.raises(hc.PreregError, match="ALT_LADDER_HIST"):
@@ -82,7 +82,9 @@ def test_harness_refuses_when_the_adh_freeze_commit_is_missing(
     shas = _write_rules(tmp_path)  # status says FROZEN but no commit carries its sha
     monkeypatch.setattr(ev, "RULE_SHA", shas["ALT_LINE_70"])
     pf = hc.Preflight()
-    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas, with_adh=False))
+    ev.run_preflight(
+        pf, root, tmp_path, lookup=_lookup(shas, with_adh=False), adh_sha=shas["ALT_LADDER_HIST"]
+    )
     assert [c.name for c in pf.failures()] == [
         "ALT_LADDER_HIST: a commit 'prereg(ALT_LADDER_HIST): <sha>' carries the rule text sha",
         "ALT_LADDER_HIST: exactly one distinct prereg(ALT_LADDER_HIST) sha exists in history",
@@ -101,7 +103,7 @@ def test_harness_refuses_a_re_frozen_alt_ladder_hist(
         return [shas[rid], "f" * 64] if rid == "ALT_LADDER_HIST" else [shas[rid]]
 
     pf = hc.Preflight()
-    ev.run_preflight(pf, root, tmp_path, lookup=two)
+    ev.run_preflight(pf, root, tmp_path, lookup=two, adh_sha=shas["ALT_LADDER_HIST"])
     assert [c.name for c in pf.failures()] == [
         "ALT_LADDER_HIST: exactly one distinct prereg(ALT_LADDER_HIST) sha exists in history"
     ]
@@ -123,7 +125,7 @@ def test_odds_store_check_fails_closed_without_a_backup(
     monkeypatch.setattr(ev, "RULE_SHA", shas["ALT_LINE_70"])
     monkeypatch.setattr(ev, "ODDS_FINGERPRINT", {"rows": 1, "hash_sum": "0"})
     pf = hc.Preflight()
-    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas))
+    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas), adh_sha=shas["ALT_LADDER_HIST"])
     assert [c.name for c in pf.failures()] == [
         "odds rows the rule reads equal the pinned fingerprint"
     ]
@@ -133,7 +135,7 @@ def test_odds_store_check_fails_closed_without_a_backup(
 def test_harness_refuses_a_rule_text_that_is_not_the_frozen_sha(tmp_path: Path, root: Path) -> None:
     shas = _write_rules(tmp_path)  # RULE_SHA stays the real frozen sha: the tmp text differs
     pf = hc.Preflight()
-    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas))
+    ev.run_preflight(pf, root, tmp_path, lookup=_lookup(shas), adh_sha=shas["ALT_LADDER_HIST"])
     assert any("pinned frozen sha" in c.name for c in pf.failures())
 
 
@@ -154,7 +156,7 @@ def test_harness_refuses_when_an_input_file_changed(
     (alt / "data/odds").mkdir(parents=True, exist_ok=True)
     (alt / ev.ODDS_DB).write_bytes((root / ev.ODDS_DB).read_bytes())
     pf = hc.Preflight()
-    ev.run_preflight(pf, alt, tmp_path, lookup=_lookup(shas))
+    ev.run_preflight(pf, alt, tmp_path, lookup=_lookup(shas), adh_sha=shas["ALT_LADDER_HIST"])
     bad = [c.name for c in pf.failures()]
     assert bad == ["input reports/odds_history/model_rows_2023.parquet matches the frozen sha256"]
 
