@@ -34,6 +34,7 @@ from .models import (
     Team,
     WinProbability,
 )
+from .role import player_role
 from .store import AnyStore, Json, load_store, store_key
 
 STATS = ("pts", "reb", "ast", "fg3m")
@@ -255,6 +256,7 @@ def register(app: FastAPI) -> None:
                 name=pl["name"],
                 side=pl["side"],
                 props={st: _prop_view(st, pr) for st, pr in pl["props"].items()},
+                role=None if store.history is None else player_role(store.history, g, pl),
             )
             for pl in g["players"]
         ]

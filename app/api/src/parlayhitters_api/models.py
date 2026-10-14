@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
+from .role import PlayerRole
+
 Stat = str
 
 
@@ -53,6 +55,8 @@ class PlayerView(BaseModel):
     name: str
     side: str
     props: dict[Stat, PropView]
+    # Minutes steadiness, on/off and without-teammate numbers; None when no history is loaded.
+    role: PlayerRole | None = None
 
 
 class GameSummary(BaseModel):

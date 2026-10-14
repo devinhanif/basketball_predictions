@@ -55,6 +55,19 @@ POSITION_NOUN = {"G": "guards", "F": "forwards", "C": "centers"}
 
 
 @dataclass(frozen=True)
+class OnOffData:
+    """Per game: what each team did, and what it did with each of its players on the floor.
+
+    Each value is (own-side possessions, points scored, other-side possessions, points allowed),
+    counted from the play-by-play possessions. Subtracting a player's from his team's gives the
+    same team while he sat.
+    """
+
+    team: dict[str, dict[int, tuple[int, int, int, int]]]  # game -> team -> totals
+    player: dict[str, dict[int, tuple[int, int, int, int]]]  # game -> player -> on the floor
+
+
+@dataclass(frozen=True)
 class Row:
     """One game a player actually played (minutes > 0)."""
 
@@ -87,9 +100,24 @@ def days_between(a: str, b: str) -> int:
     return (Date.fromisoformat(b) - Date.fromisoformat(a)).days
 
 
+def _quad(v: list[int]) -> tuple[int, int, int, int]:
+    return (int(v[0]), int(v[1]), int(v[2]), int(v[3]))
+
+
+def _onoff(raw: Json | None) -> OnOffData | None:
+    if not raw:
+        return None
+    return OnOffData(
+        team={g: {int(t): _quad(v) for t, v in m.items()} for g, m in raw["team"].items()},
+        player={g: {int(p): _quad(v) for p, v in m.items()} for g, m in raw["player"].items()},
+    )
+
+
 class History:
     def __init__(self, data: Json) -> None:
         self.window: Json = data["window"]
+        # None for an export that carries no play-by-play on/off table.
+        self.onoff: OnOffData | None = _onoff(data.get("onoff"))
         # Games whose home/away side is not known (an export only schedules recent games).
         self.home_unknown: frozenset[str] = frozenset(data.get("home_unknown", []))
         # Stats the box-score rows can support (an old export carries no steals or blocks).

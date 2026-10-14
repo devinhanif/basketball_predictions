@@ -163,6 +163,29 @@ say "No model forecast for this stat yet" (a combo is never built from single-st
 stored (the DraftKings main line; steals has a stored main line, no stat has stored alt lines). Rebuild only this fixture:
 `uv run --script app/fixtures/build_fixtures.py --only breakdown --data-root <checkout with nba.duckdb and data/>`.
 
+## Role steadiness, on/off and without-teammate numbers (descriptive)
+
+`api/src/parlayhitters_api/role_stats.py` (math), `role.py` (game page), `breakdown.py` (leg screen); web:
+`RoleCards.tsx`, `RoleSection.tsx`. As-of like everything else: games strictly before the slate date.
+
+- **Role steadiness** badge: Steady / Mixed / Limited data, always with n. From the sample standard deviation of his
+  minutes over his last 15 games played, as a share of their average (Steady below 20%, Mixed otherwise; fewer than
+  10 games is Limited data). The 20% cut is a display choice, not a tested rule. It is worded as a fact ("his minutes have
+  varied by about X either side of an average of Y over his last N games"), never as model accuracy or "easier to bet"
+  (docs/research/player_reliability_2026-10-14.md: accuracy tiers do not persist, minutes steadiness does; DECISIONS
+  2026-10-14 16:06).
+- **On/off**: team points scored minus allowed per 100 possessions with him on and off the floor, in games he played, this
+  season and since last season, with possession counts (both ends), games, an approximate game-clustered 95% range on the
+  gap, and a small-sample flag (under 10 games or under 1,000 possessions on one side). From `fixtures/onoff.json`
+  (possession totals per game and per slate player from the `possessions` table; assists never come from it).
+  The exporter has no possessions yet, so an export-fed API says so ("no play-by-play on/off") and keeps the badge.
+- **Without a teammate who is out tonight** (injury report at least an hour before tip): his minutes and per-36 points,
+  rebounds and assists (assists from the box score) in games with and without that teammate (same game sets as the
+  existing with/without tally), with n.
+
+Rebuild only the on/off fixture: `uv run --script app/fixtures/build_fixtures.py --only onoff --data-root <checkout with nba.duckdb>`
+(asserts possession points equal each final score; season <= 2024).
+
 ## What is stubbed or limited
 
 - The breakdown shows no minutes forecast (none is stored): it shows recent minutes and starting role, labelled as context.

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 import statistics
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
@@ -30,12 +31,13 @@ from .history import (
     Row,
     days_between,
 )
+from .role_stats import OnOff, Per36, Steadiness, onoff, per36, steadiness
 
 Json = dict[str, Any]
 Side = Literal["over", "under"]
 State = Literal["hit", "miss", "push"]
 
-SMALL_N = 10  # fewer prior games than this is a small sample
+SMALL_N = 10  # fewer prior games than this is a small sample (also in role_stats)
 LAST_N = 10
 RECENT_N = 5
 HEADS_UP_GAP = 0.25  # recent hit rate and model chance this far apart is worth a heads-up
@@ -92,6 +94,10 @@ class TeammateOut(BaseModel):
     avg_minutes: float
     without: Tally
     with_: Tally
+    # His minutes and per-36 points, rebounds and assists (assists from the box score) in the
+    # same two sets of games, whatever the stat on screen.
+    per36_without: Per36
+    per36_with: Per36
     note: str
 
 
@@ -209,6 +215,8 @@ class Breakdown(BaseModel):
     opponent_allowed: OppAllowed | None
     model: Model
     role: Role
+    steadiness: Steadiness
+    onoff: OnOff
     prices: Prices
     heads_up: str | None
     notes: list[str]
@@ -426,10 +434,31 @@ def _latest_report(ctx: Context) -> tuple[dict[int, tuple[str, str | None]], str
     return {p: (v[0], v[1]) for p, v in latest.items()}, stamp
 
 
-def _teammates(ctx: Context, stat: str, line: float, side: Side) -> Teammates:
+@dataclass(frozen=True)
+class Mate:
+    """A rotation teammate on tonight's injury report, and his team's games with and without him
+    (every game he was on the team around, before tonight; not stat-specific)."""
+
+    pid: int
+    name: str
+    status: str
+    reason: str | None
+    avg_minutes: float
+    with_rows: list[Row]
+    without_rows: list[Row]
+
+
+@dataclass(frozen=True)
+class ReportMates:
+    mates: list[Mate]  # listed out, doubtful or questionable, most important first
+    unnamed: int  # rotation players left out for want of a name
+    reports: dict[int, tuple[str, str | None]]  # the whole report: player -> (status, reason)
+    stamp: str | None
+
+
+def teammates_on_report(ctx: Context) -> ReportMates:
     reports, stamp = _latest_report(ctx)
-    mine = reports.get(ctx.pid)
-    items: list[tuple[float, TeammateOut]] = []
+    items: list[Mate] = []
     unnamed = 0
     for pid, (status, reason) in reports.items():
         if pid == ctx.pid or status not in SHOWN_AVAIL:
@@ -452,7 +481,7 @@ def _teammates(ctx: Context, stat: str, line: float, side: Side) -> Teammates:
         }
         with_rows: list[Row] = []
         without_rows: list[Row] = []
-        for r in ctx.prior:
+        for r in ctx.all_prior:
             if r.team != ctx.team:
                 continue
             i = ctx.h.team_index[ctx.team][r.game_id]
@@ -460,35 +489,47 @@ def _teammates(ctx: Context, stat: str, line: float, side: Side) -> Teammates:
                 with_rows.append(r)
             elif any(abs(i - j) <= ROSTER_WINDOW for j in x_idx):
                 without_rows.append(r)  # on the team around then, and did not play this night
-        wo, wi = tally(without_rows, stat, line, side), tally(with_rows, stat, line, side)
-        if wo.n == 0:
-            note = "No earlier game in our data with him out, so there is nothing to compare."
-        elif wo.n < SMALL_N:
-            note = f"Only {wo.n} earlier games with him out: a small sample, not a pattern."
-        else:
-            note = f"{wo.n} earlier games with him out."
+        items.append(Mate(pid, name, status, reason, avg_min, with_rows, without_rows))
+    items.sort(key=lambda m: (SHOWN_AVAIL.index(m.status), -m.avg_minutes))
+    return ReportMates(items[:MAX_TEAMMATES], unnamed, reports, stamp)
+
+
+def mate_note(n_without: int) -> str:
+    if n_without == 0:
+        return "No earlier game in our data with him out, so there is nothing to compare."
+    if n_without < SMALL_N:
+        return f"Only {n_without} earlier games with him out: a small sample, not a pattern."
+    return f"{n_without} earlier games with him out."
+
+
+def _teammates(ctx: Context, stat: str, line: float, side: Side) -> Teammates:
+    rep = teammates_on_report(ctx)
+    mine = rep.reports.get(ctx.pid)
+    items: list[TeammateOut] = []
+    for m in rep.mates:
+        use_with = [r for r in m.with_rows if ctx.h.usable(r, stat)]
+        use_without = [r for r in m.without_rows if ctx.h.usable(r, stat)]
+        wo, wi = tally(use_without, stat, line, side), tally(use_with, stat, line, side)
         items.append(
-            (
-                avg_min,
-                TeammateOut(
-                    player_id=pid,
-                    name=name,
-                    status=status,
-                    reason=reason,
-                    avg_minutes=avg_min,
-                    without=wo,
-                    with_=wi,
-                    note=note,
-                ),
+            TeammateOut(
+                player_id=m.pid,
+                name=m.name,
+                status=m.status,
+                reason=m.reason,
+                avg_minutes=m.avg_minutes,
+                without=wo,
+                with_=wi,
+                per36_without=per36(m.without_rows),
+                per36_with=per36(m.with_rows),
+                note=mate_note(wo.n),
             )
         )
-    items.sort(key=lambda t: (SHOWN_AVAIL.index(t[1].status), -t[0]))
     return Teammates(
-        report_as_of_utc=stamp,
+        report_as_of_utc=rep.stamp,
         player_status=mine[0] if mine else None,
         player_status_reason=mine[1] if mine else None,
-        items=[t[1] for t in items[:MAX_TEAMMATES]],
-        omitted_unnamed=unnamed,
+        items=items,
+        omitted_unnamed=rep.unnamed,
         note=(
             "From the official injury report published at least an hour before tip. Only "
             f"rotation players (about {ROTATION_MIN:.0f}+ minutes a game lately) are shown."
@@ -831,6 +872,8 @@ def build(
         opponent_allowed=_opponent_allowed(ctx, stat),
         model=model,
         role=role,
+        steadiness=steadiness(ctx.all_prior),
+        onoff=onoff(hist, ctx.pid, ctx.all_prior, ctx.season),
         prices=_prices(ctx, stat, use),
         heads_up=_heads_up(use, side, l10, model, name),
         notes=_notes(l10, ctx),
