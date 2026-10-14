@@ -1,0 +1,116 @@
+# ALT_PARLAY_X: do cross-game parlays of high-probability overs profit at multiplied odds, and does the product of leg probabilities hold? (pre-registration)
+
+Status: **DRAFT, written by the modeler Wed Oct 14 13:28 CDT 2026 (clock read by `date`), branch `agent/modeler-alt-line-70`. Not frozen. No hit rate, return or realised outcome has been computed for this rule.** The only numbers below are the minimum-data gate (counts of legs, parlays, dates and model-only variances; no `y` column is requested by the gate code).
+- **How it becomes the rule:** pre-freeze review, then the main session commits `prereg(ALT_PARLAY_X): <sha256>` of everything above the line `=== RESULTS BELOW ===`. Hash it with `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/ALT_PARLAY_X.md | shasum -a 256`. The scoring harness does not exist yet; it is written after the freeze and must refuse to run without that commit. The parlay CONSTRUCTION already exists as code (`research/eval/alt_parlay_x_gate.py: pool_legs, draw_parlays`) and is part of the rule; the harness imports it unchanged.
+- **Advice or momentum:** Devin's ask (2026-10-14: cross-game parlays, "assume it's just odds multiplying"). Claude's standing advice is that single legs come first and parlays compound the book's margin; this rule is therefore **secondary to ALT_LINE_70** and can never override a single-leg word.
+- **Selects nothing.** Pools, sizes and the construction are fixed below. Seasons 2023 (2023-24) and 2024 (2024-25) are both REPORT seasons; 2025 is never loaded and never earns a touch under this rule (`season <= 2024` asserted before any read).
+- **Venue label:** like ALT_LINE_70 Part 2, this is "a sportsbook bettor (e.g. friends on DraftKings or Fanatics)" on BetRivers prices, not Devin's venue (Kalshi, Polymarket). Devin's venues get a forward-only rule from the `us_ex` capture (from 2026-10-20).
+- **Model class:** none fitted. A stored forecast layer (the production context-residual quantile forecast; playbook classes "Quantile and distribution layers" and "Gradient-boosted trees") is composed into products of probabilities and priced.
+
+## Question
+1. **Joint calibration and independence.** If legs from different games on one slate date are treated as independent, does the hit rate of a parlay equal the product of its legs' model P?
+2. **Profit.** With the parlay priced as the product of the legs' decimal odds (Devin's stated assumption), what is the ROI at $2 per parlay, up to 10 parlays a week ($20 a week)?
+3. **Break-even.** At what price multiple does a parlay of this kind break even against the claimed and the realised joint probability?
+
+## Legs (inherited from ALT_LINE_70 arm A; nothing re-chosen)
+BetRivers, capture `t5` (the capture at or after the model's T-60 report cutoff and before the real tip; `tipoff_utc - 60 min <= snapshot_ts < tipoff_utc` asserted for 100% of rows, any violation stops the run), two-sided half-point over rungs, joined to the stored production forecast `reports/odds_history/model_rows_{2023,2024}.parquet` (P(over) = P(Y >= point + 0.5) on the integer support, played rows only; a book voids a DNP, so a DNP leg is excluded and counted). Over price only; decimal odds d from the American price; duplicated (game, player, stat, point) keys dropped (BetRivers has none). Same code path as ALT_LINE_70 (`priced_rungs`).
+
+**Leg pools (five, fixed):** `ge70` = model P >= 0.70 with no upper bound (the primary set of ALT_LINE_70); and the four disjoint bins `55` = [0.50,0.60), `65` = [0.60,0.70), `75` = [0.70,0.80), `85` = [0.80,0.90). Pool `ge70` overlaps `75` and `85` and the above-0.90 lines; the pools are not independent families, which is why decisions are per pool and no cross-pool claim is made.
+
+## Construction (fixed now, seeded, no hand selection)
+1. **One leg per unit.** A unit is (game, player, stat). Within a pool, a unit's rungs that fall in the pool are reduced to ONE rung by a seeded uniform draw (rungs sorted by (game, player, stat, point) first; `numpy.random.default_rng([2026, season, pool_index])`). Two rungs of one player-game-stat are never both legs.
+2. **Cross-game, same slate date.** A parlay's legs come from distinct games with the same `game_date` (the date as stored). So no two legs share a game, and no leg is from a different slate date.
+3. **Sizes 2 and 3.** For each (season, pool, size m, date): up to **20** draws; a draw picks m distinct games uniformly without replacement among that date's games with legs, then one leg uniformly within each picked game (`default_rng([2026, season, pool_index, m])`). A draw whose leg set already appeared that date is dropped (no refill), so a date yields at most 20 parlays. Dates with fewer than m games with legs yield none. Why not all combinations: a busy date has about 90 legs in the 55 pool, which gives thousands of pairs; 20 seeded draws per date keep every date at comparable weight. Sampling games first and then a leg weights games equally, not legs; this is part of the rule.
+4. **Price and joint probability.** D = product of the legs' decimal odds (Devin: "assume it's just odds multiplying"). Predicted joint P = product of the legs' model P. This is an **assumption of independence across games**, tested below, not a fact. A real book may price a parlay below the product or add boosts; neither is modeled.
+5. **Settlement.** The parlay wins iff every leg hits (profit D - 1 per unit staked), else loses the unit (-1). No pushes (half-point lines). A void leg would shrink the parlay in practice; the construction excludes legs whose player did not play (void) before any parlay is built, which uses the played-only universe of the model rows (the same convention as ALT_LINE_70), stated as an approximation.
+6. **Plan ($20 a week).** $2 per parlay, at most 10 parlays a week = $20, Monday-start week of `game_date`, no carry, winnings not restaked. Each week the plan draws up to 10 of that week's constructed parlays uniformly without replacement, R = 2,000 plan draws per season (`default_rng(2026)`). One (pool, size) cell is one plan; plans are not combined.
+
+## Estimands, tests and CIs
+- **E1par (decision): parlay ROI** = sum(profit) / n over ALL constructed parlays of a (pool, size) cell, pooled over the two seasons (resampling within season). By season reported.
+- **CI: date-clustered** percentile bootstrap, B = 5,000, `default_rng(2026)`, resampling `game_date` within season (parlays on one date share legs and the slate, and parlays across the 20 draws share legs, so the date is the cluster; game clustering is not usable because a parlay spans games). 95% interval.
+- **T1 joint calibration:** gap = (parlay hit rate) - (mean product of leg P) per (pool, size, season), date-clustered CI; words CALIBRATED / OVERCONFIDENT / UNDERCONFIDENT / INCONCLUSIVE with the ALT_LINE_70 definitions (|gap| <= 0.02 and interval inside +-0.03; directional words need the interval beyond 0 and BH q < 0.05; the p-value is the date-clustered bootstrap p, the only cluster available here). The +-0.03 margin and 0.02 limit are carried from ALT_LINE_70 (Devin 2026-10-14 13:12).
+- **T2 dependence (the independence test):** for each leg let r = hit - P and v = P(1-P), and centre r by the mean residual of its pool and season (so a common over- or under-confidence of the model is not read as dependence). Over all pairs of legs that appear together in a constructed parlay, rho = sum(r_i r_j) / sum(sqrt(v_i v_j)); date-clustered CI. Words: **INDEPENDENCE SUPPORTED** iff the interval lies inside [-0.02, +0.02]; **DEPENDENT** iff the interval excludes 0 and |rho| > 0.02; else INCONCLUSIVE. Also reported: the ratio (parlay hit rate) / (mean product P), and the within-date intraclass correlation of the centred residuals.
+- **Decision words for money (per pool and size, pooled over seasons).** Let lo and hi be the date-clustered interval of pooled ROI.
+  - **PROFITABLE:** ROI >= +0.02 AND lo > 0 AND the point ROI > 0 in each season AND BH q < 0.05 over the family of **10** cells (5 pools x 2 sizes), q from the one-sided date-clustered p for ROI <= 0.
+  - **NOT PROFITABLE:** hi < +0.02.
+  - **INCONCLUSIVE:** otherwise.
+  A cell that fails the minimum-data gate below gets **no word**. By-stat slices are descriptive.
+- **Bankroll path (E2, descriptive):** per (pool, size) plan and season over the R plan draws: total staked, final profit (median, 5th, 95th percentile), P(final > 0), median and 95th-percentile max drawdown of the weekly cumulative path, share of losing weeks, longest losing run. Parlay outcomes are lumpy: with a 3-leg joint P near 0.4 and D near 2.5, one parlay's sd is about D sqrt(P(1-P)) = 1.2 units, so ten $2 parlays a week have a weekly sd of about $7.7 and a 30-week season about $42. A $20-a-week bankroll cannot tell skill from luck within a season; the E1par interval does the inference.
+- **Break-even comparison (reported):** per cell, mean D, mean joint P, break-even decimal at the claim (1 / mean joint P) and at the realised rate (1 / hit rate), the compounded overround (product of the legs' overrounds, about 1.09 per leg, so about 1.19 for two legs and 1.30 for three), claimed EV (mean of P d - 1, what the model says) beside realised ROI, and **comparator C1: the same legs bet singly** (mean single-leg ROI of the legs that appear in the constructed parlays, weighted by appearance), to show whether the parlay multiplies the edge or only the margin.
+- **Attacks (only if any cell is PROFITABLE, before anyone believes it):** planted-future and shuffled-P (within date and stat, 50 seeds) re-run through the same construction; leave out the best 5% of parlays and the best week; a rerun on the `t60` capture (descriptive); and a check that the result is not carried by one pool-season.
+- **What it cannot say.** It prices parlays as a product, which no book guarantees; one capture (about T-9) per game; BetRivers availability, limits and boosts are unknown; BetRivers is not Devin's venue; "same slate date" legs share league-wide effects only.
+
+## Minimum-data gate (non-negotiable 8), measured Wed Oct 14 2026 13:26 CDT
+Code: `research/eval/alt_parlay_x_gate.py` (counts and model-only variances; no `y`), output `reports/prereg_alt_parlay_x/gate.json` (sha256 d16d70ac7d3e801777aa02c4d58cc50c1f9184e1deb202c24b69ca03921b2209), about 15 s, read-only, season <= 2024. Inputs are the ALT_LINE_70 inputs (sha256 listed in that rule and in `reports/prereg_alt_line_70/gate.json`).
+
+**Thresholds (no outcome read; set after the counts were seen, which is disclosed here):** a (pool, size) cell gets a word only if pooled it has >= 1,500 parlays, >= 150 dates and a conservative date-clustered ROI half-width <= 0.20. The **conservative half-width** is 1.96 sqrt(sum over dates of (sum over that date's parlays of D sqrt(P(1-P)))^2) / N, which assumes every parlay on a date is perfectly correlated with the others of that date (the model's own P gives the variance); the independent-parlays value is also given. 0.20 is chosen because it keeps NOT PROFITABLE reachable (hi < +0.02 needs a point ROI below -0.18, a loss a 3-leg parlay's compounded margin of about 30% reaches) while PROFITABLE needs a point ROI above the half-width (0.13 for 2-leg `ge70`, 0.19 for 3-leg cells, on the conservative bound), so the money word PROFITABLE is nearly out of reach by design and the honest default outcome is NOT PROFITABLE or INCONCLUSIVE.
+
+| Pool | Size | Legs 2023 / 2024 | Parlays 2023 / 2024 / pooled | Dates pooled | Cons. half-width 2023 / 2024 / pooled | Indep. pooled | Mean joint P 2023 / 2024 | Gate |
+|---|---|---|---|---|---|---|---|---|
+| ge70 | 2 | 2,496 / 1,132 | 2,407 / 930 / 3,337 | 264 | 0.150 / 0.254 / 0.130 | 0.033 | 0.547 / 0.555 | PASS |
+| ge70 | 3 | 2,496 / 1,132 | 2,481 / 879 / 3,360 | 210 | 0.213 / 0.388 / 0.187 | 0.045 | 0.403 / 0.416 | PASS |
+| 55 | 2 | 18,549 / 14,759 | 3,702 / 3,598 / 7,300 | 371 | 0.171 / 0.197 / 0.130 | 0.030 | 0.297 / 0.293 | PASS |
+| 55 | 3 | 18,549 / 14,759 | 3,200 / 3,254 / 6,454 | 323 | 0.242 / 0.294 / 0.191 | 0.044 | 0.162 / 0.160 | PASS |
+| 65 | 2 | 8,843 / 5,263 | 3,488 / 2,790 / 6,278 | 358 | 0.153 / 0.202 / 0.123 | 0.029 | 0.410 / 0.403 | PASS |
+| 65 | 3 | 8,843 / 5,263 | 3,156 / 2,804 / 5,960 | 317 | 0.216 / 0.307 / 0.184 | 0.043 | 0.263 / 0.255 | PASS |
+| 75 | 2 | 2,428 / 1,057 | 2,369 / 892 / 3,261 | 264 | 0.152 / 0.262 / 0.132 | 0.034 | 0.539 / 0.543 | PASS |
+| 75 | 3 | 2,428 / 1,057 | 2,430 / 855 / 3,285 | 209 | 0.217 / 0.394 / 0.190 | 0.047 | 0.396 / 0.400 | PASS |
+| 85 | 2 | 280 / 147 | 215 / 125 / 340 | 90 | 0.331 / 0.420 / 0.260 | 0.096 | 0.689 / 0.692 | FAIL (too thin: 340 parlays, 0.26) |
+| 85 | 3 | 280 / 147 | 139 / 79 / 218 | 38 | 0.746 / 1.045 / 0.608 | 0.177 | 0.572 / 0.577 | FAIL (too thin: 218 parlays, 38 dates) |
+
+**Result: 8 of 10 cells pass (every pool except `85`); the `85` pool is too thin to decide and is reported descriptively.** Per season, 2024 alone fails the 0.20 width in most cells (0.20 to 1.05), so no season-only statement is made and the rule is decided on the pooled estimate with a per-season sign check. A cell with a passing pooled gate is nevertheless wide: the INCONCLUSIVE zone for a 2-leg `ge70` parlay is a point ROI between about -0.11 and +0.13 (conservative) or -0.01 and +0.03 (independent-parlays bound). The model-CLAIMED mean EV at the product price is +3.7% (2023) and +17.3% (2024) for `ge70` 2-leg, and negative for the `55` pool (-23% and -13%): not realised returns, what the model says. Legs per date are heavily uneven: median 88 legs per date in `55` (2023) against 3 in `ge70` (2024); in `ge70` and `75` only 92 of 141 dates in 2024 have two or more games with legs, and 62 have three or more.
+
+**Data-capture audit (BEST_PRACTICES 2026-10-12).** Used: all BetRivers `t5` rungs of seasons 2023 and 2024 joined to stored production forecasts. Exists, not used, and why: other books (no ladders in both seasons; Unibet US is the same Kambi feed); `t60` captures (before the model cutoff; kept as a descriptive rerun); season 2025 (frozen holdout). Not held: true deep alternates, whose historical pull Devin approved for ALT_LADDER_HIST; parlays built from them are a later id. Repairable thinness: the `85` pool and 2024 are thin because BetRivers' ladder shrank in 2024 (64% of points player-games against 99%) and because P >= 0.80 over rungs near a posted line are rare; no existing source repairs that.
+
+## Hypothesis and prior (stated before any result; also drafted into the predictions ledger)
+- **T1/T2.** The model's marginal P is likely overconfident at posted rungs (claims of 75% hitting 61-70%), and a product of overconfident legs is more overconfident: expected `ge70` 2-leg gap about -0.08 (80% -0.16 to +0.01), 3-leg about -0.10. P(ge70 2-leg joint CALIBRATED) = **0.15**; P(INDEPENDENCE SUPPORTED for ge70 2-leg, after centring) = **0.60** (cross-game residual correlation was about zero, BEST_PRACTICES 4; the common bias is removed by centring).
+- **ROI.** The compounded overround makes a parlay a worse bet than its legs. P(any of the 8 gated cells PROFITABLE) = **0.03**; P(`ge70` 2-leg NOT PROFITABLE) = **0.55**, INCONCLUSIVE **0.42**; expected pooled `ge70` 2-leg ROI about **-0.12** (80% -0.30 to +0.08), 3-leg about -0.18 (80% -0.40 to +0.15). The widths above mean most cells will read INCONCLUSIVE unless the loss is large.
+- **Honest default:** parlays do not rescue a bet that singles do not support.
+
+## Lineage (playbook question 4)
+Ancestors: ALT_LINE_70 (legs, timing rule, margins, BH practice), the 2026-10-11 parlay work (`docs/PARLAY_ENGINE.md`, JOINT set transformer: copula over independence worth about 0.0011 log loss, cross-game residual r near 0, same-player legs co-move 28.6% vs 20.1%), DECISION_SCORING (ROI at the actual price, date/game clustering), CALIBRATED_GRID and the "claims 75, right 61" finding. Guards carried: real-tip as-of gating (stronger: never before the model cutoff), integer support, DNP excluded identically, game-distinct legs (the copula work shows same-game legs are dependent, so they are excluded here), clustering by date, 2025 never loaded, BH over a declared family. Dropped, nothing is fitted: shuffle and permutation-null guards (replaced by the post-hoc attack list).
+
+## Playbook check (docs/MODEL_PLAYBOOK.md)
+Class: stored quantile/distribution layer composed into a product of probabilities (set and joint models: copulas for parlays, here with an independence assumption that T2 tests).
+1. **Information or capacity?** Neither: no new pre-tip information and no new model; a transformation of an existing forecast.
+2. **Enough data?** Pooled yes for 8 of 10 cells; 2024 and the `85` pool no (gate).
+3. **Test validity?** Real tip, never-before-cutoff price, integer support, distinct games, seeded construction, played-only void convention. Risks listed: product pricing is Devin's assumption, one capture, uneven legs per date, a date-clustered interval that is conservative, and the common model bias that raises every leg's miss together (handled by centring in T2, left in T1).
+4. **Lineage and inherited guards:** above.
+5. **What it scores against:** joint calibration at a threshold and ROI at a multiplied price, not CRPS.
+Class check (set and joint models): power. One season detects only large effects; the gate states the widths, and pooled seasons are used. Whether the effect is large enough to be detected is answered: PROFITABLE needs a true ROI near +0.19 (conservative) or +0.05 (independent) for 80% power at 2-leg `ge70`; NOT PROFITABLE needs a loss beyond about -0.11.
+
+## What each choice protects against
+| Choice | Protects against |
+|---|---|
+| One leg per unit, distinct games, one slate date | stacking nested rungs or same-game legs whose dependence the product ignores |
+| Seeded draws, 20 per date, games first | hand selection; days with 90 legs swamping days with 4; combinatorial blow-up |
+| Date clustering only | an anti-conservative interval when parlays share legs and the slate |
+| Centred residuals in T2 | reading the model's common over- or under-confidence as dependence |
+| Per-pool words, no cross-pool claim | picking the best pool after the fact |
+| BH over 10 cells, gate before word | a lucky cell in a wide family; words on cells too thin to decide |
+| Secondary to single legs | parlays being read as evidence about the model when they mostly multiply the margin |
+| 2025 never read | a holdout spent on an exploratory question |
+
+## Unstated details fixed before any scored number
+- Hit definition and `y` as in ALT_LINE_70 (read only by the post-freeze harness).
+- `game_date` is the slate date; Monday-start weeks via polars `truncate("1w")`.
+- Gate thresholds (1,500 parlays, 150 dates, 0.20 width) set after seeing the counts; justified above.
+- The construction seeds and 20 draws per date are fixed by the committed code; a change of either is a new rule id.
+- Cons. half-width uses the model's own P for variance; it is not an outcome estimate.
+- The leg pool `ge70` has no upper bound; its legs above P 0.90 are mostly lines at very short prices.
+
+## Kill criteria and what a result opens
+NOT PROFITABLE or INCONCLUSIVE closes the question for stored BetRivers legs; no re-cut of pools, sizes, draws per date, price rule or margins after the result. Parlays from deep alternates and from Devin's venues are new ids. PROFITABLE triggers the attack list, then a forward-log hypothesis only (never a bet, and never promoted over the single-leg result). Season 2025 is never touched under this rule.
+
+## Commands (maintainer; read-only)
+- Gate: `.venv/bin/python -W ignore -m research.eval.alt_parlay_x_gate --data-root . --out reports/prereg_alt_parlay_x/gate.json` from a checkout holding `data/` and `reports/` (from the modeler's worktree use `--data-root /Users/devin/Downloads/nba-prediction`). Scope read: the model rows, the pairs tip table and the odds store of ALT_LINE_70; dry-run count = the table above.
+- Scoring: **no command exists** until the freeze; the harness imports the construction and refuses without the `prereg(ALT_PARLAY_X)` commit.
+
+## What Devin must sign
+1. The construction (one leg per unit, distinct games, same slate date, sizes 2 and 3, 20 seeded draws per date, five pools) and the product price assumption.
+2. The words: T1 and T2 definitions, the money words with +0.02 floor and BH over 10 cells, and that no `85`-pool word is issued.
+3. The $2 x 10-a-week plan and that parlays are secondary to single legs.
+4. That the result is never a recommendation to bet and that 2025 is not touched.
+
+=== RESULTS BELOW ===
+(empty until the frozen harness runs)

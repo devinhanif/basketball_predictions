@@ -49,6 +49,14 @@ BINS: tuple[tuple[float, float], ...] = (
     (0.95, 1.0001),
 )
 BAND = (0.70, 0.90)
+#: secondary family (v3): four disjoint P bins labelled by their midpoint; the PRIMARY question is
+#: still the single set P >= 0.70
+SECONDARY_BINS: tuple[tuple[str, float, float], ...] = (
+    ("55", 0.50, 0.60),
+    ("65", 0.60, 0.70),
+    ("75", 0.70, 0.80),
+    ("85", 0.80, 0.90),
+)
 DIST_EDGES: tuple[tuple[float, float], ...] = (
     (-1e9, 0.0),
     (0.0, 1.0),
@@ -158,6 +166,46 @@ def part1_counts(stat: str, game_id: np.ndarray, surv: np.ndarray) -> dict[str, 
         label = f"({a:g},{b:g}]" if a > -1e8 else f"(-inf,{b:g}]"
         out["band_by_distance_units"][label] = cell(band & (dist > a) & (dist <= b))
     return out
+
+
+def secondary_part1(game_id: np.ndarray, surv: np.ndarray) -> dict[str, Any]:
+    """Line-rows per secondary bin ([lo, hi), every line of the support) with the conservative
+    hit-rate half-width (game clusters; a game's lines across bins share the same clusters)."""
+    _, gi = np.unique(game_id, return_inverse=True)
+    n_games = int(gi.max()) + 1 if gi.size else 0
+    out: dict[str, Any] = {}
+    for label, lo, hi in SECONDARY_BINS:
+        mask = (surv >= lo - EPS) & (surv < hi - EPS)
+        per_game = np.bincount(gi, weights=mask.sum(axis=1), minlength=n_games)
+        n = int(mask.sum())
+        p = float(surv[mask].mean()) if n else float("nan")
+        out[label] = {
+            "line_rows": n,
+            "player_games": int(mask.any(axis=1).sum()),
+            "games": int((per_game > 0).sum()),
+            "mean_p": p,
+            "halfwidth_cons": cluster_halfwidth(p, per_game) if n else float("nan"),
+        }
+    return out
+
+
+def pool_summaries(parts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Pool per-season ``summarize_bets`` results: the cluster sums add across seasons, so
+    ``S_s = (hw_s N_s / 1.96)^2`` and the pooled half-width is ``1.96 sqrt(sum S) / sum N``."""
+    parts = [x for x in parts if x.get("rungs", 0) > 0]
+    n = sum(int(x["rungs"]) for x in parts)
+    if n == 0:
+        return {"rungs": 0}
+    s_cons = sum((x["roi_halfwidth_cons"] * x["rungs"] / 1.96) ** 2 for x in parts)
+    s_ind = sum((x["roi_halfwidth_independent"] * x["rungs"] / 1.96) ** 2 for x in parts)
+    return {
+        "rungs": n,
+        "units_player_game_stat": sum(int(x["units_player_game_stat"]) for x in parts),
+        "games": sum(int(x["games"]) for x in parts),
+        "dates": sum(int(x["dates"]) for x in parts),
+        "roi_halfwidth_cons": round(float(1.96 * np.sqrt(s_cons) / n), 4),
+        "roi_halfwidth_independent": round(float(1.96 * np.sqrt(s_ind) / n), 4),
+    }
 
 
 # ------------------------------------------------------------------------------ Part 2 counts
@@ -357,6 +405,7 @@ def run_gate(data_root: Path, hash_inputs: bool = True) -> dict[str, Any]:
             c["rows_with_minutes_null_or_le_0"] = int(
                 (d["minutes"].is_null() | (d["minutes"] <= 0)).sum()
             )
+            c["secondary_bins"] = secondary_part1(d["game_id"].to_numpy(), surv)
             part1[str(season)][stat] = c
         for kind in (PRIMARY_KIND, SENSITIVITY_KIND):
             t, meta = priced_rungs(
@@ -372,8 +421,19 @@ def run_gate(data_root: Path, hash_inputs: bool = True) -> dict[str, Any]:
                 on=["game_id", "player_id", "stat", "point"],
                 how="inner",
             )
+            sec = {
+                label: summarize_bets(
+                    t.filter(
+                        (pl.col("book") == PRIMARY_BOOK)
+                        & (pl.col("pm") >= lo - EPS)
+                        & (pl.col("pm") < hi - EPS)
+                    )
+                )
+                for label, lo, hi in SECONDARY_BINS
+            }
             part2.setdefault(kind, {})[str(season)] = {
                 **meta,
+                "secondary_bins_arm_A": sec,
                 "ladder_cells": ladder_cells(t),
                 "arm_A_primary_book": {"book": PRIMARY_BOOK, **summarize_bets(arm_a)},
                 "arm_A_duplicate_book": {"book": DUPLICATE_BOOK, **summarize_bets(arm_a_dup)},
@@ -389,6 +449,17 @@ def run_gate(data_root: Path, hash_inputs: bool = True) -> dict[str, Any]:
                     for r in e.group_by("book").agg(pl.len().alias("n")).sort("n").to_dicts()
                 },
             }
+    for kind in part2:
+        seasons = [part2[kind][str(y)] for y in SEASONS]
+        part2[kind]["pooled"] = {
+            "arm_A_primary_book": pool_summaries([x["arm_A_primary_book"] for x in seasons]),
+            **{
+                f"secondary_{label}": pool_summaries(
+                    [x["secondary_bins_arm_A"][label] for x in seasons]
+                )
+                for label, _, _ in SECONDARY_BINS
+            },
+        }
     result["part1"] = part1
     result["part2"] = part2
     return result

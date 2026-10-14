@@ -1,6 +1,6 @@
 {
  "input_sha256": {
-  "data/odds/odds_history.duckdb": "f0515449d8d247028d4eea466abf4832ae4f4d54aa7f2756cdbc8d71623150e0",
+  "data/odds/odds_history.duckdb": "eec776b647eed6e6654616b6036bc97f530f84cfddf684a129457d1e22549c92",
   "data/ops/model_clv_pairs/pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
   "data/ops/model_clv_pairs/pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
   "reports/odds_history/model_rows_2023.parquet": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
@@ -108,7 +108,37 @@
     "games": 1318,
     "p_equals_1": 4307,
     "player_games": 27619,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1318,
+      "halfwidth_cons": 0.027872672233588792,
+      "line_rows": 11457,
+      "mean_p": 0.5480075598381188,
+      "player_games": 11457
+     },
+     "65": {
+      "games": 1318,
+      "halfwidth_cons": 0.02695674820001902,
+      "line_rows": 9722,
+      "mean_p": 0.6500254822766373,
+      "player_games": 9722
+     },
+     "75": {
+      "games": 1318,
+      "halfwidth_cons": 0.024555446584193178,
+      "line_rows": 8956,
+      "mean_p": 0.7498630939422436,
+      "player_games": 8956
+     },
+     "85": {
+      "games": 1317,
+      "halfwidth_cons": 0.02024602672695073,
+      "line_rows": 7892,
+      "mean_p": 0.8522930160177471,
+      "player_games": 7891
+     }
+    }
    },
    "fg3m": {
     "K": 19,
@@ -210,7 +240,37 @@
     "games": 1318,
     "p_equals_1": 118,
     "player_games": 27619,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1311,
+      "halfwidth_cons": 0.02912476865885093,
+      "line_rows": 6257,
+      "mean_p": 0.5488020251489186,
+      "player_games": 6257
+     },
+     "65": {
+      "games": 1298,
+      "halfwidth_cons": 0.02856068551408187,
+      "line_rows": 5179,
+      "mean_p": 0.6490475160121907,
+      "player_games": 5179
+     },
+     "75": {
+      "games": 1288,
+      "halfwidth_cons": 0.025993331677056242,
+      "line_rows": 4704,
+      "mean_p": 0.7499626106724097,
+      "player_games": 4704
+     },
+     "85": {
+      "games": 1287,
+      "halfwidth_cons": 0.02149081331496951,
+      "line_rows": 4283,
+      "mean_p": 0.8526428547125072,
+      "player_games": 4283
+     }
+    }
    },
    "pts": {
     "K": 84,
@@ -312,7 +372,37 @@
     "games": 1318,
     "p_equals_1": 26842,
     "player_games": 27619,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1318,
+      "halfwidth_cons": 0.02708612962618428,
+      "line_rows": 39673,
+      "mean_p": 0.5507470810053088,
+      "player_games": 27036
+     },
+     "65": {
+      "games": 1318,
+      "halfwidth_cons": 0.02592865676759728,
+      "line_rows": 37633,
+      "mean_p": 0.6511843355699124,
+      "player_games": 26676
+     },
+     "75": {
+      "games": 1318,
+      "halfwidth_cons": 0.023526902565841022,
+      "line_rows": 36899,
+      "mean_p": 0.751202283675076,
+      "player_games": 25747
+     },
+     "85": {
+      "games": 1318,
+      "halfwidth_cons": 0.019227602638403618,
+      "line_rows": 39271,
+      "mean_p": 0.8538845330520597,
+      "player_games": 23372
+     }
+    }
    },
    "reb": {
     "K": 35,
@@ -414,7 +504,37 @@
     "games": 1318,
     "p_equals_1": 9247,
     "player_games": 27619,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1318,
+      "halfwidth_cons": 0.027412836419164036,
+      "line_rows": 16886,
+      "mean_p": 0.5496182797202881,
+      "player_games": 16820
+     },
+     "65": {
+      "games": 1318,
+      "halfwidth_cons": 0.02640835658915007,
+      "line_rows": 14823,
+      "mean_p": 0.6518987706528324,
+      "player_games": 14802
+     },
+     "75": {
+      "games": 1318,
+      "halfwidth_cons": 0.02381416621191389,
+      "line_rows": 15640,
+      "mean_p": 0.7519473968307009,
+      "player_games": 15592
+     },
+     "85": {
+      "games": 1318,
+      "halfwidth_cons": 0.019509024370572173,
+      "line_rows": 16745,
+      "mean_p": 0.8525557017695224,
+      "player_games": 16521
+     }
+    }
    }
   },
   "2024": {
@@ -518,7 +638,37 @@
     "games": 1315,
     "p_equals_1": 4529,
     "player_games": 27583,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1315,
+      "halfwidth_cons": 0.02792742963423992,
+      "line_rows": 11000,
+      "mean_p": 0.5494298766560073,
+      "player_games": 11000
+     },
+     "65": {
+      "games": 1314,
+      "halfwidth_cons": 0.027078668915441886,
+      "line_rows": 9288,
+      "mean_p": 0.6498551110418588,
+      "player_games": 9288
+     },
+     "75": {
+      "games": 1315,
+      "halfwidth_cons": 0.02462545983355918,
+      "line_rows": 8660,
+      "mean_p": 0.7523262966100711,
+      "player_games": 8660
+     },
+     "85": {
+      "games": 1315,
+      "halfwidth_cons": 0.019953507469844478,
+      "line_rows": 9644,
+      "mean_p": 0.8518703013199552,
+      "player_games": 9643
+     }
+    }
    },
    "fg3m": {
     "K": 18,
@@ -620,7 +770,37 @@
     "games": 1315,
     "p_equals_1": 150,
     "player_games": 27583,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1310,
+      "halfwidth_cons": 0.02898090579843315,
+      "line_rows": 6115,
+      "mean_p": 0.5462102006352285,
+      "player_games": 6115
+     },
+     "65": {
+      "games": 1293,
+      "halfwidth_cons": 0.02844225226492945,
+      "line_rows": 4749,
+      "mean_p": 0.649395641081804,
+      "player_games": 4749
+     },
+     "75": {
+      "games": 1295,
+      "halfwidth_cons": 0.02572847433410136,
+      "line_rows": 4790,
+      "mean_p": 0.7517010941975011,
+      "player_games": 4790
+     },
+     "85": {
+      "games": 1305,
+      "halfwidth_cons": 0.020846959978971083,
+      "line_rows": 5581,
+      "mean_p": 0.8506445504714036,
+      "player_games": 5581
+     }
+    }
    },
    "pts": {
     "K": 80,
@@ -722,7 +902,37 @@
     "games": 1315,
     "p_equals_1": 27557,
     "player_games": 27583,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1315,
+      "halfwidth_cons": 0.02709929847373123,
+      "line_rows": 38341,
+      "mean_p": 0.5493623145591551,
+      "player_games": 26749
+     },
+     "65": {
+      "games": 1315,
+      "halfwidth_cons": 0.026005462914399362,
+      "line_rows": 37385,
+      "mean_p": 0.649382125284709,
+      "player_games": 26499
+     },
+     "75": {
+      "games": 1315,
+      "halfwidth_cons": 0.02357652817537596,
+      "line_rows": 35454,
+      "mean_p": 0.7510252509232006,
+      "player_games": 25499
+     },
+     "85": {
+      "games": 1315,
+      "halfwidth_cons": 0.019222987855091744,
+      "line_rows": 40935,
+      "mean_p": 0.8547842424532579,
+      "player_games": 23795
+     }
+    }
    },
    "reb": {
     "K": 35,
@@ -824,7 +1034,37 @@
     "games": 1315,
     "p_equals_1": 7809,
     "player_games": 27583,
-    "rows_with_minutes_null_or_le_0": 0
+    "rows_with_minutes_null_or_le_0": 0,
+    "secondary_bins": {
+     "55": {
+      "games": 1315,
+      "halfwidth_cons": 0.027428606880217487,
+      "line_rows": 16274,
+      "mean_p": 0.5519199166534404,
+      "player_games": 16214
+     },
+     "65": {
+      "games": 1315,
+      "halfwidth_cons": 0.026396189132544105,
+      "line_rows": 15652,
+      "mean_p": 0.649814045951711,
+      "player_games": 15608
+     },
+     "75": {
+      "games": 1315,
+      "halfwidth_cons": 0.023876533192657295,
+      "line_rows": 14869,
+      "mean_p": 0.7510519846525654,
+      "player_games": 14834
+     },
+     "85": {
+      "games": 1315,
+      "halfwidth_cons": 0.01945212966606639,
+      "line_rows": 17002,
+      "mean_p": 0.8530829065927212,
+      "player_games": 16738
+     }
+    }
    }
   }
  },
@@ -965,6 +1205,108 @@
      "williamhill_us": 1138,
      "wynnbet": 13
     },
+    "secondary_bins_arm_A": {
+     "55": {
+      "by_stat": {
+       "ast": 2563,
+       "fg3m": 1943,
+       "pts": 14741,
+       "reb": 4777
+      },
+      "dates": 207,
+      "decimal_min_med_max": [
+       1.169,
+       1.565,
+       3.15
+      ],
+      "games": 1289,
+      "mean_model_p": 0.5467,
+      "mean_overround": 0.0804,
+      "model_claimed_ev_mean": -0.1157,
+      "roi_halfwidth_cons": 0.0469,
+      "roi_halfwidth_independent": 0.0103,
+      "rungs": 24024,
+      "units_player_game_stat": 18549,
+      "weekly_units_median": 614.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 35
+     },
+     "65": {
+      "by_stat": {
+       "ast": 906,
+       "fg3m": 792,
+       "pts": 7715,
+       "reb": 1496
+      },
+      "dates": 206,
+      "decimal_min_med_max": [
+       1.238,
+       1.435,
+       3.1
+      ],
+      "games": 1264,
+      "mean_model_p": 0.6426,
+      "mean_overround": 0.0869,
+      "model_claimed_ev_mean": -0.0521,
+      "roi_halfwidth_cons": 0.0443,
+      "roi_halfwidth_independent": 0.0134,
+      "rungs": 10909,
+      "units_player_game_stat": 8843,
+      "weekly_units_median": 298.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 32
+     },
+     "75": {
+      "by_stat": {
+       "ast": 185,
+       "fg3m": 257,
+       "pts": 2173,
+       "reb": 221
+      },
+      "dates": 198,
+      "decimal_min_med_max": [
+       1.23,
+       1.36,
+       2.75
+      ],
+      "games": 961,
+      "mean_model_p": 0.7372,
+      "mean_overround": 0.0917,
+      "model_claimed_ev_mean": 0.036,
+      "roi_halfwidth_cons": 0.048,
+      "roi_halfwidth_independent": 0.0229,
+      "rungs": 2836,
+      "units_player_game_stat": 2428,
+      "weekly_units_median": 81.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 30
+     },
+     "85": {
+      "by_stat": {
+       "ast": 26,
+       "fg3m": 24,
+       "pts": 266,
+       "reb": 15
+      },
+      "dates": 120,
+      "decimal_min_med_max": [
+       1.267,
+       1.35,
+       2.28
+      ],
+      "games": 226,
+      "mean_model_p": 0.8344,
+      "mean_overround": 0.0932,
+      "model_claimed_ev_mean": 0.17,
+      "roi_halfwidth_cons": 0.0791,
+      "roi_halfwidth_independent": 0.0562,
+      "rungs": 331,
+      "units_player_game_stat": 280,
+      "weekly_units_median": 6.5,
+      "weeks": 30,
+      "weeks_with_ge_10_units": 9
+     }
+    },
     "timing_rule_violations": 0,
     "two_sided_rungs": 750288
    },
@@ -1058,8 +1400,152 @@
      "prophetx": 192,
      "williamhill_us": 1197
     },
+    "secondary_bins_arm_A": {
+     "55": {
+      "by_stat": {
+       "ast": 2032,
+       "fg3m": 1776,
+       "pts": 9754,
+       "reb": 3829
+      },
+      "dates": 212,
+      "decimal_min_med_max": [
+       1.278,
+       1.699,
+       3.0
+      ],
+      "games": 1298,
+      "mean_model_p": 0.5439,
+      "mean_overround": 0.0753,
+      "model_claimed_ev_mean": -0.0665,
+      "roi_halfwidth_cons": 0.0517,
+      "roi_halfwidth_independent": 0.0128,
+      "rungs": 17391,
+      "units_player_game_stat": 14759,
+      "weekly_units_median": 434.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 35
+     },
+     "65": {
+      "by_stat": {
+       "ast": 699,
+       "fg3m": 551,
+       "pts": 3665,
+       "reb": 1094
+      },
+      "dates": 208,
+      "decimal_min_med_max": [
+       1.299,
+       1.565,
+       2.9
+      ],
+      "games": 1098,
+      "mean_model_p": 0.6385,
+      "mean_overround": 0.0799,
+      "model_claimed_ev_mean": 0.0086,
+      "roi_halfwidth_cons": 0.0572,
+      "roi_halfwidth_independent": 0.0193,
+      "rungs": 6009,
+      "units_player_game_stat": 5263,
+      "weekly_units_median": 90.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 33
+     },
+     "75": {
+      "by_stat": {
+       "ast": 145,
+       "fg3m": 124,
+       "pts": 776,
+       "reb": 123
+      },
+      "dates": 140,
+      "decimal_min_med_max": [
+       1.29,
+       1.426,
+       2.4
+      ],
+      "games": 476,
+      "mean_model_p": 0.7383,
+      "mean_overround": 0.0845,
+      "model_claimed_ev_mean": 0.094,
+      "roi_halfwidth_cons": 0.0738,
+      "roi_halfwidth_independent": 0.0376,
+      "rungs": 1168,
+      "units_player_game_stat": 1057,
+      "weekly_units_median": 10.0,
+      "weeks": 32,
+      "weeks_with_ge_10_units": 16
+     },
+     "85": {
+      "by_stat": {
+       "ast": 25,
+       "fg3m": 35,
+       "pts": 90,
+       "reb": 14
+      },
+      "dates": 52,
+      "decimal_min_med_max": [
+       1.299,
+       1.377,
+       2.02
+      ],
+      "games": 105,
+      "mean_model_p": 0.836,
+      "mean_overround": 0.0828,
+      "model_claimed_ev_mean": 0.209,
+      "roi_halfwidth_cons": 0.1158,
+      "roi_halfwidth_independent": 0.0823,
+      "rungs": 164,
+      "units_player_game_stat": 147,
+      "weekly_units_median": 4.0,
+      "weeks": 19,
+      "weeks_with_ge_10_units": 5
+     }
+    },
     "timing_rule_violations": 0,
     "two_sided_rungs": 530088
+   },
+   "pooled": {
+    "arm_A_primary_book": {
+     "dates": 339,
+     "games": 1449,
+     "roi_halfwidth_cons": 0.0407,
+     "roi_halfwidth_independent": 0.018,
+     "rungs": 4546,
+     "units_player_game_stat": 3628
+    },
+    "secondary_55": {
+     "dates": 419,
+     "games": 2587,
+     "roi_halfwidth_cons": 0.0348,
+     "roi_halfwidth_independent": 0.008,
+     "rungs": 41415,
+     "units_player_game_stat": 33308
+    },
+    "secondary_65": {
+     "dates": 414,
+     "games": 2362,
+     "roi_halfwidth_cons": 0.0351,
+     "roi_halfwidth_independent": 0.011,
+     "rungs": 16918,
+     "units_player_game_stat": 14106
+    },
+    "secondary_75": {
+     "dates": 338,
+     "games": 1437,
+     "roi_halfwidth_cons": 0.0402,
+     "roi_halfwidth_independent": 0.0196,
+     "rungs": 4004,
+     "units_player_game_stat": 3485
+    },
+    "secondary_85": {
+     "dates": 172,
+     "games": 331,
+     "roi_halfwidth_cons": 0.0653,
+     "roi_halfwidth_independent": 0.0464,
+     "rungs": 495,
+     "units_player_game_stat": 427
+    }
    }
   },
   "t60": {
@@ -1198,6 +1684,108 @@
      "williamhill_us": 843,
      "wynnbet": 12
     },
+    "secondary_bins_arm_A": {
+     "55": {
+      "by_stat": {
+       "ast": 2490,
+       "fg3m": 1883,
+       "pts": 14385,
+       "reb": 4670
+      },
+      "dates": 207,
+      "decimal_min_med_max": [
+       1.267,
+       1.565,
+       3.15
+      ],
+      "games": 1278,
+      "mean_model_p": 0.5467,
+      "mean_overround": 0.0804,
+      "model_claimed_ev_mean": -0.1162,
+      "roi_halfwidth_cons": 0.0472,
+      "roi_halfwidth_independent": 0.0104,
+      "rungs": 23428,
+      "units_player_game_stat": 18083,
+      "weekly_units_median": 600.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 35
+     },
+     "65": {
+      "by_stat": {
+       "ast": 890,
+       "fg3m": 785,
+       "pts": 7519,
+       "reb": 1476
+      },
+      "dates": 206,
+      "decimal_min_med_max": [
+       1.267,
+       1.435,
+       3.15
+      ],
+      "games": 1255,
+      "mean_model_p": 0.6426,
+      "mean_overround": 0.087,
+      "model_claimed_ev_mean": -0.0539,
+      "roi_halfwidth_cons": 0.0444,
+      "roi_halfwidth_independent": 0.0135,
+      "rungs": 10670,
+      "units_player_game_stat": 8655,
+      "weekly_units_median": 289.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 32
+     },
+     "75": {
+      "by_stat": {
+       "ast": 203,
+       "fg3m": 242,
+       "pts": 2063,
+       "reb": 214
+      },
+      "dates": 197,
+      "decimal_min_med_max": [
+       1.267,
+       1.36,
+       2.75
+      ],
+      "games": 939,
+      "mean_model_p": 0.7366,
+      "mean_overround": 0.0916,
+      "model_claimed_ev_mean": 0.0359,
+      "roi_halfwidth_cons": 0.0486,
+      "roi_halfwidth_independent": 0.0234,
+      "rungs": 2722,
+      "units_player_game_stat": 2330,
+      "weekly_units_median": 75.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 30
+     },
+     "85": {
+      "by_stat": {
+       "ast": 20,
+       "fg3m": 23,
+       "pts": 256,
+       "reb": 14
+      },
+      "dates": 117,
+      "decimal_min_med_max": [
+       1.267,
+       1.35,
+       2.25
+      ],
+      "games": 216,
+      "mean_model_p": 0.8348,
+      "mean_overround": 0.0936,
+      "model_claimed_ev_mean": 0.1673,
+      "roi_halfwidth_cons": 0.0801,
+      "roi_halfwidth_independent": 0.0576,
+      "rungs": 313,
+      "units_player_game_stat": 264,
+      "weekly_units_median": 7.0,
+      "weeks": 30,
+      "weeks_with_ge_10_units": 10
+     }
+    },
     "timing_rule_violations": 0,
     "two_sided_rungs": 673188
    },
@@ -1291,8 +1879,152 @@
      "prophetx": 166,
      "williamhill_us": 962
     },
+    "secondary_bins_arm_A": {
+     "55": {
+      "by_stat": {
+       "ast": 1948,
+       "fg3m": 1696,
+       "pts": 9380,
+       "reb": 3621
+      },
+      "dates": 212,
+      "decimal_min_med_max": [
+       1.299,
+       1.699,
+       3.0
+      ],
+      "games": 1291,
+      "mean_model_p": 0.5437,
+      "mean_overround": 0.0754,
+      "model_claimed_ev_mean": -0.0689,
+      "roi_halfwidth_cons": 0.0522,
+      "roi_halfwidth_independent": 0.0131,
+      "rungs": 16645,
+      "units_player_game_stat": 14130,
+      "weekly_units_median": 429.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 35
+     },
+     "65": {
+      "by_stat": {
+       "ast": 664,
+       "fg3m": 550,
+       "pts": 3491,
+       "reb": 1032
+      },
+      "dates": 208,
+      "decimal_min_med_max": [
+       1.299,
+       1.556,
+       2.9
+      ],
+      "games": 1078,
+      "mean_model_p": 0.6387,
+      "mean_overround": 0.08,
+      "model_claimed_ev_mean": 0.0044,
+      "roi_halfwidth_cons": 0.0581,
+      "roi_halfwidth_independent": 0.0197,
+      "rungs": 5737,
+      "units_player_game_stat": 5015,
+      "weekly_units_median": 90.0,
+      "weeks": 35,
+      "weeks_with_ge_10_units": 33
+     },
+     "75": {
+      "by_stat": {
+       "ast": 122,
+       "fg3m": 118,
+       "pts": 705,
+       "reb": 108
+      },
+      "dates": 135,
+      "decimal_min_med_max": [
+       1.299,
+       1.417,
+       2.35
+      ],
+      "games": 453,
+      "mean_model_p": 0.7377,
+      "mean_overround": 0.0846,
+      "model_claimed_ev_mean": 0.0894,
+      "roi_halfwidth_cons": 0.0741,
+      "roi_halfwidth_independent": 0.0395,
+      "rungs": 1053,
+      "units_player_game_stat": 960,
+      "weekly_units_median": 8.5,
+      "weeks": 32,
+      "weeks_with_ge_10_units": 15
+     },
+     "85": {
+      "by_stat": {
+       "ast": 21,
+       "fg3m": 31,
+       "pts": 79,
+       "reb": 12
+      },
+      "dates": 53,
+      "decimal_min_med_max": [
+       1.299,
+       1.364,
+       2.02
+      ],
+      "games": 98,
+      "mean_model_p": 0.8344,
+      "mean_overround": 0.0842,
+      "model_claimed_ev_mean": 0.1932,
+      "roi_halfwidth_cons": 0.1216,
+      "roi_halfwidth_independent": 0.0875,
+      "rungs": 143,
+      "units_player_game_stat": 130,
+      "weekly_units_median": 4.0,
+      "weeks": 17,
+      "weeks_with_ge_10_units": 6
+     }
+    },
     "timing_rule_violations": 0,
     "two_sided_rungs": 494031
+   },
+   "pooled": {
+    "arm_A_primary_book": {
+     "dates": 332,
+     "games": 1407,
+     "roi_halfwidth_cons": 0.041,
+     "roi_halfwidth_independent": 0.0185,
+     "rungs": 4277,
+     "units_player_game_stat": 3418
+    },
+    "secondary_55": {
+     "dates": 419,
+     "games": 2569,
+     "roi_halfwidth_cons": 0.0351,
+     "roi_halfwidth_independent": 0.0082,
+     "rungs": 40073,
+     "units_player_game_stat": 32213
+    },
+    "secondary_65": {
+     "dates": 414,
+     "games": 2333,
+     "roi_halfwidth_cons": 0.0353,
+     "roi_halfwidth_independent": 0.0112,
+     "rungs": 16407,
+     "units_player_game_stat": 13670
+    },
+    "secondary_75": {
+     "dates": 332,
+     "games": 1392,
+     "roi_halfwidth_cons": 0.0407,
+     "roi_halfwidth_independent": 0.0202,
+     "rungs": 3775,
+     "units_player_game_stat": 3290
+    },
+    "secondary_85": {
+     "dates": 170,
+     "games": 314,
+     "roi_halfwidth_cons": 0.0669,
+     "roi_halfwidth_independent": 0.0481,
+     "rungs": 456,
+     "units_player_game_stat": 394
+    }
    }
   }
  },

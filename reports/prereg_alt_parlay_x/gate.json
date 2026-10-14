@@ -1,0 +1,454 @@
+{
+ "capture": "t5",
+ "per_date": 20,
+ "pooled": {
+  "55_size2": {
+   "dates": 371,
+   "parlays": 7300,
+   "roi_halfwidth_cons_date": 0.1299,
+   "roi_halfwidth_independent": 0.0297
+  },
+  "55_size3": {
+   "dates": 323,
+   "parlays": 6454,
+   "roi_halfwidth_cons_date": 0.1907,
+   "roi_halfwidth_independent": 0.0435
+  },
+  "65_size2": {
+   "dates": 358,
+   "parlays": 6278,
+   "roi_halfwidth_cons_date": 0.1233,
+   "roi_halfwidth_independent": 0.0292
+  },
+  "65_size3": {
+   "dates": 317,
+   "parlays": 5960,
+   "roi_halfwidth_cons_date": 0.1843,
+   "roi_halfwidth_independent": 0.043
+  },
+  "75_size2": {
+   "dates": 264,
+   "parlays": 3261,
+   "roi_halfwidth_cons_date": 0.1318,
+   "roi_halfwidth_independent": 0.0341
+  },
+  "75_size3": {
+   "dates": 209,
+   "parlays": 3285,
+   "roi_halfwidth_cons_date": 0.1902,
+   "roi_halfwidth_independent": 0.0465
+  },
+  "85_size2": {
+   "dates": 90,
+   "parlays": 340,
+   "roi_halfwidth_cons_date": 0.2598,
+   "roi_halfwidth_independent": 0.096
+  },
+  "85_size3": {
+   "dates": 38,
+   "parlays": 218,
+   "roi_halfwidth_cons_date": 0.608,
+   "roi_halfwidth_independent": 0.1774
+  },
+  "ge70_size2": {
+   "dates": 264,
+   "parlays": 3337,
+   "roi_halfwidth_cons_date": 0.1295,
+   "roi_halfwidth_independent": 0.0333
+  },
+  "ge70_size3": {
+   "dates": 210,
+   "parlays": 3360,
+   "roi_halfwidth_cons_date": 0.1872,
+   "roi_halfwidth_independent": 0.0453
+  }
+ },
+ "root_seed": 2026,
+ "rule": "docs/prereg/ALT_PARLAY_X.md (DRAFT)",
+ "seasons": {
+  "2023": {
+   "55": {
+    "dates": 207,
+    "dates_with_ge2_games": 187,
+    "dates_with_ge3_games": 160,
+    "games": 1289,
+    "legs": 18549,
+    "legs_per_date_median": 88.0,
+    "size2": {
+     "dates": 187,
+     "decimal_p10_med_p90": [
+      1.992,
+      2.499,
+      3.357
+     ],
+     "mean_joint_p": 0.2972,
+     "model_claimed_ev_mean": -0.2296,
+     "parlays": 3702,
+     "roi_halfwidth_cons_date": 0.1705,
+     "roi_halfwidth_independent": 0.039,
+     "weeks": 30,
+     "weeks_with_ge_10_parlays": 30
+    },
+    "size3": {
+     "dates": 160,
+     "decimal_p10_med_p90": [
+      2.978,
+      3.967,
+      5.787
+     ],
+     "mean_joint_p": 0.162,
+     "model_claimed_ev_mean": -0.32,
+     "parlays": 3200,
+     "roi_halfwidth_cons_date": 0.2416,
+     "roi_halfwidth_independent": 0.0556,
+     "weeks": 28,
+     "weeks_with_ge_10_parlays": 28
+    }
+   },
+   "65": {
+    "dates": 206,
+    "dates_with_ge2_games": 186,
+    "dates_with_ge3_games": 159,
+    "games": 1264,
+    "legs": 8843,
+    "legs_per_date_median": 43.0,
+    "size2": {
+     "dates": 186,
+     "decimal_p10_med_p90": [
+      1.773,
+      2.051,
+      2.594
+     ],
+     "mean_joint_p": 0.4101,
+     "model_claimed_ev_mean": -0.125,
+     "parlays": 3488,
+     "roi_halfwidth_cons_date": 0.1525,
+     "roi_halfwidth_independent": 0.0353,
+     "weeks": 30,
+     "weeks_with_ge_10_parlays": 30
+    },
+    "size3": {
+     "dates": 159,
+     "decimal_p10_med_p90": [
+      2.472,
+      2.996,
+      3.995
+     ],
+     "mean_joint_p": 0.263,
+     "model_claimed_ev_mean": -0.1736,
+     "parlays": 3156,
+     "roi_halfwidth_cons_date": 0.2162,
+     "roi_halfwidth_independent": 0.0494,
+     "weeks": 28,
+     "weeks_with_ge_10_parlays": 28
+    }
+   },
+   "75": {
+    "dates": 198,
+    "dates_with_ge2_games": 172,
+    "dates_with_ge3_games": 147,
+    "games": 961,
+    "legs": 2428,
+    "legs_per_date_median": 10.5,
+    "size2": {
+     "dates": 172,
+     "decimal_p10_med_p90": [
+      1.683,
+      1.859,
+      2.192
+     ],
+     "mean_joint_p": 0.5391,
+     "model_claimed_ev_mean": 0.028,
+     "parlays": 2369,
+     "roi_halfwidth_cons_date": 0.1523,
+     "roi_halfwidth_independent": 0.0385,
+     "weeks": 30,
+     "weeks_with_ge_10_parlays": 26
+    },
+    "size3": {
+     "dates": 147,
+     "decimal_p10_med_p90": [
+      2.228,
+      2.535,
+      3.16
+     ],
+     "mean_joint_p": 0.3963,
+     "model_claimed_ev_mean": 0.0449,
+     "parlays": 2430,
+     "roi_halfwidth_cons_date": 0.2165,
+     "roi_halfwidth_independent": 0.0519,
+     "weeks": 26,
+     "weeks_with_ge_10_parlays": 26
+    }
+   },
+   "85": {
+    "dates": 120,
+    "dates_with_ge2_games": 61,
+    "dates_with_ge3_games": 24,
+    "games": 226,
+    "legs": 280,
+    "legs_per_date_median": 2.0,
+    "size2": {
+     "dates": 61,
+     "decimal_p10_med_p90": [
+      1.664,
+      1.842,
+      2.203
+     ],
+     "mean_joint_p": 0.6889,
+     "model_claimed_ev_mean": 0.3212,
+     "parlays": 215,
+     "roi_halfwidth_cons_date": 0.3306,
+     "roi_halfwidth_independent": 0.1194,
+     "weeks": 25,
+     "weeks_with_ge_10_parlays": 7
+    },
+    "size3": {
+     "dates": 24,
+     "decimal_p10_med_p90": [
+      2.167,
+      2.486,
+      3.157
+     ],
+     "mean_joint_p": 0.5721,
+     "model_claimed_ev_mean": 0.4713,
+     "parlays": 139,
+     "roi_halfwidth_cons_date": 0.7459,
+     "roi_halfwidth_independent": 0.2135,
+     "weeks": 15,
+     "weeks_with_ge_10_parlays": 4
+    }
+   },
+   "ge70": {
+    "dates": 198,
+    "dates_with_ge2_games": 172,
+    "dates_with_ge3_games": 148,
+    "games": 967,
+    "legs": 2496,
+    "legs_per_date_median": 11.0,
+    "size2": {
+     "dates": 172,
+     "decimal_p10_med_p90": [
+      1.683,
+      1.844,
+      2.171
+     ],
+     "mean_joint_p": 0.5474,
+     "model_claimed_ev_mean": 0.037,
+     "parlays": 2407,
+     "roi_halfwidth_cons_date": 0.1504,
+     "roi_halfwidth_independent": 0.0378,
+     "weeks": 30,
+     "weeks_with_ge_10_parlays": 27
+    },
+    "size3": {
+     "dates": 148,
+     "decimal_p10_med_p90": [
+      2.235,
+      2.505,
+      3.074
+     ],
+     "mean_joint_p": 0.4031,
+     "model_claimed_ev_mean": 0.0504,
+     "parlays": 2481,
+     "roi_halfwidth_cons_date": 0.2131,
+     "roi_halfwidth_independent": 0.0507,
+     "weeks": 27,
+     "weeks_with_ge_10_parlays": 26
+    }
+   }
+  },
+  "2024": {
+   "55": {
+    "dates": 212,
+    "dates_with_ge2_games": 184,
+    "dates_with_ge3_games": 163,
+    "games": 1298,
+    "legs": 14759,
+    "legs_per_date_median": 62.0,
+    "size2": {
+     "dates": 184,
+     "decimal_p10_med_p90": [
+      2.357,
+      2.957,
+      3.609
+     ],
+     "mean_joint_p": 0.2932,
+     "model_claimed_ev_mean": -0.1275,
+     "parlays": 3598,
+     "roi_halfwidth_cons_date": 0.1968,
+     "roi_halfwidth_independent": 0.0449,
+     "weeks": 30,
+     "weeks_with_ge_10_parlays": 30
+    },
+    "size3": {
+     "dates": 163,
+     "decimal_p10_med_p90": [
+      3.744,
+      5.195,
+      6.6
+     ],
+     "mean_joint_p": 0.1595,
+     "model_claimed_ev_mean": -0.1714,
+     "parlays": 3254,
+     "roi_halfwidth_cons_date": 0.2943,
+     "roi_halfwidth_independent": 0.0668,
+     "weeks": 28,
+     "weeks_with_ge_10_parlays": 28
+    }
+   },
+   "65": {
+    "dates": 208,
+    "dates_with_ge2_games": 172,
+    "dates_with_ge3_games": 158,
+    "games": 1098,
+    "legs": 5263,
+    "legs_per_date_median": 16.0,
+    "size2": {
+     "dates": 172,
+     "decimal_p10_med_p90": [
+      1.945,
+      2.695,
+      3.199
+     ],
+     "mean_joint_p": 0.4026,
+     "model_claimed_ev_mean": 0.0614,
+     "parlays": 2790,
+     "roi_halfwidth_cons_date": 0.2016,
+     "roi_halfwidth_independent": 0.0488,
+     "weeks": 30,
+     "weeks_with_ge_10_parlays": 28
+    },
+    "size3": {
+     "dates": 158,
+     "decimal_p10_med_p90": [
+      2.845,
+      4.503,
+      5.66
+     ],
+     "mean_joint_p": 0.2554,
+     "model_claimed_ev_mean": 0.1132,
+     "parlays": 2804,
+     "roi_halfwidth_cons_date": 0.3071,
+     "roi_halfwidth_independent": 0.0725,
+     "weeks": 28,
+     "weeks_with_ge_10_parlays": 27
+    }
+   },
+   "75": {
+    "dates": 140,
+    "dates_with_ge2_games": 92,
+    "dates_with_ge3_games": 62,
+    "games": 476,
+    "legs": 1057,
+    "legs_per_date_median": 3.0,
+    "size2": {
+     "dates": 92,
+     "decimal_p10_med_p90": [
+      1.777,
+      1.992,
+      2.846
+     ],
+     "mean_joint_p": 0.543,
+     "model_claimed_ev_mean": 0.166,
+     "parlays": 892,
+     "roi_halfwidth_cons_date": 0.2618,
+     "roi_halfwidth_independent": 0.0716,
+     "weeks": 27,
+     "weeks_with_ge_10_parlays": 15
+    },
+    "size3": {
+     "dates": 62,
+     "decimal_p10_med_p90": [
+      2.409,
+      2.739,
+      4.082
+     ],
+     "mean_joint_p": 0.4,
+     "model_claimed_ev_mean": 0.1915,
+     "parlays": 855,
+     "roi_halfwidth_cons_date": 0.3943,
+     "roi_halfwidth_independent": 0.1008,
+     "weeks": 18,
+     "weeks_with_ge_10_parlays": 12
+    }
+   },
+   "85": {
+    "dates": 52,
+    "dates_with_ge2_games": 29,
+    "dates_with_ge3_games": 14,
+    "games": 105,
+    "legs": 147,
+    "legs_per_date_median": 3.0,
+    "size2": {
+     "dates": 29,
+     "decimal_p10_med_p90": [
+      1.764,
+      1.924,
+      2.279
+     ],
+     "mean_joint_p": 0.6915,
+     "model_claimed_ev_mean": 0.3689,
+     "parlays": 125,
+     "roi_halfwidth_cons_date": 0.4196,
+     "roi_halfwidth_independent": 0.1613,
+     "weeks": 11,
+     "weeks_with_ge_10_parlays": 4
+    },
+    "size3": {
+     "dates": 14,
+     "decimal_p10_med_p90": [
+      2.409,
+      2.722,
+      3.475
+     ],
+     "mean_joint_p": 0.5772,
+     "model_claimed_ev_mean": 0.6494,
+     "parlays": 79,
+     "roi_halfwidth_cons_date": 1.0451,
+     "roi_halfwidth_independent": 0.3139,
+     "weeks": 5,
+     "weeks_with_ge_10_parlays": 4
+    }
+   },
+   "ge70": {
+    "dates": 141,
+    "dates_with_ge2_games": 92,
+    "dates_with_ge3_games": 62,
+    "games": 482,
+    "legs": 1132,
+    "legs_per_date_median": 3.0,
+    "size2": {
+     "dates": 92,
+     "decimal_p10_med_p90": [
+      1.766,
+      1.963,
+      2.829
+     ],
+     "mean_joint_p": 0.5549,
+     "model_claimed_ev_mean": 0.1728,
+     "parlays": 930,
+     "roi_halfwidth_cons_date": 0.2538,
+     "roi_halfwidth_independent": 0.0688,
+     "weeks": 27,
+     "weeks_with_ge_10_parlays": 15
+    },
+    "size3": {
+     "dates": 62,
+     "decimal_p10_med_p90": [
+      2.386,
+      2.715,
+      3.912
+     ],
+     "mean_joint_p": 0.4159,
+     "model_claimed_ev_mean": 0.2146,
+     "parlays": 879,
+     "roi_halfwidth_cons_date": 0.3878,
+     "roi_halfwidth_independent": 0.0978,
+     "weeks": 18,
+     "weeks_with_ge_10_parlays": 12
+    }
+   }
+  }
+ }
+}
