@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Write the PWA icons (stdlib only): three bars, a forecast distribution, on near-black with an orange centre bar.
+"""Write the PWA icons (stdlib only).
+
+Three bars, a forecast distribution, on near-black with an orange centre bar.
 
     python3 app/web/scripts/make_icons.py
 """
@@ -50,7 +52,12 @@ def render(size: int, margin: float, round_corners: bool) -> bytes:
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
 
     ihdr = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(raw, 9))
+        + chunk(b"IEND", b"")
+    )
 
 
 def main() -> None:
