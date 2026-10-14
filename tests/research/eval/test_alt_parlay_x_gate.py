@@ -126,3 +126,44 @@ def test_pool_summaries_matches_hand_algebra() -> None:
     out = g.pool_summaries([a, a])
     assert out["rungs"] == 200
     assert abs(out["roi_halfwidth_cons"] - round(0.1 / np.sqrt(2), 4)) < 1e-9
+
+
+def test_estimators_exact_values_and_centring() -> None:
+    p = np.array([0.5, 0.5, 0.5, 0.5])
+    idx = np.array([[0, 1], [2, 3]])
+    # all legs hit: joint hit 1 vs product .25 -> gap .75; marginal residual g = .5 for every leg,
+    # so the centred product is 1.0 and the excess joint hit is exactly 0
+    out = x.estimators([(p, np.ones(4), idx)])
+    assert abs(out["gap"] - 0.75) < 1e-12
+    assert abs(out["excess"]) < 1e-12
+    # a pair that always moves together while the margin is calibrated -> positive excess and rho
+    hit = np.array([1.0, 1.0, 0.0, 0.0])
+    out2 = x.estimators([(p, hit, idx)])
+    assert out2["excess"] > 0.2 and out2["rho"] > 0.9
+
+
+def test_null_halfwidths_are_seeded_and_shrink_with_more_parlays() -> None:
+    rng = np.random.default_rng(0)
+    p = rng.uniform(0.5, 0.8, size=60)
+    small = np.array([[i, i + 30] for i in range(10)])
+    large = np.array([[i, (i * 7 + 3) % 30 + 30] for i in range(30)])
+    a = x.null_halfwidths([(p, p, small)], 200, [1])
+    b = x.null_halfwidths([(p, p, small)], 200, [1])
+    c = x.null_halfwidths([(p, p, large)], 200, [1])
+    assert a == b
+    assert c["gap_halfwidth"] < a["gap_halfwidth"]
+
+
+def test_pulled_units_and_fingerprint() -> None:
+    t60 = _rungs()
+    t5 = _rungs().filter(pl.col("game_id") != "g2")  # g2 units were pulled between the captures
+    pulled = x.pulled_units(t60, t5)
+    assert set(pulled["game_id"].to_list()) == {"g2"}
+    assert set(pulled["book"].to_list()) == {"betrivers"}
+    legs = x.pool_legs_with_pulled(t5, t60, 0.60, 0.70, [1, 2, 3])
+    assert "g2" in set(legs["game_id"].to_list())
+    base = x.pool_legs(t5, 0.60, 0.70, [1, 2, 3])
+    par = x.draw_parlays(base, 2, 20, [4])
+    f1 = x.parlay_fingerprint(base, par, 2)
+    assert f1 == x.parlay_fingerprint(base, par, 2) and len(f1) == 64
+    assert x.parlay_index(par, 2).shape == (par.height, 2)
