@@ -246,3 +246,97 @@ B1, B2 (blocking); M1-M4 before wiring into `ops/`; M5 is Devin's choice; m1-m9 
   (greedy by rank). Why: the top 3 shared a leg in 6 of 6 fixture tickets. Reverses: Devin preferring the strict top-3
   by probability."
 - No ledger row: no test was run and no claim was made.
+
+---
+
+# Re-check: origin/agent/market-top-parlays 5cb9ae2 + 08c1ba4 (T495 caveat), 2026-10-15
+
+Diff read: `git diff a0a32e9..08c1ba4`. That is the producer fixes on top of the merge of main, 14 files. Worktree detached at 08c1ba4.
+No season-2025 rows were loaded.
+
+Verdict: APPROVED
+
+## Correction to my M1 above
+
+M1 overstated the live-path change. The pre-producer base (9c43882) already loads the assistant, httpx, nba.parse and
+nba.kalshi through `main()`. The original `evaluate` delta was one module, `nba.parlay.top_parlays`, not about 60.
+The fix is still right, and the record is corrected here.
+
+## Fix-by-fix
+
+| Finding | Fix (file:line at 08c1ba4) | Evidence | Pass |
+|---|---|---|---|
+| B1 price after `made_at` | `top_parlays.py` `refuse_post_tip(legs, now, made_at)` refuses and counts `priced_after_made_at`; `top_history.py` passes `now=made_at` | Fixture `refused.priced_after_made_at = 244` (matches my count). Both `app/fixtures/top_parlays_example.json` and `top_parlays_producer_sample.json` validate against main's `TopParlays`: `VALID`, exit 0 each. Branch app tests: `uv run pytest tests/test_top_parlays_producer.py tests/test_top_parlays.py` 53 passed, exit 0. Negative test `test_leg_priced_after_made_at_but_before_tip_is_refused_and_counted` | yes |
+| B2 fee | `_price_ticket` charges the fee only when `book in cfg.fee_venues` (`configs/parlay.yaml` `top_parlays.fee_venues: [kalshi]`); per-ticket `fee_model`, `ev_basis`; reworded `why` | All 6 fixture tickets show fee 0.0 and "book product" or "not a book price". Test `test_sportsbook_tickets_carry_no_fee_and_kalshi_tickets_pay_the_config_fee_once` | yes |
+| M1 live import | `--k` default None; `K_DEFAULT` imported inside `cmd_top` | `main(["evaluate","--help"])` loads 1,177 modules on base 9c43882 and on 08c1ba4. `diff` of the two sorted module lists is empty, exit 0 (35447e9: 1,178, the extra one `nba.parlay.top_parlays`). AST test `test_main_does_not_import_the_top_parlays_modules_for_other_subcommands`. Layering test passes | yes |
+| M2 stale lines | `top_source.py:427-437` keeps only the newest snapshot per (book, market, player) | `test_only_the_newest_snapshot_per_book_and_market_is_selectable` | yes (nit n3) |
+| M3 same game | `Ticket.same_game` is now "any two legs share a game"; `any_pos` excludes same-game tickets | Fixture size-3 #3 is a mixed ticket, `same_game: true`, `ev_basis` "not a book price", point EV +0.0029 excluded from the verdict. Test `test_same_game_means_any_two_legs_share_a_game_and_is_not_a_book_price` | yes |
+| M4 gate | `cmd_top` passes `Gate()` with a note; the `--paper-db` read is removed | `test_top_writes_the_contract_file_with_keep_your_money` asserts settled 0, open false | yes |
+| M5 diversity | `search` ranks all tickets, then picks greedily with each leg at most once per size | No leg repeats within a size in the fixture. Test `test_each_leg_appears_in_at_most_one_shown_ticket_per_size`. Ranking text says so | yes |
+| m1 joint model | `diagnostics.joint_model` = sha256 a2b4c4a9..., fit_seasons [2022, 2023, 2024], n_games_corr 2633; in-sample note in fixture | read from the fixture | yes |
+| m2 month block | `top_history.py` `block = day.replace(day=1)` | `fit_through` 2024-12-31 | yes |
+| m3 T490 wording | verbatim from contract v2 | `test_caveat_is_verbatim_from_the_contract_and_free_text_is_screened` | yes |
+| m4 screening | `screen_text` runs numguard and the banned-phrase screen on ranking, status, empty_reason and caveats; `guard_text` also screens banned phrases | numguard_removed 0 | yes (nit n2) |
+| m5 gate bars | `GATE_SETTLED_MIN = 30`, `GATE_DATES_MIN = 14` constants | test `test_gate_bars_are_the_contract_values_and_interval_is_labelled` | yes |
+| m6 illustration | fixture stays outside the served dir; the docs say so | read | yes |
+| m7 interval | `INTERVAL_BASIS` in diagnostics; `why` says "configured noise, not tested" | read | yes (nit n4) |
+| m8 positive-EV count | `tickets_with_positive_point_ev` removed | read | yes |
+| m9 v1 references | `top_parlays.py:1`, `top_history.py:1`, `__main__.py:3`, `PARLAY_ENGINE.md` | read | yes |
+
+Other checks:
+- **Determinism:** `python -m nba.parlay.top_history --date 2025-01-27 ...` rebuilds byte-identical to the committed
+  fixture (`cmp` exit 0) in 1.7 s.
+- **Tests and lint:** `pytest tests/test_layering.py tests/parlay` gives 181 passed, exit 0. The count was read through
+  `grep`, and the exit code was taken from pipestatus. ruff 0, `ruff format --check` 0, mypy 0 on the five changed modules.
+
+## The fg3m concentration (product call for Devin; options, not a change)
+
+What the fixture shows:
+- 14 of the 15 leg slots in the six shown tickets are fg3m, and 9 of those are at the 0.5 line.
+- On every DraftKings date in January 2025 (31 dates, season 2024, the January month-block map), fg3m is 23.8% of the
+  deduped leg pool (n 5,261) but 47.9% of the top-40 pool the search draws from (n 1,229). Script:
+  `scratchpad/tpp/fg3m_share.py`.
+
+Why it happens:
+- The CAL map barely shrinks fg3m at DraftKings: slope on logit p 0.968, against 0.34 for pts, 0.18 for reb and -0.08 for
+  ast in map v1.
+- So fg3m legs keep their extreme probabilities after calibration. A ranking by probability then fills up with them.
+
+Why it matters:
+- T495 found the panel's top picks run 3 to 5 points high at DraftKings (inconclusive: 2-leg -0.036 [-0.074, +0.000],
+  n 1,149).
+- T496 found the tail-leg overconfidence (q >= .65, fg3m-dominated) unstable across seasons: overcorrected in 2023,
+  undercorrected in 2024.
+- Nothing tested says fg3m is worse than other tail legs. It is simply most of the tail.
+
+Options:
+1. **Flag only (my recommendation as the default).**
+   - Badge each leg with p_cal >= 0.65 as "in the range where top picks ran high (T495/T496)", with a one-line note when
+     a ticket is mostly fg3m.
+   - It changes no ranking and adds no untested rule. It tells the user the one true thing we know.
+2. **Cap: at most one fg3m leg per ticket**, or per size.
+   - The tickets look varied.
+   - The shown probabilities drop, and nothing shows the capped tickets are better calibrated. It is cosmetic diversity,
+     like M5.
+3. **Stat diversity: at most one leg per stat per ticket.** The same trade-off as 2, and stronger.
+4. **Exclude tail legs (p_cal >= 0.65) until TAIL_LEG_CAL_LIVE reads out.**
+   - It removes most current top picks and the most-probable framing with them.
+   - Defensible only if Devin prefers showing nothing shaky over showing something labelled.
+5. **Not allowed:** shrinking tail legs by hand by the T495 gap. T496 closed that as NOT_FIXED, and numbers are never
+   adjusted by hand.
+
+## Nits (non-blocking; owner's choice)
+
+- **n1.** `top_parlays.py:70-73`: the T495 caveat states "about 3 to 5 points lower" without n or interval. The DraftKings
+  TOP cells are INCONCLUSIVE, with the CI touching 0. Suggest appending "(n 1,149 top tickets; the interval includes
+  zero)". The wording is Devin's call (T495 review, item 3).
+- **n2.** `top_parlays.py:399`: `guard_text`'s banned-phrase check does not normalise a curly apostrophe; `screen_text`
+  at `:504` does. Apply the same `.replace("’", "'")`.
+- **n3.** `top_source.py:432`: the newest snapshot is chosen per player. If a book's newest board drops a player
+  (market pulled), his last quote stays selectable. Keying `latest_snap` on (book, market, game) would close that.
+- **n4.** Tickets with p_joint_cal <= 0.30 get the tail logit sd, so `ev_low80` shows -0.86 on fixture size-3 #2.
+  This was already the case and is now labelled "configured noise, not tested". No change needed unless the app displays
+  it prominently.
+
+The main session handles the replay oracle for the `__main__.py` live-path change and Devin's merge go. The module-set
+equality above is evidence for that oracle, not a substitute for it.
