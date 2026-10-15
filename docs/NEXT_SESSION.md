@@ -27,6 +27,12 @@ Results are summarised here as they land.
   "when can we recalibrate???", 92069c5) is still a DRAFT, gate 15/15, never frozen or run, and is exactly this test. EXPOSURE: tonight's
   scratch fit a slope on 2023 and scored 2024, LC's select season; disclose in its data-exposure section before any freeze (Devin's call).
   Agent piped pytest through tail (rule breach; 85 passed). Pre-existing ruff import-order error on main: app/fixtures/build_export_best_real.py.
+- LINE_CALIBRATION (Devin "Keys try or line calibration" = go): review BLOCKED (T480 had scored A0 at 2025 lines; SHRINKAGE_ONLY could
+  serve CAL) -> fixed -> APPROVED; R1/R2 applied; FROZEN 06d76e3 (a5441242). Stage 1 2024: CALIBRATED, Pinnacle CAL-A0 -0.0117
+  [-0.0139, -0.0096], n 37,528 / 1,260 games; CAL 0.6882 < coin 0.6931 but > market 0.6865 (T493, 8938350). Post-result attack running.
+  OPEN for Devin: (a) confirm the B2 default was fine (moot here: CAL served); (b) confirmatory stage = 2026-27 live log (Claude) vs 2025 touch.
+- Steward minors DONE on agent/steward-best-model-minors d4d6f29 (report source counts + FALLBACK flags; reader >= at tip; p_play for dropped
+  games); 3596 tests pass. ORACLE NOT RUN: needs a HOLDOUT_ACCESS_LOG row first (Devin's decision; template row 81). Then merge by Fri 10-17.
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
