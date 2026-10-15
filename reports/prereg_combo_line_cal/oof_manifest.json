@@ -1,0 +1,58 @@
+{
+ "date_cmd_output": "Thu Oct 15 00:57:25 CDT 2026",
+ "rule": "COMBO_LINE_CAL repair R-F (DRAFT rule; no fit, no score)",
+ "rows": 55320,
+ "games": 2638,
+ "seasons": [
+  2023,
+  2024
+ ],
+ "population_regular_played_nprior5_by_season": {
+  "2024": 25767,
+  "2023": 25815
+ },
+ "population_expected": {
+  "2023": 25815,
+  "2024": 25767
+ },
+ "population_reproduces": true,
+ "config_sha256": "8932ccec58776dc3c567514c6c2f7f4ab7f667c2559fa24b103edd7c02774389",
+ "base_normals_sha256": "08ddb2a22c0828b2ea50e7dcbf2f0462bf5c4aeabf9789381423049c2b9a5a3a",
+ "R_source": "configs/combo_stocks_shadow.yaml copula.R (4 dp)",
+ "stage_sources": {
+  "pts": "lt",
+  "reb": "cr",
+  "ast": "cr",
+  "fg3m": "fg3m",
+  "blk": "nb",
+  "stl": "nb"
+ },
+ "pra_ge_pr_pa_ra_quantilewise": true,
+ "grid_targets": [
+  "blk",
+  "bs",
+  "pa",
+  "pr",
+  "pra",
+  "ra",
+  "stl"
+ ],
+ "marginals": [
+  "marg_ast",
+  "marg_fg3m",
+  "marg_pts",
+  "marg_reb"
+ ],
+ "files": {
+  "keys.parquet": {
+   "bytes": 995623,
+   "sha256": "569adc26b824527c6fcc0e521416db2a61c71f5850275e04bebc4306081eb9bd"
+  },
+  "grids.npz": {
+   "bytes": 11258557,
+   "sha256": "734e300d15a029ffeb4356efc61a92156b7a8308f28951a947dcfc3dd3efe7b9"
+  }
+ },
+ "arrays_never_read": "y_*, qb_*, q19raw_*, mean_*, m_*",
+ "elapsed_s": 185.2
+}

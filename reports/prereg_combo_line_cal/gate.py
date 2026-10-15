@@ -219,6 +219,60 @@ def qtl(x: pl.Series, q: float) -> float:
     return float(v) if isinstance(v, int | float) else float("nan")
 
 
+def forecast_join(oof: Path, kept: dict[tuple[str, str], pl.DataFrame]) -> dict[str, Any]:
+    """Join the kept legs to the persisted S grids; label-free: joins, A0 = P_S(Y >= ceil(line)), and the integer-grid z floor."""
+    man = json.loads((oof / "manifest.json").read_text())
+    keys = pl.read_parquet(oof / "keys.parquet").with_row_index("_row")
+    z = np.load(oof / "grids.npz")
+    out: dict[str, Any] = {
+        "manifest_sha256": {k: v["sha256"] for k, v in man["files"].items()},
+        "oof_rows": man["rows"],
+        "population_reproduces": man["population_reproduces"],
+        "cells": [],
+    }
+    for (tgt, book), g in sorted(kept.items()):
+        if g.height < 500:
+            continue
+        j = g.join(
+            keys.select("game_id", "player_id", "_row", "starter10"),
+            on=["game_id", "player_id"],
+            how="left",
+        )
+        ok = j.filter(pl.col("_row").is_not_null())
+        grid = np.sort(z[tgt][ok["_row"].to_numpy()].astype(np.float64), axis=1)
+        line = ok["point"].to_numpy()
+        k = np.ceil(line)
+        a0 = (grid >= k[:, None]).mean(axis=1)
+        q25 = grid[:, 49] + 0.25 * (grid[:, 50] - grid[:, 49])
+        q50 = grid[:, 99]
+        q75 = grid[:, 148] + 0.75 * (grid[:, 149] - grid[:, 148])
+        spread = (q75 - q25) / 1.349
+        floor_bind = spread < 0.5
+        sd = grid.std(axis=1)
+        floor_bind_sd = sd < 0.5
+        eps = 0.5 / 199
+        out["cells"].append(
+            {
+                "target": tgt,
+                "book": book,
+                "legs": g.height,
+                "joined": ok.height,
+                "join_share": round(ok.height / g.height, 5),
+                "whole_number_lines": int((line % 1.0 == 0).sum()),
+                "a0_mean": round(float(a0.mean()), 4),
+                "a0_share_at_clip": round(float(((a0 <= eps) | (a0 >= 1 - eps)).mean()), 4),
+                "z_floor_binds_share_iqr": round(float(floor_bind.mean()), 4),
+                "z_floor_binds_share_sd_fallback": round(float(floor_bind_sd.mean()), 4),
+                "z_abs_clip5_share": round(
+                    float((np.abs((line - q50) / np.maximum(spread, 0.5)) >= 5).mean()), 4
+                ),
+                "median_is_integer": bool(np.all(q50 == np.round(q50))),
+                "bench_share": round(mean_f(ok["starter10"].fill_null(0.0) < 0.5), 4),
+            }
+        )
+    return out
+
+
 def hw_proxy(n: float) -> float:
     return LC_HW * float(np.sqrt(LC_N / max(n, 1.0)))
 
@@ -227,6 +281,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--no-hash", action="store_true", help="skip the sha256 of the 600 MB inputs")
+    ap.add_argument(
+        "--oof",
+        default=None,
+        help="dir written by build_oof.py (keys.parquet, grids.npz, manifest.json): adds the forecast-join and z-floor items",
+    )
     a = ap.parse_args()
     t0 = time.time()
     now = subprocess.run(["date"], capture_output=True, text=True).stdout.strip()
@@ -370,6 +429,7 @@ def main() -> None:
 
     # (2) fit-row gate per (target, book): walk-forward 2024 blocks, weights 0.5 ** (age/365)
     gates: list[dict[str, Any]] = []
+    kept: dict[tuple[str, str], pl.DataFrame] = {}
     for tgt, legs in all_legs.items():
         spec = TARGETS[tgt]
         l60 = legs.filter(pl.col("snapshot_kind") == "t60")
@@ -386,6 +446,7 @@ def main() -> None:
             )
             if spec["parts"]:
                 g = g.filter(pl.col("comp_ok") & (pl.col("comp_diff") <= COMPONENT_TOL))
+            kept[(tgt, book)] = g
             n23 = g.filter(pl.col("season") == 2023).height
             s24 = g.filter(pl.col("season") == 2024)
             n24 = s24.height
@@ -446,6 +507,8 @@ def main() -> None:
     for r in gates:
         r["pass_all"] = bool(r["pass_legs"] and r["pass_games"] and r["pass_fit"])
     rep["gate_by_target_book"] = gates
+    if a.oof:
+        rep["forecast_join"] = forecast_join(Path(a.oof), kept)
 
     # (3) the rule's primary cells: DraftKings (fixed now from counts and price integrity; the only both-season book
     # without the FanDuel duplicate-listing ambiguity, ALT_LADDER_HIST) and the best other book
