@@ -56,7 +56,7 @@ export function App() {
       page = <Picks />;
       break;
     case "parlay":
-      page = <ParlayPage />;
+      page = <ParlayPage date={route.date} />;
       break;
     default:
       page = <Today date={route.date} onStale={setStale} />;

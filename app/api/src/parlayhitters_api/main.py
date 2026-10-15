@@ -37,7 +37,12 @@ from .models import (
 )
 from .role import player_role
 from .store import AnyStore, Json, load_store, store_key
-from .top_parlays import TopParlaysMissing, TopParlaysRefused, load_top_parlays
+from .top_parlays import (
+    TopParlaysMissing,
+    TopParlaysRefused,
+    TopParlaysUnavailable,
+    load_top_parlays,
+)
 
 STATS = ("pts", "reb", "ast", "fg3m")
 LOCAL_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
@@ -466,6 +471,8 @@ def register(app: FastAPI) -> None:
             return load_top_parlays(date)
         except TopParlaysMissing:
             raise HTTPException(status_code=404, detail=f"no top parlays file for {date}") from None
+        except TopParlaysUnavailable as e:
+            raise HTTPException(status_code=503, detail=f"top parlays unavailable: {e}") from None
         except TopParlaysRefused as e:
             raise HTTPException(status_code=422, detail=f"top parlays file refused: {e}") from None
 

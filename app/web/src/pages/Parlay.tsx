@@ -103,12 +103,12 @@ export function ParlayCard({ compact }: { compact: boolean }) {
   );
 }
 
-export function ParlayPage() {
+export function ParlayPage(props: { date: string | null }) {
   return (
     <div class="stack">
       <h1>Parlay of the day</h1>
       <ParlayCard compact={false} />
-      <LatestTopParlays />
+      <LatestTopParlays date={props.date} />
       <section class="panel flat">
         <h3>The three ways a day can go</h3>
         <ul class="plain">

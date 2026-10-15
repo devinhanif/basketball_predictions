@@ -1,5 +1,6 @@
-"""Writes the ILLUSTRATION fixtures for the top_parlays/1 contract (docs/contracts/top_parlays_v1.md).
+"""Writes the ILLUSTRATION fixtures for the top_parlays/1 contract (docs/contracts/top_parlays_v2.md).
 
+Dates and game ids (2024-01-01/02, ILLUS-n) are in no real store, so the illustration never overlays a real slate.
 Every number is synthetic (players, lines, prices, probabilities) and the files say so
 ("illustration": true); dates are 2024, never season 2025. The producer's own hindsight fixture
 (top_parlays_example.json) replaces these once it exists. Deterministic: rerun to rewrite.
@@ -11,22 +12,26 @@ import json
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "top_parlays"
-CAVEAT_T490 = "Parlays the model called 70%+ hit about 10 points less in 2023-24 (T490)."
+CAVEAT_T490 = (
+    "Two-leg parlays built from legs the raw model put at 70% or more hit 9.8 points less often than the "
+    "model said (95% CI 6.8 to 12.9 points, n 3,337 parlays, date-clustered, 2023-24 and 2024-25; T490). "
+    "Three-leg: 8.7 points (5.5 to 11.9, n 3,360)."
+)
 
 # name, team, opp, stat, side, line, price, p_raw, p_cal, source, game
 LEGS = [
-    ("Sample Center 1", "BOS", "ATL", "reb", "under", 11.5, -140, 0.72, 0.60, "AVG", "0022400001"),
-    ("Sample Guard 2", "DET", "MIA", "ast", "over", 4.5, -125, 0.68, 0.56, "production", "0022400002"),
-    ("Sample Wing 3", "ORL", "CHA", "pts", "under", 21.5, -130, 0.66, 0.56, "AVG", "0022400003"),
-    ("Sample Forward 4", "PHI", "NYK", "fg3m", "under", 3.5, -150, 0.71, 0.61, "production", "0022400004"),
-    ("Sample Guard 5", "BOS", "ATL", "pts", "over", 17.5, -115, 0.64, 0.53, "AVG", "0022400001"),
-    ("Sample Wing 6", "DET", "MIA", "reb", "under", 6.5, -120, 0.63, 0.54, "AVG", "0022400002"),
+    ("Sample Center 1", "BOS", "ATL", "reb", "under", 11.5, -140, 0.72, 0.60, "AVG", "ILLUS-1"),
+    ("Sample Guard 2", "DET", "MIA", "ast", "over", 4.5, -125, 0.68, 0.56, "production", "ILLUS-2"),
+    ("Sample Wing 3", "ORL", "CHA", "pts", "under", 21.5, -130, 0.66, 0.56, "AVG", "ILLUS-3"),
+    ("Sample Forward 4", "PHI", "NYK", "fg3m", "under", 3.5, -150, 0.71, 0.61, "production", "ILLUS-4"),
+    ("Sample Guard 5", "BOS", "ATL", "pts", "over", 17.5, -115, 0.64, 0.53, "AVG", "ILLUS-1"),
+    ("Sample Wing 6", "DET", "MIA", "reb", "under", 6.5, -120, 0.63, 0.54, "AVG", "ILLUS-2"),
 ]
 TIPS = {
-    "0022400001": "2024-11-13T00:00:00Z",
-    "0022400002": "2024-11-13T00:00:00Z",
-    "0022400003": "2024-11-13T00:00:00Z",
-    "0022400004": "2024-11-13T00:30:00Z",
+    "ILLUS-1": "2024-01-02T00:00:00Z",
+    "ILLUS-2": "2024-01-02T00:00:00Z",
+    "ILLUS-3": "2024-01-02T00:00:00Z",
+    "ILLUS-4": "2024-01-02T00:30:00Z",
 }
 
 
@@ -43,7 +48,7 @@ def leg(i: int) -> dict[str, object]:
     return {
         "game_id": gid, "tipoff": TIPS[gid], "player_id": 9000 + i, "player_name": n,
         "team": team, "opp": opp, "stat": stat, "side": side, "line": line, "book": "draftkings",
-        "price_american": price, "price_at": "2024-11-12T23:05:00Z", "p_raw": pr, "p_cal": pc,
+        "price_american": price, "price_at": "2024-01-01T23:05:00Z", "p_raw": pr, "p_cal": pc,
         "model_source": src,
         "reason": f"The model's raw chance is {round(pr * 100)}%; after calibration it is {round(pc * 100)}%.",
     }
@@ -74,7 +79,7 @@ def ticket(rank: int, idx: list[int], width: float) -> dict[str, object]:
 
 def doc(date: str, sizes: dict[str, list[dict[str, object]]], empty: str | None) -> dict[str, object]:
     return {
-        "schema": "top_parlays/1",
+        "schema": "top_parlays/2",
         "illustration": True,
         "slate_date": date,
         "made_at": f"{date}T22:10:00Z",
@@ -82,6 +87,10 @@ def doc(date: str, sizes: dict[str, list[dict[str, object]]], empty: str | None)
             "rule": "LINE_CALIBRATION", "sha8": "a5441242",
             "fit_through": "2025-06-30 (season 2024; season 2025 rows only after a logged training-use row, Devin)",
             "status": "Stage 1 pass (T493); live confirmation pending",
+        },
+        "gate": {
+            "settled": 0, "settled_min": 30, "slate_dates": 0, "dates_min": 14,
+            "skill_vs_market": None, "open": False,
         },
         "ranking": "calibrated joint probability, highest first; ties broken by higher EV",
         "verdict": "keep_your_money",
@@ -96,8 +105,8 @@ def main() -> None:
     two = [ticket(1, [0, 3], 0.05), ticket(2, [3, 2], 0.05), ticket(3, [0, 2], 0.05)]
     three = [ticket(1, [0, 3, 2], 0.06), ticket(2, [0, 3, 1], 0.06), ticket(3, [0, 3, 5], 0.06)]
     files = {
-        "2024-11-12": doc("2024-11-12", {"2": two, "3": three}, None),
-        "2024-11-20": doc("2024-11-20", {"2": [], "3": []}, "no priced legs"),
+        "2024-01-01": doc("2024-01-01", {"2": two, "3": three}, None),
+        "2024-01-02": doc("2024-01-02", {"2": [], "3": []}, "no priced legs"),
     }
     for d, body in files.items():
         (OUT / f"top_parlays_{d}.json").write_text(json.dumps(body, indent=1) + "\n")

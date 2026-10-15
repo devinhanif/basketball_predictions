@@ -34,12 +34,22 @@ export interface TpTicket {
   why: string;
 }
 
+export interface TpGate {
+  settled: number;
+  settled_min: number;
+  slate_dates: number;
+  dates_min: number;
+  skill_vs_market: number | null;
+  open: boolean;
+}
+
 export interface TopParlays {
-  schema: "top_parlays/1";
-  illustration?: boolean;
+  schema: "top_parlays/2";
+  illustration: boolean;
   slate_date: string;
   made_at: string;
   calibration: { rule: string; sha8: string; fit_through: string; status: string };
+  gate: TpGate;
   ranking: string;
   verdict: string;
   empty_reason: string | null;
@@ -52,9 +62,27 @@ export type TpResult =
   | { kind: "missing" }
   | { kind: "refused"; detail: string };
 
-/** Stale: the file was made before its slate day began (UTC date of made_at earlier than the slate date). */
+const ET_DATE = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** The Eastern calendar date (YYYY-MM-DD) of an instant: slate dates are ET dates. */
+export function etDate(when: string | Date): string {
+  return ET_DATE.format(typeof when === "string" ? new Date(when) : when);
+}
+
+/** Stale: the file was made before its slate's Eastern date began. */
 export function isStale(madeAt: string, slateDate: string): boolean {
-  return madeAt.slice(0, 10) < slateDate;
+  return etDate(madeAt) < slateDate;
+}
+
+/** Made at or after the first tip: not a forecast. */
+export function madeAfterTip(d: TopParlays): boolean {
+  const tips = [...d.sizes["2"], ...d.sizes["3"]].flatMap((t) => t.legs.map((l) => Date.parse(l.tipoff)));
+  return tips.length > 0 && Date.parse(d.made_at) >= Math.min(...tips);
 }
 
 export function hasTickets(d: TopParlays): boolean {
@@ -63,7 +91,8 @@ export function hasTickets(d: TopParlays): boolean {
 
 /** Dollars won or lost per $1 staked, signed, e.g. "+$0.05" or "-$0.24". */
 export function evText(x: number): string {
-  return `${x >= 0 ? "+" : "-"}$${Math.abs(x).toFixed(2)}`;
+  const r = Math.round(x * 100) / 100;
+  return `${r >= 0 ? "+" : "-"}$${Math.abs(r).toFixed(2)}`;
 }
 
 export function isKeepYourMoney(verdict: string): boolean {
