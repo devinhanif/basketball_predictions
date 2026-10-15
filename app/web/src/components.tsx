@@ -7,6 +7,7 @@ import { MIN_LEGS } from "./stats";
 import { teamColor } from "./teams";
 import type { PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
+import { errorCopy } from "./errors";
 import type { Route } from "./router";
 import { FOOTER_DISCLOSURE } from "./config";
 import { lineMarkLabel, winSentence } from "./words";
@@ -178,16 +179,28 @@ export function ErrorPanel(props: { message: string; retry: () => void }) {
       </div>
     );
   }
+  const copy = errorCopy(props.message, import.meta.env.DEV);
   return (
     <div class="panel error" role="alert">
-      <h2>Could not load this</h2>
-      <p>
-        The data server did not answer. If you are running this on your own machine, start it with{" "}
-        <code>uv run uvicorn parlayhitters_api.main:app --app-dir src</code> in <code>app/api</code>, then try again.
-      </p>
-      <p class="muted small">
-        Technical detail: <span class="mono">{props.message}</span>
-      </p>
+      <h1>{copy.title}</h1>
+      <p>{copy.body}</p>
+      {copy.reason ? (
+        <p>
+          Reason: <span class="mono">{copy.reason}</span>
+        </p>
+      ) : null}
+      {copy.devHint ? (
+        <p class="muted small">
+          Development build: start the API with <code>uv run uvicorn parlayhitters_api.main:app --app-dir src</code> in{" "}
+          <code>app/api</code>.
+        </p>
+      ) : null}
+      <details class="explain">
+        <summary>Technical detail</summary>
+        <div class="explain-body">
+          <span class="mono">{props.message}</span>
+        </div>
+      </details>
       <button type="button" class="btn" onClick={props.retry}>
         Try again
       </button>

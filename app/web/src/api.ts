@@ -10,6 +10,7 @@ import type {
   SlateResults,
   SwipeDeck,
 } from "./types";
+import { httpErrorMessage } from "./errors";
 import type { LegBreakdown, Side } from "./legTypes";
 import type { TopParlays, TpResult } from "./topParlays";
 
@@ -21,7 +22,10 @@ export interface Loaded<T> {
 
 export async function getJson<T>(path: string): Promise<Loaded<T>> {
   const res = await fetch(path, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${path}`);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+    throw new Error(httpErrorMessage(res.status, res.statusText, path, typeof body.detail === "string" ? body.detail : null));
+  }
   return { data: (await res.json()) as T, fromCache: res.headers.get("X-From-Cache") === "1" };
 }
 
