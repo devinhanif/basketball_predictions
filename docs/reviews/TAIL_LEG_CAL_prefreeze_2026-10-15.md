@@ -227,3 +227,67 @@ likely is a side- or stat-concentrated gap passing pooled (P7 and the item-8 lab
   iteration. Reverse if: the recheck finds P8 costs more than 5 pp of smooth-world positives."
 - `docs/PREDICTIONS_LEDGER.md` (adversary prior, scored when the result lands): P(word is positive on the real rows,
   after items 1-8) = 0.35; P(TAIL_FLATTENED) = 0.05; P(NO_TAIL_PROBLEM) = 0.08.
+
+---
+
+# Re-check of revision 2 (diff only), 2026-10-15
+
+Reviewed: `origin/agent/modeler-tail-leg-cal-2` 7f94257 against f49dd81. Clock: `date` read `Thu Oct 15 08:36:30 CDT 2026`.
+No real tail-stage label, no 2025 row, no DuckDB.
+
+Verdict: APPROVED
+
+The approval covers revision 2 **plus the two one-line text edits in R1 and R2 below**. Both edits change the text above
+the marker, so the sha to freeze is the one recomputed after them, not a1976b10. Neither touches code, so the harness
+pin 759a756c stays valid. No further review is needed once the main session confirms the two lines read as given.
+
+| # | check | command / evidence | result | pass |
+|---|---|---|---|---|
+| 1 | rule sha | `git show 7f94257:docs/prereg/TAIL_LEG_CAL.md \| awk '/^=== RESULTS BELOW ===$/{exit} {print}' \| shasum -a 256` (exit 0) | a1976b104b0775231420fcdaf48baca74c181694b6d7064c18f0fbcb989d2d73, as stated | yes |
+| 2 | harness pin | `.venv/bin/python -m research.eval.tail_leg_cal_rule pin` in a detached worktree at 7f94257 (exit 0) | 759a756c0e119f5a7b9e398e6e54287e56773a8b1ab7d254737cd70e3ef8bea7, as stated; prints `git commit --allow-empty …` | yes |
+| 3 | item 1, P8 / TAIL_FLATTENED | `tail_leg_cal_eval.py` +BETA_FLAT -0.90, `evaluate` computes the median beta over non-identity DK blocks; TAIL_FLATTENED is ordered after NO_TAIL_PROBLEM and before TAIL_FIXES | matches the review | yes |
+| 4 | item 2, word-level gate | `gate.py` `word_rates` uses the harness's own `score_book` + `evaluate` with seeds `[4242, k, book]`. Re-run: `.venv/bin/python -W ignore -m research.eval.tail_leg_cal_gate --data-root /Users/devin/Downloads/nba-prediction --draws 100 --out <scratch>/gate_rerun2.json` exit 0 | recursive diff against the branch's gate.json: **0 differences** outside the clock fields. Positive rate: smooth 61/100, step 29/100, calibrated 1/100, flat 0/100 (TAIL_FLATTENED 15). These equal my independent sim on the same seeds (flat 15). gate.json sha cd59635b equals GATE_SHA256 | yes |
+| 5 | items 3, 4 (text) | rule l.42, l.48-50, rehearsal section | NOT_FIXED stated as weak (35% / 67%), single draws labelled as single draws, synthetic iteration disclosed, `rehearsal/oracle/` deleted | yes |
+| 6 | item 5, versions | `preflight` raises unless `pj.versions() == pj.PINNED_VERSIONS`; results record versions; test with a monkeypatched mismatch | yes | yes |
+| 7 | items 6, 7, 8 | `evaluate` unit-tested for all five words and P0 precedence; P3 requires both intervals (tested); P7 uses `p_pos_min`; per-side and per-stat gap CIs as labels; `--allow-empty`; `run` ignores `--k` | yes | yes |
+| 8 | lint, types, tests | `ruff check` exit 0; `ruff format --check` exit 0; `mypy` (3 files) exit 0; `pytest -q --no-cov tests/eval/test_tail_leg_cal_harness.py` **19 passed, exit 0** | | yes |
+
+**New contradictions found in the revision (fix before the freeze, text only):**
+
+- **R1 (major, decision text and code disagree):** rule l.42 says TAIL_FLATTENED needs "P1 to P4, P6 and P7 pass".
+  Read literally, "P1 to P4" includes P2s. The code (`evaluate`, `all(checks.values()) and not p8`) requires P2n only.
+  If P8 and P2s both fail, the code says TAIL_FLATTENED and the text says NOT_FIXED. Replace "P1 to P4, P6 and P7 pass"
+  with **"P1, P2n, P3, P4, P6 and P7 pass (P2s not required)"**.
+- **R2 (major, a factual claim now in doubt):** rule l.62 ends "(its pins are the current production rows)". Replace it
+  with **"(its pins are the 2023-24 `pairs` and `model_rows` snapshot behind T493 and T495; whether that snapshot equals
+  production's A0 is under separate review, and nothing in this rule depends on the answer)"**.
+- R3 (minor, optional in the same pass): l.79 "bootstrap with the union interval" should read "with the union interval
+  (both intervals for P3's contains-0 test)".
+
+**MEDIAN_BIAS's model_rows question.**
+- *Is TAIL_LEG_CAL tied to the Oct-10 A0?* Yes, completely. A0's `p_model` comes from `pairs_{2023,2024}.parquet`
+  (pinned, mtime 2024: Oct 11 16:30). CAL's z features come from `model_rows_{2023,2024}.parquet` (pinned, 2024: Oct 10
+  10:18). I recomputed P(over line) from the pinned model_rows grid for every leg (`lc.attach_grid` with the outcome
+  column dropped, exit 0): **0 mismatches** against the pinned pairs' `p_model`, over 88,393 legs (2023) and 91,280
+  (2024). The q fingerprints then pin CAL's output on top. So the pairs, the grid, CAL a5441242, T493, T495 and this rule
+  all describe one consistent A0 snapshot, the Oct-10 model_rows. If the Oct-11 components differ, they are a different A0.
+- *Should the freeze wait?* No. The rule's question is "does a tail map fix the gap T495 found", and T495 found it on
+  this exact snapshot, so the pins are the right object. Clause 1 already binds every word to the pinned pair. What the
+  parallel review can change is transfer, not validity: if production's A0 differs, a TAIL_LEG_CAL word says nothing
+  about the live panel, and the only route to the panel is `TAIL_LEG_CAL_LIVE` on production legs, which is already the
+  plan. The one thing that must not be frozen is the sentence asserting the pins are production (R2). Freezing now also
+  protects the rule from drifting while the question is open.
+- *Interpretation note for the eventual result (not a rule change):* if the parallel review finds model_rows_2024 is
+  not production, say so in the result note and the ledger row next to the word.
+
+**Freeze and pin steps (unchanged in order):**
+1. Apply R1 and R2 (R3 optional) on the rev-2 branch, merge to main.
+2. `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/TAIL_LEG_CAL.md | shasum -a 256`.
+3. `git commit --allow-empty -m "prereg(TAIL_LEG_CAL): <new sha>"`.
+4. `.venv/bin/python -m research.eval.tail_leg_cal_rule pin` should print pin 759a756c… unchanged, then
+   `git commit --allow-empty -m "harness(TAIL_LEG_CAL): 759a756c0e119f5a7b9e398e6e54287e56773a8b1ab7d254737cd70e3ef8bea7"`.
+5. `… tail_leg_cal_eval check --data-root /Users/devin/Downloads/nba-prediction`, then `… run --data-root
+   /Users/devin/Downloads/nba-prediction --sha <new sha>`, once.
+
+**Not verified in this re-check:** the four rehearsal JSONs were not re-run (the gate's word-level rows cover their
+role); real clustering, as before.
