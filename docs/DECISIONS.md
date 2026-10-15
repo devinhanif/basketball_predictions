@@ -1274,3 +1274,8 @@ Reverses: the live alt-rung log showing the map miscalibrated, or the map failin
 What: the pretip run writes production's (props_context_residual) continuous q199 per row to a NEW side table not read by nba.daily.canonical_dump (so the oracle hash is untouched); the export builds rung_cal only from the production row for that prop (the map was fit on production probabilities; T494), never from AVG grids; rung_cal_lines' monotone check covers served lines only. Live-path change: replay oracle (holdout row first) and merge only if IDENTICAL 89889f6d; deadline Fri 10-16.
 Why: the export's first wiring applied the production-fitted map to AVG grids (untested); option 3 rejected, option 1 (wait) declined by Devin.
 What would reverse it: the oracle moving, or the pretip budget (420 s) being threatened by the extra write.
+
+**2026-10-15 12:49 CDT — Devin: "fix injury snapshot timing, returning teammate effect" (follows Claude's advice); app last-10 player links broken.**
+1. INJURY_TIMING: measure the train/serve skew first (history's "T-60" snapshot is typically ~T-180; live will be a true T-60), descriptive on 2023-24; then a frozen rule for one fix. No production change before opening night; promotion is Devin's.
+2. RETURNING_TEAMMATE: pre-registered rule for an as-of "teammate returning from absence" feature (T476 lead: star back game 1 -0.81 pts [-1.06, -0.55]), select 2023 / report 2024; live log confirms.
+3. App: fix the per-player links in the last-10 views, with a test per link.
