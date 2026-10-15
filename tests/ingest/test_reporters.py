@@ -721,3 +721,119 @@ def test_shipped_candidates_file_is_valid() -> None:
     hs = r.read_candidates(r.CANDIDATES_PATH)
     assert 30 <= len(hs) <= r.CHECK_MAX_HANDLES
     assert all(r._HANDLE_RE.match(h) for h in hs)
+
+
+# ------------------------------------------------------------ preseason schedule override
+
+PRE = Path("/nonexistent")
+
+
+def _sched_parquet(tmp_path: Path) -> Path:
+    rows = [
+        ("p1", "2026-10-15T23:30:00Z", "NYK", "TOR"),
+        ("p2", "2026-10-16T00:30:00Z", "HOU", "OKC"),
+        ("p3", "2026-10-16T23:00:00Z", "DET", "TOR"),
+    ]
+    p = tmp_path / "sched.parquet"
+    pl.DataFrame(
+        rows,
+        schema=["gameId", "gameDateTimeUTC", "homeTeam_teamTricode", "awayTeam_teamTricode"],
+        orient="row",
+    ).write_parquet(p)
+    return p
+
+
+def test_schedule_parquet_override_and_team_restriction(tmp_path: Path) -> None:
+    p = _sched_parquet(tmp_path)
+    games = r.load_schedule_parquet(p)
+    assert [g.tipoff for g in games][:2] == [
+        datetime(2026, 10, 15, 23, 30),
+        datetime(2026, 10, 16, 0, 30),
+    ]
+    two = r.load_schedule_parquet(p, ["NYK", "TOR", "HOU", "OKC"])
+    assert len(two) == 3  # TOR also plays DET
+    only = r.load_schedule_parquet(p, ["HOU"])
+    assert [g.game_id for g in only] == ["p2"]
+    with pytest.raises(ValueError, match="unknown team"):
+        r.load_schedule_parquet(p, ["XXX"])
+    with pytest.raises(ValueError, match="no games"):
+        r.load_schedule_parquet(p, ["LAL"])
+
+
+def test_preseason_window_per_team_tip(tmp_path: Path) -> None:
+    games = r.load_schedule_parquet(_sched_parquet(tmp_path), ["NYK", "TOR", "HOU", "OKC"])[:2]
+    rows: list[dict[str, Any]] = [
+        {"handle": "KnicksBeat", "team": "NYK"},
+        {"handle": "RocketsBeat", "team": "HOU"},
+        {"handle": "LakersBeat", "team": "LAL"},
+    ]
+    allow = r.load_allowlist(allowlist_yaml(tmp_path, rows))
+    # 21:45Z: NYK (tip 23:30Z) window open; HOU (tip 00:30Z) opens 22:30Z
+    ok, skipped = r.plan_poll(allow, games, datetime(2026, 10, 15, 21, 45, tzinfo=UTC))
+    assert ok == ["KnicksBeat"] and "RocketsBeat" in skipped and "LakersBeat" in skipped
+    ok2, _ = r.plan_poll(allow, games, datetime(2026, 10, 15, 23, 0, tzinfo=UTC))
+    assert ok2 == ["KnicksBeat", "RocketsBeat"]
+    with pytest.raises(r.PollRefused):  # HOU tipped at 00:30Z; NYK long tipped
+        r.plan_poll(allow, games, datetime(2026, 10, 16, 0, 31, tzinfo=UTC))
+
+
+def test_cli_poll_schedule_override_teams_and_fake_transport(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(r.KEY_ENV, TOKEN)
+    srv = Server([tweet("1", "x")])
+    real_init = r.XClient.__init__
+
+    def init(self: Any, *a: Any, **k: Any) -> None:
+        real_init(self, *a, transport=srv.transport, **k)
+
+    monkeypatch.setattr(r.XClient, "__init__", init)
+    real = datetime
+
+    class Frozen(real):  # type: ignore[misc, valid-type]
+        @classmethod
+        def now(cls, tz: Any = None) -> datetime:
+            return real(2026, 10, 15, 22, 0, tzinfo=UTC)
+
+    monkeypatch.setattr("nba.ingest.reporters.datetime", Frozen)
+    rows: list[dict[str, Any]] = [
+        {"handle": "KnicksBeat", "team": "NYK"},
+        {"handle": "RocketsBeat", "team": "HOU"},
+    ]
+    rc = r.main(
+        [
+            "poll",
+            "--allowlist", str(allowlist_yaml(tmp_path, rows)),
+            "--data-dir", str(tmp_path),
+            "--schedule", str(_sched_parquet(tmp_path)),
+            "--teams", "NYK", "TOR",
+            "--rosters", str(tmp_path / "none"),
+        ]
+    )  # fmt: skip
+    paths = " ".join(q.url.path for q in srv.requests)
+    assert rc == 0
+    assert "KnicksBeat" in paths and "RocketsBeat" not in paths
+    assert paths.count("/tweets") == 1
+
+
+def test_report_test_buckets_posts_by_minutes_before_tip(tmp_path: Path) -> None:
+    allow = r.load_allowlist(allowlist_yaml(tmp_path, [{"handle": "KnicksBeat", "team": "NYK"}]))
+    games = r.load_schedule_parquet(_sched_parquet(tmp_path))
+    from nba.ingest import reporter_facts as rf
+
+    ctx = rf.Context(allow, {}, {}, games)
+    tip = datetime(2026, 10, 15, 23, 30)
+    posts = [
+        r.Post("a", "KnicksBeat", tip - timedelta(minutes=100), "hi", tip, "u"),
+        r.Post("b", "KnicksBeat", tip - timedelta(minutes=45), "hi", tip, "u"),
+        r.Post("c", "KnicksBeat", tip - timedelta(minutes=10), "hi", tip, "u"),
+        r.Post("d", "KnicksBeat", tip - timedelta(minutes=10), "hi", tip, "u"),
+    ]
+    day = tmp_path / "raw" / "2026-10-15"
+    day.mkdir(parents=True)
+    r.write_raw(tmp_path / "raw", "KnicksBeat", posts, datetime(2026, 10, 15, 23, 0, tzinfo=UTC))
+    out = r.report_test(tmp_path, games, allow, ctx, "2026-10-15")
+    assert "4 raw posts" in out
+    lines = {ln.split()[1]: ln for ln in out.splitlines()[1:]}
+    assert "posts=1" in lines["T-120..-60"] and "posts=1" in lines["T-60..-30"]
+    assert "posts=2" in lines["T-30..0"]
