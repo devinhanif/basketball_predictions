@@ -1279,3 +1279,7 @@ What would reverse it: the oracle moving, or the pretip budget (420 s) being thr
 1. INJURY_TIMING: measure the train/serve skew first (history's "T-60" snapshot is typically ~T-180; live will be a true T-60), descriptive on 2023-24; then a frozen rule for one fix. No production change before opening night; promotion is Devin's.
 2. RETURNING_TEAMMATE: pre-registered rule for an as-of "teammate returning from absence" feature (T476 lead: star back game 1 -0.81 pts [-1.06, -0.55]), select 2023 / report 2024; live log confirms.
 3. App: fix the per-player links in the last-10 views, with a test per link.
+
+**2026-10-15 14:21 CDT — Injury-timing pilot probe run (Devin: "run free 3 minute probe"); RETURNING_TEAMMATE_2 option B chosen (Devin: "do b"; Devin's override of the select/report split).**
+1. Probe: 250 ranged GETs, 5 dates in 2023-24: hourly official reports 12:00-21:00 ET exist on every date (reports/injury_timing/pilot_probe.json). The INJURY_TIMING gate is repairable by a full intraday re-pull (~21,000 requests, ~3.5 h, free, into a scratch DB); that pull is Devin's next call.
+2. RETURNING_TEAMMATE_2 B: one pooled 2023+2024 test (no select/report split; a pass means "consistent with T476", the live log is the confirmatory test). Claude's flag: the drafter's pooled half-width is 0.0052 vs the 0.005 bar; non-negotiable 8 means the gate is re-measured on the pooled design first and the rule is frozen only if it passes as written; the bar is not changed after seeing the number. Reverses: the pooled gate failing (then option A/C).
