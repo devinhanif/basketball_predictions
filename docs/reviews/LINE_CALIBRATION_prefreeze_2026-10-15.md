@@ -233,3 +233,55 @@ the gate):
 `| 2026-10-15 | LINE_CALIBRATION Stage 1 (select, 2024) verdict, adversary prior, written before any CAL fit on the frozen rule (not blind: POVER_BIAS scratch, T480, gate SH-A0 -0.0078 seen) | adversary: P(CALIBRATED) 0.75; P(SHRINKAGE_ONLY) 0.15; P(FAIL) 0.10. Reasoning: synthetic SCRATCH-like truth gives CALIBRATED 4/4 with CAL-C0 about -0.005; real SH-A0 -0.0078 and scratch DK -0.0089 imply CAL-SH about -0.001 to -0.003; main risks P6 bench slice and Pinnacle-DK differences. Expected CAL-C0 at Pinnacle -0.002 (80% -0.004 to +0.0002), n about 37,528 legs | docs/reviews/LINE_CALIBRATION_prefreeze_2026-10-15.md | pending | |`
 
 DECISIONS: none (the freeze remains the main session's act once B1 and B2 are applied).
+
+## Re-check (diff-only), 2026-10-15, revision 76f7907
+
+Scope: `git diff 4b55924 76f7907` (the doc, both harness files, the test file, gate_draft.json and rehearsal/results.json). Checked
+in a detached worktree at 76f7907; the data was not re-run beyond the modeler's gate.
+
+Verdict: APPROVED
+
+| check | command / evidence | result | pass |
+|---|---|---|---|
+| sha | `awk '/^=== RESULTS BELOW ===$/{exit} {print}' LINE_CALIBRATION.md \| shasum -a 256` at 76f7907 | `0731f17dd65b6dfccbd60bb79c95ebbfeddc20063a891806025a004531401fc2`, equal to the declared value | PASS |
+| B1 | doc :234-241, :215-216, :299, :93-94 | the replacement text is verbatim; :208-209 now says the clean evidence is the 2026-27 live log; the :283 row is amended; T480 is in Lineage | PASS |
+| B2 | doc :50-52, :134-136, :451-452, :249; code `evaluate` :581 `obj = "C0"`; new test case in `test_verdict_classes` | C0 is always served under SHRINKAGE_ONLY; a served object that fails its own checks gives FAIL (E6 merged here) | PASS |
+| E1-E3, E6-E8 | doc :118-119 (priors superseded), :257-258 (P2 binding), :231-233 (P2/P3 predictable), :443 (Boot); `SLICE_MIN_N` removed | as asked | PASS |
+| knockout cannot move the main path | `walk_forward(..., cols=None)` builds the same X; the `cal` arm draws no random numbers; `Boot` holds a precomputed resample matrix, so extra `bs.mean` calls consume nothing. Rehearsal `results.json` at 4b55924 and at 76f7907, compared with `knockout_vs_c0` stripped: **0 differing keys**; verdict CALIBRATED / CAL both times; `d_cal_a0` identical | identical | PASS |
+| ridge with fewer columns | `fit_logistic` builds `R = eye(k)` with `R[0,0] = 0`; column 0 stays the intercept in both knockouts ([0,1,3,4] and [0,2,3]) | correct | PASS |
+| harness pin, logic | fake git runner returning the real doc (sha 0731f17d) and the real harness: accepted, blob sha256 `cf81dc9f...` (eval) and `6e4bd68e...` (rule). The same runner with either file changed by one line: refused with the file named | works | PASS |
+| harness pin, real git | `rule.git("show", "HEAD:<file>") == (ROOT/<file>).read_text()` for both files | True, True (text-mode subprocess and read_text agree byte for byte) | PASS |
+| report re-checks the pin | `report` compares `select.json["harness_sha256"]` with the current pin and refuses on a difference | present | PASS |
+| tests / lint | `pytest -q tests/research/line_calibration --no-cov -p no:cacheprovider`; `ruff check`; `ruff format --check`; `mypy` (both harness files) | 20 passed, exit 0; 0; 0; 0 | PASS |
+
+### What the freeze commit must contain
+- `require_harness_pinned` reads the **tree** at the freeze commit (`git show <h>:<file>`). That tree must hold
+  `docs/prereg/LINE_CALIBRATION.md` and both harness files exactly as at 76f7907. It does not matter whether the commit's own diff
+  touches the harness files.
+- If the freeze is made on `main` before this branch's harness changes are merged, the pin refuses at `select`. That failure is
+  safe, but it means a wasted freeze. Commit the freeze on top of 76f7907, or merge first.
+- The freeze subject must be exactly `prereg(LINE_CALIBRATION): 0731f17dd65b6dfccbd60bb79c95ebbfeddc20063a891806025a004531401fc2`,
+  and the commit must stay reachable from HEAD where `select` runs. A squash merge that rewrites the subject makes `select`
+  refuse.
+- Nothing else is required. The data parquets and the null sd are pinned by the doc's own sha lines, which `select` checks.
+
+### Notes (not blocking; apply before the freeze only if cheap, otherwise leave)
+- **R1 (minor; corrects my own E4 premise). The knockouts cannot separate model from line.** x = logit P(Y > line) and
+  z = (line - median) / spread are both positions of the line in the model's distribution, so they are near-collinear. On the
+  synthetic rehearsal, without_z gives -0.01486 [-0.01669, -0.01311] and without_x gives -0.01487 [-0.01671, -0.01315] against C0
+  (n 37,528), effectively the same number. The sentence at doc :66 ("They answer whether the map only re-expresses the base rate
+  or the line") overstates what they can show. Suggested text: "x and z are both positions of the line in the model's
+  distribution and are near-collinear, so these knockouts measure redundancy, not whether the model or the line carries the
+  gain." This is a label-only secondary, so no verdict depends on it. If the text is changed, re-hash before the freeze.
+- **R2 (minor). The pin does not cover the CI code.** `HARNESS_FILES` (`line_calibration_rule.py:84-87`) does not include
+  `research/eval/model_clv_eval.py`, which holds `Boot` (the primary CI). Stage 1 runs tonight, so there is no practical risk for
+  it. For Stage 2, add the file to the tuple **before** the freeze: adding it later changes the pin and makes `report` refuse
+  against Stage 1's `select.json`. This is a code-only change; the doc sha is unaffected. Do not pin
+  `nba/eval/context_residual_eval.py`: it supplies only the secondary BH, and unrelated edits to it would block the stage.
+- **R3 (minor). The test name overclaims.** `test_harness_pin_refuses_a_changed_file` (tests/.../test_line_calibration.py:353)
+  actually exercises the "not frozen" path, because the fake doc hashes to e3b0... The accept and changed-file paths were checked
+  in this re-check but have no committed test. A fake runner that returns the real doc, as used here, would cover both.
+
+No new contradiction found between the revised sections. The 10-12 "Not seen as of 10-12" line (:214) is explicitly superseded, and
+"Unchanged" (:242) is still true: no metric, floor, arm, term or stage changed. The served-object change is disclosed as the main
+session's default, with Devin able to switch before the freeze.
