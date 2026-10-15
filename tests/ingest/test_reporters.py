@@ -99,11 +99,13 @@ def client(tmp_path: Path, server: Server, *, allow: Path | None = None, **kw: A
 # ---------------------------------------------------------------------------------- allow-list
 
 
-def test_repo_allowlist_is_empty_with_a_commented_example() -> None:
+def test_repo_allowlist_loads_and_is_devins_checked_list() -> None:
+    # Filled by Devin on 2026-10-15 from the paid handle check;
+    # load_allowlist itself rejects bad tricodes and duplicates.
     allow = r.load_allowlist(ROOT_ALLOWLIST)
-    assert allow.reporters == {}
-    text = ROOT_ALLOWLIST.read_text()
-    assert "#   - handle: ExampleBeatWriter" in text and "handles: []" in text
+    assert len(allow.reporters) >= 1
+    assert "shamscharania" in allow.reporters
+    assert "#   - handle: ExampleBeatWriter" in ROOT_ALLOWLIST.read_text()
 
 
 def test_allowlist_validation(tmp_path: Path) -> None:
