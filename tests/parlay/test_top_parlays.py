@@ -7,6 +7,7 @@ import re
 import time
 from dataclasses import replace
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -90,7 +91,7 @@ def cross_game_legs(n: int = 8) -> list[LegCand]:
 
 
 def test_ranking_cross_game_is_product_of_top_legs_and_sorted() -> None:
-    legs = cross_game_legs()
+    legs = cross_game_legs(12)
     rep = report(legs)
     two, three = rep["sizes"]["2"], rep["sizes"]["3"]
     assert [t["rank"] for t in two] == [1, 2, 3] and [t["rank"] for t in three] == [1, 2, 3]
@@ -149,16 +150,45 @@ def test_same_game_same_player_uses_copula_and_cross_game_is_independent() -> No
     a = leg(1, 0.6, stat="pts", pid=7, game="G1")
     b = leg(2, 0.6, stat="ast", pid=7, game="G1")
     c = leg(3, 0.6, stat="pts", pid=8, game="G2")
-    rep = report([a, b, c], pc=pc)
+    d = leg(4, 0.6, stat="pts", pid=9, game="G3")
+    rep = report([a, b, c, d], pc=pc)
     same = [t for t in rep["sizes"]["2"] if t["same_game"]]
     cross = [t for t in rep["sizes"]["2"] if not t["same_game"]]
     assert same and cross
     assert same[0]["p_joint_cal"] > 0.6 * 0.6 + 0.03  # positive dependence lifts the joint
     assert cross[0]["p_joint_cal"] == pytest.approx(0.36, abs=1e-4)
     # an under leg flips the sign: a positively correlated pair, one over and one under
-    d = leg(2, 0.6, stat="ast", pid=7, game="G1", side="under")  # hits with 0.4
-    rep2 = report([a, d], pc=pc)
+    e = leg(2, 0.6, stat="ast", pid=7, game="G1", side="under")  # hits with 0.4
+    rep2 = report([a, e], pc=pc)
     assert rep2["sizes"]["2"][0]["p_joint_cal"] < 0.6 * 0.4 - 0.03
+
+
+def test_same_game_means_any_two_legs_share_a_game_and_is_not_a_book_price() -> None:
+    """M3: a mixed ticket (two legs in one game, one elsewhere) is same_game, carries an EV that is
+    not a book price, and can never open the verdict."""
+    pc = PairCorr(rho={("same_player", "fg3m", "pts"): 0.6}, n={})
+    a = leg(1, 0.7, stat="pts", pid=7, game="G1", price=+400)
+    b = leg(2, 0.7, stat="fg3m", pid=7, game="G1", price=+400)
+    c = leg(3, 0.9, game="G2", pid=8, price=+400)
+    rep = report([a, b, c], pc=pc, gate=Gate(40, 20, 0.05))
+    t3 = rep["sizes"]["3"][0]
+    assert t3["same_game"] is True and "not a book price" in t3["ev_basis"]
+    assert "not a book price" in t3["why"]
+    only = report([a, b], pc=pc, gate=Gate(40, 20, 0.05))  # a same-game ticket alone
+    top = only["sizes"]["2"][0]
+    assert top["same_game"] and top["ev_low80"] > 0  # positive on paper, but not a book price
+    assert only["verdict"] == KEEP and only["diagnostics"]["no_positive_ev_found"]
+
+
+def test_each_leg_appears_in_at_most_one_shown_ticket_per_size() -> None:
+    """M5 (default pending Devin): greedy by rank; the rank-1 ticket is the most probable one."""
+    legs = cross_game_legs(12)
+    rep = report(legs)
+    for size in ("2", "3"):
+        keys = [x["player_id"] for t in rep["sizes"][size] for x in t["legs"]]
+        assert len(keys) == len(set(keys)) == int(size) * 3
+    assert rep["sizes"]["2"][0]["p_joint_cal"] == pytest.approx(0.90 * 0.88, abs=1e-4)
+    assert "at most one shown ticket" in rep["ranking"]
 
 
 def test_empty_slate_and_no_legs_are_first_class() -> None:
@@ -220,14 +250,63 @@ def test_verdict_is_keep_unless_gate_open_and_ev_low_positive() -> None:
     assert flat["verdict"] == KEEP and flat["diagnostics"]["no_positive_ev_found"]
 
 
-def test_fee_comes_from_the_config_object_not_a_constant() -> None:
-    legs = cross_game_legs(4)
-    base = report(legs)["sizes"]["2"][0]
+def test_sportsbook_tickets_carry_no_fee_and_kalshi_tickets_pay_the_config_fee_once() -> None:
+    """B2: the book's margin is inside the legs' prices; only a venue in fee_venues pays the fee."""
+    book = report(cross_game_legs(4))["sizes"]["2"][0]
+    assert book["fee"] == 0.0 and book["fee_model"].startswith("none")
+    assert book["ev_per_dollar"] == pytest.approx(
+        book["p_joint_cal"] / book["book_implied"] - 1.0, abs=2e-3
+    )
+    assert book["book_implied"] == pytest.approx(implied_prob(-110) ** 2, abs=1e-4)
+    assert "margin is included" in book["why"] and "fee schedule" not in book["why"]
+    kal = report([leg(i, 0.9 - 0.02 * i, game=f"G{i}", pid=i, book="kalshi") for i in range(4)])
+    k2 = kal["sizes"]["2"][0]
+    assert k2["fee"] > 0 and k2["fee_model"] == CFG.fee.name
+    assert k2["ev_per_dollar"] == pytest.approx(
+        k2["p_joint_cal"] / (k2["book_implied"] + k2["fee"]) - 1.0, abs=2e-3
+    )
     free = replace(CFG, fee=replace(CFG.fee, coefficient=0.0))
-    cheap = report(legs, cfg=free)["sizes"]["2"][0]
-    assert base["fee"] > 0 and cheap["fee"] == 0.0
-    assert cheap["ev_per_dollar"] > base["ev_per_dollar"]
-    assert base["book_implied"] == pytest.approx(implied_prob(-110) ** 2, abs=1e-4)
+    assert (
+        report([leg(i, 0.9, game=f"G{i}", pid=i, book="kalshi") for i in range(4)], cfg=free)[
+            "sizes"
+        ]["2"][0]["fee"]
+        == 0.0
+    )  # the rate is read from the config object
+
+
+def test_leg_priced_after_made_at_but_before_tip_is_refused_and_counted() -> None:
+    """B1: a price stamped after the file's own clock may not appear in the file."""
+    late = leg(1, 0.95, game="G1", priced=PRICED + timedelta(minutes=10))  # before tip
+    ok = [leg(2, 0.7, game="G2"), leg(3, 0.7, game="G3")]
+    kept, counts = refuse_post_tip([late, *ok], None, PRICED)
+    assert [x.player_id for x in kept] == [2, 3] and counts["priced_after_made_at"] == 1
+    rep = report([late, *ok], made_at=PRICED, now=None)
+    ids = {x["player_id"] for ts in rep["sizes"].values() for t in ts for x in t["legs"]}
+    assert ids == {2, 3} and rep["diagnostics"]["refused"]["priced_after_made_at"] == 1
+    for ts in rep["sizes"].values():
+        for t in ts:
+            assert all(x["price_at"] <= rep["made_at"] for x in t["legs"])
+
+
+def test_caveat_is_verbatim_from_the_contract_and_free_text_is_screened() -> None:
+    contract = (
+        Path(__file__).resolve().parents[2] / "docs/contracts/top_parlays_v2.md"
+    ).read_text()
+    assert T490_CAVEAT in contract
+    rep = report(cross_game_legs(4))
+    assert rep["caveats"][0] == T490_CAVEAT and rep["diagnostics"]["numguard_removed"] == 0
+    with pytest.raises(ValueError, match="banned"):
+        report(cross_game_legs(4), calibration={**CAL, "status": "a lock of a ticket"})
+    with pytest.raises(ValueError, match="banned"):
+        report(cross_game_legs(4), extra_caveats=["this is free money"])
+
+
+def test_gate_bars_are_the_contract_values_and_interval_is_labelled() -> None:
+    rep = report(cross_game_legs(4))
+    assert rep["gate"]["settled_min"] == 30 and rep["gate"]["dates_min"] == 14
+    assert "tickets_with_positive_point_ev" not in rep["diagnostics"]["search"]
+    assert "not a tested residual" in rep["diagnostics"]["search"]["interval_basis"]
+    assert "configured noise, not tested" in rep["sizes"]["2"][0]["why"]
 
 
 def test_numguard_passes_on_every_sentence_and_no_hype() -> None:

@@ -1,9 +1,10 @@
-"""Hindsight fixture for top_parlays/1: one 2024-25 regular-season date from stored OOF rows.
+"""Hindsight fixture for top_parlays/2 (illustration true): one 2024-25 date from stored OOF rows.
 
 Inputs: the MODEL_CLV T-60 pairs and the ODDS_HISTORY OOF rows (seasons 2023 and 2024 only; season
 2025 is the frozen holdout and is refused). Each leg is a DraftKings main-line over or under priced
 at its T-60 snapshot with the production out-of-fold forecast. The CAL map used is the harness's
-walk-forward fit for that date (rows strictly before the slate day), so the map never sees the
+walk-forward fit for that date's calendar-month block (rows strictly before the first of the
+month, the rule's own block), so the map never sees the
 slate's own outcomes. The output is a HINDSIGHT ILLUSTRATION: outcomes are attached afterwards, only
 players who played appear (DNP legs were voided upstream), and nothing here is a forecast of a
 future date.
@@ -15,6 +16,7 @@ future date.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import date, timedelta
 from pathlib import Path
@@ -132,9 +134,17 @@ def build_fixture(pairs_dir: Path, model_dir: Path, model_json: Path, day: date)
     if day < date(2024, 10, 1) or day > date(2025, 6, 30):
         raise ValueError("fixture dates must be season-2024 (2024-10-01 .. 2025-06-30)")
     cfg = load_config()
-    pc = corr_from_json(json.loads(model_json.read_text())["corr"])
+    raw_model = model_json.read_bytes()
+    blob = json.loads(raw_model)
+    pc = corr_from_json(blob["corr"])
+    joint_model = {
+        "sha256": hashlib.sha256(raw_model).hexdigest(),
+        "fit_seasons": blob.get("params", {}).get("fit_seasons"),
+        "n_games_corr": blob.get("n_games_corr"),
+    }
     d, shas = lb.load_history(pairs_dir, model_dir)
-    cells = lc.fit_cells(lb.to_arrays(d), np.datetime64(day, "D"), (BOOK,), lb.STATS)
+    block = day.replace(day=1)  # the rule's calendar-month block
+    cells = lc.fit_cells(lb.to_arrays(d), np.datetime64(block, "D"), (BOOK,), lb.STATS)
     meta = {"rule": lc.RULE, "rule_sha8": lb.RULE_SHA8}
     calmap = lc.CalMap(meta, {(c.book, c.stat): c for c in cells})
     legs, over_label = legs_for_day(d, day, calmap)
@@ -143,8 +153,9 @@ def build_fixture(pairs_dir: Path, model_dir: Path, model_json: Path, day: date)
     calibration = {
         "rule": lc.RULE,
         "sha8": lb.RULE_SHA8,
-        "fit_through": f"{(day - timedelta(days=1)).isoformat()} "
-        "(walk-forward for this date: rows strictly before it, seasons 2023-2024)",
+        "fit_through": f"{(block - timedelta(days=1)).isoformat()} "
+        "(the rule's month-block walk-forward for this date: rows strictly before the first of "
+        "the month, seasons 2023-2024)",
         "status": "Stage 1 pass (T493); live confirmation pending. p_cal is the map applied to the "
         "production out-of-fold P(over); no AVG row exists for season 2024.",
     }
@@ -152,16 +163,19 @@ def build_fixture(pairs_dir: Path, model_dir: Path, model_json: Path, day: date)
         legs,
         slate_date=day.isoformat(),
         made_at=made_at,
-        now=None,
+        now=made_at,
         cfg=cfg,
         pc=pc,
         calibration=calibration,
         gate=Gate(),
         illustration=True,
+        joint_model=joint_model,
         notes=[
-            "fixture: legs carry their own T-60 stamps; made_at is 1 minute before the first tip",
+            "fixture: made_at is 1 minute before the first tip; legs priced after it are refused",
             "P(play) is not stored for out-of-fold rows; non-players were voided upstream",
             "the 'drivers.minutes' value is the last-10-games average, not a projection",
+            "pair correlations were fitted on seasons 2022-2024, which includes this date's season "
+            "(in-sample, negligible for the shown tickets)",
         ],
     )
     annotate_hindsight(rep, over_label)

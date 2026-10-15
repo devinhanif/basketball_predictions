@@ -1,6 +1,6 @@
 """CLI: ``python -m nba.parlay {fit,eval-joint,evaluate,analyze,top,assistant}`` (read-only).
 
-``top --date D`` writes ``reports/parlay/top_parlays_<D>.json`` (docs/contracts/top_parlays_v1.md):
+``top --date D`` writes ``reports/parlay/top_parlays_<D>.json`` (docs/contracts/top_parlays_v2.md):
 the top three two-leg and three-leg tickets by calibrated joint probability, from stored forecasts
 and pre-tip book quotes. It reads two stores read-only and writes only that file.
 
@@ -15,6 +15,7 @@ No order endpoints, no credentials.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from dataclasses import dataclass, replace
@@ -465,27 +466,9 @@ def cmd_analyze(a: argparse.Namespace) -> int:
     return 0
 
 
-def _gate(paper_db: Path, cfg: ParlayConfig) -> tuple[Any, str | None]:
-    """The frozen track-record gate from the shadow log, opened read-only; shut when absent."""
-    from nba.parlay.top_parlays import Gate
-
-    if not paper_db.exists():
-        return Gate(), "no paper-trade store: gate shut"
-    try:
-        con = duckdb.connect(str(paper_db), read_only=True)
-    except duckdb.Error as e:
-        return Gate(), f"paper-trade store unreadable ({str(e).splitlines()[0]}): gate shut"
-    try:
-        tr = track_record(con, cfg.gate_ci_level)
-    finally:
-        con.close()
-    skill = tr.gated_skill(cfg.min_settled_dates)
-    return Gate(tr.n_settled, tr.n_dates, skill if skill > 0.0 else None), None
-
-
 def cmd_top(a: argparse.Namespace) -> int:
     from nba.parlay.line_cal import load_map
-    from nba.parlay.top_parlays import build_report
+    from nba.parlay.top_parlays import K_DEFAULT, Gate, build_report
     from nba.parlay.top_source import SourceError, load_legs
 
     cfg = load_config(a.config)
@@ -509,7 +492,17 @@ def cmd_top(a: argparse.Namespace) -> int:
         nba.close()
         if odds is not None:
             odds.close()
-    gate, gate_note = _gate(Path(a.paper_db), cfg)
+    # M4: the Kalshi shadow log measures a different product; the gate stays shut until the panel
+    # has its own settled paper log (contract: counters are producer-asserted)
+    gate = Gate()
+    gate_note = "gate shut: the top-parlays panel has no paper log of its own yet"
+    raw_model = Path(a.model).read_bytes()
+    blob = json.loads(raw_model)
+    joint_model = {
+        "sha256": hashlib.sha256(raw_model).hexdigest(),
+        "fit_seasons": blob.get("params", {}).get("fit_seasons"),
+        "n_games_corr": blob.get("n_games_corr"),
+    }
     caveats = [
         "Leg probabilities come from the frozen LINE_CALIBRATION map fitted through season 2024 on "
         "production forecasts; it has not yet been confirmed on the live log. Legs are calibrated; "
@@ -537,7 +530,8 @@ def cmd_top(a: argparse.Namespace) -> int:
             "ranks.",
         },
         gate=gate,
-        k=a.k,
+        k=K_DEFAULT if a.k is None else a.k,
+        joint_model=joint_model,
         no_slate=loaded.no_slate,
         pre_refused=dict(loaded.dropped),
         notes=[
@@ -558,8 +552,6 @@ def cmd_top(a: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from nba.parlay.top_parlays import K_DEFAULT
-
     ap = argparse.ArgumentParser(prog="python -m nba.parlay", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("fit", "eval-joint", "evaluate"):
@@ -597,13 +589,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--config", default=str(ROOT / "configs" / "parlay.yaml"))
     p.add_argument("--nba-db", default=str(ROOT / "nba.duckdb"))
     p.add_argument("--odds-db", default=str(ROOT / "data" / "markets" / "market_asof.duckdb"))
-    p.add_argument("--paper-db", default=str(ROOT / "data" / "parlay" / "paper_trades.duckdb"))
     p.add_argument("--model", default=str(DEFAULT_MODEL))
     p.add_argument(
         "--cal-map", default=str(Path(__file__).resolve().parent / "line_cal_map_v1.json")
     )
     p.add_argument("--out-dir", default=str(ROOT / "reports" / "parlay"))
-    p.add_argument("--k", type=int, default=K_DEFAULT, help="legs kept per book before the search")
+    p.add_argument("--k", type=int, default=None, help="legs kept per book before the search")
     p = sub.add_parser("analyze", help="daily props analysis report (read-only)")
     p.add_argument("--date", required=True)
     p.add_argument("--now", type=lambda t: datetime.fromisoformat(t).replace(tzinfo=None))

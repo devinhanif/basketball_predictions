@@ -1,0 +1,551 @@
+{
+ "schema": "top_parlays/2",
+ "illustration": false,
+ "slate_date": "2031-01-15",
+ "made_at": "2031-01-15T22:30:00Z",
+ "calibration": {
+  "rule": "LINE_CALIBRATION",
+  "sha8": "a5441242",
+  "fit_through": "2025-06-30 (season 2024)",
+  "status": "synthetic producer sample",
+  "joint_status": "legs calibrated; joint not yet tested"
+ },
+ "gate": {
+  "settled": 0,
+  "settled_min": 30,
+  "slate_dates": 0,
+  "dates_min": 14,
+  "skill_vs_market": null,
+  "open": false
+ },
+ "ranking": "calibrated joint probability, highest first; ties broken by higher EV; within a size each leg appears in at most one shown ticket (greedy by rank)",
+ "verdict": "keep_your_money",
+ "empty_reason": null,
+ "sizes": {
+  "2": [
+   {
+    "rank": 1,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0093100000",
+      "tipoff": "2031-01-15T23:00:00Z",
+      "player_id": 900000,
+      "player_name": "Sample Player00",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.88,
+      "p_cal": 0.804,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.6
+      },
+      "reason": "Sample Player00 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 80% (raw 88%) against 60% implied by draftkings at -150."
+     },
+     {
+      "game_id": "0093100004",
+      "tipoff": "2031-01-16T01:00:00Z",
+      "player_id": 900041,
+      "player_name": "Sample Player41",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "reb",
+      "side": "over",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.88,
+      "p_cal": 0.804,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 12.0,
+       "recent_avg": 11.2,
+       "minutes": 31.5,
+       "implied": 0.6
+      },
+      "reason": "Sample Player41 over 11.5 rebounds (AAA vs BBB): the model's mean is 12.0; his recent average is 11.2, below the line; recent average minutes are 31.5; calibrated chance 80% (raw 88%) against 60% implied by draftkings at -150."
+     }
+    ],
+    "p_joint_raw": 0.7744,
+    "p_joint_cal": 0.6464,
+    "p_joint_cal_80": [
+     0.4584,
+     0.7979
+    ],
+    "book_implied": 0.36,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": 0.7956,
+    "ev_low80": 0.2733,
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 65% (raw 77%) is the joint of those legs. draftkings stacks them at an implied 36%; at the book's price (its margin is included) that is +80% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent."
+   },
+   {
+    "rank": 2,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0093100000",
+      "tipoff": "2031-01-15T23:00:00Z",
+      "player_id": 900001,
+      "player_name": "Sample Player01",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.86,
+      "p_cal": 0.788,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5833
+      },
+      "reason": "Sample Player01 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 79% (raw 86%) against 58% implied by draftkings at -140."
+     },
+     {
+      "game_id": "0093100004",
+      "tipoff": "2031-01-16T01:00:00Z",
+      "player_id": 900042,
+      "player_name": "Sample Player42",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "reb",
+      "side": "over",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.86,
+      "p_cal": 0.788,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 12.0,
+       "recent_avg": 11.2,
+       "minutes": 31.5,
+       "implied": 0.5833
+      },
+      "reason": "Sample Player42 over 11.5 rebounds (AAA vs BBB): the model's mean is 12.0; his recent average is 11.2, below the line; recent average minutes are 31.5; calibrated chance 79% (raw 86%) against 58% implied by draftkings at -140."
+     }
+    ],
+    "p_joint_raw": 0.7396,
+    "p_joint_cal": 0.6209,
+    "p_joint_cal_80": [
+     0.4338,
+     0.7835
+    ],
+    "book_implied": 0.3403,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": 0.8248,
+    "ev_low80": 0.2749,
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 62% (raw 74%) is the joint of those legs. draftkings stacks them at an implied 34%; at the book's price (its margin is included) that is +82% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent."
+   },
+   {
+    "rank": 3,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0093100000",
+      "tipoff": "2031-01-15T23:00:00Z",
+      "player_id": 900002,
+      "player_name": "Sample Player02",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -130,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.84,
+      "p_cal": 0.772,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5652
+      },
+      "reason": "Sample Player02 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 77% (raw 84%) against 57% implied by draftkings at -130."
+     },
+     {
+      "game_id": "0093100001",
+      "tipoff": "2031-01-15T23:30:00Z",
+      "player_id": 900010,
+      "player_name": "Sample Player10",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -120,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.82,
+      "p_cal": 0.756,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5455
+      },
+      "reason": "Sample Player10 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 76% (raw 82%) against 55% implied by draftkings at -120."
+     }
+    ],
+    "p_joint_raw": 0.6888,
+    "p_joint_cal": 0.5836,
+    "p_joint_cal_80": [
+     0.3924,
+     0.7579
+    ],
+    "book_implied": 0.3083,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": 0.8931,
+    "ev_low80": 0.2729,
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 58% (raw 69%) is the joint of those legs. draftkings stacks them at an implied 31%; at the book's price (its margin is included) that is +89% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent."
+   }
+  ],
+  "3": [
+   {
+    "rank": 1,
+    "same_game": true,
+    "legs": [
+     {
+      "game_id": "0093100000",
+      "tipoff": "2031-01-15T23:00:00Z",
+      "player_id": 900000,
+      "player_name": "Sample Player00",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.88,
+      "p_cal": 0.804,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.6
+      },
+      "reason": "Sample Player00 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 80% (raw 88%) against 60% implied by draftkings at -150."
+     },
+     {
+      "game_id": "0093100004",
+      "tipoff": "2031-01-16T01:00:00Z",
+      "player_id": 900041,
+      "player_name": "Sample Player41",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "reb",
+      "side": "over",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.88,
+      "p_cal": 0.804,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 12.0,
+       "recent_avg": 11.2,
+       "minutes": 31.5,
+       "implied": 0.6
+      },
+      "reason": "Sample Player41 over 11.5 rebounds (AAA vs BBB): the model's mean is 12.0; his recent average is 11.2, below the line; recent average minutes are 31.5; calibrated chance 80% (raw 88%) against 60% implied by draftkings at -150."
+     },
+     {
+      "game_id": "0093100004",
+      "tipoff": "2031-01-16T01:00:00Z",
+      "player_id": 900042,
+      "player_name": "Sample Player42",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "reb",
+      "side": "over",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.86,
+      "p_cal": 0.788,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 12.0,
+       "recent_avg": 11.2,
+       "minutes": 31.5,
+       "implied": 0.5833
+      },
+      "reason": "Sample Player42 over 11.5 rebounds (AAA vs BBB): the model's mean is 12.0; his recent average is 11.2, below the line; recent average minutes are 31.5; calibrated chance 79% (raw 86%) against 58% implied by draftkings at -140."
+     }
+    ],
+    "p_joint_raw": 0.6646,
+    "p_joint_cal": 0.5086,
+    "p_joint_cal_80": [
+     0.3186,
+     0.6881
+    ],
+    "book_implied": 0.21,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "not a book price (two legs share a game)",
+    "ev_per_dollar": 1.4218,
+    "ev_low80": 0.5169,
+    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 51% (raw 66%) is the joint of those legs. draftkings stacks them at an implied 21%; against the product of the legs' prices, which is not a book price that is +142% per dollar, and the low end of the 80% range (configured noise, not tested) is +52%. Legs from different games are treated as independent; legs in one game share the copula."
+   },
+   {
+    "rank": 2,
+    "same_game": true,
+    "legs": [
+     {
+      "game_id": "0093100000",
+      "tipoff": "2031-01-15T23:00:00Z",
+      "player_id": 900001,
+      "player_name": "Sample Player01",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.86,
+      "p_cal": 0.788,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5833
+      },
+      "reason": "Sample Player01 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 79% (raw 86%) against 58% implied by draftkings at -140."
+     },
+     {
+      "game_id": "0093100000",
+      "tipoff": "2031-01-15T23:00:00Z",
+      "player_id": 900002,
+      "player_name": "Sample Player02",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -130,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.84,
+      "p_cal": 0.772,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5652
+      },
+      "reason": "Sample Player02 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 77% (raw 84%) against 57% implied by draftkings at -130."
+     },
+     {
+      "game_id": "0093100001",
+      "tipoff": "2031-01-15T23:30:00Z",
+      "player_id": 900010,
+      "player_name": "Sample Player10",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -120,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.82,
+      "p_cal": 0.756,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5455
+      },
+      "reason": "Sample Player10 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 76% (raw 82%) against 55% implied by draftkings at -120."
+     }
+    ],
+    "p_joint_raw": 0.5875,
+    "p_joint_cal": 0.4582,
+    "p_joint_cal_80": [
+     0.2802,
+     0.6435
+    ],
+    "book_implied": 0.1798,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "not a book price (two legs share a game)",
+    "ev_per_dollar": 1.5481,
+    "ev_low80": 0.558,
+    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 46% (raw 59%) is the joint of those legs. draftkings stacks them at an implied 18%; against the product of the legs' prices, which is not a book price that is +155% per dollar, and the low end of the 80% range (configured noise, not tested) is +56%. Legs from different games are treated as independent; legs in one game share the copula."
+   },
+   {
+    "rank": 3,
+    "same_game": true,
+    "legs": [
+     {
+      "game_id": "0093100001",
+      "tipoff": "2031-01-15T23:30:00Z",
+      "player_id": 900011,
+      "player_name": "Sample Player11",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -110,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.8,
+      "p_cal": 0.74,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5238
+      },
+      "reason": "Sample Player11 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 74% (raw 80%) against 52% implied by draftkings at -110."
+     },
+     {
+      "game_id": "0093100001",
+      "tipoff": "2031-01-15T23:30:00Z",
+      "player_id": 900012,
+      "player_name": "Sample Player12",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.78,
+      "p_cal": 0.724,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.6
+      },
+      "reason": "Sample Player12 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 72% (raw 78%) against 60% implied by draftkings at -150."
+     },
+     {
+      "game_id": "0093100002",
+      "tipoff": "2031-01-16T00:00:00Z",
+      "player_id": 900020,
+      "player_name": "Sample Player20",
+      "team": "AAA",
+      "opp": "BBB",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 13.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2031-01-15T22:25:00Z",
+      "p_raw": 0.76,
+      "p_cal": 0.708,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "drivers": {
+       "mean": 14.0,
+       "recent_avg": 13.2,
+       "minutes": 31.5,
+       "implied": 0.5833
+      },
+      "reason": "Sample Player20 over 13.5 threes (AAA vs BBB): the model's mean is 14.0; his recent average is 13.2, below the line; recent average minutes are 31.5; calibrated chance 71% (raw 76%) against 58% implied by draftkings at -140."
+     }
+    ],
+    "p_joint_raw": 0.4761,
+    "p_joint_cal": 0.3804,
+    "p_joint_cal_80": [
+     0.2224,
+     0.5689
+    ],
+    "book_implied": 0.1833,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "not a book price (two legs share a game)",
+    "ev_per_dollar": 1.075,
+    "ev_low80": 0.213,
+    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 38% (raw 48%) is the joint of those legs. draftkings stacks them at an implied 18%; against the product of the legs' prices, which is not a book price that is +108% per dollar, and the low end of the 80% range (configured noise, not tested) is +21%. Legs from different games are treated as independent; legs in one game share the copula."
+   }
+  ]
+ },
+ "caveats": [
+  "Two-leg parlays of alternate-line overs the raw model put at 70% or more (BetRivers) hit 9.8 points less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, date-clustered, 2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). These were raw chances; the chances shown here are from calibrated legs."
+ ],
+ "diagnostics": {
+  "no_positive_ev_found": false,
+  "gate_describe": "0 settled over 0 dates (need 30 and 14), skill not shown (no log, or bound not above zero)",
+  "search": {
+   "k_per_book": 40,
+   "legs_in": 60,
+   "legs_after_refusal": 60,
+   "legs_after_dedupe": 60,
+   "legs_searched": {
+    "draftkings": 40
+   },
+   "tickets_searched": 10660,
+   "interval_basis": "configured logit-scale noise on a pseudo n of 1000, not a tested residual of the joint",
+   "n_sims_same_game": 20000
+  },
+  "refused": {
+   "priced_at_or_after_tip": 0,
+   "priced_after_made_at": 0,
+   "game_already_tipped": 0
+  },
+  "numguard_removed": 0,
+  "fee_model": "kalshi_fee_schedule",
+  "fee_verified": true,
+  "fee_venues": [
+   "kalshi"
+  ],
+  "joint_model": null,
+  "notes": []
+ }
+}

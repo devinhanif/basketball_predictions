@@ -30,7 +30,7 @@ def _run(
     rc = cli.main(
         [
             "top", "--date", date, "--now", "2026-10-28T22:05:00", "--nba-db", "x.duckdb",
-            "--odds-db", str(odds_file), "--paper-db", str(tmp_path / "none.duckdb"),
+            "--odds-db", str(odds_file),
             "--model", str(model), "--cal-map", str(MAP_PATH), "--out-dir", str(tmp_path / "out"),
         ]
     )  # fmt: skip
@@ -52,6 +52,9 @@ def test_top_writes_the_contract_file_with_keep_your_money(
     assert rep["empty_reason"] and rep["gate"]["open"] is False and rep["illustration"] is False
     assert rep["made_at"] == "2026-10-28T22:05:00Z" and rep["made_at"] > MADE.isoformat()
     assert rep["empty_reason"].startswith("size 2")
+    jm = rep["diagnostics"]["joint_model"]
+    assert len(jm["sha256"]) == 64 and "gate shut" in " ".join(rep["diagnostics"]["notes"])
+    assert rep["gate"]["open"] is False and rep["gate"]["settled"] == 0
 
 
 def test_top_on_a_date_with_no_slate_writes_an_empty_report(
@@ -82,3 +85,27 @@ def test_no_order_or_credential_surface_in_the_new_modules() -> None:
             "urllib",
         ):
             assert bad not in text, (name, bad)
+
+
+def test_main_does_not_import_the_top_parlays_modules_for_other_subcommands() -> None:
+    """M1: the live `evaluate` path must not pull in the top-parlays modules (and, through them,
+    the assistant and its dependencies). Imports of nba.parlay.top_* live inside cmd_top only."""
+    import ast
+
+    tree = ast.parse(Path(cli.__file__).read_text())
+    for fn in ast.walk(tree):
+        if isinstance(fn, ast.FunctionDef) and fn.name != "cmd_top":
+            for node in ast.walk(fn):
+                if isinstance(node, ast.ImportFrom | ast.Import):
+                    mods = (
+                        [node.module]
+                        if isinstance(node, ast.ImportFrom)
+                        else [a.name for a in node.names]
+                    )
+                    assert not any(m and m.startswith("nba.parlay.top_") for m in mods), fn.name
+    top_level = [
+        n
+        for n in tree.body
+        if isinstance(n, ast.ImportFrom) and (n.module or "").startswith("nba.parlay.top_")
+    ]
+    assert not top_level

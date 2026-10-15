@@ -1,4 +1,6 @@
-"""Top-3 two- and three-leg tickets by calibrated joint probability (contract top_parlays/1).
+"""Top-3 two- and three-leg tickets by calibrated joint probability (contract top_parlays/2).
+
+Contract: docs/contracts/top_parlays_v2.md.
 
 Read-only and paper only: nothing here prices an order, sizes a stake or talks to a market. The
 module is pure (no database, no network); ``top_source`` (live) and ``top_history`` (hindsight
@@ -16,17 +18,23 @@ Method, in the order it runs:
    Legs carry ``p_cal`` (the frozen LINE_CALIBRATION map) as their marginals; ``p_joint_raw`` uses
    the raw probabilities on the same draws.
 5. Rank by ``p_joint_cal`` descending, ties by higher EV, then by a fixed key (deterministic).
-6. Price: the book's stacked price is the product of the legs' implied probabilities; the fee is the
-   verified fee object (one contract, ceil to the cent); EV per dollar = p / (price + fee) - 1; the
-   80% interval is the configured logit-scale calibration noise on the joint probability.
+   Shown tickets: within a size each leg appears in at most one ticket, greedy by rank (M5, the
+   main session's default pending Devin; the rank-1 ticket is the most probable one).
+6. Price: the book's stacked price is the product of the legs' implied probabilities. A sportsbook
+   parlay has no separate fee (its margin is inside the legs' prices): EV per dollar = p / implied
+   - 1. A ticket at a venue listed in ``fee_venues`` pays the verified fee object once, on its own
+   price. The 80% range is configured logit-scale noise on the joint, not a tested residual.
 
-The verdict is ``keep_your_money`` unless the frozen gate is open AND some listed ticket has
-``ev_low80 > 0``.
+The verdict is ``keep_your_money`` unless the frozen gate is open AND some listed ticket priced as a
+book product (no two legs in one game) has ``ev_low80 > 0``. Tickets with two legs in one game
+carry an
+EV that is not a book price (books price same-game parlays with their own adjustment).
 """
 
 from __future__ import annotations
 
 import itertools
+import re
 import zlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -49,10 +57,29 @@ SIZES = (2, 3)
 TOP_N = 3
 EPS = 1e-6
 STAT_LABEL = {"pts": "points", "reb": "rebounds", "ast": "assists", "fg3m": "threes"}
+#: Verbatim from docs/contracts/top_parlays_v2.md; numbers from reports/alt_parlay_x/results.json
+#: cells ge70_size2/T1 and ge70_size3/T1.
 T490_CAVEAT = (
-    "Two-leg parlays built from legs the raw model put at 70% or more hit 9.8 points less often "
-    "than the model said (95% CI 6.8 to 12.9 points, n 3,337 parlays, date-clustered, 2023-24 and "
-    "2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360)."
+    "Two-leg parlays of alternate-line overs the raw model put at 70% or more (BetRivers) hit 9.8 "
+    "points less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, "
+    "date-clustered, 2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). "
+    "These were raw chances; the chances shown here are from calibrated legs."
+)
+T490_NUMBERS = (0.70, 0.95, 9.8, 6.8, 12.9, 3337, 8.7, 5.5, 11.9, 3360, 24, 25)
+GATE_SETTLED_MIN = 30  # the frozen gate's bars (contract v2); the file never sets its own
+GATE_DATES_MIN = 14
+#: mirror of the app's banned-phrase screen (contract v2)
+BANNED = re.compile(
+    r"\b(locks?|locked|guarantee[ds]?|free[\s-]money|can'?t lose|cannot lose|hammer|best bets?"
+    r"|easy money|sure thing|fade the public)\b",
+    re.IGNORECASE,
+)
+RANKING_TEXT = (
+    "calibrated joint probability, highest first; ties broken by higher EV; within a size each leg "
+    "appears in at most one shown ticket (greedy by rank)"
+)
+INTERVAL_BASIS = (
+    "configured logit-scale noise on a pseudo n of 1000, not a tested residual of the joint"
 )
 JOINT_STATUS = "legs calibrated; joint not yet tested"
 
@@ -117,20 +144,27 @@ def make_leg(
 
 
 def refuse_post_tip(
-    legs: Sequence[LegCand], now: datetime | None
+    legs: Sequence[LegCand], now: datetime | None, made_at: datetime | None = None
 ) -> tuple[list[LegCand], dict[str, int]]:
-    """Drop legs priced at or after their game's tip, and (when ``now`` is given) legs whose game
-    has already tipped at the run clock. Never silent: the counts go in the output."""
+    """Drop legs priced at or after their game's tip, legs priced after the file's own clock
+    (``made_at``), and (when ``now`` is given) legs whose game has already tipped at the run clock.
+    Never silent: the counts go in the output."""
     kept: list[LegCand] = []
-    n_priced_late = n_started = 0
+    n_priced_late = n_started = n_after_made = 0
     for leg in legs:
         if leg.price_at >= leg.tipoff:
             n_priced_late += 1
+        elif made_at is not None and leg.price_at > made_at:
+            n_after_made += 1
         elif now is not None and now >= leg.tipoff:
             n_started += 1
         else:
             kept.append(leg)
-    return kept, {"priced_at_or_after_tip": n_priced_late, "game_already_tipped": n_started}
+    return kept, {
+        "priced_at_or_after_tip": n_priced_late,
+        "priced_after_made_at": n_after_made,
+        "game_already_tipped": n_started,
+    }
 
 
 def dedupe(legs: Sequence[LegCand]) -> list[LegCand]:
@@ -174,7 +208,8 @@ class Ticket:
 
     @property
     def same_game(self) -> bool:
-        return len({leg.game_id for leg in self.legs}) == 1
+        """True when any two legs share a game (the joint is then a copula joint, not a product)."""
+        return len({leg.game_id for leg in self.legs}) < len(self.legs)
 
 
 class _Sims:
@@ -232,26 +267,43 @@ def _price_ticket(legs: tuple[LegCand, ...], sims: _Sims, cfg: ParlayConfig) -> 
     implied = 1.0
     for leg in legs:
         implied *= implied_prob(leg.price_american)
-    fee = fee_per_contract(min(max(implied, 0.0), 1.0), cfg.fee, order_type=cfg.order_type)
+    fee = (
+        fee_per_contract(min(max(implied, 0.0), 1.0), cfg.fee, order_type=cfg.order_type)
+        if legs[0].book in cfg.fee_venues
+        else 0.0
+    )
     return Ticket(legs, p_cal, p_raw, implied, fee, p_cal / (implied + fee) - 1.0)
 
 
 def search(
     by_book: Mapping[str, Sequence[LegCand]], pc: PairCorr, cfg: ParlayConfig
 ) -> tuple[dict[int, list[Ticket]], dict[str, Any]]:
-    """Top ``TOP_N`` tickets per size across books, plus search counts."""
-    best: dict[int, list[Ticket]] = {n: [] for n in SIZES}
-    counts = {"tickets_searched": 0, "tickets_with_positive_point_ev": 0}
+    """Shown tickets per size across books: the full ranking, then greedy by rank so that within a
+    size each leg appears in at most one ticket (at most ``TOP_N`` shown)."""
+    ranked: dict[int, list[Ticket]] = {n: [] for n in SIZES}
+    counts = {"tickets_searched": 0}
     for book in sorted(by_book):
         legs = list(by_book[book])
         sims = _Sims(legs, pc, cfg.n_sims, cfg.seed)
         for n in SIZES:
             for combo in itertools.combinations(legs, n):
-                t = _price_ticket(combo, sims, cfg)
+                ranked[n].append(_price_ticket(combo, sims, cfg))
                 counts["tickets_searched"] += 1
-                counts["tickets_with_positive_point_ev"] += int(t.ev_per_dollar > 0)
-                best[n].append(t)
-            best[n] = sorted(best[n], key=_ticket_order)[:TOP_N]
+    for n in SIZES:
+        ranked[n].sort(key=_ticket_order)
+    best: dict[int, list[Ticket]] = {}
+    for n in SIZES:
+        used: set[str] = set()
+        shown: list[Ticket] = []
+        for t in ranked[n]:
+            keys = {leg.key for leg in t.legs}
+            if keys & used:
+                continue
+            shown.append(t)
+            used |= keys
+            if len(shown) == TOP_N:
+                break
+        best[n] = shown
     return best, counts
 
 
@@ -269,29 +321,29 @@ class Gate:
     n_dates: int = 0
     skill: float | None = None
 
-    def is_open(self, cfg: ParlayConfig) -> bool:
+    def is_open(self) -> bool:
         return (
-            self.n_settled >= cfg.min_settled
-            and self.n_dates >= cfg.min_settled_dates
+            self.n_settled >= GATE_SETTLED_MIN
+            and self.n_dates >= GATE_DATES_MIN
             and self.skill is not None
             and self.skill > 0.0
         )
 
-    def to_dict(self, cfg: ParlayConfig) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "settled": self.n_settled,
-            "settled_min": cfg.min_settled,
+            "settled_min": GATE_SETTLED_MIN,
             "slate_dates": self.n_dates,
-            "dates_min": cfg.min_settled_dates,
+            "dates_min": GATE_DATES_MIN,
             "skill_vs_market": self.skill,
-            "open": self.is_open(cfg),
+            "open": self.is_open(),
         }
 
-    def describe(self, cfg: ParlayConfig) -> str:
+    def describe(self) -> str:
         return (
             f"{self.n_settled} settled over {self.n_dates} dates "
-            f"(need {cfg.min_settled} and {cfg.min_settled_dates}), skill "
-            f"{'not shown (lower bound not above zero)' if self.skill is None else self.skill}"
+            f"(need {GATE_SETTLED_MIN} and {GATE_DATES_MIN}), skill "
+            f"{'not shown (no log, or bound not above zero)' if self.skill is None else self.skill}"
         )
 
 
@@ -338,6 +390,8 @@ def guard_text(text: str, obj: Any, extra: Sequence[float] = ()) -> tuple[str, i
     """Run ``text`` through numguard against every number in ``obj``; return (text, n_removed).
     On any removal the text is replaced by a number-free sentence rather than shipped with a
     ``[number removed]`` marker."""
+    if BANNED.search(text):
+        raise ValueError(f"banned phrase in free text: {text!r}")
     out, removed = check_prose(text, [*collect_numbers(obj), *extra])
     if removed:
         return "See this leg's own fields for the numbers.", removed
@@ -374,10 +428,16 @@ def ticket_why(t: Ticket, tj: Mapping[str, Any], n_games: int) -> str:
         f"{n} legs {where}: each leg is calibrated but the joint is not yet tested, so "
         f"{_pct(tj['p_joint_cal'])} (raw {_pct(tj['p_joint_raw'])}) is the joint of those legs."
     )
+    basis = (
+        "at the book's price (its margin is included)"
+        if not t.same_game
+        else "against the product of the legs' prices, which is not a book price"
+    )
+    fee_part = f" plus a fee of {t.fee:.2f}" if t.fee else ""
     s2 = (
-        f"{t.legs[0].book} stacks them at an implied {_pct(tj['book_implied'])}; after the fee "
-        f"schedule that is {_spct(tj['ev_per_dollar'])} per dollar, and the low end of the 80% "
-        f"interval is {_spct(tj['ev_low80'])}."
+        f"{t.legs[0].book} stacks them at an implied {_pct(tj['book_implied'])}{fee_part}; "
+        f"{basis} that is {_spct(tj['ev_per_dollar'])} per dollar, and the low end of the 80% "
+        f"range (configured noise, not tested) is {_spct(tj['ev_low80'])}."
     )
     s3 = (
         "Legs from different games are treated as independent; legs in one game share the copula."
@@ -418,6 +478,8 @@ def ticket_dict(
         "p_joint_cal_80": [round(lo, 4), round(hi, 4)],
         "book_implied": round(t.book_implied, 4),
         "fee": round(t.fee, 4),
+        "fee_model": cfg.fee.name if t.fee else "none (margin is inside the legs' prices)",
+        "ev_basis": "not a book price (two legs share a game)" if t.same_game else "book product",
         "ev_per_dollar": round(t.ev_per_dollar, 4),
         "ev_low80": round(lo / cost - 1.0, 4),
     }
@@ -427,6 +489,15 @@ def ticket_dict(
     )
     counters["numguard_removed"] += rem
     return tj
+
+
+def screen_text(text: str, extra: Sequence[float], counters: dict[str, int]) -> None:
+    """Free text that is not built from a leg's own fields (ranking, status, empty_reason,
+    caveats): numguard against ``extra`` and the banned-phrase screen. A banned phrase fails at
+    write time, not as an app refusal."""
+    if BANNED.search(text.replace("\u2019", "'")):
+        raise ValueError(f"banned phrase in free text: {text!r}")
+    counters["numguard_removed"] += check_prose(text, extra)[1]
 
 
 def build_report(
@@ -445,8 +516,9 @@ def build_report(
     pre_refused: Mapping[str, int] | None = None,
     notes: Sequence[str] = (),
     extra_caveats: Sequence[str] = (),
+    joint_model: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    kept, refused = refuse_post_tip(legs, now)
+    kept, refused = refuse_post_tip(legs, now, made_at)
     uniq = dedupe(kept)
     by_book = prune(uniq, k)
     best, counts = search(by_book, pc, cfg)
@@ -468,24 +540,33 @@ def build_report(
                 reasons.append(f"size {n}: fewer than {n} eligible legs in one book")
             elif have < TOP_N:
                 reasons.append(f"size {n}: only {have} ticket(s) available")
-    gate_open = gate.is_open(cfg)
-    any_pos = any(t["ev_low80"] > 0 for ts in sizes.values() for t in ts)
+    gate_open = gate.is_open()
+    any_pos = any(t["ev_low80"] > 0 and not t["same_game"] for ts in sizes.values() for t in ts)
     verdict = POSITIVE if (gate_open and any_pos and not illustration) else KEEP
+    free = {
+        "ranking": RANKING_TEXT,
+        "empty_reason": "; ".join(reasons) if reasons else None,
+        "status": str(calibration.get("status", "")),
+    }
+    extra = [cfg.tail_cut, *T490_NUMBERS]
+    caveats = [T490_CAVEAT, *extra_caveats]
+    for text in (*[v for v in free.values() if v], *caveats):
+        screen_text(text, extra, counters)
     return {
         "schema": SCHEMA,
         "illustration": illustration,
         "slate_date": slate_date,
         "made_at": made_at.isoformat() + "Z",
         "calibration": {**calibration, "joint_status": JOINT_STATUS},
-        "gate": gate.to_dict(cfg),
-        "ranking": "calibrated joint probability, highest first; ties broken by higher EV",
+        "gate": gate.to_dict(),
+        "ranking": RANKING_TEXT,
         "verdict": verdict,
-        "empty_reason": "; ".join(reasons) if reasons else None,
+        "empty_reason": free["empty_reason"],
         "sizes": sizes,
-        "caveats": [T490_CAVEAT, *extra_caveats],
+        "caveats": caveats,
         "diagnostics": {
             "no_positive_ev_found": not any_pos,
-            "gate_describe": gate.describe(cfg),
+            "gate_describe": gate.describe(),
             "search": {
                 "k_per_book": k,
                 "legs_in": len(legs),
@@ -493,12 +574,15 @@ def build_report(
                 "legs_after_dedupe": len(uniq),
                 "legs_searched": {b: len(v) for b, v in sorted(by_book.items())},
                 **counts,
+                "interval_basis": INTERVAL_BASIS,
                 "n_sims_same_game": cfg.n_sims,
             },
             "refused": {**refused, **(dict(pre_refused or {}))},
             "numguard_removed": counters["numguard_removed"],
             "fee_model": cfg.fee.name,
             "fee_verified": cfg.fee.verified,
+            "fee_venues": list(cfg.fee_venues),
+            "joint_model": dict(joint_model) if joint_model else None,
             "notes": list(notes),
         },
     }

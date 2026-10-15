@@ -10,7 +10,9 @@ for display and never ranks; no production row, no leg. ``choose_primary`` repea
 ``nba.export.best_model.mark_primary`` (that module may not be imported from the parlay package: the
 live-path layering test forbids it) and ``tests/parlay/test_top_source.py`` pins the two together.
 
-Quotes follow ``nba.export.reader.prop_lines``: main-line markets only, ``received_at`` strictly
+Quotes follow ``nba.export.reader.prop_lines`` but keep only each book's newest snapshot per
+market and player (a withdrawn line is never selectable): main-line markets only,
+``received_at`` strictly
 before tip and before the vendor start, and not later than the forecast row paired with them.
 Alternate ladders are not used. A leg with no CAL map for its book, no stored starter rate, a whole
 number line, or a P(play) below ``MIN_P_PLAY`` is dropped and counted, never guessed.
@@ -416,13 +418,21 @@ def load_legs(
             out.dropped["team_not_in_game"] += 1
             continue
         opp_id = gmeta["away"] if team_id == gmeta["home"] else gmeta["home"]
+        usable = [
+            q
+            for q in by_player.get((gid, pid), [])
+            if MARKET_STAT[q[2]] == stat
+            and q[7] <= prod["made_at"]
+            and (now is None or q[7] <= now)
+        ]
+        # only the newest snapshot of each (book, market): a line the book has since moved off
+        # must not stay selectable at its old price (the export shows every line; we choose)
+        latest_snap: dict[tuple[str, str], datetime] = {}
+        for q in usable:
+            latest_snap[(q[3], q[2])] = max(latest_snap.get((q[3], q[2]), q[7]), q[7])
         newest: dict[tuple[str, str, float, str], tuple[Any, ...]] = {}
-        for q in by_player.get((gid, pid), []):  # ascending received_at: the newest wins
-            if (
-                MARKET_STAT[q[2]] == stat
-                and q[7] <= prod["made_at"]
-                and (now is None or q[7] <= now)
-            ):
+        for q in usable:  # ascending received_at
+            if q[7] == latest_snap[(q[3], q[2])]:
                 newest[(q[3], q[2], float(q[5]), q[4])] = q
         if not newest:
             continue

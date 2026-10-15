@@ -267,3 +267,18 @@ def test_avg_freshness_matches_the_export() -> None:
     ):
         k = {**kw, **patch}
         assert ts.avg_freshness(**k) == best_model.avg_freshness(**k)
+
+
+def test_only_the_newest_snapshot_per_book_and_market_is_selectable() -> None:
+    """M2: a line the book moved off stays out, even though its old price favours the model."""
+    old = PRICED - timedelta(minutes=20)
+    odds = build_odds(
+        [
+            quote("draftkings", "over", +100, at=old, point=18.5),  # withdrawn line, rich price
+            quote("draftkings", "under", -120, at=old, point=18.5),
+            quote("draftkings", "over", -115, point=22.5),
+            quote("draftkings", "under", -105, point=22.5),
+        ]
+    )
+    out = ts.load_legs(build_nba(), odds, SLATE, now=None, calmap=CALMAP)
+    assert {x.line for x in out.legs} == {22.5} and len(out.legs) == 2
