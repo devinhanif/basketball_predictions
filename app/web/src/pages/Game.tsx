@@ -3,7 +3,8 @@ import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
-import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
+import { DistBar, DistLegend, Explain, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { plainPlay } from "../plain";
 import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { legHref, nightHref } from "../router";
 import { Chips } from "../Viz";
@@ -62,11 +63,12 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           Nine in ten: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
         </span>
       </div>
-      <Chips model={prop.model_label} stampText={prop.forecast_stamp} tipUtc={null} />
-      <p class="small muted" data-model-source={prop.model_source} title={prop.model_detail ?? undefined}>
-        {prop.model_label}
-        {prop.p_play !== null && prop.p_play_label ? ` ${pct(prop.p_play)} chance to play. ${prop.p_play_label}` : ""}
-      </p>
+      <Chips model="" stampText={prop.forecast_stamp} tipUtc={null} />
+      {prop.p_play !== null && prop.p_play_label ? (
+        <p class="small muted" data-model-source={prop.model_source} title={`${prop.model_label} ${prop.p_play_label}`}>
+          {pct(prop.p_play)} chance to play. {plainPlay(prop.p_play_label)}
+        </p>
+      ) : null}
       <AltLine gameId={props.gameId} playerId={props.playerId} player={player} prop={prop} />
       {actual !== undefined ? (
         <p class="result-line">
@@ -248,6 +250,7 @@ function Body({ g }: { g: GameDetail }) {
           {team.city} {team.name}: {players.length} players with {g.players.some((p) => p.props.pts?.line_source === "reference") ? "a forecast" : "a line from the sportsbook"}, highest forecast scorer first.
           Tap a name to open them up.
         </p>
+        <ModelNote items={g.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
         <DistLegend reference={g.players.some((p) => Object.values(p.props).some((x) => x.line_source === "reference"))} />
         <div class="players">
           {players.length === 0 ? (

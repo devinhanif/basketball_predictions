@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chanceSentence, didText, inTen, rangeSentence, sideText, winSentence } from "./words";
+import { chanceSentence, compareLine, didText, inTen, rangeSentence, sideText, winSentence } from "./words";
 
 describe("inTen", () => {
   it("turns a probability into everyday words", () => {
@@ -63,5 +63,15 @@ describe("F07: a reference line leads with the forecast, not a 50% chance", () =
     expect(rangeSentence("pts", "23", "18", "28")).toBe("A typical night is 23 points; half of his nights land between 18 and 28");
     expect(rangeSentence("fg3m", "2", "1", "3")).toContain("2 threes");
     expect(rangeSentence("pts", "23", "18", "28")).not.toMatch(/%|times in 10|half the time/);
+  });
+});
+
+describe("F23: one plain line per card", () => {
+  it("names which is higher without recommending", () => {
+    expect(compareLine(0.36, 0.49, true)).toBe("The model rates the over lower than the book does. The model has no track record yet, so this is not a pick.");
+    expect(compareLine(0.6, 0.45, false)).toBe("The model rates the over higher than the book does.");
+    expect(compareLine(0.45, 0.49, true)).toBe("The model and the book are close on this one.");
+    expect(compareLine(0.45, null, true)).toBeNull();
+    expect(compareLine(0.36, 0.49, true)).not.toMatch(/\bpoints\b|take|lean|bet on/);
   });
 });

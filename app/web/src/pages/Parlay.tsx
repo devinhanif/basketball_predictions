@@ -7,12 +7,12 @@ import { useLoad } from "../useLoad";
 import type { ParlayState } from "../types";
 
 /** Plain-language headline for the verdict. The engine's own label is kept in the details. */
-function verdictText(p: ParlayState): string {
+export function verdictText(p: ParlayState): string {
   if (p.headline_verdict === "no_positive_ev_found") return "We found nothing worth betting. Keep your money.";
   return p.verdict_line;
 }
 
-function whatWeChecked(p: ParlayState, compact: boolean): string {
+export function whatWeChecked(p: ParlayState, compact: boolean): string {
   const c = p.counts;
   const games = c["n_games"];
   const read = c["n_markets_read"];
@@ -24,10 +24,17 @@ function whatWeChecked(p: ParlayState, compact: boolean): string {
   }
   const gameText =
     games === 0 ? "We had no game forecasts stored for this date." : `We had forecasts for ${games.toString()} games.`;
-  return `${gameText} We looked at ${read.toLocaleString()} open Kalshi markets (Kalshi is a prediction market). ${mapped.toString()} matched a game on the schedule, and ${priced.toString()} had a price on both sides, so there was nothing we could check.`;
+  return `${gameText} We looked at ${read.toLocaleString()} open Kalshi markets (Kalshi is a prediction market). ${mapped.toString()} matched a game on the schedule, and ${priced.toString()} had a price on both sides${priced === 0 ? ", so there was nothing we could check" : ""}.`;
 }
 
-function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
+/** What the model's track record is, in words. `settled` in the data means graded. */
+export function gateSentence(g: ParlayState["gate"]): string {
+  if (g === null) return "The track record behind this answer is not part of the data we have.";
+  if (g.gate_open) return "Our model has earned a track record, so it is allowed to vouch for a bet.";
+  return `Our model has to earn trust first. It needs ${g.min_settled.toString()} graded picks over ${g.min_settled_dates.toString()} different days before we let it back a bet. So far: ${g.n_settled.toString()} picks over ${g.n_dates.toString()} days. Until then we just follow the sportsbooks.`;
+}
+
+export function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
   const g = p.gate;
   return (
     <section class="panel verdict" aria-labelledby="parlay-h">
@@ -36,11 +43,7 @@ function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
       <p class="lead">{verdictText(p)}</p>
       <p>{whatWeChecked(p, compact)}</p>
       <p class="small">
-        {g === null
-          ? "The track record behind this answer is not part of the data we have."
-          : g.gate_open
-            ? "Our model has earned a track record, so it is allowed to vouch for a bet."
-            : `Our model has to earn trust first. It needs ${g.min_settled.toString()} graded picks over ${g.min_settled_dates.toString()} different days before we let it back a bet. So far: ${g.n_settled.toString()} picks over ${g.n_dates.toString()} days. Until then we just follow the sportsbooks.`}{" "}
+        {gateSentence(g)}{" "}
         {compact ? <a href="#/parlay">The full story</a> : null}
       </p>
       <Explain>

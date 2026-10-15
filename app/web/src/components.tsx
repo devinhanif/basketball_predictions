@@ -11,6 +11,7 @@ import { errorCopy } from "./errors";
 import type { Route } from "./router";
 import { FOOTER_DISCLOSURE } from "./config";
 import { lineMarkLabel, winSentence } from "./words";
+import { plainModel, plainModelSentence } from "./plain";
 
 /* ------------------------------------------------------------------ icons */
 const I = {
@@ -215,6 +216,34 @@ export function Explain(props: { children: ComponentChildren; label?: string }) 
       <summary>{props.label ?? "What does this mean?"}</summary>
       <div class="explain-body">{props.children}</div>
     </details>
+  );
+}
+
+/**
+ * Where the forecasts on a page came from, said once in plain words, with the exact stored wording one tap away.
+ * `items` is every (source, verbatim label) on the page; repeats are folded.
+ */
+export function ModelNote(props: { items: readonly { source: string; label: string }[] }) {
+  const bySource = new Map<string, string>();
+  for (const i of props.items) if (!bySource.has(i.source)) bySource.set(i.source, i.label);
+  const sources = [...bySource.keys()];
+  const [first, ...rest] = sources;
+  if (first === undefined) return null;
+  const sentence =
+    rest.length === 0
+      ? plainModelSentence(first)
+      : `Forecasts come from ${plainModel(first)}; for some players, from ${rest.map(plainModel).join(" and ")}.`;
+  return (
+    <div class="model-note">
+      <p class="small muted">{sentence}</p>
+      <Explain label="Show the exact details">
+        <ul class="plain small">
+          {[...bySource.values()].map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+      </Explain>
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { ErrorPanel, Explain, Loading } from "../components";
+import { plainModelSentence } from "../plain";
 import { american, bookName, lineText, longDate, num, pct, stamp, tipTime } from "../format";
 import {
   bookChance,
@@ -341,11 +342,16 @@ function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side;
       </p>
       <p class="small">{m.reason}</p>
       <p class="small" data-model-source={m.source}>
-        {m.source_label}
+        {plainModelSentence(m.source)} It was built without ever seeing this game.
       </p>
-      <p class="small muted">
-        Forecast stamp: <span class="mono">{m.stamp ?? "none"}</span>. The model was built without ever seeing this game.
-      </p>
+      <Explain label="Show the exact details">
+        <ul class="plain small">
+          <li>{m.source_label}</li>
+          <li>
+            Forecast stamp: <span class="mono">{m.stamp ?? "none"}</span>
+          </li>
+        </ul>
+      </Explain>
     </section>
   );
 }

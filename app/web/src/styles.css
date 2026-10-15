@@ -1719,3 +1719,17 @@ main:focus {
   align-items: center;
   min-height: 44px;
 }
+
+/* ticket verdict leads (F25) */
+.tp-ev {
+  margin: 8px 0;
+}
+.tp-ev-big {
+  font-size: 1.15rem;
+}
+.model-note {
+  margin-top: 6px;
+}
+.prop-compare {
+  margin-top: 2px;
+}

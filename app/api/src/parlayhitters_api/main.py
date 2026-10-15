@@ -435,6 +435,7 @@ def register(app: FastAPI) -> None:
             stats=stats,
             forecast_stamp=view.forecast_stamp,
             model_label=view.model_label,
+            model_source=view.model_source,
             tip_utc=str(g["tip_utc"]),
         )
 

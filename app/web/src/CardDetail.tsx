@@ -1,7 +1,8 @@
 import { useState } from "preact/hooks";
 import { api } from "./api";
 import { american, bookName, lineText, num, pct } from "./format";
-import { View } from "./components";
+import { Explain, View } from "./components";
+import { plainModel } from "./plain";
 import { gameHref } from "./router";
 import { percentAlong, modelLine, quantile, read, sliderRange, snapHalf } from "./slider";
 import { Chips, DistStrip, ProbBar } from "./Viz";
@@ -232,13 +233,16 @@ export function LineSlider({ card }: { card: CardView }) {
       <p class="small ls-say">
         Over {lineText(line)} means {sideText(stat, line, "over")}. Under means {sideText(stat, line, "under")}.
       </p>
-      <p class={`small ls-label ${r.source}`}>{r.label}</p>
+      <p class={`small ls-label ${r.source}`}>{r.plain}</p>
+      <Explain label="Show the exact details">
+        <p class="small">{r.label}</p>
+        {card.dist.method === "exact" && card.dist.n !== null ? <p class="small">Forecast table resolution: 1 in {card.dist.n}.</p> : null}
+      </Explain>
       {r.tail_note ? <p class="small ls-tail">{r.tail_note}</p> : null}
       <p class="small muted num">
         {posted !== null && card.over_price !== null && card.under_price !== null
           ? `Posted line ${lineText(posted)}${card.price_book ? ` at ${bookName(card.price_book)}` : ""}: over ${american(card.over_price)}, under ${american(card.under_price)}. Prices exist only at the posted line.`
           : "No posted price is stored for this prop."}
-        {card.dist.method === "exact" && card.dist.n !== null ? ` Forecast table resolution: 1 in ${card.dist.n}.` : ""}
       </p>
     </div>
   );
@@ -272,12 +276,15 @@ function Body(props: { game_id: string; player_id: number; stat: string }) {
             Opening this shows our forecast. Your pick is then saved as not blind. Nothing here is advice, and no
             value on the slider is a bet recommendation.
           </p>
-          <Chips
-            model={card.model_label}
-            stampText={card.forecast_stamp}
-            tipUtc={card.tip_utc}
-            extra={[card.dist.method === "exact" ? "exact count table" : "quantile grid (rougher)", ...(card.rung_cal ? [`rung map ${card.rung_cal.map_version}`] : [])]}
-          />
+          <Chips model={plainModel(card.model_source)} stampText={card.forecast_stamp} tipUtc={card.tip_utc} extra={card.dist.method === "exact" ? [] : ["rougher estimate"]} />
+          <Explain label="Show the exact details">
+            <ul class="plain small">
+              <li>{card.model_label}</li>
+              <li>Forecast stamp: <span class="mono">{card.forecast_stamp}</span></li>
+              <li>{card.dist.method === "exact" ? "Read from the exact count table." : "Read off a 19-point quantile grid."}</li>
+              {card.rung_cal ? <li>Calibration map {card.rung_cal.map_version}.</li> : null}
+            </ul>
+          </Explain>
           {card.stats ? <Facts s={card.stats} card={card} /> : <p class="small">No game history is loaded for this prop.</p>}
           <LineSlider card={card} />
         </div>

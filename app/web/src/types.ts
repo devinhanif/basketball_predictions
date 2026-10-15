@@ -309,5 +309,6 @@ export interface CardView {
   stats: CardStats | null;
   forecast_stamp: string;
   model_label: string;
+  model_source: string;
   tip_utc: string;
 }

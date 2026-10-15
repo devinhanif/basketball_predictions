@@ -100,14 +100,14 @@ describe("shrunk with/without headline", () => {
     expect(pastText(s, 15)).toBe("past games +4.0 a game, n = 15");
     expect(extraText(s)).not.toContain("past games");
     expect(extraText(s)).not.toBe(signed(s.past_gap ?? 0));
-    expect(carriedText(s)).toBe("about 1 in 21 carried over");
+    expect(carriedText(s)).toBe("about 1 in 21 of the past gap showed up again");
   });
 
-  it("a large gap whose in-slice carry-over spans zero shows no measurable carry-over", () => {
+  it("a large gap whose in-slice carry-over spans zero shows no measurable extra", () => {
     const s = beyondStat({ stat: "reb", label: "Rebounds", large_gap: true, no_carry_large: true, expected_extra: 0, one_in: null });
-    expect(extraText(s)).toBe("no measurable carry-over");
-    expect(carriedText(s)).toBe("no measurable carry-over for gaps this big");
-    expect(carriedText(beyondStat({ large_gap: true, one_in: 30 }))).toBe("about 1 in 30 carried over for gaps this big");
+    expect(extraText(s)).toBe("no measurable extra");
+    expect(carriedText(s)).toBe("none of a gap this big measurably showed up again");
+    expect(carriedText(beyondStat({ large_gap: true, one_in: 30 }))).toBe("about 1 in 30 of the past gap showed up again (for gaps this big)");
   });
 
   it("no gap means no number, said in words", () => {

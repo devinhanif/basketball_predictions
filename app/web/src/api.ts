@@ -66,3 +66,18 @@ export const api = {
       `/api/props/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}?line=${line.toString()}`,
     ),
 };
+
+/**
+ * After a slate loads, fetch its game pages once so the service worker keeps a copy: a game page opened for the first
+ * time while offline still works (F15). Only when the worker is in control; one at a time, errors ignored.
+ */
+export async function warmGames(ids: readonly string[], limit = 20): Promise<void> {
+  if (typeof navigator === "undefined" || !navigator.serviceWorker.controller) return;
+  for (const id of ids.slice(0, limit)) {
+    try {
+      await fetch(`/api/games/${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
+    } catch {
+      return;
+    }
+  }
+}

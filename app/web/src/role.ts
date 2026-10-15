@@ -62,7 +62,7 @@ export function badgeText(s: Steadiness): string {
 /** The headline number for one stat: "+0.14". Threes say "no measurable effect" in words, never a bare 0. */
 export function extraText(s: BeyondStat): string {
   if (s.no_effect) return "no measurable effect";
-  if (s.no_carry_large) return "no measurable carry-over";
+  if (s.no_carry_large) return "no measurable extra";
   if (s.expected_extra === null) return "none";
   return signed(s.expected_extra, 2);
 }
@@ -73,9 +73,9 @@ export function pastText(s: BeyondStat, nWithout: number): string {
   return `past games ${signed(s.past_gap)} a game, n = ${nWithout.toString()}`;
 }
 
-/** "about 1 in 27 carried over", or "" when nothing carried over. */
+/** "about 1 in 27 of the past gap showed up again", or "" when none did. */
 export function carriedText(s: BeyondStat): string {
-  if (s.no_carry_large) return "no measurable carry-over for gaps this big";
+  if (s.no_carry_large) return "none of a gap this big measurably showed up again";
   if (s.one_in === null) return "";
-  return `about 1 in ${s.one_in.toString()} carried over${s.large_gap ? " for gaps this big" : ""}`;
+  return `about 1 in ${s.one_in.toString()} of the past gap showed up again${s.large_gap ? " (for gaps this big)" : ""}`;
 }

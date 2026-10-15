@@ -121,7 +121,7 @@ export function BeyondBlock({ b }: { b: Beyond }) {
   }
   return (
     <div class={`beyond${b.small ? " thin" : ""}`}>
-      <div class="label">Expected extra beyond the forecast, per game</div>
+      <div class="label">Extra expected with him out, beyond the forecast, per game</div>
       <div class="beyond-rows">
         {b.stats.map((s) => {
           const carried = carriedText(s);
