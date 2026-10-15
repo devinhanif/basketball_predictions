@@ -249,3 +249,144 @@ m1-m3 can go in the same edit. No code change is required before the freeze: the
   CALIBRATED) 0.70 (higher than the modeler's 0.55 because 2024 leg-level CITL is -0.0003 and the realised HW should be
   about 0.016); P(all four T2 CAL HELPS THE JOINT) 0.75; P(harness preflight stop) 0.05.
 - DECISIONS: none (no direction-setting choice in a review).
+
+---
+
+# Re-check of revision 2 (adversary), 2026-10-15
+
+Candidate: `origin/agent/modeler-parlay-joint-cal-2` at 2a9bf05. Rule hash recomputed with the rule's own `awk … | shasum -a 256`:
+`59f3b08d62ea7766a06d2b6f9b715b92e2ff9d84366fb542f1d209910a7a974f` (exit 0), which matches. New files: harness
+`research/eval/parlay_joint_cal_eval.py`, pin module `research/eval/parlay_joint_cal_rule.py`, tests, and rehearsal outputs.
+No real outcome was read by me: I ran no `score` stage, read no `y`, and recomputed no ticket hit. Season 2025 was never
+loaded.
+
+Verdict: BLOCKED
+
+The design changes are right, and every review item is applied in substance. Five gaps remain, all small: four in the
+harness and one in the text. Three of the code gaps concern what the preflight checks and when it runs, which is exactly what
+this re-check was asked to confirm. The harness is pinned at the freeze, so the code fixes must land before the freeze
+commit. After the fixes, a diff-only re-check is enough (no re-run).
+
+## Item-by-item against the review
+
+| Item | Text (rev 2 line) | Harness | Status |
+|---|---|---|---|
+| B1 bootstrap | :52 | `Clusters`: `ahc.make_boot({s: n_dates}, 5000, 2026)` per book, one generator, matrices shared, `boot_ratio`, `percentile_interval`, `p_two_sided`, `p_le0(-boot)`; dates are the book's CAL-served slate dates | done |
+| B2 T3 p, CALIBRATED multiplicity | :62, :69 | `word_t3`, `bh_q` over 2 sizes | done |
+| B3 RAW on the CAL side | :40, :42 | `q_raw_side = clip(where(p_cal >= .5, pm, 1 - pm), 0.5/199)`; RAW-ranked top-3 uses the RAW side | done |
+| B4 copula | :43-:46 | `cdf_pair` (index convention checked by hand and by test), `pit_z` (one draw, sorted rows), `GameStats` (tested equal to `estimate_pair_corr` to 1e-9), `ticket_R` (= `build_corr_matrix`, tested), `orthant` with D R D (side sign tested against Monte Carlo) | done |
+| B5 tolerance | :47 | 1e-6, fresh `default_rng(2026)` per call | done; the checkpoint sentence is not implemented (R4) |
+| M1 contract v2 | :126 | n/a | done at :126; :6 and :12 still cite `top_parlays_v1` (R4) |
+| M2 answers, select.json pin, hazard | :23, :129, :185-189 | `SELECT_SHA` asserted | done; the "00:52 item 3" citation is correct (my review's citation was wrong) |
+| M3 TOP is a proxy | :36, :41, :177, :192 | n/a | done |
+| M4 exposure | :9, :115 | `EXPOSED` appended to every word | done |
+| M5 floors disclosed | :91 | n/a | done |
+| M6 negative tests | :173 (5)-(7) | rehearsal stage; planted-future and guard-raise tests | done (but see R1-R3 for (1) and (3)) |
+| m1 / m2 / m3 | :112, :24, :171 | `n_boundary8`; identity-flag equality raised in `book_legs` | done |
+
+## Findings (exact line, exact fix)
+
+### Blocking
+
+- **R1. The preflight does not run before outcomes are read** (`parlay_joint_cal_eval.py` `run()`, the lines from
+  `rows = read_rows(root, real)` to `pf.require()`). In `score` mode the harness reads every real `model_rows.y`, builds
+  the copula statistics from it (`build_game_stats`) and fits CAL on the real `over` (`load_cal`). Only then does it call
+  `pf.require()`, which refuses on a wrong `alt_harness_common`, `select.json` or gate sha. Nothing is scored or written
+  first, but outcomes are read ahead of hash checks that need none. Fix, in this order:
+  1. `pf.require()` right after the sha checks, plus the new input checks of R2.
+  2. `load_cal`, which reads the leg labels the CAL preflight needs.
+  3. The CAL and A0 reproduction (R3), then `pf.require()` again.
+  4. Only then `read_rows(root, real)` and `build_game_stats`.
+- **R2. The input data are not pinned by the harness** (rule :72, :76; `run()`). The four input sha256 values (`pairs_2023`
+  050dba3e…, `pairs_2024` 560a3808…, `model_rows_2023` 002e53ef…, `model_rows_2024` ec47dcdf…) and `gate.json`
+  (4b57377d…) are pinned in the text but never asserted. The CAL preflight indirectly verifies the leg columns. It does not
+  verify `model_rows.y` or `team_id` for the non-leg rows, and those drive the copula, which is the served arm of both
+  same-game cells. Fix: add one `pf.add(..., ahc.file_sha256(path) == <pin>)` per file, before step 1 of R1. The gate's
+  `load_legs` already computes the pairs and rows hashes, but `book_legs` discards them.
+- **R3. The A0 reproduction promised at :173 (3) is missing.** `run()` checks the CAL log loss only. Its comment says "the
+  A0 comparison needs p_model", and `p_model` is in the frame. Fix: in the same loop, add
+  `abs(mean(lc.ll(clip(pm, lc.EPS, 1 - lc.EPS), over)) - sel[book]["ll"]["A0"]) < 1e-9`, as I ran in the first review
+  (difference 0.0).
+- **R4. Text inside the hash contradicts the harness or itself.**
+  - :5 says "The scoring harness does not exist; it is written after the freeze"; :4 and :107 say it exists. Replace it
+    with the R5 procedure.
+  - :183 says "Scoring: **no command exists** until the freeze". Replace it with the real command:
+    `cd <main> && .venv/bin/python -W ignore research/eval/parlay_joint_cal_eval.py score --data-root /Users/devin/Downloads/nba-prediction --sha <sha>`.
+    Say that it is a background job, since it exceeds the 600 s watchdog.
+  - :47 says the job "checkpoints per (book, season, cell)", but the harness writes `<book>.json` only at the end of
+    `evaluate_book`. Either implement it or delete the sentence.
+  - :171 says numpy and polars versions "are recorded by the harness", but nothing records them. Record numpy, polars and
+    scipy in `result`. `scipy.stats.multivariate_normal.cdf`'s algorithm and its `rng` argument are version-dependent, so
+    a scipy mismatch should at least print loudly.
+  - :6 and :12: `top_parlays_v1` becomes `top_parlays_v2`.
+- **R5. The freeze-commit procedure is unstated** (:5). `freeze_commit` needs a commit whose subject is
+  `prereg(PARLAY_JOINT_CAL): <sha>` and whose copy of the document hashes to `<sha>`. `require_harness_pinned` compares the
+  disk files to that commit's blobs. The status line ("DRAFT … Not frozen") is above the marker, so editing it in the freeze
+  commit changes the hash and the freeze fails. The LINE_CALIBRATION precedent (06d76e3) was an empty commit with the
+  document left as DRAFT. Fix: state at :5, "merge the revised branch into main; then
+  `git commit --allow-empty -m "prereg(PARLAY_JOINT_CAL): <sha>"`; the status line is not edited (it is inside the hash);
+  every file in `HARNESS_FILES` must be in that commit's tree."
+
+### Not blocking
+
+- **The rehearsal departs from my spec, and that is acceptable, in fact better.** My spec, drawing outcomes from the CAL-COP
+  joint, would have used the harness's own correlation estimate as the truth (circular), and that estimate needs real `y`.
+  The modeler's truth is an exact latent Gaussian factor copula: same team 0.09, same player plus 0.10, opponents 0, with the
+  production pmf exact. That tests the PIT, the pair estimator, the D R D sign and the orthant end to end against a known
+  dependence, under estimation error. Results under the null:
+  - The null gaps have mixed signs: DraftKings 2024 -0.0072 / -0.0097 / +0.0032 / -0.0050 and Pinnacle -0.0029 /
+    +0.0135 / -0.0110 / -0.0033, n 3,239-4,238 tickets per cell. There is no systematic bias.
+  - D1 is within ±0.0005 in every cell, so CAL DOES NOT HELP is correct.
+  - No OVERCONFIDENT or UNDERCONFIDENT word appears.
+
+  One weakness: under the null, CAL is close to the identity. The positive control (slope 0.5) covers a non-trivial CAL. Its
+  cross 2-leg gap of -0.0169 [-0.0327, -0.0003] (n 3,658) is one cell at about 2 se in one draw; the other three are
+  -0.0064 / +0.0005 / -0.0028. Optional: a second null seed, `default_rng([2026, 12])`, as a descriptive row.
+- **The pin covers every file that moves a word.** Every number-moving function the harness calls is in the eight pinned
+  files: its own construction, LINE_CALIBRATION's `walk_forward`, `attach_grid`, `read_grid`, `ll` and `fit_logistic`, the
+  `alt_harness_common` bootstrap, p and `bh_q` (so there is no `bh_adjust`-type gap: BH is `ahc.bh_q`), and
+  `copula.PairCorr` and `nearest_correlation`. Unpinned transitive imports are import-time only and move no number here:
+  `nba.eval.context_residual_eval.bh_adjust` and `model_clv_eval.Boot` (unused), `f11_lineup_context`,
+  `minutes_hazard_eval` and `odds_history_eval` (imported by `model_clv_eval`), and `nba.parlay.legs` (a type). What the pin
+  does not cover is data and libraries (R2, R4).
+- **The runtime claim is optimistic but bounded.** I timed the harness's own `orthant` at 1e-6 on 3-leg tickets with
+  q in [0.50, 0.62] and mixed sides, 40 draws per level:
+
+  | Correlation strength | Median per call | p90 per call |
+  |---|---|---|
+  | \|rho\| ~0.03 | 1.7 ms | 3.8 ms |
+  | ~0.08 | 7.3 ms | 13.7 ms |
+  | ~0.15 | 10.6 ms | 20.1 ms |
+  | ~0.3 | 19.5 ms | 26.4 ms |
+  | ~0.5 | 16.3 ms | 27.7 ms |
+
+  At about 286,000 3-leg calls that is roughly 45-95 minutes, plus 2-leg calls and fits. The stated "45 to 60 minutes" holds
+  only if the real correlations are as weak as the rehearsal's. The 3-hour worst case (:47) is the honest bound. Either way
+  it is a background job under `heavy.lock`.
+- **Guards:** the harness re-checks season (`guard_season`) and lead time (`guard_lead`) with `raise`, so `python -O`
+  stripping the gate's `assert`s is covered. `guard_fit_before` in `GameStats.paircorr` and `j_arm` is true by construction
+  (the selection is already `< block`). It is harmless, and the planted-future test checks the outcome (`PairCorr`
+  unchanged), which is the right test.
+
+## Commands and numbers (re-check)
+
+| Check | Command | Result |
+|---|---|---|
+| Rule hash | `git show origin/agent/modeler-parlay-joint-cal-2:docs/prereg/PARLAY_JOINT_CAL.md \| awk '/^=== RESULTS BELOW ===$/{exit} {print}' \| shasum -a 256` | 59f3b08d…974f, exit 0 |
+| `alt_harness_common.py` pin | `shasum -a 256` on the branch and on main | 44fd28db… on both, equal to :172 |
+| Tests | `pytest -q --no-cov tests/research/eval/test_parlay_joint_cal_eval.py tests/research/eval/test_parlay_joint_cal_gate.py` | 15 passed, exit 0 |
+| Lint | `ruff check` / `ruff format --check` / `mypy` on the harness, the rule module and the tests | 0 / 0 / 0 |
+| Rehearsal outputs | read `reports/prereg_parlay_joint_cal/rehearsal*/` | as above; preflight 5 of 5 ok; verdict pass; stride 20 |
+| Orthant timing | harness `orthant` at 5 correlation levels, 40 draws each | table above |
+| Freeze precedent | `git show --stat 06d76e3` | empty commit, document left as DRAFT |
+
+## Biggest remaining risk
+
+A `score` run on drifted inputs. `model_rows` regenerated since the pin would silently change the same-game copula, and no
+check would fire because the CAL preflight does not touch `y`. R2 closes it.
+
+## Not verified
+
+- The full-density TOP runtime and the real correlation strengths (they need real `y`).
+- Whether the scoring job fits in the session watchdog (it does not; it must be a background job).
+- The live harness, which is still written after the freeze, as stated.
