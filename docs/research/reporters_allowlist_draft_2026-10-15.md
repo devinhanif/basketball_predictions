@@ -29,3 +29,16 @@ No one was checked for posting game-day availability or minutes notes (post text
 ## Cheapest authoritative check (recommended)
 Once X_BEARER_TOKEN exists: one users-by-username lookup for every candidate handle (X "User: Read", $0.010 each; about 40 handles = about $0.40)
 returns whether each handle exists, its display name and bio. Then Devin confirms the final list in configs/reporters.yaml.
+
+## Candidate handles for the one paid users-by-username check (second pasted list, same day, also AI-generated)
+The second list claims "current as of mid-October 2026" but repeats entries already shown stale above (Feigen, Singer, Slater at The
+Athletic, Boone, Holdahl, Buha), so it is a candidate source only. Conflicting handles are all checked.
+ATL williamslaurenl | BOS ByJayKing | BKN nypost_lewis | CHA rodboone | CHI KCJHoop | CLE ChrisFedor | DET omarisankofa | IND ScottAgness |
+MIA IraHeatBeat | MIL eric_nehm | NYK IanBegley | ORL therealBeede | PHI PompeyOnProBall, PompeyOnSixers, KrisRhim | TOR JLew1050 (+ Eric Koreen, handle unknown) |
+WAS JoshRobbins_ | DAL GrantAfseth | DEN msinger (not a reporter now), Bennett Durando (handle unknown) | GSW anthonyVslater | HOU jonathan_feigen (retired) |
+LAC LawMurray, LawMurrayTheNU | LAL LakersReporter, DanWoikeSports | MEM DamichaelC | MIN JonKrawczynski | NOP WillGuillory | OKC brandonrahbar |
+PHX DuaneRankin | POR CHold | SAC james_hamnba, James_HamNBCS, SeanCunningham | SAS JMcDonald_SAEN | UTA andyblarsen | league-wide ShamsCharania.
+Check returns: exists or not, display name, bio, verified flag. Then Devin keeps one or two per team whose bio names a current beat.
+Design note: the second list suggests an LLM agent that "summarizes" posts. The feed stays regex-only with no LLM reading post text
+(prompt-injection defence, DECISIONS 2026-10-10); its keyword ideas (shootaround, participating, available, questionable, out, warmup,
+status) map onto the parser's patterns.
