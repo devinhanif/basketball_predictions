@@ -49,6 +49,13 @@ hb_end() {  # hb_end <exit status>
   hb_write "$(date +%Y-%m-%dT%H:%M:%S%z)" "$rc"
 }
 
+# per-step status for readers outside the job (nba.ops.app_export): one line "<step> <rc> <ok|failed>" per step,
+# under a first line "start_ts <HB_START>" that ties the file to this run's heartbeat. Truncated at each start.
+STEPS_FILE=$HB_DIR/$HB_JOB.steps
+step_record() {  # step_record <name> <rc> <ok|failed>
+  printf '%s %s %s\n' "$1" "$2" "$3" >> "$STEPS_FILE"
+}
+
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 alert() {
   log "ALERT: $*"
@@ -80,10 +87,13 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   # odds_capture exits 4 when the feed is unreachable or the request budget refuses: informational
   # (the benchmark is never a dependency of the forecast); its exit 5 (internal error) still alerts.
   # facts (opt-in, NBA_FACTS_NIGHTLY=1) follows the same 0/4 rule; its exit 2 (source locked) alerts.
+  failed=ok
   if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ]; } && [ "$rc" -eq 4 ]; }; then
     HB_RC=$rc
+    failed=failed
     alert "$name failed (rc=$rc), see $LOG"
   fi
+  step_record "$name" "$rc" "$failed"
   return $rc
 }
 
@@ -107,6 +117,7 @@ if ! acquire_lock; then
 fi
 rm -f "$HB_DIR/$HB_JOB.skip.json"
 hb_write null null
+printf 'start_ts %s\n' "$HB_START" > "$STEPS_FILE"
 trap 'rc=$?; rm -f "$LOCK/pid"; rmdir "$LOCK" 2>/dev/null; hb_end $rc' EXIT
 trap 'exit 143' INT TERM
 

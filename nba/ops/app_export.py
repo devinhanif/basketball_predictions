@@ -5,8 +5,10 @@
 
 Once the morning job has finished cleanly it runs ``python -m nba.export build --date <today ET> --out data/export/latest``:
 
-* **Gate.** The ``daily-morning`` heartbeat must have an END written today (Eastern date) with ``rc == 0``. A missing, still-running, stale or
-  non-zero heartbeat SKIPS the run with a recorded reason: the reason goes into this job's own heartbeat (``status: skipped``), the log, and
+* **Gate (DECISIONS 2026-10-14 20:31, A1).** The ``daily-morning`` heartbeat must have an END written today (Eastern date), and every DATA step of
+  that run must have succeeded, read from ``daily-morning.steps`` (one ``<step> <rc> <ok|failed>`` line per step, written by ``ops/nba_daily.sh``).
+  A failed ``backup_*_drive`` step does NOT block the export; any other failed step does; so does a missing, stale or truncated steps file, or one
+  from a different run than the heartbeat (fail closed). A missing, still-running, stale or failing run SKIPS the run with a recorded reason: the reason goes into this job's own heartbeat (``status: skipped``), the log, and
   ``app-export.skip.json`` (consecutive count), which the watchdog turns into an alert after two skips in a row. A skip never exits non-zero.
 * **Atomic.** The export is built into a staging directory next to ``latest`` and swapped in only after the build exited 0; a failed build
   leaves yesterday's ``latest`` untouched. (A directory cannot be swapped in one syscall, so there is a window of two renames; the app reads
@@ -38,6 +40,24 @@ from nba.ops.watchdog import read_heartbeat
 
 JOB = "app-export"
 MORNING = "daily-morning"
+STEPS_FILE = f"{MORNING}.steps"
+
+
+#: steps whose failure does not stop the export: the Drive copies only (they never feed it); any other backup_* step blocks
+def _is_drive_backup(name: str) -> bool:
+    return name.startswith("backup_") and name.endswith("_drive")
+
+
+#: data steps that must appear as ok, else the run was cut short (or an older script wrote no record) and the gate fails closed
+REQUIRED_STEPS = (
+    "settle",
+    "checkpoint",
+    "report",
+    "parlay_settle",
+    "data_snapshot",
+    "data_diff",
+    "data_check",
+)
 ET = ZoneInfo("America/New_York")
 RC_LOCKED = 2  # nba.export: the source database is held by a writer
 LOCK_RETRIES = 4
@@ -58,8 +78,32 @@ def _ts(value: object) -> datetime | None:
     return t if t.tzinfo else t.astimezone()  # a naive stamp is local time
 
 
+def data_step_problem(hb_dir: Path, hb_start: str) -> str | None:
+    """None when every data step of the morning run (the one that started at ``hb_start``) succeeded, else the reason."""
+    try:
+        lines = (hb_dir / STEPS_FILE).read_text().splitlines()
+    except OSError:
+        return "morning step record missing"
+    if not lines or lines[0].split(maxsplit=1) != ["start_ts", hb_start]:
+        return "morning step record is from another run"
+    status: dict[str, str] = {}
+    for line in lines[1:]:
+        parts = line.split()
+        if len(parts) != 3:
+            return f"morning step record unreadable: {line!r}"
+        if status.get(parts[0], "ok") == "ok":  # sticky: a step once recorded failed stays failed
+            status[parts[0]] = parts[2]
+    failed = sorted(n for n, st in status.items() if st != "ok" and not _is_drive_backup(n))
+    if failed:
+        return f"morning data step failed: {', '.join(failed)}"
+    missing = [n for n in REQUIRED_STEPS if status.get(n) != "ok"]
+    if missing:
+        return f"morning data step not recorded ok: {', '.join(missing)}"
+    return None
+
+
 def morning_gate(hb_dir: Path, today: date) -> tuple[bool, str, datetime | None]:
-    """``(ok, reason, morning_end)``: ok only when the morning job ended today (ET) with rc 0."""
+    """``(ok, reason, morning_end)``: ok only when the morning job ended today (ET) and all its data steps succeeded (Drive backup steps may fail)."""
     hb = read_heartbeat(hb_dir, MORNING)
     if hb is None:
         return False, "morning heartbeat missing or unreadable", None
@@ -74,8 +118,9 @@ def morning_gate(hb_dir: Path, today: date) -> tuple[bool, str, datetime | None]
             f"morning heartbeat is stale (ended {end:%Y-%m-%d %H:%M %z}, not {today})",
             end,
         )
-    if rc != 0:
-        return False, f"morning job exited rc={rc}", end
+    bad = data_step_problem(hb_dir, str(hb.get("start_ts")))
+    if bad:
+        return False, bad, end
     return True, "ok", end
 
 

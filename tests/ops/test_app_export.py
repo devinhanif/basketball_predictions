@@ -19,7 +19,18 @@ NOW = datetime(2026, 10, 14, 12, 35, tzinfo=ET)
 TODAY = date(2026, 10, 14)
 
 
-def _morning(root: Path, *, start: datetime, end: datetime | None, rc: int | None) -> None:
+GOOD_STEPS = [(n, 0, "ok") for n in A.REQUIRED_STEPS] + [("backup_db_drive", 0, "ok")]
+
+
+def _morning(
+    root: Path,
+    *,
+    start: datetime,
+    end: datetime | None,
+    rc: int | None,
+    steps: list[tuple[str, int, str]] | None = GOOD_STEPS,
+    steps_start: datetime | None = None,
+) -> None:
     hb = root / "data/ops/heartbeat"
     hb.mkdir(parents=True, exist_ok=True)
     rec = {
@@ -27,6 +38,12 @@ def _morning(root: Path, *, start: datetime, end: datetime | None, rc: int | Non
         "end_ts": end.strftime("%Y-%m-%dT%H:%M:%S%z") if end else None, "rc": rc,
     }  # fmt: skip
     (hb / "daily-morning.json").write_text(json.dumps(rec))
+    rec_file = hb / "daily-morning.steps"
+    if steps is None:
+        rec_file.unlink(missing_ok=True)
+        return
+    stamp = (steps_start or start).strftime("%Y-%m-%dT%H:%M:%S%z")
+    rec_file.write_text(f"start_ts {stamp}\n" + "".join(f"{n} {r} {st}\n" for n, r, st in steps))
 
 
 def _good_morning(root: Path) -> None:
@@ -102,7 +119,16 @@ def test_start_heartbeat_is_written_before_the_build_runs(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize(
     ("kind", "needle"),
-    [("missing", "missing"), ("running", "not ended"), ("stale", "stale"), ("failed", "rc=1")],
+    [
+        ("missing", "missing"),
+        ("running", "not ended"),
+        ("stale", "stale"),
+        ("data_failed", "data step failed: report"),
+        ("no_steps", "step record missing"),
+        ("other_run", "another run"),
+        ("truncated", "not recorded ok: data_check"),
+        ("garbled", "unreadable"),
+    ],
 )
 def test_skip_with_a_recorded_reason(tmp_path: Path, kind: str, needle: str) -> None:
     if kind == "running":
@@ -110,8 +136,22 @@ def test_skip_with_a_recorded_reason(tmp_path: Path, kind: str, needle: str) -> 
     elif kind == "stale":
         y = NOW - timedelta(days=1)
         _morning(tmp_path, start=y.replace(hour=8), end=y.replace(hour=9), rc=0)
-    elif kind == "failed":
-        _morning(tmp_path, start=NOW.replace(hour=8), end=NOW.replace(hour=9), rc=1)
+    elif kind in {"data_failed", "no_steps", "other_run", "truncated", "garbled"}:
+        steps: list[tuple[str, int, str]] | None = list(GOOD_STEPS)
+        other = None
+        if kind == "data_failed":
+            steps = [(n, 1, "failed") if n == "report" else (n, r, st) for n, r, st in GOOD_STEPS]
+        elif kind == "no_steps":
+            steps = None
+        elif kind == "other_run":
+            other = NOW.replace(hour=7)
+        elif kind == "truncated":
+            steps = [x for x in GOOD_STEPS if x[0] != "data_check"]
+        _morning(tmp_path, start=NOW.replace(hour=8), end=NOW.replace(hour=9), rc=1,
+                 steps=steps, steps_start=other)  # fmt: skip
+        if kind == "garbled":
+            with (tmp_path / "data/ops/heartbeat/daily-morning.steps").open("a") as fh:
+                fh.write("report\n")
     b = FakeBuild([0])
     assert A.run(tmp_path, now=NOW, build=b) == 0  # a skip is not an error exit
     assert b.calls == 0 and not (tmp_path / "data/export/latest").exists()
@@ -128,6 +168,38 @@ def test_skip_with_a_recorded_reason(tmp_path: Path, kind: str, needle: str) -> 
         ]
         == 2
     )
+
+
+def test_backup_only_failure_still_exports(tmp_path: Path) -> None:
+    steps = [(n, 0, "ok") for n in A.REQUIRED_STEPS] + [
+        ("backup_registry_drive", 1, "failed"),
+        ("backup_db_drive", 1, "failed"),
+    ]
+    _morning(tmp_path, start=NOW.replace(hour=8), end=NOW.replace(hour=10), rc=1, steps=steps)
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=NOW, build=b) == 0
+    assert b.calls == 1 and (tmp_path / "data/export/latest/manifest.json").exists()
+    assert _hb(tmp_path)["status"] == "ok"
+
+
+def _steps_problem(tmp_path: Path, steps: list[tuple[str, int, str]]) -> str | None:
+    start = NOW.replace(hour=8)
+    _morning(tmp_path, start=start, end=NOW.replace(hour=9), rc=1, steps=steps)
+    return A.data_step_problem(
+        tmp_path / "data/ops/heartbeat", start.strftime("%Y-%m-%dT%H:%M:%S%z")
+    )
+
+
+def test_a_step_once_failed_stays_failed(tmp_path: Path) -> None:
+    steps = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
+    steps.insert(3, ("report", 1, "failed"))
+    assert _steps_problem(tmp_path, steps) == "morning data step failed: report"
+
+
+def test_only_drive_backups_are_exempt(tmp_path: Path) -> None:
+    ok = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
+    assert _steps_problem(tmp_path, [*ok, ("backup_lineups_drive", 1, "failed")]) is None
+    assert "backup_local" in str(_steps_problem(tmp_path, [*ok, ("backup_local", 1, "failed")]))
 
 
 def test_a_good_run_clears_the_skip_record(tmp_path: Path) -> None:

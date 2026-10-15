@@ -701,9 +701,13 @@ can never change a morning or pretip exit code, and a slow Drive upload in the m
   between the pretip runs. **Not installed by anything in the repo.** Install: `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist && launchctl kickstart -k gui/$(id -u)/local.nba.app-export`
   (the kickstart writes the first heartbeat at once, otherwise the watchdog alerts `app-export:stale` until the first slot has run; it runs the gate, so it may record a skip);
   remove: `launchctl bootout gui/$(id -u)/local.nba.app-export`.
-* **Gate**: the `daily-morning` heartbeat must have an END written today (Eastern date) with `rc == 0`. Otherwise the run is SKIPPED with a recorded reason (heartbeat `status: skipped`, the log
-  `data/ops/app_export_YYYYMMDD.log`, and `app-export.skip.json` with a consecutive count); a skip exits 0 and the watchdog alerts after two in a row. Note: the morning job's rc is the
-  worst rc of any step, so a failed Drive upload (rclone) also skips the export even though the data is fine; that is the stated rule, Devin can relax it.
+* **Gate** (DECISIONS 2026-10-14 20:31, A1): the `daily-morning` heartbeat must have an END written today (Eastern date) AND every DATA step of that run must have succeeded. `ops/nba_daily.sh`
+  writes `data/ops/heartbeat/daily-morning.steps`: a first line `start_ts <the heartbeat's start_ts>` (ties the file to this run) then one `<step> <rc> <ok|failed>` line per step (same
+  ok/failed rule as the heartbeat rc). A failed `backup_*_drive` step does NOT block the export (the data is fine; today's first run skipped on exactly that). Any other failed step does, and the gate
+  fails closed: a missing steps file, one from another run, an unreadable line, or a run cut short (any of settle, checkpoint, report, parlay_settle, data_snapshot, data_diff, data_check not recorded ok)
+  skips. A skip is recorded with its reason (heartbeat `status: skipped`, the log `data/ops/app_export_YYYYMMDD.log`, and `app-export.skip.json` with a consecutive count); it exits 0 and the watchdog
+  alerts after two in a row. The morning job's own rc is unchanged (still the worst step), so the watchdog still sees a failed Drive upload. A morning run started before this change wrote no steps
+  file, so its export skips (fail closed) until the next morning run.
 * **Atomic**: built in `data/export/.latest.stage.<pid>` and swapped into `data/export/latest` only after the build exited 0; a failed build leaves the previous export in place. A locked
   `nba.duckdb` (exit 2) is retried 4 times a minute apart. A second slot that finds today's export already built after the morning job's end does nothing.
 * **Heartbeat / watchdog**: `data/ops/heartbeat/app-export.json` at START and END (`status`, `reason`, `rc`). `JOBS["app-export"]` in `nba.ops.watchdog` is `optional`: silent until the job has left a

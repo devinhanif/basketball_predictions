@@ -171,3 +171,33 @@ def test_backup_prune_and_drive_upload_ignore_history_backups(tmp_path: Path) ->
 def test_the_backup_test_would_catch_the_old_loose_glob(tmp_path: Path) -> None:
     loose = SCRIPT.replace("nba_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].duckdb", "nba_*.duckdb")
     assert "nba_history_pre_static_fix_20261013T080424.duckdb" in _select_backups(tmp_path, loose)
+
+
+# --- per-step status record read by the app export gate (nba.ops.app_export) ---------------------
+
+
+def test_morning_writes_a_step_record_tied_to_the_heartbeat(tmp_path: Path) -> None:
+    import json
+
+    rc, _, hb = _run_morning(tmp_path, nightly="1", facts_rc=1)
+    lines = (tmp_path / "root/data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
+    assert lines[0] == f"start_ts {json.loads(hb)['start_ts']}"
+    steps = {x.split()[0]: x.split()[1:] for x in lines[1:]}
+    assert steps["settle"] == ["0", "ok"] and steps["facts"] == ["1", "failed"]
+    assert steps["data_check"] == ["0", "ok"]
+    assert rc == 0
+
+
+def test_script_step_names_satisfy_the_gate_contract(tmp_path: Path) -> None:
+    import json
+
+    from nba.ops.app_export import data_step_problem
+
+    hb_dir = tmp_path / "off/root/data/ops/heartbeat"
+    _, _, hb = _run_morning(tmp_path / "off", nightly="", facts_rc=0)
+    assert data_step_problem(hb_dir, json.loads(hb)["start_ts"]) is None
+    _, _, hb = _run_morning(tmp_path / "on", nightly="1", facts_rc=1)
+    on_dir = tmp_path / "on/root/data/ops/heartbeat"
+    assert (
+        data_step_problem(on_dir, json.loads(hb)["start_ts"]) == "morning data step failed: facts"
+    )
