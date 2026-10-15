@@ -164,7 +164,7 @@ function Body({ d, date }: { d: TopParlays; date: string }) {
       ) : (
         <div class="tp-empty">
           <p class="lead">No tickets tonight.</p>
-          <p>{d.empty_reason ?? "No tickets were made."}</p>
+          <p>Reason: {d.empty_reason ?? "none given"}.</p>
           <p class="small muted">This is a normal day, not an error.</p>
         </div>
       )}
