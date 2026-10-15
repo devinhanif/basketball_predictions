@@ -36,12 +36,19 @@ def assemble(
     shutil.copy2(gate, out / "gate.json")
     files = {n: B.file_sha256(out / n) for n in B.DATA_FILES}
     manifest = {
-        "rule_sha256": RULE_SHA256, "kind": "E2_W_ALL_REBUILD", "model_id": B.model_id_of(files), "files": files, "seeds": parts["seeds"],
+        "rule_sha256": RULE_SHA256, "kind": parts.get("kind", "E2_W_ALL_REBUILD"), "model_id": B.model_id_of(files), "files": files, "seeds": parts["seeds"],
         "hidden": parts["hidden"], "n_step": parts["n_step"], "n_ctx": parts["n_ctx"], "month_block": parts["month_block"],
         "fit_through": parts["fit_through"][:10], "gate_id": files["gate.json"], "gate_fit_through": gate_fit_through,
         "export_npz_sha256": parts["export_npz_sha256"], "hist_npz_sha256": parts["hist_npz_sha256"], "w_all_seasons": parts["w_all_seasons"],
-        "data_version": data_version, "oof_sha256": parts["oof_sha256"],
+        "data_version": data_version, "oof_sha256": parts.get("oof_sha256"),
     }  # fmt: skip
+    for k in (
+        "prev_model_id",
+        "prev_month_block",
+        "live_npz_sha256",
+    ):  # present for the monthly refit (research/colab/jobs/avg_shadow_monthly), absent for the rebuild
+        if k in parts:
+            manifest[k] = parts[k]
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True))
     return B.verify(out)
 
