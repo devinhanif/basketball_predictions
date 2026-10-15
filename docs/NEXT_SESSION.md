@@ -16,6 +16,10 @@ Results are summarised here as they land.
 - DONE F1 edits (agent/modeler-f1-warm-window 46f015e): all 10 applied; gate G1-G7 PASS on real data (no fit, no 2025). Power at 1.5x floor
   pts 0.68/0.86 (2023/2024), joint pts 0.58, pts at the floor 0.18. Worktree data/ was a real dir (stale model copies); moved to scratchpad,
   now symlinked. Still OPEN for Devin: F1-first order, count floors -0.0025, WOWY E7(e) wording; then the WOWY mirror edits, manifest refresh, sign.
+- DONE questionable scope (docs/research/questionable_status_scope_2026-10-15.md): blind spot is production-only; R and AVG shadows already use
+  all statuses; PPLAY_INTO_PROPS_LIVE is the test. Q plays 0.51 (0.77 for 3+ ppg), doubtful 0.02, probable 0.93. A historical test can't
+  resolve -0.005 (MDE ~0.075 pooled). Recommendation: no new rule. NEW RISK: the stored "T-60" snapshot is typically ~T-180 in history
+  (median lead 150-180 min, except 2021-22 hourly); live 2026-27 is a true T-60, a train/serve skew nobody has measured.
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
