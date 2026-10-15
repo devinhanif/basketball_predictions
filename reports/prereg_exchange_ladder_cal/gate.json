@@ -1,0 +1,393 @@
+{
+ "constants": {
+  "LOOK_DATES": [
+   "2026-12-15",
+   "2027-02-15",
+   "2027-04-15"
+  ],
+  "N_MIN_GAMES": 400,
+  "N_MIN_LEGS": 1500,
+  "SETTLE_LAG_DAYS": 1,
+  "USABLE_FRACTION": 0.8
+ },
+ "fee_object": {
+  "kalshi": {
+   "coefficient": 0.07,
+   "default_multiplier": 1.0,
+   "formula": "p_one_minus_p",
+   "maker_coefficient": 0.0175,
+   "name": "kalshi_fee_schedule",
+   "source": "user-provided from Kalshi published fee schedule, 2026-10-08",
+   "verified": true
+  },
+  "polymarket_docs_note": "docs.polymarket.us/fees.md fetched 2026-10-15: taker Fee = theta*C*p*(1-p), theta 0.0695, banker's rounding to $0.01, effective 2026-10-07; maker rebate tiers change 2026-10-19. NOT in configs; EV on Polymarket stays uncomputed until Devin adds a verified entry.",
+  "polymarket_entry_in_config": false
+ },
+ "gate": {
+  "confirmed_measurable_date": "2026-10-27 (first full 7-day block: per-week rate; decision whether the minima can be met by 2027-04-15)",
+  "first_date_both_minima_met_by_scenario": {
+   "H_every_game_finals_depth": "2027-01-06",
+   "L_preseason_rate": null,
+   "M_every_game_preseason_depth": "2027-01-06"
+  },
+  "first_measurable_date": "2026-10-21 (first night's us_ex capture: listing rate, depth, Polymarket structure)",
+  "passes_if": "listing rate over 2026-10-20..2026-10-26 projects >= N_MIN_GAMES usable games by 2027-04-15 (scenario M or H); otherwise closed as DATA after the non-negotiable-8 audit",
+  "reason": "regular-season listing rate on Kalshi and Polymarket is unknown; preseason (3 of ~50 games, stars only) is not representative; no us_ex row exists before 2026-10-20",
+  "status": "NOT_MEASURABLE_YET"
+ },
+ "input_sha256": {
+  "configs/odds_live.yaml": "3e6875b58e6db8adc164ebfb50f409d3abae1f5f15c6d799fcddb9e26abfec30",
+  "configs/parlay.yaml": "01eccd9d3dcb2434d44e005cdeeea92205992f78c0c187ecdae2965a32092f8a",
+  "data/kalshi/kalshi.duckdb": "6ab686a08d6b000f8b3c56f60af35b11609f1d0d16b6101e5be6eca103a113d4",
+  "data/schedule/live_tips_2026-27.parquet": "d6eae63e8cefb8eddee8b40ba7e085fb958c2230c83e2826f3ac7ecacdc46bb5"
+ },
+ "kalshi_listing": {
+  "finals_2026": {
+   "events": 5,
+   "ladders_with_player_id": 0,
+   "ladders_without_player_id": 5,
+   "markets": 200,
+   "markets_per_event_median": 45.0,
+   "rungs_per_ladder_max": 58,
+   "rungs_per_ladder_min": 10,
+   "series_counts": {
+    "KXNBAPTS": 100,
+    "KXNBAREB": 100
+   },
+   "settled_markets": 200,
+   "threshold_range": [
+    2.0,
+    40.0
+   ]
+  },
+  "preseason": {
+   "events": 3,
+   "ladders_with_player_id": 6,
+   "ladders_without_player_id": 0,
+   "markets": 24,
+   "markets_per_event_median": 8.0,
+   "rungs_per_ladder_max": 4,
+   "rungs_per_ladder_min": 4,
+   "series_counts": {
+    "KXNBAPTS": 24
+   },
+   "settled_markets": 24,
+   "threshold_range": [
+    10.0,
+    25.0
+   ]
+  },
+  "preseason_game_events": 64,
+  "preseason_last_quote_spread_max": 0.8499999642372131,
+  "preseason_last_quote_spread_mean": 0.32812499231658876,
+  "preseason_listing_rate_games": 0.046875,
+  "preseason_markets": 24,
+  "preseason_priced_two_sided_markets": 16
+ },
+ "kalshi_snapshot_db_last_ts": "2026-10-15 05:28:46",
+ "paired_forecasts": {
+  "forecast_games": [
+   {
+    "game_id": "0012600038",
+    "made_at": "2026-10-10 22:30:08.565230",
+    "players": 34,
+    "rows": 136,
+    "tipoff_date": "2026-10-10"
+   }
+  ],
+  "games_with_both_forecast_and_ladder": 0,
+  "ladder_event_dates": [
+   "2026-10-05",
+   "2026-10-08"
+  ],
+  "paired_settled_legs": 0
+ },
+ "power_table": {
+  "floor": -0.005,
+  "sd_per_game_assumed_from_T493": 0.03984479733917592,
+  "sd_x1.0_games_400": {
+   "pass_line": -0.005,
+   "power_CAL_minus_C0_size": 0.2570290611026394,
+   "power_T493_size": 0.9996145663965283,
+   "power_half_of_T493": 0.692147806017393,
+   "se": 0.001992239866958796
+  },
+  "sd_x1.0_games_600": {
+   "pass_line": -0.005,
+   "power_CAL_minus_C0_size": 0.21209155746334118,
+   "power_T493_size": 0.999980963821929,
+   "power_half_of_T493": 0.7306426379990703,
+   "se": 0.0016266570397597646
+  },
+  "sd_x1.0_games_960": {
+   "pass_line": -0.005,
+   "power_CAL_minus_C0_size": 0.15603262052266342,
+   "power_T493_size": 0.9999999055862391,
+   "power_half_of_T493": 0.7816016569720459,
+   "se": 0.0012859853043969826
+  },
+  "sd_x1.5_games_400": {
+   "pass_line": -0.005,
+   "power_CAL_minus_C0_size": 0.33177350345963974,
+   "power_T493_size": 0.9875203662742307,
+   "power_half_of_T493": 0.6310485455390159,
+   "se": 0.0029883598004381935
+  },
+  "sd_x1.5_games_600": {
+   "pass_line": -0.005,
+   "power_CAL_minus_C0_size": 0.2970894651648407,
+   "power_T493_size": 0.9969829068102418,
+   "power_half_of_T493": 0.6590377857534064,
+   "se": 0.0024399855596396467
+  },
+  "sd_x1.5_games_960": {
+   "pass_line": -0.005,
+   "power_CAL_minus_C0_size": 0.25017726870511625,
+   "power_T493_size": 0.9997429899691727,
+   "power_half_of_T493": 0.6979136160298013,
+   "se": 0.001928977956595474
+  }
+ },
+ "rule": "docs/prereg/EXCHANGE_LADDER_CAL.md (DRAFT)",
+ "run_at_local": "2026-10-15T00:41:37-05:00",
+ "scenarios": {
+  "H_every_game_finals_depth": {
+   "first_date_both_minima_met": "2027-01-06",
+   "listed_rate": 1.0,
+   "look_dates": {
+    "2026-12-15": {
+     "meets_games_min": false,
+     "meets_legs_min": true,
+     "schedule_games_settled": 339,
+     "usable_games": 271.2,
+     "usable_legs": 12204.0
+    },
+    "2027-02-15": {
+     "meets_games_min": true,
+     "meets_legs_min": true,
+     "schedule_games_settled": 818,
+     "usable_games": 654.4,
+     "usable_legs": 29448.0
+    },
+    "2027-04-15": {
+     "meets_games_min": true,
+     "meets_legs_min": true,
+     "schedule_games_settled": 1200,
+     "usable_games": 960.0,
+     "usable_legs": 43200.0
+    }
+   },
+   "markets_per_listed_game": 45.0,
+   "usable_games_per_schedule_game": 0.8,
+   "usable_legs_per_schedule_game": 36.0
+  },
+  "L_preseason_rate": {
+   "first_date_both_minima_met": null,
+   "listed_rate": 0.046875,
+   "look_dates": {
+    "2026-12-15": {
+     "meets_games_min": false,
+     "meets_legs_min": false,
+     "schedule_games_settled": 339,
+     "usable_games": 12.7,
+     "usable_legs": 101.7
+    },
+    "2027-02-15": {
+     "meets_games_min": false,
+     "meets_legs_min": false,
+     "schedule_games_settled": 818,
+     "usable_games": 30.7,
+     "usable_legs": 245.4
+    },
+    "2027-04-15": {
+     "meets_games_min": false,
+     "meets_legs_min": false,
+     "schedule_games_settled": 1200,
+     "usable_games": 45.0,
+     "usable_legs": 360.0
+    }
+   },
+   "markets_per_listed_game": 8.0,
+   "usable_games_per_schedule_game": 0.038,
+   "usable_legs_per_schedule_game": 0.3
+  },
+  "M_every_game_preseason_depth": {
+   "first_date_both_minima_met": "2027-01-06",
+   "listed_rate": 1.0,
+   "look_dates": {
+    "2026-12-15": {
+     "meets_games_min": false,
+     "meets_legs_min": true,
+     "schedule_games_settled": 339,
+     "usable_games": 271.2,
+     "usable_legs": 2169.6
+    },
+    "2027-02-15": {
+     "meets_games_min": true,
+     "meets_legs_min": true,
+     "schedule_games_settled": 818,
+     "usable_games": 654.4,
+     "usable_legs": 5235.2
+    },
+    "2027-04-15": {
+     "meets_games_min": true,
+     "meets_legs_min": true,
+     "schedule_games_settled": 1200,
+     "usable_games": 960.0,
+     "usable_legs": 7680.0
+    }
+   },
+   "markets_per_listed_game": 8.0,
+   "usable_games_per_schedule_game": 0.8,
+   "usable_legs_per_schedule_game": 6.4
+  }
+ },
+ "schedule": {
+  "blocks": [
+   {
+    "block": 0,
+    "games": 47,
+    "start": "2026-10-20"
+   },
+   {
+    "block": 1,
+    "games": 45,
+    "start": "2026-10-27"
+   },
+   {
+    "block": 2,
+    "games": 54,
+    "start": "2026-11-03"
+   },
+   {
+    "block": 3,
+    "games": 51,
+    "start": "2026-11-10"
+   },
+   {
+    "block": 4,
+    "games": 51,
+    "start": "2026-11-17"
+   },
+   {
+    "block": 5,
+    "games": 48,
+    "start": "2026-11-24"
+   },
+   {
+    "block": 6,
+    "games": 29,
+    "start": "2026-12-01"
+   },
+   {
+    "block": 7,
+    "games": 14,
+    "start": "2026-12-12"
+   },
+   {
+    "block": 8,
+    "games": 55,
+    "start": "2026-12-15"
+   },
+   {
+    "block": 9,
+    "games": 53,
+    "start": "2026-12-22"
+   },
+   {
+    "block": 10,
+    "games": 52,
+    "start": "2026-12-29"
+   },
+   {
+    "block": 11,
+    "games": 54,
+    "start": "2027-01-05"
+   },
+   {
+    "block": 12,
+    "games": 56,
+    "start": "2027-01-12"
+   },
+   {
+    "block": 13,
+    "games": 48,
+    "start": "2027-01-19"
+   },
+   {
+    "block": 14,
+    "games": 54,
+    "start": "2027-01-26"
+   },
+   {
+    "block": 15,
+    "games": 54,
+    "start": "2027-02-02"
+   },
+   {
+    "block": 16,
+    "games": 56,
+    "start": "2027-02-09"
+   },
+   {
+    "block": 17,
+    "games": 27,
+    "start": "2027-02-16"
+   },
+   {
+    "block": 18,
+    "games": 32,
+    "start": "2027-02-26"
+   },
+   {
+    "block": 19,
+    "games": 49,
+    "start": "2027-03-02"
+   },
+   {
+    "block": 20,
+    "games": 55,
+    "start": "2027-03-09"
+   },
+   {
+    "block": 21,
+    "games": 52,
+    "start": "2027-03-16"
+   },
+   {
+    "block": 22,
+    "games": 56,
+    "start": "2027-03-23"
+   },
+   {
+    "block": 23,
+    "games": 53,
+    "start": "2027-03-30"
+   },
+   {
+    "block": 24,
+    "games": 55,
+    "start": "2027-04-06"
+   }
+  ],
+  "first_tip": "2026-10-20 19:00:00",
+  "games": 1200,
+  "games_per_7day_block_max": 56,
+  "games_per_7day_block_median": 52.0,
+  "games_per_7day_block_min": 14,
+  "last_tip": "2027-04-12 00:30:00",
+  "note": "the schedule file lists 1,200 games, not 1,230; reported as found"
+ },
+ "us_ex_capture": {
+  "capture_start": "2026-10-20 (live per-game capture; NBA_CLOSE_CAPTURE=1 required)",
+  "kalshi_polymarket_player_prop_rows_via_us_ex": 0,
+  "note": "market_asof.duckdb odds_snapshots holds 2026-10-10 h2h rows for kalshi/polymarket from the OLD vendor theoddsapi.com (different vendor); no player-prop rows.",
+  "raw_root_children": [
+   "probe",
+   "the_odds_api",
+   "theoddsapi",
+   "theoddsapi_probe"
+  ],
+  "season_2026_raw_dirs": []
+ }
+}

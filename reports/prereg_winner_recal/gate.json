@@ -1,0 +1,526 @@
+{
+ "gap_cited_not_recomputed": {
+  "2023": 0.0212,
+  "2024": 0.0107
+ },
+ "gate": {
+  "confirmatory_venue": "2026-27 live log; priced regular-season games projected at the final look: 1020 of 1200",
+  "criterion": "pass power >= 0.5 at the ceiling effect (best monotone intercept-slope map if the market were truth), floor -0.002, projected final N 1020",
+  "first_look_with_enough_n": "interim 2027-02-15 (kill-only), binding 2027-04-15",
+  "historical_venue": "none unexposed: 2023 and 2024 Pinnacle t60 pairs exist with known-at times, but the model-vs-market gap (T235/T236) and the calibrators on production OOF (T178) were already read on them",
+  "status": "FAIL_POWER"
+ },
+ "input_sha256": {
+  "data/schedule/live_tips_2026-27.parquet": "d6eae63e8cefb8eddee8b40ba7e085fb958c2230c83e2826f3ac7ecacdc46bb5",
+  "reports/odds_history/game_market_2023.parquet": "35f8b06b407d068ddbb19aeafb00a718e2ed27fbeefa78d8d7bc4b005979a51c",
+  "reports/odds_history/game_market_2024.parquet": "eb368c2f2fcff37df7a939efac9c261d32449ae81e4d1c10aa00c96b614b7a9d",
+  "reports/odds_history/game_rows_2023.parquet": "b75ae4697868f3ad0f56a2afce8c5cce8bef8961c871d929e67ce2bb0f474b1e",
+  "reports/odds_history/game_rows_2024.parquet": "b03f56cbbcfc6f599e4319606c5c094a6355b7b0131e0d89d131362f0091bc1f"
+ },
+ "kalshi_historical": {
+  "candle_first_ts": "2025-04-14 19:00:00",
+  "candle_last_ts": "2025-06-20 03:00:00",
+  "candle_rows": 7422,
+  "events_games": 86,
+  "first_close": "2025-04-16 02:39:09.736516",
+  "last_close": "2025-06-20 03:21:05.664258",
+  "markets": 172,
+  "markets_with_candles": 172,
+  "regular_season_2024_25_prices": "none: the backfill starts 2025-04 (playoffs); 2024-25 regular season has no Kalshi game-winner price",
+  "scope": "season 2024 (2024-25) playoffs and play-in only; close_time < 2025-08-01 enforced in SQL; hourly candles, ts is the END of the hour"
+ },
+ "kalshi_live": {
+  "cadence": "launchd every 15 min; Mac sleep loses slots (readiness note: 88 of 90 runs ok in the first day)",
+  "game_events_total": 128,
+  "preseason_events": 64,
+  "preseason_events_with_two_sided_quote_before_close": 50,
+  "snapshot_first_ts": "2026-06-11 05:00:00",
+  "snapshot_last_ts": "2026-10-15 05:28:46"
+ },
+ "odds_store_h2h_counts_le_2024": {
+  "2023_t5": {
+   "books": 29,
+   "games": 1318
+  },
+  "2023_t60": {
+   "books": 29,
+   "games": 1318
+  },
+  "2024_t5": {
+   "books": 37,
+   "games": 1315
+  },
+  "2024_t60": {
+   "books": 37,
+   "games": 1315
+  }
+ },
+ "pass_power_at_ceiling_by_season": {
+  "2023": 0.23130059682229903,
+  "2024": 0.1511391871480834
+ },
+ "price_audit": {
+  "2023": {
+   "consensus_fallback_games": 51,
+   "consensus_t5": {
+    "lead_min_median": 9.0,
+    "lead_min_min": 9,
+    "pairs": 1318,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1318
+   },
+   "consensus_t60": {
+    "lead_min_median": 64.0,
+    "lead_min_min": 62,
+    "pairs": 1318,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1318
+   },
+   "model_games": 1318,
+   "model_made_before_tip_min": 450.0,
+   "pinnacle_or_consensus_t60_pairs": 1318,
+   "pinnacle_t5": {
+    "lead_min_median": 9.0,
+    "lead_min_min": 9,
+    "pairs": 1302,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1302
+   },
+   "pinnacle_t60": {
+    "lead_min_median": 64.0,
+    "lead_min_min": 62,
+    "pairs": 1267,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1267
+   }
+  },
+  "2024": {
+   "consensus_fallback_games": 36,
+   "consensus_t5": {
+    "lead_min_median": 9.0,
+    "lead_min_min": 9,
+    "pairs": 1315,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1315
+   },
+   "consensus_t60": {
+    "lead_min_median": 64.0,
+    "lead_min_min": 64,
+    "pairs": 1315,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1315
+   },
+   "model_games": 1315,
+   "model_made_before_tip_min": 450.0,
+   "pinnacle_or_consensus_t60_pairs": 1315,
+   "pinnacle_t5": {
+    "lead_min_median": 9.0,
+    "lead_min_min": 9,
+    "pairs": 1292,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1292
+   },
+   "pinnacle_t60": {
+    "lead_min_median": 64.0,
+    "lead_min_min": 64,
+    "pairs": 1279,
+    "price_not_before_model": 0,
+    "snapshot_before_tip": 1279
+   }
+  }
+ },
+ "projected": {
+  "first_date_n_min_met": "2027-02-01",
+  "games_with_price_by_look": {
+   "2027-02-15": 695,
+   "2027-04-15": 1020
+  },
+  "n_min_games": 600,
+  "price_coverage_assumed": 0.85
+ },
+ "rule": "docs/prereg/WINNER_RECAL.md (DRAFT)",
+ "run_at_local": "2026-10-15T00:41:38-05:00",
+ "schedule": {
+  "first_tip": "2026-10-20 19:00:00",
+  "games": 1200,
+  "games_per_7day_block": [
+   {
+    "games": 47,
+    "start": "2026-10-20"
+   },
+   {
+    "games": 45,
+    "start": "2026-10-27"
+   },
+   {
+    "games": 54,
+    "start": "2026-11-03"
+   },
+   {
+    "games": 51,
+    "start": "2026-11-10"
+   },
+   {
+    "games": 51,
+    "start": "2026-11-17"
+   },
+   {
+    "games": 48,
+    "start": "2026-11-24"
+   },
+   {
+    "games": 29,
+    "start": "2026-12-01"
+   },
+   {
+    "games": 14,
+    "start": "2026-12-08"
+   },
+   {
+    "games": 55,
+    "start": "2026-12-15"
+   },
+   {
+    "games": 53,
+    "start": "2026-12-22"
+   },
+   {
+    "games": 52,
+    "start": "2026-12-29"
+   },
+   {
+    "games": 54,
+    "start": "2027-01-05"
+   },
+   {
+    "games": 56,
+    "start": "2027-01-12"
+   },
+   {
+    "games": 48,
+    "start": "2027-01-19"
+   },
+   {
+    "games": 54,
+    "start": "2027-01-26"
+   },
+   {
+    "games": 54,
+    "start": "2027-02-02"
+   },
+   {
+    "games": 56,
+    "start": "2027-02-09"
+   },
+   {
+    "games": 27,
+    "start": "2027-02-16"
+   },
+   {
+    "games": 32,
+    "start": "2027-02-23"
+   },
+   {
+    "games": 49,
+    "start": "2027-03-02"
+   },
+   {
+    "games": 55,
+    "start": "2027-03-09"
+   },
+   {
+    "games": 52,
+    "start": "2027-03-16"
+   },
+   {
+    "games": 56,
+    "start": "2027-03-23"
+   },
+   {
+    "games": 53,
+    "start": "2027-03-30"
+   },
+   {
+    "games": 55,
+    "start": "2027-04-06"
+   }
+  ],
+  "games_settled_by_look_date": {
+   "2027-02-15": 818,
+   "2027-04-15": 1200
+  },
+  "last_tip": "2027-04-12 00:30:00",
+  "regular_season_only": "the file is the regular season; playoffs are not in it"
+ },
+ "season_2025": "never loaded; the 0.0064 Brier gap (REPLAY_2025_26) came from it and is disclosed as exposure",
+ "seasons_read": [
+  2023,
+  2024
+ ],
+ "sizing_y_free": {
+  "2023": {
+   "disagreement_logit_sd": 0.36580275275767704,
+   "market": "pinnacle t60 multiplicative de-vig (consensus-fallback games excluded here)",
+   "n_1000": {
+    "raw_minus_market_gap": {
+     "expected_diff_under_market_truth": 0.013551722509681055,
+     "mde_80pct_one_sided_95": 0.013140242189272427,
+     "per_game_sd": 0.16711479720224506,
+     "se_at_n": 0.005284633898762287
+    },
+    "recal_ceiling_toward_market_minus_raw": {
+     "expected_diff_under_market_truth": -0.0014229890799416166,
+     "intercept": 0.06113639171897786,
+     "mde_80pct_one_sided_95": 0.0039254679358066554,
+     "pass_line": -0.0025968237311917827,
+     "pass_power_at_ceiling": 0.2285776048383928,
+     "per_game_sd": 0.049923263861285615,
+     "se_at_n": 0.0015787122203123488,
+     "slope": 0.886342365578416
+    },
+    "recal_intercept_+0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.00020015075881575615,
+     "mde_80pct_one_sided_95": 0.0036078572363853114,
+     "per_game_sd": 0.045883958735966617,
+     "se_at_n": 0.0014509781767083497
+    },
+    "recal_intercept_-0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.001830130023675878,
+     "mde_80pct_one_sided_95": 0.003608580723256079,
+     "per_game_sd": 0.045893159887661183,
+     "se_at_n": 0.001451269142672865
+    },
+    "recal_slope_0.90_minus_raw": {
+     "expected_diff_under_market_truth": -0.0010358539404723708,
+     "mde_80pct_one_sided_95": 0.003272659154539469,
+     "per_game_sd": 0.04162098103255862,
+     "se_at_n": 0.0013161709851355196
+    },
+    "recal_slope_1.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.0025717753955369085,
+     "mde_80pct_one_sided_95": 0.003277707972057219,
+     "per_game_sd": 0.04168519081678,
+     "se_at_n": 0.0013182014767975946
+    }
+   },
+   "n_1020": {
+    "raw_minus_market_gap": {
+     "expected_diff_under_market_truth": 0.013551722509681055,
+     "mde_80pct_one_sided_95": 0.013010778517826529,
+     "per_game_sd": 0.16711479720224506,
+     "se_at_n": 0.0052325672703907216
+    },
+    "recal_ceiling_toward_market_minus_raw": {
+     "expected_diff_under_market_truth": -0.0014229890799416166,
+     "intercept": 0.06113639171897786,
+     "mde_80pct_one_sided_95": 0.003886792431672677,
+     "pass_line": -0.002571238636983063,
+     "pass_power_at_ceiling": 0.23130059682229903,
+     "per_game_sd": 0.049923263861285615,
+     "se_at_n": 0.0015631580260095223,
+     "slope": 0.886342365578416
+    },
+    "recal_intercept_+0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.00020015075881575615,
+     "mde_80pct_one_sided_95": 0.0035723109780175307,
+     "per_game_sd": 0.045883958735966617,
+     "se_at_n": 0.0014366824765805473
+    },
+    "recal_intercept_-0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.001830130023675878,
+     "mde_80pct_one_sided_95": 0.0035730273367649973,
+     "per_game_sd": 0.045893159887661183,
+     "se_at_n": 0.0014369705758154022
+    },
+    "recal_slope_0.90_minus_raw": {
+     "expected_diff_under_market_truth": -0.0010358539404723708,
+     "mde_80pct_one_sided_95": 0.0032404154208673756,
+     "per_game_sd": 0.04162098103255862,
+     "se_at_n": 0.0013032034670691236
+    },
+    "recal_slope_1.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.0025717753955369085,
+     "mde_80pct_one_sided_95": 0.0032454144951275135,
+     "per_game_sd": 0.04168519081678,
+     "se_at_n": 0.001305213953399362
+    }
+   },
+   "n_600": {
+    "raw_minus_market_gap": {
+     "expected_diff_under_market_truth": 0.013551722509681055,
+     "mde_80pct_one_sided_95": 0.016963979721394733,
+     "per_game_sd": 0.16711479720224506,
+     "se_at_n": 0.006822433026903171
+    },
+    "recal_ceiling_toward_market_minus_raw": {
+     "expected_diff_under_market_truth": -0.0014229890799416166,
+     "intercept": 0.06113639171897786,
+     "mde_80pct_one_sided_95": 0.005067757313816795,
+     "pass_line": -0.0033524850213139936,
+     "pass_power_at_ceiling": 0.1718935315107022,
+     "per_game_sd": 0.049923263861285615,
+     "se_at_n": 0.0020381087125746207,
+     "slope": 0.886342365578416
+    },
+    "recal_intercept_+0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.00020015075881575615,
+     "mde_80pct_one_sided_95": 0.004657723664004742,
+     "per_game_sd": 0.045883958735966617,
+     "se_at_n": 0.0018732047713672802
+    },
+    "recal_intercept_-0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.001830130023675878,
+     "mde_80pct_one_sided_95": 0.004658657681538637,
+     "per_game_sd": 0.045893159887661183,
+     "se_at_n": 0.001873580406812241
+    },
+    "recal_slope_0.90_minus_raw": {
+     "expected_diff_under_market_truth": -0.0010358539404723708,
+     "mde_80pct_one_sided_95": 0.00422498480111487,
+     "per_game_sd": 0.04162098103255862,
+     "se_at_n": 0.0016991694353970922
+    },
+    "recal_slope_1.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.0025717753955369085,
+     "mde_80pct_one_sided_95": 0.004231502796502965,
+     "per_game_sd": 0.04168519081678,
+     "se_at_n": 0.0017017907888610356
+    }
+   },
+   "note": "the 'expected_diff' under market truth is a sizing device, not a result; no outcome was read",
+   "pairs_used": 1267
+  },
+  "2024": {
+   "disagreement_logit_sd": 0.39885875623811,
+   "market": "pinnacle t60 multiplicative de-vig (consensus-fallback games excluded here)",
+   "n_1000": {
+    "raw_minus_market_gap": {
+     "expected_diff_under_market_truth": 0.015736438183159205,
+     "mde_80pct_one_sided_95": 0.014038443256736104,
+     "per_game_sd": 0.17853792678189426,
+     "se_at_n": 0.005645864973551621
+    },
+    "recal_ceiling_toward_market_minus_raw": {
+     "expected_diff_under_market_truth": -0.000751700250953663,
+     "intercept": 0.02345148527294737,
+     "mde_80pct_one_sided_95": 0.0030388762685291636,
+     "pass_line": -0.0020103147291790154,
+     "pass_power_at_ceiling": 0.1515434435361679,
+     "per_game_sd": 0.03864778015678914,
+     "se_at_n": 0.0012221501180491308,
+     "slope": 0.9073519266203935
+    },
+    "recal_intercept_+0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.0008588309675041254,
+     "mde_80pct_one_sided_95": 0.003575839824554477,
+     "per_game_sd": 0.045476768121974834,
+     "se_at_n": 0.001438101678887785
+    },
+    "recal_intercept_-0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.001149511650284398,
+     "mde_80pct_one_sided_95": 0.0035763606153173346,
+     "per_game_sd": 0.04548339142780634,
+     "se_at_n": 0.0014383111262084595
+    },
+    "recal_slope_0.90_minus_raw": {
+     "expected_diff_under_market_truth": -0.0006898547353036561,
+     "mde_80pct_one_sided_95": 0.003334016654546768,
+     "per_game_sd": 0.04240131262940905,
+     "se_at_n": 0.0013408472368979562
+    },
+    "recal_slope_1.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.002285159384728215,
+     "mde_80pct_one_sided_95": 0.00333910504950252,
+     "per_game_sd": 0.04246602575104464,
+     "se_at_n": 0.0013428936454866359
+    }
+   },
+   "n_1020": {
+    "raw_minus_market_gap": {
+     "expected_diff_under_market_truth": 0.015736438183159205,
+     "mde_80pct_one_sided_95": 0.013900130097874714,
+     "per_game_sd": 0.17853792678189426,
+     "se_at_n": 0.005590239331540203
+    },
+    "recal_ceiling_toward_market_minus_raw": {
+     "expected_diff_under_market_truth": -0.000751700250953663,
+     "intercept": 0.02345148527294737,
+     "mde_80pct_one_sided_95": 0.0030089358706942753,
+     "pass_line": -0.002,
+     "pass_power_at_ceiling": 0.1511391871480834,
+     "per_game_sd": 0.03864778015678914,
+     "se_at_n": 0.0012101089365349992,
+     "slope": 0.9073519266203935
+    },
+    "recal_intercept_+0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.0008588309675041254,
+     "mde_80pct_one_sided_95": 0.003540609016360758,
+     "per_game_sd": 0.045476768121974834,
+     "se_at_n": 0.0014239328439013706
+    },
+    "recal_intercept_-0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.001149511650284398,
+     "mde_80pct_one_sided_95": 0.0035411246760550055,
+     "per_game_sd": 0.04548339142780634,
+     "se_at_n": 0.0014241402276513194
+    },
+    "recal_slope_0.90_minus_raw": {
+     "expected_diff_under_market_truth": -0.0006898547353036561,
+     "mde_80pct_one_sided_95": 0.0033011683987427933,
+     "per_game_sd": 0.04240131262940905,
+     "se_at_n": 0.0013276365971215739
+    },
+    "recal_slope_1.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.002285159384728215,
+     "mde_80pct_one_sided_95": 0.0033062066605059263,
+     "per_game_sd": 0.04246602575104464,
+     "se_at_n": 0.0013296628435575815
+    }
+   },
+   "n_600": {
+    "raw_minus_market_gap": {
+     "expected_diff_under_market_truth": 0.015736438183159205,
+     "mde_80pct_one_sided_95": 0.01812355231333891,
+     "per_game_sd": 0.17853792678189426,
+     "se_at_n": 0.007288780339167068
+    },
+    "recal_ceiling_toward_market_minus_raw": {
+     "expected_diff_under_market_truth": -0.000751700250953663,
+     "intercept": 0.02345148527294737,
+     "mde_80pct_one_sided_95": 0.00392317239306613,
+     "pass_line": -0.002595305155581933,
+     "pass_power_at_ceiling": 0.12130787946632837,
+     "per_game_sd": 0.03864778015678914,
+     "se_at_n": 0.0015777890179232373,
+     "slope": 0.9073519266203935
+    },
+    "recal_intercept_+0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.0008588309675041254,
+     "mde_80pct_one_sided_95": 0.004616389363068248,
+     "per_game_sd": 0.045476768121974834,
+     "se_at_n": 0.0018565812841617728
+    },
+    "recal_intercept_-0.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.001149511650284398,
+     "mde_80pct_one_sided_95": 0.0046170617010520484,
+     "per_game_sd": 0.04548339142780634,
+     "se_at_n": 0.0018568516794900659
+    },
+    "recal_slope_0.90_minus_raw": {
+     "expected_diff_under_market_truth": -0.0006898547353036561,
+     "mde_80pct_one_sided_95": 0.004304196993012599,
+     "per_game_sd": 0.04240131262940905,
+     "se_at_n": 0.001731026339438005
+    },
+    "recal_slope_1.10_minus_raw": {
+     "expected_diff_under_market_truth": 0.002285159384728215,
+     "mde_80pct_one_sided_95": 0.004310766082653451,
+     "per_game_sd": 0.04246602575104464,
+     "se_at_n": 0.0017336682415658358
+    }
+   },
+   "note": "the 'expected_diff' under market truth is a sizing device, not a result; no outcome was read",
+   "pairs_used": 1279
+  }
+ }
+}
