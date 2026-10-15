@@ -163,3 +163,102 @@ two-leg on that night's real ATL@BOS game. The only label is one small notice li
   Reverse: fixes 1-4 merged with negative tests."
 - BEST_PRACTICES draft: "An illustration fixture never shares dates or ids with a real store, and it is labelled on every card,
   not once per panel (top-parlays 2026-10-15)."
+
+---
+
+## Re-check of the fixes: origin/agent/app-top-parlays-fixes 3c86c08 (off main e7476b9), 2026-10-15
+
+Scope: `git diff e7476b9 3c86c08`, 14 files: app/ plus `docs/contracts/top_parlays_v2.md`. Read in a detached worktree at
+3c86c08. Attacks are in the scratchpad (`tp/attack2.py`). Season 2025 was not loaded.
+
+Verdict: BLOCKED
+
+In one line: 15 of the 17 fixes hold, and the T490 numbers re-derive exactly. But the gate's own *thresholds* come from the
+file. A file that sets `settled_min: 1, dates_min: 1` opens the gate and serves `positive_ev_found`, and the panel then says
+"the model has a live record that passed its gate". That is the one guarantee blocker 4 exists for. The fix is one line. There
+is also a new render crash when a size key is missing.
+
+### Checks (unpiped, exit codes)
+
+```
+cd app/api && uv run --frozen ruff check src tests          # All checks passed, exit 0
+cd app/api && uv run --frozen ruff format --check src tests # 32 files already formatted, exit 0
+cd app/api && uv run --frozen mypy src                      # no issues in 20 files, exit 0
+cd app/api && uv run --frozen pytest -q -p no:randomly      # 239 passed, 1 skipped, exit 0
+cd app/web && npx tsc --noEmit -p .                         # exit 0
+cd app/web && npx vitest run                                # 7 files, 55 tests passed, exit 0
+cd app/web && npx eslint .                                  # exit 0
+cd app/api && uv run --frozen python <scratch>/tp/attack2.py   # exit 0; results below
+```
+(node_modules was a temporary symlink to the main checkout's, removed afterwards.)
+
+### Fix by fix
+
+| Fix | What I checked | Result |
+|---|---|---|
+| 1 illustration isolated | Fixtures moved to 2024-01-01/02 with ids `ILLUS-1..4`. I checked overlap against all three committed stores (default: 2024-11-12, 11-20; export_small and export_best_real: 11-05..11-12): none. `test_illustration_never_overlaps_a_real_store` asserts this for the default store, and that real nights return 404. | HOLDS |
+| 2 labelled everywhere | Kicker "ILLUSTRATION", h2 "ILLUSTRATION: synthetic, not a real night" (`TopParlaysPanel.tsx:163-168`), an "Illustration" tag on every ticket (`:64`), breakdown links hidden (`:47`). | HOLDS |
+| 3 pre-tip enforced | `AwareDatetime` on all three times. `price_at >= tipoff` gets 422 (`top_parlays.py:81`). `made_at >=` the earliest tip gets 422 (`:172`). Naive and non-timestamp times get 422 (tests). New gap: `price_at` later than `made_at` is accepted, and the fixture itself does it (price 23:05Z, made 22:10Z; see R3). | HOLDS (minor gap) |
+| 4 verdict guarded | `positive_ev_found` needs `illustration` false, `gate.open` true and some `ev_low80 > 0` (`:174-177`). **But `gate.open` can be manufactured** (R1). | **FAILS through R1** |
+| 5 copy | "legs calibrated; joint not yet tested", the 80% range "has not been checked yet", "not a tradable price". | HOLDS |
+| 6 ET stale, post-tip, date shown | `etDate` uses America/New_York (`topParlays.ts:65-80`). The tests cover 01:00Z = previous ET evening and the 03:59:59Z/04:00Z boundary (EDT). `madeAfterTip` is added. The h2 shows `longDate(slate_date)`. The Parlay page reads `?date=` and flags a night that is not today in ET. | HOLDS |
+| 7 gate object | `Gate` refuses `open` when it disagrees with `settled >= settled_min and slate_dates >= dates_min and skill > 0` (`:126-144`). The counters render as CS 1.2 B, and HYPOTHESIS, UNPROVEN shows while the gate is closed (`:196`). **The thresholds `settled_min` and `dates_min` are free integers from the file**, so the gate only agrees with itself, not with the frozen gate of 30 settled and 14 dates (R1). | **FAILS** |
+| 8 T490 caveat | Re-derived from `reports/alt_parlay_x/results.json` (B 5,000, date seed 2026; 95% per prereg line 33). 2-leg T1 point -0.09847, [-0.12870, -0.06769], so 9.8 points (6.8 to 12.9); n 3,337 = 2,407 (2023) + 930 (2024). 3-leg -0.08713, [-0.11948, -0.05506], so 8.7 (5.5 to 11.9); n 3,360 = 2,481 + 879. Both OVERCONFIDENT, BH q 0.001, same sign in both seasons. **The numbers are correct.** Wording nit (R5): the population was BetRivers alternate-line *overs* priced with the *raw* model. | HOLDS (nit) |
+| 9 shape invariants | Size and leg count, at most 3 tickets, ranks 1..k, range, ev order, joint vs leg product (cross-game), price dead zone: all get 422 with tests. **But a missing size key is accepted** (R2). | PARTIAL |
+| 10 illustration required | No default; the test asserts the flag on the API response. | HOLDS |
+| 11 date pattern | `fullmatch([0-9]...)` + `fromisoformat`; tested with trailing newline and Unicode digits. | HOLDS |
+| 12 directory | Empty or missing `APP_TOP_PARLAYS_DIR` gets 503; a symlink out of the directory is treated as missing (tested). Unset still falls back to the fixtures, which is now harmless (fix 1). | HOLDS |
+| 13 saved copy | Notice when `fromCache` (`TopParlaysPanel.tsx:251-258`). | HOLDS |
+| 14 evText | Rounds before choosing the sign; `-0.004` gives "+$0.00" (tested). | HOLDS |
+| 15 key | Index plus rank. | HOLDS |
+| 16 "worth it" | The gate clause is added (`:226-227`). | HOLDS |
+| 17 banned phrases | `why`, `reason`, `caveats` and `calibration.status` are screened (`top_parlays.py:31-33`). Refused: "Lock it in.", "a lock.", "Hammer". **Accepted:** "LOCKED IN", "can’t lose" (curly apostrophe), "Guarantee", "easy money", "fade the public", "sure thing". `ranking` and `empty_reason` are rendered but not screened ("LOCK of the night, guaranteed" in `ranking` served; "free money tonight" in `empty_reason` served). The minimum my fix asked for is met except the curly-apostrophe "can't lose". | PARTIAL (R4) |
+
+### New findings (numbered, file:line on 3c86c08)
+
+R1. **Blocker.** `app/api/src/parlayhitters_api/top_parlays.py:128,130`: `settled_min: int = Field(gt=0)` and
+`dates_min: int = Field(gt=0)` let the file set its own bar. Attack: `gate = {settled 1, settled_min 1, slate_dates 1,
+dates_min 1, skill_vs_market 0.0001, open true}`, `illustration false`, `verdict positive_ev_found`, one `ev_low80 0.01`. The
+API serves it (200), and `TopParlaysPanel.tsx:117-125` drops "Keep your money" for "The gate is open … the model has a live
+record that passed its gate". Fix: `settled_min: Literal[30]` and `dates_min: Literal[14]` (the frozen gate in contract v1
+"Rules" and FORWARD_PREREG), or app-side constants `SETTLED_MIN = 30`, `DATES_MIN = 14` with the check computed from those and
+the file's values ignored. Add a negative test `gate_thresholds_lowered` to `NEGATIVE`. State in `top_parlays_v2.md` that the
+thresholds are fixed values, not parameters. The counters themselves (`settled`, `slate_dates`, `skill_vs_market`) remain
+producer-asserted; the app cannot check them against `paper_trades`. Record that as a residual.
+
+R2. **Major.** `top_parlays.py:157`: `sizes: dict[Literal["2","3"], list[Ticket]]` accepts `{"2": [...]}` and `{}`. The UI
+then reads `d.sizes["3"].length` (`topParlays.ts:89`) and spreads `d.sizes["3"]` (`topParlays.ts:84`); both throw on
+`undefined`. `Body` calls `madeAfterTip` first (`TopParlaysPanel.tsx:159`), and there is no error boundary, so the Today page
+goes blank. Found by reading the code; the API accepting the file was confirmed by attack. Fix: a validator requiring
+`set(self.sizes) == {"2", "3"}` (or a `Sizes` model with both keys required by alias), plus a negative test `missing_size_key`.
+
+R3. **Minor.** `top_parlays.py:81`: add `price_at <= made_at` for every leg (a file cannot hold a price stamped after it was
+made). Fix the fixture so the price is stamped before the file is made: `app/fixtures/build_top_parlays_fixture.py:51`
+(`price_at` 23:05Z) against `:85` (`made_at` 22:10Z); for example `price_at = f"{date}T21:40:00Z"`.
+
+R4. **Minor.** `top_parlays.py:31-33`: extend the pattern to
+`\b(locks?|locked|guarantee[ds]?|free[\s-]money|can[’']?t lose|cannot lose|hammer|best bets?|easy money|sure thing|fade the public)\b`.
+Normalise `’` to `'` before matching. Screen `ranking` and `empty_reason` as well (`:154,156`). Add the curly-apostrophe and
+"LOCKED" cases to `NEGATIVE`.
+
+R5. **Nit.** The T490 caveat in `build_top_parlays_fixture.py:15-19` and `docs/contracts/top_parlays_v2.md` (example
+`caveats`): say what population it covers. Suggested text: "Two-leg parlays of alternate-line overs the raw model put at 70%
+or more (BetRivers) hit 9.8 points less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, date-clustered,
+2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). These were raw chances; the chances shown here are
+from calibrated legs." Stale text also remains: `build_top_parlays_fixture.py:1` says "top_parlays/1 contract" and
+`topParlays.ts:1` cites `top_parlays_v1.md`. Point both at v2, and add a "superseded by v2" line at the top of
+`top_parlays_v1.md`.
+
+### To reach APPROVED
+R1 and R2 with their negative tests. R3-R5 can follow in the same branch or later. Nothing else blocks.
+
+### Not verified (re-check)
+- The panel was not rendered in a browser. The R2 crash is derived from the code, not observed.
+- The producer still does not exist, so the gate counters' truth against `paper_trades` is unverifiable from app/.
+
+### Drafted rows (not appended)
+- DECISIONS draft: "2026-10-15. Top-parlays fixes 3c86c08 re-check BLOCKED on R1 (gate thresholds file-supplied) and R2
+  (missing size key crashes the panel); fixes 1-3, 5, 6, 8, 10-16 hold, and the T490 numbers were re-derived exactly. Reverse:
+  R1 and R2 merged with negative tests."
+- BEST_PRACTICES draft: "A gate's thresholds live in the frozen rule and in the reader's code, never in the file being judged
+  (top-parlays R1, 2026-10-15)."
