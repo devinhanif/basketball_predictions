@@ -21,7 +21,7 @@ SKIP_PREFIXES = ("001", "003")
 #: SQL for the season of a forward row: the games table when it knows the game, else the id.
 #: ``alias_g`` is the alias of the (LEFT JOINed) games table, ``col`` the game-id column.
 SEASON_SQL = (
-    "COALESCE({g}.season, CASE WHEN {c} SIMILAR TO '00[0-9]{{7}}' "
+    "COALESCE({g}.season, CASE WHEN {c} SIMILAR TO '00[0-9]{{8}}' "
     "THEN 2000 + CAST(substr({c}, 4, 2) AS INTEGER) END)"
 )
 

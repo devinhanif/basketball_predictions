@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 
 import duckdb
 
-from nba.export import guard
+from nba.export import best_model, guard
 
 ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
@@ -116,6 +116,10 @@ class ForwardBundle:
     games: list[dict[str, Any]]
     excluded_post_tip: int
     excluded_unresolved_season: int
+    p_play: list[dict[str, Any]] = field(default_factory=list)
+    excluded_avg_post_tip: int = 0
+    excluded_avg_unreadable: int = 0
+    excluded_avg_no_game: int = 0
 
 
 def _flatten_stamp(stamp: dict[str, Any] | None) -> dict[str, Any]:
@@ -213,6 +217,28 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
                 "q_grid": pred.get("q_grid"), "p_ge": pred.get("p_ge"),
                 "p_ge_full_counts": full.get("c"), "p_ge_full_n": full.get("n"),
             })  # fmt: skip
+    # best-evidenced model (DECISIONS 2026-10-14 21:30): AVG shadow and P(play) arm R rows,
+    # read-only, then one primary per (game, player, stat); see nba.export.best_model
+    blo, bhi = window.tip_bounds_utc()
+    avg, avg_games, avg_post_tip, avg_bad = best_model.avg_rows(
+        con, blo, bhi, window.seasons, window.first, window.day, et_date
+    )
+    _assert_allowed({int(g["season"]) for g in avg_games}, window.seasons)
+    dropped_games: set[str] = set()
+    for ag in avg_games:
+        known = games.get(ag["game_id"])
+        if known is not None and known["home_team"] is not None and known["away_team"] is not None:
+            continue
+        if ag["home_team"] is None or ag["away_team"] is None:  # the app cannot load a game
+            dropped_games.add(ag["game_id"])  # without its teams
+        else:
+            games[ag["game_id"]] = ag
+    n_no_game = sum(1 for a in avg if a["game_id"] in dropped_games)
+    avg = [a for a in avg if a["game_id"] not in dropped_games]
+    props.extend(avg)
+    pplay = best_model.pplay_rows(con, blo, bhi, window.seasons, window.first, window.day, et_date)
+    best_model.reconcile_pplay(pplay, props)
+    best_model.mark_primary(props, pplay, best_model.ok_avg_runs(con))
     used = {(w["run_id"], w["model_name"]) for w in win} | {
         (p["run_id"], p["model_name"]) for p in props
     }
@@ -223,6 +249,10 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
         games=sorted(games.values(), key=lambda g: (g["game_date"], g["game_id"])),
         excluded_post_tip=post_tip,
         excluded_unresolved_season=excluded_unresolved,
+        p_play=pplay,
+        excluded_avg_post_tip=avg_post_tip,
+        excluded_avg_unreadable=avg_bad,
+        excluded_avg_no_game=n_no_game,
     )
 
 

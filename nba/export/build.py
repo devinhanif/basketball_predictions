@@ -21,7 +21,8 @@ import duckdb
 from nba.export import guard, reader
 from nba.export.parlay import parlay_of_day
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 2  # additive changes keep 2: the app refuses unknown versions
+BEST_MODEL_SCHEMA = 1  # meta best_model_schema: prop_grids primary/bundle columns + p_play table
 DB_NAME = "export.duckdb"
 PARLAY_NAME = "parlay_of_day.json"
 MANIFEST_NAME = "manifest.json"
@@ -100,6 +101,37 @@ TABLES: dict[str, list[tuple[str, str]]] = {
         ("stamp_git_dirty", "BOOLEAN"),
         ("stamp_stamped_at", "TIMESTAMP"),
         ("prediction_json", "VARCHAR"),
+        # best_model_schema 1 (DECISIONS 2026-10-14 21:30): which row the app shows
+        ("source_table", "VARCHAR"),
+        ("is_primary", "BOOLEAN"),
+        ("primary_source", "VARCHAR"),
+        ("primary_detail", "VARCHAR"),
+        ("bundle_id", "VARCHAR"),
+        ("bundle_made_at", "TIMESTAMP"),
+        ("bundle_month", "VARCHAR"),
+        ("freshness", "VARCHAR"),
+        ("freshness_reason", "VARCHAR"),
+        ("p_play_primary", "DOUBLE"),
+        ("p_play_source", "VARCHAR"),
+        ("lines_run_id", "VARCHAR"),  # run_id whose prop_lines belong to this row
+    ],
+    "p_play": [
+        ("game_id", "VARCHAR"),
+        ("player_id", "INTEGER"),
+        ("team_id", "INTEGER"),
+        ("run_id", "VARCHAR"),
+        ("made_at", "TIMESTAMP"),
+        ("tipoff", "TIMESTAMP"),
+        ("lead_minutes", "DOUBLE"),
+        ("p_play_primary", "DOUBLE"),
+        ("p_play_source", "VARCHAR"),
+        ("p_play_detail", "VARCHAR"),
+        ("p_play_r", "DOUBLE"),
+        ("p_play_prod", "DOUBLE"),
+        ("model_version", "VARCHAR"),
+        ("proj_minutes", "DOUBLE"),
+        ("r_train_through", "DATE"),
+        ("r_n_train", "INTEGER"),
     ],
     "model_stamps": [
         ("run_id", "VARCHAR"),
@@ -287,6 +319,15 @@ def _read_lines(
             con.close()
 
 
+def _primary_counts(props: list[dict[str, Any]]) -> dict[str, int]:
+    """How many primary prop rows came from each source (avg / fallback_* / postseason)."""
+    out: dict[str, int] = {}
+    for p in props:
+        if p.get("is_primary"):
+            out[str(p["primary_source"])] = out.get(str(p["primary_source"]), 0) + 1
+    return dict(sorted(out.items()))
+
+
 def build_export(
     src_db: Path,
     out_dir: Path,
@@ -341,7 +382,8 @@ def build_export(
     dv = version()
     tables: dict[str, list[dict[str, Any]]] = {
         "games": fwd.games, "win_probs": fwd.win_probs, "prop_grids": fwd.prop_grids,
-        "model_stamps": fwd.stamps, "settled_scores": scores, "box_scores": box,
+        "model_stamps": fwd.stamps, "p_play": fwd.p_play, "settled_scores": scores,
+        "box_scores": box,
         "injury_report": report, "players": players, "teams": teams,
         "prop_lines": lines.rows,
     }  # fmt: skip
@@ -349,7 +391,7 @@ def build_export(
         "schema_version": str(SCHEMA_VERSION), "export_date": day.isoformat(),
         "made_at": made_at.isoformat() + "Z", "seasons": ",".join(map(str, allowed)),
         "lookback_days": str(lookback_days), "data_version": dv or "",
-        "lines_status": lines.status,
+        "lines_status": lines.status, "best_model_schema": str(BEST_MODEL_SCHEMA),
         "git_sha": gi["git_sha"] or "", "timestamps": "naive UTC unless a column says _et",
     }  # fmt: skip
 
@@ -391,10 +433,14 @@ def build_export(
         "seasons": list(allowed), "lookback_days": lookback_days,
         "row_counts": counts,
         "excluded": {"post_tip": fwd.excluded_post_tip,
+                     "avg_post_tip": fwd.excluded_avg_post_tip,
+                     "avg_unreadable": fwd.excluded_avg_unreadable,
+                     "avg_no_game_teams": fwd.excluded_avg_no_game,
                      "unresolved_or_disallowed_season": fwd.excluded_unresolved_season,
                      "lines_post_tip": lines.excluded_post_tip},
         "lines": {"status": lines.status, "n_quotes": len(lines.rows),
                   "n_unusable": sum(1 for q in lines.rows if q["unusable"])},
+        "primary_sources": _primary_counts(fwd.prop_grids),
         "parlay": {"status": parlay["status"], "verdict": parlay["verdict"],
                    "n_evaluated": parlay["n_evaluated"]},
         "files": {
