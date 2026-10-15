@@ -11,22 +11,22 @@
  "files": {
   "export.duckdb": {
    "bytes": 4730880,
-   "sha256": "373b749fa936cc5f595c9f0feee6b85bc1d1ec5454411fef3282d6b6a9d01d27"
+   "sha256": "193ece69d2b75a2605bd0ccf56bceb88bcee4962b161d27955ae06ff38d9bd5d"
   },
   "parlay_of_day.json": {
    "bytes": 178,
    "sha256": "1342b6bebd035582427bcd09c3c6d4aa87ed9cd163fa4cd0e322c1a0df88da91"
   }
  },
- "git_dirty": true,
- "git_sha": "f706f556716f568fabb39f25d65d6f8ac0fc29a8",
+ "git_dirty": false,
+ "git_sha": "a0cd3030366d676c44dd3ce8fd20a54df89200c3",
  "lines": {
   "n_quotes": 6350,
   "n_unusable": 635,
   "status": "ok"
  },
  "lookback_days": 7,
- "made_at": "2026-10-15T02:15:29.569184Z",
+ "made_at": "2026-10-15T02:19:35.511142Z",
  "parlay": {
   "n_evaluated": 0,
   "status": "evaluated",

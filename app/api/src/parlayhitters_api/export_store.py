@@ -436,13 +436,15 @@ class ExportStore:
     def _quotes_by_prop(
         lines: list[Json], props: dict[tuple[str, int, str], Json]
     ) -> dict[tuple[str, int, str], list[Json]]:
-        """Each exported forecast's quotes: the rows stamped with that forecast's own run."""
+        """Each exported forecast's quotes: the rows stamped with the run named by the row's
+        ``lines_run_id`` (an AVG row names its production counterpart's run), else its own run_id
+        (an export that predates the column)."""
         by_run: dict[tuple[str, str, int, str], list[Json]] = defaultdict(list)
         for r in lines:
             by_run[(r["run_id"], r["game_id"], int(r["player_id"]), r["stat"])].append(r)
         out: dict[tuple[str, int, str], list[Json]] = {}
         for key, pr in props.items():
-            rows = by_run.get((pr["run_id"], *key))
+            rows = by_run.get((pr.get("lines_run_id") or pr["run_id"], *key))
             if rows:
                 out[key] = [_quote(r) for r in rows]
         return out

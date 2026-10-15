@@ -125,3 +125,14 @@ def test_out_on_report_is_said_plainly(store: ExportStore) -> None:
     assert p_play_label({"value": 0.0, "source": "out_on_report"}) == (
         "Chance to play: out on the official injury report."
     )
+
+
+def test_avg_primary_rows_carry_their_production_rows_quotes(store: ExportStore) -> None:
+    # the AVG run_id differs from the production run that the quotes were captured for
+    n = 0
+    for p in store.games[FRESH]["players"]:
+        for pr in p["props"].values():
+            if pr["forecast"]["model"]["source"] == "avg":
+                assert pr["line_source"] == "posted" and pr["over_price"] is not None
+                n += 1
+    assert n > 0

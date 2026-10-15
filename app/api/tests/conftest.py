@@ -53,7 +53,7 @@ def export_dir(tmp_path: Path) -> Path:
 NEW_PROP_COLS = (
     "source_table", "is_primary", "primary_source", "primary_detail", "bundle_id",
     "bundle_made_at", "bundle_month", "freshness", "freshness_reason", "p_play_primary",
-    "p_play_source",
+    "p_play_source", "lines_run_id",
 )  # fmt: skip
 
 

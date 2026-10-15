@@ -35,7 +35,7 @@ NEW_COLS = [
     ("source_table", "VARCHAR"), ("is_primary", "BOOLEAN"), ("primary_source", "VARCHAR"),
     ("primary_detail", "VARCHAR"), ("bundle_id", "VARCHAR"), ("bundle_made_at", "TIMESTAMP"),
     ("bundle_month", "VARCHAR"), ("freshness", "VARCHAR"), ("freshness_reason", "VARCHAR"),
-    ("p_play_primary", "DOUBLE"), ("p_play_source", "VARCHAR"),
+    ("p_play_primary", "DOUBLE"), ("p_play_source", "VARCHAR"), ("lines_run_id", "VARCHAR"),
 ]  # fmt: skip
 P_PLAY_DDL = """
 CREATE TABLE p_play (game_id VARCHAR, player_id INTEGER, team_id INTEGER, run_id VARCHAR,
@@ -86,7 +86,7 @@ def main() -> None:
         con.execute(f"ALTER TABLE prop_grids ADD COLUMN {name} {typ}")
     con.execute(
         "UPDATE prop_grids SET source_table='forward_predictions', is_primary=false, "
-        "bundle_id=stamp_weights_sha256, bundle_made_at=stamp_stamped_at, freshness='n/a'"
+        "lines_run_id=run_id, bundle_id=stamp_weights_sha256, bundle_made_at=stamp_stamped_at, freshness='n/a'"
     )
     rng = random.Random(20241112)
     cur = con.execute("SELECT * FROM prop_grids")

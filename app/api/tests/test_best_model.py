@@ -69,13 +69,13 @@ def test_missing_and_stale_avg_fall_back_to_production_and_say_why(
 ) -> None:
     gap = next(r for r in _props(export_client, FRESH) if (r[0], r[1]) == (GAP_PLAYER, "fg3m"))
     assert gap[2]["model_label"] == (
-        "Model: production v1 (AVG unavailable: no AVG forecast was stored before tip)."
+        "Model: production model (AVG unavailable: no AVG forecast was stored before tip)."
     )
     by_source: dict[str, int] = {}
     for _pid, _st, pr in _props(export_client, MIXED):
         by_source[pr["model_source"]] = by_source.get(pr["model_source"], 0) + 1
         if pr["model_source"] == "fallback_stale":
-            assert pr["model_label"].startswith("Model: production v1 (AVG unavailable: stale ")
+            assert pr["model_label"].startswith("Model: production model (AVG unavailable: stale ")
             assert "props_context_residual v1" in pr["forecast_stamp"]
     assert set(by_source) == {"fallback_stale", "fallback_missing"}
     assert all(n > 0 for n in by_source.values())
@@ -166,7 +166,7 @@ def test_a_postseason_row_shows_production_with_the_postseason_reason(
     assert pr["forecast"]["model"]["source"] == "postseason"
     src, label = model_label(pr["forecast"]["model"])
     assert src == "postseason"
-    assert label == "Model: production v1 (postseason: AVG was no better in the playoffs)."
+    assert label == "Model: production model (postseason: AVG was no better in the playoffs)."
 
 
 # ------------------------------------------------------------------ chance to play
@@ -236,3 +236,35 @@ def test_labels_name_only_what_is_stored() -> None:
     assert p_play_label({"value": 0.9, "source": "r"}) == (
         "Chance to play: from the availability model R."
     )
+
+
+# ------------------------------------------------------------------ quotes follow lines_run_id
+
+
+def test_an_avg_row_with_its_own_run_id_gets_its_production_rows_lines(export_dir: Path) -> None:
+    # the AVG run has no prop_lines of its own; lines_run_id names the production run's quotes
+    edit_db(
+        export_dir, "UPDATE prop_grids SET run_id = 'r_avg_x' WHERE model_name = 'props_avg_live2'"
+    )
+    s = ExportStore(export_dir)
+    for p in s.games[FRESH]["players"]:
+        for pr in p["props"].values():
+            if pr["forecast"]["model"]["source"] == "avg":
+                assert pr["line_source"] == "posted" and pr["over_price"] is not None
+    # an export without the column (and a run id with no quotes) shows a reference line instead
+    edit_db(export_dir, "UPDATE prop_grids SET lines_run_id = NULL")
+    s = ExportStore(export_dir)
+    avg = [
+        pr
+        for p in s.games[FRESH]["players"]
+        for pr in p["props"].values()
+        if pr["forecast"]["model"]["source"] == "avg"
+    ]
+    assert avg and all(pr["line_source"] == "reference" and pr["over_price"] is None for pr in avg)
+
+
+def test_labels_do_not_print_a_version_string(export_client: TestClient) -> None:
+    for _pid, _st, pr in _props(export_client, MIXED):
+        assert "v1" not in pr["model_label"]
+        if pr["model_source"] != "avg":
+            assert pr["model_detail"] == "props_context_residual v1"

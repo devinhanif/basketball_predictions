@@ -95,6 +95,8 @@ export interface PropView {
   /** Which model the forecast came from, in plain words (the API writes the sentence). */
   model_source: string;
   model_label: string;
+  /** Stored model name and version, verbatim (tooltip). */
+  model_detail: string | null;
   /** Chance to play (0 to 1) and the sentence naming its source; null when none is stored. */
   p_play: number | null;
   p_play_label: string | null;

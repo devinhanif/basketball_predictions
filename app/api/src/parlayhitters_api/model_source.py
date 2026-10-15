@@ -52,7 +52,7 @@ def model_label(info: Json | None) -> tuple[str, str]:
             "in this data).",
         )
     src = str(info.get("source"))
-    prod = f"production {info.get('version') or ''}".strip()
+    prod = "production model"
     if src == "avg":
         month = month_name(info.get("bundle_month"))
         bundle = f"{month} bundle" if month else "bundle month not stored"
@@ -69,6 +69,13 @@ def model_label(info: Json | None) -> tuple[str, str]:
     if src == "legacy":
         return src, f"Model: {prod} (an older export that does not record a model choice)."
     return src, f"Model: {prod} (source {src})."
+
+
+def model_detail(info: Json | None) -> str | None:
+    """The stored model name and version, verbatim (for a tooltip, not for the sentence)."""
+    if not info or not info.get("name"):
+        return None
+    return f"{info['name']} {info.get('version') or ''}".strip()
 
 
 def p_play_label(info: Json | None) -> str | None:

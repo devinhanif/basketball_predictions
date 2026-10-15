@@ -55,7 +55,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           Nine in ten: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
         </span>
       </div>
-      <p class="small muted" data-model-source={prop.model_source}>
+      <p class="small muted" data-model-source={prop.model_source} title={prop.model_detail ?? undefined}>
         {prop.model_label}
         {prop.p_play !== null && prop.p_play_label ? ` ${pct(prop.p_play)} chance to play. ${prop.p_play_label}` : ""}
       </p>

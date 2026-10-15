@@ -22,7 +22,7 @@ from .forecast import (
     forecast_method,
     forecast_probs,
 )
-from .model_source import model_label, p_play_label
+from .model_source import model_detail, model_label, p_play_label
 from .models import (
     GameSummary,
     GameView,
@@ -127,6 +127,7 @@ def _prop_view(stat: str, p: Json) -> PropView:
         forecast_stamp=p["forecast"]["stamp"],
         model_source=source,
         model_label=label,
+        model_detail=model_detail(p["forecast"].get("model")),
         p_play=p["forecast"].get("p_play"),
         p_play_label=p_play_label(p["forecast"].get("p_play_info")),
     )
