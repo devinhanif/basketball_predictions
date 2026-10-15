@@ -94,7 +94,7 @@ def db(tmp_path: Path) -> Path:
     rows = []
     for gid in (G_REG, G_POST):
         for pid in (1000, 1001, 1002):
-            rows.append(("r_prod", MADE, gid, TIP, PROD, "v2", "pts", pid, _prod_pred()))
+            rows.append(("r_prod", MADE, gid, TIP, PROD, "ctxres-v1", "pts", pid, _prod_pred()))
     # the recency comparison row must never be primary
     rows.append(("r_prod", MADE, G_REG, TIP, "props_recency_v1", "recency-v1", "pts", 1000,
                  _prod_pred(9.0)))  # fmt: skip
@@ -168,7 +168,11 @@ def test_avg_row_has_the_production_shape(db: Path) -> None:
 def test_missing_avg_falls_back_to_v2(db: Path) -> None:
     fwd = _fwd(db)  # no AVG rows at all (table empty)
     p = _primary(fwd, G_REG, 1000)
-    assert (p["model_name"], p["version"], p["primary_source"]) == (PROD, "v2", "fallback_missing")
+    assert (p["model_name"], p["version"], p["primary_source"]) == (
+        PROD,
+        "ctxres-v1",
+        "fallback_missing",
+    )
     assert p["freshness"] == "n/a"
 
 
@@ -399,3 +403,44 @@ def test_month_boundary_without_a_games_row(db: Path) -> None:
     assert go("2026-11")["freshness"] == "fresh"
     row = go("2026-12")
     assert (row["freshness"], row["freshness_reason"]) == ("stale", "month_block_mismatch")
+
+
+def test_avg_primary_row_gets_the_production_rows_lines(db: Path, tmp_path: Path) -> None:
+    """An AVG row from an older run (write-on-change) names the production run's quotes."""
+    odds = tmp_path / "odds.duckdb"
+    oc = duckdb.connect(str(odds))
+    oc.execute(
+        "CREATE TABLE live_book_odds (game_id VARCHAR, player_id INT, market VARCHAR, "
+        "book VARCHAR, side VARCHAR, point DOUBLE, price_american INT, implied_prob_raw DOUBLE, "
+        "received_at TIMESTAMP, snapshot_kind VARCHAR, last_update TIMESTAMP, "
+        "tipoff TIMESTAMP, commence_time TIMESTAMP)"
+    )
+    oc.execute(
+        "INSERT INTO live_book_odds VALUES (?, 1000, 'player_points', 'bk', 'over', 20.5, -110, "
+        "0.52, ?, 'snap', ?, ?, ?)",
+        [G_REG, MADE - timedelta(minutes=5), MADE, TIP, TIP],
+    )
+    oc.close()
+    _w(db, lambda c: _insert_avg(c, _avg_row(made=MADE - timedelta(minutes=60), run="r_old")))
+    _w(db, lambda c: c.execute(
+        "INSERT INTO forward_avg_heartbeat (slate_date, run_id, status) VALUES (?, 'r_prod', 'ok')",
+        [DAY]))  # fmt: skip
+    out = tmp_path / "out"
+    build_export(
+        db, out, DAY, git=lambda: {"git_sha": "x", "git_dirty": False}, version=lambda: "dv",
+        now=lambda: datetime(2026, 11, 10, 20, 0), parlay_dir=tmp_path / "np", odds_db=odds,
+    )  # fmt: skip
+    con = duckdb.connect(str(out / DB_NAME), read_only=True)
+    row = con.execute(
+        "SELECT model_name, run_id, lines_run_id FROM prop_grids "
+        "WHERE is_primary AND game_id = ? AND player_id = 1000", [G_REG]).fetchone()  # fmt: skip
+    assert row == (AVG_MODEL_NAME, "r_old", "r_prod")
+    n = con.execute(
+        "SELECT count(*) FROM prop_lines WHERE run_id = ? AND game_id = ? AND player_id = 1000",
+        ["r_prod", G_REG],
+    ).fetchone()
+    assert n is not None and n[0] == 1  # the quote exists under the key the row names
+    # production rows are unchanged: lines key is their own run
+    assert con.execute(
+        "SELECT DISTINCT lines_run_id = run_id FROM prop_grids WHERE model_name = ?", [PROD]
+    ).fetchall() == [(True,)]

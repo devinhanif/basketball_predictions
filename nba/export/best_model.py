@@ -300,6 +300,7 @@ def mark_primary(
         p.setdefault("bundle_month", None)
         p.setdefault("freshness", "n/a")
         p.setdefault("freshness_reason", None)
+        p["lines_run_id"] = p["run_id"]
         p["is_primary"], p["primary_source"], p["primary_detail"] = False, None, None
         groups[(p["game_id"], p["player_id"], p["stat"])].append(p)
     for (gid, pid, _stat), rows in groups.items():
@@ -330,6 +331,8 @@ def mark_primary(
             chosen["is_primary"], chosen["primary_source"] = True, source
             if chosen["model_name"] == AVG_MODEL_NAME:
                 chosen["comparison_only"] = False
+                if prod is not None:  # quotes are the production counterpart's (same slate run)
+                    chosen["lines_run_id"] = prod["run_id"]
             chosen["primary_detail"] = detail
         if prod is not None and prod.get("proj_minutes") is not None:
             prod_minutes[(gid, pid)] = prod["proj_minutes"]

@@ -113,6 +113,7 @@ TABLES: dict[str, list[tuple[str, str]]] = {
         ("freshness_reason", "VARCHAR"),
         ("p_play_primary", "DOUBLE"),
         ("p_play_source", "VARCHAR"),
+        ("lines_run_id", "VARCHAR"),  # run_id whose prop_lines belong to this row
     ],
     "p_play": [
         ("game_id", "VARCHAR"),
