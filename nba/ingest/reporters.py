@@ -42,6 +42,7 @@ import os
 import re
 import sys
 import time
+from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
@@ -820,6 +821,107 @@ class XClient:
 
 
 # ----------------------------------------------------------------------------------------------
+# Schedule override (preseason) and the live-test report
+# ----------------------------------------------------------------------------------------------
+
+
+def load_schedule_parquet(path: Path | str, teams: Iterable[str] | None = None) -> list[Any]:
+    """Games from a raw schedule parquet (``gameDateTimeUTC``, ``*_teamTricode``), as
+    ``ScheduledGame`` rows with naive-UTC tips. ``teams`` (tricodes) keeps only games that involve
+    one of them. Raises ``ValueError`` on an unknown team, a missing column or an empty result."""
+    from nba.daily.schedule import ScheduledGame
+
+    keep = {t.upper() for t in teams} if teams else None
+    if keep is not None:
+        bad = sorted(keep - set(TEAM_ABBREV_TO_ID))
+        if bad:
+            raise ValueError(f"unknown team(s) {bad}")
+    cols = ["gameId", "gameDateTimeUTC", "homeTeam_teamTricode", "awayTeam_teamTricode"]
+    try:
+        df = pl.read_parquet(path).select(cols)
+    except pl.exceptions.ColumnNotFoundError as exc:
+        raise ValueError(f"schedule {path}: missing column ({exc})") from exc
+    out: list[Any] = []
+    for gid, tip, home, away in df.iter_rows():
+        if tip is None or home not in TEAM_ABBREV_TO_ID or away not in TEAM_ABBREV_TO_ID:
+            continue
+        if keep is not None and not ({home, away} & keep):
+            continue
+        out.append(
+            ScheduledGame(
+                str(gid),
+                _naive_utc(datetime.fromisoformat(str(tip).replace("Z", "+00:00"))),
+                TEAM_ABBREV_TO_ID[home],
+                TEAM_ABBREV_TO_ID[away],
+            )
+        )
+    if not out:
+        raise ValueError(f"schedule {path}: no games" + (f" for {sorted(keep)}" if keep else ""))
+    return out
+
+
+BUCKETS = (("T-120..-60", 60, 120), ("T-60..-30", 30, 60), ("T-30..0", 0, 30))
+
+
+def _bucket(minutes_before: float) -> str:
+    for name, lo, hi in BUCKETS:
+        if lo <= minutes_before < hi or (hi == 120 and minutes_before == 120):
+            return name
+    return "outside"
+
+
+def report_test(
+    data_dir: Path,
+    games: list[Any],
+    allow: Allowlist,
+    ctx: Any,
+    day: str | None = None,
+) -> str:
+    """Read-only summary of the raw posts of one UTC day (default today): per handle and
+    window, posts, parsed claims by type and the minutes-before-tip of each claim."""
+    from nba.ingest import reporter_facts as rf
+
+    day = day or datetime.now(UTC).strftime("%Y-%m-%d")
+    files = sorted((data_dir / "raw" / day).glob("*.parquet"))
+    posts = [q for f in files for q in read_raw(f)]
+    team_tip: dict[int, datetime] = {}
+    for g in games:
+        for tid in (g.home_team, g.away_team):
+            team_tip[tid] = g.tipoff
+    first = min(g.tipoff for g in games)
+    claimed, _ = rf.claims_for_posts(posts, ctx)
+    tip_of = {}
+    for p in posts:
+        rep = allow.require(p.handle)
+        tip_of[p.post_id] = team_tip.get(rep.team_id, first) if rep.team_id else first
+    stats: dict[tuple[str, str], dict[str, Any]] = {}
+
+    def cell(h: str, b: str) -> dict[str, Any]:
+        return stats.setdefault((h, b), {"posts": 0, "claims": Counter(), "mins": []})
+
+    for p in posts:
+        mb = (tip_of[p.post_id] - p.created_at).total_seconds() / 60
+        cell(p.handle, _bucket(mb))["posts"] += 1
+    for cf in claimed:
+        tip = cf.game.tipoff if cf.game is not None else tip_of[cf.post.post_id]
+        mb = (tip - cf.post.created_at).total_seconds() / 60
+        c = cell(cf.post.handle, _bucket(mb))
+        c["claims"][cf.claim.claim_type] += 1
+        c["mins"].append(round(mb))
+    lines = [f"reporter live test: {len(posts)} raw posts from {len(files)} files on {day} (UTC)"]
+    order = {name: i for i, (name, _, _) in enumerate(BUCKETS)}
+    for (h, b), c in sorted(stats.items(), key=lambda kv: (kv[0][0], order.get(kv[0][1], 9))):
+        claims = ", ".join(f"{k}={v}" for k, v in sorted(c["claims"].items())) or "none"
+        mins = ",".join(str(m) for m in sorted(c["mins"], reverse=True)) or "-"
+        lines.append(
+            f"{h:<18}{b:<11} posts={c['posts']:<3} claims: {claims}; min_before_tip: {mins}"
+        )
+    if not stats:
+        lines.append("no posts")
+    return "\n".join(lines)
+
+
+# ----------------------------------------------------------------------------------------------
 # CLI
 # ----------------------------------------------------------------------------------------------
 
@@ -976,6 +1078,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="also poll handles whose team has no game today (the window still applies)",
     )
+    poll.add_argument("--schedule", default=None, help="schedule parquet overriding the cache")
+    poll.add_argument("--teams", nargs="+", default=None, help="tricodes; restrict the slate")
+    rt = sub.add_parser("report-test", help="read-only: today's raw posts by handle and window")
+    _common(rt)
+    rt.add_argument("--data-dir", default=str(DATA_DIR))
+    rt.add_argument("--schedule", required=True)
+    rt.add_argument("--teams", nargs="+", default=None)
+    rt.add_argument("--date", default=None, help="UTC day of the raw dir (default today)")
     bud = sub.add_parser("budget", help="today's and this month's posts, attempts, est. USD")
     bud.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
     bud.add_argument("--data-dir", default=str(DATA_DIR))
@@ -1023,6 +1133,18 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         allow = load_allowlist(args.allowlist)
+        if args.cmd == "report-test":
+            games = load_schedule_parquet(args.schedule, args.teams)
+            ctx0 = rf.Context.load(
+                allow,
+                rosters_dir=Path(args.rosters),
+                schedule_cache=Path(args.schedule_cache),
+                aliases_path=Path(args.aliases),
+                at=datetime.now(UTC),
+            )
+            ctx0 = replace(ctx0, schedule=games)
+            print(report_test(Path(args.data_dir), games, allow, ctx0, args.date))
+            return 0
         if args.cmd == "poll":
             if not allow.reporters:
                 print("configs/reporters.yaml lists no handles; nothing to poll.", file=sys.stderr)
@@ -1031,7 +1153,13 @@ def main(argv: list[str] | None = None) -> int:
             now = datetime.now(UTC)
             from nba.daily.schedule import load_schedule_cache
 
-            games = load_schedule_cache(rf.season_for(now), Path(args.schedule_cache)) or []
+            if args.schedule:
+                games = load_schedule_parquet(args.schedule, args.teams)
+            else:
+                games = load_schedule_cache(rf.season_for(now), Path(args.schedule_cache)) or []
+                if args.teams:
+                    keep = {TEAM_ABBREV_TO_ID[t.upper()] for t in args.teams}
+                    games = [g for g in games if {g.home_team, g.away_team} & keep]
             todo, skipped = plan_poll(allow, games, now, args.handle, all_teams=args.all_teams)
             for h, why in skipped.items():
                 print(f"skipped {h}: {why}", file=sys.stderr)
@@ -1052,6 +1180,8 @@ def main(argv: list[str] | None = None) -> int:
             aliases_path=Path(args.aliases),
             at=datetime.now(UTC),
         )
+        if args.cmd == "poll" and args.schedule:
+            ctx = replace(ctx, schedule=games)
         claimed, counts = rf.claims_for_posts(posts, ctx)
         written = None
         if args.facts_db:
