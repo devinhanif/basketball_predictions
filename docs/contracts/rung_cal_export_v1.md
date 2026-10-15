@@ -8,3 +8,9 @@ Per prop row in the app export (pts, reb, ast, fg3m), two OPTIONAL fields:
    main line. Monotone non-increasing in line (enforced; a violation drops the whole field and is counted).
 Raw model P(over) at any line stays derivable from the existing distribution grid. No EV, no price per rung (rung prices are not held live).
 The app labels `rung_cal` values "calibrated using the book's main line (T494)"; lines outside `lines` or props without `rung_cal` are "model only".
+
+## Amendment 2026-10-15 (map build finding)
+The map was fit only on rungs with raw model P(over) >= 0.5 (rule ALT_RUNG_CAL's fit set). `lines` therefore contains ONLY lines whose raw
+model P(over) >= 0.5; lines below that are outside the fit support and are omitted (the app shows them as "model only"). The export must
+supply the continuous 199-point grid's median and spread (`grid_med_spr`) for exact parity with the frozen harness; no fallback from the
+integer survival. map_version rung_cal_map_v1, map_sha8 116f4480, DraftKings only.
