@@ -542,3 +542,60 @@ The CRPS half is computed the same way: the mean over stats of `crps_int(qn, y) 
 `a0_rederive.py` (A0-only re-derivation and composition), `drift.py` / `drift2.py` (version localisation, label-free), `plugin.py`
 (the plug-in forecast: A0 labels plus the committed rehearsal), `power_sim.py` / `power_sim2.py` (synthetic truths), `summ.py`,
 `test_median_bias_words_cover.py`. Results: `a0_rederive.json`, `power.json`, `power2.json`, `power.log`, `power2.log`.
+
+## Re-check of revision 2 (diff only), 2026-10-15 09:03 CDT
+
+Reviewed: `origin/agent/modeler-median-bias-2` at 24d5820 (diff against a4a0670), from a detached worktree. Season 2025 was not loaded, no
+real label was read, and no DuckDB file was opened.
+
+Verdict: APPROVED
+
+| check | command / evidence | result | pass |
+|---|---|---|---|
+| rule sha | `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/MEDIAN_BIAS.md \| shasum -a 256` (exit 0) | `1313805518c13682d1e82931f0b7a112a482967213729e044bdb97555f6383eb`, equal to the caller's 13138055…83eb | yes |
+| harness pin | `.venv/bin/python -m research.eval.median_bias_rule pin` (exit 0) | `fd8b91c83ebfd755f6ef797b489dab19d50e401be261f374b8b00c82def7028b`, equal to the provisional fd8b91c8; the printed command carries `--allow-empty` | yes |
+| input pins | `shasum -a 256 data/pinned/median_bias/*.npz uv.lock reports/prereg_median_bias/gate.json` | components unchanged (same four shas as rev 1, now at the read-only `-r--r--r--` copies under the git-ignored `data/`); `GATE_SHA256 62e5cce5…` and `UV_LOCK_SHA256 97e3413e…` equal | yes |
+| lint / types / tests (unpiped) | `ruff check` (4 files) exit 0; `ruff format --check` exit 0; `mypy` (3 files) exit 0; `pytest -q --no-cov tests/eval/test_median_bias_harness.py` **27 passed, exit 0** | the new tests cover: the null centred near 0, the null removing a real cell gain, the mix50/harm truths, CRPS_HARM and FOLLOWUP precedence, the G4 refusal before CAND, the version/lock refusal, and Appendix A | yes |
+| label-free preflight | `… median_bias_eval check --data-root /Users/devin/Downloads/nba-prediction` exit 0 at 09:03:26 | counts equal; versions numpy 2.5.3 / pandas 3.0.6 / pyarrow 25.0.1 recorded; lock sha checked | yes |
+
+**Items 1-7, as applied.**
+1. **G1.** `cal_shuffle_null` (`median_bias_eval.py`) permutes `cal_min10` within each block on the 2024 rows and their pools; row
+   order is kept by `report_subset`. In the committed rehearsals the null now sits at -0.006 to -0.026 pp (sd about 0.10), against
+   about -1.1 pp for the old shuffle, which is kept as a descriptive field outside every word.
+   - It fires where it should: `a0` (observed -2.01) and `mix50` (observed gain +0.32 just clears the gain line of about +0.30, and the
+     CRPS half fails: +0.0001 against a required < about -0.0001).
+   - It passes `oracle` (+2.19 against about +0.27). **Fixed.**
+   - Note: the CRPS half asks only that CAND be no worse than a random-cell map (null dCRPS +0.0003, sd 0.0001-0.0002), not for a
+     real CRPS gain. That is the right size.
+2. **G4.** `main` raises before `evaluate` when `a0_repro` fails, and a unit test plants the failure. **Fixed.**
+3. **Exposure, plug-in and P2 asymmetry.** All in the Status line, §8 and §9. The rev-1 priors are kept and the revision is labelled
+   "revised after seeing a label-derived forecast". **Fixed.**
+4. **Versions and lock.** Pinned and refused in the preflight, and recorded in `results.json`. **Fixed.**
+5. **`--allow-empty`.** In both commands, the docstring and §10. **Fixed.**
+6. **Inputs.** Write-once components with the NaN assert, the words tests merged, and `mix50`/`harm` rehearsals committed. **Fixed.**
+7. **CRPS_HARM and FOLLOWUP_OPEN.** Implemented as specified. §5 states that PARTIAL plus harm closes the idea and that overshoot
+   earns nothing. **Fixed.**
+
+**`harm` defined as my `pooledH` world: acceptable.** It is the world that shows PARTIAL + CRPS_HARM closing the idea, which is the
+practical CRPS-harm path (P2 fails in pts and reb, P5 holds in 7 of 12 cells, FOLLOWUP_OPEN false). The text says so. It also says
+plainly that FIXED_BUT_HARMS_CRPS and GUARD_FAIL are exercised only by unit tests, which matches the simulation (0 of 76 natural
+runs reach FIXED_BUT_HARMS_CRPS). The rehearsal's H numbers are identical to `oracle`'s (2.29 → 0.09) because H draws from the same
+pool with the same seed. That is expected, not a bug.
+
+**New contradictions looked for: none blocking.** Minor, no change needed: when CAND's pooled H gap is exactly 0, `FOLLOWUP_OPEN` is
+false (the sign product is 0). That only arises for a PARTIAL driven by P1c, P3 or P5 with a closed gap, and the nine-cell map would
+not address that case anyway.
+
+### Freeze and pin steps
+1. Merge `agent/modeler-median-bias-2` (24d5820) into `main`, and push.
+2. From the main checkout, `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/MEDIAN_BIAS.md | shasum -a 256` must print
+   `1313805518c13682d1e82931f0b7a112a482967213729e044bdb97555f6383eb`. Devin confirms.
+3. `git commit --allow-empty -m "prereg(MEDIAN_BIAS): 1313805518c13682d1e82931f0b7a112a482967213729e044bdb97555f6383eb"`, then push.
+4. `.venv/bin/python -m research.eval.median_bias_rule pin` must print
+   `pin fd8b91c83ebfd755f6ef797b489dab19d50e401be261f374b8b00c82def7028b`. Then
+   `git commit --allow-empty -m "harness(MEDIAN_BIAS): fd8b91c83ebfd755f6ef797b489dab19d50e401be261f374b8b00c82def7028b"`, with no
+   harness edit after step 3, then push.
+5. Confirm the rev-2 PREDICTIONS row is on main, then run once:
+   `until mkdir data/ops/heavy.lock 2>/dev/null; do sleep 120; done; trap 'rmdir data/ops/heavy.lock' EXIT; .venv/bin/python -W ignore -m research.eval.median_bias_eval run --data-root /Users/devin/Downloads/nba-prediction --sha 1313805518c13682d1e82931f0b7a112a482967213729e044bdb97555f6383eb`.
+6. Post-result attack: lag-one-game `min10`, a second placebo seed, and drop the best month. Compare the word with the plug-in
+   forecast (PARTIAL via P5 in fg3m lt15).
