@@ -193,3 +193,13 @@ Class checks: the reliability table is at the points that matter (P 0.5 to 1.0 i
 
 === RESULTS BELOW ===
 (none: draft; no map fit, nothing scored)
+
+## Result (run 2026-10-15 01:41 CDT from main ff040aa; frozen 425e4153, harness pin 7eb08466; reports/alt_rung_cal/results.json)
+**Word: RUNG_REFIT_FIXES** (CAL-rung passes P1-P3, P5-P8; CAL-main fails every check; C0 passes its own checks).
+- DraftKings (n 134,462 rungs, 1,818 games, 2023-24 pooled walk-forward): log loss A0 0.5828, C0 0.5789, CAL-rung 0.5722, CAL-main 0.6265.
+  CAL-rung - A0 -0.0106 [-0.0118, -0.0094]; CAL-rung - C0 -0.0066 [-0.0076, -0.0057]; per stat vs A0 pts -0.0120, reb -0.0084, ast -0.0131, fg3m -0.0075;
+  seasons 2023 -0.0116 / 2024 -0.0102; drop best month -0.0105; bench -0.0103 / starter -0.0106.
+- FanDuel (book swap, n 221,776): A0 0.5290, C0 0.5241, CAL-rung 0.5179, CAL-main 0.5929.
+- CAL-main (the main-line map applied unchanged) is much WORSE than raw A0 (+0.044 DK): extrapolating the main-line map to rungs fails, as the prior said.
+- Reading: the gain over the table is 30x the prior (-0.0001). CAL-rung uses the rung's distance from the book's main line, i.e. market information
+  known at T-60; this is calibration with the main line as an input, not model skill. Post-result attack pending; no claim until it is done.
