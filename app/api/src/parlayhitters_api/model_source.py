@@ -61,10 +61,10 @@ def model_label(info: Json | None) -> tuple[str, str]:
         return src, f"Model: {AVG_NAME}, {bundle}."
     if src == "fallback_stale":
         raw = str(info.get("detail") or info.get("freshness_reason") or "reason not stored")
-        bundle = raw.startswith("bundle stale: ")
+        is_bundle = raw.startswith("bundle stale: ")
         raw = raw.removeprefix("bundle stale: ")
         why = STALE_WHY.get(raw, raw)
-        lead = "stale bundle, " if bundle else ""
+        lead = "stale bundle, " if is_bundle else ""
         return src, f"Model: {prod} (AVG unavailable: {lead}{why})."
     if src == "non_regular_season":
         return src, f"Model: {prod} (AVG covers regular-season games only)."
