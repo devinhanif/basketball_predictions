@@ -130,7 +130,7 @@ def test_template_says_so_when_there_is_no_model_or_no_history() -> None:
     no_model = next(x for x in LEGS if x.stat in MODEL_STATS and x.model.available)
     p = build_packet(no_model)
     p["model"] = {**p["model"], "available": False, "p_hit": None}
-    p["flags"] = {**p["flags"], "no_model": True, "disagree": False, "gap_points": None}
+    p["flags"] = {**p["flags"], "no_model": True, "disagree": False, "gap_percentage_points": None}
     text = template.write_leg(p)
     assert "no model forecast" in text and check_text(text, p).ok
     p2 = copy.deepcopy(build_packet(no_model))
@@ -142,11 +142,30 @@ def test_template_says_so_when_there_is_no_model_or_no_history() -> None:
 
 def test_small_sample_and_disagreement_are_flagged_in_the_words() -> None:
     p = build_packet(LEGS[0])
-    p["flags"].update(small_last10=True, disagree=True, gap_points=31, recent_above_model=True)
+    p["flags"].update(small_last10=True, disagree=True, gap_percentage_points=31, recent_above_model=True)
+    p["last10"].update(rate=0.7, n=10, hits=7)
     p["model"].update(available=True, p_hit=0.4)
     text = template.write_leg(p)
-    assert "a small sample" in text and "31 points above" in text
+    assert "a small sample" in text
+    assert "70% of his last 10 games, against 40% from the model" in text
     assert check_text(text, p).ok
+
+
+def test_a_rate_gap_is_never_called_points() -> None:
+    """F02: a hit-rate gap is in percentage points, not basketball points. The text names both
+    rates and prints no derived gap, on every fixture leg and on a forced disagreement."""
+    p = build_packet(LEGS[0])
+    p["flags"].update(disagree=True, gap_percentage_points=34, recent_above_model=True)
+    p["last10"].update(rate=0.7, n=10, hits=7)
+    p["model"].update(available=True, p_hit=0.36)
+    text = template.write_leg(p)
+    assert "34" not in text
+    assert not re.search(r"\bpoints (above|below)\b|\d+ points", text), text
+    assert "70%" in text and "36%" in text
+    assert check_text(text, p).ok
+    for b in LEGS:
+        t = template.write_leg(build_packet(b))
+        assert not re.search(r"\bpoints (above|below)\b", t), t
 
 
 def test_a_reference_line_is_labelled_in_the_text() -> None:

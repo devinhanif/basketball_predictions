@@ -2,7 +2,7 @@
 
 Every number printed here is formatted straight from a packet leaf with the same rounding the
 guard reads back (one decimal for averages and minutes, whole percent for chances), so the output
-passes numguard by construction. Nothing is computed here; gaps and counts come from the packet.
+passes numguard by construction. Nothing is computed here; counts come from the packet.
 The words never recommend a bet: the model's number is reported, and so are the reasons it may
 be wrong (small samples, a forecast that stops short of the line, recent results far from it).
 """
@@ -80,13 +80,15 @@ def _status(p: Packet) -> str | None:
 
 
 def _disagree(p: Packet) -> str | None:
-    f = p["flags"]
-    if not f["disagree"] or f["gap_points"] is None:
+    """Name both rates. The difference between two rates is in percentage points, not basketball
+    points, so it is never printed (F02, app audit 2026-10-15)."""
+    f, m, l10 = p["flags"], p["model"], p["last10"]
+    if not f["disagree"] or m["p_hit"] is None or l10["rate"] is None:
         return None
-    where = "above" if f["recent_above_model"] else "below"
     return (
-        f"Recent results run {f['gap_points']} points {where} the model's number; the two "
-        "measure different things, and neither is a promise."
+        f"He went {p['side']} in {_pct(l10['rate'])} of his last {l10['n']} games, against "
+        f"{_pct(m['p_hit'])} from the model; the two measure different things, and neither is a "
+        "promise."
     )
 
 
