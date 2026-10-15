@@ -33,6 +33,15 @@ Results are summarised here as they land.
   OPEN for Devin: (a) confirm the B2 default was fine (moot here: CAL served); (b) confirmatory stage = 2026-27 live log (Claude) vs 2025 touch.
 - Steward minors DONE on agent/steward-best-model-minors d4d6f29 (report source counts + FALLBACK flags; reader >= at tip; p_play for dropped
   games); 3596 tests pass. ORACLE NOT RUN: needs a HOLDOUT_ACCESS_LOG row first (Devin's decision; template row 81). Then merge by Fri 10-17.
+- T493 attack SURVIVES (7a3c58a): gain is fg3m/reb/ast, pts only -0.0007; a recency-only line map gets half of CAL-C0. Not a pts signal.
+- AVG November prep DONE on agent/modeler-avg-november-prep a5cfe2f (NOT merged: adds nba/daily/avg_shadow/install_check.py):
+  gate_rows join pinned + run-time by-key verify (parity on 2023-24, 56,433 rows; 2025 tail unprovable without a logged touch);
+  monthly notebook research/colab/jobs/avg_shadow_monthly/avg_shadow_monthly.ipynb + runbook docs/runbooks/AVG_SHADOW_MONTHLY_REFIT.md;
+  install_check (deadline 11-01 12:00 CT) built, not wired. DEVIN BEFORE 11-01: (1) gate option A = carry October gate.json (deviates
+  from the rule's "gate refit"; Claude: A, logged as a pre-result procedure amendment, because B needs a live-row loader that does not
+  exist) vs B; (2) monthly-refit holdout row (draft in runbook; pool contains 2025 labels); (3) go to wire install_check (ops/, nba/daily);
+  (4) merge. RISK: no 2026 possessions exist yet; confirm nightly ingest produces them after opening night (runbook step 0).
+  Scratch: a 650 MB live-DB copy (nba_copy.duckdb) sits in the agent scratchpad; delete when convenient.
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
