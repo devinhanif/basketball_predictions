@@ -27,7 +27,6 @@ from typing import Any
 import numpy as np
 import polars as pl
 
-from nba.eval.context_residual_eval import bh_adjust
 from research.eval import alt_rung_cal_gate as gate
 from research.eval import alt_rung_cal_rule as rule
 from research.eval import line_calibration_eval as lc
@@ -83,6 +82,20 @@ COLS_X_ONLY = [0, 1]
 
 def _log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+
+
+def bh_adjust(p: np.ndarray) -> np.ndarray:
+    """Benjamini-Hochberg adjusted p-values (monotone step-up); byte-identical logic to
+    ``nba.eval.context_residual_eval.bh_adjust`` (inlined so the harness pin covers it; a unit test checks equality)."""
+    p = np.asarray(p, dtype=float)
+    n = len(p)
+    order = np.argsort(p)
+    adj = np.empty(n)
+    run = 1.0
+    for rank, idx in zip(range(n, 0, -1), order[::-1], strict=True):
+        run = min(run, p[idx] * n / rank)
+        adj[idx] = run
+    return adj
 
 
 def sigmoid(v: np.ndarray) -> np.ndarray:
@@ -264,6 +277,11 @@ def attach_real_labels(fr: dict[str, Any], data_root: Path) -> None:
         assert np.all(yy == np.round(yy)), "a non-integer realised stat"
         R["q"], R["thr"], R["real"] = yy, R["point"] + 0.5, True
         R["hit"] = hit_of(R["q"], R["thr"], True)
+    attach_leg_labels(fr, data_root)
+
+
+def attach_leg_labels(fr: dict[str, Any], data_root: Path) -> None:
+    """DraftKings main-line leg labels only (``pairs.over``, already scored in T493); no rung label."""
     L = fr["legs"]
     ov = pl.concat(
         [
@@ -407,7 +425,7 @@ def run_book(
                 bk = lc.fit_logistic(Xr[fit_r][:, cols], hit_r, w=wr)
                 arms[nm][rows] = np.clip(sigmoid(Xr[rows][:, cols] @ bk), EPS, 1 - EPS)
             nd = ~((R["date"][fit_r] >= DEFECT_FIRST) & (R["date"][fit_r] <= DEFECT_LAST))
-            if book_has_defect(R) and not nd.all():
+            if label == PRIMARY and book_has_defect(R) and not nd.all():
                 bn = lc.fit_logistic(Xr[fit_r][nd], hit_r[nd], w=wr[nd])
                 arms["CAL_rung_nodefect"][rows] = np.clip(sigmoid(Xr[rows] @ bn), EPS, 1 - EPS)
             else:
@@ -700,6 +718,11 @@ def score(R: dict[str, Any], arms: dict[str, Any], tag: str) -> dict[str, Any]:
         v = lc.ll(arms[nm][sc], hit) - L["C0"]
         ko[nm] = {k: val for k, val in bs.mean(v, every).items() if k in ("mean", "lo", "hi")}
     res["knockouts_vs_c0"] = ko
+    inb = arms["inband"][sc] > 0
+    res["extrapolation_share_outside_band"] = {
+        b: float(1.0 - inb[lab == b].mean()) for b in BIN_NAMES if (lab == b).any()
+    }
+    res["extrapolation_share_outside_band_all"] = float(1.0 - inb.mean())
     # stat x bin cells (labels; words only where the cell passes the width gate)
     cells: dict[str, Any] = {}
     for b in BIN_NAMES:
@@ -762,9 +785,18 @@ def evaluate(dk: dict[str, Any], fd: dict[str, Any]) -> dict[str, Any]:
         word = "TABLE_FIXES"
     else:
         word = "NOT_FIXED"
+    qual: dict[str, Any] = {}
+    if word == "MAIN_MAP_FIXES":
+        qual["extrapolation_share_outside_fit_leg_band_by_bin"] = dk[
+            "extrapolation_share_outside_band"
+        ]
+        qual["bins_75_to_95_are_extrapolation"] = True
+        if not out["CAL_main"]["P3"]:
+            qual["qualifier"] = "a table does as well"
     return {
         "checks": out,
         "word": word,
+        "qualifiers": qual,
         "p3_note": "a P3 failure is read as 'not shown' (CAL-rung - C0 has an MDE above the prior effect)",
     }
 
@@ -798,8 +830,51 @@ def save_arrays(out: Path, name: str, R: dict[str, Any], arms: dict[str, Any]) -
     return sha256_file(path)
 
 
+def dropped_report(R: dict[str, Any], arms: dict[str, Any]) -> dict[str, Any]:
+    """S2 and the dropped-row A0 reliability (rule line 6 and the secondary list): counts and A0 reliability for the rows
+    dropped by (a) an identity block and (b) no DraftKings/own main line, the no-main share by role and by month."""
+    sc = arms["scored"] > 0
+    hm = R["has_main"]
+    lab = gate.bin_label(R["pm"])
+    a0 = arms["A0"]
+
+    def block(m: np.ndarray) -> dict[str, Any]:
+        if not m.any():
+            return {"n": 0}
+        return {
+            "n": int(m.sum()),
+            "calibration_in_the_large_a0": float((R["hit"][m] - a0[m]).mean()),
+            "a0_gap_by_bin": {
+                b: {
+                    "n": int((m & (lab == b)).sum()),
+                    "gap": float((R["hit"] - a0)[m & (lab == b)].mean()),
+                }
+                for b in BIN_NAMES
+                if (m & (lab == b)).any()
+            },
+        }
+
+    month = gate.month_start(R["date"]).astype(str)
+    bench = R["bench"] == 1
+    return {
+        "identity_block_rows": block(hm & ~sc),
+        "no_main_line_rows": block(~hm),
+        "no_main_share_by_role": {
+            "starter": float((~hm)[~bench].mean()),
+            "bench": float((~hm)[bench].mean()),
+        },
+        "no_main_share_by_month": {mo: float((~hm)[month == mo].mean()) for mo in np.unique(month)},
+        "note": "CAL-rung's served object is undefined on rows without a main line",
+    }
+
+
 def pipeline(
-    fr: dict[str, Any], k_null: int, out: Path, real: bool, data_root: Path
+    fr: dict[str, Any],
+    k_null: int,
+    out: Path,
+    real: bool,
+    data_root: Path,
+    repro: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
@@ -808,11 +883,7 @@ def pipeline(
     for b in BOOKS:
         arms[b], info[b] = run_book(fr["rungs"][b], fr["legs"], k_null, b)
     pre = preflight(fr, info[PRIMARY], info["fanduel"], arms[PRIMARY], arms["fanduel"])
-    repro = (
-        check_t493(info[PRIMARY], rule.ROOT / SELECT_JSON)
-        if real
-        else {"skipped": "synthetic labels"}
-    )
+    repro = repro or {"skipped": "synthetic labels"}
     dk = score(fr["rungs"][PRIMARY], arms[PRIMARY], "draftkings")
     fd = score(fr["rungs"]["fanduel"], arms["fanduel"], "fanduel")
     ev = evaluate(dk, fd)
@@ -826,6 +897,7 @@ def pipeline(
         "t493_reproduction": repro,
         "draftkings": dk,
         "fanduel": fd,
+        "dropped": {b: dropped_report(fr["rungs"][b], arms[b]) for b in BOOKS},
         "evaluation": ev,
         "blocks": {b: info[b] for b in BOOKS},
         "arrays_sha256": shas,
@@ -870,10 +942,14 @@ def main(argv: list[str] | None = None) -> int:
     for b in BOOKS:
         arms0[b], info0[b] = run_book(fr["rungs"][b], fr["legs"], 0, b)
     preflight(fr, info0[PRIMARY], info0["fanduel"], arms0[PRIMARY], arms0["fanduel"])
-    _log("preflight equalities hold; reading real labels")
+    _log("preflight equalities hold; reading DraftKings leg labels only for the T493 reproduction")
+    attach_leg_labels(fr, a.data_root)
+    _, info_leg = run_book(fr["rungs"][PRIMARY], fr["legs"], 0, PRIMARY)
+    repro = check_t493(info_leg, rule.ROOT / SELECT_JSON)
+    _log(f"CAL-main reproduces T493 ({repro['blocks']} blocks); reading rung labels")
     attach_real_labels(fr, a.data_root)
     out = a.out or (rule.ROOT / OUT_REAL)
-    pipeline(fr, a.k, out, True, a.data_root)
+    pipeline(fr, a.k, out, True, a.data_root, repro)
     return 0
 
 

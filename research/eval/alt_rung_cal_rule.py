@@ -104,6 +104,12 @@ def disk_blobs(root: Path = ROOT) -> dict[str, str]:
     return {rel: file_sha256(root / rel) for rel in HARNESS_FILES}
 
 
+def git_ok(*args: str) -> bool:
+    return (
+        subprocess.run(["git", *args], capture_output=True, check=False, cwd=ROOT).returncode == 0
+    )
+
+
 def pin_commit(run: Callable[..., str] = git) -> tuple[str, str] | None:
     """(commit, pin) of the newest ``harness(ALT_RUNG_CAL): <pin>`` commit, or None."""
     for line in run("log", "--format=%H%x09%s").splitlines():
@@ -115,7 +121,10 @@ def pin_commit(run: Callable[..., str] = git) -> tuple[str, str] | None:
 
 
 def require_harness_pinned(
-    sha: str, run: Callable[..., str] = git, root: Path = ROOT
+    sha: str,
+    run: Callable[..., str] = git,
+    root: Path = ROOT,
+    ok: Callable[..., bool] = git_ok,
 ) -> dict[str, str]:
     """Refuse unless the harness files on disk equal the blobs of the pin commit, the pin hash matches its subject,
     and the pin commit descends from the freeze commit. Returns the blob sha256s."""
@@ -135,15 +144,17 @@ def require_harness_pinned(
         out[rel] = hashlib.sha256(frozen.encode()).hexdigest()
     if pin_of(out) != pin:
         raise RuntimeError("the pin in the commit subject does not match the harness blobs")
-    if h not in run("rev-list", f"{fc}..{h}").split():
+    if not ok("merge-base", "--is-ancestor", fc, h):
         raise RuntimeError("pin commit does not descend from the freeze commit")
     return out
 
 
-def require_ready(sha: str | None, run: Callable[..., str] = git) -> dict[str, str]:
+def require_ready(
+    sha: str | None, run: Callable[..., str] = git, ok: Callable[..., bool] = git_ok
+) -> dict[str, str]:
     """The single gate the real-label entrypoint calls before reading any rung label."""
     s = require_frozen(sha, None, run)
-    return require_harness_pinned(s, run)
+    return require_harness_pinned(s, run, ROOT, ok)
 
 
 def declared(doc: Path = DOC) -> dict[str, str]:

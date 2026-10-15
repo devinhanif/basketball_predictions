@@ -84,16 +84,64 @@ def test_freeze_and_pin_refusals_with_a_fake_git(tmp_path: Path) -> None:
         if args[0] == "show":
             h, _, rel = args[1].partition(":")
             return doc_text if rel == rule.DOC_REL else files[rel]
-        if args[0] == "rev-list":
-            return "ph\n"
         return ""
 
     assert rule.freeze_commit(sha, fake) == "fc"
-    assert rule.require_harness_pinned(sha, fake, tmp_path) == blobs
+    assert rule.require_harness_pinned(sha, fake, tmp_path, lambda *a: True) == blobs
+    with pytest.raises(RuntimeError, match="descend"):
+        rule.require_harness_pinned(sha, fake, tmp_path, lambda *a: False)
     (tmp_path / rule.HARNESS_FILES[0]).write_text("edited\n")
     with pytest.raises(RuntimeError):
-        rule.require_harness_pinned(sha, fake, tmp_path)
+        rule.require_harness_pinned(sha, fake, tmp_path, lambda *a: True)
     with pytest.raises(RuntimeError):
         other = tmp_path / "other.md"
         other.write_text("a different rule\n")
         rule.require_frozen(sha, other, fake)
+
+
+def test_bh_adjust_equals_the_nba_implementation() -> None:
+    from nba.eval.context_residual_eval import bh_adjust as ref
+
+    for p in ([0.01, 0.04, 0.03, 0.5], [0.2], [0.001, 0.001, 0.9, 0.04, 0.04, 0.3]):
+        assert np.array_equal(ev.bh_adjust(np.array(p)), ref(np.array(p)))
+
+
+def test_preflight_refuses_on_a_count_mismatch() -> None:
+    n = 10
+    R = {
+        "pm": np.full(n, 0.6),
+        "unit": np.array([f"u{i}" for i in range(n)]),
+        "has_main": np.ones(n, bool),
+    }
+    fr = {
+        "rungs": {ev.PRIMARY: R, "fanduel": R},
+        "meta": {"window_games": {"2023": 39, "2024": 62}},
+    }
+    arms = {"scored": np.ones(n)}
+    with pytest.raises(RuntimeError, match="pinned count mismatch"):
+        ev.preflight(fr, [], [], arms, arms)
+
+
+def test_check_t493_refuses_on_a_coefficient_mismatch(tmp_path: Path) -> None:
+    import json
+
+    sel = tmp_path / "select.json"
+    sel.write_text(
+        json.dumps(
+            {
+                "draftkings": {
+                    "blocks_cal": [{"stat": "pts", "block": "2024-11", "beta": [0, 0, 0, 0, 0]}]
+                }
+            }
+        )
+    )
+    good = [{"season": 2024, "stat": "pts", "block": "2024-11", "beta_main": [0.0, 0, 0, 0, 0]}]
+    assert ev.check_t493(good, sel)["blocks"] == 1
+    bad = [{"season": 2024, "stat": "pts", "block": "2024-11", "beta_main": [1e-6, 0, 0, 0, 0]}]
+    with pytest.raises(RuntimeError, match="does not reproduce"):
+        ev.check_t493(bad, sel)
+
+
+def test_run_refuses_before_reading_anything_when_not_frozen(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError):
+        ev.main(["run", "--data-root", str(tmp_path / "nowhere"), "--sha", "0" * 64])
