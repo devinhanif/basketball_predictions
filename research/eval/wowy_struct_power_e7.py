@@ -153,7 +153,9 @@ def main() -> dict[str, Any]:
                             continue
                         e = -float(gm[ms].mean())
                         sd_free = float(np.sqrt(gv[ms].mean() + gm[ms].var()))
-                        rb = C.sizing_row("b", max(sd_free, 1e-9), SL.DEFF_FREE, ms.sum(), FLOOR, e)
+                        rb = C.sizing_row(
+                            "b", max(sd_free, 1e-9), SL.DEFF_FREE, float(ms.sum()), FLOOR, e
+                        )
                         hw = rb["halfwidth95"]
                         res["cells"].setdefault(
                             f"{stat}|{sn}|{variant}|{s}",
