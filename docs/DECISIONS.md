@@ -1163,3 +1163,8 @@ What would reverse it: STRUCT reaching power >= 0.5 at the pooled coefficient (i
 What: the main session merges the branch (review fixes 3ccacde plus main) into main only if the oracle_w3 main and branch canonical-dump hashes are IDENTICAL and the branch checks pass; then deletes the season-2025 replay copies unread. Any mismatch, failing check or new flag: hold and report to Devin. Installing the app-export launchd job stays Devin's step.
 Why: Saturday 10-18 starts the hands-off window; the review (WOUNDED, APPROVED) fixes are done and Devin's time is short.
 What would reverse it: a hash mismatch, a failing check, or a new finding from the steward run.
+
+**2026-10-14 19:51 CDT — WOWY_STRUCT trains from 2019, not 2022-10 (Devin: "make the change, and retrain all models tested").**
+What: pre-freeze edit E7. Every arm (A0_warm, ROLE, S+R, P+R, STRUCT alone) is refit on the warm frame from 2019-10-01 with production month-block walk-forward; test seasons stay 2023 and 2024 (a cell passes only if both pass). 2019 is the floor because history injury reports start in 2019-20. Devin's idea; Claude recommended the 2019 start while keeping both test seasons.
+Why: the production window gives early-2023 refits about one season of rows, too few for a tree to learn a new interaction in cells of 4-5k rows a season; a fail under it would be weak evidence (pre-freeze review). Cost: A0_warm is no longer exactly production; a pass implies production needs the longer window too (F1).
+What would reverse it: the 2019+ build failing a reproduction or leak check before the freeze, or the window making a minimum-data gate fail.
