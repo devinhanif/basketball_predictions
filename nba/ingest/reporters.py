@@ -909,6 +909,7 @@ def check_handles(
     allowlist_path: Path | str = ALLOWLIST_PATH,
     data_dir: Path = DATA_DIR,
     dry_run: bool = False,
+    tag: str | None = None,
     environ: Mapping[str, str] | None = None,
     transport: Any = None,
     clock: Callable[[], datetime] | None = None,
@@ -925,7 +926,10 @@ def check_handles(
             raise ValueError(f"{h!r} is not a valid X handle")
     allow = load_allowlist(allowlist_path)
     now = (clock or (lambda: datetime.now(UTC)))()
-    out = Path(data_dir) / f"handle_check_{utc_day(now)}.json"
+    if tag is not None and not re.fullmatch(r"[a-z0-9]{1,16}", tag):
+        raise ValueError(f"tag {tag!r} must be 1-16 lowercase letters or digits")
+    suffix = f"_{tag}" if tag else ""
+    out = Path(data_dir) / f"handle_check_{utc_day(now)}{suffix}.json"
     est = len(handles) * allow.usd_per_user
     if dry_run:
         print(f"dry-run: GET {API_BASE}{ENDPOINTS['users_by']} usernames={','.join(handles)}")
@@ -985,6 +989,7 @@ def main(argv: list[str] | None = None) -> int:
     chk.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
     chk.add_argument("--data-dir", default=str(DATA_DIR))
     chk.add_argument("--dry-run", action="store_true", help="print the batch and cost; no request")
+    chk.add_argument("--tag", default=None, help="suffix: a second write-once file the same day")
     args = p.parse_args(argv)
 
     if args.cmd == "check-handles":
@@ -994,6 +999,7 @@ def main(argv: list[str] | None = None) -> int:
                 allowlist_path=args.allowlist,
                 data_dir=Path(args.data_dir),
                 dry_run=args.dry_run,
+                tag=args.tag,
             )
         except (KeyMissingError, BudgetExceeded, PollRefused, ValueError) as exc:
             print(f"REFUSED: {exc}", file=sys.stderr)
