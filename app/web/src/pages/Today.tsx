@@ -5,6 +5,7 @@ import { useLoad } from "../useLoad";
 import type { GameSummary } from "../types";
 import { STAT_LABEL } from "../types";
 import { doesText, inTen } from "../words";
+import { TopParlaysPanel } from "../TopParlaysPanel";
 import { ParlayCard } from "./Parlay";
 
 function sentenceCase(s: string): string {
@@ -70,6 +71,7 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
           return (
             <>
               <ParlayCard compact />
+              {date ? <TopParlaysPanel date={date} /> : null}
               <div class="page-head">
                 <h1>{date ? longDate(date) : "Slate"}</h1>
                 <nav class="tabs" aria-label="Choose a night">

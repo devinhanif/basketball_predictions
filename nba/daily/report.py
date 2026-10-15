@@ -332,6 +332,81 @@ def _avg_shadow_section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> l
     return section(con, season)
 
 
+def _primary_source_section(con: duckdb.DuckDBPyConnection, season: int) -> list[str]:
+    """Source counts for the latest slate day, so a silent fallback is visible (read-only SQL).
+
+    Per stat (regular-season 002 games): production prop triples (game, player) with a pre-tip
+    ``props_context_residual`` row, how many also have a pre-tip AVG shadow row, which model the
+    AVG row's A0 grid came from (``a0_source``), and how many pre-tip rows that source logged on
+    the day. Pts reads ``props_context_residual_lt``: if that variant stops logging, the app's
+    pts routing falls back to production (``avg_inputs_changed``) and this line shows
+    ``a0 source ... 0 rows``. P(play): latest pre-tip shadow rows with R vs production only.
+    The app's exact routing is ``nba.export.best_model`` (layering keeps it off this path), so
+    these are coverage counts, not the app's final per-row verdict."""
+    if season != FORWARD_SEASON:
+        return []
+    day = con.execute(
+        "SELECT max(g.game_date) FROM forward_predictions p JOIN games g USING (game_id) "
+        "WHERE p.game_id LIKE '0022%' AND g.season = ?",
+        [season],
+    ).fetchone()
+    if not day or day[0] is None:
+        return []
+    d = day[0]
+    lines = ["", f"## Best-model source counts (latest slate day {d}, app primary routing inputs)"]
+    prod = dict(
+        con.execute(
+            "SELECT p.target, count(DISTINCT (p.game_id, p.player_id)) FROM forward_predictions p "
+            "JOIN games g USING (game_id) WHERE g.game_date = ? AND p.game_id LIKE '002%' "
+            "AND p.model_name = 'props_context_residual' AND p.made_at < p.tipoff "
+            "AND p.target <> 'win_prob_home' GROUP BY 1",
+            [d],
+        ).fetchall()
+    )
+    avg = {
+        r[0]: (r[1], r[2])
+        for r in con.execute(
+            "SELECT a.stat, count(DISTINCT (a.game_id, a.player_id)), "
+            "string_agg(DISTINCT coalesce(a.a0_source, '?'), '/') FROM forward_avg_shadow a "
+            "JOIN games g USING (game_id) WHERE g.game_date = ? AND a.game_id LIKE '002%' "
+            "AND a.made_at < a.tipoff_utc GROUP BY 1",
+            [d],
+        ).fetchall()
+    }
+    logged = dict(
+        con.execute(
+            "SELECT p.model_name, count(*) FROM forward_predictions p JOIN games g USING (game_id) "
+            "WHERE g.game_date = ? AND p.game_id LIKE '002%' AND p.made_at < p.tipoff "
+            "AND p.model_name LIKE 'props_context_residual%' GROUP BY 1",
+            [d],
+        ).fetchall()
+    )
+    if not prod:
+        return lines + ["- no pre-tip production prop rows."]
+    any_avg = any(v[0] for v in avg.values())
+    for stat in sorted(prod):
+        n_p, (n_a, src) = prod[stat], avg.get(stat, (0, "-"))
+        flag = ""
+        if any_avg and n_a == 0:
+            flag = "  **FALLBACK: no AVG rows for this stat while others have them**"
+        elif src and any(logged.get(x, 0) == 0 for x in src.split("/") if x not in ("?", "-")):
+            flag = "  **FALLBACK: AVG a0 source logged 0 rows**"
+        lines.append(
+            f"- {stat}: production triples {n_p}, with AVG {n_a}, no AVG {n_p - n_a}; "
+            f"a0 source {src}{flag}"
+        )
+    pp = con.execute(
+        "SELECT count(*), count(p_play_r) FROM (SELECT DISTINCT ON (game_id, player_id) "
+        "p_play_r FROM forward_pplay_shadow s JOIN games g USING (game_id) "
+        "WHERE g.game_date = ? AND s.game_id LIKE '002%' AND s.made_at < s.tipoff "
+        "ORDER BY game_id, player_id, s.made_at DESC, s.run_id DESC)",
+        [d],
+    ).fetchone()
+    n_pp, n_r = (int(pp[0]), int(pp[1])) if pp else (0, 0)
+    lines.append(f"- P(play): R {n_r}, production only {n_pp - n_r} (latest shadow row per player)")
+    return lines
+
+
 def _combo_shadow_section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> list[str]:
     """SHADOW (COMBO_STOCKS_SHADOW): counts and gates only (no delta on a non-look day)."""
     from nba.daily.combo_shadow.display import section
@@ -474,6 +549,7 @@ def build_report(
     lines += _guarded_section("FULL shadow", _full_shadow_section, con)
     lines += _guarded_section("AVG shadow", _avg_shadow_section, con, season)
     lines += _guarded_section("COMBO_STOCKS shadow", _combo_shadow_section, con, season)
+    lines += _guarded_section("Best-model sources", _primary_source_section, con, season)
     lines += _late_scratch_section(con, lineups_db)
     lines += _checkpoint_section()
     lines += _independence_section(con)

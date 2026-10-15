@@ -1213,3 +1213,131 @@ details.alt > summary {
   text-align: right;
   flex: none;
 }
+
+/* ---- top parlays panel ---- */
+.tp-verdict {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 10px 14px;
+  margin: 8px 0 12px;
+}
+.tp-verdict-text {
+  font-size: 1.6rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 2px 0 6px;
+}
+.notice {
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+.tp-notes {
+  margin: 8px 0 12px;
+}
+.tp-notes p + p {
+  margin-top: 6px;
+}
+.tp-list {
+  margin-top: 16px;
+}
+.tp-list > h3 {
+  margin-bottom: 8px;
+}
+.tp-ticket {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.tp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.tp-head .tag {
+  margin-left: 0;
+}
+.tp-rank {
+  font-weight: 800;
+}
+.tp-legs {
+  margin: 0 0 8px;
+}
+.tp-leg {
+  border-top: 1px solid var(--line);
+  padding: 6px 0;
+}
+.tp-leg > details > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+  min-height: 44px;
+}
+.tp-leg-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tp-leg-bet {
+  font-weight: 650;
+}
+.tp-leg-price {
+  white-space: nowrap;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.tp-leg-why {
+  padding: 4px 0 6px;
+}
+.tp-nums {
+  margin: 0;
+}
+.tp-nums > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding: 6px 0;
+}
+.tp-nums dt {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.tp-nums dd {
+  margin: 0;
+}
+.tp-nums .tp-main {
+  display: block;
+}
+.tp-why {
+  margin-top: 6px;
+}
+.tp-empty {
+  margin-top: 12px;
+}
+.tag.illus {
+  border-color: var(--accent);
+  color: var(--accent);
+  margin-left: 0;
+}
+.tag.hypo {
+  display: inline-block;
+  margin: 8px 0;
+  background: var(--surface-2);
+  border: 2px solid var(--muted);
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 3px 8px;
+}
+.tp-gate {
+  margin: 6px 0 10px;
+}

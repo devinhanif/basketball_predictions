@@ -1214,3 +1214,35 @@ What would reverse it: Devin saying the reading of his message is wrong (before 
 2. Build the top-3 two-leg / three-leg parlay panel for opening night (Devin's request): model's most confident parlays with honest (calibrated) hit rates, price, EV after fees, plain-language reasons per leg, "keep your money" when nothing is positive. Not a bet recommendation. Reverses: Devin.
 3. Replay oracle for agent/steward-best-model-minors: holdout row logged first (systems replay); merge only if IDENTICAL and with Devin's go by Fri 10-17.
 4. AVG November: carry the October gate.json (gate_id 58043d34) instead of a gate refit. Devin's call, on Claude's advice; a pre-result procedure amendment to AVG_SHADOW_LIVE_2 (no live row exists yet), because a live-row gate refit needs a loader that does not exist. Reverses: a live-row loader built and reviewed before a later month.
+
+**2026-10-15 00:28 CDT — Draft five line-calibration follow-ups now (Devin: "Let's do 1, 2 3 4 and 5 now"). Devin's override: Claude recommended #1 first.**
+What: draft pre-registrations, with minimum-data gates measured on real data (non-negotiable 8), for (1) CAL at alternate rungs, (2) parlay joint calibration after leg CAL, (3) Kalshi/Polymarket ladder calibration (forward-only), (4) combo and stocks line calibration, (5) game-winner probability recalibration vs Kalshi. Drafts only: no freeze or result without review; season 2025 untouched; each rule its own id.
+Why: LINE_CALIBRATION Stage 1 passed (T493) and the same overconfidence shows in T490/T491/COMBO G1.
+What would reverse it: a gate that fails after the data-capture audit closes that rule as DATA, not a variant.
+
+**2026-10-15 00:39 CDT — Top-3 parlay panel merged into the app now (Devin: "Put it in the app now"). Devin's override of review-before-merge for app/ only.**
+What: agent/app-top-parlays (app/ only, 13 files; API 213 passed, web 54 passed, typecheck 0 on main) merged. Shows the synthetic illustration fixture until the market producer (agent/market-top-parlays) writes real files; nothing deployed or published; the producer is not wired into the nightly job.
+Why: Devin wants the panel visible for opening night.
+What would reverse it: the post-merge adversary review finding a number shown without its source, or misleading wording.
+
+**2026-10-15 00:52 CDT — COMBO_LINE_CAL repairs, parlay legs, WINNER_RECAL (Devin: "Rebuild combos forecast and test buy and if so full purchase, and yes").**
+1. R-F: rebuild and persist the combo/stl/blk OOF pmf199 for 2023-24 (CPU, under heavy.lock; season 2025 never loaded). Follows Claude's advice.
+2. R1 probe: the-odds-api.com historical endpoint, 12 sampled 2023-24 dates, 6 markets (player_points_rebounds_assists, player_points_rebounds, player_points_assists, player_rebounds_assists, player_blocks, player_blocks_steals), region us, t60, cap 720 credits. Success bar fixed NOW, before the probe: main-line pra/pr/pa/ra at DraftKings or FanDuel on >= 10 of 12 dates. If met, the full pull runs: 2023-24, t60, region us only (Pinnacle quotes none of these), those 6 markets, hard cap 160,000 credits, write-once raw; if not met, no full pull and COMBO_LINE_CAL stays DATA-blocked for the 6 targets. Devin's money decision.
+3. Parlay panel legs: CAL on production P(over); AVG shown for reference only (Claude's advice; reverses "AVG everywhere" for this panel only). Reverses: a CAL refit on AVG legs passes its own test.
+4. WINNER_RECAL closed from the record (gate FAIL_POWER 0.15-0.23; T178 already found no keeper). Follows Claude's advice. Market beats us on winners; nothing to recalibrate toward.
+
+**2026-10-15 00:58 CDT — Minors merged; ALT_RUNG_CAL and PARLAY_JOINT_CAL to review and freeze (Devin: "Merge minors and do one freeze for 1 and 2").**
+1. agent/steward-best-model-minors merged (oracle IDENTICAL 89889f6d, holdout rows 3742d6b/da0b3e5; no nba/ops/configs change on main since the oracle base e54c9e8; 47 targeted tests pass).
+2. ALT_RUNG_CAL and PARLAY_JOINT_CAL: adversary pre-freeze review each; the main session freezes each on APPROVED (no blockers) and runs it. Claude reads "one freeze" as one freeze pass for both rules. The drafts' own defaults answer their open questions (ALT_RUNG_CAL: pooled 2023-24 walk-forward with per-season replication, C0 = 10-bin reliability table, floor -0.002, CAL-main scored on all rows with extrapolation share, FanDuel label only, stat words only for the 17 width-gated cells, live confirmation a separate forward rule; PARLAY_JOINT_CAL: widest candidate set, condition on playing, production legs (as the panel), DraftKings primary / Pinnacle direction). Claude's advice on all defaults. Reverses: Devin naming a different answer before the freeze commit.
+
+**2026-10-15 01:00 CDT — COMBO R1 probe: bar MET 12/12; full pull started (per Devin's conditional go, row b10633a).**
+Probe: sample committed first (configs/odds_combo_probe_sample.yaml, seed 20261015, 12 games in seasons 2023/2024), 710 credits, server remaining 1,809,739; pra/pr/pa/ra two-sided main lines at DK or FD on 12 of 12 dates (blk 12/12, bs 9/12); manifest tree 1463cc62. Full pull: seasons 2023-24, region us, t60, 6 markets, hard cap 160,000, raw only (data/raw/odds_combo_pull_2026-10-15/), code agent/market-combo-odds-pull 3107844 run from its worktree (data_root = main). Ingest into odds_history.duckdb is a separate step needing its own go. Run by the main session from the project .env key (the agent had no key).
+
+**2026-10-15 01:06 CDT — Opening-night fixes from the preseason rehearsal (Devin: "Let's do that too").**
+What: steward fixes (1) nba/export player placement from the official pre-tip roster when no current-season row exists (opening night would show 0 players), and (2) the players_static autofill ComputeError that leaves 116 rostered players without the draft-slot rookie prior (roster_cold path). Separate commits; any live-path change gets the replay oracle (main session logs the holdout row first) and Devin's merge go by Fri 10-17.
+Why: both breaks would hit 10-20; found by the preseason dress rehearsal (agent/steward-preseason-rehearsal 94db08c).
+What would reverse it: the oracle moving, or the fix needing a model change (then it waits until after opening night).
+
+**2026-10-15 01:09 CDT — Correction to the cc3ac06 row (ALT_RUNG_CAL defaults).** That row said "FanDuel label only"; the draft's own default (which Devin's go adopted) makes P7 a FanDuel pass check. The pass check stands. Claude's transcription error, caught by the pre-freeze review (docs/reviews/ALT_RUNG_CAL_prefreeze_2026-10-15.md M3).
+
+**2026-10-15 01:30 CDT — COMBO full pull DONE.** 2,638 games (2,626 fetched, 12 reused from the probe, 1 empty, 0 errors), 152,770 credits of the 160,000 cap; server remaining 1,656,969. Raw only: data/raw/odds_combo_pull_2026-10-15/ (5,264 files, tree b72960a2). Next: ingest into odds_history.duckdb (Devin's go), then COMBO_LINE_CAL re-runs its gate.

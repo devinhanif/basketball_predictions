@@ -533,3 +533,39 @@ def test_cup_final_and_other_non_regular_games_use_production(db: Path) -> None:
     _w(db, lambda c: _insert_avg(c, _avg_row(gid=cup)))
     p = _primary(_fwd(db), cup, 1000)
     assert (p["model_name"], p["primary_source"]) == (PROD, "non_regular_season")
+
+
+def test_production_row_made_exactly_at_tip_is_refused(db: Path) -> None:
+    """The store refuses made_at >= tipoff (LeakageError); the reader must too (review minor b)."""
+    _w(db, lambda c: c.execute(
+        "INSERT INTO forward_predictions VALUES (?,?,?,?,?,?,?,?,?)",
+        ["r_at_tip", TIP, G_REG, TIP, PROD, "ctxres-v1", "pts", 1005, _prod_pred()],
+    ))  # fmt: skip
+    fwd = _fwd(db)
+    assert fwd.excluded_post_tip == 1
+    assert not any(p["player_id"] == 1005 for p in fwd.prop_grids)
+
+
+def test_pplay_rows_of_a_dropped_no_team_game_are_dropped(db: Path) -> None:
+    gid, tip = "0022600778", datetime(2026, 11, 10, 23, 0)
+    made = tip - timedelta(minutes=90)
+
+    def add(c: duckdb.DuckDBPyConnection) -> None:
+        _insert_avg(c, _avg_row(gid=gid, tip=tip, made=made))
+        c.execute(
+            "INSERT INTO forward_pplay_shadow (run_id, made_at, game_id, tipoff, player_id, "
+            "team_id, model_version, p_play_prod, p_play_r, r_reason, proj_minutes, "
+            "train_through, n_train) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ["r_pp", made, gid, tip, 1000, 1610612738, "pplay_r_v1", 0.8, 0.9, None, 28.0,
+             date(2026, 11, 9), 5000],
+        )  # fmt: skip
+
+    _w(db, add)
+    _w(
+        db,  # a kept game still carries its P(play) row
+        lambda c: _insert_pplay(c, G_REG, 1000, 0.9),
+    )
+    fwd = _fwd(db)
+    assert fwd.excluded_avg_no_game == 1
+    assert not any(p["game_id"] == gid for p in fwd.p_play)
+    assert any(p["game_id"] == G_REG for p in fwd.p_play)
