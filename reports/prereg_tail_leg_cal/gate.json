@@ -1,0 +1,437 @@
+{
+ "date_cdt": "Thu Oct 15 07:56:32 CDT 2026",
+ "preflight_counts": {
+  "draftkings|2023": {
+   "legs": 41635,
+   "ge60": 4677,
+   "ge65": 1246,
+   "ge70": 277,
+   "games": 1043,
+   "dates": 171,
+   "q_fingerprint": "94b037cb8a5d65c166fcbbb8655ef6022cef73da6d0cf4e85c8860cff32f8a95"
+  },
+  "draftkings|2024": {
+   "legs": 53752,
+   "ge60": 3906,
+   "ge65": 853,
+   "ge70": 168,
+   "games": 1300,
+   "dates": 212,
+   "q_fingerprint": "1d671e0f5e8d07e0774cb82644175910202fc885a53a347846a94552eeb51e9d"
+  },
+  "pinnacle|2023": {
+   "legs": 24667,
+   "ge60": 2013,
+   "ge65": 415,
+   "ge70": 83,
+   "games": 1001,
+   "dates": 171,
+   "q_fingerprint": "9a3bf2c3723035cac0c7dcccd52404bb6e0b72f7f003c42fe84531069047159a"
+  },
+  "pinnacle|2024": {
+   "legs": 37528,
+   "ge60": 2486,
+   "ge65": 422,
+   "ge70": 69,
+   "games": 1260,
+   "dates": 212,
+   "q_fingerprint": "bf2041e1744c15cb2613438a834fd8be1ccbee9d8da3d332304a3380901ded03"
+  }
+ },
+ "published_equal": true,
+ "pins": {
+  "data/ops/model_clv_pairs/pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+  "data/ops/model_clv_pairs/pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
+  "reports/odds_history/model_rows_2023.parquet": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
+  "reports/odds_history/model_rows_2024.parquet": "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70"
+ },
+ "constants": {
+  "KNEE": 0.6,
+  "HIGH": 0.65,
+  "MIN_TAIL": 1000,
+  "HALF_LIFE": 365.0
+ },
+ "lead_minutes_t60": {
+  "draftkings|2023": {
+   "min": 62.55,
+   "median": 64.35
+  },
+  "draftkings|2024": {
+   "min": 64.33333333333333,
+   "median": 64.36666666666666
+  },
+  "pinnacle|2023": {
+   "min": 62.55,
+   "median": 64.35
+  },
+  "pinnacle|2024": {
+   "min": 64.33333333333333,
+   "median": 64.36666666666666
+  }
+ },
+ "audit_fanduel_same_procedure_tail_counts": {
+  "2023": {
+   "legs": 34208,
+   "ge60": 2712,
+   "ge65": 802,
+   "games": 1037
+  },
+  "2024": {
+   "legs": 46378,
+   "ge60": 2432,
+   "ge65": 385,
+   "games": 1298
+  }
+ },
+ "books": {
+  "draftkings": {
+   "tail_legs": 8583,
+   "scored_tail_legs": 7405,
+   "scored_ge65": 1746,
+   "dropped_identity_tail_legs": 1178,
+   "identity_blocks": [
+    "2023-12"
+   ],
+   "blocks_fit": [
+    [
+     "2024-01",
+     1178,
+     686
+    ],
+    [
+     "2024-02",
+     1864,
+     782
+    ],
+    [
+     "2024-03",
+     2646,
+     1038
+    ],
+    [
+     "2024-04",
+     3684,
+     670
+    ],
+    [
+     "2024-05",
+     4354,
+     280
+    ],
+    [
+     "2024-06",
+     4634,
+     43
+    ],
+    [
+     "2024-10",
+     4677,
+     319
+    ],
+    [
+     "2024-11",
+     4996,
+     718
+    ],
+    [
+     "2024-12",
+     5714,
+     451
+    ],
+    [
+     "2025-01",
+     6165,
+     572
+    ],
+    [
+     "2025-02",
+     6737,
+     546
+    ],
+    [
+     "2025-03",
+     7283,
+     694
+    ],
+    [
+     "2025-04",
+     7977,
+     391
+    ],
+    [
+     "2025-05",
+     8368,
+     189
+    ],
+    [
+     "2025-06",
+     8557,
+     26
+    ]
+   ],
+   "by_season": {
+    "2023": {
+     "scored_tail": 3499,
+     "scored_ge65": 893
+    },
+    "2024": {
+     "scored_tail": 3906,
+     "scored_ge65": 853
+    }
+   },
+   "by_stat_scored_tail": {
+    "pts": 6,
+    "reb": 1335,
+    "ast": 425,
+    "fg3m": 5639
+   },
+   "by_side_scored_tail": {
+    "over": 1790,
+    "under": 5615
+   },
+   "widths_synthetic_calibrated": {
+    "r60": {
+     "n": 7405,
+     "half_width_union": 0.01161225492548729,
+     "half_width_game": 0.010929861297316094,
+     "half_width_date": 0.01161225492548729,
+     "games": 2016,
+     "dates": 355,
+     "binomial_half_width": 0.01093494052788889
+    },
+    "r65": {
+     "n": 1746,
+     "half_width_union": 0.021523858777772326,
+     "half_width_game": 0.021501514489872493,
+     "half_width_date": 0.021430003189398243,
+     "games": 1107,
+     "dates": 319,
+     "binomial_half_width": 0.021737273942524206
+    },
+    "r60_65": {
+     "n": 5659,
+     "half_width_union": 0.013413972619934314,
+     "half_width_game": 0.012965688685447641,
+     "half_width_date": 0.013413972619934314,
+     "games": 1914,
+     "dates": 355,
+     "binomial_half_width": 0.012639637670322916
+    }
+   },
+   "oracle_gain_perfect_map": {
+    "r60": 0.0015248309428492791,
+    "r65": 0.005410633102666469,
+    "all_legs_in_scored_blocks": 0.00012891461309538874
+   },
+   "power": {
+    "smooth": {
+     "perfect_gap65_interval_includes_0": 0.99,
+     "perfect_gap65_point_within_limits": 0.99,
+     "perfect_P1_gap60": 1.0,
+     "perfect_P2_ll60_floor_and_p": 0.64,
+     "perfect_P2b_ll65_floor_and_p": 0.57,
+     "perfect_ll60_point": -0.00155494712467901,
+     "perfect_ll60_half_width": 0.0013337795349996553,
+     "perfect_ll65_point": -0.005460875504604005,
+     "perfect_ll65_half_width": 0.00522638344071915,
+     "perfect_gap65_point": 0.0007553679541471484,
+     "hinge_gap65_interval_includes_0": 0.97,
+     "hinge_gap65_point_within_limits": 0.99,
+     "hinge_P1_gap60": 0.99,
+     "hinge_P2_ll60_floor_and_p": 0.55,
+     "hinge_P2b_ll65_floor_and_p": 0.49,
+     "hinge_ll60_point": -0.0014060391815420145,
+     "hinge_ll60_half_width": 0.0013146707332063856,
+     "hinge_ll65_point": -0.004948136732483532,
+     "hinge_ll65_half_width": 0.005100107886593818,
+     "hinge_gap65_point": 0.00044444429206237304,
+     "CAL_gap65_interval_excludes_0": 0.96,
+     "CAL_gap60_interval_excludes_0": 0.88,
+     "CAL_gap60_passes_P1_itself": 0.31,
+     "CAL_gap60_point": -0.017748994451144987
+    },
+    "step": {
+     "perfect_gap65_interval_includes_0": 0.98,
+     "perfect_gap65_point_within_limits": 0.98,
+     "perfect_P1_gap60": 1.0,
+     "perfect_P2_ll60_floor_and_p": 0.46,
+     "perfect_P2b_ll65_floor_and_p": 0.38,
+     "perfect_ll60_point": -0.0009437010884124576,
+     "perfect_ll60_half_width": 0.0010283531627120817,
+     "perfect_ll65_point": -0.003616359632596994,
+     "perfect_ll65_half_width": 0.004160838293279419,
+     "perfect_gap65_point": 0.0005829008567479196,
+     "hinge_gap65_interval_includes_0": 0.89,
+     "hinge_gap65_point_within_limits": 0.87,
+     "hinge_P1_gap60": 0.99,
+     "hinge_P2_ll60_floor_and_p": 0.17,
+     "hinge_P2b_ll65_floor_and_p": 0.23,
+     "hinge_ll60_point": -0.0006744097151784631,
+     "hinge_ll60_half_width": 0.000994099227830774,
+     "hinge_ll65_point": -0.0027760070199738217,
+     "hinge_ll65_half_width": 0.003822414469333865,
+     "hinge_gap65_point": -0.0073445154797054735,
+     "CAL_gap65_interval_excludes_0": 0.94,
+     "CAL_gap60_interval_excludes_0": 0.71,
+     "CAL_gap60_passes_P1_itself": 0.48,
+     "CAL_gap60_point": -0.015033261838045731
+    },
+    "calibrated": {
+     "perfect_gap65_interval_includes_0": 0.97,
+     "perfect_gap65_point_within_limits": 0.98,
+     "perfect_P1_gap60": 1.0,
+     "perfect_P2_ll60_floor_and_p": 0.0,
+     "perfect_P2b_ll65_floor_and_p": 0.0,
+     "perfect_ll60_point": 0.0,
+     "perfect_ll60_half_width": 0.0,
+     "perfect_ll65_point": 0.0,
+     "perfect_ll65_half_width": 0.0,
+     "perfect_gap65_point": 3.880005491512373e-05,
+     "hinge_gap65_interval_includes_0": 0.98,
+     "hinge_gap65_point_within_limits": 0.98,
+     "hinge_P1_gap60": 0.99,
+     "hinge_P2_ll60_floor_and_p": 0.0,
+     "hinge_P2b_ll65_floor_and_p": 0.0,
+     "hinge_ll60_point": 0.00015012651549332112,
+     "hinge_ll60_half_width": 0.00034922193211004153,
+     "hinge_ll65_point": 0.0004877818124286615,
+     "hinge_ll65_half_width": 0.0013218518206294493,
+     "hinge_gap65_point": 0.0015833183697854315,
+     "CAL_gap65_interval_excludes_0": 0.03,
+     "CAL_gap60_interval_excludes_0": 0.01,
+     "CAL_gap60_passes_P1_itself": 1.0,
+     "CAL_gap60_point": -0.00033778580833607435
+    }
+   }
+  },
+  "pinnacle": {
+   "tail_legs": 4499,
+   "scored_tail_legs": 3060,
+   "scored_ge65": 565,
+   "dropped_identity_tail_legs": 1439,
+   "identity_blocks": [
+    "2023-12",
+    "2024-01",
+    "2024-02",
+    "2024-03"
+   ],
+   "blocks_fit": [
+    [
+     "2024-04",
+     1439,
+     365
+    ],
+    [
+     "2024-05",
+     1804,
+     186
+    ],
+    [
+     "2024-06",
+     1990,
+     23
+    ],
+    [
+     "2024-10",
+     2013,
+     188
+    ],
+    [
+     "2024-11",
+     2201,
+     456
+    ],
+    [
+     "2024-12",
+     2657,
+     261
+    ],
+    [
+     "2025-01",
+     2918,
+     315
+    ],
+    [
+     "2025-02",
+     3233,
+     317
+    ],
+    [
+     "2025-03",
+     3550,
+     444
+    ],
+    [
+     "2025-04",
+     3994,
+     372
+    ],
+    [
+     "2025-05",
+     4366,
+     118
+    ],
+    [
+     "2025-06",
+     4484,
+     15
+    ]
+   ],
+   "by_season": {
+    "2023": {
+     "scored_tail": 574,
+     "scored_ge65": 143
+    },
+    "2024": {
+     "scored_tail": 2486,
+     "scored_ge65": 422
+    }
+   },
+   "by_stat_scored_tail": {
+    "pts": 9,
+    "reb": 427,
+    "ast": 195,
+    "fg3m": 2429
+   },
+   "by_side_scored_tail": {
+    "over": 459,
+    "under": 2601
+   },
+   "widths_synthetic_calibrated": {
+    "r60": {
+     "n": 3060,
+     "half_width_union": 0.01747137599271115,
+     "half_width_game": 0.01747137599271115,
+     "half_width_date": 0.01623443276459864,
+     "games": 1202,
+     "dates": 266,
+     "binomial_half_width": 0.017074452769657918
+    },
+    "r65": {
+     "n": 565,
+     "half_width_union": 0.03816421494219593,
+     "half_width_game": 0.03816421494219593,
+     "half_width_date": 0.03684915326680882,
+     "games": 406,
+     "dates": 198,
+     "binomial_half_width": 0.038422508642987054
+    },
+    "r60_65": {
+     "n": 2495,
+     "half_width_union": 0.019058422792708696,
+     "half_width_game": 0.019058422792708696,
+     "half_width_date": 0.018062948404573818,
+     "games": 1126,
+     "dates": 263,
+     "binomial_half_width": 0.019047848378808428
+    }
+   },
+   "oracle_gain_perfect_map": {
+    "r60": 0.0010559182411945364,
+    "r65": 0.004426821975368103,
+    "all_legs_in_scored_blocks": 7.408423483411934e-05
+   }
+  }
+ },
+ "date_cdt_end": "Thu Oct 15 07:57:06 CDT 2026"
+}
