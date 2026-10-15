@@ -52,7 +52,6 @@ MODEL_STATS = ("pts", "reb", "ast", "fg3m")
 EXPORT_STATS = ("pts", "reb", "ast", "fg3m", "pra", "pr", "pa", "ra")
 #: Only used for an export that predates best_model_schema (no is_primary column): the old rule.
 PREFERRED_PROP_MODEL = "props_context_residual"
-BEST_MODEL_SCHEMA = "1"
 ET = ZoneInfo("America/New_York")
 NO_POSITIVE_EV = "no_positive_ev_found"
 POSITIVE_EV = "positive_ev_at_conservative_bound"
@@ -65,6 +64,14 @@ BOOK_ORDER = ("draftkings", "fanduel", "betmgm", "caesars", "espnbet", "fanatics
 
 class ExportRefused(ValueError):
     """The export on disk cannot be trusted or is not one this app may show."""
+
+
+def _schema_at_least_1(value: Any) -> bool:
+    """meta best_model_schema as an integer >= 1 (a later schema only adds to this one)."""
+    try:
+        return int(str(value).strip()) >= 1
+    except ValueError:
+        return False
 
 
 def _utc_iso(ts: datetime) -> str:
@@ -301,7 +308,7 @@ class ExportStore:
         # best_model_schema 1: prop_grids marks one primary row per prop and p_play carries the
         # chance to play. An export without it keeps the old production-model choice.
         grids = tables["prop_grids"]
-        self.best_model: bool = meta.get("best_model_schema") == BEST_MODEL_SCHEMA and (
+        self.best_model: bool = _schema_at_least_1(meta.get("best_model_schema")) and (
             not grids or "is_primary" in grids[0]
         )
         self.made_at: str = self.manifest["made_at"]
@@ -325,7 +332,14 @@ class ExportStore:
             self.teams[int(r["team_id"])] = {
                 "id": int(r["team_id"]), "abbr": r["abbr"], "city": city, "name": name,
             }  # fmt: skip
-        games = {r["game_id"]: r for r in tables["games"]}
+        # A game with no home or away team cannot be shown or placed: skip it and count it, so
+        # one damaged row never takes the whole store down.
+        games = {
+            r["game_id"]: r
+            for r in tables["games"]
+            if r["home_team"] is not None and r["away_team"] is not None
+        }
+        self.skipped_games: int = len(tables["games"]) - len(games)
         box = tables["box_scores"]
         played = [b for b in box if b["minutes"] is not None and b["minutes"] > 0]
         by_game_box: dict[str, list[Json]] = defaultdict(list)
@@ -811,6 +825,14 @@ class ExportStore:
                 *self._stat_stubs(),
                 "Home or away is known only for games inside the export's lookback window "
                 f"({m.get('lookback_days')} days); older games are left out of home/away splits.",
+                *(
+                    [
+                        f"{self.skipped_games} game(s) in the export have no home or away team "
+                        "and are not shown."
+                    ]
+                    if self.skipped_games
+                    else []
+                ),
                 f"{self.unplaced_total} forecast players could not be placed on a team "
                 "(no earlier box score or injury-report line) and are not listed.",
             ],

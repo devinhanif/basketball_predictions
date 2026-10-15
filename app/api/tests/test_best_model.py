@@ -268,3 +268,22 @@ def test_labels_do_not_print_a_version_string(export_client: TestClient) -> None
         assert "v1" not in pr["model_label"]
         if pr["model_source"] != "avg":
             assert pr["model_detail"] == "props_context_residual v1"
+
+
+# ------------------------------------------------------------------ damaged rows, schema number
+
+
+def test_a_game_with_null_teams_is_skipped_not_fatal(export_dir: Path) -> None:
+    edit_db(export_dir, f"UPDATE games SET home_team = NULL WHERE game_id = '{MIXED}'")
+    s = ExportStore(export_dir)
+    assert s.skipped_games == 1 and MIXED not in s.games and FRESH in s.games
+    assert "no home or away team" in " ".join(s.meta()["stubs"])
+    edit_db(export_dir, f"UPDATE games SET away_team = NULL WHERE game_id = '{FRESH}'")
+    assert ExportStore(export_dir).skipped_games == 2
+
+
+@pytest.mark.parametrize(("value", "on"), [("1", True), ("2", True), (" 1 ", True), ("0", False),
+                                           ("junk", False), ("", False)])  # fmt: skip
+def test_best_model_schema_is_read_as_an_integer(export_dir: Path, value: str, on: bool) -> None:
+    edit_db(export_dir, f"UPDATE meta SET value = '{value}' WHERE key = 'best_model_schema'")
+    assert ExportStore(export_dir).best_model is on

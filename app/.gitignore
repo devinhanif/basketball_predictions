@@ -10,3 +10,4 @@ __pycache__/
 *.log
 # the committed test export (the repo root ignores *.duckdb)
 !fixtures/export_small/export.duckdb
+!fixtures/export_best_real/export.duckdb
