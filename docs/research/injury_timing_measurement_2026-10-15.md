@@ -92,3 +92,22 @@ Not negligible: the status churn is large (about half a rotation OUT per game in
 * The live lead distribution (no 2026-27 pulls exist).
 * That the 2021-22 transition rates carry to 2023-24 (regime differences listed above).
 * Whether late-OUT misses in the stale list change production's forecasts for stars' teammates by more than the aggregate sensitivity shows (needs a refit with the repaired table; that is the rule).
+
+## 12. Revision 2 (2026-10-15 16:2x CDT): the intraday repair, gate and the true T-180 to T-60 gap
+
+Inputs: scratch duckdb `data/scratch/injury_intraday.duckdb` (sha256 `24f0e1a5...bc100`, 353,809 rows, hourly 12:00-21:00 ET, 4,194 PDFs, 0 failures; `nba/ingest/injury_intraday.py`), unioned with the stored table; read-only; `season <= 2024`; season 2025 not loaded. Script `research/scratch/injury_timing_gap.py`, table `reports/injury_timing/gap_2023_24.json` (seed 2026, B = 2000, game-clustered).
+
+**Gate (same thresholds as before, run `Thu Oct 15 16:29:44 CDT 2026` to `16:29:45`): PASS.** Used-lead share <= 90 min 1.000 / 0.986 (2023 / 2024), lead p10/p50/p90 60/60/90, 15.4 / 15.1 stamps per game, OUT set differs from the stored snapshot in 613 / 791 of 1,317 games.
+
+**True latest <= T-180 vs latest <= T-60 (stamp gap 2 h in the median game), events per game, both teams:**
+
+| event | 2023 (n 1,308 games) | 2024 (n 1,300 games) | 2021-22 proxy (superseded) |
+|---|---|---|---|
+| OUT added, all | 1.04 [0.97, 1.12] | 1.12 [1.05, 1.18] | 0.84 |
+| OUT added, rotation | 0.56 [0.51, 0.60] | 0.64 [0.59, 0.69] | 0.53 |
+| OUT removed, rotation | 0.003 [0.000, 0.007] | 0.008 [0.002, 0.015] | 0.015 |
+| Q/D to OUT, rotation | 0.51 [0.47, 0.56] | 0.59 [0.54, 0.64] | 0.43 |
+| Q/D cleared, rotation | 0.54 [0.50, 0.58] | 0.50 [0.46, 0.55] | 0.42 |
+| any change, rotation | 1.48 [1.41, 1.56] | 1.60 [1.52, 1.68] | 1.18 |
+
+Players listed Q or D at T-180 and OUT at T-60: 44.9% (1,145 of 2,550) in 2023, 47.5% (1,210 of 2,549) in 2024. Tag meaning, P(played | Q) with game-clustered CI: Q at T-180 0.484 [0.462, 0.507] (n 2,287) / 0.467 [0.444, 0.489] (2,240); Q at T-60 0.604 [0.542, 0.670] (336) / 0.547 [0.483, 0.612] (254); Q at T-180 that became OUT 0.000 (911 / 941); became Available 0.862 / 0.858 (1,057 each). The 2021-22 proxy understated the OUT flow (and Q/D to OUT is larger than the proxy by 0.08-0.16 per game); direction of every conclusion in sections 3-6 is unchanged, and the stale-list exposure is about twice what section 5's bound assumed, so the all-rows bound there (0.001 to 0.014) should be read with the upper end more plausible.

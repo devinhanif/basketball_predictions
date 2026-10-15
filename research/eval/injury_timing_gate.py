@@ -2,7 +2,7 @@
 """INJURY_TIMING minimum-data gate and data-capture audit (rule: docs/prereg/INJURY_TIMING.md; DRAFT until frozen).
 
     .venv/bin/python -W ignore -m research.eval.injury_timing_gate --data-root /Users/devin/Downloads/nba-prediction \
-        [--repaired <path to a duckdb holding the repaired player_availability table>]
+        [--repaired <scratch duckdb holding the intraday player_availability table; unioned with the stored table>]
 
 Counts and lead times only: no outcome (minutes, points) is read by this file. ``--data-root`` holds ``nba.duckdb`` and ``data/schedule``;
 both are opened read-only with ``season <= 2024`` in SQL and ``max_season=2024`` on the schedule. Without ``--repaired`` the gate
@@ -68,6 +68,11 @@ def rows_from_db(db: Path, tips: pl.DataFrame, seasons: tuple[int, ...] = SEASON
     )
     df = df.join(tips.select(["game_id", "tip_et"]), on="game_id", how="inner")
     return df
+
+
+def repaired_union(stored: pl.DataFrame, intraday: pl.DataFrame) -> pl.DataFrame:
+    """R = every stamp we hold: the stored 11:00 / 17:00 pair plus the scratch intraday table (hourly 12:00-21:00 ET)."""
+    return pl.concat([stored, intraday.select(stored.columns)]).unique()
 
 
 def season_games(db: Path, seasons: tuple[int, ...] = SEASONS) -> dict[int, int]:
@@ -167,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     db = root / "nba.duckdb"
     counts = season_games(db)
     stored = rows_from_db(db, tips)
-    repaired = rows_from_db(a.repaired, tips) if a.repaired else None
+    repaired = repaired_union(stored, rows_from_db(a.repaired, tips)) if a.repaired else None
     blocks: dict[str, dict[str, Any]] = {}
     for s in SEASONS:
         base = repaired if repaired is not None else stored

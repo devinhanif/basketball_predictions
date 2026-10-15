@@ -1,0 +1,349 @@
+{
+ "scratch_db": "/Users/devin/Downloads/nba-prediction/data/scratch/injury_intraday.duckdb",
+ "seed": 2026,
+ "B": 2000,
+ "2023": {
+  "games_total": 1318,
+  "games_with_T60": 1317,
+  "games_with_distinct_T180_T60": 1308,
+  "lead60_p10_p50_p90": [
+   60.0,
+   60.0,
+   90.0
+  ],
+  "share_lead60_le90": 1.0,
+  "stamp_gap_hours_p10_p50_p90": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "events_per_game": {
+   "out_added": {
+    "per_game_all": [
+     1.0428134556574924,
+     0.9671253822629969,
+     1.114678899082569
+    ],
+    "per_game_rotation": [
+     0.5573394495412844,
+     0.5114678899082569,
+     0.599388379204893
+    ],
+    "total_all": 1364,
+    "total_rotation": 729
+   },
+   "out_removed": {
+    "per_game_all": [
+     0.03211009174311927,
+     0.020642201834862386,
+     0.04434250764525994
+    ],
+    "per_game_rotation": [
+     0.0030581039755351682,
+     0.0,
+     0.006899847094801119
+    ],
+    "total_all": 42,
+    "total_rotation": 4
+   },
+   "qd_to_out": {
+    "per_game_all": [
+     0.8753822629969419,
+     0.8142201834862385,
+     0.9396024464831805
+    ],
+    "per_game_rotation": [
+     0.5129969418960245,
+     0.4717125382262997,
+     0.5573394495412844
+    ],
+    "total_all": 1145,
+    "total_rotation": 671
+   },
+   "qd_cleared": {
+    "per_game_all": [
+     0.8142201834862385,
+     0.7584097859327217,
+     0.8707951070336392
+    ],
+    "per_game_rotation": [
+     0.5397553516819572,
+     0.49770642201834864,
+     0.5825688073394495
+    ],
+    "total_all": 1065,
+    "total_rotation": 706
+   },
+   "qd_added": {
+    "per_game_all": [
+     0.01452599388379205,
+     0.008409785932721712,
+     0.021406727828746176
+    ],
+    "per_game_rotation": [
+     0.009174311926605505,
+     0.0045871559633027525,
+     0.01452599388379205
+    ],
+    "total_all": 19,
+    "total_rotation": 12
+   },
+   "any_change": {
+    "per_game_all": [
+     2.374617737003058,
+     2.2622324159021407,
+     2.4939029051987767
+    ],
+    "per_game_rotation": [
+     1.480886850152905,
+     1.4059633027522935,
+     1.558868501529052
+    ],
+    "total_all": 3106,
+    "total_rotation": 1937
+   },
+   "n_games": 1308
+  },
+  "matrix": {
+   "absent->available": 7,
+   "absent->out": 202,
+   "absent->probable": 1,
+   "absent->questionable": 17,
+   "available->available": 626,
+   "available->out": 3,
+   "available->questionable": 1,
+   "doubtful->available": 7,
+   "doubtful->doubtful": 21,
+   "doubtful->out": 234,
+   "doubtful->questionable": 1,
+   "out->absent": 16,
+   "out->available": 25,
+   "out->out": 8966,
+   "out->questionable": 1,
+   "probable->available": 604,
+   "probable->out": 14,
+   "probable->probable": 99,
+   "probable->questionable": 1,
+   "questionable->available": 1057,
+   "questionable->doubtful": 3,
+   "questionable->out": 911,
+   "questionable->probable": 1,
+   "questionable->questionable": 315
+  },
+  "P_played": {
+   "T180:questionable": [
+    0.4844774814167031,
+    0.4619491482116939,
+    0.5072282730774846,
+    2287
+   ],
+   "T60:questionable": [
+    0.6041666666666666,
+    0.5423151262724103,
+    0.6697276831221785,
+    336
+   ],
+   "T180:doubtful": [
+    0.019011406844106463,
+    0.0038606326106326106,
+    0.036,
+    263
+   ],
+   "T60:doubtful": [
+    0.0,
+    0.0,
+    0.0,
+    24
+   ],
+   "Q@T180 then questionable@T60": [
+    0.6222222222222222,
+    0.559483899529335,
+    0.6915584415584416,
+    315
+   ],
+   "Q@T180 then out@T60": [
+    0.0,
+    0.0,
+    0.0,
+    911
+   ],
+   "Q@T180 then available@T60": [
+    0.8618732261116367,
+    0.8363778291889793,
+    0.8876219676549866,
+    1057
+   ]
+  }
+ },
+ "2024": {
+  "games_total": 1320,
+  "games_with_T60": 1319,
+  "games_with_distinct_T180_T60": 1300,
+  "lead60_p10_p50_p90": [
+   60.0,
+   60.0,
+   90.0
+  ],
+  "share_lead60_le90": 0.9855951478392722,
+  "stamp_gap_hours_p10_p50_p90": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "events_per_game": {
+   "out_added": {
+    "per_game_all": [
+     1.116153846153846,
+     1.05,
+     1.1792307692307693
+    ],
+    "per_game_rotation": [
+     0.6376923076923077,
+     0.59,
+     0.6877115384615384
+    ],
+    "total_all": 1451,
+    "total_rotation": 829
+   },
+   "out_removed": {
+    "per_game_all": [
+     0.09076923076923077,
+     0.07153846153846154,
+     0.11153846153846154
+    ],
+    "per_game_rotation": [
+     0.007692307692307693,
+     0.002307692307692308,
+     0.015384615384615385
+    ],
+    "total_all": 118,
+    "total_rotation": 10
+   },
+   "qd_to_out": {
+    "per_game_all": [
+     0.9307692307692308,
+     0.8722884615384616,
+     0.9877115384615384
+    ],
+    "per_game_rotation": [
+     0.5915384615384616,
+     0.5438461538461539,
+     0.6384807692307691
+    ],
+    "total_all": 1210,
+    "total_rotation": 769
+   },
+   "qd_cleared": {
+    "per_game_all": [
+     0.823076923076923,
+     0.7669230769230769,
+     0.8869230769230769
+    ],
+    "per_game_rotation": [
+     0.5038461538461538,
+     0.4615192307692308,
+     0.5461730769230768
+    ],
+    "total_all": 1070,
+    "total_rotation": 655
+   },
+   "qd_added": {
+    "per_game_all": [
+     0.014615384615384615,
+     0.008461538461538461,
+     0.021538461538461538
+    ],
+    "per_game_rotation": [
+     0.009230769230769232,
+     0.004615384615384616,
+     0.014615384615384615
+    ],
+    "total_all": 19,
+    "total_rotation": 12
+   },
+   "any_change": {
+    "per_game_all": [
+     2.6215384615384614,
+     2.5084423076923077,
+     2.7315576923076925
+    ],
+    "per_game_rotation": [
+     1.5976923076923077,
+     1.5199807692307692,
+     1.6807692307692308
+    ],
+    "total_all": 3408,
+    "total_rotation": 2077
+   },
+   "n_games": 1300
+  },
+  "matrix": {
+   "absent->available": 9,
+   "absent->out": 216,
+   "absent->questionable": 17,
+   "available->available": 590,
+   "available->out": 3,
+   "available->questionable": 1,
+   "doubtful->available": 6,
+   "doubtful->doubtful": 32,
+   "doubtful->out": 269,
+   "doubtful->questionable": 2,
+   "out->absent": 72,
+   "out->available": 46,
+   "out->out": 9680,
+   "probable->available": 738,
+   "probable->doubtful": 1,
+   "probable->out": 22,
+   "probable->probable": 110,
+   "questionable->available": 1057,
+   "questionable->doubtful": 1,
+   "questionable->out": 941,
+   "questionable->probable": 7,
+   "questionable->questionable": 234
+  },
+  "P_played": {
+   "T180:questionable": [
+    0.4674107142857143,
+    0.44379984850804177,
+    0.4894036581888777,
+    2240
+   ],
+   "T60:questionable": [
+    0.547244094488189,
+    0.48301236174365647,
+    0.611545358649789,
+    254
+   ],
+   "T180:doubtful": [
+    0.019417475728155338,
+    0.006288815283610339,
+    0.03607152518530539,
+    309
+   ],
+   "T60:doubtful": [
+    0.029411764705882353,
+    0.0,
+    0.1111111111111111,
+    34
+   ],
+   "Q@T180 then questionable@T60": [
+    0.5683760683760684,
+    0.49794108454446007,
+    0.6363738279657561,
+    234
+   ],
+   "Q@T180 then out@T60": [
+    0.0,
+    0.0,
+    0.0,
+    941
+   ],
+   "Q@T180 then available@T60": [
+    0.8580889309366131,
+    0.8331743349196534,
+    0.8822997873848334,
+    1057
+   ]
+  }
+ }
+}
