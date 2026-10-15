@@ -57,6 +57,20 @@ EXPOSED_POOLED = "(2023-24, exposed: LC select season)"
 SELECT_SHA = "2df7fb056f4b12de314b407eeaada816a87772fa544055edf639c529fcb85b6c"
 ALT_COMMON_SHA = "44fd28db21c73769917f9c89008d476bd0648ad7444d4d9c7c8d2b89d74d8c5e"
 OUT_DIR = Path("reports/prereg_parlay_joint_cal")
+INPUT_PINS = {
+    "data/ops/model_clv_pairs/pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+    "data/ops/model_clv_pairs/pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
+    "reports/odds_history/model_rows_2023.parquet": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
+    "reports/odds_history/model_rows_2024.parquet": "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70",
+    "reports/prereg_parlay_joint_cal/gate.json": "4b57377d6b21ebdad11714dead1dce64d809046b372a1dd848260a5132e51aeb",
+}
+PINNED_VERSIONS = {"numpy": "2.5.3", "polars": "1.44.2", "scipy": "1.18.1"}
+
+
+def versions() -> dict[str, str]:
+    import scipy
+
+    return {"numpy": np.__version__, "polars": pl.__version__, "scipy": scipy.__version__}
 
 
 def _log(msg: str) -> None:
@@ -335,9 +349,9 @@ def load_cal(
             ident[f"{book}|{s}"] = {f"{r['stat']}|{r['block']}": bool(r["identity"]) for r in info}
     if np.isnan(pcal).any():
         raise RuntimeError("a leg without a CAL probability")
-    lab = d.select("game_id", "player_id", "stat", "book", "season", "over").with_columns(
-        pl.Series("p_cal", pcal)
-    )
+    lab = d.select(
+        "game_id", "player_id", "stat", "book", "season", "over", "p_model"
+    ).with_columns(pl.Series("p_cal", pcal))
     return lab, ident
 
 
@@ -851,10 +865,46 @@ def run(
             == ahc.file_sha256(Path(gate.__file__)),
             "",
         )
-    rows = read_rows(root, real)
-    y_arr = rows["y"].to_numpy().astype(float) if real else synthetic_y(rows, temper)
+    # R2: the inputs are pinned by sha256 before any label is read
+    for rel, want in INPUT_PINS.items():
+        got = ahc.file_sha256(root / rel)
+        pf.add(f"{rel} sha256 pinned", got == want, got[:8])
+    if real:
+        pf.add(
+            "scipy/numpy/polars versions equal the rule's",
+            versions() == PINNED_VERSIONS,
+            json.dumps(versions()),
+        )
+    # R1: in score mode every hash check and the freeze come first; labels are read only after pf.require()
     ysyn_map = None
-    if not real:
+    rows: pl.DataFrame | None = None
+    y_arr = np.zeros(0)
+    if real:
+        pf.require()
+        sel = json.loads(sel_path.read_text())
+        lab, ident = load_cal(root, True, None)
+        for book in BOOKS:
+            sub = lab.filter((pl.col("book") == book) & (pl.col("season") == REPORT))
+            over = sub["over"].to_numpy()
+            cal_ll = float(lc.ll(sub["p_cal"].to_numpy(), over).mean())
+            pm = np.clip(sub["p_model"].to_numpy().astype(float), lc.EPS, 1 - lc.EPS)
+            a0_ll = float(lc.ll(pm, over).mean())
+            pf.add(
+                f"{book} 2024 CAL log loss equals select.json to 1e-9",
+                abs(cal_ll - sel[book]["ll"]["CAL"]) < 1e-9,
+                f"{cal_ll!r}",
+            )
+            pf.add(
+                f"{book} 2024 A0 log loss equals select.json to 1e-9",
+                abs(a0_ll - sel[book]["ll"]["A0"]) < 1e-9,
+                f"{a0_ll!r}",
+            )
+        pf.require()
+        rows = read_rows(root, True)
+        y_arr = rows["y"].to_numpy().astype(float)
+    else:
+        rows = read_rows(root, False)
+        y_arr = synthetic_y(rows, temper)
         ysyn_map = {
             (g, p, st): float(v)
             for g, p, st, v in zip(
@@ -865,24 +915,13 @@ def run(
                 strict=True,
             )
         }
+        lab, ident = load_cal(root, False, ysyn_map)
     gs = build_game_stats(rows, y_arr)
-    lab, ident = load_cal(root, real, ysyn_map)
-    if real:
-        sel = json.loads(sel_path.read_text())
-        for book in BOOKS:
-            sub = lab.filter((pl.col("book") == book) & (pl.col("season") == REPORT))
-            # the A0 comparison needs p_model: recompute CAL log loss on the frame
-            cal_ll = float(lc.ll(sub["p_cal"].to_numpy(), sub["over"].to_numpy()).mean())
-            pf.add(
-                f"{book} 2024 CAL log loss equals select.json to 1e-9",
-                abs(cal_ll - sel[book]["ll"]["CAL"]) < 1e-9,
-                f"{cal_ll!r}",
-            )
     pf.require()
     out_dir.mkdir(parents=True, exist_ok=True)
     result: dict[str, Any] = {
         "mode": "score" if real else "rehearse (synthetic labels; no real outcome read)",
-        "stride": stride, "preflight": pf.as_dicts(), "harness_pin": pin,
+        "stride": stride, "versions": versions(), "preflight": pf.as_dicts(), "harness_pin": pin,
         "started": time.strftime("%a %b %d %H:%M:%S %Z %Y"), "books": {},
     }  # fmt: skip
     for book in books:

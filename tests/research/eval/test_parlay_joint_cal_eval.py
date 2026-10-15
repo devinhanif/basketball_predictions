@@ -13,6 +13,7 @@ import pytest
 
 from nba.parlay.copula import ResidualRow, build_corr_matrix, estimate_pair_corr
 from nba.parlay.legs import Leg
+from research.eval import alt_harness_common as ahc
 from research.eval import parlay_joint_cal_eval as ev
 from research.eval import parlay_joint_cal_rule as rule
 
@@ -166,3 +167,20 @@ def test_freeze_refusals(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError):
         rule.require_harness_pinned(sha, run=lambda *a: "")
     assert dt.date(2024, 1, 1)
+
+
+def test_score_reads_no_label_before_the_hash_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    called: list[str] = []
+    monkeypatch.setattr(rule, "require_frozen", lambda sha: "x")
+    monkeypatch.setattr(rule, "require_harness_pinned", lambda sha: {})
+    monkeypatch.setattr(ahc, "file_sha256", lambda p: "0" * 64)  # every pin fails
+    monkeypatch.setattr(ev, "read_rows", lambda *a, **k: called.append("read_rows"))
+    monkeypatch.setattr(ev, "load_cal", lambda *a, **k: called.append("load_cal"))
+    with pytest.raises(ahc.PreregError):
+        ev.run(tmp_path, True, 1, ["draftkings"], "0" * 64, tmp_path)
+    assert called == []
+    with pytest.raises(RuntimeError):  # unfrozen rule: refuses first
+        monkeypatch.undo()
+        ev.run(tmp_path, True, 1, ["draftkings"], None, tmp_path)
