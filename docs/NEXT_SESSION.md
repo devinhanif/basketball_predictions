@@ -2,6 +2,29 @@
 
 _Updated 2026-10-14 20:27 CDT. Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
+## 2026-10-14 late evening (after "gnn"; Devin back)
+Done (DECISIONS 20:31 and 21:30; main e35dce9):
+- **App shows the best-evidenced model (Devin: "get rid of the timeline, best model into the front end asap").** Props from AVG
+  (T478, the only 2025-holdout pass) when a fresh pre-tip regular-season row exists and production's inputs are unchanged; else
+  production with a stated reason; P(play) from R unless out on the report (0%) or R is behind production. Export 15175c1 + app
+  6bea14c MERGED after review BLOCKED x2 -> APPROVED (docs/reviews/best_model_e2e_review_2026-10-14.md). Scoring untouched.
+  No AVG/R rows exist yet (preseason); opening night is the first real check. AVG needs the November bundle before 11-01 or the
+  app silently falls back to production everywhere.
+- **A1 built and APPROVED** (agent/steward-export-gate 92ab046): export gates on morning data steps, Drive-backup failures exempt.
+  NOT MERGED: Claude's merge was blocked by auto mode (live path ops/). Devin runs:
+  `git merge --no-ff origin/agent/steward-export-gate -m "merge agent/steward-export-gate: export gates on morning data steps (A1)" && git push`
+- **WOWY_STRUCT / F1:** power re-measure done from stored grids only (agent/modeler-wowy 941fa76; all cells >= 0.5, pts top-25%
+  2023 thin at 0.55, kept). It is a proxy: a 2019+ A0_warm fit IS F1's arm C, so order is F1 edits -> Devin signs F1 -> freeze ->
+  F1 run -> strict WOWY re-measure from C's forecasts -> WOWY freeze. F1 pre-freeze review APPROVED WITH EDITS, 10 edits
+  (agent/adversary-f1-prefreeze b02d403), not yet applied. Devin open: F1-first order, count floors -0.0025 (Claude: keep),
+  WOWY E7(e) wording (only F1 licenses a window change).
+- **Parlay context:** EV closed; PARLAY_CONTEXT_PROB gate FAILED on power (best 0.24; agent/market-context-prob 02797f8), not
+  frozen, closed. Lead: model P(over) 3-4 pp too low at DK lines (overlaps T477/LC2); check before any new rule.
+- Still Devin: AVG meta records (meta bundle, five proofs, counting-start 2026-10-20); COMBO counting start; eyeball the new model
+  sentences at 375 px light/dark (Today, Game pages).
+- Loose ends (review minors): p_play rows for dropped no-team games; reader production post-tip check `>` vs `>=`; morning report
+  should show primary-source counts (pts silently falls back if the _lt model stops logging).
+
 ## STOPPED 2026-10-14 ~20:27 CDT (Devin: "gnn")
 Done this evening (commits 7ae5b55..c182440 on main; DECISIONS rows for each):
 - **Wiring branch MERGED** to main 1dbee39 on Devin's conditional go: steward fixes 3ccacde (S1 budget 420 s, S2 counting_start
