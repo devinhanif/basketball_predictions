@@ -166,15 +166,18 @@ function Body({ d, checkToday }: { d: TopParlays; checkToday: boolean }) {
       <div class="kicker">{d.illustration ? "ILLUSTRATION" : "Most confident parlays"}</div>
       <h2 id="tp-h">
         {d.illustration
-          ? "ILLUSTRATION: synthetic, not a real night"
+          ? d.fixture?.kind === "hindsight_illustration"
+            ? "ILLUSTRATION: a past night in hindsight, not a forecast"
+            : "ILLUSTRATION: synthetic, not a real night"
           : `Our most confident tickets for ${longDate(d.slate_date)}`}
       </h2>
       <Verdict d={d} />
       <GateLine g={d.gate} />
       {d.illustration ? (
         <p class="notice small" role="note">
-          Illustration only: the players, lines, prices and chances in this file are synthetic. It stands for the shape of a
-          real night and says nothing about one.
+          {d.fixture?.kind === "hindsight_illustration"
+            ? `Illustration only. ${d.fixture.label} It was not a recommendation at the time and says nothing about tonight.`
+            : "Illustration only: the players, lines, prices and chances in this file are synthetic. It stands for the shape of a real night and says nothing about one."}
         </p>
       ) : null}
       {stale ? (

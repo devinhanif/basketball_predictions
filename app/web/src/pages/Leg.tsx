@@ -176,6 +176,45 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
   );
 }
 
+/** A player with no earlier games in the loaded data (a preseason export): say so, show only what exists. */
+function NoHistory({ data, side, line, row }: { data: LegBreakdown; side: Side; line: number; row: LadderRow | null }) {
+  const p = row ? rowModel(row, side) : data.model.p_hit;
+  const price = row ? (side === "over" ? row.over_price : row.under_price) : null;
+  return (
+    <section class="panel flat" aria-label="No game history loaded">
+      <h3>No earlier games are loaded for this player</h3>
+      <p class="small">
+        This data holds none of his games before {longDate(data.as_of_date)}, so there is no last 5, last 10, split or
+        teammates-out history to show, and no hit rate. We show only what is stored.
+      </p>
+      <div class="leg-tiles">
+        <div class={`leg-tile${data.model.available ? " model" : " nomodel"}`}>
+          <div class="label">Our model</div>
+          {data.model.available && p !== null ? (
+            <>
+              <div class="leg-big num">{modelPct(p)}</div>
+              <div class="leg-sub">
+                to go {side} {lineText(line)}
+              </div>
+            </>
+          ) : (
+            <div class="leg-sub strong">No model forecast for this stat yet</div>
+          )}
+        </div>
+      </div>
+      <p class="small num leg-price">
+        {price !== null ? (
+          <>
+            {side === "over" ? "Over" : "Under"} <b>{american(price)}</b> at {lineText(line)}.
+          </>
+        ) : (
+          <span class="muted">No price is stored for this line.</span>
+        )}
+      </p>
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------------ the last ten games */
 function ChipItem({ c }: { c: Chip }) {
   const word = c.state === "hit" ? "Hit" : c.state === "miss" ? "Miss" : "Push";
@@ -712,17 +751,26 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
         onLine={setLine}
         onSide={setSide}
       />
-      <Headline data={data} row={row} side={side} line={shown} fresh={fresh} />
-      <InWords data={data} />
-      <HeadsUp data={data} />
-      <Games data={data} side={side} line={shown} row={row} />
-      <ModelPanel data={data} side={side} line={shown} row={row} />
-      <Ladder data={data} line={shown} side={side} onLine={setLine} />
-      <Books data={data} line={shown} />
-      <Splits data={data} side={side} line={shown} />
-      <Teammates data={data} side={side} line={shown} />
-      <RolePanel data={data} />
-      <Opponent data={data} />
+      {data.prior_games === 0 ? (
+        <>
+          <NoHistory data={data} side={side} line={shown} row={row} />
+          <Books data={data} line={shown} />
+        </>
+      ) : (
+        <>
+          <Headline data={data} row={row} side={side} line={shown} fresh={fresh} />
+          <InWords data={data} />
+          <HeadsUp data={data} />
+          <Games data={data} side={side} line={shown} row={row} />
+          <ModelPanel data={data} side={side} line={shown} row={row} />
+          <Ladder data={data} line={shown} side={side} onLine={setLine} />
+          <Books data={data} line={shown} />
+          <Splits data={data} side={side} line={shown} />
+          <Teammates data={data} side={side} line={shown} />
+          <RolePanel data={data} />
+          <Opponent data={data} />
+        </>
+      )}
       {error ? (
         <p role="alert" class="small">
           Could not refresh: {error}{" "}

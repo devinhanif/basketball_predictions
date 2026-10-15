@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .role import PlayerRole
 
@@ -25,6 +25,23 @@ class WinProbability(BaseModel):
     market_home: float | None
     market_name: str
     market_snapshot_utc: str | None
+
+
+class RungLine(BaseModel):
+    line: float
+    p_over: float = Field(ge=0, le=1)
+
+
+class RungCal(BaseModel):
+    """docs/contracts/rung_cal_export_v1.md: the frozen CAL-rung map applied to the model's own
+    P(over) at each half-point line from the 5th to the 95th percentile. No price, no EV."""
+
+    book: str
+    main_line: float
+    price_at: str | None = None
+    map_version: str
+    map_sha8: str
+    lines: list[RungLine]
 
 
 class PropView(BaseModel):
@@ -54,6 +71,10 @@ class PropView(BaseModel):
     model_detail: str | None = None
     p_play: float | None = None
     p_play_label: str | None = None
+    # Optional export fields (contract rung_cal_export_v1): the newest pre-tip two-sided book main
+    # line, and the rung-calibrated P(over) per line. Both null when the export holds none.
+    book_main_line: float | None = None
+    rung_cal: RungCal | None = None
 
 
 class PlayerView(BaseModel):
@@ -140,3 +161,69 @@ class SwipeDeck(BaseModel):
     seed: int
     cards: list[SwipeCard]
     note: str
+
+
+class Dist(BaseModel):
+    """The model's stored distribution as P(Y >= k) for k = 0, 1, 2, ... (integer counts), so
+    P(over k.5) = p_ge[k+1] with no interpolation. `exact` means the full-support table; `quantile`
+    means the 19-point quantile grid read by interpolation (fixtures), which is rougher."""
+
+    method: Literal["exact", "quantile"]
+    n: int | None
+    p_ge: list[float]
+    line_min: float
+    line_max: float
+    mean: float | None
+
+
+class HitTen(BaseModel):
+    n: int
+    hits: int
+    pushes: int
+    line: float
+
+
+class MateOut(BaseModel):
+    name: str
+    status: str
+
+
+class CardStats(BaseModel):
+    """Plain as-of-before-tip facts for one prop: nothing from tonight's game."""
+
+    as_of_date: str
+    prior_games: int
+    last5: list[int]
+    last10: list[int]
+    avg5: float | None
+    avg10: float | None
+    avg_season: float | None
+    n_season: int
+    min5: float | None
+    min_season: float | None
+    hit10_over: HitTen
+    teammates_out: list[MateOut]
+    teammates_known: bool
+
+
+class CardView(BaseModel):
+    prop_id: str
+    game_id: str
+    player_id: int
+    player: str
+    team: str
+    opponent: str
+    home: bool
+    stat: Stat
+    line: float
+    line_source: Literal["posted", "reference"]
+    over_price: int | None
+    under_price: int | None
+    price_book: str | None
+    book_main_line: float | None
+    rung_cal: RungCal | None
+    dist: Dist
+    stats: CardStats | None
+    forecast_stamp: str
+    model_label: str
+    tip_utc: str

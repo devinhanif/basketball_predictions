@@ -97,7 +97,7 @@ any game from a later season. `fixtures/manifest.json` records the verbatim quer
 
 `/api/meta`, `/api/slates`, `/api/slates/{date}`, `/api/games/{id}`, `/api/games/{id}/result`,
 `/api/props/{game_id}/{player_id}/{stat}?line=`, `/api/breakdown/{game_id}/{player_id}/{stat}?line=&side=`, `/api/slates/{date}/swipe?seed=&n=`, `/api/slates/{date}/results`,
-`/api/parlay-of-the-day`, `/api/evidence`. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
+`/api/card/{game_id}/{player_id}/{stat}` (swipe-card stats and the full distribution grid, fetched only when the user opens it), `/api/parlay-of-the-day`, `/api/evidence`. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
 quantiles by interpolation with a continuity correction for integer counts: an approximation, labelled as one.
 
 ## Reading the nightly export (`APP_EXPORT_DIR`)
@@ -208,3 +208,13 @@ play is `p_play_primary` with its source (availability model R, production, or o
 An older export keeps the production-only behaviour and says so. Fixtures: `fixtures/export_small` (best-model rows
 added by `fixtures/add_best_model_rows.py`) and `fixtures/export_best_real` (written by the real exporter via
 `fixtures/build_export_best_real.py --repo <checkout with nba/export/best_model.py>`).
+
+## Fonts and the line slider
+
+Fonts are self-hosted woff2 under `app/web/src/fonts/` (Barlow Condensed for headings and big numbers, IBM Plex Sans for text;
+both SIL OFL 1.1, licences beside the files). No font service is contacted. Numbers use tabular figures everywhere.
+
+The swipe card's "Stats and line slider" reads `/api/card/...`: P(Y >= k) from the stored full-support table (P(over k.5) =
+P(Y >= k+1)), `rung_cal` lines when the export carries them (docs/contracts/rung_cal_export_v1.md; only lines with raw P(over) >= 0.5
+are listed), else the raw model labelled "model only". Opening it records the pick as `saw_model: true`. The fixture prop with a
+synthetic `rung_cal` is planted by `uv run --script app/fixtures/add_rung_cal_example.py`.

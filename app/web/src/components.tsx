@@ -150,6 +150,23 @@ export function Loading() {
 }
 
 export function ErrorPanel(props: { message: string; retry: () => void }) {
+  if (/^404 /.test(props.message)) {
+    return (
+      <div class="panel error" role="alert">
+        <h2>Not in the loaded data</h2>
+        <p>
+          That page points to something this data does not hold (a game, player or stat that is not in the current export).
+          The server is fine.
+        </p>
+        <p class="muted small">
+          Technical detail: <span class="mono">{props.message}</span>
+        </p>
+        <a class="btn" href="#/">
+          Back to today
+        </a>
+      </div>
+    );
+  }
   return (
     <div class="panel error" role="alert">
       <h2>Could not load this</h2>

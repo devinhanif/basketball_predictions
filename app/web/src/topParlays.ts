@@ -58,6 +58,7 @@ export interface TopParlays {
   verdict: string;
   empty_reason: string | null;
   sizes: Record<"2" | "3", TpTicket[]>;
+  fixture?: { kind: string; label: string } | null;
   caveats: string[];
 }
 

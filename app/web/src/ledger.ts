@@ -1,7 +1,7 @@
 import type { ResultRow, Stat } from "./types";
 import { MIN_LEGS, wilson } from "./stats";
 
-/** One row per swiped card. Paper only: no stake, no units. Blind by default (saw_model false). */
+/** One row per swiped card. Paper only: no stake, no units. Blind by default (saw_model false); opening the forecast panel sets it. */
 export interface Pick {
   id: string;
   prop_id: string;
@@ -22,7 +22,8 @@ export interface Pick {
   slate_clock: string;
   response_ms: number;
   source: "swipe";
-  saw_model: false;
+  /** True when the card's stats or line slider (which show our forecast) were opened before the pick. */
+  saw_model: boolean;
 }
 
 export const LEDGER_KEY = "ph.ledger.v1";
@@ -67,6 +68,7 @@ export function addPick(
   clockUtc: string,
   responseMs: number,
   now: Date = new Date(),
+  sawModel = false,
 ): { rows: Pick[]; result: AddResult } {
   if (!canPlace(card.tip_utc, clockUtc)) return { rows, result: { ok: false, reason: "after_tip" } };
   if (rows.some((r) => r.prop_id === card.prop_id)) {
@@ -80,7 +82,7 @@ export function addPick(
     slate_clock: clockUtc,
     response_ms: Math.max(0, Math.round(responseMs)),
     source: "swipe",
-    saw_model: false,
+    saw_model: sawModel,
   };
   const next = [...rows, pick];
   save(next);

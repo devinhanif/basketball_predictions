@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { api } from "../api";
+import { CardDetail } from "../CardDetail";
 import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
 import { american, bookName, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
@@ -92,6 +93,7 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
   const [notice, setNotice] = useState<string | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
   const shownAt = useRef(performance.now());
+  const revealed = useRef<string | null>(null);
   const card = initial[index];
   const { results, settled } = useSettled(ledger);
 
@@ -116,6 +118,8 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
         side,
         props.clock,
         performance.now() - shownAt.current,
+        new Date(),
+        revealed.current === card.prop_id,
       );
       setNotice(result.ok ? null : REASON[result.reason]);
       setLastId(result.ok && side !== "skip" ? card.prop_id : null);
@@ -179,6 +183,13 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
             Skip this one
           </button>
           <p class="hint">Swipe the card, or use the arrow keys: left for under, right for over, down to skip.</p>
+          <CardDetail
+            key={card.prop_id}
+            card={card}
+            onReveal={() => {
+              revealed.current = card.prop_id;
+            }}
+          />
         </div>
       ) : (
         <div class="panel empty">
@@ -225,9 +236,10 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
         <h1>Over or under?</h1>
         <Explain label="How does this work?">
           <p>
-            These are real player lines. You see the number and the price, nothing else: no forecast, no
-            stats. Your answer is locked in before tip-off, then graded against what actually happened. They are pretend
-            picks, so no money is involved, and your record is saved only on this device.
+            These are real player lines. By default you see the number and the price, nothing else: no forecast, no
+            stats. If you open "Stats and line slider" you see recent games and our forecast, and that pick is saved
+            as not blind. Your answer is locked in before tip-off, then graded against what actually happened. They are
+            pretend picks, so no money is involved, and your record is saved only on this device.
           </p>
         </Explain>
       </div>

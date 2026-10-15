@@ -1,4 +1,5 @@
 import type {
+  CardView,
   GameDetail,
   GameResult,
   Meta,
@@ -53,6 +54,8 @@ export const api = {
         line === null ? "" : `&line=${line.toString()}`
       }`,
     ),
+  card: (gameId: string, playerId: number, stat: string) =>
+    getJson<CardView>(`/api/card/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}`),
   parlay: () => getJson<ParlayState>("/api/parlay-of-the-day"),
   propAtLine: (gameId: string, playerId: number, stat: string, line: number) =>
     getJson<ProbAtLine>(
