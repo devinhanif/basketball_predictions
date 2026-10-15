@@ -1258,3 +1258,6 @@ What would reverse it: the oracle moving, or the fix needing a model change (the
 1. MEDIAN_BIAS signed: freeze 13138055, pin fd8b91c8, run once under heavy.lock.
 2. Holdout filter (agent/steward-holdout-filter 3c42394): holdout row logged first, replay oracle main vs branch, merge only if IDENTICAL 89889f6d.
 3. Combo prices: ingest the raw pull (data/raw/odds_combo_pull_2026-10-15, tree b72960a2) into odds_history.duckdb (six new markets only, 2025 guard, backup first, heavy.lock); then COMBO_LINE_CAL re-runs its gate.
+
+**2026-10-15 11:19 CDT — AVG and COMBO records written to nba.duckdb (Devin: "do the avg and combo records"); six-day plan removed ("get rid of the plan").**
+AVG: meta bundle data/avg_shadow/bundles/2026-10 (model_id b8d2b27b, gate 58043d34, fit_through 2026-06-13) and counting_start 2026-10-20 (all five proofs were recorded pass on 10-14). COMBO: record-shas (config 8932ccec, R 812421bf, base 08ddb2a2, model 0701b931), proofs P1 (p1_reference.npz; tests pass today), P2 (planted-future tests, p2.json), P3 (10-14 replay IDENTICAL with rows on 20/20 dates, p3.json), P4 (3.1 s mean per run, 3.67 MB per slate, p4.json), counting_start 2026-10-20. Written between pretip runs. Correction: the old plan put "Fri" on 10-17 (a Saturday); the last change day is Fri 10-16.
