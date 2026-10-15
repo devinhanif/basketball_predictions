@@ -69,9 +69,15 @@ T490_CAVEAT = (
 #: the main session, Devin may change it. No number is adjusted by hand.
 T495_CAVEAT = (
     "On random 2023-24 parlays these chances were accurate. The top picks use the most-confident "
-    "legs, and those came in about 3 to 5 points lower than shown at DraftKings (T495)."
+    "legs, and those came in about 3 to 5 points lower than shown at DraftKings (T495) "
+    "(n 1,149 top tickets; the interval includes zero)."
 )
-T490_NUMBERS = (0.70, 0.95, 9.8, 6.8, 12.9, 3337, 8.7, 5.5, 11.9, 3360, 24, 25)
+TAIL_FLAG = 0.65  # a leg at or above this calibrated probability is flagged (T495); display only
+TAIL_NOTE = (
+    "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), "
+    "most of them threes"
+)
+T490_NUMBERS = (0.70, 0.95, 9.8, 6.8, 12.9, 3337, 8.7, 5.5, 11.9, 3360, 1149, 24, 25)
 GATE_SETTLED_MIN = 30  # the frozen gate's bars (contract v2); the file never sets its own
 GATE_DATES_MIN = 14
 #: mirror of the app's banned-phrase screen (contract v2)
@@ -396,7 +402,7 @@ def guard_text(text: str, obj: Any, extra: Sequence[float] = ()) -> tuple[str, i
     """Run ``text`` through numguard against every number in ``obj``; return (text, n_removed).
     On any removal the text is replaced by a number-free sentence rather than shipped with a
     ``[number removed]`` marker."""
-    if BANNED.search(text):
+    if BANNED.search(text.replace("\u2019", "'")):
         raise ValueError(f"banned phrase in free text: {text!r}")
     out, removed = check_prose(text, [*collect_numbers(obj), *extra])
     if removed:
@@ -422,6 +428,7 @@ def leg_dict(leg: LegCand) -> dict[str, Any]:
         "p_cal": round(leg.p_cal, 4),
         "model_source": leg.model_source,
         "p_avg_raw": None if leg.p_avg_raw is None else round(leg.p_avg_raw, 4),
+        "tail_flag": leg.p_cal >= TAIL_FLAG,
         "drivers": {**leg.drivers, "implied": round(implied_prob(leg.price_american), 4)},
     }
 
@@ -494,6 +501,11 @@ def ticket_dict(
         ticket_why(t, tj, n_games), tj, [cfg.tail_cut, round(1.0 - cfg.alpha, 6)]
     )
     counters["numguard_removed"] += rem
+    if any(leg["tail_flag"] for leg in legs):
+        heavy = 2 * sum(1 for leg in t.legs if leg.stat == "fg3m") >= len(t.legs)
+        note = TAIL_NOTE + (" (threes-heavy)." if heavy else ".")
+        tj["tail_note"], rem = guard_text(note, tj, [TAIL_FLAG, *T490_NUMBERS])
+        counters["numguard_removed"] += rem
     return tj
 
 

@@ -401,8 +401,10 @@ def load_legs(
         [*gids, *pids, *MARKET_STAT],
     ).fetchall()
     by_player: dict[tuple[str, int], list[tuple[Any, ...]]] = defaultdict(list)
+    by_game: dict[str, list[tuple[Any, ...]]] = defaultdict(list)
     for q in quotes:
         by_player[(q[0], int(q[1]))].append(q)
+        by_game[q[0]].append(q)
     for key in sorted(chosen):
         gid, pid, stat = key
         row, prod, source = chosen[key]
@@ -425,11 +427,18 @@ def load_legs(
             and q[7] <= prod["made_at"]
             and (now is None or q[7] <= now)
         ]
-        # only the newest snapshot of each (book, market): a line the book has since moved off
+        # only the newest snapshot of each (book, market, game): a line the book has since moved off
         # must not stay selectable at its old price (the export shows every line; we choose)
+        # keyed on (book, market, GAME): if the newest board drops this player (market pulled),
+        # his last quote must not stay selectable
         latest_snap: dict[tuple[str, str], datetime] = {}
-        for q in usable:
-            latest_snap[(q[3], q[2])] = max(latest_snap.get((q[3], q[2]), q[7]), q[7])
+        for gq in by_game.get(gid, []):
+            if (
+                MARKET_STAT[gq[2]] == stat
+                and gq[7] <= prod["made_at"]
+                and (now is None or gq[7] <= now)
+            ):
+                latest_snap[(gq[3], gq[2])] = max(latest_snap.get((gq[3], gq[2]), gq[7]), gq[7])
         newest: dict[tuple[str, str, float, str], tuple[Any, ...]] = {}
         for q in usable:  # ascending received_at
             if q[7] == latest_snap[(q[3], q[2])]:

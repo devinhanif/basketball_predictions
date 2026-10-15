@@ -282,3 +282,16 @@ def test_only_the_newest_snapshot_per_book_and_market_is_selectable() -> None:
     )
     out = ts.load_legs(build_nba(), odds, SLATE, now=None, calmap=CALMAP)
     assert {x.line for x in out.legs} == {22.5} and len(out.legs) == 2
+
+
+def test_newest_snapshot_is_keyed_on_the_game_not_the_player() -> None:
+    """n3: a market pulled from the newest board must not leave the player's last quote live."""
+    other = 999999
+    old = PRICED - timedelta(minutes=20)
+    rows = [
+        quote("draftkings", "over", -115, at=old),
+        quote("draftkings", "under", -105, at=old),
+        (GID, other, "player_points", "draftkings", "over", 20.5, -110, PRICED, "Other", TIP, TIP),
+    ]
+    out = ts.load_legs(build_nba(), build_odds(rows), SLATE, now=None, calmap=CALMAP)
+    assert out.legs == []  # the newest board (PRICED) no longer lists PID

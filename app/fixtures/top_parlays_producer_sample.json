@@ -44,6 +44,7 @@
       "p_cal": 0.804,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -69,6 +70,7 @@
       "p_cal": 0.804,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 12.0,
        "recent_avg": 11.2,
@@ -90,7 +92,8 @@
     "ev_basis": "book product",
     "ev_per_dollar": 0.7956,
     "ev_low80": 0.2733,
-    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 65% (raw 77%) is the joint of those legs. draftkings stacks them at an implied 36%; at the book's price (its margin is included) that is +80% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent."
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 65% (raw 77%) is the joint of those legs. draftkings stacks them at an implied 36%; at the book's price (its margin is included) that is +80% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy)."
    },
    {
     "rank": 2,
@@ -113,6 +116,7 @@
       "p_cal": 0.788,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -138,6 +142,7 @@
       "p_cal": 0.788,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 12.0,
        "recent_avg": 11.2,
@@ -159,7 +164,8 @@
     "ev_basis": "book product",
     "ev_per_dollar": 0.8248,
     "ev_low80": 0.2749,
-    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 62% (raw 74%) is the joint of those legs. draftkings stacks them at an implied 34%; at the book's price (its margin is included) that is +82% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent."
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 62% (raw 74%) is the joint of those legs. draftkings stacks them at an implied 34%; at the book's price (its margin is included) that is +82% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy)."
    },
    {
     "rank": 3,
@@ -182,6 +188,7 @@
       "p_cal": 0.772,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -207,6 +214,7 @@
       "p_cal": 0.756,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -228,7 +236,8 @@
     "ev_basis": "book product",
     "ev_per_dollar": 0.8931,
     "ev_low80": 0.2729,
-    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 58% (raw 69%) is the joint of those legs. draftkings stacks them at an implied 31%; at the book's price (its margin is included) that is +89% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent."
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 58% (raw 69%) is the joint of those legs. draftkings stacks them at an implied 31%; at the book's price (its margin is included) that is +89% per dollar, and the low end of the 80% range (configured noise, not tested) is +27%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy)."
    }
   ],
   "3": [
@@ -253,6 +262,7 @@
       "p_cal": 0.804,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -278,6 +288,7 @@
       "p_cal": 0.804,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 12.0,
        "recent_avg": 11.2,
@@ -303,6 +314,7 @@
       "p_cal": 0.788,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 12.0,
        "recent_avg": 11.2,
@@ -324,7 +336,8 @@
     "ev_basis": "not a book price (two legs share a game)",
     "ev_per_dollar": 1.4218,
     "ev_low80": 0.5169,
-    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 51% (raw 66%) is the joint of those legs. draftkings stacks them at an implied 21%; against the product of the legs' prices, which is not a book price that is +142% per dollar, and the low end of the 80% range (configured noise, not tested) is +52%. Legs from different games are treated as independent; legs in one game share the copula."
+    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 51% (raw 66%) is the joint of those legs. draftkings stacks them at an implied 21%; against the product of the legs' prices, which is not a book price that is +142% per dollar, and the low end of the 80% range (configured noise, not tested) is +52%. Legs from different games are treated as independent; legs in one game share the copula.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes."
    },
    {
     "rank": 2,
@@ -347,6 +360,7 @@
       "p_cal": 0.788,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -372,6 +386,7 @@
       "p_cal": 0.772,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -397,6 +412,7 @@
       "p_cal": 0.756,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -418,7 +434,8 @@
     "ev_basis": "not a book price (two legs share a game)",
     "ev_per_dollar": 1.5481,
     "ev_low80": 0.558,
-    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 46% (raw 59%) is the joint of those legs. draftkings stacks them at an implied 18%; against the product of the legs' prices, which is not a book price that is +155% per dollar, and the low end of the 80% range (configured noise, not tested) is +56%. Legs from different games are treated as independent; legs in one game share the copula."
+    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 46% (raw 59%) is the joint of those legs. draftkings stacks them at an implied 18%; against the product of the legs' prices, which is not a book price that is +155% per dollar, and the low end of the 80% range (configured noise, not tested) is +56%. Legs from different games are treated as independent; legs in one game share the copula.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy)."
    },
    {
     "rank": 3,
@@ -441,6 +458,7 @@
       "p_cal": 0.74,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -466,6 +484,7 @@
       "p_cal": 0.724,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -491,6 +510,7 @@
       "p_cal": 0.708,
       "model_source": "production",
       "p_avg_raw": null,
+      "tail_flag": true,
       "drivers": {
        "mean": 14.0,
        "recent_avg": 13.2,
@@ -512,13 +532,14 @@
     "ev_basis": "not a book price (two legs share a game)",
     "ev_per_dollar": 1.075,
     "ev_low80": 0.213,
-    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 38% (raw 48%) is the joint of those legs. draftkings stacks them at an implied 18%; against the product of the legs' prices, which is not a book price that is +108% per dollar, and the low end of the 80% range (configured noise, not tested) is +21%. Legs from different games are treated as independent; legs in one game share the copula."
+    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 38% (raw 48%) is the joint of those legs. draftkings stacks them at an implied 18%; against the product of the legs' prices, which is not a book price that is +108% per dollar, and the low end of the 80% range (configured noise, not tested) is +21%. Legs from different games are treated as independent; legs in one game share the copula.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy)."
    }
   ]
  },
  "caveats": [
   "Two-leg parlays of alternate-line overs the raw model put at 70% or more (BetRivers) hit 9.8 points less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, date-clustered, 2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). These were raw chances; the chances shown here are from calibrated legs.",
-  "On random 2023-24 parlays these chances were accurate. The top picks use the most-confident legs, and those came in about 3 to 5 points lower than shown at DraftKings (T495)."
+  "On random 2023-24 parlays these chances were accurate. The top picks use the most-confident legs, and those came in about 3 to 5 points lower than shown at DraftKings (T495) (n 1,149 top tickets; the interval includes zero)."
  ],
  "diagnostics": {
   "no_positive_ev_found": false,

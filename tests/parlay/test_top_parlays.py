@@ -386,3 +386,37 @@ def test_twelve_game_slate_runs_well_under_a_minute() -> None:
     assert s["legs_searched"]["draftkings"] == 40
     assert s["tickets_searched"] == 780 + 9880
     assert len(rep["sizes"]["2"]) == 3 and len(rep["sizes"]["3"]) == 3
+
+
+def test_tail_flag_and_note_are_display_only() -> None:
+    """T495: legs with p_cal >= 0.65 are flagged; ranking and numbers are unchanged."""
+    legs = [leg(i, 0.90 - 0.02 * i, game=f"G{i}", pid=100 + i, stat="fg3m") for i in range(6)]
+    legs += [leg(50 + i, 0.55, game=f"H{i}", pid=500 + i) for i in range(6)]
+    rep = report(legs)
+    for ts in rep["sizes"].values():
+        for t in ts:
+            flagged = [x["tail_flag"] for x in t["legs"]]
+            assert flagged == [x["p_cal"] >= 0.65 for x in t["legs"]]
+            assert ("tail_note" in t) == any(flagged)
+            if "tail_note" in t:
+                assert t["tail_note"].startswith("This ticket uses legs the model rates 65%+;")
+                assert t["tail_note"].endswith("(threes-heavy).") or not all(
+                    x["stat"] == "fg3m" for x in t["legs"]
+                )
+    t0 = rep["sizes"]["2"][0]
+    assert "(threes-heavy)" in t0["tail_note"]
+    mixed = report(
+        [
+            leg(1, 0.9, stat="pts", game="G1", pid=1),
+            leg(2, 0.9, stat="fg3m", game="G2", pid=2),
+            leg(3, 0.9, stat="pts", game="G3", pid=3),
+            leg(4, 0.9, stat="pts", game="G4", pid=4),
+        ]
+    )
+    top_mixed = mixed["sizes"]["2"][0]
+    n3 = sum(x["stat"] == "fg3m" for x in top_mixed["legs"])
+    assert ("(threes-heavy)" in top_mixed["tail_note"]) == (2 * n3 >= 2)
+    low = report([leg(i, 0.55, game=f"G{i}", pid=i) for i in range(4)])
+    assert all("tail_note" not in t for ts in low["sizes"].values() for t in ts)
+    assert rep["diagnostics"]["numguard_removed"] == 0
+    assert "n 1,149 top tickets; the interval includes zero" in rep["caveats"][1]
