@@ -1,6 +1,7 @@
 import { api } from "../api";
 import { Explain, View } from "../components";
 import { stamp } from "../format";
+import { LatestTopParlays } from "../TopParlaysPanel";
 import { useLoad } from "../useLoad";
 import type { ParlayState } from "../types";
 
@@ -107,6 +108,7 @@ export function ParlayPage() {
     <div class="stack">
       <h1>Parlay of the day</h1>
       <ParlayCard compact={false} />
+      <LatestTopParlays />
       <section class="panel flat">
         <h3>The three ways a day can go</h3>
         <ul class="plain">
