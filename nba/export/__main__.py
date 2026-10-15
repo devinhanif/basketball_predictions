@@ -31,12 +31,19 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_ODDS_DB,
         help="live odds capture store (read-only); absent file = no lines",
     )
+    b.add_argument(
+        "--roster-dir",
+        type=Path,
+        default=REPO_ROOT / "data" / "rosters",
+        help="official pre-tip roster cache (<dir>/<date>/<team>.parquet); places players with "
+        "no earlier 2026 row",
+    )
     b.add_argument("--parlay-dir", type=Path, default=REPO_ROOT / "reports" / "parlay")
     a = ap.parse_args(argv)
     try:
         m = build_export(
             a.db, a.out, a.date, lookback_days=a.lookback_days, seasons=a.season,
-            parlay_dir=a.parlay_dir, odds_db=a.odds_db,
+            parlay_dir=a.parlay_dir, odds_db=a.odds_db, roster_dir=a.roster_dir,
         )  # fmt: skip
     except guard.ExportRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)

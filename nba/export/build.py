@@ -338,6 +338,7 @@ def build_export(
     parlay_dir: Path | None = None,
     odds_db: Path | None = None,
     odds_con: duckdb.DuckDBPyConnection | None = None,
+    roster_dir: Path | None = None,
     now: Callable[[], datetime] | None = None,
     git: Callable[[], dict[str, Any]] = git_info,
     version: Callable[[], str | None] = data_version,
@@ -346,6 +347,8 @@ def build_export(
     """Build the export for ``day``; returns the manifest dict (also written to ``manifest.json``).
 
     ``con`` lets a test pass an open read-only connection; production passes ``src_db`` only.
+    ``roster_dir`` (``data/rosters``) places players with no earlier current-season row from the
+    game date's official pre-tip roster (``team_source='official_roster'``); None disables it.
     ``odds_db`` is the live capture store (``data/markets/market_asof.duckdb``), opened read-only
     for ``prop_lines``; None (or an absent file) exports no lines and says so in the manifest.
     Raises ``guard.ExportRefused`` before reading anything when a holdout season is requested."""
@@ -363,7 +366,7 @@ def build_export(
         scores = reader.settled_scores(src, window)
         box = reader.box_scores(src, window)
         report = reader.explainer_rows(src, fwd.games, window)
-        teams_of = reader.player_teams(src, fwd.prop_grids, fwd.games, window)
+        teams_of = reader.player_teams(src, fwd.prop_grids, fwd.games, window, roster_dir)
     finally:
         if own:
             src.close()

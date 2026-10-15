@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -615,3 +615,116 @@ def test_team_id_from_box_when_the_game_is_final(src: Path, tmp_path: Path) -> N
         [G_LIVE],
     ).fetchall() == [(1610612755, "box")]
     con.close()
+
+
+# ----------------------------------------------------------------------- roster placement
+
+HOME, AWAY = 1610612738, 1610612755
+
+
+def _roster(root: Path, day: date, team: int, players: list[int], known: datetime) -> None:
+    """One cached official roster file; its mtime (naive UTC ``known``) is the known-at time."""
+    import os
+
+    import polars as pl
+
+    d = root / day.isoformat()
+    d.mkdir(parents=True, exist_ok=True)
+    f = d / f"{team}.parquet"
+    pl.DataFrame({"team_id": [team] * len(players), "player_id": players}).write_parquet(f)
+    ts = known.replace(tzinfo=UTC).timestamp()
+    os.utime(f, (ts, ts))
+
+
+def _add_props(src: Path, pids: list[int]) -> None:
+    w = duckdb.connect(str(src))
+    for pid in pids:
+        w.execute(
+            "INSERT INTO forward_predictions VALUES (?,?,?,?,?,?,?,?,?)",
+            [
+                "r_early",
+                PRED_A,
+                G_LIVE,
+                TIP,
+                "props_context_residual",
+                "v1",
+                "pts",
+                pid,
+                _pred(8.0),
+            ],
+        )
+    w.close()
+
+
+def _teams(out: Path) -> dict[int, tuple[Any, Any]]:
+    con = duckdb.connect(str(out / DB_NAME), read_only=True)
+    got = {
+        r[0]: (r[1], r[2])
+        for r in con.execute(
+            "SELECT player_id, team_id, team_source FROM prop_grids WHERE run_id = 'r_early'"
+        ).fetchall()
+    }
+    con.close()
+    return got
+
+
+def test_opening_night_with_no_current_season_box_rows_places_from_the_roster(
+    src: Path, tmp_path: Path
+) -> None:
+    w = duckdb.connect(str(src))
+    w.execute("DELETE FROM player_game_stats WHERE game_id IN "
+              "(SELECT game_id FROM games WHERE season = 2026)")  # fmt: skip
+    n_box = w.execute("SELECT count(*) FROM player_game_stats pgs JOIN games g USING (game_id) "
+                      "WHERE g.season = 2026").fetchone()  # fmt: skip
+    w.close()
+    assert n_box == (0,)
+    _add_props(src, [2001, 2002, 2003])
+    roots = tmp_path / "rosters"
+    ok = PRED_A + timedelta(seconds=90)  # fetched by the same run, a minute after made_at
+    _roster(roots, DAY, HOME, [1000, 2001], ok)
+    _roster(roots, DAY, AWAY, [2002], ok)
+    before = _build(src, tmp_path / "o0")  # no roster dir: nothing is placed
+    assert set(_teams(tmp_path / "o0").values()) == {(None, None)}
+    m = _build(src, tmp_path / "o1", roster_dir=roots)
+    got = _teams(tmp_path / "o1")
+    assert got[1000] == (HOME, "official_roster")
+    assert got[2001] == (HOME, "official_roster")
+    assert got[2002] == (AWAY, "official_roster")
+    assert got[2003] == (None, None)  # on no roster: unplaced, never guessed
+    assert m["row_counts"]["prop_grids"] == before["row_counts"]["prop_grids"]
+
+
+def test_mid_season_trade_uses_the_new_team_not_the_stale_one(src: Path, tmp_path: Path) -> None:
+    w = duckdb.connect(str(src))
+    w.executemany(
+        "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, reb, ast, "
+        "fg3m, starter) VALUES (?,?,?,?,?,?,?,?,?)",
+        [(G_PREV, 1002, 1610612999, 20.0, 5, 1, 1, 0, False),  # earlier team plays nobody here
+         (G_PREV, 1003, HOME, 20.0, 5, 1, 1, 0, False)],  # unchanged: prior_game still wins
+    )  # fmt: skip
+    w.close()
+    _add_props(src, [1002, 1003])
+    roots = tmp_path / "rosters"
+    ok = PRED_A + timedelta(minutes=1)
+    _roster(roots, DAY, AWAY, [1002], ok)
+    _roster(roots, DAY, HOME, [1003], ok)
+    _build(src, tmp_path / "out", roster_dir=roots)
+    got = _teams(tmp_path / "out")
+    assert got[1002] == (AWAY, "official_roster")
+    assert got[1003] == (HOME, "prior_game")  # precedence: an earlier box row beats the roster
+
+
+def test_roster_stamped_after_made_at_or_after_tip_is_refused(src: Path, tmp_path: Path) -> None:
+    _add_props(src, [3001, 3002, 3003, 3004])
+    roots = tmp_path / "rosters"
+    _roster(roots, DAY, HOME, [3001], PRED_A + timedelta(hours=1))  # after made_at: not known
+    _roster(roots, DAY, AWAY, [3002], TIP + timedelta(minutes=5))  # after tip
+    _roster(roots, DAY, HOME, [3003], PRED_A - timedelta(hours=3))  # earlier day's cache run: ok
+    _roster(roots, DAY, AWAY, [3003], PRED_A - timedelta(hours=3))  # listed by both teams
+    _roster(roots, DAY - timedelta(days=1), AWAY, [3004], PRED_A - timedelta(hours=3))  # wrong day
+    _build(src, tmp_path / "out", roster_dir=roots)
+    got = _teams(tmp_path / "out")
+    assert got[3001] == (None, None)
+    assert got[3002] == (None, None)
+    assert got[3003] == (None, None)  # ambiguous between the two teams: unplaced
+    assert got[3004] == (None, None)  # only today's roster counts

@@ -300,18 +300,55 @@ def box_scores(con: duckdb.DuckDBPyConnection, window: Window) -> list[dict[str,
 # ------------------------------------------------------------------------------- team ids
 
 
+#: A roster cache file is written by the same pretip run that stamps ``made_at`` (stamped at the
+#: start of the run, the 30 team fetches follow within seconds to a few minutes). A file stamped
+#: later than ``made_at`` + this grace was not known to the forecast and is refused.
+ROSTER_GRACE = timedelta(minutes=15)
+
+
+def official_roster_teams(
+    roster_dir: Path, game_date: date
+) -> dict[int, list[tuple[int, datetime]]]:
+    """``player_id -> [(team_id, known_at)]`` from ``<roster_dir>/<game_date>/<team>.parquet``.
+
+    ``known_at`` is the cache file's modification time as naive UTC: the files are written once
+    by the pretip run and never rewritten (``load_official_rosters`` reads an existing file),
+    so the mtime is the fetch time. A missing directory gives ``{}``."""
+    import polars as pl  # local: the rest of the reader needs no dataframe library
+
+    d = roster_dir / game_date.isoformat()
+    out: dict[int, list[tuple[int, datetime]]] = defaultdict(list)
+    if not d.is_dir():
+        return {}
+    for f in sorted(d.glob("*.parquet")):
+        try:
+            frame = pl.read_parquet(f, columns=["team_id", "player_id"])
+        except Exception:  # an unreadable file is a missing roster, never a guess
+            continue
+        known = datetime.fromtimestamp(f.stat().st_mtime, UTC).replace(tzinfo=None)
+        for tid, pid in frame.iter_rows():
+            if tid is not None and pid is not None:
+                out[int(pid)].append((int(tid), known))
+    return out
+
+
 def player_teams(
     con: duckdb.DuckDBPyConnection,
     props: list[dict[str, Any]],
     games: list[dict[str, Any]],
     window: Window,
+    roster_dir: Path | None = None,
 ) -> dict[tuple[str, int], tuple[int, str]]:
     """``(game_id, player_id) -> (team_id, source)`` for the players of the exported prop rows.
 
     ``box``: the player's own box-score row in that game. ``prior_game``: the team on the player's
     latest EARLIER game (``game_date`` strictly before) in the allowed seasons, accepted only when
     it is one of the game's two teams. Seasons outside the window are never read (the 2025
-    holdout holds last season's rosters); a player with neither stays absent (NULL, never
+    holdout holds last season's rosters). Third, ``official_roster`` (only with ``roster_dir``):
+    the game date's official pre-tip roster, when its file was written no later than the
+    pair's latest ``made_at`` + ``ROSTER_GRACE`` and before the game's tip, and exactly one of
+    the game's two teams lists the player (opening night and a first game for a new team have
+    no earlier row). Never a post-tip source. A player with none of these stays absent (NULL, never
     guessed)."""
     pairs = {(str(p["game_id"]), int(p["player_id"])) for p in props}
     if not pairs:
@@ -354,7 +391,43 @@ def player_teams(
             if gd < g["game_date"] and tid in pair:
                 out[(gid, pid)] = (tid, "prior_game")
                 break
+    if roster_dir is not None:
+        _place_from_rosters(out, pairs, props, gmeta, roster_dir)
     return out
+
+
+def _place_from_rosters(
+    out: dict[tuple[str, int], tuple[int, str]],
+    pairs: set[tuple[str, int]],
+    props: list[dict[str, Any]],
+    gmeta: dict[str, dict[str, Any]],
+    roster_dir: Path,
+) -> None:
+    """Fill the pairs still unplaced from the game date's official roster; see ``player_teams``."""
+    last_made: dict[tuple[str, int], datetime] = {}
+    tip_of: dict[tuple[str, int], datetime] = {}
+    for p in props:
+        k = (str(p["game_id"]), int(p["player_id"]))
+        m, t = p.get("made_at"), p.get("tipoff")
+        if m is None or t is None:
+            continue  # cannot show the roster preceded the forecast: refuse
+        last_made[k] = max(last_made.get(k, m), m)
+        tip_of[k] = min(tip_of.get(k, t), t)
+    cache: dict[date, dict[int, list[tuple[int, datetime]]]] = {}
+    for gid, pid in sorted(pairs - set(out)):
+        g = gmeta.get(gid)
+        if g is None or (gid, pid) not in last_made:
+            continue
+        pair = {g.get("home_team"), g.get("away_team")} - {None}
+        roster = cache.setdefault(g["game_date"], official_roster_teams(roster_dir, g["game_date"]))
+        limit, tip = last_made[(gid, pid)] + ROSTER_GRACE, tip_of[(gid, pid)]
+        teams = {
+            tid
+            for tid, known in roster.get(pid, [])
+            if tid in pair and known <= limit and known < tip
+        }
+        if len(teams) == 1:
+            out[(gid, pid)] = (teams.pop(), "official_roster")
 
 
 # ------------------------------------------------------------------------------------ lines
