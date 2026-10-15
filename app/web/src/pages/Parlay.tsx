@@ -1,6 +1,7 @@
 import { api } from "../api";
 import { Explain, View } from "../components";
-import { stamp } from "../format";
+import { longDate, stamp } from "../format";
+import { engineSpeaksFor } from "../nights";
 import { LatestTopParlays } from "../TopParlaysPanel";
 import { useLoad } from "../useLoad";
 import type { ParlayState } from "../types";
@@ -94,11 +95,31 @@ function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
   );
 }
 
-export function ParlayCard({ compact }: { compact: boolean }) {
+/**
+ * The engine's verdict is stored for one report date. On a page about another night (`date`), it is not
+ * that night's verdict and is not shown as one (F05): a short note says which date it is for.
+ */
+export function ParlayCard({ compact, date }: { compact: boolean; date?: string | null }) {
   const [state, reload] = useLoad(() => api.parlay(), []);
   return (
     <View state={state} reload={reload}>
-      {(p) => <Body p={p} compact={compact} />}
+      {(p) =>
+        engineSpeaksFor(date ?? null, p.report_date) ? (
+          <Body p={p} compact={compact} />
+        ) : (
+          <section class="panel flat" aria-label="Parlay check">
+            <p class="small">
+              <strong>No parlay check is stored for {longDate(date ?? p.report_date)}.</strong> The only one we hold is for{" "}
+              {longDate(p.report_date)}: {verdictText(p)}
+            </p>
+            {compact ? null : (
+              <p class="small">
+                <a href="#/parlay">See that check</a>
+              </p>
+            )}
+          </section>
+        )
+      }
     </View>
   );
 }
@@ -107,7 +128,7 @@ export function ParlayPage(props: { date: string | null }) {
   return (
     <div class="stack">
       <h1>Parlay of the day</h1>
-      <ParlayCard compact={false} />
+      <ParlayCard compact={false} date={props.date} />
       <LatestTopParlays date={props.date} />
       <section class="panel flat">
         <h3>The three ways a day can go</h3>

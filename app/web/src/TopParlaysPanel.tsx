@@ -1,6 +1,7 @@
 import { api } from "./api";
 import { Explain, View } from "./components";
 import { american, bookName, lineText, longDate, pct, signed, stamp } from "./format";
+import { defaultNight } from "./nights";
 import { legHref } from "./router";
 import { isLegStat } from "./legTypes";
 import {
@@ -304,7 +305,7 @@ export function LatestTopParlays({ date }: { date: string | null }) {
   return (
     <View state={list} reload={reload}>
       {(slates) => {
-        const night = date ?? slates[0]?.date;
+        const night = date ?? defaultNight(slates);
         return night ? <TopParlaysPanel date={night} checkToday /> : <p>No nights are loaded.</p>;
       }}
     </View>

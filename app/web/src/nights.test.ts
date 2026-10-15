@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chronological, defaultNight, todayET } from "./nights";
+import { chronological, defaultNight, engineSpeaksFor, todayET } from "./nights";
 
 const d = (...dates: string[]) => dates.map((date) => ({ date }));
 
@@ -23,5 +23,13 @@ describe("F17: which night opens", () => {
   });
   it("sorts tabs oldest to newest", () => {
     expect(chronological(d("2026-10-16", "2026-10-15")).map((s) => s.date)).toEqual(["2026-10-15", "2026-10-16"]);
+  });
+});
+
+describe("F05: the engine's verdict only speaks for its own date", () => {
+  it("matches the report date, or any page with no night chosen", () => {
+    expect(engineSpeaksFor(null, "2026-10-11")).toBe(true);
+    expect(engineSpeaksFor("2026-10-11", "2026-10-11")).toBe(true);
+    expect(engineSpeaksFor("2025-01-27", "2026-10-11")).toBe(false);
   });
 });

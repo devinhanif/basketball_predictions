@@ -20,3 +20,11 @@ export function defaultNight(slates: readonly Pick<SlateListItem, "date">[], now
   const today = todayET(now);
   return dates.find((d) => d >= today) ?? dates[dates.length - 1] ?? null;
 }
+
+/**
+ * Does the parlay engine's verdict (stored for `reportDate`) speak for the night on screen? (F05)
+ * With no night chosen it does; with a different night it must not be shown as that night's verdict.
+ */
+export function engineSpeaksFor(date: string | null, reportDate: string): boolean {
+  return date === null || date === reportDate;
+}

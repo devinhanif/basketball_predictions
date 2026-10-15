@@ -83,7 +83,7 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
           const date = props.date ?? defaultNight(slates);
           return (
             <>
-              <ParlayCard compact />
+              <ParlayCard compact date={date} />
               {date ? <TopParlaysPanel date={date} /> : null}
               <div class="page-head">
                 <h1>{date ? longDate(date) : "Slate"}</h1>
