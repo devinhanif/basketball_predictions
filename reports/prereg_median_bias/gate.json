@@ -1,0 +1,1237 @@
+{
+ "a0_labels_read": true,
+ "a0_pins": {
+  "crps_int": {
+   "ast": {
+    "2023": 0.9059028606321847,
+    "2024": 0.9002150882692853
+   },
+   "fg3m": {
+    "2023": 0.5690486141021416,
+    "2024": 0.5922128263543135
+   },
+   "pts": {
+    "2023": 3.152829990762183,
+    "2024": 3.1875525740475275
+   },
+   "reb": {
+    "2023": 1.2928172686712307,
+    "2024": 1.3142466423136836
+   }
+  },
+  "dk_over_cont_median": {
+   "ast": {
+    "n": 20224,
+    "p": 0.5403481012658228
+   },
+   "fg3m": {
+    "n": 26739,
+    "p": 0.5437002131717715
+   },
+   "pooled": {
+    "n": 106999,
+    "p": 0.5362760399629903
+   },
+   "pts": {
+    "n": 30236,
+    "p": 0.5354874983463421
+   },
+   "reb": {
+    "n": 29800,
+    "p": 0.5276510067114094
+   }
+  }
+ },
+ "capture_audit": {
+  "components_rows_equal_db_n_prior_ge_5": {
+   "ast": true,
+   "fg3m": true,
+   "pts": true,
+   "reb": true
+  },
+  "history_db_played_rows_games_by_season": {
+   "2013": {
+    "games": 1319,
+    "played": 27324
+   },
+   "2014": {
+    "games": 1310,
+    "played": 27478
+   },
+   "2015": {
+    "games": 1316,
+    "played": 27817
+   },
+   "2016": {
+    "games": 1309,
+    "played": 27709
+   },
+   "2017": {
+    "games": 1312,
+    "played": 27683
+   },
+   "2018": {
+    "games": 1312,
+    "played": 27739
+   },
+   "2019": {
+    "games": 1143,
+    "played": 24097
+   },
+   "2020": {
+    "games": 1171,
+    "played": 25053
+   },
+   "2021": {
+    "games": 1323,
+    "played": 28045
+   }
+  },
+  "market_unresolved_names": {
+   "2023": 75,
+   "2024": 2
+  },
+  "production_db_games": {
+   "2022": 1320,
+   "2023": 1318,
+   "2024": 1320
+  },
+  "production_db_played_rows_by_season": {
+   "2022": {
+    "n_prior_ge_5": 25110,
+    "played": 27737
+   },
+   "2023": {
+    "n_prior_ge_5": 27619,
+    "played": 28197
+   },
+   "2024": {
+    "n_prior_ge_5": 27701,
+    "played": 28236
+   }
+  }
+ },
+ "checks": [
+  {
+   "check": "pts 2023 H rows >= 8000",
+   "pass": true,
+   "value": 12489
+  },
+  {
+   "check": "pts 2023 smallest cell >= 4000",
+   "pass": true,
+   "value": 6374
+  },
+  {
+   "check": "pts 2023 games >= 1000",
+   "pass": true,
+   "value": 1318
+  },
+  {
+   "check": "pts 2023 DK-line rows >= 5000",
+   "pass": true,
+   "value": 14354
+  },
+  {
+   "check": "pts 2024 H rows >= 8000",
+   "pass": true,
+   "value": 12334
+  },
+  {
+   "check": "pts 2024 smallest cell >= 4000",
+   "pass": true,
+   "value": 6389
+  },
+  {
+   "check": "pts 2024 games >= 1000",
+   "pass": true,
+   "value": 1320
+  },
+  {
+   "check": "pts 2024 DK-line rows >= 5000",
+   "pass": true,
+   "value": 15882
+  },
+  {
+   "check": "pts fallback share of (block, cell) pools <= 0.1",
+   "pass": true,
+   "value": 0.0
+  },
+  {
+   "check": "reb 2023 H rows >= 8000",
+   "pass": true,
+   "value": 12489
+  },
+  {
+   "check": "reb 2023 smallest cell >= 4000",
+   "pass": true,
+   "value": 6374
+  },
+  {
+   "check": "reb 2023 games >= 1000",
+   "pass": true,
+   "value": 1318
+  },
+  {
+   "check": "reb 2023 DK-line rows >= 5000",
+   "pass": true,
+   "value": 15052
+  },
+  {
+   "check": "reb 2024 H rows >= 8000",
+   "pass": true,
+   "value": 12334
+  },
+  {
+   "check": "reb 2024 smallest cell >= 4000",
+   "pass": true,
+   "value": 6389
+  },
+  {
+   "check": "reb 2024 games >= 1000",
+   "pass": true,
+   "value": 1320
+  },
+  {
+   "check": "reb 2024 DK-line rows >= 5000",
+   "pass": true,
+   "value": 14748
+  },
+  {
+   "check": "reb fallback share of (block, cell) pools <= 0.1",
+   "pass": true,
+   "value": 0.0
+  },
+  {
+   "check": "ast 2023 H rows >= 8000",
+   "pass": true,
+   "value": 12489
+  },
+  {
+   "check": "ast 2023 smallest cell >= 4000",
+   "pass": true,
+   "value": 6374
+  },
+  {
+   "check": "ast 2023 games >= 1000",
+   "pass": true,
+   "value": 1318
+  },
+  {
+   "check": "ast 2023 DK-line rows >= 5000",
+   "pass": true,
+   "value": 9650
+  },
+  {
+   "check": "ast 2024 H rows >= 8000",
+   "pass": true,
+   "value": 12334
+  },
+  {
+   "check": "ast 2024 smallest cell >= 4000",
+   "pass": true,
+   "value": 6389
+  },
+  {
+   "check": "ast 2024 games >= 1000",
+   "pass": true,
+   "value": 1320
+  },
+  {
+   "check": "ast 2024 DK-line rows >= 5000",
+   "pass": true,
+   "value": 10574
+  },
+  {
+   "check": "ast fallback share of (block, cell) pools <= 0.1",
+   "pass": true,
+   "value": 0.0
+  },
+  {
+   "check": "fg3m 2023 H rows >= 8000",
+   "pass": true,
+   "value": 12489
+  },
+  {
+   "check": "fg3m 2023 smallest cell >= 4000",
+   "pass": true,
+   "value": 6374
+  },
+  {
+   "check": "fg3m 2023 games >= 1000",
+   "pass": true,
+   "value": 1318
+  },
+  {
+   "check": "fg3m 2023 DK-line rows >= 5000",
+   "pass": true,
+   "value": 14191
+  },
+  {
+   "check": "fg3m 2024 H rows >= 8000",
+   "pass": true,
+   "value": 12334
+  },
+  {
+   "check": "fg3m 2024 smallest cell >= 4000",
+   "pass": true,
+   "value": 6389
+  },
+  {
+   "check": "fg3m 2024 games >= 1000",
+   "pass": true,
+   "value": 1320
+  },
+  {
+   "check": "fg3m 2024 DK-line rows >= 5000",
+   "pass": true,
+   "value": 12548
+  },
+  {
+   "check": "fg3m fallback share of (block, cell) pools <= 0.1",
+   "pass": true,
+   "value": 0.0
+  }
+ ],
+ "dk_legs": 106999,
+ "gate_pass": true,
+ "input_sha256": {
+  "data/ops/model_clv_pairs/pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+  "data/ops/model_clv_pairs/pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
+  "reports/lower_tail/components_ast.npz": "024c15eedd2d090d7f38c081525aa14ab4b0a9939e0a0c05f5faddadf380f72e",
+  "reports/lower_tail/components_fg3m.npz": "1ace9fbcefe6b051053059d51db23b9f4c5dc42561aa8446b074124a73703d8e",
+  "reports/lower_tail/components_pts.npz": "1d38ac0ca7188b8c32c604169f87e7fdb47ed7ce759da1a1f0fad9bd60805269",
+  "reports/lower_tail/components_reb.npz": "18846ced207326fe40bc0c5f6840ab22ce648918501cff58abb62fc4eee510bc"
+ },
+ "rule": "docs/prereg/MEDIAN_BIAS.md",
+ "stats": {
+  "ast": {
+   "2023": {
+    "H_rows": 12489,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8756,
+     "ge25": 12489,
+     "lt15": 6374
+    },
+    "games": 1318,
+    "rows": 27619
+   },
+   "2024": {
+    "H_rows": 12334,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8978,
+     "ge25": 12334,
+     "lt15": 6389
+    },
+    "games": 1320,
+    "rows": 27701
+   },
+   "dk_rows": {
+    "2023": 9650,
+    "2024": 10574
+   },
+   "fallback_share": 0.0,
+   "min_pool_cell_n": 854,
+   "pools": [
+    {
+     "blk": 0,
+     "cal_n": 3769,
+     "cell_n": [
+      854,
+      1149,
+      1766
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 1,
+     "cal_n": 4005,
+     "cell_n": [
+      873,
+      1192,
+      1940
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 2,
+     "cal_n": 4798,
+     "cell_n": [
+      927,
+      1648,
+      2223
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 3,
+     "cal_n": 5448,
+     "cell_n": [
+      1153,
+      1780,
+      2515
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 4,
+     "cal_n": 6249,
+     "cell_n": [
+      1399,
+      2036,
+      2814
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 5,
+     "cal_n": 6626,
+     "cell_n": [
+      1505,
+      2081,
+      3040
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 6,
+     "cal_n": 7306,
+     "cell_n": [
+      1889,
+      2163,
+      3254
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 7,
+     "cal_n": 7801,
+     "cell_n": [
+      2075,
+      2370,
+      3356
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 8,
+     "cal_n": 8015,
+     "cell_n": [
+      2131,
+      2424,
+      3460
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 9,
+     "cal_n": 7992,
+     "cell_n": [
+      2139,
+      2417,
+      3436
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 10,
+     "cal_n": 8183,
+     "cell_n": [
+      2073,
+      2439,
+      3671
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 11,
+     "cal_n": 9094,
+     "cell_n": [
+      2163,
+      2761,
+      4170
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 12,
+     "cal_n": 9532,
+     "cell_n": [
+      2165,
+      2986,
+      4381
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 13,
+     "cal_n": 10198,
+     "cell_n": [
+      2338,
+      3336,
+      4524
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 14,
+     "cal_n": 10845,
+     "cell_n": [
+      2457,
+      3604,
+      4784
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 15,
+     "cal_n": 11533,
+     "cell_n": [
+      2688,
+      3837,
+      5008
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 16,
+     "cal_n": 11942,
+     "cell_n": [
+      2786,
+      4011,
+      5145
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 17,
+     "cal_n": 12134,
+     "cell_n": [
+      2814,
+      4057,
+      5263
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    }
+   ]
+  },
+  "fg3m": {
+   "2023": {
+    "H_rows": 12489,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8756,
+     "ge25": 12489,
+     "lt15": 6374
+    },
+    "games": 1318,
+    "rows": 27619
+   },
+   "2024": {
+    "H_rows": 12334,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8978,
+     "ge25": 12334,
+     "lt15": 6389
+    },
+    "games": 1320,
+    "rows": 27701
+   },
+   "dk_rows": {
+    "2023": 14191,
+    "2024": 12548
+   },
+   "fallback_share": 0.0,
+   "min_pool_cell_n": 854,
+   "pools": [
+    {
+     "blk": 0,
+     "cal_n": 3769,
+     "cell_n": [
+      854,
+      1149,
+      1766
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 1,
+     "cal_n": 4005,
+     "cell_n": [
+      873,
+      1192,
+      1940
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 2,
+     "cal_n": 4798,
+     "cell_n": [
+      927,
+      1648,
+      2223
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 3,
+     "cal_n": 5448,
+     "cell_n": [
+      1153,
+      1780,
+      2515
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 4,
+     "cal_n": 6249,
+     "cell_n": [
+      1399,
+      2036,
+      2814
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 5,
+     "cal_n": 6626,
+     "cell_n": [
+      1505,
+      2081,
+      3040
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 6,
+     "cal_n": 7306,
+     "cell_n": [
+      1889,
+      2163,
+      3254
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 7,
+     "cal_n": 7801,
+     "cell_n": [
+      2075,
+      2370,
+      3356
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 8,
+     "cal_n": 8015,
+     "cell_n": [
+      2131,
+      2424,
+      3460
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 9,
+     "cal_n": 7992,
+     "cell_n": [
+      2139,
+      2417,
+      3436
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 10,
+     "cal_n": 8183,
+     "cell_n": [
+      2073,
+      2439,
+      3671
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 11,
+     "cal_n": 9094,
+     "cell_n": [
+      2163,
+      2761,
+      4170
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 12,
+     "cal_n": 9532,
+     "cell_n": [
+      2165,
+      2986,
+      4381
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 13,
+     "cal_n": 10198,
+     "cell_n": [
+      2338,
+      3336,
+      4524
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 14,
+     "cal_n": 10845,
+     "cell_n": [
+      2457,
+      3604,
+      4784
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 15,
+     "cal_n": 11533,
+     "cell_n": [
+      2688,
+      3837,
+      5008
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 16,
+     "cal_n": 11942,
+     "cell_n": [
+      2786,
+      4011,
+      5145
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 17,
+     "cal_n": 12134,
+     "cell_n": [
+      2814,
+      4057,
+      5263
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    }
+   ]
+  },
+  "pts": {
+   "2023": {
+    "H_rows": 12489,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8756,
+     "ge25": 12489,
+     "lt15": 6374
+    },
+    "games": 1318,
+    "rows": 27619
+   },
+   "2024": {
+    "H_rows": 12334,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8978,
+     "ge25": 12334,
+     "lt15": 6389
+    },
+    "games": 1320,
+    "rows": 27701
+   },
+   "dk_rows": {
+    "2023": 14354,
+    "2024": 15882
+   },
+   "fallback_share": 0.0,
+   "min_pool_cell_n": 854,
+   "pools": [
+    {
+     "blk": 0,
+     "cal_n": 3769,
+     "cell_n": [
+      854,
+      1149,
+      1766
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 1,
+     "cal_n": 4005,
+     "cell_n": [
+      873,
+      1192,
+      1940
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 2,
+     "cal_n": 4798,
+     "cell_n": [
+      927,
+      1648,
+      2223
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 3,
+     "cal_n": 5448,
+     "cell_n": [
+      1153,
+      1780,
+      2515
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 4,
+     "cal_n": 6249,
+     "cell_n": [
+      1399,
+      2036,
+      2814
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 5,
+     "cal_n": 6626,
+     "cell_n": [
+      1505,
+      2081,
+      3040
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 6,
+     "cal_n": 7306,
+     "cell_n": [
+      1889,
+      2163,
+      3254
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 7,
+     "cal_n": 7801,
+     "cell_n": [
+      2075,
+      2370,
+      3356
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 8,
+     "cal_n": 8015,
+     "cell_n": [
+      2131,
+      2424,
+      3460
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 9,
+     "cal_n": 7992,
+     "cell_n": [
+      2139,
+      2417,
+      3436
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 10,
+     "cal_n": 8183,
+     "cell_n": [
+      2073,
+      2439,
+      3671
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 11,
+     "cal_n": 9094,
+     "cell_n": [
+      2163,
+      2761,
+      4170
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 12,
+     "cal_n": 9532,
+     "cell_n": [
+      2165,
+      2986,
+      4381
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 13,
+     "cal_n": 10198,
+     "cell_n": [
+      2338,
+      3336,
+      4524
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 14,
+     "cal_n": 10845,
+     "cell_n": [
+      2457,
+      3604,
+      4784
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 15,
+     "cal_n": 11533,
+     "cell_n": [
+      2688,
+      3837,
+      5008
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 16,
+     "cal_n": 11942,
+     "cell_n": [
+      2786,
+      4011,
+      5145
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 17,
+     "cal_n": 12134,
+     "cell_n": [
+      2814,
+      4057,
+      5263
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    }
+   ]
+  },
+  "reb": {
+   "2023": {
+    "H_rows": 12489,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8756,
+     "ge25": 12489,
+     "lt15": 6374
+    },
+    "games": 1318,
+    "rows": 27619
+   },
+   "2024": {
+    "H_rows": 12334,
+    "blocks": 9,
+    "cells": {
+     "15to25": 8978,
+     "ge25": 12334,
+     "lt15": 6389
+    },
+    "games": 1320,
+    "rows": 27701
+   },
+   "dk_rows": {
+    "2023": 15052,
+    "2024": 14748
+   },
+   "fallback_share": 0.0,
+   "min_pool_cell_n": 854,
+   "pools": [
+    {
+     "blk": 0,
+     "cal_n": 3769,
+     "cell_n": [
+      854,
+      1149,
+      1766
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 1,
+     "cal_n": 4005,
+     "cell_n": [
+      873,
+      1192,
+      1940
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 2,
+     "cal_n": 4798,
+     "cell_n": [
+      927,
+      1648,
+      2223
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 3,
+     "cal_n": 5448,
+     "cell_n": [
+      1153,
+      1780,
+      2515
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 4,
+     "cal_n": 6249,
+     "cell_n": [
+      1399,
+      2036,
+      2814
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 5,
+     "cal_n": 6626,
+     "cell_n": [
+      1505,
+      2081,
+      3040
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 6,
+     "cal_n": 7306,
+     "cell_n": [
+      1889,
+      2163,
+      3254
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 7,
+     "cal_n": 7801,
+     "cell_n": [
+      2075,
+      2370,
+      3356
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 8,
+     "cal_n": 8015,
+     "cell_n": [
+      2131,
+      2424,
+      3460
+     ],
+     "fallback_cells": 0,
+     "season": 2023
+    },
+    {
+     "blk": 9,
+     "cal_n": 7992,
+     "cell_n": [
+      2139,
+      2417,
+      3436
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 10,
+     "cal_n": 8183,
+     "cell_n": [
+      2073,
+      2439,
+      3671
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 11,
+     "cal_n": 9094,
+     "cell_n": [
+      2163,
+      2761,
+      4170
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 12,
+     "cal_n": 9532,
+     "cell_n": [
+      2165,
+      2986,
+      4381
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 13,
+     "cal_n": 10198,
+     "cell_n": [
+      2338,
+      3336,
+      4524
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 14,
+     "cal_n": 10845,
+     "cell_n": [
+      2457,
+      3604,
+      4784
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 15,
+     "cal_n": 11533,
+     "cell_n": [
+      2688,
+      3837,
+      5008
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 16,
+     "cal_n": 11942,
+     "cell_n": [
+      2786,
+      4011,
+      5145
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    },
+    {
+     "blk": 17,
+     "cal_n": 12134,
+     "cell_n": [
+      2814,
+      4057,
+      5263
+     ],
+     "fallback_cells": 0,
+     "season": 2024
+    }
+   ]
+  }
+ },
+ "thresholds": {
+  "MAX_FALLBACK_SHARE": 0.1,
+  "MIN_BIN": 200,
+  "MIN_CELL_ROWS": 4000,
+  "MIN_DK_ROWS": 5000,
+  "MIN_GAMES": 1000,
+  "MIN_H_ROWS": 8000
+ }
+}
