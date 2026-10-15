@@ -1,6 +1,7 @@
 import { api } from "../api";
 import { TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, pct, pctBounded, tipTime } from "../format";
+import { chronological, defaultNight } from "../nights";
 import { useLoad } from "../useLoad";
 import type { GameSummary } from "../types";
 import { STAT_LABEL } from "../types";
@@ -66,8 +67,9 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
   return (
     <div class="stack">
       <View state={list} reload={reloadList} onStale={props.onStale}>
-        {(slates) => {
-          const date = props.date ?? slates[0]?.date ?? null;
+        {(list) => {
+          const slates = chronological(list);
+          const date = props.date ?? defaultNight(slates);
           return (
             <>
               <ParlayCard compact />

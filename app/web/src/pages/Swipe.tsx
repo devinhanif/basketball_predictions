@@ -5,6 +5,7 @@ import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
 import { american, bookName, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
 import { useLoad } from "../useLoad";
+import { chronological, defaultNight } from "../nights";
 import { useSettled } from "../useSettled";
 import type { SwipeCardData } from "../types";
 import { STAT_LABEL } from "../types";
@@ -249,8 +250,9 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
         </Explain>
       </div>
       <View state={list} reload={reloadList} onStale={props.onStale}>
-        {(slates) => {
-          const date = props.date ?? slates[0]?.date ?? null;
+        {(list) => {
+          const slates = chronological(list);
+          const date = props.date ?? defaultNight(slates);
           return (
             <>
               {date ? <DeckLoader date={date} onStale={props.onStale} /> : null}
