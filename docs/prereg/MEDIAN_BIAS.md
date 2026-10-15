@@ -151,3 +151,12 @@ Revision-1 priors stand in `docs/PREDICTIONS_LEDGER.md` (row of 2026-10-15 08:00
 
 === RESULTS BELOW ===
 (no result exists)
+
+## Result (run 2026-10-15 10:17 CDT; frozen 9cfd764 sha 13138055, pin 876d366 fd8b91c8; reports/median_bias/results.json)
+**Word: PARTIAL** (guards G1-G4 pass; CRPS_HARM false; FOLLOWUP_OPEN false). Matches the review's plug-in forecast and the restated modal prior.
+- P1 (pooled H gap) passes: CAND cuts the min10>=25 median gap by 1.15 pp vs a cell-shuffle null of -0.02 (sd 0.10); placebo 0.22 pp.
+- P2 CRPS no-harm passes in all four stats (pooled CRPS change -0.0021; IMPROVES_CRPS not issued). P3 (2023 replication) and P4 pass.
+- **P5 fails in two cells: fg3m lt15 and reb 15to25** (CAND overshoots there), so the word is PARTIAL, not MEDIAN_FIXED.
+- Per-stat "fixed" (BH): pts and fg3m yes; reb and ast no.
+- At DraftKings lines, P(Y > continuous median) A0 0.534 -> CAND 0.513 (2024, n 53,752; 2023 0.538 -> 0.514); the remaining ~1.3 pp is the book-information part, as predicted.
+- Reading: the pooled-shape bias is real and the cell map removes most of it for pts and fg3m, but overshoots two low/mid-minute cells. No follow-up (overshoot, not under-correction). Not a production change; live log is the test.
