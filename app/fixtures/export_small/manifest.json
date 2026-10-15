@@ -1,4 +1,5 @@
 {
+ "best_model_schema": 1,
  "data_version": "a55164376845",
  "excluded": {
   "lines_post_tip": 0,
@@ -8,14 +9,15 @@
  "export_date": "2024-11-12",
  "files": {
   "export.duckdb": {
-   "bytes": 4206592,
-   "sha256": "e519c4596696e6638d02891e61bb9b3ecea51151469725b70e4069b464c6e8ea"
+   "bytes": 4993024,
+   "sha256": "911fa227aaf54f5508dfff9d4d09ca31763ee4b5573765bb7fe408acb39d154f"
   },
   "parlay_of_day.json": {
    "bytes": 178,
    "sha256": "1342b6bebd035582427bcd09c3c6d4aa87ed9cd163fa4cd0e322c1a0df88da91"
   }
  },
+ "fixture_note": "best-model columns and rows added by app/fixtures/add_best_model_rows.py",
  "git_dirty": true,
  "git_sha": "bbdb1537f3f0e82cc376f853de73552e56656015",
  "lines": {
@@ -30,13 +32,19 @@
   "status": "evaluated",
   "verdict": "no_positive_ev_found"
  },
+ "primary_sources": {
+  "avg": 43,
+  "fallback_missing": 409,
+  "fallback_stale": 24
+ },
  "row_counts": {
   "box_scores": 262,
   "games": 10,
   "injury_report": 5,
   "model_stamps": 6,
+  "p_play": 23,
   "players": 24,
-  "prop_grids": 568,
+  "prop_grids": 635,
   "prop_lines": 5680,
   "settled_scores": 22,
   "teams": 4,

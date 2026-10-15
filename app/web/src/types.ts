@@ -41,6 +41,8 @@ export interface KeyProp {
   market_p_over: number | null;
   line_source: "posted" | "reference";
   extrapolated: boolean;
+  model_source: string;
+  model_label: string;
 }
 
 export interface GameSummary {
@@ -90,6 +92,12 @@ export interface PropView {
   extrapolated: boolean;
   market_p_over: number | null;
   forecast_stamp: string;
+  /** Which model the forecast came from, in plain words (the API writes the sentence). */
+  model_source: string;
+  model_label: string;
+  /** Chance to play (0 to 1) and the sentence naming its source; null when none is stored. */
+  p_play: number | null;
+  p_play_label: string | null;
 }
 
 export interface PlayerView {

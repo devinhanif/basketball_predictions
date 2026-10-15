@@ -50,7 +50,9 @@ MANIFEST_NAME = "manifest.json"
 HOLDOUT_SEASON = 2025
 MODEL_STATS = ("pts", "reb", "ast", "fg3m")
 EXPORT_STATS = ("pts", "reb", "ast", "fg3m", "pra", "pr", "pa", "ra")
+#: Only used for an export that predates best_model_schema (no is_primary column): the old rule.
 PREFERRED_PROP_MODEL = "props_context_residual"
+BEST_MODEL_SCHEMA = "1"
 ET = ZoneInfo("America/New_York")
 NO_POSITIVE_EV = "no_positive_ev_found"
 POSITIVE_EV = "positive_ev_at_conservative_bound"
@@ -231,6 +233,8 @@ def _stamp_text(row: Json) -> str:
         bits.append(f"n_train {row['stamp_n_train']}")
     if row.get("stamp_weights_sha256"):
         bits.append(f"weights {str(row['stamp_weights_sha256'])[:12]}")
+    if row.get("bundle_month"):
+        bits.append(f"bundle {row['bundle_month']}")
     bits.append(f"made {_utc_iso(row['made_at'])}")
     return "; ".join(bits)
 
@@ -277,6 +281,7 @@ class ExportStore:
                 r[0]
                 for r in con.execute("SELECT table_name FROM information_schema.tables").fetchall()
             }
+            tables["p_play"] = _table(con, "p_play") if "p_play" in have else []
             if "prop_lines" in have:
                 tables["prop_lines"] = _table(con, "prop_lines")
             elif self.manifest["schema_version"] >= 2:
@@ -293,6 +298,12 @@ class ExportStore:
         for t in ("games", "box_scores"):
             if any(int(r["season"]) == HOLDOUT_SEASON for r in tables[t]):
                 raise ExportRefused(f"{t} holds season {HOLDOUT_SEASON}, the frozen holdout")
+        # best_model_schema 1: prop_grids marks one primary row per prop and p_play carries the
+        # chance to play. An export without it keeps the old production-model choice.
+        grids = tables["prop_grids"]
+        self.best_model: bool = meta.get("best_model_schema") == BEST_MODEL_SCHEMA and (
+            not grids or "is_primary" in grids[0]
+        )
         self.made_at: str = self.manifest["made_at"]
         self.data_version: str = self.manifest["data_version"]
         self._build(tables)
@@ -331,6 +342,7 @@ class ExportStore:
         }
         win = self._latest_win(tables["win_probs"])
         props = self._latest_props(tables["prop_grids"])
+        self.pplay = self._pplay(tables["p_play"], props)
         stamps = {k: _stamp_text(v) for k, v in props.items()}
         # The team the exporter recorded for each forecast (box row or prior game), by game+player.
         self.team_pk: dict[tuple[str, int], int] = {}
@@ -435,23 +447,78 @@ class ExportStore:
                 out[key] = [_quote(r) for r in rows]
         return out
 
-    @staticmethod
-    def _latest_props(rows: list[Json]) -> dict[tuple[str, int, str], Json]:
+    def _latest_props(self, rows: list[Json]) -> dict[tuple[str, int, str], Json]:
+        """The one row shown per (game, player, stat).
+
+        Best-model export: the row the exporter marked ``is_primary`` (AVG, or the production
+        model standing in for it), nothing else (the exporter flags AVG rows ``comparison_only``
+        for its own reasons; ``is_primary`` alone decides here); a prop with no primary row is
+        not shown. Older export: the latest pre-tip production row
+        (``props_context_residual``) first."""
         usable = [
             r
             for r in rows
-            if r["is_latest"]
-            and not r["comparison_only"]
+            if (self.best_model or not r["comparison_only"])
             and r["stat"] in MODEL_STATS
             and isinstance(r["q_grid"], list)
             and len(r["q_grid"]) == 19
             and all(v is not None for v in r["q_grid"])
+            and (bool(r["is_primary"]) if self.best_model else bool(r["is_latest"]))
         ]
         return _pick_latest(
             usable,
             lambda r: (r["game_id"], int(r["player_id"]), r["stat"]),
-            lambda r: r["model_name"] == PREFERRED_PROP_MODEL,
+            lambda r: self.best_model or r["model_name"] == PREFERRED_PROP_MODEL,
         )
+
+    def _pplay(
+        self, rows: list[Json], props: dict[tuple[str, int, str], Json]
+    ) -> dict[tuple[str, int], Json]:
+        """Chance to play per (game, player) with where it came from.
+
+        The p_play table (latest pre-tip row, R else production) when the export has one; else the
+        ``p_play_primary`` stored on the shown prop row; else, for an older export, the value
+        stored with that row (source ``legacy``)."""
+        out: dict[tuple[str, int], Json] = {}
+        for (gid, pid, _st), r in props.items():
+            if (gid, pid) in out:
+                continue
+            if self.best_model and r.get("p_play_primary") is not None:
+                out[(gid, pid)] = {"value": float(r["p_play_primary"]),
+                                   "source": r.get("p_play_source"), "detail": None}  # fmt: skip
+            elif not self.best_model and r.get("p_play") is not None:
+                out[(gid, pid)] = {"value": float(r["p_play"]), "source": "legacy", "detail": None}
+        for r in rows:  # the table is the authority and carries the detail
+            if r["p_play_primary"] is not None:
+                out[(r["game_id"], int(r["player_id"]))] = {
+                    "value": float(r["p_play_primary"]),
+                    "source": r["p_play_source"],
+                    "detail": r["p_play_detail"],
+                    "r": r["p_play_r"],
+                    "production": r["p_play_prod"],
+                }
+        return out
+
+    def _model_info(self, r: Json) -> Json:
+        """The model-source facts of a shown row (see model_source.model_label)."""
+        if not self.best_model:
+            src: Any = "legacy"
+            detail: Any = None
+        else:
+            src, detail = r.get("primary_source"), r.get("primary_detail")
+        return {
+            "source": src,
+            "detail": detail,
+            "name": r["model_name"],
+            "version": r["version"],
+            "bundle_id": r.get("bundle_id"),
+            "bundle_month": r.get("bundle_month"),
+            "bundle_made_at": None if r.get("bundle_made_at") is None
+            else _utc_iso(r["bundle_made_at"]),
+            "freshness": r.get("freshness"),
+            "freshness_reason": r.get("freshness_reason"),
+            "source_table": r.get("source_table"),
+        }  # fmt: skip
 
     def _players(
         self,
@@ -486,12 +553,15 @@ class ExportStore:
                 r = props.get((gid, pid, st))
                 if r is None:
                     continue
+                pp = self.pplay.get((gid, pid))
                 forecast: Json = {
                     "mean": r["mean"],
                     "q": [float(v) for v in r["q_grid"]],
                     "stamp": stamps[(gid, pid, st)],
+                    "model": self._model_info(r),
                     "proj_minutes": r["proj_minutes"],
-                    "p_play": r["p_play"],
+                    "p_play": None if pp is None else pp["value"],
+                    "p_play_info": pp,
                     "surv": None
                     if not r["p_ge_full_counts"] or not r["p_ge_full_n"]
                     else {"n": int(r["p_ge_full_n"]), "c": [int(c) for c in r["p_ge_full_counts"]]},
@@ -698,6 +768,22 @@ class ExportStore:
             "never shown as a price. Quotes exist only for points, rebounds, assists and threes.",
         ]
 
+    def _model_stubs(self) -> list[str]:
+        if not self.best_model:
+            return [
+                "This export does not record which model each number came from; every prop is "
+                "the production model's forecast and every chance to play is the one stored "
+                "with it."
+            ]
+        counts = (self.manifest.get("primary_sources") or {}) or {}
+        said = ", ".join(f"{k} {v}" for k, v in sorted(counts.items()))
+        return [
+            "Each prop shows the best-evidenced model: AVG when a fresh pre-tip AVG forecast "
+            "exists, the production model when AVG is missing or stale and in the postseason. "
+            "Every number names its model. Chance to play comes from the availability model R, "
+            "else production." + (f" Props by source in this export: {said}." if said else "")
+        ]
+
     def _stat_stubs(self) -> list[str]:
         stubs = ["Player positions are not exported, so the opponent-by-position table is absent."]
         if not self.has_stl_blk:
@@ -718,6 +804,7 @@ class ExportStore:
             "max_season": max(int(s) for s in m["seasons"]),
             "slates": list(self.slates),
             "stubs": [
+                *self._model_stubs(),
                 *self._line_stubs(),
                 *self._stat_stubs(),
                 "Home or away is known only for games inside the export's lookback window "

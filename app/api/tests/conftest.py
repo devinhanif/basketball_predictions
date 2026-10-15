@@ -50,9 +50,36 @@ def export_dir(tmp_path: Path) -> Path:
     return d
 
 
+NEW_PROP_COLS = (
+    "source_table", "is_primary", "primary_source", "primary_detail", "bundle_id",
+    "bundle_made_at", "bundle_month", "freshness", "freshness_reason", "p_play_primary",
+    "p_play_source",
+)  # fmt: skip
+
+
+def strip_best_model(con: duckdb.DuckDBPyConnection) -> None:
+    """Make an open private copy look like an export from before best_model_schema: no AVG rows,
+    no primary/bundle columns, no p_play table, no meta key."""
+    con.execute("DELETE FROM prop_grids WHERE model_name <> 'props_context_residual'")
+    for col in NEW_PROP_COLS:
+        con.execute(f"ALTER TABLE prop_grids DROP COLUMN {col}")
+    con.execute("DROP TABLE p_play")
+    con.execute("DELETE FROM meta WHERE key = 'best_model_schema'")
+
+
+def downgrade_best_model(d: Path) -> None:
+    """A schema 2 export that predates best_model_schema (the old production-only behaviour)."""
+    con = duckdb.connect(str(d / "export.duckdb"))
+    strip_best_model(con)
+    con.execute("CHECKPOINT")
+    con.close()
+    seal(d)
+
+
 def downgrade_to_v1(d: Path) -> None:
     """Make a private copy look like schema 1: no prop_lines, team_id, or stl/blk/tov."""
     con = duckdb.connect(str(d / "export.duckdb"))
+    strip_best_model(con)
     con.execute("DROP TABLE prop_lines")
     for col in ("team_id", "team_source"):
         con.execute(f"ALTER TABLE prop_grids DROP COLUMN {col}")

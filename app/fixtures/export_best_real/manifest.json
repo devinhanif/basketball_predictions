@@ -1,0 +1,57 @@
+{
+ "data_version": "a55164376845",
+ "excluded": {
+  "avg_post_tip": 0,
+  "avg_unreadable": 0,
+  "lines_post_tip": 0,
+  "post_tip": 2,
+  "unresolved_or_disallowed_season": 0
+ },
+ "export_date": "2024-11-12",
+ "files": {
+  "export.duckdb": {
+   "bytes": 4730880,
+   "sha256": "373b749fa936cc5f595c9f0feee6b85bc1d1ec5454411fef3282d6b6a9d01d27"
+  },
+  "parlay_of_day.json": {
+   "bytes": 178,
+   "sha256": "1342b6bebd035582427bcd09c3c6d4aa87ed9cd163fa4cd0e322c1a0df88da91"
+  }
+ },
+ "git_dirty": true,
+ "git_sha": "f706f556716f568fabb39f25d65d6f8ac0fc29a8",
+ "lines": {
+  "n_quotes": 6350,
+  "n_unusable": 635,
+  "status": "ok"
+ },
+ "lookback_days": 7,
+ "made_at": "2026-10-15T02:15:29.569184Z",
+ "parlay": {
+  "n_evaluated": 0,
+  "status": "evaluated",
+  "verdict": "no_positive_ev_found"
+ },
+ "primary_sources": {
+  "avg": 43,
+  "fallback_missing": 409,
+  "fallback_stale": 24
+ },
+ "row_counts": {
+  "box_scores": 262,
+  "games": 10,
+  "injury_report": 5,
+  "model_stamps": 6,
+  "p_play": 24,
+  "players": 24,
+  "prop_grids": 635,
+  "prop_lines": 6350,
+  "settled_scores": 22,
+  "teams": 4,
+  "win_probs": 12
+ },
+ "schema_version": 2,
+ "seasons": [
+  2024
+ ]
+}

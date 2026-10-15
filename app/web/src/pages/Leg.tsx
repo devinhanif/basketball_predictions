@@ -273,6 +273,9 @@ function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side;
         )}
       </p>
       <p class="small">{m.reason}</p>
+      <p class="small" data-model-source={m.source}>
+        {m.source_label}
+      </p>
       <p class="small muted">
         Forecast stamp: <span class="mono">{m.stamp ?? "none"}</span>. The model was built without ever seeing this game.
       </p>
