@@ -1,6 +1,29 @@
 # Next session
 
-_Updated 2026-10-14 19:15 CDT. Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
+_Updated 2026-10-14 20:27 CDT. Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
+
+## STOPPED 2026-10-14 ~20:27 CDT (Devin: "gnn")
+Done this evening (commits 7ae5b55..c182440 on main; DECISIONS rows for each):
+- **Wiring branch MERGED** to main 1dbee39 on Devin's conditional go: steward fixes 3ccacde (S1 budget 420 s, S2 counting_start
+  filter in AVG/COMBO/FULL readers, S3 interim kill, T1, M5-M7, A2), main merged 9bf2cf7, oracle_w3 IDENTICAL 89889f6d, checks
+  green (479 tests daily/eval/ops/layering). Replay copies deleted by Devin (holdout log bbdb557). Export plist installed by Devin;
+  first run SKIPPED correctly (morning rc=1 from the Drive backup), so A1 is now concrete: Claude still recommends gating on data
+  steps; it needs a replay + Devin's go by Fri 10-17 or waits until after opening night.
+- **Still for Devin after the merge:** AVG meta records (`meta bundle data/avg_shadow/bundles/2026-10`, five proofs,
+  `meta counting-start 2026-10-20`), COMBO counting start likewise (never before 10-20). AVG needs a November bundle before 11-01.
+- **WOWY_STRUCT** (origin/agent/modeler-wowy c44ee72, NOT frozen): pre-freeze review APPROVED WITH EDITS (f1f0add); 2022 CRPS
+  conversion check passed (t_c 0.0050/0.0063/0.0030 stand, all within +-20%, pts leader-out at 0.82); E1-E7 applied; E7 = every
+  arm trains from 2019-10 (Devin); mixture refit per block on 2019+ (Devin); G2 = S+R vs A0_warm all rows (Devin); star out =
+  largest single OUT player's v_s >= 2020-21 rotation 0.75 quantile (15.13 pts / 3.45 ast; overlaps its cells 91-100%, weak
+  guard); heavy absence (sum, 45.0 / 10.4) reported only. Remaining before Devin signs: (1) **Devin's go on the 2019+ power
+  re-measure** (forecasts only, NN8; Claude: yes); (2) short adversary pass on the final text incl. the new Vmax column
+  (planted-future not re-run on real rows); (3) sign together with F1.
+- **F1_WARM_WINDOW** (branch agent/modeler-f1-warm-window): draft RUNNING at stop. Shares fits with WOWY_STRUCT, so F1 must be
+  FROZEN BEFORE any WOWY_STRUCT arm is fitted. Mixture choice must match WOWY E7(b) (refit per block).
+- **Parlay context copula** (b6e1fca): read. Real but small (36 cells vs ~5 under placebo; best typical +6.1%, below every
+  measured cost). Claude recommends closing as a sizing null; Devin has not answered.
+- Claude's open suggestion: scope the "questionable" players blind spot (features only count OUT at T-60).
+Next session first: F1 draft result -> Devin's go on the power re-measure -> adversary pass -> Devin signs both; A1; parlay null.
 
 ## STOPPED 2026-10-14 ~19:15 CDT (Devin ended the session)
 Earlier today (recorded in TEST_LEDGER / DECISIONS): LC2 closed (DATA, FLAT); ALT tests all NOT PROFITABLE (~vig); AVG2 frozen and
