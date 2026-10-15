@@ -1173,3 +1173,8 @@ What would reverse it: the 2019+ build failing a reproduction or leak check befo
 What: draft F1_WARM_WINDOW (branch agent/modeler-f1-warm-window): production props heads on the warm frame trained from 2019-10 vs production's cold 2022-10 window, CRPS on 2023 and 2024, must pass both. Shares fits with WOWY_STRUCT, so F1 freezes before any WOWY_STRUCT arm is fitted. Claude had recommended a November test; the timing is Devin's.
 Why: a result by November instead of December; drafting costs no compute; the fits are mostly shared with WOWY_STRUCT.
 What would reverse it: F1 failing its minimum-data gate, or the shared-fit design making either rule post-hoc. Any production change from a pass waits until after opening night and needs Devin's go and a replay oracle.
+
+**2026-10-14 20:16 CDT — WOWY_STRUCT open items (Devin: "refit, 2. yes, 3. no replace").**
+What: (1) the mixture pi / w_q is refit inside each block on the 2019+ window; (2) the G2 no-harm check is S+R vs A0_warm on all rows, with the warm-rebuild row set (the stored arrays are a reproduction check only); (3) the round star-out cut-offs (V_pts >= 20, V_ast >= 5) are replaced by the 0.75 quantile of V among 2020-21 rows with an OUT player (features only), the same method as the other fixed cut-offs. The 2019+ power re-measure waits for Devin's go.
+Why: (1) one window for heads and mixture keeps the contrast clean; (2) the production question is whether adding the column harms anything; (3) Devin preferred a principled cut-off to round numbers. Claude had recommended keeping the round cuts.
+What would reverse it: a pre-freeze review finding that a choice is not reproducible from main, or that it uses data after 2021.
