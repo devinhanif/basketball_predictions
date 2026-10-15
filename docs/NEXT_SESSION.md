@@ -1,23 +1,42 @@
 # Next session
 
-_Updated 2026-10-13 (pruned to open items). Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
+_Updated 2026-10-14 19:15 CDT. Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
-## STOPPED 2026-10-14 ~16:35 CDT (Devin heading home)
-Done today (all recorded in TEST_LEDGER / DECISIONS): SEQ_LEARNING_CURVE_2 A_m=DATA, E=FLAT (T487, SURVIVES T488; curve closed);
-ALT_LINE_70 / ALT_PARLAY_X / ALT_LADDER_HIST all NOT PROFITABLE, model ~= book's de-vigged price, losses ~= vig (T489-T491, attack
-T492: two SURVIVE, parlay WOUNDED on DEPENDENT only); AVG_SHADOW_LIVE_2 frozen 9afbfeb6, all proofs P1a-P4 pass, bundle assembled
-NOT installed; COMBO_STOCKS_SHADOW frozen b9b38cbe; FULL clean; RAPM untestable at this n; F12 closes validly; PPLAY_INTO_ELO closed;
-SEQ window deferred; nba/export schema 2; app: plain-language UI, alt lines, leg breakdown, real export data, AI scaffold, role-steadiness
-badge, on/off; us_ex live capture; alt-line history pulled (vendor defect logged); backup-prune bug fixed; null audit done.
-Running when stopped (may finish or need restarting next session):
-- steward agent/steward-opening-wiring: COMBO + AVG2 wiring into pretip (flag ON per Devin), export as its own launchd job, watchdog
-  drill, ingest recommendation; replay oracle before/after. Merge only after review of its diff and oracle 89889f6d.
-- modeler agent/modeler-wowy: WOWY_REDISTRIBUTION draft + gate, then STOP for pre-freeze review and Devin's signature.
-- CI on the final pushed commit (watch it go green; several runs were cancelled by pushes today).
-Devin to do: rm -rf data/avg_shadow/gate_work data/rehearsal/oracle_export* (blocks AVG2 install); load the export launchd job
-(command from the steward); X developer sign-up (reporter feed); own rclone client_id; decide 10-16 wiring if not already done.
-Next session first: read the two agents' results, merge, review, then Thursday's wiring decision. App gaps: on/off not in the export
-(add pre-computed on/off after WOWY); badge cut-offs untested.
+## STOPPED 2026-10-14 ~19:15 CDT (Devin ended the session)
+Earlier today (recorded in TEST_LEDGER / DECISIONS): LC2 closed (DATA, FLAT); ALT tests all NOT PROFITABLE (~vig); AVG2 frozen and
+installed (bundle b8d2b27b, 16:16 CDT; counting start UNSET); COMBO frozen; RAPM untestable; F12 closed; app on/off + badge merged.
+
+This evening:
+- **Steward wiring branch agent/steward-opening-wiring (da08b57):** COMBO + AVG2 flags ON in pretip, export launchd job, watchdog
+  drill. Replay oracle main vs branch both IDENTICAL 89889f6d (oracle_w_main, oracle_w_branch2). P3 (combo writer ON) IDENTICAL,
+  heartbeat ok 96/96 runs, rows on 20/20 dates; combo mean 3.1 s / max 10.6 s per run; 46 MB over 20 dates. Review (adversary,
+  origin/agent/adversary-wiring-review d482261): WOUNDED, APPROVED; S1 (no time budget), S2 (readers score rows before
+  counting_start, AVG/FULL too), S3 (interim kills on coverage alone), T1 (vacuous test), M1-M7, A2 (kickstart after bootstrap).
+  Steward was RESUMED to fix S1-S3, T1, M5-M7, A2; status unknown at stop. Next: read its result, re-run the oracle on the fixed
+  branch, merge with Devin's go BEFORE Sat 10-18 (hands-off). Steward worktree data/ is a symlink to main data/ (old local copy in
+  scratchpad steward_worktree_data); never stage data/ from it.
+- **Devin decision pending A1:** should the app export run when the morning rc=1 came only from Drive backups (today: DNS outage
+  09:19, every data step rc 0)? Claude recommends yes (gate on data steps). Devin said "I don't know"; strict rc==0 kept for now.
+- **After merge, Devin runs:** `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap
+  gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist && launchctl kickstart -k gui/$(id -u)/local.nba.app-export`.
+  Then the AVG meta records (writes live DB, Devin's go): `meta bundle data/avg_shadow/bundles/2026-10`, the five proofs,
+  `meta counting-start 2026-10-20`; COMBO counting start likewise, never before 10-20. AVG needs a November bundle before 11-01.
+- **WOWY:** history version NOT frozen (gate fails; big with/without gaps are noise). App shrinks those numbers (merged 20ac848).
+  Devin's per-possession idea **WOWY_STRUCT** (draft, origin/agent/modeler-wowy b5a5569): leak audit WOUNDED, no leak
+  (origin/agent/adversary-struct-leak 6d3a3bf); 3 cells survive (pts leader-out, pts top-25% fixed 5.04, ast leader-out), primary
+  contrast STRUCT beyond role share; permutation null done (8/9 beat all 30 draws). Pre-freeze review RUNNING
+  (agent/adversary-wowy-struct-prefreeze); it must reconcile rule line 6 (G1 flat -0.003 vs measured 0.0049 / 0.0063 / 0.003).
+  Then Devin signs (Claude: keep ast leader-out), freeze, write harness, reproduce gate from main, run (2023 select, 2024 report).
+- **Devin decision pending F1:** props feature frame starts cold in 2022 (n_out_rot differs on 32.6% of 2022 rows vs a
+  history-inclusive build; every refit trains on them). Claude recommends a November test (warm frame over data/history + nba.duckdb).
+- **Parlay agent agent/market-context-copula (Devin's idea):** does context (teammate out, leader out, blowout) change cross-leg
+  residual correlation enough to move a same-game parlay past the vig? Gate/inventory only; RUNNING at stop.
+- **Devin deletes (agent rm is blocked), all season-2025 replay copies, unread:** `rm -rf data/rehearsal/oracle_w_src.duckdb
+  data/rehearsal/oracle_w_main* data/rehearsal/oracle_w_branch* data/rehearsal/oracle_c2*` (HOLDOUT_ACCESS_LOG rows 05e1b50).
+  Wait until the fixed-branch oracle re-run is done; it needs a fresh source copy anyway.
+- CI on abcb6e0: lint-type and data-contract green, unit was still running (40+ min); check the latest run on main.
+Next session first: steward result -> oracle re-run -> merge (Devin's go) -> export plist -> AVG/COMBO meta; WOWY_STRUCT review
+-> Devin signs; parlay agent result; A1 and F1 answers.
 
 ## SIX-DAY PLAN to opening night (written 2026-10-14; production stays on the MacBook)
 | Day | Claude / agents | Devin |
