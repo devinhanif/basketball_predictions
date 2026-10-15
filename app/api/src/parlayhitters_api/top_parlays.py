@@ -75,6 +75,7 @@ class Leg(_Strict):
     p_cal: float = Field(ge=0, le=1)
     model_source: str
     reason: str
+    tail_flag: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -97,6 +98,7 @@ class Ticket(_Strict):
     ev_per_dollar: float
     ev_low80: float
     why: str
+    tail_note: str | None = None
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -110,6 +112,8 @@ class Ticket(_Strict):
             if abs(self.p_joint_cal - prod) > JOINT_TOL:
                 raise ValueError("p_joint_cal far from the product of independent legs")
         _clean(self.why)
+        if self.tail_note is not None:
+            _clean(self.tail_note)
         return self
 
 

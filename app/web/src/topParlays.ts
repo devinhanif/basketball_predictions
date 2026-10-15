@@ -19,6 +19,8 @@ export interface TpLeg {
   p_cal: number;
   model_source: string;
   reason: string;
+  /** Optional in the file; the API fills false. */
+  tail_flag?: boolean;
 }
 
 export interface TpTicket {
@@ -32,6 +34,8 @@ export interface TpTicket {
   ev_per_dollar: number;
   ev_low80: number;
   why: string;
+  /** Optional in the file; the API fills null. */
+  tail_note?: string | null;
 }
 
 export interface TpGate {

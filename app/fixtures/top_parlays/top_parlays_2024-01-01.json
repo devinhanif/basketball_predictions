@@ -60,7 +60,8 @@
       "p_raw": 0.71,
       "p_cal": 0.61,
       "model_source": "production",
-      "reason": "The model's raw chance is 71%; after calibration it is 61%."
+      "reason": "The model's raw chance is 71%; after calibration it is 61%.",
+      "tail_flag": true
      }
     ],
     "p_joint_raw": 0.511,
@@ -72,7 +73,8 @@
     "book_implied": 0.35,
     "ev_per_dollar": 0.046,
     "ev_low80": -0.24,
-    "why": "All 2 legs have to hit. The calibrated chance is 37% and the book's price implies 35%. The model is not proven, so this is a paper ticket."
+    "why": "All 2 legs have to hit. The calibrated chance is 37% and the book's price implies 35%. The model is not proven, so this is a paper ticket.",
+    "tail_note": "One leg is flagged: legs the model put at 65% or more ran high in past tests, so treat its chance as a ceiling. (Illustration text.)"
    },
    {
     "rank": 2,
