@@ -1,5 +1,7 @@
 {
  "decision": {
+  "CRPS_HARM": false,
+  "FOLLOWUP_OPEN": false,
   "IMPROVES_CRPS": false,
   "ON_LINES": true,
   "P1": true,
@@ -44,11 +46,17 @@
  },
  "guards": {
   "G1_null": {
+   "descriptive_outcome_shuffle": {
+    "dcrps_mean": 0.012598302630670109,
+    "gain_mean": -1.062122066469853,
+    "k": 10,
+    "note": "not in any word"
+   },
    "k": 50,
-   "null_dcrps_mean": 0.012624806036838526,
-   "null_dcrps_sd": 0.000215162343241356,
-   "null_gain_mean": -1.0544197801069544,
-   "null_gain_sd": 0.03166344899295115,
+   "null_dcrps_mean": 0.000315900252157977,
+   "null_dcrps_sd": 0.00023676649563254438,
+   "null_gain_mean": -0.025529280095955578,
+   "null_gain_sd": 0.09873198979823224,
    "obs_dcrps": -0.004594625658296477,
    "obs_gain_pp": 2.1945608535624452,
    "pass": true
@@ -74,6 +82,7 @@
  },
  "preflight": {
   "counts_equal_pinned": true,
+  "git_head": "a4a06700ab78fcf015c0b0150470b579d9cb014d",
   "inputs_equal_pinned": true,
   "per_stat": {
    "ast": {
@@ -108,6 +117,12 @@
      "2024": 27701
     }
    }
+  },
+  "uv_lock_sha256": "97e3413ef0d45adeb613c23359b2ea834d00c908d57fc5f46418db3de4b4287d",
+  "versions": {
+   "numpy": "2.5.3",
+   "pandas": "3.0.6",
+   "pyarrow": "25.0.1"
   }
  },
  "real_outcomes": false,
@@ -1269,5 +1284,5 @@
   }
  },
  "truth": "oracle",
- "wall_seconds": 12.4
+ "wall_seconds": 35.0
 }

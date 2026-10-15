@@ -37,7 +37,8 @@ MIN_CELL_ROWS = 4_000  # per stat, season and cell
 MIN_GAMES = 1_000
 MIN_DK_ROWS = 5_000  # per stat and season: rows with a DraftKings t60 line
 MAX_FALLBACK_SHARE = 0.10  # share of (block, cell) calibration pools below MIN_BIN
-COMP_FILES = {s: f"reports/lower_tail/components_{s}.npz" for s in STATS}
+#: write-once copies (chmod a-w) of reports/lower_tail/components_<stat>.npz of 2026-10-11; the source directory is untracked and was overwritten once
+COMP_FILES = {s: f"data/pinned/median_bias/components_{s}.npz" for s in STATS}
 PAIRS_FILES = {y: f"data/ops/model_clv_pairs/pairs_{y}.parquet" for y in SEASONS}
 ROW_KEYS = (
     "row_gid",
@@ -72,6 +73,9 @@ def load_comp(root: Path, stat: str, labels: bool = False) -> dict[str, np.ndarr
     if labels:
         keep += ["row_y"]
     out = {k: z[k] for k in keep}
+    assert np.isfinite(out["row_min10"]).all() and np.isfinite(out["cal_min10"]).all(), (
+        "NaN min10 would land silently in cell 2 (H)"
+    )
     assert int(out["row_season"].max()) <= MAX_SEASON, "season 2025 is the frozen holdout"
     return out
 
