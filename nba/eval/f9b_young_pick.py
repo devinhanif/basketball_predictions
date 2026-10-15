@@ -549,7 +549,7 @@ def load_study_inputs(
     games, pgs, static, avail = load_inputs(db_path, None)
     assert int(games["season"].max()) <= MAX_SEASON, "frozen holdout (2025) must not be loaded"  # type: ignore[arg-type]
     static_x = load_static_extra(db_path)
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = build_features(games, pgs, static, flagged, elo)
     feats = attach_realised(feats, games, pgs)
     feats = add_yp_columns(feats, games, pgs, static_x)

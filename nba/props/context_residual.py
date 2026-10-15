@@ -405,11 +405,16 @@ def vacated_features(
 
 
 def flagged_from_availability(
-    avail: pl.DataFrame, games: pl.DataFrame, cfg: ReportTriggerConfig
+    avail: pl.DataFrame,
+    games: pl.DataFrame,
+    cfg: ReportTriggerConfig,
+    max_season: int | None = None,
 ) -> tuple[dict[str, set[int]], dict[str, tuple[object, int, int]]]:
     """Latest usable pre-tip OUT set per game from raw ``player_availability``
     rows (columns game_id, player_id, status, as_of, source). Games without a
-    usable report are absent from the first dict."""
+    usable report are absent from the first dict. ``max_season`` (default None = all schedule
+    files, the live behaviour) limits which schedule files supply real tips; research callers
+    pass 2024 so no holdout tip row is read."""
     rows = (
         avail.filter(pl.col("source").is_in(list(cfg.sources)) & pl.col("player_id").is_not_null())
         .join(games.select(["game_id", "game_date"]), on="game_id")
@@ -424,7 +429,7 @@ def flagged_from_availability(
     if cfg.tip_source == "real":
         from nba.features.game_tipoff import attach_real_tips
 
-        rows = attach_real_tips(rows)
+        rows = attach_real_tips(rows, max_season=max_season)
     flagged, _used = latest_pretip_flagged(rows, cfg)
     info = {
         str(g): (d, int(h), int(a))

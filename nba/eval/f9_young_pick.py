@@ -162,7 +162,7 @@ def run_checks(
         ).pl()
     finally:
         con.close()
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = build_features(games, pgs, st2, flagged, elo, young_pick=True)
     feats = attach_realised(feats, games, pgs).join(
         st2.select("player_id", "draft_year"), on="player_id", how="left"

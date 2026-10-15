@@ -20,6 +20,7 @@ and :func:`attach_real_tips` reports how many.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import UTC
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -44,8 +45,21 @@ def _parse(col: str) -> pl.Expr:
     return pl.col(col).str.replace("Z$", "").str.to_datetime("%Y-%m-%dT%H:%M:%S", strict=False)
 
 
-def build_game_tipoff(schedule_dir: str | Path | None = None) -> pl.DataFrame:
+def _file_season(f: Path) -> int | None:
+    """Start year of the season a schedule file covers (``raw_2025-26`` -> 2025), or None."""
+    m = re.search(r"(\d{4})-\d{2}$", f.stem)
+    return int(m.group(1)) if m else None
+
+
+def build_game_tipoff(
+    schedule_dir: str | Path | None = None, max_season: int | None = None
+) -> pl.DataFrame:
     """One row per game_id from every ``raw_*.parquet`` in ``schedule_dir``.
+
+    ``max_season`` (default None = every file, the live behaviour) skips schedule files of later
+    seasons BEFORE they are read, so a research caller with ``max_season=2024`` never
+    materialises a season-2025 (holdout) tip row. A file whose season cannot be parsed from its
+    name is read only when ``max_season`` is None.
 
     Rows with an unparseable/absent time are dropped (the caller falls back to
     the proxy and counts them). Duplicated game_ids keep the last file's row.
@@ -56,6 +70,10 @@ def build_game_tipoff(schedule_dir: str | Path | None = None) -> pl.DataFrame:
         Path(schedule_dir).glob("live_tips_*.parquet")
     )
     for f in files:
+        if max_season is not None:
+            fs = _file_season(f)
+            if fs is None or fs > max_season:
+                continue
         d = pl.read_parquet(f, columns=["gameId", "gameDateTimeUTC", "gameDateTimeEst"])
         frames.append(
             d.select(
@@ -70,11 +88,13 @@ def build_game_tipoff(schedule_dir: str | Path | None = None) -> pl.DataFrame:
     return out.unique("game_id", keep="last", maintain_order=True).cast(_SCHEMA)
 
 
-def attach_real_tips(rows: pl.DataFrame, tips: pl.DataFrame | None = None) -> pl.DataFrame:
+def attach_real_tips(
+    rows: pl.DataFrame, tips: pl.DataFrame | None = None, max_season: int | None = None
+) -> pl.DataFrame:
     """Add a nullable ``tip_et`` column to report rows (null = real time missing)."""
     if "tip_et" in rows.columns:
         rows = rows.drop("tip_et")
-    tips = build_game_tipoff() if tips is None else tips
+    tips = build_game_tipoff(max_season=max_season) if tips is None else tips
     out = rows.join(tips.select(["game_id", "tip_et"]), on="game_id", how="left")
     n_miss = out.filter(pl.col("tip_et").is_null()).select("game_id").unique().height
     if n_miss:

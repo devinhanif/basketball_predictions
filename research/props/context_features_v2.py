@@ -299,7 +299,9 @@ def pretip_status(
     if cfg.tip_source == "real":
         from nba.features.game_tipoff import attach_real_tips
 
-        rows = attach_real_tips(rows)
+        # bound the schedule files read by the seasons actually loaded (no holdout tip rows)
+        ms = int(games["season"].max()) if "season" in games.columns and games.height else None  # type: ignore[arg-type]
+        rows = attach_real_tips(rows, max_season=ms)
     usable = usable_report_rows(rows, cfg)
     if usable.height == 0:
         return pl.DataFrame(schema=schema), set()
@@ -1019,7 +1021,7 @@ def export_dataset(
         raise ValueError(f"season > {max_season} present: it must not be loaded")
     elo_params = {k: float(v) for k, v in yaml.safe_load(Path(elo_config).read_text()).items()}
     cfg = ContextResidualConfig()
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=max_season)
     v1 = build_features(games, pgs, static, flagged, elo_params)
     full = build_v2_features(v1, games, pgs, static, avail, poss, cfg.report)
     del v1, games, pgs, static, avail, poss  # memory-light: only ``full`` is needed from here on
