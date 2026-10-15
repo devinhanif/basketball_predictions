@@ -69,6 +69,20 @@ Results are summarised here as they land.
     Diversity default: each leg in at most one ticket per size (Devin may override).
   * Combo pull DONE 152,770 credits (b22e1f1); ingest awaits Devin's go. Combo OOF rebuild (R-F) still running.
   * Devin deletes: rm -rf data/rehearsal/oracle_m_* data/rehearsal/oracle_r_*
+- ~08:45 STATE:
+  * Opening-night fixes MERGED (export roster placement + rookie static).
+  * PARLAY_JOINT_CAL RUN (T495): 4/4 CALIBRATED, CAL helps; attack WOUNDED: top-3 picks run 3-5 pts high (CAL tail q>=.65
+    overconfident). Panel caveat added to producer (default).
+  * TAIL_LEG_CAL FROZEN defa605 / pin 9fb0eec / RUN (T496): NOT_FIXED (tail overconfidence unstable across seasons). Closed.
+  * MEDIAN_BIAS: diagnosis = minutes-gradient from one pooled residual shape (+2.7 pp at 30+ min, -4.0 at <15) plus book info;
+    review APPROVED WITH EDITS; modeler applying items 1-7 and restating priors (plug-in forecast says PARTIAL). Then diff
+    re-check, freeze, pin, run.
+  * Data version: model_rows_2024 (Oct 10) vs components (Oct 11) = d872dc7 neutral-site backfill; T493-T496 stand (ledger note).
+  * Holdout disclosure 09ac4a5: research loaders read and discard 2025 availability/tip rows; steward fix on
+    agent/steward-holdout-filter (oracle if live path touched).
+  * Producer fixes still in progress (agent/market-top-parlays); then review + oracle.
+  * Combo: pull done; ingest awaits Devin; OOF rebuild (R-F) status unknown (agent stopped mid-run).
+  * Session is ~10 h old: start a fresh session from this file.
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
