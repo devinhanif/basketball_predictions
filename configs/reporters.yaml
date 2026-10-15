@@ -14,7 +14,79 @@
 #   - handle: ExampleBeatWriter
 #     team: HOU
 #     name: Example Writer (The Example Paper)
-handles: []
+handles:  # approved by Devin 2026-10-15 from the paid handle check (data/reporters/handle_check_2026-10-15.json)
+  - handle: williamslaurenl
+    team: ATL
+    name: Lauren L. Williams (AJC)
+  - handle: ByJayKing
+    team: BOS
+    name: Jay King (The Athletic)
+  - handle: NYPost_Lewis
+    team: BKN
+    name: Brian Lewis (NY Post)
+  - handle: KCJHoop
+    team: CHI
+    name: K.C. Johnson (CHSN)
+  - handle: ChrisFedor
+    team: CLE
+    name: Chris Fedor (cleveland.com)
+  - handle: GrantAfseth
+    team: DAL
+    name: Grant Afseth
+  - handle: omarisankofa
+    team: DET
+    name: Omari Sankofa II (Detroit Free Press)
+  - handle: anthonyVslater
+    team: GSW
+    name: Anthony Slater (ESPN)
+  - handle: ScottAgness
+    team: IND
+    name: Scott Agness (Fieldhouse Files)
+  - handle: LawMurrayTheNU
+    team: LAC
+    name: Law Murray (The Athletic)
+  - handle: DanWoikeSports
+    team: LAL
+    name: Dan Woike (The Athletic)
+  - handle: DamichaelC
+    team: MEM
+    name: Damichael Cole (Commercial Appeal)
+  - handle: IraHeatBeat
+    team: MIA
+    name: Ira Winderman (Sun Sentinel)
+  - handle: JonKrawczynski
+    team: MIN
+    name: Jon Krawczynski (The Athletic)
+  - handle: WillGuillory
+    team: NOP
+    name: Will Guillory (The Athletic)
+  - handle: IanBegley
+    team: NYK
+    name: Ian Begley (SNY)
+  - handle: brandonrahbar
+    team: OKC
+    name: Brandon Rahbar (Daily Thunder)
+  - handle: therealBeede
+    team: ORL
+    name: Jason Beede (Orlando Sentinel)
+  - handle: PompeyOnSixers
+    team: PHI
+    name: Keith Pompey (Inquirer)
+  - handle: DuaneRankin
+    team: PHX
+    name: Duane Rankin (azcentral)
+  - handle: james_hamnba
+    team: SAC
+    name: James Ham (ESPN 1320 / The Kings Beat)
+  - handle: JMcDonald_SAEN
+    team: SAS
+    name: Jeff McDonald (Express-News)
+  - handle: JLew1050
+    team: TOR
+    name: Josh Lewenberg (TSN)
+  - handle: ShamsCharania
+    team: null
+    name: Shams Charania (ESPN, league-wide)
 
 # Spend guards. Every post read costs money (pay-per-use, about $0.005 per post, 2026-10).
 # posts_per_run is the default for `--budget-posts`; posts_per_day, posts_per_month and
