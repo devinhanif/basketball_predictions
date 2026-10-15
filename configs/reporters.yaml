@@ -84,6 +84,18 @@ handles:  # approved by Devin 2026-10-15 from the paid handle check (data/report
   - handle: JLew1050
     team: TOR
     name: Josh Lewenberg (TSN)
+  - handle: JoshuaBRobbins
+    team: WAS
+    name: Josh Robbins (The Athletic)
+  - handle: BennettDurando
+    team: DEN
+    name: Bennett Durando (Denver Post)
+  - handle: shre98
+    team: UTA
+    name: Shreyas Laddha (Salt Lake Tribune)
+  - handle: byvarunshankar
+    team: HOU
+    name: Varun Shankar (Houston Chronicle)
   - handle: ShamsCharania
     team: null
     name: Shams Charania (ESPN, league-wide)
