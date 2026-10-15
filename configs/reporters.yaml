@@ -17,11 +17,20 @@
 handles: []
 
 # Spend guards. Every post read costs money (pay-per-use, about $0.005 per post, 2026-10).
-# posts_per_run is the default for `--budget-posts`; posts_per_day is a ceiling kept in
-# data/reporters/budget.json across runs. Both refuse BEFORE the request is sent.
+# posts_per_run is the default for `--budget-posts`; posts_per_day, posts_per_month and
+# usd_per_month (posts x usd_per_post) are ceilings kept in data/reporters/budget.json across
+# runs (UTC day / UTC month). Every one refuses BEFORE the request is sent (exit 2).
 budget:
   posts_per_run: 200
-  posts_per_day: 1000
+  posts_per_day: 400
+  posts_per_month: 8000
+  usd_per_month: 40
+  usd_per_post: 0.005
+  usd_per_user: 0.010   # user resource read; one lookup per handle, ever (user_ids.json)
+
+# Polls are refused outside [tip - window_minutes, tip] of the handle's team (league-wide handles:
+# slate first tip - window to slate last tip). Planned polls: T-90 and T-40 per team.
+window_minutes: 120
 
 # How far back the first poll of a handle looks (hours). Later polls start at the newest post
 # already stored for that handle.
