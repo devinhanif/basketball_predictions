@@ -1,0 +1,391 @@
+{
+ "schema": "top_parlays/1",
+ "illustration": true,
+ "slate_date": "2024-11-12",
+ "made_at": "2024-11-12T22:10:00Z",
+ "calibration": {
+  "rule": "LINE_CALIBRATION",
+  "sha8": "a5441242",
+  "fit_through": "2025-06-30 (season 2024; season 2025 rows only after a logged training-use row, Devin)",
+  "status": "Stage 1 pass (T493); live confirmation pending"
+ },
+ "ranking": "calibrated joint probability, highest first; ties broken by higher EV",
+ "verdict": "keep_your_money",
+ "empty_reason": null,
+ "sizes": {
+  "2": [
+   {
+    "rank": 1,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400001",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9000,
+      "player_name": "Sample Center 1",
+      "team": "BOS",
+      "opp": "ATL",
+      "stat": "reb",
+      "side": "under",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.72,
+      "p_cal": 0.6,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 72%; after calibration it is 60%."
+     },
+     {
+      "game_id": "0022400004",
+      "tipoff": "2024-11-13T00:30:00Z",
+      "player_id": 9003,
+      "player_name": "Sample Forward 4",
+      "team": "PHI",
+      "opp": "NYK",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 3.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.71,
+      "p_cal": 0.61,
+      "model_source": "production",
+      "reason": "The model's raw chance is 71%; after calibration it is 61%."
+     }
+    ],
+    "p_joint_raw": 0.511,
+    "p_joint_cal": 0.366,
+    "p_joint_cal_80": [
+     0.316,
+     0.416
+    ],
+    "book_implied": 0.35,
+    "ev_per_dollar": 0.046,
+    "ev_low80": -0.24,
+    "why": "All 2 legs have to hit. The calibrated chance is 37% and the book's price implies 35%. The model is not proven, so this is a paper ticket."
+   },
+   {
+    "rank": 2,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400004",
+      "tipoff": "2024-11-13T00:30:00Z",
+      "player_id": 9003,
+      "player_name": "Sample Forward 4",
+      "team": "PHI",
+      "opp": "NYK",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 3.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.71,
+      "p_cal": 0.61,
+      "model_source": "production",
+      "reason": "The model's raw chance is 71%; after calibration it is 61%."
+     },
+     {
+      "game_id": "0022400003",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9002,
+      "player_name": "Sample Wing 3",
+      "team": "ORL",
+      "opp": "CHA",
+      "stat": "pts",
+      "side": "under",
+      "line": 21.5,
+      "book": "draftkings",
+      "price_american": -130,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.66,
+      "p_cal": 0.56,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 66%; after calibration it is 56%."
+     }
+    ],
+    "p_joint_raw": 0.469,
+    "p_joint_cal": 0.342,
+    "p_joint_cal_80": [
+     0.292,
+     0.392
+    ],
+    "book_implied": 0.339,
+    "ev_per_dollar": 0.007,
+    "ev_low80": -0.288,
+    "why": "All 2 legs have to hit. The calibrated chance is 34% and the book's price implies 34%. The model is not proven, so this is a paper ticket."
+   },
+   {
+    "rank": 3,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400001",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9000,
+      "player_name": "Sample Center 1",
+      "team": "BOS",
+      "opp": "ATL",
+      "stat": "reb",
+      "side": "under",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.72,
+      "p_cal": 0.6,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 72%; after calibration it is 60%."
+     },
+     {
+      "game_id": "0022400003",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9002,
+      "player_name": "Sample Wing 3",
+      "team": "ORL",
+      "opp": "CHA",
+      "stat": "pts",
+      "side": "under",
+      "line": 21.5,
+      "book": "draftkings",
+      "price_american": -130,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.66,
+      "p_cal": 0.56,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 66%; after calibration it is 56%."
+     }
+    ],
+    "p_joint_raw": 0.475,
+    "p_joint_cal": 0.336,
+    "p_joint_cal_80": [
+     0.286,
+     0.386
+    ],
+    "book_implied": 0.33,
+    "ev_per_dollar": 0.019,
+    "ev_low80": -0.284,
+    "why": "All 2 legs have to hit. The calibrated chance is 34% and the book's price implies 33%. The model is not proven, so this is a paper ticket."
+   }
+  ],
+  "3": [
+   {
+    "rank": 1,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400001",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9000,
+      "player_name": "Sample Center 1",
+      "team": "BOS",
+      "opp": "ATL",
+      "stat": "reb",
+      "side": "under",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.72,
+      "p_cal": 0.6,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 72%; after calibration it is 60%."
+     },
+     {
+      "game_id": "0022400004",
+      "tipoff": "2024-11-13T00:30:00Z",
+      "player_id": 9003,
+      "player_name": "Sample Forward 4",
+      "team": "PHI",
+      "opp": "NYK",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 3.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.71,
+      "p_cal": 0.61,
+      "model_source": "production",
+      "reason": "The model's raw chance is 71%; after calibration it is 61%."
+     },
+     {
+      "game_id": "0022400003",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9002,
+      "player_name": "Sample Wing 3",
+      "team": "ORL",
+      "opp": "CHA",
+      "stat": "pts",
+      "side": "under",
+      "line": 21.5,
+      "book": "draftkings",
+      "price_american": -130,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.66,
+      "p_cal": 0.56,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 66%; after calibration it is 56%."
+     }
+    ],
+    "p_joint_raw": 0.337,
+    "p_joint_cal": 0.205,
+    "p_joint_cal_80": [
+     0.145,
+     0.265
+    ],
+    "book_implied": 0.198,
+    "ev_per_dollar": 0.036,
+    "ev_low80": -0.571,
+    "why": "All 3 legs have to hit. The calibrated chance is 20% and the book's price implies 20%. The model is not proven, so this is a paper ticket."
+   },
+   {
+    "rank": 2,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400001",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9000,
+      "player_name": "Sample Center 1",
+      "team": "BOS",
+      "opp": "ATL",
+      "stat": "reb",
+      "side": "under",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.72,
+      "p_cal": 0.6,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 72%; after calibration it is 60%."
+     },
+     {
+      "game_id": "0022400004",
+      "tipoff": "2024-11-13T00:30:00Z",
+      "player_id": 9003,
+      "player_name": "Sample Forward 4",
+      "team": "PHI",
+      "opp": "NYK",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 3.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.71,
+      "p_cal": 0.61,
+      "model_source": "production",
+      "reason": "The model's raw chance is 71%; after calibration it is 61%."
+     },
+     {
+      "game_id": "0022400002",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9001,
+      "player_name": "Sample Guard 2",
+      "team": "DET",
+      "opp": "MIA",
+      "stat": "ast",
+      "side": "over",
+      "line": 4.5,
+      "book": "draftkings",
+      "price_american": -125,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.68,
+      "p_cal": 0.56,
+      "model_source": "production",
+      "reason": "The model's raw chance is 68%; after calibration it is 56%."
+     }
+    ],
+    "p_joint_raw": 0.348,
+    "p_joint_cal": 0.205,
+    "p_joint_cal_80": [
+     0.145,
+     0.265
+    ],
+    "book_implied": 0.194,
+    "ev_per_dollar": 0.054,
+    "ev_low80": -0.563,
+    "why": "All 3 legs have to hit. The calibrated chance is 20% and the book's price implies 19%. The model is not proven, so this is a paper ticket."
+   },
+   {
+    "rank": 3,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400001",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9000,
+      "player_name": "Sample Center 1",
+      "team": "BOS",
+      "opp": "ATL",
+      "stat": "reb",
+      "side": "under",
+      "line": 11.5,
+      "book": "draftkings",
+      "price_american": -140,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.72,
+      "p_cal": 0.6,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 72%; after calibration it is 60%."
+     },
+     {
+      "game_id": "0022400004",
+      "tipoff": "2024-11-13T00:30:00Z",
+      "player_id": 9003,
+      "player_name": "Sample Forward 4",
+      "team": "PHI",
+      "opp": "NYK",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 3.5,
+      "book": "draftkings",
+      "price_american": -150,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.71,
+      "p_cal": 0.61,
+      "model_source": "production",
+      "reason": "The model's raw chance is 71%; after calibration it is 61%."
+     },
+     {
+      "game_id": "0022400002",
+      "tipoff": "2024-11-13T00:00:00Z",
+      "player_id": 9005,
+      "player_name": "Sample Wing 6",
+      "team": "DET",
+      "opp": "MIA",
+      "stat": "reb",
+      "side": "under",
+      "line": 6.5,
+      "book": "draftkings",
+      "price_american": -120,
+      "price_at": "2024-11-12T23:05:00Z",
+      "p_raw": 0.63,
+      "p_cal": 0.54,
+      "model_source": "AVG",
+      "reason": "The model's raw chance is 63%; after calibration it is 54%."
+     }
+    ],
+    "p_joint_raw": 0.322,
+    "p_joint_cal": 0.198,
+    "p_joint_cal_80": [
+     0.138,
+     0.258
+    ],
+    "book_implied": 0.191,
+    "ev_per_dollar": 0.035,
+    "ev_low80": -0.594,
+    "why": "All 3 legs have to hit. The calibrated chance is 20% and the book's price implies 19%. The model is not proven, so this is a paper ticket."
+   }
+  ]
+ },
+ "caveats": [
+  "Parlays the model called 70%+ hit about 10 points less in 2023-24 (T490).",
+  "ILLUSTRATION: synthetic players, lines and prices; not a real slate."
+ ]
+}
