@@ -435,6 +435,7 @@ def build_export(
         "excluded": {"post_tip": fwd.excluded_post_tip,
                      "avg_post_tip": fwd.excluded_avg_post_tip,
                      "avg_unreadable": fwd.excluded_avg_unreadable,
+                     "avg_no_game_teams": fwd.excluded_avg_no_game,
                      "unresolved_or_disallowed_season": fwd.excluded_unresolved_season,
                      "lines_post_tip": lines.excluded_post_tip},
         "lines": {"status": lines.status, "n_quotes": len(lines.rows),

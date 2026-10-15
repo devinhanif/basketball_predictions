@@ -119,6 +119,7 @@ class ForwardBundle:
     p_play: list[dict[str, Any]] = field(default_factory=list)
     excluded_avg_post_tip: int = 0
     excluded_avg_unreadable: int = 0
+    excluded_avg_no_game: int = 0
 
 
 def _flatten_stamp(stamp: dict[str, Any] | None) -> dict[str, Any]:
@@ -223,10 +224,20 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
         con, blo, bhi, window.seasons, window.first, window.day, et_date
     )
     _assert_allowed({int(g["season"]) for g in avg_games}, window.seasons)
+    dropped_games: set[str] = set()
     for ag in avg_games:
-        games.setdefault(ag["game_id"], ag)
+        known = games.get(ag["game_id"])
+        if known is not None and known["home_team"] is not None and known["away_team"] is not None:
+            continue
+        if ag["home_team"] is None or ag["away_team"] is None:  # the app cannot load a game
+            dropped_games.add(ag["game_id"])  # without its teams
+        else:
+            games[ag["game_id"]] = ag
+    n_no_game = sum(1 for a in avg if a["game_id"] in dropped_games)
+    avg = [a for a in avg if a["game_id"] not in dropped_games]
     props.extend(avg)
     pplay = best_model.pplay_rows(con, blo, bhi, window.seasons, window.first, window.day, et_date)
+    best_model.reconcile_pplay(pplay, props)
     best_model.mark_primary(props, pplay, best_model.ok_avg_runs(con))
     used = {(w["run_id"], w["model_name"]) for w in win} | {
         (p["run_id"], p["model_name"]) for p in props
@@ -241,6 +252,7 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
         p_play=pplay,
         excluded_avg_post_tip=avg_post_tip,
         excluded_avg_unreadable=avg_bad,
+        excluded_avg_no_game=n_no_game,
     )
 
 

@@ -59,6 +59,8 @@ SRC_AVG = "avg"
 SRC_MISSING = "fallback_missing"
 SRC_STALE = "fallback_stale"
 SRC_POSTSEASON = "postseason"
+SRC_NON_REGULAR = "non_regular_season"
+REGULAR_PREFIX = "002"
 
 
 def is_postseason(game_id: str) -> bool:
@@ -163,6 +165,7 @@ def avg_rows(
         SELECT a.made_at, a.run_id, a.game_id, a.player_id, a.stat, a.tipoff_utc, a.model_id,
                a.fit_through, a.month_block, a.installed_at, a.stale_model,
                CAST(a.avg_pmf199 AS VARCHAR), CAST(a.avg_q19 AS VARCHAR),
+               CAST(a.a0_q19 AS VARCHAR), a.a0_source,
                g.game_date, g.home_team, g.away_team,
                {guard.season_sql("g", "a.game_id")} AS season, g.home_pts, g.away_pts
         FROM {AVG_TABLE} a LEFT JOIN games g ON g.game_id = a.game_id
@@ -178,13 +181,14 @@ def avg_rows(
     latest: dict[tuple[str, int, str], tuple[datetime, str]] = {}
     for r in raw:
         made_at, tip = r[0], r[5]
-        gdate = r[13] or et_date(tip)
+        gdate = r[15] or et_date(tip)
         if made_at >= tip:
             post_tip += 1
             continue
         if not (first <= gdate <= last) or r[4] not in THRESHOLDS:
             continue
         pmf, q19 = _valid(r[11], N_PMF), _valid(r[12], N_Q)
+        a0 = _valid(r[13], N_Q)
         if pmf is None or q19 is None:
             bad += 1
             continue
@@ -209,14 +213,15 @@ def avg_rows(
             "stamp_weights_sha256": r[6], "stamp_weights_scope": "avg weights bundle (model_id)",
             "stamp_data_version": None, "stamp_fit_through": r[7], "stamp_n_train": None,
             "stamp_git_sha": None, "stamp_git_dirty": None, "stamp_stamped_at": r[9],
-            "source_table": AVG_TABLE, "bundle_id": r[6], "bundle_made_at": r[9],
+            "_a0_q19": a0, "_a0_source": r[14], "source_table": AVG_TABLE, "bundle_id": r[6],
+            "bundle_made_at": r[9],
             "bundle_month": r[8], "freshness": fresh, "freshness_reason": why,
         })  # fmt: skip
         games.setdefault(
             gid,
-            {"game_id": gid, "season": int(r[16]), "game_date": gdate, "tipoff": tip,
-             "home_team": r[14], "away_team": r[15], "final": bool(r[17] and r[18]),
-             "home_pts": r[17] or None, "away_pts": r[18] or None},
+            {"game_id": gid, "season": int(r[18]), "game_date": gdate, "tipoff": tip,
+             "home_team": r[16], "away_team": r[17], "final": bool(r[19] and r[20]),
+             "home_pts": r[19] or None, "away_pts": r[20] or None},
         )  # fmt: skip
     for row in rows:
         row["is_latest"] = latest[(row["game_id"], row["player_id"], row["stat"])] == (
@@ -285,6 +290,61 @@ def _latest(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     return max(rows, key=lambda p: (p["made_at"], p["run_id"])) if rows else None
 
 
+def _behind(avg: dict[str, Any], prod: dict[str, Any] | None, ok_runs: set[str] | None) -> bool:
+    """AVG row older than the production row it competes with, and no ok heartbeat for that run."""
+    return (
+        prod is not None
+        and avg["made_at"] < prod["made_at"]
+        and prod["run_id"] not in (ok_runs or ())
+    )
+
+
+def _inputs_changed(
+    avg: dict[str, Any], rows: list[dict[str, Any]], prod: dict[str, Any] | None
+) -> bool:
+    """True when the A0 grid the AVG row was built from (``a0_q19``, from the row named by
+    ``a0_source``) is no longer the current pre-tip production grid: production inputs moved
+    after AVG was made. A missing or unreadable A0 on either side counts as changed."""
+    src = avg.get("_a0_source")
+    ref = (
+        _latest([r for r in rows if r["model_name"] == src and r["model_name"] != AVG_MODEL_NAME])
+        if src
+        else prod
+    )
+    a0, cur = avg.get("_a0_q19"), (ref or {}).get("q_grid")
+    if a0 is None or cur is None or len(a0) != len(cur):
+        return ref is not None or a0 is not None
+    return not np.allclose(np.asarray(a0, float), np.asarray(cur, float), atol=1e-6, rtol=0)
+
+
+def reconcile_pplay(pplay: list[dict[str, Any]], props: list[dict[str, Any]]) -> int:
+    """Use R only if its shadow row is not behind production: ``made_at`` >= the latest pre-tip
+    production prop row's, or its stored ``p_play_prod`` equals that row's ``p_play``. Otherwise
+    ``p_play_primary`` is production's value (``production``, ``r_run_behind_production``), because
+    the shadow step can fail while production moves on. Mutates ``pplay``; returns the count."""
+    prod: dict[tuple[str, int], dict[str, Any]] = {}
+    for p in props:
+        if p["model_name"] == PRODUCTION_PROP_MODEL and not p["comparison_only"]:
+            k = (p["game_id"], p["player_id"])
+            if k not in prod or (p["made_at"], p["run_id"]) > (
+                prod[k]["made_at"],
+                prod[k]["run_id"],
+            ):
+                prod[k] = p
+    n = 0
+    for row in pplay:
+        cur = prod.get((row["game_id"], row["player_id"]))
+        if cur is None or cur.get("p_play") is None:
+            continue
+        same = row["p_play_prod"] is not None and abs(row["p_play_prod"] - cur["p_play"]) < 1e-9
+        if row["made_at"] >= cur["made_at"] or same:
+            continue
+        row["p_play_primary"], row["p_play_source"] = float(cur["p_play"]), "production"
+        row["p_play_detail"] = "r_run_behind_production"
+        n += 1
+    return n
+
+
 def mark_primary(
     props: list[dict[str, Any]], pplay: list[dict[str, Any]], ok_runs: set[str] | None = None
 ) -> None:
@@ -315,12 +375,16 @@ def mark_primary(
         chosen: dict[str, Any] | None
         if is_postseason(gid):
             chosen, source, detail = prod, SRC_POSTSEASON, "AVG flat in the postseason (T479)"
+        elif not gid.startswith(REGULAR_PREFIX):
+            chosen, source = prod, SRC_NON_REGULAR
+            detail = "AVG serves regular-season (002) games only"
         elif avg is None:
             chosen, source, detail = prod, SRC_MISSING, "no AVG row before tip"
-        elif avg["freshness"] == "fresh" and (
-            prod is None or avg["made_at"] >= prod["made_at"] or prod["run_id"] in (ok_runs or ())
-        ):
-            chosen, source, detail = avg, SRC_AVG, None
+        elif avg["freshness"] == "fresh" and not _behind(avg, prod, ok_runs):
+            if _inputs_changed(avg, rows, prod):
+                chosen, source, detail = prod, SRC_STALE, "avg_inputs_changed"
+            else:
+                chosen, source, detail = avg, SRC_AVG, None
         elif avg["freshness"] == "fresh":
             chosen, source = prod, SRC_STALE
             detail = "avg_run_behind_production"

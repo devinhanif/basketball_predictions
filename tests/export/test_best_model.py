@@ -54,7 +54,7 @@ def _avg_row(
         made, run, gid, pid, stat, tip, "real", True, 12, BUNDLE, fit_through, month_block,
         installed, "gate", date(2026, 10, 31), stale, json.dumps(pmf), json.dumps(pmf),
         json.dumps(Q19_AVG), json.dumps(Q19_AVG), json.dumps([1.0] * 19), json.dumps(Q19_AVG),
-        json.dumps(Q19_AVG), "props_context_residual",
+        json.dumps(Q19_PROD), "props_context_residual",
     )  # fmt: skip
 
 
@@ -389,6 +389,12 @@ def test_month_boundary_without_a_games_row(db: Path) -> None:
     made = tip - timedelta(minutes=90)
     day = date(2026, 11, 30)
 
+    win = json.dumps({"p_home": 0.5, "home_team": 1610612738, "away_team": 1610612755,
+                      "primary": True, "fallback_reason": None})  # fmt: skip
+    _w(db, lambda c: c.execute(
+        "INSERT INTO forward_predictions VALUES ('r_w', ?, ?, ?, 'rung0_injury_elo', 'v', "
+        "'win_prob_home', -1, ?)", [made, gid, tip, win]))  # fmt: skip
+
     def go(block: str) -> dict[str, Any]:
         _w(db, lambda c: c.execute("DELETE FROM forward_avg_shadow"))
         _w(db, lambda c: _insert_avg(c, _avg_row(gid=gid, made=made, tip=tip, month_block=block,
@@ -444,3 +450,86 @@ def test_avg_primary_row_gets_the_production_rows_lines(db: Path, tmp_path: Path
     assert con.execute(
         "SELECT DISTINCT lines_run_id = run_id FROM prop_grids WHERE model_name = ?", [PROD]
     ).fetchall() == [(True,)]
+
+
+def test_avg_only_game_without_teams_is_dropped_and_counted(db: Path, tmp_path: Path) -> None:
+    gid, tip = "0022600778", datetime(2026, 11, 10, 23, 0)
+    _w(db, lambda c: _insert_avg(c, _avg_row(gid=gid, tip=tip, made=tip - timedelta(minutes=90))))
+    fwd = _fwd(db)
+    assert not any(p["game_id"] == gid for p in fwd.prop_grids)
+    assert not any(g["game_id"] == gid for g in fwd.games)
+    assert fwd.excluded_avg_no_game == 1
+    m = build_export(
+        db, tmp_path / "o", DAY, git=lambda: {"git_sha": "x", "git_dirty": False},
+        version=lambda: "dv", now=lambda: datetime(2026, 11, 10, 20, 0), parlay_dir=tmp_path / "np",
+    )  # fmt: skip
+    assert m["excluded"]["avg_no_game_teams"] == 1
+    con = duckdb.connect(str(tmp_path / "o" / DB_NAME), read_only=True)
+    assert con.execute("SELECT count(*) FROM games WHERE home_team IS NULL").fetchone() == (0,)
+
+
+def test_r_run_behind_production_uses_production(db: Path) -> None:
+    def ins(c: duckdb.DuckDBPyConnection) -> None:
+        # R at T-120 says 0.93; production (T-90 rows, p_play 0.9) moved on
+        _insert_pplay(c, G_REG, 1000, 0.93, made=MADE - timedelta(minutes=30), prod=0.5, run="rr")
+        # unchanged shadow row from an earlier run: its p_play_prod equals production's -> R kept
+        _insert_pplay(c, G_REG, 1001, 0.95, made=MADE - timedelta(minutes=30), prod=0.9, run="r2")
+        # R at the same instant as production -> R kept
+        _insert_pplay(c, G_REG, 1002, 0.97)
+
+    _w(db, ins)
+    fwd = _fwd(db)
+    by = {p["player_id"]: p for p in fwd.p_play if p["game_id"] == G_REG}
+    assert (by[1000]["p_play_primary"], by[1000]["p_play_source"], by[1000]["p_play_detail"]) == (
+        0.9, "production", "r_run_behind_production",
+    )  # fmt: skip
+    assert (by[1001]["p_play_primary"], by[1001]["p_play_source"]) == (0.95, "r")
+    assert (by[1002]["p_play_primary"], by[1002]["p_play_source"]) == (0.97, "r")
+    p = _primary(fwd, G_REG, 1000)  # same reconciled value on the prop row
+    assert (p["p_play_primary"], p["p_play_source"]) == (0.9, "production")
+
+
+def test_r_behind_production_zero(db: Path) -> None:
+    """R T-31 0.93, production later at 0.0 (player ruled out): production's 0.0 wins."""
+    _w(db, lambda c: c.execute(
+        "UPDATE forward_predictions SET prediction = ?, made_at = ? WHERE player_id = 1000 "
+        "AND game_id = ? AND model_name = ?",
+        [_prod_pred().replace('"p_play": 0.9', '"p_play": 0.0'), TIP - timedelta(minutes=10),
+         G_REG, PROD]))  # fmt: skip
+    _w(
+        db,
+        lambda c: _insert_pplay(c, G_REG, 1000, 0.93, made=TIP - timedelta(minutes=31), prod=0.9),
+    )
+    fwd = _fwd(db)
+    row = next(p for p in fwd.p_play if p["player_id"] == 1000)
+    assert (row["p_play_primary"], row["p_play_source"]) == (0.0, "production")
+
+
+def test_avg_inputs_changed_falls_back(db: Path) -> None:
+    changed = [v + 1.0 for v in Q19_PROD]
+    _w(db, lambda c: c.execute(
+        "UPDATE forward_predictions SET prediction = ? WHERE player_id = 1000 AND game_id = ? "
+        "AND model_name = ?",
+        [_prod_pred().replace(json.dumps(Q19_PROD), json.dumps(changed)), G_REG,
+         PROD]))  # fmt: skip
+    _w(db, lambda c: _insert_avg(c, _avg_row(), _avg_row(pid=1001)))
+    fwd = _fwd(db)
+    p = _primary(fwd, G_REG, 1000)
+    assert (p["model_name"], p["primary_source"], p["primary_detail"]) == (
+        PROD, "fallback_stale", "avg_inputs_changed",
+    )  # fmt: skip
+    assert _primary(fwd, G_REG, 1001)["primary_source"] == "avg"  # unchanged inputs: AVG stays
+
+
+def test_cup_final_and_other_non_regular_games_use_production(db: Path) -> None:
+    cup = "0062600001"
+    _w(db, lambda c: c.execute(
+        "INSERT INTO games (game_id, game_date, season, home_team, away_team) VALUES (?,?,?,?,?)",
+        [cup, DAY, 2026, 1610612738, 1610612755]))  # fmt: skip
+    _w(db, lambda c: c.execute(
+        "INSERT INTO forward_predictions VALUES "
+        "('r_prod', ?, ?, ?, ?, 'ctxres-v1', 'pts', 1000, ?)",
+        [MADE, cup, TIP, PROD, _prod_pred()]))  # fmt: skip
+    _w(db, lambda c: _insert_avg(c, _avg_row(gid=cup)))
+    p = _primary(_fwd(db), cup, 1000)
+    assert (p["model_name"], p["primary_source"]) == (PROD, "non_regular_season")
