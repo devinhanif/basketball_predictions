@@ -131,3 +131,18 @@ Restated 2026-10-15 (row in PREDICTIONS_LEDGER.md, before any arm is fitted): th
 === RESULTS BELOW ===
 
 (not run)
+
+## Result (run 2026-10-15 18:13 CDT; frozen b22ebd5 sha 9b5a7d6f, pin d9c2166 39cfe40f; reports/prereg_f1_warm_window/results.json)
+**Word: FAIL_ONE_SEASON.** R1 reproduction exact (abs diff 0.0, all eight stat-seasons); planted future 0.0; no harm.
+C (warm frame + 2019 window) minus A (production), integer CRPS, game-clustered 95%:
+| stat | 2023 (n 27,619, 1,318 games) | 2024 (n 27,701, 1,320 games) |
+|---|---|---|
+| pts | -0.0188 [-0.0247, -0.0126] clears | -0.0021 [-0.0069, +0.0026] no (G3 playoffs, G9 fail) |
+| reb | -0.0068 [-0.0093, -0.0042] clears | -0.0018 [-0.0037, -0.0001] no |
+| ast | -0.0051 [-0.0068, -0.0035] clears | -0.0018 [-0.0031, -0.0004] no |
+| fg3m | -0.0035 [-0.0047, -0.0024] clears | +0.0001 [-0.0009, +0.0011] no |
+Decomposition (pts): B-A (warm frame only) -0.0123 in 2023, 0.000 in 2024; C-B (window) -0.0065 in 2023, -0.0021 in 2024.
+Reading: the warm frame and longer window help a lot when production is data-poor (2023: production trains from 2022 only) and almost
+nothing once production has two seasons (2024). For 2026-27 production trains on 2022-25 (four seasons), so the expected gain is at or
+below the 2024 value. No window change is licensed. Per Devin's Q8, one stamp-corrected re-run under a new id is ALLOWED; the season
+pattern is explained by training-data size, which corrected stamps cannot change (Claude's view, for Devin's decision).
