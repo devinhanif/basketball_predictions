@@ -1,6 +1,7 @@
 // Small pure helpers for the leg breakdown screen. They read numbers the API already computed;
 // none of them invents one. (The hit/miss rule itself lives in the API, once.)
-import type { LadderRow, Side, Tally } from "./legTypes";
+import type { LadderRow, LegPrices, Side, Tally } from "./legTypes";
+import { devigOver } from "./stats";
 
 /** The ladder row for a line, if the API computed one at exactly that line. */
 export function ladderAt(ladder: readonly LadderRow[], line: number): LadderRow | null {
@@ -77,4 +78,23 @@ export function rankPhrase(rank: number, of: number): string {
   if (rank <= 5) return `${ordinal(rank)} most of ${of.toString()}: a soft spot`;
   if (rank > of - 5) return `${ordinal(rank)} most of ${of.toString()}: a tough spot`;
   return `${ordinal(rank)} most of ${of.toString()}`;
+}
+
+/**
+ * The book's chance for the side on screen, margin removed, and whose price it is (F13). Null when no single book
+ * quoted both sides at that line: nothing is invented. A slider line uses that line's own stored pair.
+ */
+export function bookChance(
+  prices: LegPrices,
+  onScreenLine: boolean,
+  row: LadderRow | null,
+  side: Side,
+): { p: number; book: string } | null {
+  const book = prices.market_book;
+  if (!book) return null;
+  let over: number | null = null;
+  if (onScreenLine && prices.market_p_over != null) over = prices.market_p_over;
+  else if (row && row.over_price !== null && row.under_price !== null) over = devigOver(row.over_price, row.under_price);
+  if (over === null) return null;
+  return { p: side === "over" ? over : 1 - over, book };
 }

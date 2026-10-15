@@ -565,3 +565,22 @@ def test_api_errors(client: TestClient, store: Store) -> None:
     assert client.get(f"/api/breakdown/{g['game_id']}/{pid}/dunks").status_code == 404
     assert client.get(f"/api/breakdown/{g['game_id']}/{pid}/pts?side=sideways").status_code == 422
     assert client.get(f"/api/breakdown/{g['game_id']}/{pid}/pts?line=-1").status_code == 422
+
+
+def test_market_chance_is_the_devigged_pair_of_one_book(client: TestClient) -> None:
+    """F13: the leg screen carries the book's chance beside the model's, from the same prices."""
+    from parlayhitters_api.forecast import devig_over
+
+    slate = client.get("/api/slates/2024-11-12").json()
+    seen = 0
+    for g in slate["games"]:
+        for kp in g["key_props"][:2]:
+            r = client.get(f"/api/breakdown/{g['game_id']}/{kp['player_id']}/{kp['stat']}").json()
+            px = r["prices"]
+            if px["over_price"] is None or px["under_price"] is None:
+                assert px["market_p_over"] is None
+                continue
+            seen += 1
+            assert px["market_p_over"] == pytest.approx(devig_over(px["over_price"], px["under_price"]))
+            assert px["market_book"] == "DraftKings"
+    assert seen >= 3

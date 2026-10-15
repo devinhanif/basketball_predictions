@@ -11,3 +11,14 @@ export function wilson(k: number, n: number, z = 1.96): [number, number] {
 
 /** Below this many legs a cut prints "not enough to say" (docs/APP_CONTENT_SPEC.md section 1.6). */
 export const MIN_LEGS = 20;
+
+function rawProb(price: number): number {
+  return price > 0 ? 100 / (price + 100) : -price / (-price + 100);
+}
+
+/** The over chance implied by a two-sided American quote with the book's margin taken out (multiplicative; the API does the same). */
+export function devigOver(overPrice: number, underPrice: number): number {
+  const po = rawProb(overPrice);
+  const pu = rawProb(underPrice);
+  return po / (po + pu);
+}

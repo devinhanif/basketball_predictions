@@ -139,6 +139,9 @@ export interface LegPrices {
   snapshot_utc: string | null;
   say: string;
   books: BookRow[];
+  /** The book's chance of an over at the line on screen, margin removed, and whose price it is (null when no single book quoted both sides). */
+  market_p_over?: number | null;
+  market_book?: string | null;
 }
 
 export interface LadderRow {
