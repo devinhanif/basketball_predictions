@@ -1168,3 +1168,8 @@ What would reverse it: a hash mismatch, a failing check, or a new finding from t
 What: pre-freeze edit E7. Every arm (A0_warm, ROLE, S+R, P+R, STRUCT alone) is refit on the warm frame from 2019-10-01 with production month-block walk-forward; test seasons stay 2023 and 2024 (a cell passes only if both pass). 2019 is the floor because history injury reports start in 2019-20. Devin's idea; Claude recommended the 2019 start while keeping both test seasons.
 Why: the production window gives early-2023 refits about one season of rows, too few for a tree to learn a new interaction in cells of 4-5k rows a season; a fail under it would be weak evidence (pre-freeze review). Cost: A0_warm is no longer exactly production; a pass implies production needs the longer window too (F1).
 What would reverse it: the 2019+ build failing a reproduction or leak check before the freeze, or the window making a minimum-data gate fail.
+
+**2026-10-14 20:04 CDT — F1 answered: test the warm frame and 2019 training window now (Devin: "why cant we test f1 rn").**
+What: draft F1_WARM_WINDOW (branch agent/modeler-f1-warm-window): production props heads on the warm frame trained from 2019-10 vs production's cold 2022-10 window, CRPS on 2023 and 2024, must pass both. Shares fits with WOWY_STRUCT, so F1 freezes before any WOWY_STRUCT arm is fitted. Claude had recommended a November test; the timing is Devin's.
+Why: a result by November instead of December; drafting costs no compute; the fits are mostly shared with WOWY_STRUCT.
+What would reverse it: F1 failing its minimum-data gate, or the shared-fit design making either rule post-hoc. Any production change from a pass waits until after opening night and needs Devin's go and a replay oracle.
