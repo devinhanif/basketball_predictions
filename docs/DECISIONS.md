@@ -1269,3 +1269,8 @@ What: (1) a fixed rung map, the frozen ALT_RUNG_CAL CAL-rung specification fit o
 Reverses: the live alt-rung log showing the map miscalibrated, or the map failing to reproduce the frozen harness's 2024 blocks.
 
 **2026-10-15 12:12 CDT — Reporter feed cost guards merged (Devin's cost concern; follows Claude's advice).** Slate teams only (league-wide handles always), polls only in [team tip - 120 min, team tip] (league-wide: first tip - 120 to last tip), caps 400 posts/day, 8,000/month, $40/month including user reads ($0.010 each, handle ids cached once), no expansions. Pasted 30-reporter list was stale for 8 (docs/research/reporters_allowlist_draft_2026-10-15.md); handles to be checked by one paid users lookup (~$0.40) after Devin adds X_BEARER_TOKEN; Devin confirms the final allow-list. Not wired into launchd.
+
+**2026-10-15 12:25 CDT — Persist production's continuous 199-point prop grid and serve rung_cal from production rows only (Devin: option 2, "lets do it now").**
+What: the pretip run writes production's (props_context_residual) continuous q199 per row to a NEW side table not read by nba.daily.canonical_dump (so the oracle hash is untouched); the export builds rung_cal only from the production row for that prop (the map was fit on production probabilities; T494), never from AVG grids; rung_cal_lines' monotone check covers served lines only. Live-path change: replay oracle (holdout row first) and merge only if IDENTICAL 89889f6d; deadline Fri 10-16.
+Why: the export's first wiring applied the production-fitted map to AVG grids (untested); option 3 rejected, option 1 (wait) declined by Devin.
+What would reverse it: the oracle moving, or the pretip budget (420 s) being threatened by the extra write.
