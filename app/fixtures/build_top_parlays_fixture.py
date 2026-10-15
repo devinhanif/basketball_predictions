@@ -44,19 +44,22 @@ def payout(american: int) -> float:
     return 100 / -american if american < 0 else american / 100
 
 
-def leg(i: int) -> dict[str, object]:
+def leg(i: int, tail_flag: bool = False) -> dict[str, object]:
     n, team, opp, stat, side, line, price, pr, pc, src, gid = LEGS[i]
-    return {
+    out: dict[str, object] = {
         "game_id": gid, "tipoff": TIPS[gid], "player_id": 9000 + i, "player_name": n,
         "team": team, "opp": opp, "stat": stat, "side": side, "line": line, "book": "draftkings",
         "price_american": price, "price_at": "2024-01-01T21:40:00Z", "p_raw": pr, "p_cal": pc,
         "model_source": src,
         "reason": f"The model's raw chance is {round(pr * 100)}%; after calibration it is {round(pc * 100)}%.",
     }
+    if tail_flag:
+        out["tail_flag"] = True
+    return out
 
 
-def ticket(rank: int, idx: list[int], width: float) -> dict[str, object]:
-    legs = [leg(i) for i in idx]
+def ticket(rank: int, idx: list[int], width: float, flag: int | None = None) -> dict[str, object]:
+    legs = [leg(i, i == flag) for i in idx]
     pr = pc = imp = dec = 1.0
     for i in idx:
         pr *= LEGS[i][7]
@@ -64,7 +67,7 @@ def ticket(rank: int, idx: list[int], width: float) -> dict[str, object]:
         imp *= implied(LEGS[i][6])
         dec *= 1 + payout(LEGS[i][6])
     ev = round(pc * dec - 1, 3)
-    return {
+    out: dict[str, object] = {
         "rank": rank,
         "same_game": len({LEGS[i][10] for i in idx}) < len(idx),
         "legs": legs,
@@ -76,6 +79,12 @@ def ticket(rank: int, idx: list[int], width: float) -> dict[str, object]:
             f"book's price implies {round(imp * 100)}%. The model is not proven, so this is a paper ticket."
         ),
     }
+    if flag is not None:
+        out["tail_note"] = (
+            "One leg is flagged: legs the model put at 65% or more ran high in past tests, so treat its chance "
+            "as a ceiling. (Illustration text.)"
+        )
+    return out
 
 
 def doc(date: str, sizes: dict[str, list[dict[str, object]]], empty: str | None) -> dict[str, object]:
@@ -103,7 +112,7 @@ def doc(date: str, sizes: dict[str, list[dict[str, object]]], empty: str | None)
 
 def main() -> None:
     OUT.mkdir(exist_ok=True)
-    two = [ticket(1, [0, 3], 0.05), ticket(2, [3, 2], 0.05), ticket(3, [0, 2], 0.05)]
+    two = [ticket(1, [0, 3], 0.05, flag=3), ticket(2, [3, 2], 0.05), ticket(3, [0, 2], 0.05)]
     three = [ticket(1, [0, 3, 2], 0.06), ticket(2, [0, 3, 1], 0.06), ticket(3, [0, 3, 5], 0.06)]
     files = {
         "2024-01-01": doc("2024-01-01", {"2": two, "3": three}, None),

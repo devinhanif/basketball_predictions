@@ -34,6 +34,7 @@ function LegRow({ leg, illustration }: { leg: TpLeg; illustration: boolean }) {
             <span class="tp-leg-bet">
               {leg.side === "over" ? "Over" : "Under"} {lineText(leg.line)} {statName(leg.stat).toLowerCase()}
             </span>
+            {leg.tail_flag === true ? <span class="tag tail-flag">65%+ leg: ran high in tests</span> : null}
           </span>
           <span class="tp-leg-price num">
             {bookName(leg.book)} {american(leg.price_american)}
@@ -92,6 +93,7 @@ function Ticket({ t, size, illustration }: { t: TpTicket; size: string; illustra
         </div>
       </dl>
       <p class="small tp-why">{t.why}</p>
+      {t.tail_note ? <p class="small tp-tail-note">{t.tail_note}</p> : null}
     </article>
   );
 }

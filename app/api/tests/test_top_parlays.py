@@ -222,3 +222,36 @@ def test_symlink_out_of_directory_is_missing(
     put(outside, fixture())
     (tp_dir / f"top_parlays_{DAY}.json").symlink_to(outside / f"top_parlays_{DAY}.json")
     assert client.get(f"/api/top-parlays/{DAY}").status_code == 404
+
+
+def test_tail_fields_accepted_and_served(client: TestClient, tp_dir: Path) -> None:
+    d = fixture()
+    t = d["sizes"]["2"][0]
+    assert any(leg.get("tail_flag") for leg in t["legs"]) and t["tail_note"]
+    put(tp_dir, d)
+    r = client.get(f"/api/top-parlays/{DAY}")
+    assert r.status_code == 200
+    out = r.json()["sizes"]["2"][0]
+    assert [leg["tail_flag"] for leg in out["legs"]] == [False, True]
+    assert out["tail_note"] == t["tail_note"]
+
+
+def test_tail_fields_absent_means_false_and_null(client: TestClient, tp_dir: Path) -> None:
+    d = fixture()
+    for tickets in d["sizes"].values():
+        for t in tickets:
+            t.pop("tail_note", None)
+            for leg in t["legs"]:
+                leg.pop("tail_flag", None)
+    put(tp_dir, d)
+    r = client.get(f"/api/top-parlays/{DAY}")
+    assert r.status_code == 200
+    out = r.json()["sizes"]["2"][0]
+    assert out["tail_note"] is None
+    assert all(leg["tail_flag"] is False for leg in out["legs"])
+
+
+def test_banned_phrase_in_tail_note_refused(client: TestClient, tp_dir: Path) -> None:
+    d = fixture()
+    d["sizes"]["2"][0]["tail_note"] = "This leg is a lock."
+    assert status(client, d, tp_dir) == 422
