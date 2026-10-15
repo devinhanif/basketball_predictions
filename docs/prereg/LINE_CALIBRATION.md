@@ -63,7 +63,9 @@ Status: **DRAFT, revision 2, written by the modeler Mon Oct 12 16:29 CDT 2026 (c
    - slices by confidence and by month;
    - knockouts against C0 on Pinnacle (and DraftKings), same walk-forward, weights and block fits: **CAL without z** (terms
      `[1, x, bench, bench*x]`) and **CAL without x** (terms `[1, z, bench]`, dropping x and bench*x). Each is reported as a paired
-     game-clustered contrast against C0, label only, no pass. They answer whether the map only re-expresses the base rate or the line.
+     game-clustered contrast against C0, label only, no pass. x and z are both positions of the line in the model's
+     distribution and are near-collinear, so these knockouts measure redundancy, not whether the model or the line carries the
+     gain.
 
    Coin flip and the de-vigged market are reference rows only.
 8. **Outcomes.**

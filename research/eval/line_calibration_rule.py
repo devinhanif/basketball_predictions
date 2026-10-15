@@ -84,6 +84,7 @@ def require_frozen(sha: str | None, doc: Path | None = None, run: Callable[..., 
 HARNESS_FILES = (
     "research/eval/line_calibration_eval.py",
     "research/eval/line_calibration_rule.py",
+    "research/eval/model_clv_eval.py",
 )
 
 
