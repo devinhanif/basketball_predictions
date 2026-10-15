@@ -58,20 +58,20 @@ LIVE_LEAD_OK = 0.5  # assumed share of live T-60 snapshots with lead >= 60 min (
 
 TARGETS: dict[str, dict[str, Any]] = {
     "stl": {"kind": "main", "market": "player_steals", "parts": ()},
-    "blk": {"kind": "ladder", "market": "player_blocks_alternate", "parts": ()},
+    "blk": {"kind": "main", "market": "player_blocks", "parts": ()},
+    "bs": {"kind": "main", "market": "player_blocks_steals", "parts": ()},
     "pra": {
-        "kind": "ladder",
-        "market": "player_points_rebounds_assists_alternate",
+        "kind": "main",
+        "market": "player_points_rebounds_assists",
         "parts": ("pts", "reb", "ast"),
     },
-    "pr": {"kind": "ladder", "market": "player_points_rebounds_alternate", "parts": ("pts", "reb")},
-    "pa": {"kind": "ladder", "market": "player_points_assists_alternate", "parts": ("pts", "ast")},
-    "ra": {
-        "kind": "ladder",
-        "market": "player_rebounds_assists_alternate",
-        "parts": ("reb", "ast"),
-    },
+    "pr": {"kind": "main", "market": "player_points_rebounds", "parts": ("pts", "reb")},
+    "pa": {"kind": "main", "market": "player_points_assists", "parts": ("pts", "ast")},
+    "ra": {"kind": "main", "market": "player_rebounds_assists", "parts": ("reb", "ast")},
 }
+# Main-line leg integrity (price-only, declared before any outcome; revision 2, 2026-10-15 after the combo main-line ingest):
+MAX_POINTS = 3  # a main key with more than 3 distinct points is a ladder under the main key (betrivers/unibet_us 2023 pra, betonlineag blk): excluded
+OVERROUND = (1.0, 1.25)  # raw implied P(over) + P(under) at the chosen point must lie in this range
 MAIN_MARKET = {"pts": "player_points", "reb": "player_rebounds", "ast": "player_assists"}
 # main-line markets the vendor lists (betting-markets page, fetched 2026-10-15) that this store would need
 WANTED_MAIN = [
@@ -145,11 +145,12 @@ def main_legs(con: duckdb.DuckDBPyConnection, market: str) -> pl.DataFrame:
       FROM odds_history
       WHERE market = '{market}' AND season <= {MAX_SEASON} AND player_id IS NOT NULL
       GROUP BY season, game_id, player_id, book, snapshot_kind, point),
+    s2 AS (SELECT *, count(*) OVER (PARTITION BY season, game_id, player_id, book, snapshot_kind) n_pts FROM s),
     r AS (SELECT *, row_number() OVER (PARTITION BY season, game_id, player_id, book, snapshot_kind
                                        ORDER BY abs(po - pu), point) rn
-          FROM s WHERE po IS NOT NULL AND pu IS NOT NULL)
-    SELECT season, game_id, player_id, book, snapshot_kind, point, po AS p, snapshot_ts, 2 AS n_rungs,
-           true AS bracket, false AS mono_viol, true AS two_sided
+          FROM s2 WHERE po IS NOT NULL AND pu IS NOT NULL)
+    SELECT season, game_id, player_id, book, snapshot_kind, point, po AS p, snapshot_ts, n_pts AS n_rungs,
+           po + pu AS book_sum, true AS bracket, false AS mono_viol, true AS two_sided
     FROM r WHERE rn = 1
     """
     return con.execute(q).pl()
@@ -181,7 +182,7 @@ def ladder_legs(con: duckdb.DuckDBPyConnection, market: str) -> tuple[pl.DataFra
           WHERE market='{market}' AND side='under' AND season <= {MAX_SEASON} AND snapshot_kind='t60' AND player_id IS NOT NULL
           GROUP BY season, game_id, player_id, book)
     SELECT n.season, n.game_id, n.player_id, n.book, 't60' AS snapshot_kind, n.point, n.p, n.snapshot_ts,
-           a.n_rungs, (a.pmin < 0.5 AND a.pmax >= 0.5) AS bracket, (a.nviol > 0) AS mono_viol,
+           a.n_rungs, CAST(NULL AS DOUBLE) AS book_sum, (a.pmin < 0.5 AND a.pmax >= 0.5) AS bracket, (a.nviol > 0) AS mono_viol,
            (coalesce(u.n_under, 0) > 0) AS two_sided
     FROM n JOIN a USING (season, game_id, player_id, book)
     LEFT JOIN u USING (season, game_id, player_id, book)
@@ -273,6 +274,24 @@ def forecast_join(oof: Path, kept: dict[tuple[str, str], pl.DataFrame]) -> dict[
     return out
 
 
+def structure_ok(spec: dict[str, Any]) -> pl.Expr:
+    """Leg structure test. main: at most MAX_POINTS points under the key and a sane overround; ladder: the old nearest-even tests."""
+    if spec["kind"] == "main":
+        return (pl.col("n_rungs") <= MAX_POINTS) & pl.col("book_sum").is_between(*OVERROUND)
+    return (
+        (pl.col("n_rungs") >= MIN_RUNGS)
+        & pl.col("bracket")
+        & ((pl.col("p") - 0.5).abs() <= NEAR_HALF)
+        & ~pl.col("mono_viol")
+    )
+
+
+def component_ok() -> pl.Expr:
+    """Cross-check of a sum market against the same book's component main lines: a leg is dropped only when the check is
+    possible and fails; a leg whose book posts no component line is kept (main markets) and counted separately."""
+    return ~pl.col("comp_ok") | (pl.col("comp_diff") <= COMPONENT_TOL)
+
+
 def hw_proxy(n: float) -> float:
     return LC_HW * float(np.sqrt(LC_N / max(n, 1.0)))
 
@@ -327,7 +346,7 @@ def main() -> None:
             GROUP BY ALL ORDER BY 1, 2"""
     ).pl()
     held = {(m, int(s)): int(n) for m, s, n, *_ in inv.iter_rows()}
-    rep["main_markets_absent_from_store"] = {
+    rep["main_market_rows_held"] = {
         m: sum(held.get((m, s), 0) for s in SEASONS) for m in WANTED_MAIN
     }
     rep["held_markets"] = [dict(zip(inv.columns, r, strict=True)) for r in inv.iter_rows()]
@@ -336,7 +355,7 @@ def main() -> None:
             WHERE market='player_points_rebounds_assists_alternate' AND season <= {MAX_SEASON} GROUP BY 1 ORDER BY 1"""
     ).fetchall()
     rep["first_alt_snapshot_date_by_season"] = {int(s): str(d) for s, d in first_alt}
-    print("absent main markets:", rep["main_markets_absent_from_store"], flush=True)
+    print("absent main markets:", rep["main_market_rows_held"], flush=True)
 
     comp = component_main(con)
     print(f"component main legs {comp.height} ({time.time() - t0:.0f}s)", flush=True)
@@ -380,16 +399,11 @@ def main() -> None:
         spec = TARGETS[tgt]
         l60 = legs.filter(pl.col("snapshot_kind") == "t60")
         for (book, season), g in l60.group_by(["book", "season"]):
-            struct_ok = pl.col("n_rungs") >= MIN_RUNGS if spec["kind"] == "ladder" else pl.lit(True)
-            clean = g.filter(
-                struct_ok
-                & pl.col("bracket")
-                & ((pl.col("p") - 0.5).abs() <= NEAR_HALF)
-                & ~pl.col("mono_viol")
-            )
+            n_points_ok = g.filter(pl.col("n_rungs") <= MAX_POINTS).height
+            clean = g.filter(structure_ok(spec))
             n_structure_only = clean.height  # before the component cross-check
             if spec["parts"]:
-                clean = clean.filter(pl.col("comp_ok") & (pl.col("comp_diff") <= COMPONENT_TOL))
+                clean = clean.filter(component_ok())
             clean_pop = clean.filter(pl.col("in_pop"))
             timed = clean_pop.filter(pl.col("lead_min") >= LEAD_MIN)
             rows.append(
@@ -399,6 +413,7 @@ def main() -> None:
                     "book": book,
                     "season": int(season),
                     "candidate_legs": g.height,
+                    "main_key_with_more_than_3_points_excluded": g.height - n_points_ok,
                     "after_structure_no_component_check": n_structure_only,
                     "after_structure_and_price_integrity": clean.height,
                     "tip_missing_legs": int(g["tipoff_utc"].is_null().sum()),
@@ -435,17 +450,9 @@ def main() -> None:
         l60 = legs.filter(pl.col("snapshot_kind") == "t60")
         for book in sorted(l60["book"].unique().to_list()):
             g = l60.filter(pl.col("book") == book)
-            struct_ok = pl.col("n_rungs") >= MIN_RUNGS if spec["kind"] == "ladder" else pl.lit(True)
-            g = g.filter(
-                struct_ok
-                & pl.col("bracket")
-                & ((pl.col("p") - 0.5).abs() <= NEAR_HALF)
-                & ~pl.col("mono_viol")
-                & pl.col("in_pop")
-                & (pl.col("lead_min") >= LEAD_MIN)
-            )
+            g = g.filter(structure_ok(spec) & pl.col("in_pop") & (pl.col("lead_min") >= LEAD_MIN))
             if spec["parts"]:
-                g = g.filter(pl.col("comp_ok") & (pl.col("comp_diff") <= COMPONENT_TOL))
+                g = g.filter(component_ok())
             kept[(tgt, book)] = g
             n23 = g.filter(pl.col("season") == 2023).height
             s24 = g.filter(pl.col("season") == 2024)
@@ -568,7 +575,7 @@ def main() -> None:
     # pooled primary-cell projection: one book per target (DraftKings, else FanDuel, else BetMGM, else BetRivers if it passes)
     order = ["draftkings", "fanduel", "betmgm", "betrivers"]
     pooled = []
-    for tgt in ("stl", "pra", "pr", "pa", "ra"):
+    for tgt in ("stl", "blk", "bs", "pra", "pr", "pa", "ra"):
         for bk in order:
             hit = [x for x in gates if x["target"] == tgt and x["book"] == bk and x["pass_all"]]
             if hit:

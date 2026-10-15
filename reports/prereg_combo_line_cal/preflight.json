@@ -1,0 +1,108 @@
+{
+ "inputs_equal_pinned": true,
+ "counts_equal_pinned": true,
+ "versions": {
+  "numpy": "2.5.3",
+  "polars": "1.44.2",
+  "duckdb": "1.5.6"
+ },
+ "cells": {
+  "stl/betmgm": {
+   "legs": {
+    "2023": 11001,
+    "2024": 8543
+   },
+   "a0_mean": 0.4668,
+   "z_floor_share": 0.0018
+  },
+  "stl/betrivers": {
+   "legs": {
+    "2023": 5165,
+    "2024": 7316
+   },
+   "a0_mean": 0.4797,
+   "z_floor_share": 0.0
+  },
+  "blk/betmgm": {
+   "legs": {
+    "2023": 10851,
+    "2024": 14100
+   },
+   "a0_mean": 0.3508,
+   "z_floor_share": 0.2555
+  },
+  "bs/betmgm": {
+   "legs": {
+    "2023": 8510,
+    "2024": 8639
+   },
+   "a0_mean": 0.4522,
+   "z_floor_share": 0.0
+  },
+  "pra/draftkings": {
+   "legs": {
+    "2023": 10698,
+    "2024": 10308
+   },
+   "a0_mean": 0.4696,
+   "z_floor_share": 0.0
+  },
+  "pra/fanduel": {
+   "legs": {
+    "2023": 7645,
+    "2024": 6917
+   },
+   "a0_mean": 0.4681,
+   "z_floor_share": 0.0
+  },
+  "pr/draftkings": {
+   "legs": {
+    "2023": 12927,
+    "2024": 12588
+   },
+   "a0_mean": 0.4741,
+   "z_floor_share": 0.0
+  },
+  "pr/fanduel": {
+   "legs": {
+    "2023": 11623,
+    "2024": 11959
+   },
+   "a0_mean": 0.474,
+   "z_floor_share": 0.0
+  },
+  "pa/draftkings": {
+   "legs": {
+    "2023": 11746,
+    "2024": 9248
+   },
+   "a0_mean": 0.4819,
+   "z_floor_share": 0.0
+  },
+  "pa/fanduel": {
+   "legs": {
+    "2023": 7831,
+    "2024": 7271
+   },
+   "a0_mean": 0.4795,
+   "z_floor_share": 0.0
+  },
+  "ra/draftkings": {
+   "legs": {
+    "2023": 8903,
+    "2024": 8384
+   },
+   "a0_mean": 0.4485,
+   "z_floor_share": 0.0
+  },
+  "ra/fanduel": {
+   "legs": {
+    "2023": 7638,
+    "2024": 6726
+   },
+   "a0_mean": 0.4568,
+   "z_floor_share": 0.0
+  }
+ },
+ "git_head": "89c5c96263e061f7f9aecf3673298be80e111baf"
+}

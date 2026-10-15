@@ -1,0 +1,222 @@
+{
+ "date": "Thu Oct 15 10:35:48 CDT 2026",
+ "preflight": {
+  "inputs_equal_pinned": true,
+  "counts_equal_pinned": true,
+  "versions": {
+   "numpy": "2.5.3",
+   "polars": "1.44.2",
+   "duckdb": "1.5.6"
+  },
+  "cells": {
+   "stl/betmgm": {
+    "legs": {
+     "2023": 11001,
+     "2024": 8543
+    },
+    "a0_mean": 0.4668,
+    "z_floor_share": 0.0018
+   },
+   "stl/betrivers": {
+    "legs": {
+     "2023": 5165,
+     "2024": 7316
+    },
+    "a0_mean": 0.4797,
+    "z_floor_share": 0.0
+   },
+   "blk/betmgm": {
+    "legs": {
+     "2023": 10851,
+     "2024": 14100
+    },
+    "a0_mean": 0.3508,
+    "z_floor_share": 0.2555
+   },
+   "bs/betmgm": {
+    "legs": {
+     "2023": 8510,
+     "2024": 8639
+    },
+    "a0_mean": 0.4522,
+    "z_floor_share": 0.0
+   },
+   "pra/draftkings": {
+    "legs": {
+     "2023": 10698,
+     "2024": 10308
+    },
+    "a0_mean": 0.4696,
+    "z_floor_share": 0.0
+   },
+   "pra/fanduel": {
+    "legs": {
+     "2023": 7645,
+     "2024": 6917
+    },
+    "a0_mean": 0.4681,
+    "z_floor_share": 0.0
+   },
+   "pr/draftkings": {
+    "legs": {
+     "2023": 12927,
+     "2024": 12588
+    },
+    "a0_mean": 0.4741,
+    "z_floor_share": 0.0
+   },
+   "pr/fanduel": {
+    "legs": {
+     "2023": 11623,
+     "2024": 11959
+    },
+    "a0_mean": 0.474,
+    "z_floor_share": 0.0
+   },
+   "pa/draftkings": {
+    "legs": {
+     "2023": 11746,
+     "2024": 9248
+    },
+    "a0_mean": 0.4819,
+    "z_floor_share": 0.0
+   },
+   "pa/fanduel": {
+    "legs": {
+     "2023": 7831,
+     "2024": 7271
+    },
+    "a0_mean": 0.4795,
+    "z_floor_share": 0.0
+   },
+   "ra/draftkings": {
+    "legs": {
+     "2023": 8903,
+     "2024": 8384
+    },
+    "a0_mean": 0.4485,
+    "z_floor_share": 0.0
+   },
+   "ra/fanduel": {
+    "legs": {
+     "2023": 7638,
+     "2024": 6726
+    },
+    "a0_mean": 0.4568,
+    "z_floor_share": 0.0
+   }
+  },
+  "git_head": "89c5c96263e061f7f9aecf3673298be80e111baf"
+ },
+ "rehearsal": {
+  "biased": {
+   "verdict": "CALIBRATED",
+   "checks": {
+    "P1": true,
+    "P2": true,
+    "P3": true,
+    "P4": true,
+    "P5": true,
+    "P6": true,
+    "P7": true
+   },
+   "cal_minus_a0": {
+    "mean": -0.00561633124169452,
+    "lo": -0.0063712548703883385,
+    "hi": -0.004854545969302899,
+    "lo_1s": -0.006226035402285235,
+    "hi_1s": -0.004976983114667242,
+    "p": 0.0004997501249375312,
+    "n": 71810
+   },
+   "cal_minus_c0": {
+    "mean": -0.01926615866980334,
+    "lo": -0.02066116290194722,
+    "hi": -0.017854724759734313,
+    "lo_1s": -0.02045176462402093,
+    "hi_1s": -0.018098965813180875,
+    "p": 0.0004997501249375312,
+    "n": 71810
+   },
+   "null_sd": 0.00026672471156592156,
+   "close_rule": false
+  },
+  "baserate": {
+   "verdict": "SHRINKAGE_ONLY",
+   "checks": {
+    "P1": true,
+    "P2": false,
+    "P3": true,
+    "P4": true,
+    "P5": true,
+    "P6": true,
+    "P7": true
+   },
+   "cal_minus_a0": {
+    "mean": -0.03425963770711263,
+    "lo": -0.03630758469591259,
+    "hi": -0.03214363350896197,
+    "lo_1s": -0.03597685033624084,
+    "hi_1s": -0.03244659945631709,
+    "p": 0.0004997501249375312,
+    "n": 71810
+   },
+   "cal_minus_c0": {
+    "mean": -1.8025342691516793e-05,
+    "lo": -0.00010747660213033244,
+    "hi": 7.424334077938301e-05,
+    "lo_1s": -9.579342989859873e-05,
+    "hi_1s": 5.923305184647178e-05,
+    "p": 0.344327836081959,
+    "n": 71810
+   },
+   "null_sd": 5.385468593113734e-05,
+   "close_rule": false
+  },
+  "calibrated": {
+   "verdict": "FAIL",
+   "checks": {
+    "P1": false,
+    "P2": true,
+    "P3": true,
+    "P4": true,
+    "P5": false,
+    "P6": false,
+    "P7": false
+   },
+   "cal_minus_a0": {
+    "mean": 9.154245195198988e-05,
+    "lo": -2.2314826568581152e-05,
+    "hi": 0.00020781216254823026,
+    "lo_1s": -5.397740137950804e-06,
+    "hi_1s": 0.00018430160253981464,
+    "p": 0.9370314842578711,
+    "n": 71810
+   },
+   "cal_minus_c0": {
+    "mean": -0.025100121184489687,
+    "lo": -0.02676972723920648,
+    "hi": -0.023533961193053857,
+    "lo_1s": -0.026468761222001532,
+    "hi_1s": -0.02376501458633342,
+    "p": 0.0004997501249375312,
+    "n": 71810
+   },
+   "null_sd": 0.0003008492275579089,
+   "close_rule": false
+  },
+  "planted_future": {
+   "probes": 21,
+   "identical": 21,
+   "positive_control_moved": 21,
+   "bad": []
+  },
+  "expected": {
+   "biased": "CALIBRATED",
+   "baserate": "SHRINKAGE_ONLY",
+   "calibrated": "FAIL"
+  },
+  "all_three_reachable": true
+ },
+ "elapsed_s": 57.5
+}

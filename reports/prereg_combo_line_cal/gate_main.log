@@ -1,0 +1,71 @@
+date: Thu Oct 15 10:33:10 CDT 2026
+population: {'rows_played_all_seasons_le_2024': 84170, 'population_rows_by_season': {2023: 25815, 2024: 25767, 2022: 23272}, 'expected_from_COMBO_STOCKS_SHADOW': {'2023': 25815, '2024': 25767}, 'reproduces_rehearsal_population': True}
+absent main markets: {'player_blocks': 259775, 'player_blocks_steals': 92205, 'player_points_rebounds_assists': 568152, 'player_points_rebounds': 313726, 'player_points_assists': 256108, 'player_rebounds_assists': 241583}
+component main legs 295467 (4s)
+stl: 238389 candidate legs (4s)
+blk: 99915 candidate legs (4s)
+bs: 46090 candidate legs (4s)
+pra: 184450 candidate legs (4s)
+pr: 155191 candidate legs (5s)
+pa: 127001 candidate legs (5s)
+ra: 119798 candidate legs (5s)
+
+target book kind  legs23 legs24 games24 blocksBelow2000 minFit24 neff_open  legs/game  hw   passAll
+blk  betmgm         main    10851  14100  1205  0  10851  22632.6   11.7 0.00173 True
+blk  betrivers      main     2095   3747   909  0   2095   5432.9   4.12 0.00335 False
+blk  draftkings     main    11860   3202  1129  0  11860  13589.2   2.84 0.00363 False
+blk  williamhill_us main    10871   3113   279  0  10871  12944.2  11.16 0.00368 False
+blk  fanduel        main     2320   1377   866  0   2320   3282.3   1.59 0.00553 False
+blk  bovada         main    13562    539    59  0  13562  13717.2   9.14 0.00884 False
+blk  barstool       main      688      0     0  0      0    688.0    0.0 None False
+blk  pointsbetus    main     8744      0     0  0      0   8706.8    0.0 None False
+blk  unibet_us      main     2100      0     0  0      0   2087.2    0.0 None False
+bs   betmgm         main     8510   8639   727  0   8510  15886.9  11.88 0.00221 True
+bs   williamhill_us main     6713   3126   275  0   6713   9246.0  11.37 0.00367 False
+bs   betrivers      main        0   2300   557  3      0   2295.1   4.13 0.00428 False
+bs   draftkings     main    10529   1700   763  0  10529  11323.9   2.23 0.00498 False
+pa   betmgm         main    11216  14123  1205  0  11216  22939.5  11.72 0.00173 True
+pa   williamhill_us main    12485  11591  1088  0  12485  21487.7  10.65 0.00191 True
+pa   draftkings     main    11746   9248  1201  0  11746  18555.0    7.7 0.00214 True
+pa   fanduel        main     7831   7271  1196  0   7831  13442.7   6.08 0.00241 True
+pa   bovada         main    10823   6832  1129  0  10823  15599.6   6.05 0.00248 True
+pa   betrivers      main        0   2912   566  3      0   2905.9   5.14 0.00381 False
+pa   barstool       main      688      0     0  0      0    688.0    0.0 None False
+pa   pointsbetus    main     9150      0     0  0      0   9060.9    0.0 None False
+pr   betmgm         main    11215  14132  1205  0  11215  22949.5  11.73 0.00173 True
+pr   williamhill_us main    13204  12592  1090  0  13204  22974.9  11.55 0.00183 True
+pr   draftkings     main    12927  12588  1201  0  12927  22702.9  10.48 0.00183 True
+pr   fanduel        main    11623  11959  1197  0  11623  21074.6   9.99 0.00188 True
+pr   bovada         main    12180  11418  1136  0  12180  21019.3  10.05 0.00192 True
+pr   betrivers      main        0   4763   566  2      0   4753.0   8.42 0.00298 False
+pr   barstool       main      687      0     0  0      0    687.0    0.0 None False
+pr   pointsbetus    main    12770      0     0  0      0  12650.0    0.0 None False
+pra  betmgm         main    10081  14686  1205  0  10081  22548.8  12.19 0.00169 True
+pra  betonlineag    main    12833  13576  1199  0  12833  23592.8  11.32 0.00176 True
+pra  williamhill_us main    13133  13063  1090  0  13133  23334.7  11.98 0.0018 True
+pra  bovada         main     9225  11533  1178  0   9225  18560.9   9.79 0.00191 True
+pra  draftkings     main    10698  10308  1201  0  10698  18660.3   8.58 0.00202 True
+pra  fanduel        main     7645   6917  1195  0   7645  12954.5   5.79 0.00247 True
+pra  fanatics       main        0   4432   424  2      0   4427.7  10.45 0.00308 False
+pra  betrivers      main      106   3905   820  5    106   3963.7   4.76 0.00329 False
+pra  barstool       main      686      0     0  0      0    686.0    0.0 None False
+pra  pointsbetus    main     9010      0     0  0      0   8922.3    0.0 None False
+ra   betmgm         main    11083  14063  1205  0  11083  22781.9  11.67 0.00173 True
+ra   williamhill_us main    12792  11087  1088  0  12792  21297.3  10.19 0.00195 True
+ra   draftkings     main     8903   8384  1199  0   8903  15358.7   6.99 0.00224 True
+ra   fanduel        main     7638   6726  1195  0   7638  12772.6   5.63 0.0025 True
+ra   bovada         main    10101   6184  1127  0  10101  14365.1   5.49 0.00261 True
+ra   betrivers      main        0   2751   564  3      0   2745.2   4.88 0.00392 False
+ra   barstool       main      695      0     0  0      0    695.0    0.0 None False
+ra   pointsbetus    main     9032      0     0  0      0   8944.2    0.0 None False
+stl  betmgm         main    11001   8543   717  0  11001  17856.3  11.91 0.00222 True
+stl  betrivers      main     5165   7316   915  0   5165  11519.5    8.0 0.0024 True
+stl  draftkings     main    11964   4758  1150  0  11964  14929.5   4.14 0.00298 False
+stl  fanduel        main     4651   3317  1062  0   4651   7087.9   3.12 0.00357 False
+stl  williamhill_us main    10939   3154   286  0  10939  13039.4  11.03 0.00366 False
+stl  novig          main        0   1459   635  5      0   1453.4    2.3 0.00538 False
+stl  bovada         main    11825    567    58  0  11825  12000.9   9.78 0.00862 False
+stl  barstool       main      687      0     0  0      0    687.0    0.0 None False
+stl  pointsbetus    main     8785      0     0  0      0   8747.6    0.0 None False
+stl  unibet_us      main     5199      0     0  0      0   5169.7    0.0 None False
+wrote reports/prereg_combo_line_cal/gate_main.json in 10.0 s
