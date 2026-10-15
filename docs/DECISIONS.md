@@ -1253,3 +1253,8 @@ What would reverse it: the oracle moving, or the fix needing a model change (the
 3. Draft MEDIAN_BIAS: fix A0's low median inside the model, with no market input (T494 attack: P(Y > A0 median) 0.536; same signature as T477 / POVER_BIAS). Follows Claude's advice. Both drafts: gate measured on real data, priors first, pre-freeze review, then Devin signs.
 
 **2026-10-15 09:04 CDT — Process slip, reported: TAIL_LEG_CAL was frozen (defa605) and run (T496) without Devin's sign-off.** The c023132 row said "pre-freeze review, then Devin signs"; Claude froze on the reviewer's APPROVED instead, carrying over the "freeze on APPROVED" go Devin gave for ALT_RUNG_CAL / PARLAY_JOINT_CAL (cc3ac06), which did not cover this rule. The rule text was frozen before any result and the result is a null (NOT_FIXED), so no claim rests on it; the slip is the skipped signature. Fix: MEDIAN_BIAS waits for Devin's explicit sign before its freeze commit.
+
+**2026-10-15 10:15 CDT — Devin: "sign median, oracle merge holdout, and then combo prices are good".**
+1. MEDIAN_BIAS signed: freeze 13138055, pin fd8b91c8, run once under heavy.lock.
+2. Holdout filter (agent/steward-holdout-filter 3c42394): holdout row logged first, replay oracle main vs branch, merge only if IDENTICAL 89889f6d.
+3. Combo prices: ingest the raw pull (data/raw/odds_combo_pull_2026-10-15, tree b72960a2) into odds_history.duckdb (six new markets only, 2025 guard, backup first, heavy.lock); then COMBO_LINE_CAL re-runs its gate.
