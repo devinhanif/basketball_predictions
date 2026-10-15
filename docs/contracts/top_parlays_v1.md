@@ -1,5 +1,7 @@
 # top_parlays v1 (contract between nba/parlay, nba/export and app/)
 
+> Superseded by `top_parlays_v2.md` (2026-10-15). The app accepts `top_parlays/2` only.
+
 Written 2026-10-15 for Devin's request: top 3 most confident two-leg and three-leg parlays, with a plain-language reason.
 One JSON object per slate date, `reports/parlay/top_parlays_<date>.json`, written after the pre-tip run. Read-only; paper only.
 

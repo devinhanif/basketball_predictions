@@ -7,7 +7,7 @@ export type Route =
   | { name: "leg"; gameId: string; playerId: number; stat: LegStat; side: Side }
   | { name: "swipe"; date: string | null }
   | { name: "picks" }
-  | { name: "parlay" };
+  | { name: "parlay"; date: string | null };
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
 export function legHref(gameId: string, playerId: number, stat: LegStat, side: Side = "over"): string {
@@ -34,7 +34,7 @@ export function parse(hash: string): Route {
     case "picks":
       return { name: "picks" };
     case "parlay":
-      return { name: "parlay" };
+      return { name: "parlay", date: q.get("date") };
     default:
       return { name: "today", date: q.get("date") };
   }

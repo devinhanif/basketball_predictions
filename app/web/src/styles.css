@@ -1324,3 +1324,20 @@ details.alt > summary {
 .tp-empty {
   margin-top: 12px;
 }
+.tag.illus {
+  border-color: var(--accent);
+  color: var(--accent);
+  margin-left: 0;
+}
+.tag.hypo {
+  display: inline-block;
+  margin: 8px 0;
+  background: var(--surface-2);
+  border: 2px solid var(--muted);
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 3px 8px;
+}
+.tp-gate {
+  margin: 6px 0 10px;
+}
