@@ -907,7 +907,7 @@ def build_inputs_from_db(
         raise ValueError("season > 2024 present: 2025 must not be loaded")
     elo = {k: float(v) for k, v in yaml.safe_load(Path(elo_config).read_text()).items()}
     cfg = ContextResidualConfig()
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     v1 = build_features(games, pgs, static, flagged, elo)
     inp = build_inputs(v1, pgs, flagged, load_demo(db_path))
     return inp, v1

@@ -455,7 +455,7 @@ def _plant_build(
     from research.features.opponent_ridge_v2 import MonthlyRidge, RidgeCfg, build_inputs
     from research.props.context_features_v2 import build_v2_features
 
-    flagged, _ = flagged_from_availability(avail, games, report)
+    flagged, _ = flagged_from_availability(avail, games, report, max_season=MAX_SEASON)
     v1 = build_features(games, pgs, static, flagged, elo)
     full = build_v2_features(v1, games, pgs, static, avail, poss, report)
     inp = build_inputs(v1, pgs, flagged, demo)

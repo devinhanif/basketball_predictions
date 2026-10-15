@@ -158,7 +158,7 @@ def run_collect(
     games, pgs, static, avail = load_inputs(db_path, injury_db)
     if int(games["season"].max()) > MAX_SEASON:  # type: ignore[arg-type]
         raise ValueError("season > 2024 present: frozen holdout must not be loaded")
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = build_features(games, pgs, static, flagged, elo_params)
     feats = attach_realised(feats, games, pgs)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -320,7 +320,7 @@ def run_collect_pi(
     games, pgs, static, avail = load_inputs(db_path, injury_db)
     if int(games["season"].max()) > MAX_SEASON:  # type: ignore[arg-type]
         raise ValueError("season > 2024 present: frozen holdout must not be loaded")
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = attach_realised(build_features(games, pgs, static, flagged, elo_params), games, pgs)
     comp = collect_pi(feats, cfg)
     path = out_dir / "components_pi.npz"

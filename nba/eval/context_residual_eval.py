@@ -136,9 +136,11 @@ def load_inputs(
         con.close()
     icon = duckdb.connect(injury_db or db_path, read_only=True)
     try:
+        # filter at the source: only availability rows of games with season <= max_season are read
+        icon.register("_allowed_games", games.select("game_id").to_arrow())
         avail = icon.execute(
             "SELECT game_id, player_id, status, as_of, source FROM player_availability "
-            "WHERE game_id IS NOT NULL"
+            "WHERE game_id IN (SELECT game_id FROM _allowed_games)"
         ).pl()
     finally:
         icon.close()
@@ -347,7 +349,7 @@ def run_eval_frames(
     max_season_seen = games["season"].max()
     if max_season_seen is not None and int(max_season_seen) > max_season:  # type: ignore[arg-type]
         raise ValueError("season > 2024 present: frozen holdout must not be loaded")
-    flagged, _info = flagged_from_availability(avail, games, cfg.report)
+    flagged, _info = flagged_from_availability(avail, games, cfg.report, max_season=max_season)
     feats = build_features(games, pgs, static, flagged, elo_params)
     summaries: dict[str, dict[str, Any]] = {}
     importances: dict[str, dict[str, float]] = {}
