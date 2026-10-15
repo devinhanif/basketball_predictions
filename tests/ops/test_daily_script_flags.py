@@ -186,3 +186,18 @@ def test_morning_writes_a_step_record_tied_to_the_heartbeat(tmp_path: Path) -> N
     assert steps["settle"] == ["0", "ok"] and steps["facts"] == ["1", "failed"]
     assert steps["data_check"] == ["0", "ok"]
     assert rc == 0
+
+
+def test_script_step_names_satisfy_the_gate_contract(tmp_path: Path) -> None:
+    import json
+
+    from nba.ops.app_export import data_step_problem
+
+    hb_dir = tmp_path / "off/root/data/ops/heartbeat"
+    _, _, hb = _run_morning(tmp_path / "off", nightly="", facts_rc=0)
+    assert data_step_problem(hb_dir, json.loads(hb)["start_ts"]) is None
+    _, _, hb = _run_morning(tmp_path / "on", nightly="1", facts_rc=1)
+    on_dir = tmp_path / "on/root/data/ops/heartbeat"
+    assert (
+        data_step_problem(on_dir, json.loads(hb)["start_ts"]) == "morning data step failed: facts"
+    )

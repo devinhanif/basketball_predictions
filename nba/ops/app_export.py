@@ -41,8 +41,13 @@ from nba.ops.watchdog import read_heartbeat
 JOB = "app-export"
 MORNING = "daily-morning"
 STEPS_FILE = f"{MORNING}.steps"
-#: steps whose failure does not stop the export (off-machine copies only; they never feed it)
-NON_DATA_PREFIX = "backup_"
+
+
+#: steps whose failure does not stop the export: the Drive copies only (they never feed it); any other backup_* step blocks
+def _is_drive_backup(name: str) -> bool:
+    return name.startswith("backup_") and name.endswith("_drive")
+
+
 #: data steps that must appear as ok, else the run was cut short (or an older script wrote no record) and the gate fails closed
 REQUIRED_STEPS = (
     "settle",
@@ -86,10 +91,9 @@ def data_step_problem(hb_dir: Path, hb_start: str) -> str | None:
         parts = line.split()
         if len(parts) != 3:
             return f"morning step record unreadable: {line!r}"
-        status[parts[0]] = parts[2]
-    failed = sorted(
-        n for n, st in status.items() if st != "ok" and not n.startswith(NON_DATA_PREFIX)
-    )
+        if status.get(parts[0], "ok") == "ok":  # sticky: a step once recorded failed stays failed
+            status[parts[0]] = parts[2]
+    failed = sorted(n for n, st in status.items() if st != "ok" and not _is_drive_backup(n))
     if failed:
         return f"morning data step failed: {', '.join(failed)}"
     missing = [n for n in REQUIRED_STEPS if status.get(n) != "ok"]

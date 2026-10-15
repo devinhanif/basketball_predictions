@@ -182,6 +182,26 @@ def test_backup_only_failure_still_exports(tmp_path: Path) -> None:
     assert _hb(tmp_path)["status"] == "ok"
 
 
+def _steps_problem(tmp_path: Path, steps: list[tuple[str, int, str]]) -> str | None:
+    start = NOW.replace(hour=8)
+    _morning(tmp_path, start=start, end=NOW.replace(hour=9), rc=1, steps=steps)
+    return A.data_step_problem(
+        tmp_path / "data/ops/heartbeat", start.strftime("%Y-%m-%dT%H:%M:%S%z")
+    )
+
+
+def test_a_step_once_failed_stays_failed(tmp_path: Path) -> None:
+    steps = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
+    steps.insert(3, ("report", 1, "failed"))
+    assert _steps_problem(tmp_path, steps) == "morning data step failed: report"
+
+
+def test_only_drive_backups_are_exempt(tmp_path: Path) -> None:
+    ok = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
+    assert _steps_problem(tmp_path, [*ok, ("backup_lineups_drive", 1, "failed")]) is None
+    assert "backup_local" in str(_steps_problem(tmp_path, [*ok, ("backup_local", 1, "failed")]))
+
+
 def test_a_good_run_clears_the_skip_record(tmp_path: Path) -> None:
     A.run(tmp_path, now=NOW, build=FakeBuild([0]))  # no morning heartbeat: skipped
     assert (tmp_path / "data/ops/heartbeat/app-export.skip.json").exists()
