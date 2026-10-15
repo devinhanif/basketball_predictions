@@ -210,6 +210,7 @@ def avg_rows(
             "q10": pred["q10"], "q50": pred["q50"], "q90": pred["q90"],
             "q_grid": pred["q_grid"], "p_ge": pred["p_ge"],
             "p_ge_full_counts": pred["p_ge_full"]["c"], "p_ge_full_n": pred["p_ge_full"]["n"],
+            "_pmf199": pmf,  # private: the rung_cal export reads it, then drops it
             "stamp_weights_sha256": r[6], "stamp_weights_scope": "avg weights bundle (model_id)",
             "stamp_data_version": None, "stamp_fit_through": r[7], "stamp_n_train": None,
             "stamp_git_sha": None, "stamp_git_dirty": None, "stamp_stamped_at": r[9],
