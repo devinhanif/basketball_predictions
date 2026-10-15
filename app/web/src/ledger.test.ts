@@ -10,6 +10,8 @@ import {
   settleSide,
   streak,
   summarize,
+  viewTag,
+  PICKS_NOTE,
   type Pick,
   type Settled,
 } from "./ledger";
@@ -247,5 +249,18 @@ describe("reset my picks", () => {
     expect(loadLedger()).toHaveLength(1);
     clearLedger();
     expect(loadLedger()).toHaveLength(0);
+  });
+});
+
+describe("F04: blind or saw-forecast tag", () => {
+  const base = { side: "over", saw_model: false } as Pick;
+  it("tags each answer by whether the forecast was opened first", () => {
+    expect(viewTag({ ...base, saw_model: false })).toBe("blind");
+    expect(viewTag({ ...base, saw_model: true })).toBe("saw forecast");
+    expect(viewTag({ ...base, side: "skip", saw_model: true })).toBeNull();
+  });
+  it("the note no longer claims every pick was blind", () => {
+    expect(PICKS_NOTE).not.toMatch(/never saw/i);
+    expect(PICKS_NOTE).toMatch(/whether you looked at our forecast/);
   });
 });

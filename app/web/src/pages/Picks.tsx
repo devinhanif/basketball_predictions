@@ -1,7 +1,7 @@
 import { useMemo, useState } from "preact/hooks";
 import { Explain, RecordBoard, ResetPicks } from "../components";
 import { american, lineText, longDate, pct } from "../format";
-import { loadLedger, summarize, type Pick, type Settled } from "../ledger";
+import { loadLedger, PICKS_NOTE, summarize, viewTag, type Pick, type Settled } from "../ledger";
 import { MIN_LEGS } from "../stats";
 import { useSettled } from "../useSettled";
 import { didText } from "../words";
@@ -32,7 +32,10 @@ function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: bo
     <li class={`pick ${cls}`}>
       <span class="badge">{badge}</span>
       <div class="pick-body">
-        <div class="pick-title">{title}</div>
+        <div class="pick-title">
+          {title}
+          {viewTag(p) ? <span class={`tag view-${viewTag(p) === "blind" ? "blind" : "saw"}`}>{viewTag(p)}</span> : null}
+        </div>
         <div class="pick-sub num">
           {skipped ? "" : `You took ${p.side} ${lineText(p.line)} (${american(p.side === "over" ? p.over_price : p.under_price)}). `}
           {p.team} vs {p.opponent}, {longDate(p.slate_date)}
@@ -137,9 +140,7 @@ export function Picks() {
             <PickRow key={p.id} p={p} s={settled.find((x) => x.pick.id === p.id)} isOpen={open.some((o) => o.id === p.id)} />
           ))}
         </ul>
-        <p class="small muted">
-          Each pick is saved with the time you made it, how long you took, and a note that you never saw our forecast.
-        </p>
+        <p class="small muted">{PICKS_NOTE}</p>
       </section>
     </div>
   );
