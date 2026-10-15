@@ -72,7 +72,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null }) {
+function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
@@ -104,8 +104,10 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
           Played {res.minutes === null ? "no recorded minutes" : `${num(res.minutes)} minutes`}
           {res.starter === null ? "" : res.starter ? " and started" : " off the bench"}. We do not forecast minutes yet.
         </p>
-      ) : (
+      ) : props.final ? (
         <p class="small muted">We do not forecast minutes yet. Show the final score above to see how long he played.</p>
+      ) : (
+        <p class="small muted">We do not forecast minutes yet.</p>
       )}
       {props.p.role ? <RoleSection role={props.p.role} player={props.p.name} /> : null}
       {STATS.map((s: Stat) => {
@@ -131,6 +133,9 @@ function Body({ g }: { g: GameDetail }) {
         <a href="#/">Back to the night</a>
       </p>
       <section class="panel scoreboard">
+        <h1 class="sr">
+          {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
+        </h1>
         <div class="score-row">
           <div class="score-team">
             <TeamTag abbr={g.away.abbr} big />
@@ -226,12 +231,12 @@ function Body({ g }: { g: GameDetail }) {
           {team.city} {team.name}: {players.length} players with {g.players.some((p) => p.props.pts?.line_source === "reference") ? "a forecast" : "a line from the sportsbook"}, highest forecast scorer first.
           Tap a name to open them up.
         </p>
-        <DistLegend />
+        <DistLegend reference={g.players.some((p) => Object.values(p.props).some((x) => x.line_source === "reference"))} />
         <div class="players">
           {players.length === 0 ? (
             <p class="muted">No forecasts are stored for this team.</p>
           ) : (
-            players.map((p) => <PlayerRow key={p.player_id} gameId={g.game_id} p={p} result={res} />)
+            players.map((p) => <PlayerRow key={p.player_id} gameId={g.game_id} p={p} result={res} final={g.final} />)
           )}
         </div>
         <ul class="plain small muted">

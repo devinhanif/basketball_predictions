@@ -86,3 +86,8 @@ export function winSentence(homeP: number, home: string, away: string): string {
   const favP = homeFav ? homeP : 1 - homeP;
   return `${homeFav ? home : away} win ${inTen(favP)}`;
 }
+
+/** What to call the marked number on a distribution bar. Never "book line" for a line no book set. */
+export function lineMarkLabel(source: "posted" | "reference"): string {
+  return source === "posted" ? "line" : "our reference line";
+}

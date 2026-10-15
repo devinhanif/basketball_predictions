@@ -191,3 +191,13 @@ def test_cors_allows_localhost_only(client: TestClient) -> None:
 def test_api_is_read_only(client: TestClient) -> None:
     for method in ("post", "put", "delete", "patch"):
         assert getattr(client, method)("/api/slates").status_code == 405
+
+
+def test_large_json_is_gzipped_and_small_is_not(client: TestClient) -> None:
+    """F30: a phone on the LAN gets compressed JSON; tiny bodies are left alone."""
+    big = client.get("/api/slates/2024-11-12", headers={"Accept-Encoding": "gzip"})
+    assert big.status_code == 200
+    assert big.headers.get("content-encoding") == "gzip"
+    plain = client.get("/api/slates/2024-11-12", headers={"Accept-Encoding": "identity"})
+    assert "content-encoding" not in plain.headers
+    assert plain.json() == big.json()
