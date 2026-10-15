@@ -1,4 +1,4 @@
-/* parlayhitters service worker.
+/* parlayhitters service worker. (apiNetworkFirst also falls back to the saved copy on a 5xx answer.)
  * - Precaches the app shell listed in /precache.json (written at build time).
  * - Pages: network first, falling back to the cached shell (works offline, installable).
  * - GET /api/*: network first, falling back to the last data fetched; a cached answer is marked with
@@ -52,18 +52,31 @@ async function shellCache() {
   return keys.length ? caches.open(keys[keys.length - 1]) : null;
 }
 
+async function fromCache(cache, request) {
+  const hit = await cache.match(request, { ignoreVary: true });
+  if (!hit) return null;
+  const headers = new Headers(hit.headers);
+  headers.set("X-From-Cache", "1");
+  return new Response(await hit.blob(), { status: hit.status, headers });
+}
+
+/* Network first. When the network throws, or the origin answers 5xx (a down origin behind a proxy is 502/522, a
+ * refused export is 503), serve the last good copy if there is one; with no copy the real answer goes through,
+ * so a 503 reason stays visible. */
 async function apiNetworkFirst(request) {
   const cache = await caches.open(DATA);
   try {
     const res = await fetch(request);
-    if (res.ok) await cache.put(request, res.clone());
+    if (res.ok) {
+      await cache.put(request, res.clone());
+      return res;
+    }
+    if (res.status >= 500) return (await fromCache(cache, request)) ?? res;
     return res;
   } catch (e) {
-    const hit = await cache.match(request, { ignoreVary: true });
+    const hit = await fromCache(cache, request);
     if (!hit) throw e;
-    const headers = new Headers(hit.headers);
-    headers.set("X-From-Cache", "1");
-    return new Response(await hit.blob(), { status: hit.status, headers });
+    return hit;
   }
 }
 

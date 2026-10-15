@@ -236,3 +236,13 @@ export function lastWeek(settled: Settled[], now: Date = new Date()): Settled[] 
   const cutoff = now.getTime() - 7 * 24 * 3600 * 1000;
   return settled.filter((s) => new Date(s.pick.made_at).getTime() >= cutoff);
 }
+
+/** How the answer was made, for the My picks list (F04). Skips carry no view tag. */
+export function viewTag(p: Pick): "blind" | "saw forecast" | null {
+  if (p.side === "skip") return null;
+  return p.saw_model ? "saw forecast" : "blind";
+}
+
+/** Note under the My picks list. Must never claim a pick was blind: some were not. */
+export const PICKS_NOTE =
+  "Each pick is saved with the time you made it, how long you took, and whether you looked at our forecast first.";

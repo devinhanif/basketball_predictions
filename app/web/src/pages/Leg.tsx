@@ -1,8 +1,10 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { ErrorPanel, Explain, Loading } from "../components";
-import { american, bookName, lineText, longDate, num, stamp, tipTime } from "../format";
+import { plainModelSentence } from "../plain";
+import { american, bookName, lineText, longDate, num, pct, stamp, tipTime } from "../format";
 import {
+  bookChance,
   clampLine,
   ladderAt,
   modelPct,
@@ -117,10 +119,11 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
   const p = row ? rowModel(row, side) : data.model.p_hit;
   const price = row ? (side === "over" ? row.over_price : row.under_price) : null;
   const range = fresh ? rangeText(data.last10) : null;
+  const book = bookChance(data.prices, data.line === line, row, side);
   const verb = side === "over" ? "went over" : "stayed under";
   return (
     <section class="leg-head" aria-label="Headline numbers">
-      <div class="leg-tiles">
+      <div class={`leg-tiles${book ? " four" : ""}`}>
         <div class="leg-tile main">
           <div class="label">Last {S(n10)} games</div>
           <div class="leg-big num">{ofText(h10, n10)}</div>
@@ -149,6 +152,13 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
             <div class="leg-sub strong">No model forecast for this stat yet</div>
           )}
         </div>
+        {book ? (
+          <div class="leg-tile book">
+            <div class="label">{book.book}</div>
+            <div class="leg-big num">{pct(book.p)}</div>
+            <div class="leg-sub">to go {side}, margin removed</div>
+          </div>
+        ) : null}
       </div>
       {data.last10.small ? (
         <p class="leg-flag" role="note">
@@ -332,11 +342,17 @@ function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side;
       </p>
       <p class="small">{m.reason}</p>
       <p class="small" data-model-source={m.source}>
-        {m.source_label}
+        {plainModelSentence(m.source)}
+        {m.source === "fixture" ? "" : " It was built without ever seeing this game."}
       </p>
-      <p class="small muted">
-        Forecast stamp: <span class="mono">{m.stamp ?? "none"}</span>. The model was built without ever seeing this game.
-      </p>
+      <Explain label="Show the exact details">
+        <ul class="plain small">
+          <li>{m.source_label}</li>
+          <li>
+            Forecast stamp: <span class="mono">{m.stamp ?? "none"}</span>
+          </li>
+        </ul>
+      </Explain>
     </section>
   );
 }
@@ -668,8 +684,10 @@ function Opponent({ data }: { data: LegBreakdown }) {
 function Header({ data, line }: { data: LegBreakdown; line: number }) {
   return (
     <header class="leg-title">
-      <p class="small">
-        <a href={`#/game/${data.game_id}`}>Back to the game</a>
+      <p class="back-row">
+        <a class="back-link" href={`#/game/${data.game_id}`}>
+          Back to the game
+        </a>
       </p>
       <h1>{data.player}</h1>
       <p class="muted num" style={{ margin: 0 }}>

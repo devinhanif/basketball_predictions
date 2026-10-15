@@ -44,6 +44,7 @@
   --muted: #565b64;
   --line: #d6d6d1;
   --accent: #c2410c;
+  --accent-ink: #9a3412;
   --on-accent: #ffffff;
   --accent-soft: #fbe6da;
   --book: #6b7280;
@@ -70,6 +71,7 @@
     --muted: #a3a8b1;
     --line: #2d2f36;
     --accent: #ff8a3d;
+    --accent-ink: #ff8a3d;
     --on-accent: #1a0d02;
     --accent-soft: #3a2413;
     --book: #8b93a1;
@@ -91,6 +93,7 @@
   --muted: #a3a8b1;
   --line: #2d2f36;
   --accent: #ff8a3d;
+  --accent-ink: #ff8a3d;
   --on-accent: #1a0d02;
   --accent-soft: #3a2413;
   --book: #8b93a1;
@@ -327,6 +330,9 @@ main {
 .footer-in {
   max-width: 980px;
   margin: 0 auto;
+}
+.footer .nowrap {
+  white-space: nowrap;
 }
 .footer strong {
   color: var(--ink);
@@ -850,7 +856,7 @@ th.r {
   border-color: var(--accent);
 }
 .swipe-card.lean-under {
-  border-color: var(--ink);
+  border-color: var(--accent);
 }
 .stamp {
   position: absolute;
@@ -865,12 +871,12 @@ th.r {
 }
 .stamp.over {
   left: 14px;
-  color: var(--accent);
+  color: var(--accent-ink);
   transform: rotate(-8deg);
 }
 .stamp.under {
   right: 14px;
-  color: var(--ink);
+  color: var(--accent-ink);
   transform: rotate(8deg);
 }
 .swipe-card .who {
@@ -939,15 +945,17 @@ th.r {
   letter-spacing: 0;
   opacity: 0.85;
 }
+/* Over and Under are deliberately identical (F06): the deck collects blind answers, so neither side may look
+   like the default. Keep these two rules byte-for-byte equal; swipeKeys.test.ts checks it. */
 .btn.over {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  color: var(--ink);
 }
 .btn.under {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  color: var(--ink);
 }
 .btn.skip {
   width: 100%;
@@ -1368,7 +1376,7 @@ details.alt > summary {
 }
 .tag.illus {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
   margin-left: 0;
 }
 .tag.hypo {
@@ -1674,3 +1682,54 @@ th {
   }
 }
 .spark-hit { fill: transparent; }
+
+/* ---- skip link ---- */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -64px;
+  z-index: 50;
+  background: var(--head);
+  color: var(--head-ink);
+  padding: 12px 16px;
+  min-height: 44px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 8px;
+}
+.brand {
+  min-height: 44px;
+}
+
+main:focus {
+  outline: none;
+}
+.panel.error h1 {
+  font-size: 1.55rem;
+}
+
+/* Back links are the main way out of a page: a full-size tap target (F29). */
+.back-row {
+  margin: 0;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* ticket verdict leads (F25) */
+.tp-ev {
+  margin: 8px 0;
+}
+.tp-ev-big {
+  font-size: 1.15rem;
+}
+.model-note {
+  margin-top: 6px;
+}
+.prop-compare {
+  margin-top: 2px;
+}

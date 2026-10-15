@@ -191,3 +191,24 @@ def test_cors_allows_localhost_only(client: TestClient) -> None:
 def test_api_is_read_only(client: TestClient) -> None:
     for method in ("post", "put", "delete", "patch"):
         assert getattr(client, method)("/api/slates").status_code == 405
+
+
+def test_large_json_is_gzipped_and_small_is_not(client: TestClient) -> None:
+    """F30: a phone on the LAN gets compressed JSON; tiny bodies are left alone."""
+    big = client.get("/api/slates/2024-11-12", headers={"Accept-Encoding": "gzip"})
+    assert big.status_code == 200
+    assert big.headers.get("content-encoding") == "gzip"
+    plain = client.get("/api/slates/2024-11-12", headers={"Accept-Encoding": "identity"})
+    assert "content-encoding" not in plain.headers
+    assert plain.json() == big.json()
+
+
+def test_key_props_carry_the_forecast_middle_half(client: TestClient) -> None:
+    """F07: a card can lead with the forecast range, read from the stored quantiles."""
+    slate = client.get("/api/slates/2024-11-12").json()
+    n = 0
+    for g in slate["games"]:
+        for kp in g["key_props"]:
+            n += 1
+            assert kp["q25"] <= kp["q50"] <= kp["q75"]
+    assert n > 0

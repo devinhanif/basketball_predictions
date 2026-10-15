@@ -3,14 +3,15 @@ import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
-import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
+import { DistBar, DistLegend, Explain, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { plainPlay } from "../plain";
 import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
-import { legHref } from "../router";
+import { legHref, nightHref } from "../router";
 import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
-import { chanceSentence, didText } from "../words";
+import { chanceSentence, didText, rangeSentence } from "../words";
 
 function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined }) {
   const { prop, player, actual } = props;
@@ -32,19 +33,25 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           Full breakdown: last 10, splits, teammates out
         </a>
       </p>
-      <p class="prop-say">{chanceSentence(player, prop.stat, prop.line, "over", prop.model_p_over, prop.extrapolated)}.</p>
+      <p class="prop-say">
+        {prop.line_source === "reference"
+          ? `${rangeSentence(prop.stat, num(q[9] ?? 0), num(q[4] ?? 0), num(q[14] ?? 0))}.`
+          : `${chanceSentence(player, prop.stat, prop.line, "over", prop.model_p_over, prop.extrapolated)}.`}
+      </p>
       <DistBar player={player} prop={prop} actual={actual} />
-      <div class="kv num">
-        <span>
-          Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
-        </span>
-        {prop.market_p_over !== null ? (
+      {prop.line_source === "posted" ? (
+        <div class="kv num">
           <span>
-            {prop.price_book ? bookName(prop.price_book) : "Sportsbook"}: <b>{pct(prop.market_p_over)}</b>
+            Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
           </span>
-        ) : null}
-        {prop.model_p_push > 0.005 ? <span>Exactly on the line: {pct(prop.model_p_push)}</span> : null}
-      </div>
+          {prop.market_p_over !== null ? (
+            <span>
+              {prop.price_book ? bookName(prop.price_book) : "Sportsbook"}: <b>{pct(prop.market_p_over)}</b>
+            </span>
+          ) : null}
+          {prop.model_p_push > 0.005 ? <span>Exactly on the line: {pct(prop.model_p_push)}</span> : null}
+        </div>
+      ) : null}
       <div class="kv num">
         <span>
           Typical night: <b>{num(q[9] ?? 0)}</b>
@@ -56,11 +63,12 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           Nine in ten: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
         </span>
       </div>
-      <Chips model={prop.model_label} stampText={prop.forecast_stamp} tipUtc={null} />
-      <p class="small muted" data-model-source={prop.model_source} title={prop.model_detail ?? undefined}>
-        {prop.model_label}
-        {prop.p_play !== null && prop.p_play_label ? ` ${pct(prop.p_play)} chance to play. ${prop.p_play_label}` : ""}
-      </p>
+      <Chips model="" stampText={prop.forecast_stamp} tipUtc={null} />
+      {prop.p_play !== null && prop.p_play_label ? (
+        <p class="small muted" data-model-source={prop.model_source} title={`${prop.model_label} ${prop.p_play_label}`}>
+          {pct(prop.p_play)} chance to play. {plainPlay(prop.p_play_label)}
+        </p>
+      ) : null}
       <AltLine gameId={props.gameId} playerId={props.playerId} player={player} prop={prop} />
       {actual !== undefined ? (
         <p class="result-line">
@@ -72,7 +80,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null }) {
+function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
@@ -91,10 +99,19 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
           </span>
           {lead ? (
             <span class="player-lead num">
-              <span class="muted small nowrap">
-                Over {lineText(lead.line)} {STAT_SHORT[lead.stat]}
-              </span>
-              <span class="big-num">{pctBounded(lead.model_p_over, lead.extrapolated)}</span>
+              {lead.line_source === "reference" ? (
+                <>
+                  <span class="muted small nowrap">Typical {STAT_SHORT[lead.stat]}</span>
+                  <span class="big-num">{num(lead.q[9] ?? 0)}</span>
+                </>
+              ) : (
+                <>
+                  <span class="muted small nowrap">
+                    Over {lineText(lead.line)} {STAT_SHORT[lead.stat]}
+                  </span>
+                  <span class="big-num">{pctBounded(lead.model_p_over, lead.extrapolated)}</span>
+                </>
+              )}
             </span>
           ) : null}
         </span>
@@ -104,8 +121,10 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
           Played {res.minutes === null ? "no recorded minutes" : `${num(res.minutes)} minutes`}
           {res.starter === null ? "" : res.starter ? " and started" : " off the bench"}. We do not forecast minutes yet.
         </p>
-      ) : (
+      ) : props.final ? (
         <p class="small muted">We do not forecast minutes yet. Show the final score above to see how long he played.</p>
+      ) : (
+        <p class="small muted">We do not forecast minutes yet.</p>
       )}
       {props.p.role ? <RoleSection role={props.p.role} player={props.p.name} /> : null}
       {STATS.map((s: Stat) => {
@@ -127,10 +146,15 @@ function Body({ g }: { g: GameDetail }) {
   const winner = res ? (res.home_won ? g.home : g.away) : null;
   return (
     <div class="stack">
-      <p class="small">
-        <a href="#/">Back to the night</a>
+      <p class="back-row">
+        <a class="back-link" href={nightHref(g.date)}>
+          Back to the night
+        </a>
       </p>
       <section class="panel scoreboard">
+        <h1 class="sr">
+          {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
+        </h1>
         <div class="score-row">
           <div class="score-team">
             <TeamTag abbr={g.away.abbr} big />
@@ -226,12 +250,13 @@ function Body({ g }: { g: GameDetail }) {
           {team.city} {team.name}: {players.length} players with {g.players.some((p) => p.props.pts?.line_source === "reference") ? "a forecast" : "a line from the sportsbook"}, highest forecast scorer first.
           Tap a name to open them up.
         </p>
-        <DistLegend />
+        <ModelNote items={g.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
+        <DistLegend reference={g.players.some((p) => Object.values(p.props).some((x) => x.line_source === "reference"))} />
         <div class="players">
           {players.length === 0 ? (
             <p class="muted">No forecasts are stored for this team.</p>
           ) : (
-            players.map((p) => <PlayerRow key={p.player_id} gameId={g.game_id} p={p} result={res} />)
+            players.map((p) => <PlayerRow key={p.player_id} gameId={g.game_id} p={p} result={res} final={g.final} />)
           )}
         </div>
         <ul class="plain small muted">

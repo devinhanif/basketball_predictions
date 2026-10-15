@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { ScrollNav, restoreScroll } from "./scrollNav";
 import { isLegStat, type LegStat, type Side } from "./legTypes";
 
 export type Route =
@@ -45,16 +46,45 @@ export function parse(hash: string): Route {
   }
 }
 
+/** Hash for a night's slate. */
+export function nightHref(date: string): string {
+  return `#/?date=${encodeURIComponent(date)}`;
+}
+
 export function useRoute(): Route {
   const [route, setRoute] = useState<Route>(() => parse(window.location.hash));
   useEffect(() => {
+    window.history.scrollRestoration = "manual";
+    const nav = new ScrollNav(window.location.hash);
+    let cancel: (() => void) | null = null;
+    let frame = 0;
+    const onScroll = (): void => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        nav.onScroll(window.scrollY);
+      });
+    };
+    const onClick = (e: MouseEvent): void => {
+      const a = e.target instanceof Element ? e.target.closest("a") : null;
+      if (a && (a.getAttribute("href") ?? "").startsWith("#/")) nav.linkClicked();
+    };
     const on = (): void => {
+      cancel?.();
+      cancel = null;
       setRoute(parse(window.location.hash));
-      window.scrollTo(0, 0);
+      const action = nav.onHashChange(window.location.hash);
+      if (action.kind === "top") window.scrollTo(0, 0);
+      else cancel = restoreScroll(action.y, () => { nav.restoreDone(); });
     };
     window.addEventListener("hashchange", on);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("click", onClick, true);
     return () => {
       window.removeEventListener("hashchange", on);
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("click", onClick, true);
+      cancel?.();
     };
   }, []);
   return route;

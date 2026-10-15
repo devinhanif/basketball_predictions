@@ -80,3 +80,16 @@ export function stamp(utc: string): string {
 export function signed(x: number, digits = 4): string {
   return `${x >= 0 ? "+" : "-"}${Math.abs(x).toFixed(digits)}`;
 }
+
+/** Past this many hours the banner says the data is old (architecture section 6: the banner shows its age). */
+export const STALE_AFTER_HOURS = 30;
+
+/** "This data is 2 days old." once the data is more than STALE_AFTER_HOURS old; null while it is fresh or the time is unreadable. */
+export function ageNote(dataAsOf: string, now: Date = new Date()): string | null {
+  const t = Date.parse(dataAsOf);
+  if (Number.isNaN(t)) return null;
+  const hours = (now.getTime() - t) / 3_600_000;
+  if (hours <= STALE_AFTER_HOURS) return null;
+  const days = Math.max(1, Math.floor(hours / 24));
+  return `This data is ${days.toString()} ${days === 1 ? "day" : "days"} old.`;
+}

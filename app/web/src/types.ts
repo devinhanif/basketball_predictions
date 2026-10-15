@@ -36,6 +36,10 @@ export interface KeyProp {
   over_price: number | null;
   under_price: number | null;
   forecast_mean: number | null;
+  /** The forecast's middle and middle half (stored quantiles 0.25, 0.50, 0.75). */
+  q25: number;
+  q50: number;
+  q75: number;
   model_p_over: number;
   /** Null when the data holds no sportsbook price (the nightly export). */
   market_p_over: number | null;
@@ -305,5 +309,6 @@ export interface CardView {
   stats: CardStats | null;
   forecast_stamp: string;
   model_label: string;
+  model_source: string;
   tip_utc: string;
 }

@@ -8,6 +8,7 @@ from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from .breakdown import Breakdown, Side
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json",
         redoc_url=None,
     )
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=LOCAL_ORIGIN_REGEX,
@@ -214,6 +216,10 @@ def _key_props(g: Json, n: int = 3) -> list[dict[str, Any]]:
                 "over_price": v.over_price,
                 "under_price": v.under_price,
                 "forecast_mean": v.forecast_mean,
+                # The middle and the middle half of the forecast, read from the stored quantiles.
+                "q25": v.q[4],
+                "q50": v.q[9],
+                "q75": v.q[14],
                 "model_p_over": v.model_p_over,
                 "market_p_over": v.market_p_over,
                 "extrapolated": v.extrapolated,
@@ -429,6 +435,7 @@ def register(app: FastAPI) -> None:
             stats=stats,
             forecast_stamp=view.forecast_stamp,
             model_label=view.model_label,
+            model_source=view.model_source,
             tip_utc=str(g["tip_utc"]),
         )
 

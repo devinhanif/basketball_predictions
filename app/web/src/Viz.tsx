@@ -14,9 +14,11 @@ export function Chips(props: { model: string; stampText: string; tipUtc: string 
   const beforeTip = made !== null && props.tipUtc !== null && new Date(made).getTime() < new Date(props.tipUtc).getTime();
   return (
     <ul class="chips" aria-label="Where this number comes from">
-      <li class="chip" title={props.stampText}>
-        {props.model.replace(/^Model:\s*/, "").replace(/\.$/, "")}
-      </li>
+      {props.model ? (
+        <li class="chip" title={props.stampText}>
+          {props.model}
+        </li>
+      ) : null}
       {props.extra?.map((e) => (
         <li key={e} class="chip">
           {e}

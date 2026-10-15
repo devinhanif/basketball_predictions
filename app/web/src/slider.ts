@@ -11,6 +11,9 @@ export const MODEL_ONLY =
   "model only, not calibrated off the main line (alt-line test T494)";
 export const TAIL_NOTE = "tail: low confidence";
 
+export const PLAIN_MODEL_ONLY = "Model only: straight from the model, not adjusted.";
+export const PLAIN_CALIBRATED = "Calibrated: adjusted using how past lines like this one actually finished.";
+
 export function calibratedLabel(version: string): string {
   return `calibrated using the book's main line (T494), map ${version}`;
 }
@@ -73,8 +76,10 @@ export interface Reading {
   p_over: number;
   p_under: number;
   source: "rung_cal" | "model";
-  /** The sentence that must sit beside the number. */
+  /** The exact stored-source sentence (test ids, map version). Shown in the details, not in front. */
   label: string;
+  /** The honesty label in plain words, which sits beside the number: "Calibrated: ..." or "Model only: ...". */
+  plain: string;
   tail: boolean;
   tail_note: string | null;
   /** The line is the posted main line (the only line with a stored price). */
@@ -107,6 +112,7 @@ export function read(input: SliderInput, line: number): Reading {
     p_under: 1 - p_over,
     source: calibrated ? "rung_cal" : "model",
     label: base + (calibrated ? "" : approx),
+    plain: calibrated ? PLAIN_CALIBRATED : PLAIN_MODEL_ONLY + (input.method === "quantile" ? " A rougher estimate." : ""),
     tail,
     tail_note: tail ? TAIL_NOTE : null,
     is_posted: input.posted_line !== null && Math.abs(line - input.posted_line) < 1e-9,

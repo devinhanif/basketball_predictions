@@ -467,3 +467,16 @@
 .leg-chip.linked .leg-chip-meta:last-child::after {
   content: " \203A";
 }
+
+/* With the book's chance beside the model's, two by two on a phone. */
+.leg-tiles.four {
+  grid-template-columns: 1fr 1fr;
+}
+.leg-tile.book {
+  border-top: 3px solid var(--book);
+}
+@media (min-width: 760px) {
+  .leg-tiles.four {
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  }
+}

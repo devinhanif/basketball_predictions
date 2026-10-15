@@ -33,6 +33,7 @@ export interface TpTicket {
   book_implied: number;
   ev_per_dollar: number;
   ev_low80: number;
+  ev_basis?: string;
   why: string;
   /** Optional in the file; the API fills null. */
   tail_note?: string | null;
@@ -52,7 +53,7 @@ export interface TopParlays {
   illustration: boolean;
   slate_date: string;
   made_at: string;
-  calibration: { rule: string; sha8: string; fit_through: string; status: string };
+  calibration: { rule: string; sha8: string; fit_through: string; status: string; joint_status?: string };
   gate: TpGate;
   ranking: string;
   verdict: string;

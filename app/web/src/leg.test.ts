@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampLine, ladderAt, modelPct, nText, ofText, ordinal, rangeText, rankPhrase, rowHits, rowModel, rowPrice, snapHalf } from "./leg";
+import { bookChance, clampLine, ladderAt, modelPct, nText, ofText, ordinal, rangeText, rankPhrase, rowHits, rowModel, rowPrice, snapHalf } from "./leg";
 import type { LadderRow, Tally } from "./legTypes";
 
 const row = (line: number): LadderRow => ({
@@ -79,5 +79,21 @@ describe("words and numbers", () => {
     expect(clampLine(5, 10.5, 30.5)).toBe(10.5);
     expect(snapHalf(22.3)).toBe(22.5);
     expect(snapHalf(22.2)).toBe(22);
+  });
+});
+
+describe("F13: the book's chance next to the model's", () => {
+  const prices = { posted_line: 28.5, over_price: -110, under_price: -110, on_posted_line: true, snapshot_utc: null, say: "", books: [], market_p_over: 0.49, market_book: "DraftKings" };
+  it("uses the API's de-vigged number on the line on screen, and flips it for the under", () => {
+    expect(bookChance(prices, true, null, "over")).toEqual({ p: 0.49, book: "DraftKings" });
+    expect(bookChance(prices, true, null, "under")?.p).toBeCloseTo(0.51);
+  });
+  it("de-vigs a slider line's own stored pair", () => {
+    const r = { ...row(29.5), over_price: -110, under_price: -110 };
+    expect(bookChance(prices, false, r, "over")?.p).toBeCloseTo(0.5);
+  });
+  it("shows nothing when no single book quoted both sides", () => {
+    expect(bookChance({ ...prices, market_book: null, market_p_over: null }, true, null, "over")).toBeNull();
+    expect(bookChance(prices, false, row(29.5), "over")).toBeNull(); // row has only an over price
   });
 });

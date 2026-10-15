@@ -86,3 +86,30 @@ export function winSentence(homeP: number, home: string, away: string): string {
   const favP = homeFav ? homeP : 1 - homeP;
   return `${homeFav ? home : away} win ${inTen(favP)}`;
 }
+
+/** What to call the marked number on a distribution bar. Never "book line" for a line no book set. */
+export function lineMarkLabel(source: "posted" | "reference"): string {
+  return source === "posted" ? "line" : "our reference line";
+}
+
+/**
+ * What to lead with when the line is only our own reference point (F07): the forecast itself. A chance of
+ * going over a line set at the middle of the forecast is about 50% by construction, so it says nothing.
+ */
+export function rangeSentence(stat: Stat, typical: string, lo: string, hi: string): string {
+  return `A typical night is ${typical} ${NOUN[stat][1]}; half of his nights land between ${lo} and ${hi}`;
+}
+
+/** A model and book chance this far apart (0.10 = ten percentage points) get a sentence. Display only: not a betting rule. */
+export const COMPARE_GAP = 0.1;
+
+/**
+ * One plain line comparing the model's chance of the over with the book's. It names which is higher but never says
+ * "take" or "lean". Null without a book number. (Whether the model has a track record is said once per page.)
+ */
+export function compareLine(model: number, book: number | null): string | null {
+  if (book === null) return null;
+  const gap = model - book;
+  if (Math.abs(gap) < COMPARE_GAP) return "The model and the book are close on this one.";
+  return `The model rates the over ${gap < 0 ? "lower" : "higher"} than the book does.`;
+}

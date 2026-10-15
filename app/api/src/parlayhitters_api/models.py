@@ -236,4 +236,5 @@ class CardView(BaseModel):
     stats: CardStats | None
     forecast_stamp: str
     model_label: str
+    model_source: str = ""
     tip_utc: str

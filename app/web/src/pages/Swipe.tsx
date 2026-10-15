@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useCallback, useMemo, useRef, useState } from "preact/hooks";
 import { api } from "../api";
 import { CardDetail } from "../CardDetail";
 import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
 import { american, bookName, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
 import { useLoad } from "../useLoad";
+import { chronological, defaultNight } from "../nights";
 import { useSettled } from "../useSettled";
 import type { SwipeCardData } from "../types";
 import { STAT_LABEL } from "../types";
 import { didText, sideText } from "../words";
+import { swipeKeyChoice } from "../swipeKeys";
 
 function newSeed(): number {
   const a = new Uint32Array(1);
@@ -130,18 +132,16 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
     [card, props.clock, props.date],
   );
 
-  useEffect(() => {
-    const on = (e: KeyboardEvent): void => {
-      if (e.target instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
-      if (e.key === "ArrowRight") choose("over");
-      else if (e.key === "ArrowLeft") choose("under");
-      else if (e.key === "ArrowDown") choose("skip");
-    };
-    window.addEventListener("keydown", on);
-    return () => {
-      window.removeEventListener("keydown", on);
-    };
-  }, [choose]);
+  /* Keys count only when the deck surface itself has focus (F12): never from a button, link, summary or form field. */
+  const onDeckKey = useCallback(
+    (e: KeyboardEvent) => {
+      const choice = swipeKeyChoice(e.key, e.target === e.currentTarget && !e.altKey && !e.ctrlKey && !e.metaKey);
+      if (choice === null) return;
+      e.preventDefault();
+      choose(choice);
+    },
+    [choose],
+  );
 
   const total = initial.length;
   const mine = ledger.filter((p) => p.slate_date === props.date);
@@ -150,7 +150,7 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
     <div class="stack tight">
       <RecordBoard compact settled={settled} loading={results.status === "loading"} picks={ledger.filter((p) => p.side !== "skip").length} />
       <div>
-        <div class="progress" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(index, total)} aria-label="Deck progress">
+        <div class="progress" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(index, total)} aria-label="Deck progress" aria-valuetext={`Card ${Math.min(index + 1, total).toString()} of ${total.toString()}`}>
           <i style={{ width: `${(total ? (Math.min(index, total) / total) * 100 : 0).toString()}%` }} />
         </div>
         <p class="hint num">
@@ -163,7 +163,13 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
       </div>
       {notice ? <p class="hint" role="status">{notice}</p> : null}
       {card ? (
-        <div class="deck">
+        <div
+          class="deck"
+          tabIndex={0}
+          role="group"
+          aria-label="Card deck. With this focused: left arrow for under, right arrow for over, space or S to skip."
+          onKeyDown={onDeckKey}
+        >
           <Card key={card.prop_id} card={card} onChoose={choose} />
           <div class="swipe-actions">
             <button type="button" class="btn big under" onClick={() => { choose("under"); }}>
@@ -182,7 +188,7 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
           <button type="button" class="btn skip" onClick={() => { choose("skip"); }}>
             Skip this one
           </button>
-          <p class="hint">Swipe the card, or use the arrow keys: left for under, right for over, down to skip.</p>
+          <p class="hint">Swipe the card or press the buttons. With the keyboard, tab to the deck first: left arrow for under, right arrow for over, space or S to skip.</p>
           <CardDetail
             key={card.prop_id}
             card={card}
@@ -244,8 +250,9 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
         </Explain>
       </div>
       <View state={list} reload={reloadList} onStale={props.onStale}>
-        {(slates) => {
-          const date = props.date ?? slates[0]?.date ?? null;
+        {(list) => {
+          const slates = chronological(list);
+          const date = props.date ?? defaultNight(slates);
           return (
             <>
               {date ? <DeckLoader date={date} onStale={props.onStale} /> : null}

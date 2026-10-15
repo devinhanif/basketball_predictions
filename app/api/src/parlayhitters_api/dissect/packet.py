@@ -1,9 +1,12 @@
 """The fact packet: every number a written dissection may use, read off a computed Breakdown.
 
 The packet holds no number that is not already on the leg screen. Differences the writer needs
-(how far recent results and the model sit apart, in whole percentage points) are computed here,
-once, so a writer never does arithmetic of its own: whatever a writer prints must be a packet
-leaf (see numguard).
+(whether recent results and the model sit far apart) are computed here, once, so a writer never
+does arithmetic of its own: whatever a writer prints must be a packet leaf (see numguard).
+
+``flags.gap_percentage_points`` is a difference between two RATES, in percentage points. It is
+not a number of basketball points, and no sentence may call it "points": a writer names both
+rates (last10.rate and model.p_hit) instead.
 """
 
 from __future__ import annotations
@@ -121,7 +124,7 @@ def build_packet(b: Breakdown) -> Packet:
             "no_model": not m.available,
             "extrapolated": m.available and m.extrapolated,
             "disagree": disagree,
-            "gap_points": None if gap is None else round(abs(gap) * 100),
+            "gap_percentage_points": None if gap is None else round(abs(gap) * 100),
             "recent_above_model": gap is not None and gap > 0,
             "player_status": b.teammates.player_status,
         },

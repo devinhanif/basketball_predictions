@@ -22,7 +22,7 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from .dissect.types import Dissection
-from .forecast import forecast_probs, reference_line
+from .forecast import devig_over, forecast_probs, reference_line
 from .history import (
     MODEL_STATS,
     POSITION_NOUN,
@@ -176,6 +176,10 @@ class Prices(BaseModel):
     snapshot_utc: str | None
     say: str
     books: list[BookRow] = []
+    # The book's chance of an over at the line on screen, its margin taken out (multiplicative), and
+    # whose price it is. Null unless one book quoted both sides (a mixed pair is not de-vigged).
+    market_p_over: float | None = None
+    market_book: str | None = None
 
 
 class LadderRow(BaseModel):
@@ -657,6 +661,7 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
             say="No price is stored for this line.",
             books=books,
         )
+    m_p, m_book = _market_chance(at)
     return Prices(
         posted_line=float(main["point"]),
         over_price=at["over_price"],
@@ -665,6 +670,8 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
         snapshot_utc=at.get("snapshot_utc"),
         say=_price_say(at),
         books=books,
+        market_p_over=m_p,
+        market_book=m_book,
     )
 
 
@@ -684,6 +691,19 @@ BOOK_NAMES = {
 
 def book_name(key: str) -> str:
     return BOOK_NAMES.get(key, key.replace("_", " ").capitalize())
+
+
+def _market_chance(entry: Json) -> tuple[float | None, str | None]:
+    """The de-vigged over chance of one book's two-sided quote, and the book's name. Fixture entries
+    name no book (DraftKings). A pair whose sides came from different books is not de-vigged."""
+    ov, un = entry.get("over_price"), entry.get("under_price")
+    ob, ub = entry.get("over_book"), entry.get("under_book")
+    if ov is None or un is None or ob != ub:
+        return None, None
+    try:
+        return devig_over(int(ov), int(un)), book_name(str(ob or "draftkings"))
+    except ValueError:
+        return None, None
 
 
 def _price_say(entry: Json) -> str:

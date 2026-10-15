@@ -7,8 +7,11 @@ import { MIN_LEGS } from "./stats";
 import { teamColor } from "./teams";
 import type { PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
+import { errorCopy } from "./errors";
 import type { Route } from "./router";
-import { winSentence } from "./words";
+import { FOOTER_DISCLOSURE } from "./config";
+import { lineMarkLabel, winSentence } from "./words";
+import { plainModel, plainModelSentence } from "./plain";
 
 /* ------------------------------------------------------------------ icons */
 const I = {
@@ -84,10 +87,10 @@ export function Footer() {
       <div class="footer-in">
         <p>
           <strong>Analysis only, not advice.</strong> We do not take bets or sell picks. 21+ (US). If gambling is a
-          problem, call <strong>1-800-GAMBLER</strong>.
+          problem, call <strong class="nowrap">1-800-GAMBLER</strong>.
         </p>
         <p>Our forecasts can be wrong. A forecast is a chance, not a promise. Past results do not predict what comes next.</p>
-        <p>Written by an automated system and reviewed by a person. Everything here is a paper trade: no real money.</p>
+        <p>{FOOTER_DISCLOSURE}</p>
       </div>
     </footer>
   );
@@ -101,6 +104,16 @@ export function Shell(props: {
 }) {
   return (
     <div class="shell">
+      <a
+        class="skip-link"
+        href="#main"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("main")?.focus();
+        }}
+      >
+        Skip to content
+      </a>
       <header class="topbar">
         <div class="topbar-in">
           <a class="brand" href="#/" aria-label="parlayhitters, home">
@@ -124,7 +137,7 @@ export function Shell(props: {
           </div>
         ) : null}
       </header>
-      <main id="main">{props.children}</main>
+      <main id="main" tabIndex={-1}>{props.children}</main>
       <Footer />
       <nav class="nav-bottom" aria-label="Main">
         {NAV.map((n) => (
@@ -153,7 +166,7 @@ export function ErrorPanel(props: { message: string; retry: () => void }) {
   if (/^404 /.test(props.message)) {
     return (
       <div class="panel error" role="alert">
-        <h2>Not in the loaded data</h2>
+        <h1>Not in the loaded data</h1>
         <p>
           That page points to something this data does not hold (a game, player or stat that is not in the current export).
           The server is fine.
@@ -167,16 +180,28 @@ export function ErrorPanel(props: { message: string; retry: () => void }) {
       </div>
     );
   }
+  const copy = errorCopy(props.message, import.meta.env.DEV);
   return (
     <div class="panel error" role="alert">
-      <h2>Could not load this</h2>
-      <p>
-        The data server did not answer. If you are running this on your own machine, start it with{" "}
-        <code>uv run uvicorn parlayhitters_api.main:app --app-dir src</code> in <code>app/api</code>, then try again.
-      </p>
-      <p class="muted small">
-        Technical detail: <span class="mono">{props.message}</span>
-      </p>
+      <h1>{copy.title}</h1>
+      <p>{copy.body}</p>
+      {copy.reason ? (
+        <p>
+          Reason: <span class="mono">{copy.reason}</span>
+        </p>
+      ) : null}
+      {copy.devHint ? (
+        <p class="muted small">
+          Development build: start the API with <code>uv run uvicorn parlayhitters_api.main:app --app-dir src</code> in{" "}
+          <code>app/api</code>.
+        </p>
+      ) : null}
+      <details class="explain">
+        <summary>Technical detail</summary>
+        <div class="explain-body">
+          <span class="mono">{props.message}</span>
+        </div>
+      </details>
       <button type="button" class="btn" onClick={props.retry}>
         Try again
       </button>
@@ -191,6 +216,34 @@ export function Explain(props: { children: ComponentChildren; label?: string }) 
       <summary>{props.label ?? "What does this mean?"}</summary>
       <div class="explain-body">{props.children}</div>
     </details>
+  );
+}
+
+/**
+ * Where the forecasts on a page came from, said once in plain words, with the exact stored wording one tap away.
+ * `items` is every (source, verbatim label) on the page; repeats are folded.
+ */
+export function ModelNote(props: { items: readonly { source: string; label: string }[] }) {
+  const bySource = new Map<string, string>();
+  for (const i of props.items) if (!bySource.has(i.source)) bySource.set(i.source, i.label);
+  const sources = [...bySource.keys()];
+  const [first, ...rest] = sources;
+  if (first === undefined) return null;
+  const sentence =
+    rest.length === 0
+      ? plainModelSentence(first)
+      : `Forecasts come from ${plainModel(first)}; for some players, from ${rest.map(plainModel).join(" and ")}.`;
+  return (
+    <div class="model-note">
+      <p class="small muted">{sentence}</p>
+      <Explain label="Show the exact details">
+        <ul class="plain small">
+          {[...bySource.values()].map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+      </Explain>
+    </div>
   );
 }
 
@@ -292,7 +345,7 @@ export function DistBar(props: { player: string; prop: PropView; actual?: number
   hi += span * 0.06;
   const W = 320;
   const x = (v: number): number => 10 + ((v - lo) / (hi - lo)) * (W - 20);
-  const label = `Likely range for ${props.player}, ${STAT_LABEL[prop.stat]}: about half of nights between ${num(q25)} and ${num(q75)}, nine nights in ten between ${num(q05)} and ${num(q95)}, typical night ${num(q50)}; book line ${prop.line.toString()}${actual === undefined ? "" : `; final number ${actual.toString()}`}`;
+  const label = `Likely range for ${props.player}, ${STAT_LABEL[prop.stat]}: about half of nights between ${num(q25)} and ${num(q75)}, nine nights in ten between ${num(q05)} and ${num(q95)}, typical night ${num(q50)}; ${lineMarkLabel(prop.line_source)} ${prop.line.toString()}${actual === undefined ? "" : `; final number ${actual.toString()}`}`;
   return (
     <svg class="dist" viewBox={`0 0 ${W.toString()} ${actual === undefined ? "58" : "70"}`} role="img" aria-label={label}>
       <line class="axis" x1="10" x2={W - 10} y1="40" y2="40" />
@@ -300,8 +353,8 @@ export function DistBar(props: { player: string; prop: PropView; actual?: number
       <rect class="iqr" x={x(q25)} y="26" width={Math.max(x(q75) - x(q25), 1)} height="28" />
       <line class="med" x1={x(q50)} x2={x(q50)} y1="26" y2="54" />
       <line class="lineMark" x1={x(prop.line)} x2={x(prop.line)} y1="14" y2="58" />
-      <text class="lineText" x={x(prop.line)} y="10" text-anchor="middle">
-        book line {prop.line}
+      <text class="lineText" x={x(prop.line)} y="10" text-anchor={x(prop.line) < 80 ? "start" : x(prop.line) > W - 80 ? "end" : "middle"}>
+        {lineMarkLabel(prop.line_source)} {prop.line}
       </text>
       {actual !== undefined ? (
         <g>
@@ -315,13 +368,16 @@ export function DistBar(props: { player: string; prop: PropView; actual?: number
   );
 }
 
-export function DistLegend() {
+export function DistLegend(props: { reference?: boolean }) {
   return (
     <Explain label="How do I read these bars?">
       <p>
         Each bar is our forecast for one player's night. The dark bar is where about half of his nights land. The light
-        band stretches to cover nine nights in ten. The white tick is the typical night. The black line is the number the
-        sportsbook set.
+        band stretches to cover nine nights in ten. The short tick inside the dark bar is the typical night. The tall line
+        that reaches above and below the bar marks{" "}
+        {props.reference
+          ? "the line: where no sportsbook line was usable it is a reference line at the middle of our own forecast, not a number any book set."
+          : "the line, the number the sportsbook set."}
       </p>
       <p>
         A bar that sits mostly to the right of the line says "over". The wider the bar, the less sure we are. These
