@@ -17,6 +17,7 @@ import {
   snapHalf,
 } from "../leg";
 import { legHref } from "../router";
+import { BeyondBlock, MatePer36, OnOffBlock, SteadyBlock } from "../RoleCards";
 import { LEG_SHORT, type Chip, type LadderRow, type LegBreakdown, type LegStat, type Side, type Split, type Tally, type TeammateOut } from "../legTypes";
 
 const S = (n: number): string => n.toString();
@@ -485,6 +486,9 @@ function TeammateCard({ t, side, line }: { t: TeammateOut; side: Side; line: num
       <div class="small muted">
         {cleanReason(t.reason) ? `${cleanReason(t.reason)}. ` : ""}Plays {num(t.avg_minutes, 0)} minutes a game lately.
       </div>
+      <BeyondBlock b={t.beyond} />
+      <div class="past-games">
+      <div class="label">Past games on this line</div>
       <div class="leg-cells">
         <div class={`leg-cell${wo.small ? " thin" : ""}`}>
           <div class="label">With him out</div>
@@ -519,6 +523,11 @@ function TeammateCard({ t, side, line }: { t: TeammateOut; side: Side; line: num
       </div>
       <p class="small muted" style={{ marginBottom: 0 }}>
         Games {side} {lineText(line)}. {t.note}
+      </p>
+      </div>
+      <MatePer36 without={t.per36_without} with_={t.per36_with} name={t.name} />
+      <p class="small muted" style={{ marginBottom: 0 }}>
+        Per 36 minutes, the same games, whatever stat is on screen. Assists are from the box score.
       </p>
     </div>
   );
@@ -556,6 +565,17 @@ function Teammates({ data, side, line }: { data: LegBreakdown; side: Side; line:
         {t.note}
         {t.report_as_of_utc ? ` Latest report used: ${stamp(t.report_as_of_utc)}.` : ""}
       </p>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ role and on/off */
+function RolePanel({ data }: { data: LegBreakdown }) {
+  return (
+    <section class="panel" aria-label="Role and on/off">
+      <h2>His role and the team with him on</h2>
+      <SteadyBlock s={data.steadiness} />
+      <OnOffBlock o={data.onoff} player={data.player} />
     </section>
   );
 }
@@ -698,6 +718,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
       <Books data={data} line={shown} />
       <Splits data={data} side={side} line={shown} />
       <Teammates data={data} side={side} line={shown} />
+      <RolePanel data={data} />
       <Opponent data={data} />
       {error ? (
         <p role="alert" class="small">

@@ -65,7 +65,7 @@ def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, dict[st
 
 def _preflight(root: Path, repo: Path, shas: dict[str, str]) -> hc.Preflight:
     pf = hc.Preflight()
-    ev.run_preflight(pf, root, repo, lookup=_lookup(shas))
+    ev.run_preflight(pf, root, repo, lookup=_lookup(shas), adh_sha=shas["ALT_LADDER_HIST"])
     return pf
 
 
@@ -103,7 +103,7 @@ def test_odds_store_check_fails_closed_and_a_re_freeze_is_refused(
     monkeypatch.setattr(ev, "GATE_JSON_SHA", hc.file_sha256(root / ev.GATE_JSON))
     monkeypatch.setattr(ev, "ODDS_FINGERPRINT", e70.odds_fingerprint(root / ev.ODDS_DB))
     pf2 = hc.Preflight()
-    ev.run_preflight(pf2, root, r, lookup=two)
+    ev.run_preflight(pf2, root, r, lookup=two, adh_sha=shas["ALT_LADDER_HIST"])
     assert [c.name for c in pf2.failures()] == [
         "ALT_LADDER_HIST: exactly one distinct prereg(ALT_LADDER_HIST) sha exists in history"
     ]

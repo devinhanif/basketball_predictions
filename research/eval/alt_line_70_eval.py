@@ -867,14 +867,14 @@ def run_preflight(
     pre_alt_backup: Path | None = None,
     lookup: Any = hc.git_prereg_shas,
     expected: dict[str, Any] | None = EXPECTED,
-    adh_sha: str | None = None,
+    adh_sha: str | None = None,  # tests only; main() never passes it
 ) -> None:
     """Rule, ALT_LADDER_HIST freeze, season guard, pinned input hashes and the data fingerprint.
     Count comparisons against the rule's gate tables run inside ``run_scoring``."""
     assert max(SEASONS) <= MAX_SEASON  # before any file is read
     pf.add("seasons <= 2024 (holdout never loaded)", max(SEASONS) <= MAX_SEASON, str(SEASONS))
     hc.check_rule(pf, repo / RULE_PATH, RULE_ID, repo, RULE_SHA, lookup)
-    hc.check_rule(pf, repo / ADH_PATH, ADH_ID, repo, adh_sha, lookup)
+    hc.check_rule(pf, repo / ADH_PATH, ADH_ID, repo, adh_sha or hc.ADH_SHA, lookup)
     gate = data_root / GATE_JSON
     frozen: dict[str, str] = {}
     if gate.exists():
@@ -1057,14 +1057,11 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--repo-root", type=Path, default=Path("."))
     ap.add_argument("--out", type=Path, default=Path(OUT_DEFAULT))
     ap.add_argument("--pre-alt-backup", type=Path, default=None)
-    ap.add_argument(
-        "--adh-sha", default=None, help="the exact frozen ALT_LADDER_HIST sha256 (64 hex)"
-    )
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--b", type=int, default=hc.B_DEFAULT)
     args = ap.parse_args(argv)
     pf = hc.Preflight()
-    run_preflight(pf, args.data_root, args.repo_root, args.pre_alt_backup, adh_sha=args.adh_sha)
+    run_preflight(pf, args.data_root, args.repo_root, args.pre_alt_backup)
     if args.check_only:
         res = run_scoring(args.data_root, pf, with_y=False)
         res["checks"] = pf.as_dicts()

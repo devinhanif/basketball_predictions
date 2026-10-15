@@ -85,12 +85,12 @@ def test_check_rule_refuses_a_mismatch_a_missing_commit_and_a_draft(tmp_path: Pa
     _rule(p, "Status: **DRAFT**")
     pf4 = hc.Preflight()
     new = hc.rule_sha256(p)
-    hc.check_rule(pf4, p, "R", tmp_path, None, lambda _i, _r: [new])
+    hc.check_rule(pf4, p, "R", tmp_path, new, lambda _i, _r: [new])
     assert not pf4.ok and "FROZEN" in pf4.failures()[0].name
     with pytest.raises(hc.PreregError):
         pf4.require()
     pf5 = hc.Preflight()
-    assert hc.check_rule(pf5, tmp_path / "nope.md", "R", tmp_path) is None and not pf5.ok
+    assert hc.check_rule(pf5, tmp_path / "nope.md", "R", tmp_path, "0" * 64) is None and not pf5.ok
 
 
 def test_cluster_matrix_rows_are_resamples_and_seeded() -> None:
