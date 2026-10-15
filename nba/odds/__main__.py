@@ -90,6 +90,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     hp.add_argument("--reparse", action="store_true", help="re-read cached raw into the table")
     ba = sub.add_parser("build-aliases", help="generate configs/odds_player_aliases.yaml")
     ba.add_argument("--refresh", action="store_true", help="re-fetch commonallplayers (1 request)")
+    cp = sub.add_parser(
+        "combo-pull",
+        help="COMBO_LINE_CAL R1: probe (720-credit cap) then, only if its bar is met, the full "
+        "2023-24 main-line pull of six combo/defensive markets (raw files only; configs/"
+        "odds_combo_pull.yaml)",
+    )
+    cp.add_argument("--stage", choices=("sample", "probe", "full", "auto"), required=True)
+    cp.add_argument("--date", required=True, help="run date YYYY-MM-DD (names the raw dirs)")
+    cp.add_argument("--probe-date", default=None, help="probe dir date for --stage full")
     sub.add_parser("history-status", help="historical pull: ledger, state, rows, book coverage")
     try:
         a = ap.parse_args(argv)
@@ -105,6 +114,22 @@ def main(argv: Sequence[str] | None = None) -> int:
 
             for line in status_lines():
                 print(line)
+            return 0
+        if a.cmd == "combo-pull":
+            from nba.odds import combo_pull as cpl
+
+            cc = cpl.load_combo_config()
+            if a.stage in ("sample", "probe", "auto"):
+                plines, bar = cpl.run_probe(cc, a.date, sample_only=a.stage == "sample")
+                for line in plines:
+                    print(line, flush=True)
+                if a.stage != "auto":
+                    return 0 if a.stage == "sample" or bar is not None else RC_INFORMATIONAL
+                if bar is None or not bar.met:
+                    print("DECISION: bar not met (or probe not run); no full pull", flush=True)
+                    return RC_INFORMATIONAL
+            for line in cpl.run_full(cc, a.date, a.probe_date or a.date):
+                print(line, flush=True)
             return 0
         if a.cmd == "build-aliases":
             from nba.odds.history_pull import build_aliases

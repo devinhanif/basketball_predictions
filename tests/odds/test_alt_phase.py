@@ -91,7 +91,7 @@ def test_alt_refuses_marketless_config_and_markets_override(acfg: api.HistoryCon
     with pytest.raises(ValueError, match="alt_markets"):
         hp.run_pull(2024, "alt", dry_run=True, **kw(replace(acfg, alt_markets=())))
     with pytest.raises(ValueError, match="--markets"):
-        hp.run_pull(2024, "alt", dry_run=True, markets=ALT[:1], **kw(acfg))
+        hp.run_pull(2024, "alt", dry_run=True, markets=list(ALT[:1]), **kw(acfg))
 
 
 def test_alt_pull_uses_own_ledger_state_key_regions_and_resumes(acfg: api.HistoryConfig) -> None:
