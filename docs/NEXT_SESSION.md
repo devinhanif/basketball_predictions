@@ -57,6 +57,18 @@ Results are summarised here as they land.
   2026 box row -> opening night would show 0 players/props (fix: agent/steward-export-roster-placement, running; needs merge by Fri 10-17);
   (2) players_static autofill ComputeError (116 rookies no prior) - being checked. No injury report existed at run time; rerun after
   ~17:00 ET 10-15/10-16 (commands in the agent report / branch). No preseason Kalshi prop prices.
+- ~02:00 STATE:
+  * ALT_RUNG_CAL FROZEN 58de4d4 / pinned ff040aa / RUN: RUNG_REFIT_FIXES (T494), attack WOUNDED: edge = book main line (92% from
+    [1,x,zm]); A0 medians sit low (P(Y>book line) 0.479 vs P(Y>A0 median) 0.536) = same as T477/POVER. Proposed new rule: fix the low
+    median inside the model (awaiting Devin's go).
+  * PARLAY_JOINT_CAL FROZEN 76ea8fc; score RUNNING (first attempt refused on heavy.lock held by the oracle; restarted ~01:55).
+  * Opening-night fixes (agent/steward-export-roster-placement ae1ad6c export, c717e17 rookie static): oracle IDENTICAL (fd5fa21).
+    AWAITING DEVIN "merge opening-night fixes" (by Fri 10-17).
+  * Top-parlays producer (agent/market-top-parlays): review BLOCKED (fixture prices after made_at; Kalshi fee on sportsbook;
+    stale moved lines; same-game mislabel; live import); fixes in progress; needs replay oracle before merge (touches nba/parlay/__main__).
+    Diversity default: each leg in at most one ticket per size (Devin may override).
+  * Combo pull DONE 152,770 credits (b22e1f1); ingest awaits Devin's go. Combo OOF rebuild (R-F) still running.
+  * Devin deletes: rm -rf data/rehearsal/oracle_m_* data/rehearsal/oracle_r_*
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
