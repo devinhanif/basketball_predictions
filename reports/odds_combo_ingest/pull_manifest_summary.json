@@ -1,0 +1,49 @@
+{
+ "built_at": "2026-10-15T06:30:26.396309+00:00",
+ "cap": 160000,
+ "code_git_sha": "3107844",
+ "credits_ledger": 152770,
+ "files_by_season_and_kind": {
+  "2023": {
+   "events": 1312,
+   "odds": 1318
+  },
+  "2024": {
+   "events": 1314,
+   "odds": 1320
+  }
+ },
+ "games_planned": 2638,
+ "markets": [
+  "player_points_rebounds_assists",
+  "player_points_rebounds",
+  "player_points_assists",
+  "player_rebounds_assists",
+  "player_blocks",
+  "player_blocks_steals"
+ ],
+ "n_files": 5264,
+ "probe_day": "2026-10-15",
+ "regions": [
+  "us"
+ ],
+ "server_after": {
+  "remaining": 1656969,
+  "used": 3343031
+ },
+ "server_before": {
+  "remaining": 1809739,
+  "used": 3190261
+ },
+ "stage": "full",
+ "stats": {
+  "empty": 1,
+  "errors": [],
+  "fetched": 2626,
+  "from_cache": 0,
+  "match_failures": [],
+  "reused_probe": 12,
+  "stopped": null
+ },
+ "tree_sha256": "b72960a2a34f370fe529eef35191e4aa428fd7d230c8f985c9a1404433a6d788"
+}
