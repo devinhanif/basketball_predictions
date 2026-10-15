@@ -5,6 +5,7 @@ No player's own with/without history is used. For a target game g of team T:
 
 * the OUT set is the production one (``wowy.out_rotation_players``); each OUT player's as-of state is the
   exponentially weighted (half-life 10 games) mean of his minutes and stats over games strictly before g's date;
+* ``Vmax_s`` = the largest single OUT player's as-of per-game stat (G5 star out);
 * ``V_s`` = sum over the OUT set of the as-of per-game stat (``= vac_s`` of production, parity-tested);
 * the remaining players are the as-of rotation pool of T (appeared in >= 5 of T's previous 10 games with a mean
   of >= 12 minutes: ``wowy.asof_rotation_pool``) minus the OUT set, plus the scored player himself if he is not in
@@ -218,6 +219,7 @@ def build_struct(
     # V per (game, team)
     v = outs.group_by(["game_id", "team_id"]).agg(
         *[pl.col(f"st_{s}").sum().alias(f"V_{s}") for s in STATS],
+        *[pl.col(f"st_{s}").max().alias(f"Vmax_{s}") for s in STATS],
         pl.col("st_minutes").sum().alias("V_min"),
     )
     pool_df = pool_df.with_columns(trait_exprs())
@@ -339,7 +341,14 @@ def build_struct(
     r = r.join(lead, on=["game_id", "team_id"], how="left").with_columns(
         *[pl.col(f"leader_out_{s}").fill_null(0) for s in STATS]
     )
-    keep = ["game_id", "team_id", "player_id", "V_min", *[f"V_{s}" for s in STATS]]
+    keep = [
+        "game_id",
+        "team_id",
+        "player_id",
+        "V_min",
+        *[f"V_{s}" for s in STATS],
+        *[f"Vmax_{s}" for s in STATS],
+    ]
     cols = [
         c
         for c in r.columns
@@ -355,7 +364,7 @@ def attach_struct(feats: pl.DataFrame, st: pl.DataFrame) -> pl.DataFrame:
     cols = [
         c
         for c in st.columns
-        if c.startswith(("struct_", "leader_out_", "prop_d_", "role_share_", "V_"))
+        if c.startswith(("struct_", "leader_out_", "prop_d_", "role_share_", "V_", "Vmax_"))
     ]
     j = feats.join(
         st.select("game_id", "team_id", "player_id", *cols),
