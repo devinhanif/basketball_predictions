@@ -1203,3 +1203,8 @@ What would reverse it: AVG rows missing or stale on game nights, the live log sh
 What: (1) timestamps are written by the shell (`date` in the same command) and a typed time is a review defect; (2) a rule whose dry run fails a target names it in the signing line; (3) predictions-ledger priors are binary events with a probability, or an expected value with an 80% interval. The command-scope rule the retro proposed already exists (BEST_PRACTICES 2026-10-13); no change.
 Why: two guessed stamps after the 10-13 retro; COMBO frozen with a 4-of-7 dry run not in the signing line; several priors could not be scored cleanly.
 What would reverse it: a month with no incident each rule would have caught (proposed for deletion at the 11-14 retro).
+
+**2026-10-14 23:37 CDT — LINE_CALIBRATION: go to finish, freeze and run Stage 1 (Devin: "Keys try or line calibration", read by Claude as "yes, try line calibration"; follows Claude's advice).**
+What: modeler adds the 2026-10-15 exposure disclosure (scratch pover_bias fit a logit slope on 2023 and scored 2024, LC's select season) and binary priors, re-runs the gate; adversary pre-freeze review; if APPROVED with no blockers the main session freezes and Stage 1 (2024) runs. Stage 2 (2025 holdout) is NOT covered: it needs a holdout row quoting Devin.
+Why: the P(over) scratch (-3.25 pp at DK, overconfidence, slope 0.46) is what LINE_CALIBRATION tests; the draft has passed its gate 15/15 since 10-12 but was never frozen.
+What would reverse it: Devin saying the reading of his message is wrong (before the freeze commit), or a BLOCKED review.
