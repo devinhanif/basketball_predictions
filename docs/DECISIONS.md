@@ -1214,3 +1214,8 @@ What would reverse it: Devin saying the reading of his message is wrong (before 
 2. Build the top-3 two-leg / three-leg parlay panel for opening night (Devin's request): model's most confident parlays with honest (calibrated) hit rates, price, EV after fees, plain-language reasons per leg, "keep your money" when nothing is positive. Not a bet recommendation. Reverses: Devin.
 3. Replay oracle for agent/steward-best-model-minors: holdout row logged first (systems replay); merge only if IDENTICAL and with Devin's go by Fri 10-17.
 4. AVG November: carry the October gate.json (gate_id 58043d34) instead of a gate refit. Devin's call, on Claude's advice; a pre-result procedure amendment to AVG_SHADOW_LIVE_2 (no live row exists yet), because a live-row gate refit needs a loader that does not exist. Reverses: a live-row loader built and reviewed before a later month.
+
+**2026-10-15 00:28 CDT — Draft five line-calibration follow-ups now (Devin: "Let's do 1, 2 3 4 and 5 now"). Devin's override: Claude recommended #1 first.**
+What: draft pre-registrations, with minimum-data gates measured on real data (non-negotiable 8), for (1) CAL at alternate rungs, (2) parlay joint calibration after leg CAL, (3) Kalshi/Polymarket ladder calibration (forward-only), (4) combo and stocks line calibration, (5) game-winner probability recalibration vs Kalshi. Drafts only: no freeze or result without review; season 2025 untouched; each rule its own id.
+Why: LINE_CALIBRATION Stage 1 passed (T493) and the same overconfidence shows in T490/T491/COMBO G1.
+What would reverse it: a gate that fails after the data-capture audit closes that rule as DATA, not a variant.
