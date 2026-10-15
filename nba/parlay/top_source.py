@@ -386,19 +386,18 @@ def load_legs(
         out.notes.append("no capture store or no live_book_odds table: no priced legs")
         return out
     gids = sorted({k[0] for k in chosen})
-    pids = sorted({k[1] for k in chosen})
     team_by_player = _teams(nba, gids, slate)
     out_ids = _out_names(nba, gids, {k[0]: v[1]["made_at"] for k, v in chosen.items()})
-    gm, pm, mm = (",".join("?" for _ in xs) for xs in (gids, pids, MARKET_STAT))
+    gm, mm = (",".join("?" for _ in xs) for xs in (gids, MARKET_STAT))
     quotes = odds.execute(
         f"""SELECT game_id, player_id, market, book, side, point, price_american, received_at,
                    player_name, tipoff
             FROM {LINES_TABLE}
-            WHERE game_id IN ({gm}) AND player_id IN ({pm}) AND market IN ({mm})
+            WHERE game_id IN ({gm}) AND player_id IS NOT NULL AND market IN ({mm})
               AND received_at < tipoff AND received_at < commence_time
               AND point IS NOT NULL AND price_american IS NOT NULL AND side IN ('over', 'under')
             ORDER BY received_at, snapshot_kind""",  # noqa: S608
-        [*gids, *pids, *MARKET_STAT],
+        [*gids, *MARKET_STAT],
     ).fetchall()
     by_player: dict[tuple[str, int], list[tuple[Any, ...]]] = defaultdict(list)
     by_game: dict[str, list[tuple[Any, ...]]] = defaultdict(list)
