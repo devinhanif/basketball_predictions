@@ -24,11 +24,13 @@ STALE_WHY = {
     "installed_after_made": "the bundle was installed after the forecast was made",
     "fit_through_not_before_month": "the bundle was fit on data from the game's own month",
     "avg_run_behind_production": "the AVG forecast is older than the production one",
+    "avg_inputs_changed": "inputs changed since it ran",
 }
 P_PLAY_R = "availability model R"
 R_WHY = {
     "no_r_row": "R stored no number for him",
     "out_on_report": "R has no number because he is out on the injury report",
+    "r_run_behind_production": "R's number is older than production's",
 }
 
 
@@ -59,9 +61,13 @@ def model_label(info: Json | None) -> tuple[str, str]:
         return src, f"Model: {AVG_NAME}, {bundle}."
     if src == "fallback_stale":
         raw = str(info.get("detail") or info.get("freshness_reason") or "reason not stored")
+        bundle = raw.startswith("bundle stale: ")
         raw = raw.removeprefix("bundle stale: ")
         why = STALE_WHY.get(raw, raw)
-        return src, f"Model: {prod} (AVG unavailable: stale bundle, {why})."
+        lead = "stale bundle, " if bundle else ""
+        return src, f"Model: {prod} (AVG unavailable: {lead}{why})."
+    if src == "non_regular_season":
+        return src, f"Model: {prod} (AVG covers regular-season games only)."
     if src == "fallback_missing":
         return src, f"Model: {prod} (AVG unavailable: no AVG forecast was stored before tip)."
     if src == "postseason":
@@ -89,6 +95,11 @@ def p_play_label(info: Json | None) -> str | None:
         return "Chance to play: out on the official injury report."
     if src == "production":
         d = info.get("detail")
+        if d == "r_run_behind_production":
+            return (
+                f"Chance to play: from the production model; the {P_PLAY_R} number was older "
+                "than production's."
+            )
         extra = f" ({R_WHY.get(str(d), str(d))})" if d else ""
         return f"Chance to play: from the production model; {P_PLAY_R} had no number{extra}."
     if src == "legacy":

@@ -1,6 +1,7 @@
 {
  "data_version": "a55164376845",
  "excluded": {
+  "avg_no_game_teams": 0,
   "avg_post_tip": 0,
   "avg_unreadable": 0,
   "lines_post_tip": 0,
@@ -11,7 +12,7 @@
  "files": {
   "export.duckdb": {
    "bytes": 4730880,
-   "sha256": "193ece69d2b75a2605bd0ccf56bceb88bcee4962b161d27955ae06ff38d9bd5d"
+   "sha256": "c5c2187effe00c47e08d46c0b1b52d66fdfdaefbe0b5da24ddc8d8b70575bc67"
   },
   "parlay_of_day.json": {
    "bytes": 178,
@@ -19,30 +20,30 @@
   }
  },
  "git_dirty": false,
- "git_sha": "a0cd3030366d676c44dd3ce8fd20a54df89200c3",
+ "git_sha": "15175c14f2c53d63ed45a11ae018697a21bcf803",
  "lines": {
   "n_quotes": 6350,
   "n_unusable": 635,
   "status": "ok"
  },
  "lookback_days": 7,
- "made_at": "2026-10-15T02:19:35.511142Z",
+ "made_at": "2026-10-15T02:34:26.920607Z",
  "parlay": {
   "n_evaluated": 0,
   "status": "evaluated",
   "verdict": "no_positive_ev_found"
  },
  "primary_sources": {
-  "avg": 43,
+  "avg": 41,
   "fallback_missing": 409,
-  "fallback_stale": 24
+  "fallback_stale": 26
  },
  "row_counts": {
   "box_scores": 262,
   "games": 10,
   "injury_report": 5,
   "model_stamps": 6,
-  "p_play": 24,
+  "p_play": 23,
   "players": 24,
   "prop_grids": 635,
   "prop_lines": 6350,

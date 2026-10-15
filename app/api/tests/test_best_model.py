@@ -287,3 +287,28 @@ def test_a_game_with_null_teams_is_skipped_not_fatal(export_dir: Path) -> None:
 def test_best_model_schema_is_read_as_an_integer(export_dir: Path, value: str, on: bool) -> None:
     edit_db(export_dir, f"UPDATE meta SET value = '{value}' WHERE key = 'best_model_schema'")
     assert ExportStore(export_dir).best_model is on
+
+
+def test_non_regular_season_row_says_avg_covers_regular_season_only(export_dir: Path) -> None:
+    edit_db(
+        export_dir,
+        "UPDATE prop_grids SET is_primary = (model_name = 'props_context_residual'), "
+        "primary_source = CASE WHEN model_name = 'props_context_residual' "
+        "THEN 'non_regular_season' END, primary_detail = CASE WHEN "
+        "model_name = 'props_context_residual' THEN 'AVG serves regular-season (002) games only' "
+        f"END WHERE game_id = '{FRESH}' AND is_latest",
+    )
+    pr = ExportStore(export_dir).games[FRESH]["players"][0]["props"]["pts"]
+    assert pr["forecast"]["model"]["source"] == "non_regular_season"
+    assert model_label(pr["forecast"]["model"]) == (
+        "non_regular_season",
+        "Model: production model (AVG covers regular-season games only).",
+    )
+
+
+def test_run_behind_production_stale_label_has_no_bundle_wording() -> None:
+    info = {"source": "fallback_stale", "detail": "avg_run_behind_production"}
+    assert model_label(info)[1] == (
+        "Model: production model (AVG unavailable: the AVG forecast is older than the "
+        "production one)."
+    )

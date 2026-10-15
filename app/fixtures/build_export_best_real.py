@@ -35,7 +35,7 @@ AVG_DDL = """
 CREATE TABLE forward_avg_shadow (made_at TIMESTAMP, run_id VARCHAR, game_id VARCHAR,
   player_id INT, stat VARCHAR, tipoff_utc TIMESTAMP, model_id VARCHAR, fit_through DATE,
   month_block VARCHAR, installed_at TIMESTAMP, stale_model BOOLEAN, avg_pmf199 JSON,
-  avg_q19 JSON)
+  avg_q19 JSON, a0_q19 JSON, a0_source VARCHAR)
 """
 PPLAY_DDL = """
 CREATE TABLE forward_pplay_shadow (run_id VARCHAR, made_at TIMESTAMP, game_id VARCHAR,
@@ -50,15 +50,17 @@ def add_shadow(path: Path) -> None:
     con.execute(AVG_DDL)
     con.execute(PPLAY_DDL)
     rows = con.execute(
-        "SELECT DISTINCT game_id, player_id, target, tipoff FROM forward_predictions "
-        "WHERE model_name = 'props_context_residual' AND game_id IN (?, ?) AND player_id > 0",
+        "SELECT DISTINCT game_id, player_id, target, tipoff, "
+        "json_extract(prediction, '$.q_grid')::VARCHAR FROM forward_predictions "
+        "WHERE model_name = 'props_context_residual' AND game_id IN (?, ?) AND player_id > 0 "
+        "AND run_id LIKE 'r_b_%'",
         [FRESH, MIXED],
     ).fetchall()
     home = dict(con.execute("SELECT game_id, home_team FROM games").fetchall())
     teams = {}
-    for gid, pid, _st, _tip in rows:
+    for gid, pid, _st, _tip, _q in rows:
         teams.setdefault(gid, set()).add(pid)
-    for gid, pid, st, tip in rows:
+    for gid, pid, st, tip, a0 in rows:
         is_home = pid in {p for k in range(6) for p in [bx.roster(bx.TEAMS.index(home[gid]))[k]]}
         if gid == FRESH and (pid, st) != (990006, "fg3m"):
             month, fresh = "2024-11", True
@@ -69,26 +71,34 @@ def add_shadow(path: Path) -> None:
         mean = bx.BASE[st] * (1.9 - 0.28 * (pid % 10 - 1)) * 1.04
         pmf = sorted(max(0, round(rng.gauss(mean, bx.SHAPE[st]))) for _ in range(199))
         q19 = [pmf[int(-(-t * 199 // 1)) - 1] for t in bx.TAUS]
+        a0_q19 = json.loads(a0)
+        if gid == FRESH and (pid % 10, st) == (4, "ast"):  # planted: production inputs moved
+            a0_q19 = [v + 1.0 for v in a0_q19]
         installed = datetime(2024, 11, 1, 15) if fresh else datetime(2024, 10, 1, 15)
         con.execute(
-            "INSERT INTO forward_avg_shadow VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO forward_avg_shadow VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [tip - timedelta(minutes=29), "r_avg_" + gid, gid, pid, st, tip,
              ("a" if fresh else "c") * 64, installed.date() - timedelta(days=1), month, installed,
-             False, json.dumps(pmf), json.dumps(q19)],
+             False, json.dumps(pmf), json.dumps(q19), json.dumps(a0_q19),
+             "props_context_residual"],
         )  # fmt: skip
     for gid in (FRESH, MIXED):
         for i, pid in enumerate(sorted(teams[gid])):
             tip = next(r[3] for r in rows if r[0] == gid)
-            kind = i % 3
+            kind = i % 4
             r, why = (0.96 - 0.01 * (i % 4), None) if kind == 0 else (None, None)
+            made = tip - timedelta(minutes=29)  # not behind production's T-30 run
+            prod_p = 0.97 if kind != 1 else 0.4
             if kind == 1:
                 r, why = None, "out_on_report"
             elif kind == 2:
                 r, why = None, "n_played_prior<5"
+            elif kind == 3:  # R ran before production's last run and saw a different p_play_prod
+                r, why, made, prod_p = 0.9, None, tip - timedelta(minutes=31), 0.5
             con.execute(
                 "INSERT INTO forward_pplay_shadow VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                ["r_pp_" + gid, tip - timedelta(minutes=31), gid, tip, pid, None, "pplay_r_v1",
-                 0.97 if kind != 1 else 0.4, r, why, 30.0, tip.date() - timedelta(days=3), 5000],
+                ["r_pp_" + gid, made, gid, tip, pid, None, "pplay_r_v1",
+                 prod_p, r, why, 30.0, tip.date() - timedelta(days=3), 5000],
             )  # fmt: skip
     con.close()
 

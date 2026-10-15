@@ -15,6 +15,7 @@ import duckdb
 import pytest
 
 from parlayhitters_api.export_store import ExportStore
+from parlayhitters_api.model_source import model_label, p_play_label
 
 REAL = Path(__file__).resolve().parents[2] / "fixtures" / "export_best_real"
 FRESH, MIXED = "0022400023", "0022400024"
@@ -136,3 +137,35 @@ def test_avg_primary_rows_carry_their_production_rows_quotes(store: ExportStore)
                 assert pr["line_source"] == "posted" and pr["over_price"] is not None
                 n += 1
     assert n > 0
+
+
+def test_inputs_changed_fallback_is_said_in_plain_words(store: ExportStore) -> None:
+    hits = [
+        pr["forecast"]["model"]
+        for p in store.games[FRESH]["players"]
+        for pr in p["props"].values()
+        if pr["forecast"]["model"]["detail"] == "avg_inputs_changed"
+    ]
+    assert hits and all(m["source"] == "fallback_stale" for m in hits)
+    assert model_label(hits[0])[1] == (
+        "Model: production model (AVG unavailable: inputs changed since it ran)."
+    )
+
+
+def test_r_run_behind_production_says_production_chance_to_play(store: ExportStore) -> None:
+    infos = [
+        pr["forecast"]["p_play_info"]
+        for g in store.games.values()
+        for p in g["players"]
+        for pr in p["props"].values()
+        if (pr["forecast"]["p_play_info"] or {}).get("detail") == "r_run_behind_production"
+    ]
+    assert infos and all(i["source"] == "production" for i in infos)
+    assert p_play_label(infos[0]) == (
+        "Chance to play: from the production model; the availability model R number was "
+        "older than production's."
+    )
+
+
+def test_manifest_exclusions_pass_through(store: ExportStore) -> None:
+    assert store.meta()["export"]["excluded"]["avg_no_game_teams"] == 0
