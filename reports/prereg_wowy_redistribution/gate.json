@@ -13679,6 +13679,138 @@
   },
   "cell_gate": {
    "pts|VAC24": {
+    "a_power_b_plain_2023_2024": [
+     0.0362556318730061,
+     0.12700166830931975
+    ],
+    "a": false,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     0.42029915060218803,
+     0.44441653608494613,
+     0.40254065407193673
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": false
+   },
+   "pts|leader_out": {
+    "a_power_b_plain_2023_2024": [
+     0.7806154480533367,
+     0.9305205975141659
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     1.39595023832233,
+     0.8599756505108802,
+     1.5516968871687076
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": true
+   },
+   "pts|top25_fixed": {
+    "a_power_b_plain_2023_2024": [
+     0.5478366330111334,
+     0.719795923930993
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     1.3087101694146952,
+     0.5267340695193079,
+     0.8299135808207403
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": true
+   },
+   "pts|top10_fixed": {
+    "a_power_b_plain_2023_2024": [
+     0.19136220351893163,
+     0.26671020193724093
+    ],
+    "a": false,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     2.373885532436637,
+     0.8060495528583456,
+     1.533721775110386
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": false
+   },
+   "ast|VAC24": {
+    "a_power_b_plain_2023_2024": [
+     0.0018386421021328058,
+     0.0035483889890107687
+    ],
+    "a": false,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     0.2989675677844583,
+     -0.2008167738994704,
+     0.28159287766016394
+    ],
+    "b": false,
+    "c": true,
+    "pass_gate": false
+   },
+   "ast|leader_out": {
+    "a_power_b_plain_2023_2024": [
+     0.9996254068027768,
+     0.9999333482092069
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     1.44553535082107,
+     0.310148201527749,
+     1.1884436517024644
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": true
+   },
+   "ast|top25_fixed": {
+    "a_power_b_plain_2023_2024": [
+     0.9993888271422281,
+     0.9999003839115074
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     0.7642856103310502,
+     -0.40232278641025854,
+     0.5856384305166218
+    ],
+    "b": false,
+    "c": true,
+    "pass_gate": false
+   },
+   "ast|top10_fixed": {
+    "a_power_b_plain_2023_2024": [
+     0.9842753164060695,
+     0.9950941220272396
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     1.5083527421979381,
+     -0.5313284163891208,
+     0.8053520780884837
+    ],
+    "b": false,
+    "c": true,
+    "pass_gate": false
+   }
+  },
+  "planted_future": {
+   "note": "STRUCT inputs (states, pool) scrambled from the cutoff; OUT sets come from the report and were audited separately (docs/reviews/struct_leak_audit_2026-10-14.md)",
+   "cutoff": "2025-01-15",
+   "early_rows": 102726,
+   "max_abs_diff_float_columns": 7.105427357601002e-15,
+   "discrete_equal": true,
+   "tolerance": 1e-09,
+   "pass": true,
+   "later_rows_mean_abs_move_struct_d_ast": 2.078826923169112
+  },
+  "cell_gate_beyond_role_superseded": {
+   "pts|VAC24": {
     "power_b_beyond_role_2023_2024": [
      0.9963546130150817,
      0.999892156527244
@@ -13734,16 +13866,6 @@
     ],
     "pass_gate": true
    }
-  },
-  "planted_future": {
-   "note": "STRUCT inputs (states, pool) scrambled from the cutoff; OUT sets come from the report and were audited separately (docs/reviews/struct_leak_audit_2026-10-14.md)",
-   "cutoff": "2025-01-15",
-   "early_rows": 102726,
-   "max_abs_diff_float_columns": 7.105427357601002e-15,
-   "discrete_equal": true,
-   "tolerance": 1e-09,
-   "pass": true,
-   "later_rows_mean_abs_move_struct_d_ast": 2.078826923169112
   }
  },
  "struct_null": {

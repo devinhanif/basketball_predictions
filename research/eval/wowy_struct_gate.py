@@ -302,6 +302,56 @@ SLICES_USED = ("VAC24", "leader_out", "top25_fixed", "top10_fixed")
 DAYS_CUT = "2025-01-15"
 
 
+DESIGNS_GATE = ("D1_train2020-21_test2022", "D2a_train2020_test2021", "D2b_train2021_test2020")
+
+
+def cell_gate_rule(sizing: dict[str, Any], gbm: dict[str, Any]) -> dict[str, Any]:
+    """The draft's declared cell gate (docs/prereg/WOWY_STRUCT.md, 'Gate'), computed from stored numbers only:
+    (a) power_b >= 0.5 in 2023 and 2024 at the PLAIN (smaller) coefficient; (b) STRUCT beyond role share positive in D1,
+    D2a and D2b and its D1 interval excludes 0; (c) the player-season-permuted arm gains less than STRUCT in all three
+    designs. (Before 2026-10-14 this key held (a) at the beyond-role kappa and no (b)/(c): all 8 cells passed; that
+    superseded version is kept in gate.json as ``cell_gate_beyond_role_superseded``.)"""
+    verdict: dict[str, Any] = {}
+    for stat in STATS_USED:
+        for sn in SLICES_USED:
+            p = [
+                sizing[stat][str(s)].get(sn, {}).get("plain_2020_21(reference)", {}).get("power_b")
+                for s in G.SEASONS
+            ]
+            a = bool(all(x is not None and x >= 0.5 for x in p))
+            br = [gbm[stat][d][sn]["struct_beyond_role(struct_role_vs_role)"] for d in DESIGNS_GATE]
+            b = bool(all(x["relative_gain_pct"] > 0 for x in br) and br[0]["ci_pct"][0] > 0.0)
+            c = bool(
+                all(
+                    gbm[stat][d][sn]["perm_ps_vs_base"]["relative_gain_pct"]
+                    < gbm[stat][d][sn]["struct_vs_base"]["relative_gain_pct"]
+                    for d in DESIGNS_GATE
+                )
+            )
+            verdict[f"{stat}|{sn}"] = {
+                "a_power_b_plain_2023_2024": p,
+                "a": a,
+                "b_beyond_role_D1_D2a_D2b_pct": [x["relative_gain_pct"] for x in br],
+                "b": b,
+                "c": c,
+                "pass_gate": bool(a and b and c),
+            }
+    return verdict
+
+
+def regate(path: Any = None) -> dict[str, Any]:
+    """Recompute ``struct_warm.cell_gate`` from the numbers already stored in gate.json (no data is read); the previous
+    value moves to ``cell_gate_beyond_role_superseded``. Idempotent."""
+    path = path or G.OUT
+    gate = json.loads(path.read_text())
+    sw = gate["struct_warm"]
+    if "cell_gate_beyond_role_superseded" not in sw:
+        sw["cell_gate_beyond_role_superseded"] = sw["cell_gate"]
+    sw["cell_gate"] = cell_gate_rule(sw["sizing"], sw["gbm_warm"])
+    path.write_text(json.dumps(gate, indent=1, default=float))
+    return dict(sw["cell_gate"])
+
+
 def main() -> dict[str, Any]:
     import datetime as dt
 
@@ -499,20 +549,7 @@ def main() -> dict[str, Any]:
             sizing[stat][str(s)] = seas
         print(f"[{time.time() - t0:5.1f}s] sized {stat}", flush=True)
     out["sizing"] = sizing
-    verdict: dict[str, Any] = {}
-    for stat in STATS_USED:
-        for sn in SLICES_USED:
-            p = [
-                sizing[stat][str(s)]
-                .get(sn, {})
-                .get("beyond_role_2020_21(primary)", {})
-                .get("power_b")
-                for s in G.SEASONS
-            ]
-            verdict[f"{stat}|{sn}"] = {
-                "power_b_beyond_role_2023_2024": p,
-                "pass_gate": bool(all(x is not None and x >= 0.5 for x in p)),
-            }
+    verdict = cell_gate_rule(sizing, gb)
     out["cell_gate"] = verdict
 
     cut = dt.date.fromisoformat(DAYS_CUT)
@@ -576,4 +613,9 @@ def main() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if "--regate" in sys.argv:
+        print(json.dumps(regate(), indent=1, default=float))
+    else:
+        main()
