@@ -1224,3 +1224,9 @@ What would reverse it: a gate that fails after the data-capture audit closes tha
 What: agent/app-top-parlays (app/ only, 13 files; API 213 passed, web 54 passed, typecheck 0 on main) merged. Shows the synthetic illustration fixture until the market producer (agent/market-top-parlays) writes real files; nothing deployed or published; the producer is not wired into the nightly job.
 Why: Devin wants the panel visible for opening night.
 What would reverse it: the post-merge adversary review finding a number shown without its source, or misleading wording.
+
+**2026-10-15 00:52 CDT — COMBO_LINE_CAL repairs, parlay legs, WINNER_RECAL (Devin: "Rebuild combos forecast and test buy and if so full purchase, and yes").**
+1. R-F: rebuild and persist the combo/stl/blk OOF pmf199 for 2023-24 (CPU, under heavy.lock; season 2025 never loaded). Follows Claude's advice.
+2. R1 probe: the-odds-api.com historical endpoint, 12 sampled 2023-24 dates, 6 markets (player_points_rebounds_assists, player_points_rebounds, player_points_assists, player_rebounds_assists, player_blocks, player_blocks_steals), region us, t60, cap 720 credits. Success bar fixed NOW, before the probe: main-line pra/pr/pa/ra at DraftKings or FanDuel on >= 10 of 12 dates. If met, the full pull runs: 2023-24, t60, region us only (Pinnacle quotes none of these), those 6 markets, hard cap 160,000 credits, write-once raw; if not met, no full pull and COMBO_LINE_CAL stays DATA-blocked for the 6 targets. Devin's money decision.
+3. Parlay panel legs: CAL on production P(over); AVG shown for reference only (Claude's advice; reverses "AVG everywhere" for this panel only). Reverses: a CAL refit on AVG legs passes its own test.
+4. WINNER_RECAL closed from the record (gate FAIL_POWER 0.15-0.23; T178 already found no keeper). Follows Claude's advice. Market beats us on winners; nothing to recalibrate toward.
