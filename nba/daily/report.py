@@ -332,6 +332,13 @@ def _avg_shadow_section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> l
     return section(con, season)
 
 
+def _combo_shadow_section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> list[str]:
+    """SHADOW (COMBO_STOCKS_SHADOW): counts and gates only (no delta on a non-look day)."""
+    from nba.daily.combo_shadow.display import section
+
+    return section(con, season)
+
+
 def _guarded_section(
     name: str, fn: Callable[..., list[str]], con: duckdb.DuckDBPyConnection, *args: Any
 ) -> list[str]:
@@ -466,6 +473,7 @@ def build_report(
     lines += _guarded_section("P(play) shadow", _pplay_shadow_section, con)
     lines += _guarded_section("FULL shadow", _full_shadow_section, con)
     lines += _guarded_section("AVG shadow", _avg_shadow_section, con, season)
+    lines += _guarded_section("COMBO_STOCKS shadow", _combo_shadow_section, con, season)
     lines += _late_scratch_section(con, lineups_db)
     lines += _checkpoint_section()
     lines += _independence_section(con)

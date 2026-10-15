@@ -149,6 +149,9 @@ def run_daily(
     with_avg_shadow: bool = False,
     avg_bundle_root: Path | None = None,
     avg_heartbeat_dir: Path | None = None,
+    with_combo_shadow: bool = False,
+    combo_heartbeat_dir: Path | None = None,
+    tip_source: str = "real",
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC.
 
@@ -258,6 +261,13 @@ def run_daily(
         _avg_shadow(
             con, run_date, upcoming, made_at, summary, shared, avg_bundle_root, avg_heartbeat_dir
         )
+    if with_combo_shadow:
+        # SHADOW (COMBO_STOCKS_SHADOW), after the AVG shadow: own tables, own
+        # try/except, own heartbeat.
+        _combo_shadow(
+            con, run_date, upcoming, made_at, summary, preds,
+            official, elo_config, model_cache, shared, combo_heartbeat_dir, tip_source,
+        )  # fmt: skip
     return summary
 
 
@@ -438,6 +448,62 @@ def _avg_shadow(
     except Exception as exc:
         summary.shadow_errors.append(
             f"avg shadow: {type(exc).__name__}: {exc} ({time.perf_counter() - t0:.0f}s)"[:300]
+        )
+
+
+def _combo_shadow(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    upcoming: list[ScheduledGame],
+    made_at: datetime,
+    summary: RunSummary,
+    preds: list[ForwardPrediction],
+    official_roster: pl.DataFrame | None,
+    elo_config: Path | None,
+    model_cache: Path | None,
+    shared: dict[str, Any],
+    hb_dir: Path | None = None,
+    tip_source: str = "real",
+) -> None:
+    """Log the COMBO_STOCKS grids for the slate group, then settle.
+
+    blk / stl NB heads, the six-stat copula joint for PRA, PR, PA, RA and blk+stl, RECENT and INDEP
+    comparators. Own tables (``forward_combo_*``); ``forward_predictions`` and every scored
+    production table are untouched. Statuses ok / skipped / failed go to the heartbeat table and
+    ``data/ops/heartbeat/combo_shadow.json``; a failure is recorded in ``shadow_errors`` and nothing
+    else changes. Never retried after tip: only games with ``made_at < tipoff`` are passed.
+    Wall-time budget (420 s, or the earliest tip within 35 min): ``run_combo_shadow`` records
+    ``skipped`` / ``budget`` and writes nothing."""
+    import time
+
+    from nba.daily.combo_shadow import run as combo_run
+    from nba.daily.combo_shadow.run import run_combo_shadow
+    from nba.daily.combo_shadow.settle import settle_combo_shadow
+    from nba.daily.pplay_shadow.features import SlateGame
+    from nba.daily.predict import DEFAULT_CONTEXT_CACHE
+
+    name = "combo_shadow"
+    t0 = time.perf_counter()
+    try:
+        if upcoming:
+            params, report_out, wide = _wide_roster_frame(
+                con, run_date, upcoming, made_at, official_roster, elo_config, model_cache, shared
+            )
+            info = run_combo_shadow(
+                con, run_date,
+                [SlateGame(g.game_id, g.home_team, g.away_team, g.tipoff) for g in upcoming],
+                made_at, summary.run_id, wide, report_out, params,
+                hb_dir=hb_dir or combo_run.HB_DIR, cache_root=model_cache or DEFAULT_CONTEXT_CACHE,
+                tip_source=tip_source,
+            )  # fmt: skip
+            summary.model_status[name] = f"{info}"
+            if info.get("status") == "failed":
+                summary.shadow_errors.append(f"combo shadow: failed: {info.get('detail')}"[:300])
+        info_s = settle_combo_shadow(con, made_at)
+        summary.model_status[name + "_settle"] = f"{info_s}"
+    except Exception as exc:
+        summary.shadow_errors.append(
+            f"combo shadow: {type(exc).__name__}: {exc} ({time.perf_counter() - t0:.0f}s)"[:300]
         )
 
 

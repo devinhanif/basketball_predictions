@@ -679,7 +679,7 @@ def test_watchdog_alerts_after_three_bad_slate_runs_and_for_a_missed_install(
     from nba.ops.watchdog import SHADOW_JOBS, evaluate_shadow_jobs
 
     tz = ZoneInfo("America/Chicago")
-    assert [j.name for j in SHADOW_JOBS] == ["avg_shadow"]
+    assert [j.name for j in SHADOW_JOBS] == ["avg_shadow", "combo_shadow"]
     now = datetime(2026, 11, 2, 18, 0, tzinfo=tz)
     assert (
         evaluate_shadow_jobs(now, tmp_path, tz) == []

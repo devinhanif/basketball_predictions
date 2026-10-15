@@ -98,6 +98,14 @@ def _parser() -> argparse.ArgumentParser:
         "installed -> status skipped; default OFF",
     )
     r.add_argument(
+        "--log-combo-shadow",
+        action="store_true",
+        help="SHADOW (COMBO_STOCKS_SHADOW): blk / stl NB heads and the six-stat copula joint for "
+        "PRA, PR, PA, RA, blk+stl with RECENT and INDEP comparators, regular-season rows only "
+        "(tables forward_combo_*, heartbeat data/ops/heartbeat/combo_shadow.json); "
+        "forward_predictions and the props outputs are unchanged; default OFF",
+    )
+    r.add_argument(
         "--roster-source",
         choices=["recent", "official"],
         default="recent",
@@ -246,6 +254,7 @@ SHADOW_SETTLERS = (
     ("pplay", "nba.daily.pplay_shadow.settle", "settle_pplay_shadow", "forward_pplay_shadow"),
     ("full", "nba.daily.full_shadow.settle", "settle_full_shadow", "forward_full_shadow"),
     ("avg", "nba.daily.avg_shadow.settle", "settle_avg_shadow", "forward_avg_shadow"),
+    ("combo", "nba.daily.combo_shadow.settle", "settle_combo_shadow", "forward_combo_shadow"),
 )
 
 
@@ -282,6 +291,8 @@ def main(argv: list[str] | None = None) -> int:
             with_pplay_shadow=args.log_pplay_shadow,
             with_full_shadow=args.log_full_shadow,
             with_avg_shadow=args.log_avg_shadow,
+            with_combo_shadow=args.log_combo_shadow,
+            tip_source="proxy" if args.schedule_from_db else "real",
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
             schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,

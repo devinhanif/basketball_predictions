@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """ops/nba_daily.sh pretip: shadow flag on, and one roster source shared by predict and parlay."""
 
 from __future__ import annotations
@@ -17,6 +18,17 @@ def _step(name: str) -> str:
 
 def test_pplay_shadow_flag_in_predict_step() -> None:
     assert "--log-pplay-shadow" in _step("predict")
+
+
+def test_avg_and_combo_shadow_flags_are_on_in_the_predict_step() -> None:
+    # Devin 2026-10-14: AVG_SHADOW_LIVE_2 (logs "skipped" until the bundle is installed) and COMBO_STOCKS_SHADOW
+    step = _step("predict")
+    assert "--log-avg-shadow" in step and "--log-combo-shadow" in step
+    # the shadows are flags of the one predict call: no separate step that could block settle, report or pretip
+    assert "avg_shadow" not in SCRIPT.replace("--log-avg-shadow", "").replace(
+        "heartbeat avg_shadow.json", ""
+    )
+    assert not re.search(r"^\s*step (avg|combo)", SCRIPT, re.M)
 
 
 def test_parlay_steps_follow_the_predict_roster_switch() -> None:
