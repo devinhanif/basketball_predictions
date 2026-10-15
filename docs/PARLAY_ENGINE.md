@@ -160,3 +160,11 @@ Uncertain: roughly a [number removed: not from engine] chance, verdict no_positi
 ```
 Caveat: a 3B model will often pick wrong tools or arguments; the guardrails make that visible (errors are rendered) rather than silently wrong.
 No live Ollama session has been run in this repo's tests (all tests use a scripted backend and an HTTP mock).
+
+## Context-conditioned copula as a probability question (PARLAY_CONTEXT_PROB, draft, NOT frozen, 2026-10-14)
+Devin reopened the context copula as "is the shown joint probability more accurate" (DECISIONS 2026-10-14 20:31). The draft rule is
+`docs/prereg/PARLAY_CONTEXT_PROB.md`; the minimum-data gate (`nba/parlay/context_prob_gate.py`, `reports/parlay/context_prob_gate.md`) FAILED:
+all 114 cells have enough pairs (>= 1,045 pairs, >= 342 games in the smallest), but at the 2020-22 effect the best cell moves the displayed
+joint probability by about 0.6 points (largest median over cells 0.7) and gains about 1e-4 nats per treated pair; upper-bound power for one
+report season is 0.24 (0.12 at half effect), 0 of 114 cells reach 0.80. Not frozen; no contrast computed; season 2025 never read.
+
