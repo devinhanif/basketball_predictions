@@ -1,0 +1,43 @@
+date: Thu Oct 15 01:00:36 CDT 2026
+population: {'rows_played_all_seasons_le_2024': 84170, 'population_rows_by_season': {2023: 25815, 2024: 25767, 2022: 23272}, 'expected_from_COMBO_STOCKS_SHADOW': {'2023': 25815, '2024': 25767}, 'reproduces_rehearsal_population': True}
+absent main markets: {'player_blocks': 0, 'player_blocks_steals': 0, 'player_points_rebounds_assists': 0, 'player_points_rebounds': 0, 'player_points_assists': 0, 'player_rebounds_assists': 0}
+component main legs 295467 (3s)
+stl: 238389 candidate legs (3s)
+blk: 59702 candidate legs (4s)
+pra: 70051 candidate legs (5s)
+pr: 58223 candidate legs (5s)
+pa: 49362 candidate legs (6s)
+ra: 39969 candidate legs (6s)
+
+target book kind  legs23 legs24 games24 blocksBelow2000 minFit24 neff_open  legs/game  hw   passAll
+blk  betonlineag    ladder      0   4986  1069  3      0   4950.1   4.66 0.00291 False
+blk  fanduel        ladder   1025   1109   790  6   1025   1936.1    1.4 0.00617 False
+blk  draftkings     ladder    105    786   637  7    105    861.0   1.23 0.00732 False
+blk  fanatics       ladder      0    570   352  3      0    569.4   1.62 0.0086 False
+blk  williamhill_us ladder      0    544   333  3      0    543.5   1.63 0.0088 False
+blk  mybookieag     ladder   2732      0     0  0      0   2723.8    0.0 None False
+blk  pointsbetus    ladder   1031      0     0  0      0   1026.9    0.0 None False
+pa   draftkings     ladder   4800   9274  1200  0   4800  13006.8   7.73 0.00213 True
+pa   fanduel        ladder   4309   6032  1118  0   4309   9445.6    5.4 0.00264 True
+pa   williamhill_us ladder   3929   5205   627  0   3929   8574.4    8.3 0.00285 True
+pr   draftkings     ladder   7215  13074  1203  0   7215  18720.8  10.87 0.0018 True
+pr   fanduel        ladder   4604  10112  1120  0   4604  13672.2   9.03 0.00204 True
+pr   williamhill_us ladder   4492   6248   627  0   4492  10094.0   9.96 0.0026 True
+pra  draftkings     ladder   4225   9064  1201  0   4225  12331.5   7.55 0.00216 True
+pra  betonlineag    ladder   4593   8843  1195  0   4593  12467.3    7.4 0.00218 True
+pra  fanduel        ladder   3833   5088  1115  0   3833   8137.3   4.56 0.00288 True
+pra  williamhill_us ladder    888   4783   618  3    888   5509.5   7.74 0.00297 False
+ra   betonlineag    ladder   4580   8811  1188  0   4580  12422.1   7.42 0.00219 True
+ra   fanduel        ladder   4199   5130  1115  0   4199   8478.2    4.6 0.00287 True
+ra   williamhill_us ladder    321   3831   477  3    321   4086.8   8.03 0.00332 False
+stl  betmgm         main     8752   6736   717  0   8752  14135.4   9.39 0.0025 True
+stl  betrivers      main     3750   5406   915  0   3750   8455.1   5.91 0.00279 True
+stl  draftkings     main     9584   3632  1120  0   9584  11799.4   3.24 0.00341 False
+stl  fanduel        main     3347   2823  1038  0   3347   5506.2   2.72 0.00386 False
+stl  williamhill_us main     8524   2516   286  0   8524  10205.3    8.8 0.00409 False
+stl  novig          main        0   1341   622  5      0   1335.9   2.16 0.00561 False
+stl  bovada         main     9700    424    58  0   9700   9818.4   7.31 0.00997 False
+stl  barstool       main      547      0     0  0      0    547.0    0.0 None False
+stl  pointsbetus    main     7110      0     0  0      0   7079.7    0.0 None False
+stl  unibet_us      main     3777      0     0  0      0   3755.5    0.0 None False
+wrote reports/prereg_combo_line_cal/gate_oof.json in 8.6 s
