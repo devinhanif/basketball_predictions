@@ -65,6 +65,12 @@ T490_CAVEAT = (
     "date-clustered, 2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). "
     "These were raw chances; the chances shown here are from calibrated legs."
 )
+#: Verbatim from the T495 attack (docs/reviews/T495_post_result_2026-10-15.md); default applied by
+#: the main session, Devin may change it. No number is adjusted by hand.
+T495_CAVEAT = (
+    "On random 2023-24 parlays these chances were accurate. The top picks use the most-confident "
+    "legs, and those came in about 3 to 5 points lower than shown at DraftKings (T495)."
+)
 T490_NUMBERS = (0.70, 0.95, 9.8, 6.8, 12.9, 3337, 8.7, 5.5, 11.9, 3360, 24, 25)
 GATE_SETTLED_MIN = 30  # the frozen gate's bars (contract v2); the file never sets its own
 GATE_DATES_MIN = 14
@@ -549,7 +555,7 @@ def build_report(
         "status": str(calibration.get("status", "")),
     }
     extra = [cfg.tail_cut, *T490_NUMBERS]
-    caveats = [T490_CAVEAT, *extra_caveats]
+    caveats = [T490_CAVEAT, T495_CAVEAT, *extra_caveats]
     for text in (*[v for v in free.values() if v], *caveats):
         screen_text(text, extra, counters)
     return {

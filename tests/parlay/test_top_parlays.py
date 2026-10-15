@@ -17,6 +17,7 @@ from nba.parlay.copula import PairCorr
 from nba.parlay.top_parlays import (
     KEEP,
     T490_CAVEAT,
+    T495_CAVEAT,
     Gate,
     LegCand,
     build_report,
@@ -294,7 +295,10 @@ def test_caveat_is_verbatim_from_the_contract_and_free_text_is_screened() -> Non
     ).read_text()
     assert T490_CAVEAT in contract
     rep = report(cross_game_legs(4))
-    assert rep["caveats"][0] == T490_CAVEAT and rep["diagnostics"]["numguard_removed"] == 0
+    assert (
+        rep["caveats"][:2] == [T490_CAVEAT, T495_CAVEAT]
+        and rep["diagnostics"]["numguard_removed"] == 0
+    )
     with pytest.raises(ValueError, match="banned"):
         report(cross_game_legs(4), calibration={**CAL, "status": "a lock of a ticket"})
     with pytest.raises(ValueError, match="banned"):
