@@ -46,21 +46,52 @@ handles:
   who post restriction notes (coach pre-game availability quotes). Fewer handles cost less.
 
 ## Cost model and the budget cap
-- X bills about **$0.005 per post read** (2026-10 pay-per-use). A page is 5-100 posts; the client
-  asks for at most the remaining allowance, one page per handle per poll.
-- `budget.posts_per_run` (default 200, override `--budget-posts N`) and `budget.posts_per_day`
-  (default 1000) are checked **before** each request against `data/reporters/budget.json`
-  (posts and HTTP attempts per UTC day, lifetime total). Refusal is exit 2, nothing sent.
-- Polls start at the newest post already seen for the handle (`data/reporters/state.json`),
-  else `lookback_hours` (default 6). Retweets and replies are excluded on the wire (not billed).
+Billed items (X pay-per-use, 2026-10, as pasted by Devin): **post read $0.005**, **user resource
+read $0.010**. Nothing else is used. The rates live in `configs/reporters.yaml`
+(`budget.usd_per_post`, `budget.usd_per_user`); `configs/cost.yaml` has no X entry yet.
+
+| item | rate | when it happens | 30-handle example |
+|---|---|---|---|
+| post read | $0.005 | every post returned by a timeline page | see below |
+| user read | $0.010 | once per handle, ever (id cached in `data/reporters/user_ids.json`) | 30 x $0.01 = $0.30 once |
+| timeline request | no separate charge | no `expansions`/`user.fields`, so no user objects ride along | $0 |
+
+Guards (each refuses with exit 2 BEFORE the request is sent, against `data/reporters/budget.json`):
+- `posts_per_run` 200 (`--budget-posts N`), `posts_per_day` 400 (UTC day).
+- `posts_per_month` 8000 and `usd_per_month` 40 (UTC month). USD = posts x $0.005 + user reads x
+  $0.010, so lookups use up the same $40. The user lookup is itself checked before it is sent.
+- **Slate-only:** a team handle is polled only if its team plays today (ET) per the cached schedule
+  (`data/schedule_cache`, the file the facts writer already uses). League-wide handles (`team: null`)
+  are always eligible. `poll --all-teams` lifts the slate filter (not the window).
+- **Pre-game window:** polls are refused outside `[tip - 120 min, tip]` of the handle's team
+  (league-wide handles: slate first tip - 120 min to the slate's last tip). No games today or no
+  schedule means refusal. Planned schedule: **T-90 and T-40 relative to each team's tip**, two polls
+  per team per game day. Nothing is wired into launchd or `ops/`; that is Devin's later go.
+- `budget` subcommand: `python -m nba.ingest.reporters budget` prints today's and this month's posts,
+  HTTP attempts, user reads and estimated USD (posts and users shown separately).
+- Handle ids: looked up once and cached; a poll with cached ids makes zero user calls (tested).
+
+30-handle worked example (a night with 7 games, so about 14 of 30 teams play, plus 2 league-wide
+handles = about 16 handles polled, twice each): 16 x 2 x ~5 posts = 160 posts = **$0.80/day**,
+under the 400/day cap. Over a 150-game-day month that is about $120 uncapped, so **the month cap
+binds**: 8000 posts = $40 including the one-time $0.30 of lookups (7,940 posts left, about 50 game
+days at 160 posts/day). Raise `posts_per_month` and `usd_per_month` together if Devin wants more.
+Worst case, a busy handle returning a full page of 100 posts every poll hits the per-day cap after
+4 pages.
+
+- A page is 5-100 posts; the client asks for at most the remaining allowance, one page per handle
+  per poll. Polls start at the newest post already seen (`state.json`), else `lookback_hours` (6).
+  Retweets and replies are excluded on the wire.
 - Rate limits: `x-rate-limit-reset` is honoured (waits up to 120 s), at most 2 attempts per
   request with exponential backoff; every attempt is counted in the ledger.
-- Example: 6 handles x 2 polls a day (T-90, T-40) x ~5 posts = 60 posts/day = $0.30/day.
+- Exit codes for a refused run (no token, handle not listed, no slate, outside window, any cap): 2.
 
 ## Running it
 ```
 uv run --env-file .env python -m nba.ingest.reporters poll --facts-db data/facts/facts.duckdb
 uv run --env-file .env python -m nba.ingest.reporters poll --handle SomeBeatWriter --budget-posts 20
+uv run --env-file .env python -m nba.ingest.reporters poll --all-teams   # skip the slate filter
+uv run python -m nba.ingest.reporters budget
 uv run python -m nba.ingest.reporters parse-only --file data/reporters/raw/2026-10-21/SomeBeatWriter_213000Z.parquet
 ```
 Exit codes: 0 ok; 2 refused (no token, handle not listed, budget, bad config); 3 facts DB locked;
@@ -107,6 +138,6 @@ its value is measured by reading the briefing next to the result, not by changin
 |---|---|
 | `configs/reporters.yaml` | allow-list and budget (Devin's) |
 | `data/reporters/raw/<date>/*.parquet` | immutable posts |
-| `data/reporters/budget.json`, `state.json` | spend ledger; cached user ids and newest post per handle |
+| `data/reporters/budget.json`, `user_ids.json`, `state.json` | spend ledger (posts, attempts, user reads per day); cached user ids; newest post per handle |
 | `data/facts/facts.duckdb` | `claimed_*` facts, source `x:<handle>` |
 | `tests/ingest/test_reporter*.py`, `tests/fixtures/reporters/posts.json` | fixtures, no network |

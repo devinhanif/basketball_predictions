@@ -16,6 +16,13 @@ Guarantees
 * Money. Every post read is billed, so a per-run cap (``--budget-posts``) and a per-UTC-day ceiling
   are checked BEFORE each request against the ledger ``data/reporters/budget.json``; the request
   asks for at most the remaining allowance (``max_results``). One page per handle per poll.
+* Month caps. ``posts_per_month`` and ``usd_per_month`` (posts x ``usd_per_post`` + user reads x
+  ``usd_per_user``) are checked BEFORE each request against the same ledger, by UTC month;
+  exceeded means exit 2.
+* Slate-only and pre-game window. ``poll`` only reads handles whose team plays today (ET) unless
+  ``--all-teams``; league-wide handles are always eligible. A handle is read only inside
+  ``[its team's tip - 120 min, its team's tip]`` (league-wide: slate first tip - 120 min to the
+  slate's last tip); outside the window the run is refused (exit 2) before any request.
 * Rate limits. ``x-rate-limit-reset`` is honoured (bounded wait), at most ``MAX_ATTEMPTS`` tries
   per request with exponential backoff; the ledger counts every attempt.
 * Raw first, write-once. Fetched posts are written as parquet under
@@ -106,6 +113,10 @@ class ReporterHTTPError(ReporterError):
         self.status = status
 
 
+class PollRefused(ReporterError):
+    """No slate, no schedule, or no handle inside its pre-game window; nothing was requested."""
+
+
 class Unreachable(ReporterError):
     """Transport or 5xx errors through the attempt budget."""
 
@@ -170,8 +181,13 @@ class Reporter:
 class Allowlist:
     reporters: dict[str, Reporter]  # keyed on handle.lower()
     posts_per_run: int = 200
-    posts_per_day: int = 1000
+    posts_per_day: int = 400
     lookback_hours: float = 6.0
+    posts_per_month: int = 8000
+    usd_per_month: float = 40.0
+    usd_per_post: float = 0.005
+    usd_per_user: float = 0.010
+    window_minutes: float = 120.0
 
     def __contains__(self, handle: object) -> bool:
         return isinstance(handle, str) and handle.lower() in self.reporters
@@ -213,8 +229,13 @@ def load_allowlist(path: Path | str = ALLOWLIST_PATH) -> Allowlist:
     return Allowlist(
         reporters,
         posts_per_run=int(budget.get("posts_per_run", 200)),
-        posts_per_day=int(budget.get("posts_per_day", 1000)),
+        posts_per_day=int(budget.get("posts_per_day", 400)),
         lookback_hours=float(raw.get("lookback_hours", 6)),
+        posts_per_month=int(budget.get("posts_per_month", 8000)),
+        usd_per_month=float(budget.get("usd_per_month", 40)),
+        usd_per_post=float(budget.get("usd_per_post", 0.005)),
+        usd_per_user=float(budget.get("usd_per_user", 0.010)),
+        window_minutes=float(raw.get("window_minutes", 120)),
     )
 
 
@@ -289,12 +310,27 @@ def utc_day(now: datetime) -> str:
 
 class PostBudget:
     """``data/reporters/budget.json``: ``{"days": {day: {"posts": n, "requests": m}},
-    "total_posts": N}``. ``per_run`` is this process's cap; ``per_day`` the ceiling across runs."""
+    "total_posts": N}``. ``per_run`` is this process's cap; ``per_day`` the ceiling across runs;
+    ``per_month`` and ``usd_per_month`` the UTC-month ceilings (USD = posts x ``usd_per_post``)."""
 
-    def __init__(self, path: Path, per_run: int, per_day: int) -> None:
+    def __init__(
+        self,
+        path: Path,
+        per_run: int,
+        per_day: int,
+        per_month: int = 8000,
+        usd_per_month: float = 40.0,
+        usd_per_post: float = 0.005,
+        usd_per_user: float = 0.010,
+    ) -> None:
         self.path = path
         self.per_run = int(per_run)
         self.per_day = int(per_day)
+        self.per_month = int(per_month)
+        self.usd_per_month = float(usd_per_month)
+        self.usd_per_post = float(usd_per_post)
+        self.usd_per_user = float(usd_per_user)
+        self.run_users = 0
         self.run_posts = 0
         self.run_requests = 0
 
@@ -318,30 +354,118 @@ class PostBudget:
     def used_today(self, now: datetime) -> int:
         return int(self._load()["days"].get(utc_day(now), {}).get("posts", 0))
 
+    def _month_sum(self, now: datetime, key: str) -> int:
+        prefix = utc_day(now)[:7]
+        days = self._load()["days"]
+        return sum(int(v.get(key, 0)) for d, v in days.items() if d.startswith(prefix))
+
+    def used_month(self, now: datetime) -> int:
+        return self._month_sum(now, "posts")
+
+    def requests_today(self, now: datetime) -> int:
+        return int(self._load()["days"].get(utc_day(now), {}).get("requests", 0))
+
+    def requests_month(self, now: datetime) -> int:
+        return self._month_sum(now, "requests")
+
+    def users_today(self, now: datetime) -> int:
+        return int(self._load()["days"].get(utc_day(now), {}).get("users", 0))
+
+    def users_month(self, now: datetime) -> int:
+        return self._month_sum(now, "users")
+
+    def usd(self, posts: int, users: int = 0) -> float:
+        return round(posts * self.usd_per_post + users * self.usd_per_user, 4)
+
+    def month_usd(self, now: datetime) -> float:
+        return self.usd(self.used_month(now), self.users_month(now))
+
+    def month_post_cap(self, now: datetime) -> int:
+        """Posts per UTC month still readable under BOTH the post cap and the USD cap (user
+        reads already billed this month use up USD first); this is a cap on the month total."""
+        used = self.used_month(now)
+        if self.usd_per_post <= 0:
+            return 0
+        spare = self.usd_per_month - self.month_usd(now)
+        by_usd = used + int(max(0.0, spare) / self.usd_per_post + 1e-9)
+        return min(self.per_month, by_usd)
+
     def remaining(self, now: datetime) -> int:
-        return max(0, min(self.per_run - self.run_posts, self.per_day - self.used_today(now)))
+        return max(
+            0,
+            min(
+                self.per_run - self.run_posts,
+                self.per_day - self.used_today(now),
+                self.month_post_cap(now) - self.used_month(now),
+            ),
+        )
 
     def check(self, now: datetime, need: int = MAX_RESULTS_MIN) -> int:
         """Posts this run may still read; raises :class:`BudgetExceeded` if fewer than ``need``
         (the API will not return fewer than ``MAX_RESULTS_MIN`` per page)."""
         rem = self.remaining(now)
         if rem < need:
+            month = self.used_month(now)
             raise BudgetExceeded(
                 f"post budget exhausted: run {self.run_posts}/{self.per_run}, "
-                f"day {self.used_today(now)}/{self.per_day} ({utc_day(now)} UTC); "
+                f"day {self.used_today(now)}/{self.per_day} ({utc_day(now)} UTC), "
+                f"month {month}/{self.per_month} posts and "
+                f"${self.month_usd(now):.2f}/${self.usd_per_month:.2f} (posts and users); "
                 f"{rem} left, a page needs {need}. Raise --budget-posts to continue."
             )
         return rem
 
-    def charge(self, now: datetime, posts: int, requests: int = 0) -> None:
+    def check_user(self, now: datetime) -> None:
+        """Refuse BEFORE a user lookup if one more user read would pass the USD month cap."""
+        if self.month_usd(now) + self.usd_per_user > self.usd_per_month + 1e-9:
+            raise BudgetExceeded(
+                f"user lookup refused: month ${self.month_usd(now):.2f} + ${self.usd_per_user:.3f} "
+                f"> ${self.usd_per_month:.2f} cap"
+            )
+
+    def charge(self, now: datetime, posts: int, requests: int = 0, users: int = 0) -> None:
         data = self._load()
         day = data["days"].setdefault(utc_day(now), {"posts": 0, "requests": 0})
+        if users:
+            day["users"] = int(day.get("users", 0)) + int(users)
+        self.run_users += int(users)
         day["posts"] = int(day.get("posts", 0)) + int(posts)
         day["requests"] = int(day.get("requests", 0)) + int(requests)
         data["total_posts"] = int(data.get("total_posts", 0)) + int(posts)
         self.run_posts += int(posts)
         self.run_requests += int(requests)
         self._save(data)
+
+
+class UserIdCache:
+    """``data/reporters/user_ids.json``: handle (lower) -> numeric user id. A lookup is a billed
+    user read, so it happens once per handle, ever; legacy ids in ``state.json`` are honoured."""
+
+    def __init__(self, path: Path, legacy: HandleState | None = None) -> None:
+        self.path = path
+        self.legacy = legacy
+
+    def _load(self) -> dict[str, str]:
+        try:
+            data = json.loads(self.path.read_text())
+        except (OSError, ValueError):
+            return {}
+        return {str(k): str(v) for k, v in data.items()} if isinstance(data, dict) else {}
+
+    def get(self, handle: str) -> str | None:
+        got = self._load().get(handle.lower())
+        if got is None and self.legacy is not None:
+            old = self.legacy.get(handle).get("user_id")
+            got = str(old) if old else None
+        return got
+
+    def put(self, handle: str, uid: str) -> None:
+        data = self._load()
+        data[handle.lower()] = uid
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, indent=1, sort_keys=True))
+        os.replace(tmp, self.path)
 
 
 class HandleState:
@@ -381,6 +505,7 @@ class PollResult:
     posts: list[Post] = field(default_factory=list)
     raw_paths: list[Path] = field(default_factory=list)
     per_handle: dict[str, int] = field(default_factory=dict)
+    skipped: dict[str, str] = field(default_factory=dict)  # handle -> why not polled
     stopped: str | None = None  # budget / rate-limit message when the poll ended early
 
 
@@ -408,6 +533,71 @@ def parse_tweets_payload(body: Any, handle: str, fetched_at: datetime) -> list[P
     return out
 
 
+# ----------------------------------------------------------------------------------------------
+# Slate-only polling and the pre-game window
+# ----------------------------------------------------------------------------------------------
+
+
+def plan_poll(
+    allowlist: Allowlist,
+    games: Iterable[Any],
+    now: datetime,
+    handles: Iterable[str] | None = None,
+    *,
+    all_teams: bool = False,
+) -> tuple[list[str], dict[str, str]]:
+    """Which handles may be read right now. ``games`` are ``ScheduledGame``-like (naive-UTC
+    ``tipoff``, ``home_team``, ``away_team``). Returns ``(handles, skipped)``; raises
+    :class:`PollRefused` when there is no slate or nothing is inside its window.
+
+    * default: a team handle is eligible only if its team plays today (ET); ``all_teams`` lifts
+      this (the window below still applies, using the slate span for teams without a game).
+    * league-wide handles (team null) are always eligible.
+    * window: a team handle in ``[its tip - window, its tip]``; league-wide and no-game handles
+      in ``[slate first tip - window, slate last tip]``. Outside it the handle is skipped, and
+      if no handle is left the run is refused. Nothing here makes a request.
+    """
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    now = now if now.tzinfo is not None else now.replace(tzinfo=UTC)
+    today = now.astimezone(et).date()
+    slate = [g for g in games if g.tipoff.replace(tzinfo=UTC).astimezone(et).date() == today]
+    if not slate:
+        raise PollRefused(f"no games on the {today} ET slate (or no schedule); nothing to poll")
+    window = timedelta(minutes=allowlist.window_minutes)
+    tips = [g.tipoff.replace(tzinfo=UTC) for g in slate]
+    first, last = min(tips), max(tips)
+    team_tip: dict[int, datetime] = {}
+    for g in slate:
+        t = g.tipoff.replace(tzinfo=UTC)
+        for tid in (g.home_team, g.away_team):
+            team_tip[tid] = t
+    names = list(handles) if handles is not None else allowlist.handles()
+    ok: list[str] = []
+    skipped: dict[str, str] = {}
+    for h in names:
+        rep = allowlist.require(h)  # refuses before any request
+        tid = rep.team_id
+        if tid is not None and tid not in team_tip and not all_teams:
+            skipped[rep.handle] = f"{rep.team} does not play on {today} ET"
+            continue
+        if tid is not None and tid in team_tip:
+            lo, hi = team_tip[tid] - window, team_tip[tid]
+        else:
+            lo, hi = first - window, last
+        if not lo <= now <= hi:
+            skipped[rep.handle] = f"outside window {lo:%H:%MZ}-{hi:%H:%MZ} (now {now:%H:%MZ})"
+            continue
+        ok.append(rep.handle)
+    if not ok:
+        raise PollRefused(
+            "no handle is inside its pre-game window; refusing before any request: "
+            + "; ".join(f"{k}: {v}" for k, v in skipped.items())
+        )
+    return ok, skipped
+
+
 class XClient:
     """GET-only client for the two endpoints above. ``repr`` shows no secret."""
 
@@ -432,8 +622,13 @@ class XClient:
             self.data_dir / "budget.json",
             allowlist.posts_per_run if budget_posts is None else budget_posts,
             allowlist.posts_per_day,
+            allowlist.posts_per_month,
+            allowlist.usd_per_month,
+            allowlist.usd_per_post,
+            allowlist.usd_per_user,
         )
         self.state = HandleState(self.data_dir / "state.json")
+        self.user_ids = UserIdCache(self.data_dir / "user_ids.json", self.state)
         self._clock = clock or (lambda: datetime.now(UTC))
         self._sleep = sleep
         self._transport = transport
@@ -516,15 +711,17 @@ class XClient:
     # -- endpoints -----------------------------------------------------------------------------
     def user_id(self, handle: str) -> str:
         rep = self.allowlist.require(handle)
-        cached = self.state.get(rep.handle).get("user_id")
+        cached = self.user_ids.get(rep.handle)
         if cached:
-            return str(cached)
+            return cached
+        self.budget.check_user(self.now())  # refuses before the lookup is sent
         body = self._get(ENDPOINTS["user_by_username"].format(username=rep.handle), {})
         data = body.get("data") if isinstance(body, dict) else None
         if not isinstance(data, dict) or not data.get("id"):
             raise ReporterHTTPError(200, f"no user id in response for {rep.handle!r}")
         uid = str(data["id"])
-        self.state.update(rep.handle, user_id=uid)
+        self.user_ids.put(rep.handle, uid)
+        self.budget.charge(self.now(), 0, users=1)  # one user resource read = $usd_per_user
         return uid
 
     def fetch_posts(self, handle: str, start_time: datetime, max_results: int) -> list[Post]:
@@ -583,6 +780,34 @@ class XClient:
 # ----------------------------------------------------------------------------------------------
 
 
+def budget_report(allow: Allowlist, data_dir: Path, now: datetime | None = None) -> str:
+    """Today's and this UTC month's posts, HTTP attempts and estimated USD vs the caps."""
+    now = now or datetime.now(UTC)
+    b = PostBudget(
+        data_dir / "budget.json",
+        allow.posts_per_run,
+        allow.posts_per_day,
+        allow.posts_per_month,
+        allow.usd_per_month,
+        allow.usd_per_post,
+        allow.usd_per_user,
+    )
+    day, month = b.used_today(now), b.used_month(now)
+    ud, um = b.users_today(now), b.users_month(now)
+    return "\n".join(
+        [
+            f"day   {utc_day(now)} UTC: {day}/{b.per_day} posts, "
+            f"{b.requests_today(now)} attempts, {ud} user reads, est ${b.usd(day, ud):.2f} "
+            f"(posts ${b.usd(day):.2f} + users ${b.usd(0, ud):.2f})",
+            f"month {utc_day(now)[:7]} UTC: {month}/{b.per_month} posts, "
+            f"{b.requests_month(now)} attempts, {um} user reads, est ${b.usd(month, um):.2f}/"
+            f"${b.usd_per_month:.2f} (posts ${b.usd(month):.2f} + users ${b.usd(0, um):.2f})",
+            f"rates ${b.usd_per_post}/post, ${b.usd_per_user}/user read "
+            "(configs/reporters.yaml; not in cost.yaml)",
+        ]
+    )
+
+
 def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
     p.add_argument("--facts-db", default=None, help="write claimed facts here (omit = print)")
@@ -600,10 +825,26 @@ def main(argv: list[str] | None = None) -> int:
     poll.add_argument("--lookback-hours", type=float, default=None)
     poll.add_argument("--handle", action="append", default=None, help="subset of the list")
     poll.add_argument("--data-dir", default=str(DATA_DIR))
+    poll.add_argument(
+        "--all-teams",
+        action="store_true",
+        help="also poll handles whose team has no game today (the window still applies)",
+    )
+    bud = sub.add_parser("budget", help="today's and this month's posts, attempts, est. USD")
+    bud.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
+    bud.add_argument("--data-dir", default=str(DATA_DIR))
     rep = sub.add_parser("parse-only", help="replay raw parquet files (no network, no cost)")
     _common(rep)
     rep.add_argument("--file", action="append", required=True)
     args = p.parse_args(argv)
+
+    if args.cmd == "budget":
+        try:
+            print(budget_report(load_allowlist(args.allowlist), Path(args.data_dir)))
+        except (ValueError, OSError) as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 2
+        return 0
 
     from nba.ingest import reporter_facts as rf  # lazy: duckdb + schedule only when used
 
@@ -613,8 +854,17 @@ def main(argv: list[str] | None = None) -> int:
             if not allow.reporters:
                 print("configs/reporters.yaml lists no handles; nothing to poll.", file=sys.stderr)
                 return 2
+            read_token()  # a missing key refuses before the schedule is even read
+            now = datetime.now(UTC)
+            from nba.daily.schedule import load_schedule_cache
+
+            games = load_schedule_cache(rf.season_for(now), Path(args.schedule_cache)) or []
+            todo, skipped = plan_poll(allow, games, now, args.handle, all_teams=args.all_teams)
+            for h, why in skipped.items():
+                print(f"skipped {h}: {why}", file=sys.stderr)
             client = XClient(allow, data_dir=Path(args.data_dir), budget_posts=args.budget_posts)
-            result = client.poll(args.handle, lookback_hours=args.lookback_hours)
+            result = client.poll(todo, lookback_hours=args.lookback_hours)
+            result.skipped = skipped
             posts = result.posts
             for path in result.raw_paths:
                 print(f"raw: {path}")
@@ -638,8 +888,8 @@ def main(argv: list[str] | None = None) -> int:
             finally:
                 con.close()
         print(rf.format_report(claimed, counts, written))
-        return 0
-    except (KeyMissingError, HandleNotAllowed, BudgetExceeded, ValueError) as exc:
+        return 2 if args.cmd == "poll" and result.stopped else 0
+    except (KeyMissingError, HandleNotAllowed, BudgetExceeded, PollRefused, ValueError) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
     except OSError as exc:

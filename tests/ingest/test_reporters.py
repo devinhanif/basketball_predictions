@@ -223,7 +223,9 @@ def test_poll_writes_raw_write_once_and_updates_state(tmp_path: Path) -> None:
     assert len(srv.requests) == 2  # users/by/username then users/:id/tweets
     # state: user id cached, newest post remembered; a second poll starts there and skips lookup
     st = json.loads((tmp_path / "data" / "state.json").read_text())
-    assert st["rocketsbeat"] == {"user_id": "42", "last_created_at": "2026-10-21T19:40:00"}
+    assert st["rocketsbeat"] == {"last_created_at": "2026-10-21T19:40:00"}
+    ids = json.loads((tmp_path / "data" / "user_ids.json").read_text())
+    assert ids == {"rocketsbeat": "42"}
     clock[0] = NOW + timedelta(minutes=30)
     res2 = c.poll()
     assert len(srv.requests) == 3
@@ -353,3 +355,241 @@ def test_cli_poll_without_token_is_a_refusal(
     monkeypatch.delenv(r.KEY_ENV, raising=False)
     rc = r.main(["poll", "--allowlist", str(allowlist_yaml(tmp_path)), "--data-dir", str(tmp_path)])
     assert rc == 2 and r.KEY_ENV in capsys.readouterr().err
+
+
+# ------------------------------------------------------------ cost guards (slate, window, caps)
+
+from nba.daily.schedule import ScheduledGame  # noqa: E402
+from nba.ingest.teams import TEAM_ABBREV_TO_ID as TID  # noqa: E402
+
+# NOW is 2026-10-21 20:00Z = 16:00 ET. HOU-DAL tips 23:30Z; BOS-NYK tips 01:00Z (Oct 21 ET 21:00).
+HOU_DAL = ScheduledGame("g1", datetime(2026, 10, 21, 23, 30), TID["HOU"], TID["DAL"])
+BOS_NYK = ScheduledGame("g2", datetime(2026, 10, 22, 1, 0), TID["BOS"], TID["NYK"])
+GAMES = [HOU_DAL, BOS_NYK]
+FOUR: list[dict[str, Any]] = [
+    {"handle": "RocketsBeat", "team": "HOU"},
+    {"handle": "LakersBeat", "team": "LAL"},
+    {"handle": "BostonBeat", "team": "BOS"},
+    {"handle": "LeagueWide", "team": None},
+]
+
+
+def test_slate_only_skips_teams_without_a_game(tmp_path: Path) -> None:
+    allow = r.load_allowlist(allowlist_yaml(tmp_path, FOUR))
+    now = datetime(2026, 10, 21, 23, 15, tzinfo=UTC)  # inside every window
+    ok, skipped = r.plan_poll(allow, GAMES, now)
+    assert ok == ["RocketsBeat", "BostonBeat", "LeagueWide"]
+    assert "LAL does not play" in skipped["LakersBeat"]
+    ok_all, _ = r.plan_poll(allow, GAMES, now, all_teams=True)
+    assert "LakersBeat" in ok_all
+
+
+def test_slate_only_poll_sends_no_request_for_idle_team(tmp_path: Path) -> None:
+    allow = r.load_allowlist(allowlist_yaml(tmp_path, FOUR))
+    srv = Server([tweet("1", "x")])
+    c = client(tmp_path, srv, allow=allowlist_yaml(tmp_path, FOUR))
+    ok, _ = r.plan_poll(allow, GAMES, NOW + timedelta(hours=2))
+    c.poll(ok)
+    paths = " ".join(q.url.path for q in srv.requests)
+    assert "/users/by/username/LakersBeat" not in paths
+    assert "/users/by/username/RocketsBeat" in paths
+
+
+def test_no_slate_is_refused_before_any_request(tmp_path: Path) -> None:
+    allow = r.load_allowlist(allowlist_yaml(tmp_path, FOUR))
+    srv = Server([tweet("1", "x")])
+    with pytest.raises(r.PollRefused, match="no games"):
+        r.plan_poll(allow, [], NOW)
+    with pytest.raises(r.PollRefused):
+        r.plan_poll(allow, GAMES, NOW + timedelta(days=3))
+    assert srv.requests == []
+
+
+def test_window_refuses_outside_two_hours_before_tip(tmp_path: Path) -> None:
+    allow = r.load_allowlist(allowlist_yaml(tmp_path, FOUR[:1]))
+    early = HOU_DAL.tipoff.replace(tzinfo=UTC) - timedelta(minutes=121)
+    late = HOU_DAL.tipoff.replace(tzinfo=UTC) + timedelta(minutes=1)
+    for t in (early, late):
+        with pytest.raises(r.PollRefused, match="pre-game window"):
+            r.plan_poll(allow, GAMES, t)
+    tip = HOU_DAL.tipoff.replace(tzinfo=UTC)
+    for t in (
+        tip - timedelta(minutes=120),
+        tip - timedelta(minutes=90),
+        tip - timedelta(minutes=40),
+    ):
+        assert r.plan_poll(allow, GAMES, t)[0] == ["RocketsBeat"]
+
+
+def test_window_is_per_team_tip(tmp_path: Path) -> None:
+    allow = r.load_allowlist(allowlist_yaml(tmp_path, FOUR))
+    t = datetime(2026, 10, 21, 21, 45, tzinfo=UTC)  # HOU (tip 23:30Z) open; BOS opens 23:00Z
+    ok, skipped = r.plan_poll(allow, GAMES, t)
+    assert "RocketsBeat" in ok and "BostonBeat" not in ok and "BostonBeat" in skipped
+
+
+def test_cli_poll_outside_window_exits_2_without_network(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from nba.ingest import reporters as mod
+
+    monkeypatch.setenv(r.KEY_ENV, TOKEN)
+    monkeypatch.setattr("nba.daily.schedule.load_schedule_cache", lambda *a, **k: GAMES)
+    real = datetime
+
+    class Frozen(real):  # type: ignore[misc, valid-type]
+        @classmethod
+        def now(cls, tz: Any = None) -> datetime:
+            return NOW - timedelta(hours=10)
+
+    monkeypatch.setattr("nba.ingest.reporters.datetime", Frozen)
+    calls: list[int] = []
+    monkeypatch.setattr(mod.XClient, "_get", lambda *a, **k: calls.append(1))
+    rc = r.main(["poll", "--allowlist", str(allowlist_yaml(tmp_path)), "--data-dir", str(tmp_path)])
+    assert rc == 2 and calls == [] and "REFUSED" in capsys.readouterr().err
+
+
+def monthly_ledger(tmp_path: Path, days: dict[str, dict[str, int]]) -> None:
+    d = tmp_path / "data"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "budget.json").write_text(json.dumps({"days": days, "total_posts": 0}))
+
+
+def test_month_post_cap_refuses_before_request(tmp_path: Path) -> None:
+    allow = allowlist_yaml(
+        tmp_path, budget={"posts_per_run": 200, "posts_per_day": 400, "posts_per_month": 8000}
+    )
+    # 7996 posts already this UTC month on earlier days; today none -> 4 left < one page (5)
+    monthly_ledger(tmp_path, {"2026-10-01": {"posts": 7996, "requests": 90}})
+    srv = Server([tweet("1", "x")])
+    c = client(tmp_path, srv, allow=allow)
+    res = c.poll()
+    assert srv.requests == [] and res.stopped and "month 7996/8000" in res.stopped
+
+
+def test_month_usd_cap_refuses_before_request(tmp_path: Path) -> None:
+    allow = allowlist_yaml(
+        tmp_path,
+        budget={"posts_per_month": 99999, "usd_per_month": 1.0, "posts_per_day": 400},
+    )
+    monthly_ledger(tmp_path, {"2026-10-02": {"posts": 198, "requests": 5}})  # $0.99 of $1
+    srv = Server([tweet("1", "x")])
+    c = client(tmp_path, srv, allow=allow)
+    res = c.poll()
+    assert srv.requests == [] and res.stopped and "$0.99/$1.00" in res.stopped
+
+
+def test_month_resets_on_the_next_utc_month(tmp_path: Path) -> None:
+    monthly_ledger(tmp_path, {"2026-09-30": {"posts": 8000, "requests": 100}})
+    srv = Server([tweet("1", "x")])
+    c = client(tmp_path, srv)
+    assert c.poll().per_handle == {"RocketsBeat": 1}
+
+
+def test_cli_month_cap_exits_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from nba.ingest import reporters as mod
+
+    monkeypatch.setenv(r.KEY_ENV, TOKEN)
+    now = datetime.now(UTC)
+    tip = now.replace(tzinfo=None) + timedelta(minutes=60)
+    game = ScheduledGame("g", tip, TID["HOU"], TID["DAL"])
+    monkeypatch.setattr("nba.daily.schedule.load_schedule_cache", lambda *a, **k: [game])
+    calls: list[int] = []
+    monkeypatch.setattr(mod.XClient, "_get", lambda *a, **k: calls.append(1))
+    ledger = {"days": {now.strftime("%Y-%m-01"): {"posts": 8000, "requests": 1}}}
+    (tmp_path / "budget.json").write_text(json.dumps(ledger))
+    rc = r.main(["poll", "--allowlist", str(allowlist_yaml(tmp_path)), "--data-dir", str(tmp_path)])
+    out = capsys.readouterr()
+    assert calls == [] and "month 8000/8000" in out.err
+    # a day-1 UTC edge cannot make "today" differ from the month key here
+    assert rc == 2
+
+
+def test_repo_config_caps() -> None:
+    a = r.load_allowlist(ROOT_ALLOWLIST)
+    assert (a.posts_per_day, a.posts_per_month, a.usd_per_month) == (400, 8000, 40.0)
+    assert a.window_minutes == 120
+
+
+def test_budget_subcommand_prints_day_and_month(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    allow = allowlist_yaml(tmp_path)
+    now = datetime.now(UTC)
+    today, first = now.strftime("%Y-%m-%d"), now.strftime("%Y-%m-01")
+    days = {first: {"posts": 100, "requests": 4}}
+    days[today] = {"posts": days.get(today, {}).get("posts", 0) + 20, "requests": 3}
+    (tmp_path / "budget.json").write_text(json.dumps({"days": days}))
+    rc = r.main(["budget", "--allowlist", str(allow), "--data-dir", str(tmp_path)])
+    out = capsys.readouterr().out
+    assert rc == 0 and "$" in out and "attempts" in out
+    if today == first:
+        assert "20/1000 posts" in out
+    else:
+        assert "20/1000 posts, 3 attempts, 0 user reads, est $0.10" in out
+        assert "120/8000 posts, 7 attempts, 0 user reads, est $0.60/$40.00" in out
+
+
+def test_cached_ids_make_zero_user_lookups_and_timeline_asks_for_no_user_objects(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "user_ids.json").write_text(json.dumps({"rocketsbeat": "42"}))
+    srv = Server([tweet("1", "x")])
+    ticks = iter(NOW + timedelta(minutes=i) for i in range(1000))
+    c = client(tmp_path, srv, clock=lambda: next(ticks))
+    c.poll()
+    c.poll()
+    assert [q for q in srv.requests if "/users/by/" in q.url.path] == []
+    assert len(srv.requests) == 2
+    for q in srv.requests:
+        assert "expansions" not in q.url.params and "user.fields" not in q.url.params
+    ledger = json.loads((tmp_path / "data" / "budget.json").read_text())
+    assert ledger["days"]["2026-10-21"].get("users", 0) == 0
+
+
+def test_first_lookup_is_billed_once_then_cached(tmp_path: Path) -> None:
+    srv = Server([tweet("1", "x")])
+    c = client(tmp_path, srv)
+    c.poll()
+    later = NOW + timedelta(hours=1)
+    c2 = client(tmp_path, srv, clock=lambda: later)  # a new process reads the cache file
+    c2.poll()
+    lookups = [q for q in srv.requests if "/users/by/" in q.url.path]
+    assert len(lookups) == 1
+    ledger = json.loads((tmp_path / "data" / "budget.json").read_text())
+    assert ledger["days"]["2026-10-21"]["users"] == 1
+
+
+def test_user_reads_count_toward_usd_month_and_lookup_is_refused_at_the_cap(
+    tmp_path: Path,
+) -> None:
+    allow = allowlist_yaml(tmp_path, budget={"usd_per_month": 1.0, "posts_per_day": 400})
+    # $0.995 spent (199 posts); one more user read ($0.01) would pass $1.00
+    monthly_ledger(tmp_path, {"2026-10-02": {"posts": 199, "requests": 5, "users": 0}})
+    srv = Server([tweet("1", "x")])
+    c = client(tmp_path, srv, allow=allow)
+    with pytest.raises(r.BudgetExceeded, match="user lookup refused"):
+        c.user_id("RocketsBeat")
+    assert srv.requests == []
+    # user reads already billed reduce the posts that remain under the USD cap
+    monthly_ledger(tmp_path, {"2026-10-02": {"posts": 0, "requests": 5, "users": 98}})  # $0.98
+    c2 = client(tmp_path, srv, allow=allow)
+    assert c2.budget.remaining(NOW) == 4  # $0.02 / $0.005
+
+
+def test_budget_subcommand_shows_user_reads(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    now = datetime.now(UTC)
+    day = now.strftime("%Y-%m-%d")
+    (tmp_path / "budget.json").write_text(
+        json.dumps({"days": {day: {"posts": 10, "requests": 4, "users": 3}}})
+    )
+    rc = r.main(
+        ["budget", "--allowlist", str(allowlist_yaml(tmp_path)), "--data-dir", str(tmp_path)]
+    )
+    out = capsys.readouterr().out
+    assert rc == 0 and "3 user reads" in out and "est $0.08" in out and "users $0.03" in out
