@@ -1,0 +1,8 @@
+{
+ "proof": "P2",
+ "verdict": "pass",
+ "at": "2026-10-15 11:18 CDT",
+ "git_head": "212ecb7",
+ "evidence": "tests/props/test_stock_features.py (planted future: a later game, tonight's leaked box and a post-run report move no feature or grid; editing a prior game does) - 7 passed together with tests/props/test_combo_p1.py, exit 0, run by the main session at this time",
+ "rule": "docs/prereg/COMBO_STOCKS_SHADOW.md item 4"
+}

@@ -1,0 +1,10 @@
+{
+ "proof": "P4",
+ "verdict": "pass",
+ "at_run": "2026-10-14",
+ "recorded_at": "2026-10-15 11:18 CDT",
+ "cost": "combo step mean 3.1 s, max 10.6 s per pretip run over the 20-date replay (rule estimate about 6 s per slate group; within the 420 s shadow budget S1)",
+ "storage": "about 3.67 MB per 12-game slate group (46 MB over 20 dates); no optional arm built (DIRECT, RECENT_CAL NULL)",
+ "source": "P3 replay 2026-10-14 (same run); docs/PREDICTIONS_LEDGER.md scored steward priors",
+ "rule": "docs/prereg/COMBO_STOCKS_SHADOW.md item 5 (P4 must report MB written per slate)"
+}

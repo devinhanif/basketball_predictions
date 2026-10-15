@@ -1,0 +1,10 @@
+{
+ "proof": "P3",
+ "verdict": "pass",
+ "at_run": "2026-10-14",
+ "recorded_at": "2026-10-15 11:18 CDT",
+ "result": "replay oracle with --combo-shadow ON, 20 dates of season 2025, source copy data/rehearsal/oracle_c2: sha256 89889f6d IDENTICAL (46,658 predictions, 44,562 scores); heartbeat ok on all 96 runs; rows_written > 0 on 20 of 20 dates (34 of 96 runs wrote, the rest deduped within the tip group)",
+ "holdout_log": "docs/HOLDOUT_ACCESS_LOG.md row 80 (logged before the copy); copies deleted unread by Devin (row 82)",
+ "source": "docs/PREDICTIONS_LEDGER.md 'SCORED: COMBO_STOCKS_SHADOW steward priors' (2026-10-14); steward wiring branch agent/steward-opening-wiring da08b57",
+ "rule": "docs/prereg/COMBO_STOCKS_SHADOW.md item 4 (review B5b)"
+}
