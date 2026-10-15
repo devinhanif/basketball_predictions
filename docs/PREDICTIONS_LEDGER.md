@@ -4,6 +4,10 @@ Every prior stated before a result (by Claude or an agent), scored when the resu
 calibration (Devin, 2026-10-12). A prior is recorded with where it was written; the outcome column is filled only from
 the frozen result. Brier over resolved rows is reported in each session retro.
 
+Form (2026-10-14 retro, Devin: yes): each prior names a binary event and its probability (P(event) = p), so it scores
+as hit/miss and enters a Brier score. A band or a word alone ("mostly", "expected -0.01") is context, not a scorable prior; an
+expected value is stated with its 80% interval and scored as inside/outside.
+
 | Date | Rule / question | Prior stated before the result | Where written | Outcome | Hit? |
 |---|---|---|---|---|---|
 | 2026-10-12 | ROAD_STARS pass | P(pass) about 0.02 (expected null) | DECISIONS 12:28 | NULL (T475) | yes |

@@ -114,6 +114,9 @@ Incident: an afternoon of DECISIONS headings, a ledger heading and two frozen st
 16:37 CDT freeze), because the running estimate of the time survived a context reset and was never re-read. The frozen lines cannot be
 edited; the correction lives in DECISIONS 2026-10-11 17:10. Rule: before writing any time into a doc, run `date` (or take the commit
 time); label the zone as the machine prints it (CDT/CST), not "CT".
+Enforced (2026-10-14 retro, Devin: yes): two stamps were guessed again after the 10-13 retro. A time is written by the shell, not typed:
+the doc edit takes it from `$(date "+%Y-%m-%d %H:%M %Z")` in the same command, or the line quotes the `date` output that was run just before.
+A reviewer who finds a typed time with no `date` call behind it reports it as a defect.
 
 ## Locks belong to whoever made them (2026-10-11)
 Incident: an agent killed its own job waiting on `data/ops/heavy.lock`, then ran `rmdir` on the lock directory; it could not rule out that the
@@ -183,3 +186,8 @@ Incident: for SEQ_LEARNING_CURVE_2, two commands went to Devin checked only for 
 loader needs (the only source of game_date), so the ingest stopped. Rule: before a command goes to Devin, read the code path it runs and
 confirm its scope covers the target (seasons, ids, files), compare a download list against what the loader reads and what the last
 download of that source held, and give the dry-run count where one exists. Devin's shell time is the scarce resource; one wasted run costs more than the check.
+
+## A shadow that fails its own dry run says so where it is signed (2026-10-14)
+Incident: COMBO_STOCKS_SHADOW was frozen while its 2024 dry run of the rule as written read only 4 of 7 targets passing; that fact sat
+in a prior restatement, not in the line Devin signed. Rule: the signing line of any rule whose rehearsal or dry run shows a target
+failing names those targets and their numbers.
