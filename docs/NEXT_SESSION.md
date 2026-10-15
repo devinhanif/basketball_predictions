@@ -12,6 +12,10 @@ A1 merged by Devin (70c52c0). Six agents launched ~22:30 CDT, each on its own br
 5. agent/archivist-questionable-scope: inventory of QUESTIONABLE/DOUBTFUL statuses (Claude's suggestion, not approved by Devin; scoping only).
 6. agent/scribe-retro-1014: retro for 10-14.
 Results are summarised here as they land.
+- DONE retro (main f3f0391); Devin "yes to everything" -> rule changes e19939a (shell timestamps, dry-run failures in the signing line, binary priors).
+- DONE F1 edits (agent/modeler-f1-warm-window 46f015e): all 10 applied; gate G1-G7 PASS on real data (no fit, no 2025). Power at 1.5x floor
+  pts 0.68/0.86 (2023/2024), joint pts 0.58, pts at the floor 0.18. Worktree data/ was a real dir (stale model copies); moved to scratchpad,
+  now symlinked. Still OPEN for Devin: F1-first order, count floors -0.0025, WOWY E7(e) wording; then the WOWY mirror edits, manifest refresh, sign.
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
