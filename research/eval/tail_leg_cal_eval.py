@@ -50,6 +50,7 @@ HIGH = 0.65  # the band the T495 attack measured
 HALF_LIFE = 365.0
 MIN_TAIL = 1000  # fewer earlier tail legs than this: identity (arm = CAL)
 RIDGE = 1.0
+BETA_FLAT = -0.90  # P8: the median fitted beta must be above this (the clip is -0.95)
 BETA_MIN, BETA_MAX = (
     -0.95,
     1.0,
@@ -396,6 +397,9 @@ class Clusters:
                 max(ahc.p_le0(-bg), ahc.p_le0(-bd))
             ),  # one-sided p for "the statistic is < 0"
             "p_pos": float(max(ahc.p_le0(bg), ahc.p_le0(bd))),
+            "p_pos_min": float(
+                min(ahc.p_le0(bg), ahc.p_le0(bd))
+            ),  # the conservative p for "worse" (P7)
         }
 
     def slope(self, mask: np.ndarray, x: np.ndarray, y: np.ndarray) -> dict[str, Any]:
@@ -468,7 +472,7 @@ def construction_checks(d: dict[str, Any], wf: dict[str, Any]) -> dict[str, Any]
 
 
 def score_book(
-    d: dict[str, Any], hit: np.ndarray, cl: Clusters, k_null: int, label: str
+    d: dict[str, Any], hit: np.ndarray, cl: Clusters, k_null: int, label: str, top: bool = True
 ) -> dict[str, Any]:
     wf = walk_forward_tail(d["date"], d["q"], hit)
     cons = construction_checks(d, wf)
@@ -532,6 +536,12 @@ def score_book(
             }
             if int(m.sum()) >= MIN_STAT_TAIL:
                 entry["TAIL_H_contrast"] = cl.summary(m, dll["TAIL_H"])
+                # labels: the clustered gap interval of CAL and TAIL_H on this slice, at q >= 0.60 and q >= 0.65
+                entry["gap_ci"] = {
+                    band: {a: cl.summary(m & mb, hit - sh[a]) for a in ("CAL", "TAIL_H")}
+                    for band, mb in (("r60", r60), ("r65", r65))
+                    if (m & mb).sum() > 0
+                }
             sl[f"{name}_{v}"] = entry
     res["slices"] = sl
     res["reliability_r60"] = reliability(sh, hit, r60)
@@ -556,7 +566,7 @@ def score_book(
             }
             for a in null
         }
-    res["top"] = top_slice(d, hit, wf, cl, label)
+    res["top"] = top_slice(d, hit, wf, cl, label) if top else {}
     return res
 
 
@@ -637,7 +647,7 @@ def evaluate(primary: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
     sl = primary["slices"]
     # P7: stats with enough scored tail legs, BH over them, "worse" one-sided; sides at the point
     stat_keys = [k for k in sl if k.startswith("stat_") and "TAIL_H_contrast" in sl[k]]
-    pw = [sl[k]["TAIL_H_contrast"]["p_pos"] for k in stat_keys]
+    pw = [sl[k]["TAIL_H_contrast"]["p_pos_min"] for k in stat_keys]
     qw = dict(zip(stat_keys, bh_adjust(pw), strict=True)) if pw else {}
     p7_stats = all(v >= 0.05 for v in qw.values())
     p7_sides = all(
@@ -652,7 +662,11 @@ def evaluate(primary: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
             abs(g60["point"]) <= GAP_LIMIT and g60["lo"] >= -GAP_MARGIN and g60["hi"] <= GAP_MARGIN
         ),
         "P2n_ll60_noninferior": bool(l60["point"] <= 0 and l60["hi"] <= NI_MARGIN),
-        "P3_gap65": bool(g65["lo"] <= 0 <= g65["hi"] and TOP_GAP_LO <= g65["point"] <= TOP_GAP_HI),
+        "P3_gap65": bool(
+            g65["game"][0] <= 0 <= g65["game"][1]
+            and g65["date"][0] <= 0 <= g65["date"][1]
+            and TOP_GAP_LO <= g65["point"] <= TOP_GAP_HI
+        ),
         "P4_seasons": all(
             sl[f"season_{s}_r60"][a]["ll_minus_cal"] <= 0
             and abs(sl[f"season_{s}_r60"][a]["gap"]) <= GAP_MARGIN
@@ -675,8 +689,15 @@ def evaluate(primary: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
         cal65["hi"] < 0
     )  # CAL's own gap at q >= 0.65 on the scored rows has its upper bound below 0
     res["CAL_gap65"] = cal65
+    betas = [b["beta"] for b in primary["blocks"] if not b["identity"]]
+    res["beta_median"] = float(np.median(betas)) if betas else float("nan")
+    # P8: the correction keeps the tail's order (the median fitted beta is off the clip)
+    p8 = bool(betas) and res["beta_median"] > BETA_FLAT
+    res["P8_order_kept"] = p8
     if not res["P0_problem_exists"]:
         res["word"] = "NO_TAIL_PROBLEM"
+    elif all(checks.values()) and not p8:
+        res["word"] = "TAIL_FLATTENED"
     elif all(checks.values()) and sup:
         res["word"] = "TAIL_FIXES"
     elif all(checks.values()):
@@ -738,6 +759,10 @@ def preflight(
     """Counts only (no tail-stage label): the pinned input hashes, T495's published tail counts, and the rule's own pins.
     ``require_declared``: the real run needs every pin line in the frozen rule (the draft may lack them)."""
     guard_season(SEASONS)
+    if pj.versions() != pj.PINNED_VERSIONS:
+        raise RuntimeError(
+            f"package versions {pj.versions()} differ from the pinned {pj.PINNED_VERSIONS}"
+        )
     for rel, want in INPUT_PINS.items():
         got = rule.file_sha256(root / rel)
         if got != want:
@@ -788,13 +813,17 @@ def main(argv: list[str] | None = None) -> int:
         pre = preflight(root)
         res = run_all(root, "synthetic", a.truth, a.k)
         res["preflight"] = pre
+        res["versions"] = pj.versions()
         out = Path(a.out) if a.out else OUT_DIR / "rehearsal" / a.truth / "results.json"
     else:
         sha = rule.require_frozen(a.sha)
         blobs = rule.require_harness_pinned(sha)  # before any tail-stage label is attached
         pre = preflight(root, require_declared=True)
-        res = run_all(root, "real", None, a.k)
+        res = run_all(
+            root, "real", None, K_NULL
+        )  # --k is ignored: the recorded null is always K_NULL draws
         res["preflight"] = pre
+        res["versions"] = pj.versions()
         res["rule_sha256"] = sha
         res["harness_blobs"] = blobs
         out = Path(a.out) if a.out else OUT_DIR / "results" / "results.json"

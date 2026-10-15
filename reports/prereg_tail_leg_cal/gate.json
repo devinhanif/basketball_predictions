@@ -1,5 +1,5 @@
 {
- "date_cdt": "Thu Oct 15 07:56:32 CDT 2026",
+ "date_cdt": "Thu Oct 15 08:22:56 CDT 2026",
  "preflight_counts": {
   "draftkings|2023": {
    "legs": 41635,
@@ -433,5 +433,64 @@
    }
   }
  },
- "date_cdt_end": "Thu Oct 15 07:57:06 CDT 2026"
+ "word_level": {
+  "smooth": {
+   "draws": 100,
+   "words": {
+    "NO_TAIL_PROBLEM": 4,
+    "NOT_FIXED": 35,
+    "TAIL_GAP_FIXED_LL_NOT_SHOWN": 20,
+    "TAIL_FIXES": 41
+   },
+   "P_positive": 0.61,
+   "beta_median_p5_p50_p95": [
+    -0.7450649770226606,
+    -0.5219108741972075,
+    -0.3759069362186227
+   ]
+  },
+  "step": {
+   "draws": 100,
+   "words": {
+    "NO_TAIL_PROBLEM": 4,
+    "NOT_FIXED": 67,
+    "TAIL_FIXES": 14,
+    "TAIL_GAP_FIXED_LL_NOT_SHOWN": 15
+   },
+   "P_positive": 0.29,
+   "beta_median_p5_p50_p95": [
+    -0.6073387765371993,
+    -0.40782347528432406,
+    -0.22545654609429197
+   ]
+  },
+  "calibrated": {
+   "draws": 100,
+   "words": {
+    "NO_TAIL_PROBLEM": 96,
+    "NOT_FIXED": 3,
+    "TAIL_GAP_FIXED_LL_NOT_SHOWN": 1
+   },
+   "P_positive": 0.01,
+   "beta_median_p5_p50_p95": [
+    -0.2532329770354576,
+    -0.020888611128307054,
+    0.14027389074777494
+   ]
+  },
+  "flat": {
+   "draws": 100,
+   "words": {
+    "NOT_FIXED": 85,
+    "TAIL_FLATTENED": 15
+   },
+   "P_positive": 0.0,
+   "beta_median_p5_p50_p95": [
+    -0.95,
+    -0.95,
+    -0.95
+   ]
+  }
+ },
+ "date_cdt_end": "Thu Oct 15 08:26:29 CDT 2026"
 }

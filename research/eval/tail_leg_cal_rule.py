@@ -13,7 +13,7 @@ BEFORE it attaches any tail-stage outcome label to the legs:
 
 Pin commit procedure (a hand that can commit, after the adversary has read the harness and the synthetic rehearsal):
     .venv/bin/python -m research.eval.tail_leg_cal_rule pin           # prints the pin and the commit command
-    git add <HARNESS_FILES> && git commit -m "harness(TAIL_LEG_CAL): <pin>"
+    git commit --allow-empty -m "harness(TAIL_LEG_CAL): <pin>"
 The pin commit must come after the ``prereg(TAIL_LEG_CAL)`` commit and before the first real run.
 """
 
@@ -184,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         for k in sorted(blobs):
             print(f"{blobs[k]}  {k}")
         print(f"pin {pin}")
-        print(f'git add {" ".join(HARNESS_FILES)} && git commit -m "harness({ID}): {pin}"')
+        print(f'git commit --allow-empty -m "harness({ID}): {pin}"')
         return 0
     print("usage: python -m research.eval.tail_leg_cal_rule pin")
     return 2
