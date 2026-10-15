@@ -196,3 +196,17 @@ Class checks. Power: a gap of 0.03 is detectable in every cell, the top slice ne
 
 === RESULTS BELOW ===
 (none. No fit, no score and no outcome exist. The gate above is counts and model-only quantities.)
+
+## Result (run 2026-10-15 02:03 CDT; frozen 76ea8fc, sha a02ae78e; reports/prereg_parlay_joint_cal/results/report.json)
+DraftKings (primary), 2024 (exposed: LC select season), date-clustered 95%:
+| cell | tickets | gap raw legs | gap CAL legs | T1 word | D1 CAL-raw log loss | T2 word |
+|---|---|---|---|---|---|---|
+| cross 2-leg | 3,658 | -0.043 [-0.060, -0.028] | +0.008 [-0.008, +0.024] | CALIBRATED | -0.0086 [-0.0135, -0.0037] | CAL HELPS |
+| cross 3-leg | 3,260 | -0.049 [-0.062, -0.036] | -0.008 [-0.021, +0.005] | CALIBRATED | -0.0107 [-0.0151, -0.0062] | CAL HELPS |
+| same-game 2-leg | 4,227 | -0.048 [-0.063, -0.033] | +0.005 [-0.010, +0.020] | CALIBRATED | -0.0074 [-0.0118, -0.0028] | CAL HELPS |
+| same-game 3-leg | 4,238 | -0.045 [-0.057, -0.033] | -0.002 [-0.013, +0.011] | CALIBRATED | -0.0091 [-0.0132, -0.0050] | CAL HELPS |
+Panel slice (TOP, top 3 per date by p_joint_cal, pooled 2023-24, n 1,149 per size): 2-leg gap -0.036 [-0.074, +0.000], 3-leg -0.030
+[-0.065, +0.007]: INCONCLUSIVE (floor -0.05; the panel's own picks lean overconfident, not shown). Pinnacle (direction): same direction;
+T1 CALIBRATED in 2 cells, INCONCLUSIVE in 2; TOP 2-leg -0.046 [-0.080, -0.010], 3-leg -0.042 [-0.074, -0.010] (INCONCLUSIVE by the floor).
+Reading: raw legs make parlays about 4-5 points overconfident; calibrated legs remove it on random tickets. The top-3-by-confidence slice
+still leans 3-5 points high (selection on the highest p_cal), not decided. Attack pending.
