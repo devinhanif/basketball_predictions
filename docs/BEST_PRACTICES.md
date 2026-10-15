@@ -191,3 +191,11 @@ download of that source held, and give the dry-run count where one exists. Devin
 Incident: COMBO_STOCKS_SHADOW was frozen while its 2024 dry run of the rule as written read only 4 of 7 targets passing; that fact sat
 in a prior restatement, not in the line Devin signed. Rule: the signing line of any rule whose rehearsal or dry run shows a target
 failing names those targets and their numbers.
+
+## A report's time is the time printed in it, not the time in its file name (2026-10-15)
+Incident: official injury-report PDFs named with an hour only (`..._06PM.pdf`) print "06:30 PM" in their header; the ingest stamped
+them with the file-name time, 30 minutes early (190 of 190 sampled; files named with minutes were correct). Under a tip-60 cutoff the
+INJURY_TIMING repaired table used a report published after the cutoff in about two thirds of 2023-24 games, and the planted-future
+check could not see it because planted rows carry correct stamps. Stored 2022-24 history has the same offset: 3.8% / 4.8% of games
+use a report published after tip-60. Rule: known-at comes from the document's own printed time (or the fetch time, whichever is
+later), and a preflight refuses any row whose stamp disagrees with its source header.
