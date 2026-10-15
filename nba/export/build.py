@@ -370,6 +370,7 @@ def build_export(
         box = reader.box_scores(src, window)
         report = reader.explainer_rows(src, fwd.games, window)
         teams_of = reader.player_teams(src, fwd.prop_grids, fwd.games, window, roster_dir)
+        grids = reader.prod_grids(src, (g["game_id"] for g in fwd.games))
     finally:
         if own:
             src.close()
@@ -377,7 +378,7 @@ def build_export(
         tid, how = teams_of.get((prow["game_id"], prow["player_id"]), (None, None))
         prow["team_id"], prow["team_source"] = tid, how
     lines = _read_lines(fwd.prop_grids, window, odds_db, odds_con)
-    rung = rung_cal_fields.attach(fwd.prop_grids, lines.rows)
+    rung = rung_cal_fields.attach(fwd.prop_grids, lines.rows, grids)
     parlay = parlay_of_day(parlay_dir or REPO_ROOT / "reports" / "parlay", day.isoformat())
 
     players, teams = _names(

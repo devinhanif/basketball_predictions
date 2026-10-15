@@ -16,7 +16,7 @@ from typing import Any
 import duckdb
 import polars as pl
 
-from nba.daily import stamps
+from nba.daily import grid199, stamps
 from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
 from nba.daily.injury import ProbeFn, PullFn, out_players, pull_latest_report
 from nba.daily.predict import (
@@ -113,6 +113,12 @@ class RunSummary:
     stamp_status: str = "skipped"
     #: fit facts the run hands to the stamp writer (Elo ratings, props fit info); never persisted
     stamp_inputs: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
+    #: production's 199-point grids per (game, player, stat) for nba.daily.grid199
+    grids199: dict[tuple[str, int, str], Any] = field(
+        default_factory=dict, repr=False, compare=False
+    )
+    #: forward_prop_grid199 write: "ok: ..." | "failed: ..." | "skipped"
+    grid_status: str = "skipped"
 
 
 def run_daily(
@@ -239,6 +245,7 @@ def run_daily(
             raise
         summary.n_predicted_games = len(upcoming)
         _stamp_models(con, run_date, made_at, summary, preds, model_cache)
+        _persist_grids(con, made_at, summary, upcoming)
 
     summary.settle = settle_pending(con, made_at)
     shared: dict[str, Any] = {}  # the wide-roster production frame, computed once for both shadows
@@ -293,6 +300,25 @@ def _stamp_models(
         summary.stamp_status = f"failed: {type(exc).__name__}: {exc}"[:200]
     if summary.stamp_status.startswith("failed"):
         summary.shadow_errors.append(f"model stamps: {summary.stamp_status}"[:200])
+
+
+def _persist_grids(
+    con: duckdb.DuckDBPyConnection,
+    made_at: datetime,
+    summary: RunSummary,
+    upcoming: list[ScheduledGame],
+) -> None:
+    """Write production's 199-point grids (own table, own try/except; ``grid199.persist`` never
+    raises). A failure is recorded in ``summary.grid_status`` and ``shadow_errors`` (an ALERTS
+    line); it can never change, delay or fail a prediction row, which are already written."""
+    try:
+        summary.grid_status = grid199.persist(
+            con, summary.run_id, made_at, summary.grids199, {g.game_id: g.tipoff for g in upcoming}
+        )
+    except Exception as exc:  # belt: persist() already catches
+        summary.grid_status = f"failed: {type(exc).__name__}: {exc}"[:200]
+    if summary.grid_status.startswith("failed"):
+        summary.shadow_errors.append(f"prop grid199: {summary.grid_status}"[:200])
 
 
 #: Production thresholds off: every rostered not-OUT player gets a row (the shadow's coverage).
@@ -920,6 +946,7 @@ def _context_props(
         int_variant=log_int_variant, lower_tail_variant=log_lower_tail_variant,
     )  # fmt: skip
     info = res.info
+    summary.grids199 = res.grids199
     summary.stamp_inputs["props_info"] = {
         "train_through": info.get("train_through"), "n_train_rows": info.get("n_train_rows"),
     }  # fmt: skip

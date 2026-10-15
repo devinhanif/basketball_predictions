@@ -3,15 +3,16 @@
 
 Display only, additive, optional: a row that cannot get the exact inputs gets NULL and the reason is
 counted in the manifest; nothing is approximated. The frozen CAL-rung map (``nba.parlay.rung_cal``,
-map_sha8 116f4480, DraftKings only) needs the continuous 199-point grid's median and spread. That grid
-is held only for AVG rows (``forward_avg_shadow.avg_pmf199``, carried here as ``_pmf199``); a production
-context-residual row stores only the integer survival (``p_ge_full``) and a 19-point quantile grid, from
-which the harness's median and spread cannot be recovered exactly, so those rows get ``rung_cal`` NULL
-(reason ``no_continuous_grid``).
+map_sha8 116f4480, DraftKings only) is a map of the PRODUCTION model's P(over), so ``rung_cal`` is built
+only from the production (``props_context_residual``) row of the prop: its persisted continuous
+199-point grid (``forward_prop_grid199``; median and spread via ``grid_med_spr``), its ``p_ge_full``
+survival and its stored ``starter_rate``, plus the DraftKings main line. This holds even when the
+displayed primary is an AVG row; AVG grids are never used. The grid must reproduce the row's stored
+``p_ge_full`` exactly (else ``grid_mismatch``); a recency-routed row or a run before the grid was
+persisted has no grid (``no_production_grid``).
 
 ``book_main_line``: the newest two-sided (over and under) non-alternate DraftKings quote of the row's
-slate run, received strictly before the row's ``made_at`` and the tip. ``starter10`` is the production
-row's stored ``starter_rate`` (as ``nba.parlay.top_source`` reads it); without it the field is NULL.
+slate run, received strictly before the row's ``made_at`` and the tip.
 """
 
 from __future__ import annotations
@@ -24,13 +25,17 @@ from typing import Any
 import numpy as np
 
 from nba.parlay import rung_cal as rc
+from nba.props import full_support
 
 BOOK = rc.BOOK
 PRODUCTION_PROP_MODEL = "props_context_residual"
+SOURCE = PRODUCTION_PROP_MODEL
 REASONS = (
     "no_book_line",
     "ambiguous_main_line",
-    "no_continuous_grid",
+    "no_production_row",
+    "no_production_grid",
+    "grid_mismatch",
     "no_survival",
     "no_starter_rate",
     "no_map",
@@ -65,39 +70,51 @@ def main_line(
     return (at_best[0], best) if len(at_best) == 1 else "ambiguous_main_line"
 
 
-def _starter_rates(props: list[dict[str, Any]]) -> dict[tuple[str, int, str], float]:
-    """Newest production row's stored ``starter_rate`` per (game, player, stat)."""
-    newest: dict[tuple[str, int, str], tuple[datetime, str, float | None]] = {}
+def _production_rows(props: list[dict[str, Any]]) -> dict[tuple[str, int, str], dict[str, Any]]:
+    """Newest pre-tip production (context-residual, non-comparison) row per (game, player, stat)."""
+    newest: dict[tuple[str, int, str], dict[str, Any]] = {}
     for p in props:
         if p["model_name"] != PRODUCTION_PROP_MODEL or p.get("comparison_only"):
             continue
-        try:
-            sr = json.loads(p["prediction_json"]).get("starter_rate")
-        except (TypeError, ValueError, AttributeError):
-            sr = None
         k = (p["game_id"], int(p["player_id"]), p["stat"])
-        if k not in newest or (p["made_at"], p["run_id"]) > newest[k][:2]:
-            newest[k] = (p["made_at"], p["run_id"], None if sr is None else float(sr))
-    return {k: v[2] for k, v in newest.items() if v[2] is not None}
+        if k not in newest or (p["made_at"], p["run_id"]) > (
+            newest[k]["made_at"],
+            newest[k]["run_id"],
+        ):
+            newest[k] = p
+    return newest
+
+
+def _starter_rate(row: dict[str, Any]) -> float | None:
+    try:
+        sr = json.loads(row["prediction_json"]).get("starter_rate")
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return None if sr is None else float(sr)
+
+
+def _survival_matches(grid: np.ndarray, stat: str, counts: list[int], n: int) -> bool:
+    got = full_support.from_samples(grid, stat)
+    return bool(got["n"] == n and list(got["c"]) == [int(c) for c in counts])
 
 
 def attach(
     props: list[dict[str, Any]],
     quotes: list[dict[str, Any]],
+    grids: dict[tuple[str, int, str], tuple[datetime, str, list[float]]] | None = None,
     rmap: rc.RungCalMap | None = None,
 ) -> dict[str, Any]:
-    """Set ``book_main_line`` and ``rung_cal`` (a dict or None) on every prop row, in place; drop the
-    private ``_pmf199``; return the counts for the manifest."""
+    """Set ``book_main_line`` and ``rung_cal`` (a dict or None) on every prop row, in place; return the
+    counts for the manifest. ``grids``: ``reader.prod_grids`` (production's persisted q199)."""
     m = rmap if rmap is not None else rc.load_map()
+    grids = grids or {}
     by_run: dict[tuple[str, str, int, str], list[dict[str, Any]]] = defaultdict(list)
     for q in quotes:
         by_run[(q["run_id"], q["game_id"], int(q["player_id"]), q["stat"])].append(q)
-    starter = _starter_rates(props)
+    prod = _production_rows(props)
     why: dict[str, int] = dict.fromkeys(REASONS, 0)
     n_main = n_cal = n_lines = 0
-    cal_counts: dict[str, int] = {}
     for p in props:
-        pmf = p.pop("_pmf199", None)
         p["book_main_line"], p["rung_cal"] = None, None
         key = (p.get("lines_run_id") or p["run_id"], p["game_id"], int(p["player_id"]), p["stat"])
         got = main_line(by_run.get(key, []), p["made_at"], p["tipoff"])
@@ -107,41 +124,43 @@ def attach(
         line, at = got
         p["book_main_line"] = line
         n_main += 1
-        counts: list[int] | None = p.get("p_ge_full_counts")
-        n: int | None = p.get("p_ge_full_n")
+        pk = (p["game_id"], int(p["player_id"]), p["stat"])
+        row = prod.get(pk)
+        grid = grids.get(pk)
         reason = None
-        if pmf is None:
-            reason = "no_continuous_grid"
-        elif not counts or not n or not isinstance(counts, list):
-            reason = "no_survival"
-        elif (p["game_id"], int(p["player_id"]), p["stat"]) not in starter:
-            reason = "no_starter_rate"
-        elif not m.has(p["stat"]):
-            reason = "no_map"
+        counts: list[int] = []
+        n = 0
+        starter = None
+        if row is None:
+            reason = "no_production_row"
+        elif grid is None:
+            reason = "no_production_grid"
+        else:
+            counts, n = row.get("p_ge_full_counts") or [], int(row.get("p_ge_full_n") or 0)
+            starter = _starter_rate(row)
+            if not counts or not n:
+                reason = "no_survival"
+            elif not _survival_matches(np.asarray(grid[2], dtype=float), p["stat"], counts, n):
+                reason = "grid_mismatch"
+            elif starter is None:
+                reason = "no_starter_rate"
+            elif not m.has(p["stat"]):
+                reason = "no_map"
         if reason:
             why[reason] += 1
             continue
-        assert counts is not None and n is not None  # narrowed by the reason checks above
-        med, spr = rc.grid_med_spr(np.asarray(pmf, dtype=float))
+        assert grid is not None and starter is not None  # narrowed by the reason checks above
+        med, spr = rc.grid_med_spr(np.asarray(grid[2], dtype=float))
+        c: dict[str, int] = {}
         lines = rc.rung_cal_lines(
-            np.asarray(counts, dtype=float) / float(n),
-            line,
-            starter[(p["game_id"], int(p["player_id"]), p["stat"])],
-            p["stat"],
-            med,
-            spr,
-            rmap=m,
-            counts=cal_counts,
-        )
-        if lines is None:
-            why["dropped_nonmonotone"] += 1  # the only None left once the map and survival exist
-            continue
-        lines = [x for x in lines if _in_support(x, counts, n)]
-        if not lines:
-            why["no_lines_in_support"] += 1
+            np.asarray(counts, dtype=float) / float(n), line, starter, p["stat"], med, spr,
+            rmap=m, counts=c,
+        )  # fmt: skip
+        if lines is None:  # served lines only: none in the fit support, or not monotone
+            why["dropped_nonmonotone" if c["dropped_nonmonotone"] else "no_lines_in_support"] += 1
             continue
         p["rung_cal"] = {
-            "book": BOOK, "main_line": line, "price_at": _iso_z(at),
+            "book": BOOK, "main_line": line, "price_at": _iso_z(at), "source": SOURCE,
             "map_version": rc.MAP_VERSION, "map_sha8": m.map_sha8, "lines": lines,
         }  # fmt: skip
         n_cal += 1
@@ -149,11 +168,5 @@ def attach(
     return {
         "n_props": len(props), "n_book_main_line": n_main, "n_rung_cal": n_cal,
         "n_rung_cal_lines": n_lines, "null_reasons": why, "map_sha8": m.map_sha8,
+        "source": SOURCE,
     }  # fmt: skip
-
-
-def _in_support(entry: dict[str, float], counts: list[int], n: int) -> bool:
-    """Raw model P(over) at the line (P(Y >= line + 0.5)) >= the map's fit-support floor."""
-    k = int(round(entry["line"] + 0.5))
-    raw = counts[k - 1] / n if k <= len(counts) else 0.0
-    return raw >= rc.FIT_SUPPORT_MIN_P
