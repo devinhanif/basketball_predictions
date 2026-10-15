@@ -1237,3 +1237,8 @@ What would reverse it: the post-merge adversary review finding a number shown wi
 
 **2026-10-15 01:00 CDT — COMBO R1 probe: bar MET 12/12; full pull started (per Devin's conditional go, row b10633a).**
 Probe: sample committed first (configs/odds_combo_probe_sample.yaml, seed 20261015, 12 games in seasons 2023/2024), 710 credits, server remaining 1,809,739; pra/pr/pa/ra two-sided main lines at DK or FD on 12 of 12 dates (blk 12/12, bs 9/12); manifest tree 1463cc62. Full pull: seasons 2023-24, region us, t60, 6 markets, hard cap 160,000, raw only (data/raw/odds_combo_pull_2026-10-15/), code agent/market-combo-odds-pull 3107844 run from its worktree (data_root = main). Ingest into odds_history.duckdb is a separate step needing its own go. Run by the main session from the project .env key (the agent had no key).
+
+**2026-10-15 01:06 CDT — Opening-night fixes from the preseason rehearsal (Devin: "Let's do that too").**
+What: steward fixes (1) nba/export player placement from the official pre-tip roster when no current-season row exists (opening night would show 0 players), and (2) the players_static autofill ComputeError that leaves 116 rostered players without the draft-slot rookie prior (roster_cold path). Separate commits; any live-path change gets the replay oracle (main session logs the holdout row first) and Devin's merge go by Fri 10-17.
+Why: both breaks would hit 10-20; found by the preseason dress rehearsal (agent/steward-preseason-rehearsal 94db08c).
+What would reverse it: the oracle moving, or the fix needing a model change (then it waits until after opening night).
