@@ -7,49 +7,69 @@
   },
   {
    "check": "2023: share of games with used lead <= 90 min >= 0.8",
-   "pass": false,
-   "value": 0.039483675018982534
+   "pass": true,
+   "value": 1.0
+  },
+  {
+   "check": "2023: games whose OUT set differs from stored >= 300",
+   "pass": true,
+   "value": 613
   },
   {
    "check": "2024: games with usable snapshot >= 1200",
    "pass": true,
-   "value": 1317
+   "value": 1319
   },
   {
    "check": "2024: share of games with used lead <= 90 min >= 0.8",
-   "pass": false,
-   "value": 0.04935459377372817
+   "pass": true,
+   "value": 0.9855951478392722
+  },
+  {
+   "check": "2024: games whose OUT set differs from stored >= 300",
+   "pass": true,
+   "value": 791
   }
  ],
- "ended": "2026-10-15T13:05:39-05:00",
- "gate_pass": false,
+ "ended": "2026-10-15T16:29:45-05:00",
+ "gate_pass": true,
  "rule": "docs/prereg/INJURY_TIMING.md",
  "seasons": {
   "2023": {
-   "distinct_stamps_per_game_mean": 2.554290053151101,
-   "fresh_share_lead_le_90": 0.039483675018982534,
+   "distinct_stamps_per_game_mean": 15.363705391040243,
+   "fresh_share_lead_le_90": 1.0,
    "games_total": 1318,
    "games_with_usable_snapshot": 1317,
    "lead_min_p10_p50_p90": [
-    120.0,
-    180.0,
-    300.0
-   ]
+    60.0,
+    60.0,
+    90.0
+   ],
+   "vs_stored": {
+    "games_in_both": 1317,
+    "games_out_set_differs": 613,
+    "median_lead_gain_min": -120.0
+   }
   },
   "2024": {
-   "distinct_stamps_per_game_mean": 2.5125284738041,
-   "fresh_share_lead_le_90": 0.04935459377372817,
+   "distinct_stamps_per_game_mean": 15.100833965125094,
+   "fresh_share_lead_le_90": 0.9855951478392722,
    "games_total": 1320,
-   "games_with_usable_snapshot": 1317,
+   "games_with_usable_snapshot": 1319,
    "lead_min_p10_p50_p90": [
-    120.0,
-    180.0,
-    300.0
-   ]
+    60.0,
+    60.0,
+    90.0
+   ],
+   "vs_stored": {
+    "games_in_both": 1317,
+    "games_out_set_differs": 791,
+    "median_lead_gain_min": -120.0
+   }
   }
  },
- "started": "2026-10-15T13:05:38-05:00",
- "table": "stored",
+ "started": "2026-10-15T16:29:44-05:00",
+ "table": "repaired",
  "thresholds": {
   "FRESH_LEAD": 90,
   "MIN_DIFF_GAMES": 300,

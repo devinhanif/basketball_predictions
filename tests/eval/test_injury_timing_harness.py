@@ -283,3 +283,18 @@ def test_rule_text_carries_the_pinned_numbers_and_the_marker() -> None:
             assert f"{ev.A0_PINS[st][s]:.6f}" in text
     for k, v in (("FLOOR", ev.FLOOR), ("HARM", ev.HARM)):
         assert str(v) in text.replace("−", "-"), k
+
+
+def test_repaired_union_keeps_both_tables_and_the_pin_line_is_declared() -> None:
+    a = _rows(3)
+    b = _rows(3).with_columns(pl.col("as_of") + pl.duration(hours=1))
+    u = gate.repaired_union(a, b)
+    assert u.height == a.height + b.height and gate.repaired_union(a, a).height == a.height
+    d = rule.declared(DOC)
+    assert len(d["REPAIRED_DB_SHA256"]) == 64
+
+
+def test_file_sha_is_stable(tmp_path: Path) -> None:
+    f = tmp_path / "x.bin"
+    f.write_bytes(b"abc")
+    assert ev.file_sha(f) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"

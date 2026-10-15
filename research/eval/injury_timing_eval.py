@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import sys
 import time
@@ -347,7 +348,10 @@ def build_frames(data_root: Path, repaired_db: Path) -> tuple[pl.DataFrame, pl.D
         **yaml.safe_load((data_root / "configs/context_residual.yaml").read_text()).get("model", {})
     )
     games, pgs, static, avail_s = load_inputs(str(data_root / "nba.duckdb"), None)
-    _, _, _, avail_r = load_inputs(str(data_root / "nba.duckdb"), str(repaired_db))
+    _, _, _, avail_i = load_inputs(str(data_root / "nba.duckdb"), str(repaired_db))
+    avail_r = pl.concat(
+        [avail_s, avail_i.select(avail_s.columns)]
+    ).unique()  # R = stored pair + intraday table
     if int(games["season"].max()) > MAX_SEASON:  # type: ignore[arg-type]
         raise ValueError("season > 2024 present: frozen holdout must not be loaded")
     fl_s, _ = flagged_from_availability(avail_s, games, cfg.report, max_season=MAX_SEASON)
@@ -425,6 +429,14 @@ def run_real(data_root: Path, repaired_db: Path, out: Path) -> dict[str, Any]:
 # --------------------------------------------------------------------------- preflight and CLI
 
 
+def file_sha(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 22), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def preflight(data_root: Path, repaired_db: Path | None) -> dict[str, Any]:
     """No outcome is read: the repaired-table gate and the planted-future test on real report rows."""
     from nba.features.game_tipoff import build_game_tipoff
@@ -435,7 +447,10 @@ def preflight(data_root: Path, repaired_db: Path | None) -> dict[str, Any]:
         return out
     tips = build_game_tipoff(data_root / "data/schedule", max_season=MAX_SEASON)
     stored = gate.rows_from_db(data_root / "nba.duckdb", tips)
-    rep = gate.rows_from_db(repaired_db, tips)
+    rep = gate.repaired_union(stored, gate.rows_from_db(repaired_db, tips))
+    out["repaired_db_sha256"] = file_sha(repaired_db)
+    want = rule.declared().get("REPAIRED_DB_SHA256")
+    out["repaired_db_pinned"] = want is not None and want == out["repaired_db_sha256"]
     counts = gate.season_games(data_root / "nba.duckdb")
     blocks = {
         str(s): gate.season_block(
@@ -447,7 +462,9 @@ def preflight(data_root: Path, repaired_db: Path | None) -> dict[str, Any]:
     }
     out["gate"] = gate.gate_verdict(blocks, True)
     out["planted_future"] = planted_future_check(rep)
-    out["pass"] = bool(out["gate"]["gate_pass"] and out["planted_future"]["pass"])
+    out["pass"] = bool(
+        out["gate"]["gate_pass"] and out["planted_future"]["pass"] and out["repaired_db_pinned"]
+    )
     return out
 
 

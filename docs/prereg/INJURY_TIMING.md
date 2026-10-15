@@ -1,11 +1,16 @@
 # INJURY_TIMING: does matching the training report snapshot to the one served change production props CRPS? (pre-registration)
 
-Status: **DRAFT revision 1, not frozen, and NOT FREEZABLE TODAY: its own minimum-data gate fails on the data we hold** (section 7). Written by the modeler Thu Oct 15 2026; gate clock `date` output `Thu Oct 15 13:05:38 CDT 2026` (start) and `Thu Oct 15 13:05:39 CDT 2026` (end). No arm of this rule has been fitted or scored on a real outcome; the harness has been run end to end on synthetic outcomes only.
-- **How it becomes the rule:** only after the data repair of section 8 passes the gate on the repaired table. Then the main session reads it with Devin and commits with `git commit --allow-empty -m "prereg(INJURY_TIMING): <sha256>"` of everything above the line `=== RESULTS BELOW ===`:
+Status: **DRAFT revision 2, not frozen.** Revision 1 (commit 212ecb12) failed its own minimum-data gate on the stored table (fresh share 0.039 / 0.049); the intraday repair now exists and the same gate, with the same thresholds, **passes** (section 7). Written by the modeler Thu Oct 15 2026; gate clock `date` output `Thu Oct 15 16:29:44 CDT 2026` (start) and `Thu Oct 15 16:29:45 CDT 2026` (end). No arm of this rule has been fitted or scored on a real outcome; the harness has been run end to end on synthetic outcomes only. **Revision 2 changes only inputs and priors, not a decision rule:** R is now the union of the stored table and the scratch intraday table (pinned by sha256), the gate is evaluated on R, the paragraph on the stored-table failure is kept as history, the 2021-22 proxy numbers are replaced by the true 2023-24 T-180 to T-60 measurement, and the priors are restated (section 10).
+- **How it becomes the rule:** the gate on the repaired table has passed (section 7). The main session reads it with Devin and commits with `git commit --allow-empty -m "prereg(INJURY_TIMING): <sha256>"` of everything above the line `=== RESULTS BELOW ===`:
   `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/INJURY_TIMING.md | shasum -a 256`.
   A harness pin commit `harness(INJURY_TIMING): <pin>` (from `python -m research.eval.injury_timing_rule pin`) must follow it and precede any real outcome.
 - **Advice or momentum:** follows advice: DECISIONS 2026-10-15 12:49 CDT item 1 (Devin: "fix injury snapshot timing", measure first, then one frozen rule); Claude's own scoping note recommended the descriptive step first (`docs/research/questionable_status_scope_2026-10-15.md`, recommendation 2).
-- **Measurement behind it:** `docs/research/injury_timing_measurement_2026-10-15.md` (scripts `research/scratch/injury_timing_{descriptive,rows,tagshift}.py`, tables `reports/injury_timing/*.json`).
+- **Measurement behind it:** `docs/research/injury_timing_measurement_2026-10-15.md` (scripts `research/scratch/injury_timing_{descriptive,rows,tagshift,gap}.py`, tables `reports/injury_timing/*.json`; the true 2023-24 T-180 to T-60 table is `gap_2023_24.json`, section 12 of the note).
+- **Pinned inputs** (the harness refuses on any mismatch; `check` prints both): the scratch intraday duckdb `data/scratch/injury_intraday.duckdb` (6,565,888 bytes; tables `player_availability` 353,809 rows, hourly 12:00-21:00 ET, 2023-10-24 to 2025-06-22 by stamp but joined to games of season <= 2024 only; built by `nba/ingest/injury_intraday.py`, 4,194 PDFs, 0 failures), opened read-only. R = this table UNION the stored `player_availability` of `nba.duckdb` (adds the 11:00 and 17:00 stamps; the latest stamp per game decides, as in production):
+
+```
+REPAIRED_DB_SHA256: 24f0e1a52504ad8c30d00cb07eb7afb91d7d9fce6193784ce0913ba4b0fbc100
+```
 - **Harness (exists, pinned at the freeze):** `research/eval/injury_timing_eval.py` (`check`, `rehearse`, `run`), `injury_timing_gate.py`, `injury_timing_rule.py`; pilot probe `injury_timing_pilot_probe.py` (network, not part of the pin). `run` refuses without the `prereg(INJURY_TIMING)` commit and the harness pin commit, runs the preflight before any outcome is read, and refits A0 first (G4) before fitting S or M.
 
 ## 1. Question
@@ -20,7 +25,7 @@ Rows: production's, i.e. played player-games with >= 5 prior played games, stats
 * **M** (the fix): fit on R, test block features from R. Training and serving use the same selection.
 Same rows, same month-block walk-forward, same config (`configs/context_residual.yaml`, `configs/mov_elo_tuned.yaml`), same seeds, same calibration window, same integer map. Only `flagged` (the game -> OUT set) differs, built by the production function `flagged_from_availability` on the stored or the repaired table.
 
-**Why M and not "make serving use the training lag":** serving a deliberately old report is arm A0 at serve time. It throws away information that the measurement shows is large (2021-22 hourly season: 37.7% of Q/D players at T-180 were OUT by T-60, n 2,082; about 0.5 rotation OUTs per game are added in the last two hours) and cannot be done for a live slate without discarding the freshest report on purpose. The information-correct fix is to give the model the same freshness in training; M vs A0 (flag `INFO_GAIN_M_VS_A0`) tells whether M beats the lag-matched alternative.
+**Why M and not "make serving use the training lag":** serving a deliberately old report is arm A0 at serve time. It throws away information that the measurement shows is large (2023-24, true T-180 to T-60: 44.9% / 47.5% of Q/D players at T-180 were OUT by T-60, n 2,550 / 2,549; 0.56 / 0.64 rotation OUTs per game are added in the last two hours) and cannot be done for a live slate without discarding the freshest report on purpose. The information-correct fix is to give the model the same freshness in training; M vs A0 (flag `INFO_GAIN_M_VS_A0`) tells whether M beats the lag-matched alternative.
 
 **Information or architecture?** Information. No capacity is added; the only change is how fresh the pre-tip OUT list is in training. Exposure, stated plainly: nothing in this rule has been scored on a real outcome. The aggregate error table in the measurement note (teammates of a rotation Q/D: pts CRPS +0.129 [+0.082, +0.177] vs other rows, n 20,464) was read, which shows rows with an uncertain list are worse, not what a fresher list is worth.
 
@@ -63,19 +68,21 @@ Per stat s in {pts, reb, ast, fg3m}: P1(s) = 2024 M minus S point <= -0.005 and 
 * **G4 A0 reproduction:** A0 refit integer CRPS equals the pinned stored values to 1e-6 per stat and season, or the run raises before S and M are fitted. Pins (docs/prereg/MEDIAN_BIAS.md section 6, stored components of 2026-10-11): pts 3.152830 / 3.187553, reb 1.292817 / 1.314247, ast 0.905903 / 0.900215, fg3m 0.569049 / 0.592213 (2023 / 2024). **Declared unknown:** whether a LightGBM refit reproduces to 1e-6 (earlier rules reproduced from stored components, not by refitting); if G4 fails on determinism alone the rule is inconclusive, not null, and the tolerance would be a new id.
 * **No past-only placebo and no shuffled-list arm.** Declared limit: S and M differ only in the list and share a function, so a pipeline-only difference is unlikely, but a placebo that replaces the fresh list with a same-lead past list would size the null. The adversary should decide whether to require one before the freeze; adding it costs four more fits.
 
-## 7. Minimum-data gate, measured on the data the run would use (non-negotiable 8)
+## 7. Minimum-data gate, measured on the data the run will use (non-negotiable 8)
 
-Measured by `research/eval/injury_timing_gate.py` on `nba.duckdb` (stored table), `season <= 2024`, real tips only. `date` output at the start of the run: **`Thu Oct 15 13:05:38 CDT 2026`**, at the end: **`Thu Oct 15 13:05:39 CDT 2026`**. Output `reports/prereg_injury_timing/gate.json`. Thresholds fixed before the run: games with a usable snapshot >= 1,200 per season; share of games whose used snapshot has lead <= 90 min >= 0.80 (so R is a near-T-60 list); games whose OUT set differs between R and S >= 300 per season.
+Measured by `research/eval/injury_timing_gate.py --repaired data/scratch/injury_intraday.duckdb` on R (stored table union scratch intraday table), `season <= 2024`, real tips only. `date` output at the start of the run: **`Thu Oct 15 16:29:44 CDT 2026`**, at the end: **`Thu Oct 15 16:29:45 CDT 2026`**. Output `reports/prereg_injury_timing/gate.json`. **Thresholds are unchanged from revision 1, fixed before any repaired data was measured:** games with a usable snapshot >= 1,200 per season; share of games whose used snapshot has lead <= 90 min >= 0.80; games whose OUT set differs between R and the stored table >= 300 per season.
 
 | check | 2023 | 2024 | pass |
 |---|---|---|---|
-| games with a usable snapshot (>= 1,200) | 1,317 of 1,318 | 1,317 of 1,320 | yes |
-| share with used lead <= 90 min (>= 0.80), **stored table** | **0.039** | **0.049** | **NO** |
-| lead p10 / p50 / p90 (min) | 120 / 180 / 300 | 120 / 180 / 300 | n/a |
-| distinct stamps per game | 2.55 | 2.51 | n/a |
-| games whose OUT set differs from stored (>= 300) | not measurable without R | not measurable | n/a |
+| games with a usable snapshot (>= 1,200) | 1,317 (of 1,318) | 1,319 (of 1,320) | yes |
+| share with used lead <= 90 min (>= 0.80) | **1.000** | **0.986** | yes |
+| lead p10 / p50 / p90 (min), R | 60 / 60 / 90 | 60 / 60 / 90 | n/a |
+| games whose OUT set differs from stored (>= 300), of games in both | **613** of 1,317 (47%) | **791** of 1,317 (60%) | yes |
+| distinct stamps per game, R (stored was 2.55 / 2.51) | 15.4 | 15.1 | n/a |
 
-**Gate result: FAIL (`gate_pass false`) on the stored table. The rule is not frozen and cannot run until the table is repaired.** The OUT-set difference check and the paired-delta power are evaluated on the repaired table by the same script (`--repaired`). Power is **unknown** until then; no minimum detectable effect is claimed. The measurement note bounds the all-rows effect between about 0.001 and 0.014 CRPS (a Gaussian shift approximation with an assumed forecast sd of 5.6, exposure <= 0.27 of team-games, not a measurement), so the floor is neither excluded nor expected.
+**Gate result: PASS (`gate_pass true`, all six checks).** History: revision 1 measured the stored table alone, share 0.039 / 0.049, FAIL (`Thu Oct 15 13:05:38 CDT 2026`); that failure is why the repair was pulled. Power is still **not computed**: the label-free preflight does not read outcomes, and no minimum detectable effect is claimed. What the sample is: 613 and 791 games per season where the fresh list differs, which is a larger exposure than revision 1 assumed (about a quarter of team-games).
+
+**True 2023-24 T-180 to T-60 change** (R, latest stamp <= tip-180 versus latest stamp <= tip-60, stamp gap exactly 2 h in the median game; events per game, both teams; game-clustered 95% CI; `reports/injury_timing/gap_2023_24.json`): rotation OUT added 0.56 [0.51, 0.60] (2023, n 1,308 games) and 0.64 [0.59, 0.69] (2024, n 1,300); Q/D to OUT, rotation, 0.51 [0.47, 0.56] and 0.59 [0.54, 0.64]; OUT removed, rotation, 0.003 and 0.008. Of players listed Q or D at T-180, 44.9% (2023, 1,145 of 2,550) and 47.5% (2024, 1,210 of 2,549) were OUT at T-60. This replaces the 2021-22 proxy.
 
 ## 8. Data-capture audit and the repair (non-negotiable 8: a gate fails on data only after this)
 
@@ -83,7 +90,7 @@ Measured by `research/eval/injury_timing_gate.py` on `nba.duckdb` (stored table)
 |---|---|---|
 | Official report PDFs on disk, `data/availability_official` | 1,682 files 2022-10-18 .. 2026-07-19: 11AM (688), 5PM (690), 11_45AM (151), 05_45PM (152), 10AM (1). **Two per game day.** | none in the files; this is the whole intraday content we hold for 2022-26 |
 | History PDFs, `data/history/availability_official` | 5,502 files 2019-10-21 .. 2022-06-16; 2021-22 hourly (24.9 stamps per game), 2019-20 about 4.7 | holds the only full intraday sequence (outside the select/report seasons; COVID-era regime) |
-| NBA CDN `ak-static.cms.nba.com/referee/injury/` intraday slots 17:15 .. tip - 60 for 2023-24 | **unknown** (WebFetch timed out, agent shell has no route) | **Pilot probe, Devin's shell:** `.venv/bin/python -W ignore -m research.eval.injury_timing_pilot_probe --dates 2024-01-17 2024-02-22 2023-12-12 2024-03-05 2023-11-08` = 250 requests (dry run prints "5 dates, 250 requests"), about 3 minutes at 0.6 s, writes only `reports/injury_timing/pilot_probe.json` |
+| NBA CDN `ak-static.cms.nba.com/referee/injury/` intraday slots for 2023-24 | **REPAIRED 2026-10-15** (revision 2): hourly reports 12:00-21:00 ET pulled by the archivist, 4,194 PDFs, 0 failures, raw write-once under `data/raw/injury_intraday_2026-10-15/`, parsed into the scratch duckdb pinned above (353,809 rows, 0 parse errors). The archivist's pilot found an hourly cadence; other minutes are not pulled. Revision 1 text for the record: unknown, pilot of 250 requests proposed | **Pilot probe, Devin's shell:** `.venv/bin/python -W ignore -m research.eval.injury_timing_pilot_probe --dates 2024-01-17 2024-02-22 2023-12-12 2024-03-05 2023-11-08` = 250 requests (dry run prints "5 dates, 250 requests"), about 3 minutes at 0.6 s, writes only `reports/injury_timing/pilot_probe.json` |
 | Full re-pull if the pilot finds slots | 2023-24 game dates 417 (206 + 211 distinct stamp dates seen) | 12:00-21:45 at 15-minute slots is 50 requests per date, about 21,000 requests, about 3.5 hours at 0.6 s from Devin's shell into a **separate scratch duckdb** (`load_inputs(..., injury_db=...)` reads it; `nba.duckdb` is never written); a narrower slot set follows from the pilot. Resumable per date |
 | Wayback or third-party archives of the injury report | not evaluated | not recommended without Devin (terms unread) |
 | Live 2026-27 pulls (`nba/daily/injury.py`) | will log stamp and tip per game | the free, clean source of a true T-60 list; one season of it replaces the repair for forward questions |
@@ -99,24 +106,22 @@ Model class: gradient-boosted trees (LightGBM context residual over a recency ba
 5. Scored against: integer CRPS of the whole distribution at the four count stats, not log loss at a line (T477: CRPS gains have not reached the line). A pass here would not be a betting claim.
 Class checks (trees): missingness audit beyond the as-of cause: games absent from R but present in S are reported; planted future: yes; "does the arm only re-express the base": no, it changes one input list.
 
-## 10. Priors (binary, stated before any result; for `docs/PREDICTIONS_LEDGER.md`)
+## 10. Priors (binary, stated before any arm is scored; for `docs/PREDICTIONS_LEDGER.md`)
 
-Not blind: the measurement note is seen (aggregate sensitivity and the Gaussian bound).
-* P(pilot probe finds >= 1 report stamped between 17:15 and 20:45 ET for >= 4 of 5 sampled 2023-24 dates): 0.65.
-* P(repaired gate passes, given a full re-pull): 0.60 (fresh share >= 0.80 needs a stamp inside 60-90 minutes for most tip times).
-* P(`FIX_WORTH_IT`): 0.07; P(`PARTIAL`): 0.13; P(`NULL`): 0.74; P(`GUARD_FAIL`, incl. G4): 0.06. Conditional on the repair existing.
-* P(M minus S point <= -0.005 on pts in 2024): 0.12; expected M minus S pts -0.0015 (80% -0.0060 to +0.0010); expected M minus A0 pts -0.0030 (80% -0.0100 to +0.0010).
-* P(`FRESHER_REPORT_HELPS_ALREADY`): 0.35; P(`SKEW_HARMS_LIVE_ANALOG`): 0.05; P(G4 passes at 1e-6): 0.80.
-* P(the live 2026-27 median lead of pulled reports is <= 90 min): 0.55.
+Revision 1 priors (written 2026-10-15 13:05 CDT) and their resolution: pilot probe finds intraday slots on >= 4 of 5 dates, 0.65: HIT (hourly 12:00-21:00 on every sampled date, per the archivist); repaired gate passes after a full re-pull, 0.60: HIT (all six checks). The other revision 1 priors are **restated below** because the repaired gate shows a larger exposure than assumed (OUT set differs in 47% / 60% of games, versus the "<= 0.27 of team-games" assumed) and the true 2023-24 T-180 to T-60 table shows rotation OUTs added at 0.56 / 0.64 per game (proxy was 0.53). Not blind: the gate counts, the true-gap table and the stored-table aggregate error table are seen; **no arm (S, M) has been fitted or scored, and A0 was not re-scored here.**
+* P(`FIX_WORTH_IT`) 0.12 (was 0.07); P(`PARTIAL`) 0.18 (was 0.13); P(`NULL`) 0.64 (was 0.74); P(`GUARD_FAIL`, incl. G4) 0.06.
+* P(M minus S point <= -0.005 on pts in 2024) 0.20 (was 0.12); expected M minus S pts -0.0030 (80% -0.0100 to +0.0010); expected M minus A0 pts -0.0050 (80% -0.0150 to +0.0010).
+* P(`FRESHER_REPORT_HELPS_ALREADY`) 0.45 (was 0.35); P(`SKEW_HARMS_LIVE_ANALOG`) 0.05; P(`INFO_GAIN_M_VS_A0`) 0.20; P(G4 passes at 1e-6) 0.80 (unchanged).
+* P(the live 2026-27 median lead of pulled reports is <= 90 min) 0.55 (unchanged; hourly reports bound the repaired lead at 60-119 min, live may differ).
 
 ## 11. Harness contract
 
 `research/eval/injury_timing_eval.py` (`check`, `rehearse`, `run`), `injury_timing_gate.py`, `injury_timing_rule.py`, tests `tests/eval/test_injury_timing_harness.py`. Synthetic rehearsal (no fit, no real label): truth `null` gives `NULL`, `fix` gives `FIX_WORTH_IT` (and flags `SKEW_HARMS_LIVE_ANALOG`, `INFO_GAIN_M_VS_A0`), `harm` gives `NULL` with `CRPS_HARM`; outputs under `reports/prereg_injury_timing/rehearsal/<truth>/results.json`. The real command (maintainer, from the main checkout, after the freeze and pin, with the repaired scratch DB):
 
     mkdir data/ops/heavy.lock || exit 1; trap 'rmdir data/ops/heavy.lock' EXIT
-    .venv/bin/python -W ignore -m research.eval.injury_timing_eval check --repaired <scratch.duckdb>      # label-free preflight first
-    .venv/bin/python -W ignore -m research.eval.injury_timing_eval run --sha <64 hex> --repaired <scratch.duckdb>
+    .venv/bin/python -W ignore -m research.eval.injury_timing_eval check --repaired /Users/devin/Downloads/nba-prediction/data/scratch/injury_intraday.duckdb      # label-free preflight first
+    .venv/bin/python -W ignore -m research.eval.injury_timing_eval run --sha <64 hex> --repaired /Users/devin/Downloads/nba-prediction/data/scratch/injury_intraday.duckdb
 
-Cost: 18 month-block walk-forward fits (2023-24) per stat per arm, three arms, four stats (216 LightGBM fits); per-stat checkpoints (`a0_<stat>.npz`, `arms_<stat>.npz`) are written. Wall time is not measured here (watchdog); one arm is the same protocol as the 2026-10-11 component build. Dry-run counts before any fit: the preflight prints the gate verdict and the planted-future result; no outcome has been read at that point.
+Real command passes `--repaired /Users/devin/Downloads/nba-prediction/data/scratch/injury_intraday.duckdb`. Cost: 18 month-block walk-forward fits (2023-24) per stat per arm, three arms, four stats (216 LightGBM fits); per-stat checkpoints (`a0_<stat>.npz`, `arms_<stat>.npz`) are written. Wall time is not measured here (watchdog); one arm is the same protocol as the 2026-10-11 component build. Dry-run counts before any fit: the preflight prints the gate verdict and the planted-future result; no outcome has been read at that point.
 
 === RESULTS BELOW ===
