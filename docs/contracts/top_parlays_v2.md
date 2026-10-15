@@ -18,7 +18,7 @@ the pre-tip run. Read-only; paper only.
   "verdict": "keep_your_money",
   "empty_reason": null,
   "sizes": {"2": [ticket, ticket, ticket], "3": [ticket, ticket, ticket]},
-  "caveats": ["Two-leg parlays of alternate-line overs the raw model put at 70% or more (BetRivers) hit 9.8 points less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, date-clustered, 2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). These were raw chances; the chances shown here are from calibrated legs."
+  "caveats": ["Two-leg parlays of alternate-line overs the raw model put at 70% or more (BetRivers) hit 9.8 points less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, date-clustered, 2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). These were raw chances; the chances shown here are from calibrated legs."]
 }
 ```
 
