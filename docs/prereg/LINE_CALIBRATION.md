@@ -204,9 +204,28 @@ NULL_SD_PINNACLE_2024: 0.00018281177430901576
   - the 50 shuffled maps on Pinnacle 2024: SH - A0 = -0.0078, sd 0.00018.
 - **Model-side, no outcomes:** the distribution of z. Its median is +0.18 (2023) and +0.15 (2024), meaning lines sit above the
   continuous median. This is the T477 bias seen from the model side.
-- **Not seen:** any CAL or C0 fit on real labels. Every CAL number in the gate uses synthetic labels.
+- **Not seen as of 10-12:** any CAL or C0 fit on real labels. Every CAL number in the gate uses synthetic labels. (Superseded in part by the 10-14 disclosure below: a simpler logit-slope map was fit and scored on real 2024 labels in a scratch.)
 - **What this means.** P1 on 2024 is close to foregone, and P2/P3 are the informative tests. The clean evidence is Stage 2 and the
   live log.
+
+### Added Wed Oct 14 23:38 CDT 2026 (`date`), pre-freeze disclosure; no change to any metric, floor, arm, term, stage or verdict
+- **What was seen after the 10-12 acceptance.** Tonight's descriptive scratch (`docs/research/pover_bias_scratch_2026-10-15.md`,
+  `research/scratch/pover_bias_scratch.py`) fit one recalibration, logit(p_over) = a + b logit(p_model), on 2023 DraftKings T-60 legs
+  and scored it on **2024**. Its read on real 2024 labels:
+  - slope b = 0.46 (pts 0.16, reb 0.45, ast 0.41, fg3m 0.69), intercept a = +0.012;
+  - the aggregate gap went from about -3.3 pp to -0.3 pp;
+  - log loss changed by -0.0089 [-0.0102, -0.0076] against raw production (95% game-clustered, n 53,752 legs).
+  It also reported the raw Pinnacle T-60 gap (-4.27 pp [-4.72, -3.80], n 72,674) and DraftKings and Pinnacle gap tables by stat,
+  role, line tertile and probability bin, all on 2023-24 outcomes. The scratch did not score a recalibration at Pinnacle.
+- **What this means for Stage 1.** The 2024 select season is now more exposed than the 10-12 acceptance ("2. fair") covered: that
+  acceptance covered the isotonic and shrink results, not a fitted slope and its scored gain on 2024. The shape of the fix (a slope
+  well below 1) and the size of its 2024 gain on the DraftKings side are known. P1 on 2024 (CAL - A0 <= -0.003) is therefore close
+  to foregone and **a Stage 1 pass is weak evidence**. It shows that the harness runs and that the walk-forward, time-weighted
+  version with the z and bench terms is not worse than the exposed one-split map. It does not show out-of-sample skill. P2 (against
+  the base rate) and P3 (against 50 shuffled maps) stay the informative Stage 1 tests, and a Stage 1 FAIL would still be informative.
+- **Where the clean test is.** **Stage 2 (season 2025) is the clean test**, and the live log after it. Nothing from 2025 has been
+  seen. Reading a Stage 1 CALIBRATED or SHRINKAGE_ONLY verdict as anything beyond "earns the Stage 2 touch" is not allowed.
+- **Unchanged.** The rule, its arms, terms, floors, the Pinnacle-primary choice and the stage order are exactly as in revision 2.
 
 ## Arms
 | arm | what | stage | role |
@@ -293,6 +312,11 @@ The primary book is Pinnacle; DraftKings is the consistency book. Each book is f
 - **Output:** reports/prereg_line_calibration/gate_draft.json.
 - **Run:** 16 s on CPU, peak RSS 554 MB, read-only, seasons 2023-24 only. No CAL fit used a real label.
 - **Result:** all 15 checks pass.
+- **Re-run on today's data (non-negotiable 8), Wed Oct 14 23:38 CDT 2026 (`date` in the same command):** same command, the main checkout's
+  `data/ops/model_clv_pairs` and `reports/odds_history` read-only, run from a worktree. 16.8 s, exit 0. **All 15 checks pass again**,
+  with the same measured values in the table below (legs 37,528; smallest per-stat 6,645; widest bracket 0.04935; planted future 54/54;
+  half-width 0.00106; null sd 0.00018281177430901576). The four input sha256 lines under "Data and seasons" reproduce byte for byte.
+  Nothing in the data moved since 10-12.
 
 | check | measured | bar | pass |
 |---|---|---|---|
