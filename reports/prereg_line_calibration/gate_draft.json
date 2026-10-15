@@ -1,7 +1,7 @@
 {
  "status": "GATE_PASSED",
  "draft": true,
- "sha256": "ab61ffb60d7d9c113a8cbd03eb3710df1c00c50d15ec765a3dc7a5c03c40f605",
+ "sha256": "a5441242adb37506194accd74ad9b637048fc0589223ad8249edd927c8bffba9",
  "pairs_sha256": {
   "2023": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
   "model_rows_2023": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
@@ -512,7 +512,7 @@
  ],
  "gate_ok": true,
  "max_season_loaded": 2024,
- "lock": "heavy.lock held by pid 24859 (not ours; untouched; this job is light)",
+ "lock": "heavy.lock absent",
  "unstated_details": [
   "leg = one t60 row of pinnacle or draftkings in the MODEL_CLV pairs frame (main line, unique per game/player/stat/book, DNP voided upstream, every line x.5)",
   "block = calendar month of game_date; fit rows = same book and stat, game_date strictly before the block's first day, every loaded season (2023 onward); < 2,000 fit rows -> identity (raw p_model) for every arm",
@@ -525,5 +525,5 @@
   "pass contrasts are pooled over the four stats with every leg weighted equally (legs, not stats)",
   "starter = starter10 >= 0.5; confidence bucket on |p_model - 0.5|"
  ],
- "seconds": 14.396151065826416
+ "seconds": 13.328484058380127
 }

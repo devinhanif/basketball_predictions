@@ -81,6 +81,28 @@ def require_frozen(sha: str | None, doc: Path | None = None, run: Callable[..., 
     return sha
 
 
+HARNESS_FILES = (
+    "research/eval/line_calibration_eval.py",
+    "research/eval/line_calibration_rule.py",
+    "research/eval/model_clv_eval.py",
+)
+
+
+def require_harness_pinned(sha: str, run: Callable[..., str] = git) -> dict[str, str]:
+    """The harness on disk must equal its blob at the freeze commit (the sha covers the doc only). Returns the blob sha256s."""
+    h = freeze_commit(sha, run)
+    if h is None:
+        raise RuntimeError("the rule is not frozen")
+    out: dict[str, str] = {}
+    for rel in HARNESS_FILES:
+        frozen = run("show", f"{h}:{rel}")
+        disk = (ROOT / rel).read_text()
+        if frozen != disk:
+            raise RuntimeError(f"{rel} differs from its version at freeze commit {h[:8]}: refusing")
+        out[rel] = hashlib.sha256(disk.encode()).hexdigest()
+    return out
+
+
 def require_holdout_row(
     sha: str, log: Path | None = None, run: Callable[..., str] = git, doc: Path | None = None
 ) -> str:

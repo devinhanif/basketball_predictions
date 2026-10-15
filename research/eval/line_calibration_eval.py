@@ -68,7 +68,6 @@ RIDGE = 1.0
 MIN_FIT = 2000
 FLOOR = -0.003
 CAL_ABS_MAX = 0.015
-SLICE_MIN_N = 300
 K_NULL = 50
 NULL_SD_MULT = 2.0
 N_BOOT = 2000
@@ -341,10 +340,13 @@ def walk_forward(
     arm: str,
     k: int = 0,
     only_block: np.datetime64 | None = None,
+    cols: list[int] | None = None,
 ) -> tuple[np.ndarray, list[dict[str, Any]]]:
     """Out-of-block probabilities for every leg of (season, book); NaN elsewhere. arm in {cal, base, shuffle}."""
     assert arm in ("cal", "base", "shuffle")
     X = design(D["pm"], D["line"], D["med"], D["spr"], D["st10"])
+    if cols is not None:
+        X = X[:, cols]
     out = np.full(D["n"], np.nan)
     info: list[dict[str, Any]] = []
     for si_, stat in enumerate(STATS):
@@ -457,6 +459,11 @@ def score_stage(
     }
     res["d_cal_a0_date"] = _r(bd.mean(L["CAL"] - L["A0"], every))
     res["d_cal_c0"] = _r(bs.mean(L["CAL"] - L["C0"], every))
+    # declared knockout secondaries (label only, no pass): CAL without z, CAL without x (and bench * x), each against C0
+    res["knockout_vs_c0"] = {}
+    for nm, cols in (("without_z", [0, 1, 3, 4]), ("without_x", [0, 2, 3])):
+        p_ko, _ = walk_forward(D, y, season, book, "cal", cols=cols)
+        res["knockout_vs_c0"][nm] = _r(bs.mean(ll(p_ko[m], o) - L["C0"], every))
     res["brier_cal_a0"] = _r(bs.mean((arms["CAL"] - o) ** 2 - (pm - o) ** 2, every))
     if sh_ll:
         sh_means = np.array([v.mean() for v in sh_ll])
@@ -543,8 +550,7 @@ def evaluate(primary: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
     """The frozen pass rule, applied to one stage (primary = Pinnacle, other = DK).
 
     Verdict: CALIBRATED = P1-P7 all pass. SHRINKAGE_ONLY = P1, P4-P7 pass but P2 or P3 fails: the map does not beat
-    generic shrinkage; the served object is whichever of CAL and C0 has the lower pooled Pinnacle log loss on this stage,
-    and it must itself pass P1 and P4-P7. FAIL otherwise."""
+    generic shrinkage; the served object is C0, and it must itself pass P1 and P4-P7 (else FAIL). FAIL otherwise."""
     d = primary["d_cal_a0"]
     c = {
         "P1 CAL-A0 <= floor and CI upper < 0": bool(d["mean"] <= FLOOR and d["hi"] < 0),
@@ -572,7 +578,7 @@ def evaluate(primary: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
     else:
         harm_ok = [v for k, v in c.items() if not k.startswith(("P2", "P3"))]
         if all(harm_ok):
-            obj = min(("C0", "CAL"), key=lambda a: primary["objects"][a]["ll"])
+            obj = "C0"  # served object under SHRINKAGE_ONLY, always (review B2; default applied by the main session)
             if all(object_checks(primary, other, obj).values()):
                 verdict = "SHRINKAGE_ONLY"
             else:
@@ -947,6 +953,7 @@ def rehearse(
 
 def select(pairs_dir: Path, doc: Path, sha: str, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     rule.require_frozen(sha, doc)
+    harness = rule.require_harness_pinned(sha)
     g = run_gate(pairs_dir, sha, False, out_dir)
     if not g["gate_ok"]:
         raise SystemExit("GATE FAILED: stop, no CAL result")
@@ -960,7 +967,7 @@ def select(pairs_dir: Path, doc: Path, sha: str, out_dir: Path = OUT_DIR) -> dic
         raise SystemExit("the null sd does not reproduce the frozen NULL_SD_PINNACLE_2024 line")
     D, _ = load_real(pairs_dir)
     res = run_stage(D, D["over"], SELECT_SEASON)
-    res |= {"sha256": sha, "stage": "select", "season": SELECT_SEASON}
+    res |= {"sha256": sha, "stage": "select", "season": SELECT_SEASON, "harness_sha256": harness}
     (out_dir / "select.json").write_text(json.dumps(res, indent=1, default=str))
     return res
 
@@ -995,7 +1002,10 @@ def report(
     model_dir: Path = MODEL_DIR,
 ) -> dict[str, Any]:
     rule.require_ready(sha, doc=doc)
+    harness = rule.require_harness_pinned(sha)
     sel = json.loads((out_dir / "select.json").read_text())
+    if sel.get("harness_sha256") != harness:
+        raise SystemExit("the harness differs from the one that ran select: refusing")
     if sel.get("sha256") != sha or sel["rule"]["verdict"] not in ("CALIBRATED", "SHRINKAGE_ONLY"):
         raise SystemExit(
             "no CALIBRATED or SHRINKAGE_ONLY select verdict under this sha: the 2025 touch is not earned"

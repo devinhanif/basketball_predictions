@@ -46,9 +46,9 @@ Status: **DRAFT, revision 2, written by the modeler Mon Oct 12 16:29 CDT 2026 (c
    - **P7:** DraftKings agrees in direction (CAL - A0 point < 0).
 5. **Verdicts.**
    - **CALIBRATED:** all of P1-P7 pass.
-   - **SHRINKAGE_ONLY:** P1 and P4-P7 pass, but P2 or P3 fails. The map does not beat generic shrinkage, and the served object is chosen
-     below.
-   - **FAIL:** anything else.
+   - **SHRINKAGE_ONLY:** P1 and P4-P7 pass, but P2 or P3 fails. The map does not beat generic shrinkage, and the served object is C0
+     (see below). C0 must itself pass P1 and P4-P7.
+   - **FAIL:** anything else. This includes the case where the served object (C0 under SHRINKAGE_ONLY) fails its own P1 or P4-P7.
 6. **Guards.**
    - Shuffled-outcome null SH_k, K = 50. Its sd is measured before the freeze and declared below.
    - Planted-future check on synthetic labels.
@@ -60,7 +60,12 @@ Status: **DRAFT, revision 2, written by the modeler Mon Oct 12 16:29 CDT 2026 (c
    - Brier;
    - reliability in ten bins;
    - calibration in the large by role;
-   - slices by confidence and by month.
+   - slices by confidence and by month;
+   - knockouts against C0 on Pinnacle (and DraftKings), same walk-forward, weights and block fits: **CAL without z** (terms
+     `[1, x, bench, bench*x]`) and **CAL without x** (terms `[1, z, bench]`, dropping x and bench*x). Each is reported as a paired
+     game-clustered contrast against C0, label only, no pass. x and z are both positions of the line in the model's
+     distribution and are near-collinear, so these knockouts measure redundancy, not whether the model or the line carries the
+     gain.
 
    Coin flip and the de-vigged market are reference rows only.
 8. **Outcomes.**
@@ -87,6 +92,8 @@ Status: **DRAFT, revision 2, written by the modeler Mon Oct 12 16:29 CDT 2026 (c
 - **What disqualified CALIBRATED_GRID.** Its shuffled-label control A4 gained more than any real map on lines in all 8 stat-seasons,
   because shrinking toward 0.5 helps an over-confident, biased grid. Its fixed control bar (A4 >= -0.0005) therefore failed by
   construction.
+- **Exposures after revision 2:** T477 (calibration gaps), T480 (reports/t478_line_reading_2026-10-12.md: A0's P(over) scored at 2025
+  lines; its last sentence named this rule as the follow-up) and the POVER_BIAS scratch (2023-24). See "Data exposure".
 - **Guards carried forward:**
   - planted-future check on synthetic labels, with a positive control;
   - A0 reproduction against ODDS_HISTORY to 1e-9;
@@ -110,7 +117,8 @@ Status: **DRAFT, revision 2, written by the modeler Mon Oct 12 16:29 CDT 2026 (c
 - **H1.** The walk-forward map lowers line log loss against raw production by at least 0.003 per leg, and it beats shrinkage to the
   base rate. In other words, production carries information at the line once its bias and width are corrected.
 - **Null.** The map only reproduces the base rate, or it does not reach the floor.
-- **Priors:**
+- **Priors (superseded):** the numbers below were written 2026-10-12, before the P(over) scratch and T480. The binding priors are
+  the PREDICTIONS_LEDGER rows of 2026-10-14 (P(CALIBRATED) 0.55, SHRINKAGE_ONLY 0.25, FAIL 0.20 for Stage 1). They are context only.
   - about 85% for P1, because the bias is known and large;
   - about 55% for P2 and P3, because model picks hit 53-56% against a base rate near 52.5%;
   - about 45% that 2025 confirms CALIBRATED;
@@ -122,11 +130,12 @@ Status: **DRAFT, revision 2, written by the modeler Mon Oct 12 16:29 CDT 2026 (c
   - The gate measured this on real 2024 Pinnacle labels: the 50 shuffled maps beat raw production by 0.0078 per leg (sd across seeds
     0.00018).
   - So **raw production at the line is worse than knowing nothing but the base rate.** "Beats raw" (P1) is therefore cheap.
-  - P2 and P3 ask the real question: does the model's own P(over) add anything once it is calibrated?
+  - P2 and P3 ask the real question: does the map built from the model's distribution and the line add anything beyond the base rate?
 - **If the answer is no (SHRINKAGE_ONLY), the honest product action is still to stop serving the raw number.** A probability that loses
   to the base rate should not reach a user. How that is decided, fixed now:
-  - The served object is whichever of CAL and C0 has the lower pooled Pinnacle Stage 1 log loss. It must itself pass P1 and P4-P7
-    (computed for both objects).
+  - The served object is C0. It must itself pass P1 and P4-P7. (Default applied by the main session on the pre-freeze review B2;
+    Devin may switch to lower-log-loss before freeze. Reason: a served CAL is a non-constant probability built from x, and would
+    contradict the wording below that the model carries no information beyond the base rate.)
   - Stage 2 confirms that the same object passes P1 and P4-P7 on 2025.
   - The proposal to Devin then says, in words, that at the line the model carries no information beyond the base rate. The budget tool
     must therefore report no line edge from this source. In practice that means "keep your money" on line bets until a later rule
@@ -204,16 +213,42 @@ NULL_SD_PINNACLE_2024: 0.00018281177430901576
   - the 50 shuffled maps on Pinnacle 2024: SH - A0 = -0.0078, sd 0.00018.
 - **Model-side, no outcomes:** the distribution of z. Its median is +0.18 (2023) and +0.15 (2024), meaning lines sit above the
   continuous median. This is the T477 bias seen from the model side.
-- **Not seen:** any CAL or C0 fit on real labels. Every CAL number in the gate uses synthetic labels.
-- **What this means.** P1 on 2024 is close to foregone, and P2/P3 are the informative tests. The clean evidence is Stage 2 and the
-  live log.
+- **Not seen as of 10-12:** any CAL or C0 fit on real labels. Every CAL number in the gate uses synthetic labels. (Superseded in part by the 10-14 disclosure below: a simpler logit-slope map was fit and scored on real 2024 labels in a scratch.)
+- **What this means.** P1 on 2024 is close to foregone, and P2/P3 are also largely predictable (see the 10-14 disclosure). The clean
+  evidence is the 2026-27 live log.
+
+### Added Wed Oct 14 23:38 CDT 2026 (`date`), pre-freeze disclosure; no change to any metric, floor, arm, term, stage or verdict
+- **What was seen after the 10-12 acceptance.** Tonight's descriptive scratch (`docs/research/pover_bias_scratch_2026-10-15.md`,
+  `research/scratch/pover_bias_scratch.py`) fit one recalibration, logit(p_over) = a + b logit(p_model), on 2023 DraftKings T-60 legs
+  and scored it on **2024**. Its read on real 2024 labels:
+  - slope b = 0.46 (pts 0.16, reb 0.45, ast 0.41, fg3m 0.69), intercept a = +0.012;
+  - the aggregate gap went from about -3.3 pp to -0.3 pp;
+  - log loss changed by -0.0089 [-0.0102, -0.0076] against raw production (95% game-clustered, n 53,752 legs).
+  It also reported the raw Pinnacle T-60 gap (-4.27 pp [-4.72, -3.80], n 72,674) and DraftKings and Pinnacle gap tables by stat,
+  role, line tertile and probability bin, all on 2023-24 outcomes. The scratch did not score a recalibration at Pinnacle.
+- **What this means for Stage 1.** The 2024 select season is now more exposed than the 10-12 acceptance ("2. fair") covered: that
+  acceptance covered the isotonic and shrink results, not a fitted slope and its scored gain on 2024. The shape of the fix (a slope
+  well below 1) and the size of its 2024 gain on the DraftKings side are known. P1 on 2024 (CAL - A0 <= -0.003) is therefore close
+  to foregone and **a Stage 1 pass is weak evidence**. It shows that the harness runs and that the walk-forward, time-weighted
+  version with the z and bench terms is not worse than the exposed one-split map. It does not show out-of-sample skill. P2 and P3 are
+  also largely predictable: the gate's real SH - A0 on Pinnacle 2024 (-0.0078) and the scratch's -0.0089 imply CAL - SH of about
+  -0.001 to -0.003 if Pinnacle resembles DraftKings. Only a Stage 1 FAIL would be strong evidence.
+- **Where the clean test is.** Season 2025 is partly seen at the comparator level. T478 (the SEQ_FULL_MIX_RT holdout touch) and
+  its line reading T480 (reports/t478_line_reading_2026-10-12.md, c94cca4, 2026-10-12 19:58 CDT, after revision 2) scored
+  production A0's P(over) at 2025 Pinnacle and DraftKings T-60 lines: pts Pinnacle A0 log loss 0.7085 (n 14,620, over rate
+  0.488), A0 decile slope on pts 0.16 (Pinnacle) and 0.11 (DraftKings), and AVG-arm slopes reb 0.48, ast 0.42, fg3m 0.72. On
+  2025, P1 and a SHRINKAGE_ONLY confirmation are therefore close to foregone, and the shape that drives P2 is known. No CAL
+  or C0 has been fit or scored on 2025, so Stage 2 is this map's first 2025 touch. It is not a clean test of the claim that
+  production carries information at the line. That clean test is the 2026-27 forward log. A Stage 1 verdict earns the
+  Stage 2 touch and nothing more. A Stage 2 CALIBRATED or SHRINKAGE_ONLY result supports a shadow period, not a promotion.
+- **Unchanged.** The rule, its arms, terms, floors, the Pinnacle-primary choice and the stage order are exactly as in revision 2.
 
 ## Arms
 | arm | what | stage | role |
 |---|---|---|---|
 | A0 | raw production `p_model` (equals the continuous-grid P(over) at x.5 lines), clipped at 0.5/199 | 1, 2 | comparator |
 | **CAL** | weighted walk-forward logistic map (above) | 1, 2 | **the claim** |
-| C0 | weighted walk-forward base rate of the fit rows (same book, stat and block) | 1, 2 | comparator (P2); served object if SHRINKAGE_ONLY and lower log loss |
+| C0 | weighted walk-forward base rate of the fit rows (same book, stat and block) | 1, 2 | comparator (P2); served object if SHRINKAGE_ONLY |
 | SH_k, k = 0..49 | CAL refit after permuting the fit rows' labels (weights stay with the rows), `default_rng([1000+k, stat, block, book])` | 1, 2 | permutation null (P3) |
 | COIN, MKT | 0.5; the multiplicative de-vigged T-60 market price | 1, 2 | reference rows only |
 
@@ -221,6 +256,8 @@ NULL_SD_PINNACLE_2024: 0.00018281177430901576
 The primary book is Pinnacle; DraftKings is the consistency book. Each book is fit on its own legs.
 - **P1 floor of -0.003.** This is the log-loss value of removing the known bias alone: a 4 pp miss at p near 0.45 costs about
   0.04^2 / (2 x 0.2475) = 0.0032 per leg.
+- **P2 is the binding test.** SH sits above C0 by about +0.00015 (the cost of fitting four noise coefficients), so P3 is by construction
+  slightly easier than P2 and adds only the permutation framing. No change to either bar.
 - **P3's null sd** is the value declared above for Stage 1. For Stage 2 it is recomputed inside the touch with the same seeds.
 - **Synthetic controls on the real row structure:**
   - planted T477-like bias: **CALIBRATED**;
@@ -261,7 +298,7 @@ The primary book is Pinnacle; DraftKings is the consistency book. Each book is f
 | P4 calibration in the large | a log-loss gain from sharpening while the bias stays |
 | P5-P7 do-no-harm and DraftKings direction | a pooled gain hiding a stat, a role or a book that the map makes worse |
 | floor 0.003 = value of the known bias | shipping a map that recovers less than we already know is broken |
-| 2025 once, after Stage 1, with Devin's words | a partly exposed select stage being taken as confirmation |
+| 2025 once, after Stage 1, with Devin's words | a partly exposed select stage, and a partly exposed report stage, being taken as confirmation |
 | Pinnacle primary chosen now | picking the book after seeing which one passes |
 
 ## Playbook check (docs/MODEL_PLAYBOOK.md; class: quantile and distribution layers, recalibration at the line)
@@ -293,6 +330,13 @@ The primary book is Pinnacle; DraftKings is the consistency book. Each book is f
 - **Output:** reports/prereg_line_calibration/gate_draft.json.
 - **Run:** 16 s on CPU, peak RSS 554 MB, read-only, seasons 2023-24 only. No CAL fit used a real label.
 - **Result:** all 15 checks pass.
+- **Re-run on today's data (non-negotiable 8), Wed Oct 14 23:38 CDT 2026 (`date` in the same command):** same command, the main checkout's
+  `data/ops/model_clv_pairs` and `reports/odds_history` read-only, run from a worktree. 16.8 s, exit 0. **All 15 checks pass again**,
+  with the same measured values in the table below (legs 37,528; smallest per-stat 6,645; widest bracket 0.04935; planted future 54/54;
+  half-width 0.00106; null sd 0.00018281177430901576). The four input sha256 lines under "Data and seasons" reproduce byte for byte.
+  Nothing in the data moved since 10-12.
+- **Re-run after the pre-freeze review edits (harness gained the two knockout secondaries and a harness pin; the served-object code changed),
+  Wed Oct 14 23:56 CDT 2026 (`date`):** all 15 checks pass again, identical values, exit 0. Check 4 and the A0 checks do not use the new code.
 
 | check | measured | bar | pass |
 |---|---|---|---|
@@ -398,6 +442,7 @@ M="-m research.eval.line_calibration_eval"
 - **Clipping:** every model-derived probability is clipped to [0.5/199, 1 - 0.5/199] before log loss and Brier. The market is clipped
   to 1e-9.
 - **Bootstrap:**
+  - The code is `research/eval/model_clv_eval.Boot` (inherited from MODEL_CLV), not a `truth/` module.
   - One multinomial game-resample matrix (seed 0, B = 2,000) per (stage, book) is shared by every statistic.
   - The one-sided p for "CAL beats A0" is (1 + #{boot of A0 - CAL <= 0}) / 2001.
   - BH runs over the four per-stat p values.
@@ -405,7 +450,8 @@ M="-m research.eval.line_calibration_eval"
 - **Starter:** starter10 >= 0.5.
 - **Confidence buckets** on |p_model - 0.5|: [0, .05), [.05, .10), [.10, .20) and [.20, .5].
 - **Reliability:** ten equal-width bins.
-- **SHRINKAGE_ONLY served object:** the lower pooled Pinnacle Stage 1 log loss between CAL and C0. Ties go to C0, the simpler object.
+- **SHRINKAGE_ONLY served object:** C0, always (default applied by the main session on the pre-freeze review B2; Devin may switch to
+  lower-log-loss before freeze).
 - **Synthetic truth** for gate check 5 and the rehearsal: logit p = 0.17 + 0.85 logit p_model (about T477's -4 pp gap). It is never a
   real label.
 
