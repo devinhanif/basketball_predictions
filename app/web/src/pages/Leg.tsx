@@ -16,7 +16,7 @@ import {
   rowPrice,
   snapHalf,
 } from "../leg";
-import { legHref } from "../router";
+import { gameHref, legHref } from "../router";
 import { BeyondBlock, MatePer36, OnOffBlock, SteadyBlock } from "../RoleCards";
 import { LEG_SHORT, type Chip, type LadderRow, type LegBreakdown, type LegStat, type Side, type Split, type Tally, type TeammateOut } from "../legTypes";
 
@@ -218,10 +218,11 @@ function NoHistory({ data, side, line, row }: { data: LegBreakdown; side: Side; 
 /* ------------------------------------------------------------------ the last ten games */
 function ChipItem({ c }: { c: Chip }) {
   const word = c.state === "hit" ? "Hit" : c.state === "miss" ? "Miss" : "Push";
-  return (
-    <li class={`leg-chip ${c.state}`}>
+  const body = (
+    <>
       <span class="sr">
         {word}: {S(c.value)} against {c.opp}, {longDate(c.date)}, {num(c.minutes)} minutes.
+        {c.linkable === true ? " Opens that game." : ""}
       </span>
       <span class="leg-chip-val num" aria-hidden="true">
         {S(c.value)}
@@ -236,6 +237,17 @@ function ChipItem({ c }: { c: Chip }) {
       <span class="leg-chip-meta num" aria-hidden="true">
         {num(c.minutes, 0)} min
       </span>
+    </>
+  );
+  return (
+    <li class={`leg-chip ${c.state}${c.linkable === true ? " linked" : ""}`}>
+      {c.linkable === true ? (
+        <a class="leg-chip-link" href={gameHref(c.game_id)}>
+          {body}
+        </a>
+      ) : (
+        body
+      )}
     </li>
   );
 }
@@ -273,6 +285,13 @@ function Games({ data, side, line, row }: { data: LegBreakdown; side: Side; line
             ))}
           </ul>
         </>
+      ) : null}
+      {data.chips.some((c) => c.linkable !== true) ? (
+        <p class="small muted">
+          {data.chips.some((c) => c.linkable === true)
+            ? "A game with an arrow opens its page. The others are older than the data loaded here, so they cannot be opened."
+            : "These games are older than the data loaded here, so none of them can be opened."}
+        </p>
       ) : null}
       <p class="small muted num">
         {data.role.say} Season to date: {ofText(data.season.hits, data.season.n)} {side === "over" ? "over" : "under"} {lineText(line)}

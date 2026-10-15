@@ -48,3 +48,12 @@ describe("no link in the source points at a route that does not exist", () => {
     expect(parse("#/parlay?date=2025-01-27")).toEqual({ name: "parlay", date: "2025-01-27" });
   });
 });
+
+describe("game links from a last-10 list", () => {
+  it("gameHref opens the game route for any id", async () => {
+    const { gameHref } = await import("./router");
+    for (const id of ["0022400001", "a b", "x/y"]) {
+      expect(parse(gameHref(id))).toEqual({ name: "game", id });
+    }
+  });
+});

@@ -46,6 +46,8 @@ export interface Chip {
   minutes: number;
   starter: boolean;
   state: "hit" | "miss" | "push";
+  /** The data holds that game's page, so the chip may link to it. */
+  linkable?: boolean;
 }
 
 export interface Split {

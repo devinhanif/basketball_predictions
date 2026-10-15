@@ -272,6 +272,8 @@ export interface CardStats {
   /** Most recent first. */
   last5: number[];
   last10: number[];
+  /** The same ten games with their ids; `linkable` means the data holds that game's page. */
+  last10_games: { game_id: string; date: string; opp: string; home: boolean | null; value: number; linkable: boolean }[];
   avg5: number | null;
   avg10: number | null;
   avg_season: number | null;

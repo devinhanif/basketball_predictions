@@ -29,6 +29,7 @@ from .models import (
     CardStats,
     CardView,
     Dist,
+    GameDot,
     GameSummary,
     GameView,
     HitTen,
@@ -385,6 +386,17 @@ def register(app: FastAPI) -> None:
                 prior_games=b.prior_games,
                 last5=[c.value for c in b.chips[:5]],
                 last10=[c.value for c in b.chips],
+                last10_games=[
+                    GameDot(
+                        game_id=c.game_id,
+                        date=c.date,
+                        opp=c.opp,
+                        home=c.home,
+                        value=c.value,
+                        linkable=store.game(c.game_id) is not None,
+                    )
+                    for c in b.chips
+                ],
                 avg5=b.last5.avg,
                 avg10=b.last10.avg,
                 avg_season=b.season.avg,
@@ -439,6 +451,8 @@ def register(app: FastAPI) -> None:
         if player is None:
             raise HTTPException(404, "no such player in that game")
         b = build_breakdown(store.history, g, player, stat, line, side)
+        for c in b.chips:
+            c.linkable = store.game(c.game_id) is not None
         b.dissection = dissect_leg(b, default_router())
         return b
 
