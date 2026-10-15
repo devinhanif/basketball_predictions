@@ -13745,5 +13745,144 @@
    "pass": true,
    "later_rows_mean_abs_move_struct_d_ast": 2.078826923169112
   }
+ },
+ "struct_null": {
+  "measured_at": "Wed Oct 14 19:01 CDT 2026",
+  "K": 30,
+  "seasons_read": [
+   2020,
+   2021,
+   2022
+  ],
+  "cells": {
+   "pts|leader_out": {
+    "D1_train2020-21_test2022": {
+     "n": 4814,
+     "observed_struct_beyond_role_pct": 1.4617451371992107,
+     "null_mean_pct": 0.17080205916199856,
+     "null_sd_pct": 0.13894180317578622,
+     "null_max_pct": 0.46211617652058834,
+     "z_vs_null": 9.291250354682228,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 3.546075430750487,
+     "null_sd_crps_equiv(unverified)": 0.0024634905727291276,
+     "two_sd_crps_equiv(unverified)": 0.004926981145458255
+    },
+    "D2a_train2020_test2021": {
+     "n": 7693,
+     "observed_struct_beyond_role_pct": 0.7795183600153077,
+     "null_mean_pct": 0.2921446230837362,
+     "null_sd_pct": 0.11320031733363796,
+     "null_max_pct": 0.5877013609255299,
+     "z_vs_null": 4.30540963498471,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 3.4687912254512354,
+     "null_sd_crps_equiv(unverified)": 0.001963341337426094,
+     "two_sd_crps_equiv(unverified)": 0.003926682674852188
+    },
+    "D2b_train2021_test2020": {
+     "n": 4066,
+     "observed_struct_beyond_role_pct": 1.3860904867672996,
+     "null_mean_pct": 0.3523094240560704,
+     "null_sd_pct": 0.1354294542751486,
+     "null_max_pct": 0.7352835808128955,
+     "z_vs_null": 7.633354710349215,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 3.4148667146552687,
+     "null_sd_crps_equiv(unverified)": 0.002312367677940663,
+     "two_sd_crps_equiv(unverified)": 0.004624735355881326
+    }
+   },
+   "pts|top25_fixed": {
+    "D1_train2020-21_test2022": {
+     "n": 3384,
+     "observed_struct_beyond_role_pct": 1.2985732831556462,
+     "null_mean_pct": 0.14699943525039635,
+     "null_sd_pct": 0.1466081739012684,
+     "null_max_pct": 0.48459173124544286,
+     "z_vs_null": 7.854772467739515,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 4.266881792468504,
+     "null_sd_crps_equiv(unverified)": 0.003127798739231891,
+     "two_sd_crps_equiv(unverified)": 0.006255597478463782
+    },
+    "D2a_train2020_test2021": {
+     "n": 6516,
+     "observed_struct_beyond_role_pct": 0.3833127091730226,
+     "null_mean_pct": 0.14733855409701255,
+     "null_sd_pct": 0.14594984492913668,
+     "null_max_pct": 0.39496762666288987,
+     "z_vs_null": 1.616816757774447,
+     "p_empirical": 0.06451612903225806,
+     "cell_crps_level_gaussian_rule": 4.020169597332825,
+     "null_sd_crps_equiv(unverified)": 0.0029337156465977783,
+     "two_sd_crps_equiv(unverified)": 0.005867431293195557
+    },
+    "D2b_train2021_test2020": {
+     "n": 3737,
+     "observed_struct_beyond_role_pct": 0.8389782192294248,
+     "null_mean_pct": 0.14565502157264706,
+     "null_sd_pct": 0.1343028079269179,
+     "null_max_pct": 0.4795342410273351,
+     "z_vs_null": 5.162387952708002,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 4.135519173505642,
+     "null_sd_crps_equiv(unverified)": 0.0027770591861870724,
+     "two_sd_crps_equiv(unverified)": 0.005554118372374145
+    }
+   },
+   "ast|leader_out": {
+    "D1_train2020-21_test2022": {
+     "n": 5216,
+     "observed_struct_beyond_role_pct": 1.5820282908117766,
+     "null_mean_pct": 0.2022599785951492,
+     "null_sd_pct": 0.15797253557024546,
+     "null_max_pct": 0.6302813556774645,
+     "z_vs_null": 8.734229068590771,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 1.0077627014989294,
+     "null_sd_crps_equiv(unverified)": 0.0007959941460445315,
+     "two_sd_crps_equiv(unverified)": 0.001591988292089063
+    },
+    "D2a_train2020_test2021": {
+     "n": 6796,
+     "observed_struct_beyond_role_pct": 0.5898426307136551,
+     "null_mean_pct": -0.2900568728619072,
+     "null_sd_pct": 0.1455849760575659,
+     "null_max_pct": 0.06611489868250109,
+     "z_vs_null": 6.043889468564671,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 1.0332618331196246,
+     "null_sd_crps_equiv(unverified)": 0.000752136996179586,
+     "two_sd_crps_equiv(unverified)": 0.001504273992359172
+    },
+    "D2b_train2021_test2020": {
+     "n": 4564,
+     "observed_struct_beyond_role_pct": 1.0779099260016634,
+     "null_mean_pct": 0.29934526029030234,
+     "null_sd_pct": 0.15148970541989362,
+     "null_max_pct": 0.6892967889947421,
+     "z_vs_null": 5.139389924571864,
+     "p_empirical": 0.03225806451612903,
+     "cell_crps_level_gaussian_rule": 1.0268334717376317,
+     "null_sd_crps_equiv(unverified)": 0.0007777735007441025,
+     "two_sd_crps_equiv(unverified)": 0.001555547001488205
+    }
+   }
+  },
+  "G1_thresholds": {
+   "pts|leader_out": {
+    "two_sd_crps_equiv_max_over_designs": 0.004926981145458255,
+    "G1_threshold": 0.004926981145458255
+   },
+   "pts|top25_fixed": {
+    "two_sd_crps_equiv_max_over_designs": 0.006255597478463782,
+    "G1_threshold": 0.006255597478463782
+   },
+   "ast|leader_out": {
+    "two_sd_crps_equiv_max_over_designs": 0.001591988292089063,
+    "G1_threshold": 0.003
+   }
+  }
  }
 }
