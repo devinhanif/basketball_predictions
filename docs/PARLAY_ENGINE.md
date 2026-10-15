@@ -138,3 +138,29 @@ Uncertain: roughly a [number removed: not from engine] chance, verdict no_positi
 ```
 Caveat: a 3B model will often pick wrong tools or arguments; the guardrails make that visible (errors are rendered) rather than silently wrong.
 No live Ollama session has been run in this repo's tests (all tests use a scripted backend and an HTTP mock).
+
+## Top-3 tickets (`python -m nba.parlay top --date YYYY-MM-DD`, 2026-10-15)
+
+Contract: `docs/contracts/top_parlays_v1.md`. Writes `reports/parlay/top_parlays_<date>.json`: the three most probable two-leg and
+three-leg tickets of one book, ranked by CALIBRATED joint probability. Read-only and paper only; not wired into `ops/` or `nba/daily`.
+
+- **Legs:** every pre-tip main-line over and under for pts / reb / ast / fg3m in `market_asof.duckdb` (`live_book_odds`), quote stamped
+  before tip and no later than the forecast it is paired with. Refused: priced at or after tip, game already tipped at the run clock,
+  book without a CAL map, whole-number line, P(play) under 0.90, no stored starter rate. Each refusal is counted in `diagnostics`.
+- **Forecast source:** the app export's primary rule (fresh pre-tip AVG row, else production `props_context_residual`), repeated in
+  `top_source.choose_primary` because the live-path layering test forbids importing `nba.export`; `tests/parlay/test_top_source.py`
+  pins it to `nba.export.best_model.mark_primary`.
+- **Calibration:** the frozen LINE_CALIBRATION CAL map (`line_cal.py`, `line_cal_map_v1.json`: per book x stat, fit through 2025-06-30,
+  seasons 2023-2024 only, sha in the file, rebuilt by `python -m nba.parlay.line_cal_build`). The map was fitted on production
+  forecasts; legs forecast by AVG are outside its fit and the output says so. `p_raw` and `p_cal` are both shown.
+- **Search:** one leg per (book, player, stat); each book pruned to the top K = 40 legs by `p_cal`; every 2- and 3-leg ticket of the
+  pruned set (780 + 9,880 per book). Same-game legs share one seeded Gaussian-copula draw per game with the pair correlations of
+  `data/parlay/joint_model.json`; different games multiply (cross-game r is about 0, `reports/parlay/independence_check.md`).
+- **Price:** book implied = product of the legs' implied probabilities; fee = the verified fee object at one contract; EV per dollar =
+  `p / (price + fee) - 1`; the 80% interval is the configured logit-scale calibration noise (`interval.*`) on the joint.
+- **Verdict:** `keep_your_money` unless the gate (30 settled, 14 dates, skill lower bound > 0, read from the shadow log) is open AND a
+  listed ticket has `ev_low80 > 0`. `diagnostics.no_positive_ev_found` is reported either way. The T490 caveat is always printed.
+- **Text:** one deterministic template sentence per leg and two to three per ticket, from the leg's own fields; every sentence is
+  passed through `numguard` and the run reports `numguard_removed`.
+- **Fixture:** `python -m nba.parlay.top_history` rebuilds `app/fixtures/top_parlays_example.json` (2025-01-27, season 2024, DraftKings
+  T-60, walk-forward CAL fit), labelled a hindsight illustration; tickets carry `hindsight` outcomes.
