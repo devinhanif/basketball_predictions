@@ -2,6 +2,17 @@
 
 _Updated 2026-10-14 20:27 CDT. Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
 
+
+## OVERNIGHT 2026-10-14 -> 10-15 (Devin asleep; nothing merged to main, no holdout, no live DB writes)
+A1 merged by Devin (70c52c0). Six agents launched ~22:30 CDT, each on its own branch:
+1. agent/modeler-f1-warm-window: apply the 10 F1 pre-freeze edits + data gate numbers; Devin's 3 open calls marked OPEN (follows review b02d403).
+2. agent/steward-best-model-minors: morning-report primary-source counts, post-tip `>` vs `>=`, p_play for dropped no-team games; oracle 89889f6d; needs Devin's go by Fri 10-17.
+3. agent/modeler-avg-november-prep: gate_rows.py explicit join order (review S1) + staged November refit notebook/runbook + missing-bundle alarm (deadline 11-01 12:00 CT).
+4. agent/modeler-pover-bias: SCRATCH diagnostic of "P(over) 3-4 pp low at DK lines" on 2023-24 only; overlap with T477/LC2.
+5. agent/archivist-questionable-scope: inventory of QUESTIONABLE/DOUBTFUL statuses (Claude's suggestion, not approved by Devin; scoping only).
+6. agent/scribe-retro-1014: retro for 10-14.
+Results are summarised here as they land.
+
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
 - **App shows the best-evidenced model (Devin: "get rid of the timeline, best model into the front end asap").** Props from AVG
