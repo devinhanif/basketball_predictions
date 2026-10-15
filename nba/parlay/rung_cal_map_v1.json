@@ -1,0 +1,122 @@
+{
+ "block_start": "2025-07-01",
+ "book": "draftkings",
+ "cells": [
+  {
+   "beta": [
+    0.015197776786515177,
+    0.20855226574256983,
+    -0.2377730744388909,
+    -1.2901389126961933,
+    0.01388194252561659,
+    -0.04481428173668057,
+    0.19769381860743757
+   ],
+   "n_eff": 22796.926980515604,
+   "n_fit": 25230,
+   "stat": "ast"
+  },
+  {
+   "beta": [
+    0.14203860722917652,
+    0.21451390510830948,
+    -0.7440477354106472,
+    -1.068208084572204,
+    -0.03303194757097181,
+    0.09519953156613471,
+    -0.005289814963224164
+   ],
+   "n_eff": 19198.970573109655,
+   "n_fit": 20593,
+   "stat": "fg3m"
+  },
+  {
+   "beta": [
+    -0.06093033545324381,
+    0.43911823278920903,
+    0.2650774640064587,
+    -1.0896564893730023,
+    0.12249836377677428,
+    0.0572092636746701,
+    0.03224691088679342
+   ],
+   "n_eff": 59511.23088205458,
+   "n_fit": 64672,
+   "stat": "pts"
+  },
+  {
+   "beta": [
+    -0.045999197302702514,
+    -0.03370766032246611,
+    -0.816387826439802,
+    -1.797969444874247,
+    -0.023811289462401145,
+    -0.0038194221841382553,
+    0.06963299164870558
+   ],
+   "n_eff": 41443.502193667606,
+   "n_fit": 45474,
+   "stat": "reb"
+  }
+ ],
+ "constants": {
+  "eps": 0.002512562814070352,
+  "fit_support_min_p": 0.5,
+  "half_life_days": 365.0,
+  "iqr_to_sd": 1.349,
+  "min_fit": 2000,
+  "r_clip": 8.0,
+  "ridge": 1.0,
+  "spread_min": 0.5,
+  "z_clip": 5.0,
+  "zm_clip": 5.0
+ },
+ "fanduel": "label only in v1; no FanDuel map",
+ "fit_through": "2025-06-30",
+ "harness_pin8": "7eb08466",
+ "inputs": {
+  "arrays_sha256": "1f9abb48bf574cfbc1bc48467a6c5a7ea296703f51101add21e241c8c4e69dcc",
+  "odds_history_note": "odds_history.duckdb grew on 2026-10-15 (six combo markets, rungs untouched), so its sha differs from the ALT_RUNG_CAL pin; the pinned counts (S = 162,745) held"
+ },
+ "map_sha256": "116f448024976c6a540c2c6691ce7b6815398222d58b80f6b46f1aa23a0211af",
+ "map_version": "rung_cal_map_v1",
+ "note": "DraftKings 2023-24 rungs only; season 2025 not loaded. Static map: weights are 0.5 ** (age / 365 days) counted from block_start. Display only; not model skill: the gain over a reliability table is the book's main line (T494). Refit only after Devin logs a 2025 training-use row.",
+ "row_counts": {
+  "S_rungs_all": 162745,
+  "S_rungs_no_main": 6776,
+  "S_rungs_with_main_fit": 155969,
+  "by_stat": {
+   "ast": 25230,
+   "fg3m": 20593,
+   "pts": 64672,
+   "reb": 45474
+  },
+  "first_fit_date": "2023-12-07",
+  "fit_units": 76878,
+  "last_fit_date": "2025-06-22",
+  "seasons": [
+   2023,
+   2024
+  ]
+ },
+ "rule": "ALT_RUNG_CAL",
+ "rule_sha256": "425e41539e5d3dcb9525cec11741abc9f5fa51a5992f453215b132f64ded3b30",
+ "rule_sha8": "425e4153",
+ "schema": "rung_cal_map/1",
+ "term_definitions": {
+  "bench": "1 if starter10 < 0.5 else 0",
+  "r": "clip((line - main) / spread, -8, 8)",
+  "spread": "max((q75 - q25) / 1.349, 0.5) of the continuous 199-point grid",
+  "x": "logit(clip(P(Y >= line + 0.5), 0.5/199, 1 - 0.5/199))",
+  "zm": "clip((main - median) / spread, -5, 5)"
+ },
+ "terms": [
+  "1",
+  "x",
+  "zm",
+  "r",
+  "r*x",
+  "bench",
+  "bench*x"
+ ]
+}
