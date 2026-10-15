@@ -22,7 +22,9 @@ quantiles. Nothing else changes: same centre ``c``, same scale ``s``, same integ
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
+import subprocess
 import time
 from pathlib import Path
 from typing import Any
@@ -56,6 +58,9 @@ DK_GAIN_PP = 1.0  # P4
 PLACEBO_SHARE = 0.25  # G2
 NULL_SD = 3.0  # G1
 K_NULL = 50
+K_DESCRIPTIVE = 10  # outcome-shuffle draws kept as a descriptive field only; never in a word
+PINNED_VERSIONS = {"numpy": "2.5.3", "pandas": "3.0.6", "pyarrow": "25.0.1"}
+TRUTHS = ("oracle", "a0", "mix50", "harm")
 N_BOOT, SEED = 5000, 2026
 ALPHA = 0.05
 OUT_REAL = Path("reports/median_bias")
@@ -193,7 +198,12 @@ def bh_adjust(p: np.ndarray) -> np.ndarray:
 
 
 def synthetic_y(comp: dict[str, np.ndarray], truth: str, seed: int = 0) -> np.ndarray:
-    """Synthetic integer outcomes: y = max(0, round(c + s * z*)), z* a draw from the row's block pool ('a0': pooled; 'oracle': the row's cell)."""
+    """Synthetic integer outcomes: y = max(0, round(c + s * z*)), z* drawn per block from
+    'oracle': the row's own cell pool (CAND exactly right); 'a0': the pooled pool (A0 exactly right);
+    'mix50': the own cell pool with probability 0.5, else the pooled pool (the cell effect at half strength: CAND overshoots);
+    'harm': the cell pool in H only, the pooled pool in the other two cells (CAND fixes H but mis-shifts the other cells: the review's `pooledH` world, PARTIAL with CRPS harm)."""
+    if truth not in TRUTHS:
+        raise ValueError(truth)
     rng = np.random.default_rng(seed)
     y = np.empty(len(comp["row_c"]))
     rc = cell_of(comp["row_min10"])
@@ -205,10 +215,29 @@ def synthetic_y(comp: dict[str, np.ndarray], truth: str, seed: int = 0) -> np.nd
         zs = np.empty(len(r))
         for k in range(3):
             sel = rc[r] == k
-            pool = z if truth == "a0" or (cc == k).sum() < MIN_BIN else z[cc == k]
-            zs[sel] = rng.choice(pool, size=int(sel.sum()))
+            n = int(sel.sum())
+            cell_pool = z[cc == k] if (cc == k).sum() >= MIN_BIN else z
+            if truth == "a0":
+                zs[sel] = rng.choice(z, size=n)
+            elif truth == "oracle":
+                zs[sel] = rng.choice(cell_pool, size=n)
+            elif truth == "mix50":
+                use_cell = rng.random(n) < 0.5
+                zs[sel] = np.where(use_cell, rng.choice(cell_pool, size=n), rng.choice(z, size=n))
+            else:  # harm: the cell effect is real only in H; the other two cells keep the pooled pool
+                zs[sel] = rng.choice(cell_pool if k == H_CELL else z, size=n)
         y[r] = np.maximum(np.round(comp["row_c"][r] + comp["row_s"][r] * zs), 0.0)
     return y
+
+
+def versions() -> dict[str, str]:
+    return {k: importlib.metadata.version(k) for k in PINNED_VERSIONS}
+
+
+def git_head() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False, cwd=rule.ROOT
+    ).stdout.strip()
 
 
 # ------------------------------------------------------------------------------------ preflight
@@ -230,6 +259,14 @@ def preflight(root: Path, declared: dict[str, str]) -> dict[str, Any]:
     }
     if bad:
         raise RuntimeError(f"pinned input sha256 mismatch: {bad}")
+    got_v = versions()
+    if got_v != PINNED_VERSIONS:
+        raise RuntimeError(f"library versions {got_v} != pinned {PINNED_VERSIONS}")
+    uv_sha = gate.sha256_file(rule.ROOT / "uv.lock")
+    if declared.get("UV_LOCK_SHA256") != uv_sha:
+        raise RuntimeError(
+            f"uv.lock sha256 {uv_sha[:12]} != pinned {declared.get('UV_LOCK_SHA256', 'missing')[:12]}"
+        )
     keys = gate.dk_population(root)
     if len(keys) != PINNED["dk_legs"]:
         raise RuntimeError(f"DraftKings t60 legs {len(keys)} != pinned {PINNED['dk_legs']}")
@@ -259,10 +296,28 @@ def preflight(root: Path, declared: dict[str, str]) -> dict[str, Any]:
             "fallback_share": c["fallback_share"],
             "min_pool_cell_n": c["min_pool_cell_n"],
         }
-    return {"inputs_equal_pinned": True, "counts_equal_pinned": True, "per_stat": got}
+    return {
+        "inputs_equal_pinned": True,
+        "counts_equal_pinned": True,
+        "versions": got_v,
+        "uv_lock_sha256": uv_sha,
+        "git_head": git_head(),
+        "per_stat": got,
+    }
 
 
 # ------------------------------------------------------------------------------------ evaluation
+
+
+def report_subset(comp: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    """The REPORT-season rows and the calibration pools of their blocks (row order preserved), for the calibration-side null."""
+    m = comp["row_season"] == REPORT
+    blocks = np.unique(comp["row_blk"][m])
+    cm = np.isin(comp["cal_blk"], blocks)
+    keys = ("row_c", "row_s", "row_blk", "row_min10")
+    out = {k: comp[k][m] for k in keys}
+    out |= {k: comp[k][cm] for k in ("cal_z", "cal_blk", "cal_min10")}
+    return out
 
 
 def build_arms(
@@ -289,6 +344,7 @@ def build_arms(
             "qi": {"A0": to_int(q0).astype(np.int16), "CAND": to_int(qc).astype(np.int16)},
             "blk": comp["row_blk"],
             "leak": leak_overlap(comp),
+            "null_comp": report_subset(comp),
         }
     return out
 
@@ -397,10 +453,10 @@ def score(arms: dict[str, Any]) -> dict[str, Any]:
     return res
 
 
-def null_draws(
+def outcome_shuffle_descriptive(
     arms: dict[str, Any], season: int, k: int, seed: int = SEED
 ) -> dict[str, np.ndarray]:
-    """G1: y permuted among the rows of each (stat, block) of ``season`` (breaks the cell-outcome link, keeps every block marginal); the two
+    """DESCRIPTIVE ONLY (not in any word; centres near -1 pp under every truth, review item 1): y permuted among the rows of each (stat, block) of ``season`` (breaks the cell-outcome link, keeps every block marginal); the two
     arms' quantiles do not depend on y, so only the labels change. Returns per draw the pooled stratum-H gains and the mean CRPS change."""
     gain = np.empty(k)
     dcrps = np.empty(k)
@@ -425,6 +481,39 @@ def null_draws(
             d_cr.append(
                 float((crps_int(a["qi"]["CAND"][lo], y) - crps_int(a["qi"]["A0"][lo], y)).mean())
             )
+        gain[i] = 100.0 * (abs(s0 / cnt) - abs(sc / cnt))
+        dcrps[i] = float(np.mean(d_cr))
+    return {"gain_pp": gain, "dcrps": dcrps}
+
+
+def cal_shuffle_null(
+    arms: dict[str, Any], season: int, k: int, seed: int = SEED
+) -> dict[str, np.ndarray]:
+    """G1: permute the CALIBRATION rows' min10 within each block (breaks the cell structure of the pool, keeps every pool's z values and the
+    outcomes), rebuild CAND, score it on the same ``season`` outcomes. Per draw i the generator is ``default_rng(seed + i)``; stats in STATS order.
+    Returns the pooled stratum-H |gap| reduction (pp) and the mean-over-stats CRPS change CAND minus A0 per draw."""
+    gain = np.empty(k)
+    dcrps = np.empty(k)
+    for i in range(k):
+        rng = np.random.default_rng(seed + i)
+        s0 = sc = cnt = 0.0
+        d_cr = []
+        for st in STATS:
+            a = arms[st]
+            comp = dict(a["null_comp"])
+            cm10 = comp["cal_min10"].copy()
+            for b in np.unique(comp["cal_blk"]):
+                ix = np.flatnonzero(comp["cal_blk"] == b)
+                cm10[ix] = rng.permutation(cm10[ix])
+            comp["cal_min10"] = cm10
+            lo = np.flatnonzero(a["season"] == season)
+            qn = to_int(cand_grid(comp)).astype(np.int16)
+            y = a["y"][lo]
+            H = a["cell"][lo] == H_CELL
+            s0 += float(midmed(a["qi"]["A0"][lo], y)[H].sum())
+            sc += float(midmed(qn, y)[H].sum())
+            cnt += float(H.sum())
+            d_cr.append(float((crps_int(qn, y) - crps_int(a["qi"]["A0"][lo], y)).mean()))
         gain[i] = 100.0 * (abs(s0 / cnt) - abs(sc / cnt))
         dcrps[i] = float(np.mean(d_cr))
     return {"gain_pp": gain, "dcrps": dcrps}
@@ -467,14 +556,19 @@ def words(sc: dict[str, Any], guards: dict[str, Any]) -> dict[str, Any]:
         for st in STATS
     )
     gd = all(guards[k]["pass"] for k in ("G1_null", "G2_placebo", "G3_leak", "G4_a0_repro"))
+    crps_harm = not all(p2.values())
     if p1 and p3 and all(p5.values()):
         w = ("MEDIAN_FIXED" if all(p2.values()) else "FIXED_BUT_HARMS_CRPS") if gd else "GUARD_FAIL"
     elif p1b:
         w = "PARTIAL"  # the gap shrinks significantly but is not closed (or a stat is left off, or 2023 / a cell disagrees)
     else:
         w = "NOT_FIXED"
+    under_correction = bool(
+        ph["CAND"]["point"] * ph["A0"]["point"] > 0
+    )  # pooled 2024 H gap keeps A0's sign
     return {
-        "word": w, "ON_LINES": bool(w == "MEDIAN_FIXED" and p4), "IMPROVES_CRPS": bool(w == "MEDIAN_FIXED" and imp),
+        "word": w, "CRPS_HARM": crps_harm, "FOLLOWUP_OPEN": bool(w == "PARTIAL" and not crps_harm and under_correction),
+        "ON_LINES": bool(w == "MEDIAN_FIXED" and p4), "IMPROVES_CRPS": bool(w == "MEDIAN_FIXED" and imp),
         "P1a": p1a, "P1b": p1b, "P1c": p1c, "P1": p1, "per_stat_fixed_bh": per_stat, "P2": p2, "P3": p3, "P4": p4, "P5": p5, "guards_pass": gd,
     }  # fmt: skip
 
@@ -486,14 +580,16 @@ def evaluate(
     arms = build_arms(root, real, truth, keys)
     sc = score(arms)
     rep = sc["by_season"][str(REPORT)]
-    nd = null_draws(arms, REPORT, k_null)
+    nd = cal_shuffle_null(arms, REPORT, k_null)
+    desc = outcome_shuffle_descriptive(arms, REPORT, K_DESCRIPTIVE)
     obs_gain = float(
         abs(rep["pooled"]["H"]["A0"]["point"]) - abs(rep["pooled"]["H"]["CAND"]["point"])
     )
     obs_dc = float(np.mean([rep[st]["crps_int"]["CAND_minus_A0"]["point"] for st in STATS]))
-    g1 = {
+    g1: dict[str, Any] = {
         "obs_gain_pp": obs_gain, "null_gain_mean": float(nd["gain_pp"].mean()), "null_gain_sd": float(nd["gain_pp"].std(ddof=1)),
         "obs_dcrps": obs_dc, "null_dcrps_mean": float(nd["dcrps"].mean()), "null_dcrps_sd": float(nd["dcrps"].std(ddof=1)), "k": k_null,
+        "descriptive_outcome_shuffle": {"gain_mean": float(desc["gain_pp"].mean()), "dcrps_mean": float(desc["dcrps"].mean()), "k": K_DESCRIPTIVE, "note": "not in any word"},
     }  # fmt: skip
     g1["pass"] = bool(
         obs_gain > g1["null_gain_mean"] + NULL_SD * g1["null_gain_sd"]
@@ -546,7 +642,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("cmd", choices=("check", "rehearse", "run"))
     ap.add_argument("--data-root", type=Path, required=True)
     ap.add_argument("--sha", default=None)
-    ap.add_argument("--truth", choices=("oracle", "a0"), default="oracle")
+    ap.add_argument("--truth", choices=TRUTHS, default="oracle")
     ap.add_argument("--k", type=int, default=K_NULL)
     ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args(argv)
@@ -564,7 +660,15 @@ def main(argv: list[str] | None = None) -> int:
         out = a.out or (rule.ROOT / OUT_REHEARSAL / a.truth)
     else:
         pins = rule.a0_pins_declared()
-        res = evaluate(a.data_root, True, "", a.k, a0_repro(a.data_root, pins))
+        repro = a0_repro(a.data_root, pins)
+        if not repro["pass"]:
+            raise RuntimeError(
+                f"G4 failed ({repro['mismatches']}): refusing before any candidate is built or scored"
+            )
+        _log(
+            "G4 holds: A0 reproduces its pinned CRPS and the DK median statistic; building the candidate"
+        )
+        res = evaluate(a.data_root, True, "", a.k, repro)
         out = a.out or (rule.ROOT / OUT_REAL)
     res["preflight"] = pre
     res["wall_seconds"] = round(time.time() - t0, 1)

@@ -298,10 +298,10 @@
  "input_sha256": {
   "data/ops/model_clv_pairs/pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
   "data/ops/model_clv_pairs/pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
-  "reports/lower_tail/components_ast.npz": "024c15eedd2d090d7f38c081525aa14ab4b0a9939e0a0c05f5faddadf380f72e",
-  "reports/lower_tail/components_fg3m.npz": "1ace9fbcefe6b051053059d51db23b9f4c5dc42561aa8446b074124a73703d8e",
-  "reports/lower_tail/components_pts.npz": "1d38ac0ca7188b8c32c604169f87e7fdb47ed7ce759da1a1f0fad9bd60805269",
-  "reports/lower_tail/components_reb.npz": "18846ced207326fe40bc0c5f6840ab22ce648918501cff58abb62fc4eee510bc"
+  "data/pinned/median_bias/components_ast.npz": "024c15eedd2d090d7f38c081525aa14ab4b0a9939e0a0c05f5faddadf380f72e",
+  "data/pinned/median_bias/components_fg3m.npz": "1ace9fbcefe6b051053059d51db23b9f4c5dc42561aa8446b074124a73703d8e",
+  "data/pinned/median_bias/components_pts.npz": "1d38ac0ca7188b8c32c604169f87e7fdb47ed7ce759da1a1f0fad9bd60805269",
+  "data/pinned/median_bias/components_reb.npz": "18846ced207326fe40bc0c5f6840ab22ce648918501cff58abb62fc4eee510bc"
  },
  "rule": "docs/prereg/MEDIAN_BIAS.md",
  "stats": {

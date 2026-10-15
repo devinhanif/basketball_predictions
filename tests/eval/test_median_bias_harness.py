@@ -242,11 +242,18 @@ def test_load_comp_refuses_season_2025_and_hides_labels(tmp_path: Path) -> None:
     comp = make_comp(rows=50, cal=80)
     arrays = {k: v for k, v in comp.items()} | {"row_y": np.zeros(comp["row_c"].size)}
     root = tmp_path
-    (root / "reports/lower_tail").mkdir(parents=True)
+    (root / "data/pinned/median_bias").mkdir(parents=True)
     np.savez(root / gate.COMP_FILES["pts"], **cast(Any, arrays))
     got = gate.load_comp(root, "pts")
     assert "row_y" not in got
     assert "row_y" in gate.load_comp(root, "pts", labels=True)
+    bad = {
+        **arrays,
+        "row_min10": np.where(np.arange(comp["row_c"].size) == 3, np.nan, comp["row_min10"]),
+    }
+    np.savez(root / gate.COMP_FILES["pts"], **cast(Any, bad))
+    with pytest.raises(AssertionError, match="NaN"):
+        gate.load_comp(root, "pts")
     arrays["row_season"] = np.full(comp["row_c"].size, 2025)
     np.savez(root / gate.COMP_FILES["pts"], **cast(Any, arrays))
     with pytest.raises(AssertionError):
@@ -329,7 +336,7 @@ def test_real_path_runs_end_to_end_on_a_fake_root(tmp_path: Path) -> None:
     import pandas as pd
 
     root = tmp_path
-    (root / "reports/lower_tail").mkdir(parents=True)
+    (root / "data/pinned/median_bias").mkdir(parents=True)
     (root / "data/ops/model_clv_pairs").mkdir(parents=True)
     rows = []
     for k, st in enumerate(gate.STATS):
@@ -360,3 +367,203 @@ def test_real_path_runs_end_to_end_on_a_fake_root(tmp_path: Path) -> None:
     assert res["guards"]["G3_leak"]["pass"]
     h = res["score"]["by_season"]["2024"]["pts"]["H"]
     assert h["n"] > 0 and {"A0", "CAND", "PLACEBO"} <= set(h)
+
+
+# ------------------------------------------------------------------------------------ pre-freeze review items 1, 6, 7
+
+
+def _arms_from(comps: dict[str, dict[str, np.ndarray]], truth: str) -> dict[str, Any]:
+    arms: dict[str, Any] = {}
+    for k, (st, comp) in enumerate(comps.items()):
+        y = ev.synthetic_y(comp, truth, seed=3 + k)
+        arms[st] = {
+            "season": comp["row_season"].astype(int),
+            "cell": gate.cell_of(comp["row_min10"]),
+            "y": y,
+            "qi": {"A0": gate.to_int(gate.a0_grid(comp)).astype(np.int16)},
+            "null_comp": ev.report_subset(comp),
+        }
+    return arms
+
+
+def test_calibration_shuffle_null_is_centred_on_zero_when_cells_share_one_pool() -> None:
+    comps = {}
+    for k, st in enumerate(gate.STATS):
+        c = make_comp(seed=k, n_blocks=4, rows=3000, cal=40000, two_seasons=True)
+        c["cal_z"] = np.random.default_rng(50 + k).normal(
+            0, 1, c["cal_z"].size
+        )  # one pool for every cell
+        comps[st] = c
+    nd = ev.cal_shuffle_null(_arms_from(comps, "a0"), 2024, 6)
+    assert abs(nd["gain_pp"].mean()) < 0.1 and abs(nd["dcrps"].mean()) < 0.002
+
+
+def test_calibration_shuffle_null_removes_a_real_cell_gain() -> None:
+    comps = {
+        st: make_comp(seed=k, n_blocks=4, rows=3000, cal=40000, two_seasons=True)
+        for k, st in enumerate(gate.STATS)
+    }
+    arms = _arms_from(comps, "oracle")
+    real = []
+    for st, a in arms.items():
+        lo = np.flatnonzero(a["season"] == 2024)
+        qc = gate.to_int(ev.cand_grid(report := ev.report_subset(comps[st]))).astype(np.int16)
+        assert report["row_c"].size == lo.size
+        H = a["cell"][lo] == gate.H_CELL
+        y = a["y"][lo]
+        real.append((ev.midmed(a["qi"]["A0"][lo], y)[H].sum(), ev.midmed(qc, y)[H].sum(), H.sum()))
+    s0, sc, n = (sum(x[i] for x in real) for i in range(3))
+    obs = 100 * (abs(s0 / n) - abs(sc / n))
+    nd = ev.cal_shuffle_null(arms, 2024, 4)
+    assert obs > nd["gain_pp"].mean() + 3 * max(nd["gain_pp"].std(ddof=1), 0.01)
+
+
+def test_truths_mix50_and_harm_are_integer_reproducible_and_distinct() -> None:
+    comp = make_comp()
+    ys = {tr: ev.synthetic_y(comp, tr, 5) for tr in ev.TRUTHS}
+    for y in ys.values():
+        assert (y == np.round(y)).all() and (y >= 0).all()
+    assert all(not np.array_equal(ys[a], ys[b]) for a in ev.TRUTHS for b in ev.TRUTHS if a < b)
+    assert np.array_equal(ev.synthetic_y(comp, "harm", 5), ys["harm"])
+
+
+def test_crps_harm_flag_and_followup_precedence() -> None:
+    harm = season(gap_c=1.2, dcrps=0.0005, hi=0.0011)
+    w = ev.words(sc(harm), OK)
+    assert (
+        w["word"] == "PARTIAL" and w["CRPS_HARM"] and not w["FOLLOWUP_OPEN"]
+    )  # PARTIAL with harm closes the idea
+    w = ev.words(sc(season(gap_c=1.2)), OK)
+    assert (
+        w["word"] == "PARTIAL" and not w["CRPS_HARM"] and w["FOLLOWUP_OPEN"]
+    )  # under-correction, no harm: follow-up open
+    w = ev.words(sc(season(gap_c=-1.2)), OK)
+    assert (
+        w["word"] == "PARTIAL" and not w["FOLLOWUP_OPEN"]
+    )  # overshoot (sign flipped) is not what the nine-cell map addresses
+    w = ev.words(sc(season(dcrps=0.0005, hi=0.0011)), OK)
+    assert w["word"] == "FIXED_BUT_HARMS_CRPS" and w["CRPS_HARM"]
+    assert not ev.words(sc(), OK)["CRPS_HARM"]
+
+
+def test_run_refuses_before_building_the_candidate_when_g4_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    called = {"evaluate": False}
+    monkeypatch.setattr(rule, "require_ready", lambda sha: {})
+    monkeypatch.setattr(rule, "pin_of", lambda b: "0" * 64)
+    monkeypatch.setattr(ev, "preflight", lambda root, decl: {})
+    monkeypatch.setattr(rule, "a0_pins_declared", lambda: {})
+    monkeypatch.setattr(
+        ev, "a0_repro", lambda root, pins: {"pass": False, "mismatches": {"pts_2023": 1.0}}
+    )
+    monkeypatch.setattr(ev, "evaluate", lambda *a, **k: called.__setitem__("evaluate", True))
+    with pytest.raises(RuntimeError, match="before any candidate"):
+        ev.main(["run", "--data-root", str(tmp_path), "--sha", "a" * 64])
+    assert not called["evaluate"]
+
+
+def test_preflight_refuses_a_library_or_uv_lock_mismatch(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    decl = {f"COMPONENTS_SHA256_{s.upper()}": "0" * 64 for s in gate.STATS}
+    monkeypatch.setattr(gate, "sha256_file", lambda p: "0" * 64)
+    monkeypatch.setattr(
+        ev, "versions", lambda: {"numpy": "0.0", "pandas": "3.0.6", "pyarrow": "25.0.1"}
+    )
+    decl |= {f"PAIRS_SHA256_{y}": "0" * 64 for y in gate.SEASONS}
+    with pytest.raises(RuntimeError, match="library versions"):
+        ev.preflight(tmp_path, decl)
+    monkeypatch.setattr(ev, "versions", lambda: dict(ev.PINNED_VERSIONS))
+    with pytest.raises(RuntimeError, match="uv.lock"):
+        ev.preflight(tmp_path, decl | {"UV_LOCK_SHA256": "1" * 64})
+
+
+# Appendix A of the pre-freeze review (adversary): every word, every PARTIAL branch, inclusive boundaries.
+
+
+def season(
+    gap_a0: float = 3.0,
+    gap_c: float = 0.4,
+    p: float = 0.001,
+    dcrps: float = -0.003,
+    hi: float = -0.001,
+    red_hi: float | None = None,
+) -> dict[str, Any]:  # noqa: F811
+    d: dict[str, Any] = {}
+    for st in gate.STATS:
+        d[st] = {
+            "H": {"A0": {"point": gap_a0}, "CAND": {"point": gap_c}, "p_bh": p},
+            "cells": {c: {"A0": {"point": 1.0}, "CAND": {"point": 0.5}} for c in gate.CELLS},
+            "crps_int": {"CAND_minus_A0": {"point": dcrps, "lo": dcrps - 0.001, "hi": hi}},
+        }
+    red = abs(gap_c) - abs(gap_a0)
+    d["pooled"] = {
+        "H": {
+            "A0": {"point": gap_a0},
+            "CAND": {"point": gap_c},
+            "abs_CAND_minus_A0": {"point": red, "hi": red + 0.3 if red_hi is None else red_hi},
+            "p_CAND_abs_not_smaller": p,
+        },
+        "dk_gain_pp": {"point": 1.5, "lo": 1.3, "hi": 1.7},
+    }
+    return d
+
+
+def sc(rep: dict[str, Any] | None = None, con: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {"by_season": {"2024": rep or season(), "2023": con or season()}}
+
+
+OK = {k: {"pass": True} for k in ("G1_null", "G2_placebo", "G3_leak", "G4_a0_repro")}
+
+
+def word(s: dict[str, Any], g: dict[str, Any] = OK) -> str:
+    return str(ev.words(s, g)["word"])
+
+
+def test_appendix_a_fixed_harm_and_guard() -> None:
+    import copy
+
+    assert word(sc()) == "MEDIAN_FIXED"
+    assert word(sc(season(dcrps=0.0005, hi=0.0011))) == "FIXED_BUT_HARMS_CRPS"
+    for g in ("G1_null", "G2_placebo", "G3_leak", "G4_a0_repro"):
+        bad = copy.deepcopy(OK)
+        bad[g]["pass"] = False
+        assert word(sc(), bad) == "GUARD_FAIL"
+        assert (
+            word(sc(season(dcrps=0.0005, hi=0.0011)), bad) == "GUARD_FAIL"
+        )  # harm + guard: the guard wins
+
+
+def test_appendix_a_every_partial_branch() -> None:
+    assert word(sc(season(gap_c=1.2))) == "PARTIAL"  # P1a: pooled |gap| above 1.0
+    r = season()
+    r["reb"]["H"]["CAND"]["point"] = 1.6  # P1c: one stat above the 1.5 cap
+    assert word(sc(r)) == "PARTIAL"
+    assert word(sc(con=season(red_hi=0.01))) == "PARTIAL"  # P3: 2023 pooled reduction CI crosses 0
+    c = season()
+    for st in ("pts", "reb"):
+        c[st]["H"]["CAND"]["point"] = 3.5  # P3: only 2 of 4 stats smaller in 2023
+    assert word(sc(con=c)) == "PARTIAL"
+    r = season()
+    r["ast"]["cells"]["lt15"] = {
+        "A0": {"point": 0.2},
+        "CAND": {"point": 0.8},
+    }  # P5: a cell worse by 0.6 pp
+    assert word(sc(r)) == "PARTIAL"
+
+
+def test_appendix_a_not_fixed_branches_and_boundaries() -> None:
+    import copy
+
+    assert word(sc(season(p=0.06))) == "NOT_FIXED"
+    assert word(sc(season(gap_a0=0.8, gap_c=0.4))) == "NOT_FIXED"  # reduction 0.4 < 0.5
+    bad = copy.deepcopy(OK)
+    bad["G1_null"]["pass"] = False
+    assert word(sc(season(p=0.5)), bad) == "NOT_FIXED"
+    w = ev.words(sc(season(gap_c=1.2)), OK)
+    assert w["word"] == "PARTIAL" and not w["ON_LINES"] and not w["IMPROVES_CRPS"]
+    assert word(sc(season(gap_c=1.0))) == "MEDIAN_FIXED"  # P1a: <= 1.0
+    assert word(sc(season(hi=0.001))) == "MEDIAN_FIXED"  # P2: <= +0.001
+    assert word(sc(season(p=0.05))) == "MEDIAN_FIXED"  # P1b: p <= 0.05
+    assert word(sc(season(gap_a0=0.9, gap_c=0.4))) == "MEDIAN_FIXED"  # reduction exactly 0.5

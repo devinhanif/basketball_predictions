@@ -11,7 +11,7 @@ harness pin that is checked BEFORE any real outcome is read:
 
 Pin commit procedure (done by a hand that can commit, after the adversary has read the harness and the synthetic rehearsal):
     .venv/bin/python -m research.eval.median_bias_rule pin           # prints the pin and the commit command
-    git add <HARNESS_FILES> && git commit -m "harness(MEDIAN_BIAS): <pin>"
+    git commit --allow-empty -m "harness(MEDIAN_BIAS): <pin>"  # the harness files are already committed
 The pin commit must come after the ``prereg(MEDIAN_BIAS)`` commit and before any real outcome is read.
 """
 
@@ -187,7 +187,9 @@ def main(argv: list[str] | None = None) -> int:
         for k in sorted(blobs):
             print(f"{blobs[k]}  {k}")
         print(f"pin {pin}")
-        print(f'git add {" ".join(HARNESS_FILES)} && git commit -m "harness({ID}): {pin}"')
+        print(
+            f'git commit --allow-empty -m "harness({ID}): {pin}"  # files already committed; no harness edit between freeze and pin'
+        )
         return 0
     print("usage: python -m research.eval.median_bias_rule pin")
     return 2
