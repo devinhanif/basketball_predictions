@@ -227,7 +227,7 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
         games.setdefault(ag["game_id"], ag)
     props.extend(avg)
     pplay = best_model.pplay_rows(con, blo, bhi, window.seasons, window.first, window.day, et_date)
-    best_model.mark_primary(props, pplay)
+    best_model.mark_primary(props, pplay, best_model.ok_avg_runs(con))
     used = {(w["run_id"], w["model_name"]) for w in win} | {
         (p["run_id"], p["model_name"]) for p in props
     }

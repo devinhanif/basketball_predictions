@@ -11,6 +11,10 @@ Primary order for a prop (one ``is_primary`` row per (game, player, stat)):
 2. an AVG row made strictly before tip whose bundle is fresh            -> ``avg``
 3. an AVG row whose bundle is stale                                     -> ``fallback_stale``
 4. no AVG row (or an unreadable one) before tip                         -> ``fallback_missing``
+5. an AVG row older than the production row it competes with, unless the heartbeat shows the
+   AVG run finished ``ok`` for that production run (write-on-change leaves old rows in place)
+                                                                        -> ``fallback_stale``
+                                                                           (``avg_run_behind_production``)
    (2-4 fall back to the latest pre-tip production row; if there is none, no primary is marked)
 
 Stale bundle, from the AVG rule's refit schedule (docs/prereg/AVG_SHADOW_LIVE_2.md, "Refit
@@ -21,7 +25,8 @@ that month. Anything else is stale and ``freshness_reason`` names the first fail
 
 P(play): the latest pre-tip ``forward_pplay_shadow`` row of the (game, player); R when its
 ``p_play_r`` is not NULL (``p_play_source = r``), else the production value
-(``production``, ``p_play_detail`` carries R's ``r_reason`` or ``no_r_row``). An older R is never
+(``production``, ``p_play_detail`` carries R's ``r_reason`` or ``no_r_row``); when the newest row
+says ``out_on_report`` the value is 0.0 with ``p_play_source = out_on_report``. An older R is never
 reused when the newest row has none (a player ruled out later must not keep an old R).
 """
 
@@ -42,6 +47,8 @@ from nba.props.config import THRESHOLDS
 AVG_MODEL_NAME = "props_avg_live2"
 AVG_VERSION = "avg-live2"
 AVG_TABLE = "forward_avg_shadow"
+AVG_HEARTBEAT_TABLE = "forward_avg_heartbeat"
+OUT_ON_REPORT = "out_on_report"
 PPLAY_TABLE = "forward_pplay_shadow"
 PRODUCTION_PROP_MODEL = "props_context_residual"
 POSTSEASON_PREFIXES = ("004", "005")
@@ -100,6 +107,24 @@ def _table_exists(con: duckdb.DuckDBPyConnection, name: str) -> bool:
         "SELECT count(*) FROM information_schema.tables WHERE table_name = ?", [name]
     ).fetchone()
     return bool(row and row[0])
+
+
+def _assert_seasons(seasons: set[int], allowed: tuple[int, ...]) -> None:
+    bad = {x for x in seasons if x not in allowed or x == guard.HOLDOUT_SEASON}
+    if bad:  # pragma: no cover - the SQL filter makes this unreachable; kept as the belt
+        raise guard.ExportRefused(f"rows from seasons {sorted(bad)} reached the export")
+
+
+def ok_avg_runs(con: duckdb.DuckDBPyConnection) -> set[str]:
+    """Run ids whose AVG inference finished with status ``ok`` (``forward_avg_heartbeat``)."""
+    if not _table_exists(con, AVG_HEARTBEAT_TABLE):
+        return set()
+    return {
+        str(r[0])
+        for r in con.execute(
+            f"SELECT run_id FROM {AVG_HEARTBEAT_TABLE} WHERE status = 'ok'"  # noqa: S608
+        ).fetchall()
+    }
 
 
 def _valid(vals: Any, n: int) -> list[float] | None:
@@ -176,7 +201,7 @@ def avg_rows(
             "run_id": r[1], "made_at": made_at, "game_id": gid, "tipoff": tip,
             "model_name": AVG_MODEL_NAME, "version": AVG_VERSION, "player_id": pid,
             "stat": stat, "lead_minutes": (tip - made_at).total_seconds() / 60.0,
-            "comparison_only": False, "prediction_json": json.dumps(pred, sort_keys=True),
+            "comparison_only": True, "prediction_json": json.dumps(pred, sort_keys=True),
             "mean": pred["mean"], "std": pred["std"], "p_play": None, "proj_minutes": None,
             "q10": pred["q10"], "q50": pred["q50"], "q90": pred["q90"],
             "q_grid": pred["q_grid"], "p_ge": pred["p_ge"],
@@ -216,7 +241,7 @@ def pplay_rows(
     sql = f"""
         SELECT p.run_id, p.made_at, p.game_id, p.tipoff, p.player_id, p.team_id, p.model_version,
                p.p_play_prod, p.p_play_r, p.r_reason, p.proj_minutes, p.train_through, p.n_train,
-               g.game_date
+               g.game_date, {guard.season_sql("g", "p.game_id")} AS season
         FROM {PPLAY_TABLE} p LEFT JOIN games g ON g.game_id = p.game_id
         WHERE p.tipoff >= ? AND p.tipoff < ?
           AND p.game_id NOT LIKE '001%' AND p.game_id NOT LIKE '003%'
@@ -224,7 +249,9 @@ def pplay_rows(
         ORDER BY p.game_id, p.player_id, p.made_at, p.run_id
     """  # noqa: S608 - identifiers are constants
     best: dict[tuple[str, int], tuple[Any, ...]] = {}
-    for r in con.execute(sql, [lo, hi, *seasons]).fetchall():
+    raw = con.execute(sql, [lo, hi, *seasons]).fetchall()
+    _assert_seasons({int(r[14]) for r in raw if r[14] is not None}, seasons)
+    for r in raw:
         made_at, tip = r[1], r[3]
         gdate = r[13] or et_date(tip)
         if made_at >= tip or not (first <= gdate <= last):
@@ -235,12 +262,16 @@ def pplay_rows(
         r_val = r[8]
         use_r = r_val is not None and np.isfinite(float(r_val))
         prod = r[7]
+        out_rep = not use_r and r[9] == OUT_ON_REPORT
+        value = (
+            float(r_val) if use_r else (0.0 if out_rep else (None if prod is None else float(prod)))
+        )
+        source = "r" if use_r else (OUT_ON_REPORT if out_rep else "production")
         out.append({
             "game_id": gid, "player_id": pid, "team_id": r[5], "run_id": r[0],
             "made_at": r[1], "tipoff": r[3],
             "lead_minutes": (r[3] - r[1]).total_seconds() / 60.0,
-            "p_play_primary": float(r_val) if use_r else (None if prod is None else float(prod)),
-            "p_play_source": "r" if use_r else "production",
+            "p_play_primary": value, "p_play_source": source,
             "p_play_detail": None if use_r else (r[9] or "no_r_row"),
             "p_play_r": None if r_val is None else float(r_val),
             "p_play_prod": None if prod is None else float(prod),
@@ -254,7 +285,9 @@ def _latest(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     return max(rows, key=lambda p: (p["made_at"], p["run_id"])) if rows else None
 
 
-def mark_primary(props: list[dict[str, Any]], pplay: list[dict[str, Any]]) -> None:
+def mark_primary(
+    props: list[dict[str, Any]], pplay: list[dict[str, Any]], ok_runs: set[str] | None = None
+) -> None:
     """Fill ``is_primary`` / ``primary_source`` / ``primary_detail`` and ``p_play_primary`` /
     ``p_play_source`` on every prop row, in place. Rows are only read, never invented."""
     pp = {(p["game_id"], p["player_id"]): p for p in pplay}
@@ -283,13 +316,20 @@ def mark_primary(props: list[dict[str, Any]], pplay: list[dict[str, Any]]) -> No
             chosen, source, detail = prod, SRC_POSTSEASON, "AVG flat in the postseason (T479)"
         elif avg is None:
             chosen, source, detail = prod, SRC_MISSING, "no AVG row before tip"
-        elif avg["freshness"] == "fresh":
+        elif avg["freshness"] == "fresh" and (
+            prod is None or avg["made_at"] >= prod["made_at"] or prod["run_id"] in (ok_runs or ())
+        ):
             chosen, source, detail = avg, SRC_AVG, None
+        elif avg["freshness"] == "fresh":
+            chosen, source = prod, SRC_STALE
+            detail = "avg_run_behind_production"
         else:
             chosen, source = prod, SRC_STALE
             detail = f"bundle stale: {avg['freshness_reason']}"
         if chosen is not None:
             chosen["is_primary"], chosen["primary_source"] = True, source
+            if chosen["model_name"] == AVG_MODEL_NAME:
+                chosen["comparison_only"] = False
             chosen["primary_detail"] = detail
         if prod is not None and prod.get("proj_minutes") is not None:
             prod_minutes[(gid, pid)] = prod["proj_minutes"]

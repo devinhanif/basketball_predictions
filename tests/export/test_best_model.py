@@ -295,9 +295,15 @@ def test_pplay_r_primary_else_production(db: Path) -> None:
     by = {p["player_id"]: p for p in fwd.p_play if p["game_id"] == G_REG}
     assert (by[1000]["p_play_primary"], by[1000]["p_play_source"]) == (0.97, "r")
     assert (by[1001]["p_play_primary"], by[1001]["p_play_source"], by[1001]["p_play_detail"]) == (
-        0.4, "production", "out_on_report",
+        0.0, "out_on_report", "out_on_report",
     )  # fmt: skip
-    assert (by[1002]["p_play_primary"], by[1002]["p_play_source"]) == (0.1, "production")
+    assert by[1001]["p_play_prod"] == 0.4  # production's own value is kept beside it
+    assert (by[1002]["p_play_primary"], by[1002]["p_play_source"]) == (0.0, "out_on_report")
+    # a non-out reason (R simply has no row) still falls back to production's value
+    _w(db, lambda c: _insert_pplay(c, G_REG, 1001, None, reason="no_model", prod=0.4, run="nm",
+                                   made=MADE + timedelta(minutes=5)))  # fmt: skip
+    by = {p["player_id"]: p for p in _fwd(db).p_play if p["game_id"] == G_REG}
+    assert (by[1001]["p_play_primary"], by[1001]["p_play_source"]) == (0.4, "production")
     p = _primary(fwd, G_REG, 1000)
     assert (p["p_play_primary"], p["p_play_source"]) == (0.97, "r")
     assert p["p_play"] == 0.9  # the production row's own stored value is left verbatim
@@ -346,3 +352,50 @@ def test_build_export_carries_the_new_columns(db: Path, tmp_path: Path) -> None:
     ).fetchone()
     assert row == (AVG_MODEL_NAME, "avg", "fresh", BUNDLE, "r")
     assert con.execute("SELECT count(*) FROM p_play").fetchone() == (1,)
+
+
+def test_avg_rows_are_comparison_only_unless_chosen(db: Path) -> None:
+    _w(db, lambda c: _insert_avg(c, _avg_row(), _avg_row(pid=1002, month_block="2026-10"),
+                                 _avg_row(gid=G_POST, pid=1001)))  # fmt: skip
+    avg = [p for p in _fwd(db).prop_grids if p["model_name"] == AVG_MODEL_NAME]
+    assert len(avg) == 3
+    for p in avg:  # an app reading the old way (comparison_only filter) never shows these
+        assert p["comparison_only"] == (not p["is_primary"])
+    assert sum(not p["comparison_only"] for p in avg) == 1  # only the fresh regular-season row
+
+
+def test_avg_older_than_production_is_not_primary(db: Path) -> None:
+    _w(db, lambda c: _insert_avg(c, _avg_row(made=MADE - timedelta(minutes=30), run="r_old")))
+    p = _primary(_fwd(db), G_REG, 1000)  # production row is r_prod at MADE
+    assert (p["model_name"], p["primary_source"]) == (PROD, "fallback_stale")
+    assert p["primary_detail"] == "avg_run_behind_production"
+    # the heartbeat of the production run finishing ok says the AVG run was current (unchanged row)
+    _w(db, lambda c: c.execute(
+        "INSERT INTO forward_avg_heartbeat (slate_date, run_id, status) VALUES (?, 'r_prod', 'ok')",
+        [DAY]))  # fmt: skip
+    assert _primary(_fwd(db), G_REG, 1000)["primary_source"] == "avg"
+    _w(db, lambda c: c.execute("UPDATE forward_avg_heartbeat SET status = 'failed'"))
+    assert _primary(_fwd(db), G_REG, 1000)["primary_source"] == "fallback_stale"
+
+
+def test_month_boundary_without_a_games_row(db: Path) -> None:
+    """Tip 2026-12-01 02:00 UTC is 21:00 ET on 11-30: the game date (et_date fallback, no games
+    row) is November, so a November bundle is fresh and a December one is stale."""
+    gid, tip = "0022600777", datetime(2026, 12, 1, 2, 0)
+    made = tip - timedelta(minutes=90)
+    day = date(2026, 11, 30)
+
+    def go(block: str) -> dict[str, Any]:
+        _w(db, lambda c: c.execute("DELETE FROM forward_avg_shadow"))
+        _w(db, lambda c: _insert_avg(c, _avg_row(gid=gid, made=made, tip=tip, month_block=block,
+                                                 fit_through=date(2026, 10, 31))))  # fmt: skip
+        con = open_read_only(db)
+        try:
+            fwd = forward_predictions(con, Window(day, 2, (2026,)))
+        finally:
+            con.close()
+        return next(p for p in fwd.prop_grids if p["game_id"] == gid)
+
+    assert go("2026-11")["freshness"] == "fresh"
+    row = go("2026-12")
+    assert (row["freshness"], row["freshness_reason"]) == ("stale", "month_block_mismatch")
