@@ -49,6 +49,14 @@ Results are summarised here as they land.
   Phone server: API 127.0.0.1:8124 + LAN preview http://10.0.0.147:4173 (background tasks in this session).
   Drafts: EXCHANGE_LADDER_CAL (gate measurable 10-21, confirmable 10-27) and WINNER_RECAL (FAIL_POWER 0.15-0.23; Claude: close) merged
   f9f2e39; holdout disclosure e7476b9. Preseason dress rehearsal (copy DB) running: agent/steward-preseason-rehearsal.
+- ~01:00-02:00: minors MERGED (oracle IDENTICAL); panel fixes MERGED after re-check APPROVED (5be3d3a); ALT_RUNG_CAL + PARLAY_JOINT_CAL
+  drafts merged, pre-freeze reviews running (freeze on APPROVED; harness must be pinned first). COMBO probe MET 12/12 (710 credits,
+  1,809,739 left); full pull running (cap 160k, raw only; ingest needs Devin's go). WINNER_RECAL closed.
+- PRESEASON REHEARSAL (agent/steward-preseason-rehearsal 94db08c, copy DB data/rehearsal/preseason_2026.duckdb): 14 games, chain ran to
+  the export; phone API now serves data/rehearsal/export_2026-10-16. OPENING-NIGHT BREAKS FOUND: (1) export places players only via a
+  2026 box row -> opening night would show 0 players/props (fix: agent/steward-export-roster-placement, running; needs merge by Fri 10-17);
+  (2) players_static autofill ComputeError (116 rookies no prior) - being checked. No injury report existed at run time; rerun after
+  ~17:00 ET 10-15/10-16 (commands in the agent report / branch). No preseason Kalshi prop prices.
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
