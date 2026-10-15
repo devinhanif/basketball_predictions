@@ -298,6 +298,64 @@ def box_scores(con: duckdb.DuckDBPyConnection, window: Window) -> list[dict[str,
     return out
 
 
+BOX_COLS = ("game_id", "player_id", "team_id", "minutes", "starter", "pts", "reb", "ast", "fg3m",
+            "stl", "blk", "tov")  # fmt: skip
+
+
+def history_seasons(
+    con: duckdb.DuckDBPyConnection, allowed: tuple[int, ...] = (guard.LIVE_SEASON,)
+) -> tuple[int, ...]:
+    """Seasons whose box rows may ride along as player history: the live season and every stored
+    season before the holdout. The holdout season is never queried (not even for its existence),
+    so on opening night, when the previous season IS the holdout, the history is the older seasons
+    only; widening that is a logged holdout decision, not an export flag (guard.resolve_seasons).
+    A fixture-style export of explicit old seasons gets exactly those seasons."""
+    if guard.LIVE_SEASON not in allowed:
+        return allowed
+    rows = con.execute(
+        "SELECT DISTINCT season FROM games WHERE season <= ? ORDER BY season",
+        [guard.LAST_PRE_HOLDOUT_SEASON],
+    ).fetchall()
+    return guard.resolve_seasons([*allowed, *(int(r[0]) for r in rows)])
+
+
+def box_history(
+    con: duckdb.DuckDBPyConnection,
+    player_ids: Iterable[int],
+    day: date,
+    seasons: tuple[int, ...],
+    *,
+    n_games: int = 82,
+    days: int = 365,
+) -> list[dict[str, Any]]:
+    """Each listed player's own earlier box rows: their last ``n_games`` played games plus every
+    row (DNP included) in the ``days`` before the slate. Final games strictly before ``day`` only
+    (the as-of rule: nothing from the slate date or later), in ``seasons`` only (bounded in SQL,
+    then re-asserted). Preseason and all-star games are skipped."""
+    pids = sorted({int(p) for p in player_ids if int(p) != NO_PLAYER})
+    if not pids or not seasons:
+        return []
+    marks = ",".join("?" for _ in seasons)
+    sel = ", ".join("e." + c for c in (*BOX_COLS, "game_date", "season"))
+    inner = ", ".join("b." + c for c in BOX_COLS)
+    rows = con.execute(
+        f"WITH e AS (SELECT {inner}, g.game_date, g.season, "  # noqa: S608 - constants only
+        "row_number() OVER (PARTITION BY b.player_id "
+        "ORDER BY (b.minutes IS NULL), g.game_date DESC, b.game_id DESC) AS rn "
+        "FROM player_game_stats b JOIN games g ON g.game_id = b.game_id "
+        f"WHERE list_contains(?, b.player_id) AND g.season IN ({marks}) AND g.game_date < ? "
+        "AND g.home_pts IS NOT NULL "
+        "AND b.game_id NOT LIKE '001%' AND b.game_id NOT LIKE '003%') "
+        f"SELECT {sel} FROM e WHERE (minutes IS NOT NULL AND rn <= ?) OR game_date >= ? "
+        "ORDER BY game_date, game_id, player_id",
+        [pids, *seasons, day, n_games, day - timedelta(days=days)],
+    ).fetchall()
+    out = [dict(zip((*BOX_COLS, "game_date", "season"), r, strict=True)) for r in rows]
+    _assert_allowed({int(r["season"]) for r in out}, seasons)
+    assert all(r["game_date"] < day for r in out), "box history must be strictly before the slate"
+    return out
+
+
 # ------------------------------------------------------------------------------- team ids
 
 

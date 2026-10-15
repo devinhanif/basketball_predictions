@@ -281,6 +281,14 @@ def _insert(con: duckdb.DuckDBPyConnection, table: str, rows: Sequence[dict[str,
     return len(rows)
 
 
+def _merge_box(now: list[dict[str, Any]], history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Season-to-date actuals plus each slate player's earlier games, one row per (game, player)."""
+    seen = {(r["game_id"], r["player_id"]) for r in now}
+    merged = now + [r for r in history if (r["game_id"], r["player_id"]) not in seen]
+    merged.sort(key=lambda r: (r["game_date"], r["game_id"], r["player_id"]))
+    return merged
+
+
 def _cell(v: Any) -> Any:
     return json.dumps(v, sort_keys=True) if isinstance(v, dict) else v
 
@@ -337,6 +345,8 @@ def build_export(
     day: date,
     *,
     lookback_days: int = 7,
+    box_games: int = 82,
+    box_days: int = 365,
     seasons: Iterable[int] | None = None,
     parlay_dir: Path | None = None,
     odds_db: Path | None = None,
@@ -349,6 +359,8 @@ def build_export(
 ) -> dict[str, Any]:
     """Build the export for ``day``; returns the manifest dict (also written to ``manifest.json``).
 
+    ``box_games`` / ``box_days``: each slate player's last N played games and every row of the last
+    N days ride in ``box_scores`` (strictly before ``day``; never the holdout season).
     ``con`` lets a test pass an open read-only connection; production passes ``src_db`` only.
     ``roster_dir`` (``data/rosters``) places players with no earlier current-season row from the
     game date's official pre-tip roster (``team_source='official_roster'``); None disables it.
@@ -368,6 +380,14 @@ def build_export(
         fwd = reader.forward_predictions(src, window)
         scores = reader.settled_scores(src, window)
         box = reader.box_scores(src, window)
+        slate_players = _ids(fwd.prop_grids, "player_id") - {reader.NO_PLAYER}
+        box = _merge_box(
+            box,
+            reader.box_history(
+                src, slate_players, day, reader.history_seasons(src, allowed),
+                n_games=box_games, days=box_days,
+            ),
+        )  # fmt: skip
         report = reader.explainer_rows(src, fwd.games, window)
         teams_of = reader.player_teams(src, fwd.prop_grids, fwd.games, window, roster_dir)
         grids = reader.prod_grids(src, (g["game_id"] for g in fwd.games))
@@ -398,7 +418,8 @@ def build_export(
     meta = {
         "schema_version": str(SCHEMA_VERSION), "export_date": day.isoformat(),
         "made_at": made_at.isoformat() + "Z", "seasons": ",".join(map(str, allowed)),
-        "lookback_days": str(lookback_days), "data_version": dv or "",
+        "lookback_days": str(lookback_days), "box_games": str(box_games),
+        "box_days": str(box_days), "data_version": dv or "",
         "lines_status": lines.status, "best_model_schema": str(BEST_MODEL_SCHEMA),
         "git_sha": gi["git_sha"] or "", "timestamps": "naive UTC unless a column says _et",
     }  # fmt: skip
@@ -439,6 +460,7 @@ def build_export(
         "schema_version": SCHEMA_VERSION, "export_date": day.isoformat(),
         "made_at": meta["made_at"], "data_version": dv, **gi,
         "seasons": list(allowed), "lookback_days": lookback_days,
+        "box_history": {"games": box_games, "days": box_days},
         "row_counts": counts,
         "excluded": {"post_tip": fwd.excluded_post_tip,
                      "avg_post_tip": fwd.excluded_avg_post_tip,

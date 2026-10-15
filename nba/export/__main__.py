@@ -24,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--out", required=True, type=Path, help="output directory")
     b.add_argument("--db", type=Path, default=DEFAULT_DB_PATH, help="source nba.duckdb (read-only)")
     b.add_argument("--lookback-days", type=int, default=7)
+    b.add_argument("--box-games", type=int, default=82, help="own last N games per slate player")
+    b.add_argument("--box-days", type=int, default=365, help="and every row this many days back")
     b.add_argument("--season", type=int, action="append", help="default 2026; 2025 is refused")
     b.add_argument(
         "--odds-db",
@@ -42,7 +44,8 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     try:
         m = build_export(
-            a.db, a.out, a.date, lookback_days=a.lookback_days, seasons=a.season,
+            a.db, a.out, a.date, lookback_days=a.lookback_days,
+            box_games=a.box_games, box_days=a.box_days, seasons=a.season,
             parlay_dir=a.parlay_dir, odds_db=a.odds_db, roster_dir=a.roster_dir,
         )  # fmt: skip
     except guard.ExportRefused as exc:
