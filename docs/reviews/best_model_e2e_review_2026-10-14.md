@@ -130,3 +130,41 @@ Live DB contents and real cadence (no AVG bundle installed yet). How often R fai
 React layer beyond the API payload. Minor 7 of the earlier review.
 
 Drafted rows: none (code review; no ledger claim).
+
+---
+
+## Re-check: export 15175c1 + app 6bea14c (2026-10-14, late)
+
+Verdict: APPROVED
+
+Both branches were run on clean detached worktrees, with the main checkout untouched. The real exporter ran at
+15175c1 and the real `ExportStore` at 6bea14c, using the committed fixture DB. Probes used synthetic season-2024
+scratch sources only. The `00225…` ids are planted guard tests, not a holdout read.
+
+| Check | Command | Result |
+|---|---|---|
+| Export tests | `PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider --no-cov tests/export/` | 54 passed, exit 0 |
+| App tests, clean checkout (fixture DB committed) | `cd app/api && NBA_PYTHON=…/.venv/bin/python uv run pytest -q -p no:cacheprovider -rs` | 203 passed, 0 skipped, exit 0 |
+| E2E probe, 15 variants | `cd app/api && uv run python scratchpad/probe/e2e.py <scratch>` | every variant: dup_primary 0, quotes not from `lines_run_id` 0, no 2025/001/003/malformed id in any table |
+
+| Earlier item | Probe evidence | Closed |
+|---|---|---|
+| MF1 stale P(play) | `pplay_stale`: production 0.0 at T-10 with the shadow at T-31 shows production 0.0 for all 44 props (was R 0.93-0.96 / 0.97). `late_prod_no_hb`: R kept where `p_play_prod` equals production (12) | yes |
+| MF2 fixture DB | committed under `!fixtures/export_best_real/export.duckdb`; clean run 203 passed | yes |
+| MF3 NULL-team games | AVG-only game with no games row: dropped, `avg_no_game_teams` 43, app loads. Production-only game with no games row and no win row (`prod_null_teams`): exported, but the app skips it with a stub and loads | yes |
+| SF4 per-row inputs | `late_grid_changed_hb_ok` (heartbeat ok, production grid moved): 41 `avg_inputs_changed`. The 2 still on AVG are the fixture's planted a0+1 rows, which now equal the moved grid, so this is correct. `lt_source` (pts a0 from `props_context_residual_lt`, as the real writer does): pts stays AVG. `lt_source_missing`: pts falls back (safe) | yes |
+| SF5 schema >= 1 | `_schema_at_least_1` | yes |
+| SF6 002 only | Cup final 006 shows production, `non_regular_season` (44). 004/005 still `postseason` | yes |
+| Heartbeat | failed / skipped / missing / other-run / `'r_c '` all fall back | yes |
+| Post-tip | AVG at tip and at tip+1 min dropped (`avg_post_tip` 2) | yes |
+
+Minor, not blocking:
+- (a) The `p_play` table keeps rows for a dropped no-team game (0022400099). The app keys P(play) by shown props,
+  so they are never displayed. Drop them with the game in reader.py next to `dropped_games`.
+- (b) The reader.py production post-tip gate is still `made_at > tipoff`. The writer refuses `>=`, so the path is
+  dead; make it `>=` in a later change.
+- (c) Pts AVG depends on `props_context_residual_lt` rows being in the export. If the LT variant stops logging,
+  pts quietly falls back to `avg_inputs_changed`. That is the safe direction, but it is worth a line in the morning
+  report's source counts.
+
+Not verified: the live DB (no AVG bundle installed yet), real run cadence, and the React layer.
