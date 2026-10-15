@@ -1242,3 +1242,5 @@ Probe: sample committed first (configs/odds_combo_probe_sample.yaml, seed 202610
 What: steward fixes (1) nba/export player placement from the official pre-tip roster when no current-season row exists (opening night would show 0 players), and (2) the players_static autofill ComputeError that leaves 116 rostered players without the draft-slot rookie prior (roster_cold path). Separate commits; any live-path change gets the replay oracle (main session logs the holdout row first) and Devin's merge go by Fri 10-17.
 Why: both breaks would hit 10-20; found by the preseason dress rehearsal (agent/steward-preseason-rehearsal 94db08c).
 What would reverse it: the oracle moving, or the fix needing a model change (then it waits until after opening night).
+
+**2026-10-15 01:09 CDT — Correction to the cc3ac06 row (ALT_RUNG_CAL defaults).** That row said "FanDuel label only"; the draft's own default (which Devin's go adopted) makes P7 a FanDuel pass check. The pass check stands. Claude's transcription error, caught by the pre-freeze review (docs/reviews/ALT_RUNG_CAL_prefreeze_2026-10-15.md M3).
