@@ -5,7 +5,8 @@ restrictions. Decided 2026-10-10 ("confirm everyone", item 3) and 2026-10-11 ~00
 
 Guarantees
 ----------
-* Read-only. The only paths this module can call are ``GET /2/users/by/username/:name`` and
+* Read-only. The only paths this module can call are ``GET /2/users/by/username/:name``,
+  ``GET /2/users/by`` (batch, used only by the one-off ``check-handles``) and
   ``GET /2/users/:id/tweets``. No posting, no account mutation, ever.
 * The bearer token comes from ``os.environ["X_BEARER_TOKEN"]`` only, is held in a wrapper whose
   every textual form is ``<secret>``, is sent only in the ``Authorization`` header, and is never
@@ -42,7 +43,7 @@ import re
 import sys
 import time
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -59,12 +60,17 @@ ALLOWLIST_PATH = ROOT / "configs" / "reporters.yaml"
 DATA_DIR = ROOT / "data" / "reporters"
 KEY_ENV = "X_BEARER_TOKEN"
 API_BASE = "https://api.x.com/2"
-#: The only two paths this client can call (both GET, both read-only).
+#: The only paths this client can call (all GET, all read-only).
 ENDPOINTS = {
     "user_by_username": "/users/by/username/{username}",
+    "users_by": "/users/by",
     "user_tweets": "/users/{user_id}/tweets",
 }
 TWEET_FIELDS = "created_at,referenced_tweets,note_tweet"
+USER_FIELDS = "name,description,verified,created_at,public_metrics,most_recent_tweet_id"
+CHECK_MAX_HANDLES = 60  # hard cap for the one-off check-handles command
+USERS_BY_BATCH = 100  # the API's own bound for usernames per request
+CANDIDATES_PATH = ROOT / "configs" / "reporter_candidates.txt"
 MAX_RESULTS_MIN, MAX_RESULTS_MAX = 5, 100  # the API's own bounds for max_results
 MAX_ATTEMPTS = 2
 BACKOFF_BASE_S = 1.0
@@ -423,6 +429,15 @@ class PostBudget:
                 f"> ${self.usd_per_month:.2f} cap"
             )
 
+    def check_users(self, now: datetime, n: int) -> None:
+        """Refuse BEFORE a batch lookup if ``n`` user reads (worst case: all found) would pass
+        the USD month cap."""
+        if self.month_usd(now) + n * self.usd_per_user > self.usd_per_month + 1e-9:
+            raise BudgetExceeded(
+                f"batch user lookup refused: month ${self.month_usd(now):.2f} + "
+                f"{n} x ${self.usd_per_user:.3f} > ${self.usd_per_month:.2f} cap"
+            )
+
     def charge(self, now: datetime, posts: int, requests: int = 0, users: int = 0) -> None:
         data = self._load()
         day = data["days"].setdefault(utc_day(now), {"posts": 0, "requests": 0})
@@ -724,6 +739,35 @@ class XClient:
         self.budget.charge(self.now(), 0, users=1)  # one user resource read = $usd_per_user
         return uid
 
+    def users_lookup(self, handles: list[str]) -> list[dict[str, Any]]:
+        """One-off ``GET /2/users/by`` for candidate handles (NOT allow-listed, nothing is added
+        to the allow-list or the user-id cache). Cap, month USD cap checked before the request;
+        each returned user is billed as one user read. Returns one row per input handle."""
+        if len(handles) > CHECK_MAX_HANDLES:
+            raise PollRefused(f"{len(handles)} handles > hard cap {CHECK_MAX_HANDLES}; refusing")
+        for h in handles:
+            if not _HANDLE_RE.match(h):
+                raise ValueError(f"{h!r} is not a valid X handle")
+        rows: list[dict[str, Any]] = []
+        for i in range(0, len(handles), USERS_BY_BATCH):
+            batch = handles[i : i + USERS_BY_BATCH]
+            self.budget.check_users(self.now(), len(batch))
+            body = self._get(
+                ENDPOINTS["users_by"],
+                {"usernames": ",".join(batch), "user.fields": USER_FIELDS},
+            )
+            data = body.get("data") if isinstance(body, dict) else None
+            found = {
+                str(u.get("username", "")).lower(): u
+                for u in (data if isinstance(data, list) else [])
+                if isinstance(u, dict)
+            }
+            self.budget.charge(self.now(), 0, users=len(found))
+            for h in batch:
+                u = found.get(h.lower())
+                rows.append(_user_row(h, u))
+        return rows
+
     def fetch_posts(self, handle: str, start_time: datetime, max_results: int) -> list[Post]:
         """One page of ``handle``'s own posts since ``start_time`` (retweets and replies
         excluded on the wire; the parser defends again). Charges the ledger per post."""
@@ -808,6 +852,104 @@ def budget_report(allow: Allowlist, data_dir: Path, now: datetime | None = None)
     )
 
 
+def _user_row(handle: str, u: Mapping[str, Any] | None) -> dict[str, Any]:
+    if u is None:
+        return {"handle": handle, "exists": False}
+    pm = u.get("public_metrics") or {}
+    return {
+        "handle": handle,
+        "exists": True,
+        "id": u.get("id"),
+        "username": u.get("username"),
+        "name": u.get("name"),
+        "description": u.get("description"),
+        "verified": u.get("verified"),
+        "created_at": u.get("created_at"),
+        "followers": pm.get("followers_count") if isinstance(pm, dict) else None,
+        "most_recent_tweet_id": u.get("most_recent_tweet_id"),
+    }
+
+
+def read_candidates(path: Path | str) -> list[str]:
+    """Handles one per line, ``#`` comments allowed; deduplicated case-insensitively."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for line in Path(path).read_text().splitlines():
+        h = line.split("#", 1)[0].strip().lstrip("@")
+        if h and h.lower() not in seen:
+            seen.add(h.lower())
+            out.append(h)
+    return out
+
+
+def format_check_table(rows: list[dict[str, Any]]) -> str:
+    def cell(v: Any, n: int) -> str:
+        return str(v if v is not None else "").replace("\n", " ").replace("|", "/")[:n]
+
+    lines = ["handle | exists | name | bio (120) | verified | followers"]
+    for r in rows:
+        lines.append(
+            " | ".join(
+                [
+                    cell(r["handle"], 15),
+                    "yes" if r["exists"] else "NO",
+                    cell(r.get("name"), 40),
+                    cell(r.get("description"), 120),
+                    cell(r.get("verified"), 5),
+                    cell(r.get("followers"), 10),
+                ]
+            )
+        )
+    return "\n".join(lines)
+
+
+def check_handles(
+    candidates: Path | str,
+    *,
+    allowlist_path: Path | str = ALLOWLIST_PATH,
+    data_dir: Path = DATA_DIR,
+    dry_run: bool = False,
+    environ: Mapping[str, str] | None = None,
+    transport: Any = None,
+    clock: Callable[[], datetime] | None = None,
+) -> int:
+    """One-off, read-only candidate-handle check. Writes only the write-once result file and
+    the usage ledger; never the allow-list or ``user_ids.json``."""
+    handles = read_candidates(candidates)
+    if not handles:
+        raise ValueError(f"{candidates}: no handles")
+    if len(handles) > CHECK_MAX_HANDLES:
+        raise PollRefused(f"{len(handles)} handles > hard cap {CHECK_MAX_HANDLES}; refusing")
+    for h in handles:
+        if not _HANDLE_RE.match(h):
+            raise ValueError(f"{h!r} is not a valid X handle")
+    allow = load_allowlist(allowlist_path)
+    now = (clock or (lambda: datetime.now(UTC)))()
+    out = Path(data_dir) / f"handle_check_{utc_day(now)}.json"
+    est = len(handles) * allow.usd_per_user
+    if dry_run:
+        print(f"dry-run: GET {API_BASE}{ENDPOINTS['users_by']} usernames={','.join(handles)}")
+        print(f"{len(handles)} handles, 1 request, worst-case ${est:.3f} -> {out}")
+        return 0
+    if out.exists():
+        raise PollRefused(f"{out} exists; the result file is write-once")
+    client = XClient(
+        replace(allow, reporters={}),  # the check never reads the allow-list's handles
+        environ=environ,
+        data_dir=Path(data_dir),
+        transport=transport,
+        clock=clock,
+    )
+    rows = client.users_lookup(handles)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"fetched_at": now.isoformat(), "n": len(rows), "users": rows}
+    with out.open("x") as f:
+        json.dump(payload, f, indent=1)
+    print(format_check_table(rows))
+    print(f"wrote {out}; billed {sum(r['exists'] for r in rows)} user reads")
+    return 0
+
+
 def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
     p.add_argument("--facts-db", default=None, help="write claimed facts here (omit = print)")
@@ -836,7 +978,32 @@ def main(argv: list[str] | None = None) -> int:
     rep = sub.add_parser("parse-only", help="replay raw parquet files (no network, no cost)")
     _common(rep)
     rep.add_argument("--file", action="append", required=True)
+    chk = sub.add_parser(
+        "check-handles", help="one-off: batch-verify candidate handles (billed $/user read)"
+    )
+    chk.add_argument("--candidates", default=str(CANDIDATES_PATH))
+    chk.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
+    chk.add_argument("--data-dir", default=str(DATA_DIR))
+    chk.add_argument("--dry-run", action="store_true", help="print the batch and cost; no request")
     args = p.parse_args(argv)
+
+    if args.cmd == "check-handles":
+        try:
+            return check_handles(
+                args.candidates,
+                allowlist_path=args.allowlist,
+                data_dir=Path(args.data_dir),
+                dry_run=args.dry_run,
+            )
+        except (KeyMissingError, BudgetExceeded, PollRefused, ValueError) as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 2
+        except OSError as exc:
+            print(f"cannot read: {exc}", file=sys.stderr)
+            return 2
+        except (RateLimited, Unreachable, ReporterHTTPError) as exc:
+            print(f"X API: {exc}", file=sys.stderr)
+            return 4
 
     if args.cmd == "budget":
         try:
