@@ -262,3 +262,51 @@ R1 and R2 with their negative tests. R3-R5 can follow in the same branch or late
   R1 and R2 merged with negative tests."
 - BEST_PRACTICES draft: "A gate's thresholds live in the frozen rule and in the reader's code, never in the file being judged
   (top-parlays R1, 2026-10-15)."
+
+---
+
+## Diff-only re-check of R1-R5: origin/agent/app-top-parlays-fixes 54b28fe (on 3c86c08), 2026-10-15
+
+Scope: `git diff 3c86c08 54b28fe`, 9 files: `top_parlays.py`, its tests, the fixture builder and both fixtures,
+`TopParlaysPanel.tsx`, `topParlays.ts`, and contracts v1/v2. I re-ran the same attack file (`tp/attack3.py` = `attack2.py`
+pointed at 54b28fe) in a detached worktree. Season 2025 was not loaded.
+
+Verdict: APPROVED
+
+### Checks (unpiped, exit codes)
+```
+python3 app/fixtures/build_top_parlays_fixture.py && git diff --exit-code app/fixtures   # build 0, drift 0 (committed JSON = builder output)
+cd app/api && uv run --frozen ruff check src tests          # exit 0
+cd app/api && uv run --frozen ruff format --check src tests # exit 0
+cd app/api && uv run --frozen mypy src                      # exit 0
+cd app/api && uv run --frozen pytest -q -p no:randomly      # 252 passed, 1 skipped, exit 0
+cd app/web && npx tsc --noEmit -p .                         # exit 0
+cd app/web && npx vitest run                                # 55 passed, exit 0
+cd app/web && npx eslint .                                  # exit 0
+cd app/api && uv run --frozen python <scratch>/tp/attack3.py   # exit 0
+```
+
+| Item | Change | Attack result | Pass |
+|---|---|---|---|
+| R1 gate thresholds | `settled_min: Literal[30]`, `dates_min: Literal[14]` (`top_parlays.py:130,132`). The contract says the thresholds are fixed. The residual (counters are producer-asserted) is stated in the contract. | The 1/1 lowered-gate `positive_ev_found` file now gets 422. Tests `gate_thresholds_lowered` and `gate_settled_min_only_lowered` (29) are added. | PASS |
+| R2 size keys | `set(self.sizes) == {"2","3"}` required. A `useErrorBoundary` wrapper (`TopParlaysPanel.tsx:250-263`) renders "could not be shown" with "Keep your money" instead of a blank page. | `{"2": [...]}` and `{}` get 422. Tests `missing_size_key` and `no_size_keys`. | PASS |
+| R3 price after made | `price_at > made_at` gets 422. Fixture `price_at` is 21:40Z, before `made_at` 22:10Z. | Refused, test `price_after_made`. The fixture rebuilds with no drift. | PASS |
+| R4 phrase screen | Wider pattern; curly apostrophes normalised; `ranking` and `empty_reason` screened. | "LOCKED IN", "can’t lose", "Guarantee", "easy money", "fade the public", "sure thing", and banned text in `ranking` and `empty_reason` all get 422. Seven new tests. | PASS |
+| R5 wording | The T490 caveat names alternate-line overs, BetRivers, raw vs calibrated; the numbers are unchanged from the re-derivation (9.8 [6.8, 12.9] n 3,337; 8.7 [5.5, 11.9] n 3,360). Builder docstring and `topParlays.ts:1` now cite v2; v1 carries "Superseded". | n/a | PASS |
+
+Regression: the illustration still overlaps none of the three committed stores. v1 schema is still refused.
+
+### Nits (non-blocking, no re-review needed)
+N1. `docs/contracts/top_parlays_v2.md:21`: the example's `"caveats": [ "…legs."` lost its closing `]`, so the example is no
+longer valid JSON. Restore `."]`.
+N2. The error boundary has no test. A vitest that renders `TopParlaysPanel` with a payload that throws in `Body` and asserts
+the "could not be shown" text would pin it.
+
+### Not verified
+- No browser render. The error boundary is judged from code (preact `useErrorBoundary` catches errors in child `PanelInner`).
+- The gate counters' truth against `paper_trades` is producer-side; it stays a stated residual.
+
+### Drafted rows (not appended)
+- DECISIONS draft: "2026-10-15. Top-parlays fixes 54b28fe APPROVED by the adversary (R1-R5 hold; nits N1-N2 open). Merge to
+  main is the main session's call after its own checks; the residual (producer-asserted gate counters) is carried to the
+  producer's review."
