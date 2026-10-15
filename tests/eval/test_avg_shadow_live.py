@@ -18,7 +18,7 @@ from scipy.stats import norm
 
 from nba.daily.avg_shadow import grids
 from nba.daily.avg_shadow.settle import settle_avg_shadow
-from nba.daily.avg_shadow.store import COLUMNS, ensure_tables
+from nba.daily.avg_shadow.store import COLUMNS, ensure_tables, set_meta
 from nba.daily.full_shadow.store import ensure_tables as ensure_full
 from nba.daily.predict import CONTEXT_LT_PROPS_MODEL_NAME, CONTEXT_PROPS_MODEL_NAME
 from nba.daily.store import ensure_tables as ensure_primary
@@ -44,6 +44,9 @@ def _db() -> duckdb.DuckDBPyConnection:
     ensure_full(con)
     ensure_primary(con)
     ensure_tables(con)
+    set_meta(
+        con, "counting_start", "2026-10-20", datetime(2026, 10, 19)
+    )  # the fixture world counts from its first day
     con.execute(
         "CREATE TABLE games (game_id VARCHAR, game_date DATE, season INT, home_team INT, away_team INT, home_pts INT, away_pts INT)"
     )

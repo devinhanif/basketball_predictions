@@ -24,6 +24,7 @@ import hashlib
 import json
 import pickle
 import time
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -57,6 +58,12 @@ MIN_PRIOR = 5
 HB_DIR = Path("data/ops/heartbeat")
 JOB = "combo_shadow"
 NB_BINS = 4
+#: wall-time budget (review S1): the step runs inside the pretip database hold, so it must give way to the T-30 tick
+BUDGET_S = 420.0
+MIN_LEAD_MIN = 35.0
+JOINT_BATCH = (
+    96  # rows per cooperative check in the sampler; a row's grid does not depend on its batch
+)
 SORT = ["game_date", "game_id", "player_id"]
 #: (stat, production model_name) of the four marginals read from ``forward_predictions`` (config ``marginals``)
 PROD_SOURCES: dict[str, str] = {
@@ -84,6 +91,23 @@ def model_id_of(cfg: ComboConfig, ccfg: ContextResidualConfig | None = None) -> 
         "base_sha": cfg.base_id,
     }
     return hashlib.sha256(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
+
+
+class BudgetExceeded(RuntimeError):
+    """The step passed its wall-time budget between two units of work; nothing has been written yet."""
+
+
+class Budget:
+    """Cooperative deadline: ``check()`` between units of work raises ``BudgetExceeded`` once ``limit_s`` has passed (no threads, no kills)."""
+
+    def __init__(
+        self, limit_s: float = BUDGET_S, clock: Callable[[], float] = time.perf_counter
+    ) -> None:
+        self.limit_s, self.clock, self.t0 = limit_s, clock, clock()
+
+    def check(self) -> None:
+        if self.clock() - self.t0 > self.limit_s:
+            raise BudgetExceeded(f"budget: step passed {self.limit_s:.0f} s")
 
 
 # --------------------------------------------------------------------------- heartbeat file
@@ -320,20 +344,42 @@ def recent_grids(
 
 # --------------------------------------------------------------------------- (d) the joint
 def joint_arms(
-    grids: dict[str, np.ndarray], cfg: ComboConfig, chunk: int = 48
+    grids: dict[str, np.ndarray],
+    cfg: ComboConfig,
+    chunk: int = 48,
+    check: Callable[[], None] | None = None,
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
     """``(S, INDEP)`` combo grids from the six stat grids (each ``(n, 199)`` integer): the frozen R and the same sampler with R = I, one call each.
     This is the function proof P1 reproduces from the committed reference."""
     cdfs = {s: C.int_cdf(grids[s], C.KMAX[s]) for s in C.STAT_ORDER}
-    return joint_from_cdfs(cdfs, cfg, chunk)
+    return joint_from_cdfs(cdfs, cfg, chunk, check)
 
 
 def joint_from_cdfs(
-    cdfs: dict[str, np.ndarray], cfg: ComboConfig, chunk: int = 48
+    cdfs: dict[str, np.ndarray],
+    cfg: ComboConfig,
+    chunk: int = 48,
+    check: Callable[[], None] | None = None,
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
-    s = C.joint_grids(cdfs, cfg.r, cfg.base, chunk=chunk)
-    i = C.joint_grids(cdfs, np.eye(len(C.STAT_ORDER)), cfg.base, chunk=chunk)
-    return s, i
+    """``(S, INDEP)`` from the marginal CDFs. With ``check`` the rows go through the sampler in batches of ``JOINT_BATCH`` and ``check()`` runs
+    between batches (a row's grid is independent of its batch: proof P1 reproduces it in two chunkings)."""
+    eye = np.eye(len(C.STAT_ORDER))
+    if check is None:
+        return C.joint_grids(cdfs, cfg.r, cfg.base, chunk=chunk), C.joint_grids(
+            cdfs, eye, cfg.base, chunk=chunk
+        )
+    n = next(iter(cdfs.values())).shape[0]
+    s_parts: list[dict[str, np.ndarray]] = []
+    i_parts: list[dict[str, np.ndarray]] = []
+    for lo in range(0, n, JOINT_BATCH):
+        check()
+        part = {k: v[lo : lo + JOINT_BATCH] for k, v in cdfs.items()}
+        s_parts.append(C.joint_grids(part, cfg.r, cfg.base, chunk=chunk))
+        i_parts.append(C.joint_grids(part, eye, cfg.base, chunk=chunk))
+    return (
+        {c: np.concatenate([p[c] for p in s_parts]) for c in s_parts[0]},
+        {c: np.concatenate([p[c] for p in i_parts]) for c in i_parts[0]},
+    )
 
 
 # --------------------------------------------------------------------------- the step
@@ -351,9 +397,17 @@ def run_combo_shadow(
     cache_root: Path | None = None,
     config: ComboConfig | None = None,
     ccfg: ContextResidualConfig | None = None,
+    tip_source: str = "real",
+    budget_s: float = BUDGET_S,
+    clock: Callable[[], float] = time.perf_counter,
 ) -> dict[str, Any]:
-    """One run for ``slate`` (games that have not tipped). Never raises: a failure is a ``failed`` heartbeat."""
-    t0 = time.perf_counter()
+    """One run for ``slate`` (games that have not tipped). Never raises: a failure is a ``failed`` heartbeat.
+
+    Wall-time budget (review S1): the step is skipped, with detail ``budget`` and nothing written, when the earliest upcoming tip is
+    within ``MIN_LEAD_MIN`` minutes of ``made_at`` at the start (the T-30 tick needs the database), or when it passes ``budget_s`` seconds
+    (checked between units of work, never by killing a fit). A budget skip is a missing row that G-COV counts; it leaves ``consecutive_bad`` alone."""
+    t0 = clock()
+    budget = Budget(budget_s, clock)
     started = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     info: dict[str, Any] = {"status": "ok", "rows": 0, "games": len(slate)}
     model_id: str | None = None
@@ -376,6 +430,13 @@ def run_combo_shadow(
         model_id = model_id_of(cfg, ccfg)
         if not reg:
             info.update(status="skipped", detail="no regular-season game to serve", count="keep")
+        elif min(g.tipoff for g in reg) - made_at < dt.timedelta(minutes=MIN_LEAD_MIN):
+            info.update(
+                status="skipped",
+                detail="budget",
+                budget_reason="earliest tip within 35 min",
+                count="keep",
+            )
         else:
             info.update(
                 _serve(
@@ -391,14 +452,21 @@ def run_combo_shadow(
                     model_id,
                     cache_root,
                     ccfg,
+                    tip_source,
+                    budget,
                 )
             )
-            info["count"] = "reset" if info["status"] == "ok" else "keep"
+            if "count" not in info:
+                info["count"] = "reset" if info["status"] == "ok" else "keep"
+    except BudgetExceeded as exc:
+        info.update(
+            status="skipped", detail="budget", budget_reason=str(exc), count="keep", written=0
+        )
     except Exception as exc:
         info.update(status="failed", detail=f"{type(exc).__name__}: {exc}"[:400], count="inc")
         rc = 1
     finished = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-    info["seconds"] = round(time.perf_counter() - t0, 1)
+    info["seconds"] = round(clock() - t0, 1)
     try:
         store.write_heartbeat(
             con, slate_date=run_date, run_id=run_id, started_at=started, finished_at=finished, games_seen=len(slate),
@@ -432,7 +500,10 @@ def _serve(
     model_id: str,
     cache_root: Path | None,
     ccfg: ContextResidualConfig | None = None,
+    tip_source: str = "real",
+    budget: Budget | None = None,
 ) -> dict[str, Any]:
+    budget = budget or Budget()
     gids = [g.game_id for g in reg]
     tip = {g.game_id: g.tipoff for g in reg}
     prod, src, missing = prod_survivals(con, gids, made_at)
@@ -441,6 +512,7 @@ def _serve(
             "status": "skipped",
             "detail": "no production rows for the slate",
             "written": 0,
+            "count": "inc",  # review M7: a regular-season slate without production rows is a broken join, not a quiet day
             **missing,
         }
     ccfg = ccfg or ContextResidualConfig()
@@ -455,8 +527,10 @@ def _serve(
         ccfg,
     )
     t_feat = time.perf_counter() - t_feat
+    budget.check()
     cache_dir = None if cache_root is None else cache_root / f"{run_date.isoformat()}_combo"
     models, fit_through, hit = load_or_fit_nb(feats, run_date, ccfg, model_id, cache_dir)
+    budget.check()
     slate_feats = feats.filter(pl.col("game_id").is_in(gids))
     nb: dict[str, tuple[pl.DataFrame, np.ndarray]] = {}
     for s in STOCK_TARGETS:
@@ -491,8 +565,10 @@ def _serve(
     grids: dict[str, np.ndarray] = {s: np.stack([prod[k][s] for k in keys]) for s in PROD_SOURCES}
     for s in STOCK_TARGETS:
         grids[s] = nb[s][1][keep]
-    s_arm, i_arm = joint_arms(grids, cfg)
+    s_arm, i_arm = joint_arms(grids, cfg, check=budget.check)
+    budget.check()
     rec = recent_grids(con, run_date, keys)
+    budget.check()
     arms: dict[str, np.ndarray] = {**s_arm, **{t: grids[t] for t in STOCK_TARGETS}}
     rows_out: list[dict[str, object]] = []
     for t in TARGETS:
@@ -500,7 +576,7 @@ def _serve(
         for j, (gid, pid) in enumerate(keys):
             r: dict[str, object] = {
                 "made_at": made_at, "run_id": run_id, "game_id": gid, "player_id": pid, "target": t, "tipoff_utc": tip[gid],
-                "tip_source": "real", "in_prod_log": True, "n_prior": int(n_prior_all[keep[j]]), "model_id": model_id,
+                "tip_source": tip_source, "in_prod_log": True, "n_prior": int(n_prior_all[keep[j]]), "model_id": model_id,
                 "fit_through": fit_through, "r_id": cfg.r_id, "base_id": cfg.base_id, "s_pmf199": store.dumps_ints(arms[t][j]),
                 "s_q19": store.dumps_ints(q19[j]), "indep_pmf199": store.dumps_ints(i_arm[t][j]) if t in i_arm else None,
                 "recent_pmf199": store.dumps_ints(rec[t][j]), "direct_pmf199": None, "recent_cal_pmf199": None,

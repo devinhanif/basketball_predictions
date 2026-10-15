@@ -73,6 +73,20 @@ class LookNotDue(RuntimeError):
     """A look was asked for before its date (or before its row count): nothing is computed."""
 
 
+class CountingNotStarted(LookNotDue):
+    """``forward_combo_meta`` has no ``counting_start``: every row is warm-up, nothing is scored (review S2)."""
+
+
+def counting_start(con: duckdb.DuckDBPyConnection) -> date | None:
+    """The counting start the steward wrote to ``forward_combo_meta`` (after the proofs passed); None when unset or the table is absent."""
+    if not _has_table(con, "forward_combo_meta"):
+        return None
+    row = con.execute(
+        "SELECT arg_max(value, written_at) FROM forward_combo_meta WHERE key = 'counting_start'"
+    ).fetchone()
+    return date.fromisoformat(str(row[0])) if row and row[0] else None
+
+
 def _has_table(con: duckdb.DuckDBPyConnection, name: str) -> bool:
     row = con.execute(
         "SELECT count(*) FROM information_schema.tables WHERE table_name = ?", [name]
@@ -109,7 +123,7 @@ LEFT JOIN prior p ON p.game_id = f.game_id AND p.player_id = f.player_id
 JOIN (SELECT game_id, player_id, max(team_id) AS team_id, max(CASE WHEN minutes > 0 THEN 1.0 ELSE 0.0 END) AS played,
              max({ycase}) AS val, max(minutes) AS minutes
       FROM player_game_stats b GROUP BY 1, 2) b ON b.game_id = f.game_id AND b.player_id = f.player_id
-WHERE f.rn = 1 AND g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND f.game_id LIKE '002%'
+WHERE f.rn = 1 AND g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND f.game_id LIKE '002%' AND g.game_date >= ?
 ORDER BY g.game_date, f.game_id, f.player_id
 """  # fixed row order: G1's randomised PIT assigns its draws by row (rule 6(d))
 
@@ -181,11 +195,13 @@ def load_live(
     con: duckdb.DuckDBPyConnection, target: str, season: int = SEASON, lead: int = LEAD_MINUTES
 ) -> dict[str, np.ndarray]:
     """Every (game, player) with an on-time shadow row for ``target`` (latest ``made_at <= tipoff - lead``), regular season, final game, in the fixed
-    order (game_date, game_id, player_id). ``late_only``: shadow rows exist but none is on time (counted, excluded)."""
-    if not _has_table(con, "forward_combo_shadow"):
+    order (game_date, game_id, player_id). Rows of games before the counting start are warm-up and are dropped; with no counting start
+    nothing is loaded (review S2)."""
+    start = counting_start(con)
+    if start is None or not _has_table(con, "forward_combo_shadow"):
         return _empty_rows()
     rows = con.execute(
-        _SQL.replace("{ycase}", y_case(target)), [target, lead, target, lead, season]
+        _SQL.replace("{ycase}", y_case(target)), [target, lead, target, lead, season, start]
     ).fetchall()
     n = len(rows)
     if n == 0:
@@ -260,7 +276,7 @@ FROM player_game_stats b JOIN games g USING (game_id)
 JOIN prior p ON p.game_id = b.game_id AND p.player_id = b.player_id
 LEFT JOIN prod pr ON pr.game_id = b.game_id AND pr.player_id = b.player_id
 LEFT JOIN anyprod a ON a.game_id = b.game_id AND a.player_id = b.player_id
-WHERE g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND b.game_id LIKE '002%' AND b.minutes > 0 AND p.n_prior >= ?
+WHERE g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND b.game_id LIKE '002%' AND b.minutes > 0 AND p.n_prior >= ? AND g.game_date >= ?
 """
 
 
@@ -269,7 +285,8 @@ def servability(
 ) -> dict[str, Any]:
     """Played regular-season players with ``n_prior >= 5``: how many were rostered (any production context row) and how many were SERVABLE (an on-time
     row for each of pts (lt), reb, ast, fg3m). The share of played rostered players that are not servable is flagged above 5% (rule 4)."""
-    if not _has_table(con, "forward_predictions"):
+    start = counting_start(con)
+    if start is None or not _has_table(con, "forward_predictions"):
         return {
             "played": 0,
             "rostered": 0,
@@ -278,7 +295,7 @@ def servability(
             "flag": False,
             "rows": [],
         }
-    r = con.execute(_SERVABLE_SQL, [lead, season, MIN_PRIOR]).fetchall()
+    r = con.execute(_SERVABLE_SQL, [lead, season, MIN_PRIOR, start]).fetchall()
     arr = {
         k: np.array([x[i] for x in r])
         for i, k in enumerate(
@@ -472,9 +489,17 @@ def score_target(
 
 
 def decide_target(
-    res: dict[str, Any], bh_p: float | None, gates_ok: bool, look: str, n_min: int = N_MIN
+    res: dict[str, Any],
+    bh_p: float | None,
+    gates_ok: bool,
+    look: str,
+    n_min: int = N_MIN,
+    kill_gate_ok: bool = True,
 ) -> dict[str, Any]:
-    """Rule 7 for one target. ``look``: interim | final | second. The interim look can only KILL; the final and second looks PASS, FAIL or are INCONCLUSIVE."""
+    """Rule 7 for one target. ``look``: interim | final | second. The interim look can only KILL; the final and second looks PASS, FAIL or are INCONCLUSIVE.
+
+    ``gates_ok`` (every integrity gate clean, incl. coverage >= 95% and staleness) blocks a PASS; ``kill_gate_ok`` is the narrower KILL condition of
+    the rule text: G-COV "kill below 80%" or a hard stamp / reproducibility failure. Coverage between 80% and 95% flags and continues (review S3)."""
     t, n = res["target"], res.get("n", 0)
     z = Z2 if look == "second" else Z1
     if res.get("game", {}).get("delta") is None:
@@ -486,8 +511,8 @@ def decide_target(
             "target": t,
             "look": look,
             "n": n,
-            "verdict": "KILL" if (kill or not gates_ok) else "CONTINUE",
-            "integrity_kill": not gates_ok,
+            "verdict": "KILL" if (kill or not kill_gate_ok) else "CONTINUE",
+            "integrity_kill": not kill_gate_ok,
         }
     floor = res["floor"]
     conds = {
@@ -533,6 +558,10 @@ def score_live(
     cfg: ComboConfig | None = None,
 ) -> dict[str, Any]:
     cfg = cfg or load_config()
+    if counting_start(con) is None:
+        raise CountingNotStarted(
+            "forward_combo_meta has no counting_start: every row is warm-up, nothing is scored"
+        )
     z = Z2 if look == "second" else Z1
     rows = {t: load_live(con, t, season, lead) for t in TARGETS}
     res: dict[str, Any] = {
@@ -552,16 +581,18 @@ def score_live(
     res["servability"] = {k: v for k, v in serv.items() if k != "rows"}
     res["coverage"], res["integrity"] = cov["by_target"], gates
     res["missingness"] = cov["missingness"]
-    gate_ok = (
+    hard_ok = (
         gates["rows_after_tip"] == 0 and gates["tip_source_not_real"] == 0 and gates["repro_q19_fail"] == 0
-        and gates["id_mismatch"] == 0 and gates["stale_ok"]
+        and gates["id_mismatch"] == 0
     )  # fmt: skip
+    gate_ok = hard_ok and gates["stale_ok"]
     res["decisions"] = {
         t: decide_target(
             res["targets"][t],
             float(adj[i]),
             bool(gate_ok and cov["by_target"].get(t, {}).get("ok", False)),
             look,
+            kill_gate_ok=bool(hard_ok and not cov["by_target"].get(t, {}).get("kill", False)),
         )
         for i, t in enumerate(TARGETS)
     }
@@ -627,7 +658,10 @@ def daily_display(con: duckdb.DuckDBPyConnection, season: int = SEASON) -> dict[
     serv = servability(con, season)
     cov = coverage_and_missingness(con, serv, rows)
     g = integrity_gates(con, rows, None, season)
+    start = counting_start(con)
     return {
+        "counting_start": None if start is None else str(start),
+        "note": "counting start UNSET: every row is warm-up, nothing is scored" if start is None else "",
         "n_eligible": {t: int(eligible(rows[t]).sum()) for t in TARGETS},
         "servability": {k: v for k, v in serv.items() if k != "rows"},
         "coverage": cov["by_target"], "missingness": cov["missingness"], "gates": g,
@@ -642,6 +676,10 @@ def read_look(
     season: int = SEASON,
 ) -> dict[str, Any]:
     """Compute a look ONLY if one is due today; otherwise raise ``LookNotDue`` before touching a single score."""
+    if counting_start(con) is None:
+        raise CountingNotStarted(
+            "forward_combo_meta has no counting_start: every row is warm-up, nothing is scored"
+        )
     counts = (
         n_by_sunday(con, INTERIM_DATE, max(last_regular_sunday, today), season)
         if today.weekday() == 6

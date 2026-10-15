@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -184,7 +185,7 @@ JOIN forward_full_scores s ON s.game_id = e.game_id AND s.player_id = e.player_i
                           AND s.run_id = e.run_id AND s.status = 'scored'
 JOIN games g ON g.game_id = e.game_id
 {pp_join}
-WHERE e.rn = 1 AND g.season = ?
+WHERE e.rn = 1 AND g.season = ? AND g.game_date >= ?
 """
 _PP_JOIN = """LEFT JOIN (SELECT game_id, player_id, proj_minutes,
                        row_number() OVER (PARTITION BY game_id, player_id ORDER BY made_at DESC, run_id DESC) rn
@@ -204,6 +205,18 @@ def _has_table(con: duckdb.DuckDBPyConnection, name: str) -> bool:
     )
 
 
+def counting_start(con: duckdb.DuckDBPyConnection) -> date | None:
+    """A counting start in ``forward_full_meta`` (key ``counting_start``), if that table exists. FULL has no meta table of its own: its rule
+    counts from the first regular-season game (the ``REGULAR_PREFIXES`` filter), so an absent table means no extra filter (review S2); when the
+    table exists and holds no counting start, every row is warm-up and nothing is scored."""
+    if not _has_table(con, "forward_full_meta"):
+        return date.min
+    row = con.execute(
+        "SELECT arg_max(value, written_at) FROM forward_full_meta WHERE key = 'counting_start'"
+    ).fetchone()
+    return date.fromisoformat(str(row[0])) if row and row[0] else None
+
+
 def load_live(
     con: duckdb.DuckDBPyConnection, stat: str, season: int = 2026, lead: int = LEAD_MINUTES
 ) -> dict[str, np.ndarray]:
@@ -214,7 +227,8 @@ def load_live(
         proj="pp.proj_minutes" if has_pp else "CAST(NULL AS DOUBLE)",
         pp_join=_PP_JOIN if has_pp else "",
     )
-    args: list[Any] = [stat, lead] + ([lead] if has_pp else []) + [season]
+    start = counting_start(con)  # None: a meta table without a counting start, so no date qualifies
+    args: list[Any] = [stat, lead] + ([lead] if has_pp else []) + [season, start or date.max]
     cols = ["gid", "day", "tip", "made_at", "pid", "run_id", "qf", "qp", "p_prod", "logged", "played", "y", "y_u",
             "p_r", "c_prod", "c_full", "j_prod", "j_full", "j_rprod", "proj", "b2b"]  # fmt: skip
     keep: dict[str, list[Any]] = {c: [] for c in cols}

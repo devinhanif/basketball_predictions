@@ -61,7 +61,15 @@ JSON_COLUMNS = {
     "src",
 }
 #: content that makes two rows "the same" for write-on-change (provenance ``src`` is excluded: a production re-run with the same grids is not news)
-SIG_COLUMNS = ["s_pmf199", "indep_pmf199", "recent_pmf199", "model_id", "r_id", "base_id"]
+SIG_COLUMNS = [
+    "s_pmf199",
+    "indep_pmf199",
+    "recent_pmf199",
+    "model_id",
+    "r_id",
+    "base_id",
+    "tipoff_utc",
+]  # review M6: a moved tip is news
 
 
 def ensure_tables(con: duckdb.DuckDBPyConnection) -> None:

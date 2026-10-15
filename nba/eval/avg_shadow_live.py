@@ -90,6 +90,20 @@ class LookNotDue(RuntimeError):
     """A look was asked for before its date (or before its row count): nothing is computed."""
 
 
+class CountingNotStarted(LookNotDue):
+    """``forward_avg_meta`` has no ``counting_start``: every row is warm-up, nothing is scored (review S2)."""
+
+
+def counting_start(con: duckdb.DuckDBPyConnection) -> date | None:
+    """The counting start the steward wrote to ``forward_avg_meta`` (after P1a, P1b, P2, P3, P4 passed); None when unset or the table is absent."""
+    if not _has_table(con, "forward_avg_meta"):
+        return None
+    row = con.execute(
+        "SELECT arg_max(value, written_at) FROM forward_avg_meta WHERE key = 'counting_start'"
+    ).fetchone()
+    return date.fromisoformat(str(row[0])) if row and row[0] else None
+
+
 # --------------------------------------------------------------------------- arithmetic on the stored 19-atom grids
 def mix_atoms(qa: np.ndarray, qb: np.ndarray) -> np.ndarray:
     """19 quantiles (taus 0.05..0.95) of the 50/50 mixture of two 19-atom pmfs (38 equal atoms, mass 1/38 each)."""
@@ -145,7 +159,7 @@ LEFT JOIN (SELECT game_id, player_id, max(CASE WHEN minutes > 0 THEN 1.0 ELSE 0.
                   max(minutes) AS minutes, bool_or(starter) AS starter
            FROM player_game_stats GROUP BY 1, 2) b ON b.game_id = f.game_id AND b.player_id = f.player_id
 {pp_join}
-WHERE f.rn = 1 AND g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND f.game_id LIKE '002%'
+WHERE f.rn = 1 AND g.season = ? AND g.home_pts > 0 AND g.away_pts > 0 AND f.game_id LIKE '002%' AND g.game_date >= ?
 ORDER BY f.game_id, f.player_id
 """  # fixed row order: the randomised PIT (seed 0) assigns its draws by row, so G1 must not depend on the physical order of the tables
 _PP_CTE = """, pp AS (
@@ -168,6 +182,8 @@ def load_live(
 ) -> dict[str, np.ndarray]:
     """Every triple with a FULL row and an A0 row at the cutoff (latest ``made_at <= tipoff - lead``), regular season, final game.
     ``has_avg``: an on-time AVG row exists; ``late_only``: AVG rows exist but none is on time. Arms are the 19 stored quantiles."""
+    # rows of games before the counting start are warm-up; with none set no date qualifies, so nothing is scored (review S2)
+    start = counting_start(con) or date.max
     has_pp = _has_table(con, "forward_pplay_shadow")
     sql = _SQL.format(
         pp_cte=_PP_CTE if has_pp else "",
@@ -178,7 +194,7 @@ def load_live(
     args: list[Any] = (
         [stat, lead, model, stat, lead, stat, lead, stat, lead]
         + ([lead] if has_pp else [])
-        + [stat, season]
+        + [stat, season, start]
     )
     cols = ["gid", "day", "tip", "pid", "team", "qf", "qa0", "qavg", "qseqc", "pavg", "stale", "n_late", "n_prior", "played", "val", "minutes",
             "starter", "proj", "p_play", "won", "b2b", "tgn"]  # fmt: skip
@@ -758,6 +774,10 @@ def decide(res: dict[str, Any], look: str) -> dict[str, Any]:
 def score_live(
     con: duckdb.DuckDBPyConnection, look: str, season: int = SEASON, lead: int = LEAD_MINUTES
 ) -> dict[str, Any]:
+    if counting_start(con) is None:
+        raise CountingNotStarted(
+            "forward_avg_meta has no counting_start: every row is warm-up, nothing is scored"
+        )
     z = Z2 if look == "second" else Z1
     res: dict[str, Any] = {"stats": {}, "look": look}
     pops: dict[str, dict[str, Any]] = {}
@@ -805,6 +825,10 @@ def daily_display(con: duckdb.DuckDBPyConnection, season: int = SEASON) -> dict[
                 "late_share",
             )
         }
+    start = counting_start(con)
+    out["counting_start"] = None if start is None else str(start)
+    if start is None:
+        out["note"] = "counting start UNSET: every row is warm-up, nothing is scored"
     g = integrity_gates(con, LEAD_MINUTES, season)
     out["gates"] = {
         k: g[k]
@@ -828,6 +852,10 @@ def read_look(
     season: int = SEASON,
 ) -> dict[str, Any]:
     """Compute a look ONLY if one is due today; otherwise raise ``LookNotDue`` before touching a single score."""
+    if counting_start(con) is None:
+        raise CountingNotStarted(
+            "forward_avg_meta has no counting_start: every row is warm-up, nothing is scored"
+        )
     counts = (
         pts_by_sunday(con, INTERIM_DATE, max(last_regular_sunday, today), season)
         if today.weekday() == 6

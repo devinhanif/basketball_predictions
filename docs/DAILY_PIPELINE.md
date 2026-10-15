@@ -677,6 +677,13 @@ Rule: `docs/prereg/COMBO_STOCKS_SHADOW.md` (FROZEN 2026-10-14 15:08 CDT, sha256 
   COPULA minus INDEP for PRA, PR, PA, RA, integrity gates, servability (flag above 5% not servable), coverage (95% overall, 90% starter and bench, kill below 80%) and the missingness
   table at every look. `look_due` fixes the calendar (interim Sun 2026-11-15 when every target has >= 1,500 rows, kill-only; final the first Sunday on or after 2027-01-10 at >= 3,000 rows
   per target; one second look); `read_look` raises `LookNotDue` before touching a score on any other day. The briefing prints counts and gates only (`display.py`).
+* **Wall-time budget (review S1, 2026-10-14)**: `run_combo_shadow` records `skipped` / detail `budget`, writes nothing and leaves `consecutive_bad` alone when the earliest
+  upcoming tip is within 35 minutes of the run's stamp at the start (the T-30 tick needs the database), or when the step passes 420 s. The 420 s check is cooperative: between the
+  frame build, the NB fit, each batch of 96 rows in the sampler and RECENT (a LightGBM fit is never killed; a fit already running finishes). A budget skip is a missing row that G-COV counts.
+  A regular-season slate with no production rows (a broken join) is now `skipped` but counts as bad (`consecutive_bad` + 1) so the watchdog sees it.
+* **Readers and the counting start (review S2)**: the combo, AVG and (when `forward_full_meta` exists) FULL readers drop rows of games before `counting_start` in their own meta
+  table; with no counting start nothing is scored (`CountingNotStarted`, a `LookNotDue`) and the daily display says so. FULL has no meta table of its own (its rule counts from the
+  first regular-season game), so an absent `forward_full_meta` means no extra filter.
 * **Replay (proof P3)**: `... replay_season ... --combo-shadow` turns the writer on for the replay (heartbeat to `<out-dir>/combo_heartbeat/`, never `data/ops`). Each replayed date's
   `models.combo_shadow` entry in the replay state shows the status and `written`.
 * **Proofs, state at build (2026-10-14)**: **P1 PASS** (`tests/props/test_combo_p1.py` and `tests/daily/test_combo_shadow.py::test_p1_reference_is_reproduced_through_the_writers_code_path`:
@@ -691,7 +698,8 @@ Rule: `docs/prereg/COMBO_STOCKS_SHADOW.md` (FROZEN 2026-10-14 15:08 CDT, sha256 
 can never change a morning or pretip exit code, and a slow Drive upload in the morning job (today: 98 minutes, rc 1) cannot delay it past its own slots.
 
 * **Schedule**: `ops/launchd/local.nba.app-export.plist`, two slots a day at 12:35 and 14:35 on the schedule clock (the same clock as the other jobs, `data/ops/schedule_tz`), at :35 so they fall
-  between the pretip runs. **Not installed by anything in the repo.** Install: `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist`;
+  between the pretip runs. **Not installed by anything in the repo.** Install: `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist && launchctl kickstart -k gui/$(id -u)/local.nba.app-export`
+  (the kickstart writes the first heartbeat at once, otherwise the watchdog alerts `app-export:stale` until the first slot has run; it runs the gate, so it may record a skip);
   remove: `launchctl bootout gui/$(id -u)/local.nba.app-export`.
 * **Gate**: the `daily-morning` heartbeat must have an END written today (Eastern date) with `rc == 0`. Otherwise the run is SKIPPED with a recorded reason (heartbeat `status: skipped`, the log
   `data/ops/app_export_YYYYMMDD.log`, and `app-export.skip.json` with a consecutive count); a skip exits 0 and the watchdog alerts after two in a row. Note: the morning job's rc is the

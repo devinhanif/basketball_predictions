@@ -151,6 +151,7 @@ def run_daily(
     avg_heartbeat_dir: Path | None = None,
     with_combo_shadow: bool = False,
     combo_heartbeat_dir: Path | None = None,
+    tip_source: str = "real",
 ) -> RunSummary:
     """Ingest -> injury report -> predict -> append -> settle. ``now`` is naive UTC.
 
@@ -265,7 +266,7 @@ def run_daily(
         # try/except, own heartbeat.
         _combo_shadow(
             con, run_date, upcoming, made_at, summary, preds,
-            official, elo_config, model_cache, shared, combo_heartbeat_dir,
+            official, elo_config, model_cache, shared, combo_heartbeat_dir, tip_source,
         )  # fmt: skip
     return summary
 
@@ -462,6 +463,7 @@ def _combo_shadow(
     model_cache: Path | None,
     shared: dict[str, Any],
     hb_dir: Path | None = None,
+    tip_source: str = "real",
 ) -> None:
     """Log the COMBO_STOCKS grids for the slate group, then settle.
 
@@ -469,7 +471,9 @@ def _combo_shadow(
     comparators. Own tables (``forward_combo_*``); ``forward_predictions`` and every scored
     production table are untouched. Statuses ok / skipped / failed go to the heartbeat table and
     ``data/ops/heartbeat/combo_shadow.json``; a failure is recorded in ``shadow_errors`` and nothing
-    else changes. Never retried after tip: only games with ``made_at < tipoff`` are passed."""
+    else changes. Never retried after tip: only games with ``made_at < tipoff`` are passed.
+    Wall-time budget (420 s, or the earliest tip within 35 min): ``run_combo_shadow`` records
+    ``skipped`` / ``budget`` and writes nothing."""
     import time
 
     from nba.daily.combo_shadow import run as combo_run
@@ -490,6 +494,7 @@ def _combo_shadow(
                 [SlateGame(g.game_id, g.home_team, g.away_team, g.tipoff) for g in upcoming],
                 made_at, summary.run_id, wide, report_out, params,
                 hb_dir=hb_dir or combo_run.HB_DIR, cache_root=model_cache or DEFAULT_CONTEXT_CACHE,
+                tip_source=tip_source,
             )  # fmt: skip
             summary.model_status[name] = f"{info}"
             if info.get("status") == "failed":

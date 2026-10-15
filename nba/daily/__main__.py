@@ -292,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
             with_full_shadow=args.log_full_shadow,
             with_avg_shadow=args.log_avg_shadow,
             with_combo_shadow=args.log_combo_shadow,
+            tip_source="proxy" if args.schedule_from_db else "real",
             rate_limiter=RateLimiter(args.rate_limit_s),
             tips_dir=None if args.schedule_from_db else SCHEDULE_DIR,
             schedule_cache_dir=None if args.schedule_from_db else SCHEDULE_CACHE_DIR,

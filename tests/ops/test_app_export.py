@@ -296,3 +296,12 @@ def test_two_consecutive_skips_alert_with_the_recorded_reason(tmp_path: Path) ->
     assert [
         a for a in evaluate(now, hb, "", now, None, tz=ET) if a.key == "app-export:skipped"
     ] == []
+
+
+def test_install_note_has_the_kickstart() -> None:
+    root = Path(__file__).resolve().parents[2]
+    assert "launchctl kickstart -k gui/$(id -u)/local.nba.app-export" in PLIST.read_text()
+    assert (
+        "launchctl kickstart -k gui/$(id -u)/local.nba.app-export"
+        in (root / "docs/DAILY_PIPELINE.md").read_text()
+    )

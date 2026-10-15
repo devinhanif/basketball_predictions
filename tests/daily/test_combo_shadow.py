@@ -265,7 +265,8 @@ def test_no_production_rows_is_a_skip_not_a_failure(
 ) -> None:
     info = go(bcon, hb)
     assert info["status"] == "skipped" and "no production rows" in info["detail"]
-    assert json.loads((hb / "combo_shadow.json").read_text())["consecutive_bad"] == 0
+    # review M7: on a regular-season slate this is a broken join, not a quiet day: it counts toward the watchdog's 3
+    assert json.loads((hb / "combo_shadow.json").read_text())["consecutive_bad"] == 1
 
 
 def test_a_preseason_slate_is_skipped(bcon: duckdb.DuckDBPyConnection, hb: Path) -> None:
@@ -518,13 +519,34 @@ def test_primary_rows_are_identical_with_the_shadow_on(
     assert json.loads((hb / "combo_shadow.json").read_text())["rows_written"] == n[0]
 
 
+def _daily_with_combo(c: duckdb.DuckDBPyConnection, hb: Path) -> pipeline.RunSummary:
+    return run_daily(c, RUN_DATE, schedule_fn=lambda s: slate_games(), now=MADE, skip_ingest=True, skip_injury=True, with_combo_shadow=True, combo_heartbeat_dir=hb)  # fmt: skip
+
+
 def test_shadow_failure_is_recorded_and_never_raises(
-    con: duckdb.DuckDBPyConnection, hb: Path
+    bcon: duckdb.DuckDBPyConnection, hb: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    s = run_daily(con, RUN_DATE, schedule_fn=lambda s: slate_games(), now=MADE, skip_ingest=True, skip_injury=True, with_combo_shadow=True, combo_heartbeat_dir=hb)  # fmt: skip
+    """T1: fails if ``_combo_shadow`` is a no-op (the step must leave a status AND, when it raises, an ALERTS line) and the primary rows are still written."""
+    monkeypatch.setattr(pipeline, "_wide_roster_frame", lambda *a, **k: ({}, {}, _wide()))
+    ok = _daily_with_combo(
+        bcon, hb
+    )  # no production context rows seeded: the step runs and records a skip
+    assert ok.n_rows_written > 0 and not ok.shadow_errors, ok.shadow_errors
+    assert "'status': 'skipped'" in ok.model_status["combo_shadow"]
+    assert "combo_shadow_settle" in ok.model_status
+    assert json.loads((hb / "combo_shadow.json").read_text())["status"] == "skipped"
+
+    def boom(*a: object, **k: object) -> object:
+        raise RuntimeError("fit exploded")
+
+    monkeypatch.setattr(R, "run_combo_shadow", boom)
+    bad = _daily_with_combo(bcon, hb)
+    assert [
+        e for e in bad.shadow_errors if e.startswith("combo shadow: RuntimeError: fit exploded")
+    ]
     assert (
-        s.n_rows_written > 0
-    )  # the 12-game fixture has no production context rows: skipped or failed, primary rows written
+        "combo_shadow_settle" not in bad.model_status
+    )  # the failure is the step's own; the primary rows were written before it
 
 
 def test_cli_flag_is_off_by_default_and_settle_is_registered() -> None:
@@ -541,7 +563,6 @@ def test_cli_flag_is_off_by_default_and_settle_is_registered() -> None:
         "settle_combo_shadow",
         "forward_combo_shadow",
     ) in SHADOW_SETTLERS
-    assert T3 != T4
 
 
 def test_report_section_appears_once_rows_exist(bcon: duckdb.DuckDBPyConnection, hb: Path) -> None:
@@ -596,3 +617,83 @@ def test_the_layering_of_the_writer() -> None:
             )
             for nme in names:
                 assert not nme.startswith(("nba.eval", "nba.sim", "research")), (f.name, nme)
+
+
+# --------------------------------------------------------------------------- review fixes S1, M5, M6
+def test_budget_skip_when_the_earliest_tip_is_within_35_minutes(
+    bcon: duckdb.DuckDBPyConnection, hb: Path
+) -> None:
+    seed_prod(bcon)
+    near = go(bcon, hb, made_at=TIPOFF - timedelta(minutes=30))
+    assert near["status"] == "skipped" and near["detail"] == "budget"
+    assert bcon.execute("SELECT count(*) FROM forward_combo_shadow").fetchone() == (0,)
+    f = json.loads((hb / "combo_shadow.json").read_text())
+    assert f["status"] == "skipped" and f["consecutive_bad"] == 0 and f["rc"] == 0
+    assert bcon.execute(
+        "SELECT status, rows_written, detail FROM forward_combo_heartbeat"
+    ).fetchall() == [("skipped", 0, "budget")]
+    ok = go(
+        bcon, hb, made_at=TIPOFF - timedelta(minutes=36), run_id="r2"
+    )  # control: just outside the window
+    assert ok["status"] == "ok" and ok["written"] > 0
+
+
+def test_budget_skip_when_the_step_passes_its_wall_time_between_chunks(
+    bcon: duckdb.DuckDBPyConnection, hb: Path
+) -> None:
+    seed_prod(bcon)
+    ticks = iter(range(10_000))
+    info = go(
+        bcon, hb, budget_s=2.5, clock=lambda: float(next(ticks))
+    )  # one unit of "time" per clock read
+    assert (
+        info["status"] == "skipped"
+        and info["detail"] == "budget"
+        and "budget" in info["budget_reason"]
+    )
+    assert bcon.execute("SELECT count(*) FROM forward_combo_shadow").fetchone() == (
+        0,
+    )  # nothing was written
+    f = json.loads((hb / "combo_shadow.json").read_text())
+    assert f["status"] == "skipped" and f["consecutive_bad"] == 0
+    assert go(bcon, hb, run_id="r2")["written"] > 0  # the same run with the real budget writes
+
+
+def test_the_budget_checks_run_between_sampler_batches_and_do_not_change_the_grids() -> None:
+    cfg = CFG.load_config()
+    ref = np.load(ROOT / "reports/prereg_combo_stocks_shadow/p1_reference.npz")
+    cdfs = {s: ref[f"cdf_{s}"] for s in C.STAT_ORDER}  # 200 rows -> 3 batches of 96
+    calls: list[int] = []
+    s_b, i_b = R.joint_from_cdfs(cdfs, cfg, check=lambda: calls.append(1))
+    assert len(calls) == 3
+    for c in C.COMBOS:
+        assert np.array_equal(s_b[c], ref[f"expected_{c}"]) and np.array_equal(
+            i_b[c], ref[f"expected_indep_{c}"]
+        )
+
+    def stop() -> None:
+        if len(calls) >= 4:
+            raise R.BudgetExceeded("budget")
+        calls.append(1)
+
+    with pytest.raises(R.BudgetExceeded):
+        R.joint_from_cdfs(cdfs, cfg, check=stop)
+
+
+def test_the_tip_source_is_passed_through_and_a_moved_tip_is_news(
+    bcon: duckdb.DuckDBPyConnection, hb: Path
+) -> None:
+    seed_prod(bcon)
+    go(bcon, hb, tip_source="proxy")
+    assert bcon.execute("SELECT DISTINCT tip_source FROM forward_combo_shadow").fetchall() == [
+        ("proxy",)
+    ]  # M5
+    n = bcon.execute("SELECT count(*) FROM forward_combo_shadow").fetchone()
+    assert n is not None
+    moved = [SlateGame(GID, T1, T2, TIPOFF + timedelta(minutes=30))]
+    info = R.run_combo_shadow(
+        bcon, RUN_DATE, moved, MADE, "r2", _wide(), {}, ELO, hb_dir=hb, ccfg=CCFG
+    )
+    assert (
+        info["written"] == n[0] and info["deduped"] == 0
+    )  # M6: identical grids, different tip -> a new row

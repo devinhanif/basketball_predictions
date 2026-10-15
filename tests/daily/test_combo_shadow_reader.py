@@ -186,9 +186,10 @@ def test_interim_can_only_kill() -> None:
     noisy = _res(delta=0.2)
     noisy["game"]["lower95"] = -0.05
     assert L.decide_target(noisy, 0.9, True, "interim")["verdict"] == "CONTINUE"
-    assert (
-        L.decide_target(_res(delta=-0.5), 0.01, False, "interim")["verdict"] == "KILL"
-    )  # integrity kill
+    # review S3: gates that only block a PASS (coverage 80-95%, staleness) never kill; a hard gate or coverage below 80% does
+    assert L.decide_target(_res(delta=-0.5), 0.01, False, "interim")["verdict"] == "CONTINUE"
+    killed = L.decide_target(_res(delta=-0.5), 0.01, False, "interim", kill_gate_ok=False)
+    assert killed["verdict"] == "KILL" and killed["integrity_kill"] is True
 
 
 def test_second_look_uses_z_196() -> None:
@@ -279,10 +280,15 @@ START = datetime(2026, 10, 21, 23, 30)
 
 
 def _build(
-    n_days: int = 9, drop_shadow: set[tuple[str, int]] | None = None, seed_prod: bool = True
+    n_days: int = 9,
+    drop_shadow: set[tuple[str, int]] | None = None,
+    seed_prod: bool = True,
+    counting: str | None = "2026-10-21",
 ) -> duckdb.DuckDBPyConnection:
     con = build_fixture_db(":memory:")
     store.ensure_tables(con)
+    if counting:
+        store.set_meta(con, "counting_start", counting, datetime(2026, 10, 19))
     rng = np.random.default_rng(3)
     games, box, shadow, prod = [], [], [], []
     for d in range(n_days):
@@ -461,7 +467,15 @@ def test_score_live_runs_end_to_end_and_n_min_blocks_a_verdict() -> None:
 def test_daily_display_has_counts_and_gates_but_no_delta() -> None:
     con = _build()
     d = L.daily_display(con)
-    assert set(d) == {"n_eligible", "servability", "coverage", "missingness", "gates"}
+    assert set(d) == {
+        "counting_start",
+        "note",
+        "n_eligible",
+        "servability",
+        "coverage",
+        "missingness",
+        "gates",
+    }
     text = json.dumps(d, default=str).lower()
     assert "delta" not in text and "crps" not in text and d["n_eligible"]["pra"] > 0
 
@@ -522,3 +536,94 @@ def test_main_prints_display_on_a_non_look_day(
     assert L.main(["--db", str(path), "--today", "2026-11-04"]) == 0
     printed = json.loads(capsys.readouterr().out)
     assert printed["look"] is None and "display" in printed
+
+
+# --------------------------------------------------------------------------- review fixes S2, S3
+def test_interim_coverage_between_80_and_95_flags_and_continues_below_80_kills() -> None:
+    """S3, end to end: 86% coverage -> CONTINUE (PASS blocked), 72% -> KILL, hard stamp failure -> KILL."""
+    pairs = [(f"002260000{d}", 7000 + j) for d in (5, 6, 7, 8) for j in range(7)]
+    flagged = L.score_live(_build(drop_shadow=set(pairs[:8])), "interim", cfg=CFG)
+    assert flagged["coverage"]["pra"]["ok"] is False and flagged["coverage"]["pra"]["kill"] is False
+    assert {d["verdict"] for d in flagged["decisions"].values()} == {"CONTINUE"}
+    killed = L.score_live(_build(drop_shadow=set(pairs[:16])), "interim", cfg=CFG)
+    assert killed["coverage"]["pra"]["kill"] is True
+    assert {d["verdict"] for d in killed["decisions"].values()} == {"KILL"}
+    con = _build()
+    con.execute(
+        "UPDATE forward_combo_shadow SET made_at = tipoff_utc WHERE game_id = '0022600001' AND player_id = 7001 AND target = 'blk'"
+    )
+    hard = L.score_live(con, "interim", cfg=CFG)
+    assert hard["decisions"]["blk"]["verdict"] == "KILL" and hard["decisions"]["pra"][
+        "verdict"
+    ] in ("KILL", "CONTINUE")
+
+
+def test_rows_before_the_counting_start_are_warm_up_and_none_set_scores_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """S2 for the combo reader."""
+    all_rows = L.load_live(_build(), "pra")
+    later = L.load_live(_build(counting="2026-10-24"), "pra")
+    assert 0 < len(later["pid"]) < len(all_rows["pid"]) and later["day"].min() >= np.datetime64(
+        "2026-10-24"
+    )
+    assert L.counting_start(_build(counting="2026-10-24")) == date(2026, 10, 24)
+    unset = _build(counting=None)
+    assert len(L.load_live(unset, "pra")["pid"]) == 0 and L.servability(unset)["servable"] == 0
+    with pytest.raises(L.CountingNotStarted):
+        L.score_live(unset, "final", cfg=CFG)
+    monkeypatch.setattr(
+        L,
+        "score_live",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("scored with no counting start")),
+    )
+    with pytest.raises(L.CountingNotStarted):
+        L.read_look(unset, date(2026, 11, 15), date(2027, 4, 11))
+    d = L.daily_display(unset)
+    assert (
+        d["counting_start"] is None and "UNSET" in d["note"] and sum(d["n_eligible"].values()) == 0
+    )
+
+
+def test_the_avg_reader_drops_warm_up_rows_and_scores_nothing_without_a_counting_start() -> None:
+    from nba.daily.avg_shadow import store as avg_store
+    from nba.eval import avg_shadow_live as A
+    from tests.eval.test_avg_shadow_live import build
+
+    con = build(n_dates=20, per_date=6)
+    full = A.load_live(con, "pts")
+    assert len(full["pid"]) > 0
+    avg_store.set_meta(
+        con, "counting_start", "2026-11-01", datetime(2026, 10, 30)
+    )  # a later write wins
+    later = A.load_live(con, "pts")
+    assert 0 < len(later["pid"]) < len(full["pid"]) and later["day"].min() >= np.datetime64(
+        "2026-11-01"
+    )
+    con.execute("DELETE FROM forward_avg_meta")
+    assert len(A.load_live(con, "pts")["pid"]) == 0
+    with pytest.raises(A.CountingNotStarted):
+        A.read_look(con, date(2026, 11, 15), date(2027, 4, 11))
+    with pytest.raises(A.CountingNotStarted):
+        A.score_live(con, "interim")
+    d = A.daily_display(con)
+    assert d["counting_start"] is None and "UNSET" in d["note"]
+
+
+def test_the_full_reader_honours_a_counting_start_when_its_meta_table_exists() -> None:
+    """FULL has no meta table (its rule counts from the first regular-season game): absent table = no extra filter; a table without a start scores nothing."""
+    from nba.eval import full_shadow_live as F
+    from tests.eval.test_full_shadow_live import build
+
+    con = build(0.5, n_dates=12, per_date=2, per_game=3, stats=("pts",))
+    base = F.load_live(con, "pts")
+    assert len(base["pid"]) > 0 and F.counting_start(con) == date.min
+    con.execute("CREATE TABLE forward_full_meta (key VARCHAR, value VARCHAR, written_at TIMESTAMP)")
+    assert len(F.load_live(con, "pts")["pid"]) == 0
+    day = base["day"][len(base["day"]) // 2]
+    con.execute(
+        "INSERT INTO forward_full_meta VALUES ('counting_start', ?, TIMESTAMP '2026-10-19 00:00:00')",
+        [str(day)],
+    )
+    later = F.load_live(con, "pts")
+    assert 0 < len(later["pid"]) < len(base["pid"]) and later["day"].min() >= day
