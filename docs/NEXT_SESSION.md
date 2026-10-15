@@ -20,6 +20,13 @@ Results are summarised here as they land.
   all statuses; PPLAY_INTO_PROPS_LIVE is the test. Q plays 0.51 (0.77 for 3+ ppg), doubtful 0.02, probable 0.93. A historical test can't
   resolve -0.005 (MDE ~0.075 pooled). Recommendation: no new rule. NEW RISK: the stored "T-60" snapshot is typically ~T-180 in history
   (median lead 150-180 min, except 2021-22 hourly); live 2026-27 is a true T-60, a train/serve skew nobody has measured.
+- DONE P(over) scratch (docs/research/pover_bias_scratch_2026-10-15.md, 2023-24 only): DK T-60 gap -3.25 pp [-3.61, -2.87], n 106,999 legs /
+  2,616 games; same as T477 (Pinnacle -4.3). It is overconfidence (logit slope 0.46), not a mean shift; worst at high lines and min10<15.
+  A 2023-fit slope removes it on 2024 (log loss -0.0089 [-0.0102, -0.0076]) but still trails the de-vigged DK price (+0.0026).
+  CORRECTION (main session): the agent read "LC2" as line calibration; LC2 is SEQ_LEARNING_CURVE_2. LINE_CALIBRATION rev 2 (Devin's
+  "when can we recalibrate???", 92069c5) is still a DRAFT, gate 15/15, never frozen or run, and is exactly this test. EXPOSURE: tonight's
+  scratch fit a slope on 2023 and scored 2024, LC's select season; disclose in its data-exposure section before any freeze (Devin's call).
+  Agent piped pytest through tail (rule breach; 85 passed). Pre-existing ruff import-order error on main: app/fixtures/build_export_best_real.py.
 
 ## 2026-10-14 late evening (after "gnn"; Devin back)
 Done (DECISIONS 20:31 and 21:30; main e35dce9):
