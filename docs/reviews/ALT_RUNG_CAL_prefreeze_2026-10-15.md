@@ -185,3 +185,127 @@ main line with information it may not carry.
   B1 (C0 step table) and B2 (harness contract); fixes B1, B2, M1-M5 applied before the freeze; a new sha replaces 0c5a1514.
   Reverses: Devin stating label-only before the freeze commit.`
 - Ledger: none (pre-freeze review). Predictions: none.
+
+---
+
+# Re-check of revision 2 (adversary, 2026-10-15 01:30 CDT)
+
+Verdict: BLOCKED
+
+Reviewed: `origin/agent/modeler-alt-rung-cal-2` at 8a4413a (rule, `research/eval/alt_rung_cal_eval.py`,
+`research/eval/alt_rung_cal_rule.py`, `tests/eval/test_alt_rung_cal_harness.py`, both rehearsal `results.json`), plus the
+DECISIONS correction 7e9a81d. No real rung label was read. DraftKings main-line **leg** labels (`pairs_*.over`, already
+scored in T493) were read once, to reproduce the T493 coefficients. Seasons 2023 and 2024 only.
+
+**Short reading.** The science is right now. The shift-table C0, the m = 3 family, P4 as a label, the FanDuel record and
+the disclosures are all in place. The harness reproduces T493 exactly, runs its preflight before any label, and can issue all
+four words in the right worlds. What blocks the pin: the harness does not produce outputs the rule text promises (S2 and
+the dropped-row reliability; the extrapolation share by bin), the P5 decision depends on a file outside the pin, and one
+sentence in the hashed text misstates where a number came from. All are small. Two of them change the rule sha (R1, R3) and
+R2, R4 and R6 change the pin. Fix them, then re-hash and re-pin; a re-check of the diff should take minutes.
+
+## Every item from the first review
+
+| item | rev 2 | verified how | status |
+|---|---|---|---|
+| B1 shift-table C0 | rule `:24`, `:184`; `shift_table` (eval `:327-342`) is clip(A0 + g) with g = weighted mean(hit − A0) per 0.05 bin, 0 below 100 raw | code read; unit tests `test_shift_table_*` pass | FIXED |
+| B2.1 freeze and pin | `alt_rung_cal_rule.py` (`require_frozen`, `require_harness_pinned`, `pin`); `run` calls `require_ready` first (eval `:848-850`) | code read; pin recomputed on the branch files: `cf723452d4130334a4eaa33ecd4869c74938f8e3d38e9d15589fab27d55c3f6e` (exit 0), equal to the stated pin | FIXED, see R2, R5 |
+| B2.2 inputs | full 64-hex lines `:112-119`; `verify_inputs` refuses on mismatch | my driver: `inputs verified True` against the main-checkout data | FIXED |
+| B2.3 labels | `attach_real_labels` (eval `:246-283`): `y` non-null and integer, hit = Y ≥ point + 0.5 | code read | FIXED |
+| B2.4 preflight before any label | `run` path (eval `:867-874`): walk-forward bookkeeping on synthetic A0 labels, then `preflight`, then `attach_real_labels` | ran the same path label-free: all 11 pinned counts equal (DK 162,745 / 134,462 / bins 38,122-12,093 / 21,507 / 6,776 / 64,984; FD 244,270 / 221,776 / 5; 64 blocks; window games 39 / 62), identity list equal to gate.json | FIXED |
+| B2.5 T493 reproduction | `check_t493` (eval `:510-527`) | my driver refit CAL-main for every DK 2024 block from the harness frames and the real leg labels: **36 blocks, max \|Δβ\| = 0.000e+00** against `select.json` | FIXED, see R4 (ordering) |
+| B2.6 fit rows | `run_book` `fit_r = stat & has_main & date < b0`, all seasons ≤ 2024; legs as LC | code read | FIXED |
+| B2.7 C0/BASE details | constants eval `:55`; `c0_bin` tolerance 1e-12 | code read | FIXED |
+| B2.8 SH for CAL-main | LC leg permutation, seeds `[1000 + k, si, bi, 0]` (eval `:441-442`) | code read | FIXED |
+| B2.9 FanDuel | `run_book` on FD rungs with DK legs (book swap); FD main line required | code read; FD scored 221,776 | FIXED |
+| B2.10 bootstrap | `model_clv_eval.Boot`: `p = (1 + #{boot ≤ 0}) / (B + 1)`, so `mean(-d).p` is the one-sided p for "arm beats" (P1, P3) and `mean(d).p` the p for "worse" (P5): directions correct | code read | FIXED |
+| B2.11 per-row arrays | `save_arrays` (eval `:775-798`), sha256 in results.json | code read | FIXED |
+| B2.12 run budget | 85.5 / 87.7 s recorded | rehearsal results.json `wall_seconds` | FIXED |
+| M1 P4 label | rule `:36`, `:44-45`; `evaluate` (eval `:752-764`) never reads P4 | code read | FIXED, see R3 |
+| M2 m = 3 | rule `:33`, `:48`; `ALPHA_FAMILY = 0.05 / 3` | code read | FIXED |
+| M3 FanDuel record | DECISIONS 01:09 correction (7e9a81d); rule `:191-192` records the answers | read | FIXED |
+| M4 exposure | rule `:69` | read | FIXED |
+| M5 departure, P8 power | rule `:13`, `:40`, `:55` | read | FIXED |
+| m1 defect-date refit | `CAL_rung_nodefect` | code read | FIXED (label; see R6) |
+| m2 S2 | rule `:50` promises it | **not implemented** | OPEN, R1 |
+| m3 drop best month | `drop_best_month` | code read | FIXED |
+| m4 P3 MDE | rule `:35`, `:135`: hw about 0.0002 against −0.0001 | rehearsal numbers | FIXED |
+| m5 re-hash | new sha `7a88f9afae8a2e6b8fdfbc6625ecddad8edc8c79f62432401e67407a098c10e1` | `git show origin/agent/modeler-alt-rung-cal-2:docs/prereg/ALT_RUNG_CAL.md \| awk '/^=== RESULTS BELOW ===$/{exit} {print}' \| shasum -a 256` (exit 0): equal | FIXED |
+
+## Rehearsals: do the guards behave?
+
+| world (synthetic labels, real rows, folds and bootstrap) | word | key numbers (DK, n 134,462, game-clustered 95% CI) | reads as |
+|---|---|---|---|
+| truth = T491 oracle (a function of A0's bin and stat only) | TABLE_FIXES | CAL-rung − A0 −0.00400 [−0.00461, −0.00342]; C0 − A0 −0.00411 [−0.00471, −0.00354]; CAL-rung − C0 +0.00012 [−0.00010, +0.00033] (P3 fails); CAL-main −0.00114, bins 85 / 95 OVERCONFIDENT (−0.035 / −0.056) | correct |
+| truth = A0 (nothing to fix) | NOT_FIXED | every arm worse than A0: CAL-main +0.00113, CAL-rung +0.00019 [+0.00003, +0.00033], C0 +0.00026; P1, P7, P8 fail | correct; the guards can say no |
+| **adversary, added:** truth = oracle shifted by the main line's position, logit + 0.5 zm (the line carries information A0 lacks); K = 0 | **RUNG_REFIT_FIXES** | CAL-rung − A0 −0.00724 [−0.00806, −0.00643]; **CAL-rung − C0 −0.00190 [−0.00239, −0.00141]**, p 0.0002; C0 − A0 −0.00534; CAL-main −0.00185 (fails the floor and P2) | correct: the harness can issue the map word when the map really adds |
+
+Command for the third row and the two checks above: `.venv/bin/python -W ignore $S/recheck_driver.py $S/rev2 $S` (exit 0;
+`$S` is this session's scratchpad; the script reads no rung label). The three worlds hit three different words, and in each
+case the word the construction implies. MAIN_MAP_FIXES was not exercised (it would need a world where a main-line map
+transports to x of 2 to 5). That is acceptable at prior 0.04.
+
+Verification on the branch (unpiped): `ruff check` exit 0; `ruff format --check` exit 0 (3 files); `mypy` exit 0 (2 files);
+`pytest tests/eval/test_alt_rung_cal_harness.py` gives 7 passed, exit 1 **only** from the repo-wide 70% coverage floor on a
+single-file run. With `--no-cov` it is 7 passed, exit 0.
+
+## Removal of S1, S3 and Brier
+Acceptable. They were labels. ALT_LADDER_HIST already reports S1 (window games) and S3 (integrity filters added back) for
+A0, and A0 is the only arm whose behaviour on those rows is interpretable without new fits. Brier adds nothing that log loss
+and the reliability tables do not show. Removing labels before a freeze is not a rule change.
+
+## Required before freeze and pin (numbered; file:line; exact fix)
+- **R1 (major, harness vs rule).** Rule `:25` ("Rows dropped by either condition are counted, never hidden, and their A0
+  reliability is reported (S2, label only)") and `:50` (S2: no-main-line share by role and month, A0 reliability, the
+  statement that CAL-rung's served object is undefined there). `alt_rung_cal_eval.py` computes none of this: `score()`
+  (`:562-723`) sees only scored rows. Once the harness is pinned, the frozen rule would promise outputs the pinned code cannot
+  produce. **Fix (code only):** in `pipeline`, add `res["dropped"]` per book with: counts and A0 reliability (hit − A0 by the
+  five bins, plus calibration in the large) for (a) identity-block rows and (b) no-main-line rows; and the no-main share by
+  role and by month. Add the row text "CAL-rung's served object is undefined on rows without a main line".
+- **R2 (major, pin hole).** `alt_rung_cal_eval.py:30` imports `bh_adjust` from `nba/eval/context_residual_eval.py`, and
+  P5's pass/fail runs through it (`:632`). That file is not in `HARNESS_FILES` (`alt_rung_cal_rule.py:32-40`) and lives
+  under `nba/`, which changes for production reasons. **Fix:** inline a 10-line `bh_adjust` in `alt_rung_cal_eval.py`
+  (byte-identical logic) so the pin covers it, and add a unit test against `nba.eval.context_residual_eval.bh_adjust`. Do not
+  add an `nba/` file to the pin. The other unpinned imports (`model_clv_eval` → `f11_lineup_context`,
+  `minutes_hazard_eval`, `odds_history_eval`) are import-time only and do not touch any number: no action.
+- **R3 (minor, a false sentence in the hashed text).** Rule `:137`: "On real labels the review measured the unit null 0.015
+  to 0.057 per rung worse than A0 in a calibrated-A0 world". The review read no real label. Check 9 drew Y from each unit's
+  own production grid (a synthetic, A0-calibrated world). **Fix:** "Under synthetic labels drawn from each unit's own grid
+  (an A0-calibrated world), the review measured...". This changes the rule sha; re-hash.
+- **R4 (minor, ordering).** `pipeline` (`:809-815`) runs `check_t493` after real rung labels have been joined and every arm
+  fitted. If it ever failed, rung labels would already be read and any harness fix would be a post-label change. **Fix:** in
+  `main` `run` (`:867-874`), after `preflight` and before `attach_real_labels`, attach the real **leg** labels only, refit
+  CAL-main on the DK 2024 blocks and call `check_t493`. Read rung labels only after it passes. (I measured that it will
+  pass: max |Δβ| = 0.)
+- **R5 (minor, pin check too weak).** `alt_rung_cal_rule.py:138`: `h in rev-list fc..h` is true for any pin commit that is
+  not an ancestor of the freeze, including one on a parallel line. **Fix:** require
+  `git merge-base --is-ancestor <fc> <h>` (exit 0), and add the case to `test_freeze_and_pin_refusals_with_a_fake_git`.
+- **R6 (minor, label).** `CAL_rung_nodefect` filters on `game_date` 2023-12-07..19 (`:409`), but the vendor window is
+  defined on the snapshot date (`alt_ladder_hist_gate.py:319-326`). The two differ for late tips, and the refit also runs for
+  FanDuel (`book_has_defect` is not book-specific). **Fix:** filter on the rung's snapshot date and restrict the refit to
+  DraftKings (carry `snapshot_ts` into `rung_arrays`), or state the `game_date` definition in rule `:20`.
+- **R7 (minor, rule vs output).** Rule `:43` says MAIN_MAP_FIXES is "always printed with the share of rows outside the
+  fit-leg band by bin" and carries "a table does as well" when P3 fails. `evaluate` (`:726-769`) emits neither. **Fix:** add
+  `inband` share by bin to `score()` and the qualifier string to `evaluate()`.
+- **R8 (minor, negative tests).** There is no test that `preflight` refuses on a count mismatch, that `check_t493` refuses on
+  a coefficient mismatch, or that `run` refuses before `require_ready`. **Fix:** three small tests with fakes.
+
+After R1-R8: re-hash the rule (R3, and R6 if worded in the rule), recompute the pin (R1, R2, R4, R5, R6, R7 change harness
+files), re-run both rehearsals (their `results.json` must be regenerated by the pinned code), and send the diff for a
+re-check. The 01:09 DECISIONS correction already covers the FanDuel answer; no new DECISIONS row is needed for these
+mechanical fixes.
+
+## Playbook check (re-check)
+Same class and the same five answers as above, with question 3 now passing on the points that failed. The comparator is
+fair (the shift table has zero structural cost and loses to the map only where the map really knows more, as the line
+world shows). The inert nulls are labels. Every word is reachable in a world built to produce it. What remains is code
+hygiene between the rule and the pinned harness, not test validity.
+
+## The single biggest risk (now)
+The frozen rule's promise of an S2 report, and the P5 BH step, could be served by code that is not what was pinned (R1 and
+R2). That is a quiet rule-vs-code divergence, not a leak.
+
+## Not verified (re-check)
+- The rehearsal `results.json` on the branch was not regenerated by me. My own run of the same code paths (preflight,
+  pipeline in a third world) agrees with them in structure; their numbers match the doc text.
+- A real-label run was not done, by design.
