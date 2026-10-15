@@ -1,0 +1,59 @@
+{
+ "checks": [
+  {
+   "check": "2023: games with usable snapshot >= 1200",
+   "pass": true,
+   "value": 1317
+  },
+  {
+   "check": "2023: share of games with used lead <= 90 min >= 0.8",
+   "pass": false,
+   "value": 0.039483675018982534
+  },
+  {
+   "check": "2024: games with usable snapshot >= 1200",
+   "pass": true,
+   "value": 1317
+  },
+  {
+   "check": "2024: share of games with used lead <= 90 min >= 0.8",
+   "pass": false,
+   "value": 0.04935459377372817
+  }
+ ],
+ "ended": "2026-10-15T13:05:39-05:00",
+ "gate_pass": false,
+ "rule": "docs/prereg/INJURY_TIMING.md",
+ "seasons": {
+  "2023": {
+   "distinct_stamps_per_game_mean": 2.554290053151101,
+   "fresh_share_lead_le_90": 0.039483675018982534,
+   "games_total": 1318,
+   "games_with_usable_snapshot": 1317,
+   "lead_min_p10_p50_p90": [
+    120.0,
+    180.0,
+    300.0
+   ]
+  },
+  "2024": {
+   "distinct_stamps_per_game_mean": 2.5125284738041,
+   "fresh_share_lead_le_90": 0.04935459377372817,
+   "games_total": 1320,
+   "games_with_usable_snapshot": 1317,
+   "lead_min_p10_p50_p90": [
+    120.0,
+    180.0,
+    300.0
+   ]
+  }
+ },
+ "started": "2026-10-15T13:05:38-05:00",
+ "table": "stored",
+ "thresholds": {
+  "FRESH_LEAD": 90,
+  "MIN_DIFF_GAMES": 300,
+  "MIN_FRESH_SHARE": 0.8,
+  "MIN_GAMES": 1200
+ }
+}
