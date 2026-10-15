@@ -4,10 +4,9 @@
    "guard_failures": {
     "G1_no_harm_pts_2023": 60,
     "G1_no_harm_pts_2024": 60,
-    "G2_beats_placebo_2023": 54,
-    "G2_beats_placebo_2024": 59,
-    "G5_slices_not_worse_2023": 53,
-    "G5_slices_not_worse_2024": 54
+    "G1_no_harm_pts_pooled": 60,
+    "G2_beats_placebo_pooled": 59,
+    "G5_slices_not_worse_pooled": 59
    },
    "mean_2024_oracle_delta_affected": 0.00809300070147156,
    "seeds": 60,
@@ -16,18 +15,14 @@
    }
   },
   "planted": {
-   "guard_failures": {
-    "G2_beats_placebo_2023": 7,
-    "G2_beats_placebo_2024": 4
-   },
+   "guard_failures": {},
    "mean_2024_oracle_delta_affected": -0.007765569897790587,
    "seeds": 60,
    "words": {
-    "GUARD_FAIL": 8,
-    "INCONCLUSIVE": 16,
-    "PASS_STAGE1": 36
+    "INCONCLUSIVE": 3,
+    "PASS_POOLED": 57
    }
   }
  },
- "wall_seconds": 104.1
+ "wall_seconds": 168.2
 }

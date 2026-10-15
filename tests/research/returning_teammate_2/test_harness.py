@@ -106,11 +106,15 @@ def _sc(
             },
         }
 
-    return {"pts": {"2023": blk(), "2024": blk()}, "reb": {"2023": blk(), "2024": blk()}}
+    return {
+        "pts": {"2023": blk(), "2024": blk(), "pooled": blk()},
+        "reb": {"2023": blk(), "2024": blk(), "pooled": blk()},
+    }
 
 
-def test_decide_pass_and_each_way_to_fail() -> None:
-    assert E.decide(_sc(-0.008, -0.001))["word"] == "PASS_STAGE1"
+def test_decide_pass_and_each_way_to_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(E, "NOISE_TOL", -0.002)
+    assert E.decide(_sc(-0.008, -0.001))["word"] == "PASS_POOLED"
     assert E.decide(_sc(-0.008, 0.001))["word"] == "INCONCLUSIVE"  # CI upper not below 0
     assert (
         E.decide(_sc(-0.003, -0.0005))["word"] == "INCONCLUSIVE"
@@ -127,7 +131,7 @@ def test_decide_pass_and_each_way_to_fail() -> None:
         E.decide(_sc(-0.008, -0.001, noise_pt=-0.003))["word"] == "GUARD_FAIL"
     )  # noise columns win: not information
     d = E.decide(_sc(-0.008, -0.001, slice_pt=0.02))
-    assert not d["guards"]["G5_slices_not_worse_2024"] and d["guards"]["G1_no_harm_pts_2024"]
+    assert not d["guards"]["G5_slices_not_worse_pooled"] and d["guards"]["G1_no_harm_pts_2024"]
 
 
 def test_score_arms_end_to_end_on_planted_shift_and_slices_below_min_n_are_unreported() -> None:
@@ -200,12 +204,12 @@ def test_pinned_counts_and_constants_are_the_declared_ones() -> None:
 
 def test_coverage_guard_fires_when_rt_coverage_drifts_and_is_reported_by_score_arms() -> None:
     sc = _sc(-0.008, -0.001)
-    for s in ("2023", "2024"):
+    for s in ("2023", "2024", "pooled"):
         sc["pts"][s]["coverage_A0_RT"] = {"0.1": [0.10, 0.10], "0.9": [0.90, 0.90]}
-    assert E.decide(sc)["word"] == "PASS_STAGE1"
-    sc["pts"]["2024"]["coverage_A0_RT"]["0.9"] = [0.90, 0.93]
+    assert E.decide(sc)["word"] == "PASS_POOLED"
+    sc["pts"]["pooled"]["coverage_A0_RT"]["0.9"] = [0.90, 0.93]
     d = E.decide(sc)
-    assert d["word"] == "GUARD_FAIL" and not d["guards"]["G6_coverage_2024"]
+    assert d["word"] == "GUARD_FAIL" and not d["guards"]["G6_coverage_pooled"]
     rng = np.random.default_rng(2)
     n = 400
     qi = np.tile(np.arange(199), (n, 1)).astype(np.int16)
@@ -220,3 +224,16 @@ def test_coverage_guard_fires_when_rt_coverage_drifts_and_is_reported_by_score_a
     )
     cov = out["pts"]["2023"]["coverage_A0_RT"]
     assert set(cov) == {"0.1", "0.2", "0.8", "0.9"} and all(v[0] == v[1] for v in cov.values())
+
+
+def test_null_threshold_is_two_sd_below_the_null_mean_and_never_looser_than_0_001() -> None:
+    r = E.null_threshold([0.0004, -0.0003, 0.0002, -0.0001] * 13)
+    assert r["k"] == 52 and r["tol"] <= -0.001 and r["sd"] > 0
+    wide = E.null_threshold(list(np.linspace(-0.01, 0.01, 50)))
+    assert wide["tol"] < -0.01
+
+
+def test_run_refuses_while_the_noise_guard_is_unsized() -> None:
+    assert E.NOISE_TOL is None
+    with pytest.raises(RuntimeError, match="G3 is not sized"):
+        E.run("a" * 64)
