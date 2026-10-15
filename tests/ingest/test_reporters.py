@@ -324,8 +324,8 @@ def test_5xx_backs_off_exponentially_then_gives_up(tmp_path: Path) -> None:
     assert ledger["days"]["2026-10-21"] == {"posts": 0, "requests": 2}  # every attempt counted
 
 
-def test_only_two_read_only_endpoints_exist() -> None:
-    assert set(r.ENDPOINTS) == {"user_by_username", "user_tweets"}
+def test_only_get_read_only_endpoints_exist() -> None:
+    assert set(r.ENDPOINTS) == {"user_by_username", "users_by", "user_tweets"}
     src = Path(r.__file__).read_text()
     assert "http.get(" in src and ".post(" not in src and ".delete(" not in src
 
@@ -593,3 +593,129 @@ def test_budget_subcommand_shows_user_reads(
     )
     out = capsys.readouterr().out
     assert rc == 0 and "3 user reads" in out and "est $0.08" in out and "users $0.03" in out
+
+
+# ---- check-handles (one-off batch lookup) ------------------------------------------------------
+
+
+def _users_by_server(found: dict[str, int]) -> Server:
+    def script(_n: int) -> httpx.Response:
+        users = [
+            {
+                "id": str(i),
+                "username": u,
+                "name": f"Name {u}",
+                "description": "Covers the team. " * 20,
+                "verified": False,
+                "public_metrics": {"followers_count": f},
+            }
+            for i, (u, f) in enumerate(found.items())
+        ]
+        return httpx.Response(200, json={"data": users})
+
+    return Server(script)
+
+
+def _check(tmp_path: Path, handles: list[str], srv: Server, **kw: Any) -> int:
+    cand = tmp_path / "cand.txt"
+    cand.write_text("# c\n" + "\n".join(handles) + "\n")
+    return r.check_handles(
+        cand,
+        allowlist_path=allowlist_yaml(tmp_path),
+        data_dir=tmp_path / "rep",
+        environ=ENV,
+        transport=srv.transport,
+        clock=lambda: NOW,
+        **kw,
+    )
+
+
+def test_check_batch_shape_ledger_and_no_allowlist_write(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    al = allowlist_yaml(tmp_path)
+    before = al.read_text()
+    srv = _users_by_server({"KCJHoop": 1234})
+    assert _check(tmp_path, ["KCJHoop", "kcjhoop", "ghost_handle"], srv) == 0
+    assert len(srv.requests) == 1
+    req = srv.requests[0]
+    assert req.method == "GET" and req.url.path == "/2/users/by"
+    assert req.url.params["usernames"] == "KCJHoop,ghost_handle"
+    assert req.url.params["user.fields"] == r.USER_FIELDS
+    out = capsys.readouterr().out
+    assert "ghost_handle | NO" in out and "1234" in out
+    assert TOKEN not in out
+    rep = tmp_path / "rep"
+    saved = json.loads((rep / "handle_check_2026-10-21.json").read_text())
+    assert [u["exists"] for u in saved["users"]] == [True, False]
+    ledger = json.loads((rep / "budget.json").read_text())
+    assert ledger["days"]["2026-10-21"]["users"] == 1  # only the returned user is billed
+    assert not (rep / "user_ids.json").exists()
+    assert al.read_text() == before
+
+
+def test_check_refuses_over_cap_and_existing_result(tmp_path: Path) -> None:
+    srv = _users_by_server({})
+    with pytest.raises(r.PollRefused):
+        _check(tmp_path, [f"h{i}" for i in range(61)], srv)
+    assert srv.requests == []
+    assert _check(tmp_path, ["a1"], srv) == 0
+    with pytest.raises(r.PollRefused):  # write-once
+        _check(tmp_path, ["a1"], srv)
+    assert len(srv.requests) == 1
+
+
+def test_check_month_cap_refuses_before_request(tmp_path: Path) -> None:
+    rep = tmp_path / "rep"
+    rep.mkdir()
+    (rep / "budget.json").write_text(
+        json.dumps({"days": {"2026-10-02": {"posts": 0, "requests": 0, "users": 3999}}})
+    )
+    cand = tmp_path / "c.txt"
+    cand.write_text("a1\nb2\n")
+    srv = _users_by_server({})
+    with pytest.raises(r.BudgetExceeded):
+        r.check_handles(
+            cand,
+            allowlist_path=allowlist_yaml(tmp_path),
+            data_dir=rep,
+            environ=ENV,
+            transport=srv.transport,
+            clock=lambda: NOW,
+        )
+    assert srv.requests == []
+
+
+def test_check_dry_run_sends_nothing_needs_no_token(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    srv = _users_by_server({})
+    cand = tmp_path / "c.txt"
+    cand.write_text("a1\n")
+    rc = r.check_handles(
+        cand,
+        allowlist_path=allowlist_yaml(tmp_path),
+        data_dir=tmp_path / "rep",
+        dry_run=True,
+        environ={},
+        transport=srv.transport,
+        clock=lambda: NOW,
+    )
+    assert rc == 0 and srv.requests == []
+    assert "worst-case $0.010" in capsys.readouterr().out
+    assert not (tmp_path / "rep").exists()
+
+
+def test_check_missing_token_refuses(tmp_path: Path) -> None:
+    cand = tmp_path / "c.txt"
+    cand.write_text("a1\n")
+    with pytest.raises(r.KeyMissingError):
+        r.check_handles(
+            cand, allowlist_path=allowlist_yaml(tmp_path), data_dir=tmp_path / "rep", environ={}
+        )
+
+
+def test_shipped_candidates_file_is_valid() -> None:
+    hs = r.read_candidates(r.CANDIDATES_PATH)
+    assert 30 <= len(hs) <= r.CHECK_MAX_HANDLES
+    assert all(r._HANDLE_RE.match(h) for h in hs)

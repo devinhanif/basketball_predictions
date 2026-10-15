@@ -1,0 +1,40 @@
+# Candidate X handles for the one-off `python -m nba.ingest.reporters check-handles`.
+# Source: docs/research/reporters_allowlist_draft_2026-10-15.md (confidence list + second list), deduplicated.
+# Not an allow-list; Devin decides configs/reporters.yaml.
+KCJHoop
+DanWoikeSports
+DamichaelC
+LawMurrayTheNU
+ScottAgness
+DuaneRankin
+ChrisFedor
+PompeyOnSixers
+NYPost_Lewis
+WillGuillory
+anthonyVslater
+williamslaurenl
+ByJayKing
+rodboone
+omarisankofa
+IraHeatBeat
+eric_nehm
+IanBegley
+therealBeede
+PompeyOnProBall
+KrisRhim
+JLew1050
+JoshRobbins_
+GrantAfseth
+msinger
+jonathan_feigen
+LawMurray
+LakersReporter
+JonKrawczynski
+brandonrahbar
+CHold
+james_hamnba
+James_HamNBCS
+SeanCunningham
+JMcDonald_SAEN
+andyblarsen
+ShamsCharania
