@@ -818,5 +818,43 @@
   "columns_differing": [],
   "late_columns_that_moved": 56,
   "planted_from": "2023-01-15"
+ },
+ "stamp_exposure": {
+  "2019": {
+   "games_with_report": 1141,
+   "whole_hour_stamp_share": 1.0,
+   "exposed_games": 139,
+   "exposed_share": 0.1218
+  },
+  "2020": {
+   "games_with_report": 1170,
+   "whole_hour_stamp_share": 1.0,
+   "exposed_games": 144,
+   "exposed_share": 0.1231
+  },
+  "2021": {
+   "games_with_report": 1323,
+   "whole_hour_stamp_share": 1.0,
+   "exposed_games": 878,
+   "exposed_share": 0.6636
+  },
+  "2022": {
+   "games_with_report": 1318,
+   "whole_hour_stamp_share": 1.0,
+   "exposed_games": 60,
+   "exposed_share": 0.0455
+  },
+  "2023": {
+   "games_with_report": 1317,
+   "whole_hour_stamp_share": 1.0,
+   "exposed_games": 50,
+   "exposed_share": 0.038
+  },
+  "2024": {
+   "games_with_report": 1317,
+   "whole_hour_stamp_share": 1.0,
+   "exposed_games": 63,
+   "exposed_share": 0.0478
+  }
  }
 }

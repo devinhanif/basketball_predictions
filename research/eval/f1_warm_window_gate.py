@@ -135,17 +135,87 @@ def build(
     dirs = [root / "data/schedule"] + ([root / "data/history/schedule"] if len(dbs) > 1 else [])
     orig = GT.build_game_tipoff
 
-    def tips(schedule_dir: Any = None) -> pl.DataFrame:
-        return pl.concat([orig(d) for d in dirs], how="vertical_relaxed").unique(
+    def tips(schedule_dir: Any = None, max_season: int | None = None) -> pl.DataFrame:
+        return pl.concat([orig(d, max_season) for d in dirs], how="vertical_relaxed").unique(
             "game_id", keep="last"
         )
 
     GT.build_game_tipoff = tips
     try:
-        flagged, _ = flagged_from_availability(avail, games, cfg.report)
+        flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     finally:
         GT.build_game_tipoff = orig
     return build_features(games, pgs, static, flagged, elo), games, flagged
+
+
+def stamp_exposure(root: Path) -> dict[str, Any]:
+    """BEST_PRACTICES 2026-10-15 (report time = the time printed in the PDF): hour-only report files are stamped 30 minutes early. For each game
+    with a usable report, flag it when the SNAPSHOT USED has a whole-hour stamp (minute 0, assumed hour-only) and stamp + 30 min > tip - 60 min,
+    i.e. the report was probably published after the cutoff. An upper bound: it assumes every minute-0 stamp is an hour-only file. Features and
+    stamps only; no outcome is touched."""
+    from nba.features.injury_report import latest_pretip_flagged, usable_report_rows  # noqa: F401
+
+    cfg = ContextResidualConfig(
+        **yaml.safe_load(Path("configs/context_residual.yaml").read_text()).get("model", {})
+    )
+    dbs = ["data/history/nba_history.duckdb", "nba.duckdb"]
+    parts = [load_inputs(str(root / d), None) for d in dbs]
+    games = pl.concat([p[0] for p in parts], how="vertical_relaxed")
+    avail = pl.concat([p[3] for p in parts], how="vertical_relaxed")
+    dirs = [root / "data/schedule", root / "data/history/schedule"]
+    orig = GT.build_game_tipoff
+
+    def tips(schedule_dir: Any = None, max_season: int | None = None) -> pl.DataFrame:
+        return pl.concat([orig(d, max_season) for d in dirs], how="vertical_relaxed").unique(
+            "game_id", keep="last"
+        )
+
+    GT.build_game_tipoff = tips
+    try:
+        rows = (
+            avail.filter(
+                pl.col("source").is_in(list(cfg.report.sources)) & pl.col("player_id").is_not_null()
+            )
+            .join(games.select(["game_id", "game_date"]), on="game_id")
+            .select(
+                "game_id",
+                "player_id",
+                pl.col("status").str.to_lowercase().alias("status"),
+                pl.col("as_of").cast(pl.Datetime("us")),
+                "game_date",
+            )
+        )
+        rows = GT.attach_real_tips(rows, max_season=MAX_SEASON)
+    finally:
+        GT.build_game_tipoff = orig
+    _, used = latest_pretip_flagged(rows, cfg.report)
+    tip = rows.group_by("game_id").agg(pl.col("tip_et").first())
+    season = games.select(["game_id", "season"])
+    d = (
+        pl.DataFrame({"game_id": list(used), "used_as_of": list(used.values())})
+        .join(tip, on="game_id")
+        .join(season, on="game_id")
+        .with_columns(
+            (
+                (pl.col("used_as_of").dt.minute() == 0)
+                & (
+                    pl.col("used_as_of") + pl.duration(minutes=30)
+                    > pl.col("tip_et") - pl.duration(minutes=int(cfg.report.lead_minutes))
+                )
+            ).alias("exposed"),
+            (pl.col("used_as_of").dt.minute() == 0).alias("whole_hour"),
+        )
+    )
+    out: dict[str, Any] = {}
+    for s in range(2019, 2025):
+        f = d.filter(pl.col("season") == s)
+        out[str(s)] = {
+            "games_with_report": f.height,
+            "whole_hour_stamp_share": round(float(f["whole_hour"].mean()), 4),
+            "exposed_games": int(f["exposed"].sum()),
+            "exposed_share": round(float(f["exposed"].mean()), 4),
+        }
+    return out
 
 
 def _by_season(df: pl.DataFrame) -> dict[int, int]:
@@ -363,6 +433,7 @@ def run(root: Path, out_path: Path) -> dict[str, Any]:
         "late_columns_that_moved": moved,
         "planted_from": str(PLANT_FROM),
     }
+    out["stamp_exposure"] = stamp_exposure(root)
     out_path.write_text(json.dumps(out, indent=1, default=str))
     return out
 
