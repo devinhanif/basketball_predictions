@@ -139,7 +139,7 @@ def test_pin_files_exist_and_configs_read_by_the_harness_are_pinned() -> None:
         REPO / "research/eval/f1_warm_window_run.py"
     ).read_text()
     for cfg in ("configs/context_residual.yaml", "configs/mov_elo_tuned.yaml"):
-        assert cfg in src and cfg in rule.HARNESS_FILES
+        assert cfg.split("/")[1] in src and cfg in rule.HARNESS_FILES
 
 
 def test_declared_reads_only_hex_lines_above_the_marker(tmp_path: Path) -> None:

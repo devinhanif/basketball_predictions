@@ -30,6 +30,7 @@ DOC = Path(__file__).resolve().parents[3] / "docs/prereg/F1_WARM_WINDOW.md"
         ("harm", "FAIL_HARM"),
         ("one_season", "FAIL_ONE_SEASON"),
         ("guard", "FAIL_GUARD"),
+        ("stamp", "FAIL_GUARD"),
     ],
 )
 def test_each_word_is_reachable_in_its_world(world: str, word: str) -> None:
@@ -359,3 +360,49 @@ def test_nan_max_abs() -> None:
     assert R._nan_max_abs(a, a.copy()) == 0.0
     assert R._nan_max_abs(a, np.array([0.0, 1.0])) == float("inf")
     assert R._nan_max_abs(np.array([1.0, 2.0]), np.array([1.0, 2.5])) == 0.5
+
+
+def test_stamp_world_clears_on_the_numbers_and_fails_only_g9() -> None:
+    res = R.evaluate(R.synthetic_bundle("stamp"))
+    assert res["word"] == "FAIL_GUARD"
+    assert all(v["clears_both"] for v in res["stats"].values())
+    for r in res["rows"]:
+        assert r["g1"] and r["g2"] and r["g3"] and not r["g9"]
+    # and G9 passes where the gain is spread over all games
+    assert all(r["g9"] for r in R.evaluate(R.synthetic_bundle("helps"))["rows"])
+
+
+def test_unexposed_slice_is_the_complement_of_the_exposed_ids() -> None:
+    f = _frame()
+    sl = R.slice_masks(
+        f, "pts", f["game_id"].to_numpy(), f["player_id"].to_numpy(), frozenset({"0022300001"})
+    )
+    assert sl["unexposed"].tolist() == [True, False, False, True, True, True]
+
+
+def test_configs_are_read_from_the_pinned_root_never_the_cwd() -> None:
+    root = Path(__file__).resolve().parents[3] / "research/eval"
+    for rel in ("f1_warm_window_run.py", "f1_warm_window_gate.py"):
+        assert 'Path("configs' not in (root / rel).read_text(), rel
+
+
+def test_run_refuses_outside_the_pinned_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(RuntimeError, match="cwd must be"):
+        R.run_real(tmp_path, "0" * 64)
+
+
+def test_pinned_versions_include_the_numerical_stack_and_python() -> None:
+    assert {"scikit-learn", "pyarrow", "lightgbm", "numpy", "polars", "duckdb"} <= set(
+        R.PINNED_VERSIONS
+    )
+    assert R.PINNED_PYTHON.count(".") == 2
+
+
+def test_planted_future_is_checked_before_any_arm_is_fitted() -> None:
+    src = (Path(__file__).resolve().parents[3] / "research/eval/f1_warm_window_run.py").read_text()
+    body = src[src.index("def run_real") :]
+    assert body.index("planted = gate.run") < body.index("fit_arms(root")
+    assert body.index("smoke_block0(root") < body.index("planted = gate.run")

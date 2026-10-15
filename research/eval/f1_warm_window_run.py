@@ -26,6 +26,7 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import platform
 import re
 import shutil
 import time
@@ -94,7 +95,10 @@ PINNED_VERSIONS = {
     "duckdb": "1.5.6",
     "scipy": "1.18.1",
     "pyyaml": "6.0.3",
+    "scikit-learn": "1.9.1",
+    "pyarrow": "25.0.1",
 }
+PINNED_PYTHON = "3.12.13"
 WORDS = ("PASS", "FAIL_NO_GAIN", "FAIL_ONE_SEASON", "FAIL_GUARD", "FAIL_HARM")
 SLICE_NAMES = (
     "all",
@@ -106,6 +110,7 @@ SLICE_NAMES = (
     "cold_start",
     "first15",
     "playoffs",
+    "unexposed",
 )
 OUT_DIR = Path("reports/prereg_f1_warm_window")
 CACHE_REL = "data/ops/f1_warm_window_cache"
@@ -121,6 +126,10 @@ def versions() -> dict[str, str]:
 
 
 def require_versions() -> dict[str, str]:
+    if platform.python_version() != PINNED_PYTHON:
+        raise RuntimeError(
+            f"python {platform.python_version()} differs from the pinned {PINNED_PYTHON}"
+        )
     got = versions()
     if got != PINNED_VERSIONS:
         raise RuntimeError(
@@ -206,7 +215,7 @@ def evaluate(
     """The frozen decision. ``bundle`` carries, per stat, aligned arrays on production's evaluation keys:
     ``gid, date, season`` (cluster ids and season), ``score[arm]`` (per-row integer CRPS), ``pit[arm]`` (randomised PIT), ``slices[name]`` (bool),
     and ``pi[arm]`` = {p, short, season} (stat-independent; the pts rows). Words, in this order:
-    FAIL_HARM (any stat-season HARM) > PASS (>= 1 stat confirmed) > FAIL_GUARD (a stat clears on numbers in both seasons but a guard fails)
+    FAIL_HARM (any stat-season HARM) > PASS (>= 1 stat confirmed) > FAIL_GUARD (a stat clears on numbers in both seasons but a guard G1, G2, G3 or G9 fails; G9 = the floor and CI upper < 0 also hold on games NOT stamp-exposed, BH not re-applied)
     > FAIL_ONE_SEASON (a stat clears in exactly one season, none in both) > FAIL_NO_GAIN.
     Gate (G4) and reproduction (R1) failures are STOPS, never words."""
     if not (gates_ok and repro_ok):
@@ -240,7 +249,11 @@ def evaluate(
             pm = pi["C"]["season"] == s
             r["ece"] = {a: ece(pi[a]["p"][pm], pi[a]["short"][pm]) for a in ("A", "C")}
             r["g2"] = guard_g2(r["ece"]["A"], r["ece"]["C"])
-            r["guards_ok"] = bool(r["g1"] and r["g2"] and r["g3"])
+            mu = m & b["slices"]["unexposed"]
+            du = b["score"]["C"][mu] - b["score"]["A"][mu]
+            r["unexposed"] = delta_stats(du, b["gid"][mu])
+            r["g9"] = bool(r["unexposed"]["delta"] <= -FLOOR[st] and r["unexposed"]["ci_hi"] < 0)
+            r["guards_ok"] = bool(r["g1"] and r["g2"] and r["g3"] and r["g9"])
             recs.append(r)
         adj = bh_adjust(np.array([r["p"] for r in recs]))
         for r, a in zip(recs, adj, strict=True):
@@ -290,8 +303,10 @@ def _frame(root: Path, dbs: list[str]) -> pl.DataFrame:
 
 def load_frames(root: Path) -> tuple[dict[str, pl.DataFrame], ContextResidualConfig]:
     cfg = ContextResidualConfig(
-        **yaml.safe_load(Path("configs/context_residual.yaml").read_text()).get("model", {})
+        **yaml.safe_load((rule.ROOT / "configs/context_residual.yaml").read_text()).get("model", {})
     )
+    if cfg.report.tip_source != "real":
+        raise RuntimeError("tip_source must be 'real' (no proxy tips)")
     frames = {
         "cold": _frame(root, ["nba.duckdb"]),
         "warm": _frame(root, ["data/history/nba_history.duckdb", "nba.duckdb"]),
@@ -407,7 +422,11 @@ def align_index(
 
 
 def slice_masks(
-    cold_frame: pl.DataFrame, stat: str, gid: np.ndarray, pid: np.ndarray
+    cold_frame: pl.DataFrame,
+    stat: str,
+    gid: np.ndarray,
+    pid: np.ndarray,
+    exposed: frozenset[str] = frozenset(),
 ) -> dict[str, np.ndarray]:
     """Rule slices on the production (cold) frame's values at the evaluation keys. starter = starter10 >= 0.5; cold start = n_prior < 20 under
     A's count; first 15 team games = team_game_no < 15; playoffs = game_id prefix 004."""
@@ -430,11 +449,15 @@ def slice_masks(
         "cold_start": ref["n_prior"].to_numpy() < 20,
         "first15": ref["team_game_no"].to_numpy() < 15,
         "playoffs": np.char.startswith(gid.astype(str), "004"),
+        "unexposed": ~np.isin(gid.astype(str), list(exposed)),
     }
 
 
 def build_bundle(
-    arms: dict[str, dict[str, Any]], cold_frame: pl.DataFrame, game_dates: dict[str, str]
+    arms: dict[str, dict[str, Any]],
+    cold_frame: pl.DataFrame,
+    game_dates: dict[str, str],
+    exposed: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """Per-row scores / PIT / slices of the three arms on A's rows (production's evaluation keys), from fitted arms
     ``arms[arm] = {"pic": ..., "comp": {stat: ...}}``. Integer grid for every arm; B and C are subset to A's keys."""
@@ -451,7 +474,7 @@ def build_bundle(
             "date": np.array([game_dates[g] for g in gid]),
             "score": {},
             "pit": {},
-            "slices": slice_masks(cold_frame, st, gid, pid),
+            "slices": slice_masks(cold_frame, st, gid, pid, exposed),
         }
         for arm in ARMS:
             c = arms[arm]["comp"][st]
@@ -521,14 +544,27 @@ def _df_sha(df: pl.DataFrame) -> str:
 
 
 def content_fp(db: Path) -> str:
-    """sha256 over the season <= 2024 games, box rows, static and availability rows of one database (read-only)."""
-    games, pgs, static, avail = gate.load_inputs(str(db), None)
-    pids = pgs.select("player_id").unique()
-    static = static.join(pids, on="player_id", how="semi")
+    """sha256 over the season <= 2024 games, box rows and availability rows of one database (read-only). Static rows are pinned separately
+    (``static_fp``), merged the way the warm frame merges them."""
+    games, pgs, _static, avail = gate.load_inputs(str(db), None)
     h = hashlib.sha256()
-    for df in (games, pgs, static, avail):
+    for df in (games, pgs, avail):
         h.update(_df_sha(df).encode())
     return h.hexdigest()
+
+
+def static_fp(root: Path) -> str:
+    """sha256 of ``players_static`` as the warm frame uses it: both databases concatenated, ``unique(player_id, keep="last")``, semi-joined to the
+    union of box player ids (a history-only player's row can be overridden by ``nba.duckdb``, which neither per-database hash sees)."""
+    parts = [
+        gate.load_inputs(str(root / d), None)
+        for d in ("data/history/nba_history.duckdb", "nba.duckdb")
+    ]
+    static = pl.concat([p[2] for p in parts], how="vertical_relaxed").unique(
+        "player_id", keep="last"
+    )
+    pids = pl.concat([p[1].select("player_id") for p in parts]).unique()
+    return _df_sha(static.join(pids, on="player_id", how="semi"))
 
 
 def schedule_fp(root: Path) -> str:
@@ -546,6 +582,7 @@ def input_hashes(root: Path) -> dict[str, str]:
         "HISTORY_DB_SHA256": sha256_file(root / "data/history/nba_history.duckdb"),
         "FP_NBA_LE2024": content_fp(root / "nba.duckdb"),
         "FP_HISTORY_LE2024": content_fp(root / "data/history/nba_history.duckdb"),
+        "FP_STATIC_MERGED": static_fp(root),
         "FP_SCHEDULE_LE2024": schedule_fp(root),
         "GATE_SHA256": sha256_file(rule.ROOT / "reports/prereg_f1_warm_window/gate.json"),
     }
@@ -619,7 +656,7 @@ WORLD_EFFECT: dict[
 
 def _world_effect(world: str, stat: str, season: int) -> float:
     big = -0.012 if stat == "pts" else -0.005
-    if world in ("helps", "guard"):
+    if world in ("helps", "guard", "stamp"):
         return big
     if world == "one_season":
         return big if season == 2023 else 0.0
@@ -649,6 +686,9 @@ def synthetic_bundle(world: str, seed: int = 0) -> dict[str, Any]:
         scale = 1.0 if st == "pts" else 0.4
         base = 1.5 + 0.2 * rng.standard_normal(n)
         eff = np.array([_world_effect(world, st, int(s)) for s in seasons])
+        exposed_row = (np.concatenate([parts[s] for s in SEASONS]) % 20) == 0  # 5% of games
+        if world == "stamp":  # the whole gain sits in the exposed games (same overall mean)
+            eff = np.where(exposed_row, eff / 0.05, 0.0)
         game_eff = (
             np.concatenate([rng.standard_normal(n_games)[parts[s]] for s in SEASONS]) * 0.07 * scale
         )
@@ -666,10 +706,15 @@ def synthetic_bundle(world: str, seed: int = 0) -> dict[str, Any]:
             "score": {"A": base, "B": score_b, "C": base + d},
             "pit": {"A": pit_a, "B": pit_a, "C": pit_c},
             "slices": {
-                k: rng.random(n) < p
-                for k, p in zip(
-                    SLICE_NAMES, (1.0, 0.4, 0.6, 0.8, 0.5, 0.02, 0.2, 0.15, 0.06), strict=True
-                )
+                **{
+                    k: rng.random(n) < p
+                    for k, p in zip(
+                        SLICE_NAMES[:-1],
+                        (1.0, 0.4, 0.6, 0.8, 0.5, 0.02, 0.2, 0.15, 0.06),
+                        strict=True,
+                    )
+                },
+                "unexposed": ~exposed_row,
             },
         }
     pa = rng.beta(1, 8, n)
@@ -742,7 +787,17 @@ def fit_arms(
     return out
 
 
+def exposed_games(root: Path) -> frozenset[str]:
+    """Stamp-exposed 2023-24 game ids from the committed gate JSON (its sha256 is a pinned line, checked by the preflight)."""
+    g = json.loads((rule.ROOT / "reports/prereg_f1_warm_window/gate.json").read_text())
+    return frozenset(
+        i for s in ("2023", "2024") for i in g["stamp_exposure"][s]["exposed_game_ids"]
+    )
+
+
 def run_real(root: Path, sha: str) -> dict[str, Any]:
+    if Path.cwd().resolve() != rule.ROOT:
+        raise RuntimeError(f"cwd must be the pinned checkout {rule.ROOT}")
     blobs = rule.require_ready(sha)
     pin = rule.pin_of(blobs)
     _log(f"rule frozen and harness pinned: {pin[:12]}")
@@ -757,16 +812,20 @@ def run_real(root: Path, sha: str) -> dict[str, Any]:
                 f"STOP before any score: A first block does not equal the stored production components: {chk}"
             )
         _log("A first block equals the stored production heads, pi and w_q (max abs diff 0.0)")
+        planted = gate.run(root, root / "data/ops/f1_gate_rerun.json")["planted_future"]
+        if planted["max_abs_diff"] != 0.0 or planted["columns_differing"]:
+            raise RuntimeError(
+                f"STOP before any arm is fitted: planted-future test failed (R4/G4): {planted}"
+            )
+        _log("planted-future re-run (R4/G4) holds; fitting the arms")
         arms = fit_arms(root, frames, cfg, tag=f"{sha}:{pin}")
         games = frames["cold"].select("game_id", "game_date").unique()
         gd = {g: str(d) for g, d in zip(games["game_id"], games["game_date"], strict=True)}
-        bundle = build_bundle(arms, frames["cold"], gd)
+        bundle = build_bundle(arms, frames["cold"], gd, exposed_games(root))
         repro = r1_reproduction(bundle, arms["A"], root)
         if not repro["pass"]:
             raise RuntimeError(f"STOP: R1 failed, the comparator is not production: {repro}")
-        planted = gate.run(root, root / "data/ops/f1_gate_rerun.json")["planted_future"]
-        g4 = planted["max_abs_diff"] == 0.0 and not planted["columns_differing"]
-        res = evaluate(bundle, gates_ok=bool(g4), repro_ok=True)
+        res = evaluate(bundle, gates_ok=True, repro_ok=True)
         res.update(
             {
                 "rule_sha": sha,

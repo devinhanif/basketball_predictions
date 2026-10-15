@@ -9,7 +9,7 @@ only counts, NULL shares and feature-versus-feature differences leave this modul
     cd <worktree or main> && F1_ROOT=/Users/devin/Downloads/nba-prediction PYTHONPATH=$PWD \\
         /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore -m research.eval.f1_warm_window_gate out.json
 
-``F1_ROOT`` is the checkout that holds ``nba.duckdb`` and ``data/`` (a worktree has neither); configs are read from the current directory.
+``F1_ROOT`` is the checkout that holds ``nba.duckdb`` and ``data/`` (a worktree has neither); configs are read from this checkout's own ``configs/`` (the pinned ones), never from the cwd.
 """
 
 from __future__ import annotations
@@ -36,6 +36,7 @@ from nba.props.context_residual import (
     stat_frame,
 )
 
+CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs"  # the pinned configs, whatever the cwd
 STATS = ("pts", "reb", "ast", "fg3m")
 KEY = ["game_id", "player_id"]
 FLOOR = {"pts": 0.005, "reb": 0.0025, "ast": 0.0025, "fg3m": 0.0025}
@@ -102,10 +103,10 @@ def build(
 ) -> tuple[pl.DataFrame, pl.DataFrame, dict[str, set[int]]]:
     elo = {
         k: float(v)
-        for k, v in yaml.safe_load(Path("configs/mov_elo_tuned.yaml").read_text()).items()
+        for k, v in yaml.safe_load((CONFIG_DIR / "mov_elo_tuned.yaml").read_text()).items()
     }
     cfg = ContextResidualConfig(
-        **yaml.safe_load(Path("configs/context_residual.yaml").read_text()).get("model", {})
+        **yaml.safe_load((CONFIG_DIR / "context_residual.yaml").read_text()).get("model", {})
     )
     parts = [load_inputs(str(root / d), None) for d in dbs]
     games = pl.concat([p[0] for p in parts], how="vertical_relaxed")
@@ -156,7 +157,7 @@ def stamp_exposure(root: Path) -> dict[str, Any]:
     from nba.features.injury_report import latest_pretip_flagged, usable_report_rows  # noqa: F401
 
     cfg = ContextResidualConfig(
-        **yaml.safe_load(Path("configs/context_residual.yaml").read_text()).get("model", {})
+        **yaml.safe_load((CONFIG_DIR / "context_residual.yaml").read_text()).get("model", {})
     )
     dbs = ["data/history/nba_history.duckdb", "nba.duckdb"]
     parts = [load_inputs(str(root / d), None) for d in dbs]
@@ -210,6 +211,7 @@ def stamp_exposure(root: Path) -> dict[str, Any]:
     for s in range(2019, 2025):
         f = d.filter(pl.col("season") == s)
         out[str(s)] = {
+            "exposed_game_ids": sorted(f.filter(pl.col("exposed"))["game_id"].to_list()),
             "games_with_report": f.height,
             "whole_hour_stamp_share": round(float(f["whole_hour"].mean()), 4),
             "exposed_games": int(f["exposed"].sum()),
