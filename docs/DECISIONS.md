@@ -1208,3 +1208,9 @@ What would reverse it: a month with no incident each rule would have caught (pro
 What: modeler adds the 2026-10-15 exposure disclosure (scratch pover_bias fit a logit slope on 2023 and scored 2024, LC's select season) and binary priors, re-runs the gate; adversary pre-freeze review; if APPROVED with no blockers the main session freezes and Stage 1 (2024) runs. Stage 2 (2025 holdout) is NOT covered: it needs a holdout row quoting Devin.
 Why: the P(over) scratch (-3.25 pp at DK, overconfidence, slope 0.46) is what LINE_CALIBRATION tests; the draft has passed its gate 15/15 since 10-12 but was never frozen.
 What would reverse it: Devin saying the reading of his message is wrong (before the freeze commit), or a BLOCKED review.
+
+**2026-10-15 00:24 CDT — Four answers from Devin ("yes yes, and do the replay check, carry the gate").**
+1. LINE_CALIBRATION confirmatory test is the 2026-27 live log, not a 2025 touch (follows the T493 review and Claude's advice). Reverses: the live log cannot be scored (too few settled legs by the look date).
+2. Build the top-3 two-leg / three-leg parlay panel for opening night (Devin's request): model's most confident parlays with honest (calibrated) hit rates, price, EV after fees, plain-language reasons per leg, "keep your money" when nothing is positive. Not a bet recommendation. Reverses: Devin.
+3. Replay oracle for agent/steward-best-model-minors: holdout row logged first (systems replay); merge only if IDENTICAL and with Devin's go by Fri 10-17.
+4. AVG November: carry the October gate.json (gate_id 58043d34) instead of a gate refit. Devin's call, on Claude's advice; a pre-result procedure amendment to AVG_SHADOW_LIVE_2 (no live row exists yet), because a live-row gate refit needs a loader that does not exist. Reverses: a live-row loader built and reviewed before a later month.
