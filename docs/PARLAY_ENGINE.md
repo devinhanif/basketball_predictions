@@ -138,3 +138,42 @@ Uncertain: roughly a [number removed: not from engine] chance, verdict no_positi
 ```
 Caveat: a 3B model will often pick wrong tools or arguments; the guardrails make that visible (errors are rendered) rather than silently wrong.
 No live Ollama session has been run in this repo's tests (all tests use a scripted backend and an HTTP mock).
+
+## Top-3 tickets (`python -m nba.parlay top --date YYYY-MM-DD`, 2026-10-15)
+
+Contract: `docs/contracts/top_parlays_v2.md`. Writes `reports/parlay/top_parlays_<date>.json`: the most probable two-leg and
+three-leg tickets of one book, ranked by CALIBRATED joint probability. Read-only and paper only; not wired into `ops/` or
+`nba/daily`. One file per slate: wiring will need one run per tip group, each rewriting the file with `made_at` = the run clock,
+legs only from games not yet tipped and quotes stamped at or before `made_at` (review B1).
+
+- **Legs:** every pre-tip main-line over and under for pts / reb / ast / fg3m in `market_asof.duckdb` (`live_book_odds`). Only each
+  book's newest snapshot per market and player is selectable (a withdrawn line never is; the export shows every line, we choose).
+  Quotes are stamped before tip and no later than the forecast they pair with. Refused and counted in `diagnostics`: priced at or
+  after tip, priced after `made_at`, game already tipped at the run clock, book without a CAL map, whole-number line, P(play)
+  under 0.90, no stored starter rate, no production row.
+- **Forecast:** `p_raw` and `p_cal` are always from the PRODUCTION row (the CAL map was fitted on production P(over));
+  `model_source` is "production". A fresh AVG row's P(over) is `p_avg_raw`, display only. `top_source.choose_primary` repeats the
+  export's primary rule (the layering test forbids importing `nba.export`); a parity test pins it.
+- **Calibration:** the frozen LINE_CALIBRATION CAL map (`line_cal.py`, `line_cal_map_v1.json`: per book x stat, fit through
+  2025-06-30, seasons 2023-2024 only, sha in the file, rebuilt by `python -m nba.parlay.line_cal_build`).
+- **Search:** one leg per (book, player, stat); each book pruned to the top K = 40 legs by `p_cal`; every 2- and 3-leg ticket of
+  the pruned set. Same-game legs share one seeded Gaussian-copula draw per game with the pair correlations of
+  `data/parlay/joint_model.json` (its sha256, fit seasons and n are printed in `diagnostics.joint_model`); different games multiply.
+- **Shown tickets (M5, default applied by the main session pending Devin's call):** within a size, each leg appears in at most
+  one shown ticket, greedy by rank. The shown tickets are therefore not strictly "the three most probable"; rank 1 is.
+- **`same_game`** is true when ANY two legs share a game. Such a ticket's EV is "not a book price" (books price same-game
+  parlays with their own adjustment) and never opens the verdict.
+- **Price and fee (B2):** book implied = product of the legs' implied probabilities. A sportsbook parlay carries NO separate fee
+  (the margin is inside the legs' prices): EV per dollar = `p / implied - 1`. A ticket at a venue in `top_parlays.fee_venues`
+  (configs/parlay.yaml, `kalshi`) pays the verified fee object once, on its own price. The 80% range is configured logit-scale
+  noise on a pseudo n of 1000, not a tested residual of the joint.
+- **Verdict / gate (M4):** `keep_your_money` unless the gate (30 settled, 14 dates, skill > 0; bars fixed in code per the
+  contract) is open AND a book-product ticket has `ev_low80 > 0`. The gate is shut (`Gate()`) until the top-parlays panel has
+  its own settled paper log; the Kalshi single-leg shadow log measures a different product.
+- **Text:** deterministic templates from the leg's own fields; numguard and the banned-phrase screen run on every free-text field
+  (`why`, `reason`, `caveats`, `ranking`, `status`, `empty_reason`); a banned phrase fails at write time.
+- **Fixture:** `python -m nba.parlay.top_history` rebuilds `app/fixtures/top_parlays_example.json` (2025-01-27, season 2024,
+  DraftKings T-60, month-block CAL fit). It is real hindsight data with `illustration: true`, which the contract defines as
+  synthetic; it lives outside the app's served directory. `app/fixtures/top_parlays_producer_sample.json` is a committed
+  synthetic producer run. Both are validated through the app's `TopParlays` model in `app/api/tests/test_top_parlays_producer.py`.
+  Extra fields the app ignores: `p_avg_raw`, `drivers`, `fee`, `fee_model`, `ev_basis`, `hindsight`, `diagnostics`, `fixture`.

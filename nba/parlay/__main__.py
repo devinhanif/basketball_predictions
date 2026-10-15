@@ -1,4 +1,8 @@
-"""CLI: ``python -m nba.parlay {fit,eval-joint,evaluate,analyze,assistant}`` (read-only).
+"""CLI: ``python -m nba.parlay {fit,eval-joint,evaluate,analyze,top,assistant}`` (read-only).
+
+``top --date D`` writes ``reports/parlay/top_parlays_<D>.json`` (docs/contracts/top_parlays_v2.md):
+the top three two-leg and three-leg tickets by calibrated joint probability, from stored forecasts
+and pre-tip book quotes. It reads two stores read-only and writes only that file.
 
 ``evaluate --date D`` reads forward predictions (nba.duckdb, READ_ONLY) and the latest Kalshi
 prices (kalshi.duckdb, READ_ONLY), prices every mapped single-leg contract (both sides) and any
@@ -11,6 +15,7 @@ No order endpoints, no credentials.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from dataclasses import dataclass, replace
@@ -461,6 +466,91 @@ def cmd_analyze(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_top(a: argparse.Namespace) -> int:
+    from nba.parlay.line_cal import load_map
+    from nba.parlay.top_parlays import K_DEFAULT, Gate, build_report
+    from nba.parlay.top_source import SourceError, load_legs
+
+    cfg = load_config(a.config)
+    calmap = load_map(Path(a.cal_map))
+    if not Path(a.model).exists():
+        raise SystemExit(f"missing {a.model}; run `python -m nba.parlay fit` first")
+    pc = corr_from_json(json.loads(Path(a.model).read_text())["corr"])
+    slate = date.fromisoformat(a.date)
+    now = a.now or datetime.now(UTC).replace(tzinfo=None)
+    nba = connect_with_retry(a.nba_db, read_only=True, max_wait_s=30.0)
+    odds = (
+        connect_with_retry(a.odds_db, read_only=True, max_wait_s=30.0)
+        if Path(a.odds_db).exists()
+        else None
+    )
+    try:
+        loaded = load_legs(nba, odds, slate, now=now, calmap=calmap)
+    except SourceError as e:
+        raise SystemExit(str(e)) from e
+    finally:
+        nba.close()
+        if odds is not None:
+            odds.close()
+    # M4: the Kalshi shadow log measures a different product; the gate stays shut until the panel
+    # has its own settled paper log (contract: counters are producer-asserted)
+    gate = Gate()
+    gate_note = "gate shut: the top-parlays panel has no paper log of its own yet"
+    raw_model = Path(a.model).read_bytes()
+    blob = json.loads(raw_model)
+    joint_model = {
+        "sha256": hashlib.sha256(raw_model).hexdigest(),
+        "fit_seasons": blob.get("params", {}).get("fit_seasons"),
+        "n_games_corr": blob.get("n_games_corr"),
+    }
+    caveats = [
+        "Leg probabilities come from the frozen LINE_CALIBRATION map fitted through season 2024 on "
+        "production forecasts; it has not yet been confirmed on the live log. Legs are calibrated; "
+        "the joint is not yet tested.",
+        "A leg is offered only if its player's P(play) is at least 0.90; if a player sits, books "
+        "usually void the leg, which changes the payout.",
+    ]
+    m = calmap.meta
+    rep = build_report(
+        loaded.legs,
+        slate_date=a.date,
+        made_at=now,
+        now=now,
+        cfg=cfg,
+        pc=pc,
+        calibration={
+            "rule": m["rule"],
+            "sha8": m["rule_sha8"],
+            "map_sha8": str(m["map_sha256"])[:8],
+            "fit_through": f"{m['fit_through']} (season 2024; season 2025 rows only after a logged "
+            "training-use row, Devin)",
+            "status": "Stage 1 pass (T493); live confirmation pending. p_cal is the map applied to "
+            "the PRODUCTION model's P(over) for every leg (model_source production); the AVG "
+            "model's P(over), where a fresh row exists, is shown as p_avg_raw only and never "
+            "ranks.",
+        },
+        gate=gate,
+        k=K_DEFAULT if a.k is None else a.k,
+        joint_model=joint_model,
+        no_slate=loaded.no_slate,
+        pre_refused=dict(loaded.dropped),
+        notes=[
+            *loaded.notes,
+            *([gate_note] if gate_note else []),
+            f"forecast sources: {dict(loaded.sources)}",
+        ],
+        extra_caveats=caveats,
+    )
+    out = Path(a.out_dir) / f"top_parlays_{a.date}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rep, indent=1) + "\n")
+    n2, n3 = len(rep["sizes"]["2"]), len(rep["sizes"]["3"])
+    print(f"wrote {out}: verdict {rep['verdict']}, {n2} two-leg and {n3} three-leg tickets")
+    if rep["empty_reason"]:
+        print(f"empty_reason: {rep['empty_reason']}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m nba.parlay", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -493,6 +583,18 @@ def main(argv: list[str] | None = None) -> int:
                 help="override the clock (naive UTC ISO); tests/rehearsals only",
             )
             p.add_argument("--settle", action="store_true")
+    p = sub.add_parser("top", help="top-3 two- and three-leg tickets for a slate (read-only)")
+    p.add_argument("--date", required=True)
+    p.add_argument("--now", type=lambda t: datetime.fromisoformat(t).replace(tzinfo=None))
+    p.add_argument("--config", default=str(ROOT / "configs" / "parlay.yaml"))
+    p.add_argument("--nba-db", default=str(ROOT / "nba.duckdb"))
+    p.add_argument("--odds-db", default=str(ROOT / "data" / "markets" / "market_asof.duckdb"))
+    p.add_argument("--model", default=str(DEFAULT_MODEL))
+    p.add_argument(
+        "--cal-map", default=str(Path(__file__).resolve().parent / "line_cal_map_v1.json")
+    )
+    p.add_argument("--out-dir", default=str(ROOT / "reports" / "parlay"))
+    p.add_argument("--k", type=int, default=None, help="legs kept per book before the search")
     p = sub.add_parser("analyze", help="daily props analysis report (read-only)")
     p.add_argument("--date", required=True)
     p.add_argument("--now", type=lambda t: datetime.fromisoformat(t).replace(tzinfo=None))
@@ -525,6 +627,7 @@ def main(argv: list[str] | None = None) -> int:
         "eval-joint": cmd_eval_joint,
         "evaluate": cmd_evaluate,
         "analyze": cmd_analyze,
+        "top": cmd_top,
     }[a.cmd](a)
 
 

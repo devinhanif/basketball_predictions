@@ -89,6 +89,7 @@ class ParlayConfig:
     calibration_logit_sd_tail: float = 0.0  # used when the raw prob is beyond the tail cut
     tail_cut: float = 0.70
     gate_ci_level: float = 0.95  # two-sided level of the game-clustered skill interval
+    fee_venues: tuple[str, ...] = ()  # venues whose tickets pay the fee schedule (top parlays)
 
 
 def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
@@ -124,4 +125,5 @@ def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
         ),
         tail_cut=float(i.get("tail_cut", 0.70)),
         gate_ci_level=float(raw.get("market_prior", {}).get("gate_ci_level", 0.95)),
+        fee_venues=tuple(str(v) for v in raw.get("top_parlays", {}).get("fee_venues", [])),
     )

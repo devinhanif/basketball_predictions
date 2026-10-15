@@ -57,3 +57,8 @@ assistant:
   max_tool_steps: 6
   top_n: 5
   timeout_s: 300
+top_parlays:
+  # Tickets at these venues pay the fee schedule above, once, on the ticket's own price (a Kalshi
+  # combo contract). A sportsbook parlay carries no separate fee: its margin is inside the legs'
+  # prices, so EV per dollar there is p / implied - 1.
+  fee_venues: [kalshi]

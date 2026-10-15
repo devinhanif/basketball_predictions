@@ -1,0 +1,677 @@
+{
+ "schema": "top_parlays/2",
+ "illustration": true,
+ "slate_date": "2025-01-27",
+ "made_at": "2025-01-27T23:59:00Z",
+ "calibration": {
+  "rule": "LINE_CALIBRATION",
+  "sha8": "a5441242",
+  "fit_through": "2024-12-31 (the rule's month-block walk-forward for this date: rows strictly before the first of the month, seasons 2023-2024)",
+  "status": "Stage 1 pass (T493); live confirmation pending. p_cal is the map applied to the production out-of-fold P(over); no AVG row exists for season 2024.",
+  "joint_status": "legs calibrated; joint not yet tested"
+ },
+ "gate": {
+  "settled": 0,
+  "settled_min": 30,
+  "slate_dates": 0,
+  "dates_min": 14,
+  "skill_vs_market": null,
+  "open": false
+ },
+ "ranking": "calibrated joint probability, highest first; ties broken by higher EV; within a size each leg appears in at most one shown ticket (greedy by rank)",
+ "verdict": "keep_your_money",
+ "empty_reason": null,
+ "sizes": {
+  "2": [
+   {
+    "rank": 1,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400654",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1629627,
+      "player_name": "Zion Williamson",
+      "team": "NOP",
+      "opp": "TOR",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -500,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.9045,
+      "p_cal": 0.8186,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 0.1,
+       "recent_avg": 0.12,
+       "minutes": 30.6,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.8333
+      },
+      "reason": "Zion Williamson under 0.5 threes (NOP vs TOR): the model's mean is 0.1; his recent average is 0.1, below the line; recent average minutes are 30.6; 2 rotation teammate(s) out; calibrated chance 82% (raw 90%) against 83% implied by draftkings at -500."
+     },
+     {
+      "game_id": "0022400656",
+      "tipoff": "2025-01-28T01:00:00Z",
+      "player_id": 1642258,
+      "player_name": "Zaccharie Risacher",
+      "team": "ATL",
+      "opp": "MIN",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -230,
+      "price_at": "2025-01-27T23:55:38Z",
+      "p_raw": 0.7236,
+      "p_cal": 0.6777,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.16,
+       "recent_avg": 1.07,
+       "minutes": 23.5,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.697
+      },
+      "reason": "Zaccharie Risacher over 0.5 threes (ATL vs MIN): the model's mean is 1.2; his recent average is 1.1, above the line; recent average minutes are 23.5; 2 rotation teammate(s) out; calibrated chance 68% (raw 72%) against 70% implied by draftkings at -230."
+     }
+    ],
+    "p_joint_raw": 0.6545,
+    "p_joint_cal": 0.5548,
+    "p_joint_cal_80": [
+     0.3607,
+     0.7258
+    ],
+    "book_implied": 0.5808,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": -0.0448,
+    "ev_low80": -0.379,
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 55% (raw 65%) is the joint of those legs. draftkings stacks them at an implied 58%; at the book's price (its margin is included) that is -4% per dollar, and the low end of the 80% range (configured noise, not tested) is -38%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy).",
+    "hindsight": {
+     "legs_hit": [
+      true,
+      true
+     ],
+     "all_legs_hit": true,
+     "note": "This one hit; it was still a -4% bet."
+    }
+   },
+   {
+    "rank": 2,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400651",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1627734,
+      "player_name": "Domantas Sabonis",
+      "team": "SAC",
+      "opp": "BKN",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -245,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.7035,
+      "p_cal": 0.6625,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.19,
+       "recent_avg": 1.26,
+       "minutes": 36.3,
+       "minutes_kind": "recent",
+       "n_out": 0,
+       "implied": 0.7101
+      },
+      "reason": "Domantas Sabonis over 0.5 threes (SAC vs BKN): the model's mean is 1.2; his recent average is 1.3, above the line; recent average minutes are 36.3; calibrated chance 66% (raw 70%) against 71% implied by draftkings at -245."
+     },
+     {
+      "game_id": "0022400654",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1630558,
+      "player_name": "Davion Mitchell",
+      "team": "TOR",
+      "opp": "NOP",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -220,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.6935,
+      "p_cal": 0.6528,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.14,
+       "recent_avg": 0.85,
+       "minutes": 22.8,
+       "minutes_kind": "recent",
+       "n_out": 1,
+       "implied": 0.6875
+      },
+      "reason": "Davion Mitchell over 0.5 threes (TOR vs NOP): the model's mean is 1.1; his recent average is 0.8, above the line; recent average minutes are 22.8; 1 rotation teammate(s) out; calibrated chance 65% (raw 69%) against 69% implied by draftkings at -220."
+     }
+    ],
+    "p_joint_raw": 0.4879,
+    "p_joint_cal": 0.4325,
+    "p_joint_cal_80": [
+     0.2652,
+     0.6283
+    ],
+    "book_implied": 0.4882,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": -0.1141,
+    "ev_low80": -0.4568,
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 43% (raw 49%) is the joint of those legs. draftkings stacks them at an implied 49%; at the book's price (its margin is included) that is -11% per dollar, and the low end of the 80% range (configured noise, not tested) is -46%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy).",
+    "hindsight": {
+     "legs_hit": [
+      true,
+      true
+     ],
+     "all_legs_hit": true,
+     "note": "This one hit; it was still a -11% bet."
+    }
+   },
+   {
+    "rank": 3,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400655",
+      "tipoff": "2025-01-28T01:00:00Z",
+      "player_id": 1630188,
+      "player_name": "Jalen Smith",
+      "team": "CHI",
+      "opp": "DEN",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 1.5,
+      "book": "draftkings",
+      "price_american": -220,
+      "price_at": "2025-01-27T23:55:38Z",
+      "p_raw": 0.7487,
+      "p_cal": 0.6522,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.05,
+       "recent_avg": 1.08,
+       "minutes": 15.0,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.6875
+      },
+      "reason": "Jalen Smith under 1.5 threes (CHI vs DEN): the model's mean is 1.1; his recent average is 1.1, below the line; recent average minutes are 15.0; 2 rotation teammate(s) out; calibrated chance 65% (raw 75%) against 69% implied by draftkings at -220."
+     },
+     {
+      "game_id": "0022400654",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1627749,
+      "player_name": "Dejounte Murray",
+      "team": "NOP",
+      "opp": "TOR",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 1.5,
+      "book": "draftkings",
+      "price_american": -175,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.6683,
+      "p_cal": 0.6369,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": false,
+      "drivers": {
+       "mean": 2.46,
+       "recent_avg": 2.14,
+       "minutes": 34.0,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.6364
+      },
+      "reason": "Dejounte Murray over 1.5 threes (NOP vs TOR): the model's mean is 2.5; his recent average is 2.1, above the line; recent average minutes are 34.0; 2 rotation teammate(s) out; calibrated chance 64% (raw 67%) against 64% implied by draftkings at -175."
+     }
+    ],
+    "p_joint_raw": 0.5004,
+    "p_joint_cal": 0.4154,
+    "p_joint_cal_80": [
+     0.2483,
+     0.6006
+    ],
+    "book_implied": 0.4375,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": -0.0506,
+    "ev_low80": -0.4325,
+    "why": "2 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 42% (raw 50%) is the joint of those legs. draftkings stacks them at an implied 44%; at the book's price (its margin is included) that is -5% per dollar, and the low end of the 80% range (configured noise, not tested) is -43%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy).",
+    "hindsight": {
+     "legs_hit": [
+      true,
+      false
+     ],
+     "all_legs_hit": false,
+     "note": null
+    }
+   }
+  ],
+  "3": [
+   {
+    "rank": 1,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400654",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1629627,
+      "player_name": "Zion Williamson",
+      "team": "NOP",
+      "opp": "TOR",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -500,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.9045,
+      "p_cal": 0.8186,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 0.1,
+       "recent_avg": 0.12,
+       "minutes": 30.6,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.8333
+      },
+      "reason": "Zion Williamson under 0.5 threes (NOP vs TOR): the model's mean is 0.1; his recent average is 0.1, below the line; recent average minutes are 30.6; 2 rotation teammate(s) out; calibrated chance 82% (raw 90%) against 83% implied by draftkings at -500."
+     },
+     {
+      "game_id": "0022400656",
+      "tipoff": "2025-01-28T01:00:00Z",
+      "player_id": 1642258,
+      "player_name": "Zaccharie Risacher",
+      "team": "ATL",
+      "opp": "MIN",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -230,
+      "price_at": "2025-01-27T23:55:38Z",
+      "p_raw": 0.7236,
+      "p_cal": 0.6777,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.16,
+       "recent_avg": 1.07,
+       "minutes": 23.5,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.697
+      },
+      "reason": "Zaccharie Risacher over 0.5 threes (ATL vs MIN): the model's mean is 1.2; his recent average is 1.1, above the line; recent average minutes are 23.5; 2 rotation teammate(s) out; calibrated chance 68% (raw 72%) against 70% implied by draftkings at -230."
+     },
+     {
+      "game_id": "0022400651",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1627734,
+      "player_name": "Domantas Sabonis",
+      "team": "SAC",
+      "opp": "BKN",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -245,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.7035,
+      "p_cal": 0.6625,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.19,
+       "recent_avg": 1.26,
+       "minutes": 36.3,
+       "minutes_kind": "recent",
+       "n_out": 0,
+       "implied": 0.7101
+      },
+      "reason": "Domantas Sabonis over 0.5 threes (SAC vs BKN): the model's mean is 1.2; his recent average is 1.3, above the line; recent average minutes are 36.3; calibrated chance 66% (raw 70%) against 71% implied by draftkings at -245."
+     }
+    ],
+    "p_joint_raw": 0.4605,
+    "p_joint_cal": 0.3676,
+    "p_joint_cal_80": [
+     0.2129,
+     0.5636
+    ],
+    "book_implied": 0.4125,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": -0.1089,
+    "ev_low80": -0.4838,
+    "why": "3 legs across 3 games: each leg is calibrated but the joint is not yet tested, so 37% (raw 46%) is the joint of those legs. draftkings stacks them at an implied 41%; at the book's price (its margin is included) that is -11% per dollar, and the low end of the 80% range (configured noise, not tested) is -48%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy).",
+    "hindsight": {
+     "legs_hit": [
+      true,
+      true,
+      true
+     ],
+     "all_legs_hit": true,
+     "note": "This one hit; it was still a -11% bet."
+    }
+   },
+   {
+    "rank": 2,
+    "same_game": false,
+    "legs": [
+     {
+      "game_id": "0022400654",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1630558,
+      "player_name": "Davion Mitchell",
+      "team": "TOR",
+      "opp": "NOP",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -220,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.6935,
+      "p_cal": 0.6528,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.14,
+       "recent_avg": 0.85,
+       "minutes": 22.8,
+       "minutes_kind": "recent",
+       "n_out": 1,
+       "implied": 0.6875
+      },
+      "reason": "Davion Mitchell over 0.5 threes (TOR vs NOP): the model's mean is 1.1; his recent average is 0.8, above the line; recent average minutes are 22.8; 1 rotation teammate(s) out; calibrated chance 65% (raw 69%) against 69% implied by draftkings at -220."
+     },
+     {
+      "game_id": "0022400655",
+      "tipoff": "2025-01-28T01:00:00Z",
+      "player_id": 1630188,
+      "player_name": "Jalen Smith",
+      "team": "CHI",
+      "opp": "DEN",
+      "stat": "fg3m",
+      "side": "under",
+      "line": 1.5,
+      "book": "draftkings",
+      "price_american": -220,
+      "price_at": "2025-01-27T23:55:38Z",
+      "p_raw": 0.7487,
+      "p_cal": 0.6522,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": true,
+      "drivers": {
+       "mean": 1.05,
+       "recent_avg": 1.08,
+       "minutes": 15.0,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.6875
+      },
+      "reason": "Jalen Smith under 1.5 threes (CHI vs DEN): the model's mean is 1.1; his recent average is 1.1, below the line; recent average minutes are 15.0; 2 rotation teammate(s) out; calibrated chance 65% (raw 75%) against 69% implied by draftkings at -220."
+     },
+     {
+      "game_id": "0022400651",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 201942,
+      "player_name": "DeMar DeRozan",
+      "team": "SAC",
+      "opp": "BKN",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 0.5,
+      "book": "draftkings",
+      "price_american": -230,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.6683,
+      "p_cal": 0.6367,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": false,
+      "drivers": {
+       "mean": 1.14,
+       "recent_avg": 1.1,
+       "minutes": 36.4,
+       "minutes_kind": "recent",
+       "n_out": 0,
+       "implied": 0.697
+      },
+      "reason": "DeMar DeRozan over 0.5 threes (SAC vs BKN): the model's mean is 1.1; his recent average is 1.1, above the line; recent average minutes are 36.4; calibrated chance 64% (raw 67%) against 70% implied by draftkings at -230."
+     }
+    ],
+    "p_joint_raw": 0.347,
+    "p_joint_cal": 0.2711,
+    "p_joint_cal_80": [
+     0.0454,
+     0.744
+    ],
+    "book_implied": 0.3294,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "book product",
+    "ev_per_dollar": -0.1771,
+    "ev_low80": -0.862,
+    "why": "3 legs across 3 games: each leg is calibrated but the joint is not yet tested, so 27% (raw 35%) is the joint of those legs. draftkings stacks them at an implied 33%; at the book's price (its margin is included) that is -18% per dollar, and the low end of the 80% range (configured noise, not tested) is -86%. Legs from different games are treated as independent.",
+    "tail_note": "This ticket uses legs the model rates 65%+; in 2023-24 such legs ran overconfident (T495), most of them threes (threes-heavy).",
+    "hindsight": {
+     "legs_hit": [
+      true,
+      true,
+      false
+     ],
+     "all_legs_hit": false,
+     "note": null
+    }
+   },
+   {
+    "rank": 3,
+    "same_game": true,
+    "legs": [
+     {
+      "game_id": "0022400654",
+      "tipoff": "2025-01-28T00:30:00Z",
+      "player_id": 1627749,
+      "player_name": "Dejounte Murray",
+      "team": "NOP",
+      "opp": "TOR",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 1.5,
+      "book": "draftkings",
+      "price_american": -175,
+      "price_at": "2025-01-27T23:25:38Z",
+      "p_raw": 0.6683,
+      "p_cal": 0.6369,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": false,
+      "drivers": {
+       "mean": 2.46,
+       "recent_avg": 2.14,
+       "minutes": 34.0,
+       "minutes_kind": "recent",
+       "n_out": 2,
+       "implied": 0.6364
+      },
+      "reason": "Dejounte Murray over 1.5 threes (NOP vs TOR): the model's mean is 2.5; his recent average is 2.1, above the line; recent average minutes are 34.0; 2 rotation teammate(s) out; calibrated chance 64% (raw 67%) against 64% implied by draftkings at -175."
+     },
+     {
+      "game_id": "0022400649",
+      "tipoff": "2025-01-28T00:00:00Z",
+      "player_id": 1641709,
+      "player_name": "Ausar Thompson",
+      "team": "DET",
+      "opp": "CLE",
+      "stat": "ast",
+      "side": "under",
+      "line": 2.5,
+      "book": "draftkings",
+      "price_american": -175,
+      "price_at": "2025-01-27T22:55:39Z",
+      "p_raw": 0.7889,
+      "p_cal": 0.6337,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": false,
+      "drivers": {
+       "mean": 1.56,
+       "recent_avg": 1.48,
+       "minutes": 22.3,
+       "minutes_kind": "recent",
+       "n_out": 1,
+       "implied": 0.6364
+      },
+      "reason": "Ausar Thompson under 2.5 assists (DET vs CLE): the model's mean is 1.6; his recent average is 1.5, below the line; recent average minutes are 22.3; 1 rotation teammate(s) out; calibrated chance 63% (raw 79%) against 64% implied by draftkings at -175."
+     },
+     {
+      "game_id": "0022400649",
+      "tipoff": "2025-01-28T00:00:00Z",
+      "player_id": 1629622,
+      "player_name": "Max Strus",
+      "team": "CLE",
+      "opp": "DET",
+      "stat": "fg3m",
+      "side": "over",
+      "line": 1.5,
+      "book": "draftkings",
+      "price_american": -166,
+      "price_at": "2025-01-27T22:55:39Z",
+      "p_raw": 0.6583,
+      "p_cal": 0.6296,
+      "model_source": "production",
+      "p_avg_raw": null,
+      "tail_flag": false,
+      "drivers": {
+       "mean": 2.36,
+       "recent_avg": 2.1,
+       "minutes": 27.6,
+       "minutes_kind": "recent",
+       "n_out": 3,
+       "implied": 0.6241
+      },
+      "reason": "Max Strus over 1.5 threes (CLE vs DET): the model's mean is 2.4; his recent average is 2.1, above the line; recent average minutes are 27.6; 3 rotation teammate(s) out; calibrated chance 63% (raw 66%) against 62% implied by draftkings at -166."
+     }
+    ],
+    "p_joint_raw": 0.3481,
+    "p_joint_cal": 0.2535,
+    "p_joint_cal_80": [
+     0.0425,
+     0.7311
+    ],
+    "book_implied": 0.2527,
+    "fee": 0.0,
+    "fee_model": "none (margin is inside the legs' prices)",
+    "ev_basis": "not a book price (two legs share a game)",
+    "ev_per_dollar": 0.0029,
+    "ev_low80": -0.8319,
+    "why": "3 legs across 2 games: each leg is calibrated but the joint is not yet tested, so 25% (raw 35%) is the joint of those legs. draftkings stacks them at an implied 25%; against the product of the legs' prices, which is not a book price that is +0% per dollar, and the low end of the 80% range (configured noise, not tested) is -83%. Legs from different games are treated as independent; legs in one game share the copula.",
+    "hindsight": {
+     "legs_hit": [
+      false,
+      true,
+      true
+     ],
+     "all_legs_hit": false,
+     "note": null
+    }
+   }
+  ]
+ },
+ "caveats": [
+  "Two-leg parlays of alternate-line overs the raw model put at 70% or more (BetRivers) hit 9.8 points less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, date-clustered, 2023-24 and 2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). These were raw chances; the chances shown here are from calibrated legs.",
+  "On random 2023-24 parlays these chances were accurate. The top picks use the most-confident legs, and those came in about 3 to 5 points lower than shown at DraftKings (T495) (n 1,149 top tickets; the interval includes zero)."
+ ],
+ "diagnostics": {
+  "no_positive_ev_found": true,
+  "gate_describe": "0 settled over 0 dates (need 30 and 14), skill not shown (no log, or bound not above zero)",
+  "search": {
+   "k_per_book": 40,
+   "legs_in": 1034,
+   "legs_after_refusal": 790,
+   "legs_after_dedupe": 395,
+   "legs_searched": {
+    "draftkings": 40
+   },
+   "tickets_searched": 10660,
+   "interval_basis": "configured logit-scale noise on a pseudo n of 1000, not a tested residual of the joint",
+   "n_sims_same_game": 20000
+  },
+  "refused": {
+   "priced_at_or_after_tip": 0,
+   "priced_after_made_at": 244,
+   "game_already_tipped": 0
+  },
+  "numguard_removed": 0,
+  "fee_model": "kalshi_fee_schedule",
+  "fee_verified": true,
+  "fee_venues": [
+   "kalshi"
+  ],
+  "joint_model": {
+   "sha256": "a2b4c4a9c1970b99a2e0d1fff1d01239ca810ee09abfbcce315b208376dafd42",
+   "fit_seasons": [
+    2022,
+    2023,
+    2024
+   ],
+   "n_games_corr": 2633
+  },
+  "notes": [
+   "fixture: made_at is 1 minute before the first tip; legs priced after it are refused",
+   "P(play) is not stored for out-of-fold rows; non-players were voided upstream",
+   "the 'drivers.minutes' value is the last-10-games average, not a projection",
+   "pair correlations were fitted on seasons 2022-2024, which includes this date's season (in-sample, negligible for the shown tickets)"
+  ]
+ },
+ "fixture": {
+  "kind": "hindsight_illustration",
+  "label": "Hindsight illustration, not a forecast: a 2024-25 regular-season date rebuilt from stored out-of-fold rows and DraftKings T-60 lines. Only players who played appear. Outcomes are attached after the fact.",
+  "slate_season": 2024,
+  "inputs_sha256": {
+   "pairs_2023.parquet": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+   "model_rows_2023.parquet": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
+   "pairs_2024.parquet": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c",
+   "model_rows_2024.parquet": "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70"
+  }
+ }
+}

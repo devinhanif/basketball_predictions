@@ -45,6 +45,14 @@ price_american, price_at, p_raw, p_cal, model_source, reason).
 - Free text (`why`, `reason`, `caveats`, `calibration.status`, `ranking`, `empty_reason`) is screened by the producer's numguard and, as a second line,
   by the app for the banned phrases (CS 3): lock(s)/locked, guarantee(d), free money, can't/cannot lose (straight or curly apostrophe), hammer, best bet(s), easy money, sure thing, fade the public; case-insensitive.
 
+## Optional additions (producer, still `top_parlays/2`)
+
+- `legs[].tail_flag` (bool, optional): true when the leg's `p_cal` is 0.65 or more. Display only; no ranking or number depends on it.
+- `tickets[].tail_note` (string, optional): present when any leg is flagged: "This ticket uses legs the model rates 65%+; in 2023-24 such
+  legs ran overconfident (T495), most of them threes", with "(threes-heavy)" appended when at least half the legs are fg3m. Screened
+  by numguard and the banned-phrase list like every free-text field.
+- The T495 caveat is the second entry of `caveats` (default applied by the main session; Devin may change it).
+
 ## Meaning of the numbers
 
 `p_joint_cal` is the product (or copula joint) of legs that were each calibrated (T493, single legs at the line). The joint
