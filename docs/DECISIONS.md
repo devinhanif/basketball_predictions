@@ -1244,3 +1244,5 @@ Why: both breaks would hit 10-20; found by the preseason dress rehearsal (agent/
 What would reverse it: the oracle moving, or the fix needing a model change (then it waits until after opening night).
 
 **2026-10-15 01:09 CDT — Correction to the cc3ac06 row (ALT_RUNG_CAL defaults).** That row said "FanDuel label only"; the draft's own default (which Devin's go adopted) makes P7 a FanDuel pass check. The pass check stands. Claude's transcription error, caught by the pre-freeze review (docs/reviews/ALT_RUNG_CAL_prefreeze_2026-10-15.md M3).
+
+**2026-10-15 01:30 CDT — COMBO full pull DONE.** 2,638 games (2,626 fetched, 12 reused from the probe, 1 empty, 0 errors), 152,770 credits of the 160,000 cap; server remaining 1,656,969. Raw only: data/raw/odds_combo_pull_2026-10-15/ (5,264 files, tree b72960a2). Next: ingest into odds_history.duckdb (Devin's go), then COMBO_LINE_CAL re-runs its gate.
