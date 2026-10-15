@@ -341,5 +341,24 @@ def test_verdict_classes() -> None:
     shrink = _stage(-0.008, -0.008, 0.6921, 0.6920)  # map ties the base rate
     r = lc.evaluate(shrink, shrink)
     assert r["verdict"] == "SHRINKAGE_ONLY" and r["served_object"] == "C0"
+    # SHRINKAGE_ONLY always serves C0, even when CAL has the lower log loss (review B2)
+    cal_lower = _stage(-0.01, -0.006, 0.6910, 0.6920)
+    cal_lower["d_cal_c0"] = {"mean": -0.001, "hi": 0.001}  # P2 fails (CI upper >= 0)
+    r2 = lc.evaluate(cal_lower, cal_lower)
+    assert r2["verdict"] == "SHRINKAGE_ONLY" and r2["served_object"] == "C0"
     bad = _stage(-0.001, -0.001, 0.699, 0.699)
     assert lc.evaluate(bad, bad)["verdict"] == "FAIL"
+
+
+def test_harness_pin_refuses_a_changed_file() -> None:
+    sha = "a" * 64
+
+    def fake(*args: str) -> str:
+        if args[0] == "log":
+            return f"deadbeef\tprereg({rule.ID}): {sha}\n"
+        if args[1].endswith(rule.DOC_REL):
+            return ""  # empty text hashes to e3b0..., not sha: freeze_commit will not match
+        return "x"
+
+    with pytest.raises(RuntimeError):
+        rule.require_harness_pinned(sha, run=fake)
