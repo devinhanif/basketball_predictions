@@ -8,7 +8,7 @@ One JSON object per slate date, `reports/parlay/top_parlays_<date>.json`, writte
   "schema": "top_parlays/1",
   "slate_date": "2026-10-20",
   "made_at": "2026-10-20T22:10:00Z",
-  "calibration": {"rule": "LINE_CALIBRATION", "sha8": "a5441242", "fit_through": "2025-06-30", "status": "Stage 1 pass (T493); live confirmation pending"},
+  "calibration": {"rule": "LINE_CALIBRATION", "sha8": "a5441242", "fit_through": "2025-06-30 (season 2024; season 2025 rows only after a logged training-use row, Devin)", "status": "Stage 1 pass (T493); live confirmation pending"},
   "ranking": "calibrated joint probability, highest first; ties broken by higher EV",
   "verdict": "keep_your_money",
   "empty_reason": null,
