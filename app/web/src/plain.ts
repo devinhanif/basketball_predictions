@@ -12,7 +12,7 @@ export function plainModel(source: string): string {
     case "fallback_missing":
       return "our standard props model (the main one had no fresh forecast for this game)";
     case "fixture":
-      return "our model, forecasting games it had not seen";
+      return "our model (made without seeing these games)";
     case "legacy":
     case "postseason":
     case "non_regular_season":
@@ -56,6 +56,10 @@ export function plainText(text: string): string {
     .replace(/,?\s*\bT\d{3}\b/g, "")
     .replace(/rebuilt from stored out-of-fold rows/g, "rebuilt from forecasts the model made without seeing those games")
     .replace(/\bT-60 lines\b/g, "lines from an hour before tip")
+    // A gap between two chances is in percentage points, never basketball points (F02).
+    .replace(/(\d+(?:\.\d+)?) points (less|more) often/g, "$1 percentage points $2 often")
+    .replace(/(\d+ to \d+) points (lower|higher)/g, "$1 percentage points $2")
+    .replace(/\b((?:Two|Three)-leg): (\d+(?:\.\d+)?) points/g, "$1: $2 percentage points")
     .replace(/\bp_cal\b/g, "adjusted chance")
     .replace(/\bP\(over\)/g, "chance of the over")
     .replace(/\bAVG\b/g, "main-model")

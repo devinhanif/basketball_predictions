@@ -581,6 +581,8 @@ def test_market_chance_is_the_devigged_pair_of_one_book(client: TestClient) -> N
                 assert px["market_p_over"] is None
                 continue
             seen += 1
-            assert px["market_p_over"] == pytest.approx(devig_over(px["over_price"], px["under_price"]))
+            assert px["market_p_over"] == pytest.approx(
+                devig_over(px["over_price"], px["under_price"])
+            )
             assert px["market_book"] == "DraftKings"
     assert seen >= 3

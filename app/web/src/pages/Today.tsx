@@ -9,14 +9,14 @@ import { STAT_LABEL } from "../types";
 import { VerdictStrip } from "../VerdictStrip";
 import { compareLine, doesText, rangeSentence } from "../words";
 
-function KeyProps({ game, gateClosed }: { game: GameSummary; gateClosed: boolean | null }) {
+function KeyProps({ game }: { game: GameSummary }) {
   if (game.key_props.length === 0) return null;
   return (
     <div class="props">
       <div class="label">Top scorers, by our forecast</div>
       {game.key_props.map((p) => {
         const reference = p.line_source === "reference";
-        const compare = reference ? null : compareLine(p.model_p_over, p.market_p_over, gateClosed);
+        const compare = reference ? null : compareLine(p.model_p_over, p.market_p_over);
         return (
           <div class="prop-line" key={p.player_id}>
             <div class="prop-main">
@@ -56,7 +56,7 @@ function KeyProps({ game, gateClosed }: { game: GameSummary; gateClosed: boolean
   );
 }
 
-function GameRow({ g, gateClosed }: { g: GameSummary; gateClosed: boolean | null }) {
+function GameRow({ g }: { g: GameSummary }) {
   return (
     <a class="game" href={`#/game/${g.game_id}`} aria-label={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}, open game`}>
       <div class="game-top">
@@ -71,7 +71,7 @@ function GameRow({ g, gateClosed }: { g: GameSummary; gateClosed: boolean | null
         {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
       </div>
       <WinBars wp={g.win_probability} home={g.home} away={g.away} />
-      <KeyProps game={g} gateClosed={gateClosed} />
+      <KeyProps game={g} />
     </a>
   );
 }
@@ -137,11 +137,14 @@ function SlateBody({ date, onStale }: { date: string; onStale: (s: boolean) => v
                 ? "This is a replay of a real night from the 2024-25 season, not tonight's slate. Every forecast was made before tip, using only what was known then."
                 : "Every forecast is the last one stored before tip. A prop's line is the one most books carried; where none had a usable quote, it shows a reference line at the middle of our own forecast."}
             </p>
+            {gateClosed ? (
+              <p class="small muted">Our model has no track record yet, so nothing on this page is a pick. Keep your money.</p>
+            ) : null}
             <ModelNote items={s.games.flatMap((g) => g.key_props.map((p) => ({ source: p.model_source, label: p.model_label })))} />
           </section>
           <div class="games">
             {s.games.map((g) => (
-              <GameRow key={g.game_id} g={g} gateClosed={gateClosed} />
+              <GameRow key={g.game_id} g={g} />
             ))}
           </div>
           <WinLegend />

@@ -22,6 +22,12 @@ describe("F22: internal names become words, numbers stay", () => {
     expect(out).toContain("n 1,149");
     expect(testCodesIn(t)).toEqual(["T490", "T495"]);
   });
+  it("a gap between two chances says percentage points, not points", () => {
+    const t = "hit 9.8 points less often than the raw model said. Three-leg: 8.7 points (5.5 to 11.9). came in about 3 to 5 points lower than shown";
+    expect(plainText(t)).toBe(
+      "hit 9.8 percentage points less often than the raw model said. Three-leg: 8.7 percentage points (5.5 to 11.9). came in about 3 to 5 percentage points lower than shown",
+    );
+  });
   it("capitalises book names and fixes a doubled period, never touching numbers", () => {
     expect(plainText("against 83% implied by draftkings at -500..")).toBe("against 83% implied by DraftKings at -500.");
     expect(plainText("p_cal is the map applied to the P(over)")).toBe("adjusted chance is the map applied to the chance of the over");

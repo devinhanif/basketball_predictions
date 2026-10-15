@@ -142,7 +142,9 @@ def test_template_says_so_when_there_is_no_model_or_no_history() -> None:
 
 def test_small_sample_and_disagreement_are_flagged_in_the_words() -> None:
     p = build_packet(LEGS[0])
-    p["flags"].update(small_last10=True, disagree=True, gap_percentage_points=31, recent_above_model=True)
+    p["flags"].update(
+        small_last10=True, disagree=True, gap_percentage_points=31, recent_above_model=True
+    )
     p["last10"].update(rate=0.7, n=10, hits=7)
     p["model"].update(available=True, p_hit=0.4)
     text = template.write_leg(p)

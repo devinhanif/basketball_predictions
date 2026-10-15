@@ -105,12 +105,11 @@ export const COMPARE_GAP = 0.1;
 
 /**
  * One plain line comparing the model's chance of the over with the book's. It names which is higher but never says
- * "take" or "lean": while the model has no track record (`gateClosed`), it says so. Null without a book number.
+ * "take" or "lean". Null without a book number. (Whether the model has a track record is said once per page.)
  */
-export function compareLine(model: number, book: number | null, gateClosed: boolean | null): string | null {
+export function compareLine(model: number, book: number | null): string | null {
   if (book === null) return null;
   const gap = model - book;
   if (Math.abs(gap) < COMPARE_GAP) return "The model and the book are close on this one.";
-  const s = `The model rates the over ${gap < 0 ? "lower" : "higher"} than the book does.`;
-  return gateClosed ? `${s} The model has no track record yet, so this is not a pick.` : s;
+  return `The model rates the over ${gap < 0 ? "lower" : "higher"} than the book does.`;
 }

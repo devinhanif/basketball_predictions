@@ -342,7 +342,8 @@ function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side;
       </p>
       <p class="small">{m.reason}</p>
       <p class="small" data-model-source={m.source}>
-        {plainModelSentence(m.source)} It was built without ever seeing this game.
+        {plainModelSentence(m.source)}
+        {m.source === "fixture" ? "" : " It was built without ever seeing this game."}
       </p>
       <Explain label="Show the exact details">
         <ul class="plain small">

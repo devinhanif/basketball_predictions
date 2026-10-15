@@ -68,10 +68,10 @@ describe("F07: a reference line leads with the forecast, not a 50% chance", () =
 
 describe("F23: one plain line per card", () => {
   it("names which is higher without recommending", () => {
-    expect(compareLine(0.36, 0.49, true)).toBe("The model rates the over lower than the book does. The model has no track record yet, so this is not a pick.");
-    expect(compareLine(0.6, 0.45, false)).toBe("The model rates the over higher than the book does.");
-    expect(compareLine(0.45, 0.49, true)).toBe("The model and the book are close on this one.");
-    expect(compareLine(0.45, null, true)).toBeNull();
-    expect(compareLine(0.36, 0.49, true)).not.toMatch(/\bpoints\b|take|lean|bet on/);
+    expect(compareLine(0.36, 0.49)).toBe("The model rates the over lower than the book does.");
+    expect(compareLine(0.6, 0.45)).toBe("The model rates the over higher than the book does.");
+    expect(compareLine(0.45, 0.49)).toBe("The model and the book are close on this one.");
+    expect(compareLine(0.45, null)).toBeNull();
+    expect(compareLine(0.36, 0.49)).not.toMatch(/\bpoints\b|take|lean|bet on/);
   });
 });
