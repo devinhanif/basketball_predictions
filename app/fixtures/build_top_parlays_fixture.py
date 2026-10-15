@@ -1,4 +1,4 @@
-"""Writes the ILLUSTRATION fixtures for the top_parlays/1 contract (docs/contracts/top_parlays_v2.md).
+"""Writes the ILLUSTRATION fixtures for the top_parlays/2 contract (docs/contracts/top_parlays_v2.md).
 
 Dates and game ids (2024-01-01/02, ILLUS-n) are in no real store, so the illustration never overlays a real slate.
 Every number is synthetic (players, lines, prices, probabilities) and the files say so
@@ -13,9 +13,10 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "top_parlays"
 CAVEAT_T490 = (
-    "Two-leg parlays built from legs the raw model put at 70% or more hit 9.8 points less often than the "
-    "model said (95% CI 6.8 to 12.9 points, n 3,337 parlays, date-clustered, 2023-24 and 2024-25; T490). "
-    "Three-leg: 8.7 points (5.5 to 11.9, n 3,360)."
+    "Two-leg parlays of alternate-line overs the raw model put at 70% or more (BetRivers) hit 9.8 points "
+    "less often than the raw model said (95% CI 6.8 to 12.9, n 3,337 parlays, date-clustered, 2023-24 and "
+    "2024-25; T490). Three-leg: 8.7 points (5.5 to 11.9, n 3,360). These were raw chances; the chances "
+    "shown here are from calibrated legs."
 )
 
 # name, team, opp, stat, side, line, price, p_raw, p_cal, source, game
@@ -48,7 +49,7 @@ def leg(i: int) -> dict[str, object]:
     return {
         "game_id": gid, "tipoff": TIPS[gid], "player_id": 9000 + i, "player_name": n,
         "team": team, "opp": opp, "stat": stat, "side": side, "line": line, "book": "draftkings",
-        "price_american": price, "price_at": "2024-01-01T23:05:00Z", "p_raw": pr, "p_cal": pc,
+        "price_american": price, "price_at": "2024-01-01T21:40:00Z", "p_raw": pr, "p_cal": pc,
         "model_source": src,
         "reason": f"The model's raw chance is {round(pr * 100)}%; after calibration it is {round(pc * 100)}%.",
     }

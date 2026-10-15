@@ -29,7 +29,9 @@ ENV = "APP_TOP_PARLAYS_DIR"
 DEFAULT_DIR = Path(__file__).resolve().parents[3] / "fixtures" / "top_parlays"
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _BANNED = re.compile(
-    r"\b(lock|locks|guaranteed|free money|can't lose|cant lose|hammer|best bet)\b", re.IGNORECASE
+    r"\b(locks?|locked|guarantee[ds]?|free[\s-]money|can'?t lose|cannot lose|hammer|best bets?"
+    r"|easy money|sure thing|fade the public)\b",
+    re.IGNORECASE,
 )
 JOINT_TOL = 0.05
 
@@ -51,7 +53,7 @@ class _Strict(BaseModel):
 
 
 def _clean(text: str) -> str:
-    if _BANNED.search(text):
+    if _BANNED.search(text.replace("\u2019", "'").replace("\u2018", "'")):
         raise ValueError("banned phrase in free text")
     return text
 
@@ -125,9 +127,9 @@ class Calibration(_Strict):
 
 class Gate(_Strict):
     settled: int = Field(ge=0)
-    settled_min: int = Field(gt=0)
+    settled_min: Literal[30]
     slate_dates: int = Field(ge=0)
-    dates_min: int = Field(gt=0)
+    dates_min: Literal[14]
     skill_vs_market: float | None
     open: bool
 
@@ -159,6 +161,11 @@ class TopParlays(_Strict):
 
     @model_validator(mode="after")
     def _check(self) -> Self:
+        if set(self.sizes) != {"2", "3"}:
+            raise ValueError("both size keys '2' and '3' are required")
+        _clean(self.ranking)
+        if self.empty_reason is not None:
+            _clean(self.empty_reason)
         tips = []
         for size, tickets in self.sizes.items():
             if len(tickets) > 3:
@@ -169,6 +176,8 @@ class TopParlays(_Strict):
                 if len(t.legs) != int(size):
                     raise ValueError("leg count does not match its size")
                 tips += [leg.tipoff for leg in t.legs]
+                if any(leg.price_at > self.made_at for leg in t.legs):
+                    raise ValueError("a price is stamped after the file was made")
         if tips and self.made_at >= min(tips):
             raise ValueError("made at or after the earliest tip")
         if self.verdict == "positive_ev_found":

@@ -1,4 +1,4 @@
-// Top-parlays panel: shapes of /api/top-parlays/<date> (contract docs/contracts/top_parlays_v1.md)
+// Top-parlays panel: shapes of /api/top-parlays/<date> (contract docs/contracts/top_parlays_v2.md)
 // and the small pure helpers the panel uses. No number is made up here: all come from the payload.
 import type { Side } from "./legTypes";
 

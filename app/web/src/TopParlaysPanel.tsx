@@ -15,6 +15,7 @@ import {
   type TpTicket,
 } from "./topParlays";
 import { STAT_LABEL } from "./types";
+import { useErrorBoundary } from "preact/hooks";
 import { useLoad } from "./useLoad";
 
 function statName(s: string): string {
@@ -246,7 +247,22 @@ function Message({ title, text }: { title: string; text: string }) {
   );
 }
 
-export function TopParlaysPanel({ date, checkToday = false }: { date: string; checkToday?: boolean }) {
+/** The panel may fail on its own; the page around it must never go blank. */
+export function TopParlaysPanel(props: { date: string; checkToday?: boolean }) {
+  const boundary = useErrorBoundary();
+  const failed: unknown = boundary[0];
+  if (failed !== undefined) {
+    return (
+      <Message
+        title="This night's tickets could not be shown"
+        text="Something in the tickets file broke the display, so we are not showing it."
+      />
+    );
+  }
+  return <PanelInner date={props.date} checkToday={props.checkToday ?? false} />;
+}
+
+function PanelInner({ date, checkToday }: { date: string; checkToday: boolean }) {
   const [state, reload] = useLoad(() => api.topParlays(date), [date]);
   const saved = state.status === "ready" && state.fromCache;
   return (
