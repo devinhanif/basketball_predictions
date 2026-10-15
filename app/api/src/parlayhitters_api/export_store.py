@@ -593,6 +593,8 @@ class ExportStore:
                     "under_price": None if shown is None else shown["under"]["price"],
                     "price_book": None if shown is None else shown["over"]["book"],
                     "line_snapshot_utc": None if shown is None else shown["over"]["snapshot_utc"],
+                    "book_main_line": r.get("book_main_line"),
+                    "rung_cal": r.get("rung_cal"),
                     "forecast": forecast,
                     "actual": row[st] if did_play and row is not None else None,
                 }

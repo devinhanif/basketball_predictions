@@ -132,3 +132,62 @@ def devig_over(over_price: int, under_price: int) -> float:
     po = american_to_raw_prob(over_price)
     pu = american_to_raw_prob(under_price)
     return po / (po + pu)
+
+
+def clean_rung_cal(raw: Any) -> dict[str, Any] | None:
+    """The export's rung_cal field (a dict or its JSON text), or None when it is absent or does
+    not meet the contract: lines on the half-point grid, ascending and unique, p_over in [0, 1]
+    and non-increasing in line. A violation drops the whole field; nothing is repaired."""
+    import json
+
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return None
+    if not isinstance(raw, dict):
+        return None
+    try:
+        if not all(isinstance(raw[k], str) for k in ("book", "map_version", "map_sha8")):
+            return None
+        lines = [(float(r["line"]), float(r["p_over"])) for r in raw["lines"]]
+        out = {
+            "book": str(raw["book"]),
+            "main_line": float(raw["main_line"]),
+            "price_at": None if raw.get("price_at") is None else str(raw["price_at"]),
+            "map_version": str(raw["map_version"]),
+            "map_sha8": str(raw["map_sha8"]),
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not lines or any(not math.isfinite(x) or not math.isfinite(p) for x, p in lines):
+        return None
+    if any(abs(x * 2 - round(x * 2)) > 1e-9 or x % 1 != 0.5 for x, _ in lines):
+        return None
+    if any(b[0] <= a[0] or b[1] > a[1] + 1e-12 for a, b in zip(lines, lines[1:], strict=False)):
+        return None
+    if any(not 0.0 <= p <= 1.0 for _, p in lines):
+        return None
+    out["lines"] = [{"line": x, "p_over": p} for x, p in lines]
+    return out
+
+
+def dist_grid(forecast: dict[str, Any]) -> dict[str, Any]:
+    """P(Y >= k), k = 0..K, from the stored forecast: the full-support table when complete,
+    else the interpolated quantile grid (rougher; its range stops at the 95th percentile)."""
+    surv = forecast.get("surv")
+    mean = forecast.get("mean")
+    if surv and surv_complete(surv["c"], int(surv["n"])):
+        n = int(surv["n"])
+        c = [int(v) for v in surv["c"]]
+        p_ge = [1.0] + [v / n for v in c]
+        return {"method": "exact", "n": n, "p_ge": p_ge, "line_min": 0.5,
+                "line_max": len(c) - 0.5 if len(c) > 1 else 0.5, "mean": mean}  # fmt: skip
+    q = [float(v) for v in forecast["q"]]
+    hi_k = max(1, math.floor(q[-1]))
+    p_ge = [1.0] + [1.0 - cdf(q, k - 0.5)[0] for k in range(1, hi_k + 1)]
+    lo = max(0.5, math.floor(q[0]) + 0.5)
+    return {"method": "quantile", "n": None, "p_ge": p_ge, "line_min": lo,
+            "line_max": max(lo, hi_k - 0.5), "mean": mean}  # fmt: skip

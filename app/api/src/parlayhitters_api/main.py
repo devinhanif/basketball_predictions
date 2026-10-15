@@ -18,17 +18,25 @@ from .export_store import ExportRefused
 from .forecast import (
     TAUS,
     american_to_raw_prob,
+    clean_rung_cal,
     devig_over,
+    dist_grid,
     forecast_method,
     forecast_probs,
 )
 from .model_source import model_detail, model_label, p_play_label
 from .models import (
+    CardStats,
+    CardView,
+    Dist,
     GameSummary,
     GameView,
+    HitTen,
+    MateOut,
     PlayerView,
     ProbAtLine,
     PropView,
+    RungCal,
     SlateView,
     SwipeCard,
     SwipeDeck,
@@ -136,6 +144,8 @@ def _prop_view(stat: str, p: Json) -> PropView:
         model_detail=model_detail(p["forecast"].get("model")),
         p_play=p["forecast"].get("p_play"),
         p_play_label=p_play_label(p["forecast"].get("p_play_info")),
+        book_main_line=None if p.get("book_main_line") is None else float(p["book_main_line"]),
+        rung_cal=RungCal(**rc) if (rc := clean_rung_cal(p.get("rung_cal"))) else None,
     )
 
 
@@ -352,6 +362,63 @@ def register(app: FastAPI) -> None:
                     under_price=int(posted["under_price"]) if is_main and priced else None,
                 )
         raise HTTPException(404, "no forecast for that player and stat")
+
+    @app.get("/api/card/{game_id}/{player_id}/{stat}", response_model=CardView)
+    def card(game_id: str, player_id: int, stat: str, store: StoreDep) -> CardView:
+        """Quick stats and the full distribution for one prop, as of before tip. Fetched only when
+        the user opens it, so the blind swipe deck itself never carries a forecast."""
+        g = _need_game(store, game_id)
+        if stat not in STATS:
+            raise HTTPException(404, "unknown stat")
+        pl = next((p for p in g["players"] if p["player_id"] == player_id), None)
+        if pl is None or stat not in pl["props"]:
+            raise HTTPException(404, "no forecast for that player and stat")
+        pr = pl["props"][stat]
+        view = _prop_view(stat, pr)
+        me, opp = (g["home"], g["away"]) if pl["side"] == "home" else (g["away"], g["home"])
+        stats: CardStats | None = None
+        if store.history is not None and stat in store.history.stats:
+            b = build_breakdown(store.history, g, pl, stat, float(pr["line"]), "over")
+            t = b.teammates
+            stats = CardStats(
+                as_of_date=b.as_of_date,
+                prior_games=b.prior_games,
+                last5=[c.value for c in b.chips[:5]],
+                last10=[c.value for c in b.chips],
+                avg5=b.last5.avg,
+                avg10=b.last10.avg,
+                avg_season=b.season.avg,
+                n_season=b.season.n,
+                min5=b.last5.avg_minutes,
+                min_season=b.season.avg_minutes,
+                hit10_over=HitTen(
+                    n=b.last10.n, hits=b.last10.hits, pushes=b.last10.pushes, line=b.line
+                ),
+                teammates_out=[MateOut(name=m.name, status=m.status) for m in t.items],
+                teammates_known=t.report_as_of_utc is not None,
+            )
+        return CardView(
+            prop_id=view.prop_id,
+            game_id=game_id,
+            player_id=player_id,
+            player=pl["name"],
+            team=me["abbr"],
+            opponent=opp["abbr"],
+            home=pl["side"] == "home",
+            stat=stat,
+            line=view.line,
+            line_source=view.line_source,
+            over_price=view.over_price,
+            under_price=view.under_price,
+            price_book=view.price_book,
+            book_main_line=view.book_main_line,
+            rung_cal=view.rung_cal,
+            dist=Dist(**dist_grid(pr["forecast"])),
+            stats=stats,
+            forecast_stamp=view.forecast_stamp,
+            model_label=view.model_label,
+            tip_utc=str(g["tip_utc"]),
+        )
 
     @app.get("/api/breakdown/{game_id}/{player_id}/{stat}", response_model=Breakdown)
     def breakdown(

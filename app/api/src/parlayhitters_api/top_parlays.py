@@ -150,6 +150,12 @@ class Gate(_Strict):
         return self
 
 
+class Fixture(BaseModel):
+    model_config = ConfigDict(extra="ignore", frozen=True)
+    kind: str = Field(max_length=60)
+    label: str = Field(max_length=600)
+
+
 class TopParlays(_Strict):
     schema_: Literal["top_parlays/2"] = Field(alias="schema")
     illustration: bool
@@ -162,6 +168,8 @@ class TopParlays(_Strict):
     empty_reason: str | None
     sizes: dict[Literal["2", "3"], list[Ticket]]
     caveats: list[str]
+    # Optional: a hindsight illustration rebuilt from stored past rows says so (kind, label).
+    fixture: Fixture | None = None
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -190,6 +198,8 @@ class TopParlays(_Strict):
                 raise ValueError("positive_ev_found without an open gate and a low bound above 0")
         for c in self.caveats:
             _clean(c)
+        if self.fixture is not None:
+            _clean(self.fixture.label)
         return self
 
 

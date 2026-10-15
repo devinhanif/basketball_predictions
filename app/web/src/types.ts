@@ -100,6 +100,9 @@ export interface PropView {
   /** Chance to play (0 to 1) and the sentence naming its source; null when none is stored. */
   p_play: number | null;
   p_play_label: string | null;
+  /** Optional export fields (docs/contracts/rung_cal_export_v1.md); null when the export holds none. */
+  book_main_line?: number | null;
+  rung_cal?: RungCal | null;
 }
 
 export interface PlayerView {
@@ -242,4 +245,63 @@ export interface ProbAtLine {
   is_main_line: boolean;
   over_price: number | null;
   under_price: number | null;
+}
+
+export interface RungCal {
+  book: string;
+  main_line: number;
+  price_at: string | null;
+  map_version: string;
+  map_sha8: string;
+  lines: { line: number; p_over: number }[];
+}
+
+/** P(Y >= k) for k = 0, 1, 2, ...: P(over k.5) = p_ge[k + 1]. */
+export interface Dist {
+  method: "exact" | "quantile";
+  n: number | null;
+  p_ge: number[];
+  line_min: number;
+  line_max: number;
+  mean: number | null;
+}
+
+export interface CardStats {
+  as_of_date: string;
+  prior_games: number;
+  /** Most recent first. */
+  last5: number[];
+  last10: number[];
+  avg5: number | null;
+  avg10: number | null;
+  avg_season: number | null;
+  n_season: number;
+  min5: number | null;
+  min_season: number | null;
+  hit10_over: { n: number; hits: number; pushes: number; line: number };
+  teammates_out: { name: string; status: string }[];
+  teammates_known: boolean;
+}
+
+export interface CardView {
+  prop_id: string;
+  game_id: string;
+  player_id: number;
+  player: string;
+  team: string;
+  opponent: string;
+  home: boolean;
+  stat: Stat;
+  line: number;
+  line_source: "posted" | "reference";
+  over_price: number | null;
+  under_price: number | null;
+  price_book: string | null;
+  book_main_line: number | null;
+  rung_cal: RungCal | null;
+  dist: Dist;
+  stats: CardStats | null;
+  forecast_stamp: string;
+  model_label: string;
+  tip_utc: string;
 }
