@@ -183,3 +183,11 @@ Class checks: the reliability table is at the point that matters (the tail, six 
 
 === RESULTS BELOW ===
 (none: draft; no tail map fit on a real label, nothing scored)
+
+## Result (run 2026-10-15 08:38 CDT; frozen defa605 sha 8a88656f, pin 9fb0eec 759a756c; reports/prereg_tail_leg_cal/results/results.json)
+**Word: NOT_FIXED.** P0 (problem exists), P1, P3, P6, P7, P8 pass; **P2n (log loss no worse than CAL) and P4 (both seasons) fail.**
+- DK q >= .65 gap, pooled: CAL -0.034 [-0.058, -0.010] -> TAIL_H +0.0005 [-0.024, +0.024] (n 1,746). q >= .60: TAIL_H +0.005 [-0.006, +0.017] (n 7,405).
+- By season, the hinge does not travel: 2023 q>=.65 CAL -0.021 -> TAIL_H +0.017 (overcorrects), log loss +0.0005; 2024 CAL -0.047 -> TAIL_H -0.017, log loss -0.0027.
+  The tail's overconfidence is not stable season to season (2024 roughly twice 2023), so a walk-forward map closes the pooled gap but not each season.
+- TAIL_H - CAL log loss at q >= .60: +0.0001 [-0.0010, +0.0012]. Median beta -0.37 (P8 kept order).
+- Reading: the pooled confident-leg gap is real and closable on paper; a stable tail correction is not shown. The panel caveat (top picks run 3-5 pts high) stays; no map ships.
