@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "./api";
-import { stamp } from "./format";
+import { ageNote, stamp } from "./format";
 import { Shell } from "./components";
 import { useRoute } from "./router";
 import { Game } from "./pages/Game";
@@ -22,7 +22,7 @@ export function App() {
         setNote(
           m.mode === "fixture_replay"
             ? "A replay of real 2024-25 games, not tonight's slate. Nothing here is advice."
-            : `Data as of ${stamp(m.data_as_of)}. ${m.mode_note}`,
+            : `Data as of ${stamp(m.data_as_of)}. ${ageNote(m.data_as_of) ?? ""} ${m.mode_note}`.replace(/\s{2,}/g, " "),
         );
         if (r.fromCache) setStale(true);
       },

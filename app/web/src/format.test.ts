@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "./format";
+import { ageNote, american, bookName, lineText, num, pct, pctBounded, tipTime } from "./format";
 import { parse } from "./router";
 
 describe("format", () => {
@@ -40,5 +40,18 @@ describe("router", () => {
     expect(parse("#/swipe?date=2024-11-20")).toEqual({ name: "swipe", date: "2024-11-20" });
     expect(parse("#/picks")).toEqual({ name: "picks" });
     expect(parse("#/nonsense")).toEqual({ name: "today", date: null });
+  });
+});
+
+describe("F20: the banner shows its age", () => {
+  const now = new Date("2026-10-17T12:00:00Z");
+  it("is silent while the data is fresh", () => {
+    expect(ageNote("2026-10-16T20:00:00Z", now)).toBeNull();
+    expect(ageNote("2026-10-16T06:00:00Z", now)).toBeNull(); // 30 h exactly
+  });
+  it("counts days once it is old", () => {
+    expect(ageNote("2026-10-16T05:00:00Z", now)).toBe("This data is 1 day old.");
+    expect(ageNote("2026-10-15T08:00:00Z", now)).toBe("This data is 2 days old.");
+    expect(ageNote("not a time", now)).toBeNull();
   });
 });
