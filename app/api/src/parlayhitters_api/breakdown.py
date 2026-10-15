@@ -78,6 +78,8 @@ class Chip(BaseModel):
     minutes: float
     starter: bool
     state: State
+    # True when the data holds that game's page, so the app may link to it (set by the route).
+    linkable: bool = False
 
 
 class Split(BaseModel):

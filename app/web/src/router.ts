@@ -14,13 +14,18 @@ export function legHref(gameId: string, playerId: number, stat: LegStat, side: S
   return `#/leg/${encodeURIComponent(gameId)}/${playerId.toString()}/${stat}${side === "under" ? "?side=under" : ""}`;
 }
 
+/** Hash for a game page. */
+export function gameHref(gameId: string): string {
+  return `#/game/${encodeURIComponent(gameId)}`;
+}
+
 export function parse(hash: string): Route {
   const [path = "", query = ""] = hash.replace(/^#/, "").split("?");
   const parts = path.split("/").filter(Boolean);
   const q = new URLSearchParams(query);
   switch (parts[0]) {
     case "game":
-      return parts[1] ? { name: "game", id: parts[1] } : { name: "today", date: null };
+      return parts[1] ? { name: "game", id: decodeURIComponent(parts[1]) } : { name: "today", date: null };
     case "leg": {
       const [, gameId, pid, stat] = parts;
       const playerId = Number(pid);

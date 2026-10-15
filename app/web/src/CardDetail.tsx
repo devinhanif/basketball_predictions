@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { api } from "./api";
 import { american, bookName, lineText, num, pct } from "./format";
 import { View } from "./components";
+import { gameHref } from "./router";
 import { percentAlong, modelLine, quantile, read, sliderRange, snapHalf } from "./slider";
 import { Chips, DistStrip, ProbBar } from "./Viz";
 import { wilson } from "./stats";
@@ -11,8 +12,14 @@ import { STAT_LABEL } from "./types";
 import { sideText } from "./words";
 
 /** The last ten games, oldest to newest, against tonight's line. Filled dot = went over. */
-export function Sparkline(props: { values: readonly number[]; line: number; label: string }) {
+export function Sparkline(props: {
+  values: readonly number[];
+  line: number;
+  label: string;
+  games?: readonly { game_id: string; date: string; opp: string; value: number; linkable: boolean }[];
+}) {
   const vals = [...props.values].reverse();
+  const games = props.games ? [...props.games].reverse() : [];
   if (vals.length === 0) return null;
   const w = 220;
   const h = 46;
@@ -27,9 +34,21 @@ export function Sparkline(props: { values: readonly number[]; line: number; labe
     <svg class="spark" viewBox={`0 0 ${w.toString()} ${h.toString()}`} role="img" aria-label={props.label}>
       <line x1="0" x2={w} y1={y(props.line)} y2={y(props.line)} class="spark-line" />
       <path d={path} class="spark-path" />
-      {vals.map((v, i) => (
-        <circle key={i} cx={x(i)} cy={y(v)} r="3" class={v > props.line ? "spark-dot over" : "spark-dot"} />
-      ))}
+      {vals.map((v, i) => {
+        const g = games[i];
+        const dot = <circle cx={x(i)} cy={y(v)} r="3" class={v > props.line ? "spark-dot over" : "spark-dot"} />;
+        return g?.linkable === true ? (
+          <a key={i} href={gameHref(g.game_id)} class="spark-link" aria-label={`${g.date} vs ${g.opp}: ${v.toString()}. Open that game.`}>
+            <circle cx={x(i)} cy={y(v)} r="9" class="spark-hit" />
+            {dot}
+          </a>
+        ) : (
+          <g key={i}>
+            {g ? <title>{`${g.date} vs ${g.opp}: ${v.toString()} (not in the loaded data)`}</title> : null}
+            {dot}
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -101,10 +120,12 @@ function Facts(props: { s: CardStats; card: CardView }) {
       <Sparkline
         values={s.last10}
         line={line}
+        games={s.last10_games}
         label={`Last ${s.last10.length.toString()} games, oldest to newest: ${[...s.last10].reverse().join(", ")}. Line ${lineText(line)}.`}
       />
       <p class="small muted spark-key">
-        Dots are the last {s.last10.length} games, oldest to newest. Filled means over {lineText(line)}. Dashed is the line.
+        Dots are the last {s.last10.length} games, oldest to newest. Filled means over {lineText(line)}. Dashed is the line.{" "}
+        {s.last10_games.some((g) => g.linkable) ? "A tappable dot opens that game; older games are not in the loaded data." : "These games are older than the loaded data, so the dots do not open."}
       </p>
     </div>
   );

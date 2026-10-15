@@ -188,6 +188,15 @@ class MateOut(BaseModel):
     status: str
 
 
+class GameDot(BaseModel):
+    game_id: str
+    date: str
+    opp: str
+    home: bool | None
+    value: int
+    linkable: bool
+
+
 class CardStats(BaseModel):
     """Plain as-of-before-tip facts for one prop: nothing from tonight's game."""
 
@@ -195,6 +204,7 @@ class CardStats(BaseModel):
     prior_games: int
     last5: list[int]
     last10: list[int]
+    last10_games: list[GameDot]
     avg5: float | None
     avg10: float | None
     avg_season: float | None
