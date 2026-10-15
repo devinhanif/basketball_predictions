@@ -10,7 +10,7 @@ import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
-import { chanceSentence, didText } from "../words";
+import { chanceSentence, didText, rangeSentence } from "../words";
 
 function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined }) {
   const { prop, player, actual } = props;
@@ -32,19 +32,25 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           Full breakdown: last 10, splits, teammates out
         </a>
       </p>
-      <p class="prop-say">{chanceSentence(player, prop.stat, prop.line, "over", prop.model_p_over, prop.extrapolated)}.</p>
+      <p class="prop-say">
+        {prop.line_source === "reference"
+          ? `${rangeSentence(prop.stat, num(q[9] ?? 0), num(q[4] ?? 0), num(q[14] ?? 0))}.`
+          : `${chanceSentence(player, prop.stat, prop.line, "over", prop.model_p_over, prop.extrapolated)}.`}
+      </p>
       <DistBar player={player} prop={prop} actual={actual} />
-      <div class="kv num">
-        <span>
-          Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
-        </span>
-        {prop.market_p_over !== null ? (
+      {prop.line_source === "posted" ? (
+        <div class="kv num">
           <span>
-            {prop.price_book ? bookName(prop.price_book) : "Sportsbook"}: <b>{pct(prop.market_p_over)}</b>
+            Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
           </span>
-        ) : null}
-        {prop.model_p_push > 0.005 ? <span>Exactly on the line: {pct(prop.model_p_push)}</span> : null}
-      </div>
+          {prop.market_p_over !== null ? (
+            <span>
+              {prop.price_book ? bookName(prop.price_book) : "Sportsbook"}: <b>{pct(prop.market_p_over)}</b>
+            </span>
+          ) : null}
+          {prop.model_p_push > 0.005 ? <span>Exactly on the line: {pct(prop.model_p_push)}</span> : null}
+        </div>
+      ) : null}
       <div class="kv num">
         <span>
           Typical night: <b>{num(q[9] ?? 0)}</b>
@@ -91,10 +97,19 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
           </span>
           {lead ? (
             <span class="player-lead num">
-              <span class="muted small nowrap">
-                Over {lineText(lead.line)} {STAT_SHORT[lead.stat]}
-              </span>
-              <span class="big-num">{pctBounded(lead.model_p_over, lead.extrapolated)}</span>
+              {lead.line_source === "reference" ? (
+                <>
+                  <span class="muted small nowrap">Typical {STAT_SHORT[lead.stat]}</span>
+                  <span class="big-num">{num(lead.q[9] ?? 0)}</span>
+                </>
+              ) : (
+                <>
+                  <span class="muted small nowrap">
+                    Over {lineText(lead.line)} {STAT_SHORT[lead.stat]}
+                  </span>
+                  <span class="big-num">{pctBounded(lead.model_p_over, lead.extrapolated)}</span>
+                </>
+              )}
             </span>
           ) : null}
         </span>

@@ -216,6 +216,10 @@ def _key_props(g: Json, n: int = 3) -> list[dict[str, Any]]:
                 "over_price": v.over_price,
                 "under_price": v.under_price,
                 "forecast_mean": v.forecast_mean,
+                # The middle and the middle half of the forecast, read from the stored quantiles.
+                "q25": v.q[4],
+                "q50": v.q[9],
+                "q75": v.q[14],
                 "model_p_over": v.model_p_over,
                 "market_p_over": v.market_p_over,
                 "extrapolated": v.extrapolated,

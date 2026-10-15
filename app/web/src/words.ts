@@ -91,3 +91,11 @@ export function winSentence(homeP: number, home: string, away: string): string {
 export function lineMarkLabel(source: "posted" | "reference"): string {
   return source === "posted" ? "line" : "our reference line";
 }
+
+/**
+ * What to lead with when the line is only our own reference point (F07): the forecast itself. A chance of
+ * going over a line set at the middle of the forecast is about 50% by construction, so it says nothing.
+ */
+export function rangeSentence(stat: Stat, typical: string, lo: string, hi: string): string {
+  return `A typical night is ${typical} ${NOUN[stat][1]}; half of his nights land between ${lo} and ${hi}`;
+}

@@ -201,3 +201,14 @@ def test_large_json_is_gzipped_and_small_is_not(client: TestClient) -> None:
     plain = client.get("/api/slates/2024-11-12", headers={"Accept-Encoding": "identity"})
     assert "content-encoding" not in plain.headers
     assert plain.json() == big.json()
+
+
+def test_key_props_carry_the_forecast_middle_half(client: TestClient) -> None:
+    """F07: a card can lead with the forecast range, read from the stored quantiles."""
+    slate = client.get("/api/slates/2024-11-12").json()
+    n = 0
+    for g in slate["games"]:
+        for kp in g["key_props"]:
+            n += 1
+            assert kp["q25"] <= kp["q50"] <= kp["q75"]
+    assert n > 0

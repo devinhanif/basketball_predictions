@@ -1,11 +1,11 @@
 import { api } from "../api";
 import { TeamTag, View, WinBars, WinLegend } from "../components";
-import { lineText, longDate, pct, pctBounded, tipTime } from "../format";
+import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
 import { chronological, defaultNight } from "../nights";
 import { useLoad } from "../useLoad";
 import type { GameSummary } from "../types";
 import { STAT_LABEL } from "../types";
-import { doesText, inTen } from "../words";
+import { doesText, inTen, rangeSentence } from "../words";
 import { TopParlaysPanel } from "../TopParlaysPanel";
 import { ParlayCard } from "./Parlay";
 
@@ -25,7 +25,9 @@ function KeyProps({ game }: { game: GameSummary }) {
               {p.name} <span class="muted">{p.team}</span>
             </div>
             <div class="prop-say">
-              {sentenceCase(doesText(p.stat, p.line, "over"))} {inTen(p.model_p_over, p.extrapolated)}
+              {p.line_source === "reference"
+                ? `${rangeSentence(p.stat, num(p.q50), num(p.q25), num(p.q75))}.`
+                : `${sentenceCase(doesText(p.stat, p.line, "over"))} ${inTen(p.model_p_over, p.extrapolated)}`}
             </div>
             <div class="muted small">
               {STAT_LABEL[p.stat]} {p.line_source === "reference" ? "reference line" : "line"} {lineText(p.line)}
@@ -33,8 +35,17 @@ function KeyProps({ game }: { game: GameSummary }) {
             <div class="muted small">{p.model_label}</div>
           </div>
           <div class="prop-nums num">
-            <span class="big-num">{pctBounded(p.model_p_over, p.extrapolated)}</span>
-            {p.market_p_over !== null ? <span class="muted small">book {pct(p.market_p_over)}</span> : null}
+            {p.line_source === "reference" ? (
+              <>
+                <span class="big-num">{num(p.q50)}</span>
+                <span class="muted small">typical night</span>
+              </>
+            ) : (
+              <>
+                <span class="big-num">{pctBounded(p.model_p_over, p.extrapolated)}</span>
+                {p.market_p_over !== null ? <span class="muted small">book {pct(p.market_p_over)}</span> : null}
+              </>
+            )}
           </div>
         </div>
       ))}
