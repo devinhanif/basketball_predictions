@@ -456,3 +456,12 @@ M="-m research.eval.line_calibration_eval"
   real label.
 
 === RESULTS BELOW ===
+
+## Stage 1 result (select, season 2024), run 2026-10-15 00:01 CDT from main 06d76e3 (freeze a5441242), harness pinned
+**Verdict: CALIBRATED; P1-P7 all pass; served object CAL.** reports/prereg_line_calibration/select.json.
+- Pinnacle T-60 (n 37,528 legs, 1,260 games): log loss A0 0.6999, CAL 0.6882, C0 0.6919, coin 0.6931, de-vigged market 0.6865.
+  CAL - A0 -0.0117 [-0.0139, -0.0096]; CAL - C0 -0.0037 [-0.0047, -0.0027].
+- DraftKings T-60 (n 53,752, 1,300 games): CAL - A0 -0.0095 [-0.0109, -0.0081]; CAL - C0 -0.0047 [-0.0056, -0.0039]; CAL 0.6878 vs market 0.6858.
+- Knockouts vs C0 (label only): without z -0.0037 / -0.0047, without x -0.0035 / -0.0045 (Pinnacle / DK): redundant, as R1 says.
+- Reading (per the exposure section): 2024 was partly seen, so this pass earns the next stage only. CAL now beats the coin flip but
+  still trails the market price by 0.0017 (Pinnacle) / 0.0019 (DK): honest probabilities, no edge. Post-result attack not yet run.
