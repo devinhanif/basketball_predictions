@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 
+from research.eval import parlay_joint_cal_eval as pj
 from research.eval import tail_leg_cal_eval as ev
 from research.eval import tail_leg_cal_rule as rule
 
@@ -216,3 +218,83 @@ def test_attach_labels_real_needs_the_hits_and_synthetic_never_reads_them() -> N
         legs, {"draftkings": np.array([1.0, 0.0]), "pinnacle": np.array([0.0, 0.0])}, "real"
     )
     assert real["draftkings"].tolist() == [1.0, 0.0]
+
+
+def _s(
+    point: float,
+    lo: float | None = None,
+    hi: float | None = None,
+    p_neg: float = 0.5,
+    p_pos_min: float = 0.5,
+) -> dict[str, object]:
+    lo = point - 0.01 if lo is None else lo
+    hi = point + 0.01 if hi is None else hi
+    return {
+        "n": 1000,
+        "point": point,
+        "lo": lo,
+        "hi": hi,
+        "game": [lo, hi],
+        "date": [lo, hi],
+        "p_neg": p_neg,
+        "p_pos": 0.5,
+        "p_pos_min": p_pos_min,
+    }
+
+
+def _books(
+    cal65_hi: float = -0.01, g65: float = 0.0, l60: float = -0.001, p_neg: float = 0.01,
+    beta: float = -0.5, bad_stat: bool = False, season_bad: bool = False,
+) -> tuple[dict[str, Any], dict[str, Any]]:  # fmt: skip
+    arm = {
+        "gap": _s(0.0, -0.01, 0.01),
+        "ll_minus_cal": _s(l60, l60 - 0.0005, min(l60 + 0.0005, 0.0002), p_neg=p_neg),
+    }
+    arm65 = {"gap": _s(g65, g65 - 0.02, g65 + 0.02), "ll_minus_cal": _s(-0.002, p_neg=0.5)}
+    sl: dict[str, Any] = {}
+    for s in (2023, 2024):
+        ll_s = 0.001 if (season_bad and s == 2023) else -0.0005
+        sl[f"season_{s}_r60"] = {"TAIL_H": {"ll_minus_cal": ll_s, "gap": 0.0}}
+        sl[f"season_{s}_r65"] = {"TAIL_H": {"gap": g65}}
+    for st in ("fg3m", "reb"):
+        sl[f"stat_{st}"] = {
+            "TAIL_H_contrast": _s(0.001, p_neg=0.5, p_pos_min=0.001 if bad_stat else 0.6)
+        }
+    for v in ("over", "under"):
+        sl[f"side_{v}"] = {"TAIL_H": {"ll_minus_cal": -0.0002}}
+    prim = {
+        "sets": {
+            "r60": {"TAIL_H": arm},
+            "r65": {"TAIL_H": arm65, "CAL": {"gap": _s(-0.04, -0.06, cal65_hi)}},
+        },
+        "slices": sl,
+        "blocks": [{"identity": False, "beta": beta}] * 5 + [{"identity": True}],
+    }
+    other = {"sets": {"r60": {"TAIL_H": {"ll_minus_cal": _s(-0.0003), "gap": _s(0.0)}}}}
+    return prim, other
+
+
+def test_evaluate_issues_each_word_and_p0_wins() -> None:
+    assert ev.evaluate(*_books())["word"] == "TAIL_FIXES"
+    assert ev.evaluate(*_books(l60=-0.0001, p_neg=0.2))["word"] == "TAIL_GAP_FIXED_LL_NOT_SHOWN"
+    assert ev.evaluate(*_books(beta=-0.95))["word"] == "TAIL_FLATTENED"
+    assert ev.evaluate(*_books(g65=-0.05))["word"] == "NOT_FIXED"
+    assert ev.evaluate(*_books(season_bad=True))["word"] == "NOT_FIXED"
+    assert ev.evaluate(*_books(bad_stat=True))["word"] == "NOT_FIXED"
+    # P0 failing wins over a flat tail and over everything else
+    assert ev.evaluate(*_books(cal65_hi=0.01, beta=-0.95))["word"] == "NO_TAIL_PROBLEM"
+    assert ev.evaluate(*_books(cal65_hi=0.01, g65=-0.05))["word"] == "NO_TAIL_PROBLEM"
+
+
+def test_p3_needs_both_intervals_to_contain_zero() -> None:
+    prim, other = _books()
+    prim["sets"]["r65"]["TAIL_H"]["gap"]["date"] = [0.005, 0.03]
+    assert ev.evaluate(prim, other)["checks"]["P3_gap65"] is False
+
+
+def test_preflight_refuses_on_a_version_mismatch(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(pj, "versions", lambda: {"numpy": "0", "polars": "0", "scipy": "0"})
+    with pytest.raises(RuntimeError, match="versions"):
+        ev.preflight(tmp_path)

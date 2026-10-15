@@ -147,6 +147,37 @@ def power(d: dict[str, Any], scored: np.ndarray, draws: int, truth_name: str) ->
     return {k: float(np.mean(v)) for k, v in acc.items()}
 
 
+def word_rates(legs: dict[str, dict[str, Any]], draws: int, truth_name: str) -> dict[str, Any]:
+    """The word-level operating characteristics: the harness's own score_book and evaluate on synthetic labels drawn from the truth, both books,
+    k_null 0 and the TOP slice off (it is a label); B = 1,000 resamples."""
+    cl = {
+        b: ev.Clusters(legs[b]["game"], legs[b]["date"], legs[b]["season"], b=B_SIM)
+        for b in ev.BOOKS
+    }
+    words: dict[str, int] = {}
+    betas: list[float] = []
+    for k in range(draws):
+        sc: dict[str, Any] = {}
+        for bi, b in enumerate(ev.BOOKS):
+            q = legs[b]["q"]
+            y = (
+                np.random.default_rng([4242, k, bi]).random(len(q)) < ev.truth_prob(q, truth_name)
+            ).astype(float)
+            sc[b] = ev.score_book(legs[b], y, cl[b], 0, b, top=False)
+        e = ev.evaluate(sc[ev.PRIMARY], sc["pinnacle"])
+        words[e["word"]] = words.get(e["word"], 0) + 1
+        betas.append(e["beta_median"])
+        if (k + 1) % 10 == 0:
+            ev._log(f"word draw {k + 1}/{draws} ({truth_name})")
+    pos = words.get("TAIL_FIXES", 0) + words.get("TAIL_GAP_FIXED_LL_NOT_SHOWN", 0)
+    return {
+        "draws": draws,
+        "words": words,
+        "P_positive": pos / draws,
+        "beta_median_p5_p50_p95": [float(np.percentile(betas, v)) for v in (5, 50, 95)],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-root", required=True)
@@ -223,6 +254,9 @@ def main(argv: list[str] | None = None) -> int:
             }
         books[b] = info
     res["books"] = books
+    res["word_level"] = {
+        tn: word_rates(legs, a.draws, tn) for tn in ("smooth", "step", "calibrated", "flat")
+    }
     res["date_cdt_end"] = now()
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
