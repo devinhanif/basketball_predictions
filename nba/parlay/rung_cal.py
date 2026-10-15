@@ -266,18 +266,31 @@ def rung_cal_lines(
     *,
     rmap: RungCalMap | None = None,
     counts: dict[str, int] | None = None,
+    served_only: bool = True,
 ) -> list[dict[str, float]] | None:
     """The contract's ``lines`` (docs/contracts/rung_cal_export_v1.md), or None.
 
     ``surv[k-1] = P(Y >= k)`` for k = 1..K (the stored ``p_ge_full`` counts / n); beyond K the survival
     is 0. ``med`` / ``spr`` come from the continuous 199-point grid (``grid_med_spr``). ``starter10``
     None counts as a starter (the harness's fill). Returns None (field dropped) when the stat has no
-    map, or when the calibrated p_over is not monotone non-increasing in line (counted). ``counts``,
-    when given, is incremented: ``ok``, ``no_map``, ``dropped_nonmonotone``, ``below_fit_support``
-    (lines whose raw A0 < 0.5, extrapolation of the map), ``lines``.
+    map, when no line is inside the fit support, or when the calibrated p_over is not monotone
+    non-increasing in line (counted). With ``served_only`` (default, the 2026-10-15 amendment) only lines
+    whose raw model P(over) >= ``FIT_SUPPORT_MIN_P`` (the map's fit set) are returned and the monotone
+    check runs on those alone; lines below it are extrapolation and are omitted (counted as
+    ``below_fit_support``). ``served_only=False`` returns the whole 5th..95th percentile range with the
+    check over all of it (diagnostics). ``counts``, when given, is incremented: ``ok``, ``no_map``,
+    ``dropped_nonmonotone``, ``below_fit_support`` (lines whose raw A0 < 0.5), ``no_supported_lines``,
+    ``lines`` (lines returned).
     """
     c = counts if counts is not None else {}
-    for k in ("ok", "no_map", "dropped_nonmonotone", "below_fit_support", "lines"):
+    for k in (
+        "ok",
+        "no_map",
+        "dropped_nonmonotone",
+        "below_fit_support",
+        "no_supported_lines",
+        "lines",
+    ):
         c.setdefault(k, 0)
     m = rmap if rmap is not None else load_map()
     surv = np.asarray(surv, dtype=float)
@@ -291,12 +304,18 @@ def rung_cal_lines(
     pc = m.apply_many(
         stat, pm, lines, book_main_line, med, spr, 1.0 if starter10 is None else starter10
     )
+    below = pm < FIT_SUPPORT_MIN_P
+    c["below_fit_support"] += int(below.sum())
+    if served_only:
+        lines, pm, pc = lines[~below], pm[~below], pc[~below]
+        if lines.size == 0:
+            c["no_supported_lines"] += 1
+            return None
     if np.any(np.diff(pc) > 0):
         c["dropped_nonmonotone"] += 1
         return None
     c["ok"] += 1
     c["lines"] += int(lines.size)
-    c["below_fit_support"] += int((pm < FIT_SUPPORT_MIN_P).sum())
     return [
         {"line": float(ln), "p_over": round(float(p), 4)} for ln, p in zip(lines, pc, strict=True)
     ]

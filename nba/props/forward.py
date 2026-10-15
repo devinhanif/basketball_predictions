@@ -558,6 +558,9 @@ class ContextSlateResult:
     integer_variant: pl.DataFrame | None = None
     #: optional SHADOW rows: pts lower-tail short-minutes mixture (``lower_tail_variant=True``)
     lower_tail_variant: pl.DataFrame | None = None
+    #: the 199-point grid behind each primary context row, keyed (game_id, player_id, stat);
+    #: persisted by ``nba.daily.grid199`` (never part of the primary frame)
+    grids199: dict[tuple[str, int, str], np.ndarray] = field(default_factory=dict)
 
 
 _AVAIL_SCHEMA: dict[str, Any] = {
@@ -780,6 +783,7 @@ def predict_slate_context(
     n_ctx = 0
     by_key = {(r["game_id"], r["player_id"], r["stat"]): r for r in recency.iter_rows(named=True)}
     done: set[tuple[str, int, str]] = set()
+    grids199: dict[tuple[str, int, str], np.ndarray] = {}
     for stat in PROP_STATS:
         rows, mean, q199 = predict_rows(models, slate_feats, stat, CRPS_TAUS)
         if rows.is_empty():
@@ -793,6 +797,7 @@ def predict_slate_context(
             out_rows.append(
                 _ctx_row(base, float(mean[i]), q19[i], q199[i], cfg_thresholds(config, stat))
             )
+            grids199[key] = np.array(q199[i], dtype=float)
             if (
                 int_variant
                 and int_error is None
@@ -851,7 +856,7 @@ def predict_slate_context(
             )
         except Exception as exc:  # shadow only: never block or alter the primary
             info["lower_tail_error"] = f"{type(exc).__name__}: {exc}"[:200]
-    return ContextSlateResult(primary, recency, info, variant, lt_variant)
+    return ContextSlateResult(primary, recency, info, variant, lt_variant, grids199)
 
 
 def _lower_tail_rows(

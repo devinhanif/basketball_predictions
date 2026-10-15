@@ -198,7 +198,9 @@ def test_lines_range_monotone_and_identity() -> None:
     surv = _surv()
     ident = _stub_map((0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0))  # p = A0
     counts: dict[str, int] = {}
-    lines = rc.rung_cal_lines(surv, 12.5, 1.0, "pts", 12.0, 4.0, rmap=ident, counts=counts)
+    lines = rc.rung_cal_lines(
+        surv, 12.5, 1.0, "pts", 12.0, 4.0, rmap=ident, counts=counts, served_only=False
+    )
     assert lines is not None
     ln = [d["line"] for d in lines]
     assert ln == sorted(ln) and all((x * 2) % 2 == 1 for x in ln) and np.all(np.diff(ln) == 1.0)
@@ -212,6 +214,50 @@ def test_lines_range_monotone_and_identity() -> None:
     assert p[i] == pytest.approx(round(float(surv[12]), 4))  # P(Y >= 13)
     assert counts["ok"] == 1 and counts["lines"] == len(ln) and counts["dropped_nonmonotone"] == 0
     assert counts["below_fit_support"] == sum(1 for d in lines if d["p_over"] < 0.5)
+
+
+def test_served_only_keeps_raw_p_at_least_half_and_checks_those_alone() -> None:
+    surv = _surv()
+    ident = _stub_map((0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    counts: dict[str, int] = {}
+    full = rc.rung_cal_lines(surv, 12.5, 1.0, "pts", 12.0, 4.0, rmap=ident, served_only=False)
+    served = rc.rung_cal_lines(surv, 12.5, 1.0, "pts", 12.0, 4.0, rmap=ident, counts=counts)
+    assert full is not None and served is not None and len(served) < len(full)
+    for d in served:
+        assert surv[int(d["line"] + 0.5) - 1] >= rc.FIT_SUPPORT_MIN_P
+    assert served == [d for d in full if surv[int(d["line"] + 0.5) - 1] >= rc.FIT_SUPPORT_MIN_P]
+    assert counts["below_fit_support"] == len(full) - len(served) and counts["lines"] == len(served)
+
+
+def test_nonmonotone_only_outside_the_support_is_not_dropped() -> None:
+    surv = _surv()
+
+    class Bent:
+        """Calibrated values fall with the line where raw P >= 0.5 and rise again below it."""
+
+        def has(self, stat: str) -> bool:
+            return True
+
+        def apply_many(self, stat: str, pm: np.ndarray, point: np.ndarray, *a: float) -> np.ndarray:
+            return np.where(pm >= rc.FIT_SUPPORT_MIN_P, pm, 0.2 + 0.1 * point / point.max())
+
+    bent: Any = Bent()
+    c_all: dict[str, int] = {}
+    c_srv: dict[str, int] = {}
+    full = rc.rung_cal_lines(
+        surv, 12.5, 1.0, "pts", 12.0, 4.0, rmap=bent, counts=c_all, served_only=False
+    )
+    srv = rc.rung_cal_lines(surv, 12.5, 1.0, "pts", 12.0, 4.0, rmap=bent, counts=c_srv)
+    assert full is None and c_all["dropped_nonmonotone"] == 1
+    assert srv is not None and c_srv["dropped_nonmonotone"] == 0 and c_srv["ok"] == 1
+
+
+def test_no_supported_lines_is_none_and_counted() -> None:
+    counts: dict[str, int] = {}
+    ident = _stub_map((0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    low = np.array([0.4, 0.2, 0.1, 0.05, 0.01])  # every raw P(Y >= k) < 0.5
+    assert rc.rung_cal_lines(low, 2.5, 1.0, "pts", 2.0, 1.0, rmap=ident, counts=counts) is None
+    assert counts["no_supported_lines"] == 1 and counts["ok"] == 0
 
 
 def test_non_monotone_is_dropped_and_counted() -> None:

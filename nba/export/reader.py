@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -428,6 +429,34 @@ def _place_from_rosters(
         }
         if len(teams) == 1:
             out[(gid, pid)] = (teams.pop(), "official_roster")
+
+
+# ------------------------------------------------------------------------------- grid199
+
+GRID_TABLE = "forward_prop_grid199"
+
+
+def prod_grids(
+    con: duckdb.DuckDBPyConnection, game_ids: Iterable[str]
+) -> dict[tuple[str, int, str], tuple[datetime, str, list[float]]]:
+    """Production's persisted continuous 199-point grid (``nba.daily.grid199``) per (game, player,
+    stat): the newest one written strictly before tip. Empty when the table does not exist (a
+    database that predates the persistence)."""
+    gids = sorted(set(game_ids))
+    if not gids or not table_exists(con, GRID_TABLE):
+        return {}
+    marks = ",".join("?" for _ in gids)
+    rows = con.execute(
+        f"""SELECT game_id, player_id, stat, made_at, run_id, q199 FROM (
+              SELECT *, row_number() OVER (PARTITION BY game_id, player_id, stat
+                                           ORDER BY made_at DESC, run_id DESC) rn
+              FROM {GRID_TABLE} WHERE game_id IN ({marks}) AND made_at < tipoff
+                AND game_id NOT LIKE '001%' AND game_id NOT LIKE '003%') WHERE rn = 1""",  # noqa: S608
+        gids,
+    ).fetchall()
+    return {
+        (str(r[0]), int(r[1]), str(r[2])): (r[3], str(r[4]), [float(v) for v in r[5]]) for r in rows
+    }
 
 
 # ------------------------------------------------------------------------------------ lines

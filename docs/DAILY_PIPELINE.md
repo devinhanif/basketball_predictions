@@ -573,6 +573,22 @@ with the cutoff at tip minus 15 min: arm `props_context_residual_t15`, version `
   T-30 family is untouched. `report`: a descriptive T-15 section; lineup analysis prints the before-T-15 share.
 * Not implemented (not in the code-change list): the `live_book_odds` t15 market comparator.
 
+## Production's continuous grid (2026-10-15)
+
+Right after the model stamps, `run_daily` writes the 199 equal-mass quantile values behind every
+`props_context_residual` primary row (the `q199` that `p_ge` and `p_ge_full` are cut from) to the NEW table
+`forward_prop_grid199(run_id, made_at, game_id, tipoff, player_id, stat, model, q199 DOUBLE[], q199_sha)`
+(`nba/daily/grid199.py`). It exists so the app export can compute the CAL-rung map's median and spread
+exactly (`docs/contracts/rung_cal_export_v1.md`); `forward_predictions` keeps only the integer survival.
+
+- Own table, read by neither the scorers nor `canonical_dump`: the replay hash is blind to it (test).
+- Write-on-change per (game, player, stat) on `q199_sha`; a grid whose game has tipped is refused.
+- Own try/except (`grid199.persist` never raises): a failure sets `grid_status = "failed: ..."` and a
+  shadow-error line; no primary row and no exit code changes. Printed as `prop grid199: ...`.
+- Cost: about 0.4 s per run for a 14-game, 1,212-row slate (measured on the preseason rehearsal copy).
+- Recency-routed rows and any run before this table existed have no grid; the export then leaves `rung_cal`
+  null with a counted reason.
+
 ## Model stamps (2026-10-13)
 
 Every `run_daily` that writes prediction rows also writes one row per model name of that run to the NEW

@@ -18,7 +18,7 @@ from typing import Any
 
 import duckdb
 
-from nba.export import guard, reader
+from nba.export import guard, reader, rung_cal_fields
 from nba.export.parlay import parlay_of_day
 
 SCHEMA_VERSION = 2  # additive changes keep 2: the app refuses unknown versions
@@ -114,6 +114,9 @@ TABLES: dict[str, list[tuple[str, str]]] = {
         ("p_play_primary", "DOUBLE"),
         ("p_play_source", "VARCHAR"),
         ("lines_run_id", "VARCHAR"),  # run_id whose prop_lines belong to this row
+        # docs/contracts/rung_cal_export_v1.md: optional display fields, NULL when not exact
+        ("book_main_line", "DOUBLE"),  # newest pre-tip two-sided DraftKings main line
+        ("rung_cal", "VARCHAR"),  # JSON {book, main_line, price_at, map_*, lines[]} or NULL
     ],
     "p_play": [
         ("game_id", "VARCHAR"),
@@ -367,6 +370,7 @@ def build_export(
         box = reader.box_scores(src, window)
         report = reader.explainer_rows(src, fwd.games, window)
         teams_of = reader.player_teams(src, fwd.prop_grids, fwd.games, window, roster_dir)
+        grids = reader.prod_grids(src, (g["game_id"] for g in fwd.games))
     finally:
         if own:
             src.close()
@@ -374,6 +378,7 @@ def build_export(
         tid, how = teams_of.get((prow["game_id"], prow["player_id"]), (None, None))
         prow["team_id"], prow["team_source"] = tid, how
     lines = _read_lines(fwd.prop_grids, window, odds_db, odds_con)
+    rung = rung_cal_fields.attach(fwd.prop_grids, lines.rows, grids)
     parlay = parlay_of_day(parlay_dir or REPO_ROOT / "reports" / "parlay", day.isoformat())
 
     players, teams = _names(
@@ -443,6 +448,7 @@ def build_export(
                      "lines_post_tip": lines.excluded_post_tip},
         "lines": {"status": lines.status, "n_quotes": len(lines.rows),
                   "n_unusable": sum(1 for q in lines.rows if q["unusable"])},
+        "rung_cal": rung,
         "primary_sources": _primary_counts(fwd.prop_grids),
         "parlay": {"status": parlay["status"], "verdict": parlay["verdict"],
                    "n_evaluated": parlay["n_evaluated"]},
