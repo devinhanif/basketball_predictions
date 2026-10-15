@@ -1,0 +1,29 @@
+# COMBO_LINE_CAL repair R1 (DECISIONS 2026-10-15 00:52 CDT, Devin's conditional credit approval):
+# the-odds-api.com HISTORICAL main-line pull of the six combo / defensive player markets.
+# Vendor: https://the-odds-api.com (api.the-odds-api.com/v4), NOT theoddsapi.com (configs/odds.yaml).
+# Read-only. The key comes from the THE_ODDS_API_KEY environment variable and nowhere else.
+# "2023-24" in the decision = games.season 2023 and 2024 (the 2,638 events behind the 160k cap);
+# games.season 2025 is the frozen holdout and is refused in code.
+data_root: /Users/devin/Downloads/nba-prediction   # main checkout: nba.duckdb, schedule, raw, lock
+markets: [player_points_rebounds_assists, player_points_rebounds, player_points_assists,
+          player_rebounds_assists, player_blocks, player_blocks_steals]
+bar_markets: [player_points_rebounds_assists, player_points_rebounds, player_points_assists,
+              player_rebounds_assists]
+bar_books: [draftkings, fanduel]
+regions: [us]                  # Pinnacle (eu) quotes none of these
+snapshot: t60                  # tip - 60 minutes, as configs/odds_history.yaml defines it
+seasons: [2023, 2024]
+
+# Probe (fixed by Devin before it ran). One regular-season game per sampled date, 6 dates per
+# season, one date per equal-width bin of that season's eligible dates (so the sample is spread
+# over the whole season), drawn by random.Random(seed). 12 x 6 markets x 1 region x 10 = 720.
+# The events list is read from the existing cache (data/odds/raw/the_odds_api), cost 0.
+probe_seed: 20261015
+probe_dates_per_season: 6
+probe_season_start: {2023: "2023-12-07", 2024: "2024-10-22"}   # first alternate-ladder snapshots
+probe_max_credits: 720
+bar_min_dates: 10              # of the 12; a date counts only if all four bar markets are quoted
+
+full_max_credits: 160000       # own ledger; stop at the cap and report
+min_server_remaining: 100000
+cost_per_market_region: 10

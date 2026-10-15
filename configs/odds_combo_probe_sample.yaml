@@ -1,0 +1,18 @@
+# The R1 probe sample, committed BEFORE any request (DECISIONS 2026-10-15 00:52 CDT).
+# Produced by `python -m nba.odds combo-pull --stage sample` (seed 20261015, 6 dates per season,
+# one date per equal-width bin of the eligible regular-season dates, one game per date).
+# Spread: both games.season 2023 (on/after 2023-12-07) and 2024 (whole regular season).
+# The probe refuses to pull if the recomputed sample differs from this list.
+games:
+- {date: '2023-12-21', season: 2023, game_id: '0022300381'}
+- {date: '2024-01-05', season: 2023, game_id: '0022300492'}
+- {date: '2024-02-04', season: 2023, game_id: '0022300706'}
+- {date: '2024-02-15', season: 2023, game_id: '0022300576'}
+- {date: '2024-03-14', season: 2023, game_id: '0022300958'}
+- {date: '2024-03-28', season: 2023, game_id: '0022301061'}
+- {date: '2024-11-09', season: 2024, game_id: '0022400199'}
+- {date: '2024-12-16', season: 2024, game_id: '0022401224'}
+- {date: '2024-12-22', season: 2024, game_id: '0022400390'}
+- {date: '2025-02-06', season: 2024, game_id: '0022400732'}
+- {date: '2025-03-07', season: 2024, game_id: '0022400907'}
+- {date: '2025-04-06', season: 2024, game_id: '0022400617'}
