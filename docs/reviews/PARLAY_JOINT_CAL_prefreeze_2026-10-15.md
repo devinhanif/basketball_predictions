@@ -390,3 +390,40 @@ check would fire because the CAL preflight does not touch `y`. R2 closes it.
 - The full-density TOP runtime and the real correlation strengths (they need real `y`).
 - Whether the scoring job fits in the session watchdog (it does not; it must be a background job).
 - The live harness, which is still written after the freeze, as stated.
+
+---
+
+# Diff-only re-check of R1-R5 (revision 3), 2026-10-15
+
+Candidate: `origin/agent/modeler-parlay-joint-cal-2` at 63af759 (diff against 2a9bf05). Rule hash recomputed:
+`a02ae78eb3b7e9474887d96b8861bb870bf2b23e78eb67296a89607b6d9982d9`, which matches. No real outcome was read: the only
+`score` call I made used an unfrozen sha and was refused at the first line.
+
+Verdict: APPROVED
+
+| Item | Fix in 63af759 | Checked by | Status |
+|---|---|---|---|
+| R1 order | `run()` in score mode: freeze and harness pin; then input, gate, `alt_harness_common`, `select.json` and version checks; `pf.require()`; then `load_cal` (leg labels); CAL and A0 check; `pf.require()`; only then `read_rows(y)` and `build_game_stats` | reading the diff, and the new test `test_score_reads_no_label_before_the_hash_checks` (fails every pin, asserts neither `read_rows` nor `load_cal` was called) | done |
+| R2 input pins | `INPUT_PINS`: pairs_2023, pairs_2024, model_rows_2023, model_rows_2024 and gate.json, checked before any label | recomputed against the real files: all 5 equal | done |
+| R3 A0 | A0 = mean `lc.ll(clip(p_model, EPS))` against `select.json` to 1e-9, both books; `p_model` added to the frame | same formula I reproduced exactly (difference 0.0) in the first review | done |
+| R4 stale text | :5 rewritten; :6 and :12 cite v2; :47 states the runtime (45-95 min, 3 h worst case, background) and drops the checkpoint claim ("writes `<book>.json` when a book completes"); :171 states the version pins (numpy 2.5.3, polars 1.44.2, scipy 1.18.1), which the harness records and enforces in score mode; :183 gives the real command and the in-`score` order | text diff; `versions()` equals the pins in this venv | done |
+| R5 freeze procedure | :5: merge, then an empty `prereg(PARLAY_JOINT_CAL): <sha>` commit; the status line is not edited; `HARNESS_FILES` must be in that tree | matches `rule.freeze_commit` / `require_harness_pinned` and the LC precedent 06d76e3 | done |
+
+Commands (run on a detached checkout of 63af759, since removed):
+- `pytest -q --no-cov tests/research/eval/test_parlay_joint_cal_eval.py tests/research/eval/test_parlay_joint_cal_gate.py`: 16 passed, exit 0.
+- `ruff check`, `ruff format --check`, `mypy` on the harness, the pin module and the tests: 0 / 0 / 0.
+- `ev.run(<main>, real=True, …, sha="a"*64)`: refused with "text above the marker hashes to a02ae78e, not aaa…" before any read.
+- `git diff --stat 63af759 main --` on the six pinned helper files (`alt_harness_common`, `line_calibration_eval`, `line_calibration_rule`, `model_clv_eval`, `nba/parlay/copula.py`, the gate): empty, so merging changes none of them.
+- Smoke rehearsal `reports/prereg_parlay_joint_cal/rehearsal_smoke_r2/report.json` (stride 40, synthetic): 10 of 10 preflight checks ok, including the 5 new input pins and the versions. Verdict pass: T1 CALIBRATED and T2 CAL DOES NOT HELP in all four cells, T3 INCONCLUSIVE.
+
+New contradictions: none that moves a number. One stale label remains. The status line (:3) still reads "DRAFT, revision 2, written … 01:15:14", and the header bullets describe revisions 1 and 2 only. Git history (63af759) is the record of revision 3. Leave it, or fix it before the freeze and re-hash; a one-line provenance edit needs no further review.
+
+## Exact freeze steps (main session)
+
+1. Merge `origin/agent/modeler-parlay-joint-cal-2` at 63af759 into `main` without editing `docs/prereg/PARLAY_JOINT_CAL.md` above the marker or any file in `HARNESS_FILES`. That is the default; the optional status-line fix above would change the sha to be used in steps 2 and 3.
+2. On `main`, run `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/PARLAY_JOINT_CAL.md | shasum -a 256` and confirm
+   `a02ae78eb3b7e9474887d96b8861bb870bf2b23e78eb67296a89607b6d9982d9`. Confirm all eight `HARNESS_FILES` exist in the tree.
+3. `git commit --allow-empty -m "prereg(PARLAY_JOINT_CAL): a02ae78eb3b7e9474887d96b8861bb870bf2b23e78eb67296a89607b6d9982d9"`, then push.
+4. Score, as a background job, from the main checkout:
+   `.venv/bin/python -W ignore -m research.eval.parlay_joint_cal_eval score --data-root /Users/devin/Downloads/nba-prediction --sha a02ae78eb3b7e9474887d96b8861bb870bf2b23e78eb67296a89607b6d9982d9`
+   It takes 45-95 minutes, 3 hours at worst, and holds `heavy.lock`. Season 2025 is never loaded, so no holdout row is needed.
