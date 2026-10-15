@@ -1178,3 +1178,18 @@ What would reverse it: F1 failing its minimum-data gate, or the shared-fit desig
 What: (1) the mixture pi / w_q is refit inside each block on the 2019+ window; (2) the G2 no-harm check is S+R vs A0_warm on all rows, with the warm-rebuild row set (the stored arrays are a reproduction check only); (3) the round star-out cut-offs (V_pts >= 20, V_ast >= 5) are replaced by the 0.75 quantile of V among 2020-21 rows with an OUT player (features only), the same method as the other fixed cut-offs. The 2019+ power re-measure waits for Devin's go.
 Why: (1) one window for heads and mixture keeps the contrast clean; (2) the production question is whether adding the column harms anything; (3) Devin preferred a principled cut-off to round numbers. Claude had recommended keeping the round cuts.
 What would reverse it: a pre-freeze review finding that a choice is not reproducible from main, or that it uses data after 2021.
+
+**2026-10-14 20:31 CDT — WOWY_STRUCT 2019+ power re-measure: go (Devin: "yes").**
+What: the modeler re-measures G6 power for WOWY_STRUCT on the 2019+ warm window (forecast widths only; no arm fitted, no contrast computed, 2025 never loaded). Then the adversary's pass on the final text, then Devin signs WOWY_STRUCT and F1_WARM_WINDOW together; F1 freezes first.
+Why: E7 moved every arm to a 2019-10 start, so the old power numbers describe a different design (non-negotiable 8). Claude recommended yes.
+What would reverse it: the re-measure showing any declared cell below its power floor, which blocks the freeze of that cell rather than changing the floor.
+
+**2026-10-14 20:31 CDT — A1: the app export gates on the morning job's data steps, not its overall rc (Devin: "yes").**
+What: the export runs when every data step of the morning job succeeded, even if the Drive backup step failed; any data-step failure still skips it. Steward builds it on a branch with a test and the replay oracle; merge needs Devin's go before Fri 10-17, else it waits until after opening night and strict rc==0 stays.
+Why: the first real run (10-14) skipped a good export because only the Drive backup failed. Claude recommended this.
+What would reverse it: the oracle moving, or a case where a backup-only failure hides bad data.
+
+**2026-10-14 20:31 CDT — Parlay context copula stays open as a probability question, not a betting one (Devin: "people are gonna play parlays but this is the model's guess too"). Devin's override.**
+What: the result (b6e1fca: context changes cross-leg correlation in 36 cells vs ~5 under placebo; best typical +6.1%, below every measured cost) is NOT closed as a sizing null. It is closed as an EV question (no positive EV after costs) and a new rule is drafted: does a context-conditioned copula forecast same-game parlay outcomes more accurately (log loss / calibration of the joint probability) than the base copula? The app shows the model's parlay probability to people who will play anyway; a better-calibrated number is honest even when the answer is still "keep your money". Claude had recommended closing.
+Why: the app's job includes showing an honest probability, not only finding edges.
+What would reverse it: the new rule's minimum-data gate failing on settled same-game legs, or the rule returning a null.
