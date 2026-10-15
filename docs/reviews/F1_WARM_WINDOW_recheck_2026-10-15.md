@@ -236,3 +236,140 @@ Do not freeze `cebff083` / `2ed1c59c`.
 
 Ledger: none (no result). DECISIONS (main session, if Devin agrees):
 `2026-10-15 | F1_WARM_WINDOW pre-freeze re-check: BLOCKED for sha cebff083 / pin 2ed1c59c (docs/reviews/F1_WARM_WINDOW_recheck_2026-10-15.md). The 10 earlier edits hold, and sha, pin, gate and input hashes reproduce exactly. Two blockers: the kill criterion voids the rule on its own label-free smoke fit, and the stamp section's "cannot create a false pass" is false (about 2% of 2023-24 evaluation rows carry a post-cutoff report, and C is trained on 13.8% such rows in 2021). Fix: kill-criterion carve-out, guard G9 (pass must hold on stamp-unexposed games), planted-future before the fits, configs from the pinned root. Devin to choose Q7 vs Q8 (one repaired-stamp re-run or none) before the result. Reverse if: none; a diff re-check approves the new sha.`
+
+---
+
+# Diff-only re-check of b1148c7 (adversary, 2026-10-15 18:0x CDT; `date` printed 17:59:01 at its start)
+
+Object: `origin/agent/modeler-f1-warm-window-2` b1148c7 (one commit on top of d08d886). Rule sha `9b5a7d6f…9ddc`, pin `39cfe40f…9bd2`,
+GATE_SHA256 `b872a576…146e`. Devin's decisions on Q8 and G9 are in DECISIONS 2026-10-15 17:55 (ff02126). Same constraints as above:
+no fit, no score, no 2025, read-only.
+
+Verdict: APPROVED
+
+Approval condition (it changes neither the sha nor the pin, because `tests/` is not in `HARNESS_FILES`): commit the functional config-read
+test below as `tests/research/f1_warm_window/test_f1_warm_window_config_read.py` on the branch BEFORE the freeze commit. The parenthesis
+bug the modeler fixed in the gate's config read is covered in the branch only by `test_configs_are_read_from_the_pinned_root_never_the_cwd`.
+That test checks that the string `Path("configs` is absent, and a misplaced parenthesis or a wrong key would pass it.
+
+## Checks (unpiped exit codes)
+
+| # | check | command / evidence | result | pass |
+|---|---|---|---|---|
+| 1 | sha | `awk … \| shasum -a 256` at b1148c7 (exit 0) | `9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc` | yes |
+| 2 | pin | `python -m research.eval.f1_warm_window_rule pin` (exit 0) | `39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2` | yes |
+| 3 | gate re-run on real data (NN 8) | `F1_ROOT=… -m research.eval.f1_warm_window_gate ../f1rc/gate_recheck2.json` (exit 0) | byte-identical to the committed gate.json: sha256 `b872a576…146e` = GATE_SHA256 | yes |
+| 4 | preflight | `… f1_warm_window_run check --data-root /Users/devin/Downloads/nba-prediction` (exit 0) | `mismatch_vs_rule: {}` over 11 hashes. FP_NBA / FP_HISTORY changed by definition: static moved to the new `FP_STATIC_MERGED` (m6) | yes |
+| 5 | B1 | prereg line 107 | carve-out for the label-free first-block reproduction of A; no B or C block before the freeze | yes |
+| 6 | B2 text | prereg line 101 (b)-(d) | measured shares quoted correctly. Training-side sign stated as undetermined; the interaction is closed by G9; "appears conservative (unverified …)" restored | yes |
+| 7 | B2 / G9 code | run.py `evaluate`: `g9 = unexposed delta <= -floor and ci_hi < 0`, inside `guards_ok`; `exposed_games()` reads the ids from the pinned gate.json | matches line 14. Scratch `exposed_align.py` (exit 0): the ids are `str` in the evaluation format (e.g. `0022300142`). 2023: 50 of 50 hit evaluation games, 1,043 of 27,619 rows. 2024: 63 of 63, 1,317 of 27,701 rows | yes |
+| 8 | G9 rehearsal | `rehearse --world stamp` (exit 0) -> FAIL_GUARD. `test_stamp_world_clears_on_the_numbers_and_fails_only_g9` asserts that G1-G3 hold and only G9 fails, and that G9 holds in `helps` | yes |
+| 9 | M1 | run.py `run_real`: `smoke_block0` -> `gate.run` planted-future STOP -> `fit_arms`; `test_planted_future_is_checked_before_any_arm_is_fitted` | yes |
+| 10 | M2 | gate `CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs"`; run reads `rule.ROOT / "configs/…"`; `run_real` refuses unless cwd = `rule.ROOT` (tested) | yes |
+| 11 | parenthesis-bug test | scratch `test_config_read_functional.py`, run from a cwd with no `configs/`. It records the kwargs passed to `ContextResidualConfig` by `gate.build`, `gate.stamp_exposure` and `run.load_frames`, and requires them to equal the yaml `model` section. 2 passed, exit 0 on b1148c7 | **no such test in the branch** (condition above). A mutation run to show it fails on a broken read was not executed (sandbox denied); by construction a defaulted config gives `{}` != the model section | condition |
+| 12 | m1-m4, m6 | line 14 G5 wording; `PINNED_VERSIONS` + `PINNED_PYTHON`; `tip_source == "real"` asserted in `load_frames`; absolute `.venv` paths and cwd in line 83; `static_fp` over merged static | yes |
+| 13 | Q7 / Q8 / line 23 | lines 23, 122, 123: one stamp-corrected re-run under a NEW id after a FAIL, decided before the result (DECISIONS 17:55) | consistent | yes |
+| 14 | tests, lint | `pytest -q -p no:cacheprovider --no-cov tests/research/f1_warm_window` 52 passed, exit 0; `ruff check` 0; `ruff format --check` 0; `mypy` (3 modules) 0 | yes |
+
+New contradictions looked for: none that block. Notes, no fix forced:
+(a) G3 now also iterates over the `unexposed` slice. That is harmless: it is looser than G9.
+(b) `exposed_games(root)` ignores its argument and reads from `rule.ROOT`, which is the pinned file, as intended.
+(c) R1 still runs after all three arms are scored in memory. Line 82 now says so, and nothing is printed before it.
+
+## The test to commit before the freeze (verbatim; not pinned)
+
+```python
+"""Functional: the gate and the run read the PINNED configs from a foreign cwd, and parse the `model` section (catches a misplaced parenthesis)."""
+from pathlib import Path
+
+import pytest
+import yaml
+
+from research.eval import f1_warm_window_gate as G
+from research.eval import f1_warm_window_run as R
+
+REPO = Path(G.__file__).resolve().parents[2]
+WANT = yaml.safe_load((REPO / "configs/context_residual.yaml").read_text())["model"]
+
+
+class Stop(Exception):
+    pass
+
+
+def _recorder(seen):
+    real = G.ContextResidualConfig
+
+    def rec(**kw):
+        seen.append(kw)
+        return real(**kw)
+
+    return rec
+
+
+def test_gate_build_and_stamp_exposure_read_pinned_configs(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # no configs/ here
+    seen = []
+    monkeypatch.setattr(G, "ContextResidualConfig", _recorder(seen))
+
+    def boom(*a, **k):
+        raise Stop
+
+    monkeypatch.setattr(G, "load_inputs", boom)
+    with pytest.raises(Stop):
+        G.build(tmp_path, ["x.duckdb"])
+    with pytest.raises(Stop):
+        G.stamp_exposure(tmp_path)
+    assert seen == [WANT, WANT]
+
+
+def test_run_load_frames_reads_pinned_config(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    seen = []
+    monkeypatch.setattr(R, "ContextResidualConfig", _recorder(seen))
+
+    def boom(*a, **k):
+        raise Stop
+
+    monkeypatch.setattr(R, "_frame", boom)
+    with pytest.raises(Stop):
+        R.load_frames(tmp_path)
+    assert seen == [WANT]
+```
+
+(Add type hints if the tests directory is under mypy; ruff/format it on commit.)
+
+## Exact freeze, pin and run steps
+
+```
+cd /Users/devin/Downloads/nba-prediction/.claude/worktrees/modeler-f1-warm-window-2
+git checkout agent/modeler-f1-warm-window-2 && git pull --ff-only     # HEAD must be b1148c7 (plus only the test commit below)
+# 0. commit the functional test (tests/ is not pinned; sha and pin unchanged)
+git add tests/research/f1_warm_window/test_f1_warm_window_config_read.py
+git commit -m "test(F1_WARM_WINDOW): functional config read from a foreign cwd" -- tests/research/f1_warm_window/test_f1_warm_window_config_read.py
+/Users/devin/Downloads/nba-prediction/.venv/bin/python -m pytest -q -p no:cacheprovider --no-cov tests/research/f1_warm_window   # expect 54 passed, exit 0
+git status --short                                                     # pinned files clean
+# 1. freeze
+/Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.eval.f1_warm_window_rule freeze
+#    must print 9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc, else STOP
+git commit --allow-empty -m "prereg(F1_WARM_WINDOW): 9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc"
+# 2. pin (no edit between 1 and 2)
+/Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.eval.f1_warm_window_rule pin
+#    must print pin 39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2, else STOP
+git commit --allow-empty -m "harness(F1_WARM_WINDOW): 39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2"
+git push origin agent/modeler-f1-warm-window-2
+# 3. label-free preflight (expect "mismatch_vs_rule": {})
+F1_ROOT=/Users/devin/Downloads/nba-prediction PYTHONPATH=$PWD /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore \
+  -m research.eval.f1_warm_window_run check --data-root /Users/devin/Downloads/nba-prediction
+# 4. run (background, from this cwd; the harness takes data/ops/heavy.lock itself)
+F1_ROOT=/Users/devin/Downloads/nba-prediction PYTHONPATH=$PWD /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore \
+  -m research.eval.f1_warm_window_run run --data-root /Users/devin/Downloads/nba-prediction \
+  --sha 9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc \
+  > /Users/devin/Downloads/nba-prediction/data/ops/f1_warm_window_run.log 2>&1
+```
+
+Order relative to WOWY_STRUCT is unchanged: no WOWY arm is fitted and nothing is scored on `A0_warm` before step 1. The live job must not
+rewrite season <= 2024 rows between step 3 and step 4, or the run STOPs at the preflight; that is the safe direction.
+
+## Proposed DECISIONS row (drafted, not appended)
+
+`2026-10-15 | F1_WARM_WINDOW diff re-check of b1148c7: APPROVED (docs/reviews/F1_WARM_WINDOW_recheck_2026-10-15.md). sha 9b5a7d6f, pin 39cfe40f, gate b872a576 reproduced on real data; B1, B2/G9, M1, M2, m1-m6 applied; G9 ids align with the evaluation keys (2023 50 games / 1,043 rows, 2024 63 / 1,317). Condition: commit the functional config-read test before the freeze (not pinned; sha and pin unchanged). Reverse if: the freeze or pin command prints anything else.`
