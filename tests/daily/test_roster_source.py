@@ -145,3 +145,43 @@ def test_autofill_cap_respected(con: duckdb.DuckDBPyConnection, tmp_path: Path) 
     )
     assert len(calls) == 4 and out["pulled"] == 4 and out["over_cap"] == 6
     assert out["loaded"] == 4
+
+
+def test_autofill_mixes_old_eight_column_caches_with_fresh_pulls(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    """Caches written before first_season / draft_status existed (8 columns) next to a fresh
+    10-column pull used to raise 'schema lengths differ' and load nothing (2026-10-15)."""
+    from nba.ingest.players_static import autofill_players_static
+
+    old = tmp_path / "players_static"
+    old.mkdir()
+    pl.DataFrame(
+        {
+            "player_id": [7101], "position": ["Guard"], "height_in": [77.0], "weight_lb": [200.0],
+            "birth_date": [None], "draft_year": [2026], "draft_pick": [7], "college": ["Duke"],
+        },
+        schema_overrides={"birth_date": pl.Date},
+    ).write_parquet(old / "7101.parquet")  # fmt: skip
+    pl.DataFrame({"person_id": [7102], "display_first_last": ["x"]}).write_parquet(
+        old / "7102.parquet"
+    )  # a stray non-static frame: only that player fails
+    calls: list[int] = []
+    base = _static_fetch(calls)
+
+    def fetch10(pid: int) -> pl.DataFrame:  # a current pull: 10 columns
+        return base(pid).with_columns(
+            pl.lit(2026, dtype=pl.Int64).alias("first_season"),
+            pl.lit("drafted").alias("draft_status"),
+        )
+
+    out = autofill_players_static(con, [7101, 7102, 7103], data_dir=tmp_path, fetch=fetch10)
+    assert calls == [7103] and out["pulled"] == 1
+    assert out["loaded"] == 2 and out["failed"] == 1
+    got = dict(
+        con.execute(
+            "SELECT player_id, draft_pick FROM players_static WHERE player_id IN (7101, 7103)"
+        ).fetchall()
+    )
+    assert got[7101] == 7  # the draft slot reaches the table
+    assert 7103 in got

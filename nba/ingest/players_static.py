@@ -158,6 +158,34 @@ def _normalize_player_info(frame: pl.DataFrame, player_id: int) -> pl.DataFrame:
     )
 
 
+_DTYPES: dict[str, pl.DataType | type[pl.DataType]] = {
+    "player_id": pl.Int64,
+    "position": pl.Utf8,
+    "height_in": pl.Float64,
+    "weight_lb": pl.Float64,
+    "birth_date": pl.Date,
+    "draft_year": pl.Int64,
+    "draft_pick": pl.Int64,
+    "college": pl.Utf8,
+    "first_season": pl.Int64,
+    "draft_status": pl.Utf8,
+}
+
+
+def conform_frame(frame: pl.DataFrame) -> pl.DataFrame:
+    """One cached frame as exactly ``_SCHEMA`` columns and dtypes. Caches written before the F9b
+    columns (``first_season``, ``draft_status``) have 8 columns; concatenating them with new
+    10-column frames raised ``ComputeError: schema lengths differ`` and loaded nothing (found
+    2026-10-15: 111 cached frames, 105+ rostered rookies without a draft-slot prior). Missing
+    columns become NULL (meaning "not pulled with these fields yet"). A frame without
+    ``player_id`` is not a players_static frame and raises."""
+    if "player_id" not in frame.columns:
+        raise ValueError(f"not a players_static frame: columns {frame.columns}")
+    return frame.with_columns(
+        [pl.lit(None, dtype=dt).alias(c) for c, dt in _DTYPES.items() if c not in frame.columns]
+    ).select([pl.col(c).cast(dt) for c, dt in _DTYPES.items()])
+
+
 def _has_cache(path: Path) -> bool:
     """A cached frame counts only if it has columns AND rows: an empty file is a cached empty
     response (30 zero-column ones, keyed by truncated team ids, found 2026-10-11), never data."""
@@ -229,18 +257,18 @@ def pull_players_static(
     for i, pid in enumerate(player_ids, 1):
         path = out_dir / f"{pid}.parquet"
         if _has_cache(path):
-            frames.append(pl.read_parquet(path))
+            frames.append(conform_frame(pl.read_parquet(path)))
         else:
             if rate_limiter is not None:
                 rate_limiter.wait()
             frame = _fetch_with_retry(pid)
             _write_cache(frame, path)
-            frames.append(frame)
+            frames.append(conform_frame(frame))
         if progress_every and i % progress_every == 0:
             print(f"...players_static {i}/{len(player_ids)}", flush=True)
     if not frames:
         return pl.DataFrame(schema={c: pl.Utf8 for c in _SCHEMA})
-    return pl.concat(frames, how="vertical_relaxed")
+    return pl.concat(frames, how="vertical")
 
 
 def load_players_static(con: duckdb.DuckDBPyConnection, df: pl.DataFrame) -> int:
@@ -290,14 +318,14 @@ def autofill_players_static(
         path = out_dir / f"{pid}.parquet"
         try:
             if _has_cache(path):
-                frames.append(pl.read_parquet(path))
+                frames.append(conform_frame(pl.read_parquet(path)))
                 continue
             if rate_limiter is not None:
                 rate_limiter.wait()
             frame = (fetch or _fetch_with_retry)(pid)
             out_dir.mkdir(parents=True, exist_ok=True)
             _write_cache(frame, path)
-            frames.append(frame)
+            frames.append(conform_frame(frame))
             pulled += 1
         except Exception as exc:
             failed += 1
@@ -307,7 +335,7 @@ def autofill_players_static(
         try:
             con.execute("BEGIN")
             try:
-                loaded = load_players_static(con, pl.concat(frames, how="vertical_relaxed"))
+                loaded = load_players_static(con, pl.concat(frames, how="vertical"))
                 con.execute("COMMIT")
             except Exception:
                 con.execute("ROLLBACK")
