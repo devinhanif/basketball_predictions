@@ -3,7 +3,7 @@
 Nothing here writes, fits, loads a model, or touches the network. Every query is bounded to the
 allowed seasons in SQL (see ``guard``); a final assertion re-checks the rows. Timestamps are
 naive UTC exactly as stored (``forward_predictions.made_at`` / ``tipoff``); ``game_date`` is the
-Eastern date. A forecast row is exported only if ``made_at <= tipoff`` (never a post-tip row) and
+Eastern date. A forecast row is exported only if ``made_at < tipoff`` (never a post-tip row) and
 carries ``lead_minutes = tipoff - made_at`` so the consumer can apply its own cutoff
 (the scoring rule is ``made_at <= tipoff - 60 min``; the T-30 refresh lands after it).
 """
@@ -161,7 +161,7 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
     post_tip = 0
     for r in raw:
         made_at, tipoff = r[1], r[3]
-        if made_at > tipoff:
+        if made_at >= tipoff:  # the store refuses made_at >= tipoff (LeakageError); so do we
             post_tip += 1
             continue
         gdate = r[9] or et_date(tipoff)
@@ -237,6 +237,7 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
     avg = [a for a in avg if a["game_id"] not in dropped_games]
     props.extend(avg)
     pplay = best_model.pplay_rows(con, blo, bhi, window.seasons, window.first, window.day, et_date)
+    pplay = [p for p in pplay if p["game_id"] not in dropped_games]  # no teams: never shown
     best_model.reconcile_pplay(pplay, props)
     best_model.mark_primary(props, pplay, best_model.ok_avg_runs(con))
     used = {(w["run_id"], w["model_name"]) for w in win} | {
