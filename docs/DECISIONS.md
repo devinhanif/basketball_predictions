@@ -1219,3 +1219,8 @@ What would reverse it: Devin saying the reading of his message is wrong (before 
 What: draft pre-registrations, with minimum-data gates measured on real data (non-negotiable 8), for (1) CAL at alternate rungs, (2) parlay joint calibration after leg CAL, (3) Kalshi/Polymarket ladder calibration (forward-only), (4) combo and stocks line calibration, (5) game-winner probability recalibration vs Kalshi. Drafts only: no freeze or result without review; season 2025 untouched; each rule its own id.
 Why: LINE_CALIBRATION Stage 1 passed (T493) and the same overconfidence shows in T490/T491/COMBO G1.
 What would reverse it: a gate that fails after the data-capture audit closes that rule as DATA, not a variant.
+
+**2026-10-15 00:39 CDT — Top-3 parlay panel merged into the app now (Devin: "Put it in the app now"). Devin's override of review-before-merge for app/ only.**
+What: agent/app-top-parlays (app/ only, 13 files; API 213 passed, web 54 passed, typecheck 0 on main) merged. Shows the synthetic illustration fixture until the market producer (agent/market-top-parlays) writes real files; nothing deployed or published; the producer is not wired into the nightly job.
+Why: Devin wants the panel visible for opening night.
+What would reverse it: the post-merge adversary review finding a number shown without its source, or misleading wording.
