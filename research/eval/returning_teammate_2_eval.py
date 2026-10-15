@@ -41,7 +41,9 @@ FLOOR = -0.005  # pts, RT minus A0, integer CRPS, affected rows
 CLOSE_AT = -0.002  # a season whose point estimate is above this closes the rule
 NOHARM = 0.001  # upper CI of RT - A0 on ALL rows
 PL_MARGIN = -0.003  # RT - PL on affected rows, pts, each season
-NOISE_TOL = -0.002  # NOISE - CTRL on affected rows: a gain this large with CI upper < 0 FAILS (to be re-sized from the K=50 permutation null before the freeze)
+NOISE_TOL: float | None = (
+    None  # NOISE - CTRL on affected rows: a gain this large with CI upper < 0 FAILS. None until `null` (K >= 50) is run and the value is written into the rule; `run` refuses while None.
+)
 SLICE_TOL = 0.01
 COV_TAUS = (0.10, 0.20, 0.80, 0.90)
 COV_TOL = (
@@ -157,9 +159,9 @@ def score_arms(
     for stat in qi:
         per: dict[str, Any] = {}
         sc = {arm: crps_int(q, y[stat]) for arm, q in qi[stat].items()}
-        for s in SEASONS:
-            m = season == s
-            bt = Boot(gid[m], seed + s)
+        for s in (*SEASONS, "pooled"):
+            m = np.isin(season, SEASONS) if s == "pooled" else season == s
+            bt = Boot(gid[m], seed + (1 if s == "pooled" else s))
             sub = lambda v, mm=m: v[mm]  # noqa: E731
             ma = aff[m]
             d_rt = sub(sc["RT"] - sc["A0"])
@@ -196,7 +198,7 @@ def score_arms(
             per[str(s)] = block
         out[stat] = per
     # BH over the three secondary stats within each season, on the one-sided affected-rows p
-    for s in SEASONS:
+    for s in (*SEASONS, "pooled"):
         sec = [st for st in ("reb", "ast", "fg3m") if st in out]
         if sec:
             adj = bh_adjust(np.array([out[st][str(s)]["p_one_sided_affected"] for st in sec]))
@@ -206,22 +208,29 @@ def score_arms(
 
 
 def decide(sc: dict[str, Any]) -> dict[str, Any]:
-    """The rule's words from ``score_arms`` output (pts is the claim; guards on all four stats)."""
+    """The rule's words from ``score_arms`` output (option B: ONE pooled 2023+2024 test; pts is the claim, guards on all four stats).
+
+    PASS_POOLED = the pooled pts affected-rows contrast <= FLOOR with CI upper < 0 and every guard holds; it means "consistent with T476", never a
+    production claim. CLOSED = pooled point > CLOSE_AT. GUARD_FAIL = the contrast passes but a guard fails. Else INCONCLUSIVE. The per-season
+    points are reported as ``consistency`` (both negative) and do not vote."""
     pts = sc["pts"]
-    seas: dict[str, str] = {}
-    for s in SEASONS:
-        b = pts[str(s)]["RT_minus_A0_affected"]
-        if b["point"] <= FLOOR and b["hi"] < 0:
-            seas[str(s)] = "PASS"
-        elif b["point"] > CLOSE_AT:
-            seas[str(s)] = "CLOSED"
-        else:
-            seas[str(s)] = "INCONCLUSIVE"
+    b = pts["pooled"]["RT_minus_A0_affected"]
+    if b["point"] <= FLOOR and b["hi"] < 0:
+        prim = "PASS"
+    elif b["point"] > CLOSE_AT:
+        prim = "CLOSED"
+    else:
+        prim = "INCONCLUSIVE"
     guards: dict[str, bool] = {}
     for st in sc:
+        guards[f"G1_no_harm_{st}_pooled"] = bool(
+            sc[st]["pooled"]["RT_minus_A0_all"]["hi"] <= NOHARM
+        )
         for s in SEASONS:
             guards[f"G1_no_harm_{st}_{s}"] = bool(sc[st][str(s)]["RT_minus_A0_all"]["hi"] <= NOHARM)
-    for s in SEASONS:
+    for s in (
+        "pooled",
+    ):  # G2, G3, G5, G6 vote on the pooled test only; per-season rows are reported
         pl_ = pts[str(s)].get("RT_minus_PL_affected")
         guards[f"G2_beats_placebo_{s}"] = bool(pl_ is not None and pl_["point"] <= PL_MARGIN)
         cov = pts[str(s)].get("coverage_A0_RT")
@@ -231,7 +240,7 @@ def decide(sc: dict[str, Any]) -> dict[str, Any]:
         )
         nz = pts[str(s)].get("NOISE_minus_CTRL_affected")
         guards[f"G3_noise_does_not_win_{s}"] = not (
-            nz is not None and nz["point"] <= NOISE_TOL and nz["hi"] < 0
+            nz is not None and NOISE_TOL is not None and nz["point"] <= NOISE_TOL and nz["hi"] < 0
         )
         bad = [
             k
@@ -239,22 +248,14 @@ def decide(sc: dict[str, Any]) -> dict[str, Any]:
             if v.get("reported", True) and v.get("point") is not None and v["point"] > SLICE_TOL
         ]
         guards[f"G5_slices_not_worse_{s}"] = not bad
-    all_pass = all(guards.values())
-    if not all_pass:
-        word = (
-            "GUARD_FAIL"
-            if all(v == "PASS" for v in seas.values())
-            else "CLOSED"
-            if "CLOSED" in seas.values()
-            else "INCONCLUSIVE"
-        )
-    elif all(v == "PASS" for v in seas.values()):
-        word = "PASS_STAGE1"
-    elif "CLOSED" in seas.values():
-        word = "CLOSED"
-    else:
-        word = "INCONCLUSIVE"
-    return {"word": word, "seasons": seas, "guards": guards}
+    consistency = all(pts[str(s)]["RT_minus_A0_affected"]["point"] < 0 for s in SEASONS)
+    word = ("PASS_POOLED" if all(guards.values()) else "GUARD_FAIL") if prim == "PASS" else prim
+    return {
+        "word": word,
+        "primary": prim,
+        "consistency_both_seasons_negative": consistency,
+        "guards": guards,
+    }
 
 
 # ------------------------------------------------------------------------------------ data
@@ -513,6 +514,68 @@ def noise_frame(fr: pl.DataFrame, cols: tuple[str, ...], seed: int) -> pl.DataFr
     return fr.with_columns(*[pl.Series("nz_" + c, fr[c].to_numpy()[idx]) for c in cols])
 
 
+def null_threshold(deltas: list[float]) -> dict[str, float]:
+    """G3 size from K permutation draws of NOISE - CTRL (pooled pts affected rows): mean, sd, and the proposed tolerance
+    ``max(0.001, mean - 2 sd)`` negated into a gain threshold (a NOISE gain beyond it fails the guard)."""
+    d = np.asarray(deltas, dtype=float)
+    mu, sd = float(d.mean()), float(d.std(ddof=1))
+    return {
+        "k": int(len(d)),
+        "mean": mu,
+        "sd": sd,
+        "min": float(d.min()),
+        "tol": float(min(-0.001, mu - 2.0 * sd)),
+    }
+
+
+def null(k: int, out: Path) -> dict[str, Any]:
+    """Permutation null for G3. Needs labels (training residuals) but builds NO RT arm: CTRL once, then K walks of the pts heads with the eight
+    columns permuted jointly within season (seed SEED + i), scored NOISE_i - CTRL on pooled affected rows. Per-draw checkpoints in ``out``."""
+    from nba.props.context_residual import stat_feature_names
+    from research.eval import four_factors_eval as FF
+    from research.eval import recent_role_full_eval as RF
+    from research.eval import workload_eval as WE
+
+    w = load_world()
+    f = rt_features(w)
+    study = FF.load_study("nba.duckdb")
+    feats = study["feats"].with_columns(pl.col("player_id").cast(pl.Int64))
+    WE.assert_seasons(feats)
+    cfg = study["cfg"]
+    base = feats.join(
+        f.select("game_id", "player_id", *F.FEATURES_ALL), on=["game_id", "player_id"], how="left"
+    )
+    base = base.with_columns(pl.col(c).fill_null(0.0) for c in F.FEATURES_ALL)
+    pic = dict(np.load(LT / "components_pi.npz", allow_pickle=True))
+    stored = a0_components("pts", with_labels=True)
+    rt = align(f, stored["row_gid"], stored["row_pid"])
+    aff = (rt["ret_min"] > 0) & np.isin(stored["row_season"], SEASONS)
+    y = stored["row_y"]
+    out.mkdir(parents=True, exist_ok=True)
+    names0 = stat_feature_names("pts")
+    t0 = time.time()
+    ctrl = RF.collect_heads(base, "pts", cfg, names0, log=False)
+    rep = RF.heads_vs_stored(ctrl, stored)
+    if not rep["rows_equal"] or rep["max_abs_diff"] > REPRO_TOL:
+        raise RuntimeError(f"G4 failed in the null run: {rep['max_abs_diff']}")
+    c_ctrl = crps_int(RF.arm_qi("pts", ctrl, pic, pic["row_pi"]), y)
+    _log(f"CTRL walk done {time.time() - t0:.0f}s")
+    deltas: list[float] = []
+    for i in range(k):
+        path = out / f"null_{i:03d}.json"
+        if path.exists():
+            deltas.append(json.loads(path.read_text())["delta"])
+            continue
+        fr = noise_frame(base, F.FEATURES_ALL, SEED + i)
+        names = [*names0, *("nz_" + c for c in F.FEATURES_ALL)]
+        comp = RF.collect_heads(fr, "pts", cfg, names, log=False)
+        d = float((crps_int(RF.arm_qi("pts", comp, pic, pic["row_pi"]), y) - c_ctrl)[aff].mean())
+        path.write_text(json.dumps({"i": i, "delta": d}))
+        deltas.append(d)
+        _log(f"null draw {i + 1}/{k}: NOISE - CTRL = {d:+.5f} ({time.time() - t0:.0f}s)")
+    return null_threshold(deltas)
+
+
 def run(sha: str) -> dict[str, Any]:
     from nba.eval.context_residual_eval import TEST_SEASONS
     from nba.props.context_residual import stat_feature_names
@@ -522,6 +585,10 @@ def run(sha: str) -> dict[str, Any]:
     from research.recent_role import placebo as PB
 
     assert max(TEST_SEASONS) <= MAX_SEASON
+    if NOISE_TOL is None:
+        raise RuntimeError(
+            "G3 is not sized: run `null` (K >= 50 permutation null), put its threshold in the rule and the harness, then re-pin"
+        )
     blobs = rule.require_ready(sha)
     _log(f"rule frozen and harness pinned: {rule.pin_of(blobs)[:12]}")
     frozen_at = freeze_time(sha)
@@ -592,9 +659,10 @@ def run(sha: str) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("cmd", choices=("check", "rehearse", "run"))
+    ap.add_argument("cmd", choices=("check", "rehearse", "run", "null"))
     ap.add_argument("--sha", default=None)
     ap.add_argument("--seeds", type=int, default=20)
+    ap.add_argument("--k", type=int, default=50)
     ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args(argv)
     t0 = time.time()
@@ -604,6 +672,10 @@ def main(argv: list[str] | None = None) -> int:
         res = preflight(w, f, rule.declared())
         res["snapshot_source_sha"] = F.snapshot_source_sha()
         print(json.dumps(res, indent=1, default=str))
+        return 0
+    if a.cmd == "null":
+        res = null(max(a.k, 50), a.out or (rule.ROOT / "reports/prereg_returning_teammate_2/null"))
+        print(json.dumps(res, indent=1))
         return 0
     if a.cmd == "rehearse":
         res = rehearse(a.seeds)

@@ -180,8 +180,8 @@ def sizing(
         )  # stored FULL - A0: sd and design effect only (frozen, T467)
         grid = arm_grid("mixture", cs, pic, stat) if stat == "pts" else None
         per: dict[str, Any] = {"null_feature_rows": n_null}
-        for s in SEASONS:
-            m = season == s
+        for s in (*SEASONS, "pooled"):
+            m = np.isin(season, SEASONS) if s == "pooled" else season == s
             fm = m & flag
             cg, cd = C.cluster_stats(d[m], gid[m]), C.cluster_stats(d[m], day[m])
             cgf, cdf = C.cluster_stats(d[fm], gid[fm]), C.cluster_stats(d[fm], day[fm])
@@ -259,7 +259,7 @@ def sizing(
 
 def gate_rows(sz: dict[str, Any], play: dict[str, Any]) -> list[dict[str, Any]]:
     g: list[dict[str, Any]] = []
-    for s in SEASONS:
+    for s in (*SEASONS, "pooled"):
         a = sz["pts"][str(s)]["affected"]
         n_aff = sz["pts"][str(s)]["affected_rows"]
         g.append(
@@ -304,6 +304,9 @@ def gate_rows(sz: dict[str, Any], play: dict[str, Any]) -> list[dict[str, Any]]:
             "decides": False,
         }
     )
+    for x in g:
+        if not x["check"].startswith("pooled") and "decides" not in x and "plays" not in x["check"]:
+            x["decides"] = False  # per-season rows are informational under option B (pooled test)
     pst = float(np.mean([play[str(s)]["play_rate_star"] for s in SEASONS]))
     g.append(
         {

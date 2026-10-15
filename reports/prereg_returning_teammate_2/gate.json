@@ -1,5 +1,5 @@
 {
- "measured_at": "Thu Oct 15 13:20 CDT 2026",
+ "measured_at": "Thu Oct 15 14:21 CDT 2026",
  "snapshot_id": "latest usable snapshot per game: as_of <= coalesce(tip_et, game_date+19h) - 60 min, source nba_official_report",
  "snapshot_source_sha": "dbd13983d157a1aecf60569d5c7ab1bb17dcf9a9eb151f64ee50ffe13276fa15",
  "capture": {
@@ -806,6 +806,63 @@
       "10-20": 0.16021926389976507,
       ">=20": 0.1653640477169889
      }
+    },
+    "pooled": {
+     "n_rows": 55320,
+     "games": 2638,
+     "affected_rows": 8728,
+     "affected_share": 0.15777295733911786,
+     "affected_games": 786,
+     "affected_rotation_rows": 7891,
+     "star_returner_affected_rows": 1495,
+     "deff_game_all": 1.0302792144113468,
+     "deff_date_all": 1.0582349034506717,
+     "all_rows": {
+      "name": "all rows, floor -0.005",
+      "n": 55320.0,
+      "sd_row": 0.335000957109954,
+      "deff": 1.0582349034506717,
+      "se": 0.0014651969398196756,
+      "halfwidth95": 0.002871786002046564,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 18249.30423338314,
+      "expected_effect": -0.0013088876802796242,
+      "power_one_season": 0.005881225897948225,
+      "power_both_seasons": 3.4588818062696904e-05
+     },
+     "affected": {
+      "name": "affected rows, floor -0.005",
+      "n": 8728.0,
+      "sd_row": 0.325887483390932,
+      "deff": 1.0806273267608923,
+      "se": 0.0036261710353361746,
+      "halfwidth95": 0.007107295229258902,
+      "floor": -0.005,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 17635.323908527473,
+      "expected_effect": -0.008296020448335106,
+      "power_one_season": 0.6284754745285505,
+      "power_both_seasons": 0.3949814220838867
+     },
+     "scenarios": {
+      "flag_as_good_as_posthoc(p=1)": {
+       "rows_shifted": 7891,
+       "expected_delta_all_rows": -0.002260336078704674,
+       "expected_delta_affected_rows": -0.014326511442935673
+      },
+      "realistic(p_star,p_rot)": {
+       "rows_shifted": 7891,
+       "expected_delta_all_rows": -0.0013088876802796242,
+       "expected_delta_affected_rows": -0.008296020448335106
+      }
+     },
+     "firing_by_realised_minutes": {
+      "<5": 0.16330431089403272,
+      "5-10": 0.1519741743233176,
+      "10-20": 0.15734730585751153,
+      ">=20": 0.15785424741840992
+     }
     }
    },
    "p_star": 0.8111111111111111,
@@ -926,6 +983,63 @@
       "5-10": 0.21439432336543335,
       "10-20": 0.2234925606891151,
       ">=20": 0.2255391667156373
+     }
+    },
+    "pooled": {
+     "n_rows": 55320,
+     "games": 2638,
+     "affected_rows": 11686,
+     "affected_share": 0.21124367317425885,
+     "affected_games": 1004,
+     "affected_rotation_rows": 10592,
+     "star_returner_affected_rows": 2169,
+     "deff_game_all": 1.0302792144113468,
+     "deff_date_all": 1.0582349034506717,
+     "all_rows": {
+      "name": "all rows, floor -0.005",
+      "n": 55320.0,
+      "sd_row": 0.335000957109954,
+      "deff": 1.0582349034506717,
+      "se": 0.0014651969398196756,
+      "halfwidth95": 0.002871786002046564,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 18249.30423338314,
+      "expected_effect": -0.0019849380433161344,
+      "power_one_season": 0.01980533350820825,
+      "power_both_seasons": 0.00039225123537135656
+     },
+     "affected": {
+      "name": "affected rows, floor -0.005",
+      "n": 11686.0,
+      "sd_row": 0.330558240525668,
+      "deff": 1.1228324439810409,
+      "se": 0.0032402052676054464,
+      "halfwidth95": 0.006350802324506675,
+      "floor": -0.005,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 18853.112690708607,
+      "expected_effect": -0.009396437836406688,
+      "power_one_season": 0.8263787575889467,
+      "power_both_seasons": 0.6829018509942512
+     },
+     "scenarios": {
+      "flag_as_good_as_posthoc(p=1)": {
+       "rows_shifted": 10592,
+       "expected_delta_all_rows": -0.0033345259053052744,
+       "expected_delta_affected_rows": -0.015785210771991083
+      },
+      "realistic(p_star,p_rot)": {
+       "rows_shifted": 10592,
+       "expected_delta_all_rows": -0.0019849380433161344,
+       "expected_delta_affected_rows": -0.009396437836406688
+      }
+     },
+     "firing_by_realised_minutes": {
+      "<5": 0.2104480781482268,
+      "5-10": 0.205115470573628,
+      "10-20": 0.212481426448737,
+      ">=20": 0.2116164156581945
      }
     }
    },
@@ -1048,6 +1162,63 @@
       "10-20": 0.314487079091621,
       ">=20": 0.319856613974261
      }
+    },
+    "pooled": {
+     "n_rows": 55320,
+     "games": 2638,
+     "affected_rows": 17056,
+     "affected_share": 0.30831525668835863,
+     "affected_games": 1369,
+     "affected_rotation_rows": 15459,
+     "star_returner_affected_rows": 2909,
+     "deff_game_all": 1.0302792144113468,
+     "deff_date_all": 1.0582349034506717,
+     "all_rows": {
+      "name": "all rows, floor -0.005",
+      "n": 55320.0,
+      "sd_row": 0.335000957109954,
+      "deff": 1.0582349034506717,
+      "se": 0.0014651969398196756,
+      "halfwidth95": 0.002871786002046564,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 18249.30423338314,
+      "expected_effect": -0.002350137761554002,
+      "power_one_season": 0.035261515737816475,
+      "power_both_seasons": 0.0012433744921282789
+     },
+     "affected": {
+      "name": "affected rows, floor -0.005",
+      "n": 17056.0,
+      "sd_row": 0.3290656934275627,
+      "deff": 1.0458090834876015,
+      "se": 0.0025767377416449594,
+      "halfwidth95": 0.0050504059736241206,
+      "floor": -0.005,
+      "hw_le_floor": false,
+      "n_for_hw_at_floor": 17401.623124040827,
+      "expected_effect": -0.007622515300725105,
+      "power_one_season": 0.840909720556334,
+      "power_both_seasons": 0.7071291581261316
+     },
+     "scenarios": {
+      "flag_as_good_as_posthoc(p=1)": {
+       "rows_shifted": 15459,
+       "expected_delta_all_rows": -0.004693691408385776,
+       "expected_delta_affected_rows": -0.015223675463877881
+      },
+      "realistic(p_star,p_rot)": {
+       "rows_shifted": 15459,
+       "expected_delta_all_rows": -0.002350137761554002,
+       "expected_delta_affected_rows": -0.007622515300725105
+      }
+     },
+     "firing_by_realised_minutes": {
+      "<5": 0.3070715650881291,
+      "5-10": 0.29972684380432085,
+      "10-20": 0.3088292797372331,
+      ">=20": 0.3093173950350623
+     }
     }
    },
    "p_star": 0.7721139430284858,
@@ -1168,6 +1339,63 @@
       "5-10": 0.3882412569690826,
       "10-20": 0.4056382145653876,
       ">=20": 0.4029499911852853
+     }
+    },
+    "pooled": {
+     "n_rows": 55320,
+     "games": 2638,
+     "affected_rows": 21394,
+     "affected_share": 0.38673174258857557,
+     "affected_games": 1626,
+     "affected_rotation_rows": 19395,
+     "star_returner_affected_rows": 4404,
+     "deff_game_all": 1.0302792144113468,
+     "deff_date_all": 1.0582349034506717,
+     "all_rows": {
+      "name": "all rows, floor -0.005",
+      "n": 55320.0,
+      "sd_row": 0.335000957109954,
+      "deff": 1.0582349034506717,
+      "se": 0.0014651969398196756,
+      "halfwidth95": 0.002871786002046564,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 18249.30423338314,
+      "expected_effect": -0.00374241555539646,
+      "power_one_season": 0.19536230115267156,
+      "power_both_seasons": 0.03816642871166714
+     },
+     "affected": {
+      "name": "affected rows, floor -0.005",
+      "n": 21394.0,
+      "sd_row": 0.33065321307170703,
+      "deff": 1.0373850673442275,
+      "se": 0.0023024846716064415,
+      "halfwidth95": 0.004512869956348625,
+      "floor": -0.005,
+      "hw_le_floor": true,
+      "n_for_hw_at_floor": 17428.404089076124,
+      "expected_effect": -0.009677032276551003,
+      "power_one_season": 0.9788876078208524,
+      "power_both_seasons": 0.9582209487452309
+     },
+     "scenarios": {
+      "flag_as_good_as_posthoc(p=1)": {
+       "rows_shifted": 19395,
+       "expected_delta_all_rows": -0.007194851616676784,
+       "expected_delta_affected_rows": -0.018604243780244913
+      },
+      "realistic(p_star,p_rot)": {
+       "rows_shifted": 19395,
+       "expected_delta_all_rows": -0.00374241555539646,
+       "expected_delta_affected_rows": -0.009677032276551003
+      }
+     },
+     "firing_by_realised_minutes": {
+      "<5": 0.38160968358462516,
+      "5-10": 0.37596225478023343,
+      "10-20": 0.39141315398451554,
+      ">=20": 0.3869574222564133
      }
     }
    },
@@ -1292,6 +1520,63 @@
      "10-20": 0.314487079091621,
      ">=20": 0.319856613974261
     }
+   },
+   "pooled": {
+    "n_rows": 55320,
+    "games": 2638,
+    "affected_rows": 17056,
+    "affected_share": 0.30831525668835863,
+    "affected_games": 1369,
+    "affected_rotation_rows": 15459,
+    "star_returner_affected_rows": 2909,
+    "deff_game_all": 1.0302792144113468,
+    "deff_date_all": 1.0582349034506717,
+    "all_rows": {
+     "name": "all rows, floor -0.005",
+     "n": 55320.0,
+     "sd_row": 0.335000957109954,
+     "deff": 1.0582349034506717,
+     "se": 0.0014651969398196756,
+     "halfwidth95": 0.002871786002046564,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 18249.30423338314,
+     "expected_effect": -0.002350137761554002,
+     "power_one_season": 0.035261515737816475,
+     "power_both_seasons": 0.0012433744921282789
+    },
+    "affected": {
+     "name": "affected rows, floor -0.005",
+     "n": 17056.0,
+     "sd_row": 0.3290656934275627,
+     "deff": 1.0458090834876015,
+     "se": 0.0025767377416449594,
+     "halfwidth95": 0.0050504059736241206,
+     "floor": -0.005,
+     "hw_le_floor": false,
+     "n_for_hw_at_floor": 17401.623124040827,
+     "expected_effect": -0.007622515300725105,
+     "power_one_season": 0.840909720556334,
+     "power_both_seasons": 0.7071291581261316
+    },
+    "scenarios": {
+     "flag_as_good_as_posthoc(p=1)": {
+      "rows_shifted": 15459,
+      "expected_delta_all_rows": -0.004693691408385776,
+      "expected_delta_affected_rows": -0.015223675463877881
+     },
+     "realistic(p_star,p_rot)": {
+      "rows_shifted": 15459,
+      "expected_delta_all_rows": -0.002350137761554002,
+      "expected_delta_affected_rows": -0.007622515300725105
+     }
+    },
+    "firing_by_realised_minutes": {
+     "<5": 0.3070715650881291,
+     "5-10": 0.29972684380432085,
+     "10-20": 0.3088292797372331,
+     ">=20": 0.3093173950350623
+    }
    }
   },
   "reb": {
@@ -1378,6 +1663,48 @@
      "5-10": 0.30613279270146987,
      "10-20": 0.314487079091621,
      ">=20": 0.319856613974261
+    }
+   },
+   "pooled": {
+    "n_rows": 55320,
+    "games": 2638,
+    "affected_rows": 17056,
+    "affected_share": 0.30831525668835863,
+    "affected_games": 1369,
+    "affected_rotation_rows": 15459,
+    "star_returner_affected_rows": 2909,
+    "deff_game_all": 1.073234722076021,
+    "deff_date_all": 1.1258577732143367,
+    "all_rows": {
+     "name": "all rows, floor -0.005",
+     "n": 55320.0,
+     "sd_row": 0.1417200979672332,
+     "deff": 1.1258577732143367,
+     "se": 0.0006393403632838883,
+     "halfwidth95": 0.001253107112036421,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 3474.7099064779936,
+     "expected_effect": null
+    },
+    "affected": {
+     "name": "affected rows, floor -0.005",
+     "n": 17056.0,
+     "sd_row": 0.13930221401769785,
+     "deff": 1.0659430088426605,
+     "se": 0.0011012512594288917,
+     "halfwidth95": 0.0021584524684806275,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 3178.4995741207445,
+     "expected_effect": null
+    },
+    "scenarios": {},
+    "firing_by_realised_minutes": {
+     "<5": 0.3070715650881291,
+     "5-10": 0.29972684380432085,
+     "10-20": 0.3088292797372331,
+     ">=20": 0.3093173950350623
     }
    }
   },
@@ -1466,6 +1793,48 @@
      "10-20": 0.314487079091621,
      ">=20": 0.319856613974261
     }
+   },
+   "pooled": {
+    "n_rows": 55320,
+    "games": 2638,
+    "affected_rows": 17056,
+    "affected_share": 0.30831525668835863,
+    "affected_games": 1369,
+    "affected_rotation_rows": 15459,
+    "star_returner_affected_rows": 2909,
+    "deff_game_all": 1.0185327975528116,
+    "deff_date_all": 1.0172526882566229,
+    "all_rows": {
+     "name": "all rows, floor -0.005",
+     "n": 55320.0,
+     "sd_row": 0.09985331828341693,
+     "deff": 1.0185327975528116,
+     "se": 0.0004284586599031467,
+     "halfwidth95": 0.0008397789734101676,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 1560.5301208695646,
+     "expected_effect": null
+    },
+    "affected": {
+     "name": "affected rows, floor -0.005",
+     "n": 17056.0,
+     "sd_row": 0.10036795961978788,
+     "deff": 1.005883863959635,
+     "se": 0.000770779973957782,
+     "halfwidth95": 0.0015107287489572528,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 1557.0772750201972,
+     "expected_effect": null
+    },
+    "scenarios": {},
+    "firing_by_realised_minutes": {
+     "<5": 0.3070715650881291,
+     "5-10": 0.29972684380432085,
+     "10-20": 0.3088292797372331,
+     ">=20": 0.3093173950350623
+    }
    }
   },
   "fg3m": {
@@ -1553,6 +1922,48 @@
      "10-20": 0.314487079091621,
      ">=20": 0.319856613974261
     }
+   },
+   "pooled": {
+    "n_rows": 55320,
+    "games": 2638,
+    "affected_rows": 17056,
+    "affected_share": 0.30831525668835863,
+    "affected_games": 1369,
+    "affected_rotation_rows": 15459,
+    "star_returner_affected_rows": 2909,
+    "deff_game_all": 1.0574711524723146,
+    "deff_date_all": 1.0546586386117172,
+    "all_rows": {
+     "name": "all rows, floor -0.005",
+     "n": 55320.0,
+     "sd_row": 0.06283808935113708,
+     "deff": 1.0574711524723146,
+     "se": 0.0002747363664315585,
+     "halfwidth95": 0.0005384832782058547,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 641.6328722797264,
+     "expected_effect": null
+    },
+    "affected": {
+     "name": "affected rows, floor -0.005",
+     "n": 17056.0,
+     "sd_row": 0.06204762791928652,
+     "deff": 1.0466219886958505,
+     "se": 0.00048605063711771305,
+     "halfwidth95": 0.0009526592487507175,
+     "floor": -0.005,
+     "hw_le_floor": true,
+     "n_for_hw_at_floor": 619.1734916796673,
+     "expected_effect": null
+    },
+    "scenarios": {},
+    "firing_by_realised_minutes": {
+     "<5": 0.3070715650881291,
+     "5-10": 0.29972684380432085,
+     "10-20": 0.3088292797372331,
+     ">=20": 0.3093173950350623
+    }
    }
   },
   "p_star": 0.7721139430284858,
@@ -1565,22 +1976,26 @@
     8241,
     18035.074159036016
    ],
-   "pass": false
+   "pass": false,
+   "decides": false
   },
   {
    "check": "2023: pts affected-rows half-width <= 0.005",
    "value": 0.007396717181753587,
-   "pass": false
+   "pass": false,
+   "decides": false
   },
   {
    "check": "2023: pts power of the pass line >= 0.5 at the realistic effect",
    "value": 0.4393525721693703,
-   "pass": false
+   "pass": false,
+   "decides": false
   },
   {
    "check": "2023: pts all-rows half-width <= 0.005 (no-harm guard is resolvable)",
    "value": 0.00431351389881296,
-   "pass": true
+   "pass": true,
+   "decides": false
   },
   {
    "check": "2024: affected A0 rows >= rows needed for half-width 0.005",
@@ -1588,21 +2003,48 @@
     8815,
     18186.637706743164
    ],
-   "pass": false
+   "pass": false,
+   "decides": false
   },
   {
    "check": "2024: pts affected-rows half-width <= 0.005",
    "value": 0.00718182889054812,
-   "pass": false
+   "pass": false,
+   "decides": false
   },
   {
    "check": "2024: pts power of the pass line >= 0.5 at the realistic effect",
    "value": 0.6273416031367256,
-   "pass": true
+   "pass": true,
+   "decides": false
   },
   {
    "check": "2024: pts all-rows half-width <= 0.005 (no-harm guard is resolvable)",
    "value": 0.004062697173258259,
+   "pass": true,
+   "decides": false
+  },
+  {
+   "check": "pooled: affected A0 rows >= rows needed for half-width 0.005",
+   "value": [
+    17056,
+    17401.623124040827
+   ],
+   "pass": false
+  },
+  {
+   "check": "pooled: pts affected-rows half-width <= 0.005",
+   "value": 0.0050504059736241206,
+   "pass": false
+  },
+  {
+   "check": "pooled: pts power of the pass line >= 0.5 at the realistic effect",
+   "value": 0.840909720556334,
+   "pass": true
+  },
+  {
+   "check": "pooled: pts all-rows half-width <= 0.005 (no-harm guard is resolvable)",
+   "value": 0.002871786002046564,
    "pass": true
   },
   {
@@ -1618,645 +2060,5 @@
   }
  ],
  "gate_pass": false,
- "history_audit": {
-  "capture": {
-   "2013": {
-    "games": 1319,
-    "games_usable_snapshot": 0,
-    "share": 0.0,
-    "games_real_tip": 0
-   },
-   "2014": {
-    "games": 1311,
-    "games_usable_snapshot": 0,
-    "share": 0.0,
-    "games_real_tip": 0
-   },
-   "2015": {
-    "games": 1316,
-    "games_usable_snapshot": 0,
-    "share": 0.0,
-    "games_real_tip": 0
-   },
-   "2016": {
-    "games": 1309,
-    "games_usable_snapshot": 0,
-    "share": 0.0,
-    "games_real_tip": 0
-   },
-   "2017": {
-    "games": 1312,
-    "games_usable_snapshot": 0,
-    "share": 0.0,
-    "games_real_tip": 0
-   },
-   "2018": {
-    "games": 1312,
-    "games_usable_snapshot": 0,
-    "share": 0.0,
-    "games_real_tip": 0
-   },
-   "2019": {
-    "games": 1143,
-    "games_usable_snapshot": 1141,
-    "share": 0.9982502187226596,
-    "games_real_tip": 1143
-   },
-   "2020": {
-    "games": 1171,
-    "games_usable_snapshot": 1170,
-    "share": 0.9991460290350128,
-    "games_real_tip": 1171
-   },
-   "2021": {
-    "games": 1323,
-    "games_usable_snapshot": 1323,
-    "share": 1.0,
-    "games_real_tip": 1323
-   },
-   "2022": {
-    "games": 1320,
-    "games_usable_snapshot": 1318,
-    "share": 0.9984848484848485,
-    "games_real_tip": 1320
-   },
-   "2023": {
-    "games": 1318,
-    "games_usable_snapshot": 1317,
-    "share": 0.9992412746585736,
-    "games_real_tip": 1318
-   },
-   "2024": {
-    "games": 1320,
-    "games_usable_snapshot": 1317,
-    "share": 0.9977272727272727,
-    "games_real_tip": 1320
-   }
-  },
-  "rule_returner_counts": {
-   "2019": {
-    "returner_games": 841,
-    "rotation(pre_mpg>=10)": 485,
-    "star(pre_mpg>=30)": 106,
-    "play_rate": 0.4839476813317479,
-    "play_rate_rotation": 0.6371134020618556,
-    "play_rate_star": 0.7358490566037735,
-    "by_status_tonight": {
-     "available": [
-      0.6545454545454545,
-      165
-     ],
-     "probable": [
-      0.7288135593220338,
-      59
-     ],
-     "questionable": [
-      0.48044692737430167,
-      179
-     ],
-     "unlisted": [
-      0.3881278538812785,
-      438
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 165,
-     "5-9": 179,
-     "10+": 141
-    }
-   },
-   "2020": {
-    "returner_games": 654,
-    "rotation(pre_mpg>=10)": 519,
-    "star(pre_mpg>=30)": 140,
-    "play_rate": 0.5474006116207951,
-    "play_rate_rotation": 0.6319845857418112,
-    "play_rate_star": 0.7642857142857142,
-    "by_status_tonight": {
-     "available": [
-      0.7524752475247525,
-      101
-     ],
-     "probable": [
-      0.8181818181818182,
-      55
-     ],
-     "questionable": [
-      0.588495575221239,
-      226
-     ],
-     "unlisted": [
-      0.38235294117647056,
-      272
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 210,
-     "5-9": 171,
-     "10+": 138
-    }
-   },
-   "2021": {
-    "returner_games": 1123,
-    "rotation(pre_mpg>=10)": 701,
-    "star(pre_mpg>=30)": 162,
-    "play_rate": 0.6010685663401603,
-    "play_rate_rotation": 0.738944365192582,
-    "play_rate_star": 0.9197530864197531,
-    "by_status_tonight": {
-     "available": [
-      0.7202970297029703,
-      404
-     ],
-     "probable": [
-      0.9545454545454546,
-      22
-     ],
-     "questionable": [
-      0.6292134831460674,
-      89
-     ],
-     "unlisted": [
-      0.5049342105263158,
-      608
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 310,
-     "5-9": 272,
-     "10+": 119
-    }
-   },
-   "2022": {
-    "returner_games": 1120,
-    "rotation(pre_mpg>=10)": 625,
-    "star(pre_mpg>=30)": 145,
-    "play_rate": 0.45803571428571427,
-    "play_rate_rotation": 0.6032,
-    "play_rate_star": 0.8137931034482758,
-    "by_status_tonight": {
-     "available": [
-      0.5333333333333333,
-      180
-     ],
-     "probable": [
-      0.7840909090909091,
-      88
-     ],
-     "questionable": [
-      0.4537037037037037,
-      324
-     ],
-     "unlisted": [
-      0.3806818181818182,
-      528
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 278,
-     "5-9": 185,
-     "10+": 162
-    }
-   },
-   "2023": {
-    "returner_games": 1140,
-    "rotation(pre_mpg>=10)": 570,
-    "star(pre_mpg>=30)": 138,
-    "play_rate": 0.46842105263157896,
-    "play_rate_rotation": 0.6456140350877193,
-    "play_rate_star": 0.7971014492753623,
-    "by_status_tonight": {
-     "available": [
-      0.5608465608465608,
-      189
-     ],
-     "probable": [
-      0.8194444444444444,
-      72
-     ],
-     "questionable": [
-      0.49085365853658536,
-      328
-     ],
-     "unlisted": [
-      0.37749546279491836,
-      551
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 253,
-     "5-9": 175,
-     "10+": 142
-    }
-   },
-   "2024": {
-    "returner_games": 1175,
-    "rotation(pre_mpg>=10)": 678,
-    "star(pre_mpg>=30)": 174,
-    "play_rate": 0.512340425531915,
-    "play_rate_rotation": 0.6224188790560472,
-    "play_rate_star": 0.7471264367816092,
-    "by_status_tonight": {
-     "available": [
-      0.6256983240223464,
-      179
-     ],
-     "probable": [
-      0.7764705882352941,
-      85
-     ],
-     "questionable": [
-      0.4946808510638298,
-      376
-     ],
-     "unlisted": [
-      0.44485981308411215,
-      535
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 270,
-     "5-9": 243,
-     "10+": 165
-    }
-   }
-  },
-  "slice_out_all_returner_counts": {
-   "2019": {
-    "returner_games": 454,
-    "rotation(pre_mpg>=10)": 251,
-    "star(pre_mpg>=30)": 55,
-    "play_rate": 0.5308370044052864,
-    "play_rate_rotation": 0.7171314741035857,
-    "play_rate_star": 0.8363636363636363,
-    "by_status_tonight": {
-     "available": [
-      0.6140350877192983,
-      114
-     ],
-     "probable": [
-      0.8285714285714286,
-      35
-     ],
-     "questionable": [
-      0.6515151515151515,
-      66
-     ],
-     "unlisted": [
-      0.41422594142259417,
-      239
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 61,
-     "5-9": 103,
-     "10+": 87
-    }
-   },
-   "2020": {
-    "returner_games": 386,
-    "rotation(pre_mpg>=10)": 309,
-    "star(pre_mpg>=30)": 85,
-    "play_rate": 0.6139896373056994,
-    "play_rate_rotation": 0.7022653721682848,
-    "play_rate_star": 0.8470588235294118,
-    "by_status_tonight": {
-     "available": [
-      0.8108108108108109,
-      74
-     ],
-     "probable": [
-      0.8,
-      35
-     ],
-     "questionable": [
-      0.6964285714285714,
-      112
-     ],
-     "unlisted": [
-      0.4303030303030303,
-      165
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 95,
-     "5-9": 110,
-     "10+": 104
-    }
-   },
-   "2021": {
-    "returner_games": 772,
-    "rotation(pre_mpg>=10)": 529,
-    "star(pre_mpg>=30)": 138,
-    "play_rate": 0.6800518134715026,
-    "play_rate_rotation": 0.8147448015122873,
-    "play_rate_star": 0.9710144927536232,
-    "by_status_tonight": {
-     "available": [
-      0.759375,
-      320
-     ],
-     "probable": [
-      1.0,
-      14
-     ],
-     "questionable": [
-      0.7796610169491526,
-      59
-     ],
-     "unlisted": [
-      0.5857519788918206,
-      379
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 230,
-     "5-9": 206,
-     "10+": 93
-    }
-   },
-   "2022": {
-    "returner_games": 496,
-    "rotation(pre_mpg>=10)": 300,
-    "star(pre_mpg>=30)": 84,
-    "play_rate": 0.5282258064516129,
-    "play_rate_rotation": 0.6833333333333333,
-    "play_rate_star": 0.8452380952380952,
-    "by_status_tonight": {
-     "available": [
-      0.5185185185185185,
-      108
-     ],
-     "probable": [
-      0.8333333333333334,
-      48
-     ],
-     "questionable": [
-      0.6923076923076923,
-      117
-     ],
-     "unlisted": [
-      0.3811659192825112,
-      223
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 96,
-     "5-9": 96,
-     "10+": 108
-    }
-   },
-   "2023": {
-    "returner_games": 531,
-    "rotation(pre_mpg>=10)": 277,
-    "star(pre_mpg>=30)": 72,
-    "play_rate": 0.5386064030131826,
-    "play_rate_rotation": 0.7256317689530686,
-    "play_rate_star": 0.8888888888888888,
-    "by_status_tonight": {
-     "available": [
-      0.5922330097087378,
-      103
-     ],
-     "probable": [
-      0.8666666666666667,
-      30
-     ],
-     "questionable": [
-      0.6470588235294118,
-      119
-     ],
-     "unlisted": [
-      0.43727598566308246,
-      279
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 85,
-     "5-9": 100,
-     "10+": 92
-    }
-   },
-   "2024": {
-    "returner_games": 564,
-    "rotation(pre_mpg>=10)": 336,
-    "star(pre_mpg>=30)": 90,
-    "play_rate": 0.5390070921985816,
-    "play_rate_rotation": 0.6577380952380952,
-    "play_rate_star": 0.7333333333333333,
-    "by_status_tonight": {
-     "available": [
-      0.6176470588235294,
-      102
-     ],
-     "probable": [
-      0.8780487804878049,
-      41
-     ],
-     "questionable": [
-      0.5517241379310345,
-      145
-     ],
-     "unlisted": [
-      0.4528985507246377,
-      276
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 97,
-     "5-9": 141,
-     "10+": 98
-    }
-   }
-  },
-  "audit_box_only_returner_counts": {
-   "2019": {
-    "returner_games": 4005,
-    "rotation(pre_mpg>=10)": 1900,
-    "star(pre_mpg>=30)": 233,
-    "play_rate": 0.21448189762796505,
-    "play_rate_rotation": 0.2694736842105263,
-    "play_rate_star": 0.33476394849785407,
-    "by_status_tonight": {
-     "available": [
-      0.6098901098901099,
-      182
-     ],
-     "probable": [
-      0.7377049180327869,
-      61
-     ],
-     "questionable": [
-      0.4725274725274725,
-      182
-     ],
-     "unlisted": [
-      0.1723463687150838,
-      3580
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 567,
-     "5-9": 542,
-     "10+": 791
-    }
-   },
-   "2020": {
-    "returner_games": 4407,
-    "rotation(pre_mpg>=10)": 2354,
-    "star(pre_mpg>=30)": 150,
-    "play_rate": 0.22305423190378942,
-    "play_rate_rotation": 0.2502124044180119,
-    "play_rate_star": 0.7333333333333333,
-    "by_status_tonight": {
-     "available": [
-      0.7383177570093458,
-      107
-     ],
-     "probable": [
-      0.8181818181818182,
-      55
-     ],
-     "questionable": [
-      0.5811965811965812,
-      234
-     ],
-     "unlisted": [
-      0.18025430067314885,
-      4011
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 658,
-     "5-9": 582,
-     "10+": 1114
-    }
-   },
-   "2021": {
-    "returner_games": 8510,
-    "rotation(pre_mpg>=10)": 4007,
-    "star(pre_mpg>=30)": 183,
-    "play_rate": 0.1418331374853114,
-    "play_rate_rotation": 0.1836785625155977,
-    "play_rate_star": 0.8142076502732241,
-    "by_status_tonight": {
-     "available": [
-      0.706855791962175,
-      423
-     ],
-     "probable": [
-      0.9545454545454546,
-      22
-     ],
-     "questionable": [
-      0.6153846153846154,
-      91
-     ],
-     "unlisted": [
-      0.10421369450714824,
-      7974
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 780,
-     "5-9": 878,
-     "10+": 2349
-    }
-   },
-   "2022": {
-    "returner_games": 4945,
-    "rotation(pre_mpg>=10)": 2301,
-    "star(pre_mpg>=30)": 155,
-    "play_rate": 0.22790697674418606,
-    "play_rate_rotation": 0.2955236853541938,
-    "play_rate_star": 0.7612903225806451,
-    "by_status_tonight": {
-     "available": [
-      0.515625,
-      192
-     ],
-     "probable": [
-      0.7692307692307693,
-      91
-     ],
-     "questionable": [
-      0.43023255813953487,
-      344
-     ],
-     "unlisted": [
-      0.18758684576192683,
-      4318
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 800,
-     "5-9": 641,
-     "10+": 860
-    }
-   },
-   "2023": {
-    "returner_games": 5982,
-    "rotation(pre_mpg>=10)": 2154,
-    "star(pre_mpg>=30)": 142,
-    "play_rate": 0.20795720494817788,
-    "play_rate_rotation": 0.2808727948003714,
-    "play_rate_star": 0.7746478873239436,
-    "by_status_tonight": {
-     "available": [
-      0.5463414634146342,
-      205
-     ],
-     "probable": [
-      0.7894736842105263,
-      76
-     ],
-     "questionable": [
-      0.4702549575070821,
-      353
-     ],
-     "unlisted": [
-      0.1694091249065071,
-      5348
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 646,
-     "5-9": 530,
-     "10+": 978
-    }
-   },
-   "2024": {
-    "returner_games": 5282,
-    "rotation(pre_mpg>=10)": 2282,
-    "star(pre_mpg>=30)": 225,
-    "play_rate": 0.22775463839454752,
-    "play_rate_rotation": 0.2887817703768624,
-    "play_rate_star": 0.5777777777777777,
-    "by_status_tonight": {
-     "available": [
-      0.6,
-      195
-     ],
-     "probable": [
-      0.7764705882352941,
-      85
-     ],
-     "questionable": [
-      0.4775,
-      400
-     ],
-     "unlisted": [
-      0.18013906996957843,
-      4602
-     ]
-    },
-    "games_missed_buckets(rotation)": {
-     "3-4": 703,
-     "5-9": 646,
-     "10+": 933
-    }
-   }
-  }
- },
- "wall_s": 67.3337140083313
+ "wall_s": 74.64937591552734
 }
