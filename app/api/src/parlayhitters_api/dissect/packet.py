@@ -87,6 +87,7 @@ def build_packet(b: Breakdown) -> Packet:
             "starts": b.role.starts,
             "projected": b.role.minutes_forecast,
             "p_play": b.role.p_play,
+            "p_play_source": b.role.p_play_label,
         },
         "splits": splits,
         "teammates_out": teammates,
@@ -110,6 +111,7 @@ def build_packet(b: Breakdown) -> Packet:
             "typical": m.typical,
             "extrapolated": m.extrapolated,
             "stamp": m.stamp,
+            "source": m.source_label,
             "reason": m.reason or None,
         },
         "flags": {

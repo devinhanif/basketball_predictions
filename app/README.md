@@ -198,3 +198,13 @@ Rebuild only the on/off fixture: `uv run --script app/fixtures/build_fixtures.py
 - Prices are DraftKings American odds, not Kalshi; the app never says a price is tradable.
 - The parlay card is the engine's real current state (no parlay, gate closed), not a recompute.
 - No accounts, server-side ledger, slip upload, leagues, chat or posting. The ledger lives in this browser's localStorage.
+
+## Which model a number came from (best_model_schema 1)
+
+When the export's meta carries `best_model_schema`, each prop shows the row the exporter marked `is_primary`
+(AVG when a fresh pre-tip AVG forecast exists; production v2 when AVG is missing or stale, and in the postseason)
+and says so in words (`api/src/parlayhitters_api/model_source.py`). A prop with no primary row is not shown. Chance to
+play is `p_play_primary` with its source (availability model R, production, or out on the official injury report).
+An older export keeps the production-only behaviour and says so. Fixtures: `fixtures/export_small` (best-model rows
+added by `fixtures/add_best_model_rows.py`) and `fixtures/export_best_real` (written by the real exporter via
+`fixtures/build_export_best_real.py --repo <checkout with nba/export/best_model.py>`).

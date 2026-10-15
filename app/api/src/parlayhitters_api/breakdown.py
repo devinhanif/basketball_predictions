@@ -31,6 +31,7 @@ from .history import (
     Row,
     days_between,
 )
+from .model_source import model_label, p_play_label
 from .role_stats import OnOff, Per36, Steadiness, onoff, per36, steadiness
 from .wowy_shrink import Beyond, beyond
 
@@ -135,6 +136,9 @@ class Model(BaseModel):
     typical: float | None
     extrapolated: bool
     stamp: str | None
+    # Which model the numbers came from, in plain words (see model_source).
+    source: str
+    source_label: str
     say: str
     reason: str
 
@@ -145,6 +149,7 @@ class Role(BaseModel):
     starts: int
     minutes_forecast: float | None
     p_play: float | None
+    p_play_label: str | None
     say: str
 
 
@@ -554,11 +559,14 @@ def _model(ctx: Context, stat: str, line: float, side: Side) -> Model:
             typical=None,
             extrapolated=False,
             stamp=None,
+            source="none",
+            source_label="No model forecast for this stat yet.",
             say="No model forecast for this stat yet.",
             reason="",
         )
     q = [float(v) for v in prop["forecast"]["q"]]
     lp = forecast_probs(prop["forecast"], line)
+    source, source_label = model_label(prop["forecast"].get("model"))
     p_hit = lp.p_over if side == "over" else lp.p_under
     return Model(
         available=True,
@@ -570,6 +578,8 @@ def _model(ctx: Context, stat: str, line: float, side: Side) -> Model:
         typical=q[9],
         extrapolated=lp.extrapolated,
         stamp=prop["forecast"]["stamp"],
+        source=source,
+        source_label=source_label,
         say="",
         reason="",
     )
@@ -586,23 +596,34 @@ def _role(ctx: Context) -> Role:
         say = (
             f"Averaged {avg_min:.1f} minutes over his last {n} games and started {starts} of them."
         )
-    proj, p_play = _stored_minutes(ctx)
+    proj, p_play, p_label = _stored_minutes(ctx)
     if proj is not None:
-        chance = "" if p_play is None else f" He is given a {round(p_play * 100)}% chance to play."
-        say += f" The model projects about {proj:.1f} minutes.{chance}"
+        say += f" The model projects about {proj:.1f} minutes."
+    if p_play is not None:
+        say += f" He is given a {round(p_play * 100)}% chance to play. {p_label or ''}".rstrip()
     return Role(
-        n=n, avg_minutes=avg_min, starts=starts, minutes_forecast=proj, p_play=p_play, say=say
+        n=n,
+        avg_minutes=avg_min,
+        starts=starts,
+        minutes_forecast=proj,
+        p_play=p_play,
+        p_play_label=p_label,
+        say=say,
     )
 
 
-def _stored_minutes(ctx: Context) -> tuple[float | None, float | None]:
-    """The projected minutes and chance to play stored with this player's forecasts, if any."""
+def _stored_minutes(ctx: Context) -> tuple[float | None, float | None, str | None]:
+    """Projected minutes, the primary chance to play and its source sentence, as stored with
+    this player's forecasts. The chance to play is one number per player and game (the same on
+    every stat), so the first stat that carries one speaks for him."""
+    proj: float | None = None
     for st in MODEL_STATS:
         f = (ctx.player["props"].get(st) or {}).get("forecast") or {}
-        if f.get("proj_minutes") is not None:
-            p = f.get("p_play")
-            return float(f["proj_minutes"]), None if p is None else float(p)
-    return None, None
+        if proj is None and f.get("proj_minutes") is not None:
+            proj = float(f["proj_minutes"])
+        if f.get("p_play") is not None:
+            return proj, float(f["p_play"]), p_play_label(f.get("p_play_info"))
+    return proj, None, None
 
 
 def _prices(ctx: Context, stat: str, line: float) -> Prices:

@@ -22,6 +22,7 @@ from .forecast import (
     forecast_method,
     forecast_probs,
 )
+from .model_source import model_detail, model_label, p_play_label
 from .models import (
     GameSummary,
     GameView,
@@ -105,6 +106,7 @@ def _prop_view(stat: str, p: Json) -> PropView:
     q = [float(v) for v in p["forecast"]["q"]]
     lp = forecast_probs(p["forecast"], float(p["line"]))
     priced = p["over_price"] is not None and p["under_price"] is not None
+    source, label = model_label(p["forecast"].get("model"))
     return PropView(
         prop_id=p["prop_id"],
         stat=stat,
@@ -123,6 +125,11 @@ def _prop_view(stat: str, p: Json) -> PropView:
         extrapolated=lp.extrapolated,
         market_p_over=devig_over(int(p["over_price"]), int(p["under_price"])) if priced else None,
         forecast_stamp=p["forecast"]["stamp"],
+        model_source=source,
+        model_label=label,
+        model_detail=model_detail(p["forecast"].get("model")),
+        p_play=p["forecast"].get("p_play"),
+        p_play_label=p_play_label(p["forecast"].get("p_play_info")),
     )
 
 
@@ -193,6 +200,8 @@ def _key_props(g: Json, n: int = 3) -> list[dict[str, Any]]:
                 "model_p_over": v.model_p_over,
                 "market_p_over": v.market_p_over,
                 "extrapolated": v.extrapolated,
+                "model_source": v.model_source,
+                "model_label": v.model_label,
             }
         )
     return out

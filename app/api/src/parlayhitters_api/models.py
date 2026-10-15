@@ -48,6 +48,12 @@ class PropView(BaseModel):
     extrapolated: bool
     market_p_over: float | None
     forecast_stamp: str
+    # Which model the forecast came from, in plain words, and the chance to play behind it.
+    model_source: str = "fixture"
+    model_label: str = ""
+    model_detail: str | None = None
+    p_play: float | None = None
+    p_play_label: str | None = None
 
 
 class PlayerView(BaseModel):

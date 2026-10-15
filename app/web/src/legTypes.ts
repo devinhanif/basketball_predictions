@@ -102,6 +102,8 @@ export interface LegModel {
   typical: number | null;
   extrapolated: boolean;
   stamp: string | null;
+  source: string;
+  source_label: string;
   say: string;
   reason: string;
 }
@@ -112,6 +114,7 @@ export interface LegRole {
   starts: number;
   minutes_forecast: number | null;
   p_play: number | null;
+  p_play_label: string | null;
   say: string;
 }
 

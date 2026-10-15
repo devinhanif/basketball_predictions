@@ -28,6 +28,7 @@ function KeyProps({ game }: { game: GameSummary }) {
             <div class="muted small">
               {STAT_LABEL[p.stat]} {p.line_source === "reference" ? "reference line" : "line"} {lineText(p.line)}
             </div>
+            <div class="muted small">{p.model_label}</div>
           </div>
           <div class="prop-nums num">
             <span class="big-num">{pctBounded(p.model_p_over, p.extrapolated)}</span>
