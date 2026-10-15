@@ -5,7 +5,7 @@ import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
 import { DistBar, DistLegend, Explain, TeamTag, View, WinBars, WinLegend } from "../components";
 import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
-import { legHref } from "../router";
+import { legHref, nightHref } from "../router";
 import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
@@ -129,8 +129,10 @@ function Body({ g }: { g: GameDetail }) {
   const winner = res ? (res.home_won ? g.home : g.away) : null;
   return (
     <div class="stack">
-      <p class="small">
-        <a href="#/">Back to the night</a>
+      <p class="back-row">
+        <a class="back-link" href={nightHref(g.date)}>
+          Back to the night
+        </a>
       </p>
       <section class="panel scoreboard">
         <h1 class="sr">

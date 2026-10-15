@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LEG_STATS } from "./legTypes";
-import { legHref, parse } from "./router";
+import { legHref, nightHref, parse } from "./router";
 
 describe("every leg link opens the leg route", () => {
   it("round-trips each stat and side, including awkward ids", () => {
@@ -55,5 +55,17 @@ describe("game links from a last-10 list", () => {
     for (const id of ["0022400001", "a b", "x/y"]) {
       expect(parse(gameHref(id))).toEqual({ name: "game", id });
     }
+  });
+});
+
+describe("F10: back to the night you came from", () => {
+  it("links to the slate of the game's own date, not the default night", () => {
+    expect(nightHref("2024-11-20")).toBe("#/?date=2024-11-20");
+    expect(parse(nightHref("2024-11-20"))).toEqual({ name: "today", date: "2024-11-20" });
+  });
+  it("the game page uses it", () => {
+    const src = readFileSync(join(import.meta.dirname, "pages", "Game.tsx"), "utf8");
+    expect(src).toContain("nightHref(g.date)");
+    expect(src).not.toContain('<a href="#/">Back to the night');
   });
 });

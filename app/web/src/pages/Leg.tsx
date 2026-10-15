@@ -668,8 +668,10 @@ function Opponent({ data }: { data: LegBreakdown }) {
 function Header({ data, line }: { data: LegBreakdown; line: number }) {
   return (
     <header class="leg-title">
-      <p class="small">
-        <a href={`#/game/${data.game_id}`}>Back to the game</a>
+      <p class="back-row">
+        <a class="back-link" href={`#/game/${data.game_id}`}>
+          Back to the game
+        </a>
       </p>
       <h1>{data.player}</h1>
       <p class="muted num" style={{ margin: 0 }}>

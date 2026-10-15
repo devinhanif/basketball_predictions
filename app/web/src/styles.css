@@ -1709,3 +1709,13 @@ main:focus {
 .panel.error h1 {
   font-size: 1.55rem;
 }
+
+/* Back links are the main way out of a page: a full-size tap target (F29). */
+.back-row {
+  margin: 0;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
