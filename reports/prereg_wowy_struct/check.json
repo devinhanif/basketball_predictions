@@ -1,0 +1,166 @@
+{
+ "c_tags": {
+  "C_ast": "9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc:39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2",
+  "C_pic": "9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc:39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2",
+  "C_pts": "9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc:39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2"
+ },
+ "counts": {
+  "ast|leader_out|2023": {
+   "gate": {
+    "games": 440,
+    "rows": 4942
+   },
+   "have": {
+    "games": 440,
+    "rows": 4942
+   }
+  },
+  "ast|leader_out|2024": {
+   "gate": {
+    "games": 387,
+    "rows": 4414
+   },
+   "have": {
+    "games": 387,
+    "rows": 4414
+   }
+  },
+  "pts|leader_out|2023": {
+   "gate": {
+    "games": 388,
+    "rows": 4316
+   },
+   "have": {
+    "games": 388,
+    "rows": 4316
+   }
+  },
+  "pts|leader_out|2024": {
+   "gate": {
+    "games": 493,
+    "rows": 5678
+   },
+   "have": {
+    "games": 493,
+    "rows": 5678
+   }
+  },
+  "pts|top25_fixed|2023": {
+   "gate": {
+    "games": 811,
+    "rows": 3568
+   },
+   "have": {
+    "games": 811,
+    "rows": 3568
+   }
+  },
+  "pts|top25_fixed|2024": {
+   "gate": {
+    "games": 903,
+    "rows": 4473
+   },
+   "have": {
+    "games": 903,
+    "rows": 4473
+   }
+  }
+ },
+ "hashes": {
+  "C_SHA256_AST": "98656eaa5a78673d3a5ef13a38ac21e29c8c3c2590e08779664f96b5c25b9266",
+  "C_SHA256_PIC": "9d9272199054ee867ba52fcaa4a280b7a71babda0193448d92e3326858a0298f",
+  "C_SHA256_PTS": "90535d8a331e29762cf1c3fe6f24f1929447432584123eeb1e2dff206af375bd",
+  "F1_GATE_SHA256": "b872a576b2e3a50c64b243973c53b3727ee30bdde64737c074a8322fd9e4146e",
+  "FP_HISTORY_LE2024": "d446949d33bf67b52fa8de7254ae6abbcaca0e94638690165756457e1cf31940",
+  "FP_NBA_LE2024": "4f40dac0548dfd05d0a09f52166dea0fdc6839c7fc78019a9575f096bb7114c7",
+  "FP_SCHEDULE_LE2024": "25674ea43809db027c92a2edfe77fd04b69369852e837150697e88f8c4f52312",
+  "FP_STATIC_MERGED": "3079c049ab4c83debb0a00dd84da00c8687318961953c11c19499e4f6f01b8d3",
+  "GATE_SHA256": "6be61a4f79c2eb887e3dd5d5711616a606c1da16fd6a6c5374bafcb6340e6ed7",
+  "HISTORY_DB_SHA256": "64a3c90a60c2b94b799fcfb2c2992f99fc50e6fc02ea1656d8c52fb95356bf50",
+  "STRUCT_GATE_SHA256": "b2ef02c1438f14d4bd5075e6284752d3543d42c53c7976072643f0950fdf720d"
+ },
+ "mismatch_vs_rule": {},
+ "planted_future": {
+  "cutoff": "2024-01-15",
+  "early_diffs": {
+   "pq_rb_ast": {
+    "max_abs_diff": 4.440892098500626e-16,
+    "null_equal": true
+   },
+   "pq_rb_pts": {
+    "max_abs_diff": 8.881784197001252e-16,
+    "null_equal": true
+   },
+   "pq_ro_conf": {
+    "max_abs_diff": 0.0,
+    "null_equal": true
+   },
+   "pq_rr_ast": {
+    "max_abs_diff": 0.0,
+    "null_equal": true
+   },
+   "pq_rr_pts": {
+    "max_abs_diff": 0.0,
+    "null_equal": true
+   },
+   "pq_rx_ast": {
+    "max_abs_diff": 2.220446049250313e-16,
+    "null_equal": true
+   },
+   "pq_rx_pts": {
+    "max_abs_diff": 8.881784197001252e-16,
+    "null_equal": true
+   },
+   "rb_ast": {
+    "max_abs_diff": 2.220446049250313e-16,
+    "null_equal": true
+   },
+   "rb_pts": {
+    "max_abs_diff": 1.3322676295501878e-15,
+    "null_equal": true
+   },
+   "ro_conf": {
+    "max_abs_diff": 0.0,
+    "null_equal": true
+   },
+   "rr_ast": {
+    "max_abs_diff": 0.0,
+    "null_equal": true
+   },
+   "rr_pts": {
+    "max_abs_diff": 0.0,
+    "null_equal": true
+   },
+   "rx_ast": {
+    "max_abs_diff": 4.440892098500626e-16,
+    "null_equal": true
+   },
+   "rx_pts": {
+    "max_abs_diff": 1.7763568394002505e-15,
+    "null_equal": true
+   }
+  },
+  "early_rows": 12597,
+  "late_rows": 10914,
+  "later_rows_mean_abs_move": {
+   "rb_pts": 4.610300619338469,
+   "rr_pts": 15.360156123766377,
+   "rx_pts": 15.387524916248958
+  },
+  "pass": true,
+  "tolerance": 1e-09
+ },
+ "priors_match_rule": true,
+ "priors_sha256": "2cdc0043d842c9e7d0536e9d98f7324e0e37c4e66d56d14a437d05fa57088159",
+ "versions": {
+  "duckdb": "1.5.6",
+  "lightgbm": "4.7.0",
+  "numpy": "2.5.3",
+  "polars": "1.44.2",
+  "pyarrow": "25.0.1",
+  "pyyaml": "6.0.3",
+  "scikit-learn": "1.9.1",
+  "scipy": "1.18.1"
+ },
+ "wall_seconds": 21.8
+}
