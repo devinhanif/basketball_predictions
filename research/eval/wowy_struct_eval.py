@@ -4,9 +4,9 @@
 Model class: LightGBM context-residual heads (production) with added as-of columns, read through the lower-tail mixture, integer-support CRPS.
 
     R="-m research.eval.wowy_struct_eval"; D=/Users/devin/Downloads/nba-prediction
-    .venv/bin/python -W ignore $R check    --data-root $D [--smoke]      # label-free preflight (no score of any kind); --smoke fits ONE block of pts
-    .venv/bin/python -W ignore $R rehearse [--world pass|guard|one_season|no_gain|all] [--seeds 5]   # synthetic scores, no data, no fit
-    .venv/bin/python -W ignore $R run      --data-root $D --sha <64 hex>   # frozen + pinned only; heavy.lock; per-arm checkpoints; verdict
+    /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore $R check    --data-root $D [--smoke]      # label-free preflight (no score of any kind); --smoke fits ONE block of pts
+    /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore $R rehearse [--world pass|guard|one_season|no_gain|all] [--seeds 5]   # synthetic scores, no data, no fit
+    /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore $R run      --data-root $D --sha <64 hex>   # frozen + pinned only; heavy.lock; per-arm checkpoints; verdict
 
 ``run`` refuses unless the rule is frozen AND the harness files equal the `harness(WOWY_STRUCT): <pin>` commit (``wowy_struct_rule.require_ready``), then runs the
 preflight (library versions, input hashes pinned in the rule, F1's arm-C cache is the frozen F1 run, the priors, the stored gate counts) BEFORE any 2023-24 outcome
@@ -93,7 +93,7 @@ DESC_PAIRS = (
     ("ROLE", "A0"),
     ("S_R", "A0"),
 )
-OUT_DIR = Path("reports/prereg_wowy_struct")
+OUT_DIR = Path(__file__).resolve().parents[2] / "reports/prereg_wowy_struct"
 CACHE_REL = "data/ops/wowy_struct_cache"
 F1_CACHE_REL = "data/ops/f1_warm_window_cache"
 
@@ -204,8 +204,21 @@ def evaluate(
             r["g9"] = bool(r["unexposed"]["delta"] <= FLOOR and r["unexposed"]["ci_hi"] < 0)
             r["guards_ok"] = bool(r["g1"] and r["g2"] and r["g3"] and r["g5"] and r["g9"])
             r["desc"] = {
-                f"{a}-{c}": delta1(sc[a][m] - sc[c][m], b["gid"][m]) for a, c in DESC_PAIRS
-            }
+                f"{a}-{c}": {
+                    k: v for k, v in delta1(sc[a][m] - sc[c][m], b["gid"][m]).items() if k != "p"
+                }
+                for a, c in DESC_PAIRS
+            }  # descriptive: no p-value is carried (review E5)
+            me = m & ~b["unexposed"]
+            r["exposed"] = (
+                {
+                    k: v
+                    for k, v in delta1(sc["S_R"][me] - sc["ROLE"][me], b["gid"][me]).items()
+                    if k != "p"
+                }
+                if me.any()
+                else None
+            )  # reported only: S_R minus ROLE on the stamp-exposed games (review E2c)
             recs.append(r)
         padj = F1R.bh_adjust(np.array([r["primary"]["p"] for r in recs]))
         for r, a in zip(recs, padj, strict=True):
@@ -724,6 +737,17 @@ def run_real(root: Path, sha: str) -> dict[str, Any]:
     _log(
         "preflight: library versions, every pinned input hash and F1's arm-C tag equal; no outcome scored"
     )
+    # taken BEFORE the world and frame build: the first CPU-heavy step (review E9)
+    lock = F1R.acquire_lock(root)
+    try:
+        return _run_locked(root, sha, pin, declared, pre)
+    finally:
+        lock.rmdir()
+
+
+def _run_locked(
+    root: Path, sha: str, pin: str, declared: dict[str, str], pre: dict[str, Any]
+) -> dict[str, Any]:
     t0 = time.time()
     world = WG.build_world(t0, first_season=2019, root=root)
     counts = stored_counts_check(world, root)
@@ -743,36 +767,32 @@ def run_real(root: Path, sha: str) -> dict[str, Any]:
     if cfg.report.tip_source != "real":
         raise RuntimeError("tip_source must be 'real' (no proxy tips)")
     frame = training_frame(root, world)
-    lock = F1R.acquire_lock(root)
-    try:
-        chk = smoke_block0(root, frame, cfg)
-        if not chk["pass"]:
-            raise RuntimeError(
-                f"STOP before any arm is fitted: the A0 walk does not equal F1's arm-C cache on block 0: {chk}"
-            )
-        _log("A0 walk equals F1's arm C on block 0 (max abs diff 0.0)")
-        comps = fit_arms(root, frame, cfg, tag=f"{sha}:{pin}")
-        comp0, pic_c = load_a0(root, declared)
-        for st in STATS:
-            comps[st]["A0"] = comp0[st]
-        games = frame.select("game_id", "game_date").unique()
-        gd = {g: str(d) for g, d in zip(games["game_id"], games["game_date"], strict=True)}
-        bundle = build_bundle(comps, pic_c, world["fr"], gd, F1R.exposed_games(root))
-        res = evaluate(bundle, gates_ok=True, repro_ok=True)
-        res.update(
-            {
-                "preflight": pre,
-                "counts": counts,
-                "planted_future": planted,
-                "smoke_block0": chk,
-                "rule_sha": sha,
-                "pin": pin,
-                "versions": F1R.versions(),
-            }
+    chk = smoke_block0(root, frame, cfg)
+    if not chk["pass"]:
+        raise RuntimeError(
+            f"STOP before any arm is fitted: the A0 walk does not equal F1's arm-C cache on block 0: {chk}"
         )
-        return res
-    finally:
-        lock.rmdir()
+    _log("A0 walk equals F1's arm C on block 0 (max abs diff 0.0)")
+    comps = fit_arms(root, frame, cfg, tag=f"{sha}:{pin}")
+    comp0, pic_c = load_a0(root, declared)
+    for st in STATS:
+        comps[st]["A0"] = comp0[st]
+    games = frame.select("game_id", "game_date").unique()
+    gd = {g: str(d) for g, d in zip(games["game_id"], games["game_date"], strict=True)}
+    bundle = build_bundle(comps, pic_c, world["fr"], gd, F1R.exposed_games(root))
+    res = evaluate(bundle, gates_ok=True, repro_ok=True)
+    res.update(
+        {
+            "preflight": pre,
+            "counts": counts,
+            "planted_future": planted,
+            "smoke_block0": chk,
+            "rule_sha": sha,
+            "pin": pin,
+            "versions": F1R.versions(),
+        }
+    )
+    return res
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -786,7 +806,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", default=None)
     a = ap.parse_args(argv)
     t0 = time.time()
-    out = Path(a.out) if a.out else rule.ROOT / OUT_DIR
+    out = Path(a.out) if a.out else OUT_DIR
     if a.cmd == "rehearse":
         res = rehearse(a.world, a.seeds)
         fn = "rehearsal.json"

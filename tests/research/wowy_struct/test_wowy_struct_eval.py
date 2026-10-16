@@ -105,19 +105,89 @@ def test_g2_all_rows_no_harm_blocks_a_pass() -> None:
     assert ev["word"] == "FAIL_GUARD" and not any(r["g2"] for r in ev["rows"])
 
 
-def test_g9_the_gain_must_hold_outside_stamp_exposed_games() -> None:
+def test_g9_by_itself_turns_a_pass_into_fail_guard() -> None:
     b = copy.deepcopy(E.synthetic_bundle("pass", 0))
     for st in E.STATS:
         rec = b["stats"][st]
         exposed = ~rec["unexposed"]
         sc = rec["score"]
-        sc["S_R"] = np.where(
-            exposed, sc["S_R"], sc["ROLE"] + 0.0 * sc["S_R"]
-        )  # the gain lives only in exposed games
+        cell = np.zeros(len(exposed), dtype=bool)
+        for c in rec["cells"].values():
+            cell |= c
+        # the primary clears on all rows (0.015 everywhere, 0.20 more in exposed games) but only 0.003 outside the exposed games
+        sc["S_R"] = (
+            sc["ROLE"] - np.where(cell, np.where(exposed, 0.20, 0.003), 0.0) + 0.0 * sc["S_R"]
+        )
+        sc["P_R"] = sc["ROLE"]  # G1 holds
     ev = E.evaluate(b)
+    assert all(r["clears"] for r in ev["rows"])
+    assert all(r["g1"] and r["g2"] and r["g3"] and r["g5"] for r in ev["rows"])
     assert not any(r["g9"] for r in ev["rows"])
-    assert ev["word"] != "PASS"
+    assert ev["word"] == "FAIL_GUARD"
     assert all(r["g9"] for r in E.evaluate(E.synthetic_bundle("pass", 0))["rows"])
+
+
+def test_descriptive_contrasts_carry_no_p_value_and_exposed_games_are_reported() -> None:
+    ev = E.evaluate(E.synthetic_bundle("pass", 0))
+    for r in ev["rows"]:
+        assert all("p" not in d for d in r["desc"].values())
+        assert r["exposed"] is not None and "p" not in r["exposed"]
+
+
+def _comp(gid: np.ndarray, pid: np.ndarray, y: np.ndarray, qi: np.ndarray) -> dict[str, Any]:
+    return {
+        "row_gid": gid,
+        "row_pid": pid,
+        "row_y": y,
+        "row_season": np.full(len(gid), 2023),
+        "qi": qi,
+    }
+
+
+def test_build_bundle_scores_arms_on_a0_keys_with_the_integer_grid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    n = 6
+    gid = np.array([f"g{i}" for i in range(n)])
+    pid = np.arange(n)
+    y = np.array([3.0, 5.0, 0.0, 8.0, 2.0, 4.0])
+    rng = np.random.default_rng(0)
+    base_qi = np.sort(rng.integers(0, 12, size=(n, 199)), axis=1)
+    monkeypatch.setattr(E.F1R, "qi_of", lambda c, pic, st: c["qi"])
+    monkeypatch.setattr(
+        E,
+        "cell_and_slice_masks",
+        lambda fr, st, g, p: (
+            {"leader_out": np.ones(n, bool), "top25_fixed": np.zeros(n, bool)},
+            {},
+            {},
+        ),
+    )
+    perm = np.array([3, 1, 5, 0, 2, 4])  # the arm's rows come in a different order
+    comps: dict[str, dict[str, dict[str, Any]]] = {}
+    for st in E.STATS:
+        comps[st] = {"A0": _comp(gid, pid, y, base_qi)}
+        for arm in E.FIT_ARMS:
+            comps[st][arm] = _comp(
+                gid[perm], pid[perm], y[perm], base_qi[perm] + (1 if arm == "ROLE" else 0)
+            )
+    dates = {g: "2023-11-01" for g in gid}
+    b = E.build_bundle(comps, {}, pl.DataFrame(), dates)
+    for st in E.STATS:
+        want = F1R.crps_int(base_qi, y)
+        assert np.allclose(b["stats"][st]["score"]["A0"], want)
+        assert np.allclose(
+            b["stats"][st]["score"]["S_R"], want
+        )  # reordered rows land back on A0's order
+        assert np.allclose(b["stats"][st]["score"]["ROLE"], F1R.crps_int(base_qi + 1, y))
+    bad = copy.deepcopy(comps)
+    bad["pts"]["T_R"]["row_pid"] = bad["pts"]["T_R"]["row_pid"] + 100
+    with pytest.raises(RuntimeError, match="evaluation key is missing"):
+        E.build_bundle(bad, {}, pl.DataFrame(), dates)
+    bad = copy.deepcopy(comps)
+    bad["ast"]["RAW"]["row_y"] = bad["ast"]["RAW"]["row_y"] + 1
+    with pytest.raises(RuntimeError, match="outcomes differ"):
+        E.build_bundle(bad, {}, pl.DataFrame(), dates)
 
 
 def test_g3_coverage_blocks_a_pass() -> None:
@@ -383,6 +453,7 @@ def test_run_refuses_outside_the_pinned_checkout(
 def test_run_order_frozen_pinned_then_preflight_then_planted_then_smoke_then_fits() -> None:
     src = (REPO / "research/eval/wowy_struct_eval.py").read_text()
     body = src[src.index("def run_real") :]
+    assert body.index("F1R.acquire_lock(root)") < body.index("WG.build_world(")  # review E9
     order = [
         "rule.require_ready(sha)",
         "preflight(root, declared)",
@@ -400,7 +471,8 @@ def test_run_order_frozen_pinned_then_preflight_then_planted_then_smoke_then_fit
 
 def test_configs_are_read_from_the_pinned_root_never_the_cwd() -> None:
     for rel in ("wowy_struct_eval.py", "wowy_struct_repl_gate.py", "wowy_struct_rule.py"):
-        assert 'Path("configs' not in (REPO / "research/eval" / rel).read_text(), rel
+        text = (REPO / "research/eval" / rel).read_text()
+        assert 'Path("configs' not in text and 'Path("reports/' not in text, rel
     assert "rule.ROOT" in (REPO / "research/eval/wowy_struct_eval.py").read_text()
 
 

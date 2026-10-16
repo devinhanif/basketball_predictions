@@ -9,7 +9,7 @@ Read-only on ``$NBA_ROOT/nba.duckdb`` and ``$NBA_ROOT/data/history/nba_history.d
 read). Outcomes read: the DEV seasons 2020, 2021 and the warm-up season 2022 only (the effect coefficient kappa and the held-out GBM designs, exactly
 the STRUCT gate's convention). The 2019+ power re-measure uses F1_WARM_WINDOW's arm-C forecast grids (``$NBA_ROOT/data/ops/f1_warm_window_cache/C_*.npz``,
 the E7 ``A0_warm``) with ``row_y`` replaced by NaN on load: no 2023 or 2024 outcome reaches any statistic here. Writes
-``reports/prereg_wowy_repl/gate.json`` (relative to the working tree).
+``--out`` (default a scratch file; the pinned ``reports/prereg_wowy_repl/gate.json`` is never overwritten: never re-run the gate in the pinned checkout).
 """
 
 from __future__ import annotations
@@ -45,9 +45,11 @@ HDB = REAL / "data/history/nba_history.duckdb"
 K_SEASONS = tuple(
     range(2015, 2022)
 )  # prior-strength estimation seasons (complete seasons before the 2022 warm-up), as REPLACEMENT_DELTA
-OUT = Path("reports/prereg_wowy_repl/gate.json")
-STRUCT_GATE = Path(
-    "reports/prereg_wowy_redistribution/gate.json"
+# The pinned artifact (GATE_SHA256) is never a default output: a re-run writes to a scratch path unless --out says otherwise (review E7).
+OUT = Path("/tmp/wowy_struct_repl_gate_rerun.json")
+PINNED_ARTIFACT = Path(__file__).resolve().parents[2] / "reports/prereg_wowy_repl/gate.json"
+STRUCT_GATE = (
+    Path(__file__).resolve().parents[2] / "reports/prereg_wowy_redistribution/gate.json"
 )  # the committed STRUCT gate (cut-offs, kappa)
 CACHE = Path("data/ops/wowy_struct_repl_cache")
 F1_CACHE = REAL / "data/ops/f1_warm_window_cache"
@@ -778,6 +780,10 @@ def main(argv: list[str] | None = None) -> int:
         }
     if not a.skip_planted:
         res["planted_future"] = planted_future(world, t0)
+    if a.out.resolve() == PINNED_ARTIFACT.resolve() and PINNED_ARTIFACT.exists():
+        raise SystemExit(
+            "refusing to overwrite the pinned artifact reports/prereg_wowy_repl/gate.json (review E7)"
+        )
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(res, indent=1, default=float))
     _log(t0, f"wrote {a.out} sha256 {sha256_file(a.out)[:16]}")

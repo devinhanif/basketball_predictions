@@ -63,6 +63,7 @@ def pinned_setup(
             txt + ("EDIT\n" if edit_disk and rel.endswith("run.py") else "")
         )
         shows[f"{PC}:{rel}"] = txt
+        shows[f"{FC}:{rel}"] = txt
         blobs[rel] = hashlib.sha256(txt.encode()).hexdigest()
     pin = rule.pin_of(blobs)
     log = f"{PC}\tharness({rule.ID}): {'0' * 64 if bad_pin else pin}\n{FC}\tprereg({rule.ID}): {SHA}\n"
@@ -88,6 +89,21 @@ def test_pin_refuses(tmp_path: Path, case: str) -> None:
         run = fake_git("", {})
     with pytest.raises(RuntimeError):
         rule.require_harness_pinned(SHA, run, tmp_path, ok)
+
+
+def test_pin_refuses_a_harness_edit_between_the_freeze_and_the_pin_commits(tmp_path: Path) -> None:
+    blobs = {}
+    shows = {f"{FC}:{rule.DOC_REL}": TEXT}
+    for rel in rule.HARNESS_FILES:
+        txt = f"content of {rel}\n"
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(txt)
+        shows[f"{PC}:{rel}"] = txt
+        shows[f"{FC}:{rel}"] = txt + ("EDIT\n" if rel == rule.HARNESS_FILES[0] else "")
+        blobs[rel] = hashlib.sha256(txt.encode()).hexdigest()
+    log = f"{PC}\tharness({rule.ID}): {rule.pin_of(blobs)}\n{FC}\tprereg({rule.ID}): {SHA}\n"
+    with pytest.raises(RuntimeError, match="freeze commit and the pin commit"):
+        rule.require_harness_pinned(SHA, fake_git(log, shows), tmp_path, lambda *a: True)
 
 
 def test_pin_changes_when_any_one_file_changes() -> None:

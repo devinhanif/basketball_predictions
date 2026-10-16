@@ -12,9 +12,9 @@ harness reads, and F1's own files, because arm A0_warm IS F1's arm C). Season 20
 3. ``require_ready(sha)``: both, called by the real-label entrypoint BEFORE any outcome is read.
 
 Freeze and pin (a hand that can commit; the adversary re-checks first; the pin commit comes after the prereg commit, before any fit):
-    .venv/bin/python -m research.eval.wowy_struct_rule freeze     # prints the rule sha256 and the prereg commit command
+    /Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.eval.wowy_struct_rule freeze     # prints the rule sha256 and the prereg commit command
     git commit --allow-empty -m "prereg(WOWY_STRUCT): <sha>"      # the rule file is already committed, unchanged above the marker
-    .venv/bin/python -m research.eval.wowy_struct_rule pin        # prints the pin and the harness commit command
+    /Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.eval.wowy_struct_rule pin        # prints the pin and the harness commit command
     git commit --allow-empty -m "harness(WOWY_STRUCT): <pin>"     # no harness edit between the two commits
 """
 
@@ -216,6 +216,11 @@ def require_harness_pinned(
         if frozen != disk:
             raise RuntimeError(f"{rel} differs from its version at pin commit {h[:8]}: refusing")
         out[rel] = hashlib.sha256(frozen.encode()).hexdigest()
+        at_freeze = run("show", f"{fc}:{rel}")
+        if at_freeze != frozen:
+            raise RuntimeError(
+                f"{rel} differs between the freeze commit and the pin commit: refusing (review E8)"
+            )
     if pin_of(out) != pin:
         raise RuntimeError("the pin in the commit subject does not match the harness blobs")
     if not ok("merge-base", "--is-ancestor", fc, h):
