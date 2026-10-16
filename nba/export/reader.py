@@ -69,8 +69,9 @@ def et_date(ts: datetime) -> date:
     return ts.replace(tzinfo=UTC).astimezone(ET).date()
 
 
-def _assert_allowed(seasons: set[int], allowed: tuple[int, ...]) -> None:
-    bad = {s for s in seasons if s not in allowed or s == guard.HOLDOUT_SEASON}
+def _assert_allowed(seasons: set[int], allowed: tuple[int, ...], table: str | None = None) -> None:
+    holdout_ok = guard.display_allowed(table)
+    bad = {s for s in seasons if s not in allowed or (s == guard.HOLDOUT_SEASON and not holdout_ok)}
     if bad:  # pragma: no cover - the SQL filter makes this unreachable; kept as the belt
         raise guard.ExportRefused(f"rows from seasons {sorted(bad)} reached the export")
 
@@ -298,6 +299,7 @@ def box_scores(con: duckdb.DuckDBPyConnection, window: Window) -> list[dict[str,
     return out
 
 
+BOX_HISTORY_TABLE = "box_scores_history"  # the one display table (guard.DISPLAY_TABLES)
 BOX_COLS = ("game_id", "player_id", "team_id", "minutes", "starter", "pts", "reb", "ast", "fg3m",
             "stl", "blk", "tov")  # fmt: skip
 
@@ -306,17 +308,18 @@ def history_seasons(
     con: duckdb.DuckDBPyConnection, allowed: tuple[int, ...] = (guard.LIVE_SEASON,)
 ) -> tuple[int, ...]:
     """Seasons whose box rows may ride along as player history: the live season and every stored
-    season before the holdout. The holdout season is never queried (not even for its existence),
-    so on opening night, when the previous season IS the holdout, the history is the older seasons
-    only; widening that is a logged holdout decision, not an export flag (guard.resolve_seasons).
-    A fixture-style export of explicit old seasons gets exactly those seasons."""
+    season up to and including the holdout season. The holdout season is allowed here and only
+    here: box_scores history is display (raw game logs for the app's last-10 and swipe stats),
+    approved by Devin and logged in HOLDOUT_ACCESS_LOG (display row); ``guard.DISPLAY_TABLES``
+    is the allow-list and forecasts, scores and grids still refuse 2025. A fixture-style export
+    of explicit old seasons gets exactly those seasons."""
     if guard.LIVE_SEASON not in allowed:
         return allowed
     rows = con.execute(
         "SELECT DISTINCT season FROM games WHERE season <= ? ORDER BY season",
-        [guard.LAST_PRE_HOLDOUT_SEASON],
+        [guard.HOLDOUT_SEASON],
     ).fetchall()
-    return guard.resolve_seasons([*allowed, *(int(r[0]) for r in rows)])
+    return guard.resolve_seasons([*allowed, *(int(r[0]) for r in rows)], table=BOX_HISTORY_TABLE)
 
 
 def box_history(
@@ -335,6 +338,7 @@ def box_history(
     pids = sorted({int(p) for p in player_ids if int(p) != NO_PLAYER})
     if not pids or not seasons:
         return []
+    guard.resolve_seasons(seasons, table=BOX_HISTORY_TABLE)  # raises on anything else
     marks = ",".join("?" for _ in seasons)
     sel = ", ".join("e." + c for c in (*BOX_COLS, "game_date", "season"))
     inner = ", ".join("b." + c for c in BOX_COLS)
@@ -351,7 +355,7 @@ def box_history(
         [pids, *seasons, day, n_games, day - timedelta(days=days)],
     ).fetchall()
     out = [dict(zip((*BOX_COLS, "game_date", "season"), r, strict=True)) for r in rows]
-    _assert_allowed({int(r["season"]) for r in out}, seasons)
+    _assert_allowed({int(r["season"]) for r in out}, seasons, BOX_HISTORY_TABLE)
     assert all(r["game_date"] < day for r in out), "box history must be strictly before the slate"
     return out
 
