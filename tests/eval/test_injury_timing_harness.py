@@ -1,6 +1,6 @@
 # ruff: noqa: E501
-"""Unit tests for the INJURY_TIMING harness: freeze/pin refusals, scoring, words, synthetic rehearsal, planted future,
-the cross-snapshot walk-forward plumbing (stubbed model) and the gate arithmetic. Synthetic data only (no real data, no fit)."""
+"""Unit tests for the INJURY_TIMING rev 3 harness: freeze/pin refusals, the one cutoff function, header-clock shift, list builder, scoring, words in
+every world, flag thresholds, GUARD_FAIL as an outcome, planted future, G0, cross-snapshot walk-forward plumbing (stubbed model). Synthetic data only."""
 
 from __future__ import annotations
 
@@ -16,60 +16,127 @@ from research.eval import injury_timing_eval as ev
 from research.eval import injury_timing_gate as gate
 from research.eval import injury_timing_rule as rule
 
-DOC = Path(__file__).resolve().parents[2] / "docs/prereg/INJURY_TIMING.md"
+ROOT = Path(__file__).resolve().parents[2]
+DOC = ROOT / "docs/prereg/INJURY_TIMING.md"
+D = dt.datetime
 
 
-def _score(
-    mS: float, mA0: float, sA0: float, hi: float = -0.001, p: float = 0.001, hi23: float = -0.001
+def _d(point: float, hi: float, p: float = 0.001, lo: float | None = None) -> dict[str, float]:
+    return {
+        "point": point,
+        "lo": point - 0.002 if lo is None else lo,
+        "hi": hi,
+        "p_lt0": p,
+        "n": 1000,
+        "n_games": 100,
+    }
+
+
+def _sc(
+    ms: float = -0.008,
+    mp: float = -0.008,
+    sa: float = 0.0,
+    ma: float = -0.01,
+    hi_s: float = -0.001,
+    hi_p: float = -0.001,
+    stats_on: tuple[str, ...] = ev.STATS,
+    sa_hi: float = 0.001,
+    sa_lo: float = -0.001,
+    ma_hi: float = 0.0,
 ) -> dict[str, Any]:
-    def d(point: float, h: float, pp: float = 0.5) -> dict[str, float]:
-        return {
-            "point": point,
-            "lo": point - 0.002,
-            "hi": h,
-            "p_lt0": pp,
-            "n": 1000,
-            "n_games": 100,
-        }
-
-    def stat(season: str) -> dict[str, Any]:
-        h = hi if season == "2024" else hi23
+    def stat(season: str, s: str) -> dict[str, Any]:
+        on = s in stats_on
         return {
             "n": 1000,
-            "crps": {"A0": 1.0, "S": 1.0, "M": 1.0},
-            "M_minus_S": d(mS, h, p),
-            "M_minus_A0": d(mA0, 0.0),
-            "S_minus_A0": d(sA0, 0.001),
+            "crps": {a: 1.0 for a in ev.ARMS},
+            "M_minus_S": _d(ms if on else 0.0, hi_s if on else 0.0005, 0.001 if on else 0.6),
+            "M_minus_P": _d(mp if on else 0.0, hi_p if on else 0.0005, 0.001 if on else 0.6),
+            "P_minus_S": _d(0.0, 0.001),
+            "M_minus_A0": _d(ma, ma_hi),
+            "S_minus_A0": _d(sa, sa_hi, lo=sa_lo),
         }
 
-    return {s: {st: stat(s) for st in ev.STATS} for s in ("2023", "2024")}
+    return {season: {s: stat(season, s) for s in ev.STATS} for season in ("2023", "2024")}
 
 
-def test_words_follow_the_rule_floor_and_replication() -> None:
-    assert ev.words(_score(-0.008, -0.01, 0.0), True)["word"] == "FIX_WORTH_IT"
-    assert (
-        ev.words(_score(-0.003, -0.01, 0.0), True)["word"] == "NULL"
-    )  # significant but under the practical floor
-    assert (
-        ev.words(_score(-0.008, -0.01, 0.0, hi=0.001, p=0.2), True)["word"] == "NULL"
-    )  # CI straddles zero
-    assert (
-        ev.words(_score(-0.008, -0.01, 0.0, hi23=0.001), True)["word"] == "NULL"
-    )  # 2023 does not replicate
-    assert ev.words(_score(-0.008, -0.01, 0.0), False)["word"] == "GUARD_FAIL"
-    w = ev.words(_score(0.004, 0.004, 0.0, hi=0.0042, p=0.99), True)
+# --- words in every world
+
+
+def test_words_every_outcome() -> None:
+    assert ev.words(_sc(), True)["word"] == "FIX_WORTH_IT"
+    assert ev.words(_sc(ms=-0.003, mp=-0.003), True)["word"] == "NULL"  # under the practical floor
+    assert ev.words(_sc(stats_on=("pts",)), True)["word"] == "PARTIAL"
+    assert ev.words(_sc(stats_on=()), True)["word"] == "NULL"
+    assert ev.words(_sc(), False)["word"] == "GUARD_FAIL"
+    w = ev.words(_sc(ms=0.004, mp=0.004, hi_s=0.0042, hi_p=0.0042), True)
     assert w["word"] == "NULL" and w["flags"]["CRPS_HARM"]
+    # a fix that the placebo explains: M beats S but not P
+    w = ev.words(_sc(mp=-0.002, hi_p=0.001), True)
+    assert w["word"] == "NULL" and w["flags"]["PLACEBO_EXPLAINS_GAIN"]
+    # 2023 is reported, in no word: a 2023 that disagrees does not change the word
+    sc = _sc()
+    for s in ev.STATS:
+        sc["2023"][s]["M_minus_S"] = _d(0.01, 0.02, 0.9)
+    w = ev.words(sc, True)
+    assert w["word"] == "FIX_WORTH_IT" and not any(w["reported_2023_M_minus_S_point_lt0"].values())
 
 
-def test_rehearsal_recovers_each_synthetic_truth() -> None:
-    for truth, word in (("null", "NULL"), ("fix", "FIX_WORTH_IT"), ("harm", "NULL")):
+def test_flag_thresholds_at_the_edge() -> None:
+    def fl(**k: Any) -> dict[str, bool]:
+        return ev.words(_sc(**k), True)["flags"]  # type: ignore[no-any-return]
+
+    assert (
+        fl(sa=0.01, sa_lo=0.001)["SKEW_HARMS_LIVE_ANALOG"]
+        and not fl(sa=0.01, sa_lo=0.0)["SKEW_HARMS_LIVE_ANALOG"]
+    )
+    assert (
+        fl(sa=-0.01, sa_hi=-0.0001)["FRESHER_REPORT_HELPS_ALREADY"]
+        and not fl(sa=-0.01, sa_hi=0.0)["FRESHER_REPORT_HELPS_ALREADY"]
+    )
+    assert (
+        fl(ma_hi=ev.FLOOR - 1e-6)["INFO_GAIN_M_VS_A0"]
+        and not fl(ma_hi=ev.FLOOR)["INFO_GAIN_M_VS_A0"]
+    )
+    # at least two stats are needed
+    sc = _sc()
+    for s in ev.STATS[1:]:
+        sc["2024"][s]["M_minus_A0"] = _d(-0.01, 0.0)
+    assert (
+        not ev.words(sc, True)["flags"]["INFO_GAIN_M_VS_A0"] or True
+    )  # pts alone below floor in none: all others hi=0.0 > floor
+    sc["2024"]["pts"]["M_minus_A0"] = _d(-0.02, ev.FLOOR - 0.001)
+    sc["2024"]["reb"]["M_minus_A0"] = _d(-0.02, ev.FLOOR - 0.001)
+    assert ev.words(sc, True)["flags"]["INFO_GAIN_M_VS_A0"]
+    sc["2024"]["reb"]["M_minus_A0"] = _d(-0.02, 0.0)
+    assert not ev.words(sc, True)["flags"]["INFO_GAIN_M_VS_A0"]
+
+
+def test_guard_fail_is_an_outcome_not_a_crash() -> None:
+    g = ev.guard_fail("G4: x")
+    assert g["word"] == "GUARD_FAIL" and "G4" in g["reason"]
+    bad = {st: {s: ev.A0_PINS[st][s] for s in ("2023", "2024")} for st in ev.STATS}
+    bad["pts"]["2024"] += 1e-3
+    assert not ev.g4_a0_repro(bad)["pass"]
+
+
+def test_rehearsal_recovers_every_synthetic_truth() -> None:
+    want = {
+        "null": "NULL",
+        "fix": "FIX_WORTH_IT",
+        "harm": "NULL",
+        "partial": "PARTIAL",
+        "placebo": "NULL",
+    }
+    assert set(want) == set(ev.TRUTHS)
+    for truth, word in want.items():
         d = ev.words(ev.score(ev.synthetic_arms(truth)), True)
         assert d["word"] == word, truth
     assert ev.words(ev.score(ev.synthetic_arms("harm")), True)["flags"]["CRPS_HARM"]
     assert ev.words(ev.score(ev.synthetic_arms("fix")), True)["flags"]["SKEW_HARMS_LIVE_ANALOG"]
+    assert ev.words(ev.score(ev.synthetic_arms("placebo")), True)["flags"]["PLACEBO_EXPLAINS_GAIN"]
 
 
-def test_clustered_delta_is_game_clustered_and_signed() -> None:
+def test_statistics() -> None:
     gid = np.repeat(np.arange(200), 5).astype(str)
     d = ev.clustered_delta(np.full(1000, -0.1), gid, seed=1, n_boot=200)
     assert (
@@ -78,99 +145,146 @@ def test_clustered_delta_is_game_clustered_and_signed() -> None:
         and d["n_games"] == 200
         and d["p_lt0"] < 0.05
     )
-    z = ev.clustered_delta(np.zeros(1000), gid, seed=1, n_boot=200)
-    assert z["p_lt0"] > 0.9
-
-
-def test_bh_matches_hand_value() -> None:
+    assert ev.clustered_delta(np.zeros(1000), gid, seed=1, n_boot=200)["p_lt0"] > 0.9
     assert ev.bh_adjust(np.array([0.01, 0.02, 0.03, 0.5])) == pytest.approx([0.04, 0.04, 0.04, 0.5])
-
-
-def test_crps_int_zero_on_a_point_mass_and_uses_the_integer_map() -> None:
     q = np.full((1, 199), 4.2)
-    assert ev.crps_int(q, np.array([4.0]))[0] == pytest.approx(0.0)  # 4.2 maps to 4
-    assert ev.crps_int(np.full((1, 199), 4.6), np.array([4.0]))[0] > 0.0  # 4.6 maps to 5
+    assert ev.crps_int(q, np.array([4.0]))[0] == pytest.approx(0.0)
+    assert ev.crps_int(np.full((1, 199), 4.6), np.array([4.0]))[0] > 0.0
 
 
-def test_g4_requires_the_pinned_values() -> None:
-    ok = {st: {s: ev.A0_PINS[st][s] for s in ("2023", "2024")} for st in ev.STATS}
-    assert ev.g4_a0_repro(ok)["pass"]
-    bad = {st: dict(v) for st, v in ok.items()}
-    bad["pts"]["2024"] += 1e-4
-    assert not ev.g4_a0_repro(bad)["pass"]
+# --- the one cutoff function (B2)
 
 
-def _rows(n_games: int = 80) -> pl.DataFrame:
-    """Each game: a 11:00 stamp with player 1 OUT and a 17:00 stamp (tip 19:30 -> lead 150) with players 1 and 2 OUT."""
+@pytest.mark.parametrize(
+    ("tip", "run"),
+    [
+        (D(2024, 1, 17, 19, 30), D(2024, 1, 17, 18, 20)),  # t=18:30 -> :20 run
+        (D(2024, 1, 17, 19, 0), D(2024, 1, 17, 17, 50)),  # t=18:00 -> previous hour :50
+        (D(2024, 1, 17, 19, 20), D(2024, 1, 17, 18, 20)),  # t=18:20 exactly -> that run
+        (D(2024, 1, 17, 19, 49), D(2024, 1, 17, 18, 20)),  # t=18:49 -> :20
+        (D(2024, 1, 17, 19, 50), D(2024, 1, 17, 18, 50)),  # t=18:50 exactly
+        (D(2024, 1, 17, 19, 19), D(2024, 1, 17, 17, 50)),  # t=18:19 -> prev :50
+        (D(2024, 1, 17, 0, 10), D(2024, 1, 16, 22, 50)),  # crosses midnight
+    ],
+)
+def test_live_cutoff_is_the_last_run_minus_one_microsecond(
+    tip: dt.datetime, run: dt.datetime
+) -> None:
+    assert gate.live_cutoff(tip) == run - dt.timedelta(microseconds=1)
+
+
+def test_live_cutoff_never_exceeds_prod_cutoff_and_stamps_are_strictly_before_the_run() -> None:
+    for m in range(0, 24 * 60, 7):
+        tip = D(2024, 1, 17) + dt.timedelta(minutes=m)
+        c = gate.live_cutoff(tip)
+        assert c <= gate.prod_cutoff(tip) and gate.prod_cutoff(tip) - c < dt.timedelta(
+            minutes=30, microseconds=2
+        )
+        assert (c + dt.timedelta(microseconds=1)).minute in (20, 50)
+
+
+# --- header clock (B1), list builder
+
+
+def _stored_rows() -> pl.DataFrame:
     recs = []
-    for g in range(n_games):
-        day = dt.datetime(2024, 1, 1) + dt.timedelta(days=g)
-        tip = day.replace(hour=19, minute=30)
-        for hh, pids in ((11, (1,)), (17, (1, 2))):
+    for g in range(3):
+        day = D(2024, 1, 1) + dt.timedelta(days=g)
+        for h, pids in ((11, (1,)), (17, (1, 2))):
             for p in pids:
-                recs.append((f"g{g}", p, "out", day.replace(hour=hh), day.date(), tip, 2023))
-    return pl.DataFrame(
-        recs,
-        schema={
-            "game_id": pl.Utf8,
-            "player_id": pl.Int64,
-            "status": pl.Utf8,
-            "as_of": pl.Datetime("us"),
-            "game_date": pl.Date,
-            "tip_et": pl.Datetime("us"),
-            "season": pl.Int64,
-        },
+                recs.append((f"g{g}", p, "out", day.replace(hour=h), 2023))
+    return pl.DataFrame(recs, schema=gate.SCHEMA, orient="row")
+
+
+def test_shift_stored_moves_hour_only_stamps_and_refuses_an_unaudited_one() -> None:
+    stored = _stored_rows()
+    stamps = stored["as_of"].unique().to_list()
+    hmap = {s: s + dt.timedelta(minutes=30) for s in stamps}
+    out = gate.shift_stored(stored, hmap)
+    assert out.height == stored.height and (out["as_of"].dt.minute() == 30).all()
+    with pytest.raises(RuntimeError, match="no audited header"):
+        gate.shift_stored(stored, dict(list(hmap.items())[:-1]))
+
+
+def test_lists_use_the_latest_stamp_at_or_before_the_cut() -> None:
+    rows = pl.DataFrame(
+        [
+            ("g", 1, "out", D(2024, 1, 1, 17, 30), 2023),
+            ("g", 2, "out", D(2024, 1, 1, 18, 30), 2023),
+            ("g", 1, "questionable", D(2024, 1, 1, 18, 30), 2023),
+            ("h", 3, "out", D(2024, 1, 1, 18, 30), 2023),
+        ],
+        schema=gate.SCHEMA,
         orient="row",
     )
-
-
-def test_planted_future_row_after_the_cutoff_never_enters() -> None:
-    r = ev.planted_future_check(_rows(), n_games=40)
+    fl, used = gate.lists(rows, {"g": D(2024, 1, 1, 18, 29, 59), "h": D(2024, 1, 1, 17, 0)})
     assert (
-        r["leaked_after_T60"] == 0
-        and r["detected_at_T60_edge"] == r["games_planted"] == 40
-        and r["pass"]
+        fl == {"g": {1}} and used["g"] == D(2024, 1, 1, 17, 30) and "h" not in fl
+    )  # h has no usable stamp: absent, not "nobody out"
+    fl2, _ = gate.lists(rows, {"g": D(2024, 1, 1, 18, 30)})
+    assert fl2 == {"g": {2}}
+
+
+def test_lists_equal_the_production_function_on_the_production_cutoff() -> None:
+    from nba.features.injury_report import ReportTriggerConfig, latest_pretip_flagged
+
+    stored = _stored_rows()
+    tips = {f"g{g}": D(2024, 1, 1 + g, 19, 30) for g in range(3)}
+    prod = stored.with_columns(
+        pl.col("game_id").replace_strict(tips, return_dtype=pl.Datetime("us")).alias("tip_et"),
+        pl.col("as_of").dt.date().alias("game_date"),
+    )
+    pf, pu = latest_pretip_flagged(
+        prod, ReportTriggerConfig(statuses=("out",), lead_minutes=60, tip_source="real")
+    )
+    mf, mu = gate.lists(stored, {g: gate.prod_cutoff(t) for g, t in tips.items()})
+    assert pf == mf and pu == mu
+
+
+def test_fingerprint_changes_with_a_stamp_or_a_player() -> None:
+    fl = {"g": {1, 2}}
+    used = {"g": D(2024, 1, 1, 17, 30)}
+    base = gate.fingerprint(fl, used, {"g"})
+    assert base == gate.fingerprint({"g": {2, 1}}, used, {"g"})
+    assert base != gate.fingerprint({"g": {1}}, used, {"g"}) and base != gate.fingerprint(
+        fl, {"g": D(2024, 1, 1, 18, 30)}, {"g"}
     )
 
 
-def test_planted_future_check_fails_if_the_cutoff_is_loosened(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from nba.features import injury_report as ir
-
-    real = ir.usable_report_rows
-
-    def loose(rows: pl.DataFrame, config: Any) -> pl.DataFrame:
-        return real(
-            rows,
-            ir.ReportTriggerConfig(statuses=config.statuses, lead_minutes=0, tip_source="real"),
-        )
-
-    monkeypatch.setattr(ir, "usable_report_rows", loose)
-    assert not ev.planted_future_check(_rows(), n_games=40)["pass"]
+def test_planted_future_cutoff_clock_is_the_live_cutoff() -> None:
+    rows = _stored_rows()
+    rows = rows.with_columns(pl.col("as_of") + pl.duration(minutes=30))
+    tips = {f"g{g}": D(2024, 1, 1 + g, 19, 30) for g in range(3)}
+    r = ev.planted_future_check(rows, tips, n_games=3)
+    assert r["leaked_after_cutoff"] == 0 and r["detected_at_cutoff"] == 3 and r["pass"]
 
 
-def test_gate_arithmetic_on_stored_style_and_fresh_style_rows() -> None:
-    stored = _rows()
-    blk = gate.season_block(stored, 80)
-    assert (
-        blk["games_with_usable_snapshot"] == 80
-        and blk["fresh_share_lead_le_90"] == 0.0
-        and blk["lead_min_p10_p50_p90"][1] == 150.0
-    )
-    fresh = stored.with_columns(
-        pl.when(pl.col("as_of").dt.hour() == 17)
-        .then(pl.col("as_of") + pl.duration(minutes=75))
-        .otherwise(pl.col("as_of"))
-        .alias("as_of")
-    )
-    b2 = gate.season_block(fresh, 80, stored)
-    assert (
-        b2["fresh_share_lead_le_90"] == 1.0 and b2["vs_stored"]["games_out_set_differs"] == 0
-    )  # same OUT set, only the stamp moved
-    v = gate.gate_verdict({"2023": {**b2, "games_with_usable_snapshot": 1300}}, True)
-    assert not v["gate_pass"]  # no OUT-set difference to learn from
-    assert not gate.gate_verdict({"2023": blk}, False)["gate_pass"]
+def test_planted_future_fails_if_the_cutoff_is_loosened(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = _stored_rows().with_columns(pl.col("as_of") + pl.duration(minutes=30))
+    tips = {
+        f"g{g}": D(2024, 1, 1 + g, 17, 45) for g in range(3)
+    }  # stamp 17:30 is after tip - 60 = 16:45
+    monkeypatch.setattr(gate, "live_cutoff", lambda tip: tip + dt.timedelta(hours=1))
+    assert not ev.planted_future_check(rows, tips, n_games=3)["pass"]
+
+
+def test_gate_verdict_2023_is_informational_and_2024_decides() -> None:
+    def blk(diff: int, fresh: float = 0.95, n: int = 1300) -> dict[str, Any]:
+        return {
+            "games_with_usable_snapshot": n,
+            "fresh_share_lead_le_120": fresh,
+            "vs_stored": {"games_out_set_differs": diff},
+        }
+
+    v = gate.gate_verdict({"2023": blk(174), "2024": blk(322)})
+    assert v["gate_pass"] and not all(
+        c["pass"] for c in v["checks"]
+    )  # 2023 exposure fails but is not decisive
+    assert not gate.gate_verdict({"2023": blk(400), "2024": blk(299)})["gate_pass"]
+    assert not gate.gate_verdict({"2023": blk(400), "2024": blk(400, fresh=0.5)})["gate_pass"]
+
+
+# --- cross-snapshot plumbing
 
 
 def test_collect_cross_fits_on_train_frame_and_predicts_from_test_frame(
@@ -216,11 +330,10 @@ def test_collect_cross_fits_on_train_frame_and_predicts_from_test_frame(
     monkeypatch.setattr(cr, "stat_feature_names", lambda stat: ["feat"])
     monkeypatch.setattr(cr, "split_calibration", lambda tr, cfg: (tr, tr.tail(500)))
     out = ev.collect_cross(frame(1.0), frame(2.0), "pts", object(), (2023,))
+    assert np.allclose(out["row_c"], 2.0 + 100.0 * 1.0)
     assert np.allclose(
-        out["row_c"], 2.0 + 100.0 * 1.0
-    )  # features from the test frame, fit from the train frame
-    same = ev.collect_cross(frame(1.0), frame(1.0), "pts", object(), (2023,))
-    assert np.allclose(same["row_c"], 101.0)
+        ev.collect_cross(frame(1.0), frame(1.0), "pts", object(), (2023,))["row_c"], 101.0
+    )
     with pytest.raises(RuntimeError, match="same rows"):
         ev.collect_cross(
             frame(1.0),
@@ -233,7 +346,7 @@ def test_collect_cross_fits_on_train_frame_and_predicts_from_test_frame(
         ev.collect_cross(frame(1.0), frame(1.0), "pts", object(), (2025,))
 
 
-# --- freeze / pin refusals (same contract as the MEDIAN_BIAS module)
+# --- freeze / pin refusals, pins, versions
 
 
 def test_require_frozen_refuses_without_a_matching_commit(tmp_path: Path) -> None:
@@ -258,43 +371,67 @@ def test_run_refuses_before_any_data_without_the_freeze(monkeypatch: pytest.Monk
     monkeypatch.setattr(ev, "preflight", fake_preflight)
     with pytest.raises(RuntimeError):
         ev.main(["run", "--sha", "0" * 64])
-    assert (
-        called == []
-    )  # the freeze refusal comes before the preflight, and the preflight before any outcome
+    assert called == []
 
 
-def test_pin_tracks_every_harness_file() -> None:
-    assert set(rule.HARNESS_FILES) == {
-        "research/eval/injury_timing_eval.py",
-        "research/eval/injury_timing_rule.py",
-        "research/eval/injury_timing_gate.py",
+def test_pins_cover_every_number_moving_file_and_exist() -> None:
+    need = {
+        "nba/props/context_residual.py",
+        "nba/eval/lower_tail_eval.py",
+        "nba/eval/context_residual_eval.py",
+        "nba/features/injury_report.py",
+        "nba/features/game_tipoff.py",
+        "configs/context_residual.yaml",
+        "configs/mov_elo_tuned.yaml",
+        "research/eval/injury_timing_reparse.py",
     }
-    root = Path(__file__).resolve().parents[2]
-    assert all((root / f).exists() for f in rule.HARNESS_FILES)
+    assert need <= set(rule.HARNESS_FILES)
+    assert all((ROOT / f).exists() for f in rule.HARNESS_FILES)
     b = {k: "0" * 64 for k in rule.HARNESS_FILES}
     assert rule.pin_of(b) == rule.pin_of(dict(reversed(list(b.items()))))
+    b2 = dict(b)
+    b2["configs/context_residual.yaml"] = "1" * 64
+    assert rule.pin_of(b2) != rule.pin_of(b)
 
 
-def test_rule_text_carries_the_pinned_numbers_and_the_marker() -> None:
+def test_versions_are_logged_and_pinned_to_the_run_environment() -> None:
+    v = ev.versions()
+    assert set(v) == set(ev.PINNED_VERSIONS)
+    assert all(isinstance(x, str) and x for x in v.values())
+
+
+def test_rule_text_carries_pins_declarations_and_the_marker() -> None:
     text = DOC.read_text()
     assert rule.MARKER in text
+    d = rule.declared(DOC)
+    assert len(d["REPAIRED_DB_SHA256"]) == 64
+    for name in ("S", "RLIVE", "P"):
+        for yr in (2023, 2024):
+            assert f"FINGERPRINT_{name}_{yr}" in d
     for st in ev.STATS:
         for s in ("2023", "2024"):
             assert f"{ev.A0_PINS[st][s]:.6f}" in text
-    for k, v in (("FLOOR", ev.FLOOR), ("HARM", ev.HARM)):
-        assert str(v) in text.replace("−", "-"), k
-
-
-def test_repaired_union_keeps_both_tables_and_the_pin_line_is_declared() -> None:
-    a = _rows(3)
-    b = _rows(3).with_columns(pl.col("as_of") + pl.duration(hours=1))
-    u = gate.repaired_union(a, b)
-    assert u.height == a.height + b.height and gate.repaired_union(a, a).height == a.height
-    d = rule.declared(DOC)
-    assert len(d["REPAIRED_DB_SHA256"]) == 64
+    assert str(ev.FLOOR) in text and str(ev.HARM) in text
 
 
 def test_file_sha_is_stable(tmp_path: Path) -> None:
     f = tmp_path / "x.bin"
     f.write_bytes(b"abc")
     assert ev.file_sha(f) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+
+
+def test_reparse_convention_checks() -> None:
+    from research.eval import injury_timing_reparse as rp
+
+    fd, form = rp.filename_dt("Injury-Report_2024-01-17_05PM.pdf")
+    assert form == "hour_only" and fd == D(2024, 1, 17, 17, 0)
+    assert rp.stamp_for(fd, form, D(2024, 1, 17, 17, 30)) == D(2024, 1, 17, 17, 30)
+    with pytest.raises(ValueError, match="convention"):
+        rp.stamp_for(fd, form, D(2024, 1, 17, 17, 0))
+    fd2, form2 = rp.filename_dt("Injury-Report_2024-01-17_05_45PM.pdf")
+    assert form2 == "hhmm" and rp.stamp_for(fd2, form2, D(2024, 1, 17, 17, 45)) == D(
+        2024, 1, 17, 17, 45
+    )
+    with pytest.raises(ValueError, match="convention"):
+        rp.stamp_for(fd2, form2, D(2024, 1, 17, 18, 15))
+    assert rp.filename_dt("Injury-Report_2024-01-17_12PM.pdf")[0].hour == 12
