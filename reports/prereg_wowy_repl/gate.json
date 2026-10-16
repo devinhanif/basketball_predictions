@@ -1,0 +1,2071 @@
+{
+ "measured_at": "Thu Oct 15 23:51 CDT 2026",
+ "data_version_manifest": "68c8c9d56616",
+ "db_mtime": {
+  "nba.duckdb": "2026-10-15T20:50:12.112932",
+  "nba_history.duckdb": "2026-10-13T13:16:30.267820"
+ },
+ "c_inputs_sha256": {
+  "C_pts.npz": "90535d8a331e29762cf1c3fe6f24f1929447432584123eeb1e2dff206af375bd",
+  "C_ast.npz": "98656eaa5a78673d3a5ef13a38ac21e29c8c3c2590e08779664f96b5c25b9266",
+  "C_pic.npz": "9d9272199054ee867ba52fcaa4a280b7a71babda0193448d92e3326858a0298f"
+ },
+ "capture": {
+  "history_stints_vs_box_minutes": [
+   {
+    "season": 2013,
+    "box_rows": 27324,
+    "no_stint_share": 0.0,
+    "within_1min": 1.0,
+    "within_half_min": 1.0,
+    "mean_diff_min": 3.9599274884915715e-10
+   },
+   {
+    "season": 2014,
+    "box_rows": 27478,
+    "no_stint_share": 0.0,
+    "within_1min": 1.0,
+    "within_half_min": 1.0,
+    "mean_diff_min": -5.543263971330606e-09
+   },
+   {
+    "season": 2015,
+    "box_rows": 27817,
+    "no_stint_share": 0.0,
+    "within_1min": 1.0,
+    "within_half_min": 1.0,
+    "mean_diff_min": 1.7188804749238834e-10
+   },
+   {
+    "season": 2016,
+    "box_rows": 27709,
+    "no_stint_share": 0.0,
+    "within_1min": 1.0,
+    "within_half_min": 1.0,
+    "mean_diff_min": 3.856103654548194e-09
+   },
+   {
+    "season": 2017,
+    "box_rows": 27683,
+    "no_stint_share": 0.0,
+    "within_1min": 1.0,
+    "within_half_min": 1.0,
+    "mean_diff_min": -1.4633098631155232e-09
+   },
+   {
+    "season": 2018,
+    "box_rows": 27739,
+    "no_stint_share": 0.0,
+    "within_1min": 1.0,
+    "within_half_min": 1.0,
+    "mean_diff_min": -8.473057895586481e-09
+   },
+   {
+    "season": 2019,
+    "box_rows": 24097,
+    "no_stint_share": 0.004564883595468316,
+    "within_1min": 0.9846453915425156,
+    "within_half_min": 0.9830684317549903,
+    "mean_diff_min": 0.007788253649415927
+   },
+   {
+    "season": 2020,
+    "box_rows": 25053,
+    "no_stint_share": 0.00830239891430168,
+    "within_1min": 0.9784057797469365,
+    "within_half_min": 0.9750928032570949,
+    "mean_diff_min": 0.014398606069085652
+   },
+   {
+    "season": 2021,
+    "box_rows": 28045,
+    "no_stint_share": 0.008236762346229274,
+    "within_1min": 0.9856302371189161,
+    "within_half_min": 0.9835621322873953,
+    "mean_diff_min": 0.010255028508011198
+   }
+  ],
+  "history_report_games_by_season": [
+   [
+    2019,
+    1141
+   ],
+   [
+    2020,
+    1171
+   ],
+   [
+    2021,
+    1323
+   ]
+  ],
+  "history_possessions_games_by_season": [
+   [
+    2013,
+    1319
+   ],
+   [
+    2014,
+    1311
+   ],
+   [
+    2015,
+    1316
+   ],
+   [
+    2016,
+    1309
+   ],
+   [
+    2017,
+    1312
+   ],
+   [
+    2018,
+    1312
+   ],
+   [
+    2019,
+    1143
+   ],
+   [
+    2020,
+    1171
+   ],
+   [
+    2021,
+    1323
+   ]
+  ],
+  "main_stints_vs_box_minutes": [
+   {
+    "season": 2022,
+    "box_rows": 27737,
+    "no_stint_share": 0.0,
+    "within_1min": 0.9997836824458305,
+    "within_half_min": 0.9997836824458305,
+    "mean_diff_min": -0.0002385454196602119
+   },
+   {
+    "season": 2023,
+    "box_rows": 28197,
+    "no_stint_share": 0.0,
+    "within_1min": 0.999680817108203,
+    "within_half_min": 0.999680817108203,
+    "mean_diff_min": -0.0002467157073737644
+   },
+   {
+    "season": 2024,
+    "box_rows": 28236,
+    "no_stint_share": 0.0,
+    "within_1min": 0.9997520895310951,
+    "within_half_min": 0.9997520895310951,
+    "mean_diff_min": -0.0002273727985423751
+   }
+  ],
+  "main_report_games_by_season": [
+   [
+    2022,
+    1318
+   ],
+   [
+    2023,
+    1317
+   ],
+   [
+    2024,
+    1317
+   ]
+  ],
+  "main_possessions_games_by_season": [
+   [
+    2022,
+    1320
+   ],
+   [
+    2023,
+    1318
+   ],
+   [
+    2024,
+    1320
+   ]
+  ]
+ },
+ "possessions_vs_box_P": {
+  "2021": {
+   "player_games_matched": 27784,
+   "box_rows": 28045,
+   "corr_P_vs_exact": 0.9961376802653277,
+   "mean_rel_error_rotation_rows": 0.01818052020060408,
+   "mean_abs_rel_error_rotation_rows": 0.03568876876587914
+  },
+  "2023": {
+   "player_games_matched": 28139,
+   "box_rows": 28197,
+   "corr_P_vs_exact": 0.9967402018887185,
+   "mean_rel_error_rotation_rows": 0.018021647637879282,
+   "mean_abs_rel_error_rotation_rows": 0.03485852878322037
+  }
+ },
+ "priors_sha256": "2cdc0043d842c9e7d0536e9d98f7324e0e37c4e66d56d14a437d05fa57088159",
+ "replacement_rates": {
+  "2014": {
+   "pts": 0.16897056256995005,
+   "reb": 0.08881815217886672,
+   "ast": 0.03648163269738546,
+   "fg3m": 0.015028220626708562,
+   "usage": 0.19303464337711468
+  },
+  "2015": {
+   "pts": 0.1691580257501847,
+   "reb": 0.08722235141894638,
+   "ast": 0.03764541608658372,
+   "fg3m": 0.015075371596753246,
+   "usage": 0.1930768506764939
+  },
+  "2016": {
+   "pts": 0.1730369435714495,
+   "reb": 0.0891795032904878,
+   "ast": 0.03913913035945579,
+   "fg3m": 0.014643162107823694,
+   "usage": 0.19596365211843297
+  },
+  "2017": {
+   "pts": 0.17681165530252066,
+   "reb": 0.09369663733384262,
+   "ast": 0.03770500246510479,
+   "fg3m": 0.01446989186004157,
+   "usage": 0.19611404141440658
+  },
+  "2018": {
+   "pts": 0.17390017154273063,
+   "reb": 0.08954553735218228,
+   "ast": 0.03761684322386709,
+   "fg3m": 0.01569314237075409,
+   "usage": 0.18966930952227032
+  },
+  "2019": {
+   "pts": 0.1766307867391969,
+   "reb": 0.08749244463295187,
+   "ast": 0.039597284087399015,
+   "fg3m": 0.018050160932874232,
+   "usage": 0.19047091518775175
+  },
+  "2020": {
+   "pts": 0.17899587839169856,
+   "reb": 0.09016092166160501,
+   "ast": 0.03895051321822215,
+   "fg3m": 0.019286335941878025,
+   "usage": 0.19209688128314778
+  },
+  "2021": {
+   "pts": 0.18010420670293972,
+   "reb": 0.08888663783861787,
+   "ast": 0.03834802789878077,
+   "fg3m": 0.020196721638378986,
+   "usage": 0.1910223250720116
+  },
+  "2022": {
+   "pts": 0.18217158939459854,
+   "reb": 0.0910125468002076,
+   "ast": 0.04004014907963795,
+   "fg3m": 0.020137067708784838,
+   "usage": 0.19211254982822223
+  },
+  "2023": {
+   "pts": 0.18192958339913132,
+   "reb": 0.08939691903972935,
+   "ast": 0.04038026851642591,
+   "fg3m": 0.020183089900947967,
+   "usage": 0.19008831772997048
+  },
+  "2024": {
+   "pts": 0.1805236112666062,
+   "reb": 0.08764674991636615,
+   "ast": 0.04117123376714044,
+   "fg3m": 0.02090984988575122,
+   "usage": 0.1864485561433223
+  }
+ },
+ "k_values": {
+  "pts": 103.25632527138472,
+  "reb": 57.27142742923275,
+  "ast": 64.26733205442173,
+  "fg3m": 111.88349461512902,
+  "usage": 49.72462640791494
+ },
+ "coverage": {
+  "null_pattern": {
+   "2020": {
+    "rows": 25053,
+    "no_report_share": 0.0008382229673093043,
+    "null_rb_pts_share_among_reported": 0.06799296899968041,
+    "null_rx_pts_share_among_reported": 0.06799296899968041,
+    "null_rb_pts_share_first15": 0.34516724810178534,
+    "null_rb_pts_share_after15": 0.0009921127040031748
+   },
+   "2021": {
+    "rows": 28045,
+    "no_report_share": 0.0,
+    "null_rb_pts_share_among_reported": 0.061864860046354074,
+    "null_rx_pts_share_among_reported": 0.061864860046354074,
+    "null_rb_pts_share_first15": 0.3425661914460285,
+    "null_rb_pts_share_after15": 0.002290901231899719
+   },
+   "2022": {
+    "rows": 27737,
+    "no_report_share": 0.0016223816562714064,
+    "null_rb_pts_share_among_reported": 0.06117290192113246,
+    "null_rx_pts_share_among_reported": 0.06117290192113246,
+    "null_rb_pts_share_first15": 0.344019728729963,
+    "null_rb_pts_share_after15": 0.0008761938140716726
+   },
+   "2023": {
+    "rows": 28197,
+    "no_report_share": 0.0006383657835939994,
+    "null_rb_pts_share_among_reported": 0.05929947833493027,
+    "null_rx_pts_share_among_reported": 0.05929947833493027,
+    "null_rb_pts_share_first15": 0.3371757925072046,
+    "null_rb_pts_share_after15": 0.0014150336606492003
+   },
+   "2024": {
+    "rows": 28236,
+    "no_report_share": 0.0019478679699674174,
+    "null_rb_pts_share_among_reported": 0.061459848834321,
+    "null_rx_pts_share_among_reported": 0.061459848834321,
+    "null_rb_pts_share_first15": 0.3449257677445597,
+    "null_rb_pts_share_after15": 0.001547455295735901
+   }
+  },
+  "cells": {
+   "pts|leader_out|2020": {
+    "rows": 4066,
+    "share_with_history(ro_conf>0)": 0.9567142154451549,
+    "share_ro_conf_ge_0.5": 0.8748155435317265,
+    "median_ro_conf": 1.361344537815126,
+    "mean_ro_conf": 1.5647430969680778,
+    "null_rx_share": 0.03443187407771766,
+    "sd_rb": 1.0144355115666954,
+    "sd_rx": 2.458384770850658,
+    "corr_rb_vs_struct": 0.7206223249279113
+   },
+   "pts|leader_out|2021": {
+    "rows": 7693,
+    "share_with_history(ro_conf>0)": 0.9364357207851294,
+    "share_ro_conf_ge_0.5": 0.8758611724944755,
+    "median_ro_conf": 1.6915584415584415,
+    "mean_ro_conf": 1.862556042452951,
+    "null_rx_share": 0.02950734433900949,
+    "sd_rb": 1.1409441507167557,
+    "sd_rx": 2.933132506015269,
+    "corr_rb_vs_struct": 0.8017947981777356
+   },
+   "pts|leader_out|2022": {
+    "rows": 4814,
+    "share_with_history(ro_conf>0)": 0.9715413377648525,
+    "share_ro_conf_ge_0.5": 0.9034067303697548,
+    "median_ro_conf": 1.6822701286719277,
+    "mean_ro_conf": 1.8575061029634161,
+    "null_rx_share": 0.03406730369754882,
+    "sd_rb": 1.0576225590749042,
+    "sd_rx": 2.5511265880386866,
+    "corr_rb_vs_struct": 0.8464682829654279
+   },
+   "pts|leader_out|2023": {
+    "rows": 4316,
+    "share_with_history(ro_conf>0)": 0.95064874884152,
+    "share_ro_conf_ge_0.5": 0.8651529193697869,
+    "median_ro_conf": 1.7714285714285714,
+    "mean_ro_conf": 1.985743981969596,
+    "null_rx_share": 0.05282669138090825,
+    "sd_rb": 1.001064555127497,
+    "sd_rx": 3.418636536740104,
+    "corr_rb_vs_struct": 0.8035295710263063
+   },
+   "pts|leader_out|2024": {
+    "rows": 5678,
+    "share_with_history(ro_conf>0)": 0.9489256780556534,
+    "share_ro_conf_ge_0.5": 0.8751320887636491,
+    "median_ro_conf": 1.782312925170068,
+    "mean_ro_conf": 2.070065666272078,
+    "null_rx_share": 0.042796759422331805,
+    "sd_rb": 1.2827767044070353,
+    "sd_rx": 3.697306210683905,
+    "corr_rb_vs_struct": 0.7969531592133162
+   },
+   "pts|top25_fixed|2020": {
+    "rows": 3737,
+    "share_with_history(ro_conf>0)": 0.9852823120149853,
+    "share_ro_conf_ge_0.5": 0.9590580679689591,
+    "median_ro_conf": 2.1661064425770307,
+    "mean_ro_conf": 2.2438641390171954,
+    "null_rx_share": 0.026224244046026225,
+    "sd_rb": 1.2063739944337706,
+    "sd_rx": 3.660426890358005,
+    "corr_rb_vs_struct": 0.5582783674815284
+   },
+   "pts|top25_fixed|2021": {
+    "rows": 6516,
+    "share_with_history(ro_conf>0)": 0.9717618170656844,
+    "share_ro_conf_ge_0.5": 0.9422958870472683,
+    "median_ro_conf": 2.315263076603445,
+    "mean_ro_conf": 2.37549377850297,
+    "null_rx_share": 0.028084714548802948,
+    "sd_rb": 1.2535744129581639,
+    "sd_rx": 3.825231068597246,
+    "corr_rb_vs_struct": 0.6648310311851767
+   },
+   "pts|top25_fixed|2022": {
+    "rows": 3384,
+    "share_with_history(ro_conf>0)": 0.9920212765957447,
+    "share_ro_conf_ge_0.5": 0.9663120567375887,
+    "median_ro_conf": 2.257335865888497,
+    "mean_ro_conf": 2.321926682642749,
+    "null_rx_share": 0.02925531914893617,
+    "sd_rb": 1.231295510706274,
+    "sd_rx": 3.232022348777213,
+    "corr_rb_vs_struct": 0.6837920800713791
+   },
+   "pts|top25_fixed|2023": {
+    "rows": 3568,
+    "share_with_history(ro_conf>0)": 0.9817825112107623,
+    "share_ro_conf_ge_0.5": 0.9551569506726457,
+    "median_ro_conf": 2.3544484926837868,
+    "mean_ro_conf": 2.470834593502877,
+    "null_rx_share": 0.032511210762331835,
+    "sd_rb": 1.06333187667692,
+    "sd_rx": 4.106746826366096,
+    "corr_rb_vs_struct": 0.675919887417084
+   },
+   "pts|top25_fixed|2024": {
+    "rows": 4473,
+    "share_with_history(ro_conf>0)": 0.9861390565615917,
+    "share_ro_conf_ge_0.5": 0.9606528057232283,
+    "median_ro_conf": 2.487202380952381,
+    "mean_ro_conf": 2.679346677870405,
+    "null_rx_share": 0.029063268499888217,
+    "sd_rb": 1.4199490387396854,
+    "sd_rx": 4.460055311488857,
+    "corr_rb_vs_struct": 0.6700369287631374
+   },
+   "ast|leader_out|2020": {
+    "rows": 4564,
+    "share_with_history(ro_conf>0)": 0.9485100788781771,
+    "share_ro_conf_ge_0.5": 0.876205083260298,
+    "median_ro_conf": 1.5629960317460316,
+    "mean_ro_conf": 1.7892149731377782,
+    "null_rx_share": 0.029360210341805432,
+    "sd_rb": 0.24131077170646356,
+    "sd_rx": 1.0688384877803678,
+    "corr_rb_vs_struct": 0.722940663960193
+   },
+   "ast|leader_out|2021": {
+    "rows": 6796,
+    "share_with_history(ro_conf>0)": 0.9430547380812242,
+    "share_ro_conf_ge_0.5": 0.8806650971159505,
+    "median_ro_conf": 1.7140056022408965,
+    "mean_ro_conf": 1.9098000100663222,
+    "null_rx_share": 0.03649205414949971,
+    "sd_rb": 0.2836314083541857,
+    "sd_rx": 0.9874871388703454,
+    "corr_rb_vs_struct": 0.7128435912464577
+   },
+   "ast|leader_out|2022": {
+    "rows": 5216,
+    "share_with_history(ro_conf>0)": 0.9474693251533742,
+    "share_ro_conf_ge_0.5": 0.8759585889570553,
+    "median_ro_conf": 1.4702565236620964,
+    "mean_ro_conf": 1.6454711235007908,
+    "null_rx_share": 0.04562883435582822,
+    "sd_rb": 0.24395257094675868,
+    "sd_rx": 0.7515259420193245,
+    "corr_rb_vs_struct": 0.7819822917458099
+   },
+   "ast|leader_out|2023": {
+    "rows": 4942,
+    "share_with_history(ro_conf>0)": 0.9198704977741805,
+    "share_ro_conf_ge_0.5": 0.8545123431808984,
+    "median_ro_conf": 1.7363531205636469,
+    "mean_ro_conf": 1.9385685268485455,
+    "null_rx_share": 0.053824362606232294,
+    "sd_rb": 0.21074157019812942,
+    "sd_rx": 1.0876617199570842,
+    "corr_rb_vs_struct": 0.8011505075643856
+   },
+   "ast|leader_out|2024": {
+    "rows": 4414,
+    "share_with_history(ro_conf>0)": 0.9637516991391029,
+    "share_ro_conf_ge_0.5": 0.8880833710919801,
+    "median_ro_conf": 1.94520759376447,
+    "mean_ro_conf": 2.1494656544514417,
+    "null_rx_share": 0.02786588128681468,
+    "sd_rb": 0.34625394614392824,
+    "sd_rx": 0.9895099304833662,
+    "corr_rb_vs_struct": 0.7937926162396145
+   }
+  }
+ },
+ "kappa": {
+  "pts|leader_out": {
+   "pooled_2020_21": {
+    "rows": 12018,
+    "rb_plain": {
+     "coef": 0.16150154809319608,
+     "se": 0.08205450370464143,
+     "n": 11392.0,
+     "clusters": 962.0
+    },
+    "rb_given_rx_role": {
+     "coef": 0.05959681668743974,
+     "se": 0.10600906847326662,
+     "n": 11392.0,
+     "clusters": 962.0
+    },
+    "rx_plain": {
+     "coef": -0.01698916908315158,
+     "se": 0.02232517462590147,
+     "n": 11392.0,
+     "clusters": 962.0
+    },
+    "rx_given_rb_role": {
+     "coef": -0.02179988582926212,
+     "se": 0.022739616210857686,
+     "n": 11392.0,
+     "clusters": 962.0
+    },
+    "struct_plain": {
+     "coef": 0.07961605785642964,
+     "se": 0.020764564198602706,
+     "n": 11759.0,
+     "clusters": 997.0
+    }
+   },
+   "2022_heldout": {
+    "rows": 4908,
+    "rb_plain": {
+     "coef": 0.42522452589531123,
+     "se": 0.13697397852883017,
+     "n": 4650.0,
+     "clusters": 416.0
+    },
+    "rb_given_rx_role": {
+     "coef": 0.32798018517106126,
+     "se": 0.19095557382201922,
+     "n": 4650.0,
+     "clusters": 416.0
+    },
+    "rx_plain": {
+     "coef": -0.004427043669184325,
+     "se": 0.041861489235342796,
+     "n": 4650.0,
+     "clusters": 416.0
+    },
+    "rx_given_rb_role": {
+     "coef": -0.013435822260939017,
+     "se": 0.041790345105799355,
+     "n": 4650.0,
+     "clusters": 416.0
+    },
+    "struct_plain": {
+     "coef": 0.11066865837158592,
+     "se": 0.026220134567787285,
+     "n": 4814.0,
+     "clusters": 430.0
+    }
+   }
+  },
+  "pts|top25_fixed": {
+   "pooled_2020_21": {
+    "rows": 10314,
+    "rb_plain": {
+     "coef": 0.05028717049858842,
+     "se": 0.07941330030550439,
+     "n": 9972.0,
+     "clusters": 1874.0
+    },
+    "rb_given_rx_role": {
+     "coef": 0.08602923630444695,
+     "se": 0.08727332567098976,
+     "n": 9972.0,
+     "clusters": 1874.0
+    },
+    "rx_plain": {
+     "coef": 0.008207218685507556,
+     "se": 0.019345505256509316,
+     "n": 9972.0,
+     "clusters": 1874.0
+    },
+    "rx_given_rb_role": {
+     "coef": 0.01187043159453364,
+     "se": 0.01981285678623868,
+     "n": 9972.0,
+     "clusters": 1874.0
+    },
+    "struct_plain": {
+     "coef": 0.053878105720426124,
+     "se": 0.021826584699918654,
+     "n": 10253.0,
+     "clusters": 1964.0
+    }
+   },
+   "2022_heldout": {
+    "rows": 3400,
+    "rb_plain": {
+     "coef": 0.18753310396094083,
+     "se": 0.1771452617593193,
+     "n": 3285.0,
+     "clusters": 804.0
+    },
+    "rb_given_rx_role": {
+     "coef": 0.2941671330535603,
+     "se": 0.18813907438754726,
+     "n": 3285.0,
+     "clusters": 804.0
+    },
+    "rx_plain": {
+     "coef": -0.07012432291392966,
+     "se": 0.041024931457059516,
+     "n": 3285.0,
+     "clusters": 804.0
+    },
+    "rx_given_rb_role": {
+     "coef": -0.04945229721317405,
+     "se": 0.041335865826484804,
+     "n": 3285.0,
+     "clusters": 804.0
+    },
+    "struct_plain": {
+     "coef": 0.03559463881859798,
+     "se": 0.044874517737854135,
+     "n": 3384.0,
+     "clusters": 834.0
+    }
+   }
+  },
+  "ast|leader_out": {
+   "pooled_2020_21": {
+    "rows": 11639,
+    "rb_plain": {
+     "coef": 0.8334420930164085,
+     "se": 0.092513470090907,
+     "n": 10978.0,
+     "clusters": 943.0
+    },
+    "rb_given_rx_role": {
+     "coef": 0.6144952433286429,
+     "se": 0.10188675138763044,
+     "n": 10978.0,
+     "clusters": 943.0
+    },
+    "rx_plain": {
+     "coef": -0.002538049812732351,
+     "se": 0.02174151429329148,
+     "n": 10978.0,
+     "clusters": 943.0
+    },
+    "rx_given_rb_role": {
+     "coef": -0.024779166034090402,
+     "se": 0.022619717034988194,
+     "n": 10978.0,
+     "clusters": 943.0
+    },
+    "struct_plain": {
+     "coef": 0.18144930867559936,
+     "se": 0.01854059719950898,
+     "n": 11360.0,
+     "clusters": 984.0
+    }
+   },
+   "2022_heldout": {
+    "rows": 5325,
+    "rb_plain": {
+     "coef": 1.0762144433161327,
+     "se": 0.1768976927374,
+     "n": 4978.0,
+     "clusters": 443.0
+    },
+    "rb_given_rx_role": {
+     "coef": 0.7832319222465025,
+     "se": 0.1875502163350778,
+     "n": 4978.0,
+     "clusters": 443.0
+    },
+    "rx_plain": {
+     "coef": 0.08424104394962748,
+     "se": 0.03930004172530559,
+     "n": 4978.0,
+     "clusters": 443.0
+    },
+    "rx_given_rb_role": {
+     "coef": 0.04914244839432353,
+     "se": 0.03995599374829558,
+     "n": 4978.0,
+     "clusters": 443.0
+    },
+    "struct_plain": {
+     "coef": 0.21475760932397792,
+     "se": 0.040922861957912775,
+     "n": 5216.0,
+     "clusters": 463.0
+    }
+   }
+  }
+ },
+ "power": {
+  "forecast_source": "F1_WARM_WINDOW arm C (E7 A0_warm), row_y replaced by NaN on load",
+  "cells": {
+   "pts|leader_out|2023|STRUCT": {
+    "kappa": {
+     "struct": 0.07961605785642964
+    },
+    "rows": 4316,
+    "games": 388,
+    "expected_delta": -0.0151549472437986,
+    "halfwidth_b": 0.010875923666255219,
+    "power_b": 0.7796887435442053,
+    "breakeven_halfwidth_multiplier": 1.393440015657698
+   },
+   "pts|leader_out|2023|STRUCT_REPL": {
+    "kappa": {
+     "rb": 0.05959681668743974,
+     "rx": 0.0,
+     "plain_rb": 0.16150154809319608
+    },
+    "rows": 4316,
+    "games": 388,
+    "expected_delta": -0.00041438019873820726,
+    "halfwidth_b": 0.0016019994446626446,
+    "power_b": 1.0094535558831323e-08,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|leader_out|2023|STRUCT_REPL[plain_kappa_rb]": {
+    "kappa": {
+     "rb": 0.05959681668743974,
+     "rx": 0.0,
+     "plain_rb": 0.16150154809319608
+    },
+    "rows": 4316,
+    "games": 388,
+    "expected_delta": -0.0024918452668238724,
+    "halfwidth_b": 0.004283906959765737,
+    "power_b": 0.125577872796454,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|leader_out|2023|STRUCT_REPL[structural_kappa_1]": {
+    "kappa": {
+     "rb": 0.05959681668743974,
+     "rx": 0.0,
+     "plain_rb": 0.16150154809319608
+    },
+    "rows": 4316,
+    "games": 388,
+    "expected_delta": -0.09478577424264874,
+    "halfwidth_b": 0.026242523298211168,
+    "power_b": 0.9999998467081588,
+    "breakeven_halfwidth_multiplier": 3.611915407887238
+   },
+   "pts|leader_out|2024|STRUCT": {
+    "kappa": {
+     "struct": 0.07961605785642964
+    },
+    "rows": 5678,
+    "games": 493,
+    "expected_delta": -0.017201809963508938,
+    "halfwidth_b": 0.010054120396854166,
+    "power_b": 0.9182514717838333,
+    "breakeven_halfwidth_multiplier": 1.710921421717927
+   },
+   "pts|leader_out|2024|STRUCT_REPL": {
+    "kappa": {
+     "rb": 0.05959681668743974,
+     "rx": 0.0,
+     "plain_rb": 0.16150154809319608
+    },
+    "rows": 5678,
+    "games": 493,
+    "expected_delta": -0.0006485172156544752,
+    "halfwidth_b": 0.0018384658727181357,
+    "power_b": 1.749283806302849e-06,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|leader_out|2024|STRUCT_REPL[plain_kappa_rb]": {
+    "kappa": {
+     "rb": 0.05959681668743974,
+     "rx": 0.0,
+     "plain_rb": 0.16150154809319608
+    },
+    "rows": 5678,
+    "games": 493,
+    "expected_delta": -0.0042286238124196966,
+    "halfwidth_b": 0.004938064973233239,
+    "power_b": 0.3797368374513446,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|leader_out|2024|STRUCT_REPL[structural_kappa_1]": {
+    "kappa": {
+     "rb": 0.05959681668743974,
+     "rx": 0.0,
+     "plain_rb": 0.16150154809319608
+    },
+    "rows": 5678,
+    "games": 493,
+    "expected_delta": -0.15873670525698846,
+    "halfwidth_b": 0.02999561011783673,
+    "power_b": 1.0,
+    "breakeven_halfwidth_multiplier": 5.291997883470173
+   },
+   "pts|top25_fixed|2023|STRUCT": {
+    "kappa": {
+     "struct": 0.053878105720426124
+    },
+    "rows": 3568,
+    "games": 811,
+    "expected_delta": -0.011369499603839782,
+    "halfwidth_b": 0.010614891656425797,
+    "power_b": 0.5554074934071976,
+    "breakeven_halfwidth_multiplier": 1.0710895571842391
+   },
+   "pts|top25_fixed|2023|STRUCT_REPL": {
+    "kappa": {
+     "rb": 0.05028717049858842,
+     "rx": 0.008207218685507556,
+     "plain_rb": 0.05028717049858842
+    },
+    "rows": 3568,
+    "games": 811,
+    "expected_delta": -0.0005412736440613972,
+    "halfwidth_b": 0.0020795019654145253,
+    "power_b": 1.3199256445776634e-05,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|top25_fixed|2023|STRUCT_REPL[plain_kappa_rb]": {
+    "kappa": {
+     "rb": 0.05028717049858842,
+     "rx": 0.008207218685507556,
+     "plain_rb": 0.05028717049858842
+    },
+    "rows": 3568,
+    "games": 811,
+    "expected_delta": -0.00043398850846612137,
+    "halfwidth_b": 0.0017887900495582472,
+    "power_b": 2.8217074913421296e-07,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|top25_fixed|2023|STRUCT_REPL[structural_kappa_1]": {
+    "kappa": {
+     "rb": 0.05028717049858842,
+     "rx": 0.008207218685507556,
+     "plain_rb": 0.05028717049858842
+    },
+    "rows": 3568,
+    "games": 811,
+    "expected_delta": -0.12115205961981981,
+    "halfwidth_b": 0.034658561350863495,
+    "power_b": 0.9999994992740301,
+    "breakeven_halfwidth_multiplier": 3.495588244224724
+   },
+   "pts|top25_fixed|2024|STRUCT": {
+    "kappa": {
+     "struct": 0.053878105720426124
+    },
+    "rows": 4473,
+    "games": 903,
+    "expected_delta": -0.012562241061948181,
+    "halfwidth_b": 0.009898847966631256,
+    "power_b": 0.7010279820008666,
+    "breakeven_halfwidth_multiplier": 1.2690609154009789
+   },
+   "pts|top25_fixed|2024|STRUCT_REPL": {
+    "kappa": {
+     "rb": 0.05028717049858842,
+     "rx": 0.008207218685507556,
+     "plain_rb": 0.05028717049858842
+    },
+    "rows": 4473,
+    "games": 903,
+    "expected_delta": -0.0007107449457567957,
+    "halfwidth_b": 0.0022141163521330136,
+    "power_b": 7.323688156041314e-05,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|top25_fixed|2024|STRUCT_REPL[plain_kappa_rb]": {
+    "kappa": {
+     "rb": 0.05028717049858842,
+     "rx": 0.008207218685507556,
+     "plain_rb": 0.05028717049858842
+    },
+    "rows": 4473,
+    "games": 903,
+    "expected_delta": -0.0006355933411410403,
+    "halfwidth_b": 0.0020543187429173946,
+    "power_b": 1.563421110466778e-05,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "pts|top25_fixed|2024|STRUCT_REPL[structural_kappa_1]": {
+    "kappa": {
+     "rb": 0.05028717049858842,
+     "rx": 0.008207218685507556,
+     "plain_rb": 0.05028717049858842
+    },
+    "rows": 4473,
+    "games": 903,
+    "expected_delta": -0.19988084473723086,
+    "halfwidth_b": 0.0395968617435464,
+    "power_b": 0.9999999999999989,
+    "breakeven_halfwidth_multiplier": 5.047896119439515
+   },
+   "ast|leader_out|2023|STRUCT": {
+    "kappa": {
+     "struct": 0.18144930867559936
+    },
+    "rows": 4942,
+    "games": 440,
+    "expected_delta": -0.01620043993877373,
+    "halfwidth_b": 0.006007712884090103,
+    "power_b": 0.9995584611909429,
+    "breakeven_halfwidth_multiplier": 2.6966068870695312
+   },
+   "ast|leader_out|2023|STRUCT_REPL": {
+    "kappa": {
+     "rb": 0.6144952433286429,
+     "rx": 0.0,
+     "plain_rb": 0.8334420930164085
+    },
+    "rows": 4942,
+    "games": 440,
+    "expected_delta": -0.003610662248277847,
+    "halfwidth_b": 0.0028135664451437877,
+    "power_b": 0.16656038015386515,
+    "breakeven_halfwidth_multiplier": 0.0
+   },
+   "ast|leader_out|2023|STRUCT_REPL[plain_kappa_rb]": {
+    "kappa": {
+     "rb": 0.6144952433286429,
+     "rx": 0.0,
+     "plain_rb": 0.8334420930164085
+    },
+    "rows": 4942,
+    "games": 440,
+    "expected_delta": -0.006639907705015155,
+    "halfwidth_b": 0.0037941023560661025,
+    "power_b": 0.8015475670038994,
+    "breakeven_halfwidth_multiplier": 1.7500602466349149
+   },
+   "ast|leader_out|2023|STRUCT_REPL[structural_kappa_1]": {
+    "kappa": {
+     "rb": 0.6144952433286429,
+     "rx": 0.0,
+     "plain_rb": 0.8334420930164085
+    },
+    "rows": 4942,
+    "games": 440,
+    "expected_delta": -0.00952692606933032,
+    "halfwidth_b": 0.00454229946785576,
+    "power_b": 0.9746119018507383,
+    "breakeven_halfwidth_multiplier": 2.097379562212706
+   },
+   "ast|leader_out|2024|STRUCT": {
+    "kappa": {
+     "struct": 0.18144930867559936
+    },
+    "rows": 4414,
+    "games": 387,
+    "expected_delta": -0.02016698465700116,
+    "halfwidth_b": 0.006920125638012447,
+    "power_b": 0.9999122616117472,
+    "breakeven_halfwidth_multiplier": 2.9142512306746773
+   },
+   "ast|leader_out|2024|STRUCT_REPL": {
+    "kappa": {
+     "rb": 0.6144952433286429,
+     "rx": 0.0,
+     "plain_rb": 0.8334420930164085
+    },
+    "rows": 4414,
+    "games": 387,
+    "expected_delta": -0.010000794398982592,
+    "halfwidth_b": 0.004945394646479278,
+    "power_b": 0.9762579447853363,
+    "breakeven_halfwidth_multiplier": 2.022243948943964
+   },
+   "ast|leader_out|2024|STRUCT_REPL[plain_kappa_rb]": {
+    "kappa": {
+     "rb": 0.6144952433286429,
+     "rx": 0.0,
+     "plain_rb": 0.8334420930164085
+    },
+    "rows": 4414,
+    "games": 387,
+    "expected_delta": -0.018656459534101878,
+    "halfwidth_b": 0.006651642936829513,
+    "power_b": 0.9997979470740421,
+    "breakeven_halfwidth_multiplier": 2.804789690499296
+   },
+   "ast|leader_out|2024|STRUCT_REPL[structural_kappa_1]": {
+    "kappa": {
+     "rb": 0.6144952433286429,
+     "rx": 0.0,
+     "plain_rb": 0.8334420930164085
+    },
+    "rows": 4414,
+    "games": 387,
+    "expected_delta": -0.026996687746405415,
+    "halfwidth_b": 0.007942714367692845,
+    "power_b": 0.9999987111929515,
+    "breakeven_halfwidth_multiplier": 3.398924661853006
+   }
+  },
+  "c_tags": {
+   "pts": "9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc:39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2",
+   "ast": "9b5a7d6fad1e5e91cd71be7fd8026b84ca58f318013ab124fbbbbaab99899ddc:39cfe40f112571535267fe06db5ca3791611e1ac1d1780fe4501283c3b239bd2"
+  },
+  "rows_c": {
+   "pts": {
+    "rows": 55434,
+    "matched_to_features": 55434
+   },
+   "ast": {
+    "rows": 55434,
+    "matched_to_features": 55434
+   }
+  }
+ },
+ "gbm": {
+  "pts": {
+   "D1_train2020-21_test2022": {
+    "leader_out": {
+     "n": 4814,
+     "games": 430,
+     "role_vs_base": {
+      "relative_gain_pct": -0.05047330582217402,
+      "ci_pct": [
+       -0.31503651346817874,
+       0.21701181166110914
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 1.461745137199233,
+      "ci_pct": [
+       0.9769081968044515,
+       1.9794937810210418
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.7675317200443676,
+      "ci_pct": [
+       0.31023671124031876,
+       1.2136893902248413
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.7045115809301006,
+      "ci_pct": [
+       -1.1375241047823226,
+       -0.2808814267609478
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.05836552543916351,
+      "ci_pct": [
+       -0.23507390316961194,
+       0.3492480942511838
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.7095803449019167,
+      "ci_pct": [
+       0.2607645918019236,
+       1.1409903920154911
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.3899599310209556,
+      "ci_pct": [
+       0.061567124337247314,
+       0.712005888037224
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.06344960207090855,
+      "ci_pct": [
+       -0.4572427315341026,
+       0.564717283278279
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": 0.11846366109410367,
+      "ci_pct": [
+       -0.20440382068322602,
+       0.4534285899997059
+      ]
+     }
+    },
+    "top25_fixed": {
+     "n": 3384,
+     "games": 834,
+     "role_vs_base": {
+      "relative_gain_pct": 0.00032865317610708544,
+      "ci_pct": [
+       -0.3213493931854211,
+       0.36905829531739553
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 1.2985732831556462,
+      "ci_pct": [
+       0.6944226063052497,
+       1.8644001274200912
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.9673644212753074,
+      "ci_pct": [
+       0.3547316516738999,
+       1.5379850448841577
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.33556643799133035,
+      "ci_pct": [
+       -0.8804026007026061,
+       0.271375112118371
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.11016287138259084,
+      "ci_pct": [
+       -0.27559184549885984,
+       0.4954075606847721
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.8581469091685445,
+      "ci_pct": [
+       0.31390450039280815,
+       1.3994770149898754
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.3523555371816478,
+      "ci_pct": [
+       -0.06260815764978776,
+       0.7541988557173098
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.18242110832830116,
+      "ci_pct": [
+       -0.4448996364053969,
+       0.7921469596059336
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": -0.10437153843168012,
+      "ci_pct": [
+       -0.5477097794895186,
+       0.31261723660438934
+      ]
+     }
+    }
+   },
+   "D2a_train2020_test2021": {
+    "leader_out": {
+     "n": 7693,
+     "games": 637,
+     "role_vs_base": {
+      "relative_gain_pct": -0.14177328899243058,
+      "ci_pct": [
+       -0.40142710530224224,
+       0.10734987499277447
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 0.7795183600153077,
+      "ci_pct": [
+       0.31478516721065913,
+       1.2263322631883478
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.18636168326495728,
+      "ci_pct": [
+       -0.19223502143288884,
+       0.55275625242868
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.5978167682178626,
+      "ci_pct": [
+       -1.0683080609027313,
+       -0.12902315409545007
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.16433721510441535,
+      "ci_pct": [
+       -0.16710598336521332,
+       0.5233047049588582
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.022060722136940658,
+      "ci_pct": [
+       -0.3170180040329956,
+       0.3623034229834592
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.18394074699965568,
+      "ci_pct": [
+       -0.09727278491538427,
+       0.45514940997910086
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.20047485352150396,
+      "ci_pct": [
+       -0.18920198906642816,
+       0.5848042762063888
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": 0.2160794145884548,
+      "ci_pct": [
+       -0.07610982676049427,
+       0.528317748847315
+      ]
+     }
+    },
+    "top25_fixed": {
+     "n": 6516,
+     "games": 1117,
+     "role_vs_base": {
+      "relative_gain_pct": -0.07615413916637337,
+      "ci_pct": [
+       -0.37812258854264313,
+       0.2143485671735129
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 0.3833127091730226,
+      "ci_pct": [
+       -0.09296170945033433,
+       0.8545711245359957
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.03231120346035565,
+      "ci_pct": [
+       -0.3867666325865915,
+       0.4764435904076574
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.35235211615491924,
+      "ci_pct": [
+       -0.8595337304029383,
+       0.1837615523123353
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.1047072503411961,
+      "ci_pct": [
+       -0.27904367381723416,
+       0.5002254071319683
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": -0.07247193024626508,
+      "ci_pct": [
+       -0.498359334298214,
+       0.3184744882756554
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": -0.05033556713149867,
+      "ci_pct": [
+       -0.3697198094654697,
+       0.25233698396524973
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.2438448422104278,
+      "ci_pct": [
+       -0.19790135106312498,
+       0.7351215841392663
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": 0.2169348418506023,
+      "ci_pct": [
+       -0.12306732949280696,
+       0.5704355179560222
+      ]
+     }
+    }
+   },
+   "D2b_train2021_test2020": {
+    "leader_out": {
+     "n": 4066,
+     "games": 360,
+     "role_vs_base": {
+      "relative_gain_pct": 0.0822336959935277,
+      "ci_pct": [
+       -0.24397808326457213,
+       0.44265782801685666
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 1.3860904867673218,
+      "ci_pct": [
+       0.8529040377204644,
+       1.9624939990326056
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.2990387872426781,
+      "ci_pct": [
+       -0.3059883826472859,
+       0.8797336950522735
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -1.1023310047136636,
+      "ci_pct": [
+       -1.7932250827752387,
+       -0.4633036309744467
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.20815231379989196,
+      "ci_pct": [
+       -0.14808650032571535,
+       0.5466828038700088
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.09107605034889277,
+      "ci_pct": [
+       -0.4426451306872364,
+       0.6319155793697658
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.3212551489412019,
+      "ci_pct": [
+       -0.03381612410772006,
+       0.6848622769675776
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.6863353397753791,
+      "ci_pct": [
+       0.27955787750412714,
+       1.1152846820599944
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": 0.4345160225388778,
+      "ci_pct": [
+       0.04758997429116091,
+       0.7956376334906259
+      ]
+     }
+    },
+    "top25_fixed": {
+     "n": 3737,
+     "games": 847,
+     "role_vs_base": {
+      "relative_gain_pct": -0.035426223132040136,
+      "ci_pct": [
+       -0.4254392702635973,
+       0.32755132244081653
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 0.8389782192294248,
+      "ci_pct": [
+       0.3204533942866275,
+       1.357360027401055
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.006608412895459104,
+      "ci_pct": [
+       -0.546597602012544,
+       0.6281479450468628
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.8394122926387304,
+      "ci_pct": [
+       -1.4752517322907055,
+       -0.19939419492551544
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.19797073383542863,
+      "ci_pct": [
+       -0.24390137525215128,
+       0.6251170384142759
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": -0.19174191381381434,
+      "ci_pct": [
+       -0.7939174472188226,
+       0.38764095429216644
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.4010467435612508,
+      "ci_pct": [
+       0.03618632067134116,
+       0.7699881247624929
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 1.0316742889912245,
+      "ci_pct": [
+       0.5165898185146262,
+       1.5788345250198752
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": 0.08436965128310048,
+      "ci_pct": [
+       -0.3439454914671003,
+       0.5027859983317362
+      ]
+     }
+    }
+   }
+  },
+  "ast": {
+   "D1_train2020-21_test2022": {
+    "leader_out": {
+     "n": 5216,
+     "games": 463,
+     "role_vs_base": {
+      "relative_gain_pct": -0.11084159557093187,
+      "ci_pct": [
+       -0.5251641758770942,
+       0.317517107107817
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 1.5820282908117766,
+      "ci_pct": [
+       0.8409660172595936,
+       2.4519773436797
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.4780307188729571,
+      "ci_pct": [
+       -0.07670125397560845,
+       1.079573141722497
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -1.1217438774302035,
+      "ci_pct": [
+       -1.9399765728863891,
+       -0.3807830963315573
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.0020696331969105586,
+      "ci_pct": [
+       -0.3315247463483445,
+       0.3841094211247812
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.47597093652855804,
+      "ci_pct": [
+       -0.039417452156021986,
+       1.036151777399847
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.254176453620536,
+      "ci_pct": [
+       -0.07608088860629414,
+       0.6015210439951139
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.15678495380297974,
+      "ci_pct": [
+       -0.24255228768891465,
+       0.5560770330358411
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": -0.0025668989661165043,
+      "ci_pct": [
+       -0.43450228140312186,
+       0.46701042037709084
+      ]
+     }
+    },
+    "top25_fixed": {
+     "n": 3921,
+     "games": 975,
+     "role_vs_base": {
+      "relative_gain_pct": 0.20144128175763054,
+      "ci_pct": [
+       -0.21618594640200883,
+       0.6909470784921623
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 0.8858854340538014,
+      "ci_pct": [
+       0.16294900736280676,
+       1.5956279435427927
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": -0.05225356613507426,
+      "ci_pct": [
+       -0.6236154418697948,
+       0.5378844368305534
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.9465241194932528,
+      "ci_pct": [
+       -1.682553505373262,
+       -0.24494949273561567
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": -0.3610395200569938,
+      "ci_pct": [
+       -0.7997292726127958,
+       0.023540724581848627
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.30767512512682726,
+      "ci_pct": [
+       -0.24481971649402356,
+       0.8211572363050982
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.1065618183380801,
+      "ci_pct": [
+       -0.32410711835441475,
+       0.5668336523615003
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.04219036961804479,
+      "ci_pct": [
+       -0.4705545316451181,
+       0.5177256794793185
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": -0.5362088791288189,
+      "ci_pct": [
+       -1.0571830541238114,
+       -0.06394454831520735
+      ]
+     }
+    }
+   },
+   "D2a_train2020_test2021": {
+    "leader_out": {
+     "n": 6796,
+     "games": 583,
+     "role_vs_base": {
+      "relative_gain_pct": 0.4876195960935026,
+      "ci_pct": [
+       0.0710133675795366,
+       0.922635758707561
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 0.5898426307136773,
+      "ci_pct": [
+       -0.09704978329032998,
+       1.288302935991345
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.05045088634650918,
+      "ci_pct": [
+       -0.6578158233766107,
+       0.6865469538338687
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.542592184381574,
+      "ci_pct": [
+       -1.2867028030626952,
+       0.18945340571906596
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": -0.07945627466194871,
+      "ci_pct": [
+       -0.46883716091406563,
+       0.30417071835919296
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.12980402356698173,
+      "ci_pct": [
+       -0.6310246888146731,
+       0.7984263413410679
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": -0.27953685811561435,
+      "ci_pct": [
+       -0.6253538761494426,
+       0.10498130123666471
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": -0.4230396832069161,
+      "ci_pct": [
+       -0.918046404065998,
+       0.09914268453630512
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": -0.34339136193139996,
+      "ci_pct": [
+       -0.7759740775012175,
+       0.0720473614241545
+      ]
+     }
+    },
+    "top25_fixed": {
+     "n": 6317,
+     "games": 1140,
+     "role_vs_base": {
+      "relative_gain_pct": 0.725889591003992,
+      "ci_pct": [
+       0.28292941259408844,
+       1.1579449125651333
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": -0.08384547743653936,
+      "ci_pct": [
+       -0.6428947844374922,
+       0.4898140145680682
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": -0.729594187834004,
+      "ci_pct": [
+       -1.3647249396344086,
+       -0.12892354932165068
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.6452077328933603,
+      "ci_pct": [
+       -1.3362653366601511,
+       -0.03452283272599289
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": -0.38351223581414295,
+      "ci_pct": [
+       -0.7765779722463928,
+       0.062272152173325754
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": -0.34475975617076493,
+      "ci_pct": [
+       -0.9416028060966508,
+       0.22596338562604007
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": -0.41947015233452234,
+      "ci_pct": [
+       -0.876432273216593,
+       -0.021254998582061032
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": -0.48350793442846207,
+      "ci_pct": [
+       -0.9710524338351827,
+       -0.005324858078543121
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": -0.37583191832777363,
+      "ci_pct": [
+       -0.8474800942768834,
+       0.08837080057899782
+      ]
+     }
+    }
+   },
+   "D2b_train2021_test2020": {
+    "leader_out": {
+     "n": 4564,
+     "games": 401,
+     "role_vs_base": {
+      "relative_gain_pct": 0.3224474333454186,
+      "ci_pct": [
+       -0.10444091663898368,
+       0.7563863464556891
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 1.0779099260016523,
+      "ci_pct": [
+       0.19300661308622874,
+       1.9059009441163326
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.1889851935284903,
+      "ci_pct": [
+       -0.45145049057462694,
+       0.8044042403949441
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.89861094908954,
+      "ci_pct": [
+       -1.7322919353095552,
+       -0.08449067457152436
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.08333774387886406,
+      "ci_pct": [
+       -0.36520554862248367,
+       0.532764914491
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": 0.10573556728588063,
+      "ci_pct": [
+       -0.519016157915253,
+       0.7269975012356616
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.19438260127174756,
+      "ci_pct": [
+       -0.2443569472597168,
+       0.6298388014565791
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.30809309191360823,
+      "ci_pct": [
+       -0.12783812851034138,
+       0.7521911791890153
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": 0.09397991500634806,
+      "ci_pct": [
+       -0.40384487334117314,
+       0.5624796074251857
+      ]
+     }
+    },
+    "top25_fixed": {
+     "n": 3858,
+     "games": 904,
+     "role_vs_base": {
+      "relative_gain_pct": 0.5915596452937044,
+      "ci_pct": [
+       0.13506818045387503,
+       1.0217155857528626
+      ]
+     },
+     "S+R_beyond_role": {
+      "relative_gain_pct": 0.4639223562609929,
+      "ci_pct": [
+       -0.27745451192200565,
+       1.2334061192441015
+      ]
+     },
+     "SR_beyond_role": {
+      "relative_gain_pct": 0.0695603216665841,
+      "ci_pct": [
+       -0.4961971855804226,
+       0.6638940328429934
+      ]
+     },
+     "SR_vs_S+R(head_to_head)": {
+      "relative_gain_pct": -0.39620009541256884,
+      "ci_pct": [
+       -1.1990218019115777,
+       0.3791868381522856
+      ]
+     },
+     "RAW_beyond_role": {
+      "relative_gain_pct": 0.15121001575807425,
+      "ci_pct": [
+       -0.3205090633089841,
+       0.6480307867403875
+      ]
+     },
+     "SR_vs_RAW": {
+      "relative_gain_pct": -0.08177334357719612,
+      "ci_pct": [
+       -0.6547869133377715,
+       0.44594232974999914
+      ]
+     },
+     "P+R_S_beyond_role": {
+      "relative_gain_pct": 0.1482201546583184,
+      "ci_pct": [
+       -0.3209361103113817,
+       0.6291038307649521
+      ]
+     },
+     "P+R_SR_beyond_role": {
+      "relative_gain_pct": 0.21849176919470636,
+      "ci_pct": [
+       -0.29059319047608057,
+       0.7560450332263223
+      ]
+     },
+     "PQ_beyond_role": {
+      "relative_gain_pct": 0.16701928515937547,
+      "ci_pct": [
+       -0.3415829139848975,
+       0.685561488401971
+      ]
+     }
+    }
+   }
+  }
+ },
+ "cell_gate": {
+  "pts|leader_out": {
+   "STRUCT_REPL": {
+    "a_power_b_2023_2024": [
+     1.0094535558831323e-08,
+     1.749283806302849e-06
+    ],
+    "a": false,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     0.7675317200443676,
+     0.18636168326495728,
+     0.2990387872426781
+    ],
+    "b_D1_ci_pct": [
+     0.31023671124031876,
+     1.2136893902248413
+    ],
+    "b": true,
+    "c": false,
+    "pass_gate": false
+   },
+   "STRUCT": {
+    "a_power_b_2023_2024": [
+     0.7796887435442053,
+     0.9182514717838333
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     1.461745137199233,
+     0.7795183600153077,
+     1.3860904867673218
+    ],
+    "b_D1_ci_pct": [
+     0.9769081968044515,
+     1.9794937810210418
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": true
+   },
+   "head_to_head_SR_vs_S+R_D1_D2a_D2b_pct": [
+    -0.7045115809301006,
+    -0.5978167682178626,
+    -1.1023310047136636
+   ]
+  },
+  "pts|top25_fixed": {
+   "STRUCT_REPL": {
+    "a_power_b_2023_2024": [
+     1.3199256445776634e-05,
+     7.323688156041314e-05
+    ],
+    "a": false,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     0.9673644212753074,
+     0.03231120346035565,
+     0.006608412895459104
+    ],
+    "b_D1_ci_pct": [
+     0.3547316516738999,
+     1.5379850448841577
+    ],
+    "b": true,
+    "c": false,
+    "pass_gate": false
+   },
+   "STRUCT": {
+    "a_power_b_2023_2024": [
+     0.5554074934071976,
+     0.7010279820008666
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     1.2985732831556462,
+     0.3833127091730226,
+     0.8389782192294248
+    ],
+    "b_D1_ci_pct": [
+     0.6944226063052497,
+     1.8644001274200912
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": true
+   },
+   "head_to_head_SR_vs_S+R_D1_D2a_D2b_pct": [
+    -0.33556643799133035,
+    -0.35235211615491924,
+    -0.8394122926387304
+   ]
+  },
+  "ast|leader_out": {
+   "STRUCT_REPL": {
+    "a_power_b_2023_2024": [
+     0.16656038015386515,
+     0.9762579447853363
+    ],
+    "a": false,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     0.4780307188729571,
+     0.05045088634650918,
+     0.1889851935284903
+    ],
+    "b_D1_ci_pct": [
+     -0.07670125397560845,
+     1.079573141722497
+    ],
+    "b": false,
+    "c": false,
+    "pass_gate": false
+   },
+   "STRUCT": {
+    "a_power_b_2023_2024": [
+     0.9995584611909429,
+     0.9999122616117472
+    ],
+    "a": true,
+    "b_beyond_role_D1_D2a_D2b_pct": [
+     1.5820282908117766,
+     0.5898426307136773,
+     1.0779099260016523
+    ],
+    "b_D1_ci_pct": [
+     0.8409660172595936,
+     2.4519773436797
+    ],
+    "b": true,
+    "c": true,
+    "pass_gate": true
+   },
+   "head_to_head_SR_vs_S+R_D1_D2a_D2b_pct": [
+    -1.1217438774302035,
+    -0.542592184381574,
+    -0.89861094908954
+   ]
+  }
+ },
+ "verdict_family": {
+  "S_R(STRUCT)": [
+   "pts|leader_out",
+   "pts|top25_fixed",
+   "ast|leader_out"
+  ],
+  "T_R(STRUCT_REPL)": []
+ },
+ "planted_future": {
+  "cutoff": "2024-01-15",
+  "tolerance": 1e-09,
+  "early_rows": 12597,
+  "late_rows": 10914,
+  "early_diffs": {
+   "rb_pts": {
+    "null_equal": true,
+    "max_abs_diff": 8.881784197001252e-16
+   },
+   "rb_ast": {
+    "null_equal": true,
+    "max_abs_diff": 2.220446049250313e-16
+   },
+   "rx_pts": {
+    "null_equal": true,
+    "max_abs_diff": 1.7763568394002505e-15
+   },
+   "rx_ast": {
+    "null_equal": true,
+    "max_abs_diff": 4.440892098500626e-16
+   },
+   "rr_pts": {
+    "null_equal": true,
+    "max_abs_diff": 0.0
+   },
+   "rr_ast": {
+    "null_equal": true,
+    "max_abs_diff": 0.0
+   },
+   "ro_conf": {
+    "null_equal": true,
+    "max_abs_diff": 0.0
+   },
+   "pq_rb_pts": {
+    "null_equal": true,
+    "max_abs_diff": 8.881784197001252e-16
+   },
+   "pq_rb_ast": {
+    "null_equal": true,
+    "max_abs_diff": 2.220446049250313e-16
+   },
+   "pq_rx_pts": {
+    "null_equal": true,
+    "max_abs_diff": 8.881784197001252e-16
+   },
+   "pq_rx_ast": {
+    "null_equal": true,
+    "max_abs_diff": 2.220446049250313e-16
+   },
+   "pq_rr_pts": {
+    "null_equal": true,
+    "max_abs_diff": 0.0
+   },
+   "pq_rr_ast": {
+    "null_equal": true,
+    "max_abs_diff": 0.0
+   },
+   "pq_ro_conf": {
+    "null_equal": true,
+    "max_abs_diff": 0.0
+   }
+  },
+  "later_rows_mean_abs_move": {
+   "rb_pts": 4.610300619338484,
+   "rx_pts": 15.387524916248962,
+   "rr_pts": 15.360156123766377
+  },
+  "pass": true
+ }
+}
