@@ -141,3 +141,16 @@ its value is measured by reading the briefing next to the result, not by changin
 | `data/reporters/budget.json`, `user_ids.json`, `state.json` | spend ledger (posts, attempts, user reads per day); cached user ids; newest post per handle |
 | `data/facts/facts.duckdb` | `claimed_*` facts, source `x:<handle>` |
 | `tests/ingest/test_reporter*.py`, `tests/fixtures/reporters/posts.json` | fixtures, no network |
+
+## Starting lineups and nicknames (2026-10-15)
+
+`starting_lineup` posts ("<Team> starters (vs X): A, B, C, D, E", "<Team> are starting A, B, C, D
+and E", a newline list under a "starters" line) yield one `starting` claim per name, `known_at` =
+post time. A list is written only when exactly five names resolve on ONE roster: the reporter's
+team or the other team of its next game. Otherwise `group_status` reads `partial:k/5`,
+`incomplete:n`, `ambiguous` or `unscoped` and nothing is written (the report shows `LINEUP ...`).
+Projected/probable/expected lists and questions are `unknown`. Names resolve by exact name, reviewed
+alias, `configs/reporter_nicknames.yaml` (nickname -> full name, must be on the roster), then a
+unique first name or surname on the roster; accents are stripped. League-wide handles have no
+roster scope, so their lineups stay `unscoped`. The schedule cache holds no preseason games, so for
+preseason replays pass `parse-only --schedule <schedule parquet>`.

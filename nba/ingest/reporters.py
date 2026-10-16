@@ -1062,6 +1062,9 @@ def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--rosters", default=str(ROOT / "data" / "rosters"))
     p.add_argument("--schedule-cache", default=str(ROOT / "data" / "schedule_cache"))
     p.add_argument("--aliases", default=str(ROOT / "configs" / "kalshi_aliases.yaml"))
+    p.add_argument(
+        "--nicknames", default=str(ROOT / "configs" / "reporter_nicknames.yaml"), help="reviewed"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1092,6 +1095,8 @@ def main(argv: list[str] | None = None) -> int:
     rep = sub.add_parser("parse-only", help="replay raw parquet files (no network, no cost)")
     _common(rep)
     rep.add_argument("--file", action="append", required=True)
+    rep.add_argument("--schedule", default=None, help="schedule parquet overriding the cache")
+    rep.add_argument("--teams", nargs="+", default=None, help="tricodes; restrict the schedule")
     chk = sub.add_parser(
         "check-handles", help="one-off: batch-verify candidate handles (billed $/user read)"
     )
@@ -1140,6 +1145,7 @@ def main(argv: list[str] | None = None) -> int:
                 rosters_dir=Path(args.rosters),
                 schedule_cache=Path(args.schedule_cache),
                 aliases_path=Path(args.aliases),
+                nicknames_path=Path(args.nicknames),
                 at=datetime.now(UTC),
             )
             ctx0 = replace(ctx0, schedule=games)
@@ -1178,10 +1184,13 @@ def main(argv: list[str] | None = None) -> int:
             rosters_dir=Path(args.rosters),
             schedule_cache=Path(args.schedule_cache),
             aliases_path=Path(args.aliases),
+            nicknames_path=Path(args.nicknames),
             at=datetime.now(UTC),
         )
         if args.cmd == "poll" and args.schedule:
             ctx = replace(ctx, schedule=games)
+        elif args.cmd == "parse-only" and args.schedule:
+            ctx = replace(ctx, schedule=load_schedule_parquet(args.schedule, args.teams))
         claimed, counts = rf.claims_for_posts(posts, ctx)
         written = None
         if args.facts_db:
