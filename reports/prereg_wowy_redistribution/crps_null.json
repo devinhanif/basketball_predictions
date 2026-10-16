@@ -1,0 +1,118 @@
+{
+ "measured_at": "Wed Oct 14 19:36 CDT 2026",
+ "design": "D1: train 2020-21, test 2022, one fit per arm, production heads + lower-tail mixture, integer CRPS",
+ "K": 30,
+ "seasons_read": [
+  2020,
+  2021,
+  2022
+ ],
+ "cells": {
+  "pts|leader_out": {
+   "n_rows": 4814,
+   "n_games": 430,
+   "K": 30,
+   "null_mean": 0.0004578188899442946,
+   "null_sd": 0.0020496752938462953,
+   "two_sd": 0.004099350587692591,
+   "null_max": 0.004610431304023308,
+   "null_mean_ci95": [
+    -0.0033742687435478584,
+    0.0043017736031039505
+   ],
+   "two_sd_ci95": [
+    0.004261339875731666,
+    0.0066067535352572725
+   ],
+   "role_crps_level": 3.4298999575187086,
+   "se_null_mean_pct": 0.06052040223022489,
+   "se_null_sd_pct": 0.13034305545366873,
+   "gaussian_rule_two_sd_from_same_fits": 0.004470636403633971,
+   "observed_SR_minus_ROLE_crps": -0.021825792882255588,
+   "observed_SR_se_gain_pct": 1.5904211193371043
+  },
+  "pts|top25_fixed": {
+   "n_rows": 3384,
+   "n_games": 834,
+   "K": 30,
+   "null_mean": -4.4985521355679654e-05,
+   "null_sd": 0.0028669027656158612,
+   "two_sd": 0.0057338055312317225,
+   "null_max": 0.006283981474069074,
+   "null_mean_ci95": [
+    -0.0064422414961662604,
+    0.006634117942208891
+   ],
+   "two_sd_ci95": [
+    0.006211886354221398,
+    0.009857107143965859
+   ],
+   "role_crps_level": 4.201474990811119,
+   "se_null_mean_pct": 0.10371680599037443,
+   "se_null_sd_pct": 0.15559486587446786,
+   "gaussian_rule_two_sd_from_same_fits": 0.00653727937670187,
+   "observed_SR_minus_ROLE_crps": -0.03403025408950736,
+   "observed_SR_se_gain_pct": 1.6687247680370776
+  },
+  "ast|leader_out": {
+   "n_rows": 5216,
+   "n_games": 463,
+   "K": 30,
+   "null_mean": 4.432038701590137e-05,
+   "null_sd": 0.0005545808909977947,
+   "two_sd": 0.0011091617819955894,
+   "null_max": 0.0009228315871059185,
+   "null_mean_ci95": [
+    -0.001190042708551876,
+    0.0013229121488454068
+   ],
+   "two_sd_ci95": [
+    0.0011182916655240655,
+    0.0018280640641308095
+   ],
+   "role_crps_level": 0.9076625468263722,
+   "se_null_mean_pct": -0.04449020231226212,
+   "se_null_sd_pct": 0.14129681761669705,
+   "gaussian_rule_two_sd_from_same_fits": 0.0012824982933643265,
+   "observed_SR_minus_ROLE_crps": -0.005539536012832294,
+   "observed_SR_se_gain_pct": 1.7703500546459527
+  }
+ },
+ "decision": {
+  "cells": {
+   "pts|leader_out": {
+    "measured_two_sd": 0.004099350587692591,
+    "measured_threshold": 0.004099350587692591,
+    "t_c": 0.005,
+    "ratio_to_t_c": 0.8198701175385181,
+    "within_tolerance": true
+   },
+   "pts|top25_fixed": {
+    "measured_two_sd": 0.0057338055312317225,
+    "measured_threshold": 0.0057338055312317225,
+    "t_c": 0.0063,
+    "ratio_to_t_c": 0.9101278621002734,
+    "within_tolerance": true
+   },
+   "ast|leader_out": {
+    "measured_two_sd": 0.0011091617819955894,
+    "measured_threshold": 0.003,
+    "t_c": 0.003,
+    "ratio_to_t_c": 1.0,
+    "within_tolerance": true
+   }
+  },
+  "all_within": true,
+  "tol": 0.2
+ },
+ "converted_D1_two_sd_from_gate_json": {
+  "pts|leader_out": 0.004926981145458255,
+  "pts|top25_fixed": 0.006255597478463782,
+  "ast|leader_out": 0.001591988292089063
+ },
+ "ratio_to_converted_D1": {
+  "pts|leader_out": 0.8320207580805168,
+  "pts|top25_fixed": 0.9165879919498594,
+  "ast|leader_out": 0.6967147858481474
+ }
+}

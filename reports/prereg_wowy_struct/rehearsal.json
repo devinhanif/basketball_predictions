@@ -1,0 +1,42 @@
+{
+ "guard": {
+  "seeds": 10,
+  "twist_labels_over_cells": {
+   "TWIST_TIE": 9,
+   "TWIST_WORSE": 21
+  },
+  "words": {
+   "FAIL_GUARD": 10
+  }
+ },
+ "no_gain": {
+  "seeds": 10,
+  "twist_labels_over_cells": {
+   "TWIST_TIE": 9,
+   "TWIST_WORSE": 21
+  },
+  "words": {
+   "FAIL_NO_GAIN": 10
+  }
+ },
+ "one_season": {
+  "seeds": 10,
+  "twist_labels_over_cells": {
+   "TWIST_TIE": 9,
+   "TWIST_WORSE": 21
+  },
+  "words": {
+   "FAIL_ONE_SEASON": 10
+  }
+ },
+ "pass": {
+  "seeds": 10,
+  "twist_labels_over_cells": {
+   "TWIST_TIE": 30
+  },
+  "words": {
+   "PASS": 10
+  }
+ },
+ "wall_seconds": 47.8
+}
