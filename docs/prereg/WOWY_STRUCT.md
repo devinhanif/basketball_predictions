@@ -279,3 +279,13 @@ The ledger rows dated 2026-10-14 (G1 conversion check, E7) and 2026-10-16 (this 
 === RESULTS BELOW ===
 
 (not run)
+
+## Result (run 2026-10-16 15:43 CDT; frozen a74eebd sha 3f78a0f1, pin d71b5d9 981ebefe; reports/prereg_wowy_struct/results.json)
+**Word: FAIL_ONE_SEASON.** S_R (per-possession STRUCT allocation) minus ROLE, integer CRPS on cell rows, game-clustered 95%:
+| cell | 2023 | 2024 |
+|---|---|---|
+| pts leader out | -0.0096 [-0.0170, -0.0021] clears (G1, G9 ok) | -0.0037 [-0.0097, +0.0023] no |
+| pts top 25% fixed (thin; FAIL = cannot detect) | -0.0116 [-0.0207, -0.0026] clears | -0.0063 [-0.0144, +0.0019] no |
+| ast leader out | -0.0022 [-0.0052, +0.0005] no | -0.0017 [-0.0047, +0.0012] no |
+Stamp-unexposed games give the same points (2023 pts leader -0.0096; 2024 -0.0047). Twist (STRUCT_REPL, descriptive): TWIST_TIE in all three cells.
+Reading: the same pattern as F1 (T498): a clear gain in 2023, a smaller same-sign point estimate in 2024 that the CI does not separate from zero. Not promoted. The live log is the confirmatory venue.
