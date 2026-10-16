@@ -66,6 +66,8 @@ def test_claim_schema_is_fixed() -> None:
         "confidence",
         "evidence",
         "player_id",
+        "group",
+        "group_status",
     }
     assert rp.CLAIM_TYPES == (
         "minutes_restriction",
@@ -73,6 +75,7 @@ def test_claim_schema_is_fixed() -> None:
         "out",
         "available",
         "game_time_decision",
+        "starting",
         "unknown",
     )
 

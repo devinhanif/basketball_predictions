@@ -13,8 +13,16 @@ Contract (DECISIONS 2026-10-10 "confirm everyone", item 3)
   roster of the handle's team. Unresolved stays unresolved (``player_id = None``) with the raw
   name kept; the caller decides what to do with it (the facts writer skips it and reports it).
 
-Claim types: ``minutes_restriction`` (``minutes_limit`` = the cap when a number was given, the
-upper end of a range), ``will_play``, ``out``, ``available``, ``game_time_decision``, ``unknown``.
+Lineups: ``starting`` claims come from "<Team> starters (vs X): A, B, C, D, E", "<Team> are
+starting A, B, C, D and E" and newline lists under a "starters" line. Each listed name is one
+``starting`` claim sharing a ``group``; a group is written only when exactly five names resolve to
+ONE roster (the reporter's team, or the other team of its next game). Anything else is flagged in
+``group_status`` (``partial:k/5``, ``incomplete:n``, ``ambiguous``, ``unscoped``) and not written.
+"Projected", "probable", "expected" or "likely" lineups are ``unknown``: not confirmations.
+
+Claim types: ``starting``, ``minutes_restriction`` (``minutes_limit`` = the cap when a number was
+given, the upper end of a range), ``will_play``, ``out``, ``available``,
+``game_time_decision``, ``unknown``.
 A sentence that negates a phrase ("no minutes restriction", "not available") or asks a question
 is ``unknown`` with the span kept, so a human sees it in the briefing instead of a model.
 """
@@ -33,6 +41,7 @@ CLAIM_TYPES: tuple[str, ...] = (
     "out",
     "available",
     "game_time_decision",
+    "starting",
     "unknown",
 )
 
@@ -43,6 +52,7 @@ _PRIORITY = {
     "game_time_decision": 2,
     "available": 3,
     "will_play": 4,
+    "starting": 5,
     "unknown": 9,
 }
 
@@ -57,6 +67,8 @@ class Claim:
     confidence: float
     evidence: str
     player_id: int | None = None
+    group: int | None = None  # lineup claims of one list share a group number
+    group_status: str | None = None  # candidate -> full | partial:k/5 | incomplete:n | ...
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -197,6 +209,77 @@ def _minutes(m: re.Match[str]) -> int | None:
     return val if MIN_MINUTES <= val <= MAX_MINUTES else None
 
 
+# ----------------------------------------------------------------------------------------------
+# Starting lineups
+# ----------------------------------------------------------------------------------------------
+
+#: One word of a name: a letter-led token (unicode, so Şengün works), no trailing dot.
+_WORD = r"(?!(?:and|AND)\b)[^\W\d_](?:[\w'’\-.]*[\w'’\-])?"
+_ITEM = rf"{_WORD}(?:[ \t]+{_WORD}){{0,2}}"
+_LIST_SEP = r"[ \t]*(?:,[ \t]*(?:and[ \t]+)?|/|&|\+|;|[ \t]+and[ \t]+|\n)[ \t]*"
+_OPP = r"(?:vs\.?|against|at|@)[ \t]+(?:the[ \t]+)?(?-i:[A-Z]\w*(?:[ \t]+[A-Z]\w*)?)"
+_AFTER = r"(?:[ \t]*[:\-\u2013][ \t]*\n?[ \t]*|[ \t]*\n\s*)"
+_LINEUP_HEAD = re.compile(
+    r"(?i:\bstarters\b(?:[ \t]+"
+    + _OPP
+    + r")?(?:[ \t]+(?:for[ \t]+)?(?:tonight|today))?)"
+    + _AFTER
+    + r"|(?i:\b(?:(?:are|is|will|'re)[ \t]+(?:be[ \t]+)?start(?:ing)?|going[ \t]+with|"
+    r"starting[ \t]+(?:lineup|five|5))\b)[ \t]*[:\-\u2013]?\s*"
+)
+_LINEUP_LIST = re.compile(rf"{_ITEM}(?:{_LIST_SEP}{_ITEM})*")
+_NOT_CONFIRMED = re.compile(
+    r"\b(?:projected|projecting|probable|expected|likely|predicted|potential|possible|"
+    r"could|might|may|if|unless|hoping)\b",
+    re.I,
+)
+LINEUP_SIZE = 5
+
+
+def _lineup_items(span: str) -> list[str]:
+    """Names of a matched list, cut at the first item that is not name-shaped."""
+    items: list[str] = []
+    for raw in re.split(_LIST_SEP, span):
+        words = raw.split()
+        if not words or not all(w[0].isupper() for w in words):
+            break
+        name = _clean_name(raw)
+        if name is None:
+            break
+        items.append(name)
+    return items
+
+
+def _lineup_claims(text: str) -> list[Claim]:
+    out: list[Claim] = []
+    group = 0
+    pos = 0
+    while True:
+        head = _LINEUP_HEAD.search(text, pos)
+        if head is None:
+            break
+        lst = _LINEUP_LIST.match(text, head.end())
+        pos = head.end()
+        if lst is None:
+            continue
+        items = _lineup_items(lst.group(0))
+        pos = lst.end()
+        if len(items) < 2:
+            continue
+        sentence = _sentence_of(text, head.start(), head.start())
+        before = text[max(0, head.start() - 80) : head.start()]
+        line_start = text.rfind("\n", 0, head.start()) + 1
+        evidence = text[line_start : lst.end()].strip()[:MAX_EVIDENCE]
+        if sentence.endswith("?") or _NOT_CONFIRMED.search(before.rsplit("\n", 1)[-1]):
+            out.append(Claim(None, "unknown", None, 0.0, evidence))
+            continue
+        status = "candidate" if len(items) == LINEUP_SIZE else f"incomplete:{len(items)}"
+        conf = 0.8 if len(items) == LINEUP_SIZE else 0.0
+        out.extend(Claim(n, "starting", None, conf, evidence, None, group, status) for n in items)
+        group += 1
+    return out
+
+
 def parse_post(text: str) -> list[Claim]:
     """Claims in ``text``. Empty text or a retweet yields nothing; text with no recognised
     phrase yields one ``unknown`` claim whose evidence is the (trimmed) text."""
@@ -204,6 +287,7 @@ def parse_post(text: str) -> list[Claim]:
     if not text or retweeted_handle(text):
         return []
     found: dict[str, Claim] = {}
+    lineup = _lineup_claims(text)
     for claim_type, pattern, base in _TABLE:
         for m in pattern.finditer(text):
             name = _clean_name(m.group("name"))
@@ -226,9 +310,9 @@ def parse_post(text: str) -> list[Claim]:
             prev = found.get(key)
             if prev is None or _PRIORITY[claim.claim_type] < _PRIORITY[prev.claim_type]:
                 found[key] = claim
-    if not found:
+    if not found and not lineup:
         return [Claim(None, "unknown", None, 0.0, text[:MAX_EVIDENCE])]
-    return list(found.values())
+    return [*found.values(), *lineup]
 
 
 # ----------------------------------------------------------------------------------------------
@@ -240,14 +324,16 @@ def resolve_player(
     name: str,
     roster: list[tuple[str, int]] | None,
     aliases: dict[str, int] | None,
+    nicknames: dict[str, str] | None = None,
 ) -> int | None:
     """``player_id`` for ``name`` or None.
 
-    ``roster`` is ``(display name, player_id)`` for the reporter's team (None = league-wide
-    handle, no roster scope). ``aliases`` is the reviewed table keyed on normalised names.
-    Order: exact roster name; reviewed alias (restricted to the roster when one is given);
-    unique surname on the roster; unique "initial + surname" on the roster. Anything ambiguous
-    or absent is None.
+    ``roster`` is ``(display name, player_id)`` for ONE team (None = league-wide handle, no
+    roster scope). ``aliases`` is the reviewed table keyed on normalised names; ``nicknames``
+    (configs/reporter_nicknames.yaml) maps a normalised nickname to a full name, which must then
+    be on the roster. Order: exact roster name; reviewed alias (restricted to the roster when one
+    is given); reviewed nickname; unique first name or surname on the roster; unique "initial +
+    surname" on the roster. Anything ambiguous or absent is None.
     """
     key = normalize_name(name)
     if not key:
@@ -263,31 +349,87 @@ def resolve_player(
             return pid
     if not roster:
         return None
+    if nicknames and key in nicknames:
+        full = normalize_name(nicknames[key])
+        hits = {pid for n, pid in roster if normalize_name(n) == full}
+        return hits.pop() if len(hits) == 1 else None
     parts = key.split()
     surname = parts[-1]
     initial = parts[0][0] if len(parts) == 2 and len(parts[0].rstrip(".")) == 1 else None
     if len(parts) == 1 or initial is not None:
-        hits = set()
+        found = set()
         for n, pid in roster:
             nk = normalize_name(n).split()
-            if not nk or nk[-1] != surname:
+            if not nk:
                 continue
-            if initial is not None and nk[0][0] != initial:
-                continue
-            hits.add(pid)
-        if len(hits) == 1:
-            return hits.pop()
+            if initial is None:
+                if nk[-1] == surname or (len(nk) > 1 and nk[0] == surname):
+                    found.add(pid)
+            elif nk[-1] == surname and nk[0][0] == initial:
+                found.add(pid)
+        if len(found) == 1:
+            return found.pop()
     return None
+
+
+def _lineup_group(
+    members: list[Claim],
+    rosters: list[list[tuple[str, int]]],
+    aliases: dict[str, int] | None,
+    nicknames: dict[str, str] | None,
+) -> list[Claim]:
+    """Resolve one lineup list: all five on exactly one roster, or nobody is written."""
+    if not rosters:
+        return [replace(c, group_status="unscoped") for c in members]
+    full: list[list[int]] = []
+    best = 0
+    for r in rosters:
+        ids = [resolve_player(c.player_name or "", r, aliases, nicknames) for c in members]
+        got = [i for i in ids if i is not None]
+        best = max(best, len(set(got)))
+        if len(got) == len(members) and len(set(got)) == len(members):
+            full.append(got)
+    if len(full) == 1:
+        return [
+            replace(c, player_id=pid, group_status="full")
+            for c, pid in zip(members, full[0], strict=True)
+        ]
+    status = "ambiguous" if full else f"partial:{best}/{len(members)}"
+    return [replace(c, group_status=status) for c in members]
 
 
 def resolve_claims(
     claims: list[Claim],
     roster: list[tuple[str, int]] | None,
     aliases: dict[str, int] | None,
+    nicknames: dict[str, str] | None = None,
+    scope: list[list[tuple[str, int]]] | None = None,
 ) -> list[Claim]:
-    """Attach ``player_id`` where it resolves; unresolved claims keep ``player_name`` as-is."""
-    out = []
-    for c in claims:
-        pid = resolve_player(c.player_name, roster, aliases) if c.player_name else None
+    """Attach ``player_id`` where it resolves; unresolved claims keep ``player_name`` as-is.
+
+    ``roster`` is the reporter's team; ``scope`` holds the other roster(s) of the same game (the
+    opponent). A single name tries the reporter's roster first, then the scope rosters, and
+    resolves only when exactly one roster yields it. Lineup groups need five names on one roster.
+    Nothing outside those rosters is ever consulted.
+    """
+    rosters = [r for r in [roster, *(scope or [])] if r]
+    out: list[Claim | None] = []
+    groups: dict[int, list[int]] = {}
+    for idx, c in enumerate(claims):
+        if c.claim_type == "starting" and c.group is not None and c.group_status == "candidate":
+            groups.setdefault(c.group, []).append(idx)
+            out.append(None)
+            continue
+        pid = None
+        if c.player_name and c.claim_type != "starting":
+            pid = resolve_player(c.player_name, roster, aliases, nicknames)
+            if pid is None and scope and roster is not None:
+                hits = {resolve_player(c.player_name, r, aliases, nicknames) for r in scope}
+                hits.discard(None)
+                pid = hits.pop() if len(hits) == 1 else None
         out.append(replace(c, player_id=pid))
-    return out
+    for idxs in groups.values():
+        done = _lineup_group([claims[i] for i in idxs], rosters, aliases, nicknames)
+        for i, c in zip(idxs, done, strict=True):
+            out[i] = c
+    return [c for c in out if c is not None]

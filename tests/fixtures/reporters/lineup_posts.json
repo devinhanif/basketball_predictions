@@ -1,0 +1,444 @@
+{
+ "rosters": {
+  "NYK": [
+   [
+    "Tyler Kolek",
+    1642278
+   ],
+   [
+    "Landry Shamet",
+    1629013
+   ],
+   [
+    "Mikal Bridges",
+    1628969
+   ],
+   [
+    "Jordan Clarkson",
+    203903
+   ],
+   [
+    "OG Anunoby",
+    1628384
+   ],
+   [
+    "Tony Bradley",
+    1628396
+   ],
+   [
+    "James Wiseman",
+    1630164
+   ],
+   [
+    "Jose Alvarado",
+    1630631
+   ],
+   [
+    "Jaden Akins",
+    1643022
+   ],
+   [
+    "Tyler Nickel",
+    1643589
+   ],
+   [
+    "Pacôme Dadiet",
+    1642359
+   ],
+   [
+    "Ochai Agbaji",
+    1630534
+   ],
+   [
+    "Miles McBride",
+    1630540
+   ],
+   [
+    "Mohamed Diawara",
+    1642885
+   ],
+   [
+    "Andre Drummond",
+    203083
+   ],
+   [
+    "Drew Eubanks",
+    1629234
+   ],
+   [
+    "Kevin McCullar Jr.",
+    1641755
+   ],
+   [
+    "Karl-Anthony Towns",
+    1626157
+   ],
+   [
+    "Josh Hart",
+    1628404
+   ],
+   [
+    "Bruce Brown",
+    1628971
+   ],
+   [
+    "Jalen Brunson",
+    1628973
+   ]
+  ],
+  "TOR": [
+   [
+    "Nate Bittle",
+    1642927
+   ],
+   [
+    "Tyreke Key",
+    1642615
+   ],
+   [
+    "Kyle Anderson",
+    203937
+   ],
+   [
+    "Jamal Shead",
+    1642347
+   ],
+   [
+    "Jaden Bradley",
+    1643558
+   ],
+   [
+    "Jamison Battle",
+    1642419
+   ],
+   [
+    "Kawhi Leonard",
+    202695
+   ],
+   [
+    "RJ Barrett",
+    1629628
+   ],
+   [
+    "Collin Murray-Boyles",
+    1642867
+   ],
+   [
+    "Jakob Poeltl",
+    1627751
+   ],
+   [
+    "Allen Graves",
+    1643512
+   ],
+   [
+    "Trayce Jackson-Davis",
+    1631218
+   ],
+   [
+    "Chucky Hepburn",
+    1642935
+   ],
+   [
+    "Trey Jemison III",
+    1641998
+   ],
+   [
+    "Ja'Kobe Walter",
+    1642266
+   ],
+   [
+    "Immanuel Quickley",
+    1630193
+   ],
+   [
+    "Tyson Degenhart",
+    1643091
+   ],
+   [
+    "Alijah Martin",
+    1642918
+   ],
+   [
+    "Scottie Barnes",
+    1630567
+   ],
+   [
+    "Nimari Burnett",
+    1643718
+   ],
+   [
+    "Malachi Smith",
+    1641869
+   ]
+  ],
+  "OKC": [
+   [
+    "Otega Oweh",
+    1642923
+   ],
+   [
+    "Alex Caruso",
+    1627936
+   ],
+   [
+    "Jaylin Williams",
+    1631119
+   ],
+   [
+    "Jared McCain",
+    1642272
+   ],
+   [
+    "Thomas Sorber",
+    1642850
+   ],
+   [
+    "Shai Gilgeous-Alexander",
+    1628983
+   ],
+   [
+    "Zhaire Smith",
+    1629015
+   ],
+   [
+    "Kenrich Williams",
+    1629026
+   ],
+   [
+    "Josh Dix",
+    1643717
+   ],
+   [
+    "Brooks Barnhizer",
+    1642964
+   ],
+   [
+    "Isaiah Hartenstein",
+    1628392
+   ],
+   [
+    "Christoph Tilly",
+    1643754
+   ],
+   [
+    "Chet Holmgren",
+    1631096
+   ],
+   [
+    "Nikola Topić",
+    1642260
+   ],
+   [
+    "Aday Mara",
+    1643530
+   ],
+   [
+    "Andrew Holifield",
+    1643808
+   ],
+   [
+    "Anthony Pritchard",
+    1643208
+   ],
+   [
+    "Cason Wallace",
+    1641717
+   ],
+   [
+    "Ajay Mitchell",
+    1642349
+   ],
+   [
+    "Bennett Stirtz",
+    1642892
+   ],
+   [
+    "Jalen Williams",
+    1631114
+   ]
+  ],
+  "HOU": [
+   [
+    "Jabari Smith Jr.",
+    1631095
+   ],
+   [
+    "Quadir Copeland",
+    1643595
+   ],
+   [
+    "Oscar Tshiebwe",
+    1631131
+   ],
+   [
+    "Jae'Sean Tate",
+    1630256
+   ],
+   [
+    "Bogdan Bogdanović",
+    203992
+   ],
+   [
+    "Marcus Smart",
+    203935
+   ],
+   [
+    "Bruce Thornton",
+    1643570
+   ],
+   [
+    "Steven Adams",
+    203500
+   ],
+   [
+    "Reed Sheppard",
+    1642263
+   ],
+   [
+    "Clint Capela",
+    203991
+   ],
+   [
+    "Fred VanVleet",
+    1627832
+   ],
+   [
+    "Julian Phillips",
+    1641763
+   ],
+   [
+    "Kevin Durant",
+    201142
+   ],
+   [
+    "Tari Eason",
+    1631106
+   ],
+   [
+    "Alperen Sengun",
+    1630578
+   ],
+   [
+    "Sean Pedulla",
+    1642951
+   ],
+   [
+    "Amen Thompson",
+    1641708
+   ],
+   [
+    "Isaiah Crawford",
+    1642384
+   ]
+  ],
+  "LAL": [
+   [
+    "Chris Mañon",
+    1643024
+   ],
+   [
+    "William Kyle",
+    1643759
+   ],
+   [
+    "Arthur Kaluma",
+    1641751
+   ],
+   [
+    "Luka Dončić",
+    1629029
+   ],
+   [
+    "Cole Swider",
+    1631306
+   ],
+   [
+    "Quentin Grimes",
+    1629656
+   ],
+   [
+    "Bronny James",
+    1642355
+   ],
+   [
+    "Jaden Hardy",
+    1630702
+   ],
+   [
+    "Adou Thiero",
+    1642876
+   ],
+   [
+    "Collin Sexton",
+    1629012
+   ],
+   [
+    "Jake LaRavia",
+    1631222
+   ],
+   [
+    "Sandro Mamukelashvili",
+    1630572
+   ],
+   [
+    "Walker Kessler",
+    1631117
+   ],
+   [
+    "Matisse Thybulle",
+    1629680
+   ],
+   [
+    "AK Okereke",
+    1643758
+   ],
+   [
+    "Jarred Vanderbilt",
+    1629020
+   ],
+   [
+    "Austin Reaves",
+    1630559
+   ],
+   [
+    "Kevon Looney",
+    1626172
+   ],
+   [
+    "Dalton Knecht",
+    1642261
+   ],
+   [
+    "Ziaire Williams",
+    1630533
+   ],
+   [
+    "Cameron Carr",
+    1643418
+   ]
+  ]
+ },
+ "posts": [
+  {
+   "id": "tor_kawhi",
+   "team": "TOR",
+   "text": "Kawhi will play again tonight, as the Raptors go with their regular starters in New York. Would expect some, if not all of those guys to sit out tomorrow in Detroit."
+  },
+  {
+   "id": "nyk_starting",
+   "team": "NYK",
+   "text": "The Knicks are starting Brunson, Bridges, Anunoby, Diawara and Towns. So, this will serve as a tune-up game for Kawhi and the Raptors’ starters, and a much better indication of where they stand than we got vs New York’s B team the other night."
+  },
+  {
+   "id": "hou_usual",
+   "team": "HOU",
+   "text": "Rockets with usual starters: FVV, Amen, KD, Jabari, Şengün"
+  },
+  {
+   "id": "okc_newline",
+   "team": "OKC",
+   "text": "Thunder starters vs Rockets\n\nSGA \nMitchell\nCaruso\nJDub\nHartenstein \n\nFinal preseason game.\n\nOpening Night is 5 days away."
+  }
+ ]
+}
