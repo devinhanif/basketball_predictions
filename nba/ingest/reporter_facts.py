@@ -26,7 +26,7 @@ Rules
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -38,6 +38,7 @@ from nba.facts.build import SCHEMA_PATH
 from nba.ingest.reporter_parse import Claim, parse_post, resolve_claims, retweeted_handle
 from nba.ingest.reporters import Allowlist, Post, Reporter
 from nba.kalshi.aliases import load_reviewed_aliases
+from nba.parse.availability import normalize_name
 from nba.props.rosters import roster_names
 
 PREDICATE_PREFIX = "claimed_"
@@ -100,12 +101,23 @@ def load_roster_index(roster_dir: Path) -> dict[int, list[tuple[str, int]]]:
     return out
 
 
+def load_nicknames(path: Path) -> dict[str, str]:
+    """``normalised nickname -> full name`` from the reviewed file; a missing file is empty."""
+    import yaml
+
+    if not path.exists():
+        return {}
+    raw = (yaml.safe_load(path.read_text()) or {}).get("nicknames") or {}
+    return {normalize_name(str(k)): str(v) for k, v in raw.items()}
+
+
 @dataclass(frozen=True)
 class Context:
     allowlist: Allowlist
     rosters: dict[int, list[tuple[str, int]]]
     aliases: dict[str, int]
     schedule: list[ScheduledGame]
+    nicknames: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def load(
@@ -116,6 +128,7 @@ class Context:
         schedule_cache: Path,
         aliases_path: Path,
         at: datetime,
+        nicknames_path: Path | None = None,
     ) -> Context:
         sched = load_schedule_cache(season_for(at), schedule_cache) or []
         return cls(
@@ -123,6 +136,7 @@ class Context:
             load_roster_index(rosters_dir),
             load_reviewed_aliases(aliases_path),
             sched,
+            load_nicknames(nicknames_path) if nicknames_path else {},
         )
 
     def team_of(self, player_id: int) -> int | None:
@@ -172,16 +186,25 @@ def claims_for_posts(posts: list[Post], ctx: Context) -> tuple[list[ClaimedFact]
             counts["retweet_ignored"] += 1
             continue
         roster = ctx.rosters.get(rep.team_id) if rep.team_id is not None else None
-        for claim in resolve_claims(parse_post(post.text), roster, ctx.aliases):
+        scope: list[list[tuple[str, int]]] = []
+        if rep.team_id is not None:
+            tonight = next_game(ctx.schedule, rep.team_id, post.created_at)
+            if tonight is not None:
+                opp = tonight.away_team if tonight.home_team == rep.team_id else tonight.home_team
+                scope = [ctx.rosters[opp]] if opp in ctx.rosters else []
+        parsed = parse_post(post.text)
+        for claim in resolve_claims(parsed, roster, ctx.aliases, ctx.nicknames, scope):
             team_id = rep.team_id
-            if team_id is None and claim.player_id is not None:
-                team_id = ctx.team_of(claim.player_id)
+            if claim.player_id is not None and (team_id is None or claim.claim_type == "starting"):
+                team_id = ctx.team_of(claim.player_id) or team_id
             game = None
             if team_id is not None and claim.claim_type != "unknown":
                 game = next_game(ctx.schedule, team_id, post.created_at)
             cf = ClaimedFact(post, rep, claim, team_id, game)
             if claim.claim_type == "unknown":
                 counts["unknown"] += 1
+            elif claim.claim_type == "starting" and claim.group_status != "full":
+                counts["lineup_not_full"] += 1
             elif claim.player_id is None:
                 counts["unresolved_player"] += 1
             elif game is None:
@@ -282,7 +305,8 @@ def format_report(
     lines = [
         f"claims: {counts.get('claims', 0)}  unresolved: {counts.get('unresolved_player', 0)}  "
         f"no game in window: {counts.get('no_game_in_window', 0)}  unknown: "
-        f"{counts.get('unknown', 0)}  retweets ignored: {counts.get('retweet_ignored', 0)}"
+        f"{counts.get('unknown', 0)}  retweets ignored: {counts.get('retweet_ignored', 0)}  "
+        f"lineup names not in a full 5: {counts.get('lineup_not_full', 0)}"
     ]
     if written is not None:
         lines.append(
@@ -292,10 +316,12 @@ def format_report(
     for c in claimed:
         if c.claim.claim_type == "unknown":
             tag = "unknown"
+        elif c.claim.claim_type == "starting" and c.claim.group_status != "full":
+            tag = f"LINEUP {c.claim.group_status} {c.claim.player_name!r}"
         elif c.claim.player_id is None:
             tag = f"UNRESOLVED {c.claim.player_name!r}"
         elif c.game is None:
-            tag = "no game in window"
+            tag = f"no game in window ({c.claim.player_name!r})"
         else:
             tag = f"{c.predicate} player:{c.claim.player_id} game:{c.game.game_id}"
         lim = f" limit={c.claim.minutes_limit}" if c.claim.minutes_limit is not None else ""

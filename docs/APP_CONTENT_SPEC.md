@@ -20,7 +20,7 @@ No code here. Nothing outward-facing is authorised by this file (non-negotiable 
 5. **Verdict line.** Unless the live log has proven skill, the verdict shown is "keep your money". It is shown as often as it is true.
 6. **Footer on every page and post (text, fixed):** "Analysis only, not advice. We do not take bets or sell picks. 21+ (US).
    If gambling is a problem, call 1-800-GAMBLER."
-7. **Disclosure line:** "Written by an automated system and reviewed by a person before posting." No AI-vendor name anywhere.
+7. **Disclosure line:** app pages: "Generated automatically each night; not individually reviewed." (Devin, 2026-10-15); social posts, which go through the approval queue: "Written by an automated system and reviewed by a person before posting." No AI-vendor name anywhere.
 8. **Paper only.** Every ticket on the app is a paper trade. The app never places or routes an order and holds no credential.
 
 ## 1. "Parlay of the day"

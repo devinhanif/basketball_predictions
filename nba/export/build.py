@@ -360,7 +360,8 @@ def build_export(
     """Build the export for ``day``; returns the manifest dict (also written to ``manifest.json``).
 
     ``box_games`` / ``box_days``: each slate player's last N played games and every row of the last
-    N days ride in ``box_scores`` (strictly before ``day``; never the holdout season).
+    N days ride in ``box_scores`` (strictly before ``day``; 2025 box rows ride as display
+    history only, guard.DISPLAY_TABLES).
     ``con`` lets a test pass an open read-only connection; production passes ``src_db`` only.
     ``roster_dir`` (``data/rosters``) places players with no earlier current-season row from the
     game date's official pre-tip roster (``team_source='official_roster'``); None disables it.
@@ -381,10 +382,11 @@ def build_export(
         scores = reader.settled_scores(src, window)
         box = reader.box_scores(src, window)
         slate_players = _ids(fwd.prop_grids, "player_id") - {reader.NO_PLAYER}
+        hist_seasons = reader.history_seasons(src, allowed)
         box = _merge_box(
             box,
             reader.box_history(
-                src, slate_players, day, reader.history_seasons(src, allowed),
+                src, slate_players, day, hist_seasons,
                 n_games=box_games, days=box_days,
             ),
         )  # fmt: skip
@@ -461,6 +463,7 @@ def build_export(
         "made_at": meta["made_at"], "data_version": dv, **gi,
         "seasons": list(allowed), "lookback_days": lookback_days,
         "box_history": {"games": box_games, "days": box_days},
+        "box_history_seasons": list(hist_seasons),
         "row_counts": counts,
         "excluded": {"post_tip": fwd.excluded_post_tip,
                      "avg_post_tip": fwd.excluded_avg_post_tip,

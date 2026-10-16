@@ -1,5 +1,8 @@
 # INJURY_TIMING step 1: how stale is the stored "T-60" report, and does it matter? (descriptive; no rule frozen, no fit)
 
+> **REV 3 NOTICE (pre-freeze review B1, 2026-10-15): every stamp and lead in sections 1-12 is on the FILENAME clock. Hour-only report PDFs are headed HH:30, so every stored and v1-intraday stamp is 30 minutes early, every lead is 30 minutes too long, and the "T-180 to T-60" gap is really about T-150 to T-30 for most games. The direction of each conclusion was kept in rev 3 but the numbers are superseded by section 13 (corrected header clock).**
+
+
 Written Thu 2026-10-15 (shell clock `Thu Oct 15 13:05:38 CDT 2026` at the gate run), modeler. Follows Devin's 2026-10-15 request (DECISIONS 12:49 CDT, item 1) and `docs/research/questionable_status_scope_2026-10-15.md`.
 Model class: none fitted. This is a data and error-structure measurement of the report snapshot feeding the context-residual props (gradient-boosted residual on a recency mean; playbook class "tree on tabular features") and the Q/D-tag consumers (P(play) shadow R, AVG shadow).
 Season label = start year. Reads: `/Users/devin/Downloads/nba-prediction/nba.duckdb`, `data/history/nba_history.duckdb` (both `read_only=True`, `season <= 2024` in SQL), `data/schedule` with `max_season=2024`, and the untracked `reports/minutes_v2/*.npz` (production per-row minutes and pts forecasts, 2023-24, 55,202 rows / 2,633 games). Season 2025 was never queried. Scripts: `research/scratch/injury_timing_descriptive.py`, `injury_timing_rows.py`, `injury_timing_tagshift.py`; tables: `reports/injury_timing/{descriptive,rows,tagshift}.json` (seed 2026, B = 2000, game-clustered percentile bootstrap).
@@ -111,3 +114,24 @@ Inputs: scratch duckdb `data/scratch/injury_intraday.duckdb` (sha256 `24f0e1a5..
 | any change, rotation | 1.48 [1.41, 1.56] | 1.60 [1.52, 1.68] | 1.18 |
 
 Players listed Q or D at T-180 and OUT at T-60: 44.9% (1,145 of 2,550) in 2023, 47.5% (1,210 of 2,549) in 2024. Tag meaning, P(played | Q) with game-clustered CI: Q at T-180 0.484 [0.462, 0.507] (n 2,287) / 0.467 [0.444, 0.489] (2,240); Q at T-60 0.604 [0.542, 0.670] (336) / 0.547 [0.483, 0.612] (254); Q at T-180 that became OUT 0.000 (911 / 941); became Available 0.862 / 0.858 (1,057 each). The 2021-22 proxy understated the OUT flow (and Q/D to OUT is larger than the proxy by 0.08-0.16 per game); direction of every conclusion in sections 3-6 is unchanged, and the stale-list exposure is about twice what section 5's bound assumed, so the all-rows bound there (0.001 to 0.014) should be read with the upper end more plausible.
+
+## 13. Revision 3 (2026-10-16 CDT): the corrected header clock, the live cutoff and the true T-180 to T-60 gap
+
+Pre-freeze review B1: hour-only report PDFs are headed HH:30 but were stamped HH:00 (190 of 190 sampled; `HH_MM` files exact). Sections 1-12 above are on the filename clock and are superseded here. Inputs: `data/scratch/injury_intraday_v2.duckdb` (sha256 `0e64c257...919b1`; all 4,194 raw PDFs re-parsed with known-at = header time, 0 errors, 353,809 rows, 4,811 unmatched name entries; `research/eval/injury_timing_reparse.py`), the stored table with every stamp moved to its audited header time (1,261 stored PDFs audited, 0 mismatches), restricted to players with a box row in a season <= 2024. Season labels are start years: 2023 = 2023-24, 2024 = 2024-25; 2025 (2025-26) not used. Scripts `research/scratch/injury_timing_gap_corrected.py`, gate `research/eval/injury_timing_gate.py`; tables `reports/injury_timing/gap_corrected_2023_24.json`, `reports/prereg_injury_timing/gate.json` (seed 2026, B = 2000, game-clustered).
+
+**Lead of the stored snapshot on the header clock (production's training rule, `tip - 60`):** p10 / p50 / p90 = 90 / 150 / 270 min in both seasons (was 120 / 180 / 300); 3.8% (2023) and 4.8% (2024) of games use a report published after tip - 60 (production leak, outside this rule).
+**Lead of the live-cutoff list (R_live):** 90 / 90 / 120; 99.8% / 99.4% of games within 120 min, 66.9% / 65.4% within 90.
+**True latest <= tip-180 vs latest <= tip-60 on R (stamp gap exactly 2 h; n = 1,306 / 1,296 games), events per game, both teams:**
+
+| event | 2023 | 2024 | superseded rev 2 (mis-stamped) |
+|---|---|---|---|
+| OUT added, rotation | 0.32 [0.29, 0.36] | 0.33 [0.30, 0.37] | 0.56 / 0.64 |
+| OUT added, all | 0.53 [0.48, 0.59] | 0.58 [0.54, 0.63] | 1.04 / 1.12 |
+| OUT removed, rotation | 0.002 [0.000, 0.004] | 0.003 [0.001, 0.006] | 0.003 / 0.008 |
+| Q/D to OUT, rotation | 0.30 [0.26, 0.33] | 0.31 [0.27, 0.34] | 0.51 / 0.59 |
+| Q/D cleared, rotation | 0.24 [0.21, 0.27] | 0.24 [0.21, 0.27] | 0.54 / 0.50 |
+| any change, rotation | 0.78 [0.72, 0.84] | 0.83 [0.76, 0.89] | 1.48 / 1.60 |
+
+Players listed Q or D at T-180 and OUT at T-60: 22.7% (588 of 2,595) in 2023 and 24.0% (617 of 2,569) in 2024 (rev 2: 44.9% / 47.5%, which mixed in the 30 minutes of leaked future). P(played | Q): at T-180 0.481 [0.458, 0.502] (n 2,325) / 0.467 [0.444, 0.489] (2,257); at T-60 0.519 [0.490, 0.547] (1,416) / 0.490 [0.461, 0.519] (1,304); Q at T-180 that became OUT 0.000 (466 / 485); became Available 0.818 / 0.821. The tag-meaning shift is about +0.02 to +0.04, not +0.12 to +0.14. **The skew is real but about half the size rev 2 said, and the leak was most of the "large" part.**
+
+**Exposure of the fix on the live cutoff (gate):** games whose OUT set differs from the stored lists: 174 of 1,316 (2023) and 197 of 1,303 (2024, after restricting to players with a history; 322 unrestricted). That is 13-15% of games, below the pre-declared 300 for 2024. See the rule's section 7 and section 4 ("What a failed gate means").

@@ -1,0 +1,38 @@
+# Reviewed nickname / initialism -> full player name, used ONLY by the X reporter parser
+# (nba/ingest/reporter_parse.py). A nickname resolves only if the full name is on the roster of
+# the reporter's team or the other team of its next game; on any other roster it resolves to
+# nobody, and a nickname shared by two players on a roster is left out on purpose.
+# Keys and values are matched after accent/punctuation stripping, so "Şengün" == "Sengun".
+# Add a row only after checking the player really goes by it. Drafted 2026-10-15 (steward) for
+# Devin's review: JDub -> Jalen Williams (OKC also has Jaylin Williams; confirm the pairing).
+nicknames:
+  sga: Shai Gilgeous-Alexander
+  kd: Kevin Durant
+  fvv: Fred VanVleet
+  jdub: Jalen Williams
+  j-dub: Jalen Williams
+  kawhi: Kawhi Leonard
+  amen: Amen Thompson
+  kat: Karl-Anthony Towns
+  ad: Anthony Davis
+  lbj: LeBron James
+  wemby: Victor Wembanyama
+  ant: Anthony Edwards
+  pg: Paul George
+  pg13: Paul George
+  cp3: Chris Paul
+  jjj: Jaren Jackson Jr.
+  kpj: Kristaps Porzingis
+  tjd: Trayce Jackson-Davis
+  kcp: Kentavious Caldwell-Pope
+  dlo: D'Angelo Russell
+  dray: Draymond Green
+  steph: Stephen Curry
+  dame: Damian Lillard
+  spida: Donovan Mitchell
+  book: Devin Booker
+  giannis: Giannis Antetokounmpo
+  nic: Nicolas Claxton
+  bub: Carlton Carrington
+  herb: Herbert Jones
+  moe: Moritz Wagner

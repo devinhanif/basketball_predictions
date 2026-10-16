@@ -1301,3 +1301,19 @@ B1: hour-only report files are stamped 30 minutes early; B2: arm S ignores the :
 What: WOWY_STRUCT revised to add a replacement-normalized on/off arm beside the original STRUCT arm, same rows, production as baseline; power re-measure from F1's arm-C forecasts (F1 frozen and run, T498); gate, pre-freeze review, Devin signs, run. Off the opening-night critical path.
 Why: the history on/off version died on small-sample noise; normalizing teammates' on/off rates to a replacement fill-in should shrink noisy per-star estimates toward a stable league baseline.
 What would reverse it: the gate failing on power, or the normalized arm adding nothing beyond the raw on/off arm (REPLACEMENT_DELTA's warning).
+
+**2026-10-15 23:42 CDT — Devin: "Yes, that's fine, x parser yes, injury timing, fix leak".**
+1. Export may read 2025-26 box scores for DISPLAY only (player history, last-10, swipe stats); no model is scored on them; HOLDOUT_ACCESS_LOG row first. Claude's recommendation.
+2. Footer: "Generated automatically each night; not individually reviewed." (app pages; social posts keep the reviewed line). Applied.
+3. X parser: add starting-lineup posts and first-name/nickname resolution within the team roster. Off the live path.
+4. INJURY_TIMING: Devin said go without naming an option; Claude prepares rev 3 under option (a) (live :20/:50 run clock, 2024 decides, 2023 a reported consistency check) and asks Devin to confirm before any freeze.
+5. Production 30-minute report-stamp leak: build the fix (known-at from the PDF header, ingest and stored history) on a branch and MEASURE it on a DB copy with a replay; applying it to nba.duckdb changes production training (oracle hash moves by design) and needs Devin's go with the measured numbers.
+
+**2026-10-16 14:57 CDT — Devin: "okay, lets do it!!" (answering WOWY option A and the review; read by Claude as also accepting the three pending recommendations).**
+1. WOWY_STRUCT option A: the original per-possession STRUCT arm (S_R) is the verdict family (3 cells); the replacement-normalized arm (STRUCT_REPL, Devin's twist) rides along descriptively with T_R-A0 and T_R-S_R reported (its gate failed 3/3; behind S+R in 12/12 dev cell-designs). Adversary pre-freeze review next; Devin signs after it.
+2. INJURY_TIMING closed on the production-props question as a data failure (rev 3 gate: 197 < 300 changed-OUT games in 2024 on the corrected clock); the 2026-27 live log answers it. Claude's pick (c).
+3. Live ingest stamp fix (agent/archivist-report-stamp-fix 2dfbd07; known-at = max(PDF header time, fetch time) for live pulls): replay oracle with a holdout row first; merge only if IDENTICAL and after Claude shows Devin the result. History re-stamp of nba.duckdb deferred to after opening night (re-checks every stamp-dependent frozen gate).
+
+**2026-10-16 14:58 CDT — Correction to item 3 of the 4959fca row: live known-at stays the printed PDF header time (the archivist's rule), NOT max(header, fetch).** Claude's earlier max() suggestion would stamp backfilled history with its 2026 fetch time. Header-only is correct for both paths: a live run only sees files that exist, so the header time is never after that run's fetch. Oracle for 2dfbd07 running (holdout row a9d0810).
+
+**2026-10-16 15:00 CDT — Devin signs WOWY_STRUCT ("i sign off on wowy, right now"), option A.** The freeze commit follows the adversary pre-freeze review (agent/adversary-wowy-prefreeze) as soon as it returns APPROVED, or APPROVED WITH EDITS once the edits are applied and diff-checked. Edits that change the decision rule (cells, floors, verdict words, comparator) come back to Devin before the freeze. Then pin, then run.
