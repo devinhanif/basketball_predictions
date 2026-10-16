@@ -6,6 +6,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from nba.db.connect import connect
 from nba.ingest.availability import (
     SOURCE_OFFICIAL_REPORT_BACKFILL,
@@ -34,6 +36,20 @@ NAMES = [
     "Ousmane Dieng", "Luguentz Dort", "Alex Ducas", "Aaron Wiggins",
 ]  # fmt: skip
 NAME_INDEX = build_name_index([(n, i + 1) for i, n in enumerate(NAMES)])
+
+
+@pytest.fixture(autouse=True)
+def _header_time_is_the_file_name_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These fakes serve ONE fixture PDF under many slot URLs, so its printed header (the real
+    known-at) is the same for all. The slot/anchor logic under test needs per-URL stamps, so the
+    header read is replaced by the file-name time here; the header rule itself is tested in
+    tests/ingest/test_report_stamp.py with real PDFs."""
+    from nba.data.restamp_reports import filename_time
+
+    monkeypatch.setattr(
+        "nba.ingest.availability.report_known_at",
+        lambda path, fetched_at: (filename_time(Path(str(path)).name), True),
+    )
 
 
 class FakeResp:

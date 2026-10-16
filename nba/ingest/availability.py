@@ -50,6 +50,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 import duckdb
 import polars as pl
@@ -72,10 +73,13 @@ from nba.parse.availability import (
     normalize_inactive_frame,
     parse_manual_announcements,
     parse_official_injury_report,
+    report_known_at,
 )
 
 if TYPE_CHECKING:
     import httpx
+
+_ET = ZoneInfo("America/New_York")
 
 SOURCE_INACTIVE = "availability"
 SOURCE_MANUAL = "availability-manual"
@@ -464,10 +468,13 @@ def pull_official_injury_report(
 
     if resolver is None and name_index is None:
         raise ValueError("provide name_index or resolver")
+    # Known-at is the time printed in the PDF header, never the file name: hour-only names
+    # (``..._06PM.pdf``) print ``06:30 PM``. Unreadable header -> fetch time (naive ET).
+    known_at, _ = report_known_at(raw_path, datetime.now(_ET).replace(tzinfo=None))
     df = parse_official_injury_report(
         raw_path,
         name_index or {},
-        report_dt=report_dt,
+        report_dt=known_at,
         con=con,
         resolver=resolver,
         max_unmatched_rate=max_unmatched_rate,
@@ -476,7 +483,7 @@ def pull_official_injury_report(
 
     con.execute(
         "DELETE FROM player_availability WHERE source = ? AND as_of = ?",
-        ["nba_official_report", report_dt],
+        ["nba_official_report", known_at],
     )
     if not df.is_empty():
         insert_rows(con, "player_availability", AVAILABILITY_SCHEMA, df)

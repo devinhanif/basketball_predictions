@@ -882,6 +882,58 @@ def _reorder_last_first(raw_name: str) -> str:
     return f"{first.strip()} {last.strip()}".strip()
 
 
+_HEADER_TIME_RE = re.compile(
+    r"Injury Report:\s*(\d{1,2})/(\d{1,2})/(\d{2,4})\s+(\d{1,2}):(\d{2})\s*([AP]M)", re.IGNORECASE
+)
+
+
+def parse_report_header_time(text: str) -> datetime | None:
+    """The publish time printed in a report's own header (``Injury Report: 10/18/22 05:30 PM``).
+
+    Naive US-Eastern wall clock, like every ``as_of`` here. ``None`` if the header is absent or
+    not a real date/time. The file name is NOT a substitute: hour-only names (``..._05PM.pdf``)
+    print ``05:30 PM`` (190 of 190 sampled files, 2026-10-15)."""
+    m = _HEADER_TIME_RE.search(text)
+    if m is None:
+        return None
+    mo, d, y, hh, mm, ap = m.groups()
+    year = int(y) + 2000 if len(y) == 2 else int(y)
+    if not 1 <= int(hh) <= 12:
+        return None
+    hour = int(hh) % 12 + (12 if ap.upper() == "PM" else 0)
+    try:
+        return datetime(year, int(mo), int(d), hour, int(mm))
+    except ValueError:
+        return None
+
+
+def read_report_header_time(pdf_path_or_bytes: object) -> datetime | None:
+    """``parse_report_header_time`` of page 1 of a report PDF; ``None`` if unreadable."""
+    import pdfplumber  # lazy, like the parser
+
+    try:
+        pdf = pdfplumber.open(pdf_path_or_bytes)  # type: ignore[arg-type]
+    except Exception:
+        return None
+    try:
+        if not pdf.pages:
+            return None
+        return parse_report_header_time(pdf.pages[0].extract_text() or "")
+    except Exception:
+        return None
+    finally:
+        pdf.close()
+
+
+def report_known_at(pdf_path_or_bytes: object, fetched_at: datetime) -> tuple[datetime, bool]:
+    """(known-at, from_header). The printed header time; if unreadable, the fetch time
+    (never the file name). ``fetched_at`` is naive ET wall clock."""
+    header = read_report_header_time(pdf_path_or_bytes)
+    if header is None:
+        return fetched_at, False
+    return header, True
+
+
 def parse_official_injury_report(
     pdf_path_or_bytes: object,
     name_index: dict[str, int],
