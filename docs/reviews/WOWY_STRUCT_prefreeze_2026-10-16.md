@@ -261,3 +261,34 @@ the game-clustered CI per cell-season, the twist label beside the word, and the 
 
 Ledger: none (no result). DECISIONS (main session):
 `2026-10-16 | WOWY_STRUCT pre-freeze review of the replacement-twist revision (docs/reviews/WOWY_STRUCT_prefreeze_2026-10-16.md): APPROVED WITH EDITS for 73998a0 (sha cf4d3751, pin f64c9ce6). Sha, pin, closure (74 files), F1 tags, counts, priors and planted future reproduce; the A0 walk equals F1's arm-C cache on all 18 blocks of pts and ast (max abs diff 0.0); tonight's-box plant leaves S and T columns unchanged; gate re-run reproduces to 1e-13. No edit changes the decision rule: fit/score carve-out for the A0 reproductions, strike or implement the promised m = 8 / reb-fg3m / exposed-slice outputs, pin the CI code clause, a build_bundle functional test and a real G9 test, cwd-relative gate paths, freeze-to-pin blob check, thin-cell disclosure (power 0.29 / 0.38 at its 2022 held-out kappa). Reverse if: the diff re-check finds a new contradiction.`
+
+## Diff re-check of the edits (2026-10-16 15:24-15:30 CDT): 870d57f (E1-E12) + 825b27a (merge main)
+
+Read from a detached scratch worktree of 825b27a; data root = the main checkout; read-only, `season <= 2024`, nothing fitted, no score.
+
+Verdict: APPROVED
+
+| item | where (825b27a) | holds |
+|---|---|---|
+| E1 fit/score carve-out | prereg line 3 ("A0_warm is F1's arm C and is never refit … compute no score") and line 271 ("the A0 reproductions above are not a score") | yes |
+| E2 promised outputs | lines 64 and 108 strike the m = 8 label and reb / fg3m; `evaluate` adds `r["exposed"]` (S_R minus ROLE on exposed games, no p), matching line 29 and line 108 | yes |
+| E3 CI clause | line 27: `_clustered_boot_means` as pinned; `nba/truth/bootstrap.py` never used | yes |
+| E4 tests | `test_build_bundle_scores_arms_on_a0_keys_with_the_integer_grid` (reordered arm rows, missing key, outcome mismatch); `test_g9_by_itself_turns_a_pass_into_fail_guard` (primary clears, G1-G5 hold, word FAIL_GUARD) | yes |
+| E5 descriptive p | `desc` and `exposed` drop `p`; test added | yes |
+| E6 / E7 gate paths | `STRUCT_GATE` and `PINNED_ARTIFACT` file-relative; default `OUT` is a scratch path; refuses to overwrite the pinned gate.json; test rejects `Path("reports/` | yes |
+| E8 freeze-to-pin blob check, absolute python | `wowy_struct_rule.py` compares every pinned file at the freeze commit with the pin commit; test `test_pin_refuses_a_harness_edit_between_the_freeze_and_the_pin_commits`; docstrings use the absolute venv path | yes |
+| E9 lock before the world build | `run_real` takes `heavy.lock` right after preflight; `_run_locked` holds the rest; order test extended | yes |
+| E10-E12 text | thin-cell disclosure at line 155; line 172 re-estimation wording and the (c) definitions; line 111 ROLE wording; line 251 rehearsal committed | yes |
+
+| check | command (cwd = scratch worktree of 825b27a) | result | pass |
+|---|---|---|---|
+| merge touched no pinned file | `git diff --stat 870d57f 825b27a -- <76 HARNESS_FILES> docs/prereg/WOWY_STRUCT.md <3 gate jsons>` (exit 0) | empty. Against `origin/main` the only differences are files that exist only on the branch | yes |
+| rule sha | `awk … \| shasum -a 256`; `python -m research.eval.wowy_struct_rule freeze` (exit 0) | `3f78a0f19cfba40025cbeb1573dd7f8564d67990aac854aabb7876c8fca319c4`, equal to the main session's value | yes |
+| harness pin | `python -m research.eval.wowy_struct_rule pin` (exit 0) | `981ebefe1287979bb876a6bb8b69ff53b750269933a1cad0025122a3458620ff`, equal to the main session's value | yes |
+| pinned gate artifact | `shasum -a 256 reports/prereg_wowy_repl/gate.json` | `6be61a4f…` = `GATE_SHA256` (not re-run) | yes |
+| label-free check | `NBA_ROOT=… nice -n 10 python -W ignore -m research.eval.wowy_struct_eval check --data-root /Users/devin/Downloads/nba-prediction --out <scratch>` (exit 0, 22.7 s, 15:29:31-15:29:55) | `mismatch_vs_rule` {}; F1 tags `9b5a7d6f…:39cfe40f…` on all three caches; `priors_match_rule` true; six cell counts equal gate.json; planted future pass | yes |
+| tests, lint, types | `pytest -q -p no:cacheprovider --no-cov` WOWY suites + `tests/test_layering.py` (103 passed, exit 0); `ruff check` (exit 0); `ruff format --check` (exit 0); `mypy` 3 modules (exit 0) | clean | yes |
+
+New contradictions: none found. Lines 3, 27, 29, 64, 108, 111, 155, 172, 251, 257 and 271 agree with each other and with the harness. No
+edit changes cells, floors, t_c, words, comparator, family or window. Freeze sha `3f78a0f1…c319c4` and pin `981ebefe…20ff` with the steps
+above (cwd = `/Users/devin/Downloads/nba-prediction-wt-wowy-repl`). `heavy.lock` was held by the replay oracle at 15:01; `run` waits on it.
