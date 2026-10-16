@@ -1,5 +1,6 @@
 """Opening-night box history: each slate player's own earlier games ride in ``box_scores``,
-strictly before the slate date, never from the holdout season, capped at a bounded size."""
+strictly before the slate date, capped at a bounded size. Season-2025 box rows are allowed as
+display history only (guard.DISPLAY_TABLES, Devin 2026-10-15); no 2025 forecast or score ever is."""
 
 from __future__ import annotations
 
@@ -101,14 +102,14 @@ def test_days_window_keeps_recent_dnp_and_drops_old_dnp(src: Path) -> None:
     assert any(r["minutes"] is None for r in rows)  # the DNP stays explicit
 
 
-def test_only_asked_players_and_never_the_holdout(src: Path) -> None:
+def test_only_asked_players_and_2025_is_display_history(src: Path) -> None:
     con = open_read_only(src)
     rows = box_history(con, [STAR], DAY, history_seasons(con))
     assert OTHER not in {r["player_id"] for r in rows}
-    assert 2025 not in {r["season"] for r in rows}
-    assert "0022500001" not in {r["game_id"] for r in rows}
+    assert 2025 in {r["season"] for r in rows}  # 2025 box rows are display history
+    assert "0022500001" in {r["game_id"] for r in rows}
     seasons = history_seasons(con)
-    assert 2025 not in seasons and 2026 in seasons and 2023 in seasons
+    assert {2023, 2025, 2026} <= set(seasons)
     assert history_seasons(con, (2023,)) == (2023,)  # explicit old-season export stays itself
     con.close()
     assert box_history(open_read_only(src), [], DAY, (2026,)) == []
@@ -140,13 +141,15 @@ def test_export_carries_history_for_slate_players_only(src: Path, tmp_path: Path
     rows = con.execute("SELECT game_id, player_id, season, game_date FROM box_scores").fetchall()
     con.close()
     assert {r[1] for r in rows} == {STAR}  # OTHER / BENCH are not on the slate
-    assert {r[2] for r in rows} == {2023, 2026}  # no holdout, no 2024 (not asked for this player)
+    assert {r[2] for r in rows} == {2023, 2025, 2026}  # 2025 box = display; no 2024 for STAR
     assert len(rows) == len(set((r[0], r[1]) for r in rows))  # one row per game and player
     assert m["row_counts"]["box_scores"] == len(rows)
     assert m["box_history"] == {"games": 82, "days": 365}
     # season-to-date is unchanged: the slate day's own final row stays for settlement
     assert (SLATE, STAR) in {(r[0], r[1]) for r in rows}
-    assert not any(r[0] in {"0022500001", "0012400001"} for r in rows)
+    assert "0022500001" in {r[0] for r in rows}  # the 2025 box row enters box_scores history
+    assert "0012400001" not in {r[0] for r in rows}  # preseason never
+    assert m["box_history_seasons"] == [2023, 2024, 2025, 2026]
 
 
 def test_holdout_still_refused_for_history() -> None:
@@ -154,3 +157,65 @@ def test_holdout_still_refused_for_history() -> None:
 
     with pytest.raises(ExportRefused):
         resolve_seasons([2026, 2025])
+
+
+def test_display_allow_list_is_exactly_box_history() -> None:
+    from nba.export import guard
+
+    assert set(guard.DISPLAY_TABLES) == {"box_scores_history"}
+    assert guard.resolve_seasons([2025], table="box_scores_history") == (2025,)
+    for table in (None, "forward_predictions", "forward_scores", "prop_grids", "box_scores"):
+        with pytest.raises(ExportRefused):
+            guard.resolve_seasons([2025], table=table)
+    with pytest.raises(ExportRefused):  # the display exception does not widen anything else
+        guard.resolve_seasons([2027], table="box_scores_history")
+
+
+def test_2025_forecast_and_score_rows_never_enter_the_export(src: Path, tmp_path: Path) -> None:
+    from nba.daily import stamps
+
+    hold = "0022500001"
+    hold_tip = datetime(2026, 1, 10, 23, 30)
+    w = duckdb.connect(str(src))
+    w.execute(stamps.DDL)
+    pred = '{"mean": 12.0, "std": 4.0, "p_play": 0.9, "proj_minutes": 30.0, "q_grid": []}'
+    ins = "INSERT INTO forward_predictions VALUES (?, ?, ?, ?, 'props_context_residual', 'v1', "
+    ins += "'pts', ?, ?)"
+    w.execute(ins, ["r0", hold_tip - timedelta(hours=2), hold, hold_tip, STAR, pred])
+    w.execute(ins, ["r1", TIP - timedelta(hours=2), SLATE, TIP, STAR, pred])
+    w.execute(
+        "INSERT INTO forward_scores VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [hold_tip, hold, date(2026, 1, 10), 2025, "rung0_mov_elo", "v1", "pts", STAR,
+         hold_tip - timedelta(hours=2), 35.0, 0.5, 0.7, 0.2, 1.0, "scored"],
+    )  # fmt: skip
+    w.close()
+    out = tmp_path / "out"
+    build_export(
+        src,
+        out,
+        DAY,
+        parlay_dir=tmp_path / "none",
+        git=lambda: {"git_sha": None, "git_dirty": None},
+        version=lambda: None,
+        now=lambda: datetime(2026, 10, 20, 12, 0),
+    )
+    con = duckdb.connect(str(out / DB_NAME), read_only=True)
+    tables = [
+        r[0] for r in con.execute("SELECT table_name FROM information_schema.tables").fetchall()
+    ]
+    try:
+        for t in tables:
+            cols = [r[0] for r in con.execute(f"DESCRIBE {t}").fetchall()]  # noqa: S608
+            if t == "box_scores" or "game_id" not in cols:
+                continue
+            n = con.execute(  # noqa: S608
+                f"SELECT count(*) FROM {t} WHERE game_id = ?", [hold]
+            ).fetchone()
+            assert n is not None and n[0] == 0, f"2025 game rows leaked into {t}"
+            if "season" in cols:
+                m = con.execute(f"SELECT count(*) FROM {t} WHERE season = 2025").fetchone()  # noqa: S608
+                assert m is not None and m[0] == 0, f"season 2025 rows in {t}"
+        box = con.execute("SELECT count(*) FROM box_scores WHERE season = 2025").fetchone()
+        assert box is not None and box[0] == 1  # only the raw box row, as display
+    finally:
+        con.close()

@@ -201,7 +201,9 @@ def test_schema_manifest_and_content(src: Path, tmp_path: Path) -> None:
         0,
     )
     assert con.execute(
-        "SELECT stl, blk, tov FROM box_scores WHERE player_id IN (1000, 1001) ORDER BY player_id"
+        "SELECT stl, blk, tov FROM box_scores WHERE player_id IN (1000, 1001) AND game_id = ? "
+        "ORDER BY player_id",
+        [G_PREV],
     ).fetchall() == [(2, 1, 3), (0, 0, 0)]  # DNP stays explicit zeros as stored
     assert con.execute("SELECT status, reason FROM injury_report").fetchone() == (
         "questionable",
@@ -215,16 +217,19 @@ def test_holdout_and_other_seasons_never_exported(src: Path, tmp_path: Path) -> 
     m = _build(src, out)
     con = duckdb.connect(str(out / DB_NAME), read_only=True)
     for t, col in [("games", "game_id"), ("win_probs", "game_id"), ("prop_grids", "game_id"),
-                   ("settled_scores", "game_id"), ("box_scores", "game_id"),
+                   ("settled_scores", "game_id"),
                    ("injury_report", "game_id"), ("prop_lines", "game_id")]:  # fmt: skip
         ids = {r[0] for r in con.execute(f'SELECT DISTINCT "{col}" FROM {t}').fetchall()}
         assert not ids & {G_HOLD, G_HOLD_UNKNOWN, G_PRESEASON}, t
+    # box_scores is the one display table: a 2025 raw box row rides as history, nothing else does
+    box_ids = {r[0] for r in con.execute("SELECT DISTINCT game_id FROM box_scores").fetchall()}
+    assert G_HOLD in box_ids and not box_ids & {G_HOLD_UNKNOWN, G_PRESEASON}
     assert {r[0] for r in con.execute("SELECT DISTINCT season FROM games").fetchall()} == {2026}
     assert con.execute("SELECT count(*) FROM prop_grids WHERE player_id IN (7, 8)").fetchone() == (
         0,
     )
-    assert con.execute("SELECT count(*) FROM box_scores WHERE pts = 44").fetchone() == (0,)
-    assert m["seasons"] == [2026]
+    assert con.execute("SELECT count(*) FROM box_scores WHERE pts = 44").fetchone() == (1,)
+    assert m["seasons"] == [2026]  # pts=44 above is the 2025 display box row
     con.close()
 
 

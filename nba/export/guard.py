@@ -1,8 +1,11 @@
-"""Season guard: the 2025 holdout is never exported, and nothing outside the allowed set is.
+"""Season guard: the 2025 holdout is never exported, except display-only box history.
 
 ``games.season`` is the start year (2026 = 2026-27). Allowed: the live season (2026) and, for
 fixtures only, seasons before the holdout (<= 2024). Season 2025 and any future season other than
-the live one are refused before a single row is read. Row level: the season of a row is
+the live one are refused before a single row is read, with one exception (Devin, DECISIONS
+2026-10-15, HOLDOUT_ACCESS_LOG display row): the player box-score HISTORY table may carry 2025
+rows, because the app shows them as raw game logs. ``DISPLAY_TABLES`` is the one allow-list; no
+forecast, score, prop grid or other model-derived table is on it. Row level: the season of a row is
 ``games.season`` when the game is known, else decoded from the NBA game id (``002YY#####``).
 """
 
@@ -13,6 +16,10 @@ from collections.abc import Iterable
 HOLDOUT_SEASON = 2025
 LIVE_SEASON = 2026
 LAST_PRE_HOLDOUT_SEASON = 2024
+
+#: The only tables that may carry holdout-season rows, and only as display (raw box-score facts,
+#: nothing model-derived). Everything else keeps refusing HOLDOUT_SEASON.
+DISPLAY_TABLES = frozenset({"box_scores_history"})
 
 #: Game-id prefixes that are never exported: preseason (001) and all-star (003) games are
 #: unscorable rehearsal rows (docs/DAILY_PIPELINE.md, "Preseason and all-star games are skipped").
@@ -37,14 +44,27 @@ def season_of_game_id(game_id: str) -> int | None:
     return None
 
 
-def resolve_seasons(requested: Iterable[int] | None = None) -> tuple[int, ...]:
-    """The seasons to export; refuses 2025 (and anything after the live season) loudly."""
+def display_allowed(table: str | None) -> bool:
+    """True when ``table`` is on the display allow-list (the holdout season may appear in it)."""
+    return table in DISPLAY_TABLES
+
+
+def resolve_seasons(
+    requested: Iterable[int] | None = None, *, table: str | None = None
+) -> tuple[int, ...]:
+    """The seasons to export; refuses 2025 (and anything after the live season) loudly.
+
+    ``table`` names a display table (``DISPLAY_TABLES``); only then is the holdout season let
+    through. The default (None) is the strict rule every other table gets."""
+    display = display_allowed(table)
     seasons = tuple(
         sorted({int(s) for s in (requested if requested is not None else [LIVE_SEASON])})
     )
     if not seasons:
         raise ExportRefused("no seasons requested")
     for s in seasons:
+        if s == HOLDOUT_SEASON and display:
+            continue
         if s == HOLDOUT_SEASON:
             raise ExportRefused(
                 f"season {HOLDOUT_SEASON} is the frozen holdout and is never exported "
