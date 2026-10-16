@@ -1,0 +1,81 @@
+{
+ "season_max_allowed": 2024,
+ "versions": {
+  "lightgbm": "4.7.0",
+  "polars": "1.44.2",
+  "numpy": "2.5.3",
+  "scipy": "1.18.1",
+  "duckdb": "1.5.6"
+ },
+ "versions_pinned": true,
+ "repaired_db_sha256": "0e64c25718ba421eff021f44d1aa3cfa2019984a9294cd8dbc5eb01bbff919b1",
+ "repaired_db_pinned": true,
+ "g0": {
+  "intraday_ok": 4194,
+  "intraday_errors": 0,
+  "intraday_stamp_mismatch": 0,
+  "stored_ok": 1261,
+  "stored_errors": 0,
+  "stored_mismatch": 0,
+  "unmatched_names_total": 4811,
+  "pass": true
+ },
+ "gate": {
+  "checks": [
+   {
+    "check": "2023: games with usable snapshot >= 1200",
+    "value": 1316,
+    "pass": true,
+    "decisive": false
+   },
+   {
+    "check": "2023: share of games with used lead <= 120 min >= 0.8",
+    "value": 0.9977203647416414,
+    "pass": true,
+    "decisive": false
+   },
+   {
+    "check": "2023: games whose OUT set differs from stored >= 300",
+    "value": 174,
+    "pass": false,
+    "decisive": false
+   },
+   {
+    "check": "2024: games with usable snapshot >= 1200",
+    "value": 1306,
+    "pass": true,
+    "decisive": true
+   },
+   {
+    "check": "2024: share of games with used lead <= 120 min >= 0.8",
+    "value": 0.9938744257274119,
+    "pass": true,
+    "decisive": true
+   },
+   {
+    "check": "2024: games whose OUT set differs from stored >= 300",
+    "value": 197,
+    "pass": false,
+    "decisive": true
+   }
+  ],
+  "gate_pass": false
+ },
+ "planted_future": {
+  "games_planted": 50,
+  "leaked_after_cutoff": 0,
+  "detected_at_cutoff": 50,
+  "used_after_tip_minus_60": 0,
+  "pass": true
+ },
+ "fingerprints": {
+  "FINGERPRINT_S_2023": "9197be62a648a682191f157c68398834c30b685c67c0fe32b5be1e40fc5d6bb6",
+  "FINGERPRINT_S_2024": "df81841aaa85e67d02e9547bec59224f3566d7448d08a975f599425d2e2a97b4",
+  "FINGERPRINT_RLIVE_2023": "abb6b23a749c2373f4d23b3d83d41956d2e9ef9fa80a3c2ad64e5c3eba6438fa",
+  "FINGERPRINT_RLIVE_2024": "6d3f7666ec24a38793a433b9ba608ebd748e0780efff437a36ee0eb45fe5d776",
+  "FINGERPRINT_P_2023": "2c7559e2e7b02aa2f9a071e18e5cfd898ee206db30875057b43d504de7ca0326",
+  "FINGERPRINT_P_2024": "02031a0c5a326adc036f22af73ae0210562152d156c8dbc6baaaefd8ae02b5ba"
+ },
+ "fingerprints_pinned": true,
+ "pass": false
+}

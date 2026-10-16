@@ -33,6 +33,18 @@ HARNESS_FILES = (
     "research/eval/injury_timing_eval.py",
     "research/eval/injury_timing_rule.py",
     "research/eval/injury_timing_gate.py",
+    "research/eval/injury_timing_reparse.py",
+    # number-moving imports and configs (M2): a drift in any of them changes an arm
+    "nba/props/context_residual.py",
+    "nba/props/lower_tail.py",
+    "nba/props/baselines.py",
+    "nba/models/rung0_baselines.py",
+    "nba/eval/lower_tail_eval.py",
+    "nba/eval/context_residual_eval.py",
+    "nba/features/injury_report.py",
+    "nba/features/game_tipoff.py",
+    "configs/context_residual.yaml",
+    "configs/mov_elo_tuned.yaml",
 )
 
 

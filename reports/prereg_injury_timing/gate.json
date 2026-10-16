@@ -2,76 +2,110 @@
  "checks": [
   {
    "check": "2023: games with usable snapshot >= 1200",
+   "decisive": false,
    "pass": true,
-   "value": 1317
+   "value": 1316
   },
   {
-   "check": "2023: share of games with used lead <= 90 min >= 0.8",
+   "check": "2023: share of games with used lead <= 120 min >= 0.8",
+   "decisive": false,
    "pass": true,
-   "value": 1.0
+   "value": 0.9977203647416414
   },
   {
    "check": "2023: games whose OUT set differs from stored >= 300",
-   "pass": true,
-   "value": 613
+   "decisive": false,
+   "pass": false,
+   "value": 174
   },
   {
    "check": "2024: games with usable snapshot >= 1200",
+   "decisive": true,
    "pass": true,
-   "value": 1319
+   "value": 1306
   },
   {
-   "check": "2024: share of games with used lead <= 90 min >= 0.8",
+   "check": "2024: share of games with used lead <= 120 min >= 0.8",
+   "decisive": true,
    "pass": true,
-   "value": 0.9855951478392722
+   "value": 0.9938744257274119
   },
   {
    "check": "2024: games whose OUT set differs from stored >= 300",
-   "pass": true,
-   "value": 791
+   "decisive": true,
+   "pass": false,
+   "value": 197
   }
  ],
- "ended": "2026-10-15T16:29:45-05:00",
- "gate_pass": true,
+ "ended": "2026-10-16T00:22:59-05:00",
+ "fingerprints": {
+  "FINGERPRINT_P_2023": "2c7559e2e7b02aa2f9a071e18e5cfd898ee206db30875057b43d504de7ca0326",
+  "FINGERPRINT_P_2024": "02031a0c5a326adc036f22af73ae0210562152d156c8dbc6baaaefd8ae02b5ba",
+  "FINGERPRINT_RLIVE_2023": "abb6b23a749c2373f4d23b3d83d41956d2e9ef9fa80a3c2ad64e5c3eba6438fa",
+  "FINGERPRINT_RLIVE_2024": "6d3f7666ec24a38793a433b9ba608ebd748e0780efff437a36ee0eb45fe5d776",
+  "FINGERPRINT_S_2023": "9197be62a648a682191f157c68398834c30b685c67c0fe32b5be1e40fc5d6bb6",
+  "FINGERPRINT_S_2024": "df81841aaa85e67d02e9547bec59224f3566d7448d08a975f599425d2e2a97b4"
+ },
+ "gate_pass": false,
  "rule": "docs/prereg/INJURY_TIMING.md",
  "seasons": {
   "2023": {
    "distinct_stamps_per_game_mean": 15.363705391040243,
-   "fresh_share_lead_le_90": 1.0,
+   "fresh_share_lead_le_120": 0.9977203647416414,
+   "fresh_share_lead_le_90_rev2_bar": 0.668693009118541,
    "games_total": 1318,
-   "games_with_usable_snapshot": 1317,
+   "games_with_usable_snapshot": 1316,
    "lead_min_p10_p50_p90": [
-    60.0,
-    60.0,
-    90.0
+    90.0,
+    90.0,
+    120.0
    ],
+   "stored_lead_corrected_p10_p50_p90": [
+    90.0,
+    150.0,
+    270.0
+   ],
+   "stored_share_post_cutoff_games": 0.037965072133637055,
+   "vs_placebo": {
+    "games_out_set_differs_P_vs_S": 0
+   },
    "vs_stored": {
-    "games_in_both": 1317,
-    "games_out_set_differs": 613,
-    "median_lead_gain_min": -120.0
+    "games_in_both": 1316,
+    "games_out_set_differs": 174
    }
   },
   "2024": {
-   "distinct_stamps_per_game_mean": 15.100833965125094,
-   "fresh_share_lead_le_90": 0.9855951478392722,
+   "distinct_stamps_per_game_mean": 15.207186544342507,
+   "fresh_share_lead_le_120": 0.9938744257274119,
+   "fresh_share_lead_le_90_rev2_bar": 0.6592649310872895,
    "games_total": 1320,
-   "games_with_usable_snapshot": 1319,
+   "games_with_usable_snapshot": 1306,
    "lead_min_p10_p50_p90": [
-    60.0,
-    60.0,
-    90.0
+    90.0,
+    90.0,
+    120.0
    ],
+   "stored_lead_corrected_p10_p50_p90": [
+    90.0,
+    150.0,
+    270.0
+   ],
+   "stored_share_post_cutoff_games": 0.04827586206896552,
+   "vs_placebo": {
+    "games_out_set_differs_P_vs_S": 0
+   },
    "vs_stored": {
-    "games_in_both": 1317,
-    "games_out_set_differs": 791,
-    "median_lead_gain_min": -120.0
+    "games_in_both": 1303,
+    "games_out_set_differs": 197
    }
   }
  },
- "started": "2026-10-15T16:29:44-05:00",
- "table": "repaired",
+ "started": "2026-10-16T00:22:57-05:00",
  "thresholds": {
-  "FRESH_LEAD": 90,
+  "DECISIVE_SEASONS": [
+   2024
+  ],
+  "FRESH_LEAD": 120,
   "MIN_DIFF_GAMES": 300,
   "MIN_FRESH_SHARE": 0.8,
   "MIN_GAMES": 1200
