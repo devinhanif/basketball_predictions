@@ -28,6 +28,7 @@ BACKUP_GLOB='data/backups/nba_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].duckdb'
 mkdir -p "$OPS" data/backups
 LOG=$OPS/${MODE}_$(date +%Y%m%d).log
 TODAY_ET=$(TZ=America/New_York date +%Y-%m-%d)
+YESTERDAY_ET=$(TZ=America/New_York date -v-1d +%Y-%m-%d)  # last night's slate (morning: coverage, scorecard)
 
 case "$MODE" in pretip|morning) ;; *) echo "usage: $0 pretip|morning" >&2; exit 64 ;; esac
 
@@ -87,8 +88,11 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   # odds_capture exits 4 when the feed is unreachable or the request budget refuses: informational
   # (the benchmark is never a dependency of the forecast); its exit 5 (internal error) still alerts.
   # facts (opt-in, NBA_FACTS_NIGHTLY=1) follows the same 0/4 rule; its exit 2 (source locked) alerts.
+  # coverage (pretip, every half hour) exits 3 when something is missing or stale: informational
+  # there, so one bad slate does not alert 26 times; the morning coverage_yesterday step alerts on 3.
   failed=ok
-  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ]; } && [ "$rc" -eq 4 ]; }; then
+  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ]; } && [ "$rc" -eq 4 ]; } \
+      && ! { [ "$name" = coverage ] && [ "$rc" -eq 3 ]; }; then
     HB_RC=$rc
     failed=failed
     alert "$name failed (rc=$rc), see $LOG"
@@ -155,6 +159,9 @@ case "$MODE" in
       --roster-source "$ROSTER"
     step props_analysis "$UV" run --no-sync python -m nba.parlay analyze --date "$TODAY_ET" \
       --roster-source "$ROSTER"
+    # Data coverage of today's slate (nba/ops/coverage.py): schedule, rosters, injury report, lines
+    # paired, forecasts before tip, job gaps, early scores. Read-only; exit 3 is informational here.
+    step coverage "$UV" run --no-sync python -m nba.ops.coverage --date "$TODAY_ET"
     ;;
   morning)
     step settle "$UV" run --no-sync python -m nba.daily settle
@@ -162,6 +169,11 @@ case "$MODE" in
     # immutable snapshot only when an arm-stat first reaches a look's date count; rc 0 otherwise
     step checkpoint "$UV" run --no-sync python -m nba.daily checkpoint --look auto
     step report "$UV" run --no-sync python -m nba.daily report
+    # Last night, in the record: the coverage check alerts on any FAIL (exit 3); the live scorecard
+    # (nba/forward/scorecard.py) rebuilds the season-to-date report after the settle above.
+    step coverage_yesterday "$UV" run --no-sync python -m nba.ops.coverage --date "$YESTERDAY_ET"
+    step scorecard "$UV" run --no-sync python -m nba.forward.scorecard --date "$YESTERDAY_ET" \
+      --since 2026-10-20 --out-dir reports/forward_scorecard
     # OFF by default (launchd behaviour unchanged until the maintainer sets NBA_FACTS_NIGHTLY=1 in
     # the job environment). Rebuilds the derived fact store (docs/FACTS_STORE.md); reads nba.duckdb
     # read-only, writes only data/facts/facts.duckdb, and never blocks the steps below (rc is logged).

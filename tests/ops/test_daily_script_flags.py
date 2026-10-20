@@ -201,3 +201,14 @@ def test_script_step_names_satisfy_the_gate_contract(tmp_path: Path) -> None:
     assert (
         data_step_problem(on_dir, json.loads(hb)["start_ts"]) == "morning data step failed: facts"
     )
+
+
+def test_coverage_and_scorecard_are_wired() -> None:
+    # Devin, 2026-10-20 ("wire em"): coverage every pretip run (informational), and last night's
+    # coverage + the season-to-date scorecard each morning after the settle.
+    assert '--date "$TODAY_ET"' in _step("coverage")
+    assert '--date "$YESTERDAY_ET"' in _step("coverage_yesterday")
+    assert "--since 2026-10-20" in _step("scorecard")
+    assert "date -v-1d" in SCRIPT  # YESTERDAY_ET is defined
+    assert re.search(r'\[ "\$name" = coverage \] && \[ "\$rc" -eq 3 \]', SCRIPT)
+    assert SCRIPT.index("step settle") < SCRIPT.index("step scorecard")
