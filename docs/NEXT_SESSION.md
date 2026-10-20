@@ -271,3 +271,12 @@ in the SEQ_LEARNING_CURVE job description; rclone client_id; nba/truth/bootstrap
 - Loader-gate R1-R3/R5 (stamp transitive dependency hashes).
 
 Finished items and the pre-prune text: docs/archive/next_session_done_2026-10.md.
+
+## Opening night 2026-10-20: what broke (found 12:25–13:05 CDT, not yet fixed in code)
+
+1. **Mac slept on battery** (18% at 12:25); the 10:26 predict ran until 12:23, the morning job never ended, app-export skipped 12 runs, the morning nba.duckdb backup was skipped. On AC since 12:29.
+2. **Schedule fetch failed** (stats.nba.com unreachable while asleep), so tonight's games are not in `games`. `nba/parlay/top_source._prop_rows` joins `games` for home/away and dropped every player (`team_not_in_game`). Fix: fall back to the schedule cache. Live path: needs replay oracle + Devin's go.
+3. **Official roster fetch failed at 10:26 → `recent` (last box-score team)**: summer movers (Jaylen Brown, Paul George, Vučević, Mitchell Robinson, Isaiah Joe, …) were forecast for their old teams. The 12:50 run fetched official rosters (30/30) and wrote rows on the new teams, but the export keeps the stale 10:44 rows too (players shown twice). `top_source._teams` also places players by last box-score team, so movers are dropped from the parlay panel. Fix: export and top_source should take team from the official roster cache when present.
+4. **Deduped forecasts keep their first `made_at`**, so quotes captured later never pair (`received_at <= made_at`): unchanged players show a reference line, not the posted one; the parlay panel had 0 priced legs. Design question for Devin (re-stamp on unchanged re-run vs. capture a morning line before the first forecast).
+5. **App guard**: export ships season 2025 box rows as display history (approved), but `app/api` refused them. Fixed on branch `agent/app-box-history-display` 3678136 (app checks pass, 287); unmerged.
+6. Phone preview ran from that branch's worktree on `data/rehearsal/export_2026-10-20` with a scratch roster filter (removed 14 stale game-player rows); nothing in production was changed.
