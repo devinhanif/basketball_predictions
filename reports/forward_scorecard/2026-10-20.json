@@ -23,7 +23,7 @@
     "prior_team": "last pre-2026-10-01 team_id",
     "projected_minutes": "forecast JSON 'proj_minutes' (rows without it are skipped in part 2; no recency fallback, it would read the 2025-26 box)"
   },
-  "made_at": "2026-10-20T18:02:30",
+  "made_at": "2026-10-20T18:08:38",
   "part1": {
     "all": {
       "bias": {
