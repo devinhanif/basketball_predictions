@@ -296,6 +296,16 @@ def _complete_slate(con: duckdb.DuckDBPyConnection) -> None:
         )
 
 
+def test_settle_waits_until_well_after_tip(con: duckdb.DuckDBPyConnection) -> None:
+    # 2026-10-20: the games feed stored an in-progress 25-23 and it was scored once, for good.
+    _run(con, before_tip())
+    _complete_slate(con)
+    zero = {"win_scored": 0, "prop_scored": 0, "prop_dnp": 0}
+    assert settle_pending(con, TIPOFF + timedelta(hours=1)) == zero
+    assert con.execute("SELECT count(*) FROM forward_scores").fetchone() == (0,)
+    assert settle_pending(con, TIPOFF + timedelta(hours=4))["win_scored"] == 1
+
+
 def test_settle_scores_and_is_idempotent(con: duckdb.DuckDBPyConnection) -> None:
     _run(con, before_tip())
     assert settle_pending(con, TIPOFF) == {"win_scored": 0, "prop_scored": 0, "prop_dnp": 0}

@@ -50,7 +50,7 @@ def test_t30_row_made_at_tip_minus_28_with_snapshot_tip_minus_31_is_eligible(
     _seed(con, "G_ok", made_min=28, snap_min=31)
     _seed(con, "G_late_snap", made_min=28, snap_min=25)
     _seed(con, "G_no_snap", made_min=28, snap_min=None)
-    counts = settle_eligible_pending(con, datetime(2026, 10, 29))
+    counts = settle_eligible_pending(con, datetime(2026, 10, 29, 12))
     assert counts["scored"] == 1
     got = con.execute("SELECT game_id FROM forward_scores_elig").fetchall()
     assert got == [("G_ok",)]
