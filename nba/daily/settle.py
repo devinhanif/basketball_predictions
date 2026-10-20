@@ -20,6 +20,10 @@ WIN_TARGET = "win_prob_home"
 #: LLM shadow rows carry p_over, not a predictive mean/std: settled by their own companion scorer
 #: (docs/LLM_SHADOW.md), never by this path.
 SHADOW_LLM_MODEL = "llm_shadow"
+#: A game is settled only this long after its scheduled tip. The games feed returns in-progress
+#: games with live points (2026-10-20: BOS@DET stored 25-23 an hour after tip and was scored on
+#: it); scores are written once per key, so a partial result would stand for good.
+SETTLE_AFTER_TIP_HOURS = 4
 
 
 def normal_crps(mean: float, std: float, y: float) -> float:
@@ -64,11 +68,12 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
                l.prediction, g.game_date, g.season, g.home_pts, g.away_pts
         FROM latest l JOIN games g USING (game_id)
         WHERE l.rn = 1 AND g.home_pts > 0 AND g.away_pts > 0
+          AND l.tipoff + ? * INTERVAL 1 HOUR <= ?
           AND NOT EXISTS (SELECT 1 FROM forward_scores s
               WHERE s.game_id = l.game_id AND s.model_name = l.model_name
                 AND s.target = l.target AND s.player_id = l.player_id)
         """,
-        [SHADOW_LLM_MODEL],
+        [SHADOW_LLM_MODEL, SETTLE_AFTER_TIP_HOURS, scored_at],
     ).fetchall()
     rows: list[tuple[object, ...]] = []
     n_win = n_prop = n_dnp = 0
@@ -203,6 +208,7 @@ FROM elig l JOIN games g USING (game_id)
 LEFT JOIN box b ON b.game_id = l.game_id AND b.player_id = l.player_id
 LEFT JOIN has_box h ON h.game_id = l.game_id
 WHERE l.rn = 1 AND g.home_pts > 0 AND g.away_pts > 0
+  AND l.tipoff + ? * INTERVAL 1 HOUR <= ?
   AND NOT EXISTS (SELECT 1 FROM forward_scores_elig s
       WHERE s.game_id = l.game_id AND s.model_name = l.model_name
         AND s.target = l.target AND s.player_id = l.player_id)
@@ -223,6 +229,8 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
         T15_MODEL,
         LEAD_MINUTES[T15_MODEL],
         DEFAULT_LEAD_MINUTES,
+        SETTLE_AFTER_TIP_HOURS,
+        scored_at,
     ]
     pending = con.execute(sql, params).fetchall()
     out_rows: list[tuple[object, ...]] = []

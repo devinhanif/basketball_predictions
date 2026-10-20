@@ -224,7 +224,7 @@ def test_settle_eligibility_for_t15_rows() -> None:
             ["r", tip - timedelta(minutes=made_min), gid, tip, T15_MODEL, "v1", "win_prob_home",
              -1, json.dumps(pred)],
         )  # fmt: skip
-    assert settle_eligible_pending(con, datetime(2026, 10, 29))["scored"] == 1
+    assert settle_eligible_pending(con, datetime(2026, 10, 29, 12))["scored"] == 1
     assert con.execute("SELECT game_id, lead_min FROM forward_scores_elig").fetchall() == [
         ("G_ok", 15)
     ]
