@@ -6,7 +6,8 @@ and ``manifest.json``. Nothing here imports ``nba``; the files are the whole int
 Before a byte of the database is opened the manifest is checked:
   * it must be valid JSON with ``schema_version`` 1 or 2, a non-empty ``data_version`` and a
     ``made_at`` that parses (an export that cannot say what data it came from, or when, is refused);
-  * the season 2025 holdout may not appear in its ``seasons`` (or in any table);
+  * the season 2025 holdout may not appear in its ``seasons`` (or in any table, except box-score
+    rows the manifest declares as display history in ``box_history_seasons``);
   * the sha256 of ``export.duckdb`` and ``parlay_of_day.json`` must equal the manifest's.
 Any failure raises ``ExportRefused``; the API answers 503 with the reason rather than showing
 something it cannot vouch for.
@@ -302,9 +303,16 @@ class ExportStore:
             meta.get("data_version", "") != (self.manifest.get("data_version") or "")
         ):
             raise ExportRefused("export.duckdb meta does not match the manifest")
-        for t in ("games", "box_scores"):
-            if any(int(r["season"]) == HOLDOUT_SEASON for r in tables[t]):
-                raise ExportRefused(f"{t} holds season {HOLDOUT_SEASON}, the frozen holdout")
+        if any(int(r["season"]) == HOLDOUT_SEASON for r in tables["games"]):
+            raise ExportRefused(f"games holds season {HOLDOUT_SEASON}, the frozen holdout")
+        # Box scores are raw game logs shown for display (last-10, swipe stats). Season 2025 rows
+        # are let in only when the export declares them as display history (nba.export guard
+        # DISPLAY_TABLES; Devin's display approval in HOLDOUT_ACCESS_LOG); nothing here scores them.
+        display = self.manifest.get("box_history_seasons")
+        if HOLDOUT_SEASON not in (display if isinstance(display, list) else []) and any(
+            int(r["season"]) == HOLDOUT_SEASON for r in tables["box_scores"]
+        ):
+            raise ExportRefused(f"box_scores holds season {HOLDOUT_SEASON}, the frozen holdout")
         # best_model_schema 1: prop_grids marks one primary row per prop and p_play carries the
         # chance to play. An export without it keeps the old production-model choice.
         grids = tables["prop_grids"]
