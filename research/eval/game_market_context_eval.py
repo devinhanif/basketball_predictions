@@ -87,6 +87,10 @@ from research.features.game_market_context import (
     placebo_market,
 )
 
+#: HEAD when this process started: artifacts written later in the run carry the code that ran, not a
+#: commit made mid-run (results.json of the 2026-10-11 run stamped an unrelated HEAD; T501).
+RUN_GIT_SHA = git_sha()
+
 DOC = Path("docs/prereg/GAME_MARKET_CONTEXT.md")
 OUT_DIR = Path("reports/prereg_game_market_context")
 REPORT_MD = Path("reports/prereg_game_market_context.md")
@@ -170,7 +174,7 @@ def load_study(
     flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = attach_realised(build_features(games, pgs, static, flagged, elo), games, pgs)
     assert int(feats["season"].max()) <= MAX_SEASON  # type: ignore[arg-type]
-    tips = build_game_tipoff()
+    tips = build_game_tipoff(max_season=MAX_SEASON)  # holdout: never read 2025-26 schedule files
     rows = load_market_rows(odds_db)
     gm, counts = build_game_market(rows, tips)
     lg = league_total_mean(games)
@@ -827,7 +831,7 @@ def run_gate(
         "draft": allow_draft,
         "doc": str(doc),
         "sha256": sha,
-        "git_sha": git_sha(),
+        "git_sha": RUN_GIT_SHA,
         "seeds": SEEDS,
         "coverage": cov,
         "known_at": ka,
@@ -1101,7 +1105,7 @@ def run_arms(db_path: str, sha: str, out_dir: Path = OUT_DIR) -> dict[str, Any]:
         **tables,
         "rules": rules,
         "seeds": SEEDS,
-        "git_sha": git_sha(),
+        "git_sha": RUN_GIT_SHA,
         "sha256": sha,
         "n_boot": N_BOOT,
         "a0_repro": repro,
