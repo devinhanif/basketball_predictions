@@ -199,3 +199,5 @@ INJURY_TIMING repaired table used a report published after the cutoff in about t
 check could not see it because planted rows carry correct stamps. Stored 2022-24 history has the same offset: 3.8% / 4.8% of games
 use a report published after tip-60. Rule: known-at comes from the document's own printed time (or the fetch time, whichever is
 later), and a preflight refuses any row whose stamp disagrees with its source header.
+
+- **A per-player treatment is clustered by player-season, not only by game (2026-10-20).** PRESEASON_ROLE_PRIOR (T500) applied one blend factor per player across his first 10 games; the game-clustered CI treated those 10 rows as independent and "cleared" three 2024 cells that vanish when clustered by player (pts [−0.0759, +0.0122]), and 5 of 115 players carried 98.6% of the gain. Rule: when the arm's effect is constant within a player (or team), the pre-registered CI clusters by that unit as well as by game, the power simulation includes player-shared noise, and the rule reports the share of the gain carried by the top five units. Re-check F9b (per-player role prior) for the same issue.
