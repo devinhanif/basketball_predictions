@@ -148,3 +148,46 @@ network step inside the morning lock is alarm-bounded (fetch 1800 s, load 1200 s
 hung fetch (07:00:20) held the lock and left the slate unforecast. Reverse if the early row is shown to displace a
 better-informed T-60 row (it cannot under latest-row readers) or if the alarms kill fetches that would have
 completed (watch rc 142 frequency for fetch_officials, which ran > 1800 s on 4 of 5 days)."
+
+## Re-check d4925ee (2026-10-21)
+
+Verdict: APPROVED
+
+Merge order: `agent/scribe-slate-briefing` (head `2296453`) goes first, then this branch, after the replay oracle
+and Devin's go.
+
+| Item | Evidence (`git diff f929466..d4925ee`, `git show 2296453:...`) | Status |
+|---|---|---|
+| E1 | `ops/nba_daily.sh`: `step early_forecast alarm_run "$EARLY_TIMEOUT_S"` and `step predict alarm_run "$PREDICT_TIMEOUT_S"`, both defaulting to `1200`. On 142, `step()` alerts "`<name>` timed out (rc=142, alarm)". New tests `test_a_hung_early_forecast_...` and `test_a_hung_pretip_predict_...` assert `early_forecast 142 failed` / `predict 142 failed`, the timed-out alert text, and that the later steps run. | fixed |
+| E2 | `alarm_run` now ends `...; print STDERR "alarm_run: cannot exec $ARGV[0]: $!\n"; exit 127`. `test_alarm_run_of_a_missing_command_fails_the_step` (`NBA_UV` missing) asserts `fetch_tracking 127 failed` and `early_forecast 127 failed`. It would fail on f929466, where the wrapped steps returned 0. | fixed |
+| E3 | Scribe `nba/explain/slate.py` `write_slate`: `connect_with_retry(path, read_only=True)`, with the bounded `NBA_DB_LOCK_WAIT_S` wait (300 s in this job). Both rc-1 paths print to stderr and return without writing; good pages go through `_publish`, which writes a temp file and then `os.replace`s it. `nba/explain/data.py:open_ro` still exists as a bare connect, but `write_slate` no longer uses it. | fixed |
+| E4 | Merge order as above. | open (process) |
+| m1 | The comment and DAILY_PIPELINE now say uv forks python and forwards SIGALRM (uv 0.12.23; re-check after an upgrade). | fixed |
+| m2 | The comment now says "returns 0/4/1; any other non-zero alerts". The test still stubs rc 5, a code the briefing never returns. It is harmless, because any non-zero code except 4 alerts. | fixed (residue trivial) |
+| m3 | The tracking stub now matches `postgame-fetch --source tracking`. The suite dropped from 66 s to 41 s. The `*"source officials"*` pattern in `test_exit_142_...` still also matches `postgame_load` (trivial). | fixed |
+| Extended wrap test | `test_postgame_steps_are_wrapped_with_the_alarm` now also asserts `exit 127` and the predict and early_forecast wraps. | ok |
+
+**Can the 1200 s predict alarm kill a healthy run?**
+- By the budget: no. The DB wait is at most 300 s and the cold fit 339–417 s, so the worst healthy run is about
+  717 s, leaving 483 s of margin.
+- Across every logged pretip `predict` (`data/ops/pretip_2026*.log`), n = 271 runs:
+  - 14 ran longer than 717 s and 8 longer than 1200 s.
+  - Of the 8, 4 failed anyway (rc 5 ×3, 75 ×1).
+  - The other 4 finished rc 0 (1994 s on 10-13, 2062 s on 10-16, 1296 s on 10-18, 2519 s on 10-19), all on
+    **slate=0** days. They produced no rows, so killing them loses nothing, but each would now raise a "predict
+    timed out" alert.
+  - No run that wrote forecasts exceeded 1200 s. Their maximum was 502 s (10-20 17:24), but they are only n ≈ 30,
+    all from 10-20 and 10-21.
+- Residual risk: a contended cold run on a real slate, with the morning job writing and a T-30 wait both at once,
+  is the case that could approach the alarm. If it does, the next :20/:50 slot retries. Watch the rc-142 count for
+  `predict` in the first two weeks.
+- One remaining issue (not blocking): the step() comment "rc 142 = ... a post-game step hit its alarm_run budget"
+  now also covers predict and early_forecast; change "a post-game step" to "an alarm_run-wrapped step".
+
+**Checks, run read-only in the steward worktree at `d4925ee`:**
+- `sh -n ops/nba_daily.sh`: exit 0.
+- `PYTHONDONTWRITEBYTECODE=1 uv run --no-sync pytest tests/ops tests/test_layering.py --no-cov -q -p no:cacheprovider`:
+  **`150 passed in 41.15s`**, exit 0. That is 147 plus the three new tests.
+
+The pre-existing P1 still stands: lock takeover at 180 min, and an EXIT trap that releases another job's lock. It
+should be a separate diff.
