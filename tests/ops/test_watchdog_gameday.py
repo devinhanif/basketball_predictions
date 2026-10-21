@@ -5,10 +5,19 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest import mock
 
 import duckdb
+import pytest
 
-from nba.ops.watchdog import Alert, check, evaluate_game_day, games_in_db, todays_slate
+from nba.ops.watchdog import (
+    Alert,
+    caffeinate_running,
+    check,
+    evaluate_game_day,
+    games_in_db,
+    todays_slate,
+)
 
 # 09:30 ET on 2026-10-21 (08:30 CDT)
 NOW = datetime.fromisoformat("2026-10-21T09:30:00-04:00")
@@ -84,7 +93,8 @@ def test_slate_missing_alerts(tmp_path: Path) -> None:
     assert _keys(alerts) == ["gameday:2026-10-21:slate"]
     assert alerts[0].message == (
         "game day 2026-10-21: games table lacks today's slate: 2 of 2 game_ids missing; "
-        "the schedule fetch does not write scheduled games"
+        "the schedule fetch does not write scheduled games (expected: `games` gets a row only "
+        "once a game starts; not a fetch failure)"
     )
 
 
@@ -185,7 +195,7 @@ def test_check_survives_probe_crash(tmp_path: Path) -> None:
         raise RuntimeError("kaput")
 
     out = check(tmp_path / "ops", now=NOW, launchctl_text="", notifier=None, gameday=crash)
-    assert [a.key for a in out if a.key == "gameday:probe"] == ["gameday:probe"]
+    assert [a.key for a in out if "probe" in a.key] == ["gameday:2026-10-21:probe-crash"]
 
 
 def test_todays_slate_and_games_in_db(tmp_path: Path) -> None:
@@ -205,3 +215,87 @@ def test_todays_slate_and_games_in_db(tmp_path: Path) -> None:
     con.execute("INSERT INTO games VALUES ('0022600010')")
     con.close()
     assert games_in_db(db, SLATE) == {"0022600010"}
+
+
+def test_unreadable_schedule_is_the_probe_alert_not_silence(tmp_path: Path) -> None:
+    ops = tmp_path / "data" / "ops"
+    _healthy(ops)
+    alerts = evaluate_game_day(
+        NOW, ops, battery=lambda: True, caffeinate=lambda: False, present_fn=_present_all
+    )
+    assert _keys(alerts) == ["gameday:2026-10-21:probe"]
+    with pytest.raises(FileNotFoundError):
+        todays_slate(tmp_path / "data", NOW.date())
+
+
+def test_corrupt_cache_with_good_live_tips_still_works(tmp_path: Path) -> None:
+    import polars as pl
+
+    data = tmp_path / "data"
+    (data / "schedule").mkdir(parents=True)
+    pl.DataFrame(
+        {
+            "gameId": ["0022600010", "0022600099", "0012600001"],
+            "gameDateTimeUTC": [
+                "2026-10-21T23:00:00Z",
+                "2026-10-23T23:00:00Z",
+                "2026-10-21T23:00:00Z",
+            ],
+            "gameDateTimeEst": ["x", "x", "x"],
+        }
+    ).write_parquet(data / "schedule" / "live_tips_2026-27.parquet")
+    assert todays_slate(data, NOW.date()) == ["0022600010"]  # no cache file at all
+
+
+def test_pgrep_error_exit_is_not_not_running() -> None:
+    def rc(code: int) -> mock.Mock:
+        return mock.Mock(returncode=code)
+
+    with mock.patch("subprocess.run", return_value=rc(0)):
+        assert caffeinate_running() is True
+    with mock.patch("subprocess.run", return_value=rc(1)):
+        assert caffeinate_running() is False
+    with mock.patch("subprocess.run", return_value=rc(2)), pytest.raises(RuntimeError):
+        caffeinate_running()
+
+
+def test_pgrep_error_surfaces_as_probe_caffeinate(tmp_path: Path) -> None:
+    _healthy(tmp_path)
+
+    def err() -> bool:
+        raise RuntimeError("pgrep exit 2")
+
+    assert _keys(_run(tmp_path, caffeinate=err)) == ["gameday:2026-10-21:probe-caffeinate"]
+
+
+def test_flap_within_a_day_fires_once(tmp_path: Path) -> None:
+    ops = tmp_path / "ops"
+    _healthy(ops)
+    state = {"on": True}
+
+    def gd(now: datetime, o: Path) -> list[Alert]:
+        return _run(o, now=now, battery=lambda: state["on"])
+
+    def go(now: datetime) -> list[Alert]:
+        return check(ops, now=now, launchctl_text="", notifier=None, gameday=gd)
+
+    assert len([a for a in go(NOW) if a.key.endswith(":battery")]) == 1
+    state["on"] = False
+    assert go(NOW + timedelta(minutes=10)) == []
+    state["on"] = True
+    assert [a for a in go(NOW + timedelta(minutes=20)) if a.key.endswith(":battery")] == []
+
+
+def test_notification_order_battery_caffeinate_morning_slate(tmp_path: Path) -> None:
+    _morning(tmp_path, NOW - timedelta(hours=1), None)
+    alerts = _run(
+        tmp_path, battery=lambda: True, caffeinate=lambda: False, present_fn=_present_none
+    )
+    assert [a.key.rsplit(":", 1)[1] for a in alerts] == [
+        "battery",
+        "caffeinate",
+        "morning",
+        "slate",
+    ]
+    assert "(60 min since start)" in alerts[2].message
+    assert "data/ops/morning_20261021.log" in alerts[2].message

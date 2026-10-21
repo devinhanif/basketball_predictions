@@ -401,21 +401,24 @@ def on_battery() -> bool:
 
 
 def caffeinate_running() -> bool:
-    """True when a ``caffeinate`` process exists (``pgrep -x`` exit 0)."""
-    return (
-        subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True, timeout=10).returncode
-        == 0
-    )
+    """True when a ``caffeinate`` process exists (``pgrep -x`` exit 0); exit 1 = none; any other
+    exit is an error, not "not running"."""
+    rc = subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True, timeout=10).returncode
+    if rc not in (0, 1):
+        raise RuntimeError(f"pgrep exit {rc}")
+    return rc == 0
 
 
 def todays_slate(data_dir: Path, today: date) -> list[str]:
     """Regular-season game_ids whose ET date is ``today``: the schedule cache, plus the live tips
     parquet (real tip times, which can move a game across midnight)."""
     ids: set[str] = set()
+    read_any = False
     y = today.year if today.month >= 8 else today.year - 1
     cache = data_dir / "schedule_cache" / f"schedule_{y}-{(y + 1) % 100:02d}.json"
     try:
         rows = json.loads(cache.read_text())
+        read_any = True
     except (OSError, ValueError):
         rows = []
     for row in rows:
@@ -426,11 +429,18 @@ def todays_slate(data_dir: Path, today: date) -> list[str]:
     if tips.exists():
         import polars as pl
 
-        for r in pl.read_parquet(tips).iter_rows(named=True):
+        try:
+            tip_rows = list(pl.read_parquet(tips).iter_rows(named=True))
+            read_any = True
+        except Exception:  # unreadable parquet: judged by whether the cache was read
+            tip_rows = []
+        for r in tip_rows:
             gid = str(r["gameId"])
             tip = datetime.fromisoformat(str(r["gameDateTimeUTC"]).replace("Z", "+00:00"))
             if gid.startswith(REGULAR_SEASON_PREFIX) and tip.astimezone(ET).date() == today:
                 ids.add(gid)
+    if not read_any:  # "nothing could be read" must never look like "no games today"
+        raise FileNotFoundError(f"no readable schedule source for {today} under {data_dir}")
     return sorted(ids)
 
 
@@ -526,22 +536,6 @@ def evaluate_game_day(
     except Exception as e:
         fail("caffeinate", e)
     try:
-        have = present_fn(db, slate)
-        missing = [g for g in slate if g not in have]
-        if missing:
-            alerts.append(
-                Alert(
-                    f"{prefix}:slate",
-                    f"game day {day}: games table lacks today's slate: {len(missing)} of "
-                    f"{len(slate)} game_ids missing; the schedule fetch does not write "
-                    "scheduled games",
-                )
-            )
-    except DbBusy:
-        pass  # a writer holds nba.duckdb: judged again at the next check, not an alert
-    except Exception as e:
-        fail("slate", e)
-    try:
         hb = read_heartbeat(ops_dir / "heartbeat", "daily-morning")
         start = _parse_ts(hb.get("start_ts")) if hb else None
         end = _parse_ts(hb.get("end_ts")) if hb else None
@@ -551,19 +545,40 @@ def evaluate_game_day(
                 Alert(
                     f"{prefix}:morning",
                     f"game day {day}: the morning job has not started today; check "
-                    "`launchctl list | grep daily-morning` and data/ops/daily-morning logs",
+                    "`launchctl list | grep daily-morning`; "
+                    f"log data/ops/morning_{local:%Y%m%d}.log",
                 )
             )
         elif end is None or (start is not None and end < start):
+            assert start is not None
+            elapsed = (now - start).total_seconds() / 60
             alerts.append(
                 Alert(
                     f"{prefix}:morning",
-                    f"game day {day}: the morning job started but has not ended; check "
-                    "data/ops/morning_*.log",
+                    f"game day {day}: the morning job started but has not ended "
+                    f"({elapsed:.0f} min since start); check data/ops/morning_{local:%Y%m%d}.log",
                 )
             )
     except Exception as e:
         fail("morning", e)
+    # order matters for the 200-char notification: battery, caffeinate, morning, then slate
+    try:
+        have = present_fn(db, slate)
+        missing = [g for g in slate if g not in have]
+        if missing:
+            alerts.append(
+                Alert(
+                    f"{prefix}:slate",
+                    f"game day {day}: games table lacks today's slate: {len(missing)} of "
+                    f"{len(slate)} game_ids missing; the schedule fetch does not write "
+                    "scheduled games (expected: `games` gets a row only once a game starts; "
+                    "not a fetch failure)",
+                )
+            )
+    except DbBusy:
+        pass  # a writer holds nba.duckdb: judged again at the next check, not an alert
+    except Exception as e:
+        fail("slate", e)
     return alerts
 
 
@@ -622,7 +637,7 @@ def check(
     launchctl_text: str | None = None,
     kalshi_log: Path | None = None,
     notifier: Callable[[str], None] | None = notify,
-    gameday: Callable[[datetime, Path], list[Alert]] = evaluate_game_day,
+    gameday: Callable[[datetime, Path], list[Alert]] | None = None,
 ) -> list[Alert]:
     """Run one check; append new alerts to ALERTS.md and notify. Returns the alerts emitted."""
     now = now or datetime.now().astimezone()
@@ -638,9 +653,14 @@ def check(
     kl = kalshi_log if kalshi_log is not None else ops_dir.parent / "kalshi" / "snapshot.log"
     current = evaluate(now, ops_dir / "heartbeat", text, first_seen, kl, tz=schedule_tz(ops_dir))
     try:
-        current += gameday(now, ops_dir)
+        current += (gameday or evaluate_game_day)(now, ops_dir)
     except Exception as e:  # the probe must never take the rest of the check down
-        current.append(Alert("gameday:probe", f"game-day probe failed: {type(e).__name__}: {e}"))
+        current.append(
+            Alert(
+                f"{GAMEDAY_PREFIX}{now.astimezone(ET):%Y-%m-%d}:probe-crash",
+                f"game-day probe crashed:  {type(e).__name__}: {e}",
+            )
+        )
     fresh, new_alerts_state = dedupe(current, alerts_state, now)
     if fresh:
         with (ops_dir / "ALERTS.md").open("a") as fh:
@@ -737,7 +757,12 @@ def drill(source_hb: Path, now: datetime | None = None) -> dict[str, object]:
         _write_fake_heartbeat(hb, "daily-morning", m_start, m_start + timedelta(hours=1), 1)
         sent: list[str] = []
         fresh = check(
-            ops, now=drill_now, launchctl_text=healthy, kalshi_log=None, notifier=sent.append
+            ops,
+            now=drill_now,
+            launchctl_text=healthy,
+            kalshi_log=None,
+            notifier=sent.append,
+            gameday=lambda _now, _ops: [],  # the drill judges heartbeats, not the real slate
         )
         alerts_md = (
             (ops / "ALERTS.md").read_text().splitlines() if (ops / "ALERTS.md").exists() else []
