@@ -666,7 +666,7 @@ def crps_int_pge(pge: list[Any], y: np.ndarray) -> np.ndarray:
     return np.asarray(((F - ind) ** 2).sum(axis=1))
 
 
-def month_blocks(df: pd.DataFrame) -> dict[str, np.ndarray]:
+def month_blocks(df: pd.DataFrame, which: str = "mid") -> dict[str, np.ndarray]:
     """zq per month block from the stored c, s, p_ge of ALL rows of the stat (production's one-grid-per-block construction)."""
     mo = pd.to_datetime(df["game_date"]).dt.strftime("%Y-%m").to_numpy()
     out: dict[str, np.ndarray] = {}
@@ -677,7 +677,9 @@ def month_blocks(df: pd.DataFrame) -> dict[str, np.ndarray]:
         )
         if z["inconsistent"]:
             raise RuntimeError(f"block {m}: contradictory survival brackets")
-        out[str(m)] = z["mid"]
+        out[str(m)] = (
+            z["mid"] if which == "mid" else np.where(np.isfinite(z[which]), z[which], z["mid"])
+        )
     return out
 
 
@@ -1066,6 +1068,15 @@ def score_cells(
             qa = q0 * lam[:, None]
             sc = crps_int_q(qa, y)
             arms[arm] = {"delta": boot(sc - base, gid), "coverage": coverage(qa, y)}
+        lam2 = lambdas(ctx, df["m_recency"].to_numpy(), st, "A2", kappa, K, kind)[rows]
+        bracket: dict[str, float] = {}
+        for which in (
+            "lo",
+            "mid",
+            "hi",
+        ):  # O4: the identified part of the grid is a bracket; descriptive
+            qw = quantile_grid(df, rows, month_blocks(df, which))
+            bracket[which] = float((crps_int_q(qw * lam2[:, None], y) - crps_int_q(qw, y)).mean())
         cov0 = coverage(q0, y)
         cov_dev = max(abs(arms["A2"]["coverage"][t] - cov0[t]) for t in cov0)
         covered = ctx["pre_n"].to_numpy()[rows] >= COVER_MIN_GAMES
@@ -1073,6 +1084,7 @@ def score_cells(
             "n": int(len(rows)),
             "games": int(len(np.unique(gid))),
             "crps_A0": float(base.mean()),
+            "bracket_A2_minus_A0": bracket,
             "coverage_A0": cov0,
             "arms": arms,
             "cov_dev": float(cov_dev),
@@ -1135,6 +1147,7 @@ def run_real(sha: str | None, kappa_path: Path | None = None) -> dict[str, Any]:
         "K10": {},
         "sensitivity": {},
         "rookies": {},
+        "stayers": {},
     }
     for s in (SELECT, REPORT):
         _log(f"season {s} K=10 movers")
@@ -1156,6 +1169,8 @@ def run_real(sha: str | None, kappa_path: Path | None = None) -> dict[str, Any]:
             out["sensitivity"][f"K{K}_{s}"] = score_cells(s, K, "mover", kappa, reg, fe, c)
     for s in (SELECT, REPORT):
         out["rookies"][str(s)] = score_cells(s, K_MAIN, "rookie", kappa, reg, fe, c)
+        # O3: A2 - A0 on stayers' first K team games (descriptive; no verdict word)
+        out["stayers"][str(s)] = score_cells(s, K_MAIN, "stayer", kappa, reg, fe, c)
     return out
 
 
