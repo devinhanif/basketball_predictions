@@ -1,0 +1,51 @@
+{
+ "rates_used": {
+  "doubtful": 0.009569377990430622,
+  "questionable": 0.5800122624156959
+ },
+ "truths": {
+  "null": {
+   "guard_failures": {
+    "coverage": 30,
+    "placebo_margin": 15,
+    "slices": 30
+   },
+   "mean_report_delta_teammate": 0.020717989043231345,
+   "seeds": 30,
+   "words": {
+    "CLOSED": 30
+   },
+   "wrong_rows_in_c2_slot_words": {
+    "CLOSED": 30
+   }
+  },
+  "planted_f0.5": {
+   "guard_failures": {
+    "placebo_margin": 3
+   },
+   "mean_report_delta_teammate": -0.004099397437023978,
+   "seeds": 30,
+   "words": {
+    "CLOSED": 1,
+    "INCONCLUSIVE": 22,
+    "PASS": 7
+   },
+   "wrong_rows_in_c2_slot_words": {
+    "CLOSED": 30
+   }
+  },
+  "planted_f1.0": {
+   "guard_failures": {},
+   "mean_report_delta_teammate": -0.018348463872451617,
+   "seeds": 30,
+   "words": {
+    "PASS": 30
+   },
+   "wrong_rows_in_c2_slot_words": {
+    "CLOSED": 24,
+    "INCONCLUSIVE": 6
+   }
+  }
+ },
+ "wall_seconds": 111.2
+}
