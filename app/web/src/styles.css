@@ -1645,7 +1645,8 @@ th {
   padding-left: 8px;
   border-left: 3px solid var(--muted);
 }
-.ls-label.rung_cal {
+.ls-label.rung_cal,
+.ls-label.line_cal {
   border-left-color: var(--accent);
 }
 .ls-tail {

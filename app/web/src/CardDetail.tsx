@@ -4,7 +4,7 @@ import { american, bookName, lineText, num, pct } from "./format";
 import { Explain, View } from "./components";
 import { plainModel } from "./plain";
 import { gameHref } from "./router";
-import { percentAlong, modelLine, pairLines, quantile, read, sliderRange, snapHalf } from "./slider";
+import { calibrationFooter, percentAlong, modelLine, pairLines, quantile, read, sliderRange, snapHalf } from "./slider";
 import { Chips, DistStrip, ProbBar } from "./Viz";
 import { wilson } from "./stats";
 import { useLoad } from "./useLoad";
@@ -134,13 +134,15 @@ function Facts(props: { s: CardStats; card: CardView }) {
 
 export function LineSlider({ card }: { card: CardView }) {
   const posted = card.line_source === "posted" ? card.line : null;
-  const bookMain = card.book_main_line ?? card.rung_cal?.main_line ?? null;
+  const bookMain = card.book_main_line ?? card.line_cal?.main_line ?? card.rung_cal?.main_line ?? null;
   const input = {
     p_ge: card.dist.p_ge,
     method: card.dist.method,
     posted_line: posted,
     book_main_line: bookMain,
     rung_cal: card.rung_cal,
+    line_cal: card.line_cal ?? null,
+    line_cal_null_reason: card.line_cal_null_reason ?? null,
   };
   const model = modelLine(card.dist.p_ge);
   // Reach: from just under the 0.5th percentile to just over the 99.5th, widened to hold the marks.
@@ -287,7 +289,7 @@ function Body(props: { game_id: string; player_id: number; stat: string }) {
               <li>{card.model_label}</li>
               <li>Forecast stamp: <span class="mono">{card.forecast_stamp}</span></li>
               <li>{card.dist.method === "exact" ? "Read from the exact count table." : "Read off a 19-point quantile grid."}</li>
-              {card.rung_cal ? <li>Calibration map {card.rung_cal.map_version} ({card.rung_cal.map_sha8}), DraftKings only.</li> : null}
+              {calibrationFooter(card.line_cal, card.rung_cal) ? <li>{calibrationFooter(card.line_cal, card.rung_cal)}</li> : null}
             </ul>
           </Explain>
           {card.stats ? <Facts s={card.stats} card={card} /> : <p class="small">No game history is loaded for this prop.</p>}
