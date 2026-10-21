@@ -18,7 +18,12 @@ import duckdb
 from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
 from nba.daily.pipeline import RunSummary, run_daily, utcnow
 from nba.daily.report import build_report
-from nba.daily.schedule import ET, fetch_schedule_nba_api, schedule_from_db
+from nba.daily.schedule import (
+    DEFAULT_SCHEDULE_CACHE_DIR,
+    ET,
+    fetch_schedule_nba_api,
+    schedule_from_db,
+)
 from nba.daily.season import season_int_for_date, season_str_for_date
 from nba.daily.settle import settle_pending
 from nba.db.connect import DEFAULT_DB_PATH, connect_with_retry, is_lock_error
@@ -28,7 +33,7 @@ from nba.ops.exitcodes import RC_DB_BUSY, RC_DEGRADED, RC_INFORMATIONAL
 from nba.ops.watchdog import health_section
 
 DEFAULT_REPORT = Path("registry_store/reports/forward_report.md")
-SCHEDULE_CACHE_DIR = Path("data/schedule_cache")
+SCHEDULE_CACHE_DIR = DEFAULT_SCHEDULE_CACHE_DIR  # one definition: nba.daily.schedule
 
 
 _NOW_HELP = "override the clock (naive UTC ISO, e.g. 2024-10-22T21:50); rehearsals only"

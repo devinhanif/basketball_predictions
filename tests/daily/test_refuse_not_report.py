@@ -50,13 +50,13 @@ def test_winner_not_graded_on_a_final_score_without_a_box_score(
     for k in range(9):
         con.execute(STATS_INS + " VALUES (?, ?, ?, 20, 4, 2, 1, 0)", [G1, 8000 + k, T1])
     assert settle_pending(con, late)["win_scored"] == 0  # 9 played rows: still thin
+    win_elig = "SELECT count(*) FROM forward_scores_elig WHERE game_id=? AND target='win_prob_home'"
+    assert con.execute(win_elig, [G1]).fetchone() == (0,)  # the frozen table obeys the same guard
     con.execute(STATS_INS + " VALUES (?, 8100, ?, 0, 0, 0, 0, 0)", [G1, T2])  # DNP row, minutes 0
     assert settle_pending(con, late)["win_scored"] == 0
     con.execute(STATS_INS + " VALUES (?, 8101, ?, 15, 3, 1, 1, 0)", [G1, T2])
     assert settle_pending(con, late)["win_scored"] == 1
-    n_elig = con.execute(
-        "SELECT count(*) FROM forward_scores_elig WHERE game_id=? AND target='win_prob_home'", [G1]
-    ).fetchone()
+    n_elig = con.execute(win_elig, [G1]).fetchone()
     assert n_elig is not None and n_elig[0] >= 1  # the pre-registered rows follow the same rule
 
 
@@ -176,9 +176,10 @@ def test_a_misplaced_mover_is_withdrawn_not_scored_and_not_exported(
     ).fetchall()
     assert wd and all(w[4] == T3 for w in wd)
     elig = con.execute(
-        "SELECT count(*) FROM forward_scores_elig WHERE player_id = ? AND game_id = ?", [MOVER, G1]
-    ).fetchone()
-    assert elig == (0,)
+        "SELECT DISTINCT status FROM forward_scores_elig WHERE player_id = ? AND game_id = ?",
+        [MOVER, G1],
+    ).fetchall()
+    assert elig == [("dnp",)]  # the frozen table is untouched: the rule counts him as not in box
     # append-only: the forecast rows are still there, and a second run withdraws nothing twice
     assert (G1, "pts") in _mover_rows(con)
     n = con.execute("SELECT count(*) FROM forward_withdrawals").fetchone()

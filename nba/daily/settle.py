@@ -228,7 +228,6 @@ LEFT JOIN box b ON b.game_id = l.game_id AND b.player_id = l.player_id
 LEFT JOIN has_box h ON h.game_id = l.game_id
 WHERE l.rn = 1 AND g.home_pts > 0 AND g.away_pts > 0
   AND (l.target <> ? OR {has_box})
-  AND NOT {withdrawn}
   AND l.tipoff + ? * INTERVAL 1 HOUR <= ?
   AND NOT EXISTS (SELECT 1 FROM forward_scores_elig s
       WHERE s.game_id = l.game_id AND s.model_name = l.model_name
@@ -246,7 +245,6 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
     sql = _SELECT_ELIGIBLE.format(
         models=",".join("?" for _ in PREREG_MODELS),
         has_box=_HAS_BOX_SQL.format(g="l.game_id"),
-        withdrawn=_WITHDRAWN_SQL.format(a="l"),
     )
     params: list[object] = [
         *PREREG_MODELS,

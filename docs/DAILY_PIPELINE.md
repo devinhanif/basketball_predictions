@@ -751,7 +751,8 @@ Opening night (2026-10-20) showed that the loop reported problems after the fact
    player_id, official_team_id, reason`). After a run with `--roster-source official` writes its rows, each
    forecast key of the slate whose player the fetched official rosters place on a team that is neither home
    nor away is withdrawn (once per key). A player on no fetched roster is unknown and is not withdrawn. Both
-   settle paths skip withdrawn keys (no `forward_scores` / `_elig` row); `nba.export.reader` and
+   `settle` skips withdrawn keys (no `forward_scores` row); `forward_scores_elig` is untouched (the frozen
+   rule writes the mover as `dnp` there); `nba.export.reader` and
    `nba.parlay.top_source` do not show them. `forward_predictions` is never edited. A withdrawal is
    permanent for its key. `recent` runs (all replays) never withdraw. The failure guard is
    `pipeline._withdraw_misplaced` (error -> `summary.errors`, rc 5, settle unaffected).

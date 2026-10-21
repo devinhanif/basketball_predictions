@@ -124,6 +124,7 @@ class ForwardBundle:
     excluded_avg_post_tip: int = 0
     excluded_avg_unreadable: int = 0
     excluded_avg_no_game: int = 0
+    excluded_withdrawn: int = 0
 
 
 def _flatten_stamp(stamp: dict[str, Any] | None) -> dict[str, Any]:
@@ -169,9 +170,11 @@ def forward_predictions(
     withdrawn = withdrawn_players(con)  # misplaced players: forecast kept in the log, never shown
     kept: list[tuple[Any, ...]] = []
     post_tip = 0
+    n_withdrawn = 0
     for r in raw:
         made_at, tipoff = r[1], r[3]
         if (r[2], int(r[7])) in withdrawn:
+            n_withdrawn += 1
             continue
         if made_at >= tipoff:  # the store refuses made_at >= tipoff (LeakageError); so do we
             post_tip += 1
@@ -239,6 +242,7 @@ def forward_predictions(
     )
     _assert_allowed({int(g["season"]) for g in avg_games}, window.seasons)
     dropped_games: set[str] = set()
+    n_withdrawn += sum(1 for a in avg if (a["game_id"], int(a["player_id"])) in withdrawn)
     avg = [a for a in avg if (a["game_id"], int(a["player_id"])) not in withdrawn]
     for ag in avg_games:
         if ag["home_team"] is None or ag["away_team"] is None:
@@ -278,6 +282,7 @@ def forward_predictions(
         excluded_avg_post_tip=avg_post_tip,
         excluded_avg_unreadable=avg_bad,
         excluded_avg_no_game=n_no_game,
+        excluded_withdrawn=n_withdrawn,
     )
 
 
