@@ -25,6 +25,19 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
    because it is cached forever per season key and would freeze the season at its first
    pull. Then `pull_game_boxscore` (per-game cache, resumable) for completed games with no
    `player_game_stats` rows (cap 250/run).
+   **Scheduled games (2026-10-21).** The finder returns only started or finished games, so
+   `games` never held a game before tip. After the schedule fetch (step 2) and before the
+   forecast, `insert_scheduled_games` writes TODAY's scorable ET slate (never preseason 001 or
+   all-star 003) into `games` with NULL scores: insert-only (`ON CONFLICT DO NOTHING`, an existing
+   finder row is never touched), count in the ingest dict as `scheduled_rows_inserted` and so in
+   the run summary's `ingest:` line. The finder's later upsert fills the scores. `--skip-ingest`
+   (the replay) inserts nothing: its `games` already holds every row, so the replay hash is
+   unchanged. `python -m nba.daily ingest` (07:00, before settle) writes the same rows. A failed
+   insert is a degraded run (exit 5) and never blocks the forecast. A postponed game keeps its
+   NULL row (never scored, harmless). Readers grade on `pts > 0`, so a NULL row is never settled.
+   **Coverage check** (`nba.ops.coverage`, `schedule`): it needs every slate game in `games` with
+   home/away, so it should now pass before tip (it failed every game day before this step); the
+   watchdog game-day probe's "games table lacks today's slate" line fires only if the step failed.
 2. **Schedule** (`schedule.py`): nba_api `ScheduleLeagueV2` gives game ids and UTC tip
    times; the slate is games whose US-Eastern tip date equals `--date`.
 3. **Injury report** (`injury.py`): probes 15-minute slots newest-first, strictly before

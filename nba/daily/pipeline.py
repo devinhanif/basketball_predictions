@@ -17,7 +17,12 @@ import duckdb
 import polars as pl
 
 from nba.daily import grid199, stamps
-from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
+from nba.daily.ingest_step import (
+    FetchGames,
+    PullBox,
+    incremental_ingest,
+    insert_scheduled_games,
+)
 from nba.daily.injury import ProbeFn, PullFn, out_players, pull_latest_report
 from nba.daily.predict import (
     CONTEXT_INT_PROPS_MODEL_NAME,
@@ -195,6 +200,12 @@ def run_daily(
         # keep real tips for this season's games so later training gates on them
         persist_live_tips([(g.game_id, g.tipoff) for g in schedule], season_s, tips_dir)
     slate = slate_for_date(schedule, run_date)
+    if not skip_ingest:  # replay passes --skip-ingest: its `games` already holds every slate row
+        try:  # own guard: never blocks the forecast; a failure alerts (exit 5)
+            n_sched = insert_scheduled_games(con, slate, run_date, season_i)
+            summary.ingest = {**summary.ingest, "scheduled_rows_inserted": n_sched}
+        except Exception as exc:
+            summary.errors.append(f"scheduled games: failed ({type(exc).__name__}: {exc})"[:300])
     summary.n_slate = len(slate)
     summary.n_preseason_skipped = n_unscorable_on_date(schedule, run_date)
     upcoming: list[ScheduledGame] = [g for g in slate if made_at < g.tipoff]

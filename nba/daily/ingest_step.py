@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from datetime import date
 from pathlib import Path
 
 import duckdb
 import polars as pl
 
+from nba.daily.schedule import ScheduledGame, is_scorable_game_id
 from nba.ingest.boxscores import pull_game_boxscore
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.ingest.games import refresh_season_games, upsert_games
@@ -28,6 +30,35 @@ def missing_boxscore_game_ids(
     """
     ids = [r[0] for r in con.execute(sql, [season]).fetchall()]
     return ids[:limit] if limit is not None else ids
+
+
+def insert_scheduled_games(
+    con: duckdb.DuckDBPyConnection,
+    slate: Sequence[ScheduledGame],
+    run_date: date,
+    season_int: int,
+) -> int:
+    """Insert the scorable games of ``run_date``'s ET slate that ``games`` does not hold yet, with
+    NULL scores. INSERT-ONLY: an existing row (the finder's, with scores) is never touched.
+
+    The ingest feed (LeagueGameFinder) returns only started or finished games, so before this
+    step ``games`` never held a game before tip (2026-10-20/21: coverage ``schedule`` FAIL, the
+    watchdog slate line, top_source without home/away). A NULL-score row is a normal state:
+    every reader that grades or fits filters on ``pts > 0``, and the replay already runs with
+    hidden games at NULL. The finder's later upsert fills the scores. Returns rows inserted."""
+    todays = [g for g in slate if g.game_date_et == run_date and is_scorable_game_id(g.game_id)]
+    n = 0
+    for g in todays:
+        before = con.execute("SELECT count(*) FROM games WHERE game_id = ?", [g.game_id]).fetchone()
+        if before and before[0]:
+            continue
+        con.execute(
+            "INSERT INTO games (game_id, game_date, season, home_team, away_team) "
+            "VALUES (?, ?, ?, ?, ?) ON CONFLICT (game_id) DO NOTHING",
+            [g.game_id, run_date, season_int, g.home_team, g.away_team],
+        )
+        n += 1
+    return n
 
 
 def incremental_ingest(

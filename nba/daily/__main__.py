@@ -15,14 +15,23 @@ from pathlib import Path
 
 import duckdb
 
-from nba.daily.ingest_step import FetchGames, PullBox, incremental_ingest
+from nba.daily.ingest_step import (
+    FetchGames,
+    PullBox,
+    incremental_ingest,
+    insert_scheduled_games,
+)
 from nba.daily.pipeline import RunSummary, run_daily, utcnow
 from nba.daily.report import build_report
 from nba.daily.schedule import (
     DEFAULT_SCHEDULE_CACHE_DIR,
     ET,
+    MAX_SCHEDULE_CACHE_AGE,
+    ScheduleFn,
     fetch_schedule_nba_api,
+    load_schedule_cache,
     schedule_from_db,
+    slate_for_date,
 )
 from nba.daily.season import season_int_for_date, season_str_for_date
 from nba.daily.settle import settle_pending
@@ -235,6 +244,7 @@ def run_ingest(
     rate_limiter: RateLimiter,
     fetch_games: FetchGames | None = None,
     pull_box: PullBox | None = None,
+    schedule_fn: ScheduleFn | None = None,
 ) -> int:
     """Morning ingest: games (final scores) and the box scores not yet loaded, for the season of
     ``run_date``. 2026-10-20: the morning settle ran before any ingest and would have graded a
@@ -252,8 +262,27 @@ def run_ingest(
     except Exception as exc:
         print(f"DEGRADED: ingest failed ({type(exc).__name__}: {exc})"[:300])
         return RC_DEGRADED
+    rc = 0
+    if schedule_fn is not None:  # today's slate rows (the finder holds only started games)
+        try:
+            season_s = season_str_for_date(run_date)
+            try:
+                sched = schedule_fn(season_s)
+            except Exception:  # fall back to the last good schedule copy
+                cached = load_schedule_cache(
+                    season_s, SCHEDULE_CACHE_DIR, max_age=MAX_SCHEDULE_CACHE_AGE
+                )
+                if cached is None:
+                    raise
+                sched = cached
+            out["scheduled_rows_inserted"] = insert_scheduled_games(
+                con, slate_for_date(sched, run_date), run_date, season_int_for_date(run_date)
+            )
+        except Exception as exc:
+            print(f"DEGRADED: scheduled games not written ({type(exc).__name__}: {exc})"[:300])
+            rc = RC_DEGRADED
     print(f"ingest: {out}")
-    return 0
+    return rc
 
 
 def _checkpoint(args: argparse.Namespace) -> int:
@@ -372,6 +401,7 @@ def main(argv: list[str] | None = None) -> int:
             con,
             args.date or datetime.now(ET).date(),
             rate_limiter=RateLimiter(args.rate_limit_s),
+            schedule_fn=fetch_schedule_nba_api,
         )
     if args.command == "settle":
         now = args.now or utcnow()
