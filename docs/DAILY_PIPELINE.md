@@ -213,7 +213,7 @@ recalibration; rookies and offseason moves are invisible until a first box score
 | Job | When | Steps |
 |---|---|---|
 | `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
-| `local.nba.daily-morning` | 08:00 | `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
+| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 **Optional fact-store rebuild (drafted 2026-10-11; approved ON by Devin 2026-10-11, switch NOT yet in the job environment).** `ops/nba_daily.sh morning` has a step `facts` right after
 `report`: `python -m nba.facts build --seasons 2022,2023,2024,2026 --schedule-seasons 2026 --out data/facts/facts.duckdb`.
@@ -736,3 +736,30 @@ can never change a morning or pretip exit code, and a slow Drive upload in the m
 `launchctl` text injected), and prints what was raised; exit 0 only when both alerts fire. Result on the live copy at 17:17 ET 2026-10-14: baseline 0 alerts; raised `daily-pretip:stale`
 ("last start 16:20, expected by 16:50") and `daily-morning:rc` ("last run exited rc=1"), both written to the temporary ALERTS.md and sent to the notifier; the live heartbeat directory unchanged (tests/ops/test_watchdog_drill.py
 checks byte equality of the source and four clock positions, including overnight and just after a slot).
+
+## The live loop refuses, it does not report (2026-10-21, plan item A)
+
+Opening night (2026-10-20) showed that the loop reported problems after the fact. Four refusals:
+
+1. **A winner row needs a box score.** `settle` / `settle_eligible_pending` grade `win_prob_home` only when
+   the game has >= 10 `player_game_stats` rows with `minutes > 0` (`MIN_PLAYED_ROWS`), on top of the 4 h
+   `SETTLE_AFTER_TIP_HOURS` guard and `home_pts > 0`. Points alone are not a result (PHI@NYK sat at 63-62).
+2. **The morning job ingests first.** `python -m nba.daily ingest [--date D]` runs `incremental_ingest` for the
+   season of D (default today ET); exit 0, or 5 (`RC_DEGRADED`) when the games fetch fails. `ops/nba_daily.sh
+   morning` runs `step ingest` immediately before `step settle`; a failed ingest alerts and settle still runs.
+3. **Withdrawals.** `forward_withdrawals` (append-only; `withdrawn_at, run_id, game_id, model_name, target,
+   player_id, official_team_id, reason`). After a run with `--roster-source official` writes its rows, each
+   forecast key of the slate whose player the fetched official rosters place on a team that is neither home
+   nor away is withdrawn (once per key). A player on no fetched roster is unknown and is not withdrawn. Both
+   settle paths skip withdrawn keys (no `forward_scores` / `_elig` row); `nba.export.reader` and
+   `nba.parlay.top_source` do not show them. `forward_predictions` is never edited. A withdrawal is
+   permanent for its key. `recent` runs (all replays) never withdraw. The failure guard is
+   `pipeline._withdraw_misplaced` (error -> `summary.errors`, rc 5, settle unaffected).
+4. **Teams for a game absent from `games`.** The games feed returns only started games (OKC@SAS never
+   appeared before tip). `top_source` and the export take home/away from the schedule cache
+   (`data/schedule_cache/schedule_<season>.json`), then the win row's stamped teams. The live-tips parquet
+   holds tip times only, so it cannot supply teams.
+
+Not closed (listed in the hand-back): a box score pulled while a game is in progress is never re-pulled
+(`missing_boxscore_game_ids` selects games with no rows at all), and the shadow settlers (pplay, full, avg,
+combo) do not read `forward_withdrawals`.

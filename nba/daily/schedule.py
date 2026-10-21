@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import time as _time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
@@ -153,3 +153,25 @@ def load_schedule_cache(
     except (OSError, ValueError, TypeError):
         return None
     return out or None
+
+
+#: The live schedule cache the pretip run writes (``save_schedule_cache``); readers that find a game
+#: absent from ``games`` (the finder only returns started games) take its teams from here.
+DEFAULT_SCHEDULE_CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "schedule_cache"
+
+
+def cached_game_teams(
+    seasons: Iterable[int], cache_dir: Path | None = None
+) -> dict[str, tuple[int, int]]:
+    """``{game_id: (home_team, away_team)}`` from the schedule cache of each season (start year).
+
+    Read-only; a missing/unreadable season file contributes nothing (callers fall back further).
+    The tip-off is not taken from here: forward rows carry their own stamped ``tipoff``."""
+    from nba.daily.season import season_str
+
+    out: dict[str, tuple[int, int]] = {}
+    for s in seasons:
+        games = load_schedule_cache(season_str(int(s)), cache_dir or DEFAULT_SCHEDULE_CACHE_DIR)
+        for g in games or []:
+            out[g.game_id] = (g.home_team, g.away_team)
+    return out

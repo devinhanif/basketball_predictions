@@ -16,7 +16,17 @@ from nba.daily.report import build_report
 from nba.daily.settle import settle_pending
 from nba.ingest.availability import ensure_player_availability_table
 from nba.models.injury_elo import predict_games
-from tests.daily.conftest import RUN_DATE, T1, T2, T3, T4, TIPOFF, before_tip, slate_games
+from tests.daily.conftest import (
+    RUN_DATE,
+    T1,
+    T2,
+    T3,
+    T4,
+    TIPOFF,
+    add_final_box,
+    before_tip,
+    slate_games,
+)
 
 SRC = "nba_official_report"
 G1, G2 = "0022600001", "0022600002"
@@ -185,6 +195,7 @@ def test_pipeline_writes_both_models_and_paired_report(con: duckdb.DuckDBPyConne
     # settle both and read the paired report
     for gid, hp in [(G1, 120), (G2, 90)]:
         con.execute("UPDATE games SET home_pts = ?, away_pts = 100 WHERE game_id = ?", [hp, gid])
+        add_final_box(con, gid)
     r = settle_pending(con, TIPOFF + timedelta(days=1))
     assert r["win_scored"] == 4
     txt = build_report(con)

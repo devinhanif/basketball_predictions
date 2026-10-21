@@ -60,6 +60,7 @@ from nba.daily.store import (
     LeakageError,
     append_predictions_ex,
     ensure_tables,
+    withdraw_misplaced,
 )
 from nba.features.game_tipoff import persist_live_tips
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
@@ -244,6 +245,7 @@ def run_daily(
             summary.n_refused_after_tipoff += len(upcoming)
             raise
         summary.n_predicted_games = len(upcoming)
+        _withdraw_misplaced(con, summary, made_at, upcoming, official)
         _stamp_models(con, run_date, made_at, summary, preds, model_cache)
         _persist_grids(con, made_at, summary, upcoming)
 
@@ -608,6 +610,34 @@ def _schedule_with_fallback(
         except OSError as exc:
             summary.shadow_errors.append(f"schedule cache write failed: {exc}"[:200])
     return schedule
+
+
+def _withdraw_misplaced(
+    con: duckdb.DuckDBPyConnection,
+    summary: RunSummary,
+    made_at: datetime,
+    upcoming: list[ScheduledGame],
+    official: pl.DataFrame | None,
+) -> None:
+    """Withdraw forecasts for players the official roster puts on a team outside the game.
+
+    Only with a fetched official roster (``official`` holds just the teams whose roster came back;
+    ``recent`` runs never withdraw). Its own guard: a failure is recorded in ``summary.errors``
+    (exit 5, alert) and never blocks the settle or the shadows below."""
+    if official is None or official.is_empty():
+        return
+    try:
+        teams: dict[int, set[int]] = {}
+        for tid, pid in official.select("team_id", "player_id").unique().iter_rows():
+            teams.setdefault(int(pid), set()).add(int(tid))
+        n = withdraw_misplaced(
+            con, summary.run_id, made_at,
+            {g.game_id: (g.home_team, g.away_team) for g in upcoming}, teams,
+        )  # fmt: skip
+        if n:
+            summary.model_status["withdrawals"] = f"{n} forecast keys withdrawn (misplaced players)"
+    except Exception as exc:
+        summary.errors.append(f"withdrawals: failed ({type(exc).__name__}: {exc})"[:300])
 
 
 def _official_roster(

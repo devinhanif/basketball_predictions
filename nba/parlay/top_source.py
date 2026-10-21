@@ -25,12 +25,15 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import duckdb
 import numpy as np
 
+from nba.daily.schedule import cached_game_teams
+from nba.daily.store import withdrawn_players
 from nba.explain import names
 from nba.parlay import line_cal as lc
 from nba.parlay.top_parlays import LegCand, make_leg
@@ -212,8 +215,32 @@ def _table_exists(con: duckdb.DuckDBPyConnection, name: str) -> bool:
     return bool(row and row[0])
 
 
+def _win_row_teams(con: duckdb.DuckDBPyConnection, gids: list[str]) -> dict[str, tuple[int, int]]:
+    """Home/away stamped on the newest win row of each game (last resort for teams)."""
+    if not gids:
+        return {}
+    marks = ",".join("?" for _ in gids)
+    rows = con.execute(
+        f"""SELECT game_id, CAST(prediction AS VARCHAR) FROM forward_predictions
+            WHERE target = 'win_prob_home' AND game_id IN ({marks})
+            ORDER BY made_at, run_id""",  # noqa: S608
+        gids,
+    ).fetchall()
+    out: dict[str, tuple[int, int]] = {}
+    for gid, pj in rows:
+        p = _jloads(pj)
+        if p.get("home_team") is not None and p.get("away_team") is not None:
+            out[str(gid)] = (int(p["home_team"]), int(p["away_team"]))
+    return out
+
+
 def _prop_rows(
-    con: duckdb.DuckDBPyConnection, lo: datetime, hi: datetime, slate: date, now: datetime | None
+    con: duckdb.DuckDBPyConnection,
+    lo: datetime,
+    hi: datetime,
+    slate: date,
+    now: datetime | None,
+    schedule_cache_dir: Path | None = None,
 ) -> tuple[dict[tuple[str, int, str], list[dict[str, Any]]], dict[str, dict[str, Any]]]:
     marks = ",".join("?" for _ in STATS)
     raw = con.execute(
@@ -227,8 +254,9 @@ def _prop_rows(
     ).fetchall()
     groups: dict[tuple[str, int, str], list[dict[str, Any]]] = defaultdict(list)
     games: dict[str, dict[str, Any]] = {}
+    withdrawn = withdrawn_players(con)  # misplaced players: never offered
     for run_id, made_at, gid, tip, model, stat, pid, pj, gdate, home, away in raw:
-        if made_at >= tip or (now is not None and made_at > now):
+        if made_at >= tip or (now is not None and made_at > now) or (gid, int(pid)) in withdrawn:
             continue
         if (gdate or et_date(tip)) != slate:
             continue
@@ -240,6 +268,16 @@ def _prop_rows(
             "comparison_only": bool(pred.get("comparison_only", False)), "pred": pred,
             "q_grid": pred.get("q_grid"), "freshness": "n/a", "freshness_reason": None,
         })  # fmt: skip
+    # a game absent from `games` (the finder lists started games only: OKC@SAS 2026-10-20) takes
+    # its teams from the schedule cache, then the win row's stamped teams; never dropped for it
+    missing = [g for g, m in games.items() if m["home"] is None or m["away"] is None]
+    if missing:
+        cache = cached_game_teams({slate_season(slate)}, schedule_cache_dir)
+        stamped = _win_row_teams(con, [g for g in missing if g not in cache])
+        for g in missing:
+            teams = cache.get(g) or stamped.get(g)
+            if teams is not None:
+                games[g]["home"], games[g]["away"] = teams
     return groups, games
 
 
@@ -349,6 +387,7 @@ def load_legs(
     *,
     now: datetime | None,
     calmap: lc.CalMap,
+    schedule_cache_dir: Path | None = None,
 ) -> Loaded:
     """Every priced pre-tip leg of the slate. ``now`` (naive UTC) is the run clock: forecasts and
     quotes stamped after it are not read."""
@@ -360,7 +399,7 @@ def load_legs(
     out = Loaded(made_at=now)
     lo = datetime.combine(slate, datetime.min.time())
     hi = lo + timedelta(days=2)
-    groups, games = _prop_rows(nba, lo, hi, slate, now)
+    groups, games = _prop_rows(nba, lo, hi, slate, now, schedule_cache_dir)
     if not groups:
         out.no_slate = True
         out.notes.append(f"no pre-tip prop forecasts for {slate} in forward_predictions")
@@ -415,6 +454,9 @@ def load_legs(
             continue
         team_id = team_by_player.get(pid)
         gmeta = games[gid]
+        if gmeta["home"] is None or gmeta["away"] is None:
+            out.dropped["game_teams_unknown"] += 1
+            continue
         if team_id not in (gmeta["home"], gmeta["away"]):
             out.dropped["team_not_in_game"] += 1
             continue

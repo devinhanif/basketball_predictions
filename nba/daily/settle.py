@@ -24,6 +24,21 @@ SHADOW_LLM_MODEL = "llm_shadow"
 #: games with live points (2026-10-20: BOS@DET stored 25-23 an hour after tip and was scored on
 #: it); scores are written once per key, so a partial result would stand for good.
 SETTLE_AFTER_TIP_HOURS = 4
+#: ...and a winner row is graded only when the game has a box score behind its final score: at
+#: least this many player_game_stats rows with minutes > 0 (a real game has 18-26; the games feed
+#: stored PHI@NYK at 63-62 an hour after the last pretip run, and points alone are not a result).
+MIN_PLAYED_ROWS = 10
+
+#: SQL fragment: the game has >= MIN_PLAYED_ROWS played box rows. ``{g}`` = game-id column.
+_HAS_BOX_SQL = (
+    "(SELECT count(*) FROM player_game_stats b WHERE b.game_id = {g} AND b.minutes > 0) >= "
+    + str(MIN_PLAYED_ROWS)
+)
+#: SQL fragment: the key was withdrawn (misplaced player, docs/DAILY_PIPELINE.md "Withdrawals").
+_WITHDRAWN_SQL = (
+    "EXISTS (SELECT 1 FROM forward_withdrawals w WHERE w.game_id = {a}.game_id "
+    "AND w.model_name = {a}.model_name AND w.target = {a}.target AND w.player_id = {a}.player_id)"
+)
 
 
 def normal_crps(mean: float, std: float, y: float) -> float:
@@ -68,12 +83,16 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
                l.prediction, g.game_date, g.season, g.home_pts, g.away_pts
         FROM latest l JOIN games g USING (game_id)
         WHERE l.rn = 1 AND g.home_pts > 0 AND g.away_pts > 0
+          AND (l.target <> ? OR {has_box})
+          AND NOT {withdrawn}
           AND l.tipoff + ? * INTERVAL 1 HOUR <= ?
           AND NOT EXISTS (SELECT 1 FROM forward_scores s
               WHERE s.game_id = l.game_id AND s.model_name = l.model_name
                 AND s.target = l.target AND s.player_id = l.player_id)
-        """,
-        [SHADOW_LLM_MODEL, SETTLE_AFTER_TIP_HOURS, scored_at],
+        """.format(  # noqa: S608 - fragments are module constants
+            has_box=_HAS_BOX_SQL.format(g="l.game_id"), withdrawn=_WITHDRAWN_SQL.format(a="l")
+        ),
+        [SHADOW_LLM_MODEL, WIN_TARGET, SETTLE_AFTER_TIP_HOURS, scored_at],
     ).fetchall()
     rows: list[tuple[object, ...]] = []
     n_win = n_prop = n_dnp = 0
@@ -208,6 +227,8 @@ FROM elig l JOIN games g USING (game_id)
 LEFT JOIN box b ON b.game_id = l.game_id AND b.player_id = l.player_id
 LEFT JOIN has_box h ON h.game_id = l.game_id
 WHERE l.rn = 1 AND g.home_pts > 0 AND g.away_pts > 0
+  AND (l.target <> ? OR {has_box})
+  AND NOT {withdrawn}
   AND l.tipoff + ? * INTERVAL 1 HOUR <= ?
   AND NOT EXISTS (SELECT 1 FROM forward_scores_elig s
       WHERE s.game_id = l.game_id AND s.model_name = l.model_name
@@ -220,8 +241,13 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
 
     Idempotent. Props whose stored ``p_ge_full`` is missing or does not reach 99.9% of the mass
     are written with ``status = 'unscorable'`` (counted by the checkpoint, never dropped)."""
+    ensure_tables(con)
     con.execute(ELIG_DDL)
-    sql = _SELECT_ELIGIBLE.format(models=",".join("?" for _ in PREREG_MODELS))
+    sql = _SELECT_ELIGIBLE.format(
+        models=",".join("?" for _ in PREREG_MODELS),
+        has_box=_HAS_BOX_SQL.format(g="l.game_id"),
+        withdrawn=_WITHDRAWN_SQL.format(a="l"),
+    )
     params: list[object] = [
         *PREREG_MODELS,
         T30_MODEL,
@@ -229,6 +255,7 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
         T15_MODEL,
         LEAD_MINUTES[T15_MODEL],
         DEFAULT_LEAD_MINUTES,
+        WIN_TARGET,
         SETTLE_AFTER_TIP_HOURS,
         scored_at,
     ]
