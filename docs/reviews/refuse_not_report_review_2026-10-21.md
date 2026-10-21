@@ -204,3 +204,21 @@ the merge, the old order (settle before ingest) is back in force for tonight's s
 ## Drafted DECISIONS row (not appended)
 
 | 2026-10-21 | Plan item A merged after the adversary's B1 fix: `forward_scores_elig` keeps the frozen rule (withdrawn movers stay `dnp`, counted); `forward_scores`, export and top_source skip withdrawn keys; winner rows need >= 10 played box rows (no real final in 15,474 games 2013-2024 has < 13; one source-defect box with 0). | Withdrawals use pre-tip information only, and a misplaced player is not in the box, so the frozen table gains nothing by dropping him and rules 1-2 forbid silent drops. | Reverse by a dated prereg amendment if withdrawn keys should leave the frozen table, with the checkpoint counting them per arm. |
+
+## Re-check 79b98b8 (2026-10-21)
+
+Verdict: APPROVED
+
+I checked `git diff e335489..79b98b8`: 6 files, +22/-11. Every requested fix is in, and the diff changes nothing beyond them.
+- **B1 fixed.** `AND NOT {withdrawn}` and its `.format` argument are gone from `_SELECT_ELIGIBLE`, so withdrawals no longer touch `forward_scores_elig`. `settle_pending` still skips withdrawn keys (`settle.py:93`). The mover test now asserts `elig == [("dnp",)]`. DAILY_PIPELINE item 3 matches the code.
+- **M1 fixed.** The test asserts 0 elig win rows at 9 played rows, and `>= 1` at 10. I re-ran the mutation from the first review (elig `has_box` guard and its `WIN_TARGET` parameter removed, scratch worktree at 79b98b8): `tests/daily/test_refuse_not_report.py` now gives **1 failed, 7 passed**, with `assert (1,) == (0,)` on the new line. The test catches the missing guard.
+- **m2 fixed.** `__main__.SCHEDULE_CACHE_DIR = DEFAULT_SCHEDULE_CACHE_DIR`, one definition.
+- **m3 fixed.** `ForwardBundle.excluded_withdrawn` counts both forward rows and AVG rows, and the export reports it under `excluded.withdrawn`.
+
+Checks, run read-only in wt_refuse at 79b98b8:
+- **pytest:** `PYTHONDONTWRITEBYTECODE=1 uv run --no-sync pytest tests/daily tests/export tests/parlay tests/ops tests/test_layering.py --no-cov -q -p no:cacheprovider` gave `706 passed, 2 skipped, 64814 warnings in 294.65s (0:04:54)`, exit 0.
+- **Lint and types on the 5 changed files:** ruff exit 0, format exit 0, mypy exit 0 (4 source files).
+
+**The flake** (`test_combo_shadow_reader.py::test_the_full_reader_honours_a_counting_start_when_its_meta_table_exists`, `assert 72 < 72`) does not depend on the seed. `nba/eval/full_shadow_live._LIVE_SQL` has no `ORDER BY`, so DuckDB's parallel join can return rows in any order. When `base["day"][len // 2]` happens to be the earliest date, the counting start filters nothing and `later` keeps all 72 rows. Fix: pick the median date with `sorted(set(base["day"]))[n // 2]`, or add `ORDER BY` to `_LIVE_SQL`. This is a test-side defect and does not affect this merge.
+
+Recorded as follow-ups for Devin, not blocking: M2 (box-versus-score consistency for every target; closes paths 3 and 4), M3 (refusal counter and alert), m1, m4, m5.
