@@ -293,7 +293,11 @@ def test_resolve_production_fallback_and_hit(
 
 
 def _counts(out: dict[str, int]) -> dict[str, int]:
-    """The three scored counts (the refusal counts are tested in test_box_consistency)."""
+    """The three scored counts; every refusal count must be 0 in these tests (a clean slate)."""
+    refusals = {k: v for k, v in out.items() if k.startswith("refused_")}
+    assert refusals == dict.fromkeys(
+        ("refused_no_box", "refused_thin_box", "refused_box_mismatch", "refused_stale"), 0
+    )
     return {k: out[k] for k in ("win_scored", "prop_scored", "prop_dnp")}
 
 

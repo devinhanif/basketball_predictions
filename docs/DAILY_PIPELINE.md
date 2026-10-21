@@ -213,7 +213,7 @@ recalibration; rookies and offseason moves are invisible until a first box score
 | Job | When | Steps |
 |---|---|---|
 | `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
-| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
+| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 **Optional fact-store rebuild (drafted 2026-10-11; approved ON by Devin 2026-10-11, switch NOT yet in the job environment).** `ops/nba_daily.sh morning` has a step `facts` right after
 `report`: `python -m nba.facts build --seasons 2022,2023,2024,2026 --schedule-seasons 2026 --out data/facts/facts.duckdb`.
@@ -795,5 +795,24 @@ partial score after the box is final (OKC@SAS 44-65 sixteen minutes after the sc
   (the shadow settlers still run). `ops/nba_daily.sh step()` treats `settle` rc 4 as informational; rc 5 alerts.
   A refused key is never written and stays pending for the next settle. `tests/daily/test_box_consistency.py`.
 
-Not closed: the shadow settlers (pplay, full, avg, combo) do not read `forward_withdrawals`, and a box that
-stays wrong is only surfaced (rc 5), not repaired: re-pulling a stale box is the ingest steward's change.
+Not closed: the shadow settlers (pplay, full, avg, combo) do not read `forward_withdrawals`, and they have
+neither the 4 h guard nor the box-agrees gate: they still grade a game with any box rows, including a box
+pulled in progress during the pretip `run` (follow-up F2, the shadow owners' change).
+
+**Runbook: `refused <gid> box_mismatch` (rc 4 on day 1, rc 5 from day 2).** Nothing re-selects the game
+automatically (follow-up F1a, not built): `missing_boxscore_game_ids` picks only games with no box rows, and
+`fetch_cached` never re-fetches a (source, key) with an `ingest_log` 'done' row, so the pretip run's in-progress
+box stays cached. `nba.daily ingest` therefore does NOT repair it. By hand, the maintainer, with no other
+writer on `nba.duckdb`:
+1. Compare the score with the box: `SELECT home_pts, away_pts FROM games WHERE game_id = '<gid>'` against
+   `SELECT team_id, sum(coalesce(pts,0)), count(*) FILTER (WHERE minutes > 0) FROM player_game_stats WHERE
+   game_id = '<gid>' GROUP BY 1`. Also check the games score is final (a partial games-feed score is repaired
+   by the next `ingest`, which refreshes `games`).
+2. If the box is short: move the cached raw aside (`data/boxscore/<gid>.parquet`, keep it, raw is
+   immutable) and delete the log row: `DELETE FROM ingest_log WHERE source = 'boxscore' AND key = '<gid>'`.
+3. Re-pull: `uv run python -c "from nba.db.connect import connect; from nba.ingest.boxscores import
+   pull_game_boxscore; c = connect(); pull_game_boxscore(c, '<gid>')"`. Its upsert is delete-then-insert per
+   game, so the rows are replaced. The next `settle` grades the keys from the same eligible predictions.
+4. If the fresh official box still disagrees with the official score, add a DECISIONS row naming the game; its
+   keys stay unscored (the game leaves the population on both sides; the checkpoint does not list it yet,
+   follow-up F1).

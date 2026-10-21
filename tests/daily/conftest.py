@@ -75,7 +75,9 @@ def add_final_box(con: duckdb.DuckDBPyConnection, game_id: str, n: int = 10) -> 
 def align_box_to_score(con: duckdb.DuckDBPyConnection, game_id: str) -> None:
     """Make the box agree with the game score (settle's M2 gate) without touching a played row:
     both scores rise by the same amount if a team's played rows already sum above its score (the
-    margin, so the winner, is kept), then each team gets one minutes = 0 filler row for the rest."""
+    margin, so the winner, is kept), then each team gets one minutes = 0 filler row for the rest.
+    The filler (player 990000 / 990001) is not a real player: it is a DNP row carrying the points
+    that make the team sum agree (harmless: settle reads stats only where minutes > 0)."""
     g = con.execute(
         "SELECT home_team, away_team, home_pts, away_pts FROM games WHERE game_id = ?", [game_id]
     ).fetchone()

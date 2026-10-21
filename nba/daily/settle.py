@@ -81,6 +81,13 @@ def prediction_crps(pred: dict[str, object], y: float) -> float:
 
 
 def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[str, int]:
+    """Counts of ``settle_with_refusals`` (the refusal list is dropped)."""
+    return settle_with_refusals(con, scored_at)[0]
+
+
+def settle_with_refusals(
+    con: duckdb.DuckDBPyConnection, scored_at: datetime
+) -> tuple[dict[str, int], list[tuple[str, str, datetime]]]:
     """Append a ``forward_scores`` row for each latest-per-key prediction whose
     outcome is now known and which has no score yet. Idempotent."""
     ensure_tables(con)
@@ -147,8 +154,9 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
         con.executemany("INSERT INTO forward_scores VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     settle_eligible_pending(con, scored_at)
     out = {"win_scored": n_win, "prop_scored": n_prop, "prop_dnp": n_dnp}
-    out.update(refusal_counts(refused_games(con, scored_at), scored_at))
-    return out
+    refused = refused_games(con, scored_at)  # once per settle: the CLI reuses this list
+    out.update(refusal_counts(refused, scored_at))
+    return out, refused
 
 
 REFUSAL_REASONS = ("no_box", "thin_box", "box_mismatch")
@@ -158,19 +166,20 @@ WITH keys AS (
     SELECT DISTINCT p.game_id, p.target = ? AS is_win, p.tipoff
     FROM forward_predictions p
     WHERE p.model_name <> ?
-      AND (NOT EXISTS (SELECT 1 FROM forward_scores s
+      AND ((NOT EXISTS (SELECT 1 FROM forward_scores s
                WHERE s.game_id = p.game_id AND s.model_name = p.model_name
                  AND s.target = p.target AND s.player_id = p.player_id)
+               AND NOT {withdrawn})
            OR (p.model_name IN ({models}) AND NOT EXISTS (SELECT 1 FROM forward_scores_elig e
                WHERE e.game_id = p.game_id AND e.model_name = p.model_name
                  AND e.target = p.target AND e.player_id = p.player_id)))
-      AND NOT {withdrawn}
 ),
 bx AS (
     SELECT b.game_id, count(*) AS n_rows, count(*) FILTER (WHERE b.minutes > 0) AS n_played,
            coalesce(sum(CASE WHEN b.team_id = g.home_team THEN coalesce(b.pts, 0) END), 0) AS hs,
            coalesce(sum(CASE WHEN b.team_id = g.away_team THEN coalesce(b.pts, 0) END), 0) AS aws
-    FROM player_game_stats b JOIN games g USING (game_id) GROUP BY b.game_id
+    FROM player_game_stats b JOIN games g USING (game_id)
+    WHERE b.game_id IN (SELECT game_id FROM keys) GROUP BY b.game_id
 )
 SELECT k.game_id, min(k.tipoff) AS tipoff, bool_or(k.is_win) AS has_win,
        coalesce(any_value(x.n_rows), 0) AS n_rows, coalesce(any_value(x.n_played), 0) AS n_played,
@@ -399,7 +408,6 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
     if out_rows:
         marks = ",".join("?" * 25)
         con.executemany(f"INSERT INTO forward_scores_elig VALUES ({marks})", out_rows)
-    counts.update(refusal_counts(refused_games(con, scored_at), scored_at))
     return counts
 
 

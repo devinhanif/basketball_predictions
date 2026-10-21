@@ -25,7 +25,7 @@ from nba.daily.schedule import (
     schedule_from_db,
 )
 from nba.daily.season import season_int_for_date, season_str_for_date
-from nba.daily.settle import refused_games, settle_pending
+from nba.daily.settle import settle_with_refusals
 from nba.db.connect import DEFAULT_DB_PATH, connect_with_retry, is_lock_error
 from nba.features.game_tipoff import SCHEDULE_DIR
 from nba.ingest.cache import RateLimiter
@@ -375,9 +375,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.command == "settle":
         now = args.now or utcnow()
-        settled = settle_pending(con, now)
+        settled, refused = settle_with_refusals(con, now)
         print(settled)
-        refused = refused_games(con, now)
         for gid, reason, tip in refused:
             print(f"refused {gid} {reason} (tip {tip:%Y-%m-%d %H:%M} UTC; stays pending)")
         for label, module, fn, table in SHADOW_SETTLERS:

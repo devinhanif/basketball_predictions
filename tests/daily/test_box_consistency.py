@@ -126,6 +126,37 @@ def test_refusal_counts_per_reason_count_distinct_games(con: duckdb.DuckDBPyConn
     assert row == (0,)
 
 
+def test_one_team_box_and_foreign_team_id_are_refused(con: duckdb.DuckDBPyConnection) -> None:
+    _predict(con)
+    _final(con, G1, 120, 100, T1, T2)
+    _box(con, G1, T1, _split(120, 11))  # the away team has no rows: its sum is 0, not 100
+    out = settle_pending(con, LATE)
+    assert out["win_scored"] == 0 and out["refused_box_mismatch"] == 1
+    assert _scored(con, "forward_scores", True) == 0 and _scored(con, "forward_scores", False) == 0
+    _box(con, G1, T4, _split(100, 6))  # played rows of a team outside the game: in neither sum
+    out = settle_pending(con, LATE)
+    assert out["win_scored"] == 0 and out["refused_box_mismatch"] == 1
+    _box(con, G1, T2, _split(100, 6))  # the real away rows arrive: all agree now
+    out = settle_pending(con, LATE)
+    assert out["win_scored"] == 1 and out["refused_box_mismatch"] == 0
+
+
+def test_thin_and_mismatched_game_is_thin_and_prop_only_game_is_mismatch(
+    con: duckdb.DuckDBPyConnection,
+) -> None:
+    _predict(con)
+    _final(con, G1, 120, 100, T1, T2)
+    _box(con, G1, T1, _split(50, 3))  # 6 played rows and sums that differ: thin wins the order
+    _box(con, G1, T2, _split(40, 3))
+    assert [r for _, r, _ in refused_games(con, LATE)] == ["thin_box"]
+    con.execute(
+        "DELETE FROM forward_predictions WHERE game_id = ? AND target = 'win_prob_home'", [G1]
+    )
+    assert [r for _, r, _ in refused_games(con, LATE)] == ["box_mismatch"]  # props only: no thin
+    near = TIPOFF + timedelta(hours=24) - timedelta(minutes=1)
+    assert settle_pending(con, near)["refused_stale"] == 0  # 23 h 59 m: not stale yet
+
+
 def iso(dt: datetime) -> str:
     return dt.isoformat(timespec="minutes")
 
