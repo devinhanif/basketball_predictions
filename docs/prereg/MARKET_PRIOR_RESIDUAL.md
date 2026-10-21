@@ -1,6 +1,10 @@
 # MARKET_PRIOR_RESIDUAL: does our model know anything the Pinnacle line does not? (pre-registration)
 
 Status: **DRAFT, revision 1, written by the modeler Tue Oct 20 2026 (priors committed 23:12 CDT in 7a52a37, before any gate number; clock read by `date`).**
+
+Status addendum, 2026-10-21 01:0x CDT (main session): **CLOSED AT THE DRAFT, NOT RUN** (T502). The adversary pre-freeze review
+(docs/reviews/MARKET_PRIOR_RESIDUAL_prefreeze_2026-10-21.md) returned CLOSE_WITHOUT_RUN; nothing below this line was frozen or
+run on a real outcome. Devin may reopen; the edits that would precede a freeze are the review's B1-B3 and M1-M3.
 - **How it becomes the rule:** the main session commits `prereg(MARKET_PRIOR_RESIDUAL): <sha256>` of everything above the line
   `=== RESULTS BELOW ===`. Hash it with
   `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/MARKET_PRIOR_RESIDUAL.md | shasum -a 256`.
