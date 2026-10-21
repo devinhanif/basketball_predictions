@@ -589,6 +589,11 @@ exactly (`docs/contracts/rung_cal_export_v1.md`); `forward_predictions` keeps on
 - Recency-routed rows and any run before this table existed have no grid; the export then leaves `rung_cal`
   null with a counted reason.
 
+`line_cal` (2026-10-21, additive): the app export also carries, per prop row, the frozen LINE_CALIBRATION P(over) (T493, the parlay
+producer's `p_cal`) at the DraftKings main line, beside the raw P(over), plus `line_cal_null_reason`. It has no raw-P(over) >= 0.5 support
+restriction, so unlike `rung_cal` it covers the main line itself. Display only, built read-only from the production row, NULL with a counted
+reason when an input is missing; it changes no scoring, forward row or replay-closure code. Contract: `docs/contracts/line_cal_export_v1.md`.
+
 ## Model stamps (2026-10-13)
 
 Every `run_daily` that writes prediction rows also writes one row per model name of that run to the NEW
