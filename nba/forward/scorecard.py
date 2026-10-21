@@ -46,6 +46,7 @@ SEED = 20261020
 MIN_N = 8
 NAN = float("nan")
 NOLINE = "no line"
+BENCHMARK_BOOK = "pinnacle"
 
 NBA_DB = Path("/Users/devin/Downloads/nba-prediction/nba.duckdb")
 MARKET_DB = Path("/Users/devin/Downloads/nba-prediction/data/markets/market_asof.duckdb")
@@ -362,6 +363,81 @@ def load_closing_lines(
     return out
 
 
+def _main_point(
+    pool: list[tuple[Any, ...]],
+) -> tuple[float, float, float] | None:
+    """One book's main point from its snapshot rows: newest quote per (side, point); among points
+    with both sides, the one whose raw over/under probabilities are closest (tie: lower point)."""
+    newest: dict[tuple[str, float], tuple[datetime, int]] = {}
+    for r in pool:
+        k = (r[4], float(r[5]))
+        if k not in newest or r[7] > newest[k][0]:
+            newest[k] = (r[7], int(r[6]))
+    cands = []
+    for pt in {k[1] for k in newest}:
+        if ("over", pt) in newest and ("under", pt) in newest:
+            po = american_to_prob(newest[("over", pt)][1])
+            pu = american_to_prob(newest[("under", pt)][1])
+            cands.append((abs(po - pu), pt, po, pu))
+    if not cands:
+        return None
+    _, pt, po, pu = min(cands)
+    return pt, po, pu
+
+
+def load_book_lines(
+    odds: Any, game_ids: Sequence[str], until: date, book: str
+) -> dict[tuple[str, int, str], dict[str, Any]]:
+    """One book's OWN closing main line per (game, player, stat); no other book is ever used.
+
+    Snapshot: the book's ``close`` rows if any, else its latest snapshots strictly before tip. The
+    point is the book's own main point (see ``_main_point``), de-vigged two-way. ``open_line`` is the
+    book's main point at its earliest pre-tip snapshot (``t180`` if present, else the earliest
+    ``received_at``), None when that snapshot is the closing one (no movement to measure).
+    """
+    if not game_ids:
+        return {}
+    gm = ",".join("?" for _ in game_ids)
+    mm = ",".join("?" for _ in MARKET_STAT)
+    raw = odds.execute(
+        f"""SELECT game_id, player_id, market, book, side, point, price_american, received_at,
+                   snapshot_kind, tipoff
+            FROM live_book_odds
+            WHERE game_id IN ({gm}) AND market IN ({mm}) AND player_id IS NOT NULL AND book = ?
+              AND point IS NOT NULL AND price_american IS NOT NULL AND side IN ('over', 'under')
+              AND slate_date >= ? AND slate_date <= ?""",  # noqa: S608
+        [*game_ids, *MARKET_STAT, book, SEASON_START, until],
+    ).fetchall()
+    groups: dict[tuple[str, int, str], list[tuple[Any, ...]]] = defaultdict(list)
+    for r in raw:
+        groups[(r[0], int(r[1]), MARKET_STAT[r[2]])].append(r)
+    out: dict[tuple[str, int, str], dict[str, Any]] = {}
+    for key, rs in groups.items():
+        pre = [r for r in rs if r[9] is not None and r[7] < r[9]]
+        close = [r for r in rs if r[8] == "close"]
+        pool, kind = (close, "close") if close else (pre, "latest_pre_tip")
+        if kind == "latest_pre_tip" and pool:
+            last = max(r[7] for r in pool)
+            pool = [r for r in pool if r[7] == last]
+        main = _main_point(pool)
+        if main is None:
+            continue
+        pt, po, pu = main
+        open_line: float | None = None
+        early = [r for r in pre if r[8] == "t180"]
+        if not early and pre:
+            first = min(r[7] for r in pre)
+            early = [r for r in pre if r[7] == first]
+        if early and not (pool and early[0][8] == pool[0][8] and early[0][7] == pool[0][7]):
+            om = _main_point(early)
+            open_line = om[0] if om else None
+        out[key] = {
+            "line": pt, "book": book, "kind": kind, "open_line": open_line,
+            "p_over_raw": po, "p_under_raw": pu, "p_over_devig": devig(po, pu),
+        }  # fmt: skip
+    return out
+
+
 def read_meta(con: Any) -> str:
     try:
         rows = con.execute("SELECT * FROM meta").fetchall()
@@ -379,6 +455,7 @@ def build_rows(
     lines: dict[tuple[str, int, str], dict[str, Any]],
     prior: dict[int, int] | None,
     played: dict[int, list[date]],
+    book_lines: dict[tuple[str, int, str], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     out = []
     for r in scored:
@@ -412,6 +489,20 @@ def build_rows(
                 pm = p_side_from_over(po, side)
                 pk = ln["p_over_devig"] if side == "over" else 1.0 - ln["p_over_devig"]
                 r["mkt"] = {"side": side, "hit": hit, "p_model": pm, "p_mkt": pk,
+                            "b_model": (pm - hit) ** 2, "b_mkt": (pk - hit) ** 2}  # fmt: skip
+        bl = (book_lines or {}).get((r["game_id"], r["player_id"], r["stat"]))
+        r["pin_line"] = bl["line"] if bl else None
+        r["pin_kind"] = bl["kind"] if bl else None
+        r["pin_open"] = bl["open_line"] if bl else None
+        r["pin"] = None
+        if bl:
+            po = p_over(r["pred"], bl["line"])
+            if po is not None:
+                side = lean_side(r["mean"], bl["line"])
+                hit = float(r["y"] > bl["line"]) if side == "over" else float(r["y"] < bl["line"])
+                pm = p_side_from_over(po, side)
+                pk = bl["p_over_devig"] if side == "over" else 1.0 - bl["p_over_devig"]
+                r["pin"] = {"side": side, "hit": hit, "p_model": pm, "p_mkt": pk,
                             "b_model": (pm - hit) ** 2, "b_mkt": (pk - hit) ** 2}  # fmt: skip
         out.append(r)
     return out
@@ -492,14 +583,13 @@ def part2(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
-def part3(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    pr = [r for r in rows if r["mkt"]]
-    for r in pr:
-        r["side"] = r["mkt"]["side"]
+def part3(rows: list[dict[str, Any]], key: str = "mkt") -> dict[str, Any]:
+    """Model vs a benchmark price. ``key`` = "mkt" (consensus) or "pin" (the named book's own line)."""
+    pr = [{**r, "side": r[key]["side"], "mkt": r[key]} for r in rows if r[key]]
 
     def m(rs: list[dict[str, Any]]) -> dict[str, Any]:
-        def col(key: str) -> Callable[[dict[str, Any]], list[float]]:
-            return lambda r: [r["mkt"][key], 1.0]
+        def col(k: str) -> Callable[[dict[str, Any]], list[float]]:
+            return lambda r: [r["mkt"][k], 1.0]
 
         return {
             "hit_rate": cell(rs, col("hit"), mean_fn),
@@ -517,6 +607,24 @@ def part3(rows: list[dict[str, Any]]) -> dict[str, Any]:
     for dim, _ in [("side", "Model side"), *dims]:
         out["slices"][dim] = {v: m(rs) for v, rs in slices(pr, dim) if rs}
     return out
+
+
+def movement(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Descriptive: the benchmark book's own line, earliest pre-tip snapshot to close, per stat."""
+
+    def one(rs: list[dict[str, Any]]) -> dict[str, Any]:
+        mv = [abs(r["pin_line"] - r["pin_open"]) for r in rs]
+        return {
+            "n": len(rs),
+            "mean_abs_move": float(np.mean(mv)) if mv else NAN,
+            "share_moved": float(np.mean([x > 0 for x in mv])) if mv else NAN,
+        }
+
+    ok = [r for r in rows if r["pin_line"] is not None and r["pin_open"] is not None]
+    return {
+        "all": one(ok),
+        "by_stat": {st: one([r for r in ok if r["stat"] == st]) for st in STATS},
+    }
 
 
 def winner(wins: list[dict[str, Any]]) -> dict[str, Any]:
@@ -542,6 +650,7 @@ def build_report(
     use_prior_team: bool = True,
     names: Callable[[int], str] | None = None,
     made_at: datetime | None = None,
+    benchmark_book: str = BENCHMARK_BOOK,
 ) -> dict[str, Any]:
     since = max(since, SEASON_START)
     scored, skipped = load_scored(nba_con, since, day)
@@ -549,11 +658,14 @@ def build_report(
     box = load_box(nba_con, since, day)
     gids = sorted({r["game_id"] for r in scored})
     lines = load_closing_lines(odds_con, gids, day) if odds_con is not None else {}
+    book_lines = (
+        load_book_lines(odds_con, gids, day, benchmark_book) if odds_con is not None else {}
+    )
     prior = (
         prior_teams(nba_con, sorted({r["player_id"] for r in scored})) if use_prior_team else None
     )
     played = season_games_before(nba_con, day)
-    rows = build_rows(scored, box, lines, prior, played)
+    rows = build_rows(scored, box, lines, prior, played, book_lines)
     nm = names or (lambda pid: f"Player {pid}")
     p2 = part2(rows)
     for t in p2["top_misses"]:
@@ -569,6 +681,8 @@ def build_report(
             "actual_minutes": "player_game_stats.minutes (> 0)",
             "line": "market_asof.live_book_odds close snapshot (else latest pre-tip), main "
             "markets only, consensus point, median implied prob per side, de-vigged",
+            "benchmark_book": f"{benchmark_book}: its own close snapshot (else its latest pre-tip "
+            "snapshot), its own main point, two-way proportional de-vig; no other book substituted",
             "grid": "nba.parlay.top_source.p_over on forecast p_ge_full (x.5 lines only)",
             "prior_team": "last pre-2026-10-01 team_id" if use_prior_team else "disabled",
         },
@@ -579,6 +693,15 @@ def build_report(
             "rows_whole_number_line": sum(
                 1 for r in rows if r["line"] is not None and r["mkt"] is None
             ),
+            "rows_with_book_line": sum(1 for r in rows if r["pin_line"] is not None),
+            "rows_priced_book": sum(1 for r in rows if r["pin"]),
+            "rows_book_whole_number_line": sum(
+                1 for r in rows if r["pin_line"] is not None and r["pin"] is None
+            ),
+            "rows_no_book_line": sum(1 for r in rows if r["pin_line"] is None),
+            "book_line_kinds": {
+                k: sum(1 for r in rows if r["pin_kind"] == k) for k in ("close", "latest_pre_tip")
+            },
             "rows_with_box_minutes": sum(1 for r in rows if r["act_min"] is not None),
             "rows_with_proj_minutes": sum(1 for r in rows if r["proj_min"] is not None),
             "rows_in_decomposition": sum(1 for r in rows if r["has_decomp"]),
@@ -589,7 +712,10 @@ def build_report(
         "part1": part1(rows),
         "winner": winner(wins),
         "part2": p2,
+        "benchmark_book": benchmark_book,
         "part3": part3(rows),
+        "part3_book": part3(rows, "pin"),
+        "movement": movement(rows),
     }
 
 
@@ -660,21 +786,42 @@ def render(rep: dict[str, Any]) -> str:
             f"{t['proj_min']:.1f} | {t['act_min']:.1f} | {t['miss_minutes']:+.1f} | "
             f"{t['miss_rate']:+.1f} |"
         )
-    p3 = rep["part3"]
+    p3, pb, mv = rep["part3"], rep["part3_book"], rep["movement"]
+    bk = rep["benchmark_book"]
     cols = ["hit_rate", "market_p", "model_p", "brier_model", "brier_market", "brier_diff"]
+    kinds = c["book_line_kinds"]
     o += [
         "",
         "## Part 3: model vs closing market (monitoring only)",
         "",
-        "Model side at the closing consensus main line (over iff mean > line). hit_rate = how often "
-        "that side won; market_p / model_p = de-vigged closing probability / model P for that side. "
-        "brier_diff = model minus market (negative = model better), paired by prop. Closing prices "
-        "are a benchmark here; the pre-registered comparison uses prediction-time prices.",
+        f"Benchmark book: **{bk}**, its own line. Snapshots used: close ({kinds['close']} props), "
+        f"else latest pre-tip ({kinds['latest_pre_tip']} props). Model side at that line (over iff "
+        "mean > line); hit_rate = how often that side won; market_p / model_p = de-vigged price / "
+        "model P for that side; brier_diff = model minus market (negative = model better), paired by "
+        "prop. Closing prices are a benchmark; the pre-registered comparison uses prediction-time "
+        "prices. Per-slice detail is in the JSON.",
         "",
-        *_table("Headline", cols, {"all": p3["all"]}, 3),
+        f"- {bk} line present {c['rows_with_book_line']} of {c['rows_scored']} props ; priced "
+        f"{c['rows_priced_book']} ; whole-number line excluded {c['rows_book_whole_number_line']} ; "
+        f"**no {bk} line {c['rows_no_book_line']}** (not replaced by another book)",
+        "",
+        *_table(f"A. {bk} (own close line)", cols, {"all": pb["all"], **pb["slices"]["stat"]}, 3),
+        *_table(f"A. {bk} by model side", cols, pb["slices"]["side"], 3),
+        *_table(
+            "B. Consensus (all books, median implied prob)",
+            cols,
+            {"all": p3["all"], **p3["slices"]["stat"]},
+            3,
+        ),
+        f"**{bk} line movement** (earliest pre-tip snapshot to close; descriptive)",
+        "",
+        "| stat | n | mean abs move | share moved |",
+        "|---|---|---|---|",
     ]
-    for dim, sl in p3["slices"].items():
-        o += _table(dim_title[dim], cols, sl, 3)
+    for k, v in {"all": mv["all"], **mv["by_stat"]}.items():
+        o.append(
+            f"| {k} | {v['n']} | {_num(v['mean_abs_move'], 2)} | {_num(v['share_moved'], 2)} |"
+        )
     return "\n".join(o) + "\n"
 
 
@@ -685,6 +832,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--out-dir", default="reports/forward_scorecard")
     ap.add_argument("--nba-db", default=str(NBA_DB))
     ap.add_argument("--market-db", default=str(MARKET_DB))
+    ap.add_argument("--benchmark-book", default=BENCHMARK_BOOK)
     ap.add_argument("--no-prior-team", action="store_true")
     a = ap.parse_args(argv)
     day, since = date.fromisoformat(a.date), date.fromisoformat(a.since)
@@ -693,7 +841,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     nba_con = connect_ro(Path(a.nba_db))
     odds_con = connect_ro(Path(a.market_db)) if Path(a.market_db).exists() else None
     rep = build_report(
-        nba_con, odds_con, day, since, use_prior_team=not a.no_prior_team, names=names.player_name
+        nba_con,
+        odds_con,
+        day,
+        since,
+        use_prior_team=not a.no_prior_team,
+        names=names.player_name,
+        benchmark_book=a.benchmark_book,
     )
     out = Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)

@@ -1,10 +1,19 @@
 {
+  "benchmark_book": "pinnacle",
   "counts": {
+    "book_line_kinds": {
+      "close": 36,
+      "latest_pre_tip": 0
+    },
     "games": 1,
+    "rows_book_whole_number_line": 0,
     "rows_in_decomposition": 88,
+    "rows_no_book_line": 52,
+    "rows_priced_book": 36,
     "rows_priced_for_part3": 53,
     "rows_scored": 88,
     "rows_whole_number_line": 0,
+    "rows_with_book_line": 36,
     "rows_with_box_minutes": 88,
     "rows_with_closing_line": 53,
     "rows_with_proj_minutes": 88,
@@ -18,12 +27,42 @@
   "date": "2026-10-20",
   "fields": {
     "actual_minutes": "player_game_stats.minutes (> 0)",
+    "benchmark_book": "pinnacle: its own close snapshot (else its latest pre-tip snapshot), its own main point, two-way proportional de-vig; no other book substituted",
     "grid": "nba.parlay.top_source.p_over on forecast p_ge_full (x.5 lines only)",
     "line": "market_asof.live_book_odds close snapshot (else latest pre-tip), main markets only, consensus point, median implied prob per side, de-vigged",
     "prior_team": "last pre-2026-10-01 team_id",
     "projected_minutes": "forecast JSON 'proj_minutes' (rows without it are skipped in part 2; no recency fallback, it would read the 2025-26 box)"
   },
-  "made_at": "2026-10-20T18:08:38",
+  "made_at": "2026-10-20T21:07:55",
+  "movement": {
+    "all": {
+      "mean_abs_move": 0.08823529411764706,
+      "n": 34,
+      "share_moved": 0.08823529411764706
+    },
+    "by_stat": {
+      "ast": {
+        "mean_abs_move": 0.0,
+        "n": 6,
+        "share_moved": 0.0
+      },
+      "fg3m": {
+        "mean_abs_move": 0.0,
+        "n": 6,
+        "share_moved": 0.0
+      },
+      "pts": {
+        "mean_abs_move": 0.08333333333333333,
+        "n": 12,
+        "share_moved": 0.08333333333333333
+      },
+      "reb": {
+        "mean_abs_move": 0.2,
+        "n": 10,
+        "share_moved": 0.2
+      }
+    }
+  },
   "part1": {
     "all": {
       "bias": {
@@ -3021,6 +3060,770 @@
             "lo": NaN,
             "n": 40,
             "value": 0.6099246231155779
+          }
+        }
+      }
+    }
+  },
+  "part3_book": {
+    "all": {
+      "brier_diff": {
+        "games": 1,
+        "hi": NaN,
+        "lo": NaN,
+        "n": 36,
+        "value": 0.02457935323871884
+      },
+      "brier_market": {
+        "games": 1,
+        "hi": NaN,
+        "lo": NaN,
+        "n": 36,
+        "value": 0.253937042250733
+      },
+      "brier_model": {
+        "games": 1,
+        "hi": NaN,
+        "lo": NaN,
+        "n": 36,
+        "value": 0.2785163954894518
+      },
+      "hit_rate": {
+        "games": 1,
+        "hi": NaN,
+        "lo": NaN,
+        "n": 36,
+        "value": 0.5277777777777778
+      },
+      "market_p": {
+        "games": 1,
+        "hi": NaN,
+        "lo": NaN,
+        "n": 36,
+        "value": 0.5122467426499064
+      },
+      "model_p": {
+        "games": 1,
+        "hi": NaN,
+        "lo": NaN,
+        "n": 36,
+        "value": 0.6147403685092127
+      }
+    },
+    "slices": {
+      "min_bucket": {
+        "15-25": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.048152796526286235
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.231754907824614
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.27990770435090023
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.375
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.5177794954206063
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.6545226130653267
+          }
+        },
+        "25-32": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 10,
+            "value": -0.007403565584783833
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 10,
+            "value": 0.274096325868615
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 10,
+            "value": 0.26669276028383126
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 10,
+            "value": 0.7
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 10,
+            "value": 0.5072218672968976
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 10,
+            "value": 0.5949748743718593
+          }
+        },
+        "32+": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 16,
+            "value": 0.027816163420420665
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 16,
+            "value": 0.2555905056030888
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 16,
+            "value": 0.28340666902350947
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 16,
+            "value": 0.5
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 16,
+            "value": 0.5166710536221744
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 16,
+            "value": 0.6064698492462312
+          }
+        },
+        "<15": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.06430569275234786
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.22864145504695016
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.292947147799298
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.5
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.4798456205540074
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.620603015075377
+          }
+        }
+      },
+      "pplay_bucket": {
+        "0.75-0.9": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 3,
+            "value": -0.0501147202110134
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 3,
+            "value": 0.20308223786629145
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 3,
+            "value": 0.15296751765527808
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 3,
+            "value": 0.6666666666666666
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 3,
+            "value": 0.5046250768192126
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 3,
+            "value": 0.6046901172529312
+          }
+        },
+        "0.9+": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 31,
+            "value": 0.029244822313620085
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 31,
+            "value": 0.26049044830108414
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 31,
+            "value": 0.2897352706147043
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 31,
+            "value": 0.5161290322580645
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 31,
+            "value": 0.5150747181880961
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 31,
+            "value": 0.6153347382071648
+          }
+        },
+        "<0.75": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.06430569275234786
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.22864145504695016
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.292947147799298
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.5
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.4798456205540074
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 2,
+            "value": 0.620603015075377
+          }
+        }
+      },
+      "prior_games": {
+        "0": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 36,
+            "value": 0.02457935323871884
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 36,
+            "value": 0.253937042250733
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 36,
+            "value": 0.2785163954894518
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 36,
+            "value": 0.5277777777777778
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 36,
+            "value": 0.5122467426499064
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 36,
+            "value": 0.6147403685092127
+          }
+        }
+      },
+      "side": {
+        "over": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 9,
+            "value": 0.016836353770293435
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 9,
+            "value": 0.2717899154877781
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 9,
+            "value": 0.28862626925807144
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 9,
+            "value": 0.5555555555555556
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 9,
+            "value": 0.493104066732347
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 9,
+            "value": 0.49246231155778886
+          }
+        },
+        "under": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 27,
+            "value": 0.027160353061527295
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 27,
+            "value": 0.24798608450505116
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 27,
+            "value": 0.2751464375665785
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 27,
+            "value": 0.5185185185185185
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 27,
+            "value": 0.5186276346224262
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 27,
+            "value": 0.6554997208263539
+          }
+        }
+      },
+      "stat": {
+        "ast": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.05015655935720836
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.2542759886424213
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.30443254799962965
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.5
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.5163878609886822
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.6666666666666666
+          }
+        },
+        "fg3m": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.01627005838315246
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.25290664590882667
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.2691767042919791
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.6666666666666666
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.5091314283722775
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 6,
+            "value": 0.5544388609715244
+          }
+        },
+        "pts": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 13,
+            "value": 0.0413037255866822
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 13,
+            "value": 0.24941154384124595
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 13,
+            "value": 0.29071526942792825
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 13,
+            "value": 0.46153846153846156
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 13,
+            "value": 0.5013387371982144
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 13,
+            "value": 0.6215693853884807
+          }
+        },
+        "reb": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 11,
+            "value": -0.004604674770468687
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 11,
+            "value": 0.2596625130711544
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 11,
+            "value": 0.25505783830068574
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 11,
+            "value": 0.5454545454545454
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 11,
+            "value": 0.5245784923321896
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 11,
+            "value": 0.6112380082229328
+          }
+        }
+      },
+      "team_flag": {
+        "new team": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.012789542070402265
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.2276084276778364
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.24039796974823868
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.625
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.5173982557620331
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 8,
+            "value": 0.625
+          }
+        },
+        "same team": {
+          "brier_diff": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 28,
+            "value": 0.02794787071538071
+          },
+          "brier_market": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 28,
+            "value": 0.26145950355727476
+          },
+          "brier_model": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 28,
+            "value": 0.28940737427265545
+          },
+          "hit_rate": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 28,
+            "value": 0.5
+          },
+          "market_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 28,
+            "value": 0.5107748817607274
+          },
+          "model_p": {
+            "games": 1,
+            "hi": NaN,
+            "lo": NaN,
+            "n": 28,
+            "value": 0.6118090452261306
           }
         }
       }

@@ -263,3 +263,98 @@ def test_closing_line_consensus_and_devig(tmp_path: Path) -> None:
     assert b["line"] == 9.5 and b["kind"] == "latest_pre_tip"
     po, pu = sc.american_to_prob(-130), sc.american_to_prob(110)
     assert abs(b["p_over_devig"] - po / (po + pu)) < 1e-12
+
+
+# ------------------------------------------------------------------ benchmark book (pinnacle)
+
+
+def make_odds_pin(path: Path) -> None:
+    """pinnacle + two other books. G1/p10: pinnacle's own point 24.5 differs from the 25.5 consensus.
+    G1/p11: no pinnacle line. G2/p10: pinnacle whole-number line. G2/p11: pinnacle pre-tip only."""
+    con = duckdb.connect(str(path))
+    con.execute(
+        "CREATE TABLE live_book_odds (game_id VARCHAR, slate_date DATE, snapshot_kind VARCHAR,"
+        " received_at TIMESTAMP, tipoff TIMESTAMP, book VARCHAR, market VARCHAR, player_id INT,"
+        " side VARCHAR, point DOUBLE, price_american INT)"
+    )
+    tip2 = datetime(2026, 10, 22, 23, 0)
+
+    def add(g: str, book: str, kind: str, pid: int, pt: float, over: int, under: int, hr: int = 22):
+        d, tip = (date(2026, 10, 21), TIP) if g == "G1" else (date(2026, 10, 22), tip2)
+        rec = tip.replace(hour=hr, minute=58)
+        for side, price in (("over", over), ("under", under)):
+            con.execute(
+                "INSERT INTO live_book_odds VALUES (?, ?, ?, ?, ?, ?, 'player_points', ?, ?, ?, ?)",
+                [g, d, kind, rec, tip, book, pid, side, pt, price],
+            )
+
+    for b in ("a", "b"):
+        add("G1", b, "close", 10, 25.5, -110, -110)
+        add("G1", b, "close", 11, 9.5, -110, -110)
+    add("G1", "pinnacle", "close", 10, 24.5, -120, 100)
+    add("G1", "pinnacle", "t180", 10, 23.5, -110, -110, hr=18)
+    add("G1", "pinnacle", "close", 10, 30.5, 500, -900)  # a far alternate: not the main point
+    add("G2", "pinnacle", "close", 10, 24.0, -110, -110)  # whole number
+    add("G2", "pinnacle", "t180", 10, 24.0, -110, -110, hr=18)
+    add("G2", "pinnacle", "t60", 11, 5.5, -110, -110, hr=21)
+    add("G2", "pinnacle", "t10", 11, 6.5, -130, 110)
+    add("G2", "a", "close", 11, 5.5, -110, -110)
+    con.close()
+
+
+def test_book_own_point_not_consensus(tmp_path: Path) -> None:
+    make_odds_pin(tmp_path / "o.duckdb")
+    odds = duckdb.connect(str(tmp_path / "o.duckdb"), read_only=True)
+    bl = sc.load_book_lines(odds, ["G1", "G2"], date(2026, 10, 22), "pinnacle")
+    a = bl[("G1", 10, "pts")]
+    assert a["line"] == 24.5 and a["kind"] == "close" and a["book"] == "pinnacle"
+    assert a["open_line"] == 23.5
+    po, pu = sc.american_to_prob(-120), sc.american_to_prob(100)
+    assert abs(a["p_over_devig"] - po / (po + pu)) < 1e-12
+    assert (
+        sc.load_closing_lines(odds, ["G1"], date(2026, 10, 22))[("G1", 10, "pts")]["line"] == 25.5
+    )
+    assert ("G1", 11, "pts") not in bl  # other books never substitute
+    b = bl[("G2", 11, "pts")]
+    assert b["line"] == 6.5 and b["kind"] == "latest_pre_tip" and b["open_line"] == 5.5
+    assert bl[("G2", 10, "pts")]["open_line"] == 24.0
+
+
+def test_part3_book_buckets_and_movement(tmp_path: Path) -> None:
+    make_db(tmp_path / "nba.duckdb")
+    make_odds_pin(tmp_path / "o.duckdb")
+    con = duckdb.connect(str(tmp_path / "nba.duckdb"), read_only=True)
+    odds = duckdb.connect(str(tmp_path / "o.duckdb"), read_only=True)
+    rep = sc.build_report(
+        con, odds, date(2026, 10, 22), date(2026, 10, 21), made_at=datetime(2026, 10, 22)
+    )
+    c = rep["counts"]
+    assert rep["benchmark_book"] == "pinnacle"
+    assert c["rows_scored"] == 4 and c["rows_with_book_line"] == 3
+    assert c["rows_no_book_line"] == 1  # G1 / p11 has only consensus books
+    assert c["rows_book_whole_number_line"] == 1 and c["rows_priced_book"] == 2
+    assert c["book_line_kinds"] == {"close": 2, "latest_pre_tip": 1}
+    b = rep["part3_book"]["all"]
+    assert b["hit_rate"]["n"] == 2
+    # G1/p10: mean 20 < 24.5 -> under, y=30 -> miss; model P(under)=1; pinnacle de-vigged under
+    po, pu = sc.american_to_prob(-120), sc.american_to_prob(100)
+    pk = 1 - po / (po + pu)
+    # G2/p11: line 6.5, mean 6 -> under, y=2 -> hit; k=7 > len(c) so model P(under)=1
+    pr, pq = sc.american_to_prob(-130), sc.american_to_prob(110)
+    pk2 = 1 - pr / (pr + pq)
+    assert abs(b["market_p"]["value"] - (pk + pk2) / 2) < 1e-12
+    assert abs(b["hit_rate"]["value"] - 0.5) < 1e-12
+    exp_mkt = (pk**2 + (1 - pk2) ** 2) / 2
+    assert abs(b["brier_market"]["value"] - exp_mkt) < 1e-12
+    assert abs(b["brier_model"]["value"] - 0.5) < 1e-12
+    assert abs(b["brier_diff"]["value"] - (0.5 - exp_mkt)) < 1e-12
+    # consensus benchmark still reported alongside, on its own line
+    assert rep["part3"]["all"]["hit_rate"]["n"] == 3  # G1 p10, G1 p11, G2 p11 (book a only)
+    mv = rep["movement"]
+    assert mv["all"]["n"] == 3 and mv["by_stat"]["pts"]["n"] == 3
+    assert abs(mv["all"]["mean_abs_move"] - (1.0 + 1.0 + 0.0) / 3) < 1e-12
+    assert abs(mv["all"]["share_moved"] - 2 / 3) < 1e-12
+    md = sc.render(rep)
+    assert "Benchmark book: **pinnacle**" in md and "no pinnacle line 1" in md
+    assert "line movement" in md
+    json.dumps(rep, default=str)
