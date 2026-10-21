@@ -1,0 +1,3112 @@
+{
+ "id": "ROLE_PRIOR_SALARY",
+ "status": "DRAFT gate, label-free (A0 reproduction and the descriptive non-mover Spearman excepted, disclosed in the module doc)",
+ "pins": {
+  "salary_csv_manifest_sha256": "daa8e28736deceaf32338abad778c8fd0fa95c64b1cdb82465ad637d30098623",
+  "model_rows_sha256": {
+   "2023_pts": "d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285",
+   "2023_reb": "337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805",
+   "2023_ast": "241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e",
+   "2023_fg3m": "96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe",
+   "2024_pts": "81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d",
+   "2024_reb": "bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e",
+   "2024_ast": "62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb",
+   "2024_fg3m": "6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136"
+  },
+  "nba_api_static_players": 5103
+ },
+ "cap_table_dollars": {
+  "2023": {
+   "cap": 123655000,
+   "tax": 150267000,
+   "apron1": 156983000,
+   "apron2": null,
+   "source": "NBA press release pr.nba.com/nba-salary-cap-2022-23-season (cap, tax); apron: spotrac.com/nba/cap/2022 (secondary)",
+   "status": "published"
+  },
+  "2024": {
+   "cap": 136021000,
+   "tax": 165294000,
+   "apron1": 172346000,
+   "apron2": 182794000,
+   "source": "NBA press release pr.nba.com/nba-salary-cap-for-2023-24-season-set-at-136-021-million (all four, via web search confirmation)",
+   "status": "published"
+  },
+  "2025": {
+   "cap": 140588000,
+   "tax": 170814000,
+   "apron1": 178132000,
+   "apron2": 188931000,
+   "source": "NBA press release pr.nba.com/2024-25-nba-season-salary-cap; hoopsrumors.com 2024/06 (all four, via web search confirmation)",
+   "status": "published"
+  },
+  "2026": {
+   "cap": 154647000,
+   "tax": 187895000,
+   "apron1": 195945000,
+   "apron2": 207824000,
+   "source": "sportcal.com (secondary; the NBA release was not opened). Coverage counts only.",
+   "status": "secondary_source"
+  },
+  "2027": {
+   "cap": 164961000,
+   "tax": 200428000,
+   "apron1": 209015000,
+   "apron2": 221686000,
+   "source": "bleacherreport.com 2026-27 cap/apron/tax articles (secondary; tax line from a separate article). Coverage counts only.",
+   "status": "secondary_source"
+  }
+ },
+ "capture_audit": {
+  "2023": {
+   "season_in_repo": 2022,
+   "used_for": "context only (previous season)",
+   "team_pages": 30,
+   "salary_lines_with_id": 684,
+   "salary_lines_with_dollar": 574,
+   "blank_dollar_lines": 110,
+   "players_with_dollar": 511,
+   "team_player_rows": 548,
+   "players_with_more_than_one_dollar_line_on_a_page": 18,
+   "roster_rows": 612,
+   "dead_money_rows(salary row not on same page roster)": 59,
+   "dead_money_dollars": 313651256.0,
+   "dead_money_share_of_league_dollars": 0.07006587812985336,
+   "roster_players_without_dollar_line": 123
+  },
+  "2024": {
+   "season_in_repo": 2023,
+   "used_for": "select/report",
+   "team_pages": 30,
+   "salary_lines_with_id": 741,
+   "salary_lines_with_dollar": 592,
+   "blank_dollar_lines": 149,
+   "players_with_dollar": 531,
+   "team_player_rows": 564,
+   "players_with_more_than_one_dollar_line_on_a_page": 21,
+   "roster_rows": 657,
+   "dead_money_rows(salary row not on same page roster)": 62,
+   "dead_money_dollars": 258215110.0,
+   "dead_money_share_of_league_dollars": 0.052990447411609985,
+   "roster_players_without_dollar_line": 155
+  },
+  "2025": {
+   "season_in_repo": 2024,
+   "used_for": "select/report",
+   "team_pages": 30,
+   "salary_lines_with_id": 712,
+   "salary_lines_with_dollar": 564,
+   "blank_dollar_lines": 148,
+   "players_with_dollar": 518,
+   "team_player_rows": 537,
+   "players_with_more_than_one_dollar_line_on_a_page": 17,
+   "roster_rows": 655,
+   "dead_money_rows(salary row not on same page roster)": 52,
+   "dead_money_dollars": 178559708.0,
+   "dead_money_share_of_league_dollars": 0.034472409577979986,
+   "roster_players_without_dollar_line": 170
+  },
+  "2026": {
+   "season_in_repo": 2025,
+   "used_for": "coverage count only, never joined to a game",
+   "team_pages": 30,
+   "salary_lines_with_id": 737,
+   "salary_lines_with_dollar": 583,
+   "blank_dollar_lines": 154,
+   "players_with_dollar": 522,
+   "team_player_rows": 553,
+   "players_with_more_than_one_dollar_line_on_a_page": 22,
+   "roster_rows": 661,
+   "dead_money_rows(salary row not on same page roster)": 58,
+   "dead_money_dollars": 417715508.0,
+   "dead_money_share_of_league_dollars": 0.07446029095998141,
+   "roster_players_without_dollar_line": 166
+  },
+  "2027": {
+   "season_in_repo": 2026,
+   "used_for": "coverage count only, never joined to a game",
+   "team_pages": 30,
+   "salary_lines_with_id": 460,
+   "salary_lines_with_dollar": 460,
+   "blank_dollar_lines": 0,
+   "players_with_dollar": 454,
+   "team_player_rows": 459,
+   "players_with_more_than_one_dollar_line_on_a_page": 1,
+   "roster_rows": 520,
+   "dead_money_rows(salary row not on same page roster)": 30,
+   "dead_money_dollars": 150119688.0,
+   "dead_money_share_of_league_dollars": 0.025362589512376837,
+   "roster_players_without_dollar_line": 91
+  }
+ },
+ "crosswalk": {
+  "bref_ids_total": 1002,
+  "resolved": 948,
+  "unresolved": 54,
+  "by_method": {
+   "verified": 757,
+   "birthdate_unique": 131,
+   "name_unique": 45,
+   "birthdate_team_verified": 12,
+   "verified_name_tiebreak": 2,
+   "surname_team_verified": 1
+  },
+  "salary_rows_resolved_by_br_year": {
+   "2023": {
+    "salary_team_player_rows": 548,
+    "resolved": 545,
+    "share_resolved": 0.9945255474452555,
+    "methods": {
+     "verified": 520,
+     "name_unique": 16,
+     "birthdate_team_verified": 6,
+     "unresolved": 3,
+     "verified_name_tiebreak": 2,
+     "surname_team_verified": 1
+    }
+   },
+   "2024": {
+    "salary_team_player_rows": 564,
+    "resolved": 562,
+    "share_resolved": 0.9964539007092199,
+    "methods": {
+     "verified": 545,
+     "name_unique": 7,
+     "birthdate_team_verified": 6,
+     "unresolved": 2,
+     "verified_name_tiebreak": 2,
+     "surname_team_verified": 1,
+     "birthdate_unique": 1
+    }
+   },
+   "2025": {
+    "salary_team_player_rows": 537,
+    "resolved": 534,
+    "share_resolved": 0.994413407821229,
+    "methods": {
+     "verified": 521,
+     "birthdate_team_verified": 5,
+     "name_unique": 5,
+     "unresolved": 3,
+     "verified_name_tiebreak": 2,
+     "birthdate_unique": 1
+    }
+   },
+   "2026": {
+    "salary_team_player_rows": 553,
+    "resolved": 538,
+    "share_resolved": 0.972875226039783,
+    "methods": {
+     "verified": 474,
+     "birthdate_unique": 50,
+     "unresolved": 15,
+     "name_unique": 8,
+     "birthdate_team_verified": 4,
+     "verified_name_tiebreak": 2
+    }
+   },
+   "2027": {
+    "salary_team_player_rows": 459,
+    "resolved": 449,
+    "share_resolved": 0.9782135076252724,
+    "methods": {
+     "verified": 362,
+     "birthdate_unique": 73,
+     "unresolved": 10,
+     "name_unique": 10,
+     "birthdate_team_verified": 2,
+     "verified_name_tiebreak": 2
+    }
+   }
+  },
+  "hardest_unresolved_by_salary_pages": [
+   {
+    "player_bref_id": "louzama01",
+    "name": "Marcos Louzada Silva",
+    "teams": "CLE,POR",
+    "br_years": "2023,2024,2025,2026,2027",
+    "salary_pages": 5.0
+   },
+   {
+    "player_bref_id": "johnstr03",
+    "name": "Tre Johnson",
+    "teams": "WAS",
+    "br_years": "2026,2027",
+    "salary_pages": 2.0
+   },
+   {
+    "player_bref_id": "richaja02",
+    "name": "Jase Richardson",
+    "teams": "ORL",
+    "br_years": "2026,2027",
+    "salary_pages": 2.0
+   },
+   {
+    "player_bref_id": "biberta01",
+    "name": "Tarik Biberovic",
+    "teams": "DAL",
+    "br_years": "2027",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "bradlja02",
+    "name": "Jaden Bradley",
+    "teams": "TOR",
+    "br_years": "2027",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "brazitr01",
+    "name": "Trevon Brazile",
+    "teams": "DEN",
+    "br_years": "2027",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "burtoty01",
+    "name": "Tyler Burton",
+    "teams": "MEM",
+    "br_years": "2026",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "chrisma01",
+    "name": "Marquese Chriss",
+    "teams": "OKC",
+    "br_years": "2023",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "davisdr01",
+    "name": "Dre Davis",
+    "teams": "BRK",
+    "br_years": "2026",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "diopkh01",
+    "name": "Khalifa Diop",
+    "teams": "CLE",
+    "br_years": "2027",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "djurini01",
+    "name": "Nikola Djurisic",
+    "teams": "ATL",
+    "br_years": "2026",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "ejiofzu01",
+    "name": "Zuby Ejiofor",
+    "teams": "ATL",
+    "br_years": "2027",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "garcian01",
+    "name": "Andersson Garcia",
+    "teams": "UTA",
+    "br_years": "2026",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "gilbeke01",
+    "name": "Keshon Gilbert",
+    "teams": "ATL,WAS",
+    "br_years": "2026,2027",
+    "salary_pages": 1.0
+   },
+   {
+    "player_bref_id": "grayha01",
+    "name": "Hayden Gray",
+    "teams": "UTA",
+    "br_years": "2026",
+    "salary_pages": 1.0
+   }
+  ],
+  "unresolved_csv": "reports/prereg_role_prior_salary/unresolved.csv"
+ },
+ "seasons": {
+  "2023": {
+   "K5": {
+    "K": 5,
+    "mover_player_seasons_all_A0_rows": 136,
+    "cohort_rows_per_stat": 640,
+    "cohort_players": 136,
+    "cohort_rows_with_own_team_salary": 444,
+    "cohort_rows_with_salary_any_team_page": 579,
+    "share_rows_own_team_salary": 0.69375,
+    "share_rows_any_page_salary": 0.9046875,
+    "players_with_own_team_salary": 94,
+    "players_with_any_salary": 122,
+    "known_at_violations": 0,
+    "cohort_rows_listed_on_own_team_salary_table(dollar or blank)": 523,
+    "share_rows_listed_on_own_team_table": 0.8171875,
+    "cohort_rows_blank_dollar_line_only(two-way / exhibit-10 / unpriced)": 79,
+    "cohort_rows_not_listed_on_own_team_table": 117,
+    "cohort_rows_not_listed_but_salary_on_another_team_page": 117,
+    "cohort_rows_not_listed_anywhere_or_unresolved": 0,
+    "clusters_on_covered_rows": {
+     "games": 211,
+     "player_seasons": 94,
+     "weeks": 22,
+     "rows": 444
+    },
+    "tax_state_rows": {
+     "under_tax": 253,
+     "over_apron2": 81,
+     "over_tax": 80,
+     "over_apron1": 30
+    },
+    "tax_state_players": {
+     "over_apron1": 6,
+     "over_apron2": 17,
+     "over_tax": 17,
+     "under_tax": 54
+    },
+    "contract_class_rows": {
+     "minimum": 232,
+     "mid_exception": 60,
+     "rookie_scale": 52,
+     "rotation_salary": 40,
+     "near_max": 30,
+     "low_exception": 15,
+     "max_range": 15
+    },
+    "contract_class_players": {
+     "low_exception": 3,
+     "max_range": 3,
+     "mid_exception": 12,
+     "minimum": 50,
+     "near_max": 6,
+     "rookie_scale": 12,
+     "rotation_salary": 8
+    },
+    "movers_salary_rank_vs_prior_minutes_rank": {
+     "movers_ranked": 94,
+     "disagree_by_more_than_5_places": 13,
+     "share": 0.13829787234042554,
+     "salary_rank_le5_but_prior_minutes_rank_gt10": 0,
+     "movers_with_fewer_than_20_games_in_prior_season": 13
+    },
+    "alive_salary_rows_out_whole_prior_season(non-rookie, zero S-1 games)": {
+     "league": 14,
+     "dollars": 24031625.0,
+     "of_alive_rows": 502,
+     "movers": 0
+    }
+   },
+   "K10": {
+    "K": 10,
+    "mover_player_seasons_all_A0_rows": 136,
+    "cohort_rows_per_stat": 1202,
+    "cohort_players": 136,
+    "cohort_rows_with_own_team_salary": 841,
+    "cohort_rows_with_salary_any_team_page": 1095,
+    "share_rows_own_team_salary": 0.699667221297837,
+    "share_rows_any_page_salary": 0.910981697171381,
+    "players_with_own_team_salary": 94,
+    "players_with_any_salary": 122,
+    "known_at_violations": 0,
+    "cohort_rows_listed_on_own_team_salary_table(dollar or blank)": 974,
+    "share_rows_listed_on_own_team_table": 0.8103161397670549,
+    "cohort_rows_blank_dollar_line_only(two-way / exhibit-10 / unpriced)": 133,
+    "cohort_rows_not_listed_on_own_team_table": 228,
+    "cohort_rows_not_listed_but_salary_on_another_team_page": 228,
+    "cohort_rows_not_listed_anywhere_or_unresolved": 0,
+    "clusters_on_covered_rows": {
+     "games": 360,
+     "player_seasons": 94,
+     "weeks": 23,
+     "rows": 841
+    },
+    "tax_state_rows": {
+     "under_tax": 477,
+     "over_apron2": 157,
+     "over_tax": 148,
+     "over_apron1": 59
+    },
+    "tax_state_players": {
+     "over_apron1": 6,
+     "over_apron2": 17,
+     "over_tax": 17,
+     "under_tax": 54
+    },
+    "contract_class_rows": {
+     "minimum": 427,
+     "mid_exception": 116,
+     "rookie_scale": 98,
+     "rotation_salary": 80,
+     "near_max": 60,
+     "low_exception": 30,
+     "max_range": 30
+    },
+    "contract_class_players": {
+     "low_exception": 3,
+     "max_range": 3,
+     "mid_exception": 12,
+     "minimum": 50,
+     "near_max": 6,
+     "rookie_scale": 12,
+     "rotation_salary": 8
+    },
+    "movers_salary_rank_vs_prior_minutes_rank": {
+     "movers_ranked": 94,
+     "disagree_by_more_than_5_places": 13,
+     "share": 0.13829787234042554,
+     "salary_rank_le5_but_prior_minutes_rank_gt10": 0,
+     "movers_with_fewer_than_20_games_in_prior_season": 13
+    },
+    "alive_salary_rows_out_whole_prior_season(non-rookie, zero S-1 games)": {
+     "league": 14,
+     "dollars": 24031625.0,
+     "of_alive_rows": 502,
+     "movers": 0
+    }
+   },
+   "spearman_non_movers": {
+    "definition": "non-mover player-seasons (first team of S = last team of S-1), >= 10 games with that team, alive salary rows; x = -salary rank within team (1 = highest), y = minutes per game; bootstrap over players",
+    "label_use": "DESCRIPTIVE sanity check on non-mover minutes; not a label of the mover cohort",
+    "rank_vs_mpg": {
+     "rho": 0.7152649292240564,
+     "lo": 0.6429902705394973,
+     "hi": 0.7768594053451896,
+     "n": 251
+    },
+    "cap_share_vs_mpg": {
+     "rho": 0.754130813251537,
+     "lo": 0.6905140072141078,
+     "hi": 0.8050852706816621,
+     "n": 251
+    },
+    "informative_missingness": {
+     "non_mover_player_seasons_with_blank_dollar_line": 14,
+     "median_mpg_blank": 9.241300582885742,
+     "median_mpg_dollar_alive": 25.616239547729492,
+     "note": "a blank dollar value is NOT missing at random: it marks two-way / exhibit-10 / unpriced contracts (fringe roles)"
+    },
+    "rank_vs_mpg_prev_minutes_below_median": {
+     "rho": 0.5652924112807977,
+     "lo": 0.43095195631356603,
+     "hi": 0.6796735405295603,
+     "n": 125
+    },
+    "rank_vs_mpg_age_ge_31": {
+     "rho": 0.8937064165228477,
+     "lo": 0.7939608800697636,
+     "hi": 0.9366958435565578,
+     "n": 36
+    }
+   },
+   "K20_rows_with_own_salary": 1552,
+   "mover_players_in_cohort": 136
+  },
+  "2024": {
+   "K5": {
+    "K": 5,
+    "mover_player_seasons_all_A0_rows": 115,
+    "cohort_rows_per_stat": 540,
+    "cohort_players": 115,
+    "cohort_rows_with_own_team_salary": 382,
+    "cohort_rows_with_salary_any_team_page": 473,
+    "share_rows_own_team_salary": 0.7074074074074074,
+    "share_rows_any_page_salary": 0.8759259259259259,
+    "players_with_own_team_salary": 79,
+    "players_with_any_salary": 99,
+    "known_at_violations": 0,
+    "cohort_rows_listed_on_own_team_salary_table(dollar or blank)": 460,
+    "share_rows_listed_on_own_team_table": 0.8518518518518519,
+    "cohort_rows_blank_dollar_line_only(two-way / exhibit-10 / unpriced)": 78,
+    "cohort_rows_not_listed_on_own_team_table": 80,
+    "cohort_rows_not_listed_but_salary_on_another_team_page": 75,
+    "cohort_rows_not_listed_anywhere_or_unresolved": 5,
+    "clusters_on_covered_rows": {
+     "games": 207,
+     "player_seasons": 79,
+     "weeks": 21,
+     "rows": 382
+    },
+    "tax_state_rows": {
+     "under_tax": 247,
+     "over_apron1": 53,
+     "over_tax": 52,
+     "over_apron2": 30
+    },
+    "tax_state_players": {
+     "over_apron1": 11,
+     "over_apron2": 6,
+     "over_tax": 11,
+     "under_tax": 51
+    },
+    "contract_class_rows": {
+     "minimum": 207,
+     "rotation_salary": 45,
+     "mid_exception": 45,
+     "rookie_scale": 35,
+     "low_exception": 25,
+     "near_max": 15,
+     "max_range": 10
+    },
+    "contract_class_players": {
+     "low_exception": 5,
+     "max_range": 2,
+     "mid_exception": 9,
+     "minimum": 44,
+     "near_max": 3,
+     "rookie_scale": 7,
+     "rotation_salary": 9
+    },
+    "movers_salary_rank_vs_prior_minutes_rank": {
+     "movers_ranked": 79,
+     "disagree_by_more_than_5_places": 8,
+     "share": 0.10126582278481013,
+     "salary_rank_le5_but_prior_minutes_rank_gt10": 0,
+     "movers_with_fewer_than_20_games_in_prior_season": 5
+    },
+    "alive_salary_rows_out_whole_prior_season(non-rookie, zero S-1 games)": {
+     "league": 15,
+     "dollars": 45448397.0,
+     "of_alive_rows": 485,
+     "movers": 0
+    }
+   },
+   "K10": {
+    "K": 10,
+    "mover_player_seasons_all_A0_rows": 115,
+    "cohort_rows_per_stat": 1025,
+    "cohort_players": 115,
+    "cohort_rows_with_own_team_salary": 730,
+    "cohort_rows_with_salary_any_team_page": 902,
+    "share_rows_own_team_salary": 0.7121951219512195,
+    "share_rows_any_page_salary": 0.88,
+    "players_with_own_team_salary": 79,
+    "players_with_any_salary": 99,
+    "known_at_violations": 0,
+    "cohort_rows_listed_on_own_team_salary_table(dollar or blank)": 870,
+    "share_rows_listed_on_own_team_table": 0.848780487804878,
+    "cohort_rows_blank_dollar_line_only(two-way / exhibit-10 / unpriced)": 140,
+    "cohort_rows_not_listed_on_own_team_table": 155,
+    "cohort_rows_not_listed_but_salary_on_another_team_page": 146,
+    "cohort_rows_not_listed_anywhere_or_unresolved": 9,
+    "clusters_on_covered_rows": {
+     "games": 369,
+     "player_seasons": 79,
+     "weeks": 25,
+     "rows": 730
+    },
+    "tax_state_rows": {
+     "under_tax": 467,
+     "over_apron1": 103,
+     "over_tax": 100,
+     "over_apron2": 60
+    },
+    "tax_state_players": {
+     "over_apron1": 11,
+     "over_apron2": 6,
+     "over_tax": 11,
+     "under_tax": 51
+    },
+    "contract_class_rows": {
+     "minimum": 381,
+     "rotation_salary": 90,
+     "mid_exception": 90,
+     "rookie_scale": 70,
+     "low_exception": 50,
+     "near_max": 29,
+     "max_range": 20
+    },
+    "contract_class_players": {
+     "low_exception": 5,
+     "max_range": 2,
+     "mid_exception": 9,
+     "minimum": 44,
+     "near_max": 3,
+     "rookie_scale": 7,
+     "rotation_salary": 9
+    },
+    "movers_salary_rank_vs_prior_minutes_rank": {
+     "movers_ranked": 79,
+     "disagree_by_more_than_5_places": 8,
+     "share": 0.10126582278481013,
+     "salary_rank_le5_but_prior_minutes_rank_gt10": 0,
+     "movers_with_fewer_than_20_games_in_prior_season": 5
+    },
+    "alive_salary_rows_out_whole_prior_season(non-rookie, zero S-1 games)": {
+     "league": 15,
+     "dollars": 45448397.0,
+     "of_alive_rows": 485,
+     "movers": 0
+    }
+   },
+   "spearman_non_movers": {
+    "definition": "non-mover player-seasons (first team of S = last team of S-1), >= 10 games with that team, alive salary rows; x = -salary rank within team (1 = highest), y = minutes per game; bootstrap over players",
+    "label_use": "DESCRIPTIVE sanity check on non-mover minutes; not a label of the mover cohort",
+    "rank_vs_mpg": {
+     "rho": 0.6959331592789413,
+     "lo": 0.6219384898670267,
+     "hi": 0.7571048788458627,
+     "n": 264
+    },
+    "cap_share_vs_mpg": {
+     "rho": 0.7159404865276479,
+     "lo": 0.6456327065864825,
+     "hi": 0.7729674654813418,
+     "n": 264
+    },
+    "informative_missingness": {
+     "non_mover_player_seasons_with_blank_dollar_line": 12,
+     "median_mpg_blank": 10.543630599975586,
+     "median_mpg_dollar_alive": 24.516931533813477,
+     "note": "a blank dollar value is NOT missing at random: it marks two-way / exhibit-10 / unpriced contracts (fringe roles)"
+    },
+    "rank_vs_mpg_prev_minutes_below_median": {
+     "rho": 0.511776120896619,
+     "lo": 0.3745384834539408,
+     "hi": 0.6222657977847933,
+     "n": 132
+    },
+    "rank_vs_mpg_age_ge_31": {
+     "rho": 0.9030548431191362,
+     "lo": 0.8150744528402325,
+     "hi": 0.9429871857912101,
+     "n": 33
+    }
+   },
+   "K20_rows_with_own_salary": 1371,
+   "mover_players_in_cohort": 115
+  }
+ },
+ "power": {
+  "K10": {
+   "2023|pts": {
+    "n_rows": 841,
+    "n_games": 360,
+    "n_player_seasons": 94,
+    "n_weeks": 23,
+    "floor": 0.005,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.04811112127658891,
+     "half_width_game": 0.032647192314025804,
+     "half_width_player_season": 0.03853989051601495,
+     "half_width_week": 0.02153063935754973,
+     "binding": "player_season",
+     "binding_half_width": 0.03853989051601495,
+     "binding_ci": [
+      0.012507076246173804,
+      0.08958685727820372
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.4770689334459621
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.01725664754439206,
+     "half_width_game": 0.016336035017372633,
+     "half_width_player_season": 0.016710474972404726,
+     "half_width_week": 0.010397926156136392,
+     "binding": "player_season",
+     "binding_half_width": 0.016710474972404726,
+     "binding_ci": [
+      0.0018286808241712897,
+      0.035249630768980744
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.23775014839324163
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.008116425073761195,
+     "half_width_game": 0.014660910124687976,
+     "half_width_player_season": 0.015402598802181876,
+     "half_width_week": 0.013748715825194385,
+     "binding": "player_season",
+     "binding_half_width": 0.015402598802181876,
+     "binding_ci": [
+      -0.023641982565752638,
+      0.007163215038611116
+     ],
+     "top5_share": 1.288169640379854,
+     "sd_row_diff": 0.22161216073674916
+    },
+    "oracle_sigma0.10": {
+     "point": -0.054204212585342595,
+     "half_width_game": 0.03943645703657347,
+     "half_width_player_season": 0.03613106036359682,
+     "half_width_week": 0.03015169707476545,
+     "binding": "game",
+     "binding_half_width": 0.03943645703657347,
+     "binding_ci": [
+      -0.09327114983688028,
+      -0.014398235763733355
+     ],
+     "top5_share": 0.5932620630708033,
+     "sd_row_diff": 0.6177067007691174
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.0517107913626294,
+     "half_width_game": 0.03003718089333325,
+     "half_width_player_season": 0.03502418582848786,
+     "half_width_week": 0.022983228064928148,
+     "binding": "player_season",
+     "binding_half_width": 0.03502418582848786,
+     "binding_ci": [
+      -0.08804077539831276,
+      -0.017992403741337044
+     ],
+     "top5_share": 0.6315071603223549,
+     "sd_row_diff": 0.453596310337557
+    },
+    "oracle_sigma0.20": {
+     "point": -0.1918352270197239,
+     "half_width_game": 0.08840781658994687,
+     "half_width_player_season": 0.09197424154418327,
+     "half_width_week": 0.06088768896147421,
+     "binding": "player_season",
+     "binding_half_width": 0.09197424154418327,
+     "binding_ci": [
+      -0.2887259166859249,
+      -0.10477743359755838
+     ],
+     "top5_share": 0.4570428856630142,
+     "sd_row_diff": 1.3888391166527991
+    }
+   },
+   "2023|reb": {
+    "n_rows": 841,
+    "n_games": 360,
+    "n_player_seasons": 94,
+    "n_weeks": 23,
+    "floor": 0.003,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.015232443024640469,
+     "half_width_game": 0.011666223085452265,
+     "half_width_player_season": 0.01243603078889119,
+     "half_width_week": 0.009788913897629462,
+     "binding": "player_season",
+     "binding_half_width": 0.01243603078889119,
+     "binding_ci": [
+      0.003567176504482748,
+      0.028439238082265127
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.17193304811689222
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.005246477489293383,
+     "half_width_game": 0.005826786004256628,
+     "half_width_player_season": 0.005730034130416074,
+     "half_width_week": 0.0045483737256432274,
+     "binding": "game",
+     "binding_half_width": 0.005826786004256628,
+     "binding_ci": [
+      -0.000898238272116935,
+      0.01075533373639632
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.08546421546139685
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.0066065063214842765,
+     "half_width_game": 0.006139066835465659,
+     "half_width_player_season": 0.006743944119960957,
+     "half_width_week": 0.005783003867198083,
+     "binding": "player_season",
+     "binding_half_width": 0.006743944119960957,
+     "binding_ci": [
+      -0.013714873505169624,
+      -0.0002269852652477092
+     ],
+     "top5_share": 0.8938489087653269,
+     "sd_row_diff": 0.09268630412701415
+    },
+    "oracle_sigma0.10": {
+     "point": -0.017679323907583377,
+     "half_width_game": 0.01319286292301471,
+     "half_width_player_season": 0.013124591174857338,
+     "half_width_week": 0.012676799678309241,
+     "binding": "game",
+     "binding_half_width": 0.01319286292301471,
+     "binding_ci": [
+      -0.030848309277682923,
+      -0.004462583431653505
+     ],
+     "top5_share": 0.5859986413043479,
+     "sd_row_diff": 0.2075786040596148
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.02711257036261321,
+     "half_width_game": 0.01270712313967913,
+     "half_width_player_season": 0.01671124910045519,
+     "half_width_week": 0.011298714567324555,
+     "binding": "player_season",
+     "binding_half_width": 0.01671124910045519,
+     "binding_ci": [
+      -0.04473875656727851,
+      -0.011316258366368135
+     ],
+     "top5_share": 0.5941289235843088,
+     "sd_row_diff": 0.19161883351095108
+    },
+    "oracle_sigma0.20": {
+     "point": -0.06423344562366322,
+     "half_width_game": 0.02934766669190159,
+     "half_width_player_season": 0.03283117644160691,
+     "half_width_week": 0.02607763642427268,
+     "binding": "player_season",
+     "binding_half_width": 0.03283117644160691,
+     "binding_ci": [
+      -0.09882547324111955,
+      -0.03316312035790574
+     ],
+     "top5_share": 0.45492247549268233,
+     "sd_row_diff": 0.4607909881369556
+    }
+   },
+   "2023|ast": {
+    "n_rows": 841,
+    "n_games": 360,
+    "n_player_seasons": 94,
+    "n_weeks": 23,
+    "floor": 0.002,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.00939105988897997,
+     "half_width_game": 0.007773866148426145,
+     "half_width_player_season": 0.007740502575105577,
+     "half_width_week": 0.004587629827303314,
+     "binding": "game",
+     "binding_half_width": 0.007773866148426145,
+     "binding_ci": [
+      0.0012595984127791438,
+      0.016807330709631432
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.11207743688630598
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0034001471455413486,
+     "half_width_game": 0.0039537733061930985,
+     "half_width_player_season": 0.0036223331083339158,
+     "half_width_week": 0.0024504127259058254,
+     "binding": "game",
+     "binding_half_width": 0.0039537733061930985,
+     "binding_ci": [
+      -0.0006670429789975093,
+      0.0072405036333886875
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.05617164877627863
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.0006449590311394075,
+     "half_width_game": 0.003783603004049606,
+     "half_width_player_season": 0.003642621204766392,
+     "half_width_week": 0.003300156519873302,
+     "binding": "game",
+     "binding_half_width": 0.003783603004049606,
+     "binding_ci": [
+      -0.004435608979613358,
+      0.0031315970284858546
+     ],
+     "top5_share": 3.8760242085661822,
+     "sd_row_diff": 0.05374244296019295
+    },
+    "oracle_sigma0.10": {
+     "point": -0.018861418511723408,
+     "half_width_game": 0.013954364154708982,
+     "half_width_player_season": 0.01607655473723534,
+     "half_width_week": 0.011391577533555308,
+     "binding": "player_season",
+     "binding_half_width": 0.01607655473723534,
+     "binding_ci": [
+      -0.03659193030544571,
+      -0.004438820830975032
+     ],
+     "top5_share": 0.8223583144026527,
+     "sd_row_diff": 0.2137199794080681
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.007936268919811616,
+     "half_width_game": 0.007369402498760904,
+     "half_width_player_season": 0.007947409076843999,
+     "half_width_week": 0.005626438283296398,
+     "binding": "player_season",
+     "binding_half_width": 0.007947409076843999,
+     "binding_ci": [
+      -0.016337198306541695,
+      -0.000442380152853698
+     ],
+     "top5_share": 0.8425805768161244,
+     "sd_row_diff": 0.10992497410762311
+    },
+    "oracle_sigma0.20": {
+     "point": -0.05953599401353109,
+     "half_width_game": 0.030462880254858077,
+     "half_width_player_season": 0.03980069065277453,
+     "half_width_week": 0.02698269812439043,
+     "binding": "player_season",
+     "binding_half_width": 0.03980069065277453,
+     "binding_ci": [
+      -0.10435030582523312,
+      -0.02474892451968407
+     ],
+     "top5_share": 0.6564850038808502,
+     "sd_row_diff": 0.47457389312354537
+    }
+   },
+   "2023|fg3m": {
+    "n_rows": 841,
+    "n_games": 360,
+    "n_player_seasons": 94,
+    "n_weeks": 23,
+    "floor": 0.001,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.0033656172160343393,
+     "half_width_game": 0.004171040724788714,
+     "half_width_player_season": 0.004042193368586033,
+     "half_width_week": 0.0024459126495641084,
+     "binding": "game",
+     "binding_half_width": 0.004171040724788714,
+     "binding_ci": [
+      -0.0010631683002963977,
+      0.007278913149281032
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.06185786327334408
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0010038300898069427,
+     "half_width_game": 0.002117929313996366,
+     "half_width_player_season": 0.0018848619402515505,
+     "half_width_week": 0.0012085657287250863,
+     "binding": "game",
+     "binding_half_width": 0.002117929313996366,
+     "binding_ci": [
+      -0.001285740327713415,
+      0.002950118300279317
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.03104103645305104
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.0005931641368789215,
+     "half_width_game": 0.0023965008136818964,
+     "half_width_player_season": 0.0020709693221680208,
+     "half_width_week": 0.001733046443141265,
+     "binding": "game",
+     "binding_half_width": 0.0023965008136818964,
+     "binding_ci": [
+      -0.0030863464453755552,
+      0.001706655181988237
+     ],
+     "top5_share": 2.2041508478866185,
+     "sd_row_diff": 0.033398860774110174
+    },
+    "oracle_sigma0.10": {
+     "point": -0.00476525037606847,
+     "half_width_game": 0.005385848256458025,
+     "half_width_player_season": 0.005636790458495515,
+     "half_width_week": 0.004381339256419477,
+     "binding": "player_season",
+     "binding_half_width": 0.005636790458495515,
+     "binding_ci": [
+      -0.010225168649255524,
+      0.0010484122677355064
+     ],
+     "top5_share": 0.8952767416070162,
+     "sd_row_diff": 0.08291377604090079
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.0049021990790957875,
+     "half_width_game": 0.004909390086465544,
+     "half_width_player_season": 0.004711301388899835,
+     "half_width_week": 0.002792145096623625,
+     "binding": "game",
+     "binding_half_width": 0.004909390086465544,
+     "binding_ci": [
+      -0.009970847371145876,
+      -0.0001520671982147874
+     ],
+     "top5_share": 0.8134566502312196,
+     "sd_row_diff": 0.07205062140638872
+    },
+    "oracle_sigma0.20": {
+     "point": -0.017023195194899084,
+     "half_width_game": 0.011741294832864358,
+     "half_width_player_season": 0.010358216152854309,
+     "half_width_week": 0.008034306557686157,
+     "binding": "game",
+     "binding_half_width": 0.011741294832864358,
+     "binding_ci": [
+      -0.028764457431706948,
+      -0.0052818677659782305
+     ],
+     "top5_share": 0.5511334372817259,
+     "sd_row_diff": 0.1797730300247785
+    }
+   },
+   "2024|pts": {
+    "n_rows": 730,
+    "n_games": 369,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.005,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.047763772396781215,
+     "half_width_game": 0.03445439291515226,
+     "half_width_player_season": 0.03761537824250861,
+     "half_width_week": 0.030142540044206387,
+     "binding": "player_season",
+     "binding_half_width": 0.03761537824250861,
+     "binding_ci": [
+      0.016150509628443225,
+      0.09138126611346044
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.4368777812107829
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.017791476830701335,
+     "half_width_game": 0.017042402763329065,
+     "half_width_player_season": 0.0166614403533465,
+     "half_width_week": 0.01507532052153847,
+     "binding": "game",
+     "binding_half_width": 0.017042402763329065,
+     "binding_ci": [
+      0.0011091355004892915,
+      0.03519394102714742
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.21757983641907291
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.022051850773105605,
+     "half_width_game": 0.015835492691633965,
+     "half_width_player_season": 0.017725782732957267,
+     "half_width_week": 0.020540595217040596,
+     "binding": "week",
+     "binding_half_width": 0.020540595217040596,
+     "binding_ci": [
+      -0.046808175968432314,
+      -0.005726985534351125
+     ],
+     "top5_share": 0.8155346506852631,
+     "sd_row_diff": 0.21965849836436135
+    },
+    "oracle_sigma0.10": {
+     "point": -0.05455877861116693,
+     "half_width_game": 0.03849046404033726,
+     "half_width_player_season": 0.04871689666915652,
+     "half_width_week": 0.04049959177745472,
+     "binding": "player_season",
+     "binding_half_width": 0.04871689666915652,
+     "binding_ci": [
+      -0.10832964789995903,
+      -0.010895854561645992
+     ],
+     "top5_share": 0.8620406092979759,
+     "sd_row_diff": 0.5459418160789872
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.08755144207303471,
+     "half_width_game": 0.03377581689708965,
+     "half_width_player_season": 0.04537322223106635,
+     "half_width_week": 0.04284929858982803,
+     "binding": "player_season",
+     "binding_half_width": 0.04537322223106635,
+     "binding_ci": [
+      -0.13705406455755761,
+      -0.04630762009542492
+     ],
+     "top5_share": 0.5636572249477576,
+     "sd_row_diff": 0.46337425832618856
+    },
+    "oracle_sigma0.20": {
+     "point": -0.2004951445463014,
+     "half_width_game": 0.07672010100474164,
+     "half_width_player_season": 0.1259007126572197,
+     "half_width_week": 0.10511377370596309,
+     "binding": "player_season",
+     "binding_half_width": 0.1259007126572197,
+     "binding_ci": [
+      -0.34402396991713097,
+      -0.09222254460269157
+     ],
+     "top5_share": 0.6438106230784361,
+     "sd_row_diff": 1.1163907528766905
+    }
+   },
+   "2024|reb": {
+    "n_rows": 730,
+    "n_games": 369,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.003,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.023064935747782747,
+     "half_width_game": 0.015584956159734079,
+     "half_width_player_season": 0.01886982385096509,
+     "half_width_week": 0.013881508617951031,
+     "binding": "player_season",
+     "binding_half_width": 0.01886982385096509,
+     "binding_ci": [
+      0.007306352239640819,
+      0.045045999941571
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.2064070118436071
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.008745835600526199,
+     "half_width_game": 0.0077957251680504935,
+     "half_width_player_season": 0.008268553409550499,
+     "half_width_week": 0.0071152601227430475,
+     "binding": "player_season",
+     "binding_half_width": 0.008268553409550499,
+     "binding_ci": [
+      0.0014635240629889447,
+      0.018000630882089943
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.10405759464840744
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.013048826427172672,
+     "half_width_game": 0.007997594700459531,
+     "half_width_player_season": 0.009742115274111457,
+     "half_width_week": 0.010020291415883452,
+     "binding": "week",
+     "binding_half_width": 0.010020291415883452,
+     "binding_ci": [
+      -0.025344363029313897,
+      -0.0053037801975469945
+     ],
+     "top5_share": 0.7672662204254765,
+     "sd_row_diff": 0.1093550754856955
+    },
+    "oracle_sigma0.10": {
+     "point": -0.023480104452876335,
+     "half_width_game": 0.018166453179001795,
+     "half_width_player_season": 0.019616540389931034,
+     "half_width_week": 0.017121269535172037,
+     "binding": "player_season",
+     "binding_half_width": 0.019616540389931034,
+     "binding_ci": [
+      -0.04444075802791638,
+      -0.005207677248054312
+     ],
+     "top5_share": 0.7494018680573974,
+     "sd_row_diff": 0.2606141673945937
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.045454227840517364,
+     "half_width_game": 0.017384869822300898,
+     "half_width_player_season": 0.025324920846351108,
+     "half_width_week": 0.02198974617120679,
+     "binding": "player_season",
+     "binding_half_width": 0.025324920846351108,
+     "binding_ci": [
+      -0.07343749038494235,
+      -0.022787648692240134
+     ],
+     "top5_share": 0.6089264731846603,
+     "sd_row_diff": 0.2353202368595272
+    },
+    "oracle_sigma0.20": {
+     "point": -0.08318971466404784,
+     "half_width_game": 0.036500660389352776,
+     "half_width_player_season": 0.04857438037776578,
+     "half_width_week": 0.04399383999444987,
+     "binding": "player_season",
+     "binding_half_width": 0.04857438037776578,
+     "binding_ci": [
+      -0.1365597663163148,
+      -0.039411005560783245
+     ],
+     "top5_share": 0.5836503584958931,
+     "sd_row_diff": 0.5215336521305648
+    }
+   },
+   "2024|ast": {
+    "n_rows": 730,
+    "n_games": 369,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.002,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.010053364502695204,
+     "half_width_game": 0.008237521658223949,
+     "half_width_player_season": 0.008469071671878717,
+     "half_width_week": 0.007039395956577347,
+     "binding": "player_season",
+     "binding_half_width": 0.008469071671878717,
+     "binding_ci": [
+      0.0029646262822666156,
+      0.01990276962602405
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.10575958460457967
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.004028921367351672,
+     "half_width_game": 0.004090303613071919,
+     "half_width_player_season": 0.0038383736326635144,
+     "half_width_week": 0.003460231589770135,
+     "binding": "game",
+     "binding_half_width": 0.004090303613071919,
+     "binding_ci": [
+      -0.00011888065476852067,
+      0.008061726571375317
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.0525397218069753
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.005436316296149984,
+     "half_width_game": 0.004325927079576427,
+     "half_width_player_season": 0.004526927370375245,
+     "half_width_week": 0.004961314844056914,
+     "binding": "week",
+     "binding_half_width": 0.004961314844056914,
+     "binding_ci": [
+      -0.011579931944465594,
+      -0.001657302256351765
+     ],
+     "top5_share": 0.7713178541204031,
+     "sd_row_diff": 0.05787558502833432
+    },
+    "oracle_sigma0.10": {
+     "point": -0.014169180036618694,
+     "half_width_game": 0.012143691046962566,
+     "half_width_player_season": 0.010957258123155532,
+     "half_width_week": 0.011044182367027772,
+     "binding": "game",
+     "binding_half_width": 0.012143691046962566,
+     "binding_ci": [
+      -0.026092206763131138,
+      -0.0018048246692060057
+     ],
+     "top5_share": 0.7470832224563189,
+     "sd_row_diff": 0.1719640406232703
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.018037354114137833,
+     "half_width_game": 0.008776966439889476,
+     "half_width_player_season": 0.010764163203616544,
+     "half_width_week": 0.011342630004806772,
+     "binding": "week",
+     "binding_half_width": 0.011342630004806772,
+     "binding_ci": [
+      -0.03258359099723086,
+      -0.00989833098761732
+     ],
+     "top5_share": 0.5959818731697215,
+     "sd_row_diff": 0.12002508321435297
+    },
+    "oracle_sigma0.20": {
+     "point": -0.051068621831536695,
+     "half_width_game": 0.02410314526209787,
+     "half_width_player_season": 0.03283751433844449,
+     "half_width_week": 0.029260603693065445,
+     "binding": "player_season",
+     "binding_half_width": 0.03283751433844449,
+     "binding_ci": [
+      -0.08697023327952559,
+      -0.02129520460263661
+     ],
+     "top5_share": 0.7196011187208273,
+     "sd_row_diff": 0.34494787473134664
+    }
+   },
+   "2024|fg3m": {
+    "n_rows": 730,
+    "n_games": 369,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.001,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.003367875378821547,
+     "half_width_game": 0.003969897701701191,
+     "half_width_player_season": 0.004300467560053297,
+     "half_width_week": 0.004226041278980572,
+     "binding": "player_season",
+     "binding_half_width": 0.004300467560053297,
+     "binding_ci": [
+      -0.0005275720453633522,
+      0.008073363074743241
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.05384095162517594
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0012112258131021245,
+     "half_width_game": 0.001997359564204205,
+     "half_width_player_season": 0.002130928590531508,
+     "half_width_week": 0.002225807305721877,
+     "binding": "week",
+     "binding_half_width": 0.002225807305721877,
+     "binding_ci": [
+      -0.0008642938889171826,
+      0.0035873207225265713
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.02687961653838508
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.0020527363187521513,
+     "half_width_game": 0.0020422273979269568,
+     "half_width_player_season": 0.002084028249968111,
+     "half_width_week": 0.0019314366084259597,
+     "binding": "player_season",
+     "binding_half_width": 0.002084028249968111,
+     "binding_ci": [
+      -0.004290134628502586,
+      -0.00012207812856636436
+     ],
+     "top5_share": 0.9173435340905272,
+     "sd_row_diff": 0.029051102087467428
+    },
+    "oracle_sigma0.10": {
+     "point": -0.0034687445626286604,
+     "half_width_game": 0.005356141892646842,
+     "half_width_player_season": 0.006721066822662523,
+     "half_width_week": 0.003815138482350604,
+     "binding": "player_season",
+     "binding_half_width": 0.006721066822662523,
+     "binding_ci": [
+      -0.01033326247863992,
+      0.0031088711666851254
+     ],
+     "top5_share": 1.2163507085373513,
+     "sd_row_diff": 0.073252727191485
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.007215640396516899,
+     "half_width_game": 0.004291960233885008,
+     "half_width_player_season": 0.004608022954823555,
+     "half_width_week": 0.004015771661724147,
+     "binding": "player_season",
+     "binding_half_width": 0.004608022954823555,
+     "binding_ci": [
+      -0.012275162606954784,
+      -0.003059116697307675
+     ],
+     "top5_share": 0.6013039622234475,
+     "sd_row_diff": 0.05952436786191609
+    },
+    "oracle_sigma0.20": {
+     "point": -0.01245679073414847,
+     "half_width_game": 0.010647700363382744,
+     "half_width_player_season": 0.012847242842381677,
+     "half_width_week": 0.005662686022978326,
+     "binding": "player_season",
+     "binding_half_width": 0.012847242842381677,
+     "binding_ci": [
+      -0.026197015159459935,
+      -0.0005025294746965835
+     ],
+     "top5_share": 0.8386270861681153,
+     "sd_row_diff": 0.14843786343985327
+    }
+   },
+   "pooled|pts": {
+    "n_rows": 1571,
+    "n_games": 729,
+    "n_player_seasons": 173,
+    "n_weeks": 48,
+    "floor": 0.005,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.04860207173815332,
+     "half_width_game": 0.025629395234670803,
+     "half_width_player_season": 0.022853840732368243,
+     "half_width_week": 0.024984828253614706,
+     "binding": "game",
+     "binding_half_width": 0.025629395234670803,
+     "binding_ci": [
+      0.02350359183862942,
+      0.07476238230797103
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.49470793493961596
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.017533650551263484,
+     "half_width_game": 0.013183002707952128,
+     "half_width_player_season": 0.010180229067565154,
+     "half_width_week": 0.01270189938610439,
+     "binding": "game",
+     "binding_half_width": 0.013183002707952128,
+     "binding_ci": [
+      0.0043881843807821634,
+      0.03075418979668642
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.24918556478967113
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.022476848190232896,
+     "half_width_game": 0.011840772902691534,
+     "half_width_player_season": 0.013117695812134698,
+     "half_width_week": 0.01313681048705604,
+     "binding": "week",
+     "binding_half_width": 0.01313681048705604,
+     "binding_ci": [
+      -0.035820675136978064,
+      -0.009547054162865986
+     ],
+     "top5_share": 0.4515574002614499,
+     "sd_row_diff": 0.23706793374293358
+    },
+    "oracle_sigma0.10": {
+     "point": -0.005879269519954202,
+     "half_width_game": 0.024716504509549427,
+     "half_width_player_season": 0.02292956232540143,
+     "half_width_week": 0.026379321617101544,
+     "binding": "week",
+     "binding_half_width": 0.026379321617101544,
+     "binding_ci": [
+      -0.031765336921025525,
+      0.020993306313177564
+     ],
+     "top5_share": 2.5925996806719107,
+     "sd_row_diff": 0.5265383150348975
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.08727941226464729,
+     "half_width_game": 0.02434321131604903,
+     "half_width_player_season": 0.03232923408693856,
+     "half_width_week": 0.02722261551932795,
+     "binding": "player_season",
+     "binding_half_width": 0.03232923408693856,
+     "binding_ci": [
+      -0.12069257915374057,
+      -0.05603411097986345
+     ],
+     "top5_share": 0.3179835316447049,
+     "sd_row_diff": 0.48810846087766646
+    },
+    "oracle_sigma0.20": {
+     "point": -0.08819505438808127,
+     "half_width_game": 0.055088481011566943,
+     "half_width_player_season": 0.05810874895247456,
+     "half_width_week": 0.05967318985229563,
+     "binding": "week",
+     "binding_half_width": 0.05967318985229563,
+     "binding_ci": [
+      -0.14417858172683964,
+      -0.024832202022248378
+     ],
+     "top5_share": 0.5791695629622152,
+     "sd_row_diff": 1.1364712104754078
+    }
+   },
+   "pooled|reb": {
+    "n_rows": 1571,
+    "n_games": 729,
+    "n_player_seasons": 173,
+    "n_weeks": 48,
+    "floor": 0.003,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.02036801821273506,
+     "half_width_game": 0.009994599777876447,
+     "half_width_player_season": 0.008401284975873995,
+     "half_width_week": 0.00827614671398309,
+     "binding": "game",
+     "binding_half_width": 0.009994599777876447,
+     "binding_ci": [
+      0.010288288622082978,
+      0.030277488177835873
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.19679597443691785
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.007384995694882688,
+     "half_width_game": 0.00497399700541629,
+     "half_width_player_season": 0.003849362045297294,
+     "half_width_week": 0.004092264887426756,
+     "binding": "game",
+     "binding_half_width": 0.00497399700541629,
+     "binding_ci": [
+      0.002387470776968445,
+      0.012335464787801025
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.09871653387200947
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.011390739108925992,
+     "half_width_game": 0.00517617959701693,
+     "half_width_player_season": 0.007372260467976956,
+     "half_width_week": 0.005450103689103194,
+     "binding": "player_season",
+     "binding_half_width": 0.007372260467976956,
+     "binding_ci": [
+      -0.019268995235408756,
+      -0.0045244742994548426
+     ],
+     "top5_share": 0.5140026021161244,
+     "sd_row_diff": 0.1057027865766347
+    },
+    "oracle_sigma0.10": {
+     "point": 0.0018818523170921508,
+     "half_width_game": 0.009220233676858126,
+     "half_width_player_season": 0.00934531534616104,
+     "half_width_week": 0.0099590791619222,
+     "binding": "week",
+     "binding_half_width": 0.0099590791619222,
+     "binding_ci": [
+      -0.007945830194303258,
+      0.011972328129541144
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.19389715862393303
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.04113355675119019,
+     "half_width_game": 0.011028943792262954,
+     "half_width_player_season": 0.018504141128749353,
+     "half_width_week": 0.011962851217177953,
+     "binding": "player_season",
+     "binding_half_width": 0.018504141128749353,
+     "binding_ci": [
+      -0.061400192189370775,
+      -0.02439190993187207
+     ],
+     "top5_share": 0.39852226354399634,
+     "sd_row_diff": 0.225605963200227
+    },
+    "oracle_sigma0.20": {
+     "point": -0.026037075011013343,
+     "half_width_game": 0.018487423532739584,
+     "half_width_player_season": 0.019943322425022253,
+     "half_width_week": 0.0187770035715133,
+     "binding": "player_season",
+     "binding_half_width": 0.019943322425022253,
+     "binding_ci": [
+      -0.04620282624488788,
+      -0.006316181394843381
+     ],
+     "top5_share": 0.44897024352269865,
+     "sd_row_diff": 0.39901629977800795
+    }
+   },
+   "pooled|ast": {
+    "n_rows": 1571,
+    "n_games": 729,
+    "n_player_seasons": 173,
+    "n_weeks": 48,
+    "floor": 0.002,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.013416162310710706,
+     "half_width_game": 0.0071337897175105525,
+     "half_width_player_season": 0.005758958309960181,
+     "half_width_week": 0.00487142753508125,
+     "binding": "game",
+     "binding_half_width": 0.0071337897175105525,
+     "binding_ci": [
+      0.006342826498957067,
+      0.02061040593397817
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.1434162729658648
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.005351407019584333,
+     "half_width_game": 0.0036350243002861494,
+     "half_width_player_season": 0.002526847274867127,
+     "half_width_week": 0.0024448757297044653,
+     "binding": "game",
+     "binding_half_width": 0.0036350243002861494,
+     "binding_ci": [
+      0.0017413441593668699,
+      0.009011392759939169
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.07221472097531921
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.004572890200372515,
+     "half_width_game": 0.002757688843800769,
+     "half_width_player_season": 0.003684455388069853,
+     "half_width_week": 0.0035907961457521623,
+     "binding": "player_season",
+     "binding_half_width": 0.003684455388069853,
+     "binding_ci": [
+      -0.008426903290357687,
+      -0.0010579925142179814
+     ],
+     "top5_share": 0.5709891948512099,
+     "sd_row_diff": 0.056180919676822705
+    },
+    "oracle_sigma0.10": {
+     "point": -0.0064538263127593976,
+     "half_width_game": 0.008105685668673467,
+     "half_width_player_season": 0.007412084546307904,
+     "half_width_week": 0.009885506806658725,
+     "binding": "week",
+     "binding_half_width": 0.009885506806658725,
+     "binding_ci": [
+      -0.015934400178900382,
+      0.003836613434417066
+     ],
+     "top5_share": 0.9758862104091278,
+     "sd_row_diff": 0.16900098013779338
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.017198416071735036,
+     "half_width_game": 0.005750692302201809,
+     "half_width_player_season": 0.008649330058265238,
+     "half_width_week": 0.007265105416144909,
+     "binding": "player_season",
+     "binding_half_width": 0.008649330058265238,
+     "binding_ci": [
+      -0.02657817442940413,
+      -0.009279514312873653
+     ],
+     "top5_share": 0.4057495177425867,
+     "sd_row_diff": 0.11539811959217432
+    },
+    "oracle_sigma0.20": {
+     "point": -0.032199082088260694,
+     "half_width_game": 0.017610103377889777,
+     "half_width_player_season": 0.020401777894055225,
+     "half_width_week": 0.021356251150702638,
+     "binding": "week",
+     "binding_half_width": 0.021356251150702638,
+     "binding_ci": [
+      -0.05256446917388624,
+      -0.009851966872480963
+     ],
+     "top5_share": 0.5879162762510314,
+     "sd_row_diff": 0.36196444028368535
+    }
+   },
+   "pooled|fg3m": {
+    "n_rows": 1571,
+    "n_games": 729,
+    "n_player_seasons": 173,
+    "n_weeks": 48,
+    "floor": 0.001,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.00414936252003615,
+     "half_width_game": 0.0035346326239417353,
+     "half_width_player_season": 0.0028500507167565376,
+     "half_width_week": 0.003282650402177335,
+     "binding": "game",
+     "binding_half_width": 0.0035346326239417353,
+     "binding_ci": [
+      0.0006776123889910076,
+      0.007746877636874478
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.06853248924967115
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0014357570682259541,
+     "half_width_game": 0.0017542518880938754,
+     "half_width_player_season": 0.0013691325454799987,
+     "half_width_week": 0.0015802864969528545,
+     "binding": "game",
+     "binding_half_width": 0.0017542518880938754,
+     "binding_ci": [
+      -0.0003105176128232692,
+      0.0031979861633644815
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.034267241968830894
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.001361126569163307,
+     "half_width_game": 0.0017119635923106746,
+     "half_width_player_season": 0.001987643146382182,
+     "half_width_week": 0.002061758557220248,
+     "binding": "week",
+     "binding_half_width": 0.002061758557220248,
+     "binding_ci": [
+      -0.0034749557478941135,
+      0.0006485613665463831
+     ],
+     "top5_share": 1.0222248464808668,
+     "sd_row_diff": 0.03461877315689712
+    },
+    "oracle_sigma0.10": {
+     "point": 0.001084111272836419,
+     "half_width_game": 0.00368674880587582,
+     "half_width_player_season": 0.003535837543298742,
+     "half_width_week": 0.004087793631027086,
+     "binding": "week",
+     "binding_half_width": 0.004087793631027086,
+     "binding_ci": [
+      -0.002930566037334058,
+      0.005245021224720113
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.07765417131254644
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.006600113664034259,
+     "half_width_game": 0.0035429314138909996,
+     "half_width_player_season": 0.004496671748929093,
+     "half_width_week": 0.0042238347595108545,
+     "binding": "player_season",
+     "binding_half_width": 0.004496671748929093,
+     "binding_ci": [
+      -0.011245956130004404,
+      -0.0022526126321462175
+     ],
+     "top5_share": 0.5231044241063383,
+     "sd_row_diff": 0.07181453399438012
+    },
+    "oracle_sigma0.20": {
+     "point": -0.0046381979147148734,
+     "half_width_game": 0.007728224210034207,
+     "half_width_player_season": 0.006626779595985599,
+     "half_width_week": 0.008716086661399069,
+     "binding": "week",
+     "binding_half_width": 0.008716086661399069,
+     "binding_ci": [
+      -0.012997486583570306,
+      0.004434686739227833
+     ],
+     "top5_share": 0.9740467221380871,
+     "sd_row_diff": 0.15764047201708362
+    }
+   }
+  },
+  "K20_option": {
+   "2023|pts": {
+    "n_rows": 1552,
+    "n_games": 620,
+    "n_player_seasons": 94,
+    "n_weeks": 25,
+    "floor": 0.005,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.041792410870599185,
+     "half_width_game": 0.025246187546568787,
+     "half_width_player_season": 0.028687338592889113,
+     "half_width_week": 0.03284094239342803,
+     "binding": "week",
+     "binding_half_width": 0.03284094239342803,
+     "binding_ci": [
+      0.007175488965824804,
+      0.07285737375268087
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.48970380875259256
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.014043742907668971,
+     "half_width_game": 0.012697940407225041,
+     "half_width_player_season": 0.012285646596520304,
+     "half_width_week": 0.016488293435882477,
+     "binding": "week",
+     "binding_half_width": 0.016488293435882477,
+     "binding_ci": [
+      -0.003440947594363315,
+      0.029535639277401642
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.2462452306269449
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.016759931606433975,
+     "half_width_game": 0.011423425251151753,
+     "half_width_player_season": 0.011906648127727508,
+     "half_width_week": 0.007929961749947579,
+     "binding": "player_season",
+     "binding_half_width": 0.011906648127727508,
+     "binding_ci": [
+      -0.02940756377590507,
+      -0.005594267520450056
+     ],
+     "top5_share": 0.6352052951329896,
+     "sd_row_diff": 0.22381872584774243
+    },
+    "oracle_sigma0.10": {
+     "point": -0.05113276192910884,
+     "half_width_game": 0.03446221152979302,
+     "half_width_player_season": 0.04711292603636211,
+     "half_width_week": 0.032965732874787414,
+     "binding": "player_season",
+     "binding_half_width": 0.04711292603636211,
+     "binding_ci": [
+      -0.10562057687524623,
+      -0.011394724802522018
+     ],
+     "top5_share": 0.8233164410508559,
+     "sd_row_diff": 0.6771550456498419
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.07284347903846018,
+     "half_width_game": 0.023170635338859748,
+     "half_width_player_season": 0.031683753310862484,
+     "half_width_week": 0.014639216844394388,
+     "binding": "player_season",
+     "binding_half_width": 0.031683753310862484,
+     "binding_ci": [
+      -0.10761053865011191,
+      -0.04424303202838694
+     ],
+     "top5_share": 0.47055884333646414,
+     "sd_row_diff": 0.4710699551542016
+    },
+    "oracle_sigma0.20": {
+     "point": -0.20070639552213748,
+     "half_width_game": 0.08020490224589075,
+     "half_width_player_season": 0.1561555944517752,
+     "half_width_week": 0.07614454535308743,
+     "binding": "player_season",
+     "binding_half_width": 0.1561555944517752,
+     "binding_ci": [
+      -0.38831321291523746,
+      -0.07600202401168704
+     ],
+     "top5_share": 0.669018592255921,
+     "sd_row_diff": 1.5783949408642837
+    }
+   },
+   "2023|reb": {
+    "n_rows": 1552,
+    "n_games": 620,
+    "n_player_seasons": 94,
+    "n_weeks": 25,
+    "floor": 0.003,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.011545807314560676,
+     "half_width_game": 0.008750905016240648,
+     "half_width_player_season": 0.008041988101163296,
+     "half_width_week": 0.011267792966938247,
+     "binding": "week",
+     "binding_half_width": 0.011267792966938247,
+     "binding_ci": [
+      -0.0006580076197891958,
+      0.0218775783140873
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.16503826338138908
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0036033402259705418,
+     "half_width_game": 0.004441507436155152,
+     "half_width_player_season": 0.003761675321977037,
+     "half_width_week": 0.005329952431752958,
+     "binding": "week",
+     "binding_half_width": 0.005329952431752958,
+     "binding_ci": [
+      -0.002196018707436087,
+      0.00846388615606983
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.08284767709646756
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.010155570501317645,
+     "half_width_game": 0.004654932298124512,
+     "half_width_player_season": 0.006426566504647314,
+     "half_width_week": 0.0030088980449029393,
+     "binding": "player_season",
+     "binding_half_width": 0.006426566504647314,
+     "binding_ci": [
+      -0.017401140944671968,
+      -0.0045480079353773396
+     ],
+     "top5_share": 0.5508395963272773,
+     "sd_row_diff": 0.09198284271168576
+    },
+    "oracle_sigma0.10": {
+     "point": -0.0153935474138032,
+     "half_width_game": 0.011445641894304318,
+     "half_width_player_season": 0.013560018713782934,
+     "half_width_week": 0.009592015797669336,
+     "binding": "player_season",
+     "binding_half_width": 0.013560018713782934,
+     "binding_ci": [
+      -0.03026740743825875,
+      -0.003147370010692881
+     ],
+     "top5_share": 0.8256503811968935,
+     "sd_row_diff": 0.21511884020927965
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.0335309271842297,
+     "half_width_game": 0.009625189522539374,
+     "half_width_player_season": 0.016378880479339178,
+     "half_width_week": 0.005915657211259234,
+     "binding": "player_season",
+     "binding_half_width": 0.016378880479339178,
+     "binding_ci": [
+      -0.051837840499221716,
+      -0.019080079540543356
+     ],
+     "top5_share": 0.4786212973764045,
+     "sd_row_diff": 0.1943477365326828
+    },
+    "oracle_sigma0.20": {
+     "point": -0.06169630010384513,
+     "half_width_game": 0.025526498002967826,
+     "half_width_player_season": 0.04134147278330755,
+     "half_width_week": 0.023959389394873118,
+     "binding": "player_season",
+     "binding_half_width": 0.04134147278330755,
+     "binding_ci": [
+      -0.1089480324628051,
+      -0.02626508689619001
+     ],
+     "top5_share": 0.6441898140273176,
+     "sd_row_diff": 0.48729347684031066
+    }
+   },
+   "2023|ast": {
+    "n_rows": 1552,
+    "n_games": 620,
+    "n_player_seasons": 94,
+    "n_weeks": 25,
+    "floor": 0.002,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.0066965174783412944,
+     "half_width_game": 0.006132254335888345,
+     "half_width_player_season": 0.005539734243543884,
+     "half_width_week": 0.0070042613391474535,
+     "binding": "week",
+     "binding_half_width": 0.0070042613391474535,
+     "binding_ci": [
+      -0.000800167252104332,
+      0.013208355426190576
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.1183526498426686
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.001935609248647011,
+     "half_width_game": 0.0030597937000136108,
+     "half_width_player_season": 0.0025020236381836833,
+     "half_width_week": 0.003528476592396061,
+     "binding": "week",
+     "binding_half_width": 0.003528476592396061,
+     "binding_ci": [
+      -0.001898435031647432,
+      0.00515851815314469
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.059472391981912925
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.0025205679227615022,
+     "half_width_game": 0.002793653700888357,
+     "half_width_player_season": 0.002306007339377417,
+     "half_width_week": 0.0022283814580136454,
+     "binding": "game",
+     "binding_half_width": 0.002793653700888357,
+     "binding_ci": [
+      -0.0052391478256661244,
+      0.00034815957611058915
+     ],
+     "top5_share": 0.6313873324898661,
+     "sd_row_diff": 0.054954160151996057
+    },
+    "oracle_sigma0.10": {
+     "point": -0.017439780105521645,
+     "half_width_game": 0.01147831259347663,
+     "half_width_player_season": 0.016170522894588563,
+     "half_width_week": 0.011231287682204164,
+     "binding": "player_season",
+     "binding_half_width": 0.016170522894588563,
+     "binding_ci": [
+      -0.035520515175306556,
+      -0.003179469386129432
+     ],
+     "top5_share": 0.918436328557221,
+     "sd_row_diff": 0.2279020360222065
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.011949023988512213,
+     "half_width_game": 0.005657744805153176,
+     "half_width_player_season": 0.005796734086072047,
+     "half_width_week": 0.003715613378464916,
+     "binding": "player_season",
+     "binding_half_width": 0.005796734086072047,
+     "binding_ci": [
+      -0.018088978857085932,
+      -0.00649551068494184
+     ],
+     "top5_share": 0.48245769312469017,
+     "sd_row_diff": 0.11456931714694615
+    },
+    "oracle_sigma0.20": {
+     "point": -0.06179839778074957,
+     "half_width_game": 0.026116447640657986,
+     "half_width_player_season": 0.05133310798124652,
+     "half_width_week": 0.026864639437201118,
+     "binding": "player_season",
+     "binding_half_width": 0.05133310798124652,
+     "binding_ci": [
+      -0.12034024193971493,
+      -0.017674025977221904
+     ],
+     "top5_share": 0.8335137708205201,
+     "sd_row_diff": 0.5219105936001531
+    }
+   },
+   "2023|fg3m": {
+    "n_rows": 1552,
+    "n_games": 620,
+    "n_player_seasons": 94,
+    "n_weeks": 25,
+    "floor": 0.001,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.00439073703491295,
+     "half_width_game": 0.0033826176236351462,
+     "half_width_player_season": 0.00407328923941144,
+     "half_width_week": 0.003662204050841303,
+     "binding": "player_season",
+     "binding_half_width": 0.00407328923941144,
+     "binding_ci": [
+      0.0006817428175662048,
+      0.008828321296389085
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.0661751019776914
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.001635010909075762,
+     "half_width_game": 0.0016949112023795167,
+     "half_width_player_season": 0.0019232090626164257,
+     "half_width_week": 0.0018598593948726597,
+     "binding": "player_season",
+     "binding_half_width": 0.0019232090626164257,
+     "binding_ci": [
+      -8.756914977662466e-05,
+      0.0037588489754562266
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.03362994444480043
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.0018263525314496602,
+     "half_width_game": 0.0018081483606057496,
+     "half_width_player_season": 0.0017542089659693615,
+     "half_width_week": 0.0013171992864190202,
+     "binding": "game",
+     "binding_half_width": 0.0018081483606057496,
+     "binding_ci": [
+      -0.0036136307726264126,
+      2.665948585086533e-06
+     ],
+     "top5_share": 0.8251298452547492,
+     "sd_row_diff": 0.03575938240193054
+    },
+    "oracle_sigma0.10": {
+     "point": -0.0036822686451997867,
+     "half_width_game": 0.005042126042761174,
+     "half_width_player_season": 0.00511596210924598,
+     "half_width_week": 0.00513126871121353,
+     "binding": "week",
+     "binding_half_width": 0.00513126871121353,
+     "binding_ci": [
+      -0.008943808190787106,
+      0.0013187292316399549
+     ],
+     "top5_share": 1.2441729447893422,
+     "sd_row_diff": 0.09435174785939301
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.007470767686018549,
+     "half_width_game": 0.0038510316219733474,
+     "half_width_player_season": 0.0047053521848921245,
+     "half_width_week": 0.002938269263184829,
+     "binding": "player_season",
+     "binding_half_width": 0.0047053521848921245,
+     "binding_ci": [
+      -0.0126047373611036,
+      -0.003194032991319351
+     ],
+     "top5_share": 0.6198658852380116,
+     "sd_row_diff": 0.07769068945550758
+    },
+    "oracle_sigma0.20": {
+     "point": -0.018752634201416863,
+     "half_width_game": 0.010745632345044848,
+     "half_width_player_season": 0.016424296323451448,
+     "half_width_week": 0.011508222719309366,
+     "binding": "player_season",
+     "binding_half_width": 0.016424296323451448,
+     "binding_ci": [
+      -0.03794634152076946,
+      -0.005097748873866563
+     ],
+     "top5_share": 0.7757253258207231,
+     "sd_row_diff": 0.2072419543344555
+    }
+   },
+   "2024|pts": {
+    "n_rows": 1371,
+    "n_games": 619,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.005,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.04401520042069535,
+     "half_width_game": 0.02303332312351236,
+     "half_width_player_season": 0.030576766183761074,
+     "half_width_week": 0.018443155850012535,
+     "binding": "player_season",
+     "binding_half_width": 0.030576766183761074,
+     "binding_ci": [
+      0.0175966338963902,
+      0.07875016626391235
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.4105600613736889
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.01634102874937532,
+     "half_width_game": 0.011346615650144803,
+     "half_width_player_season": 0.013203331536070723,
+     "half_width_week": 0.00887641152280865,
+     "binding": "player_season",
+     "binding_half_width": 0.013203331536070723,
+     "binding_ci": [
+      0.00452253267946151,
+      0.030929195751602957
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.20349471368678737
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.024266585079678195,
+     "half_width_game": 0.012442371617877104,
+     "half_width_player_season": 0.015905616377656046,
+     "half_width_week": 0.01162842682884685,
+     "binding": "player_season",
+     "binding_half_width": 0.015905616377656046,
+     "binding_ci": [
+      -0.041865737525744316,
+      -0.010054504770432224
+     ],
+     "top5_share": 0.6174549622202566,
+     "sd_row_diff": 0.2239600392305969
+    },
+    "oracle_sigma0.10": {
+     "point": -0.05154227054548185,
+     "half_width_game": 0.030713073796384383,
+     "half_width_player_season": 0.03532955431501787,
+     "half_width_week": 0.02391225031842243,
+     "binding": "player_season",
+     "binding_half_width": 0.03532955431501787,
+     "binding_ci": [
+      -0.08745865474450602,
+      -0.016799546114470276
+     ],
+     "top5_share": 0.5544416186061735,
+     "sd_row_diff": 0.5771681368011682
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.09267505364552625,
+     "half_width_game": 0.025130831047126274,
+     "half_width_player_season": 0.03995713659308133,
+     "half_width_week": 0.024745370547115376,
+     "binding": "player_season",
+     "binding_half_width": 0.03995713659308133,
+     "binding_ci": [
+      -0.1363840471242867,
+      -0.05646977393812404
+     ],
+     "top5_share": 0.4341534031692476,
+     "sd_row_diff": 0.46528161682895003
+    },
+    "oracle_sigma0.20": {
+     "point": -0.20958261797830144,
+     "half_width_game": 0.06383595629244558,
+     "half_width_player_season": 0.09930663045147672,
+     "half_width_week": 0.05838229063288877,
+     "binding": "player_season",
+     "binding_half_width": 0.09930663045147672,
+     "binding_ci": [
+      -0.31485714965131767,
+      -0.11624388874836424
+     ],
+     "top5_share": 0.49931790197315845,
+     "sd_row_diff": 1.1953331305632178
+    }
+   },
+   "2024|reb": {
+    "n_rows": 1371,
+    "n_games": 619,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.003,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.020050496039349185,
+     "half_width_game": 0.01123541359024665,
+     "half_width_player_season": 0.015246636043488193,
+     "half_width_week": 0.007604882838110019,
+     "binding": "player_season",
+     "binding_half_width": 0.015246636043488193,
+     "binding_ci": [
+      0.006964280555668264,
+      0.03745755264264465
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.1976706560897416
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.007629864278379614,
+     "half_width_game": 0.005543498885342611,
+     "half_width_player_season": 0.006762882914123576,
+     "half_width_week": 0.0034426752242058115,
+     "binding": "player_season",
+     "binding_half_width": 0.006762882914123576,
+     "binding_ci": [
+      0.0016558193842662618,
+      0.015181585212513414
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.09812065744038755
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.013563136929824662,
+     "half_width_game": 0.0057550269752822915,
+     "half_width_player_season": 0.009230773744048171,
+     "half_width_week": 0.005936227720386581,
+     "binding": "player_season",
+     "binding_half_width": 0.009230773744048171,
+     "binding_ci": [
+      -0.023625821979471294,
+      -0.005164274491374949
+     ],
+     "top5_share": 0.7000365299035967,
+     "sd_row_diff": 0.10972828311714591
+    },
+    "oracle_sigma0.10": {
+     "point": -0.023643134209767214,
+     "half_width_game": 0.013493069062925873,
+     "half_width_player_season": 0.01591807683068694,
+     "half_width_week": 0.009566194387141732,
+     "binding": "player_season",
+     "binding_half_width": 0.01591807683068694,
+     "binding_ci": [
+      -0.039765081248708395,
+      -0.00792892758733452
+     ],
+     "top5_share": 0.5821232479729777,
+     "sd_row_diff": 0.2543581942964383
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.04624344466247757,
+     "half_width_game": 0.012328592828086078,
+     "half_width_player_season": 0.023938152953371858,
+     "half_width_week": 0.011776965788708994,
+     "binding": "player_season",
+     "binding_half_width": 0.023938152953371858,
+     "binding_ci": [
+      -0.07269541359039221,
+      -0.024819107683648495
+     ],
+     "top5_share": 0.5681735806912351,
+     "sd_row_diff": 0.23322528232605153
+    },
+    "oracle_sigma0.20": {
+     "point": -0.08617557510345122,
+     "half_width_game": 0.028317151699766646,
+     "half_width_player_season": 0.03993067644061443,
+     "half_width_week": 0.018750748205460077,
+     "binding": "player_season",
+     "binding_half_width": 0.03993067644061443,
+     "binding_ci": [
+      -0.12841178299783193,
+      -0.04855043011660306
+     ],
+     "top5_share": 0.4748267050360697,
+     "sd_row_diff": 0.5283253312220155
+    }
+   },
+   "2024|ast": {
+    "n_rows": 1371,
+    "n_games": 619,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.002,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.009444205954395088,
+     "half_width_game": 0.005890882912288578,
+     "half_width_player_season": 0.007357106128085231,
+     "half_width_week": 0.0049304316831978515,
+     "binding": "player_season",
+     "binding_half_width": 0.007357106128085231,
+     "binding_ci": [
+      0.0027852277284355653,
+      0.017499439984606027
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.10295145370601362
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0036100253198521792,
+     "half_width_game": 0.0028921826856433694,
+     "half_width_player_season": 0.0032665901617675063,
+     "half_width_week": 0.0023163766503114763,
+     "binding": "player_season",
+     "binding_half_width": 0.0032665901617675063,
+     "binding_ci": [
+      0.0005786591050905597,
+      0.0071118394286255725
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.050983239469683216
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.004594001680254335,
+     "half_width_game": 0.0031882399770465017,
+     "half_width_player_season": 0.0037821539009634097,
+     "half_width_week": 0.003097780344666271,
+     "binding": "player_season",
+     "binding_half_width": 0.0037821539009634097,
+     "binding_ci": [
+      -0.008603651484800072,
+      -0.0010393436828732522
+     ],
+     "top5_share": 0.7952426008932655,
+     "sd_row_diff": 0.05818666634538023
+    },
+    "oracle_sigma0.10": {
+     "point": -0.01632747266676565,
+     "half_width_game": 0.009664312060849813,
+     "half_width_player_season": 0.01184359606704271,
+     "half_width_week": 0.008804300514212788,
+     "binding": "player_season",
+     "binding_half_width": 0.01184359606704271,
+     "binding_ci": [
+      -0.028838340090110267,
+      -0.005151147956024846
+     ],
+     "top5_share": 0.6799463488206554,
+     "sd_row_diff": 0.18252470531810439
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.01710365048912133,
+     "half_width_game": 0.006401808911517069,
+     "half_width_player_season": 0.008703911741383187,
+     "half_width_week": 0.006084597371709732,
+     "binding": "player_season",
+     "binding_half_width": 0.008703911741383187,
+     "binding_ci": [
+      -0.026489389883163142,
+      -0.009081566400396767
+     ],
+     "top5_share": 0.5614909628174644,
+     "sd_row_diff": 0.11916484142745305
+    },
+    "oracle_sigma0.20": {
+     "point": -0.06002369993714288,
+     "half_width_game": 0.02069477185298397,
+     "half_width_player_season": 0.03843666606330143,
+     "half_width_week": 0.020396714616759404,
+     "binding": "player_season",
+     "binding_half_width": 0.03843666606330143,
+     "binding_ci": [
+      -0.10313433004930529,
+      -0.026260997922702436
+     ],
+     "top5_share": 0.6561664874120283,
+     "sd_row_diff": 0.3860099556558721
+    }
+   },
+   "2024|fg3m": {
+    "n_rows": 1371,
+    "n_games": 619,
+    "n_player_seasons": 79,
+    "n_weeks": 25,
+    "floor": 0.001,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.003950603476829434,
+     "half_width_game": 0.0028777367750886804,
+     "half_width_player_season": 0.0028374340840206067,
+     "half_width_week": 0.002089892089728415,
+     "binding": "game",
+     "binding_half_width": 0.0028777367750886804,
+     "binding_ci": [
+      0.0010922900582958069,
+      0.0068477636084731675
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.05354958200055734
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0015646040073953517,
+     "half_width_game": 0.001416625446238504,
+     "half_width_player_season": 0.0013407519347454662,
+     "half_width_week": 0.0009631589547768553,
+     "binding": "game",
+     "binding_half_width": 0.001416625446238504,
+     "binding_ci": [
+      0.00016618693472325745,
+      0.0029994378272002655
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.026495835022122917
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.0019073555580518865,
+     "half_width_game": 0.0015839916224012758,
+     "half_width_player_season": 0.0017625221778083569,
+     "half_width_week": 0.0012729856200551246,
+     "binding": "player_season",
+     "binding_half_width": 0.0017625221778083569,
+     "binding_ci": [
+      -0.0037618413689121328,
+      -0.0002367970132954188
+     ],
+     "top5_share": 0.8403375951176189,
+     "sd_row_diff": 0.030229656725101833
+    },
+    "oracle_sigma0.10": {
+     "point": -0.0024753480519605427,
+     "half_width_game": 0.004371821264141084,
+     "half_width_player_season": 0.004695545389040184,
+     "half_width_week": 0.002508669873565855,
+     "binding": "player_season",
+     "binding_half_width": 0.004695545389040184,
+     "binding_ci": [
+      -0.006861082041758701,
+      0.0025300087363216675
+     ],
+     "top5_share": 1.1331458249624222,
+     "sd_row_diff": 0.08097202488548523
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.007492664197728281,
+     "half_width_game": 0.0032657944498184223,
+     "half_width_player_season": 0.003973797330095537,
+     "half_width_week": 0.0023793655880605578,
+     "binding": "player_season",
+     "binding_half_width": 0.003973797330095537,
+     "binding_ci": [
+      -0.011789107760567723,
+      -0.0038415131003766497
+     ],
+     "top5_share": 0.5229290140831222,
+     "sd_row_diff": 0.061314596864876725
+    },
+    "oracle_sigma0.20": {
+     "point": -0.01574631088064789,
+     "half_width_game": 0.009092288469531078,
+     "half_width_player_season": 0.01082439704020885,
+     "half_width_week": 0.0045432054130033215,
+     "binding": "player_season",
+     "binding_half_width": 0.01082439704020885,
+     "binding_ci": [
+      -0.027456915450044757,
+      -0.005808121369627056
+     ],
+     "top5_share": 0.6414949339933604,
+     "sd_row_diff": 0.16762137021684614
+    }
+   },
+   "pooled|pts": {
+    "n_rows": 2923,
+    "n_games": 1239,
+    "n_player_seasons": 173,
+    "n_weeks": 50,
+    "floor": 0.005,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.03251691524427254,
+     "half_width_game": 0.018555549805073027,
+     "half_width_player_season": 0.023647708086653958,
+     "half_width_week": 0.022839350010263392,
+     "binding": "player_season",
+     "binding_half_width": 0.023647708086653958,
+     "binding_ci": [
+      0.010116804288389103,
+      0.05741222046169702
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.5123793438305433
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.008947746760594478,
+     "half_width_game": 0.009133467735351142,
+     "half_width_player_season": 0.010649023919019167,
+     "half_width_week": 0.011574579339363936,
+     "binding": "week",
+     "binding_half_width": 0.011574579339363936,
+     "binding_ci": [
+      -0.002937772088920431,
+      0.02021138658980744
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.2569840550035011
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.025038166590978687,
+     "half_width_game": 0.009356046446090366,
+     "half_width_player_season": 0.010564639001705602,
+     "half_width_week": 0.01015147773653318,
+     "binding": "player_season",
+     "binding_half_width": 0.010564639001705602,
+     "binding_ci": [
+      -0.035612958499742574,
+      -0.014483680496331372
+     ],
+     "top5_share": 0.3136297938660457,
+     "sd_row_diff": 0.2566552028714846
+    },
+    "oracle_sigma0.10": {
+     "point": -0.044359134781349514,
+     "half_width_game": 0.020536236651425017,
+     "half_width_player_season": 0.02528858997935958,
+     "half_width_week": 0.02335464896687906,
+     "binding": "player_season",
+     "binding_half_width": 0.02528858997935958,
+     "binding_ci": [
+      -0.07098465027791137,
+      -0.020407470319192215
+     ],
+     "top5_share": 0.495208029236173,
+     "sd_row_diff": 0.5917608692246715
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.09571779388901382,
+     "half_width_game": 0.019481745784609754,
+     "half_width_player_season": 0.029141272376845738,
+     "half_width_week": 0.021740327426231686,
+     "binding": "player_season",
+     "binding_half_width": 0.029141272376845738,
+     "binding_ci": [
+      -0.1259538449850482,
+      -0.06767130023135672
+     ],
+     "top5_share": 0.2671453563100271,
+     "sd_row_diff": 0.5401187749844394
+    },
+    "oracle_sigma0.20": {
+     "point": -0.17276753163265426,
+     "half_width_game": 0.04450664018170698,
+     "half_width_player_season": 0.07682762453328125,
+     "half_width_week": 0.048168023990039666,
+     "binding": "player_season",
+     "binding_half_width": 0.07682762453328125,
+     "binding_ci": [
+      -0.2585589061316162,
+      -0.1049036570650537
+     ],
+     "top5_share": 0.3962711175371534,
+     "sd_row_diff": 1.3102708335805087
+    }
+   },
+   "pooled|reb": {
+    "n_rows": 2923,
+    "n_games": 1239,
+    "n_player_seasons": 173,
+    "n_weeks": 50,
+    "floor": 0.003,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.011077095118573419,
+     "half_width_game": 0.006976635519292541,
+     "half_width_player_season": 0.007294792382168777,
+     "half_width_week": 0.006661647232566863,
+     "binding": "player_season",
+     "binding_half_width": 0.007294792382168777,
+     "binding_ci": [
+      0.0041084558565111775,
+      0.018698040620848733
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.1985723671615303
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.002712275612940758,
+     "half_width_game": 0.0034971139862109944,
+     "half_width_player_season": 0.003416275846349371,
+     "half_width_week": 0.003422142415121469,
+     "binding": "game",
+     "binding_half_width": 0.0034971139862109944,
+     "binding_ci": [
+      -0.0007411035284326993,
+      0.0062531244439892894
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.09930020261198844
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.009558776783360999,
+     "half_width_game": 0.004181604541480832,
+     "half_width_player_season": 0.004201478807215827,
+     "half_width_week": 0.0039686856801220815,
+     "binding": "player_season",
+     "binding_half_width": 0.004201478807215827,
+     "binding_ci": [
+      -0.013834303900313455,
+      -0.0054313462858818
+     ],
+     "top5_share": 0.3568457717557915,
+     "sd_row_diff": 0.11641979771934208
+    },
+    "oracle_sigma0.10": {
+     "point": -0.01397072127001911,
+     "half_width_game": 0.007072145511182578,
+     "half_width_player_season": 0.007272549305783006,
+     "half_width_week": 0.0073726554968302355,
+     "binding": "week",
+     "binding_half_width": 0.0073726554968302355,
+     "binding_ci": [
+      -0.020974944979994692,
+      -0.00622963398633422
+     ],
+     "top5_share": 0.37132125827761325,
+     "sd_row_diff": 0.19996970630936872
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.03869279435616944,
+     "half_width_game": 0.008683732940275427,
+     "half_width_player_season": 0.012016001187422062,
+     "half_width_week": 0.00915503555115113,
+     "binding": "player_season",
+     "binding_half_width": 0.012016001187422062,
+     "binding_ci": [
+      -0.0513669343549448,
+      -0.027334931980100674
+     ],
+     "top5_share": 0.31140865872486945,
+     "sd_row_diff": 0.24749338864377132
+    },
+    "oracle_sigma0.20": {
+     "point": -0.05775188760019407,
+     "half_width_game": 0.014635789595112254,
+     "half_width_player_season": 0.020800779791987627,
+     "half_width_week": 0.014680594447938941,
+     "binding": "player_season",
+     "binding_half_width": 0.020800779791987627,
+     "binding_ci": [
+      -0.07986860228989251,
+      -0.038267042705917256
+     ],
+     "top5_share": 0.30345134088337516,
+     "sd_row_diff": 0.42982187668137667
+    }
+   },
+   "pooled|ast": {
+    "n_rows": 2923,
+    "n_games": 1239,
+    "n_player_seasons": 173,
+    "n_weeks": 50,
+    "floor": 0.002,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.009341876632339506,
+     "half_width_game": 0.0052653196163781075,
+     "half_width_player_season": 0.007708685593266283,
+     "half_width_week": 0.00640870996486587,
+     "binding": "player_season",
+     "binding_half_width": 0.007708685593266283,
+     "binding_ci": [
+      0.002632250754860249,
+      0.018049621941392816
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.14539776404414378
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0030661821564046,
+     "half_width_game": 0.0026686574600071427,
+     "half_width_player_season": 0.0033481868006262996,
+     "half_width_week": 0.003132400836473388,
+     "binding": "player_season",
+     "binding_half_width": 0.0033481868006262996,
+     "binding_ci": [
+      0.00010468684154775061,
+      0.00680106044280035
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.0727749866470461
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.004672048431651748,
+     "half_width_game": 0.002202305087323047,
+     "half_width_player_season": 0.0026493514859537957,
+     "half_width_week": 0.0024217927559636657,
+     "binding": "player_season",
+     "binding_half_width": 0.0026493514859537957,
+     "binding_ci": [
+      -0.00741672961930116,
+      -0.0021180266473935687
+     ],
+     "top5_share": 0.41991505287468506,
+     "sd_row_diff": 0.059363933107750136
+    },
+    "oracle_sigma0.10": {
+     "point": -0.012929605728534539,
+     "half_width_game": 0.006482570727311494,
+     "half_width_player_season": 0.008237364931494576,
+     "half_width_week": 0.007907658828199842,
+     "binding": "player_season",
+     "binding_half_width": 0.008237364931494576,
+     "binding_ci": [
+      -0.021715049206977567,
+      -0.0052403193439884135
+     ],
+     "top5_share": 0.6457368122139445,
+     "sd_row_diff": 0.1839002752960713
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.01692539945345862,
+     "half_width_game": 0.004562460569064316,
+     "half_width_player_season": 0.006250152305779941,
+     "half_width_week": 0.005121872267354196,
+     "binding": "player_season",
+     "binding_half_width": 0.006250152305779941,
+     "binding_ci": [
+      -0.02347134325475716,
+      -0.010971038643197277
+     ],
+     "top5_share": 0.3109181503671437,
+     "sd_row_diff": 0.12450442913537886
+    },
+    "oracle_sigma0.20": {
+     "point": -0.04883861057324264,
+     "half_width_game": 0.014306948080152808,
+     "half_width_player_season": 0.024779408465948213,
+     "half_width_week": 0.017465423094365187,
+     "binding": "player_season",
+     "binding_half_width": 0.024779408465948213,
+     "binding_ci": [
+      -0.07542615501002381,
+      -0.02586733807812738
+     ],
+     "top5_share": 0.5363469621285168,
+     "sd_row_diff": 0.4076334651473691
+    }
+   },
+   "pooled|fg3m": {
+    "n_rows": 2923,
+    "n_games": 1239,
+    "n_player_seasons": 173,
+    "n_weeks": 50,
+    "floor": 0.001,
+    "null_noise_arm_sigma0.10": {
+     "point": 0.0024460984291624034,
+     "half_width_game": 0.0025569302936742566,
+     "half_width_player_season": 0.0032744518513128243,
+     "half_width_week": 0.0032440457111990013,
+     "binding": "player_season",
+     "binding_half_width": 0.0032744518513128243,
+     "binding_ci": [
+      -0.0007230752375904045,
+      0.005825828465035244
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.07073276316681466
+    },
+    "null_noise_arm_sigma0.05": {
+     "point": 0.0005416586039310375,
+     "half_width_game": 0.001273433033527606,
+     "half_width_player_season": 0.0015098532216533214,
+     "half_width_week": 0.0016120267278266348,
+     "binding": "week",
+     "binding_half_width": 0.0016120267278266348,
+     "binding_ci": [
+      -0.001109860661945588,
+      0.0021141927937076816
+     ],
+     "top5_share": NaN,
+     "sd_row_diff": 0.035551697502944915
+    },
+    "half_recovery_sigma0.10": {
+     "point": -0.002459687624906891,
+     "half_width_game": 0.0013653684025015085,
+     "half_width_player_season": 0.0016669412734332946,
+     "half_width_week": 0.00145583479741135,
+     "binding": "player_season",
+     "binding_half_width": 0.0016669412734332946,
+     "binding_ci": [
+      -0.004199603259448967,
+      -0.000865720712582378
+     ],
+     "top5_share": 0.5761349826846206,
+     "sd_row_diff": 0.037299383245076256
+    },
+    "oracle_sigma0.10": {
+     "point": -0.004189619024176012,
+     "half_width_game": 0.0030140069735660156,
+     "half_width_player_season": 0.0031576955128037086,
+     "half_width_week": 0.003621168231747963,
+     "binding": "week",
+     "binding_half_width": 0.003621168231747963,
+     "binding_ci": [
+      -0.007759323488730467,
+      -0.0005169870252345409
+     ],
+     "top5_share": 0.5776655586806442,
+     "sd_row_diff": 0.08493912311184236
+    },
+    "half_recovery_sigma0.20": {
+     "point": -0.008996082138973618,
+     "half_width_game": 0.0028713422631823473,
+     "half_width_player_season": 0.0038474139493699312,
+     "half_width_week": 0.002914606908487407,
+     "binding": "player_season",
+     "binding_half_width": 0.0038474139493699312,
+     "binding_ci": [
+      -0.013023128934644475,
+      -0.005328301035904612
+     ],
+     "top5_share": 0.38352107401112046,
+     "sd_row_diff": 0.07791862809812058
+    },
+    "oracle_sigma0.20": {
+     "point": -0.01662891654897355,
+     "half_width_game": 0.0063311573668144,
+     "half_width_player_season": 0.00791247376008855,
+     "half_width_week": 0.006762909872641934,
+     "binding": "player_season",
+     "binding_half_width": 0.00791247376008855,
+     "binding_ci": [
+      -0.02504400883072956,
+      -0.009219061310552458
+     ],
+     "top5_share": 0.40881487942753225,
+     "sd_row_diff": 0.17954130755243813
+    }
+   }
+  }
+ },
+ "a0_reproduction": [
+  {
+   "season": 2023,
+   "stat": "pts",
+   "n": 27619,
+   "n_ref": 27619,
+   "crps_pge": 3.152829990762183,
+   "crps_grid": 3.152829990762183,
+   "crps_ref": 3.152829990762183,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "stat": "reb",
+   "n": 27619,
+   "n_ref": 27619,
+   "crps_pge": 1.2928172686712307,
+   "crps_grid": 1.292817268671231,
+   "crps_ref": 1.2928172686712307,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "stat": "ast",
+   "n": 27619,
+   "n_ref": 27619,
+   "crps_pge": 0.9059028606321847,
+   "crps_grid": 0.9059028606321847,
+   "crps_ref": 0.9059028606321847,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  },
+  {
+   "season": 2023,
+   "stat": "fg3m",
+   "n": 27619,
+   "n_ref": 27619,
+   "crps_pge": 0.5690486141021416,
+   "crps_grid": 0.5690486141021416,
+   "crps_ref": 0.5690486141021416,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "stat": "pts",
+   "n": 27583,
+   "n_ref": 27583,
+   "crps_pge": 3.1884109851549947,
+   "crps_grid": 3.1884109851549947,
+   "crps_ref": 3.1884109851549947,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "stat": "reb",
+   "n": 27583,
+   "n_ref": 27583,
+   "crps_pge": 1.3139946716237645,
+   "crps_grid": 1.3139946716237645,
+   "crps_ref": 1.3139946716237645,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "stat": "ast",
+   "n": 27583,
+   "n_ref": 27583,
+   "crps_pge": 0.9010234364001779,
+   "crps_grid": 0.9010234364001779,
+   "crps_ref": 0.9010234364001779,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  },
+  {
+   "season": 2024,
+   "stat": "fg3m",
+   "n": 27583,
+   "n_ref": 27583,
+   "crps_pge": 0.5922775210770066,
+   "crps_grid": 0.5922775210770066,
+   "crps_ref": 0.5922775210770066,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "ok": true
+  }
+ ],
+ "checks": [
+  {
+   "check": "G1 2023 cohort rows per stat with own-team salary >= 400",
+   "value": 841,
+   "bar": ">= 400",
+   "pass": true
+  },
+  {
+   "check": "G2 2023 share of cohort rows with own-team salary >= 0.7",
+   "value": 0.699667221297837,
+   "bar": ">= 0.7",
+   "pass": false
+  },
+  {
+   "check": "G3 2023 share of cohort rows with a resolved-id salary on any page >= 0.95",
+   "value": 0.910981697171381,
+   "bar": ">= 0.95",
+   "pass": false
+  },
+  {
+   "check": "G5 2023 known-at violations",
+   "value": 0,
+   "bar": "== 0",
+   "pass": true
+  },
+  {
+   "check": "G8 2023 Spearman (non-movers, -salary rank vs mpg) CI excludes 0",
+   "value": {
+    "rho": 0.7152649292240564,
+    "lo": 0.6429902705394973,
+    "hi": 0.7768594053451896,
+    "n": 251
+   },
+   "bar": "lo > 0",
+   "pass": true
+  },
+  {
+   "check": "G6 2023 pts binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.005",
+   "value": 0.016710474972404726,
+   "bar": "<= 0.005",
+   "pass": false
+  },
+  {
+   "check": "G6 2023 reb binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.003",
+   "value": 0.005826786004256628,
+   "bar": "<= 0.003",
+   "pass": false
+  },
+  {
+   "check": "G6 2023 ast binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.002",
+   "value": 0.0039537733061930985,
+   "bar": "<= 0.002",
+   "pass": false
+  },
+  {
+   "check": "G6 2023 fg3m binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.001",
+   "value": 0.002117929313996366,
+   "bar": "<= 0.001",
+   "pass": false
+  },
+  {
+   "check": "G1 2024 cohort rows per stat with own-team salary >= 400",
+   "value": 730,
+   "bar": ">= 400",
+   "pass": true
+  },
+  {
+   "check": "G2 2024 share of cohort rows with own-team salary >= 0.7",
+   "value": 0.7121951219512195,
+   "bar": ">= 0.7",
+   "pass": true
+  },
+  {
+   "check": "G3 2024 share of cohort rows with a resolved-id salary on any page >= 0.95",
+   "value": 0.88,
+   "bar": ">= 0.95",
+   "pass": false
+  },
+  {
+   "check": "G5 2024 known-at violations",
+   "value": 0,
+   "bar": "== 0",
+   "pass": true
+  },
+  {
+   "check": "G8 2024 Spearman (non-movers, -salary rank vs mpg) CI excludes 0",
+   "value": {
+    "rho": 0.6959331592789413,
+    "lo": 0.6219384898670267,
+    "hi": 0.7571048788458627,
+    "n": 264
+   },
+   "bar": "lo > 0",
+   "pass": true
+  },
+  {
+   "check": "G6 2024 pts binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.005",
+   "value": 0.017042402763329065,
+   "bar": "<= 0.005",
+   "pass": false
+  },
+  {
+   "check": "G6 2024 reb binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.003",
+   "value": 0.008268553409550499,
+   "bar": "<= 0.003",
+   "pass": false
+  },
+  {
+   "check": "G6 2024 ast binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.002",
+   "value": 0.004090303613071919,
+   "bar": "<= 0.002",
+   "pass": false
+  },
+  {
+   "check": "G6 2024 fg3m binding half-width of the null contrast (noise arm, sd of log lambda 0.05) <= floor 0.001",
+   "value": 0.002225807305721877,
+   "bar": "<= 0.001",
+   "pass": false
+  },
+  {
+   "check": "G4 A0 reproduction (8 cells: 2 seasons x 4 stats, 1e-9)",
+   "value": 8,
+   "bar": "8 of 8",
+   "pass": true
+  },
+  {
+   "check": "G7 positive control 2023 pts: oracle sigma 0.20 clears (point <= -floor, binding CI upper < 0)",
+   "value": [
+    -0.2887259166859249,
+    -0.10477743359755838
+   ],
+   "bar": "hi < 0 and point <= -0.005",
+   "pass": true
+  },
+  {
+   "check": "G7 positive control 2024 pts: oracle sigma 0.20 clears (point <= -floor, binding CI upper < 0)",
+   "value": [
+    -0.34402396991713097,
+    -0.09222254460269157
+   ],
+   "bar": "hi < 0 and point <= -0.005",
+   "pass": true
+  },
+  {
+   "check": "G9 season 2025 loaded",
+   "value": false,
+   "bar": "never",
+   "pass": true
+  }
+ ],
+ "wall_seconds": 12.6
+}
