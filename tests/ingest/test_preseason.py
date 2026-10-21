@@ -191,3 +191,8 @@ def test_gate_counts_changer_and_planted_future_row() -> None:
         "with_ge1_preseason_game_new_team": 2,
     }
     assert out["per_season"][0]["games"] == 2  # type: ignore[index]
+
+
+def test_bad_minutes_string_becomes_null_not_crash() -> None:
+    out = ps._blank_bad_minutes(_box_raw(["30:00", "-1:0-57", "", "PT0M00.00S", "12"]))
+    assert out["minutes"].to_list() == ["30:00", None, None, "PT0M00.00S", "12"]

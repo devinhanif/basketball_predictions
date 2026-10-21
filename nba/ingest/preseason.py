@@ -261,6 +261,23 @@ def _count_dropped(raw: pl.DataFrame, kept: int) -> int:
     return n - kept
 
 
+_MINUTES_OK = r"^(\d+:\d{1,2}|PT\d+(\.\d+)?M\d+(\.\d+)?S|\d+(\.\d+)?)$"
+
+
+def _blank_bad_minutes(raw: pl.DataFrame) -> pl.DataFrame:
+    """Unparseable or empty minutes (e.g. '-1:0-57' in game 0012300003) become NULL (unknown).
+
+    The raw file is untouched; the cleaned table carries NULL, which a ``minutes > 0`` filter
+    excludes, rather than a guessed value.
+    """
+    return raw.with_columns(
+        pl.when(pl.col("minutes").cast(pl.Utf8).str.contains(_MINUTES_OK))
+        .then(pl.col("minutes"))
+        .otherwise(None)
+        .alias("minutes")
+    )
+
+
 def build_tables(
     raw_dir: Path, seasons: list[int], loaded_at: dt.datetime
 ) -> tuple[pl.DataFrame, pl.DataFrame, list[str]]:
@@ -279,7 +296,7 @@ def build_tables(
             if not bp.exists():
                 missing.append(gid)
                 continue
-            norm = _normalize_boxscore_v3_frame(pl.read_parquet(bp), gid)
+            norm = _normalize_boxscore_v3_frame(_blank_bad_minutes(pl.read_parquet(bp)), gid)
             if not norm.is_empty():
                 stat_parts.append(norm.select(STATS_COLUMNS[:-1]))
     games_all = (
