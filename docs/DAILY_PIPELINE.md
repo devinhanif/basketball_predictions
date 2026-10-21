@@ -237,7 +237,7 @@ recalibration; rookies and offseason moves are invisible until a first box score
 | Job | When | Steps |
 |---|---|---|
 | `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
-| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
+| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, **early forecast + early briefing** (below), last night's coverage + scorecard, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; each fetch capped at 30 min, `postgame_load` at 20; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 **Optional fact-store rebuild (drafted 2026-10-11; approved ON by Devin 2026-10-11, switch NOT yet in the job environment).** `ops/nba_daily.sh morning` has a step `facts` right after
 `report`: `python -m nba.facts build --seasons 2022,2023,2024,2026 --schedule-seasons 2026 --out data/facts/facts.duckdb`.
@@ -843,3 +843,34 @@ writer on `nba.duckdb`:
 4. If the fresh official box still disagrees with the official score, add a DECISIONS row naming the game; its
    keys stay unscored (the game leaves the population on both sides; the checkpoint does not list it yet,
    follow-up F1).
+
+## Morning job order, early briefing, step timeouts (2026-10-21)
+
+Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest`, `settle`, `checkpoint`, `report`,
+**`early_forecast`**, **`briefing_early`**, `coverage_yesterday`, `scorecard`, (`facts`, opt-in), `parlay_settle`,
+`fetch_tracking`, `fetch_hustle`, `fetch_officials`, `fetch_matchups`, `postgame_load`, `data_snapshot`, `data_diff`,
+`data_check`, backup, Drive copies.
+
+* **Why** (Devin, 2026-10-21: "can we not do an early morning version that says why?"): the forecast and the briefing
+  must not wait behind the slow post-game fetches. `early_forecast` is the pretip predict call with the same flags
+  (`--roster-source "$ROSTER"` from `ops/roster_source.sh`, int and lower-tail variants, the pplay, full, avg and combo
+  shadows, `--rate-limit-s 2.5`); rc 4 informational, any other non-zero alerts. Scoring is unchanged: the scored row is the latest
+  `made_at <= tip - lead` (FORWARD_PREREG rules 3-4), so an extra early row never changes it, and the store writes
+  only on change. On a day with no games it predicts nothing.
+* **Briefings** (`python -m nba.explain slate`, rc 4 = no forecast rows yet, informational): the early edition is
+  `reports/briefing/<date ET>_early.md` (written once, in the morning job); the report edition
+  `reports/briefing/<date ET>_report.md` is written by the pretip branch right after `predict` (before `refs` and
+  `market_capture`) and is overwritten by every pretip run, so it is the latest run's picture.
+* **Timeouts**: `fetch_*` are wrapped in `alarm_run 1800` and `postgame_load` in `alarm_run 1200`
+  (`perl -e 'alarm shift; exec @ARGV; ... exit 127'`; macOS has no `timeout`; the alarm survives `exec`; `uv run` forks
+  python and forwards SIGALRM (uv 0.12.23; re-check after an upgrade); an unexecutable command exits 127 and fails the step).
+  `early_forecast` and the pretip `predict` are wrapped too (`alarm_run 1200`, `NBA_EARLY_TIMEOUT_S` /
+  `NBA_PREDICT_TIMEOUT_S`): the same call ran 7057 s on 10-20 and 12244 s on 10-19 holding the lock. A hang ends with rc 142, alerts as "timed out", and the next steps run. Override for tests with
+  `NBA_FETCH_TIMEOUT_S` / `NBA_LOAD_TIMEOUT_S`.
+* **The lock stays held for the whole job.** `nba.duckdb` is single-writer and the later morning steps write to it; an
+  early release would let a pretip run interleave. The timeout is the fix, not a release.
+* **Incident (2026-10-21)**: `fetch_tracking` (`nba.ingest postgame-fetch --source tracking`) hung from 07:00:20 and
+  held `data/ops/lock` for 2 h+. Every pretip slot (08:20, 08:50, ...) skipped ("another job holds data/ops/lock") and
+  the slate had no forecast by 09:00. A job that cannot start cannot alert; the watchdog saw the consecutive skips.
+* Any failed morning step (including a timed-out fetch or a failed briefing) fails the app-export gate
+  (`nba.ops.app_export.data_step_problem`); that is unchanged behaviour for a failed step.

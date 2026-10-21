@@ -236,3 +236,133 @@ def test_settle_rc4_is_informational_and_rc5_alerts(tmp_path: Path) -> None:
         )
         alerts[rc] = (d / "root" / "data" / "ops" / "ALERTS.md").exists()
     assert alerts == {4: False, 5: True}
+
+
+# --- early briefing + report edition + post-game timeouts (Devin 2026-10-21) ---------------------
+
+
+def _run_mode(
+    tmp: Path, mode: str, uv_body: str = "", extra_env: dict[str, str] | None = None
+) -> tuple[int, list[str], Path]:
+    """Run the real script with a stub uv that records every call; ``uv_body`` adds case arms."""
+    import os
+    import subprocess
+
+    root = tmp / "root"
+    (root / "data").mkdir(parents=True)
+    uv, rclone = tmp / "uv", tmp / "rclone"
+    uv.write_text(f'#!/bin/sh\necho "$@" >> "{tmp}/calls"\ncase "$*" in\n{uv_body}\nesac\nexit 0\n')
+    rclone.write_text("#!/bin/sh\nexit 0\n")
+    for f in (uv, rclone):
+        f.chmod(0o755)
+    env = {"PATH": os.environ["PATH"], "NBA_ROOT": str(root), "NBA_UV": str(uv),
+           "NBA_RCLONE": str(rclone), **(extra_env or {})}  # fmt: skip
+    p = subprocess.run(["sh", str(SCRIPT_PATH), mode], env=env, capture_output=True, text=True)
+    calls = (tmp / "calls").read_text().splitlines() if (tmp / "calls").exists() else []
+    return p.returncode, calls, root
+
+
+def _idx(calls: list[str], needle: str) -> int:
+    return next(i for i, c in enumerate(calls) if needle in c)
+
+
+def test_morning_runs_early_forecast_and_briefing_after_report_before_fetches(
+    tmp_path: Path,
+) -> None:
+    _, calls, _ = _run_mode(tmp_path, "morning")
+    rep, fc = _idx(calls, "daily report"), _idx(calls, "daily run --date")
+    br = _idx(calls, "nba.explain slate")
+    assert rep < fc < br < _idx(calls, "coverage --date")
+    assert br < _idx(calls, "postgame-fetch --source tracking")
+    assert "--edition early" in calls[br] and "_early.md" in calls[br]
+    # the early forecast carries exactly the pretip predict flags
+    assert (
+        _step("early_forecast").split("--roster-source", 1)[1]
+        == _step("predict").split("--roster-source", 1)[1]
+    )
+
+
+def test_pretip_runs_briefing_report_after_predict_before_refs_and_market(tmp_path: Path) -> None:
+    _, calls, _ = _run_mode(tmp_path, "pretip")
+    pr, br = _idx(calls, "daily run --date"), _idx(calls, "nba.explain slate")
+    assert pr < br < _idx(calls, "ingest.referees") < _idx(calls, "markets capture")
+    assert "--edition report" in calls[br] and "_report.md" in calls[br]
+
+
+def test_briefing_and_early_forecast_rc4_informational_other_alerts(tmp_path: Path) -> None:
+    arms = '*"nba.explain slate"*) exit {rc};;\n*"nba.daily run"*) exit {rc};;'
+    out = {}
+    for rc in (4, 5):
+        d = tmp_path / f"rc{rc}"
+        _run_mode(d, "morning", arms.format(rc=rc))
+        a = d / "root/data/ops/ALERTS.md"
+        out[rc] = a.read_text() if a.exists() else ""
+    assert out[4] == ""
+    assert "early_forecast failed" in out[5] and "briefing_early failed" in out[5]
+
+
+def test_postgame_steps_are_wrapped_with_the_alarm() -> None:
+    assert re.search(r'step "fetch_\$s" alarm_run "\$FETCH_TIMEOUT_S"', SCRIPT)
+    assert _step("postgame_load").startswith('alarm_run "$LOAD_TIMEOUT_S"')
+    assert "FETCH_TIMEOUT_S=${NBA_FETCH_TIMEOUT_S:-1800}" in SCRIPT
+    assert "LOAD_TIMEOUT_S=${NBA_LOAD_TIMEOUT_S:-1200}" in SCRIPT
+    assert "alarm shift; exec @ARGV" in SCRIPT
+    assert "exit 127" in SCRIPT
+    assert _step("predict").startswith('alarm_run "$PREDICT_TIMEOUT_S"')
+    assert _step("early_forecast").startswith('alarm_run "$EARLY_TIMEOUT_S"')
+
+
+def test_a_hung_fetch_alerts_as_timeout_and_the_following_steps_still_run(tmp_path: Path) -> None:
+    # stub uv hangs in the tracking fetch; a 1 s alarm ends it with rc 142
+    _, calls, root = _run_mode(
+        tmp_path,
+        "morning",
+        '*"postgame-fetch --source tracking"*) exec sleep 30;;',
+        {"NBA_FETCH_TIMEOUT_S": "1"},
+    )
+    steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
+    assert "fetch_tracking 142 failed" in steps
+    assert "fetch_tracking timed out" in (root / "data/ops/ALERTS.md").read_text()
+    after = [x.split()[0] for x in steps[steps.index("fetch_tracking 142 failed") + 1 :]]
+    assert {
+        "fetch_hustle",
+        "fetch_officials",
+        "fetch_matchups",
+        "postgame_load",
+        "data_check",
+    } <= set(after)
+    assert any("source hustle" in c for c in calls)
+
+
+def test_exit_142_from_a_fetch_step_alerts(tmp_path: Path) -> None:
+    _, _, root = _run_mode(tmp_path, "morning", '*"source officials"*) exit 142;;')
+    assert "fetch_officials timed out" in (root / "data/ops/ALERTS.md").read_text()
+
+
+def test_a_hung_early_forecast_alerts_and_the_morning_continues(tmp_path: Path) -> None:
+    _, calls, root = _run_mode(
+        tmp_path, "morning", '*"daily run --date"*) exec sleep 30;;', {"NBA_EARLY_TIMEOUT_S": "1"}
+    )
+    steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
+    assert "early_forecast 142 failed" in steps
+    assert "early_forecast timed out" in (root / "data/ops/ALERTS.md").read_text()
+    assert any("nba.explain slate" in c for c in calls) and any(
+        "postgame-fetch" in c for c in calls
+    )
+
+
+def test_a_hung_pretip_predict_alerts_and_the_following_steps_run(tmp_path: Path) -> None:
+    _, calls, root = _run_mode(
+        tmp_path, "pretip", '*"daily run --date"*) exec sleep 30;;', {"NBA_PREDICT_TIMEOUT_S": "1"}
+    )
+    steps = (root / "data/ops/heartbeat/daily-pretip.steps").read_text().splitlines()
+    assert "predict 142 failed" in steps
+    assert "predict timed out" in (root / "data/ops/ALERTS.md").read_text()
+    assert any("ingest.referees" in c for c in calls) and any("markets capture" in c for c in calls)
+
+
+def test_alarm_run_of_a_missing_command_fails_the_step(tmp_path: Path) -> None:
+    _, _, root = _run_mode(tmp_path, "morning", "", {"NBA_UV": str(tmp_path / "no_such_uv")})
+    steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
+    # the unwrapped steps (127 from the shell) and the wrapped ones (127 from alarm_run) both fail
+    assert "fetch_tracking 127 failed" in steps and "early_forecast 127 failed" in steps
