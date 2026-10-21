@@ -228,3 +228,35 @@ exceed 1 per month, or the official source shows systematic box/score disagreeme
 
 FORWARD_PREREG_2026_27.md Amendments (draft engineering note, no rule changed): the text quoted under
 "Frozen-rule judgement", acceptable condition (2).
+
+## Re-check f5f0f63 (2026-10-21)
+
+Read: `git diff 5521209..f5f0f63` (6 files, +77/-14; no data/, ingest_step, pipeline or FORWARD_PREREG
+change: the grep exited 1).
+
+Verdict: APPROVED
+
+| Item | Status |
+|---|---|
+| M1 runbook (DAILY_PIPELINE.md:802-818) | Fixed. The steward's correction is right: `nba.daily ingest` cannot re-select a game that has rows. I checked each step against the code. `cache_path_for('boxscore', gid)` = `data/boxscore/<gid>.parquet` (cache.py:125-128). `is_cached` needs a 'done' `ingest_log` row AND an existing file (cache.py:131-139), so either step 2 action alone forces a refetch; doing both is belt and braces. `ingest_log` has PK (source, key) (schema.sql:273-280), so the DELETE is exact. `pull_game_boxscore` -> `fetch_cached(allow_empty=False)` -> `upsert_player_game_stats`, which runs `DELETE ... WHERE game_id IN (df game ids)` and then inserts (boxscores.py:197-208). The rows are replaced. If the refetch comes back empty, it raises before any delete, so the old rows survive (safe). |
+| M2 shadow sentence (DAILY_PIPELINE.md:798-800) | Fixed. |
+| m1 withdrawn placement (settle.py:169-176) | Fixed: the withdrawn test now sits inside the forward_scores branch only. No dedicated test (nit n2). |
+| m2 one scan (`settle_with_refusals`, settle.py:88-159; `__main__.py:378`; elig call removed; `bx` restricted to the keys' games) | Fixed. `settle_pending` keeps its signature (returns `[0]`). |
+| m3 `_counts` now asserts all four refusal counts are 0 (test_daily.py:295-301) | Fixed. |
+| m4 tests: one-team box, foreign team_id, thin+mismatched precedence, props-only, 23 h 59 m (test_box_consistency.py:129-157) | Fixed (see nit n1). |
+| m5 morning table row (DAILY_PIPELINE.md:216) | Fixed. |
+| m6 filler docstring (conftest.py:78-80) | Fixed. |
+
+Verification (steward worktree at f5f0f63, read-only, `PYTHONDONTWRITEBYTECODE=1 -p no:cacheprovider`):
+- `uv run --no-sync pytest tests/daily tests/ops tests/test_layering.py --no-cov -q`: `466 passed, 13 warnings in 275.14s (0:04:35)`, exit 0. That is 464 plus the 2 new tests. The combo flake did not fire.
+- `ruff check --no-cache` on the 5 changed .py files: "All checks passed!" exit 0. `ruff format --check`: "5 files already formatted" exit 0. `mypy --no-incremental nba/daily/settle.py nba/daily/__main__.py`: "Success: no issues found in 2 source files" exit 0.
+
+Nits (none blocks):
+- n1. test_box_consistency.py:156-157: the 23 h 59 m assert (`refused_stale == 0`) would also pass if nothing were refused. Fix: `out = settle_pending(con, near); assert out["refused_box_mismatch"] == 1 and out["refused_stale"] == 0`.
+- n2. No test for m1. Fix: withdraw one prereg prop key of a mismatched game whose other keys are all scored in forward_scores, then assert the game is still listed by `refused_games` (via its elig key).
+- n3. Runbook step 3 (DAILY_PIPELINE.md:813): use `uv run --no-sync` (repo convention), and say to run it from the main checkout so `connect()` opens the production `nba.duckdb`.
+
+Prereg Amendments note held for Devin: this does not change the verdict on the branch. The branch does not
+edit the frozen text. Every game whose box ever agrees is scored identically, only later. The rest (at most
+about 0.8 games per season, Wilson upper bound) is documented in runbook step 4 and stays a population note
+for Devin to place.
