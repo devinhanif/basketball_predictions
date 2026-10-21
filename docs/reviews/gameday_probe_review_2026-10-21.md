@@ -129,3 +129,46 @@ pattern as "a job that cannot start cannot alert", one level down.
 
 Drafted DECISIONS row (not appended):
 `2026-10-21 | B game-day probe merged (eabb2bd + edits) | adversary APPROVED WITH EDITS (docs/reviews/gameday_probe_review_2026-10-21.md); M1 silent-on-missing-schedule fixed | reverse if the probe's daily noise (slate, morning) leads to a missed battery/caffeinate alert`
+
+## Re-check 3cccc18 (2026-10-21)
+
+Revision: `git diff eabb2bd..3cccc18` touches `nba/ops/watchdog.py` (+51/-32), `tests/ops/test_watchdog_gameday.py` (+100) and a
+new `tests/ops/conftest.py` (+12). Nothing outside nba/ops and its tests.
+
+Verdict: APPROVED
+
+Each edit:
+- **M1, in.** `todays_slate` now tracks `read_any` and raises `FileNotFoundError` when neither source can be read. Re-running my
+  attack A2 now raises instead of returning `[]`. Tests: `test_unreadable_schedule_is_the_probe_alert_not_silence`, which calls the
+  real default `slate_fn`, and `test_corrupt_cache_with_good_live_tips_still_works`.
+- **M2 option (c), in.** The slate check moved last, giving the order battery, caffeinate, morning, slate. Test:
+  `test_notification_order_battery_caffeinate_morning_slate`.
+- **m1, in.** pgrep rc not in (0, 1) now raises, which surfaces as `probe-caffeinate`. Tests: `test_pgrep_error_exit_is_not_not_running`
+  (real function, `subprocess.run` mocked) and `test_pgrep_error_surfaces_as_probe_caffeinate`.
+- **m2, in.** The crash key is now `gameday:<ET date>:probe-crash`. `test_check_survives_probe_crash` was updated.
+- **m3, in.** The slate text now ends "(expected: `games` gets a row only once a game starts; not a fetch failure)".
+- **m4, in.** Both morning messages name `data/ops/morning_<YYYYMMDD>.log`, and "not ended" carries "(N min since start)". The step
+  name was deliberately left out, which is accepted.
+- **m5, partly in.** The parquet branch, pgrep exit codes and a same-day flap are now tested. Still untested, all minor: the DST change
+  on 11-01, pruning of other days' keys, the real `on_battery` parse, and the real lock path to `DbBusy`.
+
+The conftest fixture cannot mask a regression in the probe tests. It replaces the module attribute `wd.evaluate_game_day` after
+collection. The gameday tests bound the real function by `from nba.ops.watchdog import evaluate_game_day` at import time, and every
+gameday test that goes through `check()` passes its own `gameday=`. What the fixture does leave untested is `check()`'s default
+wiring, `(gameday or evaluate_game_day)` at watchdog.py:656. A regression that drops the fallback would pass every ops test.
+
+The `drill()` change (passing `gameday=lambda *_: []`) is in scope. Without it the drill would read the real slate and judge the live Mac.
+
+Commands (run in the steward worktree at HEAD 3cccc18, read-only, `PYTHONDONTWRITEBYTECODE=1 -p no:cacheprovider`):
+- `uv run --no-sync pytest tests/ops --no-cov -q`: `130 passed in 33.04s`, exit 0.
+- `uv run --no-sync pytest tests/test_layering.py --no-cov -q`: `10 passed in 5.38s`, exit 0.
+- `uv run --no-sync ruff check` (watchdog.py, conftest.py, test_watchdog_gameday.py): `All checks passed!`, exit 0.
+- `ruff format --check`: `3 files already formatted`, exit 0.
+- `mypy nba/ops/watchdog.py`: `Success: no issues found in 1 source file`, exit 0.
+
+Remaining edits. All are minor, none blocks the merge, and they can follow later:
+- **r1.** Add a test for `check()`'s default wiring. In `tests/ops/test_watchdog_gameday.py`, `monkeypatch.setattr(wd,
+  "evaluate_game_day", lambda now, o, **kw: [Alert("gameday:2026-10-21:battery", "x")])`, call `check(...)` without `gameday=`, and
+  assert the alert is returned.
+- **r2.** The m5 leftovers listed above.
+- **r3.** watchdog.py:661 has a double space in `"game-day probe crashed:  "`. Make it a single space.
