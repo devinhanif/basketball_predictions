@@ -152,6 +152,7 @@ HOLDOUT_FILTERED_HARNESSES = (
     "research/eval/history_window_eval.py",
     "research/eval/injury_reason_eval.py",
     "research/eval/lineups_known_eval.py",
+    "research/eval/matchup_availability_features.py",
     "research/eval/market_line_classifier_eval.py",
     "research/eval/minutes_v2_eval.py",
     "research/eval/odds_history_eval.py",
