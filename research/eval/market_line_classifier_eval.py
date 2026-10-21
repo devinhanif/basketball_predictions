@@ -550,7 +550,11 @@ def load_world(db_path: str = "nba.duckdb") -> dict[str, pl.DataFrame]:
         pl.col("player_id").cast(pl.Int64),
         pl.col("game_date").cast(pl.Date),
     )
-    return {"games": games, "pgs": pgs, "snaps": attach_real_tips(snaps, None)}
+    return {
+        "games": games,
+        "pgs": pgs,
+        "snaps": attach_real_tips(snaps, None, max_season=MAX_SEASON),
+    }
 
 
 def prepare(db_path: str = "nba.duckdb") -> dict[str, Any]:

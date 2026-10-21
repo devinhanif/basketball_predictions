@@ -81,7 +81,9 @@ def load_games(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         "SELECT game_id, game_date, season, home_team, away_team FROM games "
         f"WHERE season <= {MAX_SEASON} AND substr(game_id,1,3) IN ('002','004','005')"
     ).pl()
-    tips = build_game_tipoff().select("game_id", pl.col("tipoff_utc").alias("tip_utc"), "tip_et")
+    tips = build_game_tipoff(max_season=MAX_SEASON).select(
+        "game_id", pl.col("tipoff_utc").alias("tip_utc"), "tip_et"
+    )
     return g.join(tips, on="game_id", how="left").with_columns(pl.col("game_date").cast(pl.Date))
 
 

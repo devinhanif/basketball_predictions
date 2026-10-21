@@ -475,7 +475,7 @@ def model_rows(
             raise RuleError("the production arm needs lower_tail/young_pick off, no integer flag")
         games, pgs, static, avail = load_inputs(db_path, None)
         assert int(games["season"].max()) <= MAX_SEASON, "holdout must not be loaded"  # type: ignore[arg-type]
-        flagged, _ = flagged_from_availability(avail, games, cfg.report)
+        flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
         feats = attach_realised(build_features(games, pgs, static, flagged, elo), games, pgs)
         assert int(feats["season"].max()) <= MAX_SEASON  # type: ignore[arg-type]
         print(f"features built: {feats.height} rows", flush=True)
@@ -768,7 +768,9 @@ def load_tips(season: int, db_path: str = "nba.duckdb") -> pl.DataFrame:
         ).pl()
     finally:
         con.close()
-    tips = build_game_tipoff(str(ROOT / "data" / "schedule")).select("game_id", "tipoff_utc")
+    tips = build_game_tipoff(str(ROOT / "data" / "schedule"), max_season=MAX_SEASON).select(
+        "game_id", "tipoff_utc"
+    )
     return g.join(tips, on="game_id", how="left")
 
 

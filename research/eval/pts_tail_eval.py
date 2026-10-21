@@ -285,7 +285,7 @@ def run_collect(
     games, pgs, static, avail = load_inputs(db_path, injury_db)
     if int(games["season"].max()) > MAX_SEASON:  # type: ignore[arg-type]
         raise ValueError("season > 2024 present: frozen holdout must not be loaded")
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = build_features(games, pgs, static, flagged, elo_params)
     comp = collect(feats, cfg)
     out_dir.mkdir(parents=True, exist_ok=True)

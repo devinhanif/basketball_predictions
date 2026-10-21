@@ -925,7 +925,7 @@ def load_study_inputs(
     games, pgs, static, avail = load_inputs(db_path, None)
     assert int(games["season"].max()) <= MAX_SEASON, "frozen holdout (2025) must not be loaded"  # type: ignore[arg-type]
     stints, poss = load_lineup_inputs(db_path)
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = build_features(games, pgs, static, flagged, elo)
     feats = attach_realised(feats, games, pgs)
     assert int(feats["season"].max()) <= MAX_SEASON  # type: ignore[arg-type]
@@ -1108,7 +1108,7 @@ def _post_tip_out_flagged(
 
     avail: pl.DataFrame = inp["avail"]
     pgs: pl.DataFrame = inp["pgs"]
-    tips = build_game_tipoff().filter(pl.col("game_id").is_in(list(targets)))
+    tips = build_game_tipoff(max_season=MAX_SEASON).filter(pl.col("game_id").is_in(list(targets)))
     star = (
         pgs.filter(pl.col("game_id").is_in(list(targets)) & (pl.col("minutes") > 0))
         .sort(["game_id", "minutes"], descending=[False, True])
@@ -1131,7 +1131,9 @@ def _post_tip_out_flagged(
             [avail.select(keep), extra.cast({c: avail.schema[c] for c in keep})],
             how="vertical_relaxed",
         )
-        flagged, _ = flagged_from_availability(avail2, inp["games"], inp["cfg"].report)
+        flagged, _ = flagged_from_availability(
+            avail2, inp["games"], inp["cfg"].report, max_season=MAX_SEASON
+        )
         out.append(flagged)
     return out[0], out[1]
 
