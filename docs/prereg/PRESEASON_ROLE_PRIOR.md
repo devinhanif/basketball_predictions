@@ -176,3 +176,18 @@ lambda clip [0.5, 2]; `rho_prev` falls back to A0's rate when S-1 minutes < 300;
 Real outcome contrasts (by design); whether the residual `mu` really scales with minutes (the whole-grid rescale assumes it; no alternative is run); whether overtime preseason games (38 team-games over 245 minutes, unverified) distort kappa; live-path `loaded_at` stamping.
 
 === RESULTS BELOW ===
+
+## Results (appended 2026-10-20 22:0x CDT; run under frozen 4774b943, prereg 36c30bb, pin 36f8dc8; reports/prereg_preseason_role_prior/results.json)
+
+**Verdict: FAIL_ONE_SEASON.** No stat clears its floor in both seasons; the global no-harm guard G2 also fails (2023 reb CI lower bound above 0).
+
+A2 − A0, integer CRPS, movers K=10 (n rows / games: 2023 1,202 / 487; 2024 1,025 / 468), game-clustered 95% CI, BH over 4 stats within season:
+
+| season | pts | reb | ast | fg3m |
+|---|---|---|---|---|
+| 2023 | −0.0098 [−0.0362, +0.0179] | **+0.0172 [+0.0068, +0.0279] harm** | −0.0027 [−0.0105, +0.0045] | −0.0009 [−0.0054, +0.0032] |
+| 2024 | **−0.0321 [−0.0624, −0.0032] clears** | −0.0068 [−0.0215, +0.0063] | **−0.0090 [−0.0176, −0.0011] clears** | **−0.0061 [−0.0105, −0.0013] clears** |
+
+BH q: 2023 0.447 (pts/ast/fg3m), 1.000 (reb); 2024 0.026 (pts/ast/fg3m), 0.163 (reb). Placebo A4 (permuted rows) point: 2023 +0.032/+0.034/+0.012/+0.003; 2024 +0.033/+0.012/+0.006/+0.003 (harm in every cell): the 2024 gains are not a generic shrink. A1 (minutes only) 2024 pts −0.0318 [−0.0602, −0.0035]: the minutes channel carries the whole pts gain; A3 (own last-10) harms in 7 of 8 cells. G1/G3 hold in all cells. Descriptive: stayers' first K rows A2 − A0 pts +0.0165 (2023) / +0.0246 [+0.0017, +0.0470] (2024): harm, as expected for a movers-only prior. zq bracket ends move A2 − A0 by ≤ 0.0001. K=5 / K=20 sensitivity in results.json.
+
+Reading: on the report season the preseason minutes prior helps movers by three times the MDE on pts, but the select season does not reproduce it and shows a rebounds harm. Under this rule that is a FAIL. One pre-registered follow-up at most (a new id); nothing changes in production. Priors: all three sets put FAIL_ONE_SEASON at 0.18–0.20 and PASS ≤ 0.05.
