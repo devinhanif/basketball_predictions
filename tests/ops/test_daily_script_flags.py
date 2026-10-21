@@ -6,7 +6,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-SCRIPT = (Path(__file__).resolve().parents[2] / "ops" / "nba_daily.sh").read_text()
+SCRIPT_PATH = Path(__file__).resolve().parents[2] / "ops" / "nba_daily.sh"
+SCRIPT = SCRIPT_PATH.read_text()
 
 
 def _step(name: str) -> str:
@@ -212,3 +213,26 @@ def test_coverage_and_scorecard_are_wired() -> None:
     assert "date -v-1d" in SCRIPT  # YESTERDAY_ET is defined
     assert re.search(r'\[ "\$name" = coverage \] && \[ "\$rc" -eq 3 \]', SCRIPT)
     assert SCRIPT.index("step settle") < SCRIPT.index("step scorecard")
+
+
+def test_settle_rc4_is_informational_and_rc5_alerts(tmp_path: Path) -> None:
+    """settle exits 4 for a fresh refusal (box not final yet) and 5 for one older than 24 h."""
+    import os
+    import subprocess
+
+    alerts = {}
+    for rc in (4, 5):
+        d = tmp_path / f"rc{rc}"
+        (d / "root" / "data").mkdir(parents=True)
+        uv, rclone = d / "uv", d / "rclone"
+        uv.write_text(f'#!/bin/sh\ncase "$*" in *"nba.daily settle"*) exit {rc};; esac\nexit 0\n')
+        rclone.write_text("#!/bin/sh\nexit 0\n")
+        for f in (uv, rclone):
+            f.chmod(0o755)
+        env = {"PATH": os.environ["PATH"], "NBA_ROOT": str(d / "root"), "NBA_UV": str(uv),
+               "NBA_RCLONE": str(rclone)}  # fmt: skip
+        subprocess.run(
+            ["sh", str(SCRIPT_PATH), "morning"], env=env, capture_output=True, check=True
+        )
+        alerts[rc] = (d / "root" / "data" / "ops" / "ALERTS.md").exists()
+    assert alerts == {4: False, 5: True}

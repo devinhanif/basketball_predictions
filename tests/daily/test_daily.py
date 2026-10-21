@@ -19,7 +19,15 @@ from nba.daily.season import season_int_for_date, season_str, season_str_for_dat
 from nba.daily.settle import normal_crps, settle_pending
 from nba.daily.store import ForwardPrediction, LeakageError, append_predictions, ensure_tables
 from nba.ingest.games import season_to_int
-from tests.daily.conftest import RUN_DATE, T1, T2, TIPOFF, before_tip, slate_games
+from tests.daily.conftest import (
+    RUN_DATE,
+    T1,
+    T2,
+    TIPOFF,
+    align_box_to_score,
+    before_tip,
+    slate_games,
+)
 
 GAMES_INS = "INSERT INTO games (game_id, game_date, season, home_team, away_team, "
 GAMES_INS += "home_pts, away_pts) VALUES"
@@ -284,6 +292,15 @@ def test_resolve_production_fallback_and_hit(
 # -- settle + report ----------------------------------------------------------
 
 
+def _counts(out: dict[str, int]) -> dict[str, int]:
+    """The three scored counts; every refusal count must be 0 in these tests (a clean slate)."""
+    refusals = {k: v for k, v in out.items() if k.startswith("refused_")}
+    assert refusals == dict.fromkeys(
+        ("refused_no_box", "refused_thin_box", "refused_box_mismatch", "refused_stale"), 0
+    )
+    return {k: out[k] for k in ("win_scored", "prop_scored", "prop_dnp")}
+
+
 def _complete_slate(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(
         GAMES_INS + " ('0022600001', ?, 2026, ?, ?, 120, 100)",
@@ -296,6 +313,7 @@ def _complete_slate(con: duckdb.DuckDBPyConnection) -> None:
         )
     for k in range(8):  # a final box score has >= 10 played rows (settle refuses a thinner one)
         con.execute(STATS_INS + " VALUES ('0022600001', ?, ?, 20, 4, 2, 1, 0)", [7000 + k, T2])
+    align_box_to_score(con, "0022600001")  # settle grades only a box that sums to the score
 
 
 def test_settle_waits_until_well_after_tip(con: duckdb.DuckDBPyConnection) -> None:
@@ -303,18 +321,22 @@ def test_settle_waits_until_well_after_tip(con: duckdb.DuckDBPyConnection) -> No
     _run(con, before_tip())
     _complete_slate(con)
     zero = {"win_scored": 0, "prop_scored": 0, "prop_dnp": 0}
-    assert settle_pending(con, TIPOFF + timedelta(hours=1)) == zero
+    assert _counts(settle_pending(con, TIPOFF + timedelta(hours=1))) == zero
     assert con.execute("SELECT count(*) FROM forward_scores").fetchone() == (0,)
     assert settle_pending(con, TIPOFF + timedelta(hours=4))["win_scored"] == 1
 
 
 def test_settle_scores_and_is_idempotent(con: duckdb.DuckDBPyConnection) -> None:
     _run(con, before_tip())
-    assert settle_pending(con, TIPOFF) == {"win_scored": 0, "prop_scored": 0, "prop_dnp": 0}
+    assert _counts(settle_pending(con, TIPOFF)) == {
+        "win_scored": 0,
+        "prop_scored": 0,
+        "prop_dnp": 0,
+    }
     _complete_slate(con)
     r = settle_pending(con, TIPOFF + timedelta(days=1))
     assert r["win_scored"] == 1 and r["prop_scored"] > 0 and r["prop_dnp"] > 0
-    assert settle_pending(con, TIPOFF + timedelta(days=1)) == {
+    assert _counts(settle_pending(con, TIPOFF + timedelta(days=1))) == {
         "win_scored": 0, "prop_scored": 0, "prop_dnp": 0,
     }  # fmt: skip
     ll, br = con.execute(

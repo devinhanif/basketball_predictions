@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import duckdb
 import numpy as np
@@ -34,6 +34,19 @@ _HAS_BOX_SQL = (
     "(SELECT count(*) FROM player_game_stats b WHERE b.game_id = {g} AND b.minutes > 0) >= "
     + str(MIN_PLAYED_ROWS)
 )
+#: SQL fragment: the box score agrees with the game score (``g`` = the games row): there are box
+#: rows, and each team's summed points (a DNP row's NULL counts as 0) equal the game's points.
+#: Closes the in-progress box cached for good (fetch_cached never re-pulls) and a partial games
+#: feed score after the box is final (OKC@SAS 44-65, 2026-10-21). Applies to every target.
+_BOX_AGREES_SQL = (
+    "(SELECT count(*) > 0"
+    " AND coalesce(sum(CASE WHEN b.team_id = g.home_team THEN coalesce(b.pts, 0) END), 0)"
+    " = g.home_pts"
+    " AND coalesce(sum(CASE WHEN b.team_id = g.away_team THEN coalesce(b.pts, 0) END), 0)"
+    " = g.away_pts FROM player_game_stats b WHERE b.game_id = g.game_id)"
+)
+#: A refused key whose tip was at least this long ago should long be final and gradable: alert.
+STALE_REFUSAL_HOURS = 24
 #: SQL fragment: the key was withdrawn (misplaced player, docs/DAILY_PIPELINE.md "Withdrawals").
 _WITHDRAWN_SQL = (
     "EXISTS (SELECT 1 FROM forward_withdrawals w WHERE w.game_id = {a}.game_id "
@@ -68,6 +81,13 @@ def prediction_crps(pred: dict[str, object], y: float) -> float:
 
 
 def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[str, int]:
+    """Counts of ``settle_with_refusals`` (the refusal list is dropped)."""
+    return settle_with_refusals(con, scored_at)[0]
+
+
+def settle_with_refusals(
+    con: duckdb.DuckDBPyConnection, scored_at: datetime
+) -> tuple[dict[str, int], list[tuple[str, str, datetime]]]:
     """Append a ``forward_scores`` row for each latest-per-key prediction whose
     outcome is now known and which has no score yet. Idempotent."""
     ensure_tables(con)
@@ -84,13 +104,16 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
         FROM latest l JOIN games g USING (game_id)
         WHERE l.rn = 1 AND g.home_pts > 0 AND g.away_pts > 0
           AND (l.target <> ? OR {has_box})
+          AND {agrees}
           AND NOT {withdrawn}
           AND l.tipoff + ? * INTERVAL 1 HOUR <= ?
           AND NOT EXISTS (SELECT 1 FROM forward_scores s
               WHERE s.game_id = l.game_id AND s.model_name = l.model_name
                 AND s.target = l.target AND s.player_id = l.player_id)
         """.format(  # noqa: S608 - fragments are module constants
-            has_box=_HAS_BOX_SQL.format(g="l.game_id"), withdrawn=_WITHDRAWN_SQL.format(a="l")
+            has_box=_HAS_BOX_SQL.format(g="l.game_id"),
+            agrees=_BOX_AGREES_SQL,
+            withdrawn=_WITHDRAWN_SQL.format(a="l"),
         ),
         [SHADOW_LLM_MODEL, WIN_TARGET, SETTLE_AFTER_TIP_HOURS, scored_at],
     ).fetchall()
@@ -130,7 +153,78 @@ def settle_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime) -> dict[
     if rows:
         con.executemany("INSERT INTO forward_scores VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     settle_eligible_pending(con, scored_at)
-    return {"win_scored": n_win, "prop_scored": n_prop, "prop_dnp": n_dnp}
+    out = {"win_scored": n_win, "prop_scored": n_prop, "prop_dnp": n_dnp}
+    refused = refused_games(con, scored_at)  # once per settle: the CLI reuses this list
+    out.update(refusal_counts(refused, scored_at))
+    return out, refused
+
+
+REFUSAL_REASONS = ("no_box", "thin_box", "box_mismatch")
+
+_REFUSED_SQL = """
+WITH keys AS (
+    SELECT DISTINCT p.game_id, p.target = ? AS is_win, p.tipoff
+    FROM forward_predictions p
+    WHERE p.model_name <> ?
+      AND ((NOT EXISTS (SELECT 1 FROM forward_scores s
+               WHERE s.game_id = p.game_id AND s.model_name = p.model_name
+                 AND s.target = p.target AND s.player_id = p.player_id)
+               AND NOT {withdrawn})
+           OR (p.model_name IN ({models}) AND NOT EXISTS (SELECT 1 FROM forward_scores_elig e
+               WHERE e.game_id = p.game_id AND e.model_name = p.model_name
+                 AND e.target = p.target AND e.player_id = p.player_id)))
+),
+bx AS (
+    SELECT b.game_id, count(*) AS n_rows, count(*) FILTER (WHERE b.minutes > 0) AS n_played,
+           coalesce(sum(CASE WHEN b.team_id = g.home_team THEN coalesce(b.pts, 0) END), 0) AS hs,
+           coalesce(sum(CASE WHEN b.team_id = g.away_team THEN coalesce(b.pts, 0) END), 0) AS aws
+    FROM player_game_stats b JOIN games g USING (game_id)
+    WHERE b.game_id IN (SELECT game_id FROM keys) GROUP BY b.game_id
+)
+SELECT k.game_id, min(k.tipoff) AS tipoff, bool_or(k.is_win) AS has_win,
+       coalesce(any_value(x.n_rows), 0) AS n_rows, coalesce(any_value(x.n_played), 0) AS n_played,
+       any_value(x.hs = g.home_pts AND x.aws = g.away_pts) AS agrees
+FROM keys k JOIN games g USING (game_id) LEFT JOIN bx x USING (game_id)
+WHERE g.home_pts > 0 AND g.away_pts > 0 AND k.tipoff + ? * INTERVAL 1 HOUR <= ?
+GROUP BY k.game_id ORDER BY k.game_id
+"""
+
+
+def refused_games(con: duckdb.DuckDBPyConnection, now: datetime) -> list[tuple[str, str, datetime]]:
+    """(game_id, reason, tipoff) for each game with an unscored key that the box guards refuse.
+
+    Reason, in order: ``no_box`` (no player_game_stats rows), ``thin_box`` (a winner key and fewer
+    than MIN_PLAYED_ROWS played rows), ``box_mismatch`` (a team's summed box points differ from
+    the game score). Only games past the 4 h guard with a final-looking score are listed; a
+    refused key is never written and stays pending for the next settle."""
+    ensure_tables(con)
+    con.execute(ELIG_DDL)
+    sql = _REFUSED_SQL.format(  # noqa: S608 - fragments are module constants
+        models=",".join("?" for _ in PREREG_MODELS), withdrawn=_WITHDRAWN_SQL.format(a="p")
+    )
+    rows = con.execute(
+        sql, [WIN_TARGET, SHADOW_LLM_MODEL, *PREREG_MODELS, SETTLE_AFTER_TIP_HOURS, now]
+    ).fetchall()
+    out: list[tuple[str, str, datetime]] = []
+    for gid, tip, has_win, n_rows, n_played, agrees in rows:
+        if n_rows == 0:
+            reason = "no_box"
+        elif has_win and n_played < MIN_PLAYED_ROWS:
+            reason = "thin_box"
+        elif not agrees:
+            reason = "box_mismatch"
+        else:
+            continue
+        out.append((gid, reason, tip))
+    return out
+
+
+def refusal_counts(refused: list[tuple[str, str, datetime]], now: datetime) -> dict[str, int]:
+    """Distinct refused games per reason, plus ``refused_stale`` (tipped >= 24 h before ``now``)."""
+    counts = {f"refused_{r}": sum(1 for _, x, _ in refused if x == r) for r in REFUSAL_REASONS}
+    cut = now - timedelta(hours=STALE_REFUSAL_HOURS)
+    counts["refused_stale"] = sum(1 for _, _, tip in refused if tip <= cut)
+    return counts
 
 
 def _col(target: str) -> str:
@@ -228,6 +322,7 @@ LEFT JOIN box b ON b.game_id = l.game_id AND b.player_id = l.player_id
 LEFT JOIN has_box h ON h.game_id = l.game_id
 WHERE l.rn = 1 AND g.home_pts > 0 AND g.away_pts > 0
   AND (l.target <> ? OR {has_box})
+  AND {agrees}
   AND l.tipoff + ? * INTERVAL 1 HOUR <= ?
   AND NOT EXISTS (SELECT 1 FROM forward_scores_elig s
       WHERE s.game_id = l.game_id AND s.model_name = l.model_name
@@ -245,6 +340,7 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
     sql = _SELECT_ELIGIBLE.format(
         models=",".join("?" for _ in PREREG_MODELS),
         has_box=_HAS_BOX_SQL.format(g="l.game_id"),
+        agrees=_BOX_AGREES_SQL,
     )
     params: list[object] = [
         *PREREG_MODELS,

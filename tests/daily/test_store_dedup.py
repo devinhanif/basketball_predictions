@@ -19,6 +19,7 @@ from nba.daily.store import (
     ensure_tables,
 )
 from nba.db.connect import connect
+from tests.daily.conftest import align_box_to_score
 from tests.daily.test_checkpoint import INT, PROD, _pred
 
 TIPS = {"0022600001": datetime(2026, 10, 28, 23, 30), "0022600002": datetime(2026, 10, 29, 1, 0)}
@@ -144,6 +145,7 @@ def _settle_world(dedup: bool) -> duckdb.DuckDBPyConnection:
                 " ast, fg3m, starter) VALUES (?,?,1,30,15,5,3,1,true)",
                 [gid, pid],
             )
+        align_box_to_score(con, gid)
     return con
 
 

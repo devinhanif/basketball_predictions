@@ -11,7 +11,7 @@ from nba.daily.pipeline import run_daily
 from nba.daily.schedule import ScheduledGame
 from nba.daily.settle import settle_pending
 from nba.props import full_support as fs
-from tests.daily.conftest import T1, T2, T3, T4
+from tests.daily.conftest import T1, T2, T3, T4, align_box_to_score
 from tests.fixtures.loader import build_fixture_db
 from tests.props.test_forward_context import AS_OF, _big_history, _insert_game
 
@@ -64,6 +64,7 @@ def test_all_arms_store_full_support_and_int_rescoring_is_identical() -> None:
 
     rng = np.random.default_rng(4)
     _insert_game(c, rng, "0022600901", AS_OF, T1, T2, {T1: 1000, T2: 1100, T3: 3000, T4: 3100})
+    align_box_to_score(c, "0022600901")
     settle_pending(c, tip + timedelta(days=1))
     sc = c.execute(
         "SELECT model_name, game_id, target, player_id, rps, status FROM forward_scores_elig "

@@ -88,10 +88,12 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   # odds_capture exits 4 when the feed is unreachable or the request budget refuses: informational
   # (the benchmark is never a dependency of the forecast); its exit 5 (internal error) still alerts.
   # facts (opt-in, NBA_FACTS_NIGHTLY=1) follows the same 0/4 rule; its exit 2 (source locked) alerts.
+  # settle exits 4 when a game is not gradable yet (no / thin / disagreeing box, tipped < 24 h ago):
+  # informational; exit 5 (a refusal older than 24 h: should long be final) alerts.
   # coverage (pretip, every half hour) exits 3 when something is missing or stale: informational
   # there, so one bad slate does not alert 26 times; the morning coverage_yesterday step alerts on 3.
   failed=ok
-  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ]; } && [ "$rc" -eq 4 ]; } \
+  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ] || [ "$name" = settle ]; } && [ "$rc" -eq 4 ]; } \
       && ! { [ "$name" = coverage ] && [ "$rc" -eq 3 ]; }; then
     HB_RC=$rc
     failed=failed

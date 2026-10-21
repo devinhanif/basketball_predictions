@@ -21,7 +21,16 @@ from nba.daily.settle import settle_pending
 from nba.ingest.cache import RateLimiter
 from nba.ops.exitcodes import RC_DEGRADED
 from nba.props.rosters import parse_common_team_roster
-from tests.daily.conftest import RUN_DATE, T1, T2, T3, TIPOFF, before_tip, slate_games
+from tests.daily.conftest import (
+    RUN_DATE,
+    T1,
+    T2,
+    T3,
+    TIPOFF,
+    align_box_to_score,
+    before_tip,
+    slate_games,
+)
 from tests.daily.test_daily import GAMES_INS, STATS_INS
 
 SCRIPT = (Path(__file__).resolve().parents[2] / "ops" / "nba_daily.sh").read_text()
@@ -49,12 +58,15 @@ def test_winner_not_graded_on_a_final_score_without_a_box_score(
     assert settle_pending(con, late)["win_scored"] == 0
     for k in range(9):
         con.execute(STATS_INS + " VALUES (?, ?, ?, 20, 4, 2, 1, 0)", [G1, 8000 + k, T1])
+    align_box_to_score(con, G1)  # the box sums to the score (M2); only the row count is thin
     assert settle_pending(con, late)["win_scored"] == 0  # 9 played rows: still thin
     win_elig = "SELECT count(*) FROM forward_scores_elig WHERE game_id=? AND target='win_prob_home'"
     assert con.execute(win_elig, [G1]).fetchone() == (0,)  # the frozen table obeys the same guard
     con.execute(STATS_INS + " VALUES (?, 8100, ?, 0, 0, 0, 0, 0)", [G1, T2])  # DNP row, minutes 0
-    assert settle_pending(con, late)["win_scored"] == 0
+    align_box_to_score(con, G1)
+    assert settle_pending(con, late)["win_scored"] == 0  # still 9 played rows
     con.execute(STATS_INS + " VALUES (?, 8101, ?, 15, 3, 1, 1, 0)", [G1, T2])
+    align_box_to_score(con, G1)
     assert settle_pending(con, late)["win_scored"] == 1
     n_elig = con.execute(win_elig, [G1]).fetchone()
     assert n_elig is not None and n_elig[0] >= 1  # the pre-registered rows follow the same rule
@@ -164,6 +176,7 @@ def test_a_misplaced_mover_is_withdrawn_not_scored_and_not_exported(
         con.execute(STATS_INS + " VALUES (?, ?, ?, 25, 8, 3, 2, 1)", [G1, pid, T1])
     for k in range(5):
         con.execute(STATS_INS + " VALUES (?, ?, ?, 25, 8, 3, 2, 1)", [G1, 6000 + k, T2])
+    align_box_to_score(con, G1)
     settle_pending(con, TIPOFF + timedelta(days=1))
     scored = con.execute(
         "SELECT count(*) FROM forward_scores WHERE player_id = ? AND game_id = ?", [MOVER, G1]
