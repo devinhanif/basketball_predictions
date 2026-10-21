@@ -141,6 +141,32 @@ def test_config_is_the_frozen_one() -> None:
     assert cfg.floors["pra"] == 0.0438 and cfg.n_min == 3000
 
 
+def test_the_committed_base_file_is_the_frozen_bytes() -> None:
+    """Platform independent: the file's own sha256 and the sha256 of the loaded array are the frozen 08ddb2a2 value, and the
+    size is 10000 x 6 x 8 bytes (the generator is NOT called: its bytes depend on the BLAS build)."""
+    import hashlib
+
+    assert CFG.sha256_file(CFG.BASE_PATH) == CFG.FROZEN_BASE_SHA
+    assert CFG.BASE_PATH.stat().st_size == 10_000 * 6 * 8
+    base = CFG.load_config().base
+    assert base.shape == (10_000, 6) and base.dtype == np.float64
+    assert hashlib.sha256(base.tobytes()).hexdigest() == CFG.FROZEN_BASE_SHA
+
+
+def test_a_tampered_base_file_is_refused(tmp_path: Path) -> None:
+    buf = bytearray(CFG.BASE_PATH.read_bytes())
+    buf[1234] ^= 1
+    p = tmp_path / "b.f64"
+    p.write_bytes(bytes(buf))
+    with pytest.raises(CFG.ComboConfigError):
+        CFG.load_config(base_path=p)
+    p.write_bytes(bytes(buf[:-8]))  # wrong size
+    with pytest.raises(CFG.ComboConfigError):
+        CFG.load_config(base_path=p)
+    with pytest.raises(CFG.ComboConfigError):
+        CFG.load_config(base_path=tmp_path / "missing.f64")
+
+
 def test_a_changed_config_is_refused(tmp_path: Path) -> None:
     raw = yaml.safe_load((ROOT / "configs/combo_stocks_shadow.yaml").read_text())
     raw["floors"]["blk"] = 0.0051

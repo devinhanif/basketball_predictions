@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
+from nba.daily.combo_shadow.config import load_config
 from nba.props import combo_copula as C
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -26,7 +27,9 @@ def test_p1_reference_is_reproduced_exactly() -> None:
         ref["R"], r
     )  # the reference was built with the config R, not the full-precision one
     assert np.linalg.eigvalsh(r).min() > 0
-    base = C.base_normals(cfg["copula"]["n_draws"], seed=cfg["copula"]["base_seed"])
+    base = (
+        load_config().base
+    )  # the committed file, verified against the frozen sha (not regenerated: BLAS-dependent)
     assert (
         hashlib.sha256(base.tobytes()).hexdigest()
         == cfg["copula"]["base_sha256"]
