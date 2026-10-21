@@ -242,3 +242,30 @@ and m4 on this branch, and m2 and m5 as follow-ups for their owners.
 ## Drafted DECISIONS row (not appended)
 
 | 2026-10-21 | Scheduled games in `games` (agent/steward-scheduled-games f90825f): adversary BLOCKED pending B1. The morning `data_check` would flag NULL_SHIFT/COVERAGE_DROP from today's NULL-score rows (verified on scratch copies with the repo's manifest code; 21 flag mornings simulated through 12-23). Fix: the datamanifest excludes NULL-score rows from coverage and null-rate baselines and flags only NULL rows older than yesterday. M1 (postponed residue counted as a played loss by team_features) fixed by dropping NULL-score rows dated before run_date after a successful finder refresh, or accepted with the flag as detector (Devin's call). | Reverse if the manifest exclusion hides a real scores gap (a finder row with NULL scores), which the STALE_SCHEDULED flag is meant to catch. |
+
+## Re-check 21aecff (2026-10-21)
+
+Diff `git diff f90825f..21aecff`: 10 files. The `nba/datamanifest` edit is authorised for this branch by
+the main session. `settle.py` and `ops/nba_daily.sh` are still untouched.
+
+Verdict: APPROVED
+
+| Item | Evidence | Pass |
+|---|---|---|
+| B1 | `manifest.py`: for `games`, `src` gets `WHERE t.home_pts IS NOT NULL`, so the overall and per-season null rates are computed on scored rows. The coverage denominator is `count(*) ... WHERE home_pts IS NOT NULL`. New fields `scheduled_rows` (per season) and `stale_scheduled` (NULL-score rows dated before ET today minus 1). `diff.py` adds a `STALE_SCHEDULED` flag. I re-ran my scratch measurement (`scratchpad/real_manifest2.py`, `today=2026-10-21`, exit 0) with the same 11 NULL rows: `games 2026 home_pts null_rate 0.0 -> 0.0`, `pgs 2026 coverage 1.0 -> 1.0`, no flags, `scheduled_rows {'2026': 11}`, `stale 0`. Adding one placeholder dated 10-18 gives `['STALE_SCHEDULED']`, stale 1. | PASS |
+| M1 | `drop_stale_scheduled_games` (season-scoped, `home_pts IS NULL AND game_date < run_date`) is called inside `incremental_ingest` right after `fetch()` + `upsert_games()`. If the fetch raises, it is never reached. Count reported as `stale_scheduled_removed`. Both run_daily and run_ingest pass `run_date`; the replay (`skip_ingest`) never calls it. Tests: `test_stale_null_row_removed_after_a_successful_refresh`, `test_stale_null_row_kept_when_the_refresh_fails`. | PASS |
+| m1 | Doc now reads "08:00 ET = 07:00 CDT, first step of the morning job" (`docs/DAILY_PIPELINE.md:35`); the "harmless" sentence is replaced. | PASS |
+| m2 | `watchdog.py:571-575` text replaced; `tests/ops/test_watchdog_gameday.py` updated. Nit: the text names only "the pretip ingest", but the 08:00 morning `ingest` writes the slate first. Wording only. | PASS (nit) |
+| m3 | run_ingest records `rc = RC_DEGRADED` on a finder failure and falls through to the slate block. Test `test_ingest_subcommand_writes_the_slate_even_when_the_finder_fails` asserts rc 5 and the row present. | PASS |
+| m4 | The counter now re-reads existence after the INSERT. Because the pre-check already skips existing rows, this is still equivalent to counting attempts. It would differ from a true insert count only under a second writer, which the single-writer rule forbids. Exact form if wanted: `n += int(con.execute(<insert>).fetchone()[0])`. Not blocking. | PASS (nit) |
+
+Verification (steward worktree, read-only, unpiped exit codes):
+- `PYTHONDONTWRITEBYTECODE=1 uv run --no-sync pytest tests/daily tests/ops tests/export tests/parlay tests/datamanifest tests/test_layering.py --no-cov -q -p no:cacheprovider`: `757 passed, 2 skipped, 64814 warnings in 322.15s`, exit 0.
+- `ruff check` on the 9 changed .py files: exit 0. `ruff format --check`: `9 files already formatted`, exit 0.
+- `mypy` on the 6 changed source files: `Success: no issues found in 6 source files`, exit 0.
+
+Remaining before merge, under the live-path gates: the replay oracle for 21aecff. The new code is
+again only under `if not skip_ingest` / `incremental_ingest`, so it is expected IDENTICAL 89889f6d,
+but that is not verified here. The datamanifest change alters the committed manifest summary shape (two
+new `games` fields), so the first diff after merge will list them as changes, not flags. Still open as
+owner follow-ups: m5 (`markets/capture.py:237`, `ingest/availability.py:618`).
