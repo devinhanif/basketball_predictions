@@ -165,3 +165,32 @@ PASS 0.04, PASS_OTHER_STAT 0.03, PLACEBO_TOO 0.08, FAIL_GUARD 0.03, FAIL_ONE_SEA
 - PREDICTIONS_LEDGER, adversary prior for PRESEASON_ROLE_PRIOR (rule hash after R1-R8; written 2026-10-21, blind to 2023/24 outcomes): the six
   numbers above.
 - DECISIONS: none from the adversary. O1-O4 are the main session's to take or leave.
+
+## Revision 3 re-check (diff only, 2026-10-21)
+
+Object: `agent/modeler-preseason-prior` at 5afa6ae. Hash of the text above the marker: `4774b94334090c678774dac5d7f753baf193779d6202eaf830477159d44c6a6a`
+(`git show 5afa6ae:docs/prereg/PRESEASON_ROLE_PRIOR.md | awk '/^=== RESULTS BELOW ===$/{exit} {print}' | shasum -a 256`, exit 0).
+`git diff --stat 0a86ab5 5afa6ae` (exit 0) touches only the rule (+31 / -19) and `research/eval/preseason_role_prior.py` (+17 / -2). Read with
+`git diff --word-diff=plain 0a86ab5 5afa6ae -- docs/prereg/PRESEASON_ROLE_PRIOR.md` and the plain harness diff.
+
+Verdict: READY_TO_FREEZE (hash 4774b943)
+
+| item | landed as specified | note |
+|---|---|---|
+| R1 A4 rows | yes | verbatim, in the A4 bullet (rule line 48) |
+| R2 MDE / FAIL reading | yes | after the power paragraph, plus the 2022 slopes for all four stats |
+| R3 Pinnacle | yes | removed from the reported list, Playbook 5 and 'Not measured'; the gate row is now "thinness note only"; no remaining Pinnacle mention promises a metric |
+| R4 priors | yes, coherent | 0.03 + 0.01 + 0.03 + 0.01 + 0.19 + 0.73 = 1.00. P(pts both) = 0.12 x 0.45 = 0.054 = PASS 0.03 + the pts share of PLACEBO_TOO and FAIL_GUARD (0.024). P(some stat both) 0.08 = the sum of the four "both" words. Union of seasons 0.20 + 0.15 - 0.08 = 0.27, and 0.27 - 0.08 = 0.19 = FAIL_ONE_SEASON. P(PLACEBO_TOO \| both) 0.375, about the stated 0.40. No contradiction left |
+| R5 starter audit | yes | |
+| R6 rho_A0 <= 0 | yes | |
+| R7 A3 no kappa | yes | |
+| R8 loaded_at | yes | |
+| O3 stayers | outputs only | `run_real` adds `out["stayers"]`, scored AFTER `out["verdict"] = evaluate(res)`; `res` is built from `out["K10"]` alone |
+| O4 bracket | outputs only | `month_blocks(df, which="mid")`: the default keeps the old path byte for byte (`z["mid"]`), so `q0`, `base` and every arm are unchanged. The new `bracket_A2_minus_A0` key (lo / mid / hi means) is computed but read by no word |
+
+Nothing else moved. No metric, floor, K, constant, kappa, slice, season, arm computation or word text appears in the diff, apart from the R/O
+lines above and the revision log.
+
+Minor, not blocking: (a) O3 and O4 have no unit test; the diff touches no test file. (b) The bracket output is three point means with no CI,
+which is fine for a descriptive check. (c) I could not run the 14 tests: `pytest` is not installed in the main `.venv` (the `dev` extra), and I
+did not install it. Run `uv run --extra dev pytest -q tests/research/preseason_role_prior` in the modeler's worktree before the pin commit.
