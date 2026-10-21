@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from datetime import date
 from pathlib import Path
 
 import duckdb
 import polars as pl
 
+from nba.daily.schedule import ScheduledGame, is_scorable_game_id
 from nba.ingest.boxscores import pull_game_boxscore
 from nba.ingest.cache import DEFAULT_DATA_DIR, RateLimiter
 from nba.ingest.games import refresh_season_games, upsert_games
@@ -30,6 +32,57 @@ def missing_boxscore_game_ids(
     return ids[:limit] if limit is not None else ids
 
 
+def insert_scheduled_games(
+    con: duckdb.DuckDBPyConnection,
+    slate: Sequence[ScheduledGame],
+    run_date: date,
+    season_int: int,
+) -> int:
+    """Insert the scorable games of ``run_date``'s ET slate that ``games`` does not hold yet, with
+    NULL scores. INSERT-ONLY: an existing row (the finder's, with scores) is never touched.
+
+    The ingest feed (LeagueGameFinder) returns only started or finished games, so before this
+    step ``games`` never held a game before tip (2026-10-20/21: coverage ``schedule`` FAIL, the
+    watchdog slate line, top_source without home/away). A NULL-score row is a normal state:
+    every reader that grades or fits filters on ``pts > 0``, and the replay already runs with
+    hidden games at NULL. The finder's later upsert fills the scores. Returns rows inserted."""
+    todays = [g for g in slate if g.game_date_et == run_date and is_scorable_game_id(g.game_id)]
+    n = 0
+    for g in todays:
+        before = con.execute("SELECT count(*) FROM games WHERE game_id = ?", [g.game_id]).fetchone()
+        if before and before[0]:
+            continue
+        con.execute(
+            "INSERT INTO games (game_id, game_date, season, home_team, away_team) "
+            "VALUES (?, ?, ?, ?, ?) ON CONFLICT (game_id) DO NOTHING",
+            [g.game_id, run_date, season_int, g.home_team, g.away_team],
+        )
+        after = con.execute("SELECT count(*) FROM games WHERE game_id = ?", [g.game_id]).fetchone()
+        n += int(bool(after and after[0]))  # actual inserts, not attempts
+    return n
+
+
+def drop_stale_scheduled_games(
+    con: duckdb.DuckDBPyConnection, run_date: date, season_int: int
+) -> int:
+    """Delete NULL-score ``games`` rows of ``season_int`` dated before ``run_date``.
+
+    Only valid right after a SUCCESSFUL finder refresh: by then every played game has its score,
+    and the finder never writes NULL scores (0 such rows in 2022/23/24/26), so what is left is our
+    own placeholder of a postponed or cancelled game. Left in place, the history frames
+    (``games WHERE game_date < ?``) would count it as a played loss and shift rest days and travel
+    (adversary review M1, 2026-10-21). If the finder moves the game to its make-up date, its
+    upsert re-creates the row. Returns rows deleted."""
+    where = "season = ? AND home_pts IS NULL AND game_date < ?"
+    row = con.execute(
+        f"SELECT count(*) FROM games WHERE {where}", [season_int, run_date]
+    ).fetchone()  # noqa: S608
+    n = int(row[0]) if row else 0
+    if n:
+        con.execute(f"DELETE FROM games WHERE {where}", [season_int, run_date])  # noqa: S608
+    return n
+
+
 def incremental_ingest(
     con: duckdb.DuckDBPyConnection,
     season_str: str,
@@ -40,6 +93,7 @@ def incremental_ingest(
     max_boxscores: int = 250,
     fetch_games: FetchGames | None = None,
     pull_box: PullBox | None = None,
+    run_date: date | None = None,
 ) -> dict[str, int]:
     """Refresh games (bypassing the season-keyed parquet cache, which would
     otherwise freeze the season at its first pull) and pull missing box scores.
@@ -52,6 +106,9 @@ def incremental_ingest(
         rate_limiter.wait()
     games = fetch(season_str)
     upsert_games(con, games)
+    removed = (
+        drop_stale_scheduled_games(con, run_date, season_int) if run_date is not None else None
+    )  # only reached when the fetch above succeeded
 
     def _default_pull(c: duckdb.DuckDBPyConnection, gid: str) -> object:
         return pull_game_boxscore(c, gid, data_dir=data_dir, rate_limiter=rate_limiter)
@@ -64,7 +121,9 @@ def incremental_ingest(
             pulled += 1
         except Exception:
             failed += 1
+    extra = {} if removed is None else {"stale_scheduled_removed": removed}
     return {
+        **extra,
         "games_rows": games.height,
         "boxscores_pulled": pulled,
         "boxscores_failed": failed,

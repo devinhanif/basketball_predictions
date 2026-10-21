@@ -18,6 +18,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import duckdb
 import yaml
@@ -82,12 +83,27 @@ def _null_counts_sql(cols: list[str]) -> str:
     return ", ".join(f"count({_q(c)})" for c in cols)
 
 
+def _games_have_pts(con: duckdb.DuckDBPyConnection) -> bool:
+    """True when ``main.games`` has ``home_pts`` (the scheduled-row marker)."""
+    r = _one(
+        con,
+        "SELECT count(*) FROM information_schema.columns "
+        "WHERE table_schema = 'main' AND table_name = 'games' AND column_name = 'home_pts'",
+    )
+    return int(r[0]) > 0
+
+
+def _et_today() -> dt.date:
+    return dt.datetime.now(dt.UTC).astimezone(ZoneInfo("America/New_York")).date()
+
+
 def _table_manifest(
     con: duckdb.DuckDBPyConnection,
     name: str,
     rel: str,
     cfg: dict[str, Any],
     *,
+    today: dt.date | None = None,
     pk_cols: list[str] | None,
     have_games: bool,
     have_pgs: bool,
@@ -120,7 +136,12 @@ def _table_manifest(
             sel.append(f"CASE WHEN p.mn IS NULL THEN NULL ELSE p.mn >= {minutes} END AS __played")
             sel.append("p.mn AS __mn")
             played = True
-    src = f"(SELECT {', '.join(sel)} FROM {rel} t{joins})"
+    # A NULL-score `games` row is a scheduled game (the ingest writes today's slate before tip,
+    # 2026-10-21): it is not a played game, so it stays out of the null rates and the coverage
+    # denominator and is counted on its own (`scheduled_rows`, `stale_scheduled`).
+    pts_on = have_games and _games_have_pts(con)
+    scored = "WHERE t.home_pts IS NOT NULL" if name == "games" and pts_on else ""
+    src = f"(SELECT {', '.join(sel)} FROM {rel} t{joins} {scored})"
     has_season = any(s.endswith("__season") for s in sel)
 
     n_rows = int(_one(con, f"SELECT count(*) FROM {rel}")[0])
@@ -140,6 +161,23 @@ def _table_manifest(
         out["fingerprint"] = "empty" if not n_rows else f"{int(h[0]):016x}-{int(h[1]) % 2**64:016x}"
     else:
         out["fingerprint"] = None
+
+    if name == "games" and pts_on and "season" in names and "game_date" in names:
+        cutoff = (today or _et_today()) - dt.timedelta(days=1)
+        out["scheduled_rows"] = {
+            str(r[0]): int(r[1])
+            for r in con.execute(
+                f"SELECT season, count(*) FROM {rel} WHERE home_pts IS NULL AND season IS NOT NULL "
+                "GROUP BY 1 ORDER BY 1"
+            ).fetchall()
+        }
+        out["stale_scheduled"] = int(
+            _one(
+                con,
+                f"SELECT count(*) FROM {rel} WHERE home_pts IS NULL "
+                f"AND game_date < DATE '{cutoff.isoformat()}'",
+            )[0]
+        )
 
     date_cols = [c for c, t in columns if t in ("DATE", "TIMESTAMP") or t.startswith("TIMESTAMP")]
     out["date_range"] = {}
@@ -167,7 +205,9 @@ def _table_manifest(
             games_by_season = {
                 int(s): int(n)
                 for s, n in con.execute(
-                    "SELECT season, count(*) FROM main.games GROUP BY 1"
+                    "SELECT season, count(*) FROM main.games "
+                    + ("WHERE home_pts IS NOT NULL " if pts_on else "")
+                    + "GROUP BY 1"
                 ).fetchall()
             }
         out["seasons"] = {}
@@ -304,6 +344,7 @@ def build_manifest(
     parquet_paths: list[Path] | None = None,
     fingerprint: bool = True,
     data_dir: Path | None = None,
+    today: dt.date | None = None,
 ) -> dict[str, Any]:
     """Build the manifest dict for ``db_path`` (read-only) plus optional parquet files."""
     cfg = cfg or load_config()
@@ -336,6 +377,7 @@ def build_manifest(
                 have_games=have_games,
                 have_pgs=have_pgs,
                 fingerprint=fingerprint,
+                today=today,
             )
         for pq in parquet_paths or []:
             rel = f"read_parquet('{str(pq).replace(chr(39), '')}')"

@@ -570,9 +570,8 @@ def evaluate_game_day(
                 Alert(
                     f"{prefix}:slate",
                     f"game day {day}: games table lacks today's slate: {len(missing)} of "
-                    f"{len(slate)} game_ids missing; the schedule fetch does not write "
-                    "scheduled games (expected: `games` gets a row only once a game starts; "
-                    "not a fetch failure)",
+                    f"{len(slate)} game_ids missing (the pretip ingest writes today's slate at its "
+                    "first run; this fires if no pretip run has happened yet)",
                 )
             )
     except DbBusy:
