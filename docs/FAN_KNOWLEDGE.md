@@ -708,6 +708,7 @@ Measured follow-ups below, each descriptive first.
   scoring rates: every cell within ±0.005 CRPS and within ±0.001 of a within-date placebo; DK over/under log loss unchanged. The market
   margin correlates 0.90 with our Elo margin, so the trees already had it. The arm with no own-stat history is worse by +0.42 CRPS on pts
   (3.58 vs 3.15), +0.17 reb, +0.19 ast, +0.10 fg3m: a player's own history is about 13% of the model and nothing else supplies it.
+  *Correction 2026-10-21 (T501, docs/reviews/GMC_null_rederivation_2026-10-21.md):* the null stands at the floor, but "the trees already extract what the market knows from our proxies" is withdrawn: removing all game context also ties production (pts 2024 -0.0008 [-0.0036, +0.0018]), so game context of any kind is below what this model can resolve; a pts gain under about 0.004 is not excluded.
 
 ## Play type, momentum, media (2026-10-11, Devin)
 
