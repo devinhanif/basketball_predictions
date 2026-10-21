@@ -105,6 +105,7 @@ def planted_future(mu: pd.DataFrame, rows: pd.DataFrame, season: int) -> dict[st
     )
     ev_o = ev_o[["ent", "oth", "day", "season", "mm"]]
     pert = ev_o.copy()
+    pert["mm"] = pert["mm"].astype("float64")
     fut = pert.day >= cut
     pert.loc[fut, "mm"] = pert.loc[fut, "mm"] * rng.uniform(0.0, 5.0, int(fut.sum()))
     r = rows.assign(day=feat.to_day(rows.game_date))

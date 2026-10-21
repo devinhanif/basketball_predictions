@@ -149,6 +149,30 @@ def team_asof(matchups: pd.DataFrame) -> pd.DataFrame:
     return t[["player", "day", "team"]].sort_values("day").reset_index(drop=True)
 
 
+_KEY = 100_000  # day < 100000, so player * _KEY + day is a unique sortable key
+
+
+def team_keys(ta: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    k = ta.player.to_numpy("int64") * _KEY + ta.day.to_numpy("int64")
+    order = np.argsort(k, kind="stable")
+    return k[order], ta.team.to_numpy("int64")[order]
+
+
+def team_at(
+    keys: tuple[np.ndarray, np.ndarray], players: np.ndarray, days: np.ndarray
+) -> np.ndarray:
+    """Last known team of each player STRICTLY before ``days`` (from the matchup table); -1 when none."""
+    k, t = keys
+    p = np.asarray(players, "int64")
+    q = p * _KEY + np.asarray(days, "int64")
+    pos = np.searchsorted(k, q, side="left") - 1
+    ok = pos >= 0
+    ok[ok] = (k[pos[ok]] // _KEY) == p[ok]
+    out = np.full(len(q), -1, dtype="int64")
+    out[ok] = t[pos[ok]]
+    return out
+
+
 def out_opposing(pairs: pd.DataFrame, flagged: dict[str, set[int]], ta: pd.DataFrame) -> pd.Series:
     """pairs: game_id, oth, day, opp_team. True iff ``oth`` is in tonight's usable OUT set AND his last known team before tonight is the
     opposing team. Returns a boolean Series on pairs.index. Unverifiable team (no earlier game) -> False."""
@@ -156,21 +180,12 @@ def out_opposing(pairs: pd.DataFrame, flagged: dict[str, set[int]], ta: pd.DataF
     fl["is_out"] = True
     p = pairs.reset_index().merge(fl, on=["game_id", "oth"], how="left")
     p["is_out"] = p.is_out.fillna(False).astype(bool)
-    sub = p[p.is_out].copy()
+    sub = p[p.is_out]
     res = pd.Series(False, index=pairs.index)
     if len(sub):
-        sub["player"] = sub.oth.astype("int64")
-        sub["day"] = sub.day.astype("int64")
-        m = pd.merge_asof(
-            sub.sort_values("day"),
-            ta,
-            on="day",
-            by="player",
-            allow_exact_matches=False,
-            direction="backward",
-        )
-        ok = (m.team == m.opp_team).to_numpy()
-        res.loc[m["index"].to_numpy()[ok]] = True
+        t = team_at(team_keys(ta), sub.oth.to_numpy(), sub.day.to_numpy())
+        ok = t == sub.opp_team.to_numpy("int64")
+        res.loc[sub["index"].to_numpy()[ok]] = True
     return res
 
 
@@ -267,10 +282,14 @@ def slice_frame(
         day=to_day(mu.game_date),
     )
     ta = team_asof(mu)
+    tkeys = team_keys(ta)
     out: dict[str, Any] = {}
     for side, ev in (("D", ev_o), ("O", ev_d)):
         long, hist = decayed_asof(ev[["ent", "oth", "day", "season", "mm"]], q, ["mm"])
         long = long.rename(columns={"mm": "w"})
+        qd = r.day.to_numpy()[long.qidx.to_numpy()]
+        qo = r.opp_team.to_numpy()[long.qidx.to_numpy()]
+        long = long[team_at(tkeys, long.oth.to_numpy(), qd) == qo].reset_index(drop=True)
         top = pick_primary(long)
         r[f"nhist_{side}"] = hist.nhist.to_numpy()
         top = top.set_index("qidx").reindex(range(len(r)))

@@ -160,3 +160,16 @@ def test_modules_do_not_query_2025_or_labels() -> None:
         'read_rows("pts", S, ROW_COLS)' in gate
         and '"y"' not in gate.split("ROW_COLS = ")[1].split("\n")[0]
     )
+
+
+def test_team_at_is_strictly_before_and_per_player() -> None:
+    ta = pd.DataFrame({"player": [1, 1, 2], "day": [10, 20, 15], "team": [100, 200, 300]})
+    k = feat.team_keys(ta)
+    got = feat.team_at(k, np.array([1, 1, 1, 2, 3]), np.array([10, 11, 21, 15, 30]))
+    assert list(got) == [
+        -1,
+        100,
+        200,
+        -1,
+        -1,
+    ]  # same-day event is not seen; unknown player -> -1; no cross-player bleed
