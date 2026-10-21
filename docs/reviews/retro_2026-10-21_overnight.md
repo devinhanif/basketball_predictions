@@ -37,3 +37,14 @@ Format per CLAUDE.md feedback loop 3: what was recommended, what was done, what 
 
 ## Open for Devin (also in NEXT_SESSION.md)
 CI file-freeze fix; schedule fetch for scheduled games; export main-line calibrated P(over) (branch building); partial-box path M2 and refusal alert M3; shadows and nba.parlay ignore withdrawals; run or leave C closed; four unfiltered research callers needing a season cap; wt_stamp husk and oracle copies to delete.
+
+## Second wave (Devin: "keep going!", 01:5x to 03:1x CDT)
+| Item | Done | Held up? |
+|---|---|---|
+| Export line_cal + app reading it (F end to end) | merged 60d1e12, ced3cb8; review found the per-row line cutoff used the displayed row, not the production row (95 of 143 real rows), fixed before merge | The adversary's real-slate check caught what the fixture test could not |
+| CI base-normals file freeze | built, reviewed APPROVED, oracle IDENTICAL; merge conditional on the PR's ubuntu run | A draft PR was the only way to run CI on a branch; the review's ulp-margin analysis (min 5.8e-8 vs ulp 1.1e-16) says P1 should hold |
+| Scheduled games into `games` | merged 78bbfae; review BLOCKED on two side effects outside the branch's files (the data manifest would have flagged every game day; a postponed placeholder counted as a played loss), both fixed | Both findings came from running the real manifest and a scratch feature frame, not from reading the diff: the adversary's "re-derive, don't trust" |
+| Box-consistency gate + refusal alert | merged 3b21ae8; review APPROVED WITH EDITS (a refused game had no repair path; the shadows' open path was implied closed), fixed | The steward corrected the adversary's runbook step; both were right in turn |
+| Nine oracle runs, all IDENTICAL, ~11 min each on the existing source copy | | The "re-run on the final head" rule cost ~45 min of CPU for zero surprises; keep it anyway, the rule is cheap insurance |
+
+Rule proposals from the second wave: (1) a reviewer of a live-path branch runs the morning job's downstream checks (data manifest, coverage, watchdog) against a scratch copy with the branch's writes, since three of four branches tonight had their real finding outside their own files; (2) a branch that is merged conditional on CI gets its DECISIONS row at merge time, not at build time.
