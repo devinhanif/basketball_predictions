@@ -134,3 +134,26 @@ def test_flagged_from_availability_passes_max_season(
     flagged, _ = flagged_from_availability(avail, games, cfg, max_season=2024)
     assert flagged == {"g24": {7}}
     assert read == ["raw_2023-24.parquet"]
+
+
+#: Research harnesses that must pass ``max_season`` on every schedule / availability read (T501:
+#: the GAME_MARKET_CONTEXT harness read the 2025-26 schedule files through the default). The other
+#: research callers are swept in a later change; add them here as they are fixed.
+HOLDOUT_FILTERED_HARNESSES = (
+    "research/eval/game_market_context_eval.py",
+    "research/eval/own_tag_eval.py",
+)
+
+
+@pytest.mark.parametrize("rel", HOLDOUT_FILTERED_HARNESSES)
+def test_harness_passes_max_season_on_every_source_read(rel: str) -> None:
+    import re
+
+    root = Path(__file__).resolve().parents[2]
+    text = (root / rel).read_text()
+    for fn in ("build_game_tipoff", "flagged_from_availability"):
+        calls = [m for m in re.finditer(rf"\b{fn}\(([^()]*(?:\([^()]*\)[^()]*)*)\)", text)]
+        calls = [m for m in calls if not text[: m.start()].rstrip().endswith("import")]
+        assert calls, f"{rel}: expected at least one {fn}( call"
+        unfiltered = [m.group(0) for m in calls if "max_season=" not in m.group(1)]
+        assert not unfiltered, f"{rel}: {fn} called without max_season: {unfiltered}"
