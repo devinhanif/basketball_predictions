@@ -191,6 +191,7 @@ def run_daily(
                 rate_limiter=rate_limiter,
                 fetch_games=fetch_games,
                 pull_box=pull_box,
+                run_date=run_date,
             )
         except Exception as exc:  # ingest: failed -> predict from the DB as it is
             summary.errors.append(f"ingest: failed ({type(exc).__name__}: {exc})"[:300])

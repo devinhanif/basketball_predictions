@@ -92,9 +92,9 @@ def test_slate_missing_alerts(tmp_path: Path) -> None:
     alerts = _run(tmp_path, present_fn=_present_none)
     assert _keys(alerts) == ["gameday:2026-10-21:slate"]
     assert alerts[0].message == (
-        "game day 2026-10-21: games table lacks today's slate: 2 of 2 game_ids missing; "
-        "the schedule fetch does not write scheduled games (expected: `games` gets a row only "
-        "once a game starts; not a fetch failure)"
+        "game day 2026-10-21: games table lacks today's slate: 2 of 2 game_ids missing "
+        "(the pretip ingest writes today's slate at its first run; this fires if no pretip "
+        "run has happened yet)"
     )
 
 

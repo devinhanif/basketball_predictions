@@ -127,3 +127,55 @@ def test_ingest_subcommand_degrades_when_schedule_is_unavailable(
         pull_box=lambda c, g: None, schedule_fn=down,
     )  # fmt: skip
     assert rc == RC_DEGRADED and _row(con, "0022600001") is None
+
+
+def _null_row(con: duckdb.DuckDBPyConnection, gid: str, d: date) -> None:
+    con.execute(
+        "INSERT INTO games (game_id, game_date, season, home_team, away_team) "
+        "VALUES (?, ?, 2026, ?, ?)",
+        [gid, d, T1, T2],
+    )
+
+
+def test_stale_null_row_removed_after_a_successful_refresh(
+    con: duckdb.DuckDBPyConnection,
+) -> None:
+    _null_row(con, "0022600500", RUN_DATE - timedelta(days=1))  # postponed yesterday
+    _null_row(con, "0022600501", RUN_DATE)  # today's own placeholder is kept
+    s = _run(con, slate_games())
+    assert s.ingest["stale_scheduled_removed"] == 1
+    assert _row(con, "0022600500") is None and _row(con, "0022600501") is not None
+    scored = con.execute("SELECT count(*) FROM games WHERE home_pts > 0").fetchone()
+    assert scored is not None and scored[0] > 0  # scored history untouched
+
+
+def test_stale_null_row_kept_when_the_refresh_fails(con: duckdb.DuckDBPyConnection) -> None:
+    _null_row(con, "0022600500", RUN_DATE - timedelta(days=1))
+
+    def down(_s: str) -> pl.DataFrame:
+        raise RuntimeError("blocked")
+
+    s = run_daily(
+        con, RUN_DATE, schedule_fn=lambda _s: slate_games(), now=before_tip(),
+        skip_injury=True, with_props=False, fetch_games=down,
+    )  # fmt: skip
+    assert any(e.startswith("ingest: failed") for e in s.errors)
+    assert _row(con, "0022600500") is not None
+
+
+def test_ingest_subcommand_writes_the_slate_even_when_the_finder_fails(
+    con: duckdb.DuckDBPyConnection,
+) -> None:
+    def down(_s: str) -> pl.DataFrame:
+        raise RuntimeError("blocked")
+
+    rc = run_ingest(
+        con, RUN_DATE, rate_limiter=RateLimiter(0.0), fetch_games=down,
+        schedule_fn=lambda _s: slate_games(),
+    )  # fmt: skip
+    assert rc == RC_DEGRADED and _row(con, "0022600001") is not None
+
+
+def test_inserted_count_is_actual_inserts(con: duckdb.DuckDBPyConnection) -> None:
+    assert insert_scheduled_games(con, slate_games()[:2], RUN_DATE, 2026) == 2
+    assert insert_scheduled_games(con, slate_games()[:2], RUN_DATE, 2026) == 0

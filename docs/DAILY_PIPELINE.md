@@ -32,9 +32,20 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
    finder row is never touched), count in the ingest dict as `scheduled_rows_inserted` and so in
    the run summary's `ingest:` line. The finder's later upsert fills the scores. `--skip-ingest`
    (the replay) inserts nothing: its `games` already holds every row, so the replay hash is
-   unchanged. `python -m nba.daily ingest` (07:00, before settle) writes the same rows. A failed
-   insert is a degraded run (exit 5) and never blocks the forecast. A postponed game keeps its
-   NULL row (never scored, harmless). Readers grade on `pts > 0`, so a NULL row is never settled.
+   unchanged. `python -m nba.daily ingest` (08:00 ET = 07:00 CDT, first step of the morning job,
+   before settle) writes the same rows, from the cached schedule if the fetch fails, and does so
+   even when the finder refresh fails (the run then returns degraded). A failed insert is a
+   degraded run (exit 5) and never blocks the forecast. `scheduled_rows_inserted` counts rows
+   actually inserted.
+   **Stale placeholders.** A game postponed on the day keeps its NULL-score row, and the history
+   frames (`games WHERE game_date < ?`) would count it as a played loss and shift rest days and
+   travel. So, after a SUCCESSFUL finder refresh only, `drop_stale_scheduled_games` deletes
+   `season = S AND home_pts IS NULL AND game_date < run_date` (the finder never writes NULL
+   scores, so these are only our own placeholders) and reports `stale_scheduled_removed`. If the
+   refresh fails nothing is deleted. The data manifest keeps `STALE_SCHEDULED` as the detector
+   should the delete ever be skipped, and counts NULL-score rows separately (`scheduled_rows`),
+   outside the `games` null rates and the coverage denominator. Readers grade on `pts > 0`, so a
+   NULL row is never settled.
    **Coverage check** (`nba.ops.coverage`, `schedule`): it needs every slate game in `games` with
    home/away, so it should now pass before tip (it failed every game day before this step); the
    watchdog game-day probe's "games table lacks today's slate" line fires only if the step failed.

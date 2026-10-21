@@ -227,3 +227,58 @@ def test_label_gap_excludes_holdout_season(tmp_path: Path, cfg: dict[str, Any]) 
     m = build_manifest(tmp_path / "h.duckdb", c)
     assert m["tables"]["games"]["label_schemes"]["outcome"] == {}
     assert label_gap_candidates(m, c) == []
+
+
+def _scheduled_db(path: Path, *, null_dates: list[str]) -> None:
+    """2026 season: 40 scored games with box rows, plus NULL-score rows on ``null_dates``."""
+    con = duckdb.connect(str(path))
+    con.execute(
+        "CREATE TABLE games (game_id VARCHAR PRIMARY KEY, game_date DATE, season INT, "
+        "home_team INT, away_team INT, home_pts INT, away_pts INT)"
+    )
+    con.execute(
+        "INSERT INTO games SELECT 'g' || i, DATE '2026-10-20' - CAST(i AS INT), 2026, 1, 2, "
+        "100, 90 FROM range(40) t(i)"
+    )
+    for k, d in enumerate(null_dates):
+        con.execute("INSERT INTO games VALUES (?, ?, 2026, 1, 2, NULL, NULL)", [f"s{k}", d])
+    con.execute("CREATE TABLE player_game_stats (game_id VARCHAR, player_id INT, minutes FLOAT)")
+    con.execute("INSERT INTO player_game_stats SELECT 'g' || i, 1, 30.0 FROM range(40) t(i)")
+    con.close()
+
+
+def test_scheduled_rows_today_raise_no_shift_or_coverage_flag(
+    tmp_path: Path, cfg: dict[str, Any]
+) -> None:
+    import datetime as dt
+
+    today = dt.date(2026, 10, 21)
+    _scheduled_db(tmp_path / "before.duckdb", null_dates=[])
+    _scheduled_db(tmp_path / "after.duckdb", null_dates=["2026-10-21"])
+    con = duckdb.connect(str(tmp_path / "after.duckdb"))
+    for k in range(10):  # a big slate: 11 NULL rows in all
+        con.execute(
+            "INSERT INTO games VALUES (?, DATE '2026-10-21', 2026, 1, 2, NULL, NULL)", [f"x{k}"]
+        )
+    con.close()
+    old = build_manifest(tmp_path / "before.duckdb", cfg, today=today)
+    new = build_manifest(tmp_path / "after.duckdb", cfg, today=today)
+    assert new["tables"]["games"]["scheduled_rows"] == {"2026": 11}
+    assert new["tables"]["games"]["stale_scheduled"] == 0
+    assert new["tables"]["games"]["columns"]["home_pts"]["null_rate"] == 0.0
+    assert new["tables"]["player_game_stats"]["seasons"]["2026"]["coverage"] == 1.0
+    kinds = {f["kind"] for f in diff_manifests(old, new, cfg)["flags"]}
+    assert not kinds & {"NULL_SHIFT", "COVERAGE_DROP", "STALE_SCHEDULED"}
+
+
+def test_stale_scheduled_row_raises_a_flag(tmp_path: Path, cfg: dict[str, Any]) -> None:
+    import datetime as dt
+
+    today = dt.date(2026, 10, 21)
+    _scheduled_db(tmp_path / "old.duckdb", null_dates=[])
+    _scheduled_db(tmp_path / "new.duckdb", null_dates=["2026-10-18", "2026-10-20"])
+    old = build_manifest(tmp_path / "old.duckdb", cfg, today=today)
+    new = build_manifest(tmp_path / "new.duckdb", cfg, today=today)
+    assert new["tables"]["games"]["stale_scheduled"] == 1  # yesterday's row is not stale
+    flags = diff_manifests(old, new, cfg)["flags"]
+    assert [f["table"] for f in flags if f["kind"] == "STALE_SCHEDULED"] == ["games"]

@@ -116,6 +116,18 @@ def diff_manifests(old: dict[str, Any], new: dict[str, Any], cfg: dict[str, Any]
                     flags.append(
                         _flag("NULL_SHIFT", t, f"season {s} null rate {so[s]} -> {sn[s]}", c)
                     )
+    for t, nt_ in nt.items():
+        if nt_.get(
+            "stale_scheduled"
+        ):  # a NULL-score row older than yesterday: a placeholder left behind
+            flags.append(
+                _flag(
+                    "STALE_SCHEDULED",
+                    t,
+                    f"{nt_['stale_scheduled']} NULL-score rows dated before yesterday "
+                    "(a postponed or cancelled game's placeholder; features count it as played)",
+                )
+            )
     for f in leak_candidates(new, cfg):
         t, c = f["table"], f["column"]
         oa = ot.get(t, {}).get("columns", {}).get(c, {}).get("asymmetry")

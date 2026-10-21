@@ -250,6 +250,8 @@ def run_ingest(
     ``run_date``. 2026-10-20: the morning settle ran before any ingest and would have graded a
     half-time score. Exit 0, or ``RC_DEGRADED`` when the fetch fails (settle still runs: its own
     guards refuse a game without a box score)."""
+    out: dict[str, int] = {}
+    rc = 0
     try:
         out = incremental_ingest(
             con,
@@ -258,11 +260,11 @@ def run_ingest(
             rate_limiter=rate_limiter,
             fetch_games=fetch_games,
             pull_box=pull_box,
+            run_date=run_date,
         )
-    except Exception as exc:
+    except Exception as exc:  # the slate rows below are still written (the pretip run needs them)
         print(f"DEGRADED: ingest failed ({type(exc).__name__}: {exc})"[:300])
-        return RC_DEGRADED
-    rc = 0
+        rc = RC_DEGRADED
     if schedule_fn is not None:  # today's slate rows (the finder holds only started games)
         try:
             season_s = season_str_for_date(run_date)
