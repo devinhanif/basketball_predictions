@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import polars as pl
 
-from research.eval import wowy_struct_star_cuts as SC
+from research.archive.wowy_struct import wowy_struct_star_cuts as SC
 
 
 def test_heavy_cuts_ignore_other_seasons_and_empty_out_sets() -> None:

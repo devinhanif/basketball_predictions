@@ -9,7 +9,7 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from research.eval import coach_phase_gates as G
+from research.archive.coach_phase import coach_phase_gates as G
 from research.eval import f10a_gates as F
 
 BOS, NYK, LAL, DEN = 1610612738, 1610612752, 1610612747, 1610612743

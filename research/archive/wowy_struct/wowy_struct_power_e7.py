@@ -2,7 +2,7 @@
 """WOWY_STRUCT G6 power re-measure for the E7 design (DRAFT rule; sizing only, nothing is fitted, no contrast is computed).
 
     cd <worktree> && NBA_ROOT=/Users/devin/Downloads/nba-prediction nice -n 10 \\
-        /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore -m research.eval.wowy_struct_power_e7
+        /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore -m research.archive.wowy_struct.wowy_struct_power_e7
 
 What it does: the SAME sizing method as ``wowy_struct_gate.py::main`` (version B: outcome-free sd of the per-row CRPS delta
 between the stored A0 forecast and the same forecast shifted by kappa x struct, design effect 1.1, pass line min(-0.005,
@@ -27,10 +27,10 @@ from nba.eval.lower_tail_eval import arm_grid, load_components
 from nba.props import struct_alloc as SA
 from nba.props import wowy as W
 from nba.props.context_residual import to_integer_support
+from research.archive.wowy_struct import wowy_struct_gate as SG
 from research.eval import prereg_gates_common as C
 from research.eval import wowy_redistribution_gate as G
 from research.eval import wowy_redistribution_slices as SL
-from research.eval import wowy_struct_gate as SG
 
 FLOOR = -0.005
 CELLS = (("pts", "leader_out"), ("pts", "top25_fixed"), ("ast", "leader_out"))

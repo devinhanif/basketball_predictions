@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from research.eval import wowy_struct_crps_null as N
+from research.archive.wowy_struct import wowy_struct_crps_null as N
 
 
 def test_perm_player_season_keeps_each_group_multiset() -> None:

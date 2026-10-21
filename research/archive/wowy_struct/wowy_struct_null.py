@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 """WOWY_STRUCT permutation-null sizing for the player-season-permuted guard G1 (DRAFT rule; gate only).
 
-    cd /Users/devin/Downloads/nba-prediction && nice -n 10 .venv/bin/python -W ignore -m research.eval.wowy_struct_null
+    cd /Users/devin/Downloads/nba-prediction && nice -n 10 .venv/bin/python -W ignore -m research.archive.wowy_struct.wowy_struct_null
 
 Question: how much of the gain "ROLE + STRUCT minus ROLE" can a STRUCT column with the right marginal but the wrong
 row (permuted within player-season, train and test separately) produce by chance and by player-level information?
@@ -25,9 +25,9 @@ import polars as pl
 from nba.props import struct_alloc as SA
 from nba.props import wowy as W
 from nba.props.context_residual import stat_feature_names, stat_frame
+from research.archive.wowy_struct import wowy_struct_gate as SG
 from research.eval import prereg_gates_common as C
 from research.eval import wowy_redistribution_gate as G
-from research.eval import wowy_struct_gate as SG
 
 K_DRAWS = 30
 CHOSEN = {"pts": "struct_u_pts", "ast": "struct_d_ast"}

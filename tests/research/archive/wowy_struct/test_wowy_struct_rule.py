@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from research.eval import wowy_struct_rule as rule
+from research.archive.wowy_struct import wowy_struct_rule as rule
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 TEXT = "RULE ABOVE\nline two\n" + rule.MARKER + "\nresults below do not count\n"
 SHA = rule.text_sha(TEXT)
 FC = "f" * 40
@@ -143,9 +143,9 @@ def closure(start: str) -> set[str]:
 
 def test_pin_covers_import_closure() -> None:
     need = (
-        closure("research/eval/wowy_struct_eval.py")
-        | closure("research/eval/wowy_struct_rule.py")
-        | closure("research/eval/wowy_struct_repl_gate.py")
+        closure("research/archive/wowy_struct/wowy_struct_eval.py")
+        | closure("research/archive/wowy_struct/wowy_struct_rule.py")
+        | closure("research/archive/wowy_struct/wowy_struct_repl_gate.py")
     )
     assert need <= set(rule.HARNESS_FILES), sorted(need - set(rule.HARNESS_FILES))
 
@@ -154,12 +154,12 @@ def test_pin_files_exist_and_configs_read_by_the_harness_are_pinned() -> None:
     for rel in rule.HARNESS_FILES:
         assert (REPO / rel).exists(), rel
     src = "".join(
-        (REPO / f"research/eval/{m}.py").read_text()
-        for m in (
-            "wowy_struct_eval",
-            "wowy_struct_repl_gate",
-            "f1_warm_window_gate",
-            "f1_warm_window_run",
+        (REPO / d / f"{m}.py").read_text()
+        for d, m in (
+            ("research/archive/wowy_struct", "wowy_struct_eval"),
+            ("research/archive/wowy_struct", "wowy_struct_repl_gate"),
+            ("research/eval", "f1_warm_window_gate"),
+            ("research/eval", "f1_warm_window_run"),
         )
     )
     for cfg in ("configs/context_residual.yaml", "configs/mov_elo_tuned.yaml"):

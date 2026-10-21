@@ -3,7 +3,7 @@
 """WOWY_STRUCT (revision with STRUCT_REPL) minimum-data gate, data-capture audit and power re-measure (non-negotiable 8). DRAFT rule: docs/prereg/WOWY_STRUCT.md.
 
     cd <worktree> && NBA_ROOT=/Users/devin/Downloads/nba-prediction nice -n 10 \\
-        /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore -m research.eval.wowy_struct_repl_gate [--skip-planted] [--stages a,b,...]
+        /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore -m research.archive.wowy_struct.wowy_struct_repl_gate [--skip-planted] [--stages a,b,...]
 
 Read-only on ``$NBA_ROOT/nba.duckdb`` and ``$NBA_ROOT/data/history/nba_history.duckdb`` (every query ``season <= 2024``; season 2025 is never
 read). Outcomes read: the DEV seasons 2020, 2021 and the warm-up season 2022 only (the effect coefficient kappa and the held-out GBM designs, exactly
@@ -33,11 +33,11 @@ from nba.props import struct_alloc as SA
 from nba.props import wowy as W
 from nba.props import wowy_repl as WR
 from nba.props.context_residual import stat_feature_names, stat_frame, to_integer_support
+from research.archive.wowy_struct import wowy_struct_gate as SG
 from research.eval import f1_warm_window_gate as F1G
 from research.eval import prereg_gates_common as C
 from research.eval import wowy_redistribution_gate as G
 from research.eval import wowy_redistribution_slices as SL
-from research.eval import wowy_struct_gate as SG
 
 REAL = Path(os.environ.get("NBA_ROOT", "/Users/devin/Downloads/nba-prediction")).resolve()
 DB = REAL / "nba.duckdb"
@@ -47,9 +47,9 @@ K_SEASONS = tuple(
 )  # prior-strength estimation seasons (complete seasons before the 2022 warm-up), as REPLACEMENT_DELTA
 # The pinned artifact (GATE_SHA256) is never a default output: a re-run writes to a scratch path unless --out says otherwise (review E7).
 OUT = Path("/tmp/wowy_struct_repl_gate_rerun.json")
-PINNED_ARTIFACT = Path(__file__).resolve().parents[2] / "reports/prereg_wowy_repl/gate.json"
+PINNED_ARTIFACT = Path(__file__).resolve().parents[3] / "reports/prereg_wowy_repl/gate.json"
 STRUCT_GATE = (
-    Path(__file__).resolve().parents[2] / "reports/prereg_wowy_redistribution/gate.json"
+    Path(__file__).resolve().parents[3] / "reports/prereg_wowy_redistribution/gate.json"
 )  # the committed STRUCT gate (cut-offs, kappa)
 CACHE = Path("data/ops/wowy_struct_repl_cache")
 F1_CACHE = REAL / "data/ops/f1_warm_window_cache"

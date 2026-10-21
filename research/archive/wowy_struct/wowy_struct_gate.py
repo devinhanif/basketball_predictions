@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 """WOWY_REDISTRIBUTION follow-up 2 (STRUCT) gate: structural allocation of vacated production (DRAFT rule; gate only).
 
-    cd /Users/devin/Downloads/nba-prediction && .venv/bin/python -W ignore -m research.eval.wowy_struct_gate
+    cd /Users/devin/Downloads/nba-prediction && .venv/bin/python -W ignore -m research.archive.wowy_struct.wowy_struct_gate
 
 Feature ``struct_*`` of ``nba/props/struct_alloc.py``: tonight's OUT rotation players' as-of per-game stat (per-minute
 rate x expected minutes) is handed out to the remaining as-of rotation pool in proportion to the same quantity (version
