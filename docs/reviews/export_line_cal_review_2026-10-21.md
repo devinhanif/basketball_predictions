@@ -130,3 +130,35 @@ After 1 and 2, a diff-check by the adversary is enough; a full re-review is not 
 ## Drafted DECISIONS row (not appended)
 
 | 2026-10-21 | The parlay producer reads the LINE_CALIBRATION median and spread from the stored 19-point q_grid, not from the 199-point grid that the frozen rule text names (LINE_CALIBRATION.md:26-27). Accepted as equivalent / to be switched (Devin's choice). | Measured on 96 real season-2026 (prop, DraftKings main line) pairs: max \|dz\| 0.00067, max \|dp_cal\| 7.6e-5, under a tenth of the display resolution. Reverse if any served cell's \|dp_cal\| exceeds 0.001. |
+
+## Re-check a0b15dd (2026-10-21)
+
+Verdict: APPROVED
+
+Read with `git diff 2d5da83..a0b15dd`: 3 files (line_cal_fields.py, the test file, the contract). No new scope.
+- **F1 fixed.** `_one()` computes one value per (game, player, stat) from the production row. It keys quotes to that row's run
+  (`lines_run_id`, which equals the production row's own `run_id`) and calls `rcf.main_line(..., made_at + 1 microsecond, tipoff)`. Python
+  datetimes and DuckDB TIMESTAMP both have microsecond resolution, so `ts < made_at + 1 µs` is exactly `ts <= made_at`; a later quote cannot
+  get in. The reader also filters `received_at <= made_at` on the same run. The value is copied to every row of the prop, and
+  `no_production_row` is checked first. The new test `test_a_later_row_of_the_prop_gets_the_production_rows_line_never_a_later_one` covers
+  four cases: a later run's 24.5 line is never used (22.5 is); both rows go NULL with `no_book_line` when production's run has no line; a
+  quote stamped exactly at `made_at` counts; and the distinct counts.
+- **Real slate 2026-10-20** (read-only, season 2026; `attack/lc_rows.py`, exit 0): 60 `line_cal` values on 1,860 rows (12 distinct
+  props x 5 rows). Rows whose line postdates the production `made_at`: **0** (was 95 of 143). Primary rows with a value: 12 of 424,
+  unchanged.
+- **F2 and F4 fixed** in the contract: parity is now stated for the same production row and line, non-parity cases (a)-(d) are listed,
+  and older exports lacking the columns or the manifest key are read as NULL. Distinct counts are documented.
+- **F3 unchanged, by design.** It is a producer question for Devin; the drafted DECISIONS row above still applies.
+- Checks in wt_export at a0b15dd, all unpiped:
+
+| Command | Result | Exit |
+|---|---|---|
+| `pytest tests/export tests/parlay tests/test_layering.py --no-cov -q` | `283 passed, 2 skipped, 64801 warnings in 22.56s` | 0 |
+| `ruff check` | clean | 0 |
+| `ruff format --check` | clean | 0 |
+| `mypy` (line_cal_fields.py, build.py) | `Success: no issues found in 2 source files` | 0 |
+
+Nits (non-blocking; fix in passing):
+1. `docs/contracts/line_cal_export_v1.md:24-27` still lists `no_book_line, ambiguous_main_line` before `no_production_row` and says
+   "checked in that order", but `_one()` now checks `no_production_row` first. Move `no_production_row` to the head of the list.
+2. In the new test, `_board(24.5, late) and [...]` evaluates to the right-hand list only. Pass the list directly.
