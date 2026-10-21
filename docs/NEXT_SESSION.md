@@ -1,3 +1,17 @@
+# NEXT SESSION — resume here (written 2026-10-20 22:1x CDT, end of opening night)
+
+**State:** main is clean at f0b659c. Opening night ran: 3 games forecast before tip; BOS@DET settled (Detroit 121-113; 352 prop rows scored, Paul George missed by 23 on rate); PHI@NYK and OKC@SAS settle in the 07:07 morning job (settle fix: only >= 4 h after tip). Merged today: settle-after-tip fix (live path, oracle IDENTICAL), app display-history guard, coverage check + live scorecard (wired into pretip/morning), Pinnacle benchmark, preseason tables, PRESEASON_ROLE_PRIOR (T500, FAIL_ONE_SEASON, closed).
+
+**Tomorrow morning (2026-10-21), ~5 minutes:**
+1. `tail -40 data/ops/morning_20261021.log`: expect settle to score 0022600002/3; `coverage_yesterday` WILL ALERT on 10-20's known FAILs (schedule gap, 14 stale movers, pairing, job gap, early BOS@DET scores): correct, not a regression; `scorecard` rebuilds reports/forward_scorecard/2026-10-20.md with 3 games (CIs still thin).
+2. `uv run --no-sync python -m nba.ops.coverage --date 2026-10-21` before the first tip; if `schedule` still FAILs, the games table is not getting the 2026-27 schedule: fix the fetch (live path, oracle + go).
+3. Grade last night's memo picks against the box (Fox o4.5 ast, Castle o15.5, Holmgren o12.5 / o7.5 reb, SGA o29.5; retractions SGA ast, Castle ast under, Wemby reb under, Wallace 3s over) and the Pinnacle Part 3 for OKC@SAS.
+4. Mac: keep on AC, lid open; `caffeinate -dimsu` in a Terminal on game days (it slept on battery 10-20 morning).
+5. Housekeeping: `git worktree prune` after removing scratch worktrees (wt_stamp, wt_boxapp, wt_final, wt_wire, wt_scorecard, wt_coverage, wt_pinn, wt_preseason, wt_prior, wt_adv_prior, wt_adv_post); Devin deletes data/rehearsal/oracle_[fw]_* and oracle_*_src.duckdb (holdout copies).
+
+**Open decisions for Devin:** merge the live report-time fix (agent/archivist-report-stamp-fix 2dfbd07, oracle IDENTICAL on 10-16); production should withdraw a mover's stale old-team forecast (live path); the line-pairing rule (forecast made_at vs quote received_at); which of the new hypotheses to draft first (gap-regression residual test; assists family A1–A3; timing M2/M3 after ~30 slate dates).
+
+---
 # Next session
 
 _Updated 2026-10-14 20:27 CDT. Status overview: PROJECT_STATUS.md. Retro: docs/reviews/retro_2026-10-13.md._
