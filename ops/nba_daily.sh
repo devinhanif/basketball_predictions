@@ -92,16 +92,33 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   # informational; exit 5 (a refusal older than 24 h: should long be final) alerts.
   # coverage (pretip, every half hour) exits 3 when something is missing or stale: informational
   # there, so one bad slate does not alert 26 times; the morning coverage_yesterday step alerts on 3.
+  # early_forecast (morning) is the same predict call as pretip's: same 0/4/5 rules. briefing_early and
+  # briefing_report (nba.explain slate) exit 4 when no forecast rows exist yet: informational.
+  # rc 142 = 128 + SIGALRM: a post-game step hit its alarm_run budget (below); it alerts as a timeout.
   failed=ok
-  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ] || [ "$name" = settle ]; } && [ "$rc" -eq 4 ]; } \
+  if [ "$rc" -ne 0 ] && ! { { [ "$name" = predict ] || [ "$name" = early_forecast ] || [ "$name" = briefing_early ] || [ "$name" = briefing_report ] || [ "$name" = refs ] || [ "$name" = odds_capture ] || [ "$name" = facts ] || [ "$name" = settle ]; } && [ "$rc" -eq 4 ]; } \
       && ! { [ "$name" = coverage ] && [ "$rc" -eq 3 ]; }; then
     HB_RC=$rc
     failed=failed
-    alert "$name failed (rc=$rc), see $LOG"
+    if [ "$rc" -eq 142 ]; then alert "$name timed out (rc=142, alarm), see $LOG"
+    else alert "$name failed (rc=$rc), see $LOG"; fi
   fi
   step_record "$name" "$rc" "$failed"
   return $rc
 }
+
+# alarm_run <seconds> <cmd...>: macOS has no `timeout`. perl sets SIGALRM and exec()s the command; the
+# timer survives exec (and `uv run` execs its child), so the command itself is killed after <seconds>
+# and the shell sees 142. 2026-10-21: fetch_tracking hung from 07:00 and held data/ops/lock for 2 h+, so
+# every pretip slot skipped ("another job holds data/ops/lock") and the slate had no forecast. The lock
+# stays held for the whole job on purpose (nba.duckdb is single-writer; releasing it mid-job would let a
+# pretip run interleave with the morning writers): the per-step timeout is the fix, not an early release.
+alarm_run() {
+  secs=$1; shift
+  perl -e 'alarm shift; exec @ARGV' "$secs" "$@"
+}
+FETCH_TIMEOUT_S=${NBA_FETCH_TIMEOUT_S:-1800}   # 30 min per postgame-fetch source
+LOAD_TIMEOUT_S=${NBA_LOAD_TIMEOUT_S:-1200}     # 20 min for postgame-load
 
 # one job at a time (mkdir is atomic). The owner pid is stored in the lock dir: a dead owner
 # (SIGKILL, power loss) is cleared at once; a live-looking lock older than 3 h is cleared too.
@@ -153,6 +170,10 @@ case "$MODE" in
     step predict "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
       --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --log-pplay-shadow --log-full-shadow \
       --log-avg-shadow --log-combo-shadow --rate-limit-s 2.5
+    # report edition of the slate briefing (nba.explain slate): overwritten by every pretip run, so the file
+    # is always the latest run's picture. Seconds; rc 4 (no forecast rows) informational.
+    step briefing_report "$UV" run --no-sync python -m nba.explain slate --date "$TODAY_ET" --db nba.duckdb \
+      --out "reports/briefing/${TODAY_ET}_report.md" --edition report
     step refs "$UV" run --no-sync python -m nba.ingest.referees collect
     # live sharp-line capture (nba.odds capture, theoddsapi.com) was removed on 2026-10-10 when Devin
     # cancelled that subscription; the adapter stays in nba/odds, re-add this step with a valid key in .env.
@@ -176,6 +197,17 @@ case "$MODE" in
     # immutable snapshot only when an arm-stat first reaches a look's date count; rc 0 otherwise
     step checkpoint "$UV" run --no-sync python -m nba.daily checkpoint --look auto
     step report "$UV" run --no-sync python -m nba.daily report
+    # Early edition (Devin 2026-10-21, "an early morning version that says why"): forecast today's slate as
+    # soon as settle and report are done (~08:00 ET), before the slow post-game fetches, so a stalled fetch can
+    # never again leave the slate without a forecast. Same flags as the pretip predict. Scoring is unchanged:
+    # the scored row is the latest made_at <= tip minus the lead (FORWARD_PREREG rules 3-4), an extra early row
+    # never changes it, and the store writes only on change. No games: predicts nothing, rc 4, informational.
+    . "$(dirname "$0")/roster_source.sh"   # sets ROSTER (official through 2026-11-30)
+    step early_forecast "$UV" run --no-sync python -m nba.daily run --date "$TODAY_ET" \
+      --roster-source "$ROSTER" --log-int-variant --log-lower-tail-variant --log-pplay-shadow --log-full-shadow \
+      --log-avg-shadow --log-combo-shadow --rate-limit-s 2.5
+    step briefing_early "$UV" run --no-sync python -m nba.explain slate --date "$TODAY_ET" --db nba.duckdb \
+      --out "reports/briefing/${TODAY_ET}_early.md" --edition early
     # Last night, in the record: the coverage check alerts on any FAIL (exit 3); the live scorecard
     # (nba/forward/scorecard.py) rebuilds the season-to-date report after the settle above.
     step coverage_yesterday "$UV" run --no-sync python -m nba.ops.coverage --date "$YESTERDAY_ET"
@@ -195,9 +227,9 @@ case "$MODE" in
       log "backfill/ingest queue running (one stats.nba.com puller at a time); skipping post-game ingest"
     else
       for s in tracking hustle officials matchups; do
-        step "fetch_$s" "$UV" run --no-sync python -m nba.ingest --rate-limit-s 1.0 postgame-fetch --source "$s"
+        step "fetch_$s" alarm_run "$FETCH_TIMEOUT_S" "$UV" run --no-sync python -m nba.ingest --rate-limit-s 1.0 postgame-fetch --source "$s"
       done
-      step postgame_load "$UV" run --no-sync python -m nba.ingest postgame-load \
+      step postgame_load alarm_run "$LOAD_TIMEOUT_S" "$UV" run --no-sync python -m nba.ingest postgame-load \
         --source tracking --source hustle --source officials --source matchups
     fi
     step data_snapshot "$UV" run --no-sync python -m nba.datamanifest snapshot
