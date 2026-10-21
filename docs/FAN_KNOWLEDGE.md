@@ -738,3 +738,30 @@ Order Claude recommends: (1) ROLE_PRIOR_SALARY draft after the salary source and
 
 ## Shot-clock usage (2026-10-21 ~13:00 CDT, Devin)
 "Are we tracking shot clock usage? If a team uses min/max of the shot clock that changes who would do what, when, where and why." Not a feature today. Derivable from our parsed play-by-play (possession start and shot clocks): team-level early- vs late-clock shot shares as-of, and each player's share of early-clock shots, as proxies for usage timing and pace. Prior evidence: PACE_TOTALS T472 weight 0; tracking-rate features T119-T123 no pass; so the prior for props is low, but the information is pre-tip and ours. First step: a descriptive (scratch, seasons <= 2024) of early-clock share by team and its stability month to month, before any rule. Also logged the same hour: mid-game (live) modelling as a separate product line, with raw live capture starting tonight (hardening item 9) and a Q1-information descriptive in the reading log; and the kitchen-sink diagnostic arm (all tested features, per-slice contrasts) for after the window.
+
+## Playoff games in the history, and game 1 vs game 82 (2026-10-21 ~13:35 CDT, Devin)
+"Why are you using playoff games to predict regular-season games, without a flag for recency? A player at game 1 vs
+game 82 has different everything. Have we factored that in?" Checked, not guessed:
+- Playoff (004) and play-in (005) games are kept by ingest and sit in training and in every recency window with no
+  flag. Seasons 2022-2024: 7,004 playoff + 480 play-in of ~104k player-game rows (about 7 percent).
+- The production props recency series (nba/props/forward.py `_stat_series`, half-life 10 games) and the
+  context-residual decayed means (half-lives 5/10/40/100 games) cross the season boundary and include playoff rows.
+  Tonight's forecasts drew on up to 150 prior games (median n_games 150): for a deep-run player at game 1 of a season,
+  20 playoff games carry about 75 percent of the half-life-10 recency weight; 10 games into the new season they still
+  carry about 37 percent.
+- Season position IS represented: player games this season (n_season, resets at the boundary), days since the previous
+  game (gap_days: the offseason is visible), team game number, rest/b2b, as-of standings (in_playoff_pos, in_playin),
+  tanking incentive, team change. The correction model can learn an early-season adjustment from these; nothing marks
+  a row or a history game as a playoff game.
+- Measured regime shift, played rows, players with >= 5 playoff games (n 140-153 per season): playoff minutes minus
+  their last-10 regular-season minutes averaged -0.4 to -1.6 (p10 about -10, p90 about +6); points -1.4 to -2.1
+  (p10 about -6.5, p90 about +3). Stars up, everyone else down: rotations shorten. Heterogeneous, so a flag matters
+  more than a global shift.
+- Exposure: in the first 7 days of 2023 and 2024, 14-16 percent of played rows (166-173 of ~1,150) were players
+  whose latest prior game was a playoff game; about 210 rows per season were players with 10+ playoff games.
+- Ledger: no test of a playoff flag or a season-reset recency exists. Related: tree arms were worse in the 2024
+  postseason (ENSEMBLE notes near T442-T445), early-season over-forecast on bottom-5 teams (T476 descriptive), the
+  SEQ blend scores regular-season targets only but its history includes playoff games (T470).
+Verdict: season position yes, playoff regime no; an untested assumption. Recommended: a pre-registered test with
+slices (first 10 team games; deep-run players) rather than a season-wide floor, because the effect lives in a few
+weeks of the year. Devin decides whether to draft it (DECISIONS when he does).
