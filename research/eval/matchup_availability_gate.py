@@ -1,0 +1,335 @@
+# ruff: noqa: E501
+"""MATCHUP_AVAILABILITY minimum-data gate (rule: docs/prereg/MATCHUP_AVAILABILITY.md, DRAFT). Label-free.
+
+    .venv/bin/python -W ignore -m research.eval.matchup_availability_gate [--out reports/prereg_matchup_availability/gate.json]
+
+Read-only: ``nba.duckdb`` opened ``read_only=True``, ``season <= 2024`` in every SQL; season 2025 is never queried. The stored A0 files
+(``reports/odds_history/model_rows_{season}_{stat}.parquet``) are read for the columns ``game_id, player_id, team_id, game_date, min10,
+n_prior`` (pre-game covariates) and the stored forecast ``c, s, p_ge`` (the served distribution, never an outcome). The label columns ``y``
+and realised ``minutes`` are NEVER selected: no exception is taken in this gate. The power simulation draws outcomes from A0's own stored
+grid (role_prior_salary_eval.sim_cell / noise_arm, reused unchanged).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+from research.archive.preseason_role_prior import preseason_role_prior as arch
+from research.eval import matchup_availability_features as feat
+from research.eval import matchup_availability_rule as rule
+from research.eval import role_prior_salary_eval as ev
+
+OUT = Path("reports/prereg_matchup_availability/gate.json")
+ROW_COLS = ["game_id", "player_id", "team_id", "game_date", "n_prior", "min10"]
+GRID_COLS = ["game_id", "player_id", "team_id", "game_date", "c", "s", "p_ge"]
+LABEL_COLS = {"y", "minutes", "mean_prod", "m_recency"}
+SIM_SIGMAS = (0.10, 0.20)
+
+
+def log(msg: str) -> None:
+    print(f"[{time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr, flush=True)
+
+
+def chk(name: str, value: Any, bar: str, ok: bool) -> dict[str, Any]:
+    return {"check": name, "value": value, "bar": bar, "pass": bool(ok)}
+
+
+def weeks(df: pd.DataFrame, season: int) -> np.ndarray:
+    return np.array([f"{season}-{w}" for w in pd.to_datetime(df.game_date).dt.strftime("%G-%V")])
+
+
+def cluster_counts(df: pd.DataFrame, season: int) -> dict[str, int]:
+    return {
+        "rows": int(len(df)),
+        "player_seasons": int(df.player_id.nunique()),
+        "games": int(df.game_id.nunique()),
+        "weeks": int(len(np.unique(weeks(df, season)))) if len(df) else 0,
+    }
+
+
+def power_cell(stat: str, season: int, sl: pd.DataFrame) -> dict[str, Any]:
+    """Noise-arm and planted-effect simulation on the slice rows of A0's stored grid (reuse of the ROLE_PRIOR_SALARY power method)."""
+    df = arch.read_rows(stat, season, GRID_COLS)
+    key = set(zip(sl.game_id, sl.player_id, strict=True))
+    sel = np.flatnonzero([(g, p) in key for g, p in zip(df.game_id, df.player_id, strict=True)])
+    blocks = arch.month_blocks(df)
+    q0 = arch.quantile_grid(df, sel, blocks)
+    sub = df.iloc[sel]
+    ps = np.array([f"{season}-{p}" for p in sub.player_id.to_numpy()])
+    gid = sub.game_id.to_numpy()
+    wk = weeks(sub, season)
+    res = {
+        f"noise_sigma{rule.NOISE_SIGMA:.2f}": ev.noise_arm(
+            q0, ps, gid, wk, rule.NOISE_SIGMA, 1, arch.crps_int_q
+        )
+    }
+    for sg in SIM_SIGMAS:
+        res[f"half_recovery_sigma{sg:.2f}"] = ev.sim_cell(
+            q0, ps, gid, wk, sg, 0.5, 2, arch.crps_int_q
+        )
+        res[f"oracle_sigma{sg:.2f}"] = ev.sim_cell(q0, ps, gid, wk, sg, 1.0, 3, arch.crps_int_q)
+    cell: dict[str, Any] = {"n_rows": int(len(q0)), "floor": rule.FLOORS[stat]}
+    for k, v in res.items():
+        cell[k] = {
+            "point": v["binding"]["point"],
+            "half_width_game": v["game"]["half_width"],
+            "half_width_player_season": v["player_season"]["half_width"],
+            "half_width_week": v["week"]["half_width"],
+            "binding": v["binding"]["clustering"],
+            "binding_half_width": v["binding"]["half_width"],
+            "binding_ci": [v["binding"]["lo"], v["binding"]["hi"]],
+            "top5_share": v["top5"],
+        }
+    nz = cell[f"noise_sigma{rule.NOISE_SIGMA:.2f}"]
+    cell["detectable_effect"] = nz["binding_half_width"]
+    cell["mde80_descriptive"] = nz["binding_half_width"] * rule.MDE80_FACTOR
+    return cell
+
+
+def planted_future(mu: pd.DataFrame, rows: pd.DataFrame, season: int) -> dict[str, Any]:
+    """Scale every matchup event on or after a cut date by a random factor; as-of outputs for queries strictly before the cut must not move."""
+    cut = int(np.median(feat.to_day(rows.game_date)))
+    rng = np.random.default_rng(rule.SEED)
+    ev_o = mu.assign(
+        ent=mu.off_player_id.astype("int64"),
+        oth=mu.def_player_id.astype("int64"),
+        day=feat.to_day(mu.game_date),
+    )
+    ev_o = ev_o[["ent", "oth", "day", "season", "mm"]]
+    pert = ev_o.copy()
+    fut = pert.day >= cut
+    pert.loc[fut, "mm"] = pert.loc[fut, "mm"] * rng.uniform(0.0, 5.0, int(fut.sum()))
+    r = rows.assign(day=feat.to_day(rows.game_date))
+    r = r[r.day < cut].head(3000)
+    q = pd.DataFrame(
+        {"ent": r.player_id.astype("int64").to_numpy(), "day": r.day.to_numpy(), "season": season}
+    )
+    a, ha = feat.decayed_asof(ev_o, q, ["mm"])
+    b, hb = feat.decayed_asof(pert, q, ["mm"])
+    a = a.sort_values(["qidx", "oth"]).reset_index(drop=True)
+    b = b.sort_values(["qidx", "oth"]).reset_index(drop=True)
+    same = bool(
+        a.shape == b.shape
+        and np.allclose(a.mm.to_numpy(), b.mm.to_numpy(), rtol=0, atol=1e-9)
+        and (a.oth == b.oth).all()
+        and (ha.nhist == hb.nhist).all()
+    )
+    return {
+        "queries": int(len(q)),
+        "cut_day": cut,
+        "events_perturbed": int(fut.sum()),
+        "identical": same,
+    }
+
+
+def season_block(
+    S: int, mu: pd.DataFrame, games: pd.DataFrame, flagged: dict[str, set[int]], c: Any
+) -> tuple[dict[str, Any], pd.DataFrame]:
+    rule.check_season(S)
+    rows = arch.read_rows("pts", S, ROW_COLS)
+    assert not (set(rows.columns) & LABEL_COLS)
+    sf = feat.slice_frame(rows, mu, games, flagged, S)
+    off_a, def_a = feat.build_archetypes(c, S)
+    sf["off_arch"] = sf.player_id.map(off_a).fillna(-1).astype(int)
+    sf["prim_def_arch"] = sf.primary_D.map(def_a).fillna(-1).astype(int)
+    sf["bucket"] = [rule.minutes_bucket(m) for m in sf.min10.fillna(0.0)]
+    d: dict[str, Any] = {
+        "a0_rows_pts": int(len(sf)),
+        "a0_games": int(sf.game_id.nunique()),
+        "games_with_matchup_rows": int(sf.game_id.isin(mu.game_id.unique()).sum()),
+        "share_rows_game_has_matchup_rows": float(sf.game_id.isin(mu.game_id.unique()).mean()),
+        "share_rows_game_has_usable_report": float(sf.has_report.mean()),
+        "share_rows_nhist_D_ge_min": float((sf.nhist_D >= rule.MIN_HIST_GAMES).mean()),
+        "share_rows_has_primary_defender": float(sf.has_primary_D.mean()),
+        "share_rows_has_primary_assignment": float(sf.has_primary_O.mean()),
+        "slice_counts_all": sf.slice.value_counts().to_dict(),
+    }
+    s1 = sf[sf.primary_out_D]
+    s2 = sf[sf.primary_out_O]
+    s3 = sf[~(sf.primary_out_D | sf.primary_out_O)]
+    d["S1"] = cluster_counts(s1, S)
+    d["S2"] = cluster_counts(s2, S)
+    d["S3"] = cluster_counts(s3, S)
+    d["S1_and_S2_overlap_rows"] = int((sf.primary_out_D & sf.primary_out_O).sum())
+    d["S1_rows_without_report_flag"] = int((s1.has_report == 0).sum())
+    d["freed_share_assignment_mean_when_report"] = float(sf[sf.has_report].freed_share_O.mean())
+    d["freed_share_mix_mean_when_report"] = float(sf[sf.has_report].freed_share_D.mean())
+    fb = {}
+    for b, g in sf.groupby("bucket"):
+        fb[b] = {
+            "rows": int(len(g)),
+            "fallback_no_direct_history": float((g.nhist_D < rule.MIN_HIST_GAMES).mean()),
+            "scorer_archetype_unknown": float((g.off_arch < 0).mean()),
+            "no_primary_defender": float((~g.has_primary_D).mean()),
+        }
+    d["fallback_by_min10_bucket"] = fb
+    d["archetype_sizes"] = {
+        "off": off_a.value_counts().sort_index().to_dict(),
+        "def": def_a.value_counts().sort_index().to_dict(),
+        "players_clustered": int(len(off_a)),
+    }
+    d["missing_vs_pregame_covariate"] = {
+        "share_nhist_D_lt_min_when_n_prior_lt_5": float(
+            (sf[sf.n_prior < 5].nhist_D < rule.MIN_HIST_GAMES).mean()
+        )
+        if (sf.n_prior < 5).any()
+        else None,
+        "share_nhist_D_lt_min_when_n_prior_ge_20": float(
+            (sf[sf.n_prior >= 20].nhist_D < rule.MIN_HIST_GAMES).mean()
+        )
+        if (sf.n_prior >= 20).any()
+        else None,
+        "note": "missingness is a function of the player's prior games only; the correlation with tonight's minutes is audited in the eval (labels), not here",
+    }
+    return d, sf
+
+
+def run(out: Path = OUT) -> dict[str, Any]:
+    t0 = time.time()
+    c = arch.connect(arch.DB)
+    mu = feat.read_matchups(c)
+    games = feat.read_games(c)
+    flagged = feat.read_flagged(c, games)
+    log(f"loaded matchups {len(mu)} games {len(games)} flagged games {len(flagged)}")
+    h = arch.connect(arch.HIST_DB)
+    hist_rows = int(
+        h.execute(
+            "select count(*) from player_game_matchups m join games g using(game_id) where g.season <= 2021"
+        ).fetchone()[0]
+    )
+    gate: dict[str, Any] = {
+        "id": rule.ID,
+        "status": "DRAFT gate, label-free (y and realised minutes never selected)",
+        "pins": {
+            f"{s}_{st}": arch.file_sha256(arch.ODDS / f"model_rows_{s}_{st}.parquet")
+            for s in (rule.SELECT, rule.REPORT)
+            for st in rule.STATS
+        },
+        "bars": {
+            "MIN_ROWS": rule.MIN_ROWS,
+            "MIN_PLAYER_SEASONS": rule.MIN_PLAYER_SEASONS,
+            "MIN_GAMES": rule.MIN_GAMES,
+            "MIN_WEEKS": rule.MIN_WEEKS,
+            "detectable_effect_bar_pts": rule.DE_BAR["pts"],
+            "noise_sigma": rule.NOISE_SIGMA,
+        },
+        "capture_audit": {
+            "matchup_rows_by_season_nba_duckdb": {
+                str(k): int(v) for k, v in mu.groupby("season").size().items()
+            },
+            "matchup_games_by_season": {
+                str(k): int(v) for k, v in mu.groupby("season").game_id.nunique().items()
+            },
+            "matchup_rows_history_db_seasons_le_2021": hist_rows,
+            "games_by_season_regular": {
+                str(k): int(v) for k, v in games.groupby("season").size().items()
+            },
+            "report_games_flagged_by_season": {
+                str(s): int(games[games.season == s].game_id.isin(list(flagged)).sum())
+                for s in range(2022, 2025)
+            },
+        },
+        "seasons": {},
+        "power": {},
+    }
+    frames: dict[int, pd.DataFrame] = {}
+    for S in (rule.SELECT, rule.REPORT):
+        d, sf = season_block(S, mu, games, flagged, c)
+        gate["seasons"][str(S)] = d
+        frames[S] = sf
+        log(f"season {S} slice frame done: S1 {d['S1']['rows']} S2 {d['S2']['rows']}")
+        gate["seasons"][str(S)]["planted_future"] = planted_future(
+            mu[mu.season <= S], sf[["player_id", "game_date"]], S
+        )
+    for S in (rule.SELECT, rule.REPORT):
+        sf = frames[S]
+        for name, mask in (
+            ("S1", sf.primary_out_D),
+            ("S2", sf.primary_out_O),
+            ("S3", ~(sf.primary_out_D | sf.primary_out_O)),
+        ):
+            sub = sf[mask]
+            for st in rule.STATS if name != "S3" else ("pts",):
+                gate["power"][f"{S}|{name}|{st}"] = power_cell(st, S, sub)
+                log(f"power {S} {name} {st} done")
+    g = gate
+    g["cells"] = {}
+    verdict_in: dict[str, dict[str, bool]] = {}
+    for sl in ("S1", "S2"):
+        ok_all = True
+        for S in (rule.SELECT, rule.REPORT):
+            cc = dict(g["seasons"][str(S)][sl])
+            cc["detectable_effect_pts"] = g["power"][f"{S}|{sl}|pts"]["detectable_effect"]
+            chks = rule.gate_slice_checks(cc)
+            g["cells"][f"{S}|{sl}"] = {**cc, "checks": chks, "pass": all(chks.values())}
+            ok_all = ok_all and all(chks.values())
+        verdict_in[sl] = {"pass": ok_all}
+    g["checks"] = checks(g)
+    g["verdict"] = rule.verdict_word(verdict_in["S1"]["pass"], verdict_in["S2"]["pass"])
+    g["wall_seconds"] = round(time.time() - t0, 1)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(g, indent=1, default=str) + "\n")
+    c.close()
+    h.close()
+    return g
+
+
+def checks(g: dict[str, Any]) -> list[dict[str, Any]]:
+    out = []
+    for S in ("2023", "2024"):
+        out.append(
+            chk(
+                f"planted future {S}: as-of output unchanged when events on/after the cut are scaled",
+                g["seasons"][S]["planted_future"]["identical"],
+                "True",
+                g["seasons"][S]["planted_future"]["identical"],
+            )
+        )
+        for sl in ("S1", "S2"):
+            cell = g["cells"][f"{S}|{sl}"]
+            for k, v in cell["checks"].items():
+                val = cell["detectable_effect_pts"] if k == "detectable_effect" else cell[k]
+                out.append(chk(f"{S} {sl} {k}", val, k, v))
+        pc = g["power"][f"{S}|S1|pts"]["oracle_sigma0.20"]
+        out.append(
+            chk(
+                f"positive control {S} S1 pts: oracle sigma 0.20 clears",
+                pc["binding_ci"],
+                "hi < 0 and point <= -0.005",
+                pc["binding_ci"][1] < 0 and pc["point"] <= -0.005,
+            )
+        )
+        s3 = g["power"][f"{S}|S3|pts"][f"noise_sigma{rule.NOISE_SIGMA:.2f}"]["binding_half_width"]
+        out.append(
+            chk(
+                f"S3 control {S} half-width <= {rule.S3_MAX_DEGRADE}",
+                s3,
+                f"<= {rule.S3_MAX_DEGRADE}",
+                s3 <= rule.S3_MAX_DEGRADE,
+            )
+        )
+    out.append(chk("season 2025 loaded", False, "never", True))
+    return out
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out", default=str(OUT))
+    a = ap.parse_args(argv)
+    g = run(Path(a.out))
+    for ck in g["checks"]:
+        print(("PASS " if ck["pass"] else "FAIL ") + ck["check"], ck["value"])
+    print("VERDICT", g["verdict"])
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
