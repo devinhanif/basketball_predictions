@@ -21,7 +21,9 @@ exists but could not be read (a page says so). A missing optional source never f
 from __future__ import annotations
 
 import json
+import os
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -31,6 +33,7 @@ from zoneinfo import ZoneInfo
 import duckdb
 import polars as pl
 
+from nba.db.connect import connect_with_retry
 from nba.explain import data as D
 from nba.explain.names import player_name, team_abbr, team_name
 from nba.props.rosters import DEFAULT_ROSTER_DIR, roster_cache_path
@@ -762,6 +765,14 @@ def _no_rows_page(slate: date, edition: str, now: datetime, note: str | None = N
     return text + (f"\nNote: {note}.\n" if note else "")
 
 
+def _publish(target: Path, text: str) -> None:
+    """Write the page to a temp file, then ``os.replace`` it over the target: a reader sees the
+    previous page or the new one, never a partial one."""
+    tmp = target.with_name(target.name + ".tmp")
+    tmp.write_text(text, "utf-8")
+    os.replace(tmp, target)
+
+
 def write_slate(
     db: str | Path,
     slate: date,
@@ -770,20 +781,26 @@ def write_slate(
     now: datetime,
     roster_root: Path | None = None,
 ) -> int:
-    """Write one briefing page; return the exit code (0 written, 4 no rows, 1 unreadable)."""
+    """Write one briefing page; return the exit code.
+
+    0: page written. 4: no forecast rows for the date, a short page is written. 1: the database
+    could not be read (after the bounded lock wait) or the rows could not be read: nothing is
+    written, the previous page stays in place, and the reason goes to stderr. The page is only ever
+    replaced on 0 or 4, and always atomically."""
     if edition not in EDITIONS:
         raise ValueError(f"edition must be one of {EDITIONS}")
     path, target = Path(db), Path(out)
     target.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
-        target.write_text(_no_rows_page(slate, edition, now, f"{path} not found"), "utf-8")
+        _publish(target, _no_rows_page(slate, edition, now, f"{path} not found"))
         return EXIT_NO_ROWS
     try:
-        con = D.open_ro(path)
+        con = connect_with_retry(path, read_only=True)
     except duckdb.Error as exc:
-        target.write_text(
-            _no_rows_page(slate, edition, now, f"{path} could not be opened read-only ({exc})"),
-            "utf-8",
+        print(
+            f"slate: {path} could not be opened read-only after the lock wait ({exc}); "
+            f"the previous page at {target} is left in place",
+            file=sys.stderr,
         )
         return EXIT_UNREADABLE
     try:
@@ -793,11 +810,13 @@ def write_slate(
             briefing = Briefing(slate, edition, now.astimezone(CDT), has_rows=False)
         text = render(briefing)
     except duckdb.Error as exc:
-        target.write_text(
-            _no_rows_page(slate, edition, now, f"reading the forecast rows failed ({exc})"), "utf-8"
+        print(
+            f"slate: reading the forecast rows from {path} failed ({exc}); "
+            f"the previous page at {target} is left in place",
+            file=sys.stderr,
         )
         return EXIT_UNREADABLE
     finally:
         con.close()
-    target.write_text(text, "utf-8")
+    _publish(target, text)
     return EXIT_OK if briefing.has_rows else EXIT_NO_ROWS

@@ -10,6 +10,7 @@ that does not exist unless it writes one, so the live ``data/rosters`` cache is 
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import re
 from datetime import date, datetime
@@ -490,3 +491,66 @@ def test_holdout_season_is_excluded_from_team_lookup(early_db: Path) -> None:
         assert S.latest_teams(con, {9000010}, SLATE) == {9000010: DET}
     finally:
         con.close()
+
+
+# ------------------------------------------------------------------------- lock and publish
+
+
+LOCK_MSG = 'IO Error: Could not set lock on file "nba.duckdb": Conflicting lock is held'
+
+
+def test_locked_database_exits_1_and_keeps_the_previous_page(
+    early_db: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    out = tmp_path / "2026-10-20_report.md"
+    out.write_text("PREVIOUS GOOD PAGE\n", "utf-8")
+    monkeypatch.setenv("NBA_DB_LOCK_WAIT_S", "0")  # no real wait: the retry gives up at once
+
+    def locked(*args: Any, **kwargs: Any) -> Any:
+        raise duckdb.IOException(LOCK_MSG)
+
+    dbc = importlib.import_module("nba.db.connect")
+    monkeypatch.setattr(dbc, "connect", locked)
+    code = S.write_slate(early_db, SLATE, "report", out, REPORT_NOW, NO_ROSTER)
+    assert code == 1
+    assert out.read_text("utf-8") == "PREVIOUS GOOD PAGE\n"
+    assert not out.with_name(out.name + ".tmp").exists()
+    assert "could not be opened read-only" in capsys.readouterr().err
+
+
+def test_unreadable_rows_exit_1_and_keep_the_previous_page(
+    early_db: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    out = tmp_path / "2026-10-20_early.md"
+    out.write_text("PREVIOUS GOOD PAGE\n", "utf-8")
+
+    def broken(*args: Any, **kwargs: Any) -> Any:
+        raise duckdb.Error("simulated read failure")
+
+    monkeypatch.setattr(S, "build_briefing", broken)
+    assert S.write_slate(early_db, SLATE, "early", out, EARLY_NOW, NO_ROSTER) == 1
+    assert out.read_text("utf-8") == "PREVIOUS GOOD PAGE\n"
+    assert "previous page" in capsys.readouterr().err
+
+
+def test_success_replaces_the_previous_page_atomically(early_db: Path, tmp_path: Path) -> None:
+    out = tmp_path / "2026-10-20_early.md"
+    out.write_text("OLD\n", "utf-8")
+    assert S.write_slate(early_db, SLATE, "early", out, EARLY_NOW, NO_ROSTER) == 0
+    assert out.read_text("utf-8").startswith("# Slate briefing, Tuesday 2026-10-20")
+    assert not out.with_name(out.name + ".tmp").exists()
+
+
+def test_no_rows_replaces_the_previous_page_with_the_short_page(
+    early_db: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "2026-10-21_early.md"
+    out.write_text("OLD\n", "utf-8")
+    assert S.write_slate(early_db, date(2026, 10, 21), "early", out, EARLY_NOW, NO_ROSTER) == 4
+    assert "No forecast rows are stored for the 2026-10-21 slate yet" in out.read_text("utf-8")
