@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { pct } from "./format";
 import {
+  CAL_NOT_EXPORTED,
+  CAL_NO_LINE,
+  CAL_OUT_OF_FIT,
+  CAL_OUT_OF_RANGE,
+  CAL_LABEL,
+  CAL_WHY,
+  RAW_LABEL,
+  pairLines,
   MODEL_ONLY,
   TAIL_NOTE,
   calibratedLabel,
@@ -148,6 +157,51 @@ describe("the honesty labels", () => {
       expect(`${r.label} ${r.tail_note ?? ""}`).not.toMatch(words);
     }
     expect(`${MODEL_ONLY} ${TAIL_NOTE} ${calibratedLabel("v")}`).not.toMatch(words);
+  });
+});
+
+describe("raw and calibrated side by side", () => {
+  it("shows both, labelled, when the line is listed", () => {
+    const r = read(base, 2.5);
+    expect(r.p_raw).toBeCloseTo(pOver(PGE, 2.5), 12);
+    expect(r.p_cal).toBe(0.6);
+    expect(r.cal_note).toBeNull();
+    const p = pairLines(r);
+    expect(p.raw).toBe(`Model, raw: ${pct(pOver(PGE, 2.5))}`);
+    expect(p.cal).toBe("Model, calibrated: 60% (adjusted for how past chances like this turned out; DraftKings line)");
+  });
+  it("shows raw alone with a reason when the line is not listed, never an approximation", () => {
+    const r = read(base, 3.5);
+    expect(r.p_cal).toBeNull();
+    expect(pairLines(r).cal).toBeNull();
+    expect(r.cal_note).toBe(r.p_raw < 0.5 ? CAL_OUT_OF_FIT : CAL_OUT_OF_RANGE);
+    expect(r.p_raw).toBeCloseTo(pOver(PGE, 3.5), 12);
+  });
+  it("names the fit-support reason when raw is under 50% and the range reason when it is not", () => {
+    const hi = read({ ...base, rung_cal: { ...RUNG, lines: [{ line: 0.5, p_over: 0.9 }] } }, 1.5);
+    expect(hi.p_raw).toBeGreaterThanOrEqual(0.5);
+    expect(hi.cal_note).toBe(CAL_OUT_OF_RANGE);
+    const lo = read({ ...base, rung_cal: { ...RUNG, lines: [] } }, 5.5);
+    expect(lo.p_raw).toBeLessThan(0.5);
+    expect(lo.cal_note).toBe(CAL_OUT_OF_FIT);
+  });
+  it("with no rung_cal, gives the no-line reason only when there is no book line, else not-exported", () => {
+    expect(read({ ...base, rung_cal: null, book_main_line: null }, 2.5).cal_note).toBe(CAL_NO_LINE);
+    expect(read({ ...base, rung_cal: null }, 2.5).cal_note).toBe(CAL_NOT_EXPORTED);
+    expect(read({ ...base, rung_cal: null }, 2.5).p_cal).toBeNull();
+  });
+  it("keeps a calibrated 0 and 1 and a raw edge value exactly", () => {
+    const r = read({ ...base, rung_cal: { ...RUNG, lines: [{ line: 0.5, p_over: 1 }, { line: 9.5, p_over: 0 }] } }, 9.5);
+    expect(r.p_cal).toBe(0);
+    expect(pairLines(r).cal).toContain("0%");
+    expect(read({ ...base, rung_cal: { ...RUNG, lines: [{ line: 0.5, p_over: 1 }] } }, 0.5).p_cal).toBe(1);
+    expect(r.p_raw).toBe(0);
+  });
+  it("uses plain words with no advice terms", () => {
+    const words = /\b(ev|expected value|take it|lock|guaranteed|bet this|best bet)\b/i;
+    for (const t of [CAL_NO_LINE, CAL_OUT_OF_FIT, CAL_OUT_OF_RANGE, CAL_NOT_EXPORTED, RAW_LABEL, CAL_LABEL, CAL_WHY]) {
+      expect(t).not.toMatch(words);
+    }
   });
 });
 
