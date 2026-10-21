@@ -736,3 +736,13 @@ can never change a morning or pretip exit code, and a slow Drive upload in the m
 `launchctl` text injected), and prints what was raised; exit 0 only when both alerts fire. Result on the live copy at 17:17 ET 2026-10-14: baseline 0 alerts; raised `daily-pretip:stale`
 ("last start 16:20, expected by 16:50") and `daily-morning:rc` ("last run exited rc=1"), both written to the temporary ALERTS.md and sent to the notifier; the live heartbeat directory unchanged (tests/ops/test_watchdog_drill.py
 checks byte equality of the source and four clock positions, including overnight and just after a slot).
+
+## Watchdog game-day probe (2026-10-20)
+
+Incident: on opening night 2026-10-20 the Mac slept on battery, the morning job started late (07:07 CDT, ended 12:24 CDT, rc 2) and nothing told anyone. `nba.ops.watchdog.evaluate_game_day`
+(called from `check`, every 10 minutes) runs from the first check at or after 09:00 ET on a day whose schedule (`data/schedule_cache/schedule_<season>.json`, plus `data/schedule/live_tips_<season>.parquet`)
+holds a regular-season (`002...`) game on that ET date; non-game days and earlier checks are silent. Four checks, one alert each per ET game day (key `gameday:<YYYY-MM-DD>:<check>`, never re-alerted
+every 6 h): `battery` (`pmset -g batt` says "Battery Power"), `caffeinate` (`pgrep -x caffeinate` finds nothing), `slate` (today's game_ids missing from `games`, read-only `nba.duckdb`, 20 s bounded wait; a
+held lock defers to the next check and is not an alert), `morning` (the `daily-morning` heartbeat has no start today, or a start with no end). A check that cannot compute alerts as `gameday:<date>:probe-<check>`.
+Known: the `slate` check fails on every game day until the schedule fetch writes scheduled games into `games` (LeagueGameFinder returns only started games); that fetch is Devin's decision.
+Devin's side: plug in and run `caffeinate -dimsu` before 09:00 ET. Tests: `tests/ops/test_watchdog_gameday.py`.

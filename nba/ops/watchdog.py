@@ -6,7 +6,12 @@ nothing fired). This checker runs from its own launchd label and judges the jobs
 * heartbeat files ``data/ops/heartbeat/<job>.json`` written by the shell wrappers at START and END
   (flat keys: ``job, mode, host, start_ts, end_ts, rc``); a stale start or ``rc != 0`` alerts;
 * ``launchctl list`` last exit status of every ``local.nba.*`` label (exit-126 launch failures);
-* the Kalshi snapshot job is judged from the mtime of its append-only ``snapshot.log`` (read only).
+* the Kalshi snapshot job is judged from the mtime of its append-only ``snapshot.log`` (read only);
+* the game-day probe (``evaluate_game_day``): from the first check at or after 09:00 ET on a day
+  with a regular-season game, one alert per day (key ``gameday:<ET date>:<check>``) if the Mac is
+  on battery, today's slate is not in the ``games`` table (read-only DuckDB, bounded wait), the
+  morning job has no END today, or ``caffeinate`` is not running (the Mac slept on battery on
+  opening night 2026-10-20 and nothing told anyone). A probe that cannot compute alerts as itself.
 
 Alerts append to ``data/ops/ALERTS.md`` and raise a guarded macOS notification, de-duplicated:
 the same condition is re-alerted only after ``REALERT_AFTER``. Read-only; no credentials.
@@ -25,9 +30,9 @@ import socket
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -45,6 +50,16 @@ SCHEDULE_TZ = ZoneInfo("America/Chicago")
 TZ_FILE = "schedule_tz"
 LABEL_PREFIX = "local.nba."
 REALERT_AFTER = timedelta(hours=6)
+ET = ZoneInfo("America/New_York")
+#: the game-day probe starts at this ET wall-clock time
+GAMEDAY_PROBE_FROM = time(9, 0)
+#: alert keys with this prefix fire once per ET game day (the date is in the key), never every 6 h
+GAMEDAY_PREFIX = "gameday:"
+#: regular-season game ids ("002...")
+REGULAR_SEASON_PREFIX = "002"
+#: bounded wait for a writer on nba.duckdb: the probe never holds up the 10-minute check
+GAMEDAY_DB_WAIT_S = 20.0
+GAMEDAY_DB_RETRY_S = 5.0
 OK_RC: dict[str, frozenset[int]] = {"daily-pretip": frozenset({0, RC_INFORMATIONAL})}
 
 
@@ -379,15 +394,195 @@ def evaluate_shadow_jobs(
     return alerts
 
 
+def on_battery() -> bool:
+    """True when ``pmset -g batt`` reports battery power ("Battery Power" vs "AC Power")."""
+    res = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True, timeout=10)
+    return "Battery Power" in res.stdout
+
+
+def caffeinate_running() -> bool:
+    """True when a ``caffeinate`` process exists (``pgrep -x`` exit 0)."""
+    return (
+        subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True, timeout=10).returncode
+        == 0
+    )
+
+
+def todays_slate(data_dir: Path, today: date) -> list[str]:
+    """Regular-season game_ids whose ET date is ``today``: the schedule cache, plus the live tips
+    parquet (real tip times, which can move a game across midnight)."""
+    ids: set[str] = set()
+    y = today.year if today.month >= 8 else today.year - 1
+    cache = data_dir / "schedule_cache" / f"schedule_{y}-{(y + 1) % 100:02d}.json"
+    try:
+        rows = json.loads(cache.read_text())
+    except (OSError, ValueError):
+        rows = []
+    for row in rows:
+        gid, tip = str(row[0]), datetime.fromisoformat(row[1]).replace(tzinfo=UTC)
+        if gid.startswith(REGULAR_SEASON_PREFIX) and tip.astimezone(ET).date() == today:
+            ids.add(gid)
+    tips = data_dir / "schedule" / f"live_tips_{y}-{(y + 1) % 100:02d}.parquet"
+    if tips.exists():
+        import polars as pl
+
+        for r in pl.read_parquet(tips).iter_rows(named=True):
+            gid = str(r["gameId"])
+            tip = datetime.fromisoformat(str(r["gameDateTimeUTC"]).replace("Z", "+00:00"))
+            if gid.startswith(REGULAR_SEASON_PREFIX) and tip.astimezone(ET).date() == today:
+                ids.add(gid)
+    return sorted(ids)
+
+
+class DbBusy(Exception):
+    """nba.duckdb stayed write-locked past the bounded wait: try again at the next check."""
+
+
+def games_in_db(db_path: Path, game_ids: Sequence[str]) -> set[str]:
+    """The subset of ``game_ids`` present in ``games`` (read-only, bounded wait on a writer)."""
+    import duckdb
+
+    from nba.ops.coverage import connect_ro
+
+    try:
+        con = connect_ro(db_path, retry_s=GAMEDAY_DB_RETRY_S, max_s=GAMEDAY_DB_WAIT_S)
+    except duckdb.IOException as e:
+        if "lock" in str(e).lower():
+            raise DbBusy(str(e)) from e
+        raise
+    try:
+        ph = ",".join("?" for _ in game_ids)
+        rows = con.execute(
+            f"SELECT game_id FROM games WHERE game_id IN ({ph})",  # noqa: S608
+            list(game_ids),
+        ).fetchall()
+    finally:
+        con.close()
+    return {str(r[0]) for r in rows}
+
+
+def evaluate_game_day(
+    now: datetime,
+    ops_dir: Path,
+    *,
+    battery: Callable[[], bool] = on_battery,
+    caffeinate: Callable[[], bool] = caffeinate_running,
+    slate_fn: Callable[[Path, date], list[str]] = todays_slate,
+    present_fn: Callable[[Path, Sequence[str]], set[str]] = games_in_db,
+    data_dir: Path | None = None,
+    db_path: Path | None = None,
+) -> list[Alert]:
+    """Game-day probe: silent off game days and before 09:00 ET; otherwise the four checks.
+
+    Every alert key is ``gameday:<ET date>:<check>``. ``battery``, ``caffeinate``, ``slate_fn`` and
+    ``present_fn`` are injected (real ``pmset`` / ``pgrep`` / schedule files / read-only DuckDB by
+    default). A check that cannot compute becomes its own ``...:probe`` alert; nothing raises."""
+    local = now.astimezone(ET)
+    if local.time() < GAMEDAY_PROBE_FROM:
+        return []
+    day = f"{local.date():%Y-%m-%d}"
+    prefix = f"{GAMEDAY_PREFIX}{day}"
+    data = data_dir if data_dir is not None else ops_dir.parent
+    db = db_path if db_path is not None else data.parent / "nba.duckdb"
+    try:
+        slate = slate_fn(data, local.date())
+    except Exception as e:
+        return [
+            Alert(
+                f"{prefix}:probe",
+                f"game day {day}: probe cannot read the slate ({type(e).__name__}: {e})",
+            )
+        ]
+    if not slate:
+        return []
+    alerts: list[Alert] = []
+
+    def fail(check_name: str, e: Exception) -> None:
+        alerts.append(
+            Alert(
+                f"{prefix}:probe-{check_name}",
+                f"game day {day}: {check_name} probe could not compute ({type(e).__name__}: {e})",
+            )
+        )
+
+    try:
+        if battery():
+            alerts.append(
+                Alert(
+                    f"{prefix}:battery",
+                    f"game day {day}: on battery; plug in and run `caffeinate -dimsu`",
+                )
+            )
+    except Exception as e:
+        fail("battery", e)
+    try:
+        if not caffeinate():
+            alerts.append(
+                Alert(
+                    f"{prefix}:caffeinate",
+                    f"game day {day}: caffeinate is not running; run `caffeinate -dimsu`",
+                )
+            )
+    except Exception as e:
+        fail("caffeinate", e)
+    try:
+        have = present_fn(db, slate)
+        missing = [g for g in slate if g not in have]
+        if missing:
+            alerts.append(
+                Alert(
+                    f"{prefix}:slate",
+                    f"game day {day}: games table lacks today's slate: {len(missing)} of "
+                    f"{len(slate)} game_ids missing; the schedule fetch does not write "
+                    "scheduled games",
+                )
+            )
+    except DbBusy:
+        pass  # a writer holds nba.duckdb: judged again at the next check, not an alert
+    except Exception as e:
+        fail("slate", e)
+    try:
+        hb = read_heartbeat(ops_dir / "heartbeat", "daily-morning")
+        start = _parse_ts(hb.get("start_ts")) if hb else None
+        end = _parse_ts(hb.get("end_ts")) if hb else None
+        started_today = start is not None and start.astimezone(ET).date() == local.date()
+        if not started_today:
+            alerts.append(
+                Alert(
+                    f"{prefix}:morning",
+                    f"game day {day}: the morning job has not started today; check "
+                    "`launchctl list | grep daily-morning` and data/ops/daily-morning logs",
+                )
+            )
+        elif end is None or (start is not None and end < start):
+            alerts.append(
+                Alert(
+                    f"{prefix}:morning",
+                    f"game day {day}: the morning job started but has not ended; check "
+                    "data/ops/morning_*.log",
+                )
+            )
+    except Exception as e:
+        fail("morning", e)
+    return alerts
+
+
 def dedupe(
     alerts: list[Alert], state: dict[str, str], now: datetime
 ) -> tuple[list[Alert], dict[str, str]]:
     """Return alerts due now and the new state (resolved conditions are forgotten)."""
     fresh: list[Alert] = []
-    new_state: dict[str, str] = {}
+    # game-day keys stay in the state for the rest of their day even when the condition clears, so a
+    # flapping condition does not alert twice; other days' keys are forgotten
+    new_state: dict[str, str] = {
+        k: v
+        for k, v in state.items()
+        if k.startswith(GAMEDAY_PREFIX) and k.split(":")[1] == f"{now.astimezone(ET):%Y-%m-%d}"
+    }
     for a in alerts:
         prev = _parse_ts(state.get(a.key))
-        if prev is None or now - prev >= REALERT_AFTER:
+        once_a_day = a.key.startswith(GAMEDAY_PREFIX)  # the ET date is in the key
+        if prev is None or (not once_a_day and now - prev >= REALERT_AFTER):
             fresh.append(a)
             new_state[a.key] = now.isoformat()
         else:
@@ -427,6 +622,7 @@ def check(
     launchctl_text: str | None = None,
     kalshi_log: Path | None = None,
     notifier: Callable[[str], None] | None = notify,
+    gameday: Callable[[datetime, Path], list[Alert]] = evaluate_game_day,
 ) -> list[Alert]:
     """Run one check; append new alerts to ALERTS.md and notify. Returns the alerts emitted."""
     now = now or datetime.now().astimezone()
@@ -441,6 +637,10 @@ def check(
     text = run_launchctl() if launchctl_text is None else launchctl_text
     kl = kalshi_log if kalshi_log is not None else ops_dir.parent / "kalshi" / "snapshot.log"
     current = evaluate(now, ops_dir / "heartbeat", text, first_seen, kl, tz=schedule_tz(ops_dir))
+    try:
+        current += gameday(now, ops_dir)
+    except Exception as e:  # the probe must never take the rest of the check down
+        current.append(Alert("gameday:probe", f"game-day probe failed: {type(e).__name__}: {e}"))
     fresh, new_alerts_state = dedupe(current, alerts_state, now)
     if fresh:
         with (ops_dir / "ALERTS.md").open("a") as fh:
