@@ -285,3 +285,37 @@ whose purpose is to say why numbers moved (B3).
 DECISIONS (draft):
 
 | 2026-10-21 | Slate briefing (agent/scribe-slate-briefing 3b718f3) BLOCKED by adversary review (docs/reviews/slate_briefing_review_2026-10-21.md): numbers and holdout exclusion verified on 2026-10-20 (BOS@DET 55.7 / 56.3 / -0.6, five OUT names, ten props lines re-derived by SQL), but the no-cache fallback places players by 2024-25 teams under a "current-season" label (B1), the early header says "before the first official injury report" while naming the report used (B2), and a player dropped from later runs shows his stale forecast under his own OUT line (B3). Fixes are about 30 lines plus tests; re-review the revision diff. | The page is read daily by Devin and must not contradict itself. | Reverse if the revision passes the B1-B3 tests and a re-render of 2026-10-20 with and without the cache. |
+
+## Re-check fe6e9eb (2026-10-21)
+
+Reviewed `git diff 3b718f3..fe6e9eb` (2296453 E3 + fe6e9eb fixes; slate.py +445/-220, test_slate.py +311/-87).
+
+Verdict: APPROVED
+
+| Item | Evidence | Pass |
+|---|---|---|
+| B1 | `latest_teams` now filters `g.season = season_int_for_date(slate)` (2026) and asserts the season is not 2025. Re-rendered 10-20 with no cache (`S/adv_re/nocache.md`): no player placed from an earlier season, so Brown is no longer on BOS and Hukporti no longer on NYK. Test `test_fallback_never_places_from_an_earlier_season`. | PASS |
+| B2 | The early header names the report used ("Injury report used: the 20:15 ET report; later reports can move these numbers") or says none was used. Tests `test_early_edition_header_footer_and_sentence` and `test_early_header_without_any_report_says_so`. | PASS |
+| B3 | `game_view` drops players OUT on the report the game's win row used; `_changes` flags "now OUT". My earlier fixture demo, re-run, now prints "OUT on the report, no forecast shown: ... 9000011" and "Player 9000011 (DET): now OUT on the 13:00 ET report ...; his last stored forecast was 9.0 points, plays 62%". Tests `test_ruled_out_player_has_no_projection_shown` and `test_player_ruled_out_with_no_row_in_the_latest_run`. | PASS |
+| M1 | "model averages if he plays". `BET_WORDS` now includes book, line(s), over, under, wager, lock, value, units and fade. My scan of both re-rendered pages: 0 hits (grep exit 1). | PASS |
+| M2 | Labelled "if he plays", with P(play) on each line. Ranking stays by the conditional mean: deviation 2 accepted, because the label now says what is ranked. | PASS |
+| m1-m9 | Crossing either way (line 569). Ghost and withdrawn rows excluded: 77 compared becomes 57 on 10-20, which matches the 20 misplaced rows. Per-game baseline (`first_usable_by_game`). Report matched within 1 s, with a "missing" flag. Dates on stamps. Cache mtime in the roster note. | PASS |
+| Exits | Missing DB: exit 1, no file written. Corrupt DB: exit 1, previous page sha `c243ab2c` unchanged before and after. Atomic `os.replace`. | PASS |
+| Numbers | The 10-20 report page has the same values as the first review (BOS@DET 55.7 / 56.3 / -0.6, five OUT, ten props lines identical). | PASS |
+| Gates | `pytest tests/explain tests/test_layering.py --no-cov -q -p no:cacheprovider`: `72 passed in 3.99s`, exit 0. ruff check: `All checks passed!`, exit 0. ruff format: `2 files already formatted`, exit 0. mypy slate.py and __main__.py: `Success: no issues found in 2 source files`, exit 0. | PASS |
+
+Deviation 1 (B3 handled through OUT-on-report or withdrawal, not the latest run's row set): accepted. Write-on-change
+(store.py:192) makes absence from the latest run ambiguous. The only live-path prop exclusions I found are
+report OUT (`slate_report_outs` in `_context_props`; `out_set` at pipeline.py:790) and roster withdrawal. The
+morning-run rows for players on neither team's official roster are handled by placement. My search was not
+exhaustive: a future exclusion rule in the props path would reopen B3.
+
+Non-blocking leftovers (minor):
+- On the no-cache path (slate.py, `_game_md` / `_win_lines`) the words claim more than is known.
+  - "No points forecasts stored for this team" (they are stored, just unplaced).
+  - "N player forecast(s) not shown: on neither team's roster" (no roster is on file).
+  - "Report 13:45 ET: nobody from either roster listed OUT. 5 more OUT entries ... not placed" (the 5 are
+    unplaced, not absent).
+  - Fix: when a side's team is not in `placer.cached`, use "not placed: no official roster on file for this
+    team" in all three places.
+- The holdout guard in `latest_teams` is an `assert`, which `python -O` removes. Fix: raise `ValueError`.
