@@ -21,6 +21,8 @@ from zoneinfo import ZoneInfo
 
 import duckdb
 
+from nba.daily.schedule import cached_game_teams
+from nba.daily.store import withdrawn_players
 from nba.export import best_model, guard
 
 ET = ZoneInfo("America/New_York")
@@ -122,6 +124,7 @@ class ForwardBundle:
     excluded_avg_post_tip: int = 0
     excluded_avg_unreadable: int = 0
     excluded_avg_no_game: int = 0
+    excluded_withdrawn: int = 0
 
 
 def _flatten_stamp(stamp: dict[str, Any] | None) -> dict[str, Any]:
@@ -130,7 +133,9 @@ def _flatten_stamp(stamp: dict[str, Any] | None) -> dict[str, Any]:
     return {f"stamp_{k}": (stamp[k] if stamp else None) for k in keys}
 
 
-def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> ForwardBundle:
+def forward_predictions(
+    con: duckdb.DuckDBPyConnection, window: Window, *, schedule_cache_dir: Path | None = None
+) -> ForwardBundle:
     """Win probabilities and per-player-stat forecast grids as the daily run stored them.
 
     Win rows: ``p_home`` plus the stamped teams. Prop rows: mean/std, ``q_grid`` (19 integer-support
@@ -159,10 +164,18 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
     ).fetchone()
     excluded_unresolved = int(total_in_bounds[0]) - len(raw) if total_in_bounds else 0
 
+    # a game the games feed has not returned (it lists started games only) takes its teams from the
+    # schedule cache, then from the win row's stamped teams, instead of being dropped
+    cache_teams = cached_game_teams(window.seasons, schedule_cache_dir)
+    withdrawn = withdrawn_players(con)  # misplaced players: forecast kept in the log, never shown
     kept: list[tuple[Any, ...]] = []
     post_tip = 0
+    n_withdrawn = 0
     for r in raw:
         made_at, tipoff = r[1], r[3]
+        if (r[2], int(r[7])) in withdrawn:
+            n_withdrawn += 1
+            continue
         if made_at >= tipoff:  # the store refuses made_at >= tipoff (LeakageError); so do we
             post_tip += 1
             continue
@@ -197,7 +210,9 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
         g = games.setdefault(
             game_id,
             {"game_id": game_id, "season": int(r[12]), "game_date": r[9] or et_date(tipoff),
-             "tipoff": tipoff, "home_team": r[10], "away_team": r[11],
+             "tipoff": tipoff,
+             "home_team": r[10] if r[10] is not None else cache_teams.get(game_id, (None, None))[0],
+             "away_team": r[11] if r[11] is not None else cache_teams.get(game_id, (None, None))[1],
              "final": bool(r[13] and r[14]), "home_pts": r[13] or None,
              "away_pts": r[14] or None},
         )  # fmt: skip
@@ -227,7 +242,13 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
     )
     _assert_allowed({int(g["season"]) for g in avg_games}, window.seasons)
     dropped_games: set[str] = set()
+    n_withdrawn += sum(1 for a in avg if (a["game_id"], int(a["player_id"])) in withdrawn)
+    avg = [a for a in avg if (a["game_id"], int(a["player_id"])) not in withdrawn]
     for ag in avg_games:
+        if ag["home_team"] is None or ag["away_team"] is None:
+            ct = cache_teams.get(ag["game_id"])
+            if ct is not None:
+                ag["home_team"], ag["away_team"] = ct
         known = games.get(ag["game_id"])
         if known is not None and known["home_team"] is not None and known["away_team"] is not None:
             continue
@@ -239,7 +260,12 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
     avg = [a for a in avg if a["game_id"] not in dropped_games]
     props.extend(avg)
     pplay = best_model.pplay_rows(con, blo, bhi, window.seasons, window.first, window.day, et_date)
-    pplay = [p for p in pplay if p["game_id"] not in dropped_games]  # no teams: never shown
+    pplay = [
+        p
+        for p in pplay
+        if p["game_id"] not in dropped_games
+        and (p["game_id"], int(p["player_id"])) not in withdrawn
+    ]  # no teams: never shown
     best_model.reconcile_pplay(pplay, props)
     best_model.mark_primary(props, pplay, best_model.ok_avg_runs(con))
     used = {(w["run_id"], w["model_name"]) for w in win} | {
@@ -256,6 +282,7 @@ def forward_predictions(con: duckdb.DuckDBPyConnection, window: Window) -> Forwa
         excluded_avg_post_tip=avg_post_tip,
         excluded_avg_unreadable=avg_bad,
         excluded_avg_no_game=n_no_game,
+        excluded_withdrawn=n_withdrawn,
     )
 
 

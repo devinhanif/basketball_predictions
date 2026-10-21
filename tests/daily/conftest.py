@@ -51,6 +51,18 @@ def add_history(con: duckdb.DuckDBPyConnection, n: int = 12) -> None:
     insert_rows(con, "player_game_stats", STAT_COLS, s.select(STAT_COLS))
 
 
+def add_final_box(con: duckdb.DuckDBPyConnection, game_id: str, n: int = 10) -> None:
+    """``n`` played player_game_stats rows for ``game_id``: settle grades a winner only with a box
+    score behind the final score (>= 10 played rows)."""
+    for k in range(n):
+        con.execute(
+            "INSERT INTO player_game_stats "
+            "(game_id, player_id, team_id, minutes, pts, reb, ast, fg3m) "
+            "VALUES (?, ?, 1, 20, 4, 2, 1, 0)",
+            [game_id, 70000 + k],
+        )
+
+
 def slate_games() -> list[ScheduledGame]:
     return [
         ScheduledGame("0022600001", TIPOFF, T1, T2),

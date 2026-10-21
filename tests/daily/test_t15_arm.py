@@ -26,6 +26,7 @@ from nba.daily.t30 import (
 from nba.lineups.__main__ import main as lineups_main
 from nba.lineups.source import CONFIRMED, EXPECTED
 from nba.lineups.store import T15_LEAD_MINUTES, T30_LEAD_MINUTES, connect_lineups, upsert_tip
+from tests.daily.conftest import add_final_box
 from tests.daily.test_checkpoint import SETTLED_AT, build
 from tests.fixtures.loader import build_fixture_db
 from tests.lineups.test_t30 import (  # noqa: F401  (hist is a module-scoped fixture)
@@ -216,6 +217,7 @@ def test_settle_eligibility_for_t15_rows() -> None:
             " away_pts) VALUES (?, ?, 2026, 1, 2, 110, 100)",
             [gid, date(2026, 10, 28)],
         )
+        add_final_box(con, gid)
         pred: dict[str, object] = {"p_home": 0.6}
         if snap_min is not None:
             pred["snapshot_fetched_at"] = (tip - timedelta(minutes=snap_min)).isoformat()

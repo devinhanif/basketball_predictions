@@ -294,6 +294,8 @@ def _complete_slate(con: duckdb.DuckDBPyConnection) -> None:
             STATS_INS + " VALUES ('0022600001', ?, ?, 30, ?, 5, 5, 2)",
             [pid, T1, pts],
         )
+    for k in range(8):  # a final box score has >= 10 played rows (settle refuses a thinner one)
+        con.execute(STATS_INS + " VALUES ('0022600001', ?, ?, 20, 4, 2, 1, 0)", [7000 + k, T2])
 
 
 def test_settle_waits_until_well_after_tip(con: duckdb.DuckDBPyConnection) -> None:

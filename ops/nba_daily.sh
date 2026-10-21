@@ -164,6 +164,11 @@ case "$MODE" in
     step coverage "$UV" run --no-sync python -m nba.ops.coverage --date "$TODAY_ET"
     ;;
   morning)
+    # 2026-10-20 (opening night): the morning settle ran before any ingest, so a game left at its
+    # half-time score by the last pretip run (PHI@NYK 63-62) would have been graded on it. Refresh
+    # games and box scores first; settle then refuses any game without a box score. A failed ingest
+    # alerts (rc 5) and settle still runs.
+    step ingest "$UV" run --no-sync python -m nba.daily ingest --rate-limit-s 1.0
     step settle "$UV" run --no-sync python -m nba.daily settle
     # pre-registered look detection (docs/FORWARD_PREREG_2026_27.md section 8): writes an
     # immutable snapshot only when an arm-stat first reaches a look's date count; rc 0 otherwise
