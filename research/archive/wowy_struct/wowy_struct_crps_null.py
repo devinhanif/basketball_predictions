@@ -2,7 +2,7 @@
 """WOWY_STRUCT G1 conversion check: the permuted-arm null in REAL integer-support CRPS (DRAFT rule; dev season 2022 only).
 
     cd <worktree> && NBA_ROOT=/Users/devin/Downloads/nba-prediction nice -n 10 \
-        /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore -m research.eval.wowy_struct_crps_null [--k 30]
+        /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore -m research.archive.wowy_struct.wowy_struct_crps_null [--k 30]
 
 Question: the G1 thresholds t_c (pts leader out 0.0050, pts top 25% 0.0063, ast leader out 0.0030) came from a squared-error
 permutation null converted to CRPS with a Gaussian rule (CRPS ~ 0.564 x RMSE; relative CRPS gain ~ half the relative
@@ -37,9 +37,9 @@ from nba.props.context_residual import (
     stat_frame,
     to_integer_support,
 )
+from research.archive.wowy_struct import wowy_struct_gate as SG
 from research.eval import prereg_gates_common as C
 from research.eval import wowy_redistribution_gate as G
-from research.eval import wowy_struct_gate as SG
 
 MAX_SEASON_THIS_CHECK = 2022
 T_C = {"pts|leader_out": 0.0050, "pts|top25_fixed": 0.0063, "ast|leader_out": 0.0030}
@@ -303,7 +303,7 @@ def main(k_draws: int = 30, n_boot: int = 2000) -> dict[str, Any]:
     out["ratio_to_converted_D1"] = {
         c: conv[c] / out["converted_D1_two_sd_from_gate_json"][c] for c in conv
     }
-    path = Path(__file__).resolve().parents[2] / "reports/prereg_wowy_redistribution/crps_null.json"
+    path = Path(__file__).resolve().parents[3] / "reports/prereg_wowy_redistribution/crps_null.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, indent=1, default=float))
     print(

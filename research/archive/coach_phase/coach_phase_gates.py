@@ -2,7 +2,7 @@
 # mypy: disable-error-code="arg-type,operator,unused-ignore,index,union-attr"
 """COACH_PHASE minimum-data gates (docs/prereg/COACH_PHASE.md; DRAFT). Counts and noise scales only: no arm is fitted.
 
-    .venv/bin/python -m research.eval.coach_phase_gates
+    .venv/bin/python -m research.archive.coach_phase.coach_phase_gates
 
 Stages printed and saved to ``reports/prereg_coach_phase/gates.json``: A0 reproduction (pts, raw and mixture, from the stored
 lower-tail components), rows and games per phase slice for the props rows and the minutes rows, a noise-scale MDE proxy per slice,

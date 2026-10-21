@@ -8,9 +8,9 @@ from typing import Any
 
 import pytest
 
-from research.eval import wowy_struct_gate as SG
+from research.archive.wowy_struct import wowy_struct_gate as SG
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[4]
 
 
 def _fixture(

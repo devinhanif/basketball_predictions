@@ -8,7 +8,7 @@ Subcommands (all read-only on the databases; nothing here opens a write connecti
   rehearse   six synthetic worlds x seeds, no data, no fit, returns each verdict word
   run        the real arms on 2023 / 2024; refuses unless `require_ready(--sha)` passes (frozen rule + pinned harness)
 
-Freeze and pin (a hand that can commit):  python -m research.eval.preseason_role_prior freeze | pin
+Freeze and pin (a hand that can commit):  python -m research.archive.preseason_role_prior.preseason_role_prior freeze | pin
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ import pandas as pd
 
 ID = "PRESEASON_ROLE_PRIOR"
 MARKER = "=== RESULTS BELOW ==="
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 DOC_REL = "docs/prereg/PRESEASON_ROLE_PRIOR.md"
 DOC = ROOT / DOC_REL
 OUT_DIR = ROOT / "reports/prereg_preseason_role_prior"
@@ -69,7 +69,7 @@ HARNESS_FILES: tuple[str, ...] = (
     "nba/props/distributions.py",
     "nba/props/metrics.py",
     "nba/truth/metrics.py",
-    "research/eval/preseason_role_prior.py",
+    "research/archive/preseason_role_prior/preseason_role_prior.py",
 )
 LIB_NAMES = ("python", "numpy", "pandas", "duckdb")
 

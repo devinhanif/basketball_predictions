@@ -13,9 +13,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from research.eval import preseason_role_prior as m
+from research.archive.preseason_role_prior import preseason_role_prior as m
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 KAPPA = {"starter": 1.25, "bench": 0.94}
 
 
@@ -294,7 +294,7 @@ def _imports(path: Path) -> set[str]:
 
 def test_pin_covers_import_closure() -> None:
     seen: set[str] = set()
-    todo = ["research/eval/preseason_role_prior.py"]
+    todo = ["research/archive/preseason_role_prior/preseason_role_prior.py"]
     while todo:
         rel = todo.pop()
         if rel in seen:

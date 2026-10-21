@@ -15,11 +15,11 @@ import pytest
 from nba.eval.lower_tail_eval import attach_realised
 from nba.props.context_residual import ContextResidualConfig, build_features
 from nba.props.metrics import _clustered_boot_means
+from research.archive.wowy_struct import wowy_struct_eval as E
 from research.eval import f1_warm_window_run as F1R
-from research.eval import wowy_struct_eval as E
 from tests.props.test_context_residual import ELO, _league
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 DOC = REPO / "docs/prereg/WOWY_STRUCT.md"
 
 
@@ -451,7 +451,7 @@ def test_run_refuses_outside_the_pinned_checkout(
 
 
 def test_run_order_frozen_pinned_then_preflight_then_planted_then_smoke_then_fits() -> None:
-    src = (REPO / "research/eval/wowy_struct_eval.py").read_text()
+    src = (REPO / "research/archive/wowy_struct/wowy_struct_eval.py").read_text()
     body = src[src.index("def run_real") :]
     assert body.index("F1R.acquire_lock(root)") < body.index("WG.build_world(")  # review E9
     order = [
@@ -471,14 +471,14 @@ def test_run_order_frozen_pinned_then_preflight_then_planted_then_smoke_then_fit
 
 def test_configs_are_read_from_the_pinned_root_never_the_cwd() -> None:
     for rel in ("wowy_struct_eval.py", "wowy_struct_repl_gate.py", "wowy_struct_rule.py"):
-        text = (REPO / "research/eval" / rel).read_text()
+        text = (REPO / "research/archive/wowy_struct" / rel).read_text()
         assert 'Path("configs' not in text and 'Path("reports/' not in text, rel
-    assert "rule.ROOT" in (REPO / "research/eval/wowy_struct_eval.py").read_text()
+    assert "rule.ROOT" in (REPO / "research/archive/wowy_struct/wowy_struct_eval.py").read_text()
 
 
 def test_no_season_2025_anywhere_in_the_harness_and_gate() -> None:
     for rel in ("wowy_struct_eval.py", "wowy_struct_repl_gate.py"):
-        src = (REPO / "research/eval" / rel).read_text()
+        src = (REPO / "research/archive/wowy_struct" / rel).read_text()
         assert "season <= 2024" in src or "MAX_SEASON" in src, rel
         assert "season = 2025" not in src and "== 2025" not in src, rel
 

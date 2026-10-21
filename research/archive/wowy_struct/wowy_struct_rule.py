@@ -12,9 +12,9 @@ harness reads, and F1's own files, because arm A0_warm IS F1's arm C). Season 20
 3. ``require_ready(sha)``: both, called by the real-label entrypoint BEFORE any outcome is read.
 
 Freeze and pin (a hand that can commit; the adversary re-checks first; the pin commit comes after the prereg commit, before any fit):
-    /Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.eval.wowy_struct_rule freeze     # prints the rule sha256 and the prereg commit command
+    /Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.archive.wowy_struct.wowy_struct_rule freeze     # prints the rule sha256 and the prereg commit command
     git commit --allow-empty -m "prereg(WOWY_STRUCT): <sha>"      # the rule file is already committed, unchanged above the marker
-    /Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.eval.wowy_struct_rule pin        # prints the pin and the harness commit command
+    /Users/devin/Downloads/nba-prediction/.venv/bin/python -m research.archive.wowy_struct.wowy_struct_rule pin        # prints the pin and the harness commit command
     git commit --allow-empty -m "harness(WOWY_STRUCT): <pin>"     # no harness edit between the two commits
 """
 
@@ -29,11 +29,11 @@ from pathlib import Path
 
 ID = "WOWY_STRUCT"
 MARKER = "=== RESULTS BELOW ==="
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 DOC_REL = "docs/prereg/WOWY_STRUCT.md"
 DOC = ROOT / DOC_REL
 # Every file whose bytes can move a number of this rule. Kept equal to the import closure of the harness by
-# tests/research/wowy_struct/test_wowy_struct_rule.py::test_pin_covers_import_closure.
+# tests/research/archive/wowy_struct/test_wowy_struct_rule.py::test_pin_covers_import_closure.
 HARNESS_FILES: tuple[str, ...] = (
     "configs/context_residual.yaml",
     "configs/mov_elo_tuned.yaml",
@@ -97,11 +97,11 @@ HARNESS_FILES: tuple[str, ...] = (
     "research/eval/workload_gates.py",
     "research/eval/wowy_redistribution_gate.py",
     "research/eval/wowy_redistribution_slices.py",
-    "research/eval/wowy_struct_crps_null.py",
-    "research/eval/wowy_struct_eval.py",
-    "research/eval/wowy_struct_gate.py",
-    "research/eval/wowy_struct_repl_gate.py",
-    "research/eval/wowy_struct_rule.py",
+    "research/archive/wowy_struct/wowy_struct_crps_null.py",
+    "research/archive/wowy_struct/wowy_struct_eval.py",
+    "research/archive/wowy_struct/wowy_struct_gate.py",
+    "research/archive/wowy_struct/wowy_struct_repl_gate.py",
+    "research/archive/wowy_struct/wowy_struct_rule.py",
     "research/features/four_factors.py",
     "research/features/game_location_context.py",
     "research/features/injury_reason.py",
@@ -267,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
             f'git commit --allow-empty -m "harness({ID}): {pin}"  # files already committed; no harness edit between freeze and pin'
         )
         return 0
-    print("usage: python -m research.eval.wowy_struct_rule freeze|pin")
+    print("usage: python -m research.archive.wowy_struct.wowy_struct_rule freeze|pin")
     return 2
 
 

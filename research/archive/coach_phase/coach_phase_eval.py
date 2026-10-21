@@ -2,7 +2,7 @@
 # mypy: disable-error-code="arg-type,operator,unused-ignore,index,union-attr,no-any-return,misc"
 """COACH_PHASE evaluation (docs/prereg/COACH_PHASE.md, FROZEN sha256 8111c026, commit 572f08e; this module implements the rule, changes nothing).
 
-    M="-m research.eval.coach_phase_eval"
+    M="-m research.archive.coach_phase.coach_phase_eval"
     .venv/bin/python $M frame     # build the feature frame on the real data and print its summary; NO fit, NO score (smoke)
     .venv/bin/python $M gate      # G1/G4-G6 re-run, P reproduction, reliability screen, planted checks, G7 audit (light, no fit)
     .venv/bin/python $M arms      # PH, CP, PL, S0, O1 walk-forward; minutes and props scoring; verdict (needs a passed gate)
@@ -87,7 +87,7 @@ PRIMARY_SLICES = ("all", "po", "late15", "phase", "early")
 
 AMBIGUITIES = {
     "starter10": "the player's start share over his appearances in the team's previous 10 games (research.budget.asof.asof_roster start_rate), 0 when he has none; training rows and scored rows use the same definition (the stored row_starter10 exists only for scored rows)",
-    "late15 gate count": "the harness uses the true games_prior >= 67 (the team's last 15 games); research.eval.coach_phase_gates counts with a 1-based cum_count, so the committed gate counts (326 / 330 phase games) cover the last 16 games and overstate LATE15 by about 6%; the gate's own pass conditions are unaffected",
+    "late15 gate count": "the harness uses the true games_prior >= 67 (the team's last 15 games); research.archive.coach_phase.coach_phase_gates counts with a 1-based cum_count, so the committed gate counts (326 / 330 phase games) cover the last 16 games and overstate LATE15 by about 6%; the gate's own pass conditions are unaffected",
     "late15 feature": "game-level, the SLICE definition: regular season and either team has played >= 67 games; gp_frac is the team's own games_prior / 82 (1.0 in the playoffs and play-in)",
     "play-in (005)": "belongs to neither habit phase nor to PO / LATE15; its rows carry po = 0, gp_frac = 1 and sit in 'all'",
     "league PO fallback": "'fewer than 30 earlier league playoff games' is read as fewer than 30 earlier league playoff TEAM-games (each game contributes two observations)",
@@ -808,7 +808,7 @@ def audit_missingness(u: pl.DataFrame, rows: dict[str, Any]) -> dict[str, Any]:
 
 def run_gate(out_dir: Path | None = None) -> dict[str, Any]:
     """Gates G1, G4-G6 re-run (same numbers as the committed gates.json), P reproduction, reliability screen, planted checks, G7 audit."""
-    from research.eval import coach_phase_gates as G
+    from research.archive.coach_phase import coach_phase_gates as G
 
     require_frozen()
     out_dir = out_dir or OUT_DIR

@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 """WOWY_REDISTRIBUTION follow-up 2, variant PROP: propensity-weighted structural allocation (DRAFT rule; gate only).
 
-    cd /Users/devin/Downloads/nba-prediction && .venv/bin/python -W ignore -m research.eval.wowy_prop_gate
+    cd /Users/devin/Downloads/nba-prediction && .venv/bin/python -W ignore -m research.archive.wowy_struct.wowy_prop_gate
 
 PROP: each remaining player's share of the vacated V_s is proportional to (as-of per-game stat s = rate x expected
 minutes) x g(traits), g = max(1 + sum_k theta_k z_k, 0.05), z the standardised as-of traits of
@@ -37,10 +37,10 @@ from nba.props.context_residual import (
     stat_frame,
     to_integer_support,
 )
+from research.archive.wowy_struct import wowy_struct_gate as SG
 from research.eval import prereg_gates_common as C
 from research.eval import wowy_redistribution_gate as G
 from research.eval import wowy_redistribution_slices as SL
-from research.eval import wowy_struct_gate as SG
 
 FLOOR = -0.005
 LAMBDAS = (0.0, 0.001, 0.01, 0.1, 1.0)

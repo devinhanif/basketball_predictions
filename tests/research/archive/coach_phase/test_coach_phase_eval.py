@@ -12,7 +12,7 @@ import numpy as np
 import polars as pl
 import pytest
 
-from research.eval import coach_phase_eval as E
+from research.archive.coach_phase import coach_phase_eval as E
 from research.eval.team_budget_eval import heavy_lock
 from research.features import coach_habits as CH
 
@@ -467,7 +467,7 @@ def test_run_gate_and_main_dispatch_on_synthetic_world(
 
     import duckdb
 
-    from research.eval import coach_phase_gates as G
+    from research.archive.coach_phase import coach_phase_gates as G
 
     _install(monkeypatch, tmp_path)
     coach = {

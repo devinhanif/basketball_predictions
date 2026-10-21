@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 """WOWY_STRUCT G5 star-out and heavy-absence cut-offs (features only; cut-offs from seasons 2020-21 only).
 
-    cd <worktree> && NBA_ROOT=<main checkout> .venv/bin/python -W ignore -m research.eval.wowy_struct_star_cuts
+    cd <worktree> && NBA_ROOT=<main checkout> .venv/bin/python -W ignore -m research.archive.wowy_struct.wowy_struct_star_cuts
 
 * **Star out** = the largest single OUT rotation player's as-of per-game stat (``Vmax_s``, the half-life-10 ``v_s`` that feeds
   production ``vac_s``) is >= the 0.75 quantile of ``v_s`` among individual rotation players (one value per player-game, as of
@@ -22,8 +22,8 @@ import polars as pl
 from nba.props import struct_alloc as SA
 from nba.props import wowy as W
 from nba.props.context_residual import stat_frame
+from research.archive.wowy_struct import wowy_struct_gate as SG
 from research.eval import wowy_redistribution_gate as G
-from research.eval import wowy_struct_gate as SG
 
 QUANTILE = 0.75
 SEASONS = (2020, 2021)

@@ -3,7 +3,7 @@
 """WOWY_STRUCT harness (rule: docs/prereg/WOWY_STRUCT.md; DRAFT until the main session commits `prereg(WOWY_STRUCT): <sha256>`).
 Model class: LightGBM context-residual heads (production) with added as-of columns, read through the lower-tail mixture, integer-support CRPS.
 
-    R="-m research.eval.wowy_struct_eval"; D=/Users/devin/Downloads/nba-prediction
+    R="-m research.archive.wowy_struct.wowy_struct_eval"; D=/Users/devin/Downloads/nba-prediction
     /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore $R check    --data-root $D [--smoke]      # label-free preflight (no score of any kind); --smoke fits ONE block of pts
     /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore $R rehearse [--world pass|guard|one_season|no_gain|all] [--seeds 5]   # synthetic scores, no data, no fit
     /Users/devin/Downloads/nba-prediction/.venv/bin/python -W ignore $R run      --data-root $D --sha <64 hex>   # frozen + pinned only; heavy.lock; per-arm checkpoints; verdict
@@ -41,10 +41,10 @@ from nba.props.context_residual import (
     stat_frame,
 )
 from nba.props.metrics import _clustered_boot_means
+from research.archive.wowy_struct import wowy_struct_crps_null as NU
+from research.archive.wowy_struct import wowy_struct_repl_gate as WG
+from research.archive.wowy_struct import wowy_struct_rule as rule
 from research.eval import f1_warm_window_run as F1R
-from research.eval import wowy_struct_crps_null as NU
-from research.eval import wowy_struct_repl_gate as WG
-from research.eval import wowy_struct_rule as rule
 
 SEASONS = (2023, 2024)
 STATS = ("pts", "ast")
@@ -93,7 +93,7 @@ DESC_PAIRS = (
     ("ROLE", "A0"),
     ("S_R", "A0"),
 )
-OUT_DIR = Path(__file__).resolve().parents[2] / "reports/prereg_wowy_struct"
+OUT_DIR = Path(__file__).resolve().parents[3] / "reports/prereg_wowy_struct"
 CACHE_REL = "data/ops/wowy_struct_cache"
 F1_CACHE_REL = "data/ops/f1_warm_window_cache"
 
