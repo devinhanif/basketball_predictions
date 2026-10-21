@@ -272,7 +272,7 @@ def build_screen_frame(
         pl.col("minutes") > 0
     )
     tfeat = build_tracking_features(played, tracking, hustle, static, family_names)
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = build_features(games, pgs, static, flagged, elo_params, tracking_feats=tfeat)
     cols = [c for c in tfeat.columns if c not in ("game_id", "player_id")]
     cover = own_game_coverage(feats, tracking)

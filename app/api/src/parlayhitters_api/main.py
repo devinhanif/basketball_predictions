@@ -19,6 +19,8 @@ from .export_store import ExportRefused
 from .forecast import (
     TAUS,
     american_to_raw_prob,
+    clean_line_cal,
+    clean_null_reason,
     clean_rung_cal,
     devig_over,
     dist_grid,
@@ -34,6 +36,7 @@ from .models import (
     GameSummary,
     GameView,
     HitTen,
+    LineCal,
     MateOut,
     PlayerView,
     ProbAtLine,
@@ -149,6 +152,8 @@ def _prop_view(stat: str, p: Json) -> PropView:
         p_play_label=p_play_label(p["forecast"].get("p_play_info")),
         book_main_line=None if p.get("book_main_line") is None else float(p["book_main_line"]),
         rung_cal=RungCal(**rc) if (rc := clean_rung_cal(p.get("rung_cal"))) else None,
+        line_cal=LineCal(**lc) if (lc := clean_line_cal(p.get("line_cal"))) else None,
+        line_cal_null_reason=clean_null_reason(p.get("line_cal_null_reason")),
     )
 
 
@@ -431,6 +436,8 @@ def register(app: FastAPI) -> None:
             price_book=view.price_book,
             book_main_line=view.book_main_line,
             rung_cal=view.rung_cal,
+            line_cal=view.line_cal,
+            line_cal_null_reason=view.line_cal_null_reason,
             dist=Dist(**dist_grid(pr["forecast"])),
             stats=stats,
             forecast_stamp=view.forecast_stamp,

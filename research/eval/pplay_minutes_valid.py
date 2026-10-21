@@ -40,7 +40,7 @@ import duckdb
 import numpy as np
 import polars as pl
 
-from nba.eval.context_residual_eval import month_blocks
+from nba.eval.context_residual_eval import MAX_SEASON, month_blocks
 from nba.props.context_residual import ContextResidualConfig, stat_frame
 from research.eval import history_window_eval as HW
 from research.eval import minutes_v2_eval as MV
@@ -720,7 +720,7 @@ def flagged_parity_gate(world: dict[str, Any], db: str = DB) -> dict[str, Any]:
     from nba.props.context_residual import flagged_from_availability
 
     games, avail = load_flag_inputs(db)
-    flagged, _ = flagged_from_availability(avail, games, world["cfg"].report)
+    flagged, _ = flagged_from_availability(avail, games, world["cfg"].report, max_season=MAX_SEASON)
     mine = flagged_union(world)
     ids = set(games.filter(pl.col("season").is_in([2022, 2023, 2024]))["game_id"].to_list())
     a = {g: s for g, s in mine.items() if g in ids}

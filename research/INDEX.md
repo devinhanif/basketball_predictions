@@ -265,3 +265,26 @@ the 70% ratchet measured on the same code as before; ruff `src`/`known-first-par
 mypy runs on both trees. `Dockerfile` copies `research/`. `make smoke`, `make backtest`, `make report` and `make gate` call
 `python -m research.eval` / `python -m research.registry.model_gate` since the Wave A follow-up cut 1; CI reaches
 them through those targets, so `.github/workflows/ci.yml` is unchanged.
+
+## Archived under the ledger (2026-10-20, plan item E)
+
+Closed rules whose harnesses moved to `research/archive/<rule>/` (README in each directory: rule id, prereg file,
+T rows, frozen sha and harness pin, old -> new path of every file). Tests moved to `tests/research/archive/<rule>/`
+so CI stays one `tests/` tree; the 8 moved test files keep passing and the collected count did not change.
+Frozen prereg text still names the old `research/eval/` paths and is not edited.
+
+| rule | old -> new | lines | verdict (ledger rows) | tests in CI |
+|---|---|---|---|---|
+| COACH_PHASE | `research/eval/coach_phase_eval.py`, `coach_phase_gates.py` -> `research/archive/coach_phase/` | 1,127 + 275 | T450 (stopped at the gate; DECISIONS 2026-10-12 00:07) | `tests/research/archive/coach_phase/` |
+| PRESEASON_ROLE_PRIOR | `research/eval/preseason_role_prior.py` -> `research/archive/preseason_role_prior/` | 1,245 | T500 (FAIL_ONE_SEASON, closed) | `tests/research/archive/preseason_role_prior/` |
+| WOWY_STRUCT | `research/eval/wowy_struct_{eval,gate,null,crps_null,power_e7,repl_gate,rule,star_cuts}.py`, `wowy_prop_gate.py` -> `research/archive/wowy_struct/` | 3,866 | T499 (FAIL_ONE_SEASON) | `tests/research/archive/wowy_struct/` |
+
+Considered and NOT moved (closed rules whose modules are imported by harnesses that stay):
+
+- TEAM_BUDGET (T446-T449, closed): `research/budget/*`, `research/eval/team_budget_eval.py`, `team_budget_gates.py`. Still imported by
+  `research/eval/workload_eval.py` (`research.budget.status`, `legs_with_p`, `p_over_from_grid`), `workload_gates.py`,
+  `pi_recent_role_eval.py`, `near_miss_bundle_eval.py`, and listed in the WOWY_STRUCT pin; `workload_eval.py` is under the
+  PPLAY_MINUTES_VALID loader-review path list, where any committed edit voids the review. Move them in the same change that retires those.
+- `research/features/coach_habits.py`, `phase.py`: imported by `research/budget/asof.py` and the TEAM_BUDGET modules.
+- WORKLOAD (T451-T454): the P cell passed and is recent-role minutes, imported across the live-adjacent harnesses.
+- `research/eval/wowy_redistribution_gate.py`, `wowy_redistribution_slices.py`: WOWY_REDISTRIBUTION, imported by the archived WOWY_STRUCT modules.

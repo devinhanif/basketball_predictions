@@ -603,6 +603,8 @@ class ExportStore:
                     "line_snapshot_utc": None if shown is None else shown["over"]["snapshot_utc"],
                     "book_main_line": r.get("book_main_line"),
                     "rung_cal": r.get("rung_cal"),
+                    "line_cal": r.get("line_cal"),
+                    "line_cal_null_reason": r.get("line_cal_null_reason"),
                     "forecast": forecast,
                     "actual": row[st] if did_play and row is not None else None,
                 }

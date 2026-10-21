@@ -26,6 +26,7 @@ from nba.daily.t30 import (
 from nba.lineups.__main__ import main as lineups_main
 from nba.lineups.source import CONFIRMED, EXPECTED
 from nba.lineups.store import T15_LEAD_MINUTES, T30_LEAD_MINUTES, connect_lineups, upsert_tip
+from tests.daily.conftest import add_final_box, align_all
 from tests.daily.test_checkpoint import SETTLED_AT, build
 from tests.fixtures.loader import build_fixture_db
 from tests.lineups.test_t30 import (  # noqa: F401  (hist is a module-scoped fixture)
@@ -216,6 +217,7 @@ def test_settle_eligibility_for_t15_rows() -> None:
             " away_pts) VALUES (?, ?, 2026, 1, 2, 110, 100)",
             [gid, date(2026, 10, 28)],
         )
+        add_final_box(con, gid)
         pred: dict[str, object] = {"p_home": 0.6}
         if snap_min is not None:
             pred["snapshot_fetched_at"] = (tip - timedelta(minutes=snap_min)).isoformat()
@@ -224,7 +226,7 @@ def test_settle_eligibility_for_t15_rows() -> None:
             ["r", tip - timedelta(minutes=made_min), gid, tip, T15_MODEL, "v1", "win_prob_home",
              -1, json.dumps(pred)],
         )  # fmt: skip
-    assert settle_eligible_pending(con, datetime(2026, 10, 29))["scored"] == 1
+    assert settle_eligible_pending(con, datetime(2026, 10, 29, 12))["scored"] == 1
     assert con.execute("SELECT game_id, lead_min FROM forward_scores_elig").fetchall() == [
         ("G_ok", 15)
     ]
@@ -283,6 +285,7 @@ def test_t15_l30_kill_only_rules() -> None:
 
 def test_t15_leak_guard_uses_15_minutes_and_share_gate() -> None:
     con = build(n_dates=3, n_games=1, n_players=4, seed=1)
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     pairs, _ = ck.paired_deltas(con, ck.ARM_T30, ck.PROD, "pts")
     import polars as pl
@@ -307,6 +310,7 @@ def test_evaluate_checkpoint_reports_the_t15_family_and_head_to_head(tmp_path: P
         "target, player_id, prediction FROM forward_predictions WHERE model_name = ?",
         [T15_MODEL, "ctxres-v1-t15", ck.ARM_T30],
     )
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     settle_eligible_pending(con, SETTLED_AT)
     snap = ck.evaluate_checkpoint(

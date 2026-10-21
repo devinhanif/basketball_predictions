@@ -48,11 +48,77 @@ CREATE TABLE IF NOT EXISTS forward_scores (
     crps DOUBLE,
     status VARCHAR           -- 'scored' | 'dnp'
 );
+-- A forecast withdrawn because the official roster places the player on a team that is neither
+-- home nor away in that game (a summer mover forecast on last season's team). Append-only like
+-- forward_predictions: a withdrawal is a status row, never a delete; settlement and the exports
+-- skip the key.
+CREATE TABLE IF NOT EXISTS forward_withdrawals (
+    withdrawn_at TIMESTAMP,
+    run_id VARCHAR,
+    game_id VARCHAR,
+    model_name VARCHAR,
+    target VARCHAR,
+    player_id INT,
+    official_team_id INT,
+    reason VARCHAR
+);
 """
 
 
 class LeakageError(ValueError):
     """A prediction was made at or after tip-off."""
+
+
+def withdraw_misplaced(
+    con: duckdb.DuckDBPyConnection,
+    run_id: str,
+    withdrawn_at: datetime,
+    teams_by_game: dict[str, tuple[int, int]],
+    official_teams: dict[int, set[int]],
+) -> int:
+    """Withdraw each forecast key of ``teams_by_game`` (game -> (home, away)) whose player the
+    official roster places on teams (``official_teams``: player -> team ids) that include neither
+    the home nor the away team. A player on no fetched roster is unknown, not misplaced, and is
+    left alone. Idempotent: a key already withdrawn is never written twice. Returns rows written."""
+    ensure_tables(con)
+    if not teams_by_game:
+        return 0
+    marks = ",".join("?" for _ in teams_by_game)
+    keys = con.execute(
+        f"""SELECT DISTINCT p.game_id, p.model_name, p.target, p.player_id
+            FROM forward_predictions p
+            WHERE p.game_id IN ({marks}) AND p.player_id > 0
+              AND NOT EXISTS (SELECT 1 FROM forward_withdrawals w
+                  WHERE w.game_id = p.game_id AND w.model_name = p.model_name
+                    AND w.target = p.target AND w.player_id = p.player_id)
+            ORDER BY 1, 2, 3, 4""",  # noqa: S608
+        list(teams_by_game),
+    ).fetchall()
+    rows: list[tuple[object, ...]] = []
+    for gid, model, target, pid in keys:
+        teams = official_teams.get(int(pid))
+        if not teams or teams & set(teams_by_game[str(gid)]):
+            continue
+        official = min(teams)
+        rows.append(
+            (withdrawn_at, run_id, gid, model, target, int(pid), official,
+             "official_roster_team_not_in_game")
+        )  # fmt: skip
+    if rows:
+        con.executemany("INSERT INTO forward_withdrawals VALUES (?,?,?,?,?,?,?,?)", rows)
+    return len(rows)
+
+
+def withdrawn_players(con: duckdb.DuckDBPyConnection) -> set[tuple[str, int]]:
+    """``{(game_id, player_id)}`` withdrawn so far; empty when the table does not exist yet.
+    Read-only (never creates the table), so exports on a read-only connection can call it."""
+    has = con.execute(
+        "SELECT count(*) FROM information_schema.tables WHERE table_name = 'forward_withdrawals'"
+    ).fetchone()
+    if not has or not has[0]:
+        return set()
+    rows = con.execute("SELECT DISTINCT game_id, player_id FROM forward_withdrawals").fetchall()
+    return {(str(g), int(p)) for g, p in rows}
 
 
 def ensure_tables(con: duckdb.DuckDBPyConnection) -> None:

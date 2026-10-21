@@ -218,3 +218,21 @@ The swipe card's "Stats and line slider" reads `/api/card/...`: P(Y >= k) from t
 P(Y >= k+1)), `rung_cal` lines when the export carries them (docs/contracts/rung_cal_export_v1.md; only lines with raw P(over) >= 0.5
 are listed), else the raw model labelled "model only". Opening it records the pick as `saw_model: true`. The fixture prop with a
 synthetic `rung_cal` is planted by `uv run --script app/fixtures/add_rung_cal_example.py`.
+
+Two numbers sit under the slider's big figure, always labelled. "Model, raw" is the forecast table's own chance of over at the
+slider's line. "Model, calibrated" is that chance passed through the frozen calibration map (rung_cal_map_v1, DraftKings only),
+which corrects for how past chances like this turned out; it exists only at a line the export's `rung_cal.lines` lists (those
+are lines where the raw chance is 50% or more), and the app never interpolates it. Where it is missing, the raw number stands
+alone with a one-line reason (no two-sided DraftKings line before tip; line outside the tested range; or not exported). The
+export carries reason counts per slate in the manifest, not per prop, so the reason shown is inferred only from fields the row
+holds. The swipe card face stays blind: both numbers appear only after "Stats and line slider" is opened.
+
+Line-calibrated number (`line_cal`, docs/contracts/line_cal_export_v1.md). When the export row carries `prop_grids.line_cal`, then at the
+DraftKings main line (the only line it is valid at) "Model, calibrated at the book's line" is its `p_over_cal` (LINE_CALIBRATION, T493),
+with `p_over_raw` as the raw number and the under side as 1 - `p_over_cal`; away from that line the `rung_cal` rules above are unchanged.
+When it is NULL, the raw number stands alone with a plain sentence for `line_cal_null_reason` (`no_book_line` says no DraftKings line was
+posted before tip; the internal codes say the number could not be reproduced for this row), and at that main line the rung number is not
+substituted. A missing column reads as NULL, so older exports render as before. The API passes both columns through (`clean_line_cal`
+validates, a violation drops the whole value). The details footer names both maps. The synthetic fixture rows (Jaylen Brown, game
+0022400001: pts with line_cal, ast `no_book_line`, reb `grid_mismatch`) are planted by `uv run --script app/fixtures/add_line_cal_example.py`
+after the rung one; the calibrated value there is synthetic.

@@ -174,7 +174,7 @@ def load_study(
     box = load_box(db_path)
     pgs_ext = pgs.join(box, on=KEYS, how="left")
     assert pgs_ext.height == pgs.height
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = attach_realised(build_features(games, pgs, static, flagged, elo), games, pgs)
     assert int(feats["season"].max()) <= MAX_SEASON  # type: ignore[arg-type]
     comp = build_component_features(games, pgs_ext, flagged)

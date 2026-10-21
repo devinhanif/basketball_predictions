@@ -25,6 +25,30 @@ nothing is back-filled). `nba.duckdb` is single-writer: do not run while an eval
    because it is cached forever per season key and would freeze the season at its first
    pull. Then `pull_game_boxscore` (per-game cache, resumable) for completed games with no
    `player_game_stats` rows (cap 250/run).
+   **Scheduled games (2026-10-21).** The finder returns only started or finished games, so
+   `games` never held a game before tip. After the schedule fetch (step 2) and before the
+   forecast, `insert_scheduled_games` writes TODAY's scorable ET slate (never preseason 001 or
+   all-star 003) into `games` with NULL scores: insert-only (`ON CONFLICT DO NOTHING`, an existing
+   finder row is never touched), count in the ingest dict as `scheduled_rows_inserted` and so in
+   the run summary's `ingest:` line. The finder's later upsert fills the scores. `--skip-ingest`
+   (the replay) inserts nothing: its `games` already holds every row, so the replay hash is
+   unchanged. `python -m nba.daily ingest` (08:00 ET = 07:00 CDT, first step of the morning job,
+   before settle) writes the same rows, from the cached schedule if the fetch fails, and does so
+   even when the finder refresh fails (the run then returns degraded). A failed insert is a
+   degraded run (exit 5) and never blocks the forecast. `scheduled_rows_inserted` counts rows
+   actually inserted.
+   **Stale placeholders.** A game postponed on the day keeps its NULL-score row, and the history
+   frames (`games WHERE game_date < ?`) would count it as a played loss and shift rest days and
+   travel. So, after a SUCCESSFUL finder refresh only, `drop_stale_scheduled_games` deletes
+   `season = S AND home_pts IS NULL AND game_date < run_date` (the finder never writes NULL
+   scores, so these are only our own placeholders) and reports `stale_scheduled_removed`. If the
+   refresh fails nothing is deleted. The data manifest keeps `STALE_SCHEDULED` as the detector
+   should the delete ever be skipped, and counts NULL-score rows separately (`scheduled_rows`),
+   outside the `games` null rates and the coverage denominator. Readers grade on `pts > 0`, so a
+   NULL row is never settled.
+   **Coverage check** (`nba.ops.coverage`, `schedule`): it needs every slate game in `games` with
+   home/away, so it should now pass before tip (it failed every game day before this step); the
+   watchdog game-day probe's "games table lacks today's slate" line fires only if the step failed.
 2. **Schedule** (`schedule.py`): nba_api `ScheduleLeagueV2` gives game ids and UTC tip
    times; the slate is games whose US-Eastern tip date equals `--date`.
 3. **Injury report** (`injury.py`): probes 15-minute slots newest-first, strictly before
@@ -213,7 +237,7 @@ recalibration; rookies and offseason moves are invisible until a first box score
 | Job | When | Steps |
 |---|---|---|
 | `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
-| `local.nba.daily-morning` | 08:00 | `settle`, `report`, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
+| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, **early forecast + early briefing** (below), last night's coverage + scorecard, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; each fetch capped at 30 min, `postgame_load` at 20; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 **Optional fact-store rebuild (drafted 2026-10-11; approved ON by Devin 2026-10-11, switch NOT yet in the job environment).** `ops/nba_daily.sh morning` has a step `facts` right after
 `report`: `python -m nba.facts build --seasons 2022,2023,2024,2026 --schedule-seasons 2026 --out data/facts/facts.duckdb`.
@@ -589,6 +613,11 @@ exactly (`docs/contracts/rung_cal_export_v1.md`); `forward_predictions` keeps on
 - Recency-routed rows and any run before this table existed have no grid; the export then leaves `rung_cal`
   null with a counted reason.
 
+`line_cal` (2026-10-21, additive): the app export also carries, per prop row, the frozen LINE_CALIBRATION P(over) (T493, the parlay
+producer's `p_cal`) at the DraftKings main line, beside the raw P(over), plus `line_cal_null_reason`. It has no raw-P(over) >= 0.5 support
+restriction, so unlike `rung_cal` it covers the main line itself. Display only, built read-only from the production row, NULL with a counted
+reason when an input is missing; it changes no scoring, forward row or replay-closure code. Contract: `docs/contracts/line_cal_export_v1.md`.
+
 ## Model stamps (2026-10-13)
 
 Every `run_daily` that writes prediction rows also writes one row per model name of that run to the NEW
@@ -683,6 +712,9 @@ Rule: `docs/prereg/COMBO_STOCKS_SHADOW.md` (FROZEN 2026-10-14 15:08 CDT, sha256 
   draw) and the same sampler with R = I (INDEP). (e) RECENT from the player's last 40 played games (half-life 10). (f) rows, write-on-change, refusing `made_at >= tipoff_utc`.
   Serving rule: `n_prior >= 5`; a player without an on-time context row for each of the four marginals is not servable (counted in the run info, never imputed). DIRECT and RECENT_CAL
   (descriptive, droppable per the rule) are not built; their columns are NULL. The writer REFUSES to run on any config or base-normal sha other than the frozen ones.
+* **Base normals are a committed file** (2026-10-21, after the red CI of 10-15): `configs/combo_base_normals_08ddb2a2.f64`, raw little-endian float64, C order, 10000 x 6 = 480,000 bytes,
+  whose sha256 is the frozen 08ddb2a2 (equal to the sha of the array bytes). `config.load_config` loads it and refuses any other bytes; `combo_copula.base_normals` only documents how it was
+  made (arm64 Accelerate; its whitening goes through `inv(cholesky)`, so other BLAS builds give other bytes, e.g. 588b625d on ubuntu) and is not called on the live path. The yaml and the rule text are unchanged.
 * **Tables** (`store.py`, all new, none read by the canonical dump, so the replay oracle cannot move through this writer): `forward_combo_shadow`, `forward_combo_scores` (settle: the
   latest row with `made_at <= tip - 60`, exact integer CRPS of the 199-point grid for S, RECENT, INDEP), `forward_combo_heartbeat`, `forward_combo_meta`.
 * **Settle**: `nba.daily settle` (morning) and every pretip run call `settle_combo_shadow` in their own try; idempotent; a player absent from a final box is `not_in_box`.
@@ -736,3 +768,109 @@ can never change a morning or pretip exit code, and a slow Drive upload in the m
 `launchctl` text injected), and prints what was raised; exit 0 only when both alerts fire. Result on the live copy at 17:17 ET 2026-10-14: baseline 0 alerts; raised `daily-pretip:stale`
 ("last start 16:20, expected by 16:50") and `daily-morning:rc` ("last run exited rc=1"), both written to the temporary ALERTS.md and sent to the notifier; the live heartbeat directory unchanged (tests/ops/test_watchdog_drill.py
 checks byte equality of the source and four clock positions, including overnight and just after a slot).
+
+## Watchdog game-day probe (2026-10-20)
+
+Incident: on opening night 2026-10-20 the Mac slept on battery, the morning job started late (07:07 CDT, ended 12:24 CDT, rc 2) and nothing told anyone. `nba.ops.watchdog.evaluate_game_day`
+(called from `check`, every 10 minutes) runs from the first check at or after 09:00 ET on a day whose schedule (`data/schedule_cache/schedule_<season>.json`, plus `data/schedule/live_tips_<season>.parquet`)
+holds a regular-season (`002...`) game on that ET date; non-game days and earlier checks are silent. Four checks, one alert each per ET game day (key `gameday:<YYYY-MM-DD>:<check>`, never re-alerted
+every 6 h): `battery` (`pmset -g batt` says "Battery Power"), `caffeinate` (`pgrep -x caffeinate` finds nothing), `slate` (today's game_ids missing from `games`, read-only `nba.duckdb`, 20 s bounded wait; a
+held lock defers to the next check and is not an alert), `morning` (the `daily-morning` heartbeat has no start today, or a start with no end). A check that cannot compute alerts as `gameday:<date>:probe-<check>`.
+Known: the `slate` check fails on every game day until the schedule fetch writes scheduled games into `games` (LeagueGameFinder returns only started games); that fetch is Devin's decision.
+Devin's side: plug in and run `caffeinate -dimsu` before 09:00 ET. Tests: `tests/ops/test_watchdog_gameday.py`.
+## The live loop refuses, it does not report (2026-10-21, plan item A)
+
+Opening night (2026-10-20) showed that the loop reported problems after the fact. Four refusals:
+
+1. **A winner row needs a box score.** `settle` / `settle_eligible_pending` grade `win_prob_home` only when
+   the game has >= 10 `player_game_stats` rows with `minutes > 0` (`MIN_PLAYED_ROWS`), on top of the 4 h
+   `SETTLE_AFTER_TIP_HOURS` guard and `home_pts > 0`. Points alone are not a result (PHI@NYK sat at 63-62).
+2. **The morning job ingests first.** `python -m nba.daily ingest [--date D]` runs `incremental_ingest` for the
+   season of D (default today ET); exit 0, or 5 (`RC_DEGRADED`) when the games fetch fails. `ops/nba_daily.sh
+   morning` runs `step ingest` immediately before `step settle`; a failed ingest alerts and settle still runs.
+3. **Withdrawals.** `forward_withdrawals` (append-only; `withdrawn_at, run_id, game_id, model_name, target,
+   player_id, official_team_id, reason`). After a run with `--roster-source official` writes its rows, each
+   forecast key of the slate whose player the fetched official rosters place on a team that is neither home
+   nor away is withdrawn (once per key). A player on no fetched roster is unknown and is not withdrawn. Both
+   `settle` skips withdrawn keys (no `forward_scores` row); `forward_scores_elig` is untouched (the frozen
+   rule writes the mover as `dnp` there); `nba.export.reader` and
+   `nba.parlay.top_source` do not show them. `forward_predictions` is never edited. A withdrawal is
+   permanent for its key. `recent` runs (all replays) never withdraw. The failure guard is
+   `pipeline._withdraw_misplaced` (error -> `summary.errors`, rc 5, settle unaffected).
+4. **Teams for a game absent from `games`.** The games feed returns only started games (OKC@SAS never
+   appeared before tip). `top_source` and the export take home/away from the schedule cache
+   (`data/schedule_cache/schedule_<season>.json`), then the win row's stamped teams. The live-tips parquet
+   holds tip times only, so it cannot supply teams.
+
+### The box must agree with the game (review M2, M3)
+
+Two paths stayed open after item A: a box pulled while the game was in progress is cached per game and never
+re-pulled (`missing_boxscore_game_ids` selects games with no rows at all), and the games feed can return a
+partial score after the box is final (OKC@SAS 44-65 sixteen minutes after the scoreboard said Final).
+
+* **M2.** `settle_pending` and `settle_eligible_pending` grade any target (winner or prop) only when, for each
+  team, `sum(coalesce(pts, 0))` over its `player_game_stats` rows (`team_id = games.home_team / away_team`;
+  a DNP row's NULL counts as 0) equals `games.home_pts` / `away_pts` (`_BOX_AGREES_SQL`), on top of the
+  4 h guard, the >= 10 played rows for a winner and a game with box rows at all. A game with no box stays
+  pending as before. Census: team sums equal the score in 3,958 of 3,958 games 2022-24, 11,512 of 11,516 for
+  2013-21 and 3 of 3 for 2026. The gate changes WHEN a row is scored, never WHAT (`FORWARD_PREREG_2026_27.md`
+  is not edited).
+* **M3.** A refusal is visible. `settle_pending` returns `refused_no_box`, `refused_thin_box` (winner under 10
+  played rows) and `refused_box_mismatch` (distinct games each, evaluated in that order) plus `refused_stale`
+  (tipped >= 24 h before now); `nba.daily settle` prints each refused game and exits `RC_INFORMATIONAL` (4)
+  when every refused game tipped < 24 h ago, `RC_DEGRADED` (5) when any tipped 24 h or more ago, else 0
+  (the shadow settlers still run). `ops/nba_daily.sh step()` treats `settle` rc 4 as informational; rc 5 alerts.
+  A refused key is never written and stays pending for the next settle. `tests/daily/test_box_consistency.py`.
+
+Not closed: the shadow settlers (pplay, full, avg, combo) do not read `forward_withdrawals`, and they have
+neither the 4 h guard nor the box-agrees gate: they still grade a game with any box rows, including a box
+pulled in progress during the pretip `run` (follow-up F2, the shadow owners' change).
+
+**Runbook: `refused <gid> box_mismatch` (rc 4 on day 1, rc 5 from day 2).** Nothing re-selects the game
+automatically (follow-up F1a, not built): `missing_boxscore_game_ids` picks only games with no box rows, and
+`fetch_cached` never re-fetches a (source, key) with an `ingest_log` 'done' row, so the pretip run's in-progress
+box stays cached. `nba.daily ingest` therefore does NOT repair it. By hand, the maintainer, with no other
+writer on `nba.duckdb`:
+1. Compare the score with the box: `SELECT home_pts, away_pts FROM games WHERE game_id = '<gid>'` against
+   `SELECT team_id, sum(coalesce(pts,0)), count(*) FILTER (WHERE minutes > 0) FROM player_game_stats WHERE
+   game_id = '<gid>' GROUP BY 1`. Also check the games score is final (a partial games-feed score is repaired
+   by the next `ingest`, which refreshes `games`).
+2. If the box is short: move the cached raw aside (`data/boxscore/<gid>.parquet`, keep it, raw is
+   immutable) and delete the log row: `DELETE FROM ingest_log WHERE source = 'boxscore' AND key = '<gid>'`.
+3. Re-pull: `uv run python -c "from nba.db.connect import connect; from nba.ingest.boxscores import
+   pull_game_boxscore; c = connect(); pull_game_boxscore(c, '<gid>')"`. Its upsert is delete-then-insert per
+   game, so the rows are replaced. The next `settle` grades the keys from the same eligible predictions.
+4. If the fresh official box still disagrees with the official score, add a DECISIONS row naming the game; its
+   keys stay unscored (the game leaves the population on both sides; the checkpoint does not list it yet,
+   follow-up F1).
+
+## Morning job order, early briefing, step timeouts (2026-10-21)
+
+Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest`, `settle`, `checkpoint`, `report`,
+**`early_forecast`**, **`briefing_early`**, `coverage_yesterday`, `scorecard`, (`facts`, opt-in), `parlay_settle`,
+`fetch_tracking`, `fetch_hustle`, `fetch_officials`, `fetch_matchups`, `postgame_load`, `data_snapshot`, `data_diff`,
+`data_check`, backup, Drive copies.
+
+* **Why** (Devin, 2026-10-21: "can we not do an early morning version that says why?"): the forecast and the briefing
+  must not wait behind the slow post-game fetches. `early_forecast` is the pretip predict call with the same flags
+  (`--roster-source "$ROSTER"` from `ops/roster_source.sh`, int and lower-tail variants, the pplay, full, avg and combo
+  shadows, `--rate-limit-s 2.5`); rc 4 informational, any other non-zero alerts. Scoring is unchanged: the scored row is the latest
+  `made_at <= tip - lead` (FORWARD_PREREG rules 3-4), so an extra early row never changes it, and the store writes
+  only on change. On a day with no games it predicts nothing.
+* **Briefings** (`python -m nba.explain slate`, rc 4 = no forecast rows yet, informational): the early edition is
+  `reports/briefing/<date ET>_early.md` (written once, in the morning job); the report edition
+  `reports/briefing/<date ET>_report.md` is written by the pretip branch right after `predict` (before `refs` and
+  `market_capture`) and is overwritten by every pretip run, so it is the latest run's picture.
+* **Timeouts**: `fetch_*` are wrapped in `alarm_run 1800` and `postgame_load` in `alarm_run 1200`
+  (`perl -e 'alarm shift; exec @ARGV; ... exit 127'`; macOS has no `timeout`; the alarm survives `exec`; `uv run` forks
+  python and forwards SIGALRM (uv 0.12.23; re-check after an upgrade); an unexecutable command exits 127 and fails the step).
+  `early_forecast` and the pretip `predict` are wrapped too (`alarm_run 1200`, `NBA_EARLY_TIMEOUT_S` /
+  `NBA_PREDICT_TIMEOUT_S`): the same call ran 7057 s on 10-20 and 12244 s on 10-19 holding the lock. A hang ends with rc 142, alerts as "timed out", and the next steps run. Override for tests with
+  `NBA_FETCH_TIMEOUT_S` / `NBA_LOAD_TIMEOUT_S`.
+* **The lock stays held for the whole job.** `nba.duckdb` is single-writer and the later morning steps write to it; an
+  early release would let a pretip run interleave. The timeout is the fix, not a release.
+* **Incident (2026-10-21)**: `fetch_tracking` (`nba.ingest postgame-fetch --source tracking`) hung from 07:00:20 and
+  held `data/ops/lock` for 2 h+. Every pretip slot (08:20, 08:50, ...) skipped ("another job holds data/ops/lock") and
+  the slate had no forecast by 09:00. A job that cannot start cannot alert; the watchdog saw the consecutive skips.
+* Any failed morning step (including a timed-out fetch or a failed briefing) fails the app-export gate
+  (`nba.ops.app_export.data_step_problem`); that is unchanged behaviour for a failed step.

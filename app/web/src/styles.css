@@ -1628,12 +1628,25 @@ th {
   background: var(--muted);
   opacity: 0.55;
 }
+.ls-pair {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.ls-cal {
+  padding-left: 8px;
+  border-left: 3px solid var(--accent);
+}
+.ls-cal.none {
+  border-left-color: var(--muted);
+}
 .ls-label {
   margin: 0;
   padding-left: 8px;
   border-left: 3px solid var(--muted);
 }
-.ls-label.rung_cal {
+.ls-label.rung_cal,
+.ls-label.line_cal {
   border-left-color: var(--accent);
 }
 .ls-tail {

@@ -117,7 +117,11 @@ def load_world() -> dict[str, pl.DataFrame]:
     if int(w["games"]["season"].max()) > C.MAX_SEASON:  # type: ignore[arg-type]
         raise RuntimeError("season > 2024 loaded")
     tips = pl.concat(
-        [build_game_tipoff(), build_game_tipoff(HIST_SCHEDULE)], how="vertical_relaxed"
+        [
+            build_game_tipoff(max_season=C.MAX_SEASON),
+            build_game_tipoff(HIST_SCHEDULE, max_season=C.MAX_SEASON),
+        ],
+        how="vertical_relaxed",
     ).unique("game_id", keep="first")
     w["games"] = (
         w["games"]

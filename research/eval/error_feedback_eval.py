@@ -210,10 +210,10 @@ def load_world(
     def cat(k: str) -> pl.DataFrame:
         return pl.concat([cur[k], hist[k]], how="vertical_relaxed")
 
-    tips_cur = build_game_tipoff()
-    tips = pl.concat([tips_cur, build_game_tipoff(HIST_SCHEDULE)], how="vertical_relaxed").unique(
-        "game_id", keep="first", maintain_order=True
-    )
+    tips_cur = build_game_tipoff(max_season=cap)
+    tips = pl.concat(
+        [tips_cur, build_game_tipoff(HIST_SCHEDULE, max_season=cap)], how="vertical_relaxed"
+    ).unique("game_id", keep="first", maintain_order=True)
     cfg = ContextResidualConfig(**yaml.safe_load(CONFIG.read_text()).get("model", {}))
     elo = {k: float(v) for k, v in yaml.safe_load(ELO_CONFIG.read_text()).items()}
     games = cat("games")

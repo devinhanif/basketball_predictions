@@ -1,4 +1,4 @@
-"""CLI: ``python -m nba.daily {run,settle,report} ...``.
+"""CLI: ``python -m nba.daily {run,ingest,settle,report} ...``.
 
 ``run`` writes to the real ``nba.duckdb`` (single writer -- do not run while an
 eval holds it). Network access only in ``run`` (schedule, games, box scores,
@@ -15,10 +15,26 @@ from pathlib import Path
 
 import duckdb
 
+from nba.daily.ingest_step import (
+    FetchGames,
+    PullBox,
+    incremental_ingest,
+    insert_scheduled_games,
+)
 from nba.daily.pipeline import RunSummary, run_daily, utcnow
 from nba.daily.report import build_report
-from nba.daily.schedule import fetch_schedule_nba_api, schedule_from_db
-from nba.daily.settle import settle_pending
+from nba.daily.schedule import (
+    DEFAULT_SCHEDULE_CACHE_DIR,
+    ET,
+    MAX_SCHEDULE_CACHE_AGE,
+    ScheduleFn,
+    fetch_schedule_nba_api,
+    load_schedule_cache,
+    schedule_from_db,
+    slate_for_date,
+)
+from nba.daily.season import season_int_for_date, season_str_for_date
+from nba.daily.settle import settle_with_refusals
 from nba.db.connect import DEFAULT_DB_PATH, connect_with_retry, is_lock_error
 from nba.features.game_tipoff import SCHEDULE_DIR
 from nba.ingest.cache import RateLimiter
@@ -26,7 +42,7 @@ from nba.ops.exitcodes import RC_DB_BUSY, RC_DEGRADED, RC_INFORMATIONAL
 from nba.ops.watchdog import health_section
 
 DEFAULT_REPORT = Path("registry_store/reports/forward_report.md")
-SCHEDULE_CACHE_DIR = Path("data/schedule_cache")
+SCHEDULE_CACHE_DIR = DEFAULT_SCHEDULE_CACHE_DIR  # one definition: nba.daily.schedule
 
 
 _NOW_HELP = "override the clock (naive UTC ISO, e.g. 2024-10-22T21:50); rehearsals only"
@@ -152,6 +168,12 @@ def _parser() -> argparse.ArgumentParser:
             help="use the nba_api season schedule (1 stats.nba.com call) instead of the "
             "collector's own tip table",
         )
+    ig = sub.add_parser(
+        "ingest",
+        help="refresh the season's games and box scores (the morning job, BEFORE settle)",
+    )
+    ig.add_argument("--date", type=date.fromisoformat, default=None, help="default: today (ET)")
+    ig.add_argument("--rate-limit-s", type=float, default=0.6)
     st = sub.add_parser("settle", help="score completed predictions only")
     st.add_argument("--now", type=_naive_utc, default=None, help=_NOW_HELP)
     ck = sub.add_parser(
@@ -213,6 +235,56 @@ def alert_shadow_errors(s: RunSummary, ops_dir: Path = OPS_DIR) -> bool:
     with (ops_dir / "ALERTS.md").open("a") as fh:
         fh.write(line)
     return True
+
+
+def run_ingest(
+    con: duckdb.DuckDBPyConnection,
+    run_date: date,
+    *,
+    rate_limiter: RateLimiter,
+    fetch_games: FetchGames | None = None,
+    pull_box: PullBox | None = None,
+    schedule_fn: ScheduleFn | None = None,
+) -> int:
+    """Morning ingest: games (final scores) and the box scores not yet loaded, for the season of
+    ``run_date``. 2026-10-20: the morning settle ran before any ingest and would have graded a
+    half-time score. Exit 0, or ``RC_DEGRADED`` when the fetch fails (settle still runs: its own
+    guards refuse a game without a box score)."""
+    out: dict[str, int] = {}
+    rc = 0
+    try:
+        out = incremental_ingest(
+            con,
+            season_str_for_date(run_date),
+            season_int_for_date(run_date),
+            rate_limiter=rate_limiter,
+            fetch_games=fetch_games,
+            pull_box=pull_box,
+            run_date=run_date,
+        )
+    except Exception as exc:  # the slate rows below are still written (the pretip run needs them)
+        print(f"DEGRADED: ingest failed ({type(exc).__name__}: {exc})"[:300])
+        rc = RC_DEGRADED
+    if schedule_fn is not None:  # today's slate rows (the finder holds only started games)
+        try:
+            season_s = season_str_for_date(run_date)
+            try:
+                sched = schedule_fn(season_s)
+            except Exception:  # fall back to the last good schedule copy
+                cached = load_schedule_cache(
+                    season_s, SCHEDULE_CACHE_DIR, max_age=MAX_SCHEDULE_CACHE_AGE
+                )
+                if cached is None:
+                    raise
+                sched = cached
+            out["scheduled_rows_inserted"] = insert_scheduled_games(
+                con, slate_for_date(sched, run_date), run_date, season_int_for_date(run_date)
+            )
+        except Exception as exc:
+            print(f"DEGRADED: scheduled games not written ({type(exc).__name__}: {exc})"[:300])
+            rc = RC_DEGRADED
+    print(f"ingest: {out}")
+    return rc
 
 
 def _checkpoint(args: argparse.Namespace) -> int:
@@ -326,9 +398,19 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(t30)
         return 0
+    if args.command == "ingest":
+        return run_ingest(
+            con,
+            args.date or datetime.now(ET).date(),
+            rate_limiter=RateLimiter(args.rate_limit_s),
+            schedule_fn=fetch_schedule_nba_api,
+        )
     if args.command == "settle":
         now = args.now or utcnow()
-        print(settle_pending(con, now))
+        settled, refused = settle_with_refusals(con, now)
+        print(settled)
+        for gid, reason, tip in refused:
+            print(f"refused {gid} {reason} (tip {tip:%Y-%m-%d %H:%M} UTC; stays pending)")
         for label, module, fn, table in SHADOW_SETTLERS:
             try:  # shadow scoring never blocks the primary settle; the import is inside the try
                 settle = getattr(importlib.import_module(module), fn)
@@ -339,7 +421,11 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:
                 msg = f"{type(exc).__name__}: {exc}"
                 print(f"{label} shadow settle failed (primary unaffected): {msg}")
-        return 0
+        if not refused:
+            return 0
+        # a refusal is visible, never silent: fresh ones are informational (the box is still
+        # arriving), one that tipped >= 24 h ago should long be final and gradable: alert
+        return RC_DEGRADED if settled["refused_stale"] else RC_INFORMATIONAL
     text = build_report(con, args.season)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

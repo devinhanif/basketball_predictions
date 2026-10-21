@@ -44,7 +44,7 @@ def build(con: duckdb.DuckDBPyConnection) -> tuple[pl.DataFrame, dict[str, Any]]
     ).pl()
     cfg = ReportTriggerConfig(statuses=("questionable",), tip_source="real")
     rows = load_report_rows(con, cfg, game_ids=games["game_id"].to_list())
-    rows = attach_real_tips(rows)
+    rows = attach_real_tips(rows, max_season=MAX_SEASON)
     flagged, used = latest_pretip_flagged(rows, replace(cfg))
     # team of each player in the game: the box row if present, else the latest earlier box row
     pgs = con.execute(
@@ -96,7 +96,7 @@ def build(con: duckdb.DuckDBPyConnection) -> tuple[pl.DataFrame, dict[str, Any]]
                 }
             )
     df = pl.DataFrame(out)
-    cov = tip_coverage(games.select("game_id"), build_game_tipoff())
+    cov = tip_coverage(games.select("game_id"), build_game_tipoff(max_season=MAX_SEASON))
     meta = {
         "n_games": games.height,
         "games_with_usable_report": len(used),
@@ -183,7 +183,9 @@ def main() -> int:
             f"SELECT game_id, game_date, season, home_team, away_team FROM games WHERE season BETWEEN 2022 AND {MAX_SEASON} AND game_id LIKE '002%'"
         ).pl()
         cfg = ReportTriggerConfig(statuses=("questionable",), tip_source="real")
-        rows = attach_real_tips(load_report_rows(con, cfg, game_ids=games["game_id"].to_list()))
+        rows = attach_real_tips(
+            load_report_rows(con, cfg, game_ids=games["game_id"].to_list()), max_season=MAX_SEASON
+        )
         _, used = latest_pretip_flagged(rows, cfg)
     finally:
         con.close()

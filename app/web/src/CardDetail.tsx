@@ -4,7 +4,7 @@ import { american, bookName, lineText, num, pct } from "./format";
 import { Explain, View } from "./components";
 import { plainModel } from "./plain";
 import { gameHref } from "./router";
-import { percentAlong, modelLine, quantile, read, sliderRange, snapHalf } from "./slider";
+import { calibrationFooter, percentAlong, modelLine, pairLines, quantile, read, sliderRange, snapHalf } from "./slider";
 import { Chips, DistStrip, ProbBar } from "./Viz";
 import { wilson } from "./stats";
 import { useLoad } from "./useLoad";
@@ -134,13 +134,15 @@ function Facts(props: { s: CardStats; card: CardView }) {
 
 export function LineSlider({ card }: { card: CardView }) {
   const posted = card.line_source === "posted" ? card.line : null;
-  const bookMain = card.book_main_line ?? card.rung_cal?.main_line ?? null;
+  const bookMain = card.book_main_line ?? card.line_cal?.main_line ?? card.rung_cal?.main_line ?? null;
   const input = {
     p_ge: card.dist.p_ge,
     method: card.dist.method,
     posted_line: posted,
     book_main_line: bookMain,
     rung_cal: card.rung_cal,
+    line_cal: card.line_cal ?? null,
+    line_cal_null_reason: card.line_cal_null_reason ?? null,
   };
   const model = modelLine(card.dist.p_ge);
   // Reach: from just under the 0.5th percentile to just over the 99.5th, widened to hold the marks.
@@ -150,6 +152,7 @@ export function LineSlider({ card }: { card: CardView }) {
   const start = snapHalf(posted ?? model);
   const [line, setLine] = useState(Math.min(max, Math.max(min, start)));
   const r = read(input, line);
+  const pair = pairLines(r);
   const id = `slider-${card.prop_id}`;
   const stat = card.stat;
   const step = (d: number): void => {
@@ -230,6 +233,10 @@ export function LineSlider({ card }: { card: CardView }) {
         </div>
       </div>
       <ProbBar over={r.p_over} label={`At line ${lineText(line)}`} />
+      <div class="ls-pair small num" aria-live="polite">
+        <div class="ls-raw">{pair.raw}</div>
+        {pair.cal !== null ? <div class="ls-cal">{pair.cal}</div> : <div class="ls-cal none muted">{r.cal_note}</div>}
+      </div>
       <p class="small ls-say">
         Over {lineText(line)} means {sideText(stat, line, "over")}. Under means {sideText(stat, line, "under")}.
       </p>
@@ -282,7 +289,7 @@ function Body(props: { game_id: string; player_id: number; stat: string }) {
               <li>{card.model_label}</li>
               <li>Forecast stamp: <span class="mono">{card.forecast_stamp}</span></li>
               <li>{card.dist.method === "exact" ? "Read from the exact count table." : "Read off a 19-point quantile grid."}</li>
-              {card.rung_cal ? <li>Calibration map {card.rung_cal.map_version}.</li> : null}
+              {calibrationFooter(card.line_cal, card.rung_cal) ? <li>{calibrationFooter(card.line_cal, card.rung_cal)}</li> : null}
             </ul>
           </Explain>
           {card.stats ? <Facts s={card.stats} card={card} /> : <p class="small">No game history is loaded for this prop.</p>}

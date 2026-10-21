@@ -198,7 +198,7 @@ def load_study(db_path: str = "nba.duckdb") -> dict[str, Any]:
     world = load_world(db_path)
     games, pgs, cfg = world["games"], world["pgs"], world["cfg"]
     assert int(games["season"].max()) <= MAX_SEASON
-    tips = build_game_tipoff()
+    tips = build_game_tipoff(max_season=MAX_SEASON)
     avail = load_reason_rows(db_path)
     snap = build_snapshot_reasons(avail, games, cfg.report, tips)
     return {

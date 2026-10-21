@@ -146,7 +146,7 @@ def load_world(
     finally:
         con.close()
     pgs = pgs.join(pf, on=["game_id", "player_id"], how="left")
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     return {
         "games": games,
         "pgs": pgs,

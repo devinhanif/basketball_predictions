@@ -20,7 +20,7 @@ from nba.daily.settle import T30_MODEL, settle_eligible_pending
 from nba.daily.store import ensure_tables
 from nba.props import forward as fwd
 from nba.props import full_support
-from tests.daily.conftest import T1, T2, T3, T4
+from tests.daily.conftest import T1, T2, T3, T4, add_final_box
 from tests.fixtures.loader import build_fixture_db
 from tests.props.test_forward_context import AS_OF, _big_history
 
@@ -34,6 +34,7 @@ def _seed(con: duckdb.DuckDBPyConnection, gid: str, made_min: int, snap_min: int
         " VALUES (?, ?, 2026, 1, 2, 110, 100)",
         [gid, date(2026, 10, 28)],
     )
+    add_final_box(con, gid)
     pred: dict[str, object] = {"p_home": 0.6}
     if snap_min is not None:
         pred["snapshot_fetched_at"] = (TIP - timedelta(minutes=snap_min)).isoformat()
@@ -50,7 +51,7 @@ def test_t30_row_made_at_tip_minus_28_with_snapshot_tip_minus_31_is_eligible(
     _seed(con, "G_ok", made_min=28, snap_min=31)
     _seed(con, "G_late_snap", made_min=28, snap_min=25)
     _seed(con, "G_no_snap", made_min=28, snap_min=None)
-    counts = settle_eligible_pending(con, datetime(2026, 10, 29))
+    counts = settle_eligible_pending(con, datetime(2026, 10, 29, 12))
     assert counts["scored"] == 1
     got = con.execute("SELECT game_id FROM forward_scores_elig").fetchall()
     assert got == [("G_ok",)]

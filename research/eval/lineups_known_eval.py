@@ -435,7 +435,7 @@ def run(
         raise ValueError("season > 2024 present: frozen holdout must not be loaded")
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     feats = build_features(games, pgs, static, flagged, elo_params, lineups_known=True)
     feats_s = None
     if sensitivity:
