@@ -196,12 +196,11 @@ def test_script_step_names_satisfy_the_gate_contract(tmp_path: Path) -> None:
 
     hb_dir = tmp_path / "off/root/data/ops/heartbeat"
     _, _, hb = _run_morning(tmp_path / "off", nightly="", facts_rc=0)
-    assert data_step_problem(hb_dir, json.loads(hb)["start_ts"]) is None
+    assert data_step_problem(hb_dir, json.loads(hb)["start_ts"]) == (None, [])
     _, _, hb = _run_morning(tmp_path / "on", nightly="1", facts_rc=1)
     on_dir = tmp_path / "on/root/data/ops/heartbeat"
-    assert (
-        data_step_problem(on_dir, json.loads(hb)["start_ts"]) == "morning data step failed: facts"
-    )
+    # issue #13: facts is not forecast-bearing, so its failure is reported as degraded, not a block
+    assert data_step_problem(on_dir, json.loads(hb)["start_ts"]) == (None, ["facts"])
 
 
 def test_coverage_and_scorecard_are_wired() -> None:

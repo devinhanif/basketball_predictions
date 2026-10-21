@@ -749,11 +749,14 @@ can never change a morning or pretip exit code, and a slow Drive upload in the m
   between the pretip runs. **Not installed by anything in the repo.** Install: `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist && launchctl kickstart -k gui/$(id -u)/local.nba.app-export`
   (the kickstart writes the first heartbeat at once, otherwise the watchdog alerts `app-export:stale` until the first slot has run; it runs the gate, so it may record a skip);
   remove: `launchctl bootout gui/$(id -u)/local.nba.app-export`.
-* **Gate** (DECISIONS 2026-10-14 20:31, A1): the `daily-morning` heartbeat must have an END written today (Eastern date) AND every DATA step of that run must have succeeded. `ops/nba_daily.sh`
-  writes `data/ops/heartbeat/daily-morning.steps`: a first line `start_ts <the heartbeat's start_ts>` (ties the file to this run) then one `<step> <rc> <ok|failed>` line per step (same
-  ok/failed rule as the heartbeat rc). A failed `backup_*_drive` step does NOT block the export (the data is fine; today's first run skipped on exactly that). Any other failed step does, and the gate
-  fails closed: a missing steps file, one from another run, an unreadable line, or a run cut short (any of settle, checkpoint, report, parlay_settle, data_snapshot, data_diff, data_check not recorded ok)
-  skips. A skip is recorded with its reason (heartbeat `status: skipped`, the log `data/ops/app_export_YYYYMMDD.log`, and `app-export.skip.json` with a consecutive count); it exits 0 and the watchdog
+* **Gate** (DECISIONS 2026-10-14 20:31, A1; narrowed to forecast-bearing steps 2026-10-21, issue #13): the `daily-morning` heartbeat must have an END written today (Eastern date) AND no
+  forecast-bearing step of that run may have failed. `ops/nba_daily.sh` writes `data/ops/heartbeat/daily-morning.steps`: a first line `start_ts <the heartbeat's start_ts>` (ties the file to this run)
+  then one `<step> <rc> <ok|failed>` line per step (same ok/failed rule as the heartbeat rc). **Blocking** when failed: `ingest`, `settle`, `early_forecast` (when recorded; runs before 10-21 have
+  none); `ingest` and `settle` must be recorded ok. **Non-blocking**: every other step (coverage_yesterday, scorecard, facts, parlay_settle, fetch_*, postgame_load, data_snapshot, data_diff,
+  data_check, checkpoint, report, briefing_*, backup_*); their failures are listed as `degraded_steps` in `app-export.json` and in the export's `manifest.json` (added after the build, outside
+  the file checksums). A step once recorded failed stays failed. The gate still fails closed: a missing steps file, one from another run, an unreadable line, or a run without `ingest`/`settle`
+  recorded ok skips. (10-21: the morning run ended rc 1 with coverage_yesterday, three post-game fetches, postgame_load and data_check failed; the old all-data-steps gate would have skipped
+  it, the new one exports and lists those six.) A skip is recorded with its reason (heartbeat `status: skipped`, the log `data/ops/app_export_YYYYMMDD.log`, and `app-export.skip.json` with a consecutive count); it exits 0 and the watchdog
   alerts after two in a row. The morning job's own rc is unchanged (still the worst step), so the watchdog still sees a failed Drive upload. A morning run started before this change wrote no steps
   file, so its export skips (fail closed) until the next morning run.
 * **Atomic**: built in `data/export/.latest.stage.<pid>` and swapped into `data/export/latest` only after the build exited 0; a failed build leaves the previous export in place. A locked

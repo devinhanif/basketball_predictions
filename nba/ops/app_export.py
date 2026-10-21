@@ -5,10 +5,13 @@
 
 Once the morning job has finished cleanly it runs ``python -m nba.export build --date <today ET> --out data/export/latest``:
 
-* **Gate (DECISIONS 2026-10-14 20:31, A1).** The ``daily-morning`` heartbeat must have an END written today (Eastern date), and every DATA step of
-  that run must have succeeded, read from ``daily-morning.steps`` (one ``<step> <rc> <ok|failed>`` line per step, written by ``ops/nba_daily.sh``).
-  A failed ``backup_*_drive`` step does NOT block the export; any other failed step does; so does a missing, stale or truncated steps file, or one
-  from a different run than the heartbeat (fail closed). A missing, still-running, stale or failing run SKIPS the run with a recorded reason: the reason goes into this job's own heartbeat (``status: skipped``), the log, and
+* **Gate (DECISIONS 2026-10-14 20:31, A1; narrowed 2026-10-21, issue #13).** The ``daily-morning`` heartbeat must have an END written today (Eastern
+  date), read together with ``daily-morning.steps`` (one ``<step> <rc> <ok|failed>`` line per step, written by ``ops/nba_daily.sh``). Only the
+  forecast-bearing steps block: a failed ``ingest``, ``settle`` or ``early_forecast`` (when recorded) skips the export, and ``ingest`` and ``settle``
+  must be recorded ok. Every other step (coverage, scorecard, facts, parlay_settle, the post-game fetches and load, the data manifest steps,
+  checkpoint, report, briefings, backups) does NOT block: its failure is listed as ``degraded_steps`` in this job's heartbeat and in the export's
+  ``manifest.json``. A missing or unreadable steps file, one from a different run than the heartbeat, or one without ``ingest``/``settle`` still
+  fails closed; a step once recorded failed stays failed. A missing, still-running, stale or blocked run SKIPS the run with a recorded reason: the reason goes into this job's own heartbeat (``status: skipped``), the log, and
   ``app-export.skip.json`` (consecutive count), which the watchdog turns into an alert after two skips in a row. A skip never exits non-zero.
 * **Atomic.** The export is built into a staging directory next to ``latest`` and swapped in only after the build exited 0; a failed build
   leaves yesterday's ``latest`` untouched. (A directory cannot be swapped in one syscall, so there is a window of two renames; the app reads
@@ -43,21 +46,12 @@ MORNING = "daily-morning"
 STEPS_FILE = f"{MORNING}.steps"
 
 
-#: steps whose failure does not stop the export: the Drive copies only (they never feed it); any other backup_* step blocks
-def _is_drive_backup(name: str) -> bool:
-    return name.startswith("backup_") and name.endswith("_drive")
+#: forecast-bearing steps (Devin 2026-10-21, issue #13): a failure of any of these blocks the export. ``early_forecast`` blocks
+#: only when recorded (runs before 2026-10-21 have no such line). Every other step is non-blocking and reported as degraded.
+BLOCKING_STEPS = ("ingest", "settle", "early_forecast")
 
-
-#: data steps that must appear as ok, else the run was cut short (or an older script wrote no record) and the gate fails closed
-REQUIRED_STEPS = (
-    "settle",
-    "checkpoint",
-    "report",
-    "parlay_settle",
-    "data_snapshot",
-    "data_diff",
-    "data_check",
-)
+#: steps that must appear as ok, else the run was cut short (or an older script wrote no record) and the gate fails closed
+REQUIRED_STEPS = ("ingest", "settle")
 ET = ZoneInfo("America/New_York")
 RC_LOCKED = 2  # nba.export: the source database is held by a writer
 LOCK_RETRIES = 4
@@ -78,50 +72,60 @@ def _ts(value: object) -> datetime | None:
     return t if t.tzinfo else t.astimezone()  # a naive stamp is local time
 
 
-def data_step_problem(hb_dir: Path, hb_start: str) -> str | None:
-    """None when every data step of the morning run (the one that started at ``hb_start``) succeeded, else the reason."""
+def data_step_problem(hb_dir: Path, hb_start: str) -> tuple[str | None, list[str]]:
+    """``(problem, degraded)`` for the morning run that started at ``hb_start``.
+
+    ``problem`` is None when no blocking step (``BLOCKING_STEPS``) failed and every ``REQUIRED_STEPS`` entry is recorded ok, else the reason
+    (fail closed on a missing, unreadable or other-run record). ``degraded`` lists, sorted, the non-blocking steps recorded failed; it is
+    returned in both cases so the caller can report it. Sticky: a step once recorded failed stays failed.
+    """
     try:
         lines = (hb_dir / STEPS_FILE).read_text().splitlines()
     except OSError:
-        return "morning step record missing"
+        return "morning step record missing", []
     if not lines or lines[0].split(maxsplit=1) != ["start_ts", hb_start]:
-        return "morning step record is from another run"
+        return "morning step record is from another run", []
     status: dict[str, str] = {}
     for line in lines[1:]:
         parts = line.split()
         if len(parts) != 3:
-            return f"morning step record unreadable: {line!r}"
+            return f"morning step record unreadable: {line!r}", []
         if status.get(parts[0], "ok") == "ok":  # sticky: a step once recorded failed stays failed
             status[parts[0]] = parts[2]
-    failed = sorted(n for n, st in status.items() if st != "ok" and not _is_drive_backup(n))
-    if failed:
-        return f"morning data step failed: {', '.join(failed)}"
+    failed = sorted(n for n, st in status.items() if st != "ok")
+    degraded = [n for n in failed if n not in BLOCKING_STEPS]
+    blocked = [n for n in failed if n in BLOCKING_STEPS]
+    if blocked:
+        return f"morning forecast step failed: {', '.join(blocked)}", degraded
     missing = [n for n in REQUIRED_STEPS if status.get(n) != "ok"]
     if missing:
-        return f"morning data step not recorded ok: {', '.join(missing)}"
-    return None
+        return f"morning forecast step not recorded ok: {', '.join(missing)}", degraded
+    return None, degraded
 
 
-def morning_gate(hb_dir: Path, today: date) -> tuple[bool, str, datetime | None]:
-    """``(ok, reason, morning_end)``: ok only when the morning job ended today (ET) and all its data steps succeeded (Drive backup steps may fail)."""
+def morning_gate(hb_dir: Path, today: date) -> tuple[bool, str, datetime | None, list[str]]:
+    """``(ok, reason, morning_end, degraded_steps)``: ok only when the morning job ended today (ET) and no forecast-bearing step failed.
+
+    ``degraded_steps`` are the non-blocking steps of that run that failed (empty when the record was not read)."""
     hb = read_heartbeat(hb_dir, MORNING)
     if hb is None:
-        return False, "morning heartbeat missing or unreadable", None
+        return False, "morning heartbeat missing or unreadable", None, []
     start, end, rc = _ts(hb.get("start_ts")), _ts(hb.get("end_ts")), hb.get("rc")
     if start is None:
-        return False, "morning heartbeat has no start_ts", None
+        return False, "morning heartbeat has no start_ts", None, []
     if end is None or end < start or rc is None:
-        return False, f"morning job has not ended (started {start:%Y-%m-%d %H:%M})", None
+        return False, f"morning job has not ended (started {start:%Y-%m-%d %H:%M})", None, []
     if end.astimezone(ET).date() != today:
         return (
             False,
             f"morning heartbeat is stale (ended {end:%Y-%m-%d %H:%M %z}, not {today})",
             end,
+            [],
         )
-    bad = data_step_problem(hb_dir, str(hb.get("start_ts")))
+    bad, degraded = data_step_problem(hb_dir, str(hb.get("start_ts")))
     if bad:
-        return False, bad, end
-    return True, "ok", end
+        return False, bad, end, degraded
+    return True, "ok", end, degraded
 
 
 def already_built(out: Path, today: date, morning_end: datetime) -> bool:
@@ -154,6 +158,26 @@ def _write_json(path: Path, rec: dict[str, object]) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(rec))
     tmp.replace(path)
+
+
+def _note_degraded(stage: Path, degraded: list[str], say: Callable[[str], None]) -> None:
+    """Add ``degraded_steps`` to the staged ``manifest.json`` (not covered by the manifest's file checksums). A manifest that
+    cannot be annotated is logged, never a failed export: the heartbeat carries the same list."""
+    path = stage / "manifest.json"
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        manifest = json.loads(path.read_text())
+        if not isinstance(manifest, dict):
+            raise ValueError("manifest is not a JSON object")
+        manifest["degraded_steps"] = list(degraded)
+        tmp.write_text(
+            json.dumps(manifest, indent=1, sort_keys=True) + "\n"
+        )  # the export's own layout
+        tmp.replace(path)
+    except (OSError, ValueError) as exc:
+        say(f"could not add degraded_steps to the manifest: {exc}")
+    finally:
+        tmp.unlink(missing_ok=True)  # never ship a half-written temp file in the export
 
 
 def _build_subprocess(root: Path) -> Builder:
@@ -206,6 +230,8 @@ def run(
         with log.open("a") as fh:
             fh.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {msg}\n")
 
+    degraded: list[str] = []  # non-blocking morning steps that failed; filled by the gate
+
     def beat(end: bool, rc: int | None, status: str, reason: str) -> None:
         _write_json(
             hb_dir / f"{JOB}.json",
@@ -213,12 +239,16 @@ def run(
                 "job": JOB, "mode": "export", "host": host, "start_ts": start,
                 "end_ts": datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M:%S%z") if end else None,
                 "rc": rc, "status": status, "reason": reason, "export_date": today.isoformat(),
+                "degraded_steps": list(degraded),
             },
         )  # fmt: skip
 
     beat(False, None, "running", "")
     say(f"start export for {today}")
-    ok, why, m_end = morning_gate(hb_dir, today)
+    ok, why, m_end, gate_degraded = morning_gate(hb_dir, today)
+    degraded.extend(gate_degraded)
+    if degraded:
+        say(f"morning steps failed but do not block the export: {', '.join(degraded)}")
     if not ok:
         skip_path = hb_dir / f"{JOB}.skip.json"
         n = 1
@@ -262,6 +292,7 @@ def run(
             break
         sleep(wait_s)
     if rc == 0:
+        _note_degraded(stage, degraded, say)
         try:
             swap_dir(stage, out)
         except OSError as exc:

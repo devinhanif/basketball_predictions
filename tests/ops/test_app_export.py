@@ -19,7 +19,10 @@ NOW = datetime(2026, 10, 14, 12, 35, tzinfo=ET)
 TODAY = date(2026, 10, 14)
 
 
-GOOD_STEPS = [(n, 0, "ok") for n in A.REQUIRED_STEPS] + [("backup_db_drive", 0, "ok")]
+GOOD_STEPS = [(n, 0, "ok") for n in A.REQUIRED_STEPS] + [
+    ("early_forecast", 0, "ok"),
+    ("backup_db_drive", 0, "ok"),
+]
 
 
 def _morning(
@@ -123,10 +126,10 @@ def test_start_heartbeat_is_written_before_the_build_runs(tmp_path: Path) -> Non
         ("missing", "missing"),
         ("running", "not ended"),
         ("stale", "stale"),
-        ("data_failed", "data step failed: report"),
+        ("data_failed", "forecast step failed: settle"),
         ("no_steps", "step record missing"),
         ("other_run", "another run"),
-        ("truncated", "not recorded ok: data_check"),
+        ("truncated", "not recorded ok: settle"),
         ("garbled", "unreadable"),
     ],
 )
@@ -140,13 +143,13 @@ def test_skip_with_a_recorded_reason(tmp_path: Path, kind: str, needle: str) -> 
         steps: list[tuple[str, int, str]] | None = list(GOOD_STEPS)
         other = None
         if kind == "data_failed":
-            steps = [(n, 1, "failed") if n == "report" else (n, r, st) for n, r, st in GOOD_STEPS]
+            steps = [(n, 1, "failed") if n == "settle" else (n, r, st) for n, r, st in GOOD_STEPS]
         elif kind == "no_steps":
             steps = None
         elif kind == "other_run":
             other = NOW.replace(hour=7)
         elif kind == "truncated":
-            steps = [x for x in GOOD_STEPS if x[0] != "data_check"]
+            steps = [x for x in GOOD_STEPS if x[0] != "settle"]
         _morning(tmp_path, start=NOW.replace(hour=8), end=NOW.replace(hour=9), rc=1,
                  steps=steps, steps_start=other)  # fmt: skip
         if kind == "garbled":
@@ -179,10 +182,14 @@ def test_backup_only_failure_still_exports(tmp_path: Path) -> None:
     b = FakeBuild([0])
     assert A.run(tmp_path, now=NOW, build=b) == 0
     assert b.calls == 1 and (tmp_path / "data/export/latest/manifest.json").exists()
-    assert _hb(tmp_path)["status"] == "ok"
+    hb = _hb(tmp_path)
+    assert hb["status"] == "ok"
+    assert hb["degraded_steps"] == ["backup_db_drive", "backup_registry_drive"]
 
 
-def _steps_problem(tmp_path: Path, steps: list[tuple[str, int, str]]) -> str | None:
+def _steps_problem(
+    tmp_path: Path, steps: list[tuple[str, int, str]]
+) -> tuple[str | None, list[str]]:
     start = NOW.replace(hour=8)
     _morning(tmp_path, start=start, end=NOW.replace(hour=9), rc=1, steps=steps)
     return A.data_step_problem(
@@ -191,15 +198,146 @@ def _steps_problem(tmp_path: Path, steps: list[tuple[str, int, str]]) -> str | N
 
 
 def test_a_step_once_failed_stays_failed(tmp_path: Path) -> None:
-    steps = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
-    steps.insert(3, ("report", 1, "failed"))
-    assert _steps_problem(tmp_path, steps) == "morning data step failed: report"
+    steps = [*GOOD_STEPS, ("settle", 1, "failed"), ("settle", 0, "ok")]
+    assert _steps_problem(tmp_path, steps) == ("morning forecast step failed: settle", [])
+    steps = [*GOOD_STEPS, ("fetch_hustle", 1, "failed"), ("fetch_hustle", 0, "ok")]
+    assert _steps_problem(tmp_path, steps) == (None, ["fetch_hustle"])  # degraded stays degraded
 
 
-def test_only_drive_backups_are_exempt(tmp_path: Path) -> None:
-    ok = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
-    assert _steps_problem(tmp_path, [*ok, ("backup_lineups_drive", 1, "failed")]) is None
-    assert "backup_local" in str(_steps_problem(tmp_path, [*ok, ("backup_local", 1, "failed")]))
+# --------------------------------------------------------------------------- gate on forecast-bearing steps only (issue #13)
+#: the real daily-morning.steps of 2026-10-21 (ended 12:24 CDT, rc 1): early_forecast absent (added after this run), several
+#: post-game and bookkeeping steps failed. Under the issue #13 rule this run exports, listing the failures as degraded.
+REAL_START = "2026-10-21T07:00:02-0500"
+REAL_RECORD_2026_10_21 = """start_ts 2026-10-21T07:00:02-0500
+ingest 0 ok
+settle 0 ok
+checkpoint 0 ok
+report 0 ok
+coverage_yesterday 3 failed
+scorecard 0 ok
+facts 0 ok
+parlay_settle 0 ok
+fetch_tracking 1 failed
+fetch_hustle 0 ok
+fetch_officials 1 failed
+fetch_matchups 1 failed
+postgame_load 1 failed
+data_snapshot 0 ok
+data_diff 0 ok
+data_check 1 failed
+backup_registry_drive 0 ok
+backup_db_drive 0 ok
+backup_lineups_drive 0 ok
+"""
+REAL_DEGRADED = [
+    "coverage_yesterday",
+    "data_check",
+    "fetch_matchups",
+    "fetch_officials",
+    "fetch_tracking",
+    "postgame_load",
+]
+
+
+def _real_morning(root: Path, record: str = REAL_RECORD_2026_10_21) -> datetime:
+    hb = root / "data/ops/heartbeat"
+    hb.mkdir(parents=True, exist_ok=True)
+    rec = {"job": "daily-morning", "mode": "morning", "host": "h", "start_ts": REAL_START,
+           "end_ts": "2026-10-21T12:24:37-0500", "rc": 1}  # fmt: skip
+    (hb / "daily-morning.json").write_text(json.dumps(rec))
+    (hb / "daily-morning.steps").write_text(record)
+    return datetime(
+        2026, 10, 21, 14, 35, tzinfo=ET
+    )  # the 14:35 slot; the 12:35 slot ran before the morning job ended
+
+
+def test_todays_real_record_passes_and_reports_the_degraded_steps(tmp_path: Path) -> None:
+    now = _real_morning(tmp_path)
+    assert A.data_step_problem(tmp_path / "data/ops/heartbeat", REAL_START) == (None, REAL_DEGRADED)
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=now, build=b) == 0 and b.calls == 1
+    hb = _hb(tmp_path)
+    assert hb["status"] == "ok" and hb["degraded_steps"] == REAL_DEGRADED
+    manifest = json.loads((tmp_path / "data/export/latest/manifest.json").read_text())
+    assert manifest["degraded_steps"] == REAL_DEGRADED and manifest["export_date"] == "2026-10-21"
+    assert not (tmp_path / "data/ops/heartbeat/app-export.skip.json").exists()
+    log = next((tmp_path / "data/ops").glob("app_export_*.log")).read_text()
+    assert "do not block the export: coverage_yesterday" in log
+
+
+@pytest.mark.parametrize("step", ["ingest", "settle", "early_forecast"])
+def test_a_failed_forecast_step_blocks(tmp_path: Path, step: str) -> None:
+    record = REAL_RECORD_2026_10_21
+    if step == "early_forecast":
+        record = record.replace("report 0 ok\n", "report 0 ok\nearly_forecast 5 failed\n")
+    else:
+        record = record.replace(
+            f"\n{step} 0 ok\n", f"\n{step} 1 failed\n"
+        )  # whole line (not parlay_settle)
+    now = _real_morning(tmp_path, record)
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=now, build=b) == 0  # a skip, not an error exit
+    assert b.calls == 0 and not (tmp_path / "data/export/latest").exists()
+    hb = _hb(tmp_path)
+    assert hb["status"] == "skipped" and hb["reason"] == f"morning forecast step failed: {step}"
+    assert hb["degraded_steps"] == REAL_DEGRADED  # still reported on a skip
+
+
+def test_a_failed_fetch_does_not_block_and_is_reported(tmp_path: Path) -> None:
+    problem, degraded = _steps_problem(tmp_path, [*GOOD_STEPS, ("fetch_hustle", 142, "failed")])
+    assert problem is None and degraded == ["fetch_hustle"]
+    _morning(tmp_path, start=NOW.replace(hour=8), end=NOW.replace(hour=10), rc=1,
+             steps=[*GOOD_STEPS, ("fetch_hustle", 142, "failed")])  # fmt: skip
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    manifest = json.loads((tmp_path / "data/export/latest/manifest.json").read_text())
+    assert manifest["degraded_steps"] == ["fetch_hustle"] and _hb(tmp_path)["status"] == "ok"
+
+
+def test_missing_or_incomplete_record_fails_closed(tmp_path: Path) -> None:
+    hb_dir = tmp_path / "data/ops/heartbeat"
+    assert A.data_step_problem(hb_dir, REAL_START) == ("morning step record missing", [])
+    _real_morning(tmp_path, REAL_RECORD_2026_10_21.replace("ingest 0 ok\n", ""))
+    assert A.data_step_problem(hb_dir, REAL_START) == (
+        "morning forecast step not recorded ok: ingest",
+        REAL_DEGRADED,
+    )
+    _real_morning(
+        tmp_path, "start_ts 2026-10-21T07:00:02-0500\n"
+    )  # header only: cut short before ingest
+    assert A.data_step_problem(hb_dir, REAL_START)[0] == (
+        "morning forecast step not recorded ok: ingest, settle"
+    )
+
+
+def test_only_forecast_steps_block(tmp_path: Path) -> None:
+    """The issue #13 rule replaces "only Drive backups are exempt": every non-forecast step, local backups included, is degraded only."""
+    assert set(A.BLOCKING_STEPS) == {"ingest", "settle", "early_forecast"}
+    assert set(A.REQUIRED_STEPS) == {"ingest", "settle"}
+    non_blocking = ["coverage_yesterday", "scorecard", "facts", "parlay_settle", "fetch_tracking", "postgame_load",
+                    "data_snapshot", "data_diff", "data_check", "checkpoint", "report", "briefing_early",
+                    "backup_local", "backup_lineups_drive"]  # fmt: skip
+    for name in non_blocking:
+        assert _steps_problem(tmp_path, [*GOOD_STEPS, (name, 1, "failed")]) == (None, [name])
+    for name in A.BLOCKING_STEPS:
+        problem, _ = _steps_problem(tmp_path, [*GOOD_STEPS, (name, 1, "failed")])
+        assert problem == f"morning forecast step failed: {name}"
+
+
+def test_an_unannotatable_manifest_is_logged_not_a_failed_export(tmp_path: Path) -> None:
+    _morning(tmp_path, start=NOW.replace(hour=8), end=NOW.replace(hour=10), rc=1,
+             steps=[*GOOD_STEPS, ("fetch_hustle", 1, "failed")])  # fmt: skip
+
+    def build(day: date, out: Path) -> int:
+        out.mkdir(parents=True)
+        (out / "manifest.json").write_text("not json")
+        return 0
+
+    assert A.run(tmp_path, now=NOW, build=build) == 0
+    latest = tmp_path / "data/export/latest"
+    assert sorted(p.name for p in latest.iterdir()) == ["manifest.json"]  # no temp file shipped
+    assert _hb(tmp_path)["degraded_steps"] == ["fetch_hustle"]
+    log = next((tmp_path / "data/ops").glob("app_export_*.log")).read_text()
+    assert "could not add degraded_steps to the manifest" in log
 
 
 def test_a_good_run_clears_the_skip_record(tmp_path: Path) -> None:
