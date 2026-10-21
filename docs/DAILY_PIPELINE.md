@@ -688,6 +688,9 @@ Rule: `docs/prereg/COMBO_STOCKS_SHADOW.md` (FROZEN 2026-10-14 15:08 CDT, sha256 
   draw) and the same sampler with R = I (INDEP). (e) RECENT from the player's last 40 played games (half-life 10). (f) rows, write-on-change, refusing `made_at >= tipoff_utc`.
   Serving rule: `n_prior >= 5`; a player without an on-time context row for each of the four marginals is not servable (counted in the run info, never imputed). DIRECT and RECENT_CAL
   (descriptive, droppable per the rule) are not built; their columns are NULL. The writer REFUSES to run on any config or base-normal sha other than the frozen ones.
+* **Base normals are a committed file** (2026-10-21, after the red CI of 10-15): `configs/combo_base_normals_08ddb2a2.f64`, raw little-endian float64, C order, 10000 x 6 = 480,000 bytes,
+  whose sha256 is the frozen 08ddb2a2 (equal to the sha of the array bytes). `config.load_config` loads it and refuses any other bytes; `combo_copula.base_normals` only documents how it was
+  made (arm64 Accelerate; its whitening goes through `inv(cholesky)`, so other BLAS builds give other bytes, e.g. 588b625d on ubuntu) and is not called on the live path. The yaml and the rule text are unchanged.
 * **Tables** (`store.py`, all new, none read by the canonical dump, so the replay oracle cannot move through this writer): `forward_combo_shadow`, `forward_combo_scores` (settle: the
   latest row with `made_at <= tip - 60`, exact integer CRPS of the 199-point grid for S, RECENT, INDEP), `forward_combo_heartbeat`, `forward_combo_meta`.
 * **Settle**: `nba.daily settle` (morning) and every pretip run call `settle_combo_shadow` in their own try; idempotent; a player absent from a final box is `not_in_box`.
