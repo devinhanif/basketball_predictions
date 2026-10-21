@@ -174,6 +174,66 @@ def clean_rung_cal(raw: Any) -> dict[str, Any] | None:
     return out
 
 
+NULL_REASONS = frozenset(
+    {
+        "no_book_line",
+        "ambiguous_main_line",
+        "no_production_row",
+        "no_production_grid",
+        "grid_mismatch",
+        "no_survival",
+        "no_starter_rate",
+        "map_unavailable",
+        "no_quartiles",
+        "whole_number_line",
+    }
+)
+
+
+def clean_null_reason(raw: Any) -> str | None:
+    """line_cal_null_reason if it is a contract code; anything else (or no column) is None."""
+    return raw if isinstance(raw, str) and raw in NULL_REASONS else None
+
+
+def clean_line_cal(raw: Any) -> dict[str, Any] | None:
+    """The export's line_cal field (a dict or its JSON text), or None when it is absent or does not
+    meet the contract: strings where strings belong, finite probabilities in [0, 1], a half-point
+    main line. A violation drops the whole field; nothing is repaired."""
+    import json
+
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return None
+    if not isinstance(raw, dict):
+        return None
+    try:
+        if not all(isinstance(raw[k], str) for k in ("book", "map", "map_sha8")):
+            return None
+        out = {
+            "book": raw["book"],
+            "main_line": float(raw["main_line"]),
+            "price_at": None if raw.get("price_at") is None else str(raw["price_at"]),
+            "p_over_raw": float(raw["p_over_raw"]),
+            "p_over_cal": float(raw["p_over_cal"]),
+            "map": raw["map"],
+            "map_sha8": raw["map_sha8"],
+            "fit_through": None if raw.get("fit_through") is None else str(raw["fit_through"]),
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
+    if any(not math.isfinite(out[k]) for k in ("main_line", "p_over_raw", "p_over_cal")):
+        return None
+    if not (0.0 <= out["p_over_raw"] <= 1.0 and 0.0 <= out["p_over_cal"] <= 1.0):
+        return None
+    if out["main_line"] % 1 != 0.5:
+        return None
+    return out
+
+
 def dist_grid(forecast: dict[str, Any]) -> dict[str, Any]:
     """P(Y >= k), k = 0..K, from the stored forecast: the full-support table when complete,
     else the interpolated quantile grid (rougher; its range stops at the 95th percentile)."""

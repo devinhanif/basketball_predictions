@@ -107,6 +107,9 @@ export interface PropView {
   /** Optional export fields (docs/contracts/rung_cal_export_v1.md); null when the export holds none. */
   book_main_line?: number | null;
   rung_cal?: RungCal | null;
+  /** docs/contracts/line_cal_export_v1.md; a missing field reads as null (older exports). */
+  line_cal?: LineCal | null;
+  line_cal_null_reason?: string | null;
 }
 
 export interface PlayerView {
@@ -260,6 +263,18 @@ export interface RungCal {
   lines: { line: number; p_over: number }[];
 }
 
+/** LINE_CALIBRATION (T493) at the DraftKings main line only; the under side is 1 - p_over_cal. */
+export interface LineCal {
+  book: string;
+  main_line: number;
+  price_at: string | null;
+  p_over_raw: number;
+  p_over_cal: number;
+  map: string;
+  map_sha8: string;
+  fit_through: string | null;
+}
+
 /** P(Y >= k) for k = 0, 1, 2, ...: P(over k.5) = p_ge[k + 1]. */
 export interface Dist {
   method: "exact" | "quantile";
@@ -305,6 +320,8 @@ export interface CardView {
   price_book: string | null;
   book_main_line: number | null;
   rung_cal: RungCal | null;
+  line_cal?: LineCal | null;
+  line_cal_null_reason?: string | null;
   dist: Dist;
   stats: CardStats | null;
   forecast_stamp: string;

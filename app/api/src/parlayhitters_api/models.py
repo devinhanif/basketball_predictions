@@ -44,6 +44,20 @@ class RungCal(BaseModel):
     lines: list[RungLine]
 
 
+class LineCal(BaseModel):
+    """docs/contracts/line_cal_export_v1.md: LINE_CALIBRATION (T493) applied to the model's P(over)
+    at the DraftKings main line only. The under side is 1 - p_over_cal. No price, no EV."""
+
+    book: str
+    main_line: float
+    price_at: str | None = None
+    p_over_raw: float = Field(ge=0, le=1)
+    p_over_cal: float = Field(ge=0, le=1)
+    map: str
+    map_sha8: str
+    fit_through: str | None = None
+
+
 class PropView(BaseModel):
     prop_id: str
     stat: Stat
@@ -75,6 +89,9 @@ class PropView(BaseModel):
     # line, and the rung-calibrated P(over) per line. Both null when the export holds none.
     book_main_line: float | None = None
     rung_cal: RungCal | None = None
+    # Optional export fields (contract line_cal_export_v1); absent in older exports, read as null.
+    line_cal: LineCal | None = None
+    line_cal_null_reason: str | None = None
 
 
 class PlayerView(BaseModel):
@@ -232,6 +249,8 @@ class CardView(BaseModel):
     price_book: str | None
     book_main_line: float | None
     rung_cal: RungCal | None
+    line_cal: LineCal | None = None
+    line_cal_null_reason: str | None = None
     dist: Dist
     stats: CardStats | None
     forecast_stamp: str

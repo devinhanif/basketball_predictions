@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from parlayhitters_api.forecast import clean_rung_cal, dist_grid
+from parlayhitters_api.forecast import clean_line_cal, clean_null_reason, clean_rung_cal, dist_grid
 
 DATE = "2024-11-12"
 PLANTED = ("0022400001", 1627759, "pts")  # app/fixtures/add_rung_cal_example.py
@@ -145,3 +145,63 @@ def test_top_parlays_passes_the_hindsight_label_through(
     assert body["illustration"] is True
     assert body["fixture"]["kind"] == "hindsight_illustration"
     assert "not a forecast" in body["fixture"]["label"]
+
+
+def test_line_cal_fixture_rows_surface_on_the_card(client: TestClient) -> None:
+    gid, pid, _ = PLANTED  # app/fixtures/add_line_cal_example.py
+    pts = _card(client, gid, pid, "pts")
+    lc = pts["line_cal"]
+    assert lc["map"] == "LINE_CALIBRATION" and lc["map_sha8"] == "443743a1"
+    assert lc["main_line"] == pts["book_main_line"] == pts["line"]
+    assert lc["p_over_raw"] == pytest.approx(pts["dist"]["p_ge"][int(pts["line"]) + 1])
+    assert pts["line_cal_null_reason"] is None
+    assert "synthetic" not in lc
+    ast = _card(client, gid, pid, "ast")
+    assert ast["line_cal"] is None and ast["line_cal_null_reason"] == "no_book_line"
+    reb = _card(client, gid, pid, "reb")
+    assert reb["line_cal"] is None and reb["line_cal_null_reason"] == "grid_mismatch"
+
+
+def test_rows_without_the_columns_read_as_null(client: TestClient) -> None:
+    g = client.get(f"/api/games/{PLANTED[0]}").json()
+    pl = g["players"][0]
+    c = _card(client, PLANTED[0], pl["player_id"], next(iter(pl["props"])))
+    assert c["line_cal"] is None and c["line_cal_null_reason"] is None
+
+
+GOOD_LC: dict[str, Any] = {
+    "book": "draftkings",
+    "main_line": 22.5,
+    "price_at": "2024-11-12T22:55:00Z",
+    "p_over_raw": 0.46,
+    "p_over_cal": 0.49,
+    "map": "LINE_CALIBRATION",
+    "map_sha8": "443743a1",
+    "fit_through": "2025-06-30",
+}
+
+
+def test_clean_line_cal_accepts_dict_and_json_text() -> None:
+    assert clean_line_cal(GOOD_LC) is not None
+    assert clean_line_cal(json.dumps(GOOD_LC)) == clean_line_cal(GOOD_LC)
+    assert clean_line_cal(None) is None
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"p_over_cal": 1.2},
+        {"p_over_raw": float("nan")},
+        {"main_line": 22.0},
+        {"map": 5},
+        {"p_over_cal": "x"},
+    ],
+)
+def test_clean_line_cal_drops_a_violation_whole(bad: dict[str, Any]) -> None:
+    assert clean_line_cal({**GOOD_LC, **bad}) is None
+    assert clean_line_cal("{not json") is None
+
+
+def test_clean_null_reason_keeps_only_contract_codes() -> None:
+    assert clean_null_reason("grid_mismatch") == "grid_mismatch"
+    assert clean_null_reason("made_up") is None and clean_null_reason(None) is None
