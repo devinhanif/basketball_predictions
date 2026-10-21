@@ -407,8 +407,8 @@ def load_world(
     return World(
         cur=cur,
         hist=hist,
-        tips_cur=build_game_tipoff(schedule_dir),
-        tips_hist=build_game_tipoff(history_schedule),
+        tips_cur=build_game_tipoff(schedule_dir, max_season=MAX_SEASON),
+        tips_hist=build_game_tipoff(history_schedule, max_season=MAX_SEASON),
         elo_params=elo,
         cfg=cfg,
     )

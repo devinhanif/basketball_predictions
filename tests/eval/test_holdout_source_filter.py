@@ -140,20 +140,68 @@ def test_flagged_from_availability_passes_max_season(
 #: the GAME_MARKET_CONTEXT harness read the 2025-26 schedule files through the default). The other
 #: research callers are swept in a later change; add them here as they are fixed.
 HOLDOUT_FILTERED_HARNESSES = (
+    "research/archive/wowy_struct/wowy_struct_gate.py",
+    "research/eval/ensemble_eval.py",
+    "research/eval/error_feedback_eval.py",
+    "research/eval/f10a_gates.py",
+    "research/eval/f11_lineup_context.py",
+    "research/eval/f8_lineup_rebounding.py",
+    "research/eval/four_factors_eval.py",
     "research/eval/game_market_context_eval.py",
+    "research/eval/history_design_gate.py",
+    "research/eval/history_window_eval.py",
+    "research/eval/injury_reason_eval.py",
+    "research/eval/lineups_known_eval.py",
+    "research/eval/market_line_classifier_eval.py",
+    "research/eval/minutes_v2_eval.py",
+    "research/eval/odds_history_eval.py",
     "research/eval/own_tag_eval.py",
+    "research/eval/pplay_minutes_valid.py",
+    "research/eval/prereg_gates_common.py",
+    "research/eval/pts_components_eval.py",
+    "research/eval/pts_tail_eval.py",
+    "research/eval/referees_eval.py",
+    "research/eval/router_time_weighted.py",
+    "research/eval/team_budget_eval.py",
+    "research/eval/team_budget_gates.py",
+    "research/eval/tracking_screen.py",
+    "research/eval/workload_gates.py",
+    "research/eval/wowy_redistribution_gate.py",
+    "research/eval/xgb_pts_vs_lt_eval.py",
 )
+
+
+def _unfiltered_source_reads(text: str) -> tuple[int, list[str]]:
+    """(number of source-read calls, the ones without ``max_season``) in a module's source."""
+    import ast
+
+    reads, bad = 0, []
+    for node in ast.walk(ast.parse(text)):
+        if not isinstance(node, ast.Call):
+            continue
+        f = node.func
+        fn = f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else ""
+        if fn not in ("build_game_tipoff", "flagged_from_availability", "attach_real_tips"):
+            continue
+        if fn == "attach_real_tips":  # reads the schedule only when no tips frame is passed
+            tips = node.args[1] if len(node.args) > 1 else None
+            kw = [k.value for k in node.keywords if k.arg == "tips"]
+            tips = tips if tips is not None else (kw[0] if kw else None)
+            if tips is not None and not (isinstance(tips, ast.Constant) and tips.value is None):
+                continue
+        reads += 1
+        if not any(k.arg == "max_season" for k in node.keywords):
+            bad.append(ast.get_source_segment(text, node) or fn)
+    return reads, bad
 
 
 @pytest.mark.parametrize("rel", HOLDOUT_FILTERED_HARNESSES)
 def test_harness_passes_max_season_on_every_source_read(rel: str) -> None:
-    import re
-
     root = Path(__file__).resolve().parents[2]
-    text = (root / rel).read_text()
-    for fn in ("build_game_tipoff", "flagged_from_availability"):
-        calls = [m for m in re.finditer(rf"\b{fn}\(([^()]*(?:\([^()]*\)[^()]*)*)\)", text)]
-        calls = [m for m in calls if not text[: m.start()].rstrip().endswith("import")]
-        assert calls, f"{rel}: expected at least one {fn}( call"
-        unfiltered = [m.group(0) for m in calls if "max_season=" not in m.group(1)]
-        assert not unfiltered, f"{rel}: {fn} called without max_season: {unfiltered}"
+    reads, unfiltered = _unfiltered_source_reads((root / rel).read_text())
+    assert reads, f"{rel}: expected at least one schedule/availability source read"
+    assert not unfiltered, f"{rel}: source read without max_season: {unfiltered}"
+
+
+def test_holdout_filtered_harness_list_has_no_duplicates() -> None:
+    assert len(set(HOLDOUT_FILTERED_HARNESSES)) == len(HOLDOUT_FILTERED_HARNESSES)

@@ -148,7 +148,7 @@ def gate_coach(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     )
     n_tg = tg.height
     have = int(tg["coach_key"].is_not_null().sum())
-    tips = build_game_tipoff().select("game_id", "tipoff_utc")
+    tips = build_game_tipoff(max_season=MAX_SEASON).select("game_id", "tipoff_utc")
     tg = tg.join(tips, on="game_id", how="left").sort(["team_id", "game_date", "game_id"])
     # The stored known_at is EACH GAME'S OWN tip, so tonight's coach is never stamped knowable at T-60.
     # The rule therefore uses the coach of the team's previous game: usable iff that game's known_at is
@@ -367,7 +367,7 @@ def gate_roster() -> dict[str, Any]:
     cfg = ContextResidualConfig(
         **yaml.safe_load(Path("configs/context_residual.yaml").read_text()).get("model", {})
     )
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     # production minutes path on an in-memory copy (season <= 2024)
     con = connect()
     sc = duckdb.connect(":memory:")

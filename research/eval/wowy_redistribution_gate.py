@@ -103,7 +103,7 @@ def frame_and_out_sets(
     games, pgs, static, avail = load_inputs(db, None)
     if int(games["season"].max()) > C.MAX_SEASON:  # type: ignore[arg-type]
         raise RuntimeError("season > 2024 loaded: frozen holdout")
-    flagged, info = flagged_from_availability(avail, games, cfg.report)
+    flagged, info = flagged_from_availability(avail, games, cfg.report, max_season=C.MAX_SEASON)
     feats = build_features(games, pgs, static, flagged, elo)
     g2 = games.with_columns(pl.col("game_date").cast(pl.Date))
     played = (

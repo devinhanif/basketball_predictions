@@ -187,7 +187,7 @@ def warm_frame(db: str, hdb: str) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFr
 
     GT.build_game_tipoff = both  # type: ignore[assignment]
     try:
-        flagged, info = flagged_from_availability(avail, games, cfg.report)
+        flagged, info = flagged_from_availability(avail, games, cfg.report, max_season=C.MAX_SEASON)
     finally:
         GT.build_game_tipoff = orig
     feats = build_features(games, pgs, static, flagged, elo)

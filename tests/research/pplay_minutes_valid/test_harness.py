@@ -596,7 +596,7 @@ def test_f4_the_availability_query_never_loads_a_holdout_row(
     seen: dict = {}
     mine = H.flagged_union(world)
 
-    def fake(av, games_, cfg):
+    def fake(av, games_, cfg, **_k):
         seen["avail"], seen["games"] = av, games_
         return dict(mine), {}
 
@@ -621,11 +621,13 @@ def test_flagged_parity_and_repro_gates(world, tmp_path: Path, monkeypatch) -> N
     games22 = world["games_full"].filter(pl.col("season") >= 2022)
     monkeypatch.setattr(H, "load_flag_inputs", lambda db: (games22, None))
     monkeypatch.setattr(
-        PCR, "flagged_from_availability", lambda avail, games, cfg: (dict(mine), {})
+        PCR, "flagged_from_availability", lambda avail, games, cfg, **_k: (dict(mine), {})
     )
     assert H.flagged_parity_gate(world)["ok"]
     wrong = {g: s | {1} for g, s in mine.items()}
-    monkeypatch.setattr(PCR, "flagged_from_availability", lambda avail, games, cfg: (wrong, {}))
+    monkeypatch.setattr(
+        PCR, "flagged_from_availability", lambda avail, games, cfg, **_k: (wrong, {})
+    )
     assert not H.flagged_parity_gate(world)["ok"]
     monkeypatch.setattr(H, "CACHE", tmp_path / "cache")
 

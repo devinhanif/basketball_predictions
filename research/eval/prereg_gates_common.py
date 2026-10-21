@@ -68,7 +68,7 @@ def load_games(con: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         "SELECT game_id, game_date, season, home_team, away_team, home_pts, away_pts "
         "FROM games WHERE season <= 2024",
     )
-    tips = build_game_tipoff().select("game_id", "tip_et")
+    tips = build_game_tipoff(max_season=MAX_SEASON).select("game_id", "tip_et")
     g = g.join(tips, on="game_id", how="left")
     proxy = pl.col("game_date").cast(pl.Datetime("us")) + pl.duration(hours=PROXY_TIP_HOUR)
     return g.with_columns(

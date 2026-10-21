@@ -517,7 +517,7 @@ def build_base(a0: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     from nba.features.game_tipoff import build_game_tipoff
 
     cm = cur_meta()
-    tips = build_game_tipoff().select(
+    tips = build_game_tipoff(max_season=MAX_SEASON).select(
         "game_id",
         (pl.col("tip_et").dt.hour() + pl.col("tip_et").dt.minute() / 60.0).alias("tip_hour"),
     )

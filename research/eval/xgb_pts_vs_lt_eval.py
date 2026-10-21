@@ -636,7 +636,7 @@ def check_4_planted(db_path: str, feature_cols: list[str], tip_source: str) -> d
 
 def tip_exposure(meta: pl.DataFrame) -> dict[str, Any]:
     """Share of scored rows whose game tips before the 19:00 ET proxy (report-time exposure)."""
-    tips = build_game_tipoff()
+    tips = build_game_tipoff(max_season=MAX_SEASON)
     t = tips.select(
         "game_id",
         (pl.col("tip_et").dt.hour() + pl.col("tip_et").dt.minute() / 60.0).alias("tip_hour"),
@@ -1169,7 +1169,7 @@ def assemble_and_score(
     """Align A0 and the frame arms on the key intersection and score (pure given its inputs)."""
     fm = frame_meta(ctx)
     keys = align_keys(a0["meta"], fm)
-    tips = build_game_tipoff().select(
+    tips = build_game_tipoff(max_season=MAX_SEASON).select(
         "game_id",
         (pl.col("tip_et").dt.hour() + pl.col("tip_et").dt.minute() / 60.0).alias("tip_hour"),
     )

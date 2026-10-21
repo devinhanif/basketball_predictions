@@ -417,7 +417,7 @@ def test_tip_exposure_counts_games_before_the_report_proxy(monkeypatch: pytest.M
             ],
         }
     )
-    monkeypatch.setattr(ev, "build_game_tipoff", lambda: tips)
+    monkeypatch.setattr(ev, "build_game_tipoff", lambda **_k: tips)
     meta = pl.DataFrame(
         {
             "game_id": ["a", "b", "c", "zz", "a", "c"],
@@ -535,7 +535,7 @@ def _world(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, a1_shift: float = 0.
             ],
         }
     )
-    monkeypatch.setattr(ev, "build_game_tipoff", lambda: tips)
+    monkeypatch.setattr(ev, "build_game_tipoff", lambda **_k: tips)
     monkeypatch.setattr(ev, "N_BOOT", 100)
     monkeypatch.setattr(ev, "DK_CACHE", tmp_path / "dk.parquet")
     dk_rows = fm.filter(pl.col("player_id") % 2 == 0).select("game_id", "player_id", "season")

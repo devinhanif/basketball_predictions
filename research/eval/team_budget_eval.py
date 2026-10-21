@@ -200,7 +200,7 @@ def load_world(db_path: str = "nba.duckdb") -> dict[str, Any]:
     cfg = ContextResidualConfig(
         **yaml.safe_load(Path("configs/context_residual.yaml").read_text()).get("model", {})
     )
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     con = duckdb.connect(db_path, read_only=True)
     try:
         coach = (
@@ -1131,7 +1131,7 @@ def planted_checks(n_games: int = 24) -> dict[str, Any]:
     # late OUT after the real tip must not enter the flagged set
     from nba.features.game_tipoff import build_game_tipoff
 
-    tips = build_game_tipoff().filter(pl.col("game_id").is_in(tg))
+    tips = build_game_tipoff(max_season=MAX_SEASON).filter(pl.col("game_id").is_in(tg))
     row = base["roster"].filter(pl.col("game_id") == tg[0]).head(1)
     late = pl.DataFrame(
         {
@@ -1165,8 +1165,8 @@ def planted_checks(n_games: int = 24) -> dict[str, Any]:
         ],
         how="diagonal_relaxed",
     )
-    f0, _ = flagged_from_availability(av, games, cfg.report)
-    f1, _ = flagged_from_availability(av2, games, cfg.report)
+    f0, _ = flagged_from_availability(av, games, cfg.report, max_season=MAX_SEASON)
+    f1, _ = flagged_from_availability(av2, games, cfg.report, max_season=MAX_SEASON)
     late_ok = f0.get(tg[0], set()) == f1.get(tg[0], set())
     t1 = t1_values(base["roster"])
     gids, b_ = group_ids(base["roster"])

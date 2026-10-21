@@ -1338,7 +1338,7 @@ def run_experiment(
     strict = crew_features(gq, officials)
     incl = crew_features(gq, officials, inclusive=True)
     perm = permute_crew(strict, games, seed=0)
-    flagged, _ = flagged_from_availability(avail, games, cfg.report)
+    flagged, _ = flagged_from_availability(avail, games, cfg.report, max_season=MAX_SEASON)
     prod_cols = [
         "game_id",
         "player_id",
