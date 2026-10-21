@@ -146,3 +146,31 @@ def test_end_to_end_build_writes_fields_and_manifest_counts_match_rows(
     assert sum(reasons.values()) + len(ok) == m["line_cal"]["n_props"] == len(rows)
     assert ok[0]["main_line"] == 19.5 and ok[0]["map_sha8"] == "443743a1"
     assert m["rung_cal"]["n_rung_cal"] >= 1  # rung_cal untouched
+
+
+def test_a_later_row_of_the_prop_gets_the_production_rows_line_never_a_later_one() -> None:
+    t15_made = tp.MADE + timedelta(minutes=30)
+    late = t15_made - timedelta(minutes=5)  # after production's made_at, before the t15 row's
+    board = _board(22.5, EARLY) + [
+        q | {"run_id": "r2", "line": 24.5, "snapshot_ts": late} for q in _board(24.5, late)
+    ]
+    t15 = _prod(
+        model_name="props_context_residual_t15", run_id="r2", lines_run_id="r2", made_at=t15_made
+    )
+    prod = _prod()
+    rows = [t15, prod]
+    out = lcf.attach(rows, board, GRIDS, CAL)
+    assert rows[0]["line_cal"] == rows[1]["line_cal"] and rows[1]["line_cal"] is not None
+    assert rows[1]["line_cal"]["main_line"] == 22.5  # never the 24.5 that postdates production
+    # production's own run has no line at or before its made_at: null with that reason, on both rows
+    rows = [_prod(), t15 | {"model_name": "props_context_residual_t15"}]
+    out = lcf.attach(
+        rows, _board(24.5, late) and [q | {"run_id": "r2"} for q in _board(24.5, late)], GRIDS, CAL
+    )
+    assert all(r["line_cal"] is None and r["line_cal_null_reason"] == "no_book_line" for r in rows)
+    assert out["n_props"] == 2 and out["n_props_distinct"] == 1 and out["n_line_cal_distinct"] == 0
+    out = lcf.attach(rows := [_prod(), t15], board, GRIDS, CAL)  # `<=`: a quote AT made_at counts
+    assert out["n_line_cal"] == 2 and out["n_line_cal_distinct"] == 1
+    at = _board(23.5, tp.MADE)
+    out = lcf.attach(rows := [_prod()], at, GRIDS, CAL)
+    assert rows[0]["line_cal"]["main_line"] == 23.5

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from datetime import timedelta
 from typing import Any
 
 import numpy as np
@@ -65,58 +66,75 @@ def attach(
         by_run[(q["run_id"], q["game_id"], int(q["player_id"]), q["stat"])].append(q)
     prod = rcf._production_rows(props)
     why: dict[str, int] = dict.fromkeys(REASONS, 0)
+    # ONE value per (game, player, stat), from the PRODUCTION row's own run and made_at (the producer's
+    # cutoff: a quote received at or before production's made_at, `<=`), copied to every row of the prop
+    done: dict[tuple[str, int, str], tuple[dict[str, Any] | None, str | None]] = {}
+    for pk in {(p["game_id"], int(p["player_id"]), p["stat"]) for p in props}:
+        done[pk] = _one(prod.get(pk), grids.get(pk), pk, by_run, m, sha8, meta)
     n_cal = 0
     for p in props:
-        p["line_cal"], p["line_cal_null_reason"] = None, None
-        key = (p.get("lines_run_id") or p["run_id"], p["game_id"], int(p["player_id"]), p["stat"])
-        got = rcf.main_line(by_run.get(key, []), p["made_at"], p["tipoff"])
-        if isinstance(got, str):
-            p["line_cal_null_reason"] = got
-            why[got] += 1
-            continue
-        line, at = got
-        pk = (p["game_id"], int(p["player_id"]), p["stat"])
-        row, grid = prod.get(pk), grids.get(pk)
-        reason, po, qs, starter = None, None, None, None
-        if row is None:
-            reason = "no_production_row"
-        elif grid is None:
-            reason = "no_production_grid"
-        else:
-            counts, n = row.get("p_ge_full_counts") or [], int(row.get("p_ge_full_n") or 0)
-            starter = rcf._starter_rate(row)
-            if not counts or not n:
-                reason = "no_survival"
-            elif not rcf._survival_matches(np.asarray(grid[2], dtype=float), p["stat"], counts, n):
-                reason = "grid_mismatch"
-            elif starter is None:
-                reason = "no_starter_rate"
-            elif m is None or sha8 is None or not m.has(BOOK, p["stat"]):
-                reason = "map_unavailable"
-            else:
-                pred = _pred(row)
-                qs = ts.quartiles({"pred": pred})
-                po = ts.p_over({"p_ge_full": {"c": counts, "n": n}}, line)
-                if qs is None:
-                    reason = "no_quartiles"
-                elif po is None:
-                    reason = "whole_number_line"
+        cal, reason = done[(p["game_id"], int(p["player_id"]), p["stat"])]
+        p["line_cal"], p["line_cal_null_reason"] = cal, reason
         if reason:
-            p["line_cal_null_reason"] = reason
             why[reason] += 1
-            continue
-        assert m is not None and po is not None and qs is not None and starter is not None
-        pc = m.apply(BOOK, p["stat"], po, line, qs[1], (qs[2] - qs[0]) / lc.IQR_TO_SD, starter)
-        p["line_cal"] = {
-            "book": BOOK, "main_line": line, "price_at": rcf._iso_z(at),
-            "p_over_raw": po, "p_over_cal": pc, "map": MAP_NAME, "map_sha8": sha8,
-            "fit_through": str(meta["fit_through"]),
-        }  # fmt: skip
-        n_cal += 1
+        else:
+            n_cal += 1
+    reasons_d: dict[str, int] = dict.fromkeys(REASONS, 0)
+    for _cal, reason in done.values():
+        if reason:
+            reasons_d[reason] += 1
     return {
         "n_props": len(props), "n_line_cal": n_cal, "null_reasons": why, "map_sha8": sha8,
         "fit_through": meta.get("fit_through"),
+        "n_props_distinct": len(done),
+        "n_line_cal_distinct": sum(1 for cal, _ in done.values() if cal is not None),
+        "null_reasons_distinct": reasons_d,
     }  # fmt: skip
+
+
+def _one(
+    row: dict[str, Any] | None,
+    grid: Any,
+    pk: tuple[str, int, str],
+    by_run: dict[tuple[str, str, int, str], list[dict[str, Any]]],
+    m: lc.CalMap | None,
+    sha8: str | None,
+    meta: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str | None]:
+    """(line_cal, None) or (None, reason) for one prop, from its production row."""
+    if row is None:
+        return None, "no_production_row"
+    key = (row.get("lines_run_id") or row["run_id"], pk[0], pk[1], pk[2])
+    got = rcf.main_line(
+        by_run.get(key, []), row["made_at"] + timedelta(microseconds=1), row["tipoff"]
+    )
+    if isinstance(got, str):
+        return None, got
+    line, at = got
+    if grid is None:
+        return None, "no_production_grid"
+    counts, n = row.get("p_ge_full_counts") or [], int(row.get("p_ge_full_n") or 0)
+    starter = rcf._starter_rate(row)
+    if not counts or not n:
+        return None, "no_survival"
+    if not rcf._survival_matches(np.asarray(grid[2], dtype=float), pk[2], counts, n):
+        return None, "grid_mismatch"
+    if starter is None:
+        return None, "no_starter_rate"
+    if m is None or sha8 is None or not m.has(BOOK, pk[2]):
+        return None, "map_unavailable"
+    qs = ts.quartiles({"pred": _pred(row)})
+    po = ts.p_over({"p_ge_full": {"c": counts, "n": n}}, line)
+    if qs is None:
+        return None, "no_quartiles"
+    if po is None:
+        return None, "whole_number_line"
+    pc = m.apply(BOOK, pk[2], po, line, qs[1], (qs[2] - qs[0]) / lc.IQR_TO_SD, starter)
+    return {
+        "book": BOOK, "main_line": line, "price_at": rcf._iso_z(at),
+        "p_over_raw": po, "p_over_cal": pc, "map": MAP_NAME, "map_sha8": sha8,
+        "fit_through": str(meta["fit_through"]),
+    }, None  # fmt: skip
 
 
 def _pred(row: dict[str, Any]) -> dict[str, Any]:
