@@ -110,6 +110,25 @@ def test_holdout_rows_inside_the_database_are_refused(export_dir: Path) -> None:
         ExportStore(export_dir)
 
 
+def test_holdout_box_rows_declared_as_display_history_load(export_dir: Path) -> None:
+    con = duckdb.connect(str(export_dir / "export.duckdb"))
+    con.execute("UPDATE box_scores SET season = 2025 WHERE rowid = 0")
+    con.execute("CHECKPOINT")
+    con.close()
+    seal(export_dir, box_history_seasons=[2024, 2025])  # the exporter's display declaration
+    ExportStore(export_dir)
+
+
+def test_holdout_games_are_refused_even_with_display_history(export_dir: Path) -> None:
+    con = duckdb.connect(str(export_dir / "export.duckdb"))
+    con.execute("UPDATE games SET season = 2025 WHERE rowid = 0")
+    con.execute("CHECKPOINT")
+    con.close()
+    seal(export_dir, box_history_seasons=[2024, 2025])
+    with pytest.raises(ExportRefused, match="games holds season 2025"):
+        ExportStore(export_dir)
+
+
 def test_meta_must_agree_with_the_manifest(export_dir: Path) -> None:
     seal(export_dir, made_at="2030-01-01T00:00:00Z")
     with pytest.raises(ExportRefused, match="meta"):
