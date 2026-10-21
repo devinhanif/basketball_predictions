@@ -854,7 +854,7 @@ Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest
 * **Why** (Devin, 2026-10-21: "can we not do an early morning version that says why?"): the forecast and the briefing
   must not wait behind the slow post-game fetches. `early_forecast` is the pretip predict call with the same flags
   (`--roster-source "$ROSTER"` from `ops/roster_source.sh`, int and lower-tail variants, the pplay, full, avg and combo
-  shadows, `--rate-limit-s 2.5`); rc 4 informational, rc 5 alerts. Scoring is unchanged: the scored row is the latest
+  shadows, `--rate-limit-s 2.5`); rc 4 informational, any other non-zero alerts. Scoring is unchanged: the scored row is the latest
   `made_at <= tip - lead` (FORWARD_PREREG rules 3-4), so an extra early row never changes it, and the store writes
   only on change. On a day with no games it predicts nothing.
 * **Briefings** (`python -m nba.explain slate`, rc 4 = no forecast rows yet, informational): the early edition is
@@ -862,8 +862,10 @@ Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest
   `reports/briefing/<date ET>_report.md` is written by the pretip branch right after `predict` (before `refs` and
   `market_capture`) and is overwritten by every pretip run, so it is the latest run's picture.
 * **Timeouts**: `fetch_*` are wrapped in `alarm_run 1800` and `postgame_load` in `alarm_run 1200`
-  (`perl -e 'alarm shift; exec @ARGV'`; macOS has no `timeout`; the alarm survives `exec`, including `uv run`'s exec of
-  python). A hang ends with rc 142, alerts as "timed out", and the next steps run. Override for tests with
+  (`perl -e 'alarm shift; exec @ARGV; ... exit 127'`; macOS has no `timeout`; the alarm survives `exec`; `uv run` forks
+  python and forwards SIGALRM (uv 0.12.23; re-check after an upgrade); an unexecutable command exits 127 and fails the step).
+  `early_forecast` and the pretip `predict` are wrapped too (`alarm_run 1200`, `NBA_EARLY_TIMEOUT_S` /
+  `NBA_PREDICT_TIMEOUT_S`): the same call ran 7057 s on 10-20 and 12244 s on 10-19 holding the lock. A hang ends with rc 142, alerts as "timed out", and the next steps run. Override for tests with
   `NBA_FETCH_TIMEOUT_S` / `NBA_LOAD_TIMEOUT_S`.
 * **The lock stays held for the whole job.** `nba.duckdb` is single-writer and the later morning steps write to it; an
   early release would let a pretip run interleave. The timeout is the fix, not a release.
