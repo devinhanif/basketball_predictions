@@ -5,6 +5,7 @@
 // P(over) = P(Y > k + 0.5) = P(Y >= k + 1) = p_ge[k + 1], and P(under) = 1 - P(over).
 // No expected value, no price maths and no advice word belongs in this file.
 
+import { bookName, pct } from "./format";
 import type { RungCal } from "./types";
 
 export const MODEL_ONLY =
@@ -13,6 +14,27 @@ export const TAIL_NOTE = "tail: low confidence";
 
 export const PLAIN_MODEL_ONLY = "Model only: straight from the model, not adjusted.";
 export const PLAIN_CALIBRATED = "Calibrated: adjusted using how past lines like this one actually finished.";
+
+export const RAW_LABEL = "Model, raw";
+export const CAL_LABEL = "Model, calibrated";
+export const CAL_WHY = "adjusted for how past chances like this turned out";
+export const CAL_NO_LINE =
+  "No calibrated number: no two-sided DraftKings line was posted before tip, so there is nothing to adjust against.";
+export const CAL_OUT_OF_FIT =
+  "No calibrated number at this line: the adjustment was only tested where the model's chance of over is 50% or more.";
+export const CAL_OUT_OF_RANGE = "No calibrated number at this line: it is beyond the lines the adjustment covers.";
+export const CAL_NOT_EXPORTED = "No calibrated number was exported for this prop.";
+
+/** The two plain-word lines that sit side by side: raw always, calibrated only when it exists. */
+export function pairLines(r: Pick<Reading, "p_raw" | "p_cal" | "cal_book">): { raw: string; cal: string | null } {
+  return {
+    raw: `${RAW_LABEL}: ${pct(r.p_raw)}`,
+    cal:
+      r.p_cal === null
+        ? null
+        : `${CAL_LABEL}: ${pct(r.p_cal)} (${CAL_WHY}; ${r.cal_book !== null ? bookName(r.cal_book) : "book"} line)`,
+  };
+}
 
 export function calibratedLabel(version: string): string {
   return `calibrated using the book's main line (T494), map ${version}`;
@@ -75,6 +97,13 @@ export interface Reading {
   line: number;
   p_over: number;
   p_under: number;
+  /** Raw model P(over) at this line, straight from the forecast table. */
+  p_raw: number;
+  /** Frozen-map calibrated P(over) at this exact line, or null (never approximated). */
+  p_cal: number | null;
+  cal_book: string | null;
+  /** Why p_cal is null, in plain words; null when a calibrated value is shown. */
+  cal_note: string | null;
   source: "rung_cal" | "model";
   /** The exact stored-source sentence (test ids, map version). Shown in the details, not in front. */
   label: string;
@@ -103,6 +132,15 @@ export function read(input: SliderInput, line: number): Reading {
   const calibrated = rung !== undefined;
   const p_over = rung !== undefined ? rung.p_over : raw;
   const tail = isTail(input.p_ge, line);
+  const cal_note = calibrated
+    ? null
+    : input.rung_cal === null
+      ? input.book_main_line === null
+        ? CAL_NO_LINE
+        : CAL_NOT_EXPORTED
+      : raw < 0.5
+        ? CAL_OUT_OF_FIT
+        : CAL_OUT_OF_RANGE;
   const approx = input.method === "quantile" ? " Read off a 19-point quantile grid, so rougher." : "";
   const base =
     input.rung_cal !== null && calibrated ? calibratedLabel(input.rung_cal.map_version) : MODEL_ONLY;
@@ -110,6 +148,10 @@ export function read(input: SliderInput, line: number): Reading {
     line,
     p_over,
     p_under: 1 - p_over,
+    p_raw: raw,
+    p_cal: rung !== undefined ? rung.p_over : null,
+    cal_book: input.rung_cal?.book ?? null,
+    cal_note,
     source: calibrated ? "rung_cal" : "model",
     label: base + (calibrated ? "" : approx),
     plain: calibrated ? PLAIN_CALIBRATED : PLAIN_MODEL_ONLY + (input.method === "quantile" ? " A rougher estimate." : ""),
