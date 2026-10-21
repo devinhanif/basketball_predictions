@@ -1,0 +1,131 @@
+{
+  "note": "Every number below is copied from the quoted ledger row or report. A Python test (app/api/tests/test_learned_ledger.py) fails if a quoted number is not in its source. Lower is better for CRPS, log loss and Brier differences.",
+  "items": [
+    {
+      "id": "avg-sequence",
+      "ledger_ids": ["T478", "T479"],
+      "status": "passed_holdout",
+      "title": "Averaging two models beat our best single model on points",
+      "claim": "On the held-out 2025 season, averaging a sequence model with the recent-role model forecast points better than the recent-role model alone, and far better than the old production model. One logged touch of the holdout.",
+      "evidence": [
+        { "label": "Points CRPS, average minus recent-role model", "point": "-0.0133", "lo": "-0.0158", "hi": "-0.0109", "n": "28,173 player-games / 1,321 games", "n_source": "ledger", "interval": "date-clustered" },
+        { "label": "Points CRPS, average minus old production model", "point": "-0.0249", "lo": "-0.0283", "hi": "-0.0216", "n": "28,173 player-games / 1,321 games", "n_source": "ledger", "interval": "date-clustered" }
+      ],
+      "caveat": "Points only. Rebounds, assists and threes improved by less than the -0.005 floor against the recent-role model. The attack review (T479) found it survives, but it is worse for players who play under 5 minutes (+0.0439 [+0.0360, +0.0518]). Moving it into production is Devin's decision.",
+      "tokens": ["-0.0133", "-0.0158", "-0.0109", "-0.0249", "-0.0283", "-0.0216", "28,173", "1,321", "+0.0439", "+0.0360", "+0.0518"]
+    },
+    {
+      "id": "lower-tail",
+      "ledger_ids": ["T136", "T148", "T151"],
+      "status": "replicated",
+      "title": "Fixing the low end of points forecasts",
+      "claim": "A mixture that gives short-minutes nights their own shape forecast the low end of points better than production, in the selection season and again in the report season. The holdout was not touched.",
+      "evidence": [
+        { "label": "Points CRPS, mixture minus production, 2023", "point": "-0.0126", "lo": "-0.0172", "hi": "-0.0080", "n": "27,619 player-games", "n_source": "ledger", "interval": "game-clustered" },
+        { "label": "Points CRPS, mixture minus production, 2024", "point": "-0.0109", "lo": "-0.0155", "hi": "-0.0061", "n": "27,583 player-games", "n_source": "ledger", "interval": "game-clustered" }
+      ],
+      "caveat": "Rebounds, assists and threes gain less (for example rebounds 2024 -0.0029 [-0.0049, -0.0008]). Both seasons were used to design and report, so the live log is the clean test.",
+      "tokens": ["-0.0126", "-0.0172", "-0.0080", "-0.0109", "-0.0155", "-0.0061", "27,619", "27,583", "-0.0029", "-0.0049", "-0.0008"]
+    },
+    {
+      "id": "injury-report",
+      "ledger_ids": ["T482", "T484"],
+      "status": "replicated",
+      "title": "The injury report and recent minutes say who plays",
+      "claim": "A model that reads the official injury report and the player's recent minutes predicts whether a player plays much better than the production minutes module, in both 2023 and 2024.",
+      "evidence": [
+        { "label": "Chance-to-play log loss, new minus production, 2023", "point": "-0.0854", "lo": "-0.0910", "hi": "-0.0801", "n": "33,295 player-games / 1,318 games", "n_source": "ledger", "interval": "game-clustered" },
+        { "label": "Chance-to-play log loss, new minus production, 2024", "point": "-0.0922", "lo": "-0.0976", "hi": "-0.0866", "n": "33,158 player-games / 1,320 games", "n_source": "ledger", "interval": "game-clustered" }
+      ],
+      "caveat": "The attack review (T484) wounded this: the gain is real, but much of it is current-form information (recent minutes and missed games), not the report alone. Only players who appear in tonight's box score are scored. Not on the holdout.",
+      "tokens": ["-0.0854", "-0.0910", "-0.0801", "-0.0922", "-0.0976", "-0.0866", "33,295", "1,318", "33,158", "1,320", "current-form"]
+    },
+    {
+      "id": "lineups-t30",
+      "ledger_ids": ["T085", "T166"],
+      "status": "replicated",
+      "title": "Confirmed starters at T-30 improve points forecasts",
+      "claim": "Thirty minutes before tip, knowing who actually starts improves points forecasts over the T-60 version. It is a different prediction time, so it says nothing about T-60.",
+      "evidence": [
+        { "label": "Points CRPS, T-30 minus T-60, 2024", "point": "-0.0412", "lo": "-0.0475", "hi": "-0.0346", "n": "27,583 player-games", "n_source": "docs/LINEUPS_KNOWN.md", "interval": "game-clustered" }
+      ],
+      "caveat": "The starter flag is a box-score proxy, so this is an upper bound. The red team (T166 notice) gives a range for points of -0.023 to -0.041. Threes (-0.002 to -0.004) fall below the practical floor. 2023 replication, descriptive: -0.0366. Not in production.",
+      "tokens": ["-0.0412", "-0.0475", "-0.0346", "-0.023 to -0.041", "-0.0366"]
+    },
+    {
+      "id": "line-calibration",
+      "ledger_ids": ["T493"],
+      "status": "real_but_small",
+      "title": "Re-calibrating at the posted line helps, but we still trail the market",
+      "claim": "Mapping our probabilities onto what actually happens at the posted line improves them. After that they are still slightly worse than the market's own price.",
+      "evidence": [
+        { "label": "Log loss, calibrated minus raw (Pinnacle lines)", "point": "-0.0117", "lo": "-0.0139", "hi": "-0.0096", "n": "37,528 legs / 1,260 games", "n_source": "ledger", "interval": "game-clustered" }
+      ],
+      "caveat": "Log loss after calibration 0.6882, a coin 0.6931, the market 0.6865: lower is better, so the market is still ahead. The ledger gives no interval for that last comparison. 2024 is partly exposed. The live 2026-27 log is the confirmatory test.",
+      "tokens": ["-0.0117", "-0.0139", "-0.0096", "37,528", "1,260", "0.6882", "0.6931", "0.6865"]
+    },
+    {
+      "id": "recent-role",
+      "ledger_ids": ["T473"],
+      "status": "failed_informative",
+      "title": "Five role columns helped points, but a safety check fired",
+      "claim": "Adding five recent-role columns improved points forecasts on the 2025 holdout by more than expected. The frozen scrambled-label check also showed a gain, so the rule called it not a pass.",
+      "evidence": [
+        { "label": "Points CRPS, with columns minus without", "point": "-0.0116", "lo": "-0.0159", "hi": "-0.0076", "n": "28,173 player-games / 1,321 games", "n_source": "ledger", "interval": "date-clustered" },
+        { "label": "Same, with the training labels scrambled", "point": "-0.0021", "lo": "-0.0036", "hi": "-0.0006", "n": "28,173 player-games / 1,321 games", "n_source": "ledger", "interval": "date-clustered" }
+      ],
+      "caveat": "A model should gain nothing when the labels are scrambled, so this gain may not come from the labels. Either chance or a real label-free effect. Final under the frozen rule; no rerun.",
+      "tokens": ["-0.0116", "-0.0159", "-0.0076", "-0.0021", "-0.0036", "-0.0006", "28,173", "1,321"]
+    },
+    {
+      "id": "warm-window",
+      "ledger_ids": ["T498"],
+      "status": "one_season_only",
+      "title": "A longer training window helped in 2023 and not in 2024",
+      "claim": "Adding older seasons to the training data helped points in 2023, when we had little data, and did nothing in 2024. The rule required both seasons.",
+      "evidence": [
+        { "label": "Points CRPS, with older seasons minus without, 2023", "point": "-0.0188", "lo": "-0.0247", "hi": "-0.0126", "n": "27,619 player-games", "n_source": "reports/prereg_f1_warm_window/results.json", "interval": "game-clustered" },
+        { "label": "Same, 2024", "point": "-0.0021", "lo": "-0.0069", "hi": "+0.0026", "n": "27,701 player-games", "n_source": "reports/prereg_f1_warm_window/results.json", "interval": "game-clustered" }
+      ],
+      "caveat": "The 2023 gain is a small-data effect, not a lasting one. No change was made.",
+      "tokens": ["-0.0188", "-0.0247", "-0.0126", "-0.0021", "-0.0069", "+0.0026", "27619", "27701"]
+    },
+    {
+      "id": "wowy-struct",
+      "ledger_ids": ["T499"],
+      "status": "one_season_only",
+      "title": "When the team's top scorer is out, others' points shifted in 2023 only",
+      "claim": "Modelling how minutes and points are redistributed when the leading scorer sits helped points in 2023. In 2024 the sign was the same but the interval crossed zero.",
+      "evidence": [
+        { "label": "Points CRPS, structured minus role model, leader out, 2023", "point": "-0.0096", "lo": "-0.0170", "hi": "-0.0021", "n": "4,316 player-games / 388 games", "n_source": "reports/prereg_wowy_struct/results.json", "interval": "game-clustered" },
+        { "label": "Same, 2024", "point": "-0.0037", "lo": "-0.0097", "hi": "+0.0023", "n": "5,678 player-games / 493 games", "n_source": "reports/prereg_wowy_struct/results.json", "interval": "game-clustered" }
+      ],
+      "caveat": "Not promoted. Assists showed nothing (-0.0022 and -0.0017). The live log is the next venue.",
+      "tokens": ["-0.0096", "-0.0170", "-0.0021", "-0.0037", "-0.0097", "+0.0023", "4316", "388", "5678", "493"]
+    },
+    {
+      "id": "archetype-mix",
+      "ledger_ids": ["T042"],
+      "status": "real_but_small",
+      "title": "The mix of player types in a lineup matters, a little",
+      "claim": "Which kinds of players share the floor explains a tiny, but not zero, share of how a lineup performs beyond the sum of its players.",
+      "evidence": [
+        { "label": "Share of variation explained (R squared)", "point": "0.016", "lo": null, "hi": null, "n": "1,154 lineups with at least 100 possessions", "n_source": "ledger", "interval": "none: permutation test, p 0.004 against a null R squared of 0.005" }
+      ],
+      "caveat": "This row has no confidence interval, only a permutation test, so it is shown as a small real effect and nothing more. Practically negligible.",
+      "tokens": ["R2=0.016", "1,154", "0.004", "0.005", "practically tiny"]
+    },
+    {
+      "id": "market-game-winners",
+      "ledger_ids": [],
+      "status": "failed_informative",
+      "title": "On game winners the market was better than our model",
+      "claim": "In the 2025-26 replay, the price on Kalshi predicted who wins better than our model did. We make no claim of an edge on game winners.",
+      "evidence": [
+        { "label": "Brier, model minus market (2025-26 replay)", "point": "+0.0064", "lo": "+0.0023", "hi": "+0.0104", "n": "1,311 games (2,622 market rows), 207 date clusters", "n_source": "docs/REPLAY_2025_26.md", "interval": "date-clustered" }
+      ],
+      "caveat": "Positive means the model is worse. Model Brier 0.2039, market 0.1975. Exploratory replay, described in docs/REPLAY_2025_26.md; it has no ledger row.",
+      "tokens": ["+0.0064", "+0.0023", "+0.0104", "0.2039", "0.1975", "1,311", "2,622", "207"]
+    }
+  ]
+}

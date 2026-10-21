@@ -205,6 +205,8 @@ export interface LegBreakdown {
   role: LegRole;
   steadiness: Steadiness;
   onoff: OnOff;
+  /** Reason strings from the matchup/availability work; absent until the export carries them. */
+  why?: unknown;
   prices: LegPrices;
   heads_up: string | null;
   notes: string[];

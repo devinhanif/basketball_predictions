@@ -1,0 +1,628 @@
+{
+ "meta": {
+  "as_of": "2024-11-12",
+  "window": "games in the 365 days before as_of",
+  "sources": {
+   "games/minutes/per-36": "player_game_stats",
+   "zones": "shot_events",
+   "draft/age/position": "players_static",
+   "percentile pool": "players with >= 20 window games (n = 439)"
+  },
+  "level_cut_points_minutes_share": [
+   0.2712,
+   0.3884,
+   0.5144,
+   0.6404
+  ],
+  "level_rule": "quintiles of minutes per game / 48 over player-seasons 2023 and 2024 with >= 20 games (n = 894)",
+  "note": "Real players, as-of 2024-11-12. Fixture until nba.export carries the table."
+ },
+ "cards": [
+  {
+   "player_id": 1629029,
+   "name": "Luka Doncic",
+   "team": "DAL",
+   "position_listed": "Forward-Guard",
+   "class": null,
+   "class_note": "pending: archetype clustering from MATCHUP_AVAILABILITY",
+   "level": 5,
+   "minutes_share": 0.8019,
+   "starter_rate": 1.0,
+   "n_games_window": 92,
+   "n_games_this_season": 10,
+   "age": 25.7,
+   "draft_year": 2018,
+   "draft_pick": 3,
+   "draft_status": "drafted",
+   "first_season": 2018,
+   "seasons_played": 7,
+   "minutes_trend": {
+    "recent_mpg": 38.5,
+    "recent_n": 20,
+    "prior_mpg": 38.5,
+    "prior_n": 72
+   },
+   "potential": {
+    "metric": "minutes per game next season",
+    "p10": 31.4,
+    "p90": 36.4,
+    "n_analogs": 31,
+    "rule": "player-seasons 2022 and 2023 with age within one year and the same level; their next-season minutes per game"
+   },
+   "bars": [
+    {
+     "stat": "pts",
+     "per36": 30.11,
+     "percentile": 99.0,
+     "n_games": 92,
+     "n_minutes": 3541
+    },
+    {
+     "stat": "reb",
+     "per36": 8.66,
+     "percentile": 79.0,
+     "n_games": 92,
+     "n_minutes": 3541
+    },
+    {
+     "stat": "ast",
+     "per36": 8.74,
+     "percentile": 98.0,
+     "n_games": 92,
+     "n_minutes": 3541
+    },
+    {
+     "stat": "fg3m",
+     "per36": 3.48,
+     "percentile": 95.0,
+     "n_games": 92,
+     "n_minutes": 3541
+    },
+    {
+     "stat": "stl",
+     "per36": 1.42,
+     "percentile": 80.0,
+     "n_games": 92,
+     "n_minutes": 3541
+    },
+    {
+     "stat": "blk",
+     "per36": 0.46,
+     "percentile": 37.0,
+     "n_games": 92,
+     "n_minutes": 3541
+    },
+    {
+     "stat": "tov",
+     "per36": 3.67,
+     "percentile": 98.0,
+     "n_games": 92,
+     "n_minutes": 3541
+    }
+   ],
+   "zones": [
+    {
+     "zone": "Restricted Area",
+     "att": 313,
+     "made": 241,
+     "league_att": 69571,
+     "league_made": 46081
+    },
+    {
+     "zone": "In The Paint (Non-RA)",
+     "att": 512,
+     "made": 257,
+     "league_att": 46154,
+     "league_made": 20225
+    },
+    {
+     "zone": "Mid-Range",
+     "att": 400,
+     "made": 173,
+     "league_att": 26145,
+     "league_made": 10988
+    },
+    {
+     "zone": "Corner 3",
+     "att": 36,
+     "made": 10,
+     "league_att": 24139,
+     "league_made": 9368
+    },
+    {
+     "zone": "Above the Break 3",
+     "att": 915,
+     "made": 332,
+     "league_att": 69652,
+     "league_made": 24837
+    }
+   ],
+   "borrowed": null
+  },
+  {
+   "player_id": 1628369,
+   "name": "Jayson Tatum",
+   "team": "BOS",
+   "position_listed": "Forward-Guard",
+   "class": null,
+   "class_note": "pending: archetype clustering from MATCHUP_AVAILABILITY",
+   "level": 5,
+   "minutes_share": 0.7647,
+   "starter_rate": 1.0,
+   "n_games_window": 95,
+   "n_games_this_season": 11,
+   "age": 26.7,
+   "draft_year": 2017,
+   "draft_pick": 3,
+   "draft_status": "drafted",
+   "first_season": 2017,
+   "seasons_played": 8,
+   "minutes_trend": {
+    "recent_mpg": 38.6,
+    "recent_n": 20,
+    "prior_mpg": 36.2,
+    "prior_n": 75
+   },
+   "potential": {
+    "metric": "minutes per game next season",
+    "p10": 29.2,
+    "p90": 36.9,
+    "n_analogs": 32,
+    "rule": "player-seasons 2022 and 2023 with age within one year and the same level; their next-season minutes per game"
+   },
+   "bars": [
+    {
+     "stat": "pts",
+     "per36": 26.32,
+     "percentile": 97.0,
+     "n_games": 95,
+     "n_minutes": 3487
+    },
+    {
+     "stat": "reb",
+     "per36": 8.11,
+     "percentile": 75.0,
+     "n_games": 95,
+     "n_minutes": 3487
+    },
+    {
+     "stat": "ast",
+     "per36": 5.22,
+     "percentile": 80.0,
+     "n_games": 95,
+     "n_minutes": 3487
+    },
+    {
+     "stat": "fg3m",
+     "per36": 2.94,
+     "percentile": 86.0,
+     "n_games": 95,
+     "n_minutes": 3487
+    },
+    {
+     "stat": "stl",
+     "per36": 1.05,
+     "percentile": 51.0,
+     "n_games": 95,
+     "n_minutes": 3487
+    },
+    {
+     "stat": "blk",
+     "per36": 0.62,
+     "percentile": 50.0,
+     "n_games": 95,
+     "n_minutes": 3487
+    },
+    {
+     "stat": "tov",
+     "per36": 2.54,
+     "percentile": 85.0,
+     "n_games": 95,
+     "n_minutes": 3487
+    }
+   ],
+   "zones": [
+    {
+     "zone": "Restricted Area",
+     "att": 504,
+     "made": 356,
+     "league_att": 69571,
+     "league_made": 46081
+    },
+    {
+     "zone": "In The Paint (Non-RA)",
+     "att": 240,
+     "made": 89,
+     "league_att": 46154,
+     "league_made": 20225
+    },
+    {
+     "zone": "Mid-Range",
+     "att": 310,
+     "made": 117,
+     "league_att": 26145,
+     "league_made": 10988
+    },
+    {
+     "zone": "Corner 3",
+     "att": 58,
+     "made": 19,
+     "league_att": 24139,
+     "league_made": 9368
+    },
+    {
+     "zone": "Above the Break 3",
+     "att": 741,
+     "made": 266,
+     "league_att": 69652,
+     "league_made": 24837
+    }
+   ],
+   "borrowed": null
+  },
+  {
+   "player_id": 1630183,
+   "name": "Jaden McDaniels",
+   "team": "MIN",
+   "position_listed": "Forward",
+   "class": null,
+   "class_note": "pending: archetype clustering from MATCHUP_AVAILABILITY",
+   "level": 4,
+   "minutes_share": 0.6245,
+   "starter_rate": 0.989,
+   "n_games_window": 91,
+   "n_games_this_season": 10,
+   "age": 24.1,
+   "draft_year": 2020,
+   "draft_pick": 28,
+   "draft_status": "drafted",
+   "first_season": 2020,
+   "seasons_played": 5,
+   "minutes_trend": {
+    "recent_mpg": 30.6,
+    "recent_n": 20,
+    "prior_mpg": 29.8,
+    "prior_n": 71
+   },
+   "potential": {
+    "metric": "minutes per game next season",
+    "p10": 21.4,
+    "p90": 32.4,
+    "n_analogs": 34,
+    "rule": "player-seasons 2022 and 2023 with age within one year and the same level; their next-season minutes per game"
+   },
+   "bars": [
+    {
+     "stat": "pts",
+     "per36": 12.79,
+     "percentile": 35.0,
+     "n_games": 91,
+     "n_minutes": 2728
+    },
+    {
+     "stat": "reb",
+     "per36": 3.88,
+     "percentile": 16.0,
+     "n_games": 91,
+     "n_minutes": 2728
+    },
+    {
+     "stat": "ast",
+     "per36": 1.64,
+     "percentile": 9.0,
+     "n_games": 91,
+     "n_minutes": 2728
+    },
+    {
+     "stat": "fg3m",
+     "per36": 1.45,
+     "percentile": 38.0,
+     "n_games": 91,
+     "n_minutes": 2728
+    },
+    {
+     "stat": "stl",
+     "per36": 1.06,
+     "percentile": 51.0,
+     "n_games": 91,
+     "n_minutes": 2728
+    },
+    {
+     "stat": "blk",
+     "per36": 0.87,
+     "percentile": 70.0,
+     "n_games": 91,
+     "n_minutes": 2728
+    },
+    {
+     "stat": "tov",
+     "per36": 1.4,
+     "percentile": 32.0,
+     "n_games": 91,
+     "n_minutes": 2728
+    }
+   ],
+   "zones": [
+    {
+     "zone": "Restricted Area",
+     "att": 233,
+     "made": 171,
+     "league_att": 69571,
+     "league_made": 46081
+    },
+    {
+     "zone": "In The Paint (Non-RA)",
+     "att": 163,
+     "made": 75,
+     "league_att": 46154,
+     "league_made": 20225
+    },
+    {
+     "zone": "Mid-Range",
+     "att": 74,
+     "made": 27,
+     "league_att": 26145,
+     "league_made": 10988
+    },
+    {
+     "zone": "Corner 3",
+     "att": 203,
+     "made": 73,
+     "league_att": 24139,
+     "league_made": 9368
+    },
+    {
+     "zone": "Above the Break 3",
+     "att": 119,
+     "made": 37,
+     "league_att": 69652,
+     "league_made": 24837
+    }
+   ],
+   "borrowed": null
+  },
+  {
+   "player_id": 1628997,
+   "name": "Caleb Martin",
+   "team": "PHI",
+   "position_listed": "Forward",
+   "class": null,
+   "class_note": "pending: archetype clustering from MATCHUP_AVAILABILITY",
+   "level": 4,
+   "minutes_share": 0.598,
+   "starter_rate": 0.481,
+   "n_games_window": 79,
+   "n_games_this_season": 9,
+   "age": 29.1,
+   "draft_year": null,
+   "draft_pick": null,
+   "draft_status": "undrafted",
+   "first_season": 2019,
+   "seasons_played": 6,
+   "minutes_trend": {
+    "recent_mpg": 32.5,
+    "recent_n": 20,
+    "prior_mpg": 27.4,
+    "prior_n": 59
+   },
+   "potential": null,
+   "bars": [
+    {
+     "stat": "pts",
+     "per36": 12.72,
+     "percentile": 34.0,
+     "n_games": 79,
+     "n_minutes": 2267
+    },
+    {
+     "stat": "reb",
+     "per36": 5.7,
+     "percentile": 49.0,
+     "n_games": 79,
+     "n_minutes": 2267
+    },
+    {
+     "stat": "ast",
+     "per36": 2.83,
+     "percentile": 45.0,
+     "n_games": 79,
+     "n_minutes": 2267
+    },
+    {
+     "stat": "fg3m",
+     "per36": 1.62,
+     "percentile": 44.0,
+     "n_games": 79,
+     "n_minutes": 2267
+    },
+    {
+     "stat": "stl",
+     "per36": 0.92,
+     "percentile": 35.0,
+     "n_games": 79,
+     "n_minutes": 2267
+    },
+    {
+     "stat": "blk",
+     "per36": 0.54,
+     "percentile": 45.0,
+     "n_games": 79,
+     "n_minutes": 2267
+    },
+    {
+     "stat": "tov",
+     "per36": 1.6,
+     "percentile": 45.0,
+     "n_games": 79,
+     "n_minutes": 2267
+    }
+   ],
+   "zones": [
+    {
+     "zone": "Restricted Area",
+     "att": 183,
+     "made": 110,
+     "league_att": 69571,
+     "league_made": 46081
+    },
+    {
+     "zone": "In The Paint (Non-RA)",
+     "att": 124,
+     "made": 51,
+     "league_att": 46154,
+     "league_made": 20225
+    },
+    {
+     "zone": "Mid-Range",
+     "att": 93,
+     "made": 31,
+     "league_att": 26145,
+     "league_made": 10988
+    },
+    {
+     "zone": "Corner 3",
+     "att": 111,
+     "made": 42,
+     "league_att": 24139,
+     "league_made": 9368
+    },
+    {
+     "zone": "Above the Break 3",
+     "att": 172,
+     "made": 60,
+     "league_att": 69652,
+     "league_made": 24837
+    }
+   ],
+   "borrowed": null
+  },
+  {
+   "player_id": 1642258,
+   "name": "Zaccharie Risacher",
+   "team": "ATL",
+   "position_listed": "Forward",
+   "class": null,
+   "class_note": "pending: archetype clustering from MATCHUP_AVAILABILITY",
+   "level": 4,
+   "minutes_share": 0.5623,
+   "starter_rate": 0.818,
+   "n_games_window": 11,
+   "n_games_this_season": 11,
+   "age": 19.6,
+   "draft_year": 2024,
+   "draft_pick": 1,
+   "draft_status": "drafted",
+   "first_season": 2024,
+   "seasons_played": 1,
+   "minutes_trend": {
+    "recent_mpg": 27.0,
+    "recent_n": 11,
+    "prior_mpg": null,
+    "prior_n": 0
+   },
+   "potential": null,
+   "bars": [
+    {
+     "stat": "pts",
+     "per36": 16.01,
+     "percentile": 61.0,
+     "n_games": 11,
+     "n_minutes": 297
+    },
+    {
+     "stat": "reb",
+     "per36": 4.73,
+     "percentile": 33.0,
+     "n_games": 11,
+     "n_minutes": 297
+    },
+    {
+     "stat": "ast",
+     "per36": 1.82,
+     "percentile": 16.0,
+     "n_games": 11,
+     "n_minutes": 297
+    },
+    {
+     "stat": "fg3m",
+     "per36": 1.82,
+     "percentile": 51.0,
+     "n_games": 11,
+     "n_minutes": 297
+    },
+    {
+     "stat": "stl",
+     "per36": 1.21,
+     "percentile": 66.0,
+     "n_games": 11,
+     "n_minutes": 297
+    },
+    {
+     "stat": "blk",
+     "per36": 1.33,
+     "percentile": 86.0,
+     "n_games": 11,
+     "n_minutes": 297
+    },
+    {
+     "stat": "tov",
+     "per36": 1.7,
+     "percentile": 51.0,
+     "n_games": 11,
+     "n_minutes": 297
+    }
+   ],
+   "zones": [
+    {
+     "zone": "Restricted Area",
+     "att": 40,
+     "made": 22,
+     "league_att": 69571,
+     "league_made": 46081
+    },
+    {
+     "zone": "In The Paint (Non-RA)",
+     "att": 24,
+     "made": 9,
+     "league_att": 46154,
+     "league_made": 20225
+    },
+    {
+     "zone": "Mid-Range",
+     "att": 3,
+     "made": 1,
+     "league_att": 26145,
+     "league_made": 10988
+    },
+    {
+     "zone": "Corner 3",
+     "att": 22,
+     "made": 8,
+     "league_att": 24139,
+     "league_made": 9368
+    },
+    {
+     "zone": "Above the Break 3",
+     "att": 35,
+     "made": 7,
+     "league_att": 69652,
+     "league_made": 24837
+    }
+   ],
+   "borrowed": {
+    "rule": "same listed position, drafted within 5 picks, first season 2022 or 2023, their first 20 games",
+    "stand_in_for": "archetype neighbours (MATCHUP_AVAILABILITY clustering, not yet produced)",
+    "n_peers": 5,
+    "per36": {
+     "pts": 16.2,
+     "reb": 6.39,
+     "ast": 1.9,
+     "fg3m": 1.79,
+     "stl": 0.83,
+     "blk": 0.71,
+     "tov": 2.0
+    }
+   }
+  }
+ ]
+}

@@ -18,6 +18,7 @@ const I = {
   today: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z",
   swipe: "M4 7h16v10H4zM8 3h8M8 21h8",
   picks: "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4",
+  studio: "M3 6h18v12H3zM12 6v12M3 12h4M17 12h4M12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5",
 };
 
 function Icon({ d }: { d: string }) {
@@ -44,10 +45,12 @@ const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] 
   { name: "today", href: "#/", label: "Today", icon: I.today },
   { name: "swipe", href: "#/swipe", label: "Swipe", icon: I.swipe },
   { name: "picks", href: "#/picks", label: "My picks", icon: I.picks },
+  { name: "studio", href: "#/studio", label: "Studio", icon: I.studio },
 ];
 
 function isCurrent(route: Route, name: Route["name"]): boolean {
   if (name === "today") return route.name === "today" || route.name === "game" || route.name === "leg" || route.name === "parlay";
+  if (name === "studio") return route.name === "studio" || route.name === "court" || route.name === "builds" || route.name === "learned";
   return route.name === name;
 }
 

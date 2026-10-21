@@ -9,6 +9,10 @@ import { ParlayPage } from "./pages/Parlay";
 import { Picks } from "./pages/Picks";
 import { Swipe } from "./pages/Swipe";
 import { Today } from "./pages/Today";
+import { StudioPage } from "./pages/Studio";
+import { CourtPage } from "./pages/CourtPage";
+import { BuildPage } from "./pages/BuildPage";
+import { LearnedPage } from "./pages/Learned";
 
 export function App() {
   const route = useRoute();
@@ -57,6 +61,18 @@ export function App() {
       break;
     case "parlay":
       page = <ParlayPage date={route.date} />;
+      break;
+    case "studio":
+      page = <StudioPage />;
+      break;
+    case "court":
+      page = <CourtPage key={route.gameId ?? "first"} gameId={route.gameId} />;
+      break;
+    case "builds":
+      page = <BuildPage key={route.playerId ?? "first"} playerId={route.playerId} />;
+      break;
+    case "learned":
+      page = <LearnedPage />;
       break;
     default:
       page = <Today date={route.date} onStale={setStale} />;

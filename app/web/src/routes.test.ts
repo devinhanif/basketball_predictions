@@ -23,7 +23,7 @@ describe("every leg link opens the leg route", () => {
 });
 
 describe("no link in the source points at a route that does not exist", () => {
-  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay"]);
+  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay", "studio", "court", "builds", "learned"]);
   const files = [
     ...readdirSync("src").filter((f) => f.endsWith(".tsx")).map((f) => join("src", f)),
     ...readdirSync("src/pages").filter((f) => f.endsWith(".tsx")).map((f) => join("src/pages", f)),
@@ -67,5 +67,16 @@ describe("F10: back to the night you came from", () => {
     const src = readFileSync(join(import.meta.dirname, "pages", "Game.tsx"), "utf8");
     expect(src).toContain("nightHref(g.date)");
     expect(src).not.toContain('<a href="#/">Back to the night');
+  });
+});
+
+describe("studio routes", () => {
+  it("parses the four studio pages", () => {
+    expect(parse("#/studio")).toEqual({ name: "studio" });
+    expect(parse("#/learned")).toEqual({ name: "learned" });
+    expect(parse("#/court")).toEqual({ name: "court", gameId: null });
+    expect(parse("#/court/0022400004")).toEqual({ name: "court", gameId: "0022400004" });
+    expect(parse("#/builds/1628369")).toEqual({ name: "builds", playerId: 1628369 });
+    expect(parse("#/builds/abc")).toEqual({ name: "builds", playerId: null });
   });
 });

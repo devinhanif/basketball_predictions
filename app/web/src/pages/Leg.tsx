@@ -19,6 +19,8 @@ import {
   snapHalf,
 } from "../leg";
 import { gameHref, legHref } from "../router";
+import { parseReasons } from "../why";
+import { WhyPanel } from "../WhyPanel";
 import { BeyondBlock, MatePer36, OnOffBlock, SteadyBlock } from "../RoleCards";
 import { LEG_SHORT, type Chip, type LadderRow, type LegBreakdown, type LegStat, type Side, type Split, type Tally, type TeammateOut } from "../legTypes";
 
@@ -788,6 +790,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
         onLine={setLine}
         onSide={setSide}
       />
+      <WhyPanel reasons={parseReasons(data.why)} />
       {data.prior_games === 0 ? (
         <>
           <NoHistory data={data} side={side} line={shown} row={row} />
