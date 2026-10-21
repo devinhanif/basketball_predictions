@@ -14,7 +14,7 @@ from nba.daily.pipeline import run_daily
 from nba.daily.schedule import ScheduledGame
 from nba.daily.settle import quantile_crps, settle_pending
 from nba.props.forward import QUANTILE_TAUS
-from tests.daily.conftest import T1, T2, T3, T4
+from tests.daily.conftest import T1, T2, T3, T4, align_box_to_score
 from tests.fixtures.loader import build_fixture_db
 from tests.props.test_forward_context import AS_OF, _big_history, _insert_game
 
@@ -68,6 +68,7 @@ def test_shadow_rows_primary_byte_identical_settle_and_live_rule() -> None:
     # results arrive: slate game 1 gets a box score, then settle scores primary and lt rows
     rng = np.random.default_rng(4)
     _insert_game(c, rng, "0022600901", AS_OF, T1, T2, {T1: 1000, T2: 1100, T3: 3000, T4: 3100})
+    align_box_to_score(c, "0022600901")
     out = settle_pending(c, tip + timedelta(days=1))
     assert out["prop_scored"] > 0
     sc = c.execute(

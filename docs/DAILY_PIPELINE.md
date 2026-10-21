@@ -775,6 +775,25 @@ Opening night (2026-10-20) showed that the loop reported problems after the fact
    (`data/schedule_cache/schedule_<season>.json`), then the win row's stamped teams. The live-tips parquet
    holds tip times only, so it cannot supply teams.
 
-Not closed (listed in the hand-back): a box score pulled while a game is in progress is never re-pulled
-(`missing_boxscore_game_ids` selects games with no rows at all), and the shadow settlers (pplay, full, avg,
-combo) do not read `forward_withdrawals`.
+### The box must agree with the game (review M2, M3)
+
+Two paths stayed open after item A: a box pulled while the game was in progress is cached per game and never
+re-pulled (`missing_boxscore_game_ids` selects games with no rows at all), and the games feed can return a
+partial score after the box is final (OKC@SAS 44-65 sixteen minutes after the scoreboard said Final).
+
+* **M2.** `settle_pending` and `settle_eligible_pending` grade any target (winner or prop) only when, for each
+  team, `sum(coalesce(pts, 0))` over its `player_game_stats` rows (`team_id = games.home_team / away_team`;
+  a DNP row's NULL counts as 0) equals `games.home_pts` / `away_pts` (`_BOX_AGREES_SQL`), on top of the
+  4 h guard, the >= 10 played rows for a winner and a game with box rows at all. A game with no box stays
+  pending as before. Census: team sums equal the score in 3,958 of 3,958 games 2022-24, 11,512 of 11,516 for
+  2013-21 and 3 of 3 for 2026. The gate changes WHEN a row is scored, never WHAT (`FORWARD_PREREG_2026_27.md`
+  is not edited).
+* **M3.** A refusal is visible. `settle_pending` returns `refused_no_box`, `refused_thin_box` (winner under 10
+  played rows) and `refused_box_mismatch` (distinct games each, evaluated in that order) plus `refused_stale`
+  (tipped >= 24 h before now); `nba.daily settle` prints each refused game and exits `RC_INFORMATIONAL` (4)
+  when every refused game tipped < 24 h ago, `RC_DEGRADED` (5) when any tipped 24 h or more ago, else 0
+  (the shadow settlers still run). `ops/nba_daily.sh step()` treats `settle` rc 4 as informational; rc 5 alerts.
+  A refused key is never written and stays pending for the next settle. `tests/daily/test_box_consistency.py`.
+
+Not closed: the shadow settlers (pplay, full, avg, combo) do not read `forward_withdrawals`, and a box that
+stays wrong is only surfaced (rc 5), not repaired: re-pulling a stale box is the ingest steward's change.

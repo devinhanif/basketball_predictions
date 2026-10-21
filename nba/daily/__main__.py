@@ -25,7 +25,7 @@ from nba.daily.schedule import (
     schedule_from_db,
 )
 from nba.daily.season import season_int_for_date, season_str_for_date
-from nba.daily.settle import settle_pending
+from nba.daily.settle import refused_games, settle_pending
 from nba.db.connect import DEFAULT_DB_PATH, connect_with_retry, is_lock_error
 from nba.features.game_tipoff import SCHEDULE_DIR
 from nba.ingest.cache import RateLimiter
@@ -375,7 +375,11 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.command == "settle":
         now = args.now or utcnow()
-        print(settle_pending(con, now))
+        settled = settle_pending(con, now)
+        print(settled)
+        refused = refused_games(con, now)
+        for gid, reason, tip in refused:
+            print(f"refused {gid} {reason} (tip {tip:%Y-%m-%d %H:%M} UTC; stays pending)")
         for label, module, fn, table in SHADOW_SETTLERS:
             try:  # shadow scoring never blocks the primary settle; the import is inside the try
                 settle = getattr(importlib.import_module(module), fn)
@@ -386,7 +390,11 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:
                 msg = f"{type(exc).__name__}: {exc}"
                 print(f"{label} shadow settle failed (primary unaffected): {msg}")
-        return 0
+        if not refused:
+            return 0
+        # a refusal is visible, never silent: fresh ones are informational (the box is still
+        # arriving), one that tipped >= 24 h ago should long be final and gradable: alert
+        return RC_DEGRADED if settled["refused_stale"] else RC_INFORMATIONAL
     text = build_report(con, args.season)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

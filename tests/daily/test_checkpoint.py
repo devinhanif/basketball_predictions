@@ -22,6 +22,7 @@ from nba.daily.t30 import DECISIONS_DDL
 from nba.db.connect import connect
 from nba.props import full_support as fs
 from nba.props.forward import QUANTILE_TAUS
+from tests.daily.conftest import align_all, align_box_to_score
 
 PROD, T30, INT, LT = ck.PROD, ck.ARM_T30, ck.ARM_INT, ck.ARM_LT
 HOME, AWAY = 1610612738, 1610612755
@@ -131,6 +132,7 @@ def build(
                             pid,
                         )
                     )
+            align_box_to_score(con, gid)
             append_predictions(con, run, tip - timedelta(minutes=90), batch)
             append_predictions(con, f"t30-{run}", tip - timedelta(minutes=45), t30_rows)
             logged = gnum % skip_every != 0
@@ -205,6 +207,7 @@ def test_comparator_selection_latest_made_at_le_tip_minus_lead() -> None:
                 )
             ],
         )
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     rows = dict(
         con.execute(
@@ -219,6 +222,7 @@ def test_comparator_selection_latest_made_at_le_tip_minus_lead() -> None:
     assert legacy is not None and legacy[0] == 16
     # idempotent
     n = con.execute("SELECT count(*) FROM forward_scores_elig").fetchone()
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     assert con.execute("SELECT count(*) FROM forward_scores_elig").fetchone() == n
 
@@ -241,6 +245,7 @@ def test_rps_stored_equals_brute_force_and_unscorable_counted() -> None:
         " VALUES ('0022600000', 99, ?, 20, 5, 1, 1, 0)",
         [HOME],
     )
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     st = dict(con.execute("SELECT status, count(*) FROM forward_scores_elig GROUP BY 1").fetchall())
     assert st["unscorable"] == 1 and st["scored"] > 0
@@ -346,6 +351,7 @@ def test_paired_deltas_counts_and_same_run() -> None:
         " VALUES (?,?,?,?,?)",
         [gid, 777, HOME, 10, 4],
     )
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     pairs, c = ck.paired_deltas(con, T30, PROD, "pts")
     assert c.dnp == 1 and c.only_arm == 1 and c.only_comparator == 0
@@ -365,6 +371,7 @@ def test_paired_deltas_counts_and_same_run() -> None:
 
 def test_slice_columns_present() -> None:
     con = build(n_dates=2, n_games=1, n_players=6)
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     pairs, _ = ck.paired_deltas(con, T30, PROD, "reb")
     assert set(ck._PAIR_SCHEMA) <= set(pairs.columns)
@@ -380,6 +387,7 @@ def test_slice_columns_present() -> None:
 def big() -> duckdb.DuckDBPyConnection:
     """32 dates x 3 games x 16 players = 1,536 pairs per stat; small gates so every path runs."""
     con = build(n_dates=32, n_games=3, n_players=16, seed=5)
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     return con
 
@@ -538,6 +546,7 @@ def test_cli_refuses_below_gate_and_auto_is_quiet(
 ) -> None:
     path = tmp_path / "t.duckdb"
     con = build(n_dates=3, n_games=1, n_players=4, con=connect(path))
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     con.close()
     out = tmp_path / "ck"

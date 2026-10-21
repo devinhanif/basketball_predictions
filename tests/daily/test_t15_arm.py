@@ -26,7 +26,7 @@ from nba.daily.t30 import (
 from nba.lineups.__main__ import main as lineups_main
 from nba.lineups.source import CONFIRMED, EXPECTED
 from nba.lineups.store import T15_LEAD_MINUTES, T30_LEAD_MINUTES, connect_lineups, upsert_tip
-from tests.daily.conftest import add_final_box
+from tests.daily.conftest import add_final_box, align_all
 from tests.daily.test_checkpoint import SETTLED_AT, build
 from tests.fixtures.loader import build_fixture_db
 from tests.lineups.test_t30 import (  # noqa: F401  (hist is a module-scoped fixture)
@@ -285,6 +285,7 @@ def test_t15_l30_kill_only_rules() -> None:
 
 def test_t15_leak_guard_uses_15_minutes_and_share_gate() -> None:
     con = build(n_dates=3, n_games=1, n_players=4, seed=1)
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     pairs, _ = ck.paired_deltas(con, ck.ARM_T30, ck.PROD, "pts")
     import polars as pl
@@ -309,6 +310,7 @@ def test_evaluate_checkpoint_reports_the_t15_family_and_head_to_head(tmp_path: P
         "target, player_id, prediction FROM forward_predictions WHERE model_name = ?",
         [T15_MODEL, "ctxres-v1-t15", ck.ARM_T30],
     )
+    align_all(con)
     settle_pending(con, SETTLED_AT)
     settle_eligible_pending(con, SETTLED_AT)
     snap = ck.evaluate_checkpoint(
