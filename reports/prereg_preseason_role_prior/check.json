@@ -1,0 +1,171 @@
+{
+ "a0_reproduction": [
+  {
+   "crps_grid": 3.152829990762183,
+   "crps_pge": 3.152829990762183,
+   "crps_ref": 3.152829990762183,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27619,
+   "n_ref": 27619,
+   "ok": true,
+   "season": 2023,
+   "stat": "pts"
+  },
+  {
+   "crps_grid": 1.292817268671231,
+   "crps_pge": 1.2928172686712307,
+   "crps_ref": 1.2928172686712307,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27619,
+   "n_ref": 27619,
+   "ok": true,
+   "season": 2023,
+   "stat": "reb"
+  },
+  {
+   "crps_grid": 0.9059028606321847,
+   "crps_pge": 0.9059028606321847,
+   "crps_ref": 0.9059028606321847,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27619,
+   "n_ref": 27619,
+   "ok": true,
+   "season": 2023,
+   "stat": "ast"
+  },
+  {
+   "crps_grid": 0.5690486141021416,
+   "crps_pge": 0.5690486141021416,
+   "crps_ref": 0.5690486141021416,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27619,
+   "n_ref": 27619,
+   "ok": true,
+   "season": 2023,
+   "stat": "fg3m"
+  },
+  {
+   "crps_grid": 3.1884109851549947,
+   "crps_pge": 3.1884109851549947,
+   "crps_ref": 3.1884109851549947,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27583,
+   "n_ref": 27583,
+   "ok": true,
+   "season": 2024,
+   "stat": "pts"
+  },
+  {
+   "crps_grid": 1.3139946716237645,
+   "crps_pge": 1.3139946716237645,
+   "crps_ref": 1.3139946716237645,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27583,
+   "n_ref": 27583,
+   "ok": true,
+   "season": 2024,
+   "stat": "reb"
+  },
+  {
+   "crps_grid": 0.9010234364001779,
+   "crps_pge": 0.9010234364001779,
+   "crps_ref": 0.9010234364001779,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27583,
+   "n_ref": 27583,
+   "ok": true,
+   "season": 2024,
+   "stat": "ast"
+  },
+  {
+   "crps_grid": 0.5922775210770066,
+   "crps_pge": 0.5922775210770066,
+   "crps_ref": 0.5922775210770066,
+   "grid_vs_stored_pge_cells_differing": 0,
+   "n": 27583,
+   "n_ref": 27583,
+   "ok": true,
+   "season": 2024,
+   "stat": "fg3m"
+  }
+ ],
+ "fingerprints": {
+  "FP_PRESEASON_LE2024": "51cf30d5a9e9430429958af77c1dbaffc9a3ff4fdc7ba057a2b36ff73346651f",
+  "FP_REG_LE2024": "80ffb67988ba29c5ee80c0737b77c82acd7faf96f89c31778c17e00102b96216"
+ },
+ "inputs": {
+  "A0_REF_2023_AST_SHA256": "5d0256f57e3d8fb00e9e02e3a675a4863b37b5c286b4d35b2cf7f184016fab86",
+  "A0_REF_2023_FG3M_SHA256": "52cc0f128f4f822b48eb0b2ebe7a1d02356f8983aaa4a3627694019350688b4b",
+  "A0_REF_2023_PTS_SHA256": "01682d5abc8428af89864b3a1a03400b8ce419afca02517ab5e7ac4b903effe7",
+  "A0_REF_2023_REB_SHA256": "9c5ffe189c5d65a1f4fc9822e18b24c070e392a9347ff5a5e5e7ccb9a59801c4",
+  "A0_REF_2024_AST_SHA256": "510e2798771e016eeaf3c7da94316713227a752ca292f30005cf5726c7171df6",
+  "A0_REF_2024_FG3M_SHA256": "a29c7172988851bbb5e3932b930b06f9c24d6fd2d46ddf156bf1e48070bf1610",
+  "A0_REF_2024_PTS_SHA256": "bc0807107eba91661c6f16af5d0c34bb0256de82bb79c5558fa168941b4fb92f",
+  "A0_REF_2024_REB_SHA256": "b93d98a490389b325e6d9dcb0f222fd82ace051dd94d0fdc86885df32d4fc6ba",
+  "MODEL_ROWS_2023_AST_SHA256": "241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e",
+  "MODEL_ROWS_2023_FG3M_SHA256": "96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe",
+  "MODEL_ROWS_2023_PTS_SHA256": "d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285",
+  "MODEL_ROWS_2023_REB_SHA256": "337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805",
+  "MODEL_ROWS_2024_AST_SHA256": "62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb",
+  "MODEL_ROWS_2024_FG3M_SHA256": "6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136",
+  "MODEL_ROWS_2024_PTS_SHA256": "81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d",
+  "MODEL_ROWS_2024_REB_SHA256": "bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e",
+  "PAIRS_SHA256_2023": "050dba3e250d43d6d33eec836cd840397b168896b6017725b00d2bfd238b2569",
+  "PAIRS_SHA256_2024": "560a3808d7d97110902471895e36a94a3f41d5ed88cb435e147d47f367dfdc5c"
+ },
+ "known_at": {
+  "2023": {
+   "max_preseason_date": "2023-10-20",
+   "ok": true,
+   "opener": "2023-10-24"
+  },
+  "2024": {
+   "max_preseason_date": "2024-10-18",
+   "ok": true,
+   "opener": "2024-10-22"
+  }
+ },
+ "lambda_identity_A0": {
+  "all_ones_when_weights_zero": true
+ },
+ "lib_mismatch": {},
+ "mismatch_vs_rule": {},
+ "pins_declared": [
+  "A0_REF_2023_AST_SHA256",
+  "A0_REF_2023_FG3M_SHA256",
+  "A0_REF_2023_PTS_SHA256",
+  "A0_REF_2023_REB_SHA256",
+  "A0_REF_2024_AST_SHA256",
+  "A0_REF_2024_FG3M_SHA256",
+  "A0_REF_2024_PTS_SHA256",
+  "A0_REF_2024_REB_SHA256",
+  "FP_PRESEASON_LE2024",
+  "FP_REG_LE2024",
+  "KAPPA_JSON_SHA256",
+  "LIB_DUCKDB",
+  "LIB_NUMPY",
+  "LIB_PANDAS",
+  "LIB_PYTHON",
+  "MODEL_ROWS_2023_AST_SHA256",
+  "MODEL_ROWS_2023_FG3M_SHA256",
+  "MODEL_ROWS_2023_PTS_SHA256",
+  "MODEL_ROWS_2023_REB_SHA256",
+  "MODEL_ROWS_2024_AST_SHA256",
+  "MODEL_ROWS_2024_FG3M_SHA256",
+  "MODEL_ROWS_2024_PTS_SHA256",
+  "MODEL_ROWS_2024_REB_SHA256",
+  "PAIRS_SHA256_2023",
+  "PAIRS_SHA256_2024"
+ ],
+ "planted_future": {
+  "max_abs_diff": 0.0,
+  "ok": true,
+  "rows_compared": 4482
+ },
+ "versions": {
+  "duckdb": "1.5.6",
+  "numpy": "2.5.3",
+  "pandas": "3.0.6",
+  "python": "3.12.15"
+ }
+}

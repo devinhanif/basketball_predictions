@@ -1,0 +1,112 @@
+{
+ "false_pass_no_gain_200": {
+  "any_cell_clears": 18,
+  "seeds": 200,
+  "word_not_no_gain": 18,
+  "words": {
+   "FAIL_NO_GAIN": 182,
+   "FAIL_ONE_SEASON": 18
+  }
+ },
+ "seeds": 10,
+ "total": 60,
+ "total_ok": 60,
+ "worlds": {
+  "guard": {
+   "ok": 10,
+   "want": "FAIL_GUARD",
+   "words": [
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD",
+    "FAIL_GUARD"
+   ]
+  },
+  "no_gain": {
+   "ok": 10,
+   "want": "FAIL_NO_GAIN",
+   "words": [
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN",
+    "FAIL_NO_GAIN"
+   ]
+  },
+  "one_season": {
+   "ok": 10,
+   "want": "FAIL_ONE_SEASON",
+   "words": [
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON",
+    "FAIL_ONE_SEASON"
+   ]
+  },
+  "other_stat": {
+   "ok": 10,
+   "want": "PASS_OTHER_STAT",
+   "words": [
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT",
+    "PASS_OTHER_STAT"
+   ]
+  },
+  "pass": {
+   "ok": 10,
+   "want": "PASS",
+   "words": [
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS"
+   ]
+  },
+  "placebo_too": {
+   "ok": 10,
+   "want": "PLACEBO_TOO",
+   "words": [
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO",
+    "PLACEBO_TOO"
+   ]
+  }
+ }
+}

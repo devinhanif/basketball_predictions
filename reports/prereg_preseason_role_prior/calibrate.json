@@ -1,0 +1,8 @@
+{
+ "bench": 0.9402396015339128,
+ "definition": "sum(regular minutes, first <=20 games, first team) / sum(preseason mpg x same games)",
+ "n_bench": 165,
+ "n_starter": 244,
+ "season": 2022,
+ "starter": 1.2435134417606934
+}
