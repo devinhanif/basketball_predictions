@@ -125,12 +125,19 @@ def fold_names(df: pl.DataFrame, col: str = "player_name") -> pl.DataFrame:
     )
 
 
-def assist_events(pbp: pl.DataFrame, made: pl.DataFrame, st: pl.DataFrame | None) -> pl.DataFrame:
-    """Assist events (see ``stat_events``). Amendment 3 (M1): the name dictionary is CAUSAL. A candidate for an assist at time t is a teammate whose
-    folded pbp surname equals the assister text (any leading first-name prefix ``[a-z]{1,3}. `` removed) AND who has an event of his own at a time
-    <= t (so a same-surname teammate who first appears after t cannot change what the assist at t resolves to; the earlier whole-game dictionary
-    did, for 0.24% of rows). A unique candidate resolves; otherwise, with ``st``, the one candidate on court at the event (stint a < t <= b, or
-    t = 0) resolves; zero or several: unresolved."""
+def assist_events(
+    pbp: pl.DataFrame,
+    made: pl.DataFrame,
+    st: pl.DataFrame | None,
+    dates: pl.DataFrame | None = None,
+    names_pbp: pl.DataFrame | None = None,
+) -> pl.DataFrame:
+    """Assist events (see ``stat_events``). The name dictionary is CAUSAL (Amendment 3, M1): an assist at time t in game G is matched to a teammate
+    whose folded surname equals the assister text (a leading first-name prefix ``[a-z]{1,3}. `` removed) AND whose name is known by then, i.e.
+    (a) he has an event of his own in G at a time <= t, or (b, Amendment 3b) he appears in a game on a STRICTLY EARLIER DATE (``dates`` gives
+    each game's date, ``names_pbp`` the play-by-play those earlier games are read from, default ``pbp``). Without ``st``: a unique candidate
+    seen by t resolves. With ``st``: the teammates on court at t (stint a < t <= b, or t = 0) whose name is known and matches; exactly one
+    resolves; none on court: the unique seen-by-t candidate if there is one; several: unresolved."""
     ev = (
         fold_names(
             made.with_columns(
@@ -157,31 +164,72 @@ def assist_events(pbp: pl.DataFrame, made: pl.DataFrame, st: pl.DataFrame | None
         pl.col("first_t") <= pl.col("t")
     )
     n = cands.group_by("eid").agg(pl.len().alias("n"))
-    cands = cands.join(n, on="eid")
-    one = cands.filter(pl.col("n") == 1).select("eid", pl.col("cand").alias("player_id"))
+    one = (
+        cands.join(n, on="eid")
+        .filter(pl.col("n") == 1)
+        .select("eid", pl.col("cand").alias("player_id"))
+    )
     if st is None:
         res = one
     else:
-        multi = cands.filter(pl.col("n") > 1).join(
-            st.rename({"player_id": "cand"}), on=["game_id", "team_id", "cand"], how="inner"
-        )
-        multi = multi.filter(
+        oncourt = ev.join(
+            st.rename({"player_id": "cand"}).with_columns(pl.col("cand").cast(pl.Int64)),
+            on=["game_id", "team_id"],
+            how="inner",
+        ).filter(
             ((pl.col("a") < pl.col("t")) & (pl.col("t") <= pl.col("b")))
             | ((pl.col("a") == 0.0) & (pl.col("t") == 0.0))
         )
-        on = (
-            multi.group_by("eid")
+        m = (
+            oncourt.join(
+                seen.select("game_id", "team_id", "cand", "surname", "first_t"),
+                on=["game_id", "team_id", "cand", "surname"],
+                how="inner",
+            )
+            .filter(pl.col("first_t") <= pl.col("t"))
+            .select("eid", "cand")
+        )
+        if dates is not None:
+            src = names_pbp if names_pbp is not None else pbp
+            prior = (
+                fold_names(
+                    src.filter(pl.col("player_id") > 0)
+                    .select("game_id", "player_id", "player_name")
+                    .unique()
+                )
+                .join(dates.select("game_id", "game_date"), on="game_id")
+                .group_by("player_id", "player_name")
+                .agg(pl.col("game_date").min().alias("first_date"))
+                .rename({"player_name": "surname", "player_id": "cand"})
+            )
+            m2 = (
+                oncourt.join(dates.select("game_id", "game_date"), on="game_id")
+                .join(prior, on=["cand", "surname"], how="inner")
+                .filter(pl.col("first_date") < pl.col("game_date"))
+                .select("eid", "cand")
+            )
+            m = pl.concat([m, m2])
+        k = (
+            m.unique()
+            .group_by("eid")
             .agg(pl.col("cand").n_unique().alias("k"), pl.col("cand").first())
             .filter(pl.col("k") == 1)
         )
-        res = pl.concat([one, on.select("eid", pl.col("cand").alias("player_id"))])
+        matched = m["eid"].unique()
+        fallback = one.filter(~pl.col("eid").is_in(matched))
+        res = pl.concat([k.select("eid", pl.col("cand").alias("player_id")), fallback])
     out = ev.join(res, on="eid", how="inner")
     return out.select(
         "game_id", "team_id", "player_id", "t", pl.lit(1.0).alias("val")
     ).with_columns(pl.lit("ast").alias("stat"))
 
 
-def stat_events(pbp: pl.DataFrame, st: pl.DataFrame | None = None) -> pl.DataFrame:
+def stat_events(
+    pbp: pl.DataFrame,
+    st: pl.DataFrame | None = None,
+    dates: pl.DataFrame | None = None,
+    names_pbp: pl.DataFrame | None = None,
+) -> pl.DataFrame:
     """One row per stat event: game_id, team_id, player_id, t, stat, val. pts = made field goals (shot_value) + made free throws (1);
     fg3m = made threes; reb = rebounds credited to a player; ast = the assister named in a made shot's description, resolved to a player id of
     the SAME team by surname when that surname is unique among the team's player names in the game. Amendment 2 (assist repair): when ``st`` (the
@@ -216,7 +264,7 @@ def stat_events(pbp: pl.DataFrame, st: pl.DataFrame | None = None) -> pl.DataFra
         .select("game_id", "team_id", "player_id", "t", pl.lit(1.0).alias("val"))
         .with_columns(pl.lit("reb").alias("stat"))
     )
-    ast = assist_events(pbp, made, st)
+    ast = assist_events(pbp, made, st, dates, names_pbp)
     return pl.concat([pts, fg3, reb, ast]).select(
         "game_id", "team_id", "player_id", "t", "stat", "val"
     )
@@ -314,6 +362,7 @@ def state_frame(
     games: pl.DataFrame | None = None,
     pbp: pl.DataFrame | None = None,
     stints: pl.DataFrame | None = None,
+    names_pbp: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """One row per (game, team, player, checkpoint e) for every player who has been on court by the checkpoint, with minutes, starter flag, fouls,
     the four current stats and the team-view margin, all as of T = e x 60 seconds (events with t <= T). With ``with_future`` also
@@ -322,7 +371,7 @@ def state_frame(
     ids = games["game_id"].to_list()
     pbp = pbp if pbp is not None else read_pbp(ids, root)
     st = stint_rows(stints if stints is not None else read_stints(season, root))
-    ev = stat_events(pbp, st)
+    ev = stat_events(pbp, st, games, names_pbp)
     fo = foul_events(pbp)
     score = scoring_timeline(pbp)
     m48 = (
@@ -597,14 +646,16 @@ def truncation_identity(
         if stints is not None
         else read_stints(season, root).filter(pl.col("game_id").is_in(ids))
     )
-    full = fn(season, root, False, games, pbp, stints)
+    full = fn(season, root, False, games, pbp, stints, pbp)
     keys = ["game_id", "team_id", "player_id", "e"]
     cols = [c for c in full.columns if c not in keys]
     differing = dict.fromkeys(cols, 0)
     compared = missing = extra = 0
     for e in rule.CHECKPOINTS:
         T = e * 60.0
-        tr = fn(season, root, False, games, pbp.filter(pl.col("t") <= T), clip_stints(stints, T))
+        tr = fn(
+            season, root, False, games, pbp.filter(pl.col("t") <= T), clip_stints(stints, T), pbp
+        )
         fu = full.filter(pl.col("e") == e)
         tr = tr.filter(pl.col("e") == e)
         j = fu.join(tr, on=keys, how="full", suffix="_tr", coalesce=True)

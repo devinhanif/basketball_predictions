@@ -101,40 +101,7 @@ Closes the three open items of "Open items before any freeze".
 * Full dryrun (6 seasons x 4 stats) completes without an exception: **0.80** (the quick shakeout covered 3 seasons, pts only; reb/ast/fg3m paths and the 2019-2021 history seasons are new); wall time median 12 min (80% 6 to 25).
 * On the synthetic outcomes the pts primary criteria all pass: 0.5 (the shuffled and slice criteria are the likeliest to fail by construction).
 
-**Declared input pins (Amendment 2; computed label-free by `python -m research.eval.in_game_line_eval digests`, run twice byte-identical and equal to the `pins` of gate Run 4; `nba.duckdb` and `nba_history.duckdb` read-only, `season <= 2024`; `PIN_GAMES_*`, `PIN_STINTS_*` and `PIN_A0_*` equal their Amendment 1 values, the six `PIN_STATE_*` lines are new; the A0 values equal the ARCHETYPE_MATCHUP_ALL pins of the same files). `run` recomputes every line and refuses on any difference before it reads an outcome.**
-```
-PIN_GAMES_2019: 5a45790eb31c493f4477b47292366353b1921e13f73a7cb9884b27871f407abc
-PIN_STINTS_2019: 902c1b838916dd94892a5f4e647825a25d776d1473e766a64c658874cf403c98
-PIN_STATE_2019: 350e45f4ec546bd20660d7c5d3cdae1932d08ec8038d4827855cbfd292509695
-PIN_GAMES_2020: 0e5ca756e7ad99efd0eb082a52e80437eb0ae10bb29bffaaf2215fe8107ed458
-PIN_STINTS_2020: b9218553b1203ecb1d78b25ae343dc2a0122806620f040ad558279999771c4cf
-PIN_STATE_2020: 09dbeaea7571d40f4503a73c9ab4d3dc4b348c336eac7312d81efaf894dc5c2f
-PIN_GAMES_2021: 1f2dcb1f01a95c788c9ce035e1d5d529078c889fbf1f63d5b3f72a6acd3e454f
-PIN_STINTS_2021: 1e110c284da4b94869e8478239b3727722c7b6cbc6dadceff8b009475393eac7
-PIN_STATE_2021: 6aedbcbec089d5912b56475b653b6b9b6993129c394460290af744a0c4e11dc3
-PIN_GAMES_2022: a1613d9627443c1ee25cf6abea2f9be0ddaa4fc67ee348c88323508f055bd046
-PIN_STINTS_2022: b73b19e4bbe4f4b53e48e05c257628836b883cb3fc2ea5ffabc7c64988485af9
-PIN_STATE_2022: efee084406e4b182ea7941f849b572ea684c8a20b76d6d8eb57c0710d9e283a0
-PIN_GAMES_2023: dc3cfc17872e4f7066413f87585dbc6d90163e4ddc1284ea55c6a69e96d020a3
-PIN_STINTS_2023: 947b1965d36b7a04fa664f0d6708868e90affbfc3026a42d847e6d644c2cb39a
-PIN_STATE_2023: 2197b54f61881cc79888d92b494803dd15f27a3a25f536c9e664000982ce762b
-PIN_GAMES_2024: 573919338f25b53c7f599b9912a251213cb4abd4954ea303b72ba8d31727bf61
-PIN_STINTS_2024: 3ce9c798fa1b04f54a9f8836dbd778eaed2cc07115e93088027c83efb88463a0
-PIN_STATE_2024: bc80b5adad18c4b9854b6a238ff95c202f2ca73348ac05ff052bd343de9af9d5
-PIN_A0_2023_pts: d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285
-PIN_A0_2023_reb: 337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805
-PIN_A0_2023_ast: 241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e
-PIN_A0_2023_fg3m: 96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe
-PIN_A0_2024_pts: 81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d
-PIN_A0_2024_reb: bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e
-PIN_A0_2024_ast: 62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb
-PIN_A0_2024_fg3m: 6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136
-LIB_python: 3.12.15
-LIB_polars: 1.44.2
-LIB_lightgbm: 4.7.0
-LIB_numpy: 2.5.3
-LIB_scipy: 1.18.1
-```
+**Declared input pins:** superseded by the block in Amendment 3b below (the six `PIN_STATE_*` lines changed with the causal assist dictionary; `PIN_FINALS_*` and `LIB_duckdb` are new; every other line is reproduced there unchanged). The Amendment 2 values are in `reports/prereg_in_game_line/gate_run4.json`.
 
 ## Amendment 3 (pre-freeze, adversary review) (dated 2026-10-22 00:36 CDT by `date`, modeler; branch `agent/modeler-in-game-line-3` off main c3cdecd; written BEFORE Run 5 of the gate, the second dryrun, the new digests and the pin; nothing in it relaxes a criterion)
 Source: `docs/reviews/IN_GAME_LINE_MODEL_prefreeze_2026-10-22.md`, verdict NOT_READY (M1-M5, S1-S8, N1-N4). **Standing rule from here (the reviewer's, adopted): after the Amendment 2 dryrun an amendment may only HARDEN the test (a stronger baseline, a stronger guard, a smaller family); it never relaxes a criterion, a floor or a bar.** M1-M5 each make a pass harder or touch only `ast`; no gate bar moved.
@@ -163,6 +130,49 @@ Source: `docs/reviews/IN_GAME_LINE_MODEL_prefreeze_2026-10-22.md`, verdict NOT_R
 **What happened (recorded, because the priors above were scored against it).** The first Run 5 of the gate (code of Amendment 3 exactly as described) returned the truncation identity TRUE in all six seasons (200 games, 25,076 to 25,728 player-checkpoint rows per season, 0 differing rows in every column including `ast`, 0 missing, 0 extra) and every other check as in Run 4, but the causal assist dictionary lowered the share of named assists resolved from 0.981-0.988 to **0.929-0.937** (2019-2024: 0.9333 / 0.9315 / 0.9345 / 0.9292 / 0.9327 / 0.9369; the share without the on-court step 0.920-0.929). That is below the declared 0.95 ast-readiness bar: an assister who has not yet had an event of his own in the game (common early in a game) is not in a dictionary built from this game's past. The artifact is kept at `reports/prereg_in_game_line/superseded/gate_run5_causal_in_game_only.json`. Without a repair `ast` leaves the secondary family (the rule's own bar).
 **One bounded repair (A3b).** The name dictionary also uses the surnames of players in games on STRICTLY EARLIER DATES of the loaded season (a player id's surname is a fact known before tip), and the candidates are the teammates on court at t whose surname (from either dictionary) matches the text; exactly one resolves; if none is on court the previous seen-by-t unique-surname rule is the fallback. The earlier-games dictionary is always built from the full play-by-play of the other games (the truncation identity cuts only the game under test). `stat_events(pbp, st, dates, names_pbp)`. If the repaired share is still < 0.95 in any season, `ast` is dropped from the secondary family and the code stays as is.
 **Priors (before the next gate run).** Repaired share >= 0.95 in all six seasons: **0.8**; >= 0.98 in all six: **0.3**; median season 0.97. Truncation identity still 0 differing rows in all six seasons: **0.88**. Early-season games have a thin same-season dictionary: the lowest share is in 2019, 2020 or 2021 (the history seasons): 0.5.
+
+**Declared input pins (Amendment 3b; computed by `python -m research.eval.in_game_line_eval digests`, run twice byte-identical and equal to the `pins` of gate Run 5; the `PIN_FINALS_*` lines are a MECHANICAL hash of the final box-score table (A3-S1), never inspected; `PIN_GAMES_*`, `PIN_STINTS_*` and `PIN_A0_*` equal their Amendment 1 values). `run` recomputes every line and refuses on any difference before it reads an outcome.**
+```
+PIN_GAMES_2019: 5a45790eb31c493f4477b47292366353b1921e13f73a7cb9884b27871f407abc
+PIN_STINTS_2019: 902c1b838916dd94892a5f4e647825a25d776d1473e766a64c658874cf403c98
+PIN_STATE_2019: a06e8252f6e6b83c6b34646014c1feed2c43d70986cfdd11689b4e46aad70aff
+PIN_GAMES_2020: 0e5ca756e7ad99efd0eb082a52e80437eb0ae10bb29bffaaf2215fe8107ed458
+PIN_STINTS_2020: b9218553b1203ecb1d78b25ae343dc2a0122806620f040ad558279999771c4cf
+PIN_STATE_2020: 7f5cefad389a3ebfef9534777a5942c4049a7f72d4654bcd208e6da596997299
+PIN_GAMES_2021: 1f2dcb1f01a95c788c9ce035e1d5d529078c889fbf1f63d5b3f72a6acd3e454f
+PIN_STINTS_2021: 1e110c284da4b94869e8478239b3727722c7b6cbc6dadceff8b009475393eac7
+PIN_STATE_2021: 0745fe2296de70a5bd60e400c4534011eac689be3c854a06e80734419d45a84c
+PIN_GAMES_2022: a1613d9627443c1ee25cf6abea2f9be0ddaa4fc67ee348c88323508f055bd046
+PIN_STINTS_2022: b73b19e4bbe4f4b53e48e05c257628836b883cb3fc2ea5ffabc7c64988485af9
+PIN_STATE_2022: eb4a92d06105fbf5d3d2a089c41742cda756c8f0f613fa838ba22b328cd2b91a
+PIN_GAMES_2023: dc3cfc17872e4f7066413f87585dbc6d90163e4ddc1284ea55c6a69e96d020a3
+PIN_STINTS_2023: 947b1965d36b7a04fa664f0d6708868e90affbfc3026a42d847e6d644c2cb39a
+PIN_STATE_2023: 6e45ef82f851d9cfc7fc8a8f60b7f5f1d7179d890ec284c0723f94509cc6778a
+PIN_GAMES_2024: 573919338f25b53c7f599b9912a251213cb4abd4954ea303b72ba8d31727bf61
+PIN_STINTS_2024: 3ce9c798fa1b04f54a9f8836dbd778eaed2cc07115e93088027c83efb88463a0
+PIN_STATE_2024: bf379407955acb7affbcefb3e962847126118451f235dddcd7832ee0b8bc4722
+PIN_A0_2023_pts: d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285
+PIN_A0_2023_reb: 337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805
+PIN_A0_2023_ast: 241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e
+PIN_A0_2023_fg3m: 96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe
+PIN_A0_2024_pts: 81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d
+PIN_A0_2024_reb: bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e
+PIN_A0_2024_ast: 62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb
+PIN_A0_2024_fg3m: 6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136
+PIN_FINALS_2018: 977872fd3faeb26459f3a6ac0b514bc289ae14d6f942448f2856317d6701b72f
+PIN_FINALS_2019: 72530c590ea376ccf005403d9eb53931d82d7c9f2c3cc58d5bb97ee21f8c52da
+PIN_FINALS_2020: 1d53d26ef59476e6b84d100872fb035119de454b4b3b749d63dff899c48772bc
+PIN_FINALS_2021: 9a14db6cceef96f99ba3ff3cd51be25ba7b4b230128741cfac9e697cdba7b7c6
+PIN_FINALS_2022: e1d636049209de1ed633da6fce461c623b9d0528d11c35aa4c3cd2654d54d708
+PIN_FINALS_2023: 3e5bd9fba55f1a3069fc089d093f0b6d2f31214346fe1f2385f4f4134127f45e
+PIN_FINALS_2024: 3a49d8bcada80813a578b04e81a1de17099146d78e60fb54c3857b413c5c0279
+LIB_python: 3.12.15
+LIB_polars: 1.44.2
+LIB_lightgbm: 4.7.0
+LIB_numpy: 2.5.3
+LIB_scipy: 1.18.1
+LIB_duckdb: 1.5.6
+```
 
 === RESULTS BELOW ===
 
@@ -229,3 +239,25 @@ Held: regular-season pbp parquet for 2013-2024 (`data/history/pbp` 2013-2021, `d
 1. The frozen run itself has never executed `read_finals` on rows (by design); its SQL and types are checked, its row content is not.
 2. An adversary pre-freeze review of Amendments 1 and 2 (not done).
 3. Recompute the harness pin at the `harness(IN_GAME_LINE_MODEL)` commit (the file list is the four modules; `rule.pin_of(rule.disk_blobs())` at the head below).
+
+## Amendment 3 results (Run 5 of the gate, digests, the outcome-blind dryrun; `reports/prereg_in_game_line/gate_run5.{json,log}`, `dryrun.json`, `superseded/gate_run5_causal_in_game_only.*`)
+**Truncation identity and assist resolution (gate Run 5 with the Amendment 3b dictionary; truncation = state at each of the 7 checkpoints rebuilt from the play-by-play cut at T with stints clipped at T, against the full-game state, every column).**
+
+| season | games | player-checkpoint rows compared | missing / extra | differing rows (all columns) | named assists | resolved, seen-in-game only | resolved, final (Amendment 3b) |
+|---|---|---|---|---|---|---|---|
+| 2019 | 200 | 25,728 | 0 / 0 | 0 (ast 0) | 51,649 | 47,929 (0.9280) | 50,915 (0.9858) |
+| 2020 | 200 | 25,314 | 0 / 0 | 0 (ast 0) | 53,577 | 49,542 (0.9247) | 52,737 (0.9843) |
+| 2021 | 200 | 25,190 | 0 / 0 | 0 (ast 0) | 60,636 | 56,328 (0.9290) | 59,865 (0.9873) |
+| 2022 | 200 | 25,452 | 0 / 0 | 0 (ast 0) | 62,279 | 57,278 (0.9197) | 61,085 (0.9808) |
+| 2023 | 200 | 25,076 | 0 / 0 | 0 (ast 0) | 65,610 | 60,539 (0.9227) | 64,722 (0.9865) |
+| 2024 | 200 | 25,243 | 0 / 0 | 0 (ast 0) | 65,312 | 60,646 (0.9286) | 64,528 (0.9880) |
+
+The first Run 5 (Amendment 3 code, in-game dictionary only) resolved 0.9333 / 0.9315 / 0.9345 / 0.9292 / 0.9327 / 0.9369 (2019-2024) and failed the 0.95 ast-readiness bar; Amendment 3b (earlier-dated games' names, on-court teammates) restores 0.9808 to 0.9880 with the truncation identity still 0 in every column (Run 4's non-causal shares were 0.9863 / 0.9849 / 0.9878 / 0.9808 / 0.9866 / 0.9882). Ast stays in the secondary family. **Run 5 verdict word: PASS**, every check as in Run 4 (completeness components, pts/reb/fg3m cell counts and the pts detectable half-widths 0.00185 / 0.00183 identical to Run 4; ast half-widths 0.00191 / 0.00192 as in Run 4), plus the six truncation checks. `digests` twice byte-identical and equal to Run 5's `pins`; only the six `PIN_STATE_*` lines changed from Amendment 2; `PIN_FINALS_2018..2024` and `LIB_duckdb` are new.
+**Dryrun, outcome-blind (labels y ~ Bernoulli(raw B0 at each unit's own state); `read_finals` a raiser throughout; 2018 warm-up path exercised; whole path, 6 seasons x 4 stats; wall 440 s, run while tests shared the machine).** Raw B0 is the exact truth, so a leak-free pipeline must not beat it. 2024 scored rows 701,599 / 612,101 / 527,684 / 495,832 (pts / reb / ast / fg3m). M minus raw B0 log loss (95% CI binding clustering): pts +0.00002 (0.0000, +0.00005), reb +0.00005 (+0.00003, +0.00008), ast +0.00006, fg3m +0.00005; at e = 42 (the invariant, rows 97,521 / 79,465 / 73,069 / 67,706): +0.00001 / +0.00007 / +0.00003 / +0.00001, all >= -2 half-widths, `ok` True for all four; by checkpoint every M - raw B0 is between -0.0000 and +0.0002. M minus M0: pts +0.00000 (upper +0.00001). Binding baselines: B0 pooled for pts/reb/fg3m and per-checkpoint for ast; B1 per-checkpoint recalibrated for all four (log loss 0.3445 against raw B0's 0.2016 on pts: the stored grid and the recency NegBin are far from this synthetic truth, which is expected). Calibration slope of M 1.006 / 0.998 / 0.995 / 0.993. **The primary verdict FAILS in the dryrun, as it must** (failed: select and report point vs B0, CI upper vs B0, M0 criterion); the secondary family claims nothing (BH p = 1.0). Truncation and planted-future identity True in both scored seasons. `stint_vs_box` is computed but meaningless here (synthetic box minutes). The numbers say nothing about real outcomes.
+**Scoring of the Amendment 3 / 3b priors.** Truncation identity in all six seasons (0.88) and `ast` alone (0.9): happened. Causal in-game-only resolution >= 0.95 in every season (0.9): **missed** (0.929-0.937; this caused Amendment 3b); >= 0.98 in every season (0.45): missed for the in-game dictionary. Amendment 3b priors: repaired share >= 0.95 in all six (0.8) happened; >= 0.98 in all six (0.3) happened (lowest 0.9808, 2022); median season 0.97: observed 0.9858, high; the lowest share in a history season 2019-2021 (0.5): missed (2022 is lowest). Run 5 PASS (0.85), non-ast results to the digit (0.95), every `PIN_STATE_*` differs (0.9), `PIN_GAMES/STINTS/A0` unchanged (0.98), `digests` twice identical (0.97): all happened. Dryrun completes (0.85), wall median 6 min (80% 4-12) vs 7.3 min (inside), `e42_invariant` for all four (0.75), pts verdict fails (0.95), M0 criterion fails (0.92), M - raw B0 within +-0.002 (0.6): all happened. **Calibration note:** the one miss that mattered (the causal dictionary's cost) came from my not computing the resolution share before declaring the repair; I should have measured the cost of causality before writing it as a prior.
+
+## Open items before any freeze (after Amendment 3)
+1. The frozen run has still never read `read_finals` rows for a score (by design); `PIN_FINALS_*` were hashed mechanically (A3-S1), the dtypes were checked with `limit 0`.
+2. A narrow re-review of the Amendment 3 / 3b diff (the reviewer asked for one) before the `prereg(IN_GAME_LINE_MODEL)` commit.
+3. Devin's call on M3: option (b) (M0 control) is in; option (a) would delete criterion (g) outright.
+4. The harness pin must be recomputed at the `harness(IN_GAME_LINE_MODEL)` commit.

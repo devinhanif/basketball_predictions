@@ -202,7 +202,7 @@ def run_season(season: int, root: Path) -> dict[str, Any]:
     stints = feat.read_stints(season, root)
     comp = feat.completeness(games, pbp, stints)
     named, resolved_before = feat.ast_unresolved(pbp, feat.stat_events(pbp))
-    _, resolved = feat.ast_unresolved(pbp, feat.stat_events(pbp, feat.stint_rows(stints)))
+    _, resolved = feat.ast_unresolved(pbp, feat.stat_events(pbp, feat.stint_rows(stints), games))
     log(f"{season}: completeness full {_m(comp['full']):.4f}; building state")
     state = feat.state_frame(season, root, True, games, pbp, stints)
     out: dict[str, Any] = {

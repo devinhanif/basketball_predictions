@@ -727,8 +727,8 @@ def test_truncation_identity_passes_on_a_causal_state_and_fails_on_a_leaky_one()
     ok = feat.truncation_identity(2022, feat.data_root(), 5, games=games, pbp=pbp, stints=st)
     assert ok["identical"] and ok["rows_compared"] > 0 and ok["rows_missing_in_truncated"] == 0
 
-    def leaky(season, root, wf, g, p, s):  # type: ignore[no-untyped-def]
-        out = feat.state_frame(season, root, wf, g, p, s)
+    def leaky(season, root, wf, g, p, s, names):  # type: ignore[no-untyped-def]
+        out = feat.state_frame(season, root, wf, g, p, s, names)
         return out.with_columns(
             (pl.col("ast") + float(p.height)).alias("ast")
         )  # a whole-game aggregate
@@ -758,3 +758,92 @@ def test_run_exits_through_verify_inputs_before_any_reader(monkeypatch: pytest.M
         < src.index("verify_inputs(")
         < src.index("run_pipeline(")
     )
+
+
+def test_assist_uses_names_from_strictly_earlier_games_but_not_the_same_date() -> None:
+    """A3b: the assister has no event of his own before the assist in this game; his surname is known from an earlier-dated game, so the one
+    teammate with that surname on court resolves. A game on the SAME date does not count as earlier."""
+    d = __import__("datetime").date
+    rows: list[dict] = []
+
+    def ev_(
+        gid: str, clock: str, team: int, pid: int, name: str, typ: str, desc: str, sv: int = 0
+    ) -> None:
+        rows.append(
+            dict(
+                game_id=gid,
+                action_number=len(rows) + 1,
+                period=1,
+                clock=clock,
+                team_id=team,
+                player_id=pid,
+                player_name=name,
+                action_type=typ,
+                sub_type="",
+                description=desc,
+                score_home="",
+                score_away="",
+                shot_result="",
+                shot_value=sv,
+            )
+        )
+
+    ev_(
+        "0022200001", "PT09M00.00S", H, 31, "Brown", "Rebound", "Brown REBOUND"
+    )  # earlier game: Brown (id 31) is known
+    ev_(
+        "0022200002",
+        "PT11M00.00S",
+        H,
+        1,
+        "Ann",
+        "Made Shot",
+        "Ann Layup (2 PTS) (J. Brown 1 AST)",
+        2,
+    )  # later game; Brown never acts before t = 60
+    ev_(
+        "0022200003",
+        "PT11M00.00S",
+        H,
+        1,
+        "Ann",
+        "Made Shot",
+        "Ann Layup (2 PTS) (J. Brown 1 AST)",
+        2,
+    )  # same date as game 0022200001? see dates below
+    pbp = (
+        pl.DataFrame(rows)
+        .with_columns(feat.clock_seconds_expr().alias("left"))
+        .with_columns(feat.elapsed_expr().alias("t"))
+        .drop("left")
+    )
+    dates = pl.DataFrame(
+        {
+            "game_id": ["0022200001", "0022200002", "0022200003"],
+            "game_date": [d(2022, 11, 1), d(2022, 11, 2), d(2022, 11, 1)],
+        }
+    )
+    stint = lambda gid: [gid, H, 1, 720.0, 0.0, [1, 31, 3, 4, 5]]  # noqa: E731
+    st = pl.DataFrame(
+        {
+            "game_id": ["0022200002", "0022200003"],
+            "team_id": [H, H],
+            "period": [1, 1],
+            "start_clock": [720.0, 720.0],
+            "end_clock": [0.0, 0.0],
+            "players": [[1, 31, 3, 4, 5]] * 2,
+        },
+        schema_overrides={"players": pl.Array(pl.Int32, 5)},
+    )
+    del stint
+    out = (
+        feat.stat_events(pbp, feat.stint_rows(st), dates)
+        .filter(pl.col("stat") == "ast")
+        .sort("game_id")
+    )
+    assert out["game_id"].to_list() == ["0022200002"] and out["player_id"].to_list() == [
+        31
+    ]  # 0022200003 shares game 1's date: Brown not yet "known"
+    assert (
+        feat.stat_events(pbp, feat.stint_rows(st)).filter(pl.col("stat") == "ast").height == 0
+    )  # no dates: only this game's own past
