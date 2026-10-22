@@ -51,6 +51,7 @@ export interface Bankroll {
   moves: Move[];
   positions: Position[];
   scorecard: ScoreRow[];
+  budget_override: string | null;
   note: string;
 }
 

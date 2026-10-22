@@ -5,25 +5,49 @@
   "floor_base": 25,
   "floor_monthly_growth": 0.01,
   "budget_share": 0.25,
-  "month_start": {"date": "2026-10-22", "balance": 49.44},
-  "account": {"cash": 49.44, "bonus": 6.99},
+  "month_start": {
+    "date": "2026-10-22",
+    "balance": 49.44
+  },
+  "account": {
+    "cash": 49.44,
+    "bonus": 6.99
+  },
   "moves": [
     {
-      "id": "P1", "tier": "MEDIUM", "title": "OKC win + SGA 30+ points + SGA 2+ threes",
-      "stake": 6.99, "source": "bonus", "limit": 0.28, "payout": 24.96, "chance": 0.29,
+      "id": "P1",
+      "tier": "MEDIUM",
+      "title": "OKC win + SGA 30+ points + SGA 2+ threes",
+      "stake": 6.99,
+      "source": "bonus",
+      "limit": 0.28,
+      "payout": 24.96,
+      "chance": 0.29,
       "reason": "Three legs tied to one player's big night; buy only if Kalshi's quote is at or below our joint chance.",
       "status": "todo"
     },
     {
-      "id": "P2", "tier": "MEDIUM", "title": "Jokic 25+ points + 1+ three + 12+ rebounds",
-      "stake": 6, "source": "cash", "limit": 0.29, "payout": 20.69, "chance": 0.30,
+      "id": "P2",
+      "tier": "MEDIUM",
+      "title": "Jokic 25+ points + 1+ three + 12+ rebounds",
+      "stake": 6,
+      "source": "cash",
+      "limit": 0.29,
+      "payout": 20.69,
+      "chance": 0.3,
       "reason": "Three legs from one player's usage; buy only if Kalshi's quote is at or below our joint chance.",
       "status": "todo"
     },
     {
-      "id": "P3", "tier": "RISKY", "title": "DEN win + Murray 25+ points + Murray 3+ threes",
-      "stake": 4, "source": "cash", "limit": 0.077, "payout": 51.95, "chance": 0.08,
-      "reason": "Correlated long shot; buy only if the quote is at or below 0.8 times our joint chance.",
+      "id": "P3",
+      "tier": "MEDIUM",
+      "title": "Cavs roll (live): CLE to win + Mitchell 25+ points + Mitchell 2+ threes",
+      "stake": 4,
+      "source": "cash",
+      "limit": 0.58,
+      "payout": 6.9,
+      "chance": 0.6,
+      "reason": "CLE up 49–28 in Q2; ESPN ~90% vs Kalshi 85¢; also pays in the blowout that hurts the open 4-leg combo",
       "status": "todo"
     }
   ],
@@ -31,9 +55,19 @@
     {
       "id": "O1",
       "title": "4-leg combo",
-      "legs": ["Embiid 15+ points", "Harden 4+ rebounds", "Murray 15+ points", "Jokic 1+ three"],
-      "cost": 3.85, "source": "bonus", "max_payout": 10.09, "fair_now": 1.78, "sell_if_offer_at_least": 1.80
+      "legs": [
+        "Embiid 15+ points",
+        "Harden 4+ rebounds",
+        "Murray 15+ points",
+        "Jokic 1+ three"
+      ],
+      "cost": 3.85,
+      "source": "bonus",
+      "max_payout": 10.09,
+      "fair_now": 1.72,
+      "sell_if_offer_at_least": 1.75
     }
   ],
-  "scorecard": []
+  "scorecard": [],
+  "budget_override": "Devin's override tonight"
 }

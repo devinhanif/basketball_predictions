@@ -45,8 +45,9 @@ function Body({ b }: { b: Bankroll }) {
         </p>
         {over ? (
           <p class="bk-warn small" role="status">
-            The moves below ask for {usd(d.cash_planned)} of cash, more than today's budget of {usd(d.budget)}. Skip or shrink one
-            before placing.
+            {b.budget_override
+              ? `${b.budget_override}: the moves below use ${usd(d.cash_planned)} of cash, above the usual ${usd(d.budget)} budget.`
+              : `The moves below ask for ${usd(d.cash_planned)} of cash, more than today's budget of ${usd(d.budget)}. Skip or shrink one before placing.`}
           </p>
         ) : null}
       </section>

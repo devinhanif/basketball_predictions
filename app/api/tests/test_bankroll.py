@@ -21,6 +21,9 @@ def test_endpoint_serves_fixture_with_derived_numbers(client: TestClient) -> Non
     assert d["derived"]["stretch"] == 51.91
     assert [m["id"] for m in d["moves"]] == ["P1", "P2", "P3"]
     assert d["positions"][0]["cost"] == 3.85
+    assert d["positions"][0]["sell_if_offer_at_least"] == 1.75
+    assert d["moves"][2]["limit"] == 0.58
+    assert d["budget_override"] == "Devin's override tonight"
     assert "Devin places every order" in d["note"]
 
 

@@ -72,6 +72,7 @@ class BankrollFile(_Strict):
     floor_base: float
     floor_monthly_growth: float
     budget_share: float
+    budget_override: str | None = None
     month_start: Balance
     account: Account
     moves: list[Move]
@@ -108,6 +109,7 @@ def build(raw: dict[str, object]) -> dict[str, object]:
         "target": round(base * 1.01, 2),
         "stretch": round(base * 1.05, 2),
     }
+    out["budget_override"] = f.budget_override
     out["note"] = "This is a plan, not an order. Devin places every order himself."
     return out
 
