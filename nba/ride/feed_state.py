@@ -8,8 +8,7 @@ Fields used, all present in the 2026-10-21 capture (``data/raw/live_2026-10-21/e
 * ``header.competitions[0].status``: ``type.state`` (pre/in/post), ``period``, ``displayClock``.
 * ``boxscore.players[t].statistics[0].athletes[]``: ``active`` (on court; exactly 5 per team in 98 of 98
   in-progress snapshots of one game), ``starter``, ``stats`` aligned to ``names`` (``PF`` = personal fouls).
-* ``plays[]``: ``type.text``, ``team.id`` (the acting team; for a foul the committer, for a jump ball the team
-  that gains possession), ``participants`` (substitution: entering player first), ``scoringPlay``,
+* ``plays[]``: ``type.text``, ``team.id`` (the acting team; for a foul the committer), ``participants`` (substitution: entering player first), ``scoringPlay``,
   ``shootingPlay``, ``period.number``, ``clock.displayValue``.
 * ``winprobability[]``: ESPN's own home win probability (the shadow benchmark, never an input).
 
@@ -94,7 +93,9 @@ def classify_play(p: dict[str, Any]) -> Event:
         last = m is not None and m.group(1) == m.group(2)
         return Event("ft", team, made=scoring, last_ft=last)
     if tl == "jumpball":
-        return Event("jump", team)
+        return Event(
+            "other", team
+        )  # history cannot tell who won the tip: same rule both sides (review S2)
     if tl == "offensive rebound":
         return Event("oreb", team)
     if tl == "defensive rebound":

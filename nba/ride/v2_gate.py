@@ -3,7 +3,7 @@
 
 Reads, read-only: ``data/pbp/<game>.parquet`` (regular seasons 2022-24 only), the ``stints``, ``possessions`` and
 ``games`` tables of a copy/backup of ``nba.duckdb`` (game_id prefix 00222/00223/00224 in every query; season 2025
-= prefix 00225 is never named), ``data/injury_elo/oof_predictions.parquet`` (seasons 2022-24 only) and the
+= prefix 00225 is never named), ``data/injury_elo_realtip/oof_predictions.parquet`` (seasons 2022-24 only) and the
 fixed v1 coefficient file. It reads NO final score, winner, box-score total or any label: the only scores used are the
 running score at an event time (known at that time). Synthetic outcomes (drawn from v1's own probabilities) appear
 only in ``power`` and say so.
@@ -25,12 +25,14 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+from nba.features.game_tipoff import build_game_tipoff
+from nba.ride.causal_five import causal_five, causal_prefix, prefix_len
 from nba.ride.feed_state import Event, update_possession
 from nba.ride.winprob import WinProbModel, parse_clock
 
 SEASONS = (2022, 2023, 2024)  # start years; 2025 (the frozen holdout) is not representable here
 PREFIX = {2022: "00222", 2023: "00223", 2024: "00224"}
-GRID = tuple(range(60, 2881, 60))  # elapsed regulation seconds at which a state is read
+GRID = tuple(range(60, 2821, 60))  # 47 states; 2880 is the final regulation margin (an outcome)
 FOUL_TOKEN = re.compile(r"\(P(\d+)(?:\.(T\d+|PN))?\)")
 FT_OF = re.compile(r"(\d)\s+of\s+(\d)")
 # Declared before any number was computed (thresholds of the gate).
@@ -231,7 +233,9 @@ def game_pass(
     res.update(table_n=table_n, table_ok=table_ok)
     # grid states
     ts = np.array(GRID, dtype=float)
-    idx = np.searchsorted(states_t, ts, side="right") - 1
+    idx = np.array(
+        [prefix_len(states_t, float(t)) - 1 for t in ts]
+    )  # causal prefix, never searchsorted
     ok = idx >= 0
     margin = np.where(ok, sh[np.clip(idx, 0, None)] - sa[np.clip(idx, 0, None)], 0)
     p1 = v1.prob_home(margin.astype(float), 2880.0 - ts)
@@ -274,11 +278,10 @@ def prior_cov(root: Path, games: pd.DataFrame, season: int) -> dict[str, Any]:
         suffixes=("", "_o"),
     )
     has = m.p.notna()
-    asof = (
-        has
-        & (pd.to_datetime(m.made_with_data_through).dt.normalize() <= pd.to_datetime(m.game_date))
-        & (pd.to_datetime(m.made_with_data_through).dt.hour >= 11)
-    )
+    tips = build_game_tipoff(max_season=2024).to_pandas()[["game_id", "tip_et"]]
+    m = m.merge(tips, on="game_id", how="left")
+    made = pd.to_datetime(m.made_with_data_through)
+    asof = has & m.tip_et.notna() & (made <= pd.to_datetime(m.tip_et) - pd.Timedelta(minutes=60))
     return {
         "games": int(len(m)),
         "with_prior": int(has.sum()),
@@ -296,6 +299,55 @@ def star_cov(con: duckdb.DuckDBPyConnection, season: int) -> dict[str, Any]:
     ).fetchone()
     assert df is not None
     return {"player_games_played": int(df[0]), "with_ge5_prior_games_in_window": int(df[1] or 0)}
+
+
+def five_sample(
+    con: duckdb.DuckDBPyConnection, root: Path, games: pd.DataFrame, season: int, n: int
+) -> dict[str, Any]:
+    """Descriptive: causal five (tracker on the causal prefix, box starters, no box roster) vs the stints table."""
+    p = PREFIX[season]
+    st = con.execute(
+        "select game_id, team_id, player_id from player_game_stats "
+        f"where game_id like '{p}%' and starter"
+    ).df()
+    stints = con.execute(
+        f"select game_id, team_id, period, start_clock, end_clock, players from stints where game_id like '{p}%'"
+    ).df()
+    n_ts = n_diff = n_short = n_games = 0
+    for r in games.head(n).itertuples(index=False):
+        f = root / "data" / "pbp" / f"{r.game_id}.parquet"
+        g = st[st.game_id == r.game_id]
+        starters = {int(t): [int(x) for x in v.player_id] for t, v in g.groupby("team_id")}
+        if not f.exists() or len(starters) != 2 or any(len(v) != 5 for v in starters.values()):
+            continue
+        d = pd.read_parquet(f).sort_values("action_number", kind="stable").reset_index(drop=True)
+        el = np.array(
+            [elapsed(int(a), parse_clock(str(b))) for a, b in zip(d.period, d.clock, strict=True)]
+        )
+        sg = stints[stints.game_id == r.game_id]
+        n_games += 1
+        for t in GRID:
+            five = causal_five(causal_prefix(d, el, float(t)), starters)
+            per = int(np.ceil(t / 720.0))
+            c = per * 720.0 - t
+            for team, cf in five.items():
+                rows = sg[
+                    (sg.team_id == team)
+                    & (sg.period == per)
+                    & (sg.start_clock >= c)
+                    & (sg.end_clock < c)
+                ]
+                if len(rows) == 0:
+                    continue
+                n_ts += 1
+                n_short += int(len(set(cf)) != 5)
+                n_diff += int(set(cf) != {int(x) for x in rows.iloc[0].players})
+    return {
+        "games": n_games,
+        "team_states": n_ts,
+        "causal_five_ne_stint": n_diff,
+        "causal_five_not_five": n_short,
+    }
 
 
 def power(n_games: int, seed: int = 0, n_boot: int = 300) -> dict[str, Any]:
@@ -334,7 +386,15 @@ def power(n_games: int, seed: int = 0, n_boot: int = 300) -> dict[str, Any]:
 def run(db: Path, out: Path, root: Path, max_games: int | None) -> dict[str, Any]:
     v1 = WinProbModel.load()
     con = duckdb.connect(str(db), read_only=True)
-    report: dict[str, Any] = {"seasons": {}, "thresholds": THRESH}
+    import hashlib
+
+    report: dict[str, Any] = {
+        "seasons": {},
+        "thresholds": THRESH,
+        "db_path": str(db),
+        "db_sha256": hashlib.sha256(db.read_bytes()).hexdigest(),
+        "grid": [GRID[0], GRID[-1], len(GRID)],
+    }
     for s in SEASONS:
         p = PREFIX[s]
         games = con.execute(
@@ -395,10 +455,11 @@ def run(db: Path, out: Path, root: Path, max_games: int | None) -> dict[str, Any
         sm["stints"] = stint_tiles(con, s, set(games.game_id))
         sm["prior"] = prior_cov(root, games, s)
         sm["star"] = star_cov(con, s)
+        sm["causal_five_vs_stints_sample"] = five_sample(con, root, games, s, 12)
         report["seasons"][str(s)] = sm
         log(f"season {s} done")
     report["power"] = {
-        str(s): power(int(report["seasons"][str(s)]["games_with_pbp"])) for s in SEASONS
+        str(s): power(int(report["seasons"][str(s)]["games_with_pbp"]), seed=s) for s in SEASONS
     }
     sz = report["seasons"]
     checks: list[dict[str, Any]] = []
