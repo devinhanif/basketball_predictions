@@ -68,6 +68,9 @@ FEATURES_B = [
     "b0_logit",
 ]
 MONOTONE_B = {"need": -1, "pregame_mean": 1, "rem_min_hat": 1, "b0_logit": 1}
+# Amendment 3 (M3): the re-expression control M0 sees only what B0 sees, per checkpoint and line
+FEATURES_M0 = ["b0_logit", "e", "line", "need"]
+MONOTONE_M0 = {"need": -1, "b0_logit": 1}
 
 
 FINALS_SQL = (
@@ -177,11 +180,21 @@ def fit_minutes_stage(train: pl.DataFrame, seed: int = LGBM_SEED) -> Any:
     return m
 
 
-def fit_prob_stage(x: np.ndarray, y: np.ndarray, seed: int = LGBM_SEED) -> Any:
-    """Stage B: binary model on the state; monotone in need, pregame mean, predicted remaining minutes and B0's logit."""
+def fit_prob_stage(
+    x: np.ndarray,
+    y: np.ndarray,
+    seed: int = LGBM_SEED,
+    features: list[str] | None = None,
+    monotone: dict[str, int] | None = None,
+) -> Any:
+    """Stage B: binary model on the state; monotone in need, pregame mean, predicted remaining minutes and B0's logit. With ``features`` /
+    ``monotone`` it is the same learner on another column set (M0)."""
     import lightgbm as lgb
 
-    mono = [MONOTONE_B.get(c, 0) for c in FEATURES_B]
+    mono = [
+        (monotone if monotone is not None else MONOTONE_B).get(c, 0)
+        for c in (features or FEATURES_B)
+    ]
     m = lgb.LGBMClassifier(
         n_estimators=N_TREES,
         learning_rate=LEARNING_RATE,
@@ -202,23 +215,31 @@ def b0_column(df: pl.DataFrame, stat: str) -> np.ndarray:
     return gate.b0_for(df, stat)
 
 
+def per_checkpoint_platt(
+    p_tr: np.ndarray, y_tr: np.ndarray, e_tr: np.ndarray, p_te: np.ndarray, e_te: np.ndarray
+) -> np.ndarray:
+    """Amendment 3 (M4): one 2-parameter recalibration per checkpoint (7 x 2 parameters), fitted on training rows only."""
+    out = np.empty(len(p_te))
+    for e in rule.CHECKPOINTS:
+        tr, te = e_tr == e, e_te == e
+        if te.any():
+            ab = rule.platt_fit(p_tr[tr], y_tr[tr]) if tr.sum() > 50 else (0.0, 1.0)
+            out[te] = rule.platt_apply(p_te[te], ab)
+    return out
+
+
 def arm_probs(
-    train: pl.DataFrame,
-    test: pl.DataFrame,
-    stat: str,
-    stage_a: Any,
-    shuffle_seed: int | None = None,
+    train: pl.DataFrame, test: pl.DataFrame, stat: str, stage_a: Any
 ) -> dict[str, np.ndarray]:
-    """Raw and recalibrated probabilities of B0, B1 (recency) and M on ``test``; calibration and M fitted on ``train`` only. ``shuffle_seed`` permutes
-    the training LABELS (the shuffled control)."""
-    out: dict[str, np.ndarray] = {}
+    """Probabilities on ``test``; every calibration and model is fitted on ``train`` only.
+    ``b0raw``: B0 as defined (no recalibration); ``b0`` / ``b1``: pooled 2-parameter recalibration; ``b0e`` / ``b1e``: recalibration per checkpoint;
+    ``m``: arm M (+ pooled recalibration); ``m0``: the re-expression control (same learner on b0_logit, e, line, need only)."""
     y_tr = train["y"].to_numpy().astype(float)
-    if shuffle_seed is not None:
-        y_tr = np.random.default_rng(shuffle_seed).permutation(y_tr)
     parts = {}
     for name, df in (("train", train), ("test", test)):
-        d = add_derived(df).with_columns(
-            pl.Series("rem_min_hat", stage_a.predict(add_derived(df).select(FEATURES_A).to_numpy()))
+        d = add_derived(df)
+        d = d.with_columns(
+            pl.Series("rem_min_hat", stage_a.predict(d.select(FEATURES_A).to_numpy()))
         )
         d = d.with_columns(
             pl.Series("b0", b0_column(d, stat)),
@@ -231,19 +252,26 @@ def arm_probs(
         )
         d = d.with_columns(pl.Series("b0_logit", rule.logit(d["b0"].to_numpy())))
         parts[name] = d
-    cal = {k: rule.platt_fit(parts["train"][k].to_numpy(), y_tr) for k in ("b0", "b1")}
+    tr, te = parts["train"], parts["test"]
+    out: dict[str, np.ndarray] = {"b0raw": te["b0"].to_numpy()}
     for k in ("b0", "b1"):
-        out[k] = rule.platt_apply(parts["test"][k].to_numpy(), cal[k])
-    mdl = fit_prob_stage(parts["train"].select(FEATURES_B).to_numpy(), y_tr)
-    raw = mdl.predict_proba(parts["test"].select(FEATURES_B).to_numpy())[:, 1]
-    ab = rule.platt_fit(mdl.predict_proba(parts["train"].select(FEATURES_B).to_numpy())[:, 1], y_tr)
-    out["m"] = rule.platt_apply(raw, ab)
+        out[k] = rule.platt_apply(te[k].to_numpy(), rule.platt_fit(tr[k].to_numpy(), y_tr))
+        out[k + "e"] = per_checkpoint_platt(
+            tr[k].to_numpy(), y_tr, tr["e"].to_numpy(), te[k].to_numpy(), te["e"].to_numpy()
+        )
+    for name, feats, mono in (("m", FEATURES_B, MONOTONE_B), ("m0", FEATURES_M0, MONOTONE_M0)):
+        mdl = fit_prob_stage(tr.select(feats).to_numpy(), y_tr, features=feats, monotone=mono)
+        raw = mdl.predict_proba(te.select(feats).to_numpy())[:, 1]
+        ab = rule.platt_fit(mdl.predict_proba(tr.select(feats).to_numpy())[:, 1], y_tr)
+        out[name] = rule.platt_apply(raw, ab)
     return out
 
 
 # --------------------------------------------------------------------------- declared input digests
 def compute_input_digests(root: Path) -> dict[str, str]:
-    """Label-free digests of every input a number depends on: games, stints and the derived state per season, the stored A0 files, the libraries."""
+    """Digests of every input a number depends on: games, stints and the derived state per season, the stored A0 files, the final box-score table
+    (S1: ``PIN_FINALS_s`` = sha of ``read_finals`` for 2018 (warm-up) to 2024; a MECHANICAL read -- the rows are hashed, never inspected or
+    printed), the libraries."""
     out: dict[str, str] = {}
     for s in rule.ALL_SEASONS:
         games = feat.read_games(s, root)
@@ -265,6 +293,8 @@ def compute_input_digests(root: Path) -> dict[str, str]:
             out[f"PIN_A0_{s}_{st}"] = rule.file_sha256(
                 root / "reports" / "odds_history" / f"model_rows_{s}_{st}.parquet"
             )
+    for s in (2018, *rule.ALL_SEASONS):
+        out[f"PIN_FINALS_{s}"] = feat.sha_frame(read_finals(root, (s,)))
     out.update(rule.versions())
     return out
 
@@ -278,13 +308,14 @@ def verify_inputs(decl: dict[str, str], actual: dict[str, str]) -> None:
         )
 
 
-# --------------------------------------------------------------------------- the pipeline (Amendment 2): outcomes enter only through ``finals_fn``
+# --------------------------------------------------------------------------- the pipeline: outcomes enter only through ``finals_fn``
 FinalsFn = Callable[[Path, tuple[int, ...], dict[int, pl.DataFrame]], pl.DataFrame]
-SECONDARY_LABEL = "secondary"
 SLICES = {
     "blowout_q3q4": (pl.col("margin").abs() >= rule.BLOWOUT_MARGIN) & (pl.col("e") >= 30),
     "last6": pl.col("e") == 42,
 }
+CONTESTED = (0.1, 0.9)  # descriptive slice: raw B0 probability inside this interval
+MAKE_BASELINES = {"b0": ("b0", "b0e"), "b1": ("b1", "b1e", "b1_a0")}
 
 
 def load_states(root: Path, seasons: tuple[int, ...]) -> dict[int, pl.DataFrame]:
@@ -297,11 +328,29 @@ def load_states(root: Path, seasons: tuple[int, ...]) -> dict[int, pl.DataFrame]
     return out
 
 
+def synthetic_y(u: pl.DataFrame, stat: str, seed: int) -> pl.DataFrame:
+    """Dryrun only (M5): an OUTCOME-BLIND label. y = 1[U < raw B0 probability] with ONE uniform per (player-game, checkpoint) shared by its lines
+    (so y is monotone in the line), B0 evaluated at that unit's own state. Nothing after the checkpoint enters; raw B0 is the exact truth."""
+    key = (
+        u["game_id"] + "_" + u["player_id"].cast(pl.Utf8) + "_" + u["e"].cast(pl.Utf8)
+    ).to_numpy()
+    codes = feat.np_codes(key)
+    rng = np.random.default_rng(seed + 100 * rule.STATS.index(stat))
+    p = gate.b0_for(u, stat)
+    y = (rng.random(int(codes.max()) + 1)[codes] < p).astype(float)
+    return u.with_columns(pl.Series("y", y))
+
+
 def stat_units(
-    season: int, stat: str, states: dict[int, pl.DataFrame], rec: pl.DataFrame, finals: pl.DataFrame
+    season: int,
+    stat: str,
+    states: dict[int, pl.DataFrame],
+    rec: pl.DataFrame,
+    finals: pl.DataFrame,
+    synth_seed: int | None = None,
 ) -> pl.DataFrame:
-    """Units of one stat and season with pregame mean, recent minutes, the outcome ``y`` (final >= line) and ``season``. Rows need n_prior >= MIN_PRIOR and
-    a final box-score row (same rows for every arm)."""
+    """Units of one stat and season with pregame mean, recent minutes, the outcome ``y`` (final >= line) and ``season``. Rows need n_prior >=
+    MIN_PRIOR and a final box-score row (same rows for every arm). With ``synth_seed`` (dryrun) ``y`` is replaced by ``synthetic_y``."""
     u = feat.expand_units(states[season].drop("y_rem_min"), stat)
     r = rec.select(
         "game_id",
@@ -310,13 +359,16 @@ def stat_units(
         pl.col(f"m_{stat}").alias("pregame_mean"),
         pl.col("m_minutes").alias("rec_minutes"),
     )
-    u = u.join(r, on=["game_id", "player_id"], how="inner").filter(pl.col("n_prior") >= MIN_PRIOR)
+    u = u.join(r, on=["game_id", "player_id"], how="inner", maintain_order="left").filter(
+        pl.col("n_prior") >= MIN_PRIOR
+    )
     f = finals.select("game_id", "player_id", pl.col(stat).alias("final"))
-    u = u.join(f, on=["game_id", "player_id"], how="inner")
-    return u.with_columns(
+    u = u.join(f, on=["game_id", "player_id"], how="inner", maintain_order="left")
+    u = u.with_columns(
         (pl.col("final") >= pl.col("line")).cast(pl.Float64).alias("y"),
         pl.lit(season).alias("season"),
     ).sort("game_id", "player_id", "e", "line")
+    return synthetic_y(u, stat, synth_seed + season) if synth_seed is not None else u
 
 
 def minutes_rows(
@@ -329,6 +381,7 @@ def minutes_rows(
             rec.select("game_id", "player_id", "n_prior", pl.col("m_minutes").alias("rec_minutes")),
             on=["game_id", "player_id"],
             how="inner",
+            maintain_order="left",
         )
         parts.append(
             add_derived(st.filter(pl.col("n_prior") >= MIN_PRIOR)).select(*FEATURES_A, "y_rem_min")
@@ -339,7 +392,7 @@ def minutes_rows(
 def attach_a0(test: pl.DataFrame, root: Path, season: int, stat: str) -> pl.DataFrame:
     """Test rows that have a stored A0 row, with ``b1_a0`` (the stored grid truncated at the current stat)."""
     a0 = a0_tables(root, season, stat)
-    j = test.join(a0, on=["game_id", "player_id"], how="inner")
+    j = test.join(a0, on=["game_id", "player_id"], how="inner", maintain_order="left")
     p = a0_prob(j["p_ge"].to_list(), j["line"].to_numpy(), j["cur"].to_numpy())
     return j.drop("p_ge").with_columns(pl.Series("b1_a0", p))
 
@@ -353,15 +406,16 @@ def score_fit(
     rec: pl.DataFrame,
     finals: pl.DataFrame,
     stage_a: Any,
-    shuffle: bool = False,
+    synth_seed: int | None = None,
 ) -> tuple[pl.DataFrame, dict[str, np.ndarray]]:
-    train = pl.concat([stat_units(s, stat, states, rec, finals) for s in train_seasons])
-    test = attach_a0(stat_units(test_season, stat, states, rec, finals), root, test_season, stat)
-    feat.log(
-        f"{stat} {test_season}: train {train.height} rows, test {test.height} rows (A0-intersected), shuffle={shuffle}"
+    train = pl.concat([stat_units(s, stat, states, rec, finals, synth_seed) for s in train_seasons])
+    test = attach_a0(
+        stat_units(test_season, stat, states, rec, finals, synth_seed), root, test_season, stat
     )
-    probs = arm_probs(train, test, stat, stage_a, shuffle_seed=0 if shuffle else None)
-    return test, probs
+    feat.log(
+        f"{stat} {test_season}: train {train.height} rows, test {test.height} rows (A0-intersected)"
+    )
+    return test, arm_probs(train, test, stat, stage_a)
 
 
 def delta_report(
@@ -378,44 +432,80 @@ def delta_report(
     return r
 
 
+def reliability(p: np.ndarray, y: np.ndarray, bins: int = 10) -> list[dict[str, Any]]:
+    """Reliability table of M (deciles of the predicted probability): n, mean prediction, observed rate."""
+    edges = np.quantile(p, np.linspace(0, 1, bins + 1))
+    idx = np.clip(np.searchsorted(edges, p, side="right") - 1, 0, bins - 1)
+    return [
+        {
+            "bin": int(b),
+            "n": int((idx == b).sum()),
+            "mean_pred": float(p[idx == b].mean()),
+            "observed": float(y[idx == b].mean()),
+        }
+        for b in range(bins)
+        if (idx == b).any()
+    ]
+
+
 def evaluate(test: pl.DataFrame, probs: dict[str, np.ndarray], stat: str) -> dict[str, Any]:
-    """All paired contrasts of arm M on one scored season. B1 = the better (lower mean log loss on these rows) of the recency NegBin and the stored grid."""
+    """All paired contrasts of arm M on one scored season. Binding baselines (Amendment 3, M4): B0 = the better (lower mean log loss on these rows)
+    of the pooled and the per-checkpoint recalibrated B0; B1 = the best of the pooled and per-checkpoint recalibrated recency NegBin and the stored
+    grid. Raw B0 and every other baseline are reported."""
     y = test["y"].to_numpy()
-    ll = {
-        k: float(np.mean(rule.log_loss_rows(v, y)))
-        for k, v in {**probs, "b1_a0": test["b1_a0"].to_numpy()}.items()
-    }
-    bs = {
-        k: float(np.mean(rule.brier_rows(v, y)))
-        for k, v in {**probs, "b1_a0": test["b1_a0"].to_numpy()}.items()
-    }
-    better = "b1" if ll["b1"] <= ll["b1_a0"] else "b1_a0"
-    base = {"b0": probs["b0"], "b1": probs["b1"], "b1_a0": test["b1_a0"].to_numpy()}
+    allp = {**probs, "b1_a0": test["b1_a0"].to_numpy()}
+    ll = {k: float(np.mean(rule.log_loss_rows(v, y))) for k, v in allp.items()}
+    bs = {k: float(np.mean(rule.brier_rows(v, y))) for k, v in allp.items()}
+    bind = {k: min(names, key=lambda n: ll[n]) for k, names in MAKE_BASELINES.items()}
     f = rule.FLOORS[stat]
     res: dict[str, Any] = {
         "log_loss": ll,
         "brier": bs,
-        "better_b1": better,
+        "binding_baseline": bind,
         "n_rows": int(len(y)),
         "positive_rate": float(y.mean()),
     }
-    res["vs_b0"] = delta_report(test, probs["m"], base["b0"], f)
-    res["vs_b1"] = delta_report(test, probs["m"], base[better], f)
-    res["vs_b1_other"] = delta_report(
-        test, probs["m"], base["b1_a0" if better == "b1" else "b1"], f
-    )
+    res["vs_b0"] = delta_report(test, probs["m"], allp[bind["b0"]], f)
+    res["vs_b1"] = delta_report(test, probs["m"], allp[bind["b1"]], f)
+    res["vs_b0_raw"] = delta_report(test, probs["m"], probs["b0raw"], f)
+    res["vs_m0"] = delta_report(test, probs["m"], probs["m0"], rule.M0_MARGIN)
     codes = gate.cluster_codes(test)
-    d0 = rule.log_loss_rows(probs["m"], y) - rule.log_loss_rows(base["b0"], y)
-    d1 = rule.log_loss_rows(probs["m"], y) - rule.log_loss_rows(base[better], y)
+    lm = rule.log_loss_rows(probs["m"], y)
+    d0 = lm - rule.log_loss_rows(allp[bind["b0"]], y)
+    d1 = lm - rule.log_loss_rows(allp[bind["b1"]], y)
     res["top5_share"] = max(
         rule.top5_share(d0, codes["player_season"]), rule.top5_share(d1, codes["player_season"])
     )
     res["calibration_slope"] = rule.calibration_slope(probs["m"], y)
     res["p_vs_b0"] = rule.binding_p(d0, codes)
     res["p_vs_b1"] = rule.binding_p(d1, codes)
+    dr = lm - rule.log_loss_rows(probs["b0raw"], y)
+    ecol = test["e"].to_numpy()
+    res["vs_b0_raw_by_e"] = {
+        int(e): {
+            "n": int((ecol == e).sum()),
+            **{
+                k: v
+                for k, v in rule.binding_ci(
+                    dr[ecol == e], {c: feat.np_codes(codes[c][ecol == e]) for c in codes}
+                ).items()
+                if k in ("point", "lo", "hi", "half")
+            },
+        }
+        for e in rule.CHECKPOINTS
+        if (ecol == e).any()
+    }
+    e42 = res["vs_b0_raw_by_e"].get(42)
+    res["e42_invariant"] = (
+        None if e42 is None else {**e42, "ok": bool(e42["point"] >= -2.0 * e42["half"])}
+    )
     sl: dict[str, Any] = {}
-    for name, expr in SLICES.items():
-        mask = test.select(expr.alias("m"))["m"].to_numpy()
+    masks: dict[str, np.ndarray] = {
+        name: test.select(expr.alias("m"))["m"].to_numpy() for name, expr in SLICES.items()
+    }
+    masks["contested"] = (probs["b0raw"] >= CONTESTED[0]) & (probs["b0raw"] <= CONTESTED[1])
+    masks["starters"] = (test["starter"] == 1).to_numpy()
+    for name, mask in masks.items():
         if mask.sum() == 0:
             sl[name] = {"n": 0, "worst_delta": float("inf")}
             continue
@@ -426,8 +516,10 @@ def evaluate(test: pl.DataFrame, probs: dict[str, np.ndarray], stat: str) -> dic
             "vs_b0": r0,
             "vs_b1": r1,
             "worst_delta": max(r0["point"], r1["point"]),
+            "criterion": name in SLICES,
         }
     res["slices"] = sl
+    res["reliability_m"] = reliability(probs["m"], y)
     cells = []
     bucket = test.with_columns(
         ((pl.col("e") - 1) // 12).alias("q"),
@@ -442,20 +534,51 @@ def evaluate(test: pl.DataFrame, probs: dict[str, np.ndarray], stat: str) -> dic
                 "n": int(len(idx)),
                 "m_minus_b0": float(d0[idx].mean()),
                 "m_minus_b1": float(d1[idx].mean()),
+                "m_minus_b0_raw": float(dr[idx].mean()),
             }
         )
     res["cells"] = sorted(cells, key=lambda c: (c["bucket"], c["blowout"]))
     return res
 
 
+def stint_vs_box(states: dict[int, pl.DataFrame], finals: pl.DataFrame) -> dict[str, Any]:
+    """S6: stint regulation minutes (minutes at e = 42 plus the minutes after it) against box minutes, non-overtime games only (team box minutes within
+    1 of 240). Reported per season: the share of player-games within 1 minute. Replaces the by-construction 'stints tile' check as the identity check."""
+    out = {}
+    fin = finals.select("game_id", "player_id", "team_id", pl.col("minutes").alias("box"))
+    tot = fin.group_by("game_id", "team_id").agg(pl.col("box").sum().alias("tm"))
+    for s, st in states.items():
+        reg = st.filter(pl.col("e") == 42).select(
+            "game_id",
+            "team_id",
+            "player_id",
+            (pl.col("minutes") + pl.col("y_rem_min")).alias("stint"),
+        )
+        j = reg.join(fin, on=["game_id", "team_id", "player_id"], how="inner").join(
+            tot, on=["game_id", "team_id"], how="inner"
+        )
+        j = j.filter((pl.col("tm") - 240.0).abs() <= 1.0)
+        out[str(s)] = {
+            "n": j.height,
+            "within_1_min": float(np.mean(np.abs((j["stint"] - j["box"]).to_numpy()) <= 1.0))
+            if j.height
+            else None,
+        }
+    return out
+
+
 def run_pipeline(
     root: Path,
     finals_fn: FinalsFn,
     sha: str | None,
-    force_report: bool = False,
     seasons: tuple[int, ...] = rule.ALL_SEASONS,
     stats: tuple[str, ...] = rule.STATS,
+    synth_seed: int | None = None,
+    warm_states: bool = False,
 ) -> dict[str, Any]:
+    """The whole test. ``synth_seed`` (dryrun only) replaces every label by an outcome-blind draw; ``warm_states`` also builds the 2018 state so
+    the dryrun's synthetic provider can produce 2018 finals (the recency warm-up). In a dryrun ``force`` scoring of 2024 happens whatever the
+    select result is; in the real run a failed select criterion means 2024 is not scored."""
     t0 = time.time()
     res: dict[str, Any] = {
         "rule": rule.ID,
@@ -464,21 +587,24 @@ def run_pipeline(
         "versions": rule.versions(),
         "stats": {},
     }
-    states = load_states(root, seasons)
+    states = load_states(root, ((2018,) if warm_states else ()) + seasons)
     finals = finals_fn(root, (2018, *seasons), states)
+    states = {s: v for s, v in states.items() if s in seasons}
     rec = recency(finals)
     feat.log(f"finals {finals.height} rows; recency {rec.height} rows")
+    res["stint_vs_box"] = stint_vs_box(states, finals)
     sel_train = tuple(s for s in rule.TRAIN_SEASONS if s in seasons)
     rep_train = (*sel_train, rule.SELECT)
     stage_sel = fit_minutes_stage(minutes_rows(sel_train, states, rec))
     stage_rep = fit_minutes_stage(minutes_rows(rep_train, states, rec))
     feat.log(f"stage A fitted ({time.time() - t0:.0f}s)")
+    force = synth_seed is not None
     pts_select: dict[str, Any] | None = None
     for stat in stats:
         entry: dict[str, Any] = {}
         if stat == rule.PRIMARY:
             test, probs = score_fit(
-                sel_train, rule.SELECT, stat, root, states, rec, finals, stage_sel
+                sel_train, rule.SELECT, stat, root, states, rec, finals, stage_sel, synth_seed
             )
             pts_select = evaluate(test, probs, stat)
             entry["select_2023"] = pts_select
@@ -490,41 +616,36 @@ def run_pipeline(
             and pts_select["vs_b0"]["point"] <= -rule.FLOORS[stat]
             and pts_select["vs_b1"]["point"] <= -rule.FLOORS[stat]
         )
-        if stat == rule.PRIMARY and not sel_ok and not force_report:
+        if stat == rule.PRIMARY and not sel_ok and not force:
             entry["report_2024"] = "not scored: the 2023 select criteria (a) failed"
         else:
             test, probs = score_fit(
-                rep_train, rule.REPORT, stat, root, states, rec, finals, stage_rep
+                rep_train, rule.REPORT, stat, root, states, rec, finals, stage_rep, synth_seed
             )
             entry["report_2024"] = evaluate(test, probs, stat)
-            if stat == rule.PRIMARY:
-                _, shuf = score_fit(
-                    rep_train, rule.REPORT, stat, root, states, rec, finals, stage_rep, shuffle=True
-                )
-                y = test["y"].to_numpy()
-                entry["shuffled_gain_vs_b0"] = float(
-                    np.mean(rule.log_loss_rows(probs["b0"], y))
-                    - np.mean(rule.log_loss_rows(shuf["m"], y))
-                )
             feat.log(
                 f"{stat} report: M-B0 {entry['report_2024']['vs_b0']['point']:.5f} ({time.time() - t0:.0f}s)"
             )
         res["stats"][stat] = entry
         del test, probs
     pf = {str(s): feat.planted_future(s, root) for s in (rule.SELECT, rule.REPORT)}
+    tr = {str(s): feat.truncation_identity(s, root) for s in (rule.SELECT, rule.REPORT)}
     pf_ok = all(v["identical_before_cut"] and v["later_rows_differ"] for v in pf.values())
-    res["planted_future"] = pf
+    tr_ok = all(v["identical"] for v in tr.values())
+    res["planted_future"], res["truncation_identity"] = pf, tr
     prim = res["stats"].get(rule.PRIMARY)
     if prim and isinstance(prim.get("report_2024"), dict) and pts_select is not None:
         r = prim["report_2024"]
         res["primary"] = rule.primary_verdict(
             pts_select["vs_b0"]["point"], pts_select["vs_b1"]["point"], r["vs_b0"], r["vs_b1"], r["top5_share"], r["calibration_slope"],
-            {k: v["worst_delta"] for k, v in r["slices"].items()}, prim["shuffled_gain_vs_b0"], pf_ok,
+            {k: v["worst_delta"] for k, v in r["slices"].items() if v.get("criterion")}, r["vs_m0"], pf_ok, tr_ok,
         )  # fmt: skip
     sec = [
         s
         for s in rule.SECONDARY
-        if s in res["stats"] and isinstance(res["stats"][s].get("report_2024"), dict)
+        if s in res["stats"]
+        and isinstance(res["stats"][s].get("report_2024"), dict)
+        and (s != "ast" or tr_ok)
     ]
     if sec:
         pv = [
@@ -548,14 +669,17 @@ def run_pipeline(
     return res
 
 
-# --------------------------------------------------------------------------- synthetic outcomes (dryrun only)
+# --------------------------------------------------------------------------- synthetic provider (dryrun only)
 def synthetic_finals(
-    root: Path, seasons: tuple[int, ...], states: dict[int, pl.DataFrame], seed: int = 20261021
+    root: Path,
+    seasons: tuple[int, ...],
+    states: dict[int, pl.DataFrame],
+    seed: int = 20261021,
 ) -> pl.DataFrame:
-    """Seeded final lines drawn from B0's own distribution at each player's LAST checkpoint (final = current at e = 42 + NegBin remaining), one coherent
-    final per player-game and stat that can never be below any earlier current stat, so every line and checkpoint of a player-game is scored
-    against the same final. Seasons without state (2018)
-    contribute no rows. Not an outcome of any real game."""
+    """Seeded presence and recency source for the dryrun (M5, S7). One synthetic final per player-game and stat: current stat at the player's FIRST
+    checkpoint plus a draw from B0's own negative binomial at that checkpoint's state, and nothing after it -- no production beyond what the first
+    checkpoint's state already is. Seasons are those with a state, 2018 included (the warm-up path). The labels of the dryrun are NOT these finals
+    (``synthetic_y`` draws them per unit); these finals only feed ``recency`` / ``n_prior``."""
     rng = np.random.default_rng(seed)
     parts = []
     for s in sorted(states):
@@ -563,7 +687,7 @@ def synthetic_finals(
         first = (
             st.sort("game_id", "team_id", "player_id", "e")
             .group_by("game_id", "team_id", "player_id", maintain_order=True)
-            .last()
+            .first()
         )
         rem = np.asarray(
             rule.b0_remaining_minutes(
@@ -590,8 +714,9 @@ def synthetic_finals(
                 rule.MEAN_FLOOR,
             )
             n = mu / (rule.VMR[stat] - 1.0)
-            draw = rng.negative_binomial(n, n / (n + mu))
-            cols[stat] = pl.Series(first[stat].to_numpy() + draw).cast(pl.Int64)
+            cols[stat] = pl.Series(
+                first[stat].to_numpy() + rng.negative_binomial(n, n / (n + mu))
+            ).cast(pl.Int64)
         parts.append(pl.DataFrame(cols))
     return _finals_frame(pl.concat(parts))
 
@@ -607,7 +732,7 @@ def _no_outcomes(*args: Any, **kwargs: Any) -> pl.DataFrame:
 
 
 def check_finals_schema(root: Path, reader: Callable[..., pl.DataFrame]) -> None:
-    for s in (2019, 2023):
+    for s in (2018, 2019, 2023):
         sch = reader(root, (s,), schema_only=True)
         assert sch.height == 0 and dict(sch.schema) == FINALS_DTYPES, dict(sch.schema)
 
@@ -618,13 +743,12 @@ def dryrun(
     seasons: tuple[int, ...] = rule.ALL_SEASONS,
     stats: tuple[str, ...] = rule.STATS,
 ) -> dict[str, Any]:
-    """The ENTIRE path on the real units with SYNTHETIC outcomes. ``read_finals`` is replaced by a raiser for the duration (asserted before, during
-    and after); the pipeline gets its finals from ``synthetic_finals``. No frozen-rule check (nothing is claimed); ``force_report`` so the
-    report fit runs whatever the select result is. Results are meaningless as science and are labelled so."""
+    """The ENTIRE path on the real units with OUTCOME-BLIND synthetic labels (M5). ``read_finals`` is replaced by a raiser for the duration (asserted
+    before, during and after). Labels are drawn per unit from raw B0 at that unit's own state, so raw B0 is the exact truth: no honest model can
+    beat it, and ``vs_b0_raw`` / ``e42_invariant`` are outcome-free leak tests of the pipeline (M must not beat raw B0 by more than twice its
+    bootstrap half-width, at e = 42 and elsewhere). The primary verdict is expected to FAIL here."""
     global read_finals
     real = read_finals
-    # wiring check of the real reader's SQL and dtypes with ``limit 0`` (no row is read): one history season and one production season must give
-    # exactly the dtypes the synthetic provider produces, so the joins in the real run cannot fail on a type mismatch
     check_finals_schema(root, real)
     read_finals = _no_outcomes
     try:
@@ -635,14 +759,14 @@ def dryrun(
         except RuntimeError:
             pass
         res = run_pipeline(
-            root, synthetic_finals, None, force_report=True, seasons=seasons, stats=stats
+            root, synthetic_finals, None, seasons, stats, synth_seed=20261022, warm_states=True
         )
     finally:
         read_finals = real
     assert read_finals is real
     res["synthetic_outcomes_only"] = True
     res["note"] = (
-        "SYNTHETIC outcomes drawn from B0's own distribution; wiring proof only; no number here is evidence about the model"
+        "OUTCOME-BLIND synthetic labels: y ~ Bernoulli(raw B0 at the unit's own state); wiring and leak proof only; no number here is evidence about the model"
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(res, indent=1, default=str))
@@ -650,7 +774,8 @@ def dryrun(
 
 
 def run(sha: str, root: Path, out: Path = OUT) -> dict[str, Any]:
-    """The frozen test. Refuses unless frozen and pinned and the inputs match; the outcomes are read only after that."""
+    """The frozen test. Refuses unless frozen and pinned and the inputs match; the outcomes are read only after that (``compute_input_digests``
+    hashes the final table as a declared pin, the one mechanical read before the pipeline)."""
     rule.require_harness_pinned(sha)
     doc = (rule.ROOT / rule.DOC_REL).read_text()
     if rule.text_sha(doc) != sha:
@@ -658,7 +783,7 @@ def run(sha: str, root: Path, out: Path = OUT) -> dict[str, Any]:
     verify_inputs(rule.declared(doc), compute_input_digests(root))
     res = run_pipeline(
         root, real_finals, sha
-    )  # first outcome read happens inside, after every check above
+    )  # the pipeline's outcome reads happen only after every check above
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(res, indent=1, default=str))
     return res

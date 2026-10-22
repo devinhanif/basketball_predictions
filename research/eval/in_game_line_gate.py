@@ -202,7 +202,7 @@ def run_season(season: int, root: Path) -> dict[str, Any]:
     stints = feat.read_stints(season, root)
     comp = feat.completeness(games, pbp, stints)
     named, resolved_before = feat.ast_unresolved(pbp, feat.stat_events(pbp))
-    _, resolved = feat.ast_unresolved(pbp, feat.stat_events(pbp, feat.stint_rows(stints)))
+    _, resolved = feat.ast_unresolved(pbp, feat.stat_events(pbp, feat.stint_rows(stints), games))
     log(f"{season}: completeness full {_m(comp['full']):.4f}; building state")
     state = feat.state_frame(season, root, True, games, pbp, stints)
     out: dict[str, Any] = {
@@ -268,6 +268,8 @@ def verdict(res: dict[str, Any]) -> dict[str, Any]:
             pw = r["stats"][rule.PRIMARY]["power"]
             chk[f"{s}_de<={rule.GATE_DE_BAR}"] = pw["de_mean_half_width"] <= rule.GATE_DE_BAR
             chk[f"{s}_positive_control"] = pw["positive_control_all_clear"]
+    for s, tr in res["truncation_identity"].items():
+        chk[f"{s}_truncation_identity"] = bool(tr["identical"])
     for s, pf in res["planted_future"].items():
         chk[f"{s}_planted_future"] = bool(pf["identical_before_cut"] and pf["later_rows_differ"])
     return {
@@ -289,12 +291,14 @@ def main(argv: list[str] | None = None) -> int:
         "status": "gate run; label-free; DRAFT rule",
         "seasons": {},
         "planted_future": {},
+        "truncation_identity": {},
         "versions": rule.versions(),
     }
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     for s in a.seasons:
         res["seasons"][str(s)] = run_season(s, root)
+        res["truncation_identity"][str(s)] = feat.truncation_identity(s, root)
         if s in (rule.SELECT, rule.REPORT):
             res["planted_future"][str(s)] = feat.planted_future(s, root)
         out.write_text(json.dumps(res, indent=1, default=str))  # per-stage checkpoint
