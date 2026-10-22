@@ -22,11 +22,16 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import polars as pl
 
+from nba.features.injury_report import OFFICIAL_REPORT_SOURCE, ReportTriggerConfig
+from nba.props.context_residual import flagged_from_availability
 from research.archive.preseason_role_prior import preseason_role_prior as arch
+from research.eval import archetype_matchup_all_features as af
 from research.eval import archetype_matchup_all_rule as rule
 from research.eval import archetype_matchup_features as feat
 from research.eval import archetype_matchup_gate as g6
+from research.eval import archetype_matchup_rule as t506
 from research.eval import role_prior_salary_eval as ev
 
 OUT = Path("reports/prereg_archetype_matchup_all/gate.json")
@@ -200,6 +205,153 @@ def common_keys(S: int) -> tuple[pd.DataFrame, dict[str, int]]:
     return keys, {st: len(sets[st]) - len(inter) for st in rule.STATS}
 
 
+def insert_future_rows(mu: pd.DataFrame, cut: int, S: int, seed: int) -> pd.DataFrame:
+    """S3: a copy of ``mu`` with FUTURE structure planted (rows on or after day ``cut`` of season S): (1) 3,000 copies of future rows whose
+    defender is a NEW player id with 4x the minutes; (2) 3,000 other future rows whose defending team is changed to a different team. Nothing
+    on or before the day before the cut is touched."""
+    rng = np.random.default_rng(seed)
+    d = feat.to_day(mu.game_date)
+    fut = np.flatnonzero((d >= cut) & (mu.season.to_numpy() == S))
+    out = mu.copy()
+    teams = np.unique(mu.def_team.to_numpy())
+    chg = rng.choice(fut, size=min(3000, len(fut)), replace=False)
+    new_team = rng.choice(teams, size=len(chg))
+    dt = out.columns.get_loc("def_team")
+    out.iloc[chg, dt] = new_team
+    add = out.iloc[rng.choice(fut, size=min(3000, len(fut)), replace=False)].copy()
+    add["def_player_id"] = 9_000_000 + rng.integers(0, 50, size=len(add))
+    add["mm"] = add["mm"].to_numpy(float) * 4.0
+    return pd.concat([out, add], ignore_index=True)
+
+
+def planted_post_tip_out(c: Any, games: pd.DataFrame, max_season: int = 2024) -> dict[str, Any]:
+    """S3: official-report OUT rows planted with an ``as_of`` AFTER tip must change nothing in the usable pre-tip OUT set (production function,
+    ``tip_source="real"``), whether the game already has a usable report (its set must be unchanged) or has none (it must stay without one).
+    Positive control: a planted row stamped 36 hours BEFORE the game, on a game with no usable report, MUST create a report for it."""
+    g = pl.from_pandas(games.assign(game_date=pd.to_datetime(games.game_date).dt.date))
+    c.register("_allowed_games", games[["game_id"]])
+    avail = c.execute(
+        "select game_id, player_id, status, as_of, source from player_availability "
+        "where game_id in (select game_id from _allowed_games)"
+    ).pl()
+    cfg = ReportTriggerConfig(tip_source="real")
+    base, _ = flagged_from_availability(avail, g, cfg, max_season=max_season)
+    with_rep = sorted(base)[:: max(1, len(base) // 300)]
+    empty_all = sorted(set(games.game_id) - set(base))
+    empty = empty_all[:: max(1, len(empty_all) // 300)] if empty_all else []
+    tmpl = avail.filter(pl.col("source") == OFFICIAL_REPORT_SOURCE).head(1)
+
+    def planted(ids: list[str], hours: int, first_pid: int) -> pl.DataFrame:
+        if not ids:
+            return pl.DataFrame(avail.head(0))
+        df = pl.concat([tmpl] * len(ids)).with_columns(
+            pl.Series("game_id", ids).cast(avail.schema["game_id"]),
+            pl.Series("player_id", np.arange(len(ids)) + first_pid).cast(avail.schema["player_id"]),
+            pl.lit("Out").alias("status"),
+        )
+        df = df.join(g.select(["game_id", "game_date"]), on="game_id").with_columns(
+            (pl.col("game_date").cast(pl.Datetime("us")) + pl.duration(hours=hours))
+            .cast(avail.schema["as_of"])
+            .alias("as_of")
+        )
+        return pl.DataFrame(df.select(avail.columns))
+
+    post_rows = pl.concat([planted(with_rep, 27, 90_000_000), planted(empty, 27, 91_000_000)])
+    post, _ = flagged_from_availability(
+        pl.concat([avail, post_rows]), g, cfg, max_season=max_season
+    )
+    ctrl_rows = planted(empty, -36, 92_000_000)
+    ctrl, _ = flagged_from_availability(
+        pl.concat([avail, ctrl_rows]), g, cfg, max_season=max_season
+    )
+    detected = sum(
+        1 for gid in empty if gid in ctrl and (92_000_000 <= min(ctrl[gid]) < 93_000_000)
+    )
+    return {
+        "games_with_report_planted": len(with_rep),
+        "games_without_report_planted": len(empty),
+        "post_tip_sets_unchanged": bool(post == base),
+        "pre_tip_control_games_created": int(detected),
+        "pre_tip_control_detected": bool(len(empty) == 0 or detected == len(empty)),
+    }
+
+
+def planted_future_full(
+    sf: pd.DataFrame,
+    mu: pd.DataFrame,
+    games: pd.DataFrame,
+    flagged: dict[str, set[int]],
+    S: int,
+    tables: dict[str, Any],
+    off_a: pd.Series,
+    def_a: pd.Series,
+    c: Any,
+) -> dict[str, Any]:
+    """S3. (a) T506's value check (events scaled), (b) planted ROWS (new defenders, team changes) after the cut, (c) planted post-tip OUT rows.
+    ``identical`` needs all three plus the positive control: the same inserted rows MUST move features of rows after the cut."""
+    a = g6.planted_future(sf, mu, games, flagged, S, tables, off_a, def_a)
+    day = feat.to_day(sf.game_date)
+    cut = int(np.median(day))
+    before = sf[day < cut]
+    sub = before.iloc[:: max(1, len(before) // 1500)][g6.ROW_COLS].reset_index(drop=True)
+    pert = insert_future_rows(mu, cut, S, rule.SEED)
+    f0 = feat.mix_frame(sub, mu, games, flagged, S, tables, off_a, def_a)
+    f1 = feat.mix_frame(sub, pert, games, flagged, S, tables, off_a, def_a)
+    rows_same = bool(
+        all(
+            np.allclose(f0[k].to_numpy(float), f1[k].to_numpy(float), rtol=0, atol=1e-9)
+            for k in rule.FEATURES
+        )
+    )
+    after = sf[day >= cut + 20]
+    sub2 = after.iloc[:: max(1, len(after) // 800)][g6.ROW_COLS].reset_index(drop=True)
+    pert_all = pert[feat.to_day(pert.game_date) < cut + 20]
+    g0 = feat.mix_frame(
+        sub2, mu[feat.to_day(mu.game_date) < cut + 20], games, flagged, S, tables, off_a, def_a
+    )
+    g1 = feat.mix_frame(sub2, pert_all, games, flagged, S, tables, off_a, def_a)
+    moved = bool(
+        any(
+            not np.allclose(g0[k].to_numpy(float), g1[k].to_numpy(float), rtol=0, atol=1e-9)
+            for k in rule.FEATURES
+        )
+    )
+    out = planted_post_tip_out(c, games)
+    ok = bool(
+        a["identical"]
+        and rows_same
+        and moved
+        and out["post_tip_sets_unchanged"]
+        and out["pre_tip_control_detected"]
+    )
+    return {
+        "values_check": a,
+        "inserted_rows_before_cut_identical": rows_same,
+        "inserted_rows_move_later_features_positive_control": moved,
+        "queries_before_cut": int(len(sub)),
+        "rows_inserted": int(len(pert) - len(mu)),
+        "post_tip_out": out,
+        "identical": ok,
+    }
+
+
+def season_assertions(
+    mu: pd.DataFrame, games: pd.DataFrame, frames: dict[str, pd.DataFrame]
+) -> dict[str, Any]:
+    """S3: a real replacement of the old always-true "season 2025 loaded" line: the largest season/date actually read."""
+    last = max(pd.to_datetime(f.game_date).max() for f in frames.values())
+    return {
+        "max_season_matchups": int(mu.season.max()),
+        "max_season_games": int(games.season.max()),
+        "max_game_date_model_rows": str(last.date()),
+        "ok": bool(
+            mu.season.max() <= 2024
+            and games.season.max() <= 2024
+            and last < pd.Timestamp("2025-07-01")
+        ),
+    }
+
+
 def run(out: Path = OUT) -> dict[str, Any]:
     t0 = time.time()
     rule.check_floors()
@@ -210,7 +362,7 @@ def run(out: Path = OUT) -> dict[str, Any]:
     log(f"loaded matchups {len(mu)} games {len(games)} flagged games {len(flagged)}")
     gate: dict[str, Any] = {
         "id": rule.ID,
-        "status": "DRAFT gate, label-free (y and realised minutes never selected)",
+        "status": "DRAFT gate Run 2 (Amendment 2), label-free (y and realised minutes never selected)",
         "pins": {
             f"{s}_{st}": arch.file_sha256(arch.ODDS / f"model_rows_{s}_{st}.parquet")
             for s in (rule.SELECT, rule.REPORT)
@@ -228,30 +380,52 @@ def run(out: Path = OUT) -> dict[str, Any]:
             "noise_sigma": rule.NOISE_SIGMA,
             "CM_PASS": rule.CM_PASS,
             "HURT_MAX": rule.HURT_MAX,
+            "ALIGN_MIN_AGREE": rule.ALIGN_MIN_AGREE,
             "FLOORS": rule.FLOORS,
         },
         "seasons": {},
         "missingness": {},
         "power": {},
     }
+    seen: dict[str, pd.DataFrame] = {}
     for S in (rule.SELECT, rule.REPORT):
-        sf, meta, tables = g6.build_season(S, mu, games, flagged, c)
-        off_a, def_a = feat.build_archetypes(c, S)
-        meta["planted_future"] = g6.planted_future(
-            sf, mu[mu.season <= S], games, flagged, S, tables, off_a, def_a
-        )
+        off_a, def_a, align_rep = af.build_aligned_archetypes(c, S)
         keys, lost = common_keys(S)
+        pts_rows = arch.read_rows("pts", S, g6.ROW_COLS)
+        seen[str(S)] = pts_rows
+        sf, tables = af.season_frame(S, keys, pts_rows, mu, games, flagged, off_a, def_a)
+        meta: dict[str, Any] = {
+            "rows": int(len(sf)),
+            "games": int(sf.game_id.nunique()),
+            "alignment": align_rep,
+            "archetype_sizes": {
+                "off": {int(k): int(v) for k, v in off_a.value_counts().sort_index().items()},
+                "def": {int(k): int(v) for k, v in def_a.value_counts().sort_index().items()},
+                "players_clustered": int(len(off_a)),
+            },
+            "lg_rate_prior_season": tables["lg"],
+            "share_rows_no_roster": float(sf.no_roster.mean()),
+            "share_rows_game_has_usable_report": float(sf.has_report.mean()),
+            "off_arch_unknown_share": float((sf.off_arch == t506.UNK_OFF).mean()),
+            "shift_l1_quantiles": {
+                str(q): float(sf.shift_l1.quantile(q)) for q in (0.5, 0.75, 0.9, 0.95, 0.99)
+            },
+        }
+        meta["planted_future"] = planted_future_full(
+            sf, mu[mu.season <= S], games, flagged, S, tables, off_a, def_a, c
+        )
         meta["row_sets_four_stats"] = {
             "intersection_rows": int(len(keys)),
             "pts_rows": int(len(sf)),
             "dropped_by_intersection": lost,
-            "identical": bool(all(v == 0 for v in lost.values()) and len(keys) == len(sf)),
+            "identical": bool(all(v == 0 for v in lost.values())),
         }
         gate["seasons"][str(S)] = meta
         gate["missingness"][str(S)] = g6.missingness(sf)
-        log(f"season {S} features done; four-stat rows {len(keys)} (pts rows {len(sf)})")
+        log(f"season {S} features done; four-stat rows {len(keys)}")
         gate["power"][str(S)] = power_season(S, keys)
         del sf
+    gate["season_assertions"] = season_assertions(mu, games, seen)
     gate["checks"] = checks(gate)
     gate["verdict"] = "PASS" if all(ck["pass"] for ck in gate["checks"]) else "FAIL"
     gate["wall_seconds"] = round(time.time() - t0, 1)
@@ -289,7 +463,7 @@ def checks(g: dict[str, Any]) -> list[dict[str, Any]]:
             out.append(
                 g6.chk(
                     f"{S} {k}",
-                    pw["clusters"][k if k != "player_seasons" else "player_seasons"],
+                    pw["clusters"][k],
                     k,
                     v,
                 )
@@ -311,7 +485,24 @@ def checks(g: dict[str, Any]) -> list[dict[str, Any]]:
                 pw["positive_control_all_clear"],
             )
         )
-    out.append(g6.chk("season 2025 loaded", False, "never", True))
+    al = g["seasons"]["2024"]["alignment"]["offense"]
+    out.append(
+        g6.chk(
+            "M2 offense labels 2024 aligned to 2023: agreement over players clustered in both",
+            al["agreement_after"],
+            f">= {rule.ALIGN_MIN_AGREE}",
+            al["agreement_after"] >= rule.ALIGN_MIN_AGREE,
+        )
+    )
+    sa = g["season_assertions"]
+    out.append(
+        g6.chk(
+            "no season after 2024 read (max matchup season, max games season, max model_rows date)",
+            f"{sa['max_season_matchups']} / {sa['max_season_games']} / {sa['max_game_date_model_rows']}",
+            "<= 2024, < 2025-07-01",
+            sa["ok"],
+        )
+    )
     return out
 
 

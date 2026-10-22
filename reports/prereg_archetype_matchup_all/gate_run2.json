@@ -1,0 +1,2237 @@
+{
+ "id": "ARCHETYPE_MATCHUP_ALL",
+ "status": "DRAFT gate Run 2 (Amendment 2), label-free (y and realised minutes never selected)",
+ "pins": {
+  "2023_pts": "d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285",
+  "2023_reb": "337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805",
+  "2023_ast": "241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e",
+  "2023_fg3m": "96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe",
+  "2024_pts": "81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d",
+  "2024_reb": "bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e",
+  "2024_ast": "62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb",
+  "2024_fg3m": "6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136"
+ },
+ "bars": {
+  "MIN_ROWS": 300,
+  "MIN_PLAYER_SEASONS": 50,
+  "MIN_GAMES": 150,
+  "MIN_WEEKS": 20,
+  "GATE_DE_BAR_floor_units": 1.0,
+  "N_SEEDS": 20,
+  "POS_SEEDS": 5,
+  "POS_SIGMA": 0.2,
+  "noise_sigma": 0.05,
+  "CM_PASS": -1.0,
+  "HURT_MAX": 1.0,
+  "ALIGN_MIN_AGREE": 0.8,
+  "FLOORS": {
+   "pts": 0.005,
+   "reb": 0.003,
+   "ast": 0.002,
+   "fg3m": 0.001
+  }
+ },
+ "seasons": {
+  "2023": {
+   "rows": 25815,
+   "games": 1230,
+   "alignment": {
+    "reference": true,
+    "season": 2023,
+    "n_players_clustered": 407
+   },
+   "archetype_sizes": {
+    "off": {
+     "0": 46,
+     "1": 97,
+     "2": 118,
+     "3": 64,
+     "4": 46,
+     "5": 36
+    },
+    "def": {
+     "0": 118,
+     "1": 51,
+     "2": 123,
+     "3": 58,
+     "4": 27,
+     "5": 30
+    },
+    "players_clustered": 407
+   },
+   "lg_rate_prior_season": 0.24381080222783016,
+   "share_rows_no_roster": 0.011543676157272904,
+   "share_rows_game_has_usable_report": 0.999302730970366,
+   "off_arch_unknown_share": 0.1821421654077087,
+   "shift_l1_quantiles": {
+    "0.5": 0.11104457971148729,
+    "0.75": 0.21088090840502421,
+    "0.9": 0.32667133523545017,
+    "0.95": 0.4077229611868556,
+    "0.99": 0.6503153850055341
+   },
+   "planted_future": {
+    "values_check": {
+     "queries": 1597,
+     "cut_day": 19741,
+     "events_perturbed": 114686,
+     "identical": true
+    },
+    "inserted_rows_before_cut_identical": true,
+    "inserted_rows_move_later_features_positive_control": true,
+    "queries_before_cut": 1597,
+    "rows_inserted": 3000,
+    "post_tip_out": {
+     "games_with_report_planted": 308,
+     "games_without_report_planted": 3,
+     "post_tip_sets_unchanged": true,
+     "pre_tip_control_games_created": 3,
+     "pre_tip_control_detected": true
+    },
+    "identical": true
+   },
+   "row_sets_four_stats": {
+    "intersection_rows": 25815,
+    "pts_rows": 25815,
+    "dropped_by_intersection": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0,
+     "fg3m": 0
+    },
+    "identical": true
+   }
+  },
+  "2024": {
+   "rows": 25649,
+   "games": 1225,
+   "alignment": {
+    "reference": false,
+    "season": 2024,
+    "reference_season": 2023,
+    "offense": {
+     "agreement_before": 0.6428571428571429,
+     "agreement_after": 0.5565476190476191,
+     "n_players_in_both": 336,
+     "mapping": {
+      "0": 1,
+      "1": 2,
+      "2": 0,
+      "3": 3,
+      "4": 4,
+      "5": 5
+     }
+    },
+    "defense": {
+     "agreement_before": 0.7083333333333334,
+     "agreement_after": 0.7857142857142857,
+     "n_players_in_both": 336,
+     "mapping": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 4,
+      "4": 3,
+      "5": 5
+     }
+    },
+    "n_players_clustered": 413
+   },
+   "archetype_sizes": {
+    "off": {
+     "0": 115,
+     "1": 47,
+     "2": 97,
+     "3": 57,
+     "4": 52,
+     "5": 45
+    },
+    "def": {
+     "0": 125,
+     "1": 44,
+     "2": 121,
+     "3": 41,
+     "4": 49,
+     "5": 33
+    },
+    "players_clustered": 413
+   },
+   "lg_rate_prior_season": 0.24433764647746956,
+   "share_rows_no_roster": 0.012125229053764279,
+   "share_rows_game_has_usable_report": 1.0,
+   "off_arch_unknown_share": 0.21322468712230497,
+   "shift_l1_quantiles": {
+    "0.5": 0.13661630328349952,
+    "0.75": 0.23429568479698873,
+    "0.9": 0.3544558851783852,
+    "0.95": 0.4643078421823136,
+    "0.99": 0.732504175490134
+   },
+   "planted_future": {
+    "values_check": {
+     "queries": 1589,
+     "cut_day": 20106,
+     "events_perturbed": 116273,
+     "identical": true
+    },
+    "inserted_rows_before_cut_identical": true,
+    "inserted_rows_move_later_features_positive_control": true,
+    "queries_before_cut": 1589,
+    "rows_inserted": 3000,
+    "post_tip_out": {
+     "games_with_report_planted": 308,
+     "games_without_report_planted": 3,
+     "post_tip_sets_unchanged": true,
+     "pre_tip_control_games_created": 3,
+     "pre_tip_control_detected": true
+    },
+    "identical": true
+   },
+   "row_sets_four_stats": {
+    "intersection_rows": 25649,
+    "pts_rows": 25649,
+    "dropped_by_intersection": {
+     "pts": 0,
+     "reb": 0,
+     "ast": 0,
+     "fg3m": 0
+    },
+    "identical": true
+   }
+  }
+ },
+ "missingness": {
+  "2023": {
+   "off_arch": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.6904962153069807,
+     "10to20": 0.22723362418581786,
+     "20to28": 0.11795027289266222,
+     "ge28": 0.04974724264705882
+    },
+    "gap_lt10_vs_ge28": 0.6407489726599218,
+    "flagged": true
+   },
+   "e_usual": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.007148864592094197,
+     "10to20": 0.008971365368071771,
+     "20to28": 0.013038204972710734,
+     "ge28": 0.01401654411764706
+    },
+    "gap_lt10_vs_ge28": 0.006867679525552862,
+    "flagged": false
+   },
+   "delta_rate": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.3616484440706476,
+     "10to20": 0.35221826225881775,
+     "20to28": 0.3644633110976349,
+     "ge28": 0.36833639705882354
+    },
+    "gap_lt10_vs_ge28": 0.006687952988175927,
+    "flagged": false
+   },
+   "shift_l1": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.3616484440706476,
+     "10to20": 0.35221826225881775,
+     "20to28": 0.3644633110976349,
+     "ge28": 0.36833639705882354
+    },
+    "gap_lt10_vs_ge28": 0.006687952988175927,
+    "flagged": false
+   },
+   "retained": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.3616484440706476,
+     "10to20": 0.35221826225881775,
+     "20to28": 0.3644633110976349,
+     "ge28": 0.36833639705882354
+    },
+    "gap_lt10_vs_ge28": 0.006687952988175927,
+    "flagged": false
+   },
+   "def_unknown_share": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.14255677039529016,
+     "10to20": 0.057146368440457174,
+     "20to28": 0.03456640388114009,
+     "ge28": 0.019875919117647058
+    },
+    "gap_lt10_vs_ge28": 0.12268085127764311,
+    "flagged": false
+   },
+   "has_report_false": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.00042052144659377626,
+     "10to20": 0.0002457908320019663,
+     "20to28": 0.0006064281382656155,
+     "ge28": 0.0012637867647058824
+    },
+    "gap_lt10_vs_ge28": 0.0008432653181121062,
+    "flagged": false
+   },
+   "nan_cells_any_feature": 0
+  },
+  "2024": {
+   "off_arch": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.6325254104769351,
+     "10to20": 0.3201429327686607,
+     "20to28": 0.17364428210171395,
+     "ge28": 0.023286206486871807
+    },
+    "gap_lt10_vs_ge28": 0.6092392039900633,
+    "flagged": true
+   },
+   "e_usual": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.012509773260359656,
+     "10to20": 0.008999470619375331,
+     "20to28": 0.010396178701882551,
+     "ge28": 0.01627658310561958
+    },
+    "gap_lt10_vs_ge28": 0.003766809845259924,
+    "flagged": false
+   },
+   "delta_rate": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.29945269741985925,
+     "10to20": 0.32305452620434094,
+     "20to28": 0.3283225625175611,
+     "ge28": 0.33563027206843293
+    },
+    "gap_lt10_vs_ge28": 0.036177574648573685,
+    "flagged": false
+   },
+   "shift_l1": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.29945269741985925,
+     "10to20": 0.32305452620434094,
+     "20to28": 0.3283225625175611,
+     "ge28": 0.33563027206843293
+    },
+    "gap_lt10_vs_ge28": 0.036177574648573685,
+    "flagged": false
+   },
+   "retained": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.29945269741985925,
+     "10to20": 0.32305452620434094,
+     "20to28": 0.3283225625175611,
+     "ge28": 0.33563027206843293
+    },
+    "gap_lt10_vs_ge28": 0.036177574648573685,
+    "flagged": false
+   },
+   "def_unknown_share": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.18256450351837372,
+     "10to20": 0.09449444150344097,
+     "20to28": 0.0592863163810059,
+     "ge28": 0.017464654865153854
+    },
+    "gap_lt10_vs_ge28": 0.16509984865321986,
+    "flagged": false
+   },
+   "has_report_false": {
+    "neutral_share_by_min10_bucket": {
+     "lt10": 0.0,
+     "10to20": 0.0,
+     "20to28": 0.0,
+     "ge28": 0.0
+    },
+    "gap_lt10_vs_ge28": 0.0,
+    "flagged": false
+   },
+   "nan_cells_any_feature": 0
+  }
+ },
+ "power": {
+  "2023": {
+   "n_rows": 25815,
+   "clusters": {
+    "rows": 25815,
+    "player_seasons": 551,
+    "games": 1230,
+    "weeks": 25
+   },
+   "floors": {
+    "pts": 0.005,
+    "reb": 0.003,
+    "ast": 0.002,
+    "fg3m": 0.001
+   },
+   "detectable_cm_half_width_floor_units": {
+    "mean": 0.40013271338354917,
+    "sd": 0.0357120923438637,
+    "min": 0.34204306459499656,
+    "max": 0.45998679094693806,
+    "n_seeds": 20
+   },
+   "binding_clustering_counts": {
+    "game": 0,
+    "player_season": 17,
+    "week": 3
+   },
+   "cm_hw_by_clustering_mean": {
+    "game": 0.3160340629696166,
+    "player_season": 0.3961925547385875,
+    "week": 0.33242286391313164
+   },
+   "per_stat_detectable_floor_units": {
+    "pts": {
+     "mean": 1.0994448565437147,
+     "sd": 0.1412546117887499,
+     "min": 0.8846136520357711,
+     "max": 1.4675748755725775,
+     "n_seeds": 20
+    },
+    "reb": {
+     "mean": 0.6450352631469136,
+     "sd": 0.06588859715319766,
+     "min": 0.5378521413858894,
+     "max": 0.7856169966524245,
+     "n_seeds": 20
+    },
+    "ast": {
+     "mean": 0.6611177925712524,
+     "sd": 0.08404305438120026,
+     "min": 0.49100710764598915,
+     "max": 0.8829360212190067,
+     "n_seeds": 20
+    },
+    "fg3m": {
+     "mean": 0.5519371751528056,
+     "sd": 0.042267061955659296,
+     "min": 0.4748591507428242,
+     "max": 0.6316012456321302,
+     "n_seeds": 20
+    }
+   },
+   "per_stat_detectable_abs": {
+    "pts": {
+     "mean": 0.0054972242827185745,
+     "sd": 0.0007062730589437495,
+     "min": 0.0044230682601788555,
+     "max": 0.007337874377862888,
+     "n_seeds": 20
+    },
+    "reb": {
+     "mean": 0.0019351057894407403,
+     "sd": 0.00019766579145959299,
+     "min": 0.0016135564241576683,
+     "max": 0.0023568509899572735,
+     "n_seeds": 20
+    },
+    "ast": {
+     "mean": 0.001322235585142505,
+     "sd": 0.0001680861087624005,
+     "min": 0.0009820142152919783,
+     "max": 0.0017658720424380135,
+     "n_seeds": 20
+    },
+    "fg3m": {
+     "mean": 0.0005519371751528056,
+     "sd": 4.22670619556593e-05,
+     "min": 0.0004748591507428242,
+     "max": 0.0006316012456321302,
+     "n_seeds": 20
+    }
+   },
+   "mde80_cm_floor_units_descriptive": 0.5716181619764988,
+   "noise_seeds": [
+    {
+     "seed_index": 0,
+     "cm_hw_game": 0.3156181676599149,
+     "cm_hw_player_season": 0.3418765493125804,
+     "cm_hw_week": 0.3757192464066018,
+     "cm_hw_binding": 0.3757192464066018,
+     "binding": "week",
+     "cm_point": 1.857269663433651,
+     "per_stat_hw_floor_units": {
+      "pts": 0.8846136520357711,
+      "reb": 0.6750374676169629,
+      "ast": 0.6440975302211666,
+      "fg3m": 0.551227169955526
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.0044230682601788555,
+      "reb": 0.002025112402850889,
+      "ast": 0.0012881950604423332,
+      "fg3m": 0.000551227169955526
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.6783299672219936,
+      "reb": 0.5302652660005942,
+      "ast": 0.43585525837153766,
+      "fg3m": 0.21281917183952545
+     }
+    },
+    {
+     "seed_index": 1,
+     "cm_hw_game": 0.32116011595039684,
+     "cm_hw_player_season": 0.4471873160643327,
+     "cm_hw_week": 0.290463745937415,
+     "cm_hw_binding": 0.4471873160643327,
+     "binding": "player_season",
+     "cm_point": 2.130367205436694,
+     "per_stat_hw_floor_units": {
+      "pts": 1.2965291808184676,
+      "reb": 0.6400823433828206,
+      "ast": 0.6418076967927833,
+      "fg3m": 0.5517344880849798
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "game"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.006482645904092338,
+      "reb": 0.0019202470301484616,
+      "ast": 0.0012836153935855666,
+      "fg3m": 0.0005517344880849799
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.9493954080388833,
+      "reb": 0.4330084907625654,
+      "ast": 0.41432683815950766,
+      "fg3m": 0.3336364684757376
+     }
+    },
+    {
+     "seed_index": 2,
+     "cm_hw_game": 0.31155827577581674,
+     "cm_hw_player_season": 0.3980207254802661,
+     "cm_hw_week": 0.3931624250690735,
+     "cm_hw_binding": 0.3980207254802661,
+     "binding": "player_season",
+     "cm_point": 2.0293470039086996,
+     "per_stat_hw_floor_units": {
+      "pts": 1.2318470343349521,
+      "reb": 0.5980661459173368,
+      "ast": 0.7021084263431344,
+      "fg3m": 0.6316012456321302
+     },
+     "per_stat_binding": {
+      "pts": "week",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.00615923517167476,
+      "reb": 0.0017941984377520103,
+      "ast": 0.0014042168526862688,
+      "fg3m": 0.0006316012456321302
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8338594876885507,
+      "reb": 0.44913161474715413,
+      "ast": 0.46873675703443246,
+      "fg3m": 0.27761914443856217
+     }
+    },
+    {
+     "seed_index": 3,
+     "cm_hw_game": 0.31360111356528,
+     "cm_hw_player_season": 0.38992887778055874,
+     "cm_hw_week": 0.3691292969940839,
+     "cm_hw_binding": 0.38992887778055874,
+     "binding": "player_season",
+     "cm_point": 1.8536308336643235,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9339418414196295,
+      "reb": 0.7386619698467547,
+      "ast": 0.5541691588115936,
+      "fg3m": 0.515568850150718
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.004669709207098148,
+      "reb": 0.002215985909540264,
+      "ast": 0.0011083383176231872,
+      "fg3m": 0.0005155688501507179
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8202089912341418,
+      "reb": 0.6189572022306719,
+      "ast": 0.34390852843889075,
+      "fg3m": 0.07055611176061893
+     }
+    },
+    {
+     "seed_index": 4,
+     "cm_hw_game": 0.306643941918299,
+     "cm_hw_player_season": 0.40156517800693525,
+     "cm_hw_week": 0.34610631533089053,
+     "cm_hw_binding": 0.40156517800693525,
+     "binding": "player_season",
+     "cm_point": 2.309388872056743,
+     "per_stat_hw_floor_units": {
+      "pts": 1.096594611025712,
+      "reb": 0.6463702261573481,
+      "ast": 0.614421917425809,
+      "fg3m": 0.5179324454813168
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "week",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.00548297305512856,
+      "reb": 0.0019391106784720441,
+      "ast": 0.001228843834851618,
+      "fg3m": 0.0005179324454813168
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.0787443505504302,
+      "reb": 0.5506441539037809,
+      "ast": 0.39777567601340114,
+      "fg3m": 0.2822246915891305
+     }
+    },
+    {
+     "seed_index": 5,
+     "cm_hw_game": 0.3383435329597798,
+     "cm_hw_player_season": 0.3769745384314859,
+     "cm_hw_week": 0.3027517764041313,
+     "cm_hw_binding": 0.3769745384314859,
+     "binding": "player_season",
+     "cm_point": 1.92781543087077,
+     "per_stat_hw_floor_units": {
+      "pts": 1.085723356405585,
+      "reb": 0.7507509789171388,
+      "ast": 0.5553635436032067,
+      "fg3m": 0.5648678317356288
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "game"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005428616782027925,
+      "reb": 0.0022522529367514166,
+      "ast": 0.0011107270872064135,
+      "fg3m": 0.0005648678317356289
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7025552968529102,
+      "reb": 0.6495069485396839,
+      "ast": 0.3820803048859007,
+      "fg3m": 0.19367288059227536
+     }
+    },
+    {
+     "seed_index": 6,
+     "cm_hw_game": 0.32127126635791026,
+     "cm_hw_player_season": 0.4479753458937549,
+     "cm_hw_week": 0.32083817844529383,
+     "cm_hw_binding": 0.4479753458937549,
+     "binding": "player_season",
+     "cm_point": 2.408569340948836,
+     "per_stat_hw_floor_units": {
+      "pts": 1.1321892446712138,
+      "reb": 0.7856169966524245,
+      "ast": 0.6230505762118677,
+      "fg3m": 0.5529261848352773
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.00566094622335607,
+      "reb": 0.0023568509899572735,
+      "ast": 0.0012461011524237354,
+      "fg3m": 0.0005529261848352773
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.1171330887896134,
+      "reb": 0.5976897948149063,
+      "ast": 0.41643324077095717,
+      "fg3m": 0.27731321657335906
+     }
+    },
+    {
+     "seed_index": 7,
+     "cm_hw_game": 0.31788946993024225,
+     "cm_hw_player_season": 0.3871332769933784,
+     "cm_hw_week": 0.22770085439431342,
+     "cm_hw_binding": 0.3871332769933784,
+     "binding": "player_season",
+     "cm_point": 1.7873569376188017,
+     "per_stat_hw_floor_units": {
+      "pts": 1.1251871137876344,
+      "reb": 0.6136513320144618,
+      "ast": 0.7157702380602489,
+      "fg3m": 0.4748591507428242
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "game"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005625935568938172,
+      "reb": 0.0018409539960433853,
+      "ast": 0.0014315404761204977,
+      "fg3m": 0.0004748591507428242
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7967513424620938,
+      "reb": 0.452941407082879,
+      "ast": 0.3431598488551035,
+      "fg3m": 0.19450433921872534
+     }
+    },
+    {
+     "seed_index": 8,
+     "cm_hw_game": 0.3167262048391747,
+     "cm_hw_player_season": 0.41691749101552256,
+     "cm_hw_week": 0.28208096622256185,
+     "cm_hw_binding": 0.41691749101552256,
+     "binding": "player_season",
+     "cm_point": 1.900084272244537,
+     "per_stat_hw_floor_units": {
+      "pts": 1.1543025454462446,
+      "reb": 0.5747525282987991,
+      "ast": 0.6306265026047191,
+      "fg3m": 0.5172319904715273
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "game"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005771512727231223,
+      "reb": 0.0017242575848963972,
+      "ast": 0.0012612530052094383,
+      "fg3m": 0.0005172319904715273
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.898499428956661,
+      "reb": 0.48109027585024083,
+      "ast": 0.3117676393201733,
+      "fg3m": 0.20872692811746224
+     }
+    },
+    {
+     "seed_index": 9,
+     "cm_hw_game": 0.3228822857409499,
+     "cm_hw_player_season": 0.35645848514547496,
+     "cm_hw_week": 0.32485733190646215,
+     "cm_hw_binding": 0.35645848514547496,
+     "binding": "player_season",
+     "cm_point": 1.8485422987188946,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0491285473735064,
+      "reb": 0.5912274963315021,
+      "ast": 0.656376433175082,
+      "fg3m": 0.5715942217024081
+     },
+     "per_stat_binding": {
+      "pts": "week",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005245642736867532,
+      "reb": 0.0017736824889945063,
+      "ast": 0.001312752866350164,
+      "fg3m": 0.0005715942217024082
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7960966421577608,
+      "reb": 0.450018422433149,
+      "ast": 0.32986262449827425,
+      "fg3m": 0.27256460962971046
+     }
+    },
+    {
+     "seed_index": 10,
+     "cm_hw_game": 0.31346619951871824,
+     "cm_hw_player_season": 0.45998679094693806,
+     "cm_hw_week": 0.3336666273326052,
+     "cm_hw_binding": 0.45998679094693806,
+     "binding": "player_season",
+     "cm_point": 2.2473505077699083,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0528247042607015,
+      "reb": 0.6934565833940302,
+      "ast": 0.8829360212190067,
+      "fg3m": 0.5907180346386312
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005264123521303507,
+      "reb": 0.0020803697501820904,
+      "ast": 0.0017658720424380135,
+      "fg3m": 0.0005907180346386312
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8626405747711104,
+      "reb": 0.44929562403699874,
+      "ast": 0.6145566259346334,
+      "fg3m": 0.3208576830271656
+     }
+    },
+    {
+     "seed_index": 11,
+     "cm_hw_game": 0.31146648244307873,
+     "cm_hw_player_season": 0.41467605587321643,
+     "cm_hw_week": 0.3676813922009379,
+     "cm_hw_binding": 0.41467605587321643,
+     "binding": "player_season",
+     "cm_point": 2.0111506133843915,
+     "per_stat_hw_floor_units": {
+      "pts": 1.06930056074981,
+      "reb": 0.5717398342051628,
+      "ast": 0.7544972788986647,
+      "fg3m": 0.6146909891273431
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.00534650280374905,
+      "reb": 0.0017152195026154885,
+      "ast": 0.0015089945577973294,
+      "fg3m": 0.0006146909891273431
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.0012524065652895,
+      "reb": 0.42729098997244735,
+      "ast": 0.3062616713864905,
+      "fg3m": 0.27634554546016415
+     }
+    },
+    {
+     "seed_index": 12,
+     "cm_hw_game": 0.32435866132905755,
+     "cm_hw_player_season": 0.39349168273876645,
+     "cm_hw_week": 0.40957322219040804,
+     "cm_hw_binding": 0.40957322219040804,
+     "binding": "week",
+     "cm_point": 2.011915571623836,
+     "per_stat_hw_floor_units": {
+      "pts": 1.1507671779724402,
+      "reb": 0.6721559839993313,
+      "ast": 0.5969290836967515,
+      "fg3m": 0.5361752849934536
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "game",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005753835889862201,
+      "reb": 0.002016467951997994,
+      "ast": 0.001193858167393503,
+      "fg3m": 0.0005361752849934536
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.9768800065761533,
+      "reb": 0.5105857000146936,
+      "ast": 0.331256540430852,
+      "fg3m": 0.19319332460213726
+     }
+    },
+    {
+     "seed_index": 13,
+     "cm_hw_game": 0.3005118486852608,
+     "cm_hw_player_season": 0.34778429116443654,
+     "cm_hw_week": 0.3305017626953306,
+     "cm_hw_binding": 0.34778429116443654,
+     "binding": "player_season",
+     "cm_point": 1.945045421924487,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9081184036450928,
+      "reb": 0.5378521413858894,
+      "ast": 0.6828393291982762,
+      "fg3m": 0.5520665498057153
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.004540592018225464,
+      "reb": 0.0016135564241576683,
+      "ast": 0.0013656786583965523,
+      "fg3m": 0.0005520665498057153
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7991346452508162,
+      "reb": 0.39112914248155256,
+      "ast": 0.44242341470051044,
+      "fg3m": 0.3123582194916077
+     }
+    },
+    {
+     "seed_index": 14,
+     "cm_hw_game": 0.32412850359698697,
+     "cm_hw_player_season": 0.38626642714961046,
+     "cm_hw_week": 0.41514536350318043,
+     "cm_hw_binding": 0.41514536350318043,
+     "binding": "week",
+     "cm_point": 2.0287505790722142,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9776828498447243,
+      "reb": 0.6867238429620437,
+      "ast": 0.7282131865060936,
+      "fg3m": 0.5541159066631249
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "week",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.0048884142492236216,
+      "reb": 0.002060171528886131,
+      "ast": 0.0014564263730121871,
+      "fg3m": 0.000554115906663125
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8024040872980108,
+      "reb": 0.4395321803581337,
+      "ast": 0.5001924264262926,
+      "fg3m": 0.2866218849897771
+     }
+    },
+    {
+     "seed_index": 15,
+     "cm_hw_game": 0.3145467406568525,
+     "cm_hw_player_season": 0.4584995124511325,
+     "cm_hw_week": 0.3216824325822254,
+     "cm_hw_binding": 0.4584995124511325,
+     "binding": "player_season",
+     "cm_point": 2.40965143544183,
+     "per_stat_hw_floor_units": {
+      "pts": 1.4675748755725775,
+      "reb": 0.6503243575832982,
+      "ast": 0.7171082139590744,
+      "fg3m": 0.5420081372279666
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.007337874377862888,
+      "reb": 0.0019509730727498946,
+      "ast": 0.001434216427918149,
+      "fg3m": 0.0005420081372279666
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.1884911668501084,
+      "reb": 0.4094028097487886,
+      "ast": 0.49873847428995177,
+      "fg3m": 0.31301898455298094
+     }
+    },
+    {
+     "seed_index": 16,
+     "cm_hw_game": 0.31591384665615596,
+     "cm_hw_player_season": 0.34204306459499656,
+     "cm_hw_week": 0.3249411457395849,
+     "cm_hw_binding": 0.34204306459499656,
+     "binding": "player_season",
+     "cm_point": 1.784841375847587,
+     "per_stat_hw_floor_units": {
+      "pts": 1.059646289226454,
+      "reb": 0.5758602676486588,
+      "ast": 0.6437624400529747,
+      "fg3m": 0.49442322593942156
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "game"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.0052982314461322705,
+      "reb": 0.0017275808029459765,
+      "ast": 0.0012875248801059495,
+      "fg3m": 0.0004944232259394216
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8482306631347677,
+      "reb": 0.40617373420275266,
+      "ast": 0.32300443583666305,
+      "fg3m": 0.20743254267340347
+     }
+    },
+    {
+     "seed_index": 17,
+     "cm_hw_game": 0.31181799242682406,
+     "cm_hw_player_season": 0.3756044443975426,
+     "cm_hw_week": 0.2862141110838141,
+     "cm_hw_binding": 0.3756044443975426,
+     "binding": "player_season",
+     "cm_point": 1.9838772950053478,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9768119246620149,
+      "reb": 0.5829196068797176,
+      "ast": 0.7026502623687941,
+      "fg3m": 0.629850802851572
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "week",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.004884059623310075,
+      "reb": 0.0017487588206391525,
+      "ast": 0.0014053005247375882,
+      "fg3m": 0.0006298508028515721
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8303247614301876,
+      "reb": 0.48376871384513237,
+      "ast": 0.4416667873504409,
+      "fg3m": 0.22811703237958653
+     }
+    },
+    {
+     "seed_index": 18,
+     "cm_hw_game": 0.298243532866725,
+     "cm_hw_player_season": 0.4200490652462914,
+     "cm_hw_week": 0.3139753349304568,
+     "cm_hw_binding": 0.4200490652462914,
+     "binding": "player_season",
+     "cm_point": 1.7581617026247172,
+     "per_stat_hw_floor_units": {
+      "pts": 1.2753186869155506,
+      "reb": 0.6489193061564333,
+      "ast": 0.49100710764598915,
+      "fg3m": 0.5073020542222693
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.006376593434577753,
+      "reb": 0.0019467579184693,
+      "ast": 0.0009820142152919783,
+      "fg3m": 0.0005073020542222693
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8723040803836984,
+      "reb": 0.46756179187348623,
+      "ast": 0.28469314552306757,
+      "fg3m": 0.13360268484446497
+     }
+    },
+    {
+     "seed_index": 19,
+     "cm_hw_game": 0.32053307651490803,
+     "cm_hw_player_season": 0.3614119760845296,
+     "cm_hw_week": 0.31226574889326175,
+     "cm_hw_binding": 0.3614119760845296,
+     "binding": "player_season",
+     "cm_point": 1.9630670594092472,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0607945307062119,
+      "reb": 0.6665358535881558,
+      "ast": 0.6846209046298134,
+      "fg3m": 0.5678489387942792
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.00530397265353106,
+      "reb": 0.0019996075607644674,
+      "ast": 0.0013692418092596267,
+      "fg3m": 0.0005678489387942792
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8574936013267306,
+      "reb": 0.43908270360654106,
+      "ast": 0.3458905790763546,
+      "fg3m": 0.3206001753996209
+     }
+    }
+   ],
+   "positive_control": {
+    "oracle_sigma0.20": [
+     {
+      "seed_index": 0,
+      "cm_point": -31.710916258945034,
+      "ci": [
+       -35.84777956134189,
+       -27.65624741873708
+      ],
+      "binding": "player_season",
+      "top5": 0.10537786052783593,
+      "clears": true
+     },
+     {
+      "seed_index": 1,
+      "cm_point": -30.74034842541112,
+      "ci": [
+       -35.67501018331142,
+       -26.75630239813384
+      ],
+      "binding": "player_season",
+      "top5": 0.12388315132053479,
+      "clears": true
+     },
+     {
+      "seed_index": 2,
+      "cm_point": -32.20002262741288,
+      "ci": [
+       -36.93338501782923,
+       -27.605647847326278
+      ],
+      "binding": "player_season",
+      "top5": 0.12877802934227228,
+      "clears": true
+     },
+     {
+      "seed_index": 3,
+      "cm_point": -31.0093465258689,
+      "ci": [
+       -35.40038254883674,
+       -26.910391575775268
+      ],
+      "binding": "player_season",
+      "top5": 0.1071738326349662,
+      "clears": true
+     },
+     {
+      "seed_index": 4,
+      "cm_point": -31.244765476815296,
+      "ci": [
+       -35.52567938898737,
+       -27.20536075044717
+      ],
+      "binding": "player_season",
+      "top5": 0.10897324433043878,
+      "clears": true
+     }
+    ],
+    "oracle_sigma0.10": [
+     {
+      "seed_index": 0,
+      "cm_point": -8.197081474577006,
+      "ci": [
+       -9.466823445909345,
+       -7.00249361446071
+      ],
+      "binding": "player_season",
+      "top5": 0.11755044751389163,
+      "clears": true
+     },
+     {
+      "seed_index": 1,
+      "cm_point": -7.520495850492418,
+      "ci": [
+       -8.77077688326638,
+       -6.426808244783286
+      ],
+      "binding": "player_season",
+      "top5": 0.12398235654987635,
+      "clears": true
+     },
+     {
+      "seed_index": 2,
+      "cm_point": -7.952216436297277,
+      "ci": [
+       -9.24379908299748,
+       -6.674664609504998
+      ],
+      "binding": "player_season",
+      "top5": 0.12592042424672029,
+      "clears": true
+     },
+     {
+      "seed_index": 3,
+      "cm_point": -7.626252072962894,
+      "ci": [
+       -8.800400214900744,
+       -6.50870162256929
+      ],
+      "binding": "player_season",
+      "top5": 0.10324536931668143,
+      "clears": true
+     },
+     {
+      "seed_index": 4,
+      "cm_point": -8.038574052433596,
+      "ci": [
+       -9.306266827219458,
+       -6.895117214012612
+      ],
+      "binding": "player_season",
+      "top5": 0.11940614225121957,
+      "clears": true
+     }
+    ]
+   },
+   "positive_control_all_clear": true
+  },
+  "2024": {
+   "n_rows": 25649,
+   "clusters": {
+    "rows": 25649,
+    "player_seasons": 551,
+    "games": 1225,
+    "weeks": 25
+   },
+   "floors": {
+    "pts": 0.005,
+    "reb": 0.003,
+    "ast": 0.002,
+    "fg3m": 0.001
+   },
+   "detectable_cm_half_width_floor_units": {
+    "mean": 0.3901055941507495,
+    "sd": 0.04126914119941911,
+    "min": 0.329576351872902,
+    "max": 0.4850930107052971,
+    "n_seeds": 20
+   },
+   "binding_clustering_counts": {
+    "game": 1,
+    "player_season": 19,
+    "week": 0
+   },
+   "cm_hw_by_clustering_mean": {
+    "game": 0.3243777722407586,
+    "player_season": 0.3891987982032009,
+    "week": 0.3171086383318425
+   },
+   "per_stat_detectable_floor_units": {
+    "pts": {
+     "mean": 1.0774076389550298,
+     "sd": 0.15025215262126396,
+     "min": 0.8534065381883721,
+     "max": 1.4259687103235092,
+     "n_seeds": 20
+    },
+    "reb": {
+     "mean": 0.6843690725753657,
+     "sd": 0.0944962617481812,
+     "min": 0.5409779222370259,
+     "max": 0.8933877759811675,
+     "n_seeds": 20
+    },
+    "ast": {
+     "mean": 0.6435510116603695,
+     "sd": 0.08996030884272453,
+     "min": 0.47418691792650164,
+     "max": 0.8230073319622163,
+     "n_seeds": 20
+    },
+    "fg3m": {
+     "mean": 0.5787016184815393,
+     "sd": 0.045081665968679234,
+     "min": 0.4743697606179218,
+     "max": 0.6715525160448388,
+     "n_seeds": 20
+    }
+   },
+   "per_stat_detectable_abs": {
+    "pts": {
+     "mean": 0.005387038194775149,
+     "sd": 0.0007512607631063199,
+     "min": 0.004267032690941861,
+     "max": 0.007129843551617546,
+     "n_seeds": 20
+    },
+    "reb": {
+     "mean": 0.0020531072177260978,
+     "sd": 0.00028348878524454363,
+     "min": 0.0016229337667110779,
+     "max": 0.0026801633279435024,
+     "n_seeds": 20
+    },
+    "ast": {
+     "mean": 0.0012871020233207393,
+     "sd": 0.00017992061768544907,
+     "min": 0.0009483738358530033,
+     "max": 0.0016460146639244327,
+     "n_seeds": 20
+    },
+    "fg3m": {
+     "mean": 0.0005787016184815392,
+     "sd": 4.508166596867923e-05,
+     "min": 0.0004743697606179218,
+     "max": 0.0006715525160448388,
+     "n_seeds": 20
+    }
+   },
+   "mde80_cm_floor_units_descriptive": 0.5572937059296421,
+   "noise_seeds": [
+    {
+     "seed_index": 0,
+     "cm_hw_game": 0.3388278522556427,
+     "cm_hw_player_season": 0.39963141972829497,
+     "cm_hw_week": 0.371864072119911,
+     "cm_hw_binding": 0.39963141972829497,
+     "binding": "player_season",
+     "cm_point": 2.2581841930622124,
+     "per_stat_hw_floor_units": {
+      "pts": 1.1360947234649412,
+      "reb": 0.6778747534520181,
+      "ast": 0.574125057040831,
+      "fg3m": 0.5942922423847131
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "week",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005680473617324706,
+      "reb": 0.0020336242603560544,
+      "ast": 0.001148250114081662,
+      "fg3m": 0.0005942922423847132
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.0133015698605954,
+      "reb": 0.528900320969649,
+      "ast": 0.3788488297399175,
+      "fg3m": 0.3371334724920499
+     }
+    },
+    {
+     "seed_index": 1,
+     "cm_hw_game": 0.329576351872902,
+     "cm_hw_player_season": 0.3114404329219299,
+     "cm_hw_week": 0.30293876059048963,
+     "cm_hw_binding": 0.329576351872902,
+     "binding": "game",
+     "cm_point": 1.8969420464277176,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9038953396675808,
+      "reb": 0.6194539246862804,
+      "ast": 0.6548565097300164,
+      "fg3m": 0.6308501067334661
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "week",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.0045194766983379046,
+      "reb": 0.0018583617740588411,
+      "ast": 0.0013097130194600329,
+      "fg3m": 0.0006308501067334661
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8012740746397852,
+      "reb": 0.5277532761198291,
+      "ast": 0.3795484524390689,
+      "fg3m": 0.1883662432290343
+     }
+    },
+    {
+     "seed_index": 2,
+     "cm_hw_game": 0.32757113448425546,
+     "cm_hw_player_season": 0.3606666442122961,
+     "cm_hw_week": 0.3508442143012963,
+     "cm_hw_binding": 0.3606666442122961,
+     "binding": "player_season",
+     "cm_point": 2.080530713716752,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0129424723839475,
+      "reb": 0.6510601951808627,
+      "ast": 0.647309807626201,
+      "fg3m": 0.5974015408708774
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005064712361919738,
+      "reb": 0.001953180585542588,
+      "ast": 0.001294619615252402,
+      "fg3m": 0.0005974015408708774
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7069445060574595,
+      "reb": 0.47373961427926986,
+      "ast": 0.5445775714274312,
+      "fg3m": 0.35526902195259147
+     }
+    },
+    {
+     "seed_index": 3,
+     "cm_hw_game": 0.30328807019655546,
+     "cm_hw_player_season": 0.35257715331051287,
+     "cm_hw_week": 0.271814344636493,
+     "cm_hw_binding": 0.35257715331051287,
+     "binding": "player_season",
+     "cm_point": 1.94348259744198,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9052139488450319,
+      "reb": 0.7923975212904321,
+      "ast": 0.47418691792650164,
+      "fg3m": 0.5594895985024776
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "week",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.0045260697442251595,
+      "reb": 0.002377192563871296,
+      "ast": 0.0009483738358530033,
+      "fg3m": 0.0005594895985024776
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.793931740545526,
+      "reb": 0.6777467218427123,
+      "ast": 0.19229545229473588,
+      "fg3m": 0.2795086827590063
+     }
+    },
+    {
+     "seed_index": 4,
+     "cm_hw_game": 0.32919568403633126,
+     "cm_hw_player_season": 0.3778129923704572,
+     "cm_hw_week": 0.36525472206898935,
+     "cm_hw_binding": 0.3778129923704572,
+     "binding": "player_season",
+     "cm_point": 1.9687453803468093,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0882068552706874,
+      "reb": 0.5409779222370259,
+      "ast": 0.5317310913689661,
+      "fg3m": 0.5621474753775542
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "game",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005441034276353437,
+      "reb": 0.0016229337667110779,
+      "ast": 0.0010634621827379323,
+      "fg3m": 0.0005621474753775542
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8721970858896423,
+      "reb": 0.32432531093496325,
+      "ast": 0.46904207140206966,
+      "fg3m": 0.30318091212013404
+     }
+    },
+    {
+     "seed_index": 5,
+     "cm_hw_game": 0.33162797406849476,
+     "cm_hw_player_season": 0.3854276458464121,
+     "cm_hw_week": 0.312686347545428,
+     "cm_hw_binding": 0.3854276458464121,
+     "binding": "player_season",
+     "cm_point": 2.1362447192031535,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9610359086071706,
+      "reb": 0.705864831185194,
+      "ast": 0.7642408174699218,
+      "fg3m": 0.6294922586616495
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.004805179543035853,
+      "reb": 0.0021175944935555822,
+      "ast": 0.0015284816349398437,
+      "fg3m": 0.0006294922586616496
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7960425951426987,
+      "reb": 0.47221156118379043,
+      "ast": 0.5362527381632605,
+      "fg3m": 0.33173782471340374
+     }
+    },
+    {
+     "seed_index": 6,
+     "cm_hw_game": 0.32274064730135654,
+     "cm_hw_player_season": 0.3450701723545119,
+     "cm_hw_week": 0.3010199954721636,
+     "cm_hw_binding": 0.3450701723545119,
+     "binding": "player_season",
+     "cm_point": 1.8444560684886007,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9589636706063903,
+      "reb": 0.5937309780434401,
+      "ast": 0.5478164684127776,
+      "fg3m": 0.5537160354379439
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "week",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.004794818353031952,
+      "reb": 0.0017811929341303204,
+      "ast": 0.0010956329368255553,
+      "fg3m": 0.0005537160354379439
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.6099208055261761,
+      "reb": 0.47957616178060597,
+      "ast": 0.4019677603050228,
+      "fg3m": 0.35299134087679573
+     }
+    },
+    {
+     "seed_index": 7,
+     "cm_hw_game": 0.3309291321057526,
+     "cm_hw_player_season": 0.43593576715677873,
+     "cm_hw_week": 0.2626920690340988,
+     "cm_hw_binding": 0.43593576715677873,
+     "binding": "player_season",
+     "cm_point": 2.322658639754283,
+     "per_stat_hw_floor_units": {
+      "pts": 1.2287007232357146,
+      "reb": 0.7038771345334165,
+      "ast": 0.7098126580363261,
+      "fg3m": 0.6369755635051713
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.006143503616178573,
+      "reb": 0.0021116314036002497,
+      "ast": 0.0014196253160726523,
+      "fg3m": 0.0006369755635051713
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.093025822359312,
+      "reb": 0.4835701849104917,
+      "ast": 0.42404691739868916,
+      "fg3m": 0.3220157150857907
+     }
+    },
+    {
+     "seed_index": 8,
+     "cm_hw_game": 0.31531929214791643,
+     "cm_hw_player_season": 0.45740901629780695,
+     "cm_hw_week": 0.37552276209226687,
+     "cm_hw_binding": 0.45740901629780695,
+     "binding": "player_season",
+     "cm_point": 2.353382581868457,
+     "per_stat_hw_floor_units": {
+      "pts": 1.314056898869775,
+      "reb": 0.645321928721803,
+      "ast": 0.7192375064116042,
+      "fg3m": 0.6040915218267088
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "week",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.006570284494348875,
+      "reb": 0.0019359657861654092,
+      "ast": 0.0014384750128232085,
+      "fg3m": 0.0006040915218267088
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.1100625519155114,
+      "reb": 0.33393370879933665,
+      "ast": 0.5718191687333599,
+      "fg3m": 0.33756715242024854
+     }
+    },
+    {
+     "seed_index": 9,
+     "cm_hw_game": 0.3477060729989705,
+     "cm_hw_player_season": 0.43259252029677964,
+     "cm_hw_week": 0.26093235199667997,
+     "cm_hw_binding": 0.43259252029677964,
+     "binding": "player_season",
+     "cm_point": 2.317662016890278,
+     "per_stat_hw_floor_units": {
+      "pts": 1.222662591521631,
+      "reb": 0.8933877759811675,
+      "ast": 0.5739496828006609,
+      "fg3m": 0.5562507788053235
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.006113312957608155,
+      "reb": 0.0026801633279435024,
+      "ast": 0.001147899365601322,
+      "fg3m": 0.0005562507788053235
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 1.0603822271373096,
+      "reb": 0.6651976524561232,
+      "ast": 0.3624119420412737,
+      "fg3m": 0.22967019525557145
+     }
+    },
+    {
+     "seed_index": 10,
+     "cm_hw_game": 0.3044982298334076,
+     "cm_hw_player_season": 0.34670071792459123,
+     "cm_hw_week": 0.3134782379229427,
+     "cm_hw_binding": 0.34670071792459123,
+     "binding": "player_season",
+     "cm_point": 1.8046150109122585,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0769212616673265,
+      "reb": 0.6938308317033818,
+      "ast": 0.611544433429516,
+      "fg3m": 0.5540500564848758
+     },
+     "per_stat_binding": {
+      "pts": "week",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005384606308336632,
+      "reb": 0.0020814924951101455,
+      "ast": 0.001223088866859032,
+      "fg3m": 0.0005540500564848759
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.6485492329831939,
+      "reb": 0.41671177028167367,
+      "ast": 0.43882144741568996,
+      "fg3m": 0.3005325602317007
+     }
+    },
+    {
+     "seed_index": 11,
+     "cm_hw_game": 0.32645867786341176,
+     "cm_hw_player_season": 0.4850930107052971,
+     "cm_hw_week": 0.29998726252574315,
+     "cm_hw_binding": 0.4850930107052971,
+     "binding": "player_season",
+     "cm_point": 2.133595013603253,
+     "per_stat_hw_floor_units": {
+      "pts": 1.4259687103235092,
+      "reb": 0.7738400365460475,
+      "ast": 0.6929946220092502,
+      "fg3m": 0.4743697606179218
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.007129843551617546,
+      "reb": 0.0023215201096381424,
+      "ast": 0.0013859892440185005,
+      "fg3m": 0.0004743697606179218
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.9459272516894957,
+      "reb": 0.6215776231739957,
+      "ast": 0.3303966658435082,
+      "fg3m": 0.23569347289625356
+     }
+    },
+    {
+     "seed_index": 12,
+     "cm_hw_game": 0.2996045126868089,
+     "cm_hw_player_season": 0.3984552532848291,
+     "cm_hw_week": 0.37209672059689747,
+     "cm_hw_binding": 0.3984552532848291,
+     "binding": "player_season",
+     "cm_point": 1.9506576292075257,
+     "per_stat_hw_floor_units": {
+      "pts": 1.070080808875915,
+      "reb": 0.676366174874917,
+      "ast": 0.5884599492057214,
+      "fg3m": 0.5262776011279107
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005350404044379575,
+      "reb": 0.002029098524624751,
+      "ast": 0.001176919898411443,
+      "fg3m": 0.0005262776011279107
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7772839938261739,
+      "reb": 0.5460895850931028,
+      "ast": 0.396537777480983,
+      "fg3m": 0.23074627280726584
+     }
+    },
+    {
+     "seed_index": 13,
+     "cm_hw_game": 0.3190893390830417,
+     "cm_hw_player_season": 0.3769028708689569,
+     "cm_hw_week": 0.2804810800960418,
+     "cm_hw_binding": 0.3769028708689569,
+     "binding": "player_season",
+     "cm_point": 2.031762355638868,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0267523044512101,
+      "reb": 0.5685929569843672,
+      "ast": 0.7362143115939673,
+      "fg3m": 0.5947171960761399
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "week"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.005133761522256051,
+      "reb": 0.0017057788709531015,
+      "ast": 0.0014724286231879347,
+      "fg3m": 0.00059471719607614
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7502881320709341,
+      "reb": 0.4966083133307532,
+      "ast": 0.49793027411075097,
+      "fg3m": 0.28693563612642986
+     }
+    },
+    {
+     "seed_index": 14,
+     "cm_hw_game": 0.3093860483204457,
+     "cm_hw_player_season": 0.36408697136561385,
+     "cm_hw_week": 0.3352145946135394,
+     "cm_hw_binding": 0.36408697136561385,
+     "binding": "player_season",
+     "cm_point": 2.021686902705397,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0475251385081423,
+      "reb": 0.5723403254273994,
+      "ast": 0.6558474000545131,
+      "fg3m": 0.5817380231542342
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.0052376256925407115,
+      "reb": 0.0017170209762821984,
+      "ast": 0.0013116948001090263,
+      "fg3m": 0.0005817380231542342
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.8370938707706611,
+      "reb": 0.4909542297265629,
+      "ast": 0.31198274407945203,
+      "fg3m": 0.38165605812872117
+     }
+    },
+    {
+     "seed_index": 15,
+     "cm_hw_game": 0.31852845404658003,
+     "cm_hw_player_season": 0.3543045625518748,
+     "cm_hw_week": 0.26487228262431095,
+     "cm_hw_binding": 0.3543045625518748,
+     "binding": "player_season",
+     "cm_point": 1.846207885987442,
+     "per_stat_hw_floor_units": {
+      "pts": 1.0037741094119244,
+      "reb": 0.6811633572106305,
+      "ast": 0.5596499595331035,
+      "fg3m": 0.563184371872731
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "week",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.0050188705470596215,
+      "reb": 0.0020434900716318916,
+      "ast": 0.001119299919066207,
+      "fg3m": 0.000563184371872731
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7700928816092617,
+      "reb": 0.4428740083111391,
+      "ast": 0.30706569483677776,
+      "fg3m": 0.3261753012302632
+     }
+    },
+    {
+     "seed_index": 16,
+     "cm_hw_game": 0.3294400999079562,
+     "cm_hw_player_season": 0.36974982839960924,
+     "cm_hw_week": 0.3022976998740129,
+     "cm_hw_binding": 0.36974982839960924,
+     "binding": "player_season",
+     "cm_point": 1.832057679494773,
+     "per_stat_hw_floor_units": {
+      "pts": 0.8534065381883721,
+      "reb": 0.6726575525796966,
+      "ast": 0.7545154074623527,
+      "fg3m": 0.5216960190282294
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.004267032690941861,
+      "reb": 0.00201797265773909,
+      "ast": 0.0015090308149247054,
+      "fg3m": 0.0005216960190282294
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.6396855241033601,
+      "reb": 0.4480576566697201,
+      "ast": 0.3931139950512384,
+      "fg3m": 0.351200503670454
+     }
+    },
+    {
+     "seed_index": 17,
+     "cm_hw_game": 0.3295949823652624,
+     "cm_hw_player_season": 0.4332092782501731,
+     "cm_hw_week": 0.360563379634393,
+     "cm_hw_binding": 0.4332092782501731,
+     "binding": "player_season",
+     "cm_point": 2.0799327096250666,
+     "per_stat_hw_floor_units": {
+      "pts": 1.2606640870867518,
+      "reb": 0.6329872863066893,
+      "ast": 0.6530371729977064,
+      "fg3m": 0.6715525160448388
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.006303320435433759,
+      "reb": 0.0018989618589200679,
+      "ast": 0.0013060743459954128,
+      "fg3m": 0.0006715525160448388
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.9873151830528667,
+      "reb": 0.4044489493380447,
+      "ast": 0.39116009714544586,
+      "fg3m": 0.2970084800887095
+     }
+    },
+    {
+     "seed_index": 18,
+     "cm_hw_game": 0.3408081063243925,
+     "cm_hw_player_season": 0.38916377023367454,
+     "cm_hw_week": 0.3317853604131682,
+     "cm_hw_binding": 0.38916377023367454,
+     "binding": "player_season",
+     "cm_point": 1.9596023392589659,
+     "per_stat_hw_floor_units": {
+      "pts": 0.9409266159329568,
+      "reb": 0.8853998955197753,
+      "ast": 0.5984831281352369,
+      "fg3m": 0.5927643675188553
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "player_season"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.004704633079664784,
+      "reb": 0.002656199686559326,
+      "ast": 0.0011969662562704736,
+      "fg3m": 0.0005927643675188554
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.882797680420619,
+      "reb": 0.40410223511621984,
+      "ast": 0.39190943797484523,
+      "fg3m": 0.28079298574728184
+     }
+    },
+    {
+     "seed_index": 19,
+     "cm_hw_game": 0.33336478291568683,
+     "cm_hw_player_season": 0.4077459359836185,
+     "cm_hw_week": 0.3058265084779834,
+     "cm_hw_binding": 0.4077459359836185,
+     "binding": "player_season",
+     "cm_point": 1.9842894009832897,
+     "per_stat_hw_floor_units": {
+      "pts": 1.110360072181616,
+      "reb": 0.7062560690427718,
+      "ast": 0.8230073319622163,
+      "fg3m": 0.5689753355991649
+     },
+     "per_stat_binding": {
+      "pts": "player_season",
+      "reb": "player_season",
+      "ast": "player_season",
+      "fg3m": "game"
+     },
+     "per_stat_hw_abs": {
+      "pts": 0.00555180036090808,
+      "reb": 0.0021187682071283154,
+      "ast": 0.0016460146639244327,
+      "fg3m": 0.0005689753355991649
+     },
+     "stat_parts_of_noise_point": {
+      "pts": 0.7578752171984517,
+      "reb": 0.4143817456958154,
+      "ast": 0.4280701478790171,
+      "fg3m": 0.3839622902100054
+     }
+    }
+   ],
+   "positive_control": {
+    "oracle_sigma0.20": [
+     {
+      "seed_index": 0,
+      "cm_point": -33.61390228393496,
+      "ci": [
+       -37.919378685977605,
+       -29.520204052744415
+      ],
+      "binding": "player_season",
+      "top5": 0.10070525316260627,
+      "clears": true
+     },
+     {
+      "seed_index": 1,
+      "cm_point": -31.96485681216064,
+      "ci": [
+       -36.589678330358616,
+       -27.55573514694551
+      ],
+      "binding": "player_season",
+      "top5": 0.11490378145978931,
+      "clears": true
+     },
+     {
+      "seed_index": 2,
+      "cm_point": -30.375339005409323,
+      "ci": [
+       -34.28604303683899,
+       -26.8074460855024
+      ],
+      "binding": "player_season",
+      "top5": 0.09595872559402352,
+      "clears": true
+     },
+     {
+      "seed_index": 3,
+      "cm_point": -34.78019937211108,
+      "ci": [
+       -40.08743622019914,
+       -29.98296598128072
+      ],
+      "binding": "player_season",
+      "top5": 0.1288427523292417,
+      "clears": true
+     },
+     {
+      "seed_index": 4,
+      "cm_point": -32.32511469569817,
+      "ci": [
+       -36.654664560642715,
+       -28.56554195817171
+      ],
+      "binding": "player_season",
+      "top5": 0.1094855721429169,
+      "clears": true
+     }
+    ],
+    "oracle_sigma0.10": [
+     {
+      "seed_index": 0,
+      "cm_point": -8.590340238482945,
+      "ci": [
+       -9.82346691007376,
+       -7.384992000008965
+      ],
+      "binding": "player_season",
+      "top5": 0.10689905431066311,
+      "clears": true
+     },
+     {
+      "seed_index": 1,
+      "cm_point": -7.895759778169609,
+      "ci": [
+       -9.078426060455122,
+       -6.707973662434516
+      ],
+      "binding": "player_season",
+      "top5": 0.12614643446973373,
+      "clears": true
+     },
+     {
+      "seed_index": 2,
+      "cm_point": -7.492076488037376,
+      "ci": [
+       -8.641208682809953,
+       -6.425492553823447
+      ],
+      "binding": "player_season",
+      "top5": 0.11032894695128764,
+      "clears": true
+     },
+     {
+      "seed_index": 3,
+      "cm_point": -8.924657334778399,
+      "ci": [
+       -10.484445088402431,
+       -7.484286570371544
+      ],
+      "binding": "player_season",
+      "top5": 0.14722076623673697,
+      "clears": true
+     },
+     {
+      "seed_index": 4,
+      "cm_point": -8.63157323961998,
+      "ci": [
+       -9.879600478122022,
+       -7.527604069472928
+      ],
+      "binding": "player_season",
+      "top5": 0.11186588513931121,
+      "clears": true
+     }
+    ]
+   },
+   "positive_control_all_clear": true
+  }
+ },
+ "season_assertions": {
+  "max_season_matchups": 2024,
+  "max_season_games": 2024,
+  "max_game_date_model_rows": "2025-06-22",
+  "ok": true
+ },
+ "checks": [
+  {
+   "check": "planted future 2023",
+   "value": true,
+   "bar": "True",
+   "pass": true
+  },
+  {
+   "check": "row sets identical across pts/reb/ast/fg3m 2023",
+   "value": {
+    "pts": 0,
+    "reb": 0,
+    "ast": 0,
+    "fg3m": 0
+   },
+   "bar": "all 0",
+   "pass": true
+  },
+  {
+   "check": "no NaN feature cell 2023",
+   "value": 0,
+   "bar": "0",
+   "pass": true
+  },
+  {
+   "check": "2023 rows",
+   "value": 25815,
+   "bar": "rows",
+   "pass": true
+  },
+  {
+   "check": "2023 player_seasons",
+   "value": 551,
+   "bar": "player_seasons",
+   "pass": true
+  },
+  {
+   "check": "2023 games",
+   "value": 1230,
+   "bar": "games",
+   "pass": true
+  },
+  {
+   "check": "2023 weeks",
+   "value": 25,
+   "bar": "weeks",
+   "pass": true
+  },
+  {
+   "check": "2023 mean detectable CM half-width (20 seeds), floor units",
+   "value": 0.40013271338354917,
+   "bar": "<= 1.0",
+   "pass": true
+  },
+  {
+   "check": "2023 positive control: planted shift in all four stats clears in every seed",
+   "value": true,
+   "bar": "True",
+   "pass": true
+  },
+  {
+   "check": "planted future 2024",
+   "value": true,
+   "bar": "True",
+   "pass": true
+  },
+  {
+   "check": "row sets identical across pts/reb/ast/fg3m 2024",
+   "value": {
+    "pts": 0,
+    "reb": 0,
+    "ast": 0,
+    "fg3m": 0
+   },
+   "bar": "all 0",
+   "pass": true
+  },
+  {
+   "check": "no NaN feature cell 2024",
+   "value": 0,
+   "bar": "0",
+   "pass": true
+  },
+  {
+   "check": "2024 rows",
+   "value": 25649,
+   "bar": "rows",
+   "pass": true
+  },
+  {
+   "check": "2024 player_seasons",
+   "value": 551,
+   "bar": "player_seasons",
+   "pass": true
+  },
+  {
+   "check": "2024 games",
+   "value": 1225,
+   "bar": "games",
+   "pass": true
+  },
+  {
+   "check": "2024 weeks",
+   "value": 25,
+   "bar": "weeks",
+   "pass": true
+  },
+  {
+   "check": "2024 mean detectable CM half-width (20 seeds), floor units",
+   "value": 0.3901055941507495,
+   "bar": "<= 1.0",
+   "pass": true
+  },
+  {
+   "check": "2024 positive control: planted shift in all four stats clears in every seed",
+   "value": true,
+   "bar": "True",
+   "pass": true
+  },
+  {
+   "check": "M2 offense labels 2024 aligned to 2023: agreement over players clustered in both",
+   "value": 0.5565476190476191,
+   "bar": ">= 0.8",
+   "pass": false
+  },
+  {
+   "check": "no season after 2024 read (max matchup season, max games season, max model_rows date)",
+   "value": "2024 / 2024 / 2025-06-22",
+   "bar": "<= 2024, < 2025-07-01",
+   "pass": true
+  }
+ ],
+ "verdict": "FAIL",
+ "wall_seconds": 80.8
+}
