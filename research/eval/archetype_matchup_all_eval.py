@@ -157,11 +157,14 @@ def final_verdict(
 
 
 def compute_input_digests(
-    c: Any, games: pd.DataFrame, flagged: dict[str, set[int]]
+    c: Any, games: pd.DataFrame, flagged: dict[str, set[int]], mu: pd.DataFrame
 ) -> dict[str, str]:
     """Everything that can change a number without changing a pinned file: the eight A0 files, the aligned label vectors, the production OUT
-    sets, the library versions. Reads no outcome column (file bytes are hashed, not read as data)."""
-    out: dict[str, str] = {}
+    sets, the two feature-source tables (``mu`` = player_game_matchups, ``games``; sorted before hashing because the loaders have no ORDER BY, A4-M6), the library versions. Reads no outcome column (file bytes are hashed, not read as data)."""
+    out: dict[str, str] = {
+        "PIN_MATCHUPS": arch.sha_table(mu.sort_values(list(mu.columns)).reset_index(drop=True)),
+        "PIN_GAMES": arch.sha_table(games.sort_values("game_id").reset_index(drop=True)),
+    }
     for S in (rule.SELECT, rule.REPORT):
         for st in rule.STATS:
             out[f"PIN_A0_{S}_{st}"] = rule.file_sha256(arch.ODDS / f"model_rows_{S}_{st}.parquet")
@@ -198,8 +201,17 @@ def load_season(
     games: pd.DataFrame,
     flagged: dict[str, set[int]],
     c: Any,
+    pins: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     off_a, def_a, align_rep = af.build_aligned_archetypes(c, S)
+    if (
+        pins is not None
+    ):  # A4-m6: the labels the features are built from are the labels that were declared
+        got = af.label_digest(off_a, def_a)
+        if pins.get(f"PIN_LABELS_{S}") != got:
+            raise SystemExit(
+                f"labels used for the {S} features differ from PIN_LABELS_{S}: refusing"
+            )
     keys, lost = gate.common_keys(S)
     assert all(v == 0 for v in lost.values()), f"four-stat row sets differ in {S}: {lost}"
     pts_rows = arch.read_rows("pts", S, g6.ROW_COLS)
@@ -291,9 +303,12 @@ def run(sha: str | None, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     flagged = feat.read_flagged(c, games)
     assert int(mu.season.max()) <= rule.MAX_SEASON and int(games.season.max()) <= rule.MAX_SEASON
     verify_inputs(
-        compute_input_digests(c, games, flagged)
+        compute_input_digests(c, games, flagged, mu)
     )  # M5: before read_outcomes is ever called
-    data = [load_season(S, mu, games, flagged, c) for S in (rule.SELECT, rule.REPORT)]
+    data = [
+        load_season(S, mu, games, flagged, c, rule.declared(DOC.read_text()))
+        for S in (rule.SELECT, rule.REPORT)
+    ]
     planted_ok = all(d["planted_future"]["identical"] for d in data)
     res: dict[str, Any] = {
         "id": rule.ID,
@@ -334,7 +349,9 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "digests":  # label-free: prints the PIN_* / LIB_* lines to paste above the marker
         c = arch.connect(arch.DB)
         games = feat.read_games(c)
-        for k, v in compute_input_digests(c, games, feat.read_flagged(c, games)).items():
+        for k, v in compute_input_digests(
+            c, games, feat.read_flagged(c, games), feat.read_matchups(c)
+        ).items():
             print(f"{k}: {v}")
         return 0
     res = run(a.sha)
