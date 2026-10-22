@@ -1,3 +1,14 @@
+# NEXT SESSION, resume here (written 2026-10-21 ~23:35 CDT; overnight work in progress, see the status lines at the bottom of this block)
+
+**Phone summary for Devin:**
+1. **Tonight, real money (your decisions):** about +$10.5 on ~$21 across five Kalshi combos. 6-leg cashed $7.19 (Miller missed 20, holding paid $0); 8-leg cashed $3.91; 4-leg won $6.04; Lakers 3-leg won $12.75; 7-leg (Grimes three) open at write time. Pelicans moneyline lost (model's top game edge; Pacers won). Playbook logged in FAN_KNOWLEDGE.
+2. **Your decisions waiting:** (a) reply "freeze T507" to freeze ARCHETYPE_MATCHUP_ALL (adversary READY_TO_FREEZE after four rounds; text f10ed5b1, harness 63b3d9b0; 5 defaults listed in DECISIONS/T507 rows); (b) paper trader v2: confirm 12 h forecast-age cap, the fee-aware exit rule (rarely fires on singles), shrink 0.25, approve 115 alias candidates (configs/kalshi_aliases_candidates_2026-10-21.yaml); (c) Kalshi read-only key connector: needs "amend rule 5" from you; (d) $10.84 bonus credit: convert with 4-5 near-certain single bets pre-tip (90-97c, tight spreads, model agrees).
+3. **Today (10-22), to run by hand from the paper-trader worktree** (branch agent/market-paper-trader, not merged; do NOT install its plist yet): capture `python -m nba.live capture --date 2026-10-22` and shakedown `python -m nba.papertrade --nba-db /Users/devin/Downloads/nba-prediction/nba.duckdb --rule-version paper-trader-v2-shakedown run --date 2026-10-22` (exact commands in the paper-trader hand-back in DECISIONS 20:50 thread). Unscored.
+4. **App:** studio + Live + Parlay tracker + import links on branch agent/app-analysis-studio (preview: vite 5174 + branch API 8010 from scratchpad wt_app2); not merged; needs review before merge.
+5. **Closed tonight:** T505, T506 (matchup idea, stopped at gate); T507 is the one override variant (ready to freeze).
+
+**Overnight (in progress):** IN_GAME_LINE_MODEL draft + gate (agent/modeler-in-game-line); Kalshi trades feed + cash-out offer log in the capture (agent/market-paper-trader). Status lines appended below as they land.
+
 # NEXT SESSION — resume here (written 2026-10-21 ~01:00 CDT, overnight run under Devin's blanket approval; A pending at write time, see the A line)
 
 **Phone-length summary for Devin (read this first):**
