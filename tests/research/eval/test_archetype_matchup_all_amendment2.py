@@ -934,7 +934,7 @@ def test_verify_inputs_refuses_before_any_outcome_is_read(
 def test_run_order_and_notes_in_source() -> None:
     import inspect
 
-    src = inspect.getsource(mev.run)
+    src = inspect.getsource(mev.execute)
     assert src.index("verify_inputs(") < src.index("load_season(")
     assert "weak evidence of no composite gain, not strong evidence" in src
 
@@ -1016,3 +1016,60 @@ def test_load_season_refuses_labels_that_differ_from_the_declared_pin(
         mev.load_season(
             2023, pd.DataFrame(), pd.DataFrame(), {}, None, {"PIN_LABELS_2023": "0" * 64}
         )
+
+
+# --------------------------------------------------------------------------- Amendment 5: wiring fix and dryrun
+
+
+def test_month_key_accepts_series_index_and_array() -> None:
+    dates = ["2023-10-24", "2023-11-01", "2024-04-14"]
+    want = ["2023-10", "2023-11", "2024-04"]
+    as_ts = pd.to_datetime(dates)
+    for x in (
+        pd.Series(as_ts),
+        pd.Series(dates),
+        as_ts,
+        as_ts.to_numpy(),
+        np.array(dates),
+        pd.Series(as_ts, index=[7, 8, 9]),
+    ):
+        assert arm.month_key(x).tolist() == want, type(x)
+    assert arm.month_key(pd.Series(as_ts, index=[7, 8, 9])).shape == (3,)
+
+
+def test_synthetic_outcomes_are_seeded_integer_draws_from_the_grid() -> None:
+    q = np.sort(np.random.default_rng(0).poisson(6, size=(500, arch.NQ)).astype(float), axis=1)
+    a = mev.synthetic_outcomes(q, 1)
+    assert np.array_equal(a, mev.synthetic_outcomes(q, 1)) and not np.array_equal(
+        a, mev.synthetic_outcomes(q, 2)
+    )
+    assert (a == np.round(a)).all() and (a >= 0).all() and a.max() <= q.max()
+    m = mev.synthetic_minutes(np.array([10.0, np.nan, 30.0]), 3)
+    assert ((m >= 0) & (m <= 48)).all()
+
+
+def test_dryrun_never_reads_an_outcome_and_restores_the_reader(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    real = mev.read_outcomes
+    real_execute_src = __import__("inspect").getsource(mev.execute)
+    seen: dict[str, Any] = {}
+
+    def fake_execute(
+        out_dir: Path, pins: dict[str, str], synthetic: bool = False
+    ) -> dict[str, Any]:
+        seen["synthetic"] = synthetic
+        try:
+            mev.read_outcomes("pts", 2023, pd.DataFrame())
+        except AssertionError as e:
+            seen["raised"] = str(e)
+        return {"verdict": {}, "wall_seconds": 0.0}
+
+    monkeypatch.setattr(mev, "execute", fake_execute)
+    res = mev.dryrun(tmp_path)
+    assert seen["synthetic"] is True and "never read an outcome" in seen["raised"]
+    assert mev.read_outcomes is real and "SYNTHETIC" in res
+    import inspect
+
+    assert "synthetic" in inspect.signature(mev.load_season).parameters
+    assert "synthetic" in real_execute_src and "not synthetic" in real_execute_src

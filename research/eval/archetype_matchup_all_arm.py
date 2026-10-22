@@ -68,7 +68,11 @@ def a0_mean(q0: np.ndarray) -> np.ndarray:
 
 
 def month_key(game_date: Any) -> np.ndarray:
-    return np.asarray(pd.to_datetime(game_date).strftime("%Y-%m").to_numpy())
+    """Calendar month ``YYYY-MM`` of each date. Accepts a Series, an Index or an array (A5: a Series has no ``.strftime``, only ``.dt``)."""
+    ser = pd.Series(
+        np.asarray(game_date) if not isinstance(game_date, pd.Series) else game_date.to_numpy()
+    )
+    return np.asarray(pd.to_datetime(ser).dt.strftime("%Y-%m").to_numpy())
 
 
 def lam_from(mean: np.ndarray, pred: np.ndarray) -> np.ndarray:
