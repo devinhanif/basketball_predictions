@@ -7,6 +7,7 @@
 4. **App:** studio + Live + Parlay tracker + import links on branch agent/app-analysis-studio (preview: vite 5174 + branch API 8010 from scratchpad wt_app2); not merged; needs review before merge.
 5. **Closed tonight:** T505, T506 (matchup idea, stopped at gate); T507 is the one override variant (ready to freeze).
 
+**Status 23:58:** T507 FROZEN on Devin's "freeze that" (prereg 9ada5d5, harness bb764f6). Run attempt 1 crashed on a wiring bug after loading 2023 outcomes into memory (nothing computed or shown; disclosed in DECISIONS 23:52). Amendment 5 (fix + full dry run on synthetic outcomes) in progress; then adversary diff check, re-freeze, run. 7-leg combo lost (Grimes no three); night total about +$8.3. Capture smoke with trades feed PASSED (order books answer without auth; 40,783 trades on first tick; offer log reads combo legs); fixes queued (decimal contracts, trade backlog spread across ticks).
 **Overnight (in progress):** IN_GAME_LINE_MODEL draft + gate (agent/modeler-in-game-line); Kalshi trades feed + cash-out offer log in the capture (agent/market-paper-trader). Status lines appended below as they land.
 
 # NEXT SESSION — resume here (written 2026-10-21 ~01:00 CDT, overnight run under Devin's blanket approval; A pending at write time, see the A line)
