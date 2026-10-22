@@ -46,6 +46,10 @@ class Budget:
         5  # poll Kalshi every N ticks once no open dated market is left
     )
     orderbook_depth_limit: int = 600
+    trades_max_tickers: int = (
+        150  # markets whose trades are pulled per tick (largest volume jump first)
+    )
+    trades_max_pages: int = 5
 
 
 @dataclass(frozen=True)
@@ -141,6 +145,9 @@ class State:
     empty_ticks: int = 0
     last_markets: list[dict[str, Any]] = field(default_factory=list)
     series_refreshed: float = 0.0
+    volumes: dict[str, float] = field(default_factory=dict)  # ticker -> volume_fp at last tick
+    trade_last_ts: dict[str, int] = field(default_factory=dict)
+    trade_ids: dict[str, set[str]] = field(default_factory=dict)  # ids seen at last_ts
 
 
 class Capture:
@@ -229,6 +236,7 @@ class Capture:
             self.store.save("espn_summary", g.event_id, resp.body, http_status=resp.status)
         self.kalshi_markets(info)
         self.kalshi_orderbooks([g for g in games if g.state == "in"], info)
+        self.kalshi_trades(info)
         self.probe_other(info)
         info["requests"] = self.fetcher.tick_requests
         info["avg_latency_s"] = round(self.fetcher.avg_latency, 3)
@@ -408,6 +416,87 @@ class Capture:
         if skipped:
             info["skipped"]["orderbook"] = skipped[:50]
             info["skipped"]["orderbook_n"] = len(skipped)
+
+    def trade_targets(self) -> list[str]:
+        """Slate markets whose cumulative volume rose since the last tick (first sight: any volume),
+        largest jump first. Volume is the public ``volume_fp`` field of the market listing."""
+        jumps: list[tuple[float, str]] = []
+        for m in self.st.last_markets:
+            t = str(m.get("ticker", ""))
+            vol = kp.to_f(m.get("volume_fp"))
+            if not t or vol is None:
+                continue
+            prev = self.st.volumes.get(t, 0.0)
+            if vol > prev:
+                jumps.append((vol - prev, t))
+            self.st.volumes[t] = max(vol, prev)
+        jumps.sort(key=lambda x: (-x[0], x[1]))
+        return [t for _, t in jumps]
+
+    def pull_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
+        """New public trades for one ticker (min_ts = last seen, deduplicated by trade id).
+        Returns (trades, complete); incomplete when a page was skipped for budget or error."""
+        min_ts = self.st.trade_last_ts.get(ticker)
+        seen_ids = self.st.trade_ids.get(ticker, set())
+        out: list[dict[str, Any]] = []
+        complete = True
+        for page, resp, body in kp.iter_trade_pages(
+            self.fetcher, ticker, min_ts, max_pages=self.budget.trades_max_pages
+        ):
+            if body is None:
+                complete = False
+                if resp is not None:
+                    self.log_error(f"trades {ticker} p{page} http {resp.status}")
+                break
+            for tr in body.get("trades") or []:
+                if isinstance(tr, dict) and str(tr.get("trade_id", "")) not in seen_ids:
+                    out.append(tr)
+            if page == self.budget.trades_max_pages - 1 and body.get("cursor"):
+                complete = False  # more pages than the cap
+        return out, complete
+
+    def kalshi_trades(self, info: dict[str, Any]) -> None:
+        """Public trades for every slate market that traded since the last tick, after the books.
+        One write-once raw file per tick; counts and skips go to ``ticks.jsonl``."""
+        targets = self.trade_targets()
+        cap = self.budget.trades_max_tickers
+        skipped = list(targets[cap:])
+        targets = targets[:cap]
+        got: dict[str, list[dict[str, Any]]] = {}
+        incomplete: list[str] = []
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=self.budget.orderbook_workers) as pool:
+            results = list(pool.map(self.pull_trades, targets))
+        for t, (trades, complete) in zip(targets, results, strict=True):
+            if not complete:
+                incomplete.append(t)
+            if trades:
+                got[t] = trades
+                stamps = [ts for tr in trades if (ts := kp.trade_ts(tr)) is not None]
+                if stamps:
+                    top = max(stamps)
+                    prev = self.st.trade_last_ts.get(t, 0)
+                    ids = self.st.trade_ids.get(t, set()) if top == prev else set()
+                    ids |= {str(tr.get("trade_id", "")) for tr in trades if kp.trade_ts(tr) == top}
+                    self.st.trade_last_ts[t] = max(top, prev)
+                    self.st.trade_ids[t] = ids
+        n = sum(len(v) for v in got.values())
+        if got:
+            self.store.save(
+                "kalshi_trades",
+                self.day.isoformat(),
+                json.dumps(got, sort_keys=True).encode(),
+                http_status=200,
+                note={"n_trades": n, "n_tickers": len(got), "n_incomplete": len(incomplete)},
+            )
+        info["trades"] = {"n": n, "tickers": len(got), "targets": len(targets)}
+        if skipped:
+            info["skipped"]["trades"] = skipped[:50]
+            info["skipped"]["trades_n"] = len(skipped)
+        if incomplete:
+            info["skipped"]["trades_incomplete"] = incomplete[:50]
+            info["skipped"]["trades_incomplete_n"] = len(incomplete)
 
     # ------------------------------------------------------------------ schedule + loop
     def schedule(self) -> list[Game] | None:

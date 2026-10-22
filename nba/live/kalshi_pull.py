@@ -1,7 +1,8 @@
 """Kalshi public market-data reads used by the capture and the paper trader.
 
 The only paths this module can build are in ``ALLOWED_PATHS`` (market data: series list, markets,
-one market, one book). A test pins that list and greps the new packages for anything else.
+public trades, one market, one book). A test pins that list and greps the new packages for
+anything else.
 """
 
 from __future__ import annotations
@@ -9,13 +10,19 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterator
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from nba.live.http import Fetcher, Response
 
 BASE = "https://api.elections.kalshi.com/trade-api/v2"
-ALLOWED_PATHS = ("/series", "/markets", "/markets/{ticker}", "/markets/{ticker}/orderbook")
+ALLOWED_PATHS = (
+    "/series",
+    "/markets",
+    "/markets/trades",
+    "/markets/{ticker}",
+    "/markets/{ticker}/orderbook",
+)
 DEFAULT_SERIES = (
     "KXNBAGAME",
     "KXNBASPREAD",
@@ -107,6 +114,36 @@ def iter_series_pages(
         cursor = str(body.get("cursor") or "") if body else ""
         if not cursor:
             return
+
+
+def iter_trade_pages(
+    fetcher: Fetcher, ticker: str, min_ts: int | None, limit: int = 1000, max_pages: int = 5
+) -> Iterator[tuple[int, Response | None, dict[str, Any] | None]]:
+    """Paginated public ``GET /markets/trades`` for one ticker since ``min_ts`` (unix seconds)."""
+    cursor: str | None = None
+    for page in range(max_pages):
+        params: dict[str, Any] = {"ticker": ticker, "limit": limit}
+        if min_ts is not None:
+            params["min_ts"] = int(min_ts)
+        if cursor:
+            params["cursor"] = cursor
+        resp = fetcher.get(f"{BASE}/markets/trades", params)
+        body = parse_body(resp)
+        yield page, resp, body
+        cursor = str(body.get("cursor") or "") if body else ""
+        if not cursor:
+            return
+
+
+def trade_ts(trade: dict[str, Any]) -> int | None:
+    """Unix seconds of a trade's ``created_time`` (None when absent or unparseable)."""
+    raw = trade.get("created_time")
+    if not isinstance(raw, str):
+        return None
+    try:
+        return int(datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp())
+    except ValueError:
+        return None
 
 
 def get_market(fetcher: Fetcher, ticker: str) -> dict[str, Any] | None:

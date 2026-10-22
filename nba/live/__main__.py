@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from collections.abc import Sequence
 from datetime import date, datetime
 from pathlib import Path
@@ -31,7 +32,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     c.add_argument("--max-requests-per-tick", type=int, default=300)
     c.add_argument("--once", action="store_true", help="one tick now (smoke test), no waiting")
     c.add_argument("--start-now", action="store_true", help="do not wait for the window start")
+    o = sub.add_parser("offer", help="log one observed cash-out offer with the legs' public quotes")
+    o.add_argument("--combo", required=True, help="combo market ticker")
+    o.add_argument("--offer", type=float, required=True, help="offered dollars")
+    o.add_argument("--contracts", type=int, required=True)
+    o.add_argument("--leg", action="append", default=[], help="leg ticker if the API lists none")
+    o.add_argument("--note", default=None)
+    o.add_argument("--date", type=date.fromisoformat, default=None, help="ET date for the folder")
+    o.add_argument("--out", type=Path, default=None, help="default data/raw/live_<date>")
     a = ap.parse_args(argv)
+    if a.cmd == "offer":
+        from nba.live.offer import log_offer
+
+        oday = a.date or datetime.now(ET).date()
+        row = log_offer(
+            a.out or ROOT / "data" / "raw" / f"live_{oday.isoformat()}",
+            combo=a.combo,
+            offer=a.offer,
+            contracts=a.contracts,
+            fetcher=Fetcher(rate_per_s=Budget().rate_per_s),
+            legs=a.leg,
+            note=a.note,
+        )
+        print(json.dumps(row, sort_keys=True))
+        return 0
     day = a.date or datetime.now(ET).date()
     out = a.out or ROOT / "data" / "raw" / f"live_{day.isoformat()}"
     budget = Budget(max_requests_per_tick=a.max_requests_per_tick, interval_s=a.interval_s)

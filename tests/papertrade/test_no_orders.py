@@ -31,6 +31,7 @@ def test_only_market_data_paths_exist() -> None:
     assert kalshi_pull.ALLOWED_PATHS == (
         "/series",
         "/markets",
+        "/markets/trades",
         "/markets/{ticker}",
         "/markets/{ticker}/orderbook",
     )
@@ -66,7 +67,8 @@ def test_end_to_end_only_get_requests_to_allowed_paths(tmp_path: Path) -> None:
     fix = ROOT / "tests" / "live" / "fixtures"
     ms = json.loads((fix / "kalshi_markets_pages.json").read_text())["markets"]
     ok_path = re.compile(
-        r"^/trade-api/v2/(series|markets|markets/[A-Za-z0-9\-]+|markets/[A-Za-z0-9\-]+/orderbook)$"
+        r"^/trade-api/v2/(series|markets|markets/trades|markets/[A-Za-z0-9\-]+"
+        r"|markets/[A-Za-z0-9\-]+/orderbook)$"
         r"|^/apis/site/v2/sports/basketball/nba/(scoreboard|summary)$"
     )
     seen: list[tuple[str, str]] = []
@@ -90,6 +92,9 @@ def test_end_to_end_only_get_requests_to_allowed_paths(tmp_path: Path) -> None:
                 "no_dollars": [[f"{1 - ya:.4f}", "9999.00"]],
             }
             return httpx.Response(200, json={"orderbook_fp": book})
+        if p.endswith("/markets/trades"):
+            assert req.url.params.get("ticker"), "trades must be asked per ticker"
+            return httpx.Response(200, json={"trades": [], "cursor": ""})
         if p.endswith("/markets"):
             series = req.url.params.get("series_ticker", "")
             return httpx.Response(
