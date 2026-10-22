@@ -195,6 +195,21 @@ def read_outcomes(stat: str, S: int, keys: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def synthetic_outcomes(q: np.ndarray, seed: int) -> np.ndarray:
+    """Dryrun only: one draw per row from A0's own integer grid (``ceil(q - 0.5)`` of a uniformly drawn quantile). No arm can gain on these."""
+    rng = np.random.default_rng(seed)
+    u = rng.integers(0, q.shape[1], size=len(q))
+    return np.asarray(np.ceil(q[np.arange(len(q)), u] - 0.5), dtype=float)
+
+
+def synthetic_minutes(min10: np.ndarray, seed: int) -> np.ndarray:
+    """Dryrun only: stand-in for realised minutes (pre-game min10 plus noise)."""
+    rng = np.random.default_rng(seed)
+    return np.asarray(
+        np.clip(np.nan_to_num(min10) + rng.normal(0, 6, len(min10)), 0, 48), dtype=float
+    )
+
+
 def load_season(
     S: int,
     mu: pd.DataFrame,
@@ -202,7 +217,9 @@ def load_season(
     flagged: dict[str, set[int]],
     c: Any,
     pins: dict[str, str] | None = None,
+    synthetic: bool = False,
 ) -> dict[str, Any]:
+    """``synthetic=True`` (dryrun only) never calls ``read_outcomes``: outcomes are drawn, seeded, from A0's own stored grid."""
     off_a, def_a, align_rep = af.build_aligned_archetypes(c, S)
     if (
         pins is not None
@@ -228,11 +245,16 @@ def load_season(
     minutes = None
     for st in rule.STATS:
         q, _sub = gate.stat_inputs(st, S, keys)
-        lab = read_outcomes(st, S, keys)
         q0[st] = q
-        y[st] = lab[Y_COL].to_numpy(float)
-        if st == "pts":
-            minutes = lab[MINUTES_COL].to_numpy(float)
+        if synthetic:
+            y[st] = synthetic_outcomes(q, 10_000 * S + rule.STATS.index(st))
+            if st == "pts":
+                minutes = synthetic_minutes(sf.min10.to_numpy(float), 10_000 * S + 99)
+        else:
+            lab = read_outcomes(st, S, keys)
+            y[st] = lab[Y_COL].to_numpy(float)
+            if st == "pts":
+                minutes = lab[MINUTES_COL].to_numpy(float)
         log(f"season {S} {st}: grid {q.shape}")
     assert minutes is not None
     return {
@@ -294,6 +316,30 @@ def score_season(
 
 def run(sha: str | None, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     pins = require_ready(sha)
+    return execute(out_dir, pins)
+
+
+def dryrun(out_dir: Path = OUT_DIR / "dryrun") -> dict[str, Any]:
+    """The ENTIRE run path on the real 2023/2024 feature frames and real A0 grids with SYNTHETIC outcomes (A5). Needs no freeze (it reads no
+    outcome); ``read_outcomes`` is replaced by a raiser for the duration and 2024 is scored whatever 2023 shows, so every wiring bug surfaces
+    before an outcome is read. Writes only under ``out_dir``; its numbers mean nothing."""
+    global read_outcomes
+    real = read_outcomes
+
+    def boom(*a: Any, **k: Any) -> Any:
+        raise AssertionError("dryrun must never read an outcome column")
+
+    read_outcomes = boom
+    try:
+        res = execute(out_dir, {}, synthetic=True)
+    finally:
+        read_outcomes = real
+    res["SYNTHETIC"] = "outcomes drawn from A0's own grid; no number here is a result"
+    (out_dir / "results.json").write_text(json.dumps(res, indent=1, default=str) + "\n")
+    return res
+
+
+def execute(out_dir: Path, pins: dict[str, str], synthetic: bool = False) -> dict[str, Any]:
     t0 = time.time()
     rule.check_floors()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -305,9 +351,9 @@ def run(sha: str | None, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     verify_inputs(
         compute_input_digests(c, games, flagged, mu)
     )  # M5: before read_outcomes is ever called
+    decl = rule.declared(DOC.read_text())
     data = [
-        load_season(S, mu, games, flagged, c, rule.declared(DOC.read_text()))
-        for S in (rule.SELECT, rule.REPORT)
+        load_season(S, mu, games, flagged, c, decl, synthetic) for S in (rule.SELECT, rule.REPORT)
     ]
     planted_ok = all(d["planted_future"]["identical"] for d in data)
     res: dict[str, Any] = {
@@ -318,7 +364,7 @@ def run(sha: str | None, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     }
     _, sel = score_season(rule.SELECT, data, out_dir)
     res["select_2023"] = sel
-    if sel["cm_point"] > rule.CM_PASS:
+    if sel["cm_point"] > rule.CM_PASS and not synthetic:
         res["report_2024"] = None
         res["verdict"] = {
             "pass": False,
@@ -343,7 +389,7 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("cmd", choices=["run", "digests"])
+    ap.add_argument("cmd", choices=["run", "digests", "dryrun"])
     ap.add_argument("--sha")
     a = ap.parse_args(argv)
     if a.cmd == "digests":  # label-free: prints the PIN_* / LIB_* lines to paste above the marker
@@ -353,6 +399,15 @@ def main(argv: list[str] | None = None) -> int:
             c, games, feat.read_flagged(c, games), feat.read_matchups(c)
         ).items():
             print(f"{k}: {v}")
+        return 0
+    if a.cmd == "dryrun":  # synthetic outcomes only; needs no freeze; reads no outcome column
+        res = dryrun()
+        print(
+            "DRYRUN (synthetic outcomes) complete in",
+            res["wall_seconds"],
+            "s; verdict keys:",
+            sorted(res["verdict"]),
+        )
         return 0
     res = run(a.sha)
     print(json.dumps(res["verdict"], indent=1, default=str))
