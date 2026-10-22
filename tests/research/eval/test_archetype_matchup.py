@@ -211,3 +211,17 @@ def test_modules_do_not_query_2025_or_labels() -> None:
         'read_rows("pts", S, ROW_COLS)' in gate
         and '"y"' not in gate.split("ROW_COLS = ")[1].split("\n")[0]
     )
+
+
+def test_features_do_not_depend_on_matchup_dtype() -> None:
+    """Amendment 1: float32 minutes must give the same features as float64 (a float32 groupby sum made the planted-future check fail at ~1e-9)."""
+    mu32 = _mu().astype({"mm": "float32", "poss": "float32", "pts": "float32"})
+    mu32.loc[mu32.index[::3], "mm"] = np.float32(10.0 / 3.0)
+    mu64 = mu32.astype({"mm": "float64", "poss": "float64", "pts": "float64"})
+    a, b = _frame(mu32, {10}), _frame(mu64, {10})
+    for c in rule.FEATURES:
+        assert a[c].iloc[0] == b[c].iloc[0]
+
+
+def test_regular_season_filter_drops_playoff_and_playin_ids() -> None:
+    assert list(rule.is_regular(["0022300001", "0042300101", "0052300001"])) == [True, False, False]

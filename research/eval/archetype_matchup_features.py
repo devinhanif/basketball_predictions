@@ -70,8 +70,11 @@ def prior_tables(
 def defender_games(mu: pd.DataFrame) -> pd.DataFrame:
     """One row per (game, defender): team, date, season, total matchup minutes defended (post-game; used only through earlier games)."""
     g = (
-        mu.groupby(["game_id", "def_player_id", "def_team"], sort=False)
-        .agg(dm=("mm", "sum"), game_date=("game_date", "first"), season=("season", "first"))
+        mu.assign(
+            mm64=mu.mm.astype("float64")
+        )  # float64 sums regardless of the source dtype (Amendment 1)
+        .groupby(["game_id", "def_player_id", "def_team"], sort=False)
+        .agg(dm=("mm64", "sum"), game_date=("game_date", "first"), season=("season", "first"))
         .reset_index()
     )
     g["day"] = to_day(g.game_date)

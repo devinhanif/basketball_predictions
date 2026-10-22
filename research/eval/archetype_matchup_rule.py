@@ -50,6 +50,8 @@ check_season = t505.check_season
 bh_adjust = t505.bh_adjust
 minutes_bucket = t505.minutes_bucket
 
+REGULAR_PREFIX = "002"  # regular-season game ids; the stored A0 files also hold playoff (004) and play-in (005) rows, excluded (Amendment 1)
+
 # categorical layer: archetype index K_OFF / K_DEF is the explicit "unknown" category (archetype -1 in the T505 labelling)
 UNK_OFF = K_OFF
 UNK_DEF = K_DEF
@@ -118,3 +120,8 @@ def reason_string(
     if out_names:
         s += "; OUT: " + ", ".join(out_names)
     return s
+
+
+def is_regular(game_ids: Any) -> np.ndarray:
+    """True for regular-season game ids (prefix ``REGULAR_PREFIX``)."""
+    return np.array([str(g).startswith(REGULAR_PREFIX) for g in game_ids], dtype=bool)

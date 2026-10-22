@@ -102,9 +102,12 @@ def build_season(
     rule.check_season(S)
     rows = arch.read_rows("pts", S, ROW_COLS)
     assert not (set(rows.columns) & LABEL_COLS)
+    n_stored = int(len(rows))
+    rows = rows[rule.is_regular(rows.game_id)].reset_index(drop=True)
     same = {}
     for st in ("ast", "fg3m"):
         o = arch.read_rows(st, S, ["game_id", "player_id"])
+        o = o[rule.is_regular(o.game_id)]
         same[st] = bool(
             set(zip(o.game_id, o.player_id, strict=True))
             == set(zip(rows.game_id, rows.player_id, strict=True))
@@ -115,6 +118,7 @@ def build_season(
     sf = pd.concat([rows.reset_index(drop=True), mf], axis=1)
     sf["bucket"] = [rule.minutes_bucket(m) for m in sf.min10.fillna(0.0)]
     meta = {
+        "rows_pts_stored_all_game_types": n_stored,
         "rows_pts": int(len(sf)),
         "games": int(sf.game_id.nunique()),
         "row_sets_identical_across_stats": same,
