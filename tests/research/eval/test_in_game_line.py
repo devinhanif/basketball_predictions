@@ -511,6 +511,7 @@ def test_synthetic_finals_are_coherent_and_dryrun_guards_the_reader(
         return {}
 
     monkeypatch.setattr(ev, "run_pipeline", stub)
+    monkeypatch.setattr(ev, "check_finals_schema", lambda root, reader: None)
     with pytest.raises(RuntimeError, match="outcome reader"):
         ev.dryrun(feat.data_root(), tmp_path / "d.json")
     assert ev.read_finals is real  # restored even on failure
@@ -553,3 +554,29 @@ def test_recency_and_evaluate_wiring() -> None:
     res = ev.evaluate(test, probs, "pts")
     assert res["better_b1"] in ("b1", "b1_a0") and set(res["slices"]) == {"blowout_q3q4", "last6"}
     assert res["vs_b0"]["n_rows"] == n and 0 <= res["p_vs_b0"] <= 1 and res["cells"]
+
+
+def test_finals_frame_casts_to_the_declared_dtypes() -> None:
+    raw = pl.DataFrame(
+        {
+            "game_id": ["g"],
+            "player_id": [1],
+            "team_id": [2],
+            "game_date": [__import__("datetime").date(2023, 1, 1)],
+            "minutes": [30.0],
+            "pts": [10],
+            "reb": [1],
+            "ast": [2],
+            "fg3m": [0],
+        },
+        schema_overrides={
+            "player_id": pl.Int32,
+            "team_id": pl.Int32,
+            "minutes": pl.Float32,
+            "pts": pl.Int32,
+            "reb": pl.Int32,
+            "ast": pl.Int32,
+            "fg3m": pl.Int32,
+        },
+    )
+    assert dict(ev._finals_frame(raw).schema) == ev.FINALS_DTYPES

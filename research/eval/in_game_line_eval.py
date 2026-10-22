@@ -70,21 +70,39 @@ FEATURES_B = [
 MONOTONE_B = {"need": -1, "pregame_mean": 1, "rem_min_hat": 1, "b0_logit": 1}
 
 
-def read_finals(root: Path, seasons: tuple[int, ...]) -> pl.DataFrame:
-    """Final box-score lines of played regular-season games (the OUTCOME; first called after ``verify_inputs``). ``season <= 2024`` in the SQL."""
+FINALS_SQL = (
+    "select p.game_id, p.player_id, p.team_id, g.game_date, p.minutes, p.pts, p.reb, p.ast, p.fg3m from player_game_stats p "
+    "join games g on g.game_id = p.game_id where g.season = ? and g.season <= 2024 and p.game_id like '002%' and p.minutes > 0"
+)
+FINALS_DTYPES = {
+    "game_id": pl.Utf8,
+    "player_id": pl.Int32,
+    "team_id": pl.Int32,
+    "game_date": pl.Date,
+    "minutes": pl.Float64,
+    "pts": pl.Int64,
+    "reb": pl.Int64,
+    "ast": pl.Int64,
+    "fg3m": pl.Int64,
+}
+
+
+def _finals_frame(df: pl.DataFrame) -> pl.DataFrame:
+    return df.select([pl.col(c).cast(t) for c, t in FINALS_DTYPES.items()])
+
+
+def read_finals(root: Path, seasons: tuple[int, ...], schema_only: bool = False) -> pl.DataFrame:
+    """Final box-score lines of played regular-season games (the OUTCOME; first called after ``verify_inputs``). ``season <= 2024`` in the SQL.
+    ``schema_only`` appends ``limit 0``: no row is read, only the column types (the dryrun's wiring check of this very query)."""
     out = []
     for s in seasons:
         rule.check_season(s)
         c = duckdb.connect(str(feat.db_path(s, root)), read_only=True)
         try:
-            df = c.execute(
-                "select p.game_id, p.player_id, p.team_id, g.game_date, p.minutes, p.pts, p.reb, p.ast, p.fg3m from player_game_stats p "
-                "join games g on g.game_id = p.game_id where g.season = ? and g.season <= 2024 and p.game_id like '002%' and p.minutes > 0",
-                [s],
-            ).pl()
+            df = c.execute(FINALS_SQL + (" limit 0" if schema_only else ""), [s]).pl()
         finally:
             c.close()
-        out.append(df)
+        out.append(_finals_frame(df))
     return pl.concat(out)
 
 
@@ -575,7 +593,7 @@ def synthetic_finals(
             draw = rng.negative_binomial(n, n / (n + mu))
             cols[stat] = pl.Series(first[stat].to_numpy() + draw).cast(pl.Int64)
         parts.append(pl.DataFrame(cols))
-    return pl.concat(parts)
+    return _finals_frame(pl.concat(parts))
 
 
 def real_finals(
@@ -586,6 +604,12 @@ def real_finals(
 
 def _no_outcomes(*args: Any, **kwargs: Any) -> pl.DataFrame:
     raise RuntimeError("dryrun: the real outcome reader (read_finals) was called")
+
+
+def check_finals_schema(root: Path, reader: Callable[..., pl.DataFrame]) -> None:
+    for s in (2019, 2023):
+        sch = reader(root, (s,), schema_only=True)
+        assert sch.height == 0 and dict(sch.schema) == FINALS_DTYPES, dict(sch.schema)
 
 
 def dryrun(
@@ -599,6 +623,9 @@ def dryrun(
     report fit runs whatever the select result is. Results are meaningless as science and are labelled so."""
     global read_finals
     real = read_finals
+    # wiring check of the real reader's SQL and dtypes with ``limit 0`` (no row is read): one history season and one production season must give
+    # exactly the dtypes the synthetic provider produces, so the joins in the real run cannot fail on a type mismatch
+    check_finals_schema(root, real)
     read_finals = _no_outcomes
     try:
         assert read_finals is _no_outcomes
