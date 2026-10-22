@@ -345,11 +345,12 @@ def test_arm_probs_runs_and_shuffle_changes_it() -> None:
         return df.filter(pl.Series(keep))
 
     tr, te = frame(n), frame(400)
-    out = ev.arm_probs(tr, te, "pts", tr)
+    stage_a = ev.fit_minutes_stage(ev.add_derived(tr))
+    out = ev.arm_probs(tr, te, "pts", stage_a)
     assert set(out) == {"b0", "b1", "m"} and all(
         len(v) == te.height and np.all((v > 0) & (v < 1)) for v in out.values()
     )
-    out2 = ev.arm_probs(tr, te, "pts", tr, shuffle_seed=3)
+    out2 = ev.arm_probs(tr, te, "pts", stage_a, shuffle_seed=3)
     assert not np.allclose(out["m"], out2["m"])
 
 
@@ -402,3 +403,153 @@ def test_minutes_are_deterministic_under_row_order() -> None:
     b = feat.minutes_at(shuffled, 360.0).sort("game_id", "team_id", "player_id")
     assert a.equals(b)
     assert a["minutes"].to_list() == [6.0] * 10
+
+
+def _roster_game() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    """Home team with two players named Green (ids 21, 22); the assist text prints 'D. Green' and only 21 is on court at that moment."""
+    g = "0022200998"
+    games = pl.DataFrame(
+        {
+            "game_id": [g],
+            "game_date": [__import__("datetime").date(2022, 11, 2)],
+            "home_team": [H],
+            "away_team": [A],
+        }
+    )
+    rows: list[dict] = []
+
+    def ev_(clock: str, team: int, pid: int, name: str, typ: str, desc: str, sv: int = 0) -> None:
+        rows.append(
+            dict(
+                game_id=g,
+                action_number=len(rows) + 1,
+                period=1,
+                clock=clock,
+                team_id=team,
+                player_id=pid,
+                player_name=name,
+                action_type=typ,
+                sub_type="",
+                description=desc,
+                score_home="",
+                score_away="",
+                shot_result="",
+                shot_value=sv,
+            )
+        )
+
+    ev_(
+        "PT11M00.00S", H, 1, "Ann", "Made Shot", "Ann Layup (2 PTS) (D. Green 1 AST)", 2
+    )  # 21 on court (first stint)
+    ev_(
+        "PT05M00.00S", H, 1, "Ann", "Made Shot", "Ann Layup (4 PTS) (J. Green 1 AST)", 2
+    )  # 22 on court (second stint)
+    ev_(
+        "PT04M00.00S", H, 1, "Ann", "Made Shot", "Ann Layup (6 PTS) (Zzz 1 AST)", 2
+    )  # nobody by that name: unresolved
+    ev_("PT03M00.00S", H, 21, "Green", "Rebound", "Green REBOUND")
+    ev_("PT03M00.00S", H, 22, "Green", "Rebound", "Green REBOUND")
+    pbp = (
+        pl.DataFrame(rows)
+        .with_columns(feat.clock_seconds_expr().alias("left"))
+        .with_columns(feat.elapsed_expr().alias("t"))
+        .drop("left")
+    )
+    st = pl.DataFrame(
+        {
+            "game_id": [g, g],
+            "team_id": [H, H],
+            "period": [1, 1],
+            "start_clock": [720.0, 400.0],
+            "end_clock": [400.0, 0.0],
+            "players": [[1, 21, 3, 4, 5], [1, 22, 3, 4, 5]],
+        },
+        schema_overrides={"players": pl.Array(pl.Int32, 5)},
+    )
+    return games, pbp, st
+
+
+def test_assist_repair_resolves_initials_by_who_is_on_court() -> None:
+    games, pbp, st = _roster_game()
+    rows = feat.stint_rows(st)
+    before = feat.stat_events(pbp).filter(pl.col("stat") == "ast")
+    after = feat.stat_events(pbp, rows).filter(pl.col("stat") == "ast").sort("t")
+    assert (
+        before.height == 0
+    )  # 'D. Green' / 'J. Green' never matched the surname-only names, and 'Green' is ambiguous
+    assert after["player_id"].to_list() == [21, 22]  # the third assist (no such player) is dropped
+    assert feat.ast_unresolved(pbp, after) == (3, 2)
+
+
+def test_binding_p_and_boot_draws() -> None:
+    rng = np.random.default_rng(0)
+    games = np.repeat(np.arange(100), 5)
+    codes = {"game": games, "player_season": rng.integers(0, 20, len(games)), "week": games // 7}
+    gain = rng.normal(-0.5, 0.2, len(games))
+    assert rule.binding_p(gain, codes, n_boot=200) < 0.05
+    assert rule.binding_p(-gain, codes, n_boot=200) > 0.95
+    point, draws = rule.boot_draws(gain, games, 0, 200)
+    assert len(draws) == 200 and point == pytest.approx(float(gain.mean()))
+
+
+def test_synthetic_finals_are_coherent_and_dryrun_guards_the_reader(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:  # type: ignore[no-untyped-def]
+    games, pbp, st, _ = _synthetic()
+    state = feat.state_frame(2022, feat.data_root(), True, games, pbp, st)
+    fin = ev.synthetic_finals(feat.data_root(), (2022,), {2022: state})
+    last = state.sort("e").group_by("game_id", "player_id", maintain_order=True).last()
+    j = fin.join(last, on=["game_id", "player_id"], suffix="_cur")
+    for stat in rule.STATS:
+        assert (j[stat] >= j[f"{stat}_cur"]).all()
+    assert fin.equals(ev.synthetic_finals(feat.data_root(), (2022,), {2022: state}))  # seeded
+
+    real = ev.read_finals
+
+    def stub(root, finals_fn, sha, **kw):  # type: ignore[no-untyped-def]
+        ev.read_finals(root, (2023,))  # any real-outcome read inside a dryrun must raise
+        return {}
+
+    monkeypatch.setattr(ev, "run_pipeline", stub)
+    with pytest.raises(RuntimeError, match="outcome reader"):
+        ev.dryrun(feat.data_root(), tmp_path / "d.json")
+    assert ev.read_finals is real  # restored even on failure
+
+
+def test_recency_and_evaluate_wiring() -> None:
+    d = __import__("datetime").date
+    finals = pl.DataFrame(
+        {
+            "game_id": [f"g{i}" for i in range(8)],
+            "player_id": [1] * 8,
+            "team_id": [1] * 8,
+            "game_date": [d(2023, 1, 1 + i) for i in range(8)],
+            "minutes": [30.0] * 8,
+            "pts": [10, 20, 30, 10, 20, 30, 10, 20],
+            "reb": [1] * 8,
+            "ast": [1] * 8,
+            "fg3m": [1] * 8,
+        }
+    )
+    r = ev.recency(finals).sort("game_id")
+    assert r["n_prior"].to_list() == list(range(8))
+    assert (
+        r["m_pts"][3] == pytest.approx(20.0) and r["m_pts"][0] is None
+    )  # strictly earlier games only
+    rng = np.random.default_rng(0)
+    n = 4000
+    test = pl.DataFrame(
+        {
+            "game_id": [f"g{i % 400}" for i in range(n)],
+            "player_id": rng.integers(0, 80, n),
+            "game_date": [d(2024, 1, 1 + (i % 400) % 28) for i in range(n)],
+            "e": rng.choice(rule.CHECKPOINTS, n),
+            "margin": rng.integers(-30, 30, n),
+            "y": rng.integers(0, 2, n).astype(float),
+            "b1_a0": rng.uniform(0.05, 0.95, n),
+        }
+    )
+    probs = {k: rng.uniform(0.05, 0.95, n) for k in ("b0", "b1", "m")}
+    res = ev.evaluate(test, probs, "pts")
+    assert res["better_b1"] in ("b1", "b1_a0") and set(res["slices"]) == {"blowout_q3q4", "last6"}
+    assert res["vs_b0"]["n_rows"] == n and 0 <= res["p_vs_b0"] <= 1 and res["cells"]

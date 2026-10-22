@@ -201,7 +201,8 @@ def run_season(season: int, root: Path) -> dict[str, Any]:
     pbp = feat.read_pbp(ids, root)
     stints = feat.read_stints(season, root)
     comp = feat.completeness(games, pbp, stints)
-    named, resolved = feat.ast_unresolved(pbp, feat.stat_events(pbp))
+    named, resolved_before = feat.ast_unresolved(pbp, feat.stat_events(pbp))
+    _, resolved = feat.ast_unresolved(pbp, feat.stat_events(pbp, feat.stint_rows(stints)))
     log(f"{season}: completeness full {_m(comp['full']):.4f}; building state")
     state = feat.state_frame(season, root, True, games, pbp, stints)
     out: dict[str, Any] = {
@@ -211,6 +212,8 @@ def run_season(season: int, root: Path) -> dict[str, Any]:
             c: _m(comp[c]) for c in ("pbp_ok", "minutes_ok", "pts_ok", "fouls_ok", "full")
         },
         "ast_named": named,
+        "ast_resolved_before_repair": resolved_before,
+        "ast_resolved_share_before_repair": resolved_before / named if named else None,
         "ast_resolved": resolved,
         "ast_resolved_share": resolved / named if named else None,
         "state_rows": state.height,
