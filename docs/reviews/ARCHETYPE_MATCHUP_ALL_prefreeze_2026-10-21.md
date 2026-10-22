@@ -475,3 +475,90 @@ from the second review.
 
 - TEST_LEDGER (under T507): `| T507-review-3 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL third pre-freeze review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Third review) | label-free | NOT_READY: M5 as specified, S5 and m1-m5 closed (harness pin efbcb276 recomputed; 17 declared digests reproduced exactly; S5 293/293, 291/291); new M6: player_game_matchups and games, the feature-source tables, are not digested | n/a | n/a | n/a | n/a | BLOCKED pre-freeze | not holdout |`
 - DECISIONS: none.
+
+## Fourth review (2026-10-21, closure, after Amendment 4; main at 19807b1)
+
+Scope: M6 and m6 from the third review only. I checked them by diff (`git diff 04597b2 19807b1`, and `git diff 7b73182 19807b1 --stat` for
+scope), by recomputing the digests, the file hashes and the pin, and by running the tests. Everything was label-free. DuckDB was opened
+`read_only=True` (`preseason_role_prior.connect`). Only `season <= 2024` was queried: max season 2024 in both `mu` and `games`. No outcome
+column was read.
+
+Pre-freeze verdict word: **READY_TO_FREEZE**
+
+Verdict: APPROVED
+
+**Top finding.** M6 is closed. `PIN_MATCHUPS` and `PIN_GAMES` are computed in `compute_input_digests` (`archetype_matchup_all_eval.py:159-167`)
+from the same `mu` and `games` objects that `run` passes on to the features (`:300-311`). They are declared above the marker, and two fresh
+`digests` runs reproduce all 19 declared lines byte for byte. A reload of either table between now and the run now makes `run` refuse
+before any outcome is read.
+
+### Closure table
+
+| id | closed? | evidence (file:line, command) |
+|---|---|---|
+| M6(a) two table digests | **closed** | `eval.py:159-167`. `mu` is sorted by all columns and `games` by `game_id`, each with its index reset, then hashed with `arch.sha_table`, exactly as I specified. Determinism of the sort: `games` has 3,690 rows and `game_id` is unique (True). `mu` has 692,906 rows and 0 fully duplicated rows, so the unstable default sort cannot reorder distinct rows. `compute_input_digests` gets the same `mu` and `games` that feed `load_season` (`eval.py:300-311`). `sort_values` returns a copy, so neither table is mutated. |
+| M6(b) `digests` branch and test stub | **closed** | `eval.py:352-354` passes `feat.read_matchups(c)`. The stub at test line 925 takes four arguments. `read_matchups` and `read_games` are the T505 functions re-exported (`archetype_matchup_features.py:29-30`), so `digests` and `run` hash the same query. |
+| M6(c) one-cell test | **closed (see m7)** | `test_a_one_cell_change_in_either_feature_source_table_changes_its_digest`, test lines 979-1007: changing one cell in either table changes that table's digest and only that one, and row order does not matter. |
+| M6(d) declared lines and harness pin | **closed** | I ran `digests` twice: both exit 0, `diff` between them exit 0, and `diff` against the declared block (19 lines) exit 0. `PIN_MATCHUPS 5f2444c3…7d5c` and `PIN_GAMES efdeb2c2…e724` equal my third-review scratch prefixes. `rule.declared(doc)` parses 19 entries, and `input_mismatches(declared, recomputed) == []`. I recomputed all 17 harness file sha256 values. Only `archetype_matchup_all_eval.py` changed (`c183d5b87654…`); the other 16 files are untouched since 7b73182 (diff stat). The combined pin is **63b3d9b0277c47130557aae5008c5707540efafbb1cc8a1c4bc0d4a02a94bc75**, equal to the claim. |
+| m6 labels used = labels declared | **closed** | `load_season` (`eval.py:206-214`) computes `af.label_digest(off_a, def_a)` on the labels it then builds `sf` from, and raises SystemExit on a mismatch. The check runs before `read_outcomes`, which is called at `:231`. `run` passes `rule.declared(DOC.read_text())` (`:309`), and `run` is the only caller of `load_season` (grep). It is tested by `test_load_season_refuses_labels_that_differ_from_the_declared_pin` (test line 1010). |
+| Rule integrity | pass | The priors were committed in bab8eea (21:02:22): doc only, 6 lines, with grep count 0 for both new digest values and 0 for "Amendment 4 results". The values and the code came in eece82b (21:07:16). Since 7b73182 only three files changed, all inside T507: the doc, `_eval.py` and the amendment-2 test file. No bar, floor, constant or feature changed. Nothing is uncommitted under `research/`, `tests/` or the doc (`git diff 19807b1 ... | wc -l` = 0). |
+| Holdout | pass | `tests/eval/test_holdout_source_filter.py` was in the passing run. Both loaders filter on `season <= MAX_SEASON` (2024), and the observed max season is 2024. |
+| Lint | pass | `ruff check` exit 0, `ruff format --check` exit 0 and `mypy` exit 0 on `_eval.py` (and ruff on the test file). |
+
+### New findings (none blocking)
+
+**m7 (minor, optional).** The one-cell test (test lines 990-994) re-implements the hashing expression in a local `dig()`. It does not call
+`compute_input_digests`; it checks the source only with the substring test `"PIN_MATCHUPS" in src`. So a later edit that, for example, dropped the sort
+inside `compute_input_digests` would not fail this test. It would still be caught in practice: any such edit changes `_eval.py`, which breaks
+the harness pin, and a wrong expression would stop reproducing the declared value, so `run` refuses. Either way the failure is safe. Fix if
+convenient (not needed for the freeze): build the two entries through a small helper `table_digests(mu, games)` used by both
+`compute_input_digests` and the test.
+
+**m8 (note).** One Amendment 4 prior ("reviewer prefixes match", P 0.85) predicted a value I had already published in the third review, so it is
+not an independent forecast. Score it as informative only in PREDICTIONS_LEDGER.
+
+### Single most likely route to a false pass now
+
+I see no remaining number-changing input that is unpinned or undigested. The residual risk is still the one on the outcome side (a carry by
+two stats on the small floors), and that is what the frozen bars are for. Of the "Not verified" items in the third review, the as_of/tip_et
+timezone convention still stands. It belongs to production, not to T507.
+
+### Commands (exit codes shown, nothing piped through tail or head)
+
+- `.venv/bin/python -W ignore -m research.eval.archetype_matchup_all_eval digests > <scratch>/d1.txt` and the same to `d2.txt`: exit 0 and
+  exit 0. `diff d1 d2`: exit 0. `diff d1 declared` (19 lines extracted from the declared block): exit 0.
+- `<scratch>/check4.py`: declared n 19, mismatches `[]`, 17 file hashes, pin 63b3d9b0…bc75, text sha, games 3,690 rows with unique
+  game_id, mu 692,906 rows with 0 full duplicates, max season 2024 for both; exit 0.
+- `.venv-1/bin/python -m pytest -q --no-cov -p no:cacheprovider tests/research/eval/test_archetype_matchup_all.py tests/research/eval/test_archetype_matchup_all_amendment2.py tests/eval/test_holdout_source_filter.py`:
+  **93 passed, exit 0** (91 before, plus the 2 new tests).
+- `ruff check` exit 0, `ruff format --check` exit 0, `mypy research/eval/archetype_matchup_all_eval.py` exit 0.
+- `git log 04597b2..19807b1`, `git show bab8eea:<doc> | grep -c <values>` (0), `git diff 7b73182 19807b1 --stat`.
+
+### Not verified
+
+- The full eval run. By design, no fit on outcomes exists.
+- The sha256 of the text above the marker, as computed after this commit. This review file is not the rule doc, so appending to it does not
+  change that sha. At 19807b1 it is `f10ed5b1dd0f855a15bab6135f0ded608062d8debda8a36d8df8f70732b89f9b`, and the freeze commit must carry exactly that
+  value unless the doc changes again.
+
+### Playbook check (GBM context-residual layer plus quantile rescale, four stats)
+
+1. Information or capacity: information (the opposing OUT set through `delta_rate` and the mix). Unchanged.
+2. Enough data for the class: about 25.7k rows per season. Unchanged.
+3. Test validity: valid as specified now. The labels are aligned and pinned, the labels used are asserted equal to the labels declared, the
+   feature-source tables are digested, the A0 files, the OUT sets and the libraries are pinned, and the harness code is byte-pinned.
+4. Lineage and inherited guards: the T505/T506 code, the `opp_adjusted_ridge` NULL-pattern guard (j), five shuffle seeds, the identity arm,
+   the M5 input digests, the S5 real-tip plants, and now the M6 table digests.
+5. Scored against: A0, the stored production OOF, on integer CRPS, as a four-stat composite in floor units. One test, no BH family.
+
+### Recommended changes (for the main session; none applied by me)
+
+1. Freeze: commit `prereg(ARCHETYPE_MATCHUP_ALL): f10ed5b1dd0f855a15bab6135f0ded608062d8debda8a36d8df8f70732b89f9b`, then
+   `harness(ARCHETYPE_MATCHUP_ALL): 63b3d9b0277c47130557aae5008c5707540efafbb1cc8a1c4bc0d4a02a94bc75` with every harness file byte-identical.
+   If m7 is fixed first, the pin changes and must be re-taken.
+2. The 2025 touch, if any, is Devin's decision and needs its HOLDOUT_ACCESS_LOG row before it runs.
+
+### Drafted rows (not appended)
+
+- TEST_LEDGER (under T507): `| T507-review-4 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL fourth pre-freeze review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Fourth review) | label-free | READY_TO_FREEZE: M6 and m6 closed (19 declared digests reproduced twice, byte-identical; harness pin 63b3d9b0 recomputed over 17 files; text sha f10ed5b1; 93 tests passed); minor m7 (test re-implements the digest) optional | n/a | n/a | n/a | n/a | APPROVED pre-freeze | not holdout |`
+- DECISIONS: none.
