@@ -15,6 +15,7 @@ import type { LegBreakdown, Side } from "./legTypes";
 import type { TopParlays, TpResult } from "./topParlays";
 import type { LegModel } from "./tracker";
 import type { History } from "./optionsChart";
+import type { ScanResult } from "./importLink";
 import type { KalshiPrices, LiveGame, Scoreboard } from "./liveTypes";
 
 /** Result of a fetch: the data, and whether the service worker served a saved copy. */
@@ -43,6 +44,14 @@ export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
   }
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for /api/top-parlays/${date}`);
   return { data: { kind: "ok", data: (await res.json()) as TopParlays }, fromCache };
+}
+
+/** Send a screenshot to the local scan endpoint. The body is the raw image; nothing is stored by us. */
+export async function scanScreenshot(file: File): Promise<ScanResult> {
+  const res = await fetch("/api/scan/kalshi-screenshot", { method: "POST", headers: { "Content-Type": file.type }, body: file });
+  const body = (await res.json().catch(() => ({}))) as { detail?: unknown } & Partial<ScanResult>;
+  if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : `${res.status.toString()} ${res.statusText}`);
+  return body as ScanResult;
 }
 
 export const api = {

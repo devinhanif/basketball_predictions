@@ -1,0 +1,325 @@
+{
+ "markets": [
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLNVUCEVIC9-8",
+   "title": "Nikola Vu\u010devi\u0107: 8+ rebounds",
+   "yes_sub_title": "Nikola Vu\u010devi\u0107: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLNVUCEVIC9-6",
+   "title": "Nikola Vu\u010devi\u0107: 6+ rebounds",
+   "yes_sub_title": "Nikola Vu\u010devi\u0107: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLNVUCEVIC9-4",
+   "title": "Nikola Vu\u010devi\u0107: 4+ rebounds",
+   "yes_sub_title": "Nikola Vu\u010devi\u0107: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLNVUCEVIC9-2",
+   "title": "Nikola Vu\u010devi\u0107: 2+ rebounds",
+   "yes_sub_title": "Nikola Vu\u010devi\u0107: 2+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 1.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLLDORT0-6",
+   "title": "Luguentz Dort: 6+ rebounds",
+   "yes_sub_title": "Luguentz Dort: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLLDORT0-4",
+   "title": "Luguentz Dort: 4+ rebounds",
+   "yes_sub_title": "Luguentz Dort: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLLDORT0-2",
+   "title": "Luguentz Dort: 2+ rebounds",
+   "yes_sub_title": "Luguentz Dort: 2+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 1.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLNALEXANDERWALKER7-8",
+   "title": "Nickeil Alexander-Walker: 8+ rebounds",
+   "yes_sub_title": "Nickeil Alexander-Walker: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLWCARTER34-12",
+   "title": "Wendell Carter Jr.: 12+ rebounds",
+   "yes_sub_title": "Wendell Carter Jr.: 12+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 11.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLCMCCOLLUM3-8",
+   "title": "CJ McCollum: 8+ rebounds",
+   "yes_sub_title": "CJ McCollum: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLCMCCOLLUM3-6",
+   "title": "CJ McCollum: 6+ rebounds",
+   "yes_sub_title": "CJ McCollum: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLCMCCOLLUM3-4",
+   "title": "CJ McCollum: 4+ rebounds",
+   "yes_sub_title": "CJ McCollum: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLCMCCOLLUM3-2",
+   "title": "CJ McCollum: 2+ rebounds",
+   "yes_sub_title": "CJ McCollum: 2+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 1.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLNALEXANDERWALKER7-6",
+   "title": "Nickeil Alexander-Walker: 6+ rebounds",
+   "yes_sub_title": "Nickeil Alexander-Walker: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLNALEXANDERWALKER7-4",
+   "title": "Nickeil Alexander-Walker: 4+ rebounds",
+   "yes_sub_title": "Nickeil Alexander-Walker: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLNALEXANDERWALKER7-2",
+   "title": "Nickeil Alexander-Walker: 2+ rebounds",
+   "yes_sub_title": "Nickeil Alexander-Walker: 2+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 1.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLJSUGGS4-8",
+   "title": "Jalen Suggs: 8+ rebounds",
+   "yes_sub_title": "Jalen Suggs: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLJSUGGS4-6",
+   "title": "Jalen Suggs: 6+ rebounds",
+   "yes_sub_title": "Jalen Suggs: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLJSUGGS4-4",
+   "title": "Jalen Suggs: 4+ rebounds",
+   "yes_sub_title": "Jalen Suggs: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLJSUGGS4-2",
+   "title": "Jalen Suggs: 2+ rebounds",
+   "yes_sub_title": "Jalen Suggs: 2+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 1.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLWCARTER34-8",
+   "title": "Wendell Carter Jr.: 8+ rebounds",
+   "yes_sub_title": "Wendell Carter Jr.: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLWCARTER34-6",
+   "title": "Wendell Carter Jr.: 6+ rebounds",
+   "yes_sub_title": "Wendell Carter Jr.: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLWCARTER34-4",
+   "title": "Wendell Carter Jr.: 4+ rebounds",
+   "yes_sub_title": "Wendell Carter Jr.: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLWCARTER34-10",
+   "title": "Wendell Carter Jr.: 10+ rebounds",
+   "yes_sub_title": "Wendell Carter Jr.: 10+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 9.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLPBANCHERO5-8",
+   "title": "Paolo Banchero: 8+ rebounds",
+   "yes_sub_title": "Paolo Banchero: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLPBANCHERO5-6",
+   "title": "Paolo Banchero: 6+ rebounds",
+   "yes_sub_title": "Paolo Banchero: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLPBANCHERO5-4",
+   "title": "Paolo Banchero: 4+ rebounds",
+   "yes_sub_title": "Paolo Banchero: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLPBANCHERO5-12",
+   "title": "Paolo Banchero: 12+ rebounds",
+   "yes_sub_title": "Paolo Banchero: 12+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 11.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLPBANCHERO5-10",
+   "title": "Paolo Banchero: 10+ rebounds",
+   "yes_sub_title": "Paolo Banchero: 10+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 9.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLFWAGNER22-8",
+   "title": "Franz Wagner: 8+ rebounds",
+   "yes_sub_title": "Franz Wagner: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLFWAGNER22-6",
+   "title": "Franz Wagner: 6+ rebounds",
+   "yes_sub_title": "Franz Wagner: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLFWAGNER22-4",
+   "title": "Franz Wagner: 4+ rebounds",
+   "yes_sub_title": "Franz Wagner: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLDBANE3-8",
+   "title": "Desmond Bane: 8+ rebounds",
+   "yes_sub_title": "Desmond Bane: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLDBANE3-6",
+   "title": "Desmond Bane: 6+ rebounds",
+   "yes_sub_title": "Desmond Bane: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLDBANE3-4",
+   "title": "Desmond Bane: 4+ rebounds",
+   "yes_sub_title": "Desmond Bane: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ORLDBANE3-2",
+   "title": "Desmond Bane: 2+ rebounds",
+   "yes_sub_title": "Desmond Bane: 2+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 1.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLOOKONGWU17-8",
+   "title": "Onyeka Okongwu: 8+ rebounds",
+   "yes_sub_title": "Onyeka Okongwu: 8+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 7.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLOOKONGWU17-6",
+   "title": "Onyeka Okongwu: 6+ rebounds",
+   "yes_sub_title": "Onyeka Okongwu: 6+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 5.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLOOKONGWU17-4",
+   "title": "Onyeka Okongwu: 4+ rebounds",
+   "yes_sub_title": "Onyeka Okongwu: 4+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 3.5
+  },
+  {
+   "ticker": "KXNBAREB-24NOV12ATLORL-ATLOOKONGWU17-12",
+   "title": "Onyeka Okongwu: 12+ rebounds",
+   "yes_sub_title": "Onyeka Okongwu: 12+",
+   "event_ticker": "KXNBAREB-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 11.5
+  }
+ ],
+ "cursor": ""
+}

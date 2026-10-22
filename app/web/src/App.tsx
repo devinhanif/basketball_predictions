@@ -80,7 +80,7 @@ export function App() {
       page = <LivePage key={route.eventId ?? "list"} eventId={route.eventId} />;
       break;
     case "tracker":
-      page = <TrackerPage />;
+      page = <TrackerPage importParam={route.importParam} />;
       break;
     default:
       page = <Today date={route.date} onStale={setStale} />;

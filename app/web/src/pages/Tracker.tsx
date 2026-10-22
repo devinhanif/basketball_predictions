@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { api } from "../api";
+import { api, scanScreenshot } from "../api";
 import type { KalshiMarket, LiveGame, LiveGameRow } from "../liveTypes";
 import { FC_STATS, type FcStat } from "../liveTypes";
 import { SourceLine } from "./Live";
 import { CsvImport, OptionsView } from "./TrackerCharts";
+import { ImportPreview, type PreviewSource } from "./ImportPreview";
+import { decodeImport } from "../importLink";
 import type { History } from "../optionsChart";
 import { usePoll } from "../usePoll";
 import {
@@ -551,7 +553,7 @@ function Strategy() {
   );
 }
 
-export function TrackerPage() {
+export function TrackerPage({ importParam }: { importParam: string | null }) {
   const store = useMemo(() => browserStore(), []);
   const [parlays, setParlays] = useState<Parlay[]>(() => loadParlays(store));
   const [saveFailed, setSaveFailed] = useState(false);
@@ -559,7 +561,7 @@ export function TrackerPage() {
     setSaveFailed(!saveParlays(store, parlays));
   }, [parlays, store]);
 
-  const eventIds = [...new Set(parlays.flatMap((p) => p.legs.map((l) => l.eventId)))].sort();
+  const eventIds = [...new Set(parlays.flatMap((p) => p.legs.map((l) => l.eventId)).filter((id) => id !== ""))].sort();
   const tickers = [...new Set(parlays.flatMap((p) => p.legs.map((l) => l.ticker).filter((t) => t !== "")))].sort();
   const key = eventIds.join(",") + "|" + tickers.join(",");
 
@@ -598,6 +600,35 @@ export function TrackerPage() {
     return () => { live = false; };
   }, [modelKey]);
   const histPoll = usePoll<History | null>(async () => (tickers.length === 0 ? null : (await api.liveHistory(tickers)).data), [key]);
+  const [preview, setPreview] = useState<PreviewSource | null>(null);
+  const [importErr, setImportErr] = useState<string | null>(null);
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  useEffect(() => {
+    if (importParam === null) return;
+    const r = decodeImport(importParam);
+    if (r.ok) {
+      setImportErr(null);
+      setPreview({ spec: r.spec, source: "From an import link" });
+    } else setImportErr(`This import link could not be used: ${r.error}.`);
+  }, [importParam]);
+  const closeImport = (): void => {
+    setPreview(null);
+    if (window.location.hash.includes("import=")) window.history.replaceState(null, "", "#/tracker");
+  };
+  const scan = (f: File | undefined): void => {
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) {
+      setScanMsg("That image is over 5 MB. Crop it or use a smaller screenshot.");
+      return;
+    }
+    setScanning(true);
+    setScanMsg(null);
+    scanScreenshot(f).then(
+      (r) => { setScanning(false); setPreview({ spec: r.parlay, source: r.source, screen: r.screen, resolved: r.resolved }); },
+      (e: unknown) => { setScanning(false); setScanMsg(e instanceof Error ? e.message : "The scan failed."); },
+    );
+  };
   const sbPoll = usePoll(async () => (await api.liveScoreboard()).data, []);
   const feed = feedPoll.data;
   const board = sbPoll.data?.games ?? [];
@@ -629,6 +660,32 @@ export function TrackerPage() {
         </p>
       </div>
       <Strategy />
+      {importErr ? <p class="live-warn" role="alert">{importErr}</p> : null}
+      {preview ? (
+        <ImportPreview
+          key={preview.source + preview.spec.name}
+          src={preview}
+          board={board}
+          onAdd={(p) => { setParlays((all) => [...all, p]); closeImport(); }}
+          onCancel={closeImport}
+        />
+      ) : null}
+      <section class="panel" aria-label="Add from a screenshot">
+        <h2>Add from a screenshot</h2>
+        <p class="small muted">
+          Pick a screenshot of one Kalshi parlay card. We read it and show you a form to check before anything is added.
+        </p>
+        <label class="btn" aria-busy={scanning}>
+          {scanning ? "Reading the screenshot..." : "Scan screenshot"}
+          <input class="sr" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={scanning} onChange={(e) => { scan(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
+        </label>
+        {scanMsg ? <p class="live-warn" role="alert">{scanMsg}</p> : null}
+        <p class="small muted">
+          Privacy: when you use this, the image is sent to Anthropic to be read. It is not saved on our server and not
+          logged. If scanning is not set up on this server, show the screenshot to Claude and open the import link it
+          gives you instead.
+        </p>
+      </section>
       <SourceLine
         source="ESPN unofficial feed + Kalshi public prices"
         stale={feed?.stale ?? false}

@@ -185,3 +185,42 @@ Tracker views: exit signal (entry edge, model value now, offer, spread cost), va
 leg deltas, and a CSV import of the viewer's own Kalshi trade history that is parsed in the browser only (FileReader;
 never sent to the API). To chart tonight's games from the raw capture run the API with
 `APP_LIVE_CAPTURE_DIR=<repo>/data/raw/live_2026-10-21` (opened read-only).
+
+### Import link and screenshot scan (added 2026-10-21)
+
+**Import link.** `#/tracker?import=<base64url of UTF-8 JSON>` opens a "Check before adding" form. Nothing is added until the
+viewer taps Add; a bad link shows an error and adds nothing. Max 20,000 characters. Schema (strict: unknown fields,
+wrong types and out-of-range numbers are refused; the same rules live in `app/web/src/importLink.ts` and
+`app/api/src/parlayhitters_api/scan.py`):
+
+| Field | Rule |
+|---|---|
+| `name` | string 1-60, optional (default "Imported parlay") |
+| `contracts` | number > 0, at most 1,000,000 |
+| `paid` | number, total dollars paid, 0 to 1,000,000 |
+| `combo_price` | optional, dollars per contract, 0 < x < 1 (22.4c is 0.224) |
+| `max_payout`, `current_value` | optional informational numbers (screen values; shown, never used) |
+| `legs` | list of 1 to 12 objects |
+| leg `label` | string 1-120, the leg as shown |
+| leg `kind` | `player`, `win`, `spread` or `total` |
+| leg `player`, `stat` | player legs: name as ESPN spells it; stat is `pts`, `reb`, `ast` or `fg3m` |
+| leg `threshold` | player: N in "N+" (0 < N <= 200); total: the line (> 0); spread: handicap (-100 to 100, negative = must win by more); not allowed on win |
+| leg `side` | `over` (default) or `under`; player and total legs only |
+| leg `team` | win and spread legs: 2-5 upper-case letters, e.g. `ATL` (Kalshi or ESPN abbreviation both work) |
+| leg `ticker` | optional Kalshi ticker, `[A-Za-z0-9._-]`, up to 80 |
+| leg `entry_price` | optional dollars per contract, 0 < x < 1 |
+
+The game for each leg is found from the ticker's game code (e.g. `ATLORL`), else the team, else the live box scores
+(player legs); unresolved legs stay editable in the form. Example link (two legs):
+`#/tracker?import=eyJuYW1lIjoiVG9uaWdodCBsYWRkZXIiLCJjb250cmFjdHMiOjE0Ljk5LCJwYWlkIjozLjM2LCJjb21ib19wcmljZSI6MC4yMjQsImxlZ3MiOlt7ImxhYmVsIjoiSmFsZW4gSm9obnNvbiAxNSsgcG9pbnRzIiwia2luZCI6InBsYXllciIsInBsYXllciI6IkphbGVuIEpvaG5zb24iLCJzdGF0IjoicHRzIiwidGhyZXNob2xkIjoxNSwidGlja2VyIjoiS1hOQkFQVFMtMjZPQ1QyMUFUTE9STC1BVExKSk9ITlNPTjEtMTUiLCJlbnRyeV9wcmljZSI6MC43M30seyJsYWJlbCI6Ik9ybGFuZG8gd2lucyIsImtpbmQiOiJ3aW4iLCJ0ZWFtIjoiT1JMIn1dfQ`
+
+**Screenshot scan.** `POST /api/scan/kalshi-screenshot`, request body = the raw image (PNG, JPEG, WebP or GIF, max 5 MB;
+content type and magic bytes must agree; 413 / 415 otherwise). The image is kept in memory for the request, never
+written to disk, never logged. Only when `ANTHROPIC_API_KEY` is set in the environment (read per request, never stored
+or echoed) it is sent, with a fixed extraction prompt and nothing else, to Anthropic (model `claude-sonnet-5-5`);
+without the key the endpoint answers 503 "screenshot scan needs ANTHROPIC_API_KEY; or paste the screenshot to Claude and
+use an import link". The reply must be JSON that validates against the schema above or it is refused (422). Tickers for
+player and win legs are then looked up in Kalshi's public open markets (today's and yesterday's Eastern-date events;
+player title and threshold must match exactly one market); spreads and totals are left blank. The result is returned as
+`{parlay, screen, resolved, source}` and shown as an editable preview. Privacy note in the UI: the image goes to Anthropic
+for reading when this is used. Fixtures: `app/fixtures/live/kalshi_series_*.json`.

@@ -1,0 +1,309 @@
+{
+ "markets": [
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLPBANCHERO5-45",
+   "title": "Paolo Banchero: 45+ points",
+   "yes_sub_title": "Paolo Banchero: 45+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 44.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLCMCCOLLUM3-30",
+   "title": "CJ McCollum: 30+ points",
+   "yes_sub_title": "CJ McCollum: 30+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 29.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLLDORT0-20",
+   "title": "Luguentz Dort: 20+ points",
+   "yes_sub_title": "Luguentz Dort: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLPBANCHERO5-40",
+   "title": "Paolo Banchero: 40+ points",
+   "yes_sub_title": "Paolo Banchero: 40+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 39.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLDDANIELS5-25",
+   "title": "Dyson Daniels: 25+ points",
+   "yes_sub_title": "Dyson Daniels: 25+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 24.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLPBANCHERO5-35",
+   "title": "Paolo Banchero: 35+ points",
+   "yes_sub_title": "Paolo Banchero: 35+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 34.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLDBANE3-30",
+   "title": "Desmond Bane: 30+ points",
+   "yes_sub_title": "Desmond Bane: 30+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 29.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLKFLEMINGS4-15",
+   "title": "Kingston Flemings: 15+ points",
+   "yes_sub_title": "Kingston Flemings: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLKFLEMINGS4-10",
+   "title": "Kingston Flemings: 10+ points",
+   "yes_sub_title": "Kingston Flemings: 10+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 9.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLNVUCEVIC9-15",
+   "title": "Nikola Vu\u010devi\u0107: 15+ points",
+   "yes_sub_title": "Nikola Vu\u010devi\u0107: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLNVUCEVIC9-10",
+   "title": "Nikola Vu\u010devi\u0107: 10+ points",
+   "yes_sub_title": "Nikola Vu\u010devi\u0107: 10+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 9.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLLDORT0-15",
+   "title": "Luguentz Dort: 15+ points",
+   "yes_sub_title": "Luguentz Dort: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLLDORT0-10",
+   "title": "Luguentz Dort: 10+ points",
+   "yes_sub_title": "Luguentz Dort: 10+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 9.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLWCARTER34-20",
+   "title": "Wendell Carter Jr.: 20+ points",
+   "yes_sub_title": "Wendell Carter Jr.: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLWCARTER34-15",
+   "title": "Wendell Carter Jr.: 15+ points",
+   "yes_sub_title": "Wendell Carter Jr.: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLPBANCHERO5-30",
+   "title": "Paolo Banchero: 30+ points",
+   "yes_sub_title": "Paolo Banchero: 30+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 29.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLJSUGGS4-20",
+   "title": "Jalen Suggs: 20+ points",
+   "yes_sub_title": "Jalen Suggs: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLJSUGGS4-15",
+   "title": "Jalen Suggs: 15+ points",
+   "yes_sub_title": "Jalen Suggs: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLJSUGGS4-10",
+   "title": "Jalen Suggs: 10+ points",
+   "yes_sub_title": "Jalen Suggs: 10+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 9.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLFWAGNER22-30",
+   "title": "Franz Wagner: 30+ points",
+   "yes_sub_title": "Franz Wagner: 30+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 29.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLFWAGNER22-25",
+   "title": "Franz Wagner: 25+ points",
+   "yes_sub_title": "Franz Wagner: 25+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 24.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLFWAGNER22-20",
+   "title": "Franz Wagner: 20+ points",
+   "yes_sub_title": "Franz Wagner: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLDBANE3-25",
+   "title": "Desmond Bane: 25+ points",
+   "yes_sub_title": "Desmond Bane: 25+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 24.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLDBANE3-20",
+   "title": "Desmond Bane: 20+ points",
+   "yes_sub_title": "Desmond Bane: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLDBANE3-15",
+   "title": "Desmond Bane: 15+ points",
+   "yes_sub_title": "Desmond Bane: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLOOKONGWU17-20",
+   "title": "Onyeka Okongwu: 20+ points",
+   "yes_sub_title": "Onyeka Okongwu: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLOOKONGWU17-15",
+   "title": "Onyeka Okongwu: 15+ points",
+   "yes_sub_title": "Onyeka Okongwu: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLOOKONGWU17-10",
+   "title": "Onyeka Okongwu: 10+ points",
+   "yes_sub_title": "Onyeka Okongwu: 10+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 9.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLNALEXANDERWALKER7-30",
+   "title": "Nickeil Alexander-Walker: 30+ points",
+   "yes_sub_title": "Nickeil Alexander-Walker: 30+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 29.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLNALEXANDERWALKER7-25",
+   "title": "Nickeil Alexander-Walker: 25+ points",
+   "yes_sub_title": "Nickeil Alexander-Walker: 25+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 24.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLNALEXANDERWALKER7-20",
+   "title": "Nickeil Alexander-Walker: 20+ points",
+   "yes_sub_title": "Nickeil Alexander-Walker: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLJJOHNSON1-30",
+   "title": "Jalen Johnson: 30+ points",
+   "yes_sub_title": "Jalen Johnson: 30+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 29.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLJJOHNSON1-25",
+   "title": "Jalen Johnson: 25+ points",
+   "yes_sub_title": "Jalen Johnson: 25+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 24.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLJJOHNSON1-20",
+   "title": "Jalen Johnson: 20+ points",
+   "yes_sub_title": "Jalen Johnson: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLJJOHNSON1-15",
+   "title": "Jalen Johnson: 15+ points",
+   "yes_sub_title": "Jalen Johnson: 15+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 14.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLDDANIELS5-20",
+   "title": "Dyson Daniels: 20+ points",
+   "yes_sub_title": "Dyson Daniels: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLCMCCOLLUM3-25",
+   "title": "CJ McCollum: 25+ points",
+   "yes_sub_title": "CJ McCollum: 25+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 24.5
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLCMCCOLLUM3-20",
+   "title": "CJ McCollum: 20+ points",
+   "yes_sub_title": "CJ McCollum: 20+",
+   "event_ticker": "KXNBAPTS-24NOV12ATLORL",
+   "status": "active",
+   "floor_strike": 19.5
+  }
+ ],
+ "cursor": ""
+}

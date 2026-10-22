@@ -105,5 +105,22 @@ def main() -> None:
     (OUT / "kalshi_markets.json").write_text(redate(json.dumps({"markets": ms}, indent=1)))
 
 
+
+
+def record_series() -> None:
+    """Trimmed public market lists used by the screenshot-scan ticker resolver tests."""
+    keep = ("ticker", "title", "yes_sub_title", "event_ticker", "status", "floor_strike")
+    for series, pick in (("KXNBAPTS", "ATLORL"), ("KXNBAREB", "ATLORL"), ("KXNBAGAME", "")):
+        r = live.http_get(f"{live.KALSHI_MARKETS}?series_ticker={series}&status=open&limit=1000")
+        ms = [m for m in r["markets"] if pick in m["event_ticker"]] if pick else r["markets"]
+        if series == "KXNBAGAME":
+            ms = [m for m in ms if "GSWDEN" in m["event_ticker"]] + ms[:0]
+        ms = [{k: m.get(k) for k in keep} for m in ms][:40]
+        text = json.dumps({"markets": ms, "cursor": ""}, indent=1)
+        text = redate(text).replace("26OCT26", "24NOV12")
+        (OUT / f"kalshi_series_{series}.json").write_text(text)
+
+
 if __name__ == "__main__":
     main()
+    record_series()

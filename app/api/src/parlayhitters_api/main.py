@@ -7,11 +7,13 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from . import live, live_history
+from . import scan as scanmod
 from .breakdown import Breakdown, Side
 from .breakdown import build as build_breakdown
 from .dissect.providers import default_router
@@ -616,6 +618,32 @@ def register(app: FastAPI) -> None:
             ),
         )
         return out
+
+    @app.post("/api/scan/kalshi-screenshot")
+    async def scan_screenshot(request: Request) -> Json:
+        """Read a Kalshi parlay screenshot (Claude vision). Image kept in memory only."""
+        declared = request.headers.get("content-length")
+        if declared is not None and declared.isdigit() and int(declared) > scanmod.MAX_BYTES:
+            raise HTTPException(status_code=413, detail="the image is over 5 MB")
+        body = await request.body()
+        if len(body) > scanmod.MAX_BYTES:
+            raise HTTPException(status_code=413, detail="the image is over 5 MB")
+        media = scanmod.sniff(request.headers.get("content-type", ""), body)
+        if media is None:
+            raise HTTPException(
+                status_code=415, detail="send a PNG, JPEG, WebP or GIF image as the request body"
+            )
+        key = scanmod.api_key()
+        if key is None:
+            raise HTTPException(status_code=503, detail=scanmod.NO_KEY)
+        try:
+            return await run_in_threadpool(scanmod.scan, body, media, key)
+        except live.SourceDown:
+            raise HTTPException(
+                status_code=502, detail="the vision service did not answer"
+            ) from None
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from None
 
     @app.get("/api/live/model")
     def live_model(

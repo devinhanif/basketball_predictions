@@ -1,0 +1,21 @@
+{
+ "markets": [
+  {
+   "ticker": "KXNBAGAME-24NOV12GSWDEN-GSW",
+   "title": "Golden State wins",
+   "yes_sub_title": "Golden State",
+   "event_ticker": "KXNBAGAME-24NOV12GSWDEN",
+   "status": "active",
+   "floor_strike": null
+  },
+  {
+   "ticker": "KXNBAGAME-24NOV12GSWDEN-DEN",
+   "title": "Denver wins",
+   "yes_sub_title": "Denver",
+   "event_ticker": "KXNBAGAME-24NOV12GSWDEN",
+   "status": "active",
+   "floor_strike": null
+  }
+ ],
+ "cursor": ""
+}

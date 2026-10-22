@@ -14,7 +14,7 @@ export type Route =
   | { name: "builds"; playerId: number | null }
   | { name: "learned" }
   | { name: "live"; eventId: string | null }
-  | { name: "tracker" };
+  | { name: "tracker"; importParam: string | null };
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
 export function legHref(gameId: string, playerId: number, stat: LegStat, side: Side = "over"): string {
@@ -60,7 +60,7 @@ export function parse(hash: string): Route {
     case "live":
       return { name: "live", eventId: parts[1] ? decodeURIComponent(parts[1]) : null };
     case "tracker":
-      return { name: "tracker" };
+      return { name: "tracker", importParam: q.get("import") };
     default:
       return { name: "today", date: q.get("date") };
   }
