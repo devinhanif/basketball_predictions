@@ -1,0 +1,295 @@
+{
+ "id": "ARCHETYPE_MATCHUP_ALL",
+ "harness_pins": {
+  "research/eval/archetype_matchup_all_rule.py": "97cf81ffd2206f6cdeefaffcf15be5b6404e4920e64f1bef003eef9adf68944d",
+  "research/eval/archetype_matchup_all_features.py": "c01f83f6f905d7b8ea10e6c5d63eb8eef892721a05a26fc458fd764e32415bd8",
+  "research/eval/archetype_matchup_all_arm.py": "936e351ffab1b1ec6eaf034bf9c222c49a52ba80ed70850c3819d4e410779c83",
+  "research/eval/archetype_matchup_all_gate.py": "adc412912a6336553fe872db90e7bc2e26891638bc40937d4660186f69108157",
+  "research/eval/archetype_matchup_all_eval.py": "536c63b8190ea6f0a71c5b4e6913126b663a49b82b387b0161da51b7a2e2c9f8",
+  "research/eval/archetype_matchup_rule.py": "42e63e49e3c8d48fc670b829743015ad78aee0f22ef04fe43689983e20aed6bd",
+  "research/eval/archetype_matchup_features.py": "1c9f4c0f83bc10ccfeb2103add8d75bc40b159554bfaf40df226b57264a7b792",
+  "research/eval/archetype_matchup_gate.py": "95490a92e844fab45294f1efe81ab0419126a4915032f40a3d87501e4241971a",
+  "research/eval/matchup_availability_rule.py": "2470e26f0d3173e74985fcacd84cf23e6d587d027cf3c81057557b63bf311641",
+  "research/eval/matchup_availability_features.py": "e48bee3f6275cca21112c91aed99eb85a8918cd82bb594bd1e3a9fd53bff6da8",
+  "research/eval/role_prior_salary_rule.py": "929841056be83e8f4dec021fa07c29974c9a8dce34aa09195cd8f9c995569641",
+  "research/eval/role_prior_salary_eval.py": "611d2cc5bb106cc0705c4f88844e6b045556336620db39490e3e3df62da85bb7",
+  "research/archive/preseason_role_prior/preseason_role_prior.py": "1f0051d5eb8b9dc84eb280314105db00870da67777bcd5c4d4a148de3b1cfc19",
+  "research/coldstart/archetypes.py": "88c210d122416ecbc8aae044e917c37bb3c8cbac1a5842e014b95679b4d299e4",
+  "nba/props/metrics.py": "8266930c39fe81c9dd9f7adff81e91f0ba796420c00c5cddb02e3f56fda88c53",
+  "nba/props/distributions.py": "3b81c40aec259663aac8f234a6abc9273a0f0553d37fb2719688e9ce62e90dfe",
+  "nba/truth/metrics.py": "dbf38525c91ca8fba072c9c0ce675096cb8c064cd7b7ccac3310b7ffd28a9546"
+ },
+ "planted_future": {
+  "2023": {
+   "values_check": {
+    "queries": 1597,
+    "cut_day": 19741,
+    "events_perturbed": 114686,
+    "identical": true
+   },
+   "inserted_rows_before_cut_identical": true,
+   "inserted_rows_move_later_features_positive_control": true,
+   "queries_before_cut": 1597,
+   "rows_inserted": 3000,
+   "post_tip_out": {
+    "games_with_report_planted": 308,
+    "games_without_report_planted": 3,
+    "post_tip_sets_unchanged": true,
+    "pre_tip_control_games_created": 3,
+    "pre_tip_control_detected": true,
+    "real_tip_edge_games_with_tip": 308,
+    "tip_plus_1min_sets_unchanged": true,
+    "tip_minus_61min_expected_to_count": 288,
+    "tip_minus_61min_counted": 288,
+    "tip_minus_61min_all_counted": true
+   },
+   "identical": true
+  },
+  "2024": {
+   "values_check": {
+    "queries": 1589,
+    "cut_day": 20106,
+    "events_perturbed": 116273,
+    "identical": true
+   },
+   "inserted_rows_before_cut_identical": true,
+   "inserted_rows_move_later_features_positive_control": true,
+   "queries_before_cut": 1589,
+   "rows_inserted": 3000,
+   "post_tip_out": {
+    "games_with_report_planted": 308,
+    "games_without_report_planted": 3,
+    "post_tip_sets_unchanged": true,
+    "pre_tip_control_games_created": 3,
+    "pre_tip_control_detected": true,
+    "real_tip_edge_games_with_tip": 308,
+    "tip_plus_1min_sets_unchanged": true,
+    "tip_minus_61min_expected_to_count": 288,
+    "tip_minus_61min_counted": 288,
+    "tip_minus_61min_all_counted": true
+   },
+   "identical": true
+  }
+ },
+ "alignment": {
+  "2023": {
+   "reference": true,
+   "season": 2023,
+   "n_players_clustered": 407
+  },
+  "2024": {
+   "reference": false,
+   "season": 2024,
+   "reference_season": 2023,
+   "offense": {
+    "agreement_before": 0.43452380952380953,
+    "agreement_after": 0.8273809523809523,
+    "n_players_in_both": 336,
+    "mapping": {
+     "0": 0,
+     "1": 2,
+     "2": 1,
+     "3": 3,
+     "4": 4,
+     "5": 5
+    }
+   },
+   "defense": {
+    "agreement_before": 0.7946428571428571,
+    "agreement_after": 0.7946428571428571,
+    "n_players_in_both": 336,
+    "mapping": {
+     "0": 0,
+     "1": 1,
+     "2": 2,
+     "3": 3,
+     "4": 4,
+     "5": 5
+    }
+   },
+   "n_players_clustered": 413
+  }
+ },
+ "select_2023": {
+  "n_rows": 25815,
+  "n_player_seasons": 551,
+  "cm": {
+   "game": {
+    "point": 3.8385843540429487,
+    "lo": 3.231884433941777,
+    "hi": 4.417965795909615,
+    "half_width": 0.593040680983919,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 1230
+   },
+   "player_season": {
+    "point": 3.8385843540429487,
+    "lo": 3.118101937206068,
+    "hi": 4.552604353120866,
+    "half_width": 0.7172512079573992,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 551
+   },
+   "week": {
+    "point": 3.8385843540429487,
+    "lo": 2.0687842186542746,
+    "hi": 5.873462724385729,
+    "half_width": 1.9023392528657272,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 25
+   },
+   "binding": {
+    "clustering": "week",
+    "point": 3.8385843540429487,
+    "lo": 2.0687842186542746,
+    "hi": 5.873462724385729,
+    "half_width": 1.9023392528657272,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 25
+   }
+  },
+  "cm_point": 3.8385843540429487,
+  "stat_parts": {
+   "pts": 1.379362423145895,
+   "reb": 0.6354244033586176,
+   "ast": 0.6029218297373947,
+   "fg3m": 1.2208756978010413
+  },
+  "stat_shares": {
+   "pts": 0.35934143838550686,
+   "reb": 0.16553613122748326,
+   "ast": 0.1570687977984315,
+   "fg3m": 0.31805363258857833
+  },
+  "stat_points_floor_units": {
+   "pts": 5.51744969258358,
+   "reb": 2.5416976134344704,
+   "ast": 2.411687318949579,
+   "fg3m": 4.883502791204165
+  },
+  "per_stat_binding_ci_floor_units_descriptive": {
+   "pts": {
+    "clustering": "week",
+    "point": 5.517449692583579,
+    "lo": 2.775479059377232,
+    "hi": 8.627607533648597,
+    "half_width": 2.9260642371356824,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 25
+   },
+   "reb": {
+    "clustering": "week",
+    "point": 2.5416976134344704,
+    "lo": 1.46100754473239,
+    "hi": 3.729661107404761,
+    "half_width": 1.1343267813361857,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 25
+   },
+   "ast": {
+    "clustering": "week",
+    "point": 2.4116873189495793,
+    "lo": 1.022216922155199,
+    "hi": 4.243957607007157,
+    "half_width": 1.6108703424259792,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 25
+   },
+   "fg3m": {
+    "clustering": "week",
+    "point": 4.883502791204165,
+    "lo": 2.2123614987307896,
+    "hi": 7.8379926272679326,
+    "half_width": 2.8128155642685715,
+    "p": 1.0,
+    "n": 25815,
+    "clusters": 25
+   }
+  },
+  "top5_share": NaN,
+  "shuffled_cm_points": [
+   4.222583062223614,
+   4.286521472502989,
+   4.117401010844032,
+   3.823011663820625,
+   4.382073048371497
+  ],
+  "shuffled_cm_mean": 4.166318051552551,
+  "shuffled_keep_share": null,
+  "m_minus_shuffled_mean_ci_descriptive": {
+   "game": {
+    "point": -0.32773369750960285,
+    "lo": -0.7213658048925566,
+    "hi": 0.053565800599937194,
+    "half_width": 0.3874658027462469,
+    "p": 0.04147926036981509,
+    "n": 25815,
+    "clusters": 1230
+   },
+   "player_season": {
+    "point": -0.32773369750960285,
+    "lo": -0.7283176370266674,
+    "hi": 0.07172699551881054,
+    "half_width": 0.400022316272739,
+    "p": 0.05647176411794103,
+    "n": 25815,
+    "clusters": 551
+   },
+   "week": {
+    "point": -0.32773369750960285,
+    "lo": -0.7619302098958093,
+    "hi": 0.05772436378648025,
+    "half_width": 0.4098272868411448,
+    "p": 0.054972513743128434,
+    "n": 25815,
+    "clusters": 25
+   },
+   "binding": {
+    "clustering": "week",
+    "point": -0.32773369750960285,
+    "lo": -0.7619302098958093,
+    "hi": 0.05772436378648025,
+    "half_width": 0.4098272868411448,
+    "p": 0.054972513743128434,
+    "n": 25815,
+    "clusters": 25
+   }
+  },
+  "knockouts": {
+   "identity": {
+    "cm_point": 4.202606021535213,
+    "keep_share": null
+   },
+   "shift": {
+    "cm_point": 3.424460245060301,
+    "keep_share": null
+   },
+   "unknown": {
+    "cm_point": 3.9844914608864856,
+    "keep_share": null
+   },
+   "all_features": {
+    "cm_point": 0.6392676659798355,
+    "keep_share": null
+   }
+  },
+  "identity_only_cm_point": 1.3586638230977284,
+  "identity_only_keep_share": null
+ },
+ "report_2024": null,
+ "verdict": {
+  "pass": false,
+  "failed": [
+   "select_season_point"
+  ],
+  "note": "2023 CM point above -1.0: 2024 is not scored (the rule's kill criterion). A2-S4: the 2023 fit trains on 2023's earlier months only (none for October 2023), a harder step than 2024's; this stop is weak evidence of no composite gain, not strong evidence."
+ },
+ "wall_seconds": 39.7
+}
