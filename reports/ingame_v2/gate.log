@@ -1,0 +1,17 @@
+[16:00:28] season 2022: 1230 regular-season games
+[16:01:18] season 2022 done
+[16:01:18] season 2023: 1230 regular-season games
+[16:02:09] season 2023 done
+[16:02:09] season 2024: 1230 regular-season games
+[16:02:58] season 2024 done
+PASS pbp_four_periods {'2022': 1.0, '2023': 1.0, '2024': 1.0} >= 0.99
+PASS timeout_team_resolved {'2022': 1.0, '2023': 1.0, '2024': 1.0} >= 0.995
+PASS foul_token_coverage {'2022': 1.0, '2023': 1.0, '2024': 1.0} >= 0.99
+PASS stint_tile_games {'2022': 1.0, '2023': 1.0, '2024': 1.0} >= 0.95
+PASS possession_next_actor_agreement {'2022': 0.9731, '2023': 0.9735, '2024': 0.974} >= 0.95
+PASS possession_vs_table_agreement {'2022': 0.9908, '2023': 0.9919, '2024': 0.992} >= 0.95
+PASS prior_coverage {'2022': 0.9984, '2023': 1.0, '2024': 0.9959} >= 0.99
+PASS cells_states_ge95 {'2022': 8978.0, '2023': 10442.0, '2024': 10324.0} >= 5000.0
+PASS cells_games_ge95 {'2022': 1054.0, '2023': 1082.0, '2024': 1076.0} >= 250.0
+PASS cells_games_ge98 {'2022': 960.0, '2023': 998.0, '2024': 990.0} >= 100.0
+verdict PASS

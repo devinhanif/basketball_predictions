@@ -1,0 +1,298 @@
+{
+ "seasons": {
+  "2022": {
+   "games_listed": 1230,
+   "games_with_pbp": 1230,
+   "four_periods": 1230,
+   "games_with_ot": 79,
+   "timeouts": {
+    "events": 13479,
+    "resolved": 13479,
+    "max_team_count_p99": 9.0,
+    "share_games_max_gt7": 0.06747967479674796
+   },
+   "fouls": {
+    "events": 44394,
+    "with_token": 44394,
+    "teamfoul_steps": 33526,
+    "teamfoul_steps_ok": 33488
+   },
+   "possession": {
+    "events": 342301,
+    "known_after_event": 342301,
+    "next_actor_agree": 290405,
+    "next_actor_disagree": 8034,
+    "vs_table_n": 234013,
+    "vs_table_ok": 231871,
+    "grid_states": 59040,
+    "grid_known": 48086
+   },
+   "grid_v1_cells": {
+    "states_ge95": 8978,
+    "games_any_ge95": 1054,
+    "states_ge98": 6118,
+    "games_any_ge98": 960,
+    "states_75_95": 16688,
+    "games_any_ge75": 1228
+   },
+   "stints": {
+    "games_with_stints": 1230,
+    "games_tiling_all_8_team_periods": 1230
+   },
+   "prior": {
+    "games": 1230,
+    "with_prior": 1228,
+    "prior_asof_before_game_date": 1228
+   },
+   "star": {
+    "player_games_played": 25892,
+    "with_ge5_prior_games_in_window": 23272
+   }
+  },
+  "2023": {
+   "games_listed": 1230,
+   "games_with_pbp": 1230,
+   "four_periods": 1230,
+   "games_with_ot": 59,
+   "timeouts": {
+    "events": 13526,
+    "resolved": 13526,
+    "max_team_count_p99": 9.0,
+    "share_games_max_gt7": 0.07804878048780488
+   },
+   "fouls": {
+    "events": 42180,
+    "with_token": 42180,
+    "teamfoul_steps": 32717,
+    "teamfoul_steps_ok": 32659
+   },
+   "possession": {
+    "events": 334785,
+    "known_after_event": 334785,
+    "next_actor_agree": 285083,
+    "next_actor_disagree": 7771,
+    "vs_table_n": 231673,
+    "vs_table_ok": 229785,
+    "grid_states": 59040,
+    "grid_known": 48221
+   },
+   "grid_v1_cells": {
+    "states_ge95": 10442,
+    "games_any_ge95": 1082,
+    "states_ge98": 7359,
+    "games_any_ge98": 998,
+    "states_75_95": 16440,
+    "games_any_ge75": 1228
+   },
+   "stints": {
+    "games_with_stints": 1230,
+    "games_tiling_all_8_team_periods": 1230
+   },
+   "prior": {
+    "games": 1230,
+    "with_prior": 1230,
+    "prior_asof_before_game_date": 1230
+   },
+   "star": {
+    "player_games_played": 26393,
+    "with_ge5_prior_games_in_window": 25808
+   }
+  },
+  "2024": {
+   "games_listed": 1230,
+   "games_with_pbp": 1230,
+   "four_periods": 1230,
+   "games_with_ot": 60,
+   "timeouts": {
+    "events": 13678,
+    "resolved": 13678,
+    "max_team_count_p99": 9.0,
+    "share_games_max_gt7": 0.07967479674796749
+   },
+   "fouls": {
+    "events": 42304,
+    "with_token": 42304,
+    "teamfoul_steps": 32951,
+    "teamfoul_steps_ok": 32892
+   },
+   "possession": {
+    "events": 336387,
+    "known_after_event": 336387,
+    "next_actor_agree": 287040,
+    "next_actor_disagree": 7651,
+    "vs_table_n": 231632,
+    "vs_table_ok": 229774,
+    "grid_states": 59040,
+    "grid_known": 48261
+   },
+   "grid_v1_cells": {
+    "states_ge95": 10324,
+    "games_any_ge95": 1076,
+    "states_ge98": 7399,
+    "games_any_ge98": 990,
+    "states_75_95": 16668,
+    "games_any_ge75": 1229
+   },
+   "stints": {
+    "games_with_stints": 1230,
+    "games_tiling_all_8_team_periods": 1230
+   },
+   "prior": {
+    "games": 1230,
+    "with_prior": 1225,
+    "prior_asof_before_game_date": 1225
+   },
+   "star": {
+    "player_games_played": 26302,
+    "with_ge5_prior_games_in_window": 25767
+   }
+  }
+ },
+ "thresholds": {
+  "pbp_four_periods": 0.99,
+  "timeout_team_resolved": 0.995,
+  "foul_token_coverage": 0.99,
+  "stint_tile_games": 0.95,
+  "possession_next_actor_agreement": 0.95,
+  "possession_vs_table_agreement": 0.95,
+  "prior_coverage": 0.99,
+  "min_states_ge95": 5000,
+  "min_games_ge95": 250,
+  "min_games_ge98": 100
+ },
+ "power": {
+  "2022": {
+   "null_contrast_point": -4.7952900544583956e-05,
+   "ci": [
+    -0.0002716289640580892,
+    0.00020063182664491845
+   ],
+   "half_width": 0.00023613039535150384,
+   "n_games": 1230,
+   "note": "synthetic outcomes, no real label"
+  },
+  "2023": {
+   "null_contrast_point": -4.7952900544583956e-05,
+   "ci": [
+    -0.0002716289640580892,
+    0.00020063182664491845
+   ],
+   "half_width": 0.00023613039535150384,
+   "n_games": 1230,
+   "note": "synthetic outcomes, no real label"
+  },
+  "2024": {
+   "null_contrast_point": -4.7952900544583956e-05,
+   "ci": [
+    -0.0002716289640580892,
+    0.00020063182664491845
+   ],
+   "half_width": 0.00023613039535150384,
+   "n_games": 1230,
+   "note": "synthetic outcomes, no real label"
+  }
+ },
+ "checks": [
+  {
+   "check": "pbp_four_periods",
+   "values": {
+    "2022": 1.0,
+    "2023": 1.0,
+    "2024": 1.0
+   },
+   "threshold": 0.99,
+   "pass": true
+  },
+  {
+   "check": "timeout_team_resolved",
+   "values": {
+    "2022": 1.0,
+    "2023": 1.0,
+    "2024": 1.0
+   },
+   "threshold": 0.995,
+   "pass": true
+  },
+  {
+   "check": "foul_token_coverage",
+   "values": {
+    "2022": 1.0,
+    "2023": 1.0,
+    "2024": 1.0
+   },
+   "threshold": 0.99,
+   "pass": true
+  },
+  {
+   "check": "stint_tile_games",
+   "values": {
+    "2022": 1.0,
+    "2023": 1.0,
+    "2024": 1.0
+   },
+   "threshold": 0.95,
+   "pass": true
+  },
+  {
+   "check": "possession_next_actor_agreement",
+   "values": {
+    "2022": 0.9730799258810008,
+    "2023": 0.973464593278562,
+    "2024": 0.9740372118592017
+   },
+   "threshold": 0.95,
+   "pass": true
+  },
+  {
+   "check": "possession_vs_table_agreement",
+   "values": {
+    "2022": 0.9908466623649114,
+    "2023": 0.991850582502061,
+    "2024": 0.9919786557988534
+   },
+   "threshold": 0.95,
+   "pass": true
+  },
+  {
+   "check": "prior_coverage",
+   "values": {
+    "2022": 0.9983739837398374,
+    "2023": 1.0,
+    "2024": 0.9959349593495935
+   },
+   "threshold": 0.99,
+   "pass": true
+  },
+  {
+   "check": "cells_states_ge95",
+   "values": {
+    "2022": 8978.0,
+    "2023": 10442.0,
+    "2024": 10324.0
+   },
+   "threshold": 5000.0,
+   "pass": true
+  },
+  {
+   "check": "cells_games_ge95",
+   "values": {
+    "2022": 1054.0,
+    "2023": 1082.0,
+    "2024": 1076.0
+   },
+   "threshold": 250.0,
+   "pass": true
+  },
+  {
+   "check": "cells_games_ge98",
+   "values": {
+    "2022": 960.0,
+    "2023": 998.0,
+    "2024": 990.0
+   },
+   "threshold": 100.0,
+   "pass": true
+  }
+ ],
+ "verdict": "PASS"
+}
