@@ -108,7 +108,7 @@ def cmd_watch(a: argparse.Namespace) -> int:
         root,
         a.date,
         WinProbModel.load(),
-        gate.RideConfig(credit=a.credit),
+        gate.RideConfig(credit=a.credit, heads_up_p=a.heads_up),
         sizing.load_fee(),
         notifier,
         state_path=derived / "ride" / f"state_{a.date}.json",
@@ -129,6 +129,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     w.add_argument("--interval", type=float, default=60.0)
     w.add_argument("--credit", type=float, default=10.84)
     w.add_argument("--no-push", action="store_true")
+    w.add_argument(
+        "--heads-up", type=float, default=None, help="push once per game at this leader win prob"
+    )
     w.add_argument("--no-features", action="store_true")
     w.add_argument("--derived-dir", default=str(DERIVED))
     w.add_argument("--reports-dir", default=str(REPORTS))

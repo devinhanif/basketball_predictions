@@ -52,3 +52,17 @@ def test_one_alert_per_game_and_quote_rules() -> None:
     assert evaluate(gi(quote="no_room")).level == "WATCH"
     assert evaluate(gi(ours=0.979)).level == "WATCH"
     assert evaluate(gi(), RideConfig(ride_p=0.99)).level == "WATCH"
+
+
+def test_heads_up_once_fresh_and_espn_agrees() -> None:
+    from nba.ride.gate import GateInput, RideConfig, heads_up
+
+    cfg = RideConfig(heads_up_p=0.75)
+    ok = GateInput("in", "home", 0.76, 0.74, 30.0, 40.0, "ok", False)
+    assert heads_up(ok, cfg, already=False)
+    assert not heads_up(ok, cfg, already=True)
+    assert not heads_up(GateInput("in", "home", 0.74, 0.74, 30.0, 40.0, "ok", False), cfg, False)
+    assert not heads_up(GateInput("in", "home", 0.80, 0.70, 30.0, 40.0, "ok", False), cfg, False)
+    assert not heads_up(GateInput("in", "home", 0.80, 0.80, 300.0, 40.0, "ok", False), cfg, False)
+    assert not heads_up(GateInput("in", "home", 0.80, None, 30.0, 40.0, "ok", False), cfg, False)
+    assert not heads_up(ok, RideConfig(), already=False)

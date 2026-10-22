@@ -44,6 +44,7 @@ class Engine:
     positions: dict[str, plan.Position] = field(default_factory=dict)  # event_id -> position
     slices: dict[str, float] = field(default_factory=dict)
     levels: dict[str, str] = field(default_factory=dict)  # event_id -> last logged level
+    headsup_sent: set[str] = field(default_factory=set)  # event_ids that got the heads-up push
     reasons: dict[str, tuple[str, ...]] = field(default_factory=dict)
     timeline: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
@@ -55,6 +56,7 @@ class Engine:
                 k: plan.Position.from_dict(v) for k, v in d.get("positions", {}).items()
             }
             self.slices = {k: float(v) for k, v in d.get("slices", {}).items()}
+            self.headsup_sent = set(d.get("headsup_sent", []))
 
     def save(self) -> None:
         if self.state_path is None:
@@ -63,6 +65,7 @@ class Engine:
         payload = {
             "positions": {k: v.to_dict() for k, v in self.positions.items()},
             "slices": self.slices,
+            "headsup_sent": sorted(self.headsup_sent),
         }
         tmp = self.state_path.with_name(self.state_path.name + ".tmp")
         tmp.write_text(json.dumps(payload))
@@ -130,6 +133,30 @@ class Engine:
                 )
                 self.notifier.log("WATCH", text, now=now)
                 events.append(Event("WATCH", name, text, now))
+            gin = gate.GateInput(
+                "in",
+                side,
+                ours,
+                espn,
+                hb,
+                (now - s.file_time).total_seconds(),
+                quote_state(lq),
+                eid in self.positions,
+            )
+            if gate.heads_up(gin, self.cfg, eid in self.headsup_sent):
+                q = None if lq is None else lq[1]
+                px = "" if q is None else f" Kalshi {leader_team} {_f(q.bid, 2)}/{_f(q.ask, 2)}."
+                text = (
+                    f"HEADS-UP {name}: {leader_team} leads {abs(s.margin)} "
+                    f"({s.away_score}-{s.home_score}), Q{s.period} {s.clock_secs // 60:.0f}:"
+                    f"{s.clock_secs % 60:02.0f}. Win prob ours {ours:.0%}, "
+                    f"ESPN {(espn or 0.0):.0%}.{px} "
+                    f"Info only; ride alert comes at {self.cfg.ride_p:.0%}."
+                )
+                self.notifier.alert("HEADS_UP", text, now=now)
+                self.headsup_sent.add(eid)
+                self.save()
+                events.append(Event("HEADS_UP", name, text, now))
             if verdict.level in ("WATCH", "RIDE"):
                 self.levels[eid] = verdict.level
             why = tuple(r for r in verdict.reasons if r != "already_alerted")

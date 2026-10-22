@@ -10,6 +10,10 @@ from dataclasses import dataclass, field
 class RideConfig:
     watch_p: float = 0.65
     ride_p: float = 0.98
+    heads_up_p: float | None = (
+        None  # push once per game when the leader reaches this (Devin, 2026-10-22: 0.75)
+    )
+    heads_up_espn_tol: float = 0.05
     espn_tol: float = 0.03  # |ours - ESPN| on the leader's side
     heartbeat_max_age_s: float = 120.0
     data_max_age_s: float = 150.0  # newest ESPN summary of the game
@@ -66,3 +70,15 @@ def evaluate(g: GateInput, cfg: RideConfig | None = None) -> Verdict:
     if g.quote != "ok":
         why.append(f"quote_{g.quote}")
     return Verdict("RIDE" if not why else "WATCH", tuple(why))
+
+
+def heads_up(g: GateInput, cfg: RideConfig, already: bool) -> bool:
+    """One informational push per game when the leader first reaches ``heads_up_p`` by our model,
+    ESPN agrees within ``heads_up_espn_tol`` on the same side, and the data is fresh."""
+    if cfg.heads_up_p is None or already or g.state != "in" or g.ours < cfg.heads_up_p:
+        return False
+    if g.espn is None or abs(g.ours - g.espn) > cfg.heads_up_espn_tol + 1e-9:
+        return False
+    if g.heartbeat_age_s is None or g.heartbeat_age_s > cfg.heartbeat_max_age_s:
+        return False
+    return g.data_age_s <= cfg.data_max_age_s
