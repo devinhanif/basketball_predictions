@@ -225,9 +225,13 @@ def insert_future_rows(mu: pd.DataFrame, cut: int, S: int, seed: int) -> pd.Data
 
 
 def planted_post_tip_out(c: Any, games: pd.DataFrame, max_season: int = 2024) -> dict[str, Any]:
-    """S3: official-report OUT rows planted with an ``as_of`` AFTER tip must change nothing in the usable pre-tip OUT set (production function,
-    ``tip_source="real"``), whether the game already has a usable report (its set must be unchanged) or has none (it must stay without one).
-    Positive control: a planted row stamped 36 hours BEFORE the game, on a game with no usable report, MUST create a report for it."""
+    """S3/S5: planted official-report OUT rows through the production ``flagged_from_availability(..., tip_source="real")``.
+    (1) Blunt probe: an ``as_of`` 27 h after the game date on games with a usable report (set unchanged) and without one (stays without).
+    (2) The T-60 edge, at the REAL tip: a row at tip + 1 min must not count (set unchanged); a row at tip - 61 min must count, on every sampled game
+    whose latest real usable snapshot is earlier than tip - 61 min (the planted player is then in the set). (3) Positive control: a row 36 h before
+    a game with no usable report creates a report for it."""
+    from nba.features import game_tipoff
+
     g = pl.from_pandas(games.assign(game_date=pd.to_datetime(games.game_date).dt.date))
     c.register("_allowed_games", games[["game_id"]])
     avail = c.execute(
@@ -240,8 +244,11 @@ def planted_post_tip_out(c: Any, games: pd.DataFrame, max_season: int = 2024) ->
     empty_all = sorted(set(games.game_id) - set(base))
     empty = empty_all[:: max(1, len(empty_all) // 300)] if empty_all else []
     tmpl = avail.filter(pl.col("source") == OFFICIAL_REPORT_SOURCE).head(1)
+    tips = game_tipoff.build_game_tipoff(max_season=max_season).select(["game_id", "tip_et"])
 
-    def planted(ids: list[str], hours: int, first_pid: int) -> pl.DataFrame:
+    def planted(
+        ids: list[str], first_pid: int, hours: float = 0.0, from_tip_minutes: float | None = None
+    ) -> pl.DataFrame:
         if not ids:
             return pl.DataFrame(avail.head(0))
         df = pl.concat([tmpl] * len(ids)).with_columns(
@@ -249,30 +256,77 @@ def planted_post_tip_out(c: Any, games: pd.DataFrame, max_season: int = 2024) ->
             pl.Series("player_id", np.arange(len(ids)) + first_pid).cast(avail.schema["player_id"]),
             pl.lit("Out").alias("status"),
         )
-        df = df.join(g.select(["game_id", "game_date"]), on="game_id").with_columns(
-            (pl.col("game_date").cast(pl.Datetime("us")) + pl.duration(hours=hours))
-            .cast(avail.schema["as_of"])
-            .alias("as_of")
+        df = df.join(g.select(["game_id", "game_date"]), on="game_id")
+        if from_tip_minutes is None:
+            at = pl.col("game_date").cast(pl.Datetime("us")) + pl.duration(hours=int(hours))
+        else:
+            df = df.join(tips, on="game_id")
+            at = pl.col("tip_et").cast(pl.Datetime("us")) + pl.duration(
+                minutes=int(from_tip_minutes)
+            )
+        return pl.DataFrame(
+            df.with_columns(at.cast(avail.schema["as_of"]).alias("as_of")).select(avail.columns)
         )
-        return pl.DataFrame(df.select(avail.columns))
 
-    post_rows = pl.concat([planted(with_rep, 27, 90_000_000), planted(empty, 27, 91_000_000)])
+    post_rows = pl.concat([planted(with_rep, 90_000_000, 27), planted(empty, 91_000_000, 27)])
     post, _ = flagged_from_availability(
         pl.concat([avail, post_rows]), g, cfg, max_season=max_season
     )
-    ctrl_rows = planted(empty, -36, 92_000_000)
     ctrl, _ = flagged_from_availability(
-        pl.concat([avail, ctrl_rows]), g, cfg, max_season=max_season
+        pl.concat([avail, planted(empty, 92_000_000, -36)]), g, cfg, max_season=max_season
     )
     detected = sum(
         1 for gid in empty if gid in ctrl and (92_000_000 <= min(ctrl[gid]) < 93_000_000)
     )
+
+    # (2) real-tip edge, on games that have a real tip
+    has_tip = set(tips["game_id"].to_list())
+    edge_ids = [x for x in with_rep if x in has_tip]
+    cut = avail.join(tips, on="game_id").filter(
+        (pl.col("source") == OFFICIAL_REPORT_SOURCE)
+        & (pl.col("as_of") <= pl.col("tip_et").cast(pl.Datetime("us")) - pl.duration(minutes=60))
+    )
+    latest = cut.group_by("game_id").agg(
+        pl.col("as_of").max().alias("_l"), pl.col("tip_et").first().alias("_t")
+    )
+    clear = {
+        str(r[0])
+        for r in latest.filter(
+            pl.col("_l") < pl.col("_t").cast(pl.Datetime("us")) - pl.duration(minutes=61)
+        )
+        .select("game_id")
+        .iter_rows()
+    }
+    must_count = [x for x in edge_ids if x in clear]
+    plus1, _ = flagged_from_availability(
+        pl.concat([avail, planted(edge_ids, 93_000_000, from_tip_minutes=1)]),
+        g,
+        cfg,
+        max_season=max_season,
+    )
+    minus61, _ = flagged_from_availability(
+        pl.concat([avail, planted(must_count, 94_000_000, from_tip_minutes=-61)]),
+        g,
+        cfg,
+        max_season=max_season,
+    )
+    counted = sum(
+        1
+        for x in must_count
+        if x in minus61 and any(94_000_000 <= p < 95_000_000 for p in minus61[x])
+    )
+    plus1_unchanged = all(plus1.get(x) == base.get(x) for x in edge_ids)
     return {
         "games_with_report_planted": len(with_rep),
         "games_without_report_planted": len(empty),
         "post_tip_sets_unchanged": bool(post == base),
         "pre_tip_control_games_created": int(detected),
         "pre_tip_control_detected": bool(len(empty) == 0 or detected == len(empty)),
+        "real_tip_edge_games_with_tip": len(edge_ids),
+        "tip_plus_1min_sets_unchanged": bool(plus1_unchanged),
+        "tip_minus_61min_expected_to_count": len(must_count),
+        "tip_minus_61min_counted": int(counted),
+        "tip_minus_61min_all_counted": bool(counted == len(must_count) and len(must_count) > 0),
     }
 
 
@@ -323,6 +377,8 @@ def planted_future_full(
         and moved
         and out["post_tip_sets_unchanged"]
         and out["pre_tip_control_detected"]
+        and out["tip_plus_1min_sets_unchanged"]
+        and out["tip_minus_61min_all_counted"]
     )
     return {
         "values_check": a,
@@ -352,7 +408,7 @@ def season_assertions(
     }
 
 
-def run(out: Path = OUT) -> dict[str, Any]:
+def run(out: Path = OUT, label: str = "Run") -> dict[str, Any]:
     t0 = time.time()
     rule.check_floors()
     c = arch.connect(arch.DB)
@@ -362,7 +418,7 @@ def run(out: Path = OUT) -> dict[str, Any]:
     log(f"loaded matchups {len(mu)} games {len(games)} flagged games {len(flagged)}")
     gate: dict[str, Any] = {
         "id": rule.ID,
-        "status": "DRAFT gate Run 2 (Amendment 2), label-free (y and realised minutes never selected)",
+        "status": f"DRAFT gate {label}, label-free (y and realised minutes never selected)",
         "pins": {
             f"{s}_{st}": arch.file_sha256(arch.ODDS / f"model_rows_{s}_{st}.parquet")
             for s in (rule.SELECT, rule.REPORT)
@@ -509,8 +565,11 @@ def checks(g: dict[str, Any]) -> list[dict[str, Any]]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument(
+        "--label", default="Run", help="the run number as written in the artifact, e.g. 'Run 4'"
+    )
     a = ap.parse_args(argv)
-    g = run(Path(a.out))
+    g = run(Path(a.out), a.label)
     for ck in g["checks"]:
         print(("PASS " if ck["pass"] else "FAIL ") + ck["check"], ck["value"])
     print("VERDICT", g["verdict"])

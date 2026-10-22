@@ -771,6 +771,11 @@ def test_post_tip_out_rows_do_not_change_the_pretip_set(monkeypatch: pytest.Monk
     assert out["post_tip_sets_unchanged"] is True
     assert out["games_with_report_planted"] == 3 and out["games_without_report_planted"] == 3
     assert out["pre_tip_control_detected"] is True and out["pre_tip_control_games_created"] == 3
+    # S5: the edge at the REAL tip (19:30): +1 min must not count, -61 min must count (the real snapshots are at 12:00)
+    assert out["real_tip_edge_games_with_tip"] == 3
+    assert out["tip_plus_1min_sets_unchanged"] is True
+    assert out["tip_minus_61min_expected_to_count"] == 3 and out["tip_minus_61min_counted"] == 3
+    assert out["tip_minus_61min_all_counted"] is True
 
 
 def test_season_assertion_is_a_real_check() -> None:
@@ -786,3 +791,186 @@ def test_season_assertion_is_a_real_check() -> None:
     assert not bad["ok"]
     late = gate.season_assertions(mu, games, {"2024": pd.DataFrame({"game_date": ["2025-11-01"]})})
     assert not late["ok"]
+
+
+# --------------------------------------------------------------------------- Amendment 3: M5 pins, S5, m1-m3
+
+
+def _closure(root_mod: str, stop: set[str]) -> set[str]:
+    """Repo-local modules (research/, nba/) reachable from ``root_mod`` through import statements (any depth, lazy imports included)."""
+    import ast
+
+    def modfile(m: str) -> Path | None:
+        base = ROOT / Path(*m.split("."))
+        if base.with_suffix(".py").is_file():
+            return base.with_suffix(".py")
+        return base / "__init__.py" if (base / "__init__.py").is_file() else None
+
+    seen: set[str] = set()
+    todo = [root_mod]
+    while todo:
+        m = todo.pop()
+        if m in seen:
+            continue
+        seen.add(m)
+        f = modfile(m)
+        if f is None or m in stop:
+            continue
+        for n in ast.walk(ast.parse(f.read_text())):
+            names: list[str] = []
+            if isinstance(n, ast.Import):
+                names = [a.name for a in n.names]
+            elif isinstance(n, ast.ImportFrom) and n.module and n.level == 0:
+                names = [n.module] + [f"{n.module}.{a.name}" for a in n.names]
+            todo += [x for x in names if x.split(".")[0] in ("research", "nba") and modfile(x)]
+    return seen
+
+
+def test_harness_pin_covers_every_number_changing_import_transitively() -> None:
+    pinned = {rel[:-3].replace("/", ".") for rel in rule.HARNESS_FILES}
+    assert "research.coldstart.archetypes" in pinned
+    reach = _closure("research.eval.archetype_matchup_all_eval", set(rule.DIGEST_COVERED))
+    uncovered = []
+    for m in sorted(reach):
+        if m in pinned or m in rule.DIGEST_COVERED:
+            continue
+        if (
+            ROOT / Path(*m.split("."))
+        ).is_dir():  # a package __init__: no code that changes a number is pinned by name
+            continue
+        if any(m == k or (k.endswith(".") and m.startswith(k)) for k in rule.EXEMPT_UNUSED):
+            continue
+        uncovered.append(m)
+    assert uncovered == [], (
+        f"unpinned, not digest-covered and not exempted with a reason: {uncovered}"
+    )
+    assert all(
+        len(v) > 20 for v in [*rule.DIGEST_COVERED.values(), *rule.EXEMPT_UNUSED.values()]
+    ), "every exemption states its reason"
+
+
+def test_exempt_modules_are_not_called_by_the_archetype_functions_in_use() -> None:
+    import inspect
+
+    from research.coldstart import archetypes
+
+    for fn in (archetypes.fit_archetypes, archetypes.encode_position_fractions):
+        src = inspect.getsource(fn)
+        for bad in (
+            "player_possession_features",
+            "player_rebound_assist_features",
+            "carryover",
+            "shrinkage",
+            "time_decay",
+        ):
+            assert bad not in src
+
+
+def test_declared_pins_parse_and_mismatch_is_reported() -> None:
+    doc = (
+        "text\nPIN_A0_2023_pts: "
+        + "a" * 64
+        + "\nLIB_sklearn: 1.9.1\n  not a pin: x\n"
+        + rule.MARKER
+        + "\nPIN_X: ignored\n"
+    )
+    d = rule.declared(doc)
+    assert d == {"PIN_A0_2023_pts": "a" * 64, "LIB_sklearn": "1.9.1"}
+    assert rule.input_mismatches(d, dict(d)) == []
+    assert len(rule.input_mismatches(d, {**d, "LIB_sklearn": "1.9.2"})) == 1
+    assert (
+        len(rule.input_mismatches(d, {"LIB_sklearn": "1.9.1"})) == 1
+    )  # declared but not recomputed
+    assert len(rule.input_mismatches({}, {"PIN_NEW": "1"})) == 1  # recomputed but not declared
+    assert set(rule.versions()) == {f"LIB_{n}" for n in rule.LIB_NAMES}
+
+
+def test_digests_are_deterministic_and_sensitive() -> None:
+    off = pd.Series([0, 1, 2], index=[30, 10, 20])
+    dfn = pd.Series([1, 1, 0], index=[30, 10, 20])
+    d0 = af.label_digest(off, dfn)
+    assert d0 == af.label_digest(off.sort_index(), dfn.sort_index())
+    assert d0 != af.label_digest(off.replace({2: 3}), dfn)
+    games = pd.DataFrame({"game_id": ["a", "b", "c"], "season": [2023, 2023, 2024]})
+    fl = {"a": {2, 1}, "b": set(), "c": {5}}
+    o0 = af.out_digest(fl, games, 2023)
+    assert o0 == af.out_digest(
+        {"b": set(), "a": {1, 2}, "c": {9}}, games, 2023
+    )  # other season's set does not matter
+    assert o0 != af.out_digest({**fl, "a": {1}}, games, 2023)
+    assert o0 != af.out_digest(fl, games, 2024)
+
+
+def test_verify_inputs_refuses_before_any_outcome_is_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doc = tmp_path / "d.md"
+    doc.write_text("t\nPIN_A: 1\nLIB_x: 2\n" + rule.MARKER + "\n")
+    mev.verify_inputs({"PIN_A": "1", "LIB_x": "2"}, doc)
+    with pytest.raises(SystemExit, match="PIN_A"):
+        mev.verify_inputs({"PIN_A": "9", "LIB_x": "2"}, doc)
+
+    class Conn:
+        def close(self) -> None: ...
+
+    def boom(*a: Any, **k: Any) -> None:
+        raise AssertionError("an outcome was read")
+
+    games = pd.DataFrame({"game_id": ["a"], "season": [2023]})
+    monkeypatch.setattr(mev, "require_ready", lambda sha: {})
+    monkeypatch.setattr(arch, "connect", lambda *a, **k: Conn())
+    monkeypatch.setattr(mev.feat, "read_matchups", lambda c: pd.DataFrame({"season": [2023]}))
+    monkeypatch.setattr(mev.feat, "read_games", lambda c: games)
+    monkeypatch.setattr(mev.feat, "read_flagged", lambda c, g: {})
+    monkeypatch.setattr(mev, "compute_input_digests", lambda c, g, f: {"PIN_A": "changed"})
+    monkeypatch.setattr(mev, "DOC", doc)
+    monkeypatch.setattr(mev.verify_inputs, "__defaults__", (doc,))
+    monkeypatch.setattr(mev, "load_season", boom)
+    monkeypatch.setattr(mev, "read_outcomes", boom)
+    with pytest.raises(SystemExit, match="refusing before any outcome"):
+        mev.run("0" * 64, tmp_path)
+
+
+def test_run_order_and_notes_in_source() -> None:
+    import inspect
+
+    src = inspect.getsource(mev.run)
+    assert src.index("verify_inputs(") < src.index("load_season(")
+    assert "weak evidence of no composite gain, not strong evidence" in src
+
+
+def test_role_axis_qualifier_is_emitted_only_on_a_pass() -> None:
+    n = 600
+    game = np.arange(n) // 4
+    ps = np.array([f"p{i % 30}" for i in range(n)])
+    wk = np.arange(n) % 12
+    d = _synthetic_deltas(2.0, n, 0)
+    for st in rule.STATS:  # the identity knockout keeps 10% of the gain
+        d["ko_identity"][st] = d["M"][st] * 0.1
+    s = mev.season_summary(d, game, ps, wk)
+    v = mev.final_verdict(s, s, True, {})
+    assert s["knockouts"]["identity"]["keep_share"] == pytest.approx(0.1, abs=0.05)
+    assert v["pass"] and v["qualifier"] == "gain needs the role axis"
+    d2 = _synthetic_deltas(2.0, n, 0)
+    for st in rule.STATS:
+        d2["ko_identity"][st] = d2["M"][st] * 0.9
+    s2 = mev.season_summary(d2, game, ps, wk)
+    assert "qualifier" not in mev.final_verdict(s2, s2, True, {})
+    assert "qualifier" not in mev.final_verdict(
+        s, s, False, {}
+    )  # failing (planted future): no qualifier on a non-pass
+
+
+def test_gate_artifact_carries_the_run_label(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: dict[str, Any] = {}
+
+    def fake(out: Path, label: str = "Run") -> dict[str, Any]:
+        seen["label"] = label
+        return {"checks": [], "verdict": "PASS"}
+
+    monkeypatch.setattr(gate, "run", fake)
+    assert gate.main(["--out", str(tmp_path / "g.json"), "--label", "Run 4"]) == 0
+    assert seen["label"] == "Run 4"
+    assert "{label}" in (ROOT / "research/eval/archetype_matchup_all_gate.py").read_text()
