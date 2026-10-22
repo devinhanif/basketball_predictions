@@ -16,6 +16,7 @@ import type { TopParlays, TpResult } from "./topParlays";
 import type { LegModel } from "./tracker";
 import type { History } from "./optionsChart";
 import type { ScanResult } from "./importLink";
+import type { Bankroll } from "./bankroll";
 import type { KalshiPrices, LiveGame, Scoreboard } from "./liveTypes";
 
 /** Result of a fetch: the data, and whether the service worker served a saved copy. */
@@ -63,6 +64,7 @@ export const api = {
   kalshi: (tickers: readonly string[]) =>
     getJson<KalshiPrices>(`/api/live/kalshi?tickers=${encodeURIComponent(tickers.join(","))}`),
   topParlays: getTopParlays,
+  bankroll: () => getJson<Bankroll>("/api/bankroll"),
   meta: () => getJson<Meta>("/api/meta"),
   slates: () => getJson<SlateListItem[]>("/api/slates"),
   slate: (date: string) => getJson<Slate>(`/api/slates/${encodeURIComponent(date)}`),

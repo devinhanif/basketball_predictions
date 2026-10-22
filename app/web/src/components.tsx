@@ -20,6 +20,7 @@ const I = {
   picks: "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4",
   studio: "M3 6h18v12H3zM12 6v12M3 12h4M17 12h4M12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5",
   live: "M3 12h4l3-7 4 14 3-7h4",
+  bankroll: "M3 7h18v12H3zM3 11h18M16 15h2",
   tracker: "M4 19V5M4 19h16M8 15l3-4 3 2 5-7",
 };
 
@@ -49,6 +50,7 @@ const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] 
   { name: "picks", href: "#/picks", label: "My picks", icon: I.picks },
   { name: "live", href: "#/live", label: "Live", icon: I.live },
   { name: "tracker", href: "#/tracker", label: "Tracker", icon: I.tracker },
+  { name: "bankroll", href: "#/bankroll", label: "Bankroll", icon: I.bankroll },
   { name: "studio", href: "#/studio", label: "Studio", icon: I.studio },
 ];
 

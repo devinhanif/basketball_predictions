@@ -14,6 +14,7 @@ import { CourtPage } from "./pages/CourtPage";
 import { BuildPage } from "./pages/BuildPage";
 import { LearnedPage } from "./pages/Learned";
 import { LivePage } from "./pages/Live";
+import { BankrollPage } from "./pages/Bankroll";
 import { TrackerPage } from "./pages/Tracker";
 
 export function App() {
@@ -82,11 +83,14 @@ export function App() {
     case "tracker":
       page = <TrackerPage importParam={route.importParam} />;
       break;
+    case "bankroll":
+      page = <BankrollPage />;
+      break;
     default:
       page = <Today date={route.date} onStale={setStale} />;
   }
   return (
-    <Shell route={route} replayNote={route.name === "live" || route.name === "tracker" ? null : note} offline={stale}>
+    <Shell route={route} replayNote={route.name === "live" || route.name === "tracker" || route.name === "bankroll" ? null : note} offline={stale}>
       {page}
     </Shell>
   );

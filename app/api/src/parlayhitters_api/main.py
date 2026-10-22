@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
+from . import bankroll as bankrollmod
 from . import live, live_history
 from . import scan as scanmod
 from .breakdown import Breakdown, Side
@@ -690,6 +691,15 @@ def register(app: FastAPI) -> None:
         if not all(live.TICKER_RE.match(t) for t in asked):
             raise HTTPException(status_code=422, detail="a ticker has unusual characters")
         return live_history.history(asked)
+
+    @app.get("/api/bankroll")
+    def bankroll() -> dict[str, object]:
+        try:
+            return bankrollmod.load()
+        except (OSError, ValueError) as exc:
+            raise HTTPException(
+                status_code=503, detail="the bankroll file is missing or invalid"
+            ) from exc
 
     @app.get("/api/evidence")
     def evidence(store: StoreDep) -> Json:
