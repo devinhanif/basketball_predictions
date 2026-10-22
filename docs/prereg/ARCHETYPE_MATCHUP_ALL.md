@@ -1,6 +1,6 @@
 # ARCHETYPE_MATCHUP_ALL: across all four stats at once, does the T506 categorical expected-matchup layer beat the production forecast by a pre-declared composite metric? (pre-registration)
 
-Status: **DRAFT 2026-10-21 20:30 CDT, modeler, branch `agent/modeler-archetype-matchup-all` off `main` d0bc846. NOT FROZEN; hash not taken; no arm fitted; no arm scored on any real outcome.** The label-free minimum-data gate is run after the commit that carries this document, the thresholds in code and the Pending priors. Model class: **a small tabular residual layer (LightGBM, 4 leaves) on top of the stored production forecast (the GBM context-residual layer), with a categorical archetype-mix table as input, one layer per stat**; closest classes in docs/MODEL_PLAYBOOK.md: "Gradient-boosted trees (LightGBM context residual)" plus "Quantile and distribution layers" (the layer rescales the served quantile grid).
+Status: **DRAFT 2026-10-21 20:30 CDT, modeler, branch `agent/modeler-archetype-matchup-all` off `main` d0bc846. NOT FROZEN; hash not taken; no arm fitted; no arm scored on any real outcome.** The label-free minimum-data gate was run after the commit that carried this document, the thresholds in code and the Pending priors (96159e5). **Gate verdict: PASS (mean 20-seed detectable CM half-width 0.400 floor units in 2023 and 0.390 in 2024 against the 1.0 bar; every count bar cleared with 0 rows dropped by the four-stat intersection; planted-future identity and the four-stat positive control passed in every seed). The rule is freezable as drafted, pending Devin's read; no arm has been fitted.** Model class: **a small tabular residual layer (LightGBM, 4 leaves) on top of the stored production forecast (the GBM context-residual layer), with a categorical archetype-mix table as input, one layer per stat**; closest classes in docs/MODEL_PLAYBOOK.md: "Gradient-boosted trees (LightGBM context residual)" plus "Quantile and distribution layers" (the layer rescales the served quantile grid).
 
 **Advice or momentum: Devin's override.** DECISIONS 2026-10-21 20:10: "you should do it for all, and then make the combined thing a metric, and lets do the ledger then." Claude recommended against (T506 closed the matchup idea at the gate: the idea is "untestable at the pts floor with ~550 player-seasons", and Claude's priors for any gain are near zero). The priors below are therefore low; the point of this rule is to make the question testable, not to expect a yes.
 
@@ -41,7 +41,7 @@ Fixed in `research/eval/archetype_matchup_all_rule.py` BEFORE any gate number of
 * **Positive control.** Planted per-player-season shift (sd of log lambda 0.20, oracle arm) in all four stats at once: composite point <= -1.0 and binding CI upper bound < 0, in EVERY one of 5 seeds, both seasons. (sd 0.10 is descriptive.)
 * Also reported and gated: planted-future identity (T506's check, reused), row sets identical across all four stats, no NaN feature cell. Reported: missingness audit, `no_roster` share, shift distribution (T506 code).
 * **Verdict words:** PASS when every check passes on both seasons, else FAIL. A FAIL means not freezable as drafted (F9, F12); there is no T1/T2 fallback.
-* **Data capture audit (non-negotiable 8, second half)** as T506: matchups 2022-2024 in `nba.duckdb` (counted again in the artifact), `data/history` holds none for 2019-2021; repair cost ~3,700 requests, adds no 2023/2024 rows, cannot change the power of these tests; 2025 excluded by rule.
+* **Data capture audit (non-negotiable 8, second half)** as T506: matchups 2022-2024 in `nba.duckdb` (see Amendment 1: counted in T506's artifact, not repeated in this one), `data/history` holds none for 2019-2021; repair cost ~3,700 requests, adds no 2023/2024 rows, cannot change the power of these tests; 2025 excluded by rule.
 
 ## Known before the gate (said plainly)
 T506's single-seed noise half-widths, in floor units, were roughly pts 1.5 / 1.1, reb unknown, ast 0.8 / 0.7, fg3m 0.6 / 0.5 (2023 / 2024). With independent noise per stat on common clusters the composite half-width is about sqrt(sum of squares) / 4, i.e. about 0.4 to 0.5, so **the gate is expected to PASS**. That is a statement about power, not about an effect. The rule's difficulty is the claim: CM <= -1.0 needs the average stat to gain one full floor (pts 0.005, reb 0.003, ast 0.002, fg3m 0.001 of CRPS) from a six-feature categorical layer in a forecast that already holds recency, usage and the report, and no stat may lose more than one floor. If the gate passes and the frozen test does not, the closing statement is the honest one: "tested at adequate power; no composite gain".
@@ -67,6 +67,43 @@ T506's single-seed noise half-widths, in floor units, were roughly pts 1.5 / 1.1
 
 ## Forking paths and multiplicity
 Declared and fixed: T506's list (k = 6/6, features, roster window, MIN_W 5, lift clip, decay 0.97, LightGBM settings), the four floors, CM's definition, the six pass criteria, 20 gate seeds, bar 1.0, 5 positive-control seeds. Family: **one test (CM, 2024)**; no BH beyond it. Descriptive and outside the family: per-stat deltas and CIs, stat shares, slices, knockouts, reason strings. No other cut, stat subset, k, window or slice is tried after a result.
+
+## Amendment 1 (dated 2026-10-21, modeler; written after the gate run and before any fit; no bar, constant, verdict word or definition touched)
+One documentation defect: the data capture audit bullet above said the matchup-row counts are "counted again in the artifact"; the harness of this rule does not write a `capture_audit` block (T506's gate.json has it). Not re-run, because nothing a bar depends on changes: this run loaded 692,906 matchup rows, which equals T506's measured 229,185 + 230,877 + 232,844 (2022-2024) exactly; the history-db count (0 matchup rows for seasons <= 2021) and the games and report counts are in `reports/prereg_archetype_matchup/gate.json` (T506, same data version, same query). The capture conclusion is unchanged.
+
+## Minimum-data gate: measured (harness 96159e5 plus this document; `reports/prereg_archetype_matchup_all/gate.json`; label-free; `nba.duckdb` read-only, `season <= 2024`; A0 files pinned by sha256 in the artifact; wall 80 s)
+Rows are the four-stat intersection of regular-season A0 rows (game-id prefix 002); rows dropped by the intersection: 0 in every stat, both seasons. Counts are the same for every stat (same rows).
+
+| season | rows | player-seasons | games | ISO weeks | CM detectable half-width, 20-seed mean (sd; min-max), floor units | binding clustering over seeds | by clustering (game / player-season / week, mean) | MDE80 | bar |
+|---|---|---|---|---|---|---|---|---|---|
+| 2023 | 25,815 | 551 | 1,230 | 25 | **0.400** (0.036; 0.342-0.460) | player-season 17, week 3 | 0.316 / 0.396 / 0.332 | 0.572 | pass (<= 1.0) |
+| 2024 | 25,649 | 551 | 1,225 | 25 | **0.390** (0.041; 0.330-0.485) | player-season 19, game 1 | 0.324 / 0.389 / 0.317 | 0.557 | pass (<= 1.0) |
+
+Per-stat detectable effect (noise arm, each stat alone, same draws; binding half-width, floor units 20-seed mean (sd) | absolute CRPS), descriptive:
+
+| stat (floor) | 2023 | 2024 |
+|---|---|---|
+| pts (0.005) | 1.099 (0.141) \| 0.0055 | 1.077 (0.150) \| 0.0054 |
+| reb (0.003) | 0.645 (0.066) \| 0.0019 | 0.684 (0.094) \| 0.0021 |
+| ast (0.002) | 0.661 (0.084) \| 0.0013 | 0.644 (0.090) \| 0.0013 |
+| fg3m (0.001) | 0.552 (0.042) \| 0.00055 | 0.579 (0.045) \| 0.00058 |
+
+Reading: the composite is about sqrt(1.10^2 + 0.65^2 + 0.66^2 + 0.55^2) / 4 = 0.39, as independent noise on shared clusters predicts. pts alone sits at 1.1 floor units on the 20-seed mean (T506's single seeds, 1.48 and 1.10, bracket it); the composite is what makes the test powered.
+Positive control (planted oracle shift, sd 0.20, all four stats, 5 seeds each): composite point -30.4 to -34.8 floor units, binding CI upper bound -26.8 to -30.0, every seed clears, both seasons (sd 0.10: -7.5 to -8.9, also clears). Planted-future identity: True in both seasons (1,597 / 1,589 rows before the cut; 114,686 / 116,273 events scaled). Row sets identical across the four stats: True. NaN feature cells: 0. Missingness audit (T506 code, same features): only `off_arch` (unknown offensive archetype, 18.2% / 21.3% of rows; a role proxy by construction) is flagged; `no_roster` 1.15% / 1.21%.
+
+**Verdict word: PASS (every check on both seasons).** The test is powered to see its own pass line: a CM of -1.0 is about 2.5 half-widths from zero. It says nothing about whether an effect exists.
+
+## Prior check (the Pending priors above were committed in 96159e5 before the run; scoring them)
+* Counts clear with 0 rows dropped: predicted 0.97, happened.
+* CM mean half-width: 2023 median 0.50 (80% 0.38-0.68) vs 0.400 (inside, near the low edge); 2024 median 0.42 (80% 0.32-0.58) vs 0.390 (inside). P(<= 1.0 both) 0.97: happened. Seed sd as a share of the mean: median 0.15 (80% 0.08-0.25) vs 0.089 / 0.106 (inside, below the median).
+* Per-stat (2023 / 2024): pts 1.4 / 1.1 vs 1.10 / 1.08 (inside); reb 0.9 / 0.8 vs 0.65 / 0.68 (inside the 0.5-1.4 band, low); ast 0.8 / 0.7 vs 0.66 / 0.64 (inside); fg3m 0.6 / 0.5 vs 0.55 / 0.58 (inside). All priors were a bit high: the 20-seed means are lower than T506's single-seed numbers, which regress to the mean.
+* Binding clustering player-season in at least half the seeds: 2023 P 0.65, happened (17 of 20); 2024 P 0.40, happened the other way (19 of 20 player-season): miss for 2024.
+* Gate verdict PASS 0.94: happened. Planted-future 0.97, no NaN 0.99, positive control every seed 0.97: all happened.
+* The one miss of substance: priors were slightly pessimistic on power. Calibration on a composite is thin (one sample).
+
+## Run history
+* Draft with Pending priors and thresholds in code: commit 96159e5. The gate had not been run at that commit.
+* Gate run (harness 96159e5): VERDICT PASS (see above); no bar or threshold edited; Amendment 1 documents one documentation defect and changes no number. Rule not frozen: the main session reads it with Devin, then commits `prereg(ARCHETYPE_MATCHUP_ALL): <sha256 of the text above the marker>`.
 
 ## Playbook check (docs/MODEL_PLAYBOOK.md; class: GBM residual layer, plus a categorical table input, four stats)
 1. **Information or capacity?** Information in principle (who is OUT on the opposing side is a pre-tip fact the production model does not use for defenders); capacity is small (4 leaves, 6 features per stat). Honest reading as T506: A0 already holds recency and usage, team-level defense was null (T434-T435, T439), most prop error is minutes, a 7-category mix averages away defender identity. Expected information gain near zero.
