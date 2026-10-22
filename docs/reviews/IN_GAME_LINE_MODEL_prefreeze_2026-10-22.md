@@ -236,3 +236,130 @@ before the `prereg(IN_GAME_LINE_MODEL)` commit.
 ## Drafted rows (for the main session; not appended)
 - TEST_LEDGER (under T508): `| T508-review-1 | 2026-10-22 | IN_GAME_LINE_MODEL adversary pre-freeze review (docs/reviews/IN_GAME_LINE_MODEL_prefreeze_2026-10-22.md) | label-free (box keys/minutes only, seasons <= 2024) | NOT_READY: truncation test clean for pts/reb/fg3m/minutes/fouls/margin/starter (0 of 77,614 rows over 600 games) but ast leaks whole-game name membership (185 rows, 0.24%); planted-future cannot see whole-game aggregates; shuffled control inert (dryrun -0.195); pooled Platt handicaps B0 (dryrun e=42 rows, where raw B0 is the truth: M-B0 -0.0042 pts n=75,156); dryrun not outcome-blind (Q1 -0.076 vs Q4 -0.004); digests 31/31, text sha 72c21fd4 and pin add7798b reproduce; 57 tests pass | n/a | n/a | n/a | n/a | BLOCKED pre-freeze | not holdout |`
 - DECISIONS: `| 2026-10-22 00:28 | T508 pre-freeze review NOT_READY (M1-M5). Amendments after the dryrun may only harden the test. | The dryrun's synthetic outcomes contain real production through minute 42, so the authors are no longer blind to M vs B0. | A re-review that finds M1-M5 closed. |`
+
+---
+
+## Second review (narrow re-review of Amendment 3 / 3b), 2026-10-22 01:03 CDT (from `date`)
+
+Reviewer: adversary, read-only. Reviewed `main` at c5eff56 (merge 1b0391a of `agent/modeler-in-game-line-3`), diffed against the first review's
+head dd2ba1b. No season >= 2025 queried (every script asserts `season <= 2024`; every SQL carries `season <= 2024`). No outcome value read by me.
+The `digests` command hashes the final box-score table (`PIN_FINALS_*`); I ran it twice. That is a mechanical read: only hashes were printed.
+
+**READY_TO_FREEZE**
+
+Verdict: APPROVED
+
+**Top finding.** I could not find a leak in the 3b repair. There is one design gap. The in-repo `truncation_identity` passes the FULL pbp as
+`names_pbp` to both arms (`in_game_line_features.py:649` and `:657`), so it cannot see the earlier-games name channel that 3b added. I
+tested that channel directly:
+- Per date d, I rebuilt the state from the date-d games cut at T, with stints clipped and names from games dated strictly before d only.
+- I compared it with the pipeline's convention: names from the whole season, including the same date and later dates.
+- Result: 0 differing rows in every column across 4 seasons (139,049 rows). A sensitivity control shows the test can see the channel: removing the
+  last 30 days of names gives 69 differing `ast` rows.
+
+Once frozen, the harness pin locks the strict `<` at `:208`. The unit test `test_assist_uses_names_from_strictly_earlier_games_but_not_the_same_date`
+(`tests/research/eval/test_in_game_line.py:763`) also guards it. The gap is therefore minor and does not block.
+
+### Model class and Playbook check (delta only)
+Class unchanged (two-stage LightGBM over a period-aware linear-pace NegBin baseline). Changes against the first review:
+- **Test validity.** The inert shuffle is replaced by a control that can fire (M0). The comparator now gets the same per-cell recalibration
+  freedom as M (B0e/B1e, and binding = the best one on the scored rows, which biases the test against M). The leak test now sees whole-game
+  aggregates (truncation identity). The dryrun is outcome-blind.
+- **Lineage and guards.** The finals table and duckdb are pinned (the T507 precedent is now met).
+- **Information or capacity.** Criterion (g) now separates the two directly: M must beat M0 (B0's logit, e, line, need only) by 0.0025, with the
+  CI upper bound below 0.
+- **Data and scoring target.** Unchanged.
+
+### Must closures (file:line)
+| must | claim | where | verified by | status |
+|---|---|---|---|---|
+| M1 ast leak | causal dictionary: in-game names seen by t, or names from strictly earlier-dated games; only on-court candidates | `in_game_line_features.py:164`, `:189` (`first_t <= t`), `:208` (`first_date < game_date`), on-court `:178-181` | checks R1, R2 and R3 below; code read | CLOSED |
+| M2 truncation identity | gate item and criterion (h) | `features.py:612-676`; `in_game_line_gate.py:271-272,301`; `in_game_line_rule.py:383`; `in_game_line_eval.py:631-634`; doc line 20 (h), line 45 | gate_run5 `*_truncation_identity: true` x6; dryrun True x2; test `:725` | CLOSED (gap: names channel, N-R2) |
+| M3 inert shuffle | replaced by M0, M − M0 <= −0.0025 and CI upper < 0 | `rule.py:84,380-381`; `eval.py:71-73,262-266,474`; doc line 20 (g), line 46 | dryrun: M − M0 pts +0.000002 (hi +0.00001), so the criterion fails there as it must | CLOSED |
+| M4 baseline handicap | B0e/B1e per checkpoint; binding = best on the scored rows; used in (a)-(d), (f) and top-5 | `eval.py:218-228,258-261,318,459,463-469,513` | code read; the dryrun binding picks b0 / b1e for pts (b0e for ast) | CLOSED |
+| M5 dryrun not blind | labels ~ Bernoulli(raw B0 at the unit's own state); exposure (d); harden-only rule | `eval.py:331-341`, `:690` (`.first()`); doc line 10 (d), line 43 | dryrun re-derived: pts M − raw B0 +0.000024 (+0.000002, +0.000046), n 701,599; e = 42 +0.000005, half-width 0.000048, n 97,521, ok; all four stats ok | CLOSED |
+
+The S items are closed or acknowledged:
+- S1: `eval.py:296-297`, `rule.py:403`.
+- S2: test `:743`.
+- S3: `eval.py:362,366,384,395`.
+- S4: `eval.py:317,506-507,522`.
+- S5: doc lines 27 and 30.
+- S6: `eval.py:544`.
+- S7: `eval.py:735` and `warm_states`.
+- S8: doc line 56.
+
+### Per-check table
+Scratch: `/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/a8c0c6c7-1aa4-4298-8df3-e647137be187/scratchpad/rr2/`.
+
+| # | check | command | n | result | pass/fail |
+|---|---|---|---|---|---|
+| R1 | Truncation identity on a NEW sample: seeded random games, not evenly spaced; seasons I had not covered | `.venv/bin/python -W ignore rr2/trunc_rand.py 2020 200 72020` / `2021 200 72021`; exit 0 x2 | 200 games each; 25,221 / 25,374 player-checkpoint rows | 0 differing in every column (minutes, starter, fouls, pts, reb, ast, fg3m, margin); 0 missing; 0 extra | PASS |
+| R2 | Strict as-of test of the 3b names channel: as-of world (date-d games cut at T, names only from dates < d) against the pipeline (names from the whole season incl. same and later dates) | `rr2/asof_dates.py 2020 25 11`, `2021 40 13`, `2023 40 13`, `2024 40 13`; exit 0 x4 | 25+40+40+40 dates; 208/296/310/291 games; 26,105 / 37,208 / 38,827 / 36,909 rows | 0 differing rows in every column; 0 missing; 0 extra | PASS |
+| R2c | Sensitivity control for R2: names from dates < d − 30 days only | `rr2/asof_control.py 2021 20 13`; exit 0 | 20 dates, 157 games, 19,718 rows | `ast` differs in 69 rows, all other columns 0; the test can see the channel | PASS (control fires) |
+| R3 | Code read of 3b: the candidate must be a teammate on court at t (stints `a < t <= b`) whose surname is in a strictly-earlier-date game; the in-game path requires `first_t <= t`; fallback is the unique seen-by-t candidate | `features.py:128-237` | n/a | No post-t or same-date information enters. The only look-ahead left is the disclosed stint reconstruction (S5). `game_date` is a `Date`, read from the games table. | PASS |
+| R4 | Diff dd2ba1b..c5eff56 only hardens | `git diff dd2ba1b..HEAD` on the 4 harness modules, the doc and the tests; `--stat` on `nba/ configs/ registry_store/ ops/` is empty | n/a | Every criterion is the same or stricter: binding baselines are best-of on the scored rows; M0 can fail where the shuffle could not; (h) is AND truncation; ast leaves the secondary family if truncation fails (`eval.py:648`); no floor or bar moved. One technical relaxation: an EMPTY criterion slice now passes silently (N-R1). It is unreachable: the slices hold 55,590 / 97,521 scored pts rows on the real 2024 units. | PASS (minor N-R1) |
+| R5 | Order of priors and runs | `git log` times; gate log timestamps | n/a | Amendment 3 priors 218e19d 00:37:41 come before the first Run 5 start (00:37:50). The 3b priors ecbec4f 00:40:20 come before the 3b Run 5 start (00:41:37). The artifacts are in 920f3fc 00:56:27. | PASS |
+| R6 | Text sha and harness pin | `rule.text_sha(doc)`, `rule.pin_of(rule.disk_blobs())`; exit 0 | 4 files; 39 declared lines | `469861e65012ee508465ff0d12a21fbffe024e2e31dc914efa15e5205d0c328e` and `e8226ee191db5c2dbbe6190ed4b6fc31521e17e39ddabd442c2ed3271a5c922d`; both equal the claim | PASS |
+| R7 | Digests (read-only) | `.venv/bin/python -W ignore -m research.eval.in_game_line_eval digests` twice (exit 0, exit 0), `cmp` of the two outputs, then `rule.input_mismatches(declared, recomputed)` | 39 lines | byte-identical; mismatches `[]` (including PIN_FINALS_2018..2024 and LIB_duckdb 1.5.6) | PASS |
+| R8 | Tests | `.venv-1/bin/python -m pytest tests/research/eval/test_in_game_line.py tests/eval/test_holdout_source_filter.py -q --no-cov -p no:cacheprovider` | n/a | **64 passed, exit 0** | PASS |
+| R9 | Lint and types | `ruff check` (5 files) exit 0; `ruff format --check` exit 0; `mypy` (4 modules) exit 0 | n/a | clean | PASS |
+| R10 | Dryrun re-derived from `reports/prereg_in_game_line/dryrun.json` | python read of the JSON | pts/reb/ast/fg3m 701,599 / 612,101 / 527,684 / 495,832 | M − raw B0 is above 0 for every stat, with CI lower bound >= 0, so M does not beat the truth. e42 `ok` is true x4. The primary fails as required: select/report vs B0, CI vs B0 and M0 all fail. Truncation and planted-future are True. | PASS |
+
+### Judgment: PIN_FINALS hash read
+**Acceptable; not a contamination risk.** Four reasons:
+- `compute_input_digests` (`eval.py:296-297`) passes the rows to `sha_frame` and prints only the sha256 hex. A cryptographic hash reveals nothing
+  about pts/reb/ast/fg3m to any reader, so no human or model gained information about M against B0.
+- The gain is real. `player_game_stats` lives in a production store that is refit daily. Without the pin, a silent backfill could change `y`,
+  the recency features or the 2018 warm-up between freeze and run. The T507 precedent asks for exactly this pin.
+- The cost is fail-closed. If the table ever changes, `run` refuses, and a new amendment or id is needed. That costs liveness, not validity.
+- The hash is stable. My two runs were byte-identical and equal to the declared lines.
+
+Two caveats, both wording only:
+1. `run` now reads (hashes) finals inside `compute_input_digests` BEFORE `verify_inputs` returns. The S2 test (`test_in_game_line.py:749`) stubs
+   `compute_input_digests`, so it proves the order only for the pipeline. That is fine, but the docstring at `eval.py:97` ("first called after
+   `verify_inputs`") is now false (N-R3).
+2. The status line (doc line 3) still says "no final box score read" (N-R4).
+
+### Findings (none blocking)
+- **N-R1 (minor; technical relaxation, unreachable).** `in_game_line_eval.py:509-510`: an empty slice gets
+  `{"n": 0, "worst_delta": inf}` without the `"criterion"` key. The verdict filter `v.get("criterion")` (`eval.py:641`) then drops it, so an
+  empty `blowout_q3q4` or `last6` slice would pass (before Amendment 3 it failed through `inf`). Unreachable: 55,590 and 97,521 scored rows on the
+  real 2024 units.
+  Fix: `sl[name] = {"n": 0, "worst_delta": float("inf"), "criterion": name in SLICES}`.
+- **N-R2 (minor; guard gap).** The in-repo truncation identity cannot see the `names_pbp` channel (`features.py:649,657` pass the full pbp to both
+  arms). Mitigations: R2 above, the unit test at `:763`, and the harness pin after freeze.
+  Fix (optional): an `asof_dates` variant in `truncation_identity` (names_pbp = games dated < d), as in `rr2/asof_dates.py`.
+- **N-R3 (nit).** `eval.py:97` docstring: change "first called after `verify_inputs`" to "first called inside `compute_input_digests` (hashed
+  only), then after `verify_inputs`".
+- **N-R4 (nit).** Doc line 3: change "no final box score read" to "no final box score read except the mechanical `PIN_FINALS_*` hash (A3-S1)".
+- **N-R5 (nit).** `assist_events` raises a polars SchemaError when `names_pbp` yields no rows (`features.py:207`, null-typed `surname`). The
+  pipeline cannot reach this (names come from the whole season), but my control hit it on a date with no earlier games in its window.
+  Fix: cast `prior["surname"]` to `pl.Utf8`.
+- **N-R6 (nit).** `dryrun.json` records no harness pin (`sha: None`), so I could not verify that the committed dryrun ran on the exact pinned bytes.
+  Fix: write `rule.pin_of(rule.disk_blobs())` into the dryrun result.
+
+If the main session applies N-R1, N-R3 or N-R4 before the freeze, the text sha and/or pin change. Then recompute both, re-run the tests and
+`digests`, and commit. No new dryrun or gate run is needed: none of these changes touches the state or any number. My approval covers those
+diffs and nothing else.
+
+### Corrected family and power
+Unchanged from the first review:
+- Primary: pts, one test. Every criterion must hold, now against the binding baselines and M0.
+- Secondary: reb, ast and fg3m, BH at 0.05 over three. ast is dropped automatically if truncation fails.
+- Power: MDE about 0.0026 at 80% power (half-widths 0.00185 / 0.00183). M0 margin 0.0025 is about at the MDE, so a true M − M0 gain of 0.0025
+  passes the point criterion only about half the time. That is a deliberate hardening, not a defect.
+
+### Single biggest remaining risk
+Stints are a look-ahead reconstruction (S5, disclosed). It is the one input that neither truncation test exercises, because both pass stints in
+directly. Stint minutes match box minutes and on-court status is observable live, so it is not an unknowable-information leak in backtest. But
+the forward shadow must source on-court status live.
+
+### Not verified
+- Whether the committed `dryrun.json` was produced by the exact pinned bytes (N-R6).
+- Real-outcome performance: deliberately not computed.
+- Truncation and as-of tests on 2019 and 2022 in this pass. 2019 and 2022 were covered by the first review's non-causal test and by gate Run 5.
+
+### Drafted rows (for the main session; not appended)
+- TEST_LEDGER (under T508): `| T508-review-2 | 2026-10-22 | IN_GAME_LINE_MODEL adversary second review of Amendment 3/3b (docs/reviews/IN_GAME_LINE_MODEL_prefreeze_2026-10-22.md, "Second review") | label-free, seasons <= 2024 | READY_TO_FREEZE: M1-M5 closed; truncation identity 0 differing rows on new random samples 2020/2021 (25,221 / 25,374 rows); strict as-of names test (names only from earlier dates) 0 differing rows over 139,049 rows in 2020/2021/2023/2024, control fires (69 ast rows); amendments only harden (one unreachable empty-slice relaxation, N-R1); text sha 469861e6, pin e8226ee1, 39 digests reproduce byte-identical; 64 tests pass | n/a | n/a | n/a | n/a | APPROVED pre-freeze | not holdout |`
+- DECISIONS: `| 2026-10-22 01:03 | T508 second adversary review READY_TO_FREEZE; PIN_FINALS hash read judged acceptable (hash only, fail-closed). | M1-M5 closed and independently re-tested; the remaining items are nits. | A leak found in the frozen run's own truncation/planted checks, or a non-reproducing digest at run time. |`
