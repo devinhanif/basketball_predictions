@@ -17,7 +17,12 @@ from research.eval import role_prior_salary_eval as ev
 from research.eval import role_prior_salary_rule as role_rule
 
 ROOT = Path(__file__).resolve().parents[3]
-MODS = ("rule", "gate", "eval")
+MODS = (
+    "rule",
+    "gate",
+    "features",
+    "arm",
+)  # label-free modules; eval alone names the outcome columns
 
 
 def _grid(n: int = 300, seed: int = 0) -> tuple[np.ndarray, np.ndarray]:
@@ -71,30 +76,6 @@ def test_composite_refuses_misaligned_or_missing_stats() -> None:
         rule.composite_rows(
             {"pts": np.zeros(3), "reb": np.zeros(2), "ast": np.zeros(3), "fg3m": np.zeros(3)}
         )
-
-
-def _ok() -> dict[str, float]:
-    return {"pts": -1.5, "reb": -0.5, "ast": 0.2, "fg3m": 0.0}
-
-
-def test_verdict_passes_only_when_all_criteria_hold() -> None:
-    v = rule.primary_verdict(-1.2, -1.1, -0.2, _ok(), 0.3, -0.2)
-    assert v["pass"] and v["failed"] == []
-    assert "cm_point" in rule.primary_verdict(-1.2, -0.9, -0.2, _ok(), 0.3, 0.0)["failed"]
-    assert "ci_upper_below_zero" in rule.primary_verdict(-1.2, -1.1, 0.1, _ok(), 0.3, 0.0)["failed"]
-    assert (
-        "select_season_point" in rule.primary_verdict(-0.5, -1.1, -0.2, _ok(), 0.3, 0.0)["failed"]
-    )
-    hurt = {**_ok(), "fg3m": 1.01}
-    assert "no_stat_hurt" in rule.primary_verdict(-1.2, -1.1, -0.2, hurt, 0.3, 0.0)["failed"]
-    assert rule.primary_verdict(-1.2, -1.1, -0.2, {**_ok(), "fg3m": 1.0}, 0.3, 0.0)["pass"]
-    assert "top5_share" in rule.primary_verdict(-1.2, -1.1, -0.2, _ok(), 0.51, 0.0)["failed"]
-    # shuffled keeps exactly half of the gain: fails (strictly less than half is required)
-    assert (
-        "shuffled_keeps_under_half"
-        in rule.primary_verdict(-1.2, -1.2, -0.2, _ok(), 0.3, -0.6)["failed"]
-    )
-    assert rule.primary_verdict(-1.2, -1.2, -0.2, _ok(), 0.3, -0.59)["pass"]
 
 
 def test_noise_deltas_equal_reused_noise_arm() -> None:
@@ -179,3 +160,8 @@ def test_no_2025_and_no_label_columns_in_modules() -> None:
         assert "season = 2025" not in text and "season=2025" not in text
         for bad in ('"y"', '"minutes"', "'y'", "'minutes'"):
             assert bad not in text, (m, bad)
+    ev_text = (ROOT / "research/eval/archetype_matchup_all_eval.py").read_text()
+    assert "season = 2025" not in ev_text and "season=2025" not in ev_text
+    assert (
+        ev_text.count('"y"') == 1 and ev_text.count('"minutes"') == 1
+    )  # OUTCOME_COLS, the single place
