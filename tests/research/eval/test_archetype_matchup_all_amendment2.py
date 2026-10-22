@@ -1073,3 +1073,86 @@ def test_dryrun_never_reads_an_outcome_and_restores_the_reader(
 
     assert "synthetic" in inspect.signature(mev.load_season).parameters
     assert "synthetic" in real_execute_src and "not synthetic" in real_execute_src
+
+
+def test_shuffled_copies_of_the_tables_give_bit_identical_feature_frames() -> None:
+    """A5-3: after ``canonical_tables`` no feature depends on the order the loaders returned rows in."""
+    rng = np.random.default_rng(0)
+    rows = []
+    for d in range(14):
+        gid = f"002000{d:02d}"
+        date = pd.Timestamp("2023-11-01") + pd.Timedelta(days=d)
+        for dfn in range(10, 17):
+            rows.append(
+                (
+                    gid,
+                    date,
+                    2023,
+                    1 + (d % 3),
+                    dfn,
+                    100,
+                    200,
+                    float(rng.uniform(1, 30)) / 3.0,
+                    float(rng.uniform(5, 25)) / 7.0,
+                    float(rng.uniform(0, 12)) / 11.0,
+                )
+            )
+    mu = pd.DataFrame(
+        rows,
+        columns=[
+            "game_id",
+            "game_date",
+            "season",
+            "off_player_id",
+            "def_player_id",
+            "off_team",
+            "def_team",
+            "mm",
+            "poss",
+            "pts",
+        ],
+    )
+    games = pd.DataFrame(
+        {
+            "game_id": [f"002000{d:02d}" for d in range(14)],
+            "game_date": pd.date_range("2023-11-01", periods=14),
+            "season": 2023,
+            "home_team": 100,
+            "away_team": 200,
+        }
+    )
+    q = pd.DataFrame(
+        {
+            "game_id": ["00200013"] * 3,
+            "player_id": [1, 2, 3],
+            "team_id": [100] * 3,
+            "game_date": [pd.Timestamp("2023-11-14")] * 3,
+            "min10": [30.0] * 3,
+            "n_prior": [50] * 3,
+        }
+    )
+    off = pd.Series({1: 0, 2: 1, 3: 2})
+    dfa = pd.Series({d: d % 5 for d in range(10, 17)})
+    R = rng.uniform(0.1, 0.4, size=(feat.rule.N_OFF, feat.rule.N_DEF))
+    tab = {"lift": rng.uniform(0.5, 2, size=R.shape), "R": R, "lg": 0.2}
+    flagged = {"00200013": {12, 14}}
+
+    def frame(m: pd.DataFrame, g: pd.DataFrame) -> pd.DataFrame:
+        m2, g2 = mev.canonical_tables(m, g)
+        return feat.mix_frame(q, m2, g2, flagged, 2023, tab, off, dfa)
+
+    base = frame(mu, games)
+    for seed in (1, 2, 3):
+        a = frame(mu.sample(frac=1.0, random_state=seed), games.sample(frac=1.0, random_state=seed))
+        pd.testing.assert_frame_equal(base, a, check_exact=True)
+    m2, g2 = mev.canonical_tables(
+        mu.sample(frac=1.0, random_state=9), games.sample(frac=1.0, random_state=9)
+    )
+    pd.testing.assert_frame_equal(m2, mev.canonical_tables(mu, games)[0], check_exact=True)
+    pd.testing.assert_frame_equal(g2, mev.canonical_tables(mu, games)[1], check_exact=True)
+    import inspect
+
+    src = inspect.getsource(mev.execute)
+    assert "canonical_tables(" in src and src.index("canonical_tables(") < src.index(
+        "read_flagged("
+    )
