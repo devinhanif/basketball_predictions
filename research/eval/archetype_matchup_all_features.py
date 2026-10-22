@@ -14,6 +14,7 @@ agreement report only; the defender-label permutation is a relabelling the six f
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 import numpy as np
@@ -199,3 +200,16 @@ def missingness_vs_realised(sf: pd.DataFrame, minutes: np.ndarray) -> dict[str, 
 
 def feature_nan_cells(sf: pd.DataFrame) -> int:
     return int(sf[list(g6.AUDIT_COLS)].isna().sum().sum())
+
+
+def label_digest(off: pd.Series, dfn: pd.Series) -> str:
+    """M5: sha256 of the aligned (player_id, offense, defense) label vectors of one season, sorted by player_id."""
+    lines = [f"{int(p)},{int(off.loc[p])},{int(dfn.loc[p])}" for p in sorted(off.index)]
+    return hashlib.sha256("\n".join(lines).encode()).hexdigest()
+
+
+def out_digest(flagged: dict[str, set[int]], games: pd.DataFrame, season: int) -> str:
+    """M5: sha256 of the production OUT sets (``read_flagged`` -> ``flagged_from_availability``, ``tip_source="real"``) of the games of one season."""
+    ids = set(games.loc[games.season == season, "game_id"])
+    lines = [f"{g}:{','.join(map(str, sorted(flagged[g])))}" for g in sorted(flagged) if g in ids]
+    return hashlib.sha256("\n".join(lines).encode()).hexdigest()

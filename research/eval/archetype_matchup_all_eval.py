@@ -146,7 +146,40 @@ def final_verdict(
         planted_ok,
         leak["void"],
     )
-    return {**v, "minutes_leak": leak}
+    out: dict[str, Any] = {**v, "minutes_leak": leak}
+    ident = report["knockouts"]["identity"]["keep_share"]
+    if v["pass"] and ident is not None and ident < rule.KNOCKOUT_KEEP_MIN:
+        out["qualifier"] = "gain needs the role axis"  # A2-S2: a qualifier, not a void
+    return out
+
+
+# --------------------------------------------------------------------------- M5: input digests (label-free), asserted before any outcome is read
+
+
+def compute_input_digests(
+    c: Any, games: pd.DataFrame, flagged: dict[str, set[int]]
+) -> dict[str, str]:
+    """Everything that can change a number without changing a pinned file: the eight A0 files, the aligned label vectors, the production OUT
+    sets, the library versions. Reads no outcome column (file bytes are hashed, not read as data)."""
+    out: dict[str, str] = {}
+    for S in (rule.SELECT, rule.REPORT):
+        for st in rule.STATS:
+            out[f"PIN_A0_{S}_{st}"] = rule.file_sha256(arch.ODDS / f"model_rows_{S}_{st}.parquet")
+        off, dfn, _ = af.build_aligned_archetypes(c, S)
+        out[f"PIN_LABELS_{S}"] = af.label_digest(off, dfn)
+        out[f"PIN_OUT_{S}"] = af.out_digest(flagged, games, S)
+    out.update(rule.versions())
+    return out
+
+
+def verify_inputs(actual: dict[str, str], doc: Path = DOC) -> None:
+    """Refuse (SystemExit) unless every digest and version declared above the marker of the frozen rule equals the recomputed one."""
+    bad = rule.input_mismatches(rule.declared(doc.read_text()), actual)
+    if bad:
+        raise SystemExit(
+            "inputs differ from the frozen rule, refusing before any outcome is read:\n  "
+            + "\n  ".join(bad)
+        )
 
 
 # --------------------------------------------------------------------------- the real-data wiring (runs only behind require_ready)
@@ -257,6 +290,9 @@ def run(sha: str | None, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     games = feat.read_games(c)
     flagged = feat.read_flagged(c, games)
     assert int(mu.season.max()) <= rule.MAX_SEASON and int(games.season.max()) <= rule.MAX_SEASON
+    verify_inputs(
+        compute_input_digests(c, games, flagged)
+    )  # M5: before read_outcomes is ever called
     data = [load_season(S, mu, games, flagged, c) for S in (rule.SELECT, rule.REPORT)]
     planted_ok = all(d["planted_future"]["identical"] for d in data)
     res: dict[str, Any] = {
@@ -272,7 +308,8 @@ def run(sha: str | None, out_dir: Path = OUT_DIR) -> dict[str, Any]:
         res["verdict"] = {
             "pass": False,
             "failed": ["select_season_point"],
-            "note": "2023 CM point above -1.0: 2024 is not scored (the rule's kill criterion)",
+            "note": "2023 CM point above -1.0: 2024 is not scored (the rule's kill criterion). A2-S4: the 2023 fit trains on 2023's earlier months only "
+            "(none for October 2023), a harder step than 2024's; this stop is weak evidence of no composite gain, not strong evidence.",
         }
     else:
         _, rep = score_season(rule.REPORT, data, out_dir)
@@ -291,9 +328,15 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("cmd", choices=["run"])
+    ap.add_argument("cmd", choices=["run", "digests"])
     ap.add_argument("--sha")
     a = ap.parse_args(argv)
+    if a.cmd == "digests":  # label-free: prints the PIN_* / LIB_* lines to paste above the marker
+        c = arch.connect(arch.DB)
+        games = feat.read_games(c)
+        for k, v in compute_input_digests(c, games, feat.read_flagged(c, games)).items():
+            print(f"{k}: {v}")
+        return 0
     res = run(a.sha)
     print(json.dumps(res["verdict"], indent=1, default=str))
     return 0

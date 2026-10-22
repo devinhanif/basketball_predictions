@@ -246,8 +246,25 @@ HARNESS_FILES: tuple[str, ...] = (
     "research/eval/role_prior_salary_rule.py",
     "research/eval/role_prior_salary_eval.py",
     "research/archive/preseason_role_prior/preseason_role_prior.py",
+    "research/coldstart/archetypes.py",  # M5: fit_archetypes (KMeans) produces every archetype label
     "nba/props/metrics.py",
+    "nba/props/distributions.py",  # imported at load by nba.props.metrics (the pre-existing PRESEASON_ROLE_PRIOR pin set)
+    "nba/truth/metrics.py",
 )
+# M5: modules a number can depend on that are NOT byte-pinned, each covered by a digest asserted in ``run`` before any outcome is read
+# (the OUT-set digest covers the production report path without pinning live code; the label digest covers sklearn drift too).
+DIGEST_COVERED: dict[str, str] = {
+    "nba.props.context_residual": "flagged_from_availability: its output is the per-season OUT-set digest (PIN_OUT_*)",
+    "nba.features.injury_report": "ReportTriggerConfig / latest_pretip_flagged: covered by the same OUT-set digest",
+    "nba.features.game_tipoff": "real tip times attach inside flagged_from_availability: covered by the same OUT-set digest",
+}
+# Imported at module load by a pinned file but not called by any code path of this rule (stated, and checked by the coverage test).
+EXEMPT_UNUSED: dict[str, str] = {
+    "research.features.": "imported by research/coldstart/archetypes.py for functions this rule never calls (only fit_archetypes and encode_position_fractions are used)",
+    "research.coldstart.carryover": "reached only through research.features.*; never called",
+    "research.coldstart.config": "DEFAULT_N_CLUSTERS only; fit_archetypes receives k explicitly",
+    "nba.features.shrinkage": "reached only through research.features.*; never called",
+}
 
 
 def file_sha256(path: Path) -> str:
@@ -333,3 +350,46 @@ def require_harness_pinned(
     if not ok("merge-base", "--is-ancestor", fc, h):
         raise RuntimeError("pin commit does not descend from the freeze commit")
     return out
+
+
+# --------------------------------------------------------------------------- M5: declared input pins (asserted by ``run`` before any outcome column is read)
+LIB_NAMES = ("python", "sklearn", "lightgbm", "numpy", "pandas")
+_DECL = re.compile(r"^((?:PIN|LIB)_[A-Za-z0-9_.]+): (\S+)$")
+
+
+def versions() -> dict[str, str]:
+    import sys
+
+    import lightgbm
+    import numpy
+    import pandas
+    import sklearn
+
+    return {
+        "LIB_python": ".".join(map(str, sys.version_info[:3])),
+        "LIB_sklearn": sklearn.__version__,
+        "LIB_lightgbm": lightgbm.__version__,
+        "LIB_numpy": numpy.__version__,
+        "LIB_pandas": pandas.__version__,
+    }
+
+
+def declared(doc_text: str) -> dict[str, str]:
+    """``PIN_*`` / ``LIB_*`` lines (``NAME: value``) above the results marker of the rule text."""
+    out: dict[str, str] = {}
+    for line in doc_text.split(MARKER)[0].splitlines():
+        m = _DECL.match(line.strip())
+        if m:
+            out[m.group(1)] = m.group(2)
+    return out
+
+
+def input_mismatches(decl: dict[str, str], actual: dict[str, str]) -> list[str]:
+    """Every difference between what the frozen rule declares and what was recomputed (a missing declaration counts)."""
+    bad = [
+        f"{k}: declared {decl.get(k)!r}, recomputed {v!r}"
+        for k, v in actual.items()
+        if decl.get(k) != v
+    ]
+    bad += [f"{k}: declared but not recomputed" for k in decl if k not in actual]
+    return bad
