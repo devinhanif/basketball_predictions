@@ -1,0 +1,251 @@
+{
+ "seasons": [
+  "2022-23",
+  "2023-24",
+  "2024-25"
+ ],
+ "n_games": 3689,
+ "n_rows": 1803905,
+ "oos_logloss": 0.48808,
+ "coefs": [
+  0.17191554779792143,
+  1.0098117601810839,
+  -0.147969248477538,
+  0.021923802738017358
+ ],
+ "calibration_ge_0.95_oos": [
+  {
+   "bin": "[0.95,0.97)",
+   "n_rows": 61602,
+   "n_games": 3302,
+   "mean_pred": 0.9603,
+   "leader_won": 0.9705,
+   "ci95_game_clustered": [
+    0.9624,
+    0.9774
+   ]
+  },
+  {
+   "bin": "[0.97,0.98)",
+   "n_rows": 37047,
+   "n_games": 2973,
+   "mean_pred": 0.9751,
+   "leader_won": 0.9835,
+   "ci95_game_clustered": [
+    0.975,
+    0.9904
+   ]
+  },
+  {
+   "bin": "[0.98,0.99)",
+   "n_rows": 48354,
+   "n_games": 3079,
+   "mean_pred": 0.9853,
+   "leader_won": 0.9908,
+   "ci95_game_clustered": [
+    0.9866,
+    0.9945
+   ]
+  },
+  {
+   "bin": "[0.99,1.00)",
+   "n_rows": 157108,
+   "n_games": 2945,
+   "mean_pred": 0.9975,
+   "leader_won": 0.9983,
+   "ci95_game_clustered": [
+    0.9968,
+    0.9994
+   ]
+  }
+ ],
+ "comeback_98": {
+  "threshold": 0.98,
+  "games_reaching": 3177,
+  "games_total": 3689,
+  "leader_lost": 37,
+  "rate": 0.01165,
+  "ci95_bootstrap": [
+   0.00818,
+   0.01574
+  ],
+  "ci95_wilson": [
+   0.00846,
+   0.01601
+  ],
+  "by_time_left_at_first_reach": {
+   "secs_left>1440": {
+    "n": 54,
+    "lost": 0
+   },
+   "720-1440": {
+    "n": 638,
+    "lost": 5
+   },
+   "<=720": {
+    "n": 2485,
+    "lost": 32
+   }
+  },
+  "reverses_plan_if_over": 0.03,
+  "over_3pct": false
+ },
+ "comeback_98_by_season": {
+  "2022-23": {
+   "threshold": 0.98,
+   "games_reaching": 1032,
+   "games_total": 1230,
+   "leader_lost": 10,
+   "rate": 0.00969,
+   "ci95_bootstrap": [
+    0.00388,
+    0.0155
+   ],
+   "ci95_wilson": [
+    0.00527,
+    0.01774
+   ],
+   "by_time_left_at_first_reach": {
+    "secs_left>1440": {
+     "n": 17,
+     "lost": 0
+    },
+    "720-1440": {
+     "n": 175,
+     "lost": 1
+    },
+    "<=720": {
+     "n": 840,
+     "lost": 9
+    }
+   },
+   "reverses_plan_if_over": 0.03,
+   "over_3pct": false
+  },
+  "2023-24": {
+   "threshold": 0.98,
+   "games_reaching": 1079,
+   "games_total": 1230,
+   "leader_lost": 11,
+   "rate": 0.01019,
+   "ci95_bootstrap": [
+    0.00463,
+    0.01668
+   ],
+   "ci95_wilson": [
+    0.0057,
+    0.01816
+   ],
+   "by_time_left_at_first_reach": {
+    "secs_left>1440": {
+     "n": 23,
+     "lost": 0
+    },
+    "720-1440": {
+     "n": 203,
+     "lost": 0
+    },
+    "<=720": {
+     "n": 853,
+     "lost": 11
+    }
+   },
+   "reverses_plan_if_over": 0.03,
+   "over_3pct": false
+  },
+  "2024-25": {
+   "threshold": 0.98,
+   "games_reaching": 1066,
+   "games_total": 1229,
+   "leader_lost": 16,
+   "rate": 0.01501,
+   "ci95_bootstrap": [
+    0.00844,
+    0.02251
+   ],
+   "ci95_wilson": [
+    0.00926,
+    0.02424
+   ],
+   "by_time_left_at_first_reach": {
+    "secs_left>1440": {
+     "n": 14,
+     "lost": 0
+    },
+    "720-1440": {
+     "n": 260,
+     "lost": 4
+    },
+    "<=720": {
+     "n": 792,
+     "lost": 12
+    }
+   },
+   "reverses_plan_if_over": 0.03,
+   "over_3pct": false
+  }
+ },
+ "comeback_95": {
+  "threshold": 0.95,
+  "games_reaching": 3453,
+  "games_total": 3689,
+  "leader_lost": 139,
+  "rate": 0.04025,
+  "ci95_bootstrap": [
+   0.03359,
+   0.04692
+  ],
+  "ci95_wilson": [
+   0.03419,
+   0.04734
+  ],
+  "by_time_left_at_first_reach": {
+   "secs_left>1440": {
+    "n": 241,
+    "lost": 6
+   },
+   "720-1440": {
+    "n": 1051,
+    "lost": 44
+   },
+   "<=720": {
+    "n": 2161,
+    "lost": 89
+   }
+  },
+  "reverses_plan_if_over": 0.03,
+  "over_3pct": true
+ },
+ "comeback_99": {
+  "threshold": 0.99,
+  "games_reaching": 2945,
+  "games_total": 3689,
+  "leader_lost": 17,
+  "rate": 0.00577,
+  "ci95_bootstrap": [
+   0.00306,
+   0.00883
+  ],
+  "ci95_wilson": [
+   0.00361,
+   0.00923
+  ],
+  "by_time_left_at_first_reach": {
+   "secs_left>1440": {
+    "n": 13,
+    "lost": 0
+   },
+   "720-1440": {
+    "n": 369,
+    "lost": 0
+   },
+   "<=720": {
+    "n": 2563,
+    "lost": 17
+   }
+  },
+  "reverses_plan_if_over": 0.03,
+  "over_3pct": false
+ },
+ "possession": "not modelled (disclosed)"
+}
