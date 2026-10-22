@@ -216,6 +216,7 @@ def foul_events(pbp: pl.DataFrame) -> pl.DataFrame:
     return (
         f.with_columns(pl.col("description").str.extract(r"\(P(\d+)", 1).cast(pl.Int64).alias("pn"))
         .drop_nulls("pn")
+        .filter(pl.col("pn") > 0)
         .select("game_id", "team_id", "player_id", "t", "pn")
     )
 
@@ -246,16 +247,16 @@ def stint_rows(stints: pl.DataFrame) -> pl.DataFrame:
 
 
 def minutes_at(st: pl.DataFrame, T: float) -> pl.DataFrame:
-    """Minutes on court by T per (game, team, player), from stints only (no box score)."""
+    """Minutes on court by T per (game, team, player), from stints only (no box score). Seconds are summed and rounded to 0.01 s before the
+    division (a parallel group-by sums floats in a varying order; Run 1 of the gate caught a 1e-15 difference as a planted-future failure), then
+    minutes are rounded to 1e-6 so the state and its digest are deterministic."""
+    sec = (pl.min_horizontal(pl.col("b"), pl.lit(T)) - pl.col("a")).clip(lower_bound=0.0)
     return (
-        st.with_columns(
-            (
-                (pl.min_horizontal(pl.col("b"), pl.lit(T)) - pl.col("a")).clip(lower_bound=0.0)
-                / 60.0
-            ).alias("m")
-        )
+        st.with_columns(sec.alias("sec"))
         .group_by("game_id", "team_id", "player_id")
-        .agg(pl.col("m").sum().alias("minutes"), (pl.col("a") == 0.0).any().alias("starter"))
+        .agg(pl.col("sec").sum().round(2).alias("sec"), (pl.col("a") == 0.0).any().alias("starter"))
+        .with_columns((pl.col("sec") / 60.0).round(6).alias("minutes"))
+        .drop("sec")
     )
 
 

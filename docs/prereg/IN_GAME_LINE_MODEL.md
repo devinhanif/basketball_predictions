@@ -69,9 +69,86 @@ Gate FAIL: not freezable as drafted. 2023 select not met: 2024 not scored (a nul
 * SHAPE (NOT blind): pooled Q3 ratio median 0.92 (80% 0.80 to 1.0), flag >= 0.85 true **0.85**; Q4 ratio median 0.38 (80% 0.25 to 0.55), flag <= 0.70 true **0.95**. Leading and trailing blowout starters lose Q4 minutes within 0.5 min of each other (pooled): 0.6.
 * If frozen and run (conditional on the gate PASS): M beats B0 on 2024 pts log loss by >= 0.005 (point): **0.55**; beats the better B1 by >= 0.005: **0.30**; the whole primary pass: **0.20**. M beats B0 on 2024 reb/ast/fg3m by the floor: 0.4 / 0.4 / 0.3.
 
-## Declared input pins
-Computed label-free by the gate (`pins` in `reports/prereg_in_game_line/gate.json`) and by `python -m research.eval.in_game_line_eval digests`; added in Amendment 1 after the gate run and before any freeze. `run` recomputes every line and refuses on any difference before it reads an outcome.
+## Amendment 1 (dated 2026-10-21 23:50, modeler; written after Run 1 and Run 2 of the gate and before any freeze; no threshold, bar, constant, verdict word or definition of a pass criterion touched)
+Run 1 of the gate (harness 929fc41) returned **FAIL**: (i) 2023 completeness 0.9358 < 0.95, all of it the fouls component (0.9366); (ii) 2023 planted-future identity False. Both were defects of mine, found and fixed without moving a bar:
+* **A1-1 (parser).** 2023 play-by-play carries non-personal fouls with running number 0 (`Non-Unsportsmanlike Tech Foul - Flopping (P0.T1)`), which my foul counter counted as personal (79 players over-counted by one in 2023). `foul_events` now keeps only events whose running personal-foul number is > 0. 2023 fouls consistency 0.9366 -> 0.9553. The remaining mismatches are under-counts (a personal foul missing from the feed, 13 players in 2023 before the fix), a real incompleteness, not repaired.
+* **A1-2 (determinism).** The planted-future check compared floats exactly and `minutes` (a parallel group-by sum) differed by 1e-15 between two builds of the same game. `minutes_at` now sums stint seconds, rounds to 0.01 s, divides by 60 and rounds to 1e-6; the state and its digests are deterministic (Run 2 and Run 3 are identical, below).
+Run 2 (harness after the two fixes) returned **PASS**; Run 3 (an exact repeat) reproduced every number and every digest; `in_game_line_eval digests` reproduces the 18 gate digests. Artifacts: `reports/prereg_in_game_line/gate_run1.json` (FAIL, superseded), `gate_run2.json` (governs), `.log` files alongside. 2023 clears its completeness bar by 0.0045 only: said plainly.
 
-(none yet)
+**Declared input pins (Amendment 1; computed label-free by `python -m research.eval.in_game_line_eval digests`, twice byte-identical to the gate's `pins`; `nba.duckdb` and `nba_history.duckdb` read-only, `season <= 2024`; the A0 values equal the ARCHETYPE_MATCHUP_ALL pins of the same files).**
+```
+PIN_GAMES_2019: 5a45790eb31c493f4477b47292366353b1921e13f73a7cb9884b27871f407abc
+PIN_STINTS_2019: 902c1b838916dd94892a5f4e647825a25d776d1473e766a64c658874cf403c98
+PIN_STATE_2019: 9d5ffd7b70238c93390404da74181d7de0c1e4958924f0264570107f3d6819af
+PIN_GAMES_2020: 0e5ca756e7ad99efd0eb082a52e80437eb0ae10bb29bffaaf2215fe8107ed458
+PIN_STINTS_2020: b9218553b1203ecb1d78b25ae343dc2a0122806620f040ad558279999771c4cf
+PIN_STATE_2020: a4a5aca0933a3371ef07bd1993750f7d6ba70908edcf114bdaa37a06e05c8a92
+PIN_GAMES_2021: 1f2dcb1f01a95c788c9ce035e1d5d529078c889fbf1f63d5b3f72a6acd3e454f
+PIN_STINTS_2021: 1e110c284da4b94869e8478239b3727722c7b6cbc6dadceff8b009475393eac7
+PIN_STATE_2021: 0180b244d14b072c40d1621cab01aeaf58ba890097caf91cdf594695cc9acc5d
+PIN_GAMES_2022: a1613d9627443c1ee25cf6abea2f9be0ddaa4fc67ee348c88323508f055bd046
+PIN_STINTS_2022: b73b19e4bbe4f4b53e48e05c257628836b883cb3fc2ea5ffabc7c64988485af9
+PIN_STATE_2022: 67b5b30b65e692bccfcf6069ffa55d297d3d49b9e41c7175e81d37e30952c93a
+PIN_GAMES_2023: dc3cfc17872e4f7066413f87585dbc6d90163e4ddc1284ea55c6a69e96d020a3
+PIN_STINTS_2023: 947b1965d36b7a04fa664f0d6708868e90affbfc3026a42d847e6d644c2cb39a
+PIN_STATE_2023: 9c0cd52adcbe87937a731ef4fef695c9bf23d80557572630299aa6a56d44c6fc
+PIN_GAMES_2024: 573919338f25b53c7f599b9912a251213cb4abd4954ea303b72ba8d31727bf61
+PIN_STINTS_2024: 3ce9c798fa1b04f54a9f8836dbd778eaed2cc07115e93088027c83efb88463a0
+PIN_STATE_2024: af1c4e6e222b5689ed732e3d19fb93f42e86ea093e2f34e64a461be5a7085895
+PIN_A0_2023_pts: d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285
+PIN_A0_2023_reb: 337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805
+PIN_A0_2023_ast: 241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e
+PIN_A0_2023_fg3m: 96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe
+PIN_A0_2024_pts: 81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d
+PIN_A0_2024_reb: bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e
+PIN_A0_2024_ast: 62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb
+PIN_A0_2024_fg3m: 6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136
+LIB_python: 3.12.15
+LIB_polars: 1.44.2
+LIB_lightgbm: 4.7.0
+LIB_numpy: 2.5.3
+LIB_scipy: 1.18.1
+```
 
 === RESULTS BELOW ===
+
+## Minimum-data gate: measured (Run 2, `reports/prereg_in_game_line/gate_run2.json`; label-free; read-only; `season <= 2024`; wall about 40 s a run)
+Games = pbp files = stint-covered regular-season games in every season (1,059 / 1,080 / 1,230 / 1,230 / 1,230 / 1,230 for 2019-2024; no game without a pbp file).
+
+| check | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | bar |
+|---|---|---|---|---|---|---|---|
+| `full` reconstruction (share of games) | 0.9934 | 0.9926 | 0.9846 | 0.9894 | **0.9545** | 0.9813 | >= 0.90 train, >= 0.95 2023-24 |
+| components: pbp / stints tile / pts equal / fouls | 1 / 1 / 1 / 0.9934 | 1 / 1 / 0.9991 / 0.9935 | 1 / 1 / 0.9984 / 0.9862 | 1 / 1 / 0.9992 / 0.9902 | 1 / 1 / 0.9992 / 0.9553 | 1 / 1 / 1 / 0.9813 | |
+| assists resolved to an id | 0.9733 | 0.9683 | 0.9748 | 0.9584 | 0.9617 | 0.9661 | >= 0.95 (ast readiness) |
+| pts units (all cells) | 631,348 | 627,283 | 716,405 | 714,071 | 708,702 | 716,329 | |
+| required pts cells (player-games / games) Q3 blowout | 3,575 / 179 | 4,347 / 222 | 5,464 / 281 | 3,765 / 192 | 5,192 / 266 | 5,371 / 276 | >= 250 / >= 100 |
+| Q4 blowout | 3,652 / 173 | 4,700 / 221 | 4,992 / 240 | 4,084 / 197 | 5,258 / 247 | 5,493 / 261 | >= 250 / >= 100 |
+| smallest normal cell (Q4) | 17,329 / 886 | 16,464 / 859 | 19,010 / 990 | 19,780 / 1,033 | 18,601 / 983 | 18,481 / 969 | >= 250 / >= 100 |
+| Q1 blowout (reported, not required) | 334 / 18 | 505 / 28 | 482 / 27 | 529 / 29 | 504 / 29 | 491 / 27 | |
+| pts detectable effect, 20-seed mean half-width (sd; min-max) | | | | | **0.00185** (0.00021; 0.00128-0.00212) | **0.00183** (0.00026; 0.00143-0.00245) | <= 0.0025 |
+| reb / ast / fg3m (descriptive) | | | | | 0.00206 / 0.00188 / 0.00204 | 0.00200 / 0.00191 / 0.00209 | |
+| binding clustering over seeds (pts) | | | | | player_season 20 of 20 | player_season 20 of 20 | |
+| positive control (pts, 5 seeds, points; worst CI upper bound) | | | | | -0.0086 to -0.0091; -0.0071 | -0.0089 to -0.0099; -0.0073 | point <= -0.005, upper < 0, every seed |
+| planted-future identity (30 games: before the cut identical, after differ) | | | | | True / True | True / True | True |
+
+Positive controls for reb / ast / fg3m also clear (points -0.0096 to -0.0137). **Verdict word: PASS (Run 2, every check on every season; Run 1 was FAIL, see Amendment 1).**
+SHAPE (descriptive; Devin 2026-10-21 23:40). Starters' minutes in the period after the checkpoint by |margin| bucket, ratio of [20,+) to [0,10): **Q3 (margin at the end of Q2): 0.970 / 0.977 / 0.960 / 0.971 / 0.959 / 0.989 (2019-2024); Q4 (margin at the end of Q3): 0.477 / 0.452 / 0.469 / 0.491 / 0.448 / 0.500.** Both flags true in every season (Q3 >= 0.85 and Q4 <= 0.70). 2024 detail: Q3 minutes 8.29 / 8.14 / 8.20 for margins 0-10 / 10-20 / 20+ (leading 8.38, trailing 8.03; n = 7,070 / 4,130 / 1,100 starters); Q4 minutes 7.44 / 6.45 / 3.72 (leading 3.54, trailing 3.89; n = 6,030 / 3,850 / 2,420). So Devin's reading holds in the aggregate: a Q2 blowout does not cost starters Q3 minutes, a Q3 blowout cuts their Q4 minutes by about half. The pooled-over-seasons ratio was not computed (per-season ratios above; they agree to within 0.05). B0's Q4 factor 0.5 sits on the observed ratio.
+
+## Data capture audit (non-negotiable 8, second half)
+Held: regular-season pbp parquet for 2013-2024 (`data/history/pbp` 2013-2021, `data/pbp` 2022-2025; 2025-26 files exist and were never opened: `check_game_id` refuses them), stints for 2013-2024 (`nba_history.duckdb`, `nba.duckdb`). Used: 2019-2024; 2013-2018 not used (era). No game lacked a pbp file or tiling stints in any used season. Repairable gaps: (a) 3 to 4% of named assists do not resolve to a player id (assisters printed with an initial, `D. Green`, when a team has two players of one surname): repair = join the full name from `players_static`, no network cost, code only; if left, `ast` units under-count `current ast` slightly, which biases the ast secondary claim, so ast is flagged as "ast repair first"; (b) personal fouls missing from the feed (a few players per season; 2023 worst at 4.5% of games failing the consistency check): not repairable from this source. Neither blocks the pts primary claim.
+
+## Scoring of the Pending priors (gate run; Run 1 and Run 2)
+* Gate PASS 0.45: Run 1 failed (two defects of mine), Run 2 passed. First-attempt PASS: did not happen; eventual PASS: happened.
+* Required pts cells clear in every season 0.93: happened (smallest required cell 3,575 player-games / 173 games against 250 / 100).
+* Completeness: median 0.97 (80% 0.88-1.0) vs 0.985 median over seasons (inside, high). >= 0.95 both 2023 and 2024 (0.65): Run 1 no (0.9358), Run 2 yes (0.9545, 0.9813); >= 0.90 in 2019-2022 (0.70): happened (0.985-0.993; my bar was too loose for these data).
+* Ast resolved >= 0.95 in every season 0.75: happened (0.958-0.975).
+* Detectable effect pts: 2023 median 0.0012 (80% 0.0007-0.0020) vs 0.00185 (inside, upper half); P(<= 0.0025 both) 0.92: happened. Binding clustering `week` or `player_season` more often than `game` 0.6: happened (player_season 40 of 40).
+* Positive control 0.93: happened. Planted-future 0.97: Run 1 failed in 2023 (float noise), Run 2 happened.
+* SHAPE (not blind): Q3 ratio median 0.92 (80% 0.80-1.0) vs 0.96-0.99 (inside, high); Q4 ratio median 0.38 (80% 0.25-0.55) vs 0.45-0.50 (inside, high; the 150-game smoke had shown 0.33, a small sample); both flags true (0.85, 0.95): happened. Leading and trailing blowout starters within 0.5 min in Q4 pooled (0.6): happened in 2024 (3.54 vs 3.89; other seasons not computed).
+* Calibration note: two of the gate priors (completeness, planted-future) missed because of code defects, not data: the lesson is that a structural check written in one evening needs a determinism test and a look at the non-personal event types before its first real run.
+* Frozen-test priors (0.55 / 0.30 / 0.20): not scored; the test has not run.
+
+## Open items before any freeze (said plainly)
+1. `in_game_line_eval.run` is a skeleton: after the freeze, pin and digest checks it stops with an explicit message; the unit assembly (joining finals, recency and the A0 grid onto the units, scoring, the clustered bootstrap, the slices, the shuffled refit, the BH family) is not written. The arms (`arm_probs`), `recency`, `a0_prob` and `primary_verdict` are written and tested on synthetic frames.
+2. The assist resolution repair (above) would change `PIN_STATE_*` and the harness; do it before the freeze or drop ast from the secondary family.
+3. An adversary review of this rule (not done tonight).

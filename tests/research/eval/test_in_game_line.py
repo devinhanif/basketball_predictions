@@ -375,3 +375,30 @@ def test_power_and_positive_control_on_synthetic_units() -> None:
     r = gate.power(units, "pts", p0, gate.cluster_codes(units))
     assert r["de_mean_half_width"] > 0 and len(r["positive_control"]) == rule.POS_SEEDS
     assert all(p["point"] < 0 for p in r["positive_control"])  # the oracle gains by construction
+
+
+def test_non_personal_fouls_with_running_number_zero_are_not_counted() -> None:
+    """Run 1 of the gate: 'Non-Unsportsmanlike Tech Foul - Flopping (P0.T1)' was counted as personal."""
+    games, pbp, _, _ = _synthetic()
+    extra = (
+        pbp.filter(pl.col("action_type") == "Foul")
+        .head(1)
+        .with_columns(
+            pl.lit("Bob Non-Unsportsmanlike Tech Foul - Flopping (P0.T1) (X.Ref)").alias(
+                "description"
+            ),
+            pl.lit("Flopping").alias("sub_type"),
+        )
+    )
+    n_before = feat.foul_events(pbp).height
+    assert feat.foul_events(pl.concat([pbp, extra])).height == n_before
+
+
+def test_minutes_are_deterministic_under_row_order() -> None:
+    games, pbp, st, _ = _synthetic()
+    rows = feat.stint_rows(st)
+    shuffled = rows.sample(fraction=1.0, shuffle=True, seed=3)
+    a = feat.minutes_at(rows, 360.0).sort("game_id", "team_id", "player_id")
+    b = feat.minutes_at(shuffled, 360.0).sort("game_id", "team_id", "player_id")
+    assert a.equals(b)
+    assert a["minutes"].to_list() == [6.0] * 10

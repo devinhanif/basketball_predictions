@@ -1,0 +1,84 @@
+[23:37:24] 2019: 1059 regular-season games; reading pbp
+[23:37:26] 2019: completeness full 0.9934; building state
+[23:37:26] 2019 done; checkpoint written
+[23:37:26] 2020: 1080 regular-season games; reading pbp
+[23:37:28] 2020: completeness full 0.9926; building state
+[23:37:29] 2020 done; checkpoint written
+[23:37:29] 2021: 1230 regular-season games; reading pbp
+[23:37:31] 2021: completeness full 0.9846; building state
+[23:37:32] 2021 done; checkpoint written
+[23:37:32] 2022: 1230 regular-season games; reading pbp
+[23:37:34] 2022: completeness full 0.9894; building state
+[23:37:35] 2022 done; checkpoint written
+[23:37:35] 2023: 1230 regular-season games; reading pbp
+[23:37:37] 2023: completeness full 0.9358; building state
+[23:37:39] 2023 pts: 708702 units; power
+[23:37:49] 2023 reb: 621767 units; power
+[23:37:57] 2023 ast: 534651 units; power
+[23:38:05] 2023 fg3m: 507798 units; power
+[23:38:12] 2023 done; checkpoint written
+[23:38:12] 2024: 1230 regular-season games; reading pbp
+[23:38:15] 2024: completeness full 0.9764; building state
+[23:38:17] 2024 pts: 716329 units; power
+[23:38:26] 2024 reb: 625211 units; power
+[23:38:34] 2024 ast: 540782 units; power
+[23:38:42] 2024 fg3m: 506628 units; power
+[23:38:49] 2024 done; checkpoint written
+{
+ "checks": {
+  "2019_complete_full>=0.9": true,
+  "2019_cell_Q1_normal": true,
+  "2019_cell_Q2_normal": true,
+  "2019_cell_Q3_normal": true,
+  "2019_cell_Q4_normal": true,
+  "2019_cell_Q3_blow": true,
+  "2019_cell_Q4_blow": true,
+  "2020_complete_full>=0.9": true,
+  "2020_cell_Q1_normal": true,
+  "2020_cell_Q2_normal": true,
+  "2020_cell_Q3_normal": true,
+  "2020_cell_Q4_normal": true,
+  "2020_cell_Q3_blow": true,
+  "2020_cell_Q4_blow": true,
+  "2021_complete_full>=0.9": true,
+  "2021_cell_Q1_normal": true,
+  "2021_cell_Q2_normal": true,
+  "2021_cell_Q3_normal": true,
+  "2021_cell_Q4_normal": true,
+  "2021_cell_Q3_blow": true,
+  "2021_cell_Q4_blow": true,
+  "2022_complete_full>=0.9": true,
+  "2022_cell_Q1_normal": true,
+  "2022_cell_Q2_normal": true,
+  "2022_cell_Q3_normal": true,
+  "2022_cell_Q4_normal": true,
+  "2022_cell_Q3_blow": true,
+  "2022_cell_Q4_blow": true,
+  "2023_complete_full>=0.95": false,
+  "2023_cell_Q1_normal": true,
+  "2023_cell_Q2_normal": true,
+  "2023_cell_Q3_normal": true,
+  "2023_cell_Q4_normal": true,
+  "2023_cell_Q3_blow": true,
+  "2023_cell_Q4_blow": true,
+  "2023_de<=0.0025": true,
+  "2023_positive_control": true,
+  "2024_complete_full>=0.95": true,
+  "2024_cell_Q1_normal": true,
+  "2024_cell_Q2_normal": true,
+  "2024_cell_Q3_normal": true,
+  "2024_cell_Q4_normal": true,
+  "2024_cell_Q3_blow": true,
+  "2024_cell_Q4_blow": true,
+  "2024_de<=0.0025": true,
+  "2024_positive_control": true,
+  "2023_planted_future": false,
+  "2024_planted_future": true
+ },
+ "pass": false,
+ "failed": [
+  "2023_complete_full>=0.95",
+  "2023_planted_future"
+ ],
+ "word": "FAIL"
+}
