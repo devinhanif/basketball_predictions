@@ -75,26 +75,49 @@ Run 1 of the gate (harness 929fc41) returned **FAIL**: (i) 2023 completeness 0.9
 * **A1-2 (determinism).** The planted-future check compared floats exactly and `minutes` (a parallel group-by sum) differed by 1e-15 between two builds of the same game. `minutes_at` now sums stint seconds, rounds to 0.01 s, divides by 60 and rounds to 1e-6; the state and its digests are deterministic (Run 2 and Run 3 are identical, below).
 Run 2 (harness after the two fixes) returned **PASS**; Run 3 (an exact repeat) reproduced every number and every digest; `in_game_line_eval digests` reproduces the 18 gate digests. Artifacts: `reports/prereg_in_game_line/gate_run1.json` (FAIL, superseded), `gate_run2.json` (governs), `.log` files alongside. 2023 clears its completeness bar by 0.0045 only: said plainly.
 
-**Declared input pins (Amendment 1; computed label-free by `python -m research.eval.in_game_line_eval digests`, twice byte-identical to the gate's `pins`; `nba.duckdb` and `nba_history.duckdb` read-only, `season <= 2024`; the A0 values equal the ARCHETYPE_MATCHUP_ALL pins of the same files).**
+**Declared input pins:** superseded by the block in Amendment 2 below (the `PIN_STATE_*` lines changed with the assist repair; every other line is reproduced there unchanged). The Amendment 1 values are in `reports/prereg_in_game_line/gate_run2.json`.
+
+## Amendment 2 (pre-freeze) (dated 2026-10-21 23:58 CDT, modeler; branch `agent/modeler-in-game-line-2` off main 5f2c512; written BEFORE Run 4 of the gate and the full dryrun; no bar, floor, constant or criterion of the rule touched)
+Closes the three open items of "Open items before any freeze".
+**A2-1. `run()` is assembled** (`in_game_line_eval.py`: `run_pipeline`, `stat_units`, `minutes_rows`, `attach_a0`, `score_fit`, `evaluate`, `delta_report`), behind the frozen + pinned + digest checks; the box score is read only inside `run_pipeline` through `finals_fn`, after every check. Choices the draft left open, now fixed (stated here, before any real outcome exists):
+* **Rows.** Units need `n_prior >= 5` (recency from the final lines of the previous 10 played games, seasons 2018-2024 loaded for the 2019 start) and a final box-score row. Scored rows (2023, 2024) must also have a stored A0 row (the second B1); training rows need not. Every arm is scored on exactly the same rows.
+* **"The better B1"** = the one of {recency NegBin recalibrated, stored A0 grid truncated} with the lower mean log loss on that season's scored rows. Primary criteria (a)-(c) use it.
+* **Top-5 share (d)** is computed on the gain over B0 and on the gain over the better B1; the larger of the two must be <= 0.5.
+* **Slice criteria (f)** use the worse of the two contrasts (vs B0, vs better B1) for each slice: blowout = |margin| >= 20 at e in {30, 36, 42}; last6 = e = 42.
+* **Shuffled control (g):** one refit, seed 0, training labels permuted for the whole of M (stage B and its recalibration; stage A is a minutes model and is not refit); gain = mean log loss of the UNSHUFFLED B0 minus mean log loss of the shuffled M on the 2024 rows.
+* **Select (a):** if the 2023 point of M - B0 or M - better B1 is above -0.005, 2024 is not scored (recorded as such).
+* **Fits:** pts has a select fit (train 2019-22, score 2023), a report fit (train 2019-23, score 2024) and the shuffled refit; reb, ast and fg3m have the report fit only. Stage A is fitted once per training set.
+* **Secondary family:** p-value = one-sided bootstrap p (add-one, 2,000 draws, the largest over the three clusterings), the larger of the vs-B0 and vs-better-B1 values; BH at 0.05 over reb, ast, fg3m; a stat is claimed only if it is rejected AND the worse of its two points is <= -0.005.
+* **Not done:** the `heavy.lock` convention lives under `data/ops/`, which this branch may not write; the full run is the maintainer's command and should be wrapped in the lock by the maintainer.
+**A2-2. `dryrun`.** `python -m research.eval.in_game_line_eval dryrun` runs the ENTIRE path (states, recency, A0 join, stage A, stage B, recalibration, shuffled refit, bootstrap, slices, BH, planted-future) on the real 2019-2024 units with SYNTHETIC outcomes: final lines drawn with a fixed seed from B0's own negative-binomial distribution at each player's last checkpoint (current at minute 42 + a draw), one coherent final per player-game and stat. `read_finals` is replaced by a raiser for the duration (asserted before, during and after; tested). Its numbers are wiring proof only: because the synthetic final contains the real in-game production through minute 42, a gap of M over B0 is expected and is not evidence about the model. A quick shakeout on 2022-2024, pts only, run BEFORE these priors, forced two wiring fixes (stage A selected derived columns before deriving them; the first synthetic design drew finals at the first checkpoint, below later real current stats, and gave log-loss gaps of -2.5) and ran in 103 s.
+**A2-3. Assist repair.** `players_static` carries no names (columns: player_id, position, height_in, weight_lb, birth_date, draft_year, draft_pick, college), so full names are not available from it, nor from the box-score or stint tables. The repair uses the stints instead: an assist text printed with a first-name prefix (`D. Green`, `Jal. Williams`) or a surname shared by two teammates is resolved to the ONE teammate with that surname who is on court at the event time (stint a < t <= b); zero or several on court: unresolved and dropped. `stat_events(pbp, st)`; without `st` the original rule runs (the 'before' column). This changes the `ast` column of the state, hence every `PIN_STATE_*`; pts, reb and fg3m values and the completeness, cell and power inputs are unchanged, so **Run 4 of the gate is run** (below) and the digests and the harness pin are recomputed.
+**Priors for Run 4, the dryrun and the pin (written BEFORE them; the main session copies them to docs/PREDICTIONS_LEDGER.md).** Not blind to: Run 2/3, and a one-line count I made while building the repair showing 2023 resolution 96.2% -> 98.7% (64,734 of 65,610 assists). Blind to: all other seasons' after-repair counts, Run 4, the full dryrun.
+* Share of named assists resolved after repair, per season: >= 0.985 in every season: **0.75**; >= 0.99 in every season: **0.35**; the 2023 value is 0.9867. Repair raises every season's share: 0.97.
+* Run 4 verdict word PASS with every check as in Run 2 (completeness, cells, detectable effect, positive control, planted-future unchanged): **0.93**; the pts detectable effect and the cell counts reproduce Run 2 to the digit (they do not depend on `ast`): 0.95; the ast detectable half-width stays within 5% of Run 2: 0.85.
+* Digests: `digests` run twice byte-identical: 0.97; every `PIN_GAMES_*` and `PIN_STINTS_*` and `PIN_A0_*` equals its Amendment 1 value: 0.98; every `PIN_STATE_*` differs: 0.97.
+* Full dryrun (6 seasons x 4 stats) completes without an exception: **0.80** (the quick shakeout covered 3 seasons, pts only; reb/ast/fg3m paths and the 2019-2021 history seasons are new); wall time median 12 min (80% 6 to 25).
+* On the synthetic outcomes the pts primary criteria all pass: 0.5 (the shuffled and slice criteria are the likeliest to fail by construction).
+
+**Declared input pins (Amendment 2; computed label-free by `python -m research.eval.in_game_line_eval digests`, run twice byte-identical and equal to the `pins` of gate Run 4; `nba.duckdb` and `nba_history.duckdb` read-only, `season <= 2024`; `PIN_GAMES_*`, `PIN_STINTS_*` and `PIN_A0_*` equal their Amendment 1 values, the six `PIN_STATE_*` lines are new; the A0 values equal the ARCHETYPE_MATCHUP_ALL pins of the same files). `run` recomputes every line and refuses on any difference before it reads an outcome.**
 ```
 PIN_GAMES_2019: 5a45790eb31c493f4477b47292366353b1921e13f73a7cb9884b27871f407abc
 PIN_STINTS_2019: 902c1b838916dd94892a5f4e647825a25d776d1473e766a64c658874cf403c98
-PIN_STATE_2019: 9d5ffd7b70238c93390404da74181d7de0c1e4958924f0264570107f3d6819af
+PIN_STATE_2019: 350e45f4ec546bd20660d7c5d3cdae1932d08ec8038d4827855cbfd292509695
 PIN_GAMES_2020: 0e5ca756e7ad99efd0eb082a52e80437eb0ae10bb29bffaaf2215fe8107ed458
 PIN_STINTS_2020: b9218553b1203ecb1d78b25ae343dc2a0122806620f040ad558279999771c4cf
-PIN_STATE_2020: a4a5aca0933a3371ef07bd1993750f7d6ba70908edcf114bdaa37a06e05c8a92
+PIN_STATE_2020: 09dbeaea7571d40f4503a73c9ab4d3dc4b348c336eac7312d81efaf894dc5c2f
 PIN_GAMES_2021: 1f2dcb1f01a95c788c9ce035e1d5d529078c889fbf1f63d5b3f72a6acd3e454f
 PIN_STINTS_2021: 1e110c284da4b94869e8478239b3727722c7b6cbc6dadceff8b009475393eac7
-PIN_STATE_2021: 0180b244d14b072c40d1621cab01aeaf58ba890097caf91cdf594695cc9acc5d
+PIN_STATE_2021: 6aedbcbec089d5912b56475b653b6b9b6993129c394460290af744a0c4e11dc3
 PIN_GAMES_2022: a1613d9627443c1ee25cf6abea2f9be0ddaa4fc67ee348c88323508f055bd046
 PIN_STINTS_2022: b73b19e4bbe4f4b53e48e05c257628836b883cb3fc2ea5ffabc7c64988485af9
-PIN_STATE_2022: 67b5b30b65e692bccfcf6069ffa55d297d3d49b9e41c7175e81d37e30952c93a
+PIN_STATE_2022: efee084406e4b182ea7941f849b572ea684c8a20b76d6d8eb57c0710d9e283a0
 PIN_GAMES_2023: dc3cfc17872e4f7066413f87585dbc6d90163e4ddc1284ea55c6a69e96d020a3
 PIN_STINTS_2023: 947b1965d36b7a04fa664f0d6708868e90affbfc3026a42d847e6d644c2cb39a
-PIN_STATE_2023: 9c0cd52adcbe87937a731ef4fef695c9bf23d80557572630299aa6a56d44c6fc
+PIN_STATE_2023: 2197b54f61881cc79888d92b494803dd15f27a3a25f536c9e664000982ce762b
 PIN_GAMES_2024: 573919338f25b53c7f599b9912a251213cb4abd4954ea303b72ba8d31727bf61
 PIN_STINTS_2024: 3ce9c798fa1b04f54a9f8836dbd778eaed2cc07115e93088027c83efb88463a0
-PIN_STATE_2024: af1c4e6e222b5689ed732e3d19fb93f42e86ea093e2f34e64a461be5a7085895
+PIN_STATE_2024: bc80b5adad18c4b9854b6a238ff95c202f2ca73348ac05ff052bd343de9af9d5
 PIN_A0_2023_pts: d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285
 PIN_A0_2023_reb: 337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805
 PIN_A0_2023_ast: 241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e
@@ -152,3 +175,26 @@ Held: regular-season pbp parquet for 2013-2024 (`data/history/pbp` 2013-2021, `d
 1. `in_game_line_eval.run` is a skeleton: after the freeze, pin and digest checks it stops with an explicit message; the unit assembly (joining finals, recency and the A0 grid onto the units, scoring, the clustered bootstrap, the slices, the shuffled refit, the BH family) is not written. The arms (`arm_probs`), `recency`, `a0_prob` and `primary_verdict` are written and tested on synthetic frames.
 2. The assist resolution repair (above) would change `PIN_STATE_*` and the harness; do it before the freeze or drop ast from the secondary family.
 3. An adversary review of this rule (not done tonight).
+
+## Amendment 2 results (Run 4 of the gate and the full dryrun; harness at the commit that carries this text; `reports/prereg_in_game_line/gate_run4.{json,log}`, `dryrun.json`)
+**Assist repair, share of named assists resolved to a player id (before / after the on-court disambiguation; n = named assists):**
+
+| season | n named | resolved before | resolved after | share before | share after |
+|---|---|---|---|---|---|
+| 2019 | 51,649 | 50,268 | 50,942 | 0.9733 | 0.9863 |
+| 2020 | 53,577 | 51,876 | 52,766 | 0.9683 | 0.9849 |
+| 2021 | 60,636 | 59,106 | 59,896 | 0.9748 | 0.9878 |
+| 2022 | 62,279 | 59,688 | 61,081 | 0.9584 | 0.9808 |
+| 2023 | 65,610 | 63,098 | 64,734 | 0.9617 | 0.9866 |
+| 2024 | 65,312 | 63,099 | 64,542 | 0.9661 | 0.9882 |
+
+(The "before" counts are the Run 2 values.) Every season clears the 0.95 ast-readiness bar, so **ast stays in the secondary family**. About 1.2 to 1.9% of assists stay unresolved (none or several of the surname's teammates on court at the event, or an overtime event, which has no stint); the ast secondary claim carries that caveat.
+**Run 4 verdict word: PASS**, every check as in Run 2: completeness components and cell counts for pts, reb and fg3m identical to Run 2 (ast cells differ slightly); pts detectable half-widths identical to Run 2 (0.00185 / 0.00183); ast 0.00188 -> 0.00191 (2023) and 0.00191 -> 0.00192 (2024); positive controls and planted-future identity unchanged; `digests` twice byte-identical and equal to Run 4's `pins`; only the six `PIN_STATE_*` lines differ from Amendment 1.
+**Dryrun (synthetic outcomes only; whole path, 6 seasons x 4 stats; wall 342 s, then 304 s on the repeat after the dtype fix below; the two JSON files are identical apart from wall time).** Wiring fixes the dryrun forced: (1) stage A selected derived columns before deriving them; (2) the first synthetic design drew finals at the first checkpoint, below later real current stats (log-loss gaps of -2.5); (3) found by reading the real reader's types with `limit 0`, before any row: `player_game_stats` gives `minutes` as Float32 and the counts as Int32, and the synthetic provider Float64/Int64, so the real run's frames would not have matched the dryrun's; `read_finals` and the synthetic provider now cast to one declared schema (`FINALS_DTYPES`), asserted against both databases in the dryrun. The real reader's rows were never read. Synthetic numbers (2024, n scored rows 701,599 / 612,101 / 527,575 / 495,832 for pts / reb / ast / fg3m; 1,225 games and 521 player-seasons for pts; binding clustering player-season): M - B0 log loss -0.0315 / -0.0334 / -0.0291 / -0.0366, 95% CIs about +-0.003; M - better B1 -0.060 / -0.077 / -0.051 / -0.051; calibration slope 0.986 / 0.993 / 0.978 / 0.998; shuffled-label refit worse than B0 by 0.195 (gain -0.195); every pts criterion True; reb, ast, fg3m claimed (BH p 0.0005 at the 2,000-draw floor). **These are artifacts of the construction, not evidence:** the synthetic final contains the real in-game production through minute 42, which B0 at an early checkpoint cannot see and M partly can, and nothing here says anything about real outcomes.
+**Scoring of the Amendment 2 priors.** Resolution >= 0.985 in every season (0.75): **missed** (2020 0.9849, 2022 0.9808); >= 0.99 in every season (0.35): missed; repair raises every season (0.97): happened (+1.3 to +2.5 points); 2023 value 0.9866 (known). Run 4 PASS with all other checks as Run 2 (0.93): happened; pts detectable effect and cells reproduce to the digit (0.95): happened; ast half-width within 5% (0.85): happened (1.6% and 0.5%). Digests identical twice (0.97), PIN_GAMES/STINTS/A0 unchanged (0.98), every PIN_STATE differs (0.97): all happened. Full dryrun completes (0.80): happened on the first full attempt after the two shakeout fixes, with the third fix found by the schema check; wall median 12 min (80% 6-25) vs 5.7 min: below the interval (the box was idle and the model is small). Synthetic pts criteria all pass (0.5): happened.
+**Lesson for the rules.** A synthetic provider that shares dtypes only by accident hides the exact class of bug that crashed T507's real run; the dryrun now asserts the real reader's schema (`limit 0`, no rows) against the synthetic one.
+
+## Open items before any freeze (after Amendment 2)
+1. The frozen run itself has never executed `read_finals` on rows (by design); its SQL and types are checked, its row content is not.
+2. An adversary pre-freeze review of Amendments 1 and 2 (not done).
+3. Recompute the harness pin at the `harness(IN_GAME_LINE_MODEL)` commit (the file list is the four modules; `rule.pin_of(rule.disk_blobs())` at the head below).

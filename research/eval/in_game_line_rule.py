@@ -223,14 +223,10 @@ def cluster_sums(delta: np.ndarray, codes: np.ndarray) -> tuple[np.ndarray, np.n
     )
 
 
-def boot_ci(
-    delta: np.ndarray,
-    codes: np.ndarray,
-    seed: int = SEED,
-    n_boot: int = N_BOOT,
-    alpha: float = ALPHA,
-) -> tuple[float, float, float]:
-    """(point, lo, hi) of the mean paired delta, resampling whole clusters (ratio of resampled cluster sums to resampled cluster sizes)."""
+def boot_draws(
+    delta: np.ndarray, codes: np.ndarray, seed: int = SEED, n_boot: int = N_BOOT
+) -> tuple[float, np.ndarray]:
+    """(point, bootstrap means) resampling whole clusters (ratio of resampled cluster sums to resampled cluster sizes)."""
     s, c = cluster_sums(delta, codes)
     k = len(s)
     point = float(s.sum() / c.sum())
@@ -241,8 +237,31 @@ def boot_ci(
         m = min(step, n_boot - i)
         w = rng.multinomial(k, np.full(k, 1.0 / k), size=m).astype(float)
         out[i : i + m] = (w @ s) / np.maximum(w @ c, 1.0)
+    return point, out
+
+
+def boot_ci(
+    delta: np.ndarray,
+    codes: np.ndarray,
+    seed: int = SEED,
+    n_boot: int = N_BOOT,
+    alpha: float = ALPHA,
+) -> tuple[float, float, float]:
+    """(point, lo, hi) of the mean paired delta, resampling whole clusters."""
+    point, out = boot_draws(delta, codes, seed, n_boot)
     lo, hi = np.quantile(out, [alpha / 2, 1 - alpha / 2])
     return point, float(lo), float(hi)
+
+
+def binding_p(
+    delta: np.ndarray, codes: dict[str, np.ndarray], seed: int = SEED, n_boot: int = N_BOOT
+) -> float:
+    """One-sided bootstrap p-value for delta < 0 (share of resampled means >= 0, add-one); the LARGEST over the three clusterings binds."""
+    ps = []
+    for k in CLUSTERINGS:
+        _, d = boot_draws(delta, codes[k], seed, n_boot)
+        ps.append((1.0 + float(np.sum(d >= 0.0))) / (n_boot + 1.0))
+    return max(ps)
 
 
 def binding_ci(

@@ -125,11 +125,73 @@ def fold_names(df: pl.DataFrame, col: str = "player_name") -> pl.DataFrame:
     )
 
 
-def stat_events(pbp: pl.DataFrame) -> pl.DataFrame:
+def assist_events(pbp: pl.DataFrame, made: pl.DataFrame, st: pl.DataFrame | None) -> pl.DataFrame:
+    """Assist events (see ``stat_events``). Candidates are the team's players of the game whose folded pbp surname equals the assister text with
+    any leading first-name prefix (``[a-z]{1,3}. ``) removed; a unique candidate resolves; otherwise, with ``st``, the one candidate on court at
+    the event (stint a < t <= b, or t = 0) resolves."""
+    ev = (
+        fold_names(
+            made.with_columns(
+                pl.col("description").str.extract(r"\(([^()]+?) \d+ AST\)", 1).alias("assister")
+            ),
+            "assister",
+        )
+        .filter(pl.col("assister").is_not_null())
+        .with_columns(
+            pl.col("assister").str.replace(r"^[a-z]{1,3}\. ", "").alias("surname"),
+            pl.col("assister").str.contains(r"^[a-z]{1,3}\. ").alias("prefixed"),
+        )
+        .select("game_id", "team_id", "t", "assister", "surname", "prefixed")
+        .with_row_index("eid")
+    )
+    names = fold_names(
+        pbp.filter(pl.col("player_id") > 0)
+        .select("game_id", "team_id", "player_id", "player_name")
+        .unique()
+    ).rename({"player_name": "surname", "player_id": "cand"})
+    cands = ev.join(names, on=["game_id", "team_id", "surname"], how="inner")
+    n = cands.group_by("eid").agg(pl.len().alias("n"))
+    cands = cands.join(n, on="eid")
+    # a prefixed text names a specific first initial we cannot see, so the original rule (exact text unique) is kept for the 'before' path
+    if st is None:
+        exact = names.rename({"surname": "assister", "cand": "assister_id"})
+        un = (
+            exact.group_by("game_id", "team_id", "assister")
+            .agg(pl.col("assister_id").n_unique().alias("k"), pl.col("assister_id").first())
+            .filter(pl.col("k") == 1)
+            .drop("k")
+        )
+        out = ev.join(un, on=["game_id", "team_id", "assister"], how="inner").rename(
+            {"assister_id": "player_id"}
+        )
+    else:
+        one = cands.filter(pl.col("n") == 1).select("eid", pl.col("cand").alias("player_id"))
+        multi = cands.filter(pl.col("n") > 1).join(
+            st.rename({"player_id": "cand"}), on=["game_id", "team_id", "cand"], how="inner"
+        )
+        multi = multi.filter(
+            ((pl.col("a") < pl.col("t")) & (pl.col("t") <= pl.col("b")))
+            | ((pl.col("a") == 0.0) & (pl.col("t") == 0.0))
+        )
+        on = (
+            multi.group_by("eid")
+            .agg(pl.col("cand").n_unique().alias("k"), pl.col("cand").first())
+            .filter(pl.col("k") == 1)
+        )
+        res = pl.concat([one, on.select("eid", pl.col("cand").alias("player_id"))])
+        out = ev.join(res, on="eid", how="inner")
+    return out.select(
+        "game_id", "team_id", "player_id", "t", pl.lit(1.0).alias("val")
+    ).with_columns(pl.lit("ast").alias("stat"))
+
+
+def stat_events(pbp: pl.DataFrame, st: pl.DataFrame | None = None) -> pl.DataFrame:
     """One row per stat event: game_id, team_id, player_id, t, stat, val. pts = made field goals (shot_value) + made free throws (1);
     fg3m = made threes; reb = rebounds credited to a player; ast = the assister named in a made shot's description, resolved to a player id of
-    the SAME team by surname when that surname is unique among the team's player names in the game (ambiguous names are dropped and counted
-    by ``ast_unresolved``)."""
+    the SAME team by surname when that surname is unique among the team's player names in the game. Amendment 2 (assist repair): when ``st`` (the
+    ``stint_rows`` of the games) is given, a description printed with a first-name prefix (``D. Green``, ``Jal. Williams``) or a surname shared by
+    two teammates is resolved by who of the matching teammates is ON COURT at the event time (exactly one: resolved; zero or several: dropped and
+    counted by ``ast_unresolved``). Without ``st`` the original rule applies (used to report 'before')."""
     made = pbp.filter(pl.col("action_type") == "Made Shot")
     ft = pbp.filter(
         (pl.col("action_type") == "Free Throw")
@@ -158,38 +220,7 @@ def stat_events(pbp: pl.DataFrame) -> pl.DataFrame:
         .select("game_id", "team_id", "player_id", "t", pl.lit(1.0).alias("val"))
         .with_columns(pl.lit("reb").alias("stat"))
     )
-    names = (
-        fold_names(
-            pbp.filter(pl.col("player_id") > 0)
-            .select("game_id", "team_id", "player_id", "player_name")
-            .unique()
-        )
-        .group_by("game_id", "team_id", "player_name")
-        .agg(
-            pl.col("player_id").n_unique().alias("n"),
-            pl.col("player_id").first().alias("assister_id"),
-        )
-        .filter(pl.col("n") == 1)
-        .select("game_id", "team_id", pl.col("player_name").alias("assister"), "assister_id")
-    )
-    ast = (
-        fold_names(
-            made.with_columns(
-                pl.col("description").str.extract(r"\(([^()]+?) \d+ AST\)", 1).alias("assister")
-            ),
-            "assister",
-        )
-        .filter(pl.col("assister").is_not_null())
-        .join(names, on=["game_id", "team_id", "assister"], how="inner")
-        .select(
-            "game_id",
-            "team_id",
-            pl.col("assister_id").alias("player_id"),
-            "t",
-            pl.lit(1.0).alias("val"),
-        )
-        .with_columns(pl.lit("ast").alias("stat"))
-    )
+    ast = assist_events(pbp, made, st)
     return pl.concat([pts, fg3, reb, ast]).select(
         "game_id", "team_id", "player_id", "t", "stat", "val"
     )
@@ -295,7 +326,7 @@ def state_frame(
     ids = games["game_id"].to_list()
     pbp = pbp if pbp is not None else read_pbp(ids, root)
     st = stint_rows(stints if stints is not None else read_stints(season, root))
-    ev = stat_events(pbp)
+    ev = stat_events(pbp, st)
     fo = foul_events(pbp)
     score = scoring_timeline(pbp)
     m48 = (
