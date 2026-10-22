@@ -631,3 +631,49 @@ the next, so the 2024 arm deltas are not either. The size is about 2e-5 floor un
 
 - TEST_LEDGER (under T507): `| T507-review-5 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL Amendment 5 narrow diff check (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Amendment 5 check) | label-free | READY_TO_REFREEZE: criteria/constants/digests unchanged; run order intact; month_key identical on 25,815 / 25,649 rows; digests 19/19; text sha cbf55dc2, pin 77c83ffb; 62 tests pass; major pre-existing nondeterminism (mu scan order -> e_usual/e_lg jitter 2.5e-8 -> 2024 CM moves 2e-5 floor units), fix recommended before refreeze |`
 - DECISIONS: none (the choice between options 1 and 2 above is the main session's, with Devin's go).
+
+## A5-3 check (2026-10-22, adversary; label-free; no season >= 2025 queried)
+
+Scope: commit d87a9d2 (merged as 36120ee). It closes F-A5-1 (row-order nondeterminism in `mu`). `git diff 47d327a HEAD` on the requested paths also shows `tests/research/eval/test_in_game_line.py`. That file came from the T508 merge (4093e32), not from A5-3. `git show --stat d87a9d2` touches only the prereg doc, `_eval.py` and the amendment-2 test file. No scope creep.
+
+Verdict: READY_TO_REFREEZE
+
+Top finding: the fix does what it says. A third run, in a separate process from main HEAD, matches both of the modeler's A5-3 dryruns bit for bit (88/88 arrays, all result keys). The sort changes only row order, never which rows exist or what they mean. Refreeze with text sha `f380947eabb1fc68e998e3081c10d7337ae8ec89d1691af06e2473b37832cb0f` and pin `dce060001f543aacb0ef0f36b3c8a206e3bd6d9abb803c214ba66456ea8d6493`.
+
+### Checks
+
+| # | Check | Command / evidence | Result | Pass |
+|---|---|---|---|---|
+| 1 | No criterion, constant, threshold or digest change | `git diff 47d327a HEAD -- research/eval/archetype_matchup_all_*.py ...`: in `_eval.py`, one new function `canonical_tables` (sort on all columns, index reset) and one call-site line. `_rule.py`, `_features.py`, `_arm.py` and `_gate.py` have an empty diff. Doc: the old text above the marker (cbf55dc2) is a byte prefix of the new text. 2,080 characters are appended, all inside the A5-3 block. The text below the marker is identical | wiring only | PASS |
+| 2 | The sort cannot change which rows exist or what they mean | `sort_values(all columns).reset_index(drop=True)` permutes rows only, with no filter, dedup or dtype change. The loaders already return a RangeIndex, so dropping the index loses nothing. Downstream order use, read line by line: `mix_frame` left-merges `games` onto `rows` (row order comes from `rows`, not `mu`). `defender_games` uses `groupby(sort=False)` with `first` on `game_date` and `season`, which are constant within a game. `roster_candidates` `np.unique`s defenders per team-game, so candidate order does not depend on `mu`. Within a team-game, `permute_within` acts on `cand.tgi` and `b`, which do not depend on `mu` order. `decayed_asof` / `team_asof` float sums are the jitter source F-A5-1 found, now fixed. Walk-forward months, the bootstrap cluster codes (`d["game"]`, `ps`, `week`) and the fixed seeds all key off the scored-row frame, which does not come from `mu`/`games` order. `read_flagged` returns sets per game. The 2023 synthetic CM is the same before and after the fix (3.9749683005991083) | order only | PASS |
+| 3 | Run order intact | `run` = `require_ready(sha)` then `execute`. In `execute`: `check_floors`, read-only connect, `canonical_tables(read_matchups, read_games)`, `read_flagged`, `MAX_SEASON` assert, `verify_inputs(compute_input_digests(...))`, then `load_season` (the only caller of `read_outcomes`). Nothing moved ahead of `verify_inputs`. `arch.connect` is `read_only=True` | intact | PASS |
+| 4 | Text sha and pin recomputed | scratch `a53_pin.py`: `rule.text_sha(doc)` = f380947eabb1fc68e998e3081c10d7337ae8ec89d1691af06e2473b37832cb0f. `pin_of` over the 17 `HARNESS_FILES` (sha256 of the read text, the `require_harness_pinned` convention) = dce060001f543aacb0ef0f36b3c8a206e3bd6d9abb803c214ba66456ea8d6493, the same on disk and at HEAD. The same code at 4469043 gives 77c83ffb (the previously reviewed pin, which validates the method). Only the `_eval.py` blob changed | matches claim | PASS |
+| 5 | Digests | `.venv/bin/python -m research.eval.archetype_matchup_all_eval digests`, exit 0, 19 lines. `rule.input_mismatches(declared, recomputed)` = `[]` (19/19). Both paths agree: `digests` hashes the raw tables, `execute` hashes the canonical ones, and `verify_inputs` passed inside the dryrun because `PIN_MATCHUPS` / `PIN_GAMES` hash sorted copies | unchanged | PASS |
+| 6 | T507 tests | `.venv-1/bin/python -m pytest tests/research/eval/test_archetype_matchup_all.py tests/research/eval/test_archetype_matchup_all_amendment2.py --no-cov -q -p no:cacheprovider` | 63 passed, exit 0 (62 before, plus the new test) | PASS |
+| 7 | Independent dryrun into scratch, compared | `.venv/bin/python <scratch>/a53_dry.py <scratch>/a53_dry`, exit 0, wall 80.4 s. Planted-future identity True in 2023 and 2024. `read_outcomes` restored. CM 2023 = 3.9749683005991083 and 2024 = 0.537644903240375, both exactly as claimed. Against the modeler's two A5-3 dryruns (`dry6_a`, `dry6_b`, 23:51 / 23:52, separate processes): 88/88 per-row arrays have identical bytes and every results key is equal (except wall time). That makes three processes, all bit-identical | reproducible | PASS |
+
+### Findings
+
+- **m-A5-3-1 (minor, test strength).** `test_shuffled_copies_of_the_tables_give_bit_identical_feature_frames` (tests/research/eval/test_archetype_matchup_all_amendment2.py, the `for seed in (1, 2, 3)` loop) still passes when `canonical_tables` is replaced by an identity (checked with `<scratch>/a53_negtest.py`). The fixture is too small for summation order to show, so this half of the test does not discriminate. The test as a whole still fails without the sort, but only through its `canonical_tables` equality assertions and the source-order assertion. The real-data evidence is check 7. Fix (optional, test file only, outside `HARNESS_FILES`, so the pin is unaffected): add one negative assertion, for example on a `defender_games(mu)` sum over enough rows with values like 0.1/0.2/0.3, that two shuffles differ without `canonical_tables` and agree with it.
+- **m-A5-3-2 (minor, operational, pre-existing).** `score_season` (eval.py, `if ck.exists(): ... loaded checkpoint`) loads any `deltas_{S}_{st}.npz` already in `out_dir` without checking which text sha or pin produced it. The worktree `wt_af/reports/prereg_archetype_matchup_all/dryrun/` still holds the stale pre-fix A5-2 dryrun (23:28; 21 of 88 arrays differ, 2024 CM 0.5376807). A default `dryrun` in that worktree would silently reload it. The real `OUT_DIR` on main has no `deltas_*.npz` today. Fix: no code change before the refreeze, because it would move the pin. Before `run`, the main session confirms `ls reports/prereg_archetype_matchup_all/deltas_* ` matches nothing, and records that in the run log.
+- m-A5-2 (dryrun npz files carry no in-file SYNTHETIC label) is still open. It is not needed for the refreeze.
+
+### Playbook check (GBM context-residual layer plus quantile rescale, four stats)
+
+Unchanged from the Amendment 5 check. (1) Information: the opposing OUT set. (2) About 25.7k rows per season. The synthetic no-signal cost of the layer is +3.97 / +0.54 floor units, and a real gain must clear it. (3) The test is still valid. A5-3 removes a reproducibility defect and changes no validity property. (4) Every inherited guard is intact, in the same order. (5) Scored against A0 with integer CRPS, a four-stat composite in floor units, one test and no BH family. Power note unchanged.
+
+### Not verified
+
+- The real `run`. By design it needs the refreeze first.
+- Bit-identity on a different machine or library build. The LIB pins guard the build, not the hardware.
+
+### Recommended changes (main session; none applied by me)
+
+1. Refreeze: `prereg(ARCHETYPE_MATCHUP_ALL): f380947eabb1fc68e998e3081c10d7337ae8ec89d1691af06e2473b37832cb0f`, then `harness(ARCHETYPE_MATCHUP_ALL): dce060001f543aacb0ef0f36b3c8a206e3bd6d9abb803c214ba66456ea8d6493`. Every harness file must be byte-identical at both commits.
+2. Before `run`: confirm no `deltas_*.npz` exists in `reports/prereg_archetype_matchup_all/` (m-A5-3-2).
+3. Optional, at any time (test only): strengthen the A5-3 test (m-A5-3-1).
+
+### Drafted rows (not appended)
+
+- TEST_LEDGER (under T507): `| T507-review-6 | 2026-10-22 | ARCHETYPE_MATCHUP_ALL A5-3 check (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, A5-3 check) | label-free | READY_TO_REFREEZE: row-order-only change, run order intact, digests 19/19, text sha f380947e, pin dce06000, 63 tests pass, three-process dryrun bit-identical 88/88 (CM 2023 +3.9749683, 2024 +0.5376449, synthetic); minor: A5-3 test feature half non-discriminating; stale pre-fix dryrun checkpoints in wt_af |`
+- DECISIONS: none.
