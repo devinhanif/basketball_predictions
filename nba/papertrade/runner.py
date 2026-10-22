@@ -23,12 +23,13 @@ TAIL = timedelta(hours=4)
 HEARTBEAT = Path(__file__).resolve().parents[2] / "data" / "ops" / "heartbeat" / "papertrade.json"
 
 
-def scan_times(tips: list[datetime]) -> list[datetime]:
-    """One scan 75 min before the first tip, then one 45 min before each later tip window."""
+def scan_times(tips: list[datetime], first_lead: timedelta = SCAN_LEAD_FIRST) -> list[datetime]:
+    """One scan ``first_lead`` (75 min) before the first tip, then one 45 min before each later
+    tip window."""
     uniq = sorted(set(tips))
     if not uniq:
         return []
-    return [uniq[0] - SCAN_LEAD_FIRST, *[t - SCAN_LEAD_LATER for t in uniq[1:]]]
+    return [uniq[0] - first_lead, *[t - SCAN_LEAD_LATER for t in uniq[1:]]]
 
 
 @dataclass
@@ -42,9 +43,10 @@ class DayRunner:
     sleep_fn: Callable[[float], None] = time.sleep
     interval_s: float = 60.0
     heartbeat: Path = HEARTBEAT
+    first_lead: timedelta = SCAN_LEAD_FIRST
 
     def run(self) -> int:
-        times = scan_times(self.tips)
+        times = scan_times(self.tips, self.first_lead)
         if not times:
             self._beat("no_games", rc=0)
             return 0

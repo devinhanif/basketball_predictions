@@ -8,7 +8,7 @@ import sys
 import time
 from collections.abc import Sequence
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -22,6 +22,15 @@ from nba.papertrade import config as C
 from nba.papertrade import db, digest
 from nba.papertrade.forecasts import load_forecasts
 from nba.papertrade.monitor import monitor_once, open_positions
+from nba.papertrade.playbook import (
+    PLAYBOOK_DB,
+    PLAYBOOK_LEGS_FILE,
+    load_playbook,
+    playbook_cfg,
+    playbook_monitor_once,
+    playbook_report,
+    run_playbook_scan,
+)
 from nba.papertrade.runner import DayRunner
 from nba.papertrade.scan import fetch_markets, run_scan
 from nba.papertrade.settle import dump, settle_positions, summarize
@@ -78,7 +87,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="override the config rule_version, e.g. paper-trader-v2-shakedown (never scored)",
     )  # fmt: skip
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("scan", "monitor", "settle", "summary", "run", "digest", "replay"):
+    for name in (
+        "scan", "monitor", "settle", "summary", "run", "digest", "replay",
+        "playbook-run", "playbook-scan", "playbook-report",
+    ):  # fmt: skip
         p = sub.add_parser(name)
         p.add_argument("--date", type=date.fromisoformat, default=None, help="ET slate date")
         if name == "digest":
@@ -97,7 +109,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             p.add_argument("--once", action="store_true")
     a = ap.parse_args(argv)
     cfg = C.load(a.config)
-    if a.rule_version:
+    pb = load_playbook()
+    if a.cmd.startswith("playbook"):  # own rule version, own store, own sidecar: never the primary
+        cfg = playbook_cfg(cfg, pb)
+        if a.db == C.DB_PATH:
+            a.db = PLAYBOOK_DB
+    elif a.rule_version:
         cfg = cfg.with_rule_version(a.rule_version)
     day: date = a.date or datetime.now(ET).date()
     fetcher = Fetcher()
@@ -133,6 +150,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         if cand:
             print(f"alias candidates for review: {cand}", flush=True)
         return 0
+
+    def do_pb_scan(now: datetime) -> int:
+        raw = RawStore(ROOT / "data" / "papertrade" / "raw" / day.isoformat())
+        fetcher.begin_tick(200, 90.0)
+        markets = fetch_markets(fetcher, day, list(cfg.prop_series), raw)
+        con = connect_with_retry(a.nba_db, read_only=True)
+        try:
+            fc = load_forecasts(con, day, now)
+        finally:
+            con.close()
+
+        def book(ticker: str) -> dict[str, Any] | None:
+            return kp.parse_body(kp.get_orderbook(fetcher, ticker))
+
+        fetcher.begin_tick(120, 60.0)
+        res = run_playbook_scan(
+            day, now, cfg, pb, markets=markets, fc=fc, aliases=load_reviewed_aliases(),
+            db_path=a.db, legs_file=PLAYBOOK_LEGS_FILE, book_fn=book,
+        )  # fmt: skip
+        print(
+            f"playbook scan {res.scan_id} window={res.window} built={sorted(res.built)} "
+            f"skipped={json.dumps(res.skipped)}",
+            flush=True,
+        )
+        return 0
+
+    def do_pb_monitor(now: datetime) -> dict[str, int]:
+        c = playbook_monitor_once(day, now, cfg, pb, getter, a.db, PLAYBOOK_LEGS_FILE)
+        print(f"{now:%H:%M:%S} playbook monitor {c}", flush=True)
+        return c
 
     def getter(ticker: str) -> dict[str, Any] | None:
         fetcher.begin_tick(10, 20.0)
@@ -194,6 +241,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if a.cmd == "replay":
         return do_replay()
+    if a.cmd == "playbook-scan":
+        return do_pb_scan(_now())
+    if a.cmd == "playbook-report":
+        print(json.dumps(playbook_report(a.db, cfg.rule_version), indent=2, default=str))
+        return 0
+    if a.cmd == "playbook-run":
+        runner = DayRunner(
+            day, _tips(a.nba_db, day), do_pb_scan, do_pb_monitor, do_settle,
+            heartbeat=ROOT / "data" / "ops" / "heartbeat" / "papertrade_playbook.json",
+            first_lead=timedelta(minutes=pb.scan_lead_min),
+        )  # fmt: skip
+        rc = runner.run()
+        print(json.dumps(playbook_report(a.db, cfg.rule_version), indent=2, default=str))
+        return rc
     if a.cmd == "scan":
         return do_scan(_now())
     if a.cmd == "run":

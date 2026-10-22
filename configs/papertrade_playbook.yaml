@@ -1,0 +1,14 @@
+# DESCRIPTIVE playbook arm (Devin's observed ladder, DECISIONS/FAN_KNOWLEDGE 2026-10-21). Paper only, synthetic
+# prices (product of leg asks / bids), never in the primary summary or any claim. Fees come from configs/parlay.yaml.
+rule_version: paper-trader-v2-playbook
+scan_lead_min: 45          # one scan this long before every distinct tip window
+max_spread: 0.05           # every leg
+min_leg_ask: 0.05
+max_leg_ask: 0.95
+pool_size: 14              # legs considered per tier after one best leg per (player, stat)
+near_zero_frac: 0.25       # MEDIUM/RISKY: hold (never sell) while hold value < this x cost
+let_run_mid: 0.90          # all-but-one legs hit and the last leg's mid >= this: run to settlement
+tiers:
+  safe:   {min_legs: 3, max_legs: 3, joint_lo: 0.55, joint_hi: 1.00, stake_usd: 6.0, min_leg_p: 0.85, max_leg_ask: 0.95, take_profit_x: 1.2}
+  medium: {min_legs: 3, max_legs: 4, joint_lo: 0.30, joint_hi: 0.45, stake_usd: 4.0}
+  risky:  {min_legs: 5, max_legs: 8, joint_lo: 0.08, joint_hi: 0.20, stake_usd: 2.0}

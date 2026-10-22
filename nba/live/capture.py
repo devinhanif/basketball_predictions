@@ -366,13 +366,21 @@ class Capture:
                 info.setdefault("promoted_series", []).append(series)
 
     def leg_tickers(self) -> set[str]:
-        if self.legs_file is None or not self.legs_file.exists():
+        """Open paper-position legs: the legs file plus its siblings (``open_legs_<arm>.json``)."""
+        if self.legs_file is None:
             return set()
-        try:
-            data = json.loads(self.legs_file.read_text())
-            return {str(t) for t in data.get("tickers", [])}
-        except (OSError, ValueError):
-            return set()
+        out: set[str] = set()
+        paths = [
+            self.legs_file,
+            *sorted(self.legs_file.parent.glob(f"{self.legs_file.stem}_*.json")),
+        ]
+        for path in paths:
+            try:
+                data = json.loads(path.read_text())
+                out |= {str(t) for t in data.get("tickers", [])}
+            except (OSError, ValueError):
+                continue
+        return out
 
     def kalshi_orderbooks(self, live: list[Game], info: dict[str, Any]) -> None:
         legs = self.leg_tickers()
