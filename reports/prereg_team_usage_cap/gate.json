@@ -1,0 +1,729 @@
+{
+  "seasons_held": {
+    "duckdb": [
+      2022,
+      2023,
+      2024
+    ],
+    "history": "data/history 2013-2021 box scores (not read here)"
+  },
+  "preseason_coverage": {
+    "2022": {
+      "teams": 30,
+      "player_rows": 1841
+    },
+    "2023": {
+      "teams": 30,
+      "player_rows": 1834
+    },
+    "2024": {
+      "teams": 30,
+      "player_rows": 1989
+    }
+  },
+  "slice_counts": {
+    "2023": {
+      "team_games_total": 2460,
+      "A0_rows_total": 25815,
+      "X=0.10": {
+        "team_games": 906,
+        "teams": 26,
+        "rows": 9545,
+        "games": 690,
+        "player_seasons": 444,
+        "weeks": 25
+      },
+      "X=0.15": {
+        "team_games": 687,
+        "teams": 25,
+        "rows": 7207,
+        "games": 554,
+        "player_seasons": 415,
+        "weeks": 25
+      },
+      "X=0.20": {
+        "team_games": 392,
+        "teams": 23,
+        "rows": 4068,
+        "games": 341,
+        "player_seasons": 347,
+        "weeks": 23
+      },
+      "X=0.25": {
+        "team_games": 247,
+        "teams": 19,
+        "rows": 2589,
+        "games": 228,
+        "player_seasons": 279,
+        "weeks": 21
+      },
+      "X=0.30": {
+        "team_games": 155,
+        "teams": 15,
+        "rows": 1589,
+        "games": 146,
+        "player_seasons": 198,
+        "weeks": 19
+      },
+      "NS_quantiles": {
+        "0.5": 0.06827120729856567,
+        "0.75": 0.16314435798234578,
+        "0.9": 0.25506846650798365,
+        "0.95": 0.31067587874434427
+      },
+      "NS_missing": 0
+    },
+    "2024": {
+      "team_games_total": 2460,
+      "A0_rows_total": 25649,
+      "X=0.10": {
+        "team_games": 850,
+        "teams": 25,
+        "rows": 8780,
+        "games": 663,
+        "player_seasons": 423,
+        "weeks": 25
+      },
+      "X=0.15": {
+        "team_games": 584,
+        "teams": 23,
+        "rows": 6033,
+        "games": 475,
+        "player_seasons": 382,
+        "weeks": 24
+      },
+      "X=0.20": {
+        "team_games": 375,
+        "teams": 21,
+        "rows": 3854,
+        "games": 325,
+        "player_seasons": 321,
+        "weeks": 18
+      },
+      "X=0.25": {
+        "team_games": 232,
+        "teams": 20,
+        "rows": 2406,
+        "games": 214,
+        "player_seasons": 286,
+        "weeks": 18
+      },
+      "X=0.30": {
+        "team_games": 115,
+        "teams": 15,
+        "rows": 1166,
+        "games": 108,
+        "player_seasons": 200,
+        "weeks": 16
+      },
+      "NS_quantiles": {
+        "0.5": 0.07328497244183939,
+        "0.75": 0.13001280588708078,
+        "0.9": 0.24459623155524293,
+        "0.95": 0.2968209462941376
+      },
+      "NS_missing": 0
+    }
+  },
+  "identifiability": {
+    "2023": {
+      "change_games": 222,
+      "known_from_preseason": 105,
+      "share_known": 0.47297297297297297,
+      "first5_games": {
+        "n": 98,
+        "known": 91,
+        "share": 0.9285714285714286
+      },
+      "later": {
+        "n": 124,
+        "known": 14,
+        "share": 0.11290322580645161
+      }
+    },
+    "2024": {
+      "change_games": 211,
+      "known_from_preseason": 95,
+      "share_known": 0.45023696682464454,
+      "first5_games": {
+        "n": 76,
+        "known": 74,
+        "share": 0.9736842105263158
+      },
+      "later": {
+        "n": 135,
+        "known": 21,
+        "share": 0.15555555555555556
+      }
+    }
+  },
+  "premise": {
+    "2023": {
+      "slice": {
+        "team_games": 392,
+        "sum_mean_pts": 113.00590954381116,
+        "sum_min10": 236.31859398649144,
+        "rows_per_team_game": 10.377551020408163
+      },
+      "rest": {
+        "team_games": 2068,
+        "sum_mean_pts": 114.35333506419258,
+        "sum_min10": 238.47516004726197,
+        "rows_per_team_game": 10.51595744680851
+      },
+      "note": "sum over rows that PLAYED (membership caveat); conditional-on-playing means; no outcome read"
+    },
+    "2024": {
+      "slice": {
+        "team_games": 375,
+        "sum_mean_pts": 110.49334960161231,
+        "sum_min10": 234.27856289157185,
+        "rows_per_team_game": 10.277333333333333
+      },
+      "rest": {
+        "team_games": 2075,
+        "sum_mean_pts": 113.67659526861178,
+        "sum_min10": 237.583706068402,
+        "rows_per_team_game": 10.503614457831326
+      },
+      "note": "sum over rows that PLAYED (membership caveat); conditional-on-playing means; no outcome read"
+    }
+  },
+  "season_2025_loaded": false,
+  "power": {
+    "X=0.10": {
+      "2023|pts": {
+        "n_rows": 9545,
+        "n_games": 690,
+        "n_team_seasons": 26,
+        "n_player_seasons": 444,
+        "n_weeks": 25,
+        "floor": 0.005,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "week",
+            "half_width": 0.008184547819593987
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.008743218205784845
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.00917015421511726
+          }
+        }
+      },
+      "2023|reb": {
+        "n_rows": 9545,
+        "n_games": 690,
+        "n_team_seasons": 26,
+        "n_player_seasons": 444,
+        "n_weeks": 25,
+        "floor": 0.003,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.0028273109241472756
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0027531840741052945
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.003297299427783957
+          }
+        }
+      },
+      "2023|ast": {
+        "n_rows": 9545,
+        "n_games": 690,
+        "n_team_seasons": 26,
+        "n_player_seasons": 444,
+        "n_weeks": 25,
+        "floor": 0.002,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "week",
+            "half_width": 0.0020864995684780462
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.001638854937595947
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.002145707682014474
+          }
+        }
+      },
+      "2023|fg3m": {
+        "n_rows": 9545,
+        "n_games": 690,
+        "n_team_seasons": 26,
+        "n_player_seasons": 444,
+        "n_weeks": 25,
+        "floor": 0.001,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "week",
+            "half_width": 0.001065822556614118
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0008064568627450127
+          },
+          "team_shock": {
+            "binding": "week",
+            "half_width": 0.0007779370572294369
+          }
+        }
+      },
+      "2024|pts": {
+        "n_rows": 8780,
+        "n_games": 663,
+        "n_team_seasons": 25,
+        "n_player_seasons": 423,
+        "n_weeks": 25,
+        "floor": 0.005,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.007266670214889031
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.007817822644211134
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.009648902190277666
+          }
+        }
+      },
+      "2024|reb": {
+        "n_rows": 8780,
+        "n_games": 663,
+        "n_team_seasons": 25,
+        "n_player_seasons": 423,
+        "n_weeks": 25,
+        "floor": 0.003,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.0028732243305775967
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0025898256932772134
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.002719505747801446
+          }
+        }
+      },
+      "2024|ast": {
+        "n_rows": 8780,
+        "n_games": 663,
+        "n_team_seasons": 25,
+        "n_player_seasons": 423,
+        "n_weeks": 25,
+        "floor": 0.002,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.001846842741783621
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0018547563875774037
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.001977199049032051
+          }
+        }
+      },
+      "2024|fg3m": {
+        "n_rows": 8780,
+        "n_games": 663,
+        "n_team_seasons": 25,
+        "n_player_seasons": 423,
+        "n_weeks": 25,
+        "floor": 0.001,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "game",
+            "half_width": 0.0008520598459160237
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.000924556279132481
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.0008672682040026552
+          }
+        }
+      }
+    },
+    "X=0.15": {
+      "2023|pts": {
+        "n_rows": 7207,
+        "n_games": 554,
+        "n_team_seasons": 25,
+        "n_player_seasons": 415,
+        "n_weeks": 25,
+        "floor": 0.005,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "game",
+            "half_width": 0.008233183537285655
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.007921662203361077
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.007175383675798642
+          }
+        }
+      },
+      "2023|reb": {
+        "n_rows": 7207,
+        "n_games": 554,
+        "n_team_seasons": 25,
+        "n_player_seasons": 415,
+        "n_weeks": 25,
+        "floor": 0.003,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "game",
+            "half_width": 0.0030252172113481965
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.004140508065781166
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.00290678223369563
+          }
+        }
+      },
+      "2023|ast": {
+        "n_rows": 7207,
+        "n_games": 554,
+        "n_team_seasons": 25,
+        "n_player_seasons": 415,
+        "n_weeks": 25,
+        "floor": 0.002,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "game",
+            "half_width": 0.002050780593173421
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0019275267387149127
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.00175291154688606
+          }
+        }
+      },
+      "2023|fg3m": {
+        "n_rows": 7207,
+        "n_games": 554,
+        "n_team_seasons": 25,
+        "n_player_seasons": 415,
+        "n_weeks": 25,
+        "floor": 0.001,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "week",
+            "half_width": 0.001001853726007131
+          },
+          "player_shock": {
+            "binding": "game",
+            "half_width": 0.0008478546937915562
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.0008538295614971563
+          }
+        }
+      },
+      "2024|pts": {
+        "n_rows": 6033,
+        "n_games": 475,
+        "n_team_seasons": 23,
+        "n_player_seasons": 382,
+        "n_weeks": 24,
+        "floor": 0.005,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.008294432432550156
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.007899591056307756
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.0064169093525515
+          }
+        }
+      },
+      "2024|reb": {
+        "n_rows": 6033,
+        "n_games": 475,
+        "n_team_seasons": 23,
+        "n_player_seasons": 382,
+        "n_weeks": 24,
+        "floor": 0.003,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.003097235147006347
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0028931261881780185
+          },
+          "team_shock": {
+            "binding": "week",
+            "half_width": 0.0025996022765238827
+          }
+        }
+      },
+      "2024|ast": {
+        "n_rows": 6033,
+        "n_games": 475,
+        "n_team_seasons": 23,
+        "n_player_seasons": 382,
+        "n_weeks": 24,
+        "floor": 0.002,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "game",
+            "half_width": 0.002099557041092635
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0019587150933613523
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.001643421396695299
+          }
+        }
+      },
+      "2024|fg3m": {
+        "n_rows": 6033,
+        "n_games": 475,
+        "n_team_seasons": 23,
+        "n_player_seasons": 382,
+        "n_weeks": 24,
+        "floor": 0.001,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.0009864829828857575
+          },
+          "player_shock": {
+            "binding": "game",
+            "half_width": 0.0009545190453600488
+          },
+          "team_shock": {
+            "binding": "week",
+            "half_width": 0.0008169115270986204
+          }
+        }
+      }
+    },
+    "X=0.20": {
+      "2023|pts": {
+        "n_rows": 4068,
+        "n_games": 341,
+        "n_team_seasons": 23,
+        "n_player_seasons": 347,
+        "n_weeks": 23,
+        "floor": 0.005,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "week",
+            "half_width": 0.013032024618709628
+          },
+          "player_shock": {
+            "binding": "game",
+            "half_width": 0.010258451065403457
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.007721572522849734
+          }
+        }
+      },
+      "2023|reb": {
+        "n_rows": 4068,
+        "n_games": 341,
+        "n_team_seasons": 23,
+        "n_player_seasons": 347,
+        "n_weeks": 23,
+        "floor": 0.003,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.0038484798644195656
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.003980966193976655
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.0024963483325460044
+          }
+        }
+      },
+      "2023|ast": {
+        "n_rows": 4068,
+        "n_games": 341,
+        "n_team_seasons": 23,
+        "n_player_seasons": 347,
+        "n_weeks": 23,
+        "floor": 0.002,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "week",
+            "half_width": 0.002973269868772079
+          },
+          "player_shock": {
+            "binding": "player_season",
+            "half_width": 0.0026602516575398617
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.0021553762742690936
+          }
+        }
+      },
+      "2023|fg3m": {
+        "n_rows": 4068,
+        "n_games": 341,
+        "n_team_seasons": 23,
+        "n_player_seasons": 347,
+        "n_weeks": 23,
+        "floor": 0.001,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "week",
+            "half_width": 0.0016958756685536518
+          },
+          "player_shock": {
+            "binding": "game",
+            "half_width": 0.0012923493653161878
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.0009342330171306865
+          }
+        }
+      },
+      "2024|pts": {
+        "n_rows": 3854,
+        "n_games": 325,
+        "n_team_seasons": 21,
+        "n_player_seasons": 321,
+        "n_weeks": 18,
+        "floor": 0.005,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.010076133628454068
+          },
+          "player_shock": {
+            "binding": "week",
+            "half_width": 0.012060194929632437
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.006703229144143215
+          }
+        }
+      },
+      "2024|reb": {
+        "n_rows": 3854,
+        "n_games": 325,
+        "n_team_seasons": 21,
+        "n_player_seasons": 321,
+        "n_weeks": 18,
+        "floor": 0.003,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.0036992178710776673
+          },
+          "player_shock": {
+            "binding": "week",
+            "half_width": 0.004532305000341846
+          },
+          "team_shock": {
+            "binding": "player_season",
+            "half_width": 0.0026591960984133248
+          }
+        }
+      },
+      "2024|ast": {
+        "n_rows": 3854,
+        "n_games": 325,
+        "n_team_seasons": 21,
+        "n_player_seasons": 321,
+        "n_weeks": 18,
+        "floor": 0.002,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.002608605651164819
+          },
+          "player_shock": {
+            "binding": "week",
+            "half_width": 0.0028962234603941133
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.0017110178181056791
+          }
+        }
+      },
+      "2024|fg3m": {
+        "n_rows": 3854,
+        "n_games": 325,
+        "n_team_seasons": 21,
+        "n_player_seasons": 321,
+        "n_weeks": 18,
+        "floor": 0.001,
+        "noise_sigma0.05": {
+          "teamgame_shock": {
+            "binding": "player_season",
+            "half_width": 0.0012488435252321476
+          },
+          "player_shock": {
+            "binding": "week",
+            "half_width": 0.0013117766047563372
+          },
+          "team_shock": {
+            "binding": "game",
+            "half_width": 0.0008372769009937955
+          }
+        }
+      }
+    }
+  }
+}
