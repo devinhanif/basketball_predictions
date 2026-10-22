@@ -1,0 +1,26 @@
+{
+ "markets": [
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ATLJJOHNSON1-15",
+   "title": "Jalen Johnson: 15+ points",
+   "status": "active",
+   "result": "",
+   "yes_bid_dollars": "0.7300",
+   "yes_ask_dollars": "0.8100",
+   "no_bid_dollars": "0.1900",
+   "no_ask_dollars": "0.2700",
+   "last_price_dollars": "0.7300"
+  },
+  {
+   "ticker": "KXNBAPTS-24NOV12ATLORL-ORLDBANE3-20",
+   "title": "Desmond Bane: 20+ points",
+   "status": "active",
+   "result": "",
+   "yes_bid_dollars": "0.7500",
+   "yes_ask_dollars": "0.8600",
+   "no_bid_dollars": "0.1400",
+   "no_ask_dollars": "0.2500",
+   "last_price_dollars": "0.8700"
+  }
+ ]
+}

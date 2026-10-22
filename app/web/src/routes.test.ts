@@ -23,7 +23,7 @@ describe("every leg link opens the leg route", () => {
 });
 
 describe("no link in the source points at a route that does not exist", () => {
-  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay", "studio", "court", "builds", "learned"]);
+  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay", "studio", "court", "builds", "learned", "live", "tracker"]);
   const files = [
     ...readdirSync("src").filter((f) => f.endsWith(".tsx")).map((f) => join("src", f)),
     ...readdirSync("src/pages").filter((f) => f.endsWith(".tsx")).map((f) => join("src/pages", f)),

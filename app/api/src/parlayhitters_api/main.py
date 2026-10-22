@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
+from . import live, live_history
 from .breakdown import Breakdown, Side
 from .breakdown import build as build_breakdown
 from .dissect.providers import default_router
@@ -570,6 +571,97 @@ def register(app: FastAPI) -> None:
             raise HTTPException(status_code=503, detail=f"top parlays unavailable: {e}") from None
         except TopParlaysRefused as e:
             raise HTTPException(status_code=422, detail=f"top parlays file refused: {e}") from None
+
+    # ---------------------------------------------- live feeds (public, read-only)
+    def _live_fetch(key: str, url: str) -> tuple[Json, bool, float]:
+        try:
+            return live.cached(key, url)
+        except live.SourceDown as e:
+            raise HTTPException(
+                status_code=502, detail=f"the {key.split(':')[0]} feed did not answer ({e})"
+            ) from e
+
+    @app.get("/api/live/scoreboard")
+    def live_scoreboard() -> Json:
+        raw, stale, age = _live_fetch("ESPN:scoreboard", f"{live.ESPN_BASE}/scoreboard")
+        return {
+            "source": "ESPN unofficial feed",
+            "fetched_at": live.stamp(),
+            "stale": stale,
+            "age_s": round(age, 1),
+            "games": live.parse_scoreboard(raw),
+        }
+
+    @app.get("/api/live/game/{event_id}")
+    def live_game(event_id: str, store: StoreDep) -> Json:
+        if not live.EVENT_RE.match(event_id):
+            raise HTTPException(status_code=422, detail="event id must be digits")
+        raw, stale, age = _live_fetch(
+            f"ESPN:summary:{event_id}", f"{live.ESPN_BASE}/summary?event={event_id}"
+        )
+        out = live.parse_summary(raw)
+        out["event_id"] = event_id
+        start = ((raw.get("header") or {}).get("competitions") or [{}])[0].get("date")
+        day = live.et_date(str(start)) if start else None
+        fc = live.forecasts_for(store.slate(day) if day else None)
+        live.attach_forecasts(out, fc)
+        out.update(
+            source="ESPN unofficial feed",
+            fetched_at=live.stamp(),
+            stale=stale,
+            age_s=round(age, 1),
+            forecast_date=day if fc else None,
+            forecast_note=(
+                None if fc else "No pre-game forecast in the loaded data for this date."
+            ),
+        )
+        return out
+
+    @app.get("/api/live/model")
+    def live_model(
+        store: StoreDep,
+        date: Annotated[str, Query(pattern=r"^\d{4}-\d{2}-\d{2}$")],
+        kind: Annotated[str, Query(pattern="^(player|win|spread|total)$")],
+        player: Annotated[str, Query(max_length=80)] = "",
+        stat: Annotated[str, Query(pattern="^(pts|reb|ast|fg3m)$")] = "pts",
+        line: float = 0.0,
+        side: Annotated[str, Query(pattern="^(over|under)$")] = "over",
+        team: Annotated[str, Query(max_length=5)] = "",
+    ) -> Json:
+        out = live.model_prob(store.slate(date), kind, player, stat, line, side, team)
+        out["date"] = date
+        return out
+
+    @app.get("/api/live/kalshi")
+    def live_kalshi(tickers: Annotated[str, Query(max_length=2000)]) -> Json:
+        asked = list(dict.fromkeys(t.strip() for t in tickers.split(",") if t.strip()))
+        if not asked or len(asked) > live.MAX_TICKERS:
+            raise HTTPException(status_code=422, detail=f"give 1 to {live.MAX_TICKERS} tickers")
+        if not all(live.TICKER_RE.match(t) for t in asked):
+            raise HTTPException(
+                status_code=422, detail="a ticker has characters Kalshi tickers do not use"
+            )
+        key = "Kalshi:" + ",".join(sorted(asked))
+        raw, stale, age = _live_fetch(key, f"{live.KALSHI_MARKETS}?tickers={','.join(asked)}")
+        markets = live.parse_kalshi(raw, asked)
+        if not stale and age == 0.0:
+            live_history.record_samples(markets)
+        return {
+            "source": "Kalshi public prices",
+            "fetched_at": live.stamp(),
+            "stale": stale,
+            "age_s": round(age, 1),
+            "markets": markets,
+        }
+
+    @app.get("/api/live/history")
+    def live_kalshi_history(tickers: Annotated[str, Query(max_length=2000)]) -> Json:
+        asked = list(dict.fromkeys(t.strip() for t in tickers.split(",") if t.strip()))
+        if not asked or len(asked) > live.MAX_TICKERS:
+            raise HTTPException(status_code=422, detail=f"give 1 to {live.MAX_TICKERS} tickers")
+        if not all(live.TICKER_RE.match(t) for t in asked):
+            raise HTTPException(status_code=422, detail="a ticker has unusual characters")
+        return live_history.history(asked)
 
     @app.get("/api/evidence")
     def evidence(store: StoreDep) -> Json:

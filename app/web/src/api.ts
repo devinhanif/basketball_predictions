@@ -13,6 +13,9 @@ import type {
 import { httpErrorMessage } from "./errors";
 import type { LegBreakdown, Side } from "./legTypes";
 import type { TopParlays, TpResult } from "./topParlays";
+import type { LegModel } from "./tracker";
+import type { History } from "./optionsChart";
+import type { KalshiPrices, LiveGame, Scoreboard } from "./liveTypes";
 
 /** Result of a fetch: the data, and whether the service worker served a saved copy. */
 export interface Loaded<T> {
@@ -43,6 +46,13 @@ export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
 }
 
 export const api = {
+  liveScoreboard: () => getJson<Scoreboard>("/api/live/scoreboard"),
+  liveGame: (id: string) => getJson<LiveGame>(`/api/live/game/${encodeURIComponent(id)}`),
+  liveModel: (q: URLSearchParams) => getJson<LegModel>(`/api/live/model?${q.toString()}`),
+  liveHistory: (tickers: readonly string[]) =>
+    getJson<History>(`/api/live/history?tickers=${encodeURIComponent(tickers.join(","))}`),
+  kalshi: (tickers: readonly string[]) =>
+    getJson<KalshiPrices>(`/api/live/kalshi?tickers=${encodeURIComponent(tickers.join(","))}`),
   topParlays: getTopParlays,
   meta: () => getJson<Meta>("/api/meta"),
   slates: () => getJson<SlateListItem[]>("/api/slates"),

@@ -156,3 +156,32 @@ Public beta only after about four weeks of live log and the first PPLAY look (11
 before launch (e.g. weekly actives or paying users by 2027-01-15, with a rethink if missed), the same way a model rule is.
 Devin supplies: the VM, the domain, a Cloudflare account, an email sender and a capped vision-LLM key (exact vendor URL and
 plan each), the friend list, and later the Discord server and X developer app.
+
+## Live pane and parlay tracker (added 2026-10-21)
+
+Routes `#/live`, `#/live/<espn event id>`, `#/tracker`. Read-only, no accounts, no orders, no credentials.
+
+Endpoints (app/api/src/parlayhitters_api/live.py, main.py), all GET, 8 s upstream timeout, 20 s cache, a copy up to
+5 minutes old served marked `stale` when the upstream fails, 502 with a reason when there is none:
+
+| Endpoint | Source | Notes |
+|---|---|---|
+| `/api/live/scoreboard` | ESPN unofficial feed | score, period, clock |
+| `/api/live/game/{event_id}` | ESPN unofficial feed | box score; pre-game forecast means joined by normalised name and ET date from the export slate, else null |
+| `/api/live/kalshi?tickers=A,B` | Kalshi public prices (no key) | yes/no bid and ask in dollars; at most 25 validated tickers |
+| `/api/live/history?tickers=` | raw capture (read-only) + this API's own samples | gzip captures under `APP_LIVE_CAPTURE_DIR/kalshi/<SERIES>_p*/`; without the variable, history starts at the first sample (taken on each fresh `/api/live/kalshi` fetch) |
+| `/api/live/model` | export slate | pre-game probability for a player or win leg; none for spreads and totals or when unmatched |
+
+The browser never calls a third party. Hosts are allow-listed in `http_get`; the service worker never caches `/api/live/`.
+The tracker keeps its legs in `localStorage` (per viewer, try/catch); nothing is sent to the server. Fees use the
+documented approximation 7% x p x (1 - p) per contract, rounded up (the repo's fee config lives outside app/).
+There is no in-game model: a live leg is priced at the Kalshi mid unless the viewer types a probability.
+
+Licence: a public deployment of either feed (ESPN's unofficial API, Kalshi's public data) is Devin's decision; this
+build is for local and LAN use. Fixtures: `app/fixtures/live/` (trimmed recordings, dates rewritten to 2024-11-12;
+`app/fixtures/record_live.py` re-records them by hand).
+
+Tracker views: exit signal (entry edge, model value now, offer, spread cost), value-over-time SVG chart, payoff by leg,
+leg deltas, and a CSV import of the viewer's own Kalshi trade history that is parsed in the browser only (FileReader;
+never sent to the API). To chart tonight's games from the raw capture run the API with
+`APP_LIVE_CAPTURE_DIR=<repo>/data/raw/live_2026-10-21` (opened read-only).

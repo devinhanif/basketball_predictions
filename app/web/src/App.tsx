@@ -13,6 +13,8 @@ import { StudioPage } from "./pages/Studio";
 import { CourtPage } from "./pages/CourtPage";
 import { BuildPage } from "./pages/BuildPage";
 import { LearnedPage } from "./pages/Learned";
+import { LivePage } from "./pages/Live";
+import { TrackerPage } from "./pages/Tracker";
 
 export function App() {
   const route = useRoute();
@@ -74,11 +76,17 @@ export function App() {
     case "learned":
       page = <LearnedPage />;
       break;
+    case "live":
+      page = <LivePage key={route.eventId ?? "list"} eventId={route.eventId} />;
+      break;
+    case "tracker":
+      page = <TrackerPage />;
+      break;
     default:
       page = <Today date={route.date} onStale={setStale} />;
   }
   return (
-    <Shell route={route} replayNote={note} offline={stale}>
+    <Shell route={route} replayNote={route.name === "live" || route.name === "tracker" ? null : note} offline={stale}>
       {page}
     </Shell>
   );

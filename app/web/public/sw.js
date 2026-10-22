@@ -103,6 +103,8 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // Live scores and prices are never served from a saved copy: an old score looks like a current one.
+  if (url.pathname.startsWith("/api/live/")) return;
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(apiNetworkFirst(req));
   } else if (req.mode === "navigate") {

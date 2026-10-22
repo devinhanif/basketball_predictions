@@ -2120,3 +2120,347 @@ main:focus {
     padding: 6px 0;
   }
 }
+
+/* ------------------------------------------------------------------ live pane and parlay tracker */
+.live-source {
+  line-height: 1.5;
+}
+.tag-src {
+  display: inline-block;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: 3px;
+  padding: 0 6px;
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--ink);
+}
+.live-warn {
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  padding: 6px 10px;
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+}
+.linkbtn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 10px 4px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.linkbtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.linkbtn.danger {
+  color: var(--loss);
+}
+.live-card {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+}
+.live-card > * + * {
+  margin-top: 6px;
+}
+.live-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.live-team.lead {
+  color: var(--ink);
+  font-weight: 700;
+}
+.live-team .swatch {
+  width: 10px;
+  height: 22px;
+  border-radius: 2px;
+  flex: none;
+}
+.live-abbr {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  min-width: 3ch;
+}
+.live-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+}
+.live-score {
+  font-family: var(--display);
+  font-size: 1.7rem;
+}
+.live-chip {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.live-chip.s-in,
+.live-chip.tk-live {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.live-chip.tk-done,
+.live-chip.tk-won {
+  border-color: var(--win);
+  color: var(--win);
+}
+.live-chip.tk-dead {
+  border-color: var(--loss);
+  color: var(--loss);
+}
+.live-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.live-box th,
+.live-box td {
+  white-space: nowrap;
+}
+.live-box td:last-child {
+  text-align: left;
+}
+.live-box tbody th {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  min-width: 150px;
+}
+.live-box .fc {
+  font-weight: 400;
+  white-space: normal;
+}
+.live-box tr.dnp {
+  opacity: 0.65;
+}
+.tk-field {
+  display: block;
+}
+.tk-field > .label {
+  display: block;
+  margin-bottom: 4px;
+}
+.tk-field input[type="text"],
+.tk-field input[type="number"],
+.tk-field select,
+.tk-name {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 10px;
+}
+.tk-field input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--accent);
+}
+.tk-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--display);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.tk-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+  margin: 10px 0;
+}
+.tk-parlay > * + * {
+  margin-top: 12px;
+}
+.tk-legs td {
+  white-space: nowrap;
+}
+.tk-ticker {
+  word-break: break-all;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+}
+.tk-add > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.tk-add > summary::-webkit-details-marker {
+  display: none;
+}
+.tk-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+.tk-sum {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.tk-out td {
+  text-align: right;
+}
+@media (min-width: 560px) {
+  .tk-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.tk-signal {
+  border-left: 4px solid var(--line);
+  padding: 8px 10px;
+  background: var(--surface-2);
+  font-weight: 600;
+}
+.tk-signal.v-gone {
+  border-left-color: var(--accent);
+}
+.tk-signal.v-remains {
+  border-left-color: var(--win);
+}
+.tk-exit .tk-field {
+  margin-top: 6px;
+  font-weight: 400;
+}
+.tk-leglist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tk-leg {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.tk-leg-col {
+  flex-direction: column;
+  gap: 2px;
+}
+.tk-leg-main {
+  min-width: 0;
+  flex: 1;
+}
+.tk-leg-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+}
+.tk-leg-side .linkbtn {
+  padding: 4px;
+  min-height: 32px;
+  font-size: 0.85rem;
+}
+.opt-fig {
+  margin: 0;
+}
+.opt-fig svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.opt-fig figcaption {
+  margin-top: 6px;
+}
+.opt-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.opt-axis {
+  fill: var(--muted);
+  font-size: 9.5px;
+}
+.opt-line {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.opt-paid {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+.opt-now {
+  stroke: var(--accent);
+  stroke-width: 1.6;
+}
+.opt-mark {
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+.opt-mark.hit,
+.opt-marktext.hit {
+  stroke: var(--win);
+  fill: var(--win);
+}
+.opt-mark.dead,
+.opt-marktext.dead {
+  stroke: var(--loss);
+  fill: var(--loss);
+}
+.opt-marktext {
+  font-size: 10px;
+  font-weight: 700;
+  stroke: none !important;
+}
+.opt-bar.hit {
+  fill: var(--win);
+}
+.opt-bar.miss {
+  fill: var(--loss);
+}
+.opt-meter {
+  height: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.opt-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.tk-csv > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.tk-csv input[type="file"] {
+  max-width: 100%;
+  font: inherit;
+}
+.tk-csv select {
+  min-height: 44px;
+  font: inherit;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  max-width: 100%;
+}

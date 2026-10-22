@@ -1,0 +1,74 @@
+{
+ "events": [
+  {
+   "id": "401909834",
+   "date": "2024-11-12T23:00Z",
+   "status": {
+    "displayClock": "3:32",
+    "period": 3,
+    "type": {
+     "state": "in",
+     "completed": false,
+     "shortDetail": "3:32 - 3rd"
+    }
+   },
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "89",
+       "team": {
+        "abbreviation": "ORL",
+        "displayName": "Orlando Magic"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "91",
+       "team": {
+        "abbreviation": "ATL",
+        "displayName": "Atlanta Hawks"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401909835",
+   "date": "2024-11-12T23:00Z",
+   "status": {
+    "displayClock": "1:21",
+    "period": 3,
+    "type": {
+     "state": "in",
+     "completed": false,
+     "shortDetail": "1:21 - 3rd"
+    }
+   },
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "homeAway": "home",
+       "score": "83",
+       "team": {
+        "abbreviation": "WSH",
+        "displayName": "Washington Wizards"
+       }
+      },
+      {
+       "homeAway": "away",
+       "score": "87",
+       "team": {
+        "abbreviation": "MIL",
+        "displayName": "Milwaukee Bucks"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

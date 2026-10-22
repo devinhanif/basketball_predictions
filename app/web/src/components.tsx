@@ -19,6 +19,8 @@ const I = {
   swipe: "M4 7h16v10H4zM8 3h8M8 21h8",
   picks: "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4",
   studio: "M3 6h18v12H3zM12 6v12M3 12h4M17 12h4M12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5",
+  live: "M3 12h4l3-7 4 14 3-7h4",
+  tracker: "M4 19V5M4 19h16M8 15l3-4 3 2 5-7",
 };
 
 function Icon({ d }: { d: string }) {
@@ -45,6 +47,8 @@ const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] 
   { name: "today", href: "#/", label: "Today", icon: I.today },
   { name: "swipe", href: "#/swipe", label: "Swipe", icon: I.swipe },
   { name: "picks", href: "#/picks", label: "My picks", icon: I.picks },
+  { name: "live", href: "#/live", label: "Live", icon: I.live },
+  { name: "tracker", href: "#/tracker", label: "Tracker", icon: I.tracker },
   { name: "studio", href: "#/studio", label: "Studio", icon: I.studio },
 ];
 
