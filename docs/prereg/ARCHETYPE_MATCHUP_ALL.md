@@ -228,6 +228,8 @@ Source: `docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md`, "Second re
 
 **Declared input pins (Amendment 3; computed label-free by `python -m research.eval.archetype_matchup_all_eval digests`, twice, byte-identical; the A0 values equal `gate_run3.json` `pins`; `nba.duckdb` read-only, `season <= 2024`; `run` recomputes every line and refuses on any difference before it reads an outcome).**
 ```
+PIN_MATCHUPS: 5f2444c3f5d6c40a77a0260dd0416fb36f1a14af4babf2fc59c216f7394f7d5c
+PIN_GAMES: efdeb2c24070e319dba9534bad88a246e009eee50b2a94bcca20c3ec8d37e724
 PIN_A0_2023_pts: d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285
 PIN_A0_2023_reb: 337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805
 PIN_A0_2023_ast: 241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e
@@ -255,5 +257,6 @@ Source: `docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md`, "Third rev
 **A4-M6 (MUST). The feature-source tables were not digested.** Old: the declared pins covered the A0 files, aligned labels, OUT sets and libraries; `player_game_matchups` (`mu`, 692,906 rows) and `games` (`read_games`) feed every feature but were not bound, so a reload of either would leave `run` reading "inputs verified". New: two more declared lines, over the whole tables as the review specified (not per season): `PIN_MATCHUPS` = `preseason_role_prior.sha_table` of `mu` sorted by all columns, index reset; `PIN_GAMES` = `sha_table` of `games` sorted by `game_id`, index reset (sorted first because the loaders have no ORDER BY). `compute_input_digests(c, games, flagged, mu)` computes them, the `digests` command prints them, `verify_inputs` refuses on a difference before any outcome is read. Test: a one-cell change in either table changes its digest, row order does not.
 **A4-m6.** `load_season` now asserts the label digest of the labels it builds the features from against the declared `PIN_LABELS_{S}` (SystemExit on mismatch), so the labels checked are the labels used; `run` passes the declared pins in.
 **Priors (written BEFORE computing the two new lines).** Two consecutive `digests` runs give identical `PIN_MATCHUPS` and `PIN_GAMES`: P 0.97. The 15 existing lines are reproduced exactly: P 0.98. The reviewer's scratch prefixes (`5f2444c3f5d6c40a` for 692,906 rows, `efdeb2c24070e319` for 3,690 rows) match mine: P 0.85 (the risk is a different row sort or hashing call in the reviewer's scratch).
+**Amendment 4 results.** `digests` run twice, byte-identical; the 15 earlier lines are unchanged; `PIN_MATCHUPS` (692,906 rows) and `PIN_GAMES` are now in the Declared input pins block above and equal the reviewer's scratch prefixes. Scoring of the Amendment 4 priors: identical twice (0.97) happened; 15 lines reproduced (0.98) happened; reviewer prefixes match (0.85) happened. The combined harness pin is recomputed because `_eval.py` changed (value in the hand-back; recompute at the `harness(ARCHETYPE_MATCHUP_ALL)` commit).
 
 === RESULTS BELOW ===

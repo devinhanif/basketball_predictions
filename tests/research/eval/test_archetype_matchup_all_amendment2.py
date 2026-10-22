@@ -922,7 +922,7 @@ def test_verify_inputs_refuses_before_any_outcome_is_read(
     monkeypatch.setattr(mev.feat, "read_matchups", lambda c: pd.DataFrame({"season": [2023]}))
     monkeypatch.setattr(mev.feat, "read_games", lambda c: games)
     monkeypatch.setattr(mev.feat, "read_flagged", lambda c, g: {})
-    monkeypatch.setattr(mev, "compute_input_digests", lambda c, g, f: {"PIN_A": "changed"})
+    monkeypatch.setattr(mev, "compute_input_digests", lambda c, g, f, m: {"PIN_A": "changed"})
     monkeypatch.setattr(mev, "DOC", doc)
     monkeypatch.setattr(mev.verify_inputs, "__defaults__", (doc,))
     monkeypatch.setattr(mev, "load_season", boom)
@@ -974,3 +974,45 @@ def test_gate_artifact_carries_the_run_label(
     assert gate.main(["--out", str(tmp_path / "g.json"), "--label", "Run 4"]) == 0
     assert seen["label"] == "Run 4"
     assert "{label}" in (ROOT / "research/eval/archetype_matchup_all_gate.py").read_text()
+
+
+def test_a_one_cell_change_in_either_feature_source_table_changes_its_digest() -> None:
+    mu = pd.DataFrame(
+        {
+            "game_id": ["a", "b", "c"],
+            "mm": [1.0, 2.0, 3.0],
+            "pts": [4.0, 5.0, 6.0],
+            "game_date": pd.to_datetime(["2023-11-01"] * 3),
+        }
+    )
+    games = pd.DataFrame({"game_id": ["g2", "g1"], "season": [2023, 2023], "home_team": [1, 2]})
+
+    def dig(m: pd.DataFrame, g: pd.DataFrame) -> tuple[str, str]:
+        return (
+            arch.sha_table(m.sort_values(list(m.columns)).reset_index(drop=True)),
+            arch.sha_table(g.sort_values("game_id").reset_index(drop=True)),
+        )
+
+    d0 = dig(mu, games)
+    assert dig(mu.iloc[::-1], games.iloc[::-1]) == d0  # row order does not matter
+    m2 = mu.copy()
+    m2.loc[1, "mm"] = 2.0001
+    assert dig(m2, games)[0] != d0[0] and dig(m2, games)[1] == d0[1]
+    g2 = games.copy()
+    g2.loc[0, "home_team"] = 3
+    assert dig(mu, g2)[1] != d0[1] and dig(mu, g2)[0] == d0[0]
+    import inspect
+
+    src = inspect.getsource(mev.compute_input_digests)
+    assert "PIN_MATCHUPS" in src and "PIN_GAMES" in src
+
+
+def test_load_season_refuses_labels_that_differ_from_the_declared_pin(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    off = pd.Series([0, 1], index=[1, 2])
+    monkeypatch.setattr(mev.af, "build_aligned_archetypes", lambda c, S: (off, off, {}))
+    with pytest.raises(SystemExit, match="PIN_LABELS_2023"):
+        mev.load_season(
+            2023, pd.DataFrame(), pd.DataFrame(), {}, None, {"PIN_LABELS_2023": "0" * 64}
+        )
