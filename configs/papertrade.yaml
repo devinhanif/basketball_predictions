@@ -1,0 +1,21 @@
+# Paper robo-trader. Frozen with docs/prereg/PAPER_TRADER.md before the first trade; a change here
+# is a new rule version, not an edit. Fees are NOT here: they come from configs/parlay.yaml (verified).
+rule_version: paper-trader-v1
+stake_usd: 8.0             # fixed paper stake per position (integer contracts, stake / cost per contract)
+slots: [single, parlay2, parlay3]   # positions built per slate, in this order (N = 3)
+shrink: 0.5                # weight on the model; the rest on the Kalshi mid. Fixed, never tuned.
+max_spread: 0.05           # liquidity filter: yes ask - yes bid <= 5c, both sides quoted
+min_leg_ask: 0.10          # no longshots or near-locks as legs (price outside this band is skipped)
+max_leg_ask: 0.90
+min_ev_per_dollar: 0.03    # shrunk-probability EV after fee and spread, per $ of cost, to be a candidate
+trade_win_legs: false      # game winners are logged as candidates but not traded: the market beat the model there (2025-26 replay)
+min_p_play: 0.90           # props: the stored P(play) floor (a DNP settles to a fair price)
+entry_lead_min: 10         # an entry needs every leg's tip at least this many minutes away
+top_legs_for_parlays: 12   # parlay legs are drawn from the best N single candidates
+exit_margin: 0.01          # exit when sold-at-bids value >= max(fair, hold) - this
+exit_from_first_tip: true  # exit rule is live only once any leg's game has tipped
+min_slate_dates: 30        # the pre-registered minimum for any claim
+min_positions: 150
+bootstrap_reps: 4000
+bootstrap_seed: 20261022
+prop_series: {KXNBAPTS: pts, KXNBAREB: reb, KXNBAAST: ast, KXNBA3PT: fg3m}

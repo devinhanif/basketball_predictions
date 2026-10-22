@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Paper robo-trader day runner (nba.papertrade run): scans 75 min before the first tip and 45 min before each later tip window, marks and logs paper exits every minute, settles at the end. Paper only; nothing here can reach an order endpoint. Heartbeat: data/ops/heartbeat/papertrade.json. Store: data/papertrade/papertrade.duckdb.
+  TEMPLATE. NOT loaded by anything in the repo: the maintainer installs it by hand.
+    install:    cp ops/launchd/local.nba.papertrade.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.papertrade.plist
+    run now:    launchctl kickstart -k gui/$(id -u)/local.nba.papertrade
+    uninstall:  launchctl bootout gui/$(id -u)/local.nba.papertrade && rm ~/Library/LaunchAgents/local.nba.papertrade.plist
+  Starts daily at 10:15 local; the command decides by the day's schedule (it waits for its window and
+  runs to the end of it). caffeinate -i keeps the Mac awake while the command runs and exits with it.
+  Launched through uv, never /bin/sh: TCC blocks sh from reading ~/Downloads.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.papertrade</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string><string>-i</string>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string>
+    <string>python</string><string>-m</string><string>nba.papertrade</string>
+    <string>run</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>15</integer></dict>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_papertrade.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_papertrade.err</string>
+</dict>
+</plist>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Live capture (nba.live capture): ESPN scoreboard and summaries, Kalshi markets and order books for today's ET slate, every 60 s from 2 h before the first tip to 4 h after the last. Exits 0 at once on a no-game day. Heartbeat: data/ops/heartbeat/live_capture.json. Raw: data/raw/live_<date>/.
+  TEMPLATE. NOT loaded by anything in the repo: the maintainer installs it by hand.
+    install:    cp ops/launchd/local.nba.live-capture.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.live-capture.plist
+    run now:    launchctl kickstart -k gui/$(id -u)/local.nba.live-capture
+    uninstall:  launchctl bootout gui/$(id -u)/local.nba.live-capture && rm ~/Library/LaunchAgents/local.nba.live-capture.plist
+  Starts daily at 10:00 local; the command decides by the day's schedule (it waits for its window and
+  runs to the end of it). caffeinate -i keeps the Mac awake while the command runs and exits with it.
+  Launched through uv, never /bin/sh: TCC blocks sh from reading ~/Downloads.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.live-capture</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string><string>-i</string>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string>
+    <string>python</string><string>-m</string><string>nba.live</string>
+    <string>capture</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_live-capture.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_live-capture.err</string>
+</dict>
+</plist>
