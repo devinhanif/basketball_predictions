@@ -1,9 +1,9 @@
-[16:18:16] season 2022: 1230 regular-season games
-[16:19:06] season 2022 done
-[16:19:06] season 2023: 1230 regular-season games
-[16:19:58] season 2023 done
-[16:19:58] season 2024: 1230 regular-season games
-[16:20:53] season 2024 done
+[16:29:50] season 2022: 1230 regular-season games
+[16:30:40] season 2022 done
+[16:30:40] season 2023: 1230 regular-season games
+[16:31:32] season 2023 done
+[16:31:32] season 2024: 1230 regular-season games
+[16:32:25] season 2024 done
 PASS pbp_four_periods {'2022': 1.0, '2023': 1.0, '2024': 1.0} >= 0.99
 PASS timeout_team_resolved {'2022': 1.0, '2023': 1.0, '2024': 1.0} >= 0.995
 PASS foul_token_coverage {'2022': 1.0, '2023': 1.0, '2024': 1.0} >= 0.99

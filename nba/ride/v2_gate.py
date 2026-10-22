@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from nba.features.game_tipoff import build_game_tipoff
-from nba.ride.causal_five import causal_five, causal_prefix, prefix_len
+from nba.ride.causal_five import asof_names, asof_roster, causal_five_with_report, prefix_len
 from nba.ride.feed_state import Event, update_possession
 from nba.ride.winprob import WinProbModel, parse_clock
 
@@ -302,34 +302,56 @@ def star_cov(con: duckdb.DuckDBPyConnection, season: int) -> dict[str, Any]:
 
 
 def five_sample(
-    con: duckdb.DuckDBPyConnection, root: Path, games: pd.DataFrame, season: int, n: int
+    con: duckdb.DuckDBPyConnection, root: Path, games: pd.DataFrame, season: int, start: int, n: int
 ) -> dict[str, Any]:
-    """Descriptive: causal five (tracker on the causal prefix, box starters, no box roster) vs the stints table."""
+    """Descriptive: causal five (tracker on the causal prefix, box starters, AS-OF roster and names) vs the stints table.
+
+    ``games`` is the full season in game_id order; the sample is games[start:start+n]. Reports the share of
+    team-states with an unresolved substitution in the current period, overall and for Q4 with |margin| >= 15.
+    """
     p = PREFIX[season]
-    st = con.execute(
-        "select game_id, team_id, player_id from player_game_stats "
-        f"where game_id like '{p}%' and starter"
+    pgs = con.execute(
+        f"select game_id, team_id, player_id, minutes, starter from player_game_stats where game_id like '{p}%'"
     ).df()
     stints = con.execute(
         f"select game_id, team_id, period, start_clock, end_clock, players from stints where game_id like '{p}%'"
     ).df()
-    n_ts = n_diff = n_short = n_games = 0
-    for r in games.head(n).itertuples(index=False):
+    gm = games[["game_id", "game_date", "home_team", "away_team"]]
+    cnt = {
+        "games": 0,
+        "team_states": 0,
+        "ne_stint": 0,
+        "not_five": 0,
+        "unres": 0,
+        "q4b": 0,
+        "q4b_ne": 0,
+        "q4b_unres": 0,
+    }
+    for r in games.iloc[start : start + n].itertuples(index=False):
         f = root / "data" / "pbp" / f"{r.game_id}.parquet"
-        g = st[st.game_id == r.game_id]
+        g = pgs[(pgs.game_id == r.game_id) & pgs.starter.astype(bool)]
         starters = {int(t): [int(x) for x in v.player_id] for t, v in g.groupby("team_id")}
         if not f.exists() or len(starters) != 2 or any(len(v) != 5 for v in starters.values()):
             continue
+        roster = asof_roster(pgs, gm, r.game_id, starters)
+        names: dict[int, str] = {}
+        for team, ids in roster.items():
+            names.update(asof_names(root / "data" / "pbp", gm, r.game_id, team, set(ids)))
         d = pd.read_parquet(f).sort_values("action_number", kind="stable").reset_index(drop=True)
         el = np.array(
             [elapsed(int(a), parse_clock(str(b))) for a, b in zip(d.period, d.clock, strict=True)]
         )
+        sh = pd.to_numeric(d.score_home, errors="coerce").ffill().fillna(0).to_numpy()
+        sa = pd.to_numeric(d.score_away, errors="coerce").ffill().fillna(0).to_numpy()
         sg = stints[stints.game_id == r.game_id]
-        n_games += 1
+        cnt["games"] += 1
         for t in GRID:
-            five = causal_five(causal_prefix(d, el, float(t)), starters)
+            k = prefix_len(el, float(t))
+            five, unres = causal_five_with_report(d.iloc[:k], starters, roster, names)
             per = int(np.ceil(t / 720.0))
             c = per * 720.0 - t
+            marg = abs(float(sh[k - 1] - sa[k - 1])) if k else 0.0
+            q4b = per == 4 and marg >= 15
             for team, cf in five.items():
                 rows = sg[
                     (sg.team_id == team)
@@ -339,15 +361,17 @@ def five_sample(
                 ]
                 if len(rows) == 0:
                     continue
-                n_ts += 1
-                n_short += int(len(set(cf)) != 5)
-                n_diff += int(set(cf) != {int(x) for x in rows.iloc[0].players})
-    return {
-        "games": n_games,
-        "team_states": n_ts,
-        "causal_five_ne_stint": n_diff,
-        "causal_five_not_five": n_short,
-    }
+                bad = any(u["team_id"] == team and u["period"] == per for u in unres)
+                ne = set(cf) != {int(x) for x in rows.iloc[0].players}
+                cnt["team_states"] += 1
+                cnt["not_five"] += int(len(set(cf)) != 5)
+                cnt["ne_stint"] += int(ne)
+                cnt["unres"] += int(bad)
+                if q4b:
+                    cnt["q4b"] += 1
+                    cnt["q4b_ne"] += int(ne)
+                    cnt["q4b_unres"] += int(bad)
+    return cnt
 
 
 def power(n_games: int, seed: int = 0, n_boot: int = 300) -> dict[str, Any]:
@@ -455,7 +479,8 @@ def run(db: Path, out: Path, root: Path, max_games: int | None) -> dict[str, Any
         sm["stints"] = stint_tiles(con, s, set(games.game_id))
         sm["prior"] = prior_cov(root, games, s)
         sm["star"] = star_cov(con, s)
-        sm["causal_five_vs_stints_sample"] = five_sample(con, root, games, s, 12)
+        sm["causal_five_early_first12"] = five_sample(con, root, games, s, 0, 12)
+        sm["causal_five_mid_games101_112"] = five_sample(con, root, games, s, 100, 12)
         report["seasons"][str(s)] = sm
         log(f"season {s} done")
     report["power"] = {

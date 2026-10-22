@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from nba.ride.causal_five import causal_five, causal_prefix, prefix_len
+from nba.ride.causal_five import causal_five, causal_prefix, prefix_len, rows_mismatch
 from nba.ride.v2_gate import elapsed
 from nba.ride.winprob import parse_clock
 
@@ -30,7 +30,7 @@ def test_prefix_stops_at_first_event_after_t_even_if_a_later_one_is_earlier() ->
     assert prefix_len(el, -1.0) == 0
 
 
-def test_causal_five_identity_and_planted_future() -> None:
+def test_causal_five_is_deterministic_unit_test_only_not_the_run_time_guard() -> None:
     d, el = load()
     for t in (300.0, 700.0, 800.0, 1000.0):
         full = causal_prefix(d, el, t)
@@ -49,3 +49,11 @@ def test_causal_five_identity_and_planted_future() -> None:
 def test_empty_prefix_returns_starters() -> None:
     d, _ = load()
     assert causal_five(d.iloc[:0], STARTERS) == {k: tuple(v) for k, v in STARTERS.items()}
+
+
+def test_rows_mismatch_exact_ints_float_tolerance_and_sets() -> None:
+    a = {"n": 3, "p": 0.5, "five": (1, 2, 3, 4, 5)}
+    assert rows_mismatch(a, {"n": 3, "p": 0.5 + 1e-13, "five": [5, 4, 3, 2, 1]}) == []
+    assert rows_mismatch(a, {"n": 4, "p": 0.5, "five": (1, 2, 3, 4, 5)}) == ["n"]
+    assert rows_mismatch(a, {"n": 3, "p": 0.5 + 1e-9, "five": (1, 2, 3, 4, 6)}) == ["five", "p"]
+    assert rows_mismatch(a, {"n": 3, "p": 0.5}) == ["five"]
