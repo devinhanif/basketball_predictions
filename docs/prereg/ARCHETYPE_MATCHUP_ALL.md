@@ -226,4 +226,28 @@ Source: `docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md`, "Second re
 * S5 probe on the real 2023 and 2024 games: the +1 min plant leaves every sampled set unchanged: P 0.93; every sampled game that has a clear latest snapshot counts the -61 min plant: P 0.88 (the main risk is a real tip or timezone convention I have wrong; if either fails, that is a finding about the production cut or the probe, reported, not hidden). Share of sampled report games that have a real tip: median 0.97 (80% 0.85 to 1.0). Games expected to count: median 250 of about 300 per season (80% 150 to 300).
 * The gate need not be re-run (no gated input changed): P that the second review's reading holds 0.95.
 
+**Declared input pins (Amendment 3; computed label-free by `python -m research.eval.archetype_matchup_all_eval digests`, twice, byte-identical; the A0 values equal `gate_run3.json` `pins`; `nba.duckdb` read-only, `season <= 2024`; `run` recomputes every line and refuses on any difference before it reads an outcome).**
+```
+PIN_A0_2023_pts: d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285
+PIN_A0_2023_reb: 337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805
+PIN_A0_2023_ast: 241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e
+PIN_A0_2023_fg3m: 96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe
+PIN_LABELS_2023: 6322d04d86f637142d4d6557e59fd35d78cd72a163ec4765907a04a4c4c45d21
+PIN_OUT_2023: 956e61d744e7b623f5121f6ece7f5b23e5da29c17f2dd6624e65e1971187ad10
+PIN_A0_2024_pts: 81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d
+PIN_A0_2024_reb: bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e
+PIN_A0_2024_ast: 62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb
+PIN_A0_2024_fg3m: 6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136
+PIN_LABELS_2024: 9323fca0df25382a11d81dab34aa24c40b56b0d16300a4f0c9768356b52d9aa8
+PIN_OUT_2024: fdcbdd74c2f0aa9f5c6d12085ac07682b38f5cc4052a8c916f01e6afff764246
+LIB_python: 3.12.15
+LIB_sklearn: 1.9.1
+LIB_lightgbm: 4.7.0
+LIB_numpy: 2.5.3
+LIB_pandas: 3.0.6
+```
+**S5 probe on the real games (label-free, run on its own, the gate was not re-run; production `flagged_from_availability`, `tip_source="real"`, real tips from `build_game_tipoff`).** Seasons 2023 / 2024: sampled games with a usable report 308 / 307, all with a real tip; planted +27 h rows: sets unchanged (True / True); planted real tip + 1 min on all of them: sets unchanged (True / True); planted real tip - 61 min on the games whose latest real usable snapshot is earlier than that: counted on 293 of 293 / 291 of 291; no-report games 1 / 2: the -36 h control created a report on 1 of 1 / 2 of 2. The T-60 cut therefore sits at the real tip minus 60 minutes at both edges.
+Scoring of the Amendment 3 priors: digests identical twice (0.97): happened; A0 digests equal the gate pins (0.99): happened; +1 min unchanged (0.93) and -61 min counted (0.88): both happened; share with a real tip 1.00 (median 0.97, inside); expected-to-count 293 / 291 (median 250, 80% 150-300: inside, high); gate need not be re-run (0.95): held.
+**Harness pin, recomputed at Amendment 3** (`python -c "from research.eval import archetype_matchup_all_rule as r; print(r.pin_of(r.disk_blobs()))"`): see the hand-back of this change and recompute at the `harness(ARCHETYPE_MATCHUP_ALL)` commit; the file list is now 17 entries.
+
 === RESULTS BELOW ===
