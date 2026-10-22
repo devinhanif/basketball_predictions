@@ -89,6 +89,14 @@ def cmd_replay(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_notify_test() -> int:
+    """Send one harmless test line through the real push path (iMessage, else notification)."""
+    log = REPORTS / "notify_test.log"
+    chan = Notifier(log).alert("TEST", "ride detector test: nothing to do")
+    print(f"push channel used: {chan} (log {log})")
+    return 0 if chan != "none" else 1
+
+
 def cmd_watch(a: argparse.Namespace) -> int:
     root = Path(a.root) if a.root else RAW / f"live_{a.date}"
     log = Path(a.reports_dir) / f"{a.date}.log"
@@ -125,6 +133,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     w.add_argument("--derived-dir", default=str(DERIVED))
     w.add_argument("--reports-dir", default=str(REPORTS))
     w.add_argument("--max-steps", type=int, default=None)
+    sub.add_parser("notify-test")
     r = sub.add_parser("replay")
     r.add_argument("--date", required=True)
     a = ap.parse_args(argv)
@@ -135,4 +144,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if a.cmd == "watch":
         return cmd_watch(a)
+    if a.cmd == "notify-test":
+        return cmd_notify_test()
     return cmd_replay(a)

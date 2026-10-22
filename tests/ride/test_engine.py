@@ -133,3 +133,36 @@ def test_state_persists_across_restart(tmp_path: Path) -> None:
         state_path=sp,
     )
     assert "RIDE" not in kinds(e2.step(T0 + timedelta(seconds=60)))
+
+
+def test_order_book_ask_overrides_listing_and_is_labelled(tmp_path: Path) -> None:
+    root = tmp_path / "cap"
+    build(root)
+    book = {
+        "KXNBAGAME-26OCT22CLEPHI-PHI": {
+            "status": 200,
+            "orderbook": {
+                "orderbook_fp": {
+                    "yes_dollars": [["0.9500", "40.00"], ["0.9600", "50.00"]],
+                    "no_dollars": [["0.0100", "10.00"], ["0.0200", "300.00"]],
+                }
+            },
+        }
+    }
+    put(root, "kalshi_orderbook", "2026-10-22", T0 + timedelta(seconds=15), book)
+    ev = engine(root, tmp_path).step(T0 + timedelta(seconds=30))
+    ride = [e for e in ev if e.kind == "RIDE"]
+    assert len(ride) == 1 and "$0.98" in ride[0].text and "bid 0.96, book" in ride[0].text
+
+
+def test_book_quote_two_sided_and_empty() -> None:
+    from datetime import UTC, datetime
+
+    from nba.ride.capture_view import book_quote
+
+    now = datetime(2026, 10, 23, tzinfo=UTC)
+    q = book_quote(
+        "T", {"orderbook_fp": {"yes_dollars": [["0.40", "5"]], "no_dollars": [["0.55", "7"]]}}, now
+    )
+    assert q is not None and q.bid == 0.40 and q.ask == 0.45 and q.ask_size == 7.0
+    assert book_quote("T", {"orderbook_fp": {}}, now) is None
