@@ -364,3 +364,114 @@ that is real but tiny in absolute CRPS. That would be a true result read too bro
 
 - TEST_LEDGER (under T507): `| T507-review-2 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL second pre-freeze review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Second review) | label-free | NOT_READY: M1-M4 and S1-S4 closed; new M5 (pin misses research/coldstart/archetypes.py, the A0 parquet hashes are not asserted by run, OUT-set and library drift unpinned); alignment robust (92.3% of 300 row orders pass 0.80) | n/a | n/a | n/a | n/a | BLOCKED pre-freeze | not holdout |`
 - DECISIONS: none. Decisions (1)-(5) of Amendment 2 remain Devin's, and the safe defaults are in force.
+
+## Third review (2026-10-21, closure, after Amendment 3; main at 7b73182)
+
+Scope: narrow closure of M5, S5 and m1-m5. Subject: `docs/prereg/ARCHETYPE_MATCHUP_ALL.md` lines 211-251 (Amendment 3 and the "Declared input
+pins" block), `research/eval/archetype_matchup_all_{rule,features,gate,eval}.py`, and the Amendment 3 tests in
+`tests/research/eval/test_archetype_matchup_all_amendment2.py` (lines 796-976). Everything was label-free. DuckDB was opened `read_only=True`
+(through `preseason_role_prior.connect`), only `season <= 2024` was queried, and no outcome column was read.
+
+Pre-freeze verdict word: **NOT_READY** (one new MUST, M6, about ten lines of code; M5 as specified, S5 and every minor are closed)
+
+Verdict: BLOCKED
+
+**Top finding (new M6).** `compute_input_digests` (`archetype_matchup_all_eval.py:156-169`) says it covers "everything that can change a
+number without changing a pinned file". It leaves out the two DuckDB tables that the six features are built from:
+- `player_game_matchups`, read by `read_matchups` in `matchup_availability_features.py:36-44`. That is 692,906 rows for 2022-2024. It feeds
+  `prior_tables` and `season_frame` (`archetype_matchup_all_features.py:156-158`), and through them `delta_rate`, the mix, `retained`,
+  `shift_l1` and `e_usual`.
+- `games`, read by `read_games` in `matchup_availability_features.py:47-51`. That is 3,690 rows. It supplies the walk-forward months, the
+  decay days, the week clusters and the opponent mapping.
+
+`player_game_matchups` can change. `nba/ingest/postgame.py:633-643` deletes and reinserts by game key on any reload of the cached parquet,
+and then rewrites `def_team_id`. If the table is rebuilt between the gate and the run, the scored arm is not the gated arm and `run()` does
+not refuse. That is exactly the M5 failure route. This gap is my omission: the second review's M5(b) list named A0, labels, OUT sets and
+libraries but not these two tables. The modeler implemented that list faithfully.
+
+### Closure table
+
+| id | closed? | evidence (file:line, command) |
+|---|---|---|
+| M5(a) harness files | **closed** | `archetype_matchup_all_rule.py:233-251`: 17 entries, including `research/coldstart/archetypes.py`, `nba/props/distributions.py` and `nba/truth/metrics.py`. I recomputed all 17 file sha256 values and the combined pin with `r.pin_of(r.disk_blobs())`: **efbcb276e59ecdd737f0efc5be99f25b88a325f43699050c947cf093867b141e**, equal to the claim, exit 0. |
+| M5(b) declared input pins | **closed for the items named; incomplete (M6)** | I ran `python -m research.eval.archetype_matchup_all_eval digests` read-only (exit 0, 2.2 s) and diffed it against the declared block (doc lines 231-249): `diff` exit 0, so all 17 lines are identical. The A0 lines equal `gate_run3.json` `pins`. `input_mismatches` (`rule.py:378-386`) refuses on a changed value, on a missing declaration and on a declaration that was not recomputed (test line 869). `verify_inputs` runs before any outcome read: in `run` (`eval.py:291-303`) it comes after `require_ready` and the three label-free loaders and before `load_season`. `load_season` is the only caller of `read_outcomes` (grep). This is tested by a stubbed run in which `load_season` and `read_outcomes` raise (test line 904), and by a source-order assertion (test line 934). The declared block sits above the marker, so it is covered by the frozen-text sha that `require_frozen` checks before `verify_inputs` reads the doc. |
+| M5(c) transitive coverage test | **closed** | Test lines 798-849 walk the imports with `ast`, lazy imports included. Without the stop list I re-walked the closure: 35 modules. The only modules reachable solely through `DIGEST_COVERED` are `nba.models.{base,common,rung0_baselines}`, `nba.props.{baselines,lineup_features,lower_tail}` and `nba.features.{injury_report,game_tipoff}`. They are imported by `nba.props.context_residual`, and T507 uses only `flagged_from_availability` from it, whose output is the OUT digest. None of the 35 modules uses a relative or dynamic import (scan: none found). The package `__init__` files that are skipped are docstrings only (0, 0, 0, 0, 422 and 112 bytes). |
+| EXEMPT_UNUSED reasons | **hold** | `fit_archetypes` and `encode_position_fractions` (`archetypes.py:114-210`) call only `StandardScaler`, `KMeans`, numpy and local code. `matchup_availability_features.py:214` passes `k` explicitly, so `config.DEFAULT_N_CLUSTERS` is unused. `research.features.*`, `carryover` and `shrinkage` are loaded at import and never called. They are also covered twice: any change of theirs that moved a label would change `PIN_LABELS_*`. |
+| S5 real-tip edges | **closed** | `archetype_matchup_all_gate.py:282-323`. The plants are timed from production's own `build_game_tipoff` `tip_et`, with +1 min over all sampled games that have a tip and -61 min on games whose latest pre-cut snapshot is earlier than tip - 61. Both feed `planted_future_full.identical`. Doc line 249: 308/307 games, all with a real tip; +1 min unchanged; -61 min counted 293/293 and 291/291. The 15/16 games not expected to count have a snapshot inside (T-61, T-60], which is consistent with reports that land exactly at T-60. |
+| m1 | closed | `gate.py:411,421,569`: `--label` writes the run name. `gate_run3.json` stays as committed, and the doc states it is Run 3. |
+| m2 | closed | `eval.py:313-316`; test line 934 |
+| m3 | closed | `eval.py:145-147`; test line 942 |
+| m4 | noted, outside T507 | doc line 221 |
+| m5 | closed | doc line 221 records 92.3% of 300 orders and the 0.027 margin as descriptive |
+| Rule integrity | pass | The Amendment 3 priors were in 06d06cc (20:50:29), and that commit contains neither the digest values nor the S5 counts (grep count 0). The values came in a8ac840 (20:55:53), which touches only the doc. Nothing is uncommitted under `research/`, `tests/` or the doc relative to 7b73182 (`git diff | wc -l` = 0). No bar, floor or constant changed (`git diff 9ccd509 7b73182 --stat`: six files, all inside T507). |
+| Holdout | pass | `pytest` includes `tests/eval/test_holdout_source_filter.py`. Every query I ran asserted `season.max() <= 2024`. |
+
+### New findings
+
+**M6 (MUST, before the freeze commit).** The feature-source tables are not digested. Files: `archetype_matchup_all_eval.py:156-169` (and
+its call at `:300-302`) and the declared block in the doc (lines 230-249).
+Fix:
+(a) Pass `mu` into `compute_input_digests(c, games, flagged, mu)` and add two digests, using the existing `arch.sha_table`:
+- `PIN_MATCHUPS: arch.sha_table(mu.sort_values(list(mu.columns)).reset_index(drop=True))`
+- `PIN_GAMES: arch.sha_table(games.sort_values("game_id").reset_index(drop=True))`
+
+Sort before hashing: `read_matchups` has no ORDER BY.
+(b) Update `main`'s `digests` branch and the stub at test line 924 (`lambda c, g, f, m: ...`).
+(c) Add a test that a one-cell change to `mu` or `games` changes its digest.
+(d) Re-run `digests` twice and paste the two new lines above the marker. Then re-take the harness pin, because `eval.py` changes.
+
+Cost: my scratch digest of both tables took 0.3 s, and two consecutive runs were identical (`5f2444c3f5d6c40a…` for 692,906 rows and
+`efdeb2c24070e319…` for 3,690 rows). No gate re-run is needed.
+
+**m6 (minor).** `run` checks the labels from one `build_aligned_archetypes` call (inside `compute_input_digests`) but builds the features
+from a second call (`load_season`, `eval.py:189`). The two agree today: the digests matched twice and the procedure is deterministic. The
+cleaner fix is to assert `af.label_digest(off_a, def_a) == declared PIN_LABELS_{S}` inside `load_season`, so the labels checked are the
+labels used.
+
+### Single most likely route to a false pass now
+
+An **unpinned DuckDB table that changes between the gate and the run (M6)**: for example, a postgame reload rewrites
+`player_game_matchups` rows for 2022-2024, the features move, and `run` still reads "inputs verified". After M6 I see no remaining
+number-changing input that is not byte-pinned or digested. The outcome-side residual (a two-stat carry on the small floors) is unchanged
+from the second review.
+
+### Commands (exit codes shown, nothing piped through tail or head)
+
+- `.venv/bin/python -c "from research.eval import archetype_matchup_all_rule as r; b=r.disk_blobs(); ... print(r.pin_of(b))"`: 17 files,
+  pin efbcb276…141e, exit 0.
+- `NBA_DATA_ROOT=… .venv/bin/python -W ignore -m research.eval.archetype_matchup_all_eval digests > <scratch>/digests.txt`: exit 0. Then
+  `diff <scratch>/digests.txt <scratch>/declared.txt`: exit 0.
+- `.venv-1/bin/python -m pytest -q --no-cov -p no:cacheprovider tests/research/eval/test_archetype_matchup_all.py tests/research/eval/test_archetype_matchup_all_amendment2.py tests/eval/test_holdout_source_filter.py`:
+  **91 passed, exit 0**.
+- `<scratch>/mu_digest.py` (read-only, season <= 2024, run twice in one process): exit 0, identical digests, 0.3 s.
+- Unstopped closure walk plus a relative/dynamic-import scan: 35 modules, none flagged, exit 0.
+- `git diff 9ccd509 7b73182 --stat`, `git show 06d06cc:docs/prereg/ARCHETYPE_MATCHUP_ALL.md | grep -c …` (0),
+  `git diff 06d06cc a8ac840 --stat`, `git diff 7b73182 -- research/ tests/ <doc> | wc -l` (0).
+
+### Not verified
+
+- That the stored `as_of` and `tip_et` share a timezone convention. The S5 probe times its plants with production's own `tip_et`. If both
+  were consistently mis-zoned, the probe would still pass. This belongs to production (`nba/features/injury_report.py:121-138`), not to T507.
+- `.venv-1` (tests) and `.venv` (the documented run command) may have different library versions. If they do, `run` refuses, which is the
+  safe direction.
+- The full eval run. By design, no fit on outcomes exists.
+
+### Playbook check (GBM context-residual layer plus quantile rescale, four stats)
+
+1. Information or capacity: information (the opposing OUT set through `delta_rate` and the mix). Unchanged.
+2. Enough data for the class: about 25.7k rows per season. Unchanged.
+3. Test validity: the labels are aligned and reproducible, rows and support are the same, the arm is fully specified and the code is
+   byte-pinned. The test is still invalid until M6, because the features' source tables do not bind.
+4. Lineage and inherited guards: the T505/T506 code, the `opp_adjusted_ridge` NULL-pattern guard (j), five shuffle seeds, the identity
+   arm, and now the M5 input digests and the S5 real-tip plants.
+5. Scored against: A0, the stored production OOF, on integer CRPS, as a four-stat composite in floor units. One test, no BH family.
+
+### Recommended changes (for the main session; none applied by me)
+
+1. M6 (a)-(d), plus m6 if convenient. Re-run `digests`, re-take the harness pin, and do not re-run the gate.
+2. Then freeze. A fourth review should be a diff check of M6 only (`git diff 7b73182 <new>`); I expect READY_TO_FREEZE.
+
+### Drafted rows (not appended)
+
+- TEST_LEDGER (under T507): `| T507-review-3 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL third pre-freeze review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Third review) | label-free | NOT_READY: M5 as specified, S5 and m1-m5 closed (harness pin efbcb276 recomputed; 17 declared digests reproduced exactly; S5 293/293, 291/291); new M6: player_game_matchups and games, the feature-source tables, are not digested | n/a | n/a | n/a | n/a | BLOCKED pre-freeze | not holdout |`
+- DECISIONS: none.
