@@ -319,6 +319,16 @@ def run(sha: str | None, out_dir: Path = OUT_DIR) -> dict[str, Any]:
     return execute(out_dir, pins)
 
 
+def canonical_tables(mu: pd.DataFrame, games: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """A5-3: ``read_matchups`` and ``read_games`` have no ORDER BY, and float sums over a different row order differ in the last bits
+    (e_usual / e_lg by up to 2.5e-8 between two processes). Both tables are put in a fixed order (all columns, stable) so that every
+    feature, every arm and the composite are bit-reproducible across processes."""
+    return (
+        mu.sort_values(list(mu.columns), kind="mergesort").reset_index(drop=True),
+        games.sort_values(list(games.columns), kind="mergesort").reset_index(drop=True),
+    )
+
+
 def dryrun(out_dir: Path = OUT_DIR / "dryrun") -> dict[str, Any]:
     """The ENTIRE run path on the real 2023/2024 feature frames and real A0 grids with SYNTHETIC outcomes (A5). Needs no freeze (it reads no
     outcome); ``read_outcomes`` is replaced by a raiser for the duration and 2024 is scored whatever 2023 shows, so every wiring bug surfaces
@@ -344,8 +354,7 @@ def execute(out_dir: Path, pins: dict[str, str], synthetic: bool = False) -> dic
     rule.check_floors()
     out_dir.mkdir(parents=True, exist_ok=True)
     c = arch.connect(arch.DB)
-    mu = feat.read_matchups(c)
-    games = feat.read_games(c)
+    mu, games = canonical_tables(feat.read_matchups(c), feat.read_games(c))
     flagged = feat.read_flagged(c, games)
     assert int(mu.season.max()) <= rule.MAX_SEASON and int(games.season.max()) <= rule.MAX_SEASON
     verify_inputs(
