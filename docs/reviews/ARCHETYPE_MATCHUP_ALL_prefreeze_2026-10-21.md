@@ -199,3 +199,168 @@ changes features, so re-run planted-future and missingness), then freeze.
 
 - TEST_LEDGER (under T507): `| T507-review | 2026-10-21 | ARCHETYPE_MATCHUP_ALL pre-freeze adversary review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md) | label-free | NOT_READY: one-stat carry (fg3m-only -5 floors passes 88% simulated), off_arch labels swap across seasons (offense agreement 0.622), arm unbuilt and unpinned, kill list vs code mismatch | n/a | n/a | n/a | n/a | BLOCKED pre-freeze | not holdout |`
 - DECISIONS: none drafted. Choosing between aligning and dropping `off_arch` (M2) is Devin's call; safe default: align.
+
+---
+
+## Second review (2026-10-21, after Amendment 2 and 2b; main at a4f3a3f / f1c1bc7)
+
+Subject: `docs/prereg/ARCHETYPE_MATCHUP_ALL.md` Amendment 2 (lines 131-211), `research/eval/archetype_matchup_all_{rule,features,arm,gate,eval}.py`,
+`tests/research/eval/test_archetype_matchup_all{,_amendment2}.py`, `reports/prereg_archetype_matchup_all/gate_run2.json`, `gate_run3.json`.
+Everything below is label-free: seasons 2022-2023 player stats (the clustering inputs of 2023 and 2024), DuckDB `read_only=True`, no outcome
+column read, season 2025 never queried.
+
+Pre-freeze verdict word: **NOT_READY** (one new MUST, cheap; every first-review MUST and SHOULD is closed)
+
+Verdict: BLOCKED
+
+**Top finding (new M5).** The harness pin does not cover every input that can change a number, so `run()` would not refuse a changed
+input. Missing: (1) `research/coldstart/archetypes.py`, whose `fit_archetypes` (KMeans, line 194) produces every `off_arch` label and
+therefore the alignment and all six features; (2) the eight stored A0 parquet files, whose sha256 the gate records
+(`archetype_matchup_all_gate.py:366-368`) but `archetype_matchup_all_eval.run` (lines 250-260) never checks; (3) the production OUT-set path
+(`nba/props/context_residual.flagged_from_availability`, `nba/features/injury_report.ReportTriggerConfig`). It is left out on purpose, but it
+has already changed in a way that moves numbers: commit 4ea569a on 2026-10-12 changed the tip default. (4) The sklearn and lightgbm versions.
+The test `test_archetype_matchup_all_amendment2.py:530` checks only the five T507 modules, not what they import.
+
+### Closure of the first review's findings
+
+| id | closed? | code (file:line) | doc (line) | evidence |
+|---|---|---|---|---|
+| M1 one-stat carry | **closed** | `archetype_matchup_all_rule.py:53` (`MAX_STAT_SHARE` 0.5), `:202-203` (criterion `max_stat_share`, fails when gain <= 0) | 134 (g), 137-140 | tests `test_m1_*` (amendment2 tests lines 64-92), including the fg3m-only case failing only (g), and the boundary. A hurt stat gets a negative share, which pushes the others above 1 (fg3m -5 with pts +1 fails). |
+| M2 label drift | **closed** (default: align) | `archetype_matchup_all_features.py:72-129` (Hungarian on scaled centroids; both sides built from `canonical_frame`) | 142-147, 148 (M2b) | Run 3: offense 0.4345 before, 0.8274 after, n 336, bar 0.80. The defender relabelling cannot change a feature (amendment2 test line 263). |
+| M2b (theirs) non-reproducible labels | **closed** | `archetype_matchup_all_features.py:32-37`, `:106`, `:111-113` | 148 | test line 178. My check: the canonical order (player_id ascending) and descending order both give 0.8274. |
+| M3 arm unbuilt, text-only pin | **closed for the arm; the pin is incomplete (M5)** | `archetype_matchup_all_arm.py:37-62` (every LightGBM constant), `:65-67` (A0 mean from the 199-point grid), `:74-80` (lambda clip, MEAN_FLOOR), `:107-132` (walk-forward), `rule.py:235-250` (HARNESS_FILES), `:306-335` (`require_harness_pinned`), `eval.py:69-75`, `:251` (`run` calls `require_ready` first) | 155-159 | tests at lines 358-529 and 570-624. |
+| M4 kill list vs code | **closed** | `rule.py:153-170` (`minutes_leak` with GAP 0.30, EXCESS 0.10, KEEP_MIN 0.5), `:173-215` (ten criteria; `report_*` names; the docstring states the seasons), `eval.py:129-149` | 134, 161-164; line 65 carries an [Amended] pointer | test line 115 |
+| S1 one-seed shuffle | **closed** | `rule.py:50,54-55`, `:190-192` (asserts five points), `:205`; `eval.py:92-93,120-122` (descriptive CI of M minus the shuffled mean) | 166-169 | test line 93 |
+| S2 identity axis | **closed** (default: void at >= 0.5) | `rule.py:81-90` (knockout `identity` = {off_arch, e_usual}), `:206-207` (h); `features.py:132-136` (`e_lg`) | 171-174 | test line 102. The "needs the role axis" qualifier is not emitted (m3). |
+| S3 planted values only; always-true 2025 line | **closed** | `gate.py:208-224` (inserted future rows), `:227-…` (post-tip OUT through production), `:279` (`planted_future_full`), `:338-352` (`season_assertions`) | 176-179 | tests at lines 666, 731 and 776. Run 3: 3,000 inserted rows; 308 / 3 games planted; positive controls fire. The post-tip plant is +27 h, a blunt probe (S5). |
+| S4 select harder than report | **closed in the doc** | the run's stop note (`eval.py:271-276`) does not carry the caveat (m2) | 181 | n/a |
+| N1-N4 | closed / stated | N2 removed (grep exit 1) | 3, 183 | n/a |
+
+### New criteria (g)-(j): coherent with each other and with `primary_verdict`
+
+- The doc's ten criteria (line 134) map one to one onto the ten keys of `rule.py:197-210`, and they are all measured on the 2024 report season
+  except (a). There is no partial pass (`:213`).
+- A pass driven by global recalibration is blocked twice. `boost_from_average` puts the training-mean shift inside M. The shuffled refits
+  keep it, because they use the same target and lose only the defender labels, so (f) fails. The identity-only arm keeps it too, so (h)
+  fails. The `all_features` knockout reports it.
+- Role content in `retained` and `shift_l1` (real-to-shuffled correlation 1.00 and 0.79) survives the shuffle, so a gain carried by role
+  through those features fails (f). What can pass is signal carried by `delta_rate` and the opponent-specific part of the mix. That is the
+  hypothesis.
+- (j) does not void the known `off_arch` role pattern: the gap on realised minutes is close to the pre-tip `min10` gap, so the excess is
+  below 0.10. It would void a NULL pattern that follows tonight's minutes. That matches the S2 qualifier text (line 174).
+- Minor gap: the S2 qualifier ("the gain needs the role axis") is decided in prose but not computed (m3).
+
+### Walk-forward: no future rows (by reading, plus tests)
+
+- `arm.py:122`: `tr = month < m`, over the whole pool, using lexical `YYYY-MM`. `:123`: `te = is_score & month == m`. Only `resid[tr]`
+  enters the fit (`:126`). The test rows contribute their A0 mean (pre-game) and their features only.
+- October 2023: `tr` is empty, which is below MIN_TRAIN_ROWS, so lambda is 1 and the row is scored as A0 and not dropped (`:124-125`).
+- The 2024 pool is 2023 plus the earlier months of 2024 (`eval.py:240` with `make_pool`). 2023 rows carry 2023-season features built on
+  2022 tables.
+- The A0 mean comes from the continuous grid (`arm.py:65-67`). The arm and A0 are both scored with `crps_int_q`, which applies
+  `ceil(q - 0.5)` internally (`preseason_role_prior.py:645-651`), so they are on the same support.
+- Tests at lines 400 and 419 scramble the outcomes of the current and later months and see no change.
+
+### Run 2 to Run 3: not a forking path
+
+- The bar was not changed: `ALIGN_MIN_AGREE` = 0.80 at ebc94f1, b9b1b17 and ef563ad.
+- `git diff ebc94f1 b9b1b17 -- research/` contains only `canonical_frame` and its two call sites.
+- The fix and the Run 3 priors were committed at 20:31:35 (b9b1b17), before the Run 3 artifact at 20:38:34 (ef563ad). `b9b1b17..ef563ad`
+  touches no code.
+- The membership-crosstab matching, which would have passed Run 2, was declined.
+- The decisive check is whether the order was picked because it passes. I re-clustered both seasons under 300 random row orders (label-free,
+  `order_robust.py`, exit 0, about 5 s per 30 orders). Offense agreement after alignment had mean 0.8077, sd 0.062, range 0.536-0.863.
+  **92.3% of orders pass 0.80.** player_id ascending and player_id descending both give 0.8274.
+- Run 2's 0.5565 was a tail draw (about 7.7%), not the typical result. The canonical order is the obvious choice and was not selected from
+  alternatives.
+- Defense agreement varies more: mean 0.723, range 0.473-0.854. It is descriptive only, and the features do not depend on the defender
+  label numbers.
+- Residual: the k-means partition itself, not only its numbering, depends on row order. The features are therefore one deterministic draw
+  among several local optima. It was fixed before any outcome, so it is legitimate, but say so (m5).
+
+### Holdout
+
+- `pytest --no-cov`: 83 passed, exit 0. This includes `tests/eval/test_holdout_source_filter.py`, `test_archetype_matchup_all.py` and
+  `test_archetype_matchup_all_amendment2.py`.
+- grep of the T507 modules: the only SQL is `gate.py:233-236`. It reads `player_availability` restricted to `_allowed_games` from
+  `read_games` (season <= 2024; asserted at `eval.py:259`).
+- `read_rows` and `read_player_season_stats` go through `check_season` / `season <= MAX_SEASON`.
+- Run 3's `season_assertions`: 2024 / 2024 / 2025-06-22. That date is the 2024-25 season's own rows.
+- **Pass.**
+
+### New findings
+
+**M5 (MUST, before the freeze commit, because the freeze commit must hold the final code). The pin does not cover every input that changes
+a number.** `archetype_matchup_all_rule.py:235-250`, `archetype_matchup_all_eval.py:250-260`.
+Fix:
+(a) Add `"research/coldstart/archetypes.py"` to `HARNESS_FILES`.
+(b) Above the results marker, write: the eight A0 parquet sha256 values from `gate_run3.json` `pins`; a sha256 of each season's aligned
+`(player_id, off_arch, def_arch)` vectors; a sha256 of the sorted OUT set from `read_flagged` for seasons 2023-2024; and the sklearn,
+lightgbm, numpy and pandas versions. `run()` asserts each one before `read_outcomes` is first called and refuses on any mismatch. The label
+digest covers both sklearn drift and `archetypes.py`. The OUT-set digest covers the production files without pinning live code.
+(c) Replace the coverage test at `test_archetype_matchup_all_amendment2.py:530` with a transitive one. Collect every repo-local module
+imported by `research.eval.archetype_matchup_all_eval` (for example with `modulefinder` or by walking `sys.modules` after import). Assert
+each module is either in `HARNESS_FILES` or in an explicit digest-covered allow-list (`nba.props.context_residual`,
+`nba.features.injury_report`, plus the unused-at-runtime imports of `archetypes.py`, `research.features.*`, which should be named).
+The digests need about 2 minutes of label-free compute and no new gate run.
+
+**S5 (SHOULD). The planted post-tip OUT row is only a +27 h probe.** `gate.py:227-…`. It proves that a far-future row is ignored, but not
+that the cut sits at T-60 against the real tip. The 19:00-proxy incident was about rows stamped minutes after tip. Fix: also plant rows at
+real tip + 1 min (must not count) and at real tip - 61 min (must count), on the same sampled games, in `planted_post_tip_out` and in its
+test.
+
+**m1 (minor).** `gate.py:365`: `status` is hard-coded "DRAFT gate Run 2", so `gate_run3.json` says Run 2. Pass the run number in.
+**m2 (minor).** `eval.py:271-276`: the 2023 stop note should carry A2-S4's "weak evidence of no composite gain, not strong evidence".
+**m3 (minor).** `eval.py:129-149`: emit `qualifier: "gain needs the role axis"` when `knockouts.identity.keep_share < 0.5` and the verdict
+passes, as line 174 promises.
+**m4 (minor, outside T507).** `research/coldstart/archetypes.py:184`, "Deterministic given seed", is false: KMeans depends on row order. The
+owner of that file should correct the docstring.
+**m5 (minor, doc).** Record the order-robustness numbers above (92.3% of 300 orders pass; Run 3 margin 0.027) as descriptive under Run 3.
+
+### Single most likely route to a false pass now
+
+Not a leak in the six features as built. The route is an **input that changes between the gate and the run without `run()` refusing
+(M5)**, for example a rebuilt A0 parquet, a changed OUT-set function, or a different sklearn KMeans. The scored arm would then not be the
+gated arm, and the evidence would still read "pinned". Among outcome routes, the residual one is a **two-stat carry on the small floors**:
+(g) at 0.5 still lets ast and fg3m carry CM together (31% pass at -3 floors each, first-review simulation), with an opponent-specific signal
+that is real but tiny in absolute CRPS. That would be a true result read too broadly (WOUNDED), not a fake one.
+
+### Commands (exit codes shown, nothing piped through tail or head)
+
+- `.venv-1/bin/python -m pytest -q --no-cov -p no:cacheprovider tests/research/eval/test_archetype_matchup_all.py tests/research/eval/test_archetype_matchup_all_amendment2.py tests/eval/test_holdout_source_filter.py`:
+  **83 passed, exit 0**.
+- `NBA_DATA_ROOT=... PYTHONPATH=... .venv/bin/python -W ignore <scratch>/order_robust.py 30`, then `... 300`: exit 0 both times (read-only;
+  2022/2023 stats; seeds 100-399).
+- `git diff ebc94f1 b9b1b17 -- research/`, `git diff --stat b9b1b17 ef563ad`, `git log --date=iso` over the doc, code and reports.
+- grep for SQL and 2025 in the T507 modules, and for the transitive imports of the harness files.
+
+### Not verified
+
+- The full eval run, including whether LightGBM's categorical handling is bit-stable across versions. No fit on outcomes exists, by design.
+- That Run 3 was not computed before b9b1b17. The commit order shows it was not, and the order-robustness result makes the question
+  nearly moot.
+- `flagged_from_availability`'s T-60 against real tips. It is production code, and the +27 h probe does not test it (S5).
+
+### Playbook check (GBM context-residual layer plus quantile rescale, four stats)
+
+1. Information or capacity: information (the opposing OUT set through `delta_rate` and the mix). The role axis is now priced by (h) and the
+   identity knockout.
+2. Enough data for the class: about 25.7k rows per season and 551 player-seasons. 2023 trains on its own earlier months only (S4,
+   conservative).
+3. Test validity: the labels are now reproducible and aligned (0.8274), with the same support and same rows, and the arm is fully specified.
+   Invalid until M5: the pin does not bind every input.
+4. Lineage and inherited guards: the T505/T506 code, the `opp_adjusted_ridge` NULL-pattern guard as (j) with numbers, shuffle guards over
+   five seeds (S1), and the identity arm.
+5. Scored against: A0, the stored production OOF, on integer CRPS, as a four-stat composite in floor units, with one test and no BH family.
+
+### Recommended changes (for the main session; none applied by me)
+
+1. M5 (a)-(c), then re-take the harness pin values; no gate re-run is needed.
+2. S5.
+3. m1-m3 and m5 in the same commit.
+4. Then freeze. On this evidence I expect the third review to be READY_TO_FREEZE.
+
+### Drafted rows (not appended)
+
+- TEST_LEDGER (under T507): `| T507-review-2 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL second pre-freeze review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Second review) | label-free | NOT_READY: M1-M4 and S1-S4 closed; new M5 (pin misses research/coldstart/archetypes.py, the A0 parquet hashes are not asserted by run, OUT-set and library drift unpinned); alignment robust (92.3% of 300 row orders pass 0.80) | n/a | n/a | n/a | n/a | BLOCKED pre-freeze | not holdout |`
+- DECISIONS: none. Decisions (1)-(5) of Amendment 2 remain Devin's, and the safe defaults are in force.
