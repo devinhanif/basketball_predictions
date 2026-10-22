@@ -1,0 +1,741 @@
+{
+  "season_2025_loaded": false,
+  "seasons": {
+    "2023": {
+      "A0_rows_per_stat": 25815,
+      "mover_K10": {
+        "rows": 1202,
+        "players": 136,
+        "games": 487,
+        "team_seasons": 30,
+        "weeks": 25
+      },
+      "mover_K5": {
+        "rows": 640,
+        "players": 136,
+        "games": 292,
+        "team_seasons": 30,
+        "weeks": 25
+      },
+      "large_change_NS_ge_0.20_all_rows": {
+        "rows": 4068,
+        "players": 347,
+        "games": 341,
+        "team_seasons": 23,
+        "weeks": 23
+      },
+      "large_change_NS_ge_0.20_team_games": 392,
+      "mover_K10_inside_large_change_slice": 434,
+      "vacated_role": {
+        "mover_rows_team_V_confirmed_ge_24mpg": 0.9667221297836939,
+        "mover_rows_team_V_confirmed_gt_0": 0.9750415973377704,
+        "mover_rows_team_V_all_ge_24mpg": 0.9750415973377704,
+        "mover_rows_ge_24_confirmed_n": 1162,
+        "teams_V_confirmed_ge_24mpg": 28,
+        "teams_with_any_departure": 29,
+        "median_V_confirmed_mpg": 71.48274993896484
+      },
+      "starters_T30_proxy": {
+        "team_games": 2460,
+        "exactly_5_box_starters": 2460,
+        "share_exactly_5": 1.0,
+        "rows_start_flag_null": 0,
+        "all_rows_start_delta_nonzero_share": 0.12043385628510556,
+        "mover_rows_K10": 1202,
+        "mover_rows_box_starter_share": 0.24792013311148087,
+        "mover_rows_start_delta_nonzero_share": 0.16971713810316139,
+        "mover_rows_start_delta_nonzero": 204,
+        "all_rows_with_report_share": 0.999302730970366,
+        "all_rows_n_out_rot_gt0_share": 0.8538834011233779,
+        "mover_rows_n_out_rot_gt0_share": 0.7920133111480865
+      },
+      "slice_counts_by_label": {
+        "stayer": 16566,
+        "mover": 4913,
+        "rookie": 2456,
+        "inseason_arrival_or_other": 1544,
+        "returner_gap": 336
+      }
+    },
+    "2024": {
+      "A0_rows_per_stat": 25649,
+      "mover_K10": {
+        "rows": 1025,
+        "players": 115,
+        "games": 468,
+        "team_seasons": 28,
+        "weeks": 25
+      },
+      "mover_K5": {
+        "rows": 540,
+        "players": 115,
+        "games": 269,
+        "team_seasons": 28,
+        "weeks": 25
+      },
+      "large_change_NS_ge_0.20_all_rows": {
+        "rows": 3854,
+        "players": 321,
+        "games": 325,
+        "team_seasons": 21,
+        "weeks": 18
+      },
+      "large_change_NS_ge_0.20_team_games": 375,
+      "mover_K10_inside_large_change_slice": 410,
+      "vacated_role": {
+        "mover_rows_team_V_confirmed_ge_24mpg": 0.9229268292682927,
+        "mover_rows_team_V_confirmed_gt_0": 0.9717073170731707,
+        "mover_rows_team_V_all_ge_24mpg": 0.9912195121951219,
+        "mover_rows_ge_24_confirmed_n": 946,
+        "teams_V_confirmed_ge_24mpg": 24,
+        "teams_with_any_departure": 28,
+        "median_V_confirmed_mpg": 67.5241584777832
+      },
+      "starters_T30_proxy": {
+        "team_games": 2460,
+        "exactly_5_box_starters": 2460,
+        "share_exactly_5": 1.0,
+        "rows_start_flag_null": 0,
+        "all_rows_start_delta_nonzero_share": 0.13049241685835705,
+        "mover_rows_K10": 1025,
+        "mover_rows_box_starter_share": 0.3053658536585366,
+        "mover_rows_start_delta_nonzero_share": 0.17073170731707318,
+        "mover_rows_start_delta_nonzero": 175,
+        "all_rows_with_report_share": 1.0,
+        "all_rows_n_out_rot_gt0_share": 0.8708721587586261,
+        "mover_rows_n_out_rot_gt0_share": 0.8468292682926829
+      },
+      "slice_counts_by_label": {
+        "stayer": 16674,
+        "mover": 4376,
+        "rookie": 2745,
+        "inseason_arrival_or_other": 1397,
+        "returner_gap": 457
+      }
+    }
+  },
+  "live_capture_2026_27": {
+    "forward_t30_decisions": {
+      "logged": 1,
+      "skipped": 23
+    },
+    "forward_t15_decisions": {
+      "logged": 9,
+      "skipped": 5
+    }
+  },
+  "power": {
+    "movers_K10|2023|pts": {
+      "n_rows": 1202,
+      "n_games": 487,
+      "n_units": 136,
+      "n_weeks": 25,
+      "floor": 0.005,
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.02578196529077816,
+        "rows_needed_for_floor": 31959,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "player_season",
+        "half_width": 0.05695863184332245,
+        "rows_needed_for_floor": 155985,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|2023|reb": {
+      "n_rows": 1202,
+      "n_games": 487,
+      "n_units": 136,
+      "n_weeks": 25,
+      "floor": 0.003,
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.006567454077497929,
+        "rows_needed_for_floor": 5760,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "player_season",
+        "half_width": 0.014092363076985973,
+        "rows_needed_for_floor": 26523,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|2023|ast": {
+      "n_rows": 1202,
+      "n_games": 487,
+      "n_units": 136,
+      "n_weeks": 25,
+      "floor": 0.002,
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.006270052617500132,
+        "rows_needed_for_floor": 11813,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "player_season",
+        "half_width": 0.01421987806539494,
+        "rows_needed_for_floor": 60762,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|2023|fg3m": {
+      "n_rows": 1202,
+      "n_games": 487,
+      "n_units": 136,
+      "n_weeks": 25,
+      "floor": 0.001,
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.0031521097163583855,
+        "rows_needed_for_floor": 11942,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "player_season",
+        "half_width": 0.0067906166480360495,
+        "rows_needed_for_floor": 55427,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|2024|pts": {
+      "n_rows": 1025,
+      "n_games": 468,
+      "n_units": 115,
+      "n_weeks": 25,
+      "floor": 0.005,
+      "sigma0.05": {
+        "binding": "game",
+        "half_width": 0.013693718489249712,
+        "rows_needed_for_floor": 7688,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "player_season",
+        "half_width": 0.027554710162732404,
+        "rows_needed_for_floor": 31129,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|2024|reb": {
+      "n_rows": 1025,
+      "n_games": 468,
+      "n_units": 115,
+      "n_weeks": 25,
+      "floor": 0.003,
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.00530143299322802,
+        "rows_needed_for_floor": 3200,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "player_season",
+        "half_width": 0.010538956260522408,
+        "rows_needed_for_floor": 12649,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|2024|ast": {
+      "n_rows": 1025,
+      "n_games": 468,
+      "n_units": 115,
+      "n_weeks": 25,
+      "floor": 0.002,
+      "sigma0.05": {
+        "binding": "game",
+        "half_width": 0.0031351017493035163,
+        "rows_needed_for_floor": 2518,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "game",
+        "half_width": 0.00597417641186064,
+        "rows_needed_for_floor": 9145,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|2024|fg3m": {
+      "n_rows": 1025,
+      "n_games": 468,
+      "n_units": 115,
+      "n_weeks": 25,
+      "floor": 0.001,
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.002075096562374727,
+        "rows_needed_for_floor": 4413,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "player_season",
+        "half_width": 0.0041970125251758385,
+        "rows_needed_for_floor": 18055,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|pooled|pts": {
+      "n_rows": 2227,
+      "n_games": 955,
+      "n_units": 251,
+      "n_weeks": 50,
+      "floor": 0.005,
+      "sigma0.05": {
+        "binding": "week",
+        "half_width": 0.012802906802222312,
+        "rows_needed_for_floor": 14601,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "week",
+        "half_width": 0.02757273012440737,
+        "rows_needed_for_floor": 67723,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|pooled|reb": {
+      "n_rows": 2227,
+      "n_games": 955,
+      "n_units": 251,
+      "n_weeks": 50,
+      "floor": 0.003,
+      "sigma0.05": {
+        "binding": "week",
+        "half_width": 0.0042370419007558575,
+        "rows_needed_for_floor": 4442,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "week",
+        "half_width": 0.00899172125372036,
+        "rows_needed_for_floor": 20006,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|pooled|ast": {
+      "n_rows": 2227,
+      "n_games": 955,
+      "n_units": 251,
+      "n_weeks": 50,
+      "floor": 0.002,
+      "sigma0.05": {
+        "binding": "week",
+        "half_width": 0.0035347207710920477,
+        "rows_needed_for_floor": 6956,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "week",
+        "half_width": 0.007266378023884606,
+        "rows_needed_for_floor": 29396,
+        "passes_hw_le_floor": false
+      }
+    },
+    "movers_K10|pooled|fg3m": {
+      "n_rows": 2227,
+      "n_games": 955,
+      "n_units": 251,
+      "n_weeks": 50,
+      "floor": 0.001,
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.001338874726425417,
+        "rows_needed_for_floor": 3992,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.10": {
+        "binding": "week",
+        "half_width": 0.0027545937873611885,
+        "rows_needed_for_floor": 16898,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2023|pts": {
+      "n_rows": 4068,
+      "n_games": 341,
+      "n_units": 392,
+      "n_weeks": 23,
+      "floor": 0.005,
+      "sigma0.03": {
+        "binding": "week",
+        "half_width": 0.007587921999876833,
+        "rows_needed_for_floor": 9368,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.05": {
+        "binding": "week",
+        "half_width": 0.013031863395848081,
+        "rows_needed_for_floor": 27634,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2023|reb": {
+      "n_rows": 4068,
+      "n_games": 341,
+      "n_units": 392,
+      "n_weeks": 23,
+      "floor": 0.003,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0022657278299359125,
+        "rows_needed_for_floor": 2320,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.003850961948031456,
+        "rows_needed_for_floor": 6703,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2023|ast": {
+      "n_rows": 4068,
+      "n_games": 341,
+      "n_units": 392,
+      "n_weeks": 23,
+      "floor": 0.002,
+      "sigma0.03": {
+        "binding": "week",
+        "half_width": 0.0017537401227057136,
+        "rows_needed_for_floor": 3127,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "week",
+        "half_width": 0.0029728764431471203,
+        "rows_needed_for_floor": 8988,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2023|fg3m": {
+      "n_rows": 4068,
+      "n_games": 341,
+      "n_units": 392,
+      "n_weeks": 23,
+      "floor": 0.001,
+      "sigma0.03": {
+        "binding": "week",
+        "half_width": 0.0009867451158358262,
+        "rows_needed_for_floor": 3960,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "week",
+        "half_width": 0.0016944616028075864,
+        "rows_needed_for_floor": 11680,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2024|pts": {
+      "n_rows": 3854,
+      "n_games": 325,
+      "n_units": 375,
+      "n_weeks": 18,
+      "floor": 0.005,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.005812414375473475,
+        "rows_needed_for_floor": 5208,
+        "passes_hw_le_floor": false
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.010077469958007802,
+        "rows_needed_for_floor": 15655,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2024|reb": {
+      "n_rows": 3854,
+      "n_games": 325,
+      "n_units": 375,
+      "n_weeks": 18,
+      "floor": 0.003,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0021597375925049415,
+        "rows_needed_for_floor": 1997,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.003697816327438358,
+        "rows_needed_for_floor": 5855,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2024|ast": {
+      "n_rows": 3854,
+      "n_games": 325,
+      "n_units": 375,
+      "n_weeks": 18,
+      "floor": 0.002,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0015278160133730392,
+        "rows_needed_for_floor": 2249,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.0026074337652998536,
+        "rows_needed_for_floor": 6550,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|2024|fg3m": {
+      "n_rows": 3854,
+      "n_games": 325,
+      "n_units": 375,
+      "n_weeks": 18,
+      "floor": 0.001,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0007429189471803632,
+        "rows_needed_for_floor": 2127,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.001247329075660697,
+        "rows_needed_for_floor": 5996,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|pooled|pts": {
+      "n_rows": 7922,
+      "n_games": 666,
+      "n_units": 767,
+      "n_weeks": 41,
+      "floor": 0.005,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.004827578598866679,
+        "rows_needed_for_floor": 7385,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.007926815346880028,
+        "rows_needed_for_floor": 19910,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|pooled|reb": {
+      "n_rows": 7922,
+      "n_games": 666,
+      "n_units": 767,
+      "n_weeks": 41,
+      "floor": 0.003,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0017405423537724275,
+        "rows_needed_for_floor": 2666,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.0029331450273702643,
+        "rows_needed_for_floor": 7572,
+        "passes_hw_le_floor": true
+      }
+    },
+    "large_change_NS020|pooled|ast": {
+      "n_rows": 7922,
+      "n_games": 666,
+      "n_units": 767,
+      "n_weeks": 41,
+      "floor": 0.002,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.001263038408895123,
+        "rows_needed_for_floor": 3159,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.0020843692590539285,
+        "rows_needed_for_floor": 8604,
+        "passes_hw_le_floor": false
+      }
+    },
+    "large_change_NS020|pooled|fg3m": {
+      "n_rows": 7922,
+      "n_games": 666,
+      "n_units": 767,
+      "n_weeks": 41,
+      "floor": 0.001,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0005859006498874156,
+        "rows_needed_for_floor": 2719,
+        "passes_hw_le_floor": true
+      },
+      "sigma0.05": {
+        "binding": "player_season",
+        "half_width": 0.0009884018225703936,
+        "rows_needed_for_floor": 7739,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2023|pts": {
+      "n_rows": 25815,
+      "n_games": 1230,
+      "n_units": 2460,
+      "n_weeks": 25,
+      "floor": 0.005,
+      "sigma0.03": {
+        "binding": "week",
+        "half_width": 0.0028112232951674524,
+        "rows_needed_for_floor": 8160,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2023|reb": {
+      "n_rows": 25815,
+      "n_games": 1230,
+      "n_units": 2460,
+      "n_weeks": 25,
+      "floor": 0.003,
+      "sigma0.03": {
+        "binding": "game",
+        "half_width": 0.0009973979289475692,
+        "rows_needed_for_floor": 2853,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2023|ast": {
+      "n_rows": 25815,
+      "n_games": 1230,
+      "n_units": 2460,
+      "n_weeks": 25,
+      "floor": 0.002,
+      "sigma0.03": {
+        "binding": "week",
+        "half_width": 0.0007193238938632251,
+        "rows_needed_for_floor": 3339,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2023|fg3m": {
+      "n_rows": 25815,
+      "n_games": 1230,
+      "n_units": 2460,
+      "n_weeks": 25,
+      "floor": 0.001,
+      "sigma0.03": {
+        "binding": "week",
+        "half_width": 0.00037462352487164445,
+        "rows_needed_for_floor": 3622,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2024|pts": {
+      "n_rows": 25649,
+      "n_games": 1225,
+      "n_units": 2450,
+      "n_weeks": 25,
+      "floor": 0.005,
+      "sigma0.03": {
+        "binding": "game",
+        "half_width": 0.002723164714204984,
+        "rows_needed_for_floor": 7608,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2024|reb": {
+      "n_rows": 25649,
+      "n_games": 1225,
+      "n_units": 2450,
+      "n_weeks": 25,
+      "floor": 0.003,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0010256479990888101,
+        "rows_needed_for_floor": 2997,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2024|ast": {
+      "n_rows": 25649,
+      "n_games": 1225,
+      "n_units": 2450,
+      "n_weeks": 25,
+      "floor": 0.002,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0006901328727396792,
+        "rows_needed_for_floor": 3054,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|2024|fg3m": {
+      "n_rows": 25649,
+      "n_games": 1225,
+      "n_units": 2450,
+      "n_weeks": 25,
+      "floor": 0.001,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0003252733946715146,
+        "rows_needed_for_floor": 2713,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|pooled|pts": {
+      "n_rows": 51464,
+      "n_games": 2455,
+      "n_units": 4910,
+      "n_weeks": 50,
+      "floor": 0.005,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.0019340929900518661,
+        "rows_needed_for_floor": 7700,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|pooled|reb": {
+      "n_rows": 51464,
+      "n_games": 2455,
+      "n_units": 4910,
+      "n_weeks": 50,
+      "floor": 0.003,
+      "sigma0.03": {
+        "binding": "game",
+        "half_width": 0.0007418246977847539,
+        "rows_needed_for_floor": 3146,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|pooled|ast": {
+      "n_rows": 51464,
+      "n_games": 2455,
+      "n_units": 4910,
+      "n_weeks": 50,
+      "floor": 0.002,
+      "sigma0.03": {
+        "binding": "game",
+        "half_width": 0.0004985267618187944,
+        "rows_needed_for_floor": 3197,
+        "passes_hw_le_floor": true
+      }
+    },
+    "everyone|pooled|fg3m": {
+      "n_rows": 51464,
+      "n_games": 2455,
+      "n_units": 4910,
+      "n_weeks": 50,
+      "floor": 0.001,
+      "sigma0.03": {
+        "binding": "player_season",
+        "half_width": 0.00022581807107447158,
+        "rows_needed_for_floor": 2624,
+        "passes_hw_le_floor": true
+      }
+    }
+  }
+}
