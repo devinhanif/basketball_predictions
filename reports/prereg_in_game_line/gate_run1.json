@@ -1,0 +1,2379 @@
+{
+ "rule": "IN_GAME_LINE_MODEL",
+ "status": "gate run; label-free; DRAFT rule",
+ "seasons": {
+  "2019": {
+   "games": 1059,
+   "pbp_files": 1059,
+   "completeness": {
+    "pbp_ok": 1.0,
+    "minutes_ok": 1.0,
+    "pts_ok": 1.0,
+    "fouls_ok": 0.9933899905571294,
+    "full": 0.9933899905571294
+   },
+   "ast_named": 51649,
+   "ast_resolved": 50268,
+   "ast_resolved_share": 0.9732618250111328,
+   "state_rows": 136337,
+   "shape": {
+    "q3_by_margin_at_e24": [
+     {
+      "bucket": "0-10",
+      "n": 6450,
+      "mean_minutes": 8.243367183437798
+     },
+     {
+      "bucket": "10-20",
+      "n": 3350,
+      "mean_minutes": 8.084475124450169
+     },
+     {
+      "bucket": "20-1000",
+      "n": 790,
+      "mean_minutes": 7.993432489366974,
+      "leading": {
+       "n": 395,
+       "mean_minutes": 8.269852320594627
+      },
+      "trailing": {
+       "n": 395,
+       "mean_minutes": 7.71701265813932
+      }
+     }
+    ],
+    "q4_by_margin_at_e36": [
+     {
+      "bucket": "0-10",
+      "n": 5640,
+      "mean_minutes": 7.031428191545014
+     },
+     {
+      "bucket": "10-20",
+      "n": 3530,
+      "mean_minutes": 6.074794145576776
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1420,
+      "mean_minutes": 3.3566678403982535,
+      "leading": {
+       "n": 710,
+       "mean_minutes": 3.2136267606081534
+      },
+      "trailing": {
+       "n": 710,
+       "mean_minutes": 3.4997089201883536
+      }
+     }
+    ],
+    "q3_ratio": 0.9696805093708575,
+    "q4_ratio": 0.47738066136186963,
+    "q3_little_or_none": true,
+    "q4_strong": true
+   },
+   "stats": {
+    "pts": {
+     "rows": 631348,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 157400,
+       "player_games": 19495,
+       "games": 1059
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1629,
+       "player_games": 334,
+       "games": 18
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 186297,
+       "player_games": 20109,
+       "games": 1030
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 11708,
+       "player_games": 1884,
+       "games": 96
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 161737,
+       "player_games": 19153,
+       "games": 971
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 23639,
+       "player_games": 3575,
+       "games": 179
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 73318,
+       "player_games": 17329,
+       "games": 886
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 15620,
+       "player_games": 3652,
+       "games": 173
+      }
+     ]
+    },
+    "reb": {
+     "rows": 548781,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 147006,
+       "player_games": 19495,
+       "games": 1059
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1548,
+       "player_games": 334,
+       "games": 18
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 163587,
+       "player_games": 20069,
+       "games": 1030
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 10295,
+       "player_games": 1874,
+       "games": 96
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 134909,
+       "player_games": 18765,
+       "games": 971
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 19827,
+       "player_games": 3480,
+       "games": 179
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 58735,
+       "player_games": 16575,
+       "games": 886
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 12874,
+       "player_games": 3505,
+       "games": 173
+      }
+     ]
+    },
+    "ast": {
+     "rows": 480833,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 121632,
+       "player_games": 19495,
+       "games": 1059
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1267,
+       "player_games": 334,
+       "games": 18
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 140834,
+       "player_games": 20090,
+       "games": 1030
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 8843,
+       "player_games": 1878,
+       "games": 96
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 122437,
+       "player_games": 18931,
+       "games": 971
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 17887,
+       "player_games": 3530,
+       "games": 179
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 55995,
+       "player_games": 16982,
+       "games": 886
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 11938,
+       "player_games": 3569,
+       "games": 173
+      }
+     ]
+    },
+    "fg3m": {
+     "rows": 456414,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 117097,
+       "player_games": 19488,
+       "games": 1059
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1205,
+       "player_games": 330,
+       "games": 18
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 133932,
+       "player_games": 20019,
+       "games": 1030
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 8343,
+       "player_games": 1860,
+       "games": 96
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 115466,
+       "player_games": 18646,
+       "games": 971
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 16772,
+       "player_games": 3464,
+       "games": 179
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 52424,
+       "player_games": 16589,
+       "games": 886
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 11175,
+       "player_games": 3490,
+       "games": 173
+      }
+     ]
+    }
+   },
+   "pins": {
+    "PIN_GAMES_2019": "5a45790eb31c493f4477b47292366353b1921e13f73a7cb9884b27871f407abc",
+    "PIN_STINTS_2019": "902c1b838916dd94892a5f4e647825a25d776d1473e766a64c658874cf403c98",
+    "PIN_STATE_2019": "6e8b26e7382b664902fc324d96069fe8f0a064f5a15518b12ff12d8f637d3bea"
+   }
+  },
+  "2020": {
+   "games": 1080,
+   "pbp_files": 1080,
+   "completeness": {
+    "pbp_ok": 1.0,
+    "minutes_ok": 1.0,
+    "pts_ok": 0.9990740740740741,
+    "fouls_ok": 0.9935185185185185,
+    "full": 0.9925925925925926
+   },
+   "ast_named": 53577,
+   "ast_resolved": 51876,
+   "ast_resolved_share": 0.9682513018646061,
+   "state_rows": 136139,
+   "shape": {
+    "q3_by_margin_at_e24": [
+     {
+      "bucket": "0-10",
+      "n": 6230,
+      "mean_minutes": 8.575945425277059
+     },
+     {
+      "bucket": "10-20",
+      "n": 3570,
+      "mean_minutes": 8.455443977553477
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1000,
+      "mean_minutes": 8.380121666798988,
+      "leading": {
+       "n": 500,
+       "mean_minutes": 8.601660000296434
+      },
+      "trailing": {
+       "n": 500,
+       "mean_minutes": 8.158583333301545
+      }
+     }
+    ],
+    "q4_by_margin_at_e36": [
+     {
+      "bucket": "0-10",
+      "n": 5300,
+      "mean_minutes": 7.002770440240982
+     },
+     {
+      "bucket": "10-20",
+      "n": 3650,
+      "mean_minutes": 5.9151940637756155
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1850,
+      "mean_minutes": 3.166899099126592,
+      "leading": {
+       "n": 925,
+       "mean_minutes": 2.93549729730417
+      },
+      "trailing": {
+       "n": 925,
+       "mean_minutes": 3.3983009009490135
+      }
+     }
+    ],
+    "q3_ratio": 0.977165927630452,
+    "q4_ratio": 0.45223517265798185,
+    "q3_little_or_none": true,
+    "q4_strong": true
+   },
+   "stats": {
+    "pts": {
+     "rows": 627283,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 154597,
+       "player_games": 19221,
+       "games": 1080
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2468,
+       "player_games": 505,
+       "games": 28
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 182879,
+       "player_games": 19982,
+       "games": 1044
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 14729,
+       "player_games": 2397,
+       "games": 123
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 154636,
+       "player_games": 18640,
+       "games": 967
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 28954,
+       "player_games": 4347,
+       "games": 222
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 68909,
+       "player_games": 16464,
+       "games": 859
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 20111,
+       "player_games": 4700,
+       "games": 221
+      }
+     ]
+    },
+    "reb": {
+     "rows": 545705,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 144252,
+       "player_games": 19221,
+       "games": 1080
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2312,
+       "player_games": 505,
+       "games": 28
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 160495,
+       "player_games": 19952,
+       "games": 1044
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 13039,
+       "player_games": 2388,
+       "games": 123
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 129363,
+       "player_games": 18225,
+       "games": 967
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 24232,
+       "player_games": 4241,
+       "games": 222
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 55549,
+       "player_games": 15760,
+       "games": 859
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 16463,
+       "player_games": 4516,
+       "games": 221
+      }
+     ]
+    },
+    "ast": {
+     "rows": 477267,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 119027,
+       "player_games": 19221,
+       "games": 1080
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1917,
+       "player_games": 505,
+       "games": 28
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 138003,
+       "player_games": 19956,
+       "games": 1044
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 11180,
+       "player_games": 2387,
+       "games": 123
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 117032,
+       "player_games": 18363,
+       "games": 967
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 22041,
+       "player_games": 4287,
+       "games": 222
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 52658,
+       "player_games": 16056,
+       "games": 859
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 15409,
+       "player_games": 4618,
+       "games": 221
+      }
+     ]
+    },
+    "fg3m": {
+     "rows": 449470,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 113943,
+       "player_games": 19211,
+       "games": 1080
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1803,
+       "player_games": 501,
+       "games": 28
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 130296,
+       "player_games": 19849,
+       "games": 1044
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 10471,
+       "player_games": 2351,
+       "games": 123
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 109520,
+       "player_games": 18032,
+       "games": 967
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 20396,
+       "player_games": 4164,
+       "games": 222
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 48801,
+       "player_games": 15629,
+       "games": 859
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 14240,
+       "player_games": 4433,
+       "games": 221
+      }
+     ]
+    }
+   },
+   "pins": {
+    "PIN_GAMES_2020": "0e5ca756e7ad99efd0eb082a52e80437eb0ae10bb29bffaaf2215fe8107ed458",
+    "PIN_STINTS_2020": "b9218553b1203ecb1d78b25ae343dc2a0122806620f040ad558279999771c4cf",
+    "PIN_STATE_2020": "f67e0d84d4919549599d656a6a47024d7a2717efea50929efdb2c1e34ca6cbc2"
+   }
+  },
+  "2021": {
+   "games": 1230,
+   "pbp_files": 1230,
+   "completeness": {
+    "pbp_ok": 1.0,
+    "minutes_ok": 1.0,
+    "pts_ok": 0.9983739837398374,
+    "fouls_ok": 0.9861788617886179,
+    "full": 0.9845528455284552
+   },
+   "ast_named": 60636,
+   "ast_resolved": 59106,
+   "ast_resolved_share": 0.9747674648723531,
+   "state_rows": 155136,
+   "shape": {
+    "q3_by_margin_at_e24": [
+     {
+      "bucket": "0-10",
+      "n": 7130,
+      "mean_minutes": 8.518172276823556
+     },
+     {
+      "bucket": "10-20",
+      "n": 4050,
+      "mean_minutes": 8.469797942369071
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1120,
+      "mean_minutes": 8.17541071426833,
+      "leading": {
+       "n": 560,
+       "mean_minutes": 8.508434523723665
+      },
+      "trailing": {
+       "n": 560,
+       "mean_minutes": 7.842386904812994
+      }
+     }
+    ],
+    "q4_by_margin_at_e36": [
+     {
+      "bucket": "0-10",
+      "n": 6150,
+      "mean_minutes": 7.279777506777103
+     },
+     {
+      "bucket": "10-20",
+      "n": 3810,
+      "mean_minutes": 6.177926071549285
+     },
+     {
+      "bucket": "20-1000",
+      "n": 2340,
+      "mean_minutes": 3.412831196676292,
+      "leading": {
+       "n": 1170,
+       "mean_minutes": 3.6093219373436733
+      },
+      "trailing": {
+       "n": 1170,
+       "mean_minutes": 3.216340456008911
+      }
+     }
+    ],
+    "q3_ratio": 0.9597611375520285,
+    "q4_ratio": 0.46880982193468407,
+    "q3_little_or_none": true,
+    "q4_strong": true
+   },
+   "stats": {
+    "pts": {
+     "rows": 716405,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 178214,
+       "player_games": 21988,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2375,
+       "player_games": 482,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 208299,
+       "player_games": 22508,
+       "games": 1178
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 16673,
+       "player_games": 2510,
+       "games": 131
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 173853,
+       "player_games": 21114,
+       "games": 1093
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 35726,
+       "player_games": 5464,
+       "games": 281
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 79930,
+       "player_games": 19010,
+       "games": 990
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 21335,
+       "player_games": 4992,
+       "games": 240
+      }
+     ]
+    },
+    "reb": {
+     "rows": 620832,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 166077,
+       "player_games": 21987,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2182,
+       "player_games": 482,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 182310,
+       "player_games": 22479,
+       "games": 1178
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 14525,
+       "player_games": 2498,
+       "games": 131
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 144713,
+       "player_games": 20624,
+       "games": 1093
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 29695,
+       "player_games": 5302,
+       "games": 281
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 63946,
+       "player_games": 18168,
+       "games": 990
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 17384,
+       "player_games": 4801,
+       "games": 240
+      }
+     ]
+    },
+    "ast": {
+     "rows": 543940,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 137360,
+       "player_games": 21988,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1825,
+       "player_games": 482,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 156906,
+       "player_games": 22479,
+       "games": 1178
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 12499,
+       "player_games": 2490,
+       "games": 131
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 131404,
+       "player_games": 20812,
+       "games": 1093
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 26843,
+       "player_games": 5370,
+       "games": 281
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 61001,
+       "player_games": 18558,
+       "games": 990
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 16102,
+       "player_games": 4873,
+       "games": 240
+      }
+     ]
+    },
+    "fg3m": {
+     "rows": 514239,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 131763,
+       "player_games": 21982,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1740,
+       "player_games": 480,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 148692,
+       "player_games": 22368,
+       "games": 1178
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 11773,
+       "player_games": 2471,
+       "games": 131
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 123460,
+       "player_games": 20472,
+       "games": 1093
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 25041,
+       "player_games": 5242,
+       "games": 281
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 56736,
+       "player_games": 18036,
+       "games": 990
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 15034,
+       "player_games": 4709,
+       "games": 240
+      }
+     ]
+    }
+   },
+   "pins": {
+    "PIN_GAMES_2021": "1f2dcb1f01a95c788c9ce035e1d5d529078c889fbf1f63d5b3f72a6acd3e454f",
+    "PIN_STINTS_2021": "1e110c284da4b94869e8478239b3727722c7b6cbc6dadceff8b009475393eac7",
+    "PIN_STATE_2021": "ead1fd7bb8a37874ad04eb075cb1cc426a6e0dacb69ffc05a1561d9b0bd50d08"
+   }
+  },
+  "2022": {
+   "games": 1230,
+   "pbp_files": 1230,
+   "completeness": {
+    "pbp_ok": 1.0,
+    "minutes_ok": 1.0,
+    "pts_ok": 0.9991869918699187,
+    "fouls_ok": 0.9902439024390244,
+    "full": 0.989430894308943
+   },
+   "ast_named": 62279,
+   "ast_resolved": 59688,
+   "ast_resolved_share": 0.9583968914080188,
+   "state_rows": 155678,
+   "shape": {
+    "q3_by_margin_at_e24": [
+     {
+      "bucket": "0-10",
+      "n": 7470,
+      "mean_minutes": 8.493506916574653
+     },
+     {
+      "bucket": "10-20",
+      "n": 3780,
+      "mean_minutes": 8.41017151682636
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1050,
+      "mean_minutes": 8.25117142862933,
+      "leading": {
+       "n": 525,
+       "mean_minutes": 8.320190476277519
+      },
+      "trailing": {
+       "n": 525,
+       "mean_minutes": 8.182152380981142
+      }
+     }
+    ],
+    "q4_by_margin_at_e36": [
+     {
+      "bucket": "0-10",
+      "n": 7020,
+      "mean_minutes": 7.318154083585361
+     },
+     {
+      "bucket": "10-20",
+      "n": 3750,
+      "mean_minutes": 6.27801111109111
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1530,
+      "mean_minutes": 3.590058823561616,
+      "leading": {
+       "n": 765,
+       "mean_minutes": 3.7055904140036087
+      },
+      "trailing": {
+       "n": 765,
+       "mean_minutes": 3.4745272331196237
+      }
+     }
+    ],
+    "q3_ratio": 0.9714681473358883,
+    "q4_ratio": 0.49056890338154097,
+    "q3_little_or_none": true,
+    "q4_strong": true
+   },
+   "stats": {
+    "pts": {
+     "rows": 714071,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 177544,
+       "player_games": 21960,
+       "games": 1228
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2735,
+       "player_games": 529,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 208644,
+       "player_games": 22763,
+       "games": 1184
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 16745,
+       "player_games": 2637,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 184142,
+       "player_games": 22074,
+       "games": 1138
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 24439,
+       "player_games": 3765,
+       "games": 192
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 82488,
+       "player_games": 19780,
+       "games": 1033
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 17334,
+       "player_games": 4084,
+       "games": 197
+      }
+     ]
+    },
+    "reb": {
+     "rows": 627597,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 166128,
+       "player_games": 21960,
+       "games": 1228
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2557,
+       "player_games": 529,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 184500,
+       "player_games": 22744,
+       "games": 1184
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 14791,
+       "player_games": 2628,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 156316,
+       "player_games": 21649,
+       "games": 1138
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 20871,
+       "player_games": 3690,
+       "games": 192
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 67932,
+       "player_games": 19124,
+       "games": 1033
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 14502,
+       "player_games": 3957,
+       "games": 197
+      }
+     ]
+    },
+    "ast": {
+     "rows": 544278,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 136872,
+       "player_games": 21959,
+       "games": 1228
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2098,
+       "player_games": 528,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 157537,
+       "player_games": 22735,
+       "games": 1184
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 12648,
+       "player_games": 2625,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 139839,
+       "player_games": 21767,
+       "games": 1138
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 18528,
+       "player_games": 3718,
+       "games": 192
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 63471,
+       "player_games": 19397,
+       "games": 1033
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 13285,
+       "player_games": 3999,
+       "games": 197
+      }
+     ]
+    },
+    "fg3m": {
+     "rows": 516584,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 131540,
+       "player_games": 21946,
+       "games": 1228
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1987,
+       "player_games": 524,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 149747,
+       "player_games": 22599,
+       "games": 1184
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 11971,
+       "player_games": 2600,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 131900,
+       "player_games": 21427,
+       "games": 1138
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 17505,
+       "player_games": 3639,
+       "games": 192
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 59466,
+       "player_games": 18914,
+       "games": 1033
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 12468,
+       "player_games": 3893,
+       "games": 197
+      }
+     ]
+    }
+   },
+   "pins": {
+    "PIN_GAMES_2022": "a1613d9627443c1ee25cf6abea2f9be0ddaa4fc67ee348c88323508f055bd046",
+    "PIN_STINTS_2022": "b73b19e4bbe4f4b53e48e05c257628836b883cb3fc2ea5ffabc7c64988485af9",
+    "PIN_STATE_2022": "c648e281300b605f91026df548aadf0be4171901df8515eefebd1342060b86bb"
+   }
+  },
+  "2023": {
+   "games": 1230,
+   "pbp_files": 1230,
+   "completeness": {
+    "pbp_ok": 1.0,
+    "minutes_ok": 1.0,
+    "pts_ok": 0.9991869918699187,
+    "fouls_ok": 0.9365853658536586,
+    "full": 0.9357723577235773
+   },
+   "ast_named": 65610,
+   "ast_resolved": 63098,
+   "ast_resolved_share": 0.9617131534827008,
+   "state_rows": 154541,
+   "shape": {
+    "q3_by_margin_at_e24": [
+     {
+      "bucket": "0-10",
+      "n": 6920,
+      "mean_minutes": 8.48908574182576
+     },
+     {
+      "bucket": "10-20",
+      "n": 4180,
+      "mean_minutes": 8.53244657090314
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1200,
+      "mean_minutes": 8.141762500029472,
+      "leading": {
+       "n": 600,
+       "mean_minutes": 8.429777777860561
+      },
+      "trailing": {
+       "n": 600,
+       "mean_minutes": 7.853747222198381
+      }
+     }
+    ],
+    "q4_by_margin_at_e36": [
+     {
+      "bucket": "0-10",
+      "n": 5840,
+      "mean_minutes": 7.426107306038626
+     },
+     {
+      "bucket": "10-20",
+      "n": 4250,
+      "mean_minutes": 6.4393223528952
+     },
+     {
+      "bucket": "20-1000",
+      "n": 2210,
+      "mean_minutes": 3.3296998491959693,
+      "leading": {
+       "n": 1105,
+       "mean_minutes": 3.17880542984915
+      },
+      "trailing": {
+       "n": 1105,
+       "mean_minutes": 3.480594268542789
+      }
+     }
+    ],
+    "q3_ratio": 0.9590859072037612,
+    "q4_ratio": 0.4483775566356798,
+    "q3_little_or_none": true,
+    "q4_strong": true
+   },
+   "stats": {
+    "pts": {
+     "rows": 708702,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 177582,
+       "player_games": 21750,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2470,
+       "player_games": 504,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 206166,
+       "player_games": 22430,
+       "games": 1181
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 16770,
+       "player_games": 2609,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 172164,
+       "player_games": 21029,
+       "games": 1098
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 33998,
+       "player_games": 5192,
+       "games": 266
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 77071,
+       "player_games": 18601,
+       "games": 983
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 22481,
+       "player_games": 5258,
+       "games": 247
+      }
+     ],
+     "power": {
+      "rows": 581193,
+      "de_mean_half_width": 0.0018517816640843832,
+      "de_sd": 0.00021047506756254695,
+      "de_min": 0.0012834783535436963,
+      "de_max": 0.0021164340429984827,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.001078613518858336,
+       "player_season": 0.0018517816640843832,
+       "week": 0.001061711127502415
+      },
+      "positive_control": [
+       {
+        "point": -0.009066585569304156,
+        "hi": -0.0074874932140493716,
+        "clears": true
+       },
+       {
+        "point": -0.008817182748078092,
+        "hi": -0.007097566969180369,
+        "clears": true
+       },
+       {
+        "point": -0.008809126772615205,
+        "hi": -0.007112161689158301,
+        "clears": true
+       },
+       {
+        "point": -0.008593653195398749,
+        "hi": -0.0070858090022058165,
+        "clears": true
+       },
+       {
+        "point": -0.008922895537685258,
+        "hi": -0.007205592411210071,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    },
+    "reb": {
+     "rows": 621767,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 165840,
+       "player_games": 21749,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2303,
+       "player_games": 504,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 181960,
+       "player_games": 22415,
+       "games": 1181
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 14844,
+       "player_games": 2590,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 145690,
+       "player_games": 20568,
+       "games": 1098
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 29007,
+       "player_games": 5087,
+       "games": 266
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 63185,
+       "player_games": 17833,
+       "games": 983
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 18938,
+       "player_games": 5118,
+       "games": 247
+      }
+     ],
+     "power": {
+      "rows": 578138,
+      "de_mean_half_width": 0.002064494985476884,
+      "de_sd": 0.00025159357693783625,
+      "de_min": 0.0015948890414808265,
+      "de_max": 0.0025218379373073392,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.0011703118270093482,
+       "player_season": 0.002064494985476884,
+       "week": 0.0011629459140240794
+      },
+      "positive_control": [
+       {
+        "point": -0.010317610920764622,
+        "hi": -0.008476887411103529,
+        "clears": true
+       },
+       {
+        "point": -0.011382046258908316,
+        "hi": -0.009163408258629102,
+        "clears": true
+       },
+       {
+        "point": -0.010935583916867301,
+        "hi": -0.009004853828002563,
+        "clears": true
+       },
+       {
+        "point": -0.010956445131406378,
+        "hi": -0.00906321897918428,
+        "clears": true
+       },
+       {
+        "point": -0.011633751565068767,
+        "hi": -0.009510235617570377,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    },
+    "ast": {
+     "rows": 534651,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 136312,
+       "player_games": 21750,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1892,
+       "player_games": 504,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 154317,
+       "player_games": 22410,
+       "games": 1181
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 12583,
+       "player_games": 2597,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 128884,
+       "player_games": 20688,
+       "games": 1098
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 25458,
+       "player_games": 5104,
+       "games": 266
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 58226,
+       "player_games": 18125,
+       "games": 983
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 16979,
+       "player_games": 5159,
+       "games": 247
+      }
+     ],
+     "power": {
+      "rows": 513542,
+      "de_mean_half_width": 0.001883506134771639,
+      "de_sd": 0.0001952635538560681,
+      "de_min": 0.0014961522802014724,
+      "de_max": 0.002336007141968249,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.001119691969818109,
+       "player_season": 0.001883506134771639,
+       "week": 0.0010528117301298087
+      },
+      "positive_control": [
+       {
+        "point": -0.011245404805904762,
+        "hi": -0.009047585872572726,
+        "clears": true
+       },
+       {
+        "point": -0.009938967772280425,
+        "hi": -0.008141704570908227,
+        "clears": true
+       },
+       {
+        "point": -0.009884437525559857,
+        "hi": -0.008213033872293603,
+        "clears": true
+       },
+       {
+        "point": -0.010301774297498185,
+        "hi": -0.008544804736093257,
+        "clears": true
+       },
+       {
+        "point": -0.010760439369374897,
+        "hi": -0.00912660460100476,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    },
+    "fg3m": {
+     "rows": 507798,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 131018,
+       "player_games": 21741,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1808,
+       "player_games": 499,
+       "games": 29
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 146615,
+       "player_games": 22273,
+       "games": 1181
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 11878,
+       "player_games": 2563,
+       "games": 136
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 121744,
+       "player_games": 20341,
+       "games": 1098
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 24012,
+       "player_games": 5004,
+       "games": 266
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 54681,
+       "player_games": 17651,
+       "games": 983
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 16042,
+       "player_games": 5010,
+       "games": 247
+      }
+     ],
+     "power": {
+      "rows": 504699,
+      "de_mean_half_width": 0.0020427893935745637,
+      "de_sd": 0.00017608575819531475,
+      "de_min": 0.0017046633950154144,
+      "de_max": 0.002456322030383197,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.0012191644156059455,
+       "player_season": 0.0020427893935745637,
+       "week": 0.0011316696084423654
+      },
+      "positive_control": [
+       {
+        "point": -0.011628878086368992,
+        "hi": -0.009481790295049494,
+        "clears": true
+       },
+       {
+        "point": -0.011534189064990168,
+        "hi": -0.009585548169239339,
+        "clears": true
+       },
+       {
+        "point": -0.010798202313003463,
+        "hi": -0.008993143203303054,
+        "clears": true
+       },
+       {
+        "point": -0.011291725038056144,
+        "hi": -0.009355209840384095,
+        "clears": true
+       },
+       {
+        "point": -0.010659515227289564,
+        "hi": -0.008664329112780447,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    }
+   },
+   "pins": {
+    "PIN_GAMES_2023": "dc3cfc17872e4f7066413f87585dbc6d90163e4ddc1284ea55c6a69e96d020a3",
+    "PIN_STINTS_2023": "947b1965d36b7a04fa664f0d6708868e90affbfc3026a42d847e6d644c2cb39a",
+    "PIN_STATE_2023": "99e3f008517b8bccc0c4be18cef10d1c4575c71ecd6a23c2426a4406bed25b8b"
+   }
+  },
+  "2024": {
+   "games": 1230,
+   "pbp_files": 1230,
+   "completeness": {
+    "pbp_ok": 1.0,
+    "minutes_ok": 1.0,
+    "pts_ok": 1.0,
+    "fouls_ok": 0.9764227642276423,
+    "full": 0.9764227642276423
+   },
+   "ast_named": 65312,
+   "ast_resolved": 63099,
+   "ast_resolved_share": 0.9661164870161686,
+   "state_rows": 155776,
+   "shape": {
+    "q3_by_margin_at_e24": [
+     {
+      "bucket": "0-10",
+      "n": 7070,
+      "mean_minutes": 8.292558698700052
+     },
+     {
+      "bucket": "10-20",
+      "n": 4130,
+      "mean_minutes": 8.139988296990605
+     },
+     {
+      "bucket": "20-1000",
+      "n": 1100,
+      "mean_minutes": 8.20056515153791,
+      "leading": {
+       "n": 550,
+       "mean_minutes": 8.376054545442262
+      },
+      "trailing": {
+       "n": 550,
+       "mean_minutes": 8.025075757633555
+      }
+     }
+    ],
+    "q4_by_margin_at_e36": [
+     {
+      "bucket": "0-10",
+      "n": 6030,
+      "mean_minutes": 7.43795577659406
+     },
+     {
+      "bucket": "10-20",
+      "n": 3850,
+      "mean_minutes": 6.453860605923644
+     },
+     {
+      "bucket": "20-1000",
+      "n": 2420,
+      "mean_minutes": 3.7164889807839043,
+      "leading": {
+       "n": 1210,
+       "mean_minutes": 3.5405330579734042
+      },
+      "trailing": {
+       "n": 1210,
+       "mean_minutes": 3.892444903594403
+      }
+     }
+    ],
+    "q3_ratio": 0.988906494303554,
+    "q4_ratio": 0.49966537747898987,
+    "q3_little_or_none": true,
+    "q4_strong": true
+   },
+   "stats": {
+    "pts": {
+     "rows": 716329,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 180981,
+       "player_games": 21887,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2417,
+       "player_games": 491,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 208942,
+       "player_games": 22657,
+       "games": 1185
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 15755,
+       "player_games": 2459,
+       "games": 128
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 173968,
+       "player_games": 21306,
+       "games": 1106
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 33976,
+       "player_games": 5371,
+       "games": 276
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 76936,
+       "player_games": 18481,
+       "games": 969
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 23354,
+       "player_games": 5493,
+       "games": 261
+      }
+     ],
+     "power": {
+      "rows": 588931,
+      "de_mean_half_width": 0.0018256494322323746,
+      "de_sd": 0.0002550638899756137,
+      "de_min": 0.001432429533602311,
+      "de_max": 0.002450970813586778,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.0010855221396703083,
+       "player_season": 0.0018256494322323746,
+       "week": 0.0010903437648963027
+      },
+      "positive_control": [
+       {
+        "point": -0.008917803546626578,
+        "hi": -0.00729721943075598,
+        "clears": true
+       },
+       {
+        "point": -0.009439416946647267,
+        "hi": -0.007650764083956494,
+        "clears": true
+       },
+       {
+        "point": -0.009861691693052052,
+        "hi": -0.008145366302137452,
+        "clears": true
+       },
+       {
+        "point": -0.009761120491444118,
+        "hi": -0.007931909025628504,
+        "clears": true
+       },
+       {
+        "point": -0.009152677638672252,
+        "hi": -0.007467506965338714,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    },
+    "reb": {
+     "rows": 625211,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 169093,
+       "player_games": 21887,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 2245,
+       "player_games": 490,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 183540,
+       "player_games": 22630,
+       "games": 1185
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 13853,
+       "player_games": 2447,
+       "games": 128
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 146044,
+       "player_games": 20809,
+       "games": 1106
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 28613,
+       "player_games": 5247,
+       "games": 276
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 62396,
+       "player_games": 17682,
+       "games": 969
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 19427,
+       "player_games": 5293,
+       "games": 261
+      }
+     ],
+     "power": {
+      "rows": 582255,
+      "de_mean_half_width": 0.001999845992041976,
+      "de_sd": 0.00020906152541223173,
+      "de_min": 0.0017101867209552545,
+      "de_max": 0.00245910967061616,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.0011869085425654543,
+       "player_season": 0.001999845992041976,
+       "week": 0.0010970718637551267
+      },
+      "positive_control": [
+       {
+        "point": -0.011437473830192958,
+        "hi": -0.009216425292800534,
+        "clears": true
+       },
+       {
+        "point": -0.009613005369463771,
+        "hi": -0.008054977123260818,
+        "clears": true
+       },
+       {
+        "point": -0.013239507996809678,
+        "hi": -0.011016919234726264,
+        "clears": true
+       },
+       {
+        "point": -0.013741066422914535,
+        "hi": -0.01135118701030767,
+        "clears": true
+       },
+       {
+        "point": -0.011911997919038885,
+        "hi": -0.00965730595743416,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    },
+    "ast": {
+     "rows": 540782,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 139268,
+       "player_games": 21887,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1849,
+       "player_games": 491,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 156577,
+       "player_games": 22637,
+       "games": 1185
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 11886,
+       "player_games": 2447,
+       "games": 128
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 130023,
+       "player_games": 20991,
+       "games": 1106
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 25535,
+       "player_games": 5284,
+       "games": 276
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 58022,
+       "player_games": 18051,
+       "games": 969
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 17622,
+       "player_games": 5399,
+       "games": 261
+      }
+     ],
+     "power": {
+      "rows": 520509,
+      "de_mean_half_width": 0.00191392463628147,
+      "de_sd": 0.0002585499879201623,
+      "de_min": 0.0014754005116112351,
+      "de_max": 0.002363299462105262,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.0011197442161617328,
+       "player_season": 0.00191392463628147,
+       "week": 0.001046570965101688
+      },
+      "positive_control": [
+       {
+        "point": -0.010717915349252635,
+        "hi": -0.009030312693202909,
+        "clears": true
+       },
+       {
+        "point": -0.009846617210533043,
+        "hi": -0.008075365572635185,
+        "clears": true
+       },
+       {
+        "point": -0.009793863458797394,
+        "hi": -0.008230378801157047,
+        "clears": true
+       },
+       {
+        "point": -0.010047852217511064,
+        "hi": -0.00841434860849414,
+        "clears": true
+       },
+       {
+        "point": -0.01030558680986323,
+        "hi": -0.00848724761428602,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    },
+    "fg3m": {
+     "rows": 506628,
+     "cells": [
+      {
+       "bucket": "Q1",
+       "blow": false,
+       "rows": 132906,
+       "player_games": 21866,
+       "games": 1230
+      },
+      {
+       "bucket": "Q1",
+       "blow": true,
+       "rows": 1754,
+       "player_games": 484,
+       "games": 27
+      },
+      {
+       "bucket": "Q2",
+       "blow": false,
+       "rows": 146978,
+       "player_games": 22478,
+       "games": 1185
+      },
+      {
+       "bucket": "Q2",
+       "blow": true,
+       "rows": 11058,
+       "player_games": 2413,
+       "games": 128
+      },
+      {
+       "bucket": "Q3",
+       "blow": false,
+       "rows": 120564,
+       "player_games": 20578,
+       "games": 1106
+      },
+      {
+       "bucket": "Q3",
+       "blow": true,
+       "rows": 23679,
+       "player_games": 5143,
+       "games": 276
+      },
+      {
+       "bucket": "Q4",
+       "blow": false,
+       "rows": 53320,
+       "player_games": 17406,
+       "games": 969
+      },
+      {
+       "bucket": "Q4",
+       "blow": true,
+       "rows": 16369,
+       "player_games": 5179,
+       "games": 261
+      }
+     ],
+     "power": {
+      "rows": 503499,
+      "de_mean_half_width": 0.00209387307340442,
+      "de_sd": 0.00021217541646090487,
+      "de_min": 0.001733169891467757,
+      "de_max": 0.00277198218138224,
+      "binding_counts": {
+       "game": 0,
+       "player_season": 20,
+       "week": 0
+      },
+      "half_by_clustering_mean": {
+       "game": 0.0012201486895811364,
+       "player_season": 0.00209387307340442,
+       "week": 0.0012117201919491691
+      },
+      "positive_control": [
+       {
+        "point": -0.009785051507244574,
+        "hi": -0.008038837736649703,
+        "clears": true
+       },
+       {
+        "point": -0.011613767783786675,
+        "hi": -0.009509084685107007,
+        "clears": true
+       },
+       {
+        "point": -0.011330590999195509,
+        "hi": -0.009333438856716222,
+        "clears": true
+       },
+       {
+        "point": -0.01250001335915945,
+        "hi": -0.010109681301360753,
+        "clears": true
+       },
+       {
+        "point": -0.01027392969891632,
+        "hi": -0.008334951435150685,
+        "clears": true
+       }
+      ],
+      "positive_control_all_clear": true
+     }
+    }
+   },
+   "pins": {
+    "PIN_GAMES_2024": "573919338f25b53c7f599b9912a251213cb4abd4954ea303b72ba8d31727bf61",
+    "PIN_STINTS_2024": "3ce9c798fa1b04f54a9f8836dbd778eaed2cc07115e93088027c83efb88463a0",
+    "PIN_STATE_2024": "638d672632fc94a4835106af050a51ae66443bcf3e9b62d63e1cece942c425e2"
+   }
+  }
+ },
+ "planted_future": {
+  "2023": {
+   "season": 2023,
+   "games": 30,
+   "rows_early": 2056,
+   "identical_before_cut": false,
+   "later_rows_differ": true
+  },
+  "2024": {
+   "season": 2024,
+   "games": 30,
+   "rows_early": 2062,
+   "identical_before_cut": true,
+   "later_rows_differ": true
+  }
+ },
+ "versions": {
+  "LIB_python": "3.12.15",
+  "LIB_polars": "1.44.2",
+  "LIB_lightgbm": "4.7.0",
+  "LIB_numpy": "2.5.3",
+  "LIB_scipy": "1.18.1"
+ },
+ "verdict": {
+  "checks": {
+   "2019_complete_full>=0.9": true,
+   "2019_cell_Q1_normal": true,
+   "2019_cell_Q2_normal": true,
+   "2019_cell_Q3_normal": true,
+   "2019_cell_Q4_normal": true,
+   "2019_cell_Q3_blow": true,
+   "2019_cell_Q4_blow": true,
+   "2020_complete_full>=0.9": true,
+   "2020_cell_Q1_normal": true,
+   "2020_cell_Q2_normal": true,
+   "2020_cell_Q3_normal": true,
+   "2020_cell_Q4_normal": true,
+   "2020_cell_Q3_blow": true,
+   "2020_cell_Q4_blow": true,
+   "2021_complete_full>=0.9": true,
+   "2021_cell_Q1_normal": true,
+   "2021_cell_Q2_normal": true,
+   "2021_cell_Q3_normal": true,
+   "2021_cell_Q4_normal": true,
+   "2021_cell_Q3_blow": true,
+   "2021_cell_Q4_blow": true,
+   "2022_complete_full>=0.9": true,
+   "2022_cell_Q1_normal": true,
+   "2022_cell_Q2_normal": true,
+   "2022_cell_Q3_normal": true,
+   "2022_cell_Q4_normal": true,
+   "2022_cell_Q3_blow": true,
+   "2022_cell_Q4_blow": true,
+   "2023_complete_full>=0.95": false,
+   "2023_cell_Q1_normal": true,
+   "2023_cell_Q2_normal": true,
+   "2023_cell_Q3_normal": true,
+   "2023_cell_Q4_normal": true,
+   "2023_cell_Q3_blow": true,
+   "2023_cell_Q4_blow": true,
+   "2023_de<=0.0025": true,
+   "2023_positive_control": true,
+   "2024_complete_full>=0.95": true,
+   "2024_cell_Q1_normal": true,
+   "2024_cell_Q2_normal": true,
+   "2024_cell_Q3_normal": true,
+   "2024_cell_Q4_normal": true,
+   "2024_cell_Q3_blow": true,
+   "2024_cell_Q4_blow": true,
+   "2024_de<=0.0025": true,
+   "2024_positive_control": true,
+   "2023_planted_future": false,
+   "2024_planted_future": true
+  },
+  "pass": false,
+  "failed": [
+   "2023_complete_full>=0.95",
+   "2023_planted_future"
+  ],
+  "word": "FAIL"
+ }
+}

@@ -1,0 +1,154 @@
+# IN_GAME_LINE_MODEL: from the state of a game at minute t, does an options-style model of P(player finishes >= line) beat linear pace and the pre-game distribution on log loss? (pre-registration)
+
+Status: **DRAFT 2026-10-21 23:50 CDT, modeler, branch `agent/modeler-in-game-line` off `main` 1f6b5a6. NOT FROZEN; hash not taken; no arm fitted; no final box score read.** The label-free minimum-data gate is run after the commit that carries this document, the thresholds in code and the Pending priors; its numbers go below the results marker. Model class: **a small two-stage gradient-boosted tree model (LightGBM; stage A regresses remaining minutes, stage B is a monotone binary model with B0's logit as a feature) on top of a period-aware linear-pace baseline**; closest classes in docs/MODEL_PLAYBOOK.md: "Gradient-boosted trees (LightGBM context residual)" and "Quantile and distribution layers" (the count distribution is a negative binomial on the integer grid).
+
+**Advice or momentum: Devin's request** (DECISIONS 2026-10-21 23:25: "an options-style pricing model for live Kalshi player-prop lines"; scope assumed overnight). Not momentum. Claude's standing advice is that architecture-only ideas lose; this rule is about information that arrives DURING the game (current stat, minutes, fouls, margin), which is the kind of information the project's wins came from, so it is not an architecture ladder.
+
+## Playbook check (the five cross-cutting questions)
+1. **Information or capacity.** Information: the in-game state (current stat, minutes, fouls, margin, clock) is true and unknown at tip. Capacity is deliberately small (8 leaves, 200 trees, two stages, a baseline's logit as a feature).
+2. **Enough data for this class.** Label-free gate below, per stat x quarter x blowout cell and per season, measured on the real play-by-play. Training seasons 2019-2022, select 2023, report 2024.
+3. **Test validity.** Walk-forward by season; state built from events with t <= checkpoint only (planted-future identity in the gate); same rows, same recalibration, same integer-grid support for every arm; game-, player-season- and week-clustered paired bootstrap, widest binds.
+4. **Lineage and inherited guards.** From ARCHETYPE_MATCHUP_ALL: the harness pin, the declared input digests asserted before any outcome is read, the shuffled control, the top-5 share, "the claim needs to beat the better baseline". From the 2026-10-12 BEST_PRACTICES: box-score membership is a leak (units come from play-by-play presence at the checkpoint, never from the final box), real support, paired clustered CIs.
+5. **Scored against.** B0 (linear pace with a period-aware minutes rule) and B1 (the pre-game distribution conditioned on the current stat; recency NegBin AND the stored production A0 grid truncated; the better one binds). Not against a market: no in-game Kalshi history exists before 2026-10-21 (the live capture from 2026-10-22 enables a forward comparison later; that is a different rule).
+Class checks (GBM): monotone constraints on need, pregame mean, predicted remaining minutes and B0's logit; the same recalibration as the baselines; no tuning; seed 0; `n_jobs=1`, deterministic.
+
+## Exposure, said first
+The motivation is one night (2026-10-21, PHX@POR): Booker 23 and Brooks 10 scored in the 3rd quarter in a ~40-point blowout with starters at normal minutes, then sat; a cold shooter (Miller, 7-20) missed 20 with 7 minutes left; a market mid on a wide-spread line misled. **Devin's correction (23:40, before any number): the blowout effect on remaining minutes is margin x PERIOD, little or no effect through Q3 and strong in Q4 (Booker 29 min at the end of Q3, 0 in Q4)**; hence B0's minutes rule is period-aware (it scales only the Q4 part of the remaining time), arm M carries explicit margin x Q4-remaining features, and the margin x period shape of starters' minutes is a descriptive gate item (SHAPE).
+**Not blind to:** (a) the one night above; (b) **a 150-game smoke of the code on 2023 (first 150 regular-season games, label-free) that I ran BEFORE writing the priors below**: cell counts, B0's probability range, a power draw at the then-constant NOISE_SIGMA = 0.10 and POS_SIGMA = 0.30 (half-width 0.00066 for pts on 150 games; the planted-shift positive control had point about -0.0035, i.e. above the -0.005 floor, so the constants were wrong), and the SHAPE item on those 150 games (Q3 ratio 0.94, Q4 ratio 0.33). Consequences, stated: NOISE_SIGMA and POS_SIGMA were changed to 0.50 (equal: an arm as dispersed as the planted effect) BEFORE the real gate ran, because a positive control that cannot reach its own floor is a broken control; the SHAPE priors below are therefore NOT blind. (c) a 40-game 2022 smoke that showed 85% fouls consistency before I fixed two parser defects (technical fouls without a running number; accent-folded and initialled assister names); those fixes are in the committed code and change no threshold. Blind to: the full-season gate numbers, every box-score total, and all arm performance.
+
+## The rule in ten lines (as it would be frozen if the gate allows it)
+1. **Unit.** (player-game, stat, line, checkpoint). Checkpoints: game minutes 6, 12, 18, 24, 30, 36, 42 (the end of each quarter and every 6 game-minutes are the same grid; 48 is the end of regulation; overtime is never a checkpoint, overtime production counts toward the final). A player is in the units at a checkpoint iff he has been on court by then (stints), never because of the final box score. Lines: pts 10/15/20/25/30, reb 2/4/6/8/10, ast 2/4/6/8, fg3m 1/2/3/4, only where the line is not already reached (`current < line`). Regular-season games of 2019-2024 (game-id prefix `002`).
+2. **State (as of the checkpoint only).** current stat, minutes on court, personal fouls, game minutes elapsed, team-view score margin, starter flag (on court at tip-off), pregame mean (recency: mean of the previous 10 played games; `n_prior >= 5`), blowout indicator (|margin| >= 20), margin x Q4-remaining features, B0's logit. The production A0 grid enters only as the second B1 baseline (2023-24 rows where stored); M uses the recency mean in every season so train and test see the same feature (deviation from "A0 where stored": a feature that exists in 2 of 6 seasons would shift between fit and score).
+3. **Target.** `final >= line` (final box score, including overtime). Not read in this pass.
+4. **Baselines.** B0 = linear pace: (current + 10 pseudo-minutes of the league rate)/(minutes + 10) x expected remaining minutes, remaining stat ~ NegBin on the integer grid (variance = VMR x mean; VMR pts 2.5, reb 1.4, ast 1.6, fg3m 1.3). **Expected remaining minutes are period-aware: share-so-far (shrunk with 6 game-minutes of a starter 0.70 / bench 0.40 prior) x (non-Q4 remaining game minutes + Q4 factor x Q4 remaining game minutes), Q4 factor 0.5 if |margin| >= 20 else 1.0.** Why period-aware: Devin's correction; through Q3 the margin does not touch the minutes of the part of the game that is not Q4. B1 = P(X >= line)/P(X >= current), X from the pre-game distribution (recency NegBin, recalibrated; and the stored A0 grid truncated, `p_ge[k-1] = P(Y >= k)`, uncalibrated, being production-calibrated); the better of the two B1 variants on the same rows is the B1 that M must beat. Every other arm gets the same 2-parameter logistic recalibration fitted on training rows only.
+5. **Arm M.** Stage A: LightGBM regressor of regulation minutes remaining (stint-derived target) on the state. Stage B: LightGBM binary classifier (8 leaves, 200 trees, learning rate 0.05, min 200 rows per leaf, seed 0), monotone in need (-1), pregame mean, predicted remaining minutes and B0's logit (+1), then the same recalibration. One model per stat, lines pooled with `line` and `need = line - current` as features. Train 2019-2022 to score 2023 (select); train 2019-2023 to score 2024 (report). No tuning.
+6. **PRIMARY claim (pts, report season 2024; 2023 selects).** All must hold, code `in_game_line_rule.primary_verdict`: (a) 2023 point of (M - B0) and (M - B1) log loss each <= -0.005 (otherwise 2024 is not scored); (b) 2024 point <= -0.005 against B0 and against B1; (c) the binding (widest of game, player-season, ISO week) 95% CI upper bound < 0 against both; (d) top-5 player-season share of the gain <= 0.5; (e) calibration slope of recalibrated M on 2024 in [0.9, 1.1]; (f) no declared slice (blowout: |margin| >= 20 at Q3/Q4 checkpoints; last 6 minutes: e = 42) is hurt by more than 0.005 against either baseline; (g) the label-shuffled refit (training labels permuted, whole M refit) gains at most 0.001 against B0; (h) planted-future identity holds in both seasons. One primary test; the Brier score is reported, never a criterion.
+7. **Secondary (descriptive claims, own family).** reb, ast, fg3m on 2024 with floor 0.005 each, BH at 0.05 over the three paired p-values (bootstrap-based), reported with n and clustered CIs; they never rescue a failed primary and never block a passed one.
+8. **Slices, descriptive:** by quarter bucket x blowout cell, by line, by starter/bench. Nothing is claimed from a slice except the two criterion slices in 6(f).
+9. **Market.** Not in this rule; no in-game Kalshi history before 2026-10-21. The live capture from 2026-10-22 enables a later forward comparison under its own rule.
+10. **What changes in production: nothing.** A PASS is a candidate for a forward shadow against live Kalshi lines. No 2025 touch in this rule. A null closes the question "does a state model beat linear pace on pts lines" for these features; one pre-registered follow-up at most.
+
+## Known-at
+Every state feature uses events with `t <= T`, `t` = game seconds elapsed from the period and clock fields. Stints are the production lineup tracker's, whose substitution handling reads the same play-by-play. The pregame mean uses games strictly before the game date. No availability or report data is read (so no addition to `HOLDOUT_FILTERED_HARNESSES`); the second B1 reads the stored A0 files of 2023 and 2024 only. Season 2025 is never queried; every game id passes `check_game_id` before a file is opened.
+
+## Minimum-data gate (non-negotiable 8; thresholds in `in_game_line_rule.py` before any number)
+Label-free: play-by-play state, stints and the games table. One item reads minutes after a checkpoint (SHAPE, descriptive); no stat total and no box score is read.
+* **Cells.** Primary stat pts, per season, each REQUIRED (bucket, blowout) cell: Q1, Q2, Q3, Q4 normal and Q3, Q4 blowout (|margin| >= 20 at the checkpoint): distinct player-games >= 250 and distinct games >= 100 (Q1 and Q2 blowout cells and the other stats are reported, not required).
+* **Completeness (structural, per season, share of regular-season games fully reconstructed).** `full` = pbp present with four ended periods AND both teams' stints tile exactly 720 s (+- 1 s) in each of periods 1-4 AND the pbp-reconstructed team points through regulation equal the pbp's own score at the end of regulation AND the counted personal fouls equal the running foul number for >= 95% of fouling players. Bar: >= 0.95 in 2023 and 2024, >= 0.90 in 2019-2022. Also reported: each component; the share of named assists that resolve to a player id (ast readiness: >= 0.95, not a pts criterion).
+* **Detectable effect at the floor.** Null-noise arm: truth drawn from B0's own probability (a uniform per player-game, `y = U < p`: comonotone coupling, conservative about within-player-game dependence), the arm shifts the logit by an independent N(0, 0.5) per player-season; paired log-loss contrast, binding (widest of three clusterings) 95% half-width, mean over 20 seeds. **Bar (pts): mean half-width <= 0.0025 (half the floor) in BOTH 2023 and 2024.** Reported for all four stats.
+* **Positive control.** Planted per-player-season logit shift (sd 0.5) with the oracle arm: point <= -0.005 and CI upper bound < 0 in EVERY one of 5 seeds, both seasons, pts.
+* **Planted-future identity** (first 30 games of 2023 and of 2024; every event after minute 24 doubled with inflated scores and every post-24 stint rewritten): rows at checkpoints <= 24 identical, rows after differ.
+* **SHAPE (descriptive, Devin 2026-10-21 23:40; never a pass criterion).** Starters' minutes in Q3 by |margin| bucket at the end of Q2 and in Q4 by |margin| bucket at the end of Q3 ([0,10), [10,20), [20,+); leading/trailing split for >= 20), pooled over 2019-2024 and per season. Reported flags: Q3 ratio ([20,+) over [0,10)) >= 0.85 ("little or no effect through Q3") and Q4 ratio <= 0.70 ("strong in Q4"). If either flag is false the shape claim is dropped from the write-up; B0's constants are NOT changed (they are declared, and M learns the shape).
+* **Verdict words:** PASS when every check (not the descriptive ones) passes on every season, else FAIL; a FAIL means not freezable as drafted (F9, F12).
+* **Data capture audit (non-negotiable 8, second half).** Seasons held: 2022-2024 in `nba.duckdb` (pbp files `data/pbp`, stints), 2019-2021 in `data/history` (pbp files and `nba_history.duckdb` stints), 2013-2018 also in history (not used: the rule trains from 2019 so that the era matches; adding 2013-2018 is a new rule). Per-season game, pbp-file and stint counts are in the gate artifact. Repairable gaps are listed in the results (games without pbp or with stints that do not tile).
+
+## What each choice protects against
+* **Period-aware minutes rule and margin x Q4 features:** the one concrete failure on the night that motivated this (treating a Q2 blowout as a Q3 benching).
+* **Presence-by-stints, not box-score membership:** the box score knows who played; the checkpoint does not.
+* **Same recalibration for every arm, integer-grid NegBin for every count baseline:** the simulator's backtest wins vanished against a calibrated baseline (BEST_PRACTICES fair baseline).
+* **Better-of-two B1:** a model that beats a straw pre-game distribution but not the production grid has found nothing.
+* **Comonotone coupling in the power draw:** many lines and checkpoints of one player-game are nearly one observation; independent draws would overstate power.
+* **Log loss floor 0.005 and CI upper bound < 0:** practical plus statistical; Brier descriptive only.
+* **Shuffled-label refit and top-5 share:** generic residual shrink and five-player gains (T500 / ARCHETYPE_MATCHUP_ALL).
+* **Select 2023, report 2024:** the only way 2024 stays a report season.
+* **Declared digests and harness pin before any outcome is read:** the three reviews of ARCHETYPE_MATCHUP_ALL.
+
+## Kill criteria and forking paths
+Gate FAIL: not freezable as drafted. 2023 select not met: 2024 not scored (a null). Any failed primary criterion voids the claim. Declared and fixed: checkpoints, lines, constants in `in_game_line_rule.py`, the LightGBM settings, the 10-game recency window, the primary stat, 20 gate seeds. Family: one primary test; secondary family of three with BH. No other cut, line set, checkpoint set or stat subset is tried after a result.
+
+## Pending priors (written BEFORE the gate ran; the main session copies them to docs/PREDICTIONS_LEDGER.md)
+**Main session (23:25, before any rule text), verbatim:** "Gate (enough situations per stat x time-left bucket in 2019-2024 pbp to estimate calibrated probabilities with a CI half-width <= 0.03 in every pre-registered cell) passes 0.80. If frozen and run on held-out 2024: the model beats the naive 'linear pace' baseline on log loss for pts lines 0.75; beats Kalshi's in-game mid on log loss 0.15 (market prices in-game well). Blowout-minutes effect (starters' remaining minutes cut when margin >= 25 in the 4th) visible at >= 30% fewer minutes 0.85." (The gate there is a calibration half-width <= 0.03; this rule's gate is the cell counts, completeness and detectable log-loss effect above, a different quantity. The Kalshi comparison is not in this rule.)
+**Modeler (this draft).** Not blind to: the 150-game and 40-game smokes above. Blind to: all full-season gate numbers.
+* Gate PASS (every required check, both report seasons and four training seasons): **0.45** (the risk is the strict structural completeness bars: stint tiling and pts/fouls consistency in the older history seasons, not the counts).
+* Required pts cells clear the count bars in every season: **0.93**.
+* Completeness `full`: median 0.97 over seasons (80% 0.88 to 1.0); >= 0.95 in both 2023 and 2024: **0.65**; >= 0.90 in each of 2019-2022: **0.70**.
+* Ast share resolved >= 0.95 in every season: **0.75** (smoke 0.967).
+* Detectable effect pts, mean half-width: 2023 median 0.0012 (80% 0.0007 to 0.0020), 2024 similar; <= 0.0025 both: **0.92**. Binding clustering is `week` or `player_season` more often than `game`: 0.6.
+* Positive control clears in every seed, both seasons: **0.93**.
+* Planted-future identity True in both seasons: **0.97**.
+* SHAPE (NOT blind): pooled Q3 ratio median 0.92 (80% 0.80 to 1.0), flag >= 0.85 true **0.85**; Q4 ratio median 0.38 (80% 0.25 to 0.55), flag <= 0.70 true **0.95**. Leading and trailing blowout starters lose Q4 minutes within 0.5 min of each other (pooled): 0.6.
+* If frozen and run (conditional on the gate PASS): M beats B0 on 2024 pts log loss by >= 0.005 (point): **0.55**; beats the better B1 by >= 0.005: **0.30**; the whole primary pass: **0.20**. M beats B0 on 2024 reb/ast/fg3m by the floor: 0.4 / 0.4 / 0.3.
+
+## Amendment 1 (dated 2026-10-21 23:50, modeler; written after Run 1 and Run 2 of the gate and before any freeze; no threshold, bar, constant, verdict word or definition of a pass criterion touched)
+Run 1 of the gate (harness 929fc41) returned **FAIL**: (i) 2023 completeness 0.9358 < 0.95, all of it the fouls component (0.9366); (ii) 2023 planted-future identity False. Both were defects of mine, found and fixed without moving a bar:
+* **A1-1 (parser).** 2023 play-by-play carries non-personal fouls with running number 0 (`Non-Unsportsmanlike Tech Foul - Flopping (P0.T1)`), which my foul counter counted as personal (79 players over-counted by one in 2023). `foul_events` now keeps only events whose running personal-foul number is > 0. 2023 fouls consistency 0.9366 -> 0.9553. The remaining mismatches are under-counts (a personal foul missing from the feed, 13 players in 2023 before the fix), a real incompleteness, not repaired.
+* **A1-2 (determinism).** The planted-future check compared floats exactly and `minutes` (a parallel group-by sum) differed by 1e-15 between two builds of the same game. `minutes_at` now sums stint seconds, rounds to 0.01 s, divides by 60 and rounds to 1e-6; the state and its digests are deterministic (Run 2 and Run 3 are identical, below).
+Run 2 (harness after the two fixes) returned **PASS**; Run 3 (an exact repeat) reproduced every number and every digest; `in_game_line_eval digests` reproduces the 18 gate digests. Artifacts: `reports/prereg_in_game_line/gate_run1.json` (FAIL, superseded), `gate_run2.json` (governs), `.log` files alongside. 2023 clears its completeness bar by 0.0045 only: said plainly.
+
+**Declared input pins (Amendment 1; computed label-free by `python -m research.eval.in_game_line_eval digests`, twice byte-identical to the gate's `pins`; `nba.duckdb` and `nba_history.duckdb` read-only, `season <= 2024`; the A0 values equal the ARCHETYPE_MATCHUP_ALL pins of the same files).**
+```
+PIN_GAMES_2019: 5a45790eb31c493f4477b47292366353b1921e13f73a7cb9884b27871f407abc
+PIN_STINTS_2019: 902c1b838916dd94892a5f4e647825a25d776d1473e766a64c658874cf403c98
+PIN_STATE_2019: 9d5ffd7b70238c93390404da74181d7de0c1e4958924f0264570107f3d6819af
+PIN_GAMES_2020: 0e5ca756e7ad99efd0eb082a52e80437eb0ae10bb29bffaaf2215fe8107ed458
+PIN_STINTS_2020: b9218553b1203ecb1d78b25ae343dc2a0122806620f040ad558279999771c4cf
+PIN_STATE_2020: a4a5aca0933a3371ef07bd1993750f7d6ba70908edcf114bdaa37a06e05c8a92
+PIN_GAMES_2021: 1f2dcb1f01a95c788c9ce035e1d5d529078c889fbf1f63d5b3f72a6acd3e454f
+PIN_STINTS_2021: 1e110c284da4b94869e8478239b3727722c7b6cbc6dadceff8b009475393eac7
+PIN_STATE_2021: 0180b244d14b072c40d1621cab01aeaf58ba890097caf91cdf594695cc9acc5d
+PIN_GAMES_2022: a1613d9627443c1ee25cf6abea2f9be0ddaa4fc67ee348c88323508f055bd046
+PIN_STINTS_2022: b73b19e4bbe4f4b53e48e05c257628836b883cb3fc2ea5ffabc7c64988485af9
+PIN_STATE_2022: 67b5b30b65e692bccfcf6069ffa55d297d3d49b9e41c7175e81d37e30952c93a
+PIN_GAMES_2023: dc3cfc17872e4f7066413f87585dbc6d90163e4ddc1284ea55c6a69e96d020a3
+PIN_STINTS_2023: 947b1965d36b7a04fa664f0d6708868e90affbfc3026a42d847e6d644c2cb39a
+PIN_STATE_2023: 9c0cd52adcbe87937a731ef4fef695c9bf23d80557572630299aa6a56d44c6fc
+PIN_GAMES_2024: 573919338f25b53c7f599b9912a251213cb4abd4954ea303b72ba8d31727bf61
+PIN_STINTS_2024: 3ce9c798fa1b04f54a9f8836dbd778eaed2cc07115e93088027c83efb88463a0
+PIN_STATE_2024: af1c4e6e222b5689ed732e3d19fb93f42e86ea093e2f34e64a461be5a7085895
+PIN_A0_2023_pts: d0897569d99e417018c0b02bd9ae33f56819f8b42efd67ae07f91cc382d4c285
+PIN_A0_2023_reb: 337be51eb093f45b6423ce8e8f6bbdcdce65f781d177affac76445872f0aa805
+PIN_A0_2023_ast: 241cd38a0c079af34de89ad0078434cc5eefb00390f2872ca10a9c652440053e
+PIN_A0_2023_fg3m: 96e46fbb69b9c9c20d0767c1d3858afe60cd4efec7d41a03a95e6dc2ad4096fe
+PIN_A0_2024_pts: 81a66fd6d58b434c48008e2bab31cc5ca69abd4b82f6808c3e36a27d7d2a501d
+PIN_A0_2024_reb: bbb89d175623d37db91849acb56b06d72939481a88dabf1fe007077f270adc1e
+PIN_A0_2024_ast: 62bb6c7cbf796b93641deaa5aa144a240c68f3b135e200bbe2da7790c7881bcb
+PIN_A0_2024_fg3m: 6fa84bd80b83af767d587baf1b13599a1f6aba7636aff088a9883fb4f4030136
+LIB_python: 3.12.15
+LIB_polars: 1.44.2
+LIB_lightgbm: 4.7.0
+LIB_numpy: 2.5.3
+LIB_scipy: 1.18.1
+```
+
+=== RESULTS BELOW ===
+
+## Minimum-data gate: measured (Run 2, `reports/prereg_in_game_line/gate_run2.json`; label-free; read-only; `season <= 2024`; wall about 40 s a run)
+Games = pbp files = stint-covered regular-season games in every season (1,059 / 1,080 / 1,230 / 1,230 / 1,230 / 1,230 for 2019-2024; no game without a pbp file).
+
+| check | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | bar |
+|---|---|---|---|---|---|---|---|
+| `full` reconstruction (share of games) | 0.9934 | 0.9926 | 0.9846 | 0.9894 | **0.9545** | 0.9813 | >= 0.90 train, >= 0.95 2023-24 |
+| components: pbp / stints tile / pts equal / fouls | 1 / 1 / 1 / 0.9934 | 1 / 1 / 0.9991 / 0.9935 | 1 / 1 / 0.9984 / 0.9862 | 1 / 1 / 0.9992 / 0.9902 | 1 / 1 / 0.9992 / 0.9553 | 1 / 1 / 1 / 0.9813 | |
+| assists resolved to an id | 0.9733 | 0.9683 | 0.9748 | 0.9584 | 0.9617 | 0.9661 | >= 0.95 (ast readiness) |
+| pts units (all cells) | 631,348 | 627,283 | 716,405 | 714,071 | 708,702 | 716,329 | |
+| required pts cells (player-games / games) Q3 blowout | 3,575 / 179 | 4,347 / 222 | 5,464 / 281 | 3,765 / 192 | 5,192 / 266 | 5,371 / 276 | >= 250 / >= 100 |
+| Q4 blowout | 3,652 / 173 | 4,700 / 221 | 4,992 / 240 | 4,084 / 197 | 5,258 / 247 | 5,493 / 261 | >= 250 / >= 100 |
+| smallest normal cell (Q4) | 17,329 / 886 | 16,464 / 859 | 19,010 / 990 | 19,780 / 1,033 | 18,601 / 983 | 18,481 / 969 | >= 250 / >= 100 |
+| Q1 blowout (reported, not required) | 334 / 18 | 505 / 28 | 482 / 27 | 529 / 29 | 504 / 29 | 491 / 27 | |
+| pts detectable effect, 20-seed mean half-width (sd; min-max) | | | | | **0.00185** (0.00021; 0.00128-0.00212) | **0.00183** (0.00026; 0.00143-0.00245) | <= 0.0025 |
+| reb / ast / fg3m (descriptive) | | | | | 0.00206 / 0.00188 / 0.00204 | 0.00200 / 0.00191 / 0.00209 | |
+| binding clustering over seeds (pts) | | | | | player_season 20 of 20 | player_season 20 of 20 | |
+| positive control (pts, 5 seeds, points; worst CI upper bound) | | | | | -0.0086 to -0.0091; -0.0071 | -0.0089 to -0.0099; -0.0073 | point <= -0.005, upper < 0, every seed |
+| planted-future identity (30 games: before the cut identical, after differ) | | | | | True / True | True / True | True |
+
+Positive controls for reb / ast / fg3m also clear (points -0.0096 to -0.0137). **Verdict word: PASS (Run 2, every check on every season; Run 1 was FAIL, see Amendment 1).**
+SHAPE (descriptive; Devin 2026-10-21 23:40). Starters' minutes in the period after the checkpoint by |margin| bucket, ratio of [20,+) to [0,10): **Q3 (margin at the end of Q2): 0.970 / 0.977 / 0.960 / 0.971 / 0.959 / 0.989 (2019-2024); Q4 (margin at the end of Q3): 0.477 / 0.452 / 0.469 / 0.491 / 0.448 / 0.500.** Both flags true in every season (Q3 >= 0.85 and Q4 <= 0.70). 2024 detail: Q3 minutes 8.29 / 8.14 / 8.20 for margins 0-10 / 10-20 / 20+ (leading 8.38, trailing 8.03; n = 7,070 / 4,130 / 1,100 starters); Q4 minutes 7.44 / 6.45 / 3.72 (leading 3.54, trailing 3.89; n = 6,030 / 3,850 / 2,420). So Devin's reading holds in the aggregate: a Q2 blowout does not cost starters Q3 minutes, a Q3 blowout cuts their Q4 minutes by about half. The pooled-over-seasons ratio was not computed (per-season ratios above; they agree to within 0.05). B0's Q4 factor 0.5 sits on the observed ratio.
+
+## Data capture audit (non-negotiable 8, second half)
+Held: regular-season pbp parquet for 2013-2024 (`data/history/pbp` 2013-2021, `data/pbp` 2022-2025; 2025-26 files exist and were never opened: `check_game_id` refuses them), stints for 2013-2024 (`nba_history.duckdb`, `nba.duckdb`). Used: 2019-2024; 2013-2018 not used (era). No game lacked a pbp file or tiling stints in any used season. Repairable gaps: (a) 3 to 4% of named assists do not resolve to a player id (assisters printed with an initial, `D. Green`, when a team has two players of one surname): repair = join the full name from `players_static`, no network cost, code only; if left, `ast` units under-count `current ast` slightly, which biases the ast secondary claim, so ast is flagged as "ast repair first"; (b) personal fouls missing from the feed (a few players per season; 2023 worst at 4.5% of games failing the consistency check): not repairable from this source. Neither blocks the pts primary claim.
+
+## Scoring of the Pending priors (gate run; Run 1 and Run 2)
+* Gate PASS 0.45: Run 1 failed (two defects of mine), Run 2 passed. First-attempt PASS: did not happen; eventual PASS: happened.
+* Required pts cells clear in every season 0.93: happened (smallest required cell 3,575 player-games / 173 games against 250 / 100).
+* Completeness: median 0.97 (80% 0.88-1.0) vs 0.985 median over seasons (inside, high). >= 0.95 both 2023 and 2024 (0.65): Run 1 no (0.9358), Run 2 yes (0.9545, 0.9813); >= 0.90 in 2019-2022 (0.70): happened (0.985-0.993; my bar was too loose for these data).
+* Ast resolved >= 0.95 in every season 0.75: happened (0.958-0.975).
+* Detectable effect pts: 2023 median 0.0012 (80% 0.0007-0.0020) vs 0.00185 (inside, upper half); P(<= 0.0025 both) 0.92: happened. Binding clustering `week` or `player_season` more often than `game` 0.6: happened (player_season 40 of 40).
+* Positive control 0.93: happened. Planted-future 0.97: Run 1 failed in 2023 (float noise), Run 2 happened.
+* SHAPE (not blind): Q3 ratio median 0.92 (80% 0.80-1.0) vs 0.96-0.99 (inside, high); Q4 ratio median 0.38 (80% 0.25-0.55) vs 0.45-0.50 (inside, high; the 150-game smoke had shown 0.33, a small sample); both flags true (0.85, 0.95): happened. Leading and trailing blowout starters within 0.5 min in Q4 pooled (0.6): happened in 2024 (3.54 vs 3.89; other seasons not computed).
+* Calibration note: two of the gate priors (completeness, planted-future) missed because of code defects, not data: the lesson is that a structural check written in one evening needs a determinism test and a look at the non-personal event types before its first real run.
+* Frozen-test priors (0.55 / 0.30 / 0.20): not scored; the test has not run.
+
+## Open items before any freeze (said plainly)
+1. `in_game_line_eval.run` is a skeleton: after the freeze, pin and digest checks it stops with an explicit message; the unit assembly (joining finals, recency and the A0 grid onto the units, scoring, the clustered bootstrap, the slices, the shuffled refit, the BH family) is not written. The arms (`arm_probs`), `recency`, `a0_prob` and `primary_verdict` are written and tested on synthetic frames.
+2. The assist resolution repair (above) would change `PIN_STATE_*` and the harness; do it before the freeze or drop ast from the secondary family.
+3. An adversary review of this rule (not done tonight).
