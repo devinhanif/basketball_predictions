@@ -1,0 +1,201 @@
+# ARCHETYPE_MATCHUP_ALL (T507): pre-freeze adversary review, 2026-10-21
+
+Subject: `docs/prereg/ARCHETYPE_MATCHUP_ALL.md` (DRAFT, merged on `main` at b018ae2), `research/eval/archetype_matchup_all_{rule,gate,eval}.py`,
+the reused `research/eval/archetype_matchup_{rule,features,gate}.py` and `matchup_availability_features.py`, the gate artifact
+`reports/prereg_archetype_matchup_all/gate.json`, and `tests/research/eval/test_archetype_matchup_all.py`.
+Context: this is Devin's override (DECISIONS 2026-10-21 20:10) of the T506 close. Claude recommended against it. Nothing in this review
+reads an outcome. Every read is `season <= 2024`, DuckDB is opened `read_only=True`, and season 2025 is never queried, not even as a count.
+
+Pre-freeze verdict word: **NOT_READY**
+
+Verdict: BLOCKED
+
+**Top finding.** A pass can come from one stat alone. CM is the mean of four per-stat deltas, each divided by that stat's floor. No pass
+criterion limits any one stat's share of the composite (`archetype_matchup_all_rule.py:97-120`). The shares are reported but cannot fail
+anything (doc line 28). I ran a Gaussian simulation with the measured per-stat noise. A true effect in fg3m alone of -0.005 CRPS (5 fg3m floors,
+zero in the other three stats) passes criteria (b)+(c)+(d) **88%** of the time. It would be reported as a four-stat composite win.
+fg3m is the stat where small systematic changes to the grid are worth many floor units: integer support alone moved fg3m by -0.0230, which
+is 23 floors (T118). Adding a "max stat share <= 0.5" criterion stops this (0% pass) and costs under 0.1 percentage point of power when the
+effect is spread evenly.
+
+**Single most likely route to a false pass.** The arm M refit makes a small systematic change to the fg3m grid. The cause is a recalibration
+interacting with the integer grid (`ceil(q - 0.5)`) through `lambda` and the `off_arch` / `e_usual` role axis, not matchup information. That
+change is worth about 4 fg3m floors and nothing in the other stats. The shuffled control is one seed, compared on point estimates only, and
+its permuted `delta_rate` is pure noise that can take tree splits away from the role features. So the shuffle can land just under 50% of the
+gain, and the composite passes with fg3m at a 100% share. M1 plus S1 close this route.
+
+## Findings (severity, file:line, fix)
+
+### MUST (fix before the freeze commit)
+
+**M1. One stat can carry the composite claim.** `research/eval/archetype_matchup_all_rule.py:97-120` (`primary_verdict`) and doc lines 27-28.
+The +1.0 no-hurt guard limits how much a stat can lose. It does nothing about one stat providing all of the gain: fg3m -4 floors with the other
+three stats at 0 gives CM = -1.0. The share table cannot fail anything.
+Simulated pass rates, using per-stat sd = binding half-width / 1.96 (pts 1.088, reb 0.665, ast 0.652, fg3m 0.566 floor units, mean of
+2023 and 2024), stats independent, 200k draws, seed 0:
+
+| true per-stat effect (floor units) | current rule | + max share <= 0.5 | HURT_MAX 0.5 instead | at least 3 of 4 stat points < 0 |
+|---|---|---|---|---|
+| uniform -1.25 each | 0.898 | 0.897 | 0.898 | 0.898 |
+| uniform -1.5 each | 0.995 | 0.994 | 0.994 | 0.995 |
+| fg3m only -5 | **0.884** | **0.000** | 0.695 | 0.488 |
+| fg3m -5, pts +1 (pts hurt by a full floor) | 0.376 | 0.000 | 0.151 | 0.141 |
+| fg3m -4.5, ast -1 | 0.947 | 0.000 | 0.756 | 0.731 |
+| three stats -1.7, pts 0 | 0.904 | 0.892 | 0.792 | 0.904 |
+| ast and fg3m -3 each | 0.961 | 0.311 | 0.760 | 0.732 |
+
+Fix: add criterion (g) `max_s stat_shares(parts_2024)[s] <= MAX_STAT_SHARE = 0.5` (fails when CM >= 0). Put it in the rule text item 5,
+add a constant in `archetype_matchup_all_rule.py`, add a line in `primary_verdict`, and add a test case (fg3m-only parts fail). Keep
+HURT_MAX at 1.0. With (g) in place, lowering it adds little and costs power in the three-stat case (0.90 to 0.79).
+
+**M2. The off_arch category labels change meaning between 2023 and 2024, and the 2024 training pool holds 2023 rows.** The cause is
+`matchup_availability_features.py` `assign_archetypes` (labels ordered by the cluster mean of `pts36`) and `build_archetypes`, which
+re-clusters every season. The doc says (ARCHETYPE_MATCHUP.md line 22, inherited here) that arm M trains "on rows of strictly earlier months
+only (2023 rows are in the pool for 2024)", with `off_arch` as a categorical feature. I measured the labels label-free for the 336 players
+clustered in both seasons:
+- offense labels agree for only 0.622 of players. Labels 4 and 5 are swapped: 36 of 42 players labelled 4 in 2023 are labelled 5 in 2024,
+  and 33 of 36 labelled 5 become 4;
+- defense labels agree for 0.595, with label 1 to 2 and label 2 to 1 drifts.
+Early in 2024 the training pool is almost all 2023 rows. A tree split learned on 2023 label 4 is then applied to 2024 label 4, which is a
+different archetype. This is not a false-pass route; it pushes toward a null. But it makes the test invalid, and an invalid test is not a null
+(playbook). The doc also declares this the last matchup variant, so a null caused by a labelling artifact would close the idea for good.
+Defender labels enter only through season-specific tables (`e_usual`), and the unknown index (6) is stable across seasons, so only the raw
+`off_arch` category is affected.
+Fix (safe default): align each season's labels to the previous season's before use. Use Hungarian matching on the crosstab of players
+present in both seasons (or on the centroids). Add a test that the aligned 2023/2024 offense labels agree for at least 0.8 of players.
+Alternative: drop raw `off_arch` from the layer, since `e_usual` already carries 96% of it (see S2). That changes the declared T506 feature
+set, so it is Devin's call.
+
+**M3. Arm M, the shuffled refit and the knockouts are not built, and the freeze pins only the doc text.** `archetype_matchup_all_eval.py:29-60`
+refuses and says "build it behind the frozen rule". `require_frozen` hashes the doc only, not `rule.py`, `features.py` or the gate and eval
+code (the features module is shared with T505 and T506). No LightGBM constant exists in code (grep for num_leaves, learning_rate and lightgbm
+in the five modules: none). Choices still open, all of which would be made after the freeze by a hand that can read outcomes:
+- treatment of the first month: no earlier month exists for October 2023. Is lambda set to 1, the row scored as A0, or the row excluded?
+- what "A0's mean" is: the mean of the 199-point integer grid, the stored `c`, or the continuous mean;
+- whether `off_arch` is passed as LightGBM `categorical_feature` or as an integer;
+- `boost_from_average`, deterministic and threading flags;
+- whether the 2023 pool is 2023 earlier months only.
+Fix: before freezing, implement arm M, the shuffled refit (all four stats) and the knockouts. Add a synthetic test: zero features give lambda
+== 1 and a CRPS delta of exactly 0, and a planted feature-driven shift is recovered. Then commit a harness pin
+(`harness(ARCHETYPE_MATCHUP_ALL): <pin>`, the `preseason_role_prior.require_harness_pinned` pattern at
+`research/archive/preseason_role_prior/preseason_role_prior.py:162-197`) and make `run` require both commits.
+
+**M4. The doc's kill list and the coded verdict disagree.** Doc line 65 (Kill criteria) says the claim is voided by (i) planted-future identity
+failing and (ii) "a flagged missingness column that predicts realised minutes AND carries the gain in its knockout". Neither is in
+`primary_verdict` (`rule.py:97-120`). Doc line 27 says the code is `primary_verdict`, and doc line 29(e) calls the knockouts "descriptive".
+"Predicts realised minutes" and "carries the gain" have no numbers. Also, `primary_verdict` does not say which season its
+`stat_points_floor_units`, `top5_share` and `shuffled_cm_point` come from.
+Fix: either encode (ii) with numbers in `primary_verdict` (for example: missingness gap >= 0.30 against realised minutes < 5 vs >= 28, AND
+the knockout of that column's block keeps < 50% of the 2024 gain), or delete it from line 65. Make 7(e) and line 65 agree. Add "all on 2024"
+to item 5 and to the docstring.
+
+### SHOULD
+
+**S1. The shuffled control is one seed, compared on point estimates, and it is a weak perturbation.** Doc line 27(f), `rule.py:114`.
+I measured how much the defender-label permutation (seed 0) changes each feature (2023, n 25,815, label-free). Correlation between real and
+shuffled values: `retained` 1.000, `e_usual` 0.909, `def_unknown_share` 0.892, `shift_l1` 0.793, `delta_rate` -0.012; `off_arch` is not
+shuffled at all. So (f) amounts to "the gain is carried by `delta_rate` and the opponent-specific part of the mix". That is a good attribution
+test, but say it in the text. With CM <= -1 and shuffle < 0.5 x gain, the matchup-specific part (M minus shuffle) can be as small as 0.5
+floor units, and it never gets a CI.
+Fix: use the mean over 5 shuffle seeds (0-4) in (f), and report the clustered paired CI of (M minus shuffle-mean) as a descriptive number.
+The playbook asks for shuffle guards sized from a null; a 50% point threshold is not sized.
+
+**S2. `off_arch` and `e_usual` encode the scorer's identity, so the declared "off_arch dropped" knockout does not remove it.** The
+between-category share of variance of `e_usual` on `off_arch` is **0.964** (on player-season 0.964). For `def_unknown_share` it is 0.177.
+`corr(e_usual, min10)` = 0.517.
+Leak status: **not a leak.** "Unknown" depends on the prior season's minutes (unknown share by `n_prior` quartile 0.674 / 0.046 / 0.003 /
+0.000) and on static data. It is knowable before tip, and A0 already holds `n_prior`. This is not the `opp_adjusted_ridge` pattern, whose
+NULL was a function of tonight's minutes. An explicit category is fine as a leak matter.
+It is still a role axis, and the residual layer can learn role from it ("does the arm only re-express the base?", playbook).
+Fix (concrete pre-freeze guard): replace knockout 7(e) "off_arch dropped" with a mandatory, reported knockout of the **identity block
+{off_arch, e_usual}**. Also add a descriptive identity-only arm: A0 plus `off_arch` plus `e_lg[a] = sum_b A[a,b] R[a,b] - lg`, refit
+identically. If the identity-only arm keeps >= 50% of M's 2024 gain, the claim is voided (or at least labelled "role, not matchup"). Write the
+threshold before the freeze.
+
+**S3. The planted-future check perturbs values only.** `archetype_matchup_gate.py:174-211` scales `mm`, `poss` and `pts` after the cut. It does
+not insert future rows: a new defender, a team change, or an OUT row whose `as_of` is after tip. My reading of `roster_candidates`, `team_at`
+and `decayed_asof` (all strictly before the day) finds no leak, but the test does not prove it.
+Fix: add planted-row insertion and a planted post-tip OUT row (the features must be identical before the cut). `archetype_matchup_all_gate.py:314`,
+`chk("season 2025 loaded", False, "never", True)`, always passes. Replace it with an assertion on `max(mu.season)`, `max(games.season)` and the
+model_rows seasons read.
+
+**S4. The select step is harder than the report step.** `rule.py:109`. The 2023 fit has fewer earlier months than 2024, and October has none,
+so (a) is a stricter hurdle than (b). The playbook notes a 2023 select season trains on about one season. This is conservative (false-null
+risk), not a false-pass risk. State it in the doc so a 2023-only stop is read as weak evidence.
+
+### NIT
+
+- N1. Times: doc line 3 says "20:30 CDT" and DECISIONS line 1363 says "20:10", but the commits are 07f43de 19:41, 96159e5 19:47 and
+  f8f2d53 19:52 (-0500 = CDT). The text claims times after the commits that contain it. The commit order is right (decisions, then draft,
+  then gate); correct the times.
+- N2. `archetype_matchup_all_gate.py:292`: `k if k != "player_seasons" else "player_seasons"` is a no-op.
+- N3. CIs come from `nba.props.metrics._clustered_boot_means` via `role_prior_salary_eval.boot_ci`, not `nba/truth/bootstrap.py` (which does
+  not exist yet). Project-wide, not specific to this rule.
+- N4. `players_static.position` is a current snapshot and is used to cluster prior-season stats, so it is not as-of. Low impact.
+
+## The six checks and the inference checks
+
+| check | command / evidence | n | result | pass/fail |
+|---|---|---|---|---|
+| 1 shuffled labels | not applicable before a fit; design reviewed (S1) | n/a | the shuffle keeps most feature content; one seed, point estimates only | design: SHOULD fix |
+| 2 planted future | gate.json (T506 code): identical True | 1,597 / 1,589 query rows; 114,686 / 116,273 events | values only, no row insertion (S3) | pass, incomplete |
+| 2b lag +1 day | code reading: every as-of uses `searchsorted(..., side="left")` (strictly before); OUT set at T-60, `tip_source="real"` | n/a | nothing sits at tip except the pre-tip OUT set | pass (by reading) |
+| 3 missingness | gate.json missingness + attack_identity.py | 25,815 (2023) | only `off_arch` flagged (gap 0.641 / 0.609); `e_usual` is 96.4% explained by `off_arch`; unknown tracks prior-season experience, not tonight | not a leak; role proxy (S2) |
+| 4 knockout | design reviewed | n/a | the "off_arch dropped" knockout is not a knockout (`e_usual` re-encodes it) | SHOULD fix (S2) |
+| 5 replication | not applicable before a fit | n/a | the select/report swap is built in | n/a |
+| 6 integer support | A0 from the stored grid (`quantile_grid`), arm re-served with `ceil(q - 0.5)`; A0 reproduction ok in `reports/prereg_preseason_role_prior/check.json` and `reports/prereg_role_prior_salary/gate.json` for all 8 season-stat files (same sha256 pins as this gate) | 27,619 / 27,583 stored (all game types) | same support for every arm | pass |
+| row set | gate.json `row_sets_four_stats` | 25,815 / 25,649; 551 player-seasons; 0 dropped | 002 only; four-stat intersection is identical | pass |
+| forking paths | `git log` over the three docs and the harness; `git diff 96159e5 b018ae2 -- research/` (empty); `git diff 96159e5 f8f2d53` (doc: status, Amendment 1, results only) | n/a | no T507 choice is outcome-informed: T505 and T506 stopped at label-free gates, and the stats, floors, bars and guards were fixed before T507's gate (stated as "knew per-stat power"). The family actually run on outcomes is 0 tests. | pass |
+| holdout | pytest below; module source scan (`test_no_2025_and_no_label_columns_in_modules`) | n/a | no 2025 query; `read_flagged` is in the holdout-filter list | pass |
+| rule integrity | eval.py:29-47 | n/a | the freeze pins the doc but not the code (M3) | MUST fix |
+| power | gate.json | 25.8k rows, 551 player-seasons | CM detectable half-width 0.400 / 0.390 floor units, MDE80 0.572 / 0.557; pass line 2.5 half-widths from 0 | powered |
+
+Corrected family: one test (CM, 2024). No outcome has been seen by T505, T506 or T507, so there is nothing to BH-correct. If M1's (g) and
+S2's identity guard are added, they are pass conditions, not extra tests.
+Power note: the composite can see -1.0 (MDE80 about 0.57 floor units). pts alone cannot (1.08-1.10 floor units half-width). A null is
+"tested at adequate power" only after M2 is fixed.
+
+## Playbook check (class: GBM context-residual layer with a categorical table input, plus a quantile rescale; four stats)
+
+1. Information or capacity: information in principle (who is OUT on the opposing side, before tip). Measured: two of the six features
+   (`off_arch`, `e_usual`) are scorer identity, not opponent. Only `delta_rate`, `shift_l1`, `retained` and the residual of `e_usual` carry
+   the opponent. Capacity is small.
+2. Enough data for the class: rows are ample (about 25.7k per stat-season). The binding limit is 551 player-seasons, which the composite
+   handles. The 2023 select fit trains on less than one season (S4).
+3. Test validity: integer support, real tips, row set and power: pass. Invalid as drafted: off_arch label drift across the pooled seasons
+   (M2), and the arm is unbuilt and unpinned (M3).
+4. Lineage and inherited guards: T505/T506 code (`opp_adjusted_ridge` NULL-pattern lesson; audited, not that pattern), T500 three-way
+   clustering, top-5, positive control. Not inherited: the playbook's "shuffle guards sized from a null" (S1).
+5. Scored against: A0 (stored production OOF, reproduced exactly) on whole-distribution integer CRPS; no line value claimed.
+
+## Commands run (all exit codes shown; none piped through tail or head)
+
+- `.venv-1/bin/python -m pytest -q tests/research/eval/test_archetype_matchup_all.py tests/eval/test_holdout_source_filter.py`: **47 passed, exit 0**
+  (`.venv` has no pytest; `.venv-1` does).
+- `NBA_DATA_ROOT=... PYTHONPATH=... .venv/bin/python -W ignore <scratch>/attack_identity.py 2023`: exit 0, wall 2.2 s (read-only; 2023;
+  label-free). Output: the R2, shuffle-correlation and unknown-by-n_prior numbers above.
+- `... .venv/bin/python -W ignore <scratch>/arch_align.py`: exit 0 (archetype label crosstab, 2023 vs 2024, 336 players).
+- `.venv/bin/python -W ignore <scratch>/guard_sim.py`: exit 0 (M1 table; Gaussian, seed 0, 200k draws).
+- `git log` / `git diff` as in the table.
+The gate was **not re-run**: the harness is unchanged since 96159e5, and I re-derived what mattered label-free.
+Scratch: `/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/a8c0c6c7-1aa4-4298-8df3-e647137be187/scratchpad/`.
+
+## Not verified
+
+- Arm M's behaviour: it does not exist yet.
+- `flagged_from_availability`'s T-60 cut: production code, tested elsewhere; not re-attacked here.
+- Whether the stored A0 OOF equals the live production model: the project convention is accepted.
+- Correlation between stats in M1's simulation (assumed independent). pts and fg3m are positively correlated, which widens the composite a
+  little; it does not change the one-stat-carry conclusion.
+
+## Recommended changes (for the main session; none applied by me)
+
+1. M1: add the (g) share criterion. 2. M2: align archetype labels across seasons (or Devin chooses to drop raw `off_arch`).
+3. M3: build arm M, the shuffle and the knockouts; synthetic tests; harness pin; `run` requires both commits. 4. M4: reconcile the kill list
+with `primary_verdict`; seasons explicit. 5. S1-S4 as written. After these, re-run the label-free gate only if a gated quantity changed (M2
+changes features, so re-run planted-future and missingness), then freeze.
+
+## Drafted rows (not appended)
+
+- TEST_LEDGER (under T507): `| T507-review | 2026-10-21 | ARCHETYPE_MATCHUP_ALL pre-freeze adversary review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md) | label-free | NOT_READY: one-stat carry (fg3m-only -5 floors passes 88% simulated), off_arch labels swap across seasons (offense agreement 0.622), arm unbuilt and unpinned, kill list vs code mismatch | n/a | n/a | n/a | n/a | BLOCKED pre-freeze | not holdout |`
+- DECISIONS: none drafted. Choosing between aligning and dropping `off_arch` (M2) is Devin's call; safe default: align.
