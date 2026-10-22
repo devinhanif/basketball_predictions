@@ -1,6 +1,6 @@
 # ARCHETYPE_MATCHUP: when the defenders a scorer would face tonight, given his archetype and the normal utilization of each opposing defender, differ from his usual mix, does a categorical expected-matchup layer beat the production forecast? (pre-registration)
 
-Status: **DRAFT 2026-10-21 19:15 CDT, modeler, branch `agent/modeler-archetype-matchup` off `main` 6777f3d. NOT FROZEN; hash not taken; no arm fitted; no arm scored on any real outcome.** The label-free minimum-data gate is run only after the commit that carries this document, the thresholds in code and the Pending priors below. Model class: **a small tabular residual layer (LightGBM, 4 leaves) on top of the stored production forecast (the GBM context-residual layer), with a categorical archetype-mix table as input**; closest classes in docs/MODEL_PLAYBOOK.md: "Gradient-boosted trees (LightGBM context residual)" plus "Quantile and distribution layers" (the layer rescales the served quantile grid, as T500 and ROLE_PRIOR_SALARY).
+Status: **DRAFT 2026-10-21 19:15 CDT, modeler, branch `agent/modeler-archetype-matchup` off `main` 6777f3d. NOT FROZEN; hash not taken; no arm fitted; no arm scored on any real outcome.** The label-free minimum-data gate was run after the commit that carried this document, the thresholds in code and the Pending priors (273217b), and again after Amendment 1 (aefdead). **Gate verdict: FAIL on power (T1 pts detectable effect 0.0074 in 2023 and 0.0055 in 2024 against the 0.005 bar; T2 0.0147 and 0.0125; every count bar cleared, planted-future identity and positive control passed). Under non-negotiable 8 this rule is not freezable as drafted: STOPPED AT THE GATE; per 'Relation to T505' the matchup idea is closed unless Devin overrides.** Model class: **a small tabular residual layer (LightGBM, 4 leaves) on top of the stored production forecast (the GBM context-residual layer), with a categorical archetype-mix table as input**; closest classes in docs/MODEL_PLAYBOOK.md: "Gradient-boosted trees (LightGBM context residual)" plus "Quantile and distribution layers" (the layer rescales the served quantile grid, as T500 and ROLE_PRIOR_SALARY).
 
 **Advice or momentum.** Devin's override and the ONE follow-up allowed to T505: DECISIONS 2026-10-21 19:15 (ARCHETYPE_MATCHUP as the one follow-up to T505). Claude's own record argues against it (team-level defense null, archetype-only ideas M3A and T042 tiny or unproven, T505 stopped at the gate), so the priors below are low, and the gate is expected to fail on 2024 (see 'Known before the gate').
 
@@ -49,6 +49,54 @@ Bars, constants, verdict words and the test definitions are unchanged. Not blind
 ## Known before the gate (said plainly, so it is not a surprise)
 T505's gate measured the null-noise half-width on 24,473 (2023) and 24,150 (2024) non-S1/S2 rows: 0.0052 and 0.0068 (binding clustering: player-season). T1 here is 27,619 and 27,583 rows over about the same ~500 player-seasons; the binding half-width scales with the number of player-seasons more than rows, so **2024 is expected to miss 0.005 and the rule is expected to FAIL its own gate**. The bar was not moved to fit that expectation: the bar is the practical floor (CRPS <= -0.005) and a test that cannot detect the floor cannot be frozen (F9, F12). If the gate fails, the closing statement is "untestable at 2023-24 sizes", not "no effect".
 
+## Minimum-data gate: measured (run 2, harness aefdead; `reports/prereg_archetype_matchup/gate.json`; label-free; data: `nba.duckdb` read-only, `season <= 2024`, A0 files pinned by sha256 in the artifact)
+Rows are regular-season A0 rows (game-id prefix 002). Detectable effect = binding half-width of the null-noise contrast (sigma 0.05), pts, bar 0.005.
+
+| season | test | rows | player-seasons | games | weeks | half-width game / player-season / week | detectable effect (binding) | MDE80 | counts | power |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2023 | T1 | 25,815 | 551 | 1,230 | 25 | 0.0044 / 0.0074 / 0.0033 | **0.0074 (player-season)** | 0.0106 | pass | FAIL |
+| 2023 | T2 | 2,583 | 486 | 496 | 25 | 0.0132 / 0.0147 / 0.0136 | **0.0147 (player-season)** | 0.0210 | pass | FAIL |
+| 2024 | T1 | 25,649 | 551 | 1,225 | 25 | 0.0045 / 0.0053 / 0.0055 | **0.0055 (week)** | 0.0078 | pass | FAIL |
+| 2024 | T2 | 3,769 | 511 | 616 | 25 | 0.0125 / 0.0117 / 0.0117 | **0.0125 (game)** | 0.0179 | pass | FAIL |
+
+T2 cut from 2023: `shift_l1` 0.90 quantile = 0.325 (above the 0.05 floor), so T2 is 10.0% of 2023 rows and 14.7% of 2024 rows (2024 shifts are larger: its 0.90 quantile is 0.376). T2 complement detectable effect (pts): 0.0062 (2023), 0.0056 (2024). Secondary stats, T1 (noise arm, descriptive): ast 0.0016 / 0.0014 against the 0.002 floor; fg3m 0.0006 / 0.0005 against the 0.001 floor; T2 ast 0.0034 / 0.0030, fg3m 0.0014 / 0.0013. Positive control (oracle sd 0.20, T1 pts): 2023 binding CI [-0.337, -0.209], 2024 [-0.297, -0.182]: clears in both. Planted-future identity on the real table: True in both seasons (1,597 / 1,589 rows before the cut; 114,686 / 116,273 events scaled). Row sets identical across pts/ast/fg3m: True. NaN feature cells: 0.
+
+Utilization and shift (descriptive): `no_roster` 1.15% / 1.21% of rows; usable report in 99.9% / 100% of rows' games; mean roster 11.2 / 10.9 defenders; rows with at least one opposing roster player OUT 63.8% / 67.4%; shift exactly 0 for 36.2% / 32.6%; median shift 0.111 / 0.147; mean |delta_rate| 0.0030 / 0.0035 pts per partial possession (about 0.3 pts per 100 partial possessions: small); archetype sizes in the artifact. Offensive archetype unknown for 18.2% / 21.3% of rows.
+
+Missingness audit (neutral-or-missing share by `min10` bucket; flagged if the `lt10` vs `ge28` gap >= 0.30):
+
+| column (neutral value) | 2023 lt10 / 10-20 / 20-28 / ge28 | gap | 2024 lt10 / 10-20 / 20-28 / ge28 | gap | flagged |
+|---|---|---|---|---|---|
+| `off_arch` (unknown) | 0.690 / 0.227 / 0.118 / 0.050 | 0.641 | 0.633 / 0.320 / 0.174 / 0.023 | 0.609 | **yes, both** |
+| `e_usual` (no roster) | 0.007 / 0.009 / 0.013 / 0.014 | 0.007 | 0.013 / 0.009 / 0.010 / 0.016 | 0.004 | no |
+| `delta_rate`, `shift_l1`, `retained` (no change) | 0.362 / 0.352 / 0.364 / 0.368 | 0.007 | 0.299 / 0.323 / 0.328 / 0.336 | 0.036 | no |
+| `def_unknown_share` (>= 0.5) | 0.143 / 0.056 / 0.034 / 0.020 | 0.123 | 0.179 / 0.094 / 0.059 / 0.018 | 0.161 | no (moderate gradient) |
+| game has no usable report | 0.000 / 0.000 / 0.001 / 0.001 | 0.001 | 0.000 / 0.000 / 0.000 / 0.000 | 0.000 | no |
+
+The only flagged column is the scorer's unknown offensive archetype, which tracks role exactly as T505 found (64-69% of `min10 < 10` rows, 2-5% of `min10 >= 28`). It is a role proxy by construction (clustering needs 300 prior-season minutes); its knockout is in the rule (8e). Everything that depends on the opposing roster and the report is flat across minutes buckets, i.e. no 10-08 signature in the new matchup columns.
+
+**Verdict word: FAIL (T1 detectable effect misses the bar in both seasons; T2 misses it by a wider margin, as a subset must).** No bar, constant or definition was edited after a number was seen; the two defects of run 1 are Amendment 1, fixed before run 2.
+
+**Data capture audit (measured, this gate's `capture_audit`).** Matchup rows in `nba.duckdb`: 229,185 (2022), 230,877 (2023), 232,844 (2024) over 1,230 / 1,228 / 1,230 games; `nba_history.duckdb` matchup rows for seasons <= 2021: 0; regular-season games 1,230 per season; games with a usable report 1,230 / 1,229 / 1,228. Repairs and cost: 2019-2021 matchup backfill (~3,700 requests, hours, endpoint unverified) adds history for archetypes but no 2023/2024 rows; pooling 2022-2024 test seasons would add player-seasons (the binding cluster count) but is a new id. The capture is complete for the seasons this rule can use; the failure is statistical power at the pts bar, not missing data.
+
+**What the numbers say, plainly.** T1 has 10x the rows of T505's slices and still misses: the binding half-width is set by the ~550 player-seasons and ISO weeks, not by rows (T505's 24k-row control: 0.0052 / 0.0068; run 1 with playoff rows: 0.0078 / 0.0054; this run 0.0074 / 0.0055). The noise arm is one seeded draw, so the half-width itself moves by tens of percent between near-identical row sets; 2024 sits at the bar's edge (0.0055 vs 0.005), 2023 does not. A pts floor of 0.005 on CRPS is simply not resolvable at about 550 player-seasons; the same power method says ast (0.0014-0.0016 vs floor 0.002) and fg3m (0.0005-0.0006 vs floor 0.001) would be resolvable, but pts is the rule's primary, chosen before any number.
+
+## Prior check (the Pending and Amended priors above were committed before the run they refer to; scoring them)
+* T1 counts clear: predicted 0.99, happened. T1 detectable effect: amended 2023 median 0.0075 (80% 0.0055-0.0095) vs 0.0074 (inside); 2024 median 0.0056 (80% 0.0045-0.0070) vs 0.0055 (inside); P(<= 0.005 both) 0.03: did not happen. Binding clustering player-season (original P 0.75): 1 of 2 seasons (2024 binds on ISO week, 0.0055 vs 0.0053 for player-season).
+* T2: cut above the floor, predicted 0.80, happened (0.325). T2 rows median 2,500 (80% 1,200-4,000): 2,583 and 3,769 (inside). T2 detectable effect median 0.013 (80% 0.009-0.020): 0.0147 and 0.0125 (inside); P(<= 0.005) 0.02: did not happen.
+* Gate verdict FAIL predicted 0.93 (original) / 0.965 (amended): happened.
+* `no_roster` < 3%: original 0.90 (run 1 gave 7.6-8.1% because playoff rows were in; the amended 0.80 held at 1.2%). Opposing OUT share median 0.40 (80% 0.20-0.60): MISS, observed 0.64-0.67 (rotation players with report OUTs are commoner than guessed). Shift exactly 0 median 0.60: MISS, observed 0.33-0.36. `n_roster` median 11 (80% 9-14): 11.2 / 10.9 inside.
+* Missingness: `off_arch` flagged, predicted 0.90: happened. Other column flagged, predicted 0.10: did not happen. No NaN cell 0.99: happened.
+* Planted-future identity: original 0.98, run 1 FAILED (a float32 groupby, Amendment 1); amended 0.95, held in run 2. Positive control 0.97: happened. Row sets identical 0.97: happened.
+* Overall: counts and verdict were well called; the playoff-row contamination (inherited from T505's description of the A0 files) and the float32 artifact were harness defects, caught by the gate checks; the OUT-frequency guesses were miscalibrated (too low).
+
+## Decisions for Devin (nothing below is changed by me)
+1. **Close or override.** The rule says a failure closes the matchup idea (T505 + this one follow-up). Default: close; record "untestable at the pts floor with ~550 player-seasons per season", not "no effect".
+2. **If you want to keep going anyway** (your call, logged as an override): the only repairs that change power are (a) a new id that pools 2022-2024 test seasons (more player-seasons), or (b) a new id with ast or fg3m as the primary stat (the same power method says they resolve their floors). Both are new questions after seeing a power table, so (b) in particular is a forking path; I recommend against it and would want the adversary on it first.
+3. **k = 6 for both archetype layers, the roster window and the lift clip** are fixed untuned choices; none matter if the rule is not frozen.
+4. **The 2025 touch.** None.
+5. **Caveat on T505's closed record:** its row counts (27,619 / 27,583) include 1,804-1,934 playoff and play-in rows; its slices S1/S2 are almost certainly regular-season (playoff rows had no opposing-team match) but its S3 control count and the "regular season" label are inexact. Not re-run.
+
 ## Playbook check (docs/MODEL_PLAYBOOK.md; class: GBM residual layer, plus a categorical table input)
 1. **Information or capacity?** Information in principle (who is OUT on the opposing side is a pre-tip fact the production model does not use for defenders); capacity is small (4 leaves, 6 features). Honest reading: A0 already holds the scorer's recency and usage, team-level defense was null (T434-T435, T439), most prop error is minutes, and a 5-to-7-category mix averages away exactly the identity detail a primary-defender story depends on. Expected information gain near zero.
 2. **Enough data for the class?** A 4-leaf tree on ~27k rows is fine for fitting; the limit is the number of player-seasons (~500) the clustered CI is made of, which is why the gate is a power gate. k-means with k = 6 on 300-500 players per season is thin but unsupervised and fixed.
@@ -82,7 +130,7 @@ Declared and fixed: k = 6/6, archetype features, roster window (10 games, 30 day
 ## Run history
 * Draft with Pending priors and thresholds in code: commit 273217b. The gate had not been run at that commit.
 * Gate run 1 (against 273217b): VERDICT FAIL; planted-future identity failed (dtype artifact) and playoff rows were included; led to Amendment 1; no bar edited. Artifact `gate_run1.json`.
-* (gate run 2 follows Amendment 1)
+* Gate run 2 (harness aefdead): VERDICT FAIL on power (see 'Minimum-data gate: measured'); planted-future identity passes; no bar or threshold edited; rule not freezable as drafted; the matchup idea is closed under 'Relation to T505' unless Devin overrides. Wall 16 s.
 
 ## Not measured, said plainly
 Arm M's effect on any outcome; the missingness audit against tonight's minutes; whether `percentage_defender_total_time` would give better utilization than `matchup_minutes`; switch-adjusted assignment; whether a Questionable-only report gives a complete OUT list; 2019-2021 matchups; the scorer's own-team absences (production already prices them); any line-level value.
