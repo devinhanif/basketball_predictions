@@ -81,7 +81,7 @@ SLOPE_RANGE = (
     1.1,
 )  # calibration slope of the recalibrated arm M on the report season (descriptive stat is logit-slope of y on logit p)
 TOP5_SHARE_MAX = 0.5
-SHUFFLE_GAIN_MAX = 0.001  # the label-shuffled refit may gain at most this much log loss against B0 (it should gain nothing)
+M0_MARGIN = 0.0025  # Amendment 3 (M3): M must beat the re-expression control M0 (same LightGBM on b0_logit, e, line, need only) by at least this, CI upper < 0
 SLICE_HURT_MAX = 0.005  # no declared slice may be hurt by more than this against either baseline
 BH_Q = 0.05  # secondary family: reb, ast, fg3m on the report season
 
@@ -357,13 +357,15 @@ def primary_verdict(
     report_top5_share: float,
     report_slope: float,
     slice_deltas: dict[str, float],
-    shuffled_gain_vs_b0: float,
+    report_vs_m0: dict[str, Any],
     planted_future_ok: bool,
+    truncation_ok: bool,
 ) -> dict[str, Any]:
     """The only primary claim (pts, report season 2024; 2023 selects). ``select_*`` are the 2023 point estimates of the log-loss delta (arm M minus
-    baseline, negative = gain); ``report_vs_*`` are ``binding_ci`` dicts on 2024; ``slice_deltas`` are the worst-case (max over the two
-    baselines) 2024 slice deltas; ``shuffled_gain_vs_b0`` is the gain (positive = better than B0) of the label-shuffled refit. A failed criterion
-    voids the claim; there is no partial pass."""
+    the BINDING baseline, negative = gain); ``report_vs_*`` are ``binding_ci`` dicts on 2024 against the binding B0 (the better of the pooled and the
+    per-checkpoint recalibrated B0) and the binding B1 (the best of the pooled, per-checkpoint and stored-grid B1); ``slice_deltas`` are the worst-case
+    (max over the two binding baselines) 2024 slice deltas; ``report_vs_m0`` is M minus the re-expression control M0. ``planted_future_ok`` and
+    ``truncation_ok`` must hold in both seasons. A failed criterion voids the claim; there is no partial pass."""
     f = FLOORS[PRIMARY]
     crit = {
         "select_point_vs_b0": select_vs_b0 <= -f,
@@ -375,8 +377,10 @@ def primary_verdict(
         "top5_share": report_top5_share <= TOP5_SHARE_MAX,
         "calibration_slope": SLOPE_RANGE[0] <= report_slope <= SLOPE_RANGE[1],
         "no_slice_hurt": all(v <= SLICE_HURT_MAX for v in slice_deltas.values()),
-        "shuffled_control": shuffled_gain_vs_b0 <= SHUFFLE_GAIN_MAX,
+        "beats_reexpression_control_m0": report_vs_m0["point"] <= -M0_MARGIN
+        and report_vs_m0["hi"] < 0.0,
         "planted_future_identical": bool(planted_future_ok),
+        "truncation_identical": bool(truncation_ok),
     }
     return {
         "criteria": crit,
@@ -396,7 +400,7 @@ HARNESS_FILES: tuple[str, ...] = (
     "research/eval/in_game_line_eval.py",
 )
 # Modules a number can depend on that are NOT byte-pinned: library versions are declared (LIB_*) and asserted before any outcome is read.
-LIB_NAMES = ("python", "polars", "lightgbm", "numpy", "scipy")
+LIB_NAMES = ("python", "polars", "lightgbm", "numpy", "scipy", "duckdb")
 _DECL = re.compile(r"^((?:PIN|LIB)_[A-Za-z0-9_.]+): (\S+)$")
 
 
@@ -484,6 +488,7 @@ def require_harness_pinned(
 def versions() -> dict[str, str]:
     import sys
 
+    import duckdb
     import lightgbm
     import numpy
     import polars
@@ -495,6 +500,7 @@ def versions() -> dict[str, str]:
         "LIB_lightgbm": lightgbm.__version__,
         "LIB_numpy": numpy.__version__,
         "LIB_scipy": scipy.__version__,
+        "LIB_duckdb": duckdb.__version__,
     }
 
 

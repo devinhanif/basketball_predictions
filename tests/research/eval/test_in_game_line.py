@@ -146,6 +146,9 @@ def _synthetic() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame
 
     ev_("PT12M00.00S", 1, 0, 0, "", "period", "Start of 1st Period", "start", sh="0", sa="0")
     ev_(
+        "PT11M30.00S", 1, H, 2, "Bob", "Rebound", "Bob REBOUND"
+    )  # Bob is seen before his assist (the dictionary is causal)
+    ev_(
         "PT11M00.00S",
         1,
         H,
@@ -260,6 +263,7 @@ def test_gate_verdict_logic() -> None:
     res = {
         "seasons": {"2023": season, "2024": season},
         "planted_future": {"2023": {"identical_before_cut": True, "later_rows_differ": True}},
+        "truncation_identity": {"2023": {"identical": True}},
     }
     assert gate.verdict(res)["word"] == "PASS"
     bad = {
@@ -285,8 +289,9 @@ def test_primary_verdict_requires_everything() -> None:
         report_top5_share=0.2,
         report_slope=1.0,
         slice_deltas={"blowout": 0.0},
-        shuffled_gain_vs_b0=0.0,
+        report_vs_m0={"point": -0.004, "hi": -0.001},
         planted_future_ok=True,
+        truncation_ok=True,
     )
     assert rule.primary_verdict(**kw)["pass"]  # type: ignore[arg-type]
     assert rule.primary_verdict(**{**kw, "report_vs_b1": {"point": -0.006, "hi": 0.001}})[
@@ -295,6 +300,17 @@ def test_primary_verdict_requires_everything() -> None:
     assert (
         "no_slice_hurt" in rule.primary_verdict(**{**kw, "slice_deltas": {"last6": 0.02}})["failed"]
     )  # type: ignore[arg-type]
+    # M3: the re-expression control can fire (point too small, or CI touching zero), which the shuffle never could
+    assert rule.primary_verdict(**{**kw, "report_vs_m0": {"point": -0.001, "hi": -0.0005}})[
+        "failed"
+    ] == ["beats_reexpression_control_m0"]  # type: ignore[arg-type]
+    assert rule.primary_verdict(**{**kw, "report_vs_m0": {"point": -0.004, "hi": 0.0001}})[
+        "failed"
+    ] == ["beats_reexpression_control_m0"]  # type: ignore[arg-type]
+    # M2: a failing truncation identity voids the claim
+    assert rule.primary_verdict(**{**kw, "truncation_ok": False})["failed"] == [
+        "truncation_identical"
+    ]  # type: ignore[arg-type]
 
 
 def test_freeze_helpers_and_run_refuses() -> None:
@@ -317,7 +333,7 @@ def test_a0_prob_truncation() -> None:
     assert ev.a0_prob(v, np.array([9]), np.array([0]))[0] == 0.0  # beyond the stored width
 
 
-def test_arm_probs_runs_and_shuffle_changes_it() -> None:
+def test_arm_probs_runs_and_has_all_arms() -> None:
     rng = np.random.default_rng(0)
     n = 1500
 
@@ -347,11 +363,24 @@ def test_arm_probs_runs_and_shuffle_changes_it() -> None:
     tr, te = frame(n), frame(400)
     stage_a = ev.fit_minutes_stage(ev.add_derived(tr))
     out = ev.arm_probs(tr, te, "pts", stage_a)
-    assert set(out) == {"b0", "b1", "m"} and all(
+    assert set(out) == {"b0raw", "b0", "b0e", "b1", "b1e", "m", "m0"} and all(
         len(v) == te.height and np.all((v > 0) & (v < 1)) for v in out.values()
     )
-    out2 = ev.arm_probs(tr, te, "pts", stage_a, shuffle_seed=3)
-    assert not np.allclose(out["m"], out2["m"])
+    assert not np.allclose(
+        out["b0"], out["b0e"]
+    )  # M4: per-checkpoint recalibration is a different baseline
+
+
+def test_per_checkpoint_platt_fixes_checkpoint_specific_miscalibration() -> None:
+    rng = np.random.default_rng(5)
+    n = 21000
+    e = rng.choice(rule.CHECKPOINTS, n)
+    p = rng.uniform(0.1, 0.9, n)
+    shift = np.where(e < 24, 1.0, -1.0)  # B0 is wrong in opposite directions early and late
+    y = (rng.random(n) < rule.sigmoid(rule.logit(p) + shift)).astype(float)
+    pooled = rule.platt_apply(p, rule.platt_fit(p, y))
+    per_e = ev.per_checkpoint_platt(p, y, e, p, e)
+    assert np.mean(rule.log_loss_rows(per_e, y)) < np.mean(rule.log_loss_rows(pooled, y)) - 0.02
 
 
 def test_power_and_positive_control_on_synthetic_units() -> None:
@@ -447,8 +476,8 @@ def _roster_game() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     ev_(
         "PT04M00.00S", H, 1, "Ann", "Made Shot", "Ann Layup (6 PTS) (Zzz 1 AST)", 2
     )  # nobody by that name: unresolved
-    ev_("PT03M00.00S", H, 21, "Green", "Rebound", "Green REBOUND")
-    ev_("PT03M00.00S", H, 22, "Green", "Rebound", "Green REBOUND")
+    ev_("PT11M30.00S", H, 21, "Green", "Rebound", "Green REBOUND")  # 21 seen from t = 30
+    ev_("PT06M00.00S", H, 22, "Green", "Rebound", "Green REBOUND")  # 22 seen from t = 360
     pbp = (
         pl.DataFrame(rows)
         .with_columns(feat.clock_seconds_expr().alias("left"))
@@ -474,9 +503,8 @@ def test_assist_repair_resolves_initials_by_who_is_on_court() -> None:
     rows = feat.stint_rows(st)
     before = feat.stat_events(pbp).filter(pl.col("stat") == "ast")
     after = feat.stat_events(pbp, rows).filter(pl.col("stat") == "ast").sort("t")
-    assert (
-        before.height == 0
-    )  # 'D. Green' / 'J. Green' never matched the surname-only names, and 'Green' is ambiguous
+    # causal dictionary: at the first assist only one Green has been seen (21), at the second both have (ambiguous without stints)
+    assert before["player_id"].to_list() == [21]
     assert after["player_id"].to_list() == [21, 22]  # the third assist (no such player) is dropped
     assert feat.ast_unresolved(pbp, after) == (3, 2)
 
@@ -492,21 +520,30 @@ def test_binding_p_and_boot_draws() -> None:
     assert len(draws) == 200 and point == pytest.approx(float(gain.mean()))
 
 
-def test_synthetic_finals_are_coherent_and_dryrun_guards_the_reader(
+def test_synthetic_finals_are_blind_to_later_production_and_dryrun_guards_the_reader(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:  # type: ignore[no-untyped-def]
     games, pbp, st, _ = _synthetic()
     state = feat.state_frame(2022, feat.data_root(), True, games, pbp, st)
     fin = ev.synthetic_finals(feat.data_root(), (2022,), {2022: state})
-    last = state.sort("e").group_by("game_id", "player_id", maintain_order=True).last()
-    j = fin.join(last, on=["game_id", "player_id"], suffix="_cur")
-    for stat in rule.STATS:
-        assert (j[stat] >= j[f"{stat}_cur"]).all()
     assert fin.equals(ev.synthetic_finals(feat.data_root(), (2022,), {2022: state}))  # seeded
+    # M5: plant huge production at every checkpoint after each player's first one; the synthetic finals must not move
+    first_e = state.group_by("player_id").agg(pl.col("e").min().alias("e0"))
+    later = (
+        state.join(first_e, on="player_id")
+        .with_columns(
+            pl.when(pl.col("e") > pl.col("e0"))
+            .then(pl.col("pts") + 500.0)
+            .otherwise(pl.col("pts"))
+            .alias("pts")
+        )
+        .drop("e0")
+    )
+    assert fin.equals(ev.synthetic_finals(feat.data_root(), (2022,), {2022: later}))
 
     real = ev.read_finals
 
-    def stub(root, finals_fn, sha, **kw):  # type: ignore[no-untyped-def]
+    def stub(root, finals_fn, sha, *a, **kw):  # type: ignore[no-untyped-def]
         ev.read_finals(root, (2023,))  # any real-outcome read inside a dryrun must raise
         return {}
 
@@ -515,6 +552,35 @@ def test_synthetic_finals_are_coherent_and_dryrun_guards_the_reader(
     with pytest.raises(RuntimeError, match="outcome reader"):
         ev.dryrun(feat.data_root(), tmp_path / "d.json")
     assert ev.read_finals is real  # restored even on failure
+
+
+def test_synthetic_y_depends_only_on_the_units_own_state() -> None:
+    rng = np.random.default_rng(1)
+    groups = 800
+    base = pl.DataFrame(
+        {
+            "game_id": [f"g{i % 50}" for i in range(groups)],
+            "player_id": np.arange(groups) % 9 + 1,
+            "e": rng.choice(rule.CHECKPOINTS, groups),
+            "cur": rng.integers(0, 9, groups).astype(float),
+            "minutes": rng.uniform(5, 30, groups),
+            "starter": rng.integers(0, 2, groups),
+            "margin": rng.integers(-25, 25, groups),
+        }
+    ).unique(["game_id", "player_id", "e"])
+    u = base.join(pl.DataFrame({"line": [10, 15, 20]}), how="cross").sort(
+        "game_id", "player_id", "e", "line"
+    )
+    a = ev.synthetic_y(u, "pts", 7)
+    assert a.equals(ev.synthetic_y(u, "pts", 7))  # seeded
+    p = gate.b0_for(u, "pts")
+    assert abs(float(a["y"].mean()) - float(p.mean())) < 0.03  # y ~ Bernoulli(raw B0)
+    g = a.group_by("game_id", "player_id", "e").agg(
+        pl.col("line"), pl.col("y")
+    )  # monotone in the line within a checkpoint
+    for lines, ys in zip(g["line"].to_list(), g["y"].to_list(), strict=True):
+        order = np.argsort(lines)
+        assert np.all(np.diff(np.asarray(ys)[order]) <= 0)
 
 
 def test_recency_and_evaluate_wiring() -> None:
@@ -550,9 +616,19 @@ def test_recency_and_evaluate_wiring() -> None:
             "b1_a0": rng.uniform(0.05, 0.95, n),
         }
     )
-    probs = {k: rng.uniform(0.05, 0.95, n) for k in ("b0", "b1", "m")}
+    test = test.with_columns(pl.Series("starter", rng.integers(0, 2, n)))
+    probs = {k: rng.uniform(0.05, 0.95, n) for k in ("b0raw", "b0", "b0e", "b1", "b1e", "m", "m0")}
     res = ev.evaluate(test, probs, "pts")
-    assert res["better_b1"] in ("b1", "b1_a0") and set(res["slices"]) == {"blowout_q3q4", "last6"}
+    assert res["binding_baseline"]["b0"] in ("b0", "b0e") and res["binding_baseline"]["b1"] in (
+        "b1",
+        "b1e",
+        "b1_a0",
+    )
+    assert (
+        set(res["slices"]) == {"blowout_q3q4", "last6", "contested", "starters"}
+        and res["reliability_m"]
+    )
+    assert res["e42_invariant"] is not None and res["vs_m0"]["floor"] == rule.M0_MARGIN
     assert res["vs_b0"]["n_rows"] == n and 0 <= res["p_vs_b0"] <= 1 and res["cells"]
 
 
@@ -580,3 +656,105 @@ def test_finals_frame_casts_to_the_declared_dtypes() -> None:
         },
     )
     assert dict(ev._finals_frame(raw).schema) == ev.FINALS_DTYPES
+
+
+def test_recency_plant_current_game_never_enters_its_own_pregame_mean() -> None:
+    d = __import__("datetime").date
+    mk = lambda pts: pl.DataFrame(  # noqa: E731
+        {
+            "game_id": [f"g{i}" for i in range(8)],
+            "player_id": [1] * 8,
+            "team_id": [1] * 8,
+            "game_date": [d(2023, 1, 1 + i) for i in range(8)],
+            "minutes": [30.0] * 8,
+            "pts": pts,
+            "reb": [1] * 8,
+            "ast": [1] * 8,
+            "fg3m": [1] * 8,
+        }
+    )
+    base = ev.recency(mk([10, 20, 30, 10, 20, 30, 10, 20])).sort("game_id")
+    plant = ev.recency(mk([10, 20, 30, 10, 20, 30, 999, 20])).sort(
+        "game_id"
+    )  # game 6's final replaced
+    assert plant["m_pts"][6] == base["m_pts"][6]  # unchanged for the planted game itself
+    assert plant["m_pts"][7] != base["m_pts"][7]  # changed for the next game
+
+
+def test_ast_state_ignores_a_same_surname_teammate_who_appears_only_after_t() -> None:
+    """M1: 'J. Green' at t = 100 s; a second Green first appears at 300 s. The assist must resolve to the first Green with or without the later rows."""
+    g = "0022200997"
+    rows: list[dict] = []
+
+    def ev_(clock: str, pid: int, name: str, typ: str, desc: str, sv: int = 0) -> None:
+        rows.append(
+            dict(
+                game_id=g,
+                action_number=len(rows) + 1,
+                period=1,
+                clock=clock,
+                team_id=H,
+                player_id=pid,
+                player_name=name,
+                action_type=typ,
+                sub_type="",
+                description=desc,
+                score_home="",
+                score_away="",
+                shot_result="",
+                shot_value=sv,
+            )
+        )
+
+    ev_("PT11M00.00S", 21, "Green", "Rebound", "Green REBOUND")  # first Green seen at t = 60
+    ev_("PT10M20.00S", 1, "Ann", "Made Shot", "Ann Layup (2 PTS) (J. Green 1 AST)", 2)  # t = 100
+    ev_(
+        "PT07M00.00S", 22, "Green", "Rebound", "Green REBOUND"
+    )  # second Green first seen at t = 300
+    pbp = (
+        pl.DataFrame(rows)
+        .with_columns(feat.clock_seconds_expr().alias("left"))
+        .with_columns(feat.elapsed_expr().alias("t"))
+        .drop("left")
+    )
+    full = feat.stat_events(pbp, None).filter(pl.col("stat") == "ast")
+    cut = feat.stat_events(pbp.filter(pl.col("t") <= 150), None).filter(pl.col("stat") == "ast")
+    assert full["player_id"].to_list() == [21] and full.equals(cut)
+
+
+def test_truncation_identity_passes_on_a_causal_state_and_fails_on_a_leaky_one() -> None:
+    games, pbp, st, _ = _synthetic()
+    ok = feat.truncation_identity(2022, feat.data_root(), 5, games=games, pbp=pbp, stints=st)
+    assert ok["identical"] and ok["rows_compared"] > 0 and ok["rows_missing_in_truncated"] == 0
+
+    def leaky(season, root, wf, g, p, s):  # type: ignore[no-untyped-def]
+        out = feat.state_frame(season, root, wf, g, p, s)
+        return out.with_columns(
+            (pl.col("ast") + float(p.height)).alias("ast")
+        )  # a whole-game aggregate
+
+    bad = feat.truncation_identity(
+        2022, feat.data_root(), 5, state_fn=leaky, games=games, pbp=pbp, stints=st
+    )
+    assert not bad["identical"] and bad["differing_rows_by_column"]["ast"] > 0
+    assert bad["differing_rows_by_column"]["pts"] == 0
+
+
+def test_run_exits_through_verify_inputs_before_any_reader(monkeypatch: pytest.MonkeyPatch) -> None:
+    """S2: with the freeze and pin checks stubbed to pass, a digest mismatch must stop `run` (SystemExit) and neither the real reader nor the
+    pipeline may be called; and the source order is checks, then digests, then the pipeline."""
+    calls: list[str] = []
+    monkeypatch.setattr(rule, "require_harness_pinned", lambda sha: {})
+    monkeypatch.setattr(rule, "text_sha", lambda text: "abc")
+    monkeypatch.setattr(ev, "compute_input_digests", lambda root: {"PIN_X": "recomputed"})
+    monkeypatch.setattr(ev, "read_finals", lambda *a, **k: calls.append("read_finals"))
+    monkeypatch.setattr(ev, "run_pipeline", lambda *a, **k: calls.append("run_pipeline"))
+    with pytest.raises(SystemExit, match="declared inputs differ"):
+        ev.run("abc", feat.data_root())
+    assert calls == []
+    src = __import__("inspect").getsource(ev.run)
+    assert (
+        src.index("require_harness_pinned(")
+        < src.index("verify_inputs(")
+        < src.index("run_pipeline(")
+    )
