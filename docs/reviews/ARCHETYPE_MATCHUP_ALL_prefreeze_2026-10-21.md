@@ -562,3 +562,72 @@ timezone convention still stands. It belongs to production, not to T507.
 
 - TEST_LEDGER (under T507): `| T507-review-4 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL fourth pre-freeze review (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Fourth review) | label-free | READY_TO_FREEZE: M6 and m6 closed (19 declared digests reproduced twice, byte-identical; harness pin 63b3d9b0 recomputed over 17 files; text sha f10ed5b1; 93 tests passed); minor m7 (test re-implements the digest) optional | n/a | n/a | n/a | n/a | APPROVED pre-freeze | not holdout |`
 - DECISIONS: none.
+
+## Amendment 5 check (2026-10-21, narrow post-freeze diff check; main at 47d327a)
+
+Scope: `git diff bb764f6 HEAD -- research/eval/archetype_matchup_all_*.py docs/prereg/ARCHETYPE_MATCHUP_ALL.md tests/research/eval/`.
+Context: the frozen rule (prereg 9ada5d5, harness bb764f6, pin 63b3d9b0) crashed in run attempt 1 at `month_key` after `read_outcomes`
+had loaded the 2023 outcomes into memory; nothing was computed or printed (DECISIONS 2026-10-21 23:52). Amendment 5 fixes `month_key`,
+adds a synthetic-outcome `dryrun`, and moves the body of `run` into a shared `execute`. Model class: GBM context-residual layer plus
+quantile rescale, four stats (unchanged).
+
+Verdict: READY_TO_REFREEZE
+
+Top finding (major, pre-existing, not introduced by A5, not blocking): the 2023 feature frame is not bit-reproducible from one process to
+the next, so the 2024 arm deltas are not either. The size is about 2e-5 floor units on the composite. Details under F-A5-1.
+
+### Checks
+
+| # | Check | Command / evidence | Result | Pass |
+|---|---|---|---|---|
+| 1 | No change to primary_verdict, criteria (a)-(j), constants, floors, slices, seeds or digests | `git diff --stat bb764f6 HEAD`: only `_arm.py` (month_key), `_eval.py`, the prereg doc and the amendment-2 test file changed. `_rule.py`, `_features.py` and `_gate.py` have an empty diff (0 lines). The old text above the marker is a byte prefix of the new text: `startswith` True, 2,942 characters appended, all inside the "Amendment 5" block. `final_verdict`, `season_summary`, `CM_PASS` (-1.0) and every `rule.*` constant are untouched. The single verdict-path edit is `if sel["cm_point"] > rule.CM_PASS and not synthetic:` (eval.py:367), which is identical when `synthetic=False` | no criterion moved | PASS |
+| 2 | `run` still verifies first and the refactor cannot read outcomes earlier or skip a check | `run` (eval.py:317-319) is `pins = require_ready(sha); return execute(out_dir, pins)`. `execute` (eval.py:342-) keeps the old order: `check_floors`, then read-only connect, then `MAX_SEASON` assert, then `verify_inputs(compute_input_digests(...))`, then `load_season`, which is the only caller of `read_outcomes`. `decl = rule.declared(DOC.read_text())` was moved out of the list comprehension and reads the same file once instead of twice, so the `PIN_LABELS_*` check is unchanged. `require_ready` now refuses at HEAD, as it should: the two edited files differ from the pin commit bb764f6, and the text sha no longer matches f10ed5b1 | order identical; refreeze required | PASS |
+| 3 | The synthetic path cannot leak into `run`; dryrun outputs cannot be taken for results | `synthetic` defaults to False in `load_season` and `execute`. `run` passes no flag. No env var or config toggle exists. The only mutable state is the `global read_outcomes` swap inside `dryrun`, which `finally` restores; the test asserts the restore, and I asserted it after a real dryrun too. Output goes to `reports/prereg_archetype_matchup_all/dryrun/` (the real run uses the parent directory, so the `deltas_*.npz` checkpoints cannot collide). `results.json` there carries a top-level `SYNTHETIC` key and `harness_pins: {}`. The `deltas_*.npz` files and the `verdict` dict carry no label of their own (minor m-A5-2) | no leak path found | PASS |
+| 4 | `month_key` output identical on the real input | Real `sf.game_date` (object dtype holding dates, 0 nulls, default RangeIndex). 2023: n 25,815. 2024: n 25,649. New `month_key(sf.game_date)` equals (i) the A4 body applied to `pd.DatetimeIndex(sf.game_date)`, its working input type, (ii) per-row `pd.Timestamp(v).strftime("%Y-%m")`, and (iii) `str(date)[:7]`, on every row and in the same order. Output shape (n,). Months: 2023-10 .. 2024-04 and 2024-10 .. 2025-04. These are season labels 2023 and 2024; no season >= 2025 is queried. The A4 body raises `AttributeError: 'Series' object has no attribute 'strftime'` on the Series, which reproduces the crash | identical, all rows | PASS |
+| 5 | Digests reproduce; text sha and 17-file pin recomputed | `python -m research.eval.archetype_matchup_all_eval digests` run twice: exit 0 both times, `cmp` 0, 19 lines. `rule.input_mismatches(declared, recomputed)` = `[]` over 19 declared lines (PIN_MATCHUPS `5f2444c3...`, PIN_GAMES `efdeb2c2...`, the 8 A0, 2 label and 2 OUT pins, 5 LIB lines). Text sha above the marker = `cbf55dc24b76057522d28d1508bea4671c0c6675b047aae5bd407de2a8b1920d`. The pin over the 17 `HARNESS_FILES` (sha256 of the read text, the `require_harness_pinned` convention) = `77c83ffbc3237f6fd955f743905916244de719c337fb113cfae007a0ba149d15`. The same code on bb764f6 gives `63b3d9b0...` (the old pin, which validates the method). Only `_arm.py` and `_eval.py` blobs changed | match claim | PASS |
+| 6 | T507 tests | `.venv-1/bin/python -m pytest tests/research/eval/test_archetype_matchup_all.py tests/research/eval/test_archetype_matchup_all_amendment2.py --no-cov -q -p no:cacheprovider` | 62 passed, exit 0 | PASS |
+| 7 | Dryrun reproduces (extra; label-free, into scratch) | `mev.dryrun(Path(<scratch>/dryrun))`: exit 0, wall 68.5 s, planted-future identity True in 2023 and 2024, 2024 scored, `read_outcomes` restored. Synthetic CM 2023 = 3.97497, 2024 = 0.53764. The doc says "+3.98", but 3.97497 rounds to 3.97. That is a cosmetic slip in prose, not a criterion (m-A5-3) | wiring holds end to end | PASS |
+
+### Findings
+
+- **F-A5-1 (major, pre-existing since the features code, not caused by A5, not blocking the refreeze).** Run-to-run nondeterminism.
+  - A second dryrun into a fresh directory gives the same 2023 numbers bit for bit, but 13 of the 2024 per-row arrays differ: `M`, `ko_shift`, `ko_unknown` and `shuffle0` for pts, and shuffle and ko arrays for reb, ast and fg3m. The largest per-row difference is 0.24, the mean difference is at most 2e-5, and the 2024 composite moves 0.5376449 vs 0.5376234 (2.2e-5 floor units).
+  - Root cause, localised: `feat.read_matchups` returns rows in DuckDB scan order (no ORDER BY; the A4-M6 note says so). The order hash differed in each of my four loads. The 2023 `season_frame` columns `e_usual` and `e_lg` then differ by up to 2.5e-8 on 25,517 and 25,815 of 25,815 rows. That is floating-point summation order. 2024's frame happened to be identical in two loads.
+  - LightGBM is deterministic (`deterministic`, `force_row_wise`, `num_threads` 1). It turns the 1e-8 jitter into different split thresholds in the 2024 pool, which includes the 2023 rows.
+  - `PIN_MATCHUPS` is computed on a sorted copy, so the digest is stable while the data the features are built from is not.
+  - Impact: it can change a verdict only if a criterion lands within about 1e-4 floor units of its threshold. It does make "rerun and get the same numbers" false.
+  - Fix, one line, eval.py right after line 348 (`mu = feat.read_matchups(c)`): `mu = mu.sort_values(list(mu.columns), kind="mergesort").reset_index(drop=True)`. Optionally do the same for `games` by `game_id`. Add a test that two `season_frame` builds from differently shuffled `mu` are bit-identical.
+  - If folded in, it is amendment line A5-3. The text sha and the pin change again and need a re-check. That re-check is cheap now and impossible after the result. If it is not folded in, disclose it in the result note: "reproducible to ~1e-4 floor units, not bit-exact".
+- **m-A5-2 (minor).** The `deltas_*.npz` files and the `verdict` dict under `dryrun/` carry no in-file synthetic label. Only the directory and the top-level `SYNTHETIC` key mark them. Fix (eval.py:337): also set `res["verdict"]["SYNTHETIC"] = True`, and write a `SYNTHETIC_README` next to the npz files. Not needed for the refreeze.
+- **m-A5-3 (minor, cosmetic).** The prereg A5 dryrun paragraph says CM "+3.98 (2023)". The recomputed value is 3.97497, which rounds to 3.97. Leave it: changing it changes the text sha for no inferential gain. Note it in the result note.
+- **m-A5-4 (minor).** `test_dryrun_never_reads_an_outcome_and_restores_the_reader` mocks `execute`, so the real synthetic `load_season` body is covered only by the source-string asserts and by the manual dryrun. That is acceptable, because the raiser makes any read fail loudly.
+- Scope: `git diff --stat bb764f6 HEAD` also touches `docs/DECISIONS.md` (1 line) and `docs/NEXT_SESSION.md` (1 line). Both are expected bookkeeping, and there is no scope creep.
+
+### Playbook check (GBM context-residual layer plus quantile rescale, four stats)
+
+1. Information or capacity: information (the opposing OUT set). Unchanged by A5.
+2. Enough data for the class: about 25.7k rows per season. Unchanged. The synthetic dryrun shows the layer's noise-fitting cost on no-signal data: +3.97 floor units on 2023's small walk-forward training sets and +0.54 in 2024. A real gain must clear that. It is a property of the test, not a result.
+3. Test validity: still valid. A5 changes wiring only, and the pre-outcome guards (freeze, pin, input digests, label pin) run in the same order. F-A5-1 is a reproducibility defect, not a validity defect.
+4. Lineage and inherited guards: all prior guards intact. The dryrun is a new guard against wiring bugs that surface only after outcomes are in memory.
+5. Scored against: A0 (stored production OOF), integer CRPS, four-stat composite in floor units. One test, no BH family. The power note is unchanged from the fourth review.
+
+### Not verified
+
+- The real `run`. By design it needs the refreeze first.
+- Whether `games` row order also feeds float jitter. Only the `mu` order was shown to move `e_usual` and `e_lg`.
+- Whether 2024's frame is always order-stable. It matched in two loads, which is not a proof.
+
+### Recommended changes (main session; none applied by me)
+
+1. Preferred: fold the F-A5-1 sort into Amendment 5 as A5-3, then re-run this narrow check (new text sha and pin), then refreeze.
+2. Otherwise, refreeze now:
+   - `prereg(ARCHETYPE_MATCHUP_ALL): cbf55dc24b76057522d28d1508bea4671c0c6675b047aae5bd407de2a8b1920d`
+   - then `harness(ARCHETYPE_MATCHUP_ALL): 77c83ffbc3237f6fd955f743905916244de719c337fb113cfae007a0ba149d15`
+   - every harness file byte-identical at both commits
+   - and record the F-A5-1 disclosure in the result note.
+3. Run attempt 2 is a second touch of the 2023/2024 outcomes by this rule. They were loaded but never computed on in attempt 1. Keep the disclosure in DECISIONS (already there).
+
+### Drafted rows (not appended)
+
+- TEST_LEDGER (under T507): `| T507-review-5 | 2026-10-21 | ARCHETYPE_MATCHUP_ALL Amendment 5 narrow diff check (docs/reviews/ARCHETYPE_MATCHUP_ALL_prefreeze_2026-10-21.md, Amendment 5 check) | label-free | READY_TO_REFREEZE: criteria/constants/digests unchanged; run order intact; month_key identical on 25,815 / 25,649 rows; digests 19/19; text sha cbf55dc2, pin 77c83ffb; 62 tests pass; major pre-existing nondeterminism (mu scan order -> e_usual/e_lg jitter 2.5e-8 -> 2024 CM moves 2e-5 floor units), fix recommended before refreeze |`
+- DECISIONS: none (the choice between options 1 and 2 above is the main session's, with Devin's go).
