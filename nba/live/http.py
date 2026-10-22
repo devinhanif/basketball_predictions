@@ -5,6 +5,7 @@ No header besides a User-Agent is ever sent; there is no way to attach a credent
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -43,7 +44,9 @@ class Fetcher:
         self.min_interval = 1.0 / rate_per_s
         self.clock = clock
         self.sleep = sleep
-        self._last = -1e9
+        self._next = 0.0  # earliest start of the next request (rate-limit slot reservation)
+        self._lock = threading.Lock()
+        self.avg_latency = 0.25  # EMA of measured request seconds; sizes the per-tick budget
         self.requests = 0  # all-time
         self.errors = 0
         self.tick_requests = 0
@@ -61,26 +64,36 @@ class Fetcher:
 
     def get(self, url: str, params: dict[str, Any] | None = None) -> Response | None:
         for attempt in range(MAX_ATTEMPTS):
-            if self.exhausted():
-                return None
-            wait = self.min_interval - (self.clock() - self._last)
+            with self._lock:
+                if self.exhausted():
+                    return None
+                slot = max(self.clock(), self._next)
+                self._next = slot + self.min_interval
+                self.tick_requests += 1
+                self.requests += 1
+            wait = slot - self.clock()
             if wait > 0:
                 self.sleep(wait)
-            self._last = self.clock()
-            self.tick_requests += 1
-            self.requests += 1
+            t0 = self.clock()
             try:
                 r = self.client.get(url, params=params)
             except httpx.HTTPError as exc:
                 self.last_error = f"{type(exc).__name__}: {str(exc)[:120]}"
                 if attempt == MAX_ATTEMPTS - 1:
-                    self.errors += 1
+                    with self._lock:
+                        self.errors += 1
                     return None
                 self.sleep(1.0 * (attempt + 1))
                 continue
+            self.avg_latency = 0.9 * self.avg_latency + 0.1 * (self.clock() - t0)
             if (r.status_code == 429 or r.status_code >= 500) and attempt < MAX_ATTEMPTS - 1:
                 self.sleep(2.0 * (attempt + 1))
                 continue
             return Response(r.status_code, r.content, str(r.url))
-        self.errors += 1
+        with self._lock:
+            self.errors += 1
         return None
+
+    def budget_for(self, deadline_s: float, cap: int) -> int:
+        """Requests that fit the deadline at the measured latency (sequential), capped."""
+        return max(1, min(cap, int(deadline_s / max(self.min_interval, self.avg_latency + 0.01))))

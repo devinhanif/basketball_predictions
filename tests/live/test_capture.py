@@ -140,7 +140,10 @@ def test_tick_writes_filtered_raw_heartbeat_and_orderbooks(tmp_path: Path) -> No
         json.loads(x) for x in (tmp_path / "raw" / "manifest.jsonl").read_text().splitlines()
     ]
     assert any(m.get("note", {}).get("dropped_other_dates") for m in manifest)
-    assert "KXNBAMVP" in cap.st.undated  # futures-style series skipped from then on
+    cap.sweep("start")  # the once-a-day pass sorts every series into slate or other
+    assert "KXNBAMVP" in cap.st.other_series and "KXNBAGAME" in cap.st.slate_series
+    assert list((tmp_path / "raw" / "kalshi_seasonal").rglob("*.json.gz"))
+    assert "KXNBAMVP" not in cap.st.slate_series  # not polled per tick afterwards
     books = next((tmp_path / "raw" / "kalshi_orderbook").rglob("*.json.gz"))
     assert "KXNBAPTS-26OCT21GSWLAL-GSWSCURRY30-25" in read_gz(books)
     cap.beat("running")

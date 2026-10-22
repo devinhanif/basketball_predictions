@@ -30,8 +30,14 @@ FINAL_KEEP_S = 15 * 60
 
 @dataclass(frozen=True)
 class Budget:
-    max_requests_per_tick: int = 300
-    tick_deadline_s: float = 50.0
+    max_requests_per_tick: int = 600
+    tick_deadline_s: float = 55.0
+    sweep_budget: int = 900
+    sweep_deadline_s: float = 420.0
+    probe_per_tick: int = (
+        10  # non-slate series re-probed per tick (round robin) for new slate markets
+    )
+    orderbook_workers: int = 4
     rate_per_s: float = 8.0
     lead_h: float = 2.0
     tail_h: float = 4.0
@@ -39,7 +45,7 @@ class Budget:
     markets_every_after_empty: int = (
         5  # poll Kalshi every N ticks once no open dated market is left
     )
-    orderbook_depth_limit: int = 200
+    orderbook_depth_limit: int = 600
 
 
 @dataclass(frozen=True)
@@ -126,7 +132,10 @@ class State:
     errors: int = 0
     first_post: dict[str, float] = field(default_factory=dict)
     series: list[str] = field(default_factory=list)
-    undated: set[str] = field(default_factory=set)
+    slate_series: list[str] = field(default_factory=list)
+    other_series: list[str] = field(default_factory=list)
+    probe_idx: int = 0
+    swept_start: bool = False
     rules_seen: set[str] = field(default_factory=set)
     orderbook_blocked: bool = False
     empty_ticks: int = 0
@@ -197,12 +206,15 @@ class Capture:
 
     def tick(self) -> dict[str, Any]:
         b = self.budget
-        self.fetcher.begin_tick(b.max_requests_per_tick, b.tick_deadline_s)
+        self.fetcher.begin_tick(
+            self.fetcher.budget_for(b.tick_deadline_s, b.max_requests_per_tick), b.tick_deadline_s
+        )
         info: dict[str, Any] = {"at": self.now().isoformat(), "skipped": {}}
         games = self.scoreboard() or []
         info["games"] = {g.event_id: g.state for g in games}
         now_s = time.monotonic()
-        for g in games:
+        order = {"in": 0, "pre": 1, "post": 2}
+        for g in sorted(games, key=lambda x: order.get(x.state, 3)):  # live games first
             if g.state == "post":
                 self.st.first_post.setdefault(g.event_id, now_s)
             want = g.state in ("pre", "in") or (
@@ -215,10 +227,11 @@ class Capture:
                 info["skipped"].setdefault("espn_summary", []).append(g.event_id)
                 continue
             self.store.save("espn_summary", g.event_id, resp.body, http_status=resp.status)
-        if self.st.ticks % b.markets_every_after_empty == 0 or self.st.empty_ticks == 0:
-            self.kalshi_markets(info)
+        self.kalshi_markets(info)
         self.kalshi_orderbooks([g for g in games if g.state == "in"], info)
+        self.probe_other(info)
         info["requests"] = self.fetcher.tick_requests
+        info["avg_latency_s"] = round(self.fetcher.avg_latency, 3)
         return info
 
     def refresh_series(self) -> None:
@@ -228,57 +241,120 @@ class Capture:
         self.st.series, self.st.series_refreshed = series, time.monotonic()
         if resp is not None and resp.status == 200:
             self.store.save("kalshi_series", "sports", resp.body, http_status=resp.status)
+        if not self.st.slate_series:  # before the first sweep: the known game-level series
+            self.st.slate_series = list(kp.DEFAULT_SERIES)
+            self.st.other_series = [x for x in series if x not in self.st.slate_series]
+
+    @staticmethod
+    def series_rank(series: str) -> tuple[int, str]:
+        """Game-level series first, then player props, then the rest of the slate's series."""
+        game = ("KXNBAGAME", "KXNBASPREAD", "KXNBATOTAL", "KXNBATEAMTOTAL")
+        props = ("KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBAPRA")
+        if series in game:
+            return 0, f"{game.index(series)}"
+        if series in props:
+            return 1, f"{props.index(series)}"
+        return 2, series
+
+    def capture_series(self, series: str, info: dict[str, Any], label: str = "") -> bool:
+        """Fetch and store one series. True if it holds markets dated for the slate. A series with
+        none is stored unfiltered under ``kalshi_seasonal`` (sweeps only); None-yield pages of a
+        slate series are skipped and named in ``info``."""
+        slate = False
+        for page, resp, body in kp.iter_series_pages(self.fetcher, series):
+            if resp is None:
+                info["skipped"].setdefault("kalshi_pages", []).append(f"{series}_p{page}")
+                break
+            if body is None:
+                self.log_error(f"kalshi {series} p{page} http {resp.status}")
+                break
+            markets = [m for m in body.get("markets", []) if isinstance(m, dict)]
+            kept, dropped = kp.filter_for_date(markets, self.day)
+            if not kept:
+                if label:
+                    self.store.save(
+                        "kalshi_seasonal",
+                        f"{series}_p{page}",
+                        resp.body,
+                        http_status=resp.status,
+                        note={"sweep": label, "n_total": len(markets)},
+                    )
+                continue
+            slate = True
+            new_rules = {
+                str(m["ticker"]): {f: m.get(f) for f in kp.RULE_FIELDS}
+                for m in markets
+                if kp.event_date(str(m.get("event_ticker", ""))) == self.day
+                and str(m["ticker"]) not in self.st.rules_seen
+            }
+            if new_rules:
+                self.st.rules_seen.update(new_rules)
+                self.store.save(
+                    "kalshi_rules", series, json.dumps(new_rules).encode(), http_status=200
+                )
+            self.st.last_markets += kept
+            out = {"markets": kept, "cursor": body.get("cursor", "")}
+            self.store.save(
+                "kalshi",
+                f"{series}_p{page}",
+                json.dumps(out, sort_keys=True).encode(),
+                http_status=resp.status,
+                note={
+                    "transform": "slate-date filter; rules text saved once in kalshi_rules",
+                    "n_total": len(markets),
+                    "n_kept": len(kept),
+                    "dropped_other_dates": dropped,
+                },
+            )
+        return slate
+
+    def sweep(self, label: str) -> dict[str, Any]:
+        """Once-a-day pass over EVERY KXNBA* series (start and end of the window): slate series
+        join the per-tick list, season-long and other-date series are stored unfiltered here and
+        not polled per tick. Has its own request budget."""
+        b = self.budget
+        self.fetcher.begin_tick(b.sweep_budget, b.sweep_deadline_s)
+        info: dict[str, Any] = {"at": self.now().isoformat(), "sweep": label, "skipped": {}}
+        self.st.series_refreshed = 0.0
+        self.refresh_series()
+        self.st.last_markets = []
+        slate: list[str] = []
+        other: list[str] = []
+        for series in sorted(self.st.series, key=self.series_rank):
+            (slate if self.capture_series(series, info, label) else other).append(series)
+        if label == "start" or not self.st.slate_series:
+            self.st.slate_series = sorted(slate, key=self.series_rank) or list(kp.DEFAULT_SERIES)
+            self.st.other_series = other
+        info["slate_series"] = len(slate)
+        info["other_series"] = len(other)
+        info["requests"] = self.fetcher.tick_requests
+        with (self.out / "ticks.jsonl").open("a") as f:
+            f.write(json.dumps(info, sort_keys=True) + "\n")
+        return info
 
     def kalshi_markets(self, info: dict[str, Any]) -> None:
         self.refresh_series()
-        all_kept: list[dict[str, Any]] = []
-        for series in self.st.series:
-            if series in self.st.undated:
-                continue
-            for page, resp, body in kp.iter_series_pages(self.fetcher, series):
-                if resp is None:
-                    info["skipped"].setdefault("kalshi_pages", []).append(f"{series}_p{page}")
-                    break
-                if body is None:
-                    self.log_error(f"kalshi {series} p{page} http {resp.status}")
-                    break
-                markets = [m for m in body.get("markets", []) if isinstance(m, dict)]
-                kept, dropped = kp.filter_for_date(markets, self.day)
-                if (
-                    page == 0
-                    and markets
-                    and not any(kp.event_date(str(m.get("event_ticker", ""))) for m in markets)
-                ):
-                    self.st.undated.add(series)  # futures-style series: nothing to capture by date
-                    break
-                new_rules = {
-                    str(m["ticker"]): {f: m.get(f) for f in kp.RULE_FIELDS}
-                    for m in markets
-                    if kp.event_date(str(m.get("event_ticker", ""))) == self.day
-                    and str(m["ticker"]) not in self.st.rules_seen
-                }
-                if new_rules:
-                    self.st.rules_seen.update(new_rules)
-                    self.store.save(
-                        "kalshi_rules", series, json.dumps(new_rules).encode(), http_status=200
-                    )
-                all_kept += kept
-                out = {"markets": kept, "cursor": body.get("cursor", "")}
-                self.store.save(
-                    "kalshi",
-                    f"{series}_p{page}",
-                    json.dumps(out, sort_keys=True).encode(),
-                    http_status=resp.status,
-                    note={
-                        "transform": "slate-date filter; rules text saved once in kalshi_rules",
-                        "n_total": len(markets),
-                        "n_kept": len(kept),
-                        "dropped_other_dates": dropped,
-                    },
-                )
-        self.st.last_markets = all_kept
-        self.st.empty_ticks = 0 if all_kept else self.st.empty_ticks + 1
-        info["markets_kept"] = len(all_kept)
+        self.st.last_markets = []
+        for series in sorted(self.st.slate_series, key=self.series_rank):
+            self.capture_series(series, info)
+        info["markets_kept"] = len(self.st.last_markets)
+
+    def probe_other(self, info: dict[str, Any]) -> None:
+        """Round-robin look at a few non-slate series per tick: if one grows slate-dated markets
+        (e.g. first-half or quarter markets that open late) it joins the per-tick list."""
+        others = self.st.other_series
+        if not others:
+            return
+        n = min(self.budget.probe_per_tick, len(others))
+        picked = [others[(self.st.probe_idx + i) % len(others)] for i in range(n)]
+        self.st.probe_idx = (self.st.probe_idx + n) % len(others)
+        for series in picked:
+            if self.fetcher.exhausted():
+                break
+            if self.capture_series(series, info):
+                self.st.other_series.remove(series)
+                self.st.slate_series.append(series)
+                info.setdefault("promoted_series", []).append(series)
 
     def leg_tickers(self) -> set[str]:
         if self.legs_file is None or not self.legs_file.exists():
@@ -299,25 +375,28 @@ class Capture:
         got: dict[str, Any] = {}
         skipped: list[str] = list(over)
         denied = 0
-        for i, t in enumerate(targets):
-            resp = kp.get_orderbook(self.fetcher, t)
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=self.budget.orderbook_workers) as pool:
+            results = list(pool.map(lambda t: kp.get_orderbook(self.fetcher, t), targets))
+        for t, resp in zip(targets, results, strict=True):
             if resp is None:
-                skipped += targets[i:]  # budget or deadline spent (or a final network failure)
-                break
+                skipped.append(t)  # budget or deadline spent (or a final network failure)
+                continue
             if resp.status in (401, 403):
                 denied += 1
-                if denied >= 2 and not got:
-                    self.st.orderbook_blocked = True
-                    self.log_error(
-                        "orderbook endpoint answered 401/403 without credentials; disabled for "
-                        "this run (no credential will be added)"
-                    )
-                    break
+                continue
             body = kp.parse_body(resp)
             if body is None:
                 self.log_error(f"orderbook {t} http {resp.status}")
                 continue
             got[t] = {"status": resp.status, "orderbook": body}
+        if denied and not got:
+            self.st.orderbook_blocked = True
+            self.log_error(
+                "orderbook endpoint answered 401/403 without credentials; disabled for "
+                "this run (no credential will be added)"
+            )
         if got:
             self.store.save(
                 "kalshi_orderbook",
@@ -356,6 +435,12 @@ class Capture:
         while not (start_now or once) and self.now() < start:
             self.sleep(min(60.0, max(1.0, (start - self.now()).total_seconds())))
             self.beat("waiting", window_start=start.isoformat(), window_end=end.isoformat())
+        if not self.st.swept_start:
+            self.st.swept_start = True
+            try:
+                self.sweep("start")
+            except Exception:
+                self.log_error("sweep start " + traceback.format_exc().replace("\n", " | ")[:1500])
         while self.now() < end or once:
             t0 = time.monotonic()
             info: dict[str, Any] = {}
@@ -370,5 +455,10 @@ class Capture:
             if once:
                 break
             self.sleep(max(1.0, self.budget.interval_s - (time.monotonic() - t0)))
+        if not once:
+            try:
+                self.sweep("end")
+            except Exception:
+                self.log_error("sweep end " + traceback.format_exc().replace("\n", " | ")[:1500])
         self.beat("done", rc=0, end_ts=self.now().isoformat())
         return 0
