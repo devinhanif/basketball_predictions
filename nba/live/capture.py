@@ -148,6 +148,7 @@ class State:
     volumes: dict[str, float] = field(default_factory=dict)  # ticker -> volume_fp at last tick
     trade_last_ts: dict[str, int] = field(default_factory=dict)
     trade_ids: dict[str, set[str]] = field(default_factory=dict)  # ids seen at last_ts
+    trade_pending: dict[str, None] = field(default_factory=dict)  # FIFO backlog of tickers to pull
 
 
 class Capture:
@@ -418,8 +419,8 @@ class Capture:
             info["skipped"]["orderbook_n"] = len(skipped)
 
     def trade_targets(self) -> list[str]:
-        """Slate markets whose cumulative volume rose since the last tick (first sight: any volume),
-        largest jump first. Volume is the public ``volume_fp`` field of the market listing."""
+        """Backlog queue: slate markets whose cumulative volume (public ``volume_fp``) rose since
+        the last tick (first sight: any volume, largest jump first within a tick), oldest first."""
         jumps: list[tuple[float, str]] = []
         for m in self.st.last_markets:
             t = str(m.get("ticker", ""))
@@ -431,9 +432,18 @@ class Capture:
                 jumps.append((vol - prev, t))
             self.st.volumes[t] = max(vol, prev)
         jumps.sort(key=lambda x: (-x[0], x[1]))
-        return [t for _, t in jumps]
+        for _, t in jumps:  # new work joins the back of the queue; the oldest entries go first
+            self.st.trade_pending.setdefault(t, None)
+        return list(self.st.trade_pending)
 
     def pull_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
+        try:
+            return self._pull_trades(ticker)
+        except Exception as exc:  # one bad ticker must not cost the rest of the tick
+            self.log_error(f"trades {ticker} {type(exc).__name__}: {exc}"[:300])
+            return [], False
+
+    def _pull_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
         """New public trades for one ticker (min_ts = last seen, deduplicated by trade id).
         Returns (trades, complete); incomplete when a page was skipped for budget or error."""
         min_ts = self.st.trade_last_ts.get(ticker)
@@ -458,9 +468,10 @@ class Capture:
     def kalshi_trades(self, info: dict[str, Any]) -> None:
         """Public trades for every slate market that traded since the last tick, after the books.
         One write-once raw file per tick; counts and skips go to ``ticks.jsonl``."""
+        backlog_before = len(self.st.trade_pending)
         targets = self.trade_targets()
         cap = self.budget.trades_max_tickers
-        skipped = list(targets[cap:])
+        skipped = list(targets[cap:])  # stay queued; pulled on the next ticks, oldest first
         targets = targets[:cap]
         got: dict[str, list[dict[str, Any]]] = {}
         incomplete: list[str] = []
@@ -471,6 +482,8 @@ class Capture:
         for t, (trades, complete) in zip(targets, results, strict=True):
             if not complete:
                 incomplete.append(t)
+            else:
+                self.st.trade_pending.pop(t, None)
             if trades:
                 got[t] = trades
                 stamps = [ts for tr in trades if (ts := kp.trade_ts(tr)) is not None]
@@ -490,7 +503,14 @@ class Capture:
                 http_status=200,
                 note={"n_trades": n, "n_tickers": len(got), "n_incomplete": len(incomplete)},
             )
-        info["trades"] = {"n": n, "tickers": len(got), "targets": len(targets)}
+        info["trades"] = {
+            "n": n,
+            "tickers": len(got),
+            "targets": len(targets),
+            "backlog": len(self.st.trade_pending),
+        }
+        if backlog_before > 0 and not self.st.trade_pending:
+            info["trades"]["backlog_cleared"] = True
         if skipped:
             info["skipped"]["trades"] = skipped[:50]
             info["skipped"]["trades_n"] = len(skipped)

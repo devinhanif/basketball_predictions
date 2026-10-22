@@ -35,7 +35,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     o = sub.add_parser("offer", help="log one observed cash-out offer with the legs' public quotes")
     o.add_argument("--combo", required=True, help="combo market ticker")
     o.add_argument("--offer", type=float, required=True, help="offered dollars")
-    o.add_argument("--contracts", type=int, required=True)
+    o.add_argument("--contracts", type=float, required=True)
     o.add_argument("--leg", action="append", default=[], help="leg ticker if the API lists none")
     o.add_argument("--note", default=None)
     o.add_argument("--date", type=date.fromisoformat, default=None, help="ET date for the folder")

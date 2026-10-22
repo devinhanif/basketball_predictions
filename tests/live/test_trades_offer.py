@@ -110,7 +110,7 @@ def test_no_trade_when_volume_unchanged(tmp_path: Path) -> None:
     cap.st.volumes = {str(m["ticker"]): float(m["volume_fp"]) for m in MARKETS}
     info: dict[str, Any] = {"skipped": {}}
     cap.kalshi_trades(info)
-    assert info["trades"] == {"n": 0, "tickers": 0, "targets": 0} and not seen
+    assert info["trades"] == {"n": 0, "tickers": 0, "targets": 0, "backlog": 0} and not seen
 
 
 def test_trades_cap_is_logged_as_skips(tmp_path: Path) -> None:
@@ -147,3 +147,55 @@ def test_offer_log_line(tmp_path: Path) -> None:
         fetcher=fetcher_for(make_handler(seen)), now_fn=lambda: now,
     )  # fmt: skip
     assert len((tmp_path / "cashout_offers.jsonl").read_text().splitlines()) == 2
+
+
+def test_backlog_drains_over_ticks_oldest_first_and_reports_clear(tmp_path: Path) -> None:
+    seen: list[httpx.Request] = []
+    cap = Capture(
+        DAY, tmp_path / "raw", tmp_path / "hb.json", fetcher=fetcher_for(make_handler(seen))
+    )
+    object.__setattr__(cap.budget, "trades_max_tickers", 2)
+    traded = [m for m in MARKETS if float(m["volume_fp"]) > 0]
+    cap.st.last_markets = list(traded)
+    infos = []
+    for _ in range(len(traded)):  # volumes unchanged after tick 1: only the queue drives pulls
+        cap.fetcher.begin_tick(500, 30.0)
+        info: dict[str, Any] = {"skipped": {}}
+        cap.kalshi_trades(info)
+        infos.append(info["trades"])
+        if not cap.st.trade_pending:
+            break
+    asked = [r.url.params["ticker"] for r in seen if r.url.path.endswith("/markets/trades")]
+    assert len(set(asked)) == len(traded)  # every traded market was eventually pulled
+    assert infos[0]["backlog"] > 0 and "backlog_cleared" not in infos[0]
+    assert infos[-1]["backlog"] == 0 and infos[-1].get("backlog_cleared") is True
+    cap.fetcher.begin_tick(500, 30.0)
+    info2: dict[str, Any] = {"skipped": {}}
+    cap.kalshi_trades(info2)
+    assert "backlog_cleared" not in info2["trades"] and info2["trades"]["targets"] == 0
+
+
+def test_worker_exception_is_contained(tmp_path: Path) -> None:
+    def boom(req: httpx.Request) -> httpx.Response:
+        raise RuntimeError("transport exploded")
+
+    cap = Capture(DAY, tmp_path / "raw", tmp_path / "hb.json", fetcher=fetcher_for(boom))
+    cap.fetcher.begin_tick(100, 30.0)
+    cap.st.last_markets = [m for m in MARKETS if float(m["volume_fp"]) > 0][:2]
+    info: dict[str, Any] = {"skipped": {}}
+    cap.kalshi_trades(info)  # does not raise
+    assert info["skipped"]["trades_incomplete_n"] == 2 and len(cap.st.trade_pending) == 2
+
+
+def test_offer_cli_accepts_fractional_contracts(tmp_path: Path, monkeypatch: Any) -> None:
+    from nba.live import __main__ as cli
+
+    seen: list[httpx.Request] = []
+    monkeypatch.setattr(cli, "Fetcher", lambda rate_per_s: fetcher_for(make_handler(seen)))
+    rc = cli.main(
+        ["offer", "--combo", "KXMVE-COMBO", "--offer", "5.5", "--contracts", "12.75",
+         "--out", str(tmp_path)]
+    )  # fmt: skip
+    assert rc == 0
+    row = json.loads((tmp_path / "cashout_offers.jsonl").read_text())
+    assert row["contracts"] == 12.75

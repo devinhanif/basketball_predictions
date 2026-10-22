@@ -31,7 +31,7 @@ def log_offer(
     *,
     combo: str,
     offer: float,
-    contracts: int,
+    contracts: float,
     fetcher: Fetcher,
     legs: list[str] | None = None,
     note: str | None = None,
