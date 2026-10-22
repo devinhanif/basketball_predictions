@@ -175,6 +175,17 @@ def test_alignment_repairs_a_swapped_ordering_and_reports_agreement() -> None:
     assert aligned.index.equals(cur_lab.index)
 
 
+def test_canonical_frame_makes_the_labels_a_function_of_the_data_not_of_row_order() -> None:
+    f = _population(7, flip=False)
+    shuffled = f.sample(frac=1.0, random_state=3).reset_index(drop=True)
+    assert not f.player_id.equals(shuffled.player_id)
+    a, b = af.canonical_frame(f), af.canonical_frame(shuffled)
+    pd.testing.assert_frame_equal(a, b)
+    la = t505.assign_archetypes(a, t505.OFF_FEATURES, 6)
+    lb = t505.assign_archetypes(b, t505.OFF_FEATURES, 6)
+    assert la.equals(lb)
+
+
 def test_alignment_is_identity_when_nothing_drifted() -> None:
     ref = _population(0, flip=False)
     lab = t505.assign_archetypes(ref, t505.OFF_FEATURES, 6)

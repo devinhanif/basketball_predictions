@@ -29,6 +29,14 @@ from research.eval import matchup_availability_features as t505
 POS_COLS = ["is_guard", "is_forward", "is_center"]
 
 
+def canonical_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """The clustering input in a fixed row order (by player_id). ``read_player_season_stats`` is a GROUP BY whose row order is not defined in
+    DuckDB, and k-means (even with a fixed seed) depends on row order: found in Run 2 of the gate, two builds of the same season's archetypes
+    from the same data agreed for as little as 0.27 of players (offense), so the labels were not reproducible at all. Sorting makes the labels a
+    function of the data. The T505/T506 modules are not edited (their archetype labels are not reproducible; their power numbers do not use them)."""
+    return frame.sort_values("player_id", kind="stable").reset_index(drop=True)
+
+
 def centroid_table(frame: pd.DataFrame, labels: pd.Series, cols: list[str]) -> pd.DataFrame:
     """Mean of the raw clustering columns (+ position fractions) by label. ``labels`` is indexed by player_id (as ``assign_archetypes``)."""
     use = cols + POS_COLS
@@ -95,12 +103,14 @@ def build_aligned_archetypes(c: Any, season: int) -> tuple[pd.Series, pd.Series,
     t506.check_season(season)
     stats = t505.read_player_season_stats(c, season - 1)
     static = t505.read_static(c)
-    frame = t505.archetype_features(stats, static)
+    frame = canonical_frame(t505.archetype_features(stats, static))
     off = t505.assign_archetypes(frame, t505.OFF_FEATURES, t506.K_OFF)
     dfn = t505.assign_archetypes(frame, t505.DEF_FEATURES, t506.K_DEF)
     if season == rule.SELECT:
         return off, dfn, {"reference": True, "season": season, "n_players_clustered": int(len(off))}
-    ref_frame = t505.archetype_features(t505.read_player_season_stats(c, rule.SELECT - 1), static)
+    ref_frame = canonical_frame(
+        t505.archetype_features(t505.read_player_season_stats(c, rule.SELECT - 1), static)
+    )
     ref_off = t505.assign_archetypes(ref_frame, t505.OFF_FEATURES, t506.K_OFF)
     ref_def = t505.assign_archetypes(ref_frame, t505.DEF_FEATURES, t506.K_DEF)
     off_a, rep_off = align_pair(ref_frame, ref_off, frame, off, t505.OFF_FEATURES)
