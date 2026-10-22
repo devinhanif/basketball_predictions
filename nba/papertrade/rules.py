@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import itertools
 import math
-from dataclasses import dataclass, replace
+import random
+from dataclasses import dataclass
 from datetime import datetime
 
 from nba.papertrade.config import PaperConfig
@@ -36,6 +37,15 @@ class Leg:
     ask: float  # ask for THIS side
     bid_size: float
     ask_size: float
+    forecast_made_at: datetime | None = None
+    forecast_version: str = ""
+    entry_source: str = "listing"  # listing | book (top of the order book at entry)
+    book_ts: datetime | None = None
+
+    @property
+    def family(self) -> str:
+        """Same game, player and stat: ladder rungs of one family are near-duplicates."""
+        return f"{self.game_id}|{self.player_id}|{self.stat}"
 
     @property
     def mid(self) -> float:
@@ -70,10 +80,20 @@ def ev_per_dollar(
     return (n * prob - cost) / cost
 
 
-def screen_leg(leg: Leg, cfg: PaperConfig, *, now: datetime) -> tuple[bool, str]:
-    """(passes, reason). Liquidity first (spread, quotes, size), then price band, then EV."""
+def screen_leg(
+    leg: Leg, cfg: PaperConfig, *, now: datetime, check_ev: bool = True
+) -> tuple[bool, str]:
+    """(passes, reason). Order: leg type, forecast version and age, liquidity (quotes, spread,
+    price band, tip lead, size), then EV. ``check_ev=False`` is the placebo universe: everything
+    except the model-dependent EV floor."""
     if leg.stat == "win" and not cfg.trade_win_legs:
         return False, "leg_type_disabled"
+    if leg.forecast_version and leg.forecast_version not in cfg.allowed_forecast_versions:
+        return False, "forecast_version_not_frozen"
+    if leg.forecast_made_at is not None:
+        age_h = (now - leg.forecast_made_at).total_seconds() / 3600.0
+        if age_h > cfg.max_forecast_age_h:
+            return False, "forecast_stale"
     if leg.bid <= 0.0 or leg.ask <= 0.0 or leg.ask >= 1.0:
         return False, "one_sided_or_unquoted"
     if leg.spread > cfg.max_spread + 1e-9:
@@ -85,10 +105,7 @@ def screen_leg(leg: Leg, cfg: PaperConfig, *, now: datetime) -> tuple[bool, str]
     n, _ = plan_entry(leg.ask, cfg.fee, cfg.stake_usd, leg.series)
     if leg.ask_size < n:
         return False, "ask_size_below_order"
-    ev = ev_per_dollar(
-        shrunk(leg.p_model, leg.mid, cfg.shrink), leg.ask, cfg.fee, cfg.stake_usd, leg.series
-    )
-    if ev < cfg.min_ev_per_dollar:
+    if check_ev and leg_ev(leg, cfg) < cfg.min_ev_per_dollar:
         return False, "ev_below_floor"
     return True, "ok"
 
@@ -111,17 +128,19 @@ class Plan:
     p_shrunk: float
     ev_per_dollar: float
     label: str
+    synthetic: bool = False
 
 
 def build_plan(slot: str, legs: tuple[Leg, ...], cfg: PaperConfig) -> Plan:
     price = math.prod(leg.ask for leg in legs)
-    n, fee = plan_entry(price, cfg.fee, cfg.stake_usd)
+    series = legs[0].series if len(legs) == 1 else ""
+    n, fee = plan_entry(price, cfg.fee, cfg.stake_usd, series)
     cost = n * price + fee
     p_s = math.prod(shrunk(leg.p_model, leg.mid, cfg.shrink) for leg in legs)
     label = (
         "single: real ask"
         if len(legs) == 1
-        else "parlay: product of leg asks (synthetic; a Kalshi combo quote may differ)"
+        else "SYNTHETIC parlay: product of leg asks, not a tradable price (descriptive only)"
     )
     return Plan(
         slot,
@@ -134,6 +153,7 @@ def build_plan(slot: str, legs: tuple[Leg, ...], cfg: PaperConfig) -> Plan:
         p_s,
         (n * p_s - cost) / cost,
         label,
+        len(legs) > 1,
     )
 
 
@@ -146,11 +166,14 @@ def _windows_distinct(legs: tuple[Leg, ...]) -> bool:
 
 
 def choose_slot(slot: str, passing: list[Leg], used: set[str], cfg: PaperConfig) -> Plan | None:
-    """Best plan for one slot from legs not already used. single: best leg by shrunk EV per $.
-    parlayK: best K-leg combination from the top ``top_legs_for_parlays`` legs, all in different
-    games and tip windows, every leg's ask size covering the contract count. Cross-game legs are
-    treated as independent (docs/BEST_PRACTICES.md section 5: cross-game residual r is about 0)."""
-    pool = sorted((x for x in passing if x.ticker not in used), key=lambda x: -leg_ev(x, cfg))
+    """Best plan for one slot from legs whose ticker and family are not already used.
+    single: best leg by shrunk EV per $. parlayK (synthetic, descriptive): best K-leg combination
+    from the top ``top_legs_for_parlays`` legs, all in different games and tip windows, every leg's
+    ask size covering the contract count; legs are treated as independent (cross-game r ~ 0)."""
+    pool = sorted(
+        (x for x in passing if x.ticker not in used and x.family not in used),
+        key=lambda x: -leg_ev(x, cfg),
+    )
     if slot == "single":
         return build_plan(slot, (pool[0],), cfg) if pool else None
     k = int(slot.removeprefix("parlay"))
@@ -168,13 +191,21 @@ def choose_slot(slot: str, passing: list[Leg], used: set[str], cfg: PaperConfig)
     return best
 
 
-def control_leg(leg: Leg, other_side: Leg) -> Leg:
-    """The market-favourite side of the same market: YES if the YES mid is at least 0.5 else NO.
-    ``leg`` is the strategy leg; ``other_side`` its flipped twin. Probabilities in the control are
-    the market's own mid (it takes no view)."""
-    yes, no = (leg, other_side) if leg.side == "yes" else (other_side, leg)
-    fav = yes if yes.mid >= 0.5 else no
-    return replace(fav, p_model=fav.mid)
+def draw_placebo(
+    plan: Plan, universe: list[Leg], rng: random.Random, cfg: PaperConfig
+) -> Plan | None:
+    """Seeded random-pick placebo with the same slot structure: uniformly random screened
+    (market, side) legs from ``universe`` (liquidity, band and tip-lead screen, NO model EV floor),
+    one per leg of ``plan``, in different games and tip windows when the plan has several legs.
+    It never looks at a probability, so its expectation is minus costs."""
+    k = len(plan.legs)
+    for _ in range(200):
+        pick = tuple(rng.sample(universe, k)) if len(universe) >= k else ()
+        if len(pick) == k and (k == 1 or _windows_distinct(pick)):
+            cand = build_plan(plan.slot, pick, cfg)
+            if min(x.ask_size for x in pick) >= cand.n:
+                return cand
+    return None
 
 
 def flipped(leg: Leg) -> Leg:
@@ -183,6 +214,7 @@ def flipped(leg: Leg) -> Leg:
         leg.ticker, leg.event_ticker, leg.series, leg.game_id, leg.tipoff, leg.stat,
         leg.player_id, leg.threshold, "no" if leg.side == "yes" else "yes",
         1.0 - leg.p_model, 1.0 - leg.ask, 1.0 - leg.bid, leg.ask_size, leg.bid_size,
+        leg.forecast_made_at, leg.forecast_version, leg.entry_source, leg.book_ts,
     )  # fmt: skip
 
 
@@ -220,9 +252,15 @@ def value_position(marks: list[LegMark], cfg: PaperConfig) -> tuple[float, float
 
 
 def exit_decision(
-    marks: list[LegMark], n: int, cfg: PaperConfig, sizes_ok: bool = True
+    marks: list[LegMark], n: int, cfg: PaperConfig, sizes_ok: bool = True, series: str = ""
 ) -> tuple[str, float, float, float]:
-    """('hold'|'exit'|'wait_pretip'|'dead'|'settling'|'size_blocked', fair, hold, exit_est)."""
+    """('hold'|'exit'|'wait_pretip'|'dead'|'settling'|'size_blocked', fair, hold, exit_est).
+
+    Exit when the estimated proceeds AFTER the exit fee are >= hold value * (1 + exit_margin):
+    sell only when the bids pay more than holding is worth. After tip the hold value of a live leg
+    is its mid (the model has no in-game version), and a bid cannot exceed the mid, so for singles
+    this rarely fires; it can fire when a not-yet-started leg of a position is valued low by the
+    shrunk model. ``exit_est`` returned is the gross product of bids; the fee is applied here."""
     fair, hold, est, open_legs, started = value_position(marks, cfg)
     if fair == 0.0 and open_legs == 0:
         return "dead", fair, hold, est
@@ -230,12 +268,15 @@ def exit_decision(
         return "settling", fair, hold, est
     if cfg.exit_from_first_tip and started == 0:
         return "wait_pretip", fair, hold, est
-    if est > 0.0 and est >= max(fair, hold) - cfg.exit_margin:
+    net = est
+    if 0.0 < est < 1.0:
+        net = est - order_fee(est, cfg.fee, n, series=series) / n
+    if net > 0.0 and net >= hold * (1.0 + cfg.exit_margin):
         return ("exit" if sizes_ok else "size_blocked"), fair, hold, est
     return "hold", fair, hold, est
 
 
-def exit_proceeds(price: float, n: int, cfg: PaperConfig) -> tuple[float, float]:
+def exit_proceeds(price: float, n: int, cfg: PaperConfig, series: str = "") -> tuple[float, float]:
     """(fee, net proceeds) of selling ``n`` contracts at ``price`` (taker fee on the sale)."""
-    fee = order_fee(price, cfg.fee, n) if 0.0 < price < 1.0 else 0.0
+    fee = order_fee(price, cfg.fee, n, series=series) if 0.0 < price < 1.0 else 0.0
     return fee, n * price - fee

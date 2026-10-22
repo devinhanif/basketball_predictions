@@ -1,21 +1,33 @@
-# Paper robo-trader. Frozen with docs/prereg/PAPER_TRADER.md before the first trade; a change here
-# is a new rule version, not an edit. Fees are NOT here: they come from configs/parlay.yaml (verified).
-rule_version: paper-trader-v1
-stake_usd: 8.0             # fixed paper stake per position (integer contracts, stake / cost per contract)
-slots: [single, parlay2, parlay3]   # positions built per slate, in this order (N = 3)
-shrink: 0.5                # weight on the model; the rest on the Kalshi mid. Fixed, never tuned.
-max_spread: 0.05           # liquidity filter: yes ask - yes bid <= 5c, both sides quoted
-min_leg_ask: 0.10          # no longshots or near-locks as legs (price outside this band is skipped)
+# Paper robo-trader, rule version paper-trader-v2 (DRAFT until the main session freezes it).
+# A change here after the freeze is a new rule version, not an edit. Fees are NOT here: they come from
+# configs/parlay.yaml (verified). Digest of this file + prereg + code is checked before any scored entry.
+rule_version: paper-trader-v2
+freeze_date: 2026-10-23     # DRAFT placeholder: the main session sets the real date; scored rows need slate_date >= this
+stake_usd: 8.0              # fixed paper stake per position (integer contracts, cost incl. entry fee <= stake)
+# Primary scope = singles at real prices. Parlays are logged as synthetic (product-of-legs) descriptive rows only.
+slots: [single, single, single, parlay2, parlay3]
+shrink: 0.25                # weight on the model (rest on the Kalshi mid). Evidence: ODDS_HISTORY H2 0.10-0.35, T480 0.15-0.19
+max_spread: 0.05            # liquidity filter: yes ask - yes bid <= 5c, both sides quoted
+min_leg_ask: 0.10           # price band for any leg
 max_leg_ask: 0.90
-min_ev_per_dollar: 0.03    # shrunk-probability EV after fee and spread, per $ of cost, to be a candidate
-trade_win_legs: false      # game winners are logged as candidates but not traded: the market beat the model there (2025-26 replay)
-min_p_play: 0.90           # props: the stored P(play) floor (a DNP settles to a fair price)
-entry_lead_min: 10         # an entry needs every leg's tip at least this many minutes away
-top_legs_for_parlays: 12   # parlay legs are drawn from the best N single candidates
-exit_margin: 0.01          # exit when sold-at-bids value >= max(fair, hold) - this
-exit_from_first_tip: true  # exit rule is live only once any leg's game has tipped
-min_slate_dates: 30        # the pre-registered minimum for any claim
-min_positions: 150
+min_ev_per_dollar: 0.03     # shrunk-probability EV after fee and spread, per $ of cost, to be a candidate
+trade_win_legs: false       # game winners are logged as candidates but not traded (market beat us there)
+min_p_play: 0.90            # props: the stored P(play) floor (a DNP settles to a fair price)
+max_forecast_age_h: 12.0    # M6 replay: production writes props once a morning (~15:20Z); a 6 h cap fills 0 positions per slate
+allowed_forecast_versions: [ctxres-v1]   # model version frozen per rule version
+entry_lead_min: 10          # an entry needs every leg's tip at least this many minutes away
+max_book_slippage: 0.01     # refuse when the order-book ask is worse than the listing ask by more than this
+top_legs_for_parlays: 12
+exit_margin: 0.05           # exit when proceeds after the exit fee >= hold value * (1 + exit_margin)
+exit_from_first_tip: true   # exit rule is live only once any leg's game has tipped
+# Two named looks; CIs exist only at a look. Alpha is split 0.005 / 0.045 (two-sided).
+look1_min_positions: 150    # L1: first slate date with >= this many settled non-void primary positions AND ...
+look1_min_dates: 30         # ... this many slate dates
+look2_dates: 100            # L2: 100 slate dates or the season end date, whichever is first
+season_end_date: 2027-04-11
+alpha_l1: 0.005
+alpha_l2: 0.045
+concentration_cap: 0.25     # max_d |P&L_d| / sum_d |P&L_d| for the live-money condition
 bootstrap_reps: 4000
 bootstrap_seed: 20261022
 prop_series: {KXNBAPTS: pts, KXNBAREB: reb, KXNBAAST: ast, KXNBA3PT: fg3m}

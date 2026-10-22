@@ -32,6 +32,7 @@ class PropForecast:
     counts: tuple[int, ...]  # counts[k-1] = #samples with stat >= k
     n: int
     p_play: float
+    version: str = ""
 
     def p_ge(self, k: int) -> float | None:
         """P(stat >= k | plays); None when k is beyond the stored support."""
@@ -71,7 +72,8 @@ def load_forecasts(con: duckdb.DuckDBPyConnection, day: date, now: datetime) -> 
     out = Forecasts()
     rows = con.execute(
         """
-        SELECT game_id, tipoff, made_at, target, player_id, prediction FROM forward_predictions
+        SELECT game_id, tipoff, made_at, target, player_id, prediction, version
+        FROM forward_predictions
         WHERE model_name = ? AND target IN ('pts','reb','ast','fg3m')
           AND tipoff >= ? AND tipoff < ? AND made_at <= ? AND made_at < tipoff
         QUALIFY row_number() OVER (PARTITION BY game_id, target, player_id
@@ -79,7 +81,7 @@ def load_forecasts(con: duckdb.DuckDBPyConnection, day: date, now: datetime) -> 
         """,
         [PROPS_MODEL, lo, hi, now],
     ).fetchall()
-    for gid, tip, made, target, pid, pred in rows:
+    for gid, tip, made, target, pid, pred, ver in rows:
         d: dict[str, Any] = json.loads(pred) if isinstance(pred, str) else pred
         full = d.get("p_ge_full") or {}
         counts = full.get("c")
@@ -87,7 +89,7 @@ def load_forecasts(con: duckdb.DuckDBPyConnection, day: date, now: datetime) -> 
             continue
         out.props[(int(pid), str(target))] = PropForecast(
             str(gid), tip, made, str(target), int(pid), tuple(int(c) for c in counts),
-            int(full["n"]), float(d["p_play"]),
+            int(full["n"]), float(d["p_play"]), str(ver or ""),
         )  # fmt: skip
     id_to_abbr = {v: k for k, v in load_team_abbr().items()}
     wrows = con.execute(

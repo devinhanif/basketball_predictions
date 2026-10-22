@@ -18,7 +18,7 @@ from nba.live import kalshi_pull as kp
 from nba.papertrade import db
 from nba.papertrade.config import PaperConfig
 from nba.papertrade.monitor import MarketGetter
-from nba.papertrade.stats import Ratio, cluster_ratio
+from nba.papertrade.stats import Ratio, cluster_ratio, concentration
 
 FINAL_STATUSES = ("finalized", "settled", "determined")
 
@@ -96,61 +96,182 @@ def settle_positions(
     return counts
 
 
+def look_dates(
+    per_date_counts: list[tuple[str, int]], cfg: PaperConfig, last_date: str
+) -> dict[str, str | None]:
+    """L1 / L2 slate dates from (date, settled primary positions on that date), dates ascending.
+    L1: first date with cumulative positions >= look1_min_positions and dates >= look1_min_dates.
+    L2: the look2_dates-th slate date, or the first slate date on/after the season end."""
+    cum = 0
+    l1 = l2 = None
+    for i, (d, n) in enumerate(per_date_counts, start=1):
+        cum += n
+        if l1 is None and cum >= cfg.look1_min_positions and i >= cfg.look1_min_dates:
+            l1 = d
+        if l2 is None and (i >= cfg.look2_dates or d >= cfg.season_end_date.isoformat()):
+            l2 = d
+    return {"L1": l1, "L2": l2}
+
+
+def _arm(rows: list[tuple[Any, ...]], col: int, cfg: PaperConfig, alpha: float) -> Ratio:
+    return cluster_ratio(
+        [str(r[1]) for r in rows], [float(r[col]) for r in rows], [float(r[2]) for r in rows],
+        reps=cfg.bootstrap_reps, seed=cfg.bootstrap_seed, alpha=alpha,
+    )  # fmt: skip
+
+
+def _pack(r: Ratio, with_ci: bool) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "n_positions": r.n_positions, "n_slate_dates": r.n_dates, "cost": r.cost, "pnl": r.pnl,
+        "pnl_per_dollar": r.per_dollar,
+    }  # fmt: skip
+    if with_ci:
+        out["ci"] = r.ci
+    return out
+
+
+def evaluate_look(
+    rows: list[tuple[Any, ...]], clv: list[tuple[str, float]], cfg: PaperConfig, alpha: float
+) -> dict[str, Any]:
+    """The look's result on primary-scope rows (singles at real prices) up to the look date."""
+    a = _arm(rows, 4, cfg, alpha)
+    b = _arm(rows, 3, cfg, alpha)
+    sec_alpha = alpha / 2  # Holm over the two secondaries (a-b, CLV): conservative half
+    ab = cluster_ratio(
+        [str(r[1]) for r in rows], [float(r[4]) - float(r[3]) for r in rows],
+        [float(r[2]) for r in rows], reps=cfg.bootstrap_reps, seed=cfg.bootstrap_seed,
+        alpha=sec_alpha,
+    )  # fmt: skip
+    both = [r for r in rows if r[7] is not None]
+    ap = cluster_ratio(
+        [str(r[1]) for r in both],
+        [float(r[4]) - float(r[8]) * float(r[2]) / float(r[7]) for r in both],
+        [float(r[2]) for r in both], reps=cfg.bootstrap_reps, seed=cfg.bootstrap_seed, alpha=alpha,
+    )  # fmt: skip
+    placebo = cluster_ratio(
+        [str(r[1]) for r in both], [float(r[8]) for r in both], [float(r[7]) for r in both],
+        reps=cfg.bootstrap_reps, seed=cfg.bootstrap_seed, alpha=alpha,
+    )  # fmt: skip
+    cl = cluster_ratio(
+        [d for d, _ in clv], [v for _, v in clv], [1.0] * len(clv),
+        reps=cfg.bootstrap_reps, seed=cfg.bootstrap_seed, alpha=sec_alpha,
+    )  # fmt: skip
+    conc = concentration([str(r[1]) for r in rows], [float(r[4]) for r in rows])
+    lo = a.ci[0] if a.ci else None
+    hi = a.ci[1] if a.ci else None
+    gate = {
+        "a_ci_lower_above_zero": lo is not None and lo > 0,
+        "a_minus_placebo_ci_lower_above_zero": bool(ap.ci and ap.ci[0] > 0),
+        "concentration_ok": conc is not None and conc <= cfg.concentration_cap,
+    }
+    return {
+        "alpha": alpha,
+        "a_exit_rule": _pack(a, True),
+        "b_hold_to_end": _pack(b, True),
+        "a_minus_b": _pack(ab, True) | {"alpha": sec_alpha},
+        "a_minus_placebo_stake_matched": _pack(ap, True) | {"n_pairs": len(both)},
+        "placebo_hold": _pack(placebo, True),
+        "clv_per_contract": _pack(cl, True)
+        | {"alpha": sec_alpha, "unit": "mid_before_tip - entry_ask"},
+        "concentration_top_date_share_of_abs_pnl": conc,
+        "futility_close": hi is not None and hi < 0,
+        "live_money_conditions": gate,
+        "may_consider_live_money": all(gate.values()),
+    }
+
+
+def clv_rows(con: Any, position_ids: list[str], dates: dict[str, str]) -> list[tuple[str, float]]:
+    """(slate date, last pre-tip mid of the held side - entry ask) per single-leg position."""
+    out = []
+    for pid in position_ids:
+        leg = con.execute(
+            "SELECT ask, tipoff FROM position_legs WHERE position_id = ? AND leg_idx = 0", [pid]
+        ).fetchone()
+        if leg is None:
+            continue
+        m = con.execute(
+            "SELECT detail_json FROM marks WHERE position_id = ? AND made_at < ? "
+            "ORDER BY made_at DESC LIMIT 1",
+            [pid, leg[1]],
+        ).fetchone()
+        if m is None:
+            continue
+        bid, ask, _ = json.loads(m[0])[0]
+        out.append((dates[pid], 0.5 * (float(bid) + float(ask)) - float(leg[0])))
+    return out
+
+
 def summarize(db_path: Path, cfg: PaperConfig) -> dict[str, Any]:
-    """Primary and secondary comparisons: n, date-clustered CIs, insufficient-sample flag."""
+    """Counts and point values always; CIs only at the two named looks, on data up to the look date.
+    Scope: this rule_version, slate_date >= freeze_date, singles at real prices (parlays are
+    synthetic and descriptive). A shakedown rule version is never scored."""
+    if not cfg.scored:
+        return {"rule_version": cfg.rule_version, "verdict": "unscored_shakedown"}
     with db.reader(db_path) as con:
         rows = con.execute(
-            "SELECT s.position_id, s.slate_date, s.cost, s.pnl_hold, s.pnl_exit_rule, s.exited, "
-            "c.cost, c.pnl_hold FROM results s "
-            "LEFT JOIN (SELECT p2.twin_id, r.cost, r.pnl_hold FROM results r JOIN positions p2 "
-            "USING (position_id) WHERE r.role = 'control' AND r.status = 'settled') c "
-            "ON c.twin_id = s.position_id "
-            "WHERE s.role = 'strategy' AND s.status = 'settled'"
+            "SELECT s.position_id, s.slate_date, s.cost, s.pnl_hold, s.pnl_exit_rule, p.slot, "
+            "p.synthetic, c.cost, c.pnl_hold FROM results s "
+            "JOIN positions p ON p.position_id = s.position_id "
+            "LEFT JOIN (SELECT p2.twin_id, r.cost, r.pnl_hold FROM results r "
+            "JOIN positions p2 ON p2.position_id = r.position_id "
+            "WHERE r.role = 'placebo' AND r.status = 'settled') c ON c.twin_id = s.position_id "
+            "WHERE s.role = 'strategy' AND s.status = 'settled' AND p.rule_version = ? "
+            "AND p.slate_date >= ? ORDER BY s.slate_date",
+            [cfg.rule_version, cfg.freeze_date],
         ).fetchall()
-        n_void = con.execute("SELECT count(*) FROM results WHERE status = 'void'").fetchone()
-        n_pos = con.execute("SELECT count(*) FROM positions WHERE role = 'strategy'").fetchone()
-        n_scans = con.execute(
-            "SELECT count(*), sum(CASE WHEN verdict = 'no_positive_ev_found' THEN 1 ELSE 0 END) "
-            "FROM scans"
+        n_void = con.execute(
+            "SELECT count(*) FROM results r JOIN positions p ON p.position_id = r.position_id "
+            "WHERE r.status = 'void' AND p.rule_version = ? AND p.slate_date >= ?",
+            [cfg.rule_version, cfg.freeze_date],
         ).fetchone()
-    kw: dict[str, Any] = {
-        "reps": cfg.bootstrap_reps, "seed": cfg.bootstrap_seed,
-        "min_dates": cfg.min_slate_dates, "min_positions": cfg.min_positions,
-    }  # fmt: skip
-    dates = [str(r[1]) for r in rows]
-    cost = [float(r[2]) for r in rows]
-
-    def ratio(pnl: list[float], c: list[float], d: list[str]) -> Ratio:
-        return cluster_ratio(d, pnl, c, **kw)
-
-    a = ratio([float(r[4]) for r in rows], cost, dates)
-    b = ratio([float(r[3]) for r in rows], cost, dates)
-    both = [r for r in rows if r[6] is not None]
-    cd = [str(r[1]) for r in both]
-    cc = [float(r[2]) for r in both]
-    a_vs_c = ratio([float(r[4]) - float(r[7]) * float(r[2]) / float(r[6]) for r in both], cc, cd)
-    b_vs_a = ratio([float(r[3]) - float(r[4]) for r in rows], cost, dates)
-    ctrl = ratio([float(r[7]) for r in both], [float(r[6]) for r in both], cd)
-
-    def pack(r: Ratio) -> dict[str, Any]:
-        return {
-            "n_positions": r.n_positions, "n_slate_dates": r.n_dates, "cost": r.cost,
-            "pnl": r.pnl, "pnl_per_dollar": r.per_dollar, "ci95_by_date": r.ci,
-            "verdict": "insufficient_sample" if not r.sufficient else "claim_eligible",
-        }  # fmt: skip
-
+        n_waiting = con.execute(
+            "SELECT count(*) FROM positions WHERE role = 'strategy' AND rule_version = ? "
+            "AND slate_date >= ? AND position_id NOT IN (SELECT position_id FROM results)",
+            [cfg.rule_version, cfg.freeze_date],
+        ).fetchone()
+        scans = con.execute(
+            "SELECT count(*), sum(CASE WHEN verdict = 'no_positive_ev_found' THEN 1 ELSE 0 END) "
+            "FROM scans WHERE rule_version = ? AND slate_date >= ?",
+            [cfg.rule_version, cfg.freeze_date],
+        ).fetchone()
+        assert n_void and n_waiting and scans
+        primary = [r for r in rows if not r[6]]
+        synthetic = [r for r in rows if r[6]]
+        by_date: dict[str, int] = {}
+        for r in primary:
+            by_date[str(r[1])] = by_date.get(str(r[1]), 0) + 1
+        ordered = sorted(by_date.items())
+        looks = look_dates(ordered, cfg, ordered[-1][0] if ordered else "")
+        out_looks: dict[str, Any] = {}
+        for name, alpha in (("L1", cfg.alpha_l1), ("L2", cfg.alpha_l2)):
+            d = looks[name]
+            if d is None:
+                out_looks[name] = {"status": "not_reached"}
+                continue
+            sub = [r for r in primary if str(r[1]) <= d]
+            ids = [str(r[0]) for r in sub]
+            clv = clv_rows(con, ids, {str(r[0]): str(r[1]) for r in sub})
+            out_looks[name] = {"status": "taken", "data_through": d} | evaluate_look(
+                sub, clv, cfg, alpha
+            )
+    cur = {
+        "a_exit_rule": _pack(_arm(primary, 4, cfg, 0.05), False) if primary else None,
+        "b_hold_to_end": _pack(_arm(primary, 3, cfg, 0.05), False) if primary else None,
+    }
+    syn = _pack(_arm(synthetic, 4, cfg, 0.05), False) if synthetic else None
+    sc = scans
     return {
         "rule_version": cfg.rule_version,
-        "a_exit_rule": pack(a),
-        "b_hold_to_end": pack(b),
-        "c_control_hold": pack(ctrl),
-        "b_minus_a_per_dollar_of_a_cost": pack(b_vs_a),
-        "a_minus_c_stake_matched": pack(a_vs_c),
-        "n_void": int(n_void[0]) if n_void else 0,
-        "n_strategy_positions": int(n_pos[0]) if n_pos else 0,
-        "n_scans": int(n_scans[0]) if n_scans else 0,
-        "n_scans_no_positive_ev_found": int(n_scans[1] or 0) if n_scans else 0,
-        "note": "No claim below the pre-registered minimum; see docs/prereg/PAPER_TRADER.md.",
+        "freeze_date": cfg.freeze_date.isoformat(),
+        "scope": "singles at real prices; slate_date >= freeze_date; settled non-void only",
+        "current_not_a_look": cur
+        | {"status": "not_a_look", "note": "counts and point values only; no CI, no claim"},
+        "looks": out_looks,
+        "synthetic_parlays_descriptive": syn,
+        "n_void": int(n_void[0]),
+        "n_waiting_positions": int(n_waiting[0]),
+        "n_scans": int(sc[0]),
+        "n_scans_no_positive_ev_found": int(sc[1] or 0),
     }
 
 

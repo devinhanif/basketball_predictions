@@ -1,4 +1,4 @@
-"""Cluster-by-slate-date bootstrap for pnl per $ staked (ratio of sums), with the sample gate."""
+"""Cluster-by-slate-date bootstrap for pnl per $ staked (ratio of sums), at a stated alpha."""
 
 from __future__ import annotations
 
@@ -15,18 +15,15 @@ class Ratio:
     pnl: float
     per_dollar: float | None
     ci: tuple[float, float] | None
-    sufficient: bool
 
 
 def cluster_ratio(
-    dates: list[str], pnl: list[float], cost: list[float], *, reps: int, seed: int,
-    min_dates: int, min_positions: int,
+    dates: list[str], pnl: list[float], cost: list[float], *, reps: int, seed: int, alpha: float,
 ) -> Ratio:  # fmt: skip
-    """pnl / cost over positions, 95% CI by resampling whole slate dates. Below the pre-registered
-    minimum the point value is still shown but ``sufficient`` is False: no claim."""
+    """pnl / cost over positions; two-sided (1 - alpha) CI by resampling whole slate dates."""
     n = len(pnl)
     if n == 0:
-        return Ratio(0, 0, 0.0, 0.0, None, None, False)
+        return Ratio(0, 0, 0.0, 0.0, None, None)
     uniq = sorted(set(dates))
     idx = {d: i for i, d in enumerate(uniq)}
     k = len(uniq)
@@ -44,5 +41,14 @@ def cluster_ratio(
         den = cs[pick].sum(axis=1)
         ok = den > 0
         est = ps[pick].sum(axis=1)[ok] / den[ok]
-        ci = (float(np.quantile(est, 0.025)), float(np.quantile(est, 0.975)))
-    return Ratio(n, k, tc, tp, point, ci, k >= min_dates and n >= min_positions)
+        ci = (float(np.quantile(est, alpha / 2)), float(np.quantile(est, 1 - alpha / 2)))
+    return Ratio(n, k, tc, tp, point, ci)
+
+
+def concentration(dates: list[str], pnl: list[float]) -> float | None:
+    """Share of total |P&L| coming from the single largest-|P&L| date: max_d |P_d| / sum_d |P_d|."""
+    by: dict[str, float] = {}
+    for d, p in zip(dates, pnl, strict=True):
+        by[d] = by.get(d, 0.0) + p
+    tot = sum(abs(v) for v in by.values())
+    return max(abs(v) for v in by.values()) / tot if tot > 0 else None

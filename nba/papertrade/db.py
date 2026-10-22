@@ -20,21 +20,23 @@ DDL = """
 CREATE TABLE IF NOT EXISTS scans (
   scan_id VARCHAR, slate_date DATE, made_at TIMESTAMP, rule_version VARCHAR, verdict VARCHAR,
   n_markets INT, n_candidates INT, n_positions INT, unmatched_names VARCHAR, params_json VARCHAR,
-  notes_json VARCHAR);
+  notes_json VARCHAR, alias_sha VARCHAR, code_digest VARCHAR, digest_ok BOOLEAN);
 CREATE TABLE IF NOT EXISTS candidates (
   scan_id VARCHAR, ticker VARCHAR, series VARCHAR, game_id VARCHAR, tipoff TIMESTAMP, stat VARCHAR,
   player_id INT, threshold DOUBLE, p_model DOUBLE, p_shrunk DOUBLE, bid DOUBLE, ask DOUBLE,
-  spread DOUBLE, ask_size DOUBLE, ev_per_dollar DOUBLE, passes BOOLEAN, reason VARCHAR);
+  spread DOUBLE, ask_size DOUBLE, ev_per_dollar DOUBLE, passes BOOLEAN, reason VARCHAR,
+  forecast_made_at TIMESTAMP, forecast_version VARCHAR);
 CREATE TABLE IF NOT EXISTS positions (
   position_id VARCHAR, scan_id VARCHAR, slate_date DATE, made_at TIMESTAMP, role VARCHAR,
   slot VARCHAR, twin_id VARCHAR, n_legs INT, n_contracts INT, entry_price DOUBLE,
   entry_fee DOUBLE, cost DOUBLE, first_tip TIMESTAMP, p_model DOUBLE, p_shrunk DOUBLE,
-  ev_per_dollar DOUBLE, entry_label VARCHAR, rule_version VARCHAR);
+  ev_per_dollar DOUBLE, entry_label VARCHAR, rule_version VARCHAR, synthetic BOOLEAN);
 CREATE TABLE IF NOT EXISTS position_legs (
   position_id VARCHAR, leg_idx INT, ticker VARCHAR, event_ticker VARCHAR, series VARCHAR,
   game_id VARCHAR, tipoff TIMESTAMP, side VARCHAR, stat VARCHAR, player_id INT, threshold DOUBLE,
   p_model DOUBLE, p_shrunk DOUBLE, bid DOUBLE, ask DOUBLE, mid DOUBLE, ask_size DOUBLE,
-  bid_size DOUBLE);
+  bid_size DOUBLE, forecast_made_at TIMESTAMP, forecast_version VARCHAR, entry_source VARCHAR,
+  book_ts TIMESTAMP);
 CREATE TABLE IF NOT EXISTS marks (
   position_id VARCHAR, made_at TIMESTAMP, fair DOUBLE, hold DOUBLE, exit_est DOUBLE,
   open_legs INT, started_legs INT, decision VARCHAR, detail_json VARCHAR);

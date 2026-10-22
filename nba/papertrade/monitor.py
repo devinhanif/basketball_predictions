@@ -19,6 +19,7 @@ from nba.papertrade.config import PaperConfig
 from nba.papertrade.rules import LegMark, exit_decision, exit_proceeds
 from nba.papertrade.scan import refresh_open_legs
 
+EXIT_REASON = "net_proceeds_ge_hold_x_1_plus_margin"
 MarketGetter = Callable[[str], dict[str, Any] | None]
 
 
@@ -26,27 +27,33 @@ MarketGetter = Callable[[str], dict[str, Any] | None]
 class OpenPosition:
     position_id: str
     n: int
+    role: str
     legs: list[dict[str, Any]]
 
 
-def open_positions(con: Any, day: date) -> list[OpenPosition]:
+def open_positions(
+    con: Any, day: date, roles: tuple[str, ...] = ("strategy", "placebo")
+) -> list[OpenPosition]:
+    """Positions neither exited nor settled for the slate. Strategy and placebo are both marked
+    every tick (the pre-tip marks give the closing-line value); only strategy positions can exit."""
     rows = con.execute(
-        "SELECT position_id, n_contracts FROM positions WHERE slate_date = ? AND role = 'strategy' "
+        "SELECT position_id, n_contracts, role FROM positions WHERE slate_date = ? "
         "AND position_id NOT IN (SELECT position_id FROM exits) "
         "AND position_id NOT IN (SELECT position_id FROM results) ORDER BY made_at",
         [day],
     ).fetchall()
     out = []
-    for pid, n in rows:
+    for pid, n, role in rows:
+        if role not in roles:
+            continue
         cur = con.execute(
-            "SELECT ticker, side, p_model, tipoff FROM position_legs WHERE position_id = ? "
-            "ORDER BY leg_idx",
+            "SELECT ticker, series, side, p_model, tipoff FROM position_legs "
+            "WHERE position_id = ? ORDER BY leg_idx",
             [pid],
         )
         names = [d[0] for d in cur.description]
-        out.append(
-            OpenPosition(pid, int(n), [dict(zip(names, r, strict=True)) for r in cur.fetchall()])
-        )
+        legs = [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
+        out.append(OpenPosition(pid, int(n), str(role), legs))
     return out
 
 
@@ -92,7 +99,10 @@ def monitor_once(
             if missing:
                 counts["skipped"] += 1
                 continue
-            decision, fair, hold, est = exit_decision(marks, pos.n, cfg, sizes_ok)
+            series = str(pos.legs[0]["series"]) if len(pos.legs) == 1 else ""
+            decision, fair, hold, est = exit_decision(marks, pos.n, cfg, sizes_ok, series)
+            if pos.role != "strategy" and decision in ("exit", "size_blocked"):
+                decision = "hold"  # placebo positions are marked, never exited
             open_legs = sum(1 for k in marks if k.settled is None)
             started = sum(1 for k in marks if k.started or k.settled is not None)
             con.execute(
@@ -101,10 +111,10 @@ def monitor_once(
                  json.dumps([[k.bid, k.ask, k.settled] for k in marks])],
             )  # fmt: skip
             if decision == "exit":
-                fee, _ = exit_proceeds(est, pos.n, cfg)
+                fee, _ = exit_proceeds(est, pos.n, cfg, series)
                 con.execute(
                     "INSERT INTO exits VALUES (?,?,?,?,?,?,?,?)",
-                    [pos.position_id, now, est, fee, pos.n, fair, hold, "bids_ge_value_minus_1c"],
+                    [pos.position_id, now, est, fee, pos.n, fair, hold, EXIT_REASON],
                 )  # fmt: skip
                 counts["exits"] += 1
         refresh_open_legs(con, legs_file)
