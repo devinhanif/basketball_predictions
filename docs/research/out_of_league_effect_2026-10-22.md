@@ -42,3 +42,13 @@ transaction type; prediction waived->signed > traded. Survivorship control: re-s
 team, so compare excess-over-expectation within comparable profiles and use the guarantee-date DiD as the second check.
 Data: official NBA transaction log (nba_api; ~150-300 requests; ToS to check first). Also feeds cold start (T512):
 the move type tells the model what role a newcomer is stepping into.
+
+## Refinement 2 (Devin, 2026-10-22 ~21:15): is the pressure felt? wealth and seriousness
+"Certain players have accumulated a way to secure generational wealth for their families, and they are serious."
+Moderators of the survival-pressure effect: g(earnings_i, effort_i), where earnings = as-of cumulative career
+salary (bref salary tables) and effort = as-of career hustle profile (player_game_hustle: deflections, contested
+shots, loose balls, charges; strictly prior games). Model: production = mu_i(age) + beta * S * g(earnings, effort) + e.
+Predictions: largest response at high S, low earnings, high effort; high-earnings players respond only with a high
+effort profile; high earnings + low effort ~ no response. A three-way pattern is far harder to produce by chance than
+one average effect. Next step (2026-10-23): NBA transaction-log ToS check and pull; label-free count of
+waived->signed player-seasons; then a draft rule.
