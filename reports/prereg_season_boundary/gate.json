@@ -1168,6 +1168,76 @@
    }
   }
  },
+ "continuity_slice_reported": {
+  "2023": {
+   "teams_with_continuity": 30,
+   "continuity_min_median_max": [
+    0.193,
+    0.616,
+    0.906
+   ],
+   "tercile_cut_values": [
+    0.542,
+    0.698
+   ],
+   "rows_by_tercile": {
+    "T1": {
+     "stayers": 1453,
+     "movers": 964,
+     "all": 2417,
+     "player_seasons": 127
+    },
+    "T2": {
+     "stayers": 1853,
+     "movers": 688,
+     "all": 2541,
+     "player_seasons": 141
+    },
+    "T3": {
+     "stayers": 2152,
+     "movers": 448,
+     "all": 2600,
+     "player_seasons": 141
+    }
+   },
+   "movers_total": 2100,
+   "rows": 7558
+  },
+  "2024": {
+   "teams_with_continuity": 30,
+   "continuity_min_median_max": [
+    0.328,
+    0.659,
+    0.975
+   ],
+   "tercile_cut_values": [
+    0.59,
+    0.712
+   ],
+   "rows_by_tercile": {
+    "T1": {
+     "stayers": 1846,
+     "movers": 938,
+     "all": 2784,
+     "player_seasons": 153
+    },
+    "T2": {
+     "stayers": 1852,
+     "movers": 791,
+     "all": 2643,
+     "player_seasons": 143
+    },
+    "T3": {
+     "stayers": 2360,
+     "movers": 317,
+     "all": 2677,
+     "player_seasons": 145
+    }
+   },
+   "movers_total": 2046,
+   "rows": 8104
+  }
+ },
  "league_asof_coverage": {
   "2023": {
    "dates": 160,
@@ -1753,5 +1823,5 @@
   }
  },
  "all_pass": false,
- "wall_seconds": 57
+ "wall_seconds": 49
 }

@@ -249,6 +249,70 @@ def slice_counts(
     return res
 
 
+def continuity_slice(
+    keys: dict[int, pd.DataFrame], sdb: pd.DataFrame, db: pd.DataFrame
+) -> dict[str, Any]:
+    """REPORTED slice (not a decision cell): terciles of opening-day team roster continuity, split by player moved teams. Continuity of
+    team T in season S = share of T's season S-1 regular-season minutes (for T) played by players who played for T in the S preseason log
+    (known before game 1). Terciles of the 30 team values within each season (ties by team id). Counts only; no outcome."""
+    c = duckdb.connect(str(ROOT / "nba.duckdb"), read_only=True)
+    out: dict[str, Any] = {}
+    for S in (R.SELECT, R.REPORT):
+        pre = c.execute(
+            "select distinct p.team_id, p.player_id from preseason_player_game_stats p join preseason_games g using (game_id) "
+            "where g.season = ? and p.minutes > 0",
+            [S],
+        ).df()
+        prev = (
+            reg(db[db.season == S - 1])
+            .groupby(["team_id", "player_id"])
+            .minutes.sum()
+            .reset_index()
+        )
+        tot = prev.groupby("team_id").minutes.sum()
+        kept = prev.merge(pre, on=["team_id", "player_id"]).groupby("team_id").minutes.sum()
+        cont = (kept.reindex(tot.index).fillna(0.0) / tot).sort_values(kind="stable")
+        terc = (
+            pd.Series(np.repeat([1, 2, 3], [10, 10, 10]), index=cont.index[:30])
+            if len(cont) == 30
+            else None
+        )
+        last_team = (
+            reg(db[db.season == S - 1])
+            .sort_values(["game_date", "game_id"])
+            .groupby("player_id")
+            .team_id.last()
+        )
+        m = keys[S].merge(
+            sdb[["game_id", "player_id", "team_id", "g", "L0_pts"]], on=["game_id", "player_id"]
+        )
+        m = m[(m.g < R.SLICE_G) & m.L0_pts.notna()].copy()
+        m["terc"] = m.team_id.map(terc) if terc is not None else np.nan
+        m["moved"] = m.player_id.map(last_team) != m.team_id
+        tab = {
+            f"T{t}": {
+                "stayers": int(((m.terc == t) & ~m.moved).sum()),
+                "movers": int(((m.terc == t) & m.moved).sum()),
+                "all": int((m.terc == t).sum()),
+                "player_seasons": int(m[m.terc == t].player_id.nunique()),
+            }
+            for t in (1, 2, 3)
+        }
+        out[str(S)] = {
+            "teams_with_continuity": int(len(cont)),
+            "continuity_min_median_max": [
+                round(float(cont.min()), 3),
+                round(float(cont.median()), 3),
+                round(float(cont.max()), 3),
+            ],
+            "tercile_cut_values": [round(float(cont.iloc[9]), 3), round(float(cont.iloc[19]), 3)],
+            "rows_by_tercile": tab,
+            "movers_total": int(m.moved.sum()),
+            "rows": int(len(m)),
+        }
+    return out
+
+
 def planted_future(box_db: pd.DataFrame, prev_rate: dict[int, dict[str, float]]) -> dict[str, Any]:
     """Edit every box row dated on or after a cut (x50 and extra rows); player states and the as-of league table for dates before the cut must be
     byte-identical; and the table at the cut itself must not move (it uses dates < cut)."""
@@ -487,6 +551,7 @@ def run(out: Path, power: bool, seeds: int) -> dict[str, Any]:
     keys = key_frames()
     sc = slice_counts(keys, sdb, bd, ms)
     res["slice_counts"] = sc
+    res["continuity_slice_reported"] = continuity_slice(keys, sdb, db)
     # league as-of coverage on slice dates (counts only)
     prev = {}
     for S in (2022, 2023, 2024):
