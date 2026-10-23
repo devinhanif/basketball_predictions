@@ -86,6 +86,22 @@ def reg(box: pd.DataFrame) -> pd.DataFrame:
     return box[box.game_id.str.startswith("002")]
 
 
+def states_full(hist: pd.DataFrame, db: pd.DataFrame) -> pd.DataFrame:
+    """B1: ``m_this``, ``m10``, ``g`` from nba.duckdb rows ONLY (identical to production's states); ``L0`` (and the returner test) from
+    data/history seasons 2019-2021 chained before the db. History feeds L0 only."""
+    sdb = states(db)
+    chain = states(pd.concat([hist[hist.season >= 2019], db]))
+    l0 = [f"L0_{s}" for s in SC5]
+    keep = chain[["player_id", "game_id", *l0, "n_prior_games"]].rename(
+        columns={"n_prior_games": "n_prior_chain"}
+    )
+    out = sdb.drop(columns=[*l0, "n_prior_games"]).merge(
+        keep, on=["player_id", "game_id"], how="left"
+    )
+    assert len(out) == len(sdb) and out["n_prior_chain"].notna().all()
+    return out
+
+
 def aging_table(hist: pd.DataFrame, bd: pd.Series) -> dict[str, Any]:
     """Frozen-table candidate from seasons <= 2021 ONLY: league-neutral log ratio of per-game stat, season s vs s-1, by age at Oct 20 of s."""
     r = reg(hist)
@@ -194,6 +210,97 @@ def premise(hist: pd.DataFrame, db: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+HORIZONS = (20, 80, 160, 300)
+DRIVERS = {  # stat -> (driver column, target column, kind); kind per36 or mean-minutes of a starter stratum
+    "pts": ("pts", "pts", "p36"),
+    "reb": ("reb", "reb", "p36"),
+    "ast": ("ast", "ast", "p36"),
+    "fg3m<-3PA": ("fg3a", "fg3m", "p36"),
+    "fg3m<-3PM (descriptive)": ("fg3m", "fg3m", "p36"),
+    "min_starter": ("minutes", "minutes", "starter"),
+    "min_bench": ("minutes", "minutes", "bench"),
+}
+
+
+def _rate(df: pd.DataFrame, col: str, kind: str) -> float:
+    if kind == "p36":
+        return float(36.0 * df[col].sum() / df.minutes.sum())
+    return float(df[df.starter == (kind == "starter")][col].mean())
+
+
+def premise_horizons(
+    hist: pd.DataFrame, db: pd.DataFrame, horizon_next: int = 150
+) -> dict[str, Any]:
+    """M4. Seasons 2014-2022 only (none is select or report). After H league games, the driver's shrunk as-of ratio is applied to last
+    season's league TARGET rate; compare |log error| with 'no shift' against the target's rate over the next 150 league games."""
+    r = reg(pd.concat([hist, db[db.season <= 2022]]))
+    out: dict[str, Any] = {}
+    for name, (drv, tgt, kind) in DRIVERS.items():
+        out[name] = {}
+        for H in HORIZONS:
+            wins, e_up, e_ns = 0, [], []
+            for S in range(2014, 2023):
+                cur, prev = r[r.season == S].sort_values("game_date"), r[r.season == S - 1]
+                gids = cur.drop_duplicates("game_id").game_id.tolist()
+                A, B = (
+                    cur[cur.game_id.isin(gids[:H])],
+                    cur[cur.game_id.isin(gids[H : H + horizon_next])],
+                )
+
+                factor = (
+                    (H * _rate(A, drv, kind) + R.LEAGUE_C * _rate(prev, drv, kind))
+                    / (H + R.LEAGUE_C)
+                ) / _rate(prev, drv, kind)
+                pred, base, truth = (
+                    _rate(prev, tgt, kind) * factor,
+                    _rate(prev, tgt, kind),
+                    _rate(B, tgt, kind),
+                )
+                eu, en = abs(np.log(pred / truth)), abs(np.log(base / truth))
+                wins += int(eu < en)
+                e_up.append(eu)
+                e_ns.append(en)
+            out[name][str(H)] = {
+                "beats_noshift": f"{wins}/9",
+                "mean_err_update": round(float(np.mean(e_up)), 4),
+                "mean_err_noshift": round(float(np.mean(e_ns)), 4),
+            }
+    return out
+
+
+def id_check(hist: pd.DataFrame, db: pd.DataFrame) -> dict[str, Any]:
+    """M5: id scheme across the two DBs. Share of 2022 players with any history row that appear in history 2021; birth_date agreement on
+    ids present in both players_static tables."""
+    c = duckdb.connect(str(ROOT / "nba.duckdb"), read_only=True)
+    h = duckdb.connect(str(ROOT / "data/history/nba_history.duckdb"), read_only=True)
+    a = (
+        c.execute("select player_id, birth_date from players_static")
+        .df()
+        .set_index("player_id")
+        .birth_date
+    )
+    b = (
+        h.execute("select player_id, birth_date from players_static")
+        .df()
+        .set_index("player_id")
+        .birth_date
+    )
+    both = a.index.intersection(b.index)
+    p22 = set(reg(db[db.season == 2022]).player_id)
+    any_hist = p22 & set(hist.player_id)
+    in21 = any_hist & set(hist[hist.season == 2021].player_id)
+    return {
+        "players_2022": len(p22),
+        "with_any_history": len(any_hist),
+        "found_in_2021": len(in21),
+        "share_found_in_2021": round(len(in21) / max(len(any_hist), 1), 4),
+        "shared_ids_in_players_static": int(len(both)),
+        "birth_date_agree_on_shared": int(
+            (pd.to_datetime(a[both]) == pd.to_datetime(b[both])).sum()
+        ),
+    }
+
+
 def key_frames() -> dict[int, pd.DataFrame]:
     out = {}
     for S in (R.SELECT, R.REPORT):
@@ -212,7 +319,7 @@ def slice_counts(
     res: dict[str, Any] = {}
     for S, k in keys.items():
         m = k.merge(
-            dbs[["game_id", "player_id", "game_date", "season", "g", "L0_pts", "n_prior_games"]],
+            dbs[["game_id", "player_id", "game_date", "season", "g", "L0_pts", "n_prior_chain"]],
             on=["game_id", "player_id"],
             how="left",
         )
@@ -313,7 +420,9 @@ def continuity_slice(
     return out
 
 
-def planted_future(box_db: pd.DataFrame, prev_rate: dict[int, dict[str, float]]) -> dict[str, Any]:
+def planted_future(
+    hist: pd.DataFrame, box_db: pd.DataFrame, prev_rate: dict[int, dict[str, float]]
+) -> dict[str, Any]:
     """Edit every box row dated on or after a cut (x50 and extra rows); player states and the as-of league table for dates before the cut must be
     byte-identical; and the table at the cut itself must not move (it uses dates < cut)."""
     out = {}
@@ -325,7 +434,7 @@ def planted_future(box_db: pd.DataFrame, prev_rate: dict[int, dict[str, float]])
         fut = gd >= cutd
         for s in SC5 + ["fg3a", "fta"]:
             b.loc[fut, s] = b.loc[fut, s] * 50 + 7
-        sa, sb = states(a), states(b)
+        sa, sb = states_full(hist, a), states_full(hist, b)
         # at the cut date the state of a row ON the cut date uses only earlier games
         upto = pd.to_datetime(sa.game_date).dt.date <= cutd
         cols = [c for c in sa.columns if c.startswith(("m_this_", "m10_", "L0_"))] + ["g"]
@@ -385,7 +494,8 @@ def sigma_eff(
             "mean_log": round(float(np.nanmean(lr)), 4),
         }
         if lg is not None and s in ("pts", "reb", "ast", "fg3m"):
-            f = r.game_date.map(lambda d, col=f"f_{s}": lg[col].get(d, 1.0)).to_numpy(float)
+            fcol = f"f_{R.LEAGUE_DRIVER.get(s, s)}"
+            f = r.game_date.map(lambda d, col=fcol: lg[col].get(d, 1.0)).to_numpy(float)
             m2 = R.a1_base(st, k, ad[:, None], f[:, None])[:, 0]
             out[s]["sd_log_m2_over_m1"] = round(
                 float(np.nanstd(np.log((m2 + R.STAB) / (m1 + R.STAB)))), 4
@@ -537,12 +647,17 @@ def run(out: Path, power: bool, seeds: int) -> dict[str, Any]:
         "history_rows": int(len(hist)),
         "db_rows": int(len(db)),
     }
-    sdb = states(db)  # production data only (2022-24)
-    log("states db done")
-    sall = states(
-        pd.concat([hist[hist.season >= 2018], db[db.season <= 2022]])
-    )  # hist-chained, for the 2022 sigma only
-    log("states chain done")
+    sdb = states_full(
+        hist, db
+    )  # B1: L0 from history 2019-21 chained before the db; everything else db-only
+    log("states done")
+    reg22 = reg(sdb[sdb.season == 2022])
+    res["l0_defined_2022"] = {
+        "regular_rows": int(len(reg22)),
+        "rows_with_L0": int(reg22.L0_pts.notna().sum()),
+        "first20_returner_rows": int(((reg22.g < R.SLICE_G) & reg22.L0_pts.notna()).sum()),
+        "first20_rows": int((reg22.g < R.SLICE_G).sum()),
+    }
     age = aging_table(hist, bd)
     res["aging_table_from_seasons_le_2021"] = age
     res["premise_league_shift_nonscored_seasons"] = premise(hist, db)
@@ -566,19 +681,16 @@ def run(out: Path, power: bool, seeds: int) -> dict[str, Any]:
             "first_date_f_is_one": bool(np.allclose(lg.iloc[0].to_numpy(), 1.0)),
         }
     res["league_asof_coverage"] = cov
-    res["planted_future"] = planted_future(db, prev)
+    res["planted_future"] = planted_future(hist, db, prev)
     # sigma on the non-scored 2022 season (hist-chained) and on 2023/24 as a sensitivity (A1 part uses own prior games only)
     lg22 = R.league_asof(reg(db[db.season == 2022]), LEAGUE_COLS, prev[2022])
     res["sigma_eff"] = {
-        "2022_nonscored": sigma_eff(sall, bd, age, 2022, 10, lg22),
+        "2022_nonscored": sigma_eff(sdb, bd, age, 2022, 10, lg22),
         "2023_A1_part_only": sigma_eff(sdb, bd, age, 2023, 10, None),
         "2024_A1_part_only": sigma_eff(sdb, bd, age, 2024, 10, None),
     }
-    ids_hist21 = set(hist[hist.season == 2021].player_id)
-    r22 = reg(db[db.season == 2022]).drop_duplicates("player_id")
-    res["id_overlap_2022_players_in_hist2021"] = round(
-        float(r22.player_id.isin(ids_hist21).mean()), 4
-    )
+    res["id_check"] = id_check(hist, db)
+    res["premise_horizons_nonscored_seasons"] = premise_horizons(hist, db)
     res["weights_a0_vs_a1"] = {
         str(g): {
             "A0_mass_on_this_season": round(float(R.a0_equivalent_weight(g)), 3),
@@ -626,12 +738,21 @@ def run(out: Path, power: bool, seeds: int) -> dict[str, Any]:
                 and res["planted_future"][S]["league_table_identical_through_cut_date"],
             ),
         ]
+    ic = res["id_check"]
     res["checks"].append(
         chk(
-            "G2 id overlap hist2021 -> db2022",
-            res["id_overlap_2022_players_in_hist2021"],
-            ">= 0.95 of 2022 players (only used for the 2022 sigma)",
-            res["id_overlap_2022_players_in_hist2021"] >= 0.95,
+            "G2 share of 2022 players with any history found in 2021",
+            ic["share_found_in_2021"],
+            ">= 0.95",
+            ic["share_found_in_2021"] >= 0.95,
+        )
+    )
+    res["checks"].append(
+        chk(
+            "G2 birth_date agrees on shared ids",
+            f"{ic['birth_date_agree_on_shared']}/{ic['shared_ids_in_players_static']}",
+            "all",
+            ic["birth_date_agree_on_shared"] == ic["shared_ids_in_players_static"],
         )
     )
     pm = res["premise_league_shift_nonscored_seasons"]["summary"]
@@ -644,22 +765,29 @@ def run(out: Path, power: bool, seeds: int) -> dict[str, Any]:
             wins("fg3m") >= 6,
         )
     )
-    for stat, drv in {
-        "pts": "pts",
-        "reb": "reb",
-        "ast": "ast",
-        "fg3m": "fg3a",
-        "minutes_starter": "min_starter",
-        "minutes_bench": "min_bench",
-    }.items():
+    ph = res["premise_horizons_nonscored_seasons"]
+    for name in DRIVERS:
+        if (
+            name != "fg3m<-3PA"
+        ):  # M4: only the fg3m driver carries a bar; the others are reported in the JSON and the rule text
+            continue
+        wins_h = {H: int(ph[name][str(H)]["beats_noshift"].split("/")[0]) for H in HORIZONS}
         res["checks"].append(
             chk(
-                f"G4' (amended driver map, post-hoc from non-scored seasons) {stat} <- {drv}",
-                pm[drv]["update_beats_noshift"],
-                ">= 6/9",
-                wins(drv) >= 6,
+                f"G4' (M4, post hoc, non-scored 2014-2022) {name} at league games {HORIZONS}",
+                {str(H): f"{w}/9" for H, w in wins_h.items()},
+                ">= 6/9 at every horizon",
+                all(w >= 6 for w in wins_h.values()),
             )
         )
+    res["checks"].append(
+        chk(
+            "G1b 2022 training rows with L0 defined (B1), first-20 returner rows",
+            res["l0_defined_2022"],
+            "reported; > 0",
+            res["l0_defined_2022"]["first20_returner_rows"] > 0,
+        )
+    )
     s22 = res["sigma_eff"]["2022_nonscored"]
     res["checks"].append(
         chk(

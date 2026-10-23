@@ -21,8 +21,11 @@ SLICE_G = 20  # first 20 played games of a player-season
 MIN_PRIOR_FOR_L = 20  # a "returner" has >= 20 played games before the season
 HL_THIS, HL_LONG1, HL_LONG2 = 10.0, 40.0, 100.0
 LEAGUE_C = 20.0  # pseudo-count (league games) of last season's league rate in the as-of league rate
+LEAGUE_DRIVER = {"fg3m": "fg3a"}  # A2 driver per stat (default: the stat itself)
 STAB = 0.5  # additive stabiliser inside log ratios (zero fg3m)
-AGE_MIN_CELL = 300  # player-seasons per age bin in the frozen aging table, else the bin borrows from the pooled tail
+AGE_MIN_CELL = (
+    300  # player-seasons per age bin in the frozen aging table, else the bin's logdelta is 0
+)
 AGE_LO, AGE_HI = 19, 36
 
 
