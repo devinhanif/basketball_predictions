@@ -1,0 +1,120 @@
+# SEASON_BOUNDARY: teach the props and minutes models that each season is a season (pre-registration)
+
+Status: **DRAFT 2026-10-22, modeler, branch `agent/modeler-season-boundary` off `main` 72bb803. NOT FROZEN; hash not taken; no arm fitted; no scored outcome read.**
+Model class: **gradient-boosted-tree residual on a hand-built recency base (props, context_residual) and a LightGBM mixture (minutes, MINUTES_V2 base)**; the arms change the base and add as-of columns (MODEL_PLAYBOOK, GBT and quantile layers).
+Everything above `=== RESULTS BELOW ===` would be the rule if frozen. Freeze evidence (when and if): commit hash plus `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/SEASON_BOUNDARY.md | shasum -a 256`. Season labels are `games.season` (2023 = 2023-24). Season 2025 is the spent holdout and is never loaded; no 2025 touch is requested.
+
+**Advice or momentum.** Devin's direction 2026-10-22 (Claude agreed, DECISIONS row 19:5x); minutes scope added by Devin the same evening ("apply that everywhere"). It follows no ledger recommendation; it is partly in tension with T500/T512 (see lineage) and Claude's prior is below Devin's.
+
+## What Devin said
+> Production props build their baseline from a recency mean with a half-life of 10 games, and it runs straight across the season boundary: in the opening weeks "recent form" is last season's final games. The model does not know a player aged, changed role or team, or that the league shifted. Tonight Kalshi priced threes well above both the model and history for most players: a possible league-wide shift. Make the model realize each season is a season; do the same for minutes. (2026-10-22)
+
+## Plain answer: information or architecture?
+* **Mostly architecture, with two small pieces of new pre-tip information.** A0's trees already see `n_season`, `gap_days`, `m5/m10/m40/m100` and `min5/min10/min40`; so a "season-start indicator" is already in production (A3-indicator would be inert by construction and is not an arm). Re-weighting last season against this one re-expresses those inputs (A1 body: architecture).
+* New information: (1) **age** (not in A0; the frozen aging table is built from seasons <= 2021 only); (2) the **as-of league environment** for the season (A0 has opponent-allowed rates but no league-level rate, `m10` is stale on it).
+* Size of the two pieces, label-free, measured here: A1's base differs from A0's `m10` by an sd of 0.09 / 0.12 log (pts, 2023 / 2024 returners), so A1 is not inert; the league factor moves the base by an sd of only **0.004-0.005 log** (2022, range -3.7% to +3.4%), so A2 is a small perturbation. Claude's read: the league piece is the scientifically cleanest and the smallest; a Kalshi-vs-model gap tonight is live 2026-27 evidence this rule cannot test.
+* A trap for the control: a league-rate column in a tree is constant across a date and takes about two or three distinct values in a training window; it is an era flag in disguise (MODEL_PLAYBOOK, linear models). That makes the information-matched control weaker than the hand-built factor for a reason that favours A2. It is stated, not hidden, and A3b's result is read with it.
+
+## Prior evidence (lineage; cite before believing)
+* **T500 PRESEASON_ROLE_PRIOR** (movers' first 10 games; FAIL_ONE_SEASON; clustered by player 2024 CIs cross 0; 5 of 115 players carried 98.6% of pts gain): the same early-season window with a player-level treatment. Carried forward: player-season clustering, top-5 share, placebo. **T504 ROLE_PRIOR_SALARY** and **T512 COLDSTART_SHAREBALL_T15** stopped at the gate on power in movers cohorts (1,000-1,200 rows). Different cohort here (returners, 7.6-8.1k rows per stat per season); the new-team/role piece is **not an arm** (T512 stopped at its gate; a role/new-team layer would need its own id).
+* **F9 young-pick, F1_WARM_WINDOW (T498: 2023 gain was data poverty, 2024 none), HISTORY_WINDOW (T315: 2019-21 injury reports structurally different, stopped at gate), W_ALL (neural: history gain largest early in the season).** Early-season information is where data poverty bites; none of these is this question.
+* **T476 descriptive** (early bottom-5 teams over-forecast in Oct-Nov, -0.92 [-1.53, -0.26] pts, n 920): same window, a different cause.
+* **MINUTES_V2 (T162-T165) and MINUTES_HAZARD (T300-T314):** minutes -0.83 min vs production gave props pts -0.0053 / -0.0018 only; H1 minutes were worse. **Transmission from minutes CRPS to props CRPS is about 0.5% in floor-relevant units**, which is why the minutes-fed props cells (C5, C6) are expected to be unpowered by *effect*, not by n.
+* **Information beats architecture** (CLAUDE.md): rung-4, RAPM, stacks all lost. The only reason to expect a win here is the new columns.
+* **GAME_MARKET_CONTEXT (T389-T414, T501):** game-context proxies tie; A2 is a league-level, not game-level, quantity.
+
+## Exposure (honest)
+Seen by Claude and Devin: tonight's Kalshi three-point gap (live, 2026-27, not 2023/24); the scorecard of 2026-10-21; the ledger rows above. Read by this gate: (a) stored A0 grids `c, s, p_ge` and ids (never `y`, never realised `minutes`); `minutes_scores.npz` only `row_gid, row_pid, row_season, M1_mean, M1_q10, M1_q90`; (b) box scores of seasons **<= 2022 only** for every outcome-derived *summary* (aging table from 2013-2021; league-shift premise 2014-2022; sd of A1-vs-A0 on 2022 returners); (c) as-of states of 2023-24 rows (strictly earlier games) for counts and the A1-part sd (0.07-0.12; a sensitivity, not an input to the bars). **The league rate of 2023 and 2024 was never summarised as a value; whether the league shifted in either select/report season is unseen.** Data version: `reports/odds_history/model_rows_{2023,2024}_{pts,reb,ast,fg3m}.parquet` sha256 first 8 pts d0897569 / 81a66fd6, reb 337be51e / bbb89d17, ast 241cd38a / 62bb6c7c, fg3m 96e46fbb / 6fa84bd8; `reports/minutes_v2/minutes_scores.npz` 9ad6a6ed; `nba.duckdb` mtime 2026-10-22 20:24 CDT; main 72bb803. The stored 2024 props rows differ from current production by one data commit (T493-T496 note: 118 rows); not re-derived.
+
+## Hypotheses
+H1 (A1): after g played games of a season, replacing production's recency base by `w*(this-season recency mean) + (1-w)*(age-adjusted multi-season level)`, `w = g/(g+k)`, lowers integer-support CRPS on returners' first 20 games by at least the floor, beyond an information-matched control.
+H2 (A2): additionally scaling the prior-level part by the as-of league-season ratio does so beyond A1.
+H3, H4: the same two ideas for projected minutes (continuous CRPS). H5, H6: minutes arms fed into the props pipeline.
+Null: no change. Protects against: crediting the architecture re-weighting (A3a), the league columns re-expressed (A3b), or a calendar effect any column would absorb (shuffled-date placebo).
+
+## Arms (constants final if frozen)
+Props. Row set = the stored A0 rows (`model_rows`, regular season, played, `n_prior >= 5`), for which all four stats share the same keys (25,815 / 25,649).
+* **A0** production + lower-tail mixture, reproduced from the stored grids (`model_rows_*_*.a0.json`: ok, max diff 0.0).
+* **A1** soft season reset. Per player-row, strictly before the game: `g` = played games this season (production's `n_season`); `m_this` = recency mean (half-life 10) over this season's games only; `L0` = `0.5*m40 + 0.5*m100` frozen at the player's first game of the season (NaN with < 20 prior games: then the base is production's `m10`, i.e. A1 = A0 on rookies and new players); `L_adj = L0 * exp(delta_age[stat, age])`; base `m1 = w*m_this + (1-w)*L_adj`, `w = g/(g+k)`. `delta_age` is the **frozen aging table** (league-neutral log ratio of per-game stat, season s vs s-1, by integer age at 20 Oct of s, players with >= 20 games in both seasons; seasons 2013-2021 only; bins with < 300 player-seasons get 0; reproduced by `season_boundary_gate.aging_table`; to be committed as bytes with its sha when frozen). The residual target becomes `y - m1`; every other production feature, head, calibration split and conformal step unchanged; month-block walk-forward as the stored A0.
+  **k**: pre-declared grid {5, 10, 20}, chosen on **2023 only** as the k with the most negative A1-A0 composite point (ties or within 0.10 floor units of 10: k = 10); then fixed for 2024 and for A2 and the minutes arms (no second grid). Why this grid: production's own recency mass on this season is 0.29 / 0.50 / 0.75 / 0.94 at g = 5 / 10 / 20 / 40; k = 10 reproduces that weight and so isolates the *composition* of the prior (season-level, age-adjusted, rather than the last 10 games); k = 5 is a harder reset; k = 20 a softer one.
+* **A2** = A1 with `L_adj` multiplied by `f_stat(d)`, the as-of league ratio: shrunk per-36 league rate of the **driver** over regular-season games dated before d, `(n_g*obs + 20*prev)/(n_g + 20)` divided by `prev` (last season's league rate); `n_g` = league games before d; 1.0 on the first date. Driver map: pts <- pts, reb <- reb, ast <- ast, **fg3m <- 3PA** (attempts; the 3P% part of 3PM is player skill already in L and league 3P% is noise: see G4). 3PA, FTA, pace appear as decomposition diagnostics; pace is `FGA - OREB + TOV + 0.44*FTA` from the box (real possessions exist in `possessions` and are not used).
+* **A3a** (control for A1): A0 refit with the same information as raw columns: `age`, `L_adj - m10`, `w`, `g` (production's `n_season` is already in A0). No hand-built base. **A3b** (control for A2): A3a plus the four `f_stat` columns. The indicator-only control suggested by Devin is **A0 itself** (`n_season` is a feature), so no separate arm.
+* **A4** (placebo, A2 only): A2 with `f_stat(d)` taken from another date of the same season (shuffled within season, fixed seed). Past-only construction.
+Information each arm has: A0 = own recency states, `n_season`, `gap_days`, opponent-allowed, report; A1 = A0 + age + season-level prior + g-weighted base; A2 = A1 + as-of league ratios; A3a = A0 + A1's raw inputs; A3b = A3a + league ratios; A4 = A2 with wrong-date league ratios.
+
+Minutes. **Renamed N0-N3 to avoid the MINUTES_V2 M1/M2 names (T162-T165, T300-T314).** Minutes rows = the same played rows (continuous-support CRPS, minutes | plays; P(play) is not touched).
+* **N0** = MINUTES_V2 **M1** (mixture, base features, centre `min10 + mu(x)`), reproduced from `minutes_scores.npz` (`M1_crps`); production `predict_minutes` (P) and recency R are reported, not contrasts (M1 already beats P by -0.81 / -0.85 min, T162-T165).
+* **N1** soft reset: `min10` replaced by `m1_min` (same construction with minutes, `delta_age[minutes]`, k from A1) in the centre, the short-event threshold `0.5*centre` and the residual target.
+* **N2** = N1 plus a league **rotation-minutes** ratio where it applies: starters (last-season `starter10 >= 0.5`) and bench each get the as-of ratio of league mean minutes per player-game (shrunk, c = 20) on the prior-level part; it does not apply to anyone else. **N3a / N3b** controls with raw columns (age, `L_min - min10`, w; plus the two stratum ratios).
+* **Fed into props**: the MINUTES_V2 path unchanged: six `mv_*` columns (`mean, q10, q50, q90, sd, pi`) from the minutes arm, out-of-fold per month block, appended to production's features. **F0** from N0 (reproduces MINUTES_V2 A1 from `props_*_A1.npz`), **F1** from N1, **F2** from N2, **F3a/F3b** from N3a/N3b.
+
+## Slice, metric, inference, family
+* **Primary slice**: returners' first 20 played games of a season (`g < 20`, `L0` defined, regular season). Rows per stat: **7,558 (2023) / 8,104 (2024)**, 395 / 428 player-seasons, 938 / 1,040 games, 25 / 25 ISO weeks; by g bucket 0-4 / 5-9 / 10-19: 1,962 / 1,914 / 3,682 and 2,094 / 2,060 / 3,950. Rookies and new players (1,907 / 1,484 first-20 rows) get A1 = A0 and are reported as a sanity check (delta must be ~0). Secondary (descriptive): g buckets, starters vs bench, rookies/new, **all games as a no-harm guard**.
+* **Metric**: props = paired integer-support CRPS (199-point grid, `ceil(q - 0.5)` for EVERY arm) per stat, then the **composite CM** = mean over stats of delta/floor (T507 construction, one joint bootstrap on shared clusters). Minutes = paired continuous CRPS (2 x mean pinball over the 199 grid), minutes.
+* **Floors** (reasons): pts 0.005, reb 0.003, ast 0.002, fg3m 0.001 (ROLE_PRIOR / ARCHETYPE_MATCHUP_ALL scale: the CRPS scale differs by stat; Devin's -0.005 is the pts floor; a uniform -0.005 would make ast and fg3m unpassable); composite pass line CM <= **-1.0 floor unit**. **Minutes floor 0.03 min** (about 0.9% of M1's CRPS 3.4-4.0 min; MINUTES_V2 used 0.10 min against the much weaker P; Devin's call, open choice 3).
+* **CI**: 95% percentile bootstrap (2000, seed 0, `nba/props/metrics.py::_clustered_boot_means`) clustered by **game, player-season and ISO week; the widest binds** (the arm's effect is shared within a player-season, and A2's league factor within a week: BEST_PRACTICES 2026-10-20).
+* **Family and BH (explicit): m = 6 contrasts per season, BH q = 0.05 within each season.**
+  C1 A1-A0 (props CM) | C2 A2-A1 (props CM) | C3 N1-N0 (minutes CRPS) | C4 N2-N1 (minutes CRPS) | C5 F1-F0 (props CM) | C6 F2-F1 (props CM).
+  Per-stat deltas, A2-A0 totals, slices and F-vs-A cross-contrasts are descriptive. **Select 2023, report 2024**; a cell is evaluated on 2024 only if it cleared 2023.
+* **A cell PASSES only if all hold on both seasons**: point <= -1.0 floor unit (minutes <= -0.03 min); binding CI upper < 0; BH p < 0.05; beats its control by >= 0.5 floor unit with CI upper < 0 (C1 vs A3a, C2 vs A3b, C3 vs N3a, C4 vs N3b, C5 vs F3a, C6 vs F3b); no stat's delta > +1.0 floor unit; top-5 player-season share of the gain <= 0.5; all-games no-harm (composite upper CI <= +0.5 floor unit; minutes <= +0.015 min); A2/C2 gain at least halves under A4; |bias| <= 0.5 (pts) and 80% PIT coverage in [0.75, 0.85] on the slice; planted-future identity exact; A0/N0/F0 reproduction exact. A cell that clears one season is FAIL_ONE_SEASON (T498-T500 precedent), not a promotion.
+* **Kill criteria**: C1 fails in 2023 -> C2, C5, C6 are still reported but no variants. Any identity, reproduction or positive-control failure voids the run (new id, not an edit). One pre-registered follow-up at most, then closed.
+* **Follow-ups only, not arms** (each needs its own id, gate and Devin's yes): (i) **season-weighted copula correlations** for the parlay copula (weight a player pair's correlation sample by the same g/(g+k) rule); (ii) **league-by-season rates for INGAME_WINPROB_V2** (pace, 3PA, FTA rate by season). Also not in this rule: the role/new-team layer (T512), P(play), market prices as a prior.
+
+## Minimum-data gate (non-negotiable 8), measured Thu 22 Oct 2026 20:47-20:51 CDT
+Command (read-only, about 50 s, light): `cd <checkout with data/> && NBA_DATA_ROOT=$PWD .venv/bin/python -W ignore -m research.eval.season_boundary_gate --seeds 20` -> `reports/prereg_season_boundary/gate.json` (committed; re-run reproduces it byte-identically except `wall_seconds`). Dry-run counts: 242,945 history + 84,170 db player-game rows loaded; 8 `model_rows` files; `minutes_scores.npz` 55,202 rows. Bars were written in the harness before it first ran.
+
+| check | 2023 | 2024 | bar | pass |
+|---|---|---|---|---|
+| G1 returner first-20 rows per stat / player-seasons / ISO weeks | 7,558 / 395 / 25 | 8,104 / 428 / 25 | >= 3,000 / 250 / 6 | yes |
+| G1m minutes rows in the slice vs props rows | 7,558 of 7,558 | 8,104 of 8,104 | <= 2% missing | yes |
+| G2 as-of league table: NaN cells; first date ratio = 1 | 0; yes (160 dates) | 0; yes (163 dates) | 0 | yes |
+| G2 planted future (rows on/after 15 Nov x50): states and league table identical through the cut | yes (24,795 rows edited; 31,323 compared) | yes (24,373; 60,057) | exact | yes |
+| G2 player-id overlap, 2022 players found in history 2021 | 0.803 (2022 season) | n/a | >= 0.95 | **NO as written**: denominator included rookies; among 2022 players with any history 0.954 (supplementary, post hoc) |
+| G3 birth_date coverage on slice rows | 1.000 | 1.000 | >= 0.98 | yes |
+| G4 premise, as first written: league update beats "no shift" for fg3m itself, 2014-2022 transitions | 5/9 | | >= 6/9 | **NO** |
+| G4' amended driver map (post hoc, non-scored seasons): pts 6/9, reb 6/9, ast 7/9, fg3m<-3PA 8/9, starter minutes 7/9, bench minutes 8/9 | all >= 6/9 | | >= 6/9 | yes (amendment, see below) |
+| G5 arm not inert: sd log(m1/m10), pts, 2022 returners (2023 / 2024 A1-part: 0.090 / 0.122) | 0.139 | | >= 0.02 | yes |
+| G6 A1 composite detectable half-width (sd-0.05 player-season shock, 20 seeds) | 0.652 | 0.631 | <= 1.0 floor unit | yes (binding clustering in gate.json) |
+| G6 per stat, floor units: pts / reb / ast / fg3m | 1.75 / 1.15 / 1.11 / 0.99 | 1.73 / 1.11 / 1.10 / 0.98 | descriptive | **pts alone fails** (the reason for a composite) |
+| G6 A2-A1 composite (sd-0.03 week shock) | 0.419 | 0.434 | <= 1.0 | yes |
+| G6 fed-by-minutes composite (sd-0.02 player-season shock) | 0.250 | 0.237 | <= 1.0 | yes (an upper bound on power, see below) |
+| G6 minutes half-width (sd-0.05 shock; approximate Normal grid from `M1_mean, q10, q90`: the full grid is not stored) | 0.0214 min | 0.0212 min | <= 0.03 | yes |
+| G6 positive controls (oracle planted shift sd 0.20 props, 0.10 week; minutes 0.20), 3 seeds | all clear | all clear | all clear | yes |
+| Season 2025 loaded | no | no | never | yes |
+
+**Reading.** The data are sufficient and the as-of builders are leak-free; the test can see -1.0 composite floor unit (half-width 0.63-0.65, MDE80 about 0.9). **That says nothing about whether an effect exists.** Three honest limits: (1) the power bar for A2 uses sd 0.03, an order of magnitude above the measured league-ratio sd (0.004-0.005 in 2022), so the *expected* A2-A1 effect (about -0.1 to -0.4 floor unit) sits well below the pass line; (2) the fed cells' power is an upper bound: the minutes-to-props transmission is about 0.5%; (3) the minutes grid is approximate in the gate (the real run uses the fitted grid). **Two bars failed as first written** (G2 overlap denominator, G4 fg3m): the first was mis-specified (rookies cannot be found in 2021), the second is a real finding (league 3P% is noise; 3PA moves, 8/9). Both amendments are stated here, were made from non-scored seasons before any scored row, and the adversary should challenge them.
+
+**Data-capture audit (before any gate is declared failed on data; none is).** Held and used: `nba.duckdb` box 2022-24; `data/history` box 2013-2021 (9 seasons, all of fga/fg3a/fta/oreb/tov/starter populated; aging table, premise; ID scheme matches the db). Held, not used: `possessions` (2013-2024, real pace), tracking, preseason logs 2022-26 (a preseason league 3PA/pace prior before opening night: free, not built, a candidate for the follow-up), `shots`. Not usable for **scoring**: seasons 2013-2021 (no A0: injury reports differ, T315; the full production pipeline would have to be rebuilt per season). Addable at a cost: nothing free that would change the verdict; market-implied rates (Kalshi/odds) are a prior not a target and a separate rule. Not verified: whether 2025-26 league rates (the live season) shifted; 2019-20/2020-21 boundaries are non-standard (bubble, December start) and sit among the 9 premise transitions.
+
+**Not built yet (declared; required before any scored run).** The arm builders and fits (`nba.props`-side code for A1-A4, N0-N3, F0-F3); a synthetic-outcome dry run of the whole harness (BEST_PRACTICES T507 incident); a missingness audit of the new columns by realised-minutes bucket (<5, 5-10, 10-20, >20) with limit 2 pp; the arm-saw-it check and positive control on real rows (BEST_PRACTICES 2026-10-21); a unit test that A1 = A0 exactly for rookies. Fit cost is unmeasured: about 16 context-residual refits per stat per season (A1 x3 k on 2023, A2, A3a, A3b, A4, F1-F3b) plus the minutes refits; measure one month-block first, run on local CPU only, `mkdir data/ops/heavy.lock`, per-stage checkpoints.
+
+## What each choice protects against
+Returner slice and A1 = A0 elsewhere: no dilution and no credit for rows the arm cannot touch. Composite in floor units: pts alone is unpowered (1.75 floor units) and four tests invite a lucky stat; the no-stat-hurt guard stops a trade between stats. k from the 2023 grid only: no tuning on the report season. Frozen aging table from <= 2021: no age effect fitted on scored data. A3a/A3b: T508 (baselines must know what the model knows). A4: a calendar effect any column would absorb. Player-season and week clustering: T500. Integer grid everywhere: T114-T118. Minutes fed through the MINUTES_V2 path unchanged: one transmission route, no new family. Premise only on non-scored seasons: the shift in 2023-24 is unseen.
+
+## Playbook check (MODEL_PLAYBOOK)
+Class: GBT residual on a recency base + quantile layer (props); LightGBM mixture (minutes).
+1. **Information or capacity?** A1/N1: architecture plus age; A2/N2: new as-of league information, small. Not capacity.
+2. **Enough data for the class?** Slice 7.6-8.1k rows/season passes the composite; pts alone does not (1.75 floor units). A tree cannot learn a season-level covariate from 2-3 training seasons (era flag), which is why A2 is hand-built and A3b is a weak control.
+3. **Valid test?** Planted-future identity exact on states and league table (both seasons); integer support for every props arm; A1 = A0 on rookies; control A3a/A3b hold the same inputs; positive controls clear; **not yet** built: synthetic-outcome dry run, missingness audit, arm-saw-it on real rows, fitted minutes grid. Noisy inputs (age table cells with few players) could create a null; bins < 300 are zeroed, stated.
+4. **Lineage.** T500/T504/T512 (early-season cohort, clustering and top-5 guards carried; cohort differs), MINUTES_V2/HAZARD (transmission), F1/T498 (data poverty), T508 (info-matched baseline), T315 (history not scoreable). Dropped: role/new-team layer, report-based features on history.
+5. **Scored against?** Integer CRPS vs A0 and vs the information-matched control; minutes continuous CRPS vs N0 (not P). No claim about lines or ROI (T477).
+Class checks: missingness of `L0` (NaN exactly for players with < 20 prior games: a pattern known at tip, but it defines the slice; the audit will show it does not predict realised minutes beyond `n_prior`); planted future done at the state level; reliability at the line is not a verdict here.
+
+## Priors (for docs/PREDICTIONS_LEDGER.md; written before any result)
+* P(this rule is freezable as drafted, after adversary review of the two amended bars) 0.60.
+* If frozen and run: P(C1 passes both seasons and all guards) 0.10; C2 0.04; C3 0.08; C4 0.03; C5 0.02; C6 0.01; **P(any of 6) 0.18** (below the 0.30-0.40 in the DECISIONS row: the gate shows the league piece is the smallest, and A0's trees already see n_season/m40/m100). Expected A1-A0 composite -0.3 floor unit (80% interval -1.6 to +1.0); expected A2-A1 -0.15 (-0.6 to +0.2); expected N1-N0 -0.01 min (-0.06 to +0.03); fed cells near 0.
+* P(2023 select clears C1 and 2024 fails) 0.06.
+
+## Open choices for Devin (each with a default)
+1. **Freeze with the two amended bars (G2 denominator, A2 fg3m driver = 3PA) or re-write and re-gate.** Default: freeze after the adversary pre-freeze review.
+2. **Pass line** composite <= -1.0 floor unit and floors per stat. Default: yes (uniform -0.005 rejected).
+3. **Minutes floor** 0.03 min. Default: 0.03 (alternative 0.05).
+4. **k**: grid {5, 10, 20} on 2023, or fixed k = 10. Default: grid.
+5. **A2 league window** c = 20 league games. Default: 20 (fixed, not tuned).
+6. **Keep the fed cells C5, C6 in the BH family** (m = 6) though their effect is expected ~0, or drop them (m = 4). Default: keep, as asked; they cost about a third of the fits.
+7. **Naming**: N0-N3 instead of M1/M2. Default: N.
+8. **Run budget**: about 16 refits per stat-season; approve after one measured month-block. Default: measure first.
+
+=== RESULTS BELOW ===
+
+(not run; draft and gate only)
