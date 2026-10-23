@@ -31,3 +31,14 @@ December, priced off season averages.
 seasons 2019-23 select / 2024 report, player-clustered CI; secondary = props CRPS gain on high-S rows in December
 with an information-matched control. Minimum-data gate first (non-guaranteed player-seasons per year, minutes either
 side of the date). Queued after SEASON_BOUNDARY.
+
+## Refinement (Devin, 2026-10-22 ~21:10): transaction TYPE, not contract year
+"Contract year isn't real but getting waived is; a player can be waived and sign somewhere vs traded and the model
+wouldn't know the difference." The model sees only that a player's team changed. Transaction type carries
+information: traded (old team valued him; planned role, low pressure) vs waived-then-signed (judged not worth a
+roster spot; usually minimum/non-guaranteed; highest survival pressure) vs free-agent signing vs 10-day. Primary
+version of the idea now: per-minute production after the move relative to the age-curve/recency expectation, by
+transaction type; prediction waived->signed > traded. Survivorship control: re-signed waivers are pre-selected by a
+team, so compare excess-over-expectation within comparable profiles and use the guarantee-date DiD as the second check.
+Data: official NBA transaction log (nba_api; ~150-300 requests; ToS to check first). Also feeds cold start (T512):
+the move type tells the model what role a newcomer is stepping into.
