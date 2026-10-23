@@ -1,6 +1,6 @@
 # INGAME_WINPROB_V2: does a state model that knows the pre-game prior, possession, fouls, timeouts and who is on the floor beat v1 (margin and clock only) on log loss, and is it honest at 75% and 98%? (pre-registration)
 
-Status: **DRAFT 2026-10-22 (revised after pre-freeze review `docs/reviews/prefreeze_ingame_v2_2026-10-22.md`, M1-M11 and S1-S7 applied), market agent, branch `agent/market-ingame-v2` off `agent/market-blowout-ride` be00762. NOT FROZEN; no hash taken; no arm fitted; no outcome (final score, winner) read.** The main session freezes it after an adversary review. What runs tonight (v1, `nba/ride/winprob.py`, worktree wt_br) is unchanged.
+Status: **FROZEN 2026-10-22 23:4x CDT** (stage 1 of the two-stage freeze, rule 1: this commit hashes this text, `nba/ride/causal_five.py` and `tests/ride/test_causal_five.py`; builders are bound later in the binding commit after the adversary's builder review). Adversary pre-freeze reviews rounds 1-3 (`docs/reviews/prefreeze_ingame_v2_2026-10-22.md`, `_round2_`, `_round3_`) applied. **Devin chose the DEFAULT for every open choice** ("Do t153 [T513], t515, t516", 2026-10-22). No arm fitted; no outcome read. What runs live (v1) is unchanged.
 
 **Advice or momentum: Devin's request** (2026-10-22: "fix the in-game model to make the fullest use of existing knowledge; all of this can be modeled; capture it in the feed"). Consistent with standing advice (information beats architecture): every candidate is something true and knowable during the game; the capacity arm is a control, not the candidate.
 
@@ -67,7 +67,7 @@ Gate FAIL: not freezable. 2023 floor not met for a contrast: 2024 not scored for
 Parsed example (game 401909092, LAL home vs GS, snapshot 2026-10-22T03:52Z): `period 3, clock 6:41 (401 s), secs_left 1121, score 83-59, possession away` (LAL's last made free throw ended the possession, so GS has the ball), `timeouts_remaining 5 / 3`, `team_fouls_period 2 / 2`, `on_court` five ids per team, `player_fouls['4433137'] = 4`, `espn_home_wp 0.995`, `fouls_to_give 2`. Unrecognised bodies return None (never guessed).
 Known parser limits: defensive goaltending and rare violations leave possession unchanged (internal consistency 98.2%, 54 disagreements of 2,975, mostly an offensive foul and its turnover listed separately); `Substitution` rows lag the box `active` flag by a snapshot (18 of 278 rows differ).
 
-## Open choices for Devin (each with a default)
+## Open choices for Devin (each with a default) — RESOLVED: defaults chosen by Devin 2026-10-22
 1. **Serving prior**: rung0_injury_elo in v2 (trainable, as-of); Kalshi pre-tip mid shadow-only. Default: rung0 + shadow A2k.
 2. **Feed cadence**: poll ESPN summary for in-progress games every 60 s and skip final games (now median 142 s). Default: yes, needed for any alert use.
 3. **Floors**: 0.005 (P1) and 0.002 (P2, P3) log loss; pooled 98% comeback guard 3%. Default as written.
