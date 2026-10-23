@@ -1,3 +1,14 @@
+# NEXT SESSION, resume here (written 2026-10-22 ~23:30 CDT, end of night 3)
+
+**Phone summary for Devin:**
+1. **Tonight (your money):** CLE@PHI final PHI 114-106 (comeback from 24 down); DEN@OKC final OKC 96-84. All combos lost (4-leg: Harden 3 reb; linked: CLE leg; Cavs roll: CLE leg; OKC control: SGA 17; P2 Jokic: 13 pts/7 reb; P1: SGA 30+). Ride alerts both won (PHI 98.6%, OKC 98.1%). Two Claude process misses (late-Q3 check never set; mid-Q4 timer broken). Update your balance in chat so the scorecard starts.
+2. **Your decisions waiting:** (a) "go" to freeze SOFTBOOK_VS_PINNACLE_HIST (T516 Stage A) after adversary review; (b) "wire it": accuracy league table into the nightly job (replay oracle + your go); (c) in-game v2 seven choices ("defaults"); (d) SEASON_BOUNDARY choices (T515, defaults listed); (e) whether to merge the app Bankroll screen (agent/app-analysis-studio 663fc26).
+3. **Frozen today (forward, paper):** T510 LINE_MOVE_TOWARD_MODEL, T511 FAV_DIP_PAPER, T514 STAR_FLOOR_PAPER. Drafts: T513 INGAME_WINPROB_V2 (ready to freeze on your choices), T515 SEASON_BOUNDARY (+minutes, + roster-continuity slice), T516 KALSHI_VS_PINNACLE (Stage A historical is the real test; Stage B forward unpowered). Gate stops: T509 TEAM_USAGE_CAP, T512 COLDSTART_SHAREBALL.
+4. **Money rules (memory bankroll-rules):** floor $25 x 1.01^months (compounding); risk capital above it; daily 25% budget; SAFE/MEDIUM/RISKY tiers; bonus spends first; Claude recommends, you place every order. Robotrader path: paper -> one-tap -> capped auto (DECISIONS 21:0x).
+5. **Tomorrow first:** NBA transaction-log ToS check + pull (out-of-league research, docs/research/out_of_league_effect_2026-10-22.md); score your reads (data/manual/devin_reads.jsonl, tell Claude your calls); every in-game check Claude promises gets a TESTED timer (ESPN summary status has no clock field; use the scoreboard's status.displayClock/period).
+6. **Running in background now:** live capture (ends 05:30Z), paper trader + playbook arm (settle at end). Ride watcher exited cleanly. Claude restarts nothing tonight.
+Recommend a fresh Claude session tomorrow (this one ran ~13 h with heavy context).
+
 # NEXT SESSION, resume here (written 2026-10-21 ~23:35 CDT; overnight work in progress, see the status lines at the bottom of this block)
 
 **Phone summary for Devin:**
