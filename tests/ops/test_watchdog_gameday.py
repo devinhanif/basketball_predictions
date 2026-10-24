@@ -299,3 +299,99 @@ def test_notification_order_battery_caffeinate_morning_slate(tmp_path: Path) -> 
     ]
     assert "(60 min since start)" in alerts[2].message
     assert "data/ops/morning_20261021.log" in alerts[2].message
+
+
+# --- pre-tip window (2026-10-23: lid closed on battery, Kalshi dark, one quiet alert) -----------
+from datetime import UTC  # noqa: E402
+
+from nba.ops.watchdog import KALSHI_LABEL, evaluate, kalshi_snapshot_status  # noqa: E402
+
+FIRST_TIP = NOW + timedelta(minutes=120)
+
+
+def _tips(_data: Path, _day: object) -> dict[str, datetime]:
+    return {SLATE[0]: FIRST_TIP, SLATE[1]: FIRST_TIP + timedelta(hours=2)}
+
+
+def _kalshi(age_min: int, failed: list[str] | None = None):  # type: ignore[no-untyped-def]
+    return lambda _d: (NOW - timedelta(minutes=age_min), failed or [])
+
+
+def test_battery_in_pretip_window_is_loud_and_hourly(tmp_path: Path) -> None:
+    _healthy(tmp_path)
+    alerts = _run(tmp_path, battery=lambda: True, tips_fn=_tips, kalshi_fn=_kalshi(5))
+    assert _keys(alerts) == ["gameday:2026-10-21:battery@09"]
+    assert alerts[0].message.startswith("ACTION NEEDED: next tip in 120 min")
+    later_now = NOW + timedelta(hours=1)
+    later = _run(
+        tmp_path,
+        now=later_now,
+        battery=lambda: True,
+        tips_fn=_tips,
+        kalshi_fn=lambda _d: (later_now - timedelta(minutes=5), []),
+    )
+    assert _keys(later) == ["gameday:2026-10-21:battery@10"]
+
+
+def test_battery_far_from_tip_keeps_once_a_day_key(tmp_path: Path) -> None:
+    _healthy(tmp_path)
+    far = lambda _d, _t: {SLATE[0]: NOW + timedelta(hours=9)}  # noqa: E731
+    alerts = _run(tmp_path, battery=lambda: True, tips_fn=far)
+    assert _keys(alerts) == ["gameday:2026-10-21:battery"]
+
+
+def test_kalshi_stale_before_first_tip_alerts(tmp_path: Path) -> None:
+    _healthy(tmp_path)
+    alerts = _run(tmp_path, tips_fn=_tips, kalshi_fn=_kalshi(95))
+    assert _keys(alerts) == ["gameday:2026-10-21:kalshi@0930"]
+    assert "95 min old" in alerts[0].message and alerts[0].message.startswith("ACTION NEEDED")
+
+
+def test_kalshi_failed_series_alerts_even_if_fresh(tmp_path: Path) -> None:
+    _healthy(tmp_path)
+    alerts = _run(tmp_path, tips_fn=_tips, kalshi_fn=_kalshi(3, ["KXNBAGAME"]))
+    assert "FAILED KXNBAGAME" in alerts[0].message
+
+
+def test_kalshi_fresh_or_outside_window_is_silent(tmp_path: Path) -> None:
+    _healthy(tmp_path)
+    assert _run(tmp_path, tips_fn=_tips, kalshi_fn=_kalshi(5)) == []
+    far = lambda _d, _t: {SLATE[0]: NOW + timedelta(hours=4)}  # noqa: E731
+    assert _run(tmp_path, tips_fn=far, kalshi_fn=_kalshi(500)) == []
+    assert _run(tmp_path, tips_fn=_tips, kalshi_fn=_kalshi(500), slate_fn=_no_slate) == []
+
+
+def test_kalshi_stale_after_first_tip_still_alerts_for_later_games(tmp_path: Path) -> None:
+    # 2026-10-23: early games had tipped while later ones still needed pre-tip prices
+    _healthy(tmp_path)
+
+    def tips(_d: Path, _t: object) -> dict[str, datetime]:
+        return {SLATE[0]: NOW - timedelta(hours=1), SLATE[1]: NOW + timedelta(minutes=90)}
+
+    alerts = _run(tmp_path, tips_fn=tips, kalshi_fn=_kalshi(95))
+    assert _keys(alerts) == ["gameday:2026-10-21:kalshi@0930"]
+    assert "next tip in 90 min" in alerts[0].message
+
+
+def test_kalshi_status_reads_last_run(tmp_path: Path) -> None:
+    (tmp_path / "snapshot.log").write_text(
+        "snapshot 2026-10-23T21:47:35Z markets=274\nper_series {}\n"
+        "snapshot 2026-10-24T00:09:17Z markets=3709\n"
+    )
+    (tmp_path / "snapshot.err").write_text(
+        "2026-10-23T21:47:35Z FAILED KXNBAGAME: ConnectError: x\n"
+        "2026-10-24T00:09:17Z UNMATCHED player names (2): A, B\n"
+    )
+    last, failed = kalshi_snapshot_status(tmp_path)
+    assert last == datetime(2026, 10, 24, 0, 9, 17, tzinfo=UTC) and failed == []
+    (tmp_path / "snapshot.err").write_text("2026-10-24T00:09:17Z FAILED KXNBAGAME: ConnectError\n")
+    assert kalshi_snapshot_status(tmp_path)[1] == ["KXNBAGAME"]
+    assert kalshi_snapshot_status(tmp_path / "none") == (None, [])
+
+
+def test_launchctl_exit_1_for_kalshi_not_alerted_but_126_is(tmp_path: Path) -> None:
+    hb = tmp_path / "hb"
+    for code, expect in ((1, 0), (126, 1)):
+        text = f"-\t{code}\t{KALSHI_LABEL}\n"
+        out = evaluate(NOW, hb, text, NOW, None, jobs=())
+        assert len([a for a in out if a.key.endswith(":launchctl")]) == expect

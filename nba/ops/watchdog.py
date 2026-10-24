@@ -60,6 +60,11 @@ REGULAR_SEASON_PREFIX = "002"
 #: bounded wait for a writer on nba.duckdb: the probe never holds up the 10-minute check
 GAMEDAY_DB_WAIT_S = 20.0
 GAMEDAY_DB_RETRY_S = 5.0
+KALSHI_LABEL = "local.nba.kalshi-snapshot"
+#: the pre-tip window: loud, repeating alerts when the Mac can sleep or Kalshi capture is stale
+PRETIP_ALERT_WINDOW = timedelta(hours=6)
+KALSHI_FRESH = timedelta(minutes=30)
+KALSHI_ALERT_WINDOW = timedelta(minutes=150)
 OK_RC: dict[str, frozenset[int]] = {"daily-pretip": frozenset({0, RC_INFORMATIONAL})}
 
 
@@ -327,6 +332,10 @@ def evaluate(
     status = parse_launchctl(launchctl_text)
     for label, code in sorted(status.items()):
         if code != 0 and label != "local.nba.watchdog":
+            if label == KALSHI_LABEL and code == 1:
+                # unmatched player names make every run exit 1; judged by content in
+                # evaluate_game_day (snapshot age + FAILED series). Other codes still alert.
+                continue
             alerts.append(
                 Alert(f"{label}:launchctl", f"launchctl last exit status {code} for {label}")
             )
@@ -409,10 +418,10 @@ def caffeinate_running() -> bool:
     return rc == 0
 
 
-def todays_slate(data_dir: Path, today: date) -> list[str]:
-    """Regular-season game_ids whose ET date is ``today``: the schedule cache, plus the live tips
-    parquet (real tip times, which can move a game across midnight)."""
-    ids: set[str] = set()
+def todays_tips(data_dir: Path, today: date) -> dict[str, datetime]:
+    """Regular-season game_id -> tip time (UTC) whose ET date is ``today``: the schedule cache,
+    plus the live tips parquet (real tip times, which can move a game across midnight)."""
+    tips_by_id: dict[str, datetime] = {}
     read_any = False
     y = today.year if today.month >= 8 else today.year - 1
     cache = data_dir / "schedule_cache" / f"schedule_{y}-{(y + 1) % 100:02d}.json"
@@ -424,7 +433,7 @@ def todays_slate(data_dir: Path, today: date) -> list[str]:
     for row in rows:
         gid, tip = str(row[0]), datetime.fromisoformat(row[1]).replace(tzinfo=UTC)
         if gid.startswith(REGULAR_SEASON_PREFIX) and tip.astimezone(ET).date() == today:
-            ids.add(gid)
+            tips_by_id[gid] = tip
     tips = data_dir / "schedule" / f"live_tips_{y}-{(y + 1) % 100:02d}.parquet"
     if tips.exists():
         import polars as pl
@@ -438,10 +447,45 @@ def todays_slate(data_dir: Path, today: date) -> list[str]:
             gid = str(r["gameId"])
             tip = datetime.fromisoformat(str(r["gameDateTimeUTC"]).replace("Z", "+00:00"))
             if gid.startswith(REGULAR_SEASON_PREFIX) and tip.astimezone(ET).date() == today:
-                ids.add(gid)
+                tips_by_id[gid] = tip  # the live tip time wins over the cached one
     if not read_any:  # "nothing could be read" must never look like "no games today"
         raise FileNotFoundError(f"no readable schedule source for {today} under {data_dir}")
-    return sorted(ids)
+    return tips_by_id
+
+
+def todays_slate(data_dir: Path, today: date) -> list[str]:
+    """Regular-season game_ids whose ET date is ``today`` (see ``todays_tips``)."""
+    return sorted(todays_tips(data_dir, today))
+
+
+def kalshi_snapshot_status(kalshi_dir: Path) -> tuple[datetime | None, list[str]]:
+    """(timestamp of the newest ``snapshot ...Z`` line in snapshot.log, series that FAILED in that
+    run according to snapshot.err). Read only. ``snapshot`` exits 1 whenever any player name is
+    unmatched, so launchd's exit status cannot tell a failed fetch from a clean run; this can."""
+    last: datetime | None = None
+    try:
+        with (kalshi_dir / "snapshot.log").open("rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            fh.seek(max(0, fh.tell() - 65536))
+            for line in fh.read().decode("utf-8", "replace").splitlines():
+                if line.startswith("snapshot "):
+                    last = _parse_ts(line[9:].split(" ", 1)[0].replace("Z", "+00:00")) or last
+    except OSError:
+        return None, []
+    failed: list[str] = []
+    if last is not None:
+        stamp = last.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S")
+        try:
+            with (kalshi_dir / "snapshot.err").open("rb") as fh:
+                fh.seek(0, os.SEEK_END)
+                fh.seek(max(0, fh.tell() - 131072))
+                for line in fh.read().decode("utf-8", "replace").splitlines():
+                    parts = line.split(" ", 2)
+                    if line.startswith(stamp) and len(parts) > 2 and parts[1] == "FAILED":
+                        failed.append(parts[2].split(":", 1)[0])
+        except OSError:
+            pass
+    return last, failed
 
 
 class DbBusy(Exception):
@@ -481,6 +525,8 @@ def evaluate_game_day(
     present_fn: Callable[[Path, Sequence[str]], set[str]] = games_in_db,
     data_dir: Path | None = None,
     db_path: Path | None = None,
+    tips_fn: Callable[[Path, date], dict[str, datetime]] = todays_tips,
+    kalshi_fn: Callable[[Path], tuple[datetime | None, list[str]]] = kalshi_snapshot_status,
 ) -> list[Alert]:
     """Game-day probe: silent off game days and before 09:00 ET; otherwise the four checks.
 
@@ -578,6 +624,48 @@ def evaluate_game_day(
         pass  # a writer holds nba.duckdb: judged again at the next check, not an alert
     except Exception as e:
         fail("slate", e)
+    # pre-tip window: a sleeping Mac or a dark Kalshi capture cannot be backfilled (2026-10-23)
+    try:
+        tips = tips_fn(data, local.date())
+        upcoming = [t for t in tips.values() if t > now]
+        first = min(upcoming) if upcoming else None  # the NEXT tip: later games stay covered
+    except Exception:
+        first = None  # unknown tips: the checks above stand as they were
+    if first is not None and timedelta(0) < first - now <= PRETIP_ALERT_WINDOW:
+        mins = int((first - now).total_seconds() // 60)
+        for a in list(alerts):
+            if a.key in (f"{prefix}:battery", f"{prefix}:caffeinate"):
+                alerts.remove(a)
+                alerts.append(
+                    Alert(
+                        f"{a.key}@{local:%H}",
+                        f"ACTION NEEDED: next tip in {mins} min and the Mac can sleep. Plug in "
+                        "AC power (caffeinate -s does nothing on battery and a closed lid still "
+                        "sleeps), then run `caffeinate -dimsu`. " + a.message.split(": ", 1)[-1],
+                    )
+                )
+        if first - now <= KALSHI_ALERT_WINDOW:
+            try:
+                last, failed = kalshi_fn(data / "kalshi")
+                age = None if last is None else now - last
+                if age is None or age > KALSHI_FRESH or failed:
+                    why = (
+                        "no snapshot found"
+                        if age is None
+                        else f"newest snapshot {int(age.total_seconds() // 60)} min old"
+                    )
+                    if failed:
+                        why += f"; last run FAILED {', '.join(failed[:4])}"
+                    half = "00" if local.minute < 30 else "30"
+                    alerts.append(
+                        Alert(
+                            f"{prefix}:kalshi@{local:%H}{half}",
+                            f"ACTION NEEDED: next tip in {mins} min, Kalshi capture not fresh "
+                            f"({why}); pre-tip prices cannot be backfilled",
+                        )
+                    )
+            except Exception as e:
+                fail("kalshi", e)
     return alerts
 
 
