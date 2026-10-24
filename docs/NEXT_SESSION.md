@@ -1,3 +1,13 @@
+# NEXT SESSION, resume here (written 2026-10-24 00:20 CDT, overnight under "do everything"; status lines appended below)
+
+**Phone summary for Devin:**
+1. **Before anything:** Mac on AC + `caffeinate -dimsu` (10-23 was lost to clamshell sleep 09:23-18:56). First tip today 17:00 CDT; pretip ~15:45.
+2. **Frozen last night (all paper, forward):** MARKET_ANCHORED_PROPS (f7691bbf), T510b (68f0ef84), KALSHI_LONGSHOT_FORWARD (0b50d17e), UNDERS_FORWARD (149be979; your "gi" read as go: say if not). Fee pinned from Kalshi's series API (multiplier 1) + secondary sources for 0.07.
+3. **Merged live:** watchdog pre-tip ACTION NEEDED alerts (next tip, not first); Kalshi names 32 -> 196 of 196 matched (903 more props priced; oracle IDENTICAL). Morning-job fixes: see status lines (merge pending oracle).
+4. **Your decisions:** (a) spot-check 8 rookie Kalshi ids (Caleb Wilson, Cameron Boozer, Darius Acuff Jr., Darryn Peterson, Keaton Wagler, Kingston Flemings, Mikel Brown Jr., Yaxel Lendeborg); (b) remove the 0.84 fuzzy name accept (Claude: yes); (c) **live capture**: `nba.live` is NOT on main (only on agent/market-paper-trader and siblings) - merge it, then install the new launcher (agent/steward-live-capture-launchd 23577a1, command in DAILY_PIPELINE); 4 frozen rules need it nightly (LONGSHOT/UNDERS need >= 72% of nights); until then start it by hand tonight; (d) wire the stale-price exclusions (ops/forward_exclusions.yaml) into scorecard/monitor; (e) compact three giant pretip logs (10 GB, 9.4 GB, 0.5 GB; command in the steward hand-back, DECISIONS); (f) scorer interpretation rulings (alias-file pinning for T510; self-test rules for LONGSHOT/UNDERS) after the adversary reviews.
+5. **Answers to your questions:** best bet last night: none (all 488 quotes no_positive_ev). Hot hand / runs: real but small; Kalshi price runs exist (in-game 15-min momentum) but riding them nets -4 to -5c/trade after spread+fee (docs/research/price_runs_scratch_2026-10-23.md). Unders: now a frozen forward test.
+6. **Score yesterday's bets from the box** (MIN@ORL sold +$0.43; the five NO recommendations: confirm fills).
+
 # NEXT SESSION, resume here (written 2026-10-23 21:44 CDT, night 4; fresh session recommended)
 
 **Phone summary for Devin:**
