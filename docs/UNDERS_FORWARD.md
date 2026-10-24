@@ -45,7 +45,7 @@ a stake. A PASS is "candidate for a small declared experiment" at most; money st
 | Item | LONGSHOT | UNDERS (this rule) |
 |---|---|---|
 | Price filter | mid <= 15c | ALL mids; same tradeability filters |
-| Series | props, combos, game markets | player props and stat-sum combos only (Section 1.7); game markets excluded |
+| Series | props, combos, game markets except KXNBASPREAD (descriptive only) | player props and stat-sum combos only (Section 1.7); game markets excluded |
 | Side | NO only (long shots) | NO only, every price |
 | Strata | kind and bucket | bucket, stat, line position vs our mean and vs Pinnacle (Section 3) |
 | Alpha | 0.005 / 0.02 (Bonferroni, same family) | Bonferroni across the two rules: 0.005 / 0.02 (Section 7) |
@@ -169,7 +169,7 @@ margin; the earlier assumed ICC (0.2 / 0.06) overstated the design effect about 
 
 ## 7. Looks, alpha, multiplicity
 
-Reads, same as LONGSHOT: **Read 1 on 2027-01-15** (games with ET tip dates through 2027-01-13; Section 5/6 game-level settlement rule) and **Read 2 (final) on 2027-04-14**; a look is never moved.
+Reads, same as LONGSHOT: **Read 1 on 2027-01-15** (games with ET tip dates through 2027-01-13; Section 6 game-level settlement rule) and **Read 2 (final) on 2027-04-14**; a look is never moved.
 Multiplicity: two rules test overlapping contracts on the same capture (LONGSHOT, UNDERS). **Bonferroni across the two rules**: each rule's
 one-sided level is halved, **0.005 at Read 1 and 0.02 at Read 2** (decision CI = the matching 99% / 96% two-sided percentile interval). Within this
 rule the family is m = 1 (pooled `R`); strata are descriptive. LONGSHOT is frozen (or will be) at the same 0.005/0.02; if LONGSHOT is shelved, this rule's levels are NOT relaxed after the fact (a rule never changes
@@ -260,8 +260,8 @@ prices (a different market); excluded by Devin's forward-only choice. A `/histor
 
 ### Gate: can the minimum n be reached, and when?
 
-Observed fraction of scheduled games with at least one eligible contract: 28 / 28 = 1.0 (the LONGSHOT draft's 0.82 was for contracts at mid <= 15c; with
-all prices a game always has contracts). The date projection is the LONGSHOT draft's, driven by `data/schedule/live_tips_2026-27.parquet` from 2026-10-25
+Observed fraction of scheduled games with at least one eligible contract: 28 / 28 = 1.0 (LONGSHOT's earlier 0.82 counted only games already settled; every game also had an eligible
+long shot). The date projection is the LONGSHOT draft's, driven by `data/schedule/live_tips_2026-27.parquet` from 2026-10-25
 (not recomputed here): 150 games on 2026-11-14 and 300 on 2026-12-13 at fraction 1.0; 300 on 2026-12-23 at 0.8; 300 on 2027-01-08 at 0.6. Dates bind, not games: the schedule has 538 games on 70 ET dates from 2026-10-25 to 2027-01-13 (1,164 on 151 dates through 2027-04-12).
 Capture failures come as whole nights, so 50 dates by Read 1 needs at least 72% of nights captured. At 100% both counts are met on
 2026-12-23, at 80% on 2027-01-06, at 71% on 2027-01-14, and at 60% only on 2027-01-27, which is an INSUFFICIENT_SAMPLE Read 1. Every
