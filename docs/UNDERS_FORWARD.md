@@ -1,6 +1,6 @@
 # UNDERS_FORWARD - does buying NO on Kalshi NBA player props, held to settlement, earn a positive return after fee and spread? (forward-only)
 
-STATUS: DRAFT, NOT FROZEN. Written 2026-10-23 by the market agent (branch `agent/market-unders-forward`).
+STATUS: FROZEN 2026-10-23 by the main session (Devin's override: his idea; "fee ok" after the fee check above; freeze approval "gi" read as "go"; adversary pre-freeze READY_TO_FREEZE after edits, docs/reviews/kalshi_longshot_unders_prefreeze_2026-10-23.md). Written 2026-10-23 by the market agent (branch `agent/market-unders-forward`).
 Origin: Devin's idea, his override of Claude's lean (Claude's prior P(pass) 0.10-0.15 before costs; this draft's own prior is lower, see the
 PREDICTIONS_LEDGER row). Forward-only; season 2025 and the holdout are not touched; no historical Kalshi pull. Prices only: no orders, no
 credentials, no stakes. The paper Kelly column (Section 9) is a unit-free fraction shown on paper, never a stake.
@@ -10,8 +10,8 @@ commit 00c1516). This file is self-contained: the frozen section below is the wh
 change this rule.
 
 FREEZE RECORD (outside the frozen section; filled by the hand that freezes):
-- Frozen on: ____ (before any scored row exists; the scoring window opens at the first ET date after the freeze commit, not earlier than 2026-10-25)
-- sha256 of the frozen section: ____
+- Frozen on: 2026-10-23 23:02 CDT (before any scored row exists; the scoring window opens at the first ET date after the freeze commit, not earlier than 2026-10-25)
+- sha256 of the frozen section: 149be979b0a029ae2836b46ba8b3be9c619b379735d5a1adee4c029a93413ad6
 - Verify: `awk '$0=="<!-- FROZEN-END -->"{f=0} f{print} $0=="<!-- FROZEN-BEGIN -->"{f=1}' docs/UNDERS_FORWARD.md | shasum -a 256`
 
 ## Question and what the rule protects against
@@ -120,9 +120,7 @@ prints the config's `source`, the coefficient and the multiplier it used in ever
 S1: rounded up to a whole cent per single contract. At freeze, Devin re-verifies the schedule against Kalshi's published one (the 2026-10-08
 verification is "user-provided"; an automated fetch on 2026-10-23 was rate-limited and verified nothing).
 
-TO BE CONFIRMED BY DEVIN AT FREEZE against Kalshi's published schedule. The values below are copied from `configs/parlay.yaml` as of this draft
-(coefficient 0.07, formula `p_one_minus_p` = P(1-P), default_multiplier 1.0, empty `fee_multiplier`, rounding up once per ORDER in the config
-and UNROUNDED per contract in this rule's primary) and are UNCONFIRMED until he does.
+Confirmed by Devin on 2026-10-23 against Kalshi's series API (https://api.elections.kalshi.com/trade-api/v2/series/<ticker>, read 2026-10-23 for KXNBAPTS, KXNBAREB, KXNBAAST, KXNBA3PT, KXNBAPRA, KXNBAPR, KXNBAPA, KXNBARA, KXNBABLK, KXNBASTL, KXNBATEAMTOTAL, KXNBAGAME, KXNBASPREAD, KXNBATOTAL: fee_multiplier 1 on every one; fee_type quadratic, or quadratic_with_maker_fees for GAME/SPREAD/TOTAL) and the published quadratic taker formula as reported by five secondary sources (Kalshi's own schedule PDF, https://kalshi.com/docs/kalshi-fee-schedule.pdf, returned HTTP 429 to an automated fetch): taker coefficient 0.07, M = 1 for every series in Section 1.7, formula P(1-P).
 
 The fee parameters are pinned by this text: taker coefficient 0.07, formula `p_one_minus_p`, multiplier M = 1.0 for every series in
 Section 1.7 (Devin confirms these against Kalshi's published schedule before the freeze commit; if his check differs, these numbers are
