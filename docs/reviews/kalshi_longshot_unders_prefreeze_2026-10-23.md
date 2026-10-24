@@ -296,3 +296,104 @@ DECISIONS (for the main session, after Devin): `| 2026-10-23 2x:xx | LONGSHOT/UN
 kalshi_longshot_unders_prefreeze_2026-10-23.md): adopt M1-M12, L1-L2, U1-U2 verbatim; LONGSHOT drops KXNBASPREAD from its decision pool
 (SPREAD_TAIL_NO owns it) and moves to 0.005/0.02. | Family coherence; selection on settlement timing. | Devin prefers the three-rule
 Bonferroni. |`
+
+---
+
+## Re-review (diff only), 2026-10-23 22:53 CDT (from `date`)
+
+Diffs read: UNDERS `git diff fb873ea 2ac7812` on `agent/market-unders-forward` (docs/UNDERS_FORWARD.md and one appended
+PREDICTIONS_LEDGER row). LONGSHOT `git diff 00c1516 2e70ffb` on `agent/market-kalshi-longshot-fwd` (docs/KALSHI_LONGSHOT_FORWARD.md and
+one appended PREDICTIONS_LEDGER row). No new attacks and no new data reads. The only checks were for new contradictions introduced by
+the revision.
+
+Verdict: BLOCKED
+
+**UNDERS_FORWARD: READY_TO_FREEZE**, provided the two one-line edits R-U1 and R-U2 below go into the freeze commit (cosmetic, no further
+review), plus the fee-confirmation step F1 and Devin's freeze approval. **KALSHI_LONGSHOT_FORWARD: NOT_READY.** Its frozen power text
+carries UNDERS's numbers (my M12 template's fault), and its guard 8.6(a) cites an identity that its Section 4 never states. With R-L1 to
+R-L5 adopted verbatim it is READY_TO_FREEZE. No further adversary look is needed; the main session can confirm the edits by diff.
+
+### What was checked and held
+
+| Item | Both | Note |
+|---|---|---|
+| M1-M11 adopted verbatim inside the frozen markers | yes | M11 default taken: LONGSHOT at 0.005/0.02 with KXNBASPREAD descriptive. UNDERS §0 alpha cell updated |
+| M10 shuffle removed; SELFTEST_FAILED consequence present | yes | |
+| U1 self-contained; U2 Kelly inside FROZEN, per bucket only, correlation sentence | yes (UNDERS) | `<!-- FROZEN-END -->` now follows §9 |
+| L1 Playbook check (market agent's text) | adequate (LONGSHOT) | All five questions answered, lineage includes the SPREAD_TAIL_NO change. Accepted as written |
+| L2 glance order disclosed | yes (LONGSHOT) | |
+| S3: U8 (0.85, 1.00] | yes (UNDERS) | Correct. With integer cents the maximum mid is 0.995, so U8 now covers every eligible mid |
+| UNDERS text outside the frozen section (Playbook, power, gate, open choice 3) | consistent | Except the 0.82 parenthetical (R-U2) |
+| Ledger rows | appended, earlier rows unchanged | Both restate P before freeze (S10 met for LONGSHOT) |
+| M3 placeholders "TO BE CONFIRMED BY DEVIN AT FREEZE" | present in both, inside the frozen section | Handled by F1 |
+
+### Freeze-time step (both)
+
+**F1.** In the freeze commit, before hashing, replace the paragraph beginning "TO BE CONFIRMED BY DEVIN AT FREEZE" with:
+> Confirmed by Devin on <YYYY-MM-DD> against <Kalshi fee-schedule URL>: taker coefficient <value>, M = <value> for every series in
+> Section 1.7 [UNDERS: Section 1.7], formula P(1-P).
+
+If any confirmed value differs, edit the pinned numbers in the next paragraph in the same commit. A rule hashed with "UNCONFIRMED" in it
+is not frozen under M3.
+
+### Remaining edits, UNDERS (cosmetic; adopt in the freeze commit)
+
+**R-U1 (frozen, line 48, Section 0 table).** Replace the LONGSHOT cell "props, combos, game markets" with "props, combos, game markets
+except KXNBASPREAD (descriptive only)". Line 172: replace "Section 5/6 game-level settlement rule" with "Section 6 game-level settlement
+rule".
+
+**R-U2 (outside the frozen section, line 263-264).** Replace "(the LONGSHOT draft's 0.82 was for contracts at mid <= 15c; with all
+prices a game always has contracts)" with "(LONGSHOT's earlier 0.82 counted only games already settled; every game also had an eligible
+long shot)".
+
+### Remaining edits, LONGSHOT (R-L1 and R-L2 are frozen text: required)
+
+**R-L1 (frozen, Section 6 Power paragraph).** Replace the whole paragraph from "Power (measured on 2026-10-20..23" to "about 2-3x."
+with:
+> Power (measured on 2026-10-20..23 entry mids, label-free, plus season-2024 within-game correlations; the realised cluster variance
+> replaces it at each look): design effect about 3.8 with KXNBASPREAD included. Exact ladder nesting contributes 2.2 with it and 1.7
+> without it, at the same effective contracts per game (about 29). The rest is same-player cross-stat and cross-player co-movement. SE
+> of `R` at 300 games about 0.0038. MDE at 80% power: about 1.3c at Read 1 (one-sided 0.005) and about 0.6-0.7c at Read 2 (one-sided
+> 0.02, 700-900 games). Power to clear the bound at a true +1c: about 0.50-0.53 at Read 1 and 0.97-0.99 at Read 2. The Gaussian copula
+> understates tail co-movement, so these are optimistic by an unknown margin; the earlier assumed ICC of 0.2 overstated the design effect
+> about 3.5x.
+
+**R-L2 (frozen, Section 4).** After "The spread is therefore inside every return: the NO buyer pays `1 - bid`, the YES buyer pays `ask`."
+(line 91), insert:
+> Integrity identity the scorer asserts on every contract (guard 8.6(a)), in integer hundredths of a cent:
+> `r_yes + r_no = -(ask_c - bid_c) / 100 - fee(P_yes) - fee(P_no)`.
+
+Without this sentence, guard 8.6(a) checks an identity the rule never defines, so the self-test cannot be implemented as written, and
+every look would void on SELFTEST_FAILED or depend on an identity chosen by whoever writes the harness.
+
+**R-L3 (frozen, Section 7).** Replace "Section 5/6 game-level settlement rule" with "Section 5 game-level settlement rule".
+
+**R-L4 (audit, outside the frozen section; the gate text must not contradict itself, non-negotiable 8).**
+- Line 195-196: replace "(of 28 scheduled games 2026-10-20..23; 23 games have at least one eligible long shot at max age 240)" with
+  "(of 28 scheduled games 2026-10-20..23; all 28 have at least one eligible long shot at max age 240, and 23 of them were fully settled
+  at the audit time)".
+- Line 204, after the row's last cell, add a row:
+  `| Decision pool after M11 (KXNBASPREAD out), integer cents, max age 240 | 1,430 contracts, 28 games (about 51 per game; 368 KXNBASPREAD contracts reported descriptively) | Rate source after the revision |`
+- Line 214-215: replace "23 / 28 = 0.82 (and the capture was broken on parts of 10-20 and 10-23, so this is not an upper bound).
+  Cumulative eligible games reach:" with "28 / 28 = 1.0 (the earlier 23 / 28 counted only games already settled). Games are not the
+  binding count (dates are, below); for reference, cumulative games reach:".
+- Line 220: replace "0.8 (observed 0.82)" with "0.8".
+- Line 223: delete "By 2027-01-15 (Read 1) the 0.6 case has about 330 games; by the end of the regular season the 0.6 case has well
+  over 700. " (a 0.6 game fraction says nothing about the 0.6 night case, which is INSUFFICIENT_SAMPLE at Read 1).
+
+**R-L5 (audit, line 228).** Replace "power is no longer the binding limit" with "power at Read 1 is about 0.5 at a true +1c (Section 6),
+so a Read 1 bound that includes 0 means no power below about 1.3c, not no edge".
+
+The audit table's by-series row (line 205, SPREAD 301) may stay as a historical count; the added row under R-L4 states the post-M11
+pool. The 1,430 / 368 figures come from this review's integer-cent rebuild (check 3 above: 1,798 eligible, of which 368 KXNBASPREAD,
+including the then-unsettled 10-23 games).
+
+### New contradictions found by this re-review
+
+1. LONGSHOT power paragraph: the UNDERS MDE (1.3-1.6c) and power (0.33-0.54) ranges were attached to LONGSHOT. The cause was the
+   reviewer's bracketed M12 template, which gave per-rule values only for the design effect and SE. Fixed by R-L1.
+2. LONGSHOT guard 8.6(a) has no matching identity in Section 4. Fixed by R-L2.
+3. "Section 5/6" in both §7s. Fixed by R-U1 and R-L3.
+4. LONGSHOT's audit still says 23 / 28 = 0.82 and pairs a 0.6 game fraction with "330 games" at Read 1. The new dates text right after it
+   says 60% night capture fails Read 1. Fixed by R-L4.
+5. UNDERS §0 still describes LONGSHOT's series as including all game markets. Fixed by R-U1.
