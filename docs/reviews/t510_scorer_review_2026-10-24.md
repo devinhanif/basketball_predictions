@@ -314,3 +314,33 @@ hatches, R1 and R2. Each is a few lines to fix.
 
 R1 and R2 must be fixed before any real mid is scored. R3 and R4 can wait until the scoring date. Nothing in F1–F10
 needs rework.
+
+## Second re-review (diff only): `git diff 1b41932 e842033`, 2026-10-24
+
+Scope: 7 files (+239/−54): `research/line_move/`, `tests/research/line_move/test_review_fixes.py` and the dryrun record.
+No new attacks. Every check below was run unpiped in the builder worktree at e842033.
+
+Verdict: APPROVED
+
+| Item | Evidence | Result |
+|---|---|---|
+| Checks | ruff exit 0; format exit 0; mypy exit 0; `pytest -q --no-cov tests/research/line_move` **54 passed, exit 0** (the hand-off said 64; I count 54) | PASS |
+| R1: unscoreable only by a verified condition | `--reason` is a choice of {dryrun_failed, horizon_not_reached}. `dryrun_failed` needs a record for the current code hash with `<rule>_dryrun_pass` exactly False. `horizon_not_reached` needs the pinned aliases, today (ET) ≥ SEASON_END, and `horizon_date` None on complete dates. It refuses if any result record for that rule exists. Smoke runs: `mark-unscoreable --rule T510 --reason dryrun_failed` → "REFUSED: … does not show a failed T510 dryrun", exit 2; `--reason whatever` → argparse error, exit 2; `reports/line_move/` still holds only the dryrun record | PASS (R5 minor) |
+| SEASON_END = 2027-04-11 | `shasum -a 256 data/raw/schedule_2026-10-23/live_tips_2026-27.parquet` = 9702c830… (= `SCHEDULE_SHA256`); 1,200 games; the last tip is 2027-04-12 00:30Z = 20:30 ET on **2027-04-11**; the maximum ET date is 2027-04-11. 04-12 was the UTC date. ET is the rule's date convention ("a market's date is its tipoff converted to America/New_York"), so 04-11 is correct. Confirmed. A test asserts both the hash and the date (it skips when data/ is absent) | PASS |
+| R2: `--out-dir` removed | `_result_path(rule)` = `spec.REPORT_DIR/<rule>_result.json`; no `--out-dir` on score, family or mark-unscoreable | PASS |
+| R3: single count | An absent rung now increments only `rung_absent_at_snapshot`. Preflight: `S0_quote_fails_filter` 278→141 (pinned) and 258→125 (freeze), so the earlier figure double counted 137/133 | PASS |
+| R4: no-box-row split | `inactive_pids` returns (box row with minutes 0/null, pairs with no box row); the second is printed as an ingest gap | PASS |
+| Dryrun record | Record code_sha256 119ce09f = `spec.code_sha256()` recomputed. In the diff only the hash line changed; every number is identical. That is expected: seeds are fixed, and the dryrun path is unchanged apart from the new `failed()` helper and the R3 drop counter, which feeds no gate | PASS |
+| Preflight, both pins | `preflight --date 2026-10-21` with the pinned file → match True, exit 0; with the freeze-time file → match True, exit 0 | PASS |
+
+Minor, before T510 is scored (about 2026-11-06); not blocking:
+- **R5.** `mark-unscoreable --reason dryrun_failed` honours `--record PATH`. A record placed in scratch with the
+  current code hash and `pass: false` would therefore mark a rule unscoreable without any trace in git. Fix: in
+  `cmd_mark_unscoreable`, call `dryrun.failed(spec.DRYRUN_RECORD, rule)` and drop `--record` from that subparser.
+  Store the record's sha256 in the UNSCOREABLE record. This needs deliberate fabrication, unlike the casual
+  `--out-dir`, so it is minor.
+- **R6 (note).** SEASON_END is the regular-season end. A rule still short of its horizon on 04-11 could in principle
+  reach it in the playoffs, and the frozen text says "this season". The horizon is expected around 2026-11-06, so this
+  is recorded rather than fixed. If it ever binds, the main session decides before marking.
+
+R1–R4 close the escape hatches. No new contradiction with the frozen texts or with rulings #1, #2, #10, #14 or A1–A6.
