@@ -1,22 +1,34 @@
 # ruff: noqa: E501
 """MARKET_ANCHORED_PROPS eval (rule: docs/prereg/MARKET_ANCHORED_PROPS.md, frozen f7691bbf; constants in market_anchored_props_rule).
 
+    .venv/bin/python -W ignore -m research.eval.market_anchored_props_eval extract --db <byte copy of odds_history.duckdb>
     .venv/bin/python -W ignore -m research.eval.market_anchored_props_eval dryrun --db <byte copy of odds_history.duckdb>
-    .venv/bin/python -W ignore -m research.eval.market_anchored_props_eval run --sha <64 hex> --week iso|core [--odds-copy <byte copy>]
+    .venv/bin/python -W ignore -m research.eval.market_anchored_props_eval run --sha <64 hex>
+
+``extract`` (label-free, once, before the harness pin; eval review 2026-10-24 F2): writes the Part L FanDuel rungs and the exchange
+quotes of the primary legs from a byte copy of the odds database to committed parquet, whose sha256 are pinned in the rule mirror.
+It refuses the live file and refuses to overwrite. ``run`` never opens the odds database.
 
 ``dryrun`` (rule header (a)): no real label is read. It (1) only hashes the committed extras frames against their pins (it never calls
-``core.build_extras``; a call raises during the dryrun), (2) re-runs the committed gate with every synthetic world sent through THIS
-module's stage code (``gate_world_record``: Stage 1 -> K1 -> Stage 2 -> run words -> verdict) and compares the result with
-``reports/prereg_market_anchored_props/gate.json`` key by key (only ``seconds``, ``git_head`` and the odds-database capture counts,
-which the movement pull has since changed, are excluded; the capture diff is reported), (3) checks this module's planted future against the
-gate's, and (4) rehearses the whole ``run`` pipeline (missingness, both stages, words, consequences, the secondary family, slices,
-coefficients, DraftKings direction, Part L, exchange slice) on synthetic labels, plus planted K1 and WORSE_THAN_MARKET worlds and an
-invalid-run world. The output is ``dryrun.json`` (synthetic numbers only, labelled so).
+``core.build_extras``; a call raises during the dryrun) and checks every other pin, (2) re-runs the committed gate with every synthetic
+world sent through THIS module's stage code (``gate_world_record``: Stage 1 -> K1 -> Stage 2 -> run words -> verdict) and compares the
+result with ``reports/prereg_market_anchored_props/gate.json`` key by key (only ``seconds``, ``git_head`` and the odds-database capture
+counts, which the movement pull has since changed, are excluded; the capture diff is reported). The reproduction uses the core's own
+weeks, as the gate measured them; ``run`` uses ISO weeks only. (3) It checks this module's planted future against the gate's and the
+scored counts label-free, and (4) rehearses the whole pipeline on synthetic labels (ISO weeks, the pinned descriptive inputs), plus
+planted K1, WORSE_THAN_MARKET, descriptive-failure and invalid-run worlds. Output ``dryrun.json`` (synthetic numbers only).
 
-``run`` refuses (before any label is read) a DRAFT doc, a missing ``prereg(...)`` commit, a harness that differs from its blobs,
-a missing harness pin commit, a pairs or extras frame that differs from its pin, and any season > 2024. A leg-reproduction, scored-count
-or planted-future failure inside the run records ``NO_RESULT_INVALID_RUN`` with both words ``NOT_EVALUATED`` and no number.
-The missingness table on real labels is written first (``missingness.json``), before any component is computed.
+``run`` refuses (before any label is read) a DRAFT doc, a missing ``prereg(...)`` commit, a harness that differs from its blobs, a
+missing harness pin commit, and any season > 2024. A pairs / extras / model_rows / extract pin failure, a leg or scored-count
+reproduction failure (both checked label-free), or a planted-future failure records ``NO_RESULT_INVALID_RUN`` with both words
+``NOT_EVALUATED`` and no number. The missingness table on real labels is written first (``missingness.json``). ``results.json`` is
+written as soon as the words exist; each descriptive block then runs alone and a failure is recorded as FAILED (review F4).
+
+Runtime note (review F8; the frozen section 15 is not edited): section 15's "5-10 minutes on CPU" is the compute. Measured here: the
+full dryrun (gate reproduction of 100 worlds plus the full-pipeline rehearsal at K = 50 / B = 2,000 plus four small planted
+worlds) took 738 s on 2026-10-23 and 296 s on 2026-10-24 with no lock wait, so ``run`` (one pipeline, no gate reproduction)
+should compute well inside section 15's 5-10 minutes. The 5,808 s second dryrun spent about 90 minutes in 45 ``heavy.lock`` waits
+(another job held it); that is lock time, not compute. Plan the run outside the nightly and morning windows and allow for the wait.
 """
 
 from __future__ import annotations
@@ -186,13 +198,6 @@ def model_rows(legs: pl.DataFrame, cols: list[str]) -> pl.DataFrame:
     return _join_aligned(legs.select(KEY), pl.concat(parts), KEY).select(cols)
 
 
-def model_rows_sha() -> dict[str, str]:
-    return {
-        str(s): mrule.file_sha256(mpr.resolve(MODEL_ROWS_REL.format(season=s)))
-        for s in (R.SELECT_SEASON, R.REPORT_SEASON)
-    }
-
-
 def iso_week_idx(dates: np.ndarray) -> np.ndarray:
     """Dense codes of ``iso_year-week`` of ``game_date`` (rule section 14)."""
     d = np.asarray(dates, dtype="datetime64[D]")
@@ -204,8 +209,8 @@ def iso_week_idx(dates: np.ndarray) -> np.ndarray:
 
 
 def with_week(A: dict[str, np.ndarray], week: str) -> dict[str, np.ndarray]:
-    """``core``: the pinned core's weeks (numpy ``datetime64[W]``: Thursday to Wednesday; the gate used these).
-    ``iso``: ISO weeks (Monday to Sunday) as the frozen text's section 14 says. The choice is an input of ``run`` (ambiguity A1)."""
+    """``iso``: ISO weeks (Monday to Sunday), the frozen text's sections 4 and 14; ``run`` always takes this (ruling #1, F1).
+    ``core``: the pinned core's weeks (numpy ``datetime64[W]``: Thursday to Wednesday); used only to reproduce gate.json."""
     if week == "core":
         return A
     if week == "iso":
@@ -666,10 +671,11 @@ def load_rungs(odds_db: str, legs: pl.DataFrame) -> pl.DataFrame:
     try:
         for s in (R.SELECT_SEASON, R.REPORT_SEASON):
             R.assert_seasons([s])
-            parts.append(con.execute(
+            q: pl.DataFrame = con.execute(
                 f"select game_id, player_id, market, point, side, price_american from odds_history where season = {int(s)} and "
                 f"snapshot_kind = 't60' and book = '{R.PART_L_BOOK}' and market in ({mk}) and player_id is not null and side in ('over','under')"
-            ).pl())  # fmt: skip
+            ).pl()  # fmt: skip
+            parts.append(q)
     finally:
         con.close()
     raw = pl.concat(parts).with_columns(
@@ -683,17 +689,25 @@ def load_rungs(odds_db: str, legs: pl.DataFrame) -> pl.DataFrame:
     wide = raw.pivot(
         on="side", index=["game_id", "player_id", "stat", "point"], values="price_american"
     )
-    wide = wide.drop_nulls(["over", "under"]).filter(((pl.col("point") % 1.0) - 0.5).abs() < 1e-9)
+    wide = (
+        wide.drop_nulls(["over", "under"])
+        .filter(((pl.col("point") % 1.0) - 0.5).abs() < 1e-9)
+        .rename({"over": "price_over", "under": "price_under"})  # American prices, not labels
+    )
     base = legs.select(*KEY, "line", "p_over_mult", "season", "game_date")
-    return (
+    out: pl.DataFrame = (
         wide.join(base, on=KEY, how="inner")
         .filter(pl.col("point") != pl.col("line"))
+        .select(
+            *KEY, "point", "price_over", "price_under", "line", "p_over_mult", "season", "game_date"
+        )
         .sort([*KEY, "point"])
     )
+    return out
 
 
 def part_l_arrays(rungs: pl.DataFrame, p_ge: list[list[float]]) -> dict[str, np.ndarray]:
-    ro, ru = _imp(rungs["over"].to_numpy()), _imp(rungs["under"].to_numpy())
+    ro, ru = _imp(rungs["price_over"].to_numpy()), _imp(rungs["price_under"].to_numpy())
     v = ro / (ro + ru)
     k = np.rint(rungs["point"].to_numpy() + 0.5).astype(int)
     k0 = np.rint(rungs["line"].to_numpy() + 0.5).astype(int)
@@ -811,7 +825,7 @@ def load_exchange(odds_db: str, legs: pl.DataFrame) -> pl.DataFrame:
     bk = ",".join(f"'{b}'" for b in R.EXCHANGE_BOOKS)
     con = duckdb.connect(odds_db, read_only=True)
     try:
-        raw = con.execute(
+        raw: pl.DataFrame = con.execute(
             f"select game_id, player_id, market, book, point, max(case when side='over' then price_american end) po, "
             f"max(case when side='under' then price_american end) pu, count(*) n from odds_history where season = {R.REPORT_SEASON} "
             f"and snapshot_kind = 't60' and book in ({bk}) and market in ({mk}) and player_id is not null group by 1,2,3,4,5"
@@ -825,9 +839,12 @@ def load_exchange(odds_db: str, legs: pl.DataFrame) -> pl.DataFrame:
     )
     first = dt.date.fromisoformat(R.EXCHANGE_FIRST_DAY)
     base = legs.select(*KEY, "line", "game_date").filter(pl.col("game_date") >= first)
-    return raw.join(base, left_on=[*KEY, "point"], right_on=[*KEY, "line"], how="inner").select(
-        *KEY, "book", "po", "pu"
+    out: pl.DataFrame = (
+        raw.join(base, left_on=[*KEY, "point"], right_on=[*KEY, "line"], how="inner")
+        .select(*KEY, "book", "po", "pu")
+        .sort([*KEY, "book"])
     )
+    return out
 
 
 def exchange_slice(
@@ -907,7 +924,194 @@ def missingness(
     return out
 
 
-# ------------------------------------------------------------------------------------------- the whole evaluation (shared by run and the dryrun)
+# ------------------------------------------------------------------------------------------- pins and label-free reproduction (before any label)
+
+
+def check_model_rows_pins() -> dict[str, str]:
+    """model_rows (min10, minutes, p_ge) pinned in the rule mirror (review F3); a missing file or a mismatch is a pin failure."""
+    out = {}
+    for s, want in R.MODEL_ROWS_PINNED_SHA256.items():
+        try:
+            got = mrule.file_sha256(mpr.resolve(MODEL_ROWS_REL.format(season=s)))
+        except FileNotFoundError as e:
+            raise InvalidRun(f"model_rows_{s}.parquet is missing") from e
+        if got != want:
+            raise InvalidRun(
+                f"model_rows_{s}.parquet sha256 {got[:12]} differs from its pin {want[:12]}"
+            )
+        out[str(s)] = got
+    return out
+
+
+def check_descriptive_pins() -> dict[str, str]:
+    """The extracted Part L rungs and exchange quotes (review F2) equal their pins; the run never opens the odds database."""
+    out = {}
+    for name, rel in R.DESCRIPTIVE_FILES.items():
+        p = R.ROOT / rel
+        if not p.exists():
+            raise InvalidRun(f"{rel} is missing (run `extract` and pin it before the harness pin)")
+        got = mrule.file_sha256(p)
+        if got != R.DESCRIPTIVE_PINNED_SHA256[name]:
+            raise InvalidRun(
+                f"{rel} sha256 {got[:12]} differs from its pin {R.DESCRIPTIVE_PINNED_SHA256[name][:12]}"
+            )
+        out[name] = got
+    return out
+
+
+def scored_counts(A: dict[str, np.ndarray]) -> dict[int, int]:
+    """Legs each stage scores, label-free: a month is scored when it has >= N_MIN_TRAIN prior training legs (core line 405)."""
+    out: dict[int, int] = {}
+    for season, train in (
+        (R.SELECT_SEASON, (R.SELECT_SEASON,)),
+        (R.REPORT_SEASON, (R.SELECT_SEASON, R.REPORT_SEASON)),
+    ):
+        n = 0
+        for mo in np.unique(A["month"][A["season"] == season]):
+            start = mo.astype("datetime64[D]")
+            sc = (A["season"] == season) & (A["month"] == mo)
+            tr = np.isin(A["season"], train) & (A["date"] < start)
+            if sc.any() and int(tr.sum()) >= R.N_MIN_TRAIN:
+                n += int(sc.sum())
+        out[season] = n
+    return out
+
+
+def check_scored_counts(A: dict[str, np.ndarray]) -> dict[int, int]:
+    """Review F5: the scored counts (28,108 / 37,528) are leg reproduction, checked before any label is read."""
+    got = scored_counts(A)
+    if got != R.SCORED:
+        raise InvalidRun(f"scored-leg reproduction failed: {got} != {R.SCORED}")
+    return got
+
+
+# ------------------------------------------------------------------------------------------- the evaluation: primary, then descriptive
+
+
+def evaluate_primary(
+    A: dict[str, np.ndarray],
+    y: np.ndarray,
+    k: int = R.K_PLACEBO,
+    b: int = R.N_BOOT,
+    log: Callable[[str], None] = _log,
+    on_words: Callable[[dict[str, Any]], None] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Stage 1 -> K1 -> Stage 2 -> words -> consequences -> identity -> placebo draws -> secondary BH family.
+    ``on_words`` is called with the result as soon as the words exist (the run writes results.json there). Returns the result
+    and the context the descriptive part needs (None when K1 fired: 2024 is not scored)."""
+    res: dict[str, Any] = {"settings": {"K": k, "B": b}}
+    log("stage 1 (select 2023)")
+    _, d_sel = stage1(A, y, b)
+    res["select_2023"] = d_sel
+    assert d_sel["n_scored"] == R.SCORED[R.SELECT_SEASON], (
+        "scored count drifted after the label-free check"
+    )
+    if k1_word(d_sel) is not None:
+        res["words"] = words(d_sel, None)
+        res["consequences"] = consequences(res["words"], None)
+        res["note"] = "KILLED_K1: 2024 is not scored; the rule is closed (T507 precedent)"
+        if on_words is not None:
+            on_words(res)
+        return res, None
+    log(f"stage 2 (report 2024), K = {k}")
+    perms = core.derangements(A, k, seed=R.PLACEBO_SEED0)
+    wf2, d_rep = stage2(A, y, perms, b)
+    assert d_rep["n_scored"] == R.SCORED[R.REPORT_SEASON], (
+        "scored count drifted after the label-free check"
+    )
+    res["report_2024"] = d_rep
+    res["words"] = words(d_sel, d_rep)
+    res["consequences"] = consequences(res["words"], d_rep)
+    res["shared_variance_C_mod_first_minus_C_mod"] = (
+        d_rep["C_mod_first"]["mean"] - d_rep["C_mod"]["mean"]
+    )
+    res["identity_check"] = {
+        "C_total_minus_(C_mkt+C_mod)": d_rep["C_total"]["mean"] - d_rep["C_mkt"]["mean"] - d_rep["C_mod"]["mean"],
+        "C_total_minus_(C_mod_first+C_mkt_after)": d_rep["C_total"]["mean"] - d_rep["C_mod_first"]["mean"] - d_rep["C_mkt_after"]["mean"],
+    }  # fmt: skip
+    pl_means = np.asarray(wf2["pl_draw_means"], dtype=float)
+    res["placebo_draws"] = {
+        "K": int(len(pl_means)), "mean_ll": float(pl_means.mean()),
+        "sd_ll": float(pl_means.std(ddof=1)) if len(pl_means) > 1 else None,
+    }  # fmt: skip
+    if on_words is not None:
+        on_words(res)
+    log("secondary family (BH over 10)")
+    res["secondary_bh_family"] = _block(
+        "secondary family", lambda: secondary_family(A, wf2, b), log
+    )
+    return res, {"wf2": wf2}
+
+
+def _block(name: str, fn: Callable[[], Any], log: Callable[[str], None]) -> Any:
+    """Review F4: one labels-only block; any exception is recorded as FAILED and never touches the words."""
+    log(name)
+    try:
+        return fn()
+    except Exception as e:  # noqa: BLE001  (a descriptive failure must not void or crash the primary)
+        log(f"{name} FAILED: {e!r}")
+        return {"status": "FAILED", "error": repr(e)}
+
+
+DK_NOTE = (
+    "sign only, no CI, no placebo; u1 for DraftKings legs uses the soft-book set from the pinned extras, which excludes only "
+    "Pinnacle, so it includes DraftKings itself and is pulled toward DK's own price (review F10)"
+)
+
+
+def evaluate_descriptive(
+    legs: pl.DataFrame,
+    A: dict[str, np.ndarray],
+    y: np.ndarray,
+    aux: dict[str, np.ndarray],
+    ctx: dict[str, Any],
+    b: int,
+    dk_loader: Callable[[], tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]] | None = None,
+    part_l_loader: Callable[[], tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]]
+    | None = None,
+    exchange_loader: Callable[[], pl.DataFrame] | None = None,
+    log: Callable[[str], None] = _log,
+) -> dict[str, Any]:
+    """Labels-only blocks, each isolated (F4): coefficients, Brier, slices, top five, DraftKings, Part L, exchange slice."""
+    wf2 = ctx["wf2"]
+    train = (R.SELECT_SEASON, R.REPORT_SEASON)
+    out: dict[str, Any] = {}
+    out["coefficients_by_month_2024"] = _block(
+        "coefficients",
+        lambda: coefficient_table(wf2, refit_b0_md(A, y, wf2, R.REPORT_SEASON, train)),
+        log,
+    )
+    out["brier_deltas_2024"] = _block(
+        "Brier deltas",
+        lambda: brier_deltas(A, y, wf2, refit_b0_md(A, y, wf2, R.REPORT_SEASON, train), b),
+        log,
+    )
+    out["slices_2024"] = _block("slices", lambda: slices(A, wf2, aux, b), log)
+    out["top5_player_season_share_of_C_mod"] = _block("top five", lambda: top5_share(A, wf2), log)
+
+    def dk() -> dict[str, Any]:
+        if dk_loader is None:
+            return {"status": "NOT_COMPUTED", "reason": "no DraftKings loader"}
+        dA, dy, info = dk_loader()
+        return {**direction_check(dA, dy), **info, "note": DK_NOTE}
+
+    out["draftkings_direction"] = _block("DraftKings direction check", dk, log)
+
+    def part_l_block() -> dict[str, Any]:
+        if part_l_loader is None:
+            return {"status": "NOT_COMPUTED", "reason": "no Part L loader"}
+        L, y_r, info = part_l_loader()
+        return {**part_l(L, y_r, b), **info}
+
+    out["part_l"] = _block("Part L", part_l_block, log)
+
+    def ex_block() -> dict[str, Any]:
+        if exchange_loader is None:
+            return {"status": "NOT_COMPUTED", "reason": "no exchange loader"}
+        return exchange_slice(A, legs, wf2, y, exchange_loader(), b)
+
+    out["exchange_slice_2024"] = _block("exchange-venue slice", ex_block, log)
+    return out
 
 
 def evaluate(
@@ -917,75 +1121,21 @@ def evaluate(
     aux: dict[str, np.ndarray],
     k: int = R.K_PLACEBO,
     b: int = R.N_BOOT,
-    dk: tuple[dict[str, np.ndarray], np.ndarray] | None = None,
-    part_l_input: tuple[dict[str, np.ndarray], np.ndarray] | None = None,
-    exchange: pl.DataFrame | None = None,
+    dk_loader: Callable[[], tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]] | None = None,
+    part_l_loader: Callable[[], tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]]
+    | None = None,
+    exchange_loader: Callable[[], pl.DataFrame] | None = None,
     log: Callable[[str], None] = _log,
 ) -> dict[str, Any]:
-    """Stage 1 -> K1 -> Stage 2 -> words -> consequences -> secondary and descriptive. ``y`` is the label at the line."""
-    res: dict[str, Any] = {"settings": {"K": k, "B": b}}
-    log("stage 1 (select 2023)")
-    wf1, d_sel = stage1(A, y, b)
-    res["select_2023"] = d_sel
-    if d_sel["n_scored"] != R.SCORED[R.SELECT_SEASON]:
-        raise InvalidRun(f"select scored legs {d_sel['n_scored']} != {R.SCORED[R.SELECT_SEASON]}")
-    if k1_word(d_sel) is not None:
-        res["words"] = words(d_sel, None)
-        res["consequences"] = consequences(res["words"], None)
-        res["note"] = "KILLED_K1: 2024 is not scored; the rule is closed (T507 precedent)"
+    """Primary then descriptive, in one call (the dryrun and the tests). ``run`` calls the two parts itself."""
+    res, ctx = evaluate_primary(A, y, k, b, log)
+    if ctx is None:
+        res["descriptive"] = "NOT_RUN (KILLED_K1: 2024 is not scored)"
         return res
-    log(f"stage 2 (report 2024), K = {k}")
-    perms = core.derangements(A, k, seed=R.PLACEBO_SEED0)
-    wf2, d_rep = stage2(A, y, perms, b)
-    if d_rep["n_scored"] != R.SCORED[R.REPORT_SEASON]:
-        raise InvalidRun(f"report scored legs {d_rep['n_scored']} != {R.SCORED[R.REPORT_SEASON]}")
-    res["report_2024"] = d_rep
-    res["words"] = words(d_sel, d_rep)
-    res["consequences"] = consequences(res["words"], d_rep)
-    res["shared_variance_C_mod_first_minus_C_mod"] = (
-        d_rep["C_mod_first"]["mean"] - d_rep["C_mod"]["mean"]
+    res |= evaluate_descriptive(
+        legs, A, y, aux, ctx, b, dk_loader, part_l_loader, exchange_loader, log
     )
-    res["identity_check"] = {
-        "C_total_minus_(C_mkt+C_mod)": d_rep["C_total"]["mean"]
-        - d_rep["C_mkt"]["mean"]
-        - d_rep["C_mod"]["mean"],
-        "C_total_minus_(C_mod_first+C_mkt_after)": d_rep["C_total"]["mean"]
-        - d_rep["C_mod_first"]["mean"]
-        - d_rep["C_mkt_after"]["mean"],
-    }
-    pl_means = np.asarray(wf2["pl_draw_means"], dtype=float)
-    res["placebo_draws"] = {
-        "K": int(len(pl_means)),
-        "mean_ll": float(pl_means.mean()),
-        "sd_ll": float(pl_means.std(ddof=1)) if len(pl_means) > 1 else None,
-    }
-    log("secondary family (BH over 10)")
-    res["secondary_bh_family"] = secondary_family(A, wf2, b)
-    log("descriptive: coefficients, Brier, slices, top five")
-    refit = refit_b0_md(A, y, wf2, R.REPORT_SEASON, (R.SELECT_SEASON, R.REPORT_SEASON))
-    res["coefficients_by_month_2024"] = coefficient_table(wf2, refit)
-    res["brier_deltas_2024"] = brier_deltas(A, y, wf2, refit, b)
-    res["slices_2024"] = slices(A, wf2, aux, b)
-    res["top5_player_season_share_of_C_mod"] = top5_share(A, wf2)
-    if dk is not None:
-        log("DraftKings direction check")
-        res["draftkings_direction"] = direction_check(*dk)
-    if part_l_input is not None:
-        log("Part L")
-        res["part_l"] = part_l(*part_l_input, b)
-    else:
-        res["part_l"] = {
-            "status": "NOT_COMPUTED",
-            "reason": "needs --odds-copy (ambiguity A2: the text says the run never opens the odds database)",
-        }
-    if exchange is not None:
-        log("exchange-venue slice")
-        res["exchange_slice_2024"] = exchange_slice(A, legs, wf2, y, exchange, b)
-    else:
-        res["exchange_slice_2024"] = {
-            "status": "NOT_COMPUTED",
-            "reason": "needs --odds-copy (ambiguity A2)",
-        }
+    res["descriptive"] = "DONE"
     return res
 
 
@@ -1000,71 +1150,199 @@ def aux_columns(legs: pl.DataFrame) -> dict[str, np.ndarray]:
     }  # fmt: skip
 
 
+# ------------------------------------------------------------------------------------------- descriptive loaders (pinned files only)
+
+
+def read_pinned(name: str) -> pl.DataFrame:
+    """A descriptive input extracted before the pin (``extract``); re-hashed against its pin on every read."""
+    p = R.ROOT / R.DESCRIPTIVE_FILES[name]
+    got = mrule.file_sha256(p)
+    if got != R.DESCRIPTIVE_PINNED_SHA256[name]:
+        raise RuntimeError(f"{p.name} differs from its pin")
+    return pl.read_parquet(p)
+
+
+def part_l_label_free(legs: pl.DataFrame) -> tuple[pl.DataFrame, dict[str, np.ndarray]]:
+    """The pinned rungs and their arrays (V, J from the pinned model_rows grid); no label."""
+    rungs = read_pinned("part_l_rungs")
+    mr = model_rows(rungs.select(*KEY, "season"), ["p_ge"])
+    return rungs, part_l_arrays(rungs, mr["p_ge"].to_list())
+
+
+def part_l_real(
+    legs: pl.DataFrame, y_line: np.ndarray
+) -> tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]:
+    """REAL rung outcomes from the pinned pairs' ``y`` (the stat value, one per KEY; review R13): over at rung = y >= rung + 0.5.
+    Also reports, on the primary legs, the agreement of (y >= line + 0.5) with the label ``over`` (descriptive)."""
+    rungs, L = part_l_label_free(legs)
+    yv = pairs_columns(legs, ["y"])["y"].to_numpy().astype(float)
+    k0 = np.rint(legs["line"].to_numpy() + 0.5)
+    agree = float(np.mean((yv >= k0).astype(float) == y_line))
+    ymap = legs.select(KEY).with_columns(pl.Series("y_stat", yv))
+    yr = _join_aligned(rungs.select(KEY), ymap, KEY)["y_stat"].to_numpy().astype(float)
+    ok = np.isfinite(yr)
+    L = {kk: v[ok] for kk, v in L.items()}
+    return (
+        L,
+        (yr[ok] >= L["k"]).astype(float),
+        {"n_rungs_without_y": int((~ok).sum()), "pairs_y_vs_over_agreement_on_legs": agree},
+    )
+
+
+def dk_real() -> tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]:
+    """REAL DraftKings labels inside the DK block; a missing label drops that leg and is counted, never raised (review F4)."""
+    dk_legs, dA = load_book_legs("draftkings")
+    over = pairs_columns(dk_legs, ["over"], "draftkings")["over"].to_numpy().astype(float)
+    ok = np.isfinite(over)
+    return (
+        {kk: v[ok] for kk, v in dA.items()},
+        over[ok],
+        {"n_dk_legs_without_label": int((~ok).sum())},
+    )
+
+
 def _invalid_result(reason: str, base: dict[str, Any]) -> dict[str, Any]:
     v = words(None, None, invalid=reason)
     return {
-        **base,
-        "words": v,
-        "consequences": consequences(v, None),
-        "invalid_reason": reason,
+        **base, "words": v, "consequences": consequences(v, None), "invalid_reason": reason,
         "note": "NO_RESULT_INVALID_RUN: no word, no number is reported",
-    }
+    }  # fmt: skip
 
 
-def run(sha: str, week: str, odds_copy: str | None, out_dir: Path = OUT_DIR) -> int:
-    """The scored run (real labels). Refuses before any read unless frozen, pinned and mirrored."""
+def run(sha: str, out_dir: Path = OUT_DIR) -> int:
+    """The scored run (real labels). Refuses before any read unless frozen, pinned and mirrored. ISO weeks (review F1); the odds
+    database is never opened (F2); every input is pinned and checked before any label (F2, F3, F5); results.json is written as
+    soon as the words exist and each descriptive block fails alone (F4)."""
     R.require_frozen(sha)
     pins = R.require_harness_pinned(sha)
     R.check_mirror(core)
     R.assert_seasons((R.SELECT_SEASON, R.REPORT_SEASON))
     out_dir.mkdir(parents=True, exist_ok=True)
+    results = out_dir / "results.json"
     base: dict[str, Any] = {
         "rule_sha256": sha,
         "harness_blobs": pins,
-        "week_definition": week,
-        "odds_copy": odds_copy,
+        "week_definition": R.WEEK_DEFINITION,
     }
+
+    def write(res: dict[str, Any]) -> None:
+        results.write_text(json.dumps(res, indent=1, default=float))
+
     with heavy_lock("MARKET_ANCHORED_PROPS run"):
         try:
             base["pairs_sha256"] = check_pairs_pins()
             base["extras_sha256"] = check_extras_pins()
+            base["model_rows_sha256"] = check_model_rows_pins()
+            base["descriptive_inputs_sha256"] = check_descriptive_pins()
             legs, counts, A0 = load_legs_checked()
             base["legs_counts"] = counts
-            base["model_rows_sha256"] = model_rows_sha()
-            A = with_week(A0, week)
+            A = with_week(A0, "iso")
+            base["scored_counts"] = check_scored_counts(A)
             aux = aux_columns(legs)
             y = load_labels(legs)  # REAL labels from here on
             minutes = model_rows(legs, ["minutes"])["minutes"].to_numpy().astype(float)
             miss = missingness(A, legs, y, minutes)
             (out_dir / "missingness.json").write_text(json.dumps(miss, indent=1, default=float))
             _log(f"missingness written first; largest asymmetry {miss['asymmetry'][:1]}")
+            base["missingness_first"] = miss["asymmetry"][:10]
             pf = planted_future(A, y)
             base["planted_future"] = pf
             if not pf["pass"]:
                 raise InvalidRun(f"planted future failed: {pf}")
-            dk_legs, dk_A = load_book_legs("draftkings")
-            dk_y = load_labels(dk_legs, "draftkings")
-            part_l_input = exchange = None
-            if odds_copy is not None:
-                base["odds_copy_sha256"] = mrule.file_sha256(Path(odds_copy))
-                rungs = load_rungs(odds_copy, legs)
-                mr = model_rows(rungs.select(*KEY, "season"), ["p_ge", "y"])
-                L = part_l_arrays(rungs, mr["p_ge"].to_list())
-                y_r = (mr["y"].to_numpy().astype(float) >= L["k"]).astype(float)
-                part_l_input = (L, y_r)
-                exchange = load_exchange(odds_copy, legs)
-                base["p_model_vintage"] = p_model_vintage_check(
-                    legs, model_rows(legs, ["p_ge"])["p_ge"].to_list()
-                )
-            res = evaluate(
-                legs, A, y, aux, R.K_PLACEBO, R.N_BOOT, (dk_A, dk_y), part_l_input, exchange
+            res, ctx = evaluate_primary(
+                A,
+                y,
+                R.K_PLACEBO,
+                R.N_BOOT,
+                on_words=lambda r: write({**base, **r, "descriptive": "PENDING"}),
             )
-            res = {"missingness_first": miss["asymmetry"][:10], **base, **res}
         except InvalidRun as e:
             res = _invalid_result(str(e), base)
-        (out_dir / "results.json").write_text(json.dumps(res, indent=1, default=float))
+            write(res)
+            _log(f"words {res['words']}")
+            return 3
+        res = {**base, **res}
+        if ctx is None:
+            res["descriptive"] = "NOT_RUN (KILLED_K1: 2024 is not scored)"
+        else:
+            res["descriptive"] = "PENDING"
+            write(res)
+            res |= evaluate_descriptive(
+                legs, A, y, aux, ctx, R.N_BOOT, dk_loader=dk_real,
+                part_l_loader=lambda: part_l_real(legs, y), exchange_loader=lambda: read_pinned("exchange_quotes"),
+            )  # fmt: skip
+            res["descriptive"] = "DONE"
+        write(res)
         _log(f"words {res['words']}")
-    return 0 if res["words"]["override"] != "NO_RESULT_INVALID_RUN" else 3
+    return 0
+
+
+# ------------------------------------------------------------------------------------------- extract (label-free, before the pin)
+
+
+def reconcile_extract(rungs: pl.DataFrame, ex: pl.DataFrame) -> dict[str, Any]:
+    """Counts against the gate's Part L table (section 8) and exchange counts (section 9). A reconciliation, not a gate: the extract
+    keeps only rungs and quotes of the primary legs (played, known-at, x.5, unique), which the gate's raw counts did not filter."""
+    committed = json.loads((R.ROOT / R.GATE_JSON).read_text())["data_capture"]
+    name = {"pts": "points", "reb": "rebounds", "ast": "assists", "fg3m": "threes"}
+    gate_l = {
+        f"{r[0]}_{r[1]}": r[2:]
+        for r in committed["stage2_fanduel_two_sided_rungs_off_pinnacle_line"]
+    }
+    got_l: dict[str, Any] = {}
+    for season in (R.SELECT_SEASON, R.REPORT_SEASON):
+        for stat in R.STATS:
+            g = rungs.filter((pl.col("season") == season) & (pl.col("stat") == stat))
+            key = f"{season}_{name[stat]}"
+            got = [
+                g.height,
+                g.select("game_id", "player_id").unique().height,
+                g["game_id"].n_unique(),
+            ]
+            got_l[key] = {"extract": got, "gate_raw": gate_l.get(key)}
+    gate_x = {r[0]: r[1:] for r in committed["exchange_two_sided_on_pinnacle_line_2024"]}
+    got_x: dict[str, Any] = {}
+    for bk in R.EXCHANGE_BOOKS:
+        g = ex.filter(pl.col("book") == bk)
+        got_x[bk] = {
+            "extract": [g.height, g["game_id"].n_unique()],
+            "gate_raw_all_dates": gate_x.get(bk),
+        }
+    return {
+        "part_l_rungs_players_games": got_l, "exchange_legs_games": got_x,
+        "note": "extract counts are below the gate's raw counts because only the primary legs' rungs and quotes are kept "
+        "(played, known-at, x.5, one leg per game/player/stat; exchange from 2024-12-19 only); section 8 sums to 212,712 rungs",
+    }  # fmt: skip
+
+
+def extract(db: str, out_dir: Path = OUT_DIR, overwrite: bool = False) -> dict[str, Any]:
+    """Write the label-free Part L rungs and exchange quotes from a BYTE COPY of the odds database to sorted zstd parquet, report
+    their sha256 (to be pinned in the rule mirror before the harness pin) and reconcile counts. Never the live file."""
+    if Path(db).resolve() == (mpr.main_checkout() / LIVE_ODDS_REL).resolve():
+        raise RuntimeError("extract reads a byte copy of odds_history.duckdb, never the live file")
+    paths = {name: R.ROOT / rel for name, rel in R.DESCRIPTIVE_FILES.items()}
+    if not overwrite and any(p.exists() for p in paths.values()):
+        raise FileExistsError(
+            f"refusing to overwrite {sorted(str(p) for p in paths.values() if p.exists())}; the pins name these bytes"
+        )
+    check_pairs_pins()
+    check_extras_pins()
+    legs, _, _ = load_legs_checked()  # label-free
+    rungs = load_rungs(db, legs)
+    ex = load_exchange(db, legs)
+    for name, frame in (("part_l_rungs", rungs), ("exchange_quotes", ex)):
+        assert not set(frame.columns) & {"y", "over"}, "a label column reached an extract"
+        paths[name].parent.mkdir(parents=True, exist_ok=True)
+        frame.write_parquet(paths[name], compression="zstd", statistics=False)
+    out = {
+        "db_copy": db, "db_copy_sha256": mrule.file_sha256(Path(db)),
+        "sha256": {name: mrule.file_sha256(p) for name, p in paths.items()},
+        "rows": {"part_l_rungs": rungs.height, "exchange_quotes": ex.height},
+        "reconciliation": reconcile_extract(rungs, ex),
+    }  # fmt: skip
+    (out_dir / "extract_manifest.json").write_text(json.dumps(out, indent=1, default=float))
+    _log(f"extract: {out['sha256']}")
+    return out
 
 
 # ------------------------------------------------------------------------------------------- dryrun
@@ -1153,6 +1431,8 @@ def dryrun(db: str, out: Path, rehearse: bool = True, reproduce: bool = True) ->
     }
     res["pairs_sha256"] = check_pairs_pins()
     res["extras_sha256"] = check_extras_pins()
+    res["model_rows_sha256"] = check_model_rows_pins()
+    res["descriptive_inputs_sha256"] = check_descriptive_pins()
     committed = json.loads((R.ROOT / R.GATE_JSON).read_text())
     with heavy_lock("MARKET_ANCHORED_PROPS dryrun"):
         if reproduce:
@@ -1193,17 +1473,18 @@ def dryrun(db: str, out: Path, rehearse: bool = True, reproduce: bool = True) ->
             {k: v for k, v in pf.items() if k != "pass"}, committed["planted_future"]
         )
         A_iso = with_week(A_core, "iso")
+        res["scored_counts_label_free"] = check_scored_counts(A_iso)
         res["weeks"] = {
             str(s): {"core_thursday_weeks": int(np.unique(A_core["week_idx"][A_core["season"] == s]).size), "iso_weeks": int(np.unique(A_iso["week_idx"][A_iso["season"] == s]).size)}
             for s in (R.SELECT_SEASON, R.REPORT_SEASON)
         }  # fmt: skip
         res["label_free_audit"] = {
             "null_p_model": int(legs["p_model"].is_null().sum()), "null_starter10_filled_as_starter": int(legs["starter10"].is_null().sum()),
-            "null_n_out_rot_filled_as_0": int(legs["n_out_rot"].is_null().sum()), "model_rows_sha256": model_rows_sha(),
+            "null_n_out_rot_filled_as_0": int(legs["n_out_rot"].is_null().sum()),
             "p_model_vintage": p_model_vintage_check(legs, model_rows(legs, ["p_ge"])["p_ge"].to_list()),
         }  # fmt: skip
         if rehearse:
-            res["rehearsal"] = rehearse_pipeline(legs, A_core, A_iso, db)
+            res["rehearsal"] = rehearse_pipeline(legs, A_core, A_iso)
     res["seconds"] = round(time.time() - t0, 1)
     out.write_text(json.dumps(res, indent=1, default=float))
     _log(f"wrote {out} ({res['seconds']} s)")
@@ -1211,27 +1492,40 @@ def dryrun(db: str, out: Path, rehearse: bool = True, reproduce: bool = True) ->
 
 
 def rehearse_pipeline(
-    legs: pl.DataFrame, A_core: dict[str, np.ndarray], A_iso: dict[str, np.ndarray], db: str
+    legs: pl.DataFrame, A_core: dict[str, np.ndarray], A_iso: dict[str, np.ndarray]
 ) -> dict[str, Any]:
-    """The whole run pipeline on synthetic labels (planted worlds), with real label-free inputs."""
+    """The whole run pipeline on synthetic labels (planted worlds), with real label-free inputs read from the same pinned
+    files the run reads (no odds database)."""
     out: dict[str, Any] = {}
     aux = aux_columns(legs)
     g11 = gate.calibrate_gamma(A_core, 0.0011, A_core["season"] == R.REPORT_SEASON)
     # W_both at the gate's seed of replicate 0: the full pipeline (ISO weeks, K = 50, B = 2,000), DK, Part L, exchange
     y = core.draw_labels(core.world_eta(A_iso, "both", g11), R.GATE_SEEDS["world_labels"] + 50)
     miss = missingness(A_iso, legs, y, synthetic_minutes(A_iso, 7))
-    dk_legs, dk_A = load_book_legs("draftkings")
-    dk_y = core.draw_labels(dk_A["m"], 11)
-    rungs = load_rungs(db, legs)
-    mr = model_rows(rungs.select(*KEY, "season"), ["p_ge"])
-    L = part_l_arrays(rungs, mr["p_ge"].to_list())
-    u = np.random.default_rng(12).random(len(rungs))
-    j_true = np.where(np.isfinite(L["J"]), L["J"], 0.5)
-    y_r = (u < j_true).astype(
-        float
-    )  # rung outcomes drawn from the Jeffrey-anchored grid (synthetic)
-    ex = load_exchange(db, legs)
-    full = evaluate(legs, A_iso, y, aux, R.K_PLACEBO, R.N_BOOT, (dk_A, dk_y), (L, y_r), ex)
+
+    def dk_synth() -> tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]:
+        _, dA = load_book_legs("draftkings")
+        return dA, core.draw_labels(dA["m"], 11), {"labels": "synthetic"}
+
+    def part_l_synth() -> tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]:
+        rungs, L = part_l_label_free(legs)
+        u = np.random.default_rng(12).random(rungs.height)
+        j_true = np.where(
+            np.isfinite(L["J"]), L["J"], 0.5
+        )  # rung outcomes drawn from the anchored grid (synthetic)
+        return L, (u < j_true).astype(float), {"labels": "synthetic"}
+
+    full = evaluate(
+        legs,
+        A_iso,
+        y,
+        aux,
+        R.K_PLACEBO,
+        R.N_BOOT,
+        dk_synth,
+        part_l_synth,
+        lambda: read_pinned("exchange_quotes"),
+    )
     out["W_both_full_pipeline_iso_weeks"] = {
         "missingness_top": miss["asymmetry"][:5], "words": full["words"], "consequences": full["consequences"],
         "C": {k: {kk: full["report_2024"][k][kk] for kk in ("mean", "lo", "hi", "n")} for k in ("C_mod", "C_mkt", "C_mkt_after", "C_total", "C_pl")},
@@ -1258,6 +1552,19 @@ def rehearse_pipeline(
             "stage2_scored": "report_2024" in r,
         }  # fmt: skip
         _log(f"rehearsal {name}: {r['words']}")
+    # F4: a descriptive loader that raises leaves the words intact and records FAILED for that block only
+    yn = core.draw_labels(A_iso["m"], 98)
+
+    def broken() -> tuple[dict[str, np.ndarray], np.ndarray, dict[str, Any]]:
+        raise RuntimeError("planted DK loader failure")
+
+    r = evaluate(legs, A_iso, yn, aux, k=2, b=200, dk_loader=broken)
+    out["W_descriptive_failure"] = {
+        "words": r["words"],
+        "draftkings_direction": r["draftkings_direction"],
+        "descriptive": r["descriptive"],
+    }
+    _log(f"rehearsal descriptive failure: {r['words']} / {r['draftkings_direction']}")
     # invalid run: an extras frame that differs from its pin (the pin is tampered in memory for this call only)
     saved = dict(core.EXTRAS_PINNED_SHA256)
     try:
@@ -1274,7 +1581,7 @@ def rehearse_pipeline(
     return out
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -1286,24 +1593,27 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--out", default=str(OUT_DIR / "dryrun.json"))
     d.add_argument("--no-rehearse", action="store_true")
     d.add_argument("--no-reproduce", action="store_true")
+    x = sub.add_parser("extract")
+    x.add_argument(
+        "--db", required=True, help="a byte copy of odds_history.duckdb (never the live file)"
+    )
+    x.add_argument(
+        "--overwrite", action="store_true", help="replace the extracted files (breaks their pins)"
+    )
     r = sub.add_parser("run")
     r.add_argument("--sha", required=True)
-    r.add_argument(
-        "--week",
-        required=True,
-        choices=["iso", "core"],
-        help="ambiguity A1: ISO weeks (text) or the core's Thursday weeks (gate)",
-    )
-    r.add_argument(
-        "--odds-copy",
-        default=None,
-        help="byte copy of odds_history.duckdb for Part L and the exchange slice (ambiguity A2)",
-    )
-    a = ap.parse_args(argv)
+    return ap
+
+
+def main(argv: list[str] | None = None) -> int:
+    a = build_parser().parse_args(argv)
     if a.cmd == "dryrun":
         dryrun(a.db, Path(a.out), rehearse=not a.no_rehearse, reproduce=not a.no_reproduce)
         return 0
-    return run(a.sha, a.week, a.odds_copy)
+    if a.cmd == "extract":
+        extract(a.db, overwrite=a.overwrite)
+        return 0
+    return run(a.sha)
 
 
 if __name__ == "__main__":

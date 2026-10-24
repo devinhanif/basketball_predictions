@@ -9,6 +9,14 @@
   "2023": "9cf98865d6fe7744f73b8532dc1411e39fff5eedbc96e3153e53b34e3ddf6c1f",
   "2024": "aac40cd57fff58d6c20b654c44a254cf7959305f844614a0ed07d19d6aa8fabc"
  },
+ "model_rows_sha256": {
+  "2023": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
+  "2024": "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70"
+ },
+ "descriptive_inputs_sha256": {
+  "part_l_rungs": "1412e09de82ea7c0c9ec9600a63fd5da92f65cf01b91392aceb643259b32f278",
+  "exchange_quotes": "befa3c30fc44b950c8e44375f73561d5d915fbef717a2a3ea125a12b0e52b5ae"
+ },
  "gate_reproduction": {
   "status": "REPRODUCED",
   "n_differences": 0,
@@ -23,7 +31,7 @@
    "/snapshots_per_game_kind[5][2]: 172229 != 384638",
    "/snapshots_per_game_kind[5][3]: 268 != 621"
   ],
-  "reproduction_file_sha256": "8411471f89799cb358a896eab8d1ae0d8aa5b259c63d9deeb09498b91c2522f4"
+  "reproduction_file_sha256": "866b543e0ab790fcb2821f55ae7cff88d07a731f020ff1a824dbb3f00aa5430f"
  },
  "eval_planted_future_equals_gate": true,
  "eval_planted_future": {
@@ -33,6 +41,10 @@
   "max_abs_diff_future_flip_mr": 0.0,
   "max_abs_diff_train_flip_mm": 0.9878517395764809,
   "pass": true
+ },
+ "scored_counts_label_free": {
+  "2023": 28108,
+  "2024": 37528
  },
  "weeks": {
   "2023": {
@@ -48,10 +60,6 @@
   "null_p_model": 0,
   "null_starter10_filled_as_starter": 0,
   "null_n_out_rot_filled_as_0": 35,
-  "model_rows_sha256": {
-   "2023": "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
-   "2024": "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70"
-  },
   "p_model_vintage": {
    "n": 72674,
    "share_abs_diff_le_1e-9": 1.0,
@@ -266,7 +274,9 @@
       "mean": 0.00012085858887289382,
       "sign": 1
      }
-    }
+    },
+    "labels": "synthetic",
+    "note": "sign only, no CI, no placebo; u1 for DraftKings legs uses the soft-book set from the pinned extras, which excludes only Pinnacle, so it includes DraftKings itself and is pulled toward DK's own price (review F10)"
    },
    "part_l": {
     "n_rungs": 210434,
@@ -376,6 +386,18 @@
    },
    "stage2_scored": true
   },
+  "W_descriptive_failure": {
+   "words": {
+    "model": "NONE",
+    "market": "NONE",
+    "override": ""
+   },
+   "draftkings_direction": {
+    "status": "FAILED",
+    "error": "RuntimeError('planted DK loader failure')"
+   },
+   "descriptive": "DONE"
+  },
   "W_invalid_run": {
    "words": {
     "model": "NOT_EVALUATED",
@@ -396,5 +418,5 @@
    "note": "NO_RESULT_INVALID_RUN: no word, no number is reported"
   }
  },
- "seconds": 5807.9
+ "seconds": 296.0
 }

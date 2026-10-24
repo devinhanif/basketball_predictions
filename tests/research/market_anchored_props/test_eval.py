@@ -250,9 +250,10 @@ def test_evaluate_end_to_end_on_a_planted_world(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_evaluate_refuses_a_scored_count_that_differs() -> None:
+    """The in-stage check is an assertion now (F5): the label-free check_scored_counts runs first in `run`."""
     A = synth(n_per_month=1500, seed=33)
     y = core.draw_labels(A["m"], 34)
-    with pytest.raises(E.InvalidRun, match="scored legs"):
+    with pytest.raises(AssertionError, match="scored count drifted"):
         E.evaluate(pl.DataFrame(), A, y, _aux(A), k=2, b=50, log=lambda s: None)
 
 

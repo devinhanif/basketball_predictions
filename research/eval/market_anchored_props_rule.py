@@ -13,6 +13,8 @@ Refusals before any label is read (rule header, "The run refuses ..."):
    newest ``harness(MARKET_ANCHORED_PROPS): <pin>`` commit, ``pin`` is ``pin_of`` those blobs, and that commit descends from the
    freeze commit. The pin commit is made by a hand that can commit, after the adversary has checked the eval against the text.
 3. ``assert_seasons``: any season > 2024 raises (2025 is the frozen holdout).
+4. (in the eval, before any label) the pairs, extras, model_rows and the two label-free extracts (Part L rungs, exchange quotes)
+   equal their pins below; the run never opens the odds database (eval review 2026-10-24, F2 / F3).
 """
 
 from __future__ import annotations
@@ -97,6 +99,19 @@ EXTRAS_PINNED_SHA256 = {
     2023: "9cf98865d6fe7744f73b8532dc1411e39fff5eedbc96e3153e53b34e3ddf6c1f",
     2024: "aac40cd57fff58d6c20b654c44a254cf7959305f844614a0ed07d19d6aa8fabc",
 }
+MODEL_ROWS_PINNED_SHA256 = {  # review F3 / ruling #3: reports/odds_history/model_rows_{season}.parquet (git-ignored, 2026-10-10)
+    2023: "002e53ef1a5fae333e8ff6edc92654de9f449d29c9be1775017e65fc378eea85",
+    2024: "ec47dcdf566eac29742f8269b8c3cf4a10845440c9b298b41a40282577b62d70",
+}
+DESCRIPTIVE_FILES = {  # review F2 / ruling #2: label-free extracts from a byte copy of the odds database, committed
+    "part_l_rungs": "reports/prereg_market_anchored_props/part_l_rungs.parquet",
+    "exchange_quotes": "reports/prereg_market_anchored_props/exchange_quotes.parquet",
+}
+DESCRIPTIVE_PINNED_SHA256 = {
+    "part_l_rungs": "1412e09de82ea7c0c9ec9600a63fd5da92f65cf01b91392aceb643259b32f278",  # 210,434 rungs
+    "exchange_quotes": "befa3c30fc44b950c8e44375f73561d5d915fbef717a2a3ea125a12b0e52b5ae",  # 27,700 quotes
+}  # extracted 2026-10-24 01:29 CDT from byte copy 62f68cc0...; a second extraction gave the same bytes
+WEEK_DEFINITION = "iso (iso_year-week of game_date; rule sections 4 and 14; review ruling #1)"
 GATE_JSON = "reports/prereg_market_anchored_props/gate.json"
 GATE_SETTINGS = {"k_null": 20, "boot": 1000, "reps": 10}  # section 8: the committed gate run
 GATE_SEEDS = {"world_labels": 20261023, "boot": 0, "placebo": 1000}
