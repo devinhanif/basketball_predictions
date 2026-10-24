@@ -170,7 +170,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         for s, err in rep.failures.items():
             print(f"{rep.snapshot_ts.isoformat()}Z FAILED {s}: {err}", file=sys.stderr)
-        rc = 0 if rep.ok else 1
+        # Exit status reflects fetch failures only (Devin, 2026-10-23). Unmatched names and
+        # unparsed props are warnings (stderr above, unmatched_names.json): the snapshot itself
+        # succeeded, and a nonzero exit made every run look failed. `rep.ok` stays the strict
+        # "fully clean" flag for tests and callers that want it.
+        rc = 1 if rep.failures else 0
     elif args.command == "backfill-historical":
         cutoff = get_cutoff(con, client, data_dir=data_dir)
         brep = run_backfill_historical(
