@@ -1,0 +1,38 @@
+# Market-surfer PAPER test: frozen parameters (docs/prereg/MARKET_SURFER_PAPER.md). Paper only, read-only.
+# Fees are NOT here: they come from configs/parlay.yaml fee_model (verified object), taker only.
+rule_version: market-surfer-paper-v1
+unit_contracts: 10            # accounting unit for fee rounding; not a stake and not a sizing suggestion
+series: [KXNBAGAME, KXNBASPREAD, KXNBATOTAL, KXNBATEAMTOTAL, KXNBAPTS, KXNBAREB, KXNBAAST, KXNBA3PT, KXNBASTL, KXNBABLK, KXNBAPRA]
+entry:
+  momentum_lookback_snapshots: 3
+  momentum_min_rise: 0.03        # side mid rose >= 3c over the lookback
+  lookback_max_span_s: 400       # lookback invalid if the 3 snapshots span more than this
+  ask_min: 0.15
+  ask_max: 0.85
+  max_spread: 0.02
+  min_top_size: 25               # contracts at the touch, both the ask (entry) and the bid (exit)
+  cooldown_s: 600                # after an exit, no re-entry in the same market
+fill:
+  latency_snapshots: 1           # decide on snapshot t, fill on t+1
+  max_gap_s: 300                 # no fill if t+1 is more than this after t
+  max_slip: 0.02                 # no fill if the t+1 ask is more than 2c above the t ask
+exit:
+  take_profit_rel: 0.10          # executable bid >= entry ask * 1.10
+  stop_rel: 0.15                 # executable bid <= entry ask * 0.85
+  time_stop_s: 1200
+  order_type: taker
+placebo:
+  seed: 20261023
+  replications: 500
+ci:
+  seed: 20261023
+  boot: 10000
+  level: 0.95
+gate:
+  run_min_nights: 2
+  run_median_gap_s: 90
+  run_p90_gap_s: 180
+  run_min_trades: 100
+  claim_min_nights: 5
+  claim_min_trades: 300
+  claim_min_games: 20
