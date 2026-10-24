@@ -36,6 +36,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from nba.ops import live_capture as lc
 from nba.ops.exitcodes import RC_INFORMATIONAL
 
 #: the Mac's launchd calendar runs in local time; slots are rebuilt per local day so a DST change
@@ -527,6 +528,7 @@ def evaluate_game_day(
     db_path: Path | None = None,
     tips_fn: Callable[[Path, date], dict[str, datetime]] = todays_tips,
     kalshi_fn: Callable[[Path], tuple[datetime | None, list[str]]] = kalshi_snapshot_status,
+    live_fn: Callable[[Path, datetime, Sequence[datetime], date], str | None] | None = None,
 ) -> list[Alert]:
     """Game-day probe: silent off game days and before 09:00 ET; otherwise the four checks.
 
@@ -625,8 +627,10 @@ def evaluate_game_day(
     except Exception as e:
         fail("slate", e)
     # pre-tip window: a sleeping Mac or a dark Kalshi capture cannot be backfilled (2026-10-23)
+    all_tips: list[datetime] = []
     try:
         tips = tips_fn(data, local.date())
+        all_tips = list(tips.values())
         upcoming = [t for t in tips.values() if t > now]
         first = min(upcoming) if upcoming else None  # the NEXT tip: later games stay covered
     except Exception:
@@ -666,7 +670,38 @@ def evaluate_game_day(
                     )
             except Exception as e:
                 fail("kalshi", e)
+    # nightly live capture (docs/DAILY_PIPELINE.md, "Live capture launcher"): inside its window
+    # (first tip - 2 h .. last tip + 4 h) the capture heartbeat must be fresh; in-game prices cannot
+    # be backfilled. Judged once the capture or its launcher has ever left a heartbeat (a night
+    # nobody ever started it on stays silent), repeating every half hour like the Kalshi check.
+    try:
+        live_why = (live_fn or live_capture_problem)(ops_dir, now, all_tips, local.date())
+        if live_why:
+            half = "00" if local.minute < 30 else "30"
+            alerts.append(
+                Alert(
+                    f"{prefix}:livecap@{local:%H}{half}",
+                    f"ACTION NEEDED: live capture is not running ({live_why}); in-game "
+                    "Kalshi prices cannot be backfilled. Start it: "
+                    "launchctl kickstart gui/$(id -u)/"
+                    "local.nba.live-capture-start (or uv run python -m nba.live capture "
+                    f"--date {day})",
+                )
+            )
+    except Exception as e:
+        fail("livecap", e)
     return alerts
+
+
+def live_capture_problem(
+    ops_dir: Path, now: datetime, tips: Sequence[datetime], day: date
+) -> str | None:
+    hb_dir = ops_dir / "heartbeat"
+    path = hb_dir / lc.HEARTBEAT
+    hb = lc.read_json(path)
+    if hb is None and not (hb_dir / lc.LAUNCH_HEARTBEAT).exists():
+        return None  # never installed, never run by hand
+    return lc.problem(now, tips, hb, lc.beat_time(path, hb), day)
 
 
 def dedupe(

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Nightly live-capture launcher (docs/DAILY_PIPELINE.md, "Live capture launcher"). NOT loaded by anything in the repo: the maintainer installs it by hand.
+    install:    cp ops/launchd/local.nba.live-capture-start.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.live-capture-start.plist && launchctl kickstart -k gui/$(id -u)/local.nba.live-capture-start
+    (the kickstart runs one tick at once: it starts the capture if today's window is already open and writes the launcher heartbeat)
+    uninstall:  launchctl bootout gui/$(id -u)/local.nba.live-capture-start && rm ~/Library/LaunchAgents/local.nba.live-capture-start.plist
+  Every 10 minutes (and at load). Each tick asks `python -m nba.ops.live_capture plan` (schedule cache + live tips) and does nothing
+  until first tip - 150 min; then it runs `python -m nba.live capture` in the foreground (caffeinate -i) unless one is already running.
+  The capture takes no nba.duckdb lock and not data/ops/lock; its own lock is data/ops/live_capture_lock.
+  The wrapper is a shell script, so it is launched through uv, never /bin/sh directly: TCC blocks sh from reading ~/Downloads (exit 126 stopped every job once).
+  Requires nba.live on main (branch agent/market-paper-trader); without it the tick alerts "No module named nba.live" in data/ops/ALERTS.md.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.live-capture-start</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string>
+    <string>sh</string><string>/Users/devin/Downloads/nba-prediction/ops/nba_live_capture.sh</string>
+  </array>
+  <key>StartInterval</key><integer>600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_live-capture.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_live-capture.err</string>
+</dict>
+</plist>

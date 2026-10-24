@@ -874,3 +874,36 @@ Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest
   the slate had no forecast by 09:00. A job that cannot start cannot alert; the watchdog saw the consecutive skips.
 * Any failed morning step (including a timed-out fetch or a failed briefing) fails the app-export gate
   (`nba.ops.app_export.data_step_problem`); that is unchanged behaviour for a failed step.
+
+## Live capture launcher (2026-10-23, prepared; NOT installed)
+
+The nightly in-game capture (`python -m nba.live capture`, public ESPN + Kalshi data into write-once
+`data/raw/live_<ET date>/`, heartbeat `data/ops/heartbeat/live_capture.json`) was started by hand; on 10-23 it began
+at 21:45 CDT, after its 13:00 CDT window opened. T510, T510b, FAV_DIP and the paper trader need it on most nights,
+KALSHI_LONGSHOT_FORWARD and UNDERS_FORWARD on at least 72 % of nights, and an in-game price cannot be backfilled.
+
+* **Launcher**: `ops/launchd/local.nba.live-capture-start.plist` (label `local.nba.live-capture-start`, every 10 min and
+  at load, through `uv run sh ops/nba_live_capture.sh`, never `/bin/sh`). Each tick asks `python -m nba.ops.live_capture
+  plan` (schedule cache + live tips parquet, the watchdog's `todays_tips`) and exits in about a second unless the
+  decision is `start`: from first tip - 150 min, no capture running, not `done` today. The capture then waits for its
+  own window start (first tip - 2 h) and runs to the last tip + 4 h, under `caffeinate -i`.
+  Decisions: `no_games | early | done | over | start`; an unreadable schedule prints `unknown` and the launcher starts
+  anyway (the capture exits 0 on a no-game day).
+* **Locks**: its own `data/ops/live_capture_lock` (mkdir, pid inside; a dead owner is cleared, a live pid never
+  stolen, no age rule since a run lasts ~10 h). It takes neither `data/ops/lock` (daily jobs) nor `heavy.lock` and never
+  opens `nba.duckdb`, so it cannot delay a pretip run or be delayed by one. A second launch while one runs exits 0.
+* **Heartbeats**: the capture's own `live_capture.json` (one beat a minute) and the launcher's
+  `live-capture-launch.json` (start/end/rc/detail per tick). A capture that exits non-zero appends
+  `[live-capture] ... exited rc=N` to `data/ops/ALERTS.md`; the next tick restarts it inside the window.
+* **Watchdog**: `evaluate_game_day` adds `gameday:<ET date>:livecap@HHMM` ("ACTION NEEDED: live capture is not running")
+  every half hour while now is in [first tip - 2 h + 10 min, last tip + 4 h] and the capture heartbeat is missing, for
+  another date, or older than 5 min (status `done`/`no_games` is fine). Silent until the capture or the launcher has
+  left a heartbeat at least once. It does not depend on the launcher being installed.
+* **Install** (Devin; one line): `cp ops/launchd/local.nba.live-capture-start.plist ~/Library/LaunchAgents/ && launchctl
+  bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.live-capture-start.plist && launchctl kickstart -k
+  gui/$(id -u)/local.nba.live-capture-start`. Uninstall: `launchctl bootout gui/$(id -u)/local.nba.live-capture-start &&
+  rm ~/Library/LaunchAgents/local.nba.live-capture-start.plist`.
+* **Dependency**: `nba.live` is not on main (commit 329448f and later, branches `agent/market-paper-trader`,
+  `agent/market-ingame-v2`). Merge it first; its own template `ops/launchd/local.nba.live-capture.plist` (fixed 10:00,
+  no first-tip logic) is superseded by this launcher and should not be installed beside it (two writers on one raw
+  directory). The paper trader (`local.nba.papertrade`) is a separate job and is not covered here.
