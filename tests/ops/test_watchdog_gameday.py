@@ -321,7 +321,7 @@ def test_battery_in_pretip_window_is_loud_and_hourly(tmp_path: Path) -> None:
     _healthy(tmp_path)
     alerts = _run(tmp_path, battery=lambda: True, tips_fn=_tips, kalshi_fn=_kalshi(5))
     assert _keys(alerts) == ["gameday:2026-10-21:battery@09"]
-    assert alerts[0].message.startswith("ACTION NEEDED: first tip in 120 min")
+    assert alerts[0].message.startswith("ACTION NEEDED: next tip in 120 min")
     later_now = NOW + timedelta(hours=1)
     later = _run(
         tmp_path,
@@ -359,6 +359,17 @@ def test_kalshi_fresh_or_outside_window_is_silent(tmp_path: Path) -> None:
     far = lambda _d, _t: {SLATE[0]: NOW + timedelta(hours=4)}  # noqa: E731
     assert _run(tmp_path, tips_fn=far, kalshi_fn=_kalshi(500)) == []
     assert _run(tmp_path, tips_fn=_tips, kalshi_fn=_kalshi(500), slate_fn=_no_slate) == []
+
+
+def test_kalshi_stale_after_first_tip_still_alerts_for_later_games(tmp_path: Path) -> None:
+    # 2026-10-23: early games had tipped while later ones still needed pre-tip prices
+    _healthy(tmp_path)
+    def tips(_d: Path, _t: object) -> dict[str, datetime]:
+        return {SLATE[0]: NOW - timedelta(hours=1), SLATE[1]: NOW + timedelta(minutes=90)}
+
+    alerts = _run(tmp_path, tips_fn=tips, kalshi_fn=_kalshi(95))
+    assert _keys(alerts) == ["gameday:2026-10-21:kalshi@0930"]
+    assert "next tip in 90 min" in alerts[0].message
 
 
 def test_kalshi_status_reads_last_run(tmp_path: Path) -> None:

@@ -627,7 +627,8 @@ def evaluate_game_day(
     # pre-tip window: a sleeping Mac or a dark Kalshi capture cannot be backfilled (2026-10-23)
     try:
         tips = tips_fn(data, local.date())
-        first = min(tips.values()) if tips else None
+        upcoming = [t for t in tips.values() if t > now]
+        first = min(upcoming) if upcoming else None  # the NEXT tip: later games stay covered
     except Exception:
         first = None  # unknown tips: the checks above stand as they were
     if first is not None and timedelta(0) < first - now <= PRETIP_ALERT_WINDOW:
@@ -638,9 +639,9 @@ def evaluate_game_day(
                 alerts.append(
                     Alert(
                         f"{a.key}@{local:%H}",
-                        f"ACTION NEEDED: first tip in {mins} min and the Mac can sleep. Plug in "
+                        f"ACTION NEEDED: next tip in {mins} min and the Mac can sleep. Plug in "
                         "AC power (caffeinate -s does nothing on battery and a closed lid still "
-                        "sleeps), then run `caffeinate -dimsu`. " + a.message.split(": ", 1)[1],
+                        "sleeps), then run `caffeinate -dimsu`. " + a.message.split(": ", 1)[-1],
                     )
                 )
         if first - now <= KALSHI_ALERT_WINDOW:
@@ -659,7 +660,7 @@ def evaluate_game_day(
                     alerts.append(
                         Alert(
                             f"{prefix}:kalshi@{local:%H}{half}",
-                            f"ACTION NEEDED: first tip in {mins} min, Kalshi capture not fresh "
+                            f"ACTION NEEDED: next tip in {mins} min, Kalshi capture not fresh "
                             f"({why}); pre-tip prices cannot be backfilled",
                         )
                     )
