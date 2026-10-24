@@ -204,3 +204,17 @@ def test_off_span_directions_are_model_free_and_centred() -> None:
         z = core.off_span_z(A, kind)
         assert z.shape == A["m"].shape and np.isfinite(z).all()
     assert abs(float(core.off_span_z(A, "line").mean())) < 0.2
+
+
+def test_gain_p_is_the_losing_tail() -> None:
+    rng = np.random.default_rng(3)
+    n = 4000
+    gi = np.arange(n) // 4
+    from research.eval.model_clv_eval import Boot
+
+    boots = {"game": Boot(gi, int(gi.max()) + 1, seed=0, B=500)}
+    mask = np.ones(n, dtype=bool)
+    gain = rng.normal(-0.2, 1.0, n)  # a real gain: negative mean difference
+    loss = rng.normal(+0.2, 1.0, n)
+    assert core.gain_p(boots, gain, mask) < 0.01
+    assert core.gain_p(boots, loss, mask) > 0.99

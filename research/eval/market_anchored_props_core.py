@@ -448,6 +448,22 @@ def contrast(boots: dict[str, Boot], v: np.ndarray, mask: np.ndarray) -> dict[st
     }  # fmt: skip
 
 
+def gain_p(boots: dict[str, Boot], v: np.ndarray, mask: np.ndarray) -> float:
+    """One-sided p for "the mean of the per-leg loss difference ``v`` is below 0" (a gain is negative):
+    max over the three clusterings of (1 + #{b : bootstrap mean >= 0}) / (B + 1). ``Boot.mean(...)["p"]`` is the opposite
+    tail ((1 + #{bm <= 0}) / (B + 1)) and must not be used for these contrasts."""
+    vv = v[mask]
+    ones = np.ones(len(vv), dtype=bool)
+    ps = []
+    for bt in boots.values():
+        sums, cnt = bt._sc(vv, ones)
+        den = bt.W @ cnt
+        bm = (bt.W @ sums) / np.where(den > 0, den, np.nan)
+        bm = bm[np.isfinite(bm)]
+        ps.append((1 + float(np.sum(bm >= 0))) / (len(bm) + 1))
+    return max(ps)
+
+
 def decompose(A: dict[str, np.ndarray], wf: dict[str, Any], b: int = rule.N_BOOT) -> dict[str, Any]:
     """The four components on the scored rows of one walk-forward result."""
     mask = wf["scored"]
