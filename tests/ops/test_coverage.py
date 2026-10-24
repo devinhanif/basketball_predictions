@@ -286,6 +286,34 @@ def test_alerts_and_other_logs(tmp_path: Path) -> None:
     assert _by(_run(_mk(tmp_path / "z")), "alerts")[0].status == cv.OK
 
 
+def test_alert_echo_does_not_feed_back(tmp_path: Path) -> None:
+    """The job script appends the check's output to the pretip log. Echoed ALERT lines must not
+    count as new alerts (2026-10-21..23: the log doubled per run to 9.9 GB, then OOM)."""
+    p = _mk(tmp_path)
+    p.log("pretip").write_text(
+        _startlines(["15:20:00"]) + "[2026-10-20 15:21:00] ALERT: predict failed (rc=5)\n"
+    )
+    counts = []
+    for _ in range(3):
+        res = _run(p)
+        a = _by(res, "alerts")[0]
+        counts.append(len(a.data["alerts"]))
+        with p.log("pretip").open("a") as f:  # what `step coverage` does with the printed report
+            f.write(a.text.replace("\n    ", "\n    pretip_x.log: ") + "\n")
+    assert counts == [1, 1, 1]
+    assert len(_by(_run(p), "alerts")[0].data["alerts"]) == 1
+
+
+def test_alert_list_is_capped(tmp_path: Path) -> None:
+    p = _mk(tmp_path)
+    p.log("pretip").write_text(
+        _startlines(["15:20:00"])
+        + "".join(f"[2026-10-20 15:{m:02d}:00] ALERT: x{m}\n" for m in range(60))
+    )
+    a = _by(_run(p), "alerts")[0]
+    assert len(a.data["alerts"]) == 60 and "... 10 more" in a.text
+
+
 # --- g. scoring
 
 

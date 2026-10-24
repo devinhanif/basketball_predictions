@@ -1,0 +1,33 @@
+# Dated data-quality exclusions for the forward log (append-only; never edit or delete an entry).
+#
+# What an entry does: it names a rule that selects market-comparison rows whose Kalshi price was not
+# the price a person could have seen at prediction time. Readers of market_at_prediction,
+# shadow_predictions and the parlay track record drop the selected rows from the model-vs-market
+# comparison and count them ("insufficient sample" below the configured minimum). It changes no frozen
+# rule in docs/FORWARD_PREREG_2026_27.md: it is a data-quality exclusion with a dated reason, like the
+# "not-in-box rows excluded identically from both sides and counted" in rule 1.
+#
+# What it never does: it does not touch forward_predictions, forward_scores, settlement or any outcome
+# score of the model's own forecasts. A forecast is only withdrawn (forward_withdrawals) when the
+# forecast itself was degraded.
+#
+# Selection is by rule, evaluated read-only against market_asof.duckdb (python -m nba.ops.exclusions
+# check), so nothing is written to a data file.
+exclusions:
+  - id: stale_price_2026-10-23
+    reason: stale_price
+    slate_date: 2026-10-23
+    applies_to: [market_at_prediction, shadow_predictions, parlay_track_record, forward_monitor_vs_kalshi]
+    not_applied_to: [forward_predictions, forward_scores, settle, outcome_scoring]
+    # market_at_prediction rows: the NEWEST Kalshi quote behind the as-of state (game rows: ml_age_s;
+    # prop rows: the minimum age_s over the rung quotes) is older than this at made_at.
+    max_quote_age_s: 1800
+    # shadow_predictions rows: created_at is more than max_quote_age_s after the newest full Kalshi snapshot.
+    evidence: >
+      data/kalshi/kalshi.duckdb has full snapshots (3,7xx tickers) at 14:21Z and 18:26Z only between
+      14:21Z and 00:09Z on 2026-10-24 (a 21:47Z snapshot holds 274 tickers). The Mac slept/lost DNS
+      (predict rc=5 at 12:21 and 17:05 CDT). Pretip comparator rows (latest made_at <= tip - 60 min)
+      for 0022600008, 094-097 (tip 23:00Z) carry a 177 min old moneyline and 0022600098 (tip 00:00Z) a
+      219 min old one; 0022600099 is 25 min old (inside the limit).
+    listed_on: 2026-10-23
+    authorised_by: Devin (go 2026-10-23)

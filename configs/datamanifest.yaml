@@ -38,8 +38,19 @@ exclude_from_version:
   - prop_predictions
 
 # Columns whose played/unplayed NULL asymmetry is structural (reviewed, not a leak),
-# as "table.column". Keep this list short and justified.
-known_asymmetry: []
+# as "table.column" (shell-style wildcards allowed). Keep this list short and justified.
+# forward_*scores*: the live score tables get a row for every forecast before tip and are filled by
+# settlement, so y / crps / pit are NULL for every not-yet-played row by construction. They are outputs,
+# never features (2026-10-23: 23 POSSIBLE_LEAK flags made data_check exit 1 every morning).
+known_asymmetry:
+  # only the columns settlement fills (review 2026-10-24 R2: a whole-table wildcard hid forecast-time columns)
+  - "forward_*scores*.y"
+  - "forward_*scores*.crps*"
+  - "forward_scores_elig.pit_*"
+  - "forward_scores_elig.pinball19"
+  - "forward_scores_elig.rps"
+  - "forward_scores_elig.q10"   # copied from pred at settlement (nba/daily/settle.py:405)
+  - "forward_scores_elig.q90"
 
 # Label-group NULL check (N7): NULL rate per minutes bucket (tables with player-game rows) and per
 # configured outcome expression over t.* (table -> SQL). Seasons after label_max_season are

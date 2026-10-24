@@ -117,7 +117,7 @@ def test_fetch_never_caches_empty_and_resumes(
 
     monkeypatch.setattr(pg, "_fetch_tracking", fake)
     s1 = pg.fetch_source("tracking", db, data_dir=tmp_path / "data", sleep=lambda s: None)
-    assert s1.failed == [ids[0]] and s1.fetched == len(ids) - 1
+    assert s1.pending == [ids[0]] and s1.failed == [] and s1.fetched == len(ids) - 1
     assert not cache_path_for("tracking", ids[0], tmp_path / "data").exists()
     calls.clear()
     s2 = pg.fetch_source("tracking", db, data_dir=tmp_path / "data", sleep=lambda s: None)
@@ -217,3 +217,92 @@ def test_officials_load_applies_id_merges() -> None:
     assert got == [(77,), (1630886,)]
     pg.load_frames(con, "officials", df)  # idempotent
     assert con.execute("SELECT count(*) FROM game_officials").fetchone() == (2,)
+
+
+# --- 2026-10-23: unpublished payloads, team-level placeholder rows, isolated loads
+
+
+def _hustle_team_rows_only() -> pl.DataFrame:
+    return _df(RAW["hustle"]).with_columns(personId=pl.lit(0)).head(2)
+
+
+def test_team_level_rows_are_not_a_hustle_frame() -> None:
+    """personId 0 rows only (an unpublished game) normalise to empty: never cached as done."""
+    assert pg.normalize_hustle(_hustle_team_rows_only(), GID).is_empty()
+    mixed = pl.concat([_df(RAW["hustle"]), _hustle_team_rows_only()], how="vertical_relaxed")
+    assert pg.normalize_hustle(mixed, GID).height == 4  # the real player rows survive
+
+
+def test_not_published_is_pending_not_failed_and_never_trips_the_breaker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = _scoped_db(tmp_path)
+    ids = pg.scope_game_ids(db)
+    assert len(ids) >= 3
+
+    def null_payload(gid: str) -> pl.DataFrame:
+        raise pg.NotPublishedError("null body")
+
+    monkeypatch.setattr(pg, "_fetch_tracking", null_payload)
+    sleeps: list[float] = []
+    s = pg.fetch_source("tracking", db, data_dir=tmp_path / "data", sleep=sleeps.append)
+    assert sleeps == []  # no retry backoff, no breaker cooldown
+    assert s.pending == ids and s.failed == [] and not s.stopped_early
+    assert not cache_path_for("tracking", ids[0], tmp_path / "data").exists()
+
+
+def test_stale_pending_flags_old_games_only(tmp_path: Path) -> None:
+    """Review 2026-10-24 R1: a key still 'not published' past the grace is a failure, not a wait."""
+    from datetime import date
+
+    db = _scoped_db(tmp_path)
+    con = duckdb.connect(str(db))
+    old, new = [
+        r[0] for r in con.execute("SELECT game_id FROM games ORDER BY game_id LIMIT 2").fetchall()
+    ]
+    con.execute("UPDATE games SET game_date = DATE '2023-01-10' WHERE game_id = ?", [old])
+    con.execute("UPDATE games SET game_date = DATE '2026-10-23' WHERE game_id = ?", [new])
+    con.close()
+    today = date(2026, 10, 24)
+    assert pg.stale_pending(db, [old, new], today=today) == [old]
+    assert pg.stale_pending(db, [new], today=today) == []
+    assert pg.stale_pending(db, [], today=today) == []
+
+
+def test_scope_skips_unscored_games(tmp_path: Path) -> None:
+    db = _scoped_db(tmp_path)
+    con = duckdb.connect(str(db))
+    gid = con.execute("SELECT game_id FROM games ORDER BY game_id LIMIT 1").fetchone()[0]  # type: ignore[index]
+    con.execute("UPDATE games SET home_pts = NULL, away_pts = NULL WHERE game_id = ?", [gid])
+    con.close()
+    assert gid not in pg.scope_game_ids(db)
+
+
+def test_placeholder_cache_file_is_fetched_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = _scoped_db(tmp_path)
+    data = tmp_path / "data"
+    ids = pg.scope_game_ids(db)
+    monkeypatch.setattr(
+        pg, "_fetch_hustle", lambda gid: pg.normalize_hustle(_df(RAW["hustle"]), gid)
+    )
+    pg.fetch_source("hustle", db, data_dir=data, sleep=lambda s: None)
+    placeholder = cache_path_for("hustle", ids[0], data)
+    pl.read_parquet(placeholder).with_columns(player_id=pl.lit(0)).head(2).write_parquet(
+        placeholder
+    )
+    s = pg.fetch_source("hustle", db, data_dir=data, sleep=lambda s: None)
+    assert s.fetched == 1 and s.cached == len(ids) - 1
+    assert pl.read_parquet(placeholder)["player_id"].min() != 0
+
+
+def test_load_ignores_team_level_rows_and_sources_are_isolated(tmp_path: Path) -> None:
+    con = build_fixture_db()
+    gid = con.execute("SELECT game_id FROM games LIMIT 1").fetchone()[0]  # type: ignore[index]
+    team_rows = pg.TABLES["hustle"][1]
+    df = pl.DataFrame({c: [None, None] for c in team_rows}).with_columns(
+        game_id=pl.lit(gid), player_id=pl.lit(0), team_id=pl.lit(1)
+    )
+    assert pg.load_frames(con, "hustle", df) == 0  # two (game_id, 0) rows would have collided
+    assert con.execute("SELECT count(*) FROM player_game_hustle").fetchone() == (0,)

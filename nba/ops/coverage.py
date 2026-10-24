@@ -333,11 +333,32 @@ def parse_pretip_runs(text: str) -> list[dict[str, Any]]:
     return runs
 
 
+# What the readers below need from a job log: its own timestamped lines, predict's ``run ...``
+# summary and the ``models:`` line after it. Everything else (indented echoes of this check's own
+# output, library warnings, tracebacks) is dropped while streaming. 2026-10-21..23: the ALERT
+# section below printed every ``ALERT:`` line it found, the step output was appended to the same
+# log, and the next run found the echoes and printed them again: the pretip log doubled per run
+# (9.9 GB, 9.4 GB, 0.5 GB) and reading a whole file killed coverage_yesterday (rc=137).
+_KEEP = re.compile(r"^(?:\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\] |run \w+ date=|models:)")
+_ALERT_LINE = re.compile(r"^\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\] ALERT: ")
+MAX_ALERTS_SHOWN = 50
+
+
 def _read(path: Path) -> str | None:
     try:
-        return path.read_text(errors="replace")
+        with path.open(errors="replace") as f:
+            return "".join(ln for ln in f if _KEEP.match(ln))
     except OSError:
         return None
+
+
+def _alert_lines(path: Path) -> list[str]:
+    """Genuine ``[stamp] ALERT: ...`` lines of one log, streamed (echoes are indented)."""
+    try:
+        with path.open(errors="replace") as f:
+            return [ln.rstrip("\n") for ln in f if _ALERT_LINE.match(ln)]
+    except OSError:
+        return []
 
 
 def check_injury(
@@ -619,14 +640,18 @@ def check_jobs(p: Paths, games: Sequence[Game], log_tz: ZoneInfo | None = None) 
     alerts: list[str] = []
     if p.ops.is_dir():
         for f in sorted(p.ops.glob(f"*_{p.slate_date:%Y%m%d}.log")):
-            for ln in (_read(f) or "").splitlines():
-                if "ALERT:" in ln:
-                    alerts.append(f"{f.name}: {ln}")
+            alerts.extend(f"{f.name}: {ln}" for ln in _alert_lines(f))
     out.append(
         Result(
             WARN if alerts else OK,
             "alerts",
-            f"{len(alerts)} ALERT lines" + "".join(f"\n    {a}" for a in alerts),
+            f"{len(alerts)} ALERT lines"
+            + "".join(f"\n    {a}" for a in alerts[:MAX_ALERTS_SHOWN])
+            + (
+                f"\n    ... {len(alerts) - MAX_ALERTS_SHOWN} more"
+                if len(alerts) > MAX_ALERTS_SHOWN
+                else ""
+            ),
             {"alerts": alerts},
         )
     )
