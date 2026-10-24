@@ -151,6 +151,20 @@ class HistoryConfig:
     alt_snapshots: tuple[str, ...] = ("t60",)
     alt_max_credits: int = 1_000_000
     alt_ledger_path: Path = ROOT / "data" / "odds" / "budget" / "the_odds_api_alt_ledger.json"
+    #: phase ``movement`` (2026-10-23, Devin "pay for the pull"): pre-T-60 snapshots of the main
+    #: player props plus game lines at a short list of named books, so that line movement around
+    #: injury/lineup news is testable. Seasons ``movement_seasons`` only (2025 refused in code),
+    #: own ledger and cap. Books are requested with ``bookmakers=`` (every group of up to 10 books
+    #: is billed as ONE region), never with ``regions=``.
+    movement_markets: tuple[str, ...] = ()
+    movement_books: tuple[str, ...] = ()
+    #: kind -> minutes before the real tip (kinds must not collide with ``snapshots``)
+    movement_snapshots: tuple[tuple[str, int], ...] = ()
+    movement_seasons: tuple[int, ...] = (2023, 2024)
+    movement_max_credits: int = 1_000_000
+    movement_ledger_path: Path = (
+        ROOT / "data" / "odds" / "budget" / "the_odds_api_movement_ledger.json"
+    )
     odds_format: str = "american"
     max_credits: int = 2_000_000
     min_server_remaining: int = 100_000
@@ -175,6 +189,13 @@ class HistoryConfig:
     def __post_init__(self) -> None:
         if HOLDOUT_SEASON in self.alt_seasons:
             raise HoldoutRefused(f"alt_seasons names the holdout season {HOLDOUT_SEASON}")
+        if HOLDOUT_SEASON in self.movement_seasons:
+            raise HoldoutRefused(f"movement_seasons names the holdout season {HOLDOUT_SEASON}")
+        clash = {k for k, _ in self.movement_snapshots} & {k for k, _ in self.snapshots}
+        if clash:
+            raise ValueError(f"movement_snapshots reuse existing snapshot kinds {sorted(clash)}")
+        if any(m <= 0 for _, m in self.movement_snapshots):
+            raise ValueError("movement_snapshots minutes must be positive")
 
     def markets_for(self, phase: str) -> tuple[str, ...]:
         if phase == "props":
@@ -189,7 +210,14 @@ class HistoryConfig:
             if not self.alt_markets:
                 raise ValueError("phase alt needs alt_markets in configs/odds_history.yaml")
             return self.alt_markets
-        raise ValueError(f"unknown phase {phase!r} (props|games|periods|alt)")
+        if phase == "movement":
+            if not self.movement_markets or not self.movement_books:
+                raise ValueError(
+                    "phase movement needs movement_markets and movement_books in "
+                    "configs/odds_history.yaml"
+                )
+            return self.movement_markets
+        raise ValueError(f"unknown phase {phase!r} (props|games|periods|alt|movement)")
 
     def kinds_for(self, phase: str) -> tuple[str, ...]:
         """Snapshot kinds a phase pulls (props/games: all of ``snapshots``)."""
@@ -197,7 +225,15 @@ class HistoryConfig:
             return self.period_snapshots
         if phase == "alt":
             return self.alt_snapshots
+        if phase == "movement":
+            return tuple(k for k, _ in self.movement_snapshots)
         return tuple(k for k, _ in self.snapshots)
+
+    def billing_units(self, phase: str) -> int:
+        """Region-equivalents billed per market: books are billed in groups of 10 (``movement``)."""
+        if phase == "movement":
+            return max(1, -(-len(self.movement_books) // 10))
+        return len(self.regions)
 
     def regions_at(self, at: datetime) -> tuple[str, ...]:
         """Regions to request for a snapshot at ``at`` (naive UTC): ``us_ex`` is date-gated."""
@@ -206,11 +242,17 @@ class HistoryConfig:
         return self.regions
 
     def expected_odds_cost(self, phase: str, at: datetime | None = None) -> int:
+        if phase == "movement":
+            return (
+                self.cost_per_market_region
+                * len(self.markets_for(phase))
+                * self.billing_units(phase)
+            )
         regions = self.regions if at is None else self.regions_at(at)
         return self.cost_per_market_region * len(self.markets_for(phase)) * len(regions)
 
     def minutes_before_tip(self, kind: str) -> int:
-        for k, m in self.snapshots:
+        for k, m in (*self.snapshots, *self.movement_snapshots):
             if k == kind:
                 return m
         raise ValueError(f"unknown snapshot kind {kind!r}")
@@ -263,9 +305,19 @@ def load_config(path: Path | None = None) -> HistoryConfig:
         "alt_markets",
         "alt_regions",
         "alt_snapshots",
+        "movement_markets",
+        "movement_books",
     ):
         if k in raw:
             upd[k] = tuple(str(x) for x in raw[k])
+    if "movement_seasons" in raw:
+        upd["movement_seasons"] = tuple(int(x) for x in raw["movement_seasons"])
+    if "movement_max_credits" in raw:
+        upd["movement_max_credits"] = int(raw["movement_max_credits"])
+    if "movement_snapshots" in raw:
+        upd["movement_snapshots"] = tuple(
+            (str(k), int(v)) for k, v in raw["movement_snapshots"].items()
+        )
     if "period_seasons" in raw:
         upd["period_seasons"] = tuple(int(x) for x in raw["period_seasons"])
     if "period_max_credits" in raw:
@@ -289,6 +341,7 @@ def load_config(path: Path | None = None) -> HistoryConfig:
         "ledger_path",
         "period_ledger_path",
         "alt_ledger_path",
+        "movement_ledger_path",
         "state_path",
         "out_db",
         "games_db",
@@ -473,12 +526,20 @@ def odds_path(
     snapshot_kind: str,
     markets: Sequence[str],
     at: datetime,
+    books: Sequence[str] = (),
 ) -> Path:
     """Cache path for a per-event odds file at ``at``.
+
+    With ``books`` (the movement phase) the path carries the book-set hash instead of regions.
 
     The date-gated region set is the canonical path. A file written before the gate existed (all
     regions requested) is found too, so reparsing or rerunning never re-buys it.
     """
+    if books:
+        return raw_path(
+            cfg, season, game_id, "odds", snapshot_kind,
+            regions=(f"bk{markets_hash(books)}",), markets=markets,
+        )  # fmt: skip
     gated = raw_path(
         cfg, season, game_id, "odds", snapshot_kind, regions=cfg.regions_at(at), markets=markets
     )
@@ -591,18 +652,28 @@ class HistoricalClient:
         event_id: str,
         markets: Sequence[str],
         refresh: bool = False,
+        bookmakers: Sequence[str] = (),
     ) -> Fetched:
-        """Per-event odds as of ``at``. Cost 10 x markets x regions (actual from the header)."""
+        """Per-event odds as of ``at``. Cost 10 x markets x regions (actual from the header).
+
+        With ``bookmakers`` the request names books instead of regions (the vendor bills each
+        group of up to 10 books as one region and gives ``bookmakers`` priority).
+        """
         regions = self.config.regions_at(at)
-        path = odds_path(self.config, season, game_id, snapshot_kind, markets, at)
+        path = odds_path(self.config, season, game_id, snapshot_kind, markets, at, bookmakers)
         url = f"/historical/sports/{self.config.sport_key}/events/{event_id}/odds"
         params = {
-            "regions": ",".join(regions),
             "markets": ",".join(markets),
             "oddsFormat": self.config.odds_format,
             "date": iso_z(at),
         }
-        expected = self.config.cost_per_market_region * len(markets) * len(regions)
+        if bookmakers:
+            params["bookmakers"] = ",".join(bookmakers)
+            units = max(1, -(-len(bookmakers) // 10))
+        else:
+            params["regions"] = ",".join(regions)
+            units = len(regions)
+        expected = self.config.cost_per_market_region * len(markets) * units
         ctx = {
             "season": season,
             "game_id": game_id,

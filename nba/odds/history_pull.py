@@ -62,9 +62,10 @@ from nba.odds.theoddsapi import NameResolver
 log = logging.getLogger("nba.odds.history")
 
 PHASES = ("props", "games")  # the default plan
-# periods and alt are run only when asked for (own seasons/cap/ledger)
-ALL_PHASES = (*PHASES, "periods", "alt")
-OWN_LEDGER_PHASES = ("periods", "alt")
+# periods, alt and movement are run only when asked for (own seasons/cap/ledger)
+ALL_PHASES = (*PHASES, "periods", "alt", "movement")
+OWN_LEDGER_PHASES = ("periods", "alt", "movement")
+MOVEMENT_SCOPES = ("all", "games", "props")
 DDL = """
 CREATE TABLE IF NOT EXISTS odds_history (
     source VARCHAR, season INTEGER, game_id VARCHAR, event_id VARCHAR, snapshot_kind VARCHAR,
@@ -255,8 +256,9 @@ def estimate_credits(cfg: HistoryConfig, items: list[Item]) -> dict[str, int]:
     for it in items:
         epath = raw_path(cfg, it.game.season, it.game.game_id, "events", it.kind)
         opath = odds_path(
-            cfg, it.game.season, it.game.game_id, it.kind, cfg.markets_for(it.phase), it.at(cfg)
-        )
+            cfg, it.game.season, it.game.game_id, it.kind, cfg.markets_for(it.phase), it.at(cfg),
+            cfg.movement_books if it.phase == "movement" else (),
+        )  # fmt: skip
         if opath.exists():
             continue
         n_odds += 1
@@ -355,6 +357,8 @@ def run_pull(
     games: list[GameRef] | None = None,
     resolver: NameResolver | None = None,
     all_season_games: dict[int, list[GameRef]] | None = None,
+    kinds: list[str] | None = None,
+    scope: str = "all",
 ) -> PullReport:
     """Pull (or, with ``dry_run``, only estimate) one season; ``phase`` None = props then games.
 
@@ -365,8 +369,21 @@ def run_pull(
     ``phase="props"``). Its state keys carry the market-set hash and its raw files already differ by
     market hash, so finished items of the default set are never reused for it, nor it for them. The
     full-plan estimate is then just this run (the other seasons are the caller's explicit choice).
+
+    ``kinds`` and ``scope`` apply to the ``movement`` phase only: ``kinds`` keeps a subset of the
+    configured movement snapshots, ``scope`` (all|games|props) a subset of its markets. A scope
+    other than ``all`` carries the market-set hash in its state keys and raw paths, so a cheaper
+    variant run first never marks the full variant's items done.
     """
     cfg = cfg or load_config()
+    if phase == "movement" and (season == HOLDOUT_SEASON or season not in cfg.movement_seasons):
+        # refused before anything is read, listed or requested (never season 2025)
+        raise HoldoutRefused(
+            f"movement phase covers seasons {cfg.movement_seasons}, not {season} "
+            f"(season {HOLDOUT_SEASON} is the frozen holdout and is never requested)"
+        )
+    if (kinds or scope != "all") and phase != "movement":
+        raise ValueError("--kinds and --scope apply to the movement phase only")
     if phase == "alt" and (season == HOLDOUT_SEASON or season not in cfg.alt_seasons):
         # refused before anything is read, listed or requested (never season 2025)
         raise HoldoutRefused(
@@ -397,6 +414,29 @@ def run_pull(
             cfg, ledger_path=cfg.alt_ledger_path, max_credits=cfg.alt_max_credits,
             seasons=cfg.alt_seasons, regions=cfg.alt_regions, us_ex_from=cfg.alt_us_ex_from,
         )  # fmt: skip
+    if phase == "movement":
+        if tag:
+            raise ValueError("--markets does not apply to the movement phase (use --scope)")
+        if scope not in MOVEMENT_SCOPES:
+            raise ValueError(f"scope must be one of {MOVEMENT_SCOPES}, not {scope!r}")
+        cfg = replace(
+            cfg, ledger_path=cfg.movement_ledger_path, max_credits=cfg.movement_max_credits,
+            seasons=cfg.movement_seasons, us_ex_from=None,
+        )  # fmt: skip
+        cfg.markets_for("movement")  # validates the config before any scope/kind subset
+        if scope == "games":
+            cfg = replace(cfg, movement_markets=cfg.game_markets)
+        elif scope == "props":
+            cfg = replace(cfg, movement_markets=cfg.prop_markets)
+        if scope != "all":
+            tag = markets_hash(cfg.movement_markets)
+        if kinds:
+            unknown = sorted(set(kinds) - {k for k, _ in cfg.movement_snapshots})
+            if unknown:
+                raise ValueError(f"unknown movement snapshot kinds {unknown}")
+            cfg = replace(
+                cfg, movement_snapshots=tuple(x for x in cfg.movement_snapshots if x[0] in kinds)
+            )
     for ph in phases:
         cfg.markets_for(ph)  # validates
     if games is None:
@@ -492,7 +532,8 @@ def _process(
 ) -> None:
     g, markets = it.game, list(cfg.markets_for(it.phase))
     at = it.at(cfg)
-    opath = odds_path(cfg, g.season, g.game_id, it.kind, markets, at)
+    books = cfg.movement_books if it.phase == "movement" else ()
+    opath = odds_path(cfg, g.season, g.game_id, it.kind, markets, at, books)
     credits_before = cli.credits_spent
     if cache_only and not opath.exists():
         rep.items_no_raw += 1
@@ -512,6 +553,7 @@ def _process(
                 at=at,
                 event_id=event.event_id,
                 markets=markets,
+                bookmakers=books,
             )
             fetched_body, raw_rel = od.body, str(od.path.relative_to(cfg.raw_dir))
         pr: ParseResult = parse_event_odds(
@@ -568,7 +610,12 @@ def status_lines(cfg: HistoryConfig | None = None) -> list[str]:
         cfg.period_ledger_path, cfg.period_max_credits, cfg.min_server_remaining
     ).totals()
     aled = CreditLedger(cfg.alt_ledger_path, cfg.alt_max_credits, cfg.min_server_remaining).totals()
+    mled = CreditLedger(
+        cfg.movement_ledger_path, cfg.movement_max_credits, cfg.min_server_remaining
+    ).totals()
     out = [
+        f"movement ledger: spent={int(mled['spent']):,} / cap={cfg.movement_max_credits:,} "
+        f"n_calls={mled['n_calls']}",
         f"alt ledger: spent={int(aled['spent']):,} / cap={cfg.alt_max_credits:,} "
         f"n_calls={aled['n_calls']}",
         f"periods ledger: spent={int(pled['spent']):,} / cap={cfg.period_max_credits:,} "

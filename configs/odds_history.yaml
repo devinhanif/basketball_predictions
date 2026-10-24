@@ -40,6 +40,27 @@ alt_seasons: [2023, 2024]
 alt_snapshots: [t60]
 alt_max_credits: 1000000
 alt_ledger_path: data/odds/budget/the_odds_api_alt_ledger.json
+# phase `movement` (Devin, 2026-10-23 "pay for the pull"): pre-T-60 line-movement snapshots so that
+# (1) information freshness and (2) a Pinnacle shadow / update-rule model are testable on history.
+# Seasons 2023 and 2024 ONLY (season 2025 is the frozen holdout and is refused in code,
+# HoldoutRefused; the config itself cannot name it). Own ledger and cap. Existing t60/t5 snapshots
+# (props+games, 2023-2025, regions us/eu/us_ex) are NOT repeated: this phase adds earlier kinds only.
+# Books are requested with `bookmakers=` (NOT `regions=`): the vendor bills each group of up to 10
+# bookmakers as ONE region (the-odds-api.com v4 docs: "Every group of 10 bookmakers is the
+# equivalent of 1 region"), so 9 books cost 10 x markets, the same as one region. Markets in one
+# call: 4 props + 3 game lines = 7 -> 70 credits (+1 events call) per game-snapshot, upper bound
+# (a market the vendor does not return at that time is not charged).
+# Books (all present in our t60 pulls for ~95%+ of games): pinnacle (the sharp price to shadow),
+# betonlineag / lowvig / bovada (sharp-leaning, reduced-juice or offshore), betfair_ex_eu (exchange;
+# game lines only), draftkings / fanduel / betmgm / betrivers (soft US retail, the stale-line side).
+# Kinds are minutes before the real tip; justification in docs/MOVEMENT_PULL_PLAN.md. Run:
+#   python -m nba.odds history-pull --phase movement --season N [--kinds a,b] [--scope all|games|props] [--dry-run]
+movement_markets: [player_points, player_rebounds, player_assists, player_threes, h2h, spreads, totals]
+movement_books: [pinnacle, betonlineag, lowvig, bovada, betfair_ex_eu, draftkings, fanduel, betmgm, betrivers]
+movement_snapshots: {m1440: 1440, m360: 360, m180: 180, m120: 120, m90: 90}
+movement_seasons: [2023, 2024]
+movement_max_credits: 1000000   # the "stop and ask" line; the full 5-snapshot plan is ~0.94M
+movement_ledger_path: data/odds/budget/the_odds_api_movement_ledger.json
 odds_format: american
 
 # Credit guards (the plan is 5,000,000 credits; this pull is capped well below it).
