@@ -89,6 +89,8 @@ Primary (the question): SELL the long shot = buy NO at the executable price `P_n
 Return per contract `r_no = payoff_no - P_no - fee(P_no)`, `payoff_no = 1 - y`.
 Mirror (reported, not decided): buy YES at `P_yes = yes_ask`, `r_yes = y - P_yes - fee(P_yes)`.
 The spread is therefore inside every return: the NO buyer pays `1 - bid`, the YES buyer pays `ask`.
+Integrity identity the scorer asserts on every contract (guard 8.6(a)), in integer hundredths of a cent:
+`r_yes + r_no = -(ask_c - bid_c) / 100 - fee(P_yes) - fee(P_no)`.
 
 ## 5. Settlement and DNP
 
@@ -132,15 +134,16 @@ per bucket, mean spread and mean fee per bucket (so the cost side is visible), n
   closes it. There is no Read 3, no extension, and no re-read with later settlements. A point estimate below zero is reported with its CI
   and is never by itself a verdict.
 Power (measured on 2026-10-20..23 entry mids, label-free, plus season-2024 within-game correlations; the realised cluster variance
-replaces it at each look): design effect about 3.8. Exact ladder nesting contributes 2.2; the rest is
-same-player cross-stat and cross-player co-movement. SE of `R` at 300 games about 0.0038. MDE at 80% power: about
-1.3-1.6c at Read 1 (one-sided 0.005), 0.6-0.9c at Read 2 (one-sided 0.02, 700-900 games). Power to clear the bound at a true +1c: about
-0.33-0.54 at Read 1 and 0.88-1.00 at Read 2. The Gaussian copula understates tail co-movement, so these are optimistic by an unknown
-margin; the earlier assumed ICC (0.2 / 0.06) overstated the design effect about 2-3x.
+replaces it at each look): design effect about 3.8 with KXNBASPREAD included. Exact ladder nesting contributes 2.2 with it and 1.7
+without it, at the same effective contracts per game (about 29). The rest is same-player cross-stat and cross-player co-movement. SE
+of `R` at 300 games about 0.0038. MDE at 80% power: about 1.3c at Read 1 (one-sided 0.005) and about 0.6-0.7c at Read 2 (one-sided
+0.02, 700-900 games). Power to clear the bound at a true +1c: about 0.50-0.53 at Read 1 and 0.97-0.99 at Read 2. The Gaussian copula
+understates tail co-movement, so these are optimistic by an unknown margin; the earlier assumed ICC of 0.2 overstated the design effect
+about 3.5x.
 
 ## 7. Looks and alpha
 
-Two looks, fixed now: **Read 1 on 2027-01-15** (games with ET tip dates through 2027-01-13; Section 5/6 game-level settlement rule) and **Read 2 (final) on 2027-04-14**. Every look reports the
+Two looks, fixed now: **Read 1 on 2027-01-15** (games with ET tip dates through 2027-01-13; Section 5 game-level settlement rule) and **Read 2 (final) on 2027-04-14**. Every look reports the
 full table whether or not it can decide. One-sided level 0.005 at Read 1 and 0.02 at Read 2 (the decision CI is the matching 99% or 96% two-sided
 percentile interval); a PASS needs the bound at the level of the look it occurs at; a second look cannot undo a Read 1 PASS or
 NO_POSITIVE_EV_FOUND that met its own rule. Family: this rule and UNDERS_FORWARD test overlapping contracts on the same capture, under Bonferroni across the two rules and both looks
@@ -192,8 +195,8 @@ Model class: none. This is a market-calibration test of a fixed trade (buy NO, h
 ## Data-capture audit (non-negotiable 8; 2026-10-23, from a copy of `data/kalshi/kalshi.duckdb` taken 2026-10-24T02:58Z)
 
 What exists: `kalshi_prices` live rows 2026-10-08..10-24 (1,187,826 rows, 13,234 tickers); regular season began 2026-10-20. Tip = occurrence - 180 min
-verified against the schedule. Settled regular-season markets with a known tip: 8,164 over 260 events (of 28 scheduled games 2026-10-20..23; 23 games have
-at least one eligible long shot at max age 240).
+verified against the schedule. Settled regular-season markets with a known tip: 8,164 over 260 events (of 28 scheduled games 2026-10-20..23; all 28 have at least one eligible long shot at max age 240, and 23 of them were fully settled
+at the audit time).
 
 | Gate item | Measured | Verdict |
 |---|---|---|
@@ -202,6 +205,7 @@ at least one eligible long shot at max age 240).
 | max age 240 min (the rule) | 7,427 (91%) | Passes 8.1 |
 | Cause of the gap | The 15-minute snapshot job ran irregularly: 15-23 UTC distinct snapshots per day: 10-20: 24, 10-21: 23, 10-22: 35, 10-23: 2 (expected about 32; the cause was not investigated here, only the gap measured). | Repairable: capture reliability (a launchd heartbeat, or the watchdog the project already prescribes). Cost: small; not done here (ops path is not mine). |
 | Eligible long shots (mid <= 15c, bid >= 1c, spread <= 5c), max age 240 | 1,456 contracts, 23 games, 4 nights (about 63 contracts per game, 5.75 games per night) | Rate source for the projection |
+| Decision pool after M11 (KXNBASPREAD out), integer cents, max age 240 | 1,430 contracts, 28 games (about 51 per game; 368 KXNBASPREAD contracts reported descriptively) | Rate source after the revision |
 | By series | 3PT 277, AST 223, BLK 15, PTS 196, REB 169, STL 36, SPREAD 301, TEAMTOTAL 128, TOTAL 111; GAME (winner) 0; combo (PRA/PR/PA/RA) 0 | Combos and game-winner long shots are not yet populated |
 | Excluded by filter at max age 240 | 303 wide-spread, 95 bid = 0 | Reported by reason at every look |
 | DNP settlement values | 39 `scalar` markets exist (27 on 2026-10-22). The raw settled page has `settlement_value_dollars` (e.g. 0.16, 0.39) but `kalshi_markets` has NO column for it | Repairable at low cost: add a `settlement_value` column (owner: `nba/kalshi`) or read raw. Until then the scorer reads raw. |
@@ -211,21 +215,22 @@ at least one eligible long shot at max age 240).
 ### Gate: can the minimum n be reached, and when?
 
 Projection from `data/schedule/live_tips_2026-27.parquet` scheduled games from 2026-10-25, times the measured eligible-game fraction.
-Observed fraction of scheduled games with at least one eligible long shot, 2026-10-20..23: 23 / 28 = 0.82 (and the capture was broken on parts of 10-20 and
-10-23, so this is not an upper bound). Cumulative eligible games reach:
+Observed fraction of scheduled games with at least one eligible long shot, 2026-10-20..23: 28 / 28 = 1.0 (the earlier 23 / 28 counted only games already settled). Games are not the
+binding count (dates are, below); for reference, cumulative games reach:
 
 | Fraction of scheduled games that enter | 150 games | 300 games |
 |---|---|---|
 | 1.0 | 2026-11-14 | 2026-12-13 |
-| 0.8 (observed 0.82) | 2026-11-19 | 2026-12-23 |
+| 0.8 | 2026-11-19 | 2026-12-23 |
 | 0.6 (capture stays unreliable) | 2026-11-28 | 2027-01-08 |
 
-By 2027-01-15 (Read 1) the 0.6 case has about 330 games; by the end of the regular season the 0.6 case has well over 700. Dates bind, not games: the schedule has 538 games on 70 ET dates from 2026-10-25 to 2027-01-13 (1,164 on 151 dates through 2027-04-12).
+Dates bind, not games: the schedule has 538 games on 70 ET dates from 2026-10-25 to 2027-01-13 (1,164 on 151 dates through 2027-04-12).
 Capture failures come as whole nights, so 50 dates by Read 1 needs at least 72% of nights captured. At 100% both counts are met on
 2026-12-23, at 80% on 2027-01-06, at 71% on 2027-01-14, and at 60% only on 2027-01-27, which is an INSUFFICIENT_SAMPLE Read 1. Every
 scheduled game 2026-10-20..23 had at least one eligible contract (LONGSHOT: 28 of 28; the earlier "23 / 28" counted only games already
 settled). Power is measured in Section 6 (MDE 1.3-1.6c at Read 1, 0.6-0.9c at Read 2).
-The gate PASSES on counts at 72% or better night capture; power is no longer the binding limit. A look is never moved to chase the answer.
+The gate PASSES on counts at 72% or better night capture; power at Read 1 is about 0.5 at a true +1c (Section 6),
+so a Read 1 bound that includes 0 means no power below about 1.3c, not no edge. A look is never moved to chase the answer.
 
 ### Exploratory glance, disclosed (not part of the scoring window)
 
