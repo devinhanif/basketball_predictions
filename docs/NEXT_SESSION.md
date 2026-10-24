@@ -1,12 +1,19 @@
-# NEXT SESSION, resume here (written 2026-10-24 00:20 CDT, overnight under "do everything"; status lines appended below)
+# NEXT SESSION, resume here (written 2026-10-24 01:45 CDT, end of overnight "do everything"; fresh session recommended)
 
 **Phone summary for Devin:**
-1. **Before anything:** Mac on AC + `caffeinate -dimsu` (10-23 was lost to clamshell sleep 09:23-18:56). First tip today 17:00 CDT; pretip ~15:45.
-2. **Frozen last night (all paper, forward):** MARKET_ANCHORED_PROPS (f7691bbf), T510b (68f0ef84), KALSHI_LONGSHOT_FORWARD (0b50d17e), UNDERS_FORWARD (149be979; your "gi" read as go: say if not). Fee pinned from Kalshi's series API (multiplier 1) + secondary sources for 0.07.
-3. **Merged live:** watchdog pre-tip ACTION NEEDED alerts (next tip, not first); Kalshi names 32 -> 196 of 196 matched (903 more props priced; oracle IDENTICAL). Morning-job fixes: see status lines (merge pending oracle).
-4. **Your decisions:** (a) spot-check 8 rookie Kalshi ids (Caleb Wilson, Cameron Boozer, Darius Acuff Jr., Darryn Peterson, Keaton Wagler, Kingston Flemings, Mikel Brown Jr., Yaxel Lendeborg); (b) remove the 0.84 fuzzy name accept (Claude: yes); (c) **live capture**: `nba.live` is NOT on main (only on agent/market-paper-trader and siblings) - merge it, then install the new launcher (agent/steward-live-capture-launchd 23577a1, command in DAILY_PIPELINE); 4 frozen rules need it nightly (LONGSHOT/UNDERS need >= 72% of nights); until then start it by hand tonight; (d) wire the stale-price exclusions (ops/forward_exclusions.yaml) into scorecard/monitor; (e) compact three giant pretip logs (10 GB, 9.4 GB, 0.5 GB; command in the steward hand-back, DECISIONS); (f) scorer interpretation rulings (alias-file pinning for T510; self-test rules for LONGSHOT/UNDERS) after the adversary reviews.
-5. **Answers to your questions:** best bet last night: none (all 488 quotes no_positive_ev). Hot hand / runs: real but small; Kalshi price runs exist (in-game 15-min momentum) but riding them nets -4 to -5c/trade after spread+fee (docs/research/price_runs_scratch_2026-10-23.md). Unders: now a frozen forward test.
-6. **Score yesterday's bets from the box** (MIN@ORL sold +$0.43; the five NO recommendations: confirm fills).
+1. **First:** Mac on AC + `caffeinate -dimsu` (10-23's capture was lost to clamshell sleep). First tip today 17:00 CDT, pretip ~15:45. The **in-game capture still starts by hand** tonight (`nba.live` is not on main; see 4c).
+2. **Check the 07:00 job** (data/ops/ALERTS.md, morning log): the morning fixes merged at 01:1x (oracle IDENTICAL). Expect hustle/officials/matchups to load for 2026 for the first time and no fetch timeouts. Five old keys may now report "stale pending" and exit 1 (logged; benign if so).
+3. **Frozen (paper, forward):** MARKET_ANCHORED_PROPS f7691bbf, T510b 68f0ef84, KALSHI_LONGSHOT_FORWARD 0b50d17e, UNDERS_FORWARD 149be979 (your "gi" read as go).
+4. **Merged overnight:** watchdog pre-tip alerts; Kalshi names 196/196 matched; morning-job fixes; scorers for LONGSHOT+UNDERS and T510+T510b; MAP eval harness pinned (eb683cd0). Every one passed adversary review (2-3 rounds each; each round found real defects).
+5. **Your decisions (defaults in brackets):**
+   (a) **MAP real run** [go, any time outside 07:00-09:00 and pretip; ~6 min compute, takes heavy.lock; command in DECISIONS 569d3cd]
+   (b) **T510 drift x lean:** the model leans one way, so a market-wide pre-tip drift reads as "movement toward the model" (synthetic: passes 100%) [adopt reading note D6: judge any PASS with the per-sign split; no new rule]
+   (c) **live capture:** merge `nba.live` (agent/market-paper-trader) then install the launcher (agent/steward-live-capture-launchd 23577a1) [yes; the 4 frozen rules need nightly capture, LONGSHOT/UNDERS >= 72% of nights]
+   (d) pin aliases 4d176c53 for T510 [yes]; spot-check 8 rookie ids (list in DECISIONS dc8200a); remove the 0.84 fuzzy name accept [yes]
+   (e) pre-look interpretation rows: LONGSHOT/UNDERS I-1..I-6, T510 D1-D8, MAP section 9 (all drafted in docs/reviews/*_2026-10-24.md) [approve]
+   (f) wire stale-price exclusions into scorecard/monitor [yes]; fix nba/parlay/config.py `bool("false")` [yes]
+   (g) cleanup (blocked for Claude by the auto-mode classifier): delete 8 merged remote branches (modeler-market-anchored-props, modeler-t510b-dnp-fair, market-kalshi-longshot-fwd, market-unders-forward, steward-kalshi-snapshot, market-kalshi-unmatched, market-price-runs-scratch, market-longshot-unders-scorer; plus market-t510-scorer, market-t510-r5, steward-morning-fixes, modeler-map-eval); delete oracle copies data/rehearsal/oracle_{K,M,M2}_branch.duckdb; compact the 10 GB / 9.4 GB / 0.5 GB pretip logs.
+6. **Answers:** no bet last night (488/488 no edge). Kalshi price runs exist (in-game 15-min momentum) but lose 4-5c/trade after costs. Retro: docs/reviews/retro_2026-10-24.md.
 
 # NEXT SESSION, resume here (written 2026-10-23 21:44 CDT, night 4; fresh session recommended)
 
