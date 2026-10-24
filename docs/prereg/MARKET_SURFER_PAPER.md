@@ -86,8 +86,9 @@ from snapshots without queue position.
 - Primary: mean net P&L per contract per trade, and total net P&L per night (10-contract unit), with n = trades.
 - Comparator A (paired): the same entries (same fill, same entry fee) held to settlement. Report strategy minus hold per trade.
 - Comparator B (placebo, seed 20261023, 500 replications): for each real entry draw a random eligible (market, side, snapshot)
-  from the same night and the same series, eligible by conditions 1, 2 and 4 only (no momentum), run through the identical
-  fill and exit rules. Report the mean placebo net P&L per trade with the 2.5 and 97.5 percentiles of the 500 replication means
+  from the same night and the same series, eligible by conditions 1 and 2 plus a valid t+1 fill (no momentum; each draw is
+  simulated as a standalone trade, so condition 4 is not applied), run through the identical fill and exit rules. (Clarified
+  before any run: the first draft said "1, 2 and 4".) A market whose `result` is `scalar` or empty is excluded everywhere and counted. Report the mean placebo net P&L per trade with the 2.5 and 97.5 percentiles of the 500 replication means
   and the real mean's percentile rank.
 - Decomposition: fees paid, spread cost (entry ask - entry mid + exit mid - exit bid), and mid-to-mid drift.
 - Also reported: win rate (net > 0), exit-reason counts, median hold time, missed-fill count, trades per night.
