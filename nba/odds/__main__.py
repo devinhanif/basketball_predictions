@@ -70,11 +70,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     hp.add_argument("--season", type=int, required=True, help="games.season (2023, 2024, 2025)")
     hp.add_argument(
         "--phase",
-        choices=("props", "games", "periods", "alt"),
+        choices=("props", "games", "periods", "alt", "movement"),
         default=None,
         help="default: props then games; periods = period markets + q1 player props; alt = player "
-        "*_alternate ladders, seasons 2023 and 2024 only (2025 refused) "
+        "*_alternate ladders, seasons 2023 and 2024 only (2025 refused); movement = pre-T-60 "
+        "line-movement snapshots at named books, same seasons, own ledger "
         "(seasons/snapshots/cap from configs/odds_history.yaml, own ledger)",
+    )
+    hp.add_argument(
+        "--kinds",
+        default=None,
+        help="movement phase only: comma list of configured movement snapshot kinds to pull",
+    )
+    hp.add_argument(
+        "--scope",
+        choices=("all", "games", "props"),
+        default="all",
+        help="movement phase only: which markets (default all = props + game lines)",
     )
     hp.add_argument(
         "--game-id", action="append", default=None, help="only this game id (repeatable): probes"
@@ -147,6 +159,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_games=a.max_games,
                 reparse=a.reparse,
                 only_games=a.game_id,
+                kinds=[k.strip() for k in a.kinds.split(",") if k.strip()] if a.kinds else None,
+                scope=a.scope,
                 markets=[m.strip() for m in a.markets.split(",") if m.strip()]
                 if a.markets
                 else None,
