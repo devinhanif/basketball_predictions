@@ -256,3 +256,61 @@ anyone on the T510 path.
 
 `<SP>/t510rev/structure.py`, `counts.py`, `planted.py`, `stress.py`, `placebo_check.py`, `bysign.py`, and
 `stress_*.txt` outputs.
+
+## Re-review (diff only): `git diff 6f66ba6 dd20ebc`, 2026-10-24
+
+Scope: 10 files (+899/−76), all under `research/line_move/`, `tests/research/line_move/` and
+`reports/line_move/dryrun_record.json`. No new attacks were run. Every check below was run unpiped in the builder
+worktree at dd20ebc.
+
+Verdict: BLOCKED
+
+In the task's terms this is **CHANGES_REQUIRED**. F1–F10 are all in and correct. The revision adds two new escape
+hatches, R1 and R2. Each is a few lines to fix.
+
+| Item | Evidence | Result |
+|---|---|---|
+| Lint / types / tests | `uv run --frozen --extra dev ruff check …` exit 0; `ruff format --check` exit 0; `mypy research/line_move` exit 0; `pytest -q --no-cov tests/research/line_move` **47 passed, exit 0** | PASS |
+| F1 alias pin, two constants | spec.py `ALIASES_SHA256` 4d176c53… (score only; `_check_pinned_aliases` refuses anything else), `ALIASES_SHA256_FREEZE` 6544535a… (preflight regression only). `python -m research.line_move preflight --date 2026-10-21 --nba-db <SP>/n3.duckdb --aliases configs/kalshi_aliases.yaml` → 455/345/318/293/52/25/1/420/423/133, match True, exit 0; the same with `--aliases <SP>/aliases_old.yaml` → 431/324/298/276/48/22/1/399/403/109, match True, exit 0. nba_api 1.11.4 printed | PASS |
+| F2 complete nights | `analysis.complete_days`: ET date < today's ET date AND last tip ≤ now − 30 min; `assert_window_complete` re-checks the window; test `test_a_market_dated_today_does_not_count_toward_the_14_dates` | PASS |
+| F3 once-only, T510 first | `_write_once` uses `open("x")`; score refuses if its record exists; T510b refuses without `T510_result.json` or when it says UNSCOREABLE. **But see R1 and R2** | PASS with R1/R2 |
+| F4 family table | All 7 `ROW_*` constants appear verbatim as `| … |` cells of the frozen T510b text (checked programmatically, 7/7 True). The `family_reading` branch order matches the table: T510b HARM is read as "not PASS", and T510 HARM shares the NULL rows | PASS |
+| F5 diagnostics | `placebo`: within-date permutation; part 2 permutes the index jointly for (sign_M, sign_B); seed 20261022 + 1; 1,000 permutations. `by_sign`: part 1 m_M and part 2 m_M − m_B by sign(p_M − mid0), date-resampled 95% CI. Both are printed directly under the verdict line | PASS |
+| F6 capture-file grid | `_file_index` / `_quote_at` take S0, S1 and close from per-series file times; an absent rung fails. Preflight counts unchanged (as predicted: 0 affected markets). `rung_absent_at_snapshot` 137 on 10-21 (late-listed rungs) | PASS (R3 minor) |
+| F7 null p_play | loaders.py keeps None; selection drops `drop_null_p_play`; the drop-sign logging handles None | PASS |
+| F8 dryrun record | Committed at `reports/line_move/dryrun_record.json`; code_sha256 c05efe8e… equals `spec.code_sha256()` recomputed at dd20ebc. The hash now covers every `*.py` in the package except `__init__.py`, with file names hashed too | PASS |
+| F9 rules text, inactive mid_close | `rules_secondary_texts` (stat noun masked) and `inactive_pids` → `inactive_mid_close` are wired into `cmd_score`; T510b only for the latter | PASS (R4 minor) |
+| F10 lean+drift stress | Reported in STRESS; changes no criterion. Record: T510 part-1 false-pass 1.0 at −1.5c, which documents the exposure | PASS |
+| Does the B-generator change weaken the primary dryrun? | `mu_b` now derives from `mu_m0` (M before the lean) rather than `mu_m`. With `m_bias = 0` (PRIMARY and the planted runs), `mu_m == mu_m0`, and the RNG draw order is unchanged (`mu_m0` normal, then `mu_b` normal). The committed record's primary and planted numbers are **bit-identical** to the pre-change record (`<SP>/lm_record.json`): t510_mean_part1 0.0001261082540092213, planted pass 1.0/1.0, min_q1 424/486/445 | Not weakened |
+
+### New findings in the revision
+
+- **R1 (major; escape hatch). `mark-unscoreable` accepts any reason at any time** (`__main__.cmd_mark_unscoreable`).
+  After seeing a T510 PASS, someone can mark T510b unscoreable and land on the last table row ("T510's verdict … stand
+  unmodified"). That dodges the row-3 withdrawal. They can also mark T510 unscoreable before its horizon. The frozen
+  text allows "unscoreable" only for a failed dryrun or a horizon never reached this season (plus ruling A4 for T510b
+  missing its own horizon). Fix: make `--reason` a choice of {`dryrun_failed`, `horizon_not_reached`}.
+  `dryrun_failed` must verify that the committed record's `<rule>_dryrun_pass` is false (or that `require_pass`
+  raises). `horizon_not_reached` must take `--nba-db` and verify both that today's ET date ≥ a pinned
+  `spec.SEASON_END` and that `horizon_date(rule)` on complete dates is None. For T510b it must also refuse when
+  `T510b_result.json` exists. Add one refusal test per branch. `SEASON_END` must be pinned before any look; my default
+  is the last regular-season ET date in `data/schedule/live_tips_2026-27.parquet`, and the main session confirms it.
+- **R2 (major; escape hatch). `--out-dir` on `score`, `family` and `mark-unscoreable`** lets anyone re-score into a
+  fresh directory. That defeats both the once-only record and the T510-first order. Fix: remove the `--out-dir` CLI
+  arguments (`main()`: the `p.add_argument("--out-dir", …)` under score, `f.add_argument`, `u.add_argument`) and read
+  `spec.REPORT_DIR` directly. Tests monkeypatch `spec.REPORT_DIR` instead. Also commit each result record right after
+  it is written (process note for the main session).
+- **R3 (minor).** selection.py: an absent rung at S0 increments both `rung_absent_at_snapshot` and
+  `S0_quote_fails_filter`, so the drop table double counts it. Remove the `S0_quote_fails_filter` increment on the
+  absent branch, or label it "of which absent".
+- **R4 (minor).** `loaders.inactive_pids` treats a missing `player_game_stats` row as inactive. Count "no box row"
+  separately from "minutes 0/null", so an ingest gap does not read as a scratch.
+
+### Drafted DECISIONS row (pre-look; not appended)
+
+| When | What | Why | Reverses if |
+|---|---|---|---|
+| 2026-10-24 (pre-look) | T510/T510b "unscoreable" is declared only by code-verified condition: the committed dryrun record fails for that rule, or on/after a pinned SEASON_END the rule's horizon on complete dates is still unmet. Result records are written to `reports/line_move/` only, once, and committed when written. | A free-text unscoreable marker and a configurable output directory each let a reader choose the table row after seeing T510. | — |
+
+R1 and R2 must be fixed before any real mid is scored. R3 and R4 can wait until the scoring date. Nothing in F1–F10
+needs rework.
