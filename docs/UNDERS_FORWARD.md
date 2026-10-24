@@ -6,8 +6,8 @@ PREDICTIONS_LEDGER row). Forward-only; season 2025 and the holdout are not touch
 credentials, no stakes. The paper Kelly column (Section 9) is a unit-free fraction shown on paper, never a stake.
 
 Same family and plumbing as KALSHI_LONGSHOT_FORWARD (draft `docs/KALSHI_LONGSHOT_FORWARD.md` on branch `agent/market-kalshi-longshot-fwd`,
-commit 00c1516). Everything not restated below is that draft's text and numbers (entry snapshot, fee object, DNP settlement, clustering,
-guards, looks). The differences are listed in Section 0 so a reader needs only this file to score it.
+commit 00c1516). This file is self-contained: the frozen section below is the whole rule. LONGSHOT is cited for lineage only; later edits to it do not
+change this rule.
 
 FREEZE RECORD (outside the frozen section; filled by the hand that freezes):
 - Frozen on: ____ (before any scored row exists; the scoring window opens at the first ET date after the freeze commit, not earlier than 2026-10-25)
@@ -48,7 +48,7 @@ a stake. A PASS is "candidate for a small declared experiment" at most; money st
 | Series | props, combos, game markets | player props and stat-sum combos only (Section 1.7); game markets excluded |
 | Side | NO only (long shots) | NO only, every price |
 | Strata | kind and bucket | bucket, stat, line position vs our mean and vs Pinnacle (Section 3) |
-| Alpha | 0.01 / 0.04, m = 1 | Bonferroni across the two rules: 0.005 / 0.02 (Section 7) |
+| Alpha | 0.005 / 0.02 (Bonferroni, same family) | Bonferroni across the two rules: 0.005 / 0.02 (Section 7) |
 | Trading | none | none; one entry per ticker, hold to settlement (Section 4) |
 | Extra column | none | paper Kelly fraction, paper only (Section 9) |
 
@@ -61,9 +61,12 @@ declared OVERLAPPING; neither rule's verdict is a substitute for the other, and 
    launchd writer). Series: `prop_series` in `configs/kalshi.yaml`.
 2. **Scoring window.** Regular-season games of season 2026 whose scheduled tip is at or after 00:00 ET of the first ET date after the freeze
    commit (not earlier than 2026-10-25). Preseason (2026-10-05..16) and every game on or before 2026-10-24 are excluded, decided now.
-   Playoffs and Cup knockout excluded. An ET date uses `America/New_York` (not a fixed offset).
-3. **Tip time.** Real scheduled tip from `data/schedule/live_tips_2026-27.parquet`, joined by game; Kalshi `occurrence_datetime` minus 180 min
-   is the fallback only if the schedule row is missing (counted, reported).
+   An ET date uses `America/New_York` (not a fixed offset).
+3. **Tip time and window.** The window is the set of games in `data/schedule/live_tips_2026-27.parquet` as committed at freeze (sha256 written in the FREEZE RECORD;
+   1,200 games). The Cup knockout games and the Cup-week games scheduled later (no games ET 2026-12-04..11 are in the file) are excluded and
+   counted; playoffs and play-in are after Read 2. The file has no team columns, so a Kalshi game is in the window iff its
+   `occurrence_datetime − 180 min` equals a scheduled tip in that file on the same ET date (28 of 28 regular-season games 2026-10-20..23
+   matched); tip = that scheduled time. No match: excluded and counted (`no_schedule_match`). ET dates use `America/New_York`.
 4. **Contract.** One Kalshi ticker = one contract. A "game" is the `<DATE><AWAY><HOME>` suffix of the event ticker. A "date" is the ET date of tip.
    A line is the market's `floor_strike` (x.5); YES pays if the stat exceeds it (the stat is at least `threshold`); NO pays if it does not.
 5. **Entry snapshot (price at prediction time).** The latest `source='live'` row with `ts <= tip - 60 min` and age `tip - 60 min - ts <= 240 min`.
@@ -71,6 +74,10 @@ declared OVERLAPPING; neither rule's verdict is a substitute for the other, and 
    fraction with age <= 30 min is reported (S2).
 6. **Eligibility (applied to the entry snapshot only).** `yes_bid >= 0.01` (so the NO price is at most 0.99) and `yes_ask - yes_bid <= 0.05`.
    Counted by reason (`bid_zero`, `wide_spread`) and never scored. There is NO upper limit on the mid. Filters use only the entry snapshot.
+   All price comparisons, buckets and returns use integer cents: `bid_c = round(100 * yes_bid)`, `ask_c = round(100 * yes_ask)` from the
+   stored value; eligibility is `bid_c >= 1` and `ask_c - bid_c <= 5`; `mid = (bid_c + ask_c) / 200`;
+   `P_no = (100 - bid_c) / 100`, `P_yes = ask_c / 100`. The stored FLOAT columns are never compared directly (on the 2026-10-20..23 capture a
+   float comparison rejects 258 of the 499 contracts whose spread is exactly 5c).
 7. **Kinds.** `prop` = KXNBAPTS/REB/AST/3PT/STL/BLK; `combo` = KXNBAPRA/PR/PA/RA (stat sums). Game markets (KXNBAGAME/SPREAD/TOTAL/TEAMTOTAL)
    are OUT: the question is player props, and KXNBASPREAD tails belong to SPREAD_TAIL_NO. Kalshi multivariate/parlay contracts are not captured
    and are out of scope.
@@ -78,7 +85,7 @@ declared OVERLAPPING; neither rule's verdict is a substitute for the other, and 
 ## 2. Price buckets (by entry YES-mid; the trade is always NO)
 
 U1 [0.01,0.05), U2 [0.05,0.10), U3 [0.10,0.15] (these three are the long-shot band, OVERLAPPING with LONGSHOT), U4 (0.15,0.30], U5 (0.30,0.50],
-U6 (0.50,0.70], U7 (0.70,0.85], U8 (0.85,0.99]. The decision pools every bucket. Buckets are descriptive with no decision weight; a bucket
+U6 (0.50,0.70], U7 (0.70,0.85], U8 (0.85,1.00). The decision pools every bucket. Buckets are descriptive with no decision weight; a bucket
 with fewer than 30 games prints "insufficient sample" and nothing else. The long-shot band's own pooled R is printed as `R_band` for comparison
 with LONGSHOT.
 
@@ -113,11 +120,27 @@ prints the config's `source`, the coefficient and the multiplier it used in ever
 S1: rounded up to a whole cent per single contract. At freeze, Devin re-verifies the schedule against Kalshi's published one (the 2026-10-08
 verification is "user-provided"; an automated fetch on 2026-10-23 was rate-limited and verified nothing).
 
+TO BE CONFIRMED BY DEVIN AT FREEZE against Kalshi's published schedule. The values below are copied from `configs/parlay.yaml` as of this draft
+(coefficient 0.07, formula `p_one_minus_p` = P(1-P), default_multiplier 1.0, empty `fee_multiplier`, rounding up once per ORDER in the config
+and UNROUNDED per contract in this rule's primary) and are UNCONFIRMED until he does.
+
+The fee parameters are pinned by this text: taker coefficient 0.07, formula `p_one_minus_p`, multiplier M = 1.0 for every series in
+Section 1.7 (Devin confirms these against Kalshi's published schedule before the freeze commit; if his check differs, these numbers are
+edited before the freeze commit). The scorer REFUSES to run if `verified` is not true, or if the loaded coefficient, `default_multiplier`
+or `fee_multiplier` give a different fee for any series in this universe than the pinned values. The one exception is a Kalshi schedule
+change recorded in `configs/parlay.yaml` with its Kalshi source URL and effective date before the read date. Such a change applies only
+to entries on or after its effective date. A config edit for any other reason never changes this rule's fee. Negative tests: the scorer
+refuses on `verified: false` and on a changed coefficient.
+
 ## 6. Settlement, DNP, metric, floor, decision
 
 `y` (YES payoff in dollars) is Kalshi's own settlement: `yes` -> 1, `no` -> 0, `scalar` (inactive, or active but never takes the court) -> the
 `settlement_value_dollars` in the stored raw settled page `data/kalshi/raw/<date>/*_settled_*.json.gz`. A scalar with no stored value is
-excluded, counted and flagged (never guessed, never from a box score, never the entry mid). Unsettled by the read date: excluded and counted.
+excluded, counted and flagged (never guessed, never from a box score, never the entry mid). A look scores only games whose ET tip date is at least 2 days before the read date (Read 1: tips on or before 2027-01-13; Read 2: on or
+before 2027-04-12). A game with any eligible contract unsettled at the read is excluded WHOLE and counted (`unsettled_game`), never
+contract by contract: Kalshi settles a YES on a "k or more" market as soon as it is reached and a NO only after the final (2026-10-23
+slate at 03:34Z: 904 of 1,644 eligible contracts settled; YES median 2.8 h after tip, NO 3.0 h; DNP scalars up to 13.75 h), so a
+contract-level exclusion would keep YESes and drop NOs.
 DNPs are scored at the fair price and counted (`n_dnp`); S5 shows R without them.
 
 - Primary metric `R` = mean of `r_no` over all eligible settled contracts (all buckets pooled, equal weight per contract). ROI per dollar paid
@@ -128,51 +151,65 @@ DNPs are scored at the fair price and counted (`n_dnp`); S5 shows R without them
   dates; the decision CI is the WIDER of the two. Both printed.
 - **PASS** iff ALL: n games >= 300, n dates >= 50, `R >= 0.010`, the one-sided lower bound of the decision CI > 0 at the look's level (Section 7),
   and the guards (Section 8) hold.
-- **NO_POSITIVE_EV_FOUND** (first-class) iff n is reached and the upper bound of the decision CI (same level) < 0.010, or `R` is clearly negative.
+- **NO_POSITIVE_EV_FOUND** (first-class) iff n is reached and the upper bound of the decision CI (same level) < 0.010.
 - **INSUFFICIENT_SAMPLE** iff n games < 300 or n dates < 50 at a look: counts and projected date only, no direction.
 - **KEEP_SHADOWING** otherwise.
+- **Final read.** At Read 2, KEEP_SHADOWING is recorded as **INCONCLUSIVE** and the rule closes; INSUFFICIENT_SAMPLE at Read 2 also
+  closes it. There is no Read 3, no extension, and no re-read with later settlements. A point estimate below zero is reported with its CI
+  and is never by itself a verdict.
 - A bucket or stratum can NEVER be promoted from a pooled PASS, and a pooled NO_POSITIVE_EV_FOUND does not rule out a stratum; strata are
   hypotheses for a new rule, not findings.
 
-Power (assumption-based; realised variance replaces it at the look). Per-contract SD of `r_no` about 0.44 (mean of mid(1-mid) is about 0.19 on the
-real capture); about 159 eligible contracts per game; within-game intraclass correlation assumed 0.06 (unmeasured; rungs of one player's ladder
-co-move, so 0.03-0.10 is the plausible range), design effect 10.5, effective N about 4,500 at 300 games, SE of `R` about 0.0066 (0.0049-0.0083
-across the range). Detectable edge at 80% power: about **+2.3c at Read 1** (alpha 0.005, 300 games) and about **+1.1c at Read 2** (alpha 0.02,
-about 900 games, SE 0.0038). Power to PASS if the true net edge is +2.0c: about 0.68 at Read 1, near 1 at Read 2; if +1.0c: at most 0.5 (the point
-estimate must also reach the floor); if 0: alpha. "CI includes 0" at Read 1 means "no power below about 2c", not "no edge".
+Power (measured on 2026-10-20..23 entry mids, label-free, plus season-2024 within-game correlations; the realised cluster variance
+replaces it at each look): design effect about 4-6. Exact ladder nesting contributes 1.9; the rest is
+same-player cross-stat and cross-player co-movement. SE of `R` at 300 games about 0.0037-0.0047. MDE at 80% power: about
+1.3-1.6c at Read 1 (one-sided 0.005), 0.6-0.9c at Read 2 (one-sided 0.02, 700-900 games). Power to clear the bound at a true +1c: about
+0.33-0.54 at Read 1 and 0.88-1.00 at Read 2. The Gaussian copula understates tail co-movement, so these are optimistic by an unknown
+margin; the earlier assumed ICC (0.2 / 0.06) overstated the design effect about 2-3x.
 
 ## 7. Looks, alpha, multiplicity
 
-Reads, same as LONGSHOT: **Read 1 on 2027-01-15** (settlements through 2027-01-14) and **Read 2 (final) on 2027-04-14**; a look is never moved.
+Reads, same as LONGSHOT: **Read 1 on 2027-01-15** (games with ET tip dates through 2027-01-13; Section 5/6 game-level settlement rule) and **Read 2 (final) on 2027-04-14**; a look is never moved.
 Multiplicity: two rules test overlapping contracts on the same capture (LONGSHOT, UNDERS). **Bonferroni across the two rules**: each rule's
 one-sided level is halved, **0.005 at Read 1 and 0.02 at Read 2** (decision CI = the matching 99% / 96% two-sided percentile interval). Within this
-rule the family is m = 1 (pooled `R`); strata are descriptive. LONGSHOT's draft states 0.01/0.04 (m = 1) and must be amended to 0.005/0.02 by
-whoever freezes it, in the same commit or before; if LONGSHOT is shelved, this rule's levels are NOT relaxed after the fact (a rule never changes
+rule the family is m = 1 (pooled `R`); strata are descriptive. LONGSHOT is frozen (or will be) at the same 0.005/0.02; if LONGSHOT is shelved, this rule's levels are NOT relaxed after the fact (a rule never changes
 after a result). A second look cannot undo a Read 1 PASS or NO_POSITIVE_EV_FOUND that met its own rule.
 
 ## 8. Guards
 
-1. Entry coverage: if fewer than 70% of otherwise-eligible settled contracts have an entry snapshot, INSUFFICIENT_SAMPLE for capture reasons, naming
+1. Entry coverage: if fewer than 70% of the settled markets of this rule's series on in-window games have a `source='live'` row with `ts <= tip − 60 min` and
+   age <= 240 min (price filters are not applied to this denominator; they need the snapshot), INSUFFICIENT_SAMPLE for capture reasons, naming
    the dates with gaps (coverage is by clock, not outcome).
-2. Concentration: no game above 3% of eligible contracts unless `R` is shown without it; `R` leaving out each stat in turn (no single stat may
-   carry the whole sign).
-3. Settlement completeness: scalar markets missing `settlement_value_dollars` above 2% block the look.
+2. Concentration: no game above 3% of eligible contracts unless `R` is shown without it; PASS additionally requires that `R` recomputed leaving out each stat in turn stays > 0 (point estimate). If any
+   leave-one-out `R` is <= 0, the verdict is KEEP_SHADOWING at Read 1 and INCONCLUSIVE at Read 2.
+3. Settlement completeness: scalar markets missing `settlement_value_dollars` above 2% make the look INSUFFICIENT_SAMPLE (settlement) unless the missing values are fetched from Kalshi's market endpoint within 7 days of the
+   read date; the look's game cutoff never moves.
 4. Identity: `player_id` NULL props stay in (the test needs no player model) but are counted and listed; the scorer never guesses names.
 5. No later information: never re-scored with a later snapshot, report or close.
-6. Scorer self-tests run before every look and are printed: the Section 4 identity; a within-game outcome shuffle (B = 1,000) giving a bootstrap
-   rejection rate of 0.05 +/- 0.02 at one-sided 5% (the CI procedure is neither too wide nor too narrow); and a planted-edge check recovering a +3c
-   planted NO edge to within 0.5c.
-<!-- FROZEN-END -->
+6. Scorer self-tests run before every look and are printed. Any failure voids that look's verdict: the report prints SELFTEST_FAILED and
+   the counts only, until the scorer is fixed under an adversary-reviewed code change. The rule text never changes. (a) The Section 4
+   identity on every contract, in integer hundredths of a cent. (b) Calibrated-null coverage: K = 200 synthetic outcome sets on the
+   look's own contracts. Each ladder (one player-stat, one team's spread or team total, one game total) gets one uniform draw u, and a
+   rung is YES iff u < its entry mid, so ladders stay nested. DNPs are not simulated. The game and date structure is the real one. The
+   decision-CI one-sided 5% bound must exclude the known true `E[r_no]` in 2% to 9% of sets. (c) Planted edge: the same sets with every
+   YES probability multiplied by 0.80 (long shots overpriced). The point estimate must fall within 0.5c of the known true `R`, and the
+   decision CI must cover it.
+(The drafted within-game outcome shuffle is removed: it leaves every game's sum of `y`, and therefore `R`, unchanged, so its rejection
+rate depends on the real outcome rather than on the CI procedure.)
 
-## 9. Paper Kelly column (paper only; outside the frozen decision)
+## 9. Paper Kelly column (paper only; frozen definition, no decision weight)
 
-Shown per bucket and stratum so the reader sees how small an honest fraction is. Definition: with `c` the bucket's mean cost per contract
+Shown per bucket only (never per stratum; a bucket with fewer than 30 games prints nothing) so the reader sees how small an honest fraction is. Definition: with `c` the bucket's mean cost per contract
 (`P_no + fee`) and `q_lo` the 10th percentile of the decision-CI bootstrap distribution of the bucket's mean NO payoff `1 - y`, the paper full-Kelly
 fraction of a NOTIONAL bankroll is `f = max(0, (q_lo - c) / (1 - c))`; half-Kelly is `f / 2`. Printed as a percent of a notional bankroll, labelled
 "PAPER ONLY. Not a stake. Not advice." It takes no bankroll in dollars and prints no dollar amount; it is zero wherever the lower bound does not clear the
 cost, which is the expected case in almost every cell. It does not use `nba/parlay/bayes_kelly.py` (an unmerged stake sizer on
 `agent/market-bayes-kelly`), so no stake path is imported. DECISIONS 2026-10-09 ("no stakes, no sizing prompts") stands: this is a calibration
 display Devin asked for on 2026-10-23, and it cannot enter a verdict.
+The fraction is per single contract in isolation. About 160 same-game contracts are correlated (design effect 4-6), so fractions never
+add up to a stake, and no number here enters a verdict.
+
+<!-- FROZEN-END -->
 
 ## Playbook check (docs/MODEL_PLAYBOOK.md)
 
@@ -183,8 +220,8 @@ as a stratum label.
 2. **Was the training data enough?** No training. The data gate is Section "Gate" below.
 3. **Was the test valid?** Real scheduled tip, entry stamped at or before T-60 with a stored age, DNP scored at Kalshi's fair price (not dropped),
    integer support is native (Kalshi lines are x.5 on integer stats), fee from a verified object, clustered by game and date, power stated with its
-   assumptions, self-tests including a shuffle null and a planted edge (guard 8.6). Known weaknesses: the eligibility filter (spread <= 5c) removes
-   26% of otherwise-priced contracts, so the claim is about tradeable quotes only; the intra-class correlation is assumed, not measured; the 15-minute
+   assumptions, self-tests including a calibrated-null coverage check and a planted edge (guard 8.6, after the adversary review). Known weaknesses: the eligibility filter (spread <= 5c) removes
+   26% of otherwise-priced contracts, so the claim is about tradeable quotes only; the design effect is now measured from the entry mids plus season-2024 correlations (Section 6), with the copula caveat; the 15-minute
    capture is irregular (stale nights below).
 4. **Lineage.** Descends from KALSHI_LONGSHOT_FORWARD (same plumbing, wider price range) and from MARKET_SURFER_PAPER (its trading arm lost; this is the
    hold-only version). It is not the long-shot bias test: that is the overlapping band.
@@ -225,11 +262,13 @@ prices (a different market); excluded by Devin's forward-only choice. A `/histor
 
 Observed fraction of scheduled games with at least one eligible contract: 28 / 28 = 1.0 (the LONGSHOT draft's 0.82 was for contracts at mid <= 15c; with
 all prices a game always has contracts). The date projection is the LONGSHOT draft's, driven by `data/schedule/live_tips_2026-27.parquet` from 2026-10-25
-(not recomputed here): 150 games on 2026-11-14 and 300 on 2026-12-13 at fraction 1.0; 300 on 2026-12-23 at 0.8; 300 on 2027-01-08 at 0.6. The 300-game and
-50-date gate passes at Read 1 (2027-01-15) with margin if capture is at least 60% reliable, and the final read has about 900 games. **Gate on counts: PASS.**
-**Gate on power: HONEST-WEAK** for edges under about 2.3c at Read 1, about 1.1c at Read 2 (Section 6). Cost per contract against which an edge must clear:
-mean fee about 1.3c (0.07 x mean P(1-P)) plus half the spread (about 1-1.5c); the pooled hurdle is therefore about 2.5-3c gross, and the data cannot
-rule out a net edge of +1c at Read 1. Gate failure on data has NOT been declared: no season, source or repair beyond those listed would change the count.
+(not recomputed here): 150 games on 2026-11-14 and 300 on 2026-12-13 at fraction 1.0; 300 on 2026-12-23 at 0.8; 300 on 2027-01-08 at 0.6. Dates bind, not games: the schedule has 538 games on 70 ET dates from 2026-10-25 to 2027-01-13 (1,164 on 151 dates through 2027-04-12).
+Capture failures come as whole nights, so 50 dates by Read 1 needs at least 72% of nights captured. At 100% both counts are met on
+2026-12-23, at 80% on 2027-01-06, at 71% on 2027-01-14, and at 60% only on 2027-01-27, which is an INSUFFICIENT_SAMPLE Read 1. Every
+scheduled game 2026-10-20..23 had at least one eligible contract (LONGSHOT: 28 of 28; the earlier "23 / 28" counted only games already
+settled). The final read has about 900 games. **Gate on counts: PASS.**
+**Gate on power (measured, Section 6):** MDE at 80% about 1.3-1.6c at Read 1 and 0.6-0.9c at Read 2, optimistic by an unknown margin (the copula understates tail co-movement). Cost per contract against which an edge must clear:
+mean fee about 1.3c (0.07 x mean P(1-P)) plus half the spread (about 1-1.5c); the pooled hurdle is therefore about 2.5-3c gross, and a Read 1 bound that includes 0 means "no power below about 1.5c", not "no edge". Gate failure on data has NOT been declared: no season, source or repair beyond those listed would change the count.
 
 ### Disclosure of what was seen (before this draft was committed)
 
@@ -246,7 +285,7 @@ rule out a net edge of +1c at Read 1. Gate failure on data has NOT been declared
    (cleaner, but then the long-shot band gets a second chance at a PASS).
 2. Decision scope: **pooled R only, strata descriptive**; alternative: name the cell "z > +0.5 and D = 0" a second confirmatory hypothesis (Holm, m = 2), which
    raises power for the FAN_KNOWLEDGE effect and halves the level again.
-3. Floor: **+1.0c per contract net**; alternatives 0.5c or 2c (2c matches the Read 1 detectable edge).
+3. Floor: **+1.0c per contract net**; alternatives 0.5c or 2c (2c was the drafted Read 1 detectable edge; the measured one is 1.3-1.6c).
 4. Entry max age: **240 min**; 120 min would cut coverage on the current capture.
 5. Fee rounding: **unrounded** (no stakes); per-contract rounding is S1.
 6. Game markets: **excluded** (they belong to LONGSHOT and SPREAD_TAIL_NO); including them mixes a different question into a props rule.
