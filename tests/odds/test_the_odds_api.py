@@ -757,21 +757,21 @@ def test_history_resolver_order_and_exact_only(tmp_path: Path) -> None:
     r = pa.HistoryResolver(
         teams=base.teams,
         players=base.players,
-        generated={"luka doncic": 1629029, "jalen brunson": 999, "michael porter": 1},
+        generated={"luka doncic": 1629029, "jalen brunson": 999, "zorp quill": 1},
         collisions={"jaylin williams"},
     )
     assert r.player_id("Luka Dončić") == 1629029  # generated, accent folded
     assert r.player_id("Jalen Brunson") == 1628973  # the reviewed Kalshi id wins
     assert r.player_id("Jaylin Williams") is None  # collision never resolves
     assert r.player_id("Luka Doncicc") is None  # no fuzzy matching
-    assert r.player_id("Michael Porter Jr.") == 1
+    assert r.player_id("Zorp Quill Jr.") == 1  # suffix folded; absent from the reviewed table
     assert r.player_id(None) is None and r.player_id("") is None
     # surname-first spellings from one 2023-24 book resolve through the reversed order,
     # only when the reversed form is itself a unique alias
     assert r.player_id("Doncic Luka") == 1629029
     assert r.player_id("Doncic, Luka") == 1629029
     assert r.player_id("Williams Jaylin") is None  # reversed into a collision: still unresolved
-    assert r.player_id("Porter Michael Jr.") == 1
+    assert r.player_id("Quill Zorp Jr.") == 1
     path = tmp_path / "a.yaml"
     t = pa.AliasTable({"x y": 5}, {"a b": [1, 2]}, 7)
     pa.write_table(path, t, [("Nick Name", 3)], 2022)
