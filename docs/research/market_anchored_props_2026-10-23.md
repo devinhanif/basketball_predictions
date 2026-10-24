@@ -143,7 +143,7 @@ venue's own de-vigged price, not vs raw A0.
 
 *Playbook check (linear and logistic models).* Information: capacity only in the main-line version; the new inputs are market-side (soft-book gap,
 dispersion, spread) and a covariate that says when the model's difference should count (bench, heavy depletion, book disagreement). Data: low,
-a 19-parameter ridge logistic on 28,108 scored 2023 legs and 37,528 2024 legs. Test: walk-forward by month, real tip, time weights, planted future,
+a 22-parameter ridge logistic on 28,108 scored 2023 legs and 37,528 2024 legs. Test: walk-forward by month, real tip, time weights, planted future,
 placebo from K derangements, three clusterings; positive control in both directions (gate G7). Lineage: H2 (one weight), MARKET_SHRINK (+ temperature), T502
 (offset GBM, closed because it could not separate), LINE_CALIBRATION (market-free map). Carried: floor scale, pins, bootstrap, derangement placebo.
 Dropped: trees (capacity), decision guard (this is an information test, BEST_PRACTICES 2026-10-11 applies if a pass becomes a bet rule). Scored
@@ -157,15 +157,14 @@ Four nested arms on identical legs, all logistic, all walk-forward, none reading
 |---|---|---|---|
 | M | m | 0 | market alone |
 | B0 | stat intercept + stat slope on m | 8 | pure re-scaling of the price (T477 over bias, favourite-longshot) |
-| MR | B0 + {hi-line, soft-book gap u1, its missing flag, blowout} | 12 | everything the market side alone can explain |
+| MR | B0 + {hi-line, soft-book gap u1, its missing flag, blowout} + main effects of bench, heavy depletion, book dispersion | 15 | everything the market side alone can explain, including every covariate the model terms interact with |
 | MD | m + model terms (offset m, no re-scaling) | 7 | model credited first |
-| MM | MR + model terms (stat-specific delta, delta x bench, x heavy depletion, x book dispersion) | 19 | the pool |
-| PL | MM refit with delta taken from another leg of the same (date, stat), K = 50 | 19 | placebo |
+| MM | MR + model terms (stat-specific delta, delta x bench, x heavy depletion, x book dispersion) | 22 | the pool |
+| PL | MM refit with delta taken from another leg of the same (date, stat), K = 50 | 22 | placebo |
 
 Components (paired per-leg log loss): **C_cal = B0 - M** (mis-calibration of the price proper), **C_mktx = MR - B0** (market-side information),
 **C_mod = MM - MR** (the claim: the model given the best market-only forecast), C_mod_first = MD - M (the order-reversed credit), **C_mkt_after = MM - MD**
-(the market side after the model has had first pick), C_pl = MM - PL, C_total = MM - M. Mis-calibration cannot be mistaken for model knowledge because the
-market-only arms receive every market-side input the model arm receives and are scored on the same rows; model knowledge cannot be mistaken for
+(the market side after the model has had first pick), C_pl = MM - PL, C_total = MM - M. Mis-calibration along the covariates MR contains (stat, line level, soft-book gap, spread, bench, heavy depletion, book dispersion) cannot be mistaken for model knowledge because MR receives them all and is scored on the same rows; **a market error outside that span can still reach C_mod** (the pre-freeze review showed it for bench, dispersion and depletion before they were added to MR), so the separation is only as good as the gate's off-span worlds (G7g); model knowledge cannot be mistaken for
 mis-calibration because it is the *increment* over MR and must beat a placebo that keeps every other column. **The two explanations share variance**
 (delta = a - m is correlated with m): a first gate draft read the market word from MR - M and a planted model-only world leaked into it in 7 of 10
 replicates. The adopted market word is MR - M **kept only if MM - MD < 0** (otherwise `MODEL_EXPLAINS`); the model word is MM - MR. Each side is credited
@@ -173,7 +172,7 @@ only with what survives the other side going first, and the shared part is repor
 Gate evidence that it separates (synthetic outcomes on the real legs, section 8): a market-mis-calibrated, model-inert world lands in C_cal/C_mktx
 and not in C_mod; a model-informed world lands in C_mod; the null world fires nothing.
 
-*Playbook check (3.3).* Information or capacity: neither added; the decomposition re-uses the pool of 3.2. Data enough: 28,108 / 37,528 scored legs for 19 ridge parameters (null cost +0.0002).
+*Playbook check (3.3).* Information or capacity: neither added; the decomposition re-uses the pool of 3.2. Data enough: 28,108 / 37,528 scored legs for 22 ridge parameters (null cost +0.0002).
 Test valid: placebo from K derangements, both-direction positive controls, planted future exact. Lineage: T502 (this is its repair), H2. Scored against: log loss at the line.
 
 ### 3.4 Minutes: the dominant error, and what the market already holds
@@ -270,7 +269,7 @@ replaced by the fitted logit pool with the walk-forward coefficients.
 ## 7. Playbook check (summary; per-area checks are in section 3)
 
 1. **Information or capacity?** The primary adds no model information; it adds market-side information (soft books, spread) and decides how much of the
-   existing model difference to trust. Capacity is held to 19 ridge-regularised parameters. The information lever (freshness) is deferred because history
+   existing model difference to trust. Capacity is held to 22 ridge-regularised parameters. The information lever (freshness) is deferred because history
    cannot measure it.
 2. **Enough data for the class?** Yes for a low-capacity logistic pool (gate G1, G2, G8); the unpooled form was too heavy (+0.0005 overfit) and was cut
    before any real outcome.
@@ -284,8 +283,8 @@ replaced by the fitted logit pool with the walk-forward coefficients.
 
 ## 8. Gate summary (details in the rule, section 8; `reports/prereg_market_anchored_props/gate.json`)
 
-22 of 22 checks pass after the design changes disclosed in rule section 13 (the first draft of the gate failed six checks, which is why the model went from 36
-to 19 parameters). Legs 35,146 / 37,528 (equal to MARKET_PRIOR_RESIDUAL's gate), 1,249 / 1,260 games, 377 / 414 player-seasons, 35 / 36 ISO weeks, minimum
+23 of 23 checks pass (G7g, off-span market errors, added after the adversary's pre-freeze review) after the design changes disclosed in rule section 13 (the first draft of the gate failed six checks, which is why the model went from 36
+to 19, then 22 parameters). Legs 35,146 / 37,528 (equal to MARKET_PRIOR_RESIDUAL's gate), 1,249 / 1,260 games, 377 / 414 player-seasons, 35 / 36 ISO weeks, minimum
 lead 62.55 minutes, planted future exactly 0.0. Synthetic outcomes on the real legs, 10 replicates per world: the null world fires nothing (0 of 10) and
 costs +0.00016 per leg (2024) / +0.00041 (2023); the market-mis-calibrated, model-inert world (oracle 0.0010) fires the market word 10 of 10 and the model
 word 0 of 10; the model-informed worlds (oracle 0.0011 and 0.0030) fire the model word 10 of 10 (INFO in 1 and 10) and the market word 0 of 20 falsely;

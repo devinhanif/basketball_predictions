@@ -9,7 +9,12 @@ Status: **DRAFT, written by the modeler Fri 2026-10-23 (clock read by `date` at 
   (label-free gate; all outcomes synthetic), tests `tests/research/market_anchored_props/`. **Not yet written (after the freeze, must implement this text exactly):**
   `market_anchored_props_rule.py` (the frozen constants and refusals, mirrored from this text), `market_anchored_props_eval.py` (the `run --sha` entrypoint, label loading,
   the Stage 2 ladder arms, the secondary family, slices, `results.json`). The run refuses a DRAFT doc, a missing `prereg(...)` commit, a harness that differs from its blob at that
-  commit, a pairs frame that differs from its pin, and any season > 2024.
+  commit, a pairs frame or an extras frame that differs from its pin, and any season > 2024.
+  **Post-freeze order (adversary review R5, pre-freeze 2026-10-23):** (a) `market_anchored_props_eval.py dryrun` re-runs the gate's synthetic worlds through the eval code path and must reproduce `reports/prereg_market_anchored_props/gate.json`'s
+  world summaries exactly (same seeds) before any label is read; (b) the adversary checks the eval against this frozen text before `run` (the T510 L-S2 precedent); (c) before any C_* is computed, `run` writes the missingness table on real labels
+  (null `p_model`, `miss_u1`, `n_soft < 3`, spread-missing rates by minutes < 5 vs >= 5, over vs under at the line, starter vs bench) and reports any asymmetry first.
+- **Pinned market-side inputs (R3).** `u1`, `disp10`, `blowout` come from `data/ops/market_anchored_props/extras_{2023,2024}.parquet`, written by `core.build_extras` from a **byte copy** of `odds_history.duckdb` (the live file is under a writer; a copy is read, never the live file, never a write
+  connection) and pinned by sha256 in section 8. `p_model` comes from the pairs frames (pins `050dba3e...`, `560a3808...`). The run reads only those files and refuses a mismatch; it never opens the odds database.
 - **Origin:** Devin, 2026-10-23 ~20:05 CDT ("do as much advanced math related to incorporating the market rates into the model instead of trying to beat it; you can use literally
   anything to predict this that would have a relationship"). **Advice or momentum: Devin's override.** Claude had recommended leaving MARKET_PRIOR_RESIDUAL (T502) closed; this rule does not
   re-open T502 (a different construction, below) and says in section 2 what it shares with it. Research note: `docs/research/market_anchored_props_2026-10-23.md`.
@@ -62,16 +67,18 @@ played-only legs are the matching population.
 Notation: `m` = logit of Pinnacle's multiplicative de-vigged P(over) (`p_over_mult`); `a` = logit of production's stored P(over) at the line (`p_model`, clipped to [0.5/199, 1 - 0.5/199]);
 `delta = clip(a - m, -3, 3)`; `hi` = line >= {pts 24.5, reb 9.5, ast 6.5, fg3m 2.5}; `u1` = clip(mean over >= 3 two-sided non-Pinnacle books at the same line of logit(m_b) - m, -1, 1) (0 and `miss_u1` = 1 otherwise);
 `disp10` = 10 x sd across those books of logit(m_b) (0 if unavailable); `blowout` = |Pinnacle-median spread at t60| / 10 (0 if unavailable); `bench` = `starter10` < 0.5; `tmout` = `n_out_rot` >= 3 (heavy depletion, 31% of legs).
+**Why MR carries bench, tmout and disp10 main effects (adversary R1/edit 1):** `delta` has mean -0.24 logit (the model's P(over) sits below the market, T477) and its mean differs by group, so `delta x bench`, `delta x tmout`, `delta x disp10` behave like intercepts; a market-only
+over-bias on bench legs would otherwise flow into C_mod, the model word's own number (draft: C_mod CI below 0 in 7-8 of 10 replicates of a model-inert bench world, saved only by the placebo). The comparator must know what the model knows (BEST_PRACTICES 2026-10-22; playbook question 3).
 Every column is as-of the same Pinnacle snapshot or production's as-of frame. De-vig is multiplicative; power and Shin are sensitivity only (measured difference 3.5e-5 to 3.7e-5 log loss).
 
 | arm | logit p | free params | role |
 |---|---|---|---|
 | M | m | 0 | the market alone (comparator) |
 | B0 | stat intercept + stat slope on m | 8 | pure re-scaling of the price (C_cal) |
-| MR | B0 + {hi, u1, miss_u1, blowout} | 12 | everything the market side alone can explain |
+| MR | B0 + {hi, u1, miss_u1, blowout} + the main effects of bench, tmout, disp10 | 15 | everything the market side alone can explain, including every covariate the model terms interact with |
 | MD | m + {stat-specific delta (4), delta x bench, delta x tmout, delta x disp10} (offset m, no re-scaling) | 7 | the model credited first |
-| MM | MR + the 7 model terms | 19 | the pool |
-| PL | MM refit with delta taken from another leg of the same (game_date, stat); mean over K = 50 draws | 19 | placebo for the model terms |
+| MM | MR + the 7 model terms | 22 | the pool |
+| PL | MM refit with delta taken from another leg of the same (game_date, stat); mean over K = 50 draws | 22 | placebo for the model terms |
 
 - **Fitting.** Weighted logistic, Newton, ridge `LAM = 50` on every coefficient except the four stat intercepts, centred on the arm's starting point (stat slope 1, all else 0), fixed, not tuned. Fit rows carry weight
   `0.5 ** (age_days / 365)` (LINE_CALIBRATION's half-life). One pooled fit per calendar month on all prior legs of the training seasons (report: 2023 + earlier 2024 months; select: earlier 2023 months), minimum **3,000** prior
@@ -90,17 +97,20 @@ Every column is as-of the same Pinnacle snapshot or production's as-of frame. De
   3. The 2023 select-season C_mod point estimate >= 0 -> `FAIL_SELECT_SIGN`.
   4. C_mod <= -0.003 and C_pl <= -0.003 -> `BET_FLOOR_PASS`. 5. C_mod <= -0.001 and C_pl <= -0.001 -> `INFO`. 6. else `DETECTED_BELOW_INFO_FLOOR`.
 - **Market word** (from C_mkt, guarded by C_mkt_after; evaluated in this order): C_mkt CI upper >= 0 -> `NONE`; C_mkt_after point >= 0 (the model terms explain the market-side gain when they go first) -> `MODEL_EXPLAINS`;
-  2023 C_mkt point >= 0 -> `FAIL_SELECT_SIGN`; C_mkt <= -0.001 -> `MISCALIBRATION_INFO`; else `MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR`.
-- **Override** `WORSE_THAN_MARKET`: C_total mean >= +0.0005 with CI lower > 0 (the gate's null overfit cost is +0.00016, so this fires only on a practical loss).
+  2023 C_mkt point >= 0 -> `FAIL_SELECT_SIGN`; C_mkt <= -0.001 **and the C_mkt_after binding CI upper < 0** -> `MISCALIBRATION_INFO`; else `MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR` (a point-only guard decided with margins as small as +0.00001 in the committed gate; the CI guard was below 0 in 0 of 20 model-world replicates and in 10 of 10 off-span market worlds).
+- **Override** `WORSE_THAN_MARKET`: C_total mean >= +0.0005 with CI lower > 0 (the gate's null overfit cost is +0.00016, so this fires only on a practical loss). **Precedence (as in `core.verdict`):** `NO_RESULT_INVALID_RUN` (planted future, leg reproduction, pin or extras-pin failure; no word, no number is reported)
+  first; then `KILLED_K1` (2023 C_total point estimate above +0.0010; 2024 is not scored); then the override, which replaces both words; then the model and market words above. These two run words and the override are the only words that can replace the pair.
 - **Tiers and what they protect against.** Detection (any size, CI below 0) answers "does the model know anything"; -0.001 is the smallest gain that matters inside a pool (the oracle gain at H2's largest weight w = 0.25 is -0.0011,
   T502 gate G9); -0.003 is the scale of a 7.0% overround (a bettor needs 3.5 pp, about 2 delta^2 = 0.0025). Reporting all three keeps the T502 defect (a single unreachable floor) out.
-- **What the tiers can see (gate G7):** C_mod recovers about 55-70% of an oracle gain (oracle 0.0011 -> C_mod -0.0006, model word DETECTED_BELOW_INFO_FLOOR in 9 of 10 replicates; oracle 0.0030 -> -0.0020, INFO 10 of 10). So INFO needs a true oracle gain of roughly
+- **What the tiers can see (gate G7):** C_mod recovers about 55-70% of an oracle gain (oracle 0.0011 -> C_mod -0.0006, model word DETECTED_BELOW_INFO_FLOOR in 10 of 10 replicates; oracle 0.0030 -> -0.0020, INFO 10 of 10). So INFO needs a true oracle gain of roughly
   0.0017 or more and BET_FLOOR_PASS roughly 0.0045 or more (a disagreement coefficient about 1.25 and 2 times the 0.222 that gives H2's largest oracle). The BET tier is, by design, close to unreachable; it is there so that no smaller gain is ever sold as money.
-- **Consequence mapping (fixed now, Devin's call to act):** model word INFO or BET_FLOOR_PASS, or DETECTED with the live follow-up passing its gate -> propose to Devin replacing the linear `shrink_to_market` with the fitted logit pool,
-  forward-confirmed first. Market word MISCALIBRATION_* -> propose a market-only re-scaling of the displayed price (a correctness item worth about the measured gain, not money). Everything else -> `model_weight` stays 0 and
+- **Consequence mapping (fixed now, Devin's call to act). Every consequence that changes a displayed probability additionally requires the binding CI of C_total (= MM - M) to have upper < 0** (a model or market word can fire while the pool as a whole does not beat the market, because MR's own fit costs something;
+  without that the record is "information, no product change"). Model word INFO or BET_FLOOR_PASS, or DETECTED with the live follow-up passing its gate, **and C_total CI upper < 0** -> propose to Devin replacing the linear `shrink_to_market` with the fitted logit pool, forward-confirmed first.
+  Market word MISCALIBRATION_* **and C_total CI upper < 0** -> propose a market-only re-scaling of the displayed price (a correctness item worth about the measured gain, not money). Everything else -> `model_weight` stays 0 and
   "keep your money" stays the answer. **Nothing is promoted by this rule.**
 
-**Secondary (labels only, no pass).** BH at 0.05 over a declared family of **10**: C_mod by stat (4, one-sided "MM beats MR", p = worst case over the decisive clusterings), C_mkt by stat (4, one-sided "MR beats M"), C_mod on the bench slice (1) and on the heavy-depletion
+**Secondary (labels only, no pass).** BH at 0.05 over a declared family of **10**: C_mod by stat (4, one-sided "MM beats MR"), C_mkt by stat (4, one-sided "MR beats M"); the p-value of every test is `p = max over {game, player_season, week} of (1 + #{b : bm_b >= 0}) / (B + 1)` computed from the bootstrap means `bm` of the per-leg loss difference
+(a gain is negative; the shared `Boot._pack` returns the opposite tail, `(1 + #{bm <= 0}) / (B + 1)`, which is the p for "mean > 0", so the run must compute this tail itself and a unit test pins it), C_mod on the bench slice (1) and on the heavy-depletion
 slice (1). Descriptive without a decision weight: C_cal, C_mktx, C_mod_first, C_total, Brier deltas; the fitted coefficients (stat deltas, `delta x bench`, `delta x tmout`, `delta x disp10`, `u1`, `hi`, `blowout`, B0 slopes) by month with the
 slope's departure from 1 as the extremising/shrinking diagnostic; slices (n >= 300 else n only): stat, starter vs bench, `min10` < 15 / 15-25 / >= 25, teammate-OUT (`n_out_rot` >= 1 and >= 3), first 15 team games, regular season vs playoffs
 (game-id prefix 002 vs 004/005), high vs low line, soft-book count < 6 vs >= 6, tip-hour bucket (the only freshness proxy history has: **labelled a tip-hour slice, not freshness**), month; the share of C_mod carried by the top five
@@ -129,7 +139,9 @@ game-clustered; it mixes the venue difference with the shape and cannot support 
   one pre-registered follow-up at most (Stage 3), then closed.
 
 ## 7. Known-at
-- **What the stored snapshot is.** `odds_history` has exactly one `t60` and one `t5` snapshot per game and book (2023: 5,536,656 / 2,006,441 rows, 1,318 games; 2024: 6,153,536 / 1,369,178 rows, 1,320 / 1,315 games). The t60 request is the 5-minute grid point at or before tip - 60; the measured lead on the Pinnacle legs is
+- **What the stored snapshot is.** For the seasons and snapshot kinds this rule reads, `odds_history` has exactly one `t60` and one `t5` snapshot per game and book (2023: 5,536,656 / 2,006,441 rows, 1,318 games; 2024: 6,153,536 / 1,369,178 rows, 1,320 / 1,315 games; counted from the byte copy taken 2026-10-23 21:30 CDT).
+  **Out of scope (R3):** the file is being extended tonight by `nba.odds history-pull --phase movement` (2024 prop snapshots `m90`, `m180`, `m360`, `m1440`; Pinnacle points on about 125 games so far) and now holds season-2022 game-market rows. This rule reads `snapshot_kind in (t60)` for seasons 2023 and 2024 only through the pinned extras frames. The movement snapshots have no select-season copy, answer a different question
+  (what the line did before t60) and get their own id; they are not used here. The t60 request is the 5-minute grid point at or before tip - 60; the measured lead on the Pinnacle legs is
   median 64.37, min 62.55, max 79.37 minutes. The hard filter keeps a leg only if `snapshot_ts <= tipoff_utc - 60 min` with the **real** tip; rows dropped: **0** (both seasons).
 - **`last_update` is not usable.** It is later than `snapshot_ts` in 13,598 of 71,272 (19%, 2023) and 25,880 of 76,678 (34%, 2024) Pinnacle t60 prop rows and 0-5 minutes before it otherwise: it is the API's refresh time, not the time the line last moved.
   It enters no column.
@@ -141,7 +153,7 @@ game-clustered; it mixes the venue difference with the shape and cannot support 
 - **Train / serve skew vs the live Kalshi T-60:** history uses the market 64.4 minutes before tip (nearly constant); live is the latest run with `made_at <= tip - 60`, between about 60 and 100 minutes. Not measured for Kalshi; it matters for Stage 3 only.
 
 ## 8. Minimum-data gate, measured on the real data (non-negotiable 8)
-Final run `Fri 2026-10-23 20:4x CDT` (clock read by `date`; harness commit `be9d6f2`): `research/eval/market_anchored_props_gate.py` -> `reports/prereg_market_anchored_props/gate.json`; read-only, seasons 2023-24, label columns never selected,
+Final run `Fri 2026-10-23 21:39 CDT` (clock read by `date`; harness commit `6f60249`; odds read from a byte copy): `research/eval/market_anchored_props_gate.py` -> `reports/prereg_market_anchored_props/gate.json`; read-only, seasons 2023-24, label columns never selected,
 all outcomes synthetic (`default_rng(20261023 + offset + replicate)`), 10 replicate label draws per world, K = 20 placebo draws, B = 1,000 (the run uses K = 50, B = 2,000). Inputs: the pairs frames equal LINE_CALIBRATION's pins (`050dba3e...`,
 `560a3808...`, checked); `data/odds/odds_history.duckdb` (`season = s` for s in {2023, 2024} in every SQL).
 
@@ -160,40 +172,47 @@ all outcomes synthetic (`default_rng(20261023 + offset + replicate)`), 10 replic
 | G4 share of legs with |a-m| beyond the clip | 0.0001 | <= 0.10 | yes |
 | G5 minimum lead of the Pinnacle snapshot before the real tip | 62.55 | >= 60 min | yes |
 | G6 planted future: predictions of the test month unchanged when labels on/after it are flipped (MM and MR) | [0, 0] | == 0 | yes |
-| G6 flipping labels inside the training window moves them | 0.9094 | > 0.01 | yes |
+| G6 flipping labels inside the training window moves them | 0.98785 | > 0.01 | yes |
 | G7a null world: false-positive rate of any word (replicates) | [0, 10] | <= 0.20 | yes |
-| G7a null world: overfit cost C_total (MM minus M), mean over replicates, 2024 / 2023 | [0.00016, 0.00041] | <= +0.0010 | yes |
+| G7a null world: overfit cost C_total (MM minus M), mean over replicates, 2024 / 2023 | [0.00021, 0.0005] | <= +0.0010 | yes |
 | G7b market-only world: market word fires / model word falsely fires (rates) | [1, 0, 0.00101] | fires >= 0.80 and false attribution <= 0.20 | yes |
 | G7f model-informed worlds: the market word falsely fires (max rate over the two worlds) | 0 | <= 0.20 | yes |
-| G7c planted model information at oracle 0.0011 (H2's largest weight): detection rate; mean C_mod; oracle | [1, -0.00064, 0.0011] | detection >= 0.80 | yes |
-| G7d planted model information at oracle 0.0030 (the bet floor): reaches INFO or BET (rate); mean C_mod | [1, -0.00202] | >= 0.80 | yes |
-| G7e both planted: both words fire (rate); mean C_mkt, C_mod | [1, -0.00223, -0.00079] | >= 0.80 | yes |
+| G7g off-span market errors (bench, tmout, disp10, curvature in m, line level; each oracle 0.0020, model inert): [false model word rate, C_mod CI<0 rate, mean C_mod, mean C_mkt] per kind | {bench: [0, 0, 4e-05, -0.00173], tmout: [0, 0, 1e-05, -0.00192], disp: [0, 0, 4e-05, -0.00185], curv: [0, 0, 5e-05, -0.0016], line: [0, 0, 4e-05, -0.00121]} | false model word <= 0.20 and C_mod CI<0 <= 0.20 in every world | yes |
+| G7c planted model information at oracle 0.0011 (H2's largest weight): detection rate; mean C_mod; oracle | [1, -0.00061, 0.0011] | detection >= 0.80 | yes |
+| G7d planted model information at oracle 0.0030 (the bet floor): reaches INFO or BET (rate); mean C_mod | [1, -0.00195] | >= 0.80 | yes |
+| G7e both planted: both words fire (rate); mean C_mkt, C_mod | [1, -0.00221, -0.00079] | >= 0.80 | yes |
 | G8 binding half-width of C_mod under the null (envelope of game / player-season / week) | 9e-05 | <= 0.0010 (a third of the bet floor) | yes |
 
 Synthetic worlds, 10 replicate label draws each, report season 2024, mean over replicates (per-leg log loss; negative = better than the arm named second):
 
 | world | oracle | C_cal | C_mktx | C_mkt | C_mkt_after | C_mod | C_mod_first | C_pl | C_total | 2023 C_total | model words | market words |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| W0_null | 0.00000 | +0.00009 | +0.00003 | +0.00012 | +0.00011 | +0.00005 | +0.00005 | -0.00000 | +0.00016 | +0.00041 | {'NONE': 10} | {'NONE': 10} |
-| W_mkt_only | 0.00101 | -0.00065 | -0.00012 | -0.00077 | -0.00046 | +0.00007 | -0.00024 | +0.00002 | -0.00070 | -0.00061 | {'NONE': 10} | {'MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR': 9, 'MISCALIBRATION_INFO': 1} |
-| W_mod_oracle_0.0011 | 0.00110 | -0.00015 | -0.00004 | -0.00020 | +0.00010 | -0.00064 | -0.00094 | -0.00068 | -0.00084 | -0.00095 | {'DETECTED_BELOW_INFO_FLOOR': 9, 'INFO': 1} | {'MODEL_EXPLAINS': 1, 'NONE': 9} |
-| W_mod_oracle_0.0030 | 0.00300 | -0.00054 | -0.00008 | -0.00063 | +0.00013 | -0.00202 | -0.00277 | -0.00205 | -0.00264 | -0.00291 | {'INFO': 10} | {'MODEL_EXPLAINS': 7, 'NONE': 3} |
-| W_both | 0.00319 | -0.00181 | -0.00043 | -0.00223 | -0.00054 | -0.00079 | -0.00249 | -0.00084 | -0.00303 | -0.00332 | {'DETECTED_BELOW_INFO_FLOOR': 8, 'INFO': 2} | {'MISCALIBRATION_INFO': 10} |
+| W0_null | 0.00000 | +0.00009 | +0.00007 | +0.00016 | +0.00015 | +0.00005 | +0.00005 | +0.00000 | +0.00021 | +0.00050 | {'NONE': 10} | {'NONE': 10} |
+| W_mkt_only | 0.00101 | -0.00065 | -0.00009 | -0.00074 | -0.00043 | +0.00006 | -0.00024 | +0.00002 | -0.00068 | -0.00055 | {'NONE': 10} | {'MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR': 9, 'MISCALIBRATION_INFO': 1} |
+| W_mod_oracle_0.0011 | 0.00110 | -0.00015 | -0.00004 | -0.00019 | +0.00014 | -0.00061 | -0.00094 | -0.00066 | -0.00080 | -0.00089 | {'DETECTED_BELOW_INFO_FLOOR': 10} | {'MODEL_EXPLAINS': 1, 'NONE': 9} |
+| W_mod_oracle_0.0030 | 0.00300 | -0.00054 | -0.00012 | -0.00066 | +0.00016 | -0.00195 | -0.00277 | -0.00200 | -0.00261 | -0.00286 | {'INFO': 10} | {'MODEL_EXPLAINS': 7, 'NONE': 3} |
+| W_both | 0.00319 | -0.00181 | -0.00041 | -0.00221 | -0.00052 | -0.00079 | -0.00249 | -0.00084 | -0.00300 | -0.00326 | {'DETECTED_BELOW_INFO_FLOOR': 8, 'INFO': 2} | {'MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR': 4, 'MISCALIBRATION_INFO': 6} |
+| W_off_bench_0.0020 | 0.00200 | -0.00034 | -0.00139 | -0.00173 | -0.00105 | +0.00004 | -0.00064 | -0.00000 | -0.00168 | -0.00125 | {'NONE': 10} | {'MISCALIBRATION_INFO': 10} |
+| W_off_tmout_0.0020 | 0.00200 | -0.00062 | -0.00130 | -0.00192 | -0.00157 | +0.00001 | -0.00034 | -0.00003 | -0.00191 | -0.00137 | {'NONE': 10} | {'MISCALIBRATION_INFO': 10} |
+| W_off_disp_0.0020 | 0.00200 | +0.00009 | -0.00194 | -0.00185 | -0.00147 | +0.00004 | -0.00034 | -0.00001 | -0.00181 | -0.00134 | {'NONE': 10} | {'MISCALIBRATION_INFO': 10} |
+| W_off_curv_0.0020 | 0.00200 | -0.00167 | +0.00007 | -0.00160 | -0.00157 | +0.00005 | +0.00002 | -0.00000 | -0.00155 | -0.00097 | {'NONE': 10} | {'MISCALIBRATION_INFO': 10} |
+| W_off_line_0.0020 | 0.00200 | +0.00003 | -0.00124 | -0.00121 | -0.00101 | +0.00004 | -0.00017 | -0.00001 | -0.00117 | -0.00110 | {'NONE': 10} | {'MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR': 2, 'MISCALIBRATION_INFO': 8} |
 
-Binding half-widths under the null world (envelope of the three clusterings, mean over replicates): C_mod 9e-05, C_mkt 0.00015, C_mkt_after 0.00015, C_total 0.00018, C_pl 9e-05.
-Planted gammas: {'oracle_0.0011': 0.22238596095762359, 'oracle_0.0030': 0.3688974313288297}. Planted future: {'test_month': '2025-01', 'n_rows': 6552, 'max_abs_diff_future_flip_mm': 0.0, 'max_abs_diff_future_flip_mr': 0.0, 'max_abs_diff_train_flip_mm': 0.9093968885678948}.
+Binding half-widths under the null world (envelope of the three clusterings, mean over replicates): C_mod 9e-05, C_mkt 0.00017, C_mkt_after 0.00017, C_total 0.00019, C_pl 9e-05.
+Planted gammas: {'oracle_0.0011': 0.22238596095762359, 'oracle_0.0030': 0.3688974313288297}. Planted future: {'test_month': '2025-01', 'n_rows': 6552, 'max_abs_diff_future_flip_mm': 0.0, 'max_abs_diff_future_flip_mr': 0.0, 'max_abs_diff_train_flip_mm': 0.9878517395764809}.
 Information budget (label-free): sd of delta 0.374 pooled (p01 -1.223, p99 0.663; share clipped 0.00010); an oracle with gamma 0.25 gains per stat-season 2023_pts -0.00173, 2023_reb -0.00190, 2023_ast -0.00160, 2023_fg3m -0.00155, 2024_pts -0.00140, 2024_reb -0.00153, 2024_ast -0.00138, 2024_fg3m -0.00133.
 Covariate support (n legs; share u1 available; share spread available; hi share; bench n; heavy-depletion n): 2023_pts: 12189, 0.981, 0.9975, 0.146, 2463, 3485; 2023_reb: 6339, 0.991, 0.9975, 0.246, 964, 1827; 2023_ast: 6714, 0.992, 0.9979, 0.251, 886, 1949; 2023_fg3m: 9904, 0.995, 0.9982, 0.408, 2282, 2729; 2024_pts: 13021, 0.932, 0.9939, 0.110, 3268, 4478; 2024_reb: 6645, 0.941, 0.9935, 0.239, 1200, 2262; 2024_ast: 6771, 0.950, 0.9956, 0.241, 1178, 2154; 2024_fg3m: 11091, 0.964, 0.9961, 0.379, 3176, 3640.
 Clusters: {'2023': {'games': 1249, 'player_seasons': 377, 'weeks': 35}, '2024': {'games': 1260, 'player_seasons': 414, 'weeks': 36}}. Lead minutes before the real tip: {'min': 62.55, 'median': 64.36666666666666, 'max': 79.36666666666666}. Pin check: 2023: equal True; 2024: equal True.
 Stage 2 counts (FanDuel two-sided t60 alternate rungs off Pinnacle's line, rungs / player-games / games, season-stat): 2023 assists: 7022 / 3944 / 809; 2023 points: 44488 / 6710 / 808; 2023 rebounds: 11515 / 3967 / 822; 2023 threes: 10225 / 5221 / 814; 2024 assists: 14910 / 4447 / 949; 2024 points: 83951 / 8994 / 969; 2024 rebounds: 19938 / 4666 / 967; 2024 threes: 20663 / 6741 / 953.
+ Extras frames (pinned): 2023: sha256 9cf98865d6fe7744f73b8532dc1411e39fff5eedbc96e3153e53b34e3ddf6c1f; 2024: sha256 aac40cd57fff58d6c20b654c44a254cf7959305f844614a0ed07d19d6aa8fabc.
 
 ## 9. Data-capture audit (non-negotiable 8; "gate fails on data only after the audit")
 - **Used.** `odds_history` Pinnacle t60 main-line prop legs 2023 and 2024 (35,146 and 37,528 legs after two-sidedness, x.5, played, known-at); the same snapshot's non-Pinnacle two-sided books at Pinnacle's line (u1, disp10) and the game spread;
   production OOF `p_model` and as-of columns from the pairs frames.
 - **Exist but unused here, and why.** Pinnacle t5 (later than the forecast, leaks lineup news; MODEL_CLV / MARKET_UPDATE / T510 own it); `last_update` (API refresh clock, section 7); DraftKings / FanDuel alternate rungs (Stage 2, descriptive; DraftKings alternates are over-only,
   2024 under side 802 rows against 383,892 over); the 12 other books as separate weights (not identified on 6k legs per stat); exchange books novig / prophetx (2024-12-19 onward: two-sided on Pinnacle's line novig 20,211 legs / 862 games, prophetx 7,966 legs / 779 games; descriptive slice only, no select season); the other markets (steals, blocks, combos: owned by COMBO_*).
-- **Do not exist here.** `odds_history` has 0 rows before 2023 (`season < 2023`: 0); no free source for 2022-23 player props was found (the vendor scout, `docs/research/historical_odds_2026-10-09.md`, says The Odds API props start 2023-05-03 and the only 2022-23 route is a quote-only vendor; **not re-verified today**);
-  Kalshi player-prop history starts 2025-12-25 per the same scout (inside the holdout season, not loaded); no intraday report sequence for 2023-24 (stored stamps 11:00 and 17:00 only); no history of line movement before t60; no historical Kalshi quotes outside 2025-26.
+- **Do not exist here.** `odds_history` has no PROP rows before 2023 (the count of all rows before 2023 is no longer 0: season-2022 GAME-market rows were added by the movement pull and are out of scope); no free source for 2022-23 player props was found (the vendor scout, `docs/research/historical_odds_2026-10-09.md`, says The Odds API props start 2023-05-03 and the only 2022-23 route is a quote-only vendor; **not re-verified today**);
+  Kalshi player-prop history starts 2025-12-25 per the same scout (inside the holdout season, not loaded); no intraday report sequence for 2023-24 (stored stamps 11:00 and 17:00 only); no history of line movement before t60 for 2023 or for the pinned legs (2024 movement snapshots are being captured tonight, out of scope, see section 7); no historical Kalshi quotes outside 2025-26.
 - **Repairable, and the cost.** (i) Report freshness: 2023-24 intraday reports would need the NBA CDN's hourly PDFs (a 250-request pilot is drafted at `research/eval/injury_timing_pilot_probe.py`; CDN reachability from the agent shell was not verified); it would date the
   model's information but not the market's, so the freshness covariate would still lack the line's side. (ii) Line movement before t60: a paid Odds API historical pull at extra timestamps (the START 5M plan is already $119 a month; extra snapshots are credits, not a new vendor) -
   cost not estimated here, a decision for Devin. (iii) 2022-23 props: quote-only vendor, price unknown. None changes the power of Stage 1 (the gate passes with margin); (i) and (ii) are what would make the freshness lever testable in history.
@@ -206,7 +225,7 @@ Stage 2 counts (FanDuel two-sided t60 alternate rungs off Pinnacle's line, rungs
 | the market block gets every market-side input the model arm gets | crediting the model for what the soft books, the line level or the spread already say |
 | PL: derangement within (date, stat), all other columns real | a gain any refit with the same columns would show; a label-shuffle placebo that is worse than M by construction (the shuffled outcome breaks the offset) |
 | three-tier floor ladder (detect / -0.001 / -0.003) | one floor no result can reach (T502); announcing a pass that cannot pay a 7.0% overround |
-| pooled ridge logistic of 19 parameters, not per-stat 36 or trees | the overfit cost (+0.0005, read as "worse than the market") the first gate draft showed; capacity standing in for information |
+| pooled ridge logistic of 22 parameters, not per-stat 36 or trees; MR holds main effects of every covariate that has a model interaction | the overfit cost (+0.0005, read as "worse than the market") the first gate draft showed; capacity standing in for information |
 | `WORSE_FLOOR` +0.0005 | a verdict of "worse than the market" that is only the overfit cost |
 | select sign = sign only; K1 at +0.0010 | masking a small true gain with 2023's data-poor overfit cost (+0.0004) while still stopping a rule that is clearly worse |
 | three clusterings, envelope CI | game-only CIs that missed player and week shocks (T500: 5 of 115 players carried 98.6% of a gain) |
@@ -217,9 +236,9 @@ Stage 2 counts (FanDuel two-sided t60 alternate rungs off Pinnacle's line, rungs
 | positive and negative controls in both directions (gate G7) | freezing an instrument that cannot see a planted signal, or that attributes one explanation's signal to the other |
 
 ## 11. Playbook check (docs/MODEL_PLAYBOOK.md; class: linear / logistic pool on a market offset, with a quantile-layer scoring question at the line)
-1. **Information or capacity?** The model's information is unchanged; the new information is market-side (soft books, spread, line level) and the covariates that decide when the model's difference counts. Capacity is 19 ridge parameters. The one information lever that
+1. **Information or capacity?** The model's information is unchanged; the new information is market-side (soft books, spread, line level) and the covariates that decide when the model's difference counts. Capacity is 22 ridge parameters. The one information lever that
    matters most (report / lineup freshness) cannot be measured on history and is deferred, not simulated.
-2. **Enough data for the class?** Yes: 28,108 scored 2023 legs and 37,528 2024 legs for 19 ridge parameters; the unpooled 36-parameter draft was too heavy (+0.0005 null cost) and was cut on synthetic worlds only.
+2. **Enough data for the class?** Yes: 28,108 scored 2023 legs and 37,528 2024 legs for 22 ridge parameters; the unpooled 36-parameter draft was too heavy (+0.0005 null cost) and was cut on synthetic worlds only.
 3. **Valid test?** Real tips (min lead 62.55), played legs, x.5 lines, planted future exact, derangement placebo sized from a null (placebo draw sd reported), positive controls in both directions, three clusterings, power measured (binding half-width of C_mod under the null 0.00009 against floors of
    0.001 and 0.003). Weakness: two seasons already used; the stored 2024 `p_model` differs from today's frame on about half the legs (118-row backfill, T493-T496 note); `tmout` = `n_out_rot` >= 3 and the high-line cuts were fixed from leg shares (label-free) before any outcome.
 4. **Lineage:** section 2.
@@ -229,16 +248,19 @@ Stage 2 counts (FanDuel two-sided t60 alternate rungs off Pinnacle's line, rungs
 
 ## 12. Hypothesis priors (PREDICTIONS_LEDGER rows; appended to docs/PREDICTIONS_LEDGER.md in this branch)
 Written Fri 2026-10-23 before any real-outcome contrast; blind to every real C_* number (the only outcome-like numbers seen are the gate's synthetic worlds and Devin's exploratory live week, which is not used to set a constant).
-No prior was stated for the gate before it ran (not scorable): the first draft failed six checks and the design below passes 22 of 22 after the synthetic-only revisions of section 13. P(model word = BET_FLOOR_PASS) 0.01; INFO 0.04; DETECTED_BELOW_INFO_FLOOR 0.20; PLACEBO_EXPLAINS 0.08; FAIL_SELECT_SIGN 0.06; NONE 0.61. P(market word = MISCALIBRATION_INFO) 0.10;
+No prior was stated for the gate before it ran (not scorable): the first draft failed six checks; the design below passes 23 of 23 (including the off-span check G7g added at the adversary's request) after the synthetic-only revisions of section 13. P(model word = BET_FLOOR_PASS) 0.01; INFO 0.04; DETECTED_BELOW_INFO_FLOOR 0.20; PLACEBO_EXPLAINS 0.08; FAIL_SELECT_SIGN 0.06; NONE 0.61. P(market word = MISCALIBRATION_INFO) 0.10;
 MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR 0.30; MODEL_EXPLAINS 0.04; FAIL_SELECT_SIGN 0.05; NONE 0.51. P(override WORSE_THAN_MARKET) 0.04. P(K1 fires) 0.05. Expected 2024 pooled C_mod -0.0002 (80% -0.0010 to +0.0003); C_mkt -0.0005 (80% -0.0015 to +0.0001);
 C_total -0.0006 (80% -0.0018 to +0.0002). P(reb or fg3m is the stat with the largest |C_mod|) 0.55 (H2's fitted weights were highest there). P(`delta x bench` coefficient negative in 2024, i.e. the model should count less on bench legs) 0.60.
 P(Devin hears "keep your money" from this rule) 0.97.
+**Restated 2026-10-23 ~21:45 CDT after the adversary's pre-freeze review (edits 1-8), still blind to every real C_* number** (new PREDICTIONS_LEDGER row; the 20:4x row is not edited). Reason: with the bench / tmout / disp10 main effects in MR the leak channel into C_mod is closed, so C_mod shrinks and the market component grows; the market INFO tier now needs the guard CI, so it is rarer.
+Model word: BET_FLOOR_PASS 0.01; INFO 0.03; DETECTED_BELOW_INFO_FLOOR 0.15; PLACEBO_EXPLAINS 0.06; FAIL_SELECT_SIGN 0.06; NONE 0.69. Market word: MISCALIBRATION_INFO 0.07; MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR 0.38; MODEL_EXPLAINS 0.03; FAIL_SELECT_SIGN 0.05; NONE 0.47.
+P(WORSE_THAN_MARKET) 0.04; P(KILLED_K1) 0.05; P(NO_RESULT_INVALID_RUN) 0.03; P(any consequence-bearing outcome, i.e. a word other than NONE/FAIL plus C_total CI upper < 0) 0.22. Expected 2024 pooled C_mod -0.0001 (80% -0.0008 to +0.0003), C_mkt -0.0007 (80% -0.0020 to 0.0000), C_total -0.0007 (80% -0.0020 to +0.0002).
 
 ## 13. Data exposure (honest)
 - **Seen:** every ledger number cited; MARKET_PRIOR_RESIDUAL's gate (leg counts, overround, G9); the label-free shapes of every column; Devin's 2026-10-23 live-week reading (slope 0.46, under-lean 59.4%, bench minutes -4.7, p_play 0.72 -> 0.41, assists Brier) which is **why `delta x bench` and `delta x tmout` are in the
   model** and why the market block has `blowout`; that is a design influence, disclosed, with no constant set from it.
 - **Design iterations before this text (all on synthetic worlds, no real outcome):** the first gate draft fitted 36 parameters per stat (six replicates): null-world cost C_total +0.00052 (2024) and +0.00112 (2023), so `WORSE_THAN_MARKET` fired in the null; the market-only
-  world was too weak to detect (oracle 0.00063). Changes: pooled fit with stat-specific intercept / market slope / delta (19 parameters), ridge `LAM` chosen from {1, 20, 100, 400} by null cost and planted-world recovery on synthetic labels (50 as a round midpoint, not an optimum), the market-only
+  world was too weak to detect (oracle 0.00063). Changes: pooled fit with stat-specific intercept / market slope / delta (19 parameters; 22 after the adversary's edit 1), ridge `LAM` chosen from {1, 20, 100, 400} by null cost and planted-world recovery on synthetic labels (50 as a round midpoint, not an optimum), the market-only
   world strengthened to oracle 0.0010, the `tmout` threshold moved from >= 1 (83% of legs) to >= 3 (31%), the fg3m high-line cut from 3.5 (10%) to 2.5 (38-41%), the market word first read from MR - M (the planted model world leaked into it in 7 of 10 replicates), then from MM - MD alone (detected the market-only world in only 6 of 10 replicates at oracle 0.0010: too conservative), and finally C_mkt kept only if
   C_mkt_after < 0 (the guard blocks the model-world leak); `WORSE_FLOOR` introduced after the null world fired the override in 6 of 10 replicates. None of these used a real label.
 - **Not seen:** any M, B0, MR, MD, MM or PL number on a real outcome; any disagreement coefficient on real labels; any per-slice contrast; season 2025.
@@ -262,7 +284,7 @@ G="-m research.eval.market_anchored_props_gate"
 M="-m research.eval.market_anchored_props_eval"                       # NOT YET WRITTEN: after the freeze
 .venv/bin/python -W ignore $M run --sha <64 hex>                       # after `prereg(MARKET_ANCHORED_PROPS): <sha>` is committed
 ```
-- Dry-run count (what `run` fits and scores): 35,146 (2023; 28,108 scored) and 37,528 (2024) Pinnacle legs; per scored month 4 fits (B0, MR, MD, MM) plus K = 50 placebo refits = 54 small logistic fits (<= 19 columns, <= 72,674 rows);
+- Dry-run count (what `run` fits and scores): 35,146 (2023; 28,108 scored) and 37,528 (2024) Pinnacle legs; per scored month 4 fits (B0, MR, MD, MM) plus K = 50 placebo refits = 54 small logistic fits (<= 22 columns, <= 72,674 rows);
   7 scored months in 2023 (Oct and Nov are burn-in) and 9 in 2024, so about 16 x 54 = 864 fits; bootstraps 2,000 x 3 clusterings per contrast (about 14 contrasts). Estimated 5-10 minutes on CPU (the gate's 50 replicate worlds with K = 20 took about 125 s).
 - Outputs: `reports/prereg_market_anchored_props/results.json`; ledger rows are drafted by the main session from it.
 
