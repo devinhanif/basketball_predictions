@@ -203,6 +203,7 @@ def _patch_world(monkeypatch: pytest.MonkeyPatch, tmp: Path) -> Path:
     pinned.write_text("aliases: {}\n")
     monkeypatch.setattr(spec, "ALIASES_SHA256", spec.sha256_file(pinned))
     monkeypatch.setattr(spec, "REPORT_DIR", tmp / "out")
+    monkeypatch.setattr(spec, "DRYRUN_RECORD", tmp / "rec.json")
     world = dryrun.make_world(np.random.default_rng(3), dryrun.PRIMARY)
     monkeypatch.setattr(cli, "_load", lambda *a, **k: (world, {}))
     monkeypatch.setattr(cli, "_capture_dirs", lambda root: [])
@@ -259,7 +260,7 @@ def _failed_record(tmp: Path, rule_key: str) -> Path:
 
 def _mark(rule: str, reason: str, rec: Path, pinned: Path) -> list[str]:
     return [
-        "mark-unscoreable", "--rule", rule, "--reason", reason, "--record", str(rec),
+        "mark-unscoreable", "--rule", rule, "--reason", reason,
         "--nba-db", "x", "--aliases", str(pinned),
     ]  # fmt: skip
 
@@ -278,7 +279,8 @@ def test_dryrun_failed_needs_a_failed_record_for_the_current_code(
     pinned = _patch_world(monkeypatch, tmp_path)
     assert cli.main(_mark("T510", "dryrun_failed", _record(tmp_path), pinned)) == 2  # it passed
     assert "does not show a failed" in capsys.readouterr().out
-    assert cli.main(_mark("T510", "dryrun_failed", tmp_path / "none.json", pinned)) == 2  # missing
+    (tmp_path / "rec.json").unlink()
+    assert cli.main(_mark("T510", "dryrun_failed", tmp_path / "rec.json", pinned)) == 2  # missing
     stale = _failed_record(tmp_path, "T510_dryrun_pass")
     rec = json.loads(stale.read_text())
     rec["code_sha256"] = "0" * 64
@@ -400,3 +402,18 @@ def test_rules_text_masks_the_stat_noun(tmp_path: Path) -> None:
         )
     got = loaders.rules_secondary_texts([tmp_path / "live_x"], {"A", "B"})
     assert len(got) == 1 and "<stat> recorded" in next(iter(got))
+
+
+def test_dryrun_failed_always_reads_the_committed_record_and_stores_its_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pinned = _patch_world(monkeypatch, tmp_path)
+    # there is no --record option: a caller cannot point the check at another file
+    with pytest.raises(SystemExit):
+        cli.main([*_mark("T510", "dryrun_failed", _record(tmp_path), pinned), "--record", "x.json"])
+    good = _failed_record(tmp_path, "T510_dryrun_pass")
+    assert good == spec.DRYRUN_RECORD
+    assert cli.main(_mark("T510", "dryrun_failed", good, pinned)) == 0
+    rec = json.loads((tmp_path / "out" / "T510_result.json").read_text())
+    assert rec["dryrun_record_sha256"] == spec.sha256_file(spec.DRYRUN_RECORD)
+    assert rec["reason"] == "dryrun_failed" and rec["code_sha256"] == spec.code_sha256()

@@ -323,7 +323,7 @@ def cmd_mark_unscoreable(ns: argparse.Namespace) -> int:
     if _result_path(rule).exists():
         raise Refused(f"{_result_path(rule)} exists: the record is never rewritten")
     if reason == "dryrun_failed":
-        if not dryrun.failed(Path(ns.record), rule):
+        if not dryrun.failed(spec.DRYRUN_RECORD, rule):
             raise Refused(f"the committed dryrun record does not show a failed {rule} dryrun")
     elif reason == "horizon_not_reached":
         _check_pinned_aliases(Path(ns.aliases))
@@ -340,6 +340,9 @@ def cmd_mark_unscoreable(ns: argparse.Namespace) -> int:
         "verdict": "UNSCOREABLE",
         "reason": reason,
         "code_sha256": spec.code_sha256(),
+        "dryrun_record_sha256": (
+            spec.sha256_file(spec.DRYRUN_RECORD) if reason == "dryrun_failed" else None
+        ),
         "marked_at": _now().isoformat(),
     }
     _write_once(_result_path(rule), rec)
@@ -395,7 +398,6 @@ def main(argv: list[str] | None = None) -> int:
     u.add_argument("--reason", required=True, choices=list(spec.UNSCOREABLE_REASONS))
     u.add_argument("--nba-db", default=None, help="a COPY of nba.duckdb (horizon_not_reached)")
     u.add_argument("--aliases", default=str(REPO / "configs" / "kalshi_aliases.yaml"))
-    u.add_argument("--record", default=str(spec.DRYRUN_RECORD))
     u.set_defaults(fn=cmd_mark_unscoreable)
     ns = ap.parse_args(argv)
     try:
