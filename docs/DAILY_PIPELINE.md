@@ -874,3 +874,28 @@ Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest
   the slate had no forecast by 09:00. A job that cannot start cannot alert; the watchdog saw the consecutive skips.
 * Any failed morning step (including a timed-out fetch or a failed briefing) fails the app-export gate
   (`nba.ops.app_export.data_step_problem`); that is unchanged behaviour for a failed step.
+
+## Morning failures of 2026-10-21..23 and the data-quality exclusions (2026-10-23)
+
+* **Coverage fed its own log (the 9.9 GB pretip log, `coverage_yesterday` rc 137).** `step` appends the output of
+  `nba.ops.coverage` to the pretip log; its ALERT section printed every line containing `ALERT:`, so the next run found
+  the echoes and printed them again. The log doubled per run (10-21 9.9 GB, 10-22 9.4 GB, 10-23 0.5 GB at 20:50) and
+  reading a whole file into memory killed the 07:00 `coverage_yesterday` (rc 137) and the 20:52 pretip coverage.
+  Fix: logs are streamed and filtered (own `[stamp]` lines, `run ...`, `models:`); only a line that STARTS with
+  `[stamp] ALERT: ` counts (echoes are indented); the printed list is capped at 50.
+* **Post-game fetches (rc 142).** The endpoints behind tracking, officials and matchups answer a JSON `null` / empty
+  result for a game until they publish it (about a day later; hustle answers two team rows, personId 0). The fetch scope
+  included today's unplayed slate, every miss counted toward the circuit breaker (3 in a row: 600 s, then 1200 s
+  cooldowns) and the 30-minute step alarm ended it. Now: scope is scored games only; a null/empty payload is `pending`
+  ("not published yet", not a failure, no breaker, no retry backoff, rc 0); team-level rows are dropped; a recent
+  tracking/hustle cache file with no player rows is asked for again. Throttling (timeouts) still trips the breaker.
+* **`postgame_load` rc 1.** Hustle files with only the two team rows loaded as `(game_id, 0)` twice: a primary-key
+  violation that aborted the command, so officials and matchups were never loaded for 2026. The loader now drops
+  personId 0 rows and each source loads in its own try (the exit code still reports a failed source).
+* **`data_check` rc 1.** The live `forward_*scores*` tables are NULL for every not-yet-played row by construction;
+  `known_asymmetry` now accepts wildcards and lists `forward_*scores*.*` (configs/datamanifest.yaml).
+* **Data-quality exclusions** (`ops/forward_exclusions.yaml`, `python -m nba.ops.exclusions check`): an append-only,
+  dated list of rules that drop market-comparison rows (market_at_prediction, shadow_predictions, the parlay track
+  record, the monitor's model-vs-Kalshi table) whose Kalshi quote was older than `max_quote_age_s` at prediction time.
+  It never touches forward_predictions, forward_scores, settlement or any outcome score. 2026-10-23 `stale_price`: 274
+  market_at_prediction rows (250 game, 24 prop), twelve games.
