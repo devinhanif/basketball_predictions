@@ -44,7 +44,8 @@ def _forecast(pred: object) -> Forecast:
     f = d.get("p_ge_full")
     counts = tuple(int(x) for x in f["c"]) if f else None
     n = int(f["n"]) if f else 0
-    return Forecast(counts, n, float(d.get("p_play", 1.0)))
+    pp = d.get("p_play")
+    return Forecast(counts, n, None if pp is None else float(pp))
 
 
 def load_forecasts(
@@ -124,13 +125,77 @@ def load_snapshots(
     return acc
 
 
+def load_file_times(capture_dirs: list[Path]) -> dict[str, np.ndarray]:
+    """series -> sorted capture-file times (a snapshot is a capture file; from the file names)."""
+    out: dict[str, np.ndarray] = {}
+    for series in spec.SERIES_STAT:
+        ts = {
+            _epoch(datetime.strptime(Path(f).name[:15], "%Y%m%dT%H%M%S"))
+            for d in capture_dirs
+            for f in glob.glob(str(d / "kalshi" / f"{series}_p0" / "*.json.gz"))
+        }
+        out[series] = np.array(sorted(ts), dtype=np.int64)
+    return out
+
+
+def capture_file_count(capture_dirs: list[Path]) -> int:
+    return sum(len(v) for v in load_file_times(capture_dirs).values())
+
+
+def db_stamp(db_copy: Path) -> dict[str, object]:
+    """Row count and latest made_at of ``forward_predictions`` in the DB copy (result record)."""
+    con = duckdb.connect(str(db_copy), read_only=True)
+    try:
+        n, mx = con.execute(
+            "select count(*), max(made_at) from forward_predictions"
+        ).fetchone() or (0, None)
+    finally:
+        con.close()
+    return {"forward_predictions_rows": int(n), "max_made_at": None if mx is None else str(mx)}
+
+
+def rules_secondary_texts(capture_dirs: list[Path], tickers: set[str]) -> Counter[str]:
+    """Distinct ``rules_secondary`` over the given tickers, the stat noun masked (T510 Data)."""
+    out: Counter[str] = Counter()
+    seen: set[str] = set()
+    for d in capture_dirs:
+        for f in sorted(glob.glob(str(d / "kalshi_rules" / "*" / "*.json.gz"))):
+            with gzip.open(f, "rt", encoding="utf-8") as fh:
+                data = json.load(fh)
+            for tk, rec in data.items():
+                if tk in tickers and tk not in seen and isinstance(rec, dict):
+                    seen.add(tk)
+                    txt = str(rec.get("rules_secondary", ""))
+                    out[re.sub(r"player's \S+ recorded", "player's <stat> recorded", txt)] += 1
+    return out
+
+
+def inactive_pids(db_copy: Path, pairs: set[tuple[str, int]]) -> set[int]:
+    """Players with no box minutes in the game (T510b report only; games are final)."""
+    con = duckdb.connect(str(db_copy), read_only=True)
+    try:
+        out = set()
+        for gid, pid in pairs:
+            r = con.execute(
+                "select minutes from player_game_stats where game_id = ? and player_id = ?",
+                [gid, pid],
+            ).fetchall()
+            if not r or r[0][0] is None or r[0][0] == 0:
+                out.add(pid)
+    finally:
+        con.close()
+    return out
+
+
 def build_psgs(
     snaps: dict[str, tuple[str, str, list[tuple[int, float, float]]]],
     forecasts: dict[tuple[int, str, date], tuple[str, int, int, Forecast, Forecast | None]],
     name_map: dict[str, int],
     dates: set[date],
+    file_times: dict[str, np.ndarray] | None = None,
 ) -> tuple[list[PSG], Counter[str]]:
     drops: Counter[str] = Counter()
+    stat_series = {v: k for k, v in spec.SERIES_STAT.items()}
     groups: dict[tuple[int, str, date], list[Rung]] = defaultdict(list)
     for tk, (series, title, rows) in snaps.items():
         m = re.match(r"(.+?): (\d+)\+", title)
@@ -153,6 +218,7 @@ def build_psgs(
     psgs = []
     for (pid, stat, et), rungs in groups.items():
         gid, tip_s, made_s, fm, fb = forecasts[(pid, stat, et)]
-        psgs.append(PSG(pid, stat, et, gid, tip_s, made_s, fm, fb, rungs))
+        ft = None if file_times is None else file_times[stat_series[stat]]
+        psgs.append(PSG(pid, stat, et, gid, tip_s, made_s, fm, fb, rungs, ft))
     psgs.sort(key=lambda p: (p.day, p.game_id, p.pid, p.stat))
     return psgs, drops

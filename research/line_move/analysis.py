@@ -223,7 +223,7 @@ def evaluate(table: Table) -> RuleResult:
 # ---------------------------------------------------------------- reported, not decisive
 
 
-def reported(table: Table, seed_offset: int = 1, n_shuffle: int = 1000) -> dict[str, object]:
+def reported(table: Table) -> dict[str, object]:
     q1 = table.q1
     out: dict[str, object] = {}
     mm = table.m_m
@@ -238,20 +238,6 @@ def reported(table: Table, seed_offset: int = 1, n_shuffle: int = 1000) -> dict[
         int((mm[q1] < 0).sum()),
         int((mm[q1] == 0).sum()),
     )
-    # sign-shuffled placebo: permute the sign vector sign(p_M - mid0) across part-1 markets
-    rng = np.random.default_rng(spec.SEED + seed_offset)
-    sg = np.sign(table.gap_m[q1])
-    mv = table.move[q1]
-    pm = (
-        np.array([(mv * rng.permutation(sg)).mean() for _ in range(n_shuffle)])
-        if q1.any()
-        else np.array([np.nan])
-    )
-    out["placebo_mean_and_95pct_range"] = (
-        float(pm.mean()),
-        float(np.percentile(pm, 2.5)),
-        float(np.percentile(pm, 97.5)),
-    )
     for name, m in (
         ("pplay_lt_0.9", q1 & (table.play_m < 0.9)),
         ("pplay_ge_0.9", q1 & (table.play_m >= 0.9)),
@@ -263,6 +249,134 @@ def reported(table: Table, seed_offset: int = 1, n_shuffle: int = 1000) -> dict[
     ):
         out[name] = (int(m.sum()), float(mm[m].mean()) if m.any() else float("nan"))
     return out
+
+
+def _date_groups(days: np.ndarray) -> list[np.ndarray]:
+    return [np.flatnonzero(days == d) for d in sorted(set(days.tolist()))]
+
+
+def placebo(table: Table, n_perm: int = 1000) -> dict[str, tuple[float, float, float, float]]:
+    """Within-date sign-shuffled placebos (adversary ruling A2; reported, decides nothing).
+
+    Part 1: permute sign(p_M - mid0) within each date across part-1 markets. Part 2: permute the
+    pair
+    (sign_M, sign_B) jointly within each date across part-2 markets. 1,000 permutations, seed
+    20261022 + 1. Returns {part: (observed mean, placebo mean, placebo 2.5th, placebo 97.5th)}.
+    """
+    rng = np.random.default_rng(spec.SEED + 1)
+    out: dict[str, tuple[float, float, float, float]] = {}
+    for part, mask in (("part1", table.q1), ("part2", table.q2)):
+        if not mask.any():
+            out[part] = (float("nan"),) * 4
+            continue
+        mv = table.move[mask]
+        sm = np.sign(table.gap_m[mask])
+        sb = np.sign(table.gap_b[mask])
+        groups = _date_groups(table.days[mask])
+        obs_signs = sm if part == "part1" else sm - sb
+        vals = np.empty(n_perm)
+        for i in range(n_perm):
+            idx = np.arange(len(mv))
+            for g in groups:
+                idx[g] = rng.permutation(g)
+            vals[i] = float((mv * (sm[idx] if part == "part1" else sm[idx] - sb[idx])).mean())
+        out[part] = (
+            float((mv * obs_signs).mean()),
+            float(vals.mean()),
+            float(np.percentile(vals, 2.5)),
+            float(np.percentile(vals, 97.5)),
+        )
+    return out
+
+
+def by_sign(table: Table) -> dict[str, dict[int, tuple[int, float, float, float]]]:
+    """Per-sign split (adversary D6; reported, decides nothing), date-resampled 95% percentile CI.
+
+    Part 1: mean m_M by sign(p_M - mid0) over part-1 markets. Part 2: mean m_M - m_B over part-2
+    markets grouped by sign(p_M - mid0). Entries are (n, mean, lower, upper); a group with no
+    market is (0, nan, nan, nan). A drift with no information shows s=+1 below 0 and s=-1 above 0;
+    information shows both above 0.
+    """
+    out: dict[str, dict[int, tuple[int, float, float, float]]] = {"part1": {}, "part2": {}}
+    sgn = np.sign(table.gap_m)
+    for part, mask, vals in (
+        ("part1", table.q1, table.m_m),
+        ("part2", table.q2, table.m_m - table.m_b),
+    ):
+        for sg in (1, -1):
+            m = mask & (sgn == sg)
+            if not m.any():
+                out[part][sg] = (0, float("nan"), float("nan"), float("nan"))
+                continue
+            sums, ns = _per_date(vals[m], table.days[m])
+            dist = resample_dist(sums, ns)
+            lo, hi = np.percentile(dist, [2.5, 97.5])
+            out[part][sg] = (int(m.sum()), float(vals[m].mean()), float(lo), float(hi))
+    return out
+
+
+def complete_days(last_tip: dict[date, int], now_s: int, today: date) -> set[date]:
+    """ET dates whose capture is complete: every tip is older than now - 30 min and the date is
+    before today's ET date (adversary ruling #10 / F2)."""
+    return {
+        d for d, t in last_tip.items() if d < today and t <= now_s - spec.COMPLETE_MARGIN_MIN * 60
+    }
+
+
+class IncompleteWindow(RuntimeError):
+    pass
+
+
+def assert_window_complete(window: set[date], last_tip: dict[date, int], now_s: int) -> None:
+    late = sorted(d for d in window if last_tip.get(d, 0) > now_s - spec.COMPLETE_MARGIN_MIN * 60)
+    if late:
+        raise IncompleteWindow(f"window dates with a tip later than now - 30 min: {late}")
+
+
+# T510b "What each outcome means" (rows decided before any movement). Text is the frozen table's
+# Reading column, verbatim.
+ROW_PASS_PASS = (
+    "the model-weight proposal rests on a result that survives the corrected DNP valuation "
+    "(still Devin's decision, under a new rule that picks the weight on later data)"
+)
+ROW_PASS_AT95 = (
+    "T510's proposal stands; the note says \"robust to the DNP valuation at T510's level, "
+    'not at the stricter companion level"'
+)
+ROW_PASS_FAIL95 = (
+    "T510's pass is not robust to the DNP valuation: T510's text is unedited, but the proposal "
+    "is withdrawn and the note says so"
+)
+ROW_NULL_PASS = (
+    "a caveat: T510's verdict stands. T510b PASS is reported and permits one new rule to pick the "
+    "weight on later data; that rule **is** T510's one permitted follow-up (\"One follow-up at "
+    'most"), and no other follow-up comes from either rule'
+)
+ROW_NULL_NOTPASS = '"the market knows more" stands; no follow-up'
+ROW_T510_UNSCOREABLE = (
+    "T510b is not scored and is reported unscoreable; no weight rule from this family"
+)
+ROW_T510B_UNSCOREABLE = (
+    'T510\'s verdict and its own "What it decides" stand unmodified; T510b reported unscoreable'
+)
+STATES = ("PASS", "NULL", "HARM", "UNSCOREABLE")
+
+
+def family_reading(t510_state: str, t510b_state: str, t510b_at95: bool) -> str:
+    """The frozen outcome table of T510b, applied by code (adversary F4). ``t510b_at95`` = both
+    parts
+    pass with T510's own 95% bounds on T510b's markets."""
+    if t510_state not in STATES or t510b_state not in STATES:
+        raise ValueError((t510_state, t510b_state))
+    if t510_state == "UNSCOREABLE":
+        return ROW_T510_UNSCOREABLE
+    if t510b_state == "UNSCOREABLE":
+        return ROW_T510B_UNSCOREABLE
+    if t510_state == "PASS":
+        if t510b_state == "PASS":
+            return ROW_PASS_PASS
+        return ROW_PASS_AT95 if t510b_at95 else ROW_PASS_FAIL95
+    return ROW_NULL_PASS if t510b_state == "PASS" else ROW_NULL_NOTPASS
 
 
 def three_sets(sel: list[Selected], dates: set[date]) -> dict[str, object]:
@@ -297,6 +411,11 @@ __all__ = [
     "part_result",
     "qualifying_counts",
     "reported",
+    "placebo",
+    "by_sign",
+    "complete_days",
+    "assert_window_complete",
+    "family_reading",
     "window_end",
     "resample_dist",
     "three_sets",

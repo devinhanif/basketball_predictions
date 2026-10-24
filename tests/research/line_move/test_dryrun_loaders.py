@@ -54,7 +54,7 @@ def test_observed_quote_structure_constants() -> None:
 
 
 def _record(tmp: Path, **over: object) -> Path:
-    rec = {"code_sha256": dryrun.code_sha256(), "T510_dryrun_pass": True, "T510b_dryrun_pass": True}
+    rec = {"code_sha256": spec.code_sha256(), "T510_dryrun_pass": True, "T510b_dryrun_pass": True}
     rec.update(over)
     p = tmp / "rec.json"
     p.write_text(json.dumps(rec))

@@ -30,7 +30,7 @@ class Forecast:
 
     counts: tuple[int, ...] | None  # p_ge_full "c": c[k-1] of n draws have stat >= k
     n: int
-    p_play: float
+    p_play: float | None  # None = missing or null in the stored row (dropped, counted)
 
     def p_cond(self, k: int) -> float | None:
         """P(stat >= k | plays): c[k-1]/n, 0 when k-1 >= len(c); None if p_ge_full is null."""
@@ -63,6 +63,8 @@ class PSG:
     m: Forecast
     b: Forecast | None
     rungs: list[Rung] = field(default_factory=list)
+    # capture-file times of this series (epoch s, ascending); None = union of the rungs' times
+    file_times: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -126,15 +128,45 @@ def mid_of(bid: float, ask: float) -> float:
     return (round(100 * bid) + round(100 * ask)) / 200.0
 
 
+def _file_index(ft: np.ndarray, t: int) -> int | None:
+    """Index of the first capture file at or after ``t`` (None if there is none)."""
+    i = int(np.searchsorted(ft, t, side="left"))
+    return i if i < len(ft) else None
+
+
+def _quote_at(r: Rung, t: int) -> int | None:
+    """Index of the rung's row in the capture file stamped ``t`` (None = absent from that file)."""
+    i = int(np.searchsorted(r.t, t, side="left"))
+    return i if i < len(r.t) and int(r.t[i]) == t else None
+
+
 def select_psg(psg: PSG, log: SelectionLog, *, float_compat: bool = False) -> Selected | None:
-    """Apply the T510 one-rung rule with decoupled S0 / S1 / close. No fallback to another rung."""
+    """Apply the T510 one-rung rule with decoupled S0 / S1 / close. No fallback to another rung.
+
+    A snapshot is a capture FILE (adversary ruling A1): S0 is the first file at or after
+    max(made_at, tip - 150 min), S1 the first file at or after S0 + 15 min, close the last file
+    strictly before tipoff. A rung absent from the S0, S1 or close file has no quote there and fails
+    the filter (counted as ``rung_absent_at_snapshot``).
+    """
     log.psg_seen += 1
     s0_time = max(psg.made_s, psg.tip_s - spec.S0_LEAD_MIN * MIN)
+    if psg.file_times is not None:
+        ft = psg.file_times
+    elif psg.rungs:
+        ft = np.unique(np.concatenate([r.t for r in psg.rungs]))
+    else:
+        ft = np.array([], dtype=np.int64)
+    fi0 = _file_index(ft, s0_time)
+    if fi0 is None:
+        log.drops["no_S0_snapshot"] += len(psg.rungs)
+        return None
+    t0 = int(ft[fi0])
     cands: list[tuple[Rung, int]] = []
     for r in psg.rungs:
-        i0 = int(np.searchsorted(r.t, s0_time, side="left"))
-        if i0 >= len(r.t):
-            log.drops["no_S0_snapshot"] += 1
+        i0 = _quote_at(r, t0)
+        if i0 is None:
+            log.drops["rung_absent_at_snapshot"] += 1
+            log.drops["S0_quote_fails_filter"] += 1
             continue
         if not good_quote(r.bid[i0], r.ask[i0], float_compat=float_compat):
             log.drops["S0_quote_fails_filter"] += 1
@@ -150,29 +182,33 @@ def select_psg(psg: PSG, log: SelectionLog, *, float_compat: bool = False) -> Se
     )
     mid0 = mid_of(r.bid[i0], r.ask[i0])
     pc = psg.m.p_cond(r.k)
+    play_m = psg.m.p_play
 
     def drop(reason: str) -> None:
         log.drops[reason] += 1
         for rule in ("T510", "T510b"):
-            if pc is None:
+            if pc is None or play_m is None:
                 log.drop_signs[(reason, rule)][None] += 1
             else:
-                log.drop_signs[(reason, rule)][
-                    sign(valuation(rule, pc, psg.m.p_play, mid0) - mid0)
-                ] += 1
-        if psg.m.p_play < 0.9:
+                log.drop_signs[(reason, rule)][sign(valuation(rule, pc, play_m, mid0) - mid0)] += 1
+        if play_m is not None and play_m < 0.9:
             log.drop_pplay_lt_09[reason] += 1
 
-    s0_s = int(r.t[i0])
-    i1 = int(np.searchsorted(r.t, s0_s + spec.S1_GAP_MIN * MIN, side="left"))
-    ic = int(np.searchsorted(r.t, psg.tip_s, side="left")) - 1  # last snapshot strictly before tip
-    if i1 >= len(r.t) or ic < 0:
+    fi1 = _file_index(ft, t0 + spec.S1_GAP_MIN * MIN)
+    fic = int(np.searchsorted(ft, psg.tip_s, side="left")) - 1  # last file strictly before tip
+    if fi1 is None or fic < 0:
         drop("drop_no_S1_or_close")
+        return None
+    t1, tc = int(ft[fi1]), int(ft[fic])
+    i1, ic = _quote_at(r, t1), _quote_at(r, tc)
+    if i1 is None or ic is None:
+        log.drops["rung_absent_at_snapshot"] += 1
+        drop("drop_S1_close_filter")
         return None
     if (
         not good_quote(r.bid[i1], r.ask[i1], float_compat=float_compat)
         or not good_quote(r.bid[ic], r.ask[ic], float_compat=float_compat)
-        or int(r.t[ic]) - int(r.t[i1]) < spec.CLOSE_GAP_MIN * MIN
+        or tc - t1 < spec.CLOSE_GAP_MIN * MIN
     ):
         drop("drop_S1_close_filter")
         return None
@@ -186,6 +222,10 @@ def select_psg(psg: PSG, log: SelectionLog, *, float_compat: bool = False) -> Se
     if pcb is None:
         drop("drop_null_p_ge_full_B")
         return None
+    play_b = psg.b.p_play
+    if play_m is None or play_b is None:
+        drop("drop_null_p_play")
+        return None
     return Selected(
         psg.pid,
         psg.stat,
@@ -195,16 +235,16 @@ def select_psg(psg: PSG, log: SelectionLog, *, float_compat: bool = False) -> Se
         r.k,
         psg.tip_s,
         psg.made_s,
-        s0_s,
-        int(r.t[i1]),
-        int(r.t[ic]),
+        t0,
+        t1,
+        tc,
         mid0,
         mid_of(r.bid[i1], r.ask[i1]),
         mid_of(r.bid[ic], r.ask[ic]),
         pc,
-        psg.m.p_play,
+        play_m,
         pcb,
-        psg.b.p_play,
+        play_b,
     )
 
 

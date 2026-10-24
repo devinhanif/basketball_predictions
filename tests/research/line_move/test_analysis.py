@@ -159,7 +159,7 @@ def test_reported_blocks() -> None:
     rep = analysis.reported(t)
     taf = rep["toward_away_flat"]
     assert isinstance(taf, tuple) and sum(taf) == int(t.q1.sum())
-    assert "placebo_mean_and_95pct_range" in rep and "mean_m_M_pts" in rep
+    assert "mean_m_M_pts" in rep
     s = [sel(D0, pc_m=0.7, play=0.8, tk="a"), sel(D0, pc_m=0.9, play=1.0, tk="b")]
     three = analysis.three_sets(s, {D0})
     assert sum(v[0] for v in three.values()) <= 2  # type: ignore[index]

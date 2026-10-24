@@ -1,0 +1,83 @@
+{
+  "code_sha256": "c05efe8edae51d9740f466ce1bd9f78f09c3a734f427e00574dc30aa9fc719c6",
+  "t510_sha256": "881aca57600638f67915b5dc6a84b6a56753f026a4eae4a17811d7cee23af1ad",
+  "t510b_sha256": "68f0ef844daf0818453d6ae3af98c3106be4e329fda57896e85ffa9657e1ec0b",
+  "primary": {
+    "scenario": "primary_observed_spread_and_staleness",
+    "draws": 1000,
+    "min_q1": 424,
+    "t510_part1_false_pass": 0.0,
+    "t510_pass": 0.0,
+    "t510_mean_part1": 0.0001261082540092213,
+    "t510_mean_part2": 3.664598812209504e-05,
+    "t510b_part1_false_pass": 0.0,
+    "t510b_pass": 0.0,
+    "t510b_mean_part1": 0.00014388461337026077,
+    "t510b_mean_part2": 1.520238774846098e-05
+  },
+  "planted_T510": {
+    "pass_rate": 1.0,
+    "mean_p1": 0.019183763640308747,
+    "mean_p2": 0.007064421458300763,
+    "min_q1": 486.0
+  },
+  "planted_T510b": {
+    "pass_rate": 1.0,
+    "mean_p1": 0.019369415470192372,
+    "mean_p2": 0.007556533854290428,
+    "min_q1": 445.0
+  },
+  "criteria": {
+    "T510_i_part1_false_pass_le_5pct": true,
+    "T510_i_part2_mean_abs_le_0.002": true,
+    "T510_windows_hold_300_part1": true,
+    "T510_ii_planted_passes": true,
+    "T510b_i_false_pass_le_2.5pct": true,
+    "T510b_i_part1_alone_le_2.5pct": true,
+    "T510b_windows_hold_300_part1": true,
+    "T510b_ii_planted_passes": true
+  },
+  "T510_dryrun_pass": true,
+  "T510b_dryrun_pass": true,
+  "stress": [
+    {
+      "scenario": "stress_persistent_noise",
+      "draws": 200,
+      "min_q1": 456,
+      "t510_part1_false_pass": 0.0,
+      "t510_pass": 0.0,
+      "t510_mean_part1": 0.002385629422465212,
+      "t510_mean_part2": 0.00031571150800085946,
+      "t510b_part1_false_pass": 0.0,
+      "t510b_pass": 0.0,
+      "t510b_mean_part1": 0.002791961604727523,
+      "t510b_mean_part2": 0.000335311650680518
+    },
+    {
+      "scenario": "lean_drift_-1.5c",
+      "draws": 200,
+      "min_q1": 531,
+      "t510_part1_false_pass": 1.0,
+      "t510_pass": 1.0,
+      "t510_mean_part1": 0.012955803996950706,
+      "t510_mean_part2": 0.01034766869225347,
+      "t510b_part1_false_pass": 1.0,
+      "t510b_pass": 1.0,
+      "t510b_mean_part1": 0.012762257308398061,
+      "t510b_mean_part2": 0.011827583216000219
+    },
+    {
+      "scenario": "stress_very_stale",
+      "draws": 200,
+      "min_q1": 594,
+      "t510_part1_false_pass": 0.0,
+      "t510_pass": 0.0,
+      "t510_mean_part1": 0.0010645435861356234,
+      "t510_mean_part2": 0.00016747886082598443,
+      "t510b_part1_false_pass": 0.0,
+      "t510b_pass": 0.0,
+      "t510b_mean_part1": 0.0013599537309493266,
+      "t510b_mean_part2": 0.0002169198182770619
+    }
+  ]
+}

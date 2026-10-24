@@ -19,6 +19,18 @@ T510B_DOC = "docs/prereg/LINE_MOVE_TOWARD_MODEL_DNP_FAIR.md"
 T510_SHA256 = "881aca57600638f67915b5dc6a84b6a56753f026a4eae4a17811d7cee23af1ad"
 T510B_SHA256 = "68f0ef844daf0818453d6ae3af98c3106be4e329fda57896e85ffa9657e1ec0b"
 
+# Alias file pin (adversary ruling #1, 2026-10-24; Devin confirms in the morning). One constant, so
+# it is
+# easy to change before any look. The scorer refuses to run on any other alias file.
+ALIASES_SHA256 = "4d176c5381249effa54887cf9eecab88fa733417ae9f32dbbd57e0dbda4cd5d9"  # 57164b8
+ALIASES_SHA256_FREEZE = (
+    "6544535ab785f6cbae73d239be74e5c6ac5cf75f5e554804cb4d70353f2bfd11"  # 94c56f0
+)
+
+REPORT_DIR = REPO / "reports" / "line_move"
+DRYRUN_RECORD = REPORT_DIR / "dryrun_record.json"
+COMPLETE_MARGIN_MIN = 30  # every tip of a window date must be older than now - 30 min
+
 # --- Data / definitions (T510) ---
 M_MODEL = "props_context_residual"
 B_MODEL = "props_recency_v1"
@@ -64,6 +76,34 @@ GATE_21 = {
     "p2_T510b": 403,
     "pplay_lt_0.9_scored": 109,
 }
+
+
+# Gate counts on 2026-10-21 with the pinned alias file (diagnostic regression of the pinned inputs).
+GATE_21_PINNED = {
+    "markets_scored": 455,
+    "p1_T510": 345,
+    "p1_T510b": 318,
+    "p1_both": 293,
+    "only_T510": 52,
+    "only_T510b": 25,
+    "sign_flips": 1,
+    "p2_T510": 420,
+    "p2_T510b": 423,
+    "pplay_lt_0.9_scored": 133,
+}
+
+
+def code_files() -> list[Path]:
+    """Every module of the package (the hash of the scorer's code covers all of them)."""
+    return sorted(p for p in Path(__file__).parent.glob("*.py") if p.name != "__init__.py")
+
+
+def code_sha256() -> str:
+    h = hashlib.sha256()
+    for p in code_files():
+        h.update(p.name.encode())
+        h.update(p.read_bytes())
+    return h.hexdigest()
 
 
 def sha256_file(path: Path) -> str:

@@ -26,7 +26,6 @@ Stress scenarios are reported and decide nothing.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import asdict, dataclass
 from datetime import timedelta
@@ -63,11 +62,14 @@ class Scenario:
     phi: float  # AR(1) coefficient per snapshot
     sigma_w: float  # std of the efficient-price step per snapshot
     stale_p: float
+    m_bias: float = 0.0  # log-space bias of M's mean (the model leans low when negative)
+    drift: float = 0.0  # uniform drift of every quote mid from S1 to close (no information)
 
 
 PRIMARY = Scenario("primary_observed_spread_and_staleness", 0.010, 0.80, 0.0015, OBSERVED_STALE_P)
 STRESS = [
     Scenario("stress_persistent_noise", 0.030, 0.95, 0.0015, OBSERVED_STALE_P),
+    Scenario("lean_drift_-1.5c", 0.010, 0.80, 0.0015, OBSERVED_STALE_P, m_bias=-0.35, drift=-0.015),
     Scenario("stress_very_stale", 0.020, 0.90, 0.0015, 0.90),
 ]
 
@@ -129,8 +131,9 @@ def make_world(
     play = np.where(
         rng.random(p_total) < 0.85, rng.uniform(0.97, 1.0, p_total), rng.uniform(0.2, 0.9, p_total)
     )
-    mu_m = mu * np.exp(rng.normal(0.0, 0.25, p_total))
-    mu_b = mu_m * np.exp(rng.normal(0.0, 0.20, p_total))
+    mu_m0 = mu * np.exp(rng.normal(0.0, 0.25, p_total))
+    mu_m = mu_m0 * np.exp(sc.m_bias)  # the lean is in M only; B keeps the unbiased mean
+    mu_b = mu_m0 * np.exp(rng.normal(0.0, 0.20, p_total))
     cm = np.empty((p_total, KMAX), int)
     cb = np.empty((p_total, KMAX), int)
     for p in range(p_total):
@@ -148,7 +151,11 @@ def make_world(
     j0 = int(np.searchsorted(ts_grid, -spec.S0_LEAD_MIN * 60, side="left"))
     j1 = int(np.searchsorted(ts_grid, ts_grid[j0] + spec.S1_GAP_MIN * 60, side="left"))
     jc = j - 1
-    bid, ask = render(np.zeros(1))
+    ramp_t = np.zeros(j)
+    ramp_t[j1 : jc + 1] = np.linspace(0.0, 1.0, jc - j1 + 1)
+    ramp_t[jc + 1 :] = 1.0
+    drift_ramp = (sc.drift * ramp_t)[None, None, :]
+    bid, ask = render(drift_ramp)
     if plant and rule is not None:
         mid0 = (np.rint(100 * bid[:, :, j0]) + np.rint(100 * ask[:, :, j0])) / 200.0
         pc = np.take_along_axis(cm, np.minimum(ks, KMAX) - 1, axis=1) / NDRAWS_FORECAST
@@ -159,10 +166,7 @@ def make_world(
             else pc * play[:, None] + (1 - play[:, None]) * mid0
         )
         sgn = np.sign(pv - mid0)
-        ramp_t = np.zeros(j)
-        ramp_t[j1 : jc + 1] = np.linspace(0.0, 1.0, jc - j1 + 1)
-        ramp_t[jc + 1 :] = 1.0
-        bid, ask = render(plant * sgn[:, :, None] * ramp_t[None, None, :])
+        bid, ask = render(drift_ramp + plant * sgn[:, :, None] * ramp_t[None, None, :])
 
     t_abs = ts_grid  # per-psg offset added below
     psgs: list[PSG] = []
@@ -187,6 +191,7 @@ def make_world(
                 Forecast(tuple(int(x) for x in cm[p]), NDRAWS_FORECAST, float(play[p])),
                 Forecast(tuple(int(x) for x in cb[p]), NDRAWS_FORECAST, float(play[p])),
                 rungs,
+                t_arr,
             )
         )
     return psgs
@@ -278,13 +283,6 @@ def run_planted(sc: Scenario, rule: str, draws: int, seed: int) -> dict[str, flo
     }
 
 
-def code_sha256() -> str:
-    h = hashlib.sha256()
-    for name in ("spec.py", "selection.py", "analysis.py", "dryrun.py"):
-        h.update((Path(__file__).parent / name).read_bytes())
-    return h.hexdigest()
-
-
 def run_dryrun(
     draws: int = spec.DRYRUN_DRAWS, planted_draws: int = 100, stress: bool = True
 ) -> dict[str, object]:
@@ -307,7 +305,7 @@ def run_dryrun(
         "T510b_ii_planted_passes": p510b["pass_rate"] >= 0.95,
     }
     rec: dict[str, object] = {
-        "code_sha256": code_sha256(),
+        "code_sha256": spec.code_sha256(),
         "t510_sha256": spec.T510_SHA256,
         "t510b_sha256": spec.T510B_SHA256,
         "primary": asdict(prim),
@@ -334,7 +332,7 @@ def require_pass(path: Path, rule: str) -> None:
     if not path.exists():
         raise DryrunMissing(f"no dryrun record at {path}; run `dryrun` first")
     rec = json.loads(path.read_text())
-    if rec.get("code_sha256") != code_sha256():
+    if rec.get("code_sha256") != spec.code_sha256():
         raise DryrunMissing("dryrun record does not match the current selection/analysis code")
     key = "T510_dryrun_pass" if rule == "T510" else "T510b_dryrun_pass"
     if rule == "T510b" and not rec.get("T510_dryrun_pass"):
