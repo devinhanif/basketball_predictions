@@ -16,6 +16,7 @@ Nothing here reads a label unless the caller passes one: ``load_legs`` never sel
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -53,6 +54,11 @@ BET_FLOOR = -0.003
 WORSE_FLOOR = 0.0005  # MM must be this much worse than M (with CI above 0) to override: the null overfit cost is +0.0002
 MODEL_CLIP = rule.MODEL_CLIP
 ODDS_DB = "data/odds/odds_history.duckdb"
+EXTRAS_REL = "data/ops/market_anchored_props/extras_{season}.parquet"
+EXTRAS_PINNED_SHA256: dict[
+    int, str
+] = {}  # filled by the freeze commit (rule text); the run refuses a mismatch
+K1_SELECT_LIMIT = 0.0010  # kill: 2023 C_total point estimate above this -> KILLED_K1
 PAIRS_COLS = [
     "game_id", "player_id", "stat", "book", "snapshot_kind", "snapshot_ts", "tipoff_utc", "line",
     "p_over_mult", "p_model", "_dnp", "status", "season", "game_date", "starter10", "n_out_rot",
@@ -64,6 +70,9 @@ MR_COLS = (
     "u1",
     "miss_u1",
     "blowout",
+    "bench",
+    "tmout",
+    "disp10",
 )
 MM_COLS = (*(f"delta_{s}" for s in STATS), "delta_bench", "delta_tmout", "delta_disp")
 
@@ -116,10 +125,27 @@ def odds_extras(season: int, db_path: str | None = None) -> pl.DataFrame:
     return soft.join(sp, on="game_id", how="left")
 
 
+def build_extras(
+    out_dir: str, db_path: str, seasons: tuple[int, ...] = (2023, 2024)
+) -> dict[str, str]:
+    """Write the market-side extras (u_mean, u_sd, n_soft, spread_abs per game, player, stat, line) to one sorted parquet per
+    season and return their sha256. The rule pins these files; the run reads them and never opens the live odds database."""
+    import os
+
+    os.makedirs(out_dir, exist_ok=True)
+    out: dict[str, str] = {}
+    for s in seasons:
+        ex = odds_extras(s, db_path).sort(["game_id", "player_id", "stat", "line"])
+        path = os.path.join(out_dir, f"extras_{s}.parquet")
+        ex.write_parquet(path, compression="zstd", statistics=False)
+        out[str(s)] = rule.file_sha256(Path(path))
+    return out
+
+
 def load_legs(
     seasons: tuple[int, ...] = (2023, 2024),
     pairs_path: str = mpr.PAIRS_REL,
-    db_path: str | None = None,
+    extras_path: str = EXTRAS_REL,
 ) -> tuple[pl.DataFrame, dict[str, Any]]:
     """Pinnacle t60 legs (the MARKET_PRIOR_RESIDUAL / LINE_CALIBRATION definition) plus the market-only extras.
     Never selects a label column."""
@@ -143,7 +169,10 @@ def load_legs(
         n2 = d.height
         d = d.filter(((pl.col("line") % 1.0) - 0.5).abs() < 1e-9)
         n3 = d.height
-        ex = odds_extras(s, db_path)
+        ex_file = mpr.resolve(extras_path.format(season=s))
+        if s in EXTRAS_PINNED_SHA256 and rule.file_sha256(ex_file) != EXTRAS_PINNED_SHA256[s]:
+            raise RuntimeError(f"extras frame for {s} differs from its pin: refusing to run")
+        ex = pl.read_parquet(ex_file)
         d = d.join(ex, on=["game_id", "player_id", "stat", "line"], how="left")
         counts[str(s)] = {
             "rows": n0,
@@ -210,7 +239,17 @@ def design_b0(A: dict[str, np.ndarray], idx: np.ndarray) -> np.ndarray:
 
 
 def _market_cov(A: dict[str, np.ndarray], idx: np.ndarray) -> np.ndarray:
-    return np.column_stack([A["hi"][idx], A["u1"][idx], A["miss_u1"][idx], A["bl"][idx]])
+    return np.column_stack(
+        [
+            A["hi"][idx],
+            A["u1"][idx],
+            A["miss_u1"][idx],
+            A["bl"][idx],
+            A["bench"][idx],
+            A["tmout"][idx],
+            A["disp10"][idx],
+        ]
+    )
 
 
 def _model_cols(A: dict[str, np.ndarray], idx: np.ndarray, delta: np.ndarray | None) -> np.ndarray:
@@ -241,7 +280,7 @@ def design_mm(
 
 
 BETA0_B0 = np.concatenate([np.zeros(4), np.ones(4)])
-BETA0_MR = np.concatenate([BETA0_B0, np.zeros(4)])
+BETA0_MR = np.concatenate([BETA0_B0, np.zeros(7)])
 BETA0_MD = np.zeros(7)
 BETA0_MM = np.concatenate([BETA0_MR, np.zeros(7)])
 UNPENALISED = np.arange(4)  # the stat intercepts
@@ -433,6 +472,18 @@ def decompose(A: dict[str, np.ndarray], wf: dict[str, Any], b: int = rule.N_BOOT
     return res
 
 
+def run_words(
+    select_c_total_mean: float, invalid_reason: str | None = None
+) -> dict[str, str] | None:
+    """Run-level words that replace the verdict: NO_RESULT_INVALID_RUN (planted future, leg reproduction, pin or extras-pin
+    failure) first, then KILLED_K1 (2023 C_total above K1_SELECT_LIMIT; 2024 is not scored). None when the run proceeds."""
+    if invalid_reason is not None:
+        return {"model": "NONE", "market": "NONE", "override": "NO_RESULT_INVALID_RUN"}
+    if select_c_total_mean > K1_SELECT_LIMIT:
+        return {"model": "NONE", "market": "NONE", "override": "KILLED_K1"}
+    return None
+
+
 def verdict(report: dict[str, Any], select: dict[str, Any]) -> dict[str, str]:
     """Rule section 5. A model word (C_mod = MM - MR: the model credited AFTER the recalibrated market) and a market word
     (C_mkt = MR - M detected, and kept only if C_mkt_after = MM - MD, the market side credited AFTER the model, is also
@@ -470,7 +521,7 @@ def verdict(report: dict[str, Any], select: dict[str, Any]) -> dict[str, str]:
         market = "MODEL_EXPLAINS"  # the market component vanishes when the model terms go first
     elif not sel_mkt:
         market = "FAIL_SELECT_SIGN"
-    elif c_mkt["mean"] <= INFO_FLOOR:
+    elif c_mkt["mean"] <= INFO_FLOOR and c_aft["hi"] < 0:
         market = "MISCALIBRATION_INFO"
     else:
         market = "MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR"
@@ -496,6 +547,30 @@ def world_eta(A: dict[str, np.ndarray], kind: str, gamma: float = 0.0) -> np.nda
     if kind in ("mod", "both"):
         eta = eta + gamma * A["delta"]
     return eta
+
+
+OFF_SPAN_KINDS = ("bench", "tmout", "disp", "curv", "line")
+
+
+def off_span_z(A: dict[str, np.ndarray], kind: str) -> np.ndarray:
+    """Direction of a market error that MR cannot express as a main effect of its own columns: over-bias on bench legs,
+    on heavy-depletion legs, in book dispersion (centred), curvature in m, and a within-stat standardised line level."""
+    if kind == "bench":
+        return -A["bench"]
+    if kind == "tmout":
+        return -A["tmout"]
+    if kind == "disp":
+        ok = A["miss_u1"] == 0
+        return np.asarray(-(A["disp10"] - float(A["disp10"][ok].mean())) * ok)
+    if kind == "curv":
+        return -A["m"] * np.abs(A["m"])
+    if kind == "line":
+        z = np.zeros(len(A["m"]))
+        for si in range(len(STATS)):
+            k = A["stat_i"] == si
+            z[k] = (A["line"][k] - A["line"][k].mean()) / A["line"][k].std()
+        return -z
+    raise ValueError(kind)
 
 
 def draw_labels(eta: np.ndarray, seed: int) -> np.ndarray:

@@ -185,3 +185,22 @@ def test_season_2025_is_refused() -> None:
         core.odds_extras(2025)
     with pytest.raises(ValueError):
         core.load_legs(seasons=(2024, 2025))
+
+
+def test_market_info_tier_needs_the_guard_ci_and_run_words() -> None:
+    sel_ok = _rep(-0.0005, -0.0005, -0.0005)
+    v = core.verdict(_rep(0.0, -0.0012, 0.0, c_mkt_after=-0.0001), sel_ok)
+    assert v["market"] == "MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR"
+    assert core.run_words(0.0004) is None
+    assert core.run_words(0.0020) == {"model": "NONE", "market": "NONE", "override": "KILLED_K1"}
+    bad = core.run_words(0.0020, invalid_reason="pin")
+    assert bad is not None and bad["override"] == "NO_RESULT_INVALID_RUN"
+
+
+def test_off_span_directions_are_model_free_and_centred() -> None:
+    A = synth(seed=11)
+    A["line"] = np.abs(np.random.default_rng(1).normal(10, 4, len(A["m"])))
+    for kind in core.OFF_SPAN_KINDS:
+        z = core.off_span_z(A, kind)
+        assert z.shape == A["m"].shape and np.isfinite(z).all()
+    assert abs(float(core.off_span_z(A, "line").mean())) < 0.2

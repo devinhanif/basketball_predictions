@@ -186,14 +186,45 @@ def data_capture(db_path: str) -> dict[str, Any]:
     return out
 
 
-def run(k_null: int, boot: int, out: Path, reps: int = 6) -> dict[str, Any]:
+def calibrate_coef(
+    A: dict[str, np.ndarray], z: np.ndarray, target: float, mask: np.ndarray
+) -> float:
+    """c with oracle KL(sigmoid(m + c z) || market) = target on the masked legs (bisection, c >= 0)."""
+    lo, hi = 0.0, 20.0
+    m, zz = A["m"][mask], z[mask]
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if core.oracle_kl(core.sigmoid(m + mid * zz), core.sigmoid(m)) < target:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def run(
+    k_null: int,
+    boot: int,
+    out: Path,
+    reps: int = 6,
+    db_path: str | None = None,
+    extras_dir: str = "data/ops/market_anchored_props",
+) -> dict[str, Any]:
     t_start = time.time()
+    db = db_path or str(mpr.resolve(core.ODDS_DB))
+    core._log(f"building the pinned extras frames from {db}")
+    extras_sha = core.build_extras(str(rule.ROOT / extras_dir), db)
     core._log("loading legs")
     legs, counts = core.load_legs()
     A = core.to_arrays(legs)
     n = len(A["m"])
     checks: list[dict[str, Any]] = []
-    res: dict[str, Any] = {"counts": counts, "n_legs": n, "pins": sha_pins(), "seeds": SEEDS}
+    res: dict[str, Any] = {
+        "counts": counts,
+        "n_legs": n,
+        "pins": sha_pins(),
+        "seeds": SEEDS,
+        "extras_sha256": extras_sha,
+    }
 
     # G1/G2 legs and clusters against the MARKET_PRIOR_RESIDUAL gate
     per: dict[str, dict[str, int]] = {}
@@ -331,6 +362,12 @@ def run(k_null: int, boot: int, out: Path, reps: int = 6) -> dict[str, Any]:
         ("W_mod_oracle_0.0030", core.world_eta(A, "mod", g30), 40),
         ("W_both", core.world_eta(A, "both", g11), 50),
     ]
+    off_coef: dict[str, float] = {}
+    for i, kind in enumerate(core.OFF_SPAN_KINDS):
+        z = core.off_span_z(A, kind)
+        off_coef[kind] = calibrate_coef(A, z, 0.002, mask24)
+        spec.append((f"W_off_{kind}_0.0020", A["m"] + off_coef[kind] * z, 60 + 10 * i))
+    res["off_span_coef"] = off_coef
     worlds: dict[str, list[dict[str, Any]]] = {}
     for name, eta, off in spec:
         worlds[name] = []
@@ -430,6 +467,24 @@ def run(k_null: int, boot: int, out: Path, reps: int = 6) -> dict[str, Any]:
             fa <= 0.20,
         )
     )
+    off_rows = {}
+    for kind in core.OFF_SPAN_KINDS:
+        nm = f"W_off_{kind}_0.0020"
+        off_rows[kind] = [
+            rate(nm, lambda x: x["verdict"]["model"] in detected),
+            rate(nm, lambda x: x["report_2024"]["C_mod"]["hi"] < 0),
+            round(summary[nm]["mean_C_mod"], 5),
+            round(summary[nm]["mean_C_mkt"], 5),
+        ]
+    checks.append(
+        chk(
+            "G7g off-span market errors (bench, tmout, disp10, curvature in m, line level; each oracle 0.0020, model inert): "
+            "[false model word rate, C_mod CI<0 rate, mean C_mod, mean C_mkt] per kind",
+            off_rows,
+            "false model word <= 0.20 and C_mod CI<0 <= 0.20 in every world",
+            all(v[0] <= 0.20 and v[1] <= 0.20 for v in off_rows.values()),
+        )
+    )
     d11 = rate("W_mod_oracle_0.0011", lambda x: x["verdict"]["model"] in detected)
     checks.append(
         chk(
@@ -498,7 +553,7 @@ def run(k_null: int, boot: int, out: Path, reps: int = 6) -> dict[str, Any]:
     )
     res["checks"] = checks
     res["all_pass"] = all(c["pass"] for c in checks)
-    res["data_capture"] = data_capture(str(mpr.resolve(core.ODDS_DB)))
+    res["data_capture"] = data_capture(db)
     res["seconds"] = round(time.time() - t_start, 1)
     res["git_head"] = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
@@ -519,8 +574,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--boot", type=int, default=1000)
     ap.add_argument("--reps", type=int, default=6)
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument(
+        "--db",
+        default=None,
+        help="a byte copy of odds_history.duckdb (never the live file while a pull runs)",
+    )
     a = ap.parse_args(argv)
-    run(a.k_null, a.boot, Path(a.out), a.reps)
+    run(a.k_null, a.boot, Path(a.out), a.reps, a.db)
     return 0
 
 
