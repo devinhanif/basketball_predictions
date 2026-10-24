@@ -341,6 +341,17 @@ def require_pass(path: Path, rule: str) -> None:
         raise DryrunMissing(f"{rule} dryrun failed: the rule is reported unscoreable, not run")
 
 
+def failed(path: Path, rule: str) -> bool:
+    """True only if a record for the current code exists and says this rule's dryrun failed."""
+    if not path.exists():
+        return False
+    rec = json.loads(path.read_text())
+    if rec.get("code_sha256") != spec.code_sha256():
+        return False
+    key = "T510_dryrun_pass" if rule == "T510" else "T510b_dryrun_pass"
+    return key in rec and rec[key] is False
+
+
 class DryrunMissing(RuntimeError):
     pass
 

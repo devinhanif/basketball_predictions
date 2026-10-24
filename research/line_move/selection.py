@@ -165,8 +165,7 @@ def select_psg(psg: PSG, log: SelectionLog, *, float_compat: bool = False) -> Se
     for r in psg.rungs:
         i0 = _quote_at(r, t0)
         if i0 is None:
-            log.drops["rung_absent_at_snapshot"] += 1
-            log.drops["S0_quote_fails_filter"] += 1
+            log.drops["rung_absent_at_snapshot"] += 1  # counted once, not as a filter fail
             continue
         if not good_quote(r.bid[i0], r.ask[i0], float_compat=float_compat):
             log.drops["S0_quote_fails_filter"] += 1

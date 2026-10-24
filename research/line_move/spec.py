@@ -28,6 +28,13 @@ ALIASES_SHA256_FREEZE = (
 )
 
 REPORT_DIR = REPO / "reports" / "line_move"
+# Season end for the "horizon not reached" declaration (adversary R1): the last ET date in the
+# pinned copy of the schedule (sha256 below; 1,200 games). Read 2's cutoff of 2027-04-12 is a
+# different date (two days before the read).
+SCHEDULE_PINNED = REPO / "data" / "raw" / "schedule_2026-10-23" / "live_tips_2026-27.parquet"
+SCHEDULE_SHA256 = "9702c830abe987ffea696af800aeb9d1bdc88d275756d4333c19663fca40d86d"
+SEASON_END = date(2027, 4, 11)
+UNSCOREABLE_REASONS = ("dryrun_failed", "horizon_not_reached")
 DRYRUN_RECORD = REPORT_DIR / "dryrun_record.json"
 COMPLETE_MARGIN_MIN = 30  # every tip of a window date must be older than now - 30 min
 

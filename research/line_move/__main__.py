@@ -177,8 +177,9 @@ def _diagnostics(table: analysis.Table) -> list[str]:
     return out
 
 
-def _result_path(out_dir: Path, rule: str) -> Path:
-    return out_dir / f"{rule}_result.json"
+def _result_path(rule: str) -> Path:
+    """Result records live in spec.REPORT_DIR only (no --out-dir: no re-scoring elsewhere)."""
+    return spec.REPORT_DIR / f"{rule}_result.json"
 
 
 def _write_once(path: Path, rec: dict[str, object]) -> None:
@@ -204,31 +205,43 @@ def _part_json(p: analysis.PartResult) -> dict[str, object]:
     }
 
 
+def _complete_selection(
+    ns: argparse.Namespace,
+) -> tuple[
+    list[selection.Selected],
+    selection.SelectionLog,
+    dict[str, int],
+    dict[date, int],
+    datetime,
+    int,
+]:
+    """Selection restricted to window dates (>= 10-22, not 10-21) whose capture is complete."""
+    psgs, d0 = _load(Path(ns.nba_db), Path(ns.aliases), None, REPO)
+    sel, log = selection.select_all(psgs)
+    now = _now()
+    last_tip: dict[date, int] = {}
+    for p in psgs:
+        last_tip[p.day] = max(last_tip.get(p.day, 0), p.tip_s)
+    ok_days = analysis.complete_days(last_tip, int(now.timestamp()), now.astimezone(NY).date())
+    sel = [s for s in sel if s.day >= spec.FIRST_DATE and s.day != spec.GATE_NIGHT]
+    n_incomplete = len({s.day for s in sel} - ok_days)
+    return [s for s in sel if s.day in ok_days], log, d0, last_tip, now, n_incomplete
+
+
 def cmd_score(ns: argparse.Namespace) -> int:
     rule = ns.rule
-    out_dir = Path(ns.out_dir)
     dryrun.require_pass(Path(ns.record), rule)
     asha = _check_pinned_aliases(Path(ns.aliases))
-    if _result_path(out_dir, rule).exists():
-        raise Refused(f"{_result_path(out_dir, rule)} exists: a rule is scored once")
+    if _result_path(rule).exists():
+        raise Refused(f"{_result_path(rule)} exists: a rule is scored once")
     if rule == "T510b":
-        p510 = _result_path(out_dir, "T510")
+        p510 = _result_path("T510")
         if not p510.exists():
             raise Refused("T510b is never scored before T510: no T510_result.json")
         if json.loads(p510.read_text())["verdict"] == "UNSCOREABLE":
             raise Refused("T510 is unscoreable; T510b is not scored")
-    psgs, d0 = _load(Path(ns.nba_db), Path(ns.aliases), None, REPO)
-    sel, log = selection.select_all(psgs)
-    now = _now()
+    sel, log, d0, last_tip, now, n_incomplete = _complete_selection(ns)
     now_s = int(now.timestamp())
-    today = now.astimezone(NY).date()
-    last_tip: dict[date, int] = {}
-    for p in psgs:
-        last_tip[p.day] = max(last_tip.get(p.day, 0), p.tip_s)
-    ok_days = analysis.complete_days(last_tip, now_s, today)
-    sel = [s for s in sel if s.day >= spec.FIRST_DATE and s.day != spec.GATE_NIGHT]
-    n_incomplete = len({s.day for s in sel} - ok_days)
-    sel = [s for s in sel if s.day in ok_days]
     own = analysis.horizon_date(sel, rule)
     t510 = analysis.horizon_date(sel, "T510")
     n_q = analysis.qualifying_counts(sel, rule)[0]
@@ -265,9 +278,14 @@ def cmd_score(ns: argparse.Namespace) -> int:
         print(f"    [{n} tickers] {txt!r}")
     if rule == "T510b":
         print(f"  three sets (n, mean m_M, mean m_M'): {analysis.three_sets(sel, window)}")
-        inactive = loaders.inactive_pids(Path(ns.nba_db), {(s.game_id, s.pid) for s in rows})
+        inactive, no_row = loaders.inactive_pids(
+            Path(ns.nba_db), {(s.game_id, s.pid) for s in rows}
+        )
         n_in, mc = analysis.inactive_mid_close(table, inactive)
-        print(f"  part-1 markets of later-inactive players: {n_in}; mean mid_close {mc:+.4f}")
+        print(
+            f"  part-1 markets of later-inactive players: {n_in}; mean mid_close {mc:+.4f}; "
+            f"pairs with no box row (ingest gap, not read as scratches): {len(no_row)}"
+        )
     print(
         "  drops by reason/sign: "
         + str({f"{k[0]}|{k[1]}": dict(v) for k, v in log.drop_signs.items()})
@@ -292,27 +310,45 @@ def cmd_score(ns: argparse.Namespace) -> int:
         "capture_files": loaders.capture_file_count(dirs),
         "scored_at": now.isoformat(),
     }
-    _write_once(_result_path(out_dir, rule), rec)
-    print(f"result record written once to {_result_path(out_dir, rule)}")
+    _write_once(_result_path(rule), rec)
+    print(f"result record written once to {_result_path(rule)}")
     return 0
 
 
 def cmd_mark_unscoreable(ns: argparse.Namespace) -> int:
+    """Declare a rule unscoreable only for a condition the code verifies (adversary R1)."""
+    rule, reason = ns.rule, ns.reason
+    if rule == "T510b" and _result_path("T510b").exists():
+        raise Refused("T510b already has a result record; it cannot be marked unscoreable")
+    if _result_path(rule).exists():
+        raise Refused(f"{_result_path(rule)} exists: the record is never rewritten")
+    if reason == "dryrun_failed":
+        if not dryrun.failed(Path(ns.record), rule):
+            raise Refused(f"the committed dryrun record does not show a failed {rule} dryrun")
+    elif reason == "horizon_not_reached":
+        _check_pinned_aliases(Path(ns.aliases))
+        today = _now().astimezone(NY).date()
+        if today < spec.SEASON_END:
+            raise Refused(f"today {today} is before the pinned SEASON_END {spec.SEASON_END}")
+        sel, *_ = _complete_selection(ns)
+        if analysis.horizon_date(sel, rule) is not None:
+            raise Refused(f"{rule}'s horizon is reached on complete dates; it must be scored")
+    else:
+        raise Refused(f"reason {reason!r} is not one of {spec.UNSCOREABLE_REASONS}")
     rec: dict[str, object] = {
-        "rule": ns.rule,
+        "rule": rule,
         "verdict": "UNSCOREABLE",
-        "reason": ns.reason,
+        "reason": reason,
         "code_sha256": spec.code_sha256(),
         "marked_at": _now().isoformat(),
     }
-    _write_once(_result_path(Path(ns.out_dir), ns.rule), rec)
-    print(f"{ns.rule} marked unscoreable")
+    _write_once(_result_path(rule), rec)
+    print(f"{rule} marked unscoreable ({reason})")
     return 0
 
 
 def cmd_family(ns: argparse.Namespace) -> int:
-    out_dir = Path(ns.out_dir)
-    p510, p510b = _result_path(out_dir, "T510"), _result_path(out_dir, "T510b")
+    p510, p510b = _result_path("T510"), _result_path("T510b")
     if not p510.exists():
         print("T510 has no result record yet; the family is not read")
         return 3
@@ -351,15 +387,15 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--date", required=True)
         else:
             p.add_argument("--rule", required=True, choices=["T510", "T510b"])
-            p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
         p.set_defaults(fn=fn)
     f = sub.add_parser("family")
-    f.add_argument("--out-dir", default=str(spec.REPORT_DIR))
     f.set_defaults(fn=cmd_family)
     u = sub.add_parser("mark-unscoreable")
     u.add_argument("--rule", required=True, choices=["T510", "T510b"])
-    u.add_argument("--reason", required=True)
-    u.add_argument("--out-dir", default=str(spec.REPORT_DIR))
+    u.add_argument("--reason", required=True, choices=list(spec.UNSCOREABLE_REASONS))
+    u.add_argument("--nba-db", default=None, help="a COPY of nba.duckdb (horizon_not_reached)")
+    u.add_argument("--aliases", default=str(REPO / "configs" / "kalshi_aliases.yaml"))
+    u.add_argument("--record", default=str(spec.DRYRUN_RECORD))
     u.set_defaults(fn=cmd_mark_unscoreable)
     ns = ap.parse_args(argv)
     try:

@@ -170,21 +170,41 @@ def rules_secondary_texts(capture_dirs: list[Path], tickers: set[str]) -> Counte
     return out
 
 
-def inactive_pids(db_copy: Path, pairs: set[tuple[str, int]]) -> set[int]:
-    """Players with no box minutes in the game (T510b report only; games are final)."""
+def inactive_pids(
+    db_copy: Path, pairs: set[tuple[str, int]]
+) -> tuple[set[int], set[tuple[str, int]]]:
+    """(players with a box row of minutes 0 or null, (game, player) pairs with NO box row).
+
+    T510b report only; the games are final. A missing box row is an ingest gap, counted
+    separately, and is not read as a scratch.
+    """
     con = duckdb.connect(str(db_copy), read_only=True)
     try:
-        out = set()
+        zero: set[int] = set()
+        no_row: set[tuple[str, int]] = set()
         for gid, pid in pairs:
             r = con.execute(
                 "select minutes from player_game_stats where game_id = ? and player_id = ?",
                 [gid, pid],
             ).fetchall()
-            if not r or r[0][0] is None or r[0][0] == 0:
-                out.add(pid)
+            if not r:
+                no_row.add((gid, pid))
+            elif r[0][0] is None or r[0][0] == 0:
+                zero.add(pid)
     finally:
         con.close()
-    return out
+    return zero, no_row
+
+
+def schedule_last_et_date(path: Path) -> date:
+    """Last ET calendar date of a scheduled tip in the schedule parquet."""
+    import polars as pl
+
+    df = pl.read_parquet(path)
+    return max(
+        datetime.fromisoformat(str(v).replace("Z", "+00:00")).astimezone(NY).date()
+        for v in df["gameDateTimeUTC"].to_list()
+    )
 
 
 def build_psgs(
