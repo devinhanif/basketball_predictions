@@ -134,3 +134,93 @@ definitions, unpinned files).
 | 2026-10-24 01:24 (drafted; clock read by `date`) | MARKET_ANCHORED_PROPS eval, ruling #5 (pre-look): harness pin by an empty commit `harness(MARKET_ANCHORED_PROPS): <pin>` (ALT_RUNG_CAL ff040aa precedent), after F1-F5 and a diff-only adversary re-check; `run` from a clean checkout of that commit. | `require_harness_pinned` contract; one look. | n/a |
 | 2026-10-24 01:24 (drafted; clock read by `date`) | MARKET_ANCHORED_PROPS eval, ruling #15 (pre-look): a scored-count mismatch (28,108 / 37,528) is a leg-reproduction failure (NO_RESULT_INVALID_RUN), checked label-free before any label is read. | `scored` depends only on leg counts per month (core line 405); section 6 states both counts. | n/a |
 | 2026-10-24 01:24 (drafted; clock read by `date`) | MARKET_ANCHORED_PROPS eval (pre-look): the planted future in `run` uses real labels with test month 2025-01 = season 2024 (2024-25), allowed by section 6 kill criterion (2); descriptive failures (DK, Part L, exchange, slices, refit) are recorded per block and never void or crash the primary; planted K1 / WORSE worlds are plumbing tests, not evidence of threshold power. | Adversary eval review 2026-10-24, R6, F4, R14. | n/a |
+
+---
+
+## Re-check (diff only): `git diff 045b6b9 45cf843`, 2026-10-24 01:40 CDT
+
+Verdict: APPROVED
+
+**Return: READY_TO_PIN.** F1-F7, F9 and F10 are applied as specified, and the diff introduces no new contradiction with the
+frozen text. I withdraw F8; the builder's measurement is right. Still not done here, by instruction: the pin commit and
+`run`.
+
+**Next steps for the main session, in order:**
+1. On a clean checkout of `45cf843` (or any later commit that changes no file in `HARNESS_FILES` and no pinned
+   artifact), run `.venv/bin/python -m research.eval.market_anchored_props_rule pin`.
+2. Commit `git commit --allow-empty -m "harness(MARKET_ANCHORED_PROPS): <pin>"`.
+3. Confirm `git merge-base --is-ancestor f52a974 <pin commit>`.
+4. Run `run --sha f7691bbfade479ef2400faf43820b5e5923c483d9de52d1c4423f50c15aa0091` from that clean checkout.
+
+### What the diff does, checked line by line
+- **F1:** `--week` and `--odds-copy` are gone from the parser (`build_parser`). `run` calls `with_week(A0, "iso")`
+  unconditionally and records `R.WEEK_DEFINITION`. The core's weeks remain only in the dryrun's gate reproduction.
+  Tested by `test_run_parser_has_no_week_and_no_odds_copy` and `test_run_path_order_iso_weeks_and_isolated_descriptive`.
+  **Applied.**
+- **F2:** `run` no longer imports or opens DuckDB (the only `duckdb.connect` calls are in `load_rungs` and `load_exchange`,
+  reached only from `extract`). `extract` refuses the live file and refuses to overwrite. It asserts that no `y` / `over`
+  column is present and writes sorted zstd parquet. The pins are in `market_anchored_props_rule.py`, which `HARNESS_FILES`
+  covers. `check_descriptive_pins` runs before `load_labels`. **Applied.**
+- **F3:** `MODEL_ROWS_PINNED_SHA256` equals the two values I measured. `check_model_rows_pins` runs before `aux_columns` and
+  the labels; a missing file or a mismatch raises `InvalidRun`. **Applied.**
+- **F4:** `evaluate_primary` writes `results.json` through `on_words` as soon as the words exist, with
+  `descriptive: PENDING`. Every descriptive block, and the secondary BH family, runs under `_block`, which catches
+  `Exception` and records `FAILED`. DraftKings labels are read inside the DK block; a missing one drops that leg and is
+  counted (`n_dk_legs_without_label`), never raised. The dryrun's planted DK failure gives words `NONE`/`NONE` intact,
+  `draftkings_direction: FAILED`, `descriptive: DONE`. **Applied.**
+- **F5:** `check_scored_counts(A)` runs label-free right after `load_legs_checked` and returns {2023: 28108, 2024: 37528}
+  in the new dryrun. The in-stage check is now an `assert`. **Applied.**
+- **F6:** `test_worse_than_market_boundaries` covers mean 0.0005 with lo 1e-9 (fires), lo 0.0 (does not fire), and mean
+  0.000499 (does not fire). **Applied.**
+- **F7:** mypy now shows 0 errors in `market_anchored_props_eval.py` or `market_anchored_props_rule.py`. The other 15 are
+  pre-existing errors in other files, including the frozen core line 127. **Applied.**
+- **F9:** the run-path test asserts that `missingness.json` exists before Stage 1. **Applied.**
+- **F10:** `DK_NOTE` is written into the DK block's output. **Applied.**
+- **R13:** Part L rung outcomes now come from the pinned pairs' `y`. Agreement of `(y >= line + 0.5)` with `over` on the
+  primary legs is reported as `pairs_y_vs_over_agreement_on_legs` (descriptive). **Applied.**
+
+### F8 (runtime): the builder is right, and F8 is withdrawn
+In `dryrun2.log`, 45 `heavy.lock held` retries run from 23:34:36 to 01:04:36, which is 5,400 s of waiting. Compute ran
+from 01:04:36 to 01:11:24, 408 s, for the gate reproduction plus the full rehearsal. My own reproduction-only re-run took
+364.8 s, and the new dryrun reports 296.0 s. `run` performs one pipeline and no gate reproduction, so section 15's 5-10
+minutes of compute is credible. The real risk is lock wait: start the run outside the nightly and morning windows. The
+eval docstring now says this, and the frozen text is untouched.
+
+### Rulings on the builder's items 1-12 (pre-look)
+| # | item | ruling |
+|---|---|---|
+| 1 | FREEZE subject suffix accepted only if the hash matches | **Accept.** `freeze_commit` requires the subject's 64-hex value to equal `--sha` **and** the doc at that commit to hash to it. `f52a974`'s suffix ` FREEZE` passes only through that double check. |
+| 2 | Slice components C_mod / C_mkt / C_total | **Accept.** Section 4 names the slices but not their contents. These three are the claim, the market component and the pool. C_pl is not sliced; it is a per-leg placebo with no slice role. Descriptive. |
+| 3 | Tip-hour buckets ET < 19, 19, 20, >= 21 | **Accept.** Fixed label-free before the look and labelled "tip-hour slice, not freshness", as section 4 requires. |
+| 4 | Top five = the five player-seasons with the most negative summed C_mod | **Accept.** Raw sums are reported next to the share, so a share computed on a positive total (no gain) is readable for what it is. |
+| 5 | Exchange slice: novig / prophetx two-sided at Pinnacle's line, 2024 legs from 2024-12-19, scored legs; X - M plus C_mod / C_mkt / C_total | **Accept.** Matches section 4 (report only, no select season). |
+| 6 | Part L: x.5 rungs only, multiplicative de-vig, V_cal on the B0 design (walk-forward, N_MIN_TRAIN 3,000 rungs, 365-day weights, LAM 50), distance buckets, clip 1e-6 | **Accept.** Each choice follows section 4 or carries a frozen constant. `n_anchor_undefined` is reported (0 in the rehearsal). |
+| 7 | Brier arms M / B0 / MR / MD / MM | **Accept.** These are the section 3 arms. PL is omitted because it is the mean of K losses, not one probability. |
+| 8 | Stale core docstrings ("rule section 5", "12 / 19 columns", the variable `iso` on Thursday weeks) | **Accept as disclosure; do not edit.** The core is frozen (blob at `f52a974`), and an edit would fail `require_harness_pinned`. The eval docstrings state the truth. |
+| 9 | K1 suppresses every descriptive block | **Accept.** Section 6: K1 means "stop, 2024 is not scored, closed". The descriptive blocks are 2024 outputs; their 2023 halves have no role once the rule is closed. |
+| 10 | Secondary BH family runs after the first results write, isolated | **Accept.** It is labels-only with no pass role. Isolating it guarantees that the words are on disk first. A `FAILED` family is recorded, not re-run. |
+| 11 | Extract keeps only the primary legs' rungs and quotes; counts 0.6-1.3% below the section 8 table | **Accept.** Reconciled in `extract_manifest.json`. Game counts are identical in all 8 season-stat cells; rungs run 0.6-1.3% below. novig has 19,848 / 862 against 20,211 / 862; prophetx 7,852 / 776 against 7,966 / 779. The gap is the played / known-at / x.5 / unique filter. A reconciliation, not a gate. |
+| 12 | A missing pinned file is a pin failure | **Accept.** Section 6 kill criterion (2) and the header ("refuses ... a missing pin"). Every such check runs before `load_labels`, so an `InvalidRun` at that point has seen no label. Restoring the pinned bytes and re-running is not a second look. Record it in DECISIONS if it happens. |
+
+### Re-check table (label-free; exit codes shown)
+| id | check | command | result | pass |
+|---|---|---|---|---|
+| D1 | extract bytes reproduce independently (4th extraction) | in my scratch worktree at `45cf843`: `PYTHONPATH=$PWD .venv/bin/python -W ignore -m research.eval.market_anchored_props_eval extract --db <builder's copy, sha 62f68cc0...> --overwrite`, then `shasum -a 256`, then `git checkout --` to restore | exit 0; `1412e09d...f278` and `befa3c30...b5ae`, identical to the pins; only the manifest timestamp and path differ | yes |
+| D2 | extracts carry no label | `pyarrow.parquet.read_schema` | rungs 210,434 rows `[game_id, player_id, stat, point, price_over, price_under, line, p_over_mult, season, game_date]`; quotes 27,700 rows `[game_id, player_id, stat, book, po, pu]` (= 19,848 + 7,852) | yes |
+| D3 | tests | `PYTHONPATH=$PWD uv run --no-project --python .venv/bin/python --with pytest --with pytest-cov python -W ignore -m pytest -q tests/research/market_anchored_props/ --no-cov -p no:cacheprovider` | 50 passed, exit 0 | yes |
+| D4 | lint / format | `ruff check`, `ruff format --check` on eval, rule and both test files | exit 0 / exit 0 | yes |
+| D5 | types | `uv run --no-project --with mypy --with numpy --with polars==1.44.2 mypy <eval, rule> --ignore-missing-imports` | exit 1, 15 errors, 0 in eval or rule (all pre-existing elsewhere) | yes (for this diff) |
+| D6 | new dryrun.json | read the committed file | 296.0 s; gate REPRODUCED, 0 differences; scored counts {28108, 37528}; planted DK failure isolated | yes |
+| D7 | lock-wait claim | `grep -c 'heavy.lock held' dryrun2.log` and the first / last compute lines | 45 waits; compute 01:04:36-01:11:24 (408 s) | yes |
+
+### Residual risk (minor, not blocking)
+An exception inside the primary itself, before `on_words` (for example a singular Newton solve in a fit), still leaves
+no `results.json`. The Stage 2 log line would by then have shown that K1 did not fire. The fits were stable in 100 gate
+worlds plus the rehearsal, so the risk is small. If it happens, record a DECISIONS row before any fix and treat the fix
+as a new harness pin made after a partial look.
+
+### Drafted DECISIONS rows (pre-look; not appended)
+| when (CDT) | what | why | reverses if |
+|---|---|---|---|
+| 2026-10-24 01:40 (drafted; clock read by `date`) | MARKET_ANCHORED_PROPS eval re-check APPROVED (READY_TO_PIN) at `45cf843`: F1-F7, F9 and F10 applied; F8 withdrawn (5,808 s was 5,400 s of heavy.lock waits; compute is 296-408 s); extracts pinned at 1412e09d / befa3c30 and reproduced independently. | Adversary diff-only re-check, 2026-10-24. | Any file in `HARNESS_FILES` or any pinned artifact changes before the pin commit: re-check. |
+| 2026-10-24 01:40 (drafted) | MARKET_ANCHORED_PROPS eval, builder items 1-12 accepted as listed in the re-check (FREEZE suffix with hash; slice components; tip-hour buckets; top-five ranking; exchange slice; Part L details; Brier arms; core docstrings disclosed, not edited; K1 suppresses descriptive; secondary BH isolated after the first write; extract counts reconciled; missing pinned file = pin failure, pre-label, re-runnable without a second look). | Fixed before any label is read. | n/a |
