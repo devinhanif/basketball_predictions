@@ -1,0 +1,534 @@
+{
+ "rule": "ROLE_CHANGEPOINT",
+ "constants": {
+  "SIGMA": 5.0,
+  "TAU": 6.0,
+  "HAZARD": 0.03333333333333333,
+  "RMAX": 60,
+  "LONG_HL": 40.0,
+  "K_PRIMARY": 8,
+  "THR_PRIMARY": 0.5,
+  "MIN_PRIOR": 10
+ },
+ "inputs": {
+  "nba_duckdb_mtime": "2026-10-23 20:56 CDT",
+  "played_rows_2022_24": 84052,
+  "model_rows_sha8": {
+   "2023_pts": "d0897569",
+   "2023_reb": "337be51e",
+   "2023_ast": "241cd38a",
+   "2023_fg3m": "96e46fbb",
+   "2024_pts": "81a66fd6",
+   "2024_reb": "bbb89d17",
+   "2024_ast": "62bb6c7c",
+   "2024_fg3m": "6fa84bd8"
+  },
+  "minutes_scores_sha8": "9ad6a6ed"
+ },
+ "counts": {
+  "2023": {
+   "scored_set_rows": 25815,
+   "player_seasons": 551,
+   "games": 1230,
+   "weeks": 25,
+   "rows_n_prior_ge_10": 25245,
+   "grid": {
+    "K3_thr0.3": {
+     "rows": 1378,
+     "share": 0.0534,
+     "player_seasons": 379,
+     "games": 801,
+     "top5_player_season_share": 0.051
+    },
+    "K3_thr0.5": {
+     "rows": 773,
+     "share": 0.0299,
+     "player_seasons": 298,
+     "games": 530,
+     "top5_player_season_share": 0.065
+    },
+    "K3_thr0.7": {
+     "rows": 488,
+     "share": 0.0189,
+     "player_seasons": 228,
+     "games": 375,
+     "top5_player_season_share": 0.076
+    },
+    "K5_thr0.3": {
+     "rows": 3919,
+     "share": 0.1518,
+     "player_seasons": 453,
+     "games": 1149,
+     "top5_player_season_share": 0.038
+    },
+    "K5_thr0.5": {
+     "rows": 2244,
+     "share": 0.0869,
+     "player_seasons": 402,
+     "games": 975,
+     "top5_player_season_share": 0.051
+    },
+    "K5_thr0.7": {
+     "rows": 1454,
+     "share": 0.0563,
+     "player_seasons": 322,
+     "games": 807,
+     "top5_player_season_share": 0.061
+    },
+    "K8_thr0.3": {
+     "rows": 8124,
+     "share": 0.3147,
+     "player_seasons": 487,
+     "games": 1227,
+     "top5_player_season_share": 0.029
+    },
+    "K8_thr0.5": {
+     "rows": 4985,
+     "share": 0.1931,
+     "player_seasons": 446,
+     "games": 1187,
+     "top5_player_season_share": 0.039
+    },
+    "K8_thr0.7": {
+     "rows": 3450,
+     "share": 0.1336,
+     "player_seasons": 395,
+     "games": 1114,
+     "top5_player_season_share": 0.051
+    }
+   },
+   "primary": {
+    "k": 8,
+    "thr": 0.5,
+    "rows": 4985,
+    "weeks": 25,
+    "direction_up_rows": 2549,
+    "direction_down_rows": 2436,
+    "abs_bocpd_minus_min10_mean_min": 4.172,
+    "starter10_ge_0.5_rows": 1391,
+    "bench_rows": 3594,
+    "gap_days_ge_7_rows (absence returns)": 558,
+    "n_season_lt_10_rows (season-start; SEASON_BOUNDARY territory)": 1427,
+    "n_season_ge_10_rows (in-season; the primary slice)": 3558,
+    "n_season_ge_10_player_seasons": 384,
+    "n_season_ge_10_games": 1012,
+    "n_season_ge_10_top5_player_season_share": 0.048,
+    "production_since_flag_le_K_rows (overlap with the CUSUM already in A0)": 2671,
+    "production_flag_dir_agrees_rows": 1466,
+    "abs_bocpd_minus_min10_ge_3_rows": 3060,
+    "abs_bocpd_minus_min10_ge_3_share_of_all_scored_rows": 0.1771,
+    "rows_in_cohort_by_min10_bucket": {
+     "<10": 327,
+     "10-20": 2498,
+     "20-28": 1343,
+     ">=28": 817
+    }
+   },
+   "redundancy_with_A0_columns": {
+    "corr(bocpd_mean - min10, min5 - min10)": 0.7089,
+    "R2 of (bocpd_mean - min10) on [min5-min10, min40-min10, flag_dir if since_flag<=8]": 0.6115,
+    "sd(bocpd_mean - min10) min": 2.605,
+    "sd of the part not explained by those A0 columns (min)": 1.623
+   },
+   "production_cusum_cohort_rows": 8453,
+   "nan_pattern": {
+    "bocpd_columns_nan_rows": 0,
+    "nan_only_if_n_prior_lt_1": true
+   }
+  },
+  "2024": {
+   "scored_set_rows": 25649,
+   "player_seasons": 551,
+   "games": 1225,
+   "weeks": 25,
+   "rows_n_prior_ge_10": 25186,
+   "grid": {
+    "K3_thr0.3": {
+     "rows": 1367,
+     "share": 0.0533,
+     "player_seasons": 394,
+     "games": 777,
+     "top5_player_season_share": 0.045
+    },
+    "K3_thr0.5": {
+     "rows": 768,
+     "share": 0.0299,
+     "player_seasons": 313,
+     "games": 527,
+     "top5_player_season_share": 0.055
+    },
+    "K3_thr0.7": {
+     "rows": 468,
+     "share": 0.0182,
+     "player_seasons": 243,
+     "games": 359,
+     "top5_player_season_share": 0.068
+    },
+    "K5_thr0.3": {
+     "rows": 3893,
+     "share": 0.1518,
+     "player_seasons": 470,
+     "games": 1149,
+     "top5_player_season_share": 0.035
+    },
+    "K5_thr0.5": {
+     "rows": 2307,
+     "share": 0.0899,
+     "player_seasons": 396,
+     "games": 1004,
+     "top5_player_season_share": 0.045
+    },
+    "K5_thr0.7": {
+     "rows": 1503,
+     "share": 0.0586,
+     "player_seasons": 333,
+     "games": 830,
+     "top5_player_season_share": 0.057
+    },
+    "K8_thr0.3": {
+     "rows": 7984,
+     "share": 0.3113,
+     "player_seasons": 499,
+     "games": 1223,
+     "top5_player_season_share": 0.03
+    },
+    "K8_thr0.5": {
+     "rows": 4943,
+     "share": 0.1927,
+     "player_seasons": 448,
+     "games": 1191,
+     "top5_player_season_share": 0.035
+    },
+    "K8_thr0.7": {
+     "rows": 3396,
+     "share": 0.1324,
+     "player_seasons": 404,
+     "games": 1112,
+     "top5_player_season_share": 0.044
+    }
+   },
+   "primary": {
+    "k": 8,
+    "thr": 0.5,
+    "rows": 4943,
+    "weeks": 25,
+    "direction_up_rows": 2475,
+    "direction_down_rows": 2468,
+    "abs_bocpd_minus_min10_mean_min": 4.315,
+    "starter10_ge_0.5_rows": 1360,
+    "bench_rows": 3583,
+    "gap_days_ge_7_rows (absence returns)": 527,
+    "n_season_lt_10_rows (season-start; SEASON_BOUNDARY territory)": 1362,
+    "n_season_ge_10_rows (in-season; the primary slice)": 3581,
+    "n_season_ge_10_player_seasons": 386,
+    "n_season_ge_10_games": 1012,
+    "n_season_ge_10_top5_player_season_share": 0.044,
+    "production_since_flag_le_K_rows (overlap with the CUSUM already in A0)": 2660,
+    "production_flag_dir_agrees_rows": 1388,
+    "abs_bocpd_minus_min10_ge_3_rows": 3062,
+    "abs_bocpd_minus_min10_ge_3_share_of_all_scored_rows": 0.1781,
+    "rows_in_cohort_by_min10_bucket": {
+     "<10": 411,
+     "10-20": 2308,
+     "20-28": 1437,
+     ">=28": 787
+    }
+   },
+   "redundancy_with_A0_columns": {
+    "corr(bocpd_mean - min10, min5 - min10)": 0.6963,
+    "R2 of (bocpd_mean - min10) on [min5-min10, min40-min10, flag_dir if since_flag<=8]": 0.5991,
+    "sd(bocpd_mean - min10) min": 2.675,
+    "sd of the part not explained by those A0 columns (min)": 1.694
+   },
+   "production_cusum_cohort_rows": 8988,
+   "nan_pattern": {
+    "bocpd_columns_nan_rows": 0,
+    "nan_only_if_n_prior_lt_1": true
+   }
+  }
+ },
+ "a0_identity": {
+  "2023": {
+   "rows": 27619,
+   "rows_mismatching": 0,
+   "players_mismatching": 0,
+   "max_abs_diff_min10": 0.0,
+   "max_abs_diff_starter10": 0.0,
+   "n_prior_equal_all": true
+  },
+  "2024": {
+   "rows": 27583,
+   "rows_mismatching": 0,
+   "players_mismatching": 0,
+   "max_abs_diff_min10": 0.0,
+   "max_abs_diff_starter10": 0.0,
+   "n_prior_equal_all": true
+  }
+ },
+ "sensitivity": {
+  "sigma7": {
+   "2023": {
+    "rows": 1686,
+    "share": 0.0653
+   },
+   "2024": {
+    "rows": 1833,
+    "share": 0.0715
+   }
+  },
+  "sigma7_hazard1/60": {
+   "2023": {
+    "rows": 956,
+    "share": 0.037
+   },
+   "2024": {
+    "rows": 1100,
+    "share": 0.0429
+   }
+  },
+  "sigma5_tau8": {
+   "2023": {
+    "rows": 5139,
+    "share": 0.1991
+   },
+   "2024": {
+    "rows": 5037,
+    "share": 0.1964
+   }
+  },
+  "sigma5_hazard1/60": {
+   "2023": {
+    "rows": 3634,
+    "share": 0.1408
+   },
+   "2024": {
+    "rows": 3561,
+    "share": 0.1388
+   }
+  },
+  "sigma4_hazard1/15": {
+   "2023": {
+    "rows": 11514,
+    "share": 0.446
+   },
+   "2024": {
+    "rows": 11452,
+    "share": 0.4465
+   }
+  }
+ },
+ "planted_future": {
+  "cut": "2023-12-01",
+  "rows_before": 33630,
+  "rows_after": 50422,
+  "identical_before": true,
+  "control_share_of_after_rows_changed": 0.9863
+ },
+ "synthetic_detection": {
+  "bocpd_false_flag_row_rate": 0.011,
+  "two_window_abs_z_thr_matched": 1.537,
+  "cusum_since_le_K_false_row_rate_unmatched": 0.1005,
+  "by_delta": {
+   "4.0": {
+    "bocpd_median_delay_games (of detected)": 4.0,
+    "bocpd_never_detected_in_15": 0.533,
+    "two_window_median_delay": 4.0,
+    "two_window_never": 0.683,
+    "cusum_median_delay": 5.5,
+    "cusum_never": 0.367,
+    "share_of_15_post_rows_flagged": {
+     "bocpd": 0.098,
+     "two_window": 0.04,
+     "cusum": 0.334
+    },
+    "abs_error_of_level_estimate_games_1_to_5_after_change (minutes)": {
+     "bocpd": 2.78,
+     "ew_hl10": 3.153,
+     "ew_hl4": 2.246
+    }
+   },
+   "-4.0": {
+    "bocpd_median_delay_games (of detected)": 5.0,
+    "bocpd_never_detected_in_15": 0.583,
+    "two_window_median_delay": 4.5,
+    "two_window_never": 0.667,
+    "cusum_median_delay": 6.0,
+    "cusum_never": 0.467,
+    "share_of_15_post_rows_flagged": {
+     "bocpd": 0.082,
+     "two_window": 0.029,
+     "cusum": 0.242
+    },
+    "abs_error_of_level_estimate_games_1_to_5_after_change (minutes)": {
+     "bocpd": 3.105,
+     "ew_hl10": 3.373,
+     "ew_hl4": 2.767
+    }
+   },
+   "8.0": {
+    "bocpd_median_delay_games (of detected)": 3.0,
+    "bocpd_never_detected_in_15": 0.083,
+    "two_window_median_delay": 3.0,
+    "two_window_never": 0.117,
+    "cusum_median_delay": 3.0,
+    "cusum_never": 0.033,
+    "share_of_15_post_rows_flagged": {
+     "bocpd": 0.283,
+     "two_window": 0.139,
+     "cusum": 0.69
+    },
+    "abs_error_of_level_estimate_games_1_to_5_after_change (minutes)": {
+     "bocpd": 4.205,
+     "ew_hl10": 6.416,
+     "ew_hl4": 4.633
+    }
+   },
+   "-8.0": {
+    "bocpd_median_delay_games (of detected)": 4.0,
+    "bocpd_never_detected_in_15": 0.083,
+    "two_window_median_delay": 3.0,
+    "two_window_never": 0.2,
+    "cusum_median_delay": 4.0,
+    "cusum_never": 0.067,
+    "share_of_15_post_rows_flagged": {
+     "bocpd": 0.239,
+     "two_window": 0.113,
+     "cusum": 0.614
+    },
+    "abs_error_of_level_estimate_games_1_to_5_after_change (minutes)": {
+     "bocpd": 4.961,
+     "ew_hl10": 6.637,
+     "ew_hl4": 5.179
+    }
+   },
+   "12.0": {
+    "bocpd_median_delay_games (of detected)": 2.0,
+    "bocpd_never_detected_in_15": 0.017,
+    "two_window_median_delay": 3.0,
+    "two_window_never": 0.033,
+    "cusum_median_delay": 2.0,
+    "cusum_never": 0.0,
+    "share_of_15_post_rows_flagged": {
+     "bocpd": 0.388,
+     "two_window": 0.236,
+     "cusum": 0.866
+    },
+    "abs_error_of_level_estimate_games_1_to_5_after_change (minutes)": {
+     "bocpd": 4.752,
+     "ew_hl10": 9.678,
+     "ew_hl4": 7.082
+    }
+   }
+  },
+  "shuffled_order_control_mean_max_p8_in_15_rows_after_change": {
+   "real": 0.74,
+   "shuffled": 0.502,
+   "series": 60
+  }
+ },
+ "power": {
+  "2023": {
+   "cohort_rows": 3558,
+   "clusters": {
+    "rows": 3558,
+    "player_seasons": 384,
+    "games": 1012,
+    "weeks": 23
+   },
+   "minutes_rows_with_M1": 3558,
+   "minutes_noise_sigma0.05_halfwidth_min": {
+    "mean": 0.024441182735648805,
+    "binding": "player_season"
+   },
+   "minutes_hypothesised_worlds_cohort_delta_min": {
+    "A0_lags_by_2.0min_arm_closes_0.5": {
+     "point": -0.1163,
+     "half_width": 0.0248,
+     "hi": -0.0903,
+     "clears_floor_0.10_and_ci": true
+    },
+    "A0_lags_by_2.0min_arm_closes_1.0": {
+     "point": -0.1504,
+     "half_width": 0.0489,
+     "hi": -0.0998,
+     "clears_floor_0.10_and_ci": true
+    },
+    "A0_lags_by_4.0min_arm_closes_0.5": {
+     "point": -0.4718,
+     "half_width": 0.0504,
+     "hi": -0.4189,
+     "clears_floor_0.10_and_ci": true
+    },
+    "A0_lags_by_4.0min_arm_closes_1.0": {
+     "point": -0.6207,
+     "half_width": 0.0985,
+     "hi": -0.5172,
+     "clears_floor_0.10_and_ci": true
+    }
+   },
+   "props_noise_sigma0.05_composite_halfwidth_floor_units": 0.7668363478703737,
+   "props_noise_per_stat_halfwidth_floor_units": {
+    "pts": 2.031,
+    "reb": 1.293,
+    "ast": 1.395,
+    "fg3m": 1.365
+   }
+  },
+  "2024": {
+   "cohort_rows": 3581,
+   "clusters": {
+    "rows": 3581,
+    "player_seasons": 386,
+    "games": 1012,
+    "weeks": 23
+   },
+   "minutes_rows_with_M1": 3581,
+   "minutes_noise_sigma0.05_halfwidth_min": {
+    "mean": 0.023247384426516242,
+    "binding": "player_season"
+   },
+   "minutes_hypothesised_worlds_cohort_delta_min": {
+    "A0_lags_by_2.0min_arm_closes_0.5": {
+     "point": -0.1432,
+     "half_width": 0.0214,
+     "hi": -0.1227,
+     "clears_floor_0.10_and_ci": true
+    },
+    "A0_lags_by_2.0min_arm_closes_1.0": {
+     "point": -0.2027,
+     "half_width": 0.0413,
+     "hi": -0.1633,
+     "clears_floor_0.10_and_ci": true
+    },
+    "A0_lags_by_4.0min_arm_closes_0.5": {
+     "point": -0.5279,
+     "half_width": 0.0445,
+     "hi": -0.4842,
+     "clears_floor_0.10_and_ci": true
+    },
+    "A0_lags_by_4.0min_arm_closes_1.0": {
+     "point": -0.7293,
+     "half_width": 0.0853,
+     "hi": -0.6466,
+     "clears_floor_0.10_and_ci": true
+    }
+   },
+   "props_noise_sigma0.05_composite_halfwidth_floor_units": 0.7588919638491257,
+   "props_noise_per_stat_halfwidth_floor_units": {
+    "pts": 1.982,
+    "reb": 1.407,
+    "ast": 1.163,
+    "fg3m": 1.303
+   }
+  }
+ },
+ "excluded_backfilled_games": [
+  "0022400147",
+  "0022400621",
+  "0022400633",
+  "0022401229",
+  "0022401230"
+ ],
+ "season_2025_loaded": false,
+ "wall_seconds": 35.7
+}
