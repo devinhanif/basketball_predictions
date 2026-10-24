@@ -1,0 +1,7 @@
+{"bets": [
+ {"ticker": "KXNBATEAMPTS-GSW-O16.5", "side": "no", "price": 0.82, "p_center": 0.846, "p_sd": 0.03, "game": "GSW"},
+ {"ticker": "KXNBATEAMPTS-POR-O22.5", "side": "no", "price": 0.83, "p_center": 0.85, "p_sd": 0.03, "game": "POR"},
+ {"ticker": "KXNBA3PT-LUKA-5", "side": "no", "price": 0.68, "p_center": 0.71, "p_sd": 0.04, "game": "LAL"},
+ {"ticker": "KXNBAREB-CASTLE-6", "side": "no", "price": 0.60, "p_center": 0.629, "p_sd": 0.04, "game": "SAS"},
+ {"ticker": "KXNBA3PT-CASTLE-2", "side": "no", "price": 0.54, "p_center": 0.563, "p_sd": 0.04, "game": "SAS"}
+]}

@@ -551,6 +551,23 @@ def cmd_top(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_size(a: argparse.Namespace) -> int:
+    """Read bets.json, print per-bet contracts, expected profit, P(loss) and the floor warning."""
+    from nba.parlay.bayes_kelly import format_result, parse_bets, size_bets
+
+    bets, corr = parse_bets(json.loads(Path(a.bets).read_text()))
+    res = size_bets(
+        bets,
+        bankroll=a.bankroll,
+        floor=a.floor,
+        cap=a.cap,
+        corr=corr,
+        parlay_cfg_path=a.config,
+    )
+    print(json.dumps(res.to_dict(), indent=1) if a.json else format_result(res))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m nba.parlay", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -612,6 +629,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--budget", type=float, help="also answer: best EV for this many dollars")
     p.add_argument("--target", type=float, help="with --budget: profit target in dollars")
     p.add_argument("--top", type=int, default=10)
+    p = sub.add_parser("size", help="Bayesian-Kelly stake sizer for a night's bets (advice only)")
+    p.add_argument("--bets", required=True, help="bets.json (see docs/BAYES_KELLY.md)")
+    p.add_argument("--bankroll", type=float, required=True)
+    p.add_argument("--floor", type=float, required=True, help="soft floor; warns, never blocks")
+    p.add_argument("--cap", type=float, required=True, help="nightly loss cap in dollars")
+    p.add_argument("--config", default=str(ROOT / "configs" / "parlay.yaml"))
+    p.add_argument("--json", action="store_true", help="print JSON instead of the table")
     from nba.parlay.assistant.cli import add_arguments, run
 
     add_arguments(
@@ -620,6 +644,8 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     if a.cmd == "assistant":
         return run(a)
+    if a.cmd == "size":
+        return cmd_size(a)
     if a.cmd == "evaluate":
         Path(a.paper_db).parent.mkdir(parents=True, exist_ok=True)
     return {

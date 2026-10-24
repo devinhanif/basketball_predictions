@@ -62,3 +62,21 @@ top_parlays:
   # combo contract). A sportsbook parlay carries no separate fee: its margin is inside the legs'
   # prices, so EV per dollar there is p / implied - 1.
   fee_venues: [kalshi]
+bayes_kelly:
+  # Bayesian-Kelly stake sizer (nba/parlay/bayes_kelly.py, docs/BAYES_KELLY.md). Advice only.
+  # These are ASSUMPTIONS chosen before any scoring; none is a measured quantity yet.
+  prior_edge_sd: 0.03        # sd (probability scale) of true-minus-market edge under "market is roughly efficient"
+  shared_error_rho: 0.5      # share of each bet's logit uncertainty common to all bets tonight (model/devig bias)
+  same_game_rho: 0.25        # default win-event correlation between legs of one game (Gaussian copula) when none given
+  min_sd: 0.01               # floor on the probability sd derived from source spread
+  n_prior_k: 100.0           # optional n-based shrink: weight on the estimate = n / (n + k)
+  steady_threshold: 0.75     # default tier: steady when the price is at or above this, else swing
+  steady_share: 0.5          # Money Strategy v2: 50% steady / 50% swing (a per-tier ceiling on cost)
+  floor_base: 25.0           # soft floor = floor_base * (1 + floor_monthly_growth) ** months
+  floor_monthly_growth: 0.01
+  z_nodes: 11                # Gauss-Hermite nodes for the shared-error factor
+  idio_nodes: 15             # nodes for the independent part of each bet's uncertainty
+  copula_points: 131072      # Sobol points per same-game group
+  seed: 20261023
+  max_bets: 12
+  max_group: 5
