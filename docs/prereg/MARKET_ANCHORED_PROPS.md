@@ -1,6 +1,6 @@
 # MARKET_ANCHORED_PROPS: split "the model knows something" from "the market is mis-calibrated" in a market-anchored prop forecast (pre-registration)
 
-Status: **DRAFT, written by the modeler Fri 2026-10-23 (clock read by `date`: first gate runs 20:26-20:45 CDT, final gate run 21:39 CDT, second pre-freeze review fixes 22:15 CDT). NOT frozen. No outcome of any real leg has been read by this rule or its harness.**
+Status: **FROZEN Fri 2026-10-23 by the main session on Devin's pre-authorization, after the adversary's third pre-freeze look returned READY_TO_FREEZE (docs/reviews/market_anchored_props_prefreeze3_2026-10-23.md, 2c2b155). Drafted by the modeler (gate runs 20:26-21:39 CDT; review fixes 22:15 CDT). No outcome of any real leg has been read by this rule or its harness.**
 - **Required before the freeze:** an adversary pre-freeze review (BEST_PRACTICES 2026-10-12: a hard stop, not a citation). Questions I would put to it: (i) is the market word's guard (C_mkt_after < 0) too lenient or too strict; (ii) is the `u1` soft-book gap a sound market-side covariate when books copy Pinnacle; (iii) is `tmout` (n_out_rot >= 3) the right depletion flag or a team-quality proxy; (iv) does the 2024 stored-`p_model` vintage difference change the placebo.
 - **How it becomes the rule:** the main session commits `prereg(MARKET_ANCHORED_PROPS): <sha256>` of everything above the line `=== RESULTS BELOW ===`. Hash it with
   `awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/MARKET_ANCHORED_PROPS.md | shasum -a 256`.
