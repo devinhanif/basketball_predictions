@@ -1,12 +1,12 @@
 # KALSHI_LONGSHOT_FORWARD - are Kalshi NBA long shots overpriced after fees? (forward-only)
 
-STATUS: DRAFT, NOT FROZEN. Written 2026-10-23 by the market agent (branch `agent/market-kalshi-longshot-fwd`).
+STATUS: FROZEN 2026-10-23 by the main session (Devin: "yes do both"; "fee ok" after the fee check above; adversary pre-freeze READY after edits, docs/reviews/kalshi_longshot_unders_prefreeze_2026-10-23.md). Written 2026-10-23 by the market agent (branch `agent/market-kalshi-longshot-fwd`).
 Forward-only was Devin's choice on 2026-10-23. Season 2025 and the holdout are not touched; no historical
 Kalshi pull is part of this rule. It reads prices only (no orders, no credentials, no stakes, no sizing).
 
 FREEZE RECORD (outside the frozen section; filled by the hand that freezes):
-- Frozen on: ____ (before any scored row exists; the scoring window opens at the first ET date after the freeze commit)
-- sha256 of the frozen section: ____
+- Frozen on: 2026-10-23 23:01 CDT (before any scored row exists; the scoring window opens at the first ET date after the freeze commit)
+- sha256 of the frozen section: 0b50d17ed52119ba192298f062aee5cc260c59c410c13357a13bce280631e4e1
 - Verify: `awk '$0=="<!-- FROZEN-END -->"{f=0} f{print} $0=="<!-- FROZEN-BEGIN -->"{f=1}' docs/KALSHI_LONGSHOT_FORWARD.md | shasum -a 256`
 
 ## Question and what the rule protects against
@@ -71,9 +71,7 @@ Sensitivity S1: fee rounded UP to a whole cent per single contract (the small-or
 At freeze the config's fee schedule is re-verified by Devin against Kalshi's published schedule (the 2026-10-08
 verification is "user-provided"; an automated fetch on 2026-10-23 was rate-limited and verified nothing).
 
-TO BE CONFIRMED BY DEVIN AT FREEZE against Kalshi's published schedule. The values below are copied from `configs/parlay.yaml` as of this draft
-(coefficient 0.07, formula `p_one_minus_p` = P(1-P), default_multiplier 1.0, empty `fee_multiplier`, rounding up once per ORDER in the config
-and UNROUNDED per contract in this rule's primary) and are UNCONFIRMED until he does.
+Confirmed by Devin on 2026-10-23 against Kalshi's series API (https://api.elections.kalshi.com/trade-api/v2/series/<ticker>, read 2026-10-23 for KXNBAPTS, KXNBAREB, KXNBAAST, KXNBA3PT, KXNBAPRA, KXNBAPR, KXNBAPA, KXNBARA, KXNBABLK, KXNBASTL, KXNBATEAMTOTAL, KXNBAGAME, KXNBASPREAD, KXNBATOTAL: fee_multiplier 1 on every one; fee_type quadratic, or quadratic_with_maker_fees for GAME/SPREAD/TOTAL) and the published quadratic taker formula as reported by five secondary sources (Kalshi's own schedule PDF, https://kalshi.com/docs/kalshi-fee-schedule.pdf, returned HTTP 429 to an automated fetch): taker coefficient 0.07, M = 1 for every series in Section 1.7, formula P(1-P).
 
 The fee parameters are pinned by this text: taker coefficient 0.07, formula `p_one_minus_p`, multiplier M = 1.0 for every series in
 Section 1.7 (Devin confirms these against Kalshi's published schedule before the freeze commit; if his check differs, these numbers are
