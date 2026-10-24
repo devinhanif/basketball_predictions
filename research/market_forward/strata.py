@@ -145,18 +145,21 @@ def assign_strata(
         tip = tips.get(r["game"])
         if gid is not None and pid is not None and tip is not None and r["threshold"] is not None:
             cut = tip - timedelta(minutes=ENTRY_LEAD_MIN)
+            # C4: kalshi_markets.threshold is the integer "N+"; the line (UNDERS 1.4) is the
+            # floor_strike x.5 = N - 0.5, for props and combos alike.
+            line = float(r["threshold"]) - (0.5 if r["kind"] in ("prop", "combo") else 0.0)
             key = (gid, int(pid), str(r["stat"]))
             o = _latest_before(inp.ours.get(key, []), cut)
             if o is not None:
                 _, mean, q10, q50, q90 = o
                 sd = (q90 - q10) / SD_DIV
                 if sd > 0:
-                    z = (float(r["threshold"]) - mean) / sd
+                    z = (line - mean) / sd
                     zb = "z<=-0.5" if z <= -0.5 else ("-0.5<z<=0.5" if z <= 0.5 else "z>0.5")
-                    lqv = float(r["threshold"]) - q50
+                    lqv = line - q50
             p = _latest_before(inp.pinnacle.get(key, []), cut)
             if p is not None and (cut - p[0]).total_seconds() / 60.0 <= ENTRY_MAX_AGE_MIN:
-                dd = round(float(r["threshold"]) - p[1])
+                dd = int(line - p[1])  # both x.5: exact, no banker's rounding
                 db = "D<=-1" if dd <= -1 else ("D=0" if dd == 0 else "D>=+1")
                 if dd == 0:
                     gp = p[2] - (r["bid_c"] + r["ask_c"]) / 200.0

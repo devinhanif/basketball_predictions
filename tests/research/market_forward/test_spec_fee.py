@@ -129,3 +129,12 @@ def test_refuses_changed_formula_default_multiplier_and_series_multiplier(tmp_pa
 def test_maker_coefficient_is_not_what_is_pinned(tmp_path: Path) -> None:
     ok = load_pinned_fee(UNDERS.all_series, _config(tmp_path, maker_coefficient=0.5))
     assert ok.coefficient * 100 == 7
+
+
+def test_string_false_verified_is_refused_even_though_the_live_loader_coerces_it(
+    tmp_path: Path,
+) -> None:
+    # nba/parlay/config.py coerces the string "false" to True (noted for Devin; not edited).
+    for bad in ("false", "yes", 1):
+        with pytest.raises(FeeRefused, match="YAML boolean true"):
+            load_pinned_fee(UNDERS.all_series, _config(tmp_path, verified=bad))

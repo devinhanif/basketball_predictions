@@ -84,7 +84,9 @@ def test_selftest_dnp_payoff_is_not_simulated() -> None:
 
 
 def _stub_ok() -> SelfTestResult:
-    return SelfTestResult(0, 1, 200, 0.05, 0.05, True, 0.0, 0.0, 0.0, 1.0, 0.05, True, "s", True)
+    return SelfTestResult(
+        0, 1, 200, 0.05, 0.05, True, 0.0, 0.0, 0.0, 1.0, 0.05, 0.05, True, "s", True
+    )
 
 
 def test_calibrated_null_world_gives_no_positive_ev_found(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -131,23 +133,27 @@ def test_replicates_coverage_and_rates() -> None:
     assert plant["truth"] == pytest.approx(0.03) and plant.get("PASS", 0.0) >= 0.9
 
 
-def test_insufficient_sample_unders_prints_counts_only_longshot_prints_table(
+def test_insufficient_sample_prints_counts_only_for_both_rules(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # C3: LONGSHOT Section 6 also prints counts and the projected date only below the minimum.
     monkeypatch.setattr(engine, "run_selftests", lambda *a, **k: _stub_ok())
-    for spec, counts_only in ((UNDERS, True), (LONGSHOT, False)):
+    monkeypatch.setattr(
+        engine, "pooled", lambda *a, **k: (_ for _ in ()).throw(AssertionError("R computed"))
+    )
+    for spec in (UNDERS, LONGSHOT):
         w = make_world(spec, 40, seed=2)
         res = engine.score_look(
             spec, world_universe(draw_outcomes(w, np.random.default_rng(1))), FEE, 1, b=200
         )
-        assert res.verdict.name == "INSUFFICIENT_SAMPLE"
+        assert res.verdict.name == "INSUFFICIENT_SAMPLE" and res.pooled is None
         txt = format_look(res)
-        assert ("R = " not in txt) is counts_only
-        assert "VERDICT: INSUFFICIENT_SAMPLE" in txt
+        assert "R = " not in txt and "ROI" not in txt and "BUCKETS" not in txt
+        assert "VERDICT: INSUFFICIENT_SAMPLE" in txt and "counts only" in txt
 
 
 def test_selftest_failure_prints_counts_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    bad = _stub_ok().__class__(1, 1, 200, 0.5, 0.0, False, 0, 0, 0, 0, 0, False, "s", False)
+    bad = _stub_ok().__class__(1, 1, 200, 0.5, 0.0, False, 0, 0, 0, 0, 0, 0, False, "s", False)
     monkeypatch.setattr(engine, "run_selftests", lambda *a, **k: bad)
     w = make_world(UNDERS, 400, seed=2)
     res = engine.score_look(

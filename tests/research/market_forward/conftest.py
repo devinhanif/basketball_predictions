@@ -10,6 +10,9 @@ from pathlib import Path
 
 import duckdb
 import polars as pl
+import pytest
+
+from research.market_forward import data as D
 
 TIP = datetime(2026, 10, 27, 23, 0)  # 19:00 ET, ET date 2026-10-27
 GAME = "26OCT27AAABBB"
@@ -27,6 +30,7 @@ class Mk:
     threshold: float = 10.5
     player_id: int | None = 1
     scalar: str | None = None
+    settled_ts: datetime | None = None
     event: str | None = None
     extra_rows: list[tuple[datetime, float, float]] = field(default_factory=list)
 
@@ -50,8 +54,8 @@ def build_capture(
     for m in mks:
         ev = m.event or f"{m.series}-{game}"
         con.execute(
-            "INSERT INTO kalshi_markets VALUES (?,?,?,?,?,?,?,NULL,NULL,NULL,?)",
-            [m.ticker, m.series, ev, "t", m.player_id, m.stat, m.threshold, m.result],
+            "INSERT INTO kalshi_markets VALUES (?,?,?,?,?,?,?,NULL,NULL,?,?)",
+            [m.ticker, m.series, ev, "t", m.player_id, m.stat, m.threshold, m.settled_ts, m.result],
         )
         ts = m.ts or (tip - timedelta(minutes=70))
         if m.bid is not None or m.ask is not None:
@@ -92,4 +96,17 @@ def build_capture(
             "gameDateTimeEst": ["x", "y"],
         }
     ).write_parquet(sched)
+    repin(sched)
     return {"db": db, "raw": raw, "sched": sched}
+
+
+def repin(sched: Path) -> None:
+    """Pin the fixture schedule for this test (the real pin is exercised by its negative test)."""
+    D.SCHEDULE_SHA256 = D.file_sha256(sched)
+
+
+@pytest.fixture(autouse=True)
+def _restore_schedule_pin() -> object:
+    orig = D.SCHEDULE_SHA256
+    yield
+    D.SCHEDULE_SHA256 = orig

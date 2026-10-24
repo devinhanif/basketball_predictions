@@ -188,14 +188,24 @@ def score_look(
             res.verdict = Verdict("INSUFFICIENT_SAMPLE", "no eligible settled contracts")
         return res
 
+    # C3: both rules print counts and the projected date only below the frozen minimum; the
+    # INSUFFICIENT_SAMPLE verdict is settled BEFORE any pooled R exists, so none can be shown.
+    if pool.n_games < MIN_GAMES or pool.n_dates < MIN_DATES:
+        res.verdict = decide(look, pool.n_games, pool.n_dates, 0.0, 0.0, 0.0, guards)
+        if schedule_dates and window_start is not None and cutoff is not None:
+            res.projected = project_date(
+                schedule_dates, window_start, cutoff, pool.n_games, pool.n_dates
+            )
+        return res
     pl_ = pooled(pool, alpha, b, rng)
     res.pooled = pl_
     res.verdict = decide(
         look, pool.n_games, pool.n_dates, pl_.R, pl_.decision.lo, pl_.decision.hi, guards
     )
-    res.counts_only = False
-    if spec.rule_id == "UNDERS_FORWARD" and res.verdict.name == "INSUFFICIENT_SAMPLE":
-        res.counts_only = True  # UNDERS Section 6: counts and projected date only, no direction
+    res.counts_only = (
+        res.verdict.name == "INSUFFICIENT_SAMPLE"
+    )  # guards 8.1 / 8.3 can also land here
+    if res.counts_only:
         res.pooled = None
     if schedule_dates and window_start is not None and cutoff is not None:
         res.projected = project_date(

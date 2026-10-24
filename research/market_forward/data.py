@@ -13,6 +13,7 @@ same code.
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import re
 from collections import Counter
@@ -35,6 +36,7 @@ from research.market_forward.spec import (
     RuleSpec,
     kind_of,
 )
+from research.market_forward.spec import SCHEDULE_SHA256 as SCHEDULE_SHA256  # re-export
 
 ET = ZoneInfo("America/New_York")
 SETTLED = ("yes", "no", "scalar")
@@ -50,6 +52,7 @@ class MarketRec:
     threshold: float | None
     player_id: int | None
     result: str | None
+    settled_ts: datetime | None = None  # naive UTC; None = not stamped
 
 
 @dataclass(frozen=True)
@@ -69,6 +72,9 @@ class RawInfo:
 
     occurrence: dict[str, datetime] = field(default_factory=dict)
     result: dict[str, str] = field(default_factory=dict)
+    result_day: dict[str, date] = field(default_factory=dict)  # page dir of first settled sighting
+    first_day: date | None = None
+    last_day: date | None = None
     scalar_micro: dict[str, int] = field(default_factory=dict)
     expiration_value: dict[str, str] = field(default_factory=dict)
     files_read: int = 0
@@ -113,6 +119,8 @@ def load_raw(
         day_dir = raw_root / d.isoformat()
         if not day_dir.is_dir():
             continue
+        info.first_day = d if info.first_day is None else min(info.first_day, d)
+        info.last_day = d if info.last_day is None else max(info.last_day, d)
         for s in ser:
             for kind in kinds:
                 for p in sorted(day_dir.glob(f"*_{s}_{kind}_*.json.gz")):
@@ -126,6 +134,7 @@ def load_raw(
                         res = str(m.get("result") or "")
                         if kind == "settled" and t and res in SETTLED and t not in info.result:
                             info.result[t] = res
+                            info.result_day[t] = d
                             ev_val = m.get("expiration_value")
                             if ev_val is not None:
                                 info.expiration_value[t] = str(ev_val)
@@ -135,8 +144,27 @@ def load_raw(
     return info
 
 
-def load_schedule_tips(path: Path) -> set[datetime]:
-    """Scheduled tips (naive UTC): column ``gameDateTimeUTC`` of ``live_tips_2026-27.parquet``."""
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+class ScheduleRefused(RuntimeError):
+    """The schedule parquet is not the pinned file (C2)."""
+
+
+def load_schedule_tips(path: Path, expected_sha256: str | None = None) -> set[datetime]:
+    """Scheduled tips (naive UTC): column ``gameDateTimeUTC`` of ``live_tips_2026-27.parquet``.
+
+    Refuses unless the file hashes to the pinned ``SCHEDULE_SHA256`` (C2).
+    """
+    want = SCHEDULE_SHA256 if expected_sha256 is None else expected_sha256
+    got = file_sha256(path)
+    if got != want:
+        raise ScheduleRefused(f"schedule {path} sha256 {got[:8]} != pinned {want[:8]}")
     df = pl.read_parquet(path)
     return {parse_utc(str(v)) for v in df["gameDateTimeUTC"].to_list()}
 
@@ -154,7 +182,8 @@ def open_copy(db_path: Path) -> duckdb.DuckDBPyConnection:
 def read_markets(con: duckdb.DuckDBPyConnection, series: Sequence[str]) -> list[MarketRec]:
     ph = ",".join("?" for _ in series)
     rows = con.execute(
-        "SELECT ticker, series_ticker, event_ticker, stat, threshold, player_id, result "
+        "SELECT ticker, series_ticker, event_ticker, stat, threshold, player_id, result, "
+        "settled_ts "
         f"FROM kalshi_markets WHERE series_ticker IN ({ph})",
         list(series),
     ).fetchall()
@@ -167,8 +196,9 @@ def read_markets(con: duckdb.DuckDBPyConnection, series: Sequence[str]) -> list[
             None if th is None else float(th),
             None if pid is None else int(pid),
             None if r in (None, "") else str(r),
+            None if sts is None else sts.replace(tzinfo=None),
         )
-        for t, s, e, st, th, pid, r in rows
+        for t, s, e, st, th, pid, r, sts in rows
     ]
 
 
@@ -230,6 +260,10 @@ class Universe:
     unmatched_games: list[str]
     n_dnp: int
     tips: dict[str, datetime] = field(default_factory=dict)
+    no_schedule_by_date: Counter[date] = field(default_factory=Counter)
+    settled_by: datetime | None = None
+    db_sha256: str | None = None
+    raw_range: tuple[date, date] | None = None
 
 
 def _et_tip(occ: datetime) -> datetime:
@@ -245,8 +279,16 @@ def assemble(
     *,
     window_start: date,
     cutoff: date,
+    settled_by: datetime | None = None,
 ) -> Universe:
-    """Apply the frozen universe, entry, eligibility and game-level settlement rules."""
+    """Apply the frozen universe, entry, eligibility and game-level settlement rules.
+
+    ``settled_by`` (naive UTC; C1) is the as-of-read settlement horizon: a result counts only if
+    stamped ``settled_ts <= settled_by`` (DB) or found on a raw page dated at or before that ET
+    day. ``None`` means unrestricted (synthetic worlds and the pre-window preflight only).
+    """
+    settled_day = None if settled_by is None else et_date(settled_by)
+    no_sched_by_date: Counter[date] = Counter()
     counts: Counter[str] = Counter()
     gcounts: Counter[str] = Counter()
     by_game: dict[str, list[MarketRec]] = {}
@@ -270,6 +312,7 @@ def assemble(
         if tip not in schedule_tips:
             gcounts["no_schedule_match"] += 1
             counts["no_schedule_match_contracts"] += len(ms)
+            no_sched_by_date[d] += 1
             unmatched.append(game)
             skipped_games.add(game)
             continue
@@ -302,7 +345,18 @@ def assemble(
         eligible: list[tuple[MarketRec, int, int, float, str]] = []
         unsettled_eligible = 0
         for m in by_game[game]:
-            res = m.result or raw.result.get(m.ticker)
+            res = None
+            if m.result and (
+                settled_by is None or (m.settled_ts is not None and m.settled_ts <= settled_by)
+            ):
+                res = m.result
+            if res is None:
+                rr = raw.result.get(m.ticker)
+                rd = raw.result_day.get(m.ticker)
+                if rr is not None and (
+                    settled_day is None or (rd is not None and rd <= settled_day)
+                ):
+                    res = rr
             if res not in SETTLED:
                 res = None
             q = quotes.get(m.ticker)
@@ -327,7 +381,7 @@ def assemble(
                 counts["null_ask"] += 1
                 continue
             bid_c, ask_c = round(100 * q.yes_bid), round(100 * q.yes_ask)
-            if ask_c - bid_c > MAX_SPREAD_C:
+            if ask_c < bid_c or ask_c == 0 or ask_c - bid_c > MAX_SPREAD_C:  # m7
                 counts["wide_spread"] += 1
                 continue
             if spec.max_mid_sum is not None and bid_c + ask_c > spec.max_mid_sum:
@@ -354,7 +408,12 @@ def assemble(
                 n_dnp += 1
             else:
                 micro = 1_000_000 if res == "yes" else 0
-            stat = m.stat or ""
+            kind = kind_of(m.series)
+            if kind == "prop" and not m.stat:
+                stat = "unknown"  # m3: counted, never "" (which would pool with game series)
+                counts["null_stat_prop"] += 1
+            else:
+                stat = m.stat or ""
             if m.series in ("KXNBAPRA", "KXNBAPR", "KXNBAPA", "KXNBARA"):
                 stat_axis = "combo"
             else:
@@ -411,4 +470,6 @@ def assemble(
         unmatched_games=unmatched,
         n_dnp=n_dnp,
         tips=dict(game_tip),
+        no_schedule_by_date=no_sched_by_date,
+        settled_by=settled_by,
     )

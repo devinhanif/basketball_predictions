@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from typing import Any
 
 from research.market_forward.engine import LookResult, PreflightResult, SensRow
@@ -44,6 +45,11 @@ def format_look(res: LookResult) -> str:
         f"(decision CI = {100 * (1 - 2 * res.alpha):.0f}% two-sided percentile; WIDER of game/date)"
     )
     a(res.fee_desc)
+    if u.settled_by is not None:
+        a(f"settled_by (naive UTC; read date 23:59:59 ET): {u.settled_by.isoformat()}")
+        a(f"db copy sha256: {u.db_sha256}")
+        rr = "none" if u.raw_range is None else f"{u.raw_range[0]} .. {u.raw_range[1]}"
+        a(f"raw page dirs read: {rr}")
     a("")
     a("SELF-TESTS (guard 8.6)")
     a(f"  (a) identity failures {t.identity_failures} of {t.identity_n} contracts")
@@ -56,13 +62,21 @@ def format_look(res: LookResult) -> str:
     a(
         f"  (c) planted x0.80: |mean point - mean true| = {100 * t.plant_abs_diff:.3f}c "
         f"(tol 0.5c); sets within 0.5c {100 * t.plant_frac_sets_within:.0f}%; lower bound excludes "
-        f"truth in {100 * t.plant_lo_excl_rate:.1f}% (<= 9%): {'ok' if t.plant_ok else 'FAIL'}"
+        f"truth in {100 * t.plant_lo_excl_rate:.1f}% (<= 9%): {'ok' if t.plant_ok else 'FAIL'}; "
+        f"upper side {100 * t.plant_hi_excl_rate:.1f}% (info)"
     )
     a(f"  seeds: {t.seeds}")
     a("")
     a("COUNTS")
     a(f"  games: {dict(u.game_counts)}")
     a(f"  contracts: {dict(u.counts)}")
+    cup = sum(
+        n for d, n in u.no_schedule_by_date.items() if date(2026, 12, 4) <= d <= date(2026, 12, 11)
+    )
+    a(
+        f"  no_schedule_match by ET date: {dict(sorted(u.no_schedule_by_date.items()))}; "
+        f"Cup week (2026-12-04..11) subtotal {cup}"
+    )
     a(
         f"  decision pool: n={res.n_pool} games={res.n_games} dates={res.n_dates} "
         f"n_dnp={res.n_dnp}; "

@@ -24,6 +24,8 @@ from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 
+import yaml
+
 from nba.parlay.config import DEFAULT_PATH, FeeModel, load_config
 
 PINNED_COEFFICIENT = Fraction(7, 100)
@@ -82,6 +84,13 @@ class PinnedFee:
 
 def load_pinned_fee(series: tuple[str, ...], path: str | Path = DEFAULT_PATH) -> PinnedFee:
     """Load ``fee_model`` through FeeModel and refuse unless it equals the pinned schedule."""
+    # m1: nba/parlay/config.py coerces a string "false" to True (live path; noted for Devin, not
+    # edited). The scorer therefore re-reads the raw YAML and requires a real boolean ``true``.
+    raw_verified = (
+        (yaml.safe_load(Path(path).read_text()) or {}).get("fee_model", {}).get("verified")
+    )
+    if raw_verified is not True:
+        raise FeeRefused(f"fee_model.verified must be the YAML boolean true, got {raw_verified!r}")
     model = load_config(path).fee
     if not model.verified:
         raise FeeRefused("fee_model.verified is not true")

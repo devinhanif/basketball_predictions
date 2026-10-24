@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +17,7 @@ from research.market_forward.data import (
     open_copy,
 )
 from research.market_forward.spec import LONGSHOT, UNDERS, RuleSpec
-from tests.research.market_forward.conftest import GAME, TIP, Mk, build_capture
+from tests.research.market_forward.conftest import GAME, TIP, Mk, build_capture, repin
 
 _N = 0
 
@@ -28,6 +28,7 @@ def run(
     spec: RuleSpec = UNDERS,
     window_start: date = date(2026, 10, 25),
     cutoff: date = date(2026, 10, 29),
+    settled_by: datetime | None = None,
 ) -> Universe:
     global _N
     _N += 1
@@ -35,7 +36,14 @@ def run(
     sub.mkdir()
     p = build_capture(sub, mks)
     uni, _ = build_universe(
-        spec, p["db"], p["raw"], p["sched"], window_start, cutoff, date(2026, 11, 1)
+        spec,
+        p["db"],
+        p["raw"],
+        p["sched"],
+        window_start,
+        cutoff,
+        date(2026, 11, 1),
+        settled_by=settled_by,
     )
     return uni
 
@@ -143,6 +151,7 @@ def test_no_schedule_match_is_excluded_and_counted(tmp_path: Path) -> None:
     pl.DataFrame(
         {"gameId": ["x"], "gameDateTimeUTC": ["2026-10-27T23:30:00Z"], "gameDateTimeEst": ["y"]}
     ).write_parquet(p["sched"])
+    repin(p["sched"])
     uni, _ = build_universe(
         UNDERS,
         p["db"],
@@ -153,6 +162,8 @@ def test_no_schedule_match_is_excluded_and_counted(tmp_path: Path) -> None:
         date(2026, 11, 1),
     )
     assert uni.df.height == 0 and uni.game_counts["no_schedule_match"] == 1
+    # m2: counted by ET date (the Cup-week subtotal is derived from this)
+    assert uni.no_schedule_by_date == {date(2026, 10, 27): 1}
 
 
 def test_null_player_props_are_kept_and_listed(tmp_path: Path) -> None:
@@ -182,3 +193,107 @@ def test_helpers() -> None:
         == "KXNBASPREAD|KXNBASPREAD-E|SAC"
     )
     assert ladder_key("KXNBATOTAL", "KXNBATOTAL-E-259", "KXNBATOTAL-E") == "KXNBATOTAL|KXNBATOTAL-E"
+
+
+# ---- C1: settlement as of the read date ----
+
+#: read date 2026-10-27 23:59:59 ET = 2026-10-28 03:59:59 UTC (EDT), for the TIP game on 10-27.
+SETTLED_BY = datetime(2026, 10, 28, 3, 59, 59)
+
+
+def test_settled_by_for_is_end_of_read_date_in_new_york() -> None:
+    from research.market_forward.__main__ import settled_by_for
+
+    assert settled_by_for(date(2026, 10, 27)) == SETTLED_BY
+    # after the November fall-back, EST is UTC-5
+    assert settled_by_for(date(2026, 11, 3)) == datetime(2026, 11, 4, 4, 59, 59)
+
+
+def test_result_stamped_one_minute_after_settled_by_makes_the_game_unsettled(
+    tmp_path: Path,
+) -> None:
+    late = [mk(1, 0.3, 0.32, "no", settled_ts=SETTLED_BY + timedelta(minutes=1))]
+    on_time = [mk(1, 0.3, 0.32, "no", settled_ts=SETTLED_BY - timedelta(minutes=1))]
+    # raw page is dated 2026-10-28 (> read date 10-27), so it cannot rescue the late DB stamp
+    u = run(tmp_path, late, settled_by=SETTLED_BY)
+    assert u.df.height == 0 and u.game_counts["unsettled_game"] == 1
+    u2 = run(tmp_path, on_time, settled_by=SETTLED_BY)
+    assert u2.df.height == 1 and u2.game_counts["scored_games"] == 1
+
+
+def test_unstamped_db_result_and_post_read_date_raw_page_do_not_settle(tmp_path: Path) -> None:
+    ms = [mk(1, 0.3, 0.32, "no")]  # DB settled_ts NULL; raw page dir 2026-10-28
+    assert run(tmp_path, ms, settled_by=SETTLED_BY).game_counts["unsettled_game"] == 1
+    # one day later the raw page is within the read date and settles it
+    later = datetime(2026, 10, 29, 3, 59, 59)
+    assert run(tmp_path, ms, settled_by=later).game_counts["scored_games"] == 1
+    # None = unrestricted (synthetic worlds only)
+    assert run(tmp_path, ms).game_counts["scored_games"] == 1
+
+
+def test_scalar_value_may_come_from_a_page_after_the_read_date_but_only_if_already_scalar(
+    tmp_path: Path,
+) -> None:
+    ok = mk(1, 0.3, 0.32, "scalar", scalar="0.1600", settled_ts=SETTLED_BY - timedelta(hours=1))
+    u = run(tmp_path, [ok], settled_by=SETTLED_BY)
+    assert u.df["y_u"].to_list() == [160_000] and u.n_dnp == 1
+    # scalar stamped after settled_by: its value is not looked up, the game is unsettled
+    late = mk(1, 0.3, 0.32, "scalar", scalar="0.1600", settled_ts=SETTLED_BY + timedelta(hours=1))
+    u2 = run(tmp_path, [late], settled_by=SETTLED_BY)
+    assert u2.df.height == 0 and u2.game_counts["unsettled_game"] == 1
+
+
+# ---- C2: the schedule is pinned ----
+
+
+def test_schedule_with_a_different_hash_is_refused(tmp_path: Path) -> None:
+    import polars as pl
+
+    from research.market_forward import data as D
+    from research.market_forward.spec import SCHEDULE_SHA256
+
+    assert len(SCHEDULE_SHA256) == 64
+    p = build_capture(tmp_path, [mk(1, 0.3, 0.32, "no")])
+    pl.DataFrame(
+        {"gameId": ["x"], "gameDateTimeUTC": ["2026-10-27T23:00:00Z"], "gameDateTimeEst": ["y"]}
+    ).write_parquet(p["sched"])
+    # conftest pinned the ORIGINAL fixture bytes; the modified parquet is refused by build_universe
+    with pytest.raises(D.ScheduleRefused, match="pinned"):
+        build_universe(
+            UNDERS,
+            p["db"],
+            p["raw"],
+            p["sched"],
+            date(2026, 10, 25),
+            date(2026, 10, 29),
+            date(2026, 11, 1),
+        )
+    # and the real pin refuses any file that is not the write-once copy
+    with pytest.raises(D.ScheduleRefused):
+        D.load_schedule_tips(p["sched"], SCHEDULE_SHA256)
+
+
+def test_real_pinned_schedule_copy_hashes_to_the_pin_when_present() -> None:
+    from research.market_forward import data as D
+    from research.market_forward.spec import SCHEDULE_SHA256
+
+    f = (
+        Path(__file__).resolve().parents[3]
+        / "data/raw/schedule_2026-10-23/live_tips_2026-27.parquet"
+    )
+    if f.exists():  # raw data is untracked; present on the maintainer's checkout
+        assert D.file_sha256(f) == SCHEDULE_SHA256
+        assert D.load_schedule_tips(f, SCHEDULE_SHA256)
+
+
+# ---- m3, m7 ----
+
+
+def test_prop_with_null_stat_goes_to_unknown_and_is_counted(tmp_path: Path) -> None:
+    u = run(tmp_path, [mk(1, 0.3, 0.32, "no", stat=None)])
+    assert u.df["stat"].to_list() == ["unknown"] and u.counts["null_stat_prop"] == 1
+
+
+def test_crossed_or_zero_ask_is_wide_spread(tmp_path: Path) -> None:
+    u = run(tmp_path, [mk(1, 0.3, 0.2), mk(2, 0.3, 0.0), mk(3, 0.3, 0.32)])
+    assert u.df.height == 1 and u.counts["wide_spread"] == 2

@@ -16,8 +16,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import duckdb
 import numpy as np
@@ -37,6 +38,7 @@ from research.market_forward.spec import (
     LOOK_ALPHA,
     LOOK_READ_DATE,
     RULES,
+    SCALAR_LOOKAHEAD_DAYS,
     SETTLE_GAP_DAYS,
     WINDOW_START,
     RuleSpec,
@@ -51,11 +53,17 @@ from research.market_forward.synth import (
 )
 
 REPO = Path(__file__).resolve().parents[2]
-SCHEDULE = REPO / "data" / "schedule" / "live_tips_2026-27.parquet"
+SCHEDULE = REPO / "data" / "raw" / "schedule_2026-10-23" / "live_tips_2026-27.parquet"
 RAW_ROOT = REPO / "data" / "kalshi" / "raw"
 #: Pre-window dates the preflight is allowed to touch (outside both scoring windows).
 PREFLIGHT_FIRST = date(2026, 10, 20)
 PREFLIGHT_LAST = date(2026, 10, 24)
+
+
+def settled_by_for(read_date: date) -> datetime:
+    """C1: 23:59:59 America/New_York on the read date, as naive UTC (the DB's convention)."""
+    et = datetime.combine(read_date, time(23, 59, 59), tzinfo=ZoneInfo("America/New_York"))
+    return et.astimezone(UTC).replace(tzinfo=None)
 
 
 def _days(a: date, b: date) -> list[date]:
@@ -70,6 +78,8 @@ def build_universe(
     window_start: date,
     cutoff: date,
     raw_last: date,
+    settled_by: datetime | None = None,
+    schedule_sha256: str | None = None,
 ) -> tuple[D.Universe, set[datetime]]:
     con = D.open_copy(db)
     try:
@@ -86,10 +96,20 @@ def build_universe(
                 kinds=("open",),
                 info=raw,
             )
-        tips = D.load_schedule_tips(schedule)
+        tips = D.load_schedule_tips(schedule, schedule_sha256)
         uni = D.assemble(
-            spec, markets, raw, tips, D.duckdb_quotes(con), window_start=window_start, cutoff=cutoff
+            spec,
+            markets,
+            raw,
+            tips,
+            D.duckdb_quotes(con),
+            window_start=window_start,
+            cutoff=cutoff,
+            settled_by=settled_by,
         )
+        uni.db_sha256 = D.file_sha256(db)
+        if raw.first_day is not None and raw.last_day is not None:
+            uni.raw_range = (raw.first_day, raw.last_day)
     finally:
         con.close()
     return uni, tips
@@ -127,7 +147,6 @@ def cmd_read(ns: argparse.Namespace) -> int:
     spec = RULES[ns.rule]
     verify_frozen(spec)
     read_date = LOOK_READ_DATE[ns.look]
-    from zoneinfo import ZoneInfo
 
     today = datetime.now(ZoneInfo("America/New_York")).date()
     if today < read_date:
@@ -143,7 +162,10 @@ def cmd_read(ns: argparse.Namespace) -> int:
         Path(ns.schedule),
         WINDOW_START,
         cutoff,
-        read_date,
+        # C1: raw pages only to read date + 7, and only for scalar VALUES (results are cut at the
+        # read date inside assemble).
+        read_date + timedelta(days=SCALAR_LOOKAHEAD_DAYS),
+        settled_by=settled_by_for(read_date),
     )
     strata: StrataInputs | None = None
     if spec.rule_id == "UNDERS_FORWARD" and ns.nba_db:

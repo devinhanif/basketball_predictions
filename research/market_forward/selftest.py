@@ -56,6 +56,7 @@ class SelfTestResult:
     plant_abs_diff: float
     plant_frac_sets_within: float
     plant_lo_excl_rate: float
+    plant_hi_excl_rate: float
     plant_ok: bool
     seeds: str
     ok: bool
@@ -113,6 +114,7 @@ def run_selftests(
     mt = float(np.mean([s.truth for s in plant]))
     within = float(np.mean([abs(s.point - s.truth) <= SELFTEST_PLANT_TOL for s in plant]))
     p_lo_ex = float(np.mean([s.lo > s.truth for s in plant]))
+    p_hi_ex = float(np.mean([s.hi < s.truth for s in plant]))
     plant_ok = abs(mp - mt) <= SELFTEST_PLANT_TOL and p_lo_ex <= SELFTEST_NULL_BAND[1]
     ok = fails == 0 and in_band and plant_ok
     return SelfTestResult(
@@ -127,6 +129,7 @@ def run_selftests(
         plant_abs_diff=abs(mp - mt),
         plant_frac_sets_within=within,
         plant_lo_excl_rate=p_lo_ex,
+        plant_hi_excl_rate=p_hi_ex,
         plant_ok=plant_ok,
         seeds=f"default_rng([{seed}, 1]) outcomes; default_rng([{seed}, 2]) bootstrap",
         ok=ok,

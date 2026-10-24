@@ -25,6 +25,14 @@ FROZEN_END = "<!-- FROZEN-END -->"
 #: not earlier than 2026-10-25). Preseason and every game on or before 2026-10-24 are excluded.
 WINDOW_START = date(2026, 10, 25)
 
+#: C2: the schedule parquet is pinned. The write-once copy lives at
+#: ``data/raw/schedule_2026-10-23/live_tips_2026-27.parquet``; any other bytes are refused.
+SCHEDULE_SHA256 = "9702c830abe987ffea696af800aeb9d1bdc88d275756d4333c19663fca40d86d"
+
+#: C1: scalar settlement values may come from raw settled pages up to read date + this many days
+#: (guard 8.3), and only for tickers already settled "scalar" as of the read date.
+SCALAR_LOOKAHEAD_DAYS = 7
+
 #: Section 1.3: tip = occurrence_datetime - 180 minutes.
 OCCURRENCE_TO_TIP_MIN = 180
 #: Section 1.5: the entry snapshot is the latest live row with ts <= tip - 60 min, age <= 240 min.

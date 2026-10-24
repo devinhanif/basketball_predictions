@@ -32,6 +32,7 @@ def _rows(thresholds: list[float]) -> pl.DataFrame:
     return pl.DataFrame(
         {
             "game": [GAME] * n,
+            "kind": ["prop"] * n,
             "player_id": [7] * n,
             "stat": ["pts"] * n,
             "threshold": thresholds,
@@ -42,7 +43,7 @@ def _rows(thresholds: list[float]) -> pl.DataFrame:
 
 
 def test_unknown_when_inputs_missing_never_imputed() -> None:
-    out, sc = empty_strata(_rows([20.5, 25.5]))
+    out, sc = empty_strata(_rows([21.0, 26.0]))
     assert out["z_bin"].to_list() == ["unknown"] * 2
     assert out["d_bin"].to_list() == ["no_pinnacle"] * 2
     assert sc.z_unknown == 2 and sc.pinnacle_none == 2 and sc.cross_n == 0
@@ -60,20 +61,33 @@ def test_z_bins_and_pinnacle_gap_use_only_rows_at_or_before_t_minus_60() -> None
         (CUT - timedelta(minutes=30), 24.5, 0.47),
         (CUT + timedelta(minutes=1), 30.5, 0.1),
     ]
-    # thresholds: 18.5 (z=-0.75), 20.5 (z=0.25), 24.5 (z=2.25 and D=0)
-    out, sc = assign_strata(_rows([18.5, 20.5, 24.5]), {GAME: TIP}, inp)
-    assert out["z_bin"].to_list() == ["z<=-0.5", "-0.5<z<=0.5", "z>0.5"]
-    assert out["d_bin"].to_list() == ["D<=-1", "D<=-1", "D=0"]
-    assert out["cross"].to_list() == [False, False, True] and sc.cross_n == 1
+    # C4: kalshi_markets.threshold is the integer N of "N+"; the line is N - 0.5.
+    # N = 19 (line 18.5, z=-0.75), 21 (20.5, z=0.25), 25 (24.5, z=2.25 and D=0),
+    # 24 (line 23.5 vs Pinnacle 24.5: D = -1, which the old round() printed as D = 0), 26 (D=+1).
+    out, sc = assign_strata(_rows([19.0, 21.0, 25.0, 24.0, 26.0]), {GAME: TIP}, inp)
+    assert out["z_bin"].to_list() == ["z<=-0.5", "-0.5<z<=0.5", "z>0.5", "z>0.5", "z>0.5"]
+    assert out["d_bin"].to_list() == ["D<=-1", "D<=-1", "D=0", "D<=-1", "D>=+1"]
+    assert out["cross"].to_list() == [False, False, True, False, False] and sc.cross_n == 1
     assert out["pin_gap"][2] == pytest.approx(0.47 - 0.31)
     assert out["line_minus_q50"][0] == pytest.approx(-1.5)
+    assert out["line_minus_q50"][3] == pytest.approx(3.5)
+
+
+def test_non_prop_rows_keep_threshold_as_the_line() -> None:
+    key = ("0022600001", 7, "pts")
+    inp = StrataInputs(game_ids={GAME: "0022600001"})
+    inp.pinnacle[key] = [(CUT - timedelta(minutes=30), 20.5, 0.5)]
+    out, _ = assign_strata(
+        _rows([20.5]).with_columns(pl.lit("spread").alias("kind")), {GAME: TIP}, inp
+    )
+    assert out["d_bin"].to_list() == ["D=0"]
 
 
 def test_pinnacle_older_than_240_minutes_is_no_pinnacle() -> None:
     key = ("0022600001", 7, "pts")
     inp = StrataInputs(game_ids={GAME: "0022600001"})
     inp.pinnacle[key] = [(CUT - timedelta(minutes=241), 20.5, 0.5)]
-    out, _ = assign_strata(_rows([20.5]), {GAME: TIP}, inp)
+    out, _ = assign_strata(_rows([21.0]), {GAME: TIP}, inp)
     assert out["d_bin"].to_list() == ["no_pinnacle"]
 
 
@@ -195,7 +209,9 @@ def test_unders_look_prints_strata_with_unknowns_counted(monkeypatch: pytest.Mon
     from research.market_forward.selftest import SelfTestResult
     from research.market_forward.synth import draw_outcomes, make_world, world_universe
 
-    ok = SelfTestResult(0, 1, 200, 0.05, 0.05, True, 0.0, 0.0, 0.0, 1.0, 0.05, True, "s", True)
+    ok = SelfTestResult(
+        0, 1, 200, 0.05, 0.05, True, 0.0, 0.0, 0.0, 1.0, 0.05, 0.05, True, "s", True
+    )
     monkeypatch.setattr(engine, "run_selftests", lambda *a, **k: ok)
     w = draw_outcomes(make_world(UNDERS, 320, seed=3), np.random.default_rng(1))
     res = engine.score_look(
@@ -211,3 +227,34 @@ def test_unders_look_prints_strata_with_unknowns_counted(monkeypatch: pytest.Mon
     assert res.strata_counts.z_unknown == res.n_pool
     txt = format_look(res)
     assert "CROSS CELL" in txt and "STRATA z (vs our mean)" in txt and "unknown" in txt
+
+
+def test_report_prints_settled_by_db_hash_and_raw_range(tmp_path: Path) -> None:
+    from datetime import date
+
+    from research.market_forward.__main__ import build_universe, settled_by_for
+    from research.market_forward.report import format_look
+
+    ms = [Mk(f"KXNBAPTS-{GAME}-P{i}-{i}", "KXNBAPTS", "no", 0.3, 0.32) for i in range(8)]
+    p = build_capture(tmp_path, ms)
+    sb = settled_by_for(date(2026, 10, 28))
+    uni, _ = build_universe(
+        UNDERS,
+        p["db"],
+        p["raw"],
+        p["sched"],
+        date(2026, 10, 25),
+        date(2026, 10, 29),
+        date(2026, 11, 4),
+        settled_by=sb,
+    )
+    # DB settled_ts is NULL, raw page dir 2026-10-28 <= read date: the game is settled via raw.
+    assert uni.df.height == 8 and uni.settled_by == sb and uni.db_sha256 is not None
+    res = engine.score_look(
+        UNDERS, uni, load_pinned_fee(UNDERS.all_series), 1, b=50, selftest_k=10, selftest_b=50
+    )
+    txt = format_look(res)
+    assert "settled_by (naive UTC; read date 23:59:59 ET): 2026-10-29T03:59:59" in txt
+    assert f"db copy sha256: {uni.db_sha256}" in txt
+    assert "raw page dirs read: 2026-10-26 .. 2026-11-04" not in txt  # only dirs that exist
+    assert "raw page dirs read: 2026-10-28 .. 2026-10-28" in txt
