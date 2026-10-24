@@ -364,6 +364,7 @@ def test_kalshi_fresh_or_outside_window_is_silent(tmp_path: Path) -> None:
 def test_kalshi_stale_after_first_tip_still_alerts_for_later_games(tmp_path: Path) -> None:
     # 2026-10-23: early games had tipped while later ones still needed pre-tip prices
     _healthy(tmp_path)
+
     def tips(_d: Path, _t: object) -> dict[str, datetime]:
         return {SLATE[0]: NOW - timedelta(hours=1), SLATE[1]: NOW + timedelta(minutes=90)}
 
