@@ -1,0 +1,197 @@
+{
+ "audits": {
+  "2026-10-21": {
+   "game_series_gap_median_s": 68.0,
+   "game_series_gap_p90_s": 165.0,
+   "markets_used": 3835,
+   "no_result_markets": 27,
+   "scalar_or_empty": 27,
+   "snapshots": {
+    "KXNBA3PT": 299,
+    "KXNBAAST": 299,
+    "KXNBABLK": 299,
+    "KXNBAGAME": 298,
+    "KXNBAPRA": 299,
+    "KXNBAPTS": 298,
+    "KXNBAREB": 298,
+    "KXNBASPREAD": 298,
+    "KXNBASTL": 299,
+    "KXNBATEAMTOTAL": 298,
+    "KXNBATOTAL": 298
+   },
+   "unmapped_events": []
+  },
+  "2026-10-22": {
+   "game_series_gap_median_s": 60.0,
+   "game_series_gap_p90_s": 60.0,
+   "markets_used": 814,
+   "no_result_markets": 0,
+   "scalar_or_empty": 0,
+   "snapshots": {
+    "KXNBA3PT": 451,
+    "KXNBAAST": 454,
+    "KXNBABLK": 455,
+    "KXNBAGAME": 442,
+    "KXNBAPRA": 452,
+    "KXNBAPTS": 451,
+    "KXNBAREB": 451,
+    "KXNBASPREAD": 442,
+    "KXNBASTL": 452,
+    "KXNBATEAMTOTAL": 442,
+    "KXNBATOTAL": 442
+   },
+   "unmapped_events": []
+  }
+ },
+ "markets_used": 4649,
+ "missed_fills": 524,
+ "placebo": {
+  "mean_of_means": -0.0514939114658926,
+  "p2_5": -0.06094482946298985,
+  "p97_5": -0.041663679245283025,
+  "pool_sizes": {
+   "2026-10-21|KXNBA3PT": 309,
+   "2026-10-21|KXNBAAST": 177,
+   "2026-10-21|KXNBAGAME": 1403,
+   "2026-10-21|KXNBAPRA": 32,
+   "2026-10-21|KXNBAPTS": 863,
+   "2026-10-21|KXNBAREB": 140,
+   "2026-10-21|KXNBASPREAD": 8200,
+   "2026-10-21|KXNBASTL": 6,
+   "2026-10-21|KXNBATEAMTOTAL": 1854,
+   "2026-10-21|KXNBATOTAL": 6925,
+   "2026-10-22|KXNBA3PT": 444,
+   "2026-10-22|KXNBAAST": 272,
+   "2026-10-22|KXNBABLK": 14,
+   "2026-10-22|KXNBAGAME": 845,
+   "2026-10-22|KXNBAPRA": 5,
+   "2026-10-22|KXNBAPTS": 990,
+   "2026-10-22|KXNBAREB": 166,
+   "2026-10-22|KXNBASPREAD": 5130,
+   "2026-10-22|KXNBASTL": 3,
+   "2026-10-22|KXNBATEAMTOTAL": 876,
+   "2026-10-22|KXNBATOTAL": 4919
+  },
+  "real_rank_pct": 0.97,
+  "replications": 500
+ },
+ "rule_version": "market-surfer-paper-v1",
+ "summary": {
+  "by_series": {
+   "KXNBA3PT": {
+    "mean_net": -0.04236363636363638,
+    "trades": 22
+   },
+   "KXNBAAST": {
+    "mean_net": 0.033736842105263155,
+    "trades": 19
+   },
+   "KXNBABLK": {
+    "mean_net": -0.647,
+    "trades": 1
+   },
+   "KXNBAGAME": {
+    "mean_net": -0.053485714285714296,
+    "trades": 70
+   },
+   "KXNBAPRA": {
+    "mean_net": -0.12600000000000008,
+    "trades": 1
+   },
+   "KXNBAPTS": {
+    "mean_net": -0.08522680412371134,
+    "trades": 97
+   },
+   "KXNBAREB": {
+    "mean_net": -0.07318750000000002,
+    "trades": 16
+   },
+   "KXNBASPREAD": {
+    "mean_net": -0.03919252336448598,
+    "trades": 535
+   },
+   "KXNBATEAMTOTAL": {
+    "mean_net": -0.03610344827586207,
+    "trades": 116
+   },
+   "KXNBATOTAL": {
+    "mean_net": -0.036758483033932136,
+    "trades": 501
+   }
+  },
+  "exit_reasons": {
+   "settle": 89,
+   "stop": 605,
+   "time": 164,
+   "tp": 520
+  },
+  "fees_per_contract_mean": 0.028140783744557335,
+  "games": 13,
+  "gross_mid_drift_mean": 0.009648040638606676,
+  "hold": {
+   "game_ci": [
+    -0.07189552703496652,
+    0.06281609564004044
+   ],
+   "mean": 0.005464441219158183,
+   "night_ci": [
+    -0.6240294041798802,
+    0.6563105082700424
+   ],
+   "night_mean": 0.016140552045081094,
+   "nights": 2
+  },
+  "mean_net_per_contract": -0.04195791001451379,
+  "median_hold_s": 537.0,
+  "n_trades": 1378,
+  "net": {
+   "game_ci": [
+    -0.06445066912562696,
+    -0.02741768502784353
+   ],
+   "mean": -0.04195791001451379,
+   "night_ci": [
+    -0.25366016602248603,
+    0.1769252160329623
+   ],
+   "night_mean": -0.038367474994761855,
+   "nights": 2
+  },
+  "net_minus_hold": {
+   "game_ci": [
+    -0.09843529952245315,
+    0.01866082658968124
+   ],
+   "mean": -0.047422351233671986,
+   "night_ci": [
+    -0.47938529223708015,
+    0.3703692381573942
+   ],
+   "night_mean": -0.05450802703984296,
+   "nights": 2
+  },
+  "per_night": {
+   "2026-10-21": {
+    "fees_usd_unit": 237.05,
+    "games": 11,
+    "mean_net_per_contract": -0.05531137724550898,
+    "total_hold_usd_unit": -285.92,
+    "total_net_usd_unit": -461.85,
+    "trades": 835,
+    "win_rate": 0.3281437125748503
+   },
+   "2026-10-22": {
+    "fees_usd_unit": 150.73,
+    "games": 2,
+    "mean_net_per_contract": -0.02142357274401473,
+    "total_hold_usd_unit": 361.22,
+    "total_net_usd_unit": -116.33,
+    "trades": 543,
+    "win_rate": 0.4548802946593002
+   }
+  },
+  "spread_cost_mean": 0.023465166908563137,
+  "win_rate": 0.37808417997097243
+ },
+ "verdict": "no_positive_ev_found"
+}
