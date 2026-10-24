@@ -1,3 +1,13 @@
+# NEXT SESSION, resume here (written 2026-10-23 21:44 CDT, night 4; fresh session recommended)
+
+**Phone summary for Devin:**
+1. **Money:** MIN@ORL 5-leg bought $3.48, cashed $3.91 at halftime (+$0.43); it settled LOST, so the sale saved $3.91. Balance reported ~$30 before the sale (~$33.91 after; confirm, and whether it includes bonus). Recommended NO bets (GSW >16.5, POR >22.5, Luka 5+ 3s, Castle 6+ reb, Castle 2+ 3s): Devin never confirmed fills; Castle 2+ 3s NO lost (2-4 by Q2). Score the rest from the box in the morning.
+2. **Strategy v2 (memory bankroll-rules):** $20/night cap, 50/50 steady/swing, Claude gives exact bets, stay the course, floor SOFT (warn). EV-first, misses fine (memory ev-first-not-hit-rate). Every stake now goes through the Bayesian-Kelly sizer; quote Pinnacle, not raw model.
+3. **Your decisions waiting:** (a) freeze MARKET_ANCHORED_PROPS (77814a2, gate 23/23) after a second adversary glance; (b) modeler agent default to Opus (or per-draft Opus); (c) "set up JARVIS" (morning brief + pre-tip picks as phone notifications); (d) T510b (DNP settles at fair price on Kalshi, frozen T510 counts it as No); (e) Kalshi long-shot study: one logged holdout touch vs forward-only.
+4. **Running at write time (check their hand-backs / logs):** steward: roster-bug fix (agent/steward-roster-unlisted, needs adversary review before merge) + oracle/merge of the Bayesian-Kelly sizer (agent/market-bayes-kelly dce13b8); market: SPREAD_TAIL_NO draft (agent/market-spread-tail-no); market: CALIBRATION_EVERYWHERE plan (agent/market-calibration-everywhere); odds chain (movement 2024 -> 2023 at m360/m180/m90, then 2022 games; logs data/odds/history_pull_*; ~720k credits cap); bet watcher (scratchpad bet_watch.py).
+5. **Tonight's research verdicts:** surfer loses (-4.2c/trade); rotation depth small, live miss mostly the roster bug; team rating unscored input (P(pass) 0.03); ROLE_CHANGEPOINT parked; movement phase merged (ed73542); 2022 season + 2.25M cap in odds config (2f3368f). Retro: docs/reviews/retro_2026-10-23.md. New hook blocks guessed DECISIONS times (09bc4d3).
+6. **Morning:** 07:00 job settles tonight; Mac must be on AC (it was on battery all day); check data/ops/ALERTS.md for stats.nba.com DNS failures (today's predict rc=5 DEGRADED) and the kalshi-snapshot job (exit 1 since 09:21); pretip log self-copy bloat (13 MB) is an open steward item.
+
 # NEXT SESSION, resume here (written 2026-10-22 ~23:30 CDT, end of night 3)
 
 **Phone summary for Devin:**
