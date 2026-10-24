@@ -248,19 +248,29 @@ def _postgame_main(args: argparse.Namespace) -> int:
         )
         print(
             f"postgame-fetch[{summary.source}]: {summary.total} keys, {summary.cached} cached, "
-            f"{summary.fetched} fetched, {len(summary.failed)} failed"
+            f"{summary.fetched} fetched, {len(summary.failed)} failed, "
+            f"{len(summary.pending)} not published yet"
         )
         return 1 if summary.failed else 0
     con = open_db(db_path)  # short write window: load cached parquet only
     try:
+        load_failed: list[str] = []
         for source in args.sources or SOURCES:
-            print(f"postgame-load[{source}]: {load_source(con, source, data_dir=data_dir)} rows")
+            # one source failing must not starve the others (2026-10-23: a hustle key collision
+            # skipped officials and matchups for three days); the exit code still reports it
+            try:
+                print(
+                    f"postgame-load[{source}]: {load_source(con, source, data_dir=data_dir)} rows"
+                )
+            except Exception as exc:
+                load_failed.append(source)
+                print(f"postgame-load[{source}] FAILED: {type(exc).__name__}: {exc}", flush=True)
         for table, season, games, rows in coverage(con):
             print(f"coverage {table} season={season} games={games} rows={rows}")
         print("shots_fga_reconciliation", shots_fga_reconciliation(con))
     finally:
         con.close()
-    return 0
+    return 1 if load_failed else 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:

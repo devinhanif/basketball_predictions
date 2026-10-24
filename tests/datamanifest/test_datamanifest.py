@@ -282,3 +282,28 @@ def test_stale_scheduled_row_raises_a_flag(tmp_path: Path, cfg: dict[str, Any]) 
     assert new["tables"]["games"]["stale_scheduled"] == 1  # yesterday's row is not stale
     flags = diff_manifests(old, new, cfg)["flags"]
     assert [f["table"] for f in flags if f["kind"] == "STALE_SCHEDULED"] == ["games"]
+
+
+def test_known_asymmetry_accepts_wildcards(cfg: dict[str, Any]) -> None:
+    """Score tables are NULL for every not-yet-played row by construction (2026-10-23)."""
+    m = {
+        "tables": {
+            "forward_avg_scores": {
+                "columns": {
+                    "y": {"asymmetry": 0.74, "null_rate_played": 0.0, "null_rate_unplayed": 0.74}
+                }
+            },
+            "forward_scores": {
+                "columns": {
+                    "crps": {"asymmetry": 0.74, "null_rate_played": 0.0, "null_rate_unplayed": 0.74}
+                }
+            },
+            "feats": {
+                "columns": {
+                    "f": {"asymmetry": 0.9, "null_rate_played": 0.0, "null_rate_unplayed": 0.9}
+                }
+            },
+        }
+    }
+    wild = dict(cfg, known_asymmetry=["forward_*scores*.*"])
+    assert [f["table"] for f in leak_candidates(m, wild)] == ["feats"]

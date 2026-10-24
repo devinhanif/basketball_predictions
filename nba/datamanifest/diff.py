@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from fnmatch import fnmatchcase
 from typing import Any
 
 
@@ -12,12 +13,16 @@ def _flag(kind: str, table: str, detail: str, column: str = "") -> dict[str, Any
 def leak_candidates(m: dict[str, Any], cfg: dict[str, Any]) -> list[dict[str, Any]]:
     """Columns whose NULL rate differs sharply between played and unplayed rows."""
     thr = float(cfg["thresholds"]["asymmetry"])
-    known = set(cfg.get("known_asymmetry", []))
+    known = list(cfg.get("known_asymmetry", []))  # "table.column", shell-style wildcards allowed
     out = []
     for tname, t in m["tables"].items():
         for c, info in t["columns"].items():
             a = info.get("asymmetry")
-            if a is not None and a >= thr and f"{tname}.{c}" not in known:
+            if (
+                a is not None
+                and a >= thr
+                and not any(fnmatchcase(f"{tname}.{c}", k) for k in known)
+            ):
                 out.append(
                     _flag(
                         "POSSIBLE_LEAK",
