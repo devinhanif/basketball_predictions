@@ -86,11 +86,13 @@ from nba.ingest.games import game_ids_for_season, pull_season_games
 from nba.ingest.national_tv import game_dates_for_season, pull_national_tv_for_date
 from nba.ingest.pbp import pull_game_pbp
 from nba.ingest.postgame import (
+    PENDING_GRACE_DAYS,
     SOURCES,
     coverage,
     fetch_source,
     load_source,
     shots_fga_reconciliation,
+    stale_pending,
 )
 from nba.ingest.team_advanced import pull_game_team_advanced
 
@@ -251,7 +253,13 @@ def _postgame_main(args: argparse.Namespace) -> int:
             f"{summary.fetched} fetched, {len(summary.failed)} failed, "
             f"{len(summary.pending)} not published yet"
         )
-        return 1 if summary.failed else 0
+        stale = stale_pending(db_path or DEFAULT_DB_PATH, summary.pending)
+        if stale:
+            print(
+                f"postgame-fetch[{summary.source}] STALE PENDING (> {PENDING_GRACE_DAYS} d): "
+                f"{stale[:20]}"
+            )
+        return 1 if summary.failed or stale else 0
     con = open_db(db_path)  # short write window: load cached parquet only
     try:
         load_failed: list[str] = []

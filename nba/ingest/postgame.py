@@ -23,9 +23,11 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import duckdb
 import polars as pl
@@ -469,6 +471,26 @@ class FetchSummary:
     failed: list[str] = field(default_factory=list)
     pending: list[str] = field(default_factory=list)  # no payload published yet: not a failure
     stopped_early: bool = False
+
+
+PENDING_GRACE_DAYS = 2  # endpoints publish about a day after the game
+
+
+def stale_pending(nba_db: str | Path, keys: list[str], today: date | None = None) -> list[str]:
+    """Pending keys whose game is older than the grace period: not 'not yet', but broken
+    (review 2026-10-24 R1: a library or schema break must not read as 'unpublished' forever)."""
+    if not keys:
+        return []
+    today = today or datetime.now(ZoneInfo("America/New_York")).date()
+    con = duckdb.connect(str(nba_db), read_only=True)
+    try:
+        rows = con.execute(
+            "SELECT game_id FROM games WHERE game_id IN (SELECT unnest(?)) AND game_date < ?",
+            [keys, today - timedelta(days=PENDING_GRACE_DAYS)],
+        ).fetchall()
+    finally:
+        con.close()
+    return sorted(str(r[0]) for r in rows)
 
 
 def scope_game_ids(nba_db: str | Path) -> list[str]:

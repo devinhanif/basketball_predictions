@@ -251,6 +251,24 @@ def test_not_published_is_pending_not_failed_and_never_trips_the_breaker(
     assert not cache_path_for("tracking", ids[0], tmp_path / "data").exists()
 
 
+def test_stale_pending_flags_old_games_only(tmp_path: Path) -> None:
+    """Review 2026-10-24 R1: a key still 'not published' past the grace is a failure, not a wait."""
+    from datetime import date
+
+    db = _scoped_db(tmp_path)
+    con = duckdb.connect(str(db))
+    old, new = [
+        r[0] for r in con.execute("SELECT game_id FROM games ORDER BY game_id LIMIT 2").fetchall()
+    ]
+    con.execute("UPDATE games SET game_date = DATE '2023-01-10' WHERE game_id = ?", [old])
+    con.execute("UPDATE games SET game_date = DATE '2026-10-23' WHERE game_id = ?", [new])
+    con.close()
+    today = date(2026, 10, 24)
+    assert pg.stale_pending(db, [old, new], today=today) == [old]
+    assert pg.stale_pending(db, [new], today=today) == []
+    assert pg.stale_pending(db, [], today=today) == []
+
+
 def test_scope_skips_unscored_games(tmp_path: Path) -> None:
     db = _scoped_db(tmp_path)
     con = duckdb.connect(str(db))

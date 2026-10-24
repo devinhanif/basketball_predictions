@@ -305,5 +305,12 @@ def test_known_asymmetry_accepts_wildcards(cfg: dict[str, Any]) -> None:
             },
         }
     }
-    wild = dict(cfg, known_asymmetry=["forward_*scores*.*"])
+    wild = dict(cfg, known_asymmetry=["forward_*scores*.y", "forward_*scores*.crps*"])
     assert [f["table"] for f in leak_candidates(m, wild)] == ["feats"]
+    # review 2026-10-24 R2: a forecast-time column NULL iff unplayed must still flag
+    m["tables"]["forward_scores"]["columns"]["pred"] = {
+        "asymmetry": 0.9,
+        "null_rate_played": 0.0,
+        "null_rate_unplayed": 0.9,
+    }
+    assert sorted(f["table"] for f in leak_candidates(m, wild)) == ["feats", "forward_scores"]
