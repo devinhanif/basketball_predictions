@@ -240,3 +240,39 @@ return is computed. A row added after a look would be a rule change, and is not 
 - **I-4** `| 2026-10-24 hh:mm | Interpretation note (pre-look), both rules, verdict display and LOO: at INSUFFICIENT_SAMPLE (counts, capture or settlement), BOTH rules print counts, exclusion reasons, guard values and the projected date only, with no R, CI or slice (LONGSHOT §6 is the specific clause; §7's "full table whether or not it can decide" covers KEEP_SHADOWING / INCONCLUSIVE). The guard-8.2 leave-one-out veto applies only to a would-be PASS; it never overrides NO_POSITIVE_EV_FOUND or INSUFFICIENT_SAMPLE. | Read unconditionally, the LOO sentence makes NO_POSITIVE_EV_FOUND unreachable under no edge; printing R under a no-direction verdict invites a direction the rule forbids. | Never after a look. |`
 - **I-5** `| 2026-10-24 hh:mm | Interpretation note (pre-look), both rules §1.3: the window file "as committed at freeze" was never committed (data/ is gitignored) and no hash was written in either FREEZE RECORD. The window file is fixed as data/schedule/live_tips_2026-27.parquet with sha256 9702c830abe987ffea696af800aeb9d1bdc88d275756d4333c19663fca40d86d (1,200 rows; mtime 2026-10-23 20:50:23 CDT, before the 23:01 freeze), copied write-once to data/raw/schedule_2026-10-23/. The scorer refuses on any other hash. | The window must not be editable after results exist; this is the best freeze-time evidence available, recorded before any look. | Evidence that the file changed between 23:01 and this row: then the window is the file as of the freeze, if recoverable; otherwise Devin decides, before any look. |`
 - **I-6** `| 2026-10-24 hh:mm | Interpretation note (pre-look), both rules §5/§6, "settled at the read": a market counts as settled only if kalshi_markets.settled_ts <= 23:59:59 America/New_York on the read date (2027-01-15, 2027-04-14), whenever the scorer is run. Only a scalar's settlement_value may come from raw settled pages up to read date + 7 (guard 8.3). The entry snapshot is the kalshi_prices row by its stored ts (the snapshot run's start stamp; pages land a median 15 s, at most 17.7 min, later). | "No re-read with later settlements", made independent of when the DB copy is taken; late settlements are disproportionately NO on "k or more" markets. | Never after a look. |`
+
+---
+
+## Re-review (diff only), 2026-10-24 (after 00:41 CDT)
+
+Diff read: `git diff 172be16 700fcff` on `agent/market-longshot-unders-scorer` (13 files, +365/-41). No new attacks. The checks
+were that each fix does what C1-C4, m1-m3, m5 and m7 asked, and that the revision adds no new contradiction.
+
+Verdict: APPROVED
+
+| Item | Where | Result |
+|---|---|---|
+| C1 settled_by | `__main__.settled_by_for` (23:59:59 America/New_York, then naive UTC); `read_markets` selects `settled_ts`; `assemble` accepts a DB result only if `settled_ts <= settled_by`, else a raw result only if its page dir is <= the read date; raw scan runs to read date + 7, but a post-read page can only supply a scalar VALUE for a ticker already `scalar` by the read; report prints settled_by, the DB sha256 and the raw dir range | Done. Tests: one minute after settled_by makes the game unsettled; an unstamped DB result and a post-read raw page do not settle; a scalar value is allowed after the read only if already scalar |
+| C2 schedule pin | `spec.SCHEDULE_SHA256 = 9702c830…`; `load_schedule_tips` refuses on any other hash; default `--schedule` is `data/raw/schedule_2026-10-23/live_tips_2026-27.parquet` | Done. The copy exists, is read-only (`-r--r--r--`) and hashes to `9702c830…` (`shasum -a 256`, exit 0). Negative test present |
+| C3 counts-only | `engine.py`: n below the minimum returns before `pooled()` for both rules; guard-driven INSUFFICIENT (8.1 / 8.3) drops `pooled` | Done; stronger than asked (no R is computed at all on the n path) |
+| C4 strata line | `strata.py`: `line = threshold - 0.5` for prop and combo; `D = int(line - pin)` (exact); z and `line - q50` use the line | Done. Fixtures moved to integer N, and game rows keep `floor_strike` |
+| m1 | `fee.py`: raw YAML `verified is True` | Done in the scorer; the live loader's `bool()` coercion is unchanged (Devin's path; noted) |
+| m2 / m3 / m5 / m7 | Unmatched games by ET date with a Cup-week subtotal; NULL-stat prop goes to `unknown` and is counted; plant upper-side rate printed; `ask < bid` or `ask == 0` counted as `wide_spread` | Done, each with a test |
+
+Builder's flags:
+1. Preflight runs with `settled_by=None`. Accepted: it covers only games before the window (cutoff 2026-10-24), prints counts only, and the
+   scoring path always passes settled_by.
+2. C3 returns before `pooled()`. Accepted (better).
+3. Raw-page results are judged by "the page's ET day dir". This is a minor wording error, and it errs in the safe direction. Raw dirs are named
+   by UTC date (`nba/kalshi/snapshot.py:76`, `now` in UTC), not ET. Comparing the UTC dir date with the ET read date rejects pages written
+   20:00-23:59 ET on the read date. That can only add `unsettled_game` whole-game drops, never admit a later settlement. It also matters only
+   when the DB `settled_ts` is missing, and it is populated on 13,089 of 13,089 settled NBA markets in the current copy. Optional fix: correct the
+   docstring at `data.py` `assemble` to "UTC page dir".
+4. m1 is guarded in the scorer only. Accepted.
+
+New contradictions: none found. The I-1..I-6 DECISIONS rows (above) are still to be appended by the main session before Read 1;
+I-5's write-once copy now exists at the stated path.
+
+Verification (unpiped, this worktree at 700fcff, `.venv-1`): `ruff check` exit 0; `ruff format --check` exit 0 (20 files); `mypy
+research/market_forward` exit 0 (13 files); `pytest -q -p no:cacheprovider --no-cov tests/research/market_forward` 79 passed,
+exit 0.
