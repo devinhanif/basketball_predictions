@@ -277,7 +277,8 @@ def entry_ok(m: Market, side: int, pos: int, P: dict[str, Any], momentum: bool) 
     v0 = _valid_side(r0, side, P)
     if v0 is None:
         return False
-    return (bid + ask) / 2 - (v0[0] + v0[1]) / 2 >= e["momentum_min_rise"] - EPS
+    rise = (bid + ask) / 2 - (v0[0] + v0[1]) / 2
+    return bool(rise >= float(e["momentum_min_rise"]) - EPS)
 
 
 def fill_entry(m: Market, side: int, pos: int, P: dict[str, Any]) -> int | None:

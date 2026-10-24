@@ -124,7 +124,7 @@ def main() -> None:
     pools = placebo_pools(markets, P)
     pl = [x for x in placebo_means(trades, markets, pools, P, fee) if not math.isnan(x)]
     real_mean = summ.get("mean_net_per_contract", 0.0)
-    pstats = {
+    pstats: dict[str, Any] = {
         "mean_of_means": float(np.mean(pl)) if pl else None,
         "p2_5": float(np.quantile(pl, 0.025)) if pl else None,
         "p97_5": float(np.quantile(pl, 0.975)) if pl else None,
@@ -140,7 +140,7 @@ def main() -> None:
             real_mean,
             (summ["net"]["night_ci"][0], summ["net"]["night_ci"][1]),
             (summ["net"]["game_ci"][0], summ["net"]["game_ci"][1]),
-            pstats["p97_5"] if pstats["p97_5"] is not None else float("inf"),
+            float(pstats["p97_5"]) if pstats["p97_5"] is not None else float("inf"),
             summ["hold"]["mean"],
             P["gate"],
         )
