@@ -21,7 +21,7 @@ Rule: `docs/prereg/MARKET_ANCHORED_PROPS.md` (DRAFT). Gate: `reports/prereg_mark
   calibration (LINE_CALIBRATION, ALT_RUNG_CAL), soft-vs-sharp book gaps as a bet rule (T516's prior audit). Section 2.
 - **Honest expectation:** pooled 2024 `C_mod` (model given recalibrated market) about -0.0002 (80% interval -0.0010 to +0.0003): detectable at
   best, below the -0.001 "useful in a pool" floor, far below the -0.003 betting floor. The market-only components are likelier to show something
-  (`C_mkt` about -0.0004) and are worth about as much as the over bias the ledger already measured (T477: de-vigged P(over) +1.5 pp). The product
+  (`C_mkt` about -0.0005) and are worth about as much as the over bias the ledger already measured (T477: de-vigged P(over) +1.5 pp). The product
   consequence is a better *displayed probability*, not an edge. "Keep your money" survives every verdict except BET_FLOOR_PASS (prior 0.01).
 - **A structural finding that is not a model result:** the parlay engine's deferral gate asks whether the *calibrated model alone* beats the
   market (lower bound of the clustered Brier difference > 0, `configs/parlay.yaml` lines 35-38) before any model weight is allowed. A pooled
@@ -29,7 +29,7 @@ Rule: `docs/prereg/MARKET_ANCHORED_PROPS.md` (DRAFT). Gate: `reports/prereg_mark
   reb). The gate tests the wrong object, so `model_weight` 0 is not informative about whether a pool would help. Section 6.
 - **Gate (non-negotiable 8):** see section 8 and the rule's section 8. Legs reproduce MARKET_PRIOR_RESIDUAL exactly (35,146 / 37,528). History
   **cannot** supply the freshness covariate Devin asked for (the stored report stamps are 11:00 and 17:00 only; the odds `last_update` field is the
-  API refresh clock, after the snapshot in 19-35% of Pinnacle rows). Freshness is a forward-only covariate and is deferred to a live follow-up.
+  API refresh clock, after the snapshot in 19% (2023) and 34% (2024) of Pinnacle rows). Freshness is a forward-only covariate and is deferred to a live follow-up.
 
 ## 1. The claim, restated (reading-log intake)
 
