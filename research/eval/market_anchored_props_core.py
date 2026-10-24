@@ -54,10 +54,12 @@ BET_FLOOR = -0.003
 WORSE_FLOOR = 0.0005  # MM must be this much worse than M (with CI above 0) to override: the null overfit cost is +0.0002
 MODEL_CLIP = rule.MODEL_CLIP
 ODDS_DB = "data/odds/odds_history.duckdb"
-EXTRAS_REL = "data/ops/market_anchored_props/extras_{season}.parquet"
-EXTRAS_PINNED_SHA256: dict[
-    int, str
-] = {}  # filled by the freeze commit (rule text); the run refuses a mismatch
+EXTRAS_REL = "reports/prereg_market_anchored_props/extras_{season}.parquet"  # committed; the rule pins these bytes
+EXTRAS_PINNED_SHA256: dict[int, str] = {
+    2023: "9cf98865d6fe7744f73b8532dc1411e39fff5eedbc96e3153e53b34e3ddf6c1f",
+    2024: "aac40cd57fff58d6c20b654c44a254cf7959305f844614a0ed07d19d6aa8fabc",
+}  # rule section 8; a missing or mismatched pin raises (fails closed)
+NOT_EVALUATED = "NOT_EVALUATED"  # the word pair when a run word or the override replaces the verdict (not a null)
 K1_SELECT_LIMIT = 0.0010  # kill: 2023 C_total point estimate above this -> KILLED_K1
 PAIRS_COLS = [
     "game_id", "player_id", "stat", "book", "snapshot_kind", "snapshot_ts", "tipoff_utc", "line",
@@ -125,18 +127,41 @@ def odds_extras(season: int, db_path: str | None = None) -> pl.DataFrame:
     return soft.join(sp, on="game_id", how="left")
 
 
+def check_extras_pin(season: int, path: Path) -> str:
+    """sha256 of the extras file for ``season``; raises if the season has no pin or the bytes differ from it (fails closed)."""
+    if season not in EXTRAS_PINNED_SHA256:
+        raise RuntimeError(f"no extras pin for season {season}: refusing to run")
+    got = rule.file_sha256(path)
+    if got != EXTRAS_PINNED_SHA256[season]:
+        raise RuntimeError(
+            f"extras frame for {season} differs from its pin ({got[:12]}...): refusing to run"
+        )
+    return got
+
+
 def build_extras(
-    out_dir: str, db_path: str, seasons: tuple[int, ...] = (2023, 2024)
+    out_dir: str,
+    db_path: str,
+    seasons: tuple[int, ...] = (2023, 2024),
+    overwrite: bool = False,
 ) -> dict[str, str]:
     """Write the market-side extras (u_mean, u_sd, n_soft, spread_abs per game, player, stat, line) to one sorted parquet per
-    season and return their sha256. The rule pins these files; the run reads them and never opens the live odds database."""
+    season and return their sha256. The rule pins these files; the run reads them and never opens the live odds database.
+    The bytes are not reproducible (DuckDB's parallel avg / stddev order moves the last bits of u_mean / u_sd), so an existing
+    file is never replaced unless ``overwrite`` (the gate's ``--rebuild-extras``); the check happens before the database is opened."""
     import os
 
+    paths = {s: os.path.join(out_dir, f"extras_{s}.parquet") for s in seasons}
+    existing = [p for p in paths.values() if os.path.exists(p)]
+    if existing and not overwrite:
+        raise FileExistsError(
+            f"refusing to overwrite pinned extras {existing}; pass --rebuild-extras to replace them"
+        )
     os.makedirs(out_dir, exist_ok=True)
     out: dict[str, str] = {}
     for s in seasons:
         ex = odds_extras(s, db_path).sort(["game_id", "player_id", "stat", "line"])
-        path = os.path.join(out_dir, f"extras_{s}.parquet")
+        path = paths[s]
         ex.write_parquet(path, compression="zstd", statistics=False)
         out[str(s)] = rule.file_sha256(Path(path))
     return out
@@ -170,8 +195,7 @@ def load_legs(
         d = d.filter(((pl.col("line") % 1.0) - 0.5).abs() < 1e-9)
         n3 = d.height
         ex_file = mpr.resolve(extras_path.format(season=s))
-        if s in EXTRAS_PINNED_SHA256 and rule.file_sha256(ex_file) != EXTRAS_PINNED_SHA256[s]:
-            raise RuntimeError(f"extras frame for {s} differs from its pin: refusing to run")
+        check_extras_pin(s, ex_file)
         ex = pl.read_parquet(ex_file)
         d = d.join(ex, on=["game_id", "player_id", "stat", "line"], how="left")
         counts[str(s)] = {
@@ -492,11 +516,16 @@ def run_words(
     select_c_total_mean: float, invalid_reason: str | None = None
 ) -> dict[str, str] | None:
     """Run-level words that replace the verdict: NO_RESULT_INVALID_RUN (planted future, leg reproduction, pin or extras-pin
-    failure) first, then KILLED_K1 (2023 C_total above K1_SELECT_LIMIT; 2024 is not scored). None when the run proceeds."""
+    failure) first, then KILLED_K1 (2023 C_total above K1_SELECT_LIMIT; 2024 is not scored). None when the run proceeds.
+    A replaced pair is NOT_EVALUATED, never NONE (NONE means tested, nothing found)."""
     if invalid_reason is not None:
-        return {"model": "NONE", "market": "NONE", "override": "NO_RESULT_INVALID_RUN"}
+        return {
+            "model": NOT_EVALUATED,
+            "market": NOT_EVALUATED,
+            "override": "NO_RESULT_INVALID_RUN",
+        }
     if select_c_total_mean > K1_SELECT_LIMIT:
-        return {"model": "NONE", "market": "NONE", "override": "KILLED_K1"}
+        return {"model": NOT_EVALUATED, "market": NOT_EVALUATED, "override": "KILLED_K1"}
     return None
 
 
@@ -514,7 +543,7 @@ def verdict(report: dict[str, Any], select: dict[str, Any]) -> dict[str, str]:
         report["C_pl"],
     )
     if c_tot["lo"] > 0 and c_tot["mean"] >= WORSE_FLOOR:
-        return {"model": "NONE", "market": "NONE", "override": "WORSE_THAN_MARKET"}
+        return {"model": NOT_EVALUATED, "market": NOT_EVALUATED, "override": "WORSE_THAN_MARKET"}
     mod_det = c_mod["hi"] < 0
     pl_det = c_pl["hi"] < 0
     sel_mod = select["C_mod"]["mean"] < 0

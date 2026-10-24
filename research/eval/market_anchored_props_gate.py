@@ -1,7 +1,10 @@
 # ruff: noqa: E501
 """MARKET_ANCHORED_PROPS minimum-data gate (label-free; rule: docs/prereg/MARKET_ANCHORED_PROPS.md).
 
-    .venv/bin/python -W ignore -m research.eval.market_anchored_props_gate [--k-null 10] [--boot 1000] [--out reports/prereg_market_anchored_props/gate.json]
+    .venv/bin/python -W ignore -m research.eval.market_anchored_props_gate --db <byte copy of odds_history.duckdb> [--k-null 10] [--boot 1000] [--out reports/prereg_market_anchored_props/gate.json]
+
+The pinned extras frames (``reports/prereg_market_anchored_props/extras_{2023,2024}.parquet``, committed) are only hashed against
+``core.EXTRAS_PINNED_SHA256``; they are rebuilt only with ``--rebuild-extras`` (the bytes are not reproducible, so a rebuild breaks the pin).
 
 Read-only. ``data/odds/odds_history.duckdb`` is opened ``read_only=True`` with ``season = s`` for s in {2023, 2024} in every SQL; the
 pairs frames are read WITHOUT the label columns (``y``, ``over``). Every outcome used below is synthetic (a fixed draw from a planted
@@ -207,12 +210,20 @@ def run(
     out: Path,
     reps: int = 6,
     db_path: str | None = None,
-    extras_dir: str = "data/ops/market_anchored_props",
+    extras_dir: str = "reports/prereg_market_anchored_props",
+    rebuild_extras: bool = False,
 ) -> dict[str, Any]:
     t_start = time.time()
     db = db_path or str(mpr.resolve(core.ODDS_DB))
-    core._log(f"building the pinned extras frames from {db}")
-    extras_sha = core.build_extras(str(rule.ROOT / extras_dir), db)
+    if rebuild_extras:
+        core._log(f"REBUILDING the extras frames from {db} (the new bytes will not match the pins)")
+        extras_sha = core.build_extras(str(rule.ROOT / extras_dir), db, overwrite=True)
+    else:
+        core._log("hashing the pinned extras frames (no rebuild)")
+        extras_sha = {
+            str(s): core.check_extras_pin(s, mpr.resolve(core.EXTRAS_REL.format(season=s)))
+            for s in (2023, 2024)
+        }
     core._log("loading legs")
     legs, counts = core.load_legs()
     A = core.to_arrays(legs)
@@ -579,8 +590,13 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="a byte copy of odds_history.duckdb (never the live file while a pull runs)",
     )
+    ap.add_argument(
+        "--rebuild-extras",
+        action="store_true",
+        help="overwrite the pinned extras frames from --db (breaks the pin: the bytes are not reproducible)",
+    )
     a = ap.parse_args(argv)
-    run(a.k_null, a.boot, Path(a.out), a.reps, a.db)
+    run(a.k_null, a.boot, Path(a.out), a.reps, a.db, rebuild_extras=a.rebuild_extras)
     return 0
 
 

@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -177,7 +180,11 @@ def test_verdict_words() -> None:
     v = core.verdict(_rep(0.0, 0.0, 0.0), sel_ok)
     assert v == {"model": "NONE", "market": "NONE", "override": ""}
     worse = _rep(0.002, 0.001, 0.0)
-    assert core.verdict(worse, sel_ok)["override"] == "WORSE_THAN_MARKET"
+    assert core.verdict(worse, sel_ok) == {
+        "model": "NOT_EVALUATED",
+        "market": "NOT_EVALUATED",
+        "override": "WORSE_THAN_MARKET",
+    }
 
 
 def test_season_2025_is_refused() -> None:
@@ -192,9 +199,43 @@ def test_market_info_tier_needs_the_guard_ci_and_run_words() -> None:
     v = core.verdict(_rep(0.0, -0.0012, 0.0, c_mkt_after=-0.0001), sel_ok)
     assert v["market"] == "MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR"
     assert core.run_words(0.0004) is None
-    assert core.run_words(0.0020) == {"model": "NONE", "market": "NONE", "override": "KILLED_K1"}
+    assert core.run_words(0.0020) == {
+        "model": "NOT_EVALUATED",
+        "market": "NOT_EVALUATED",
+        "override": "KILLED_K1",
+    }
     bad = core.run_words(0.0020, invalid_reason="pin")
-    assert bad is not None and bad["override"] == "NO_RESULT_INVALID_RUN"
+    assert bad == {
+        "model": "NOT_EVALUATED",
+        "market": "NOT_EVALUATED",
+        "override": "NO_RESULT_INVALID_RUN",
+    }
+
+
+def test_extras_pin_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """M1 (second pre-freeze review): a missing or mismatched pin raises; a matching pin returns the sha."""
+    assert set(core.EXTRAS_PINNED_SHA256) == {2023, 2024}
+    assert all(len(v) == 64 for v in core.EXTRAS_PINNED_SHA256.values())
+    f = tmp_path / "extras_2023.parquet"
+    f.write_bytes(b"not the pinned bytes")
+    with pytest.raises(RuntimeError, match="differs from its pin"):
+        core.check_extras_pin(2023, f)
+    with pytest.raises(RuntimeError, match="no extras pin"):
+        core.check_extras_pin(2022, f)
+    sha = hashlib.sha256(b"not the pinned bytes").hexdigest()
+    monkeypatch.setattr(core, "EXTRAS_PINNED_SHA256", {2023: sha})
+    assert core.check_extras_pin(2023, f) == sha
+    with pytest.raises(RuntimeError, match="no extras pin"):
+        core.check_extras_pin(2024, f)
+
+
+def test_build_extras_refuses_to_overwrite(tmp_path: Path) -> None:
+    """B1: an existing extras file is never replaced without the explicit flag, and the database is not opened first."""
+    f = tmp_path / "extras_2023.parquet"
+    f.write_bytes(b"pinned")
+    with pytest.raises(FileExistsError, match="--rebuild-extras"):
+        core.build_extras(str(tmp_path), str(tmp_path / "no_such.duckdb"), seasons=(2023,))
+    assert f.read_bytes() == b"pinned"
 
 
 def test_off_span_directions_are_model_free_and_centred() -> None:
@@ -218,3 +259,12 @@ def test_gain_p_is_the_losing_tail() -> None:
     loss = rng.normal(+0.2, 1.0, n)
     assert core.gain_p(boots, gain, mask) < 0.01
     assert core.gain_p(boots, loss, mask) > 0.99
+
+
+def test_committed_extras_match_their_pins() -> None:
+    """B1: the committed copies are the pinned bytes (the run and the gate read these, never a rebuild)."""
+    from research.eval import market_prior_residual_rule as rule
+
+    for s in (2023, 2024):
+        p = rule.ROOT / core.EXTRAS_REL.format(season=s)
+        assert core.check_extras_pin(s, p) == core.EXTRAS_PINNED_SHA256[s]

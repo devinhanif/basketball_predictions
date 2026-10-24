@@ -102,7 +102,7 @@ S_J(k) = 1 - (1 - m0)(1 - S_A(k)) / (1 - S_A(k0)). It is exact on the integer su
 equals the market at the line by construction. With several posted rungs the same projection is iterative proportional fitting (raking) and needs the
 posted survival points monotone (pool-adjacent-violators, `nba/markets/implied.py`). This is the principled form of T494's finding that 92% of the
 rung gain is "shift toward the book's main line", and it is the object a trader needs: sharp main line from Pinnacle, shape from us, price for a rung
-Pinnacle does not post. It is **Stage 2 of the rule (descriptive, no pass role)** because its information is exactly T494's and a rung price from
+Pinnacle does not post. It is **Part L of the rule (ladder anchoring, descriptive, no pass role)** because its information is exactly T494's and a rung price from
 DraftKings is over-only (2024: under side 195-331 rows of ~100k per stat) so only FanDuel rungs are two-sided (2024 share of FD rung points with both sides: pts 59%, reb 44%, ast 45%, fg3m 52%; 2023 pts 52%, reb 39%, ast 37%, fg3m 46%).
 
 *Playbook check (quantile and distribution layers; count models).* Information or capacity: capacity (a re-expression of the grid), the new input is
@@ -263,7 +263,7 @@ model, per row) is > 0, then weight n/(n+100) on a *linear* pool. Three issues, 
 alone beats the market, which T493 already shows it does not (CAL 0.6882 vs market 0.6865) and which a pool does not need to do; the object to test is
 pooled-minus-market with a walk-forward weight; (b) the weight is a function of n (rows), where Bates-Granger says it should be a function of the error
 precision on the disagreement; (c) the linear form is the one Ranjan-Gneiting prove miscalibrated. Proposal (Devin's decision, no live-path edit by this
-role): when this rule returns a model word other than NONE, the forward confirmation scores the *pooled* forecast, and only then is `shrink_to_market`
+role): when this rule returns a model word DETECTED_BELOW_INFO_FLOOR, INFO or BET_FLOOR_PASS, the forward confirmation scores the *pooled* forecast, and only then is `shrink_to_market`
 replaced by the fitted logit pool with the walk-forward coefficients.
 
 ## 7. Playbook check (summary; per-area checks are in section 3)
@@ -286,9 +286,9 @@ replaced by the fitted logit pool with the walk-forward coefficients.
 23 of 23 checks pass (G7g, off-span market errors, added after the adversary's pre-freeze review) after the design changes disclosed in rule section 13 (the first draft of the gate failed six checks, which is why the model went from 36
 to 19, then 22 parameters). Legs 35,146 / 37,528 (equal to MARKET_PRIOR_RESIDUAL's gate), 1,249 / 1,260 games, 377 / 414 player-seasons, 35 / 36 ISO weeks, minimum
 lead 62.55 minutes, planted future exactly 0.0. Synthetic outcomes on the real legs, 10 replicates per world: the null world fires nothing (0 of 10) and
-costs +0.00016 per leg (2024) / +0.00041 (2023); the market-mis-calibrated, model-inert world (oracle 0.0010) fires the market word 10 of 10 and the model
-word 0 of 10; the model-informed worlds (oracle 0.0011 and 0.0030) fire the model word 10 of 10 (INFO in 1 and 10) and the market word 0 of 20 falsely;
-both planted (oracle 0.0032): the model word 10 of 10 (DETECTED 8, INFO 2) and the market word MISCALIBRATION_INFO 10 of 10. Binding half-width of the report-season C_mod under the null 0.00009, so the instrument can resolve the
+costs +0.00021 per leg (2024) / +0.00050 (2023); the market-mis-calibrated, model-inert world (oracle 0.0010) fires the market word 10 of 10 and the model
+word 0 of 10; the model-informed worlds (oracle 0.0011 and 0.0030) fire the model word 10 of 10 (INFO in 0 and 10) and the market word 0 of 20 falsely;
+both planted (oracle 0.0032): the model word 10 of 10 (DETECTED 8, INFO 2) and the market word 10 of 10 (MISCALIBRATION_INFO 6, MISCALIBRATION_DETECTED_BELOW_INFO_FLOOR 4). Binding half-width of the report-season C_mod under the null 0.00009, so the instrument can resolve the
 -0.001 tier (and sees an oracle of 0.0011 as C_mod about -0.0006: gammas below H2's largest weight are detected, not INFO). The one thing the gate says
 history cannot do is the freshness covariate (3.5).
 
