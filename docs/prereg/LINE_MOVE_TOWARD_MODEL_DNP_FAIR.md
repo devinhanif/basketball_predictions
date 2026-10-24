@@ -1,6 +1,6 @@
 # LINE_MOVE_TOWARD_MODEL_DNP_FAIR (T510b) — does the Kalshi prop price move toward our forecast, when the forecast values a DNP at Kalshi's fair price instead of "No"?
 
-Status: **DRAFT. NOT FROZEN.** Revised 2026-10-23 after the adversary pre-freeze review (docs/reviews/t510b_prefreeze_2026-10-23.md): B1-B5 adopted verbatim, S1 adopted. Drafted 2026-10-23 by the modeler at the main session's request. Forward only, paper only (no orders,
+Status: **DRAFT. NOT FROZEN.** Revised 2026-10-23 after the adversary pre-freeze review (docs/reviews/t510b_prefreeze_2026-10-23.md): B1-B5 adopted verbatim, S1-S3 adopted. Drafted 2026-10-23 by the modeler at the main session's request. Forward only, paper only (no orders,
 no credentials). Companion to the frozen T510 (`docs/prereg/LINE_MOVE_TOWARD_MODEL.md`, sha256 `881aca57600638f67915b5dc6a84b6a56753f026a4eae4a17811d7cee23af1ad`
 at drafting time), which this text does **not** edit, re-score or replace. The main session reads it with Devin, then commits it
 to `main` with the sha256 in the commit message before any harness code reads a T510b number.
@@ -32,7 +32,7 @@ and "If a given <entity> ... withdraws, is removed, or is otherwise unable to pa
 measured as of the time immediately prior to the opening tip-off". This is the "(Covered)" product, not necessarily the KXNBAPTS series.
 
 **Not verified:** (1) Kalshi's own contract-terms page (kalshi.com/regulatory, the kalshi-public-docs PDFs) was unreachable here (HTTP 404 on the guessed PDF path, 429 on the rulebook index); the live API text above is Kalshi's own field, but it is not the PDF.
-(2) Whether KXNBAPTS is the plain or the "(Covered)" product. Under Covered, a player who plays only the first half and misses the threshold also resolves to a fair price; neither T510 nor T510b models that branch. (3) One third-party page (a Kawhi Leonard market aggregator) quotes "If the player is listed as inactive ... resolves No"; it is a different or older text, unverified, and
+(2) Whether KXNBAPTS is the plain or the "(Covered)" product. The Covered filing (cftc.gov `ptc10162634013.pdf`, Appendix A, "Covered settlement") reads: "If <entity> is a player and <entity> enters <NBA game> during the first half of <NBA game> but does not enter <NBA game> at any time after the conclusion of the first half of <NBA game> (including any overtime period), the Contract will resolve to the last fair price, as determined by the Exchange in its sole discretion, unless <stat> recorded by <entity> in <NBA game> satisfies the Payout Criterion, in which case the Contract will settle based on actual statistics." If KXNBAPTS is the Covered product, that branch also resolves to a fair price; neither T510 nor T510b models it. (Quoted from the filing as extracted here; not verified by the adversary, who had no copy.) (3) One third-party page (a Kawhi Leonard market aggregator) quotes "If the player is listed as inactive ... resolves No"; it is a different or older text, unverified, and
 contradicted by the live field. (4) The fair price is "determined by the Exchange in its sole discretion": **the settlement price is never observed in our data** (captures show `status active, result ''`; no settled results are stored). So T510b has no PnL and no settled-price
 number anywhere; the proxy L below is a modelling choice and is labelled as one.
 (5) A different Kalshi product (BASKETBALLPLAYERCAT, "most <stat> among a category", CFTC `rules0623267083.docx`) does resolve a non-appearing player to No. That is a different contract and is cited only so nobody mixes the two.
@@ -108,7 +108,7 @@ Capture audit before any "fail" (non-negotiable 8; no gate fails, but the 10-23 
 
 ## Premise check (reported, never decides)
 Once the window's games are final, for the markets in the scored set whose player has no box minutes: record the Kalshi settlement (public read-only market endpoint, `result` and `settlement_value`) and report n DNP-resolved, n resolved at a price strictly between 0 and 1 (fair), n resolved No.
-Pre-registered reading: if n >= 5 and a majority resolve exactly No, T510b's valuation is contradicted by the exchange and the note says T510b's premise failed (T510's construction was right in practice); if n < 5, "unverified, settlement price unobserved". The decision table above is unchanged by this.
+Pre-registered reading: if n >= 5 and a majority resolve exactly No, T510b's valuation is contradicted by the exchange and the note says T510b's premise failed (T510's construction was right in practice); if n < 5, "unverified, settlement price unobserved". The decision table above is unchanged by this. If the reading is 'premise failed', a row-3 withdrawal (outcome table) is reported as resting on a contradicted premise; the withdrawal still stands.
 
 ## Reported, not part of the decision
 Per stat; by gap size (0.05-0.10, > 0.10); toward / away / flat counts; a sign-shuffled placebo; the three sets {both, only T510, only T510b} separately (mean `m_M` and `m_M'` on each; this is the cleanest view of what the DNP valuation changes);
