@@ -54,14 +54,21 @@ from nba.db.connect import connect, connect_with_retry, is_lock_error
 from nba.ingest.cache import RateLimiter, cache_path_for
 from nba.ingest.pbp import pull_game_pbp
 from nba.ops.exitcodes import RC_DB_BUSY, RC_DEGRADED, RC_INFORMATIONAL
+from nba.parse.history import _starters
 from nba.parse.lineups import (
     MINUTES_SHARE_TARGET,
     MINUTES_WITHIN_TOL,
     minutes_within_share,
+    track_lineups_with_report,
 )
-from nba.parse.loader import load_possessions
+from nba.parse.loader import load_possessions, load_stints
 from nba.parse.possessions import parse_possessions
-from nba.parse.rebuild_lineups import compute_all, write_chunk
+from nba.parse.rebuild_lineups import (
+    build_name_map,
+    build_sub_alias_map,
+    compute_all,
+    write_chunk,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 ET = ZoneInfo("America/New_York")
@@ -70,6 +77,14 @@ SEASON_START = date(2026, 10, 20)  # opening night; nothing earlier is ever elig
 LOOKBACK_DAYS = 7
 ALERT_SHARE = MINUTES_SHARE_TARGET  # 0.95: Devin 2026-10-24, alert when a night is under it
 RC_RECONCILE_LOW = 6
+#: a game is final only when each team's box minutes reach this (240 regulation; the half-time box
+#: a pretip run once stored sums to about half)
+MIN_TEAM_MINUTES = 239.5
+#: a night with fewer player-games than this is judged in the pooled window, not alone
+MIN_NIGHT_PLAYER_GAMES = 150
+#: env switch (option (b) of the review): 1 holds 2026 possessions writes; stints are still built,
+#: possessions and their lineup columns are left untouched. Default (unset/0) writes them.
+HOLD_POSSESSIONS_ENV = "NBA_STINTS_HOLD_POSSESSIONS"
 DEFAULT_BUDGET_S = 1500.0  # fetch phase wall clock; the shell alarm (1800 s) is the backstop
 
 Fetch = Callable[..., Any]
@@ -108,6 +123,9 @@ class Result:
     low_nights: list[str] = field(default_factory=list)
     unresolved_subs: int = 0
     desync_subs: int = 0
+    timings_s: dict[str, float] = field(default_factory=dict)
+    pooled_low: bool = False
+    held_possessions: bool = False
 
 
 def today_et() -> date:
@@ -117,7 +135,7 @@ def today_et() -> date:
 def eligible_games(
     con: duckdb.DuckDBPyConnection, today: date, since: date, until: date | None = None
 ) -> list[tuple[str, date]]:
-    """Scored, final season-2026 games with a stored box score: ``game_date`` in [since, today)."""
+    """Scored, final 2026 games: ``game_date`` in [since, today), each team's box >= 239.5 min."""
     last = today - timedelta(days=1)
     if until is not None:
         last = min(last, until)
@@ -125,9 +143,10 @@ def eligible_games(
         "SELECT g.game_id, g.game_date FROM games g "
         "WHERE g.season = ? AND g.home_pts IS NOT NULL AND g.away_pts IS NOT NULL "
         "AND g.game_date >= ? AND g.game_date <= ? "
-        "AND EXISTS (SELECT 1 FROM player_game_stats b WHERE b.game_id = g.game_id) "
+        "AND (SELECT count(*) FROM (SELECT b.team_id FROM player_game_stats b "
+        "WHERE b.game_id = g.game_id GROUP BY b.team_id HAVING sum(b.minutes) >= ?)) = 2 "
         "ORDER BY g.game_date, g.game_id",
-        [SEASON, since, last],
+        [SEASON, since, last, MIN_TEAM_MINUTES],
     ).fetchall()
     return [(str(g), d) for g, d in rows]
 
@@ -202,6 +221,87 @@ def write_reconciliation_log(path: Path, nights: list[Night], run_at: str) -> No
     os.replace(tmp, path)
 
 
+def low_nights(nights: list[Night]) -> tuple[list[str], bool]:
+    """Nights to alert on. A night with >= 150 player-games is judged alone; the smaller nights are
+    judged as one pool (the reconciled window is at most the 7-day lookback). Only nights built in
+    this run can alert."""
+    out = [
+        n.game_date
+        for n in nights
+        if n.player_games >= MIN_NIGHT_PLAYER_GAMES and n.built_now and n.share < ALERT_SHARE
+    ]
+    small = [n for n in nights if n.player_games < MIN_NIGHT_PLAYER_GAMES]
+    pooled = False
+    if any(n.built_now for n in small):
+        total = sum(n.player_games for n in small)
+        within = sum(n.within for n in small)
+        if total and within / total < ALERT_SHARE:
+            pooled = True
+            out.extend(n.game_date for n in small if n.built_now)
+    return sorted(set(out)), pooled
+
+
+def _stints_and_lineups(
+    con: duckdb.DuckDBPyConnection, data_dir: Path, ready: list[str], res: Result
+) -> None:
+    try:
+        rebuilt = compute_all(con, data_dir, only=set(ready))
+    except ValueError as exc:
+        if "empty" not in str(exc):  # polars' concat([]): every ready game was skipped
+            raise
+        res.failed.update({g: "tracker skipped" for g in ready})
+        return
+    for reason, gids in rebuilt.skipped.items():
+        for g in gids:
+            if g in ready:
+                res.failed[g] = reason
+    res.unresolved_subs = sum(len(r.unresolved) for r in rebuilt.reports)
+    res.desync_subs = sum(len(r.desync) for r in rebuilt.reports)
+    write_chunk(con, rebuilt.stints, rebuilt.lineups)
+    con.execute("CHECKPOINT")
+    res.built = sorted(rebuilt.stints["game_id"].unique().to_list())
+
+
+def _stints_only(
+    con: duckdb.DuckDBPyConnection, data_dir: Path, ready: list[str], res: Result
+) -> None:
+    """Hold switch on: the same tracker call per game, stints written, possessions untouched."""
+    all_ids = [str(r[0]) for r in con.execute("SELECT game_id FROM games").fetchall()]
+    names = build_name_map(data_dir, all_ids)
+    aliases = build_sub_alias_map(data_dir, all_ids)
+    frames: list[pl.DataFrame] = []
+    for gid in ready:
+        box = con.execute(
+            "SELECT player_id, team_id, starter, minutes FROM player_game_stats WHERE game_id = ?",
+            [gid],
+        ).pl()
+        starters = _starters(box)
+        if starters is None:
+            res.failed[gid] = "no_starters"
+            continue
+        roster = {
+            int(t[0]): g["player_id"].to_list()
+            for t, g in box.filter(pl.col("minutes") > 0).group_by("team_id")
+        }
+        stints, rep = track_lineups_with_report(
+            pl.read_parquet(cache_path_for("pbp", gid, data_dir)), starters, roster, names, aliases
+        )
+        res.unresolved_subs += len(rep.unresolved)
+        res.desync_subs += len(rep.desync)
+        frames.append(stints)
+    if not frames:
+        return
+    con.execute("BEGIN")
+    try:
+        load_stints(con, pl.concat(frames))
+        con.execute("COMMIT")
+    except Exception:
+        con.execute("ROLLBACK")
+        raise
+    con.execute("CHECKPOINT")
+    res.built = sorted({g for f in frames for g in f["game_id"].unique().to_list()})
+
+
 def run_nightly(
     db_path: Path,
     data_dir: Path,
@@ -213,9 +313,11 @@ def run_nightly(
     budget_s: float = DEFAULT_BUDGET_S,
     recon_log: Path | None = None,
     dry_run: bool = False,
+    hold_possessions: bool = False,
     fetch: Fetch = pull_game_pbp,
 ) -> Result:
     res = Result()
+    res.held_possessions = hold_possessions
     con = (
         connect(db_path, read_only=True)
         if dry_run
@@ -237,6 +339,7 @@ def run_nightly(
             return res
 
         t0 = time.monotonic()
+        t_fetch0 = t0
         limiter = RateLimiter(min_interval_s=rate_limit_s)
         have_poss = _games_in(con, "possessions", todo)
         ready: list[str] = []
@@ -248,7 +351,7 @@ def run_nightly(
                         res.failed[gid] = "fetch budget exhausted"
                         continue
                     fetch(con, gid, data_dir=data_dir, rate_limiter=limiter)
-                if gid not in have_poss:
+                if gid not in have_poss and not hold_possessions:
                     poss = parse_possessions(pl.read_parquet(path))
                     if poss.is_empty():
                         res.failed[gid] = "no possessions parsed"
@@ -264,24 +367,18 @@ def run_nightly(
             except Exception as exc:  # one bad game must not stop the night
                 res.failed[gid] = f"{type(exc).__name__}: {str(exc)[:120]}"
 
+        res.timings_s["fetch_parse"] = round(time.monotonic() - t_fetch0, 1)
         if ready:
-            try:
-                rebuilt = compute_all(con, data_dir, only=set(ready))
-            except ValueError:  # pl.concat([]): every ready game was skipped by the tracker
-                skipped = {g: "tracker skipped" for g in ready}
-                res.failed.update(skipped)
+            t1 = time.monotonic()
+            if hold_possessions:
+                _stints_only(con, data_dir, ready, res)
             else:
-                for reason, gids in rebuilt.skipped.items():
-                    for g in gids:
-                        if g in ready:
-                            res.failed[g] = reason
-                res.unresolved_subs = sum(len(r.unresolved) for r in rebuilt.reports)
-                res.desync_subs = sum(len(r.desync) for r in rebuilt.reports)
-                write_chunk(con, rebuilt.stints, rebuilt.lineups)
-                con.execute("CHECKPOINT")
-                res.built = sorted(rebuilt.stints["game_id"].unique().to_list())
+                _stints_and_lineups(con, data_dir, ready, res)
+            res.timings_s["compute_write"] = round(time.monotonic() - t1, 1)
 
+        t2 = time.monotonic()
         res.nights = reconcile(con, games, set(res.built))
+        res.timings_s["reconcile"] = round(time.monotonic() - t2, 1)
     finally:
         con.close()
 
@@ -289,7 +386,7 @@ def run_nightly(
         write_reconciliation_log(
             recon_log, res.nights, datetime.now(ET).isoformat(timespec="seconds")
         )
-    res.low_nights = [n.game_date for n in res.nights if n.built_now and n.share < ALERT_SHARE]
+    res.low_nights, res.pooled_low = low_nights(res.nights)
     if res.low_nights:
         res.rc = RC_RECONCILE_LOW
     elif res.failed:
@@ -307,6 +404,9 @@ def summary(res: Result) -> dict[str, Any]:
         "desync_subs": res.desync_subs,
         "nights": [n.as_row() for n in res.nights],
         "low_nights": res.low_nights,
+        "low_nights_pooled": res.pooled_low,
+        "possessions_held": res.held_possessions,
+        "timings_s": res.timings_s,
         "rc": res.rc,
     }
 
@@ -325,6 +425,11 @@ def main(argv: list[str] | None = None) -> int:
         "--recon-log", type=Path, default=ROOT / "data" / "ops" / "stints_reconciliation.jsonl"
     )
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--hold-possessions",
+        action="store_true",
+        help=f"do not write 2026 possessions (also {HOLD_POSSESSIONS_ENV}=1); stints only",
+    )
     args = ap.parse_args(argv)
     today = args.today or today_et()
     since = args.since or max(SEASON_START, today - timedelta(days=args.lookback_days))
@@ -339,6 +444,8 @@ def main(argv: list[str] | None = None) -> int:
             budget_s=args.budget_s,
             recon_log=None if args.dry_run else args.recon_log,
             dry_run=args.dry_run,
+            hold_possessions=args.hold_possessions
+            or os.environ.get(HOLD_POSSESSIONS_ENV, "") == "1",
         )
     except duckdb.IOException as exc:
         if not is_lock_error(exc):
@@ -354,7 +461,12 @@ def main(argv: list[str] | None = None) -> int:
             flush=True,
         )
     if res.rc == RC_RECONCILE_LOW:
-        print(f"ALERT reconciliation below {ALERT_SHARE:.0%}: {res.low_nights}", flush=True)
+        where = "pooled small nights" if res.pooled_low else "nights"
+        print(
+            f"ALERT reconciliation below {ALERT_SHARE:.0%} ({where}): {res.low_nights}; "
+            f"failed games: {sorted(res.failed) or 'none'}",
+            flush=True,
+        )
     return res.rc
 
 

@@ -94,7 +94,9 @@ def _add_game(
 
 
 @pytest.fixture
-def env(tmp_path: Path) -> dict[str, Any]:
+def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    # the synthetic game is 24 minutes long: lower the final-game floor (one test restores 239.5)
+    monkeypatch.setattr(sn, "MIN_TEAM_MINUTES", 100.0)
     db = tmp_path / "nba.duckdb"
     con = connect(db)
     _add_game(con, G1, "2026-10-23")
@@ -191,17 +193,104 @@ def test_second_run_is_idempotent(env: dict[str, Any]) -> None:
     assert [n.share for n in res.nights] == [1.0, 1.0]  # still reconciled on the re-run
 
 
-def test_alert_when_a_built_night_is_under_95_percent(env: dict[str, Any]) -> None:
+def test_alert_when_a_built_night_is_under_95_percent(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sn, "MIN_NIGHT_PLAYER_GAMES", 5)  # judge each fixture night alone
     con = connect(env["db"])
     con.execute("UPDATE player_game_stats SET minutes = minutes + 5 WHERE game_id = ?", [G2])
     con.close()
     res = _run(env)
     assert res.rc == sn.RC_RECONCILE_LOW and res.low_nights == ["2026-10-24"]
+    assert not res.pooled_low
     # an unchanged night does not re-alert on the next run (the row stays in the log)
     res2 = _run(env)
     assert res2.rc == 0 and res2.low_nights == []
     low = [n for n in res2.nights if n.game_date == "2026-10-24"][0]
     assert low.share < sn.ALERT_SHARE
+
+
+def _night(d: str, n: int, within: int, built: int = 1) -> sn.Night:
+    return sn.Night(d, 1, n, within, within / n, built)
+
+
+def test_small_nights_are_judged_in_the_pool_not_alone() -> None:
+    # 10-20 (68, 64) alone is 94.1%; pooled with a perfect 45-player-game night it is 96.5%
+    assert sn.low_nights([_night("a", 68, 64), _night("b", 45, 45)]) == ([], False)
+    # a night with >= 150 player-games is judged alone
+    assert sn.low_nights([_night("a", 200, 180), _night("b", 45, 45)]) == (["a"], False)
+    # the pool itself under 95%: every small night built in this run is named
+    assert sn.low_nights([_night("a", 68, 60), _night("b", 45, 45)]) == (["a", "b"], True)
+    # nothing built now: no alert, whatever the share
+    assert sn.low_nights([_night("a", 68, 10, built=0)]) == ([], False)
+
+
+def test_partial_box_is_not_final(env: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sn, "MIN_TEAM_MINUTES", 239.5)  # the real floor: fixture boxes sum to 120
+    res = _run(env)
+    assert res.rc == 4 and res.eligible == 0 and env["calls"] == []
+
+
+def test_one_team_short_of_240_is_not_final(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sn, "MIN_TEAM_MINUTES", 120.0)
+    con = connect(env["db"])
+    con.execute(
+        "UPDATE player_game_stats SET minutes = 1 WHERE game_id = ? AND team_id = ?", [G1, AWAY]
+    )
+    con.close()
+    assert _run(env).built == [G2]
+
+
+def test_hold_switch_builds_stints_but_writes_no_possessions(env: dict[str, Any]) -> None:
+    res = _run(env, hold_possessions=True)
+    assert res.rc == 0 and res.built == [G1, G2] and res.held_possessions
+    assert _count(env, "SELECT count(*) FROM stints") > 0
+    assert _count(env, "SELECT count(*) FROM possessions") == 0
+    assert res.nights and all(n.share == 1.0 for n in res.nights)
+
+
+def test_default_writes_possessions(env: dict[str, Any]) -> None:
+    res = _run(env)
+    assert not res.held_possessions and _count(env, "SELECT count(*) FROM possessions") > 0
+
+
+def test_main_reads_the_hold_env(env: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(sn.HOLD_POSSESSIONS_ENV, "1")
+    seen: dict[str, Any] = {}
+
+    def fake(*a: Any, **k: Any) -> sn.Result:
+        seen.update(k)
+        return sn.Result()
+
+    monkeypatch.setattr(sn, "run_nightly", fake)
+    sn.main(["--db", str(env["db"]), "--data-dir", str(env["data"]), "--today", "2026-10-25"])
+    assert seen["hold_possessions"] is True
+
+
+def test_summary_carries_phase_timings(env: dict[str, Any]) -> None:
+    res = _run(env)
+    assert {"fetch_parse", "compute_write", "reconcile"} <= set(sn.summary(res)["timings_s"])
+
+
+def test_only_the_empty_concat_valueerror_means_tracker_skipped(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    con = connect(env["db"])
+    con.execute("UPDATE player_game_stats SET starter = false WHERE game_id = ?", [G1])
+    con.close()
+    res = _run(env)
+    assert res.rc == 5 and G1 in res.failed and res.built == [G2]
+    only_g1 = _run(env, until=date(2026, 10, 23))  # every ready game skipped: polars' empty concat
+    assert only_g1.rc == 5 and only_g1.failed[G1] == "tracker skipped"
+
+    def boom(*a: Any, **k: Any) -> None:
+        raise ValueError("a real bug")
+
+    monkeypatch.setattr(sn, "compute_all", boom)
+    with pytest.raises(ValueError, match="a real bug"):
+        _run(env)
 
 
 def test_one_failed_fetch_does_not_stop_the_other_game(env: dict[str, Any]) -> None:

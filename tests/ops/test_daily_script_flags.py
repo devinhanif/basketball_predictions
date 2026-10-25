@@ -427,3 +427,28 @@ def test_a_hung_stints_step_times_out_and_the_morning_continues(tmp_path: Path) 
     assert "stints_nightly 142 failed" in steps
     assert "stints_nightly timed out" in (root / "data/ops/ALERTS.md").read_text()
     assert '"rc": 0' in _hb(root) and any("datamanifest check" in c for c in calls)
+
+
+def test_stints_nightly_is_skipped_while_a_backfill_or_queue_runs(tmp_path: Path) -> None:
+    import os
+
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    (fake / "pgrep").write_text("#!/bin/sh\nexit 0\n")  # a backfill is "running"
+    (fake / "pgrep").chmod(0o755)
+    _, calls, root = _run_mode(tmp_path, "morning", "", {"PATH": f"{fake}:{os.environ['PATH']}"})
+    assert not any("nba.ops.stints_nightly" in c for c in calls)
+    assert not any("postgame-fetch" in c for c in calls)
+    log = next((root / "data/ops").glob("morning_*.log")).read_text()
+    assert "skipping post-game ingest and stints_nightly" in log
+
+
+def test_stints_nightly_is_skipped_when_the_morning_is_already_late(tmp_path: Path) -> None:
+    _, calls, root = _run_mode(tmp_path, "morning", "", {"NBA_STINTS_LATEST_S": "-1"})
+    assert not any("nba.ops.stints_nightly" in c for c in calls)
+    assert any("datamanifest check" in c for c in calls)  # the rest of the morning ran
+    steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text()
+    assert "stints_nightly" not in steps  # a skip is not a failure
+    log = next((root / "data/ops").glob("morning_*.log")).read_text()
+    assert "stints_nightly skipped: morning job already past -1 s" in log
+    assert not (root / "data/ops/ALERTS.md").exists()

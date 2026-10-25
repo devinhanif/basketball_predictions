@@ -38,6 +38,7 @@ HB_DIR=$OPS/heartbeat
 HB_JOB=daily-$MODE
 HB_RC=0
 HB_START=$(date +%Y-%m-%dT%H:%M:%S%z)
+START_EPOCH=$(date +%s)
 mkdir -p "$HB_DIR"
 hb_write() {  # hb_write <end_ts|null> <rc|null>
   [ "$1" = null ] && e=null || e="\"$1\""
@@ -255,19 +256,26 @@ case "$MODE" in
     # post-game stats for newly completed games (per-game sources only; shots/coaches are
     # per team-season and cached once, so they are refreshed by hand). Skip while a backfill runs.
     if pgrep -f run_postgame_backfill.sh >/dev/null 2>&1 || pgrep -f "nba.ingest.queue" >/dev/null 2>&1; then
-      log "backfill/ingest queue running (one stats.nba.com puller at a time); skipping post-game ingest"
+      log "backfill/ingest queue running (one stats.nba.com puller at a time); skipping post-game ingest and stints_nightly"
     else
       for s in tracking hustle officials matchups; do
         step "fetch_$s" alarm_run "$FETCH_TIMEOUT_S" "$UV" run --no-sync python -m nba.ingest --rate-limit-s 1.0 postgame-fetch --source "$s"
       done
       step postgame_load alarm_run "$LOAD_TIMEOUT_S" "$UV" run --no-sync python -m nba.ingest postgame-load \
         --source tracking --source hustle --source officials --source matchups
+      # Stints + possession lineups for last night's scored, final games (tracker v2, ADR 0002; Devin 2026-10-24).
+      # Advisory: alarm-bounded, may only alert (see advisory_step), idempotent (games with stints are skipped, a
+      # missed night heals within 7 days). Reconciliation share per night -> data/ops/stints_reconciliation.jsonl;
+      # alert under 95%. Runs after postgame_load and before the snapshot so the backup carries the new rows.
+      # Same guard as the fetches above (one stats.nba.com puller at a time, no writer racing a backfill), and a
+      # latest-start rule: past NBA_STINTS_LATEST_S (90 min) the morning is late, and the alarm budgets must not run
+      # past the 3 h stale-lock age. Both skips are logged; the 7-day window heals the missed night.
+      if [ $(( $(date +%s) - START_EPOCH )) -lt "${NBA_STINTS_LATEST_S:-5400}" ]; then
+        advisory_step stints_nightly alarm_run "$STINTS_TIMEOUT_S" "$UV" run --no-sync python -m nba.ops.stints_nightly
+      else
+        log "stints_nightly skipped: morning job already past ${NBA_STINTS_LATEST_S:-5400} s"
+      fi
     fi
-    # Stints + possession lineups for last night's scored, final games (tracker v2, ADR 0002; Devin 2026-10-24).
-    # Advisory: alarm-bounded, may only alert (see advisory_step), idempotent (games with stints are skipped, a
-    # missed night heals within 7 days). Reconciliation share per night -> data/ops/stints_reconciliation.jsonl;
-    # alert under 95%. Runs after postgame_load and before the snapshot so the backup carries the new rows.
-    advisory_step stints_nightly alarm_run "$STINTS_TIMEOUT_S" "$UV" run --no-sync python -m nba.ops.stints_nightly
     step data_snapshot "$UV" run --no-sync python -m nba.datamanifest snapshot
     step data_diff "$UV" run --no-sync python -m nba.datamanifest diff
     step data_check "$UV" run --no-sync python -m nba.datamanifest check

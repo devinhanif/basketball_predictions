@@ -922,6 +922,14 @@ play-by-play or ran the tracker for the live season. The morning job now has one
   1.0 min, over every eligible game that has stints. One row per night in `data/ops/stints_reconciliation.jsonl`
   (rewritten in place by date) and `RECON` lines in the morning log. rc 6 (alert) when a night built in this run is under
   `MINUTES_SHARE_TARGET` = 95%. Small nights are noisy (the 10-20 night is 68 player-games).
+* **Review fixes (2026-10-24)**: the step sits inside the same `pgrep` else-branch as the post-game fetches (skipped,
+  and logged, while a backfill or the ingest queue runs) and starts only within `NBA_STINTS_LATEST_S` (default 5400 s)
+  of the morning job's start (logged skip otherwise; the 7-day window heals it). A game is final only when each team's
+  box minutes sum to >= 239.5. The per-night alert needs >= 150 player-games; smaller nights are judged as one pool
+  (all small nights of the window). The rc-6 alert line lists failed game ids. The summary JSON carries phase timings.
+* **Possessions hold switch (option (b) of the review)**: `NBA_STINTS_HOLD_POSSESSIONS=1` (or `--hold-possessions`)
+  builds stints only and writes no 2026 `possessions` rows or lineup columns. Default off: possessions are written.
+  Reason: AVG_SHADOW_LIVE_2 reads `possessions`, empty for 2026 until now (docs/reviews/stints_nightly_review_2026-10-24.md).
 * **Backfill 2026-10-20 through yesterday, once** (maintainer; same code, writes `nba.duckdb`, so no other writer, and it
   adds PBP parquet files under `data/pbp/`):
   `cp nba.duckdb data/backups/nba_pre_stints_<date>.duckdb`, then
