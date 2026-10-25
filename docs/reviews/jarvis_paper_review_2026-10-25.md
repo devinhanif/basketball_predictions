@@ -302,3 +302,173 @@ tests.
 ## Proposed DECISIONS row (draft, not appended)
 
 | 2026-10-25 15:40 | JARVIS adversary review CHANGES_REQUIRED (fa04597, docs/reviews/jarvis_paper_review_2026-10-25.md). Blockers: B1 `arbitrage` labelled and staked ($9.85) on a 29-min-old Kalshi leg + depth-unknown Polymarket US quote, no settlement warning; must be `arb_candidate` until a confirmed (depth + <= 5 s) source exists. B2 stale quote vs fresher Pinnacle labelled strong and texted (real slates: ref > 5 min newer in 80/296 thin/strong picks). B3 stake inverted (none -0.25c $2.59 vs strong +3.25c $0.52) and entertainment plays exhaust the $20 cap before a strong edge. B4 partial send failure re-sends every tick. B5 LLM may call a thin/none play "great value ... easy money"; numguard misses "9-cent". Holds: no orders, recipient via env + argv, LLM cannot change numbers or sends, read-only, season 2026, lock skip, N+ mapping, Polymarket US side data. Fixes to the builder; diff-only re-check next. | Adversary sequence. | n/a |
+
+---
+
+## Re-check (diff only): `git diff ba5fd68 c47af06` (2026-10-25, evening)
+
+Scope: the fixes for B1-B5, M1-M8 and the minors (except m4, m6), plus Devin's new rules (Discord sink, payout lines,
+picks, CLV kill switch, $20 floor, Daily Dollar, model weight by stat, halftime check-ins, morning recap). Same scratch
+worktree, fast-forwarded to `c47af06`; `data -> /Users/devin/Downloads/nba-prediction/data` (checked with `ls -la`).
+The first-round attack scripts were rerun unchanged, except A5, where only the renamed config field changed
+(`attack_v2.py`). One new probe was added (`giveup.py`). No network, no season 2025, no real outcomes, no write
+connection to a project store.
+
+Verdict: BLOCKED
+
+(In the caller's terms: **CHANGES_REQUIRED**, narrowly. All five blockers and all eight majors are closed, verified by
+rerunning the original attacks. Two small new items must be fixed before install: N1, the Daily Dollar "fair" line,
+and N2, `weights --force` skipping the frozen weekly cadence. Everything else below is a recommendation.)
+
+### Verification (unpiped)
+
+| Check | Command | Result |
+|---|---|---|
+| Lint | `ruff check nba/jarvis tests/jarvis tests/test_layering.py` | All checks passed, exit 0 |
+| Format | `ruff format --check nba/jarvis tests/jarvis tests/test_layering.py` | 37 files already formatted, exit 0 |
+| Types | `mypy nba/jarvis` | no issues in 23 files, exit 0 |
+| Tests | `python -m pytest -q -p no:cacheprovider --no-cov tests/jarvis tests/test_layering.py` | **148 passed**, exit 0 |
+
+### The blockers, re-attacked
+
+| Item | Attack rerun | Before | After | Closed? |
+|---|---|---|---|---|
+| B1 arbitrage on stale/no-depth legs | `attack.py a2` | `arbitrage` +1.52c, $9.85, alert | No alert. A cover is `arbitrage` only when both legs are `confirmed` (set only by a QUOTE_SOURCES hook), read <= `confirmed_max_gap_s` 5 s apart, and fees are verified (`edge.py` Cover, `slate.py` arbitrage_candidate). Otherwise `arb_candidate`, which is not in `alert_labels`, is sized as thin, and carries `RESOLUTION RISK` when cross-venue. Test `test_a_stale_kalshi_leg_plus_a_fresh_polymarket_leg_is_not_an_arbitrage` | yes |
+| B2 stale quote vs fresher Pinnacle | `attack.py a1` | STRONG +7.30c, texted | `thin` +7.05c, 0 alerts. Caps: `max_ref_lead_min` 2, `max_alert_quote_age_min` 5 | yes |
+| B3 stake ladder and cap reserve | `stakes.py` | none -0.25c $2.59 > strong +3.25c $0.52; strong $0 after 8 none plays | none $0.52 (1 contract) < thin $2.59 < strong $4.66. 8 none plays use $4.16; a later strong gets $4.66. `config.py` refuses a non-increasing ladder | yes |
+| B4 partial send re-sent | `attack_v2.py a5`; `giveup.py` | part 1 delivered 4x in 8 min | part 1 delivered **once** in 4 ticks (mode `partial` counts as sent). Total failure: **2 attempts in 8 ticks**, capped by `max_attempts_per_key` 3 | yes |
+| B5 LLM oversell / numguard | `attack.py a3` | 5/7 adversarial sentences passed | 0/7 pass. The LLM runs only for `strong`/`arbitrage`; oversell and number-word filters are wider; `_CENTS` handles "9-cent"; the whole reply is judged before clipping | yes (stricter than needed: a legitimate strong sentence with "3.4-cent" is also refused, which is the safe side) |
+
+The majors: **M1** a Polymarket NO leg is skipped in `best_arbitrage`, and the Kalshi NO leg reads "<other team> to
+win" (test). **M2** one row per (slate, key); re-alerts need a >= 1c move. A7 now gives 1 bundle, 1 text, n = 1.
+**M3** the close is the latest across both sources (A8: T-5 snapshot used); one-sided closes give NULL CLV, and the
+null rate is reported. **M4** labels are priced with the 1-contract fee. **M5** "best of N priced bets" is in the notes.
+**M6** with the DNP rule unverified, props without a model P(plays) are capped at thin. `forecasts.ModelView` has no
+`p_play` method, so today **every prop is capped at thin** and the "includes P(plays)" path is dead code. That is
+conservative, but it is worth knowing. **M7** A9 leaves 0 copies; `market_asof.duckdb` is never copied; the `.wal` is
+copied. **M8** plays are recorded at decision time with `delivered`. Minors m1, m2 (`sanitize_title`, 60 chars), m3,
+m5, m7, m8 (struct `arg_max`), m9 (`unset` in the install line) and m10 (`ask` logs only with `--log`) are done.
+
+### Discord webhook
+
+- **Only POST in the package: holds.** `grep -rn -E "\.post\(|\.put\(|\.patch\(|\.delete\(|httpx\.|urllib|requests|socket|subprocess" nba/jarvis`
+  returns `sinks.py:64` (`http.post(url, json=body)`) as the only POST. The other hits are the Polymarket GET client
+  and the existing osascript `subprocess.run`.
+- **URL redacted: holds in code.** The URL comes from env only and is validated against the Discord webhook shape.
+  Transport errors are reported as the exception type only; HTTP errors as the status code run through `redact`. It is
+  never written to `sends` (hashes only). `allowed_mentions: {parse: []}` blocks @everyone injection.
+- Residual (minor):
+  - httpx logs `HTTP Request: POST <full URL>` at INFO. Nothing in the JARVIS import closure configures logging
+    (`grep basicConfig`: only `nba/shadow_llm/__main__.py`, `nba/odds/__main__.py`, not imported), so it goes nowhere
+    today. Pin `logging.getLogger("httpx").setLevel(logging.WARNING)` in `sinks.py` so that a future
+    `basicConfig(INFO)` cannot write the token into `data/ops/launchd_jarvis.err`.
+  - The installed plist under ~/Library/LaunchAgents holds the URL in plain text (by design, outside the repo).
+
+### Daily Dollar: honest line? correlated or cheap?
+
+**The label is never better than none:** `daily_dollar` is outside `alert_labels`, the kill switch, the label record
+and the weight record, and it is scored as one bundle. **The line is not honest yet (N1, required).**
+`dailydollar._ticket` accepts a ticket when `cost/n <= 1.2 x product(leg fair)`. For any leg Pinnacle does not post
+(most alt-ladder legs like "2+ assists" or "2+ threes"), the leg's fair is **Kalshi's own mid** (`_leg_fair`, line 36).
+A one-sided leg's fair is its ask. So "at or below fair" means "at or below 1.2 x the venue's own mid product". The
+"edge" is the assumed 1.2 minus the spreads, and nothing is measured. The text then says "buy only at or below Xc ...
+(fair Yc with an ESTIMATED correlation factor)", which reads as a value claim.
+
+**Correlated or cheap? Cheap.** Correlation is enforced only by structure: the team's win plus props of different
+players on that team. `corr_factor` is one constant, so the optimiser cannot prefer a more correlated leg. It maximises
+`1.2 x product(mid) - product(ask) - fee` inside the 50-300x band, which picks tight-spread, cheap legs. That is how
+"LAC win + Hachimura 2+ ast + Lopez 2+ threes" comes out. The config's only evidence (same-player legs hit 1.42x) is
+for **same-player** combos, which the code forbids (`dailydollar.py:100-101`). Devin's rule asks for "team wins big +
+its star's big night"; nothing selects a star.
+
+*Fix N1 (required):* print the factor-free numbers next to the estimate, for example
+`no-correlation fair Zc; at Xc this is W% above it, so it needs correlation >= W to break even (unmeasured)`. When no
+leg has a Pinnacle price, say `no outside reference: fair = Kalshi mid x 1.2`. Add `EV unknown (entertainment)` to the
+first line.
+*Recommended:* restrict prop legs to the team's top-2 usage players (`kb.usage_pace`), or drop the "correlated" claim
+and call it a same-team long shot. Log Kalshi combo RFQ quotes to test the product-of-asks pricing assumption.
+
+### Model weight by stat
+
+**It cannot rise without n >= 30, >= 10 dates and an 80% date-clustered lower bound > 0, and it is clamped to
+[0, 0.5]** (`weights.py:102-106`; tests `test_weight_rises_by_a_step_only_...`, `..._holds_on_thin_evidence`,
+`test_weight_never_exceeds_the_cap`). It lowers on mean < 0 with no CI (asymmetric, safe side). Gaps:
+
+- **N2 (required): `python -m nba.jarvis weights --force` skips the frozen "at most once per 7 days".**
+  `cli.py:276` passes `force=a.force` to `update_weights`, and each forced run on the same evidence adds a step. Five
+  forced runs take w from 0 to 0.5 in one day, which breaks the frozen cadence (non-negotiable 4). *Fix:* `--force`
+  may only display. Or make an update idempotent per (stat, ISO week): a second evaluation in the same week logs
+  `hold`. Add a test: two forced runs on the same evidence give one step.
+- Recommended, for Devin, **as a new rule id, not an edit**: the rule credits the model for the Pinnacle edge. It
+  raises w when model-leaning bets have positive CLV. But those bets were selected on the Pinnacle-based label, so if
+  Pinnacle-based edges earn positive CLV, the leaning subset does too even when the model adds nothing. A fair test is
+  the **contrast**: CLV of model-leaning bets minus model-against bets (or CLV regressed on model - Pinnacle), with
+  the lower bound > 0.
+- Minor: the state is the last `w_after` line in `data/jarvis/model_weights.jsonl`. A hand-appended line moves w
+  (within the clamp) with no n or CI. Hash-chain the log, or recompute w from the logged decisions.
+
+### Kill switch and floor
+
+- **Kill switch: works and fails safe.** The mean CLV of the last 30 settled bundles with a two-sided close; when it
+  is < 0, every stake goes to the `none` size (test `test_kill_switch_drops_every_stake_to_the_none_size`). Two
+  recommendations for Devin:
+  - It counts **`none` plays**, which claim no edge and whose CLV is expected near or below zero (entry at the ask).
+    It can trip on honest labels. Judge on `thin`/`strong`/`arbitrage`/`arb_candidate` only, as TRADING_CONTEXT
+    says: "its labels are wrong".
+  - It is a rolling window that clears itself when the mean recovers. TRADING_CONTEXT says "until fixed": latch it
+    until Devin resets it.
+- **Floor:** a banner ("at or below the $20 floor ... Do not place these") on every post when
+  `balance.current_usd <= floor_usd` (test `test_at_or_below_the_floor_every_post_is_marked_paper_only`). It depends
+  on Devin editing `current_usd` by hand in `configs/jarvis.yaml`. Nothing computes the balance, so the floor is only
+  as current as that edit, and a config edit on main is a live-path change. Recommended: show the paper-book P&L since
+  the last reset next to the hand balance in the morning recap, so drift is visible.
+
+### New network or send paths
+
+- **Halftime: no network.** `live.py` reads `data/raw/live_<ET date>/espn_scoreboard/*.json.gz` and `heartbeat.json`
+  from the live capture's files. A stale feed (> 6 min) is said out loud. The price-now line reads the Kalshi store
+  read-only. Each game posts once (`kind_sent("halftime", ...)`), and the give-up cap applies. Minor: a malformed
+  ESPN event (`ev["competitions"][0]`, `c["team"]["abbreviation"]`, `int(score)`) raises KeyError/IndexError/ValueError
+  outside `run_tick`'s `duckdb.IOException` guard. The process exits with a traceback and retries in 2 minutes. Alerts
+  run before halftime in `_tick`, so none is lost. *Fix:* wrap the per-event parse in `try/except (KeyError,
+  IndexError, ValueError, TypeError): continue` and count the skip.
+- **Recap:** `score_book` runs at the first tick after 08:00 ET. It is the paper book's purpose, read-only on stores.
+  It posts once per day (`kind_sent("recap", ...)`).
+- **Sends:** every post goes through `Runtime.send` and then `make_sender` (Discord default, optional iMessage). The
+  CLI `test-send` and `recap` use the same sender; `pick` and `weights` do not post. With both sinks configured, one
+  sink failing marks the text failed, and it is retried up to the 3-attempt cap. The working sink may then get up to
+  3 copies (minor; record per-sink delivery).
+- **Copy fallback:** `jarvis_scratch/` is one fixed path shared by every JARVIS process. A launchd tick and an `ask`
+  session copying the same store at once can unlink each other's copy mid-open (minor; add the PID to the name).
+
+### Playbook check (re-check)
+
+The class is unchanged: a decision and labelling layer, with one new adaptive element (the model weight). Information
+or capacity: the weight is the first place the model's information enters JARVIS, and its test is confounded with the
+Pinnacle edge (the contrast recommended above). Data: >= 30 settled bets over >= 10 dates, weeks away. Test validity:
+the frozen rule is sound in its gates, but `--force` breaks its cadence (N2). Lineage: the parlay engine's
+`leg_marginal` and `p_play` via ModelView. Scored against: the CLV convention as fixed in M3.
+
+### Corrected family and power note
+
+Unchanged. Nothing is claimed. The weight rule makes 6 per-stat tests each week (one-sided at 90%), so under the null
+roughly 10% of evaluations per stat could raise a weight. The asymmetric lower-on-mean<0 step pulls it back toward 0,
+and that is the only multiplicity control. Fine for a paper-only fair price capped at 0.5; not fine as evidence.
+
+### Biggest remaining risk
+
+The Daily Dollar text tells Devin a ticket is "at or below fair" every night, when the only thing above the price is
+an assumed 1.2 factor on the venue's own mid. It is $1 a day, but it is the one remaining place where JARVIS states a
+value it has not measured.
+
+### Not verified (re-check)
+
+- The live Discord webhook (no network).
+- Whether Polymarket US or Kalshi postponement rules differ (still unread; RESOLUTION RISK stays).
+- How Kalshi actually prices combos (product of asks vs RFQ).
+- `kb.player_teams` for traded players.
+- No Daily Dollar replay on real slates. The judgement above is from code and the builder's sample ticket.
+
+### Proposed DECISIONS row (draft, not appended)
+
+| 2026-10-25 21:00 | JARVIS re-check (c47af06, docs/reviews/jarvis_paper_review_2026-10-25.md, re-check section): B1-B5 and M1-M8 closed on rerun attacks (no arbitrage without confirmed depth + <= 5 s legs; stale/skewed prices capped at thin; ladder none $0.52 < thin $2.59 < strong $4.66 with a $10 strong reserve; partial post sent once, failures stop at the cap; 0/7 oversell sentences pass); 148 tests pass. Discord POST is the only POST; URL env-only and redacted. CHANGES_REQUIRED, narrow: N1 Daily Dollar must print the no-correlation fair and "EV unknown" (its fair is 1.2 x Kalshi's own mid where Pinnacle is absent; legs are cheap, not measured as correlated); N2 `weights --force` must not step a weight more than once per frozen week. For Devin: kill switch counts `none` plays and self-clears (TRADING_CONTEXT says labels and "until fixed"); weight rule credits the model for the Pinnacle edge (a contrast test would be a new rule id). | Adversary sequence. | n/a |
