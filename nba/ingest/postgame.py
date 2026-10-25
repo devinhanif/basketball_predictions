@@ -476,6 +476,19 @@ class FetchSummary:
 PENDING_GRACE_DAYS = 2  # endpoints publish about a day after the game
 
 
+KNOWN_GAPS_PATH = Path(__file__).resolve().parents[2] / "configs" / "postgame_known_gaps.yaml"
+
+
+def known_gaps(source: str, path: Path = KNOWN_GAPS_PATH) -> set[str]:
+    """Reviewed keys the source never published (configs/postgame_known_gaps.yaml, 2026-10-24)."""
+    if not path.exists():
+        return set()
+    import yaml
+
+    cfg = yaml.safe_load(path.read_text()) or {}
+    return {str(k) for k in (cfg.get("known_gaps") or {}).get(source) or []}
+
+
 def stale_pending(nba_db: str | Path, keys: list[str], today: date | None = None) -> list[str]:
     """Pending keys whose game is older than the grace period: not 'not yet', but broken
     (review 2026-10-24 R1: a library or schema break must not read as 'unpublished' forever)."""

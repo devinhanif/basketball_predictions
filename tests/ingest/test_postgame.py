@@ -269,6 +269,20 @@ def test_stale_pending_flags_old_games_only(tmp_path: Path) -> None:
     assert pg.stale_pending(db, [], today=today) == []
 
 
+def test_known_gaps_reads_the_reviewed_list(tmp_path: Path) -> None:
+    cfg = tmp_path / "gaps.yaml"
+    cfg.write_text('known_gaps:\n  officials: ["0022500259"]\n')
+    assert pg.known_gaps("officials", cfg) == {"0022500259"}
+    assert pg.known_gaps("matchups", cfg) == set()
+    assert pg.known_gaps("officials", tmp_path / "missing.yaml") == set()
+
+
+def test_committed_known_gaps_are_the_five_reviewed_keys() -> None:
+    assert pg.known_gaps("officials") == {"0022500259", "0022500260", "0022500261"}
+    assert pg.known_gaps("matchups") == {"0022300383", "0022301230"}
+    assert pg.known_gaps("tracking") == set()
+
+
 def test_scope_skips_unscored_games(tmp_path: Path) -> None:
     db = _scoped_db(tmp_path)
     con = duckdb.connect(str(db))

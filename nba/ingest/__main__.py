@@ -90,6 +90,7 @@ from nba.ingest.postgame import (
     SOURCES,
     coverage,
     fetch_source,
+    known_gaps,
     load_source,
     shots_fga_reconciliation,
     stale_pending,
@@ -254,6 +255,13 @@ def _postgame_main(args: argparse.Namespace) -> int:
             f"{len(summary.pending)} not published yet"
         )
         stale = stale_pending(db_path or DEFAULT_DB_PATH, summary.pending)
+        reviewed = known_gaps(summary.source)
+        if set(stale) & reviewed:
+            print(
+                f"postgame-fetch[{summary.source}] known gaps (reviewed, not failing): "
+                f"{sorted(set(stale) & reviewed)}"
+            )
+        stale = [k for k in stale if k not in reviewed]
         if stale:
             print(
                 f"postgame-fetch[{summary.source}] STALE PENDING (> {PENDING_GRACE_DAYS} d): "
