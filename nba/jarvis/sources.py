@@ -85,7 +85,7 @@ def load_games(cfg: JarvisConfig, slate: date) -> list[Game]:
     path = cfg.paths["nba_db"]
     rows: list[tuple[str, int, int]] = []
     if path.exists():
-        con = open_ro(path)
+        con = open_ro(path, retries=10, wait_s=3.0)  # the pretip job writes it for a while
         try:
             rows = [
                 (str(g), int(h), int(a))

@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 ENTRYPOINTS = (
     "nba.daily.__main__",
+    "nba.jarvis.__main__",
     "nba.datamanifest.__main__",
     "nba.ingest.__main__",
     "nba.ingest.queue",

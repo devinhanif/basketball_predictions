@@ -36,21 +36,21 @@ freshness:
   min_minutes_to_tip: 3         # never emit a play for a game this close to (or past) tip
 
 fees:
-  # Kalshi: configs/parlay.yaml fee_model (verified, Devin 2026-10-08). Polymarket: docs.polymarket.com
-  # /trading/fees (fetched 2026-10-25): "fee = C x feeRate x p x (1 - p)", sports taker rate 0.05, makers
-  # never charged. NOT yet confirmed against an executed Polymarket order, so verified is false and an
-  # arbitrage that needs this venue's fee is labelled "strong (arbitrage pending fee check)", never
-  # "arbitrage", until Devin sets verified: true.
+  # Kalshi: configs/parlay.yaml fee_model (verified, Devin 2026-10-08). Polymarket US: the verified object
+  # from configs/fastarb.yaml (agent/market-fast-arb 7ce3be0), docs.polymarket.us/fees.md: fee = 0.0695 x C x
+  # p x (1 - p), banker's rounding to $0.01 per order; it agrees with the feeCoefficient on every NBA market
+  # in the live gateway payload (a market whose own coefficient differs is skipped). Maker rebates ignored.
   polymarket:
-    name: polymarket_sports_taker
+    name: polymarket_us_standard_taker
     formula: p_one_minus_p
-    coefficient: 0.05
+    coefficient: 0.0695
     maker_coefficient: 0.0
-    verified: false
-    source: "https://docs.polymarket.com/trading/fees (read 2026-10-25)"
+    rounding: bankers_cent
+    verified: true
+    source: "docs.polymarket.us/fees.md, read 2026-10-25 (effective 2026-10-19 13:00 ET); see configs/fastarb.yaml"
 
-polymarket:                     # public gamma API, GET /events/slug/nba-<away>-<home>-<date> only; no key
-  gamma_base: https://gamma-api.polymarket.com
+polymarket:                     # Polymarket US public gateway, GET only, no key. polymarket.com (gamma) is not used.
+  gateway_base: https://gateway.polymarket.us
   timeout_s: 15
   enabled: true
 
@@ -62,6 +62,7 @@ delivery:
   max_texts: 3                  # hard ceiling on texts per send
   display_tz: America/Chicago   # times shown to Devin
   alert_labels: [arbitrage, strong]
+  alert_when_cap_used: true     # strong/arbitrage still text when the nightly cap is used (stake shows $0)
 
 paths:
   paper_book: data/jarvis/paper_book.duckdb

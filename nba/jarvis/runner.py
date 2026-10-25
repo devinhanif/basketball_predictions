@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
 
+import duckdb
+
 from nba.jarvis import imessage
 from nba.jarvis import render as R
 from nba.jarvis.book import PaperBook, now_naive, sha
@@ -55,7 +57,9 @@ class Runtime:
 
 def supports_alert(cfg: JarvisConfig, p: Play) -> bool:
     """The only gate for an immediate text: computed label and numbers say strong or arbitrage."""
-    if p.label not in cfg.alert_labels or p.contracts <= 0:
+    if p.label not in cfg.alert_labels:
+        return False
+    if p.contracts <= 0 and not cfg.alert_when_cap_used:
         return False
     e = p.edge_cents
     if e != e:
@@ -190,8 +194,17 @@ def slate_due(rt: Runtime, st: SlateState) -> bool:
 
 
 def run_tick(rt: Runtime, slate: date) -> dict[str, Any]:
-    """One watch pass: log closing-line quotes, slate summary if due, alerts for new strong/arb."""
+    """One watch pass: log closing-line quotes, slate summary if due, alerts for new strong/arb.
+    A store held by its writer (nba.duckdb in the pretip job) skips the pass; the next retries."""
     now = rt.clock()
+    try:
+        return _tick(rt, slate, now)
+    except duckdb.IOException as exc:
+        return {"slate": str(slate), "at": now.isoformat(timespec="seconds"),
+                "idle": f"store busy, retry next tick ({str(exc)[:60]})", "alerts": []}  # fmt: skip
+
+
+def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
     st = build_state(rt, slate)
     rep: dict[str, Any] = {
         "slate": str(slate),

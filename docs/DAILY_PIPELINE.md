@@ -1013,16 +1013,17 @@ side, maximum price (the worst price at which it keeps its label), stake and an 
 | none | negative edge, or no Pinnacle line for that exact bet: a fair price, entertainment | flat $1..$3 |
 
 Nightly cap `caps.nightly_usd` ($20; bankroll $35 Kalshi + $35 Polymarket). Re-emitting the same play is not new money; when the cap is used the
-play is still named with stake $0.00. The Polymarket fee (0.05 x p x (1-p) taker, docs.polymarket.com/trading/fees) is **unverified**: an
-arbitrage that needs it is labelled strong with "arbitrage pending fee check" until `fees.polymarket.verified: true`. Props are compared to Pinnacle only
+play is still named with stake $0. Polymarket here is **Polymarket US** (public no-key gateway `gateway.polymarket.us`; polymarket.com / gamma is not tradable from the US and is not used). Its fee is the verified object from `configs/fastarb.yaml`
+(0.0695 x C x p x (1-p), banker's rounding per order, docs.polymarket.us/fees.md; a market whose own `feeCoefficient` differs is skipped), so a cross-venue cover can be labelled arbitrage. If a venue's fee is ever set
+`verified: false`, an arbitrage needing it is labelled strong with "arbitrage pending fee check". Props are compared to Pinnacle only
 when Pinnacle has the exact line (Kalshi "25+" = over 24.5); otherwise the label is none. Spreads and totals are not priced yet (v2). A fair-price
 bet is never presented as an edge: the text says `NO EDGE ... entertainment`.
 
 **Inputs** (all read-only): Kalshi snapshot store (`data/kalshi/kalshi.duckdb`, every 15 min), Pinnacle/Polymarket/Kalshi books from the odds capture
-(`live_book_odds`), Polymarket's public gamma API (`GET /events/slug/nba-<away>-<home>-<date>`, no key; one or two requests per game per tick), our stored
+(`live_book_odds`), Polymarket US (`GET gateway.polymarket.us/v1/events/slug/nba-<away>-<home>-<date>`, no key; one request per game per tick; a minimal mirror of the venue client in `nba/markets/fastarb/venues.py`, to be replaced by an import once fast-arb merges; no book depth yet), our stored
 forecasts through the parlay engine, the official injury report, lineup snapshots, `docs/FAN_KNOWLEDGE.md` excerpts, and 2026 stints/possessions (pace,
 top five-man units, usage share). Hook for the fast Kalshi/Polymarket arb poller (branch `agent/market-fast-arb`, not merged at build time):
-append a callable `(cfg, games, slate, now) -> list[Quote]` to `nba.jarvis.slate.QUOTE_SOURCES`; until then JARVIS polls the snapshot store and gamma itself.
+append a callable `(cfg, games, slate, now) -> list[Quote]` to `nba.jarvis.slate.QUOTE_SOURCES`; until then JARVIS polls the snapshot store and the Polymarket US gateway itself.
 
 **Safety (each is a test).** Fetched text (injury reasons, lineup labels) is sanitised and enters the model only inside a fenced DATA block; it never
 feeds a number, label, stake or send. The model writes at most two sentences after the gate: it passes `numguard` (every number traceable to the DATA
@@ -1032,7 +1033,7 @@ stake > 0). A send is logged with sha256 hashes of its inputs and text. The reci
 argument; it is never written to the repo, a log, the book or a test. `--dry-run` prints and writes nothing (so it cannot dedupe a later real send).
 
 **Triggers.** `watch --once` (every 2 min): (1) the slate summary on the first tick at or inside T-90 (+2 min) of the first tip, once per ET date;
-(2) an immediate text for a new strong/arbitrage play (same game, legs and label deduped for 30 min); (3) logs the prices of today's recorded plays to
+(2) an immediate text for a new strong/arbitrage play (same game, legs and label deduped for 30 min); with the nightly cap used it still fires and shows "stake $0 (nightly cap used)" (`delivery.alert_when_cap_used`, default on); (3) logs the prices of today's recorded plays to
 `quote_log` for closing-line value. News changes show up as a changed price against Pinnacle; there is no separate news feed. Inbound replies (reading
 the Messages database) are a v2 note, not built.
 

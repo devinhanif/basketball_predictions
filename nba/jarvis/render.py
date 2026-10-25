@@ -52,7 +52,7 @@ def leg_phrase(leg: PlayLeg, max_price: float | None = None) -> str:
 
 def stake_phrase(p: Play) -> str:
     if p.contracts <= 0:
-        return "stake $0.00 (nightly cap used)"
+        return "stake $0 (nightly cap used)"
     unit = "pair" if len(p.legs) == 2 else "contract"
     return f"stake ${p.stake_usd:.2f} ({p.contracts} {unit}{'' if p.contracts == 1 else 's'})"
 

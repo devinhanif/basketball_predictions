@@ -40,6 +40,7 @@ class JarvisConfig:
     max_ref_age_min: float
     min_minutes_to_tip: float
     fees: dict[str, FeeModel]
+    fee_rounding: dict[str, str]
     polymarket: dict[str, Any]
     dedupe_minutes: float
     slate_lead_min: float
@@ -47,6 +48,7 @@ class JarvisConfig:
     max_texts: int
     display_tz: str
     alert_labels: tuple[str, ...]
+    alert_when_cap_used: bool
     env_var: str
     paths: dict[str, Path]
     llm: dict[str, Any]
@@ -100,6 +102,7 @@ def load_config(
         max_ref_age_min=float(fr["max_ref_age_min"]),
         min_minutes_to_tip=float(fr["min_minutes_to_tip"]),
         fees={"kalshi": pcfg.fee, "polymarket": pm_fee},
+        fee_rounding={"kalshi": "ceil_cent", "polymarket": str(pm.get("rounding", "ceil_cent"))},
         polymarket=dict(raw["polymarket"]),
         dedupe_minutes=float(dl["dedupe_minutes"]),
         slate_lead_min=float(dl["slate_lead_min"]),
@@ -107,6 +110,7 @@ def load_config(
         max_texts=int(dl["max_texts"]),
         display_tz=str(dl["display_tz"]),
         alert_labels=tuple(str(x) for x in dl["alert_labels"]),
+        alert_when_cap_used=bool(dl.get("alert_when_cap_used", True)),
         env_var=str(dl["env_var"]),
         paths={k: _path(root, str(v)) for k, v in raw["paths"].items()},
         llm=dict(raw["llm"]),

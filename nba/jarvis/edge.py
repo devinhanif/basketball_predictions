@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from nba.jarvis.config import JarvisConfig
 from nba.jarvis.models import PlayLeg, Quote
@@ -37,7 +38,18 @@ def order_cost(
     """Dollars to buy ``contracts`` at ``price``: contracts x price + the per-order fee."""
     if contracts <= 0:
         return 0.0
-    return contracts * price + order_fee(price, cfg.fee(venue), contracts, series=series)
+    return contracts * price + _order_fee(cfg, venue, price, contracts, series)
+
+
+def _order_fee(cfg: JarvisConfig, venue: str, price: float, contracts: int, series: str) -> float:
+    """Per-order fee with the venue's own rounding: Kalshi rounds up to the cent, Polymarket US
+    rounds half-even (banker's) to the cent (configs/jarvis.yaml ``fees.polymarket.rounding``)."""
+    if cfg.fee_rounding.get(venue) != "bankers_cent":
+        return order_fee(price, cfg.fee(venue), contracts, series=series)
+    fee = cfg.fee(venue)
+    raw = Decimal(str(fee.multiplier(series))) * Decimal(str(fee.rate("taker"))) * contracts
+    raw *= Decimal(str(price)) * (Decimal(1) - Decimal(str(price)))
+    return float(raw.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN))
 
 
 def devig_pair(p_a: float, p_b: float) -> tuple[float, float]:

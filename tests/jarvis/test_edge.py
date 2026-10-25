@@ -22,8 +22,8 @@ def test_fee_comes_from_the_verified_config_object(cfg: JarvisConfig) -> None:
     # Kalshi rate from configs/parlay.yaml (0.07 taker): fee at 50c = 0.07 * 0.25 = 1.75c
     assert cfg.fee("kalshi").verified is True
     assert E.fee_per_contract_raw(cfg, "kalshi", 0.5) == pytest.approx(0.0175, abs=1e-4)
-    assert cfg.fee("polymarket").verified is False  # docs-sourced, not yet confirmed by an order
-    assert E.fee_per_contract_raw(cfg, "polymarket", 0.5) == pytest.approx(0.0125, abs=1e-4)
+    assert cfg.fee("polymarket").verified is True  # Polymarket US object (fees.md + feeCoefficient)
+    assert E.fee_per_contract_raw(cfg, "polymarket", 0.5) == pytest.approx(0.0174, abs=1e-4)
 
 
 def test_no_rate_or_threshold_is_hardcoded_in_the_package() -> None:
@@ -115,17 +115,26 @@ def test_arbitrage_needs_cost_below_a_dollar_after_fees(cfg: JarvisConfig) -> No
     )
 
 
-def test_arbitrage_across_venues_flags_unverified_fee(cfg: JarvisConfig) -> None:
+def test_arbitrage_across_venues_is_labelled_arbitrage_with_verified_fees(
+    cfg: JarvisConfig,
+) -> None:
     a, b = q("kalshi", "A", 1, 0.40, 0.44), q("polymarket", "P", 2, 0.44, 0.47)
     got = E.best_arbitrage(cfg, [a, b])
-    assert got is not None and got[5] is False  # polymarket fee is not verified
+    assert got is not None and got[5] is True
+    unverified = dict(cfg.fees)
+    unverified["polymarket"] = type(cfg.fees["polymarket"])(
+        **{**cfg.fees["polymarket"].__dict__, "verified": False}
+    )
+    cfg2 = type(cfg)(**{**cfg.__dict__, "fees": unverified})
+    got2 = E.best_arbitrage(cfg2, [a, b])
+    assert got2 is not None and got2[5] is False  # flipping the config back downgrades the label
 
 
 def test_same_team_yes_and_no_cover_across_venues(cfg: JarvisConfig) -> None:
     # YES A on kalshi at 44c and NO A on polymarket at 1 - 0.50 = 50c: the same event both ways
     a_k, a_p = q("kalshi", "A", 1, 0.40, 0.44), q("polymarket", "P", 1, 0.50, 0.52)
     got = E.best_arbitrage(cfg, [a_k, a_p])
-    assert got is not None and (got[1], got[3]) == ("yes", "no") and got[5] is False
+    assert got is not None and (got[1], got[3]) == ("yes", "no") and got[5] is True
     # consistent markets (NO A costs 1 - 0.43 = 57c): 44 + 57 + fees > $1, no arbitrage
     assert E.best_arbitrage(cfg, [a_k, q("polymarket", "P", 1, 0.43, 0.45)]) is None
     # one market never covers itself

@@ -24,7 +24,13 @@ def test_alert_gate_is_computed_numbers_only(cfg: JarvisConfig) -> None:
     assert not supports_alert(cfg, mk("arbitrage", 0.0))
     assert not supports_alert(cfg, mk("thin", 2.9))
     assert not supports_alert(cfg, mk("none", -1.0))
-    assert not supports_alert(cfg, mk("strong", 9.0, contracts=0))  # no stake left tonight
+    # nightly cap used (stake 0): the alert still fires by default, showing "$0 (nightly cap used)"
+    assert supports_alert(cfg, mk("strong", 9.0, contracts=0))
+    off = type(cfg)(**{**cfg.__dict__, "alert_when_cap_used": False})
+    assert not supports_alert(off, mk("strong", 9.0, contracts=0))
+    assert "stake $0 (nightly cap used)" in "\n".join(
+        play_lines(mk("strong", 9.0, contracts=0), cfg.display_tz)
+    )
     assert not supports_alert(cfg, mk("strong", float("nan")))
 
 
@@ -133,3 +139,16 @@ def test_play_text_has_venue_side_max_price_stake_label(cfg: JarvisConfig) -> No
     assert "Kalshi YES" in body and "max 50c" in body and "$1.00" in body and "STRONG" in body
     texts = slate_texts(cfg, [mk("none", -3.0)], "", date_label="Wed", first_tip=TIP1, n_games=1)
     assert "NO EDGE" not in texts[0] or "[none -3.0c]" in texts[0]
+
+
+def test_a_store_held_by_its_writer_skips_the_tick_instead_of_crashing(
+    rt: Runtime, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    import nba.jarvis.runner as runner_mod
+
+    def locked(*a, **k):  # type: ignore[no-untyped-def]
+        raise duckdb.IOException("Could not set lock on file")
+
+    monkeypatch.setattr(runner_mod, "build_state", locked)
+    rep = run_tick(rt, SLATE)
+    assert "store busy" in rep["idle"] and rep["alerts"] == []

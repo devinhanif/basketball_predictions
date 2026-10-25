@@ -1,23 +1,22 @@
-"""Polymarket public gamma API: GET only, no key, no auth scope (docs.polymarket.com, 2026-10-25).
+"""Polymarket US public gateway: GET only, no key, no auth scope (docs.polymarket.us, 2026-10-25).
 
-Endpoint used (documented): ``GET /events/slug/<slug>``, one per slate game. Nothing else:
-no trading endpoint of any kind is referenced anywhere in nba/jarvis (a test greps for them).
+polymarket.com (gamma / CLOB) is not tradable by US persons and is NOT used here. The US venue
+has its own public gateway: ``GET {gateway}/v1/events/slug/nba-<away>-<home>-<YYYY-MM-DD>``, one
+per slate game. This is a minimal mirror of the venue client in
+``nba/markets/fastarb/venues.py`` (branch agent/market-fast-arb, 7ce3be0, not merged when this was
+written); once it merges this module should import ``us_quotes`` from there. No trading endpoint
+of any kind is referenced anywhere in nba/jarvis (a test greps for them).
 
-The response shape is parsed defensively: ``outcomes`` and ``clobTokenIds`` arrive as JSON-encoded
-strings or lists; ``bestBid``/``bestAsk`` are for the FIRST outcome, and the second outcome's prices
-are their complements. A market without a usable bid/ask is dropped, never filled from
-``outcomePrices`` (a last price is not a tradable one). Outcomes are matched to our teams by
-nickname; an unmatched name is returned in ``unmatched`` and never guessed.
-
-The shape was checked against one live GET per slate game on 2026-10-25 (public, no key):
-``outcomes`` is a JSON string of team nicknames, ``bestBid``/``bestAsk`` are for the first outcome,
-``gameStartTime`` is ``YYYY-MM-DD HH:MM:SS+00``, ``sportsMarketType`` is ``moneyline`` for the
-winner market. ``tests/jarvis/fixtures/polymarket_gamma_nba.json`` is a trimmed copy.
+Only the full-game winner market is read (``basketball_team_full_game_winner``). Each market side
+is a tradable instrument with its own ask in ``quote``; the other side's bid is ``1 - ask``. A
+market whose own ``feeCoefficient`` differs from the verified fee in configs/jarvis.yaml is
+skipped and counted (the check the fast-arb poller also makes). An unmatched team is listed, never
+guessed. Book depth is not fetched (``/v1/markets/<slug>/book`` is v2): sizes are unknown, so a
+stake larger than the displayed level may not fill.
 """
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Protocol
@@ -28,6 +27,9 @@ from nba.jarvis.config import JarvisConfig
 from nba.jarvis.models import Game, Quote
 from nba.jarvis.sources import team_tables, utcnow
 
+US_WINNER = "basketball_team_full_game_winner"
+VENUE = "polymarket"
+
 
 class _Getter(Protocol):
     def get(self, url: str, **kw: Any) -> Any: ...
@@ -37,23 +39,14 @@ class _Getter(Protocol):
 class PolyResult:
     quotes: list[Quote] = field(default_factory=list)
     unmatched: list[str] = field(default_factory=list)
+    skipped: dict[str, int] = field(default_factory=dict)
     n_events: int = 0
     error: str | None = None
 
 
-def _jlist(v: Any) -> list[Any]:
-    if isinstance(v, list):
-        return v
-    if isinstance(v, str):
-        try:
-            out = json.loads(v)
-        except json.JSONDecodeError:
-            return []
-        return out if isinstance(out, list) else []
-    return []
-
-
 def _f(v: Any) -> float | None:
+    if isinstance(v, dict):
+        v = v.get("value")
     try:
         x = float(v)
     except (TypeError, ValueError):
@@ -65,49 +58,43 @@ def _start(v: Any) -> datetime | None:
     if not isinstance(v, str):
         return None
     try:
-        d = datetime.fromisoformat(v.replace("Z", "+00:00").replace(" ", "T"))
+        d = datetime.fromisoformat(v.replace("Z", "+00:00"))
     except ValueError:
         return None
-    if d.tzinfo is None:
-        d = d.replace(tzinfo=UTC)
-    return d.astimezone(UTC).replace(tzinfo=None)
+    return d.replace(tzinfo=None) if d.tzinfo is None else d.astimezone(UTC).replace(tzinfo=None)
 
 
-def event_slugs(game: Game, slate: date) -> list[str]:
-    """Candidate event slugs for a game: ``nba-<away>-<home>-<YYYY-MM-DD>`` (seen on the live API,
-    e.g. ``nba-bkn-cle-2026-10-24``), both team orders, in case the venue lists it the other way."""
-    a, h = game.away_abbr.lower(), game.home_abbr.lower()
-    return [f"nba-{a}-{h}-{slate.isoformat()}", f"nba-{h}-{a}-{slate.isoformat()}"]
+def event_slug(game: Game, slate: date) -> str:
+    """``nba-<away>-<home>-<date>`` (seen on the live gateway, e.g. nba-det-phi-2026-10-25)."""
+    return f"nba-{game.away_abbr.lower()}-{game.home_abbr.lower()}-{slate.isoformat()}"
 
 
 def fetch_events(
     cfg: JarvisConfig, games: list[Game], slate: date, client: _Getter | None = None
 ) -> tuple[list[dict[str, Any]], str | None]:
-    """``GET /events/slug/<slug>`` for each slate game (documented; no key, no auth). The tag
-    listing is dominated by futures, so games are fetched by slug; a 404 means "not listed yet"."""
+    """One GET per slate game; a 404 means "not listed yet". Returns (events, error)."""
     pm = cfg.polymarket
     if not pm.get("enabled", True):
         return [], "polymarket disabled in config"
     own = client is None
     http: Any = client or httpx.Client(timeout=float(pm["timeout_s"]))
-    base = str(pm["gamma_base"]).rstrip("/")
+    base = str(pm["gateway_base"]).rstrip("/")
     events: list[dict[str, Any]] = []
     err: str | None = None
     try:
         for g in games:
-            for slug in event_slugs(g, slate):
-                try:
-                    r = http.get(f"{base}/events/slug/{slug}")
-                    if r.status_code == 404:
-                        continue
-                    r.raise_for_status()
-                    body = r.json()
-                except (httpx.HTTPError, ValueError) as exc:
-                    err = type(exc).__name__
+            try:
+                r = http.get(f"{base}/v1/events/slug/{event_slug(g, slate)}")
+                if r.status_code == 404:
                     continue
-                if isinstance(body, dict) and body.get("markets"):
-                    events.append(body)
-                    break
+                r.raise_for_status()
+                body = r.json()
+            except (httpx.HTTPError, ValueError) as exc:
+                err = type(exc).__name__
+                continue
+            ev = body.get("event", body) if isinstance(body, dict) else None
+            if isinstance(ev, dict) and ev.get("markets"):
+                events.append(ev)
     finally:
         if own:
             http.close()
@@ -119,64 +106,61 @@ def fetch_events(
 def parse_events(
     cfg: JarvisConfig, events: list[dict[str, Any]], games: list[Game], now: datetime | None = None
 ) -> PolyResult:
-    """Moneyline markets matched to slate games (start within 4 h of our real tip)."""
-    _, _, names = team_tables()
-    nick = {tid: n.lower() for tid, n in names.items()}
+    abbr, _, _ = team_tables()
     res = PolyResult(n_events=len(events))
     stamp = now or utcnow()
+    want = cfg.fee(VENUE).coefficient
 
-    def team_of(outcome: str) -> int | None:
-        o = outcome.strip().lower()
-        hits = [t for t, full in nick.items() if o and (full == o or full.endswith(" " + o))]
-        return hits[0] if len(hits) == 1 else None
+    def skip(why: str) -> None:
+        res.skipped[why] = res.skipped.get(why, 0) + 1
 
     for ev in events:
+        id_to_team: dict[int, int] = {}
+        for t in ev.get("teams") or []:
+            tid = abbr.get(str(t.get("abbreviation", "")).upper())
+            if tid is not None and t.get("id") is not None:
+                id_to_team[int(t["id"])] = tid
         for m in ev.get("markets") or []:
-            if str(m.get("sportsMarketType", "")).lower() != "moneyline":
+            if m.get("sportsMarketType") != US_WINNER:
                 continue
-            outs = [str(x) for x in _jlist(m.get("outcomes"))]
-            if len(outs) != 2:
+            if m.get("status") != "MARKET_STATUS_OPEN" or m.get("closed"):
+                skip("not_open")
                 continue
-            t0, t1 = team_of(outs[0]), team_of(outs[1])
-            if t0 is None or t1 is None:
-                res.unmatched.append(" vs ".join(outs))
+            fc = _f(m.get("feeCoefficient"))
+            if fc is None or abs(fc - want) > 1e-9:
+                skip("fee_mismatch")  # the venue's own coefficient is not the verified one
                 continue
-            start = _start(m.get("gameStartTime") or ev.get("startTime") or ev.get("gameStartTime"))
-            game = next(
-                (
-                    g
-                    for g in games
-                    if {g.away_team, g.home_team} == {t0, t1}
-                    and (
-                        start is None
-                        or g.tipoff is None
-                        or abs(start - g.tipoff) <= timedelta(hours=4)
-                    )
-                ),
-                None,
-            )
-            if game is None:
+            sides = [s for s in m.get("marketSides") or [] if s.get("tradable", True)]
+            teams = [
+                id_to_team.get(int(s["teamId"])) if s.get("teamId") is not None else None
+                for s in sides
+            ]
+            if len(sides) != 2 or None in teams:
+                res.unmatched.append(str(m.get("question", m.get("slug"))))
                 continue
-            bid, ask = _f(m.get("bestBid")), _f(m.get("bestAsk"))
-            if bid is None or ask is None or not 0.0 < ask < 1.0 or bid > ask:
+            game = next((g for g in games if {g.away_team, g.home_team} == set(teams)), None)
+            start = _start(ev.get("startTime"))
+            if game is None or (
+                start is not None
+                and game.tipoff is not None
+                and abs(start - game.tipoff) > timedelta(hours=4)
+            ):
                 continue
-            slug = str(m.get("slug") or m.get("conditionId") or ev.get("slug") or "market")
-            for i, (tid, ob, oa) in enumerate(((t0, bid, ask), (t1, 1.0 - ask, 1.0 - bid))):
+            asks = [_f(s.get("quote")) for s in sides]
+            if any(a is None or not 0.0 < a < 1.0 for a in asks):
+                skip("no_price")
+                continue
+            slug = str(m.get("slug", "market"))
+            for i in range(2):
+                tid = teams[i]
+                other = asks[1 - i]
+                bid = None if other is None else 1.0 - other  # the other side's ask is 1 - this bid
                 ab = game.home_abbr if tid == game.home_team else game.away_abbr
                 res.quotes.append(
-                    Quote(
-                        "polymarket",
-                        f"POLY:{slug}:{i}",
-                        game.game_id,
-                        "game_win",
-                        stamp,
-                        ob if ob > 0 else None,
-                        oa if 0 < oa < 1 else None,
-                        team_id=tid,
-                        series="polymarket_moneyline",
-                        label=f"{ab} to win",
-                    )
-                )
+                    Quote(VENUE, f"POLYUS:{slug}:{i}", game.game_id, "game_win", stamp,
+                          bid if bid and bid > 0 else None, asks[i], team_id=tid,
+                          series="polymarket_us_winner", label=f"{ab} to win")
+                )  # fmt: skip
     return res
 
 
