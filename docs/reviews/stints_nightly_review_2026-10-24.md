@@ -131,3 +131,11 @@ reports scored rows before and after the boundary separately. Reverse if: the AV
 frozen-rule proof."
 
 Holdout log (draft): the disclosure row above.
+
+## Re-review (diff only, 069f20f..de63fbe): APPROVED
+
+Verdict: APPROVED. Major 1-2 and Minor 1-5 fixed as specified. Major 1: the step runs inside the same pgrep else-branch as the post-game fetches (test). Major 2: START_EPOCH plus NBA_STINTS_LATEST_S (5400 s) bounds the step to finish by 7,200 s or skip (test). Minor 1: the 239.5 team-minutes floor checked on real 2026 data, 56/56 team-games pass (239.98 to 240.02). Minor 2: timings_s in the summary. Minor 3: only the empty-concat ValueError is swallowed (test). Minor 4: rc-6 alert lists failed ids. Minor 5: per-night alert only at >= 150 player-games, else pooled (test). Hold switch default off matches option (a), with tests. Checks at de63fbe: ruff 0, format 0, mypy 0, pytest 87 passed.
+
+New minor (no block): the hold switch is one-way. Games built while the hold is on get stints but no possessions and are then skipped forever (idempotence keys on stints). Fix adopted: a DAILY_PIPELINE note; repair by deleting their stints rows or running the parser by hand.
+
+Not verified: compute_all wall time on the full nba.duckdb (read it off the first nightly log); the oracle on de63fbe (main session).
