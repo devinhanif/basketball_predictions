@@ -6,6 +6,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "ops" / "nba_daily.sh"
 SCRIPT = SCRIPT_PATH.read_text()
 
@@ -366,3 +368,87 @@ def test_alarm_run_of_a_missing_command_fails_the_step(tmp_path: Path) -> None:
     steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
     # the unwrapped steps (127 from the shell) and the wrapped ones (127 from alarm_run) both fail
     assert "fetch_tracking 127 failed" in steps and "early_forecast 127 failed" in steps
+
+
+# --- nightly stints (Devin 2026-10-24): advisory, alarm-bounded, may only alert --------------------
+
+
+def _hb(root: Path) -> str:
+    return (root / "data/ops/heartbeat/daily-morning.json").read_text()
+
+
+def test_stints_nightly_runs_after_postgame_load_before_the_snapshot(tmp_path: Path) -> None:
+    rc, calls, root = _run_mode(tmp_path, "morning")
+    st = _idx(calls, "nba.ops.stints_nightly")
+    assert _idx(calls, "postgame-load") < st < _idx(calls, "datamanifest snapshot")
+    assert "--no-sync python -m nba.ops.stints_nightly" in calls[st]
+    assert "stints_nightly 0 ok" in (root / "data/ops/heartbeat/daily-morning.steps").read_text()
+    assert rc == 0 and '"rc": 0' in _hb(root)
+
+
+def test_stints_nightly_is_wrapped_with_the_alarm() -> None:
+    assert re.search(
+        r"^\s*advisory_step stints_nightly alarm_run \"\$STINTS_TIMEOUT_S\"", SCRIPT, re.M
+    )
+    assert "STINTS_TIMEOUT_S=${NBA_STINTS_TIMEOUT_S:-1800}" in SCRIPT
+
+
+@pytest.mark.parametrize("code", [1, 5, 6, 75, 142])
+def test_stints_failure_only_alerts(tmp_path: Path, code: int) -> None:
+    rc, calls, root = _run_mode(tmp_path, "morning", f'*"nba.ops.stints_nightly"*) exit {code};;')
+    steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
+    assert f"stints_nightly {code} failed" in steps
+    assert "stints_nightly" in (root / "data/ops/ALERTS.md").read_text()
+    # the heartbeat rc and the script exit stay green; every later step still ran
+    assert rc == 0 and '"rc": 0' in _hb(root)
+    assert {"data_snapshot", "data_diff", "data_check"} <= {x.split()[0] for x in steps}
+    assert any("datamanifest check" in c for c in calls)
+
+
+def test_stints_rc6_alert_names_the_reconciliation(tmp_path: Path) -> None:
+    _, _, root = _run_mode(tmp_path, "morning", '*"nba.ops.stints_nightly"*) exit 6;;')
+    assert "under 95%" in (root / "data/ops/ALERTS.md").read_text()
+
+
+def test_stints_rc4_no_final_games_is_not_an_alert(tmp_path: Path) -> None:
+    _, _, root = _run_mode(tmp_path, "morning", '*"nba.ops.stints_nightly"*) exit 4;;')
+    assert "stints_nightly 4 ok" in (root / "data/ops/heartbeat/daily-morning.steps").read_text()
+    assert not (root / "data/ops/ALERTS.md").exists()
+
+
+def test_a_hung_stints_step_times_out_and_the_morning_continues(tmp_path: Path) -> None:
+    _, calls, root = _run_mode(
+        tmp_path,
+        "morning",
+        '*"nba.ops.stints_nightly"*) exec sleep 30;;',
+        {"NBA_STINTS_TIMEOUT_S": "1"},
+    )
+    steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
+    assert "stints_nightly 142 failed" in steps
+    assert "stints_nightly timed out" in (root / "data/ops/ALERTS.md").read_text()
+    assert '"rc": 0' in _hb(root) and any("datamanifest check" in c for c in calls)
+
+
+def test_stints_nightly_is_skipped_while_a_backfill_or_queue_runs(tmp_path: Path) -> None:
+    import os
+
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    (fake / "pgrep").write_text("#!/bin/sh\nexit 0\n")  # a backfill is "running"
+    (fake / "pgrep").chmod(0o755)
+    _, calls, root = _run_mode(tmp_path, "morning", "", {"PATH": f"{fake}:{os.environ['PATH']}"})
+    assert not any("nba.ops.stints_nightly" in c for c in calls)
+    assert not any("postgame-fetch" in c for c in calls)
+    log = next((root / "data/ops").glob("morning_*.log")).read_text()
+    assert "skipping post-game ingest and stints_nightly" in log
+
+
+def test_stints_nightly_is_skipped_when_the_morning_is_already_late(tmp_path: Path) -> None:
+    _, calls, root = _run_mode(tmp_path, "morning", "", {"NBA_STINTS_LATEST_S": "-1"})
+    assert not any("nba.ops.stints_nightly" in c for c in calls)
+    assert any("datamanifest check" in c for c in calls)  # the rest of the morning ran
+    steps = (root / "data/ops/heartbeat/daily-morning.steps").read_text()
+    assert "stints_nightly" not in steps  # a skip is not a failure
+    log = next((root / "data/ops").glob("morning_*.log")).read_text()
+    assert "stints_nightly skipped: morning job already past -1 s" in log
+    assert not (root / "data/ops/ALERTS.md").exists()

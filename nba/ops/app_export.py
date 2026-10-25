@@ -48,6 +48,9 @@ def _is_drive_backup(name: str) -> bool:
     return name.startswith("backup_") and name.endswith("_drive")
 
 
+#: advisory steps (ops/nba_daily.sh ``advisory_step``): they may alert but never hold back the export
+ADVISORY_STEPS = ("stints_nightly",)
+
 #: data steps that must appear as ok, else the run was cut short (or an older script wrote no record) and the gate fails closed
 REQUIRED_STEPS = (
     "settle",
@@ -93,7 +96,11 @@ def data_step_problem(hb_dir: Path, hb_start: str) -> str | None:
             return f"morning step record unreadable: {line!r}"
         if status.get(parts[0], "ok") == "ok":  # sticky: a step once recorded failed stays failed
             status[parts[0]] = parts[2]
-    failed = sorted(n for n, st in status.items() if st != "ok" and not _is_drive_backup(n))
+    failed = sorted(
+        n
+        for n, st in status.items()
+        if st != "ok" and not _is_drive_backup(n) and n not in ADVISORY_STEPS
+    )
     if failed:
         return f"morning data step failed: {', '.join(failed)}"
     missing = [n for n in REQUIRED_STEPS if status.get(n) != "ok"]

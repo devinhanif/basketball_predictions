@@ -38,6 +38,7 @@ HB_DIR=$OPS/heartbeat
 HB_JOB=daily-$MODE
 HB_RC=0
 HB_START=$(date +%Y-%m-%dT%H:%M:%S%z)
+START_EPOCH=$(date +%s)
 mkdir -p "$HB_DIR"
 hb_write() {  # hb_write <end_ts|null> <rc|null>
   [ "$1" = null ] && e=null || e="\"$1\""
@@ -108,6 +109,29 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   return $rc
 }
 
+# advisory_step <name> <cmd...>: a step that may only ALERT (Devin 2026-10-24, nightly stints). Unlike `step` it
+# never sets HB_RC (the heartbeat rc, and so the watchdog, stay green), and the caller's flow is unchanged (it
+# always returns 0). Its failure is still written to the steps file ("failed", honest rc) and to ALERTS.md;
+# nba.ops.app_export lists it in ADVISORY_STEPS, so it cannot hold back the app export either. rc 4 =
+# informational (no final game to build); rc 5 = some game could not be built; rc 6 = a built night reconciles
+# under 95% of box minutes; rc 142 = the alarm. All but 0 and 4 alert.
+advisory_step() {
+  name=$1; shift
+  log "start $name"
+  "$@" >> "$LOG" 2>&1
+  rc=$?
+  log "end $name rc=$rc"
+  failed=ok
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 4 ]; then
+    failed=failed
+    if [ "$rc" -eq 142 ]; then alert "$name timed out (rc=142, alarm), see $LOG"
+    elif [ "$rc" -eq 6 ]; then alert "$name: stint minutes within 1 min of box under 95% (rc=6), see $LOG and data/ops/stints_reconciliation.jsonl"
+    else alert "$name failed (rc=$rc), see $LOG"; fi
+  fi
+  step_record "$name" "$rc" "$failed"
+  return 0
+}
+
 # alarm_run <seconds> <cmd...>: macOS has no `timeout`. perl sets SIGALRM and exec()s the command; the
 # timer survives exec, so `uv` is signalled after <seconds> and the shell sees 142. `uv run` forks its
 # child (it does not exec it), so this relies on uv forwarding SIGALRM to python (true of uv 0.12.23; re-check
@@ -125,6 +149,8 @@ LOAD_TIMEOUT_S=${NBA_LOAD_TIMEOUT_S:-1200}     # 20 min for postgame-load
 # pretip predict, holding the lock. 1200 s cannot hit a healthy run.
 EARLY_TIMEOUT_S=${NBA_EARLY_TIMEOUT_S:-1200}
 PREDICT_TIMEOUT_S=${NBA_PREDICT_TIMEOUT_S:-1200}
+# nba.ops.stints_nightly: PBP fetch (<= ~15 games a night, 1 s apart) + tracker + reconcile; its own fetch budget is 1500 s
+STINTS_TIMEOUT_S=${NBA_STINTS_TIMEOUT_S:-1800}
 
 # one job at a time (mkdir is atomic). The owner pid is stored in the lock dir: a dead owner
 # (SIGKILL, power loss) is cleared at once; a live-looking lock older than 3 h is cleared too.
@@ -230,13 +256,25 @@ case "$MODE" in
     # post-game stats for newly completed games (per-game sources only; shots/coaches are
     # per team-season and cached once, so they are refreshed by hand). Skip while a backfill runs.
     if pgrep -f run_postgame_backfill.sh >/dev/null 2>&1 || pgrep -f "nba.ingest.queue" >/dev/null 2>&1; then
-      log "backfill/ingest queue running (one stats.nba.com puller at a time); skipping post-game ingest"
+      log "backfill/ingest queue running (one stats.nba.com puller at a time); skipping post-game ingest and stints_nightly"
     else
       for s in tracking hustle officials matchups; do
         step "fetch_$s" alarm_run "$FETCH_TIMEOUT_S" "$UV" run --no-sync python -m nba.ingest --rate-limit-s 1.0 postgame-fetch --source "$s"
       done
       step postgame_load alarm_run "$LOAD_TIMEOUT_S" "$UV" run --no-sync python -m nba.ingest postgame-load \
         --source tracking --source hustle --source officials --source matchups
+      # Stints + possession lineups for last night's scored, final games (tracker v2, ADR 0002; Devin 2026-10-24).
+      # Advisory: alarm-bounded, may only alert (see advisory_step), idempotent (games with stints are skipped, a
+      # missed night heals within 7 days). Reconciliation share per night -> data/ops/stints_reconciliation.jsonl;
+      # alert under 95%. Runs after postgame_load and before the snapshot so the backup carries the new rows.
+      # Same guard as the fetches above (one stats.nba.com puller at a time, no writer racing a backfill), and a
+      # latest-start rule: past NBA_STINTS_LATEST_S (90 min) the morning is late, and the alarm budgets must not run
+      # past the 3 h stale-lock age. Both skips are logged; the 7-day window heals the missed night.
+      if [ $(( $(date +%s) - START_EPOCH )) -lt "${NBA_STINTS_LATEST_S:-5400}" ]; then
+        advisory_step stints_nightly alarm_run "$STINTS_TIMEOUT_S" "$UV" run --no-sync python -m nba.ops.stints_nightly
+      else
+        log "stints_nightly skipped: morning job already past ${NBA_STINTS_LATEST_S:-5400} s"
+      fi
     fi
     step data_snapshot "$UV" run --no-sync python -m nba.datamanifest snapshot
     step data_diff "$UV" run --no-sync python -m nba.datamanifest diff

@@ -36,6 +36,7 @@ ENTRYPOINTS = (
     "nba.shadow_llm.__main__",
     "nba.ops.watchdog",
     "nba.ops.app_export",
+    "nba.ops.stints_nightly",
 )
 
 #: Packages that hold research: experiments that reached a verdict, archived under the ledger.
