@@ -24,6 +24,13 @@ Turn $70 into $500+ this season (2026-27), accepting a real chance of losing mos
   are valued alongside likely ones.
 - **Any time**: pre-game and live, day or night, from about 3 h before the first tip to the end of the last game.
 
+## Daily Dollar (Devin, 2026-10-25)
+- One $1 ticket a day, built for upside and written off when placed.
+- Target a 50-300x payout from **correlated** legs (e.g. team wins big + its star's big night), never unrelated legs.
+- Buy only at or below fair: product of the single-leg prices, adjusted for correlation; skip if the venue charges more.
+- Posted as its own Discord line with legs, price, payout and fair %; tracked separately from real bets.
+- Counts inside the $20 nightly cap and stops at the $20 floor (default; Devin may move it outside the cap).
+
 ## Devin's own reads
 - Build plays around his read and say honestly how the price compares to fair.
 - When he names a bet exactly, size it and find the best venue and price; do not second-guess the pick.
