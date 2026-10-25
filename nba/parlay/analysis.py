@@ -129,6 +129,7 @@ class Analysis:
             "gated_skill": self.tr.gated_skill(c.min_settled_dates),
             "gate_open": self.gate_open and self.tr.gated_skill(c.min_settled_dates) > 0,
             "describe": self.tr.describe(),
+            "data_quality_excluded": dict(self.tr.excluded_by),
         }
 
 

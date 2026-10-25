@@ -10,6 +10,7 @@ statistic that ``shrink_to_market`` uses. Log only; nothing here talks to a mark
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -17,6 +18,7 @@ import duckdb
 import numpy as np
 from scipy import stats
 
+from nba.ops.exclusions import describe_dropped, drop_by_id, shadow_exclusions
 from nba.parlay.legs import Leg
 from nba.parlay.papertrade import resolve_legs
 
@@ -110,6 +112,12 @@ class TrackRecord:
     diff_mean: float | None = None
     diff_lo: float | None = None
     n_games: int = 0  # clusters behind the interval
+    # Settled 'yes' rows left out by a dated exclusion (ops/forward_exclusions.yaml), by rule.
+    excluded_by: tuple[tuple[str, int], ...] = ()
+
+    @property
+    def n_excluded(self) -> int:
+        return sum(n for _r, n in self.excluded_by)
 
     def gated_skill(self, min_dates: int) -> float:
         """``skill`` only if (a) the history spans ``min_dates`` distinct dates and (b) the lower
@@ -125,6 +133,13 @@ class TrackRecord:
         return self.skill
 
     def describe(self) -> str:
+        return self._describe() + (
+            "; " + describe_dropped(dict(self.excluded_by), "settled rows")
+            if self.excluded_by
+            else ""
+        )
+
+    def _describe(self) -> str:
         if self.n_settled == 0:
             return "no settled shadow history (n=0)"
         return (
@@ -156,36 +171,50 @@ def clustered_lower_bound(
     return mean, mean - q * se, g
 
 
-def track_record(con: duckdb.DuckDBPyConnection, ci_level: float = 0.95) -> TrackRecord:
+def track_record(
+    con: duckdb.DuckDBPyConnection,
+    ci_level: float = 0.95,
+    *,
+    exclude: dict[str, set[str]] | None = None,
+) -> TrackRecord:
     """Skill of the raw model vs the market mid on settled shadow rows.
 
     Only ``side = 'yes'`` rows count: ``evaluate`` logs BOTH sides of every market, and the NO
     row is the same event (same outcome, complementary probability), so counting it would double
     ``n`` and open the ``min_settled`` gate on half the real evidence.
 
+    Rows selected by a dated data-quality exclusion (``ops/forward_exclusions.yaml``, stale Kalshi
+    price at prediction time) are left out and counted in ``excluded_by``. ``exclude`` is
+    ``{rule id: shadow_ids}``; None reads the rules (``nba.ops.exclusions.shadow_exclusions``).
+    Outcome scoring of the model's own forecasts is not touched.
+
     ``n_dates`` counts distinct SLATE (game) dates, read from the ``<slate>|<ticker>|<side>``
     shadow_id that ``evaluate`` writes. ``created_at`` is a UTC wall clock: one game night's
     props posted before and after 00:00Z would count as two dates and open the 14-date gate
     early. Rows with a free-form id fall back to the created_at date.
     """
-    row = con.execute(
-        "SELECT count(*), avg(pow(raw_model_prob - CAST(outcome AS DOUBLE), 2)), "
-        "avg(pow(market_mid - CAST(outcome AS DOUBLE), 2)), "
-        "count(DISTINCT CASE WHEN regexp_matches(shadow_id, '^[0-9]{4}-[0-9]{2}-[0-9]{2}[|]') "
-        "THEN split_part(shadow_id, '|', 1) ELSE CAST(CAST(created_at AS DATE) AS VARCHAR) END) "
-        "FROM shadow_predictions WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
-    ).fetchone()
-    n = int(row[0]) if row else 0
-    n_dates = int(row[3]) if row else 0
-    if n == 0 or row is None or row[2] is None or row[2] <= 0:
-        return TrackRecord(n, None, None, 0.0, n_dates)
-    skill = 1.0 - float(row[1]) / float(row[2])
+    if exclude is None:
+        exclude = shadow_exclusions(con)
     rows = con.execute(
-        "SELECT raw_model_prob, market_mid, CAST(outcome AS DOUBLE), "
-        "COALESCE(json_extract_string(legs, '$[0].game_id'), shadow_id) "
+        "SELECT shadow_id, raw_model_prob, market_mid, CAST(outcome AS DOUBLE), "
+        "COALESCE(json_extract_string(legs, '$[0].game_id'), shadow_id), CAST(created_at AS DATE) "
         "FROM shadow_predictions WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
     ).fetchall()
-    a = np.array([[r[0], r[1], r[2]] for r in rows], dtype=float)
+    kept, dropped = drop_by_id(rows, lambda r: str(r[0]), exclude)
+    by = tuple(sorted(dropped.items()))
+    n = len(kept)
+    if n == 0:
+        return TrackRecord(0, None, None, 0.0, excluded_by=by)
+    a = np.array([[r[1], r[2], r[3]] for r in kept], dtype=float)
+    bm = float(np.mean((a[:, 0] - a[:, 2]) ** 2))
+    bk = float(np.mean((a[:, 1] - a[:, 2]) ** 2))
+    date_re = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}[|]")
+    n_dates = len(
+        {str(r[0]).split("|")[0] if date_re.match(str(r[0])) else str(r[5]) for r in kept}
+    )
+    if bk <= 0:
+        return TrackRecord(n, None, None, 0.0, n_dates, excluded_by=by)
+    skill = 1.0 - bm / bk
     diff = (a[:, 1] - a[:, 2]) ** 2 - (a[:, 0] - a[:, 2]) ** 2
-    mean, lo, n_games = clustered_lower_bound(diff, np.array([str(r[3]) for r in rows]), ci_level)
-    return TrackRecord(n, float(row[1]), float(row[2]), skill, n_dates, mean, lo, n_games)
+    mean, lo, n_games = clustered_lower_bound(diff, np.array([str(r[4]) for r in kept]), ci_level)
+    return TrackRecord(n, bm, bk, skill, n_dates, mean, lo, n_games, by)

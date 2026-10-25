@@ -932,6 +932,18 @@ KALSHI_LONGSHOT_FORWARD and UNDERS_FORWARD on at least 72 % of nights, and an in
   record, the monitor's model-vs-Kalshi table) whose Kalshi quote was older than `max_quote_age_s` at prediction time.
   It never touches forward_predictions, forward_scores, settlement or any outcome score. 2026-10-23 `stale_price`: 274
   market_at_prediction rows (250 game, 24 prop), twelve games.
+* **Readers wired to the exclusions (Devin's go, 2026-10-24).** (1) The parlay shadow track record
+  (`nba.parlay.shadow.track_record`, used by `evaluate`, `analyze` and the assistant's `track_record` tool) drops
+  `shadow_predictions` rows logged more than 1800 s after the newest FULL Kalshi snapshot (>= 1000 tickers) on a listed
+  slate, and prints `data-quality exclusions: N settled rows dropped (n by <rule id>)`. On the real log the rule selects
+  1 row (a `no` side, 2026-10-23 15:26Z); the track record counts `yes` rows only, so 0 settled rows are dropped there.
+  (2) The forward scorecard prints the rules in force and `0 rows dropped`: its Part 3 prices are sportsbook closes, not
+  Kalshi quotes. (3) `market_at_prediction` has no code reader today; the weekly monitor's model-vs-Kalshi table uses
+  `exclusions.market_key_set()` + `drop_excluded()` (274 keys) and states the dropped count. (4) **AVG split**: the
+  `splits:` entry `avg_blank_possession_inputs_2026-10-24` (2026-10-25 04:00 UTC = 23:00 CDT) makes the AVG shadow's
+  daily display report scored rows before / after the stints merge (2,960 / 0 on 10-24); rows before it ran on blank
+  2026 possession inputs and are not pooled. The frozen scorer `nba.eval.avg_shadow_live` is untouched: at a look the
+  steward reports both parts from the same split. Never imported by forward_predictions, forward_scores or settle.
 
 ## Nightly stints and possession lineups (Devin, 2026-10-24)
 
