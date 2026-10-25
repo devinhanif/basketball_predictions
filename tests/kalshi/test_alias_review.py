@@ -28,11 +28,11 @@ RECS = [
 ]
 
 
-def test_classify_matched_unmatched_ambiguous() -> None:
+def test_classify_exact_only_no_fuzzy() -> None:
     al = {"alan smith": 1, "alan smyth": 2}
     assert classify_name("Alan Smith", al)[0] == "matched"
     assert classify_name("Zed Q", al)[0] == "unmatched"
-    assert classify_name("Alan Smit", al)[0] == "ambiguous"
+    assert classify_name("Alan Smit", al) == ("unmatched", None, "none")  # near, never guessed
 
 
 def test_high_confidence_only_exact_unique_current() -> None:

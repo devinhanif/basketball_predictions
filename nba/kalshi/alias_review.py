@@ -92,18 +92,12 @@ def collect_kalshi_names(con: Any, now: Any = None) -> dict[str, NameStats]:
 def classify_name(name: str, aliases: dict[str, int]) -> tuple[str, int | None, str]:
     """(status, player_id, method) under the reviewed alias table.
 
-    status is ``matched`` (exact normalized key, or a single fuzzy neighbour --
-    the same rule as ``resolve_kalshi_player_name``), ``ambiguous`` (several
-    fuzzy neighbours) or ``unmatched``.
+    status is ``matched`` (exact normalized key only, the same rule as
+    ``resolve_kalshi_player_name``) or ``unmatched``. No fuzzy accept.
     """
     key = normalize_name(name)
     if key in aliases:
         return "matched", aliases[key], "alias_exact"
-    near = difflib.get_close_matches(key, aliases.keys(), n=3, cutoff=_FUZZY_MATCH_CUTOFF)
-    if len(near) == 1:
-        return "matched", aliases[near[0]], "alias_fuzzy"
-    if len(near) > 1:
-        return "ambiguous", None, "alias_fuzzy_multi"
     return "unmatched", None, "none"
 
 

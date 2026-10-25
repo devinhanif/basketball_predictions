@@ -40,9 +40,8 @@ _ALIASES: dict[str, int] = {
     "shai gilgeous alexander": 1628983,
 }
 
-#: Below this ``difflib`` similarity ratio, a fuzzy match is not trusted
-#: (same cutoff rationale/value as ``nba.parse.availability``: tolerate
-#: minor Kalshi title typos/diacritics drift, never guess a weak match).
+#: ``difflib`` ratio for listing near neighbours in error messages and alias
+#: candidate reports only. Never used to accept a match.
 _FUZZY_MATCH_CUTOFF = 0.84
 
 
@@ -58,19 +57,17 @@ class UnmatchedKalshiNameError(ValueError):
 def resolve_kalshi_player_name(raw_name: str, aliases: dict[str, int] | None = None) -> int:
     """Resolve a Kalshi title's player display name to a ``player_id``.
 
-    Exact normalized match against the reviewed alias table first; falls
-    back to a high-confidence fuzzy match to tolerate trivial formatting
-    drift. Anything below that confidence (or an alias table with no
-    plausible candidate) raises ``UnmatchedKalshiNameError`` rather than
-    guessing -- callers must add a reviewed row, not silently proceed.
+    Exact normalized match against the reviewed alias table only. There is
+    no fuzzy accept (removed 2026-10-24, the table is exact for every live
+    name); anything else raises ``UnmatchedKalshiNameError`` with near
+    neighbours listed as a hint, never used -- callers must add a reviewed row.
     """
     table = _ALIASES if aliases is None else aliases
     key = normalize_name(raw_name)
     if key in table:
         return table[key]
+    # Suggestions only (never accepted): an unknown name fails loudly.
     candidates = difflib.get_close_matches(key, table.keys(), n=3, cutoff=_FUZZY_MATCH_CUTOFF)
-    if len(candidates) == 1:
-        return table[candidates[0]]
     suggestion = (
         f" closest reviewed candidates: {candidates}" if candidates else " no close candidates"
     )
