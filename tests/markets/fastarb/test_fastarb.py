@@ -251,8 +251,9 @@ def test_lag_flags_a_side_three_cents_under_pinnacle(cfg: Any) -> None:
     probs, upd, _ = pinnacle_probs(PIN_BODY, GAME, NameResolver.default())
     p = probs[ML]
     b = QuoteBook()
-    b.add(ML, K, "yes", Ask(K, round(p - 0.05, 2), "k", "KT", [], "Kalshi KT YES"))
-    b.add(ML, K, "no", Ask(K, round(1 - p + 0.02, 2), "k", "KT", [], "Kalshi KT NO"))
+    y, n = round(p - 0.05, 2), round(1 - p + 0.02, 2)
+    b.add(ML, K, "yes", Ask(K, y, "k", "KT", [(y, 50)], "Kalshi KT YES"))
+    b.add(ML, K, "no", Ask(K, n, "k", "KT", [(n, 50)], "Kalshi KT NO"))
     lags = find_lags(b, probs, cfg, fee_functions(cfg), (K,), upd)
     assert [x.side for x in lags] == ["yes"]
     assert lags[0].edge == pytest.approx(0.05, abs=0.011)
@@ -344,6 +345,10 @@ class FakeFetcher:
         self.book = load("pm_us_book_ml.json")
         for row in self.book["marketData"]["offers"]:  # planted arbs lower the Pistons ask
             row["px"]["value"] = f"{float(row['px']['value']) - book_shift:.4f}"
+        self.fail_books = False
+        self.kalshi_status = 200
+        self.book_calls = 0
+        self.after_first_book: Any = None  # callable run after the first book call (a price move)
 
     def begin_tick(self, budget: int, deadline_s: float) -> None:
         pass
@@ -351,15 +356,26 @@ class FakeFetcher:
     def get(self, url: str, params: dict[str, Any] | None = None) -> Response | None:
         self.requests += 1
         self.urls.append(url)
-        if "/trade-api/v2/markets" in url:
+        if "/trade-api/v2/markets/" in url:
+            t = url.rsplit("/", 1)[-1]
+            hit = [m for m in self.kalshi if m["ticker"] == t]
+            body: Any = {"market": hit[0]} if hit else {}
+        elif "/trade-api/v2/markets" in url:
+            if self.kalshi_status != 200:
+                return Response(self.kalshi_status, b"{}", url)
             s = (params or {}).get("series_ticker")
-            body: Any = {"markets": [m for m in self.kalshi if m["ticker"].startswith(str(s))]}
+            body = {"markets": [m for m in self.kalshi if m["ticker"].startswith(str(s))]}
         elif "/v1/events/slug/" in url:
             body = {"event": self.us_event}
         elif url.endswith("/book"):
-            if "/aec-nba-det-phi-2026-10-25/" not in url:
+            if self.fail_books or "/aec-nba-det-phi-2026-10-25/" not in url:
                 return Response(404, b"{}", url)  # only the moneyline book is recorded
+            self.book_calls += 1
             body = self.book
+            if self.book_calls == 1 and self.after_first_book is not None:
+                resp = Response(200, json.dumps(body).encode(), url)
+                self.after_first_book()
+                return resp
         else:
             return Response(404, b"{}", url)
         return Response(200, json.dumps(body).encode(), url)
@@ -505,7 +521,7 @@ def test_pinnacle_call_is_three_credits_on_the_shared_ledger_and_keyless(tmp_pat
 
     cfg = replace(load_live_config(), ledger_dir=tmp_path)
     cli = make_client(cfg, {"THE_ODDS_API_KEY": "sekrit-test-key"})
-    cli._http_get = fake_get  # type: ignore[assignment]
+    cli._http_get = fake_get
     body, cost = cli.core_odds("evt1", load_config().raw)
     assert body is PIN_BODY and cost == 3
     assert seen[0]["bookmakers"] == "pinnacle" and "regions" not in seen[0]
@@ -513,3 +529,322 @@ def test_pinnacle_call_is_three_credits_on_the_shared_ledger_and_keyless(tmp_pat
     assert cli.ledger.spent() == 3
     ledger_text = "".join(p.read_text() for p in tmp_path.iterdir())
     assert "sekrit-test-key" not in ledger_text
+
+
+# ------------------------------------------------------------- adversary review 2026-10-25 fixes
+
+
+def _two_game_runner(cfg: Any, tmp: Path, tip: datetime) -> tuple[Runner, FakeFetcher]:
+    """DET@PHI plus a LAL@UTA copy of the Kalshi markets (no Polymarket event for it)."""
+    f = FakeFetcher(load("pm_us_event_detphi.json"), load("kalshi_detphi.json"))
+    other = json.loads(json.dumps(f.kalshi).replace("DETPHI", "LALUTA").replace("PHI", "UTA"))
+    f.kalshi = f.kalshi + other
+    lal, uta = team_id("LAL") or 0, team_id("UTA") or 0
+    r = Runner(
+        cfg,
+        f,  # type: ignore[arg-type]
+        raw=sinks.RawWriter(tmp, "2026-10-25"),
+        sink=sinks.AlertSink(tmp / "ALERTS.md", tmp / "d.json", 30),
+        clock=lambda: tip - timedelta(minutes=30),
+        tips=lambda day: {(GAME.away, GAME.home): tip, (lal, uta): tip + timedelta(minutes=5)},
+    )
+    return r, f
+
+
+def test_b1_unknown_depth_is_counted_never_emitted(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, f = _runner(cfg, tmp_path, _arb_event(), tip)  # event quote says 0.30: a planted gap
+    f.fail_books = True  # every /book call fails: the leg has only a stale event quote
+    rep = r.tick(date(2026, 10, 25))
+    assert rep.arbs_unknown_depth >= 1 and rep.arbs_alertable == 0
+    assert not (tmp_path / "ALERTS.md").exists()
+    assert not rep.alerts
+
+
+def test_is_alertable_unknown_depth_verdict(cfg: Any) -> None:
+    b = QuoteBook()
+    b.add(ML, K, "yes", Ask(K, 0.40, "k", "KT", [(0.40, 100)], "Kalshi KT YES"))
+    b.add(ML, PM_US, "no", Ask(PM_US, 0.50, "p", "ps", [], "PolyUS ps"))  # event quote, no levels
+    r = find_arbs(b, cfg, fee_functions(cfg), (K, PM_US))[0]
+    assert r.margin > cfg.min_gap and is_alertable(r, cfg) == "unknown_depth"
+
+
+def test_b2_confirm_refetches_both_legs_and_logs_candidates(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, f = _runner(cfg, tmp_path, _arb_event(), tip, shift=0.21)
+    rep = r.tick(date(2026, 10, 25))
+    assert rep.arbs_alertable >= 1
+    text = (tmp_path / "ALERTS.md").read_text()
+    assert "legs re-fetched" in text and "s apart" in text
+    log = [
+        json.loads(x)
+        for x in (tmp_path / "fastarb_2026-10-25" / "candidates.jsonl").read_text().splitlines()
+    ]
+    assert any(x["result"] == "confirmed" for x in log) and all("verdict" in x for x in log)
+    assert any(x.get("pm_transact_time") for x in log)
+
+
+def test_b2_gap_gone_on_refetch_is_refused(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, f = _runner(cfg, tmp_path, _arb_event(), tip, shift=0.21)
+
+    def move() -> None:  # the Pistons ask jumps back between the scan and the confirm
+        for row in f.book["marketData"]["offers"]:
+            row["px"]["value"] = "0.55"
+
+    f.after_first_book = move
+    rep = r.tick(date(2026, 10, 25))
+    assert rep.arbs_alertable == 0 and rep.arbs_unconfirmed >= 1
+    assert not (tmp_path / "ALERTS.md").exists()
+    log = [
+        json.loads(x)
+        for x in (tmp_path / "fastarb_2026-10-25" / "candidates.jsonl").read_text().splitlines()
+    ]
+    assert any(x.get("reason") == "gap_gone" for x in log)
+
+
+def test_b2_legs_too_far_apart_are_refused(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, f = _runner(cfg, tmp_path, _arb_event(), tip, shift=0.21)
+    ticks = iter(range(0, 10_000, 7))  # every monotonic read is 7 s after the last
+    r.mono = lambda: float(next(ticks))
+    rep = r.tick(date(2026, 10, 25))
+    assert rep.arbs_alertable == 0
+    log = [
+        json.loads(x)
+        for x in (tmp_path / "fastarb_2026-10-25" / "candidates.jsonl").read_text().splitlines()
+    ]
+    assert any(x.get("reason") == "legs_too_far_apart" for x in log)
+
+
+class _RaisingPinnacle:
+    def __init__(self, exc: Exception | None = None, body: Any = None) -> None:
+        self.exc, self.body, self.calls = exc, body, 0
+
+    def core_odds(self, event_id: str, raw: Any) -> tuple[Any, int]:
+        self.calls += 1
+        if self.exc is not None:
+            raise self.exc
+        return self.body, 3
+
+    def key_text(self) -> str:
+        return "sekrit-test-key"
+
+    def live_events(self, lo: Any, hi: Any) -> tuple[Any, int]:
+        return [], 0
+
+
+def test_b3_pinnacle_credit_error_disables_client_and_every_game_is_checked(
+    cfg: Any, tmp_path: Path
+) -> None:
+    from nba.odds.the_odds_api import CreditBudgetExceeded
+
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, _ = _two_game_runner(cfg, tmp_path, tip)
+    pc = _RaisingPinnacle(CreditBudgetExceeded("cap"))
+    r.pc = pc  # type: ignore[assignment]
+    r.pin_events_at = 1e12  # skip event matching
+    r.pin_event_ids = {
+        GAME: "e1",
+        GameKey(team_id("LAL") or 0, team_id("UTA") or 0, "2026-10-25"): "e2",
+    }
+    rep = r.tick(date(2026, 10, 25))
+    assert len(rep.games) == 2  # the second game was still checked
+    assert r.pc is None and r.pin_disabled == "CreditBudgetExceeded" and pc.calls == 1
+    assert rep.games["DET@PHI"].pinnacle.startswith("error:")
+
+
+def test_b3_one_games_exception_does_not_cancel_the_others(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, _ = _two_game_runner(cfg, tmp_path, tip)
+    real = r._us_meta
+
+    def boom(ctx: Any, now: Any, rep: Any) -> None:
+        if ctx.key == GAME:
+            raise RuntimeError("bad payload")
+        real(ctx, now, rep)
+
+    r._us_meta = boom  # type: ignore[method-assign]
+    rep = r.tick(date(2026, 10, 25))
+    assert "LAL@UTA" in rep.games and rep.errors and "DET@PHI" in rep.errors[0]
+
+
+def test_m3_pinnacle_only_on_news_or_every_n_ticks(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, _ = _runner(cfg, tmp_path, load("pm_us_event_detphi.json"), tip)
+    pc = _RaisingPinnacle(None, PIN_BODY)
+    r.pc = pc  # type: ignore[assignment]
+    r.pin_events_at = 1e12
+    r.pin_event_ids = {GAME: "e1"}
+    r.resolver = NameResolver.default()
+    r.tick(date(2026, 10, 25))
+    assert pc.calls == 1  # the baseline call of tick 1
+    for _ in range(3):
+        r.tick(date(2026, 10, 25))
+    assert pc.calls == 1  # ticks 2-4: no news, not the N-th tick: no credits spent
+
+
+def test_m4_key_in_pinnacle_body_is_refused(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, _ = _runner(cfg, tmp_path, load("pm_us_event_detphi.json"), tip)
+    r.pc = _RaisingPinnacle(None, {"leak": "sekrit-test-key"})  # type: ignore[assignment]
+    r.pin_events_at = 1e12
+    r.pin_event_ids = {GAME: "e1"}
+    r.resolver = NameResolver.default()
+    r.tick(date(2026, 10, 25))
+    assert r.pin_disabled == "KeyLeakError"
+    assert not any("sekrit" in p.read_text(errors="ignore") for p in tmp_path.rglob("*.json"))
+    for gz in (tmp_path / "fastarb_2026-10-25").glob("*_pinnacle_*"):
+        raise AssertionError(gz)
+
+
+def _run_clock(start: datetime) -> tuple[Any, Any]:
+    t = [start]
+
+    def clock() -> datetime:
+        return t[0]
+
+    def sleep(sec: float) -> None:
+        t[0] += timedelta(seconds=max(sec, 60))
+
+    return clock, sleep
+
+
+def _cfg_with_tmp_heartbeat(cfg: Any, tmp: Path) -> Any:
+    from dataclasses import replace
+
+    raw = json.loads(json.dumps(cfg.raw))
+    raw["paths"]["heartbeat"] = str(tmp / "hb.json")
+    return replace(cfg, raw=raw)
+
+
+def test_b4_failed_kalshi_tick_is_an_error_not_no_games(cfg: Any, tmp_path: Path) -> None:
+    c = _cfg_with_tmp_heartbeat(cfg, tmp_path)
+    tip = datetime(2026, 10, 26, 0, 0)
+    r, f = _runner(c, tmp_path, load("pm_us_event_detphi.json"), tip)
+    f.kalshi_status = 503
+    clock, sleep = _run_clock(datetime(2026, 10, 25, 15, 30))
+    r.clock = clock
+    assert r.run(date(2026, 10, 25), sleep=sleep) == 1  # gave up at 21:00 ET, not "no games" rc 0
+    assert json.loads((tmp_path / "hb.json").read_text())["status"] == "error"
+
+
+def test_b4_clean_empty_kalshi_tick_is_no_games(cfg: Any, tmp_path: Path) -> None:
+    c = _cfg_with_tmp_heartbeat(cfg, tmp_path)
+    tip = datetime(2026, 10, 26, 0, 0)
+    r, f = _runner(c, tmp_path, load("pm_us_event_detphi.json"), tip)
+    f.kalshi = []
+    clock, sleep = _run_clock(datetime(2026, 10, 25, 15, 30))
+    r.clock = clock
+    assert r.run(date(2026, 10, 25), sleep=sleep) == 0
+    assert json.loads((tmp_path / "hb.json").read_text())["status"] == "no_games"
+
+
+def test_b4_locked_lineups_db_keeps_previous_tips(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, _ = _runner(cfg, tmp_path, load("pm_us_event_detphi.json"), tip)
+    r.tick(date(2026, 10, 25))
+    assert r.games[GAME].tip == tip
+
+    def locked(day: date) -> Any:
+        raise duckdb.IOException("could not set lock")
+
+    r._tips = locked
+    r._tips_at = float("-inf")
+    rep = r.tick(date(2026, 10, 25))
+    assert rep.skipped["news:tips_unavailable"] == 1 and r.games[GAME].tip == tip
+    assert list(rep.games) == ["DET@PHI"]
+
+
+def test_b5_alert_carries_resolution_risk_until_verified(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    r, _ = _runner(cfg, tmp_path, _arb_event(), tip, shift=0.21)
+    r.tick(date(2026, 10, 25))
+    assert sinks.RESOLUTION_RISK in (tmp_path / "ALERTS.md").read_text()
+    assert cfg.settlement_rules_verified is False
+
+
+def test_b5_rules_are_archived_once_a_day(cfg: Any, tmp_path: Path) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+    ev = load("pm_us_event_detphi.json")
+    r, f = _runner(cfg, tmp_path, ev, tip)
+    r.tick(date(2026, 10, 25))
+    r.tick(date(2026, 10, 25))
+    files = list((tmp_path / "fastarb_2026-10-25").glob("*_rules_daily.json.gz"))
+    assert len(files) == 1
+    assert sum(1 for u in f.urls if u.endswith("/series/KXNBAGAME")) == 1
+
+
+def test_m1_price_band_excludes_lines_from_the_arb_scan(cfg: Any) -> None:
+    fees = fee_functions(cfg)
+    b = QuoteBook()
+    b.add(ML, K, "yes", Ask(K, 0.96, "k", "KT", [(0.96, 100)], "Kalshi KT YES"))
+    b.add(ML, K, "no", Ask(K, 0.06, "k", "KT", [(0.06, 100)], "Kalshi KT NO"))
+    b.add(ML, PM_US, "no", Ask(PM_US, 0.01, "p", "ps", [(0.01, 100)], "PolyUS ps"))
+    assert find_arbs(b, cfg, fees, (K, PM_US)) == []  # Kalshi mid 0.95 is outside [0.08, 0.92]
+
+
+def test_m3_live_polymarket_event_is_skipped() -> None:
+    ev = copy.deepcopy(load("pm_us_event_detphi.json"))
+    ev["live"] = True
+    qb = venues.us_quotes(ev, 0.0695)
+    assert not qb.quotes and qb.skipped[f"{PM_US}:live"] == 1
+
+
+def test_m2_retry_after_is_honoured_and_rate_halves_for_the_tick() -> None:
+    import httpx
+
+    from nba.markets.fastarb.http import PoliteFetcher
+
+    calls: list[int] = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx.Response(429, headers={"retry-after": "3"}, json={})
+        return httpx.Response(200, json={"ok": True})
+
+    slept: list[float] = []
+    f = PoliteFetcher(
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+        rate_per_s=10.0,
+        sleep=slept.append,
+    )
+    f.begin_tick(100, 50)
+    resp = f.get("https://example.invalid/x")
+    assert resp is not None and resp.status == 200 and 3.0 in slept
+    assert f.min_interval == pytest.approx(0.2) and f.rate_limited == 1
+    f.begin_tick(100, 50)
+    assert f.min_interval == pytest.approx(0.1)  # the slow-down lasts one tick
+
+
+def test_polymarket_us_interface() -> None:
+    """Other branches import this module: its public surface is pinned."""
+    from nba.markets.fastarb import polymarket_us as pm
+
+    assert sorted(pm.__all__) == [
+        "DEFAULT_BASE",
+        "PolymarketUSClient",
+        "ask_levels",
+        "is_live",
+        "quotes",
+    ]
+    assert pm.DEFAULT_BASE == "https://gateway.polymarket.us"
+    served: dict[str, Response] = {}
+    book = load("pm_us_book_ml.json")
+    served["/v1/markets/aec-nba-det-phi-2026-10-25/book"] = Response(
+        200, json.dumps(book).encode(), "u"
+    )
+    served["/v1/events/slug/nba-det-phi-2026-10-25"] = Response(
+        200, json.dumps({"event": load("pm_us_event_detphi.json")}).encode(), "u"
+    )
+
+    def get(url: str) -> Response | None:
+        return next((v for k, v in served.items() if url.endswith(k)), None)
+
+    c = pm.PolymarketUSClient(get)
+    assert c.event("nba-det-phi-2026-10-25") is not None
+    assert c.book("aec-nba-det-phi-2026-10-25") is not None
+    assert c.book("some-other-market") is None  # a book for a different slug is never returned
+    lv = pm.ask_levels(book, True)
+    assert lv == sorted(lv)

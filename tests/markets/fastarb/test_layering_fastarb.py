@@ -119,3 +119,19 @@ def test_underdog_module_has_no_network_imports() -> None:
         for m in mods
         if m and m.split(".")[0] in {"httpx", "requests", "urllib", "socket", "aiohttp"}
     }
+
+
+def test_import_closure_is_get_only_too() -> None:
+    """m8: the scans above cover the package; this one covers every nba module it imports."""
+    bad: list[str] = []
+    for mod in sorted(closure()):
+        path = module_path(mod)
+        assert path is not None
+        for node in ast.walk(ast.parse(path.read_text())):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr in {"post", "put", "delete", "patch"}
+            ):
+                bad.append(f"{mod}:{node.lineno} .{node.func.attr}(")
+    assert not bad, bad

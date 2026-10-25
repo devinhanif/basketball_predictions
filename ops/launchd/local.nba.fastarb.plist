@@ -9,8 +9,8 @@
   Starts once a day at 10:30 local time. `run` waits by itself until the first tip - 180 min, polls every 60 s, stops at the last tip
   and exits 0 (on a no-game day it exits at once). A second start while one runs exits 0 (flock on data/ops/fastarb_lock).
   It refuses to start (rc 2) while a fee object in configs/fastarb.yaml or configs/parlay.yaml is not `verified: true`.
-  Read-only: public GETs only. The only credential is the existing the-odds-api key, passed by `uv run --env-file .env`
-  (never in this file). No nba.duckdb connection; no data/ops/lock. Output: data/raw/fastarb_<ET date>/, data/ops/ALERTS.md lines
+  Read-only: public GETs only. The only credential is the existing the-odds-api key, passed by `uv run --env-file .env.fastarb`
+  (a file holding THE_ODDS_API_KEY and nothing else, so the poller never loads the other secrets in .env; never in this file). No nba.duckdb connection; no data/ops/lock. Output: data/raw/fastarb_<ET date>/, data/ops/ALERTS.md lines
   tagged [fastarb], data/ops/heartbeat/fastarb.json.
   Launched through uv (never /bin/sh directly: TCC blocks sh from reading ~/Downloads).
 -->
@@ -21,7 +21,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/caffeinate</string><string>-i</string>
-    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string><string>--env-file</string><string>.env</string>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string><string>--env-file</string><string>.env.fastarb</string>
     <string>python</string><string>-m</string><string>nba.markets.fastarb</string><string>run</string>
   </array>
   <key>StartCalendarInterval</key>

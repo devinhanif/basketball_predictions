@@ -46,8 +46,18 @@ class RawWriter:
         return path
 
 
+RESOLUTION_RISK = "RESOLUTION RISK: postponement/OT rules differ by venue, not verified"
+
+
 def alert_key(*parts: object) -> str:
     return hashlib.sha1("|".join(str(p) for p in parts).encode()).hexdigest()[:8]
+
+
+def append_jsonl(path: Path, obj: dict[str, Any]) -> None:
+    """One O_APPEND line per record (candidates.jsonl: each candidate and its confirm)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps(obj, sort_keys=True, default=str) + "\n")
 
 
 class AlertSink:
@@ -84,13 +94,15 @@ def _c(x: float) -> str:
     return f"{x * 100:.0f}c"
 
 
-def arb_text(r: ArbResult) -> str:
+def arb_text(r: ArbResult, *, gap_s: float | None = None, rules_verified: bool = False) -> str:
     depth = f"depth ~{r.max_n}" if r.depth_known else "depth unknown"
     intl = " INTL-ONLY (not tradable from the US, no buy)" if PM_INTL in r.venues else ""
     return (
         f"ARB {r.prop.game.label()} {r.prop.label()}: BUY {r.yes_ask.short} @{r.yes_ask.price:.2f}"
         f" + BUY {r.no_ask.short} @{r.no_ask.price:.2f} = {r.yes_ask.price + r.no_ask.price:.2f};"
         f" net {r.margin * 100:+.1f}c/ct after fees at {r.n_eval} ct, {depth}{intl}"
+        + (f"; legs re-fetched {gap_s:.1f}s apart" if gap_s is not None else "")
+        + ("" if rules_verified else f" | {RESOLUTION_RISK}")
     )
 
 

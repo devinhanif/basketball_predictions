@@ -63,6 +63,13 @@ class FastArbConfig:
     def lag_gap(self) -> float:
         return float(self.raw["alert"]["lag_gap"])
 
+    @property
+    def settlement_rules_verified(self) -> bool:
+        v = self.raw.get("settlement_rules_verified", False)
+        if not isinstance(v, bool):
+            raise ValueError("settlement_rules_verified must be a YAML boolean")
+        return v
+
     def resolve(self, value: str) -> Path:
         p = Path(value)
         return p if p.is_absolute() else ROOT / p

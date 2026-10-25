@@ -177,6 +177,24 @@ def us_filter_event(event: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def us_is_live(event: dict[str, Any]) -> bool:
+    return bool(event.get("live") or event.get("ended"))
+
+
+def us_rules_text(event: dict[str, Any]) -> dict[str, Any]:
+    """Event and per-market-type rules text from a RAW gateway event (archived once a day)."""
+    by_type: dict[str, dict[str, Any]] = {}
+    for m in event.get("markets") or []:
+        t = m.get("sportsMarketType")
+        if t in US_TYPES and t not in by_type:
+            by_type[t] = {
+                "slug": m.get("slug"),
+                "description": m.get("description"),
+                "rulesDisclaimer": m.get("rulesDisclaimer"),
+            }
+    return {"slug": event.get("slug"), "description": event.get("description"), "markets": by_type}
+
+
 def us_quotes(
     event: dict[str, Any],
     fee_coefficient: float,
@@ -190,6 +208,9 @@ def us_quotes(
     game = game_from_slug(str(event.get("slug", "")))
     if game is None:
         book.skipped[f"{PM_US}:bad_event_slug"] += 1
+        return book
+    if us_is_live(event):  # in play: prices move per possession; never compared here
+        book.skipped[f"{PM_US}:live"] += 1
         return book
     id_to_team: dict[int, int] = {}
     for t in event.get("teams") or []:

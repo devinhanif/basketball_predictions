@@ -70,6 +70,7 @@ def margin_at(yes: Ask, no: Ask, n: int, fees: dict[str, FeeFn]) -> float | None
     cy, cn = cost_of(_levels(yes), n), cost_of(_levels(no), n)
     if cy is None or cn is None:
         return None
+    # fee at the last-fill price of each leg (not per level); the effect is < 0.1c at 20 contracts
     fee = fees[yes.venue](cy[1], n) + fees[no.venue](cn[1], n)
     return 1.0 - (cy[0] + cn[0] + fee) / n
 
@@ -109,12 +110,26 @@ def evaluate_pair(
     )
 
 
+def in_band(per_venue: dict[str, dict[str, Ask]], band: list[float]) -> bool:
+    """Kalshi mid inside ``price_band`` (YES ask alone when the NO side is missing). A proposition
+    Kalshi does not quote is not band-checked."""
+    k = per_venue.get(K)
+    if not k or "yes" not in k:
+        return True
+    yes = k["yes"].price
+    mid = (yes + 1.0 - k["no"].price) / 2.0 if "no" in k else yes
+    return bool(band[0] <= mid <= band[1])
+
+
 def find_arbs(
     book: QuoteBook, cfg: FastArbConfig, fees: dict[str, FeeFn], venues: tuple[str, ...]
 ) -> list[ArbResult]:
     """Every proposition quoted by two venues in ``venues``: both directions, best first."""
     out: list[ArbResult] = []
+    band = cfg.section("alert")["price_band"]
     for prop, per_venue in book.quotes.items():
+        if not in_band(per_venue, band):
+            continue
         vs = [v for v in venues if v in per_venue]
         for x in vs:
             for y in vs:
@@ -129,9 +144,14 @@ def find_arbs(
 
 
 def is_alertable(r: ArbResult, cfg: FastArbConfig) -> str:
-    """'alert' | 'thin' | 'below_gap'."""
+    """'alert' | 'thin' | 'unknown_depth' | 'below_gap'.
+
+    ``unknown_depth`` (a leg priced only from an event quote, possibly minutes old, with no
+    order book behind it) is counted and NEVER emitted: such a price selects candidates only."""
     if r.margin < cfg.min_gap:
         return "below_gap"
+    if not (r.yes_ask.depth_known() and r.no_ask.depth_known()):
+        return "unknown_depth"
     if r.depth_known and r.max_n < int(cfg.section("alert")["min_depth_contracts"]):
         return "thin"
     return "alert"
@@ -161,12 +181,15 @@ def find_lags(
 ) -> list[LagResult]:
     """Sides priced at least ``lag_gap`` under Pinnacle's no-vig probability for that side."""
     n_ref = int(cfg.section("alert")["fee_eval_contracts"])
+    band = cfg.section("alert")["price_band"]
     out: list[LagResult] = []
     for prop, p_yes in pin.items():
+        if not in_band(book.quotes.get(prop, {}), band):
+            continue
         for v in venues:
             for side, p in (("yes", p_yes), ("no", 1.0 - p_yes)):
                 ask = book.quotes.get(prop, {}).get(v, {}).get(side)
-                if ask is None:
+                if ask is None or not ask.depth_known():  # booked asks only, never event quotes
                     continue
                 edge = p - ask.price
                 if edge < cfg.lag_gap:

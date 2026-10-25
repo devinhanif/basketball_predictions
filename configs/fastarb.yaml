@@ -35,12 +35,18 @@ kalshi:
   series: [KXNBAGAME, KXNBASPREAD, KXNBATOTAL]
   fee_config: configs/parlay.yaml              # fee_model, verified there
 
+# Until Devin has read both venues' postponement / overtime / cancellation rules (archived daily under
+# data/raw/fastarb_<date>/*_rules_daily.json.gz) every arbitrage alert carries a RESOLUTION RISK line.
+settlement_rules_verified: false
+settlement_sources: []        # rule documents read, with URL and date, when this is set true
+
 alert:
   min_gap: 0.02                # arbitrage: 1 - (cost + both fees) per contract must be >= this
   lag_gap: 0.03                # lag: venue ask this far under Pinnacle's no-vig probability for that side
   lag_window_min: 10           # only within this many minutes after a new injury report / lineup change
   fee_eval_contracts: 20       # order size at which per-order fee rounding is evaluated (not a stake)
   min_depth_contracts: 5       # fewer contracts than this at the quoted asks: counted `thin`, no alert
+  confirm_max_gap_s: 5         # both legs are re-fetched back to back; refuse if the reads span more than this
   dedup_minutes: 30            # the same alert key is not written twice inside this window
   price_band: [0.08, 0.92]     # ignore lines whose Kalshi mid is outside this band
 
@@ -48,6 +54,8 @@ poll:
   interval_s: 60
   lead_min: 180                # start at first tip - lead_min; each game is polled until its own tip
   meta_ttl_s: 300              # Polymarket event metadata (slugs per line) is refreshed this often
+  give_up_et: "21:00"          # no game found (errors, not an empty slate) by this ET clock: rc 1
+  hard_stop_et: "06:00"        # the next morning, ET: the poller always ends
   tick_deadline_s: 50
   max_books_per_game: 24       # Polymarket US order books fetched per game per tick (25 req/s allowed)
   request_timeout_s: 10
@@ -59,6 +67,7 @@ pinnacle:
   # requested with `bookmakers=pinnacle` (no `regions=`): the vendor bills a group of up to 10 books as ONE
   # region, so 3 markets = 3 credits per call (configs/odds_history.yaml movement-phase note). Pinnacle is in eu.
   odds_format: decimal
+  every_n_ticks: 10            # a baseline Pinnacle call this often per game; every tick while news is in the window
   credits_per_call: 3
 
 news:

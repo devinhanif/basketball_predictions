@@ -18,18 +18,18 @@ from pathlib import Path
 
 import httpx
 
-from nba.live.http import Fetcher
 from nba.markets.fastarb import sinks, underdog
 from nba.markets.fastarb.config import DEFAULT_PATH, UnverifiedFeeError, load_config
+from nba.markets.fastarb.http import PoliteFetcher
 from nba.markets.fastarb.pinnacle import FastPinnacleClient
 from nba.markets.fastarb.runner import ET, USER_AGENT, GameStat, Runner, TickReport
 
 KEY_ENV = "THE_ODDS_API_KEY"
 
 
-def _fetcher(timeout: float) -> Fetcher:
+def _fetcher(timeout: float) -> PoliteFetcher:
     client = httpx.Client(timeout=httpx.Timeout(timeout), headers={"User-Agent": USER_AGENT})
-    return Fetcher(client=client, rate_per_s=10.0)
+    return PoliteFetcher(client=client, rate_per_s=10.0)
 
 
 def _pinnacle_client() -> FastPinnacleClient | None:
@@ -53,7 +53,9 @@ def format_report(rep: TickReport, intl: bool) -> list[str]:
     for label, g in sorted(rep.games.items(), key=lambda kv: kv[1].tip or rep.now):
         lines.append(_game_line(label, g, intl))
     lines.append(
-        f"alertable arbs {rep.arbs_alertable}, thin {rep.arbs_thin}, lag alerts {rep.lags}, "
+        f"confirmed arbs {rep.arbs_alertable}, unconfirmed {rep.arbs_unconfirmed}, "
+        f"thin {rep.arbs_thin}, "
+        f"unknown_depth {rep.arbs_unknown_depth}, lag alerts {rep.lags}, "
         f"news events in window {rep.news}"
     )
     if rep.skipped:
