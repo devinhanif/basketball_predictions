@@ -963,6 +963,9 @@ play-by-play or ran the tracker for the live season. The morning job now has one
 * **Possessions hold switch (option (b) of the review)**: `NBA_STINTS_HOLD_POSSESSIONS=1` (or `--hold-possessions`)
   builds stints only and writes no 2026 `possessions` rows or lineup columns. Default off: possessions are written.
   Reason: AVG_SHADOW_LIVE_2 reads `possessions`, empty for 2026 until now (docs/reviews/stints_nightly_review_2026-10-24.md).
+  The switch is one-way: games built under the hold get stints but never their possessions later (idempotence keys on
+  `stints`). To repair, delete those games' `stints` rows and let the step rebuild them, or run the parser by hand.
+  Devin chose option (a) on 2026-10-24: the switch stays off.
 * **Backfill 2026-10-20 through yesterday, once** (maintainer; same code, writes `nba.duckdb`, so no other writer, and it
   adds PBP parquet files under `data/pbp/`):
   `cp nba.duckdb data/backups/nba_pre_stints_<date>.duckdb`, then
