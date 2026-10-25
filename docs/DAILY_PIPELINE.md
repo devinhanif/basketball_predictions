@@ -985,3 +985,28 @@ play-by-play or ran the tracker for the live season. The morning job now has one
   The nightly step only looks back 7 days, so the explicit backfill covers the nights before its first run.
   Dry run on a copy of `nba.duckdb` (2026-10-24, 28 games, 10-20 to 10-23): 5,713 possessions with lineups,
   reconciliation 64/68 (94.1%, alert), 254/254, 45/45, 275/275; 2 unresolved substitutions, 0 desynced.
+
+## Fast pre-tip poller and Kalshi / Polymarket arbitrage checker (Devin, 2026-10-25; prepared, NOT installed)
+
+`python -m nba.markets.fastarb run`: from first tip - 180 min, once a minute per game until its tip, Kalshi
+(KXNBAGAME / KXNBASPREAD / KXNBATOTAL) against Polymarket US order books, plus Pinnacle core lines (3 credits per
+game per call, through the shared `LiveClient` ledger) for a lag check within 10 min of a new lineup or injury
+report. Read-only public GETs; no Kalshi key; no orders; never auto-trades. Details, terms-of-use findings, fee
+sources and the dry run: `docs/reviews/fastarb_2026-10-25.md`; config: `configs/fastarb.yaml`.
+
+* **Outputs**: `data/raw/fastarb_<ET date>/` (write-once gzip, raw before parse), `data/ops/ALERTS.md` lines tagged
+  `[fastarb]` with a `key=` dedup token (phone-length, naming the exact buys), heartbeat
+  `data/ops/heartbeat/fastarb.json` (one beat a minute), lock `data/ops/fastarb_lock`.
+* **Locks and DBs**: no `nba.duckdb`, no `data/ops/lock`, no heavy lock; `lineups.duckdb` is opened read-only. It
+  cannot delay a daily job or be delayed by one.
+* **Refuses to start** (rc 2) while a fee object in `configs/fastarb.yaml` or `configs/parlay.yaml` is not
+  `verified: true`. The international Polymarket venue stays off (not tradable from the US; fee unverified).
+* **Launcher template**: `ops/launchd/local.nba.fastarb.plist` (label `local.nba.fastarb`, daily 10:30 local; `run`
+  waits for its own window). The key reaches python through `uv run --env-file .env`, never the plist.
+* **Install** (Devin; one line): `cp ops/launchd/local.nba.fastarb.plist ~/Library/LaunchAgents/ && launchctl
+  bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.fastarb.plist && launchctl kickstart -k
+  gui/$(id -u)/local.nba.fastarb`. Uninstall: `launchctl bootout gui/$(id -u)/local.nba.fastarb && rm
+  ~/Library/LaunchAgents/local.nba.fastarb.plist`.
+* **Dry run** (no writes, prints the gaps): `uv run python -m nba.markets.fastarb dry-run [--date YYYY-MM-DD]
+  [--with-pinnacle]` (`--with-pinnacle` spends 3 credits per game). Underdog (hand-made CSV only; their terms forbid
+  automated reads): `uv run python -m nba.markets.fastarb underdog --csv <file>`.

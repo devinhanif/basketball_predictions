@@ -1,0 +1,82 @@
+# Fast pre-tip poller + cross-venue arbitrage / lag checker (nba.markets.fastarb). Read-only: public GETs
+# only, no credentials (the only key in play is THE_ODDS_API_KEY, read from the environment by the
+# existing odds client). No order, portfolio or execution endpoint exists in the package.
+# Approved by Devin 2026-10-25 (docs/DECISIONS.md); review doc: docs/reviews/fastarb_2026-10-25.md.
+
+# Fee objects. The poller REFUSES TO RUN if a fee object it needs is not `verified: true`
+# (nba.markets.fastarb.config.FeeSchedule). The Kalshi fee is the verified object in configs/parlay.yaml
+# (fee_model); it is not repeated here.
+polymarket_us:
+  base_url: https://gateway.polymarket.us      # public, "No API key needed" (docs.polymarket.us/api-reference/introduction)
+  fee:
+    name: polymarket_us_standard_taker
+    formula: p_one_minus_p                     # fee = theta * C * p * (1 - p), banker's rounding to $0.01 per order
+    coefficient: 0.0695                        # taker theta; NBA is not in the exception list (only Table Tennis = 0.10)
+    rounding: bankers_cent
+    verified: true
+    source: "docs.polymarket.us/fees.md, read 2026-10-25 (effective 2026-10-19 13:00 ET); agrees with feeCoefficient 0.0695 on every NBA market in the live gateway payload. Maker rebates and taker rebate tiers ignored (conservative)."
+    # The poller also compares this coefficient with each market's own `feeCoefficient` and skips
+    # (and counts) a market where they differ.
+polymarket_intl:
+  # polymarket.com (gamma + CLOB). NOT tradable by US persons (trading is blocked in the US on
+  # polymarket.com). Shown for price comparison only; alerts from it are labelled INTL and never
+  # name a buy. Off in the poller unless enabled; always on in `dry-run`.
+  enabled: false
+  gamma_url: https://gamma-api.polymarket.com
+  clob_url: https://clob.polymarket.com
+  fee:
+    name: polymarket_intl_sports_taker
+    formula: p_one_minus_p
+    coefficient: 0.05                          # docs.polymarket.com/trading/fees (sports taker 0.05, read 2026-10-25); the gamma payload says zero_fees / rate 0 and a search result said 0.03: three disagreeing sources, so the highest is used
+    rounding: bankers_cent
+    verified: false                            # dry-run only; the poller refuses while false
+    source: "docs.polymarket.com/trading/fees (0.05); gamma feeSchedule.rate 0; third-party 0.03"
+kalshi:
+  series: [KXNBAGAME, KXNBASPREAD, KXNBATOTAL]
+  fee_config: configs/parlay.yaml              # fee_model, verified there
+
+alert:
+  min_gap: 0.02                # arbitrage: 1 - (cost + both fees) per contract must be >= this
+  lag_gap: 0.03                # lag: venue ask this far under Pinnacle's no-vig probability for that side
+  lag_window_min: 10           # only within this many minutes after a new injury report / lineup change
+  fee_eval_contracts: 20       # order size at which per-order fee rounding is evaluated (not a stake)
+  min_depth_contracts: 5       # fewer contracts than this at the quoted asks: counted `thin`, no alert
+  dedup_minutes: 30            # the same alert key is not written twice inside this window
+  price_band: [0.08, 0.92]     # ignore lines whose Kalshi mid is outside this band
+
+poll:
+  interval_s: 60
+  lead_min: 180                # start at first tip - lead_min; each game is polled until its own tip
+  meta_ttl_s: 300              # Polymarket event metadata (slugs per line) is refreshed this often
+  tick_deadline_s: 50
+  max_books_per_game: 24       # Polymarket US order books fetched per game per tick (25 req/s allowed)
+  request_timeout_s: 10
+
+pinnacle:
+  enabled: true
+  bookmaker: pinnacle
+  markets: [h2h, spreads, totals]
+  # requested with `bookmakers=pinnacle` (no `regions=`): the vendor bills a group of up to 10 books as ONE
+  # region, so 3 markets = 3 credits per call (configs/odds_history.yaml movement-phase note). Pinnacle is in eu.
+  odds_format: decimal
+  credits_per_call: 3
+
+news:
+  lineups_db: data/lineups/lineups.duckdb          # read-only
+  injury_dir: data/availability_official           # a new Injury-Report_*.pdf = a new injury report
+
+paths:
+  raw_root: data/raw                               # fastarb_<ET date>/ under this
+  alerts: data/ops/ALERTS.md
+  heartbeat: data/ops/heartbeat/fastarb.json
+  dedup_state: data/ops/fastarb_dedup.json
+
+# Underdog Fantasy: terms of use section 6(ix) prohibit accessing the Services other than manually in a
+# browser/approved app, so NOTHING polls Underdog. The comparison reads a hand-made CSV only.
+underdog:
+  polling: forbidden
+  payout_table: {2: 3.0, 3: 6.0, 4: 10.0, 5: 20.0}   # ASSUMED standard all-correct multipliers; verify in the app
+  min_diff: 1.0
+  min_diff_small: 0.5                                 # rebounds, assists, threes
+  small_stats: [rebounds, assists, threes]
+  verified_payouts: false
