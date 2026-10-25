@@ -684,8 +684,8 @@ def evaluate_game_day(
                     f"ACTION NEEDED: live capture is not running ({live_why}); in-game "
                     "Kalshi prices cannot be backfilled. Start it: "
                     "launchctl kickstart gui/$(id -u)/"
-                    "local.nba.live-capture-start (or uv run python -m nba.live capture "
-                    f"--date {day})",
+                    "local.nba.live-capture-start (never start it by hand: a second writer can "
+                    "overwrite raw files)",
                 )
             )
     except Exception as e:

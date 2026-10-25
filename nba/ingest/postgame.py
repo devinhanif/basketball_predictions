@@ -23,9 +23,11 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import duckdb
 import polars as pl
@@ -34,10 +36,12 @@ from nba.ingest.boxscores import _parse_minutes
 from nba.ingest.cache import (
     DEFAULT_DATA_DIR,
     CircuitBreaker,
+    EmptyFetchError,
     RateLimiter,
     cache_path_for,
     fetch_cached,
     insert_rows,
+    mark_failed,
     open_db,
     yield_to,
 )
@@ -171,6 +175,31 @@ class MalformedResponseError(RuntimeError):
     """The endpoint answered but the frame lacks the expected columns."""
 
 
+class NotPublishedError(RuntimeError):
+    """The endpoint has no payload for this game yet (a JSON ``null``, an empty result set).
+
+    Not a throttle: it does not feed the circuit breaker, is not retried with backoff, and the key
+    stays un-done so the next run asks again. 2026-10-21..23: today's unplayed slate and last
+    night's games answered null/empty for tracking, officials and matchups; three consecutive
+    misses tripped the breaker (600 s, 1200 s cooldowns) and the 30-minute step budget ended every
+    fetch (rc=142) while the morning job held the lock for two hours.
+    """
+
+
+def _endpoint_frames(endpoint_cls: Any, **kwargs: Any) -> list[pl.DataFrame]:
+    """Build an nba_api endpoint and return its frames; a null payload becomes NotPublishedError.
+
+    nba_api raises AttributeError ('NoneType' has no 'get') or IndexError when the response body
+    is ``null`` or lacks the result set.
+    """
+    try:
+        return [pl.from_pandas(d) for d in endpoint_cls(**kwargs).get_data_frames()]
+    except (AttributeError, IndexError) as exc:
+        raise NotPublishedError(
+            f"{endpoint_cls.__name__}: no payload ({type(exc).__name__}: {exc})"
+        ) from exc
+
+
 def snake(name: str) -> str:
     """camelCase / UPPER_SNAKE -> snake_case (``reboundChancesOffensive`` -> ...)."""
     return re.sub(r"(?<!^)(?<![A-Z_])(?=[A-Z])", "_", name).lower()
@@ -198,6 +227,12 @@ def _normalize_player_frame(
         return pl.DataFrame()
     df = _snake_frame(raw).rename({"person_id": "player_id"})
     _require(df, ["player_id", "team_id", *cols], what)
+    # Team-level rows carry personId 0. The hustle endpoint answers with ONLY those two rows for a
+    # game whose player data is not published (unplayed, or last night's): cached as done, the
+    # (game_id, 0) key collided in the load and aborted postgame_load for every source (2026-10-23).
+    df = df.filter(pl.col("player_id").is_not_null() & (pl.col("player_id") != 0))
+    if df.is_empty():
+        return pl.DataFrame()
     data: dict[str, list[Any]] = {
         "game_id": [game_id] * len(df),
         "player_id": df["player_id"].to_list(),
@@ -341,21 +376,23 @@ def _fetch_tracking(game_id: str) -> pl.DataFrame:
     from nba_api.stats.endpoints import boxscoreplayertrackv3
 
     return normalize_tracking(
-        _frames(boxscoreplayertrackv3.BoxScorePlayerTrackV3(game_id=game_id))[0], game_id
+        _endpoint_frames(boxscoreplayertrackv3.BoxScorePlayerTrackV3, game_id=game_id)[0], game_id
     )
 
 
 def _fetch_hustle(game_id: str) -> pl.DataFrame:
     from nba_api.stats.endpoints import boxscorehustlev2
 
-    return normalize_hustle(_frames(boxscorehustlev2.BoxScoreHustleV2(game_id=game_id))[0], game_id)
+    return normalize_hustle(
+        _endpoint_frames(boxscorehustlev2.BoxScoreHustleV2, game_id=game_id)[0], game_id
+    )
 
 
 def _fetch_officials(game_id: str) -> pl.DataFrame:
     from nba_api.stats.endpoints import boxscoresummaryv3
 
     return normalize_officials(
-        _frames(boxscoresummaryv3.BoxScoreSummaryV3(game_id=game_id)), game_id
+        _endpoint_frames(boxscoresummaryv3.BoxScoreSummaryV3, game_id=game_id), game_id
     )
 
 
@@ -363,7 +400,7 @@ def _fetch_matchups(game_id: str) -> pl.DataFrame:
     from nba_api.stats.endpoints import boxscorematchupsv3
 
     return normalize_matchups(
-        _frames(boxscorematchupsv3.BoxScoreMatchupsV3(game_id=game_id))[0], game_id
+        _endpoint_frames(boxscorematchupsv3.BoxScoreMatchupsV3, game_id=game_id)[0], game_id
     )
 
 
@@ -406,8 +443,12 @@ def _with_retry(
             err = None
             if not last.is_empty():
                 return last
+        except NotPublishedError:
+            raise  # nothing to retry: the payload is not there (yet)
         except Exception as exc:  # network/timeouts/malformed -> retry
             err = exc
+        if err is None and attempt >= 1:
+            break  # an empty frame is asked twice, not four times: "not published", not a throttle
         if attempt < _MAX_FETCH_ATTEMPTS - 1:
             sleep(_RETRY_BACKOFF_S * (2**attempt))
     if err is not None:
@@ -428,14 +469,57 @@ class FetchSummary:
     cached: int = 0
     fetched: int = 0
     failed: list[str] = field(default_factory=list)
+    pending: list[str] = field(default_factory=list)  # no payload published yet: not a failure
     stopped_early: bool = False
 
 
-def scope_game_ids(nba_db: str | Path) -> list[str]:
-    """Every game_id in ``games`` (read-only; never writes nba.duckdb)."""
+PENDING_GRACE_DAYS = 2  # endpoints publish about a day after the game
+
+
+KNOWN_GAPS_PATH = Path(__file__).resolve().parents[2] / "configs" / "postgame_known_gaps.yaml"
+
+
+def known_gaps(source: str, path: Path = KNOWN_GAPS_PATH) -> set[str]:
+    """Reviewed keys the source never published (configs/postgame_known_gaps.yaml, 2026-10-24)."""
+    if not path.exists():
+        return set()
+    import yaml
+
+    cfg = yaml.safe_load(path.read_text()) or {}
+    return {str(k) for k in (cfg.get("known_gaps") or {}).get(source) or []}
+
+
+def stale_pending(nba_db: str | Path, keys: list[str], today: date | None = None) -> list[str]:
+    """Pending keys whose game is older than the grace period: not 'not yet', but broken
+    (review 2026-10-24 R1: a library or schema break must not read as 'unpublished' forever)."""
+    if not keys:
+        return []
+    today = today or datetime.now(ZoneInfo("America/New_York")).date()
     con = duckdb.connect(str(nba_db), read_only=True)
     try:
-        return [r[0] for r in con.execute("SELECT game_id FROM games ORDER BY game_id").fetchall()]
+        rows = con.execute(
+            "SELECT game_id FROM games WHERE game_id IN (SELECT unnest(?)) AND game_date < ?",
+            [keys, today - timedelta(days=PENDING_GRACE_DAYS)],
+        ).fetchall()
+    finally:
+        con.close()
+    return sorted(str(r[0]) for r in rows)
+
+
+def scope_game_ids(nba_db: str | Path) -> list[str]:
+    """Every SCORED game_id in ``games`` (read-only; never writes nba.duckdb).
+
+    A NULL-score row is a scheduled game (the ingest writes today's slate before tip): it has no
+    post-game data to ask for.
+    """
+    con = duckdb.connect(str(nba_db), read_only=True)
+    try:
+        return [
+            r[0]
+            for r in con.execute(
+                "SELECT game_id FROM games WHERE home_pts IS NOT NULL ORDER BY game_id"
+            ).fetchall()
+        ]
     finally:
         con.close()
 
@@ -521,6 +605,22 @@ def filter_seasons(source: str, keys: list[Work], seasons: list[int]) -> list[Wo
     return [w for w in keys if w[0][3:5] in yy]
 
 
+_PLACEHOLDER_WINDOW_S = 14 * 86400
+
+
+def _is_placeholder(source: str, path: Path) -> bool:
+    """A recent tracking/hustle cache file with no player rows (team-level personId 0 rows only)."""
+    if source not in ("tracking", "hustle"):
+        return False
+    try:
+        if time.time() - path.stat().st_mtime > _PLACEHOLDER_WINDOW_S:
+            return False
+        ids = pl.read_parquet(path, columns=["player_id"])["player_id"]
+    except Exception:
+        return False
+    return ids.drop_nulls().filter(ids.drop_nulls() != 0).is_empty()
+
+
 def order_newest_first(source: str, keys: list[Work]) -> list[Work]:
     """Newest season first for game-id keyed sources (``00TYYxxxxx``: YY = season start).
 
@@ -580,8 +680,10 @@ def fetch_source(
                 [source, key],
             ).fetchone()
             if done is not None and cache_path_for(source, key, data_dir).exists():
-                summary.cached += 1
-                continue
+                if not _is_placeholder(source, cache_path_for(source, key, data_dir)):
+                    summary.cached += 1
+                    continue
+                mark_failed(log, source, key)  # self-heal: a team-rows-only file is asked for again
             yield_to()
             try:
                 fetch_cached(
@@ -595,6 +697,9 @@ def fetch_source(
                 )
                 summary.fetched += 1
                 brk.success()
+            except (NotPublishedError, EmptyFetchError) as exc:  # not there yet: no breaker
+                summary.pending.append(key)
+                print(f"PENDING {source}[{key}]: {type(exc).__name__}", flush=True)
             except Exception as exc:  # logged failed; continue
                 summary.failed.append(key)
                 print(f"FAILED {source}[{key}]: {type(exc).__name__}: {str(exc)[:120]}", flush=True)
@@ -620,6 +725,9 @@ def fetch_source(
 
 def load_frames(con: duckdb.DuckDBPyConnection, source: str, df: pl.DataFrame) -> int:
     """Idempotently load a normalized frame: delete the frame's key groups, insert."""
+    if source in ("tracking", "hustle") and "player_id" in df.columns:
+        # cache files written before the placeholder filter (27 hustle files, 2026-10-21..23)
+        df = df.filter(pl.col("player_id").is_not_null() & (pl.col("player_id") != 0))
     if df.is_empty():
         return 0
     table, columns, del_key = TABLES[source]

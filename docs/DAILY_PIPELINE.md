@@ -903,7 +903,32 @@ KALSHI_LONGSHOT_FORWARD and UNDERS_FORWARD on at least 72 % of nights, and an in
   bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.live-capture-start.plist && launchctl kickstart -k
   gui/$(id -u)/local.nba.live-capture-start`. Uninstall: `launchctl bootout gui/$(id -u)/local.nba.live-capture-start &&
   rm ~/Library/LaunchAgents/local.nba.live-capture-start.plist`.
-* **Dependency**: `nba.live` is not on main (commit 329448f and later, branches `agent/market-paper-trader`,
-  `agent/market-ingame-v2`). Merge it first; its own template `ops/launchd/local.nba.live-capture.plist` (fixed 10:00,
-  no first-tip logic) is superseded by this launcher and should not be installed beside it (two writers on one raw
-  directory). The paper trader (`local.nba.papertrade`) is a separate job and is not covered here.
+* **Dependency**: `nba.live` is on main (merged 2026-10-24 from `agent/market-live-capture-only`, capture only).
+  The old template `ops/launchd/local.nba.live-capture.plist` (fixed 10:00, no first-tip logic) is never merged or installed:
+  two writers on one raw directory can overwrite files. Start captures only through this launcher (`launchctl kickstart`),
+  never by hand, until the capture takes its own writer lock (review 2026-10-24, M1). The paper trader is a separate job.
+
+## Morning failures of 2026-10-21..23 and the data-quality exclusions (2026-10-23)
+
+* **Coverage fed its own log (the 9.9 GB pretip log, `coverage_yesterday` rc 137).** `step` appends the output of
+  `nba.ops.coverage` to the pretip log; its ALERT section printed every line containing `ALERT:`, so the next run found
+  the echoes and printed them again. The log doubled per run (10-21 9.9 GB, 10-22 9.4 GB, 10-23 0.5 GB at 20:50) and
+  reading a whole file into memory killed the 07:00 `coverage_yesterday` (rc 137) and the 20:52 pretip coverage.
+  Fix: logs are streamed and filtered (own `[stamp]` lines, `run ...`, `models:`); only a line that STARTS with
+  `[stamp] ALERT: ` counts (echoes are indented); the printed list is capped at 50.
+* **Post-game fetches (rc 142).** The endpoints behind tracking, officials and matchups answer a JSON `null` / empty
+  result for a game until they publish it (about a day later; hustle answers two team rows, personId 0). The fetch scope
+  included today's unplayed slate, every miss counted toward the circuit breaker (3 in a row: 600 s, then 1200 s
+  cooldowns) and the 30-minute step alarm ended it. Now: scope is scored games only; a null/empty payload is `pending`
+  ("not published yet", not a failure, no breaker, no retry backoff, rc 0); team-level rows are dropped; a recent
+  tracking/hustle cache file with no player rows is asked for again. Throttling (timeouts) still trips the breaker.
+* **`postgame_load` rc 1.** Hustle files with only the two team rows loaded as `(game_id, 0)` twice: a primary-key
+  violation that aborted the command, so officials and matchups were never loaded for 2026. The loader now drops
+  personId 0 rows and each source loads in its own try (the exit code still reports a failed source).
+* **`data_check` rc 1.** The live `forward_*scores*` tables are NULL for every not-yet-played row by construction;
+  `known_asymmetry` now accepts wildcards and lists `forward_*scores*.*` (configs/datamanifest.yaml).
+* **Data-quality exclusions** (`ops/forward_exclusions.yaml`, `python -m nba.ops.exclusions check`): an append-only,
+  dated list of rules that drop market-comparison rows (market_at_prediction, shadow_predictions, the parlay track
+  record, the monitor's model-vs-Kalshi table) whose Kalshi quote was older than `max_quote_age_s` at prediction time.
+  It never touches forward_predictions, forward_scores, settlement or any outcome score. 2026-10-23 `stale_price`: 274
+  market_at_prediction rows (250 game, 24 prop), twelve games.

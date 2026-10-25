@@ -1,0 +1,69 @@
+{
+ "ticker": "KXNBAGAME-26OCT21GSWLAL-LAL",
+ "pages": {
+  "": {
+   "trades": [
+    {
+     "trade_id": "t1",
+     "ticker": "KXNBAGAME-26OCT21GSWLAL-LAL",
+     "count_fp": "5.00",
+     "yes_price_dollars": "0.6600",
+     "taker_side": "yes",
+     "created_time": "2026-10-14T17:46:50Z",
+     "ts": 1792000010
+    },
+    {
+     "trade_id": "t2",
+     "ticker": "KXNBAGAME-26OCT21GSWLAL-LAL",
+     "count_fp": "5.00",
+     "yes_price_dollars": "0.6600",
+     "taker_side": "yes",
+     "created_time": "2026-10-14T17:47:00Z",
+     "ts": 1792000020
+    },
+    {
+     "trade_id": "t3",
+     "ticker": "KXNBAGAME-26OCT21GSWLAL-LAL",
+     "count_fp": "5.00",
+     "yes_price_dollars": "0.6600",
+     "taker_side": "yes",
+     "created_time": "2026-10-14T17:47:10Z",
+     "ts": 1792000030
+    }
+   ],
+   "cursor": "c1"
+  },
+  "c1": {
+   "trades": [
+    {
+     "trade_id": "t4",
+     "ticker": "KXNBAGAME-26OCT21GSWLAL-LAL",
+     "count_fp": "5.00",
+     "yes_price_dollars": "0.6600",
+     "taker_side": "yes",
+     "created_time": "2026-10-14T17:47:20Z",
+     "ts": 1792000040
+    },
+    {
+     "trade_id": "t5",
+     "ticker": "KXNBAGAME-26OCT21GSWLAL-LAL",
+     "count_fp": "5.00",
+     "yes_price_dollars": "0.6600",
+     "taker_side": "yes",
+     "created_time": "2026-10-14T17:47:20Z",
+     "ts": 1792000040
+    },
+    {
+     "trade_id": "t6",
+     "ticker": "KXNBAGAME-26OCT21GSWLAL-LAL",
+     "count_fp": "5.00",
+     "yes_price_dollars": "0.6600",
+     "taker_side": "yes",
+     "created_time": "2026-10-14T17:47:30Z",
+     "ts": 1792000050
+    }
+   ],
+   "cursor": ""
+  }
+ }
+}

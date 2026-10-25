@@ -1,0 +1,135 @@
+{
+ "db_copy": "/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/214e8eaf-cfca-4a90-ae80-a0349b39bd8b/scratchpad/odds_history_copy.duckdb",
+ "db_copy_sha256": "62f68cc0d0c222daa74a3b89c2b7de6416c458860f6a9f90e630392e4171bc63",
+ "sha256": {
+  "part_l_rungs": "1412e09de82ea7c0c9ec9600a63fd5da92f65cf01b91392aceb643259b32f278",
+  "exchange_quotes": "befa3c30fc44b950c8e44375f73561d5d915fbef717a2a3ea125a12b0e52b5ae"
+ },
+ "rows": {
+  "part_l_rungs": 210434,
+  "exchange_quotes": 27700
+ },
+ "reconciliation": {
+  "part_l_rungs_players_games": {
+   "2023_points": {
+    "extract": [
+     44055,
+     6644,
+     808
+    ],
+    "gate_raw": [
+     44488,
+     6710,
+     808
+    ]
+   },
+   "2023_rebounds": {
+    "extract": [
+     11396,
+     3926,
+     822
+    ],
+    "gate_raw": [
+     11515,
+     3967,
+     822
+    ]
+   },
+   "2023_assists": {
+    "extract": [
+     6963,
+     3910,
+     809
+    ],
+    "gate_raw": [
+     7022,
+     3944,
+     809
+    ]
+   },
+   "2023_threes": {
+    "extract": [
+     10143,
+     5178,
+     814
+    ],
+    "gate_raw": [
+     10225,
+     5221,
+     814
+    ]
+   },
+   "2024_points": {
+    "extract": [
+     83002,
+     8895,
+     969
+    ],
+    "gate_raw": [
+     83951,
+     8994,
+     969
+    ]
+   },
+   "2024_rebounds": {
+    "extract": [
+     19687,
+     4606,
+     967
+    ],
+    "gate_raw": [
+     19938,
+     4666,
+     967
+    ]
+   },
+   "2024_assists": {
+    "extract": [
+     14743,
+     4399,
+     949
+    ],
+    "gate_raw": [
+     14910,
+     4447,
+     949
+    ]
+   },
+   "2024_threes": {
+    "extract": [
+     20445,
+     6670,
+     953
+    ],
+    "gate_raw": [
+     20663,
+     6741,
+     953
+    ]
+   }
+  },
+  "exchange_legs_games": {
+   "novig": {
+    "extract": [
+     19848,
+     862
+    ],
+    "gate_raw_all_dates": [
+     20211,
+     862
+    ]
+   },
+   "prophetx": {
+    "extract": [
+     7852,
+     776
+    ],
+    "gate_raw_all_dates": [
+     7966,
+     779
+    ]
+   }
+  },
+  "note": "extract counts are below the gate's raw counts because only the primary legs' rungs and quotes are kept (played, known-at, x.5, one leg per game/player/stat; exchange from 2024-12-19 only); section 8 sums to 212,712 rungs"
+ }
+}

@@ -9,7 +9,7 @@
   until first tip - 150 min; then it runs `python -m nba.live capture` in the foreground (caffeinate -i) unless one is already running.
   The capture takes no nba.duckdb lock and not data/ops/lock; its own lock is data/ops/live_capture_lock.
   The wrapper is a shell script, so it is launched through uv, never /bin/sh directly: TCC blocks sh from reading ~/Downloads (exit 126 stopped every job once).
-  Requires nba.live on main (branch agent/market-paper-trader); without it the tick alerts "No module named nba.live" in data/ops/ALERTS.md.
+  Requires nba.live on main (merged 2026-10-24 from agent/market-live-capture-only).
 -->
 <plist version="1.0">
 <dict>

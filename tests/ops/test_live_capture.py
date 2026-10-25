@@ -233,3 +233,12 @@ def test_plist_is_valid_and_launches_through_uv() -> None:
     assert p["StartInterval"] == 600 and p["RunAtLoad"] is True
     assert (REPO / "ops" / "nba_live_capture.sh").exists()
     assert timedelta(minutes=150) == lc.START_LEAD
+
+
+def test_watchdog_never_tells_a_human_to_start_the_capture_by_hand() -> None:
+    """Review 2026-10-24 M1: a hand-started second writer can overwrite raw files."""
+    import nba.ops.watchdog as wd
+
+    src = Path(wd.__file__).read_text()
+    assert "python -m nba.live capture" not in src
+    assert "never start it by hand" in src

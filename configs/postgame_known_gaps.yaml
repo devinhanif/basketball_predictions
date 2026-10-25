@@ -1,0 +1,10 @@
+# Reviewed post-game keys that stats.nba.com has never published (null or empty payload every
+# attempt). Listed here they stop failing the morning fetch step (the 2-day stale-pending check,
+# review 2026-10-24 R1), so the app export is not blocked by permanent holes. They are still
+# attempted every morning and are still counted as "not published yet"; only the exit code ignores
+# them. Add a key only with evidence; re-check the list at the start of each season.
+# Evidence (2026-10-24): every morning log from 2026-10-15 to 2026-10-24 shows each key failing
+# (officials: AttributeError on a null body; matchups: IndexError on an empty result set).
+known_gaps:
+  officials: ["0022500259", "0022500260", "0022500261"]
+  matchups: ["0022300383", "0022301230"]

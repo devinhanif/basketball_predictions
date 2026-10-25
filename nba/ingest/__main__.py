@@ -86,11 +86,14 @@ from nba.ingest.games import game_ids_for_season, pull_season_games
 from nba.ingest.national_tv import game_dates_for_season, pull_national_tv_for_date
 from nba.ingest.pbp import pull_game_pbp
 from nba.ingest.postgame import (
+    PENDING_GRACE_DAYS,
     SOURCES,
     coverage,
     fetch_source,
+    known_gaps,
     load_source,
     shots_fga_reconciliation,
+    stale_pending,
 )
 from nba.ingest.team_advanced import pull_game_team_advanced
 
@@ -248,19 +251,42 @@ def _postgame_main(args: argparse.Namespace) -> int:
         )
         print(
             f"postgame-fetch[{summary.source}]: {summary.total} keys, {summary.cached} cached, "
-            f"{summary.fetched} fetched, {len(summary.failed)} failed"
+            f"{summary.fetched} fetched, {len(summary.failed)} failed, "
+            f"{len(summary.pending)} not published yet"
         )
-        return 1 if summary.failed else 0
+        stale = stale_pending(db_path or DEFAULT_DB_PATH, summary.pending)
+        reviewed = known_gaps(summary.source)
+        if set(stale) & reviewed:
+            print(
+                f"postgame-fetch[{summary.source}] known gaps (reviewed, not failing): "
+                f"{sorted(set(stale) & reviewed)}"
+            )
+        stale = [k for k in stale if k not in reviewed]
+        if stale:
+            print(
+                f"postgame-fetch[{summary.source}] STALE PENDING (> {PENDING_GRACE_DAYS} d): "
+                f"{stale[:20]}"
+            )
+        return 1 if summary.failed or stale else 0
     con = open_db(db_path)  # short write window: load cached parquet only
     try:
+        load_failed: list[str] = []
         for source in args.sources or SOURCES:
-            print(f"postgame-load[{source}]: {load_source(con, source, data_dir=data_dir)} rows")
+            # one source failing must not starve the others (2026-10-23: a hustle key collision
+            # skipped officials and matchups for three days); the exit code still reports it
+            try:
+                print(
+                    f"postgame-load[{source}]: {load_source(con, source, data_dir=data_dir)} rows"
+                )
+            except Exception as exc:
+                load_failed.append(source)
+                print(f"postgame-load[{source}] FAILED: {type(exc).__name__}: {exc}", flush=True)
         for table, season, games, rows in coverage(con):
             print(f"coverage {table} season={season} games={games} rows={rows}")
         print("shots_fga_reconciliation", shots_fga_reconciliation(con))
     finally:
         con.close()
-    return 0
+    return 1 if load_failed else 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
