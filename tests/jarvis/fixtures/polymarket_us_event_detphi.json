@@ -1,0 +1,301 @@
+{
+ "slug": "nba-det-phi-2026-10-25",
+ "title": "DET Pistons vs. PHI 76ers",
+ "startTime": "2026-10-25T23:30:00Z",
+ "live": false,
+ "ended": false,
+ "teams": [
+  {
+   "id": 23,
+   "name": "Pistons",
+   "abbreviation": "det"
+  },
+  {
+   "id": 29,
+   "name": "76ers",
+   "abbreviation": "phi"
+  }
+ ],
+ "markets": [
+  {
+   "slug": "asc-nba-det-phi-2026-10-25-pos-4pt5",
+   "sportsMarketType": "basketball_team_full_game_spread",
+   "line": 4.5,
+   "status": "MARKET_STATUS_OPEN",
+   "active": true,
+   "closed": false,
+   "feeCoefficient": 0.0695,
+   "bestBidQuote": {
+    "value": "0.6200",
+    "currency": "USD"
+   },
+   "bestAskQuote": {
+    "value": "0.6300",
+    "currency": "USD"
+   },
+   "question": "Will the DET Pistons cover 4.5 vs the PHI 76ers in DET Pistons vs. PHI 76ers?",
+   "marketSides": [
+    {
+     "description": "+4.50",
+     "long": true,
+     "teamId": 23,
+     "quote": {
+      "value": "0.6300",
+      "currency": "USD"
+     },
+     "tradable": true
+    },
+    {
+     "description": "-4.50",
+     "long": false,
+     "teamId": 29,
+     "quote": {
+      "value": "0.38",
+      "currency": "USD"
+     },
+     "tradable": true
+    }
+   ]
+  },
+  {
+   "slug": "asc-nba-det-phi-2026-10-25-pos-3pt5",
+   "sportsMarketType": "basketball_team_full_game_spread",
+   "line": 3.5,
+   "status": "MARKET_STATUS_OPEN",
+   "active": true,
+   "closed": false,
+   "feeCoefficient": 0.0695,
+   "bestBidQuote": {
+    "value": "0.5900",
+    "currency": "USD"
+   },
+   "bestAskQuote": {
+    "value": "0.6000",
+    "currency": "USD"
+   },
+   "question": "Will the DET Pistons cover 3.5 vs the PHI 76ers in DET Pistons vs. PHI 76ers?",
+   "marketSides": [
+    {
+     "description": "+3.50",
+     "long": true,
+     "teamId": 23,
+     "quote": {
+      "value": "0.6000",
+      "currency": "USD"
+     },
+     "tradable": true
+    },
+    {
+     "description": "-3.50",
+     "long": false,
+     "teamId": 29,
+     "quote": {
+      "value": "0.41",
+      "currency": "USD"
+     },
+     "tradable": true
+    }
+   ]
+  },
+  {
+   "slug": "tsc-nba-det-phi-2026-10-25-225pt5",
+   "sportsMarketType": "basketball_team_full_game_total",
+   "line": 225.5,
+   "status": "MARKET_STATUS_OPEN",
+   "active": true,
+   "closed": false,
+   "feeCoefficient": 0.0695,
+   "bestBidQuote": {
+    "value": "0.5600",
+    "currency": "USD"
+   },
+   "bestAskQuote": {
+    "value": "0.5700",
+    "currency": "USD"
+   },
+   "question": "Will the total in DET Pistons vs. PHI 76ers be more than 225.5?",
+   "marketSides": [
+    {
+     "description": "Over",
+     "long": true,
+     "teamId": null,
+     "quote": {
+      "value": "0.5700",
+      "currency": "USD"
+     },
+     "tradable": true
+    },
+    {
+     "description": "Under",
+     "long": false,
+     "teamId": null,
+     "quote": {
+      "value": "0.44",
+      "currency": "USD"
+     },
+     "tradable": true
+    }
+   ]
+  },
+  {
+   "slug": "tsc-nba-det-phi-2026-10-25-226pt5",
+   "sportsMarketType": "basketball_team_full_game_total",
+   "line": 226.5,
+   "status": "MARKET_STATUS_OPEN",
+   "active": true,
+   "closed": false,
+   "feeCoefficient": 0.0695,
+   "bestBidQuote": {
+    "value": "0.5400",
+    "currency": "USD"
+   },
+   "bestAskQuote": {
+    "value": "0.5500",
+    "currency": "USD"
+   },
+   "question": "Will the total in DET Pistons vs. PHI 76ers be more than 226.5?",
+   "marketSides": [
+    {
+     "description": "Over",
+     "long": true,
+     "teamId": null,
+     "quote": {
+      "value": "0.5500",
+      "currency": "USD"
+     },
+     "tradable": true
+    },
+    {
+     "description": "Under",
+     "long": false,
+     "teamId": null,
+     "quote": {
+      "value": "0.46",
+      "currency": "USD"
+     },
+     "tradable": true
+    }
+   ]
+  },
+  {
+   "slug": "asc-nba-det-phi-2026-10-25-pos-1pt5",
+   "sportsMarketType": "basketball_team_full_game_spread",
+   "line": 1.5,
+   "status": "MARKET_STATUS_OPEN",
+   "active": true,
+   "closed": false,
+   "feeCoefficient": 0.0695,
+   "bestBidQuote": {
+    "value": "0.5300",
+    "currency": "USD"
+   },
+   "bestAskQuote": {
+    "value": "0.5400",
+    "currency": "USD"
+   },
+   "question": "Will the DET Pistons cover 1.5 vs the PHI 76ers in DET Pistons vs. PHI 76ers?",
+   "marketSides": [
+    {
+     "description": "+1.50",
+     "long": true,
+     "teamId": 23,
+     "quote": {
+      "value": "0.5400",
+      "currency": "USD"
+     },
+     "tradable": true
+    },
+    {
+     "description": "-1.50",
+     "long": false,
+     "teamId": 29,
+     "quote": {
+      "value": "0.47",
+      "currency": "USD"
+     },
+     "tradable": true
+    }
+   ]
+  },
+  {
+   "slug": "tsc-nba-det-phi-2026-10-25-227pt5",
+   "sportsMarketType": "basketball_team_full_game_total",
+   "line": 227.5,
+   "status": "MARKET_STATUS_OPEN",
+   "active": true,
+   "closed": false,
+   "feeCoefficient": 0.0695,
+   "bestBidQuote": {
+    "value": "0.5200",
+    "currency": "USD"
+   },
+   "bestAskQuote": {
+    "value": "0.5300",
+    "currency": "USD"
+   },
+   "question": "Will the total in DET Pistons vs. PHI 76ers be more than 227.5?",
+   "marketSides": [
+    {
+     "description": "Over",
+     "long": true,
+     "teamId": null,
+     "quote": {
+      "value": "0.5300",
+      "currency": "USD"
+     },
+     "tradable": true
+    },
+    {
+     "description": "Under",
+     "long": false,
+     "teamId": null,
+     "quote": {
+      "value": "0.48",
+      "currency": "USD"
+     },
+     "tradable": true
+    }
+   ]
+  },
+  {
+   "slug": "aec-nba-det-phi-2026-10-25",
+   "sportsMarketType": "basketball_team_full_game_winner",
+   "line": null,
+   "status": "MARKET_STATUS_OPEN",
+   "active": true,
+   "closed": false,
+   "feeCoefficient": 0.0695,
+   "bestBidQuote": {
+    "value": "0.5000",
+    "currency": "USD"
+   },
+   "bestAskQuote": {
+    "value": "0.5100",
+    "currency": "USD"
+   },
+   "question": "Who will win in the upcoming basketball event DET Pistons vs PHI 76ers scheduled for October 25, 2026 at 11:30 PM UTC?",
+   "marketSides": [
+    {
+     "description": "Pistons",
+     "long": true,
+     "teamId": 23,
+     "quote": {
+      "value": "0.5100",
+      "currency": "USD"
+     },
+     "tradable": true
+    },
+    {
+     "description": "76ers",
+     "long": false,
+     "teamId": 29,
+     "quote": {
+      "value": "0.5",
+      "currency": "USD"
+     },
+     "tradable": true
+    }
+   ]
+  }
+ ]
+}

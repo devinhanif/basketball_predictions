@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  JARVIS watch job (docs/DAILY_PIPELINE.md, "JARVIS"). TEMPLATE: NOT loaded by anything in the repo; the maintainer installs it by hand.
+  Paper-only, alert-only, read-only. One pass every 2 minutes: slate preview at about T-90 to the first tip, an immediate post when a new
+  strong edge or a confirmed arbitrage appears, halftime check-ins, the morning recap, closing-line quotes for the paper book. Idle (exits in
+  seconds) when there is no game.
+
+  The Discord webhook URL is NOT in this file. It is the env var JARVIS_DISCORD_WEBHOOK, copied into YOUR installed copy under
+  ~/Library/LaunchAgents (outside the repo) by the install command. The placeholder below is not a Discord URL, so an uninstalled copy
+  can never post anywhere. (Optional iMessage: add JARVIS_IMESSAGE_TO the same way and `imessage` to delivery.sinks.)
+
+  install (zsh; type the URL at the prompt, it is not echoed or saved in history):
+    read -rs "JARVIS_DISCORD_WEBHOOK?webhook URL: "; export JARVIS_DISCORD_WEBHOOK; echo
+    cp ops/launchd/local.nba.jarvis.plist ~/Library/LaunchAgents/ \
+      && plutil -replace EnvironmentVariables.JARVIS_DISCORD_WEBHOOK -string "$JARVIS_DISCORD_WEBHOOK" ~/Library/LaunchAgents/local.nba.jarvis.plist \
+      && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.jarvis.plist; unset JARVIS_DISCORD_WEBHOOK
+  check once by hand: uv run python -m nba.jarvis test-send with the dry-run flag first (then without it, with the variable set)
+  uninstall: launchctl bootout gui/$(id -u)/local.nba.jarvis && rm ~/Library/LaunchAgents/local.nba.jarvis.plist
+
+  Launched through uv, never /bin/sh: TCC blocks sh from reading ~/Downloads (exit 126 stopped every job once).
+  Needs Ollama only for the one-sentence explanation of strong/arbitrage plays (ollama serve; ollama pull qwen2.5:3b); without it posts use template sentences.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.jarvis</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string>
+    <string>python</string><string>-m</string><string>nba.jarvis</string><string>watch</string><string>--once</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>JARVIS_DISCORD_WEBHOOK</key><string>REPLACE_ME_BY_THE_INSTALL_COMMAND</string>
+    <key>HOME</key><string>/Users/devin</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StartInterval</key><integer>120</integer>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_jarvis.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_jarvis.err</string>
+</dict>
+</plist>
