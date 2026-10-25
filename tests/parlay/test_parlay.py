@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
+from pathlib import Path
 
 import duckdb
 import numpy as np
@@ -9,7 +11,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from nba.parlay.calibration import compare_engines
-from nba.parlay.config import FeeModel, load_config
+from nba.parlay.config import DEFAULT_PATH, FeeModel, load_config
 from nba.parlay.copula import (
     PairCorr,
     ResidualRow,
@@ -225,3 +227,16 @@ def test_paper_trade_roundtrip() -> None:
     assert out[1] == pytest.approx(1 - 0.3 - fee_per_contract(0.3, CFG.fee), abs=1e-5)
     rep = rolling_report(con, min_settled=30)
     assert "settled: n=1" in rep and "WARNING" in rep
+
+
+def test_fee_verified_requires_real_yaml_boolean(tmp_path: Path) -> None:
+    base = Path(DEFAULT_PATH).read_text()
+    assert load_config(DEFAULT_PATH).fee.verified is True
+    assert re.search(r"^\s*verified:\s*true\s*$", base, re.M)
+    for bad in ('"false"', "0", "1", '"true"'):
+        p = tmp_path / "parlay_bad.yaml"
+        p.write_text(re.sub(r"^(\s*verified:)\s*true\s*$", rf"\1 {bad}", base, flags=re.M))
+        with pytest.raises(ValueError, match="YAML boolean"):
+            load_config(p)
+    p.write_text(re.sub(r"^(\s*verified:)\s*true\s*$", r"\1 false", base, flags=re.M))
+    assert load_config(p).fee.verified is False

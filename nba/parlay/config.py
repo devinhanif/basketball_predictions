@@ -92,6 +92,13 @@ class ParlayConfig:
     fee_venues: tuple[str, ...] = ()  # venues whose tickets pay the fee schedule (top parlays)
 
 
+def _strict_bool(v: object, name: str) -> bool:
+    """A real YAML boolean only: the string "false" or an int must not coerce."""
+    if not isinstance(v, bool):
+        raise ValueError(f"{name} must be a YAML boolean (true/false), got {v!r}")
+    return v
+
+
 def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
     raw = yaml.safe_load(Path(path).read_text())
     f, e, i = raw["fee_model"], raw["engine"], raw["interval"]
@@ -100,7 +107,7 @@ def load_config(path: str | Path = DEFAULT_PATH) -> ParlayConfig:
             f["name"],
             f["formula"],
             float(f["coefficient"]),
-            bool(f.get("verified", False)),
+            _strict_bool(f.get("verified", False), "fee_model.verified"),
             None if f.get("maker_coefficient") is None else float(f["maker_coefficient"]),
             float(f.get("default_multiplier", 1.0)),
             tuple((str(k), float(v)) for k, v in (f.get("fee_multiplier") or {}).items()),
