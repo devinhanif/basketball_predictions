@@ -71,21 +71,23 @@ def event_slug(game: Game, slate: date) -> str:
 
 def fetch_events(
     cfg: JarvisConfig, games: list[Game], slate: date, client: _Getter | None = None
-) -> tuple[list[dict[str, Any]], str | None]:
-    """One GET per slate game; a 404 means "not listed yet". Returns (events, error)."""
+) -> tuple[list[dict[str, Any]], str | None, int]:
+    """One GET per slate game; a 404 means "not listed yet". Returns (events, error, n_missing)."""
     pm = cfg.polymarket
     if not pm.get("enabled", True):
-        return [], "polymarket disabled in config"
+        return [], "polymarket disabled in config", 0
     own = client is None
     http: Any = client or httpx.Client(timeout=float(pm["timeout_s"]))
     base = str(pm["gateway_base"]).rstrip("/")
     events: list[dict[str, Any]] = []
     err: str | None = None
+    missing = 0
     try:
         for g in games:
             try:
                 r = http.get(f"{base}/v1/events/slug/{event_slug(g, slate)}")
                 if r.status_code == 404:
+                    missing += 1
                     continue
                 r.raise_for_status()
                 body = r.json()
@@ -99,8 +101,8 @@ def fetch_events(
         if own:
             http.close()
     if not events and err:
-        return [], err
-    return events, None
+        return [], err, missing
+    return events, None, missing
 
 
 def parse_events(
@@ -115,6 +117,9 @@ def parse_events(
         res.skipped[why] = res.skipped.get(why, 0) + 1
 
     for ev in events:
+        if ev.get("live") or ev.get("ended"):
+            skip("live_or_ended")  # pre-tip prices only
+            continue
         id_to_team: dict[int, int] = {}
         for t in ev.get("teams") or []:
             tid = abbr.get(str(t.get("abbreviation", "")).upper())
@@ -171,7 +176,12 @@ def load_polymarket_quotes(
     now: datetime | None = None,
     client: _Getter | None = None,
 ) -> PolyResult:
-    events, err = fetch_events(cfg, games, slate, client)
+    events, err, missing = fetch_events(cfg, games, slate, client)
     if err:
         return PolyResult(error=err)
-    return parse_events(cfg, events, games, now)
+    res = parse_events(cfg, events, games, now)
+    if missing:
+        res.skipped["not_listed"] = (
+            missing  # a 404 per game: slug/date convention miss or not up yet
+        )
+    return res

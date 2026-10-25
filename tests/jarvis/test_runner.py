@@ -75,14 +75,64 @@ def test_slate_summary_is_sent_once_per_date(rt: Runtime, sent: Sent) -> None:
     assert again.get("skipped") and len(sent.texts) == n
 
 
-def test_failed_send_is_logged_and_plays_not_recorded(rt: Runtime) -> None:
+def test_failed_send_is_logged_and_the_play_is_still_recorded(rt: Runtime) -> None:
     rt.sender = Sent(ok=False)
     rep = run_slate(rt, SLATE)
-    assert rep["send"]["ok"] is False
+    assert rep["send"]["ok"] is False and rep["send"]["mode"] == "failed"
     con = duckdb.connect(str(rt.book.path), read_only=True)
-    assert con.execute("SELECT count(*) FROM plays").fetchone()[0] == 0
+    # plays are recorded at decision time, with how far delivery got (the CLV record must not
+    # depend on whether Discord worked)
+    assert con.execute("SELECT count(DISTINCT delivered) FROM plays").fetchone()[0] == 1
+    assert con.execute("SELECT max(delivered) FROM plays").fetchone()[0] == "failed"
     assert con.execute("SELECT mode FROM sends").fetchone()[0] == "failed"
     con.close()
+
+
+class FailSecond:
+    """First message of a multi-part post goes out, the second fails."""
+
+    def __init__(self) -> None:
+        self.texts: list[str] = []
+        self.calls = 0
+
+    def __call__(self, text: str, **kw: object):  # type: ignore[no-untyped-def]
+        from nba.jarvis.imessage import SendResult
+
+        self.calls += 1
+        if self.calls % 2 == 0:
+            return SendResult(False, "failed", "boom")
+        self.texts.append(text)
+        return SendResult(True, "sent")
+
+
+def test_a_partly_failed_post_is_not_resent_and_gives_up_after_the_cap(rt: Runtime) -> None:
+    rt.cfg = type(rt.cfg)(**{**rt.cfg.__dict__, "sinks": ("discord",), "max_chars_discord": 120})
+    fs = FailSecond()
+    rt.sender = fs
+    run_slate(rt, SLATE)
+    first = list(fs.texts)
+    assert first and fs.calls >= 2
+    con = duckdb.connect(str(rt.book.path), read_only=True)
+    assert con.execute("SELECT mode FROM sends").fetchone()[0] == "partial"
+    con.close()
+    n = fs.calls
+    again = run_slate(rt, SLATE)  # the delivered part counts: no second preview
+    assert again.get("skipped") and fs.calls == n
+    for _ in range(5):  # a key that keeps failing is given up on, not retried every tick
+        run_tick(rt, SLATE)
+    assert fs.texts.count(first[0]) == 1
+
+
+def test_a_total_failure_stops_after_max_attempts(rt: Runtime) -> None:
+    rt.sender = Sent(ok=False)
+    attempts = 0
+    for k in range(6):
+        rt.clock = lambda k=k: NOW + timedelta(minutes=k)
+        rep = run_slate(rt, SLATE)
+        if rep.get("send"):
+            attempts += 1
+    assert attempts == rt.cfg.max_attempts_per_key
+    assert "gave_up" in rep.get("skipped", "")
 
 
 def test_tick_alerts_once_for_a_strong_play_then_dedupes(rt: Runtime, sent: Sent) -> None:
@@ -136,7 +186,8 @@ def test_chunking_is_phone_length() -> None:
 def test_play_text_has_venue_side_max_price_stake_label(cfg: JarvisConfig) -> None:
     lines = play_lines(mk("strong", 4.2), cfg.display_tz)
     body = "\n".join(lines)
-    assert "Kalshi YES" in body and "max 50c" in body and "$1.00" in body and "STRONG" in body
+    assert "BUY LAL to win on Kalshi (YES contract)" in body and "max 50c" in body
+    assert "$1.00" in body and "STRONG" in body and "pays $2.00 if right, 2.0x" in body
     texts = slate_texts(cfg, [mk("none", -3.0)], "", date_label="Wed", first_tip=TIP1, n_games=1)
     assert "NO EDGE" not in texts[0] or "[none -3.0c]" in texts[0]
 

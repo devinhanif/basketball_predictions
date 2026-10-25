@@ -49,7 +49,7 @@ def _kalshi(path: Path) -> None:
             "INSERT INTO kalshi_markets VALUES (?,?,?,?,?,?,?,NULL,NULL,NULL,NULL)",
             [t, s, e, title, pid, stat, thr],
         )
-    ts = datetime(2026, 10, 28, 19, 50)
+    ts = datetime(2026, 10, 28, 19, 58)
     px = {
         "KXNBAGAME-26OCT28LALLAC-LAL": (0.46, 0.50),
         "KXNBAGAME-26OCT28LALLAC-LAC": (0.47, 0.51),
@@ -197,6 +197,16 @@ def kb(cfg: JarvisConfig) -> Knowledge:
     return Knowledge(cfg, display=lambda pid: {2544: "LeBron James"}.get(pid, f"Player {pid}"))
 
 
+class StubModel:
+    """Stand-in for our stored forecasts: no game view, a fixed P(plays) for props."""
+
+    def p_yes(self, q):  # type: ignore[no-untyped-def]
+        return None
+
+    def p_play(self, q):  # type: ignore[no-untyped-def]
+        return 0.97
+
+
 class Sent:
     """Recording stand-in for the iMessage sender; never touches osascript."""
 
@@ -230,6 +240,7 @@ def rt(cfg: JarvisConfig, kb: Knowledge, sent: Sent, tmp_path: Path) -> Runtime:
         clock=lambda: NOW,
         out=lambda s: None,
         use_polymarket=False,
+        model_factory=lambda d: StubModel(),
     )
 
 

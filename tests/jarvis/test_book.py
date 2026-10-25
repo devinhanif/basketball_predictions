@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -38,14 +39,21 @@ def play(
     )  # fmt: skip
 
 
-def test_record_dedupes_within_thirty_minutes(tmp_path: Path) -> None:
+def test_a_play_is_recorded_once_per_slate_date(tmp_path: Path) -> None:
     b = PaperBook(tmp_path / "b.duckdb")
     p = play()
-    assert b.record([p], source="slate", slate=SLATE, now=NOW) == [p]
-    assert b.record([p], source="alert", slate=SLATE, now=NOW + timedelta(minutes=29)) == []
-    assert b.record([p], source="alert", slate=SLATE, now=NOW + timedelta(minutes=31)) == [p]
-    assert b.spent_tonight(SLATE) == pytest.approx(p.stake_usd)  # re-emission is not new money
+    assert b.record([p], source="slate", slate=SLATE, now=NOW, delivered="failed") == [p]
+    # a re-emission, however much later, is not a new bet and not a new row
+    assert b.record([p], source="alert", slate=SLATE, now=NOW + timedelta(minutes=31)) == []
+    assert b.record([p], source="alert", slate=SLATE, now=NOW + timedelta(hours=3)) == []
+    con = b._con()
+    n, dl = con.execute("SELECT count(*), max(delivered) FROM plays").fetchone()
+    con.close()
+    assert (n, dl) == (1, "sent")  # the failed first delivery was updated when a later post landed
+    assert b.spent_tonight(SLATE) == pytest.approx(p.stake_usd)
     assert b.first_stake(p.key, SLATE) == (4, pytest.approx(p.stake_usd))
+    # the next slate date is a new bet
+    assert b.record([p], source="slate", slate=SLATE + timedelta(days=1), now=NOW) == [p]
 
 
 def test_book_is_its_own_file_and_has_the_documented_tables(tmp_path: Path) -> None:
@@ -193,7 +201,7 @@ def test_weekly_summary_reports_insufficient_sample(cfg: JarvisConfig, tmp_path:
 
 def test_a_hit_is_annotated_and_a_miss_is_not(cfg: JarvisConfig) -> None:
     base = {"slate_date": "2026-10-28", "matchup": "LAL@LAC", "venue": "kalshi", "side": "yes",
-            "ticker": "T", "price": 0.5, "edge_label": "none", "edge_cents": -3.0}  # fmt: skip
+            "leg_desc": "LAL to win", "price": 0.5, "edge_label": "none", "edge_cents": -3.0}  # fmt: skip
     hit = scored_line({**base, "won": True, "pnl_usd": 2.0})
     miss = scored_line({**base, "won": False, "pnl_usd": -2.0})
     assert "this one hit; it was still a -6% bet" in hit

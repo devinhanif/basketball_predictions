@@ -40,6 +40,10 @@ class Quote:
     label: str = ""  # human description of the YES event, e.g. "LAL to win"
     indicative: bool = False  # True = last/mid only, never offered as a tradable price
     mid: float | None = None  # vigged implied probability for an indicative quote
+    label_no: str = ""  # plain words for the NO contract (the other side to win), e.g. "LAC to win"
+    confirmed: bool = (
+        False  # set only by a depth-aware live source (QUOTE_SOURCES hook), never here
+    )
 
     def ask(self, side: str) -> float | None:
         if side == "yes":
@@ -98,9 +102,23 @@ class Play:
     ref_age_min: float | None = None
     notes: tuple[str, ...] = ()
     inputs: dict[str, object] = field(default_factory=dict)  # for the input hash
+    pin_prob: float | None = (
+        None  # Pinnacle no-vig fair price for the bought side (before the blend)
+    )
+    w_model: float | None = None  # weight on (model - Pinnacle) in fair_prob; 0 until earned
+    key_suffix: str = ""  # makes the dedupe key unique for picks and tickets that must not dedupe
+
+    @property
+    def payout_usd(self) -> float:
+        """What the ticket pays if it wins: $1 per contract (per pair for a two-leg cover)."""
+        return float(self.contracts)
+
+    @property
+    def multiple(self) -> float | None:
+        return None if self.stake_usd <= 0 else self.payout_usd / self.stake_usd
 
     @property
     def key(self) -> str:
         """Dedupe key: same game, same legs (venue, ticker, side), same label."""
         legs = "|".join(f"{leg.venue}:{leg.ticker}:{leg.side}" for leg in self.legs)
-        return f"{self.game_id}/{legs}/{self.label}"
+        return f"{self.game_id}/{legs}/{self.label}{self.key_suffix}"

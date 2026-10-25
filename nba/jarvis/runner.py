@@ -1,30 +1,37 @@
-"""Orchestration: the pre-tip slate summary and immediate alerts, with dedupe and an audit trail.
+"""Orchestration: slate preview, instant alerts, halftime check-ins and the morning recap.
 
-Decision order (this is the safety property): prices -> computed plays (label, edge, stake) -> a
+Decision order (the safety property): prices -> computed plays (label, edge, stake) -> a
 deterministic gate (``supports_alert`` / slate due) -> text composed by Python -> optional LLM
-sentence that passed its own checks -> send. The language model sits after the gate: it cannot
-create a play, change a label or number, or cause a send the computed numbers do not support.
+sentence (strong/arbitrage only, hard-checked) -> post. The language model sits after the gate: it
+cannot create a play, change a label or number, or cause a post the computed numbers do not support.
 
-``dry_run`` prints and writes NOTHING to the paper book (so a rehearsal cannot dedupe a real send or
-pollute the record). A real send is logged with hashes of its inputs (``sends`` table).
+``dry_run`` prints and writes NOTHING to the paper book (a rehearsal cannot dedupe a real post or
+pollute the record). A real post is logged with hashes of its inputs (``sends``). Plays are recorded
+at decision time with a ``delivered`` status (sent / partial / failed); a post that partly failed is
+never re-sent in full (the delivered part counts), and a key that keeps failing is given up on after
+``max_attempts_per_key``.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import duckdb
 
-from nba.jarvis import imessage
+from nba.jarvis import dailydollar
 from nba.jarvis import render as R
-from nba.jarvis.book import PaperBook, now_naive, sha
+from nba.jarvis.book import PaperBook, kill_switch, now_naive, score_book, sha
 from nba.jarvis.config import JarvisConfig
 from nba.jarvis.explain import explain, play_facts
+from nba.jarvis.imessage import SendResult
 from nba.jarvis.knowledge import Knowledge
+from nba.jarvis.live import feed_age_min, latest_scoreboard
 from nba.jarvis.models import Play
+from nba.jarvis.posts import halftime_lines, recap_lines, todays_rows
+from nba.jarvis.sinks import make_sender
 from nba.jarvis.slate import (
     ModelLike,
     SlateState,
@@ -33,9 +40,11 @@ from nba.jarvis.slate import (
     plan_slate,
     rank_key,
 )
+from nba.jarvis.sources import et_hour
+from nba.jarvis.weights import render_changes, update_weights
 from nba.parlay.assistant.backend import LLMBackend
 
-Sender = Callable[..., imessage.SendResult]
+Sender = Callable[..., SendResult]
 
 
 @dataclass
@@ -45,7 +54,7 @@ class Runtime:
     kb: Knowledge
     backend: LLMBackend | None = None
     dry_run: bool = True
-    sender: Sender = imessage.send
+    sender: Sender | None = None  # default: the configured sinks (Discord, optional iMessage)
     clock: Callable[[], datetime] = now_naive
     poly_client: object | None = None
     model_factory: Callable[[date], ModelLike | None] | None = None
@@ -54,9 +63,14 @@ class Runtime:
     use_polymarket: bool = True
     report: dict[str, Any] = field(default_factory=dict)
 
+    def send(self, text: str) -> SendResult:
+        fn = self.sender or make_sender(self.cfg)
+        return fn(text, env_var=self.cfg.env_var, dry_run=self.dry_run, env=self.env, out=self.out)
+
 
 def supports_alert(cfg: JarvisConfig, p: Play) -> bool:
-    """The only gate for an immediate text: computed label and numbers say strong or arbitrage."""
+    """The only gate for an immediate post: the computed label and numbers say strong or a
+    CONFIRMED arbitrage. ``arb_candidate`` is not in ``alert_labels`` and never alerts."""
     if p.label not in cfg.alert_labels:
         return False
     if p.contracts <= 0 and not cfg.alert_when_cap_used:
@@ -92,7 +106,7 @@ def explain_one(rt: Runtime, st: SlateState, p: Play) -> tuple[str, str, dict[st
     query = f"{p.matchup} {leg.desc}"
     fan = rt.kb.fan_knowledge(query, k=1)
     facts = play_facts(p, injuries=inj, lineups=lu, usage=usage, fan=fan)
-    text, src = explain(p, facts, rt.backend)
+    text, src = explain(p, facts, rt.backend)  # strong/arbitrage only; the rest use the template
     return text, src, facts
 
 
@@ -105,43 +119,57 @@ def _deliver(
     slate: date,
     inputs: Any,
     explanations: dict[str, str],
+    keys: list[str] | None = None,
+    record_source: str | None = None,
 ) -> dict[str, Any]:
-    """Send every text; record plays and the send unless dry-run. Returns a small report."""
+    """Post every text; unless dry-run record the plays (with how far delivery got) and the post."""
     modes = []
     notes = []
     for t in texts:
-        res = rt.sender(t, env_var=rt.cfg.env_var, dry_run=rt.dry_run, env=rt.env, out=rt.out)
-        modes.append(res.mode)
+        res = rt.send(t)
+        modes.append(res.mode if res.ok else "failed")
         if res.note:
             notes.append(res.note)
-    ok = all(m in ("sent", "dry_run") for m in modes)
+    n_ok = sum(1 for m in modes if m in ("sent", "dry_run"))
+    ok = n_ok == len(modes)
+    mode = "sent" if ok else ("partial" if n_ok else "failed")
     if not rt.dry_run:
-        mode = "sent" if ok else "failed"
-        if ok:
+        if plays and record_source:
             rt.book.record(
                 plays,
-                source=kind,
+                source=record_source,
                 slate=slate,
                 explanations=explanations,
-                dedupe_minutes=rt.cfg.dedupe_minutes,
+                delivered=mode,
                 now=rt.clock(),
             )
         rt.book.record_send(
             kind=kind,
             mode=mode,
             slate=slate,
-            keys=[p.key for p in plays],
+            keys=keys if keys is not None else [p.key for p in plays],
             play_ids=[sha(p.key) for p in plays],
             text="\n".join(texts),
             inputs=inputs,
             note="; ".join(notes),
             now=rt.clock(),
         )
-    return {"kind": kind, "texts": len(texts), "ok": ok, "modes": modes, "notes": notes}
+    return {
+        "kind": kind,
+        "texts": len(texts),
+        "ok": ok,
+        "mode": mode,
+        "modes": modes,
+        "notes": notes,
+    }
+
+
+def _given_up(rt: Runtime, kind: str, slate: date, key: str | None = None) -> bool:
+    return rt.book.failed_attempts(kind, slate, key) >= rt.cfg.max_attempts_per_key
 
 
 def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any]:
-    """Compose (and send unless dry-run) the slate summary. Returns the report incl. the texts."""
+    """Compose (and post unless dry-run) the slate preview. Returns the report incl. the texts."""
     now = rt.clock()
     st = build_state(rt, slate)
     plays = plan_slate(rt.cfg, st, rt.book)
@@ -154,34 +182,49 @@ def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any
     tips = sorted(g.tipoff for g in st.games if g.tipoff is not None and g.tipoff > now)
     first_tip = tips[0] if tips else None
     if not force and not rt.dry_run and rt.book.slate_summary_sent(slate):
-        rep["skipped"] = "slate summary already sent for this date"
+        rep["skipped"] = "slate preview already posted for this date"
+        return rep
+    if not rt.dry_run and not force and _given_up(rt, "slate", slate):
+        rep["skipped"] = "gave_up: the slate preview failed too many times today"
         return rep
     top = best_overall(plays)
     top_text, src = ("", "none")
     if top is not None:
         top_text, src, _facts = explain_one(rt, st, top)
     ordered = sorted(plays, key=rank_key, reverse=True)
+    dd_play, dd_why = _daily_dollar(rt, st, slate)
+    extra = dailydollar.lines(dd_play, dd_why) if rt.cfg.daily_dollar.get("enabled", True) else []
+    for p in ordered:  # the plays this post carries count as announced for alert dedupe
+        if supports_alert(rt.cfg, p) and not rt.dry_run:
+            rt.book.note_alert(p.key, slate, p.edge_cents, now)
     texts = R.slate_texts(
-        rt.cfg,
-        ordered,
-        top_text,
-        date_label=slate.strftime("%a %-m/%-d"),
-        first_tip=first_tip,
-        n_games=len(st.games),
-    )
+        rt.cfg, ordered, top_text,
+        date_label=slate.strftime("%a %-m/%-d"), first_tip=first_tip, n_games=len(st.games),
+        extra_lines=extra,
+    )  # fmt: skip
     rep["texts"] = texts
     rep["explanation_source"] = src
+    rep["daily_dollar"] = None if dd_play is None else dd_play.key
     inputs = {"plays": [p.inputs for p in ordered], "notes": st.notes}
+    posted = [*ordered, *([dd_play] if dd_play is not None else [])]
+    expl = {top.key: top_text} if top else {}
     rep["send"] = _deliver(
-        rt,
-        kind="slate",
-        texts=texts,
-        plays=ordered,
-        slate=slate,
-        inputs=inputs,
-        explanations={top.key: top_text} if top else {},
-    )
+        rt, kind="slate", texts=texts, plays=posted, slate=slate, inputs=inputs,
+        explanations=expl, record_source="slate",
+    )  # fmt: skip
     return rep
+
+
+def _daily_dollar(rt: Runtime, st: SlateState, slate: date) -> tuple[Play | None, str]:
+    if rt.cfg.daily_dollar.get("enabled", True) is not True:
+        return None, "disabled"
+    if not rt.dry_run and dailydollar.recorded_today(rt.book, slate):
+        return None, "today's ticket was already posted"
+    real, other = rt.book.spent_split(slate)
+    room = min(
+        rt.cfg.nightly_cap - real - other, rt.cfg.nightly_cap - rt.cfg.reserve_for_strong - other
+    )
+    return dailydollar.build(rt.cfg, st, rt.kb, room=max(0.0, room))
 
 
 def slate_due(rt: Runtime, st: SlateState) -> bool:
@@ -194,14 +237,18 @@ def slate_due(rt: Runtime, st: SlateState) -> bool:
 
 
 def run_tick(rt: Runtime, slate: date) -> dict[str, Any]:
-    """One watch pass: log closing-line quotes, slate summary if due, alerts for new strong/arb.
-    A store held by its writer (nba.duckdb in the pretip job) skips the pass; the next retries."""
+    """One watch pass: log closing-line quotes, slate preview if due, alerts, halftime check-ins,
+    the morning recap. A store held by its writer (nba.duckdb in the pretip job) skips the pass."""
     now = rt.clock()
     try:
         return _tick(rt, slate, now)
     except duckdb.IOException as exc:
-        return {"slate": str(slate), "at": now.isoformat(timespec="seconds"),
-                "idle": f"store busy, retry next tick ({str(exc)[:60]})", "alerts": []}  # fmt: skip
+        return {
+            "slate": str(slate),
+            "at": now.isoformat(timespec="seconds"),
+            "idle": f"store busy, retry next tick ({str(exc)[:60]})",
+            "alerts": [],
+        }
 
 
 def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
@@ -210,7 +257,9 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         "slate": str(slate),
         "at": now.isoformat(timespec="seconds"),
         "notes": st.notes,
+        "alerts": [],
     }
+    rep["recap"] = _maybe_recap(rt, slate, now)
     if not st.games:
         rep["idle"] = "no games"
         return rep
@@ -225,30 +274,98 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         rep["slate_send"] = sl.get("send")
         if sl.get("send", {}).get("ok"):
             sent_keys = {p.key for p in plays}
-    alerts = []
     for p in plays:
         if p.key in sent_keys or not supports_alert(rt.cfg, p):
             continue
-        if not rt.dry_run and rt.book.sent_recently(p.key, rt.cfg.dedupe_minutes, now):
+        if not rt.dry_run:
+            if rt.book.sent_recently(p.key, rt.cfg.dedupe_minutes, now):
+                continue
+            if _given_up(rt, "alert", slate, p.key):
+                rep.setdefault("gave_up", []).append(p.key)
+                continue
+            if rt.book.kind_sent("alert", slate, p.key) and not rt.book.realert_due(
+                p.key, slate, p.edge_cents, False, rt.cfg.realert_edge_cents
+            ):
+                continue
+        text, _src, _ = explain_one(rt, st, p)
+        why = "confirmed arbitrage" if p.label == "arbitrage" else "new strong edge"
+        res = _deliver(
+            rt, kind="alert", texts=R.alert_text(rt.cfg, p, text, why), plays=[p], slate=slate,
+            inputs=p.inputs, explanations={p.key: text}, record_source="alert",
+        )  # fmt: skip
+        if res["ok"] and not rt.dry_run:
+            rt.book.note_alert(p.key, slate, p.edge_cents, now)
+        rep["alerts"].append(res)
+    rep["halftime"] = _halftime(rt, st, slate, now)
+    return rep
+
+
+def _halftime(rt: Runtime, st: SlateState, slate: date, now: datetime) -> list[dict[str, Any]]:
+    if not rt.cfg.halftime_checkins:
+        return []
+    out = []
+    age = feed_age_min(rt.cfg, slate, now)
+    for lg in latest_scoreboard(rt.cfg, slate):
+        if not lg.halftime:
             continue
-        text, src, _ = explain_one(rt, st, p)
-        why = "new arbitrage" if p.label == "arbitrage" else "new strong edge"
-        texts = R.alert_text(rt.cfg, p, text, why)
-        alerts.append(
+        g = next((x for x in st.games if (x.away_abbr, x.home_abbr) == (lg.away, lg.home)), None)
+        if g is None:
+            continue
+        rows = todays_rows(rt.book, slate, g.game_id)
+        if not rows:
+            continue
+        if not rt.dry_run and rt.book.kind_sent("halftime", slate, g.game_id):
+            continue
+        if not rt.dry_run and _given_up(rt, "halftime", slate, g.game_id):
+            continue
+        texts = R.chunk(halftime_lines(rt.cfg, lg, rows, age), rt.cfg.max_chars, rt.cfg.max_texts)
+        out.append(
             _deliver(
                 rt,
-                kind="alert",
+                kind="halftime",
                 texts=texts,
-                plays=[p],
+                plays=[],
                 slate=slate,
-                inputs=p.inputs,
-                explanations={p.key: text},
+                inputs=[lg.matchup],
+                explanations={},
+                keys=[g.game_id],
             )
         )
-    rep["alerts"] = alerts
-    return rep
+    return out
+
+
+def _maybe_recap(
+    rt: Runtime, slate: date, now: datetime, force: bool = False
+) -> dict[str, Any] | None:
+    """Once per ET date after ``recap_after_et_hour``: score yesterday, run the weekly weight rule,
+    post results, balance and records. Skipped silently when yesterday had no plays."""
+    if not force and et_hour(now) < rt.cfg.recap_after_et_hour:
+        return None
+    day = slate - timedelta(days=1)
+    if not force and not rt.dry_run and rt.book.kind_sent("recap", slate, str(day)):
+        return None
+    if not rt.book._rows("SELECT 1 FROM plays WHERE slate_date = ? LIMIT 1", [day]):
+        return None
+    if not rt.dry_run and _given_up(rt, "recap", slate, str(day)):
+        return None
+    if not rt.dry_run:
+        score_book(rt.cfg, rt.book, now=now)
+    recs = [] if rt.dry_run else update_weights(rt.cfg, rt.book, today=slate, now=now)
+    lines = recap_lines(rt.cfg, rt.book, day, render_changes(recs), kill_switch(rt.cfg, rt.book))
+    texts = R.chunk(lines, rt.cfg.max_chars, rt.cfg.max_texts)
+    return _deliver(
+        rt, kind="recap", texts=texts, plays=[], slate=slate, inputs=lines[:3],
+        explanations={}, keys=[str(day)],
+    )  # fmt: skip
 
 
 def minutes_to_first_tip(st: SlateState, now: datetime) -> float | None:
     tips = sorted(g.tipoff for g in st.games if g.tipoff is not None and g.tipoff > now)
     return None if not tips else (tips[0] - now).total_seconds() / 60.0
+
+
+def run_recap(rt: Runtime, slate: date, *, force: bool = True) -> dict[str, Any] | None:
+    return _maybe_recap(rt, slate, rt.clock(), force=force)
+
+
+__all__ = ["Runtime", "run_recap", "run_slate", "run_tick", "supports_alert"]

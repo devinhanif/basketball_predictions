@@ -33,8 +33,21 @@ PINNACLE_PROP_MARKET = {
 STAT_WORD = {"pts": "points", "reb": "rebounds", "ast": "assists", "fg3m": "threes"}
 
 
+def sanitize_title(title: str) -> str:
+    """Venue titles are fetched text: printable subset, short (never trusted into a message)."""
+    import re
+
+    s = re.sub(r"https?://\S+", "", title)
+    s = re.sub(r"[^A-Za-z0-9 :+/,.()'\-]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()[:60]
+
+
 def utcnow() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
+
+
+def et_hour(now: datetime) -> int:
+    return now.replace(tzinfo=UTC).astimezone(ET).hour
 
 
 def et_today(now: datetime | None = None) -> date:
@@ -42,11 +55,15 @@ def et_today(now: datetime | None = None) -> date:
     return n.astimezone(ET).date()
 
 
+SCRATCH = Path(tempfile.gettempdir()) / "jarvis_scratch"
+
+
 def open_ro(
     path: Path, *, retries: int = 4, wait_s: float = 1.5, copy_ok: bool = False
 ) -> duckdb.DuckDBPyConnection:
-    """Read-only connection with a short lock retry; ``copy_ok`` (small stores only) then reads a
-    private copy, which can only be older than the writer's state, never newer."""
+    """Read-only connection with a short lock retry. ``copy_ok`` (small stores only) then reads a
+    private copy (with its .wal) from one fixed scratch path that is deleted as soon as it is open,
+    so nothing accumulates; the copy can only be older than the writer's state, never newer."""
     last: Exception | None = None
     for _ in range(max(1, retries)):
         try:
@@ -55,9 +72,17 @@ def open_ro(
             last = exc
             time.sleep(wait_s)
     if copy_ok:
-        tmp = Path(tempfile.mkdtemp(prefix="jarvis_ro_")) / path.name
+        SCRATCH.mkdir(parents=True, exist_ok=True)
+        tmp = SCRATCH / path.name
+        wal_src, wal_tmp = path.with_name(path.name + ".wal"), SCRATCH / (path.name + ".wal")
         shutil.copy2(path, tmp)
-        return duckdb.connect(str(tmp), read_only=True)
+        if wal_src.exists():
+            shutil.copy2(wal_src, wal_tmp)
+        try:
+            return duckdb.connect(str(tmp), read_only=True)
+        finally:  # an open handle survives the unlink; the directory stays empty
+            tmp.unlink(missing_ok=True)
+            wal_tmp.unlink(missing_ok=True)
     assert last is not None
     raise last
 
@@ -124,7 +149,10 @@ def _tips(cfg: JarvisConfig, slate: date) -> dict[str, datetime]:
             con.close()
     mp = cfg.paths["market_db"]
     if mp.exists():
-        con = open_ro(mp, copy_ok=True)
+        try:
+            con = open_ro(mp)  # ~1 GB: never copied; a locked store just means no fallback tips
+        except duckdb.IOException:
+            return tips
         try:
             for gid, tip in con.execute(
                 "SELECT game_id, max(tipoff) FROM live_book_odds WHERE slate_date = ? "
@@ -157,9 +185,9 @@ def load_kalshi_quotes(
     try:
         rows = con.execute(
             "SELECT m.ticker, m.series_ticker, m.event_ticker, m.title, m.player_id, m.stat, "
-            "m.threshold, p.yes_bid, p.yes_ask, p.ts FROM kalshi_markets m JOIN ("
-            "SELECT ticker, arg_max(yes_bid, ts) yes_bid, arg_max(yes_ask, ts) yes_ask, max(ts) ts "
-            "FROM kalshi_prices WHERE ts < ? GROUP BY ticker) p USING (ticker) "
+            "m.threshold, p.px.yes_bid, p.px.yes_ask, p.ts FROM kalshi_markets m JOIN ("
+            "SELECT ticker, arg_max(struct_pack(yes_bid := yes_bid, yes_ask := yes_ask), ts) px, "
+            "max(ts) ts FROM kalshi_prices WHERE ts < ? GROUP BY ticker) p USING (ticker) "
             "WHERE m.result IS NULL AND m.series_ticker IN "
             "('KXNBAGAME','KXNBAPTS','KXNBAREB','KXNBAAST','KXNBA3PT')",
             [cut],
@@ -181,6 +209,7 @@ def load_kalshi_quotes(
             tid = abbr.get(suffix)
             if tid is None:
                 continue
+            other = g.home_abbr if suffix == g.away_abbr else g.away_abbr
             out.append(
                 Quote(
                     "kalshi",
@@ -193,6 +222,7 @@ def load_kalshi_quotes(
                     team_id=tid,
                     series=str(series),
                     label=f"{suffix} to win",
+                    label_no=f"{other} to win",
                 )
             )
         elif series in PROP_SERIES and pid is not None and thr is not None:
@@ -209,7 +239,7 @@ def load_kalshi_quotes(
                     stat=PROP_SERIES[str(series)],
                     threshold=float(thr),
                     series=str(series),
-                    label=str(title),
+                    label=sanitize_title(str(title)),
                 )
             )
     return out
@@ -224,7 +254,10 @@ def _latest_rows(
     mp = cfg.paths["market_db"]
     if not mp.exists():
         return []
-    con = open_ro(mp, copy_ok=True)
+    try:
+        con = open_ro(mp)  # ~1 GB: never copied; a locked store reads as "no reference"
+    except duckdb.IOException:
+        return []
     try:
         ph = ",".join("?" for _ in markets)
         return [

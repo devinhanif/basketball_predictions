@@ -15,7 +15,7 @@ from nba.parlay.assistant.backend import LLMReply, OllamaUnavailable
 from tests.jarvis.conftest import G1, TIP1
 
 
-def mk(label: str = "none", edge: float = -3.4, fair: float | None = 0.55) -> Play:
+def mk(label: str = "strong", edge: float = 3.4, fair: float | None = 0.55) -> Play:
     leg = PlayLeg("kalshi", "T", "yes", 0.52, "game_win", "LAL to win", team_id=1)
     return Play(
         G1, "LAL@LAC", TIP1, (leg,), label, edge, fair, 1.7, 0.52, 3, 1.58, "r", model_prob=0.6
@@ -25,6 +25,7 @@ def mk(label: str = "none", edge: float = -3.4, fair: float | None = 0.55) -> Pl
 class Say:
     def __init__(self, text: str) -> None:
         self.text, self.calls = text, 0
+        self.messages: list = []  # type: ignore[type-arg]
 
     def chat(self, messages, tools):  # type: ignore[no-untyped-def]
         self.calls += 1
@@ -71,16 +72,54 @@ def test_give_up_phrases_are_refused() -> None:
         assert reject_reason(bad, "none") is not None
 
 
-def test_oversell_is_refused_unless_arbitrage() -> None:
-    assert reject_reason("This is a lock.", "strong")
-    assert reject_reason("Guaranteed profit.", "thin")
-    assert reject_reason("Risk-free after fees.", "arbitrage") is None
+def test_oversell_is_refused_for_every_label() -> None:
+    for label in ("strong", "thin", "none", "arbitrage"):
+        assert reject_reason("This is a lock.", label)
+        assert reject_reason("Guaranteed profit.", label)
+        assert reject_reason("Risk-free after fees.", label)
 
 
-def test_a_fair_price_cannot_be_called_an_edge() -> None:
-    assert reject_reason("There is real value here.", "none")
-    assert reject_reason("A small edge on the Lakers.", "none")
-    assert reject_reason("A small edge on the Lakers.", "thin") is None
+def test_a_fair_or_thin_price_cannot_be_called_an_edge() -> None:
+    for label in ("none", "thin", "arb_candidate"):
+        assert reject_reason("There is real value here.", label)
+        assert reject_reason("A small edge on the Lakers.", label)
+    assert reject_reason("A small edge on the Lakers.", "strong") is None
+
+
+A3 = [  # the adversary's oversell sentences (review B5): every one must be refused
+    "Great value here, the price is mispriced. A strong edge. Easy money, a slam dunk.",
+    "This is a sure bet and a no-brainer.",
+    "A 9-cent edge on the Lakers.",
+    "Twenty cents better than fair, bank on it.",
+    "Hammer it, this one locks.",
+    "A can't-miss sharp side.",
+]
+
+
+def test_every_adversary_oversell_sentence_is_refused_for_thin_and_none() -> None:
+    for label in ("thin", "none"):
+        for sentence in A3:
+            p = mk(label, 0.4 if label == "thin" else -3.0)
+            _t, src = explain(p, facts(p), Say(sentence))
+            assert src == "template", (label, sentence)  # thin/none never use the model at all
+
+
+def test_the_model_text_is_only_for_strong_and_arbitrage() -> None:
+    for label in ("none", "thin", "arb_candidate"):
+        llm = Say("A fine bet at 52¢.")
+        _t, src = explain(mk(label, 0.4), facts(mk(label, 0.4)), llm)
+        assert src == "template" and llm.calls == 0
+    _t, src = explain(mk("strong"), facts(mk("strong")), Say("A fine bet at 52¢."))
+    assert src == "llm"
+
+
+def test_strong_prose_still_rejects_oversell_and_spelled_out_numbers() -> None:
+    p = mk("strong")
+    for sentence in A3:
+        assert explain(p, facts(p), Say(sentence))[1].startswith("template"), sentence
+    assert reject_reason("Priced twenty cents under fair.", "strong")
+    assert reject_reason("About fifty percent likely.", "strong")
+    assert prepare("a 9-cent edge and 52c and 7 cents") == "a 9¢ edge and 52¢ and 7¢"
 
 
 def test_llm_offline_or_error_falls_back_without_raising() -> None:

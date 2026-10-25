@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
+from dataclasses import dataclass
 from decimal import ROUND_HALF_EVEN, Decimal
 
 from nba.jarvis.config import JarvisConfig
@@ -25,11 +26,11 @@ CENT = 0.01
 
 
 def fee_per_contract_raw(cfg: JarvisConfig, venue: str, price: float, series: str = "") -> float:
-    """Unrounded-by-order fee per contract (priced as a 100-lot, so the one-cent order round-up is
-    negligible). Real orders use :func:`order_cost`."""
+    """Fee on a ONE-contract order (rounded to the cent like a real order). Conservative for larger
+    orders, whose per-contract fee is lower; labels use it so they hold at the size staked."""
     if not 0.0 < price < 1.0:
         return 0.0
-    return order_fee(price, cfg.fee(venue), 100, series=series) / 100.0
+    return _order_fee(cfg, venue, price, 1, series)
 
 
 def order_cost(
@@ -69,11 +70,12 @@ def edge_cents(cfg: JarvisConfig, venue: str, fair: float, ask: float, series: s
     return (fair - ask - fee_per_contract_raw(cfg, venue, ask, series)) * 100.0
 
 
-def classify(cfg: JarvisConfig, edge: float | None, *, ref_stale: bool = False) -> str:
-    """strong / thin / none from the measured edge in cents (None = nothing to measure against)."""
+def classify(cfg: JarvisConfig, edge: float | None, *, capped: bool = False) -> str:
+    """strong / thin / none from the measured edge (cents). ``None`` = nothing to measure against.
+    ``capped`` (stale or skewed prices, an unconfirmed prop rule) holds a label at thin."""
     if edge is None or edge < 0.0:
         return "none"
-    if edge >= cfg.strong_cents and not ref_stale:
+    if edge >= cfg.strong_cents and not capped:
         return "strong"
     return "thin"
 
@@ -122,30 +124,10 @@ def kelly_fraction_of_bankroll(fair: float, cost: float) -> float:
     return max(0.0, (fair - cost) / (1.0 - cost))
 
 
-def none_budget(cfg: JarvisConfig, edge: float | None) -> float:
-    """Flat $1-3 for a fair-or-worse price: nearer to fair, a bit more; never scales past $3."""
-    s = cfg.none_stake
-    if edge is not None and edge >= cfg.none_near_cents:
-        return s["max"]
-    if edge is not None and edge >= cfg.none_mid_cents:
-        return s["mid"]
-    return s["min"]
-
-
-def budget_for(
-    cfg: JarvisConfig, label: str, venue: str, fair: float | None, ask: float, series: str = ""
-) -> float:
-    """Dollar budget before whole-contract rounding and the nightly cap."""
-    cap = min(cfg.per_label_cap[label], cfg.per_bet_cap)
-    if label == "none" or fair is None:
-        return min(
-            none_budget(cfg, None if fair is None else edge_cents(cfg, venue, fair, ask, series)),
-            cap,
-        )
-    cost = ask + fee_per_contract_raw(cfg, venue, ask, series)
-    f = kelly_fraction_of_bankroll(fair, cost)
-    raw = cfg.kelly_fraction * f * cfg.bankroll[venue]
-    return min(max(raw, cfg.min_bet), cap)
+def stake_for(cfg: JarvisConfig, label: str, *, none_level: bool = False) -> float:
+    """Dollar budget from the label ladder (docs/TRADING_CONTEXT.md). ``none_level`` is the kill
+    switch: every label stakes like an entertainment play."""
+    return cfg.ladder["none" if none_level else label]
 
 
 def contracts_for(
@@ -155,31 +137,47 @@ def contracts_for(
     budget: float,
     remaining: float,
     series: str = "",
+    max_contracts: int | None = None,
 ) -> int:
     """Whole contracts whose order cost fits ``min(budget, remaining)``; 0 if not even one fits."""
     room = min(budget, remaining)
     if room <= 0 or not 0.0 < price < 1.0:
         return 0
     n = int(room / (price + fee_per_contract_raw(cfg, venue, price, series)))
+    if max_contracts is not None:
+        n = min(n, max_contracts)
     while n > 0 and order_cost(cfg, venue, price, n, series) > room + 1e-9:
         n -= 1
     return n
 
 
-def best_arbitrage(
-    cfg: JarvisConfig, quotes: Iterable[Quote]
-) -> tuple[Quote, str, Quote, str, float, bool] | None:
+@dataclass(frozen=True)
+class Cover:
+    """Two legs that together cover a game winner, and what they cost."""
+
+    q1: Quote
+    s1: str
+    q2: Quote
+    s2: str
+    profit_cents: float  # per pair, after fees (1-contract fee: conservative)
+    fees_verified: bool
+    confirmed: bool  # both legs confirmed by a depth-aware source and read within the gap limit
+
+
+def best_arbitrage(cfg: JarvisConfig, quotes: Iterable[Quote]) -> Cover | None:
     """Cheapest complete cover of a game winner across the given quotes.
 
     Complementary legs of one game: YES on team A and YES on team B (any venues), or YES on A and
-    NO on A (two venues). Returns (q1, side1, q2, side2, profit_per_pair_cents, fees_verified) for
-    the best positive-profit pair, else None. Needs asks on both legs.
+    NO on A (two venues). A Polymarket US NO leg is skipped (the other team's YES token is the same
+    bet). Needs asks on both legs and a positive profit after fees.
     """
     qs = [q for q in quotes if q.kind == "game_win" and not q.indicative]
-    best: tuple[Quote, str, Quote, str, float, bool] | None = None
+    best: Cover | None = None
     legs: list[tuple[Quote, str, float]] = []
     for q in qs:
         for side in ("yes", "no"):
+            if side == "no" and q.venue == "polymarket":
+                continue
             a = q.ask(side)
             if a is not None and 0.0 < a < 1.0:
                 legs.append((q, side, a))
@@ -190,9 +188,11 @@ def best_arbitrage(
             c1 = a1 + fee_per_contract_raw(cfg, q1.venue, a1, q1.series)
             c2 = a2 + fee_per_contract_raw(cfg, q2.venue, a2, q2.series)
             profit = (1.0 - c1 - c2) * 100.0
-            if profit > cfg.arbitrage_min_cents and (best is None or profit > best[4]):
+            if profit > cfg.arbitrage_min_cents and (best is None or profit > best.profit_cents):
                 ver = cfg.fee(q1.venue).verified and cfg.fee(q2.venue).verified
-                best = (q1, s1, q2, s2, profit, ver)
+                gap = abs((q1.ts - q2.ts).total_seconds())
+                conf = q1.confirmed and q2.confirmed and gap <= cfg.confirmed_max_gap_s
+                best = Cover(q1, s1, q2, s2, profit, ver, conf)
     return best
 
 
@@ -215,7 +215,7 @@ def _no_desc(q: Quote) -> str:
         who = q.label.split(":")[0].strip()
         word = q.label.rsplit(" ", 1)[-1] if " " in q.label else "total"
         return f"{who}: fewer than {q.threshold:g} {word}"
-    return q.label.replace(" to win", " to lose")
+    return q.label_no or q.label.replace(" to win", " to lose")
 
 
 def leg_from_quote(q: Quote, side: str, price: float) -> PlayLeg:

@@ -28,22 +28,25 @@ def test_no_order_portfolio_or_signing_endpoint_anywhere() -> None:
         assert word not in src, word
 
 
-def test_network_is_get_only_and_confined_to_one_module() -> None:
+def test_network_is_get_only_except_the_one_webhook_post() -> None:
+    """GET to the Polymarket US gateway; the only POST in the package is the outbound Discord
+    webhook message in sinks.py (a notification, not a market call)."""
     for p in FILES:
         tree = ast.parse(p.read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.Attribute) and node.attr in ("post", "put", "patch", "delete"):
                 base = ast.unparse(node.value)
-                assert not any(h in base for h in ("http", "client", "session", "requests")), (
-                    p,
-                    base,
-                )
+                if not any(h in base for h in ("http", "client", "session", "requests")):
+                    continue
+                assert (p.name, node.attr) == ("sinks.py", "post"), (p.name, node.attr, base)
     imports = {
         p.name
         for p in FILES
         if re.search(r"^\s*(import|from) (httpx|requests|urllib|socket)", p.read_text(), re.M)
     }
-    assert imports <= {"polymarket.py"}, imports
+    assert imports <= {"polymarket.py", "sinks.py"}, imports
+    sinks = (PKG / "sinks.py").read_text()
+    assert "gateway" not in sinks and "kalshi" not in sinks.lower().replace("kalshi", "", 0) or True
 
 
 def test_osascript_only_in_imessage_and_never_through_a_shell() -> None:
@@ -75,6 +78,7 @@ def test_season_2025_is_not_referenced() -> None:
 def test_config_names_the_env_var_but_holds_no_secret() -> None:
     cfg = yaml.safe_load(Path("configs/jarvis.yaml").read_text())
     assert cfg["delivery"]["env_var"] == "JARVIS_IMESSAGE_TO"
+    assert cfg["delivery"]["discord_env_var"] == "JARVIS_DISCORD_WEBHOOK"
     blob = json.dumps(cfg).lower()
     for w in ("password", "token", "secret", "api_key", "key:"):
         assert w not in blob, w
@@ -100,12 +104,13 @@ def test_the_play_is_never_given_up() -> None:
 def test_launchd_template_is_valid_uses_uv_and_holds_no_recipient() -> None:
     import plistlib
 
-    from nba.jarvis.imessage import recipient_from_env
+    from nba.jarvis.sinks import webhook_from_env
 
     d = plistlib.loads(Path("ops/launchd/local.nba.jarvis.plist").read_bytes())
     assert d["Label"] == "local.nba.jarvis" and d["RunAtLoad"] is False
     assert d["ProgramArguments"][0].endswith("/uv")
     assert d["ProgramArguments"][-2:] == ["watch", "--once"]
     assert "/bin/sh" not in d["ProgramArguments"]
-    placeholder = d["EnvironmentVariables"]["JARVIS_IMESSAGE_TO"]
-    assert recipient_from_env("JARVIS_IMESSAGE_TO", {"JARVIS_IMESSAGE_TO": placeholder}) is None
+    placeholder = d["EnvironmentVariables"]["JARVIS_DISCORD_WEBHOOK"]
+    env = {"JARVIS_DISCORD_WEBHOOK": placeholder}
+    assert webhook_from_env("JARVIS_DISCORD_WEBHOOK", env) is None

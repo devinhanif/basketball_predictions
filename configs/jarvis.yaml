@@ -7,33 +7,49 @@ bankroll_usd:                   # Devin 2026-10-25: $35 on Kalshi, $35 on Polyma
   kalshi: 35.0
   polymarket: 35.0
 
+balance:                        # Devin updates current_usd by hand (docs/TRADING_CONTEXT.md)
+  start_usd: 70.0               # Kalshi $35 + Polymarket US $35
+  current_usd: 70.0
+  floor_usd: 20.0               # at or below the floor JARVIS is PAPER-ONLY until Devin resets it
+
 caps:
-  nightly_usd: 20.0             # bankroll-rules / STRATEGY v2: nightly loss cap $20 (all plays, one ET date)
+  nightly_usd: 20.0             # nightly loss cap (all plays, one ET date)
+  reserve_for_strong_usd: 10.0  # none/thin/arb_candidate/daily dollar may use only nightly - reserve
   per_bet_usd: 10.0             # hard ceiling for any single play (both legs of an arbitrage together)
-  per_label_usd:                # ceiling per play by edge label
-    arbitrage: 10.0
-    strong: 5.0
-    thin: 3.0
-    none: 3.0
-  min_bet_usd: 1.0              # floor for strong/thin (thin = $1-3)
+  per_label_usd: {arbitrage: 10.0, strong: 5.0, thin: 3.0, none: 1.0, arb_candidate: 3.0}
+  min_bet_usd: 1.0
 
 sizing:
-  kelly_fraction: 0.25          # fractional Kelly on the MEASURED edge (arbitrage, strong, thin)
-  # label "none": flat $1-3 by how close to fair the price is (edge in cents after fee):
-  #   edge >= none_near_cents -> max; edge >= none_mid_cents -> mid; else min.
-  none_stake_usd: {min: 1.0, mid: 2.0, max: 3.0}
-  none_near_cents: -1.0
-  none_mid_cents: -2.0
+  # Stake ladder from docs/TRADING_CONTEXT.md (monotone in the label): none $1 (at most 2 contracts), thin $3,
+  # strong $5, arbitrage $10. An unconfirmed arbitrage candidate is sized as thin. The label is the edge;
+  # a bigger measured edge inside a label does not buy a bigger stake.
+  ladder_usd: {none: 1.0, thin: 3.0, strong: 5.0, arbitrage: 10.0, arb_candidate: 3.0}
+  none_max_contracts: 2
+
+kill_switch:                    # closing-line value is the judge of the labels (TRADING_CONTEXT.md)
+  min_bets: 30                  # over the last N settled JARVIS bets with a two-sided close
+  # mean CLV < 0  ->  every stake drops to the "none" size until Devin fixes the labels. No losing-streak rule.
 
 labels:                         # the label is computed from data (cents vs Pinnacle no-vig, after fee)
   strong_cents: 3.0             # strong: edge >= this; thin: 0 <= edge < this; none: edge < 0
-  arbitrage_min_cents: 0.0      # arbitrage: guaranteed profit after fees on BOTH legs > this
+  arbitrage_min_cents: 0.0      # an arbitrage candidate: cover cost below $1 after fees on BOTH legs
   devig: proportional           # Pinnacle no-vig method (the capture stores the same one)
+  # edges are priced with the fee on a ONE-contract order (Kalshi rounds the order fee up to the cent),
+  # which is conservative for larger orders.
 
 freshness:
   max_quote_age_min: 30         # a tradable quote older than this is not offered as a play
+  max_alert_quote_age_min: 5    # a quote older than this cannot carry a strong label (capped at thin)
   max_ref_age_min: 120          # a Pinnacle reference older than this caps the label at "thin"
+  max_ref_lead_min: 2           # Pinnacle read more than this much NEWER than the quote: capped at thin
   min_minutes_to_tip: 3         # never emit a play for a game this close to (or past) tip
+  confirmed_max_gap_s: 5        # an arbitrage needs both legs confirmed, read at most this far apart, with depth
+
+settlement:                     # unverified rules are said out loud on every cross-venue play
+  settlement_rules_verified: false      # postponement / overtime / void rules equal on both venues
+  kalshi_prop_dnp_rule_verified: false  # how Kalshi settles a player prop when the player does not play
+  # while the DNP rule is unverified, a prop's fair price is Pinnacle's P(over | plays) x P(plays) (our model),
+  # and without a model P(plays) the prop label is capped at thin.
 
 fees:
   # Kalshi: configs/parlay.yaml fee_model (verified, Devin 2026-10-08). Polymarket US: the verified object
@@ -55,14 +71,55 @@ polymarket:                     # Polymarket US public gateway, GET only, no key
   enabled: true
 
 delivery:
-  env_var: JARVIS_IMESSAGE_TO   # the NAME of the variable; its value is never read into config or logs
+  sinks: [discord]              # discord (default) and/or imessage (optional)
+  discord_env_var: JARVIS_DISCORD_WEBHOOK   # the NAME of the variable; the URL is never in the repo, a log or an error
+  env_var: JARVIS_IMESSAGE_TO   # iMessage sink (optional): the NAME of the variable
   dedupe_minutes: 30
-  slate_lead_min: 90            # pre-tip slate summary: the first watch tick at or inside T-90 (+2 min) of the first tip
-  max_chars: 480                # phone-length (a longer slate is split into several texts)
-  max_texts: 3                  # hard ceiling on texts per send
+  max_attempts_per_key: 3       # failed/partial sends per key per slate date before JARVIS gives up
+  realert_edge_cents: 1.0       # an already-alerted play alerts again only if its edge moved this much (or its label upgraded)
+  slate_lead_min: 90            # pre-tip slate preview: the first watch tick at or inside T-90 (+2 min) of the first tip
+  max_chars_discord: 1800       # a Discord message holds 2000
+  max_chars_imessage: 480       # phone-length
+  max_texts: 3                  # hard ceiling on messages per post
   display_tz: America/Chicago   # times shown to Devin
-  alert_labels: [arbitrage, strong]
-  alert_when_cap_used: true     # strong/arbitrage still text when the nightly cap is used (stake shows $0)
+  alert_labels: [arbitrage, strong]    # arb_candidate never alerts
+  alert_when_cap_used: true     # strong/arbitrage still post when the nightly cap is used (stake shows $0)
+  recap_after_et_hour: 8        # the morning recap posts once, at the first tick after this ET hour
+  halftime_checkins: true
+
+model_weights:                  # model weight by stat, earned from the closing-line record
+  # FROZEN 2026-10-25, BEFORE ANY DATA EXISTS (Devin's approval, same day). This is a PAPER-ONLY ADAPTATION
+  # of JARVIS's own fair price, NOT a frozen test: it never changes the scoring, rule or window of any frozen
+  # rule (docs/FORWARD_PREREG_2026_27.md), and no claim is made from it. Rules, fixed here and not edited
+  # after a result is seen:
+  #   fair = Pinnacle_no_vig + w_stat x (model - Pinnacle_no_vig); w starts at 0 for every stat
+  #   (so behaviour is unchanged until the record earns a weight) and stays in [0, w_max].
+  #   Weekly (at most once per 7 days), per stat, over settled single-leg JARVIS plays whose model was
+  #   LEANING (model fair > Pinnacle fair for the bought side) and that have a two-sided close:
+  #     n >= min_n AND distinct dates >= min_dates, else HOLD;
+  #     mean CLV > 0 AND date-clustered ci_level lower bound > 0   ->  w += step  (cap w_max)
+  #     mean CLV < 0                                               ->  w -= step  (floor 0)
+  #     otherwise HOLD.
+  #   Every evaluation (change or hold) is appended to log with n, the CI and the date, and posted in the
+  #   morning recap. Stats: pts, reb, ast, fg3m, combos, win.
+  w_max: 0.5
+  step: 0.1
+  min_n: 30
+  min_dates: 10
+  ci_level: 0.80
+  min_days_between_updates: 7
+  log: data/jarvis/model_weights.jsonl
+
+daily_dollar:                   # one $1 correlated long-shot ticket a day (TRADING_CONTEXT.md)
+  enabled: true
+  stake_usd: 1.0
+  target_multiple: [50, 300]    # payout / cost
+  max_legs: 3
+  # fair = product of the single-leg fair prices x corr_factor. The factor is an ESTIMATE, not measured on a
+  # combo price: same-player legs hit 28.6% vs 20.1% (1.42x) in the project data, a team win with its own
+  # star's big night is assumed weaker. Buy only at or below fair.
+  corr_factor: 1.2
+  corr_factor_is_estimate: true
 
 paths:
   paper_book: data/jarvis/paper_book.duckdb

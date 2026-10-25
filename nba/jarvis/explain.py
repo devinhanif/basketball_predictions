@@ -37,14 +37,29 @@ _GIVEUP = re.compile(
     re.IGNORECASE,
 )
 _OVERSELL = re.compile(
-    r"\block\b|sure thing|guarantee|can'?t lose|free money|risk[- ]free", re.IGNORECASE
+    r"\blocks?\b|sure (?:thing|bet)|guarantee|can'?t[- ](?:lose|miss)|free money|risk[- ]free|"
+    r"easy money|slam[- ]dunk|no[- ]brainer|\bbank on\b|\bhammer\b|"
+    r"\bsharp (?:side|play)\b|\bhits? (?:every|each) time\b",
+    re.IGNORECASE,
 )
-_EDGEWORDS = re.compile(r"\bedge\b|\bvalue\b|mispriced|\bsteal\b|\bbargain\b", re.IGNORECASE)
-_CENTS = re.compile(r"(\d)\s?(?:cents?|c)\b")
+_EDGEWORDS = re.compile(
+    r"\bedge\b|\bvalue\b|mispriced|\bsteal\b|\bbargain\b|\bgreat (?:price|bet|play)\b|"
+    r"\bprofitable\b|\bwinner\b",
+    re.IGNORECASE,
+)
+_NUMBER_WORD = re.compile(
+    r"\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|teen|twenty|thirty|forty|"
+    r"fifty|sixty|seventy|eighty|ninety|hundred|half|dozen)[- ]?(?:\w+[- ])?"
+    r"(?:cents?|percent|points?|%)",
+    re.IGNORECASE,
+)
+_CENTS = re.compile(r"(\d)\s?-?\s?(?:cents?|c)\b")
+# an LLM sentence is allowed only for these labels; thin/none/arb_candidate use the template
+LLM_LABELS = ("strong", "arbitrage")
 
 
 def prepare(text: str) -> str:
-    """Normalise cents so numguard sees them ('52c' would otherwise slip past its token regex)."""
+    """Normalise cents so numguard sees them ('52c', '9-cent' would otherwise slip past it)."""
     return _CENTS.sub(r"\1¢", text.strip())
 
 
@@ -53,10 +68,12 @@ def reject_reason(text: str, label: str) -> str | None:
         return "empty"
     if _GIVEUP.search(text):
         return "gave up / said keep your money"
-    if label != "arbitrage" and _OVERSELL.search(text):
-        return "oversold a non-arbitrage play"
-    if label == "none" and _EDGEWORDS.search(text):
-        return "called a fair-price bet an edge"
+    if _OVERSELL.search(text):
+        return "oversold the play"
+    if label != "strong" and label != "arbitrage" and _EDGEWORDS.search(text):
+        return "called a fair-price or thin bet an edge"
+    if _NUMBER_WORD.search(text):
+        return "spelled-out number next to cents/percent/points"
     return None
 
 
@@ -158,7 +175,7 @@ def explain(
 ) -> tuple[str, str]:
     """(text, source): source is 'llm', 'template' or 'template:<why the model was refused>'."""
     fallback = template_text(play, facts)
-    if backend is None:
+    if backend is None or play.label not in LLM_LABELS:
         return fallback, "template"
     msgs = [
         {"role": "system", "content": SYSTEM},
@@ -170,8 +187,9 @@ def explain(
         return fallback, "template:llm_offline"
     except Exception as exc:  # any backend failure must not block an alert
         return fallback, f"template:llm_error_{type(exc).__name__}"
-    text = clip_sentences(prepare(raw))
-    why = reject_reason(text, play.label)
+    full = prepare(raw)
+    why = reject_reason(full, play.label)  # judge ALL of it: clipping must not hide a sentence
+    text = clip_sentences(full)
     if why:
         return fallback, f"template:{why}"
     allowed = collect_numbers(facts)

@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS plays (
   venue VARCHAR, ticker VARCHAR, side VARCHAR, kind VARCHAR, team_id INTEGER, player_id INTEGER,
   stat VARCHAR, threshold DOUBLE, price DOUBLE, max_price DOUBLE, contracts INTEGER,
   stake_usd DOUBLE, edge_label VARCHAR, edge_cents DOUBLE, fair_prob DOUBLE, fee_cents DOUBLE,
-  model_prob DOUBLE, reason VARCHAR, explanation VARCHAR, dedupe_key VARCHAR, input_hash VARCHAR
+  model_prob DOUBLE, reason VARCHAR, explanation VARCHAR, dedupe_key VARCHAR, input_hash VARCHAR,
+  delivered VARCHAR, pin_prob DOUBLE, w_model DOUBLE, leg_desc VARCHAR
 );
 CREATE TABLE IF NOT EXISTS scores (
   play_id VARCHAR PRIMARY KEY, scored_at TIMESTAMP, status VARCHAR, won BOOLEAN, pnl_usd DOUBLE,
@@ -46,6 +47,10 @@ CREATE TABLE IF NOT EXISTS scores (
 );
 CREATE TABLE IF NOT EXISTS quote_log (
   venue VARCHAR, ticker VARCHAR, ts TIMESTAMP, yes_bid DOUBLE, yes_ask DOUBLE
+);
+CREATE TABLE IF NOT EXISTS alert_state (
+  slate_date DATE, dedupe_key VARCHAR, edge_cents DOUBLE, ts TIMESTAMP,
+  PRIMARY KEY (slate_date, dedupe_key)
 );
 CREATE TABLE IF NOT EXISTS sends (
   send_id VARCHAR PRIMARY KEY, ts TIMESTAMP, kind VARCHAR, mode VARCHAR, slate_date DATE,
@@ -57,7 +62,8 @@ CREATE TABLE IF NOT EXISTS sends (
 PLAY_COLS = (
     "play_id bundle_id leg_idx ts slate_date game_id matchup tipoff source venue ticker side kind "
     "team_id player_id stat threshold price max_price contracts stake_usd edge_label edge_cents "
-    "fair_prob fee_cents model_prob reason explanation dedupe_key input_hash"
+    "fair_prob fee_cents model_prob reason explanation dedupe_key input_hash delivered "
+    "pin_prob w_model leg_desc"
 )
 PLAY_COLS_L = PLAY_COLS.split()  # noqa: SIM905 - one readable column string
 INSERT_PLAY = (
@@ -90,7 +96,7 @@ class PaperBook:
     def ensure(self) -> None:
         self._con().close()
 
-    def _rows(self, sql: str, params: list[object] | None = None) -> list[tuple[object, ...]]:
+    def _rows(self, sql: str, params: list[object] | None = None) -> list[tuple[Any, ...]]:
         """Read-only query; an absent book (nothing recorded yet) reads as empty, not created."""
         if not self.path.exists():
             return []
@@ -119,18 +125,26 @@ class PaperBook:
         s = self._rows(
             "SELECT max(contracts), sum(stake_usd) FROM plays WHERE bundle_id = ?", [r[0][0]]
         )
-        return (int(s[0][0]), float(s[0][1])) if s and s[0][0] is not None else None  # type: ignore[call-overload,arg-type]
+        return (int(s[0][0]), float(s[0][1])) if s and s[0][0] is not None else None
 
-    def spent_tonight(self, slate: date) -> float:
-        """Stake of the FIRST emission of every distinct play of the slate date (re-emissions of the
-        same play are not new money)."""
+    def spent_split(self, slate: date) -> tuple[float, float]:
+        """(strong/arbitrage, everything else) stake of the FIRST emission of every distinct play of
+        the slate date. Re-emissions are not new money; a pick of Devin's is not JARVIS's money."""
         r = self._rows(
-            "SELECT coalesce(sum(stake_usd), 0) FROM plays p WHERE slate_date = ? AND ts = ("
+            "SELECT coalesce(sum(CASE WHEN edge_label IN ('strong','arbitrage') "
+            "THEN stake_usd END), 0), "
+            "coalesce(sum(CASE WHEN edge_label NOT IN ('strong','arbitrage') "
+            "THEN stake_usd END), 0) "
+            "FROM plays p WHERE slate_date = ? AND source <> 'pick' AND ts = ("
             "SELECT min(ts) FROM plays q WHERE q.dedupe_key = p.dedupe_key "
             "AND q.slate_date = p.slate_date)",
             [slate],
         )
-        return float(r[0][0]) if r and r[0][0] is not None else 0.0  # type: ignore[arg-type]
+        return (float(r[0][0]), float(r[0][1])) if r else (0.0, 0.0)
+
+    def spent_tonight(self, slate: date) -> float:
+        a, b = self.spent_split(slate)
+        return a + b
 
     def record(
         self,
@@ -139,64 +153,87 @@ class PaperBook:
         source: str,
         slate: date,
         explanations: dict[str, str] | None = None,
-        dedupe_minutes: float = 30.0,
+        delivered: str = "sent",
         now: datetime | None = None,
     ) -> list[Play]:
-        """Insert plays not already recorded within the dedupe window; return the NEW ones."""
+        """Record plays at decision time, once per (slate date, dedupe key): a re-emission is not a
+        new bet and never a new row. ``delivered`` is sent / failed / partial; a row first recorded
+        as failed is updated when a later send delivers it. Returns the NEW plays."""
         ts = now or now_naive()
         fresh: list[Play] = []
         con = self._con()
         try:
             for p in plays:
-                cut = ts - timedelta(minutes=dedupe_minutes)
                 r = con.execute(
-                    "SELECT count(*) FROM plays WHERE dedupe_key = ? AND ts > ?", [p.key, cut]
+                    "SELECT count(*), max(delivered) FROM plays "
+                    "WHERE dedupe_key = ? AND slate_date = ?",
+                    [p.key, slate],
                 ).fetchone()
                 if r and r[0]:
+                    if delivered in ("sent", "partial") and r[1] == "failed":
+                        con.execute(
+                            "UPDATE plays SET delivered = ? "
+                            "WHERE dedupe_key = ? AND slate_date = ?",
+                            [delivered, p.key, slate],
+                        )
                     continue
-                bundle = sha([p.key, ts.isoformat()])
+                bundle = sha([p.key, str(slate), ts.isoformat()])
                 ih = sha(p.inputs)
                 for i, leg in enumerate(p.legs):
                     cost = order_cost_leg(p, i)
                     con.execute(
                         INSERT_PLAY,
                         [
-                            sha([bundle, i]),
-                            bundle,
-                            i,
-                            ts,
-                            slate,
-                            p.game_id,
-                            p.matchup,
-                            p.tipoff,
-                            source,
-                            leg.venue,
-                            leg.ticker,
-                            leg.side,
-                            leg.kind,
-                            leg.team_id,
-                            leg.player_id,
-                            leg.stat,
-                            leg.threshold,
-                            leg.price,
-                            p.max_price,
-                            p.contracts,
-                            cost,
-                            p.label,
-                            p.edge_cents,
-                            p.fair_prob,
-                            p.fee_cents,
-                            p.model_prob,
-                            p.reason,
-                            (explanations or {}).get(p.key, ""),
-                            p.key,
-                            ih,
+                            sha([bundle, i]), bundle, i, ts, slate, p.game_id, p.matchup, p.tipoff,
+                            source, leg.venue, leg.ticker, leg.side, leg.kind, leg.team_id,
+                            leg.player_id, leg.stat, leg.threshold, leg.price, p.max_price,
+                            p.contracts, cost, p.label, p.edge_cents, p.fair_prob, p.fee_cents,
+                            p.model_prob, p.reason, (explanations or {}).get(p.key, ""), p.key, ih,
+                            delivered, p.pin_prob, p.w_model, leg.desc,
                         ],
-                    )
+                    )  # fmt: skip
                 fresh.append(p)
         finally:
             con.close()
         return fresh
+
+    # ------------------------------------------------------------------ alert state
+    def realert_due(
+        self, key: str, slate: date, edge: float, label_upgrade: bool, min_move: float
+    ) -> bool:
+        """A play already alerted today alerts again only on a label upgrade (a new key) or when its
+        edge moved at least ``min_move`` cents from the edge last alerted."""
+        r = self._rows(
+            "SELECT edge_cents FROM alert_state WHERE slate_date = ? AND dedupe_key = ?",
+            [slate, key],
+        )
+        if not r:
+            return True
+        last = float(r[0][0])
+        return label_upgrade or abs(edge - last) >= min_move
+
+    def note_alert(self, key: str, slate: date, edge: float, now: datetime | None = None) -> None:
+        con = self._con()
+        try:
+            con.execute(
+                "DELETE FROM alert_state WHERE slate_date = ? AND dedupe_key = ?", [slate, key]
+            )
+            con.execute(
+                "INSERT INTO alert_state VALUES (?,?,?,?)", [slate, key, edge, now or now_naive()]
+            )
+        finally:
+            con.close()
+
+    def failed_attempts(self, kind: str, slate: date, key: str | None = None) -> int:
+        """Failed or partial sends of this kind today (for the give-up cap)."""
+        rows = self._rows(
+            "SELECT dedupe_keys FROM sends WHERE kind = ? AND slate_date = ? "
+            "AND mode IN ('failed','partial')",
+            [kind, slate],
+        )
+        if key is None:
+            return len(rows)
+        return sum(1 for r in rows if key in json.loads(str(r[0])))
 
     def log_quotes(self, quotes: Iterable[Quote]) -> int:
         rows = [
@@ -255,14 +292,24 @@ class PaperBook:
         """Was a real or dry-run send that carried ``key`` made within ``minutes``?"""
         cut = (now or now_naive()) - timedelta(minutes=minutes)
         rows = self._rows(
-            "SELECT dedupe_keys FROM sends WHERE ts > ? AND mode IN ('sent','dry_run')", [cut]
+            "SELECT dedupe_keys FROM sends WHERE ts > ? AND mode IN ('sent','partial','dry_run')",
+            [cut],
         )
         return any(key in json.loads(str(r[0])) for r in rows)
+
+    def kind_sent(self, kind: str, slate: date, key: str = "") -> bool:
+        """Has a post of this kind (and key) gone out, wholly or in part, for the slate date?"""
+        rows = self._rows(
+            "SELECT dedupe_keys FROM sends WHERE kind = ? AND slate_date = ? "
+            "AND mode IN ('sent','partial','dry_run')",
+            [kind, slate],
+        )
+        return bool(rows) if not key else any(key in json.loads(str(r[0])) for r in rows)
 
     def slate_summary_sent(self, slate: date) -> bool:
         r = self._rows(
             "SELECT count(*) FROM sends WHERE kind = 'slate' AND slate_date = ? "
-            "AND mode IN ('sent','dry_run')",
+            "AND mode IN ('sent','partial','dry_run')",
             [slate],
         )
         return bool(r and r[0][0])
@@ -281,7 +328,7 @@ def order_cost_leg(p: Play, i: int) -> float:
     return 0.0
 
 
-__all__ = ["LABELS", "PaperBook", "order_cost", "sha"]
+__all__ = ["LABELS", "PaperBook", "order_cost", "sha", "KillState", "kill_switch"]
 
 
 # ------------------------------------------------------------------------------ scoring
@@ -382,17 +429,19 @@ class OutcomeSource:
 def closing_quote(
     cfg: JarvisConfig, book_con: duckdb.DuckDBPyConnection, row: dict[str, Any]
 ) -> tuple[datetime, float | None, float | None, str] | None:
-    """(ts, bid, ask, source) of the venue's last YES quote strictly before tip, else None."""
+    """(ts, bid, ask, source) of the LATEST YES quote strictly before tip across JARVIS's own
+    quote_log and (Kalshi) the snapshot store, else None."""
     tip = row["tipoff"]
     if tip is None:
         return None
+    cands: list[tuple[datetime, float | None, float | None, str]] = []
     r = book_con.execute(
         "SELECT ts, yes_bid, yes_ask FROM quote_log WHERE venue = ? AND ticker = ? AND ts < ? "
         "ORDER BY ts DESC LIMIT 1",
         [row["venue"], row["ticker"], tip],
     ).fetchone()
     if r:
-        return r[0], r[1], r[2], "quote_log"
+        cands.append((r[0], r[1], r[2], "quote_log"))
     if row["venue"] == "kalshi" and cfg.paths["kalshi_db"].exists():
         from nba.jarvis.sources import open_ro
 
@@ -406,8 +455,13 @@ def closing_quote(
         finally:
             kc.close()
         if k:
-            return k[0], k[1], k[2], "kalshi_prices"
-    return None
+            cands.append((k[0], k[1], k[2], "kalshi_prices"))
+    return max(cands, key=lambda c: c[0]) if cands else None
+
+
+def two_sided(bid: float | None, ask: float | None) -> bool:
+    """A close needs both sides: bid > 0 and ask < 1 (a one-sided book has no defined mid)."""
+    return bid is not None and ask is not None and float(bid) > 0.0 and float(ask) < 1.0
 
 
 def score_book(
@@ -426,7 +480,11 @@ def score_book(
         )
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
+        combos: dict[str, list[dict[str, Any]]] = {}
         for row in rows:
+            if row["edge_label"] == "daily_dollar":
+                combos.setdefault(row["bundle_id"], []).append(row)
+                continue
             o = src.of(row)
             if o.status == "unresolved":
                 counts["waiting"] += 1
@@ -437,10 +495,9 @@ def score_book(
             if cq is not None:
                 cts, bid, yask, csrc = cq
                 yes = row["side"] == "yes"
-                if bid is not None and yask is not None:
+                if bid is not None and yask is not None and two_sided(bid, yask):
                     m = (float(bid) + float(yask)) / 2.0
                     mid = m if yes else 1.0 - m
-                if yask is not None and bid is not None:
                     ask = float(yask) if yes else 1.0 - float(bid)
             clv = None if mid is None else (mid - float(row["price"])) * 100.0
             clv_ask = None if ask is None else (ask - float(row["price"])) * 100.0
@@ -455,9 +512,38 @@ def score_book(
                 "INSERT INTO scores VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 [row["play_id"], ts, o.status, o.won, pnl, cts, mid, ask, csrc, clv, clv_ask],
             )
+        for legs in combos.values():
+            _score_combo(con, src, legs, ts, counts)
     finally:
         con.close()
     return counts
+
+
+def _score_combo(
+    con: duckdb.DuckDBPyConnection,
+    src: OutcomeSource,
+    legs: list[dict[str, Any]],
+    ts: datetime,
+    counts: dict[str, int],
+) -> None:
+    """A combo ticket wins only if every leg wins: one P&L for the bundle (on leg 0)."""
+    outs = [src.of(r) for r in legs]
+    if any(o.status == "unresolved" for o in outs) and not any(o.won is False for o in outs):
+        counts["waiting"] += 1
+        return
+    if any(o.status == "void" for o in outs):
+        status, won, pnl_total = "void", None, 0.0
+    else:
+        status = "settled"
+        won = all(o.won for o in outs) if all(o.won is not None for o in outs) else False
+        stake = sum(float(r["stake_usd"]) for r in legs)
+        pnl_total = (float(legs[0]["contracts"]) if won else 0.0) - stake
+    counts["void" if status == "void" else "scored"] += 1
+    for k, r in enumerate(sorted(legs, key=lambda r: r["leg_idx"])):
+        con.execute(
+            "INSERT INTO scores VALUES (?,?,?,?,?,NULL,NULL,NULL,'',NULL,NULL)",
+            [r["play_id"], ts, status, won, pnl_total if k == 0 else 0.0],
+        )
 
 
 # ------------------------------------------------------------------------------ summary
@@ -496,59 +582,119 @@ def cluster_ci(
     return sum(allv) / len(allv), lo, hi
 
 
+WEEKLY_LABELS = (*LABELS, "daily_dollar", "pick")
+
+
+def _bundles(
+    book: PaperBook, since: date, until: date
+) -> list[tuple[date, str, str, float, float, float | None, bool]]:
+    """One row per fully scored bundle: (date, label, status, pnl, staked, clv, hit). A multi-leg
+    play counts once (CLV is the mean of its legs); a re-emission never adds a row (see record)."""
+    rows = book._rows(
+        "SELECT any_value(p.slate_date), any_value(p.edge_label), "
+        "CASE WHEN bool_and(s.status = 'settled') THEN 'settled' ELSE 'void' END, "
+        "sum(s.pnl_usd), sum(p.stake_usd), avg(s.clv_cents), sum(s.pnl_usd) > 0 "
+        "FROM plays p JOIN scores s USING (play_id) WHERE p.slate_date BETWEEN ? AND ? "
+        "GROUP BY p.bundle_id HAVING count(s.play_id) = count(*)",
+        [since, until],
+    )
+    return [
+        (
+            r[0],
+            str(r[1]),
+            str(r[2]),
+            float(r[3]),
+            float(r[4]),
+            None if r[5] is None else float(r[5]),
+            bool(r[6]),
+        )
+        for r in rows
+    ]
+
+
 def weekly_summary(
     cfg: JarvisConfig, book: PaperBook, *, until: date, days: int = 7
 ) -> dict[str, Any]:
     since = until - timedelta(days=days - 1)
-    con = book._con()
-    try:
-        rows = con.execute(
-            "SELECT p.slate_date, p.edge_label, s.status, s.pnl_usd, s.clv_cents, p.stake_usd "
-            "FROM plays p JOIN scores s USING (play_id) WHERE p.slate_date BETWEEN ? AND ?",
-            [since, until],
-        ).fetchall()
-        n_emitted = con.execute(
-            "SELECT count(DISTINCT bundle_id) FROM plays WHERE slate_date BETWEEN ? AND ?",
-            [since, until],
-        ).fetchone()
-    finally:
-        con.close()
-    settled = [r for r in rows if r[2] == "settled"]
+    bundles = _bundles(book, since, until)
+    emitted = book._rows(
+        "SELECT count(DISTINCT bundle_id) FROM plays WHERE slate_date BETWEEN ? AND ?",
+        [since, until],
+    )
+    settled = [b for b in bundles if b[2] == "settled"]
     out: dict[str, Any] = {
         "since": since.isoformat(),
         "until": until.isoformat(),
-        "n_emitted": int(n_emitted[0]) if n_emitted else 0,
+        "n_emitted": int(emitted[0][0]) if emitted else 0,
         "n_scored": len(settled),
-        "n_void": sum(1 for r in rows if r[2] == "void"),
+        "n_void": sum(1 for b in bundles if b[2] == "void"),
         "labels": {},
         "min_settled": cfg.min_settled,
         "min_dates": cfg.min_settled_dates,
     }
-    for label in (*LABELS, "all"):
-        sel = settled if label == "all" else [r for r in settled if r[1] == label]
-        clv = [(r[0], float(r[4])) for r in sel if r[4] is not None]
-        dates = {r[0] for r in sel}
-        ci = cluster_ci(clv)
-        staked = sum(float(r[5]) for r in sel)
-        pnl = sum(float(r[3]) for r in sel)
+    for label in (*WEEKLY_LABELS, "all"):
+        if label == "all":
+            sel = [b for b in settled if b[1] in LABELS]
+        else:
+            sel = [b for b in settled if b[1] == label]
+        clv = [(b[0], b[5]) for b in sel if b[5] is not None]
+        dates = {b[0] for b in sel}
+        ci = cluster_ci([(d, float(v)) for d, v in clv if v is not None])
         out["labels"][label] = {
             "n": len(sel),
             "n_dates": len(dates),
             "n_clv": len(clv),
-            "pnl_usd": round(pnl, 2),
-            "staked_usd": round(staked, 2),
-            "clv_mean_cents": None if not clv else round(sum(v for _, v in clv) / len(clv), 3),
+            "clv_null_rate": None if not sel else round(1 - len(clv) / len(sel), 3),
+            "hit_rate": None if not sel else round(sum(1 for b in sel if b[6]) / len(sel), 3),
+            "pnl_usd": round(sum(b[3] for b in sel), 2),
+            "staked_usd": round(sum(b[4] for b in sel), 2),
+            "clv_mean_cents": None
+            if not clv
+            else round(sum(float(v) for _, v in clv if v is not None) / len(clv), 3),
             "clv_ci95_cents": None if ci is None else [round(ci[1], 3), round(ci[2], 3)],
             "claim_ok": len(sel) >= cfg.min_settled and len(dates) >= cfg.min_settled_dates,
         }
     return out
 
 
+@dataclass(frozen=True)
+class KillState:
+    """Closing-line-value kill switch (docs/TRADING_CONTEXT.md)."""
+
+    active: bool
+    n: int
+    mean_clv: float | None
+
+    def message(self) -> str:
+        return (
+            f"KILL SWITCH: mean CLV {self.mean_clv:+.2f}c over the last {self.n} settled bets is "
+            "negative, so every stake is at the entertainment size until the labels are fixed"
+        )
+
+
+def kill_switch(cfg: JarvisConfig, book: PaperBook) -> KillState:
+    """Mean CLV of the last ``kill_switch.min_bets`` settled JARVIS bets with a two-sided close; the
+    switch trips when that mean is below zero (no CI requirement, no losing-streak rule). Devin's
+    own picks and the Daily Dollar are not JARVIS's labelled bets and do not count."""
+    rows = book._rows(
+        "SELECT avg(s.clv_cents) FROM plays p JOIN scores s USING (play_id) "
+        "WHERE p.edge_label IN ('arbitrage','strong','thin','none','arb_candidate') "
+        "AND s.status = 'settled' GROUP BY p.bundle_id HAVING avg(s.clv_cents) IS NOT NULL "
+        "ORDER BY any_value(p.ts) DESC LIMIT ?",
+        [cfg.kill_min_bets],
+    )
+    if len(rows) < cfg.kill_min_bets:
+        return KillState(False, len(rows), None)
+    mean = sum(float(r[0]) for r in rows) / len(rows)
+    return KillState(mean < 0.0, len(rows), mean)
+
+
 def render_weekly(s: dict[str, Any]) -> str:
     lines = [
         f"JARVIS paper book {s['since']} .. {s['until']}: emitted {s['n_emitted']}, "
         f"scored {s['n_scored']}, void {s['n_void']}",
-        "label      n  dates  P&L$    staked$  CLV mean c  CI95 (date-clustered)  claim?",
+        "label          n dates hit%  P&L$   staked$ CLV mean c (null%)  "
+        "CI95 (date-clustered)  claim?",
     ]
     for label, d in s["labels"].items():
         ci = (
@@ -558,9 +704,11 @@ def render_weekly(s: dict[str, Any]) -> str:
         )
         clv = "n/a" if d["clv_mean_cents"] is None else f"{d['clv_mean_cents']}"
         claim = "yes" if d["claim_ok"] else "insufficient sample"
+        hit = "n/a" if d["hit_rate"] is None else f"{d['hit_rate'] * 100:.0f}"
+        nul = "n/a" if d["clv_null_rate"] is None else f"{d['clv_null_rate'] * 100:.0f}"
         lines.append(
-            f"{label:<9} {d['n']:>3} {d['n_dates']:>5} {d['pnl_usd']:>7} {d['staked_usd']:>8} "
-            f"{clv:>10}  {ci:<21} {claim}"
+            f"{label:<13} {d['n']:>3} {d['n_dates']:>5} {hit:>4} {d['pnl_usd']:>7} "
+            f"{d['staked_usd']:>8} {clv:>9} ({nul:>3})  {ci:<21} {claim}"
         )
     lines.append(
         f"A claim needs n >= {s['min_settled']} settled over >= {s['min_dates']} dates; below that "

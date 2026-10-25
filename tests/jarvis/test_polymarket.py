@@ -57,8 +57,8 @@ def test_fee_is_the_verified_us_object(cfg: JarvisConfig) -> None:
     # banker's rounding per order: 0.0695 x 20 x .25 = 0.3475 -> 0.35; x 2 x .25 = 0.03475 -> 0.03
     assert E.order_cost(cfg, "polymarket", 0.5, 20) == pytest.approx(10.35)
     assert E.order_cost(cfg, "polymarket", 0.5, 2) == pytest.approx(1.03)
-    # half-even, not half-up: 0.0695 x 4 x .5 x .5 = 0.0695 -> 0.07 ; exact ties go to the even cent
-    assert E.fee_per_contract_raw(cfg, "polymarket", 0.5) == pytest.approx(0.0695 * 0.25, abs=1e-4)
+    # half-even, not half-up: exact ties go to the even cent
+    assert E.fee_per_contract_raw(cfg, "polymarket", 0.5) == pytest.approx(0.02)  # 1-contract order
 
 
 def test_parse_winner_market_into_two_asks_with_complement_bids(cfg: JarvisConfig) -> None:
@@ -117,8 +117,8 @@ def test_fetch_is_get_only_by_slug_on_the_us_gateway(cfg: JarvisConfig) -> None:
 def test_disabled_in_config_makes_no_call(cfg: JarvisConfig) -> None:
     off = type(cfg)(**{**cfg.__dict__, "polymarket": {**cfg.polymarket, "enabled": False}})
     fake = FakeClient(event())
-    ev, err = fetch_events(off, [GAME], SLATE, fake)
-    assert ev == [] and err and fake.urls == []
+    ev, err, missing = fetch_events(off, [GAME], SLATE, fake)
+    assert ev == [] and err and fake.urls == [] and missing == 0
 
 
 def test_gamma_is_not_referenced_by_the_package() -> None:

@@ -1,7 +1,8 @@
 """Typed loader for configs/jarvis.yaml. No rate, cap or threshold lives in code.
 
-The iMessage recipient is deliberately NOT part of the config: only the NAME of the environment
-variable is (``delivery.env_var``); its value is read at send time and never stored or logged.
+Secrets are never part of the config: only the NAMES of the environment variables are
+(``delivery.discord_env_var``, ``delivery.env_var``); their values are read at send time and never
+stored, logged or put in an error message.
 """
 
 from __future__ import annotations
@@ -20,36 +21,54 @@ DEFAULT_PATH = ROOT / "configs" / "jarvis.yaml"
 PARLAY_PATH = ROOT / "configs" / "parlay.yaml"
 
 VENUES = ("kalshi", "polymarket")
-LABELS = ("arbitrage", "strong", "thin", "none")
+LABELS = ("arbitrage", "strong", "thin", "none", "arb_candidate")
+LADDER_ORDER = ("none", "thin", "strong", "arbitrage")  # must be strictly increasing in stake
 
 
 @dataclass(frozen=True)
 class JarvisConfig:
     bankroll: dict[str, float]
+    balance_start: float
+    balance_current: float
+    balance_floor: float
     nightly_cap: float
+    reserve_for_strong: float
     per_bet_cap: float
     per_label_cap: dict[str, float]
     min_bet: float
-    kelly_fraction: float
-    none_stake: dict[str, float]
-    none_near_cents: float
-    none_mid_cents: float
+    ladder: dict[str, float]
+    none_max_contracts: int
+    kill_min_bets: int
     strong_cents: float
     arbitrage_min_cents: float
     max_quote_age_min: float
+    max_alert_quote_age_min: float
     max_ref_age_min: float
+    max_ref_lead_min: float
     min_minutes_to_tip: float
+    confirmed_max_gap_s: float
+    settlement_rules_verified: bool
+    kalshi_prop_dnp_rule_verified: bool
     fees: dict[str, FeeModel]
     fee_rounding: dict[str, str]
     polymarket: dict[str, Any]
+    sinks: tuple[str, ...]
+    discord_env_var: str
+    env_var: str
     dedupe_minutes: float
+    max_attempts_per_key: int
+    realert_edge_cents: float
     slate_lead_min: float
-    max_chars: int
+    max_chars_discord: int
+    max_chars_imessage: int
     max_texts: int
     display_tz: str
     alert_labels: tuple[str, ...]
     alert_when_cap_used: bool
-    env_var: str
+    recap_after_et_hour: int
+    halftime_checkins: bool
+    daily_dollar: dict[str, Any]
+    model_weights: dict[str, Any]
     paths: dict[str, Path]
     llm: dict[str, Any]
     min_settled: int
@@ -58,6 +77,20 @@ class JarvisConfig:
 
     def fee(self, venue: str) -> FeeModel:
         return self.fees[venue]
+
+    @property
+    def max_chars(self) -> int:
+        """Per-message limit of the strictest configured sink."""
+        lim = [
+            self.max_chars_discord if s == "discord" else self.max_chars_imessage
+            for s in self.sinks
+        ]
+        return min(lim) if lim else self.max_chars_discord
+
+    @property
+    def paper_only(self) -> bool:
+        """At or below the floor JARVIS is paper-only until Devin resets the balance."""
+        return self.balance_current <= self.balance_floor
 
 
 def _path(root: Path, p: str) -> Path:
@@ -85,33 +118,50 @@ def load_config(
         str(pm.get("source", "")),
     )
     caps, sz, lab, fr = raw["caps"], raw["sizing"], raw["labels"], raw["freshness"]
-    dl = raw["delivery"]
+    dl, bal, st = raw["delivery"], raw["balance"], raw["settlement"]
     cfg = JarvisConfig(
         bankroll={k: float(v) for k, v in raw["bankroll_usd"].items()},
+        balance_start=float(bal["start_usd"]),
+        balance_current=float(bal["current_usd"]),
+        balance_floor=float(bal["floor_usd"]),
         nightly_cap=float(caps["nightly_usd"]),
+        reserve_for_strong=float(caps["reserve_for_strong_usd"]),
         per_bet_cap=float(caps["per_bet_usd"]),
         per_label_cap={k: float(v) for k, v in caps["per_label_usd"].items()},
         min_bet=float(caps["min_bet_usd"]),
-        kelly_fraction=float(sz["kelly_fraction"]),
-        none_stake={k: float(v) for k, v in sz["none_stake_usd"].items()},
-        none_near_cents=float(sz["none_near_cents"]),
-        none_mid_cents=float(sz["none_mid_cents"]),
+        ladder={k: float(v) for k, v in sz["ladder_usd"].items()},
+        none_max_contracts=int(sz["none_max_contracts"]),
+        kill_min_bets=int(raw["kill_switch"]["min_bets"]),
         strong_cents=float(lab["strong_cents"]),
         arbitrage_min_cents=float(lab["arbitrage_min_cents"]),
         max_quote_age_min=float(fr["max_quote_age_min"]),
+        max_alert_quote_age_min=float(fr["max_alert_quote_age_min"]),
         max_ref_age_min=float(fr["max_ref_age_min"]),
+        max_ref_lead_min=float(fr["max_ref_lead_min"]),
         min_minutes_to_tip=float(fr["min_minutes_to_tip"]),
+        confirmed_max_gap_s=float(fr["confirmed_max_gap_s"]),
+        settlement_rules_verified=bool(st["settlement_rules_verified"]) is True,
+        kalshi_prop_dnp_rule_verified=bool(st["kalshi_prop_dnp_rule_verified"]) is True,
         fees={"kalshi": pcfg.fee, "polymarket": pm_fee},
         fee_rounding={"kalshi": "ceil_cent", "polymarket": str(pm.get("rounding", "ceil_cent"))},
         polymarket=dict(raw["polymarket"]),
+        sinks=tuple(str(x) for x in dl["sinks"]),
+        discord_env_var=str(dl["discord_env_var"]),
+        env_var=str(dl["env_var"]),
         dedupe_minutes=float(dl["dedupe_minutes"]),
+        max_attempts_per_key=int(dl["max_attempts_per_key"]),
+        realert_edge_cents=float(dl["realert_edge_cents"]),
         slate_lead_min=float(dl["slate_lead_min"]),
-        max_chars=int(dl["max_chars"]),
+        max_chars_discord=int(dl["max_chars_discord"]),
+        max_chars_imessage=int(dl["max_chars_imessage"]),
         max_texts=int(dl["max_texts"]),
         display_tz=str(dl["display_tz"]),
         alert_labels=tuple(str(x) for x in dl["alert_labels"]),
         alert_when_cap_used=bool(dl.get("alert_when_cap_used", True)),
-        env_var=str(dl["env_var"]),
+        recap_after_et_hour=int(dl["recap_after_et_hour"]),
+        halftime_checkins=bool(dl["halftime_checkins"]),
+        daily_dollar=dict(raw["daily_dollar"]),
+        model_weights=dict(raw["model_weights"]),
         paths={k: _path(root, str(v)) for k, v in raw["paths"].items()},
         llm=dict(raw["llm"]),
         min_settled=pcfg.min_settled,
@@ -121,6 +171,14 @@ def load_config(
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]
     if missing:
         raise ValueError(f"jarvis config lacks bankroll/fee for venues {missing}")
-    if set(cfg.per_label_cap) != set(LABELS):
-        raise ValueError(f"caps.per_label_usd must have exactly {LABELS}")
+    if set(cfg.per_label_cap) != set(LABELS) or set(cfg.ladder) != set(LABELS):
+        raise ValueError(f"caps.per_label_usd and sizing.ladder_usd must have exactly {LABELS}")
+    steps = [cfg.ladder[k] for k in LADDER_ORDER]
+    if any(a >= b for a, b in zip(steps, steps[1:], strict=False)):
+        raise ValueError(f"stake ladder must increase strictly over {LADDER_ORDER}: {steps}")
+    mw = cfg.model_weights
+    if not 0.0 <= float(mw["w_max"]) <= 0.5 or float(mw["step"]) <= 0:
+        raise ValueError("model_weights.w_max must be in [0, 0.5] and step > 0")
+    if cfg.reserve_for_strong >= cfg.nightly_cap:
+        raise ValueError("caps.reserve_for_strong_usd must be below caps.nightly_usd")
     return cfg

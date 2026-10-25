@@ -75,6 +75,24 @@ class Knowledge:
             return int(team)
         return self.abbr.get(str(team).upper())
 
+    def player_teams(self, pids: set[int]) -> dict[int, int]:
+        """player_id -> team_id from the player's latest 2026 box score (2026 only)."""
+        path = self.cfg.paths["nba_db"]
+        if not pids or not path.exists():
+            return {}
+        con = open_ro(path)
+        try:
+            ph = ",".join("?" for _ in pids)
+            rows = con.execute(
+                "SELECT s.player_id, arg_max(s.team_id, g.game_date) FROM player_game_stats s "
+                f"JOIN games g USING (game_id) WHERE g.season = 2026 AND s.player_id IN ({ph}) "
+                "GROUP BY s.player_id",
+                sorted(pids),
+            ).fetchall()
+        finally:
+            con.close()
+        return {int(r[0]): int(r[1]) for r in rows}
+
     # ------------------------------------------------------------------ injuries
     def injuries(self, game_id: str) -> dict[str, Any]:
         """Latest official-report status per player for a game, grouped by team. Includes the

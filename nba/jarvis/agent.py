@@ -16,6 +16,7 @@ from typing import Any
 
 from nba.jarvis import render as R
 from nba.jarvis.explain import (
+    LLM_LABELS,
     clip_sentences,
     play_facts,
     prepare,
@@ -352,7 +353,6 @@ class Jarvis:
                 source="ask",
                 slate=tb.slate,
                 explanations={target.key: text},
-                dedupe_minutes=self.rt.cfg.dedupe_minutes,
                 now=self.rt.clock(),
             )
         return AskAnswer(out, [target], src, calls)
@@ -372,10 +372,11 @@ class Jarvis:
         self, prose: str, target: Play, allowed: list[float], facts: dict[str, Any]
     ) -> tuple[str, str]:
         fallback = template_text(target, facts)
-        text = clip_sentences(prepare(prose), n=4, limit=480) if prose else ""
-        if not text:
+        full = prepare(prose) if prose else ""
+        text = clip_sentences(full, n=4, limit=480) if full else ""
+        if not text or target.label not in LLM_LABELS:
             return fallback, "template"
-        if _GIVE.search(text) or reject_reason(text, target.label):
+        if _GIVE.search(full) or reject_reason(full, target.label):
             return fallback, "template:refused"
         clean, n = check_prose(text, allowed)
         if n or REMOVED in clean:

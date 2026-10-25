@@ -13,7 +13,7 @@ from nba.jarvis.slate import (
     plan_slate,
     single_candidate,
 )
-from tests.jarvis.conftest import G1, G2, LAC, LAL, LEBRON, NOW, SLATE, TIP1
+from tests.jarvis.conftest import G1, G2, LAC, LAL, LEBRON, NOW, SLATE, TIP1, StubModel
 
 
 def test_gather_reads_games_tips_quotes_and_pinnacle(cfg: JarvisConfig) -> None:
@@ -33,14 +33,16 @@ def test_season_2025_is_never_loaded(cfg: JarvisConfig) -> None:
 
 
 def test_kalshi_n_plus_threshold_matches_pinnacle_half_line(cfg: JarvisConfig) -> None:
-    st = gather(cfg, SLATE, NOW, use_polymarket=False)
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
     prop = next(q for q in st.quotes if q.kind == "prop")
     assert prop.threshold == 25.0  # "25+" == over 24.5
     ref = st.refs.for_quote(prop)
     assert ref is not None and ref.line == "o24.5"
     yes = single_candidate(cfg, st, prop, "yes")
     assert yes is not None
-    assert yes.fair_prob == pytest.approx(0.62 / 1.04)
+    assert yes.fair_prob == pytest.approx(
+        0.62 / 1.04 * 0.97
+    )  # x P(plays): Kalshi's DNP rule is unverified
     assert yes.label == "strong"  # 59.6c fair vs 44c ask + fee
     assert yes.edge_cents > cfg.strong_cents
     no = single_candidate(cfg, st, prop, "no")
@@ -48,7 +50,7 @@ def test_kalshi_n_plus_threshold_matches_pinnacle_half_line(cfg: JarvisConfig) -
 
 
 def test_every_game_with_a_price_gets_a_play(cfg: JarvisConfig) -> None:
-    st = gather(cfg, SLATE, NOW, use_polymarket=False)
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
     best = best_per_game(cfg, st)
     assert set(best) == {G1, G2}
     assert best[G1].label == "strong"  # the LeBron over, 15c of edge
