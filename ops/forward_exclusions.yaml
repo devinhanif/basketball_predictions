@@ -31,3 +31,16 @@ exclusions:
       219 min old one; 0022600099 is 25 min old (inside the limit).
     listed_on: 2026-10-23
     authorised_by: Devin (go 2026-10-23)
+
+# Splits: a summary that is REPORTED in two parts, nothing dropped (the rows are valid forecasts; their inputs
+# differ). Append-only like the exclusions.
+splits:
+  - id: avg_blank_possession_inputs_2026-10-24
+    applies_to: [AVG_SHADOW_LIVE_2 scored-row summaries]
+    # 2026-10-24 23:00 CDT = 2026-10-25 04:00 UTC (stored timestamps are naive UTC). Scored rows whose
+    # made_at is before it ran on blank 2026 possession inputs (usage and shot-zone shares 0, pace and
+    # opp_drtg at defaults): incident row 2026-10-24 22:26 in docs/DECISIONS.md. The stints merge
+    # (agent/steward-stints-nightly) filled 2026 possessions; Devin chose option (a), 22:48.
+    split_at_utc: 2026-10-25T04:00:00
+    listed_on: 2026-10-24
+    authorised_by: Devin (option a, 2026-10-24)

@@ -17,6 +17,7 @@ from typing import Any
 
 import duckdb
 
+from nba.ops.exclusions import drop_by_id, shadow_exclusions
 from nba.parlay.__main__ import (
     DEFAULT_MODEL,
     ENGINE_KIND,
@@ -633,9 +634,11 @@ class Toolbox:
         try:
             try:
                 rows = con.execute(
-                    "SELECT legs, raw_model_prob, market_mid, outcome FROM shadow_predictions "
+                    "SELECT legs, raw_model_prob, market_mid, outcome, shadow_id "
+                    "FROM shadow_predictions "
                     "WHERE settled AND outcome IS NOT NULL AND side = 'yes'"
                 ).fetchall()
+                excl = shadow_exclusions(con)
                 n_open = con.execute(
                     "SELECT count(*) FROM shadow_predictions WHERE NOT settled"
                 ).fetchone()
@@ -644,7 +647,7 @@ class Toolbox:
                     "WHERE settled AND realized_pnl IS NOT NULL"
                 ).fetchall()
             except duckdb.CatalogException:
-                rows, n_open, trades = [], (0,), []
+                rows, n_open, trades, excl = [], (0,), [], {}
         finally:
             con.close()
 
@@ -652,8 +655,10 @@ class Toolbox:
             return stat == "all" or all(x.get("stat") == stat for x in json.loads(legs_json))
 
         sel = [r for r in rows if keep(r[0])]
+        sel, dropped = drop_by_id(sel, lambda r: r[4], excl)
         n = len(sel)
         out |= {"n_settled": n, "n_open_unsettled": int(n_open[0]) if n_open else 0}
+        out["data_quality_excluded"] = dropped
         if n:
             hit = sum(1 for r in sel if r[3]) / n
             lo, hi = _wilson(sum(1 for r in sel if r[3]), n)

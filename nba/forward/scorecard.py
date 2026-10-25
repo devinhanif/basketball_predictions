@@ -686,6 +686,7 @@ def build_report(
             "grid": "nba.parlay.top_source.p_over on forecast p_ge_full (x.5 lines only)",
             "prior_team": "last pre-2026-10-01 team_id" if use_prior_team else "disabled",
         },
+        "exclusions": _exclusions_block(),
         "counts": {
             "rows_scored": len(rows),
             "rows_with_closing_line": sum(1 for r in rows if r["line"] is not None),
@@ -731,6 +732,24 @@ def _table(title: str, cols: list[str], data: dict[str, dict[str, Any]], d: int)
     return [*lines, ""]
 
 
+def _exclusions_block() -> dict[str, Any]:
+    """Dated data-quality rules in force and what this report dropped (ops/forward_exclusions.yaml).
+
+    The only prices here are sportsbook closes (``live_book_odds``), never a Kalshi quote, so a stale-price
+    rule (Kalshi quote age at prediction time) selects none of these rows: 0 dropped, stated rather than
+    left implicit. Nothing is removed from the model's own scores."""
+    from nba.ops.exclusions import describe_dropped, load_exclusions
+
+    ids = [e.id for e in load_exclusions()]
+    return {
+        "rules_in_force": ids,
+        "dropped": {},
+        "line": describe_dropped({}, "rows")
+        + f"; rules in force {ids or 'none'} select Kalshi-priced rows only and Part 3 uses "
+        "sportsbook closing odds; model scores are never excluded",
+    }
+
+
 def render(rep: dict[str, Any]) -> str:
     c = rep["counts"]
     dim_title = dict(DIMS) | {"side": "Model side"}
@@ -750,6 +769,7 @@ def render(rep: dict[str, Any]) -> str:
         f"with projected minutes {c['rows_with_proj_minutes']} ; in decomposition "
         f"{c['rows_in_decomposition']}",
         *(f"- {k}: {v}" for k, v in rep["fields"].items()),
+        f"- {rep['exclusions']['line']}",
         "",
         "## Part 1: accuracy (production props_context_residual)",
         "",

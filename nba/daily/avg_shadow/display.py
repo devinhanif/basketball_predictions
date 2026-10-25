@@ -11,6 +11,8 @@ from typing import Any
 
 import duckdb
 
+from nba.ops.exclusions import avg_split
+
 LEAD = 60
 
 
@@ -57,6 +59,7 @@ def counts(con: duckdb.DuckDBPyConnection, season: int = 2026) -> dict[str, Any]
         "heartbeats_14d": {str(s): int(n) for s, n in beats},
         "avg_triples": avg_triples,
         "full_triples": full_triples,
+        "split": avg_split(con),
         "counting_start": con.execute(
             "SELECT max(value) FROM forward_avg_meta WHERE key = 'counting_start'"
         ).fetchone()[0],  # type: ignore[index]
@@ -69,10 +72,16 @@ def section(con: duckdb.DuckDBPyConnection, season: int = 2026) -> list[str]:
         return []
     cov = f"{c['avg_triples'] / c['full_triples']:.1%}" if c["full_triples"] else "n/a"
     stale = f"{c['stale_rows'] / c['rows']:.1%}" if c["rows"] else "n/a"
+    split_lines = [
+        f"- scored rows split at {sp['split_at_utc']:%Y-%m-%d %H:%M} UTC ({sp['id']}): {sp['before']} before "
+        f"(blank 2026 possession inputs) / {sp['after']} after (real possessions); not pooled in any readout."
+        for sp in c["split"]
+    ]
     return [
         "",
         "## AVG shadow: counts and gates only (AVG_SHADOW_LIVE_2; no delta is published on a non-look day)",
         f"- rows {c['rows']} ({c['settled']} settled), stale-model share {stale}, rows stamped at or after tip {c['rows_after_tip']} (must be 0).",
         f"- on-time triples {c['avg_triples']} of {c['full_triples']} settled FULL triples = coverage {cov} (approximate; caps: 95% overall, 90% starter and bench).",
         f"- slate heartbeats, last 14 days: {c['heartbeats_14d'] or 'none'}; counting start: {c['counting_start'] or 'NOT SET (warm-up rows, never scored)'}.",
+        *split_lines,
     ]
