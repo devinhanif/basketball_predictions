@@ -7,6 +7,7 @@ recipient, from the environment variable named in configs/jarvis.yaml (``JARVIS_
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 import time
 from datetime import date, timedelta
@@ -15,7 +16,14 @@ from pathlib import Path
 import duckdb
 
 from nba.jarvis.agent import Jarvis
-from nba.jarvis.book import PaperBook, render_weekly, score_book, weekly_summary
+from nba.jarvis.book import (
+    PaperBook,
+    clear_kill_switch,
+    kill_switch,
+    render_weekly,
+    score_book,
+    weekly_summary,
+)
 from nba.jarvis.config import DEFAULT_PATH, PARLAY_PATH, ROOT, JarvisConfig, load_config
 from nba.jarvis.forecasts import ModelView
 from nba.jarvis.knowledge import Knowledge
@@ -101,11 +109,23 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="print instead of posting; writes nothing"
     )
 
+    ks = sub.add_parser(
+        "killswitch", help="show the CLV kill switch, or clear it (logs a dated row)"
+    )
+    ks.add_argument("--config", default=str(DEFAULT_PATH))
+    ks.add_argument("--root", help="repo root for relative paths in the config")
+    ks.add_argument(
+        "--clear", action="store_true", help="Devin's reset: logs a dated row, restarts the count"
+    )
+    ks.add_argument("--note", default="", help="why it is cleared (kept in the log)")
+
     wt = sub.add_parser("weights", help="model weight by stat (show / run the frozen weekly rule)")
     wt.add_argument("action", choices=["show", "update"])
     wt.add_argument("--config", default=str(DEFAULT_PATH))
     wt.add_argument("--root", help="repo root for relative paths in the config")
-    wt.add_argument("--force", action="store_true", help="ignore the 7-day spacing")
+    wt.add_argument(
+        "--force", action="store_true", help="only DISPLAY the evaluation (never steps a weight)"
+    )
 
     t = sub.add_parser("test-send", help="post one short test message (or --dry-run)")
     t.add_argument("--config", default=str(DEFAULT_PATH))
@@ -267,18 +287,40 @@ def cmd_recap(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_killswitch(a: argparse.Namespace) -> int:
+    cfg = load_config(a.config, root=Path(a.root) if a.root else ROOT)
+    book = PaperBook(cfg.paths["paper_book"])
+    if a.clear:
+        clear_kill_switch(cfg, book, et_today(), a.note)
+        print(f"kill switch cleared on {et_today()} (dated row logged); the count restarts now")
+        return 0
+    ks = kill_switch(cfg, book)
+    print(ks.message() if ks.active else f"kill switch off (n {ks.n} of {cfg.kill_min_bets} bets)")
+    return 0
+
+
 def cmd_weights(a: argparse.Namespace) -> int:
     cfg = load_config(a.config, root=Path(a.root) if a.root else ROOT)
     if a.action == "show":
         for k, v in load_weights(cfg).items():
             print(f"{k:>7}: w = {v:.1f}")
         return 0
-    recs = update_weights(cfg, PaperBook(cfg.paths["paper_book"]), today=et_today(), force=a.force)
+    recs = update_weights(
+        cfg, PaperBook(cfg.paths["paper_book"]), today=et_today(), display_only=a.force
+    )
+    if a.force:
+        print(
+            "(display only, nothing logged) "
+            + "; ".join(f"{r['stat']}: {r['action']} n={r['n']}" for r in recs)
+        )
+        return 0
     print("\n".join(render_changes(recs)) if recs else "not due (at most one update per 7 days)")
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
+    for noisy in ("httpx", "httpcore"):  # their INFO lines carry full URLs (webhook token)
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     a = build_parser().parse_args(argv)
     handlers = {
         "slate": cmd_slate,
@@ -289,6 +331,7 @@ def main(argv: list[str] | None = None) -> int:
         "pick": cmd_pick,
         "recap": cmd_recap,
         "weights": cmd_weights,
+        "killswitch": cmd_killswitch,
     }
     return handlers[a.cmd](a)
 

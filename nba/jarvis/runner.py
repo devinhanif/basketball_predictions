@@ -23,7 +23,14 @@ import duckdb
 
 from nba.jarvis import dailydollar
 from nba.jarvis import render as R
-from nba.jarvis.book import PaperBook, kill_switch, now_naive, score_book, sha
+from nba.jarvis.book import (
+    PaperBook,
+    kill_switch,
+    latch_kill_switch,
+    now_naive,
+    score_book,
+    sha,
+)
 from nba.jarvis.config import JarvisConfig
 from nba.jarvis.explain import explain, play_facts
 from nba.jarvis.imessage import SendResult
@@ -31,7 +38,7 @@ from nba.jarvis.knowledge import Knowledge
 from nba.jarvis.live import feed_age_min, latest_scoreboard
 from nba.jarvis.models import Play
 from nba.jarvis.posts import halftime_lines, recap_lines, todays_rows
-from nba.jarvis.sinks import make_sender
+from nba.jarvis.sinks import make_sinks
 from nba.jarvis.slate import (
     ModelLike,
     SlateState,
@@ -61,11 +68,32 @@ class Runtime:
     out: Callable[[str], None] = print
     env: dict[str, str] | None = None
     use_polymarket: bool = True
+    discord_client: Any | None = None
     report: dict[str, Any] = field(default_factory=dict)
 
     def send(self, text: str) -> SendResult:
-        fn = self.sender or make_sender(self.cfg)
-        return fn(text, env_var=self.cfg.env_var, dry_run=self.dry_run, env=self.env, out=self.out)
+        """Deliver one message. With the real sinks each is deduped on its own (a sink that already
+        got this exact text is skipped), so one failing sink never causes repeats on the other."""
+        if self.sender is not None:  # a custom single sender (tests)
+            return self.sender(
+                text, env_var=self.cfg.env_var, dry_run=self.dry_run, env=self.env, out=self.out
+            )
+        sinks = make_sinks(self.cfg, self.discord_client)
+        if not sinks:
+            return SendResult(False, "failed", "no delivery sink configured")
+        th = sha(text)
+        ok, notes, mode = True, [], "sent"
+        for name, fn in sinks.items():
+            if not self.dry_run and self.book.sink_done(name, th):
+                continue
+            r = fn(text, dry_run=self.dry_run, env=self.env, out=self.out)
+            if r.ok and not self.dry_run:
+                self.book.mark_sink(name, th, self.clock())
+            if r.note:
+                notes.append(f"{name}: {r.note}")
+            ok = ok and r.ok
+            mode = r.mode if r.ok else mode
+        return SendResult(ok, mode if ok else "failed", "; ".join(notes))
 
 
 def supports_alert(cfg: JarvisConfig, p: Play) -> bool:
@@ -172,6 +200,8 @@ def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any
     """Compose (and post unless dry-run) the slate preview. Returns the report incl. the texts."""
     now = rt.clock()
     st = build_state(rt, slate)
+    if not rt.dry_run:
+        latch_kill_switch(rt.cfg, rt.book, slate, now)
     plays = plan_slate(rt.cfg, st, rt.book)
     rep: dict[str, Any] = {
         "slate": str(slate),
@@ -260,6 +290,8 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         "alerts": [],
     }
     rep["recap"] = _maybe_recap(rt, slate, now)
+    if not rt.dry_run:
+        latch_kill_switch(rt.cfg, rt.book, slate, now)
     if not st.games:
         rep["idle"] = "no games"
         return rep
@@ -306,32 +338,41 @@ def _halftime(rt: Runtime, st: SlateState, slate: date, now: datetime) -> list[d
     out = []
     age = feed_age_min(rt.cfg, slate, now)
     for lg in latest_scoreboard(rt.cfg, slate):
-        if not lg.halftime:
-            continue
-        g = next((x for x in st.games if (x.away_abbr, x.home_abbr) == (lg.away, lg.home)), None)
-        if g is None:
-            continue
-        rows = todays_rows(rt.book, slate, g.game_id)
-        if not rows:
-            continue
-        if not rt.dry_run and rt.book.kind_sent("halftime", slate, g.game_id):
-            continue
-        if not rt.dry_run and _given_up(rt, "halftime", slate, g.game_id):
-            continue
-        texts = R.chunk(halftime_lines(rt.cfg, lg, rows, age), rt.cfg.max_chars, rt.cfg.max_texts)
-        out.append(
-            _deliver(
-                rt,
-                kind="halftime",
-                texts=texts,
-                plays=[],
-                slate=slate,
-                inputs=[lg.matchup],
-                explanations={},
-                keys=[g.game_id],
-            )
-        )
+        try:
+            res = _halftime_one(rt, st, slate, lg, age)
+        except Exception as exc:  # one bad game never blocks the others (or the tick)
+            res = {"kind": "halftime", "ok": False, "error": type(exc).__name__, "game": lg.matchup}
+        if res is not None:
+            out.append(res)
     return out
+
+
+def _halftime_one(
+    rt: Runtime, st: SlateState, slate: date, lg: Any, age: float | None
+) -> dict[str, Any] | None:
+    if not lg.halftime:
+        return None
+    g = next((x for x in st.games if (x.away_abbr, x.home_abbr) == (lg.away, lg.home)), None)
+    if g is None:
+        return None
+    rows = todays_rows(rt.book, slate, g.game_id)
+    if not rows:
+        return None
+    if not rt.dry_run and rt.book.kind_sent("halftime", slate, g.game_id):
+        return None
+    if not rt.dry_run and _given_up(rt, "halftime", slate, g.game_id):
+        return None
+    texts = R.chunk(halftime_lines(rt.cfg, lg, rows, age), rt.cfg.max_chars, rt.cfg.max_texts)
+    return _deliver(
+        rt,
+        kind="halftime",
+        texts=texts,
+        plays=[],
+        slate=slate,
+        inputs=[lg.matchup],
+        explanations={},
+        keys=[g.game_id],
+    )
 
 
 def _maybe_recap(

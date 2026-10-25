@@ -231,7 +231,7 @@ def test_picks_are_scored_and_reported_separately(cfg: JarvisConfig, tmp_path: P
 
 
 def dd_state(
-    cfg: JarvisConfig, factor: float, pin: float = 0.60
+    cfg: JarvisConfig, factor: float, pin: float | None = 0.60
 ) -> tuple[SlateState, JarvisConfig]:
     games = load_games(cfg, SLATE)
     ts = NOW - timedelta(minutes=2)
@@ -241,43 +241,69 @@ def dd_state(
             "kalshi", ticker, G1, kind, ts, bid, ask, series="KXNBAGAME", label=ticker, **kw
         )
 
+    # In the fixture possessions LAL's top-usage player is id 1 (70% of his on-court possessions
+    # end with his shot), then LeBron (30%); player 1000 is a cheap prop but not a top-usage player.
     quotes = [
         q("ML-LAL", "game_win", 0.49, 0.50, team_id=LAL),
-        q("P-LEBRON", "prop", 0.095, 0.10, player_id=LEBRON, stat="pts", threshold=35.0),
-        q("P-1000", "prop", 0.115, 0.12, player_id=1000, stat="reb", threshold=9.0),
+        q("P-TOP1-PTS", "prop", 0.115, 0.12, player_id=1, stat="pts", threshold=25.0),
+        q("P-LEBRON-PTS", "prop", 0.095, 0.10, player_id=LEBRON, stat="pts", threshold=35.0),
+        q("P-1000-REB", "prop", 0.04, 0.05, player_id=1000, stat="reb", threshold=9.0),
     ]
     refs = PinnacleRefs()
-    refs.win[(G1, LAL)] = Ref(pin, ts)
-    c2 = replace(cfg, daily_dollar={**cfg.daily_dollar, "corr_factor": factor})
-    return SlateState(SLATE, NOW, games, quotes, refs), c2
+    if pin is not None:
+        refs.win[(G1, LAL)] = Ref(pin, ts)
+    dd = {**cfg.daily_dollar, "corr_factor": factor, "min_possessions": 5}
+    return SlateState(SLATE, NOW, games, quotes, refs), replace(cfg, daily_dollar=dd)
 
 
-def test_daily_dollar_is_a_correlated_ticket_at_or_below_fair(cfg: JarvisConfig, kb) -> None:  # type: ignore[no-untyped-def]
+def test_daily_dollar_legs_are_the_win_plus_the_top_usage_players_props(
+    cfg: JarvisConfig,
+    kb,  # type: ignore[no-untyped-def]
+) -> None:
     st, c = dd_state(cfg, 1.2)
+    top = kb.top_usage(LAL, 2, 5)
+    assert [t["player_id"] for t in top] == [1, LEBRON] and top[0]["share"] == 0.7
     play, why = dailydollar.build(c, st, kb, room=10.0)
     assert play is not None, why
-    assert (
-        play.label == "daily_dollar"
-        and len(play.legs) == 3
-        and {leg.side for leg in play.legs} == {"yes"}
-    )
+    assert play.label == "daily_dollar" and {leg.side for leg in play.legs} == {"yes"}
+    assert [leg.player_id for leg in play.legs] == [
+        None,
+        1,
+        LEBRON,
+    ]  # the win, top-1, top-2: never 1000
     assert 50 <= play.multiple <= 300 and play.stake_usd <= 1.0 + 1e-9  # type: ignore[operator]
-    assert play.edge_cents > 0 and play.fair_prob is not None
-    price = 0.5 * 0.10 * 0.12
-    assert play.fair_prob == pytest.approx(
-        0.60 * 0.0975 * 0.1175 * 1.2
-    )  # product of leg fairs x factor
-    assert play.fair_prob > price
+    assert play.fair_prob == pytest.approx(0.60 * 0.1175 * 0.0975 * 1.2)
+
+
+def test_daily_dollar_line_prints_the_numbers_it_cannot_know(cfg: JarvisConfig, kb) -> None:  # type: ignore[no-untyped-def]
+    st, c = dd_state(cfg, 1.2)
+    play, _ = dailydollar.build(c, st, kb, room=10.0)
+    assert play is not None
     text = "\n".join(dailydollar.lines(play, ""))
-    assert "Daily Dollar" in text and "ESTIMATE" in text and "BUY ALL" in text and "pays $" in text
+    assert "EV unknown (entertainment)" in text
+    nc = 0.60 * 0.1175 * 0.0975
+    assert f"no-correlation fair {nc * 100:.2f}c" in text
+    per = float(play.inputs["per_contract_cost"])  # type: ignore[arg-type]
+    assert f"needs correlation >= {per / nc:.2f}x to break even (unmeasured)" in text
+    assert "1 of 3 legs priced by Pinnacle, the rest Kalshi mid, x 1.2 (assumed)" in text
+    assert "same-team legs: the win plus the team's top-usage player's props" in text
+    assert "correlated" not in text  # the word is not claimed
+    # with no outside price at all it says so plainly
+    st0, c0 = dd_state(cfg, 1.2, pin=None)
+    p0, _ = dailydollar.build(c0, st0, kb, room=10.0)
+    if p0 is not None:
+        assert "no outside reference: fair = Kalshi mid x 1.2 (assumed)" in "\n".join(
+            dailydollar.lines(p0, "")
+        )
 
 
 def test_daily_dollar_refuses_to_pay_more_than_fair(cfg: JarvisConfig, kb) -> None:  # type: ignore[no-untyped-def]
     st, c = dd_state(cfg, 1.0, pin=0.50)  # no correlation credit, no sharp edge on the win leg
     play, why = dailydollar.build(c, st, kb, room=10.0)
-    assert play is None and "at or below fair" in why
+    assert play is None and "at or below the assumed fair" in why
     st, c = dd_state(cfg, 1.2)
     assert dailydollar.build(c, st, kb, room=0.5)[0] is None  # inside the cap: no room, no ticket
+    assert "skipped" in dailydollar.lines(None, why)[0]
 
 
 def test_daily_dollar_is_in_the_slate_post_and_tracked_apart(
@@ -543,3 +569,126 @@ def test_an_earned_weight_moves_fair_toward_the_model(cfg: JarvisConfig, tmp_pat
     assert (
         p0 is not None and p0.w_model == 0.0 and p0.fair_prob == pytest.approx(pin)
     )  # w = 0: unchanged
+
+
+def test_force_only_displays_and_never_steps_a_weight(cfg: JarvisConfig, tmp_path: Path) -> None:
+    book = PaperBook(tmp_path / "b.duckdb")
+    seed_stat(book, 40, 12, clv=3.0)
+    for _ in range(3):  # three forced runs on the same evidence
+        shown = update_weights(cfg, book, today=SLATE, now=NOW, display_only=True)
+        assert next(r for r in shown if r["stat"] == "pts")["action"] == "raise"
+    assert load_weights(cfg)["pts"] == 0.0  # nothing was logged, nothing moved
+    log = Path(cfg.model_weights["log"])
+    assert not (log if log.is_absolute() else cfg.root / log).exists()
+    update_weights(cfg, book, today=SLATE, now=NOW)  # the real, cadence-limited run: one step
+    assert load_weights(cfg)["pts"] == pytest.approx(0.1)
+    update_weights(cfg, book, today=SLATE, now=NOW, display_only=True)  # forcing again: still 0.1
+    assert update_weights(cfg, book, today=SLATE + timedelta(days=2), now=NOW) == []
+    assert load_weights(cfg)["pts"] == pytest.approx(0.1)
+
+
+def settle(book: PaperBook, label: str, clv: float, n: int, start: int = 0) -> None:
+    for i in range(start, start + n):
+        p = replace(
+            mkp(label, f"K{label}{i}"), inputs={"leg_costs": [1.0]}, contracts=2, stake_usd=1.0
+        )
+        book.record(
+            [p], source="slate", slate=SLATE - timedelta(days=i % 9), now=NOW + timedelta(minutes=i)
+        )
+        con = book._con()
+        con.execute(
+            "INSERT INTO scores SELECT play_id, ?, 'settled', TRUE, 0.1, NULL, NULL, NULL, '', ?, NULL FROM plays WHERE ticker = ?",
+            [NOW, clv, f"K{label}{i}"],
+        )
+        con.close()
+
+
+def mkp(label: str, key: str) -> Play:
+    leg = PlayLeg("kalshi", key, "yes", 0.5, "game_win", f"{key}", team_id=LAL)
+    return Play(G1, "LAL@LAC", TIP1, (leg,), label, 1.0, 0.5, 2.0, 0.5, 2, 1.0, "r")
+
+
+def test_kill_switch_counts_only_thin_strong_arbitrage_and_latches_until_cleared(
+    cfg: JarvisConfig, tmp_path: Path
+) -> None:
+    from nba.jarvis.book import clear_kill_switch, kill_switch, latch_kill_switch
+
+    book = PaperBook(tmp_path / "b.duckdb")
+    settle(
+        book, "none", -5.0, cfg.kill_min_bets
+    )  # entertainment plays are expected to lose to the close
+    assert not kill_switch(cfg, book).active and kill_switch(cfg, book).n == 0
+    settle(book, "thin", 0.4, cfg.kill_min_bets)  # edge plays beat the close: fine
+    assert not kill_switch(cfg, book).active
+    settle(
+        book, "strong", -3.0, cfg.kill_min_bets, start=100
+    )  # the last 30 edge bets lose to the close
+    ks = kill_switch(cfg, book)
+    assert ks.active and not ks.latched and ks.mean_clv is not None and ks.mean_clv < 0
+    ks = latch_kill_switch(cfg, book, SLATE, NOW)
+    assert ks.active and ks.latched and ks.since == SLATE
+    assert "LATCHED" in ks.message() and "killswitch --clear" in ks.message()
+    settle(book, "thin", 5.0, cfg.kill_min_bets, start=200)  # a good run does NOT clear it
+    assert kill_switch(cfg, book).active
+    cleared = clear_kill_switch(
+        cfg, book, SLATE + timedelta(days=1), "labels fixed", NOW + timedelta(days=1)
+    )
+    assert not cleared.active and cleared.n == 0  # the count restarts after the clear
+    rows = book.kill_rows()
+    assert [r[2] for r in rows] == ["tripped", "cleared"] and rows[1][1] == SLATE + timedelta(
+        days=1
+    )
+
+
+def test_a_failing_sink_does_not_repeat_the_message_on_the_other(
+    cfg: JarvisConfig, rt: Runtime
+) -> None:
+    c = FakeHttp()
+    rt.sender = None
+    rt.cfg = replace(cfg, sinks=("discord", "imessage"))
+    rt.discord_client = c
+    rt.env = {cfg.discord_env_var: HOOK}  # iMessage has no recipient: that sink fails every time
+    for _ in range(3):
+        r = rt.send("same text")
+        assert not r.ok and "imessage" in r.note
+    assert len(c.posted) == 1  # Discord got it once; the imessage failure never re-posted it there
+    assert rt.book.sink_done(
+        "discord", __import__("nba.jarvis.book", fromlist=["sha"]).sha("same text")
+    )
+
+
+def test_httpx_logging_cannot_leak_the_webhook() -> None:
+    import logging
+
+    assert logging.getLogger("httpx").level == logging.WARNING
+    assert logging.getLogger("httpcore").level == logging.WARNING
+
+
+def test_halftime_one_bad_event_does_not_block_the_others(
+    cfg: JarvisConfig, rt: Runtime, sent: Sent
+) -> None:
+    run_slate(rt, SLATE)
+    live_files(cfg.root, SLATE, "STATUS_HALFTIME", away=55, home=48)
+    f = next(
+        (cfg.root / "data" / "raw" / f"live_{SLATE}" / "espn_scoreboard" / str(SLATE)).glob("*.gz")
+    )
+    with gzip.open(f, "rt") as fh0:
+        body = json.loads(fh0.read())
+    body["events"].insert(0, {"shortName": "broken", "status": {}, "competitions": []})  # malformed
+    with gzip.open(f, "wt") as fh:
+        json.dump(body, fh)
+    rt.clock = lambda: TIP1 + timedelta(minutes=70)
+    assert len(run_tick(rt, SLATE)["halftime"]) == 1
+    import nba.jarvis.runner as rn
+
+    orig = rn._halftime_one
+
+    def boom(*a, **k):  # type: ignore[no-untyped-def]
+        raise RuntimeError("bad game")
+
+    rn._halftime_one = boom  # type: ignore[assignment]
+    try:
+        out = run_tick(rt, SLATE)["halftime"]
+    finally:
+        rn._halftime_one = orig  # type: ignore[assignment]
+    assert out and out[0]["ok"] is False and out[0]["error"] == "RuntimeError"

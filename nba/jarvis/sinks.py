@@ -10,6 +10,7 @@ network.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from collections.abc import Callable, Mapping
@@ -20,6 +21,10 @@ import httpx
 from nba.jarvis import imessage
 from nba.jarvis.config import JarvisConfig
 from nba.jarvis.imessage import SendResult
+
+# httpx logs the full request URL at INFO, which would put the webhook token in a log: pin it
+for _name in ("httpx", "httpcore"):
+    logging.getLogger(_name).setLevel(logging.WARNING)
 
 WEBHOOK = re.compile(
     r"^https://(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\d+/[A-Za-z0-9_\-]+$"
@@ -71,6 +76,24 @@ def send_discord(
     if code in (200, 204):
         return SendResult(True, "sent")
     return SendResult(False, "failed", redact(f"discord HTTP {code}", url))
+
+
+def make_sinks(
+    cfg: JarvisConfig, discord_client: Any | None = None
+) -> dict[str, Callable[..., SendResult]]:
+    """One callable per configured sink, so delivery can be deduped (and retried) per sink."""
+    out: dict[str, Callable[..., SendResult]] = {}
+    for sink in cfg.sinks:
+        if sink == "discord":
+            out[sink] = lambda text, *, dry_run=False, env=None, out=print, **_: send_discord(
+                text, env_var=cfg.discord_env_var, dry_run=dry_run, env=env,
+                client=discord_client, out=out,
+            )  # fmt: skip
+        elif sink == "imessage":
+            out[sink] = lambda text, *, dry_run=False, env=None, out=print, **_: imessage.send(
+                text, env_var=cfg.env_var, dry_run=dry_run, env=env, out=out
+            )
+    return out
 
 
 def make_sender(cfg: JarvisConfig, discord_client: Any | None = None) -> Callable[..., SendResult]:

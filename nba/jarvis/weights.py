@@ -78,13 +78,14 @@ def update_weights(
     *,
     today: date,
     now: datetime | None = None,
-    force: bool = False,
+    display_only: bool = False,
 ) -> list[dict[str, Any]]:
     """Run the frozen weekly rule once (at most every ``min_days_between_updates`` days). Returns
-    the records appended (one per stat, change or hold)."""
+    the records appended (one per stat, change or hold). ``display_only`` evaluates and returns
+    without logging or stepping anything, so no flag can add a second step inside the week."""
     mw = cfg.model_weights
     recs = _records(cfg)
-    if recs and not force:
+    if recs and not display_only:
         last = max(date.fromisoformat(str(r["date"])) for r in recs)
         if (today - last).days < int(mw["min_days_between_updates"]):
             return []
@@ -119,6 +120,8 @@ def update_weights(
                 "ci_lo_cents": None if lo is None else round(lo, 3),
             }
         )
+    if display_only:  # --force: show what the rule would say; never steps a weight
+        return out
     p = log_path(cfg)
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("a") as fh:

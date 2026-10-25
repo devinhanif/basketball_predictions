@@ -110,11 +110,13 @@ model_weights:                  # model weight by stat, earned from the closing-
   min_days_between_updates: 7
   log: data/jarvis/model_weights.jsonl
 
-daily_dollar:                   # one $1 correlated long-shot ticket a day (TRADING_CONTEXT.md)
+daily_dollar:                   # one $1 same-team long-shot ticket a day (TRADING_CONTEXT.md)
   enabled: true
   stake_usd: 1.0
   target_multiple: [50, 300]    # payout / cost
   max_legs: 3
+  top_players: 2                # legs are the win plus points (and the top player's assists) of the team's top-usage players
+  min_possessions: 50           # a player needs this many offensive possessions on court (2026) to rank by usage
   # fair = product of the single-leg fair prices x corr_factor. The factor is an ESTIMATE, not measured on a
   # combo price: same-player legs hit 28.6% vs 20.1% (1.42x) in the project data, a team win with its own
   # star's big night is assumed weaker. Buy only at or below fair.

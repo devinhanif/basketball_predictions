@@ -1029,25 +1029,29 @@ Pinnacle's P(over | plays) x our P(plays). Polymarket is **Polymarket US** (publ
 banker's-rounded, from `configs/fastarb.yaml`. A fair-price bet is never presented as an edge. **The LLM writes the one-to-two fan-terms sentence only for strong/arbitrage plays**, hard-checked (numguard
 incl. "9-cent" and spelled-out numbers, no oversell words, no give-up phrases); thin and none plays use the template.
 
-**Floor, kill switch, balance.** `balance.current_usd` is a config value Devin updates (start $70). At or below `floor_usd` ($20) every post carries "PAPER ONLY". If the mean CLV of the last 30 settled JARVIS bets
-(with a two-sided close) is below zero, every stake drops to the "none" size until the labels are fixed (no losing-streak rule; picks and the Daily Dollar do not count).
+**Floor, kill switch, balance.** `balance.current_usd` is a config value Devin updates (start $70). At or below `floor_usd` ($20) every post carries "PAPER ONLY". The kill switch counts only
+thin, strong and arbitrage bets (not none, not unconfirmed candidates, not picks or the Daily Dollar): if the mean CLV of the last 30 settled ones (with a two-sided close) is below zero it trips and every stake drops
+to the "none" size. **It latches**: a later good run does not clear it ("until fixed"); only Devin does, with `python -m nba.jarvis killswitch --clear [--note why]`, which logs a dated row and restarts the count
+from then (`killswitch` alone shows the state). No losing-streak rule.
 
 **Devin's picks** (`pick`): logged exactly as called (his price, his stake, no second-guessing), with an honest line on how the price compares to fair and which venue asks less. Label `pick`: outside the cap, the
 kill switch, the label record and the weights; reported as its own row (hit rate, CLV, P&L).
 
-**Daily Dollar**: one $1 ticket a day, correlated legs on Kalshi (a team win plus its own players' big nights, <= 3 legs), targeting 50-300x, bought only at or below fair. Fair = product of the single-leg fair
-prices x `daily_dollar.corr_factor` (1.2, an ESTIMATE stated on the line; the venue's combo price is assumed to be the product of the leg asks, to be tested against logged Kalshi combo quotes). Inside the
-non-reserved part of the cap, its own Discord line, tracked on its own row. When nothing qualifies at or below fair it says so.
+**Daily Dollar**: one $1 same-team long shot a day on Kalshi, legs = the team's win + the POINTS of its top-usage player (our 2026 possessions: share of his team's on-court possessions ending with his
+shot, at least 50 possessions) and optionally his assists or the second player's points, at most 3 legs, targeting 50-300x. The line is honest about what is unknown: it starts "EV unknown (entertainment)",
+prints the no-correlation fair price (product of the leg fair prices) and the correlation needed to break even, shows the assumed factor (1.2, an ESTIMATE, not measured) and says "no outside reference: fair =
+Kalshi mid x 1.2 (assumed)" when no leg has a Pinnacle price. It buys only at or below that assumed fair, the venue's combo price is assumed to be the product of the leg asks (to be tested against logged Kalshi
+combo quotes), it sits inside the non-reserved part of the cap, and it is tracked on its own row. "Correlated" is not claimed: the legs share a team and a top-usage player, nothing more. When nothing qualifies it says so.
 
 **Model weight by stat, earned from the closing-line record** (Devin, 2026-10-25). Fair = Pinnacle no-vig + w_stat x (model - Pinnacle); w starts at 0 for pts, reb, ast, fg3m, combos and win (so nothing
 changes today) and stays in [0, 0.5]. Weekly, per stat with >= 30 settled single-leg plays over >= 10 dates whose model LEANED toward the bet: mean CLV > 0 with the date-clustered 80% lower bound > 0 raises w
-by 0.1; mean CLV < 0 lowers it by 0.1 (floor 0); otherwise hold. Every evaluation is appended to `data/jarvis/model_weights.jsonl` (n, CI, date) and posted in the morning recap. The rules are frozen in
+by 0.1; mean CLV < 0 lowers it by 0.1 (floor 0); otherwise hold. Every evaluation is appended to `data/jarvis/model_weights.jsonl` (n, CI, date) and posted in the morning recap. `weights update` runs the rule at most once per 7 days; `weights update --force` only DISPLAYS the evaluation (nothing logged, no weight stepped). The rules are frozen in
 `configs/jarvis.yaml` before any data exists. **This is a paper-only adaptation of JARVIS's own fair price, not a frozen test**: it never changes the scoring, rule or window of a frozen rule, and no claim is
 made from it. Every play shows "fair: Pinnacle 50% / model 44% / w 0.0".
 
 **Safety (each is a test).** Fetched text (injury reasons, venue titles, lineup labels) is sanitised and enters the model only inside a fenced DATA block; it never feeds a number, label, stake or post. An
 instant post needs `supports_alert` (computed label strong/arbitrage, positive edge). A post is logged with sha256 hashes of its inputs and text. Plays are recorded at decision time with a `delivered`
-status, once per slate date per key. Stores held by their writer are skipped (the 1 GB odds store is never copied).
+status, once per slate date per key. Stores held by their writer are skipped (the 1 GB odds store is never copied). With several sinks each message is deduped per sink (a sink that already got the exact text is skipped), the httpx/httpcore loggers are pinned to WARNING so the webhook URL never reaches a log, and one malformed halftime event cannot block the others.
 
 **Paper book** `data/jarvis/paper_book.duckdb` (its own file; never `nba.duckdb`): `plays` (one row per leg), `scores` (won, pnl_usd, close_mid, close_ask, close_source, clv_cents, clv_vs_ask_cents), `quote_log`,
 `sends`, `alert_state`. CLV convention (declared before any data): close = the LATEST quote strictly before tip across JARVIS's `quote_log` and the Kalshi snapshots, its mid on the side bought;

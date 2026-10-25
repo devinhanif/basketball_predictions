@@ -52,6 +52,12 @@ CREATE TABLE IF NOT EXISTS alert_state (
   slate_date DATE, dedupe_key VARCHAR, edge_cents DOUBLE, ts TIMESTAMP,
   PRIMARY KEY (slate_date, dedupe_key)
 );
+CREATE TABLE IF NOT EXISTS killswitch_log (
+  ts TIMESTAMP, log_date DATE, action VARCHAR, n INTEGER, mean_clv DOUBLE, note VARCHAR
+);
+CREATE TABLE IF NOT EXISTS sink_log (
+  sink VARCHAR, text_hash VARCHAR, ts TIMESTAMP, PRIMARY KEY (sink, text_hash)
+);
 CREATE TABLE IF NOT EXISTS sends (
   send_id VARCHAR PRIMARY KEY, ts TIMESTAMP, kind VARCHAR, mode VARCHAR, slate_date DATE,
   dedupe_keys VARCHAR, play_ids VARCHAR, text_hash VARCHAR, input_hash VARCHAR, chars INTEGER,
@@ -91,6 +97,11 @@ class PaperBook:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         con = duckdb.connect(str(self.path))
         con.execute(SCHEMA)
+        for col, typ in (  # a book created by an earlier version gains the newer columns
+            ("delivered", "VARCHAR"), ("pin_prob", "DOUBLE"), ("w_model", "DOUBLE"),
+            ("leg_desc", "VARCHAR"),
+        ):  # fmt: skip
+            con.execute(f"ALTER TABLE plays ADD COLUMN IF NOT EXISTS {col} {typ}")
         return con
 
     def ensure(self) -> None:
@@ -103,6 +114,8 @@ class PaperBook:
         con = duckdb.connect(str(self.path), read_only=True)
         try:
             return con.execute(sql, params or []).fetchall()
+        except duckdb.CatalogException:  # a table (or column) from a newer version: reads as empty
+            return []
         finally:
             con.close()
 
@@ -196,6 +209,41 @@ class PaperBook:
         finally:
             con.close()
         return fresh
+
+    # ------------------------------------------------------------------ per-sink delivery
+    def sink_done(self, sink: str, text_hash: str) -> bool:
+        return bool(
+            self._rows("SELECT 1 FROM sink_log WHERE sink = ? AND text_hash = ?", [sink, text_hash])
+        )
+
+    def mark_sink(self, sink: str, text_hash: str, now: datetime | None = None) -> None:
+        con = self._con()
+        try:
+            con.execute(
+                "INSERT OR IGNORE INTO sink_log VALUES (?,?,?)",
+                [sink, text_hash, now or now_naive()],
+            )
+        finally:
+            con.close()
+
+    # ------------------------------------------------------------------ kill switch log
+    def kill_rows(self) -> list[tuple[Any, ...]]:
+        return self._rows(
+            "SELECT ts, log_date, action, n, mean_clv FROM killswitch_log ORDER BY ts"
+        )
+
+    def log_kill(
+        self, action: str, today: date, n: int, mean: float | None, note: str = "",
+        now: datetime | None = None,
+    ) -> None:  # fmt: skip
+        con = self._con()
+        try:
+            con.execute(
+                "INSERT INTO killswitch_log VALUES (?,?,?,?,?,?)",
+                [now or now_naive(), today, action, n, mean, note],
+            )
+        finally:
+            con.close()
 
     # ------------------------------------------------------------------ alert state
     def realert_due(
@@ -328,7 +376,16 @@ def order_cost_leg(p: Play, i: int) -> float:
     return 0.0
 
 
-__all__ = ["LABELS", "PaperBook", "order_cost", "sha", "KillState", "kill_switch"]
+__all__ = [
+    "LABELS",
+    "KillState",
+    "PaperBook",
+    "clear_kill_switch",
+    "kill_switch",
+    "latch_kill_switch",
+    "order_cost",
+    "sha",
+]
 
 
 # ------------------------------------------------------------------------------ scoring
@@ -659,34 +716,76 @@ def weekly_summary(
 
 @dataclass(frozen=True)
 class KillState:
-    """Closing-line-value kill switch (docs/TRADING_CONTEXT.md)."""
+    """Closing-line-value kill switch (docs/TRADING_CONTEXT.md): once tripped it stays on ("until
+    fixed") until Devin clears it with ``killswitch --clear``, which logs a dated row."""
 
     active: bool
     n: int
     mean_clv: float | None
+    latched: bool = False
+    since: date | None = None
 
     def message(self) -> str:
+        mean = "n/a" if self.mean_clv is None else f"{self.mean_clv:+.2f}c"
+        if self.latched:
+            return (
+                f"KILL SWITCH LATCHED since {self.since} (mean CLV {mean} over {self.n} settled "
+                "thin/strong/arbitrage bets): every stake is at the entertainment size until Devin "
+                "clears it (python -m nba.jarvis killswitch --clear)"
+            )
         return (
-            f"KILL SWITCH: mean CLV {self.mean_clv:+.2f}c over the last {self.n} settled bets is "
-            "negative, so every stake is at the entertainment size until the labels are fixed"
+            f"KILL SWITCH: mean CLV {mean} over the last {self.n} settled thin/strong/arbitrage "
+            "bets is negative, so every stake is at the entertainment size until Devin clears it"
         )
 
 
+KILL_LABELS = ("arbitrage", "strong", "thin")  # none and arb_candidate claim no edge: not counted
+
+
 def kill_switch(cfg: JarvisConfig, book: PaperBook) -> KillState:
-    """Mean CLV of the last ``kill_switch.min_bets`` settled JARVIS bets with a two-sided close; the
-    switch trips when that mean is below zero (no CI requirement, no losing-streak rule). Devin's
-    own picks and the Daily Dollar are not JARVIS's labelled bets and do not count."""
+    """Mean CLV of the last ``kill_switch.min_bets`` settled thin/strong/arbitrage bets with a
+    two-sided close, counted from the last time Devin cleared it. Below zero it trips (no CI, no
+    losing-streak rule) and the trip is LATCHED (see ``latch_kill_switch``): a later good run does
+    not clear it. Picks, the Daily Dollar, ``none`` plays and unconfirmed candidates do not
+    count."""
+    log = book.kill_rows()
+    last = log[-1] if log else None
+    if last is not None and last[2] == "tripped":
+        return KillState(True, int(last[3]), last[4], True, last[1])
+    cleared = [r[0] for r in log if r[2] == "cleared"]
+    since = max(cleared) if cleared else None
+    marks = ",".join("?" for _ in KILL_LABELS)
     rows = book._rows(
         "SELECT avg(s.clv_cents) FROM plays p JOIN scores s USING (play_id) "
-        "WHERE p.edge_label IN ('arbitrage','strong','thin','none','arb_candidate') "
-        "AND s.status = 'settled' GROUP BY p.bundle_id HAVING avg(s.clv_cents) IS NOT NULL "
+        f"WHERE p.edge_label IN ({marks}) AND s.status = 'settled' "
+        + ("AND p.ts > ? " if since is not None else "")
+        + "GROUP BY p.bundle_id HAVING avg(s.clv_cents) IS NOT NULL "
         "ORDER BY any_value(p.ts) DESC LIMIT ?",
-        [cfg.kill_min_bets],
+        [*KILL_LABELS, *([since] if since is not None else []), cfg.kill_min_bets],
     )
     if len(rows) < cfg.kill_min_bets:
         return KillState(False, len(rows), None)
     mean = sum(float(r[0]) for r in rows) / len(rows)
     return KillState(mean < 0.0, len(rows), mean)
+
+
+def latch_kill_switch(
+    cfg: JarvisConfig, book: PaperBook, today: date, now: datetime | None = None
+) -> KillState:
+    """Persist a trip (write path; the runner calls it outside dry-run)."""
+    ks = kill_switch(cfg, book)
+    if ks.active and not ks.latched:
+        book.log_kill("tripped", today, ks.n, ks.mean_clv, "mean CLV below 0", now)
+        return kill_switch(cfg, book)
+    return ks
+
+
+def clear_kill_switch(
+    cfg: JarvisConfig, book: PaperBook, today: date, note: str = "", now: datetime | None = None
+) -> KillState:
+    """Devin's reset: logs a dated row and restarts the count from now."""
+    book.log_kill("cleared", today, 0, None, note, now)
+    return kill_switch(cfg, book)
 
 
 def render_weekly(s: dict[str, Any]) -> str:

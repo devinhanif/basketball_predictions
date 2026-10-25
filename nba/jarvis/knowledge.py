@@ -75,6 +75,35 @@ class Knowledge:
             return int(team)
         return self.abbr.get(str(team).upper())
 
+    def top_usage(self, team_id: int, n: int, min_possessions: int) -> list[dict[str, Any]]:
+        """The team's highest-usage players in 2026: the share of its offensive possessions with the
+        player on court that end with his shot or foul trip (not the official USG%). Players with
+        fewer than ``min_possessions`` on-court possessions are not ranked."""
+        path = self.cfg.paths["nba_db"]
+        if not path.exists():
+            return []
+        con = open_ro(path)
+        try:
+            rows = con.execute(
+                "SELECT pid, count(*) AS on_court, "
+                "sum(CASE WHEN shooter_id = pid THEN 1 ELSE 0 END) AS used "
+                "FROM (SELECT p.shooter_id, unnest(p.off_players) AS pid FROM possessions p "
+                "JOIN games g USING (game_id) WHERE g.season = 2026 AND p.off_team = ?) "
+                "GROUP BY pid HAVING count(*) >= ? ORDER BY used * 1.0 / count(*) DESC LIMIT ?",
+                [team_id, min_possessions, n],
+            ).fetchall()
+        finally:
+            con.close()
+        return [
+            {
+                "player_id": int(r[0]),
+                "on_court": int(r[1]),
+                "used": int(r[2]),
+                "share": int(r[2]) / int(r[1]),
+            }
+            for r in rows
+        ]
+
     def player_teams(self, pids: set[int]) -> dict[int, int]:
         """player_id -> team_id from the player's latest 2026 box score (2026 only)."""
         path = self.cfg.paths["nba_db"]

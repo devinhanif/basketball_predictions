@@ -68,26 +68,33 @@ def latest_scoreboard(cfg: JarvisConfig, slate: date) -> list[LiveGame]:
         return []
     out = []
     for ev in body.get("events", []):
-        comp = ev["competitions"][0]
-        by = {c["homeAway"]: c for c in comp["competitors"]}
-        if "home" not in by or "away" not in by:
-            continue
-
-        def ab(c: dict) -> str:  # type: ignore[type-arg]
-            a = str(c["team"]["abbreviation"])
-            return ESPN_ABBR.get(a, a)
-
-        st = ev.get("status", {})
-        out.append(
-            LiveGame(
-                ab(by["away"]),
-                ab(by["home"]),
-                int(by["away"].get("score") or 0),
-                int(by["home"].get("score") or 0),
-                int(st.get("period") or 0),
-                str(st.get("displayClock", "")),
-                str(st.get("type", {}).get("name", "")),
-                snap,
-            )  # fmt: skip
-        )
+        try:
+            lg = _event(ev, snap)
+        except (KeyError, IndexError, TypeError, ValueError):
+            continue  # one malformed event never hides the others
+        if lg is not None:
+            out.append(lg)
     return out
+
+
+def _event(ev: dict, snap: datetime) -> LiveGame | None:  # type: ignore[type-arg]
+    comp = ev["competitions"][0]
+    by = {c["homeAway"]: c for c in comp["competitors"]}
+    if "home" not in by or "away" not in by:
+        return None
+
+    def ab(c: dict) -> str:  # type: ignore[type-arg]
+        a = str(c["team"]["abbreviation"])
+        return ESPN_ABBR.get(a, a)
+
+    st = ev.get("status", {})
+    return LiveGame(
+        ab(by["away"]),
+        ab(by["home"]),
+        int(by["away"].get("score") or 0),
+        int(by["home"].get("score") or 0),
+        int(st.get("period") or 0),
+        str(st.get("displayClock", "")),
+        str(st.get("type", {}).get("name", "")),
+        snap,
+    )
