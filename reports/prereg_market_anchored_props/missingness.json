@@ -1,0 +1,320 @@
+{
+ "asymmetry": [
+  {
+   "season": 2024,
+   "flag": "miss_u1",
+   "split": "role",
+   "abs_diff": 0.07348748085702467
+  },
+  {
+   "season": 2024,
+   "flag": "n_soft_lt3",
+   "split": "role",
+   "abs_diff": 0.07348748085702467
+  },
+  {
+   "season": 2024,
+   "flag": "miss_u1",
+   "split": "minutes",
+   "abs_diff": 0.045463431938538974
+  },
+  {
+   "season": 2024,
+   "flag": "n_soft_lt3",
+   "split": "minutes",
+   "abs_diff": 0.045463431938538974
+  },
+  {
+   "season": 2024,
+   "flag": "spread_missing",
+   "split": "minutes",
+   "abs_diff": 0.0319097905286385
+  },
+  {
+   "season": 2023,
+   "flag": "miss_u1",
+   "split": "minutes",
+   "abs_diff": 0.031795448251144456
+  },
+  {
+   "season": 2023,
+   "flag": "n_soft_lt3",
+   "split": "minutes",
+   "abs_diff": 0.031795448251144456
+  },
+  {
+   "season": 2023,
+   "flag": "miss_u1",
+   "split": "role",
+   "abs_diff": 0.01822322445006102
+  },
+  {
+   "season": 2023,
+   "flag": "n_soft_lt3",
+   "split": "role",
+   "abs_diff": 0.01822322445006102
+  },
+  {
+   "season": 2024,
+   "flag": "spread_missing",
+   "split": "role",
+   "abs_diff": 0.010248719011803983
+  },
+  {
+   "season": 2023,
+   "flag": "spread_missing",
+   "split": "role",
+   "abs_diff": 0.00492090434501457
+  },
+  {
+   "season": 2023,
+   "flag": "spread_missing",
+   "split": "minutes",
+   "abs_diff": 0.002223742730071844
+  },
+  {
+   "season": 2023,
+   "flag": "miss_u1",
+   "split": "outcome_at_line",
+   "abs_diff": 0.0007533365208172785
+  },
+  {
+   "season": 2023,
+   "flag": "n_soft_lt3",
+   "split": "outcome_at_line",
+   "abs_diff": 0.0007533365208172785
+  },
+  {
+   "season": 2023,
+   "flag": "spread_missing",
+   "split": "outcome_at_line",
+   "abs_diff": 0.00034407423210802224
+  },
+  {
+   "season": 2024,
+   "flag": "miss_u1",
+   "split": "outcome_at_line",
+   "abs_diff": 7.344093854103756e-05
+  },
+  {
+   "season": 2024,
+   "flag": "n_soft_lt3",
+   "split": "outcome_at_line",
+   "abs_diff": 7.344093854103756e-05
+  },
+  {
+   "season": 2024,
+   "flag": "spread_missing",
+   "split": "outcome_at_line",
+   "abs_diff": 1.1084457933286523e-05
+  },
+  {
+   "season": 2023,
+   "flag": "null_p_model",
+   "split": "minutes",
+   "abs_diff": 0.0
+  },
+  {
+   "season": 2023,
+   "flag": "null_p_model",
+   "split": "outcome_at_line",
+   "abs_diff": 0.0
+  },
+  {
+   "season": 2023,
+   "flag": "null_p_model",
+   "split": "role",
+   "abs_diff": 0.0
+  },
+  {
+   "season": 2024,
+   "flag": "null_p_model",
+   "split": "minutes",
+   "abs_diff": 0.0
+  },
+  {
+   "season": 2024,
+   "flag": "null_p_model",
+   "split": "outcome_at_line",
+   "abs_diff": 0.0
+  },
+  {
+   "season": 2024,
+   "flag": "null_p_model",
+   "split": "role",
+   "abs_diff": 0.0
+  }
+ ],
+ "2023": {
+  "null_p_model|minutes": {
+   "lt5": 0.0,
+   "ge5": 0.0,
+   "n_lt5": 70,
+   "n_ge5": 35076,
+   "diff": 0.0
+  },
+  "miss_u1|minutes": {
+   "lt5": 0.04285714285714286,
+   "ge5": 0.011061694605998403,
+   "n_lt5": 70,
+   "n_ge5": 35076,
+   "diff": 0.031795448251144456
+  },
+  "n_soft_lt3|minutes": {
+   "lt5": 0.04285714285714286,
+   "ge5": 0.011061694605998403,
+   "n_lt5": 70,
+   "n_ge5": 35076,
+   "diff": 0.031795448251144456
+  },
+  "spread_missing|minutes": {
+   "lt5": 0.0,
+   "ge5": 0.002223742730071844,
+   "n_lt5": 70,
+   "n_ge5": 35076,
+   "diff": -0.002223742730071844
+  },
+  "null_p_model|outcome_at_line": {
+   "over": 0.0,
+   "under": 0.0,
+   "n_over": 16665,
+   "n_under": 18481,
+   "diff": 0.0
+  },
+  "miss_u1|outcome_at_line": {
+   "over": 0.01152115211521152,
+   "under": 0.010767815594394242,
+   "n_over": 16665,
+   "n_under": 18481,
+   "diff": 0.0007533365208172785
+  },
+  "n_soft_lt3|outcome_at_line": {
+   "over": 0.01152115211521152,
+   "under": 0.010767815594394242,
+   "n_over": 16665,
+   "n_under": 18481,
+   "diff": 0.0007533365208172785
+  },
+  "spread_missing|outcome_at_line": {
+   "over": 0.0024002400240024004,
+   "under": 0.002056165791894378,
+   "n_over": 16665,
+   "n_under": 18481,
+   "diff": 0.00034407423210802224
+  },
+  "null_p_model|role": {
+   "starter": 0.0,
+   "bench": 0.0,
+   "n_starter": 28551,
+   "n_bench": 6595,
+   "diff": 0.0
+  },
+  "miss_u1|role": {
+   "starter": 0.0077055094392490635,
+   "bench": 0.025928733889310083,
+   "n_starter": 28551,
+   "n_bench": 6595,
+   "diff": -0.01822322445006102
+  },
+  "n_soft_lt3|role": {
+   "starter": 0.0077055094392490635,
+   "bench": 0.025928733889310083,
+   "n_starter": 28551,
+   "n_bench": 6595,
+   "diff": -0.01822322445006102
+  },
+  "spread_missing|role": {
+   "starter": 0.0012959265875100697,
+   "bench": 0.0062168309325246396,
+   "n_starter": 28551,
+   "n_bench": 6595,
+   "diff": -0.00492090434501457
+  }
+ },
+ "2024": {
+  "null_p_model|minutes": {
+   "lt5": 0.0,
+   "ge5": 0.0,
+   "n_lt5": 81,
+   "n_ge5": 37447,
+   "diff": 0.0
+  },
+  "miss_u1|minutes": {
+   "lt5": 0.09876543209876543,
+   "ge5": 0.05330200016022645,
+   "n_lt5": 81,
+   "n_ge5": 37447,
+   "diff": 0.045463431938538974
+  },
+  "n_soft_lt3|minutes": {
+   "lt5": 0.09876543209876543,
+   "ge5": 0.05330200016022645,
+   "n_lt5": 81,
+   "n_ge5": 37447,
+   "diff": 0.045463431938538974
+  },
+  "spread_missing|minutes": {
+   "lt5": 0.037037037037037035,
+   "ge5": 0.005127246508398536,
+   "n_lt5": 81,
+   "n_ge5": 37447,
+   "diff": 0.0319097905286385
+  },
+  "null_p_model|outcome_at_line": {
+   "over": 0.0,
+   "under": 0.0,
+   "n_over": 17878,
+   "n_under": 19650,
+   "diff": 0.0
+  },
+  "miss_u1|outcome_at_line": {
+   "over": 0.053361673565275755,
+   "under": 0.05343511450381679,
+   "n_over": 17878,
+   "n_under": 19650,
+   "diff": -7.344093854103756e-05
+  },
+  "n_soft_lt3|outcome_at_line": {
+   "over": 0.053361673565275755,
+   "under": 0.05343511450381679,
+   "n_over": 17878,
+   "n_under": 19650,
+   "diff": -7.344093854103756e-05
+  },
+  "spread_missing|outcome_at_line": {
+   "over": 0.005201924152589775,
+   "under": 0.005190839694656489,
+   "n_over": 17878,
+   "n_under": 19650,
+   "diff": 1.1084457933286523e-05
+  },
+  "null_p_model|role": {
+   "starter": 0.0,
+   "bench": 0.0,
+   "n_starter": 28706,
+   "n_bench": 8822,
+   "diff": 0.0
+  },
+  "miss_u1|role": {
+   "starter": 0.036124851947328084,
+   "bench": 0.10961233280435276,
+   "n_starter": 28706,
+   "n_bench": 8822,
+   "diff": -0.07348748085702467
+  },
+  "n_soft_lt3|role": {
+   "starter": 0.036124851947328084,
+   "bench": 0.10961233280435276,
+   "n_starter": 28706,
+   "n_bench": 8822,
+   "diff": -0.07348748085702467
+  },
+  "spread_missing|role": {
+   "starter": 0.0027868738242876052,
+   "bench": 0.013035592836091589,
+   "n_starter": 28706,
+   "n_bench": 8822,
+   "diff": -0.010248719011803983
+  }
+ }
+}
