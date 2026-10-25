@@ -202,6 +202,14 @@ def test_only_drive_backups_are_exempt(tmp_path: Path) -> None:
     assert "backup_local" in str(_steps_problem(tmp_path, [*ok, ("backup_local", 1, "failed")]))
 
 
+def test_a_failed_advisory_stints_step_does_not_block_the_export(tmp_path: Path) -> None:
+    ok = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
+    assert _steps_problem(tmp_path, [*ok, ("stints_nightly", 6, "failed")]) is None
+    assert _steps_problem(tmp_path, [*ok, ("stints_nightly", 142, "failed")]) is None
+    bad = _steps_problem(tmp_path, [("report", 1, "failed"), ("stints_nightly", 6, "failed")])
+    assert bad == "morning data step failed: report"
+
+
 def test_a_good_run_clears_the_skip_record(tmp_path: Path) -> None:
     A.run(tmp_path, now=NOW, build=FakeBuild([0]))  # no morning heartbeat: skipped
     assert (tmp_path / "data/ops/heartbeat/app-export.skip.json").exists()

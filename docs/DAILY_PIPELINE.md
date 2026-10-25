@@ -237,7 +237,7 @@ recalibration; rookies and offseason moves are invisible until a first box score
 | Job | When | Steps |
 |---|---|---|
 | `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
-| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, **early forecast + early briefing** (below), last night's coverage + scorecard, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; each fetch capped at 30 min, `postgame_load` at 20; skipped while a backfill or the ingest queue runs), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
+| `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, **early forecast + early briefing** (below), last night's coverage + scorecard, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; each fetch capped at 30 min, `postgame_load` at 20; skipped while a backfill or the ingest queue runs), `stints_nightly` (advisory: stints and possession lineups for last night's final games, section below), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 **Optional fact-store rebuild (drafted 2026-10-11; approved ON by Devin 2026-10-11, switch NOT yet in the job environment).** `ops/nba_daily.sh morning` has a step `facts` right after
 `report`: `python -m nba.facts build --seasons 2022,2023,2024,2026 --schedule-seasons 2026 --out data/facts/facts.duckdb`.
@@ -848,7 +848,7 @@ writer on `nba.duckdb`:
 
 Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest`, `settle`, `checkpoint`, `report`,
 **`early_forecast`**, **`briefing_early`**, `coverage_yesterday`, `scorecard`, (`facts`, opt-in), `parlay_settle`,
-`fetch_tracking`, `fetch_hustle`, `fetch_officials`, `fetch_matchups`, `postgame_load`, `data_snapshot`, `data_diff`,
+`fetch_tracking`, `fetch_hustle`, `fetch_officials`, `fetch_matchups`, `postgame_load`, **`stints_nightly`**, `data_snapshot`, `data_diff`,
 `data_check`, backup, Drive copies.
 
 * **Why** (Devin, 2026-10-21: "can we not do an early morning version that says why?"): the forecast and the briefing
@@ -899,3 +899,33 @@ Morning job (`local.nba.daily-morning`, 07:00 CDT = 08:00 ET), in order: `ingest
   record, the monitor's model-vs-Kalshi table) whose Kalshi quote was older than `max_quote_age_s` at prediction time.
   It never touches forward_predictions, forward_scores, settlement or any outcome score. 2026-10-23 `stale_price`: 274
   market_at_prediction rows (250 game, 24 prop), twelve games.
+
+## Nightly stints and possession lineups (Devin, 2026-10-24)
+
+`stints` had 0 rows for `season=2026`: after the 2019-2025 bulk rebuild (tracker v2, ADR 0002) nothing fetched
+play-by-play or ran the tracker for the live season. The morning job now has one advisory step, **`stints_nightly`**
+(`python -m nba.ops.stints_nightly`), between `postgame_load` and `data_snapshot` (so the backup carries the rows).
+
+* **What it runs** (existing code, nothing re-implemented): `nba.ingest.pbp.pull_game_pbp` for missing PBP,
+  `parse_possessions` + `load_possessions` for games without possessions, `rebuild_lineups.compute_all` (same name and
+  alias books as the 5,269-game rebuild) and `write_chunk` for `stints` and `possessions.off_players/def_players`.
+  Possessions come from the same PBP; the lineup columns come from the same tracker run.
+* **Which games**: `season = 2026`, both scores set, `game_date` before today (ET; a live game carries a partial score,
+  so the date bound is what makes it final), a box score stored, within the last 7 days (`--lookback-days`; a missed
+  night heals on the next one). **Idempotent**: a game that already has `stints` rows is skipped; a re-run writes nothing.
+* **Advisory** (`advisory_step` in `ops/nba_daily.sh`): `alarm_run 1800` (`NBA_STINTS_TIMEOUT_S`), its own 1500 s fetch
+  budget, a failure only alerts. It never sets the heartbeat rc, never stops a later step, and `nba.ops.app_export`
+  lists it in `ADVISORY_STEPS` so a failed `stints_nightly` line in the steps file does not hold back the export.
+  Exit codes: 0 done, 4 no final game (informational, no alert), 5 some game could not be built, 6 reconciliation under
+  95%, 142 alarm, 75 DB locked.
+* **Reconciliation**: per game date, the share of player-games (box minutes > 0) with |stint minutes - box minutes| <=
+  1.0 min, over every eligible game that has stints. One row per night in `data/ops/stints_reconciliation.jsonl`
+  (rewritten in place by date) and `RECON` lines in the morning log. rc 6 (alert) when a night built in this run is under
+  `MINUTES_SHARE_TARGET` = 95%. Small nights are noisy (the 10-20 night is 68 player-games).
+* **Backfill 2026-10-20 through yesterday, once** (maintainer; same code, writes `nba.duckdb`, so no other writer, and it
+  adds PBP parquet files under `data/pbp/`):
+  `cp nba.duckdb data/backups/nba_pre_stints_<date>.duckdb`, then
+  `uv run python -m nba.ops.stints_nightly --since 2026-10-20 --until <yesterday ET>`. `--dry-run` lists the plan.
+  The nightly step only looks back 7 days, so the explicit backfill covers the nights before its first run.
+  Dry run on a copy of `nba.duckdb` (2026-10-24, 28 games, 10-20 to 10-23): 5,713 possessions with lineups,
+  reconciliation 64/68 (94.1%, alert), 254/254, 45/45, 275/275; 2 unresolved substitutions, 0 desynced.

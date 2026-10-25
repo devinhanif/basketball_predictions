@@ -108,6 +108,29 @@ step() {  # step <name> <cmd...>; logs output + exit code, alerts on failure (ex
   return $rc
 }
 
+# advisory_step <name> <cmd...>: a step that may only ALERT (Devin 2026-10-24, nightly stints). Unlike `step` it
+# never sets HB_RC (the heartbeat rc, and so the watchdog, stay green), and the caller's flow is unchanged (it
+# always returns 0). Its failure is still written to the steps file ("failed", honest rc) and to ALERTS.md;
+# nba.ops.app_export lists it in ADVISORY_STEPS, so it cannot hold back the app export either. rc 4 =
+# informational (no final game to build); rc 5 = some game could not be built; rc 6 = a built night reconciles
+# under 95% of box minutes; rc 142 = the alarm. All but 0 and 4 alert.
+advisory_step() {
+  name=$1; shift
+  log "start $name"
+  "$@" >> "$LOG" 2>&1
+  rc=$?
+  log "end $name rc=$rc"
+  failed=ok
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 4 ]; then
+    failed=failed
+    if [ "$rc" -eq 142 ]; then alert "$name timed out (rc=142, alarm), see $LOG"
+    elif [ "$rc" -eq 6 ]; then alert "$name: stint minutes within 1 min of box under 95% (rc=6), see $LOG and data/ops/stints_reconciliation.jsonl"
+    else alert "$name failed (rc=$rc), see $LOG"; fi
+  fi
+  step_record "$name" "$rc" "$failed"
+  return 0
+}
+
 # alarm_run <seconds> <cmd...>: macOS has no `timeout`. perl sets SIGALRM and exec()s the command; the
 # timer survives exec, so `uv` is signalled after <seconds> and the shell sees 142. `uv run` forks its
 # child (it does not exec it), so this relies on uv forwarding SIGALRM to python (true of uv 0.12.23; re-check
@@ -125,6 +148,8 @@ LOAD_TIMEOUT_S=${NBA_LOAD_TIMEOUT_S:-1200}     # 20 min for postgame-load
 # pretip predict, holding the lock. 1200 s cannot hit a healthy run.
 EARLY_TIMEOUT_S=${NBA_EARLY_TIMEOUT_S:-1200}
 PREDICT_TIMEOUT_S=${NBA_PREDICT_TIMEOUT_S:-1200}
+# nba.ops.stints_nightly: PBP fetch (<= ~15 games a night, 1 s apart) + tracker + reconcile; its own fetch budget is 1500 s
+STINTS_TIMEOUT_S=${NBA_STINTS_TIMEOUT_S:-1800}
 
 # one job at a time (mkdir is atomic). The owner pid is stored in the lock dir: a dead owner
 # (SIGKILL, power loss) is cleared at once; a live-looking lock older than 3 h is cleared too.
@@ -238,6 +263,11 @@ case "$MODE" in
       step postgame_load alarm_run "$LOAD_TIMEOUT_S" "$UV" run --no-sync python -m nba.ingest postgame-load \
         --source tracking --source hustle --source officials --source matchups
     fi
+    # Stints + possession lineups for last night's scored, final games (tracker v2, ADR 0002; Devin 2026-10-24).
+    # Advisory: alarm-bounded, may only alert (see advisory_step), idempotent (games with stints are skipped, a
+    # missed night heals within 7 days). Reconciliation share per night -> data/ops/stints_reconciliation.jsonl;
+    # alert under 95%. Runs after postgame_load and before the snapshot so the backup carries the new rows.
+    advisory_step stints_nightly alarm_run "$STINTS_TIMEOUT_S" "$UV" run --no-sync python -m nba.ops.stints_nightly
     step data_snapshot "$UV" run --no-sync python -m nba.datamanifest snapshot
     step data_diff "$UV" run --no-sync python -m nba.datamanifest diff
     step data_check "$UV" run --no-sync python -m nba.datamanifest check
