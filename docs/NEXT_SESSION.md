@@ -1,3 +1,16 @@
+# NEXT SESSION, resume here (written 2026-10-25 ~16:30 CDT; fresh session strongly recommended: this one ran ~2 days)
+
+**Phone summary for Devin:**
+1. **JARVIS is merged (paper, Discord).** Install when ready, from the repo folder (paste your Discord webhook when asked; it never enters the repo):
+   `uv run python -m nba.jarvis test-send --dry-run` then
+   `read -rs "JARVIS_DISCORD_WEBHOOK?webhook URL: "; export JARVIS_DISCORD_WEBHOOK; echo; cp ops/launchd/local.nba.jarvis.plist ~/Library/LaunchAgents/ && plutil -replace EnvironmentVariables.JARVIS_DISCORD_WEBHOOK -string "$JARVIS_DISCORD_WEBHOOK" ~/Library/LaunchAgents/local.nba.jarvis.plist && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.jarvis.plist; unset JARVIS_DISCORD_WEBHOOK`
+   Update `balance.current_usd` in configs/jarvis.yaml when money moves. Rules: docs/TRADING_CONTEXT.md.
+2. **Fast-arb checker** (agent/market-fast-arb): review fixes B1-B5 in progress, then diff re-check + merge. It is what lets JARVIS label "strong"/"arbitrage". Not installed.
+3. **Installed today:** live-capture launcher (runs nightly by itself). Mac must stay on AC on game days (it hibernated 12:13-13:48 on 10-25).
+4. **Results:** 10-24 card 0/5; your 46c GSW@PHX combo won. 10-25 bets: tell me fills to update the balance.
+5. **Your reads to do:** Kalshi + Polymarket US settlement rules (postponement/OT/DNP) before trusting any cross-venue "arbitrage"; Underdog payout table.
+6. **Cleanup (permission-blocked for Claude):** `rm -rf data/rehearsal/oracle_{K,M,M2}_branch* data/rehearsal/oracle_{kgap,fzbool,launch1024,stints,stints2,jarvis,excl}_202610*` ; `rm data/ops/pretip_2026102{1,2,3}.log` ; delete merged remote branches.
+
 # NEXT SESSION, resume here (written 2026-10-24 01:45 CDT, end of overnight "do everything"; fresh session recommended)
 
 **Phone summary for Devin:**
