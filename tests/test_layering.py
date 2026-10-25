@@ -29,6 +29,7 @@ ENTRYPOINTS = (
     "nba.ingest.queue",
     "nba.ingest.referees",
     "nba.lineups.__main__",
+    "nba.live.__main__",
     "nba.markets.__main__",
     "nba.odds.__main__",
     "nba.parlay.__main__",
