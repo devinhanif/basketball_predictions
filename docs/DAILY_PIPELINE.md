@@ -985,3 +985,68 @@ play-by-play or ran the tracker for the live season. The morning job now has one
   The nightly step only looks back 7 days, so the explicit backfill covers the nights before its first run.
   Dry run on a copy of `nba.duckdb` (2026-10-24, 28 games, 10-20 to 10-23): 5,713 possessions with lineups,
   reconciliation 64/68 (94.1%, alert), 254/254, 45/45, 275/275; 2 unresolved substitutions, 0 desynced.
+
+## JARVIS (paper, alert-only; built 2026-10-25, branch agent/market-jarvis-paper)
+
+Devin's definition (DECISIONS 2026-10-25 14:41 and 14:43): an LLM-enabled assistant that **always names the best available play**, texts it
+to him through iMessage, and writes every play to its own paper book scored by outcome and closing-line value. It is not a trader: no order,
+no credential, no execution code (CLAUDE.md non-negotiable 5). Execution stays Devin's tap. Code: `nba/jarvis/`; config: `configs/jarvis.yaml`;
+tests: `tests/jarvis/` (fixtures only: no network, no `osascript`, no recipient).
+
+```
+uv run python -m nba.jarvis slate [--dry-run] [--force]        # compose / send the slate summary now
+uv run python -m nba.jarvis watch [--once] [--dry-run]          # the poller (launchd runs `watch --once` every 2 min)
+uv run python -m nba.jarvis ask "who should I bet tonight?"    # one-shot, or a REPL without the question
+uv run python -m nba.jarvis book {score,weekly,show} [--days 7] # after games: score, then the weekly summary
+uv run python -m nba.jarvis test-send [--dry-run]               # one short text, to check Messages + the env var
+# common flags: --no-llm (template sentences) --no-model (skip our stored forecasts) --no-polymarket --date D --root PATH
+```
+
+**Always a play, with an honest label computed from data** (`nba/jarvis/edge.py`, thresholds in `configs/jarvis.yaml`). Every play names venue,
+side, maximum price (the worst price at which it keeps its label), stake and an edge label:
+
+| label | rule (all after the venue's fee, from the fee config objects) | stake |
+|---|---|---|
+| arbitrage | two complementary legs cost < $1 per pair on **verified** fees | capped fractional Kelly, <= `caps.per_label_usd.arbitrage` |
+| strong | >= 3c vs Pinnacle no-vig | quarter-Kelly on the measured edge, $1..$5 |
+| thin | 0..3c vs Pinnacle no-vig, or a stronger edge whose Pinnacle line is older than `freshness.max_ref_age_min` | quarter-Kelly, $1..$3 |
+| none | negative edge, or no Pinnacle line for that exact bet: a fair price, entertainment | flat $1..$3 |
+
+Nightly cap `caps.nightly_usd` ($20; bankroll $35 Kalshi + $35 Polymarket). Re-emitting the same play is not new money; when the cap is used the
+play is still named with stake $0.00. The Polymarket fee (0.05 x p x (1-p) taker, docs.polymarket.com/trading/fees) is **unverified**: an
+arbitrage that needs it is labelled strong with "arbitrage pending fee check" until `fees.polymarket.verified: true`. Props are compared to Pinnacle only
+when Pinnacle has the exact line (Kalshi "25+" = over 24.5); otherwise the label is none. Spreads and totals are not priced yet (v2). A fair-price
+bet is never presented as an edge: the text says `NO EDGE ... entertainment`.
+
+**Inputs** (all read-only): Kalshi snapshot store (`data/kalshi/kalshi.duckdb`, every 15 min), Pinnacle/Polymarket/Kalshi books from the odds capture
+(`live_book_odds`), Polymarket's public gamma API (`GET /events/slug/nba-<away>-<home>-<date>`, no key; one or two requests per game per tick), our stored
+forecasts through the parlay engine, the official injury report, lineup snapshots, `docs/FAN_KNOWLEDGE.md` excerpts, and 2026 stints/possessions (pace,
+top five-man units, usage share). Hook for the fast Kalshi/Polymarket arb poller (branch `agent/market-fast-arb`, not merged at build time):
+append a callable `(cfg, games, slate, now) -> list[Quote]` to `nba.jarvis.slate.QUOTE_SOURCES`; until then JARVIS polls the snapshot store and gamma itself.
+
+**Safety (each is a test).** Fetched text (injury reasons, lineup labels) is sanitised and enters the model only inside a fenced DATA block; it never
+feeds a number, label, stake or send. The model writes at most two sentences after the gate: it passes `numguard` (every number traceable to the DATA
+block; "52c" is normalised to cents first), says nothing like keep-your-money/pass/no-bet, does not call a non-arbitrage a lock, and does not call a
+none play an edge; otherwise a template sentence is used. An immediate text needs `supports_alert` (computed label strong/arbitrage, positive edge,
+stake > 0). A send is logged with sha256 hashes of its inputs and text. The recipient is only the env var `JARVIS_IMESSAGE_TO`, passed to AppleScript as an
+argument; it is never written to the repo, a log, the book or a test. `--dry-run` prints and writes nothing (so it cannot dedupe a later real send).
+
+**Triggers.** `watch --once` (every 2 min): (1) the slate summary on the first tick at or inside T-90 (+2 min) of the first tip, once per ET date;
+(2) an immediate text for a new strong/arbitrage play (same game, legs and label deduped for 30 min); (3) logs the prices of today's recorded plays to
+`quote_log` for closing-line value. News changes show up as a changed price against Pinnacle; there is no separate news feed. Inbound replies (reading
+the Messages database) are a v2 note, not built.
+
+**Paper book** `data/jarvis/paper_book.duckdb` (its own file; never `nba.duckdb`): `plays` (one row per leg: time, slate_date, game, venue, ticker, side,
+price, max_price, contracts, stake_usd, edge_label, edge_cents, fair_prob, fee_cents, model_prob, reason, explanation, dedupe_key, input_hash),
+`scores` (won, pnl_usd, close_mid, close_ask, close_source, clv_cents, clv_vs_ask_cents), `quote_log`, `sends`. CLV convention (declared before any
+data): closing price = mid of the venue's last quote strictly before tip on the side bought; `clv_cents = (close_mid - entry_ask) x 100`. `book weekly` reports
+n, P&L and CLV mean with a slate-date-clustered bootstrap CI by edge label; below `min_settled_for_claims` settled over `min_settled_dates_for_claims`
+dates it prints "insufficient sample" and claims nothing. A hit is shown in the same layout as a miss plus "this one hit; it was still a -X% bet".
+
+**Install (Devin's; nothing here installs anything).** Template `ops/launchd/local.nba.jarvis.plist` (every 120 s, `uv run --no-sync python -m nba.jarvis watch --once`).
+1. Ollama (optional, for the one-sentence explanation): `brew install ollama && ollama serve` in another terminal, then `ollama pull qwen2.5:3b`. Without it the texts use template sentences.
+2. Messages: be signed in to iMessage on this Mac. Run `uv run python -m nba.jarvis test-send` once in Terminal; macOS asks to let Terminal control Messages (System Settings > Privacy & Security > Automation). The launchd job runs under uv, which may need its own allowance there.
+3. `read -rs "JARVIS_IMESSAGE_TO?recipient (phone or Apple ID email): "; export JARVIS_IMESSAGE_TO; echo` then
+   `cp ops/launchd/local.nba.jarvis.plist ~/Library/LaunchAgents/ && plutil -replace EnvironmentVariables.JARVIS_IMESSAGE_TO -string "$JARVIS_IMESSAGE_TO" ~/Library/LaunchAgents/local.nba.jarvis.plist && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.jarvis.plist`
+4. After games each night: `uv run python -m nba.jarvis book score`; weekly: `uv run python -m nba.jarvis book weekly`.
+Uninstall: `launchctl bootout gui/$(id -u)/local.nba.jarvis && rm ~/Library/LaunchAgents/local.nba.jarvis.plist`.
