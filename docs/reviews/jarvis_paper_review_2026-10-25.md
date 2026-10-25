@@ -472,3 +472,68 @@ value it has not measured.
 ### Proposed DECISIONS row (draft, not appended)
 
 | 2026-10-25 21:00 | JARVIS re-check (c47af06, docs/reviews/jarvis_paper_review_2026-10-25.md, re-check section): B1-B5 and M1-M8 closed on rerun attacks (no arbitrage without confirmed depth + <= 5 s legs; stale/skewed prices capped at thin; ladder none $0.52 < thin $2.59 < strong $4.66 with a $10 strong reserve; partial post sent once, failures stop at the cap; 0/7 oversell sentences pass); 148 tests pass. Discord POST is the only POST; URL env-only and redacted. CHANGES_REQUIRED, narrow: N1 Daily Dollar must print the no-correlation fair and "EV unknown" (its fair is 1.2 x Kalshi's own mid where Pinnacle is absent; legs are cheap, not measured as correlated); N2 `weights --force` must not step a weight more than once per frozen week. For Devin: kill switch counts `none` plays and self-clears (TRADING_CONTEXT says labels and "until fixed"); weight rule credits the model for the Pinnacle edge (a contrast test would be a new rule id). | Adversary sequence. | n/a |
+
+---
+
+## Final check (diff only): `git diff d3f5f09 6f14f5d` (2026-10-25)
+
+Same scratch worktree, fast-forwarded to `6f14f5d`, with `data/` symlinked. No new attacks. The first-round attacks
+were rerun as a regression check (A1, A3, A5, the stake table).
+
+Verdict: APPROVED
+
+(In the caller's terms: **APPROVED** for merge. N1 and N2 are closed, and the recommendations on the kill switch,
+logging and halftime were taken. The merge still needs the replay oracle IDENTICAL, because `tests/test_layering.py`
+and `ops/` are touched. Installing the plist and setting `JARVIS_DISCORD_WEBHOOK` remain Devin's decision.)
+
+| Check | Command / evidence | Result |
+|---|---|---|
+| Lint / format / types | `ruff check ...`, `ruff format --check ...`, `mypy nba/jarvis` | exit 0 / 0 / 0 |
+| Tests | `python -m pytest -q -p no:cacheprovider --no-cov tests/jarvis tests/test_layering.py` | **154 passed**, exit 0 |
+| Only POST | `grep -rn -E "\.post\(" nba/jarvis` | `sinks.py:69` only |
+| Regression A1 / A3 / A5 / B3 | `attack_v2.py a1`, `a3`, `a5`; `stakes.py` | thin, 0 alerts / 0 of 7 oversell sentences pass / part 1 delivered once / ladder unchanged (thin $2.59, strong $4.66) |
+
+**N1 Daily Dollar: closed.**
+- Legs are now the team's win plus its top-usage player's points, and optionally his assists or the second player's
+  points. Top usage is ranked on 2026 possessions only (`knowledge.top_usage`, `season = 2026`, >= 50 on-court
+  possessions).
+- The line now says "EV unknown (entertainment)". It prints the no-correlation fair, the % above it, and the
+  correlation needed to break even "(unmeasured)", and it says when no leg has a Pinnacle price ("fair = Kalshi mid x
+  1.2 (assumed)").
+- It cannot be labelled above none: it stays outside alerts, the kill switch, the label record and the weights.
+- What is still unmeasured is now stated rather than hidden: the 1.2 factor, and whether Kalshi prices the combo at
+  the product of the asks.
+- Minor: early in the season, 50 possessions can rank a bench player as "top usage". Raising `min_possessions` as
+  games accumulate is a config choice.
+
+**N2 weights `--force`: closed.** `update_weights(display_only=True)` returns before the log is written, and the
+CLI prints "(display only, nothing logged)". No flag can add a second step inside the 7-day window. The frozen gates
+(n >= 30, >= 10 dates, 80% lower bound > 0, w in [0, 0.5]) are unchanged.
+
+**Kill switch: matches TRADING_CONTEXT.** It counts only `thin`/`strong`/`arbitrage` (`KILL_LABELS`). A trip is
+written to `killswitch_log` by the runner (not in dry-run) and stays latched until `killswitch --clear` logs a dated
+row; the count restarts from that clear.
+
+**Small items:**
+- httpx/httpcore logging is pinned to WARNING in `sinks.py` (and in the CLI).
+- Halftime: each event is parsed under `try` (KeyError/IndexError/TypeError/ValueError), and each game's post is
+  guarded on its own.
+- Per-sink dedupe: `sink_log(sink, sha(text))`, so a sink that already received a text is skipped and one failing
+  sink no longer makes the other repeat. Minor: the key has no date, so the same exact text on a later day would be
+  skipped. Texts carry the matchup and tip time, so this is unlikely; add `slate_date` to the key if it ever matters.
+- Book migration: `ALTER TABLE plays ADD COLUMN IF NOT EXISTS` runs on the paper book's own write connection only.
+  `_rows` reads a missing table as empty. Every write path creates the schema first, so this cannot hide a send
+  record in practice.
+
+**Still open (recorded, not blocking):**
+- Polymarket US and Kalshi settlement rules are unread, so RESOLUTION RISK stays on cross-venue covers.
+- The Kalshi prop DNP rule is unverified, and ModelView has no `p_play`, so every prop stays capped at thin.
+- The weight rule's model-vs-Pinnacle confound would need a new rule id if Devin wants it.
+- The live Discord webhook is untested from here.
+
+**Biggest remaining risk:** Devin acting on a cross-venue `arb_candidate` before reading both venues' settlement
+rules. It never alerts and is sized as thin, and the text says it is unconfirmed.
+
+### Proposed DECISIONS row (draft, not appended)
+
+| 2026-10-25 22:00 | JARVIS final adversary check APPROVED (6f14f5d, docs/reviews/jarvis_paper_review_2026-10-25.md, final section): N1 Daily Dollar now same-team top-usage legs with "EV unknown", no-correlation fair and break-even correlation printed; N2 weights --force display-only; kill switch on thin/strong/arbitrage, latched until a dated clear; httpx log pinned; halftime guarded; per-sink dedupe. 154 tests pass; Discord POST the only POST. Merge needs the replay oracle IDENTICAL; install and the webhook are Devin's. Open: settlement rules unread, prop DNP rule unverified (props capped at thin). | Adversary sequence. | n/a |
