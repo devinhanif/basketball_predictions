@@ -190,10 +190,10 @@ class _LG:
     away, home, away_score, home_score = "A", "B", 50, 48
 
 
-def _leg(bundle: str, idx: int, label: str, ticker: str) -> dict[str, Any]:
+def _leg(bundle: str, idx: int, label: str, ticker: str, kind: str = "prop") -> dict[str, Any]:
     return {
         "bundle_id": bundle, "leg_idx": idx, "venue": "kalshi", "ticker": ticker, "side": "yes",
-        "contracts": 33, "leg_desc": f"leg {idx}", "edge_label": label, "kind": "prop",
+        "contracts": 33, "leg_desc": f"leg {idx}", "edge_label": label, "kind": kind,
         "team_id": None, "price": 0.2,
     }  # fmt: skip
 
@@ -202,13 +202,64 @@ def test_daily_dollar_and_combos_get_no_per_leg_warning_but_a_pointer(
     cfg: JarvisConfig, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ts = CLOCK - timedelta(minutes=2)
-    monkeypatch.setattr(posts, "_kalshi_book", lambda c, t: {"T-0": (0.01, 0.3, ts)})
+    monkeypatch.setattr(posts, "_kalshi_book", lambda c, t, n: {"T-0": (0.01, 0.3, ts)})
     dd = [_leg("b1", 0, "daily_dollar", "T-0"), _leg("b1", 1, "daily_dollar", "T-1")]
     out = "\n".join(_lines_for(cfg, dd))
     assert "DON'T SELL" not in out and "exit-check" in out
-    combo = [_leg("b2", 0, "strong", "T-0"), _leg("b2", 1, "strong", "T-1")]
+    combo = [_leg("b2", 0, "strong", "T-0", "combo"), _leg("b2", 1, "strong", "T-1", "combo")]
     out2 = "\n".join(_lines_for(cfg, combo))
     assert "DON'T SELL" not in out2 and "exit-check" in out2
+
+
+def test_arbitrage_pair_is_not_called_a_combo(
+    cfg: JarvisConfig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ts = CLOCK - timedelta(minutes=2)
+    monkeypatch.setattr(posts, "_kalshi_book", lambda c, t, n: {"T-0": (0.01, 0.3, ts)})
+    pair = [
+        _leg("b3", 0, "arbitrage", "T-0", "game_win"),
+        _leg("b3", 1, "arbitrage", "T-1", "game_win"),
+    ]
+    out = "\n".join(_lines_for(cfg, pair))
+    assert "combo" not in out and "DON'T SELL" not in out
+
+
+def test_future_dated_snapshot_is_stale_not_age_zero(cfg: JarvisConfig) -> None:
+    assert _line(cfg, 0.05, 0.30, age=-5.0) is None  # 5 min in the future
+    assert _line(cfg, 0.05, 0.30, age=1.0) is not None
+
+
+def test_book_is_read_as_of_now_never_later(cfg: JarvisConfig) -> None:
+    con = duckdb.connect(str(cfg.paths["kalshi_db"]))
+    t = "KXNBAGAME-26OCT28LALLAC-LAL"
+    con.execute(
+        "INSERT INTO kalshi_prices VALUES (?,?,0.2,0.6,NULL,0,0,'live')",
+        [t, CLOCK - timedelta(minutes=4)],
+    )
+    con.execute(
+        "INSERT INTO kalshi_prices VALUES (?,?,0.01,0.9,NULL,0,0,'live')",
+        [t, CLOCK + timedelta(hours=1)],
+    )
+    con.close()
+    q = posts._kalshi_book(cfg, [t], CLOCK)[t]
+    assert q[2] == CLOCK - timedelta(minutes=4) and q[0] == pytest.approx(0.2)
+
+
+def test_dead_one_cent_position_with_no_bid_stays_silent(cfg: JarvisConfig) -> None:
+    assert _line(cfg, 0.0, 0.01) is None
+    assert _line(cfg, 0.0, 0.02) is None
+    assert _line(cfg, 0.0, 0.31) is not None
+
+
+def test_price_read_failure_never_drops_the_check_in(
+    cfg: JarvisConfig, rt: Runtime, sent: Sent, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(*a: object, **k: object) -> None:
+        raise duckdb.IOException("locked")
+
+    monkeypatch.setattr(posts, "open_ro", boom)
+    txt = _halftime_text(cfg, rt, sent, 0.05, 0.30)
+    assert "halftime check-in" in txt and "BUY LeBron James" in txt and "price now" not in txt
 
 
 # ---------------------------------------------------------------- CLI

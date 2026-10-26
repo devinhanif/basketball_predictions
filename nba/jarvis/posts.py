@@ -38,28 +38,19 @@ def todays_rows(book: PaperBook, slate: date, game_id: str) -> list[dict[str, An
         con.close()
 
 
-def _now_price(cfg: JarvisConfig, row: dict[str, Any]) -> float | None:
-    """Latest Kalshi snapshot ask for the bought side (None for other venues / no snapshot)."""
-    if row["venue"] != "kalshi" or not cfg.paths["kalshi_db"].exists():
+def _price_now(row: dict[str, Any], book: Book) -> float | None:
+    """Latest captured ask for the bought side (None: other venue / no snapshot / a side empty)."""
+    q = book.get(str(row["ticker"]))
+    if row["venue"] != "kalshi" or q is None or q[0] is None or q[1] is None:
         return None
-    con = open_ro(cfg.paths["kalshi_db"], copy_ok=True)
-    try:
-        r = con.execute(
-            "SELECT yes_bid, yes_ask FROM kalshi_prices WHERE ticker = ? ORDER BY ts DESC LIMIT 1",
-            [row["ticker"]],
-        ).fetchone()
-    finally:
-        con.close()
-    if not r or r[0] is None or r[1] is None:
-        return None
-    return float(r[1]) if row["side"] == "yes" else 1.0 - float(r[0])
+    return float(q[1]) if row["side"] == "yes" else 1.0 - float(q[0])
 
 
 Book = dict[str, tuple[float | None, float | None, datetime]]  # ticker -> YES bid, ask, ts
 
 
-def _kalshi_book(cfg: JarvisConfig, tickers: list[str]) -> Book:
-    """Latest YES (bid, ask, ts) per ticker, ONE read-only open for all of them."""
+def _kalshi_book(cfg: JarvisConfig, tickers: list[str], now: datetime) -> Book:
+    """Latest YES (bid, ask, ts) per ticker AS OF ``now`` (a later row is never read), one open."""
     if not tickers or not cfg.paths["kalshi_db"].exists():
         return {}
     con = open_ro(cfg.paths["kalshi_db"], copy_ok=True)
@@ -67,8 +58,8 @@ def _kalshi_book(cfg: JarvisConfig, tickers: list[str]) -> Book:
         marks = ",".join("?" * len(tickers))
         rs = con.execute(
             "SELECT ticker, arg_max(yes_bid, ts), arg_max(yes_ask, ts), max(ts) "
-            f"FROM kalshi_prices WHERE ticker IN ({marks}) GROUP BY ticker",
-            tickers,
+            f"FROM kalshi_prices WHERE ticker IN ({marks}) AND ts <= ? GROUP BY ticker",
+            [*tickers, now],
         ).fetchall()
     finally:
         con.close()
@@ -91,12 +82,13 @@ def leg_exit_line(cfg: JarvisConfig, row: dict[str, Any], book: Book, now: datet
     bid, ask = (yb, ya) if row["side"] == "yes" else (
         None if ya is None else 1.0 - ya, None if yb is None else 1.0 - yb
     )  # fmt: skip
-    age = max((now - q[2]).total_seconds() / 60.0, 0.0)
-    if age > float(s["max_age_min"]):
-        return None  # a stale book is not evidence either way
+    age = (now - q[2]).total_seconds() / 60.0
+    if age < 0.0 or age > float(s["max_age_min"]):
+        return None  # a stale or future-dated book is not evidence either way
     label = str(row["leg_desc"] or row["ticker"])
     if bid is None:
-        return None if ask is None else no_bid_line(ask, age, label)
+        floor = float(s["min_fair"])
+        return None if ask is None or ask < floor else no_bid_line(ask, age, label)
     if ask is None:
         return None
     fair = venue_fair(bid, ask, float(s["max_spread"]))
@@ -128,13 +120,9 @@ def halftime_lines(
     if feed_age is not None and feed_age > 6.0:
         lines.append(f"(live feed is {feed_age:.0f} min old: treat the score as stale)")
     clock = at if at is not None else datetime.now(UTC).replace(tzinfo=None)
-    singles = [
-        str(x["ticker"]) for x in rows
-        if x["venue"] == "kalshi" and x["edge_label"] != "daily_dollar"
-        and sum(1 for y in rows if y["bundle_id"] == x["bundle_id"]) == 1
-    ]  # fmt: skip
-    try:  # fail soft: the warning never costs the check-in
-        book = _kalshi_book(cfg, sorted(set(singles)))
+    tickers = sorted({str(x["ticker"]) for x in rows if x["venue"] == "kalshi"})
+    try:  # fail soft: a price read never costs the check-in (prices, then the warning)
+        book = _kalshi_book(cfg, tickers, clock)
     except Exception as exc:
         log.warning("exit warning: kalshi book unreadable (%s)", type(exc).__name__)
         book = {}
@@ -154,14 +142,16 @@ def halftime_lines(
         status = ""
         if r["kind"] == "game_win" and len(legs) == 1 and r["team_id"] is not None:
             status = _lead_text(lg, r)
-        now = _now_price(cfg, r)
-        px = "" if now is None else f"; price now {cents(now)} vs your {cents(float(r['price']))}"
+        npx = _price_now(r, book)
+        px = "" if npx is None else f"; price now {cents(npx)} vs your {cents(float(r['price']))}"
         pay = f"; pays ${float(r['contracts']):.2f} if right" if r["contracts"] else ""
         lines.append(f"- [{tag}] {what}{status}{px}{pay}")
-        if len(legs) > 1 or r["edge_label"] == "daily_dollar":
+        if r["edge_label"] == "daily_dollar" or r["kind"] == "combo":
             if cfg.exit_warning.get("enabled", False):
                 lines.append(COMBO_NOTE)  # the held instrument is the combo, not its legs
             continue
+        if len(legs) > 1:
+            continue  # e.g. an arbitrage pair: legs are not sold one by one against a fair
         try:
             ex = leg_exit_line(cfg, r, book, clock)
         except Exception as exc:

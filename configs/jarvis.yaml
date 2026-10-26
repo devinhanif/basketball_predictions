@@ -144,9 +144,9 @@ daily_dollar:                   # one $1 same-team long-shot ticket a day (TRADI
 
 exit_warning:                   # DON'T SELL line when a position's bid is far below its value (Devin, 2026-10-25: a $0 cash-out)
   # Chosen, not fitted. Honest scope (adversary review 2026-10-26): on a sane two-sided book this only measures
-  # how wide the spread is (bid < ask/3), and it is NOT a value estimate: on 2026-27 in-game books it fired on
-  # about 15.7% (95% CI 13.0-19.2, 7 nights) of side-snapshots and 43% of those at a 5-10c mid, mostly widened
-  # long-shot books. Treat it as "check the app", never as proof of mispricing. What it does catch: a posted bid
+  # how wide the spread is (bid < ask/3), and it is NOT a value estimate: with the gates below it fired on
+  # 6.7% (95% CI 5.7-7.7, 7 nights) of sane two-sided in-game side-snapshots, all at mids under 25c (round-2
+  # review; 15.7% before the gates), i.e. widened long-shot books. Treat it as "check the app", never as proof of mispricing. What it does catch: a posted bid
   # under half the mid, and (separately) "no bid posted: a sale gets $0". The case that actually hurt, a combo
   # whose legs all hit, has no market here; use `exit-check --legs-hit N --legs-total M` (or --fair).
   # Empty sides (bid 0.00 / ask 1.00) and books wider than max_spread print no fair at all.
