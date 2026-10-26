@@ -260,6 +260,7 @@ class LiveMarket:
     yes_ask: float | None
     ts: datetime
     source: str  # capture | snapshot_store
+    series: str = ""  # KXNBAPTS ...: the series the order fee is priced under
 
 
 def _price(v: Any) -> float | None:
@@ -311,6 +312,7 @@ def kalshi_live(
                     _price(m.get("yes_ask_dollars")),
                     best[0],
                     "capture",
+                    series,
                 )  # fmt: skip
             )
     return out
@@ -346,7 +348,8 @@ def kalshi_fallback(
         if mm and stat in STAT_WORD:
             out.append(
                 LiveMarket(str(ticker), norm_name(mm.group(1)), mm.group(1), str(stat),
-                           int(mm.group(2)), _price(bid), _price(ask), ts, "snapshot_store")
+                           int(mm.group(2)), _price(bid), _price(ask), ts, "snapshot_store",
+                           str(ticker).split("-")[0])
             )  # fmt: skip
     return out
 
@@ -356,23 +359,29 @@ def kalshi_fallback(
 
 @dataclass(frozen=True)
 class Signal:
-    kind: str  # benched | window | foul | back
+    kind: str  # benched | window | foul | back | returned
     key: str  # dedupe key: espn game id (+ player id)
     snap: Snapshot
     players: tuple[PlayerLine, ...] = ()
     detail: dict[str, Any] = field(default_factory=dict)
 
 
-def late_and_lopsided(snap: Snapshot, margin: int) -> bool:
-    """4th quarter (or overtime), or the 3rd with under 3:00 left; margin at least ``margin``."""
-    late = snap.period >= 4 or (snap.period == 3 and snap.clock_s < 180)
-    return snap.state == "in" and late and snap.margin >= margin
+def late_and_lopsided(snap: Snapshot, margin: int, max_clock_s: float) -> bool:
+    """Only the last ``max_clock_s`` (6:00) of the 4th quarter or overtime, lead >= ``margin``.
+    Earlier than that a starter off the floor is ordinary rest (47% of the old Q3-or-Q4 flags played
+    again); the Q3 branch is gone."""
+    return (
+        snap.state == "in"
+        and snap.period >= 4
+        and snap.clock_s <= max_clock_s
+        and snap.margin >= margin
+    )
 
 
 def frozen_minutes(
     history: list[Snapshot], espn_id: str, min_snaps: int, min_game_s: float
-) -> int | None:
-    """The MIN a player has been stuck on, or None. Frozen = unchanged across at least
+) -> tuple[int, float] | None:
+    """(MIN he is stuck on, game seconds frozen), or None. Frozen = unchanged across at least
     ``min_snaps`` consecutive latest snapshots spanning at least ``min_game_s`` of GAME clock. ESPN
     updates MIN in steps, so a player who has just checked back in also reads frozen; the caller
     therefore also requires him to be off the floor now (``active`` false)."""
@@ -387,13 +396,17 @@ def frozen_minutes(
     if len(run) < min_snaps:
         return None
     span = run[0][0].elapsed_s - run[-1][0].elapsed_s
-    return run[0][1] if span >= min_game_s else None
+    return (run[0][1], span) if span >= min_game_s else None
 
 
 def detect(
-    cfg: JarvisConfig, history: list[Snapshot], already: dict[str, set[str]]
+    cfg: JarvisConfig,
+    history: list[Snapshot],
+    already: dict[str, set[str]],
+    flags: dict[str, tuple[int, str, datetime]] | None = None,
 ) -> list[Signal]:
-    """Signals for ONE game from its recent snapshots; ``already[kind]`` = keys posted before."""
+    """Signals for ONE game from its recent snapshots; ``already[kind]`` = keys posted before and
+    ``flags[key]`` = (MIN, game time) at which a BENCHED post flagged him (for the correction)."""
     ig = cfg.ingame
     if not history:
         return []
@@ -403,7 +416,7 @@ def detect(
     gid = cur.espn_game
     out: list[Signal] = []
     frozen: list[PlayerLine] = []
-    if late_and_lopsided(cur, int(ig["margin_benched"])):
+    if late_and_lopsided(cur, int(ig["margin_benched"]), float(ig["benched_max_clock_s"])):
         for p in cur.players:
             if not p.starter or p.active:  # `active` = on the floor right now
                 continue
@@ -415,7 +428,7 @@ def detect(
             frozen.append(p)
             key = f"{gid}:{p.espn_id}"
             if key not in already.get("benched", set()):
-                out.append(Signal("benched", key, cur, (p,), {"minutes": fm}))
+                out.append(Signal("benched", key, cur, (p,), {"minutes": fm[0], "frozen_s": fm[1]}))
         if frozen and gid not in already.get("window", set()):
             out.append(Signal("window", gid, cur, tuple(frozen)))
     for p in cur.players:
@@ -430,6 +443,14 @@ def detect(
         ):  # fmt: skip
             out.append(Signal("foul", key, cur, (p,), {"pf": p.pf}))
     benched_before = {k for k in already.get("benched", set()) if k.startswith(f"{gid}:")}
+    for key in sorted(benched_before - already.get("returned", set())):
+        pl = next((x for x in cur.players if f"{gid}:{x.espn_id}" == key), None)
+        fl = (flags or {}).get(key)
+        was, when = (fl[0], fl[1]) if fl else (None, "")
+        if fl is not None and cur.ts <= fl[2]:
+            continue  # only a snapshot AFTER the flag can correct it (a rewound replay cannot)
+        if pl is not None and (pl.active or (was is not None and (pl.minutes or 0) > was)):
+            out.append(Signal("returned", key, cur, (pl,), {"was": was, "when": when}))
     if (
         benched_before
         and gid not in already.get("back", set())

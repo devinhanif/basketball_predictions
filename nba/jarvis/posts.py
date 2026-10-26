@@ -159,6 +159,13 @@ def recap_lines(
             f"Kill switch: needs {cfg.kill_min_bets} settled bets with a close (has {kill.n})"
         )
     lines += weight_lines
+    flagged, returned = book.ingame_counts(day)
+    if flagged:
+        lines.append(
+            f"In-game BENCHED ('may be done') posts that night: flagged {flagged}, "
+            f"back on the floor {returned}. The rule was chosen in-sample (1 of 46 returned), "
+            "so it is judged on these forward nights."
+        )
     return lines
 
 

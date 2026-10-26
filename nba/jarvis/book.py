@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS alert_state (
 CREATE TABLE IF NOT EXISTS killswitch_log (
   ts TIMESTAMP, log_date DATE, action VARCHAR, n INTEGER, mean_clv DOUBLE, note VARCHAR
 );
+CREATE TABLE IF NOT EXISTS ingame_flags (
+  slate_date DATE, flag_key VARCHAR, minutes INTEGER, when_text VARCHAR, ts TIMESTAMP,
+  PRIMARY KEY (slate_date, flag_key)
+);
 CREATE TABLE IF NOT EXISTS sink_log (
   sink VARCHAR, text_hash VARCHAR, ts TIMESTAMP, PRIMARY KEY (sink, text_hash)
 );
@@ -225,6 +229,38 @@ class PaperBook:
             )
         finally:
             con.close()
+
+    # ------------------------------------------------------------------ in-game flags
+    def note_flag(
+        self, key: str, slate: date, minutes: int, when: str, dry_run: bool = False,
+        now: datetime | None = None,
+    ) -> None:  # fmt: skip
+        """Remember the MIN and game time at which a BENCHED post flagged a player (for the
+        correction post and the nightly flagged-vs-returned count)."""
+        if dry_run:
+            return
+        con = self._con()
+        try:
+            con.execute(
+                "INSERT OR REPLACE INTO ingame_flags VALUES (?,?,?,?,?)",
+                [slate, key, minutes, when, now or now_naive()],
+            )
+        finally:
+            con.close()
+
+    def ingame_flags(self, slate: date) -> dict[str, tuple[int, str, datetime]]:
+        """key -> (MIN, game time, snapshot time) at which a BENCHED post flagged him."""
+        rows = self._rows(
+            "SELECT flag_key, minutes, when_text, ts FROM ingame_flags WHERE slate_date = ?",
+            [slate],
+        )
+        return {str(r[0]): (int(r[1]), str(r[2]), r[3]) for r in rows}
+
+    def ingame_counts(self, slate: date) -> tuple[int, int]:
+        """(BENCHED flagged, of those corrected as back) for the slate date, from the post log."""
+        flagged = self.sent_keys("ingame_benched", slate)
+        back = self.sent_keys("ingame_returned", slate)
+        return len(flagged), len(back & flagged)
 
     # ------------------------------------------------------------------ kill switch log
     def kill_rows(self) -> list[tuple[Any, ...]]:

@@ -115,7 +115,12 @@ ingame:                         # live situations from the live capture (nba/jar
   lookback_min: 15              # snapshots read per tick (the capture writes about one a minute)
   snapshot_max_age_min: 5       # a newer-than-this ESPN snapshot is required, else the feed is stale and silent
   kalshi_max_age_min: 5         # same for the captured Kalshi ladders
-  margin_benched: 15            # BENCHED / BENCH WINDOW: Q4 (or Q3 under 3:00 left) and a lead of at least this
+  margin_benched: 15            # BENCHED / BENCH WINDOW: Q4 and a lead of at least this ...
+  # FROZEN 2026-10-25 after the adversary's in-sample replay of 12 dense games: the first rule (Q3 under 3:00
+  # allowed) flagged 75 starters and 47% played again (28-66%); Q4-only with <= 6:00 left flagged 46 and 1
+  # returned (2%). That 1-in-46 is IN-SAMPLE (the rule was chosen on it), so it is judged FORWARD: the morning
+  # recap counts BENCHED flagged vs returned each night. The wording is 'may be done', never certain.
+  benched_max_clock_s: 360      # ... and at most this much game clock left in the 4th (overtime counts)
   min_snapshots: 2              # a starter's MIN unchanged across at least this many snapshots ...
   frozen_game_s: 180            # ... spanning at least this much GAME clock
   foul_starter_pf: 5            # FOUL TROUBLE: a starter with this many fouls, or ...
