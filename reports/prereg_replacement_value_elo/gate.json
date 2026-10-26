@@ -1,0 +1,937 @@
+{
+  "rule": "REPLACEMENT_VALUE_ELO (DRAFT)",
+  "max_season": 2024,
+  "data_fingerprint": {
+    "games": {
+      "rows": 3958,
+      "xor_hash": "9231800457448479012"
+    },
+    "player_game_stats": {
+      "rows": 103926,
+      "xor_hash": "17796338460861635303"
+    },
+    "player_availability": {
+      "rows": 87612,
+      "xor_hash": "16306800636809534955"
+    },
+    "sha256": "848b34da1110f0536fac806172a8251d22e7e7bb2d57bca4b6850114ef3f14b2"
+  },
+  "latest_manifest": "20261025T141416Z_10e4373f7ca6.json",
+  "parity_a0_vs_production": {
+    "n": 3958,
+    "max_abs_d_out": 0.0,
+    "max_abs_d_doubt": 0.0,
+    "n_rot_out_equal": true
+  },
+  "seasons": {
+    "2022": {
+      "counts": {
+        "games": 1320,
+        "with_report": 1318,
+        "rot_out_ge1_game": 1041,
+        "rot_out_ge2_game": 701,
+        "rot_out_ge2_one_team": 572,
+        "rot_out_ge3_game": 425,
+        "affected_any_flag": 1263
+      },
+      "pool": {
+        "flagged_team_games": 2314,
+        "fallback_share": 0.0,
+        "median_avail": 13.0,
+        "ladder_any_capped_share": 0.11365600691443388,
+        "ladder_overflow_share": 0.0,
+        "mean_r_pool_over_league": 1.0014909576491124,
+        "mean_r_ladder_over_league": 1.000695519093894
+      }
+    },
+    "2023": {
+      "counts": {
+        "games": 1318,
+        "with_report": 1317,
+        "rot_out_ge1_game": 1148,
+        "rot_out_ge2_game": 872,
+        "rot_out_ge2_one_team": 738,
+        "rot_out_ge3_game": 578,
+        "affected_any_flag": 1303
+      },
+      "pool": {
+        "flagged_team_games": 2450,
+        "fallback_share": 0.00816326530612245,
+        "median_avail": 13.0,
+        "ladder_any_capped_share": 0.32,
+        "ladder_overflow_share": 0.011020408163265306,
+        "mean_r_pool_over_league": 1.0050798312104783,
+        "mean_r_ladder_over_league": 1.0005566765122176
+      }
+    },
+    "2024": {
+      "counts": {
+        "games": 1320,
+        "with_report": 1317,
+        "rot_out_ge1_game": 1198,
+        "rot_out_ge2_game": 998,
+        "rot_out_ge2_one_team": 908,
+        "rot_out_ge3_game": 752,
+        "affected_any_flag": 1296
+      },
+      "pool": {
+        "flagged_team_games": 2463,
+        "fallback_share": 0.008526187576126675,
+        "median_avail": 13.0,
+        "ladder_any_capped_share": 0.3503857084855867,
+        "ladder_overflow_share": 0.011774259033698742,
+        "mean_r_pool_over_league": 0.9999241907207156,
+        "mean_r_ladder_over_league": 0.99569410521871
+      }
+    }
+  },
+  "signal_games_before_first_select_block": {
+    "a0": 1263,
+    "pool": 1038,
+    "ladder": 1038,
+    "pq_pool": 1079,
+    "pq_ladder": 1080,
+    "next": 1217
+  },
+  "divergence": {
+    "2023": {
+      "pool": {
+        "corr_d_out_with_a0": 0.9148773985145829,
+        "orthogonal_share": 0.162999345687189,
+        "sd_ratio": 0.5881125339403376
+      },
+      "ladder": {
+        "corr_d_out_with_a0": 0.9300193230428291,
+        "orthogonal_share": 0.13506405876695793,
+        "sd_ratio": 0.613660635786625
+      },
+      "pq_pool": {
+        "corr_d_out_with_a0": 0.8775975643714102,
+        "orthogonal_share": 0.22982251500936846,
+        "sd_ratio": 0.5046777410418691
+      },
+      "pq_ladder": {
+        "corr_d_out_with_a0": 0.880551754355085,
+        "orthogonal_share": 0.22462860790218198,
+        "sd_ratio": 0.5107540846925166
+      },
+      "next": {
+        "corr_d_out_with_a0": 0.895150170097143,
+        "orthogonal_share": 0.19870617297505588,
+        "sd_ratio": 0.716832597616417
+      }
+    },
+    "2024": {
+      "pool": {
+        "corr_d_out_with_a0": 0.9148597474860404,
+        "orthogonal_share": 0.1630316424297784,
+        "sd_ratio": 0.6278201023325174
+      },
+      "ladder": {
+        "corr_d_out_with_a0": 0.9259637687476279,
+        "orthogonal_share": 0.14259109896668953,
+        "sd_ratio": 0.6491529372576341
+      },
+      "pq_pool": {
+        "corr_d_out_with_a0": 0.8828887105984867,
+        "orthogonal_share": 0.2205075246977416,
+        "sd_ratio": 0.5216853828522746
+      },
+      "pq_ladder": {
+        "corr_d_out_with_a0": 0.8866501749486405,
+        "orthogonal_share": 0.2138514672635452,
+        "sd_ratio": 0.5295356341375661
+      },
+      "next": {
+        "corr_d_out_with_a0": 0.8822776117272825,
+        "orthogonal_share": 0.22158621584480254,
+        "sd_ratio": 0.7034605317249802
+      }
+    }
+  },
+  "a0_reproduction": {
+    "n_scored_oof": 3951,
+    "n_unclipped": 3951,
+    "max_abs_resid_logit": 0.01573500351781726,
+    "rms_resid_logit": 0.0008503549121997648,
+    "share_resid_gt_1e-6": 0.2938496583143508,
+    "coefs_by_block": {
+      "2022-10": [
+        -0.0,
+        0.0
+      ],
+      "2022-11": [
+        0.0,
+        -0.0
+      ],
+      "2022-12": [
+        0.49784442852354194,
+        0.12066376113786453
+      ],
+      "2023-01": [
+        0.3922811927683213,
+        0.0040050571601906995
+      ],
+      "2023-02": [
+        0.3281527026556362,
+        -0.014846396842031625
+      ],
+      "2023-03": [
+        0.370369832513643,
+        -0.06430889637698252
+      ],
+      "2023-04": [
+        0.34873320215369785,
+        0.0010719057080093625
+      ],
+      "2023-05": [
+        0.3436823231719446,
+        0.24541829758345324
+      ],
+      "2023-06": [
+        0.33696026518994704,
+        0.0
+      ],
+      "2023-10": [
+        0.33921749089965864,
+        0.23832271170214084
+      ],
+      "2023-11": [
+        0.3653135982690396,
+        0.2543191172621215
+      ],
+      "2023-12": [
+        0.3357004695211546,
+        0.28749889444271537
+      ],
+      "2024-01": [
+        0.33656448586813387,
+        0.2525697358871885
+      ],
+      "2024-02": [
+        0.319905274290303,
+        0.17270810672220438
+      ],
+      "2024-03": [
+        0.3139882054528005,
+        0.22168274881773967
+      ],
+      "2024-04": [
+        0.2985514812604906,
+        0.24606908962124052
+      ],
+      "2024-05": [
+        0.2926734712819474,
+        0.15694834221179613
+      ],
+      "2024-06": [
+        0.0,
+        0.0
+      ],
+      "2024-10": [
+        0.2913694761246308,
+        0.16379359366505225
+      ],
+      "2024-11": [
+        0.2945455695552143,
+        0.188167272010293
+      ],
+      "2024-12": [
+        0.27749462475007936,
+        0.19669822918776916
+      ],
+      "2025-01": [
+        0.2882695477029194,
+        0.22624632192001828
+      ],
+      "2025-02": [
+        0.301026975679126,
+        0.14779596446483895
+      ],
+      "2025-03": [
+        0.29771575714415816,
+        0.13521764245441556
+      ],
+      "2025-04": [
+        0.3012304994164498,
+        0.10806538970942024
+      ],
+      "2025-05": [
+        0.31455208088942055,
+        0.010823505228378107
+      ],
+      "2025-06": [
+        0.3175841556121412,
+        0.0
+      ]
+    }
+  },
+  "oracle": {
+    "2023": {
+      "b_g_season": [
+        0.3239774125172086,
+        0.235893185055785
+      ],
+      "pool": {
+        "theta": [
+          0.6044801260292642,
+          0.4642991771660242
+        ],
+        "all": {
+          "n": 1318,
+          "mean_gain_ll": -0.0021785155259136896,
+          "se_ll": 0.0018113476993797996,
+          "z_ll": 1.202704222198536,
+          "mean_gain_brier": -0.0009064690666618311,
+          "se_brier": 0.0007699169038429128,
+          "z_brier": 1.1773596113260285,
+          "rms_logit_change": 0.15064464754802598,
+          "power_ll_two_sided": 0.22444712159201147,
+          "power_brier_two_sided": 0.21692973176509883,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 872,
+          "mean_gain_ll": -0.0028256948202120364,
+          "se_ll": 0.0025349508047780673,
+          "z_ll": 1.114694145103705,
+          "mean_gain_brier": -0.0011664636729363357,
+          "se_brier": 0.001069746630365389,
+          "z_brier": 1.0904111682388862,
+          "rms_logit_change": 0.17259771796730616,
+          "power_ll_two_sided": 0.19898009397541955,
+          "power_brier_two_sided": 0.19227241210108775,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 738,
+          "mean_gain_ll": -0.0030190136997194986,
+          "se_ll": 0.002849759479286968,
+          "z_ll": 1.0593924580873328,
+          "mean_gain_brier": -0.0012366869628852107,
+          "se_brier": 0.0011961404190168026,
+          "z_brier": 1.0338978126846814,
+          "rms_logit_change": 0.1794466781400007,
+          "power_ll_two_sided": 0.183908085589423,
+          "power_brier_two_sided": 0.17720579232170242,
+          "reaches_floor_ll": true
+        }
+      },
+      "ladder": {
+        "theta": [
+          0.5698355830655885,
+          0.43885497214597274
+        ],
+        "all": {
+          "n": 1318,
+          "mean_gain_ll": -0.0017764686593278387,
+          "se_ll": 0.001638243749716319,
+          "z_ll": 1.0843738360884667,
+          "mean_gain_brier": -0.000743942180676131,
+          "se_brier": 0.0007008111360575891,
+          "z_brier": 1.061544462408482,
+          "rms_logit_change": 0.1351866022569886,
+          "power_ll_two_sided": 0.19062643726799722,
+          "power_brier_two_sided": 0.18448096213811227,
+          "reaches_floor_ll": false
+        },
+        "rot_out_ge2_game": {
+          "n": 872,
+          "mean_gain_ll": -0.002245684116341727,
+          "se_ll": 0.002263291047727528,
+          "z_ll": 0.9922206508069392,
+          "mean_gain_brier": -0.0009324462928581615,
+          "se_brier": 0.0009609480149353794,
+          "z_brier": 0.9703399958850693,
+          "rms_logit_change": 0.15303359233492475,
+          "power_ll_two_sided": 0.16658628137262033,
+          "power_brier_two_sided": 0.16117896637941515,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 738,
+          "mean_gain_ll": -0.0023838812806023886,
+          "se_ll": 0.002535914944934002,
+          "z_ll": 0.9400478061634792,
+          "mean_gain_brier": -0.0009820820855543635,
+          "se_brier": 0.001070760968487254,
+          "z_brier": 0.9171814386751752,
+          "rms_logit_change": 0.15863792092433482,
+          "power_ll_two_sided": 0.1538841043412727,
+          "power_brier_two_sided": 0.14852450486928032,
+          "reaches_floor_ll": true
+        }
+      },
+      "pq_pool": {
+        "theta": [
+          0.7351057347382156,
+          0.7532520706395276
+        ],
+        "all": {
+          "n": 1318,
+          "mean_gain_ll": -0.003321015758454886,
+          "se_ll": 0.002238923473621848,
+          "z_ll": 1.4833091874652444,
+          "mean_gain_brier": -0.0013878117666579666,
+          "se_brier": 0.0009528375384793957,
+          "z_brier": 1.456504084497692,
+          "rms_logit_change": 0.18491067599829983,
+          "power_ll_two_sided": 0.31680397260650106,
+          "power_brier_two_sided": 0.30732047790881006,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 872,
+          "mean_gain_ll": -0.004411584553530848,
+          "se_ll": 0.0031739505053074452,
+          "z_ll": 1.3899348922277917,
+          "mean_gain_brier": -0.0018329395294865176,
+          "se_brier": 0.001344187398023208,
+          "z_brier": 1.3636041612814398,
+          "rms_logit_change": 0.21390122468957193,
+          "power_ll_two_sided": 0.28432897797495427,
+          "power_brier_two_sided": 0.2754674319744091,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 738,
+          "mean_gain_ll": -0.004717991268402479,
+          "se_ll": 0.0035731449933853773,
+          "z_ll": 1.3204029719298955,
+          "mean_gain_brier": -0.0019482005592039698,
+          "se_brier": 0.001507864095809086,
+          "z_brier": 1.2920266253561858,
+          "rms_logit_change": 0.22208874519232844,
+          "power_ll_two_sided": 0.2612290129438166,
+          "power_brier_two_sided": 0.25208678441608534,
+          "reaches_floor_ll": true
+        }
+      },
+      "pq_ladder": {
+        "theta": [
+          0.7240239732572332,
+          0.7203698980457021
+        ],
+        "all": {
+          "n": 1318,
+          "mean_gain_ll": -0.0032389113838526386,
+          "se_ll": 0.0022088598061856734,
+          "z_ll": 1.4663272765353497,
+          "mean_gain_brier": -0.001360052108205238,
+          "se_brier": 0.0009443085322811491,
+          "z_brier": 1.4402624372351953,
+          "rms_logit_change": 0.18229452025811985,
+          "power_ll_two_sided": 0.3107813802813091,
+          "power_brier_two_sided": 0.3016357987578204,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 872,
+          "mean_gain_ll": -0.0043001831994159,
+          "se_ll": 0.003129667881386824,
+          "z_ll": 1.3740062404035012,
+          "mean_gain_brier": -0.0017969028938589061,
+          "se_brier": 0.001332497133500229,
+          "z_brier": 1.3485228963598346,
+          "rms_logit_change": 0.21078047688182114,
+          "power_ll_two_sided": 0.27895195048008004,
+          "power_brier_two_sided": 0.2704537990026248,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 738,
+          "mean_gain_ll": -0.004596463176529897,
+          "se_ll": 0.0035215117103777295,
+          "z_ll": 1.3052528443918945,
+          "mean_gain_brier": -0.0019106086192780549,
+          "se_brier": 0.0014949167767001454,
+          "z_brier": 1.2780702237454988,
+          "rms_logit_change": 0.21870087202502372,
+          "power_ll_two_sided": 0.2563268707211263,
+          "power_brier_two_sided": 0.24765306055952885,
+          "reaches_floor_ll": true
+        }
+      },
+      "next": {
+        "theta": [
+          0.5071387149638571,
+          0.41332295781413175
+        ],
+        "all": {
+          "n": 1318,
+          "mean_gain_ll": -0.002680042670805203,
+          "se_ll": 0.002010412831592698,
+          "z_ll": 1.3330807626620689,
+          "mean_gain_brier": -0.0011046340609753935,
+          "se_brier": 0.0008466227601086366,
+          "z_brier": 1.304753560881885,
+          "rms_logit_change": 0.16743058829524093,
+          "power_ll_two_sided": 0.26536788798534644,
+          "power_brier_two_sided": 0.25616613705805014,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 872,
+          "mean_gain_ll": -0.003538238333706335,
+          "se_ll": 0.0028408337540021364,
+          "z_ll": 1.2454929221823356,
+          "mean_gain_brier": -0.0014494657698003158,
+          "se_brier": 0.00119021258911075,
+          "z_brier": 1.217820902804652,
+          "rms_logit_change": 0.19314614364264426,
+          "power_ll_two_sided": 0.23746796709605528,
+          "power_brier_two_sided": 0.22900032023404754,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 738,
+          "mean_gain_ll": -0.003745904011307103,
+          "se_ll": 0.003180473357436522,
+          "z_ll": 1.177781918074711,
+          "mean_gain_brier": -0.0015215029432604481,
+          "se_brier": 0.0013236989639043696,
+          "z_brier": 1.1494327522721917,
+          "rms_logit_change": 0.19968289013863746,
+          "power_ll_two_sided": 0.21705378661667063,
+          "power_brier_two_sided": 0.20881745664698753,
+          "reaches_floor_ll": true
+        }
+      }
+    },
+    "2024": {
+      "b_g_season": [
+        0.29441783281847717,
+        0.15034244745017533
+      ],
+      "pool": {
+        "theta": [
+          0.5127340095633124,
+          0.19733055183545226
+        ],
+        "all": {
+          "n": 1315,
+          "mean_gain_ll": -0.0020272339618494814,
+          "se_ll": 0.0017527860289699756,
+          "z_ll": 1.1565781152653214,
+          "mean_gain_brier": -0.0008658754060000155,
+          "se_brier": 0.0007629263311461223,
+          "z_brier": 1.1349397322533563,
+          "rms_logit_change": 0.1425021808389992,
+          "power_ll_two_sided": 0.21087586548337894,
+          "power_brier_two_sided": 0.2046789066146113,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 997,
+          "mean_gain_ll": -0.002460455760427585,
+          "se_ll": 0.0022176859008375452,
+          "z_ll": 1.1094699026126078,
+          "mean_gain_brier": -0.0010491209908369769,
+          "se_brier": 0.0009643672070980203,
+          "z_brier": 1.0878853854788346,
+          "rms_logit_change": 0.15736680113517748,
+          "power_ll_two_sided": 0.19752522036092474,
+          "power_brier_two_sided": 0.1915827459176775,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 908,
+          "mean_gain_ll": -0.002572212795985826,
+          "se_ll": 0.0023760744377960626,
+          "z_ll": 1.0825472279276285,
+          "mean_gain_brier": -0.0010926729998414425,
+          "se_brier": 0.0010299739283928728,
+          "z_brier": 1.0608744257695948,
+          "rms_logit_change": 0.16131959916938415,
+          "power_ll_two_sided": 0.1901301532737582,
+          "power_brier_two_sided": 0.18430247545694772,
+          "reaches_floor_ll": true
+        }
+      },
+      "ladder": {
+        "theta": [
+          0.4898525063368445,
+          0.16880543748470908
+        ],
+        "all": {
+          "n": 1315,
+          "mean_gain_ll": -0.0017305930066593123,
+          "se_ll": 0.0016200491337194315,
+          "z_ll": 1.0682348890777689,
+          "mean_gain_brier": -0.0007358868170037556,
+          "se_brier": 0.0007019666912998563,
+          "z_brier": 1.0483215601599105,
+          "rms_logit_change": 0.13177408813677513,
+          "power_ll_two_sided": 0.18626907307889873,
+          "power_brier_two_sided": 0.18097848683323603,
+          "reaches_floor_ll": false
+        },
+        "rot_out_ge2_game": {
+          "n": 997,
+          "mean_gain_ll": -0.002074034940281464,
+          "se_ll": 0.0020367342550015716,
+          "z_ll": 1.0183139676608737,
+          "mean_gain_brier": -0.0008795145788855384,
+          "se_brier": 0.0008808514711938558,
+          "z_brier": 0.9984822727190256,
+          "rms_logit_change": 0.14470259335794933,
+          "power_ll_two_sided": 0.17318592261808002,
+          "power_brier_two_sided": 0.16815500438689895,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 908,
+          "mean_gain_ll": -0.002166042717048125,
+          "se_ll": 0.0021810371399129083,
+          "z_ll": 0.9931250951254401,
+          "mean_gain_brier": -0.0009148860485258866,
+          "se_brier": 0.000940024127683974,
+          "z_brier": 0.9732580490034629,
+          "rms_logit_change": 0.1482758949359398,
+          "power_ll_two_sided": 0.16681228615155858,
+          "power_brier_two_sided": 0.16189340592259732,
+          "reaches_floor_ll": true
+        }
+      },
+      "pq_pool": {
+        "theta": [
+          0.6395292644039954,
+          0.2886068109761802
+        ],
+        "all": {
+          "n": 1315,
+          "mean_gain_ll": -0.002836630443138715,
+          "se_ll": 0.002072148397872975,
+          "z_ll": 1.3689320929188604,
+          "mean_gain_brier": -0.0011915252706398319,
+          "se_brier": 0.000889093208072048,
+          "z_brier": 1.3401578820105846,
+          "rms_logit_change": 0.1711218851942683,
+          "power_ll_two_sided": 0.27724952121823343,
+          "power_brier_two_sided": 0.26769272015287493,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 997,
+          "mean_gain_ll": -0.0034798519009007207,
+          "se_ll": 0.002636165870306632,
+          "z_ll": 1.3200428471126338,
+          "mean_gain_brier": -0.001460231573893505,
+          "se_brier": 0.0011309411907223404,
+          "z_brier": 1.291164903951234,
+          "rms_logit_change": 0.18991882469935095,
+          "power_ll_two_sided": 0.2611119305604732,
+          "power_brier_two_sided": 0.25181182172409333,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 908,
+          "mean_gain_ll": -0.0035925757244422026,
+          "se_ll": 0.0028072971565129036,
+          "z_ll": 1.279727625594412,
+          "mean_gain_brier": -0.0014976235736326809,
+          "se_brier": 0.0011977720514052361,
+          "z_brier": 1.2503410576959584,
+          "rms_logit_change": 0.19381779410611094,
+          "power_ll_two_sided": 0.24817740200781485,
+          "power_brier_two_sided": 0.23896899435434693,
+          "reaches_floor_ll": true
+        }
+      },
+      "pq_ladder": {
+        "theta": [
+          0.6273068397248032,
+          0.2884788995810209
+        ],
+        "all": {
+          "n": 1315,
+          "mean_gain_ll": -0.0027342294986491943,
+          "se_ll": 0.002034560699135746,
+          "z_ll": 1.3438918287425181,
+          "mean_gain_brier": -0.0011504629818977832,
+          "se_brier": 0.0008740148804066404,
+          "z_brier": 1.3162967904648533,
+          "rms_logit_change": 0.16773483485608134,
+          "power_ll_two_sided": 0.26892344400481016,
+          "power_brier_two_sided": 0.25989562873616556,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 997,
+          "mean_gain_ll": -0.0033568429234831013,
+          "se_ll": 0.0025891828330574236,
+          "z_ll": 1.2964874015942667,
+          "mean_gain_brier": -0.001411196250712762,
+          "se_brier": 0.0011121676215367815,
+          "z_brier": 1.268870108592791,
+          "rms_logit_change": 0.18621988037041934,
+          "power_ll_two_sided": 0.25351268115243497,
+          "power_brier_two_sided": 0.24475326942814235,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 908,
+          "mean_gain_ll": -0.003474024131109811,
+          "se_ll": 0.0027604140837338463,
+          "z_ll": 1.2585155798113836,
+          "mean_gain_brier": -0.0014512079936328528,
+          "se_brier": 0.0011794337850312294,
+          "z_brier": 1.2304276950947504,
+          "rms_logit_change": 0.19026514410306827,
+          "power_ll_two_sided": 0.24151160668199428,
+          "power_brier_two_sided": 0.23283683421495333,
+          "reaches_floor_ll": true
+        }
+      },
+      "next": {
+        "theta": [
+          0.47467531658075357,
+          0.34120549442908615
+        ],
+        "all": {
+          "n": 1315,
+          "mean_gain_ll": -0.0028351588353729444,
+          "se_ll": 0.002067611219003377,
+          "z_ll": 1.3712243430075495,
+          "mean_gain_brier": -0.0011753042996653002,
+          "se_brier": 0.0008759677950589572,
+          "z_brier": 1.3417209014929552,
+          "rms_logit_change": 0.17284450703278836,
+          "power_ll_two_sided": 0.2780179653724152,
+          "power_brier_two_sided": 0.2682075520665995,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_game": {
+          "n": 997,
+          "mean_gain_ll": -0.0034464727825316045,
+          "se_ll": 0.0026175543029337586,
+          "z_ll": 1.3166767079746131,
+          "mean_gain_brier": -0.001418958882605271,
+          "se_brier": 0.0011024940284719829,
+          "z_brier": 1.287044506328889,
+          "rms_logit_change": 0.1915934288913565,
+          "power_ll_two_sided": 0.26001885030736915,
+          "power_brier_two_sided": 0.2504992548708471,
+          "reaches_floor_ll": true
+        },
+        "rot_out_ge2_one_team": {
+          "n": 908,
+          "mean_gain_ll": -0.00359441057179342,
+          "se_ll": 0.0028013784518476537,
+          "z_ll": 1.283086392494638,
+          "mean_gain_brier": -0.001474859414314209,
+          "se_brier": 0.0011767602817232344,
+          "z_brier": 1.253321884856992,
+          "rms_logit_change": 0.1961568742125555,
+          "power_ll_two_sided": 0.2492418063406765,
+          "power_brier_two_sided": 0.23989445495007083,
+          "reaches_floor_ll": true
+        }
+      }
+    }
+  },
+  "floor_power": {
+    "2023": {
+      "ll_two_sided": {
+        "floor": -0.002,
+        "n": 1318,
+        "se": 0.0017420968301749516,
+        "half_width": 0.003414447071657019,
+        "power": 0.20841814069832026
+      },
+      "ll_bh_rank1_of4": {
+        "floor": -0.002,
+        "n": 1318,
+        "se": 0.0017420968301749516,
+        "half_width": 0.003414447071657019,
+        "power": 0.13711768323275014
+      },
+      "brier_two_sided": {
+        "floor": -0.0009,
+        "n": 1318,
+        "se": 0.0007452511668376247,
+        "half_width": 0.0014606654579597384,
+        "power": 0.22593008798002
+      }
+    },
+    "2024": {
+      "ll_two_sided": {
+        "floor": -0.002,
+        "n": 1320,
+        "se": 0.0017407765595569785,
+        "half_width": 0.003411859388775534,
+        "power": 0.20866805659113064
+      },
+      "ll_bh_rank1_of4": {
+        "floor": -0.002,
+        "n": 1320,
+        "se": 0.0017407765595569785,
+        "half_width": 0.003411859388775534,
+        "power": 0.1373088481984201
+      },
+      "brier_two_sided": {
+        "floor": -0.0009,
+        "n": 1320,
+        "se": 0.0007400403822342772,
+        "half_width": 0.001450452507725423,
+        "power": 0.2284944592972114
+      }
+    },
+    "pooled_2023_2024": {
+      "ll_two_sided": {
+        "floor": -0.002,
+        "n": 2638,
+        "se": 0.001231381430526315,
+        "half_width": 0.0024134632741000784,
+        "power": 0.36852144344566523
+      },
+      "ll_bh_rank1_of4": {
+        "floor": -0.002,
+        "n": 2638,
+        "se": 0.001231381430526315,
+        "half_width": 0.0024134632741000784,
+        "power": 0.26854790563812986
+      },
+      "brier_two_sided": {
+        "floor": -0.0009,
+        "n": 2638,
+        "se": 0.0005251316980723644,
+        "half_width": 0.0010292392234807037,
+        "power": 0.4027992330000746
+      }
+    },
+    "select_then_report_ll": 0.02861208048445623,
+    "ll_gain_needed_for_80pct_one_season": {
+      "2023": -0.011910288043966311,
+      "2024": -0.011892242152990605,
+      "pooled_2023_2024": -0.005950629128865655
+    }
+  },
+  "absorption_validity_2022": {
+    "n_player_rows": 29534,
+    "corr_pred_pool": 0.2527645658388927,
+    "corr_pred_ladder": 0.2687956074833895,
+    "share_realized_gain_top5": 0.58544934920505,
+    "share_pred_pool_top5": 0.5754313399567635,
+    "share_pred_ladder_top5": 0.5656376838169945
+  },
+  "history_audit": {
+    "seasons_in_db": {
+      "2013": 1319,
+      "2014": 1311,
+      "2015": 1316,
+      "2016": 1309,
+      "2017": 1312,
+      "2018": 1312,
+      "2019": 1143,
+      "2020": 1171,
+      "2021": 1323
+    },
+    "2019": {
+      "games": 1143,
+      "with_report": 1141,
+      "rot_out_ge1_game": 1039,
+      "rot_out_ge2_game": 792,
+      "rot_out_ge2_one_team": 652,
+      "rot_out_ge3_game": 508,
+      "affected_any_flag": 1121,
+      "fallback_share": 0.008079847908745247
+    },
+    "2020": {
+      "games": 1171,
+      "with_report": 1170,
+      "rot_out_ge1_game": 1102,
+      "rot_out_ge2_game": 936,
+      "rot_out_ge2_one_team": 812,
+      "rot_out_ge3_game": 684,
+      "affected_any_flag": 1160,
+      "fallback_share": 0.008302583025830259
+    },
+    "2021": {
+      "games": 1323,
+      "with_report": 1323,
+      "rot_out_ge1_game": 1279,
+      "rot_out_ge2_game": 1161,
+      "rot_out_ge2_one_team": 1063,
+      "rot_out_ge3_game": 963,
+      "affected_any_flag": 1317,
+      "fallback_share": 0.008678500986193294
+    },
+    "real_tip_coverage": {
+      "games_with_tip": 3637,
+      "games": 3637
+    }
+  },
+  "gate": [
+    {
+      "check": "G1 games 2023 >= 1200",
+      "value": 1318,
+      "pass": true
+    },
+    {
+      "check": "G1 slice rot_out>=2 (game) 2023 >= 300",
+      "value": 872,
+      "pass": true
+    },
+    {
+      "check": "G3 pool fallback 2023 <= 0.02",
+      "value": 0.00816326530612245,
+      "pass": true
+    },
+    {
+      "check": "G1 games 2024 >= 1200",
+      "value": 1320,
+      "pass": true
+    },
+    {
+      "check": "G1 slice rot_out>=2 (game) 2024 >= 300",
+      "value": 998,
+      "pass": true
+    },
+    {
+      "check": "G3 pool fallback 2024 <= 0.02",
+      "value": 0.008526187576126675,
+      "pass": true
+    },
+    {
+      "check": "G2 signal games before first 2023 block >= 150 (every arm)",
+      "value": 1038,
+      "pass": true
+    },
+    {
+      "check": "G4a A0 recomputation == production features",
+      "value": {
+        "n": 3958,
+        "max_abs_d_out": 0.0,
+        "max_abs_d_doubt": 0.0,
+        "n_rot_out_equal": true
+      },
+      "pass": true
+    },
+    {
+      "check": "G4b stored OOF reproduced (max |resid| <= 1e-6 logit)",
+      "value": 0.01573500351781726,
+      "pass": false
+    },
+    {
+      "check": "G5 power at the log-loss floor 2023 >= 0.8",
+      "value": 0.20841814069832026,
+      "pass": false
+    },
+    {
+      "check": "G5 power at the log-loss floor 2024 >= 0.8",
+      "value": 0.20866805659113064,
+      "pass": false
+    },
+    {
+      "check": "G6 power if the best family arm were exactly true 2023 >= 0.8",
+      "value": 0.22444712159201147,
+      "pass": false
+    },
+    {
+      "check": "G6 power if the best family arm were exactly true 2024 >= 0.8",
+      "value": 0.21087586548337894,
+      "pass": false
+    }
+  ]
+}
