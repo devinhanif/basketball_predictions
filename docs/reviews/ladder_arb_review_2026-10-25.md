@@ -121,3 +121,50 @@ settle on different scoreboards, followed by Devin.
 ## Drafted DECISIONS row (not appended)
 
 `| 2026-10-25 <time> | Adversary review of agent/market-ladder-arb 70b0147: CHANGES_REQUIRED. Kalshi ladder sound (870-score English-contract proof; all four series settle on the official final result; fees per order per leg; NO ask = 1 - yes_bid; confirm, depth, props excluded and never fetched; read-only; dry run reproduced exactly: 0 pairs >= 2c, 2 in-play net-positive at +0.8/+1.0c). Blocker: Polymarket US ladders emitted while settlement_rules_verified is false (a winner/spread pair can pay $0 if the scoreboards differ), and "pays >= $1 either way/whatever happens" contradicts the void tag. docs/reviews/ladder_arb_review_2026-10-25.md. | Adversary finding. | B1 fixed with the named test and re-checked. |`
+
+## Re-check of fb70aca (diff-only: `git diff 5ef709f fb70aca`)
+
+Verdict: BLOCKED
+
+(In the caller's terms: **CHANGES_REQUIRED, one line.** B1 is fixed, B1b is fixed in every runtime text, and the minors
+are addressed. One B1b location named in the first round still promises the unconditional guarantee:
+`nba/markets/fastarb/ladder_source.py:62`, the docstring of the `ConfirmedLadderArb` record that JARVIS will consume,
+reads "the pair pays at least $1.00 whatever happens".)
+
+### Verification (unpiped)
+
+| Check | Command | Result |
+|---|---|---|
+| Lint | `ruff check nba/markets/fastarb tests/markets/fastarb` | exit 0 |
+| Format | `ruff format --check nba/markets/fastarb tests/markets/fastarb` | 22 files, exit 0 |
+| Types | `mypy nba/markets/fastarb` | 17 files, exit 0 |
+| Tests | `python -m pytest -q -p no:cacheprovider --no-cov tests/markets/fastarb tests/test_layering.py` | 109 passed, exit 0 (106 before) |
+| Wording | `git grep -n -i "whatever happens\|either way" fb70aca -- nba/markets/fastarb` | `ladder_source.py:62` (docstring, still wrong); `ladder.py:376` ("evidence either way", unrelated) |
+
+### Point by point
+
+- **B1: fixed.** `LadderScanner.confirm` (`ladder.py:378-382`) returns `PM_RULES_UNVERIFIED` before the back-to-back
+  re-fetch whenever the venue is Polymarket US and `settlement_rules_verified` is false. That path covers both the runner
+  and `confirmed_ladder_arbs`. The runner counts it (`ladder:pm_us_rules_unverified`) and logs it to `candidates.jsonl`.
+  Tests: `test_polymarket_ladder_confirms_only_when_rules_are_verified` (both flag states) and
+  `test_runner_and_jarvis_emit_no_polymarket_ladder_while_unverified`.
+  - Precision note: "refused before any fetch" holds only for the confirm re-fetch. The candidate order books for the
+    Polymarket pool are still fetched every tick (`runner._ladder_tick` via `pm_candidate_slugs`, and
+    `ladder_source.py:197-200`). That fails safe, but it wastes up to `ladder.max_books_per_game` (8) requests per game
+    per tick. Minor: skip the Polymarket pool entirely while the flag is false.
+- **B1b: fixed in runtime text.** `sinks.ladder_text` now says "(pays >= $1 if the game is played)" and gives Polymarket
+  its own `PM_US_RISK`. The `ConfirmedLadderArb.note` says the same for both venues.
+  - **Still open:** `ladder_source.py:62` docstring. **Fix:** "Buy `yes_leg` and `no_leg` together: the pair pays at
+    least $1.00 if the game is played (see `note` for void rules)." That line alone needs no further review.
+- **Minors.**
+  - **Fixed in the ladder source:** a missing JARVIS gap attribute now returns `[]` (`ladder_source.py:174`, test
+    `test_jarvis_missing_gap_attribute_fails_closed`).
+  - **Fixed:** the Polymarket book state must be `MARKET_STATE_OPEN` in confirm (`ladder.py:410-412`).
+  - **Fixed:** config comments for the price band and the deadline.
+  - **Still open, not blocking:** the same fail-open `getattr` remains in `nba/markets/fastarb/jarvis_source.py`. Apply
+    the same one-character change there.
+  - **Not blocking:** the config comment says "a ladder pays >= $1 whatever the price". It is about price, not
+    settlement, but "if the game is played" would keep the wording consistent.
+
+Drafted DECISIONS row (not appended):
+`| 2026-10-25 <time> | Adversary re-check of agent/market-ladder-arb fb70aca: B1 (no Polymarket US ladder while settlement_rules_verified is false; counted, logged, tested both states), B1b runtime wording, open-book check and fail-closed JARVIS gap fixed; 109 tests pass. One line left: ladder_source.py:62 docstring still says "pays at least $1.00 whatever happens". docs/reviews/ladder_arb_review_2026-10-25.md. | Adversary finding. | The docstring corrected. |`
