@@ -200,6 +200,7 @@ class LiveConfig:
     max_attempts_per_game: int = 2
     out_db: Path = ROOT / "data" / "markets" / "market_asof.duckdb"
     tips_db: Path = ROOT / "data" / "lineups" / "lineups.duckdb"
+    games_db: Path = ROOT / "nba.duckdb"  # read-only; official schedule teams for pre-lineup games
     raw_dir: Path = ROOT / "data" / "odds" / "raw" / "the_odds_api_live"
     ledger_dir: Path = ROOT / "data" / "odds" / "budget"
 
@@ -351,8 +352,43 @@ def _opt_naive(dt: datetime | None) -> datetime | None:
     return naive_utc(dt) if dt is not None else None
 
 
-def read_slate(tips_db: Path, slate: date) -> list[LiveGame]:
-    """Games of the ET ``slate`` with a real tip in ``game_tips`` (read-only; none if absent)."""
+def schedule_teams(games_db: Path | None, game_ids: list[str]) -> dict[str, tuple[int, int]]:
+    """``{game_id: (home, away)}`` from the official schedule: ``games`` in the production DB
+    (read-only; a lock or any error degrades to nothing), then the daily schedule cache."""
+    out: dict[str, tuple[int, int]] = {}
+    if games_db is not None and game_ids and games_db.exists():
+        try:
+            con = duckdb.connect(str(games_db), read_only=True)
+            try:
+                marks = ",".join("?" * len(game_ids))
+                rows = con.execute(
+                    f"SELECT game_id, home_team, away_team FROM games WHERE game_id IN ({marks})",
+                    game_ids,
+                ).fetchall()
+            finally:
+                con.close()
+            out = {str(g): (int(h), int(a)) for g, h, a in rows if h and a}
+        except duckdb.Error as exc:  # locked by a live writer, or no table: keep ids at 0
+            log.warning("schedule team lookup unavailable (%s)", type(exc).__name__)
+    missing = [g for g in game_ids if g not in out]
+    if missing:
+        try:
+            from nba.daily.schedule import cached_game_teams
+
+            seasons = {2000 + int(g[3:5]) for g in missing if len(g) >= 5 and g[3:5].isdigit()}
+            cached = cached_game_teams(seasons)
+            out.update({g: cached[g] for g in missing if g in cached})
+        except Exception as exc:  # noqa: BLE001 - a cache problem never blocks capture
+            log.warning("schedule cache lookup unavailable (%s)", type(exc).__name__)
+    return out
+
+
+def read_slate(tips_db: Path, slate: date, games_db: Path | None = None) -> list[LiveGame]:
+    """Games of the ET ``slate`` with a real tip in ``game_tips`` (read-only; none if absent).
+
+    Team ids come from ``lineup_snapshots``; where those are missing (before lineups post) and
+    ``games_db`` is given, they are filled from the official schedule so the vendor match is
+    team-based (30 min window), not tip-time-only (vendor tips sit ~10 min after ours)."""
     if not tips_db.exists():
         return []
     con = duckdb.connect(str(tips_db), read_only=True)
@@ -372,11 +408,14 @@ def read_slate(tips_db: Path, slate: date) -> list[LiveGame]:
         return []
     finally:
         con.close()
-    return [
-        LiveGame(str(g), naive_utc(t), int(h or 0), int(a or 0))
-        for g, t, h, a in rows
-        if is_scorable_game_id(str(g))  # same filter as the daily slate: no 001 preseason / 003 ASG
-    ]
+    kept = [r for r in rows if is_scorable_game_id(str(r[0]))]  # no 001 preseason / 003 ASG
+    need = [str(g) for g, _t, h, a in kept if not (h and a)]
+    sched = schedule_teams(games_db, need) if need else {}
+    out: list[LiveGame] = []
+    for g, t, h, a in kept:
+        hh, aa = (int(h), int(a)) if (h and a) else sched.get(str(g), (0, 0))
+        out.append(LiveGame(str(g), naive_utc(t), hh, aa))
+    return out
 
 
 def _slate_day(tip: datetime) -> date:
@@ -678,7 +717,7 @@ def run_live_capture(
         return rep
     clock = now_fn or (lambda: datetime.now(UTC))
     c = cfg or load_live_config()
-    games = select_window(read_slate(c.tips_db, slate), clock(), kind, c, slate)
+    games = select_window(read_slate(c.tips_db, slate, c.games_db), clock(), kind, c, slate)
     rep.due = len(games)
     if not games:  # the common tick: nothing in the window, no key read, no request
         return rep
