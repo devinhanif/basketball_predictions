@@ -848,3 +848,124 @@ def test_polymarket_us_interface() -> None:
     assert c.book("some-other-market") is None  # a book for a different slug is never returned
     lv = pm.ask_levels(book, True)
     assert lv == sorted(lv)
+
+
+# ------------------------------------------------------------------ re-check 2026-10-25 (R1, R2)
+
+
+def test_r1_heartbeat_timestamps_are_offset_aware(cfg: Any, tmp_path: Path) -> None:
+    c = _cfg_with_tmp_heartbeat(cfg, tmp_path)
+    r, f = _runner(c, tmp_path, load("pm_us_event_detphi.json"), datetime(2026, 10, 26, 0, 0))
+    f.kalshi = []
+    clock, sleep = _run_clock(datetime(2026, 10, 25, 15, 30))
+    r.clock = clock
+    assert r.run(date(2026, 10, 25), sleep=sleep) == 0
+    hb = json.loads((tmp_path / "hb.json").read_text())
+    for k in ("start_ts", "end_ts", "last_tick_ts"):
+        parsed = datetime.fromisoformat(hb[k])
+        assert parsed.tzinfo is not None and parsed.utcoffset() == timedelta(0), k
+
+
+class _H:
+    def __init__(self, resp: Response | None) -> None:
+        self.status_code = 404 if resp is None else resp.status
+        self.content = b"{}" if resp is None else resp.body
+
+
+def _jarvis_fixture(book_mutator: Any = None, kalshi_mutator: Any = None) -> tuple[Any, Any, Any]:
+    """(games, httpx-style get, jarvis cfg stand-in) over the recorded DET@PHI fixtures."""
+    from nba.jarvis.models import Game
+
+    f = FakeFetcher(load("pm_us_event_detphi.json"), load("kalshi_detphi.json"))
+    if book_mutator:
+        book_mutator(f.book)
+    if kalshi_mutator:
+        kalshi_mutator(f.kalshi)
+
+    def get(url: str, **kw: Any) -> _H:
+        return _H(f.get(url, kw.get("params")))
+
+    game = Game("G1", GAME.away, GAME.home, "DET", "PHI", datetime(2026, 10, 25, 23, 30))
+    return [game], get, None
+
+
+def _cq(games: Any, get: Any, cfg: Any, **kw: Any) -> list[Any]:
+    from nba.markets.fastarb.jarvis_source import confirmed_quotes
+
+    return confirmed_quotes(
+        None,  # type: ignore[arg-type]
+        games,
+        date(2026, 10, 25),
+        datetime(2026, 10, 25, 21, 0),
+        get=get,
+        config=kw.pop("config", cfg),
+        clock=lambda: datetime(2026, 10, 25, 21, 0, 5),
+        **kw,
+    )
+
+
+def test_r2_confirmed_quotes_positive_from_the_confirm_path(cfg: Any) -> None:
+    from nba.jarvis.models import Quote
+
+    games, get, _ = _jarvis_fixture()
+    qs = _cq(games, get, cfg)
+    assert len(qs) == 4 and all(isinstance(q, Quote) and q.confirmed for q in qs)
+    assert {q.venue for q in qs} == {"kalshi", "polymarket"}
+    assert all(q.kind == "game_win" and q.game_id == "G1" for q in qs)
+    assert all(
+        q.yes_bid is not None and q.yes_ask is not None and 0 < q.yes_bid < q.yes_ask < 1
+        for q in qs
+    )
+    assert all(q.ts == datetime(2026, 10, 25, 21, 0, 5) for q in qs)  # the re-fetch time
+    assert {q.team_id for q in qs} == {GAME.away, GAME.home}
+    assert any(q.ticker.startswith("KXNBAGAME-26OCT25DETPHI-") for q in qs)
+    assert any(q.ticker.startswith("POLYUS:aec-nba-det-phi-2026-10-25:") for q in qs)
+
+
+def test_r2_a_no_depth_ask_can_never_come_out_confirmed(cfg: Any) -> None:
+    # event-only Polymarket leg: the book has no levels on either side
+    def empty(b: dict[str, Any]) -> None:
+        b["marketData"]["offers"], b["marketData"]["bids"] = [], []
+
+    games, get, _ = _jarvis_fixture(book_mutator=empty)
+    assert _cq(games, get, cfg) == []
+    # one-sided book (no offers): still unconfirmed
+    games, get, _ = _jarvis_fixture(book_mutator=lambda b: b["marketData"].update(offers=[]))
+    assert _cq(games, get, cfg) == []
+
+    # a Kalshi leg with no size behind the ask
+    def nosize(ms: list[dict[str, Any]]) -> None:
+        for m in ms:
+            if m["ticker"].startswith("KXNBAGAME"):
+                m["yes_ask_size_fp"] = "0"
+
+    games, get, _ = _jarvis_fixture(kalshi_mutator=nosize)
+    assert _cq(games, get, cfg) == []
+
+
+def test_r2_unconfirmed_when_reads_are_slow_unfetchable_or_fees_unverified(cfg: Any) -> None:
+    from dataclasses import replace
+
+    games, get, _ = _jarvis_fixture()
+    ticks = iter(range(0, 10_000, 7))  # each monotonic read 7 s after the last: window > 5 s
+    assert _cq(games, get, cfg, mono=lambda: float(next(ticks))) == []
+
+    def dead(url: str, **kw: Any) -> _H:
+        raise OSError("down")
+
+    assert _cq(games, dead, cfg) == []
+    raw = json.loads(json.dumps(cfg.raw))
+    bad = replace(cfg, us_fee=replace(cfg.us_fee, verified=False), raw=raw)
+    assert _cq(games, get, cfg, config=bad) == []
+    from nba.jarvis.models import Game
+
+    past = [Game("G1", GAME.away, GAME.home, "DET", "PHI", datetime(2026, 10, 25, 20, 0))]
+    assert _cq(past, get, cfg) == []  # tip already passed
+    assert _cq([Game("G1", GAME.away, GAME.home, "DET", "PHI", None)], get, cfg) == []
+
+
+def test_r2_function_is_public_and_documented() -> None:
+    from nba.markets.fastarb import jarvis_source as js
+
+    assert js.__all__ == ["confirmed_quotes"] and js.confirmed_quotes.__doc__
+    assert "STABLE INTERFACE" in (js.__doc__ or "")

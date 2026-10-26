@@ -577,6 +577,10 @@ class Runner:
         return t is not None and t >= ev.ts
 
     # ------------------------------------------------------------------ the loop
+    def _utc_iso(self) -> str:
+        """Offset-aware UTC (``+00:00``): the watchdog compares heartbeats with aware datetimes."""
+        return self.clock().replace(tzinfo=UTC).isoformat()
+
     def _beat(self, start: str, rc: int | None, **state: Any) -> None:
         sinks.beat(
             self.cfg.path("heartbeat"),
@@ -584,9 +588,9 @@ class Runner:
                 "mode": "poll",
                 "host": socket.gethostname().split(".")[0],
                 "start_ts": start,
-                "end_ts": None if rc is None else self.clock().isoformat(),
+                "end_ts": None if rc is None else self._utc_iso(),
                 "rc": rc,
-                "last_tick_ts": self.clock().isoformat(),
+                "last_tick_ts": self._utc_iso(),
                 "raw_files": self.raw.files if self.raw else 0,
                 **state,
             },
@@ -603,7 +607,7 @@ class Runner:
         give_up = _et_naive_utc(day, str(self.poll["give_up_et"]))
         hard_stop = _et_naive_utc(day + timedelta(days=1), str(self.poll["hard_stop_et"]))
         ticks = errors = 0
-        start = self.clock().isoformat()
+        start = self._utc_iso()
         while True:
             now = self.clock()
             tips = [c.tip for c in self.games.values() if c.tip is not None]
