@@ -200,6 +200,7 @@ class LiveConfig:
     max_attempts_per_game: int = 2
     out_db: Path = ROOT / "data" / "markets" / "market_asof.duckdb"
     tips_db: Path = ROOT / "data" / "lineups" / "lineups.duckdb"
+    games_db: Path = ROOT / "nba.duckdb"  # read-only; official schedule teams for pre-lineup games
     raw_dir: Path = ROOT / "data" / "odds" / "raw" / "the_odds_api_live"
     ledger_dir: Path = ROOT / "data" / "odds" / "budget"
 
@@ -351,8 +352,43 @@ def _opt_naive(dt: datetime | None) -> datetime | None:
     return naive_utc(dt) if dt is not None else None
 
 
-def read_slate(tips_db: Path, slate: date) -> list[LiveGame]:
-    """Games of the ET ``slate`` with a real tip in ``game_tips`` (read-only; none if absent)."""
+def schedule_teams(games_db: Path | None, game_ids: list[str]) -> dict[str, tuple[int, int]]:
+    """``{game_id: (home, away)}`` from the official schedule. The lock-free schedule cache is read
+    first; ``games`` in the production DB (read-only; a lock or any error degrades to nothing) is
+    opened only for the ids the cache misses."""
+    out: dict[str, tuple[int, int]] = {}
+    try:
+        from nba.daily.schedule import cached_game_teams
+
+        seasons = {2000 + int(g[3:5]) for g in game_ids if len(g) >= 5 and g[3:5].isdigit()}
+        cached = cached_game_teams(seasons)
+        out.update({g: cached[g] for g in game_ids if g in cached})
+    except Exception as exc:  # noqa: BLE001 - a cache problem never blocks capture
+        log.warning("schedule cache lookup unavailable (%s)", type(exc).__name__)
+    missing = [g for g in game_ids if g not in out]
+    if missing and games_db is not None and games_db.exists():
+        try:
+            con = duckdb.connect(str(games_db), read_only=True)
+            try:
+                marks = ",".join("?" * len(missing))
+                rows = con.execute(
+                    f"SELECT game_id, home_team, away_team FROM games WHERE game_id IN ({marks})",
+                    missing,
+                ).fetchall()
+            finally:
+                con.close()
+            out.update({str(g): (int(h), int(a)) for g, h, a in rows if h and a})
+        except Exception as exc:  # noqa: BLE001 - locked by a live writer, or no table: ids stay 0
+            log.warning("schedule team lookup unavailable (%s)", type(exc).__name__)
+    return out
+
+
+def read_slate(tips_db: Path, slate: date, games_db: Path | None = None) -> list[LiveGame]:
+    """Games of the ET ``slate`` with a real tip in ``game_tips`` (read-only; none if absent).
+
+    Team ids come from ``lineup_snapshots``; where those are missing (before lineups post) and
+    ``games_db`` is given, they are filled from the official schedule so the vendor match is
+    team-based (30 min window), not tip-time-only (vendor tips sit ~10 min after ours)."""
     if not tips_db.exists():
         return []
     con = duckdb.connect(str(tips_db), read_only=True)
@@ -372,11 +408,18 @@ def read_slate(tips_db: Path, slate: date) -> list[LiveGame]:
         return []
     finally:
         con.close()
-    return [
-        LiveGame(str(g), naive_utc(t), int(h or 0), int(a or 0))
-        for g, t, h, a in rows
-        if is_scorable_game_id(str(g))  # same filter as the daily slate: no 001 preseason / 003 ASG
-    ]
+    kept = [r for r in rows if is_scorable_game_id(str(r[0]))]  # no 001 preseason / 003 ASG
+    need = [str(g) for g, _t, h, a in kept if not (h and a)]
+    try:
+        sched = schedule_teams(games_db, need) if need else {}
+    except Exception as exc:  # noqa: BLE001 - never lose a capture to the team-id fill
+        log.warning("schedule team fill failed (%s)", type(exc).__name__)
+        sched = {}
+    out: list[LiveGame] = []
+    for g, t, h, a in kept:
+        hh, aa = (int(h), int(a)) if (h and a) else sched.get(str(g), (0, 0))
+        out.append(LiveGame(str(g), naive_utc(t), hh, aa))
+    return out
 
 
 def _slate_day(tip: datetime) -> date:
@@ -670,15 +713,25 @@ def run_live_capture(
     resolver: NameResolver | None = None,
     sleep: Callable[[float], None] = time.sleep,
     http_get: Callable[..., Any] | None = None,
+    slate_games: list[LiveGame] | None = None,
 ) -> LiveReport:
-    """One tick. A no-op (no file, key or network touched) unless the flag is set."""
+    """One tick. A no-op (no file, key or network touched) unless the flag is set.
+    ``slate_games`` lets a multi-kind tick read the slate once."""
     rep = LiveReport(slate=slate, kind=kind, dry_run=dry_run)
     if not enabled(environ):
         rep.disabled = True
         return rep
     clock = now_fn or (lambda: datetime.now(UTC))
     c = cfg or load_live_config()
-    games = select_window(read_slate(c.tips_db, slate), clock(), kind, c, slate)
+    try:
+        slate_all = (
+            slate_games if slate_games is not None else read_slate(c.tips_db, slate, c.games_db)
+        )
+    except Exception as exc:  # noqa: BLE001 - a slate-read problem must not abort the tick
+        rep.degraded = True
+        rep.messages.append(f"slate read failed: {type(exc).__name__}")
+        return rep
+    games = select_window(slate_all, clock(), kind, c, slate)
     rep.due = len(games)
     if not games:  # the common tick: nothing in the window, no key read, no request
         return rep
@@ -727,7 +780,13 @@ def _pull_all(
         rivals = sum(1 for o in pending if o.tipoff == g.tipoff)
         ev = match_live_event(events, g, rivals, res, c.match_window_min)
         if ev is None:
-            _record(rep, con, g, kind, "unmatched", dry=rep.dry_run, note="no unique vendor event")
+            unknown = not (g.home_team and g.away_team)
+            if unknown:
+                rep.messages.append(f"{g.game_id}: teams unknown (no lineup ids, not in schedule)")
+            _record(
+                rep, con, g, kind, "unmatched", dry=rep.dry_run,
+                note="no unique vendor event" + ("; teams unknown" if unknown else ""),
+            )  # fmt: skip
             continue
         req = clock()
         if naive_utc(req) >= g.tipoff or naive_utc(req) >= ev.commence_time:
@@ -841,7 +900,13 @@ def run_schedule_tick(
     """One tick over the whole active schedule (``--kind all``), close first. Each kind is its own
     idempotent pass; a no-op unless the flag is set. ``**kw`` goes to :func:`run_live_capture`."""
     c = cfg or load_live_config()
+    slate_games: list[LiveGame] | None = None
+    if enabled(kw.get("environ")):
+        try:
+            slate_games = read_slate(c.tips_db, slate, c.games_db)
+        except Exception:  # noqa: BLE001 - each kind retries and reports it itself
+            slate_games = None
     return [
-        run_live_capture(slate, e.kind, dry_run=dry_run, cfg=c, **kw)
+        run_live_capture(slate, e.kind, dry_run=dry_run, cfg=c, slate_games=slate_games, **kw)
         for e in due_order(c.active_schedule())
     ]

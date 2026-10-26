@@ -137,6 +137,7 @@ def cfg(tmp_path: Path) -> lc.LiveConfig:
         hist=hist,
         out_db=tmp_path / "market_asof.duckdb",
         tips_db=tips,
+        games_db=tmp_path / "nba_missing.duckdb",
         raw_dir=tmp_path / "raw",
         ledger_dir=tmp_path / "budget",
         # the original two-point schedule (close tolerance 10 min); the full one is tested below
@@ -389,6 +390,94 @@ def test_match_needs_both_teams(cfg: lc.LiveConfig) -> None:
     assert lc.match_live_event(ev, unseen, 2, RES, 30) is None  # two games share the tip
 
 
+# ---- pre-lineup slate: team ids from the official schedule (2026-10-26 incident) ---------------
+
+BOS, MIA = 1610612738, 1610612748
+RES4 = NameResolver(
+    teams={
+        "philadelphia 76ers": PHI,
+        "new york knicks": NYK,
+        "boston celtics": BOS,
+        "miami heat": MIA,
+    },
+    players={},
+)
+
+
+@pytest.fixture(autouse=True)
+def _no_real_schedule_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import nba.daily.schedule as sched
+
+    monkeypatch.setattr(sched, "DEFAULT_SCHEDULE_CACHE_DIR", tmp_path / "no_cache")
+
+
+def _prelineup(tmp_path: Path) -> tuple[Path, Path]:
+    tmp_path = tmp_path / "prelineup"
+    tmp_path.mkdir()
+    tips = tmp_path / "lineups.duckdb"
+    con = duckdb.connect(str(tips))
+    con.execute(LINEUPS_DDL)  # no lineup_snapshots rows: lineups have not posted
+    for gid in ("0022600001", "0022600002"):  # two games share the tip
+        con.execute("INSERT INTO game_tips VALUES (?, ?, ?, 'schedule', ?)", [gid, SLATE, TIP, TIP])
+    con.close()
+    games = tmp_path / "nba.duckdb"
+    con = duckdb.connect(str(games))
+    con.execute(
+        "CREATE TABLE games (game_id VARCHAR, game_date DATE, season INT, home_team INT,"
+        " away_team INT)"
+    )
+    con.execute(
+        "INSERT INTO games VALUES ('0022600001', ?, 2026, ?, ?), ('0022600002', ?, 2026, ?, ?)",
+        [SLATE, PHI, NYK, SLATE, BOS, MIA],
+    )
+    con.close()
+    return tips, games
+
+
+def _events_plus10() -> list[Any]:
+    def ev(i: str, h: str, a: str) -> dict[str, str]:
+        return {"id": i, "commence_time": "2026-10-20T23:40:00Z", "home_team": h, "away_team": a}
+
+    return parse_events(
+        {
+            "data": [
+                ev("a", "Philadelphia 76ers", "New York Knicks"),
+                ev("b", "Boston Celtics", "Miami Heat"),
+            ]
+        }
+    )
+
+
+def test_prelineup_ids_filled_from_schedule_and_match_at_plus_10(tmp_path: Path) -> None:
+    tips, games = _prelineup(tmp_path)
+    # the old behaviour: ids 0, vendor +10 min is outside the 2-minute window -> unmatched
+    old = lc.read_slate(tips, SLATE)
+    assert [(g.home_team, g.away_team) for g in old] == [(0, 0), (0, 0)]
+    ev = _events_plus10()
+    assert all(lc.match_live_event(ev, g, 2, RES4, 30) is None for g in old)
+    # the fix: schedule ids, team-matched inside the 30-minute window despite the shared tip
+    new = lc.read_slate(tips, SLATE, games)
+    assert [(g.home_team, g.away_team) for g in new] == [(PHI, NYK), (BOS, MIA)]
+    got = [lc.match_live_event(ev, g, 2, RES4, 30) for g in new]
+    assert [e.event_id if e else None for e in got] == ["a", "b"]
+    # the window is still enforced: a 5-minute window refuses a +10 offset
+    assert lc.match_live_event(ev, new[0], 2, RES4, 5) is None
+
+
+def test_lineup_ids_win_over_schedule(cfg: lc.LiveConfig, tmp_path: Path) -> None:
+    _, games = _prelineup(tmp_path)
+    assert lc.read_slate(cfg.tips_db, SLATE, games) == [lc.LiveGame("G1", TIP, PHI, NYK)]
+
+
+def test_schedule_lookup_failure_keeps_old_behaviour(tmp_path: Path) -> None:
+    tips, _ = _prelineup(tmp_path)
+    bad = tmp_path / "bad.duckdb"
+    bad.write_text("not a duckdb file")
+    for db in (tmp_path / "nope.duckdb", bad):
+        out = lc.read_slate(tips, SLATE, db)
+        assert [(g.home_team, g.away_team) for g in out] == [(0, 0), (0, 0)]
+
+
 # ---- flag off ----------------------------------------------------------------------------------
 
 
@@ -635,3 +724,32 @@ def test_live_request_asks_for_every_enabled_market_and_never_after_tip(
         resolver=RES, sleep=lambda _s: None, http_get=late,
     )  # fmt: skip
     assert late.n_odds == 0 and rep2.pulled == 0
+
+
+def test_locked_games_db_keeps_old_behaviour(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tips, games = _prelineup(tmp_path)
+
+    def boom(*_a: Any, **_k: Any) -> Any:
+        raise RuntimeError("could not set lock on file")  # not a duckdb.Error subclass
+
+    real = duckdb.connect
+
+    def connect(p: Any, **k: Any) -> Any:
+        return boom() if str(p) == str(games) else real(p, **k)
+
+    monkeypatch.setattr(duckdb, "connect", connect)
+    out = lc.read_slate(tips, SLATE, games)
+    assert [(g.home_team, g.away_team) for g in out] == [(0, 0), (0, 0)]
+
+
+def test_swapped_home_away_from_schedule_gives_no_match(tmp_path: Path) -> None:
+    tips, games = _prelineup(tmp_path)
+    con = duckdb.connect(str(games))
+    con.execute(
+        "UPDATE games SET home_team = ?, away_team = ? WHERE game_id = '0022600001'", [NYK, PHI]
+    )
+    con.close()
+    new = lc.read_slate(tips, SLATE, games)
+    assert lc.match_live_event(_events_plus10(), new[0], 2, RES4, 30) is None
