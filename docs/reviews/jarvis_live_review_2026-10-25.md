@@ -182,3 +182,74 @@ L1 and L2 before merge, with their tests. The minors with the same diff. A diff-
 ## Proposed DECISIONS row (draft, not appended)
 
 | 2026-10-25 19:40 | JARVIS in-game signals adversary review CHANGES_REQUIRED (1d87102, docs/reviews/jarvis_live_review_2026-10-25.md): L1 "likely done" wrong for 35/75 flagged starters (47%, game-clustered CI 28-66%, 12 games; Q3 window 24/39) -- require Q4 with <= 6:00 left (in-sample 1/46 returned), word it "may be done", post a correction when a flagged player returns; L2 BENCHED/FOUL posts imply an edge ("overs are dead", "(should be near 0)", "(still priced)", "backup's overs are up") -- remove. Holds: no look-ahead (UTC fetch-time file names, ts <= clock), read-only, per-player dedupe, failure isolation, live_none $1 inside the non-reserved cap, no pre-tip CLV for live entries, ESPN text inert. | Adversary sequence. | n/a |
+
+---
+
+## Re-check (diff only): `git diff 6bd1610 f5581be` (2026-10-25)
+
+Same scratch worktree, moved to `f5581be`, with `data/` symlinked (`ls -la`:
+`data -> /Users/devin/Downloads/nba-prediction/data`). No new attacks: the builder's replay was rerun, and one raw
+ESPN file was read to check team blocks.
+
+Verdict: BLOCKED
+
+(In the caller's terms: **CHANGES_REQUIRED, one line**. L1, L2 and every minor are closed. The remaining item is the
+one the coordinator asked about. A BENCHED post mixes both teams' starters with no team on any name, under a header
+that names only the leading team.)
+
+### Verification (unpiped)
+
+| Check | Command | Result |
+|---|---|---|
+| Lint / format / types | `ruff check nba/jarvis tests/jarvis`; `ruff format --check ...`; `mypy nba/jarvis` | exit 0 / 0 / 0 |
+| Tests | `python -m pytest -q -p no:cacheprovider --no-cov tests/jarvis tests/test_layering.py` | **181 passed**, exit 0 |
+| Replay | `python -m nba.jarvis ingame-replay --date 2026-10-25 --from 2026-10-25T22:00:00 --to 2026-10-26T01:30:00 --game IND@BKN` | 3 posts: BENCHED x7 at Q4 5:44 (00:22Z), WINDOW (00:22Z), BENCHED Nesmith at Q4 4:08 (00:26Z). **No Q3 post.** The builder's 4th post (00:34Z) did not fire on this run. The capture was still being written, so its later files may differ; not a finding. |
+| Team blocks | read `espn_summary/401909862/20261025T222024Z.json.gz` (`boxscore.players[*].team.abbreviation`, starters) | IND: Siakam, Zubac, Nembhard, Nesmith, Haliburton. BKN: Randle, Porter Jr., Sharpe, Ellis, Demin |
+
+### Each item
+
+- **L1: closed.**
+  - `late_and_lopsided` now requires `period >= 4` and `clock_s <= benched_max_clock_s` (360), with the Q3 branch
+    removed. The config freezes the in-sample figures (47% for the old rule; 1 of 46 for this one) and says the rule
+    is judged forward.
+  - The wording is "may be done for the night ... Inference from minutes, not a certainty".
+  - The correction post (`returned`) fires once per key, only from a snapshot with `ts > flag ts`, and only when MIN
+    rose or the player is back on the floor (`ingame.py` detect).
+  - Flags persist in the book (`note_flag`), so a restart keeps them.
+  - The morning recap counts flagged vs returned (`posts.py`).
+  - Tests: `test_siakam_at_q3_2_53_is_not_flagged_any_more` and
+    `test_a_returning_starter_gets_one_correction_and_the_night_is_counted`.
+  - Residual (minor): ESPN's `active` flag was stale in 8 of 2,589 team-snapshots (R1), so a rare spurious
+    correction is possible. It errs toward caution.
+- **L2: closed.** "dead", "(should be near 0)", "(still priced)" and "overs are up" are gone. Prices print as
+  `Kalshi ladder now (bid/ask): ...` with no commentary. FOUL now reads "his minutes may be cut, and <backup> may play
+  more minutes". BACK reads "may return to the floor". `test_no_in_game_post_contains_edge_or_value_language` covers
+  every post type.
+- **Minors: closed.**
+  - `_bet` prices the fee under the market's own series and never records a $0 play.
+  - A failed post is not marked seen, so it is retried.
+  - A busy store now skips only the in-game step (the `raise` is gone).
+  - Each game runs under its own `try`.
+  - Kalshi names that match no ESPN player are listed in BENCHED/WINDOW posts.
+- **Team assignment: correct.** Every player's team comes from the ESPN `boxscore.players` block they sit in, and the
+  raw file confirms it: Zubac and Nembhard are IND starters; Randle, Porter Jr., Sharpe, Ellis and Demin are BKN
+  starters. Grouping both teams' starters in one post is right (a 19-point Q4 lead benches both sides).
+- **N3 (required, one line): the combined post is not labelled by team.** The 00:22Z post reads
+  `**JARVIS live: BENCHED** IND@BKN Q4 5:44, IND +19`, followed by seven names with no team. The obvious reading is
+  that all seven are IND players, but five are BKN. The BENCH WINDOW line "Starters out (Ivica Zubac, Andrew Nembhard,
+  Julius Randle, ...)" has the same gap; its reserve lines already show `(IND, on the floor)`.
+  *Fix:*
+  - In `ingame_run._player_benched`, write `f"{p.name} ({p.team}) may be done ..."`.
+  - In `window_lines`, write `", ".join(f"{p.name} ({p.team})" for p in sig.players)`.
+  - Optionally order the BENCHED group by team, leader first.
+  - Test: a BENCHED post with players from both teams shows each player's team abbreviation.
+
+### Playbook check (re-check)
+
+Unchanged class: a rule-based detector on a live feed. Test validity improved: the flagged-vs-returned forward count is
+now built in, which is the validity test the first build lacked. Data: the 1-in-46 is in-sample and is labelled so in
+the frozen config comment.
+
+### Proposed DECISIONS row (draft, not appended)
+
+| 2026-10-25 20:10 | JARVIS in-game re-check (f5581be): L1 (Q4 <= 6:00 only, "may be done", one correction post from a later snapshot, forward flagged-vs-returned count in the recap), L2 (no edge language, ban test over every post type) and all minors closed; 181 tests pass; replay IND@BKN: 3 posts, none in Q3. Team assignment verified against the raw ESPN blocks. CHANGES_REQUIRED for one line: BENCHED / WINDOW posts mix both teams' starters without a team tag under a header naming only the leader -- tag each name with its team. | Adversary sequence. | n/a |
