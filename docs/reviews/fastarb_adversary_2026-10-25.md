@@ -291,3 +291,101 @@ now holds. Not verified, as before: the Polymarket US fee rounding and both venu
 
 Drafted DECISIONS row (not appended):
 `| 2026-10-25 <time> | Adversary re-check of agent/market-fast-arb 583f7a7: B1-B5, M1-M3, m1-m8 confirmed fixed (63 tests; original attacks A1-A4 now fail to break it). CHANGES_REQUIRED on two small items: heartbeat timestamps must carry a UTC offset before the watchdog JobSpec is added (R1); JARVIS QUOTE_SOURCES needs a confirmed-quote adapter that cannot emit event quotes as confirmed (R2), until then the hook stays empty. docs/reviews/fastarb_adversary_2026-10-25.md. | Adversary finding. | R1 and R2 fixed with tests and re-checked. |`
+
+## Final check of f80119d (diff-only: `git diff 54e1269 f80119d`, fastarb paths only; the main merge 08288ee not judged)
+
+Verdict: BLOCKED
+
+(In the caller's terms: **CHANGES_REQUIRED**. R1 is fixed. R2's confirm-window logic is right, but it marks a Polymarket
+market "confirmed" without the open-status, tradable and fee-coefficient checks that JARVIS's own loader and fastarb's
+`us_quotes` both make (R3). Its shared timestamp also makes JARVIS's own leg-gap check always pass (R4). Both are a few
+lines.)
+
+### Verification (unpiped)
+
+| Check | Command | Result |
+|---|---|---|
+| Lint | `ruff check nba/markets/fastarb tests/markets/fastarb` | exit 0 |
+| Format | `ruff format --check nba/markets/fastarb tests/markets/fastarb` | 18 files, exit 0 |
+| Types | `mypy nba/markets/fastarb` | 14 files, exit 0 |
+| Tests | `python -m pytest -q -p no:cacheprovider --no-cov tests/markets/fastarb tests/test_layering.py` | 68 passed, exit 0 |
+
+### R1: offset-aware heartbeat. **Fixed.**
+
+`runner.py` `_utc_iso()` returns `self.clock().replace(tzinfo=UTC).isoformat()` for `start_ts`, `end_ts` and
+`last_tick_ts`. The runner clock is naive UTC (`now_utc`), so `replace(tzinfo=UTC)` is correct, not a relabelled local
+time. `test_r1_heartbeat_timestamps_are_offset_aware` asserts `tzinfo is not None` and `utcoffset() == 0` per key. The
+watchdog's aware comparison (`nba/ops/watchdog.py:314`) is now well-typed.
+
+### R2: `nba/markets/fastarb/jarvis_source.py` `confirmed_quotes`
+
+What holds:
+
+- **Signature.** It matches the hook `(cfg, games, slate, now) -> list[Quote]`. The extra arguments are keyword-only with
+  defaults. `__all__` and the docstring are pinned by a test.
+- **Fees.** `require_verified_fees()` failing returns `[]`.
+- **Window.** `t0 = mono()` before the two Kalshi `GET /markets/{ticker}` calls and the Polymarket `/book`;
+  `gap > confirm_max_gap_s` gives nothing for that game (`jarvis_source.py:168-174`). The event metadata is read before
+  the window and is used only for the slug and team ids, which is right. A 429 Retry-After sleep (up to 10 s) inside the
+  window pushes `gap` over 5 s and refuses, which also fails safe.
+- **Depth.** Kalshi needs both `yes_bid_size_fp` and `yes_ask_size_fp`, with 0 < bid < ask < 1. Polymarket needs book
+  levels on both sides. Any missing or thin leg drops the whole game (`return None`, `len(out) == 2`). No path builds a
+  `Quote` from an event `quote`; prices come from `us_levels(book, ...)` only.
+- **Side maths.** The long side's ask is the best offer and its bid is the best bid. For the short side, ask = 1 - best
+  bid and bid = 1 - best offer. Both correct.
+- **No unconfirmed quotes.** It never returns `confirmed=False`. Every constructor passes `confirmed=True`, and every
+  failure is `continue`/`None`.
+- **Ticker formats.** Kalshi tickers are the venue's own, so JARVIS's `newest_per_ticker` dedupes against the snapshot
+  quote. `POLYUS:{slug}:{i}` matches `nba/jarvis/polymarket.py` (which indexes tradable sides; the two are identical
+  whenever both sides are tradable, which R3's check enforces).
+- **Tests.** 1 positive and 7 negative cases (no depth, slow window, unfetchable, unverified fees, past tip, unknown tip,
+  and others).
+
+**R3 (required): no status, tradable or fee check on the legs being confirmed.**
+
+- `_poly_quotes` (`jarvis_source.py:94-125`) reads `market` from the filtered event but never checks
+  `status == "MARKET_STATUS_OPEN"`, `not closed`, the side's `tradable`, or `feeCoefficient` against the verified
+  0.0695. JARVIS's own loader checks all four (`nba/jarvis/polymarket.py` `parse_events`: `not_open`, `fee_mismatch`,
+  `tradable`), and so does fastarb's `us_quotes`.
+- `_kalshi_quote` (`jarvis_source.py:81-91`) never checks the market's `status` in `("active", "open")`. A paused market
+  can still show sizes.
+- Result: a halted, closed or different-fee market can come out `confirmed=True`, and `newest_per_ticker` ranks
+  confirmed above everything. The source would override the loader's own refusal, the opposite of what "confirmed"
+  promises.
+
+*Fix:*
+- In `_poly_quotes`, return `None` unless all of these hold:
+  - `market.get("status") == "MARKET_STATUS_OPEN"`;
+  - `not market.get("closed")`;
+  - every side is `tradable`;
+  - `abs(float(market["feeCoefficient"]) - fa.us_fee.coefficient) < 1e-9`;
+  - `(book.get("marketData") or {}).get("state") == "MARKET_STATE_OPEN"`.
+- In `_kalshi_quote`, require `m.get("status") in ("active", "open")`.
+- Add four negative tests: closed Polymarket market, fee mismatch, untradable side, paused Kalshi market.
+
+**R4 (required): one shared `ts` per game makes JARVIS's own gap guard vacuous.**
+
+- All four quotes of a game get the same `ts = read_clock()` taken after the window (`jarvis_source.py:172`).
+- Freshness is not mislabelled in any way that matters. The true reads are 0-5 s before `ts`, so `age_min` understates
+  age by at most 5 s against `max_quote_age_min` 30. The tipoff and `min_minutes_to_tip` filters use the game, not `ts`.
+- But JARVIS's arbitrage test (`nba/jarvis/edge.py:193-194`, `gap = |q1.ts - q2.ts| <= confirmed_max_gap_s`) always sees
+  gap 0 for these quotes. That makes `configs/jarvis.yaml confirmed_max_gap_s` dead. If `configs/fastarb.yaml
+  alert.confirm_max_gap_s` is ever raised (say to 30), JARVIS would still label the pair "arbitrage (both legs confirmed)".
+
+*Fix:* stamp each leg with its own read-completion wall time: the Kalshi away read, the Kalshi home read and the
+Polymarket book, so JARVIS's guard measures the real spread. Alternatively, refuse at call time when
+`fa.confirm_max_gap_s > cfg.confirmed_max_gap_s`. Add a test that two legs read 6 s apart, with fastarb set to 10 s,
+are not labelled confirmed arbitrage by `edge.find_cover`.
+
+### Minor (not blocking)
+
+- `_default_get()` calls `begin_tick(200, 40.0)` once per call. On a large slate, games after the 40 s deadline silently get
+  nothing (fails safe). Count them, or call `begin_tick` per game.
+- Kalshi abbreviations come from JARVIS's `Game.away_abbr` / `home_abbr`. If Kalshi uses a variant for a team (the alias
+  list in `props.py` exists for this), that game 404s and is skipped (fails safe; a coverage loss only).
+- "Depth" means at least one level. `Quote` carries no size, so a JARVIS stake larger than the top level may not fill.
+  State it in the docstring.
+- The hook stays unwired (`QUOTE_SOURCES` empty on main). Wiring it is a separate, reviewed change after R3 and R4.
+
+Drafted DECISIONS row (not appended):
+`| 2026-10-25 <time> | Adversary final check of agent/market-fast-arb f80119d: R1 fixed (offset-aware heartbeat, tested). R2 confirm window, depth, fee-verified gate and no-unconfirmed-output all hold; CHANGES_REQUIRED on R3 (confirmed source skips the market-open / tradable / feeCoefficient checks JARVIS's own loader makes, and Kalshi status) and R4 (one shared ts per game makes JARVIS's confirmed_max_gap_s check vacuous; stamp per-leg read times). QUOTE_SOURCES stays empty until both are fixed. | Adversary finding. | R3/R4 fixed with the named tests and re-checked. |`
