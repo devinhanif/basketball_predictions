@@ -15,8 +15,13 @@ every game with a known future tip, and ONLY for a game whose legs all passed th
 
 Any failure (a missing read, a thin side, an unverified fee, a slow window, a 404) yields no quote
 for that game, never an unconfirmed one: this function never returns ``confirmed=False`` and never
-builds a ``confirmed=True`` quote from an event-only ask (one with no order-book levels). ``ts``
-is the time the re-fetch finished. Kalshi tickers are the venue's own; Polymarket tickers follow
+builds a ``confirmed=True`` quote from an event-only ask (one with no order-book levels). A game
+is also unconfirmed unless the Polymarket market is open and not closed, each side is tradable,
+its ``feeCoefficient`` equals the verified fee, the book state is open and both Kalshi markets are
+active. Each quote's ``ts`` is the time ITS OWN read finished (two Kalshi reads, then the book),
+so JARVIS's pair-gap check is real; nothing is returned when ``alert.confirm_max_gap_s`` exceeds
+the consumer's ``confirmed_max_gap_s``. Kalshi tickers are the venue's own; Polymarket
+tickers follow
 JARVIS's loader (``POLYUS:{market slug}:{side index}``). Public GETs only; no order endpoint.
 
 ``get`` is an httpx-style ``get(url, **kw)`` (for example ``httpx.get`` or ``client.get``)
@@ -83,6 +88,8 @@ def _kalshi_quote(
 ) -> Quote | None:
     bid, ask = kp.to_f(m.get("yes_bid_dollars")), kp.to_f(m.get("yes_ask_dollars"))
     bsz, asz = kp.to_f(m.get("yes_bid_size_fp")), kp.to_f(m.get("yes_ask_size_fp"))
+    if str(m.get("status", "")) not in ("active", "open"):  # paused / closed / settled: no quote
+        return None
     if not (bid and ask and bsz and asz and 0 < bid < ask < 1):  # depth on both sides, sane book
         return None
     return Quote(
@@ -92,10 +99,23 @@ def _kalshi_quote(
 
 
 def _poly_quotes(
-    game: Game, ev: dict[str, Any], slug: str, book: dict[str, Any], ts: datetime
+    game: Game,
+    ev: dict[str, Any],
+    slug: str,
+    book: dict[str, Any],
+    ts: datetime,
+    fee_coefficient: float,
 ) -> list[Quote] | None:
     market = next((m for m in ev.get("markets", []) if m.get("slug") == slug), None)
     if market is None:
+        return None
+    # the same gates as fastarb.venues.us_quotes and JARVIS's polymarket loader
+    if market.get("status") != "MARKET_STATUS_OPEN" or market.get("closed"):
+        return None
+    fc = kp.to_f(market.get("feeCoefficient"))
+    if fc is None or abs(fc - fee_coefficient) > 1e-9:
+        return None
+    if (book.get("marketData") or {}).get("state") != "MARKET_STATE_OPEN":
         return None
     id_to_team = {
         int(t["id"]): tid
@@ -104,6 +124,8 @@ def _poly_quotes(
     }
     out: list[Quote] = []
     for i, side in enumerate(market.get("marketSides", [])):
+        if not side.get("tradable", False):  # an untradable side unconfirms the game
+            return None
         tid = id_to_team.get(int(side["teamId"])) if side.get("teamId") is not None else None
         asks = venues.us_levels(book, bool(side.get("long")))  # cheapest-first asks for this side
         opp = venues.us_levels(book, not bool(side.get("long")))  # the other side's asks
@@ -147,6 +169,9 @@ def confirmed_quotes(
     read_clock = clock or (lambda: datetime.now(UTC).replace(tzinfo=None))
     pm = PolymarketUSClient(fetch, str(fa.section("polymarket_us")["base_url"]))
     max_gap = float(fa.section("alert")["confirm_max_gap_s"])
+    jarvis_gap = getattr(cfg, "confirmed_max_gap_s", None)
+    if jarvis_gap is not None and max_gap > float(jarvis_gap):
+        return []  # our window is looser than the consumer's: its pair check would be vacuous
 
     class _F:  # kp.get_market only needs ``.get``
         def get(self, url: str, params: dict[str, Any] | None = None) -> Response | None:
@@ -166,31 +191,22 @@ def confirmed_quotes(
         slug = str(ml["slug"])
         evt = _kalshi_event(g, slate)
         t0 = mono()  # the confirm window: both Kalshi markets, then the Polymarket book
-        kms = [kp.get_market(_F(), f"{evt}-{ab}") for ab in (g.away_abbr, g.home_abbr)]  # type: ignore[arg-type]
+        kms: list[dict[str, Any] | None] = []
+        k_ts: list[datetime] = []
+        for ab in (g.away_abbr, g.home_abbr):
+            kms.append(kp.get_market(_F(), f"{evt}-{ab}"))  # type: ignore[arg-type]
+            k_ts.append(read_clock())  # each leg carries its own read-completion time
         book = pm.book(slug)
+        p_ts = read_clock()
         gap = mono() - t0
-        ts = read_clock()
         if book is None or any(m is None for m in kms) or gap > max_gap:
             continue
+        legs = ((g.away_team, g.away_abbr, g.home_abbr), (g.home_team, g.home_abbr, g.away_abbr))
         k_quotes = [
-            _kalshi_quote(
-                g,
-                tid,
-                ab,
-                other,
-                m,  # type: ignore[arg-type]
-                ts,
-            )
-            for (tid, ab, other), m in zip(
-                (
-                    (g.away_team, g.away_abbr, g.home_abbr),
-                    (g.home_team, g.home_abbr, g.away_abbr),
-                ),
-                kms,
-                strict=True,
-            )
+            _kalshi_quote(g, tid, ab, other, m, t)  # type: ignore[arg-type]
+            for (tid, ab, other), m, t in zip(legs, kms, k_ts, strict=True)
         ]
-        p_quotes = _poly_quotes(g, ev, slug, book, ts)
+        p_quotes = _poly_quotes(g, ev, slug, book, p_ts, fa.us_fee.coefficient)
         if p_quotes is None or any(q is None for q in k_quotes):
             continue  # one unconfirmed leg unconfirms the game
         out += [q for q in k_quotes if q is not None] + p_quotes

@@ -872,7 +872,9 @@ class _H:
         self.content = b"{}" if resp is None else resp.body
 
 
-def _jarvis_fixture(book_mutator: Any = None, kalshi_mutator: Any = None) -> tuple[Any, Any, Any]:
+def _jarvis_fixture(
+    book_mutator: Any = None, kalshi_mutator: Any = None, event_mutator: Any = None
+) -> tuple[Any, Any, Any]:
     """(games, httpx-style get, jarvis cfg stand-in) over the recorded DET@PHI fixtures."""
     from nba.jarvis.models import Game
 
@@ -881,6 +883,9 @@ def _jarvis_fixture(book_mutator: Any = None, kalshi_mutator: Any = None) -> tup
         book_mutator(f.book)
     if kalshi_mutator:
         kalshi_mutator(f.kalshi)
+    if event_mutator:
+        f.us_event = copy.deepcopy(f.us_event)
+        event_mutator(f.us_event)
 
     def get(url: str, **kw: Any) -> _H:
         return _H(f.get(url, kw.get("params")))
@@ -969,3 +974,88 @@ def test_r2_function_is_public_and_documented() -> None:
 
     assert js.__all__ == ["confirmed_quotes"] and js.confirmed_quotes.__doc__
     assert "STABLE INTERFACE" in (js.__doc__ or "")
+
+
+def _ml(ev: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = next(
+        m for m in ev["markets"] if m["sportsMarketType"] == venues.US_WINNER
+    )
+    return out
+
+
+def test_r3_closed_polymarket_market_is_unconfirmed(cfg: Any) -> None:
+    games, get, _ = _jarvis_fixture(event_mutator=lambda ev: _ml(ev).update(closed=True))
+    assert _cq(games, get, cfg) == []
+    games, get, _ = _jarvis_fixture(
+        event_mutator=lambda ev: _ml(ev).update(status="MARKET_STATUS_SUSPENDED")
+    )
+    assert _cq(games, get, cfg) == []
+    games, get, _ = _jarvis_fixture(
+        book_mutator=lambda b: b["marketData"].update(state="MARKET_STATE_HALTED")
+    )
+    assert _cq(games, get, cfg) == []
+
+
+def test_r3_fee_coefficient_mismatch_is_unconfirmed(cfg: Any) -> None:
+    games, get, _ = _jarvis_fixture(event_mutator=lambda ev: _ml(ev).update(feeCoefficient=0.05))
+    assert _cq(games, get, cfg) == []
+
+
+def test_r3_untradable_side_is_unconfirmed(cfg: Any) -> None:
+    def untradable(ev: dict[str, Any]) -> None:
+        _ml(ev)["marketSides"][0]["tradable"] = False
+
+    games, get, _ = _jarvis_fixture(event_mutator=untradable)
+    assert _cq(games, get, cfg) == []
+
+
+def test_r3_paused_kalshi_market_is_unconfirmed(cfg: Any) -> None:
+    def pause(ms: list[dict[str, Any]]) -> None:
+        for m in ms:
+            if m["ticker"].endswith("KXNBAGAME-26OCT25DETPHI-DET"):
+                m["status"] = "paused"
+
+    games, get, _ = _jarvis_fixture(kalshi_mutator=pause)
+    assert _cq(games, get, cfg) == []
+
+
+def test_r4_each_leg_has_its_own_read_time_and_gap_guard_is_live(cfg: Any) -> None:
+    from types import SimpleNamespace
+
+    games, get, _ = _jarvis_fixture()
+    t = [datetime(2026, 10, 25, 21, 0, 0)]
+
+    def clock() -> datetime:
+        t[0] += timedelta(seconds=1)
+        return t[0]
+
+    from nba.markets.fastarb.jarvis_source import confirmed_quotes
+
+    qs = confirmed_quotes(
+        SimpleNamespace(confirmed_max_gap_s=5.0),  # type: ignore[arg-type]
+        games,
+        date(2026, 10, 25),
+        datetime(2026, 10, 25, 21, 0),
+        get=get,
+        config=cfg,
+        clock=clock,
+    )
+    assert len(qs) == 4
+    k_ts = sorted(q.ts for q in qs if q.venue == "kalshi")
+    p_ts = {q.ts for q in qs if q.venue == "polymarket"}
+    assert k_ts[0] != k_ts[1] and len(p_ts) == 1 and p_ts.isdisjoint(k_ts)
+    spread = max(q.ts for q in qs) - min(q.ts for q in qs)
+    assert timedelta(0) < spread <= timedelta(seconds=5)
+    # a consumer with a tighter window than fastarb's own confirm window: refuse everything
+    assert (
+        confirmed_quotes(
+            SimpleNamespace(confirmed_max_gap_s=2.0),  # type: ignore[arg-type]
+            games,
+            date(2026, 10, 25),
+            datetime(2026, 10, 25, 21, 0),
+            get=get,
+            config=cfg,
+            clock=clock,
+        )
+        == []
+    )
