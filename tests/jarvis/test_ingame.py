@@ -294,9 +294,13 @@ def test_replay_of_tonights_ind_bkn_after_the_fix(live: Runtime, sent: Sent) -> 
     )
     txt = "\n".join(first["texts_out"])
     assert (
-        "Ivica Zubac may be done for the night (7 min played" in txt
+        "Ivica Zubac (IND) may be done for the night (7 min played" in txt
         and "Inference from minutes, not a certainty" in txt
     )
+    # review N3: a mixed post tags each player's team (five of the seven are BKN)
+    assert "(BKN) may be done" in txt
+    window = "\n".join(posts[1][1]["texts_out"])
+    assert "(IND)" in window and "(BKN)" in window
     assert replay_ticks(live, *FULL) == []  # a second pass posts nothing new
     assert all(len(t) <= live.cfg.max_chars for _t, r in posts for t in r["texts_out"])
 

@@ -69,8 +69,8 @@ def _player_benched(sig: Signal, markets: list[LiveMarket]) -> list[str]:
     s, p = sig.snap, sig.players[0]
     frozen_min = int(float(sig.detail.get("frozen_s", 0.0)) // 60)
     lines = [
-        f"{p.name} may be done for the night ({sig.detail['minutes']} min played, off the floor "
-        f"for {frozen_min}+ min of game clock; margin {s.margin}). "
+        f"{p.name} ({p.team}) may be done for the night ({sig.detail['minutes']} min played, "
+        f"off the floor for {frozen_min}+ min of game clock; margin {s.margin}). "
         f"He is at {p.pts} pts / {p.ast} ast / {p.reb} reb."
     ]
     ladder = ladder_line(markets, p)
@@ -133,7 +133,7 @@ def window_lines(
     cands: list[tuple[float, PlayerLine, LiveMarket]],
 ) -> list[str]:
     s = sig.snap
-    done = ", ".join(p.name for p in sig.players)
+    done = ", ".join(f"{p.name} ({p.team})" for p in sig.players)
     mins = max(int(round(s.remaining_s / 60.0)), 0)
     lines = [
         header("BENCH WINDOW", s),
