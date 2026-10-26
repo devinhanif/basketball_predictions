@@ -354,6 +354,15 @@ class PaperBook:
         )
         return bool(rows) if not key else any(key in json.loads(str(r[0])) for r in rows)
 
+    def sent_keys(self, kind: str, slate: date) -> set[str]:
+        """Every key that went out (wholly or in part) under this kind for the slate date."""
+        rows = self._rows(
+            "SELECT dedupe_keys FROM sends WHERE kind = ? AND slate_date = ? "
+            "AND mode IN ('sent','partial','dry_run')",
+            [kind, slate],
+        )
+        return {k for r in rows for k in json.loads(str(r[0]))}
+
     def slate_summary_sent(self, slate: date) -> bool:
         r = self._rows(
             "SELECT count(*) FROM sends WHERE kind = 'slate' AND slate_date = ? "
@@ -546,7 +555,10 @@ def score_book(
             if o.status == "unresolved":
                 counts["waiting"] += 1
                 continue
-            cq = closing_quote(cfg, con, row)
+            # a live entry has no pre-tip close to compare with: no CLV for in-game plays
+            cq = (
+                None if str(row["edge_label"]).startswith("live_") else closing_quote(cfg, con, row)
+            )
             mid = ask = cts = None
             csrc = ""
             if cq is not None:
@@ -639,7 +651,7 @@ def cluster_ci(
     return sum(allv) / len(allv), lo, hi
 
 
-WEEKLY_LABELS = (*LABELS, "daily_dollar", "pick")
+WEEKLY_LABELS = (*LABELS, "daily_dollar", "pick", "live_none")
 
 
 def _bundles(

@@ -110,6 +110,20 @@ model_weights:                  # model weight by stat, earned from the closing-
   min_days_between_updates: 7
   log: data/jarvis/model_weights.jsonl
 
+ingame:                         # live situations from the live capture (nba/jarvis/ingame.py): facts, not edges
+  enabled: true
+  lookback_min: 15              # snapshots read per tick (the capture writes about one a minute)
+  snapshot_max_age_min: 5       # a newer-than-this ESPN snapshot is required, else the feed is stale and silent
+  kalshi_max_age_min: 5         # same for the captured Kalshi ladders
+  margin_benched: 15            # BENCHED / BENCH WINDOW: Q4 (or Q3 under 3:00 left) and a lead of at least this
+  min_snapshots: 2              # a starter's MIN unchanged across at least this many snapshots ...
+  frozen_game_s: 180            # ... spanning at least this much GAME clock
+  foul_starter_pf: 5            # FOUL TROUBLE: a starter with this many fouls, or ...
+  foul_early_pf: 4              # ... this many before the 4th quarter
+  margin_back: 10               # STARTERS BACK (after a BENCHED post): lead under this ...
+  back_min_remaining_s: 300     # ... with at least this long left
+  max_window_lines: 4
+
 daily_dollar:                   # one $1 same-team long-shot ticket a day (TRADING_CONTEXT.md)
   enabled: true
   stake_usd: 1.0

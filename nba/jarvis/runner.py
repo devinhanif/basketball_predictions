@@ -69,6 +69,9 @@ class Runtime:
     env: dict[str, str] | None = None
     use_polymarket: bool = True
     discord_client: Any | None = None
+    ingame_seen: dict[str, set[str]] = field(
+        default_factory=dict
+    )  # keys posted this process (dry-runs too)
     report: dict[str, Any] = field(default_factory=dict)
 
     def send(self, text: str) -> SendResult:
@@ -329,6 +332,14 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
             rt.book.note_alert(p.key, slate, p.edge_cents, now)
         rep["alerts"].append(res)
     rep["halftime"] = _halftime(rt, st, slate, now)
+    try:  # in-game signals never break the tick
+        from nba.jarvis.ingame_run import run_ingame
+
+        rep["ingame"] = run_ingame(rt, slate, st.games)
+    except duckdb.IOException:
+        raise
+    except Exception as exc:
+        rep["ingame"] = [{"ok": False, "error": type(exc).__name__}]
     return rep
 
 

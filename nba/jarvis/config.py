@@ -69,6 +69,7 @@ class JarvisConfig:
     halftime_checkins: bool
     daily_dollar: dict[str, Any]
     model_weights: dict[str, Any]
+    ingame: dict[str, Any]
     paths: dict[str, Path]
     llm: dict[str, Any]
     min_settled: int
@@ -162,6 +163,7 @@ def load_config(
         halftime_checkins=bool(dl["halftime_checkins"]),
         daily_dollar=dict(raw["daily_dollar"]),
         model_weights=dict(raw["model_weights"]),
+        ingame=dict(raw["ingame"]),
         paths={k: _path(root, str(v)) for k, v in raw["paths"].items()},
         llm=dict(raw["llm"]),
         min_settled=pcfg.min_settled,

@@ -398,7 +398,10 @@ def test_morning_recap_posts_results_balance_records_and_weights(
     rep = run_tick(rt, next_day)
     assert rep["recap"] and rep["recap"]["ok"]
     txt = [t for t in sent.texts if "morning recap" in t][0]
-    assert "Balance (the value you set in configs/jarvis.yaml): $70.00 vs $70 start" in txt
+    assert (
+        f"Balance (the value you set in configs/jarvis.yaml): ${cfg.balance_current:.2f} "
+        f"vs ${cfg.balance_start:.0f} start"
+    ) in txt
     assert (
         "Records, last 7 days" in txt and "Kill switch" in txt and "Model weights: all held" in txt
     )

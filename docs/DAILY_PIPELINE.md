@@ -1049,6 +1049,18 @@ by 0.1; mean CLV < 0 lowers it by 0.1 (floor 0); otherwise hold. Every evaluatio
 `configs/jarvis.yaml` before any data exists. **This is a paper-only adaptation of JARVIS's own fair price, not a frozen test**: it never changes the scoring, rule or window of a frozen rule, and no claim is
 made from it. Every play shows "fair: Pinnacle 50% / model 44% / w 0.0".
 
+**Live in-game situations** (`nba/jarvis/ingame.py`, `ingame_run.py`; config `ingame:` in `configs/jarvis.yaml`; read-only). Each `watch` tick reads the live capture's newest files for the slate date:
+`espn_summary/<espn game id>/*.json.gz` (about a minute apart: score, period, clock, per-player MIN/PTS/REB/AST/3PT/PF, `starter`, `active` = on the floor now) and the `kalshi/KXNBA{PTS,REB,AST,3PT}_p0`
+ladders (live YES bid/ask; the 15-minute snapshot store is the fallback). A feed older than 5 minutes is silent, never quoted. Names are matched exactly after accent/suffix normalisation (unmatched = skipped) and all
+fetched text is cleaned to a short printable name. Four signals, each a fact about the game and never an edge, each posted once per player (or per game) per slate date (the key is in `sends`):
+(1) **BENCHED**: Q4 (or Q3 under 3:00), lead >= 15, a starter off the floor whose MIN has not moved across >= 2 snapshots spanning >= 3:00 of game clock ("{player} likely done ({min} min, frozen; margin {m}). His overs above
+{pts} pts / {ast} ast / {reb} reb are dead", plus his Kalshi YES markets above his number with bid/ask, flagged "(still priced)" where a bid of 5c+ shows the market has not caught up); starters flagged on the same
+tick share one post; (2) **BENCH WINDOW** (same trigger, once per game): reserves on both teams with a live over, price, current stat, game minutes left, and at most one named bet, label `live_none` (entertainment, EV
+unknown, $1 ladder size, "pays $X if right"), recorded in the paper book inside the nightly cap and never given a pre-tip CLV; (3) **FOUL TROUBLE**: a starter with 5 PF, or 4 before the 4th ("his overs are at risk, his
+backup's overs are up"); (4) **STARTERS BACK?**: after a BENCHED post, lead < 10 with >= 5:00 left. ESPN's `reason` text is ignored. `python -m nba.jarvis ingame-replay --date D --from UTC --to UTC [--game IND@BKN]`
+replays a finished game's files against a throwaway book and prints which posts would have fired and when. Caveat from the first replay: ESPN's MIN moves in steps, so a player who just checked back in reads frozen
+for a minute; the rule therefore also requires him to be off the floor now.
+
 **Safety (each is a test).** Fetched text (injury reasons, venue titles, lineup labels) is sanitised and enters the model only inside a fenced DATA block; it never feeds a number, label, stake or post. An
 instant post needs `supports_alert` (computed label strong/arbitrage, positive edge). A post is logged with sha256 hashes of its inputs and text. Plays are recorded at decision time with a `delivered`
 status, once per slate date per key. Stores held by their writer are skipped (the 1 GB odds store is never copied). With several sinks each message is deduped per sink (a sink that already got the exact text is skipped), the httpx/httpcore loggers are pinned to WARNING so the webhook URL never reaches a log, and one malformed halftime event cannot block the others.
