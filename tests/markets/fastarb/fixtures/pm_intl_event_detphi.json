@@ -1,0 +1,89 @@
+{
+ "slug": "nba-det-phi-2026-10-25",
+ "teams": [
+  {
+   "id": 100518,
+   "name": "Pistons",
+   "abbreviation": "det"
+  },
+  {
+   "id": 100510,
+   "name": "76ers",
+   "abbreviation": "phi"
+  }
+ ],
+ "markets": [
+  {
+   "slug": "nba-det-phi-2026-10-25",
+   "question": "Pistons vs. 76ers",
+   "sportsMarketType": "moneyline",
+   "line": null,
+   "outcomes": "[\"Pistons\", \"76ers\"]",
+   "outcomePrices": "[\"0.515\", \"0.485\"]",
+   "bestBid": 0.51,
+   "bestAsk": 0.52,
+   "acceptingOrders": true,
+   "feeType": "zero_fees"
+  },
+  {
+   "slug": "nba-det-phi-2026-10-25-spread-home-3pt5",
+   "question": "Spread: 76ers (-3.5)",
+   "sportsMarketType": "spreads",
+   "line": -3.5,
+   "outcomes": "[\"76ers\", \"Pistons\"]",
+   "outcomePrices": "[\"0.405\", \"0.595\"]",
+   "bestBid": 0.4,
+   "bestAsk": 0.41,
+   "acceptingOrders": true,
+   "feeType": "zero_fees"
+  },
+  {
+   "slug": "nba-det-phi-2026-10-25-total-226pt5",
+   "question": "Pistons vs. 76ers: O/U 226.5",
+   "sportsMarketType": "totals",
+   "line": 226.5,
+   "outcomes": "[\"Over\", \"Under\"]",
+   "outcomePrices": "[\"0.54\", \"0.46\"]",
+   "bestBid": 0.53,
+   "bestAsk": 0.55,
+   "acceptingOrders": true,
+   "feeType": "zero_fees"
+  },
+  {
+   "slug": "nba-det-phi-2026-10-25-spread-home-1pt5",
+   "question": "Spread: 76ers (-1.5)",
+   "sportsMarketType": "spreads",
+   "line": -1.5,
+   "outcomes": "[\"76ers\", \"Pistons\"]",
+   "outcomePrices": "[\"0.465\", \"0.535\"]",
+   "bestBid": 0.46,
+   "bestAsk": 0.47,
+   "acceptingOrders": true,
+   "feeType": "zero_fees"
+  },
+  {
+   "slug": "nba-det-phi-2026-10-25-spread-away-1pt5",
+   "question": "Spread: Pistons (-1.5)",
+   "sportsMarketType": "spreads",
+   "line": -1.5,
+   "outcomes": "[\"Pistons\", \"76ers\"]",
+   "outcomePrices": "[\"0.485\", \"0.515\"]",
+   "bestBid": 0.48,
+   "bestAsk": 0.49,
+   "acceptingOrders": true,
+   "feeType": "zero_fees"
+  },
+  {
+   "slug": "nba-det-phi-2026-10-25-total-227pt5",
+   "question": "Pistons vs. 76ers: O/U 227.5",
+   "sportsMarketType": "totals",
+   "line": 227.5,
+   "outcomes": "[\"Over\", \"Under\"]",
+   "outcomePrices": "[\"0.525\", \"0.475\"]",
+   "bestBid": 0.52,
+   "bestAsk": 0.53,
+   "acceptingOrders": true,
+   "feeType": "zero_fees"
+  }
+ ]
+}

@@ -1,0 +1,95 @@
+{
+ "marketData": {
+  "marketSlug": "aec-nba-det-phi-2026-10-25",
+  "bids": [
+   {
+    "px": {
+     "value": "0.5000",
+     "currency": "USD"
+    },
+    "qty": "772245.8900"
+   },
+   {
+    "px": {
+     "value": "0.4900",
+     "currency": "USD"
+    },
+    "qty": "486993.2200"
+   },
+   {
+    "px": {
+     "value": "0.4800",
+     "currency": "USD"
+    },
+    "qty": "167803.8300"
+   },
+   {
+    "px": {
+     "value": "0.4700",
+     "currency": "USD"
+    },
+    "qty": "10817.5500"
+   },
+   {
+    "px": {
+     "value": "0.4600",
+     "currency": "USD"
+    },
+    "qty": "496251.9200"
+   },
+   {
+    "px": {
+     "value": "0.4500",
+     "currency": "USD"
+    },
+    "qty": "500.0000"
+   }
+  ],
+  "offers": [
+   {
+    "px": {
+     "value": "0.5100",
+     "currency": "USD"
+    },
+    "qty": "18775.5600"
+   },
+   {
+    "px": {
+     "value": "0.5200",
+     "currency": "USD"
+    },
+    "qty": "476902.5700"
+   },
+   {
+    "px": {
+     "value": "0.5300",
+     "currency": "USD"
+    },
+    "qty": "215820.7100"
+   },
+   {
+    "px": {
+     "value": "0.5400",
+     "currency": "USD"
+    },
+    "qty": "26363.0300"
+   },
+   {
+    "px": {
+     "value": "0.5500",
+     "currency": "USD"
+    },
+    "qty": "498.1500"
+   },
+   {
+    "px": {
+     "value": "0.5600",
+     "currency": "USD"
+    },
+    "qty": "11582.9500"
+   }
+  ],
+  "state": "MARKET_STATE_OPEN",
+  "transactTime": "2026-10-25T19:35:11.214565798Z"
+ }
+}

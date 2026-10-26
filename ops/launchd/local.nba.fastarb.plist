@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Fast pre-tip poller + Kalshi/Polymarket arbitrage and Pinnacle-lag checker (docs/DAILY_PIPELINE.md, "Fast pre-tip poller").
+  NOT loaded by anything in the repo: the maintainer installs it by hand.
+    install:    cp ops/launchd/local.nba.fastarb.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.fastarb.plist
+    run now:    launchctl kickstart -k gui/$(id -u)/local.nba.fastarb
+    uninstall:  launchctl bootout gui/$(id -u)/local.nba.fastarb && rm ~/Library/LaunchAgents/local.nba.fastarb.plist
+  Starts once a day at 10:30 local time. `run` waits by itself until the first tip - 180 min, polls every 60 s, stops at the last tip
+  and exits 0 (on a no-game day it exits at once). A second start while one runs exits 0 (flock on data/ops/fastarb_lock).
+  It refuses to start (rc 2) while a fee object in configs/fastarb.yaml or configs/parlay.yaml is not `verified: true`.
+  Read-only: public GETs only. The only credential is the existing the-odds-api key, passed by `uv run --env-file .env.fastarb`
+  (a file holding THE_ODDS_API_KEY and nothing else, so the poller never loads the other secrets in .env; never in this file). No nba.duckdb connection; no data/ops/lock. Output: data/raw/fastarb_<ET date>/, data/ops/ALERTS.md lines
+  tagged [fastarb], data/ops/heartbeat/fastarb.json.
+  Launched through uv (never /bin/sh directly: TCC blocks sh from reading ~/Downloads).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.fastarb</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string><string>-i</string>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string><string>--env-file</string><string>.env.fastarb</string>
+    <string>python</string><string>-m</string><string>nba.markets.fastarb</string><string>run</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>30</integer></dict>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_fastarb.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_fastarb.err</string>
+</dict>
+</plist>

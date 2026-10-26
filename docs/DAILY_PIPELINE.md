@@ -986,6 +986,34 @@ play-by-play or ran the tracker for the live season. The morning job now has one
   Dry run on a copy of `nba.duckdb` (2026-10-24, 28 games, 10-20 to 10-23): 5,713 possessions with lineups,
   reconciliation 64/68 (94.1%, alert), 254/254, 45/45, 275/275; 2 unresolved substitutions, 0 desynced.
 
+## Fast pre-tip poller and Kalshi / Polymarket arbitrage checker (Devin, 2026-10-25; prepared, NOT installed)
+
+`python -m nba.markets.fastarb run`: from first tip - 180 min, once a minute per game until its tip, Kalshi
+(KXNBAGAME / KXNBASPREAD / KXNBATOTAL) against Polymarket US order books, plus Pinnacle core lines (3 credits per
+game per call, through the shared `LiveClient` ledger) for a lag check within 10 min of a new lineup or injury
+report. Read-only public GETs; no Kalshi key; no orders; never auto-trades. Details, terms-of-use findings, fee
+sources and the dry run: `docs/reviews/fastarb_2026-10-25.md`; config: `configs/fastarb.yaml`.
+
+* **Outputs**: `data/raw/fastarb_<ET date>/` (write-once gzip, raw before parse), `data/ops/ALERTS.md` lines tagged
+  `[fastarb]` with a `key=` dedup token (phone-length, naming the exact buys), heartbeat
+  `data/ops/heartbeat/fastarb.json` (one beat a minute), lock `data/ops/fastarb_lock`.
+* **Locks and DBs**: no `nba.duckdb`, no `data/ops/lock`, no heavy lock; `lineups.duckdb` is opened read-only. It
+  takes no lock of theirs, so it cannot delay a daily job. A locked lineups DB on a tick is kept as the previous tips (counted `news:tips_unavailable`), never the end of the night.
+* **Refuses to start** (rc 2) while a fee object in `configs/fastarb.yaml` or `configs/parlay.yaml` is not
+  `verified: true`. The international Polymarket venue stays off (not tradable from the US; fee unverified).
+* **Launcher template**: `ops/launchd/local.nba.fastarb.plist` (label `local.nba.fastarb`, daily 10:30 local; `run`
+  waits for its own window). The key reaches python through `uv run --env-file .env.fastarb` (create that file with `THE_ODDS_API_KEY=...` and nothing else, so the poller never loads the other secrets in `.env`), never the plist.
+* **Install** (Devin; one line): `cp ops/launchd/local.nba.fastarb.plist ~/Library/LaunchAgents/ && launchctl
+  bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.fastarb.plist && launchctl kickstart -k
+  gui/$(id -u)/local.nba.fastarb`. Uninstall: `launchctl bootout gui/$(id -u)/local.nba.fastarb && rm
+  ~/Library/LaunchAgents/local.nba.fastarb.plist`.
+* **Alert safety (adversary review 2026-10-25, `docs/reviews/fastarb_adversary_2026-10-25.md`)**: an arbitrage line is written only after both legs are re-fetched back to back (Kalshi `GET /markets/{ticker}`, then the Polymarket US book; refused if the two reads span more than 5 s) and the gap still clears; a leg priced only from the cached event quote is counted `unknown_depth` and never emitted; every candidate and its confirm result go to `data/raw/fastarb_<date>/candidates.jsonl`. Every arbitrage line carries `RESOLUTION RISK: postponement/OT rules differ by venue, not verified` until `settlement_rules_verified: true` is set in `configs/fastarb.yaml` after Devin has read both rulebooks; both venues' rules text is archived once a day in `*_rules_daily.json.gz`.
+* **Watchdog / delivery**: the heartbeat now carries `mode, host, start_ts, end_ts, rc`; the job is not yet in `nba/ops/watchdog.py` `JOBS` (not this branch's code; an optional `JobSpec` is a main-session change with the install). Alerts are appended to `ALERTS.md` only; nothing pushes them to a phone yet.
+* **Failure modes**: a failed first tick is `status: error` and polling continues until 21:00 ET (rc 1 if no game was ever found); "no games" (rc 0) needs a tick where all three Kalshi series returned; the poller always stops at 06:00 ET the next morning. A Pinnacle credit / auth / key error turns Pinnacle off for the run and does not touch the arbitrage check; Pinnacle is called only while a lineup or injury event is in the 10-minute window, plus a baseline call every 10th tick per game.
+* **Dry run** (writes no files; prints the gaps; `--with-pinnacle` spends credits and so appends to the shared credit ledger): `uv run python -m nba.markets.fastarb dry-run [--date YYYY-MM-DD]
+  [--with-pinnacle]` (`--with-pinnacle` spends 3 credits per game). Underdog (hand-made CSV only; their terms forbid
+  automated reads): `uv run python -m nba.markets.fastarb underdog --csv <file>`.
+
 ## JARVIS (paper, alert-only; built 2026-10-25, branch agent/market-jarvis-paper)
 
 Devin's definition (DECISIONS 2026-10-25 14:41 and 14:43) and rules (`docs/TRADING_CONTEXT.md`): an LLM-enabled assistant that **always names the best available play**, posts it to a private Discord
