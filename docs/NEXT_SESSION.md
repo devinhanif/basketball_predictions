@@ -5,7 +5,9 @@
    `uv run python -m nba.jarvis test-send --dry-run` then
    `read -rs "JARVIS_DISCORD_WEBHOOK?webhook URL: "; export JARVIS_DISCORD_WEBHOOK; echo; cp ops/launchd/local.nba.jarvis.plist ~/Library/LaunchAgents/ && plutil -replace EnvironmentVariables.JARVIS_DISCORD_WEBHOOK -string "$JARVIS_DISCORD_WEBHOOK" ~/Library/LaunchAgents/local.nba.jarvis.plist && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.jarvis.plist; unset JARVIS_DISCORD_WEBHOOK`
    Update `balance.current_usd` in configs/jarvis.yaml when money moves. Rules: docs/TRADING_CONTEXT.md.
-2. **Fast-arb checker** (agent/market-fast-arb): review fixes B1-B5 in progress, then diff re-check + merge. It is what lets JARVIS label "strong"/"arbitrage". Not installed.
+2. **Fast-arb checker MERGED (not installed, not wired).** To turn on: create `.env.fastarb` in the repo folder containing only `THE_ODDS_API_KEY=...`, then `cp ops/launchd/local.nba.fastarb.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.fastarb.plist`. Alerts land in data/ops/ALERTS.md; wiring `confirmed_quotes` into JARVIS QUOTE_SOURCES (so JARVIS can say "strong"/"arbitrage" in Discord) is a separate reviewed step. Read Kalshi + Polymarket US settlement rules before trusting any arbitrage.
+   **JARVIS live in-game alerts are merged and running** (BENCHED only Q4 <= 6:00, "may be done", corrections; recap counts how often it was wrong).
+   **To-do for JARVIS:** warn on exits when the bid is far below fair (Devin's accidental $0 cash-out, 10-25).
 3. **Installed today:** live-capture launcher (runs nightly by itself). Mac must stay on AC on game days (it hibernated 12:13-13:48 on 10-25).
 4. **Results:** 10-24 card 0/5; your 46c GSW@PHX combo won. 10-25 bets: tell me fills to update the balance.
 5. **Your reads to do:** Kalshi + Polymarket US settlement rules (postponement/OT/DNP) before trusting any cross-venue "arbitrage"; Underdog payout table.
