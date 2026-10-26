@@ -16,7 +16,8 @@ from typing import Any
 
 from nba.live.store import write_json_atomic
 from nba.markets.fastarb.arb import ArbResult, LagResult
-from nba.markets.fastarb.venues import PM_INTL
+from nba.markets.fastarb.ladder import KALSHI_VOID_RISK, LadderResult
+from nba.markets.fastarb.venues import PM_INTL, PM_US
 
 JOB = "fastarb"
 
@@ -108,6 +109,26 @@ def arb_text(r: ArbResult, *, gap_s: float | None = None, rules_verified: bool =
 
 def arb_key(r: ArbResult) -> str:
     return alert_key("arb", r.prop.game, r.prop.kind, r.prop.c, r.yes_ask.ref, r.no_ask.ref)
+
+
+def ladder_text(
+    r: LadderResult, *, gap_s: float | None = None, rules_verified: bool = False
+) -> str:
+    """Phone-length: both buys, the profit locked per pair after fees, the depth. No stake."""
+    risk = KALSHI_VOID_RISK if r.venue != PM_US or rules_verified else RESOLUTION_RISK
+    return (
+        f"LADDER {r.lo.game.label()} {r.label()}: BUY {r.yes.short} @{r.yes.price:.2f}"
+        f" + BUY {r.no.short} @{r.no.price:.2f} = {r.yes.price + r.no.price:.2f};"
+        f" locks +{r.margin * 100:.1f}c/pair after fees at {r.n_eval} pairs"
+        f" (pays >= $1 either way),"
+        f" depth ~{r.max_n} pairs"
+        + (f"; legs re-fetched {gap_s:.1f}s apart" if gap_s is not None else "")
+        + f" | {risk}"
+    )
+
+
+def ladder_key(r: LadderResult) -> str:
+    return alert_key("ladder", r.lo.game, r.lo.kind, r.lo.c, r.hi.c, r.yes.ref, r.no.ref)
 
 
 def lag_text(r: LagResult, news: str, minutes: float) -> str:

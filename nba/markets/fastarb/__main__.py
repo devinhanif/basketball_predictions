@@ -3,6 +3,8 @@
 ``run``      the pre-tip poller (refuses unless the fee objects are verified); writes raw files,
              ALERTS.md lines and a heartbeat; stops at each game's tip.
 ``dry-run``  one tick over a slate, printing the gaps found; writes nothing (no raw, no alerts).
+``ladder-dryrun`` count apparent within-venue ladder violations in a READ-ONLY COPY of the stored
+             Kalshi snapshot DB (never the live file; never profit).
 ``underdog`` the manual-file Underdog vs Pinnacle comparison (Underdog is never polled).
 """
 
@@ -58,13 +60,18 @@ def format_report(rep: TickReport, intl: bool) -> list[str]:
         f"unknown_depth {rep.arbs_unknown_depth}, lag alerts {rep.lags}, "
         f"news events in window {rep.news}"
     )
+    lines.append(
+        f"ladders: apparent {rep.ladders_apparent}, confirmed {rep.ladders_alertable}, "
+        f"unconfirmed {rep.ladders_unconfirmed}, thin {rep.ladders_thin}, "
+        f"unknown_depth {rep.ladders_unknown_depth}, excluded {rep.ladders_excluded}"
+    )
     if rep.skipped:
         lines.append(
             "skipped/unmatched: " + ", ".join(f"{k}={v}" for k, v in sorted(rep.skipped.items()))
         )
     verdict = (
         "ARB FOUND"
-        if rep.arbs_alertable
+        if rep.arbs_alertable or rep.ladders_alertable
         else "no_positive_ev_found (no arbitrage >= min gap after fees)"
     )
     lines.append(f"verdict: {verdict}")
@@ -105,10 +112,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     d.add_argument(
         "--with-pinnacle", action="store_true", help="also call Pinnacle (3 credits per game)"
     )
+    ld = sub.add_parser(
+        "ladder-dryrun", help="apparent ladder violations in stored Kalshi snapshots"
+    )
+    ld.add_argument("--db", type=Path, required=True, help="a COPY of data/kalshi/kalshi.duckdb")
+    ld.add_argument("--lineups", type=Path, default=None, help="a copy of lineups.duckdb (tips)")
+    ld.add_argument("--from", dest="start", type=date.fromisoformat, required=True)
+    ld.add_argument("--to", dest="end", type=date.fromisoformat, required=True)
     u = sub.add_parser("underdog", help="Underdog vs Pinnacle from a hand-made CSV")
     u.add_argument("--csv", type=Path, required=True)
     a = ap.parse_args(argv)
     cfg = load_config(a.config)
+
+    if a.cmd == "ladder-dryrun":
+        from nba.markets.fastarb import ladder_dryrun
+
+        live = (cfg.resolve("data/kalshi/kalshi.duckdb")).resolve()
+        if a.db.resolve() == live:
+            print("refusing: pass a COPY of the snapshot DB, not the live file", file=sys.stderr)
+            return 2
+        for line in ladder_dryrun.run(a.db, cfg, a.start, a.end, a.lineups).lines():
+            print(line)
+        return 0
 
     if a.cmd == "underdog":
         ud = cfg.section("underdog")
