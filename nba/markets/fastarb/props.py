@@ -7,6 +7,8 @@ Every game market on every venue reduces to ONE proposition about the final scor
   A spread on team T with handicap h ("T +3.5" is h = +3.5): T covers  <=>  margin_T + h > 0.
   For T = home that is YES of margin > -h; for T = away it is NO of margin > h.
 * ``total`` c : total points are greater than ``c`` (YES = Over).
+* ``team_total:<team id>`` c : that team scores more than ``c`` (ladders only, Kalshi).
+* ``prop:<market base>`` c : a player stat is greater than ``c`` (dry-run counting; never alerted).
 
 Half-point lines only (no pushes). A venue quoting a whole-number line is skipped and counted.
 Matching is by (away team id, home team id, ET date, kind, c); a team that does not map to our ids
@@ -62,6 +64,11 @@ class PropKey:
     c: float
 
     def label(self) -> str:
+        if self.kind.startswith("team_total:"):
+            tid = int(self.kind.split(":", 1)[1])
+            return f"{ID_TO_ABBR.get(tid, tid)} team total>{self.c:g}"
+        if self.kind.startswith("prop:"):
+            return f"{self.kind.split(':', 1)[1]} >{self.c:g}"
         if self.kind == "total":
             return f"total>{self.c:g}"
         if self.c == 0:

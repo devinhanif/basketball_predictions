@@ -39,6 +39,14 @@ from nba.markets.fastarb.arb import (
     is_alertable,
 )
 from nba.markets.fastarb.config import FastArbConfig
+from nba.markets.fastarb.ladder import (
+    PM_RULES_UNVERIFIED,
+    LadderResult,
+    LadderScanner,
+    find_ladder_violations,
+    is_ladder_alertable,
+    kalshi_ladder_quotes,
+)
 from nba.markets.fastarb.polymarket_us import PolymarketUSClient
 from nba.markets.fastarb.props import GameKey, PropKey, QuoteBook, team_id
 from nba.markets.fastarb.venues import PM_INTL, PM_US, K
@@ -73,6 +81,7 @@ class GameCtx:
     us_event: dict[str, Any] | None = None
     us_meta_at: float = float("-inf")
     ticks: int = 0
+    books: dict[str, dict[str, Any]] = field(default_factory=dict)  # this tick's Polymarket books
 
 
 @dataclass
@@ -100,6 +109,12 @@ class TickReport:
     arbs_unconfirmed: int = (
         0  # cleared the gap on the tick's data, failed the back-to-back re-fetch
     )
+    ladders_apparent: int = 0  # asks sum under $1 before fees, on the tick's data (any depth)
+    ladders_alertable: int = 0  # confirmed back to back and emitted (or would be, with no sink)
+    ladders_unconfirmed: int = 0  # cleared on the tick's data, failed the back-to-back re-fetch
+    ladders_thin: int = 0
+    ladders_unknown_depth: int = 0
+    ladders_excluded: int = 0  # player-stat rungs: never alerted (DNP fair-price settlement)
     lags: int = 0
     news: int = 0
     credits: int = 0
@@ -125,6 +140,7 @@ class Runner:
         self.pc, self.use_intl, self.clock, self.mono = pinnacle_client, use_intl, clock, mono
         self.pm = PolymarketUSClient(fetcher.get, str(cfg.section("polymarket_us")["base_url"]))
         self.fees = fee_functions(cfg)
+        self.ladder = LadderScanner(cfg, fetcher, self.pm, mono=mono)
         self.games: dict[GameKey, GameCtx] = {}
         self.news_events: list[newsmod.NewsEvent] = []
         self.injury_known: set[str] = set()
@@ -153,7 +169,11 @@ class Runner:
     # ------------------------------------------------------------------ Kalshi
     def kalshi_markets(self, now: datetime, day: date, rep: TickReport) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
-        for series in self.cfg.section("kalshi")["series"]:
+        series_list = list(self.cfg.section("kalshi")["series"])
+        lad = self.cfg.section("ladder")
+        if lad["enabled"]:
+            series_list += [s for s in lad["kalshi_extra_series"] if s not in series_list]
+        for series in series_list:
             pages: list[dict[str, Any]] = []
             for _n, _resp, body in kp.iter_series_pages(self.f, series):
                 if body is None:
@@ -283,6 +303,7 @@ class Runner:
                 else:
                     rep.skipped[f"{PM_US}:book_failed"] += 1
             stat.lines_booked = len(books)
+            ctx.books = books
             self._save(now, PM_US, f"{venues.slug_for(ctx.key)}_books", books)
             full.merge(venues.us_quotes(ctx.us_event, fc, books))
         if self.use_intl:
@@ -349,6 +370,77 @@ class Runner:
         info["result"] = "confirmed"
         info["gap_s"] = gap
         return new, info
+
+    # ------------------------------------------------------------------ ladders (within venue)
+    def _ladder_tick(
+        self, ctx: GameCtx, book: QuoteBook, now: datetime, stamp: str, rep: TickReport
+    ) -> None:
+        pools: list[tuple[str, QuoteBook]] = [(K, book)]
+        if ctx.us_event is not None:
+            books = dict(ctx.books)
+            extra: dict[str, dict[str, Any]] = {}
+            for slug in self.ladder.pm_candidate_slugs(ctx.us_event):
+                if slug in books:
+                    continue
+                b = self.pm.book(slug)
+                if b is None:
+                    rep.skipped[f"{PM_US}:ladder_book_failed"] += 1
+                    continue
+                books[slug], extra[slug] = b, b
+            if extra:
+                self._save(now, PM_US, f"{venues.slug_for(ctx.key)}_ladder_books", extra)
+            pools.append(
+                (PM_US, venues.us_quotes(ctx.us_event, self.cfg.us_fee.coefficient, books))
+            )
+        rules_ok = self.cfg.settlement_rules_verified
+        for venue, qb in pools:
+            for r in find_ladder_violations(qb, venue, self.cfg, self.ladder.fee):
+                rep.ladders_apparent += 1
+                verdict = is_ladder_alertable(r, self.cfg)
+                if verdict == "excluded":
+                    rep.ladders_excluded += 1
+                if verdict == "thin":
+                    rep.ladders_thin += 1
+                if verdict == "unknown_depth":
+                    rep.ladders_unknown_depth += 1
+                    self._log_ladder(ctx, r, verdict, {"result": "not_confirmable"}, now)
+                if verdict != "alert":
+                    continue
+                new, info = self.ladder.confirm(r, ctx.us_event)
+                self._log_ladder(ctx, r, verdict, info, now)
+                if new is None:
+                    if info.get("reason") == PM_RULES_UNVERIFIED:
+                        rep.skipped["ladder:pm_us_rules_unverified"] += 1
+                        continue
+                    rep.ladders_unconfirmed += 1
+                    continue
+                rep.ladders_alertable += 1
+                text = sinks.ladder_text(new, gap_s=float(info["gap_s"]), rules_verified=rules_ok)
+                rep.alerts.append(text)
+                if self.sink is not None:
+                    self.sink.emit(sinks.ladder_key(new), text, now, stamp)
+
+    def _log_ladder(
+        self, ctx: GameCtx, r: LadderResult, verdict: str, info: dict[str, Any], now: datetime
+    ) -> None:
+        if self.raw is None:
+            return
+        sinks.append_jsonl(
+            self.raw.dir / "candidates.jsonl",
+            {
+                "type": "ladder",
+                "ts": now.isoformat(),
+                "game": ctx.key.label(),
+                "venue": r.venue,
+                "ladder": r.label(),
+                "yes": [r.yes.ref, r.yes.price, r.yes.depth_known()],
+                "no": [r.no.ref, r.no.price, r.no.depth_known()],
+                "margin": round(r.margin, 4),
+                "gross": round(r.gross_gap, 4),
+                "verdict": verdict,
+                **info,
+            },
+        )
 
     def _log_candidate(
         self, ctx: GameCtx, r: ArbResult, verdict: str, info: dict[str, Any], now: datetime
@@ -508,6 +600,12 @@ class Runner:
                 rep.alerts.append(text)
                 if self.sink is not None:
                     self.sink.emit(sinks.arb_key(new), text, now, stamp)
+        if self.cfg.section("ladder")["enabled"]:
+            try:
+                self._ladder_tick(ctx, book, now, stamp, rep)
+            except Exception as exc:  # a ladder failure never blocks the lag check or other games
+                rep.skipped["ladder:error"] += 1
+                rep.errors.append(f"ladder {ctx.key.label()}: {type(exc).__name__}")
         # lag vs Pinnacle: only on news inside the window, or a baseline call every N ticks
         window = float(self.cfg.section("alert")["lag_window_min"])
         recent = [
@@ -543,7 +641,7 @@ class Runner:
         self.f.begin_tick(1500, float(self.poll["tick_deadline_s"]))
         kal = self.kalshi_markets(now, day, rep)
         self.discover(kal, day, rep)
-        kb = venues.kalshi_quotes(kal)
+        kb = kalshi_ladder_quotes(kal)  # game, spread, total (+ team totals when ladders are on)
         rep.skipped.update(kb.skipped)
         lead = timedelta(minutes=float(self.poll["lead_min"]))
         for ctx in self.games.values():

@@ -50,6 +50,21 @@ alert:
   dedup_minutes: 30            # the same alert key is not written twice inside this window
   price_band: [0.08, 0.92]     # ignore lines whose Kalshi mid is outside this band
 
+# Within-venue ladder arbitrage (nba.markets.fastarb.ladder): YES on a lower rung + NO on a higher rung of the
+# same ladder pays >= $1; alert when the two asks plus both fees cost under $1 by min_gap. Same-venue pairs only.
+ladder:
+  enabled: true
+  kalshi_extra_series: [KXNBATEAMTOTAL]   # fetched each tick in addition to kalshi.series
+  include_player_props: false   # EXCLUDED: a DNP/inactive player settles every rung at a "fair price" the
+                                # contract does not promise is monotone (see nba/markets/fastarb/ladder.py)
+  # NOTE: alert.price_band is NOT applied to ladders (a ladder pays >= $1 if the game is played, whatever the price).
+  # Polymarket US ladders are emitted only when settlement_rules_verified is true (counted and logged otherwise).
+  # No per-game fetch deadline: the tick deadline bounds a slow night and a miss fails safe (no alert).
+  min_gap: 0.02                 # guaranteed profit per pair after both fees (dollars)
+  min_depth_pairs: 1            # contracts available at the quoted price on BOTH legs
+  pm_select_slack: 0.02         # Polymarket US: event-quote gross gap this far under profitable still gets books
+  max_books_per_game: 8         # extra Polymarket US books fetched per game per tick for ladder candidates
+
 poll:
   interval_s: 60
   lead_min: 180                # start at first tip - lead_min; each game is polled until its own tip

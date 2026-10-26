@@ -170,7 +170,9 @@ def confirmed_quotes(
     pm = PolymarketUSClient(fetch, str(fa.section("polymarket_us")["base_url"]))
     max_gap = float(fa.section("alert")["confirm_max_gap_s"])
     jarvis_gap = getattr(cfg, "confirmed_max_gap_s", None)
-    if jarvis_gap is not None and max_gap > float(jarvis_gap):
+    if jarvis_gap is None:
+        return []  # unknown consumer window: fail closed (ladder review, minor)
+    if max_gap > float(jarvis_gap):
         return []  # our window is looser than the consumer's: its pair check would be vacuous
 
     class _F:  # kp.get_market only needs ``.get``
