@@ -137,6 +137,7 @@ def cfg(tmp_path: Path) -> lc.LiveConfig:
         hist=hist,
         out_db=tmp_path / "market_asof.duckdb",
         tips_db=tips,
+        games_db=tmp_path / "nba_missing.duckdb",
         raw_dir=tmp_path / "raw",
         ledger_dir=tmp_path / "budget",
         # the original two-point schedule (close tolerance 10 min); the full one is tested below
@@ -401,6 +402,13 @@ RES4 = NameResolver(
     },
     players={},
 )
+
+
+@pytest.fixture(autouse=True)
+def _no_real_schedule_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import nba.daily.schedule as sched
+
+    monkeypatch.setattr(sched, "DEFAULT_SCHEDULE_CACHE_DIR", tmp_path / "no_cache")
 
 
 def _prelineup(tmp_path: Path) -> tuple[Path, Path]:
@@ -716,3 +724,32 @@ def test_live_request_asks_for_every_enabled_market_and_never_after_tip(
         resolver=RES, sleep=lambda _s: None, http_get=late,
     )  # fmt: skip
     assert late.n_odds == 0 and rep2.pulled == 0
+
+
+def test_locked_games_db_keeps_old_behaviour(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tips, games = _prelineup(tmp_path)
+
+    def boom(*_a: Any, **_k: Any) -> Any:
+        raise RuntimeError("could not set lock on file")  # not a duckdb.Error subclass
+
+    real = duckdb.connect
+
+    def connect(p: Any, **k: Any) -> Any:
+        return boom() if str(p) == str(games) else real(p, **k)
+
+    monkeypatch.setattr(duckdb, "connect", connect)
+    out = lc.read_slate(tips, SLATE, games)
+    assert [(g.home_team, g.away_team) for g in out] == [(0, 0), (0, 0)]
+
+
+def test_swapped_home_away_from_schedule_gives_no_match(tmp_path: Path) -> None:
+    tips, games = _prelineup(tmp_path)
+    con = duckdb.connect(str(games))
+    con.execute(
+        "UPDATE games SET home_team = ?, away_team = ? WHERE game_id = '0022600001'", [NYK, PHI]
+    )
+    con.close()
+    new = lc.read_slate(tips, SLATE, games)
+    assert lc.match_live_event(_events_plus10(), new[0], 2, RES4, 30) is None
