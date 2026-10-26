@@ -57,7 +57,7 @@ ladder:
   kalshi_extra_series: [KXNBATEAMTOTAL]   # fetched each tick in addition to kalshi.series
   include_player_props: false   # EXCLUDED: a DNP/inactive player settles every rung at a "fair price" the
                                 # contract does not promise is monotone (see nba/markets/fastarb/ladder.py)
-  # NOTE: alert.price_band is NOT applied to ladders (a ladder pays >= $1 whatever the price).
+  # NOTE: alert.price_band is NOT applied to ladders (a ladder pays >= $1 if the game is played, whatever the price).
   # Polymarket US ladders are emitted only when settlement_rules_verified is true (counted and logged otherwise).
   # No per-game fetch deadline: the tick deadline bounds a slow night and a miss fails safe (no alert).
   min_gap: 0.02                 # guaranteed profit per pair after both fees (dollars)

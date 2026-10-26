@@ -895,10 +895,13 @@ def _jarvis_fixture(
 
 
 def _cq(games: Any, get: Any, cfg: Any, **kw: Any) -> list[Any]:
+    from types import SimpleNamespace
+
     from nba.markets.fastarb.jarvis_source import confirmed_quotes
 
+    consumer = kw.pop("consumer", SimpleNamespace(confirmed_max_gap_s=5.0))
     return confirmed_quotes(
-        None,  # type: ignore[arg-type]
+        consumer,
         games,
         date(2026, 10, 25),
         datetime(2026, 10, 25, 21, 0),
@@ -1059,3 +1062,11 @@ def test_r4_each_leg_has_its_own_read_time_and_gap_guard_is_live(cfg: Any) -> No
         )
         == []
     )
+
+
+def test_confirmed_quotes_fail_closed_without_a_consumer_gap(cfg: Any) -> None:
+    """Ladder review minor: an unknown consumer window must return nothing, never pass."""
+    from types import SimpleNamespace
+
+    games, get, _ = _jarvis_fixture()
+    assert _cq(games, get, cfg, consumer=SimpleNamespace()) == []

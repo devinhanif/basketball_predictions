@@ -59,7 +59,8 @@ class LadderLeg:
 
 @dataclass(frozen=True)
 class ConfirmedLadderArb:
-    """Buy ``yes_leg`` and ``no_leg`` together: the pair pays at least $1.00 whatever happens."""
+    """Buy ``yes_leg`` and ``no_leg`` together: the pair pays at least $1.00 if the game is
+    played (see ``note`` for void rules)."""
 
     game_key: GameKey
     ladder: str  # e.g. "margin>-3.5 vs margin>4.5", "total>225.5 vs >227.5"
