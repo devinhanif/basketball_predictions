@@ -9,7 +9,7 @@ bankroll_usd:                   # Devin 2026-10-25: $35 on Kalshi, $35 on Polyma
 
 balance:                        # Devin updates current_usd by hand (docs/TRADING_CONTEXT.md)
   start_usd: 70.0               # Kalshi $35 + Polymarket US $35
-  current_usd: 98.58            # 2026-10-25 night est.: 70 - 18.09 staked + 46.67 returned (LAL 25.01, DET+Cade 9.44, OKC 9.00, MEM 3.22; MIN cashed at $0 by accident though all legs hit; NYK lost). Confirm with app screenshots.
+  current_usd: 94.16            # 2026-10-25 night, actual app balances from Devin: Kalshi 44.65 + Polymarket US 49.51
   floor_usd: 20.0               # at or below the floor JARVIS is PAPER-ONLY until Devin resets it
 
 caps:
