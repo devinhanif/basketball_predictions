@@ -1013,3 +1013,101 @@ sources and the dry run: `docs/reviews/fastarb_2026-10-25.md`; config: `configs/
 * **Dry run** (writes no files; prints the gaps; `--with-pinnacle` spends credits and so appends to the shared credit ledger): `uv run python -m nba.markets.fastarb dry-run [--date YYYY-MM-DD]
   [--with-pinnacle]` (`--with-pinnacle` spends 3 credits per game). Underdog (hand-made CSV only; their terms forbid
   automated reads): `uv run python -m nba.markets.fastarb underdog --csv <file>`.
+
+## JARVIS (paper, alert-only; built 2026-10-25, branch agent/market-jarvis-paper)
+
+Devin's definition (DECISIONS 2026-10-25 14:41 and 14:43) and rules (`docs/TRADING_CONTEXT.md`): an LLM-enabled assistant that **always names the best available play**, posts it to a private Discord
+channel, and writes every play to its own paper book scored by outcome and closing-line value. It is not a trader: no order, no credential, no execution code (CLAUDE.md non-negotiable 5). Execution stays
+Devin's tap. Code: `nba/jarvis/`; config: `configs/jarvis.yaml`; tests: `tests/jarvis/` (fixtures only: no network, no `osascript`, no webhook, no recipient). Adversary review:
+`docs/reviews/jarvis_paper_review_2026-10-25.md` (B1-B5 and M1-M8 fixed in this series).
+
+```
+uv run python -m nba.jarvis slate [--dry-run] [--force]        # compose / post the slate preview now
+uv run python -m nba.jarvis watch [--once] [--dry-run]          # the poller (launchd runs `watch --once` every 2 min)
+uv run python -m nba.jarvis pick "DET ML" --venue kalshi --price 0.51 --stake 3   # log YOUR read as called
+uv run python -m nba.jarvis ask "who should I bet tonight?" [--log]   # one-shot, or a REPL (v2 in Discord needs a bot)
+uv run python -m nba.jarvis book {score,weekly,show} [--days 7] # after games: score, then the weekly summary
+uv run python -m nba.jarvis recap [--dry-run]                   # compose / post the morning recap now
+uv run python -m nba.jarvis weights {show,update}               # model weight by stat (frozen weekly rule)
+uv run python -m nba.jarvis test-send [--dry-run]               # one short post, to check the webhook
+# common flags: --no-llm (template sentences) --no-model (skip our stored forecasts) --no-polymarket --date D --root PATH
+```
+
+**Delivery: Discord webhook (default), iMessage optional.** The webhook URL is only the env var `JARVIS_DISCORD_WEBHOOK` (validated against Discord's webhook shape, never logged, redacted from every error;
+the one POST in the package is this outbound message). iMessage stays as an optional sink (`delivery.sinks: [discord, imessage]`, recipient only from `JARVIS_IMESSAGE_TO`, argv-passed). Posts:
+(1) slate preview at about T-90 to the first tip, once per ET date, with the Daily Dollar line; (2) instant alerts on a new strong edge or a CONFIRMED arbitrage (same game/legs/label deduped 30 min, once per day
+per key unless the edge moved >= 1c or the label upgraded; a post that partly failed is not re-sent and a key that keeps failing is given up on after 3); (3) a halftime check-in for each game with a play
+logged (score from the live capture's `data/raw/live_<ET date>/espn_scoreboard` and its heartbeat; stale feed said so); (4) a morning recap after 08:00 ET: results (same layout win or lose, a hit is
+annotated), P&L by group, the balance against the $70 start, records, kill-switch state and any model-weight change. "Ask" in Discord is v2 (needs a bot). `--dry-run` prints and writes nothing.
+
+**Always a play, with an honest label computed from data** (`nba/jarvis/edge.py`, thresholds in `configs/jarvis.yaml`). Every play names what to BUY ("BUY LAC to win on Kalshi (NO contract)": the team or
+outcome, never "NO LAL to lose"), the venue, max price, stake, **what it pays if right ("pays $9.76 if right, 2.4x")** and the label:
+
+| label | rule (after fees on a one-contract order) | stake (ladder, monotone) |
+|---|---|---|
+| arbitrage | a cover of the winner market costing < $1 per pair AND confirmed: depth on both legs, legs read <= 5 s apart, by a live source through `QUOTE_SOURCES` (fast-arb once merged). JARVIS's own snapshot reads never qualify | $10 |
+| strong | >= 3c vs Pinnacle no-vig, price <= 5 min old, Pinnacle not newer than the price by > 2 min, line <= 120 min old | $5 |
+| thin | 0..3c; or a capped strong (stale/skewed price, prop DNP rule unverified without P(plays)) | $3 |
+| arb_candidate | the same cover from unconfirmed reads: never alerts, sized as thin, shown "ARB CANDIDATE ... UNCONFIRMED" plus "RESOLUTION RISK: postponement/OT rules differ by venue, not verified" | $3 |
+| none | negative edge or no Pinnacle line for that exact bet: a fair price, entertainment | $1 (at most 2 contracts) |
+
+Nightly cap $20, of which $10 is reserved for strong/arbitrage only (entertainment cannot spend it). With the cap used a strong/arbitrage alert still posts, showing "stake $0 (nightly cap used)".
+Every measured play says "best of N priced bets" (selection over many near-fair prices). Props use Pinnacle only on an exact line (Kalshi "25+" = over 24.5); until Kalshi's DNP rule is read the fair price is
+Pinnacle's P(over | plays) x our P(plays). Polymarket is **Polymarket US** (public gateway `gateway.polymarket.us`; polymarket.com / gamma is not tradable from the US and is not used), fee 0.0695 x C x p x (1-p)
+banker's-rounded, from `configs/fastarb.yaml`. A fair-price bet is never presented as an edge. **The LLM writes the one-to-two fan-terms sentence only for strong/arbitrage plays**, hard-checked (numguard
+incl. "9-cent" and spelled-out numbers, no oversell words, no give-up phrases); thin and none plays use the template.
+
+**Floor, kill switch, balance.** `balance.current_usd` is a config value Devin updates (start $70). At or below `floor_usd` ($20) every post carries "PAPER ONLY". The kill switch counts only
+thin, strong and arbitrage bets (not none, not unconfirmed candidates, not picks or the Daily Dollar): if the mean CLV of the last 30 settled ones (with a two-sided close) is below zero it trips and every stake drops
+to the "none" size. **It latches**: a later good run does not clear it ("until fixed"); only Devin does, with `python -m nba.jarvis killswitch --clear [--note why]`, which logs a dated row and restarts the count
+from then (`killswitch` alone shows the state). No losing-streak rule.
+
+**Devin's picks** (`pick`): logged exactly as called (his price, his stake, no second-guessing), with an honest line on how the price compares to fair and which venue asks less. Label `pick`: outside the cap, the
+kill switch, the label record and the weights; reported as its own row (hit rate, CLV, P&L).
+
+**Daily Dollar**: one $1 same-team long shot a day on Kalshi, legs = the team's win + the POINTS of its top-usage player (our 2026 possessions: share of his team's on-court possessions ending with his
+shot, at least 50 possessions) and optionally his assists or the second player's points, at most 3 legs, targeting 50-300x. The line is honest about what is unknown: it starts "EV unknown (entertainment)",
+prints the no-correlation fair price (product of the leg fair prices) and the correlation needed to break even, shows the assumed factor (1.2, an ESTIMATE, not measured) and says "no outside reference: fair =
+Kalshi mid x 1.2 (assumed)" when no leg has a Pinnacle price. It buys only at or below that assumed fair, the venue's combo price is assumed to be the product of the leg asks (to be tested against logged Kalshi
+combo quotes), it sits inside the non-reserved part of the cap, and it is tracked on its own row. "Correlated" is not claimed: the legs share a team and a top-usage player, nothing more. When nothing qualifies it says so.
+
+**Model weight by stat, earned from the closing-line record** (Devin, 2026-10-25). Fair = Pinnacle no-vig + w_stat x (model - Pinnacle); w starts at 0 for pts, reb, ast, fg3m, combos and win (so nothing
+changes today) and stays in [0, 0.5]. Weekly, per stat with >= 30 settled single-leg plays over >= 10 dates whose model LEANED toward the bet: mean CLV > 0 with the date-clustered 80% lower bound > 0 raises w
+by 0.1; mean CLV < 0 lowers it by 0.1 (floor 0); otherwise hold. Every evaluation is appended to `data/jarvis/model_weights.jsonl` (n, CI, date) and posted in the morning recap. `weights update` runs the rule at most once per 7 days; `weights update --force` only DISPLAYS the evaluation (nothing logged, no weight stepped). The rules are frozen in
+`configs/jarvis.yaml` before any data exists. **This is a paper-only adaptation of JARVIS's own fair price, not a frozen test**: it never changes the scoring, rule or window of a frozen rule, and no claim is
+made from it. Every play shows "fair: Pinnacle 50% / model 44% / w 0.0".
+
+**Live in-game situations** (`nba/jarvis/ingame.py`, `ingame_run.py`; config `ingame:` in `configs/jarvis.yaml`; read-only). Each `watch` tick reads the live capture's newest files for the slate date:
+`espn_summary/<espn game id>/*.json.gz` (about a minute apart: score, period, clock, per-player MIN/PTS/REB/AST/3PT/PF, `starter`, `active` = on the floor now) and the `kalshi/KXNBA{PTS,REB,AST,3PT}_p0`
+ladders (live YES bid/ask; the 15-minute snapshot store is the fallback). A feed older than 5 minutes is silent, never quoted. Names are matched exactly after accent/suffix normalisation (unmatched Kalshi
+names are counted and reported in the post) and all fetched text is cleaned to a short printable name; ESPN's `reason` is ignored. The signals are facts and inferences about the game, never edges: no post
+says dead, should-be-near-zero, still-priced, up, value or edge (a test scans every post type); prices are listed as the venue prints them. Each posts once per player (or per game) per slate date, and a failed
+post is retried, not marked seen.
+(1) **BENCHED**: only the last 6:00 of the 4th (or overtime), lead >= 15, a starter off the floor whose MIN has not moved across >= 2 snapshots spanning >= 3:00 of game clock: "{player} may be done for the
+night ({min} min played, off the floor for {m}+ min of game clock; margin {m}). He is at {pts} pts / {ast} ast / {reb} reb", then the venue's ladder for his stat lines above his number. **Frozen 2026-10-25 from
+the adversary's in-sample replay (12 dense games): the first rule (Q3 under 3:00 allowed) flagged 75 and 47% played again (CI 28-66%); this one flagged 46 and 1 came back (2%), but that is in-sample, so it is judged forward**:
+if a flagged player's MIN rises or he is on the floor, a one-time **CORRECTION** post says he is back, and the morning recap prints "BENCHED flagged n, back on the floor k" for the night. Starters flagged on the same
+tick share one post. (2) **BENCH WINDOW** (same trigger, once per game): reserves on both teams with a live over, price, current stat, game minutes left, one line per player, and at most one named bet, label `live_none`
+(entertainment, EV unknown, $1 ladder size, priced under the market's own fee series, "pays $X if right"), recorded in the paper book inside the nightly cap (never a $0 play) and never given a pre-tip CLV.
+(3) **FOUL TROUBLE**: a starter with 5 PF, or 4 before the 4th: "his minutes may be cut, and {backup} may play more minutes", with the two ladders. (4) **STARTERS BACK?**: after a BENCHED post, lead < 10 with >= 5:00 left.
+A game that raises is reported and skipped; a busy store skips only the in-game step of the tick.
+`python -m nba.jarvis ingame-replay --date D --from UTC --to UTC [--game IND@BKN]` replays a finished game's files against a throwaway book and prints which posts would have fired and when. ESPN's MIN moves in
+steps, so a player who just checked back in also reads frozen for a minute; the rule therefore also requires him to be off the floor now.
+
+**Safety (each is a test).** Fetched text (injury reasons, venue titles, lineup labels) is sanitised and enters the model only inside a fenced DATA block; it never feeds a number, label, stake or post. An
+instant post needs `supports_alert` (computed label strong/arbitrage, positive edge). A post is logged with sha256 hashes of its inputs and text. Plays are recorded at decision time with a `delivered`
+status, once per slate date per key. Stores held by their writer are skipped (the 1 GB odds store is never copied). With several sinks each message is deduped per sink (a sink that already got the exact text is skipped), the httpx/httpcore loggers are pinned to WARNING so the webhook URL never reaches a log, and one malformed halftime event cannot block the others.
+
+**Paper book** `data/jarvis/paper_book.duckdb` (its own file; never `nba.duckdb`): `plays` (one row per leg), `scores` (won, pnl_usd, close_mid, close_ask, close_source, clv_cents, clv_vs_ask_cents), `quote_log`,
+`sends`, `alert_state`. CLV convention (declared before any data): close = the LATEST quote strictly before tip across JARVIS's `quote_log` and the Kalshi snapshots, its mid on the side bought;
+`clv_cents = (close_mid - entry_ask) x 100`; NULL when the close is one-sided (bid 0 or ask >= 1), with the NULL rate reported. `book weekly` reports n (one row per bet, a two-leg play once), hit rate, P&L and
+CLV mean with a slate-date-clustered bootstrap CI per label; below `min_settled_for_claims` settled over `min_settled_dates_for_claims` dates it prints "insufficient sample" and claims nothing.
+
+**Install (Devin's; nothing here installs anything).** Template `ops/launchd/local.nba.jarvis.plist` (every 120 s, `uv run --no-sync python -m nba.jarvis watch --once`).
+1. Discord: create a webhook in the private channel (Channel settings > Integrations > Webhooks > Copy Webhook URL).
+2. Ollama (optional, strong/arbitrage sentences only): `brew install ollama && ollama serve`, `ollama pull qwen2.5:3b`. Without it the posts use template sentences.
+3. `read -rs "JARVIS_DISCORD_WEBHOOK?webhook URL: "; export JARVIS_DISCORD_WEBHOOK; echo`, then
+   `cp ops/launchd/local.nba.jarvis.plist ~/Library/LaunchAgents/ && plutil -replace EnvironmentVariables.JARVIS_DISCORD_WEBHOOK -string "$JARVIS_DISCORD_WEBHOOK" ~/Library/LaunchAgents/local.nba.jarvis.plist && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.jarvis.plist; unset JARVIS_DISCORD_WEBHOOK`
+4. Check it: `JARVIS_DISCORD_WEBHOOK=... uv run python -m nba.jarvis test-send` once (or `--dry-run` first). After each night: `book score`; Devin updates `balance.current_usd` in `configs/jarvis.yaml`.
+Optional iMessage: add `imessage` to `delivery.sinks`, set `JARVIS_IMESSAGE_TO` the same way, and allow Terminal/uv to control Messages (System Settings > Privacy & Security > Automation).
+Uninstall: `launchctl bootout gui/$(id -u)/local.nba.jarvis && rm ~/Library/LaunchAgents/local.nba.jarvis.plist`.
