@@ -142,16 +142,21 @@ daily_dollar:                   # one $1 same-team long-shot ticket a day (TRADI
   corr_factor: 1.2
   corr_factor_is_estimate: true
 
-exit_warning:                   # DON'T SELL line when a position's bid is far below fair (Devin, 2026-10-25: a $0 cash-out)
-  # Chosen, not fitted: no data behind it. 0.5 is Devin's own example ("bid < 50% of fair"): a sale at under
-  # half of fair gives away more than the whole fee-and-spread cost of a normal exit. The benchmark is the venue's
-  # own live mid (or its ask when no bid is posted); with a two-sided book this fires when bid < ask/3, so it
-  # catches empty/collapsed bids and not ordinary spreads. A missing bid counts as 0.
+exit_warning:                   # DON'T SELL line when a position's bid is far below its value (Devin, 2026-10-25: a $0 cash-out)
+  # Chosen, not fitted. Honest scope (adversary review 2026-10-26): on a sane two-sided book this only measures
+  # how wide the spread is (bid < ask/3), and it is NOT a value estimate: on 2026-27 in-game books it fired on
+  # about 15.7% (95% CI 13.0-19.2, 7 nights) of side-snapshots and 43% of those at a 5-10c mid, mostly widened
+  # long-shot books. Treat it as "check the app", never as proof of mispricing. What it does catch: a posted bid
+  # under half the mid, and (separately) "no bid posted: a sale gets $0". The case that actually hurt, a combo
+  # whose legs all hit, has no market here; use `exit-check --legs-hit N --legs-total M` (or --fair).
+  # Empty sides (bid 0.00 / ask 1.00) and books wider than max_spread print no fair at all.
   # Read-only text. It never suggests an order and never places one.
   enabled: true
-  bid_fraction: 0.5             # warn when bid < this x fair
-  min_fair: 0.05                # below 5c a bid of 0 is not news (fair itself is tiny)
+  bid_fraction: 0.5             # warn when bid < this x fair (Devin's example)
+  min_fair: 0.05                # below 5c a bid of 0 is not news
   min_giveaway_usd: 0.10        # when the contract count is known, ignore gives-away under this
+  max_spread: 0.25              # no venue-mid "fair" from a book wider than this (Devin's call to change)
+  max_age_min: 20               # snapshots arrive about every 15 min (p50 15.3, p99 73): older is suppressed
 
 paths:
   paper_book: data/jarvis/paper_book.duckdb

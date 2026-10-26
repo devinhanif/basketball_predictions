@@ -7,15 +7,18 @@ celebrated).
 
 from __future__ import annotations
 
-from datetime import date
+import logging
+from datetime import UTC, date, datetime
 from typing import Any
 
 from nba.jarvis.book import KillState, PaperBook, render_weekly, weekly_summary
 from nba.jarvis.config import JarvisConfig
-from nba.jarvis.exitwarn import ExitWarning, exit_warning, venue_fair
+from nba.jarvis.exitwarn import clean_book, exit_warning, no_bid_line, venue_fair
 from nba.jarvis.live import LiveGame
 from nba.jarvis.render import VENUE, cents, scored_line
 from nba.jarvis.sources import open_ro
+
+log = logging.getLogger(__name__)
 
 
 def todays_rows(book: PaperBook, slate: date, game_id: str) -> list[dict[str, Any]]:
@@ -52,41 +55,71 @@ def _now_price(cfg: JarvisConfig, row: dict[str, Any]) -> float | None:
     return float(r[1]) if row["side"] == "yes" else 1.0 - float(r[0])
 
 
-def _now_quote(cfg: JarvisConfig, row: dict[str, Any]) -> tuple[float | None, float | None] | None:
-    """Latest Kalshi snapshot (bid, ask) of the bought side, dollars (None: other venue / none)."""
-    if row["venue"] != "kalshi" or not cfg.paths["kalshi_db"].exists():
-        return None
+Book = dict[str, tuple[float | None, float | None, datetime]]  # ticker -> YES bid, ask, ts
+
+
+def _kalshi_book(cfg: JarvisConfig, tickers: list[str]) -> Book:
+    """Latest YES (bid, ask, ts) per ticker, ONE read-only open for all of them."""
+    if not tickers or not cfg.paths["kalshi_db"].exists():
+        return {}
     con = open_ro(cfg.paths["kalshi_db"], copy_ok=True)
     try:
-        r = con.execute(
-            "SELECT yes_bid, yes_ask FROM kalshi_prices WHERE ticker = ? ORDER BY ts DESC LIMIT 1",
-            [row["ticker"]],
-        ).fetchone()
+        marks = ",".join("?" * len(tickers))
+        rs = con.execute(
+            "SELECT ticker, arg_max(yes_bid, ts), arg_max(yes_ask, ts), max(ts) "
+            f"FROM kalshi_prices WHERE ticker IN ({marks}) GROUP BY ticker",
+            tickers,
+        ).fetchall()
     finally:
         con.close()
-    if not r or (r[0] is None and r[1] is None):
-        return None
-    yb = None if r[0] is None else float(r[0])
-    ya = None if r[1] is None else float(r[1])
-    if row["side"] == "yes":
-        return yb, ya
-    return (None if ya is None else 1.0 - ya), (None if yb is None else 1.0 - yb)
+    return {
+        str(t): (None if b is None else float(b), None if a is None else float(a), ts)
+        for t, b, a, ts in rs
+    }
 
 
-def leg_exit_warning(cfg: JarvisConfig, row: dict[str, Any]) -> ExitWarning | None:
-    """Warning for one open leg: its bid now vs the venue mid (ask when no bid is posted)."""
-    q = _now_quote(cfg, row)
-    if q is None:
+def leg_exit_line(cfg: JarvisConfig, row: dict[str, Any], book: Book, now: datetime) -> str | None:
+    """One line for a single-leg Kalshi position, or None. The empty-side convention (bid 0.00 /
+    ask 1.00) is cleaned on the YES side first, then flipped for a NO leg."""
+    q = book.get(str(row["ticker"]))
+    if row["venue"] != "kalshi" or q is None:
         return None
-    vf = venue_fair(*q)
-    if vf is None:
+    s = cfg.exit_warning
+    if not s.get("enabled", False):
+        return None
+    yb, ya = clean_book(q[0], q[1])
+    bid, ask = (yb, ya) if row["side"] == "yes" else (
+        None if ya is None else 1.0 - ya, None if yb is None else 1.0 - yb
+    )  # fmt: skip
+    age = max((now - q[2]).total_seconds() / 60.0, 0.0)
+    if age > float(s["max_age_min"]):
+        return None  # a stale book is not evidence either way
+    label = str(row["leg_desc"] or row["ticker"])
+    if bid is None:
+        return None if ask is None else no_bid_line(ask, age, label)
+    if ask is None:
+        return None
+    fair = venue_fair(bid, ask, float(s["max_spread"]))
+    if fair is None:
         return None
     n = row["contracts"]
-    return exit_warning(cfg, q[0], vf[0], float(n) if n else None, source=vf[1])
+    w = exit_warning(cfg, bid, fair, float(n) if n else None, age_min=age)
+    return None if w is None else f"{label}: {w.text}"
+
+
+COMBO_NOTE = (
+    "  !! combo: a cash-out offer is not captured here. Before selling, run "
+    "`python -m nba.jarvis exit-check --bid <offer in cents> --fair <cents>` "
+    "(or --legs-hit N --legs-total M)."
+)
 
 
 def halftime_lines(
-    cfg: JarvisConfig, lg: LiveGame, rows: list[dict[str, Any]], feed_age: float | None
+    cfg: JarvisConfig,
+    lg: LiveGame,
+    rows: list[dict[str, Any]],
+    feed_age: float | None,
+    at: datetime | None = None,
 ) -> list[str]:
     lines = [
         f"**JARVIS halftime check-in {lg.matchup}**: {lg.away} {lg.away_score} - "
@@ -94,6 +127,17 @@ def halftime_lines(
     ]
     if feed_age is not None and feed_age > 6.0:
         lines.append(f"(live feed is {feed_age:.0f} min old: treat the score as stale)")
+    clock = at if at is not None else datetime.now(UTC).replace(tzinfo=None)
+    singles = [
+        str(x["ticker"]) for x in rows
+        if x["venue"] == "kalshi" and x["edge_label"] != "daily_dollar"
+        and sum(1 for y in rows if y["bundle_id"] == x["bundle_id"]) == 1
+    ]  # fmt: skip
+    try:  # fail soft: the warning never costs the check-in
+        book = _kalshi_book(cfg, sorted(set(singles)))
+    except Exception as exc:
+        log.warning("exit warning: kalshi book unreadable (%s)", type(exc).__name__)
+        book = {}
     seen: set[str] = set()
     for r in rows:
         if r["bundle_id"] in seen or r["leg_idx"] != 0:
@@ -114,10 +158,17 @@ def halftime_lines(
         px = "" if now is None else f"; price now {cents(now)} vs your {cents(float(r['price']))}"
         pay = f"; pays ${float(r['contracts']):.2f} if right" if r["contracts"] else ""
         lines.append(f"- [{tag}] {what}{status}{px}{pay}")
-        for x in legs:
-            w = leg_exit_warning(cfg, x)
-            if w is not None:
-                lines.append(f"  !! {x['leg_desc'] or x['ticker']}: {w.text}")
+        if len(legs) > 1 or r["edge_label"] == "daily_dollar":
+            if cfg.exit_warning.get("enabled", False):
+                lines.append(COMBO_NOTE)  # the held instrument is the combo, not its legs
+            continue
+        try:
+            ex = leg_exit_line(cfg, r, book, clock)
+        except Exception as exc:
+            log.warning("exit warning failed (%s)", type(exc).__name__)
+            ex = None
+        if ex is not None:
+            lines.append(f"  !! {ex}")
     if not seen:
         lines.append("- no plays logged on this game")
     return lines
