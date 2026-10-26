@@ -296,3 +296,44 @@ def test_module_is_read_only_no_order_or_credential_code() -> None:
     src = (Path(cli.__file__).parent / "exitwarn.py").read_text().lower()
     for banned in ("requests", "httpx", "urllib", ".post(", "api_key", "getenv", "environ"):
         assert banned not in src
+
+
+# ---------------------------------------------------------------- settled fair (Devin, 2026-10-26)
+
+
+def test_settled_60c_on_10_contracts_warns_about_4_dollars(cfg: JarvisConfig) -> None:
+    w = exit_warning(cfg, 0.60, 1.0, 10, settled=True)
+    assert w is not None and w.gives_away_usd == pytest.approx(4.0)
+    assert "bid 60c vs fair 100c" in w.text and "~$4.00" in w.text
+
+
+def test_settled_98c_is_silent_and_floor_comes_from_config(cfg: JarvisConfig) -> None:
+    assert exit_check(cfg, 0.98, 1.0, 10, settled=True).reason == "bid_near_fair"
+    floor = float(cfg.exit_warning["settled_floor"])
+    assert floor == 0.97
+    assert exit_check(cfg, floor - 0.01, 1.0, 10, settled=True).reason == "warn"
+    assert exit_check(cfg, floor, 1.0, 10, settled=True).reason == "bid_near_fair"
+    looser = replace(cfg, exit_warning={**cfg.exit_warning, "settled_floor": 0.90})
+    assert exit_check(looser, 0.95, 1.0, 10, settled=True).reason == "bid_near_fair"
+
+
+def test_uncertain_fair_path_is_unchanged(cfg: JarvisConfig) -> None:
+    # 60c bid against an uncertain 100c fair is NOT below the 0.5 fraction: no warning
+    assert exit_check(cfg, 0.60, 1.0, 10).reason == "bid_near_fair"
+    assert exit_check(cfg, 0.04, 0.31, 10).reason == "warn"
+    assert exit_check(cfg, 0.0, 0.03, 10).reason == "below_min_fair"
+
+
+def test_cli_settled_modes(capsys: pytest.CaptureFixture[str]) -> None:
+    base = ["exit-check", "--legs-hit", "6", "--legs-total", "6", "--contracts", "10"]
+    assert cli.main([*base, "--bid", "60"]) == 0
+    out = capsys.readouterr().out
+    assert "DON'T SELL AT THIS BID" in out and "~$4.00" in out
+    assert cli.main([*base, "--bid", "98"]) == 0
+    assert "No warning" in capsys.readouterr().out
+    assert cli.main(["exit-check", "--settled-yes", "--bid", "60", "--contracts", "10"]) == 0
+    assert "settled YES" in capsys.readouterr().out
+    assert cli.main([*base, "--bid", "60", "--fair", "90"]) == 2  # conflict
+    part = ["exit-check", "--legs-hit", "4", "--legs-total", "6", "--bid", "60", "--fair", "100"]
+    assert cli.main(part) == 0
+    assert "No warning" in capsys.readouterr().out  # uncertain 100c: 60c is not below half

@@ -189,6 +189,8 @@ def load_config(
             raise ValueError("exit_warning.bid_fraction must be in (0, 1] and min_fair in (0, 1)")
         if float(ew["min_giveaway_usd"]) < 0 or not 0.0 < float(ew["max_spread"]) < 1.0:
             raise ValueError("exit_warning.min_giveaway_usd >= 0 and max_spread in (0, 1)")
+        if not 0.0 < float(ew["settled_floor"]) <= 1.0:
+            raise ValueError("exit_warning.settled_floor must be in (0, 1]")
         if float(ew["max_age_min"]) <= 0:
             raise ValueError("exit_warning.max_age_min must be > 0")
     if cfg.reserve_for_strong >= cfg.nightly_cap:

@@ -86,25 +86,33 @@ def exit_check(
     *,
     source: str = "venue mid",
     age_min: float | None = None,
+    settled: bool = False,
 ) -> ExitCheck:
     """DON'T SELL when ``bid`` (missing counts as 0) is below ``bid_fraction`` of ``fair``, fair is
     at least ``min_fair`` (and at most $1: anything above is clamped to 1.0), the snapshot (if
     any) is not older than ``max_age_min`` and, when contracts are known, the giveaway is at least
-    ``min_giveaway_usd``. Always returns the reason."""
+    ``min_giveaway_usd``. Always returns the reason.
+
+    ``settled=True``: the outcome is certain (every leg hit, or a single leg already settled
+    YES), so fair is exactly $1 and the warning is any bid below ``settled_floor`` (Devin,
+    2026-10-26) instead of the ``bid_fraction`` rule; ``min_fair`` does not apply."""
     s = cfg.exit_warning
     if not s.get("enabled", False):
         return ExitCheck(None, "disabled")
+    if settled:
+        fair = 1.0
     if fair is None:
         return ExitCheck(None, "no_fair")
     if fair <= 0.0:
         return ExitCheck(None, "fair_out_of_range")
     fair = min(fair, 1.0)
-    if fair < float(s["min_fair"]):
+    if not settled and fair < float(s["min_fair"]):
         return ExitCheck(None, "below_min_fair")
     if age_min is not None and age_min > float(s["max_age_min"]):
         return ExitCheck(None, "stale")
     eff = 0.0 if bid is None else bid
-    if eff >= float(s["bid_fraction"]) * fair:
+    limit = float(s["settled_floor"]) if settled else float(s["bid_fraction"]) * fair
+    if eff >= limit:
         return ExitCheck(None, "bid_near_fair")
     gives = None if contracts is None else float(contracts) * (fair - eff)
     if gives is not None and gives < float(s["min_giveaway_usd"]):
@@ -128,8 +136,11 @@ def exit_warning(
     *,
     source: str = "venue mid",
     age_min: float | None = None,
+    settled: bool = False,
 ) -> ExitWarning | None:
-    return exit_check(cfg, bid, fair, contracts, source=source, age_min=age_min).warning
+    return exit_check(
+        cfg, bid, fair, contracts, source=source, age_min=age_min, settled=settled
+    ).warning
 
 
 def no_bid_line(ask: float, age_min: float | None, label: str) -> str:

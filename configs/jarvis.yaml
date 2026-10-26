@@ -156,6 +156,8 @@ exit_warning:                   # DON'T SELL line when a position's bid is far b
   min_fair: 0.05                # below 5c a bid of 0 is not news
   min_giveaway_usd: 0.10        # when the contract count is known, ignore gives-away under this
   max_spread: 0.25              # no venue-mid "fair" from a book wider than this (Devin's call to change)
+  settled_floor: 0.97           # fair is CERTAIN (every leg hit, or a leg settled YES): warn on any bid below this.
+  # Devin's choice, made 2026-10-26: 100c minus a fee/slippage allowance. Replaces the 0.5 fraction in that case only.
   max_age_min: 20               # snapshots arrive about every 15 min (p50 15.3, p99 73): older is suppressed
 
 paths:
