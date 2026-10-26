@@ -389,3 +389,49 @@ are not labelled confirmed arbitrage by `edge.find_cover`.
 
 Drafted DECISIONS row (not appended):
 `| 2026-10-25 <time> | Adversary final check of agent/market-fast-arb f80119d: R1 fixed (offset-aware heartbeat, tested). R2 confirm window, depth, fee-verified gate and no-unconfirmed-output all hold; CHANGES_REQUIRED on R3 (confirmed source skips the market-open / tradable / feeCoefficient checks JARVIS's own loader makes, and Kalshi status) and R4 (one shared ts per game makes JARVIS's confirmed_max_gap_s check vacuous; stamp per-leg read times). QUOTE_SOURCES stays empty until both are fixed. | Adversary finding. | R3/R4 fixed with the named tests and re-checked. |`
+
+## Last check of 48b0c2b (diff-only: `git diff 61c14c5 48b0c2b`; only `jarvis_source.py` and its tests changed)
+
+Verdict: APPROVED
+
+(For this branch's fastarb code and the `confirmed_quotes` source. Installing the plist, creating `.env.fastarb`, verifying
+the settlement rules and appending to `QUOTE_SOURCES` remain Devin's calls and separate steps.)
+
+### Verification (unpiped)
+
+| Check | Command | Result |
+|---|---|---|
+| Lint | `ruff check nba/markets/fastarb tests/markets/fastarb` | exit 0 |
+| Format | `ruff format --check nba/markets/fastarb tests/markets/fastarb` | 18 files, exit 0 |
+| Types | `mypy nba/markets/fastarb` | 14 files, exit 0 |
+| Tests | `python -m pytest -q -p no:cacheprovider --no-cov tests/markets/fastarb tests/test_layering.py` | 73 passed, exit 0 (68 before) |
+
+### R3: **Fixed.**
+
+`_poly_quotes` now returns `None` unless all of these hold:
+- the market is `MARKET_STATUS_OPEN` and not `closed`;
+- `feeCoefficient` equals the verified `fa.us_fee.coefficient` (within 1e-9);
+- the book's `marketData.state` is `MARKET_STATE_OPEN`;
+- every side is `tradable`. The default is `False`, stricter than JARVIS's loader, which fails safe.
+
+`_kalshi_quote` requires `status` to be `active` or `open`. The new tests cover the closed market, a suspended status, a
+halted book state, a fee mismatch, an untradable side and a paused Kalshi market, and each asserts `[]`.
+
+### R4: **Fixed.**
+
+- The two Kalshi quotes carry their own read-completion times, and the Polymarket pair carries the book's.
+  `edge.py:193-194`'s pair gap now measures a real spread. The test checks the timestamps are distinct and the spread
+  is greater than 0 and at most 5 s.
+- Consumer guard: `confirmed_quotes` returns `[]` when `alert.confirm_max_gap_s` exceeds the consumer's
+  `confirmed_max_gap_s`. Tested with 2.0 against 5.0.
+- Freshness: `age_min` now understates age by at most one read's duration, far inside `max_quote_age_min` 30.
+
+### Minor (not blocking)
+
+- `jarvis_source.py` `getattr(cfg, "confirmed_max_gap_s", None)` fails open when the attribute is absent. `JarvisConfig`
+  defines it, so this cannot fire today; reading `cfg.confirmed_max_gap_s` directly would fail closed.
+- The leftover minors from the f80119d section stand: a once-per-call 40 s fetcher deadline, the Kalshi abbreviation
+  variants, and the fact that "depth" means at least one level.
+
+Drafted DECISIONS row (not appended):
+`| 2026-10-25 <time> | Adversary last check of agent/market-fast-arb 48b0c2b: APPROVED. R3 (open/closed/tradable/feeCoefficient/book-state gates + Kalshi active, 6 negative tests) and R4 (per-leg Quote.ts; [] when fastarb's confirm gap exceeds JARVIS's) fixed; 73 tests pass. Merge is the main session's; install, .env.fastarb, settlement-rule verification and QUOTE_SOURCES wiring are Devin's. docs/reviews/fastarb_adversary_2026-10-25.md. | Adversary finding. | A live false "confirmed" quote or alert. |`
