@@ -404,13 +404,14 @@ def test_polymarket_us_spread_ladder_found_and_confirmed(cfg: Any) -> None:
     assert r.max_n == 30  # the thinner leg
     fee = cfg.us_fee.order_fee(0.45, 10) + cfg.us_fee.order_fee(0.38, 10)
     assert pair_margin_at(r, cfg, 10) == pytest.approx(1 - (0.83 * 10 + fee) / 10)
+    cfg = verified(cfg)  # Polymarket US ladders confirm only with the rulebook verified
     f = PMFetcher(books)
     sc = LadderScanner(cfg, f, PolymarketUSClient(f.get), mono=f.mono)
     new, info = sc.confirm(r, ev)
     assert new is not None and info["result"] == "confirmed"
     assert [u.rsplit("/", 2)[-2] for u in f.urls] == [s15, s45]  # two book reads, in leg order
     text = sinks.ladder_text(new, gap_s=info["gap_s"])
-    assert "RESOLUTION RISK" in text and s15 in text and s45 in text
+    assert "Polymarket US" in text and s15 in text and s45 in text
 
 
 def pair_margin_at(r: Any, cfg: Any, n: int) -> float:
@@ -663,3 +664,112 @@ def test_ladder_modules_have_no_order_or_credential_code() -> None:
             ".post(",
         ):
             assert banned not in text, (name, banned)
+
+
+# ------------------------------------------------ review 2026-10-25: Polymarket US gate
+
+
+S15, S45 = "asc-nba-det-phi-2026-10-25-pos-1pt5", "asc-nba-det-phi-2026-10-25-pos-4pt5"
+
+
+def verified(cfg: Any, flag: bool = True) -> Any:
+    raw = json.loads(json.dumps(cfg.raw))
+    raw["settlement_rules_verified"] = flag
+    return type(cfg)(raw, cfg.kalshi_fee, cfg.us_fee, cfg.intl_fee)
+
+
+def _pm_event_with_gap() -> dict[str, Any]:
+    ev = load("pm_us_event_detphi.json")
+    for m in ev["markets"]:
+        if m["slug"] == S15:
+            m["marketSides"][1]["quote"]["value"] = "0.45"  # PHI -1.5 (short)
+        if m["slug"] == S45:
+            m["marketSides"][0]["quote"]["value"] = "0.38"  # DET +4.5 (long)
+    out: dict[str, Any] = ev
+    return out
+
+
+class PMLadderFetcher(FakeFetcher):
+    def get(self, url: str, params: dict[str, Any] | None = None) -> Response | None:
+        books = {
+            S15: pm_book(S15, offers=[(0.60, 50)], bids=[(0.55, 40)]),
+            S45: pm_book(S45, offers=[(0.38, 30)], bids=[(0.30, 30)]),
+        }
+        for slug, b in books.items():
+            if url.endswith(f"/{slug}/book"):
+                self.requests += 1
+                return Response(200, json.dumps(b).encode(), url)
+        return super().get(url, params)
+
+
+def test_polymarket_ladder_confirms_only_when_rules_are_verified(cfg: Any) -> None:
+    ev = _pm_event_with_gap()
+    books = {
+        S15: pm_book(S15, offers=[(0.60, 50)], bids=[(0.55, 40)]),
+        S45: pm_book(S45, offers=[(0.38, 30)], bids=[(0.30, 30)]),
+    }
+    qb = venues.us_quotes(ev, cfg.us_fee.coefficient, books)
+    r = next(x for x in find_ladder_violations(qb, PM_US, cfg, leg_fee_fn(cfg)) if x.lo.c == 1.5)
+    assert cfg.settlement_rules_verified is False
+    f = PMFetcher(books)
+    sc = LadderScanner(cfg, f, PolymarketUSClient(f.get), mono=f.mono)
+    new, info = sc.confirm(r, ev)
+    assert new is None and info["reason"] == ladder.PM_RULES_UNVERIFIED and not f.urls
+    ok = verified(cfg)
+    f2 = PMFetcher(books)
+    new, info = LadderScanner(ok, f2, PolymarketUSClient(f2.get), mono=f2.mono).confirm(r, ev)
+    assert new is not None
+    text = sinks.ladder_text(new, gap_s=1.0)
+    assert "pays >= $1 if the game is played" in text and "Polymarket US" in text
+    assert "either way" not in text
+    halted = json.loads(json.dumps(books))
+    halted[S45]["marketData"]["state"] = "MARKET_STATE_HALTED"
+    f3 = PMFetcher(halted)
+    sc3 = LadderScanner(ok, f3, PolymarketUSClient(f3.get), mono=f3.mono)
+    assert sc3.confirm(r, ev)[1]["reason"] == "book_not_open"
+
+
+def test_runner_and_jarvis_emit_no_polymarket_ladder_while_unverified(
+    cfg: Any, tmp_path: Path
+) -> None:
+    tip = datetime(2026, 10, 25, 23, 30)
+
+    def runner(c: Any, d: Path) -> tuple[Runner, FakeFetcher]:
+        f = PMLadderFetcher(_pm_event_with_gap(), load("kalshi_detphi.json"))
+        r = Runner(
+            c,
+            f,  # type: ignore[arg-type]
+            raw=sinks.RawWriter(d, "2026-10-25"),
+            sink=sinks.AlertSink(d / "ALERTS.md", d / "d.json", 30),
+            clock=lambda: tip - timedelta(minutes=30),
+            tips=lambda day: {(GAME.away, GAME.home): tip},
+        )
+        return r, f
+
+    r, _ = runner(cfg, tmp_path)
+    rep = r.tick(date(2026, 10, 25))
+    assert rep.ladders_alertable == 0 and not any(a.startswith("LADDER") for a in rep.alerts)
+    assert rep.skipped["ladder:pm_us_rules_unverified"] >= 1
+    cands = (tmp_path / "fastarb_2026-10-25" / "candidates.jsonl").read_text()
+    assert ladder.PM_RULES_UNVERIFIED in cands
+    on = verified(cfg)  # the same planted ladder is found once the flag is true
+    r2, _ = runner(on, tmp_path / "on")
+    rep2 = r2.tick(date(2026, 10, 25))
+    assert rep2.ladders_alertable >= 1 and any(a.startswith("LADDER") for a in rep2.alerts)
+    now = datetime(2026, 10, 25, 20, 0)
+    args = (SimpleNamespace(confirmed_max_gap_s=5.0), [_game()], date(2026, 10, 25), now)
+    f_off = PMLadderFetcher(_pm_event_with_gap(), load("kalshi_detphi.json"))
+    assert confirmed_ladder_arbs(*args, get=_httpx_get(f_off), config=cfg) == []
+    f_on = PMLadderFetcher(_pm_event_with_gap(), load("kalshi_detphi.json"))
+    out = confirmed_ladder_arbs(*args, get=_httpx_get(f_on), config=on)
+    assert out and out[0].yes_leg.venue == PM_US
+    assert "pays >= $1 if the game is played" in out[0].note
+
+
+def test_jarvis_missing_gap_attribute_fails_closed(cfg: Any) -> None:
+    f = FakeFetcher(load("pm_us_event_detphi.json"), load("kalshi_detphi.json"))
+    now = datetime(2026, 10, 25, 20, 0)
+    out = confirmed_ladder_arbs(
+        SimpleNamespace(), [_game()], date(2026, 10, 25), now, get=_httpx_get(f), config=cfg
+    )
+    assert out == []

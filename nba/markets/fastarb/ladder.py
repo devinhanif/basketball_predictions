@@ -52,6 +52,7 @@ PROP_SERIES = (
     "KXNBABLK",
     "KXNBAPRA",
 )
+PM_RULES_UNVERIFIED = "pm_us_rules_unverified"
 EXCLUDED_PROP = "player_prop_dnp_fair_price"
 KALSHI_VOID_RISK = "void risk: a game voided >48h settles at a fair price (Kalshi rules)"
 
@@ -374,6 +375,11 @@ class LadderScanner:
         ``alert.confirm_max_gap_s``, a market is no longer open, a ref changed, or the margin or
         depth no longer clears the ladder gates. ``info`` carries the evidence either way."""
         info: dict[str, Any] = {"result": "refused"}
+        if r.venue == PM_US and not self.cfg.settlement_rules_verified:
+            info["reason"] = (
+                PM_RULES_UNVERIFIED  # no Polymarket US ladder until the rulebook is read
+            )
+            return None, info
         if r.venue == PM_US and event is None:
             info["reason"] = "no_event_metadata"
             return None, info
@@ -401,6 +407,9 @@ class LadderScanner:
                 a = qb.quotes.get(prop, {}).get(K, {}).get(side)
                 info[f"{side}_updated_time"] = body.get("updated_time")
             else:
+                if (body.get("marketData") or {}).get("state") != "MARKET_STATE_OPEN":
+                    info["reason"] = "book_not_open"
+                    return None, info
                 assert event is not None
                 one = dict(event)
                 one["markets"] = [m for m in event.get("markets", []) if m.get("slug") == ask.ref]

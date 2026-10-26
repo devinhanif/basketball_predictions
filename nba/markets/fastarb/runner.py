@@ -40,6 +40,7 @@ from nba.markets.fastarb.arb import (
 )
 from nba.markets.fastarb.config import FastArbConfig
 from nba.markets.fastarb.ladder import (
+    PM_RULES_UNVERIFIED,
     LadderResult,
     LadderScanner,
     find_ladder_violations,
@@ -408,6 +409,9 @@ class Runner:
                 new, info = self.ladder.confirm(r, ctx.us_event)
                 self._log_ladder(ctx, r, verdict, info, now)
                 if new is None:
+                    if info.get("reason") == PM_RULES_UNVERIFIED:
+                        rep.skipped["ladder:pm_us_rules_unverified"] += 1
+                        continue
                     rep.ladders_unconfirmed += 1
                     continue
                 rep.ladders_alertable += 1

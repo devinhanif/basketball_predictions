@@ -171,7 +171,7 @@ def confirmed_ladder_arbs(
         return []
     max_gap = float(fa.section("alert")["confirm_max_gap_s"])
     jarvis_gap = getattr(cfg, "confirmed_max_gap_s", None)
-    if jarvis_gap is not None and max_gap > float(jarvis_gap):
+    if jarvis_gap is None or max_gap > float(jarvis_gap):  # a missing attribute fails closed
         return []
     fetch = _adapt(get) if get is not None else _default_fetch()
     read_clock = clock or (lambda: datetime.now(UTC).replace(tzinfo=None))
@@ -207,13 +207,11 @@ def confirmed_ladder_arbs(
                 if new is None:
                     continue
                 note = (
-                    "Kalshi: a game voided >48h settles at a fair price"
+                    "pays >= $1 if the game is played; Kalshi: a game voided >48h settles at a "
+                    "fair price"
                     if venue == K
-                    else (
-                        "Polymarket US push/void rules not verified"
-                        if not fa.settlement_rules_verified
-                        else "Polymarket US rules verified"
-                    )
+                    else "pays >= $1 if the game is played; Polymarket US void/postponement "
+                    "rules per the verified rulebook only"
                 )
                 out.append(_arb(new, info, read_clock(), note))
     return out

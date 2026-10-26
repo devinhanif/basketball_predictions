@@ -47,6 +47,7 @@ class RawWriter:
         return path
 
 
+PM_US_RISK = "Polymarket US void/postponement/push rules per verified rulebook only"
 RESOLUTION_RISK = "RESOLUTION RISK: postponement/OT rules differ by venue, not verified"
 
 
@@ -115,12 +116,12 @@ def ladder_text(
     r: LadderResult, *, gap_s: float | None = None, rules_verified: bool = False
 ) -> str:
     """Phone-length: both buys, the profit locked per pair after fees, the depth. No stake."""
-    risk = KALSHI_VOID_RISK if r.venue != PM_US or rules_verified else RESOLUTION_RISK
+    risk = KALSHI_VOID_RISK if r.venue != PM_US else PM_US_RISK
     return (
         f"LADDER {r.lo.game.label()} {r.label()}: BUY {r.yes.short} @{r.yes.price:.2f}"
         f" + BUY {r.no.short} @{r.no.price:.2f} = {r.yes.price + r.no.price:.2f};"
         f" locks +{r.margin * 100:.1f}c/pair after fees at {r.n_eval} pairs"
-        f" (pays >= $1 either way),"
+        f" (pays >= $1 if the game is played),"
         f" depth ~{r.max_n} pairs"
         + (f"; legs re-fetched {gap_s:.1f}s apart" if gap_s is not None else "")
         + f" | {risk}"
