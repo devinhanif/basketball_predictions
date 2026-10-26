@@ -142,6 +142,17 @@ daily_dollar:                   # one $1 same-team long-shot ticket a day (TRADI
   corr_factor: 1.2
   corr_factor_is_estimate: true
 
+exit_warning:                   # DON'T SELL line when a position's bid is far below fair (Devin, 2026-10-25: a $0 cash-out)
+  # Chosen, not fitted: no data behind it. 0.5 is Devin's own example ("bid < 50% of fair"): a sale at under
+  # half of fair gives away more than the whole fee-and-spread cost of a normal exit. The benchmark is the venue's
+  # own live mid (or its ask when no bid is posted); with a two-sided book this fires when bid < ask/3, so it
+  # catches empty/collapsed bids and not ordinary spreads. A missing bid counts as 0.
+  # Read-only text. It never suggests an order and never places one.
+  enabled: true
+  bid_fraction: 0.5             # warn when bid < this x fair
+  min_fair: 0.05                # below 5c a bid of 0 is not news (fair itself is tiny)
+  min_giveaway_usd: 0.10        # when the contract count is known, ignore gives-away under this
+
 paths:
   paper_book: data/jarvis/paper_book.duckdb
   fan_knowledge: docs/FAN_KNOWLEDGE.md

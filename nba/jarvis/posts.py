@@ -12,6 +12,7 @@ from typing import Any
 
 from nba.jarvis.book import KillState, PaperBook, render_weekly, weekly_summary
 from nba.jarvis.config import JarvisConfig
+from nba.jarvis.exitwarn import ExitWarning, exit_warning, venue_fair
 from nba.jarvis.live import LiveGame
 from nba.jarvis.render import VENUE, cents, scored_line
 from nba.jarvis.sources import open_ro
@@ -51,6 +52,39 @@ def _now_price(cfg: JarvisConfig, row: dict[str, Any]) -> float | None:
     return float(r[1]) if row["side"] == "yes" else 1.0 - float(r[0])
 
 
+def _now_quote(cfg: JarvisConfig, row: dict[str, Any]) -> tuple[float | None, float | None] | None:
+    """Latest Kalshi snapshot (bid, ask) of the bought side, dollars (None: other venue / none)."""
+    if row["venue"] != "kalshi" or not cfg.paths["kalshi_db"].exists():
+        return None
+    con = open_ro(cfg.paths["kalshi_db"], copy_ok=True)
+    try:
+        r = con.execute(
+            "SELECT yes_bid, yes_ask FROM kalshi_prices WHERE ticker = ? ORDER BY ts DESC LIMIT 1",
+            [row["ticker"]],
+        ).fetchone()
+    finally:
+        con.close()
+    if not r or (r[0] is None and r[1] is None):
+        return None
+    yb = None if r[0] is None else float(r[0])
+    ya = None if r[1] is None else float(r[1])
+    if row["side"] == "yes":
+        return yb, ya
+    return (None if ya is None else 1.0 - ya), (None if yb is None else 1.0 - yb)
+
+
+def leg_exit_warning(cfg: JarvisConfig, row: dict[str, Any]) -> ExitWarning | None:
+    """Warning for one open leg: its bid now vs the venue mid (ask when no bid is posted)."""
+    q = _now_quote(cfg, row)
+    if q is None:
+        return None
+    vf = venue_fair(*q)
+    if vf is None:
+        return None
+    n = row["contracts"]
+    return exit_warning(cfg, q[0], vf[0], float(n) if n else None, source=vf[1])
+
+
 def halftime_lines(
     cfg: JarvisConfig, lg: LiveGame, rows: list[dict[str, Any]], feed_age: float | None
 ) -> list[str]:
@@ -80,6 +114,10 @@ def halftime_lines(
         px = "" if now is None else f"; price now {cents(now)} vs your {cents(float(r['price']))}"
         pay = f"; pays ${float(r['contracts']):.2f} if right" if r["contracts"] else ""
         lines.append(f"- [{tag}] {what}{status}{px}{pay}")
+        for x in legs:
+            w = leg_exit_warning(cfg, x)
+            if w is not None:
+                lines.append(f"  !! {x['leg_desc'] or x['ticker']}: {w.text}")
     if not seen:
         lines.append("- no plays logged on this game")
     return lines

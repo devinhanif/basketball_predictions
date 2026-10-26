@@ -70,6 +70,7 @@ class JarvisConfig:
     daily_dollar: dict[str, Any]
     model_weights: dict[str, Any]
     ingame: dict[str, Any]
+    exit_warning: dict[str, Any]
     paths: dict[str, Path]
     llm: dict[str, Any]
     min_settled: int
@@ -164,6 +165,7 @@ def load_config(
         daily_dollar=dict(raw["daily_dollar"]),
         model_weights=dict(raw["model_weights"]),
         ingame=dict(raw["ingame"]),
+        exit_warning=dict(raw["exit_warning"]),
         paths={k: _path(root, str(v)) for k, v in raw["paths"].items()},
         llm=dict(raw["llm"]),
         min_settled=pcfg.min_settled,
@@ -181,6 +183,9 @@ def load_config(
     mw = cfg.model_weights
     if not 0.0 <= float(mw["w_max"]) <= 0.5 or float(mw["step"]) <= 0:
         raise ValueError("model_weights.w_max must be in [0, 0.5] and step > 0")
+    ew = cfg.exit_warning
+    if not 0.0 < float(ew["bid_fraction"]) <= 1.0 or not 0.0 < float(ew["min_fair"]) < 1.0:
+        raise ValueError("exit_warning.bid_fraction must be in (0, 1] and min_fair in (0, 1)")
     if cfg.reserve_for_strong >= cfg.nightly_cap:
         raise ValueError("caps.reserve_for_strong_usd must be below caps.nightly_usd")
     return cfg

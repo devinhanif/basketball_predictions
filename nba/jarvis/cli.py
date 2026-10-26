@@ -140,6 +140,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--force", action="store_true", help="only DISPLAY the evaluation (never steps a weight)"
     )
 
+    ec = sub.add_parser(
+        "exit-check", help="before selling: is the bid far below fair? (text only; places nothing)"
+    )
+    ec.add_argument("--config", default=str(DEFAULT_PATH))
+    ec.add_argument("--bid", type=float, help="the bid / cash-out offer in cents (omit: none)")
+    ec.add_argument("--fair", type=float, required=True, help="fair value in cents")
+    ec.add_argument("--contracts", type=float, help="contracts held (adds dollars given away)")
+    ec.add_argument("--source", default="your fair", help="where the fair number comes from")
+
     t = sub.add_parser("test-send", help="post one short test message (or --dry-run)")
     t.add_argument("--config", default=str(DEFAULT_PATH))
     t.add_argument("--dry-run", action="store_true")
@@ -346,6 +355,16 @@ def cmd_weights(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_exit_check(a: argparse.Namespace) -> int:
+    from nba.jarvis.exitwarn import exit_warning
+
+    cfg = load_config(a.config)
+    bid = None if a.bid is None else a.bid / 100.0
+    w = exit_warning(cfg, bid, a.fair / 100.0, a.contracts, source=a.source)
+    print(w.text if w else "bid is not far below fair: no warning (this is not a recommendation)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     for noisy in ("httpx", "httpcore"):  # their INFO lines carry full URLs (webhook token)
         logging.getLogger(noisy).setLevel(logging.WARNING)
@@ -361,6 +380,7 @@ def main(argv: list[str] | None = None) -> int:
         "weights": cmd_weights,
         "killswitch": cmd_killswitch,
         "ingame-replay": cmd_ingame_replay,
+        "exit-check": cmd_exit_check,
     }
     return handlers[a.cmd](a)
 
