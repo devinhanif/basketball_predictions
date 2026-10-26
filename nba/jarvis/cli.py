@@ -10,7 +10,7 @@ import argparse
 import logging
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import duckdb
@@ -108,6 +108,19 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument(
         "--dry-run", action="store_true", help="print instead of posting; writes nothing"
     )
+
+    ir = sub.add_parser(
+        "ingame-replay", help="replay a finished game's live files: which posts fire"
+    )
+    ir.add_argument("--config", default=str(DEFAULT_PATH))
+    ir.add_argument("--root", help="repo root for relative paths in the config")
+    ir.add_argument("--date", required=True, help="slate date YYYY-MM-DD (US/Eastern)")
+    ir.add_argument(
+        "--from", dest="start", required=True, help="UTC start, e.g. 2026-10-25T23:30:00"
+    )
+    ir.add_argument("--to", dest="end", required=True, help="UTC end, e.g. 2026-10-26T00:40:00")
+    ir.add_argument("--game", help='only posts mentioning this matchup, e.g. "IND@BKN"')
+    ir.add_argument("--step", type=int, default=2, help="minutes between ticks (the watch cadence)")
 
     ks = sub.add_parser(
         "killswitch", help="show the CLV kill switch, or clear it (logs a dated row)"
@@ -287,6 +300,21 @@ def cmd_recap(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ingame_replay(a: argparse.Namespace) -> int:
+    from nba.jarvis.ingame_run import replay
+
+    cfg = load_config(a.config, root=Path(a.root) if a.root else ROOT)
+    posts = replay(
+        cfg, date.fromisoformat(a.date), datetime.fromisoformat(a.start),
+        datetime.fromisoformat(a.end), game=a.game, step_min=a.step,
+    )  # fmt: skip
+    for t, r in posts:
+        print(f"=== {t}Z  {r['signal']}  ({r['key']})")
+        print("\n".join(r["texts_out"]))
+    print(f"{len(posts)} post(s) would have fired")
+    return 0
+
+
 def cmd_killswitch(a: argparse.Namespace) -> int:
     cfg = load_config(a.config, root=Path(a.root) if a.root else ROOT)
     book = PaperBook(cfg.paths["paper_book"])
@@ -332,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
         "recap": cmd_recap,
         "weights": cmd_weights,
         "killswitch": cmd_killswitch,
+        "ingame-replay": cmd_ingame_replay,
     }
     return handlers[a.cmd](a)
 

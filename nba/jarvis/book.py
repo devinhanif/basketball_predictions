@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS alert_state (
 CREATE TABLE IF NOT EXISTS killswitch_log (
   ts TIMESTAMP, log_date DATE, action VARCHAR, n INTEGER, mean_clv DOUBLE, note VARCHAR
 );
+CREATE TABLE IF NOT EXISTS ingame_flags (
+  slate_date DATE, flag_key VARCHAR, minutes INTEGER, when_text VARCHAR, ts TIMESTAMP,
+  PRIMARY KEY (slate_date, flag_key)
+);
 CREATE TABLE IF NOT EXISTS sink_log (
   sink VARCHAR, text_hash VARCHAR, ts TIMESTAMP, PRIMARY KEY (sink, text_hash)
 );
@@ -226,6 +230,38 @@ class PaperBook:
         finally:
             con.close()
 
+    # ------------------------------------------------------------------ in-game flags
+    def note_flag(
+        self, key: str, slate: date, minutes: int, when: str, dry_run: bool = False,
+        now: datetime | None = None,
+    ) -> None:  # fmt: skip
+        """Remember the MIN and game time at which a BENCHED post flagged a player (for the
+        correction post and the nightly flagged-vs-returned count)."""
+        if dry_run:
+            return
+        con = self._con()
+        try:
+            con.execute(
+                "INSERT OR REPLACE INTO ingame_flags VALUES (?,?,?,?,?)",
+                [slate, key, minutes, when, now or now_naive()],
+            )
+        finally:
+            con.close()
+
+    def ingame_flags(self, slate: date) -> dict[str, tuple[int, str, datetime]]:
+        """key -> (MIN, game time, snapshot time) at which a BENCHED post flagged him."""
+        rows = self._rows(
+            "SELECT flag_key, minutes, when_text, ts FROM ingame_flags WHERE slate_date = ?",
+            [slate],
+        )
+        return {str(r[0]): (int(r[1]), str(r[2]), r[3]) for r in rows}
+
+    def ingame_counts(self, slate: date) -> tuple[int, int]:
+        """(BENCHED flagged, of those corrected as back) for the slate date, from the post log."""
+        flagged = self.sent_keys("ingame_benched", slate)
+        back = self.sent_keys("ingame_returned", slate)
+        return len(flagged), len(back & flagged)
+
     # ------------------------------------------------------------------ kill switch log
     def kill_rows(self) -> list[tuple[Any, ...]]:
         return self._rows(
@@ -353,6 +389,15 @@ class PaperBook:
             [kind, slate],
         )
         return bool(rows) if not key else any(key in json.loads(str(r[0])) for r in rows)
+
+    def sent_keys(self, kind: str, slate: date) -> set[str]:
+        """Every key that went out (wholly or in part) under this kind for the slate date."""
+        rows = self._rows(
+            "SELECT dedupe_keys FROM sends WHERE kind = ? AND slate_date = ? "
+            "AND mode IN ('sent','partial','dry_run')",
+            [kind, slate],
+        )
+        return {k for r in rows for k in json.loads(str(r[0]))}
 
     def slate_summary_sent(self, slate: date) -> bool:
         r = self._rows(
@@ -546,7 +591,10 @@ def score_book(
             if o.status == "unresolved":
                 counts["waiting"] += 1
                 continue
-            cq = closing_quote(cfg, con, row)
+            # a live entry has no pre-tip close to compare with: no CLV for in-game plays
+            cq = (
+                None if str(row["edge_label"]).startswith("live_") else closing_quote(cfg, con, row)
+            )
             mid = ask = cts = None
             csrc = ""
             if cq is not None:
@@ -639,7 +687,7 @@ def cluster_ci(
     return sum(allv) / len(allv), lo, hi
 
 
-WEEKLY_LABELS = (*LABELS, "daily_dollar", "pick")
+WEEKLY_LABELS = (*LABELS, "daily_dollar", "pick", "live_none")
 
 
 def _bundles(
