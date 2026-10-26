@@ -140,6 +140,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--force", action="store_true", help="only DISPLAY the evaluation (never steps a weight)"
     )
 
+    ec = sub.add_parser(
+        "exit-check", help="before selling: is the bid far below fair? (text only; places nothing)"
+    )
+    ec.add_argument("--config", default=str(DEFAULT_PATH))
+    ec.add_argument("--bid", type=float, help="the bid / cash-out offer in CENTS (omit: none)")
+    ec.add_argument("--fair", type=float, help="fair value per $1 contract in CENTS, 1-100")
+    ec.add_argument("--legs-hit", type=int, help="combo: legs that have already hit")
+    ec.add_argument("--legs-total", type=int, help="combo: legs in total (all hit -> fair 100c)")
+    ec.add_argument("--contracts", type=float, help="contracts held (adds dollars given away)")
+    ec.add_argument("--source", default="your fair", help="where the fair number comes from")
+
     t = sub.add_parser("test-send", help="post one short test message (or --dry-run)")
     t.add_argument("--config", default=str(DEFAULT_PATH))
     t.add_argument("--dry-run", action="store_true")
@@ -346,6 +357,42 @@ def cmd_weights(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_exit_check(a: argparse.Namespace) -> int:
+    from nba.jarvis.exitwarn import exit_check
+
+    cfg = load_config(a.config)
+    fair_c, source = a.fair, a.source
+    if (a.legs_hit is None) != (a.legs_total is None):
+        print("error: pass --legs-hit and --legs-total together", file=sys.stderr)
+        return 2
+    if a.legs_hit is not None and a.legs_total is not None:
+        if not 0 <= a.legs_hit <= a.legs_total or a.legs_total < 1:
+            print("error: need 0 <= --legs-hit <= --legs-total, --legs-total >= 1", file=sys.stderr)
+            return 2
+        if a.legs_hit == a.legs_total and fair_c is None:
+            fair_c, source = 100.0, f"all {a.legs_total} legs hit: pays $1 per contract"
+        elif a.legs_hit < a.legs_total and fair_c is None:
+            print(
+                f"{a.legs_hit} of {a.legs_total} legs hit: the rest are unsettled, so there is no "
+                "fair without a price. Pass --fair (cents) for the remaining legs."
+            )
+            return 0
+    if fair_c is None:
+        print("error: pass --fair (cents) or --legs-hit/--legs-total", file=sys.stderr)
+        return 2
+    if not 0.0 < fair_c <= 100.0:
+        print(f"error: --fair is in CENTS between 0 and 100 (got {fair_c:g})", file=sys.stderr)
+        return 2
+    if a.bid is not None and not 0.0 <= a.bid <= 100.0:
+        print(f"error: --bid is in CENTS between 0 and 100 (got {a.bid:g})", file=sys.stderr)
+        return 2
+    if fair_c < 1.0:
+        print(f"note: --fair {fair_c:g} is in cents (did you pass dollars?)", file=sys.stderr)
+    bid = None if a.bid is None else a.bid / 100.0
+    print(exit_check(cfg, bid, fair_c / 100.0, a.contracts, source=source).text)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     for noisy in ("httpx", "httpcore"):  # their INFO lines carry full URLs (webhook token)
         logging.getLogger(noisy).setLevel(logging.WARNING)
@@ -361,6 +408,7 @@ def main(argv: list[str] | None = None) -> int:
         "weights": cmd_weights,
         "killswitch": cmd_killswitch,
         "ingame-replay": cmd_ingame_replay,
+        "exit-check": cmd_exit_check,
     }
     return handlers[a.cmd](a)
 

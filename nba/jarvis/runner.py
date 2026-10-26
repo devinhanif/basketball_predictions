@@ -374,7 +374,8 @@ def _halftime_one(
         return None
     if not rt.dry_run and _given_up(rt, "halftime", slate, g.game_id):
         return None
-    texts = R.chunk(halftime_lines(rt.cfg, lg, rows, age), rt.cfg.max_chars, rt.cfg.max_texts)
+    body = halftime_lines(rt.cfg, lg, rows, age, rt.clock())
+    texts = R.chunk(body, rt.cfg.max_chars, rt.cfg.max_texts)
     return _deliver(
         rt,
         kind="halftime",
