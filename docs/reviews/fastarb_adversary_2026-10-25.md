@@ -219,3 +219,75 @@ DECISIONS (draft):
 `| 2026-10-25 <time> | Adversary review of agent/market-fast-arb (7ce3be0): CHANGES_REQUIRED. Mapping, fees, read-only invariants, lag known-at and Underdog all hold; alerting blocked on 5 findings (unknown-depth/stale-leg alerts, no confirm fetch, Pinnacle error aborts the tick, first-tick failure ends the day as "no_games", no settlement-risk disclaimer). docs/reviews/fastarb_adversary_2026-10-25.md. | Adversary finding; merge/install are Devin's. | The five blockers fixed with regression tests and a re-review. |`
 
 TEST_LEDGER: none (no test or outcome was run).
+
+## Re-check of 583f7a7 (diff-only: `git diff 7160409 583f7a7`)
+
+Scope: the fix commit only, plus the stability of the interface the JARVIS hook (`nba/jarvis/slate.py:QUOTE_SOURCES`,
+now on main) is meant to consume. No new attacks. I re-ran the four original attacks unchanged, except that A4's clock now
+advances so the loop can end (scratch `fastarb_attack/attack_recheck.py`).
+
+Verdict: BLOCKED
+
+(In the caller's terms: **CHANGES_REQUIRED**, two small fixes. B1-B5, M1-M3 and every m-item are confirmed fixed. M4 is
+only half fixed, and the JARVIS-facing interface is stable but is not the one the hook needs.)
+
+### Verification (unpiped, exit codes shown)
+
+| Check | Command | Result |
+|---|---|---|
+| Lint | `ruff check nba/markets/fastarb tests/markets/fastarb` | exit 0 |
+| Format | `ruff format --check nba/markets/fastarb tests/markets/fastarb` | 17 files, exit 0 |
+| Types | `mypy nba/markets/fastarb` | 13 files, exit 0 |
+| Tests | `python -m pytest -q -p no:cacheprovider --no-cov tests/markets/fastarb tests/test_layering.py` | 63 passed, exit 0 (44 before) |
+| Original attacks re-run | `python -u attack_recheck.py <wt> <out>` | A1: 0 alerts (was 1). A2: the out-of-band prop is not scanned (was alert). A3: tick completes, Pinnacle disabled (was raise). A4: locked lineups gives rc 0 `done` after 212 ticks, polling to tip (was rc 0 `no_games` after 1); Kalshi 503 gives rc 1 `error` at the 21:00 ET give-up (was rc 0 `no_games`). Exit 0. |
+
+### Point by point
+
+| Item | Where | Status |
+|---|---|---|
+| Stale or unknown-depth legs never alert | `arb.py` `is_alertable` returns `unknown_depth` unless both legs have levels; `runner.py:493-497` counts and logs it, never emits. `_confirm` (`runner.py:340`) re-requires depth on both re-fetched legs. `find_lags` skips asks without depth. | **Confirmed** (tests `test_b1_*`, `test_is_alertable_unknown_depth_verdict`; A1 re-run) |
+| Both legs re-fetched within 5 s, candidates log | `runner.py:306-351`: Kalshi `GET /markets/{ticker}` then Polymarket US `/book` back to back. Refused if `fetch_window_s > confirm_max_gap_s` (5), if a re-fetch fails or if the gap is gone. Every candidate and its result goes to `data/raw/fastarb_<date>/candidates.jsonl` (`runner.py:353-371`). | **Confirmed** (`test_b2_*` x3). Note: the window bounds the two reads; it does not compare the venues' own `updated_time` / `transactTime`, which are logged, not checked. Acceptable. |
+| Pinnacle errors isolated per game | `_pinnacle` catches everything (`runner.py:388-402`) and disables the client on credit, auth, key or key-leak errors. `_game_tick` is wrapped per game (`runner.py:560-565`). | **Confirmed** (`test_b3_*` x2; A3 re-run) |
+| A failed first tick is not "no games" | `run()` (`runner.py:627-636`): `no_games` only when `rep.kalshi_ok`. Otherwise `error`, keep polling, rc 1 at `give_up_et`. `discover` catches `duckdb.Error` and keeps the previous tips. Hard stop 06:00 ET (m1). | **Confirmed** (`test_b4_*` x3; A4 re-run) |
+| RESOLUTION RISK line present | `sinks.py` `RESOLUTION_RISK`, appended to every `arb_text` until `settlement_rules_verified: true`. Rules archived once a day (`runner.py:237-255`). | **Confirmed** (`test_b5_*` x2) |
+| Price band applied to alerts | `arb.py` `in_band` (Kalshi mid) in both `find_arbs` and `find_lags`. | **Confirmed** (`test_m1_*`; A2 re-run). Minor: `_confirm` does not re-check the band on the re-fetched Kalshi price; the effect is negligible. |
+| In-play guard works | `venues.py` `us_quotes` returns nothing when the event is `live` or `ended`. | **Confirmed** for Polymarket US (`test_m3_live_polymarket_event_is_skipped`). Limit: the flag comes from the event cached up to 300 s, and the Kalshi-side guard I suggested (`occurrence_datetime`) was not added. The tip-based stop (`runner.py:555`) remains the main guard. Minor. |
+| Heartbeat matches the watchdog | `runner.py:580-593` now writes `job, mode, host, start_ts, end_ts, rc`. | **Not fully.** The keys match, but the timestamps are naive UTC (`self.clock().isoformat()`, `runner.py:587, 589, 606`). The shell heartbeats the watchdog reads carry an offset (`date +%Y-%m-%dT%H:%M:%S%z`, `ops/nba_lineups.sh`), and `nba/ops/watchdog.py:314` compares `reference < due`, where `due` is tz-aware. A naive `start_ts` raises `TypeError: can't compare offset-naive and offset-aware datetimes` (checked in the venv), so registering this job as written would break the watchdog check or mis-judge it. **Fix R1:** in `_beat` and `run`, write `datetime.now(UTC).isoformat()` (or `self.clock().replace(tzinfo=UTC).isoformat()`) for `start_ts`, `end_ts` and `last_tick_ts`, with a test asserting `datetime.fromisoformat(hb["start_ts"]).tzinfo is not None`. |
+| m2 Retry-After | `fastarb/http.py` `PoliteFetcher` (cap 10 s, rate halves for the tick) | Confirmed (`test_m2_*`) |
+| m3 Pinnacle only on news or every 10 ticks | `runner.py:520-525` | Confirmed (`test_m3_pinnacle_only_on_news_or_every_n_ticks`) |
+| m4 key-in-body refusal | `runner.py:391-393` | Confirmed (`test_m4_*`) |
+| m5 env file | plist `--env-file .env.fastarb` | Confirmed. Note: the file does not exist yet, so the job fails at start until Devin creates it. That is in the install note. |
+| m8 layering closure scan | `test_layering_fastarb.py` +16 lines | Confirmed (passes) |
+
+### JARVIS `QUOTE_SOURCES`: is the documented interface stable?
+
+The surface is stable: `nba/markets/fastarb/polymarket_us.py` pins `__all__ = [DEFAULT_BASE, PolymarketUSClient,
+ask_levels, is_live, quotes]`, and `test_polymarket_us_interface` checks it. But it is not the interface the hook
+needs, and using it as one would undo B1.
+
+- The hook (`nba/jarvis/slate.py:34-35`, on main) takes `(cfg, games, slate, now) -> list[nba.jarvis.models.Quote]`, and
+  `Quote.confirmed` is "set only by a depth-aware live source". The branch has no such adapter. It also exposes no API
+  for confirmed quotes: `_confirm` results go only to ALERTS.md and `candidates.jsonl`, whose schema is not documented as
+  an interface.
+- `polymarket_us.quotes()` returns fastarb `QuoteBook` / `Ask` objects. Without books, those asks are event quotes with
+  `levels == []`, which is exactly what B1 made non-alertable. An adapter that maps `quotes()` to `Quote(confirmed=True)`
+  would turn stale prices back into "confirmed" JARVIS plays.
+- The getter types differ. `PolymarketUSClient(get)` wants `(url) -> nba.live.http.Response | None`;
+  `nba/jarvis/polymarket.py:34-35` uses an httpx-style `get(url, **kw)`.
+
+**Fix R2 (before anyone appends to `QUOTE_SOURCES`):** add one public, documented function, e.g.
+`nba.markets.fastarb.polymarket_us.confirmed_quotes(...)` or a `fastarb.jarvis_source` module. It should return
+`jarvis.models.Quote(confirmed=True)` only for legs that passed `_confirm`: booked on both sides, re-fetched within
+`confirm_max_gap_s`. `ts` should be the re-fetch time. Add it to `__all__`, and add a test that an event-quote-only
+ask (`levels == []`) can never yield `confirmed=True`. Until then, `QUOTE_SOURCES` must stay empty. This can be a
+separate reviewed change, but it is the condition under which the coordinator's premise ("JARVIS consumes this
+checker's confirmed quotes") becomes true.
+
+### Re-check summary
+
+The two remaining fixes are R1 (offset-aware heartbeat timestamps) and R2 (a confirmed-quote adapter with a negative
+test, or an explicit note that `QUOTE_SOURCES` stays empty until one exists). Neither touches the arbitrage maths, which
+now holds. Not verified, as before: the Polymarket US fee rounding and both venues' settlement rules (no network).
+
+Drafted DECISIONS row (not appended):
+`| 2026-10-25 <time> | Adversary re-check of agent/market-fast-arb 583f7a7: B1-B5, M1-M3, m1-m8 confirmed fixed (63 tests; original attacks A1-A4 now fail to break it). CHANGES_REQUIRED on two small items: heartbeat timestamps must carry a UTC offset before the watchdog JobSpec is added (R1); JARVIS QUOTE_SOURCES needs a confirmed-quote adapter that cannot emit event quotes as confirmed (R2), until then the hook stays empty. docs/reviews/fastarb_adversary_2026-10-25.md. | Adversary finding. | R1 and R2 fixed with tests and re-checked. |`
