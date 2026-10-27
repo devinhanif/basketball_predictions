@@ -442,3 +442,22 @@ def test_coverage_is_null_when_no_completed_game_matches(
     con.close()
     m = build_manifest(tmp_path / "p.duckdb", cfg, today=dt.date(2026, 10, 27))
     assert m["tables"]["pre"]["seasons"]["2026"]["coverage"] is None
+
+
+def test_null_shift_is_hard_only_on_core_tables(cfg: dict[str, Any]) -> None:
+    from nba.datamanifest.diff import check_exit_code
+
+    def ns(table: str) -> dict[str, Any]:
+        return {"kind": "NULL_SHIFT", "table": table}
+
+    assert "player_game_stats" in cfg["hard_null_shift_tables"]
+    for core in ("games", "player_game_stats", "player_availability", "parquet:x_lineups"):
+        assert check_exit_code([ns(core)], cfg) == 1
+    assert check_exit_code([ns("forward_avg_shadow")], cfg) == 3
+    assert check_exit_code([ns("forward_avg_shadow"), ns("player_game_stats")], cfg) == 1
+    assert (
+        check_exit_code(
+            [ns("forward_avg_shadow"), {"kind": "COVERAGE_DROP", "table": "games"}], cfg
+        )
+        == 3
+    )

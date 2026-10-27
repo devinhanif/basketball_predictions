@@ -15,11 +15,19 @@ EXIT_HARD = 1
 EXIT_ADVISORY = 3
 
 
-def check_exit_code(flags: list[dict[str, Any]]) -> int:
-    """0 no flags; 3 only advisory kinds; 1 any other kind."""
+def _is_hard(f: dict[str, Any], core: list[str]) -> bool:
+    if f["kind"] not in ADVISORY_KINDS:
+        return True
+    # NULL_SHIFT on a core input table (configs/datamanifest.yaml hard_null_shift_tables) is hard
+    return f["kind"] == "NULL_SHIFT" and any(fnmatchcase(str(f.get("table", "")), k) for k in core)
+
+
+def check_exit_code(flags: list[dict[str, Any]], cfg: dict[str, Any] | None = None) -> int:
+    """0 no flags; 3 only advisory flags; 1 any other kind or a NULL_SHIFT on a core table."""
     if not flags:
         return 0
-    return EXIT_ADVISORY if all(f["kind"] in ADVISORY_KINDS for f in flags) else EXIT_HARD
+    core = list((cfg or {}).get("hard_null_shift_tables", []))
+    return EXIT_HARD if any(_is_hard(f, core) for f in flags) else EXIT_ADVISORY
 
 
 def _flag(kind: str, table: str, detail: str, column: str = "") -> dict[str, Any]:

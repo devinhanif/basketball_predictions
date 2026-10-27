@@ -120,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             seen.add(line)
             print(line)
     print(f"{len(seen)} flag(s); data_version={new['data_version']}")
-    return check_exit_code(flags)
+    return check_exit_code(flags, cfg)
 
 
 if __name__ == "__main__":
