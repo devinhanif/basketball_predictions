@@ -428,3 +428,17 @@ def test_check_cli_leak_is_hard_coverage_only_is_advisory(
         _check_cli(tmp_path / "same", cfg, tmp_path / "clean.duckdb", tmp_path / "clean.duckdb")
         == 0
     )
+
+
+def test_coverage_is_null_when_no_completed_game_matches(
+    tmp_path: Path, cfg: dict[str, Any]
+) -> None:
+    import datetime as dt
+
+    _forecast_db(tmp_path / "p.duckdb", upcoming=0)
+    con = duckdb.connect(str(tmp_path / "p.duckdb"))
+    con.execute("CREATE TABLE pre (game_id VARCHAR, season INT)")
+    con.execute("INSERT INTO pre SELECT 'pre' || i, 2026 FROM range(5) t(i)")  # ids never in games
+    con.close()
+    m = build_manifest(tmp_path / "p.duckdb", cfg, today=dt.date(2026, 10, 27))
+    assert m["tables"]["pre"]["seasons"]["2026"]["coverage"] is None

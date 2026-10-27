@@ -409,3 +409,15 @@ def test_lock_retry_then_gives_up(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     with pytest.raises(duckdb.IOException):
         cv.connect_ro(tmp_path / "x.duckdb", sleep=calls.append, retry_s=30, max_s=90)
     assert calls == [30, 30, 30]
+
+
+def test_stamp_from_an_earlier_et_day_does_not_confirm(tmp_path: Path) -> None:
+    p = _mk(tmp_path)
+    # TIP 23:00Z 10-20 = 19:00 ET 10-20, whose ET day starts 04:00Z. Quote 02:00Z, a 03:30Z stamp
+    # (previous ET day, after the quote, before tip) must not confirm; a 22:00Z stamp does.
+    _forecast(p, 100, datetime(2026, 10, 20, 1, 0))
+    _quote(p, 100, datetime(2026, 10, 20, 2, 0))
+    _stamp(p, datetime(2026, 10, 20, 3, 30))
+    assert _by(_run(p), "pairing")[0].data["paired"] == 0
+    _stamp(p, datetime(2026, 10, 20, 22, 0))
+    assert _by(_run(p), "pairing")[0].data["paired"] == 1

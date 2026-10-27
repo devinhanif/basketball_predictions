@@ -234,7 +234,8 @@ def _table_manifest(
                 of = games_by_season.get(int(r[0]))
                 done = done_by_season.get(int(r[0]), 0)
                 ent["games_completed"] = done
-                ent["coverage"] = _r(done / of) if of else None
+                # no completed match (preseason ids never in `games`): not measurable, not 0.0
+                ent["coverage"] = _r(done / of) if of and done else None
             out["seasons"][s] = ent
             for i, c in enumerate(names):
                 per_season.setdefault(c, {})[s] = _r(1 - int(r[3 + i]) / n)
