@@ -550,7 +550,7 @@ Created: {created}. Script: nba/markets/polymarket_wallets.py (GET only, no keys
 - raw_events/*.json         raw gamma pages as received
 - trades/<condition_id>.parquet   every trade: proxy_wallet, side, asset, outcome, size, price,
                                   timestamp (unix s), transaction_hash, name, pseudonym
-- prices/<token_id>.parquet       CLOB history (t unix s, p), game start -{pre}h to close or +{post}h
+- prices/<token_id>.parquet       CLOB history (t, p): start -{pre}h to close or +{post}h
 - manifest.json             per-stage counts, fetched_at, failures; *_failures.json if any
 
 ## Notes
