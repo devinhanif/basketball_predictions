@@ -124,6 +124,12 @@ def kelly_fraction_of_bankroll(fair: float, cost: float) -> float:
     return max(0.0, (fair - cost) / (1.0 - cost))
 
 
+def side_allowed(cfg: JarvisConfig, kind: str, side: str) -> bool:
+    """Player props are bought on the sides in ``cfg.props_sides`` only (Over / Yes); every other
+    market kind keeps both sides."""
+    return kind != "prop" or side in cfg.props_sides
+
+
 def stake_for(cfg: JarvisConfig, label: str, *, none_level: bool = False) -> float:
     """Dollar budget from the label ladder (docs/TRADING_CONTEXT.md). ``none_level`` is the kill
     switch: every label stakes like an entertainment play."""
@@ -177,6 +183,8 @@ def best_arbitrage(cfg: JarvisConfig, quotes: Iterable[Quote]) -> Cover | None:
     for q in qs:
         for side in ("yes", "no"):
             if side == "no" and q.venue == "polymarket":
+                continue
+            if not side_allowed(cfg, q.kind, side):
                 continue
             a = q.ask(side)
             if a is not None and 0.0 < a < 1.0:

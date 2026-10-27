@@ -78,6 +78,8 @@ def build_pick(
     if not 0.01 <= price <= 0.99 or stake <= 0:
         raise PickError("price must be in [0.01, 0.99] and stake positive")
     g, q = _find(st, text, venue, ticker)
+    if not E.side_allowed(cfg, q.kind, side):
+        raise PickError("player props are Over / Yes only; a No on a prop is not logged")
     n = 0
     while E.order_cost(cfg, venue, price, n + 1, q.series) <= stake + 1e-9:
         n += 1

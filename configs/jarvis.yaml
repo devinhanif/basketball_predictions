@@ -15,16 +15,21 @@ balance:                        # Devin updates current_usd by hand (docs/TRADIN
 caps:
   nightly_usd: 20.0             # nightly loss cap (all plays, one ET date)
   reserve_for_strong_usd: 10.0  # none/thin/arb_candidate/daily dollar may use only nightly - reserve
-  per_bet_usd: 10.0             # hard ceiling for any single play (both legs of an arbitrage together)
-  per_label_usd: {arbitrage: 10.0, strong: 5.0, thin: 3.0, none: 1.0, arb_candidate: 3.0}
+  per_bet_usd: 15.0             # hard ceiling for any single play (both legs of an arbitrage together)
+  per_label_usd: {arbitrage: 15.0, strong: 5.0, thin: 3.0, none: 1.0, arb_candidate: 3.0}
   min_bet_usd: 1.0
 
 sizing:
   # Stake ladder from docs/TRADING_CONTEXT.md (monotone in the label): none $1 (at most 2 contracts), thin $3,
-  # strong $5, arbitrage $10. An unconfirmed arbitrage candidate is sized as thin. The label is the edge;
+  # strong $5, arbitrage $15 (Devin 2026-10-27). An unconfirmed arbitrage candidate is sized as thin. The label is the edge;
   # a bigger measured edge inside a label does not buy a bigger stake.
-  ladder_usd: {none: 1.0, thin: 3.0, strong: 5.0, arbitrage: 10.0, arb_candidate: 3.0}
+  ladder_usd: {none: 1.0, thin: 3.0, strong: 5.0, arbitrage: 15.0, arb_candidate: 3.0}
   none_max_contracts: 2
+
+sides:                          # Devin 2026-10-27: the venues' apps do not let him buy No on a player prop
+  props: ["yes"]                #  (quoted: bare yes is a YAML boolean)
+  # player props: Over / Yes only, everywhere (slate, alerts, halftime, daily dollar, picks)
+  # game markets (moneyline, spread, totals, team totals) keep both sides; this key never touches them.
 
 kill_switch:                    # closing-line value is the judge of the labels (TRADING_CONTEXT.md)
   min_bets: 30                  # over the last N settled JARVIS bets with a two-sided close

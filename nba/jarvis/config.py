@@ -76,6 +76,7 @@ class JarvisConfig:
     min_settled: int
     min_settled_dates: int
     root: Path = ROOT
+    props_sides: tuple[str, ...] = ("yes",)  # player props: Over / Yes only (Devin, 2026-10-27)
 
     def fee(self, venue: str) -> FeeModel:
         return self.fees[venue]
@@ -93,6 +94,11 @@ class JarvisConfig:
     def paper_only(self) -> bool:
         """At or below the floor JARVIS is paper-only until Devin resets the balance."""
         return self.balance_current <= self.balance_floor
+
+
+def _side(x: object) -> str:
+    """YAML reads a bare yes/no as a boolean; accept both spellings."""
+    return ("yes" if x else "no") if isinstance(x, bool) else str(x)
 
 
 def _path(root: Path, p: str) -> Path:
@@ -171,7 +177,10 @@ def load_config(
         min_settled=pcfg.min_settled,
         min_settled_dates=pcfg.min_settled_dates,
         root=root,
+        props_sides=tuple(_side(x) for x in raw.get("sides", {}).get("props", ["yes"])),
     )
+    if not cfg.props_sides or not set(cfg.props_sides) <= {"yes", "no"}:
+        raise ValueError(f"sides.props must be a non-empty subset of yes/no: {cfg.props_sides}")
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]
     if missing:
         raise ValueError(f"jarvis config lacks bankroll/fee for venues {missing}")
