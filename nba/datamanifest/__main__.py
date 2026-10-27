@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from nba.datamanifest.diff import (
+    check_exit_code,
     diff_manifests,
     label_gap_candidates,
     leak_candidates,
@@ -60,7 +61,10 @@ def build_parser() -> argparse.ArgumentParser:
     df = sub.add_parser("diff", help="markdown diff between two manifests")
     df.add_argument("--from", dest="old", default=None)
     df.add_argument("--to", dest="new", default=None)
-    sub.add_parser("check", help="exit 1 on flagged issues (latest vs previous + leak scan)")
+    sub.add_parser(
+        "check",
+        help="exit 1 on a hard flag (leak/schema/data loss), 3 when only advisory diff flags fired",
+    )
     return p
 
 
@@ -116,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             seen.add(line)
             print(line)
     print(f"{len(seen)} flag(s); data_version={new['data_version']}")
-    return 1 if seen else 0
+    return check_exit_code(flags)
 
 
 if __name__ == "__main__":

@@ -49,7 +49,8 @@ def _is_drive_backup(name: str) -> bool:
 
 
 #: advisory steps (ops/nba_daily.sh ``advisory_step``): they may alert but never hold back the export
-ADVISORY_STEPS = ("stints_nightly",)
+#: coverage_yesterday and data_check_advisory (diff-only flags) were added 2026-10-27; leak/schema flags fail ``data_check`` itself
+ADVISORY_STEPS = ("stints_nightly", "coverage_yesterday", "data_check_advisory")
 
 #: data steps that must appear as ok, else the run was cut short (or an older script wrote no record) and the gate fails closed
 REQUIRED_STEPS = (

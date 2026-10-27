@@ -210,7 +210,8 @@ def test_coverage_and_scorecard_are_wired() -> None:
     # Devin, 2026-10-20 ("wire em"): coverage every pretip run (informational), and last night's
     # coverage + the season-to-date scorecard each morning after the settle.
     assert '--date "$TODAY_ET"' in _step("coverage")
-    assert '--date "$YESTERDAY_ET"' in _step("coverage_yesterday")
+    m = re.search(r"^\s*advisory_step coverage_yesterday (.*?)(?<!\\)\n", SCRIPT, re.M | re.S)
+    assert m and '--date "$YESTERDAY_ET"' in m.group(1)  # advisory since 2026-10-27
     assert "--since 2026-10-20" in _step("scorecard")
     assert "date -v-1d" in SCRIPT  # YESTERDAY_ET is defined
     assert re.search(r'\[ "\$name" = coverage \] && \[ "\$rc" -eq 3 \]', SCRIPT)
@@ -452,3 +453,66 @@ def test_stints_nightly_is_skipped_when_the_morning_is_already_late(tmp_path: Pa
     log = next((root / "data/ops").glob("morning_*.log")).read_text()
     assert "stints_nightly skipped: morning job already past -1 s" in log
     assert not (root / "data/ops/ALERTS.md").exists()
+
+
+# --- Devin 2026-10-27: monitors that alert but never hold back the app export --------------------
+
+
+def _steps(root: Path) -> list[str]:
+    return (root / "data/ops/heartbeat/daily-morning.steps").read_text().splitlines()
+
+
+def test_data_check_advisory_flags_alert_but_keep_the_export_gate_open(tmp_path: Path) -> None:
+    import json
+
+    from nba.ops.app_export import data_step_problem
+
+    rc, calls, root = _run_mode(tmp_path, "morning", '*"datamanifest check"*) exit 3;;')
+    steps = _steps(root)
+    assert "data_check 0 ok" in steps and "data_check_advisory 3 failed" in steps
+    assert "data_check: advisory diff flags only" in (root / "data/ops/ALERTS.md").read_text()
+    assert rc == 0 and '"rc": 0' in _hb(root)  # heartbeat and watchdog stay green
+    hb_start = json.loads(_hb(root))["start_ts"]
+    assert data_step_problem(root / "data/ops/heartbeat", hb_start) is None
+    assert any("datamanifest check" in c for c in calls)
+
+
+@pytest.mark.parametrize("code", [1, 2, 137])
+def test_data_check_hard_failure_still_blocks_the_export(tmp_path: Path, code: int) -> None:
+    import json
+
+    from nba.ops.app_export import data_step_problem
+
+    _, _, root = _run_mode(tmp_path, "morning", f'*"datamanifest check"*) exit {code};;')
+    assert f"data_check {code} failed" in _steps(root)
+    assert "data_check failed" in (root / "data/ops/ALERTS.md").read_text()
+    hb_start = json.loads(_hb(root))["start_ts"]
+    problem = data_step_problem(root / "data/ops/heartbeat", hb_start)
+    assert problem == "morning data step failed: data_check"
+
+
+def test_coverage_yesterday_failure_alerts_but_is_advisory(tmp_path: Path) -> None:
+    import json
+
+    from nba.ops.app_export import data_step_problem
+
+    rc, _, root = _run_mode(tmp_path, "morning", '*"nba.ops.coverage"*) exit 3;;')
+    assert "coverage_yesterday 3 failed" in _steps(root)
+    assert "coverage_yesterday" in (root / "data/ops/ALERTS.md").read_text()
+    assert rc == 0 and '"rc": 0' in _hb(root)
+    assert data_step_problem(root / "data/ops/heartbeat", json.loads(_hb(root))["start_ts"]) is None
+    assert re.search(r"^\s*advisory_step coverage_yesterday ", SCRIPT, re.M)
+
+
+def test_required_steps_are_still_hard_stops(tmp_path: Path) -> None:
+    from nba.ops import app_export as A
+
+    assert not {
+        "settle",
+        "checkpoint",
+        "report",
+        "parlay_settle",
+        "data_snapshot",
+        "data_diff",
+    } & set(A.ADVISORY_STEPS)
+    assert "data_check" not in A.ADVISORY_STEPS  # only its diff-only half is advisory

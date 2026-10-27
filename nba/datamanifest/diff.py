@@ -5,6 +5,22 @@ from __future__ import annotations
 from fnmatch import fnmatchcase
 from typing import Any
 
+#: Diff-only flags: a monitor reading, not evidence that the data the export reads is wrong or
+#: leaking. ``check`` exits ``EXIT_ADVISORY`` when ONLY these fire (the morning job alerts, the
+#: export still runs; Devin 2026-10-27). Every other kind (POSSIBLE_LEAK, LABEL_NULL_GAP,
+#: TABLE_REMOVED, COLUMN_REMOVED, TYPE_CHANGE, PK_DUPLICATES, ROW_DROP, and any kind added
+#: later) is a hard stop, exit 1: fail closed.
+ADVISORY_KINDS = frozenset({"COVERAGE_DROP", "NULL_SHIFT", "STALE_SCHEDULED"})
+EXIT_HARD = 1
+EXIT_ADVISORY = 3
+
+
+def check_exit_code(flags: list[dict[str, Any]]) -> int:
+    """0 no flags; 3 only advisory kinds; 1 any other kind."""
+    if not flags:
+        return 0
+    return EXIT_ADVISORY if all(f["kind"] in ADVISORY_KINDS for f in flags) else EXIT_HARD
+
 
 def _flag(kind: str, table: str, detail: str, column: str = "") -> dict[str, Any]:
     return {"kind": kind, "table": table, "column": column, "detail": detail}

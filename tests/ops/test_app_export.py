@@ -210,6 +210,19 @@ def test_a_failed_advisory_stints_step_does_not_block_the_export(tmp_path: Path)
     assert bad == "morning data step failed: report"
 
 
+def test_advisory_monitors_do_not_block_but_required_steps_and_data_check_do(
+    tmp_path: Path,
+) -> None:
+    ok = [(n, 0, "ok") for n in A.REQUIRED_STEPS]
+    adv = [("coverage_yesterday", 3, "failed"), ("data_check_advisory", 3, "failed")]
+    assert _steps_problem(tmp_path, [*ok, *adv]) is None
+    hard = [(n, 1, "failed") if n == "data_check" else (n, 0, "ok") for n in A.REQUIRED_STEPS]
+    assert _steps_problem(tmp_path, [*hard, *adv]) == "morning data step failed: data_check"
+    for req in ("settle", "checkpoint", "report", "parlay_settle", "data_snapshot", "data_diff"):
+        steps = [(n, 1, "failed") if n == req else (n, 0, "ok") for n in A.REQUIRED_STEPS]
+        assert _steps_problem(tmp_path, [*steps, *adv]) == f"morning data step failed: {req}"
+
+
 def test_a_good_run_clears_the_skip_record(tmp_path: Path) -> None:
     A.run(tmp_path, now=NOW, build=FakeBuild([0]))  # no morning heartbeat: skipped
     assert (tmp_path / "data/ops/heartbeat/app-export.skip.json").exists()

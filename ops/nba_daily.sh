@@ -132,6 +132,31 @@ advisory_step() {
   return 0
 }
 
+# data_check_step <cmd...>: `python -m nba.datamanifest check` has three outcomes (Devin 2026-10-27, after
+# 7 mornings of app-export skipped on COVERAGE_DROP): rc 0 clean; rc 3 only ADVISORY diff flags (COVERAGE_DROP,
+# NULL_SHIFT, STALE_SCHEDULED): alert, record `data_check 0 ok` (the hard checks passed) plus
+# `data_check_advisory 3 failed` (listed in app_export.ADVISORY_STEPS, never holds back the export, HB_RC and the
+# watchdog stay green); any other rc (1 = leak/schema/data-loss flag, 2 = usage, crash) is a hard failure exactly
+# like `step`: HB_RC set, `data_check <rc> failed`, so the export stops.
+data_check_step() {
+  log "start data_check"
+  "$@" >> "$LOG" 2>&1
+  rc=$?
+  log "end data_check rc=$rc"
+  if [ "$rc" -eq 0 ]; then
+    step_record data_check 0 ok
+  elif [ "$rc" -eq 3 ]; then
+    alert "data_check: advisory diff flags only (rc=3), export not held back, see $LOG"
+    step_record data_check 0 ok
+    step_record data_check_advisory 3 failed
+  else
+    HB_RC=$rc
+    alert "data_check failed (rc=$rc), see $LOG"
+    step_record data_check "$rc" failed
+  fi
+  return 0
+}
+
 # alarm_run <seconds> <cmd...>: macOS has no `timeout`. perl sets SIGALRM and exec()s the command; the
 # timer survives exec, so `uv` is signalled after <seconds> and the shell sees 142. `uv run` forks its
 # child (it does not exec it), so this relies on uv forwarding SIGALRM to python (true of uv 0.12.23; re-check
@@ -242,7 +267,8 @@ case "$MODE" in
       --out "reports/briefing/${TODAY_ET}_early.md" --edition early
     # Last night, in the record: the coverage check alerts on any FAIL (exit 3); the live scorecard
     # (nba/forward/scorecard.py) rebuilds the season-to-date report after the settle above.
-    step coverage_yesterday "$UV" run --no-sync python -m nba.ops.coverage --date "$YESTERDAY_ET"
+    # Advisory (Devin 2026-10-27): a monitor of last night; its rc 3 alerts but never holds back the app export.
+    advisory_step coverage_yesterday "$UV" run --no-sync python -m nba.ops.coverage --date "$YESTERDAY_ET"
     step scorecard "$UV" run --no-sync python -m nba.forward.scorecard --date "$YESTERDAY_ET" \
       --since 2026-10-20 --out-dir reports/forward_scorecard
     # OFF by default (launchd behaviour unchanged until the maintainer sets NBA_FACTS_NIGHTLY=1 in
@@ -278,7 +304,7 @@ case "$MODE" in
     fi
     step data_snapshot "$UV" run --no-sync python -m nba.datamanifest snapshot
     step data_diff "$UV" run --no-sync python -m nba.datamanifest diff
-    step data_check "$UV" run --no-sync python -m nba.datamanifest check
+    data_check_step "$UV" run --no-sync python -m nba.datamanifest check
     # rotating backup: needs a quiet file (no other writer, no leftover WAL), else skipped + alert
     i=0
     while lsof nba.duckdb >/dev/null 2>&1 && [ $i -le 30 ]; do i=$((i + 1)); sleep 30; done

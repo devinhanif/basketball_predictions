@@ -210,6 +210,20 @@ def _table_manifest(
                     + "GROUP BY 1"
                 ).fetchall()
             }
+        # Coverage numerator: distinct COMPLETED games only (home_pts set in `games`), so forecasts
+        # for games not yet played (tonight's slate, future schedule rows) cannot push the ratio
+        # above 1 or swing it with the slate size (2026-10-27: 1.209 -> 1.077, a COVERAGE_DROP).
+        done_by_season: dict[int, int] = {}
+        if has_game and have_games:
+            done_by_season = {
+                int(s_): int(n_)
+                for s_, n_ in con.execute(
+                    f"SELECT __season, count(DISTINCT game_id) FROM {src} "
+                    "WHERE __season IS NOT NULL AND game_id IN (SELECT game_id FROM main.games"
+                    + (" WHERE home_pts IS NOT NULL" if pts_on else "")
+                    + ") GROUP BY 1"
+                ).fetchall()
+            }
         out["seasons"] = {}
         for r in rows:
             s = str(r[0])
@@ -218,7 +232,9 @@ def _table_manifest(
             if has_game:
                 ent["games"] = int(r[2])
                 of = games_by_season.get(int(r[0]))
-                ent["coverage"] = _r(int(r[2]) / of) if of else None
+                done = done_by_season.get(int(r[0]), 0)
+                ent["games_completed"] = done
+                ent["coverage"] = _r(done / of) if of else None
             out["seasons"][s] = ent
             for i, c in enumerate(names):
                 per_season.setdefault(c, {})[s] = _r(1 - int(r[3 + i]) / n)

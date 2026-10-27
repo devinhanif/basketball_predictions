@@ -491,6 +491,7 @@ def check_lines(
     ).fetchall():
         first_quote[(gid, int(pid), MARKET_STAT[market])] = ra
     fc = latest_prod_forecasts_with_time(nba, gids)
+    confirmed = last_confirmed_runs(nba, games)
     for g in games:
         s = snaps.get(g.game_id, [])
         if s:
@@ -511,7 +512,13 @@ def check_lines(
             out.append(Result(WARN, f"lines[{g.game_id}]", "no sportsbook snapshots stored", {}))
         rows = [(p, t, m) for gid, p, t, m in fc if gid == g.game_id]
         quoted = [(p, t, m) for p, t, m in rows if (g.game_id, p, t) in first_quote]
-        paired = [(p, t, m) for p, t, m in quoted if m >= first_quote[(g.game_id, p, t)]]
+        # A forecast is "as of" the last pretip run that confirmed it, not its stored first write:
+        # the store writes on change only, so an unchanged forecast keeps its first made_at (12:00Z
+        # on 2026-10-26) while lines exist only from about T-90 (morning_failures_2026-10-27).
+        conf = confirmed.get(g.game_id)
+        asof = {(p, t): (m if conf is None else max(m, conf)) for p, t, m in quoted}
+        paired = [(p, t, m) for p, t, m in quoted if asof[(p, t)] >= first_quote[(g.game_id, p, t)]]
+        paired_stored = sum(1 for p, t, m in quoted if m >= first_quote[(g.game_id, p, t)])
         any_quotes = any(k[0] == g.game_id for k in first_quote)
         if not quoted:
             out.append(
@@ -534,15 +541,44 @@ def check_lines(
                 FAIL if not paired else (WARN if rate < PAIRING_WARN else OK),
                 f"pairing[{g.game_id}]",
                 f"{len(paired)}/{len(quoted)} = {rate:.0%} of quoted forecasts pair "
-                f"(made_at >= earliest main-line received_at); forecasts={len(rows)}",
+                f"(last-confirmed run time >= earliest main-line received_at; "
+                f"stored made_at alone: {paired_stored}); forecasts={len(rows)}"
+                + (f"; last confirmed {conf:%H:%M}Z" if conf is not None else "; no run stamps"),
                 {
                     "forecasts": len(rows),
                     "quoted": len(quoted),
                     "paired": len(paired),
+                    "paired_stored_made_at": paired_stored,
                     "rate": rate,
                 },
             )
         )
+    return out
+
+
+def last_confirmed_runs(
+    nba: duckdb.DuckDBPyConnection, games: Sequence[Game]
+) -> dict[str, datetime]:
+    """Per game, the made_at of the latest pretip run of the production props model before the tip.
+
+    Source: ``forward_model_stamps`` (one row per run and model, written at fit time whether or not
+    the write-on-change store then wrote any row), field ``made_at`` = the run's made_at, the same
+    clock the store uses. A run that found a forecast unchanged wrote nothing to
+    ``forward_predictions`` but is exactly its confirmation. Games with no stamp before tip, or a DB
+    without the table, are absent (the caller falls back to the stored made_at).
+    """
+    out: dict[str, datetime] = {}
+    try:
+        for g in games:
+            row = nba.execute(
+                "SELECT max(made_at) FROM forward_model_stamps"
+                " WHERE model_name = ? AND made_at < ?",
+                [PROPS_MODEL, g.tip_utc],
+            ).fetchone()
+            if row and row[0] is not None:
+                out[g.game_id] = row[0]
+    except duckdb.Error:
+        return {}
     return out
 
 

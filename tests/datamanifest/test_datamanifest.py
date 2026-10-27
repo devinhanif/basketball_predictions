@@ -314,3 +314,117 @@ def test_known_asymmetry_accepts_wildcards(cfg: dict[str, Any]) -> None:
         "null_rate_unplayed": 0.9,
     }
     assert sorted(f["table"] for f in leak_candidates(m, wild)) == ["feats", "forward_scores"]
+
+
+# --- Devin 2026-10-27: completed-games numerator; hard vs advisory exit codes ---------------------
+
+
+def _forecast_db(path: Path, *, upcoming: int) -> None:
+    """40 completed games; a forecast table over all of them plus ``upcoming`` unplayed games."""
+    _scheduled_db(path, null_dates=[])
+    con = duckdb.connect(str(path))
+    for k in range(upcoming):
+        con.execute(
+            "INSERT INTO games VALUES (?, DATE '2026-10-27', 2026, 1, 2, NULL, NULL)", [f"u{k}"]
+        )
+    con.execute("CREATE TABLE fc (game_id VARCHAR, player_id INT, v DOUBLE)")
+    con.execute("INSERT INTO fc SELECT 'g' || i, 1, 1.0 FROM range(40) t(i)")
+    con.execute("INSERT INTO fc SELECT 'u' || i, 1, 1.0 FROM range(?) t(i)", [upcoming])
+    con.close()
+
+
+def test_coverage_numerator_counts_completed_games_only(
+    tmp_path: Path, cfg: dict[str, Any]
+) -> None:
+    import datetime as dt
+
+    today = dt.date(2026, 10, 27)
+    ratios = []
+    for n in (4, 9):  # slate size must not move the ratio (it was 1.077 vs 1.209 on 10-27 / 10-26)
+        _forecast_db(tmp_path / f"u{n}.duckdb", upcoming=n)
+        m = build_manifest(tmp_path / f"u{n}.duckdb", cfg, today=today)
+        ent = m["tables"]["fc"]["seasons"]["2026"]
+        assert ent["games"] == 40 + n  # the raw distinct count is unchanged
+        assert ent["games_completed"] == 40
+        ratios.append(ent["coverage"])
+    assert ratios == [1.0, 1.0]
+    old = build_manifest(tmp_path / "u9.duckdb", cfg, today=today)
+    new = build_manifest(tmp_path / "u4.duckdb", cfg, today=today)
+    assert "COVERAGE_DROP" not in {f["kind"] for f in diff_manifests(old, new, cfg)["flags"]}
+
+
+def test_a_real_coverage_loss_still_drops(tmp_path: Path, cfg: dict[str, Any]) -> None:
+    import datetime as dt
+
+    today = dt.date(2026, 10, 27)
+    _forecast_db(tmp_path / "a.duckdb", upcoming=4)
+    _forecast_db(tmp_path / "b.duckdb", upcoming=4)
+    con = duckdb.connect(str(tmp_path / "b.duckdb"))
+    con.execute("DELETE FROM fc WHERE game_id IN ('g0', 'g1', 'g2')")  # 3 of 40 completed lost
+    con.close()
+    old = build_manifest(tmp_path / "a.duckdb", cfg, today=today)
+    new = build_manifest(tmp_path / "b.duckdb", cfg, today=today)
+    assert new["tables"]["fc"]["seasons"]["2026"]["coverage"] == 0.925
+    assert any(
+        f["kind"] == "COVERAGE_DROP" and f["table"] == "fc"
+        for f in diff_manifests(old, new, cfg)["flags"]
+    )
+
+
+def test_check_exit_code_splits_hard_from_advisory() -> None:
+    from nba.datamanifest.diff import check_exit_code
+
+    def fl(*kinds: str) -> list[dict[str, Any]]:
+        return [{"kind": k} for k in kinds]
+
+    assert check_exit_code([]) == 0
+    assert check_exit_code(fl("COVERAGE_DROP", "NULL_SHIFT", "STALE_SCHEDULED")) == 3
+    for hard in (
+        "POSSIBLE_LEAK",
+        "LABEL_NULL_GAP",
+        "TABLE_REMOVED",
+        "COLUMN_REMOVED",
+        "TYPE_CHANGE",
+        "PK_DUPLICATES",
+        "ROW_DROP",
+        "SOMETHING_NEW",  # an unknown kind fails closed
+    ):
+        assert check_exit_code(fl(hard)) == 1
+        assert check_exit_code(fl("COVERAGE_DROP", hard)) == 1  # mixed: the hard stop wins
+
+
+def _check_cli(tmp_path: Path, cfg: dict[str, Any], old_db: Path, new_db: Path) -> int:
+    from nba.datamanifest.__main__ import main
+
+    mdir = tmp_path / "manifests"
+    mdir.mkdir(parents=True)
+    for name, db in (("1_old.json", old_db), ("2_new.json", new_db)):
+        (mdir / name).write_text(json.dumps(build_manifest(db, cfg)))
+    conf = tmp_path / "cfg.json"
+    conf.write_text(json.dumps({**cfg, "manifest_dir": str(mdir)}))
+    return main(["--config", str(conf), "check"])
+
+
+def test_check_cli_leak_is_hard_coverage_only_is_advisory(
+    tmp_path: Path, cfg: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    _make_db(tmp_path / "clean.duckdb", leak=False)
+    _make_db(tmp_path / "leaky.duckdb", leak=True)
+    assert (
+        _check_cli(tmp_path / "leak", cfg, tmp_path / "clean.duckdb", tmp_path / "leaky.duckdb")
+        == 1
+    )
+    assert "POSSIBLE_LEAK" in capsys.readouterr().out
+    # a clean pair, then a pure null-rate shift in one column of a clean table: advisory only
+    _make_db(tmp_path / "shift.duckdb", leak=False)
+    con = duckdb.connect(str(tmp_path / "shift.duckdb"))
+    con.execute("UPDATE feats SET f = NULL WHERE (rowid * 7919) % 13 BETWEEN 3 AND 5")
+    con.close()
+    rc = _check_cli(tmp_path / "shift", cfg, tmp_path / "clean.duckdb", tmp_path / "shift.duckdb")
+    out = capsys.readouterr().out
+    assert "NULL_SHIFT" in out and "POSSIBLE_LEAK" not in out, out
+    assert rc == 3, out
+    assert (
+        _check_cli(tmp_path / "same", cfg, tmp_path / "clean.duckdb", tmp_path / "clean.duckdb")
+        == 0
+    )

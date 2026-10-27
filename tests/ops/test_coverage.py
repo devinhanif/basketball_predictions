@@ -232,6 +232,55 @@ def test_pairing_branches(tmp_path: Path) -> None:
     assert _by(_run(p), "pairing")[0].status == cv.OK
 
 
+def _stamp(p: cv.Paths, made: datetime, model: str = cv.PROPS_MODEL) -> None:
+    c = duckdb.connect(str(p.nba_db))
+    c.execute(
+        "CREATE TABLE IF NOT EXISTS forward_model_stamps"
+        " (run_id VARCHAR, model_name VARCHAR, made_at TIMESTAMP)"
+    )
+    c.execute("INSERT INTO forward_model_stamps VALUES ('s', ?, ?)", [model, made])
+    c.close()
+
+
+def test_deduped_forecast_pairs_against_the_last_confirming_run(tmp_path: Path) -> None:
+    # 2026-10-26 slate: ONE stored write at 12:00Z, lines only from T-90, later pretip runs wrote
+    # (write-on-change) but stamped forward_model_stamps. Before the fix: 0 of N paired -> FAIL.
+    p = _mk(tmp_path)
+    first_line = TIP - timedelta(minutes=63)
+    for pid in range(100, 153):
+        _forecast(p, pid, TIP.replace(hour=12))
+        _quote(p, pid, first_line)
+    r = _by(_run(p), "pairing")[0]
+    assert (
+        r.status == cv.FAIL and r.data["paired"] == 0
+    )  # no stamps: the old behaviour is the fallback
+    _stamp(p, first_line + timedelta(minutes=2))  # a pretip run after the first quote re-confirmed
+    r = _by(_run(p), "pairing")[0]
+    assert r.status == cv.OK and r.data["paired"] == 53 and r.data["quoted"] == 53
+    assert r.data["paired_stored_made_at"] == 0
+
+
+def test_confirming_run_must_be_before_tip_and_the_props_model(tmp_path: Path) -> None:
+    p = _mk(tmp_path)
+    _forecast(p, 100, TIP.replace(hour=12))
+    _quote(p, 100, TIP - timedelta(minutes=60))
+    _stamp(
+        p, TIP - timedelta(minutes=30), model="rung0_mov_elo"
+    )  # another model's run: not a confirmation
+    _stamp(p, TIP + timedelta(minutes=5))  # after tip: never a confirmation
+    assert _by(_run(p), "pairing")[0].data["paired"] == 0
+    _stamp(p, TIP - timedelta(minutes=30))
+    assert _by(_run(p), "pairing")[0].data["paired"] == 1
+
+
+def test_a_run_before_the_first_quote_does_not_pair(tmp_path: Path) -> None:
+    p = _mk(tmp_path)
+    _forecast(p, 100, TIP.replace(hour=12))
+    _quote(p, 100, TIP - timedelta(minutes=60))
+    _stamp(p, TIP - timedelta(minutes=90))
+    assert _by(_run(p), "pairing")[0].data["paired"] == 0
+
+
 def test_quotes_after_tip_do_not_count(tmp_path: Path) -> None:
     p = _mk(tmp_path)
     _quote(p, 100, TIP + timedelta(minutes=1))
