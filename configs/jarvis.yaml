@@ -147,6 +147,27 @@ daily_dollar:                   # one $1 same-team long-shot ticket a day (TRADI
   corr_factor: 1.2
   corr_factor_is_estimate: true
 
+halftime_overs:                 # halftime scorer (nba/jarvis/halftime_overs.py): PAPER LOG + one short line, UNPROVEN
+  # Draft rule docs/prereg/HALFTIME_OVERS_VS_PRICE.md is NOT frozen. At each game's halftime T508 arm M and the
+  # player-aware baseline glm_e score every on-grid Kalshi player-prop Yes quote (Over only); the rows go to an
+  # append-only paper table, stamped before the second half starts and refused after. The Discord line shows at
+  # most top_n overs whose model probability exceeds ask + one-contract fee by min_edge. No stake is sized or
+  # suggested; the model has no live track record and the market usually knows more. Nothing reads an outcome.
+  enabled: true                 # no artifact on disk = silent no-op (the tick never breaks)
+  artifact: data/models/halftime_ingame/2026-10-27/artifact.json
+  store: data/jarvis/halftime_overs.duckdb
+  min_edge: 0.05                # the draft's threshold; part of the rule, not tuned
+  top_n: 3
+  post_without_plays: false     # the line follows the halftime check-in, which exists only for games with a pick/play
+  # Recency window for the pregame mean (draft open choice C3). null = production's as-of read (the last 10 played
+  # games before today, which in Oct-Nov includes 2025-26 games: a read of holdout season rows as FEATURES, to be
+  # disclosed in the holdout log before the first live run). A date such as 2026-10-01 limits it to 2026-27 games.
+  recency_min_game_date: "2026-10-01"
+  fee_pin:                      # the scorer refuses unless configs/parlay.yaml's fee_model matches (verified 2026-10-08)
+    formula: p_one_minus_p
+    coefficient: 0.07
+    multiplier: 1.0
+
 exit_warning:                   # DON'T SELL line when a position's bid is far below its value (Devin, 2026-10-25: a $0 cash-out)
   # Chosen, not fitted. Honest scope (adversary review 2026-10-26): on a sane two-sided book this only measures
   # how wide the spread is (bid < ask/3), and it is NOT a value estimate: with the gates below it fired on

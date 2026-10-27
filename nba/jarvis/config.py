@@ -7,7 +7,7 @@ stored, logged or put in an error message.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -77,6 +77,7 @@ class JarvisConfig:
     min_settled: int
     min_settled_dates: int
     root: Path = ROOT
+    halftime_overs: dict[str, Any] = field(default_factory=lambda: {"enabled": False})
     props_sides: tuple[str, ...] = ("yes",)  # player props: Over / Yes only (Devin, 2026-10-27)
 
     def fee(self, venue: str) -> FeeModel:
@@ -212,6 +213,7 @@ def load_config(
         min_settled_dates=pcfg.min_settled_dates,
         root=root,
         props_sides=_props_sides(raw),
+        halftime_overs=dict(raw.get("halftime_overs", {"enabled": False})),
     )
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]
     if missing:
@@ -232,6 +234,13 @@ def load_config(
             raise ValueError("exit_warning.min_giveaway_usd >= 0 and max_spread in (0, 1)")
         if float(ew["max_age_min"]) <= 0:
             raise ValueError("exit_warning.max_age_min must be > 0")
+    ho = cfg.halftime_overs
+    if ho.get("enabled", False):
+        pin = ho.get("fee_pin") or {}
+        if not 0.0 < float(ho["min_edge"]) < 1.0 or not 1 <= int(ho["top_n"]) <= 3:
+            raise ValueError("halftime_overs.min_edge must be in (0, 1) and top_n in 1..3")
+        if not {"formula", "coefficient", "multiplier"} <= set(pin):
+            raise ValueError("halftime_overs.fee_pin needs formula, coefficient, multiplier")
     if cfg.reserve_for_strong >= cfg.nightly_cap:
         raise ValueError("caps.reserve_for_strong_usd must be below caps.nightly_usd")
     return cfg
