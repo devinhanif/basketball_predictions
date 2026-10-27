@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from yaml.constructor import ConstructorError
 
 from nba.parlay.config import FeeModel, ParlayConfig
 from nba.parlay.config import load_config as load_parlay_config
@@ -96,6 +97,39 @@ class JarvisConfig:
         return self.balance_current <= self.balance_floor
 
 
+class _StrictLoader(yaml.SafeLoader):
+    """SafeLoader that rejects a duplicated mapping key (a second ``props:`` must not win silently)."""
+
+
+def _no_dupes(loader: _StrictLoader, node: yaml.MappingNode, deep: bool = False) -> dict[Any, Any]:
+    seen: set[Any] = set()
+    for k, _v in node.value:
+        key = loader.construct_object(k, deep=True)
+        if key in seen:
+            raise ConstructorError(
+                None, None, f"duplicate key {key!r} in jarvis config", k.start_mark
+            )
+        seen.add(key)
+    return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+
+_StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_dupes)
+
+
+def _props_sides(raw: dict[str, Any]) -> tuple[str, ...]:
+    """sides.props: a list containing "yes" and nothing but "yes" (Devin 2026-10-27: Over only)."""
+    sides = raw.get("sides")
+    if not isinstance(sides, dict) or "props" not in sides:
+        return ("yes",)
+    v = sides["props"]
+    if not isinstance(v, list) or not v:
+        raise ValueError(f"sides.props must be a non-empty list, got {v!r}")
+    out = tuple(_side(x) for x in v)
+    if "yes" not in out or "no" in out or set(out) != {"yes"}:
+        raise ValueError(f"sides.props must be exactly [yes] (props are Over / Yes only): {out}")
+    return out
+
+
 def _side(x: object) -> str:
     """YAML reads a bare yes/no as a boolean; accept both spellings."""
     return ("yes" if x else "no") if isinstance(x, bool) else str(x)
@@ -112,7 +146,7 @@ def load_config(
     *,
     root: Path = ROOT,
 ) -> JarvisConfig:
-    raw = yaml.safe_load(Path(path).read_text())
+    raw = yaml.load(Path(path).read_text(), Loader=_StrictLoader)  # noqa: S506 (SafeLoader subclass)
     pcfg: ParlayConfig = load_parlay_config(parlay_path)
     pm = raw["fees"]["polymarket"]
     pm_fee = FeeModel(
@@ -177,10 +211,8 @@ def load_config(
         min_settled=pcfg.min_settled,
         min_settled_dates=pcfg.min_settled_dates,
         root=root,
-        props_sides=tuple(_side(x) for x in raw.get("sides", {}).get("props", ["yes"])),
+        props_sides=_props_sides(raw),
     )
-    if not cfg.props_sides or not set(cfg.props_sides) <= {"yes", "no"}:
-        raise ValueError(f"sides.props must be a non-empty subset of yes/no: {cfg.props_sides}")
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]
     if missing:
         raise ValueError(f"jarvis config lacks bankroll/fee for venues {missing}")

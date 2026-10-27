@@ -169,3 +169,57 @@ def test_arbitrage_stake_15_fits_the_cap_and_reserve(cfg: JarvisConfig, tmp_path
     after = size_plays(cfg, [arb], book, SLATE)[0]
     spent = 10.0
     assert 0 < after.stake_usd <= cfg.nightly_cap - spent + 1e-9
+
+
+def test_sides_props_config_fails_closed(cfg: JarvisConfig, root, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from nba.jarvis.config import DEFAULT_PATH, load_config
+
+    base = DEFAULT_PATH.read_text()
+    good = 'props: ["yes"]'
+    assert good in base
+
+    def load(text: str) -> JarvisConfig:
+        f = tmp_path / "j.yaml"
+        f.write_text(text)
+        return load_config(f, root=root)
+
+    for bad in ('props: ["no"]', 'props: ["yes", "no"]', "props: []", "props: yes_only", "props:"):
+        with pytest.raises(ValueError):
+            load(base.replace(good, bad))
+    with pytest.raises(Exception, match="duplicate key"):
+        load(base.replace(good, good + '\n  props: ["yes", "no"]'))
+    assert load(base).props_sides == ("yes",)
+
+
+def test_pick_on_a_prop_no_is_refused(cfg: JarvisConfig) -> None:
+    from nba.jarvis.picks import PickError, build_pick
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    with pytest.raises(PickError, match="Over / Yes only"):
+        build_pick(
+            cfg, st, "x", venue="kalshi", price=0.5, stake=2.0, ticker=prop.ticker, side="no"
+        )
+    g = next(q for q in st.quotes if q.kind == "game_win" and q.venue == "kalshi")
+    assert build_pick(
+        cfg, st, "x", venue="kalshi", price=0.5, stake=2.0, ticker=g.ticker, side="no"
+    )
+
+
+def test_fastarb_keeps_player_props_excluded() -> None:
+    import yaml
+
+    from nba.jarvis.config import ROOT
+
+    raw = yaml.safe_load((ROOT / "configs" / "fastarb.yaml").read_text())
+    found = []
+
+    def walk(o: object) -> None:
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k == "include_player_props":
+                    found.append(v)
+                walk(v)
+
+    walk(raw)
+    assert found and all(v is False for v in found)

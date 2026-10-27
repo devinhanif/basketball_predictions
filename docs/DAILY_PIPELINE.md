@@ -1045,12 +1045,13 @@ outcome, never "NO LAL to lose"), the venue, max price, stake, **what it pays if
 
 | label | rule (after fees on a one-contract order) | stake (ladder, monotone) |
 |---|---|---|
-| arbitrage | a cover of the winner market costing < $1 per pair AND confirmed: depth on both legs, legs read <= 5 s apart, by a live source through `QUOTE_SOURCES` (fast-arb once merged). JARVIS's own snapshot reads never qualify | $10 |
+| arbitrage | a cover of the winner market costing < $1 per pair AND confirmed: depth on both legs, legs read <= 5 s apart, by a live source through `QUOTE_SOURCES` (fast-arb once merged). JARVIS's own snapshot reads never qualify | $15 |
 | strong | >= 3c vs Pinnacle no-vig, price <= 5 min old, Pinnacle not newer than the price by > 2 min, line <= 120 min old | $5 |
 | thin | 0..3c; or a capped strong (stale/skewed price, prop DNP rule unverified without P(plays)) | $3 |
 | arb_candidate | the same cover from unconfirmed reads: never alerts, sized as thin, shown "ARB CANDIDATE ... UNCONFIRMED" plus "RESOLUTION RISK: postponement/OT rules differ by venue, not verified" | $3 |
 | none | negative edge or no Pinnacle line for that exact bet: a fair price, entertainment | $1 (at most 2 contracts) |
 
+Player props are Over / Yes only (`sides.props` in `configs/jarvis.yaml`, Devin 2026-10-27); game markets keep both sides.
 Nightly cap $20, of which $10 is reserved for strong/arbitrage only (entertainment cannot spend it). With the cap used a strong/arbitrage alert still posts, showing "stake $0 (nightly cap used)".
 Every measured play says "best of N priced bets" (selection over many near-fair prices). Props use Pinnacle only on an exact line (Kalshi "25+" = over 24.5); until Kalshi's DNP rule is read the fair price is
 Pinnacle's P(over | plays) x our P(plays). Polymarket is **Polymarket US** (public gateway `gateway.polymarket.us`; polymarket.com / gamma is not tradable from the US and is not used), fee 0.0695 x C x p x (1-p)

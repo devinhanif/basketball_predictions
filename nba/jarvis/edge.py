@@ -125,9 +125,9 @@ def kelly_fraction_of_bankroll(fair: float, cost: float) -> float:
 
 
 def side_allowed(cfg: JarvisConfig, kind: str, side: str) -> bool:
-    """Player props are bought on the sides in ``cfg.props_sides`` only (Over / Yes); every other
-    market kind keeps both sides."""
-    return kind != "prop" or side in cfg.props_sides
+    """Only game winners keep both sides; any other kind (player props today) is bought on the
+    sides in ``cfg.props_sides`` only (Over / Yes)."""
+    return kind == "game_win" or side in cfg.props_sides
 
 
 def stake_for(cfg: JarvisConfig, label: str, *, none_level: bool = False) -> float:
