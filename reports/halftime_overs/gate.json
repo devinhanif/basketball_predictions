@@ -1,0 +1,755 @@
+{
+ "constants": {
+  "ASK_MAX_C": 97,
+  "ASK_MIN_C": 2,
+  "BLOWOUT_MARGIN": 15,
+  "COLD_MAX_PCT": 0.3,
+  "COLD_MIN_FGA": 5,
+  "DECISION_DELAY_S": 120,
+  "FOUL_TROUBLE_PF": 3,
+  "QUOTE_WINDOW_S": 180,
+  "STATE_MAX_AGE_S": 150,
+  "TAKER_COEF": 0.07
+ },
+ "label_free": "no final box, no settlement, no second-half state, no model probability read",
+ "nights": [
+  {
+   "by_stat": {
+    "ast": {
+     "ask_cents_sum": 3426,
+     "entry_candidates": 111,
+     "entry_candidates_depth_5usd": 78,
+     "fee_cents_sum": 162,
+     "markets_at_snapshot": 150,
+     "mechanics_pass": 123,
+     "player_stat_units": 40,
+     "slice_blowout15": 64,
+     "slice_blowout15_bench": 11,
+     "slice_blowout15_starter": 53,
+     "slice_cold": 24,
+     "slice_fouls3": 4,
+     "x_already_resolved": 1,
+     "x_no_tradeable_ask": 22,
+     "x_off_t508_grid": 12,
+     "x_player_unmatched": 4
+    },
+    "fg3m": {
+     "ask_cents_sum": 3476,
+     "entry_candidates": 130,
+     "entry_candidates_depth_5usd": 97,
+     "fee_cents_sum": 200,
+     "markets_at_snapshot": 217,
+     "mechanics_pass": 175,
+     "player_stat_units": 41,
+     "slice_blowout15": 70,
+     "slice_blowout15_bench": 19,
+     "slice_blowout15_starter": 51,
+     "slice_cold": 30,
+     "slice_fouls3": 6,
+     "x_no_tradeable_ask": 37,
+     "x_off_t508_grid": 45,
+     "x_player_unmatched": 5
+    },
+    "pts": {
+     "ask_cents_sum": 4768,
+     "entry_candidates": 146,
+     "entry_candidates_depth_5usd": 124,
+     "fee_cents_sum": 219,
+     "markets_at_snapshot": 180,
+     "mechanics_pass": 162,
+     "player_stat_units": 45,
+     "slice_blowout15": 83,
+     "slice_blowout15_bench": 16,
+     "slice_blowout15_starter": 67,
+     "slice_cold": 31,
+     "slice_fouls3": 9,
+     "x_no_tradeable_ask": 16,
+     "x_off_t508_grid": 16,
+     "x_player_unmatched": 2
+    },
+    "reb": {
+     "ask_cents_sum": 4832,
+     "entry_candidates": 131,
+     "entry_candidates_depth_5usd": 100,
+     "fee_cents_sum": 197,
+     "markets_at_snapshot": 191,
+     "mechanics_pass": 150,
+     "player_stat_units": 42,
+     "slice_blowout15": 72,
+     "slice_blowout15_bench": 12,
+     "slice_blowout15_starter": 60,
+     "slice_cold": 26,
+     "slice_fouls3": 11,
+     "x_already_resolved": 1,
+     "x_no_tradeable_ask": 37,
+     "x_off_t508_grid": 19,
+     "x_player_unmatched": 3
+    }
+   },
+   "counts": {
+    "games_halftime_seen": 9,
+    "games_with_snapshot": 4,
+    "player_stat_units": 168,
+    "series_state_stale_or_missing": 20
+   },
+   "games": [
+    {
+     "entry_candidates": 0,
+     "event_id": "401909091",
+     "game": "MIN@MIA",
+     "ht_first": "2026-10-22T01:00:43.223371+00:00",
+     "markets": 0,
+     "snapshots_ok_series": 0
+    },
+    {
+     "entry_candidates": 118,
+     "event_id": "401909092",
+     "game": "GSW@LAL",
+     "ht_first": "2026-10-22T03:18:32.812289+00:00",
+     "markets": 178,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 0,
+     "event_id": "401909836",
+     "game": "CHA@BKN",
+     "ht_first": "2026-10-22T01:00:43.223371+00:00",
+     "markets": 0,
+     "snapshots_ok_series": 0
+    },
+    {
+     "entry_candidates": 0,
+     "event_id": "401909837",
+     "game": "CHI@TOR",
+     "ht_first": "2026-10-22T01:00:43.223371+00:00",
+     "markets": 0,
+     "snapshots_ok_series": 0
+    },
+    {
+     "entry_candidates": 0,
+     "event_id": "401909838",
+     "game": "UTA@MEM",
+     "ht_first": "2026-10-22T01:16:05.104143+00:00",
+     "markets": 0,
+     "snapshots_ok_series": 0
+    },
+    {
+     "entry_candidates": 0,
+     "event_id": "401909839",
+     "game": "IND@NOP",
+     "ht_first": "2026-10-22T01:16:05.104143+00:00",
+     "markets": 0,
+     "snapshots_ok_series": 0
+    },
+    {
+     "entry_candidates": 148,
+     "event_id": "401909840",
+     "game": "DAL@HOU",
+     "ht_first": "2026-10-22T01:44:30.212307+00:00",
+     "markets": 198,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 141,
+     "event_id": "401909841",
+     "game": "PHX@POR",
+     "ht_first": "2026-10-22T03:17:06.304710+00:00",
+     "markets": 195,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 111,
+     "event_id": "401909842",
+     "game": "SAC@LAC",
+     "ht_first": "2026-10-22T03:44:29.827815+00:00",
+     "markets": 167,
+     "snapshots_ok_series": 4
+    }
+   ],
+   "night": "live_2026-10-21"
+  },
+  {
+   "by_stat": {
+    "ast": {
+     "ask_cents_sum": 2114,
+     "entry_candidates": 78,
+     "entry_candidates_depth_5usd": 46,
+     "fee_cents_sum": 109,
+     "markets_at_snapshot": 94,
+     "mechanics_pass": 87,
+     "player_stat_units": 25,
+     "slice_blowout15": 43,
+     "slice_blowout15_bench": 10,
+     "slice_blowout15_starter": 33,
+     "slice_cold": 19,
+     "slice_fouls3": 3,
+     "x_no_tradeable_ask": 7,
+     "x_off_t508_grid": 9
+    },
+    "fg3m": {
+     "ask_cents_sum": 2328,
+     "entry_candidates": 84,
+     "entry_candidates_depth_5usd": 57,
+     "fee_cents_sum": 130,
+     "markets_at_snapshot": 125,
+     "mechanics_pass": 109,
+     "player_stat_units": 25,
+     "slice_blowout15": 43,
+     "slice_blowout15_bench": 15,
+     "slice_blowout15_starter": 28,
+     "slice_cold": 25,
+     "slice_fouls3": 4,
+     "x_no_tradeable_ask": 16,
+     "x_off_t508_grid": 25
+    },
+    "pts": {
+     "ask_cents_sum": 2638,
+     "entry_candidates": 87,
+     "entry_candidates_depth_5usd": 67,
+     "fee_cents_sum": 128,
+     "markets_at_snapshot": 100,
+     "mechanics_pass": 94,
+     "player_stat_units": 27,
+     "slice_blowout15": 46,
+     "slice_blowout15_bench": 10,
+     "slice_blowout15_starter": 36,
+     "slice_cold": 27,
+     "slice_fouls3": 3,
+     "x_no_tradeable_ask": 6,
+     "x_off_t508_grid": 7
+    },
+    "reb": {
+     "ask_cents_sum": 2952,
+     "entry_candidates": 77,
+     "entry_candidates_depth_5usd": 50,
+     "fee_cents_sum": 117,
+     "markets_at_snapshot": 105,
+     "mechanics_pass": 86,
+     "player_stat_units": 25,
+     "slice_blowout15": 41,
+     "slice_blowout15_bench": 8,
+     "slice_blowout15_starter": 33,
+     "slice_cold": 18,
+     "slice_fouls3": 2,
+     "x_no_tradeable_ask": 19,
+     "x_off_t508_grid": 9
+    }
+   },
+   "counts": {
+    "games_halftime_seen": 2,
+    "games_with_snapshot": 2,
+    "player_stat_units": 102
+   },
+   "games": [
+    {
+     "entry_candidates": 173,
+     "event_id": "401909093",
+     "game": "CLE@PHI",
+     "ht_first": "2026-10-23T00:17:58.085305+00:00",
+     "markets": 225,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 153,
+     "event_id": "401909094",
+     "game": "DEN@OKC",
+     "ht_first": "2026-10-23T02:51:59.541104+00:00",
+     "markets": 199,
+     "snapshots_ok_series": 4
+    }
+   ],
+   "night": "live_2026-10-22"
+  },
+  {
+   "by_stat": {
+    "ast": {
+     "ask_cents_sum": 1655,
+     "entry_candidates": 53,
+     "entry_candidates_depth_5usd": 24,
+     "fee_cents_sum": 81,
+     "markets_at_snapshot": 73,
+     "mechanics_pass": 59,
+     "player_stat_units": 19,
+     "slice_cold": 4,
+     "slice_fouls3": 5,
+     "x_no_tradeable_ask": 14,
+     "x_off_t508_grid": 6
+    },
+    "fg3m": {
+     "ask_cents_sum": 2606,
+     "entry_candidates": 69,
+     "entry_candidates_depth_5usd": 38,
+     "fee_cents_sum": 113,
+     "markets_at_snapshot": 108,
+     "mechanics_pass": 90,
+     "player_stat_units": 22,
+     "slice_cold": 3,
+     "slice_fouls3": 7,
+     "x_no_tradeable_ask": 18,
+     "x_off_t508_grid": 21
+    },
+    "pts": {
+     "ask_cents_sum": 3355,
+     "entry_candidates": 85,
+     "entry_candidates_depth_5usd": 60,
+     "fee_cents_sum": 134,
+     "markets_at_snapshot": 98,
+     "mechanics_pass": 88,
+     "player_stat_units": 26,
+     "slice_cold": 7,
+     "slice_fouls3": 6,
+     "x_no_tradeable_ask": 10,
+     "x_off_t508_grid": 3
+    },
+    "reb": {
+     "ask_cents_sum": 3428,
+     "entry_candidates": 76,
+     "entry_candidates_depth_5usd": 47,
+     "fee_cents_sum": 129,
+     "markets_at_snapshot": 110,
+     "mechanics_pass": 83,
+     "player_stat_units": 26,
+     "slice_cold": 6,
+     "slice_fouls3": 6,
+     "x_no_tradeable_ask": 27,
+     "x_off_t508_grid": 7
+    }
+   },
+   "counts": {
+    "games_halftime_seen": 2,
+    "games_with_snapshot": 2,
+    "player_stat_units": 93
+   },
+   "games": [
+    {
+     "entry_candidates": 155,
+     "event_id": "401909096",
+     "game": "HOU@SAS",
+     "ht_first": "2026-10-24T02:50:26.126974+00:00",
+     "markets": 217,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 128,
+     "event_id": "401909849",
+     "game": "NOP@UTA",
+     "ht_first": "2026-10-24T02:45:28.592372+00:00",
+     "markets": 172,
+     "snapshots_ok_series": 4
+    }
+   ],
+   "night": "live_2026-10-23"
+  },
+  {
+   "by_stat": {
+    "ast": {
+     "ask_cents_sum": 563,
+     "entry_candidates": 20,
+     "entry_candidates_depth_5usd": 12,
+     "fee_cents_sum": 28,
+     "markets_at_snapshot": 25,
+     "mechanics_pass": 20,
+     "player_stat_units": 7,
+     "x_no_tradeable_ask": 5
+    },
+    "fg3m": {
+     "ask_cents_sum": 645,
+     "entry_candidates": 20,
+     "entry_candidates_depth_5usd": 11,
+     "fee_cents_sum": 33,
+     "markets_at_snapshot": 34,
+     "mechanics_pass": 27,
+     "player_stat_units": 7,
+     "x_no_tradeable_ask": 7,
+     "x_off_t508_grid": 7
+    },
+    "pts": {
+     "ask_cents_sum": 885,
+     "entry_candidates": 23,
+     "entry_candidates_depth_5usd": 17,
+     "fee_cents_sum": 35,
+     "markets_at_snapshot": 30,
+     "mechanics_pass": 26,
+     "player_stat_units": 7,
+     "x_no_tradeable_ask": 4,
+     "x_off_t508_grid": 3
+    },
+    "reb": {
+     "ask_cents_sum": 693,
+     "entry_candidates": 20,
+     "entry_candidates_depth_5usd": 13,
+     "fee_cents_sum": 28,
+     "markets_at_snapshot": 29,
+     "mechanics_pass": 21,
+     "player_stat_units": 7,
+     "x_no_tradeable_ask": 8,
+     "x_off_t508_grid": 1
+    }
+   },
+   "counts": {
+    "games_halftime_seen": 1,
+    "games_with_snapshot": 1,
+    "player_stat_units": 28
+   },
+   "games": [
+    {
+     "entry_candidates": 83,
+     "event_id": "401909860",
+     "game": "GSW@PHX",
+     "ht_first": "2026-10-25T03:14:58.078612+00:00",
+     "markets": 118,
+     "snapshots_ok_series": 4
+    }
+   ],
+   "night": "live_2026-10-24"
+  },
+  {
+   "by_stat": {
+    "ast": {
+     "ask_cents_sum": 6069,
+     "entry_candidates": 185,
+     "entry_candidates_depth_5usd": 109,
+     "fee_cents_sum": 285,
+     "markets_at_snapshot": 256,
+     "mechanics_pass": 210,
+     "player_stat_units": 65,
+     "slice_cold": 27,
+     "slice_fouls3": 22,
+     "x_dnp_first_half": 8,
+     "x_no_tradeable_ask": 31,
+     "x_off_t508_grid": 25,
+     "x_player_unmatched": 7
+    },
+    "fg3m": {
+     "ask_cents_sum": 6286,
+     "entry_candidates": 192,
+     "entry_candidates_depth_5usd": 153,
+     "fee_cents_sum": 317,
+     "markets_at_snapshot": 334,
+     "mechanics_pass": 260,
+     "player_stat_units": 65,
+     "slice_cold": 41,
+     "slice_fouls3": 19,
+     "x_dnp_first_half": 10,
+     "x_no_tradeable_ask": 59,
+     "x_off_t508_grid": 68,
+     "x_player_unmatched": 5
+    },
+    "pts": {
+     "ask_cents_sum": 8694,
+     "entry_candidates": 252,
+     "entry_candidates_depth_5usd": 176,
+     "fee_cents_sum": 383,
+     "markets_at_snapshot": 301,
+     "mechanics_pass": 266,
+     "player_stat_units": 79,
+     "slice_cold": 49,
+     "slice_fouls3": 29,
+     "x_dnp_first_half": 9,
+     "x_no_tradeable_ask": 20,
+     "x_off_t508_grid": 14,
+     "x_player_unmatched": 6
+    },
+    "reb": {
+     "ask_cents_sum": 9269,
+     "entry_candidates": 220,
+     "entry_candidates_depth_5usd": 141,
+     "fee_cents_sum": 340,
+     "markets_at_snapshot": 325,
+     "mechanics_pass": 255,
+     "player_stat_units": 73,
+     "slice_cold": 38,
+     "slice_fouls3": 23,
+     "x_dnp_first_half": 10,
+     "x_no_tradeable_ask": 51,
+     "x_off_t508_grid": 35,
+     "x_player_unmatched": 9
+    }
+   },
+   "counts": {
+    "games_halftime_seen": 7,
+    "games_with_snapshot": 7,
+    "player_stat_units": 282
+   },
+   "games": [
+    {
+     "entry_candidates": 115,
+     "event_id": "401909861",
+     "game": "LAL@UTA",
+     "ht_first": "2026-10-25T22:15:23.615478+00:00",
+     "markets": 164,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 116,
+     "event_id": "401909862",
+     "game": "IND@BKN",
+     "ht_first": "2026-10-25T23:13:30.743097+00:00",
+     "markets": 152,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 152,
+     "event_id": "401909863",
+     "game": "ORL@NYK",
+     "ht_first": "2026-10-26T00:08:37.183045+00:00",
+     "markets": 198,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 137,
+     "event_id": "401909864",
+     "game": "TOR@MIN",
+     "ht_first": "2026-10-26T00:14:37.977708+00:00",
+     "markets": 195,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 124,
+     "event_id": "401909865",
+     "game": "LAC@OKC",
+     "ht_first": "2026-10-26T00:03:36.739521+00:00",
+     "markets": 162,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 104,
+     "event_id": "401909866",
+     "game": "DET@PHI",
+     "ht_first": "2026-10-26T00:49:42.287635+00:00",
+     "markets": 174,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 101,
+     "event_id": "401909867",
+     "game": "MEM@SAC",
+     "ht_first": "2026-10-26T02:09:51.967521+00:00",
+     "markets": 171,
+     "snapshots_ok_series": 4
+    }
+   ],
+   "night": "live_2026-10-25"
+  },
+  {
+   "by_stat": {
+    "ast": {
+     "ask_cents_sum": 6469,
+     "entry_candidates": 204,
+     "entry_candidates_depth_5usd": 105,
+     "fee_cents_sum": 294,
+     "markets_at_snapshot": 303,
+     "mechanics_pass": 233,
+     "player_stat_units": 78,
+     "slice_cold": 28,
+     "slice_fouls3": 27,
+     "x_already_resolved": 5,
+     "x_no_tradeable_ask": 59,
+     "x_off_t508_grid": 29,
+     "x_player_unmatched": 6
+    },
+    "fg3m": {
+     "ask_cents_sum": 6686,
+     "entry_candidates": 220,
+     "entry_candidates_depth_5usd": 151,
+     "fee_cents_sum": 355,
+     "markets_at_snapshot": 413,
+     "mechanics_pass": 298,
+     "player_stat_units": 79,
+     "slice_cold": 25,
+     "slice_fouls3": 23,
+     "x_no_tradeable_ask": 100,
+     "x_off_t508_grid": 78,
+     "x_player_unmatched": 15
+    },
+    "pts": {
+     "ask_cents_sum": 9510,
+     "entry_candidates": 267,
+     "entry_candidates_depth_5usd": 162,
+     "fee_cents_sum": 401,
+     "markets_at_snapshot": 345,
+     "mechanics_pass": 278,
+     "player_stat_units": 94,
+     "slice_cold": 31,
+     "slice_fouls3": 31,
+     "x_no_tradeable_ask": 62,
+     "x_off_t508_grid": 11,
+     "x_player_unmatched": 5
+    },
+    "reb": {
+     "ask_cents_sum": 10773,
+     "entry_candidates": 273,
+     "entry_candidates_depth_5usd": 164,
+     "fee_cents_sum": 407,
+     "markets_at_snapshot": 400,
+     "mechanics_pass": 311,
+     "player_stat_units": 91,
+     "slice_cold": 26,
+     "slice_fouls3": 29,
+     "x_already_resolved": 6,
+     "x_no_tradeable_ask": 78,
+     "x_off_t508_grid": 38,
+     "x_player_unmatched": 5
+    }
+   },
+   "counts": {
+    "games_halftime_seen": 9,
+    "games_with_snapshot": 8,
+    "player_stat_units": 342,
+    "series_state_not_halftime": 4
+   },
+   "games": [
+    {
+     "entry_candidates": 109,
+     "event_id": "401909868",
+     "game": "WAS@CHA",
+     "ht_first": "2026-10-27T00:10:13.164642+00:00",
+     "markets": 168,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 0,
+     "event_id": "401909869",
+     "game": "MIN@CLE",
+     "ht_first": "2026-10-26T23:39:09.072547+00:00",
+     "markets": 0,
+     "snapshots_ok_series": 0
+    },
+    {
+     "entry_candidates": 132,
+     "event_id": "401909870",
+     "game": "CHI@BOS",
+     "ht_first": "2026-10-27T00:39:16.638361+00:00",
+     "markets": 186,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 133,
+     "event_id": "401909871",
+     "game": "DAL@MIA",
+     "ht_first": "2026-10-27T00:45:17.555315+00:00",
+     "markets": 182,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 104,
+     "event_id": "401909872",
+     "game": "IND@MIL",
+     "ht_first": "2026-10-27T01:07:20.191135+00:00",
+     "markets": 175,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 91,
+     "event_id": "401909873",
+     "game": "PHX@OKC",
+     "ht_first": "2026-10-27T01:08:20.107433+00:00",
+     "markets": 189,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 148,
+     "event_id": "401909874",
+     "game": "ATL@HOU",
+     "ht_first": "2026-10-27T01:37:23.745951+00:00",
+     "markets": 200,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 134,
+     "event_id": "401909875",
+     "game": "MEM@UTA",
+     "ht_first": "2026-10-27T02:14:28.082952+00:00",
+     "markets": 194,
+     "snapshots_ok_series": 4
+    },
+    {
+     "entry_candidates": 113,
+     "event_id": "401909876",
+     "game": "GSW@DEN",
+     "ht_first": "2026-10-27T03:09:35.707913+00:00",
+     "markets": 167,
+     "snapshots_ok_series": 4
+    }
+   ],
+   "night": "live_2026-10-26"
+  }
+ ],
+ "pooled_by_stat": {
+  "ast": {
+   "ask_cents_sum": 20296,
+   "entry_candidates": 651,
+   "entry_candidates_depth_5usd": 374,
+   "fee_cents_sum": 959,
+   "markets_at_snapshot": 901,
+   "mechanics_pass": 732,
+   "player_stat_units": 234,
+   "slice_blowout15": 107,
+   "slice_blowout15_bench": 21,
+   "slice_blowout15_starter": 86,
+   "slice_cold": 102,
+   "slice_fouls3": 61,
+   "x_already_resolved": 6,
+   "x_dnp_first_half": 8,
+   "x_no_tradeable_ask": 138,
+   "x_off_t508_grid": 81,
+   "x_player_unmatched": 17
+  },
+  "fg3m": {
+   "ask_cents_sum": 22027,
+   "entry_candidates": 715,
+   "entry_candidates_depth_5usd": 507,
+   "fee_cents_sum": 1148,
+   "markets_at_snapshot": 1231,
+   "mechanics_pass": 959,
+   "player_stat_units": 239,
+   "slice_blowout15": 113,
+   "slice_blowout15_bench": 34,
+   "slice_blowout15_starter": 79,
+   "slice_cold": 124,
+   "slice_fouls3": 59,
+   "x_dnp_first_half": 10,
+   "x_no_tradeable_ask": 237,
+   "x_off_t508_grid": 244,
+   "x_player_unmatched": 25
+  },
+  "pts": {
+   "ask_cents_sum": 29850,
+   "entry_candidates": 860,
+   "entry_candidates_depth_5usd": 606,
+   "fee_cents_sum": 1300,
+   "markets_at_snapshot": 1054,
+   "mechanics_pass": 914,
+   "player_stat_units": 278,
+   "slice_blowout15": 129,
+   "slice_blowout15_bench": 26,
+   "slice_blowout15_starter": 103,
+   "slice_cold": 145,
+   "slice_fouls3": 78,
+   "x_dnp_first_half": 9,
+   "x_no_tradeable_ask": 118,
+   "x_off_t508_grid": 54,
+   "x_player_unmatched": 13
+  },
+  "reb": {
+   "ask_cents_sum": 31947,
+   "entry_candidates": 797,
+   "entry_candidates_depth_5usd": 515,
+   "fee_cents_sum": 1218,
+   "markets_at_snapshot": 1160,
+   "mechanics_pass": 906,
+   "player_stat_units": 264,
+   "slice_blowout15": 113,
+   "slice_blowout15_bench": 20,
+   "slice_blowout15_starter": 93,
+   "slice_cold": 114,
+   "slice_fouls3": 71,
+   "x_already_resolved": 7,
+   "x_dnp_first_half": 10,
+   "x_no_tradeable_ask": 220,
+   "x_off_t508_grid": 109,
+   "x_player_unmatched": 17
+  }
+ },
+ "rule": "HALFTIME_OVERS_VS_PRICE (DRAFT)"
+}
