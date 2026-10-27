@@ -98,7 +98,7 @@ class JarvisConfig:
 
 
 class _StrictLoader(yaml.SafeLoader):
-    """SafeLoader that rejects a duplicated mapping key (a second ``props:`` must not win silently)."""
+    """SafeLoader that rejects a duplicated mapping key (a second props key must not win)."""
 
 
 def _no_dupes(loader: _StrictLoader, node: yaml.MappingNode, deep: bool = False) -> dict[Any, Any]:
