@@ -51,7 +51,65 @@ def test_require_frozen_sha8_subject_and_committed_copy(tmp_path: Path) -> None:
             p,
             _git_with(f"prereg(LINEUPS_KNOWN_REBASE): {sha[:8]}", "x\n=== RESULTS BELOW ===\n"),
         )
-    assert E.frozen_sha(E.DOC).startswith("a48ef7b3")
+    assert E.frozen_sha(E.DOC).startswith("876e5804")  # a48ef7b3 + Amendment 1
+
+
+def test_amendment1_pins_and_canonical_hash_ignore_float_jitter_only() -> None:
+    assert (
+        E.PROPS_PIN.startswith("231e8648")
+        and E.PPLAY_PIN.startswith("372dacf3")
+        and E.VAC_DECIMALS == 9
+    )
+    df = pl.DataFrame(
+        {
+            "game_id": ["a", "b"],
+            "player_id": [1, 2],
+            E.VAC: [7.123456789012, 3.5],
+            "t30_starter": [1.0, 0.0],
+        }
+    )
+    cols = [E.VAC, "t30_starter"]
+    h = E.frame_sha(E.canon(df), cols)
+    jit = df.with_columns(pl.col(E.VAC) + 2.8e-14)
+    assert E.frame_sha(jit, cols) != E.frame_sha(df, cols)  # the raw recipe moves on the jitter
+    assert E.frame_sha(E.canon(jit), cols) == h  # the amended recipe does not
+    assert (
+        E.frame_sha(E.canon(df.with_columns(pl.col(E.VAC) + 1e-6)), cols) != h
+    )  # a real change still moves it
+    assert (
+        E.frame_sha(E.canon(df.with_columns(pl.col("t30_starter") + 1e-14)), cols) != h
+    )  # no other column is rounded
+    assert E.canon(df.drop(E.VAC)).equals(df.drop(E.VAC))
+
+
+def test_plant_check_tolerates_the_vac_jitter_only_through_canon(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    g, b = _toy()
+    real = E.t30_cols
+    calls = {"n": 0}
+
+    def jittered(games: pl.DataFrame, pgs: pl.DataFrame, prefix: str = "") -> pl.DataFrame:
+        calls["n"] += 1
+        return real(games, pgs, prefix).with_columns(pl.col(prefix + E.VAC) + calls["n"] * 1e-14)
+
+    monkeypatch.setattr(E, "t30_cols", jittered)
+    g2 = pl.concat(
+        [
+            g,
+            g.with_columns(
+                pl.lit(2024, dtype=pl.Int64).alias("season"),
+                (pl.col("game_date") + dt.timedelta(days=400)),
+                (pl.col("game_id") + "x").alias("game_id"),
+            ),
+        ]
+    )
+    b2 = pl.concat([b, b.with_columns((pl.col("game_id") + "x").alias("game_id"))])
+    t = E.plants(g2, b2)
+    assert t[0]["ok"], t[0]
+    assert (
+        t[0]["value"]["by_column"][E.VAC]["edited_max_abs_diff"] > 0
+    )  # the raw comparison would have failed
 
 
 # --------------------------------------------------------------------------- toy box score

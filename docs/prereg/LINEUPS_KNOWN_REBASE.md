@@ -199,6 +199,21 @@ T30_P2S, T30F_P2S, T30SH) about 18 min; 5 P(play) walks about 6 min; scoring abo
    (mean <= -0.002 AND mean + 3.69 x sd/sqrt(10) < 0), about +28 minutes.
 4. `t30_*` into the heads only, not `pi`. Default: heads only (live construction). Alternative: also `pi` (a separate question; new id).
 
+## Amendment 1 (2026-10-27 19:51 CDT, from `date`; DECISIONS 2026-10-27 19:50, option (a)). Before any arm was fitted
+* What changed: the two frame pins and the plant comparison only. The props pin becomes
+  **`231e864858a8b067ecf9c462d104d5a20246cd29bfb5ff88271376e41c92b24a`** and the P(play) key + `t30_*` pin becomes
+  **`372dacf34f275f6743d4a79d717de582d86dafcdfddfeda587c0552ac4c14ef1`**, both computed with `t30_vac_starter_min` rounded to 1e-9
+  (`round(9)`) before hashing; the recipe is otherwise unchanged (same rows, columns, sort, Float64 cast, NaN, byte layout). The same
+  rounding applies to that column in the full R-frame hash and in check 3's plant comparison ("bit-identical" is judged on the rounded
+  column; the other four `t30_*` columns stay bit-identical as written). These supersede the two pins in the gate section above
+  (9359bcf4 / 9a38c78a); every other line of the rule, including the gate counts (late-resolved 572 / 536 / 564), is unchanged.
+* Why: `t30_vac_starter_min` is built by a polars `group_by` sum in `nba/props/lineup_features.py` whose summation order varies run to run
+  (max |diff| 2.8e-14; six rebuilds gave six different raw hashes, including the gate's own recipe re-run). The raw pins could not be
+  reproduced by any rebuild, so check 1 could never pass. With the column rounded to 1e-9 the hash is stable across rebuilds, and the
+  harness frame equals the gate's construction on the other 80 columns (measured 2026-10-27 19:4x CDT, read-only, no fit). The fitted
+  features themselves are not rounded; only the identity check is.
+* Exposure: no arm of this rule has been fitted or scored; nothing but frame hashes, row counts and the late-resolved counts was seen.
+
 === RESULTS BELOW ===
 
 (not run)

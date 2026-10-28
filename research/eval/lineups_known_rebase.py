@@ -1,6 +1,6 @@
 # ruff: noqa: E501
 # mypy: disable-error-code="arg-type,no-untyped-call,unused-ignore,union-attr,index,assignment,operator,no-any-return,misc,call-overload,attr-defined,type-var"
-"""LINEUPS_KNOWN_REBASE harness (rule: docs/prereg/LINEUPS_KNOWN_REBASE.md, FROZEN sha256 a48ef7b3, commit 31c94e1). DESCRIPTIVE.
+"""LINEUPS_KNOWN_REBASE harness (rule: docs/prereg/LINEUPS_KNOWN_REBASE.md, FROZEN a48ef7b3 at 31c94e1; Amendment 1 sha256 876e5804). DESCRIPTIVE.
 
 N1 T30 - P0 (raw readout, integer CRPS), N2 T30F - FULL (FULL pi, mixture), N3 overlap = 1 - (T30F - FULL) / (T30M - A0), N4 P(play) RT - R
 (log loss; all rows and bench tonight). Each four ways: headline (box-score flag), excl-late (slice), pess2 (rebuilt in train and test), P2S
@@ -79,16 +79,21 @@ STATS: tuple[str, ...] = tuple(PROP_STATS)
 SEASONS = (2023, 2024)
 KEYS = ["game_id", "player_id"]
 SEED = 0
-PROPS_PIN = "9359bcf4405cee2b236a7725c74d738ac8e59e8793795906a13c9c9083bc66d1"
-PPLAY_PIN = "9a38c78a85ffcc678e9e91faafcd3a07b7195072a0303f544ec932b33ef91108"
+#: Amendment 1 pins (recipe with t30_vac_starter_min rounded to 1e-9; superseding the raw 9359bcf4 / 9a38c78a, which no rebuild can reproduce)
+PROPS_PIN = "231e864858a8b067ecf9c462d104d5a20246cd29bfb5ff88271376e41c92b24a"
+PPLAY_PIN = "372dacf34f275f6743d4a79d717de582d86dafcdfddfeda587c0552ac4c14ef1"
 PROPS_ROWS, PPLAY_ROWS = 55_320, 66_220
 LATE_FROZEN = {2022: 572, 2023: 536, 2024: 564}  # gate re-measure 19:05 (reported, not a stop)
-#: NOT frozen. t30_vac_starter_min is not bit-reproducible (nba/props/lineup_features.py sums window minutes in a polars group_by; order jitter
-#: about 3e-14), so the raw pins above cannot be reproduced by any rebuild. Measured 2026-10-27 19:4x CDT with that column rounded to 1e-9
-#: (harness frame == the gate's construction on the other 80 columns); diagnosis only, for a possible amendment.
+#: t30_vac_starter_min is not bit-reproducible (polars group_by sum order in nba/props/lineup_features.py, jitter about 3e-14); Amendment 1
+#: rounds it to VAC_DECIMALS in the pin recipe and in check 3's plant comparison only. Fitted features are never rounded.
 VAC = "t30_vac_starter_min"
-PROPS_CANON9 = "231e864858a8b067ecf9c462d104d5a20246cd29bfb5ff88271376e41c92b24a"
-PPLAY_CANON9 = "372dacf34f275f6743d4a79d717de582d86dafcdfddfeda587c0552ac4c14ef1"
+VAC_DECIMALS = 9
+
+
+def canon(df: pl.DataFrame) -> pl.DataFrame:
+    """Amendment 1 identity canonicalisation: t30_vac_starter_min rounded to 1e-9 (if present); every other column untouched."""
+    return df.with_columns(pl.col(VAC).round(VAC_DECIMALS)) if VAC in df.columns else df
+
 
 R5: tuple[str, ...] = PR.R_COLS
 T30: tuple[str, ...] = tuple(T30_FEATURES)
@@ -720,33 +725,22 @@ def pins(ctx: Ctx) -> dict[str, Any]:
     c0 = ctx.comps[STATS[0]]
     a0 = rows_of(w["props"], c0["row_gid"], c0["row_pid"])
     cols = props_hash_cols()
-    props_sha = frame_sha(a0.select(*KEYS, *cols), cols)
+    props_sha = frame_sha(canon(a0).select(*KEYS, *cols), cols)
     assert ctx.rr is not None
     rr = rows_of(w["pplay"], ctx.rr["gid"], ctx.rr["pid"])
-    pplay_sha = frame_sha(rr.select(*KEYS, *T30), list(T30))
+    pplay_sha = frame_sha(canon(rr).select(*KEYS, *T30), list(T30))
     rcols = sorted({*pplay_arms()["R"], "played", *T30})
-    full_sha = frame_sha(rr.select(*KEYS, *rcols), rcols)
+    full_sha = frame_sha(canon(rr).select(*KEYS, *rcols), rcols)
     ok = (
         props_sha == ctx.props_pin
         and pplay_sha == ctx.pplay_pin
         and (a0.height, rr.height) == ctx.pins_rows
     )
     out = {"props_sha256": props_sha, "props_pin": ctx.props_pin, "props_rows": a0.height, "pplay_keys_t30_sha256": pplay_sha, "pplay_pin": ctx.pplay_pin, "pplay_rows": rr.height, "pplay_R_frame_sha256": full_sha, "ok": ok}  # fmt: skip
-    # diagnosis only (never changes `ok`): the same hashes with t30_vac_starter_min rounded to 1e-9, which removes its float summation-order jitter
-    r9 = pl.col(VAC).round(9)
-    out["canon9"] = {
-        "props_sha256": frame_sha(a0.with_columns(r9).select(*KEYS, *cols), cols),
-        "pplay_keys_t30_sha256": frame_sha(rr.with_columns(r9).select(*KEYS, *T30), list(T30)),
-        "pplay_R_frame_sha256": frame_sha(rr.with_columns(r9).select(*KEYS, *rcols), rcols),
+    out["raw_unrounded"] = {
+        "props_sha256": frame_sha(a0.select(*KEYS, *cols), cols),
+        "note": "diagnosis only; varies run to run (Amendment 1)",
     }
-    out["canon9"]["matches_2026_10_27_measure"] = (
-        out["canon9"]["props_sha256"],
-        out["canon9"]["pplay_keys_t30_sha256"],
-    ) == (PROPS_CANON9, PPLAY_CANON9)
-    if not ok and out["canon9"]["matches_2026_10_27_measure"]:
-        out["diagnosis"] = (
-            f"raw pins differ but the canonical hashes equal the 2026-10-27 measure: the mismatch is the known float jitter of {VAC} (about 3e-14, polars group_by sum order), not a data change; the frozen rule still stops (Devin decides)"
-        )
     return out
 
 
@@ -790,11 +784,14 @@ def plants(games: pl.DataFrame, pgs: pl.DataFrame) -> list[dict[str, Any]]:
     early = g.filter(pl.col("game_date") <= cut).select("game_id")
     a = base.join(early, on="game_id").sort(KEYS)
     b = fut.join(early, on="game_id").sort(KEYS)
+    ca, cb = canon(a), canon(b)
     same = a.height == b.height and all(
-        np.array_equal(a[c].to_numpy().astype(float), b[c].to_numpy().astype(float), equal_nan=True)
+        np.array_equal(
+            ca[c].to_numpy().astype(float), cb[c].to_numpy().astype(float), equal_nan=True
+        )
         for c in T30
-    )
-    # diagnosis only (the frozen test stays bit-identical): per-column max |diff| next to an UNEDITED rebuild's jitter
+    )  # Amendment 1: bit-identical on the canonical columns (t30_vac_starter_min rounded to 1e-9)
+    # diagnosis: per-column raw max |diff| next to an UNEDITED rebuild's jitter
     a2 = t30_cols(g, p).join(early, on="game_id").sort(KEYS)
     diag = (
         {
@@ -822,7 +819,7 @@ def plants(games: pl.DataFrame, pgs: pl.DataFrame) -> list[dict[str, Any]]:
     )
     return [
         _chk(
-            "plant: edit every game after the cutoff + a fake future game; t30_* of rows on/before the cutoff bit-identical",
+            "plant: edit every game after the cutoff + a fake future game; t30_* of rows on/before the cutoff bit-identical (t30_vac_starter_min rounded to 1e-9, Amendment 1)",
             {"cutoff": str(cut), "n_rows": a.height, "by_column": diag},
             "identical and n > 0",
             same and a.height > 0,
