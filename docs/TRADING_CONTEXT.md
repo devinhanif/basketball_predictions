@@ -13,7 +13,7 @@ Turn $70 into $500+ this season (2026-27), accepting a real chance of losing mos
 | Floor | **$20 combined**. At or below it, JARVIS goes paper-only until Devin resets it. |
 | Nightly loss cap | **$20** |
 | Per-bet stake | Scales with the edge: thin $3, strong $5, confirmed arbitrage $15 (raised from $10, 2026-10-27), none (entertainment) $1-3 |
-| Player props | **Over (Yes) side only** (Devin, 2026-10-27: the venues' interfaces do not let him buy the No on props). Game markets keep both sides. |
+| Player props | Both sides where the venue's interface offers the No (Devin, 2026-10-27 21:3x: "they're letting me prop unders"; venue to be named). Earlier the same day: Over/Yes only because the apps hid the No. JARVIS stays Yes-only on props until a reviewed follow-up branch lets `sides.props` take `[yes, no]`. Game markets both sides. |
 | Kill switch | **Closing-line value**: if JARVIS's plays lose to the close over 30+ bets, its labels are wrong; stakes drop to "none" size ($1-3) until fixed. No losing-streak rule. |
 
 ## What JARVIS offers
