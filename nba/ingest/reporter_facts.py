@@ -31,7 +31,7 @@ import logging
 from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -63,7 +63,28 @@ MAX_AHEAD = timedelta(hours=36)
 IN_PROGRESS = timedelta(hours=3)
 #: A post written before 06:00 ET belongs to the previous evening: its "tonight" is the game that
 #: just ended, not the next day's (a West-coast tip at 22:30 ET plus a late postgame post, N1).
-EVENING_ROLLOVER = timedelta(hours=6)
+EVENING_ROLLOVER_HOUR = 6
+
+
+def evening_date(created_at: datetime) -> date:
+    """The ET evening a post belongs to: its ET date, or the previous one before 06:00 ET (taken in
+    local ET time, so the cut-off is 06:00 on the wall clock across a DST change, review m10)."""
+    local = created_at.replace(tzinfo=UTC).astimezone(ET)
+    return local.date() - timedelta(days=1 if local.hour < EVENING_ROLLOVER_HOUR else 0)
+
+
+def postgame_window_end(prev_tip: datetime) -> datetime:
+    """Naive UTC of the first 06:00 ET after ``prev_tip + 3 h``: the postgame window of that game
+    runs from that tip + 3 h to here."""
+    after = (prev_tip + IN_PROGRESS).replace(tzinfo=UTC).astimezone(ET)
+    end = datetime.combine(after.date(), time(EVENING_ROLLOVER_HOUR), tzinfo=ET)
+    if end <= after:
+        end = datetime.combine(
+            after.date() + timedelta(days=1), time(EVENING_ROLLOVER_HOUR), tzinfo=ET
+        )
+    return end.astimezone(UTC).replace(tzinfo=None)
+
+
 FACTS_TABLES = {"entities", "facts"}
 
 
@@ -437,6 +458,7 @@ class _Resolved:
     team_id: int
     game: ScheduledGame | None
     reject: str | None  # f4_in_progress | f4_prev_game | no_game_in_window | None
+    postgame: bool = False  # created in [previous tip + 3 h, next 06:00 ET): must name the day
 
 
 def pretip_facts_for_posts(
@@ -515,7 +537,12 @@ def pretip_facts_for_posts(
                         reject = "no_game_in_window"
                     elif prev is not None and post.created_at <= prev.tipoff + IN_PROGRESS:
                         reject = "f4_prev_game"
-                    res = _Resolved(pid, team_id, nxt, reject)
+                    postgame = (
+                        prev is not None
+                        and post.created_at > prev.tipoff + IN_PROGRESS
+                        and post.created_at < postgame_window_end(prev.tipoff)
+                    )
+                    res = _Resolved(pid, team_id, nxt, reject, postgame)
             cache[name] = res
             return res
 
@@ -525,7 +552,7 @@ def pretip_facts_for_posts(
             r = resolve(name)
             return r.game.game_date_et if r is not None and r.game is not None else None
 
-        posted = (post.created_at.replace(tzinfo=UTC) - EVENING_ROLLOVER).astimezone(ET).date()
+        posted = evening_date(post.created_at)
         for c in pretip.parse_pretip(post.text, game_date_et=game_date_of, posted_date_et=posted):
             counts["claims_seen"] += 1
             res = resolve(c.player_name)
@@ -537,6 +564,11 @@ def pretip_facts_for_posts(
                 continue
             if res.reject is not None or res.game is None:
                 counts[f"drop_{res.reject}"] += 1
+                continue
+            if res.postgame and c.day_ref not in pretip.NAMES_NEXT_DAY:
+                # a postgame sentence with no day word may be about the game just played, and
+                # its stamp is honest: only a named next day makes it the next game's (round 3)
+                counts["drop_f3_postgame_no_day"] += 1
                 continue
             counts["facts"] += 1
             if c.hedged:
@@ -558,6 +590,8 @@ def pretip_facts_for_posts(
                         status=c.status,
                         hedged=c.hedged,
                         multi_game=c.multi_game,
+                        day_ref=c.day_ref,
+                        postgame=res.postgame,
                         n_lo=c.n_lo,
                         n_hi=c.n_hi,
                         capture_mode=mode,

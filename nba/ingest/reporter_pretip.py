@@ -20,8 +20,14 @@ F2 stat line  reject a sentence with a box-score count or a shooting line. A min
               ("20-22 minutes") is not a shooting line (the spec's literal pattern would have
               rejected every range; clarified 2026-10-27).
 F3 day        a named weekday or date must be the game's ET date; "tonight/today/this evening"
-              needs the post's ET date to be the game's; "tomorrow" needs post date + 1 = game date.
+              needs the post's EVENING date to be the game's; "tomorrow" needs that date + 1 = the
+              game date. The evening date is the ET date of ``created_at - 6 h`` (a post written
+              00:00-06:00 ET belongs to the evening that just ended, so a "tonight" posted at 00:30
+              ET about the coming evening is dropped: a recall cost, by design, review m9).
               Without a game date any such reference is rejected.
+F3b postgame  (``reporter_facts``) between the previous tip + 3 h and the next 06:00 ET a claim is
+              kept only if it NAMES the attached game's day (``day_ref`` tomorrow / weekday / date);
+              a postgame sentence with no day word is dropped as ``f3_postgame_no_day``.
 F5 hedge      could, might, may, possibly, hoping, if, unless, "we'll see": kept, ``hedged=True``.
 F6 number     N anywhere in the sentence (a number bound to the cap phrase first); a range gives
               the upper end; N outside [6, 40] drops the claim; two different unbound numbers give
@@ -39,7 +45,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -163,6 +169,9 @@ class PretipClaim:
     multi_game: bool
     sentence: str
     reject: str | None = None
+    #: what the sentence says about the day: date | weekday | tomorrow | tonight | none (the
+    #: strongest reference present). Stored in value_text so the scorer can audit without the text.
+    day_ref: str = "none"
 
     @property
     def kept(self) -> bool:
@@ -185,6 +194,20 @@ class PretipClaim:
 def sentences(text: str) -> list[str]:
     text = _ABBREV_DOT.sub(lambda m: m.group(1) or m.group(2), text or "")
     return [s.strip() for s in _SPLIT.split(text) if s and s.strip()]
+
+
+def day_ref(s: str) -> str:
+    """The strongest day reference in ``s``: date > weekday > tomorrow > tonight > none."""
+    if _MONTH_DAY.search(s) or _NUM_DATE.search(s):
+        return "date"
+    if _WEEKDAY_REF.search(s):
+        return "weekday"
+    if _TOMORROW.search(s):
+        return "tomorrow"
+    return "tonight" if _TONIGHT.search(s) else "none"
+
+
+NAMES_NEXT_DAY = ("date", "weekday", "tomorrow")  # day_ref values that name a day beyond tonight
 
 
 def _day_ref_ok(s: str, game_date: date | None, posted_date: date | None) -> bool:
@@ -307,7 +330,8 @@ def _claims_in_sentence(
                     rej,
                 )
             )
-    return out
+    ref = day_ref(sentence)
+    return [replace(c, day_ref=ref) for c in out]
 
 
 def parse_pretip(
@@ -315,7 +339,7 @@ def parse_pretip(
 ) -> list[PretipClaim]:
     """Every recognised claim in ``text`` with the filter that dropped it, if any. Retweets and
     empty text give nothing. ``game_date_et`` is the ET date of the game the post is attached to;
-    ``posted_date_et`` the ET date of its ``created_at``."""
+    ``posted_date_et`` the post's EVENING date: the ET date of ``created_at - 6 h``."""
     text = (text or "").strip()
     if not text or retweeted_handle(text):
         return []

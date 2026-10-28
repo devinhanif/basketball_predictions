@@ -950,20 +950,23 @@ class XClient:
             cursor = (c.replace(tzinfo=UTC) if c.tzinfo is None else c.astimezone(UTC)) - timedelta(
                 seconds=CURSOR_OVERLAP_S
             )
+        latest = now - timedelta(seconds=CURSOR_OVERLAP_S)  # a start is never later than this
         if lookback_hours:
             floor = now - timedelta(hours=lookback_hours)
-            return (max(floor, cursor) if cursor else floor), False
+            return min(max(floor, cursor) if cursor else floor, latest), False
         if prev_tip is not None:
             prev = (prev_tip.replace(tzinfo=UTC) if prev_tip.tzinfo is None else prev_tip) + (
                 timedelta(hours=3)
             )
             base = max(now - timedelta(hours=self.allowlist.team_lookback_hours), prev)
-            return (max(base, cursor) if cursor else base), False
+            if base <= latest:
+                return min(max(base, cursor) if cursor else base, latest), False
+            # prev_tip + 3 h lies in the future (a same-evening tip): ignore it, use the cursor path
         floor = now - timedelta(hours=self.allowlist.max_lookback_hours)
         if cursor:
             start = max(floor, cursor)
-            return start, cursor < floor and (now - floor) < MAX_ATTACH_AHEAD
-        return max(floor, anchor_et(now, self.allowlist.anchor_hour_et)), False
+            return min(start, latest), cursor < floor and (now - floor) < MAX_ATTACH_AHEAD
+        return min(max(floor, anchor_et(now, self.allowlist.anchor_hour_et)), latest), False
 
     def poll_handle(
         self,
@@ -1571,13 +1574,27 @@ def main(argv: list[str] | None = None) -> int:
                     # have been read at its stamped time, so nothing is written for it
                     data = Path(args.data_dir)
                     seen = rs.first_seen_index([data / "raw", data / "raw_backfill"])
-                    unknown = {p.post_id for p in posts if p.post_id not in seen}
-                    if unknown:
+                    raw_text = rs.first_seen_text_sha([data / "raw", data / "raw_backfill"])
+                    mismatch = {
+                        p.post_id
+                        for p in posts
+                        if p.post_id in raw_text and rs.text_sha256(p.text) != raw_text[p.post_id]
+                    }
+                    if mismatch:
                         print(
-                            f"store: {len(unknown)} posts are in no raw store under {data}; "
+                            f"store: {len(mismatch)} posts differ from the raw capture that "
+                            "stamps them (text_mismatch); nothing is written for them",
+                            file=sys.stderr,
+                        )
+                    absent = {p.post_id for p in posts if p.post_id not in seen}
+                    unknown = absent | mismatch
+                    if absent:
+                        print(
+                            f"store: {len(absent)} posts are in no raw store under {data}; "
                             "nothing is written for them",
                             file=sys.stderr,
                         )
+                    if unknown:
                         posts = [p for p in posts if p.post_id not in unknown]
                         claimed = [c for c in claimed if c.post.post_id not in unknown]
                 sf, rj, _ = rf.pretip_facts_for_posts(posts, ctx, seen)

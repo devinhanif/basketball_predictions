@@ -192,8 +192,22 @@ def test_post_written_during_or_just_after_the_previous_game_is_not_tonights() -
     during = post("9001", datetime(2026, 10, 27, 2, 0), datetime(2026, 10, 27, 2, 1), text)
     facts, _, counts = rf.pretip_facts_for_posts([during], ctx([PREV, nxt]), live([during]))
     assert facts == [] and counts["drop_f4_prev_game"] == 1
+    # after the window, with no day word, the postgame rule (round 3) still drops it ...
     after = post("9002", datetime(2026, 10, 27, 3, 31), datetime(2026, 10, 27, 3, 32), text)
-    facts, _, _ = rf.pretip_facts_for_posts([after], ctx([PREV, nxt]), live([after]))
+    facts, _, counts = rf.pretip_facts_for_posts([after], ctx([PREV, nxt]), live([after]))
+    assert facts == [] and counts["drop_f3_postgame_no_day"] == 1
+    # ... unless it names the next game's day; and from 06:00 ET on nothing is postgame any more
+    named = post(
+        "9003",
+        datetime(2026, 10, 27, 3, 31),
+        datetime(2026, 10, 27, 3, 32),
+        "Alperen Sengun will be on a 24-minute restriction against Denver tomorrow.",
+    )
+    facts, _, _ = rf.pretip_facts_for_posts([named], ctx([PREV, nxt]), live([named]))
+    assert [f.object for f in facts] == [f"game:{nxt.game_id}"]
+    assert json.loads(facts[0].value_text or "{}")["day_ref"] == "tomorrow"
+    morning = post("9004", datetime(2026, 10, 27, 10, 5), datetime(2026, 10, 27, 10, 6), text)
+    facts, _, _ = rf.pretip_facts_for_posts([morning], ctx([PREV, nxt]), live([morning]))
     assert [f.object for f in facts] == [f"game:{nxt.game_id}"]
 
 
@@ -1352,3 +1366,201 @@ def test_parse_only_outside_file_with_an_honest_raw_copy_keeps_the_honest_stamp_
     assert rc == 0
     got = rows(store, "SELECT DISTINCT known_at, first_seen_at FROM reporter_facts")
     assert got == [(honest, honest)]
+
+
+# ------------------------------------------------------------------ adversary round 3
+
+
+def _b2b(late_tip: datetime) -> tuple[ScheduledGame, ScheduledGame]:
+    first = ScheduledGame("0022600050", late_tip, DAL, HOU)
+    nxt = ScheduledGame("0022600051", late_tip + timedelta(hours=21), HOU, DAL)
+    return first, nxt
+
+
+@pytest.mark.parametrize(
+    ("tip_utc", "minutes_after_tip"),
+    [
+        (datetime(2026, 10, 29, 2, 30), 195),  # 22:30 ET tip, post 01:45 ET
+        (datetime(2026, 10, 28, 23, 30), 195),  # 19:30 ET tip, post 22:45 ET
+        (datetime(2026, 10, 28, 23, 30), 330),  # 19:30 ET tip, post 01:00 ET
+    ],
+)
+def test_postgame_sentence_without_a_day_word_is_dropped_n1r(
+    tip_utc: datetime, minutes_after_tip: int
+) -> None:
+    first, nxt = _b2b(tip_utc)
+    texts = [
+        "Alperen Sengun is on a 20-minute restriction, Udoka said.",
+        "Alperen Sengun will be on a 24-minute restriction, per Udoka.",
+        "Alperen Sengun is out vs. Dallas, Udoka said postgame.",
+    ]
+    at = tip_utc + timedelta(minutes=minutes_after_tip)
+    posts = [post(f"90{i}", at, at + timedelta(seconds=20), t) for i, t in enumerate(texts)]
+    facts, _, counts = rf.pretip_facts_for_posts(posts, ctx([first, nxt]), live(posts))
+    assert facts == [] and counts["drop_f3_postgame_no_day"] == 3
+    # the same sentences naming tomorrow / the weekday are the next game's, with day_ref recorded
+    named = [
+        post(
+            "9101",
+            at,
+            at + timedelta(seconds=20),
+            "Alperen Sengun will be on a 20-minute restriction tomorrow.",
+        ),
+        post(
+            "9102",
+            at,
+            at + timedelta(seconds=20),
+            f"Alperen Sengun is out on {nxt.game_date_et:%A}.",
+        ),
+    ]
+    facts, _, _ = rf.pretip_facts_for_posts(named, ctx([first, nxt]), live(named))
+    assert sorted(json.loads(f.value_text or "{}")["day_ref"] for f in facts) == [
+        "tomorrow",
+        "weekday",
+    ]
+    assert all(json.loads(f.value_text or "{}")["postgame"] for f in facts)
+
+
+def test_postgame_window_end_is_6am_local_et_across_dst_m10() -> None:
+    # DST ends 2026-11-01: a 22:30 EDT tip on 10-31; the window ends 06:00 EST on 11-01 (11:00Z)
+    assert rf.postgame_window_end(datetime(2026, 11, 1, 2, 30)) == datetime(2026, 11, 1, 11, 0)
+    assert rf.postgame_window_end(datetime(2026, 10, 30, 2, 30)) == datetime(2026, 10, 30, 10, 0)
+    assert (
+        rf.evening_date(datetime(2026, 11, 1, 10, 30)) == datetime(2026, 10, 31).date()
+    )  # 05:30 EST
+    assert (
+        rf.evening_date(datetime(2026, 11, 1, 11, 30)) == datetime(2026, 11, 1).date()
+    )  # 06:30 EST
+    assert (
+        rf.evening_date(datetime(2026, 10, 30, 9, 30)) == datetime(2026, 10, 29).date()
+    )  # 05:30 EDT
+    assert (
+        rf.evening_date(datetime(2026, 10, 30, 10, 30)) == datetime(2026, 10, 30).date()
+    )  # 06:30 EDT
+
+
+def test_tonight_posted_between_midnight_and_6am_et_is_dropped_by_design_m9() -> None:
+    nxt = ScheduledGame("0022600060", datetime(2026, 10, 29, 23, 30), HOU, DAL)  # 19:30 ET Oct 29
+    text = "Alperen Sengun will be on a 24-minute restriction tonight."
+    at = datetime(2026, 10, 29, 4, 30)  # 00:30 ET the same calendar day
+    p = post("9001", at, at + timedelta(seconds=20), text)
+    facts, _, counts = rf.pretip_facts_for_posts([p], ctx([PREV, nxt]), live([p]))
+    assert facts == [] and counts["drop_f3_day"] == 1  # a recall cost, documented
+    named = post("9002", at, at + timedelta(seconds=20), "Alperen Sengun is out on Thursday.")
+    facts, _, _ = rf.pretip_facts_for_posts([named], ctx([PREV, nxt]), live([named]))
+    assert len(facts) == 1
+
+
+def _staggered_run(tmp_path: Path, posts: list[dict[str, Any]]) -> tuple[Any, list[httpx.Request]]:
+    """League-wide handle only; slate 19:00 ET (23:00Z) and 22:00 ET (02:00Z); ticks every 5 min."""
+    early = ScheduledGame("0022600070", datetime(2026, 10, 28, 23, 0), 1610612738, 1610612752)
+    late = ScheduledGame("0022600071", datetime(2026, 10, 29, 2, 0), HOU, DAL)
+    last_night = ScheduledGame("0022600069", datetime(2026, 10, 28, 1, 0), 1610612738, DAL)
+    games = [last_night, early, late]
+    allow = allowlist_yaml(tmp_path, [{"handle": "ShamsC", "team": None}])
+    srv = Paged(posts, size=100)
+    clock = [datetime(2026, 10, 28, 17, 30, tzinfo=UTC)]
+    c = client(tmp_path, srv, allow=allow, clock=lambda: clock[0])
+    t = datetime(2026, 10, 28, 17, 30, tzinfo=UTC)
+    while t <= datetime(2026, 10, 29, 2, 5, tzinfo=UTC):
+        clock[0] = t
+        rt.run_tick(
+            now=t,
+            allow=c.allowlist,
+            games=games,
+            make_client=lambda: c,
+            make_ctx=lambda: ctx(games),
+            store_path=tmp_path / "f" / "s.duckdb",
+            data_dir=tmp_path / "data",
+            ops_dir=tmp_path / "ops",
+        )
+        t += timedelta(minutes=5)
+    return c, [q for q in srv.requests if q.url.path.endswith("/tweets")]
+
+
+def test_staggered_slate_league_handle_never_asks_for_the_future_n3r(tmp_path: Path) -> None:
+    # the 19:40 ET (23:40Z) and 20:40 ET (00:40Z) posts are about the 22:00 ET game
+    p1 = tweet("8001", "chatter one", "2026-10-28T23:40:00.000Z")
+    p2 = tweet("8002", "chatter two", "2026-10-29T00:40:00.000Z")
+    c, reqs = _staggered_run(tmp_path, [p2, p1])
+    assert reqs
+    polls = rows(
+        tmp_path / "f" / "s.duckdb",
+        "SELECT started_at, start_time, status, n_posts FROM poll_log ORDER BY poll_id",
+    )
+    assert len(polls) >= 4
+    for started, start_time, status, _ in polls:  # no poll ever asks for a start after "now"
+        assert start_time <= started, (started, start_time, status)
+    # a poll after the first tip (23:00Z, 19:00 ET) still reaches back over the 19:40 ET post,
+    # and the 20:40 ET post about the 22:00 ET game is read
+    after_first_tip = [p for p in polls if p[0] > datetime(2026, 10, 28, 23, 0)]
+    assert after_first_tip and any(p[1] <= datetime(2026, 10, 28, 23, 40) for p in after_first_tip)
+    raw_ids = {
+        post_.post_id
+        for f in (tmp_path / "data" / "raw").rglob("*.parquet")
+        for post_ in r.read_raw(f)
+    }
+    assert {"8001", "8002"} <= raw_ids
+
+
+def test_poll_bounds_never_return_a_start_later_than_now_n3r(tmp_path: Path) -> None:
+    now = datetime(2026, 10, 28, 20, 50, tzinfo=UTC)
+    c = client(tmp_path, Paged([], 5), clock=lambda: now)
+    same_evening = datetime(2026, 10, 28, 23, 0)  # prev tip + 3 h is in the future
+    start, _ = c.poll_bounds("RocketsBeat", now, prev_tip=same_evening)
+    assert start <= now - timedelta(seconds=r.CURSOR_OVERLAP_S)
+    far_future_cursor = (now + timedelta(hours=2)).replace(tzinfo=None).isoformat()
+    c.state.update("RocketsBeat", last_ok_poll_at=far_future_cursor)
+    assert c.poll_bounds("RocketsBeat", now)[0] <= now - timedelta(seconds=r.CURSOR_OVERLAP_S)
+
+
+def test_parse_only_drops_a_post_whose_text_differs_from_the_indexed_capture_n9(
+    tmp_path: Path,
+) -> None:
+    import polars as pl
+
+    from nba.daily.schedule import save_schedule_cache
+
+    created, honest = datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 22, 45)
+    r.write_raw(tmp_path / "d" / "raw", "RocketsBeat", [post("9001", created, honest)], honest)
+    # a later backfill fetch holds the SAME post id with other text (a substituted post)
+    late = datetime(2026, 10, 29, 3, 0)
+    swapped = post("9001", created, late, "Alperen Sengun is out tonight.")
+    bf = r.write_raw(tmp_path / "d" / "raw_backfill", "RocketsBeat", [swapped], late)
+    assert bf is not None
+    allow = tmp_path / "reporters.yaml"
+    allow.write_text(json.dumps({"handles": [{"handle": "RocketsBeat", "team": "HOU"}]}))
+    ros = tmp_path / "rosters" / "2026-10-10"
+    ros.mkdir(parents=True)
+    pl.DataFrame(
+        {
+            "team_id": [HOU] * len(HOU_ROSTER),
+            "player_id": [p for _, p in HOU_ROSTER],
+            "exp": ["3"] * len(HOU_ROSTER),
+            "player_name": [n for n, _ in HOU_ROSTER],
+        }
+    ).write_parquet(ros / f"{HOU}.parquet")
+    cache = tmp_path / "schedule_cache"
+    save_schedule_cache([PREV, TONIGHT], rf.season_for(datetime(2026, 10, 28)), cache)
+    store = tmp_path / "facts" / "reporter_facts.duckdb"
+    rc = r.main(
+        [
+            "parse-only", "--file", str(bf), "--allowlist", str(allow),
+            "--data-dir", str(tmp_path / "d"), "--rosters", str(tmp_path / "rosters"),
+            "--schedule-cache", str(cache), "--aliases", str(tmp_path / "none.yaml"),
+            "--store", str(store),
+        ]
+    )  # fmt: skip
+    assert rc == 0 and rows(store, "SELECT * FROM reporter_facts") == []
+    # the honest copy of the same post, replayed from the live raw file, is written
+    live_file = next((tmp_path / "d" / "raw").rglob("*.parquet"))
+    rc = r.main(
+        [
+            "parse-only", "--file", str(live_file), "--allowlist", str(allow),
+            "--data-dir", str(tmp_path / "d"), "--rosters", str(tmp_path / "rosters"),
+            "--schedule-cache", str(cache), "--aliases", str(tmp_path / "none.yaml"),
+            "--store", str(store),
+        ]
+    )  # fmt: skip
+    got = rows(store, "SELECT DISTINCT predicate FROM reporter_facts ORDER BY 1")
+    assert rc == 0 and ("reporter_minutes_cap",) in got and ("reporter_status",) not in got

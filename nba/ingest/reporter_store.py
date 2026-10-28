@@ -25,6 +25,7 @@ closes within one call of the caller's connection scope.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -345,6 +346,30 @@ def first_seen_index(
                     if cur is None or fetched < cur[0]:
                         best[str(pid)] = (fetched, mode)
     return best
+
+
+def first_seen_text_sha(raw_dirs: Sequence[Path], since_day: str | None = None) -> dict[str, str]:
+    """``post_id -> sha256 of the text`` of the SAME earliest capture :func:`first_seen_index`
+    stamps (same scan order and tie-break). A replay that parses another copy of a post must match
+    this, or its stamp and its text come from different captures (adversary round 3, N9)."""
+    best: dict[str, tuple[datetime, str]] = {}
+    for root in raw_dirs:
+        if not root.exists():
+            continue
+        for day_dir in sorted(d for d in root.iterdir() if d.is_dir()):
+            if since_day is not None and day_dir.name < since_day:
+                continue
+            for f in sorted(day_dir.glob("*.parquet")):
+                df = pl.read_parquet(f, columns=["post_id", "fetched_at", "text"])
+                for pid, fetched, text in df.iter_rows():
+                    cur = best.get(str(pid))
+                    if cur is None or fetched < cur[0]:
+                        best[str(pid)] = (fetched, text_sha256(str(text or "")))
+    return {pid: sha for pid, (_, sha) in best.items()}
+
+
+def text_sha256(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def value_text(**fields: object) -> str:

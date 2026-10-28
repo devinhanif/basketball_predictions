@@ -228,6 +228,21 @@ N6, N8 (round 2). N7 is Devin's cost knob (the 48 h team lookback raises the fir
 with `posts_per_day` 400 a busy day can hit budget refusals, visible as `refused:not_reached` and
 the T-55 alert; watch two weeks).
 
+- **N1R / N3R / N9 (round 3, fixed):**
+  - **N1R** between the previous tip + 3 h and the next 06:00 ET (local ET, so the cut-off is 06:00
+    on the wall clock across DST) a claim is kept only if its sentence names the attached game's day
+    (`tomorrow`, its weekday or date); otherwise it is dropped as `f3_postgame_no_day`. `day_ref` and
+    `postgame` are written into `value_text`. Cost: a real postgame "he will be on a 20-minute
+    restriction" without a day word is lost (recall, by design).
+  - **N3R** the league-wide handle's previous tip is the latest tip on an ET date BEFORE today, and
+    `poll_bounds` never returns a start later than `now - 120 s`. Before this a staggered night
+    (19:00 + 22:00 ET) made every poll after the first tip start in the future, read 0 posts and
+    still mark teams covered.
+  - **N9** `parse-only --store` drops a post whose text differs from the raw capture that stamps it
+    (`text_mismatch`); the stamp and the text must come from the same capture.
+  - **m9** a "tonight" post written 00:00-06:00 ET about the coming evening is dropped (the evening
+    that just ended owns it): a recall cost, by design (Devin's default). "tomorrow", a weekday or a
+    date at those hours still attach.
 - **N1** a post written before 06:00 ET belongs to the previous evening: "tonight/today/this
   evening" and "tomorrow" in F3 resolve against the ET date of `created_at - 6 h`. Test: a 22:30 ET
   tip, a 19:30 ET back-to-back, a postgame "tonight" at tip + 3 h 15 m writes no fact.
@@ -251,9 +266,12 @@ reaches the bound. Acceptance comes from the first 5 live game nights, labelled 
 the builder (draft section 5.3), and Stage B does not run until it passes.
 
 ### Amendments for the modeler (docs/prereg/REPORTER_FEED_LIVE.md, still a draft)
-1. **Kill criterion (b), add:** "any qualifying fact whose `created_at` lies between the team's
-   previous tip and 06:00 ET on the day after that tip (a postgame post attached to the next game)".
-   The stamp check alone cannot see it: the stamp is honest, the game is wrong.
+1. **Kill criterion (b), add (round 3 wording):** "any qualifying fact whose `created_at` lies
+   after the team's previous tip + 3 h and before 06:00 ET on the day after that tip, and whose
+   `day_ref` (stored in `value_text`) is not `tomorrow` or the attached game's own weekday or
+   date". After the N1R fix this never fires, so it is a pure integrity check; worded without the
+   `day_ref` clause it would fire on correct next-day posts ("20-minute restriction tomorrow").
+   The stamp check alone cannot see this class: the stamp is honest, the game is wrong.
 2. **Frozen identifiers:** replace "parser sha256: <nba/ingest/reporter_parse.py ...>" by
    "`nba.ingest.reporter_pretip.parser_fingerprint()` over `FINGERPRINT_FILES`" (reporter_pretip.py,
    reporter_parse.py, reporter_facts.py, nba/parse/availability.py, nba/kalshi/aliases.py,
@@ -261,7 +279,8 @@ the builder (draft section 5.3), and Stage B does not run until it passes.
 3. **Section 6 (storage):** the store is `data/facts/reporter_facts.duckdb`, not `data/reporters/`;
    the unique key is (subject, predicate, object, source, post_id) and several claims on one player in
    one post are merged to one row per predicate before the insert (numbered unhedged cap wins; out >
-   game_time_decision > will_play/available > cap_lifted); `claimed_` and `reporter_` rows carry
+   game_time_decision > will_play/available > cap_lifted; two numbered caps in one post keep the FIRST,
+   to be ratified or switched to the last); `claimed_` and `reporter_` rows carry
    `post_id` and `evidence_sha256` only, never post text; a post in no indexed raw file is not written;
    `team_game_coverage` is keyed (game_id, team_id, tip).
 4. **Section 9 (cadence):** T-90, T-70, T-40 and a 13:30 ET sweep (not T-120/T-70/T-35); a team-game
