@@ -468,6 +468,9 @@ class Ctx:
     real_plants: bool = True
     frozen_at: float | None = None
     sha: str = "dryrun"
+    stamp: dict[str, str] = field(
+        default_factory=dict
+    )  # review m3: gate stamps (whole-frame hashes + harness hash)
     _w: Any = None
 
     def world(self) -> dict[str, Any]:
@@ -691,14 +694,72 @@ def align(
     return {c: j[c].to_numpy() for c in cols}
 
 
-def save(path: Path, obj: dict[str, Any]) -> None:
+STAMP_KEYS = ("props_all_sha256", "pplay_all_sha256", "harness_git_hash")
+
+
+def canon_all(df: pl.DataFrame) -> pl.DataFrame:
+    """Secondary-hash canonicalisation: every copy of t30_vac_starter_min (headline, pess2, shuffled) rounded to 1e-9 (same jitter)."""
+    cols = [c for c in (VAC, P2 + VAC, SH + VAC) if c in df.columns]
+    return df.with_columns([pl.col(c).round(VAC_DECIMALS) for c in cols])
+
+
+def whole_hash(df: pl.DataFrame, cols: list[str]) -> str:
+    """Review m3: the frozen pins cover the scored rows only (the frozen recipe; not extended); this SECONDARY hash covers every row
+    (training-only rows included) and every column an arm reads, plus season and date. Written to gate.json and every checkpoint."""
+    d = canon_all(df)
+    if "game_date" in d.columns:
+        d = d.with_columns(pl.col("game_date").cast(pl.Date).cast(pl.Int32))
+    use = sorted({c for c in [*cols, "season", "game_date"] if c in d.columns} - set(KEYS))
+    return frame_sha(d.select(*KEYS, *use), use)
+
+
+def harness_hash(path: Path | None = None) -> str:
+    """`git hash-object` of this file (blob sha1), computed without git."""
+    data = (path or Path(__file__)).read_bytes()
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+
+
+def world_stamp(w: dict[str, Any]) -> dict[str, str]:
+    pcols = [*props_hash_cols(), *(P2 + c for c in T30), *(SH + c for c in T30)]
+    rcols = [*pplay_arms()["R"], "played", *T30, *(P2 + c for c in T30), *(SH + c for c in T30)]
+    return {
+        "props_all_sha256": whole_hash(w["props"], pcols),
+        "pplay_all_sha256": whole_hash(w["pplay"], rcols),
+        "harness_git_hash": harness_hash(),
+    }
+
+
+def save(ctx: Ctx, path: Path, obj: dict[str, Any]) -> None:
+    if set(ctx.stamp) != set(STAMP_KEYS):
+        raise RuntimeError("no gate stamp in this context: run the gate first")
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(path, **obj)
+    payload: dict[str, Any] = {**obj, **{f"_stamp_{k}": np.array(v) for k, v in ctx.stamp.items()}}
+    np.savez_compressed(path, **payload)
 
 
-def load(path: Path) -> dict[str, np.ndarray]:
+def check_stamp(ctx: Ctx, path: Path, z: dict[str, np.ndarray]) -> None:
+    for k in STAMP_KEYS:
+        got = str(z[f"_stamp_{k}"]) if f"_stamp_{k}" in z else None
+        if got != ctx.stamp.get(k):
+            raise RuntimeError(
+                f"{path}: checkpoint stamp {k}={got and got[:12]} != gate {str(ctx.stamp.get(k))[:12]}: stale checkpoint (different frame or harness); delete the cache and rerun"
+            )
+
+
+def load(ctx: Ctx, path: Path) -> dict[str, np.ndarray]:
     z = np.load(path, allow_pickle=True)
-    return {k: z[k] for k in z.files}
+    d = {k: z[k] for k in z.files}
+    check_stamp(ctx, path, d)
+    return {k: v for k, v in d.items() if not k.startswith("_stamp_")}
+
+
+def checkpoint_ok(ctx: Ctx, path: Path) -> bool:
+    """Reuse only a checkpoint written after the freeze AND stamped with the gate's whole-frame hashes and harness hash; raise otherwise."""
+    if not RRF.check_checkpoint(path, ctx.frozen_at):
+        return False
+    z = np.load(path, allow_pickle=True)
+    check_stamp(ctx, path, {k: z[k] for k in z.files})
+    return True
 
 
 def hp(ctx: Ctx, stat: str, arm: str) -> Path:
@@ -857,6 +918,9 @@ def run_gate(ctx: Ctx) -> dict[str, Any]:
             {},
             stop="a frame differs from its frozen pin: the data changed after the freeze; stop before any arm",
         )
+    ctx.stamp = world_stamp(
+        w
+    )  # review m3: secondary whole-frame hashes + harness hash (not the frozen pins)
     fr, pfr = w["props"], w["pplay"]
     # L5: the scored row sets (A0 / R) are unchanged by the pess2 rows (added rows feed team features only)
     c0 = ctx.comps[STATS[0]]
@@ -877,6 +941,8 @@ def run_gate(ctx: Ctx) -> dict[str, Any]:
             l5["a0_rows_with_p2"] == l5["a0_rows"] and l5["R_rows_with_p2"] == l5["R_rows"],
         )
     )
+    if not tests[-1]["ok"]:
+        return _write_gate(ctx, tests, pn, t0, {}, stop="L5 row-set check failed before any fit")
     # reproduction (check 1)
     ctx.cache.mkdir(parents=True, exist_ok=True)
     rep: dict[str, Any] = {}
@@ -884,8 +950,8 @@ def run_gate(ctx: Ctx) -> dict[str, Any]:
     for st in STATS:
         p0 = heads_walk(fr, st, cfg, "P0C")
         fu = heads_walk(fr, st, cfg, "FULLC")
-        save(hp(ctx, st, "P0C"), p0)
-        save(hp(ctx, st, "FULLC"), fu)
+        save(ctx, hp(ctx, st, "P0C"), p0)
+        save(ctx, hp(ctx, st, "FULLC"), fu)
         a, b = RRF.heads_vs_stored(p0, ctx.comps[st]), RRF.heads_vs_stored(fu, ctx.full_heads[st])
         ok = (
             a["rows_equal"]
@@ -926,6 +992,25 @@ def run_gate(ctx: Ctx) -> dict[str, Any]:
         if pi_full is not None and len(pi_full) == len(ctx.full_pi)
         else float("inf")
     )
+    heads_ok = all(v["ok"] for v in rep.values())
+    pi_defect = dpi > REPRO_TOL and heads_ok and all(v["inputs_identical"] for v in rep.values())
+    if pi_defect:  # review M1: pi_R.npz stores no inputs; the heads walks on the SAME frame reproduced with identical inputs -> not drift
+        tests.append(
+            _chk(
+                "check 1 reproduction: FULL pi refit vs pi_R.npz while every heads reproduction holds with identical stored inputs",
+                {"pi_full_max_abs_diff": dpi, "pi_mismatch_with_identical_heads_inputs": True},
+                f"<= {REPRO_TOL}",
+                False,
+            )
+        )
+        return _write_gate(
+            ctx,
+            tests,
+            pn,
+            t0,
+            {"drift": False, "heads": rep, "pi_full_max_abs_diff": dpi},
+            stop="FULL pi reproduction failed while the heads inputs are identical: a code defect (stop)",
+        )
     rr_ref = pplay_walk_served(pfr, {"R": pplay_arms()["R"]}, {}, pcfg)
     rr_al = align(rr_ref, ctx.rr["gid"], ctx.rr["pid"], ["p_R", "y"])
     dr = float(np.abs(rr_al["p_R"] - ctx.rr["p_R"]).max())
@@ -950,10 +1035,11 @@ def run_gate(ctx: Ctx) -> dict[str, Any]:
     drift = drift or dpi > REPRO_TOL or dr > REPRO_TOL
     if drift:
         a0pic = collect_pi(fr, cfg)
-        save(ctx.cache / "a0_pic_refit.npz", a0pic)
+        save(ctx, ctx.cache / "a0_pic_refit.npz", a0pic)
         pi_full = PR.align_to_stored(pi_f, a0pic["row_gid"], a0pic["row_pid"])
-    save(ctx.cache / "pi_FULL.npz", {"pi": pi_full})
+    save(ctx, ctx.cache / "pi_FULL.npz", {"pi": pi_full})
     save(
+        ctx,
         ctx.cache / "pplay_R.npz",
         {
             "gid": rr_ref["gid"],
@@ -963,9 +1049,13 @@ def run_gate(ctx: Ctx) -> dict[str, Any]:
             "p_R": rr_ref["p_R"],
         },
     )
-    tests.append(_chk("check 1 reproduction: P0C == stored components, FULL refit == cache (4 stats); FULL pi == pi_R.npz; R refit == stored p_R (or data drift: all refit, reported)", {"heads": rep, "pi_full_max_abs_diff": dpi, "R_max_abs_diff": dr, "drift": drift}, f"<= {REPRO_TOL}, or drift with differing inputs", True))  # fmt: skip
+    tests.append(_chk("check 1 reproduction: P0C == stored components, FULL refit == cache (4 stats); FULL pi == pi_R.npz; R refit == stored p_R (or data drift: all refit, reported)", {"heads": rep, "pi_full_max_abs_diff": dpi, "pi_mismatch_with_identical_heads_inputs": False, "R_max_abs_diff": dr, "drift": drift}, f"<= {REPRO_TOL}, or drift with differing inputs", True))  # fmt: skip
     # check 3 plants (stop)
     tests += plants(w["games"], w["pgs"])
+    if not all(t["ok"] for t in tests):
+        return _write_gate(
+            ctx, tests, pn, t0, {"drift": drift, "heads": rep}, stop="check 3 plant failed (stop)"
+        )
     # check 5 missingness (flag)
     aud = WE.audit_nulls(
         a0j.filter(pl.col("season").is_in(list(SEASONS))), list(T30), WE.minutes_bucket("minutes")
@@ -1023,6 +1113,7 @@ def _write_gate(
         "stop": stop,
         "sha256": ctx.sha,
         "pins": pn,
+        **ctx.stamp,
         "info": info,
         "seconds": round(time.time() - t0, 1),
     }
@@ -1051,6 +1142,15 @@ def require_gate(ctx: Ctx) -> dict[str, Any]:
         for k in ("props_sha256", "pplay_keys_t30_sha256", "pplay_R_frame_sha256")
     ):
         raise RuntimeError("a frame differs from the one the gate hashed: refuse")
+    if any(k not in g for k in STAMP_KEYS):
+        raise RuntimeError("gate.json carries no checkpoint stamp: rerun the gate")
+    ctx.stamp = {k: str(g[k]) for k in STAMP_KEYS}
+    cur = world_stamp(ctx.world())
+    bad = [k for k in STAMP_KEYS if cur[k] != ctx.stamp[k]]
+    if bad:
+        raise RuntimeError(
+            f"whole-frame / harness stamp differs from the gate's ({bad}): refuse (rerun the gate on an empty cache)"
+        )
     return g
 
 
@@ -1061,19 +1161,19 @@ def run_arms(ctx: Ctx) -> None:
     cfg, pcfg = ctx.cfg or w["cfg"], ctx.pcfg or w["pcfg"]
     drift = bool(gate["info"].get("drift"))
     for st in STATS:
-        base = load(hp(ctx, st, "P0C")) if drift else ctx.comps[st]
+        base = load(ctx, hp(ctx, st, "P0C")) if drift else ctx.comps[st]
         for arm in CLAIM_HEADS:
             p = hp(ctx, st, arm)
-            if RRF.check_checkpoint(p, ctx.frozen_at):
+            if checkpoint_ok(ctx, p):
                 _log(f"{st} heads {arm} from checkpoint")
                 continue
             _log(f"{st} heads walk {arm}")
             comp = heads_walk(w["props"], st, cfg, arm)
             if not RRF.same_rows(comp, base):
                 raise RuntimeError(f"{st} {arm}: rows do not match the A0 rows")
-            save(p, comp)
+            save(ctx, p, comp)
     p = ctx.cache / "pplay_arms.npz"
-    if not RRF.check_checkpoint(p, ctx.frozen_at):
+    if not checkpoint_ok(ctx, p):
         arms = pplay_arms()
         _log("pplay walk RT, RT_P2, RT_SH, RT_P2S (served)")
         res = pplay_walk_served(
@@ -1082,7 +1182,7 @@ def run_arms(ctx: Ctx) -> None:
             {"RT_P2S": SERVED["RT_P2S"]},
             pcfg,
         )
-        save(p, res)
+        save(ctx, p, res)
 
 
 # --------------------------------------------------------------------------- score
@@ -1111,18 +1211,30 @@ def ds(d: np.ndarray, gid: np.ndarray, date: np.ndarray, m: np.ndarray) -> dict[
     }
 
 
+def boot_weights(
+    gid: np.ndarray, n_boot: int = WE.N_BOOT, seed: int = SEED
+) -> tuple[np.ndarray, np.ndarray]:
+    """Review m7. The rule names `WE.delta_stats` for every CI (there is no truth/bootstrap.py in this repo; nba/truth/metrics.py's
+    bootstrap is row-level). These are exactly `workload_eval._ci`'s draws: games = np.unique order, default_rng(seed), one multinomial
+    of size n_games per draw, so N3's overlap interval uses the SAME paired draws as the N2 / N3 delta CIs (unit-tested bit-identical)."""
+    _, inv = np.unique(gid, return_inverse=True)
+    g = int(inv.max()) + 1
+    return inv, np.random.default_rng(seed).multinomial(g, np.full(g, 1.0 / g), size=n_boot).astype(
+        float
+    )
+
+
 def ratio(
     num: np.ndarray, den: np.ndarray, gid: np.ndarray, n_boot: int = WE.N_BOOT, seed: int = SEED
 ) -> dict[str, float]:
     """overlap = 1 - mean(num) / mean(den), paired game-clustered percentile interval (the same draws for both means)."""
-    _, inv = np.unique(gid, return_inverse=True)
-    g = int(inv.max()) + 1
+    inv, wt = boot_weights(gid, n_boot, seed)
+    g = wt.shape[1]
     sn, sd, c = (
         np.bincount(inv, num, g),
         np.bincount(inv, den, g),
         np.bincount(inv, minlength=g).astype(float),
     )
-    wt = np.random.default_rng(seed).multinomial(g, np.full(g, 1.0 / g), size=n_boot).astype(float)
     tot = np.maximum(wt @ c, 1.0)
     with np.errstate(divide="ignore", invalid="ignore"):
         sh = 1.0 - ((wt @ sn) / tot) / ((wt @ sd) / tot)
@@ -1148,13 +1260,13 @@ def coverage_bias(qi: np.ndarray, y: np.ndarray, season: np.ndarray) -> dict[str
 def score_props(ctx: Ctx, gate: dict[str, Any], st: str, meta: pl.DataFrame) -> dict[str, Any]:
     drift = bool(gate["info"].get("drift"))
     assert ctx.pic is not None
-    base = load(hp(ctx, st, "P0C")) if drift else ctx.comps[st]
-    pic = load(ctx.cache / "a0_pic_refit.npz") if drift else ctx.pic
-    pi_full = load(ctx.cache / "pi_FULL.npz")["pi"]
+    base = load(ctx, hp(ctx, st, "P0C")) if drift else ctx.comps[st]
+    pic = load(ctx, ctx.cache / "a0_pic_refit.npz") if drift else ctx.pic
+    pi_full = load(ctx, ctx.cache / "pi_FULL.npz")["pi"]
     H = {
         "P0": base,
-        "FULL": load(hp(ctx, st, "FULLC")),
-        **{a: load(hp(ctx, st, a)) for a in CLAIM_HEADS},
+        "FULL": load(ctx, hp(ctx, st, "FULLC")),
+        **{a: load(ctx, hp(ctx, st, a)) for a in CLAIM_HEADS},
     }
     kh0 = key_hash(base["row_gid"], base["row_pid"])
     l5 = {
@@ -1272,14 +1384,18 @@ def score_props(ctx: Ctx, gate: dict[str, Any], st: str, meta: pl.DataFrame) -> 
 def score_pplay(ctx: Ctx, gate: dict[str, Any], meta: pl.DataFrame) -> dict[str, Any]:
     assert ctx.rr is not None
     drift = bool(gate["info"].get("drift"))
-    ref = load(ctx.cache / "pplay_R.npz")
+    ref = load(ctx, ctx.cache / "pplay_R.npz")
     gid0, pid0 = (ref["gid"], ref["pid"]) if drift else (ctx.rr["gid"], ctx.rr["pid"])
     R = (
         align(ref, gid0, pid0, ["p_R", "y", "season"])
         if drift
         else {"p_R": ctx.rr["p_R"], "y": ctx.rr["y"], "season": ctx.rr["season"]}
     )
-    arms = load(ctx.cache / "pplay_arms.npz")
+    arms = load(ctx, ctx.cache / "pplay_arms.npz")
+    if key_hash(arms["gid"], arms["pid"]) != key_hash(
+        gid0, pid0
+    ):  # review m6: assert, as for props
+        raise RuntimeError("L5: the P(play) walk's scored row set differs from the R row set")
     A = align(arms, gid0, pid0, [f"p_{a}" for a in ("RT", "RT_P2", "RT_SH", "RT_P2S")] + ["y"])
     if not np.array_equal(A["y"].astype(float), R["y"].astype(float)):
         raise RuntimeError("P(play) labels differ between R and the t30 arms")
@@ -1430,9 +1546,16 @@ def run_score(ctx: Ctx) -> dict[str, Any]:
     return out
 
 
+SUPERSEDE_NOTE = (
+    "The N1 planning range [min(pess2, P2S), headline] supersedes FORWARD_PREREG_2026_27 section 2's continuous, proxy-tip "
+    "planning range in this result note only; FORWARD_PREREG_2026_27 (its direction check and its section 6 power table) is not edited."
+)
+
+
 def render(out: dict[str, Any]) -> str:
     f = PR._f
     lines = [f"# {ID} results (DESCRIPTIVE; per-number 95% intervals, game-clustered; date-clustered in brackets)", "", f"Rule sha256 {str(out['sha256'])[:8]}. Season 2025 never loaded." + (" **Missingness flag raised (check 5).**" if out.get("missingness_flag") else ""), "",
+             SUPERSEDE_NOTE, "", f"Range low end: {DESIGN['range_low_end']}.", "",
              "| stat | season | N | way | n | delta | CI (game) | CI (date) |", "|---|---|---|---|---|---|---|---|"]  # fmt: skip
     for st, r in out["props"].items():
         for s in SEASONS:

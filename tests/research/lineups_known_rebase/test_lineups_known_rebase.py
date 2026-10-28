@@ -117,14 +117,14 @@ def _toy() -> tuple[pl.DataFrame, pl.DataFrame]:
     """One team (1) vs (2), five games; players 10-14 start games 0-3. Game 4: 10 is a dressed DNP (late), 11 has no box row (late via a pre-tip
     row), 12 was OUT at T-60, 15 and 16 replace them; 17 starts too (replacing 12)."""
     games, rows = [], []
-    for g in range(5):
-        gid = f"0022300{g:03d}"
-        games.append((gid, dt.date(2023, 11, 1) + dt.timedelta(days=2 * g), 2023, 1, 2))
+    for gi in range(5):
+        gid = f"0022300{gi:03d}"
+        games.append((gid, dt.date(2023, 11, 1) + dt.timedelta(days=2 * gi), 2023, 1, 2))
         for p in range(10, 20):
-            if g == 4 and p in (11, 12):
+            if gi == 4 and p in (11, 12):
                 continue
-            st = p in (10, 11, 12, 13, 14) if g < 4 else p in (13, 14, 15, 16, 17)
-            mins = 0.0 if (g == 4 and p == 10) else (30.0 if st else 12.0)
+            st = p in (10, 11, 12, 13, 14) if gi < 4 else p in (13, 14, 15, 16, 17)
+            mins = 0.0 if (gi == 4 and p == 10) else (30.0 if st else 12.0)
             rows.append((gid, p, 1, mins, 10, 5, 3, 1, st))
         for p in range(20, 25):
             rows.append((gid, p, 2, 30.0, 10, 5, 3, 1, True))
@@ -288,9 +288,12 @@ def test_tip_cap_never_opens_a_later_schedule_file(
         ).write_parquet(tmp_path / f"{name}.parquet")
     opened: list[str] = []
     real = pl.read_parquet
-    monkeypatch.setattr(
-        GT.pl, "read_parquet", lambda f, *a, **k: (opened.append(Path(f).stem), real(f, *a, **k))[1]
-    )
+
+    def rec(f: Any, *a: Any, **k: Any) -> pl.DataFrame:
+        opened.append(Path(f).stem)
+        return real(f, *a, **k)
+
+    monkeypatch.setattr(GT.pl, "read_parquet", rec)
     monkeypatch.setattr(GT, "SCHEDULE_DIR", tmp_path)
     with E.tip_cap() as calls:
         rows = pl.DataFrame({"game_id": ["raw_2023-24"]})
@@ -410,3 +413,84 @@ def test_dryrun_end_to_end(tmp_path: Path) -> None:
         hl["delta"] < 0 and hl["n"] > 0
     )  # synthetic minutes follow tonight's flag: the T-30 arm must see it
     assert (tmp_path / "report.md").exists()
+
+
+# --------------------------------------------------------------------------- second review 2026-10-27 (M1, m3, m4, m6, m7)
+def test_M1_pi_mismatch_with_identical_heads_inputs_is_a_code_defect_stop(tmp_path: Path) -> None:
+    ctx = E.dry_ctx(tmp_path)
+    assert ctx.full_pi is not None
+    ctx.full_pi = ctx.full_pi + 1e-3
+    g = E.run_gate(ctx)
+    assert not g["gate_ok"] and "FULL pi" in g["stop"] and "code defect" in g["stop"]
+    t = [x for x in g["tests"] if "FULL pi refit" in x["test"]]
+    assert t and t[0]["value"]["pi_mismatch_with_identical_heads_inputs"]
+    assert not (tmp_path / "cache" / "pi_FULL.npz").exists()
+
+
+def test_m3_training_only_change_refuses_stale_checkpoints_without_touching_the_pins(
+    tmp_path: Path,
+) -> None:
+    ctx = E.dry_ctx(tmp_path)
+    assert E.run_gate(ctx)["gate_ok"]
+    g0 = json.loads((tmp_path / "gate.json").read_text())
+    assert set(E.STAMP_KEYS) <= set(g0) and g0["harness_git_hash"] == E.harness_hash()
+    E.run_arms(ctx)
+    z = np.load(tmp_path / "cache" / "heads_pts_T30.npz")
+    assert str(z["_stamp_props_all_sha256"]) == g0["props_all_sha256"]
+    w = ctx.world()
+    props = w["props"]
+    changed = props.with_columns(
+        pl.when(pl.col("season") == 2022)
+        .then(pl.col("t30_n_changed") + 1)
+        .otherwise(pl.col("t30_n_changed"))
+        .alias("t30_n_changed")
+    )
+    w2 = {**w, "props": changed}
+    ctx2 = E.Ctx(**{**ctx.__dict__, "_w": None, "world_fn": lambda: w2, "stamp": {}})
+    with pytest.raises(RuntimeError, match="stamp differs"):
+        E.require_gate(ctx2)  # the old gate.json no longer matches the rebuilt world
+    g2 = E.run_gate(ctx2)
+    assert (
+        g2["gate_ok"] and g2["pins"]["props_sha256"] == g0["pins"]["props_sha256"]
+    )  # scored-row pin unchanged
+    assert g2["props_all_sha256"] != g0["props_all_sha256"]
+    with pytest.raises(RuntimeError, match="stale checkpoint"):
+        E.run_arms(ctx2)
+
+
+def test_m7_overlap_draws_are_workload_eval_ci_draws() -> None:
+    rng = np.random.default_rng(1)
+    gid = np.repeat(np.array([f"g{i:03d}" for i in range(300)]), 7)
+    x = rng.normal(0.01, 0.3, len(gid))
+    inv, w = E.boot_weights(gid)
+    g = w.shape[1]
+    s, c = np.bincount(inv, x, g), np.bincount(inv, minlength=g).astype(float)
+    means = (w @ s) / np.maximum(w @ c, 1.0)
+    ref = E.WE._ci(x, gid)
+    assert (
+        float(np.percentile(means, 2.5)) == ref["lo"]
+        and float(np.percentile(means, 97.5)) == ref["hi"]
+    )
+
+
+def test_m4_m6_report_carries_the_supersede_sentence_and_pplay_l5_is_asserted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx = E.dry_ctx(tmp_path)
+    assert E.run_all(ctx) == 0
+    md = (tmp_path / "report.md").read_text()
+    assert E.SUPERSEDE_NOTE in md and "is not edited" in md and "Range low end" in md
+    arms = dict(np.load(tmp_path / "cache" / "pplay_arms.npz", allow_pickle=True))
+    cut: dict[str, Any] = {
+        k: (v[1:] if isinstance(v, np.ndarray) and v.shape[:1] == arms["gid"].shape else v)
+        for k, v in arms.items()
+    }
+    np.savez_compressed(tmp_path / "cache" / "pplay_arms.npz", **cut)
+    with pytest.raises(RuntimeError, match="L5"):
+        E.score_pplay(
+            ctx,
+            json.loads((tmp_path / "gate.json").read_text()),
+            ctx.world()["pplay"].select(
+                *E.KEYS, "game_date", "late_tg", "t30_starter", "t30_start_delta", "p2_t30_starter"
+            ),
+        )
