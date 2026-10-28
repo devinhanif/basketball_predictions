@@ -22,6 +22,7 @@ exploration, however good it looks.
 
 | Date | Item | Verdict | Note |
 |---|---|---|---|
+| 2026-10-27 | Trading repos: TradingAgents, OpenBB, ai-hedge-fund, Freqtrade, Qlib, NautilusTrader, RD-Agent | SKIP x6; PURSUE (DRAFT) AS_OF_IDENTITY from Freqtrade lookahead/recursive analysis | [trading_repos_2026-10-27.md](trading_repos_2026-10-27.md) |
 | 2026-10-09 | Historical odds providers (The Odds API, Kalshi, others) | PURSUE | [historical_odds_2026-10-09.md](historical_odds_2026-10-09.md) |
 | 2026-10-08 | Stacked-ensemble, GCN+RF, NCAA LSTM/Transformer papers (pasted) | tested → not kept | see T-rows for seq_props, joint_game_set, pbp_gpt, winprob family |
 
