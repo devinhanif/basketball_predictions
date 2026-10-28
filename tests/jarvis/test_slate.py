@@ -183,12 +183,179 @@ def test_sides_props_config_fails_closed(cfg: JarvisConfig, root, tmp_path) -> N
         f.write_text(text)
         return load_config(f, root=root)
 
-    for bad in ('props: ["no"]', 'props: ["yes", "no"]', "props: []", "props: yes_only", "props:"):
+    for bad in (
+        'props: ["no"]',
+        "props: []",
+        "props: yes_only",
+        "props:",
+        'props: ["yes", "yes"]',
+        'props: ["yes", "no", "no"]',
+        'props: ["yes", "maybe"]',
+        'props: ["yes", "no", "push"]',
+    ):
         with pytest.raises(ValueError):
             load(base.replace(good, bad))
     with pytest.raises(Exception, match="duplicate key"):
         load(base.replace(good, good + '\n  props: ["yes", "no"]'))
     assert load(base).props_sides == ("yes",)
+    assert load(base).props_by_venue == {}  # shipped default: Yes only everywhere
+    # both accepted shapes (bare yes/no are YAML booleans: also read)
+    assert load(base.replace(good, 'props: ["yes", "no"]')).props_sides == ("yes", "no")
+    assert load(base.replace(good, "props: [no, yes]")).props_sides == ("yes", "no")
+    assert load(base.replace(good, "props: [yes]")).props_sides == ("yes",)
+
+
+def test_props_by_venue_config_loads_and_fails_closed(cfg: JarvisConfig, root, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from nba.jarvis.config import DEFAULT_PATH, load_config
+
+    base = DEFAULT_PATH.read_text()
+    good = 'props: ["yes"]'
+
+    def load(extra: str) -> JarvisConfig:
+        f = tmp_path / "j.yaml"
+        f.write_text(base.replace(good, good + "\n  " + extra))
+        return load_config(f, root=root)
+
+    c = load("props_by_venue: {kalshi: [yes, no], polymarket: [yes]}")
+    assert c.props_sides == ("yes",)
+    assert c.props_by_venue == {"kalshi": ("yes", "no"), "polymarket": ("yes",)}
+    assert c.props_sides_for("kalshi") == ("yes", "no")
+    assert c.props_sides_for("polymarket") == ("yes",)
+    only = load('props_by_venue: {kalshi: ["yes", "no"]}')
+    assert only.props_sides_for("polymarket") == ("yes",)  # not listed: the global default
+    assert only.props_sides_for(None) == ("yes",)
+    assert load("props_by_venue: {}").props_by_venue == {}
+    for bad in (
+        'props_by_venue: {kalshi: ["no"]}',
+        "props_by_venue: {kalshi: []}",
+        "props_by_venue: {kalshi: yes}",
+        'props_by_venue: {kalshi: ["yes", "yes"]}',
+        'props_by_venue: {kalshi: ["yes", "maybe"]}',
+        'props_by_venue: {draftkings: ["yes", "no"]}',  # unknown venue
+        "props_by_venue: [kalshi]",
+        "props_by_venue:",
+        'props_by_venues: {kalshi: ["yes", "no"]}',  # a typo must not be silently ignored
+    ):
+        with pytest.raises(ValueError):
+            load(bad)
+    with pytest.raises(Exception, match="duplicate key"):
+        load('props_by_venue: {kalshi: ["yes"], kalshi: ["yes", "no"]}')
+    with pytest.raises(Exception, match="duplicate key"):
+        load('props_by_venue: {kalshi: ["yes"]}\n  props_by_venue: {kalshi: ["yes", "no"]}')
+
+
+def _with_venues(cfg: JarvisConfig, **by_venue: tuple[str, ...]) -> JarvisConfig:
+    return replace(cfg, props_by_venue=dict(by_venue))
+
+
+def test_prop_no_appears_only_where_its_venue_allows_it(cfg: JarvisConfig) -> None:
+    from nba.jarvis import edge as E
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    poly_prop = replace(prop, venue="polymarket", ticker="POLYUS:synthetic:prop")
+    both = _with_venues(cfg, kalshi=("yes", "no"), polymarket=("yes",))
+    # shipped default: neither venue
+    assert not E.side_allowed(cfg, "prop", "no", "kalshi")
+    assert single_candidate(cfg, st, prop, "no") is None
+    # kalshi opened, polymarket not
+    assert E.side_allowed(both, "prop", "no", "kalshi") and E.side_allowed(
+        both, "prop", "yes", "kalshi"
+    )
+    assert not E.side_allowed(both, "prop", "no", "polymarket")
+    assert E.side_allowed(both, "prop", "yes", "polymarket")
+    no = single_candidate(both, st, prop, "no")
+    assert no is not None and no.legs[0].side == "no" and no.legs[0].kind == "prop"
+    assert no.edge_cents < 0 and no.label == "none"  # the stub model prices the LeBron over rich
+    assert single_candidate(both, st, poly_prop, "no") is None
+    assert single_candidate(both, st, poly_prop, "yes") is not None
+    # the other direction: kalshi closed by the override even when the global default is open
+    inverted = replace(cfg, props_sides=("yes", "no"), props_by_venue={"kalshi": ("yes",)})
+    assert single_candidate(inverted, st, prop, "no") is None
+    assert single_candidate(inverted, st, poly_prop, "no") is not None
+    # the Polymarket No skip in the per-game search is the fallback and still holds
+    poly_all = _with_venues(cfg, kalshi=("yes", "no"), polymarket=("yes", "no"))
+    assert E.side_allowed(poly_all, "prop", "no", "polymarket")  # config says yes ...
+    plays = best_per_game(poly_all, replace(st, quotes=[poly_prop]))  # ... slate.py still skips
+    assert all(leg.side != "no" for p in plays.values() for leg in p.legs)
+    # the plan under the shipped default never carries a prop No
+    for pl in plan_slate(cfg, st):
+        assert not any(leg.kind == "prop" and leg.side == "no" for leg in pl.legs)
+    opened = _with_venues(cfg, kalshi=("yes", "no"))
+    cands = [
+        single_candidate(opened, st, q, "no")
+        for q in st.quotes
+        if q.kind == "prop" and q.venue == "kalshi"
+    ]
+    assert any(c is not None for c in cands)
+    closed = [single_candidate(cfg, st, q, "no") for q in st.quotes if q.kind == "prop"]
+    assert all(c is None for c in closed)
+
+
+def test_game_markets_are_unaffected_by_the_props_keys(cfg: JarvisConfig) -> None:
+    from nba.jarvis import edge as E
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
+    g = next(q for q in st.quotes if q.kind == "game_win" and q.venue == "kalshi" and q.ask("no"))
+    for variant in (
+        cfg,
+        _with_venues(cfg, kalshi=("yes", "no")),
+        _with_venues(cfg, kalshi=("yes",), polymarket=("yes",)),
+        replace(cfg, props_sides=("yes", "no")),
+    ):
+        for v in ("kalshi", "polymarket", None):
+            assert E.side_allowed(variant, "game_win", "no", v) and E.side_allowed(
+                variant, "game_win", "yes", v
+            )
+        c = single_candidate(variant, st, g, "no")
+        assert c is not None
+        base = single_candidate(cfg, st, g, "no")
+        assert base is not None
+        assert (c.edge_cents == base.edge_cents) or (
+            math.isnan(c.edge_cents) and math.isnan(base.edge_cents)
+        )
+    # a Polymarket game No is still skipped by the per-game search
+    poly_g = replace(g, venue="polymarket", ticker="POLYUS:synthetic:g")
+    plays = best_per_game(_with_venues(cfg, polymarket=("yes", "no")), replace(st, quotes=[poly_g]))
+    assert all(leg.side != "no" for p in plays.values() for leg in p.legs)
+
+
+def test_pick_follows_the_venue_rule(cfg: JarvisConfig) -> None:
+    from nba.jarvis.picks import PickError, build_pick
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    opened = _with_venues(cfg, kalshi=("yes", "no"), polymarket=("yes",))
+
+    def pick(c: JarvisConfig, side: str):  # type: ignore[no-untyped-def]
+        return build_pick(
+            c, st, "x", venue="kalshi", price=0.5, stake=2.0, ticker=prop.ticker, side=side
+        )
+
+    with pytest.raises(PickError, match="Over / Yes only"):
+        pick(cfg, "no")
+    assert pick(cfg, "yes")
+    res = pick(opened, "no")
+    assert res.play.legs[0].side == "no" and res.play.legs[0].kind == "prop"
+    assert pick(opened, "yes")
+    # polymarket stays Yes-only: a pick naming a polymarket prop No is refused, game picks are not
+    poly_prop = replace(prop, venue="polymarket", ticker="POLYUS:synthetic:prop")
+    st_poly = replace(st, quotes=[*st.quotes, poly_prop])
+    with pytest.raises(PickError, match="Over / Yes only"):
+        build_pick(
+            opened,
+            st_poly,
+            "x",
+            venue="polymarket",
+            price=0.5,
+            stake=2.0,
+            ticker=poly_prop.ticker,
+            side="no",
+        )
+    g = next(q for q in st.quotes if q.kind == "game_win" and q.venue == "kalshi")
+    assert build_pick(
+        opened, st, "x", venue="kalshi", price=0.5, stake=2.0, ticker=g.ticker, side="no"
+    )
 
 
 def test_pick_on_a_prop_no_is_refused(cfg: JarvisConfig) -> None:

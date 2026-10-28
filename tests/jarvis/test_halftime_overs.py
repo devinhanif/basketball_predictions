@@ -263,3 +263,32 @@ def test_a_scorer_refusal_shows_in_the_tick_report(
     rep = run_tick(rt, SLATE)
     assert {"kind": "halftime_scorer", "ok": False, "error": "ForeignStoreError"} in rep["halftime"]
     assert any("halftime check-in" in t for t in sent.texts)
+
+
+def test_halftime_overs_stay_yes_only_whatever_the_props_sides_say(cfg: JarvisConfig) -> None:
+    """Frozen scope (HALFTIME_OVERS_VS_PRICE): opening the prop No on a venue never reaches the
+    halftime scorer. Behavioural (the lines are Yes-only with the No opened) and structural (the
+    scorer path never reads the sides keys and has no No-side price)."""
+    from dataclasses import replace
+
+    opened = replace(
+        cfg,
+        props_sides=("yes", "no"),
+        props_by_venue={"kalshi": ("yes", "no"), "polymarket": ("yes",)},
+    )
+    assert opened.props_sides_for("kalshi") == ("yes", "no")
+    txt = "\n".join(HO.overs_lines("LAL@LAC", [r("Ann Alpha", "pts", 15, 44, 2, 0.58)]))
+    assert "15+ pts (Yes)" in txt and "(No)" not in txt and " No " not in f" {txt} "
+    # candidates are Over rows by construction: the row schema has no side column
+    row = r("Ann Alpha", "pts", 15, 44, 2, 0.58)
+    assert not any("side" in k for k in row)
+    root = Path(HO.__file__).resolve().parents[2]
+    for rel in (
+        "nba/jarvis/halftime_overs.py",
+        "nba/markets/halftime_scorer.py",
+        "nba/markets/halftime_entry.py",
+        "nba/markets/halftime_model.py",
+    ):
+        src = (root / rel).read_text()
+        for needle in ("side_allowed", "props_sides", "props_by_venue", "no_ask", "no_bid"):
+            assert needle not in src, (rel, needle)

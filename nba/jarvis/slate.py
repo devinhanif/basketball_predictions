@@ -129,8 +129,8 @@ def _c(x: float) -> str:
 
 
 def single_candidate(cfg: JarvisConfig, st: SlateState, q: Quote, side: str) -> Play | None:
-    if not E.side_allowed(cfg, q.kind, side):
-        return None  # a player-prop No is never offered, alerted or sized
+    if not E.side_allowed(cfg, q.kind, side, q.venue):
+        return None  # a player-prop No is offered only on a venue whose sides allow it
     ask = q.ask(side)
     if ask is None or not MIN_ASK <= ask <= MAX_ASK:
         return None

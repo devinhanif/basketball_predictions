@@ -26,9 +26,13 @@ sizing:
   ladder_usd: {none: 1.0, thin: 3.0, strong: 5.0, arbitrage: 15.0, arb_candidate: 3.0}
   none_max_contracts: 2
 
-sides:                          # Devin 2026-10-27: the venues' apps do not let him buy No on a player prop
-  props: ["yes"]                #  (quoted: bare yes is a YAML boolean)
-  # player props: Over / Yes only, everywhere (slate, alerts, halftime, daily dollar, picks)
+sides:                          # Devin 2026-10-27: default Over / Yes only; a venue is opened for the No by name
+  props: ["yes"]                #  ["yes"] or ["yes", "no"] (yes always required; quoted: bare yes is a YAML boolean)
+  # props_by_venue:             # optional per-venue override of props; a venue not listed uses props above.
+  #   kalshi: ["yes", "no"]     #  OFF until Devin names the venue (2026-10-27 21:3x: "at least one venue", unnamed).
+  #   polymarket: ["yes"]       #  Polymarket US quotes only full-game winners today; its No skip in slate.py stays.
+  # player props: Over / Yes only unless the venue is opened above (slate, alerts, daily dollar, picks).
+  # The halftime scorer / HALFTIME_OVERS_VS_PRICE is Yes-only regardless of this key (frozen scope).
   # game markets (moneyline, spread, totals, team totals) keep both sides; this key never touches them.
 
 kill_switch:                    # closing-line value is the judge of the labels (TRADING_CONTEXT.md)
