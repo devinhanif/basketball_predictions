@@ -308,7 +308,11 @@ def parse_post(text: str) -> list[Claim]:
                 limit = _minutes(m) if claim_type == "minutes_restriction" else None
                 claim = Claim(name, claim_type, limit, round(conf, 2), sentence[:MAX_EVIDENCE])
             prev = found.get(key)
-            if prev is None or _PRIORITY[claim.claim_type] < _PRIORITY[prev.claim_type]:
+            better = _PRIORITY[claim.claim_type] < _PRIORITY[prev.claim_type] if prev else True
+            if prev is not None and claim.claim_type == prev.claim_type:
+                # same type twice for one name: the one that carries the number wins (review N2)
+                better = claim.minutes_limit is not None and prev.minutes_limit is None
+            if better:
                 found[key] = claim
     if not found and not lineup:
         return [Claim(None, "unknown", None, 0.0, text[:MAX_EVIDENCE])]

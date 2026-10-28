@@ -219,3 +219,54 @@ oracle has nothing to compare.
 
 Run the poll by hand (one handle, prints, writes nothing durable unless `--store` is given):
 `uv run --env-file .env python -m nba.ingest.reporters poll --handle <h> --store data/facts/reporter_facts.duckdb`.
+
+## Adversary rounds 1 and 2 (2026-10-27): what is fixed, what is open
+
+Reviews: `docs/reviews/reporter_capture_2026-10-27.md` (round 1: NOT_READY, round 2: APPROVED for
+merge, NOT_READY for install until N1). Fixed on the branch: B1, M1-M7, m1-m8, then N1, N2, N3, N5,
+N6, N8 (round 2). N7 is Devin's cost knob (the 48 h team lookback raises the first game-day poll;
+with `posts_per_day` 400 a busy day can hit budget refusals, visible as `refused:not_reached` and
+the T-55 alert; watch two weeks).
+
+- **N1** a post written before 06:00 ET belongs to the previous evening: "tonight/today/this
+  evening" and "tomorrow" in F3 resolve against the ET date of `created_at - 6 h`. Test: a 22:30 ET
+  tip, a 19:30 ET back-to-back, a postgame "tonight" at tip + 3 h 15 m writes no fact.
+- **N2** `claimed_*` rows merge like the `reporter_*` rows, and `parse_post` keeps the numbered one
+  when a name has the same claim type twice.
+- **N3** the scheduled job gives a league-wide handle the league's latest tip as its previous tip,
+  so an idle league day is read from tip + 3 h. A manual poll whose cursor is older than the 18 h cap
+  ends `short:lookback_cap` (never a silent ok); the cursor moves on, since the gap cannot be refilled.
+- **N5** the facts-build copy takes only `claimed_` and `reporter_` predicates. **N6** the
+  fingerprint also covers `nba/kalshi/aliases.py` and `nba/props/rosters.py` (eight files).
+- **N8** `parse-only --store` has CLI-level tests for a raw_backfill file, a file outside the raw
+  store, and an outside file with a planted stamp next to an honest raw copy (the honest stamp wins).
+
+**Parser numbers, stated honestly.** Every text set the parser has seen is now dev data: the 127
+labelled rows, the adversary's first 24 sentences (precision 0.67 before, 1.00 after on n 6; recap
+false positives 0.375 before, 0.00 after; the F1/F2 changes use his proposed regexes, so these
+"after" numbers are NOT held-out), and his fresh 20 sentences, which I did not tune to. On the
+fresh 20 at `a304d0e`: recap false positives **0.42 (5/12, Wilson [0.19, 0.68])** against the 0.02
+bound, precision 0.55 (6/11, [0.28, 0.79]), recall 0.75 (6/8, [0.41, 0.93]). No text-only change
+reaches the bound. Acceptance comes from the first 5 live game nights, labelled by someone other than
+the builder (draft section 5.3), and Stage B does not run until it passes.
+
+### Amendments for the modeler (docs/prereg/REPORTER_FEED_LIVE.md, still a draft)
+1. **Kill criterion (b), add:** "any qualifying fact whose `created_at` lies between the team's
+   previous tip and 06:00 ET on the day after that tip (a postgame post attached to the next game)".
+   The stamp check alone cannot see it: the stamp is honest, the game is wrong.
+2. **Frozen identifiers:** replace "parser sha256: <nba/ingest/reporter_parse.py ...>" by
+   "`nba.ingest.reporter_pretip.parser_fingerprint()` over `FINGERPRINT_FILES`" (reporter_pretip.py,
+   reporter_parse.py, reporter_facts.py, nba/parse/availability.py, nba/kalshi/aliases.py,
+   nba/props/rosters.py, configs/reporter_nicknames.yaml, configs/kalshi_aliases.yaml).
+3. **Section 6 (storage):** the store is `data/facts/reporter_facts.duckdb`, not `data/reporters/`;
+   the unique key is (subject, predicate, object, source, post_id) and several claims on one player in
+   one post are merged to one row per predicate before the insert (numbered unhedged cap wins; out >
+   game_time_decision > will_play/available > cap_lifted); `claimed_` and `reporter_` rows carry
+   `post_id` and `evidence_sha256` only, never post text; a post in no indexed raw file is not written;
+   `team_game_coverage` is keyed (game_id, team_id, tip).
+4. **Section 9 (cadence):** T-90, T-70, T-40 and a 13:30 ET sweep (not T-120/T-70/T-35); a team-game
+   is covered only if an ok poll lies wholly inside [T-90, T-60]; the schedule cache must be younger
+   than 36 h; the poll lower bound is max(cursor - 120 s, previous team tip + 3 h, now - 48 h).
+5. **Filters:** F1 has no `vs`/`against` as a prospective marker; F1b (bare participle), F2 (range
+   exclusion, `scores N`, `N and M`, `in N minutes`) and F3 (06:00 ET rollover, `tomorrow`) are
+   clarifications to ratify. `posts_per_day` is 400 in the config, not 600, until Devin changes it.

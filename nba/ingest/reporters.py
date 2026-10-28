@@ -80,6 +80,7 @@ CANDIDATES_PATH = ROOT / "configs" / "reporter_candidates.txt"
 MAX_RESULTS_MIN, MAX_RESULTS_MAX = 5, 100  # the API's own bounds for max_results
 MAX_ATTEMPTS = 2
 MAX_PAGES = 5  # per handle per poll; a 6th page would mean a runaway timeline
+MAX_ATTACH_AHEAD = timedelta(hours=36)  # a post attaches to a game at most this far ahead
 CURSOR_OVERLAP_S = 120.0  # re-read this much of the last ok poll (X clock vs ours)
 BACKOFF_BASE_S = 1.0
 MAX_RATE_WAIT_S = 120.0
@@ -917,17 +918,29 @@ class XClient:
         lookback_hours: float | None = None,
         prev_tip: datetime | None = None,
     ) -> datetime:
-        """Lower bound of this poll (capture fix 3, adversary M7).
+        """Lower bound of this poll (see :meth:`poll_bounds`)."""
+        return self.poll_bounds(handle, now, lookback_hours, prev_tip)[0]
 
-        * a team handle (``prev_tip`` = its previous game's tip, from the schedule): the later of
-          ``prev_tip + 3 h`` (earlier posts belong to that game, filter F4) and ``now -
-          team_lookback_hours`` (48 h), then the cursor if there is one. So a post written the day
-          before a game, from a team idle that day, is still requested at the first game-day poll;
-        * otherwise (league-wide handle, or no previous game known): the cursor minus the overlap,
-          never further back than ``max_lookback_hours``; with no cursor the ``anchor_hour_et``
-          (06:00 ET) of the game day;
+    def poll_bounds(
+        self,
+        handle: str,
+        now: datetime,
+        lookback_hours: float | None = None,
+        prev_tip: datetime | None = None,
+    ) -> tuple[datetime, bool]:
+        """``(lower bound, clipped)`` of this poll (capture fix 3, adversary M7 and N3).
+
+        * with ``prev_tip`` (a team handle: its previous game's tip; the scheduled job passes the
+          league's latest tip for a league-wide handle): the later of ``prev_tip + 3 h`` (earlier
+          posts belong to that game, filter F4) and ``now - team_lookback_hours`` (48 h), then the
+          cursor if there is one. So a post written the day before a game, from a team idle that
+          day, is still requested at the first game-day poll;
+        * otherwise: the cursor minus the overlap, never further back than ``max_lookback_hours``;
+          with no cursor the ``anchor_hour_et`` (06:00 ET) of the game day;
         * ``lookback_hours`` (the CLI flag) replaces the caps and the anchor.
-        A short page never moved the cursor, so the gap it left is read again.
+        ``clipped`` is True when a cap cut off time the cursor had not read AND a post from there
+        could still attach to a game (cap under 36 h): the poll then ends ``short:lookback_cap``
+        rather than a silent ``ok``. A short page never moved the cursor, so its gap is read again.
         """
         st = self.state.get(handle)
         cursor_s = st.get("last_ok_poll_at") or st.get("last_created_at")
@@ -939,17 +952,18 @@ class XClient:
             )
         if lookback_hours:
             floor = now - timedelta(hours=lookback_hours)
-            return max(floor, cursor) if cursor else floor
+            return (max(floor, cursor) if cursor else floor), False
         if prev_tip is not None:
             prev = (prev_tip.replace(tzinfo=UTC) if prev_tip.tzinfo is None else prev_tip) + (
                 timedelta(hours=3)
             )
             base = max(now - timedelta(hours=self.allowlist.team_lookback_hours), prev)
-            return max(base, cursor) if cursor else base
+            return (max(base, cursor) if cursor else base), False
         floor = now - timedelta(hours=self.allowlist.max_lookback_hours)
         if cursor:
-            return max(floor, cursor)
-        return max(floor, anchor_et(now, self.allowlist.anchor_hour_et))
+            start = max(floor, cursor)
+            return start, cursor < floor and (now - floor) < MAX_ATTACH_AHEAD
+        return max(floor, anchor_et(now, self.allowlist.anchor_hour_et)), False
 
     def poll_handle(
         self,
@@ -965,8 +979,11 @@ class XClient:
         later page's failure cannot lose posts already billed); an API error after the first page
         ends the poll ``error:<kind>`` with those posts kept. Before the first page it raises."""
         rep = self.allowlist.require(handle)
-        start = self.poll_start(rep.handle, now, lookback_hours, prev_tip)
+        start, clipped = self.poll_bounds(rep.handle, now, lookback_hours, prev_tip)
         out = HandlePoll(rep.handle, rep.team_id, now, start)
+        if clipped:
+            out.status = "short:lookback_cap"
+            out.detail = f"lookback cap cut off unread time before {start.isoformat()}"
         token: str | None = None
         while True:
             try:
@@ -1052,7 +1069,9 @@ class XClient:
             res.per_handle[rep.handle] = len(out.posts)
             res.raw_paths.extend(out.raw_paths)
             res.posts.extend(out.posts)
-            if out.status == "ok":
+            if out.status in ("ok", "short:lookback_cap"):
+                # lookback_cap: the unread gap cannot be filled by polling again, so the cursor
+                # moves on (the poll is still not "ok": it never counts as coverage)
                 fields: dict[str, Any] = {"last_ok_poll_at": _naive_utc(now).isoformat()}
                 if out.posts:
                     fields["last_created_at"] = max(p.created_at for p in out.posts).isoformat()

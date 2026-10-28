@@ -354,6 +354,10 @@ def _tick(
                     prev, _ = rf.team_game_around(games, d.team_id, _naive(now))
                     if prev is not None:
                         prev_tips[d.handle] = prev.tipoff
+                else:  # league-wide: the league's latest tip, so an idle day is not a silent gap
+                    played = [g.tipoff for g in games if g.tipoff <= _naive(now)]
+                    if played:
+                        prev_tips[d.handle] = max(played)
             result: PollResult = client.poll(
                 [d.handle for d in due], isolate_errors=True, prev_tips=prev_tips
             )

@@ -1214,3 +1214,141 @@ def test_a_stuck_tick_lock_is_an_alert_not_a_quiet_skip_m3(tmp_path: Path) -> No
     assert res.rc == rt.RC_REFUSED and "stuck" in res.detail
     hb = json.loads((tmp_path / "ops" / "heartbeat" / "reporters.json").read_text())
     assert hb["rc"] == rt.RC_REFUSED
+
+
+# ------------------------------------------------------------------ adversary round 2 (N1-N8)
+
+
+def test_postgame_tonight_after_midnight_et_is_not_the_next_games_pre_tip_cap_n1() -> None:
+    """22:30 ET tip (02:30Z), a back-to-back at 19:30 ET the next day; a postgame 'tonight' post
+    written after the F4 window (tip + 3 h 15 m = 01:45 ET) used to become a LIVE cap on the NEXT
+    game, stamped about 18 h before its T-60."""
+    late = ScheduledGame("0022600040", datetime(2026, 10, 29, 2, 30), DAL, HOU)  # Oct 28 22:30 ET
+    b2b = ScheduledGame("0022600041", datetime(2026, 10, 29, 23, 30), HOU, DAL)  # Oct 29 19:30 ET
+    text = "Alperen Sengun will be on a 24-minute restriction tonight."
+    post_at = late.tipoff + timedelta(hours=3, minutes=15)  # 05:45Z = 01:45 ET Oct 29
+    p = post("9001", post_at, post_at + timedelta(seconds=30), text)
+    facts, _, counts = rf.pretip_facts_for_posts([p], ctx([late, b2b]), live([p]))
+    assert facts == [] and counts["drop_f3_day"] == 1
+    # the same words written that morning at 11:00 ET are the next game's pre-tip claim
+    ok = post("9002", datetime(2026, 10, 29, 15, 0), datetime(2026, 10, 29, 15, 1), text)
+    facts, _, _ = rf.pretip_facts_for_posts([ok], ctx([late, b2b]), live([ok]))
+    assert [f.object for f in facts] == [f"game:{b2b.game_id}"]
+    # a post just after 06:00 ET (10:00Z) already belongs to the new day
+    early = post("9003", datetime(2026, 10, 29, 10, 5), datetime(2026, 10, 29, 10, 6), text)
+    facts, _, _ = rf.pretip_facts_for_posts([early], ctx([late, b2b]), live([early]))
+    assert len(facts) == 1
+    # "tomorrow" written at 01:45 ET after the late game means the evening of the same ET date
+    tmw = post("9004", post_at, post_at + timedelta(seconds=30), "Alperen Sengun is out tomorrow.")
+    facts, _, _ = rf.pretip_facts_for_posts([tmw], ctx([late, b2b]), live([tmw]))
+    assert len(facts) == 1
+
+
+def test_claimed_facts_merge_like_the_reporter_facts_n2() -> None:
+    text = (
+        "Alperen Sengun is on a minutes restriction tonight. "
+        "Alperen Sengun will be on a 20-minute restriction tonight."
+    )
+    p = post("9001", datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 21, 0), text)
+    claimed, _ = rf.claims_for_posts([p], ctx())
+    rows_ = [
+        f for f in rf.claimed_store_facts(claimed, live([p])) if f.predicate.startswith("claimed_")
+    ]
+    assert len(rows_) == 1 and rows_[0].value == 20.0
+
+
+def test_league_wide_handle_across_an_idle_day_is_not_a_silent_gap_n3(tmp_path: Path) -> None:
+    now = datetime(2026, 11, 26, 15, 30, tzinfo=UTC)  # Thanksgiving, 10:30 ET
+    tue_tip = datetime(2026, 11, 25, 1, 30)  # the league's last games, Tuesday 20:30 ET
+    srv = Paged(many(2), size=100)
+    c = client(tmp_path, srv, clock=lambda: now)
+    c.state.update("RocketsBeat", last_ok_poll_at=datetime(2026, 11, 24, 23, 0).isoformat())
+    # no previous tip known (manual poll): the 18 h cap cuts the cursor's 40 h gap -> not "ok"
+    out = c.poll().outcomes[0]
+    assert out.status == "short:lookback_cap" and not out.ok
+    st = json.loads((tmp_path / "data" / "state.json").read_text())["rocketsbeat"]
+    assert st["last_ok_poll_at"] == "2026-11-26T15:30:00"  # the gap is unrecoverable: move on
+    # with the league's latest tip (what the tick passes) the gap is read from the cursor, ok
+    c2 = client(tmp_path, Paged(many(2), size=100), clock=lambda: now)
+    c2.state.update("RocketsBeat", last_ok_poll_at=datetime(2026, 11, 24, 23, 0).isoformat())
+    start, clipped = c2.poll_bounds("RocketsBeat", now, prev_tip=tue_tip)
+    # the league's last tip + 3 h (posts before it belong to that game, F4), nothing older
+    assert not clipped and start == datetime(2026, 11, 25, 4, 30, tzinfo=UTC)
+
+
+def test_tick_passes_the_leagues_latest_tip_to_a_league_wide_handle_n3(tmp_path: Path) -> None:
+    allow = allowlist_yaml(tmp_path, [{"handle": "ShamsC", "team": None}])
+    srv = Paged([], size=5)
+    clock = [NOW]
+    c = client(tmp_path, srv, allow=allow, clock=lambda: clock[0])
+    # a league-wide handle polls when any slate game has a due label
+    res = rt.run_tick(
+        now=TIPA - timedelta(minutes=90),
+        allow=c.allowlist,
+        games=[PREV, TONIGHT],
+        make_client=lambda: c,
+        make_ctx=lambda: ctx(),
+        store_path=tmp_path / "f" / "s.duckdb",
+        data_dir=tmp_path / "data",
+        ops_dir=tmp_path / "ops",
+    )
+    clock[0] = TIPA - timedelta(minutes=90)
+    assert res.rc == 0
+    starts = [q.url.params["start_time"] for q in srv.requests if q.url.path.endswith("/tweets")]
+    assert starts == ["2026-10-27T03:30:00Z"]  # PREV tip + 3 h, not 18 h back
+
+
+def test_store_copy_is_restricted_to_reporter_predicates_n5(tmp_path: Path) -> None:
+    store = _store_with_facts(tmp_path)
+    con = duckdb.connect(str(store))
+    t = datetime(2026, 10, 28, 21, 0)
+    con.execute(
+        "INSERT INTO reporter_facts VALUES (900, 'player:2', 'listed_status', ?, NULL, 'out', ?, "
+        "NULL, NULL, 'x:A', 0.9, 'p9', ?, ?, 'live', 'v')",
+        [f"game:{G1}", t, t, t],
+    )
+    con.close()
+    frame, _ = reporter_facts_frame(store, 2024, ())
+    assert set(frame["predicate"].to_list()) == {"reporter_minutes_cap"}
+
+
+def test_parse_only_outside_file_with_an_honest_raw_copy_keeps_the_honest_stamp_n8(
+    tmp_path: Path,
+) -> None:
+    """A planted file outside the raw store claims it was fetched at T-15; the raw store holds the
+    same post first read at 22:45. The stored stamp is the raw store's, not the planted one."""
+    import polars as pl
+
+    from nba.daily.schedule import save_schedule_cache
+
+    created = datetime(2026, 10, 28, 15, 0)
+    honest, planted = datetime(2026, 10, 28, 22, 45), datetime(2026, 10, 28, 23, 15)
+    r.write_raw(tmp_path / "d" / "raw", "RocketsBeat", [post("9001", created, honest)], honest)
+    outside = tmp_path / "planted.parquet"
+    r.posts_frame([post("9001", created, planted)]).write_parquet(outside)
+    allow = tmp_path / "reporters.yaml"
+    allow.write_text(json.dumps({"handles": [{"handle": "RocketsBeat", "team": "HOU"}]}))
+    ros = tmp_path / "rosters" / "2026-10-10"
+    ros.mkdir(parents=True)
+    pl.DataFrame(
+        {
+            "team_id": [HOU] * len(HOU_ROSTER),
+            "player_id": [p for _, p in HOU_ROSTER],
+            "exp": ["3"] * len(HOU_ROSTER),
+            "player_name": [n for n, _ in HOU_ROSTER],
+        }
+    ).write_parquet(ros / f"{HOU}.parquet")
+    cache = tmp_path / "schedule_cache"
+    save_schedule_cache([PREV, TONIGHT], rf.season_for(datetime(2026, 10, 28)), cache)
+    store = tmp_path / "facts" / "reporter_facts.duckdb"
+    rc = r.main(
+        [
+            "parse-only", "--file", str(outside), "--allowlist", str(allow),
+            "--data-dir", str(tmp_path / "d"), "--rosters", str(tmp_path / "rosters"),
+            "--schedule-cache", str(cache), "--aliases", str(tmp_path / "none.yaml"),
+            "--store", str(store),
+        ]
+    )  # fmt: skip
+    assert rc == 0
+    got = rows(store, "SELECT DISTINCT known_at, first_seen_at FROM reporter_facts")
+    assert got == [(honest, honest)]

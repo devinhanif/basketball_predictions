@@ -521,7 +521,10 @@ def reporter_facts_frame(
         return empty, f"reporter store {store} locked, skipped this build (not dropped): {last}"
     try:
         cols = ", ".join(FACT_SCHEMA)
-        df = con.execute(f"SELECT {cols} FROM reporter_facts").pl()
+        df = con.execute(
+            f"SELECT {cols} FROM reporter_facts "
+            "WHERE starts_with(predicate, 'claimed_') OR starts_with(predicate, 'reporter_')"
+        ).pl()  # only the reporter predicates, whatever else a store might one day hold
     finally:
         con.close()
     if df.is_empty():

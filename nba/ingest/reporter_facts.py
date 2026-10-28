@@ -61,6 +61,9 @@ PREDICATE_PREFIX = "claimed_"
 MAX_AHEAD = timedelta(hours=36)
 #: ... or that tipped at most this long before it (a post during the game is about that game).
 IN_PROGRESS = timedelta(hours=3)
+#: A post written before 06:00 ET belongs to the previous evening: its "tonight" is the game that
+#: just ended, not the next day's (a West-coast tip at 22:30 ET plus a late postgame post, N1).
+EVENING_ROLLOVER = timedelta(hours=6)
 FACTS_TABLES = {"entities", "facts"}
 
 
@@ -408,7 +411,7 @@ def claimed_store_facts(
                 "claimed-v1",
             )
         )
-    return out
+    return _merge_per_post_player(out, Counter())  # one row per key: a numbered cap is not lost
 
 
 def team_game_around(
@@ -522,7 +525,7 @@ def pretip_facts_for_posts(
             r = resolve(name)
             return r.game.game_date_et if r is not None and r.game is not None else None
 
-        posted = post.created_at.replace(tzinfo=UTC).astimezone(ET).date()
+        posted = (post.created_at.replace(tzinfo=UTC) - EVENING_ROLLOVER).astimezone(ET).date()
         for c in pretip.parse_pretip(post.text, game_date_et=game_date_of, posted_date_et=posted):
             counts["claims_seen"] += 1
             res = resolve(c.player_name)

@@ -306,6 +306,8 @@ def test_fingerprint_covers_all_files_that_decide_a_claim_m6(tmp_path: Path) -> 
         "nba/ingest/reporter_parse.py",
         "nba/ingest/reporter_facts.py",
         "nba/parse/availability.py",
+        "nba/kalshi/aliases.py",
+        "nba/props/rosters.py",
         "configs/reporter_nicknames.yaml",
         "configs/kalshi_aliases.yaml",
     }

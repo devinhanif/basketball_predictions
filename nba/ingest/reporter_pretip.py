@@ -333,6 +333,8 @@ FINGERPRINT_FILES = (
     "nba/ingest/reporter_parse.py",
     "nba/ingest/reporter_facts.py",
     "nba/parse/availability.py",
+    "nba/kalshi/aliases.py",
+    "nba/props/rosters.py",
     "configs/reporter_nicknames.yaml",
     "configs/kalshi_aliases.yaml",
 )
