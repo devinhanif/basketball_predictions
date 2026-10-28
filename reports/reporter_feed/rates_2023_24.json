@@ -1,0 +1,482 @@
+{
+ "script": "research/scratch/reporter_feed_rates.py",
+ "seed": 2026,
+ "B": 2000,
+ "scratch_db": "/Users/devin/Downloads/nba-prediction/data/scratch/injury_intraday_v2.duckdb",
+ "run_clock_start": "2026-10-27T19:04:05",
+ "B_2023": {
+  "regular_season_games": 1230,
+  "K3": {
+   "returner_rows": 310,
+   "per_game": [
+    0.25203252032520324,
+    0.22357723577235772,
+    0.28292682926829266
+   ],
+   "rows_matched_to_P": 310,
+   "mean_y_minus_P_mean_min": [
+    -3.7970450370376203,
+    -4.6553186038127405,
+    -2.9295885450520824
+   ],
+   "P_crps_min": [
+    4.704271539559813,
+    4.3354918614441695,
+    5.104748193320665
+   ],
+   "share_y_below_0p75_P_mean": 0.34516129032258064,
+   "min10_prior_p50": 26.34833335876465,
+   "y_p10_p50_p90": [
+    8.101666784286499,
+    21.34166717529297,
+    34.24000053405763
+   ]
+  },
+  "K5": {
+   "returner_rows": 153,
+   "per_game": [
+    0.12439024390243902,
+    0.1048780487804878,
+    0.14471544715447154
+   ],
+   "rows_matched_to_P": 153,
+   "mean_y_minus_P_mean_min": [
+    -4.813822145294512,
+    -5.797641795980003,
+    -3.833861762598092
+   ],
+   "P_crps_min": [
+    4.531780126229977,
+    4.045309453579229,
+    5.01252169559696
+   ],
+   "share_y_below_0p75_P_mean": 0.39869281045751637,
+   "min10_prior_p50": 27.613332748413086,
+   "y_p10_p50_p90": [
+    9.596666336059572,
+    20.850000381469727,
+    31.623332595825204
+   ]
+  },
+  "K10": {
+   "returner_rows": 57,
+   "per_game": [
+    0.046341463414634146,
+    0.034959349593495934,
+    0.05853658536585366
+   ],
+   "rows_matched_to_P": 57,
+   "mean_y_minus_P_mean_min": [
+    -6.446707583599228,
+    -7.9864773599928816,
+    -4.830247519768742
+   ],
+   "P_crps_min": [
+    5.271074431923225,
+    4.398235622869894,
+    6.162681492765834
+   ],
+   "share_y_below_0p75_P_mean": 0.47368421052631576,
+   "min10_prior_p50": 28.6200008392334,
+   "y_p10_p50_p90": [
+    10.859999847412109,
+    19.83333396911621,
+    29.576666641235352
+   ]
+  },
+  "all_rows_P_crps_mean": 4.2987311519990765,
+  "all_rows_n": 27619
+ },
+ "B_2024": {
+  "regular_season_games": 1230,
+  "K3": {
+   "returner_rows": 387,
+   "per_game": [
+    0.3146341463414634,
+    0.2845528455284553,
+    0.346361788617886
+   ],
+   "rows_matched_to_P": 386,
+   "mean_y_minus_P_mean_min": [
+    -2.8434769293678954,
+    -3.5711533744913018,
+    -2.1381893163476224
+   ],
+   "P_crps_min": [
+    4.369246738870418,
+    4.039898216417863,
+    4.696011330284243
+   ],
+   "share_y_below_0p75_P_mean": 0.30310880829015546,
+   "min10_prior_p50": 25.19333267211914,
+   "y_p10_p50_p90": [
+    10.775000095367432,
+    22.824999809265137,
+    33.74166679382324
+   ]
+  },
+  "K5": {
+   "returner_rows": 216,
+   "per_game": [
+    0.17560975609756097,
+    0.15284552845528454,
+    0.1991869918699187
+   ],
+   "rows_matched_to_P": 215,
+   "mean_y_minus_P_mean_min": [
+    -3.418599551423175,
+    -4.374829499174247,
+    -2.3945208840304772
+   ],
+   "P_crps_min": [
+    4.589839139572952,
+    4.156602246661211,
+    5.063481701780579
+   ],
+   "share_y_below_0p75_P_mean": 0.32558139534883723,
+   "min10_prior_p50": 25.702499389648438,
+   "y_p10_p50_p90": [
+    11.59333324432373,
+    22.183332443237305,
+    32.006666564941405
+   ]
+  },
+  "K10": {
+   "returner_rows": 71,
+   "per_game": [
+    0.05772357723577236,
+    0.044715447154471545,
+    0.07154471544715447
+   ],
+   "rows_matched_to_P": 71,
+   "mean_y_minus_P_mean_min": [
+    -4.863657357070669,
+    -6.318604308055278,
+    -3.43108086242048
+   ],
+   "P_crps_min": [
+    4.5452914494387615,
+    3.9010156288622766,
+    5.237242792634833
+   ],
+   "share_y_below_0p75_P_mean": 0.4225352112676056,
+   "min10_prior_p50": 23.953332901000977,
+   "y_p10_p50_p90": [
+    12.0,
+    18.516666412353516,
+    27.66666603088379
+   ]
+  },
+  "all_rows_P_crps_mean": 4.28092784436357,
+  "all_rows_n": 27583
+ },
+ "A_2023": {
+  "games_with_T60_list": 1316,
+  "games_with_a_report_after_T60": 882,
+  "share_with_later_report": 0.6702,
+  "minutes_T60_to_last_pretip_report_p10_p50_p90": [
+   60.0,
+   60.0,
+   60.0
+  ],
+  "events_per_game_over_all_T60_games": {
+   "out_added": {
+    "per_game_all": [
+     0.5592705167173252,
+     0.5030395136778115,
+     0.6178001519756838
+    ],
+    "per_game_rotation": [
+     0.26443768996960487,
+     0.2309840425531915,
+     0.30167173252279633
+    ],
+    "total_all": 736,
+    "total_rotation": 348
+   },
+   "out_removed": {
+    "per_game_all": [
+     0.0121580547112462,
+     0.0060790273556231,
+     0.02127659574468085
+    ],
+    "per_game_rotation": [
+     0.001519756838905775,
+     0.0,
+     0.004559270516717325
+    ],
+    "total_all": 16,
+    "total_rotation": 2
+   },
+   "qd_to_out": {
+    "per_game_all": [
+     0.47416413373860183,
+     0.4217325227963526,
+     0.5311550151975684
+    ],
+    "per_game_rotation": [
+     0.24772036474164133,
+     0.21656534954407294,
+     0.2811550151975684
+    ],
+    "total_all": 624,
+    "total_rotation": 326
+   },
+   "qd_cleared": {
+    "per_game_all": [
+     0.4635258358662614,
+     0.41641337386018235,
+     0.5098784194528876
+    ],
+    "per_game_rotation": [
+     0.31155015197568386,
+     0.2765957446808511,
+     0.3487841945288754
+    ],
+    "total_all": 610,
+    "total_rotation": 410
+   },
+   "qd_added": {
+    "per_game_all": [
+     0.003799392097264438,
+     0.0007598784194528875,
+     0.007598784194528876
+    ],
+    "per_game_rotation": [
+     0.003799392097264438,
+     0.0007598784194528875,
+     0.007598784194528876
+    ],
+    "total_all": 5,
+    "total_rotation": 5
+   },
+   "any_change": {
+    "per_game_all": [
+     1.2765957446808511,
+     1.1770516717325228,
+     1.3753799392097263
+    ],
+    "per_game_rotation": [
+     0.7735562310030395,
+     0.7120060790273556,
+     0.8366451367781155
+    ],
+    "total_all": 1680,
+    "total_rotation": 1018
+   },
+   "n_games": 1316
+  },
+  "questionable_listings_at_T60": 1438,
+  "transition_counts_old_to_new": {
+   "out->out": 6493,
+   "available->available": 767,
+   "questionable->available": 609,
+   "questionable->out": 497,
+   "probable->available": 310,
+   "doubtful->out": 127,
+   "absent->out": 104,
+   "questionable->questionable": 28,
+   "probable->probable": 14,
+   "out->absent": 8,
+   "out->available": 8,
+   "probable->out": 6,
+   "absent->questionable": 5,
+   "absent->available": 3
+  }
+ },
+ "A_2024": {
+  "games_with_T60_list": 1306,
+  "games_with_a_report_after_T60": 872,
+  "share_with_later_report": 0.6677,
+  "minutes_T60_to_last_pretip_report_p10_p50_p90": [
+   60.0,
+   60.0,
+   60.0
+  ],
+  "events_per_game_over_all_T60_games": {
+   "out_added": {
+    "per_game_all": [
+     0.5765696784073507,
+     0.5229709035222052,
+     0.6324655436447167
+    ],
+    "per_game_rotation": [
+     0.33614088820826954,
+     0.2993874425727412,
+     0.3752105666156201
+    ],
+    "total_all": 753,
+    "total_rotation": 439
+   },
+   "out_removed": {
+    "per_game_all": [
+     0.02986217457886677,
+     0.01761102603369066,
+     0.043644716692189896
+    ],
+    "per_game_rotation": [
+     0.004594180704441042,
+     0.0,
+     0.010719754977029096
+    ],
+    "total_all": 39,
+    "total_rotation": 6
+   },
+   "qd_to_out": {
+    "per_game_all": [
+     0.49770290964777947,
+     0.450229709035222,
+     0.5467266462480856
+    ],
+    "per_game_rotation": [
+     0.31546707503828486,
+     0.2771822358346095,
+     0.3537519142419602
+    ],
+    "total_all": 650,
+    "total_rotation": 412
+   },
+   "qd_cleared": {
+    "per_game_all": [
+     0.44180704441041346,
+     0.3943338437978561,
+     0.4892802450229709
+    ],
+    "per_game_rotation": [
+     0.2787136294027565,
+     0.2465352220520674,
+     0.31242343032159253
+    ],
+    "total_all": 577,
+    "total_rotation": 364
+   },
+   "qd_added": {
+    "per_game_all": [
+     0.004594180704441042,
+     0.0015313935681470138,
+     0.008422664624808576
+    ],
+    "per_game_rotation": [
+     0.0030627871362940277,
+     0.0007656967840735069,
+     0.006125574272588055
+    ],
+    "total_all": 6,
+    "total_rotation": 4
+   },
+   "any_change": {
+    "per_game_all": [
+     1.3468606431852985,
+     1.2580206738131698,
+     1.450229709035222
+    ],
+    "per_game_rotation": [
+     0.836906584992343,
+     0.7718223583460949,
+     0.9066232771822356
+    ],
+    "total_all": 1759,
+    "total_rotation": 1093
+   },
+   "n_games": 1306
+  },
+  "questionable_listings_at_T60": 1320,
+  "transition_counts_old_to_new": {
+   "out->out": 6807,
+   "available->available": 807,
+   "questionable->available": 573,
+   "questionable->out": 499,
+   "probable->available": 379,
+   "doubtful->out": 151,
+   "absent->out": 87,
+   "questionable->questionable": 36,
+   "out->available": 29,
+   "probable->probable": 19,
+   "probable->out": 14,
+   "out->absent": 10,
+   "absent->available": 5,
+   "absent->questionable": 5
+  }
+ },
+ "C_cap_power_simulated_w1.0": {
+  "rows": 696,
+  "assumption": "Power for the cap arm. NOT a result: the cap N is SIMULATED from the realised minutes (no reporter archive exists).\n    Rows: K = 3 rotation returners (part B) of both seasons. P ~ Normal(mu, sd) truncated to [0, 48], mu = (q10 + q90) / 2,\n    sd = (q90 - q10) / 2.5631 (approximation to production's trunc-normal). Treatment T = P truncated to [0, N + 2].\n    Scenario: with prob h the cap is honoured, N = y + U(0, 4); else broken, N = y - U(1, 6); N clipped to [6, 40].",
+  "pts_assumption": "production pts ~ Normal(A0 mean, 5.6*sqrt(mean/11)); T scales mean and sd by r = clip(E_T[min]/E_P[min], 0.5, 1.0); continuous CRPS",
+  "P_crps_reconstructed_mean": 4.5233733089785355,
+  "A0_pts_crps_int_mean_on_rows": 3.1578944294045748,
+  "h0.6": {
+   "mean_delta_crps_min": -1.6766282058420117,
+   "sd_per_row": 4.020581084002568,
+   "n_for_halfwidth_0p25": 994,
+   "n_for_halfwidth_0p50": 249,
+   "share_rows_worse": 0.44568965517241377,
+   "pts_mean_delta_crps": -0.10690838711887973,
+   "pts_sd_per_row": 1.858878700877699,
+   "pts_n_for_halfwidth_0p10": 1328,
+   "pts_n_for_halfwidth_0p20": 332
+  },
+  "h0.8": {
+   "mean_delta_crps_min": -2.0749041660332157,
+   "sd_per_row": 3.82350331429984,
+   "n_for_halfwidth_0p25": 899,
+   "n_for_halfwidth_0p50": 225,
+   "share_rows_worse": 0.39655172413793105,
+   "pts_mean_delta_crps": -0.19249532622115179,
+   "pts_sd_per_row": 1.6677656021346394,
+   "pts_n_for_halfwidth_0p10": 1069,
+   "pts_n_for_halfwidth_0p20": 268
+  },
+  "h0.9": {
+   "mean_delta_crps_min": -2.281083736106048,
+   "sd_per_row": 3.711613279354769,
+   "n_for_halfwidth_0p25": 847,
+   "n_for_halfwidth_0p50": 212,
+   "share_rows_worse": 0.3617816091954023,
+   "pts_mean_delta_crps": -0.23737388890836353,
+   "pts_sd_per_row": 1.560576706637893,
+   "pts_n_for_halfwidth_0p10": 936,
+   "pts_n_for_halfwidth_0p20": 234
+  }
+ },
+ "C_cap_power_simulated_w0.8": {
+  "rows": 696,
+  "assumption": "Power for the cap arm. NOT a result: the cap N is SIMULATED from the realised minutes (no reporter archive exists).\n    Rows: K = 3 rotation returners (part B) of both seasons. P ~ Normal(mu, sd) truncated to [0, 48], mu = (q10 + q90) / 2,\n    sd = (q90 - q10) / 2.5631 (approximation to production's trunc-normal). Treatment T = P truncated to [0, N + 2].\n    Scenario: with prob h the cap is honoured, N = y + U(0, 4); else broken, N = y - U(1, 6); N clipped to [6, 40].",
+  "pts_assumption": "production pts ~ Normal(A0 mean, 5.6*sqrt(mean/11)); T scales mean and sd by r = clip(E_T[min]/E_P[min], 0.5, 1.0); continuous CRPS",
+  "P_crps_reconstructed_mean": 4.5233733089785355,
+  "A0_pts_crps_int_mean_on_rows": 3.1578944294045748,
+  "h0.6": {
+   "mean_delta_crps_min": -1.8838039571483698,
+   "sd_per_row": 3.64003904922012,
+   "n_for_halfwidth_0p25": 815,
+   "n_for_halfwidth_0p50": 204,
+   "share_rows_worse": 0.40718390804597704,
+   "pts_mean_delta_crps": -0.19351764999748586,
+   "pts_sd_per_row": 1.545640298976461,
+   "pts_n_for_halfwidth_0p10": 918,
+   "pts_n_for_halfwidth_0p20": 230
+  },
+  "h0.8": {
+   "mean_delta_crps_min": -2.131639574530951,
+   "sd_per_row": 3.495730619385121,
+   "n_for_halfwidth_0p25": 752,
+   "n_for_halfwidth_0p50": 188,
+   "share_rows_worse": 0.36235632183908045,
+   "pts_mean_delta_crps": -0.24692341701002576,
+   "pts_sd_per_row": 1.3861001413066631,
+   "pts_n_for_halfwidth_0p10": 739,
+   "pts_n_for_halfwidth_0p20": 185
+  },
+  "h0.9": {
+   "mean_delta_crps_min": -2.2547397320300244,
+   "sd_per_row": 3.412915081609367,
+   "n_for_halfwidth_0p25": 716,
+   "n_for_halfwidth_0p50": 179,
+   "share_rows_worse": 0.3364942528735632,
+   "pts_mean_delta_crps": -0.2740406782839908,
+   "pts_sd_per_row": 1.2935571972276814,
+   "pts_n_for_halfwidth_0p10": 643,
+   "pts_n_for_halfwidth_0p20": 161
+  }
+ },
+ "run_clock_end": "2026-10-27T19:04:13"
+}
