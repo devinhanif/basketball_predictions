@@ -129,8 +129,8 @@ def _c(x: float) -> str:
 
 
 def single_candidate(cfg: JarvisConfig, st: SlateState, q: Quote, side: str) -> Play | None:
-    if not E.side_allowed(cfg, q.kind, side):
-        return None  # a player-prop No is never offered, alerted or sized
+    if not E.side_allowed(cfg, q.kind, side, q.venue):
+        return None  # a player-prop No is offered only on a venue whose sides allow it
     ask = q.ask(side)
     if ask is None or not MIN_ASK <= ask <= MAX_ASK:
         return None
@@ -160,6 +160,11 @@ def single_candidate(cfg: JarvisConfig, st: SlateState, q: Quote, side: str) -> 
                 notes.append("fair price includes P(plays) because Kalshi's DNP rule is unverified")
             pp1 = 1.0 if pp is None else pp
             fair = p_over * pp1 if side == "yes" else (1.0 - p_over) * pp1
+            if side == "no":
+                # a prop No also depends on how a DNP settles (a No may win or void); until read,
+                # the label is held at thin whatever P(plays) says (Devin, 2026-10-27)
+                capped = True
+                notes.append("prop No while Kalshi's DNP rule is unverified: label capped at thin")
         else:
             fair = p_over if side == "yes" else 1.0 - p_over
         pin_fair = fair

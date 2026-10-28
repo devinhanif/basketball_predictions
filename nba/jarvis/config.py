@@ -79,6 +79,14 @@ class JarvisConfig:
     root: Path = ROOT
     halftime_overs: dict[str, Any] = field(default_factory=lambda: {"enabled": False})
     props_sides: tuple[str, ...] = ("yes",)  # player props: Over / Yes only (Devin, 2026-10-27)
+    # per-venue override of props_sides (sides.props_by_venue); a venue absent here uses props_sides
+    props_by_venue: dict[str, tuple[str, ...]] = field(default_factory=dict)
+
+    def props_sides_for(self, venue: str | None) -> tuple[str, ...]:
+        """Sides a player prop may be bought on at ``venue`` (``None``: the global default)."""
+        if venue is not None and venue in self.props_by_venue:
+            return self.props_by_venue[venue]
+        return self.props_sides
 
     def fee(self, venue: str) -> FeeModel:
         return self.fees[venue]
@@ -117,18 +125,39 @@ def _no_dupes(loader: _StrictLoader, node: yaml.MappingNode, deep: bool = False)
 _StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_dupes)
 
 
-def _props_sides(raw: dict[str, Any]) -> tuple[str, ...]:
-    """sides.props: a list containing "yes" and nothing but "yes" (Devin 2026-10-27: Over only)."""
-    sides = raw.get("sides")
-    if not isinstance(sides, dict) or "props" not in sides:
-        return ("yes",)
-    v = sides["props"]
+def _side_list(v: object, where: str) -> tuple[str, ...]:
+    """A prop side list: exactly ["yes"] or ["yes", "no"] (either order, no repeats). Yes is always
+    required; anything else is refused (Devin, 2026-10-27: Over / Yes is the floor, a venue that
+    lets him buy the No is named explicitly)."""
     if not isinstance(v, list) or not v:
-        raise ValueError(f"sides.props must be a non-empty list, got {v!r}")
+        raise ValueError(f"{where} must be a non-empty list, got {v!r}")
     out = tuple(_side(x) for x in v)
-    if "yes" not in out or "no" in out or set(out) != {"yes"}:
-        raise ValueError(f"sides.props must be exactly [yes] (props are Over / Yes only): {out}")
-    return out
+    if len(set(out)) != len(out) or not set(out) <= {"yes", "no"} or "yes" not in out:
+        raise ValueError(f'{where} must be ["yes"] or ["yes", "no"] (yes always required): {out}')
+    return ("yes", "no") if "no" in out else ("yes",)
+
+
+def _props_sides(raw: dict[str, Any]) -> tuple[tuple[str, ...], dict[str, tuple[str, ...]]]:
+    """``sides.props`` (default ["yes"]) and the optional ``sides.props_by_venue`` override."""
+    sides = raw.get("sides")
+    if sides is None:
+        return ("yes",), {}
+    if not isinstance(sides, dict):
+        raise ValueError(f"sides must be a mapping, got {sides!r}")
+    unknown = set(sides) - {"props", "props_by_venue"}
+    if unknown:
+        raise ValueError(f"unknown keys under sides: {sorted(unknown)}")
+    default = _side_list(sides["props"], "sides.props") if "props" in sides else ("yes",)
+    by_venue: dict[str, tuple[str, ...]] = {}
+    if "props_by_venue" in sides:
+        pv = sides["props_by_venue"]
+        if not isinstance(pv, dict):
+            raise ValueError(f"sides.props_by_venue must be a mapping, got {pv!r}")
+        for venue, v in pv.items():
+            if venue not in VENUES:
+                raise ValueError(f"sides.props_by_venue: unknown venue {venue!r} (not in {VENUES})")
+            by_venue[str(venue)] = _side_list(v, f"sides.props_by_venue.{venue}")
+    return default, by_venue
 
 
 def _side(x: object) -> str:
@@ -162,6 +191,7 @@ def load_config(
     )
     caps, sz, lab, fr = raw["caps"], raw["sizing"], raw["labels"], raw["freshness"]
     dl, bal, st = raw["delivery"], raw["balance"], raw["settlement"]
+    props_default, props_venue = _props_sides(raw)
     cfg = JarvisConfig(
         bankroll={k: float(v) for k, v in raw["bankroll_usd"].items()},
         balance_start=float(bal["start_usd"]),
@@ -212,7 +242,8 @@ def load_config(
         min_settled=pcfg.min_settled,
         min_settled_dates=pcfg.min_settled_dates,
         root=root,
-        props_sides=_props_sides(raw),
+        props_sides=props_default,
+        props_by_venue=props_venue,
         halftime_overs=dict(raw.get("halftime_overs", {"enabled": False})),
     )
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]

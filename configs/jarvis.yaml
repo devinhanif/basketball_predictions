@@ -26,9 +26,14 @@ sizing:
   ladder_usd: {none: 1.0, thin: 3.0, strong: 5.0, arbitrage: 15.0, arb_candidate: 3.0}
   none_max_contracts: 2
 
-sides:                          # Devin 2026-10-27: the venues' apps do not let him buy No on a player prop
-  props: ["yes"]                #  (quoted: bare yes is a YAML boolean)
-  # player props: Over / Yes only, everywhere (slate, alerts, halftime, daily dollar, picks)
+sides:                          # Devin 2026-10-27: Kalshi sells the No on player props; Polymarket stays Yes only
+  props: ["yes"]                #  default for any venue not listed below: ["yes"] or ["yes", "no"] (yes always required;
+                                #  quoted: bare yes is a YAML boolean)
+  props_by_venue: {kalshi: ["yes", "no"], polymarket: ["yes"]}   # per-venue override; Polymarket No only when Devin says so
+  # A prop No is a plain candidate on Kalshi: same Pinnacle fair, fee and spread, label computed from data. While
+  # settlement.kalshi_prop_dnp_rule_verified is false a prop No is capped at thin (a DNP may settle the No either way).
+  # Polymarket US quotes only full-game winners today; its No skip (slate.py, edge.py) stays as the fallback.
+  # The halftime scorer / HALFTIME_OVERS_VS_PRICE is Yes-only regardless of this key (frozen scope).
   # game markets (moneyline, spread, totals, team totals) keep both sides; this key never touches them.
 
 kill_switch:                    # closing-line value is the judge of the labels (TRADING_CONTEXT.md)

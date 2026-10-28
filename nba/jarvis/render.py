@@ -194,6 +194,10 @@ def slate_texts(
         lines.append(f"why: {top_explanation}" if top_explanation else "")
         lines.append("Best play per game:")
         lines += [f"{i + 1}) {compact_line(p, tz)}" for i, p in enumerate(plays)]
+        if not cfg.kalshi_prop_dnp_rule_verified and any(
+            q.kind == "prop" and q.side == "no" for p in plays for q in p.legs
+        ):
+            lines.append("prop No: Kalshi's DNP rule is unverified, label held at thin")
     else:
         lines.append("No live prices read yet for tonight's games (snapshot feed stale or down).")
     lines += extra_lines or []

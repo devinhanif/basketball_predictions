@@ -124,10 +124,11 @@ def kelly_fraction_of_bankroll(fair: float, cost: float) -> float:
     return max(0.0, (fair - cost) / (1.0 - cost))
 
 
-def side_allowed(cfg: JarvisConfig, kind: str, side: str) -> bool:
+def side_allowed(cfg: JarvisConfig, kind: str, side: str, venue: str | None = None) -> bool:
     """Only game winners keep both sides; any other kind (player props today) is bought on the
-    sides in ``cfg.props_sides`` only (Over / Yes)."""
-    return kind == "game_win" or side in cfg.props_sides
+    sides configured for ``venue`` (``sides.props_by_venue``, else ``sides.props``). Over / Yes is
+    the default; the halftime scorer does not call this (it has no No code at all)."""
+    return kind == "game_win" or side in cfg.props_sides_for(venue)
 
 
 def stake_for(cfg: JarvisConfig, label: str, *, none_level: bool = False) -> float:
@@ -184,7 +185,7 @@ def best_arbitrage(cfg: JarvisConfig, quotes: Iterable[Quote]) -> Cover | None:
         for side in ("yes", "no"):
             if side == "no" and q.venue == "polymarket":
                 continue
-            if not side_allowed(cfg, q.kind, side):
+            if not side_allowed(cfg, q.kind, side, q.venue):
                 continue
             a = q.ask(side)
             if a is not None and 0.0 < a < 1.0:
