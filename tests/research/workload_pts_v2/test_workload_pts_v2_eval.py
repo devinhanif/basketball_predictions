@@ -113,12 +113,19 @@ def test_arms_refuse_a_frame_that_differs_from_the_gate_hash(tmp_path: Path) -> 
     fr = E.synthetic_frame(days=20, per_day=20)
     comps = {"row_gid": fr["game_id"].to_numpy().astype(str), "row_pid": fr["player_id"].to_numpy()}
     sha, _ = E.a0_frame_sha(fr, comps["row_gid"], comps["row_pid"])
+    gate = {
+        "frame_sha256": sha,
+        "frame_all_sha256": E.whole_frame_sha(fr),
+        "harness_git_hash": E.harness_hash(),
+    }
     ctx = E.Ctx(
         out_dir=tmp_path, cache=tmp_path / "c", frame_fn=lambda: (fr, CFG, {}), comps=comps, pin=sha
     )
-    assert E.check_frame(ctx, {"frame_sha256": sha}).height == fr.height
+    assert E.check_frame(ctx, gate).height == fr.height
     with pytest.raises(RuntimeError, match="refuse"):
-        E.check_frame(ctx, {"frame_sha256": "0" * 64})
+        E.check_frame(ctx, {**gate, "frame_sha256": "0" * 64})
+    with pytest.raises(RuntimeError, match="harness file changed"):
+        E.check_frame(ctx, {**gate, "harness_git_hash": "0" * 40})
     ctx2 = E.Ctx(
         out_dir=tmp_path,
         cache=tmp_path / "c",
@@ -127,7 +134,47 @@ def test_arms_refuse_a_frame_that_differs_from_the_gate_hash(tmp_path: Path) -> 
         pin=sha,
     )
     with pytest.raises(RuntimeError, match="refuse"):
-        E.check_frame(ctx2, {"frame_sha256": sha})
+        E.check_frame(ctx2, gate)
+    # a change confined to rows outside the A0 keys passes the pin but not the whole-frame hash (M1)
+    keep = fr.head(100)
+    sub = {
+        "row_gid": keep["game_id"].to_numpy().astype(str),
+        "row_pid": keep["player_id"].to_numpy(),
+    }
+    sha_sub, _ = E.a0_frame_sha(fr, sub["row_gid"], sub["row_pid"])
+    g3 = {
+        "frame_sha256": sha_sub,
+        "frame_all_sha256": E.whole_frame_sha(fr),
+        "harness_git_hash": E.harness_hash(),
+    }
+    other = (
+        fr.with_row_index("_i")
+        .with_columns(
+            pl.when(pl.col("_i") >= 100)
+            .then(pl.col("wl_g_7d") + 1)
+            .otherwise(pl.col("wl_g_7d"))
+            .alias("wl_g_7d")
+        )
+        .drop("_i")
+    )
+    ctx3 = E.Ctx(
+        out_dir=tmp_path,
+        cache=tmp_path / "c",
+        frame_fn=lambda: (other, CFG, {}),
+        comps=sub,
+        pin=sha_sub,
+    )
+    with pytest.raises(RuntimeError, match="whole-frame"):
+        E.check_frame(ctx3, g3)
+
+
+def test_harness_hash_is_git_hash_object() -> None:
+    import subprocess
+
+    got = subprocess.run(
+        ["git", "hash-object", str(Path(E.__file__))], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    assert E.harness_hash() == got
 
 
 # --------------------------------------------------------------------------- placebo, walks, shuffle
@@ -369,3 +416,92 @@ def test_no_2025_literal_in_the_loaders() -> None:
     for fn in (E.build_frame, E.real_ctx):
         assert 2025 not in fn.__code__.co_consts
     assert dt.date(2024, 1, 1).year <= E.MAX_SEASON == 2024
+
+
+# --------------------------------------------------------------------------- adversary review 2026-10-27 (M1, m1, m2, m3, m4, m6)
+def test_M1_stale_checkpoint_after_a_training_only_change_is_refused(tmp_path: Path) -> None:
+    """The adversary's scenario: gate + arms, then only training-only (2022) values of one of the 22 change; the pin and the gate still
+    pass, but the old WF checkpoint must be refused, not reused."""
+    ctx = _dry(tmp_path)
+    assert E.run_gate(ctx)["gate_ok"]
+    E.run_arms(ctx)
+    fr, cfg, aux = ctx.frame()
+    changed = fr.with_columns(
+        pl.when(pl.col("season") == 2022)
+        .then(pl.col("wl_g_7d") + 3.0)
+        .otherwise(pl.col("wl_g_7d"))
+        .alias("wl_g_7d")
+    )
+    ctx2 = E.Ctx(
+        **{**ctx.__dict__, "_frame": None, "frame_fn": lambda: (changed, cfg, aux), "stamp": {}}
+    )
+    g2 = E.run_gate(ctx2)
+    assert g2["gate_ok"] and g2["frame_sha256"] == ctx.pin  # the A0 pin cannot see the change
+    assert g2["frame_all_sha256"] != json.loads(json.dumps(ctx.stamp))["frame_all_sha256"]
+    with pytest.raises(RuntimeError, match="stale checkpoint"):
+        E.run_arms(ctx2)
+
+
+def test_m1_descriptive_rows_are_a_separate_labelled_table(tmp_path: Path) -> None:
+    ctx = _dry(tmp_path, k=2)
+    assert E.run_all(ctx) == 0
+    md = (tmp_path / "report.md").read_text()
+    res = json.loads((tmp_path / "results.json").read_text())
+    i = md.index(E.DESC_LABEL)
+    assert "per-number 95% CI, not multiplicity-adjusted" in E.DESC_LABEL
+    for arm in (
+        "B_minus_A0",
+        "B_minus_PL27",
+        "PL27_minus_A0",
+        "PL_minus_FULL",
+        "KO_LOADX_minus_FULL",
+        "WF_minus_FULL_date_clustered",
+    ):
+        assert md.index(f"| {arm} |") > i, arm
+    for arm in E.RULE_ROWS:
+        assert md.index(f"| {arm} |") < i, arm
+    assert "not multiplicity-adjusted" in res["scores"]["descriptive"]["T452_rejudged"]["note"]
+
+
+def test_m2_a_failing_early_gate_test_stops_before_any_fit(tmp_path: Path) -> None:
+    ctx = _dry(tmp_path)
+    fr, cfg, aux = ctx.frame()
+    bad = fr.with_columns(
+        pl.lit(1.0).alias(E.PL + E.X22[0])
+    )  # breaks W6 only (pin columns untouched)
+    ctx.frame_fn, ctx._frame = (lambda: (bad, cfg, aux)), None
+    g = E.run_gate(ctx)
+    assert not g["gate_ok"] and g["stop"].startswith("W6")
+    assert not list((tmp_path / "cache").glob("*.npz")) if (tmp_path / "cache").exists() else True
+    assert [t["test"] for t in g["tests"]][-1].startswith("W6")
+
+
+def test_m3_zero_importance_share_is_a_pipeline_fault_not_a_null(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx = _dry(tmp_path)
+    assert E.run_gate(ctx)["gate_ok"]
+    E.run_arms(ctx)
+    monkeypatch.setattr(E, "importance_share", lambda comp, cols=E.X22: 0.0)
+    v = E.run_score(ctx)["verdict"]
+    assert (
+        v["pipeline_fault"] and not v["pass"] and v["null_statement"].startswith("PIPELINE FAULT")
+    )
+
+
+def test_m4_shuffle_refuses_unless_rules_1_2_passed(tmp_path: Path) -> None:
+    ctx = _dry(tmp_path)
+    ctx.force_shuffle = False
+    assert E.run_gate(ctx)["gate_ok"]
+    with pytest.raises(RuntimeError, match="shuffle refused"):
+        E.run_shuffle(ctx)
+
+
+def test_m6_tip_cap_also_patches_the_workload_gates_binding() -> None:
+    from research.eval import workload_gates as WG
+
+    orig = getattr(WG, "build_game_tipoff", None)
+    with E.tip_cap():
+        if orig is not None:
+            assert WG.build_game_tipoff is not orig
+    assert getattr(WG, "build_game_tipoff", None) is orig
