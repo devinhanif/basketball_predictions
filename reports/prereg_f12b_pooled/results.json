@@ -1,0 +1,373 @@
+{
+  "rule": "F12B_POOLED",
+  "frozen_sha256": "83a0bd57fde570033745e551c6a53fd645a9db45cd53fca9dfdf3a643bdc74ec",
+  "freeze_commit": "2c224309f33dfd964d1d7b59271102ff1a690fa8",
+  "select": {
+    "seasons": [
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021
+    ],
+    "games": 11516,
+    "gaps": {
+      "young": {
+        "gap": -0.1445514289,
+        "ci": [
+          -0.1632836476,
+          -0.1260580095
+        ],
+        "half_width": 0.01861281903,
+        "n_boot": 2000,
+        "n_boot_dropped_nonfinite": 0,
+        "n_close": 10014,
+        "n_blow": 11496,
+        "games_close": 2952,
+        "games_blow": 2627
+      },
+      "vet": {
+        "gap": 0.07926376777,
+        "ci": [
+          0.0701387642,
+          0.08893354137
+        ],
+        "half_width": 0.009397388582,
+        "n_boot": 2000,
+        "n_boot_dropped_nonfinite": 0,
+        "n_close": 32703,
+        "n_blow": 29837,
+        "games_close": 3089,
+        "games_blow": 2662
+      }
+    },
+    "P1": true,
+    "P2": false,
+    "descriptive": {
+      "note": "descriptive only; cannot rescue or fail the rule",
+      "per_season_unpowered": {
+        "2013": {
+          "young": {
+            "gap": -0.1525512247,
+            "ci": [
+              -0.2123896505,
+              -0.08171895932
+            ],
+            "half_width": 0.06533534558,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1193,
+            "n_blow": 1102,
+            "games_close": 351,
+            "games_blow": 263
+          },
+          "vet": {
+            "gap": 0.09485915808,
+            "ci": [
+              0.0669850198,
+              0.1257888411
+            ],
+            "half_width": 0.02940191063,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 4095,
+            "n_blow": 3255,
+            "games_close": 366,
+            "games_blow": 272
+          }
+        },
+        "2014": {
+          "young": {
+            "gap": -0.159242311,
+            "ci": [
+              -0.2186977404,
+              -0.09434390373
+            ],
+            "half_width": 0.06217691832,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 983,
+            "n_blow": 1020,
+            "games_close": 328,
+            "games_blow": 269
+          },
+          "vet": {
+            "gap": 0.05547956811,
+            "ci": [
+              0.03194861127,
+              0.08248355449
+            ],
+            "half_width": 0.02526747161,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 3957,
+            "n_blow": 3270,
+            "games_close": 354,
+            "games_blow": 274
+          }
+        },
+        "2015": {
+          "young": {
+            "gap": -0.1971019077,
+            "ci": [
+              -0.254920792,
+              -0.1345608038
+            ],
+            "half_width": 0.0601799941,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1099,
+            "n_blow": 1094,
+            "games_close": 333,
+            "games_blow": 288
+          },
+          "vet": {
+            "gap": 0.08932607914,
+            "ci": [
+              0.06417944126,
+              0.1148945435
+            ],
+            "half_width": 0.02535755114,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 4104,
+            "n_blow": 3734,
+            "games_close": 356,
+            "games_blow": 299
+          }
+        },
+        "2016": {
+          "young": {
+            "gap": -0.1995212701,
+            "ci": [
+              -0.2540054405,
+              -0.1399895193
+            ],
+            "half_width": 0.05700796062,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1035,
+            "n_blow": 1319,
+            "games_close": 331,
+            "games_blow": 312
+          },
+          "vet": {
+            "gap": 0.05866238084,
+            "ci": [
+              0.03436492652,
+              0.08407740614
+            ],
+            "half_width": 0.02485623981,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 3980,
+            "n_blow": 3703,
+            "games_close": 352,
+            "games_blow": 312
+          }
+        },
+        "2017": {
+          "young": {
+            "gap": -0.1338950372,
+            "ci": [
+              -0.1846742606,
+              -0.07967954696
+            ],
+            "half_width": 0.05249735682,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1204,
+            "n_blow": 1328,
+            "games_close": 348,
+            "games_blow": 303
+          },
+          "vet": {
+            "gap": 0.07670380417,
+            "ci": [
+              0.04926013199,
+              0.1073064056
+            ],
+            "half_width": 0.0290231368,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 3840,
+            "n_blow": 3591,
+            "games_close": 359,
+            "games_blow": 307
+          }
+        },
+        "2018": {
+          "young": {
+            "gap": -0.08935042288,
+            "ci": [
+              -0.1432075797,
+              -0.0280454843
+            ],
+            "half_width": 0.05758104772,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1230,
+            "n_blow": 1491,
+            "games_close": 352,
+            "games_blow": 315
+          },
+          "vet": {
+            "gap": 0.09648078941,
+            "ci": [
+              0.07204836104,
+              0.1217029437
+            ],
+            "half_width": 0.02482729133,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 3903,
+            "n_blow": 3481,
+            "games_close": 361,
+            "games_blow": 316
+          }
+        },
+        "2019": {
+          "young": {
+            "gap": -0.1021852556,
+            "ci": [
+              -0.1525556936,
+              -0.05197449594
+            ],
+            "half_width": 0.05029059884,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1060,
+            "n_blow": 1169,
+            "games_close": 287,
+            "games_blow": 258
+          },
+          "vet": {
+            "gap": 0.062316403,
+            "ci": [
+              0.03531168261,
+              0.0926489087
+            ],
+            "half_width": 0.02866861305,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 2844,
+            "n_blow": 2657,
+            "games_close": 299,
+            "games_blow": 261
+          }
+        },
+        "2020": {
+          "young": {
+            "gap": -0.1425518134,
+            "ci": [
+              -0.1914178319,
+              -0.0850407812
+            ],
+            "half_width": 0.05318852536,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1064,
+            "n_blow": 1457,
+            "games_close": 303,
+            "games_blow": 287
+          },
+          "vet": {
+            "gap": 0.08982782257,
+            "ci": [
+              0.05740279567,
+              0.1227121412
+            ],
+            "half_width": 0.03265467276,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 2992,
+            "n_blow": 2842,
+            "games_close": 311,
+            "games_blow": 287
+          }
+        },
+        "2021": {
+          "young": {
+            "gap": -0.1381116899,
+            "ci": [
+              -0.1930848805,
+              -0.07624219526
+            ],
+            "half_width": 0.05842134261,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 1146,
+            "n_blow": 1516,
+            "games_close": 319,
+            "games_blow": 332
+          },
+          "vet": {
+            "gap": 0.09012235323,
+            "ci": [
+              0.06117052013,
+              0.1195377015
+            ],
+            "half_width": 0.0291835907,
+            "n_boot": 2000,
+            "n_boot_dropped_nonfinite": 0,
+            "n_close": 2988,
+            "n_blow": 3304,
+            "games_close": 331,
+            "games_blow": 334
+          }
+        }
+      },
+      "mean_of_ratios_gap": {
+        "young": -0.3746758094,
+        "vet": -0.07414111101
+      },
+      "no_exclusion_gap": {
+        "young": -0.3354035852,
+        "vet": 0.3061591039
+      },
+      "idx_3_4_gap": {
+        "gap": -0.02567686943,
+        "ci": [
+          -0.04509398933,
+          -0.007071384668
+        ],
+        "half_width": 0.01901130233,
+        "n_boot": 2000,
+        "n_boot_dropped_nonfinite": 0,
+        "n_close": 10284,
+        "n_blow": 10380,
+        "games_close": 3010,
+        "games_blow": 2632
+      },
+      "young_starters_gap": {
+        "gap": 0.2327341278,
+        "ci": [
+          0.1918748169,
+          0.2786433821
+        ],
+        "half_width": 0.04338428263,
+        "n_boot": 2000,
+        "n_boot_dropped_nonfinite": 0,
+        "n_close": 4100,
+        "n_blow": 3525,
+        "games_close": 2206,
+        "games_blow": 1882
+      },
+      "draft_year": {
+        "null_draft_year_share_all_player_games": 0.1419880639,
+        "note": "undrafted players: null draft_year by design, excluded from the cells",
+        "drafted_player_games": 207698,
+        "null_draft_year_share_of_drafted_player_games": 0.0,
+        "undrafted_share_of_player_games": 0.1420451494,
+        "null_status_share_of_player_games": 0.001534292679
+      }
+    }
+  },
+  "report": "not computed (SELECT failed)",
+  "verdict": "FAIL",
+  "reason": "SELECT failed P1 or P2; REPORT not computed"
+}

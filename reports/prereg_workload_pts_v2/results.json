@@ -1,0 +1,2389 @@
+{
+  "id": "WORKLOAD_PTS_V2",
+  "sha256": "20d480f73e9183e23845c31bc3393c6cc9d0dfae30e8be857d604544476f676a",
+  "design_choices": {
+    "LOADX": "the 3 LOAD extras (g_3d, g_7d, min_l5_vs_base) + the 7 LOAD_TRACK columns, as the rule's H1 lists them; LOADX+SCHEDULE+TRAVEL = the 22"
+  },
+  "scores": {
+    "rows": [
+      {
+        "season": 2023,
+        "arm": "A0",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.140236466011581
+      },
+      {
+        "season": 2023,
+        "arm": "FULL",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.1318863610128176
+      },
+      {
+        "season": 2023,
+        "arm": "WF",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.131640767000224
+      },
+      {
+        "season": 2023,
+        "arm": "PL",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.1330876135748302
+      },
+      {
+        "season": 2023,
+        "arm": "KO_LOADX",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.1304814009918753
+      },
+      {
+        "season": 2023,
+        "arm": "KO_SCHEDULE",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.13275177965304
+      },
+      {
+        "season": 2023,
+        "arm": "KO_TRAVEL",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.1334272089023747
+      },
+      {
+        "season": 2023,
+        "arm": "B",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.1331477055517705
+      },
+      {
+        "season": 2023,
+        "arm": "PL27",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "crps_int": 3.143805404637023
+      },
+      {
+        "season": 2023,
+        "arm": "WF_minus_FULL",
+        "table": "rule",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.0002455940125932287,
+        "ci_lo": -0.0031043009286607203,
+        "ci_hi": 0.0025979320652476713,
+        "p": 0.861,
+        "mde": 0.0028511164969541956,
+        "p_bh": 0.861
+      },
+      {
+        "season": 2023,
+        "arm": "WF_minus_PL",
+        "table": "rule",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.0014468465746063247,
+        "ci_lo": -0.004611613736470144,
+        "ci_hi": 0.001766866797508274,
+        "p": 0.392,
+        "mde": 0.003189240266989209
+      },
+      {
+        "season": 2023,
+        "arm": "FULL_minus_A0",
+        "table": "rule",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.008350104998763881,
+        "ci_lo": -0.012410666760819098,
+        "ci_hi": -0.0042194202613854755,
+        "p": 0.0004997501249375312,
+        "mde": 0.004095623249716811
+      },
+      {
+        "season": 2023,
+        "arm": "WF_minus_KO_LOADX",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": 0.0011593660083493763,
+        "ci_lo": -0.0015737060145050834,
+        "ci_hi": 0.0037847389166647816,
+        "p": 0.395,
+        "mde": 0.0026792224655849324
+      },
+      {
+        "season": 2023,
+        "arm": "WF_minus_KO_SCHEDULE",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.001111012652815807,
+        "ci_lo": -0.003526160651147996,
+        "ci_hi": 0.001313544275808772,
+        "p": 0.373,
+        "mde": 0.0024198524634783843
+      },
+      {
+        "season": 2023,
+        "arm": "WF_minus_KO_TRAVEL",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.0017864419021500603,
+        "ci_lo": -0.004499075685660774,
+        "ci_hi": 0.0006162485835687811,
+        "p": 0.177,
+        "mde": 0.0025576621346147773
+      },
+      {
+        "season": 2023,
+        "arm": "KO_LOADX_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.0014049600209426047,
+        "ci_lo": -0.0038495657017412017,
+        "ci_hi": 0.0010328395441345697,
+        "p": 0.273,
+        "mde": 0.0024412026229378857
+      },
+      {
+        "season": 2023,
+        "arm": "KO_SCHEDULE_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": 0.000865418640222579,
+        "ci_lo": -0.0018099283634071684,
+        "ci_hi": 0.0038282148592316094,
+        "p": 0.565,
+        "mde": 0.002819071611319389
+      },
+      {
+        "season": 2023,
+        "arm": "KO_TRAVEL_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": 0.001540847889556833,
+        "ci_lo": -0.0012699779140935082,
+        "ci_hi": 0.0044939282777966124,
+        "p": 0.305,
+        "mde": 0.0028819530959450605
+      },
+      {
+        "season": 2023,
+        "arm": "B_minus_A0",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.00708876045981088,
+        "ci_lo": -0.010987322328545997,
+        "ci_hi": -0.003532862464884434,
+        "p": 0.0004997501249375312,
+        "mde": 0.0037272299318307812
+      },
+      {
+        "season": 2023,
+        "arm": "B_minus_PL27",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": -0.010657699085252175,
+        "ci_lo": -0.014699695130954017,
+        "ci_hi": -0.006711275706240619,
+        "p": 0.0004997501249375312,
+        "mde": 0.003994209712356699
+      },
+      {
+        "season": 2023,
+        "arm": "PL_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": 0.001201252562013097,
+        "ci_lo": -0.0018417205383519394,
+        "ci_hi": 0.003962260929546146,
+        "p": 0.428,
+        "mde": 0.0029019907339490427
+      },
+      {
+        "season": 2023,
+        "arm": "PL27_minus_A0",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_games": 1318,
+        "delta": 0.003568938625441293,
+        "ci_lo": 0.0004544992786321981,
+        "ci_hi": 0.006801870074240789,
+        "p": 0.022,
+        "mde": 0.0031736853978042955
+      },
+      {
+        "season": 2023,
+        "arm": "WF_minus_FULL_date_clustered",
+        "table": "descriptive",
+        "n_rows": 27619,
+        "n_dates": 207,
+        "delta": -0.0002455940125932287,
+        "ci_lo": -0.003030268773151567,
+        "ci_hi": 0.0026221215878696196,
+        "p": 0.837,
+        "mde": 0.0028261951805105935
+      },
+      {
+        "season": 2024,
+        "arm": "A0",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1768395165770476
+      },
+      {
+        "season": 2024,
+        "arm": "FULL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1685250402000773
+      },
+      {
+        "season": 2024,
+        "arm": "WF",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1665143314179534
+      },
+      {
+        "season": 2024,
+        "arm": "PL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1696092769992785
+      },
+      {
+        "season": 2024,
+        "arm": "KO_LOADX",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1679700720619373
+      },
+      {
+        "season": 2024,
+        "arm": "KO_SCHEDULE",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1680857826083444
+      },
+      {
+        "season": 2024,
+        "arm": "KO_TRAVEL",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1668932309727804
+      },
+      {
+        "season": 2024,
+        "arm": "B",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.167330237854777
+      },
+      {
+        "season": 2024,
+        "arm": "PL27",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "crps_int": 3.1773333372434363
+      },
+      {
+        "season": 2024,
+        "arm": "WF_minus_FULL",
+        "table": "rule",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.0020107087821247213,
+        "ci_lo": -0.0043392941289100385,
+        "ci_hi": 0.0003269919368619297,
+        "p": 0.091,
+        "mde": 0.002333143032885984,
+        "p_bh": 0.091
+      },
+      {
+        "season": 2024,
+        "arm": "WF_minus_PL",
+        "table": "rule",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.003094945581325372,
+        "ci_lo": -0.005774666284228095,
+        "ci_hi": -0.0004316779616734856,
+        "p": 0.022,
+        "mde": 0.002671494161277305
+      },
+      {
+        "season": 2024,
+        "arm": "FULL_minus_A0",
+        "table": "rule",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.008314476376969474,
+        "ci_lo": -0.012753930621961788,
+        "ci_hi": -0.004075507257000795,
+        "p": 0.0004997501249375312,
+        "mde": 0.0043392116824804965
+      },
+      {
+        "season": 2024,
+        "arm": "WF_minus_KO_LOADX",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.0014557406439839875,
+        "ci_lo": -0.003747147457958824,
+        "ci_hi": 0.0008230451661880705,
+        "p": 0.203,
+        "mde": 0.0022850963120734473
+      },
+      {
+        "season": 2024,
+        "arm": "WF_minus_KO_SCHEDULE",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.0015714511903907587,
+        "ci_lo": -0.0034216192741373264,
+        "ci_hi": 0.0003424021712224103,
+        "p": 0.109,
+        "mde": 0.0018820107226798684
+      },
+      {
+        "season": 2024,
+        "arm": "WF_minus_KO_TRAVEL",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.0003788995548272001,
+        "ci_lo": -0.0023637064055019555,
+        "ci_hi": 0.0015944345921286931,
+        "p": 0.7,
+        "mde": 0.0019790704988153244
+      },
+      {
+        "season": 2024,
+        "arm": "KO_LOADX_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.0005549681381407331,
+        "ci_lo": -0.0025658311407287565,
+        "ci_hi": 0.0014665455257733958,
+        "p": 0.578,
+        "mde": 0.0020161883332510764
+      },
+      {
+        "season": 2024,
+        "arm": "KO_SCHEDULE_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.00043925759173396226,
+        "ci_lo": -0.0026457208588750295,
+        "ci_hi": 0.0019264352561651937,
+        "p": 0.722,
+        "mde": 0.0022860780575201115
+      },
+      {
+        "season": 2024,
+        "arm": "KO_TRAVEL_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.001631809227297521,
+        "ci_lo": -0.0037675365141026556,
+        "ci_hi": 0.0006923349580609479,
+        "p": 0.15,
+        "mde": 0.0022299357360818016
+      },
+      {
+        "season": 2024,
+        "arm": "B_minus_A0",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.00950927872227028,
+        "ci_lo": -0.013168633891055222,
+        "ci_hi": -0.005991358918571823,
+        "p": 0.0004997501249375312,
+        "mde": 0.0035886374862416992
+      },
+      {
+        "season": 2024,
+        "arm": "B_minus_PL27",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": -0.010003099388659195,
+        "ci_lo": -0.013882115474811548,
+        "ci_hi": -0.006488619112433254,
+        "p": 0.0004997501249375312,
+        "mde": 0.003696748181189147
+      },
+      {
+        "season": 2024,
+        "arm": "PL_minus_FULL",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": 0.0010842367992006507,
+        "ci_lo": -0.001067422528023777,
+        "ci_hi": 0.003231988425591928,
+        "p": 0.308,
+        "mde": 0.0021497054768078523
+      },
+      {
+        "season": 2024,
+        "arm": "PL27_minus_A0",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_games": 1320,
+        "delta": 0.0004938206663889159,
+        "ci_lo": -0.0017187190486012843,
+        "ci_hi": 0.0027872352820070855,
+        "p": 0.671,
+        "mde": 0.002252977165304185
+      },
+      {
+        "season": 2024,
+        "arm": "WF_minus_FULL_date_clustered",
+        "table": "descriptive",
+        "n_rows": 27701,
+        "n_dates": 213,
+        "delta": -0.0020107087821247213,
+        "ci_lo": -0.004473419539168739,
+        "ci_hi": 0.0004535191195792348,
+        "p": 0.097,
+        "mde": 0.002463469329373987
+      }
+    ],
+    "slices": [
+      {
+        "season": 2023,
+        "slice": "all",
+        "n": 27619,
+        "delta": -0.0002455940125932287,
+        "ci_lo": -0.0031043009286607203,
+        "ci_hi": 0.0025979320652476713
+      },
+      {
+        "season": 2023,
+        "slice": "min<5",
+        "n": 2383,
+        "delta": -0.00599012285610229,
+        "ci_lo": -0.011715613799515958,
+        "ci_hi": -0.00030239901696767435
+      },
+      {
+        "season": 2023,
+        "slice": "bench",
+        "n": 15352,
+        "delta": -0.0011527983427287553,
+        "ci_lo": -0.004095424213338984,
+        "ci_hi": 0.0017489162021249534
+      },
+      {
+        "season": 2023,
+        "slice": "playoffs",
+        "n": 1684,
+        "delta": 0.0001387054394904969,
+        "ci_lo": -0.01054837254366623,
+        "ci_hi": 0.010281141808470569
+      },
+      {
+        "season": 2023,
+        "slice": "cold_start",
+        "n": 574,
+        "delta": -0.0034130961568123006,
+        "ci_lo": -0.015134947046832044,
+        "ci_hi": 0.007960831782537111
+      },
+      {
+        "season": 2023,
+        "slice": "b2b_second",
+        "n": 4422,
+        "delta": 0.006311321556451412,
+        "ci_lo": -0.0010566869116323421,
+        "ci_hi": 0.013384050365139613
+      },
+      {
+        "season": 2023,
+        "slice": "three_in_four",
+        "n": 6417,
+        "delta": 0.00333052996849116,
+        "ci_lo": -0.0030213471450236755,
+        "ci_hi": 0.009528795770513276
+      },
+      {
+        "season": 2023,
+        "slice": "road_trip4plus",
+        "n": 2020,
+        "delta": 0.0011595741781697938,
+        "ci_lo": -0.009583965146412136,
+        "ci_hi": 0.013061023842411743
+      },
+      {
+        "season": 2024,
+        "slice": "all",
+        "n": 27701,
+        "delta": -0.0020107087821247213,
+        "ci_lo": -0.0043392941289100385,
+        "ci_hi": 0.0003269919368619297
+      },
+      {
+        "season": 2024,
+        "slice": "min<5",
+        "n": 2326,
+        "delta": -0.0006538349876648953,
+        "ci_lo": -0.0055613809554672985,
+        "ci_hi": 0.00410756933296744
+      },
+      {
+        "season": 2024,
+        "slice": "bench",
+        "n": 15589,
+        "delta": -0.0035121392403432926,
+        "ci_lo": -0.006198302801801043,
+        "ci_hi": -0.0009275028914362463
+      },
+      {
+        "season": 2024,
+        "slice": "playoffs",
+        "n": 1804,
+        "delta": 0.0005428595920582877,
+        "ci_lo": -0.00826070494013124,
+        "ci_hi": 0.008471945774762226
+      },
+      {
+        "season": 2024,
+        "slice": "cold_start",
+        "n": 464,
+        "delta": -0.0003360024868755672,
+        "ci_lo": -0.011054175269711681,
+        "ci_hi": 0.011492922027734246
+      },
+      {
+        "season": 2024,
+        "slice": "b2b_second",
+        "n": 4694,
+        "delta": 0.00023273805119576133,
+        "ci_lo": -0.005188396702601461,
+        "ci_hi": 0.005602506942784606
+      },
+      {
+        "season": 2024,
+        "slice": "three_in_four",
+        "n": 6884,
+        "delta": 0.0019607921967588387,
+        "ci_lo": -0.002867496650969311,
+        "ci_hi": 0.006732207700597499
+      },
+      {
+        "season": 2024,
+        "slice": "road_trip4plus",
+        "n": 1837,
+        "delta": -0.002012260650560944,
+        "ci_lo": -0.010064246567138488,
+        "ci_hi": 0.005873316478422767
+      }
+    ],
+    "coverage": {
+      "A0": {
+        "2023": {
+          "0.10": 0.11517433650747674,
+          "0.20": 0.21619175205474492,
+          "0.80": 0.8090082913936059,
+          "0.90": 0.9071653571816504
+        },
+        "2024": {
+          "0.10": 0.1180462799176925,
+          "0.20": 0.21436049240099636,
+          "0.80": 0.802606404100935,
+          "0.90": 0.9006895057940146
+        }
+      },
+      "FULL": {
+        "2023": {
+          "0.10": 0.11434157645099388,
+          "0.20": 0.21673485643940765,
+          "0.80": 0.809442774901336,
+          "0.90": 0.9072015641406278
+        },
+        "2024": {
+          "0.10": 0.11898487419226743,
+          "0.20": 0.21677917764701635,
+          "0.80": 0.8017039096061515,
+          "0.90": 0.8999314104183964
+        }
+      },
+      "WF": {
+        "2023": {
+          "0.10": 0.11521054346645425,
+          "0.20": 0.21575726854701474,
+          "0.80": 0.8107100184655491,
+          "0.90": 0.9082877729099533
+        },
+        "2024": {
+          "0.10": 0.1180462799176925,
+          "0.20": 0.2134940976860041,
+          "0.80": 0.800620916212411,
+          "0.90": 0.8994260135013177
+        }
+      },
+      "B": {
+        "2023": {
+          "0.10": 0.11488468083565662,
+          "0.20": 0.21564864767008218,
+          "0.80": 0.8113979506861219,
+          "0.90": 0.9091929468843912
+        },
+        "2024": {
+          "0.10": 0.11801018013790116,
+          "0.20": 0.21378289592433486,
+          "0.80": 0.802389805422187,
+          "0.90": 0.9000397097577705
+        }
+      }
+    },
+    "bias": {
+      "A0": {
+        "2023": 0.2785628784787109,
+        "2024": 0.19793763227893554
+      },
+      "FULL": {
+        "2023": 0.27027057515027253,
+        "2024": 0.1997529614064329
+      },
+      "WF": {
+        "2023": 0.2818699020283357,
+        "2024": 0.17171703795320417
+      },
+      "B": {
+        "2023": 0.2800127943384689,
+        "2024": 0.17674107514577328
+      }
+    },
+    "descriptive": {
+      "label": "Descriptive (cannot pass or fail the rule): per-number 95% CI, not multiplicity-adjusted",
+      "overlap": {
+        "2023": {
+          "share": 0.9653544489215564,
+          "lo": 0.563467291397789,
+          "hi": 1.4783206941373959,
+          "row_corr_of_gains": 0.33189541330174244,
+          "n": 27619
+        },
+        "2024": {
+          "share": 0.7885529659136253,
+          "lo": 0.525947234632686,
+          "hi": 1.039351731760955,
+          "row_corr_of_gains": 0.3210307671555301,
+          "n": 27701
+        }
+      },
+      "B_refit_vs_cached_pts__B": {
+        "rows_equal": true,
+        "max_abs_qi_diff": 5.0,
+        "mean_crps_diff": {
+          "2023": 0.0,
+          "2024": 0.0012655597733305074
+        },
+        "match_1e-6": false
+      },
+      "T452_rejudged": {
+        "note": "per-number 95%, not multiplicity-adjusted; descriptive, cannot rescue or fail the rule; a T452 annotation, not a new pass",
+        "B_minus_PL27": {
+          "2023": {
+            "delta": -0.010657699085252175,
+            "ci_lo": -0.014699695130954017,
+            "ci_hi": -0.006711275706240619,
+            "p": 0.0004997501249375312,
+            "mde": 0.003994209712356699
+          },
+          "2024": {
+            "delta": -0.010003099388659195,
+            "ci_lo": -0.013882115474811548,
+            "ci_hi": -0.006488619112433254,
+            "p": 0.0004997501249375312,
+            "mde": 0.003696748181189147
+          }
+        },
+        "reading": "T452's failed condition would have held under a valid placebo; with the knockouts naming LOAD, T452 becomes 'LOAD (recent-role minutes) carries a pts gain', i.e. FULL (a T452 annotation, not a new pass)",
+        "holds_both_seasons": true
+      },
+      "arm_saw_it": {
+        "x22_gain_share_WF": 0.1258596520980154,
+        "note": "share 0 = the arm never read the 22 columns (pipeline fault, not a null)"
+      }
+    }
+  },
+  "shuffle": {
+    "complete": false,
+    "run": false
+  },
+  "verdict": {
+    "pass": false,
+    "candidate_needs_adversary_clearance": false,
+    "rule1_select_2023": false,
+    "rule2_report_2024": false,
+    "rule3_placebo": false,
+    "rule4_shuffle": null,
+    "rule4_note": "not run, primary failed",
+    "rule5_coverage_ok": true,
+    "coverage_bad": [],
+    "rule6_slices_ok": true,
+    "slices_worse": [],
+    "rule7_gate_ok": true,
+    "naming": {
+      "LOADX": {
+        "gain_left_when_dropped": -0.0005549681381407331,
+        "carries": false
+      },
+      "SCHEDULE": {
+        "gain_left_when_dropped": -0.00043925759173396226,
+        "carries": false
+      },
+      "TRAVEL": {
+        "gain_left_when_dropped": -0.001631809227297521,
+        "carries": false
+      }
+    },
+    "named_family": [],
+    "d2023": -0.0002455940125932287,
+    "d2024": -0.0020107087821247213,
+    "ci2024": [
+      -0.0043392941289100385,
+      0.0003269919368619297
+    ],
+    "mde2024": 0.002333143032885984,
+    "null_statement": "no effect larger than -0.0043 (the 2024 CI lower bound of WF - FULL, n 27701 rows / 1320 games)"
+  },
+  "gate": [
+    {
+      "test": "frame identity: sha256 of the A0 rows x 71 columns equals the frozen pin",
+      "value": {
+        "sha256": "47b569fba20e58bcacfcf38148fc270d0b5e4cd6f235f7a8485c329bcd7a1614",
+        "pin": "47b569fba20e58bcacfcf38148fc270d0b5e4cd6f235f7a8485c329bcd7a1614",
+        "a0_rows": 55320,
+        "found": 55320
+      },
+      "threshold": "== 47b569fb, rows 55320",
+      "ok": true
+    },
+    {
+      "test": "HOLDOUT_ACCESS_LOG: no row names WORKLOAD_PTS_V2; no 2025 loader",
+      "value": {
+        "rows_naming_id": 0,
+        "max_season_frame": 2024
+      },
+      "threshold": "== 0; max season <= 2024",
+      "ok": true
+    },
+    {
+      "test": "W6: past-only placebo NaN iff no earlier played row in the player-season (whole frame); A0 NaN rows vs n_season == 0",
+      "value": {
+        "nan_iff_first_day_whole_frame": true,
+        "a0_nan_rows": {
+          "2023": 441,
+          "2024": 452
+        },
+        "a0_n_season_eq_0": 893,
+        "a0_both": 893
+      },
+      "threshold": "asserted (iff); counts reported",
+      "ok": true
+    },
+    {
+      "test": "join coverage: the 22 columns attach to every A0 row; NULL share per column",
+      "value": {
+        "n_a0_rows": 55320,
+        "minutes_null": 0,
+        "null_or_nan": {
+          "wl_g_3d": 0,
+          "wl_g_7d": 0,
+          "wl_min_l5_vs_base": 0,
+          "wl_dist_3d": 0,
+          "wl_dist_7d": 0,
+          "wl_dpm_l3": 0,
+          "wl_speed_l3": 0,
+          "wl_dpm_decline": 0,
+          "wl_speed_decline": 0,
+          "wl_track_n_l3": 0,
+          "wl_three_in_four": 609,
+          "wl_five_in_seven": 609,
+          "wl_games_last10d": 609,
+          "wl_road_streak": 0,
+          "wl_road_trip4plus": 0,
+          "wl_early_tip": 0,
+          "wl_miles_from_prev": 609,
+          "wl_miles_7d": 609,
+          "wl_tz_cross_hr": 609,
+          "wl_eastbound": 609,
+          "wl_alt_km": 0,
+          "wl_alt_delta_km": 609
+        }
+      },
+      "threshold": "all rows found; every column null share < 2%",
+      "ok": true
+    },
+    {
+      "test": "missingness of the 22 by realised-minutes bucket (pp)",
+      "value": {
+        "max_gap_pp": 0.1938655422257799,
+        "worst_col": "wl_three_in_four",
+        "placebo_max_gap_pp": 0.26116978604232427
+      },
+      "threshold": "<= max(2 pp, 3 x permuted) = 2.00",
+      "ok": true
+    },
+    {
+      "test": "reproduction: P0C == stored components; FULL refit == heads_pts_R.npz; FULL pi refit == pi_R.npz (or data drift: every arm refit, reported)",
+      "value": {
+        "P0C": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        },
+        "FULL": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        },
+        "pi_max_abs_diff": 0.0,
+        "drift": false
+      },
+      "threshold": "<= 1e-06, or drift with differing inputs",
+      "ok": true
+    },
+    {
+      "test": "positive control: FULL - A0 reproduces T467 (harness can move)",
+      "value": {
+        "2023": {
+          "delta": -0.008350104998763881,
+          "ci": [
+            -0.012410666760819098,
+            -0.0042194202613854755
+          ],
+          "t467": -0.008350104998763881,
+          "n": 27619
+        },
+        "2024": {
+          "delta": -0.008314476376969474,
+          "ci": [
+            -0.012753930621961788,
+            -0.004075507257000795
+          ],
+          "t467": -0.008314476376969474,
+          "n": 27701
+        }
+      },
+      "threshold": "|FULL - A0 - T467| <= 0.0001 both seasons",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: rows of the edited day identical",
+      "value": 308,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 13770,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows dated on or before the cutoff identical",
+      "value": 14466,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (schedule): rows up to the cutoff identical",
+      "value": 6618,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (heads, WF): centre/scale of rows in blocks before the cutoff identical",
+      "value": {
+        "cutoff": "2025-01-24",
+        "n_rows": 10064,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "== 0 and n > 0",
+      "ok": true
+    },
+    {
+      "test": "control (heads, WF): rows in later blocks change",
+      "value": {
+        "n_rows": 12790,
+        "max_abs_diff": 97.65442649815539
+      },
+      "threshold": "> 0",
+      "ok": true
+    },
+    {
+      "test": "slice sizes (n rows) per season",
+      "value": {
+        "2023": {
+          "all": 27619,
+          "min<5": 2383,
+          "bench": 15352,
+          "playoffs": 1684,
+          "cold_start": 574,
+          "b2b_second": 4422,
+          "three_in_four": 6417,
+          "road_trip4plus": 2020
+        },
+        "2024": {
+          "all": 27701,
+          "min<5": 2326,
+          "bench": 15589,
+          "playoffs": 1804,
+          "cold_start": 464,
+          "b2b_second": 4694,
+          "three_in_four": 6884,
+          "road_trip4plus": 1837
+        }
+      },
+      "threshold": ">= 300 to count (a smaller slice is reported and cannot fail)",
+      "ok": true
+    }
+  ],
+  "drift": {
+    "drift": false
+  },
+  "stamp": {
+    "frame_all_sha256": "01712066f542145794123a1e880cb676e28a3e6a3d99550727a93a9e76add43f",
+    "harness_git_hash": "b6ac1daaf99319e4b6ae6ed59db4fd73e1ede4fe"
+  },
+  "decision_score_dk_t60": {
+    "FULL": {
+      "n_legs": 30236,
+      "cells": [
+        {
+          "season": "pooled",
+          "stat": "all",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 21874,
+                "n_games": 2616,
+                "roi": -0.03532893031110357,
+                "roi_lo": -0.04737952349332122,
+                "roi_hi": -0.02285464076829842,
+                "hit": 0.5132120325500594,
+                "hit_lo": 0.5068697098679199,
+                "hit_hi": 0.5199579812326505,
+                "mean_decimal": 1.8844858782858307,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 19505,
+                "n_games": 2615,
+                "roi": -0.036843767277027664,
+                "roi_lo": -0.04992001248141373,
+                "roi_hi": -0.02388002161864459,
+                "hit": 0.5122789028454242,
+                "hit_lo": 0.5052907838747824,
+                "hit_hi": 0.5191882001920768,
+                "mean_decimal": 1.8849099787709143,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 15855,
+                "n_games": 2610,
+                "roi": -0.027982753877790065,
+                "roi_lo": -0.042748867459273476,
+                "roi_hi": -0.013101618876133675,
+                "hit": 0.5163040050457269,
+                "hit_lo": 0.508559900024959,
+                "hit_hi": 0.5241706094772427,
+                "mean_decimal": 1.887216597701263,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 10945,
+                "n_games": 2564,
+                "roi": -0.016613720506007457,
+                "roi_lo": -0.03480775465283479,
+                "roi_hi": 0.0011362065743426672,
+                "hit": 0.52188213796254,
+                "hit_lo": 0.5123951502796757,
+                "hit_hi": 0.5314665383869175,
+                "mean_decimal": 1.8892077814678923,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "pts",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 21874,
+                "n_games": 2616,
+                "roi": -0.03532893031110357,
+                "roi_lo": -0.04737952349332122,
+                "roi_hi": -0.02285464076829842,
+                "hit": 0.5132120325500594,
+                "hit_lo": 0.5068697098679199,
+                "hit_hi": 0.5199579812326505,
+                "mean_decimal": 1.8844858782858307,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 19505,
+                "n_games": 2615,
+                "roi": -0.036843767277027664,
+                "roi_lo": -0.04992001248141373,
+                "roi_hi": -0.02388002161864459,
+                "hit": 0.5122789028454242,
+                "hit_lo": 0.5052907838747824,
+                "hit_hi": 0.5191882001920768,
+                "mean_decimal": 1.8849099787709143,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 15855,
+                "n_games": 2610,
+                "roi": -0.027982753877790065,
+                "roi_lo": -0.042748867459273476,
+                "roi_hi": -0.013101618876133675,
+                "hit": 0.5163040050457269,
+                "hit_lo": 0.508559900024959,
+                "hit_hi": 0.5241706094772427,
+                "mean_decimal": 1.887216597701263,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 10945,
+                "n_games": 2564,
+                "roi": -0.016613720506007457,
+                "roi_lo": -0.03480775465283479,
+                "roi_hi": 0.0011362065743426672,
+                "hit": 0.52188213796254,
+                "hit_lo": 0.5123951502796757,
+                "hit_hi": 0.5314665383869175,
+                "mean_decimal": 1.8892077814678923,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "reb",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "ast",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "fg3m",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "all",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 10734,
+                "n_games": 1316,
+                "roi": -0.03463660846515773,
+                "roi_lo": -0.05249951589934278,
+                "roi_hi": -0.016700339757890603,
+                "hit": 0.5125768585802124,
+                "hit_lo": 0.5030755810179903,
+                "hit_hi": 0.5219483941768741,
+                "mean_decimal": 1.8899275380414866,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9679,
+                "n_games": 1315,
+                "roi": -0.03491889040403159,
+                "roi_lo": -0.05345208365062483,
+                "roi_hi": -0.01661374790680065,
+                "hit": 0.5122430003099494,
+                "hit_lo": 0.5024231191350088,
+                "hit_hi": 0.5222162732187436,
+                "mean_decimal": 1.8907866465105936,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7972,
+                "n_games": 1311,
+                "roi": -0.02066038999808246,
+                "roi_lo": -0.0406241249523306,
+                "roi_hi": -0.0002619299867408457,
+                "hit": 0.518941294530858,
+                "hit_lo": 0.5082849891285005,
+                "hit_hi": 0.5297039170865667,
+                "mean_decimal": 1.893910901199335,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5645,
+                "n_games": 1288,
+                "roi": -0.014512475527609925,
+                "roi_lo": -0.03937848867101599,
+                "roi_hi": 0.010809007370378702,
+                "hit": 0.5213463241806908,
+                "hit_lo": 0.5080730440122959,
+                "hit_hi": 0.5346367087374394,
+                "mean_decimal": 1.896804024128732,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "pts",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 10734,
+                "n_games": 1316,
+                "roi": -0.03463660846515773,
+                "roi_lo": -0.05249951589934278,
+                "roi_hi": -0.016700339757890603,
+                "hit": 0.5125768585802124,
+                "hit_lo": 0.5030755810179903,
+                "hit_hi": 0.5219483941768741,
+                "mean_decimal": 1.8899275380414866,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9679,
+                "n_games": 1315,
+                "roi": -0.03491889040403159,
+                "roi_lo": -0.05345208365062483,
+                "roi_hi": -0.01661374790680065,
+                "hit": 0.5122430003099494,
+                "hit_lo": 0.5024231191350088,
+                "hit_hi": 0.5222162732187436,
+                "mean_decimal": 1.8907866465105936,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7972,
+                "n_games": 1311,
+                "roi": -0.02066038999808246,
+                "roi_lo": -0.0406241249523306,
+                "roi_hi": -0.0002619299867408457,
+                "hit": 0.518941294530858,
+                "hit_lo": 0.5082849891285005,
+                "hit_hi": 0.5297039170865667,
+                "mean_decimal": 1.893910901199335,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5645,
+                "n_games": 1288,
+                "roi": -0.014512475527609925,
+                "roi_lo": -0.03937848867101599,
+                "roi_hi": 0.010809007370378702,
+                "hit": 0.5213463241806908,
+                "hit_lo": 0.5080730440122959,
+                "hit_hi": 0.5346367087374394,
+                "mean_decimal": 1.896804024128732,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "reb",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "ast",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "fg3m",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "all",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 11140,
+                "n_games": 1300,
+                "roi": -0.03599602031957598,
+                "roi_lo": -0.05362480035496258,
+                "roi_hi": -0.01913837434122322,
+                "hit": 0.5138240574506283,
+                "hit_lo": 0.5045236477347734,
+                "hit_hi": 0.5229200190218736,
+                "mean_decimal": 1.879242541138864,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9826,
+                "n_games": 1300,
+                "roi": -0.03873984739647901,
+                "roi_lo": -0.05693771465075405,
+                "roi_hi": -0.02053693564909069,
+                "hit": 0.5123142682678608,
+                "hit_lo": 0.50267580828228,
+                "hit_hi": 0.5220028224066997,
+                "mean_decimal": 1.8791212277987641,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7883,
+                "n_games": 1299,
+                "roi": -0.0353877881095583,
+                "roi_lo": -0.05567195422633296,
+                "roi_hi": -0.014922988095425211,
+                "hit": 0.5136369402511735,
+                "hit_lo": 0.5026814569944856,
+                "hit_hi": 0.5245759344370204,
+                "mean_decimal": 1.8804467147269346,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5300,
+                "n_games": 1276,
+                "roi": -0.018851744638659167,
+                "roi_lo": -0.04552474508469733,
+                "roi_hi": 0.005784275430187266,
+                "hit": 0.5224528301886793,
+                "hit_lo": 0.508363440705933,
+                "hit_hi": 0.5355494996395147,
+                "mean_decimal": 1.881117066407431,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "pts",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 11140,
+                "n_games": 1300,
+                "roi": -0.03599602031957598,
+                "roi_lo": -0.05362480035496258,
+                "roi_hi": -0.01913837434122322,
+                "hit": 0.5138240574506283,
+                "hit_lo": 0.5045236477347734,
+                "hit_hi": 0.5229200190218736,
+                "mean_decimal": 1.879242541138864,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9826,
+                "n_games": 1300,
+                "roi": -0.03873984739647901,
+                "roi_lo": -0.05693771465075405,
+                "roi_hi": -0.02053693564909069,
+                "hit": 0.5123142682678608,
+                "hit_lo": 0.50267580828228,
+                "hit_hi": 0.5220028224066997,
+                "mean_decimal": 1.8791212277987641,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7883,
+                "n_games": 1299,
+                "roi": -0.0353877881095583,
+                "roi_lo": -0.05567195422633296,
+                "roi_hi": -0.014922988095425211,
+                "hit": 0.5136369402511735,
+                "hit_lo": 0.5026814569944856,
+                "hit_hi": 0.5245759344370204,
+                "mean_decimal": 1.8804467147269346,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5300,
+                "n_games": 1276,
+                "roi": -0.018851744638659167,
+                "roi_lo": -0.04552474508469733,
+                "roi_hi": 0.005784275430187266,
+                "hit": 0.5224528301886793,
+                "hit_lo": 0.508363440705933,
+                "hit_hi": 0.5355494996395147,
+                "mean_decimal": 1.881117066407431,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "reb",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "ast",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "fg3m",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "WF": {
+      "n_legs": 30236,
+      "cells": [
+        {
+          "season": "pooled",
+          "stat": "all",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 21672,
+                "n_games": 2615,
+                "roi": -0.036947649149177066,
+                "roi_lo": -0.049905072037702995,
+                "roi_hi": -0.024577345269144343,
+                "hit": 0.5123661867847914,
+                "hit_lo": 0.505472411127665,
+                "hit_hi": 0.5190305121121088,
+                "mean_decimal": 1.884290475269973,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 19249,
+                "n_games": 2615,
+                "roi": -0.03777798870712165,
+                "roi_lo": -0.051375048062409084,
+                "roi_hi": -0.02468459356698177,
+                "hit": 0.5117148942802223,
+                "hit_lo": 0.5045440310121567,
+                "hit_hi": 0.5186409108485948,
+                "mean_decimal": 1.8849301378161583,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 15550,
+                "n_games": 2614,
+                "roi": -0.032558940669460044,
+                "roi_lo": -0.047309331500843814,
+                "roi_hi": -0.01769650560437337,
+                "hit": 0.5139549839228296,
+                "hit_lo": 0.5061095487573767,
+                "hit_hi": 0.521959153203982,
+                "mean_decimal": 1.886922032629652,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 10645,
+                "n_games": 2559,
+                "roi": -0.02939369212550399,
+                "roi_lo": -0.04752433361615297,
+                "roi_hi": -0.011646539103463253,
+                "hit": 0.5150775011742602,
+                "hit_lo": 0.505280032580446,
+                "hit_hi": 0.524497463229237,
+                "mean_decimal": 1.8893869894084683,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "pts",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 21672,
+                "n_games": 2615,
+                "roi": -0.036947649149177066,
+                "roi_lo": -0.049905072037702995,
+                "roi_hi": -0.024577345269144343,
+                "hit": 0.5123661867847914,
+                "hit_lo": 0.505472411127665,
+                "hit_hi": 0.5190305121121088,
+                "mean_decimal": 1.884290475269973,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 19249,
+                "n_games": 2615,
+                "roi": -0.03777798870712165,
+                "roi_lo": -0.051375048062409084,
+                "roi_hi": -0.02468459356698177,
+                "hit": 0.5117148942802223,
+                "hit_lo": 0.5045440310121567,
+                "hit_hi": 0.5186409108485948,
+                "mean_decimal": 1.8849301378161583,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 15550,
+                "n_games": 2614,
+                "roi": -0.032558940669460044,
+                "roi_lo": -0.047309331500843814,
+                "roi_hi": -0.01769650560437337,
+                "hit": 0.5139549839228296,
+                "hit_lo": 0.5061095487573767,
+                "hit_hi": 0.521959153203982,
+                "mean_decimal": 1.886922032629652,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 10645,
+                "n_games": 2559,
+                "roi": -0.02939369212550399,
+                "roi_lo": -0.04752433361615297,
+                "roi_hi": -0.011646539103463253,
+                "hit": 0.5150775011742602,
+                "hit_lo": 0.505280032580446,
+                "hit_hi": 0.524497463229237,
+                "mean_decimal": 1.8893869894084683,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "reb",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "ast",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "pooled",
+          "stat": "fg3m",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "all",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 10641,
+                "n_games": 1315,
+                "roi": -0.038651603894300786,
+                "roi_lo": -0.05660641503378631,
+                "roi_hi": -0.0207581198408822,
+                "hit": 0.5104783385020205,
+                "hit_lo": 0.5010123776328882,
+                "hit_hi": 0.5199123022891916,
+                "mean_decimal": 1.8897432211714422,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9487,
+                "n_games": 1315,
+                "roi": -0.03662643319803833,
+                "roi_lo": -0.055973482747075136,
+                "roi_hi": -0.01769858392873331,
+                "hit": 0.5113312954569411,
+                "hit_lo": 0.5008939980578115,
+                "hit_hi": 0.521463275575356,
+                "mean_decimal": 1.8905208922835783,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7776,
+                "n_games": 1314,
+                "roi": -0.032378530942743976,
+                "roi_lo": -0.052220634640101245,
+                "roi_hi": -0.011032516922650266,
+                "hit": 0.5127314814814815,
+                "hit_lo": 0.5021735040714445,
+                "hit_hi": 0.5239786886708812,
+                "mean_decimal": 1.8934326099903638,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5501,
+                "n_games": 1290,
+                "roi": -0.02946090080535857,
+                "roi_lo": -0.054181239767620216,
+                "roi_hi": -0.005067254835272018,
+                "hit": 0.5135429921832394,
+                "hit_lo": 0.5003700689116439,
+                "hit_hi": 0.5264370809824096,
+                "mean_decimal": 1.896445672252022,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "pts",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 10641,
+                "n_games": 1315,
+                "roi": -0.038651603894300786,
+                "roi_lo": -0.05660641503378631,
+                "roi_hi": -0.0207581198408822,
+                "hit": 0.5104783385020205,
+                "hit_lo": 0.5010123776328882,
+                "hit_hi": 0.5199123022891916,
+                "mean_decimal": 1.8897432211714422,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9487,
+                "n_games": 1315,
+                "roi": -0.03662643319803833,
+                "roi_lo": -0.055973482747075136,
+                "roi_hi": -0.01769858392873331,
+                "hit": 0.5113312954569411,
+                "hit_lo": 0.5008939980578115,
+                "hit_hi": 0.521463275575356,
+                "mean_decimal": 1.8905208922835783,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7776,
+                "n_games": 1314,
+                "roi": -0.032378530942743976,
+                "roi_lo": -0.052220634640101245,
+                "roi_hi": -0.011032516922650266,
+                "hit": 0.5127314814814815,
+                "hit_lo": 0.5021735040714445,
+                "hit_hi": 0.5239786886708812,
+                "mean_decimal": 1.8934326099903638,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5501,
+                "n_games": 1290,
+                "roi": -0.02946090080535857,
+                "roi_lo": -0.054181239767620216,
+                "roi_hi": -0.005067254835272018,
+                "hit": 0.5135429921832394,
+                "hit_lo": 0.5003700689116439,
+                "hit_hi": 0.5264370809824096,
+                "mean_decimal": 1.896445672252022,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "reb",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "ast",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2023",
+          "stat": "fg3m",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "all",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 11031,
+                "n_games": 1300,
+                "roi": -0.03530393756882519,
+                "roi_lo": -0.05305434205225362,
+                "roi_hi": -0.017773105052496872,
+                "hit": 0.514187290363521,
+                "hit_lo": 0.5047460635067224,
+                "hit_hi": 0.5234936090880368,
+                "mean_decimal": 1.879030510703067,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9762,
+                "n_games": 1300,
+                "roi": -0.03889710437139881,
+                "roi_lo": -0.058019691669442604,
+                "roi_hi": -0.020934642963169256,
+                "hit": 0.5120876869493957,
+                "hit_lo": 0.5018140773541776,
+                "hit_hi": 0.52166669268309,
+                "mean_decimal": 1.8794968774563534,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7774,
+                "n_games": 1300,
+                "roi": -0.032739396809792445,
+                "roi_lo": -0.05390292395947829,
+                "roi_hi": -0.011829094162918767,
+                "hit": 0.5151788011319783,
+                "hit_lo": 0.5040153118973403,
+                "hit_hi": 0.5262251673559843,
+                "mean_decimal": 1.8804097803069233,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5144,
+                "n_games": 1269,
+                "roi": -0.029321819079648623,
+                "roi_lo": -0.05674598401951753,
+                "roi_hi": -0.004093611652554042,
+                "hit": 0.5167185069984448,
+                "hit_lo": 0.5021876659651269,
+                "hit_hi": 0.5299700678480391,
+                "mean_decimal": 1.881838425193385,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "pts",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 11031,
+                "n_games": 1300,
+                "roi": -0.03530393756882519,
+                "roi_lo": -0.05305434205225362,
+                "roi_hi": -0.017773105052496872,
+                "hit": 0.514187290363521,
+                "hit_lo": 0.5047460635067224,
+                "hit_hi": 0.5234936090880368,
+                "mean_decimal": 1.879030510703067,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 9762,
+                "n_games": 1300,
+                "roi": -0.03889710437139881,
+                "roi_lo": -0.058019691669442604,
+                "roi_hi": -0.020934642963169256,
+                "hit": 0.5120876869493957,
+                "hit_lo": 0.5018140773541776,
+                "hit_hi": 0.52166669268309,
+                "mean_decimal": 1.8794968774563534,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 7774,
+                "n_games": 1300,
+                "roi": -0.032739396809792445,
+                "roi_lo": -0.05390292395947829,
+                "roi_hi": -0.011829094162918767,
+                "hit": 0.5151788011319783,
+                "hit_lo": 0.5040153118973403,
+                "hit_hi": 0.5262251673559843,
+                "mean_decimal": 1.8804097803069233,
+                "status": "ok"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 5144,
+                "n_games": 1269,
+                "roi": -0.029321819079648623,
+                "roi_lo": -0.05674598401951753,
+                "roi_hi": -0.004093611652554042,
+                "hit": 0.5167185069984448,
+                "hit_lo": 0.5021876659651269,
+                "hit_hi": 0.5299700678480391,
+                "mean_decimal": 1.881838425193385,
+                "status": "ok"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "reb",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "ast",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        },
+        {
+          "season": "2024",
+          "stat": "fg3m",
+          "by_threshold": [
+            {
+              "threshold": 0.0,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.02,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.05,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            },
+            {
+              "threshold": 0.1,
+              "model": {
+                "n": 0,
+                "status": "no bets"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

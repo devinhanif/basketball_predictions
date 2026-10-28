@@ -1,0 +1,203 @@
+{
+  "tests": [
+    {
+      "test": "frame identity: sha256 of the A0 rows x 71 columns equals the frozen pin",
+      "value": {
+        "sha256": "47b569fba20e58bcacfcf38148fc270d0b5e4cd6f235f7a8485c329bcd7a1614",
+        "pin": "47b569fba20e58bcacfcf38148fc270d0b5e4cd6f235f7a8485c329bcd7a1614",
+        "a0_rows": 55320,
+        "found": 55320
+      },
+      "threshold": "== 47b569fb, rows 55320",
+      "ok": true
+    },
+    {
+      "test": "HOLDOUT_ACCESS_LOG: no row names WORKLOAD_PTS_V2; no 2025 loader",
+      "value": {
+        "rows_naming_id": 0,
+        "max_season_frame": 2024
+      },
+      "threshold": "== 0; max season <= 2024",
+      "ok": true
+    },
+    {
+      "test": "W6: past-only placebo NaN iff no earlier played row in the player-season (whole frame); A0 NaN rows vs n_season == 0",
+      "value": {
+        "nan_iff_first_day_whole_frame": true,
+        "a0_nan_rows": {
+          "2023": 441,
+          "2024": 452
+        },
+        "a0_n_season_eq_0": 893,
+        "a0_both": 893
+      },
+      "threshold": "asserted (iff); counts reported",
+      "ok": true
+    },
+    {
+      "test": "join coverage: the 22 columns attach to every A0 row; NULL share per column",
+      "value": {
+        "n_a0_rows": 55320,
+        "minutes_null": 0,
+        "null_or_nan": {
+          "wl_g_3d": 0,
+          "wl_g_7d": 0,
+          "wl_min_l5_vs_base": 0,
+          "wl_dist_3d": 0,
+          "wl_dist_7d": 0,
+          "wl_dpm_l3": 0,
+          "wl_speed_l3": 0,
+          "wl_dpm_decline": 0,
+          "wl_speed_decline": 0,
+          "wl_track_n_l3": 0,
+          "wl_three_in_four": 609,
+          "wl_five_in_seven": 609,
+          "wl_games_last10d": 609,
+          "wl_road_streak": 0,
+          "wl_road_trip4plus": 0,
+          "wl_early_tip": 0,
+          "wl_miles_from_prev": 609,
+          "wl_miles_7d": 609,
+          "wl_tz_cross_hr": 609,
+          "wl_eastbound": 609,
+          "wl_alt_km": 0,
+          "wl_alt_delta_km": 609
+        }
+      },
+      "threshold": "all rows found; every column null share < 2%",
+      "ok": true
+    },
+    {
+      "test": "missingness of the 22 by realised-minutes bucket (pp)",
+      "value": {
+        "max_gap_pp": 0.1938655422257799,
+        "worst_col": "wl_three_in_four",
+        "placebo_max_gap_pp": 0.26116978604232427
+      },
+      "threshold": "<= max(2 pp, 3 x permuted) = 2.00",
+      "ok": true
+    },
+    {
+      "test": "reproduction: P0C == stored components; FULL refit == heads_pts_R.npz; FULL pi refit == pi_R.npz (or data drift: every arm refit, reported)",
+      "value": {
+        "P0C": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        },
+        "FULL": {
+          "rows_equal": true,
+          "max_abs_diff": 0.0
+        },
+        "pi_max_abs_diff": 0.0,
+        "drift": false
+      },
+      "threshold": "<= 1e-06, or drift with differing inputs",
+      "ok": true
+    },
+    {
+      "test": "positive control: FULL - A0 reproduces T467 (harness can move)",
+      "value": {
+        "2023": {
+          "delta": -0.008350104998763881,
+          "ci": [
+            -0.012410666760819098,
+            -0.0042194202613854755
+          ],
+          "t467": -0.008350104998763881,
+          "n": 27619
+        },
+        "2024": {
+          "delta": -0.008314476376969474,
+          "ci": [
+            -0.012753930621961788,
+            -0.004075507257000795
+          ],
+          "t467": -0.008314476376969474,
+          "n": 27701
+        }
+      },
+      "threshold": "|FULL - A0 - T467| <= 0.0001 both seasons",
+      "ok": true
+    },
+    {
+      "test": "planted same-game: rows of the edited day identical",
+      "value": 308,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "control: rows after the edited day change",
+      "value": 13770,
+      "threshold": "not identical",
+      "ok": true
+    },
+    {
+      "test": "planted future: rows dated on or before the cutoff identical",
+      "value": 14466,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (schedule): rows up to the cutoff identical",
+      "value": 6618,
+      "threshold": "identical",
+      "ok": true
+    },
+    {
+      "test": "planted future (heads, WF): centre/scale of rows in blocks before the cutoff identical",
+      "value": {
+        "cutoff": "2025-01-24",
+        "n_rows": 10064,
+        "max_abs_diff": 0.0
+      },
+      "threshold": "== 0 and n > 0",
+      "ok": true
+    },
+    {
+      "test": "control (heads, WF): rows in later blocks change",
+      "value": {
+        "n_rows": 12790,
+        "max_abs_diff": 97.65442649815539
+      },
+      "threshold": "> 0",
+      "ok": true
+    },
+    {
+      "test": "slice sizes (n rows) per season",
+      "value": {
+        "2023": {
+          "all": 27619,
+          "min<5": 2383,
+          "bench": 15352,
+          "playoffs": 1684,
+          "cold_start": 574,
+          "b2b_second": 4422,
+          "three_in_four": 6417,
+          "road_trip4plus": 2020
+        },
+        "2024": {
+          "all": 27701,
+          "min<5": 2326,
+          "bench": 15589,
+          "playoffs": 1804,
+          "cold_start": 464,
+          "b2b_second": 4694,
+          "three_in_four": 6884,
+          "road_trip4plus": 1837
+        }
+      },
+      "threshold": ">= 300 to count (a smaller slice is reported and cannot fail)",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "stop": null,
+  "sha256": "20d480f73e9183e23845c31bc3393c6cc9d0dfae30e8be857d604544476f676a",
+  "frame_sha256": "47b569fba20e58bcacfcf38148fc270d0b5e4cd6f235f7a8485c329bcd7a1614",
+  "frame_all_sha256": "01712066f542145794123a1e880cb676e28a3e6a3d99550727a93a9e76add43f",
+  "harness_git_hash": "b6ac1daaf99319e4b6ae6ed59db4fd73e1ede4fe",
+  "drift": {
+    "drift": false
+  },
+  "seconds": 101.6
+}

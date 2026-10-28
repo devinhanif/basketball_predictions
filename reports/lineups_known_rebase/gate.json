@@ -1,0 +1,213 @@
+{
+  "tests": [
+    {
+      "test": "check 1 frame identity: props A0 x 81 columns and P(play) R keys + t30_* equal the frozen pins (full R-frame hash recorded)",
+      "value": {
+        "props_sha256": "231e864858a8b067ecf9c462d104d5a20246cd29bfb5ff88271376e41c92b24a",
+        "props_pin": "231e864858a8b067ecf9c462d104d5a20246cd29bfb5ff88271376e41c92b24a",
+        "props_rows": 55320,
+        "pplay_keys_t30_sha256": "372dacf34f275f6743d4a79d717de582d86dafcdfddfeda587c0552ac4c14ef1",
+        "pplay_pin": "372dacf34f275f6743d4a79d717de582d86dafcdfddfeda587c0552ac4c14ef1",
+        "pplay_rows": 66220,
+        "pplay_R_frame_sha256": "8c7c583ccf1552a159d7d4e17c409be7270fc7cb272d7e706532292c3d8b6b35",
+        "ok": true,
+        "raw_unrounded": {
+          "props_sha256": "a3274c6d51ea0968ea4897ebbd4126100016cb873b6ff050344d6c97540ff80e",
+          "note": "diagnosis only; varies run to run (Amendment 1)"
+        }
+      },
+      "threshold": "props == 231e8648, pplay == 372dacf3",
+      "ok": true
+    },
+    {
+      "test": "L5: pess2 / shuffled t30_* attach to every A0 and R row; no added DNP row enters a scored set (key hashes checked per arm in score)",
+      "value": {
+        "a0_rows_with_p2": 55320,
+        "a0_rows": 55320,
+        "R_rows_with_p2": 66220,
+        "R_rows": 66220
+      },
+      "threshold": "all rows",
+      "ok": true
+    },
+    {
+      "test": "check 1 reproduction: P0C == stored components, FULL refit == cache (4 stats); FULL pi == pi_R.npz; R refit == stored p_R (or data drift: all refit, reported)",
+      "value": {
+        "heads": {
+          "pts": {
+            "P0C": 0.0,
+            "FULLC": 0.0,
+            "ok": true,
+            "inputs_identical": true
+          },
+          "reb": {
+            "P0C": 0.0,
+            "FULLC": 0.0,
+            "ok": true,
+            "inputs_identical": true
+          },
+          "ast": {
+            "P0C": 0.0,
+            "FULLC": 0.0,
+            "ok": true,
+            "inputs_identical": true
+          },
+          "fg3m": {
+            "P0C": 0.0,
+            "FULLC": 0.0,
+            "ok": true,
+            "inputs_identical": true
+          }
+        },
+        "pi_full_max_abs_diff": 0.0,
+        "pi_mismatch_with_identical_heads_inputs": false,
+        "R_max_abs_diff": 0.0,
+        "drift": false
+      },
+      "threshold": "<= 1e-06, or drift with differing inputs",
+      "ok": true
+    },
+    {
+      "test": "plant: edit every game after the cutoff + a fake future game; t30_* of rows on/before the cutoff bit-identical (t30_vac_starter_min rounded to 1e-9, Amendment 1)",
+      "value": {
+        "cutoff": "2025-01-25",
+        "n_rows": 86580,
+        "by_column": {
+          "t30_starter": {
+            "edited_max_abs_diff": 0.0,
+            "unedited_rebuild_jitter": 0.0
+          },
+          "t30_n_changed": {
+            "edited_max_abs_diff": 0.0,
+            "unedited_rebuild_jitter": 0.0
+          },
+          "t30_n_usual_absent": {
+            "edited_max_abs_diff": 0.0,
+            "unedited_rebuild_jitter": 0.0
+          },
+          "t30_vac_starter_min": {
+            "edited_max_abs_diff": 2.842170943040401e-14,
+            "unedited_rebuild_jitter": 2.842170943040401e-14
+          },
+          "t30_start_delta": {
+            "edited_max_abs_diff": 0.0,
+            "unedited_rebuild_jitter": 0.0
+          }
+        }
+      },
+      "threshold": "identical and n > 0",
+      "ok": true
+    },
+    {
+      "test": "control: flipping the cutoff day's starter flags changes that day's t30_starter",
+      "value": {
+        "n_rows": 363,
+        "n_changed": 363
+      },
+      "threshold": "> 0",
+      "ok": true
+    },
+    {
+      "test": "check 5 (flag, not a stop): missingness of t30_* by realised-minutes bucket (pp)",
+      "value": {
+        "max_gap_pp": 0.49410156412557865,
+        "worst_col": "t30_start_delta",
+        "placebo_max_gap_pp": 0.31622786124837454,
+        "threshold_pp": 2.0
+      },
+      "threshold": "reported; over the limit = a flag beside every number",
+      "ok": true
+    },
+    {
+      "test": "late-resolved absences per season (reported; frozen gate 572 / 536 / 564)",
+      "value": {
+        "late": {
+          "2022": 572,
+          "2023": 536,
+          "2024": 564
+        },
+        "by_cat": {
+          "2022|benched_played": 779,
+          "2022|excluded_nobox_no_pretip_row": 93,
+          "2022|late_resolved_dressed_dnp": 182,
+          "2022|late_resolved_nobox_pretip_row": 390,
+          "2022|out_t60": 1165,
+          "2023|benched_played": 701,
+          "2023|excluded_nobox_no_pretip_row": 86,
+          "2023|late_resolved_dressed_dnp": 227,
+          "2023|late_resolved_nobox_pretip_row": 309,
+          "2023|out_t60": 1076,
+          "2024|benched_played": 811,
+          "2024|excluded_nobox_no_pretip_row": 70,
+          "2024|late_resolved_dressed_dnp": 271,
+          "2024|late_resolved_nobox_pretip_row": 293,
+          "2024|out_t60": 1297
+        },
+        "matches_frozen": true
+      },
+      "threshold": "reported",
+      "ok": true
+    },
+    {
+      "test": "HOLDOUT_ACCESS_LOG: no row names LINEUPS_KNOWN_REBASE; frames <= 2024",
+      "value": {
+        "rows_naming_id": 0,
+        "max_season": 2024,
+        "null_tip_avail_rows": 0
+      },
+      "threshold": "== 0; <= 2024",
+      "ok": true
+    }
+  ],
+  "gate_ok": true,
+  "stop": null,
+  "sha256": "876e5804184b2a7523b5560e4ff152893239f4fb83f880a83c6ecc7dcd0546fe",
+  "pins": {
+    "props_sha256": "231e864858a8b067ecf9c462d104d5a20246cd29bfb5ff88271376e41c92b24a",
+    "props_pin": "231e864858a8b067ecf9c462d104d5a20246cd29bfb5ff88271376e41c92b24a",
+    "props_rows": 55320,
+    "pplay_keys_t30_sha256": "372dacf34f275f6743d4a79d717de582d86dafcdfddfeda587c0552ac4c14ef1",
+    "pplay_pin": "372dacf34f275f6743d4a79d717de582d86dafcdfddfeda587c0552ac4c14ef1",
+    "pplay_rows": 66220,
+    "pplay_R_frame_sha256": "8c7c583ccf1552a159d7d4e17c409be7270fc7cb272d7e706532292c3d8b6b35",
+    "ok": true,
+    "raw_unrounded": {
+      "props_sha256": "a3274c6d51ea0968ea4897ebbd4126100016cb873b6ff050344d6c97540ff80e",
+      "note": "diagnosis only; varies run to run (Amendment 1)"
+    }
+  },
+  "props_all_sha256": "1dda96da4c5a41978ba11ed45f874b438346abaed947be887e3adfc51ae2ab60",
+  "pplay_all_sha256": "92d41137754b7d29c5261c2df3991a756b24823b72de8f3b11c01662e277f33f",
+  "harness_git_hash": "2558c324f4182abce8e0b976ccaba85c3bcae7d2",
+  "info": {
+    "drift": false,
+    "heads": {
+      "pts": {
+        "P0C": 0.0,
+        "FULLC": 0.0,
+        "ok": true,
+        "inputs_identical": true
+      },
+      "reb": {
+        "P0C": 0.0,
+        "FULLC": 0.0,
+        "ok": true,
+        "inputs_identical": true
+      },
+      "ast": {
+        "P0C": 0.0,
+        "FULLC": 0.0,
+        "ok": true,
+        "inputs_identical": true
+      },
+      "fg3m": {
+        "P0C": 0.0,
+        "FULLC": 0.0,
+        "ok": true,
+        "inputs_identical": true
+      }
+    },
+    "aud_ok": true
+  },
+  "seconds": 224.6
+}
