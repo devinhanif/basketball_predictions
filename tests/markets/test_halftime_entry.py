@@ -318,9 +318,9 @@ def test_clock_parser() -> None:
 # ---- amendment A2: a live pass waits for the tick to close ---------------------------------------
 
 
-def test_live_snapshot_waits_until_30s_after_the_first_page(tmp_path: Path) -> None:
+def test_live_snapshot_waits_until_35s_after_the_first_page(tmp_path: Path) -> None:
     p = night(tmp_path, page_at=125, pages=[125, 130, 150])
-    for as_of, expect_none in ((T0 + 126 * S, True), (T0 + 154 * S, True), (T0 + 155 * S, False)):
+    for as_of, expect_none in ((T0 + 126 * S, True), (T0 + 159 * S, True), (T0 + 160 * S, False)):
         r = he.NightReader(p, as_of=as_of)
         c: Counter[str] = Counter()
         sn = r.snapshot(r.hts[EID], "KXNBAPTS", c)

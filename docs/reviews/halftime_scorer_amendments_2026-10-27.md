@@ -32,7 +32,7 @@ Also apply the same test to the summary in step 3: its header must read `STATUS_
 Add to step 3:
 
 > The Kalshi "tick" is the first in-window page of the series and every page of that series received within 30 s of it.
-> A live scorer reads the tick only when `as_of >= first page + 30 s`; before that the snapshot is not taken
+> A live scorer reads the tick only when `as_of >= first page + 35 s` (30 s plus 5 s for manifest write latency); before that the snapshot is not taken
 > (`tick_not_closed`, counted) and the next pass takes the whole tick. A replay sees the whole capture and is unaffected.
 
 Why: the pages of one tick arrive over a median 5 s (max 29.7 s on 10-26). A live pass inside that span froze a partial
@@ -63,9 +63,13 @@ Replace "Model P's are written to a forward log with `made_at <= t* + 180 s`" wi
 > Model P's are written to a forward log whose every row carries `written_at`, the **database's** wall clock at insert
 > (not caller-set), and `mode` (`live` or `replay`). A row is **in the prereg window** iff `mode = live` and
 > `written_at <= t* + 180 s`; a replay row is never in the window. Rows outside the window are stored, flagged and
-> **never scored**. A replay may not write to the live store, and a store holds one mode only. A row whose
-> `written_at` is after the second half started is refused; the refusal is logged once per (game, series). `f` and the
-> entry count `n_req` use live in-window rows with `n_prior >= 5` only.
+> **never scored**. A replay may not write to the live store, and a store holds one mode only (a one-row meta table
+> written on first open is the lock). The **gate's f** is measured in replay mode on the gate nights (label-free, rows
+> with `min_prior >= 5`). The **forward entry count** `n` that triggers the one look counts live in-window rows with
+> `n_prior >= 5` only; `n_req` (3,424 at floor +0.10) is a computed constant, not a count of rows. A live pass is
+> refused when the capture, read as of its clock, already shows a period-3 tick for the game; in-window rows
+> (`written_at <= t* + 180 s`, i.e. 300 s after halftime starts, while the shortest observed break was 842 s) are before
+> the second half by construction. The refusal is logged once per (mode, game, series).
 
 (This also aligns the draft with the code on adversary m8: the draft said the scorer "refuses" a row with `made_at`
 later than `t* + 180 s`; the code stores it flagged. Stored, flagged, never scored is the proposed text.)

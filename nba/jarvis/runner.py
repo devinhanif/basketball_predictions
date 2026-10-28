@@ -357,6 +357,8 @@ def _halftime(rt: Runtime, st: SlateState, slate: date, now: datetime) -> list[d
         )
     except Exception as exc:
         scored = {"ok": False, "error": type(exc).__name__}
+    if scored.get("ok") is False:  # a persistent refusal must show in the tick report
+        out.append({"kind": "halftime_scorer", "ok": False, "error": scored.get("error")})
     for lg in live:
         try:
             res = _halftime_one(rt, st, slate, lg, age)

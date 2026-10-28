@@ -163,8 +163,8 @@ Stamping (adversary review 2026-10-27): every row carries `written_at` (DuckDB's
 is refused into the live store path and into any store that holds live rows. A halftime tick is
 STATUS_HALFTIME with period 2 and clock 0 and an observed in-progress period-2 tick within 150 s before it
 (ESPN once sent HALFTIME with 11:04 left in Q2); the second half starts at the first later tick with period >= 3.
-A live pass waits until 30 s after the first page of a tick (`tick_not_closed`) so a partial tick is never frozen.
-Counted exclusions are persisted once per (event, series, reason) in `halftime_skipped`.
+A live pass waits until 35 s after the first page of a tick (`tick_not_closed`) so a partial tick is never frozen.
+Final skip reasons (not transient live ones such as `tick_not_closed`, not tallies) are persisted once per (mode, event, series, reason) in `halftime_skipped`.
 
 Known limits (said plainly): the recency window is null (T508's own: last 10 games including 2025-26, a read of
 holdout-season rows as FEATURES, holdout-log row 105a6dc); a date in `recency_min_game_date` restricts it to

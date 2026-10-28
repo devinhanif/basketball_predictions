@@ -230,3 +230,43 @@ def test_second_half_refusal_is_logged_once_per_series() -> None:
         with pytest.raises(hs.SecondHalfStartedError):
             st.append([row("A")], NOW, True)
     assert st.con.execute("select count(*) from halftime_refused").fetchone() == (1,)
+
+
+# ---- m9 / m13 ----------------------------------------------------------------------------------
+
+
+def test_mode_is_locked_by_the_meta_row_even_when_the_store_has_no_scored_row(
+    tmp_path: Path,
+) -> None:
+    import os
+
+    p = tmp_path / "Live.duckdb"
+    hs.HalftimeStore.open(p, mode="live").close()  # a pass that only skipped: no scored row yet
+    assert hs.HalftimeStore.open(p, mode="live").con.execute(
+        "select mode from halftime_meta"
+    ).fetchall() == [("live",)]
+    with pytest.raises(hs.ForeignStoreError, match="other mode"):
+        hs.HalftimeStore.open(p, mode="replay")
+    link = tmp_path / "other_name.duckdb"
+    os.link(p, link)  # a hard link is the same store under another name
+    with pytest.raises(hs.ForeignStoreError, match="other mode"):
+        hs.HalftimeStore.open(link, mode="replay")
+    q = tmp_path / "r.duckdb"
+    hs.HalftimeStore.open(q, mode="replay").close()
+    with pytest.raises(hs.ForeignStoreError):
+        hs.HalftimeStore.open(q, mode="live")
+
+
+def test_meta_row_is_written_once() -> None:
+    st = hs.HalftimeStore.open(":memory:", mode="replay")
+    assert st.con.execute("select count(*) from halftime_meta").fetchone() == (1,)
+
+
+def test_refusals_carry_the_mode_and_a_database_timestamp() -> None:
+    st = hs.HalftimeStore.open(":memory:", mode="live")
+    with pytest.raises(hs.SecondHalfStartedError):
+        st.append([row("A")], NOW - timedelta(days=9), True)
+    ((mode, written),) = st.con.execute("select mode, written_at from halftime_refused").fetchall()
+    assert mode == "live" and written > NOW.replace(tzinfo=None) - timedelta(
+        days=1
+    )  # not the caller's stamp

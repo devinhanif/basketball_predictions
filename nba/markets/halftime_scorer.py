@@ -27,7 +27,7 @@ import contextlib
 import json
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -282,7 +282,8 @@ def score_night(
             snap = reader.snapshot(ht, series, c)
             rep.counts.update(c)
             for reason, n in c.items():
-                store.note_skip(as_of or ht.ht_first, eid, series, reason, n)
+                if _final_reason(reason, as_of, ht.t_star):
+                    store.note_skip(as_of or ht.ht_first, eid, series, reason, n)
             if snap is None:
                 continue
             made = as_of if as_of is not None else snap.known_at
@@ -306,11 +307,25 @@ def score_night(
             rows = score_snapshot(snap, art, rec, fee, made, slate, sc_counts, min_prior)
             rep.counts.update(sc_counts)
             for reason, n in [*sc_counts.items(), *snap.excluded.items()]:
-                if not reason.startswith("unmatched_names:") and reason != "scored_candidates":
+                if reason not in _TALLIES and not reason.startswith("unmatched_names:"):
                     store.note_skip(made, eid, series, reason, n)
             rep.rows.extend(rows)
             rep.stored += store.append(rows, made, False, min_prior)
     return rep
+
+
+_TALLIES = ("scored_candidates", "markets_at_snapshot")  # counts of rows, not exclusions
+_TRANSIENT_LIVE = ("tick_not_closed", "series_no_page_in_window")
+
+
+def _final_reason(reason: str, as_of: datetime | None, t_star: datetime) -> bool:
+    """Is this skip reason final? Live, a not-yet-closed tick or a page that has not yet arrived
+    inside [t*, t* + 180 s] can still resolve on a later pass; a replay sees the whole capture."""
+    if as_of is None or reason not in _TRANSIENT_LIVE:
+        return True
+    return reason == "series_no_page_in_window" and as_of > t_star + timedelta(
+        seconds=he.QUOTE_WINDOW_S
+    )
 
 
 def _last_scoreboard(night: Path, as_of: datetime) -> datetime | None:
@@ -369,7 +384,8 @@ def replay_main(argv: list[str] | None = None) -> int:
     out = {
         "night": a.night.name,
         "min_prior": a.min_prior,
-        "valid_for_f": a.min_prior >= MIN_PRIOR,
+        "mode": "replay (gate measurement only; not a forward row)",
+        "min_prior_ok": a.min_prior >= MIN_PRIOR,
         "counts": dict(rep.counts),
         "stored": rep.stored,
         "refused": rep.refused,

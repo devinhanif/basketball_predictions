@@ -19,6 +19,12 @@ from tests.jarvis.test_features import live_files
 CLOCK = TIP1 + timedelta(minutes=70)
 
 
+@pytest.fixture
+def cfg(root: Path) -> JarvisConfig:
+    """The shipped config, halftime overs ENABLED (the shared fixture disables them)."""
+    return load_config(root=root)
+
+
 def r(
     player: str,
     stat: str,
@@ -73,7 +79,7 @@ def test_line_text_is_labelled_yes_only_and_has_no_stake() -> None:
     txt = "\n".join(lines)
     assert "UNPROVEN" in txt and "paper" in txt
     assert (
-        "model 58% (pace baseline 55%) vs ask 44c, bid 41c + 2c fee" in txt
+        "model 58% (baseline glm_e 55%) vs ask 44c, bid 41c + 2c fee" in txt
         and "15+ pts (Yes)" in txt
     )
     low = txt.lower()
@@ -168,7 +174,7 @@ def test_followup_posts_once_for_a_game_with_a_pick(
     assert (
         len(out) == 1
         and "UNPROVEN" in out[0]
-        and "Ann Alpha 15+ pts (Yes): model 58% (pace baseline 55%) vs ask 44c, bid 41c + 2c fee"
+        and "Ann Alpha 15+ pts (Yes): model 58% (baseline glm_e 55%) vs ask 44c, bid 41c + 2c fee"
         in out[0]
     )
     run_tick(rt, SLATE)  # same halftime again: deduped
@@ -243,3 +249,17 @@ def test_a_different_artifact_is_refused(cfg: JarvisConfig, tmp_path: Path) -> N
     )
     res = HO.score_halftimes(c2, SLATE, CLOCK, ["LAL@LAC"], dry_run=True)
     assert res["ok"] is False and res["error"] == "artifact digest mismatch"
+
+
+def test_a_scorer_refusal_shows_in_the_tick_report(
+    cfg: JarvisConfig, rt: Runtime, sent: Sent, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_slate(rt, SLATE)
+    live_files(cfg.root, SLATE, "STATUS_HALFTIME", away=55, home=48)
+    rt.clock = lambda: CLOCK
+    monkeypatch.setattr(
+        HO, "score_halftimes", lambda *a, **k: {"ok": False, "error": "ForeignStoreError"}
+    )
+    rep = run_tick(rt, SLATE)
+    assert {"kind": "halftime_scorer", "ok": False, "error": "ForeignStoreError"} in rep["halftime"]
+    assert any("halftime check-in" in t for t in sent.texts)

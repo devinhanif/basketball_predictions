@@ -66,8 +66,13 @@ CREATE TABLE IF NOT EXISTS halftime_scored (
     artifact_digest VARCHAR NOT NULL,
     PRIMARY KEY (event_id, ticker)
 );
+CREATE TABLE IF NOT EXISTS halftime_meta (
+    mode VARCHAR NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT timezone('UTC', current_timestamp)
+);
 CREATE TABLE IF NOT EXISTS halftime_refused (
-    refused_at TIMESTAMP NOT NULL,
+    written_at TIMESTAMP NOT NULL DEFAULT timezone('UTC', current_timestamp),
+    mode VARCHAR NOT NULL,
     event_id VARCHAR NOT NULL,
     series VARCHAR NOT NULL,
     reason VARCHAR NOT NULL
@@ -148,12 +153,15 @@ class HalftimeStore:
             p.parent.mkdir(parents=True, exist_ok=True)
         con = duckdb.connect(str(path))
         con.execute(SCHEMA)
-        other = con.execute(
-            "SELECT 1 FROM halftime_scored WHERE mode <> ? LIMIT 1", [mode]
-        ).fetchone()
-        if other is not None:
+        # The mode is written once, on first open, and is the lock: it closes every path variant
+        # (case, hard link, another checkout root) at once, including while the store holds no row.
+        metas = {r[0] for r in con.execute("SELECT mode FROM halftime_meta").fetchall()}
+        metas |= {r[0] for r in con.execute("SELECT DISTINCT mode FROM halftime_scored").fetchall()}
+        if metas - {mode}:
             con.close()
             raise ForeignStoreError(f"{path} already holds rows of the other mode than {mode!r}")
+        if not metas:
+            con.execute("INSERT INTO halftime_meta (mode) VALUES (?)", [mode])
         return cls(con, mode)
 
     def close(self) -> None:
@@ -188,8 +196,8 @@ class HalftimeStore:
                 [r0["event_id"], r0["series"]],
             ).fetchone():
                 self.con.execute(
-                    "INSERT INTO halftime_refused VALUES (?, ?, ?, ?)",
-                    [_naive(made_at), r0["event_id"], r0["series"], "second_half_started"],
+                    "INSERT INTO halftime_refused (mode, event_id, series, reason) VALUES (?, ?, ?, ?)",
+                    [self.mode, r0["event_id"], r0["series"], "second_half_started"],
                 )
             raise SecondHalfStartedError(
                 f"{r0['game']} {r0['series']}: second half started before made_at "
@@ -198,6 +206,8 @@ class HalftimeStore:
         n = 0
         cols = ", ".join(COLUMNS)
         marks = ", ".join("?" for _ in COLUMNS)
+        # Do not wrap this method in BEGIN ... COMMIT: current_timestamp is the transaction start, so
+        # rows would be stamped earlier than they were written and flatter the window flag.
         for r in rows:
             if _naive(r["made_at"]) != _naive(made_at):
                 raise ValueError("every row carries the stamp of the call that stores it")

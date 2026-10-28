@@ -42,6 +42,7 @@ DECISION_DELAY_S = 120
 QUOTE_WINDOW_S = 180
 STATE_MAX_AGE_S = 150
 SAME_TICK_S = 30
+TICK_CLOSE_MARGIN_S = 5  # manifest write latency: a page received at +29.7 s may be listed later
 ASK_MIN_C, ASK_MAX_C = 2, 97
 MIN_DEPTH = 1.0
 
@@ -358,7 +359,9 @@ class NightReader:
             counts["series_no_page_in_window"] += 1
             return None
         first_ts = pages[0][0]
-        if self.as_of is not None and self.as_of < first_ts + timedelta(seconds=SAME_TICK_S):
+        if self.as_of is not None and self.as_of < first_ts + timedelta(
+            seconds=SAME_TICK_S + TICK_CLOSE_MARGIN_S
+        ):
             counts["tick_not_closed"] += (
                 1  # the pages of one tick may still be arriving (amendment A2)
             )

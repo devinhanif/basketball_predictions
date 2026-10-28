@@ -147,7 +147,7 @@ def overs_lines(game: str, picks: list[dict[str, Any]]) -> list[str]:
     for r in picks:
         out.append(
             f"- {r['player_name']} {r['k']}+ {STAT_LABEL[r['stat']]} (Yes): "
-            f"model {round(100 * r['p_model'])}% (pace baseline {round(100 * r['p_glm_e'])}%) "
+            f"model {round(100 * r['p_model'])}% (baseline glm_e {round(100 * r['p_glm_e'])}%) "
             f"vs ask {r['ask_c']}c, bid {r['bid_c']}c + {r['fee_c']}c fee"
         )
     out.append("No track record yet; shown for the paper log only, no stake suggested.")

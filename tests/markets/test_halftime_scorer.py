@@ -315,3 +315,21 @@ def test_unobserved_halftime_start_scores_nothing(tmp_path: Path) -> None:
     store = HalftimeStore.open(":memory:")
     rep = run(n.close(), store, tmp_path)
     assert rep.stored == 0 and rep.counts["ht_start_unobserved"] == 4
+
+
+def test_only_final_skip_reasons_are_persisted(tmp_path: Path) -> None:
+    store = HalftimeStore.open(":memory:", mode="live")
+    night = build(tmp_path)
+    run(night, store, tmp_path, now=T0 + 140 * S)  # tick still open
+    assert store.con.execute(
+        "select count(*) from halftime_skipped where reason = 'tick_not_closed'"
+    ).fetchone() == (0,)
+    run(night, store, tmp_path, now=T0 + 160 * S)
+    reasons = {r[0] for r in store.con.execute("select reason from halftime_skipped").fetchall()}
+    assert "markets_at_snapshot" not in reasons and "scored_candidates" not in reasons
+    assert "x_dnp_first_half" in reasons
+    # the other three series have no page yet inside [t*, t* + 180 s]: transient until the window has passed
+    assert "series_no_page_in_window" not in reasons
+    run(night, store, tmp_path, now=T0 + 330 * S)
+    late = {r[0] for r in store.con.execute("select reason from halftime_skipped").fetchall()}
+    assert "series_no_page_in_window" in late
