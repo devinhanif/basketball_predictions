@@ -78,7 +78,9 @@ def build_pick(
     if not 0.01 <= price <= 0.99 or stake <= 0:
         raise PickError("price must be in [0.01, 0.99] and stake positive")
     g, q = _find(st, text, venue, ticker)
-    if not E.side_allowed(cfg, q.kind, side, venue):
+    if not E.side_allowed(cfg, q.kind, side, venue) or (
+        q.kind == "prop" and side == "no" and venue == "polymarket"
+    ):  # the hard Polymarket No skip of the slate, mirrored for props (game picks unchanged)
         raise PickError(
             f"player props are Over / Yes only on {venue}; a No on a prop is not logged"
         )
@@ -94,6 +96,8 @@ def build_pick(
     ref = st.refs.for_quote(q)
     fair: float | None = None
     edge: float | None = None
+    # a prop No is held at thin while the DNP rule is unread, as on the slate (Yes unchanged)
+    capped = q.kind == "prop" and side == "no" and not cfg.kalshi_prop_dnp_rule_verified
     if ref is not None:
         fair = ref.p_yes if side == "yes" else 1.0 - ref.p_yes
         edge = E.edge_cents(cfg, venue, fair, price, q.series)
@@ -117,13 +121,18 @@ def build_pick(
     else:
         verdict = (
             "a fair price or worse" if (edge or 0) < 0
-            else "a thin edge" if (edge or 0) < cfg.strong_cents
+            else "a thin edge" if (edge or 0) < cfg.strong_cents or capped
             else "a strong edge"
         )  # fmt: skip
         lines.append(
             f"Fair: Pinnacle no-vig {fair * 100:.0f}c vs your {price * 100:.0f}c, "
             f"{edge:+.1f}c per $1 after the fee: {verdict}. Logged anyway."
         )
+        if capped:
+            lines.append(
+                "Kalshi's DNP rule is unverified: a prop No is held at thin "
+                "(a DNP may settle it either way)."
+            )
     same = [
         x for x in st.quotes
         if x.game_id == g.game_id and x.kind == q.kind and x.team_id == q.team_id

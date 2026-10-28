@@ -366,6 +366,95 @@ def test_prop_no_label_is_capped_at_thin_while_the_dnp_rule_is_unverified(
     assert single_candidate(cfg, st, g, "no") is not None
 
 
+class NoPlayModel:
+    """The production shape: ModelView has no p_play, so no P(plays) is ever available."""
+
+    def p_yes(self, q):  # type: ignore[no-untyped-def]
+        return None
+
+
+def test_prop_no_under_a_model_without_p_play_is_unmultiplied_and_thin(
+    cfg: JarvisConfig,
+) -> None:
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=NoPlayModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    cheap_no = replace(prop, yes_bid=0.70, yes_ask=0.72)
+    no = single_candidate(cfg, st, cheap_no, "no")
+    assert no is not None and no.edge_cents > cfg.strong_cents
+    assert no.fair_prob == pytest.approx(1.0 - 0.62 / 1.04)  # not multiplied by P(plays)
+    assert no.label == "thin"
+    assert any("no P(plays)" in n for n in no.notes)
+    assert any("prop No" in n for n in no.notes)
+    # the verified rule lifts the cap only when Devin flips it
+    free = single_candidate(replace(cfg, kalshi_prop_dnp_rule_verified=True), st, cheap_no, "no")
+    assert free is not None and free.label == "strong"
+    # the Yes is capped too without P(plays), as before this branch
+    cheap_yes = replace(prop, yes_ask=0.30, yes_bid=0.28)
+    yes = single_candidate(cfg, st, cheap_yes, "yes")
+    assert yes is not None and yes.label == "thin"
+
+
+def test_pick_on_a_prop_no_says_thin_and_names_the_dnp_rule(cfg: JarvisConfig) -> None:
+    from nba.jarvis.picks import build_pick
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=NoPlayModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    # the No fair is ~38c; buying it at 30c is a +7c-plus edge, above the strong threshold
+    kw = dict(venue="kalshi", price=0.30, stake=3.0, ticker=prop.ticker)
+    no = build_pick(cfg, st, "x", side="no", **kw)  # type: ignore[arg-type]
+    txt = "\n".join(no.lines)
+    assert "a thin edge" in txt and "a strong edge" not in txt
+    assert "DNP rule is unverified" in txt
+    free = replace(cfg, kalshi_prop_dnp_rule_verified=True)
+    txt_free = "\n".join(build_pick(free, st, "x", side="no", **kw).lines)  # type: ignore[arg-type]
+    assert "a strong edge" in txt_free and "DNP" not in txt_free
+    # Yes picks carry no DNP line and are not changed by the cap
+    yes = build_pick(cfg, st, "x", venue="kalshi", price=0.30, stake=3.0, ticker=prop.ticker)
+    assert "DNP" not in "\n".join(yes.lines) and "a strong edge" in "\n".join(yes.lines)
+
+
+def test_pick_mirrors_the_hard_polymarket_no_skip_for_props(cfg: JarvisConfig) -> None:
+    from nba.jarvis.picks import PickError, build_pick
+
+    worst = _with_venues(cfg, kalshi=("yes", "no"), polymarket=("yes", "no"))
+    st = gather(worst, SLATE, NOW, use_polymarket=False, model=NoPlayModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    poly_prop = replace(prop, venue="polymarket", ticker="POLYUS:synthetic:prop")
+    st = replace(st, quotes=[*st.quotes, poly_prop])
+    assert worst.props_sides_for("polymarket") == ("yes", "no")  # the config alone would allow it
+    with pytest.raises(PickError, match="Over / Yes only"):
+        build_pick(
+            worst, st, "x", venue="polymarket", price=0.5, stake=2.0,
+            ticker=poly_prop.ticker, side="no",
+        )  # fmt: skip
+    assert build_pick(  # the Polymarket Yes and the Kalshi No are fine
+        worst, st, "x", venue="polymarket", price=0.5, stake=2.0, ticker=poly_prop.ticker
+    )
+
+
+def test_slate_footer_names_the_cap_only_when_a_listed_play_is_a_prop_no(
+    cfg: JarvisConfig,
+) -> None:
+    from nba.jarvis.render import slate_texts
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=NoPlayModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    no = single_candidate(cfg, st, replace(prop, yes_bid=0.70, yes_ask=0.72), "no")
+    yes = single_candidate(cfg, st, prop, "yes")
+    assert no is not None and yes is not None
+
+    def text(plays) -> str:  # type: ignore[no-untyped-def]
+        return "\n".join(slate_texts(cfg, plays, "", date_label="Wed", first_tip=TIP1, n_games=1))
+
+    footer = "prop No: Kalshi's DNP rule is unverified, label held at thin"
+    assert text([yes, no]).count(footer) == 1
+    assert footer not in text([yes])
+    free = replace(cfg, kalshi_prop_dnp_rule_verified=True)
+    assert footer not in "\n".join(
+        slate_texts(free, [yes, no], "", date_label="Wed", first_tip=TIP1, n_games=1)
+    )
+
+
 def test_pick_follows_the_venue_rule(cfg: JarvisConfig) -> None:
     from nba.jarvis.picks import PickError, build_pick
 

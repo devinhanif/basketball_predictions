@@ -1056,7 +1056,7 @@ candidate on Kalshi (same Pinnacle fair, fee and spread) but its label is held a
 (`HALFTIME_OVERS_VS_PRICE`) stays Yes-only whatever these keys say (frozen scope; tested). Game markets keep both sides and ignore the keys. Polymarket US lists full-game winners only, and its No skip stays as the fallback.
 Nightly cap $20, of which $10 is reserved for strong/arbitrage only (entertainment cannot spend it). With the cap used a strong/arbitrage alert still posts, showing "stake $0 (nightly cap used)".
 Every measured play says "best of N priced bets" (selection over many near-fair prices). Props use Pinnacle only on an exact line (Kalshi "25+" = over 24.5); until Kalshi's DNP rule is read the fair price is
-Pinnacle's P(over | plays) x our P(plays). Polymarket is **Polymarket US** (public gateway `gateway.polymarket.us`; polymarket.com / gamma is not tradable from the US and is not used), fee 0.0695 x C x p x (1-p)
+Pinnacle's P(over | plays); `ModelView` has no `p_play` in production, so today there is no P(plays), every prop label (Yes and No) is capped at thin and the play says "no P(plays)". A model that supplies P(plays) (a test stub does) gets it multiplied in, and then only the prop No stays capped. Polymarket is **Polymarket US** (public gateway `gateway.polymarket.us`; polymarket.com / gamma is not tradable from the US and is not used), fee 0.0695 x C x p x (1-p)
 banker's-rounded, from `configs/fastarb.yaml`. A fair-price bet is never presented as an edge. **The LLM writes the one-to-two fan-terms sentence only for strong/arbitrage plays**, hard-checked (numguard
 incl. "9-cent" and spelled-out numbers, no oversell words, no give-up phrases); thin and none plays use the template.
 
