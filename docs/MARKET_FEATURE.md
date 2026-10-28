@@ -138,3 +138,37 @@ forward rows, and is idempotent per prediction key, so hourly re-runs are safe. 
 `uv run python -m nba.markets backfill --since 2026-10-08`.
 
 ## Amendments (append only, dated; none yet)
+
+## Halftime scorer (2026-10-27, paper and display only; UNPROVEN)
+
+What: at each game's halftime, T508 arm M and the player-aware baseline glm_e score every on-grid Kalshi
+player-prop Yes quote (entry definition of the DRAFT `docs/prereg/HALFTIME_OVERS_VS_PRICE.md` section 2:
+first ESPN halftime tick + 120 s, first Kalshi page in the next 180 s, first-half box at most 150 s older
+and still halftime, ask 2-97 c with depth >= 1, one-contract fee from the verified `configs/parlay.yaml`
+object, players with 0 first-half minutes excluded). Rows (model P, glm_e P, ask, fee, depth, state, stamps)
+go to the append-only table `data/jarvis/halftime_overs.duckdb`; a row stamped after the second half starts
+is refused and counted. JARVIS posts at most three lines per game, labelled UNPROVEN / paper, Over / Yes
+only, no stake. It reads no outcome and settles nothing.
+
+Code: `nba/markets/halftime_entry.py` (capture reader), `halftime_model.py` (formulas restated from the T508
+harness and parity-tested; JSON artifact), `halftime_scorer.py` (orchestration, fee check, recency read),
+`halftime_store.py` (append-only), `nba/jarvis/halftime_overs.py` (tick hook and text). Artifact:
+`research/eval/halftime_scorer_train.py` (the maintainer's run, ~3.5 min, 2019-2024 only); the served file is
+pinned by digest in `configs/jarvis.yaml`. Replay on a stored night, no send, into a scratch store:
+`uv run python -m nba.markets.halftime_scorer replay --night data/raw/live_<date> --artifact <artifact.json>
+--nba-db nba.duckdb --min-game-date none --db <scratch.duckdb>`.
+
+Stamping (adversary review 2026-10-27): every row carries `written_at` (DuckDB's clock, never the caller's) and a
+`mode`; `within_prereg_window` is computed from `written_at` in live mode and is false for a replay row; a replay
+is refused into the live store path and into any store that holds live rows. A halftime tick is
+STATUS_HALFTIME with period 2 and clock 0 and an observed in-progress period-2 tick within 150 s before it
+(ESPN once sent HALFTIME with 11:04 left in Q2); the second half starts at the first later tick with period >= 3.
+A live pass waits until 35 s after the first page of a tick (`tick_not_closed`) so a partial tick is never frozen.
+Final skip reasons (not transient live ones such as `tick_not_closed`, not tallies) are persisted once per (mode, event, series, reason) in `halftime_skipped`.
+
+Known limits (said plainly): the recency window is null (T508's own: last 10 games including 2025-26, a read of
+holdout-season rows as FEATURES, holdout-log row 105a6dc); a date in `recency_min_game_date` restricts it to
+2026-27 games. ESPN `MIN` is an integer while training used stint minutes (measured immaterial by the
+adversary). The glm_e pace term is a reconstruction (the attack scripts were not kept) and at e = 24 it is as
+good as M, so PASS_BASELINE is the likely ending of the draft rule. Wide books produce the largest apparent edges:
+the Discord line shows only books with bid >= 1c and spread <= 10c; the paper table keeps every row.

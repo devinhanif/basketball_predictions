@@ -22,6 +22,7 @@ from typing import Any
 import duckdb
 
 from nba.jarvis import dailydollar
+from nba.jarvis import halftime_overs as HO
 from nba.jarvis import render as R
 from nba.jarvis.book import (
     PaperBook,
@@ -349,14 +350,64 @@ def _halftime(rt: Runtime, st: SlateState, slate: date, now: datetime) -> list[d
         return []
     out = []
     age = feed_age_min(rt.cfg, slate, now)
-    for lg in latest_scoreboard(rt.cfg, slate):
+    live = latest_scoreboard(rt.cfg, slate)
+    try:  # the paper scorer never costs a check-in
+        scored = HO.score_halftimes(
+            rt.cfg, slate, now, [lg.matchup for lg in live if lg.halftime], dry_run=rt.dry_run
+        )
+    except Exception as exc:
+        scored = {"ok": False, "error": type(exc).__name__}
+    if scored.get("ok") is False:  # a persistent refusal must show in the tick report
+        out.append({"kind": "halftime_scorer", "ok": False, "error": scored.get("error")})
+    for lg in live:
         try:
             res = _halftime_one(rt, st, slate, lg, age)
         except Exception as exc:  # one bad game never blocks the others (or the tick)
             res = {"kind": "halftime", "ok": False, "error": type(exc).__name__, "game": lg.matchup}
         if res is not None:
             out.append(res)
+        try:
+            ov = _halftime_overs_one(rt, st, slate, lg, scored)
+        except Exception as exc:  # the paper line never costs a tick
+            ov = {"kind": "halftime_overs", "ok": False, "error": type(exc).__name__}
+        if ov is not None:
+            out.append(ov)
     return out
+
+
+def _halftime_overs_one(
+    rt: Runtime, st: SlateState, slate: date, lg: Any, scored: dict[str, Any]
+) -> dict[str, Any] | None:
+    """A short, labelled follow-up to the check-in: top_n scored overs at most (Yes only)."""
+    if not lg.halftime or not scored.get("ok") or not scored.get("rows"):
+        return None
+    g = next((x for x in st.games if (x.away_abbr, x.home_abbr) == (lg.away, lg.home)), None)
+    if g is None:
+        return None
+    s = HO.settings(rt.cfg)
+    if not s.get("post_without_plays", False) and not todays_rows(rt.book, slate, g.game_id):
+        return None
+    picks = HO.top_overs(
+        scored["rows"], lg.matchup, float(s["min_edge"]), int(s["top_n"]),
+        int(s["display_min_bid_c"]), int(s["display_max_spread_c"]),
+    )  # fmt: skip
+    lines = HO.overs_lines(lg.matchup, picks)
+    if not lines:
+        return None
+    if not rt.dry_run and rt.book.kind_sent("halftime_overs", slate, g.game_id):
+        return None
+    if not rt.dry_run and _given_up(rt, "halftime_overs", slate, g.game_id):
+        return None
+    return _deliver(
+        rt,
+        kind="halftime_overs",
+        texts=R.chunk(lines, rt.cfg.max_chars, rt.cfg.max_texts),
+        plays=[],
+        slate=slate,
+        inputs=[lg.matchup],
+        explanations={},
+        keys=[g.game_id],
+    )
 
 
 def _halftime_one(

@@ -7,6 +7,7 @@ Nothing here touches the network, nba.duckdb, osascript or a real recipient. Sla
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -189,7 +190,8 @@ def root(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def cfg(root: Path) -> JarvisConfig:
-    return load_config(root=root)
+    # the halftime scorer needs an artifact on disk; its own tests (test_halftime_overs.py) turn it on
+    return replace(load_config(root=root), halftime_overs={"enabled": False})
 
 
 @pytest.fixture
