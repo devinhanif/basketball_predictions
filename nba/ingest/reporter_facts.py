@@ -7,7 +7,7 @@ Each resolved, non-``unknown`` claim becomes one fact::
     object     game:<id>                     the team's next game at/after the post (schedule)
     value      minutes_limit (or NULL)
     value_text the matched span (evidence)
-    known_at   the post's created_at (naive UTC)
+    known_at   OUR first-read time of the post (``first_seen_at``, naive UTC), never its created_at
     source     x:<handle>
     confidence from the parser (< 1: it is a claim, not an observation)
 
@@ -25,22 +25,35 @@ Rules
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import duckdb
 
 from nba.daily.schedule import ScheduledGame, load_schedule_cache
 from nba.facts.build import SCHEMA_PATH
-from nba.ingest.reporter_parse import Claim, parse_post, resolve_claims, retweeted_handle
+from nba.ingest import reporter_pretip as pretip
+from nba.ingest.reporter_parse import (
+    Claim,
+    parse_post,
+    resolve_claims,
+    resolve_player,
+    retweeted_handle,
+)
+from nba.ingest.reporter_store import LIVE, StoreFact, value_text
 from nba.ingest.reporters import Allowlist, Post, Reporter
 from nba.kalshi.aliases import load_reviewed_aliases
 from nba.parse.availability import normalize_name
 from nba.props.rosters import roster_names
 
+log = logging.getLogger("nba.reporter_facts")
+ET = ZoneInfo("America/New_York")
 PREDICATE_PREFIX = "claimed_"
 #: A post attaches to a game that tips within this window after it ...
 MAX_AHEAD = timedelta(hours=36)
@@ -250,9 +263,16 @@ def write_claimed_facts(
     claimed: list[ClaimedFact],
     *,
     ctx: Context | None = None,
+    first_seen: Mapping[str, tuple[datetime, str]] | None = None,
 ) -> WriteResult:
-    """Insert writable claims as facts (idempotent on subject, predicate, object, source,
-    known_at). Adds a bare ``player:<id>`` entity when the store has none."""
+    """Insert writable claims as facts into a facts-schema DB (idempotent on subject, predicate,
+    object, source, known_at). Adds a bare ``player:<id>`` entity when the store has none.
+
+    ``known_at`` is the post's first-read time: ``first_seen[post_id]`` (from
+    :func:`nba.ingest.reporter_store.first_seen_index`) else the raw file's ``fetched_at`` (never
+    earlier than the true first read), and NEVER ``created_at``. This writer targets a facts DB that
+    ``nba.facts build`` recreates; the live path writes the durable
+    ``reporter_facts.duckdb`` through :func:`claimed_store_facts` instead."""
     res = WriteResult()
     rows = [c for c in claimed if c.writable]
     if not rows:
@@ -263,7 +283,7 @@ def write_claimed_facts(
         assert c.game is not None and c.claim.player_id is not None  # writable
         subject = f"player:{c.claim.player_id}"
         obj = f"game:{c.game.game_id}"
-        known_at = c.post.created_at
+        known_at = first_seen_at_of(c.post, first_seen)
         dup = con.execute(
             "SELECT 1 FROM facts WHERE subject = ? AND predicate = ? AND object = ? "
             "AND source = ? AND known_at = ? LIMIT 1",
@@ -330,3 +350,201 @@ def format_report(
             f"conf={c.claim.confidence:.1f} | {c.claim.evidence!r}"
         )
     return "\n".join(lines)
+
+
+# ----------------------------------------------------------------------------------------------
+# The durable store (nba.ingest.reporter_store): known_at = first_seen_at
+# ----------------------------------------------------------------------------------------------
+
+
+def first_seen_at_of(post: Post, first_seen: Mapping[str, tuple[datetime, str]] | None) -> datetime:
+    """Our first read of ``post``: the earliest raw capture, else this file's ``fetched_at``."""
+    got = (first_seen or {}).get(post.post_id)
+    return got[0] if got is not None else post.fetched_at
+
+
+def capture_mode_of_post(post: Post, first_seen: Mapping[str, tuple[datetime, str]] | None) -> str:
+    got = (first_seen or {}).get(post.post_id)
+    return got[1] if got is not None else LIVE
+
+
+def claimed_store_facts(
+    claimed: list[ClaimedFact], first_seen: Mapping[str, tuple[datetime, str]] | None = None
+) -> list[StoreFact]:
+    """The briefing's ``claimed_*`` facts as store rows (known_at = first_seen_at)."""
+    out: list[StoreFact] = []
+    for c in claimed:
+        if not c.writable:
+            continue
+        assert c.game is not None and c.claim.player_id is not None
+        seen = first_seen_at_of(c.post, first_seen)
+        out.append(
+            StoreFact(
+                f"player:{c.claim.player_id}",
+                c.predicate,
+                f"game:{c.game.game_id}",
+                float(c.claim.minutes_limit) if c.claim.minutes_limit is not None else None,
+                c.claim.evidence,
+                seen,
+                c.reporter.source,
+                float(c.claim.confidence),
+                c.post.post_id,
+                c.post.created_at,
+                seen,
+                capture_mode_of_post(c.post, first_seen),
+                "claimed-v1",
+            )
+        )
+    return out
+
+
+def team_game_around(
+    schedule: list[ScheduledGame], team_id: int, at: datetime
+) -> tuple[ScheduledGame | None, ScheduledGame | None]:
+    """``(previous, next)``: the team's latest game that tipped at/before ``at`` and its first game
+    tipping after ``at`` within :data:`MAX_AHEAD`."""
+    mine = [g for g in schedule if team_id in (g.home_team, g.away_team)]
+    prev = max(
+        (g for g in mine if g.tipoff <= at), key=lambda g: (g.tipoff, g.game_id), default=None
+    )
+    nxt = min(
+        (g for g in mine if at < g.tipoff <= at + MAX_AHEAD),
+        key=lambda g: (g.tipoff, g.game_id),
+        default=None,
+    )
+    return prev, nxt
+
+
+@dataclass(frozen=True)
+class _Resolved:
+    player_id: int
+    team_id: int
+    game: ScheduledGame | None
+    reject: str | None  # f4_in_progress | f4_prev_game | no_game_in_window | None
+
+
+def pretip_facts_for_posts(
+    posts: list[Post],
+    ctx: Context,
+    first_seen: Mapping[str, tuple[datetime, str]] | None = None,
+) -> tuple[list[StoreFact], list[tuple[str, str | None, str, str]], Counter[str]]:
+    """Posts -> ``reporter_minutes_cap`` / ``reporter_status`` store rows (filters F1-F8).
+
+    F4 lives here: a post is dropped when ``created_at`` is after ``first_seen_at`` (a clock fault),
+    when it was written while the team's previous game was on or within 3 h after its tip, or when
+    its game has already tipped. Backfill-mode posts are counted and never written. Returns
+    ``(facts, rejects, counts)``; ``rejects`` are ``(post_id, handle, reason, detail)`` rows.
+    """
+    facts: list[StoreFact] = []
+    rejects: list[tuple[str, str | None, str, str]] = []
+    counts: Counter[str] = Counter()
+    for post in posts:
+        rep = ctx.allowlist.require(post.handle)
+        if retweeted_handle(post.text):
+            counts["retweet_ignored"] += 1
+            continue
+        seen = first_seen_at_of(post, first_seen)
+        mode = capture_mode_of_post(post, first_seen)
+        if mode != LIVE:
+            counts["backfill_ineligible"] += 1
+            continue
+        if post.created_at > seen:
+            counts["clock_fault"] += 1
+            detail = f"created_at {post.created_at.isoformat()} > first_seen {seen.isoformat()}"
+            rejects.append((post.post_id, post.handle, "clock_fault", detail))
+            log.warning("reporter post %s: clock fault, %s", post.post_id, detail)
+            continue
+        roster = ctx.rosters.get(rep.team_id) if rep.team_id is not None else None
+        scope: list[list[tuple[str, int]]] = []
+        if rep.team_id is not None:
+            _, nxt = team_game_around(ctx.schedule, rep.team_id, post.created_at)
+            if nxt is not None:
+                opp = nxt.away_team if nxt.home_team == rep.team_id else nxt.home_team
+                scope = [ctx.rosters[opp]] if opp in ctx.rosters else []
+        cache: dict[str, _Resolved | None] = {}
+
+        def resolve(
+            name: str,
+            rep: Reporter = rep,
+            post: Post = post,
+            roster: list[tuple[str, int]] | None = roster,
+            scope: list[list[tuple[str, int]]] = scope,
+            cache: dict[str, _Resolved | None] = cache,
+        ) -> _Resolved | None:
+            if name in cache:
+                return cache[name]
+            pid = resolve_player(name, roster, ctx.aliases, ctx.nicknames)
+            if pid is None and scope and roster is not None:
+                hits = {resolve_player(name, r, ctx.aliases, ctx.nicknames) for r in scope}
+                hits.discard(None)
+                pid = hits.pop() if len(hits) == 1 else None
+            res: _Resolved | None = None
+            if pid is not None:
+                team_id = rep.team_id if rep.team_id is not None else ctx.team_of(pid)
+                if team_id is None:
+                    res = None
+                else:
+                    prev, nxt = team_game_around(ctx.schedule, team_id, post.created_at)
+                    reject = None
+                    if nxt is None:
+                        reject = "no_game_in_window"
+                    elif prev is not None and post.created_at <= prev.tipoff + IN_PROGRESS:
+                        reject = "f4_prev_game"
+                    res = _Resolved(pid, team_id, nxt, reject)
+            cache[name] = res
+            return res
+
+        def game_date_of(
+            name: str, resolve: Callable[[str], _Resolved | None] = resolve
+        ) -> date | None:
+            r = resolve(name)
+            return r.game.game_date_et if r is not None and r.game is not None else None
+
+        posted = post.created_at.replace(tzinfo=UTC).astimezone(ET).date()
+        for c in pretip.parse_pretip(post.text, game_date_et=game_date_of, posted_date_et=posted):
+            counts["claims_seen"] += 1
+            res = resolve(c.player_name)
+            if res is None:
+                counts["unresolved_player"] += 1
+                continue
+            if not c.kept:
+                counts[f"drop_{c.reject}"] += 1
+                continue
+            if res.reject is not None or res.game is None:
+                counts[f"drop_{res.reject}"] += 1
+                continue
+            counts["facts"] += 1
+            if c.hedged:
+                counts["hedged"] += 1
+            facts.append(
+                StoreFact(
+                    f"player:{res.player_id}",
+                    c.predicate,
+                    f"game:{res.game.game_id}",
+                    float(c.n) if c.kind == "cap" and c.n is not None else None,
+                    value_text(
+                        post_id=post.post_id,
+                        platform="x",
+                        handle=post.handle,
+                        created_at=post.created_at.isoformat(),
+                        first_seen_at=seen.isoformat(),
+                        parser_version=pretip.PARSER_VERSION,
+                        evidence_sha256=c.evidence_sha256,
+                        status=c.status,
+                        hedged=c.hedged,
+                        multi_game=c.multi_game,
+                        n_lo=c.n_lo,
+                        n_hi=c.n_hi,
+                        capture_mode=mode,
+                    ),
+                    seen,
+                    rep.source,
+                    (0.8 if c.kind == "cap" else 0.7) - (0.2 if c.hedged else 0.0),
+                    post.post_id,
+                    post.created_at,
+                    seen,
+                    mode,
+                    pretip.PARSER_VERSION,
+                )
+            )
+    return facts, rejects, counts

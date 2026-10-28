@@ -6,8 +6,9 @@ restrictions. Decided 2026-10-10 ("confirm everyone", item 3) and 2026-10-11 ~00
 Guarantees
 ----------
 * Read-only. The only paths this module can call are ``GET /2/users/by/username/:name``,
-  ``GET /2/users/by`` (batch, used only by the one-off ``check-handles``) and
-  ``GET /2/users/:id/tweets``. No posting, no account mutation, ever.
+  ``GET /2/users/by`` (batch, used only by the one-off ``check-handles``),
+  ``GET /2/users/:id/tweets`` and ``GET /2/tweets/counts/all`` (counts only, no post text; used
+  only by ``counts``, ``nba.ingest.reporter_counts``). No posting, no account mutation, ever.
 * The bearer token comes from ``os.environ["X_BEARER_TOKEN"]`` only, is held in a wrapper whose
   every textual form is ``<secret>``, is sent only in the ``Authorization`` header, and is never
   logged, stored or included in an exception (``_scrub`` strips it from any server text).
@@ -16,7 +17,9 @@ Guarantees
   Any other handle is refused with :class:`HandleNotAllowed`. Nothing in a post can add one.
 * Money. Every post read is billed, so a per-run cap (``--budget-posts``) and a per-UTC-day ceiling
   are checked BEFORE each request against the ledger ``data/reporters/budget.json``; the request
-  asks for at most the remaining allowance (``max_results``). One page per handle per poll.
+  asks for at most the remaining allowance (``max_results``). A handle is paged until
+  ``start_time`` (at most ``MAX_PAGES`` pages); a page cut short by the budget is a ``short`` poll,
+  never advances the cursor, and never counts as covered (capture fix 3).
 * Month caps. ``posts_per_month`` and ``usd_per_month`` (posts x ``usd_per_post`` + user reads x
   ``usd_per_user``) are checked BEFORE each request against the same ledger, by UTC month;
   exceeded means exit 2.
@@ -52,6 +55,7 @@ from typing import Any
 import polars as pl
 import yaml
 
+from nba.ingest.reporter_store import StoreError
 from nba.ingest.teams import TEAM_ABBREV_TO_ID
 
 log = logging.getLogger("nba.reporters")
@@ -66,6 +70,7 @@ ENDPOINTS = {
     "user_by_username": "/users/by/username/{username}",
     "users_by": "/users/by",
     "user_tweets": "/users/{user_id}/tweets",
+    "counts_all": "/tweets/counts/all",
 }
 TWEET_FIELDS = "created_at,referenced_tweets,note_tweet"
 USER_FIELDS = "name,description,verified,created_at,public_metrics,most_recent_tweet_id"
@@ -74,6 +79,8 @@ USERS_BY_BATCH = 100  # the API's own bound for usernames per request
 CANDIDATES_PATH = ROOT / "configs" / "reporter_candidates.txt"
 MAX_RESULTS_MIN, MAX_RESULTS_MAX = 5, 100  # the API's own bounds for max_results
 MAX_ATTEMPTS = 2
+MAX_PAGES = 5  # per handle per poll; a 6th page would mean a runaway timeline
+CURSOR_OVERLAP_S = 120.0  # re-read this much of the last ok poll (X clock vs ours)
 BACKOFF_BASE_S = 1.0
 MAX_RATE_WAIT_S = 120.0
 DEFAULT_TIMEOUT_S = 20.0
@@ -195,6 +202,12 @@ class Allowlist:
     usd_per_post: float = 0.005
     usd_per_user: float = 0.010
     window_minutes: float = 120.0
+    #: capture fix 3: a poll reads back to the last ok poll of the handle (minus the overlap),
+    #: never further than this; a handle with no cursor starts at ``anchor_hour_et`` of the game day
+    max_lookback_hours: float = 18.0
+    anchor_hour_et: int = 6
+    #: ``counts`` rates (docs.x.com pricing, read 2026-10-27); only ``counts`` uses them
+    usd_per_count_all: float = 0.010
 
     def __contains__(self, handle: object) -> bool:
         return isinstance(handle, str) and handle.lower() in self.reporters
@@ -233,6 +246,7 @@ def load_allowlist(path: Path | str = ALLOWLIST_PATH) -> Allowlist:
         name = row.get("name")
         reporters[handle.lower()] = Reporter(handle, team, str(name) if name else None)
     budget = raw.get("budget") or {}
+    poll = raw.get("poll") or {}
     return Allowlist(
         reporters,
         posts_per_run=int(budget.get("posts_per_run", 200)),
@@ -243,6 +257,9 @@ def load_allowlist(path: Path | str = ALLOWLIST_PATH) -> Allowlist:
         usd_per_post=float(budget.get("usd_per_post", 0.005)),
         usd_per_user=float(budget.get("usd_per_user", 0.010)),
         window_minutes=float(raw.get("window_minutes", 120)),
+        max_lookback_hours=float(poll.get("max_lookback_hours", 18)),
+        anchor_hour_et=int(poll.get("anchor_hour_et", 6)),
+        usd_per_count_all=float(budget.get("usd_per_count_all", 0.010)),
     )
 
 
@@ -329,6 +346,7 @@ class PostBudget:
         usd_per_month: float = 40.0,
         usd_per_post: float = 0.005,
         usd_per_user: float = 0.010,
+        usd_per_count_all: float = 0.010,
     ) -> None:
         self.path = path
         self.per_run = int(per_run)
@@ -337,6 +355,8 @@ class PostBudget:
         self.usd_per_month = float(usd_per_month)
         self.usd_per_post = float(usd_per_post)
         self.usd_per_user = float(usd_per_user)
+        self.usd_per_count_all = float(usd_per_count_all)
+        self.run_counts = 0
         self.run_users = 0
         self.run_posts = 0
         self.run_requests = 0
@@ -381,11 +401,30 @@ class PostBudget:
     def users_month(self, now: datetime) -> int:
         return self._month_sum(now, "users")
 
-    def usd(self, posts: int, users: int = 0) -> float:
-        return round(posts * self.usd_per_post + users * self.usd_per_user, 4)
+    def counts_today(self, now: datetime) -> int:
+        return int(self._load()["days"].get(utc_day(now), {}).get("counts_all", 0))
+
+    def counts_month(self, now: datetime) -> int:
+        return self._month_sum(now, "counts_all")
+
+    def usd(self, posts: int, users: int = 0, counts_all: int = 0) -> float:
+        return round(
+            posts * self.usd_per_post
+            + users * self.usd_per_user
+            + counts_all * self.usd_per_count_all,
+            4,
+        )
 
     def month_usd(self, now: datetime) -> float:
-        return self.usd(self.used_month(now), self.users_month(now))
+        return self.usd(self.used_month(now), self.users_month(now), self.counts_month(now))
+
+    def check_counts(self, now: datetime, n: int = 1) -> None:
+        """Refuse BEFORE a counts request if ``n`` more would pass the USD month cap."""
+        if self.month_usd(now) + n * self.usd_per_count_all > self.usd_per_month + 1e-9:
+            raise BudgetExceeded(
+                f"counts request refused: month ${self.month_usd(now):.2f} + "
+                f"{n} x ${self.usd_per_count_all:.3f} > ${self.usd_per_month:.2f} cap"
+            )
 
     def month_post_cap(self, now: datetime) -> int:
         """Posts per UTC month still readable under BOTH the post cap and the USD cap (user
@@ -439,9 +478,14 @@ class PostBudget:
                 f"{n} x ${self.usd_per_user:.3f} > ${self.usd_per_month:.2f} cap"
             )
 
-    def charge(self, now: datetime, posts: int, requests: int = 0, users: int = 0) -> None:
+    def charge(
+        self, now: datetime, posts: int, requests: int = 0, users: int = 0, counts_all: int = 0
+    ) -> None:
         data = self._load()
         day = data["days"].setdefault(utc_day(now), {"posts": 0, "requests": 0})
+        if counts_all:
+            day["counts_all"] = int(day.get("counts_all", 0)) + int(counts_all)
+            self.run_counts += int(counts_all)
         if users:
             day["users"] = int(day.get("users", 0)) + int(users)
         self.run_users += int(users)
@@ -517,12 +561,42 @@ class HandleState:
 
 
 @dataclass
+class HandlePoll:
+    """One handle's poll. ``started_at`` is the clock ``first_seen_at`` uses (UTC)."""
+
+    handle: str
+    team_id: int | None
+    started_at: datetime
+    start_time: datetime
+    ended_at: datetime | None = None
+    status: str = "ok"  # ok | short:budget | short:max_pages | error:<kind> | refused:budget
+    detail: str = ""
+    pages: int = 0
+    posts: list[Post] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "ok"
+
+
+@dataclass
 class PollResult:
     posts: list[Post] = field(default_factory=list)
     raw_paths: list[Path] = field(default_factory=list)
     per_handle: dict[str, int] = field(default_factory=dict)
     skipped: dict[str, str] = field(default_factory=dict)  # handle -> why not polled
     stopped: str | None = None  # budget / rate-limit message when the poll ended early
+    outcomes: list[HandlePoll] = field(default_factory=list)
+
+
+def anchor_et(now: datetime, hour: int = 6) -> datetime:
+    """``hour``:00 ET of the game day containing ``now`` (before it: the previous day), UTC."""
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    local = now.astimezone(et)
+    day = local.date() if local.hour >= hour else local.date() - timedelta(days=1)
+    return datetime(day.year, day.month, day.day, hour, 0, tzinfo=et).astimezone(UTC)
 
 
 def _parse_created(s: str) -> datetime:
@@ -642,6 +716,7 @@ class XClient:
             allowlist.usd_per_month,
             allowlist.usd_per_post,
             allowlist.usd_per_user,
+            allowlist.usd_per_count_all,
         )
         self.state = HandleState(self.data_dir / "state.json")
         self.user_ids = UserIdCache(self.data_dir / "user_ids.json", self.state)
@@ -769,54 +844,174 @@ class XClient:
                 rows.append(_user_row(h, u))
         return rows
 
-    def fetch_posts(self, handle: str, start_time: datetime, max_results: int) -> list[Post]:
-        """One page of ``handle``'s own posts since ``start_time`` (retweets and replies
-        excluded on the wire; the parser defends again). Charges the ledger per post."""
+    def fetch_page(
+        self,
+        handle: str,
+        start_time: datetime,
+        max_results: int,
+        pagination_token: str | None = None,
+    ) -> tuple[list[Post], str | None]:
+        """One page of ``handle``'s own posts since ``start_time`` (retweets and replies excluded
+        on the wire; the parser defends again), newest first, and the token of the next page (None
+        = no older post inside the window). Charges the ledger per post."""
         rep = self.allowlist.require(handle)
         max_results = max(MAX_RESULTS_MIN, min(MAX_RESULTS_MAX, int(max_results)))
         uid = self.user_id(rep.handle)
-        params = {
+        params: dict[str, Any] = {
             "max_results": max_results,
             "start_time": start_time.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "tweet.fields": TWEET_FIELDS,
             "exclude": "retweets,replies",
         }
+        if pagination_token:
+            params["pagination_token"] = pagination_token
         fetched = self.now()
         body = self._get(ENDPOINTS["user_tweets"].format(user_id=uid), params)
         posts = parse_tweets_payload(body, rep.handle, _naive_utc(fetched))
         self.budget.charge(fetched, len(posts))
-        return posts
+        meta = body.get("meta") if isinstance(body, dict) else None
+        token = meta.get("next_token") if isinstance(meta, dict) else None
+        return posts, (str(token) if token else None)
+
+    def fetch_posts(self, handle: str, start_time: datetime, max_results: int) -> list[Post]:
+        """The first page only (see :meth:`fetch_page`)."""
+        return self.fetch_page(handle, start_time, max_results)[0]
+
+    def counts_all_page(
+        self,
+        query: str,
+        start_time: datetime,
+        end_time: datetime,
+        next_token: str | None = None,
+        granularity: str = "day",
+    ) -> Any:
+        """One page of ``GET /2/tweets/counts/all``: counts per ``granularity`` bucket, no post
+        text. Billed per request; the month USD cap is checked before the request is sent."""
+        self.budget.check_counts(self.now(), 1)
+        params: dict[str, Any] = {
+            "query": query,
+            "start_time": start_time.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "end_time": end_time.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "granularity": granularity,
+        }
+        if next_token:
+            params["next_token"] = next_token
+        body = self._get(ENDPOINTS["counts_all"], params)
+        self.budget.charge(self.now(), 0, counts_all=1)
+        return body
+
+    def poll_start(
+        self, handle: str, now: datetime, lookback_hours: float | None = None
+    ) -> datetime:
+        """Lower bound of this poll (capture fix 3).
+
+        * the handle has an ok poll on record: back to that poll's start minus the overlap, but not
+          further than ``max_lookback_hours`` (a short page never moved the cursor, so the gap it
+          left is read again);
+        * no cursor: the ``anchor_hour_et`` (06:00 ET) of the game day, capped the same way, so a
+          morning shootaround post is reachable by the first poll of the day;
+        * ``lookback_hours`` (the CLI flag) replaces the cap and the anchor.
+        """
+        cap = timedelta(hours=lookback_hours or self.allowlist.max_lookback_hours)
+        floor = now - cap
+        st = self.state.get(handle)
+        cursor = st.get("last_ok_poll_at") or st.get("last_created_at")
+        if cursor:
+            c = datetime.fromisoformat(cursor)
+            c = c.replace(tzinfo=UTC) if c.tzinfo is None else c.astimezone(UTC)
+            return max(floor, c - timedelta(seconds=CURSOR_OVERLAP_S))
+        if lookback_hours:
+            return floor
+        return max(floor, anchor_et(now, self.allowlist.anchor_hour_et))
+
+    def poll_handle(
+        self, handle: str, now: datetime, *, lookback_hours: float | None = None
+    ) -> HandlePoll:
+        """Read one handle back to :meth:`poll_start`, page by page. ``status`` is ``ok`` only when
+        the timeline was read to the start bound; a budget or page-count cut is ``short:<why>`` and
+        leaves the cursor where it was. Raises the API errors (the caller isolates them)."""
+        rep = self.allowlist.require(handle)
+        start = self.poll_start(rep.handle, now, lookback_hours)
+        out = HandlePoll(rep.handle, rep.team_id, now, start)
+        token: str | None = None
+        while True:
+            try:
+                remaining = self.budget.check(self.now())
+            except BudgetExceeded as exc:
+                if out.pages == 0:
+                    raise
+                out.status, out.detail = "short:budget", str(exc)
+                break
+            page, token = self.fetch_page(rep.handle, start, remaining, token)
+            out.pages += 1
+            out.posts.extend(page)
+            if token is None:
+                break
+            if out.pages >= MAX_PAGES:
+                out.status, out.detail = "short:max_pages", f"{MAX_PAGES} pages and more remain"
+                break
+        out.ended_at = self.now()
+        return out
 
     def poll(
-        self, handles: Iterable[str] | None = None, *, lookback_hours: float | None = None
+        self,
+        handles: Iterable[str] | None = None,
+        *,
+        lookback_hours: float | None = None,
+        isolate_errors: bool = False,
     ) -> PollResult:
-        """One page per handle. Stops (not fails) when the budget runs out mid-poll."""
+        """Every handle back to its cursor. Stops (not fails) when the budget runs out before a
+        handle's first page. With ``isolate_errors`` an API error becomes that handle's
+        ``error:<kind>`` outcome and the poll goes on (the scheduled job); without it the error
+        propagates (the manual command exits 4)."""
         res = PollResult()
-        lookback = timedelta(hours=lookback_hours or self.allowlist.lookback_hours)
         names = list(handles) if handles is not None else self.allowlist.handles()
         for h in names:
             rep = self.allowlist.require(h)  # refuses before any request
             now = self.now()
             try:
-                remaining = self.budget.check(now)
+                self.budget.check(now)
             except BudgetExceeded as exc:
                 res.stopped = str(exc)
+                res.outcomes.append(
+                    HandlePoll(rep.handle, rep.team_id, now, now, now, "refused:budget", str(exc))
+                )
                 log.warning("reporters: %s", exc)
                 break
-            last = self.state.get(rep.handle).get("last_created_at")
-            start = now - lookback
-            if last:
-                start = max(start, datetime.fromisoformat(last).replace(tzinfo=UTC))
-            posts = self.fetch_posts(rep.handle, start, remaining)
-            res.per_handle[rep.handle] = len(posts)
-            if posts:
-                path = write_raw(self.raw_dir, rep.handle, posts, now)
+            try:
+                out = self.poll_handle(rep.handle, now, lookback_hours=lookback_hours)
+            except BudgetExceeded as exc:
+                res.stopped = str(exc)
+                res.outcomes.append(
+                    HandlePoll(rep.handle, rep.team_id, now, now, now, "refused:budget", str(exc))
+                )
+                break
+            except (RateLimited, Unreachable, ReporterHTTPError, KeyMissingError) as exc:
+                if not isolate_errors:
+                    raise
+                kind = type(exc).__name__
+                res.outcomes.append(
+                    HandlePoll(
+                        rep.handle, rep.team_id, now, now, self.now(), f"error:{kind}", str(exc)
+                    )
+                )
+                log.warning("reporters: %s: %s", rep.handle, exc)
+                continue
+            res.outcomes.append(out)
+            res.per_handle[rep.handle] = len(out.posts)
+            if out.posts:
+                path = write_raw(self.raw_dir, rep.handle, out.posts, now)
                 if path is not None:
                     res.raw_paths.append(path)
-                newest = max(p.created_at for p in posts)
-                self.state.update(rep.handle, last_created_at=newest.isoformat())
-                res.posts.extend(posts)
-            log.info("reporters: %s: %d posts", rep.handle, len(posts))
+                res.posts.extend(out.posts)
+            if out.status == "ok":
+                fields: dict[str, Any] = {"last_ok_poll_at": _naive_utc(now).isoformat()}
+                if out.posts:
+                    fields["last_created_at"] = max(p.created_at for p in out.posts).isoformat()
+                self.state.update(rep.handle, **fields)
+            else:
+                res.stopped = res.stopped or out.detail
+            log.info("reporters: %s: %d posts, %s", rep.handle, len(out.posts), out.status)
         return res
 
 
@@ -937,18 +1132,25 @@ def budget_report(allow: Allowlist, data_dir: Path, now: datetime | None = None)
         allow.usd_per_month,
         allow.usd_per_post,
         allow.usd_per_user,
+        allow.usd_per_count_all,
     )
     day, month = b.used_today(now), b.used_month(now)
     ud, um = b.users_today(now), b.users_month(now)
+    cd, cm = b.counts_today(now), b.counts_month(now)
     return "\n".join(
         [
             f"day   {utc_day(now)} UTC: {day}/{b.per_day} posts, "
-            f"{b.requests_today(now)} attempts, {ud} user reads, est ${b.usd(day, ud):.2f} "
-            f"(posts ${b.usd(day):.2f} + users ${b.usd(0, ud):.2f})",
+            f"{b.requests_today(now)} attempts, {ud} user reads, {cd} counts requests, "
+            f"est ${b.usd(day, ud, cd):.2f} "
+            f"(posts ${b.usd(day):.2f} + users ${b.usd(0, ud):.2f} "
+            f"+ counts ${b.usd(0, 0, cd):.2f})",
             f"month {utc_day(now)[:7]} UTC: {month}/{b.per_month} posts, "
-            f"{b.requests_month(now)} attempts, {um} user reads, est ${b.usd(month, um):.2f}/"
-            f"${b.usd_per_month:.2f} (posts ${b.usd(month):.2f} + users ${b.usd(0, um):.2f})",
-            f"rates ${b.usd_per_post}/post, ${b.usd_per_user}/user read "
+            f"{b.requests_month(now)} attempts, {um} user reads, {cm} counts requests, "
+            f"est ${b.usd(month, um, cm):.2f}/${b.usd_per_month:.2f} "
+            f"(posts ${b.usd(month):.2f} + users ${b.usd(0, um):.2f} "
+            f"+ counts ${b.usd(0, 0, cm):.2f})",
+            f"rates ${b.usd_per_post}/post, ${b.usd_per_user}/user read, "
+            f"${b.usd_per_count_all}/counts request "
             "(configs/reporters.yaml; not in cost.yaml)",
         ]
     )
@@ -1059,6 +1261,12 @@ def check_handles(
 def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
     p.add_argument("--facts-db", default=None, help="write claimed facts here (omit = print)")
+    p.add_argument(
+        "--store",
+        default=None,
+        help="reporter_facts.duckdb (known_at = our first read; survives nba.facts build); "
+        "omit = do not write it",
+    )
     p.add_argument("--rosters", default=str(ROOT / "data" / "rosters"))
     p.add_argument("--schedule-cache", default=str(ROOT / "data" / "schedule_cache"))
     p.add_argument("--aliases", default=str(ROOT / "configs" / "kalshi_aliases.yaml"))
@@ -1089,12 +1297,29 @@ def main(argv: list[str] | None = None) -> int:
     rt.add_argument("--schedule", required=True)
     rt.add_argument("--teams", nargs="+", default=None)
     rt.add_argument("--date", default=None, help="UTC day of the raw dir (default today)")
+    tk = sub.add_parser("tick", help="scheduled job: plan, poll the handles that are due, log")
+    _common(tk)
+    tk.add_argument("--data-dir", default=str(DATA_DIR))
+    tk.add_argument("--ops-dir", default=str(ROOT / "data" / "ops"))
+    cn = sub.add_parser(
+        "counts", help="Stage 0: label-free full-archive COUNTS (billed per request)"
+    )
+    cn.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
+    cn.add_argument("--data-dir", default=str(DATA_DIR))
+    cn.add_argument("--out-dir", default=None, help="default data/raw/x_counts_<UTC date>")
+    cn.add_argument("--seasons", nargs="+", default=None, help="subset of 2023-24 2024-25")
+    cn.add_argument(
+        "--dry-run", action="store_true", help="print the plan and worst-case cost only"
+    )
+    cn.add_argument("--confirm", action="store_true", help="required to send any request")
+    cn.add_argument("--max-usd", type=float, default=0.50, help="refuse a plan costing more")
     bud = sub.add_parser("budget", help="today's and this month's posts, attempts, est. USD")
     bud.add_argument("--allowlist", default=str(ALLOWLIST_PATH))
     bud.add_argument("--data-dir", default=str(DATA_DIR))
     rep = sub.add_parser("parse-only", help="replay raw parquet files (no network, no cost)")
     _common(rep)
     rep.add_argument("--file", action="append", required=True)
+    rep.add_argument("--data-dir", default=str(DATA_DIR))
     rep.add_argument("--schedule", default=None, help="schedule parquet overriding the cache")
     rep.add_argument("--teams", nargs="+", default=None, help="tricodes; restrict the schedule")
     chk = sub.add_parser(
@@ -1134,10 +1359,61 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         return 0
 
+    if args.cmd == "counts":
+        from nba.ingest import reporter_counts as rc_
+
+        try:
+            return rc_.command(
+                load_allowlist(args.allowlist),
+                data_dir=Path(args.data_dir),
+                out_dir=Path(args.out_dir) if args.out_dir else rc_.default_out_dir(),
+                seasons=args.seasons,
+                dry_run=args.dry_run,
+                confirm=args.confirm,
+                max_usd=args.max_usd,
+            )
+        except (KeyMissingError, BudgetExceeded, PollRefused, ValueError) as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 2
+        except OSError as exc:
+            print(f"cannot read: {exc}", file=sys.stderr)
+            return 2
+        except (RateLimited, Unreachable, ReporterHTTPError) as exc:
+            print(f"X API: {exc}", file=sys.stderr)
+            return 4
+
     from nba.ingest import reporter_facts as rf  # lazy: duckdb + schedule only when used
 
     try:
         allow = load_allowlist(args.allowlist)
+        if args.cmd == "tick":
+            from nba.daily.schedule import load_schedule_cache
+            from nba.ingest import reporter_tick as rtick
+
+            now_t = datetime.now(UTC)
+            data_dir = Path(args.data_dir)
+            res_t = rtick.run_tick(
+                now=now_t,
+                allow=allow,
+                games=load_schedule_cache(rf.season_for(now_t), Path(args.schedule_cache)),
+                make_client=lambda: XClient(allow, data_dir=data_dir),
+                make_ctx=lambda: rf.Context.load(
+                    allow,
+                    rosters_dir=Path(args.rosters),
+                    schedule_cache=Path(args.schedule_cache),
+                    aliases_path=Path(args.aliases),
+                    nicknames_path=Path(args.nicknames),
+                    at=now_t,
+                ),
+                store_path=Path(args.store)
+                if args.store
+                else data_dir.parent / "facts" / "reporter_facts.duckdb",
+                data_dir=data_dir,
+                ops_dir=Path(args.ops_dir),
+                alerts_path=Path(args.ops_dir) / "ALERTS.md",
+            )
+            print(f"tick: {res_t.detail} (rc {res_t.rc})")
+            return int(res_t.rc)
         if args.cmd == "report-test":
             games = load_schedule_parquet(args.schedule, args.teams)
             ctx0 = rf.Context.load(
@@ -1192,11 +1468,47 @@ def main(argv: list[str] | None = None) -> int:
         elif args.cmd == "parse-only" and args.schedule:
             ctx = replace(ctx, schedule=load_schedule_parquet(args.schedule, args.teams))
         claimed, counts = rf.claims_for_posts(posts, ctx)
+        if args.store:
+            from nba.ingest import reporter_store as rs
+            from nba.ingest import reporter_tick as rtick
+
+            con_s = rs.open_store(Path(args.store))
+            try:
+                if args.cmd == "poll":
+                    for o in result.outcomes:
+                        rs.log_poll(
+                            con_s,
+                            rs.PollRecord(
+                                "manual",
+                                o.handle,
+                                o.team_id,
+                                rtick._naive(o.started_at),
+                                rtick._naive(o.ended_at) if o.ended_at else None,
+                                o.status,
+                                len(o.posts),
+                                o.pages,
+                                rtick._naive(o.start_time),
+                                o.detail[:300],
+                            ),
+                        )
+                    seen = rs.first_seen_index(
+                        [client.raw_dir, client.raw_dir.parent / "raw_backfill"]
+                    )
+                else:
+                    seen = rs.first_seen_index([Path(args.data_dir).joinpath("raw")])
+                sf, rj, _ = rf.pretip_facts_for_posts(posts, ctx, seen)
+                w, d = rs.insert_facts(con_s, [*sf, *rf.claimed_store_facts(claimed, seen)])
+                rs.insert_rejects(con_s, rj, datetime.now(UTC).replace(tzinfo=None))
+                print(f"store: {w} facts written, {d} already there ({args.store})")
+            finally:
+                con_s.close()
         written = None
         if args.facts_db:
             con = rf.open_facts_db(Path(args.facts_db))
             try:
-                written = rf.write_claimed_facts(con, claimed)
+                written = rf.write_claimed_facts(
+                    con, claimed
+                )  # known_at = fetched_at, never created_at
             finally:
                 con.close()
         print(rf.format_report(claimed, counts, written))
@@ -1210,7 +1522,7 @@ def main(argv: list[str] | None = None) -> int:
     except (RateLimited, Unreachable, ReporterHTTPError) as exc:
         print(f"X API: {exc}", file=sys.stderr)
         return 4
-    except rf.FactsDbError as exc:
+    except (rf.FactsDbError, StoreError) as exc:
         print(f"facts db: {exc}", file=sys.stderr)
         return 3
 

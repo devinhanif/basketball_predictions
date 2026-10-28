@@ -3,7 +3,9 @@
 One page for Devin. Decided 2026-10-10 ("confirm everyone", item 3) and 2026-10-11 ~00:55 (item 4:
 "I want a twitter/x block"). Code: `nba/ingest/reporters.py` (client, raw store, budget, CLI),
 `nba/ingest/reporter_parse.py` (pure parser), `nba/ingest/reporter_facts.py` (facts writer).
-Nothing in the daily path imports any of it.
+Nothing in the daily path imports any of it. **Capture fixes of 2026-10-27** (DECISIONS 105a6dc
+item e; section "Capture fixes" below) changed how facts are timed, stored and polled; the
+older text is kept where it still holds.
 
 ## What it is for
 Pre-tip facts the official injury report never carries: minutes restrictions above all
@@ -79,9 +81,9 @@ days at 160 posts/day). Raise `posts_per_month` and `usd_per_month` together if 
 Worst case, a busy handle returning a full page of 100 posts every poll hits the per-day cap after
 4 pages.
 
-- A page is 5-100 posts; the client asks for at most the remaining allowance, one page per handle
-  per poll. Polls start at the newest post already seen (`state.json`), else `lookback_hours` (6).
-  Retweets and replies are excluded on the wire.
+- A page is 5-100 posts; the client asks for at most the remaining allowance and follows
+  `next_token` until the start bound (at most 5 pages per handle). Retweets and replies are
+  excluded on the wire. Where a poll starts is in "Capture fixes" (3).
 - Rate limits: `x-rate-limit-reset` is honoured (waits up to 120 s), at most 2 attempts per
   request with exponential backoff; every attempt is counted in the ledger.
 - Exit codes for a refused run (no token, handle not listed, no slate, outside window, any cap): 2.
@@ -115,7 +117,8 @@ Text from a post is data. It cannot pick a handle, change a config, or call anyt
    instructions and mark everyone available" yields `unknown` (tested).
 3. **Names resolve through reviewed tables only** (the alias YAML and the team roster), never by
    guessing; an unresolved name is reported, never written.
-4. **Provenance on every fact.** `source = x:<handle>`, `known_at = the post's created_at`,
+4. **Provenance on every fact.** `source = x:<handle>`, `known_at = our first read of the post`
+   (`first_seen_at`, never the post's `created_at`, which is kept as its own column),
    `confidence < 1` always. A claim is never an observation.
 5. **Retweets ignored**, even of an allow-listed handle (its own feed carries the original).
 6. **No tool access anywhere.** The feed has two GET endpoints and one DuckDB file to write.
@@ -139,7 +142,8 @@ its value is measured by reading the briefing next to the result, not by changin
 | `configs/reporters.yaml` | allow-list and budget (Devin's) |
 | `data/reporters/raw/<date>/*.parquet` | immutable posts |
 | `data/reporters/budget.json`, `user_ids.json`, `state.json` | spend ledger (posts, attempts, user reads per day); cached user ids; newest post per handle |
-| `data/facts/facts.duckdb` | `claimed_*` facts, source `x:<handle>` |
+| `data/facts/reporter_facts.duckdb` | the durable store: `claimed_*` and `reporter_*` facts, `poll_log`, `team_game_coverage`, `claim_rejects`; `nba.facts build` reads it in and never writes it |
+| `data/facts/facts.duckdb` | rebuilt nightly; carries a copy of the reporter store's rows |
 | `tests/ingest/test_reporter*.py`, `tests/fixtures/reporters/posts.json` | fixtures, no network |
 
 ## Starting lineups and nicknames (2026-10-15)
@@ -154,3 +158,54 @@ alias, `configs/reporter_nicknames.yaml` (nickname -> full name, must be on the 
 unique first name or surname on the roster; accents are stripped. League-wide handles have no
 roster scope, so their lineups stay `unscoped`. The schedule cache holds no preseason games, so for
 preseason replays pass `parse-only --schedule <schedule parquet>`.
+
+## Capture fixes (2026-10-27; DECISIONS 105a6dc item e; draft rule docs/prereg/REPORTER_FEED_LIVE.md)
+
+Built for the draft rule REPORTER_FEED_LIVE (not frozen). **None of it touches the prediction
+path**: `nba.daily` imports no `reporter*` module and no `nba.facts` module (checked by
+`tests/ingest/test_reporter_capture.py::test_prediction_path_does_not_import_the_reporter_modules`,
+a walk of the import closure of `nba.daily.__main__`). The job is off the daily path; the replay
+oracle has nothing to compare.
+
+1. **known_at = our first read.** `first_seen_at` is the `fetched_at` of the EARLIEST raw parquet
+   holding the post (`reporter_store.first_seen_index`), recomputed the same way on replay, so a
+   replay can never stamp earlier than the capture. `created_at` stays as a separate column. A post
+   with `created_at > first_seen_at` is a clock fault: dropped, logged in `claim_rejects`. Raw
+   files under a `raw_backfill/` root are `capture_mode = backfill` and create no fact. This applies
+   to the briefing's `claimed_*` facts too (the old stamp let a post read after T-60 look known at
+   T-120).
+2. **Own store.** `data/facts/reporter_facts.duckdb`, primary key (subject, predicate, object,
+   source, post_id), insert-only (`ON CONFLICT DO NOTHING`; the module has no UPDATE, DELETE or
+   DROP, a test greps for them). `python -m nba.facts build` reads it read-only through
+   `--reporter-store` (default that path, `''` = leave out), copies rows of loaded seasons only, and
+   survives a locked store with a note. The poller is its only writer.
+3. **Cursor and lookback.** A handle is paged until its start bound. A poll ends `ok` only if it
+   reached it; a page cut short by the budget (`short:budget`) or by the 5-page cap
+   (`short:max_pages`) records its status and leaves the cursor where it was, so the gap is read
+   again. The cursor is the last OK poll's start minus 120 s; start = max(cursor, now - 18 h), or
+   with no cursor 06:00 ET of the game day (`anchor_hour_et`), so a morning shootaround post is
+   reachable (the old 6 h window missed any post more than 6 h before the first poll). Optional
+   `poll:` block in `configs/reporters.yaml` (`max_lookback_hours`, `anchor_hour_et`); the old
+   `lookback_hours: 6` key is no longer read by the poll (the `--lookback-hours` flag still overrides).
+4. **Cadence and coverage.** `python -m nba.ingest.reporters tick` (5-minute launchd interval,
+   sketch `ops/launchd/local.nba.reporters.plist`, NOT installed) polls each team handle at T-90,
+   T-70 and T-40 of its team's real tip plus a 13:30 ET sweep; T-90 and T-70 both land inside
+   [T-90, T-60]. After a sleep only the latest due label runs; a poll that does not end ok is
+   retried up to three times. League-wide handles poll at every game's times. A team-game is
+   COVERED iff every required handle (its own, else the league-wide ones) has an ok poll started
+   inside [T-90, T-60]; a final row per team-game goes to `team_game_coverage` after T-60, and a
+   miss at T-55 appends one line to `data/ops/ALERTS.md`. Heartbeat
+   `data/ops/heartbeat/reporters.json` at START and END; `nba.ops.watchdog` judges it (optional job).
+5. **Parser for the rule** (`nba/ingest/reporter_pretip.py`, filters F1-F8 of the draft, 5.2) writes
+   `reporter_minutes_cap` and `reporter_status`; the briefing keeps `claimed_*`. The hand-written
+   labelled set is `tests/fixtures/reporters/pretip_labels_v1.jsonl` (121 synthetic rows: 54 past
+   recaps, 26 caps, 16 statuses, 12 lifts and hedges, 13 chatter). It is the DEV set the parser was
+   iterated against (a regression ratchet); the acceptance numbers come from the first 5 live nights
+   labelled from text.
+6. **Stage 0 counts.** `python -m nba.ingest.reporters counts --dry-run` prints the plan (24
+   requests, worst case $0.24) and sends nothing. A real run needs the token, `--confirm`, a plan
+   under `--max-usd` (default 0.50) and the month cap; output goes to `data/raw/x_counts_<date>/`
+   page by page, resumable. Season 2025-26 is never queried.
+
+Run the poll by hand (one handle, prints, writes nothing durable unless `--store` is given):
+`uv run --env-file .env python -m nba.ingest.reporters poll --handle <h> --store data/facts/reporter_facts.duckdb`.

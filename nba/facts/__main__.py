@@ -31,6 +31,11 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="start years, e.g. 2026: build ONLY tips_at/home_team/away_team for them",
     )
+    b.add_argument(
+        "--reporter-store",
+        default="data/facts/reporter_facts.duckdb",
+        help="write-once reporter facts, read in (never written); '' = leave them out",
+    )
     args = p.parse_args(argv)
     sched = tuple(int(x) for x in args.schedule_seasons.split(",") if x.strip())
     seasons = tuple(int(x) for x in args.seasons.split(",") if x.strip())
@@ -43,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
             max_season=args.max_season,
             schedule_seasons=sched,
             seasons=seasons,
+            reporter_store=args.reporter_store or None,
         )
     except duckdb.IOException as e:
         print(f"LOCKED or unreadable: {e}", file=sys.stderr)

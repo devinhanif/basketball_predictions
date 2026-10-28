@@ -1111,3 +1111,13 @@ CLV mean with a slate-date-clustered bootstrap CI per label; below `min_settled_
 4. Check it: `JARVIS_DISCORD_WEBHOOK=... uv run python -m nba.jarvis test-send` once (or `--dry-run` first). After each night: `book score`; Devin updates `balance.current_usd` in `configs/jarvis.yaml`.
 Optional iMessage: add `imessage` to `delivery.sinks`, set `JARVIS_IMESSAGE_TO` the same way, and allow Terminal/uv to control Messages (System Settings > Privacy & Security > Automation).
 Uninstall: `launchctl bootout gui/$(id -u)/local.nba.jarvis && rm ~/Library/LaunchAgents/local.nba.jarvis.plist`.
+
+## Beat-reporter poll (off the daily path; not installed)
+
+`python -m nba.ingest.reporters tick` (`ops/launchd/local.nba.reporters.plist`, a sketch the
+maintainer installs by hand) polls allow-listed beat reporters at T-90, T-70 and T-40 of each team's
+tip and writes `data/facts/reporter_facts.duckdb`, a write-once store that `nba.facts build` reads in
+(the nightly facts step is unchanged and still never blocks the steps after it). Nothing in
+`nba.daily` imports it, no prediction reads it, and the replay oracle is unaffected. Its heartbeat is
+`data/ops/heartbeat/reporters.json` (watchdog job `reporters`, optional). Details and the incident
+behind each choice: docs/REPORTER_FEED.md, "Capture fixes".
