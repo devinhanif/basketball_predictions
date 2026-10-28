@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +34,12 @@ class Night:
         self.manifest: list[dict[str, Any]] = []
         self.n = 0
 
+    def predecessor(self, seconds_before: int = 30) -> None:
+        """The in-progress period-2 tick the halftime definition needs before the halftime tick."""
+        self.scoreboard(
+            T0 - timedelta(seconds=seconds_before), "STATUS_IN_PROGRESS", 2, clock="0.8"
+        )
+
     def add(self, source: str, key: str, at: datetime, body: Any) -> None:
         self.n += 1
         ts = at.strftime("%Y%m%dT%H%M%S") + f"_{self.n}"
@@ -50,11 +56,21 @@ class Night:
         )
 
     def scoreboard(
-        self, at: datetime, status: str, period: int, away: int = 50, home: int = 60
+        self,
+        at: datetime,
+        status: str,
+        period: int,
+        away: int = 50,
+        home: int = 60,
+        clock: str | None = None,
     ) -> None:
         ev = {
             "id": EID,
-            "status": {"type": {"name": status}, "period": period},
+            "status": {
+                "type": {"name": status},
+                "period": period,
+                "displayClock": clock or ("0.0" if status == "STATUS_HALFTIME" else "5.0"),
+            },
             "competitions": [
                 {
                     "competitors": [
@@ -67,7 +83,12 @@ class Night:
         self.add("espn_scoreboard", "2026-10-26", at, {"events": [ev]})
 
     def summary(
-        self, at: datetime, players: list[dict[str, Any]], status: str = "STATUS_HALFTIME"
+        self,
+        at: datetime,
+        players: list[dict[str, Any]],
+        status: str = "STATUS_HALFTIME",
+        clock: str = "0.0",
+        period: int = 2,
     ) -> None:
         teams: dict[str, list[dict[str, Any]]] = {}
         for p in players:
@@ -81,7 +102,11 @@ class Night:
                 }
             )
         body = {
-            "header": {"competitions": [{"status": {"type": {"name": status}}}]},
+            "header": {
+                "competitions": [
+                    {"status": {"type": {"name": status}, "period": period, "displayClock": clock}}
+                ]
+            },
             "boxscore": {
                 "players": [
                     {

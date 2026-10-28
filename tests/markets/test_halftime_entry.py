@@ -28,6 +28,7 @@ def night(
     pages: list | None = None,
 ) -> Path:
     n = Night(tmp / "live_2026-10-26")
+    n.predecessor()
     for s in range(0, 900, 60):
         n.scoreboard(T0 + s * S, "STATUS_HALFTIME", 2)
     if q3_at is not None:
@@ -115,7 +116,7 @@ def test_as_of_hides_later_files(tmp_path: Path) -> None:
     r = he.NightReader(p, as_of=T0 + 100 * S)
     c: Counter[str] = Counter()
     assert r.snapshot(r.hts[EID], "KXNBAPTS", c) is None and c["series_no_page_in_window"] == 1
-    r2 = he.NightReader(p, as_of=T0 + 130 * S)
+    r2 = he.NightReader(p, as_of=T0 + 160 * S)
     assert r2.snapshot(r2.hts[EID], "KXNBAPTS", Counter()) is not None
     assert r2.hts[EID].q3_first is None  # the Q3 tick at +900 s is not visible yet
 
@@ -204,6 +205,7 @@ def test_other_games_markets_are_ignored(tmp_path: Path) -> None:
 def test_player_stat_uses_the_right_column_and_three_pointers_parse(tmp_path: Path) -> None:
     pl = [box("Ann Alpha", "DET", 18, pts=12, reb=3, ast=2, tpm=2, pf=2)]
     n = Night(tmp_path / "live_2026-10-26")
+    n.predecessor()
     for s in range(0, 900, 60):
         n.scoreboard(T0 + s * S, "STATUS_HALFTIME", 2)
     n.scoreboard(T0 + 900 * S, "STATUS_IN_PROGRESS", 3)
@@ -223,3 +225,107 @@ def test_no_side_fields_are_read() -> None:
     for word in ("no_ask", "no_bid", "no_sub_title"):
         assert word not in src, word
     assert not re.search(r"\bside\b", src)
+
+
+# ---- amendment A1: what a halftime tick is -----------------------------------------------------
+
+
+def bare_night(tmp: Path, ticks: list[tuple[int, str, int, str]], state_clock: str = "0.0") -> Path:
+    """Scoreboard ticks (offset s, status, period, clock) plus one halftime summary and one page."""
+    n = Night(tmp / "live_2026-10-26")
+    for off, status, period, clock in ticks:
+        n.scoreboard(T0 + off * S, status, period, clock=clock)
+    n.summary(
+        T0 + 110 * S, [box("Ann Alpha", "DET", 18, pts=12, pf=2, starter=True)], clock=state_clock
+    )
+    n.kalshi("KXNBAPTS", T0 + 125 * S, [market("KXNBAPTS", "Ann Alpha", 15, ask=0.44)])
+    return n.close()
+
+
+HT = [(s, "STATUS_HALFTIME", 2, "0.0") for s in range(0, 600, 60)]
+
+
+def test_halftime_tick_needs_period_two_and_clock_zero(tmp_path: Path) -> None:
+    glitch = [
+        (-700, "STATUS_END_PERIOD", 1, "12:00"),
+        (-640, "STATUS_HALFTIME", 2, "11:04"),
+        (-580, "STATUS_IN_PROGRESS", 2, "10:51"),
+        (-30, "STATUS_IN_PROGRESS", 2, "0.8"),
+    ]
+    r = he.NightReader(bare_night(tmp_path, [*glitch, *HT]))
+    assert (
+        r.hts[EID].ht_first == T0 and r.hts[EID].start_observed
+    )  # the 11:04 glitch is not halftime
+
+
+def test_a_glitch_alone_is_no_halftime_at_all(tmp_path: Path) -> None:
+    r = he.NightReader(
+        bare_night(
+            tmp_path, [(0, "STATUS_HALFTIME", 2, "11:04"), (60, "STATUS_IN_PROGRESS", 2, "10:51")]
+        )
+    )
+    assert r.hts == {}
+
+
+@pytest.mark.parametrize(
+    "pred",
+    [
+        [],  # capture started mid-halftime: nothing before
+        [(-200, "STATUS_IN_PROGRESS", 2, "0.8")],  # older than 150 s
+        [(-30, "STATUS_END_PERIOD", 1, "0.0")],  # not period 2
+    ],
+)
+def test_halftime_start_must_be_observed(tmp_path: Path, pred: list) -> None:
+    r = he.NightReader(bare_night(tmp_path, [*pred, *HT]))
+    c: Counter[str] = Counter()
+    assert not r.hts[EID].start_observed
+    assert r.snapshot(r.hts[EID], "KXNBAPTS", c) is None and c["ht_start_unobserved"] == 1
+
+
+def test_predecessor_at_exactly_150s_passes(tmp_path: Path) -> None:
+    r = he.NightReader(bare_night(tmp_path, [(-150, "STATUS_IN_PROGRESS", 2, "0.8"), *HT]))
+    assert r.hts[EID].start_observed
+
+
+def test_second_half_is_the_first_later_tick_in_period_three_not_a_status_flicker(
+    tmp_path: Path,
+) -> None:
+    flicker = [(300, "STATUS_IN_PROGRESS", 2, "0.0")]  # status flips but still period 2
+    ticks = [
+        (-30, "STATUS_IN_PROGRESS", 2, "0.8"),
+        *[t for t in HT if t[0] != 300],
+        *flicker,
+        (700, "STATUS_IN_PROGRESS", 3, "11:41"),
+    ]
+    r = he.NightReader(bare_night(tmp_path, ticks))
+    assert r.hts[EID].q3_first == T0 + 700 * S
+
+
+def test_summary_must_also_show_period_two_clock_zero(tmp_path: Path) -> None:
+    ticks = [(-30, "STATUS_IN_PROGRESS", 2, "0.8"), *HT]
+    r = he.NightReader(bare_night(tmp_path, ticks, state_clock="11:09"))
+    c: Counter[str] = Counter()
+    assert r.snapshot(r.hts[EID], "KXNBAPTS", c) is None and c["series_state_not_halftime"] == 1
+    ok = he.NightReader(bare_night(tmp_path / "b", ticks, state_clock="0.0"))
+    assert ok.snapshot(ok.hts[EID], "KXNBAPTS", Counter()) is not None
+
+
+def test_clock_parser() -> None:
+    assert all(he.clock_is_zero(x) for x in ("0.0", "0:00", "0", " 0.0 "))
+    assert not any(he.clock_is_zero(x) for x in ("11:04", "12.8", "0:01", "", None, "abc"))
+
+
+# ---- amendment A2: a live pass waits for the tick to close ---------------------------------------
+
+
+def test_live_snapshot_waits_until_30s_after_the_first_page(tmp_path: Path) -> None:
+    p = night(tmp_path, page_at=125, pages=[125, 130, 150])
+    for as_of, expect_none in ((T0 + 126 * S, True), (T0 + 154 * S, True), (T0 + 155 * S, False)):
+        r = he.NightReader(p, as_of=as_of)
+        c: Counter[str] = Counter()
+        sn = r.snapshot(r.hts[EID], "KXNBAPTS", c)
+        assert (sn is None) is expect_none, as_of
+        assert (c["tick_not_closed"] == 1) is expect_none
+    full = he.NightReader(p)
+    sn = full.snapshot(full.hts[EID], "KXNBAPTS", Counter())
+    assert sn is not None and len(sn.candidates) == 3  # all three pages of the tick

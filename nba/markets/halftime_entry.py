@@ -127,6 +127,9 @@ class Halftime:
     away_score: int | None
     home_score: int | None
     ht_file: str = ""
+    start_observed: bool = (
+        True  # an in-progress period-2 tick within 150 s before the halftime tick
+    )
 
     @property
     def t_star(self) -> datetime:
@@ -137,8 +140,34 @@ class Halftime:
         return f"{self.away}@{self.home}"
 
 
+PRIOR_TICK_MAX_S = 150  # the tick before the halftime tick must be this recent (and in period 2)
+
+
+def clock_is_zero(display_clock: Any) -> bool:
+    """ESPN game clock at 0: "0.0", "0:00", "0". Anything else (11:04, 12.8) is not the end of a period."""
+    txt = str(display_clock or "").strip()
+    try:
+        if ":" in txt:
+            m, sec = txt.split(":", 1)
+            return float(m) * 60 + float(sec) == 0
+        return float(txt) == 0
+    except ValueError:
+        return False
+
+
+def is_halftime_state(name: Any, period: Any, display_clock: Any) -> bool:
+    """The halftime definition (amendment A1): status HALFTIME, period 2, clock 0. ESPN once sent
+    STATUS_HALFTIME with period 2 and 11:04 left (a glitch, 2026-10-26 MIN@CLE); that is not halftime."""
+    try:
+        p = int(period or 0)
+    except (TypeError, ValueError):
+        return False
+    return name == "STATUS_HALFTIME" and p == 2 and clock_is_zero(display_clock)
+
+
 def halftimes(scoreboard: list[Entry]) -> dict[str, Halftime]:
     out: dict[str, Halftime] = {}
+    prev: dict[str, tuple[datetime, int]] = {}
     for ts, path, _ in scoreboard:
         try:
             body = read_gz(path)
@@ -149,11 +178,17 @@ def halftimes(scoreboard: list[Entry]) -> dict[str, Halftime]:
             st = ev.get("status", {})
             name = st.get("type", {}).get("name")
             period = int(st.get("period") or 0)
-            if name == "STATUS_HALFTIME" and eid not in out:
+            if eid not in out and is_halftime_state(name, period, st.get("displayClock")):
                 comp = ev["competitions"][0]
                 teams = {c["homeAway"]: c for c in comp["competitors"]}
                 a = teams["away"]["team"]["abbreviation"]
                 h = teams["home"]["team"]["abbreviation"]
+                pv = prev.get(eid)
+                observed = (
+                    pv is not None
+                    and pv[1] == 2
+                    and (ts - pv[0]).total_seconds() <= PRIOR_TICK_MAX_S
+                )
                 out[eid] = Halftime(
                     eid,
                     ESPN_TO_KALSHI.get(a, a),
@@ -165,11 +200,12 @@ def halftimes(scoreboard: list[Entry]) -> dict[str, Halftime]:
                     _int(teams["away"].get("score")),
                     _int(teams["home"].get("score")),
                     str(path.name),
+                    observed,
                 )
             ht = out.get(eid)
-            later = ht is not None and ht.q3_first is None and ts > ht.ht_first
-            if ht is not None and later and (name != "STATUS_HALFTIME" or period >= 3):
-                ht.q3_first = ts  # a later tick that is not halftime: the second half has started
+            if ht is not None and ht.q3_first is None and ts > ht.ht_first and period >= 3:
+                ht.q3_first = ts  # first later tick with period >= 3: the second half has started
+            prev[eid] = (ts, period)
     return out
 
 
@@ -225,6 +261,15 @@ def summary_status(summary: dict[str, Any]) -> str | None:
         return str(summary["header"]["competitions"][0]["status"]["type"]["name"])
     except (KeyError, IndexError, TypeError):
         return None
+
+
+def summary_is_halftime(summary: dict[str, Any]) -> bool:
+    """Status HALFTIME and period 2 and clock 0 on the summary header too (amendment A1)."""
+    try:
+        st = summary["header"]["competitions"][0]["status"]
+        return is_halftime_state(st["type"]["name"], st.get("period"), st.get("displayClock"))
+    except (KeyError, IndexError, TypeError):
+        return False
 
 
 @dataclass
@@ -301,6 +346,9 @@ class NightReader:
     def snapshot(self, ht: Halftime, series: str, counts: Counter[str]) -> Snapshot | None:
         """The entry snapshot of one game and series, or None with the reason counted."""
         t_star = ht.t_star
+        if not ht.start_observed:
+            counts["ht_start_unobserved"] += 1
+            return None
         if ht.q3_first is not None and ht.q3_first <= t_star:
             counts["q3_before_decision_time"] += 1
             return None
@@ -310,13 +358,18 @@ class NightReader:
             counts["series_no_page_in_window"] += 1
             return None
         first_ts = pages[0][0]
+        if self.as_of is not None and self.as_of < first_ts + timedelta(seconds=SAME_TICK_S):
+            counts["tick_not_closed"] += (
+                1  # the pages of one tick may still be arriving (amendment A2)
+            )
+            return None
         tick = [p for p in pages if (p[0] - first_ts).total_seconds() < SAME_TICK_S]
         st = state_before(self.summaries.get(ht.event_id, []), first_ts)
         if st is None or (first_ts - st[0]).total_seconds() > STATE_MAX_AGE_S:
             counts["series_state_stale_or_missing"] += 1
             return None
         summary = read_gz(st[1])
-        if summary_status(summary) != "STATUS_HALFTIME":
+        if not summary_is_halftime(summary):
             counts["series_state_not_halftime"] += 1
             return None
         snap = Snapshot(

@@ -385,7 +385,10 @@ def _halftime_overs_one(
     s = HO.settings(rt.cfg)
     if not s.get("post_without_plays", False) and not todays_rows(rt.book, slate, g.game_id):
         return None
-    picks = HO.top_overs(scored["rows"], lg.matchup, float(s["min_edge"]), int(s["top_n"]))
+    picks = HO.top_overs(
+        scored["rows"], lg.matchup, float(s["min_edge"]), int(s["top_n"]),
+        int(s["display_min_bid_c"]), int(s["display_max_spread_c"]),
+    )  # fmt: skip
     lines = HO.overs_lines(lg.matchup, picks)
     if not lines:
         return None

@@ -239,6 +239,12 @@ def load_config(
         pin = ho.get("fee_pin") or {}
         if not 0.0 < float(ho["min_edge"]) < 1.0 or not 1 <= int(ho["top_n"]) <= 3:
             raise ValueError("halftime_overs.min_edge must be in (0, 1) and top_n in 1..3")
+        if not ho.get("artifact_digest"):
+            raise ValueError("halftime_overs.artifact_digest must pin the served artifact")
+        if int(ho["display_min_bid_c"]) < 1 or int(ho["display_max_spread_c"]) < 1:
+            raise ValueError(
+                "halftime_overs display_min_bid_c and display_max_spread_c must be >= 1"
+            )
         if not {"formula", "coefficient", "multiplier"} <= set(pin):
             raise ValueError("halftime_overs.fee_pin needs formula, coefficient, multiplier")
     if cfg.reserve_for_strong >= cfg.nightly_cap:

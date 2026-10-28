@@ -68,6 +68,8 @@ def score_halftimes(
         if ck not in _CACHE:
             _CACHE[ck] = load_artifact(art_path)
         art = _CACHE[ck]
+        if art.digest != str(s["artifact_digest"]):  # the served model is the pinned one
+            return {"ok": False, "error": "artifact digest mismatch", "path": str(art_path)}
         db = nba_db or cfg.paths["nba_db"]
         mgd = s.get("recency_min_game_date")
         mgd_d = None if mgd in (None, "") else date.fromisoformat(str(mgd))
@@ -75,7 +77,7 @@ def score_halftimes(
         if rk not in _CACHE:
             _CACHE[rk] = RecencyProvider(db, slate, min_game_date=mgd_d)
         rec = _CACHE[rk]
-        store = HalftimeStore.open(":memory:" if dry_run else _resolve(cfg, "store"))
+        store = HalftimeStore.open(":memory:" if dry_run else _resolve(cfg, "store"), mode="live")
         try:
             rep = score_night(
                 live_dir(cfg, slate),
@@ -103,13 +105,30 @@ def score_halftimes(
         return {"ok": False, "error": type(exc).__name__}
 
 
+def display_ok(r: dict[str, Any], min_bid_c: int, max_spread_c: int) -> bool:
+    """Display filter (not a rule): a real bid and a book no wider than ``max_spread_c``."""
+    bid = r.get("bid_c")
+    return bid is not None and bid >= min_bid_c and r["ask_c"] - bid <= max_spread_c
+
+
 def top_overs(
-    rows: list[dict[str, Any]], game: str, min_edge: float, top_n: int
+    rows: list[dict[str, Any]],
+    game: str,
+    min_edge: float,
+    top_n: int,
+    min_bid_c: int = 1,
+    max_spread_c: int = 10,
 ) -> list[dict[str, Any]]:
-    """Best strike per (player, stat) in one game with model edge >= ``min_edge``, largest first."""
+    """Best strike per (player, stat) in one game with model edge >= ``min_edge``, largest first.
+
+    Only books with ``bid >= min_bid_c`` and ``ask - bid <= max_spread_c`` are shown: wide books carry
+    the largest apparent edges and the stalest asks. The paper table keeps every row.
+    """
     best: dict[tuple[str, str], dict[str, Any]] = {}
     for r in rows:
         if r["game"] != game or r["edge_model"] < min_edge - 1e-12:
+            continue
+        if not display_ok(r, min_bid_c, max_spread_c):
             continue
         key = (r["player_name"], r["stat"])
         if key not in best or (r["edge_model"], -r["k"]) > (
@@ -128,7 +147,8 @@ def overs_lines(game: str, picks: list[dict[str, Any]]) -> list[str]:
     for r in picks:
         out.append(
             f"- {r['player_name']} {r['k']}+ {STAT_LABEL[r['stat']]} (Yes): "
-            f"model {round(100 * r['p_model'])}% vs ask {r['ask_c']}c + {r['fee_c']}c fee"
+            f"model {round(100 * r['p_model'])}% (pace baseline {round(100 * r['p_glm_e'])}%) "
+            f"vs ask {r['ask_c']}c, bid {r['bid_c']}c + {r['fee_c']}c fee"
         )
     out.append("No track record yet; shown for the paper log only, no stake suggested.")
     return out

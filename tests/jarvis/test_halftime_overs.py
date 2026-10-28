@@ -20,11 +20,20 @@ CLOCK = TIP1 + timedelta(minutes=70)
 
 
 def r(
-    player: str, stat: str, k: int, ask: int, fee: int, p: float, game: str = "LAL@LAC"
+    player: str,
+    stat: str,
+    k: int,
+    ask: int,
+    fee: int,
+    p: float,
+    game: str = "LAL@LAC",
+    bid: int | None = None,
+    glm: float = 0.55,
 ) -> dict[str, Any]:
     return {
         "game": game, "player_name": player, "stat": stat, "k": k, "ask_c": ask, "fee_c": fee,
-        "p_model": p, "edge_model": p - ask / 100 - fee / 100,
+        "p_model": p, "p_glm_e": glm, "bid_c": ask - 3 if bid is None else bid,
+        "edge_model": p - ask / 100 - fee / 100,
     }  # fmt: skip
 
 
@@ -44,11 +53,29 @@ def test_top_overs_best_strike_per_player_stat_threshold_and_max() -> None:
     assert HO.top_overs(rows, "LAL@LAC", 0.50, 3) == []
 
 
+def test_display_filter_needs_a_real_bid_and_a_spread_of_at_most_10c() -> None:
+    rows = [
+        r("A", "pts", 15, 44, 2, 0.70, bid=34),  # spread 10: shown
+        r("B", "pts", 15, 44, 2, 0.70, bid=33),  # spread 11: hidden
+        r("C", "pts", 15, 38, 2, 0.90, bid=2),  # the 38c/2c book: hidden
+        r("D", "pts", 15, 20, 2, 0.70, bid=0),  # no bid: hidden
+        r("E", "pts", 15, 20, 2, 0.70, bid=1),  # bid 1c but spread 19: hidden
+    ]
+    rows.append(r("F", "pts", 15, 5, 1, 0.70, bid=1))  # bid 1c, spread 4: shown
+    rows.append(r("G", "pts", 15, 44, 2, 0.70) | {"bid_c": None})  # no bid at all: hidden
+    got = HO.top_overs(rows, "LAL@LAC", 0.05, 3)
+    assert sorted(x["player_name"] for x in got) == ["A", "F"]
+    assert HO.display_ok(rows[0], 1, 10) and not HO.display_ok(rows[1], 1, 10)
+
+
 def test_line_text_is_labelled_yes_only_and_has_no_stake() -> None:
     lines = HO.overs_lines("LAL@LAC", [r("Ann Alpha", "pts", 15, 44, 2, 0.58)])
     txt = "\n".join(lines)
     assert "UNPROVEN" in txt and "paper" in txt
-    assert "model 58% vs ask 44c + 2c fee" in txt and "15+ pts (Yes)" in txt
+    assert (
+        "model 58% (pace baseline 55%) vs ask 44c, bid 41c + 2c fee" in txt
+        and "15+ pts (Yes)" in txt
+    )
     low = txt.lower()
     for word in ("$", "stake of", "bet ", "buy", "under", " no)", "kelly", "contracts"):
         assert word not in low, word
@@ -75,20 +102,33 @@ def test_scorer_failure_is_fail_soft(cfg: JarvisConfig, tmp_path: Path) -> None:
     assert res["ok"] is False and "error" in res
 
 
-def test_config_shipped_state_is_paper_strict_and_valid() -> None:
+def test_config_shipped_state_is_paper_pinned_and_valid() -> None:
     c = load_config()
     ho = c.halftime_overs
     assert ho["min_edge"] == 0.05 and ho["top_n"] <= 3 and ho["post_without_plays"] is False
     assert (
-        ho["recency_min_game_date"] == "2026-10-01"
-    )  # holdout-season rows are not read as features by default
+        ho["recency_min_game_date"] is None
+    )  # C3 = allow (holdout log row 105a6dc): T508's own window
+    assert (
+        ho["artifact_digest"] == "b9b53d636279337ab01c56f6146fc20936d354dd0a01ec1f42bc262efcb9d053"
+    )
+    assert (ho["display_min_bid_c"], ho["display_max_spread_c"]) == (1, 10)
     assert ho["fee_pin"] == {"formula": "p_one_minus_p", "coefficient": 0.07, "multiplier": 1.0}
     assert (
         c.fees["kalshi"].verified and c.fees["kalshi"].coefficient == ho["fee_pin"]["coefficient"]
     )
 
 
-@pytest.mark.parametrize("bad", [{"top_n": 4}, {"min_edge": 0.0}, {"fee_pin": {}}])
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"top_n": 4},
+        {"min_edge": 0.0},
+        {"fee_pin": {}},
+        {"artifact_digest": ""},
+        {"display_max_spread_c": 0},
+    ],
+)
 def test_config_validation(tmp_path: Path, bad: dict[str, Any]) -> None:
     import yaml
 
@@ -128,7 +168,8 @@ def test_followup_posts_once_for_a_game_with_a_pick(
     assert (
         len(out) == 1
         and "UNPROVEN" in out[0]
-        and "Ann Alpha 15+ pts (Yes): model 58% vs ask 44c + 2c fee" in out[0]
+        and "Ann Alpha 15+ pts (Yes): model 58% (pace baseline 55%) vs ask 44c, bid 41c + 2c fee"
+        in out[0]
     )
     run_tick(rt, SLATE)  # same halftime again: deduped
     assert len([t for t in sent.texts if "halftime overs" in t]) == 1
@@ -181,3 +222,24 @@ def test_dry_run_never_writes_the_store(cfg: JarvisConfig, tmp_path: Path) -> No
     c2 = replace(cfg, halftime_overs={**cfg.halftime_overs, "artifact": "missing.json"})
     HO.score_halftimes(c2, SLATE, CLOCK, ["LAL@LAC"], dry_run=True)
     assert not (cfg.root / cfg.halftime_overs["store"]).exists()
+
+
+def test_shipped_artifact_matches_the_pinned_digest() -> None:
+    """The file on disk (untracked, in data/) is the pinned one; skipped on a machine without it."""
+    from nba.markets.halftime_model import load_artifact
+
+    path = Path("data/models/halftime_ingame/2026-10-27/artifact.json")
+    if not path.exists():
+        pytest.skip("artifact not on this machine")
+    assert load_artifact(path).digest == load_config().halftime_overs["artifact_digest"]
+
+
+def test_a_different_artifact_is_refused(cfg: JarvisConfig, tmp_path: Path) -> None:
+    from tests.markets.halftime_helpers import tiny_artifact
+
+    tiny_artifact(tmp_path)
+    c2 = replace(
+        cfg, halftime_overs={**cfg.halftime_overs, "artifact": str(tmp_path / "artifact.json")}
+    )
+    res = HO.score_halftimes(c2, SLATE, CLOCK, ["LAL@LAC"], dry_run=True)
+    assert res["ok"] is False and res["error"] == "artifact digest mismatch"

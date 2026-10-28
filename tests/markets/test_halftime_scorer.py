@@ -48,6 +48,7 @@ def build(
     markets: list | None = None,
 ) -> Path:
     n = Night(tmp / "live_2026-10-26")
+    n.predecessor()
     for s in range(0, last_tick + 1, 60):
         n.scoreboard(T0 + s * S, "STATUS_HALFTIME", 2)
     if q3_at is not None:
@@ -110,7 +111,11 @@ def test_replay_scores_stamps_and_excludes(tmp_path: Path) -> None:
         assert (
             r["made_at"].replace(tzinfo=UTC) == T0 + 125 * S
         )  # earliest instant every input existed
-        assert r["t_star"].replace(tzinfo=UTC) == T0 + 120 * S and r["within_prereg_window"] is True
+        assert (
+            r["t_star"].replace(tzinfo=UTC) == T0 + 120 * S
+            and r["within_prereg_window"] is False
+            and r["mode"] == "replay"
+        )
         assert 0.0 < r["p_model"] < 1.0 and 0.0 < r["p_glm_e"] < 1.0
         assert r["edge_model"] == pytest.approx(r["p_model"] - r["ask_c"] / 100 - r["fee_c"] / 100)
         assert r["edge_glm_e"] == pytest.approx(r["p_glm_e"] - r["ask_c"] / 100 - r["fee_c"] / 100)
@@ -160,21 +165,25 @@ def test_unverified_or_drifted_fee_is_refused(tmp_path: Path, fee: FeeModel) -> 
 
 
 def test_live_tick_stamps_with_the_clock_before_the_second_half(tmp_path: Path) -> None:
-    store = HalftimeStore.open(":memory:")
+    store = HalftimeStore.open(":memory:", mode="live")
     now = T0 + 200 * S
     rep = run(build(tmp_path), store, tmp_path, now=now)
     assert rep.stored == 3
     assert {r["made_at"].replace(tzinfo=UTC) for r in store.rows()} == {now}
 
 
-def test_live_row_after_the_prereg_window_is_stored_but_flagged(tmp_path: Path) -> None:
-    store = HalftimeStore.open(":memory:")
-    run(build(tmp_path), store, tmp_path, now=T0 + 400 * S)
-    assert {r["within_prereg_window"] for r in store.rows()} == {False}  # made_at > t* + 180 s
+def test_live_window_flag_comes_from_the_database_clock_not_the_stamp(tmp_path: Path) -> None:
+    store = HalftimeStore.open(":memory:", mode="live")
+    run(build(tmp_path), store, tmp_path, now=T0 + 160 * S)  # a stamp inside the window ...
+    rows = store.rows()
+    assert rows and {r["within_prereg_window"] for r in rows} == {
+        False
+    }  # ... but written years later
+    assert all(r["written_at"] > r["made_at"] + timedelta(hours=1) for r in rows)
 
 
 def test_refused_once_the_second_half_has_started(tmp_path: Path) -> None:
-    store = HalftimeStore.open(":memory:")
+    store = HalftimeStore.open(":memory:", mode="live")
     rep = run(build(tmp_path, q3_at=600), store, tmp_path, now=T0 + 650 * S)
     assert rep.stored == 0 and store.rows() == []
     assert rep.counts["refused_second_half_started"] == 1
@@ -189,7 +198,7 @@ def test_replay_refuses_a_snapshot_known_only_after_the_second_half_started(tmp_
 
 
 def test_live_stale_feed_scores_nothing(tmp_path: Path) -> None:
-    store = HalftimeStore.open(":memory:")
+    store = HalftimeStore.open(":memory:", mode="live")
     rep = run(build(tmp_path, q3_at=None, last_tick=60), store, tmp_path, now=T0 + 400 * S)
     assert rep.stored == 0 and rep.counts["refused_feed_stale"] == 1
 
@@ -240,3 +249,69 @@ def test_no_order_portfolio_or_credential_words_in_the_new_modules() -> None:
             ".post(",
         ):
             assert word not in low, (mod.__name__, word)
+
+
+def test_store_mode_and_clock_must_agree(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="clock"):
+        run(
+            build(tmp_path), HalftimeStore.open(":memory:", mode="live"), tmp_path
+        )  # live store, no clock
+    with pytest.raises(ValueError, match="clock"):
+        run(
+            build(tmp_path / "b"),
+            HalftimeStore.open(":memory:", mode="replay"),
+            tmp_path,
+            now=T0 + 200 * S,
+        )
+
+
+def test_counted_exclusions_are_persisted_once(tmp_path: Path) -> None:
+    store = HalftimeStore.open(":memory:")
+    night = build(tmp_path)
+    run(night, store, tmp_path)
+    got = dict(
+        store.con.execute(
+            "select reason, n from halftime_skipped where series = 'KXNBAPTS'"
+        ).fetchall()
+    )
+    assert (
+        got["x_dnp_first_half"] == 1
+        and got["x_player_unmatched"] == 1
+        and got["x_insufficient_history"] == 1
+    )
+    assert "scored_candidates" not in got and not [
+        k for k in got if k.startswith("unmatched_names")
+    ]
+    run(night, store, tmp_path)  # nothing new to score; no duplicate skip rows
+    assert store.con.execute("select count(*) from halftime_skipped").fetchone() == (
+        len(got) + _other_series(store, got),
+    )
+
+
+def _other_series(store: HalftimeStore, got: dict) -> int:
+    return store.con.execute(
+        "select count(*) from halftime_skipped where series <> 'KXNBAPTS'"
+    ).fetchone()[0]  # type: ignore[index]
+
+
+def test_live_pass_inside_an_open_tick_scores_nothing_then_everything(tmp_path: Path) -> None:
+    store = HalftimeStore.open(":memory:", mode="live")
+    night = build(tmp_path)
+    early = run(
+        night, store, tmp_path, now=T0 + 140 * S
+    )  # page at 125 s: the tick may still be arriving
+    assert early.stored == 0 and early.counts["tick_not_closed"] >= 1
+    later = run(night, store, tmp_path, now=T0 + 160 * S)
+    assert later.stored == 3
+
+
+def test_unobserved_halftime_start_scores_nothing(tmp_path: Path) -> None:
+    n = Night(tmp_path / "live_2026-10-26")
+    for s in range(0, 900, 60):  # capture started mid-halftime: no in-progress tick before
+        n.scoreboard(T0 + s * S, "STATUS_HALFTIME", 2)
+    n.scoreboard(T0 + 900 * S, "STATUS_IN_PROGRESS", 3)
+    n.summary(T0 + 110 * S, [box("Ann Alpha", "DET", 18, pts=12, pf=2)])
+    n.kalshi("KXNBAPTS", T0 + 125 * S, [market("KXNBAPTS", "Ann Alpha", 15)])
+    store = HalftimeStore.open(":memory:")
+    rep = run(n.close(), store, tmp_path)
+    assert rep.stored == 0 and rep.counts["ht_start_unobserved"] == 4

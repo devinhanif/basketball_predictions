@@ -7,10 +7,13 @@ rows to its own append-only store (``nba.markets.halftime_store``). Paper and di
 no credential, no network; it reads no outcome and settles nothing.
 
     uv run python -m nba.markets.halftime_scorer replay --night data/raw/live_2026-10-26 \\
-        --artifact data/models/halftime_ingame/<date>/artifact.json --nba-db nba.duckdb
+        --artifact data/models/halftime_ingame/<date>/artifact.json --nba-db nba.duckdb \\
+        --min-game-date none
 
-``replay`` stamps each (game, series) at the earliest instant all its inputs existed
-(``max(quote, state)`` received_at) into an in-memory store unless ``--db`` is given. The JARVIS tick
+``--min-game-date`` is required: a date limits the recency window, ``none`` allows prior seasons (the
+T508 window; holdout-log row 105a6dc). ``replay`` stamps each (game, series) at the earliest instant all
+its inputs existed (``max(quote, state)`` received_at) into an in-memory store unless ``--db`` is given;
+its rows are mode 'replay', never in the prereg window, and it is refused into the live store path. The JARVIS tick
 uses ``score_live`` with the clock instead.
 
 Fee: the verified ``FeeModel`` object from configs/parlay.yaml, one-contract taker order, rounded up
@@ -24,7 +27,7 @@ import contextlib
 import json
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +40,6 @@ from nba.markets.halftime_store import HalftimeStore, SecondHalfStartedError
 from nba.parlay.config import FeeModel
 from nba.parlay.ev import order_fee
 
-PREREG_WINDOW_S = he.QUOTE_WINDOW_S  # made_at <= t* + 180 s keeps a row inside the draft's window
 MIN_PRIOR = 5  # T508: pregame mean needs at least 5 earlier games
 FEED_MAX_AGE_S = 180.0  # live: a scoreboard older than this cannot prove the half is still on
 ESPN_TO_NBA = {"GS": "GSW", "NY": "NYK", "SA": "SAS", "NO": "NOP", "UTAH": "UTA", "WSH": "WAS"}
@@ -87,7 +89,8 @@ class RecencyProvider:
         nba_db: Path,
         slate_date: date,
         resolver: Any | None = None,
-        min_game_date: date | None = None,
+        *,
+        min_game_date: date | None,
     ) -> None:
         self.slate_date = slate_date
         con = duckdb.connect(str(nba_db), read_only=True)
@@ -230,8 +233,6 @@ def score_snapshot(
                     "quote_file": snap.quote_file,
                     "state_received_at": snap.state_received_at,
                     "state_file": snap.state_file,
-                    "within_prereg_window": made_at
-                    <= snap.t_star + timedelta(seconds=PREREG_WINDOW_S),
                     "artifact_digest": art.digest,
                 }
             )
@@ -258,6 +259,8 @@ def score_night(
     earliest instant all its inputs existed. ``only_games`` ("AWAY@HOME") limits the pass.
     """
     check_fee(fee, fee_pin, tuple(he.SERIES))
+    if (now is None) != (store.mode == "replay"):
+        raise ValueError("a live store needs the clock (now); a replay store must not get one")
     rep = ScoreReport()
     as_of = None if now is None else he.utc(now)
     reader = he.NightReader(night, as_of)
@@ -278,6 +281,8 @@ def score_night(
             c: Counter[str] = Counter()
             snap = reader.snapshot(ht, series, c)
             rep.counts.update(c)
+            for reason, n in c.items():
+                store.note_skip(as_of or ht.ht_first, eid, series, reason, n)
             if snap is None:
                 continue
             made = as_of if as_of is not None else snap.known_at
@@ -297,9 +302,14 @@ def score_night(
                     rep.counts[k] += v
                 else:
                     rep.counts["unmatched_names"] += v
-            rows = score_snapshot(snap, art, rec, fee, made, slate, rep.counts, min_prior)
+            sc_counts: Counter[str] = Counter()
+            rows = score_snapshot(snap, art, rec, fee, made, slate, sc_counts, min_prior)
+            rep.counts.update(sc_counts)
+            for reason, n in [*sc_counts.items(), *snap.excluded.items()]:
+                if not reason.startswith("unmatched_names:") and reason != "scored_candidates":
+                    store.note_skip(made, eid, series, reason, n)
             rep.rows.extend(rows)
-            rep.stored += store.append(rows, made, False)
+            rep.stored += store.append(rows, made, False, min_prior)
     return rep
 
 
@@ -307,6 +317,20 @@ def _last_scoreboard(night: Path, as_of: datetime) -> datetime | None:
     man = he.load_manifest(night, as_of)
     sb = man.get("espn_scoreboard", [])
     return sb[-1][0] if sb else None
+
+
+def _min_game_date(v: str) -> date | None:
+    """ISO date, or the word ``none``: an explicit choice to read prior-season games as features."""
+    return None if v.strip().lower() in ("none", "null") else date.fromisoformat(v)
+
+
+def load_fee_pin() -> dict[str, Any]:
+    """The fee pin from configs/jarvis.yaml ``halftime_overs.fee_pin`` (one source for live and replay)."""
+    import yaml
+
+    root = Path(__file__).resolve().parents[2]
+    raw = yaml.safe_load((root / "configs" / "jarvis.yaml").read_text())
+    return dict(raw["halftime_overs"]["fee_pin"])
 
 
 def replay_main(argv: list[str] | None = None) -> int:
@@ -321,7 +345,13 @@ def replay_main(argv: list[str] | None = None) -> int:
     r.add_argument("--db", default=":memory:")
     r.add_argument("--parlay-config", type=Path, default=Path("configs/parlay.yaml"))
     r.add_argument("--top", type=int, default=5)
-    r.add_argument("--min-game-date", type=date.fromisoformat, default=None)
+    r.add_argument(
+        "--min-game-date",
+        type=_min_game_date,
+        required=True,
+        help="first game date of the recency window (YYYY-MM-DD), or 'none' to allow prior seasons "
+        "(season-2025 rows as FEATURES; holdout-log row 105a6dc)",
+    )
     r.add_argument(
         "--min-prior",
         type=int,
@@ -330,10 +360,10 @@ def replay_main(argv: list[str] | None = None) -> int:
     )
     a = ap.parse_args(argv)
     slate = date.fromisoformat(a.night.name.removeprefix("live_"))
-    pin = {"formula": "p_one_minus_p", "coefficient": 0.07, "multiplier": 1.0}
+    pin = load_fee_pin()
     cfg = load_config(a.parlay_config)
     art = load_artifact(a.artifact)
-    store = HalftimeStore.open(a.db)
+    store = HalftimeStore.open(a.db, mode="replay")
     rec = RecencyProvider(a.nba_db, slate, min_game_date=a.min_game_date)
     rep = score_night(a.night, art, rec, cfg.fee, store, slate, None, pin, min_prior=a.min_prior)
     out = {
