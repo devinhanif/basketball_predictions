@@ -1,6 +1,7 @@
 # WORKLOAD_PTS_V2: do the workload, schedule and travel columns add to points beyond recent-role minutes? (re-test of T452, pre-registration)
 
-Status: **DRAFT (written 2026-10-27 18:41 CDT, from `date`), modeler, branch `agent/modeler-workload-pts-v2` off f5cc952. Not frozen.**
+Status: **FROZEN 2026-10-27 19:09 CDT (from `date`; Devin "redo all tests that didn't work", DECISIONS f5cc952; adversary pre-freeze AMEND applied, docs/reviews/redo_wave1_prefreeze_2026-10-27.md). Was: DRAFT (written 2026-10-27 18:41 CDT, from `date`; revised 2026-10-27 19:07 CDT (from `date`) after the adversary pre-freeze review
+docs/reviews/redo_wave1_prefreeze_2026-10-27.md, edits W1-W7), modeler, branch `agent/modeler-workload-pts-v2` off f5cc952. Not frozen.**
 Devin's request (DECISIONS 2026-10-27 18:32, wave 1, item 1): "redo all tests that didn't work before"; validity audit redo list rank 4
 (docs/reviews/validity_audit_2026-10-12.md, section 3). The main session reads this with Devin and commits
 `prereg(WORKLOAD_PTS_V2): <sha256>` BEFORE any arm is fitted. Everything above the line `=== RESULTS BELOW ===` is the rule.
@@ -16,7 +17,9 @@ No arm of this rule has been fitted or scored. The gate below is counts and cove
    permutation null (K = 50 seeds per season); coverage, slices, plants, missingness, reproduction.
 4. Descriptive, cannot pass or fail the rule: T452 re-judged with the fixed placebo (B, the 27 columns on A0, minus a past-only placebo of
    the 27), the overlap of T452's gain with recent role, per-family knockouts.
-5. Expected outcome, stated now: a null (P(pass) about 0.02). A null here is a VALID null that replaces T452's INVALID label.
+5. Expected outcome, stated now: a null (P(pass) about 0.02). A null on WF - FULL is a valid null for the 22-column increment (a new ledger
+   row). T452's INVALID label is re-judged only by the descriptive B - PL27 reading (section Descriptive), which is this rule's answer to
+   validity-audit redo item 4.
 
 ## What this re-tests and why (lineage)
 * **T452** (WORKLOAD pts, rule 261fabce): B = A0 + 27 workload columns in the heads: -0.0071 [-0.0109, -0.0034] (2023) / -0.0082 (2024),
@@ -63,8 +66,21 @@ built by `research/workload/asof.py` unchanged (13 unit tests), real tips only (
 * My priors: P(WF - FULL clears -0.005 with CI upper < 0 in both seasons) 0.03; P(full pass incl. guards) 0.02; expected WF - FULL in 2024
   -0.0006, 80% interval [-0.0025, +0.0012]. Descriptive T452 re-judgment: P(B - PL27 <= -0.003 in both seasons) 0.85 (the past-only placebo
   of the five columns carried almost no gain in T467: FULL - PL_FULL -0.0100 / -0.0086 against FULL - A0 -0.0084 / -0.0083).
-* Why run it: it costs about 12 minutes of Mac CPU (unless the primary passes), turns an INVALID row into a valid one, and says whether T452's
-  -0.007 / -0.008 was anything other than recent-role minutes. Recommendation: run it, record, close; do not build on it.
+* Why run it: it costs about 12 minutes of Mac CPU (unless the primary passes); its descriptive B - PL27 reading re-judges T452 with a valid
+  placebo, and its primary says whether T452's -0.007 / -0.008 held anything beyond recent-role minutes. Recommendation: run it, record, close; do not build on it.
+
+## Playbook check (docs/MODEL_PLAYBOOK.md)
+* Class: gradient-boosted trees (LightGBM context-residual centre and scale heads) read through the lower-tail mixture (quantile layer).
+* Information or capacity: claimed as information (as-of schedule, travel and tracking load, all knowable before tip). Every prior result says
+  it adds nothing beyond recent minutes (T452 knockouts, TRACKING_SCREEN, ADVANCED_RATES): expected null. The GBM class check "does the arm only
+  re-express the base?" is exactly the primary contrast (duplicated signal with the five recent-role columns).
+* Data enough for the class: yes. 2022 warm-up plus month blocks, about 27.6k scored rows per season; MDE of an increment-over-heads contrast
+  about 0.002-0.0026, well under the 0.005 floor. No learning curve needed for trees.
+* Test validity: integer support for every arm, game-clustered CI, real tips, FULL as the comparator (fixes F10), past-only placebo (fixes D2),
+  shared-permutation shuffle in both arms (fixes D1) judged on its own K = 50 null mean (fixes F9), frame identity pinned (below).
+* Lineage: T452's B; guards carried or dropped in the table above. T467 showed the past-only placebo is roughly neutral (PL_FULL - A0 about
+  +0.0016 / +0.0003, by subtraction), so the placebo guard is expected to be non-binding.
+* Scored against: integer CRPS of the whole distribution; no line, no market, no bet claim.
 
 ## Data exposure (honest)
 Seen before this draft: every T452/T453 arm (B, PL, knockouts, no-tracking, AL_*, A3, SHUF), T467-T469 and T473 (FULL, HEADS, PI, PL_FULL),
@@ -101,12 +117,14 @@ placebo of the 22 or of the 27, any shuffle of WF. Season 2025 not loaded. `nba.
 ## Pass rule (all must hold; 2023 selects, 2024 reports)
 1. 2023: WF - FULL <= -0.005 and CI upper < 0.
 2. 2024: WF - FULL <= -0.005, CI upper < 0, p <= 0.05. Family m = 1 (pts only, declared; BH is the identity, stated not hidden).
-3. Placebo: WF - PL <= -0.003 in each season.
+3. Placebo: WF - PL <= -0.003 in each season. (Non-binding in practice: T467's past-only placebo was about neutral against A0, +0.0016 /
+   +0.0003, so rule 2 implies rule 3. It is kept for the record.)
 4. Shuffle guard (run only if 1 and 2 hold; otherwise reported "not run, primary failed"): for each season, d(s) = SHUF_WF(s) - SHUF_FC(s)
-   for s = 0..49; the guard FIRES if mean(d) <= -0.001 AND mean(d) + 2 x sd(d)/sqrt(50) < 0 in either season (a reproducible label-free gain).
-   Expected false-fire rate if the null looks like the diagnostic's (5 columns: mean -0.0003, sd about 0.0023, so se about 0.00033): about 2% per
-   season, about 4% for the pair; about 0.1% per season if the null mean is 0. With 22 columns the sd may be larger, which lowers the fire rate
-   (the se term). The seed-0 value, its z against the null and the null sd are printed next to the bootstrap CI. A fire fails the rule.
+   for s = 0..49; the guard FIRES if mean(d) + 2 x sd(d)/sqrt(50) < -0.001 in either season (a label-free gain larger than 0.001 at about
+   97.7% one-sided confidence). False-fire rate if the null mean is -0.0003 (the diagnostic's): at most 2.1% per season and 4.1% for the pair,
+   for any null sd; lower if the null mean is 0. Deviation from BEST_PRACTICES 2026-10-12, stated: the null is measured in this run on both
+   seasons, not before the freeze; the guard tests the null's own mean, so it needs no prior sizing. The seed-0 value, its z against the null
+   and the null sd are printed next to the bootstrap CI. A fire fails the rule.
 5. Forecast calibration: randomised-PIT coverage at tau 0.10 / 0.20 / 0.80 / 0.90 (fixed row order, seed 0):
    |cov_WF - tau| - |cov_FULL - tau| <= 0.01 at every tau and season.
 6. Slices (WF - FULL; n < 300 is reported and cannot fail): realised minutes < 5, bench (as-of `starter10 < 0.5`), playoffs (`004`), cold start
@@ -123,24 +141,30 @@ NOT a pass until the adversary clears it. A pass is a CANDIDATE: red-team review
 * A null is written as "no effect larger than X", X = the 2024 CI lower bound of WF - FULL.
 
 ## Descriptive (cannot rescue or fail the rule)
-* **T452 re-judged**: B - A0 (refit, against the cached T452 value) and B - PL27 per season, with game-clustered CI. Reading fixed now: if
+Intervals here are per-number 95%, not multiplicity-adjusted.
+* **T452 re-judged**: B - A0 (refit, against the cached T452 value) and B - PL27 per season, with game-clustered CI (B refit must equal
+  `data/ops/workload_cache/pts__B.npz` to 1e-6, or the drift is reported beside the reading). Reading fixed now: if
   B - PL27 <= -0.003 in both seasons, T452's failed condition would have held under a valid placebo; the knockouts already name LOAD, so T452
   becomes "LOAD (recent-role minutes) carries a pts gain", i.e. FULL. Recorded as a T452 annotation, not a new pass.
 * **Overlap with recent role**: share = 1 - (WF - FULL) / (B - A0), point and paired-bootstrap interval; per-row correlation of the two gains.
 * Knockouts per family; LOADX - KO_LOADX style partials; WF - FULL date-clustered; bias and coverage tables.
 * Decision score at DraftKings T-60 legs (`nba.markets.decision_scoring`, 2023-24), FULL vs WF. Descriptive only.
 
-## Minimum-data gate (NN8): measured 2026-10-27 18:38 CDT (output mtime 18:38:08 CDT), counts and coverage only
+## Minimum-data gate (NN8): measured 2026-10-27 18:38 CDT (output mtime 18:38:08 CDT); re-measured 2026-10-27 19:04 CDT (output mtime
+19:04:23 CDT, `nba.duckdb` mtime 18:56:44 CDT) with the frame hash: every count below identical; counts and coverage only
 Data: `nba.duckdb` read-only (manifest `docs/data_manifests/latest.json` data_version **49a2fc3d3dff**, created 2026-10-27T12:09Z; the
 committed manifest reads a55164376845), seasons 2022-2024. Script: scratch `gates/wpv2_gate.py` (loaders `four_factors_eval.load_study`,
 `workload_eval.load_sources` / `attach_workload`, `placebo.permute_past_only`); no fit, no outcome compared across arms. **All PASS.**
+**Frame sha256 (19:04 re-measure): `47b569fba20e58bcacfcf38148fc270d0b5e4cd6f235f7a8485c329bcd7a1614`** over the 55,320 A0 rows and 71 columns
+(`stat_feature_names("pts")`, the 27 `wl_*` columns, `pts`, `minutes`). Recipe: rows sorted by (game_id, player_id); key columns hashed as
+newline-joined text; other columns in name order, each cast to Float64 (null -> NaN), little-endian bytes, prefixed by the name and a NUL.
 | check | 2023 | 2024 | limit | pass |
 |---|---|---|---|---|
 | A0 rows / games (stored components) | 27,619 / 1,318 | 27,701 / 1,320 | as T452 | yes |
 | A0 rows found in the current feature frame | 27,619 | 27,701 | all | yes (55,320 / 55,320) |
 | FULL cache rows identical to A0 rows (order) | yes | yes | identical | yes |
 | 22 columns null/NaN on A0 rows | 298 rows (8 schedule/travel cols: team's first game of a season); 0 for the other 14 | 311 rows (same 8); 0 | NULL only by an as-of cause | yes (missingness audit by bucket runs in the harness gate) |
-| past-only placebo NaN rows | 441 (1.6%) | 452 (1.6%) | reported | n/a |
+| past-only placebo NaN rows | 441 (1.6%) | 452 (1.6%) | NaN iff the row has no earlier played row in its player-season (asserted); equals production `n_season == 0` on A0 rows (reported) | yes: asserted on the whole played frame; 893 NaN rows = 893 `n_season == 0` rows, overlap 893 |
 | slice n: minutes < 5 / bench / playoffs / cold start | 2,383 / 15,352 / 1,684 / 574 | 2,326 / 15,589 / 1,804 / 464 | >= 300 to count | yes |
 | slice n: b2b second / 3-in-4 / road trip 4+ | 4,422 / 6,417 / 2,020 | 4,694 / 6,884 / 1,837 | >= 300 | yes |
 | power: expected MDE of an increment-over-heads contrast | ~0.0026 (T452 B - NT half-width) | ~0.0020 | < floor 0.005 | yes |
@@ -152,8 +176,14 @@ committed manifest reads a55164376845), seasons 2022-2024. Script: scratch `gate
 
 ## Gates that run in the harness after the freeze (before any WF / PL / KO / B / PL27 arm)
 * Reproduction: P0C equals the stored components (centre, scale, calibration) to 1e-6; FULL refit equals `heads_pts_R.npz`; FULL `pi` refit
-  equals `pi_R.npz`. If a reproduction fails because the data changed since 2026-10-12 (not a code defect), every arm, A0 and FULL included,
-  is refit on the current data and compared within the run; the drift (max abs diff, rows) is reported. This is a data note, not a kill.
+  equals `pi_R.npz`. If a reproduction fails and the inputs differ from those stored with the cache (data drift: the harness compares row keys
+  and the stored row inputs `row_y`, `row_m`, `row_minutes`, `row_min10`, `row_n_prior` of the components and cache), every arm, A0 and FULL
+  included, is refit on the current data and compared within the run; the drift (max abs diff, rows) is reported. This is a data note, not a
+  kill. A reproduction failure with identical stored inputs is a code defect and a kill.
+* Frame identity: the gate stage writes the sha256 of the season <= 2024 feature frame (sorted keys plus every column an arm reads, recipe
+  above) to gate.json; `arms` refuses if the frame it builds differs. The value recorded in this draft (47b569fb) is what the harness gate must
+  reproduce; if it does not, stop and report before any arm (the data changed after the freeze). The manifest cited in the gate table
+  (`docs/data_manifests/latest.json`, data_version 49a2fc3d3dff, uncommitted at drafting) is committed with the freeze commit.
 * Missingness of the 22 by realised-minutes bucket (< 5, 5-10, 10-20, > 20): max gap <= max(2 pp, 3 x permuted-bucket gap).
 * Plants on the real tables (WORKLOAD `planted_tests`: same-game, future, schedule; RECENT_ROLE_FULL `planted_heads` on WF's feature list):
   earlier rows bit-identical, controls change.
